@@ -69,7 +69,7 @@ export const _resetLimits = () => buckets.clear();
 
 // ---- Firestore calls (always with the caller's token) -----------------------------------------------------
 export async function getDoc(path, token, f = fetch) {
-  const r = await f(DB + '/' + path, { headers: { authorization: 'Bearer ' + token } });
+  const r = await f(DB + '/' + path, { headers: token ? { authorization: 'Bearer ' + token } : {} });
   if (r.status === 404) return null;
   if (!r.ok) throw new ApiError(r.status === 403 ? 403 : 502, 'read', 'Could not read ' + path.split('/')[0] + '.');
   return decDoc(await r.json());

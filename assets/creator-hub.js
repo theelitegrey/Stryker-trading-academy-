@@ -4,9 +4,9 @@
 // bulk email import goes through CH.importEmails (API first, rules-checked batches as fallback).
 (function () {
   var root = document.getElementById('hb-root');
-  var me, list = [], cid, cm, plans = [], members = [], invites = [], grants = [], bans = [], tab = (new URLSearchParams(location.search).get('tab') === 'discord') ? 'discord' : 'dash';
+  var me, list = [], cid, cm, plans = [], members = [], invites = [], grants = [], bans = [], tab = (['discord', 'courses'].indexOf(new URLSearchParams(location.search).get('tab')) >= 0 ? new URLSearchParams(location.search).get('tab') : 'dash');
   var payOpen = false, payAcct = null;   // payOpen: this viewer may use creator payments now (CP.open); payAcct: my payout status
-  var TABS = [['dash', 'Dashboard'], ['settings', 'Settings'], ['plans', 'Plans'], ['members', 'Members'], ['invites', 'Invites'], ['indicators', 'Indicators'], ['discord', 'Discord'], ['mods', 'Moderators']];
+  var TABS = [['dash', 'Dashboard'], ['settings', 'Settings'], ['plans', 'Plans'], ['members', 'Members'], ['invites', 'Invites'], ['indicators', 'Indicators'], ['courses', 'Courses'], ['discord', 'Discord'], ['mods', 'Moderators']];
   var FEATS = [['feed', 'Feed'], ['courses', 'Courses'], ['indicators', 'Indicators'], ['events', 'Events'], ['leaderboard', 'Leaderboard'], ['discord', 'Discord roles']];
   var $ = function (id) { return document.getElementById(id); };
   var cref = function () { return db.collection('communities').doc(cid); };
@@ -57,13 +57,18 @@
     root.innerHTML = h;
     $('hb-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { tab = b.dataset.t; draw(); } });
     var sw = $('hb-sw'); if (sw) sw.onchange = function () { cid = sw.value; load(); };
-    ({ dash: dash, settings: settings, plans: plansView, members: membersView, invites: invitesView, mods: modsView, indicators: indView, discord: discView })[tab]($('hb-body'));
+    ({ dash: dash, settings: settings, plans: plansView, members: membersView, invites: invitesView, mods: modsView, indicators: indView, courses: coView, discord: discView })[tab]($('hb-body'));
   }
 
   // ---------------------------------------------------------------- indicators (assets/creator-ind.js)
   function discView(el) {
     if (!window.CHD) { el.innerHTML = '<div class="cx-empty">Could not load the Discord tool. Reload the page.</div>'; return; }
     window.CHD.view(el, { cid: cid, cm: cm, plans: plans, reload: load });
+  }
+  function coView(el) {
+    if (!window.CHCourses) { el.innerHTML = '<div class="cx-empty">Could not load the courses tool. Reload the page.</div>'; return; }
+    if (cm.ownerUid !== me.uid) { el.innerHTML = '<div class="cx-empty">Only the community owner can build and sell courses.</div>'; return; }
+    window.CHCourses.view(el, { cid: cid, cm: cm, plans: plans, members: members, reload: load });
   }
   function indView(el) {
     if (!window.CHInd) { el.innerHTML = '<div class="cx-empty">Could not load the indicators tool. Reload the page.</div>'; return; }
@@ -97,7 +102,7 @@
       '<div><label for="st-cover">Cover (replace)</label><input id="st-cover" type="file" accept="image/png,image/jpeg,image/webp">' + (cm.coverUrl ? '<img class="cx-prev" src="' + E(cm.coverUrl) + '" alt="Current cover">' : '') + '</div>' +
       '<div><label for="st-accent">Accent colour</label><input id="st-accent" type="color" value="' + E(cm.accent) + '"></div>' +
       '<div><label>Topics (up to 3)</label><div class="cx-pick" id="st-tags">' + CH.TAGS.map(function (t) { return '<label><input type="checkbox" value="' + t[0] + '"' + ((cm.tags || []).indexOf(t[0]) >= 0 ? ' checked' : '') + '> ' + t[1] + '</label>'; }).join('') + '</div></div>' +
-      '<div><label>Features members see</label><div class="cx-pick" id="st-feats">' + FEATS.map(function (f) { return '<label><input type="checkbox" value="' + f[0] + '"' + (cm.features && cm.features[f[0]] ? ' checked' : '') + '> ' + f[1] + '</label>'; }).join('') + '</div><div class="hint">Only the tabs you turn on show to members. Courses, events and leaderboard are not live yet; their tabs say "coming soon".</div></div>' +
+      '<div><label>Features members see</label><div class="cx-pick" id="st-feats">' + FEATS.map(function (f) { return '<label><input type="checkbox" value="' + f[0] + '"' + (cm.features && cm.features[f[0]] ? ' checked' : '') + '> ' + f[1] + '</label>'; }).join('') + '</div><div class="hint">Only the tabs you turn on show to members. Events and leaderboard are not live yet; their tabs say "coming soon".</div></div>' +
       '<div><label for="st-refund">Refund rule for paid plans</label><textarea id="st-refund" maxlength="300" style="min-height:70px" placeholder="Example: Full refund within 7 days if you ask by email.">' + E(cm.refundRule || '') + '</textarea><div class="hint">Shown to buyers before they pay. You handle refunds yourself. Required before members can buy a paid plan.</div></div>' +
       '<div><label for="st-vis">Visibility</label><select id="st-vis"><option value="public">Public: listed in the directory</option><option value="unlisted">Unlisted: anyone with the link</option><option value="private">Private: invite link only</option></select></div>' +
       '<div id="st-err" class="cx-bad" role="alert"></div><div class="cx-actions"><button class="btn btn-primary" type="submit" id="st-save">Save changes</button></div></form>';

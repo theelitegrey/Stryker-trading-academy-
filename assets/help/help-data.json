@@ -4724,6 +4724,188 @@
        ]
       }
      ]
+    },
+    {
+     "id": "community-courses",
+     "title": "Community courses",
+     "items": [
+      {
+       "id": "course-build",
+       "q": "How do I build a course in the Creator Hub?",
+       "a": "<p>Open the <b>Creator Hub</b>, pick your community and go to <b>Courses</b>. Press <b>New course</b>, give it a title and choose which plans can open it. Then add a <b>module</b> (a folder) and add <b>lessons</b> to it.</p><p>A lesson is a <b>video</b> link, a <b>text</b> page, a <b>PDF</b> or a <b>link</b> to another site. Drag the handle on the left of a module or lesson to reorder it (on a phone, press and drag; with a keyboard, focus the handle and use the arrow keys).</p><p>Turn on <b>Courses</b> under Settings → Features so members see the tab, and set the course to <b>Published</b> in its Access tab. You must agree to the Creator Rules.</p>",
+       "tags": [
+        "course",
+        "creator",
+        "module",
+        "lesson",
+        "build"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator?tab=courses"
+        }
+       ]
+      },
+      {
+       "id": "course-video",
+       "q": "Which video links work, and can I swap a video later?",
+       "a": "<p>Paste a link from <b>YouTube</b> (unlisted works), <b>Vimeo</b>, <b>Loom</b>, <b>Bunny</b> or <b>Cloudflare Stream</b>. TradeZoro does not store video files; the video stays with the service you chose. Where the service allows it, the title and thumbnail are filled in for you.</p><p>You can replace a lesson's video link at any time. Learners keep their progress because progress belongs to the lesson, not to the link.</p>",
+       "tags": [
+        "course",
+        "video",
+        "youtube",
+        "vimeo",
+        "loom",
+        "bunny",
+        "cloudflare"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator?tab=courses"
+        }
+       ]
+      },
+      {
+       "id": "course-files",
+       "q": "Can I add PDFs and files to a lesson?",
+       "a": "<p>Yes. A lesson can be a PDF, and any lesson can have up to 8 attachments (PDF, PNG, JPG, WebP, ZIP, TXT, CSV, DOCX, XLSX). Each file can be up to 25 MB and a community can hold up to 1 GB in total.</p><p>Members read PDFs in the TradeZoro viewer, not through a public file link. Tick <b>Allow download</b> on an attachment only if you are happy for members to keep a copy.</p>",
+       "tags": [
+        "course",
+        "pdf",
+        "file",
+        "attachment",
+        "25 MB"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator?tab=courses"
+        }
+       ]
+      },
+      {
+       "id": "course-access",
+       "q": "How do I decide who can open a course or a module?",
+       "a": "<p>In the course's <b>Access</b> tab choose <b>only these plans</b> or <b>every active member</b>. To sell a single module, open <b>Edit module</b> and tick the plans that get it; that list replaces the course list for that module.</p><p>Mark any lesson as a <b>free preview</b> and everyone who can see the course can open it. Locked lessons still show their title, type and a lock, so people can see what a plan includes.</p><p>You can also offer a course on its own: free, by invite, or with a saved price. Paid checkout opens soon, so a priced course shows <b>Paid checkout opens soon</b>; until then give people access by email in the Access tab.</p>",
+       "tags": [
+        "course",
+        "access",
+        "plan",
+        "module",
+        "preview",
+        "lock",
+        "price"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator?tab=courses"
+        }
+       ]
+      },
+      {
+       "id": "course-drip",
+       "q": "Can I release lessons over time, or in order?",
+       "a": "<p>Yes. On a module or lesson choose <b>After joining (days)</b> or <b>On a fixed date</b>. Until then it shows <b>Available on</b> the date and stays locked. Turn on <b>In order</b> in the course's Access tab and each lesson opens only after the learner finishes the one before it.</p><p>Days after joining count from the day the person joined your community (or, for a course given on its own, the day it was given).</p>",
+       "tags": [
+        "course",
+        "drip",
+        "schedule",
+        "release",
+        "order"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator?tab=courses"
+        }
+       ]
+      },
+      {
+       "id": "course-learn",
+       "q": "How do I follow a course as a member?",
+       "a": "<p>Open the community, then the <b>Courses</b> tab. Each course shows a progress bar and so does each module. <b>Resume</b> takes you back to the lesson you were on. A lesson is marked complete by itself near the end of a YouTube or Vimeo video; for other lessons press <b>Mark complete</b>.</p><p>Under each lesson you can write private <b>notes</b> (only you see them), open the <b>attachments</b>, and take the lesson's <b>quiz</b> if there is one.</p>",
+       "tags": [
+        "course",
+        "member",
+        "progress",
+        "resume",
+        "notes",
+        "complete"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Communities",
+         "href": "/communities"
+        }
+       ]
+      },
+      {
+       "id": "course-quiz",
+       "q": "How do quizzes work?",
+       "a": "<p>Creators can add a quiz to any lesson: up to 10 multiple-choice questions with a pass mark. Learners can retry as often as they like and TradeZoro keeps their best score. When a lesson has a quiz, passing it completes the lesson.</p><p>Quizzes are a simple self-check, not an exam. Do not use them to gate anything important.</p>",
+       "tags": [
+        "course",
+        "quiz",
+        "pass mark",
+        "retry"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator?tab=courses"
+        }
+       ]
+      },
+      {
+       "id": "course-protect",
+       "q": "What stops people copying course material?",
+       "a": "<p>Videos and PDFs show a faint, moving label with the member's email and the time, and PDF pages carry it in the page itself. PDFs are served only after TradeZoro checks the member's access; there is no public file link. Text lessons stay selectable and end with a line carrying the reader's email.</p><p>This discourages sharing and makes leaks traceable. It cannot stop someone filming their own screen, and TradeZoro does not promise otherwise. Report copied material from the course page.</p>",
+       "tags": [
+        "course",
+        "watermark",
+        "piracy",
+        "protect",
+        "copy",
+        "leak"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator?tab=courses"
+        }
+       ]
+      },
+      {
+       "id": "course-analytics",
+       "q": "What can a creator see about their learners?",
+       "a": "<p>In the course's <b>Learners</b> tab you see how many people started, the share who finished the whole course, the completion percentage of each lesson, and the lesson where the most learners drop off. Creators do not see members' private notes.</p>",
+       "tags": [
+        "course",
+        "analytics",
+        "learners",
+        "completion",
+        "drop-off"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator?tab=courses"
+        }
+       ]
+      }
+     ]
     }
    ]
   }

@@ -6,6 +6,7 @@
   var cm, plans = [], me = null, mem = null, tab = 'about', hasInvite = '', inds = null, myAccess = {}, payOpen = false, paidBack = '';
   var qs = new URLSearchParams(location.search);
   if (qs.get('tab') === 'indicators') tab = 'indicators';
+  if (qs.get('tab') === 'courses') tab = 'courses';
   var wantInd = (qs.get('ind') || '').replace(/[^A-Za-z0-9]/g, ''), indCode = (qs.get('icode') || '').replace(/[^A-Za-z0-9]/g, '');
   var FEATS = [['feed', 'Feed'], ['courses', 'Courses'], ['indicators', 'Indicators'], ['events', 'Events'], ['leaderboard', 'Leaderboard']];
 
@@ -62,7 +63,10 @@
     // Indicators is visible to everyone who can see the page (so people can see what a plan includes); the code itself
     // never leaves the server unless the person has access.
     if (cm.features && cm.features.indicators && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['indicators', 'Indicators']);
-    if (member) enabled().forEach(function (f) { if (f[0] !== 'indicators') tabs.push(f); });
+    // Courses: like indicators, the structure is visible to everyone who can see the page (a teaser with locks); the content is gated by the rules.
+    if (cm.features && cm.features.courses && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['courses', 'Courses']);
+    if (member) enabled().forEach(function (f) { if (f[0] !== 'indicators' && f[0] !== 'courses') tabs.push(f); });
+    if (tab === 'courses' && !tabs.some(function (t) { return t[0] === 'courses'; })) tab = 'about';
     if (tab === 'indicators' && !tabs.some(function (t) { return t[0] === 'indicators'; })) tab = 'about';
     h += '<div class="cx-tabs" style="margin-top:16px" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="cx-two"><div id="cm-main"></div><aside id="cm-side"></aside></div>';
@@ -85,6 +89,10 @@
       return;
     }
     if (tab === 'indicators') return indicatorsTab(el, member);
+    if (tab === 'courses') {
+      if (!window.CHL) { el.innerHTML = '<div class="cx-empty">Could not load courses. Reload the page.</div>'; return; }
+      return window.CHL.mount(el, { cid: slug, cm: cm, plans: plans, mem: mem, me: me, isOwner: isOwner(), member: !!member, signIn: CH.signIn });
+    }
     var names = { feed: 'Feed', courses: 'Courses', indicators: 'Indicators', events: 'Events', leaderboard: 'Leaderboard' };
     // None of these ship in Phase A, so each says so honestly.
     el.innerHTML = '<div class="cx-empty"><h3>' + names[tab] + '</h3>Coming soon. ' + CH.esc(cm.ownerName || 'The creator') + ' has turned this on; it will appear here when it launches.</div>';

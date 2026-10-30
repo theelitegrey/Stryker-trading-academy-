@@ -58,6 +58,7 @@ BASE = {
     '/creatorMeta/own': {'count': 1, 'cid': 'old', 'updatedAt': TS},
     '/creatorMeta/full': {'count': 3, 'cid': 'old', 'updatedAt': TS},
 }
+CPATHS = set()
 IID = 'ind00000000001'
 IND = lambda *a: C('indicators', IID, *a) if a else C('indicators', IID)
 def ind(**k):
@@ -90,6 +91,7 @@ def mocks(before, after):
         paths.add(pth)
     for e in EMAILS:
         paths.add(IND('access', e))
+    paths |= CPATHS
     paths |= {IND(), IND('src', 'v1'), IND('src', 'v2'), IND('vault', 'v1'), IND('vault', 'v2'), IND('codes', 'INDCODE1234')}
     ms = []
     for pth in sorted(paths):
@@ -530,6 +532,171 @@ case(DN, 'pay: refund rule too long', 'own', 'update', C(), new=cm(refundRule='x
 case(DN, 'pay: refund rule not a string', 'own', 'update', C(), new=cm(refundRule=7, updatedAt=TS))
 case(A, 'pay: owner edits tagline when seller flags exist', 'own', 'update', C(), old=cm(sellerReady=True, sellerStatus='active'), new=cm(sellerReady=True, sellerStatus='active', tagline='z', updatedAt=TS))
 case(DN, 'pay: admin unlocks seller via suspend path', 'tz', 'update', C(), new=cm(sellerReady=True, updatedAt=TS))
+
+
+# ---------- courses (Phase C) ----------
+CR, M1, M2, L1, L2, L3, LD, LM2 = 'crs000000001', 'mod000000001', 'mod000000002', 'les000000001', 'les000000002', 'les000000003', 'les000000004', 'les000000005'
+CRP = lambda *a: C('courses', CR, *a) if a else C('courses', CR)
+def course(**k):
+    d = {'ownerUid': 'own', 'title': 'Intro', 'desc': 'd', 'coverUrl': '', 'status': 'published', 'access': {'mode': 'plans', 'planIds': ['p3']},
+         'solo': {'mode': 'off', 'price': {'amount': 0, 'currency': 'USD'}}, 'sequential': False, 'order': 0, 'rulesVersion': '2026-10-30', 'createdAt': TS, 'updatedAt': TS}
+    d.update(k); return d
+def lesson(mid=M1, **k):
+    d = {'moduleId': mid, 'title': 'Lesson', 'type': 'video', 'order': 0, 'status': 'published', 'preview': False, 'drip': {'mode': 'none', 'days': 0, 'at': None},
+         'prev': '', 'mins': 5, 'thumb': '', 'hasQuiz': False, 'updatedAt': TS}
+    d.update(k); return d
+NODRIP = {'mode': 'none', 'days': 0, 'at': None}
+def module(**k):
+    d = {'title': 'Module', 'order': 0, 'status': 'published', 'planIds': [], 'drip': NODRIP, 'updatedAt': TS}
+    d.update(k); return d
+VID = {'url': 'https://www.youtube.com/watch?v=abc123', 'provider': 'youtube'}
+def body(t='video', **k):
+    d = {'type': t, 'attachments': [], 'updatedAt': TS}
+    if t == 'video': d['video'] = VID
+    d.update(k); return d
+BODY = lambda l: CRP('lessons', l, 'content', 'body')
+CBASE = {CRP(): course(), CRP('modules', M1): module(), CRP('modules', M2): module(planIds=['p2']),
+         CRP('lessons', L1): lesson(preview=True), CRP('lessons', L2): lesson(order=1), CRP('lessons', L3): lesson(order=2, prev=L2),
+         CRP('lessons', LD): lesson(order=3, drip={'mode': 'days', 'days': 7, 'at': None}), CRP('lessons', LM2): lesson(M2),
+         BODY(L1): body(), BODY(L2): body(), BODY(L3): body(), BODY(LD): body(), BODY(LM2): body(),
+         CRP('access', 'solo@x.com'): {'email': 'solo@x.com', 'source': 'manual', 'status': 'active', 'expiresAt': None, 'createdBy': 'own', 'createdAt': TS},
+         CRP('access', 'gone@x.com'): {'email': 'gone@x.com', 'source': 'manual', 'status': 'revoked', 'expiresAt': None, 'createdBy': 'own', 'createdAt': TS},
+         CRP('progress', 'pro'): {'uid': 'pro', 'done': {L2: 1}, 'pos': {}, 'last': L2, 'updatedAt': TS}}
+BASE.update(CBASE)
+for l in (L1, L2, L3, LD, LM2): CPATHS |= {BODY(l), CRP('lessons', l)}
+CPATHS |= {CRP(), CRP('modules', M1), CRP('modules', M2), CRP('progress', 'pro'), CRP('progress', 'mem'), CRP('progress', 'out'),
+           '/communities/alpha-desk/stats/storage', C('files', 'FILE0000000000001')}
+for e in EMAILS: CPATHS.add(CRP('access', e))
+for u in PEOPLE: CPATHS.add(CRP('progress', u))
+CPATHS.add(CRP('modules', 'mod000000003')); CPATHS.add(CRP('lessons', 'les000000009')); CPATHS.add(CRP('notes', 'pro_' + L1))
+def cr(exp, name, who, method, path, **k): case(exp, name, who, method, path, **k)
+# content reads (the access gate)
+cr(A, 'course body: owner', 'own', 'get', BODY(L2))
+cr(A, 'course body: plan member (p3), no drip, not sequential', 'pro', 'get', BODY(L2))
+cr(DN, 'course body: member on a plan not in course (p1)', 'mem', 'get', BODY(L2))
+cr(DN, 'course body: non-member', 'out', 'get', BODY(L2))
+cr(DN, 'course body: signed out', None, 'get', BODY(L2))
+cr(A, 'course body: free preview lesson, signed out', None, 'get', BODY(L1))
+cr(A, 'course body: free preview lesson, non-member', 'out', 'get', BODY(L1))
+cr(DN, 'course body: preview but course is draft', 'out', 'get', BODY(L1), before={CRP(): course(status='draft')})
+cr(DN, 'course body: preview but community suspended', 'out', 'get', BODY(L1), before={C(): cm(status='suspended')})
+cr(DN, 'course body: expired plan member', 'proold', 'get', BODY(L2))
+cr(DN, 'course body: banned member', 'probad', 'get', BODY(L2))
+cr(DN, 'course body: lesson is draft', 'pro', 'get', BODY(L2), before={CRP('lessons', L2): lesson(order=1, status='draft')})
+cr(DN, 'course body: module is draft', 'pro', 'get', BODY(L2), before={CRP('modules', M1): module(status='draft')})
+cr(A, 'course body: owner reads draft lesson', 'own', 'get', BODY(L2), before={CRP('lessons', L2): lesson(order=1, status='draft')})
+cr(DN, 'course body: module restricted to plan p2, member is p3', 'pro', 'get', BODY(LM2))
+cr(A, 'course body: module overrides course list (module p1, course p3, member p1)', 'mem', 'get', BODY(LM2), before={CRP('modules', M2): module(planIds=['p1'])})
+cr(DN, 'course body: module p1 only, member p3 (course list does not add)', 'pro', 'get', BODY(LM2), before={CRP('modules', M2): module(planIds=['p1'])})
+cr(A, 'course body: module restricted to p3, member p3', 'pro', 'get', BODY(LM2), before={CRP('modules', M2): module(planIds=['p3'])})
+cr(A, 'course body: access mode all, any plan member (p1)', 'mem', 'get', BODY(L2), before={CRP(): course(access={'mode': 'all', 'planIds': []})})
+cr(DN, 'course body: drip 7 days, joined today', 'pro', 'get', BODY(LD))
+cr(A, 'course body: drip 7 days, joined 40 days ago', 'pro', 'get', BODY(LD), before={C('members', 'pro'): member('pro', plan='p3', source='invite', joinedAt='2026-09-01T10:00:00Z')})
+cr(DN, 'course body: fixed-date drip in the future', 'pro', 'get', BODY(L2), before={CRP('lessons', L2): lesson(order=1, drip={'mode': 'date', 'days': 0, 'at': LATER})})
+cr(A, 'course body: fixed-date drip in the past', 'pro', 'get', BODY(L2), before={CRP('lessons', L2): lesson(order=1, drip={'mode': 'date', 'days': 0, 'at': SOON})})
+cr(DN, 'course body: module drip in the future blocks lesson', 'pro', 'get', BODY(L2), before={CRP('modules', M1): module(drip={'mode': 'date', 'days': 0, 'at': LATER})})
+cr(A, 'course body: in-order, previous lesson done', 'pro', 'get', BODY(L3), before={CRP(): course(sequential=True)})
+cr(DN, 'course body: in-order, previous lesson NOT done', 'pro', 'get', BODY(L3), before={CRP(): course(sequential=True), CRP('progress', 'pro'): {'uid': 'pro', 'done': {}, 'pos': {}, 'last': '', 'updatedAt': TS}})
+cr(DN, 'course body: in-order, no progress doc', 'pro', 'get', BODY(L3), before={CRP(): course(sequential=True), CRP('progress', 'pro'): None})
+cr(A, 'course body: solo access (verified email)', 'solo', 'get', BODY(L2))
+cr(DN, 'course body: solo access revoked', 'gone', 'get', BODY(L2))
+cr(DN, 'course body: solo access, unverified email', 'solo', 'get', BODY(L2), verified=False)
+cr(DN, 'course body: solo access but banned email', 'ts', 'get', BODY(L2), before={CRP('access', 'ts@x.com'): {'email': 'ts@x.com', 'source': 'manual', 'status': 'active', 'expiresAt': None, 'createdBy': 'own', 'createdAt': TS}})
+cr(DN, 'course body: list is never allowed', 'own', 'list', BODY(L2))
+cr(A, 'course body: TradeZoro admin', 'tz', 'get', BODY(L2))
+# course / module / lesson metadata
+cr(A, 'course: signed-out reads published course (teaser)', None, 'get', CRP())
+cr(DN, 'course: stranger reads draft course', 'out', 'get', CRP(), before={CRP(): course(status='draft')})
+cr(A, 'course: owner reads draft', 'own', 'get', CRP(), before={CRP(): course(status='draft')})
+cr(DN, 'course: private community, non-member', 'out', 'get', CRP(), before={C(): cm(visibility='private')})
+cr(A, 'lesson meta: stranger reads published lesson', 'out', 'get', CRP('lessons', L2))
+cr(DN, 'lesson meta: stranger reads draft lesson', 'out', 'get', CRP('lessons', L2), before={CRP('lessons', L2): lesson(status='draft')})
+NEWC = course(title='New one')
+cr(A, 'course: owner creates', 'own', 'create', C('courses', 'crs000000099'), new=NEWC, old=None, before={})
+cr(DN, 'course: member creates', 'mem', 'create', C('courses', 'crs000000099'), new=dict(NEWC, ownerUid='mem'), old=None)
+cr(DN, 'course: community admin creates (owner only)', 'adm', 'create', C('courses', 'crs000000099'), new=NEWC, old=None)
+cr(DN, 'course: extra field', 'own', 'create', C('courses', 'crs000000099'), new=dict(NEWC, price=9), old=None)
+cr(DN, 'course: bad status', 'own', 'create', C('courses', 'crs000000099'), new=dict(NEWC, status='live'), old=None)
+cr(DN, 'course: owner uid spoof', 'own', 'create', C('courses', 'crs000000099'), new=dict(NEWC, ownerUid='out'), old=None)
+cr(DN, 'course: paid solo with price 0', 'own', 'create', C('courses', 'crs000000099'), new=course(solo={'mode': 'paid', 'price': {'amount': 0, 'currency': 'USD'}}), old=None)
+cr(A, 'course: paid solo with price stored', 'own', 'create', C('courses', 'crs000000099'), new=course(solo={'mode': 'paid', 'price': {'amount': 99, 'currency': 'INR'}}), old=None)
+cr(DN, 'course: id too short', 'own', 'create', C('courses', 'short'), new=NEWC, old=None)
+cr(A, 'course: owner edits', 'own', 'update', CRP(), new=course(title='Renamed'))
+cr(DN, 'course: owner changes createdAt', 'own', 'update', CRP(), new=course(createdAt=LATER))
+cr(DN, 'course: member edits', 'mem', 'update', CRP(), new=course(title='x'))
+cr(A, 'course: TradeZoro admin unpublishes', 'tz', 'update', CRP(), new=course(status='draft'))
+cr(DN, 'course: TradeZoro admin edits title', 'tz', 'update', CRP(), new=course(title='x'))
+cr(A, 'course: owner deletes', 'own', 'delete', CRP())
+cr(DN, 'course: member deletes', 'mem', 'delete', CRP())
+cr(A, 'module: owner creates', 'own', 'create', CRP('modules', 'mod000000003'), new=module(), old=None)
+cr(DN, 'module: member creates', 'mem', 'create', CRP('modules', 'mod000000003'), new=module(), old=None)
+cr(DN, 'module: drip date without date', 'own', 'create', CRP('modules', 'mod000000003'), new=module(drip={'mode': 'date', 'days': 0, 'at': None}), old=None)
+cr(DN, 'module: 3650+ drip days', 'own', 'create', CRP('modules', 'mod000000003'), new=module(drip={'mode': 'days', 'days': 4000, 'at': None}), old=None)
+cr(A, 'lesson: owner creates', 'own', 'create', CRP('lessons', 'les000000009'), new=lesson(), old=None)
+cr(DN, 'lesson: member creates', 'mem', 'create', CRP('lessons', 'les000000009'), new=lesson(), old=None)
+cr(DN, 'lesson: unknown module', 'own', 'create', CRP('lessons', 'les000000009'), new=lesson('mod000000777'), old=None)
+cr(DN, 'lesson: bad type', 'own', 'create', CRP('lessons', 'les000000009'), new=lesson(type='audio'), old=None)
+cr(DN, 'lesson: javascript thumb', 'own', 'create', CRP('lessons', 'les000000009'), new=lesson(thumb='javascript:alert(1)'), old=None)
+cr(DN, 'lesson: extra field (content smuggled into metadata)', 'own', 'create', CRP('lessons', 'les000000009'), new=dict(lesson(), url='https://x.io/v'), old=None)
+# content writes
+cr(A, 'content: owner writes video body', 'own', 'create', BODY(L2), new=body(), old=None, before={BODY(L2): None})
+cr(DN, 'content: member writes', 'mem', 'create', BODY(L2), new=body(), old=None, before={BODY(L2): None})
+cr(DN, 'content: video on random host', 'own', 'update', BODY(L2), new=body(video={'url': 'https://evil.example/v', 'provider': 'youtube'}))
+cr(A, 'content: vimeo', 'own', 'update', BODY(L2), new=body(video={'url': 'https://player.vimeo.com/video/123', 'provider': 'vimeo'}))
+cr(A, 'content: bunny', 'own', 'update', BODY(L2), new=body(video={'url': 'https://iframe.mediadelivery.net/embed/1/abc', 'provider': 'bunny'}))
+cr(A, 'content: cloudflare stream', 'own', 'update', BODY(L2), new=body(video={'url': 'https://customer-abc123.cloudflarestream.com/xyz/iframe', 'provider': 'cloudflare'}))
+cr(DN, 'content: type differs from lesson', 'own', 'update', BODY(L2), new=body('text', html='<p>x</p>'))
+cr(DN, 'content: video missing', 'own', 'update', BODY(L2), new={'type': 'video', 'attachments': [], 'updatedAt': TS})
+FILE = {'fid': 'FILE0000000000001', 'name': 'a.pdf', 'size': 1000, 'ct': 'application/pdf', 'download': False, 'sealed': {'alg': 'p256-hkdf-a256gcm', 'epk': 'AAAA', 'iv': 'BBBB', 'ct': 'CCCC'}}
+cr(A, 'content: text lesson with 1 attachment', 'own', 'update', BODY(L2), new=body(video=VID, attachments=[FILE]))
+cr(DN, 'content: attachment 26 MB', 'own', 'update', BODY(L2), new=body(attachments=[dict(FILE, size=26214400)]))
+cr(DN, 'content: attachment exe', 'own', 'update', BODY(L2), new=body(attachments=[dict(FILE, ct='application/x-msdownload')]))
+cr(DN, 'content: 9 attachments', 'own', 'update', BODY(L2), new=body(attachments=[FILE] * 9))
+cr(DN, 'content: 400k+ html', 'own', 'update', BODY(L2), new=body(html='x' * 400001))
+cr(DN, 'content: attachment without sealed token', 'own', 'update', BODY(L2), new=body(attachments=[{k: v for k, v in FILE.items() if k != 'sealed'}]))
+cr(DN, 'content: quiz with 0 questions', 'own', 'update', BODY(L2), new=body(quiz={'pass': 70, 'questions': []}))
+cr(A, 'content: quiz with a question', 'own', 'update', BODY(L2), new=body(quiz={'pass': 70, 'questions': [{'q': 'a', 'opts': ['x', 'y'], 'ok': 0}]}))
+cr(DN, 'content: link not https', 'own', 'update', BODY(L2), new=body('link', link={'url': 'http://x.io'}), before={CRP('lessons', L2): lesson(order=1, type='link')})
+# progress + notes
+cr(A, 'progress: learner writes own', 'pro', 'update', CRP('progress', 'pro'), new={'uid': 'pro', 'done': {L2: 1, L3: 1}, 'pos': {L3: 40}, 'last': L3, 'updatedAt': TS})
+cr(DN, 'progress: writes someone elses', 'pro', 'update', CRP('progress', 'mem'), new={'uid': 'mem', 'done': {}, 'pos': {}, 'last': '', 'updatedAt': TS}, old=None)
+cr(DN, 'progress: uid spoof', 'pro', 'update', CRP('progress', 'pro'), new={'uid': 'mem', 'done': {}, 'pos': {}, 'last': '', 'updatedAt': TS})
+cr(A, 'progress: reads own', 'pro', 'get', CRP('progress', 'pro'))
+cr(DN, 'progress: reads other', 'mem', 'get', CRP('progress', 'pro'))
+cr(A, 'progress: owner lists all', 'own', 'list', CRP('progress', 'pro'))
+cr(DN, 'progress: member lists all', 'pro', 'list', CRP('progress', 'pro'))
+cr(DN, 'progress: not a member and no access', 'out', 'update', CRP('progress', 'out'), new={'uid': 'out', 'done': {}, 'pos': {}, 'last': '', 'updatedAt': TS}, old=None)
+cr(A, 'progress: solo access holder writes own', 'solo', 'update', CRP('progress', 'solo'), new={'uid': 'solo', 'done': {}, 'pos': {}, 'last': '', 'updatedAt': TS}, old=None)
+cr(DN, 'progress: course is draft', 'pro', 'update', CRP('progress', 'pro'), new={'uid': 'pro', 'done': {}, 'pos': {}, 'last': '', 'updatedAt': TS}, before={CRP(): course(status='draft')})
+NT = CRP('notes', 'pro_' + L1)
+cr(A, 'note: writes own', 'pro', 'create', NT, new={'uid': 'pro', 'text': 'hi', 'updatedAt': TS}, old=None)
+cr(DN, 'note: writes another users note id', 'pro', 'create', CRP('notes', 'mem_' + L1), new={'uid': 'pro', 'text': 'hi', 'updatedAt': TS}, old=None)
+cr(DN, 'note: owner reads a member note', 'own', 'get', NT, old={'uid': 'pro', 'text': 'hi', 'updatedAt': TS})
+cr(A, 'note: reads own', 'pro', 'get', NT, old={'uid': 'pro', 'text': 'hi', 'updatedAt': TS})
+# course access docs
+CAC = lambda e: CRP('access', e)
+cr(A, 'course access: owner grants by email', 'own', 'create', CAC('zed@x.com'), new=grant('zed@x.com'), old=None)
+cr(DN, 'course access: member grants himself', 'mem', 'create', CAC('mem@x.com'), new=grant('mem@x.com', createdBy='mem'), old=None)
+cr(DN, 'course access: free claim but solo is off', 'out', 'create', CAC('out@x.com'), new=grant('out@x.com', createdBy='out', source='free'), old=None)
+cr(A, 'course access: free claim when solo is free', 'out', 'create', CAC('out@x.com'), new=grant('out@x.com', createdBy='out', source='free'), old=None, before={CRP(): course(solo={'mode': 'free', 'price': {'amount': 0, 'currency': 'USD'}})})
+cr(DN, 'course access: free claim when solo is paid', 'out', 'create', CAC('out@x.com'), new=grant('out@x.com', createdBy='out', source='free'), old=None, before={CRP(): course(solo={'mode': 'paid', 'price': {'amount': 9, 'currency': 'USD'}})})
+cr(DN, 'course access: free claim unverified', 'out', 'create', CAC('out@x.com'), new=grant('out@x.com', createdBy='out', source='free'), old=None, verified=False, before={CRP(): course(solo={'mode': 'free', 'price': {'amount': 0, 'currency': 'USD'}})})
+cr(A, 'course access: owner revokes', 'own', 'update', CAC('solo@x.com'), new=dict(BASE[CAC('solo@x.com')], status='revoked'))
+cr(DN, 'course access: holder un-revokes', 'gone', 'update', CAC('gone@x.com'), new=dict(BASE[CAC('gone@x.com')], status='active'))
+cr(A, 'course access: collection-group list of my courses', 'solo', 'list', '/communities/x/courses/y/access/solo@x.com', old=BASE[CAC('solo@x.com')])
+# files + storage total (1 GB cap, 25 MB per file)
+FID = 'FILE0000000000001'; STATS = '/communities/alpha-desk/stats/storage'
+FREG = {'ownerUid': 'own', 'crid': CR, 'lid': L2, 'name': 'a.pdf', 'size': 1000, 'ct': 'application/pdf', 'createdAt': TS}
+cr(A, 'files: owner registers file + total moves by its size (first file)', 'own', 'create', C('files', FID), new=FREG, old=None, after={STATS: {'bytes': 1000, 'lastFid': FID, 'updatedAt': TS}})
+cr(DN, 'files: register without moving the total', 'own', 'create', C('files', FID), new=FREG, old=None)
+cr(DN, 'files: member registers', 'mem', 'create', C('files', FID), new=dict(FREG, ownerUid='mem'), old=None, after={STATS: {'bytes': 1000, 'lastFid': FID, 'updatedAt': TS}})
+cr(DN, 'files: 26 MB', 'own', 'create', C('files', FID), new=dict(FREG, size=27262976), old=None, after={STATS: {'bytes': 27262976, 'lastFid': FID, 'updatedAt': TS}})
+cr(A, 'stats: total +size with the file doc', 'own', 'update', STATS, new={'bytes': 6000, 'lastFid': FID, 'updatedAt': TS}, old={'bytes': 5000, 'lastFid': 'OLD', 'updatedAt': TS}, before={STATS: {'bytes': 5000, 'lastFid': 'OLD', 'updatedAt': TS}}, after={C('files', FID): FREG, STATS: {'bytes': 6000, 'lastFid': FID, 'updatedAt': TS}})
+cr(DN, 'stats: owner lowers total without deleting a file', 'own', 'update', STATS, new={'bytes': 0, 'lastFid': FID, 'updatedAt': TS}, old={'bytes': 5000, 'lastFid': 'OLD', 'updatedAt': TS}, before={STATS: {'bytes': 5000, 'lastFid': 'OLD', 'updatedAt': TS}})
+cr(DN, 'stats: over 1 GB', 'own', 'update', STATS, new={'bytes': 1073741824 + 1000, 'lastFid': FID, 'updatedAt': TS}, old={'bytes': 1073741824, 'lastFid': 'OLD', 'updatedAt': TS}, before={STATS: {'bytes': 1073741824, 'lastFid': 'OLD', 'updatedAt': TS}}, after={C('files', FID): FREG, STATS: {'bytes': 1073741824 + 1000, 'lastFid': FID, 'updatedAt': TS}})
+cr(A, 'stats: total -size when the file doc is deleted', 'own', 'update', STATS, new={'bytes': 4000, 'lastFid': FID, 'updatedAt': TS}, old={'bytes': 5000, 'lastFid': 'OLD', 'updatedAt': TS}, before={STATS: {'bytes': 5000, 'lastFid': 'OLD', 'updatedAt': TS}, C('files', FID): FREG}, after={STATS: {'bytes': 4000, 'lastFid': FID, 'updatedAt': TS}, C('files', FID): None})
+cr(DN, 'stats: member writes', 'mem', 'update', STATS, new={'bytes': 0, 'lastFid': FID, 'updatedAt': TS}, old={'bytes': 5000, 'lastFid': 'OLD', 'updatedAt': TS}, before={STATS: {'bytes': 5000, 'lastFid': 'OLD', 'updatedAt': TS}})
+cr(DN, 'files: member reads registry', 'mem', 'get', C('files', FID), old=FREG, before={C('files', FID): FREG})
 
 # ---------- regression: old collections unchanged ----------
 case(DN, 'regression: student sets own plan', 'out', 'update', '/students/out', old={'plan': 'Free'}, new={'plan': 'Pro'}, before={'/students/out': {'plan': 'Free'}})

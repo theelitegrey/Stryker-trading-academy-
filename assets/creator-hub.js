@@ -107,8 +107,8 @@
       '<div><label for="st-tag">Tagline</label><input id="st-tag" type="text" maxlength="100" value="' + E(cm.tagline) + '"></div>' +
       '<div><label for="st-about">About</label><textarea id="st-about" maxlength="4000">' + E(cm.about) + '</textarea></div>' +
       '<div><label for="st-video">Intro video link (YouTube, Vimeo or Loom)</label><input id="st-video" type="url" value="' + E(cm.introVideo) + '"></div>' +
-      '<div><label for="st-logo">Logo (replace)</label><input id="st-logo" type="file" accept="image/png,image/jpeg,image/webp">' + (cm.logoUrl ? '<img class="cx-prev" style="max-width:96px" src="' + E(cm.logoUrl) + '" alt="Current logo">' : '') + '</div>' +
-      '<div><label for="st-cover">Cover (replace)</label><input id="st-cover" type="file" accept="image/png,image/jpeg,image/webp">' + (cm.coverUrl ? '<img class="cx-prev" src="' + E(cm.coverUrl) + '" alt="Current cover">' : '') + '</div>' +
+      '<div><label for="st-logo">Logo</label><div class="cx-imgpick av">' + (cm.logoUrl ? '<img class="cx-prev" id="st-logo-prev" src="' + E(cm.logoUrl) + '" alt="Current logo">' : '<img class="cx-prev" id="st-logo-prev" alt="" hidden>') + '<button type="button" class="btn btn-ghost" id="st-logo-b">' + (cm.logoUrl ? 'Replace and crop' : 'Choose and crop') + '</button><input id="st-logo" type="file" accept="image/png,image/jpeg,image/webp" hidden></div><div class="hint">Square. You crop it before it uploads (saved at 512 × 512).</div></div>' +
+      '<div><label for="st-cover">Cover</label><div class="cx-imgpick">' + (cm.coverUrl ? '<img class="cx-prev" id="st-cover-prev" src="' + E(cm.coverUrl) + '" alt="Current cover">' : '<img class="cx-prev" id="st-cover-prev" alt="" hidden>') + '<button type="button" class="btn btn-ghost" id="st-cover-b">' + (cm.coverUrl ? 'Replace and crop' : 'Choose and crop') + '</button><input id="st-cover" type="file" accept="image/png,image/jpeg,image/webp" hidden></div><div class="hint">Wide, 3 : 1. You crop it before it uploads (saved 1800 px wide). The guide shows where the logo and title sit.</div></div>' +
       '<div><label for="st-accent">Accent colour</label><input id="st-accent" type="color" value="' + E(cm.accent) + '"></div>' +
       '<div><label>Topics (up to 3)</label><div class="cx-pick" id="st-tags">' + CH.TAGS.map(function (t) { return '<label><input type="checkbox" value="' + t[0] + '"' + ((cm.tags || []).indexOf(t[0]) >= 0 ? ' checked' : '') + '> ' + t[1] + '</label>'; }).join('') + '</div></div>' +
       '<div><label>Features members see</label><div class="cx-pick" id="st-feats">' + FEATS.map(function (f) { return '<label><input type="checkbox" value="' + f[0] + '"' + (cm.features && cm.features[f[0]] ? ' checked' : '') + '> ' + f[1] + '</label>'; }).join('') + '</div><div class="hint">Only the tabs you turn on show to members. Feed, Events and Leaderboard are for members only.</div></div>' +
@@ -116,6 +116,23 @@
       '<div><label for="st-vis">Visibility</label><select id="st-vis"><option value="public">Public: listed in the directory</option><option value="unlisted">Unlisted: anyone with the link</option><option value="private">Private: invite link only</option></select></div>' +
       '<div id="st-err" class="cx-bad" role="alert"></div><div class="cx-actions"><button class="btn btn-primary" type="submit" id="st-save">Save changes</button></div></form>';
     el.innerHTML = h; $('st-vis').value = cm.visibility;
+    var cropped = {};   // kind -> cropped Blob, uploaded on Save
+    ['logo', 'cover'].forEach(function (k) {
+      var inp = $('st-' + k), prev = $('st-' + k + '-prev');
+      $('st-' + k + '-b').addEventListener('click', function () { inp.value = ''; inp.click(); });
+      inp.addEventListener('change', function () {
+        var f = inp.files[0]; if (!f) return; $('st-err').textContent = '';
+        if (!/^image\/(png|jpeg|webp)$/.test(f.type)) { inp.value = ''; return $('st-err').textContent = 'Images must be PNG, JPG or WebP.'; }
+        if (f.size > 20 * 1024 * 1024) { inp.value = ''; return $('st-err').textContent = 'That image is too large. Pick one under 20 MB.'; }
+        if (!window.ImgCrop) { inp.value = ''; return $('st-err').textContent = 'The image editor did not load. Reload the page.'; }
+        ImgCrop.open(f, { kind: k === 'logo' ? 'avatar' : 'cover' }).then(function (b) {
+          inp.value = ''; if (!b) return;
+          cropped[k] = b; if (prev.dataset.u) URL.revokeObjectURL(prev.dataset.u);
+          prev.dataset.u = URL.createObjectURL(b); prev.src = prev.dataset.u; prev.hidden = false; prev.alt = 'New ' + k + ' (not saved yet)';
+          $('st-' + k + '-b').textContent = 'Crop another image';
+        }).catch(function () { inp.value = ''; $('st-err').textContent = 'Could not read that image. Try a PNG, JPG or WebP.'; });
+      });
+    });
     ['st-tag', 'st-about'].forEach(function (i) { $(i).addEventListener('input', function () { CH.warnIf(this); }); });
     $('st-tags').addEventListener('change', function (e) { if (document.querySelectorAll('#st-tags input:checked').length > 3) { e.target.checked = false; $('st-err').textContent = 'Up to 3 topics.'; } });
     $('st-f').addEventListener('submit', function (e) {
@@ -131,8 +148,8 @@
       var btn = $('st-save'); btn.disabled = true;
       var ups = [];
       [['logo', 'logoUrl'], ['cover', 'coverUrl']].forEach(function (k) {
-        var f = $('st-' + k[0]).files[0]; if (!f) return;
-        if (!/^image\/(png|jpeg|webp)$/.test(f.type) || f.size > 5 * 1024 * 1024) { patch._bad = true; return; }
+        var f = cropped[k[0]]; if (!f) return;
+        if (f.size > 5 * 1024 * 1024) { patch._bad = true; return; }
         var ref = firebase.storage().ref('communities/' + cid + '/branding/' + k[0]);
         ups.push(ref.put(f, { contentType: f.type }).then(function () { return ref.getDownloadURL(); }).then(function (u) { patch[k[1]] = u; }));
       });

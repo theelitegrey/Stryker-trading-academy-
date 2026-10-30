@@ -142,20 +142,25 @@
   }
   function cnSave(){ try { sessionStorage.setItem(CN_KEY, JSON.stringify({ t: Date.now(), uid: cnState.uid, owned: cnState.owned, admin: cnState.admin })); } catch(e) {} }
 
+  // Which community the current URL is managing (id) or null.
+  function cnCurComm(){
+    var p = location.pathname.toLowerCase(), f = pageFile(), qs = new URLSearchParams(location.search);
+    var ids = cnState.owned.map(function(o){ return o.id; });
+    if (f === 'creator') { var c = qs.get('c'); return (c && ids.indexOf(c) !== -1) ? c : (ids.length === 1 ? ids[0] : null); }
+    if (f === 'c' || /^\/c\//.test(p)) {
+      var slug = (p.match(/^\/c\/([a-z0-9-]+)/) || [])[1] || qs.get('c'), t = qs.get('tab');
+      if (slug && ids.indexOf(slug) !== -1 && (t === 'feed' || t === 'events')) return slug;
+    }
+    return null;
+  }
   // Which creator item is "current" for this URL. Returns a key or null.
   function cnCurrent(){
     var p = location.pathname.toLowerCase(), f = pageFile(), qs = new URLSearchParams(location.search);
-    var one = cnState.owned.length === 1 ? cnState.owned[0].id : null;
     if (f === 'communities') return (qs.get('view') === 'mine' || location.hash === '#mine') ? 'mine' : 'explore';
-    if (f === 'c' || /^\/c\//.test(p)) {
-      var slug = (p.match(/^\/c\/([a-z0-9-]+)/) || [])[1] || qs.get('c');
-      var t = qs.get('tab');
-      if (one && slug === one && (t === 'feed' || t === 'events')) return 'feed';
-      return 'explore';
-    }
+    if (f === 'c' || /^\/c\//.test(p)) return cnCurComm() ? 'feed' : 'explore';
     if (f === 'creator') {
       var tb = qs.get('tab') || 'dash';
-      if (cnState.owned.length === 1 && ['members', 'courses', 'indicators', 'plans', 'discord', 'settings'].indexOf(tb) !== -1) return tb;
+      if (cnCurComm() && ['members', 'courses', 'indicators', 'plans', 'discord', 'settings'].indexOf(tb) !== -1) return tb;
       return 'dash';
     }
     if (f === 'creator-new') return 'start';
@@ -164,9 +169,10 @@
     return null;
   }
 
-  // Items for the menus. [key, label, short description, icon, href, aria-label]
+  // Items for the menus. [key, label, short description, href]
+  // manage = one entry per owned community (max 3): { id, label, name, items }
   function cnModel(){
-    var st = cnState, one = st.owned.length === 1 ? st.owned[0] : null;
+    var st = cnState;
     var main = [
       ['explore', 'Explore communities', 'Find and join creator communities', '/communities'],
       ['mine', 'My communities', 'Communities you have joined', '/communities?view=mine']
@@ -175,52 +181,162 @@
     if (st.admin) main.push(['mod', 'Creator moderation', 'Staff: review communities', '/creator-admin']);
     if (!st.owned.length) main.push(['start', 'Start a community', 'Set up your own, free to start', '/creator-new']);
     main.push(['how', 'How it works', 'What creators can do here', '/features/creators']);
-    var manage = null;
-    if (one) {
-      var base = '/creator?c=' + encodeURIComponent(one.id) + '&tab=';
-      manage = { label: 'Manage ' + one.name, items: [
+    var manage = st.owned.slice(0, 3).map(function(o){
+      var base = '/creator?c=' + encodeURIComponent(o.id) + '&tab=';
+      return { id: o.id, name: o.name, label: 'Manage ' + o.name, href: '/creator?c=' + encodeURIComponent(o.id), items: [
         ['members', 'Members', 'Roster, roles and bans', base + 'members'],
         ['courses', 'Courses', 'Build and publish courses', base + 'courses'],
         ['indicators', 'Indicators', 'Your protected indicators', base + 'indicators'],
-        ['feed', 'Feed & events', 'Posts and live events', '/c/' + encodeURIComponent(one.id) + '?tab=feed'],
+        ['feed', 'Feed & events', 'Posts and live events', '/c/' + encodeURIComponent(o.id) + '?tab=feed'],
         ['plans', 'Plans', 'Pricing and access', base + 'plans'],
         ['discord', 'Discord', 'Roles for your server', base + 'discord'],
         ['settings', 'Settings', 'Name, look and features', base + 'settings']
       ] };
-    }
-    return { main: main, manage: manage, many: st.owned.length > 1 };
+    });
+    return { main: main, manage: manage, more: st.owned.length > 3 };
   }
-  function cnAria(it, m){
-    return m && m.manage && m.manage.items.indexOf(it) !== -1 ? it[1] + ', manage ' + m.manage.label.slice(7) : '';
+  function cnAria(it, mg){ return mg ? it[1] + ', manage ' + mg.name : ''; }
+  function initials(n){
+    var w = String(n || '?').trim().split(/\s+/).filter(Boolean);
+    return esc(((w[0] || '?')[0] + (w.length > 1 ? w[1][0] : '')).toUpperCase());
   }
+  var CHEV = '<svg class="cn-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+  var ICON_SVG = function(k, sz){ return '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + CI[k] + '</svg>'; };
+  function accKey(id){ return 'cn_acc_' + id; }
+  function accGet(id){ try { return localStorage.getItem(accKey(id)); } catch(e) { return null; } }
+  function accSet(id, v){ try { localStorage.setItem(accKey(id), v ? '1' : '0'); } catch(e) {} }
+  var HOVER_MQ = '(hover:hover) and (pointer:fine)';
+  function canHover(){ return !!(window.matchMedia && window.matchMedia(HOVER_MQ).matches); }
 
   // Sheet groups in the MORE tuple shape: [key, label, desc, icon, extra, href, on, aria]
   function creatorGroups(){
     var m = cnModel(), cur = cnCurrent();
-    var conv = function(it){ return ['cn-' + it[0], it[1], it[2], CI[it[0]], [], it[3], it[0] === cur, cnAria(it, m)]; };
+    var conv = function(it){ return ['cn-' + it[0], it[1], it[2], CI[it[0]], [], it[3], it[0] === cur, '']; };
     var g = [['Creator Hub', m.main.map(conv)]];
-    if (m.manage) g.push([m.manage.label, m.manage.items.map(conv)]);
+    g[0][2] = m;
     return g;
   }
 
   // Sidebar section: same markup as the static HTML in each page.
-  function cnLink(it, cur, m){
-    var on = it[0] === cur, al = cnAria(it, m);
-    return '<a href="' + it[3] + '" class="side-link' + (on ? ' active' : '') + '" data-cn="' + it[0] + '"' + (on ? ' aria-current="page"' : '') + (al ? ' aria-label="' + esc(al) + '"' : '') + '>' +
-      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + CI[it[0]] + '</svg>' + esc(it[1]) + '</a>';
+  function cnLink(it, cur, mg){
+    var on = it[0] === cur, al = cnAria(it, mg);
+    return '<a href="' + it[3] + '" class="side-link' + (on ? ' active' : '') + '" data-cn="' + it[0] + '"' + (on ? ' aria-current="page"' : '') + (al ? ' aria-label="' + esc(al) + '"' : '') + '>' + ICON_SVG(it[0], 17) + esc(it[1]) + '</a>';
+  }
+  function manageRow(mg, cur, curC){
+    var rowOn = curC === mg.id && cur !== 'dash';
+    var stored = accGet(mg.id), open = stored !== null ? stored === '1' : rowOn;
+    if (rowOn && stored === null) open = true;
+    return '<div class="cn-mg' + (open ? ' open' : '') + '" data-c="' + esc(mg.id) + '">' +
+      '<a href="' + mg.href + '" class="side-link cn-mg-row' + (rowOn ? ' active' : '') + '" data-mg="' + esc(mg.id) + '" aria-haspopup="true" aria-expanded="' + (open ? 'true' : 'false') + '" title="' + esc(mg.label) + '">' +
+      '<span class="cn-av" aria-hidden="true">' + initials(mg.name) + '</span><span class="cn-mg-t">' + esc(mg.label) + '</span>' + CHEV + '</a>' +
+      '<div class="cn-sub" role="group" aria-label="' + esc(mg.label) + '">' + mg.items.map(function(it){ return cnLink(it, rowOn ? cur : null, mg); }).join('') + '</div></div>';
   }
   function renderSidebar(){
     var sec = document.getElementById('cn-section');
     if (!sec) return;
-    var m = cnModel(), cur = cnCurrent();
-    var h = '<div class="side-label" id="cn-label">Creator Hub</div>' + m.main.map(function(it){ return cnLink(it, cur, m); }).join('');
-    if (m.manage) h += '<div class="side-sublabel" title="' + esc(m.manage.label) + '">' + esc(m.manage.label) + '</div>' + m.manage.items.map(function(it){ return cnLink(it, cur, m); }).join('');
-    if (sec.innerHTML !== h) sec.innerHTML = h;
+    var m = cnModel(), cur = cnCurrent(), curC = cnCurComm();
+    var h = '<div class="side-label" id="cn-label">Creator Hub</div>' + m.main.map(function(it){ return cnLink(it, cur, null); }).join('');
+    h += m.manage.map(function(mg){ return manageRow(mg, cur, curC); }).join('');
+    if (m.more) h += '<a href="/creator" class="side-link cn-all" data-cn="all">' + ICON_SVG('dash', 17) + 'All my communities' + CHEV + '</a>';
+    if (sec.innerHTML !== h) { closeFly(true); sec.innerHTML = h; }
   }
   function refreshCreator(){
     renderSidebar();
     if (sheet && !isOpen()) { sheet.remove(); scrim.remove(); sheet = null; scrim = null; }
   }
+
+  // ---- Desktop flyout: hover / focus the "Manage <name>" row ---------------
+  var fly = null, flyRow = null, tOpen = 0, tClose = 0, flySuppress = false, flyTop = 0;
+  function closeFly(silent, focusRow){
+    clearTimeout(tOpen); clearTimeout(tClose);
+    if (fly) { fly.remove(); fly = null; }
+    if (flyRow) {
+      flyRow.setAttribute('aria-expanded', 'false'); flyRow.classList.remove('cn-hot');
+      if (focusRow && !silent) { flySuppress = true; try { flyRow.focus({ preventScroll: true }); } catch(e) {} flySuppress = false; }
+    }
+    flyRow = null;
+  }
+  function openFly(row){
+    if (flyRow === row && fly) return;
+    closeFly(true);
+    var src = row.parentNode.querySelector('.cn-sub'); if (!src) return;
+    fly = document.createElement('div');
+    fly.className = 'cn-fly'; fly.setAttribute('role', 'menu'); fly.setAttribute('aria-label', row.getAttribute('title') || 'Manage');
+    fly.innerHTML = src.innerHTML;
+    [].forEach.call(fly.querySelectorAll('a'), function(a){ a.setAttribute('role', 'menuitem'); a.setAttribute('tabindex', '-1'); });
+    document.body.appendChild(fly);
+    var r = row.getBoundingClientRect(), sb = (document.querySelector('.sidebar') || row).getBoundingClientRect();
+    var h = fly.offsetHeight, vh = window.innerHeight;
+    var top = r.top - 8;
+    if (top + h > vh - 8) top = Math.max(8, Math.min(r.bottom + 8 - h, vh - 8 - h));
+    fly.style.left = Math.round(Math.max(sb.right, r.right) + 8) + 'px';
+    fly.style.top = Math.round(top) + 'px';
+    flyTop = r.top; flyRow = row; row.setAttribute('aria-expanded', 'true'); row.classList.add('cn-hot');
+    requestAnimationFrame(function(){ if (fly) fly.classList.add('on'); });
+    fly.addEventListener('mouseenter', function(){ clearTimeout(tClose); clearTimeout(tOpen); });
+    fly.addEventListener('mouseleave', function(){ schedClose(); });
+    fly.addEventListener('keydown', flyKey);
+  }
+  function schedClose(){ clearTimeout(tOpen); clearTimeout(tClose); tClose = setTimeout(function(){ closeFly(true); }, 250); }
+  function flyKey(e){
+    var items = [].slice.call(fly.querySelectorAll('a')), i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); items[0].focus(); }
+    else if (e.key === 'End') { e.preventDefault(); items[items.length - 1].focus(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFly(false, true); }
+    else if (e.key === 'Tab') { closeFly(false, true); }
+  }
+  function toggleAcc(mgEl){
+    var open = !mgEl.classList.contains('open');
+    mgEl.classList.toggle('open', open);
+    var row = mgEl.querySelector('.cn-mg-row'); if (row) row.setAttribute('aria-expanded', open ? 'true' : 'false');
+    accSet(mgEl.getAttribute('data-c'), open);
+  }
+  function wireSidebar(){
+    var sec = document.getElementById('cn-section'); if (!sec || sec._cnWired) return;
+    sec._cnWired = true;
+    sec.addEventListener('mouseover', function(e){
+      if (!canHover()) return;
+      var row = e.target.closest && e.target.closest('.cn-mg-row');
+      if (!row || !sec.contains(row)) return;
+      clearTimeout(tClose); clearTimeout(tOpen);
+      tOpen = setTimeout(function(){ openFly(row); }, flyRow ? 0 : 120);
+    });
+    sec.addEventListener('mouseout', function(e){
+      if (!canHover()) return;
+      var row = e.target.closest && e.target.closest('.cn-mg-row');
+      if (row && !(e.relatedTarget && row.contains(e.relatedTarget))) schedClose();
+    });
+    sec.addEventListener('focusin', function(e){
+      if (!canHover() || flySuppress) return;
+      var row = e.target.closest && e.target.closest('.cn-mg-row');
+      if (row) openFly(row); else if (!(fly && fly.contains(e.target))) closeFly(true);
+    });
+    sec.addEventListener('keydown', function(e){
+      var row = e.target.closest && e.target.closest('.cn-mg-row'); if (!row) return;
+      if (canHover()) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); openFly(row); var f = fly && fly.querySelector('a'); if (f) f.focus(); }
+        else if (e.key === 'Escape' && fly) { e.preventDefault(); closeFly(true); }
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        var o = row.parentNode.classList.contains('open');
+        if ((e.key === 'ArrowRight') !== o) { e.preventDefault(); toggleAcc(row.parentNode); }
+      }
+    });
+    sec.addEventListener('click', function(e){
+      var row = e.target.closest && e.target.closest('.cn-mg-row');
+      if (row && sec.contains(row)) {
+        if (canHover()) { closeFly(true); return; }   // desktop: the row itself opens the dashboard
+        e.preventDefault(); toggleAcc(row.parentNode); return;
+      }
+      var it = e.target.closest && e.target.closest('.cn-sub a'); if (it) accSet(it.closest('.cn-mg').getAttribute('data-c'), true);
+    });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && fly) { e.preventDefault(); closeFly(false, true); } });
+    window.addEventListener('scroll', function(){ if (fly && flyRow && Math.abs(flyRow.getBoundingClientRect().top - flyTop) > 1) closeFly(true); }, true);
+    window.addEventListener('resize', function(){ closeFly(true); });
+    document.addEventListener('click', function(e){ if (fly && !fly.contains(e.target) && !(flyRow && flyRow.contains(e.target))) closeFly(true); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireSidebar); else wireSidebar();
 
   function loadCreatorState(user, tries){
     if (!user) { cnState = { uid: null, owned: [], admin: false }; try { sessionStorage.removeItem(CN_KEY); } catch(e) {} refreshCreator(); return; }
@@ -266,6 +382,19 @@
           '<span class="appnav-sh-ic"><svg ' + SV + '>' + it[3] + '</svg></span>' +
           '<span class="appnav-sh-tx"><span class="appnav-sh-l">' + it[1] + '</span><span class="appnav-sh-d">' + it[2] + '</span></span></a></li>';
       });
+      if (g[2]) {
+        var cc = cnCurrent(), ccc = cnCurComm();
+        g[2].manage.forEach(function(mg){
+          var rowOn = ccc === mg.id && cc !== 'dash', st = accGet(mg.id), open = st !== null ? st === '1' : rowOn;
+          h += '<li class="cn-mg appnav-acc' + (open ? ' open' : '') + '" data-c="' + esc(mg.id) + '"><button type="button" class="appnav-sh-item cn-mg-row' + (rowOn ? ' on' : '') + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="cn-acc-' + esc(mg.id) + '">' +
+            '<span class="appnav-sh-ic cn-av">' + initials(mg.name) + '</span><span class="appnav-sh-tx"><span class="appnav-sh-l">' + esc(mg.label) + '</span><span class="appnav-sh-d">Members, courses, plans and more</span></span>' + CHEV + '</button>' +
+            '<ul class="appnav-sh-list cn-acc-list" id="cn-acc-' + esc(mg.id) + '">' + mg.items.map(function(it){
+              var on = rowOn && it[0] === cc;
+              return '<li><a class="appnav-sh-item' + (on ? ' on' : '') + '" href="' + it[3] + '"' + (on ? ' aria-current="page"' : '') + ' aria-label="' + esc(cnAria(it, mg)) + '" data-more="cn-' + it[0] + '"><span class="appnav-sh-ic"><svg ' + SV + '>' + CI[it[0]] + '</svg></span><span class="appnav-sh-tx"><span class="appnav-sh-l">' + it[1] + '</span></span></a></li>';
+            }).join('') + '</ul></li>';
+        });
+        if (g[2].more) h += '<li><a class="appnav-sh-item" href="/creator" data-more="cn-all"><span class="appnav-sh-ic"><svg ' + SV + '>' + CI.dash + '</svg></span><span class="appnav-sh-tx"><span class="appnav-sh-l">All my communities</span></span></a></li>';
+      }
       h += '</ul>';
     });
     h += '</div>';
@@ -273,6 +402,10 @@
     document.body.appendChild(scrim);
     document.body.appendChild(sheet);
 
+    sheet.addEventListener('click', function(e){
+      var b = e.target.closest('.cn-mg-row'); if (b) { toggleAcc(b.parentNode); return; }
+      var a = e.target.closest('.cn-acc-list a'); if (a) accSet(a.closest('.cn-mg').getAttribute('data-c'), true);
+    });
     scrim.addEventListener('click', closeSheet);
     sheet.querySelector('.appnav-sh-x').addEventListener('click', closeSheet);
     sheet.addEventListener('keydown', function(e){

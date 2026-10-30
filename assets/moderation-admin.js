@@ -15,11 +15,15 @@ function escapeModText(s){
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+let MOD_PAGER = null, MOD_ALL = [];
 function renderModerationQueue(posts){
   const listEl = document.getElementById('moderation-list');
+  if (!MOD_PAGER && window.StrykerPager) MOD_PAGER = StrykerPager.create({ after: listEl, label: 'flagged posts', scrollTo: listEl, onChange: () => renderModerationQueue(MOD_ALL) });
+  MOD_ALL = posts;
   const countEl = document.getElementById('moderation-count');
   if (countEl) countEl.textContent = posts.length + ' pending';
 
+  if (MOD_PAGER) { MOD_PAGER.setTotal(posts.length); posts = MOD_PAGER.slice(posts); }
   if (!posts.length) {
     listEl.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; padding:16px;">Nothing waiting on review right now.</p>';
     return;

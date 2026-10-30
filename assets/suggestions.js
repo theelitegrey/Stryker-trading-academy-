@@ -85,12 +85,13 @@
   // ---------- list ----------
   $('sg-cat').innerHTML = '<option value="">All categories</option>' + CATS.map(function (c) { return '<option value="' + c[0] + '">' + c[1] + '</option>'; }).join('');
   $('sg-status').innerHTML = '<option value="">Any status</option>' + STATUS.map(function (c) { return '<option value="' + c[0] + '">' + c[1] + '</option>'; }).join('') + '<option value="open">Open (not shipped)</option>';
-  $('sg-cat').addEventListener('change', function () { fCat = this.value; renderList(); });
-  $('sg-status').addEventListener('change', function () { fStatus = this.value; renderList(); });
-  $('sg-q').addEventListener('input', function () { q = this.value.trim(); renderList(); });
+  $('sg-cat').addEventListener('change', function () { fCat = this.value; if (sgPager) sgPager.reset(); renderList(); });
+  $('sg-status').addEventListener('change', function () { fStatus = this.value; if (sgPager) sgPager.reset(); renderList(); });
+  $('sg-q').addEventListener('input', function () { q = this.value.trim(); if (sgPager) sgPager.reset(); renderList(); });
   $('sg-sort').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return; sort = b.dataset.s;
     this.querySelectorAll('button').forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    if (sgPager) sgPager.reset();
     renderList();
   });
   $('sg-new-btn').addEventListener('click', function () { openForm(''); });
@@ -130,13 +131,18 @@
         : function (a, b) { return (b.votes || 0) - (a.votes || 0) || ms(b.createdAt) - ms(a.createdAt); };
     return list.sort(by);
   }
+  var sgPager = null;
   function renderList() {
     if (!loaded) return;
     var list = filtered();
+    // Shared pager (assets/pager.js): all suggestions are already loaded, so paging is client-side.
+    if (!sgPager && window.StrykerPager) sgPager = StrykerPager.create({ after: $('sg-list'), label: 'suggestions', scrollTo: '#sg-list-view', onChange: renderList });
+    var total = list.length;
+    if (sgPager) { sgPager.setTotal(total); list = sgPager.slice(list); }
     $('sg-list').innerHTML = list.map(card).join('');
-    $('sg-count').textContent = list.length + (list.length === 1 ? ' suggestion' : ' suggestions') + (q ? ' match "' + q + '"' : '');
-    var e = $('sg-empty'); e.hidden = list.length > 0;
-    if (!list.length) {
+    $('sg-count').textContent = total + (total === 1 ? ' suggestion' : ' suggestions') + (q ? ' match "' + q + '"' : '');
+    var e = $('sg-empty'); e.hidden = total > 0;
+    if (!total) {
       e.innerHTML = all.length ? (q ? 'Nothing matches "' + esc(q) + '". <button type="button" class="sg-linkbtn" data-new-from-q>Suggest it</button>' : 'No suggestions match these filters.')
         : 'No suggestions yet. <button type="button" class="sg-linkbtn" data-new-from-q>Be the first</button>';
     }

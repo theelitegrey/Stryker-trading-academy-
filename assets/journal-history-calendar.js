@@ -55,12 +55,19 @@ function renderHistoryTab(){
   renderHistoryList();
 }
 
+// Shared pager (assets/pager.js): the trade log pages 25 / 50 / 100 rows. Filters call renderHistoryFiltered (back to page 1);
+// the pager itself calls renderHistoryList. URL keys: ?jh=2&jhsize=50.
+let JH_PAGER = null;
+function renderHistoryFiltered(){ if (JH_PAGER) JH_PAGER.reset(); renderHistoryList(); }
 function renderHistoryList(){
-  const trades = filteredHistoryTrades();
+  const allTrades = filteredHistoryTrades();
   const wrap = document.getElementById('jh-list');
+  if (!JH_PAGER && window.StrykerPager && wrap) JH_PAGER = StrykerPager.create({ after: wrap, param: 'jh', label: 'trades', scrollTo: wrap, onChange: renderHistoryList });
+  if (JH_PAGER) JH_PAGER.setTotal(allTrades.length);
+  const trades = JH_PAGER ? JH_PAGER.slice(allTrades) : allTrades;
   const countEl = document.getElementById('jh-count');
   const currency = (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD';
-  if (countEl) countEl.textContent = trades.length + ' trade' + (trades.length === 1 ? '' : 's');
+  if (countEl) countEl.textContent = allTrades.length + ' trade' + (allTrades.length === 1 ? '' : 's');
 
   if (!trades.length) {
     wrap.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No trades match these filters.</p>';
@@ -313,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   ['jh-search', 'jh-instrument', 'jh-setup', 'jh-direction', 'jh-account'].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', renderHistoryList);
+    if (el) el.addEventListener('input', renderHistoryFiltered);
   });
 
   const opts = document.getElementById('jc-opts');

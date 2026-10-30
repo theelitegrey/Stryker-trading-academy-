@@ -25,12 +25,24 @@ function supRenderStats(){
   document.getElementById('sup-stat-total').textContent = SUP_MESSAGES.length;
 }
 
+let SUP_PAGER = null;
 function supRenderList(){
   const wrap = document.getElementById('sup-list');
-  const shown = SUP_MESSAGES.filter((m) => {
+  if (!SUP_PAGER && window.StrykerPager) SUP_PAGER = StrykerPager.create({ after: wrap, label: 'messages', scrollTo: wrap, onChange: supRenderList });
+  let shown = SUP_MESSAGES.filter((m) => {
     const st = m.status || 'new';
     return SUP_FILTER === 'all' || st === SUP_FILTER;
   });
+  if (SUP_PAGER) {
+    SUP_PAGER.setTotal(shown.length);
+    // #contact-<id> deep link (from a notification): open the page that holds that message.
+    if (!SUP_PAGER.__linked && location.hash.indexOf('#contact-') === 0) {
+      SUP_PAGER.__linked = true;
+      const at = shown.findIndex((m) => 'contact-' + m.id === location.hash.slice(1));
+      if (at >= 0) { SUP_PAGER.go(Math.floor(at / SUP_PAGER.size) + 1); return; }
+    }
+    shown = SUP_PAGER.slice(shown);
+  }
   if (!shown.length) {
     wrap.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">' +
       (SUP_FILTER === 'new' ? 'Inbox zero — nothing waiting on you. 🎉' : 'Nothing here yet.') + '</p>';
@@ -125,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const btn = e.target.closest('.term-cat');
       if (!btn) return;
       SUP_FILTER = btn.dataset.f;
+      if (SUP_PAGER) SUP_PAGER.reset();
       document.querySelectorAll('#sup-filter .term-cat').forEach((b) => b.classList.toggle('is-on', b === btn));
       supRenderList();
     });

@@ -28,7 +28,17 @@
   }
 
   // ---------------------------------------------------------------- feed
-  var posts = [], open = {};
+  var posts = [], open = {}, FEED_PAGE = 30, feedCursor = null, feedMore = false, feedBusy = false;
+  function loadMorePosts() {
+    if (feedBusy || !feedCursor) return; feedBusy = true;
+    var b = $('cf-more'); if (b) { b.disabled = true; b.textContent = 'Loading…'; }
+    col('posts').orderBy('createdAt', 'desc').startAfter(feedCursor).limit(FEED_PAGE).get().then(function (s) {
+      var seen = {}; posts.forEach(function (p) { seen[p.id] = 1; });
+      arr(s).forEach(function (p) { if (!seen[p.id]) posts.push(p); });
+      if (s.docs.length) feedCursor = s.docs[s.docs.length - 1];
+      feedMore = s.docs.length >= FEED_PAGE; feedBusy = false; drawFeed();
+    }).catch(function (e) { feedBusy = false; fail(e); drawFeed(); });
+  }
   function postHtml(p) {
     var mine = C.me && p.authorUid === C.me.uid, can = mine || mod;
     return '<article class="cx-box cf-post" data-p="' + E(p.id) + '"><div class="cf-h"><span class="cf-av" aria-hidden="true">' + initial(p.authorName) + '</span>' +
@@ -46,6 +56,8 @@
   function drawFeed() {
     var list = posts.slice().sort(function (a, b) { return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || ms(b.createdAt) - ms(a.createdAt); });
     $('cf-list').innerHTML = list.length ? list.map(postHtml).join('') : '<div class="cx-empty">No posts yet. Be the first to post.</div>';
+    var mb = $('cf-more'); if (mb) mb.remove();
+    if (feedMore && list.length) { var more = document.createElement('button'); more.type = 'button'; more.id = 'cf-more'; more.className = 'btn btn-ghost szp-more'; more.textContent = 'Load more posts'; more.onclick = loadMorePosts; $('cf-list').parentNode.insertBefore(more, $('cf-list').nextSibling); }
     $('cf-list').querySelectorAll('.cf-cm').forEach(function (b) { b.onclick = function () { toggleComments(b.dataset.p); }; });
     $('cf-list').querySelectorAll('.cf-pin').forEach(function (b) { b.onclick = function () { var p = find(b.dataset.p); col('posts').doc(p.id).update({ pinned: !p.pinned }).then(function () { p.pinned = !p.pinned; drawFeed(); }).catch(fail); }; });
     $('cf-list').querySelectorAll('.cf-del').forEach(function (b) { b.onclick = function () {
@@ -101,7 +113,8 @@
     };
     load();
     function load() {
-      return col('posts').orderBy('createdAt', 'desc').limit(30).get().then(function (s) { posts = arr(s); drawFeed(); })
+      // Cursor pagination (Owner 2026-10-30): 30 posts per read, "Load more" fetches the next 30 with startAfter.
+      return col('posts').orderBy('createdAt', 'desc').limit(FEED_PAGE).get().then(function (s) { posts = arr(s); feedCursor = s.docs.length ? s.docs[s.docs.length - 1] : null; feedMore = s.docs.length >= FEED_PAGE; drawFeed(); })
         .catch(function () { $('cf-list').innerHTML = '<div class="cx-empty">Could not load the feed. Reload the page.</div>'; });
     }
   }

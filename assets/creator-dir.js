@@ -6,26 +6,31 @@
 
   $('cd-tags').innerHTML = '<button type="button" class="cx-chip on" data-t="">All topics</button>' + CH.TAGS.map(function (t) { return '<button type="button" class="cx-chip" data-t="' + t[0] + '">' + t[1] + '</button>'; }).join('');
   $('cd-tags').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b) return; tag = b.dataset.t;
+    var b = e.target.closest('button'); if (!b) return; tag = b.dataset.t; resetPg();
     $('cd-tags').querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); }); render();
   });
-  $('cd-q').addEventListener('input', render); $('cd-sort').addEventListener('change', render);
+  $('cd-q').addEventListener('input', function () { resetPg(); render(); }); $('cd-sort').addEventListener('change', function () { resetPg(); render(); });
   if (new URLSearchParams(location.search).get('view') === 'mine') view = 'mine';
   $('cd-tabs').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b) return; view = b.dataset.t;
+    var b = e.target.closest('button'); if (!b) return; view = b.dataset.t; resetPg();
     try { history.replaceState(null, '', location.pathname + (view === 'mine' ? '?view=mine' : '')); window.dispatchEvent(new Event('cn:route')); } catch (x) {}
     $('cd-tabs').querySelectorAll('button').forEach(function (x) { x.classList.toggle('active', x === b); }); render();
   });
 
+  var cdPager = null, resetPg = function () { if (cdPager) cdPager.reset(); };
   function render() {
     var q = $('cd-q').value.trim().toLowerCase(), list = (view === 'mine' ? mine : all).filter(function (c) {
       return (!tag || (c.tags || []).indexOf(tag) >= 0) && (!q || (c.name + ' ' + (c.tagline || '')).toLowerCase().indexOf(q) >= 0);
     });
     var ms = function (c) { return c.createdAt && c.createdAt.toMillis ? c.createdAt.toMillis() : 0; };
     list.sort($('cd-sort').value === 'members' ? function (a, b) { return (b.memberCount || 0) - (a.memberCount || 0) || ms(b) - ms(a); } : function (a, b) { return ms(b) - ms(a); });
+    // Shared pager (assets/pager.js). Up to 200 communities are loaded once, so paging is client-side.
+    if (!cdPager && window.StrykerPager) cdPager = StrykerPager.create({ after: $('cd-grid'), label: 'communities', sizes: [24, 48, 96], size: 24, scrollTo: '#cd-grid', onChange: render });
+    var total = list.length;
+    if (cdPager) { cdPager.setTotal(total); list = cdPager.slice(list); }
     $('cd-grid').innerHTML = list.map(CH.card).join('');
-    var e = $('cd-empty'); e.hidden = list.length > 0;
-    if (!list.length) e.innerHTML = view === 'mine' ? 'You have not joined any community yet.' : (all.length ? 'No communities match. Try a different search or topic.' : 'No communities yet. <a href="/creators" style="color:var(--gold-bright)">Be the first to start one</a>.');
+    var e = $('cd-empty'); e.hidden = total > 0;
+    if (!total) e.innerHTML = view === 'mine' ? 'You have not joined any community yet.' : (all.length ? 'No communities match. Try a different search or topic.' : 'No communities yet. <a href="/creators" style="color:var(--gold-bright)">Be the first to start one</a>.');
   }
 
   db.collection('communities').where('visibility', '==', 'public').where('status', '==', 'active').orderBy('createdAt', 'desc').limit(200).get()

@@ -20,6 +20,7 @@
       (it.sub && it.sub.length && !ms.length ? '<div class="rmp-sub">' + it.sub.map((s) => '<span>' + esc(s) + '</span>').join('') + '</div>' : '') +
       '<div class="rmp-foot">' + (it.when && it.when !== 'In progress' && it.when !== 'Shipped' && it.when !== 'Planned' ? '<span>' + esc(it.when) + '</span>' : '') + (it.date ? '<span>' + fmtDate(it.date) + '</span>' : '') + (it.build ? '<span class="rmp-build">build ' + esc(it.build) + '</span>' : '') + (it.link ? '<a href="' + esc(it.link) + '">Open →</a>' : '') + '</div></article>';
   }
+  let clPager = null, lastData = null;
   function render(data) {
     const items = (data.items || []).filter((i) => i && i.title);
     $('rmp-heading').textContent = 'Roadmap';
@@ -30,8 +31,13 @@
     $('rmp-now-list').innerHTML = prog.map(itemCard).join('') || '<p class="rp-empty">Nothing in progress right now.</p>';
     $('rmp-planned').hidden = !plan.length; $('rmp-planned-list').innerHTML = plan.map(itemCard).join('');
     $('rmp-shipped-list').innerHTML = ship.slice(0, 12).map((it) => '<div class="rmp-tl"><div class="rmp-tl-head"><b>' + esc(it.title) + '</b>' + (it.build ? '<span class="rmp-build">build ' + esc(it.build) + '</span>' : '') + (it.date ? '<span class="rmp-date">' + fmtDate(it.date) + '</span>' : '') + (it.link ? '<a class="rm-link" href="' + esc(it.link) + '">Open →</a>' : '') + '</div>' + (it.desc ? '<p>' + esc(it.desc) + '</p>' : '') + (it.details ? '<details><summary>Details</summary><p>' + esc(it.details) + '</p></details>' : '') + '</div>').join('') || '<p class="rp-empty">Nothing shipped yet.</p>';
-    const cl = (data.changelog || []).slice().sort((a, b) => (b.build || 0) - (a.build || 0));
-    $('rmp-cl').hidden = !cl.length; $('rmp-cl-list').innerHTML = cl.map((c) => '<div class="rmp-cl"><span class="rmp-build">' + esc(c.build) + '</span><span class="rmp-date">' + fmtDate(c.date) + '</span><span>' + esc(c.title) + '</span></div>').join('');
+    let cl = (data.changelog || []).slice().sort((a, b) => (b.build || 0) - (a.build || 0));
+    // Shared pager (assets/pager.js): the build log is long and grows every release. URL keys ?bl=2&blsize=50.
+    if (!clPager && window.StrykerPager) clPager = StrykerPager.create({ after: $('rmp-cl-list'), param: 'bl', label: 'build log entries', scrollTo: '#rmp-cl', onChange: () => render(lastData) });
+    lastData = data;
+    const clAll = cl;
+    if (clPager) { clPager.setTotal(clAll.length); cl = clPager.slice(clAll); }
+    $('rmp-cl').hidden = !clAll.length; $('rmp-cl-list').innerHTML = cl.map((c) => '<div class="rmp-cl"><span class="rmp-build">' + esc(c.build) + '</span><span class="rmp-date">' + fmtDate(c.date) + '</span><span>' + esc(c.title) + '</span></div>').join('');
     const els = document.querySelectorAll('.rmp-item, .rmp-tl');
     if ('IntersectionObserver' in window) { const io = new IntersectionObserver((entries) => { entries.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('is-in'), Math.min(i, 6) * 70); io.unobserve(e.target); } }); }, { threshold: 0.1 }); els.forEach((el) => io.observe(el)); }
     else els.forEach((el) => el.classList.add('is-in'));

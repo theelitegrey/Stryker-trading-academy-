@@ -32,10 +32,15 @@ function renderOrderRow(order){
   return row;
 }
 
+let ORDERS_PAGER = null, ORDERS_SHOWN = [];
 function renderOrdersList(orders){
   const list = document.getElementById('orders-list');
   const countEl = document.getElementById('orders-count');
   countEl.textContent = orders.length + ' order' + (orders.length === 1 ? '' : 's');
+  // Shared pager (assets/pager.js): the one orders query already holds everything, so paging reads nothing extra.
+  if (!ORDERS_PAGER && window.StrykerPager) ORDERS_PAGER = StrykerPager.create({ after: list, label: 'orders', scrollTo: list, onChange: () => renderOrdersList(ORDERS_SHOWN) });
+  ORDERS_SHOWN = orders;
+  if (ORDERS_PAGER) { ORDERS_PAGER.setTotal(orders.length); orders = ORDERS_PAGER.slice(orders); }
 
   if (!orders.length) {
     list.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No orders yet.</p>';
@@ -65,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('orders-search').addEventListener('input', (e) => {
     const q = e.target.value.trim().toLowerCase();
+    if (ORDERS_PAGER) ORDERS_PAGER.reset();
     if (!q) { renderOrdersList(ALL_ORDERS); return; }
     const filtered = ALL_ORDERS.filter(o =>
       (o.studentName || '').toLowerCase().includes(q) ||

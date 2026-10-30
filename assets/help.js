@@ -433,12 +433,19 @@
     var n = res.hits.length;
     var scope = S.cat ? '<span class="hc-scope">in ' + esc(CAT_BY_ID[S.cat].title) + ' <button type="button" id="hc-scope-x" aria-label="Search all categories">×</button></span>' : '';
     if (!n) return { html: noResultsHTML(S.q), n: 0 };
-    var shown = res.hits.slice(0, MAX_RESULTS);
+    // Shared pager (assets/pager.js): numbered pages replace the old "top 60" cut-off. Page resets whenever the query or a filter changes.
+    var sig = [S.q, S.cat, S.plan, S.level].join('|');
+    if (hcPg.sig !== sig) { hcPg.sig = sig; hcPg.page = 1; }
+    hcPgEl = document.createElement('div');
+    var pg = window.StrykerPager ? StrykerPager.create({ el: hcPgEl, state: hcPg, url: false, label: 'results', onChange: function () { render({ collapse: true }); var r = $('#hc-results'); if (r && r.scrollIntoView) r.scrollIntoView({ block: 'start' }); } }) : null;
+    if (pg) pg.setTotal(res.hits.length);
+    var shown = pg ? pg.slice(res.hits) : res.hits.slice(0, MAX_RESULTS);
     var h = '<div class="hc-res-head">' + scope + '</div><div class="hc-list">' + shown.map(function (x) { return itemHTML(x.it, res.stems, true); }).join('') + '</div>';
-    if (n > shown.length) h += '<p class="hc-more">Showing the top ' + shown.length + ' of ' + n + '. Add a word to narrow it down.</p>';
+    if (!pg && n > shown.length) h += '<p class="hc-more">Showing the top ' + shown.length + ' of ' + n + '. Add a word to narrow it down.</p>';
+    h += '<div id="hc-pg"></div>';
     return { html: h, n: n };
   }
-  var lastHL = {};
+  var lastHL = {}, hcPg = {}, hcPgEl = null;
 
   function countsByCat() {
     var c = {};
@@ -455,6 +462,7 @@
     if (S.q) {
       var r = viewSearch();
       root.innerHTML = r.html;
+      var pgHost = $('#hc-pg', root); if (pgHost && hcPgEl) pgHost.appendChild(hcPgEl);
       mode = 'search';
       els.count.textContent = r.n ? plural(r.n, 'result') + ' for “' + S.q + '”' : 'No results for “' + S.q + '”';
     } else if (S.cat) {

@@ -63,8 +63,11 @@ function applyLogFilters(){
   });
 }
 
+let LOG_PAGER = null;
 function renderLogs(){
   const list = applyLogFilters();
+  if (!LOG_PAGER && window.StrykerPager) LOG_PAGER = StrykerPager.create({ after: document.getElementById('log-list'), label: 'log entries', sizes: [25, 50, 100], size: 50, scrollTo: document.getElementById('log-list'), onChange: renderLogs });
+  if (LOG_PAGER) LOG_PAGER.setTotal(list.length);
   const wrap = document.getElementById('log-list');
   const countEl = document.getElementById('log-count');
 
@@ -79,7 +82,7 @@ function renderLogs(){
     return;
   }
 
-  const page = list.slice(0, LOG_SHOWN);
+  const page = LOG_PAGER ? LOG_PAGER.slice(list) : list.slice(0, LOG_SHOWN);
   wrap.innerHTML = '';
 
   page.forEach((l) => {
@@ -100,7 +103,7 @@ function renderLogs(){
   });
 
   const moreWrap = document.getElementById('log-more-wrap');
-  if (list.length > LOG_SHOWN) {
+  if (!LOG_PAGER && list.length > LOG_SHOWN) {
     moreWrap.style.display = 'block';
     document.getElementById('log-more-btn').textContent =
       'Show more (' + (list.length - LOG_SHOWN) + ' left)';
@@ -200,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ['log-filter-user', 'log-filter-action', 'log-filter-from', 'log-filter-to'].forEach((id) => {
     document.getElementById(id).addEventListener('change', () => {
-      LOG_SHOWN = LOG_PAGE_SIZE;
+      LOG_SHOWN = LOG_PAGE_SIZE; if (LOG_PAGER) LOG_PAGER.reset();
       renderLogs();
     });
   });
@@ -209,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ['log-filter-user', 'log-filter-action', 'log-filter-from', 'log-filter-to'].forEach((id) => {
       document.getElementById(id).value = '';
     });
-    LOG_SHOWN = LOG_PAGE_SIZE;
+    LOG_SHOWN = LOG_PAGE_SIZE; if (LOG_PAGER) LOG_PAGER.reset();
     renderLogs();
   });
 

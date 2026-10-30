@@ -255,7 +255,7 @@
   }
 
   // ---------------------------------------------------------------- members
-  var mq = '', mf = '';
+  var mq = '', mf = '', mbPg = {};
   function planName(id) { var p = plans.filter(function (x) { return x.id === id; })[0]; return p ? p.name : (id ? '(deleted plan)' : 'Owner'); }
   function dateIn(t) { return t ? (t.toDate ? t.toDate() : new Date(t)).toISOString().slice(0, 10) : ''; }
   function membersView(el) {
@@ -263,6 +263,9 @@
       var s = (m.displayName || '') + ' ' + m.uid;
       return (!mq || s.toLowerCase().indexOf(mq) >= 0) && (!mf || (mf === 'expired' ? !CH.isActive(m) : m.status === mf));
     }).sort(function (a, b) { return (b.joinedAt ? b.joinedAt.toMillis() : 0) - (a.joinedAt ? a.joinedAt.toMillis() : 0); });
+    // Shared pager (assets/pager.js). Built detached and dropped under the table, because this view re-renders all its HTML.
+    var pgEl = document.createElement('div'), mbPager = window.StrykerPager ? StrykerPager.create({ el: pgEl, state: mbPg, param: 'mp', label: 'members', scrollTo: '#hb-body', onChange: function () { membersView($('hb-body')); } }) : null;
+    if (mbPager) { mbPager.setTotal(rows.length); rows = mbPager.slice(rows); }
     var h = '<div class="cx-search"><input class="cx-in" id="mb-q" type="search" placeholder="Search members" value="' + E(mq) + '" aria-label="Search members"><select class="cx-in-s" id="mb-f" aria-label="Filter"><option value="">All</option><option value="active">Active</option><option value="expired">Expired</option><option value="banned">Banned</option></select></div>';
     h += '<div class="cx-tablewrap"><table class="cx-table"><thead><tr><th>Member</th><th>Plan</th><th>Role</th><th>Expires</th><th>Joined</th><th></th></tr></thead><tbody>' + rows.map(function (m) {
       var own = m.role === 'owner';
@@ -271,7 +274,7 @@
         '<td>' + (own ? 'Owner' : '<select class="cx-in-s mb-role"><option value="member"' + (m.role === 'member' ? ' selected' : '') + '>Member</option><option value="mod"' + (m.role === 'mod' ? ' selected' : '') + '>Moderator</option><option value="admin"' + (m.role === 'admin' ? ' selected' : '') + '>Admin</option></select>') + '</td>' +
         '<td>' + (own ? '' : '<input type="date" class="cx-in-s mb-exp" value="' + dateIn(m.expiresAt) + '" aria-label="Expiry date">') + '</td><td>' + E(CH.date(m.joinedAt)) + '</td>' +
         '<td>' + (own ? '' : '<div class="cx-row" style="flex-wrap:nowrap"><button class="btn btn-ghost mb-save" type="button">Save</button><button class="btn btn-ghost mb-exp-now" type="button">Expire</button><button class="btn btn-ghost mb-rm" type="button">Remove</button></div>') + '</td></tr>';
-    }).join('') + '</tbody></table></div>' + (rows.length ? '' : '<div class="cx-empty" style="margin-top:10px">No members match.</div>');
+    }).join('') + '</tbody></table></div>' + (rows.length ? '' : '<div class="cx-empty" style="margin-top:10px">No members match.</div>') + '<div id="mb-pg"></div>';
 
     h += '<div class="cx-box" style="margin-top:18px"><h2>Add members by email</h2><p class="cx-muted">Paste emails (one per line or separated by commas). Each person gets access to the plan when they sign up or sign in with that email and open your community. Nothing is emailed from here.</p><form class="cx-f" id="im-f" novalidate>' +
       '<textarea id="im-list" class="cx-in" placeholder="name@example.com" style="min-height:110px"></textarea><div class="cx-row"><div style="flex:1 1 160px"><label for="im-plan">Plan</label><select id="im-plan">' + plans.map(function (p) { return '<option value="' + E(p.id) + '">' + E(p.name) + '</option>'; }).join('') + '</select></div><div style="flex:1 1 160px"><label for="im-exp">Access ends (optional)</label><input type="date" id="im-exp"></div></div>' +
@@ -282,8 +285,9 @@
       (bans.length ? '<div class="cx-row" style="margin-top:10px">' + bans.map(function (b) { return '<span class="cx-chip">' + E(b.email) + ' <button type="button" class="bn-del" data-e="' + E(b.id) + '" aria-label="Unban" style="background:none;border:0;color:inherit;cursor:pointer">×</button></span>'; }).join('') + '</div>' : '') + '</div>';
     $('hb-body').innerHTML = h;
     $('mb-f').value = mf;
-    $('mb-q').oninput = function () { mq = this.value.trim().toLowerCase(); var s = this.selectionStart; membersView($('hb-body')); var q = $('mb-q'); q.focus(); q.setSelectionRange(s, s); };
-    $('mb-f').onchange = function () { mf = this.value; membersView($('hb-body')); };
+    if (mbPager) $('mb-pg').appendChild(pgEl);
+    $('mb-q').oninput = function () { mq = this.value.trim().toLowerCase(); mbPg.page = 1; var s = this.selectionStart; membersView($('hb-body')); var q = $('mb-q'); q.focus(); q.setSelectionRange(s, s); };
+    $('mb-f').onchange = function () { mf = this.value; mbPg.page = 1; membersView($('hb-body')); };
     $('hb-body').querySelectorAll('tr[data-u]').forEach(function (tr) {
       var u = tr.dataset.u, m = members.filter(function (x) { return x.id === u; })[0];
       var sv = tr.querySelector('.mb-save'); if (!sv) return;

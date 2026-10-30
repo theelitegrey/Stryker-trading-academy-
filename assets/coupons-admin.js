@@ -109,17 +109,20 @@ function renderCouponRow(coupon){
   return row;
 }
 
+let COUPON_PAGER = null;
 function renderCouponList(){
   const list = document.getElementById('coupon-list');
   const countEl = document.getElementById('coupon-count');
   countEl.textContent = ALL_COUPONS.length + ' coupon' + (ALL_COUPONS.length === 1 ? '' : 's');
+  if (!COUPON_PAGER && window.StrykerPager) COUPON_PAGER = StrykerPager.create({ after: list, label: 'coupons', scrollTo: list, onChange: renderCouponList });
+  if (COUPON_PAGER) COUPON_PAGER.setTotal(ALL_COUPONS.length);
 
   if (!ALL_COUPONS.length) {
     list.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No coupons yet — click "+ New coupon" to create one.</p>';
     return;
   }
   list.innerHTML = '';
-  ALL_COUPONS.forEach((c) => list.appendChild(renderCouponRow(c)));
+  (COUPON_PAGER ? COUPON_PAGER.slice(ALL_COUPONS) : ALL_COUPONS).forEach((c) => list.appendChild(renderCouponRow(c)));
 }
 
 function loadCoupons(){

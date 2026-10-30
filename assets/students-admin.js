@@ -31,10 +31,19 @@ function escapeStudentText(s){
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+let STUDENTS_PAGER = null;
 function renderStudentsTable(students){
   const body = document.getElementById('students-table-body');
   const countEl = document.getElementById('students-count');
   if (countEl) countEl.textContent = students.length + ' student' + (students.length === 1 ? '' : 's');
+
+  // Client-side pagination (Owner 2026-10-30): the one students query already holds every user,
+  // so paging reads nothing extra. Callers pass the FULL filtered list; this shows one page.
+  if (!STUDENTS_PAGER && window.StrykerPager) {
+    STUDENTS_PAGER = StrykerPager.create({ el: '#students-pager', label: 'users', sizes: [25, 50, 100], size: 25, scrollTo: '#students-top', onChange: () => renderStudentsTable(window.__strykerFiltered || []) });
+  }
+  window.__strykerFiltered = students;
+  if (STUDENTS_PAGER) { STUDENTS_PAGER.setTotal(students.length); students = STUDENTS_PAGER.slice(students); }
 
   if (!students.length) {
     body.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; padding:16px;">No students found.</p>';
@@ -180,7 +189,7 @@ function renderStudentsTable(students){
             { targetUid: s.uid, targetName: name });
         })
         .then(() => loadAdminList())
-        .then(() => renderStudentsTable(ALL_STUDENTS))
+        .then(() => (window.__strykerApplyUserFilters ? window.__strykerApplyUserFilters(false) : renderStudentsTable(ALL_STUDENTS)))
         .catch((err) => {
           showToast('error', 'Could not update admin access: ' + (err.message || err));
           btn.disabled = false;
@@ -203,7 +212,7 @@ function renderStudentsTable(students){
             { targetUid: s.uid, targetName: name });
         })
         .then(() => loadStaffList())
-        .then(() => renderStudentsTable(ALL_STUDENTS))
+        .then(() => (window.__strykerApplyUserFilters ? window.__strykerApplyUserFilters(false) : renderStudentsTable(ALL_STUDENTS)))
         .catch((err) => {
           showToast('error', 'Could not update staff: ' + (err.message || err));
           btn.disabled = false;
@@ -226,7 +235,7 @@ function renderStudentsTable(students){
             { targetUid: s.uid, targetName: name });
         })
         .then(() => loadModeratorList())
-        .then(() => renderStudentsTable(ALL_STUDENTS))
+        .then(() => (window.__strykerApplyUserFilters ? window.__strykerApplyUserFilters(false) : renderStudentsTable(ALL_STUDENTS)))
         .catch((err) => {
           showToast('error', 'Could not update moderator access: ' + (err.message || err));
           btn.disabled = false;
@@ -534,11 +543,20 @@ document.addEventListener('DOMContentLoaded', () => {
   window.liveWhy = liveWhy;
   window.liveNote = liveNote;
 
-  function applyFilters(){
+  // resetPage: true when the user changed the search or a chip (back to page 1); false on data reloads / role edits (keep the page).
+  function applyFilters(resetPage){
+    if (resetPage === true && STUDENTS_PAGER) STUDENTS_PAGER.reset();
     const q = (document.getElementById('students-search').value || '').trim().toLowerCase();
-    let list = ALL_STUDENTS;
+    // Demo accounts (students/{uid}.demo === true) are hidden everywhere except the Demo chip and the
+    // Live data chip, so the real member count is right. The note links to the Demo chip.
+    const demoAll = ALL_STUDENTS.filter(s => s.demo === true);
+    const showDemo = CURRENT_ROLE_FILTER === 'demo' || CURRENT_ROLE_FILTER === 'live';
+    const base = showDemo ? ALL_STUDENTS : ALL_STUDENTS.filter(s => s.demo !== true);
+    let list = base;
 
-    if (CURRENT_ROLE_FILTER === 'live') {
+    if (CURRENT_ROLE_FILTER === 'demo') {
+      list = demoAll;
+    } else if (CURRENT_ROLE_FILTER === 'live') {
       list = list.filter(s => liveWhy(s, CURRENT_ADMIN_UIDS.has(s.uid)).length > 0);
     } else if (CURRENT_ROLE_FILTER === 'plan-pro' || CURRENT_ROLE_FILTER === 'plan-free') {
       const wantPro = CURRENT_ROLE_FILTER === 'plan-pro';
@@ -556,9 +574,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const count = document.getElementById('users-filter-count');
     if (count) {
-      count.textContent = list.length === ALL_STUDENTS.length
+      const total = CURRENT_ROLE_FILTER === 'demo' ? demoAll.length : base.length;
+      count.textContent = list.length === total
         ? list.length + ' users'
-        : list.length + ' of ' + ALL_STUDENTS.length;
+        : list.length + ' of ' + total;
+    }
+    const dn = document.getElementById('users-demo-note');
+    if (dn) {
+      if (demoAll.length && !showDemo) {
+        dn.hidden = false;
+        dn.innerHTML = ' · <a href="#" data-role-link="demo">+' + demoAll.length + ' demo accounts hidden</a>';
+      } else dn.hidden = true;
     }
     liveCount();
   }
@@ -572,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window.__strykerLiveCount = liveCount;
 
-  document.getElementById('students-search').addEventListener('input', applyFilters);
+  document.getElementById('students-search').addEventListener('input', () => applyFilters(true));
 
   const filterBar = document.getElementById('users-role-filter');
   if (filterBar) {
@@ -582,7 +608,13 @@ document.addEventListener('DOMContentLoaded', () => {
       filterBar.querySelectorAll('[data-role]').forEach(b => b.classList.remove('is-active'));
       btn.classList.add('is-active');
       CURRENT_ROLE_FILTER = btn.getAttribute('data-role');
-      applyFilters();
+      applyFilters(true);
+    });
+    const dnote = document.getElementById('users-demo-note');
+    if (dnote) dnote.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-role-link]')) return;
+      e.preventDefault();
+      const b = filterBar.querySelector('[data-role="demo"]'); if (b) b.click();
     });
     // dashboard "Manage" link: students-admin.html#live opens on the Live data filter
     if (location.hash === '#live') { const b = filterBar.querySelector('[data-role="live"]'); if (b) b.click(); }
@@ -590,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Exposed so loadStudents() can refresh counts once the role lists resolve;
   // roleOf depends on them, and they load asynchronously.
-  window.__strykerApplyUserFilters = applyFilters;
+  window.__strykerApplyUserFilters = (reset) => applyFilters(reset === true);
 });
 
 // ---- CSV export (WordPress-style "export users") ---------------------------

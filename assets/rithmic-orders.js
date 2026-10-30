@@ -15,7 +15,7 @@
 //
 // CREDENTIALS: held in this object's private field for the login only, never logged, never returned.
 
-import { T, INFRA, NOTIFY, TX_TYPE, encode, decode } from './rithmic-proto.js?v=754';
+import { T, INFRA, NOTIFY, TX_TYPE, encode, decode } from './rithmic-proto.js?v=755';
 
 // The ONLY templates this feature may send.
 //   10 login, 12 logout, 16 system info, 18 heartbeat,

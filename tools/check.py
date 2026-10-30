@@ -549,6 +549,48 @@ def check_drawer_touch():
         fail('drawer touch test failed (tools/tests/drawer-touch-browser.js):\n' + '\n'.join(l for l in r.stdout.splitlines() if 'FAIL' in l or 'rror' in l)[:600] + r.stderr[-300:])
 
 
+def check_app_shell():
+    """Every page that loads app-nav.js (the member dock) must also carry the app shell
+    (dash-nav.js + <aside class="sidebar">), or be listed in tools/tests/app-shell-allowlist.json.
+    Browser half: tools/tests/app-shell-audit.js (run it when you add or move a member page)."""
+    import json
+    with open('tools/tests/app-shell-allowlist.json', encoding='utf-8') as fh:
+        al = json.load(fh)
+    allowed = set(al.get('marketing', {})) | set(al.get('ignore', {}))
+    for f in html_files():
+        name = f[:-5]
+        s = open(f, encoding='utf-8').read()
+        if 'assets/app-nav.js' not in s or name in allowed:
+            continue
+        if 'dash-nav.js' not in s or not re.search(r'<aside[^>]*class="sidebar', s):
+            fail(f'{f}: loads app-nav.js but has no app shell (dash-nav.js + sidebar). Add the shell '
+                 f'(tools/app-shell/dual-shell.js for public+app pages) or list it in tools/tests/app-shell-allowlist.json')
+        elif name in al.get('dual', {}) and 'dual-shell' not in s and name != 'c':
+            fail(f'{f}: listed as dual in the allowlist but is not wired for signed-out/signed-in switching')
+
+
+def check_app_shell_browser():
+    """Browser half of the app-shell rule: tools/tests/app-shell-audit.js. Always runs at the deploy gate
+    under the shared Chrome lock; a missing browser runtime is a failure, not a silent pass.
+    STRYKER_SKIP_SHELL_AUDIT=1 skips it (use only for a docs-only local check)."""
+    import shutil, subprocess
+    if os.environ.get('STRYKER_SKIP_SHELL_AUDIT'):
+        return
+    if not shutil.which('node'):
+        fail('app-shell-audit.js cannot run: node is unavailable')
+        return
+    probe = subprocess.run(['node', '-e', "const l=require('./tools/tests/lib.js');process.exit(l.executablePath()?0:1)"], capture_output=True, text=True)
+    if probe.returncode != 0:
+        fail('app-shell-audit.js cannot run: playwright-core or Chromium is unavailable')
+        return
+    cmd = ['node', 'tools/tests/app-shell-audit.js']
+    if shutil.which('flock'):
+        cmd = ['flock', '-w', '3600', '/tmp/stryker-chrome.lock'] + cmd
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=1500)
+    if r.returncode != 0:
+        fail('app-shell-audit.js failed:\n' + '\n'.join('      ' + l for l in (r.stdout + r.stderr).strip().splitlines()[-25:]))
+
+
 def main():
     check_roadmap_log()
     check_nav_features_menu()
@@ -569,6 +611,8 @@ def main():
     check_help_center()
     check_feature_image_frames()
     check_drawer_touch()
+    check_app_shell()
+    check_app_shell_browser()
 
     if FAILURES:
         print(f'FAILED — {len(FAILURES)} problem(s):\n')

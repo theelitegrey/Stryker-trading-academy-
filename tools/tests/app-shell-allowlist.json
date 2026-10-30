@@ -1,0 +1,42 @@
+{
+ "_readme": "Pages the app-shell audit treats specially. marketing = intentionally marketing-only even when signed in (reason required). dual = public + app pages: signed in = app shell, signed out = marketing header + footer. ignore = link targets that are not browsed pages (auth, sign-out landing, etc.).",
+ "marketing": {},
+ "dual": {
+  "suggestions": "public ideas board; app shell when signed in",
+  "support": "public Support page",
+  "learn": "public free articles index (SEO)",
+  "learn-fair-value-gap": "SEO article",
+  "learn-order-blocks": "SEO article",
+  "learn-liquidity-sweeps": "SEO article",
+  "learn-prop-firm-challenge-rules": "SEO article",
+  "learn-bos-vs-choch": "SEO article",
+  "learn-smt-divergence": "SEO article",
+  "learn-volume-profile": "SEO article",
+  "learn-order-flow": "SEO article",
+  "learn-how-prop-firms-work": "SEO article",
+  "creator-rules": "public creator rules (legal text)",
+  "c": "public community page /c/<slug>",
+  "features/creators": "Creator Hub landing, linked from the app menu (How it works); app shell when signed in"
+ },
+ "ignore": {
+  "index": "public home; sign-out lands here",
+  "login": "auth page",
+  "signup": "auth page",
+  "maintenance": "maintenance landing",
+  "checkout": "payment page, has its own flow (shell present, covered by payments tests)",
+  "overlay": "OBS overlay, no chrome by design",
+  "stream-overlay": "OBS overlay, no chrome by design",
+  "terminal": "admin tool target, no page",
+  "rithmic-review": "unlisted partner page",
+  "contact": "only linked from the banned-account notice",
+  "features": "marketing features index, only linked from the marketing flyout (nav-features.js, hidden when signed in)",
+  "refund-policy": "legal text linked from checkout, public",
+  "help": "own signed-in member shell (#member-help-shell: Questions | My tickets), public FAQ signed out; covered by help-center-browser.js and member-support QA"
+ },
+ "noheader": {
+  "charts": "full-screen chart app: its own toolbar replaces the phone header; menu and dock still present"
+ },
+ "nooverflow": {
+  "roadmap-admin": "admin table page, pre-existing wide table (not member-facing)"
+ }
+}

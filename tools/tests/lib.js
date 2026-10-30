@@ -40,6 +40,9 @@ function executablePath() {
       if (found) return found;
     }
   }
+  for (const c of ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser']) {
+    if (fs.existsSync(c)) return c;
+  }
   try { return chromium.executablePath(); } catch (e) { return undefined; }
 }
 

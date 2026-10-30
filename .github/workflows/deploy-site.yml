@@ -44,6 +44,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Browser audit runtime
+        run: npm install --no-save --no-package-lock playwright-core@1.56.1
+
       - name: Find the Pages project
         id: proj
         env:

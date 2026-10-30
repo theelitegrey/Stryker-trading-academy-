@@ -532,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // renderStudentsTable (top level) calls this too; without the global the whole list failed to load.
   window.liveWhy = liveWhy;
+  window.liveNote = liveNote;
 
   function applyFilters(){
     const q = (document.getElementById('students-search').value || '').trim().toLowerCase();

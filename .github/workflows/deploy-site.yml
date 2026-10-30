@@ -164,11 +164,18 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT }}
           INSIGHTSENTRY_WEBSOCKET_API_KEY: ${{ secrets.INSIGHTSENTRY_WEBSOCKET_API_KEY }}
+          CREATOR_SEAL_KEY: ${{ secrets.CREATOR_SEAL_KEY }}
         run: |
           if [ -n "$INSIGHTSENTRY_WEBSOCKET_API_KEY" ]; then
             printf '%s' "$INSIGHTSENTRY_WEBSOCKET_API_KEY" | npx --yes wrangler@4.138.0 pages secret put INSIGHTSENTRY_WEBSOCKET_API_KEY --project-name "${{ steps.proj.outputs.name }}"
           else
             echo "INSIGHTSENTRY_WEBSOCKET_API_KEY repo secret not set; realtime futures bridge will stay disabled."
+          fi
+          # Creator Hub: private key that opens sealed community indicators (functions/api/creator/ind.js).
+          if [ -n "$CREATOR_SEAL_KEY" ]; then
+            printf '%s' "$CREATOR_SEAL_KEY" | npx --yes wrangler@4.138.0 pages secret put CREATOR_SEAL_KEY --project-name "${{ steps.proj.outputs.name }}"
+          else
+            echo "CREATOR_SEAL_KEY repo secret not set; community indicators cannot be delivered."
           fi
 
       - name: Deploy to production

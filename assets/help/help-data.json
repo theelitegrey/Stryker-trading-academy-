@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updated": "2026-10-29",
+ "updated": "2026-10-30",
  "categories": [
   {
    "id": "getting-started",
@@ -4456,6 +4456,108 @@
         {
          "label": "Creator Rules",
          "href": "/creator-rules"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "community-indicators",
+     "title": "Community indicators",
+     "items": [
+      {
+       "id": "sell-indicator",
+       "q": "How do I sell or share my Pine indicator?",
+       "a": "<p>Open the <b>Creator Hub</b>, pick your community and go to <b>Indicators</b>. Choose <b>Upload indicator</b>, paste your Pine Script (version 5 or 6), and add a name, description, settings notes, tags and up to 4 screenshots.</p><p>Before it is published we compile it on the same engine members' charts use. If something is wrong you see the engine's message and the line number.</p><p>Then choose who gets it: tick the plans that include it, sell it alone, or give it by email or invite code. Paid checkout for creators opens soon. You can set a price now, but until checkout opens, access is given with free plans, invite codes and email grants.</p>",
+       "tags": [
+        "creator",
+        "indicator",
+        "pine",
+        "sell",
+        "upload"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      },
+      {
+       "id": "indicator-versions",
+       "q": "How do new versions work?",
+       "a": "<p>Open the indicator in Creator Hub → Indicators, choose <b>Edit or new version</b>, paste the new code and add version notes. Everyone who has access gets the new version the next time their chart loads it. Older versions stay in your version history and you can download them.</p>",
+       "tags": [
+        "creator",
+        "indicator",
+        "version",
+        "update"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      },
+      {
+       "id": "indicator-access",
+       "q": "How do I give or take away access to an indicator?",
+       "a": "<p>Access comes from three places:</p><ul><li><b>Plans.</b> Members on a plan that includes the indicator can use it while their membership is active.</li><li><b>Email.</b> Add someone's email in the indicator's access list, with an optional end date. They get it when they sign in with that verified email.</li><li><b>Invite codes.</b> Create a code for the indicator and share the link.</li></ul><p>Revoke anyone from the access list at any time. Access is checked by TradeZoro's server every time the chart loads the indicator. If a membership ends, expires or the member is banned, or a grant is revoked or expires, the indicator stops loading.</p>",
+       "tags": [
+        "creator",
+        "indicator",
+        "access",
+        "revoke",
+        "grant",
+        "invite"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      },
+      {
+       "id": "indicator-protection",
+       "q": "Can members see or copy my protected indicator's code?",
+       "a": "<p>Not through TradeZoro. A protected indicator is never shown in the editor and has no copy, export or fork option. It is sent to the chart encrypted, only after the server checks access. Comments are removed and your own names are replaced, and it is decrypted only inside the chart's background engine.</p><p>Each copy also carries a hidden ID for the member who loaded it, so a leaked copy can be traced to an account.</p><p>Be aware that any code that runs in a browser can, in the end, be pulled out by a skilled and determined person. Protection makes copying hard and traceable, not impossible. Don't put anything in an indicator that must stay secret.</p>",
+       "tags": [
+        "creator",
+        "indicator",
+        "protected",
+        "copy",
+        "source",
+        "security"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      },
+      {
+       "id": "use-community-indicator",
+       "q": "How do I use an indicator from my community?",
+       "a": "<p>On ZoroCharts open <b>Indicators</b> and choose <b>From your communities</b>. You see every indicator you can use, with the community's logo. Click one to add it to your chart.</p><p>Indicators your plan doesn't include show a lock and a <b>Get access</b> button that takes you to the community page. You can also open the community's <b>Indicators</b> tab and choose <b>Open on ZoroCharts</b>.</p><p>You need to be signed in. If your access ends, the indicator stops loading on your chart.</p><p>Indicators are tools made by independent creators. They are for education only and are not financial advice.</p>",
+       "tags": [
+        "indicator",
+        "community",
+        "charts",
+        "zorocharts",
+        "use"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "ZoroCharts",
+         "href": "/charts"
         }
        ]
       }

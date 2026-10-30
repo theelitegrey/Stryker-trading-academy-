@@ -5,7 +5,7 @@
 (function () {
   var root = document.getElementById('hb-root');
   var me, list = [], cid, cm, plans = [], members = [], invites = [], grants = [], bans = [], tab = 'dash';
-  var TABS = [['dash', 'Dashboard'], ['settings', 'Settings'], ['plans', 'Plans'], ['members', 'Members'], ['invites', 'Invites'], ['mods', 'Moderators']];
+  var TABS = [['dash', 'Dashboard'], ['settings', 'Settings'], ['plans', 'Plans'], ['members', 'Members'], ['invites', 'Invites'], ['indicators', 'Indicators'], ['mods', 'Moderators']];
   var FEATS = [['feed', 'Feed'], ['courses', 'Courses'], ['indicators', 'Indicators'], ['events', 'Events'], ['leaderboard', 'Leaderboard'], ['discord', 'Discord roles']];
   var $ = function (id) { return document.getElementById(id); };
   var cref = function () { return db.collection('communities').doc(cid); };
@@ -51,7 +51,14 @@
     root.innerHTML = h;
     $('hb-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { tab = b.dataset.t; draw(); } });
     var sw = $('hb-sw'); if (sw) sw.onchange = function () { cid = sw.value; load(); };
-    ({ dash: dash, settings: settings, plans: plansView, members: membersView, invites: invitesView, mods: modsView })[tab]($('hb-body'));
+    ({ dash: dash, settings: settings, plans: plansView, members: membersView, invites: invitesView, mods: modsView, indicators: indView })[tab]($('hb-body'));
+  }
+
+  // ---------------------------------------------------------------- indicators (assets/creator-ind.js)
+  function indView(el) {
+    if (!window.CHInd) { el.innerHTML = '<div class="cx-empty">Could not load the indicators tool. Reload the page.</div>'; return; }
+    if (cm.ownerUid !== me.uid) { el.innerHTML = '<div class="cx-empty">Only the community owner can publish and sell indicators.</div>'; return; }
+    window.CHInd.view(el, { cid: cid, cm: cm, plans: plans, members: members, reload: load });
   }
 
   // ---------------------------------------------------------------- dashboard

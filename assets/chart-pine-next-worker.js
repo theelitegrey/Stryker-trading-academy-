@@ -48,6 +48,28 @@ const fetchWaits = new Map();
 let fetchId = 0;
 
 let rewrite = (src) => src;
+
+// SEALED COMMUNITY INDICATORS (Creator Hub phase B). The page never holds a protected script's text: it asks this
+// worker for a one-time public key (sealKey), sends it to /api/creator/ind, and hands the ciphertext back here
+// (unseal). Only this worker has the private key (non-extractable), so only here is the script decrypted. The page
+// then runs a stub source that carries just a reference ("//@tz-sealed=<ref>"); prepare/execute swap the stub for
+// the real text inside the worker, and the prepared token posted back to the page carries the stub again.
+const sealed = new Map();            // ref -> decrypted source (this worker only)
+let sealKeyP = null;
+const SEAL_REF = /^\/\/@tz-sealed=([A-Za-z0-9]{8,40})\s*$/m;
+let Seal = null, Guard = null;
+async function sealMods(){
+  if (!Seal) Seal = import('./creator-seal.js?v=740');
+  if (!Guard) Guard = fetch(new URL('./chart-pine-guard.js?v=740', import.meta.url)).then((r) => r.text()).then((t) => { const m = { exports: {} }; new Function('module', t)(m); return m.exports; });
+  return [await Seal, await Guard];
+}
+function realSource(src){
+  const m = SEAL_REF.exec(String(src || ''));
+  if (!m) return { src, ref: null };
+  const r = sealed.get(m[1]);
+  if (r == null) throw new Error('This community indicator needs to be loaded again. Remove it and add it from the Indicators window.');
+  return { src: r, ref: m[1] };
+}
 const ready = (async () => {
   // O(n) ta.pivothigh/pivotlow (assets/chart-pine-next-patches.js) on pinets' Context.
   const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=740')]);
@@ -223,10 +245,33 @@ function liveBars(s, reason){
 self.addEventListener('message', async (ev) => {
   const msg = ev.data || {};
   switch (msg.kind) {
+    case 'sealKey': {
+      try {
+        const [S] = await sealMods();
+        if (!sealKeyP) sealKeyP = S.session();
+        post({ kind: 'sealKey', reqId: msg.reqId, pub: (await sealKeyP).pub });
+      } catch (e) { post({ kind: 'sealKey', reqId: msg.reqId, error: String(e && e.message || e) }); }
+      return;
+    }
+    case 'unseal': {
+      try {
+        const [S, G] = await sealMods();
+        const out = JSON.parse(await S.openSession((await sealKeyP).privateKey, msg.sealed));
+        const g = G.check(out.source);
+        if (!g.ok) throw new Error('This community indicator failed the safety check, so it won\'t run.');
+        sealed.set(String(msg.ref), out.source);
+        post({ kind: 'unsealed', reqId: msg.reqId, version: out.v });
+      } catch (e) { post({ kind: 'unsealed', reqId: msg.reqId, error: String(e && e.message || e) }); }
+      return;
+    }
     case 'prepare': {
       try {
         const eng = await engineFor(msg);
-        post({ kind: 'prepared', reqId: msg.reqId, prepared: await eng.prepare(rewrite(msg.source), msg.instanceId) });
+        const rs = realSource(msg.source);
+        const prepared = await eng.prepare(rewrite(rs.src), msg.instanceId);
+        // Never post a sealed script's text back to the page: the token keeps the stub.
+        if (rs.ref && prepared && prepared.token) prepared.token = Object.assign({}, prepared.token, { source: msg.source });
+        post({ kind: 'prepared', reqId: msg.reqId, prepared });
       } catch (e) {
         post({ kind: 'prepared', reqId: msg.reqId, error: String(e && e.message || e) });
       }
@@ -240,6 +285,10 @@ self.addEventListener('message', async (ev) => {
       try { eng = await engineFor(msg); } catch (e) { post({ kind: 'error', sessionId: id, message: String(e && e.message || e) }); return; }
       if (s.stopped) return;
       const req = Object.assign({}, msg.req, { getBars: () => s.bars, fetchSeries });
+      try {
+        const tk = req.prepared && req.prepared.token, rs = tk ? realSource(tk.source) : { ref: null };
+        if (rs.ref) req.prepared = Object.assign({}, req.prepared, { token: Object.assign({}, tk, { source: rewrite(rs.src) }) });
+      } catch (e) { post({ kind: 'error', sessionId: id, message: String(e && e.message || e) }); return; }
       delete req.bars;
       const deferred = req.historyState === 'backfill';
       s.deferred = deferred;

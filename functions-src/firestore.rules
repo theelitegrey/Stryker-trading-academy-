@@ -1114,6 +1114,191 @@ service cloud.firestore {
                       && request.resource.data.email == em && request.resource.data.createdBy == request.auth.uid;
         allow delete: if cmStaff(cid) || isAdmin();
       }
+
+      // ---- indicators (Phase B, 2026-10-30): Pine indicators a creator sells / includes in plans ----
+      // indicators/{iid}            metadata (cards, picker, plans that include it). Readable like the community page.
+      // indicators/{iid}/src/{v}    the creator's plain source + version notes: OWNER ONLY (version history).
+      // indicators/{iid}/vault/{v}  what delivery reads: the build sealed (encrypted) to the server's key at publish time.
+      //                             Readable only by someone who has access RIGHT NOW (active, unexpired, not banned), with
+      //                             his own token, from /api/creator/ind. Ciphertext: useless without the server key.
+      // indicators/{iid}/access/{email}  access given to one person (manual grant by email, invite code, free claim).
+      // indicators/{iid}/codes/{code}    invite codes for this indicator alone.
+      // indicators/{iid}/usage/{uid}     one marker per member: the UTC day he last ADDED it to a chart (7-day usage).
+      match /indicators/{iid} {
+        function indDoc() { return get(/databases/$(database)/documents/communities/$(cid)/indicators/$(iid)).data; }
+        function iNew() { return request.resource.data; }
+        function iKeys() {
+          return ['ownerUid', 'name', 'desc', 'settingsNotes', 'tags', 'shots', 'protected', 'planIds', 'solo', 'version', 'versionNotes',
+                  'status', 'createdAt', 'updatedAt', 'publishedAt', 'srcSize'];
+        }
+        function shotsOk(s) {
+          return s is list && s.size() <= 4
+            && (s.size() < 1 || (s[0] is string && s[0].matches('^https://[^ ]{4,600}$'))) && (s.size() < 2 || (s[1] is string && s[1].matches('^https://[^ ]{4,600}$')))
+            && (s.size() < 3 || (s[2] is string && s[2].matches('^https://[^ ]{4,600}$'))) && (s.size() < 4 || (s[3] is string && s[3].matches('^https://[^ ]{4,600}$')));
+        }
+        function strList(t, n, len) {
+          return t is list && t.size() <= n && (t.size() < 1 || (t[0] is string && t[0].size() <= len)) && (t.size() < 2 || (t[1] is string && t[1].size() <= len))
+            && (t.size() < 3 || (t[2] is string && t[2].size() <= len)) && (t.size() < 4 || (t[3] is string && t[3].size() <= len))
+            && (t.size() < 5 || (t[4] is string && t[4].size() <= len)) && (t.size() < 6 || (t[5] is string && t[5].size() <= len))
+            && (t.size() < 7 || (t[6] is string && t[6].size() <= len)) && (t.size() < 8 || (t[7] is string && t[7].size() <= len));
+        }
+        // solo = selling it on its own: { mode: 'off'|'free'|'invite'|'paid', price: {amount, currency} }. 'paid' shows
+        // "Paid checkout opens soon" until CREATOR_PAYMENTS is on; no rule here ever lets a buyer create paid access.
+        function soloOk(s) {
+          return s is map && s.keys().hasOnly(['mode', 'price']) && s.mode in ['off', 'free', 'invite', 'paid']
+            && s.price is map && s.price.keys().hasOnly(['amount', 'currency']) && s.price.currency in ['USD', 'INR']
+            && s.price.amount is number && s.price.amount >= 0 && s.price.amount <= 100000
+            && (s.mode != 'paid' || s.price.amount > 0);
+        }
+        function indOk(d) {
+          return d.keys().hasOnly(iKeys()) && d.keys().hasAll(iKeys())
+            && d.ownerUid == get(cmPath(cid)).data.ownerUid
+            && d.name is string && d.name.size() >= 2 && d.name.size() <= 60
+            && d.desc is string && d.desc.size() <= 2000 && d.settingsNotes is string && d.settingsNotes.size() <= 2000
+            && strList(d.tags, 5, 24) && shotsOk(d.shots) && d.protected is bool
+            && strList(d.planIds, 8, 4) && soloOk(d.solo)
+            && d.version is int && d.version >= 1 && d.versionNotes is string && d.versionNotes.size() <= 1000
+            && d.status in ['draft', 'live', 'hidden'] && d.srcSize is int && d.srcSize > 0 && d.srcSize <= 131072
+            && d.updatedAt == request.time;
+        }
+        function cmReadable() {
+          return get(cmPath(cid)).data.status == 'active'
+            && (get(cmPath(cid)).data.visibility in ['public', 'unlisted'] || (signedIn() && exists(cmMemPath(cid, request.auth.uid))));
+        }
+        allow list: if (resource.data.status == 'live' && cmReadable()) || cmStaff(cid) || isAdmin();
+        // get also for someone given this indicator alone (access doc for his verified email), even in a private community
+        allow get: if (resource.data.status == 'live' && (cmReadable()
+                        || (signedIn() && request.auth.token.email_verified == true
+                            && exists(/databases/$(database)/documents/communities/$(cid)/indicators/$(iid)/access/$(request.auth.token.get('email', 'none@none').lower())))))
+                   || cmStaff(cid) || isAdmin();
+        allow create: if cmOwner(cid) && iid.matches('^[A-Za-z0-9]{12,24}$') && indOk(iNew()) && iNew().version == 1
+                      && iNew().createdAt == request.time && iNew().publishedAt == request.time
+                      && existsAfter(/databases/$(database)/documents/communities/$(cid)/indicators/$(iid)/src/v1)
+                      && existsAfter(/databases/$(database)/documents/communities/$(cid)/indicators/$(iid)/vault/v1);
+        // Edits: metadata any time; a NEW version is +1 with its src + vault written in the same batch (holders get it on the
+        // next chart load, old versions stay in src/). createdAt / ownerUid never change.
+        allow update: if cmOwner(cid) && indOk(iNew()) && iNew().createdAt == resource.data.createdAt
+                      && (iNew().version == resource.data.version
+                            ? iNew().publishedAt == resource.data.publishedAt
+                            : (iNew().version == resource.data.version + 1 && iNew().publishedAt == request.time
+                               && existsAfter(/databases/$(database)/documents/communities/$(cid)/indicators/$(iid)/src/$('v' + string(iNew().version)))
+                               && existsAfter(/databases/$(database)/documents/communities/$(cid)/indicators/$(iid)/vault/$('v' + string(iNew().version)))))
+                   || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']));
+        allow delete: if cmOwner(cid) || isAdmin();
+
+        function verOk(v) { return v.matches('^v[0-9]{1,4}$'); }
+        match /src/{v} {
+          allow get, list: if cmOwner(cid);
+          allow create: if cmOwner(cid) && verOk(v)
+                        && request.resource.data.keys().hasOnly(['version', 'source', 'notes', 'createdAt'])
+                        && 'v' + string(request.resource.data.version) == v
+                        && request.resource.data.source is string && request.resource.data.source.size() > 0 && request.resource.data.source.size() <= 131072
+                        && request.resource.data.notes is string && request.resource.data.notes.size() <= 1000
+                        && request.resource.data.createdAt == request.time;
+          allow update: if false;
+          allow delete: if cmOwner(cid) || isAdmin();
+        }
+
+        // Who has access right now. Plan route: active, unexpired member on an included plan. Own-access route: an
+        // access/{my verified email} doc, active and unexpired, and not banned from the community.
+        function myEmail() { return request.auth.token.get('email', 'none@none').lower(); }
+        function accPath() { return /databases/$(database)/documents/communities/$(cid)/indicators/$(iid)/access/$(myEmail()); }
+        function memOk() {
+          return exists(cmMemPath(cid, request.auth.uid))
+            && get(cmMemPath(cid, request.auth.uid)).data.status == 'active'
+            && (get(cmMemPath(cid, request.auth.uid)).data.expiresAt == null || get(cmMemPath(cid, request.auth.uid)).data.expiresAt > request.time);
+        }
+        function notBannedHere() {
+          return !exists(/databases/$(database)/documents/communities/$(cid)/bans/$(myEmail()))
+            && (!exists(cmMemPath(cid, request.auth.uid)) || get(cmMemPath(cid, request.auth.uid)).data.status != 'banned');
+        }
+        function hasAccess() {
+          return signedIn() && get(cmPath(cid)).data.status == 'active' && indDoc().status == 'live'
+            && ((memOk() && get(cmMemPath(cid, request.auth.uid)).data.planId in indDoc().planIds)
+                || (request.auth.token.email_verified == true && notBannedHere() && exists(accPath())
+                    && get(accPath()).data.status == 'active'
+                    && (get(accPath()).data.expiresAt == null || get(accPath()).data.expiresAt > request.time)));
+        }
+        match /vault/{v} {
+          allow get: if verOk(v) && (cmOwner(cid) || hasAccess());
+          allow list: if false;
+          allow create: if cmOwner(cid) && verOk(v)
+                        && request.resource.data.keys().hasOnly(['version', 'sealed', 'createdAt'])
+                        && 'v' + string(request.resource.data.version) == v
+                        && request.resource.data.sealed is map && request.resource.data.sealed.keys().hasOnly(['alg', 'epk', 'iv', 'ct'])
+                        && request.resource.data.sealed.alg == 'p256-hkdf-a256gcm' && request.resource.data.sealed.ct is string
+                        && request.resource.data.sealed.ct.size() <= 400000
+                        && request.resource.data.createdAt == request.time;
+          allow update: if false;
+          allow delete: if cmOwner(cid) || isAdmin();
+        }
+
+        function aNew() { return request.resource.data; }
+        function codeOf(c) { return get(/databases/$(database)/documents/communities/$(cid)/indicators/$(iid)/codes/$(c)).data; }
+        function codeAfter(c) { return getAfter(/databases/$(database)/documents/communities/$(cid)/indicators/$(iid)/codes/$(c)).data; }
+        match /access/{em} {
+          allow get: if cmStaff(cid) || isAdmin() || (signedIn() && request.auth.token.email_verified == true && em == myEmail());
+          allow list: if cmStaff(cid) || isAdmin();
+          function aBase() {
+            return em == em.lower() && em.matches('^[^/ ]{3,200}$')
+              && aNew().keys().hasOnly(['email', 'source', 'status', 'expiresAt', 'createdBy', 'createdAt', 'code'])
+              && aNew().keys().hasAll(['email', 'source', 'status', 'expiresAt', 'createdBy', 'createdAt'])
+              && aNew().email == em && aNew().status == 'active' && aNew().createdAt == request.time
+              && (aNew().expiresAt == null || aNew().expiresAt is timestamp);
+          }
+          allow create: if
+            // owner / admin grants by email (any expiry)
+            (cmStaff(cid) && aBase() && aNew().source == 'manual' && aNew().createdBy == request.auth.uid)
+            // a verified member claims a FREE solo indicator for himself
+            || (signedIn() && request.auth.token.email_verified == true && em == myEmail() && aBase()
+                && aNew().source == 'free' && aNew().expiresAt == null && aNew().createdBy == request.auth.uid
+                && indDoc().status == 'live' && indDoc().solo.mode == 'free' && get(cmPath(cid)).data.status == 'active' && notBannedHere())
+            // ... or redeems an invite code for it (uses +1 in the same batch)
+            || (signedIn() && request.auth.token.email_verified == true && em == myEmail() && aBase()
+                && aNew().source == 'invite' && aNew().createdBy == request.auth.uid && aNew().code is string
+                && indDoc().status == 'live' && get(cmPath(cid)).data.status == 'active' && notBannedHere()
+                && codeOf(aNew().code).status == 'active'
+                && (codeOf(aNew().code).maxUses == 0 || codeOf(aNew().code).uses < codeOf(aNew().code).maxUses)
+                && (codeOf(aNew().code).expiresAt == null || codeOf(aNew().code).expiresAt > request.time)
+                && codeAfter(aNew().code).uses == codeOf(aNew().code).uses + 1
+                && (codeOf(aNew().code).grantDays == 0
+                    ? aNew().expiresAt == null
+                    : (aNew().expiresAt >= request.time + duration.value(codeOf(aNew().code).grantDays * 1440 - 10, 'm')
+                       && aNew().expiresAt <= request.time + duration.value(codeOf(aNew().code).grantDays * 1440 + 10, 'm'))));
+          // staff: revoke / restore / change expiry
+          allow update: if cmStaff(cid) && aNew().diff(resource.data).affectedKeys().hasOnly(['status', 'expiresAt'])
+                        && aNew().status in ['active', 'revoked'] && (aNew().expiresAt == null || aNew().expiresAt is timestamp);
+          allow delete: if cmStaff(cid) || isAdmin();
+        }
+        match /codes/{code} {
+          allow get: if signedIn();
+          allow list: if cmStaff(cid) || isAdmin();
+          allow create: if cmStaff(cid) && code.matches('^[A-Za-z0-9]{10,24}$')
+                        && request.resource.data.keys().hasOnly(['uses', 'maxUses', 'expiresAt', 'grantDays', 'label', 'status', 'createdBy', 'createdAt'])
+                        && request.resource.data.keys().hasAll(['uses', 'maxUses', 'expiresAt', 'grantDays', 'status', 'createdBy', 'createdAt'])
+                        && request.resource.data.uses == 0 && request.resource.data.maxUses is int && request.resource.data.maxUses >= 0 && request.resource.data.maxUses <= 100000
+                        && (request.resource.data.expiresAt == null || request.resource.data.expiresAt is timestamp)
+                        && request.resource.data.grantDays is int && request.resource.data.grantDays >= 0 && request.resource.data.grantDays <= 3650
+                        && (!('label' in request.resource.data) || (request.resource.data.label is string && request.resource.data.label.size() <= 60))
+                        && request.resource.data.status == 'active' && request.resource.data.createdBy == request.auth.uid
+                        && request.resource.data.createdAt == request.time;
+          allow update: if (cmStaff(cid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'maxUses', 'expiresAt', 'label']))
+                        || (signedIn() && request.auth.token.email_verified == true
+                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses'])
+                            && request.resource.data.uses == resource.data.uses + 1
+                            && !exists(accPath()) && existsAfter(accPath())
+                            && getAfter(accPath()).data.get('code', '') == code);
+          allow delete: if cmStaff(cid) || isAdmin();
+        }
+        match /usage/{u} {
+          allow get, list: if cmStaff(cid) || isAdmin();
+          allow create, update: if isSelf(u) && hasAccess()
+                        && request.resource.data.keys().hasOnly(['day', 'at'])
+                        && request.resource.data.day == int(request.time.toMillis() / 86400000)
+                        && request.resource.data.at == request.time;
+          allow delete: if cmStaff(cid) || isAdmin();
+        }
+      }
     }
 
     // Reports on communities (later phases: posts, indicators, courses). One report per person per target.
@@ -1125,6 +1310,12 @@ service cloud.firestore {
 
     // Pending email grants for MY verified email, across communities (collection-group query used by /api/creator/sync).
     match /{path=**}/grants/{em} {
+      allow list: if signedIn() && request.auth.token.email_verified == true
+                  && resource.data.email == request.auth.token.get('email', 'none@none').lower();
+    }
+
+    // Indicator access given to MY verified email, across communities (charts "From your communities").
+    match /{path=**}/access/{em} {
       allow list: if signedIn() && request.auth.token.email_verified == true
                   && resource.data.email == request.auth.token.get('email', 'none@none').lower();
     }

@@ -62,6 +62,10 @@ const onMain = new WeakSet();      // handles running on the in-process engine
 // They always run on the Web Worker engine (never the in-page fallback) and are checked by
 // StrykerPineGuard first; see assets/chart-pine-guard.js for why.
 const libOf = new WeakMap();
+// Community indicators from the Creator Hub (sealed): handle -> { cid, iid, name, version, logo }. Their text never
+// reaches this page; the chart state stores only a stub with a reference, and every load asks /api/creator/ind again
+// (access is re-checked by the server each time; an ended membership simply stops loading).
+const sealOf = new WeakMap();
 const guardOk = (src) => { try { return !!(window.StrykerPineGuard && window.StrykerPineGuard.check(src).ok); } catch (e) { return false; } };
 // Language ids. LANG_MAIN is our own registry key for the in-process engine.
 const LANG = 'pine';
@@ -150,6 +154,7 @@ async function ensureEngine(chart){
 
 // Add a restored/kept script on the engine it ran on before.
 function addOn(chart, x){
+  if (x.sealed) { addSealedOn(chart, x.sealed, x.inputs || {}, true).then((r) => { if (!r.ok) toast2(r.msg); }); return null; }
   if (x.lib && !guardOk(x.source)) { console.warn('TradeZoro: shared Pine script failed the safety check, not restored'); return null; }
   const main = x.engine === 'main' && !x.lib;
   const next = x.engine === 'next' && !x.lib && nextEngines.has(chart);
@@ -178,6 +183,7 @@ function snapshot(h){
   if (onNext.has(h)) o.engine = 'next';
   if (libOf.has(h)) o.lib = libOf.get(h);
   if (offsetHandles.has(h)) o.rightOffset = offsetHandles.get(h);
+  if (sealOf.has(h)) { const z = sealOf.get(h); o.sealed = { cid: z.cid, iid: z.iid, name: z.name, logo: z.logo || '' }; delete o.engine; }
   return o;
 }
 // SAVED SETTINGS MUST COME BACK IN FULL (Owner 2026-10-26: "in Liquidity Master, watermark and equal
@@ -207,7 +213,55 @@ function cleanEntry(x){
   } else if (x.engine === 'main' || x.engine === 'next') o.engine = x.engine;
   const ro = requestedRightOffset(x);
   if (ro) o.rightOffset = ro;
+  const Z = x.sealed;
+  if (Z && typeof Z === 'object' && /^[a-z0-9-]{3,30}$/.test(String(Z.cid || '')) && /^[A-Za-z0-9]{12,24}$/.test(String(Z.iid || ''))) {
+    o.sealed = { cid: Z.cid, iid: Z.iid, name: String(Z.name || '').slice(0, 60), logo: /^https:\/\//.test(Z.logo || '') ? String(Z.logo).slice(0, 600) : '' };
+    o.source = sealStub(o.sealed.name, 'x');
+  }
   return o;
+}
+
+// ---------------- sealed community indicators (Creator Hub) ----------------
+let toast2 = () => {};
+function sealStub(name, ref){
+  // Only a reference. The real script is swapped in INSIDE the worker (chart-pine-next-worker.js, SEALED block).
+  return '//@version=5\n//@tz-sealed=' + ref + '\nindicator("' + String(name || 'Community indicator').replace(/["\\\n]/g, ' ').slice(0, 60) + '")\n';
+}
+function randRef(){ const a = new Uint8Array(16); crypto.getRandomValues(a); return Array.from(a, (b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join(''); }
+async function idToken(){ try { const u = firebase.auth().currentUser; return u ? await u.getIdToken() : null; } catch (e) { return null; } }
+function markUsage(z){
+  try {
+    const u = firebase.auth().currentUser; if (!u) return;
+    firebase.firestore().collection('communities').doc(z.cid).collection('indicators').doc(z.iid).collection('usage').doc(u.uid)
+      .set({ day: Math.floor(Date.now() / 86400000), at: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
+  } catch (e) {}
+}
+// z = { cid, iid, name, logo }. restoring = from a saved layout (no usage count, quieter errors).
+async function addSealedOn(chart, z, inputs, restoring){
+  let eng;
+  try { await ensureEngine(chart); eng = await ensureNext(chart); } catch (e) { return { ok: false, msg: "The Pine engine didn't load. Check your connection." }; }
+  if (!restoring && pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
+  const tok = await idToken();
+  if (!tok) return { ok: false, msg: 'Sign in to use ' + (z.name || 'community indicators') + '.' };
+  let res;
+  try {
+    const pub = await eng.sealKey();
+    const r = await fetch('/api/creator/ind', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + tok }, body: JSON.stringify({ cid: z.cid, iid: z.iid, pub }) });
+    res = await r.json().catch(() => ({}));
+    if (!r.ok || !res.ok) return { ok: false, msg: (res && res.message) || 'Could not load ' + (z.name || 'the indicator') + '.', code: res && res.error };
+  } catch (e) { return { ok: false, msg: 'Could not reach TradeZoro. Check your connection.' }; }
+  const ref = randRef();
+  try { await eng.unseal(ref, res.sealed); } catch (e) { return { ok: false, msg: String(e && e.message || 'Could not open the indicator.') }; }
+  const stub = sealStub(res.name || z.name, ref);
+  const out = restoring
+    ? (() => { const h = chart.addIndicator(stub, { language: LANG_NEXT, inputs: inputs || {} }); return { ok: !!h, handle: h }; })()
+    : await runOnChart(chart, stub, inputs || {}, false, { sealed: true });
+  if (!out.ok) return { ok: false, msg: (out.msg || 'Could not run the indicator.').replace(/^Line \d+: /, '') };
+  onNext.add(out.handle);
+  sealOf.set(out.handle, { cid: z.cid, iid: z.iid, name: res.name || z.name, version: res.version, logo: z.logo || '' });
+  changed();
+  if (!restoring) markUsage(z);
+  return { ok: true, handle: out.handle, version: res.version };
 }
 
 function changed(){ try { const ws = getWs(); if (ws) ws.context().stateChanged(); } catch (e) {} }
@@ -389,7 +443,9 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
     return Promise.race([chart.runIndicator(source, { language: LANG_NEXT, inputs: inputs || {} }), timeout]);
   };
   let res = null, engine = 'worker';
-  if (opts && opts.engine === 'next' && !shared) { res = await runNext(); engine = 'next'; }
+  // Sealed community indicators run ONLY on the next worker (the stub means nothing anywhere else).
+  if (opts && opts.sealed) { res = (await runNext()) || { ok: false, error: new Error("The Pine engine didn't start.") }; engine = 'next'; }
+  else if (opts && opts.engine === 'next' && !shared) { res = await runNext(); engine = 'next'; }
   // vela logs `[vela] indicator "ind-N" failed: ...` (console.error) when the worker's older
   // PineTS rejects a script (seen: HTF PO3 Lens "stacks is not defined", ICT Pro+ "ta.max is
   // not a function"). The retry below then runs it fine on the next engine, so that line is
@@ -425,6 +481,7 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   if (!res || !res.ok) {
     hideVelaErrorToast();
     const ex = explain(res && res.error, source);
+    if (opts && opts.sealed) return { ok: false, msg: ex.msg };   // line numbers of a hidden script mean nothing to a member
     return { ok: false, msg: ex.msg, line: ex.line };
   }
   if (engine === 'main' && res.handle) onMain.add(res.handle);
@@ -678,12 +735,13 @@ export function mountPine(ws, barL, opts){
     if (!hs.length) onChart.appendChild(el('li', { class: 'stkc-empty', text: 'No Pine scripts on this chart.' }));
     const me = (() => { try { return firebase.auth().currentUser.uid; } catch (e) { return null; } })();
     hs.forEach((h) => {
-      const L = libOf.get(h);
-      const hidden = L && !L.openSource && L.ownerUid !== me;
+      const L = libOf.get(h), Z = sealOf.get(h);
+      const hidden = (L && !L.openSource && L.ownerUid !== me) || !!Z;
       const li = row((L ? L.name || titleOf(h) : titleOf(h)), [
         ib('Remove ' + titleOf(h) + ' from the chart', ICON_DEL, () => { try { h.remove(); } catch (e) {} changed(); renderLists(); }, 'stkc-del')
-      ], () => { if (hidden) showErr('Code hidden in the editor: the author shares this script without its source.'); else load(L ? L.name : titleOf(h), h.source, null); },
+      ], () => { if (Z) showErr('Protected community indicator: its code stays with the creator.'); else if (hidden) showErr('Code hidden in the editor: the author shares this script without its source.'); else load(L ? L.name : titleOf(h), h.source, null); },
       hidden ? 'Code hidden in the editor' : 'Open its code in the editor');
+      if (Z) li.querySelector('.stkc-tname').appendChild(el('span', { class: 'stkc-badge', text: 'From your communities v' + Z.version + ' \u00b7 protected' }));
       if (L) {
         const tag = el('span', { class: 'stkc-badge', text: 'Community v' + L.version + (hidden ? ' \u00b7 code hidden' : '') });
         li.querySelector('.stkc-tname').appendChild(tag);
@@ -783,6 +841,17 @@ export function mountPine(ws, barL, opts){
     }
   }
 
-  window.STRYKER_PINE = { ensureRoom, open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, addSource, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
+  toast2 = (m) => { if (m) toast(m, 'error'); };
+  async function addSealed(z){
+    const a = activeCell();
+    if (!a.cell) return { ok: false, msg: 'No chart to add it to.' };
+    pageBusy(true);
+    try {
+      const r = await addSealedOn(a.cell.chart, z, {}, false);
+      if (r.ok) { toast('Added ' + (z.name || 'the indicator') + ' to the chart'); if (!panel.hidden) renderLists(); }
+      return r;
+    } finally { pageBusy(false); }
+  }
+  window.STRYKER_PINE = { addSealed, sealOf, ensureRoom, open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, addSource, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
   return { setOpen };
 }

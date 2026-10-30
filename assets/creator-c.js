@@ -3,7 +3,10 @@
 (function () {
   var root = document.getElementById('cm-root');
   var slug = (location.pathname.match(/^\/c\/([a-z0-9-]+)/) || location.search.match(/[?&]c=([a-z0-9-]+)/) || [])[1];
-  var cm, plans = [], me = null, mem = null, tab = 'about', hasInvite = '';
+  var cm, plans = [], me = null, mem = null, tab = 'about', hasInvite = '', inds = null, myAccess = {};
+  var qs = new URLSearchParams(location.search);
+  if (qs.get('tab') === 'indicators') tab = 'indicators';
+  var wantInd = (qs.get('ind') || '').replace(/[^A-Za-z0-9]/g, ''), indCode = (qs.get('icode') || '').replace(/[^A-Za-z0-9]/g, '');
   var FEATS = [['feed', 'Feed'], ['courses', 'Courses'], ['indicators', 'Indicators'], ['events', 'Events'], ['leaderboard', 'Leaderboard']];
 
   function msg(t) { root.innerHTML = '<div class="cx-empty">' + t + '</div>'; }
@@ -40,7 +43,11 @@
       '<span class="cx-chip">' + (cm.memberCount || 0) + ' member' + (cm.memberCount === 1 ? '' : 's') + '</span>' +
       (cm.visibility === 'private' ? '<span class="cx-chip">Private</span>' : '') + '</div>';
     var tabs = [['about', 'About']];
-    if (member) enabled().forEach(function (f) { tabs.push(f); });
+    // Indicators is visible to everyone who can see the page (so people can see what a plan includes); the code itself
+    // never leaves the server unless the person has access.
+    if (cm.features && cm.features.indicators && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['indicators', 'Indicators']);
+    if (member) enabled().forEach(function (f) { if (f[0] !== 'indicators') tabs.push(f); });
+    if (tab === 'indicators' && !tabs.some(function (t) { return t[0] === 'indicators'; })) tab = 'about';
     h += '<div class="cx-tabs" style="margin-top:16px" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="cx-two"><div id="cm-main"></div><aside id="cm-side"></aside></div>';
     root.innerHTML = h;
@@ -61,9 +68,82 @@
       el.innerHTML = h;
       return;
     }
+    if (tab === 'indicators') return indicatorsTab(el, member);
     var names = { feed: 'Feed', courses: 'Courses', indicators: 'Indicators', events: 'Events', leaderboard: 'Leaderboard' };
     // None of these ship in Phase A, so each says so honestly.
     el.innerHTML = '<div class="cx-empty"><h3>' + names[tab] + '</h3>Coming soon. ' + CH.esc(cm.ownerName || 'The creator') + ' has turned this on; it will appear here when it launches.</div>';
+  }
+
+  // ---------------------------------------------------------------- indicators tab (Creator Hub phase B)
+  function indUsable(x, member) {
+    if (isOwner()) return 'yours';
+    if (member && (x.planIds || []).indexOf(mem.planId) >= 0) return 'plan';
+    var a = myAccess[x.id]; if (a && a.status === 'active' && (!a.expiresAt || a.expiresAt.toMillis() > Date.now())) return 'grant';
+    return '';
+  }
+  function loadInds() {
+    if (inds) return Promise.resolve(inds);
+    var col = db.collection('communities').doc(slug).collection('indicators');
+    return col.where('status', '==', 'live').get().then(function (s) {
+      inds = s.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+      var em = me && me.emailVerified && (me.email || '').toLowerCase();
+      if (!em) return inds;
+      return Promise.all(inds.map(function (x) { return col.doc(x.id).collection('access').doc(em).get().then(function (d) { if (d.exists) myAccess[x.id] = d.data(); }).catch(function () {}); })).then(function () { return inds; });
+    });
+  }
+  function indicatorsTab(el, member) {
+    el.innerHTML = '<div class="cx-empty">Loading indicators…</div>';
+    loadInds().then(function (list) {
+      if (!list.length) { el.innerHTML = '<div class="cx-empty"><h3>Indicators</h3>No indicators published yet.</div>'; return; }
+      var planName = function (id) { var p = plans.filter(function (x) { return x.id === id; })[0]; return p ? p.name : ''; };
+      el.innerHTML = '<p class="cx-muted" style="margin:0 0 12px">These indicators run on ZoroCharts. Access is checked every time the chart loads them.</p><div class="cx-igrid">' + list.map(function (x) {
+        var how = indUsable(x, member), pls = (x.planIds || []).map(planName).filter(Boolean);
+        var solo = x.solo || { mode: 'off' };
+        var act;
+        if (how) act = '<a class="btn btn-primary" href="/charts?cind=' + CH.esc(slug) + '/' + CH.esc(x.id) + '">Open on ZoroCharts</a>';
+        else if (solo.mode === 'free') act = '<button class="btn btn-primary ci-free" type="button" data-i="' + CH.esc(x.id) + '">Get it free</button>';
+        else if (solo.mode === 'paid' && !CH.cfg.PAYMENTS) act = '<button class="btn btn-ghost" type="button" disabled>Paid checkout opens soon</button>';
+        else if (pls.length) act = '<button class="btn btn-ghost ci-plans" type="button">' + (member ? 'Not in your plan' : 'See plans') + '</button>';
+        else act = '<button class="btn btn-ghost" type="button" disabled>By invite only</button>';
+        var shots = (x.shots || []).slice(0, 4);
+        return '<article class="cx-icard" id="ind-' + CH.esc(x.id) + '">' +
+          (shots.length ? '<div class="cx-ishots stkc-scroll">' + shots.map(function (u, i) { return '<img src="' + CH.esc(u) + '" alt="' + CH.esc(x.name) + ' screenshot ' + (i + 1) + '" loading="lazy">'; }).join('') + '</div>' : '<div class="cx-ishots cx-ishots-none" aria-hidden="true"></div>') +
+          '<div class="cx-ibody"><div class="cx-spread"><h3>' + CH.esc(x.name) + '</h3><span class="cx-chip">v' + x.version + '</span></div>' +
+          (x.desc ? '<p class="cx-muted">' + CH.esc(x.desc).slice(0, 400) + '</p>' : '') +
+          '<div class="cx-row" style="gap:6px">' + (x.protected ? '<span class="cx-chip">Protected code</span>' : '') + (x.tags || []).map(function (t) { return '<span class="cx-chip">' + CH.esc(t) + '</span>'; }).join('') + '</div>' +
+          '<p class="cx-imeta">' + (pls.length ? 'Included in: <b>' + pls.map(CH.esc).join(', ') + '</b>' : 'Not in a plan') +
+          (solo.mode === 'paid' ? ' · Alone: ' + CH.esc(CH.money({ price: { amount: solo.price.amount, currency: solo.price.currency, interval: 'lifetime' } })) : solo.mode === 'free' ? ' · Alone: free' : '') + '</p>' +
+          (how && x.settingsNotes ? '<details class="cx-inotes"><summary>Settings notes</summary>' + CH.para(x.settingsNotes) + '</details>' : '') +
+          (how ? '<p class="cx-ok" style="margin:8px 0 0">You have access' + (how === 'grant' && myAccess[x.id].expiresAt ? ' until ' + CH.esc(CH.date(myAccess[x.id].expiresAt)) : '') + '</p>' : '') +
+          '<div class="cx-actions">' + act + '</div><div class="cx-bad ci-msg" role="alert"></div></div></article>';
+      }).join('') + '</div>' +
+      (indCode && wantInd ? '<div class="cx-box" style="margin-top:12px" id="ci-code"><b>You have an invite code for an indicator</b><p class="cx-muted">Use it to get the indicator on ZoroCharts (not a community membership).</p><button class="btn btn-primary" id="ci-redeem" type="button">Use code</button><div class="cx-bad" id="ci-cmsg" role="alert"></div></div>' : '');
+      el.querySelectorAll('.ci-plans').forEach(function (b) { b.onclick = function () { var s = document.getElementById('cm-side'); if (s) s.scrollIntoView({ behavior: 'smooth' }); }; });
+      el.querySelectorAll('.ci-free').forEach(function (b) { b.onclick = function () { claim(b.dataset.i, null, b); }; });
+      var rd = document.getElementById('ci-redeem'); if (rd) rd.onclick = function () { claim(wantInd, indCode, rd); };
+      if (wantInd) { var t = document.getElementById('ind-' + wantInd); if (t) t.scrollIntoView({ block: 'center' }); }
+    }).catch(function () { el.innerHTML = '<div class="cx-empty">Could not load indicators. Try again.</div>'; });
+  }
+  // Free claim / invite-code redeem for ONE indicator. Rules-checked batch (firestore.rules, indicators/access).
+  function claim(iid, codeId, btn) {
+    if (!me) return CH.signIn();
+    var msgEl = codeId ? document.getElementById('ci-cmsg') : btn.closest('.cx-ibody').querySelector('.ci-msg');
+    if (!me.emailVerified) { msgEl.textContent = 'Verify your email first (check your inbox), then try again.'; return; }
+    var em = (me.email || '').toLowerCase(), col = db.collection('communities').doc(slug).collection('indicators').doc(iid);
+    btn.disabled = true;
+    var go = codeId ? col.collection('codes').doc(codeId).get().then(function (c) {
+      if (!c.exists || c.data().status !== 'active') throw { m: 'That code is not valid.' };
+      var d = c.data();
+      if (d.maxUses && d.uses >= d.maxUses) throw { m: 'That code has been used up.' };
+      if (d.expiresAt && d.expiresAt.toMillis() < Date.now()) throw { m: 'That code has expired.' };
+      var b = db.batch();
+      b.set(col.collection('access').doc(em), { email: em, source: 'invite', status: 'active', code: codeId, createdBy: me.uid, createdAt: CH.ts(),
+        expiresAt: d.grantDays ? CH.stamp(new Date(Date.now() + d.grantDays * 86400000)) : null });
+      b.update(col.collection('codes').doc(codeId), { uses: CH.inc(1) });
+      return b.commit();
+    }) : col.collection('access').doc(em).set({ email: em, source: 'free', status: 'active', expiresAt: null, createdBy: me.uid, createdAt: CH.ts() });
+    go.then(function () { CH.toast('success', 'Done. Open it on ZoroCharts.'); inds = null; myAccess = {}; draw(); })
+      .catch(function (e) { btn.disabled = false; msgEl.textContent = (e && e.m) || 'Could not get access. You may already have it, or the code is not valid for you.'; });
   }
 
   function side(member) {

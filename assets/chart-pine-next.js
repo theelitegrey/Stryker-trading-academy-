@@ -11,6 +11,8 @@
 // non-backfill bar notification ships a fresh snapshot (same as vela-pinets' own worker).
 // Bursts are coalesced on the worker side (one re-run after the in-flight one lands).
 
+import { SeriesCache } from './chart-pine-series-cache.js?v=740';
+
 const WORKER_URL = new URL('./chart-pine-next-worker.js?v=740' + (typeof window !== 'undefined' && window.__stkVela090 === true ? '&vela=090' : ''), import.meta.url);
 
 // request.security ranges: the engine asks for a long warm-up before the chart's first bar
@@ -80,6 +82,7 @@ export function barsBudget(){
     return phone ? 2000 : 5000;
   } catch (e) { return 5000; }
 }
+function barsPhone(){ try { return typeof window !== 'undefined' && (window.innerWidth < 700 || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches)); } catch (e) { return false; } }
 export const FIRST_START_LIMIT_MS = 45000;   // worker boot + script download/compile + queue, before its run begins
 export const FIRST_RUN_LIMIT_MS = 40000;     // the script's OWN compute time for its first draw (clock starts at 'started')
 
@@ -96,6 +99,8 @@ export class PineNextEngine {
     this.ctxWaits = new Map();
     this.claims = [];           // watchers waiting for their script's prepare()
     this.stats = { started: 0, models: 0, lanesMade: 0 };
+    // one request.security cache per chart (this engine), shared by all its scripts and lanes
+    this.seriesCache = new SeriesCache({ maxBars: barsPhone() ? 150000 : 500000, maxInflight: barsPhone() ? 4 : 6 });
   }
   // A lane = one module Worker. spawn() starts it; message / error handlers are bound to the lane.
   spawn(){
@@ -260,10 +265,17 @@ export class PineNextEngine {
       case 'fetchSeries': this.serveFetch(m, lane); return;
     }
   }
+  cachedFetch(s, m){
+    const range = clampRange(m.range, m.timeframe, s.barsOf());
+    const mk = s.req.market || {};
+    const all = s.req.getBars ? s.req.getBars() : s.req.bars;
+    const base = mk.symbol && mk.timeframe && all && all.length ? { symbol: mk.symbol, timeframe: mk.timeframe, bars: all } : null;
+    return this.seriesCache.get(m.symbol, m.timeframe, range, (sy, tf, r) => s.req.fetchSeries(sy, tf, r), base);
+  }
   async serveFetch(m, lane){
     const s = [...this.sessions.values()].find((x) => x.lane === lane && x.req.fetchSeries) || [...this.sessions.values()].find((x) => x.req.fetchSeries);
     if (!s) { this.lanePost(lane, { kind: 'fetchSeriesResult', reqId: m.reqId, bars: [] }); return; }
-    try { this.lanePost(lane, { kind: 'fetchSeriesResult', reqId: m.reqId, bars: await s.req.fetchSeries(m.symbol, m.timeframe, clampRange(m.range, m.timeframe, s.barsOf())) }); }
+    try { this.lanePost(lane, { kind: 'fetchSeriesResult', reqId: m.reqId, bars: await this.cachedFetch(s, m) }); }
     catch (e) { this.lanePost(lane, { kind: 'fetchSeriesResult', reqId: m.reqId, error: String((e && e.message) || e) }); }
   }
 }

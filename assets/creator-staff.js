@@ -5,9 +5,9 @@
 (function () {
   var root = document.getElementById('ad-root'), tab = 'cm', cms = [], reps = [], pay = null;
   var E = CH.esc;
-  document.querySelector('.cx-tabs').addEventListener('click', function (e) {
+  document.querySelector('.level-tabs').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return; tab = b.dataset.t;
-    document.querySelectorAll('.cx-tabs button').forEach(function (x) { x.classList.toggle('on', x === b); }); draw();
+    document.querySelectorAll('.level-tabs button').forEach(function (x) { x.classList.toggle('active', x === b); }); draw();
   });
   function draw() {
     if (tab === 'cm') {

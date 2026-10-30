@@ -80,7 +80,9 @@
   CP.payoutsCard = function (el, ctx) {
     el.innerHTML = '<div class="cx-box cp-card" aria-busy="true"><div class="cp-head"><h2>Payouts</h2></div><p class="cx-muted">Checking your payout status…</p></div>';
     var q = new URLSearchParams(location.search).get('payouts');
-    return CP.legalReady.then(function () { return CP.call('status'); }).then(function (r) {
+    // The status check must always end in a real state: a hard 15 s cap, then a retry card (never an endless "Checking…").
+    var capped = function (p) { return Promise.race([p, new Promise(function (_, no) { setTimeout(function () { no({ message: 'timeout' }); }, 15000); })]); };
+    return capped(CP.legalReady.then(function () { return CP.call('status'); })).then(function (r) {
       if (r.legalName) CP.legal = r.legalName;
       var acc = r.account || { status: 'none' };
       if (r.switchingOn) acc = Object.assign({}, acc, { switchingOn: true });
@@ -89,7 +91,9 @@
       if (q === 'return' && r.account.status !== 'active') CH.toast('info', 'Thanks. Stripe is checking your details.');
       if (q === 'refresh') CH.toast('info', 'That setup link expired. Continue with a fresh one.');
     }).catch(function (e) {
-      el.innerHTML = '<div class="cx-box cp-card"><div class="cp-head"><h2>Payouts</h2></div><p class="cx-bad" role="alert">' + E(CP.errText(e)) + '</p></div>';
+      var slow = e && e.message === 'timeout';
+      el.innerHTML = '<div class="cx-box cp-card"><div class="cp-head"><h2>Payouts</h2><span class="cp-chip warn">Not checked</span></div><p class="cp-lead" role="alert">' + (slow ? 'Stripe did not answer in time.' : E(CP.errText(e))) + ' Your community works as normal.</p><div class="cx-actions"><button class="btn btn-ghost" type="button" id="cp-retry">Try again</button></div></div>';
+      var rt = el.querySelector('#cp-retry'); if (rt) rt.onclick = function () { CP.payoutsCard(el, ctx); };
     });
   };
 
@@ -124,7 +128,7 @@
         CP.countryOptions().map(function (c) { return '<option value="' + c[0] + '">' + E(c[1]) + '</option>'; }).join('') +
         '<option value="IN">India</option><option value="other">Another country</option></select><div class="hint" id="cp-chint">Stripe asks for ID and bank details on its own secure page.</div></div>' +
         '<label class="cx-check"><input type="checkbox" id="cp-agree"><span>I agree to the <a href="/creator-rules" target="_blank" rel="noopener">Creator Rules</a> and I sell as an independent creator.</span></label>' +
-        '<div id="cp-err" class="cx-bad" role="alert"></div><div class="cx-actions"><button class="btn btn-primary" type="submit" id="cp-go">Set up payouts</button></div></form>';
+        '<div id="cp-err" class="cx-bad" role="alert"></div><div class="cx-actions"><button class="btn btn-primary" type="submit" id="cp-go">Connect Stripe</button></div></form>';
     } else if (a.status === 'incomplete') {
       h += '<p class="cp-lead">You started setting up payouts with Stripe but didn\'t finish.</p>' + dueList(a) + '<div class="cx-actions"><button class="btn btn-primary" type="button" id="cp-go">Continue setup</button></div>';
     } else if (a.status === 'pending') {
@@ -160,7 +164,7 @@
         if (!el.querySelector('#cp-agree').checked) return (err.textContent = 'Tick the box to agree to the Creator Rules.');
         busy(go, 'Opening Stripe…');
         CP.call('onboard', { cid: ctx.cid, country: sel.value, agree: true }).then(function (r) { location.href = r.url; })
-          .catch(function (x) { unbusy(go, 'Set up payouts'); err.textContent = CP.errText(x); });
+          .catch(function (x) { unbusy(go, 'Connect Stripe'); err.textContent = CP.errText(x); });
       };
     } else if (go) {
       var label = go.textContent;

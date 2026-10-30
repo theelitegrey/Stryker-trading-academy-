@@ -58,13 +58,16 @@
 
   function draw() {
     if (!cm) return;
-    var h = '<div class="cx-spread"><div><p class="cx-eyebrow">Creator Hub</p><h1 style="margin:0">' + E(cm.name) + '</h1></div><div class="cx-row">' +
-      (list.length > 1 ? '<select class="cx-in-s" id="hb-sw" aria-label="Switch community">' + list.map(function (c) { return '<option value="' + E(c.id) + '"' + (c.id === cid ? ' selected' : '') + '>' + E(c.name) + '</option>'; }).join('') + '</select>' : '') +
-      '<a class="btn btn-ghost" href="/c/' + E(cid) + '">View page</a>' + (list.length < CH.cfg.MAX_COMMUNITIES ? '<a class="btn btn-ghost" href="/creator-new">New community</a>' : '') + '</div></div>';
+    // Title row lives in the app page header (creator.html #hb-h1 / #hb-acts), the same slot every other app page uses.
+    var h1 = $('hb-h1'); if (h1) h1.textContent = 'Creator Hub \u00b7 ' + cm.name;
+    var acts = $('hb-acts');
+    if (acts) acts.innerHTML = (list.length > 1 ? '<select class="cx-in-s" id="hb-sw" aria-label="Switch community">' + list.map(function (c) { return '<option value="' + E(c.id) + '"' + (c.id === cid ? ' selected' : '') + '>' + E(c.name) + '</option>'; }).join('') + '</select>' : '') +
+      '<a class="btn btn-ghost btn-sm" href="/c/' + E(cid) + '">View page</a>' + (list.length < CH.cfg.MAX_COMMUNITIES ? '<a class="btn btn-ghost btn-sm" href="/creator-new">New community</a>' : '');
+    var h = '';
     var flashNote = ''; try { flashNote = sessionStorage.getItem('cx_note') || ''; sessionStorage.removeItem('cx_note'); } catch (e) {}
     if (new URLSearchParams(location.search).get('new')) h += note('<b>Your community is live.</b> ' + (flashNote ? E(flashNote) + ' ' : '') + 'Share the link: <b>tradezoro.com/c/' + E(cid) + '</b>');
     if (cm.status === 'suspended') h += note('<b class="cx-bad">This community is suspended by TradeZoro staff.</b> It is hidden from members until reviewed.');
-    h += '<div class="cx-tabs" style="margin-top:14px" id="hb-tabs">' + TABS.map(function (t) { return '<button type="button" data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div><div id="hb-body"></div>';
+    h += '<div class="level-tabs cx-ltabs" id="hb-tabs" role="tablist" aria-label="Creator Hub sections">' + TABS.map(function (t) { return '<button type="button" role="tab" aria-selected="' + (tab === t[0]) + '" data-t="' + t[0] + '" class="level-tab' + (tab === t[0] ? ' active' : '') + '">' + t[1] + '</button>'; }).join('') + '</div><div id="hb-body"></div>';
     root.innerHTML = h;
     $('hb-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { tab = b.dataset.t; syncUrl(); draw(); } });
     var sw = $('hb-sw'); if (sw) sw.onchange = function () { cid = sw.value; syncUrl(); load(); };

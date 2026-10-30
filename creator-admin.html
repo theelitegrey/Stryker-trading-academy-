@@ -11,7 +11,6 @@
 <link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/style.css?v=762">
-<link rel="stylesheet" href="/assets/nav-features.css?v=762">
 
 <script src="/assets/sanitize.js?v=762"></script>
 <script>
@@ -70,8 +69,9 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/tradezoro-icon-192-494.png?v=762">
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 <link rel="stylesheet" href="/assets/creator.css?v=762">
+<script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 </head>
-<body data-page-key="creator-admin" class="cx-page">
+<body data-page-key="creator-admin" class="cx-page cx-app">
 <a class="skip-link" href="#main">Skip to content</a>
 <nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
   <a class="appnav-dk" data-nav="charts" href="/charts"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v3M7 17v4M17 3v5M17 15v6"/><rect x="4.5" y="6" width="5" height="11" rx="1"/><rect x="14.5" y="8" width="5" height="7" rx="1"/></svg><span class="appnav-new" aria-hidden="true"></span></span><span class="appnav-dkl">ZoroCharts</span></a>
@@ -81,100 +81,260 @@
   <button type="button" class="appnav-dk appnav-more" data-nav="more" id="appnav-more" aria-haspopup="dialog" aria-expanded="false" aria-controls="appnav-sheet"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="appnav-dkl">More</span></button>
 </nav>
 <script src="/assets/app-nav.js?v=762"></script>
-<nav class="nav" id="site-nav">
-  <div class="nav-inner">
-    <a href="/" class="brand">
-      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
-    </a>
-    <div class="nav-links">
-      <a href="/features">Features</a>
-      <a href="/#curriculum">Curriculum</a>
-      <a href="/#concepts">ICT / SMT</a>
-      <a href="/#pricing">Pricing</a>
-      <a href="/courses">Courses</a>
-      <a href="/dashboard-user">Dashboard</a>
+
+<div class="access-gate-overlay" id="access-gate-overlay">
+  <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
+</div>
+
+<div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
+  <div class="paywall-card">
+    <div class="paywall-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <div class="nav-cta">
-      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
-      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
-      <button class="nav-toggle" aria-label="Menu">☰</button>
+    <h2 id="paywall-heading">Upgrade to unlock this page</h2>
+    <p id="paywall-body">This page requires an active plan.</p>
+    <div class="paywall-actions" id="paywall-actions">
+      <button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button>
     </div>
   </div>
-</nav>
-<main id="main" tabindex="-1">
-<div class="cx-wrap">
+</div>
 
-<p class="cx-eyebrow">Staff</p><h1>Creator moderation</h1>
-<div class="cx-tabs"><button type="button" class="on" data-t="cm">Communities</button><button type="button" data-t="rp">Reports</button><button type="button" data-t="pay">Payouts</button></div>
+<div class="mobile-topnav">
+  <div class="topnav-left"><button class="icon-btn menu-toggle-btn" id="dash-menu-toggle" aria-label="Open menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><a href="/dashboard-user" class="brand"><picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture></a></div>
+  <div class="topnav-right">
+    <div class="notif-bell-wrap">
+      <button class="icon-btn" id="notif-bell-btn" aria-label="Notifications" title="Notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge"></span>
+      </button>
+      <div class="notif-panel" id="notif-panel">
+        <div class="notif-panel-head">Notifications</div>
+        <div id="notif-list"></div>
+      </div>
+    </div>
+    <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+  </div>
+</div>
+<div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
+
+<div class="dash-shell gate-pending">
+
+  <aside class="sidebar">
+    <a href="/dashboard-user" class="brand">
+      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+
+    </a>
+
+    <div class="side-section">
+      <div class="side-label">Learn</div>
+      <a href="/dashboard-user" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Overview
+      </a>
+      <a href="/courses" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Curriculum
+      </a>
+      <a href="/models.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg>
+        Trading models
+      </a>
+      <a href="/indicators" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Trading indicators
+      </a>
+      <a href="/live-sessions.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Live sessions
+      </a>
+      <a href="/achievements.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+        Achievements
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">Terminal</div>
+      <a href="/global-monitor" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13.5 13.5 0 0 1 0 18"/><path d="M12 3a13.5 13.5 0 0 0 0 18"/></svg>
+        Global Monitor <span class="gm-alert-dot"></span>
+      </a>
+      <a href="/smart-money.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18"/><path d="M4 18h16"/><path d="M6 18v-7M10 18v-7M14 18v-7M18 18v-7"/><path d="M2 10l10-6 10 6z"/></svg>
+        Smart money
+      </a>
+      <a href="/charts.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3v4M7 17v4M15 2v3M15 19v3"/><rect x="4.5" y="7" width="5" height="10" rx="1"/><rect x="12.5" y="5" width="5" height="14" rx="1"/></svg>
+        ZoroCharts
+      </a>
+      <a href="/backtests" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M10 8l5 4-5 4z"/></svg>
+        Replay One
+      </a>
+      <a href="/paper-review" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="m9 14 2 2 4-4"/></svg>
+        Trade review
+      </a>
+      <a href="/leaderboard" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>
+        Paper leaderboard
+      </a>
+      <a href="/economic-calendar.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h3M13.5 13.5h3M7.5 17h3"/></svg>
+        Economic calendar
+      </a>
+      <a href="/market-brief.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v5h5"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>
+        Pre-market brief
+      </a>
+      <a href="/market-map.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Market map
+      </a>
+      <a href="/scanner" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/><path d="M8 12.5l2-2.5 2 1.5 2-3"/></svg>
+        Market scanner
+      </a>
+      <a href="/market-stats" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        Market stats
+      </a>
+      <a href="/gex.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M6 15l3.5-4 3 2.5L18 6"/><path d="M18 6h-4"/><path d="M18 6v4"/></svg>
+        GEX+
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">Community</div>
+        <a href="/trading-floor" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Trading floor
+      </a>
+      <a href="/messages" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>
+        Messages
+      </a>
+      <a href="/trade-journal" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+        JournalX
+      </a>
+      <a href="/referrals.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Invite &amp; earn
+      </a>
+      <a href="/giveaways.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v9H5v-9"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
+        Giveaways
+      </a>
+    </div>
+
+    <div class="side-section" id="cn-section" role="group" aria-labelledby="cn-label">
+      <div class="side-label" id="cn-label">Creator Hub</div>
+      <a href="/communities" class="side-link" data-cn="explore"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>
+        Explore communities
+      </a>
+      <a href="/communities?view=mine" class="side-link" data-cn="mine"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/>
+        My communities
+      </a>
+      <a href="/creator-new" class="side-link" data-cn="start"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>
+        Start a community
+      </a>
+      <a href="/features/creators" class="side-link" data-cn="how"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>
+        How it works
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">Account</div>
+      <a href="/profile.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>
+        Profile
+      </a>
+      <a href="/settings.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+      <a href="/roadmap.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h6M14 12h6"/><circle cx="12" cy="12" r="2"/><circle cx="4" cy="12" r="1.5"/><circle cx="20" cy="12" r="1.5"/></svg>
+        Roadmap
+      </a>
+      <a href="/suggestions" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"/></svg>
+        Suggestions
+      </a>
+      <a href="/help" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/></svg>
+        Help Center
+      </a>
+    </div>
+
+    <div class="sidebar-foot">
+      <a href="/dashboard-user" class="user-chip">
+        <div class="chip-avatar"></div>
+        <div>
+          <div class="chip-name">Trader</div>
+          <div class="chip-role">—</div>
+        </div>
+      </a>
+      <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
+    </div>
+  </aside>
+
+  <main class="dash-main cx-main" id="main" tabindex="-1">
+    <div class="dash-topbar">
+      <div>
+        <h1>Creator moderation</h1>
+        <p>Staff: review communities, reports and creator payouts.</p>
+      </div>
+    </div>
+<div class="cx-wrap">
+<div class="level-tabs cx-ltabs" role="tablist" aria-label="Moderation sections"><button type="button" class="level-tab active" data-t="cm">Communities</button><button type="button" class="level-tab" data-t="rp">Reports</button><button type="button" class="level-tab" data-t="pay">Payouts</button></div>
 <div id="ad-root"><div class="cx-empty">Checking access…</div></div>
 </div>
 </main>
-<footer>
-  <div class="container">
-    <div class="footer-grid">
-      <div>
-        <a href="/" class="brand" style="margin-bottom:14px;">
-          <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
-        </a>
-        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
-      </div>
-      <div>
-        <h5>Learn</h5>
-        <a href="/features">All features</a>
-        <a href="/courses">Full curriculum</a>
-        <a href="/#concepts">ICT / SMT glossary</a>
-        <a href="/learn">Learn: free articles</a>
-        <a href="/#pricing">Pricing</a>
-      </div>
-      <div>
-        <h5>Account</h5>
-        <a href="/login">Log in</a>
-        <a href="/signup">Create account</a>
-        <a href="/dashboard-user">Student dashboard</a>
-      </div>
-      <div>
-        <h5>Company</h5>
-        <a href="/about">About TradeZoro</a>
-        <a href="/help">Help Center</a>
-        <a href="/suggestions">Suggestions</a>
-        <a href="/creators">Creator Hub</a>
-        <a href="/support">Support</a>
-        <a href="/contact">Contact us</a>
-        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
-        <a href="/terms">Terms &amp; Risk Disclosure</a>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 TradeZoro, operating as TradeZoro. All rights reserved.</span>
-      <span>Made for traders who read the tape.</span>
-    </div>
-    <div class="footer-legal-row">
-      <a href="/privacy">Privacy Policy</a>
-      <a href="/cookies">Cookie Policy</a>
-      <a href="/gdpr">GDPR</a>
-      <a href="/refund-policy">Refund Policy</a>
-      <a href="/terms#third-party-notices">Third-party notices</a>
-    </div>
-    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
-  </div>
-</footer>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
 <script src="/assets/auth.js?v=762"></script>
+<script src="/assets/gate-timeout.js?v=762"></script>
 <script src="/assets/progress.js?v=762"></script>
+<script src="/assets/presence.js?v=762"></script>
+<script src="/assets/messages.js?v=762"></script>
+<script src="/assets/messages-badge.js?v=762"></script>
+<script src="/assets/gm-badge.js?v=762"></script>
+<script src="/assets/activity-log.js?v=762"></script>
 <script src="/assets/banned-check.js?v=762"></script>
 <script src="/assets/email-verify.js?v=762"></script>
+<script src="/assets/notifications.js?v=762"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+<script src="/assets/push.js?v=762"></script>
+<script src="/assets/admin-link.js?v=762"></script>
+<script src="/assets/profiles-sync.js?v=762"></script>
+<script src="/assets/loading-animation.js?v=762"></script>
+<script src="/assets/avatars.js?v=762"></script>
+<script src="/assets/account-menu.js?v=762"></script>
+<script src="/assets/referrals.js?v=762"></script>
+<script src="/assets/roles.js?v=762"></script>
+<script src="/assets/plan-price.js?v=762"></script>
+<script src="/assets/plan-modal.js?v=762"></script>
+<script src="/assets/trial.js?v=762"></script>
+<script src="/assets/plan-guard.js?v=762"></script>
+<script src="/assets/maintenance-check.js?v=762"></script>
 <script src="/assets/branding.js?v=762"></script>
+<script src="/assets/dash-nav.js?v=762"></script>
+<script src="/assets/market-hours.js?v=762"></script>
 <script src="/assets/admin-guard.js?v=762"></script>
 <script src="/assets/creator-config.js?v=762"></script>
 <script src="/assets/creator.js?v=762"></script>
 <script src="/assets/creator-pay.js?v=762"></script>
 <script src="/assets/creator-staff.js?v=762"></script>
+<script src="/assets/creator-shell.js?v=762"></script>
 <script src="/assets/theme.js?v=762"></script>
-<script src="/assets/nav-features.js?v=762" defer></script>
-<script src="/assets/main.js?v=762"></script>
 </body>
 </html>

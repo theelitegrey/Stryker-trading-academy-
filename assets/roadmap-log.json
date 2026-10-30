@@ -1,6 +1,18 @@
 [
  {
-  "build": 763,
+  "build": 768,
+  "date": "2026-10-31",
+  "title": "Creator Hub section in the app menu",
+  "link": ""
+ },
+ {
+  "build": 767,
+  "date": "2026-10-31",
+  "title": "Pagination on long lists",
+  "link": ""
+ },
+ {
+  "build": 764,
   "date": "2026-10-31",
   "title": "Creator Hub inside the app",
   "link": ""
@@ -33,12 +45,6 @@
   "build": 755,
   "date": "2026-10-30",
   "title": "New notification design",
-  "link": ""
- },
- {
-  "build": 754,
-  "date": "2026-10-30",
-  "title": "Creator Hub section in the app menu",
   "link": ""
  },
  {

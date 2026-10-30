@@ -241,9 +241,9 @@ a.fb-ht:hover .fb-skin{ border-color:var(--fb-line-hi); }
 
 /* ================================================================ 2. MEGA BENTO */
 .fb-grid{ display:grid; gap:10px; grid-template-columns:repeat(2, minmax(0, 1fr));
-  grid-template-areas:"gex gex" "charts charts" "cur rep" "jou jou" "smd smd" "mod ind" "ses ses" "mon mon" "com com"; }
+  grid-template-areas:"gex gex" "charts charts" "cur rep" "jou jou" "smd smd" "mod ind" "ses ses" "mon mon" "com com" "cre cre"; }
 .t-gex{ grid-area:gex; } .t-charts{ grid-area:charts; } .t-cur{ grid-area:cur; } .t-replay{ grid-area:rep; } .t-journal{ grid-area:jou; }
-.t-smd{ grid-area:smd; } .t-models{ grid-area:mod; } .t-ind{ grid-area:ind; } .t-sessions{ grid-area:ses; } .t-monitor{ grid-area:mon; } .t-community{ grid-area:com; }
+.t-smd{ grid-area:smd; } .t-models{ grid-area:mod; } .t-ind{ grid-area:ind; } .t-sessions{ grid-area:ses; } .t-monitor{ grid-area:mon; } .t-community{ grid-area:com; } .t-creators{ grid-area:cre; }
 .fb-tile{ overflow:hidden; cursor:pointer; scroll-margin-top:calc(var(--fb-head-h) + var(--fb-chip-h) + 12px);
   transition:transform .35s cubic-bezier(.2,.9,.3,1.2); }
 .fb-tile:hover{ transform:translateY(-3px); }
@@ -414,7 +414,7 @@ a.fb-ht:hover .fb-skin{ border-color:var(--fb-line-hi); }
 @media (min-width:720px){
   .fb-sec{ padding:72px 24px 10px; }
   .fb-grid{ gap:14px; grid-template-columns:repeat(4, minmax(0, 1fr));
-    grid-template-areas:"gex gex charts charts" "gex gex cur rep" "jou jou ses ses" "smd smd smd smd" "mod ind mon mon" "com com mon mon"; }
+    grid-template-areas:"gex gex charts charts" "gex gex cur rep" "jou jou ses ses" "smd smd smd smd" "mod ind mon mon" "com com mon mon" "cre cre cre cre"; }
   .fb-in{ padding:18px; }
   .fb-tile h3{ font-size:19px; }
   .fb-in-split{ flex-direction:row; align-items:center; }
@@ -432,7 +432,8 @@ a.fb-ht:hover .fb-skin{ border-color:var(--fb-line-hi); }
       "charts charts charts jou jou jou"
       "smd smd smd smd ind ind"
       "mod mod mon mon mon mon"
-      "com com mon mon mon mon"; }
+      "com com mon mon mon mon"
+      "cre cre cre cre cre cre"; }
   .t-charts .fb-in{ padding-right:160px; }
   .t-charts .fb-phone-peek, .t-models .fb-phone-peek{ display:block; position:absolute; right:22px; bottom:-60px; transform:rotate(6deg); transition:transform .5s cubic-bezier(.2,.9,.3,1.2); }
   .t-charts:hover .fb-phone-peek{ transform:rotate(0deg) translateY(-24px); }

@@ -32,3 +32,7 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 
 # Creator Hub (2026-10-30): /c/<slug> is one page (c.html) that reads the slug from the URL.
 /c/* /c 200
+
+# Creator Hub landing moved under /features (2026-10-30).
+/creators /features/creators 301
+/creators.html /features/creators 301

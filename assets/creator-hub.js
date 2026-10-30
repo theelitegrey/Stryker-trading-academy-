@@ -26,7 +26,7 @@
     if (!u) { root.innerHTML = '<div class="cx-empty">Sign in to manage your communities.<div style="margin-top:14px"><button class="btn btn-primary" id="hb-login" type="button">Sign in</button></div></div>'; $('hb-login').onclick = CH.signIn; return; }
     return db.collection('communities').where('ownerUid', '==', u.uid).get().then(function (s) {
       list = s.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; });
-      if (!list.length) { root.innerHTML = '<div class="cx-empty">You have no community yet.<div style="margin-top:14px"><a class="btn btn-primary" href="/creator-new">Start your community</a></div></div>'; return; }
+      if (!list.length) { root.innerHTML = '<div class="cx-empty">You have no community yet.<div style="margin-top:14px"><a class="btn btn-primary" href="/creator-new">Start your community</a> <a class="btn btn-ghost" href="/features/creators">Learn more</a></div></div>'; return; }
       var want = new URLSearchParams(location.search).get('c');
       cid = (list.filter(function (c) { return c.id === want; })[0] || list[0]).id;
       return load();

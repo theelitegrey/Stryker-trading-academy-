@@ -1,5 +1,6 @@
 // Screenshots of a DEMO community for the /creators landing page (never real data).
 // Stubs Firebase in the browser with an in-memory "Harbor Lane (example)" community, serves the repo on 127.0.0.1 only.
+// Cover: put a cover.jpg (crop of assets/images/orderflow/bigtrades.webp, NQ 1m, 1150x190 at y=60, resized to 1600x264) in <outdir>/_demo/.
 // Run (Chrome under the shared lock): node tools/creator/landing-shots.js <outdir> [sizes]
 // Needs playwright-core and a Chromium (tools/tests/lib.js finds one).
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -31,7 +32,7 @@ function stubSrc(member) {
     put(C + '/plans/pro', { name: 'Member', order: 1, status: 'live', popular: true, price: { interval: 'month', amount: 29, currency: 'USD' }, desc: 'Everything in the room.', bullets: ['Courses and events', 'Indicators on ZoroCharts', 'Discord role'] });
     if (MEMBER) put(C + '/members/u1', { status: 'active', planId: 'pro', role: 'member', joinedAt: ts(9 * D), source: 'free' });
     put(C + '/indicators/i1', { name: 'Session Levels Pro', version: 3, status: 'live', protected: true, tags: ['levels', 'session'], desc: 'Marks the session highs and lows and the prior-day levels on your chart.', planIds: ['pro'], solo: { mode: 'off' }, shots: ['/assets/images/charts/hero.webp'], settingsNotes: 'Start with the defaults.' });
-    put(C + '/indicators/i2', { name: 'Journal Marks', version: 1, status: 'live', protected: true, tags: ['ict'], desc: 'Drop a labelled mark on any bar and review them later.', planIds: ['pro'], solo: { mode: 'free' }, shots: [] });
+    put(C + '/indicators/i2', { name: 'Delta Divergence', version: 1, status: 'live', protected: true, tags: ['order-flow'], desc: 'Draws divergence lines between price and cumulative delta.', planIds: ['pro'], solo: { mode: 'free' }, shots: ['/assets/images/orderflow/cvd.webp'] });
     put(C + '/courses/c1', { title: 'Journaling for futures traders', desc: 'A short course on keeping a journal you will actually use.', status: 'published', order: 0, solo: { mode: 'off' }, access: { mode: 'all', planIds: [] }, sequential: false });
     put(C + '/courses/c1/modules/m1', { title: 'Start here', order: 0, status: 'published', planIds: [], drip: { mode: 'none' } });
     put(C + '/courses/c1/modules/m2', { title: 'Weekly review', order: 1, status: 'published', planIds: [], drip: { mode: 'date', at: ts(-6 * D) } });
@@ -99,7 +100,7 @@ function stubSrc(member) {
       await p.waitForSelector('.cx-tabs', { timeout: 15000 });
       if (tab && !['indicators', 'courses'].includes(tab)) { await p.click('.cx-tabs button[data-t=' + tab + ']'); }
       await p.waitForTimeout(1400);
-      await p.addStyleTag({ content: '#appnav-dock,.appnav-dock{display:none!important}.cx-cover{height:140px!important}.cx-chip:last-of-type{display:none}.cx-row .cx-chip:nth-last-child(1){display:none}' });
+      await p.addStyleTag({ content: '#appnav-dock,.appnav-dock{display:none!important}.cx-cover{height:176px!important}.cx-head .cx-t{padding-top:44px}.cx-chip:last-of-type{display:none}.cx-row .cx-chip:nth-last-child(1){display:none}' });
       if (opts && opts.eval) { await p.evaluate(opts.eval); await p.waitForTimeout(300); }
       const ov = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
       const file = OUT + '/' + name + '-' + w + '-' + theme + '.png';

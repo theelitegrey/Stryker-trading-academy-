@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems, explainLoginError } from './rithmic-client.js?v=765';
-import { RithmicFuturesProvider, rithmicTradeSource, rithmicBookSource } from './rithmic-provider.js?v=765';
+import { RithmicClient, listSystems, explainLoginError } from './rithmic-client.js?v=766';
+import { RithmicFuturesProvider, rithmicTradeSource, rithmicBookSource } from './rithmic-provider.js?v=766';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -527,7 +527,7 @@ export function createRithmic(cfg) {
     let savedHook = null;
     function loadSaved() {
       if (window.strykerRithmicSaved) return Promise.resolve(window.strykerRithmicSaved);
-      return new Promise((res) => { const sc = document.createElement('script'); sc.src = 'assets/rithmic-saved.js?v=765'; sc.onload = () => res(window.strykerRithmicSaved || null); sc.onerror = () => res(null); document.head.appendChild(sc); });
+      return new Promise((res) => { const sc = document.createElement('script'); sc.src = 'assets/rithmic-saved.js?v=766'; sc.onload = () => res(window.strykerRithmicSaved || null); sc.onerror = () => res(null); document.head.appendChild(sc); });
     }
     loadSaved().then((m) => m && m.sheetHook()).then((h) => {
       if (!h) return; savedHook = h;

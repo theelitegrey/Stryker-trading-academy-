@@ -4399,7 +4399,7 @@
       {
        "id": "creator-paid-plans",
        "q": "Can I charge for my community?",
-       "a": "<p>Yes. Paid plans are sold in US dollars, from $1 to $999, monthly, yearly or one-time, with an optional free trial of up to 30 days on monthly and yearly plans.</p><p>First set up payouts on the Creator Hub dashboard (Stripe checks your identity and bank details), and add a refund rule in Settings. A plan that shows <b>Paid checkout opens soon</b> can't be bought yet, and <b>Payouts are being switched on</b> means Stripe setup is being finished: check back soon.</p><p>You can always run free plans, invite links and codes, and add members by email.</p>",
+       "a": "<p>Yes. Paid plans are sold in US dollars, from $1 to $999, monthly, yearly or one-time, with an optional free trial of up to 30 days on monthly and yearly plans.</p><p>First set up payouts on the Creator Hub dashboard (Stripe checks your identity and bank details), and add a refund rule in Settings. Paid plans are open now, and members pay you directly through Stripe.</p><p>You can always run free plans, invite links and codes, and add members by email.</p>",
        "tags": [
         "creator",
         "paid",

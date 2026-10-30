@@ -23,6 +23,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+const { toDual } = require('./app-shell/dual-shell.js');   // signed in = app shell, signed out = this page's marketing header/footer
 const ORIGIN = 'https://tradezoro.com';
 const BUILD = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/version.json'), 'utf8')).build;
 
@@ -202,7 +203,7 @@ const SCRIPTS = '\n' + ver(about.slice(about.indexOf('</footer>') + 9, about.ind
 if (!SCRIPTS.includes('auth.js') || !SCRIPTS.includes('theme.js')) throw new Error('about.html footer scripts changed; update gen-learn.js');
 
 function page(parts) {
-  return `${head(parts)}
+  return toDual(`${head(parts)}
 <body data-page-key="${parts.key}">
 <a class="skip-link" href="#main">Skip to content</a>
 
@@ -214,7 +215,7 @@ ${FOOTER}
 ${SCRIPTS}
 </body>
 </html>
-`;
+`);
 }
 
 const PUBLISHER = { '@type': 'Organization', name: 'TradeZoro', url: ORIGIN + '/',

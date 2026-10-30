@@ -1,8 +1,14 @@
 [
  {
-  "build": 771,
+  "build": 772,
   "date": "2026-11-01",
   "title": "Member support tickets",
+  "link": ""
+ },
+ {
+  "build": 773,
+  "date": "2026-10-31",
+  "title": "Every page opens inside the app",
   "link": ""
  },
  {

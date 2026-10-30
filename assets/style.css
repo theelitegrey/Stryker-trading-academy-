@@ -10595,3 +10595,24 @@ input[type=checkbox]:not(:checked), input[type=radio]:not(:checked){ background-
 button.cn-mg-row{ width:100%; border:0; background:none; font:inherit; font-size:14px; font-weight:500; color:var(--ink-2); text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 button.cn-mg-row.active{ background:rgba(3,201,136,0.1); color:var(--gold-bright); font-weight:600; }
 button.cn-mg-row:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }
+
+/* Public-and-app pages (suggestions, roadmap, help, support, learn, creator-rules, c/<slug>): app shell when signed in,
+   the page's own marketing header + footer when signed out. html.nav-authed comes from app-nav.js (stored flag at first
+   paint, then the real auth state). Markup + generator: tools/app-shell/dual-shell.js. */
+html:not(.nav-authed) body.dual-shell .dual-app{ display:none !important; }
+html:not(.nav-authed) body.dual-shell .dash-shell.dual-wrap{ display:block; min-height:0; }
+html:not(.nav-authed) body.dual-shell .dual-wrap > .dash-main{ max-width:none; padding:0; margin:0; }
+html.nav-authed body.dual-shell .dual-pub{ display:none !important; }
+body.dual-shell .dual-wrap > .dash-main{ max-width:none; padding:0; }
+
+/* Lesson / indicator / model readers inside the app shell (chapter.html, indicator.html, model.html). */
+.reader-appbar{ margin-bottom:12px; }
+.reader-back{ display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 12px 0 8px; border:1px solid var(--line); border-radius:10px; color:var(--ink-1); font-size:14px; font-weight:600; background:var(--bg-1); }
+.reader-back:hover{ color:var(--gold); border-color:var(--gold-dim); }
+.reader-back:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.reader-shell.reader-in-app{ min-height:0; grid-template-columns:240px minmax(0,1fr); gap:24px; align-items:start; }
+.reader-in-app .reader-toc{ top:calc(var(--topbar-h, 64px) + 12px); height:auto; max-height:calc(100vh - var(--topbar-h, 64px) - 24px); border:1px solid var(--line-soft); border-radius:12px; }
+.reader-in-app .reader-toc-head{ display:none; }
+.reader-in-app .reader-main{ padding:0 0 40px; max-width:900px; margin-inline:0; }
+.reader-in-app .reader-toolbar{ display:none; }
+@media (max-width:960px){ .reader-shell.reader-in-app{ grid-template-columns:minmax(0,1fr); } }

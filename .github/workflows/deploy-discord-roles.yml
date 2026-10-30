@@ -1,0 +1,66 @@
+# Deploys the Discord roles Worker (workers/discord-roles) with wrangler. Runs its tests first.
+# Discord keys come from GitHub secrets DISCORD_BOT_TOKEN / DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET (set them with
+# tools/discord/push-secrets.sh from the server env file /root/.config/tradezoro/discord.env). Without them the Worker still
+# deploys and answers "Discord connection is being set up". Rollback: wrangler rollback, or delete the Worker.
+name: Deploy Discord roles Worker
+
+on:
+  push:
+    branches: [main]
+    paths: ['workers/discord-roles/**', '.github/workflows/deploy-discord-roles.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discord-roles-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Tests (mock Discord + mock Firestore)
+        run: node --no-warnings workers/discord-roles/test/core.test.mjs
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D_BOT: ${{ secrets.DISCORD_BOT_TOKEN }}
+          D_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+          D_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+        run: |
+          for v in "$D_BOT" "$D_SECRET"; do [ -n "$v" ] && echo "::add-mask::$v"; done
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          echo "::add-mask::$TOKEN"
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          if [ -z "$ACCOUNT" ]; then
+            ACCOUNT=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id // empty')
+          fi
+          echo "::add-mask::$ACCOUNT"
+          [ -z "$ACCOUNT" ] && { echo "::error::no Cloudflare account visible to the token"; exit 1; }
+          cd workers/discord-roles
+          export CLOUDFLARE_API_TOKEN="$TOKEN" CLOUDFLARE_ACCOUNT_ID="$ACCOUNT"
+          npx --yes wrangler@4.149.0 deploy 2>&1 | tee /tmp/deploy.log
+          test "${PIPESTATUS[0]}" = 0
+          if [ -n "$D_BOT" ] && [ -n "$D_ID" ] && [ -n "$D_SECRET" ]; then
+            printf '%s' "$D_BOT" | npx --yes wrangler@4.149.0 secret put DISCORD_BOT_TOKEN >/dev/null 2>&1 || { echo "::error::could not set DISCORD_BOT_TOKEN"; exit 1; }
+            printf '%s' "$D_ID" | npx --yes wrangler@4.149.0 secret put DISCORD_CLIENT_ID >/dev/null 2>&1 || { echo "::error::could not set DISCORD_CLIENT_ID"; exit 1; }
+            printf '%s' "$D_SECRET" | npx --yes wrangler@4.149.0 secret put DISCORD_CLIENT_SECRET >/dev/null 2>&1 || { echo "::error::could not set DISCORD_CLIENT_SECRET"; exit 1; }
+            echo "Discord secrets set"
+          else
+            echo "::warning::DISCORD_* repo secrets missing: the feature shows 'Discord connection is being set up'"
+          fi
+      - name: Smoke test
+        run: |
+          URL=$(grep -oE 'https://discord-roles\.[a-z0-9-]+\.workers\.dev' /tmp/deploy.log | head -1)
+          echo "Worker: $URL"
+          curl -s -H 'Origin: https://tradezoro.com' "$URL/ready"; echo
+          c=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' "$URL/sync"); echo "sync unsigned: HTTP $c"; test "$c" = 401

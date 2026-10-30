@@ -109,3 +109,9 @@ button.cx-chip{ cursor:pointer; font-family:inherit; min-height:34px; }
 .cx-inotes summary{ cursor:pointer; color:var(--ink-1); font-size:14px; min-height:32px; display:flex; align-items:center; }
 .cx-code-err{ margin:8px 0 0; padding:8px 12px; border-radius:8px; background:rgba(242,54,69,.08); border:1px solid rgba(242,54,69,.3); color:var(--ink-1); font:12px/1.5 var(--font-mono); overflow-x:auto; white-space:pre; }
 .cx-code{ white-space:pre; }
+
+/* ---- Discord roles (Creator Hub phase D) ---- */
+.dc-plans{ display:flex; flex-direction:column; gap:10px; }
+.dc-plan{ display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-1); }
+.dc-pn{ min-width:0; overflow-wrap:anywhere; }
+.dc-plan select{ min-height:44px; flex:1 1 180px; max-width:100%; }

@@ -1,0 +1,11 @@
+{
+  "name": "discord-roles",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "durable_objects": { "bindings": [{ "name": "HUB", "class_name": "DiscordHub" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DiscordHub"] }],
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": { "FB_API_KEY": "AIzaSyC8nqRVQ7wpuplYygZObKgNx2ojj5ZwbSQ", "SITE_URL": "https://tradezoro.com", "PUBLIC_URL": "https://discord-roles.theelitegrey.workers.dev" },
+  "observability": { "enabled": true }
+}

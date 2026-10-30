@@ -151,6 +151,7 @@
     if (isOwner()) h += '<div class="cx-box" style="margin-bottom:12px"><b>You run this community.</b><p class="cx-muted">Members see the page below. Manage it in the Creator Hub.</p></div>';
     else if (member) h += '<div class="cx-box" style="margin-bottom:12px"><b class="cx-ok">You are a member</b>' + (mem.expiresAt ? '<p class="cx-muted">Access until ' + CH.esc(CH.date(mem.expiresAt)) + '</p>' : '') + '<div style="margin-top:10px"><button class="btn btn-ghost" type="button" id="cm-leave">Leave community</button></div></div>';
     else if (hasInvite) h += '<div class="cx-box" style="margin-bottom:12px"><b>You have an invite</b><p class="cx-muted">Join ' + CH.esc(cm.name) + ' with your invite link.</p><button class="btn btn-primary" type="button" id="cm-redeem">Use invite</button><div id="cm-redeem-msg" class="cx-bad" role="alert"></div></div>';
+    if (member && !isOwner() && cm.features && cm.features.discord && window.CHD) h += '<div id="cm-discord"></div>';
     if (!member && !isOwner() && !(cm.visibility === 'private' && !hasInvite)) {
       h += '<div class="cx-box"><h2>Plans</h2>';
       if (!plans.length) h += '<p class="cx-muted">No plans are open yet.</p>';
@@ -169,6 +170,7 @@
       '<p class="cx-indie">Run by an independent creator, not by TradeZoro. TradeZoro does not verify creators or their claims. Education only. Not financial advice.</p>' +
       '<button class="btn btn-ghost" type="button" id="cm-report" style="margin-top:8px;width:100%">Report this community</button><div id="cm-rep" hidden></div></div>';
     el.innerHTML = h;
+    var dcEl = document.getElementById('cm-discord'); if (dcEl) window.CHD.memberCard(dcEl, { cid: slug, cm: cm, mem: mem, me: me });
 
     el.querySelectorAll('.cm-join').forEach(function (b) { b.addEventListener('click', function () {
       if (!me) return CH.signIn();

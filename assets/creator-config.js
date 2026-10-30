@@ -3,6 +3,8 @@
 // creators hand out access with free plans, invite links/codes and member import by email.
 window.CREATOR_CONFIG = {
   PAYMENTS: false,                 // flip only when payouts (Stripe Connect / Razorpay Route) are live
+  // Discord roles Worker (workers/discord-roles). Holds all Discord tokens; the site only talks to it with the member's Firebase ID token.
+  DISCORD_API: 'https://discord-roles.theelitegrey.workers.dev',
   RULES_VERSION: '2026-10-30',
   MAX_COMMUNITIES: 3,
   // Public half of the server key that seals community indicators (private half: Pages secret CREATOR_SEAL_KEY,

@@ -4562,6 +4562,83 @@
        ]
       }
      ]
+    },
+    {
+     "id": "community-discord",
+     "title": "Discord roles",
+     "items": [
+      {
+       "id": "discord-creator",
+       "q": "How do I connect my Discord server to my community?",
+       "a": "<p>Open the <b>Creator Hub</b>, pick your community and go to <b>Discord</b>. Press <b>Connect Discord server</b>, choose your server and approve. TradeZoro's bot asks for only two permissions: <b>Manage Roles</b> and <b>Create Invite</b>. It cannot read messages.</p><p>Then, in Discord, open Server settings → Roles and drag the <b>TradeZoro</b> role above the roles you want it to hand out. Back in the Creator Hub, pick a Discord role for each plan.</p><p>Turn on <b>Discord</b> under Settings → Features so members see the Discord card. If you see \"Discord connection is being set up\", the TradeZoro Discord app is not switched on yet; it turns on by itself.</p>",
+       "tags": [
+        "discord",
+        "creator",
+        "roles",
+        "server"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      },
+      {
+       "id": "discord-member",
+       "q": "How do I get my Discord role as a member?",
+       "a": "<p>Open the community page and press <b>Link Discord</b> on the Discord card. Approve on Discord. TradeZoro adds you to the creator's server (or gives you a one-use invite if the creator turned auto-join off) and gives you the role for your plan.</p><p>TradeZoro only learns your Discord name and ID. You can press <b>Unlink Discord</b> at any time; your role is removed and you stay in the server.</p>",
+       "tags": [
+        "discord",
+        "member",
+        "link",
+        "role"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      },
+      {
+       "id": "discord-removal",
+       "q": "When is my Discord role removed?",
+       "a": "<p>TradeZoro checks every linked member every 15 minutes. The role is removed when your membership ends or expires, you are removed or banned from the community, the community is suspended, or you unlink. If you renew, the role comes back on the next check, or at once when you open the community page.</p><p>The creator can press <b>Check everyone now</b> for an instant check.</p>",
+       "tags": [
+        "discord",
+        "expire",
+        "remove",
+        "ban"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      },
+      {
+       "id": "discord-safety",
+       "q": "Is it safe to link Discord? What does TradeZoro store?",
+       "a": "<p>You approve only <b>identify</b> (your Discord name and ID) and <b>join servers for you</b>. TradeZoro keeps the Discord sign-in key on its own server, never in your browser or in a document other people can read, and revokes it when you unlink. It does not read your messages or your other servers.</p>",
+       "tags": [
+        "discord",
+        "privacy",
+        "safety"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      }
+     ]
     }
    ]
   }

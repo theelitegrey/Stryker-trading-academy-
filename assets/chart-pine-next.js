@@ -11,9 +11,9 @@
 // non-backfill bar notification ships a fresh snapshot (same as vela-pinets' own worker).
 // Bursts are coalesced on the worker side (one re-run after the in-flight one lands).
 
-import { SeriesCache } from './chart-pine-series-cache.js?v=750';
+import { SeriesCache } from './chart-pine-series-cache.js?v=751';
 
-const WORKER_URL = new URL('./chart-pine-next-worker.js?v=750' + (typeof window !== 'undefined' && window.__stkVela090 === true ? '&vela=090' : ''), import.meta.url);
+const WORKER_URL = new URL('./chart-pine-next-worker.js?v=751' + (typeof window !== 'undefined' && window.__stkVela090 === true ? '&vela=090' : ''), import.meta.url);
 
 // request.security ranges: the engine asks for a long warm-up before the chart's first bar
 // (seen: 33 days of 1m bars, 48k bars / 15 s of downloads, for a 3.5-day 1m chart). Keep a

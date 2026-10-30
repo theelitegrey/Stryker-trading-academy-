@@ -409,7 +409,7 @@ function lateLists(provider){
       walk(JSON.parse(localStorage.getItem(PERSIST_KEY) || 'null'), 0);
     } catch (e) {}
     if (!want.length) want.push(['binance:BTCUSDT', '15']);   // default chart = BTC (crypto, live for everyone), Owner 2026-10-30
-    import('./chart-futures-provider.js?v=750')
+    import('./chart-futures-provider.js?v=751')
       .then((m) => { if (m.prefetchBars) want.slice(0, 4).forEach(([s, tf]) => m.prefetchBars(s, tf)); })
       .catch(() => {});
   } catch (e) {}
@@ -419,7 +419,7 @@ function lateLists(provider){
   // evaluated + installed after the first chart paints. A saved session / template / tick interval that
   // uses them (state mentions stk_*, stryker.volume or a tick/second interval) still installs them
   // BEFORE boot, exactly as before, so nothing restores half-empty.
-  const HEAVY_URLS = ['orderflow', 'gex-levels', 'gex-heatmap', 'expected-move', 'footprint'].map((n) => './chart-' + n + '.js?v=750');
+  const HEAVY_URLS = ['orderflow', 'gex-levels', 'gex-heatmap', 'expected-move', 'footprint'].map((n) => './chart-' + n + '.js?v=751');
   let heavyNeeded = false;
   try {
     heavyNeeded = !!localStorage.getItem('stryker.volume');
@@ -438,27 +438,27 @@ function lateLists(provider){
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=750'),
+      import('./chart-futures-provider.js?v=751'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=750'),
+      import('./chart-pine.js?v=751'),
       Promise.resolve(null),
-      import('./chart-settings.js?v=750'),
+      import('./chart-settings.js?v=751'),
       VELA090 ? Promise.all([import(VELA_BASE + 'index.js'), import(VELA_BASE + 'chunk-YRCL3WMD.js')]).then(([a, b]) => ({ sharedBarStore: a.sharedBarStore, TIMEZONES: b.TIMEZONES })) : import(VELA_BASE + 'chunk-YCD72KGK.js'),
-      import('./chart-grid.js?v=750'),
-      import('./chart-alerts.js?v=750'),
-      import('./chart-events.js?v=750'),
-      import('./chart-intervals.js?v=750'),
+      import('./chart-grid.js?v=751'),
+      import('./chart-alerts.js?v=751'),
+      import('./chart-events.js?v=751'),
+      import('./chart-intervals.js?v=751'),
       Promise.resolve(null),
-      import('./chart-legend-rows.js?v=750'),
-      import('./chart-paper.js?v=750'),
-      import('./chart-bar-replay.js?v=750'),
-      import('./chart-tick-boost.js?v=750'),
+      import('./chart-legend-rows.js?v=751'),
+      import('./chart-paper.js?v=751'),
+      import('./chart-bar-replay.js?v=751'),
+      import('./chart-tick-boost.js?v=751'),
       Promise.resolve(null),
       Promise.resolve(null),
       Promise.resolve(null),
-      import('./chart-tool-icons.js?v=750'),
+      import('./chart-tool-icons.js?v=751'),
       import(VELA_BASE + (VELA090 ? 'chunk-YRCL3WMD.js' : 'chunk-IFJJPXSV.js')),
-      import('./chart-ind-style.js?v=750')
+      import('./chart-ind-style.js?v=751')
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -542,9 +542,9 @@ function lateLists(provider){
   };
   // SPEED (2026-10-29): the four import groups below used to be awaited one after the other (each its own
   // round trip on a phone); they are independent, so they are requested together and installed in the old order.
-  const newsP = import('./chart-news-markers.js?v=750');
-  const msP = import('./chart-market-stats.js?v=750');
-  const tideP = import('./chart-zorotide.js?v=750');
+  const newsP = import('./chart-news-markers.js?v=751');
+  const msP = import('./chart-market-stats.js?v=751');
+  const tideP = import('./chart-zorotide.js?v=751');
   let MSess = null;
   if (heavyNeeded) installHeavy();
   else {
@@ -553,8 +553,8 @@ function lateLists(provider){
     // Same rule for the GEX Levels, GEX Heatmap and Expected Move layers (50 + 20 + 15 KB): they were only
     // registered after the first paint, so the indicator drew nothing on a browser that had never used it
     // (found 2026-10-18). Their install functions are guarded, so installHeavy() later is a no-op for them.
-    const fpP = import('./chart-footprint.js?v=750');
-    const gexP = Promise.all(['gex-levels', 'gex-heatmap', 'expected-move'].map((n) => import('./chart-' + n + '.js?v=750')));
+    const fpP = import('./chart-footprint.js?v=751');
+    const gexP = Promise.all(['gex-levels', 'gex-heatmap', 'expected-move'].map((n) => import('./chart-' + n + '.js?v=751')));
     try { const FpM = await fpP; FpM.installFootprint(Core, null); mods[21] = FpM; } catch (e) { console.warn('TradeZoro: footprint install', e); }
     try {
       const pre = await gexP;
@@ -801,7 +801,7 @@ function lateLists(provider){
   // Real Rithmic module: after the first candles are on screen (see the look() loop above), at idle.
   const loadRithLater = async () => {
     try {
-      const r = await (await import('./rithmic-config.js?v=750')).loadRithmicIfEnabled();
+      const r = await (await import('./rithmic-config.js?v=751')).loadRithmicIfEnabled();
       if (!r) return;
       rith = r;
       swapFut.to = r.providerFactory(FuturesProvider)();
@@ -813,29 +813,29 @@ function lateLists(provider){
   if (window.__stkFirstCandles) setTimeout(loadRithLater, 0);
   else window.addEventListener('stk:first-candles', () => (window.requestIdleCallback ? requestIdleCallback(loadRithLater, { timeout: 2500 }) : setTimeout(loadRithLater, 800)), { once: true });
   // Delayed-data pill at the bottom of the chart + its sheet (CME futures, viewer not real-time): assets/chart-data-banner.js.
-  import('./chart-data-banner.js?v=750')
+  import('./chart-data-banner.js?v=751')
     .then((m) => m.installDataBanner(ws, { rith: rithRef, getRith: () => rith }))
     .catch((e) => console.warn('TradeZoro: data banner', e));
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
-  import('./chart-data-dot.js?v=750')
+  import('./chart-data-dot.js?v=751')
     .then((m) => m.installDataDot(ws, { rith: rithRef, FuturesProvider, FxProvider }))
     .catch((e) => console.warn('TradeZoro: data dot', e));
   // Stronger weak magnet on 0.9.0 (nearest OHLC in pixels across nearby candles, 28 px): assets/chart-magnet.js.
-  if (VELA090) import('./chart-magnet.js?v=750')
+  if (VELA090) import('./chart-magnet.js?v=751')
     .then((m) => m.installMagnet(ws))
     .catch((e) => console.warn('TradeZoro: magnet', e));
   // Price-axis countdown to bar close: current wall-clock bar, hidden while CME is closed,
   // timers paused on hidden tabs: assets/chart-countdown.js.
-  import('./chart-countdown.js?v=750')
+  import('./chart-countdown.js?v=751')
     .then((m) => m.installCountdown(ws))
     .catch((e) => console.warn('TradeZoro: countdown', e));
   // Endless scroll-back: older history pages load before the view reaches the oldest bar,
   // the view stays on its candles (assets/chart-history-pager.js).
-  import('./chart-history-pager.js?v=750')
+  import('./chart-history-pager.js?v=751')
     .then((m) => m.installHistoryPager(ws))
     .catch((e) => console.warn('TradeZoro: history pager', e));
   // Floating Favorites drawing toolbar (starred tools, draggable): assets/chart-fav-toolbar.js.
-  import('./chart-fav-toolbar.js?v=750')
+  import('./chart-fav-toolbar.js?v=751')
     .then((m) => m.mountFavToolbar(ws, Core, { toast }))
     .catch((e) => console.warn('TradeZoro: favorites toolbar', e));
   const mountHeavy = () => {
@@ -843,7 +843,7 @@ function lateLists(provider){
     try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('TradeZoro: volume tools', e); }
   };
   if (heavyNeeded) mountHeavy();
-  import('./chart-pro-gate.js?v=750').then((m) => m.mountProGate(ws, { toast })).catch((e) => console.warn('TradeZoro: pro gate', e));
+  import('./chart-pro-gate.js?v=751').then((m) => m.mountProGate(ws, { toast })).catch((e) => console.warn('TradeZoro: pro gate', e));
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('TradeZoro: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: settings window', e); }
   if (!BT) try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: alerts', e); }
@@ -853,23 +853,23 @@ function lateLists(provider){
   if (!BT) try { Replay.mountBarReplay(ws, { toast, Paper, store: mods[9].sharedBarStore }); } catch (e) { console.warn('TradeZoro: bar replay', e); }
   // Right-side Watchlist panel + icon rail (phones: a full-screen sheet): assets/chart-watchlist.js.
   // SymbolPicker comes from Vela's widget build (same chunk the workspace already loaded).
-  Promise.all([import('./chart-watchlist.js?v=750'), import(VELA_BASE + 'widget.js')])
+  Promise.all([import('./chart-watchlist.js?v=751'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith: rithRef }))
     .catch((e) => console.warn('TradeZoro: watchlist', e));
   // News panel (right icon bar, phones: a sheet): headlines for the chart's market, replay-safe (assets/chart-news.js).
-  import('./chart-news.js?v=750').then((m) => m.mountNews(ws, { toast })).catch((e) => console.warn('TradeZoro: news', e));
+  import('./chart-news.js?v=751').then((m) => m.mountNews(ws, { toast })).catch((e) => console.warn('TradeZoro: news', e));
   // GEX Ladder panel (right icon bar, phones: a sheet): SPX / QQQ / SPY strikes, click draws the level (assets/chart-gex-ladder.js).
-  import('./chart-gex-ladder.js?v=750').then((m) => m.mountGexLadder(ws, { toast })).catch((e) => console.warn('TradeZoro: gex ladder', e));
+  import('./chart-gex-ladder.js?v=751').then((m) => m.mountGexLadder(ws, { toast })).catch((e) => console.warn('TradeZoro: gex ladder', e));
   // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
-  import('./chart-symbol-info.js?v=750').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
+  import('./chart-symbol-info.js?v=751').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
   try { IndStyle.mountIndStyle(ws); } catch (e) { console.warn('TradeZoro: indicator style', e); }
   // Indicator Settings → Inputs: every input.symbol opens the same symbol search
   // (assets/chart-symbol-input.js).
-  Promise.all([import('./chart-symbol-input.js?v=750'), import(VELA_BASE + 'widget.js')])
+  Promise.all([import('./chart-symbol-input.js?v=751'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountSymbolInputPicker(ws, { toast, SymbolPicker: Wd.SymbolPicker, COMMODITY_ROOTS }))
     .catch((e) => console.warn('TradeZoro: symbol inputs', e));
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
-  import('./chart-plus.js?v=750').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('TradeZoro: + menu', e));
+  import('./chart-plus.js?v=751').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('TradeZoro: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('TradeZoro: events', e); }
   // TradingView-style interval row + menu (assets/chart-intervals.js).
   try { Iv.mountIntervals(ws, { toast }); } catch (e) { console.warn('TradeZoro: intervals', e); }
@@ -898,20 +898,20 @@ function lateLists(provider){
   // ONE toolbar (Owner order 2026-10-14): Vela's chart topbar joins #stkc-bar on a desktop-mode
   // chart, so the chart gets the second row's height; ⋯ More takes what does not fit
   // (assets/chart-onebar.js). Buttons added later (layout menu, watchlist) are picked up live.
-  import('./chart-onebar.js?v=750')
+  import('./chart-onebar.js?v=751')
     .then((m) => m.mountOneBar(ws))
     .catch((e) => console.warn('TradeZoro: one toolbar', e))
     // phone: one top bar, footnote in ⓘ, bottom nav behind a handle (assets/chart-phone-space.js)
-    .then(() => import('./chart-phone-space.js?v=750'))
+    .then(() => import('./chart-phone-space.js?v=751'))
     .then((m) => m.mountPhoneSpace())
     .catch((e) => console.warn('TradeZoro: phone space', e));
   // TradingView-style left drawing column, right icon bar, fullscreen (assets/chart-tv-toolbars.js).
-  import('./chart-tv-toolbars.js?v=750')
+  import('./chart-tv-toolbars.js?v=751')
     .then((m) => m.mountTvToolbars(ws, { toast }))
     .catch((e) => console.warn('TradeZoro: tv toolbars', e));
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
-  import('./chart-indicator-window.js?v=750')
+  import('./chart-indicator-window.js?v=751')
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
     .catch((e) => console.warn('TradeZoro: indicator window', e));
 
@@ -1081,7 +1081,7 @@ function lateLists(provider){
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
   function mountLayoutMenu(){
-    import('./chart-layouts.js?v=750')
+    import('./chart-layouts.js?v=751')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
       .catch((e) => console.warn('TradeZoro: layout menu', e));
   }

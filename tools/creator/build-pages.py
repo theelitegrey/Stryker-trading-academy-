@@ -49,6 +49,8 @@ def page(fname, key, title, desc, body, scripts, storage=False, admin=False, jsf
 S = lambda f: '<script src="/assets/%s?v=%d"></script>\n' % (f, V)
 
 # ---------------------------------------------------------------- /creators
+# NOTE: the public landing moved to features/creators.html (hand-written, 2026-10-30). Do not regenerate creators.html from here;
+# the call below is kept only as the old template and its output is deleted by the line after the pages are built.
 page('creators.html', 'creators', 'Creator Hub: start your own trading community',
      'Start a community on TradeZoro: free communities, invite links and member import today. Paid plans, indicators that run on ZoroCharts, courses and Discord roles are coming.', '''
 <section class="cx-hero">
@@ -158,3 +160,6 @@ for line in md.splitlines():
 if ul: out.append('</ul>')
 page('creator-rules.html', 'creator-rules', 'Creator Rules', 'The rules for creators and communities on TradeZoro.', '<div class="cx-md">' + '\n'.join(out) + '</div>', S('creator-legal.js'))
 print('built 7 pages, build', V)
+
+import os as _os
+if _os.path.exists('creators.html'): _os.remove('creators.html')  # superseded by features/creators.html

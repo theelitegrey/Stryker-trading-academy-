@@ -82,6 +82,8 @@
   function flat() { var o = []; pubMods().forEach(function (m) { modLs(m.id).forEach(function (l) { o.push({ l: l, m: m }); }); }); return o; }
 
   // ---------------------------------------------------------------- mount / list
+  // The rules only allow a list of published docs for non-owners, so the query itself must say so.
+  function pubOnly(q) { return C.isOwner ? q : q.where('status', '==', 'published'); }
   function mount(el, c) {
     C = c; root = el; stop();
     var qs = c.qs || new URLSearchParams(location.search);
@@ -96,7 +98,7 @@
         var ps = [];
         if (em) ps.push(crs(co.id).collection('access').doc(em).get().then(function (d) { if (d.exists) myAccess[co.id] = d.data(); }).catch(function () {}));
         if (C.me) ps.push(crs(co.id).collection('progress').doc(C.me.uid).get().then(function (d) { co._prog = d.exists ? d.data() : null; }).catch(function () {}));
-        ps.push(crs(co.id).collection('lessons').get().then(function (s2) { co._n = s2.docs.filter(function (d) { return d.data().status === 'published'; }).length; }).catch(function () { co._n = 0; }));
+        ps.push(pubOnly(crs(co.id).collection('lessons')).get().then(function (s2) { co._n = s2.docs.filter(function (d) { return d.data().status === 'published'; }).length; }).catch(function () { co._n = 0; }));
         return Promise.all(ps);
       }));
     }).then(function () {
@@ -124,7 +126,7 @@
   function openCourse(id, lid) {
     stop(); root.innerHTML = '<div class="cx-empty">Loading…</div>';
     var c = crs(id), co = courses.filter(function (x) { return x.id === id; })[0];
-    return Promise.all([c.collection('modules').get(), c.collection('lessons').get(), C.me ? c.collection('progress').doc(C.me.uid).get().catch(function () { return null; }) : null]).then(function (r) {
+    return Promise.all([pubOnly(c.collection('modules')).get(), pubOnly(c.collection('lessons')).get(), C.me ? c.collection('progress').doc(C.me.uid).get().catch(function () { return null; }) : null]).then(function (r) {
       cur = co; mods = arr(r[0]); lessons = arr(r[1]);
       var pd = r[2] && r[2].exists ? r[2].data() : null;
       prog = pd ? { done: pd.done || {}, pos: pd.pos || {}, last: pd.last || '', quiz: pd.quiz || {} } : { done: {}, pos: {}, last: '', quiz: {} };

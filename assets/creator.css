@@ -272,3 +272,5 @@ button.cx-chip{ cursor:pointer; font-family:inherit; min-height:34px; }
 .cx-ropt input{ flex:none; width:20px; height:20px; accent-color:var(--gold); margin:0; }
 .cx-rep{ margin-top:16px; }
 @media (max-width:560px){ .cx-pn{ flex-direction:column-reverse; } }
+:root[data-theme="light"] .cx-pdfpages{ background:#e4e7ef; }
+:root[data-theme="light"] .cx-pdfpage{ box-shadow:0 1px 3px rgba(16,24,40,.18); }

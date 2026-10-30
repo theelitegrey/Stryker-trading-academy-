@@ -31,7 +31,7 @@
 // ("Countdown to bar close" in the chart settings dialog) still decides: when it is off
 // nothing is drawn and Vela's timer is stopped, as before.
 
-import { globexOpen, fxOpen } from './chart-data-dot.js?v=756';
+import { globexOpen, fxOpen } from './chart-data-dot.js?v=757';
 
 const FUT = /^futures:|^[A-Z0-9]+1!$/i;
 const FX = /^fx:/i;

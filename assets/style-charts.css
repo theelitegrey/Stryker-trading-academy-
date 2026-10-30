@@ -489,24 +489,42 @@ tbody tr:hover{ background:var(--bg-3); }
 @media (max-width:640px){.toast-host{ top:auto; right:12px; left:12px; width:auto; bottom:calc(12px + env(safe-area-inset-bottom, 0px)); }}
 .toast{
   --tc:#03c988; --tc-text:#03c988;
-  --tg-bg:rgba(19,19,22,.72); --tg-edge:rgba(255,255,255,.09); --tg-t1:rgba(255,255,255,.94); --tg-t2:rgba(255,255,255,.72);
-  --tg-shadow:0 12px 32px -8px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.25);
-  position:relative; overflow:hidden; pointer-events:auto; touch-action:pan-y;
+  --tg-edge:rgba(255,255,255,.14); --tg-t1:rgba(255,255,255,.96); --tg-t2:rgba(255,255,255,.78);
+  --tg-hi:rgba(255,255,255,.18);
+  --tg-shadow:0 14px 36px -10px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.3);
+  position:relative; overflow:hidden; pointer-events:auto; touch-action:pan-y; isolation:isolate;
   display:flex; align-items:center; gap:12px;
-  padding:14px 8px 17px 12px; border-radius:16px;
-  background:var(--tg-bg); border:1px solid var(--tg-edge); box-shadow:var(--tg-shadow);
-  -webkit-backdrop-filter:blur(22px) saturate(160%); backdrop-filter:blur(22px) saturate(160%);
+  padding:14px 8px 18px 12px; border-radius:16px;
+  
+  background:
+    radial-gradient(120% 140% at 0% 50%, color-mix(in srgb, var(--tc) 16%, transparent), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)),
+    rgba(28,30,34,.42);
+  border:1px solid var(--tg-edge);
+  box-shadow:inset 0 1px 0 var(--tg-hi), inset 0 -1px 0 rgba(0,0,0,.18), var(--tg-shadow);
+  -webkit-backdrop-filter:blur(28px) saturate(180%); backdrop-filter:blur(28px) saturate(180%);
   color:var(--tg-t1); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Roboto,"Segoe UI",system-ui,sans-serif;
   opacity:0; transform:translateY(-12px) scale(.98);
   transition:opacity .22s cubic-bezier(.2,0,0,1), transform .22s cubic-bezier(.2,0,0,1);
 }
-:root[data-theme="light"] .toast{
-  --tg-bg:rgba(255,255,255,.78); --tg-edge:rgba(14,22,33,.08); --tg-t1:#0e1621; --tg-t2:#3d4856;
-  --tg-shadow:0 12px 32px -10px rgba(14,22,33,.28), 0 2px 6px rgba(14,22,33,.08);
+.toast::before{
+  content:""; position:absolute; inset:0 0 50% 0; z-index:-1; pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0));
+  border-radius:15px 15px 0 0;
 }
+:root[data-theme="light"] .toast{
+  --tg-edge:rgba(255,255,255,.7); --tg-t1:#0e1621; --tg-t2:#34404e; --tg-hi:rgba(255,255,255,.95);
+  --tg-shadow:0 14px 36px -12px rgba(14,22,33,.32), 0 0 0 1px rgba(14,22,33,.07), 0 2px 8px rgba(14,22,33,.08);
+  background:
+    radial-gradient(120% 140% at 0% 50%, color-mix(in srgb, var(--tc) 14%, transparent), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.3)),
+    rgba(255,255,255,.55);
+  box-shadow:inset 0 1px 0 var(--tg-hi), var(--tg-shadow);
+}
+:root[data-theme="light"] .toast::before{ background:linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0)); }
 .toast-success{ --tc:#03c988; --tc-text:#03c988; }
-.toast-error{ --tc:#e5484d; --tc-text:#ff6b70; }
-.toast-info{ --tc:#00adb5; --tc-text:#2cc7cf; }
+.toast-error{ --tc:#e5484d; --tc-text:#ff7a7e; }
+.toast-info{ --tc:#00adb5; --tc-text:#37d0d8; }
 .toast-warning{ --tc:#f5a524; --tc-text:#f5b44a; }
 :root[data-theme="light"] .toast-success{ --tc-text:#067a55; }
 :root[data-theme="light"] .toast-error{ --tc-text:#c42b31; }
@@ -523,7 +541,8 @@ tbody tr:hover{ background:var(--bg-3); }
 .toast-icon{
   width:40px; height:40px; flex-shrink:0; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
-  background:color-mix(in srgb, var(--tc) 18%, transparent); color:var(--tc-text);
+  background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0)), color-mix(in srgb, var(--tc) 22%, transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28), inset 0 0 0 1px color-mix(in srgb, var(--tc) 30%, transparent); color:var(--tc-text);
 }
 .toast-body{ flex:1; min-width:0; display:flex; flex-direction:column; }
 .toast-title{ font-size:15px; line-height:20px; font-weight:600; color:var(--tg-t1); word-break:break-word; }
@@ -540,15 +559,16 @@ tbody tr:hover{ background:var(--bg-3); }
 }
 .toast-close:hover{ color:var(--tg-t1); background:color-mix(in srgb, var(--tg-t1) 8%, transparent); }
 .toast-action:focus-visible, .toast-close:focus-visible{ outline:2px solid var(--bull,#03c988); outline-offset:2px; }
-.toast-bar{ position:absolute; left:0; right:0; bottom:0; height:3px; background:color-mix(in srgb, var(--tg-t1) 10%, transparent); }
-.toast-bar i{ display:block; height:100%; width:100%; background:var(--tc); transform-origin:left center; border-radius:0 2px 2px 0; animation:toast-life var(--life,4s) linear forwards; }
+.toast-bar{ position:absolute; left:14px; right:14px; bottom:7px; height:2px; border-radius:1px; background:color-mix(in srgb, var(--tg-t1) 14%, transparent); overflow:hidden; }
+.toast-bar i{ display:block; height:100%; width:100%; background:var(--tc); transform-origin:left center; border-radius:1px; animation:toast-life var(--life,4s) linear forwards; }
 .toast.paused .toast-bar i{ animation-play-state:paused; }
 .toast.hold .toast-bar{ display:none; }
 @keyframes toast-life{ from{ transform:scaleX(1); } to{ transform:scaleX(0); } }
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.toast{ --tg-bg:#131316; }
-:root[data-theme="light"] .toast{ --tg-bg:#ffffff; }}
-@media (prefers-reduced-transparency:reduce){.toast{ --tg-bg:#131316; -webkit-backdrop-filter:none; backdrop-filter:none; }
-:root[data-theme="light"] .toast{ --tg-bg:#ffffff; }}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.toast{ background:#1b1d21; }
+:root[data-theme="light"] .toast{ background:#ffffff; }}
+@media (prefers-reduced-transparency:reduce){.toast{ background:#1b1d21; -webkit-backdrop-filter:none; backdrop-filter:none; }
+.toast::before{ display:none; }
+:root[data-theme="light"] .toast{ background:#ffffff; }}
 @media (prefers-reduced-motion:reduce){.toast, .toast.in, .toast.out{ transform:none; transition:opacity .15s linear; }
 .toast-bar i{ animation:none; transform:none; }}
 .account-menu-wrap{ position:relative; flex-shrink:0; }

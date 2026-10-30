@@ -1,5 +1,23 @@
 [
  {
+  "build": 762,
+  "date": "2026-10-31",
+  "title": "New community page design",
+  "link": ""
+ },
+ {
+  "build": 761,
+  "date": "2026-10-31",
+  "title": "Connect broker: app renamed to ZoroCharts",
+  "link": ""
+ },
+ {
+  "build": 760,
+  "date": "2026-10-30",
+  "title": "Creator Hub: Discord roles",
+  "link": ""
+ },
+ {
   "build": 759,
   "date": "2026-10-30",
   "title": "Crop images when uploading community logo and banner",
@@ -69,12 +87,6 @@
   "build": 744,
   "date": "2026-10-30",
   "title": "Rithmic saved login and journal auto sync (off until Rithmic approves)",
-  "link": ""
- },
- {
-  "build": 742,
-  "date": "2026-10-30",
-  "title": "Creator Hub: Discord roles",
   "link": ""
  },
  {

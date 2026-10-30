@@ -302,3 +302,9 @@ button.cx-chip{ cursor:pointer; font-family:inherit; min-height:34px; }
 @media (max-width:480px){ .cf-ev{ gap:12px; } .cf-evd{ flex-basis:48px; height:56px; } .cf-cf{ flex-direction:column; } .cf-cf .btn{ width:100%; } }
 .cf-cs[hidden]{ display:none; }
 .cf-c .cf-kd{ flex:0 0 32px; width:32px; height:32px; min-height:32px; font-size:18px; line-height:1; }
+
+/* demo community badge + post images (assets/creator-c.js, creator-feed.js) */
+.cx-demo{ display:inline-flex; align-items:center; gap:8px; margin-top:8px; padding:4px 12px; min-height:28px; border-radius:999px; border:1px solid rgba(245,166,35,.45); background:rgba(245,166,35,.1); color:var(--ink-1); font-size:12px; line-height:18px; font-weight:600; }
+.cx-demo-dot{ width:6px; height:6px; border-radius:50%; background:#f5a623; flex:none; }
+.cf-img{ display:block; width:100%; max-width:640px; height:auto; border-radius:12px; border:1px solid var(--line); margin:0 0 12px; }
+.cf-likes{ align-self:center; font-size:13px; margin-left:4px; }

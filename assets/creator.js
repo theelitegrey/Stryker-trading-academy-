@@ -8,6 +8,10 @@
 
   CH.esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   CH.para = function (s) { return CH.esc(s).split(/\n{2,}/).map(function (p) { return '<p>' + p.replace(/\n/g, '<br>') + '</p>'; }).join(''); };
+  // Like para(), and https:// addresses become links (the text is escaped first, so no markup can get in).
+  CH.paraLinks = function (s) {
+    return CH.para(s).replace(/(https:\/\/[^\s<]{4,200})/g, function (u) { var t = u.replace(/[.,;:!?)]+$/, ''); return '<a href="' + t + '" target="_blank" rel="noopener noreferrer nofollow">' + t + '</a>' + u.slice(t.length); });
+  };
   CH.tagLabel = function (t) { for (var i = 0; i < CH.TAGS.length; i++) if (CH.TAGS[i][0] === t) return CH.TAGS[i][1]; return t; };
   CH.money = function (p) {
     var pr = p && p.price;

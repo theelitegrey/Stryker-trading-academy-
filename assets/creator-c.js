@@ -54,7 +54,8 @@
     var member = mem && CH.isActive(mem);
     var h = '<div class="cx-cover" style="' + cover + '"></div>' +
       '<div class="cx-head"><div class="cx-logo" style="border-color:' + accent + '">' + logo + '</div><div class="cx-t"><h1>' + CH.esc(cm.name) + '</h1>' +
-      '<div class="cx-muted">' + CH.esc(cm.tagline || '') + '</div></div>' +
+      '<div class="cx-muted">' + CH.esc(cm.tagline || '') + '</div>' +
+      (cm.demo === true ? '<div class="cx-demo" role="note"><span class="cx-demo-dot" aria-hidden="true"></span>Demo community · sample members, posts and results</div>' : '') + '</div>' +
       (isOwner() ? '<a class="btn btn-ghost" href="/creator?c=' + CH.esc(slug) + '">Manage</a>' : '') + '</div>' +
       '<div class="cx-row" style="margin:12px 14px 0">' + (cm.tags || []).map(function (t) { return '<span class="cx-chip">' + CH.esc(CH.tagLabel(t)) + '</span>'; }).join('') +
       '<span class="cx-chip">' + (cm.memberCount || 0) + ' member' + (cm.memberCount === 1 ? '' : 's') + '</span>' +
@@ -83,7 +84,7 @@
       else {
         var em = CH.embed(cm.introVideo);
         if (em) h += '<div class="cx-video"><iframe src="' + CH.esc(em) + '" title="Intro video" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
-        h += '<div class="cx-box"><h2>About</h2>' + (cm.about ? CH.para(cm.about) : '<p class="cx-muted">No description yet.</p>') + '</div>';
+        h += '<div class="cx-box"><h2>About</h2>' + (cm.about ? CH.paraLinks(cm.about) : '<p class="cx-muted">No description yet.</p>') + '</div>';
       }
       el.innerHTML = h;
       return;

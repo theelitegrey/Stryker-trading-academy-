@@ -35,7 +35,9 @@
       '<div class="cf-who"><b>' + E(p.authorName) + '</b>' + (p.authorUid === C.cm.ownerUid ? ' <span class="cx-chip on">Creator</span>' : '') + (p.pinned ? ' <span class="cx-chip">Pinned</span>' : '') +
       '<div class="cx-muted">' + E(ago(p.createdAt)) + (p.editedAt ? ' · edited' : '') + '</div></div></div>' +
       '<p class="cf-t" id="cf-t-' + E(p.id) + '">' + E(p.text) + '</p>' +
-      '<div class="cf-act"><button type="button" class="btn btn-ghost cx-sm cf-cm" data-p="' + E(p.id) + '">' + (open[p.id] ? 'Hide comments' : 'Comments') + '</button>' +
+      (/^https:\/\/[^ "<>]{4,500}$/.test(p.imageUrl || '') ? '<img class="cf-img" src="' + E(p.imageUrl) + '" alt="' + E(p.imageAlt || 'Image in post') + '" loading="lazy">' : '') +
+      '<div class="cf-act"><button type="button" class="btn btn-ghost cx-sm cf-cm" data-p="' + E(p.id) + '">' + (open[p.id] ? 'Hide comments' : 'Comments' + (p.commentCount ? ' · ' + (+p.commentCount | 0) : '')) + '</button>' +
+      (p.likeCount > 0 ? '<span class="cf-likes cx-muted" aria-label="' + (+p.likeCount | 0) + ' likes">' + (+p.likeCount | 0) + ' likes</span>' : '') +
       (mod ? '<button type="button" class="btn btn-ghost cx-sm cf-pin" data-p="' + E(p.id) + '">' + (p.pinned ? 'Unpin' : 'Pin') + '</button>' : '') +
       (mine ? '<button type="button" class="btn btn-ghost cx-sm cf-ed" data-p="' + E(p.id) + '">Edit</button>' : '') +
       (can ? '<button type="button" class="btn btn-ghost cx-sm cf-del" data-p="' + E(p.id) + '">Delete</button>' : '') +

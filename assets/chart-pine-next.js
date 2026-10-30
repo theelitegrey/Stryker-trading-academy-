@@ -99,8 +99,9 @@ export class PineNextEngine {
     this.ctxWaits = new Map();
     this.claims = [];           // watchers waiting for their script's prepare()
     this.stats = { started: 0, models: 0, lanesMade: 0 };
+    try { if (typeof window !== 'undefined' && window.__psDebug) window.__pineEng = this; } catch (e) {}
     // one request.security cache per chart (this engine), shared by all its scripts and lanes
-    this.seriesCache = new SeriesCache({ maxBars: barsPhone() ? 150000 : 500000, maxInflight: barsPhone() ? 4 : 6 });
+    this.seriesCache = new SeriesCache({ log: (typeof window !== 'undefined' && window.__psDebug) ? (window.__secLog = []) : null, maxBars: barsPhone() ? 150000 : 500000, maxInflight: barsPhone() ? 4 : 6 });
   }
   // A lane = one module Worker. spawn() starts it; message / error handlers are bound to the lane.
   spawn(){

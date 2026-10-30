@@ -17,6 +17,7 @@ export function tfToMs(tf){
   const n = Number(m[1] || 1), u = (m[2] || '').toUpperCase();
   return n * (u === 'S' ? 1e3 : u === 'D' ? 864e5 : u === 'W' ? 6048e5 : u === 'M' ? 2592e6 : 6e4);
 }
+export function normSym(s){ return String(s == null ? '' : s).toLowerCase().replace(/^[a-z]+:/, '').replace(/1!$/, '').replace(/[^a-z0-9]/g, ''); }
 const isIntradayMinutes = (tf) => /^\d+$/.test(String(tf).trim()) && Number(tf) <= 240;
 
 // Aggregate base bars into `tf` buckets aligned to the epoch (same as exchanges' intraday hours).
@@ -60,6 +61,8 @@ export class SeriesCache {
   constructor(opts = {}){
     this.maxBars = opts.maxBars || 400000;
     this.maxInflight = opts.maxInflight || 5;
+    this.tailEveryMs = opts.tailEveryMs != null ? opts.tailEveryMs : 10000;   // live: re-ask the newest tail at most this often
+    this.log = opts.log || null;
     this.now = opts.now || (() => Date.now());
     this.map = new Map();        // key sym|tf -> { from, to, bars, promise, fetchedAt }
     this.inflight = 0; this.queue = [];
@@ -94,13 +97,14 @@ export class SeriesCache {
   // fetcher(symbol, timeframe, range) -> Promise<bars>
   async get(symbol, timeframe, range, fetcher, base){
     this.stats.requests++;
+    if (this.log) this.log.push([String(symbol), String(timeframe), range && range.from, range && range.to, this.now()]);
     const key = String(symbol).toLowerCase() + '|' + String(timeframe);
     const hasRange = range && range.from > 0;
     const e = this.map.get(key);
     if (e && hasRange && e.from <= range.from) {
       const tMs = tfToMs(timeframe) || 6e4;
       const reqTo = Math.min(range.to > 0 ? range.to : Infinity, this.now());
-      const fresh = this.now() - (e.fetchedAt || 0) < 1500;
+      const fresh = this.now() - (e.fetchedAt || 0) < this.tailEveryMs;
       if (reqTo <= e.to || fresh || (e.bars && e.bars.length && reqTo - tOf(e.bars[e.bars.length - 1]) < tMs)) {
         this.stats.hits++; this.map.delete(key); this.map.set(key, e);   // LRU touch
         const bars = e.bars || await e.promise;
@@ -121,7 +125,7 @@ export class SeriesCache {
     }
     // futures 2h/4h bars follow the session open, not the epoch: only crypto-style symbols build those from base
     const alignOk = Number(timeframe) <= 60 || !/!|:/.test(String(symbol).replace(/^(binance|bybit|crypto):/i, ''));
-    if (base && base.bars && hasRange && alignOk && String(base.symbol).toLowerCase() === String(symbol).toLowerCase()) {
+    if (base && base.bars && hasRange && alignOk && normSym(base.symbol) === normSym(symbol)) {
       const agg = aggregateBars(base.bars, base.timeframe, timeframe, range);
       if (agg) {
         this.stats.fromBase++;

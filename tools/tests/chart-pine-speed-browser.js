@@ -38,7 +38,7 @@ async function open(b) {
     class FakeDate extends RealDate { constructor(...a) { if (a.length) super(...a); else super(RealDate.now() + off); } static now() { return RealDate.now() + off; } }
     window.Date = FakeDate;
     // instrumentation: worker count + message traffic, long tasks
-    const T = window.__ps = { workers: 0, msgs: [], long: [], t0: performance.now() };
+    window.__psDebug = true; const T = window.__ps = { workers: 0, msgs: [], long: [], t0: performance.now() };
     const WP = Worker.prototype.postMessage;
     const RW = window.Worker;
     window.Worker = function (...a) { const w = new RW(...a); T.workers++; const id = T.workers;
@@ -104,29 +104,25 @@ const STATE = `() => { const P = window.STRYKER_PINE, chart = window.STRYKER_VEL
   return { handles: hs.length, drawing: hs.map((h) => { const r = recs.find((q) => q.model && q.model.id === h.id); const m = r && r.model; return [P.titleOf(h), m ? (m.lines||[]).length + (m.labels||[]).length + (m.boxes||[]).length + (m.plots||[]).length + (m.tables||[]).length : -1]; }),
     workers: window.__ps.workers, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, bars: chart.orchestrator.rawBars.length }; }`;
 async function addId(p, id, limitMs) {
-  // probe3 flow, all in-page: wrap addIndicator once, call addSource, poll for the first drawn model
-  return await p.evaluate(async ([id, limitMs]) => {
-    const chart = window.STRYKER_VELA.chart, P = window.STRYKER_PINE; const t0 = performance.now(); const ev = [];
-    const T = (x) => ev.push(x + '@' + Math.round(performance.now() - t0));
-    if (!chart.__psWrap) { chart.__psWrap = 1; const orig = chart.addIndicator.bind(chart); chart.addIndicator = (src, opt) => { const h = orig(src, opt); try { h.on('ready', () => (window.__psReady = (window.__psReady || []).concat([Math.round(performance.now())]))); h.on('error', (e) => window.__psErr && window.__psErr(String(e && e.error && e.error.message || e).slice(0, 100))); } catch (e) {} return h; }; }
-    let lastErr = ''; window.__psErr = (m) => { lastErr = m; T('error ' + m); };
-    const M = await import('/assets/chart-pine-builtins.js');
-    const src = await M.builtinSource(id); const n0 = P.pineHandles(chart).length;
-    window.__psReady = []; const tStart = performance.now(); let r = null;
-    P.addSource(M.PICKER_SCRIPTS.find((x) => x.id === id).name, src, { engine: 'next', builtin: true }).then((x) => { r = x; T('added ' + x.ok); }, (e) => { r = { ok: false, msg: 'EXC ' + e }; });
-    let readyMs = null, drawMs = null;
-    for (let i = 0; i < limitMs / 100; i++) {
-      await new Promise((q) => setTimeout(q, 100));
-      if (readyMs == null && window.__psReady.length) readyMs = Math.round(window.__psReady[0] - tStart);
-      const hs = P.pineHandles(chart);
-      if (hs.length > n0) {
-        const h = hs[hs.length - 1]; const rec = [...chart.orchestrator.registry.all()].find((q) => q.model && q.model.id === h.id); const m = rec && rec.model;
-        if (m && ((m.lines || []).length + (m.labels || []).length + (m.boxes || []).length + (m.series || []).length + (m.plots || []).length + (m.tables || []).length + (m.polylines || []).length)) { drawMs = Math.round(performance.now() - tStart); break; }
-      }
-      if (r && !r.ok) break;
-    }
-    return { id, ok: !!(r && r.ok), msg: (r && r.msg) || lastErr || (r ? '' : 'no result'), readyMs, drawMs, ev, n: P.pineHandles(chart).length - n0 };
-  }, [id, limitMs]);
+  // exactly the probe3 flow (known to work), parametrised; the drawn-model poll is a second evaluate
+  const t0 = Date.now();
+  const o = await p.evaluate(async ([id]) => {
+    const o = { ev: [] }; const chart = window.STRYKER_VELA.chart; const t0 = performance.now(); const T = (x) => o.ev.push(x + '@' + Math.round(performance.now() - t0));
+    window.__tStart = performance.now(); window.__readyAt = null; window.__addRes = null;
+    const orig = chart.addIndicator.bind(chart); chart.addIndicator = (src, opt) => { T('addIndicator ' + opt.language); const h = orig(src, opt); try { h.on('ready', () => { T('ready'); if (window.__readyAt == null) window.__readyAt = performance.now(); }); h.on('error', (e) => T('error ' + String(e && e.error && e.error.message || e).slice(0, 120))); } catch (e) {} return h; };
+    const M = await import('/assets/chart-pine-builtins.js'); const src = await M.builtinSource(id);
+    const P = window.STRYKER_PINE; window.__n0 = P.pineHandles(chart).length;
+    window.__p3 = P.addSource('t', src, { engine: 'next', builtin: true }).then((r) => { T('result ' + JSON.stringify(r).slice(0, 200)); window.__addRes = r; });
+    window.__ev = o.ev;
+    return o;
+  }, [id]);
+  let drawn = null;
+  while (Date.now() - t0 < limitMs && drawn == null) {
+    await sleep(250);
+    drawn = await p.evaluate(() => { const chart = window.STRYKER_VELA.chart, P = window.STRYKER_PINE; const hs = P.pineHandles(chart); if (hs.length <= window.__n0) return null; const h = hs[hs.length - 1]; const rec = [...chart.orchestrator.registry.all()].find((q) => q.model && q.model.id === h.id); const m = rec && rec.model; return m && ((m.lines || []).length + (m.labels || []).length + (m.boxes || []).length + (m.series || []).length + (m.plots || []).length + (m.tables || []).length + (m.polylines || []).length) ? Math.round(performance.now() - window.__tStart) : null; });
+  }
+  const f = await p.evaluate(() => ({ ev: window.__ev, readyMs: window.__readyAt ? Math.round(window.__readyAt - window.__tStart) : null, res: window.__addRes }));
+  return { id, ok: !!(f.res && f.res.ok), msg: f.res && f.res.msg || '', readyMs: f.readyMs, drawMs: drawn, ev: f.ev, n: 1 };
 }
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=600'] });
@@ -158,6 +154,7 @@ async function addId(p, id, limitMs) {
         await new Promise((q) => setTimeout(q, 25000)); o.workers = window.__ps.workers; o.lastMsgs = window.__ps.msgs.slice(-8); return o; }); console.log('PROBE3', JSON.stringify(pr)); }
       console.log('adding target'); const tw = setInterval(async () => { try { const st = await Promise.race([p.evaluate(() => ({ t: Math.round(performance.now()), long: window.__ps.long.slice(-3), msgs: window.__ps.msgs.slice(-6), workers: window.__ps.workers, step: window.__ps.step, hand: window.STRYKER_PINE.pineHandles(window.STRYKER_VELA.chart).length, hs: window.STRYKER_VELA.chart.orchestrator.historyState })), sleep(4000).then(() => 'PAGE UNRESPONSIVE')]); console.log('  ..', JSON.stringify(st).slice(0, 500)); } catch (e) { console.log('  .. err', String(e).slice(0, 100)); } }, 10000);
       const t = await addId(p, TARGET, Number(process.env.PS_LIM||150000)); clearInterval(tw);
+      row.secLog = await p.evaluate(() => (window.__secLog || []).slice(0, 60)); row.cacheStats = await p.evaluate(() => { try { return window.STRYKER_PINE && window.__pineEng ? window.__pineEng.seriesCache.stats : null; } catch (e) { return null; } });
       row.target = t; row.netFetches = NET.n; row.netUrls = NET.urls.slice(0, 40);
       await sleep(3000);
       const after = await p.evaluate((m0) => ({ long: window.__ps.long.slice(m0.l), msgs: window.__ps.msgs.slice(m0.i) }), m0);

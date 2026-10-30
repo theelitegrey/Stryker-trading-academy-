@@ -47,6 +47,7 @@
     {"page": "cookies.html", "title": "Cookie Policy", "og_title": "Cookie Policy — TradeZoro", "visual": "brand", "alt": "Cookie Policy share card with the TradeZoro logo"},
     {"page": "gdpr.html", "title": "GDPR Rights", "og_title": "GDPR Rights — TradeZoro", "visual": "brand", "alt": "GDPR Rights share card with the TradeZoro logo"},
     {"page": "refund-policy.html", "title": "Refund Policy", "og_title": "Refund Policy — TradeZoro", "visual": "brand", "alt": "Refund Policy share card with the TradeZoro logo"},
-    {"page": "suggestions.html", "title": "Suggestions", "og_title": "Suggestions \u2014 TradeZoro", "visual": "brand", "alt": "Suggestions share card with the TradeZoro logo"}
+    {"page": "suggestions.html", "title": "Suggestions", "og_title": "Suggestions \u2014 TradeZoro", "visual": "brand", "alt": "Suggestions share card with the TradeZoro logo"},
+    {"page": "creators.html", "title": "Creator Hub", "og_title": "Creator Hub — Start your trading community on TradeZoro", "visual": ["assets/images/creators/hero-1440.webp"], "focus": "0.5,0.2", "alt": "Creator Hub share card: a demo community page with plans, with the TradeZoro logo"}
   ]
 }

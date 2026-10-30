@@ -172,3 +172,17 @@ export async function loadRithmicIfEnabled() {
   const ui = await import('./rithmic-ui.js?v=743');
   return ui.createRithmic(cfg);
 }
+
+// ---- Journal import (Owner 2026-10-30) -------------------------------------------------------------
+// The Journal's "Import from Rithmic" reuses the same app name, gateways and flag plumbing as the charts.
+// Returns the cfg the order-history session needs, or null when no gateway is available. The Journal's
+// own visibility switch (settings/commerce.rithmicJournal) lives in assets/journal-rithmic.js.
+export function journalRithmicConfig(uid) {
+  const dev = devOverride();
+  const admin = !!uid && RITHMIC_FLAG.allowUids.includes(uid);
+  let gateways = activeGateways(admin);
+  if (dev) gateways = [{ id: 'dev', label: 'Local mock', test: true, uri: dev.gateway }];
+  if (!gateways.length) return null;
+  return { ...RITHMIC_CONFIG, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
+    gateways, gateway: gateways[0].uri, systemFirst: SYSTEM_FIRST, nearest: nearestGatewayId(), dev: !!dev };
+}

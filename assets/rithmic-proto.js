@@ -10,8 +10,10 @@
 // Field numbers below were taken from the public .proto definitions shipped in the
 // MIT-licensed async_rithmic project (github.com/rundef/async_rithmic, v1.6.6,
 // Copyright (c) 2024 Mickael Burguet), read field-by-field from its compiled
-// descriptors. Only the messages the Charts data feed needs are listed; no order,
-// account or PnL messages are defined here on purpose (the feature is read-only).
+// descriptors. Only READ-ONLY messages are listed: the Charts data feed, plus (Journal import,
+// 2026-10-30) login info, account list, order history, today's orders and the PnL snapshot.
+// No order-entry message (new / modify / cancel / bracket / OCO / exit / link) is defined here on
+// purpose: encode() throws for a template that is not in SCHEMA, so an order cannot be built.
 
 export const T = {
   LOGIN: 10, LOGIN_R: 11, LOGOUT: 12, LOGOUT_R: 13,
@@ -20,8 +22,18 @@ export const T = {
   MD_UPDATE: 100, MD_UPDATE_R: 101,
   FRONT_MONTH: 113, FRONT_MONTH_R: 114,
   LAST_TRADE: 150, BBO: 151, ORDER_BOOK: 156,
-  TIME_BAR_REPLAY: 202, TIME_BAR_REPLAY_R: 203
+  TIME_BAR_REPLAY: 202, TIME_BAR_REPLAY_R: 203,
+  // Order plant, read only (Journal import)
+  LOGIN_INFO: 300, LOGIN_INFO_R: 301, ACCOUNT_LIST: 302, ACCOUNT_LIST_R: 303,
+  OH_DATES: 318, OH_DATES_R: 319, SHOW_ORDERS: 320, SHOW_ORDERS_R: 321,
+  OH_SUMMARY: 324, OH_SUMMARY_R: 325, OH_DETAIL: 326, OH_DETAIL_R: 327,
+  RITHMIC_ORDER_NOTIFY: 351, EXCHANGE_ORDER_NOTIFY: 352,
+  // PnL plant, read only
+  PNL_SNAPSHOT: 402, PNL_SNAPSHOT_R: 403, PNL_INSTRUMENT: 450, PNL_ACCOUNT: 451
 };
+// ExchangeOrderNotification.notify_type / transaction_type (enum values from the kit's .proto)
+export const NOTIFY = { STATUS: 1, MODIFY: 2, CANCEL: 3, TRIGGER: 4, FILL: 5, REJECT: 6, NOT_MODIFIED: 7, NOT_CANCELLED: 8, GENERIC: 9 };
+export const TX_TYPE = { BUY: 1, SELL: 2, SELL_SHORT: 3 };
 
 export const INFRA = { TICKER_PLANT: 1, ORDER_PLANT: 2, HISTORY_PLANT: 3, PNL_PLANT: 4, REPOSITORY_PLANT: 5 };
 export const UPDATE_BITS = { LAST_TRADE: 1, BBO: 2, ORDER_BOOK: 4 };
@@ -36,6 +48,17 @@ export const TIME_ORDER = { FORWARDS: 1, BACKWARDS: 2 };
 // A trailing '*' marks a repeated field.
 const COMMON = { template_id: [154467, 'i32'], user_msg: [132760, 'str*'], rp_code: [132766, 'str*'] };
 const SYMEX = { symbol: [110100, 'str'], exchange: [110101, 'str'] };
+
+const ACCT = { fcm_id: [154013, 'str'], ib_id: [154014, 'str'], account_id: [154008, 'str'] };
+// Fields shared by ExchangeOrderNotification (352) and RithmicOrderNotification (351). Sizes use the 64-bit
+// fields (the int32 ones are deprecated); fill_size shares its field number with the deprecated int32.
+const ORDER_NOTE = { ...ACCT, ...SYMEX, notify_type: [153625, 'i32'], is_snapshot: [110121, 'bool'], status: [110303, 'str'],
+  basket_id: [110300, 'str'], exchange_order_id: [149238, 'str'], instrument_type: [110116, 'str'], trade_route: [112016, 'str'],
+  commission_fill_rate: [156969, 'str'], quantity: [112004, 'i32'], quantity_64: [159017, 'u64'], price: [110306, 'dbl'],
+  transaction_type: [112003, 'i32'], price_type: [112008, 'i32'], avg_fill_price: [110322, 'dbl'],
+  total_fill_size: [154111, 'i32'], total_fill_size_64: [159019, 'u64'], total_unfilled_size: [154112, 'i32'], total_unfilled_size_64: [159020, 'u64'],
+  currency: [154382, 'str'], text: [120008, 'str'], report_text: [120028, 'str'], completion_reason: [149273, 'str'],
+  ssboe: [150100, 'i32'], usecs: [150101, 'i32'] };
 
 export const SCHEMA = {
   [T.SYSTEM_INFO]: { ...COMMON },
@@ -74,7 +97,32 @@ export const SCHEMA = {
   [T.TIME_BAR_REPLAY_R]: { ...COMMON, request_key: [132758, 'str'], rq_handler_rp_code: [132764, 'str*'], ...SYMEX,
     type: [119200, 'i32'], period: [119112, 'str'], marker: [119100, 'i32'], num_trades: [119109, 'u64'],
     volume: [119110, 'u64'], bid_volume: [119117, 'u64'], ask_volume: [119118, 'u64'], open_price: [100019, 'dbl'],
-    close_price: [100021, 'dbl'], high_price: [100012, 'dbl'], low_price: [100013, 'dbl'] }
+    close_price: [100021, 'dbl'], high_price: [100012, 'dbl'], low_price: [100013, 'dbl'] },
+  // ---- order plant, read only (no order entry template exists in this file) ----
+  [T.LOGIN_INFO]: { ...COMMON },
+  [T.LOGIN_INFO_R]: { ...COMMON, fcm_id: [154013, 'str'], ib_id: [154014, 'str'], user_type: [154036, 'i32'], op_max_session_count: [140012, 'i32'] },
+  [T.ACCOUNT_LIST]: { ...COMMON, fcm_id: [154013, 'str'], ib_id: [154014, 'str'], user_type: [154036, 'i32'] },
+  [T.ACCOUNT_LIST_R]: { ...COMMON, rq_handler_rp_code: [132764, 'str*'], ...ACCT, account_name: [154002, 'str'], account_currency: [154383, 'str'] },
+  [T.OH_DATES]: { ...COMMON },
+  [T.OH_DATES_R]: { ...COMMON, rq_handler_rp_code: [132764, 'str*'], date: [110615, 'str*'] },
+  [T.SHOW_ORDERS]: { ...COMMON, ...ACCT },
+  [T.SHOW_ORDERS_R]: { ...COMMON },
+  [T.OH_SUMMARY]: { ...COMMON, ...ACCT, date: [110615, 'str'] },
+  [T.OH_SUMMARY_R]: { ...COMMON },
+  [T.OH_DETAIL]: { ...COMMON, ...ACCT, basket_id: [110300, 'str'], date: [110615, 'str'] },
+  [T.OH_DETAIL_R]: { ...COMMON },
+  [T.RITHMIC_ORDER_NOTIFY]: { template_id: [154467, 'i32'], ...ORDER_NOTE },
+  [T.EXCHANGE_ORDER_NOTIFY]: { template_id: [154467, 'i32'], ...ORDER_NOTE, report_type: [120001, 'str'],
+    fill_price: [110307, 'dbl'], fill_size: [110308, 'i32'], fill_size_64: [159024, 'u64'], fill_time: [110309, 'str'], fill_date: [110310, 'str'],
+    fill_id: [110311, 'str'], source_ssboe: [150400, 'i32'], source_usecs: [150401, 'i32'] },
+  // ---- PnL plant, read only ----
+  [T.PNL_SNAPSHOT]: { ...COMMON, ...ACCT },
+  [T.PNL_SNAPSHOT_R]: { ...COMMON },
+  [T.PNL_INSTRUMENT]: { template_id: [154467, 'i32'], is_snapshot: [110121, 'bool'], ...ACCT, ...SYMEX, fill_buy_qty: [154041, 'i32'], fill_sell_qty: [154042, 'i32'],
+    day_pnl: [157956, 'dbl'], day_closed_pnl: [157955, 'dbl'], closed_position_pnl: [156963, 'str'], closed_position_quantity: [156964, 'i32'], net_quantity: [156967, 'i32'] },
+  [T.PNL_ACCOUNT]: { template_id: [154467, 'i32'], is_snapshot: [110121, 'bool'], ...ACCT, fill_buy_qty: [154041, 'i32'], fill_sell_qty: [154042, 'i32'],
+    day_pnl: [157956, 'str'], day_closed_pnl: [157955, 'str'], closed_position_pnl: [156963, 'str'], closed_position_quantity: [156964, 'i32'],
+    rms_account_commission: [157113, 'str'], account_balance: [156970, 'str'] }
 };
 
 // ---- encoding ------------------------------------------------------------------------

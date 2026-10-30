@@ -9,13 +9,14 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
 import { T, encode, decode } from '../../assets/rithmic-proto.js';
+import { ACCOUNTS, DATES, SETS, PNL_TODAY } from './rithmic-orders-fixtures.mjs';
 
 const PORT = Number(process.argv[2] || process.env.RITHMIC_MOCK_PORT || 8765);
 const SYSTEMS = ['Rithmic Test', 'Rithmic Paper Trading', 'TradeSea', 'Apex'];
 const FRONT = { NQ: 'NQZ6', MNQ: 'MNQZ6', ES: 'ESZ6', MES: 'MESZ6', GC: 'GCZ6', CL: 'CLX6' };
 // Deliberately unlike any real price, so a test can tell mock bars from the normal data.
 const BASE = { NQZ6: 11111, MNQZ6: 11111, ESZ6: 3333, MESZ6: 3333, GCZ6: 999, CLX6: 33 };
-const stats = { connections: 0, logins: 0, loginsByInfra: {}, badLogins: 0, replays: 0, subscribes: 0, heartbeats: 0, logouts: 0, drops: 0 };
+const stats = { forbidden: [], orderReqs: {}, connections: 0, logins: 0, loginsByInfra: {}, badLogins: 0, replays: 0, subscribes: 0, heartbeats: 0, logouts: 0, drops: 0 };
 const sockets = new Set();
 
 // Deterministic synthetic price: a smooth function of time (seconds), so history and live agree.
@@ -75,8 +76,64 @@ function sendBook(c, symbol, exchange, full) {
   c.send({ template_id: T.ORDER_BOOK, symbol, exchange, presence_bits: 3, update_type: full ? 3 : 7, bid_price: bp, bid_size: bs, ask_price: ap, ask_size: as, ssboe: s, usecs: (now % 1000) * 1000 });
 }
 
+
+// ---- order plant (Journal import): synthetic order history from rithmic-orders-fixtures.mjs ----
+const ORDER_ENTRY = new Set([312, 314, 316, 330, 332, 334, 346, 3500, 3502, 3504, 3508]);
+const dayKey = (d) => d;                  // YYYYMMDD
+// ExchangeOrderNotification rows. Order level (summary): one row per order; fill level (detail): one per fill.
+function orderRow(o, acct) {
+  const total = o.fills.reduce((a, f) => a + f[0], 0);
+  return { template_id: T.EXCHANGE_ORDER_NOTIFY, notify_type: 1, is_snapshot: true, fcm_id: 'MOCK', ib_id: 'MOCK', account_id: acct, symbol: o.sym, exchange: 'CME',
+    basket_id: o.basket, status: 'complete', transaction_type: o.side === 'buy' ? 1 : 2, quantity_64: total, total_fill_size_64: total, total_unfilled_size_64: 0,
+    avg_fill_price: o.fills.reduce((a, f) => a + f[0] * f[1], 0) / total, price_type: 2, ssboe: Math.floor(o.fills[0][2] / 1000) };
+}
+function fillRows(o, acct) {
+  return o.fills.map((f, i) => ({ template_id: T.EXCHANGE_ORDER_NOTIFY, notify_type: 5, is_snapshot: true, fcm_id: 'MOCK', ib_id: 'MOCK', account_id: acct, symbol: o.sym, exchange: 'CME',
+    basket_id: o.basket, transaction_type: o.side === 'buy' ? 1 : 2, fill_price: f[1], fill_size_64: f[0], fill_id: o.basket + '-F' + (i + 1),
+    commission_fill_rate: f[3] != null ? String(f[3]) : undefined,
+    ssboe: Math.floor(f[2] / 1000) + 1, usecs: 0, source_ssboe: Math.floor(f[2] / 1000), source_usecs: (f[2] % 1000) * 1000 }));
+}
+function onOrderPlant(c, m) {
+  const um = m.user_msg;
+  stats.orderReqs[m.template_id] = (stats.orderReqs[m.template_id] || 0) + 1;
+  if (ORDER_ENTRY.has(m.template_id)) { stats.forbidden.push(m.template_id); c.send({ template_id: T.REJECT, user_msg: um, rp_code: ['1', 'order entry is not available in the mock'] }); return true; }
+  const deny = c.noHistory && [T.OH_DATES, T.OH_SUMMARY, T.OH_DETAIL, T.SHOW_ORDERS].includes(m.template_id);
+  if (deny) { c.send({ template_id: m.template_id + 1, user_msg: um, rp_code: ['13', 'permission denied: order history is not enabled for this app'] }); return true; }
+  const acct = m.account_id;
+  switch (m.template_id) {
+    case T.LOGIN_INFO: c.send({ template_id: T.LOGIN_INFO_R, user_msg: um, rp_code: ['0'], fcm_id: 'MOCK', ib_id: 'MOCK', user_type: 3, op_max_session_count: 1 }); return true;
+    case T.ACCOUNT_LIST: {
+      const list = c.oneAccount ? ACCOUNTS.slice(0, 1) : ACCOUNTS;
+      list.forEach((a) => c.send({ template_id: T.ACCOUNT_LIST_R, user_msg: um, rq_handler_rp_code: ['0'], fcm_id: 'MOCK', ib_id: 'MOCK', account_id: a.id, account_name: a.name, account_currency: a.currency }));
+      c.send({ template_id: T.ACCOUNT_LIST_R, user_msg: um, rp_code: ['0'] }); return true;
+    }
+    case T.OH_DATES: DATES.forEach((d) => c.send({ template_id: T.OH_DATES_R, user_msg: um, rq_handler_rp_code: ['0'], date: [d] }));
+      c.send({ template_id: T.OH_DATES_R, user_msg: um, rp_code: ['0'] }); return true;
+    case T.SHOW_ORDERS: case T.OH_SUMMARY: {
+      const day = m.template_id === T.SHOW_ORDERS ? 'today' : m.date;
+      const orders = (SETS[acct] && SETS[acct][day]) || [];
+      orders.forEach((o) => c.send({ ...orderRow(o, acct), user_msg: um }));
+      if (!orders.length) c.send({ template_id: m.template_id + 1, user_msg: um, rp_code: ['7', 'no data'] });
+      else c.send({ template_id: m.template_id + 1, user_msg: um, rp_code: ['0'] });
+      return true;
+    }
+    case T.OH_DETAIL: {
+      const sets = (SETS[acct] || {});
+      const all = Object.values(sets).flat();
+      const o = all.find((x) => x.basket === m.basket_id);
+      (o ? fillRows(o, acct) : []).forEach((r) => c.send({ ...r, user_msg: um }));
+      c.send({ template_id: T.OH_DETAIL_R, user_msg: um, rp_code: ['0'] }); return true;
+    }
+    case T.PNL_SNAPSHOT:
+      c.send({ template_id: T.PNL_ACCOUNT, is_snapshot: true, fcm_id: 'MOCK', ib_id: 'MOCK', account_id: acct, day_closed_pnl: String(PNL_TODAY[acct] ?? 0), rms_account_commission: '0' });
+      c.send({ template_id: T.PNL_SNAPSHOT_R, user_msg: um, rp_code: ['0'] }); return true;
+  }
+  return false;
+}
+
 function onMessage(c, m) {
   const um = m.user_msg;
+  if (c.plant === 2 || c.plant === 4) { if (m.template_id !== T.HEARTBEAT && m.template_id !== T.LOGOUT && onOrderPlant(c, m)) return; }
   switch (m.template_id) {
     case T.SYSTEM_INFO:
       // RITHMIC_MOCK_DELAY=ms makes the systems list slow (picker tests).
@@ -87,12 +144,12 @@ function onMessage(c, m) {
       const ERR = { 'err-perm': ['13', 'permission denied'], 'err-pass': ['11', 'invalid user id or password'], 'err-md': ['13', 'no market data subscription for this user'],
         'err-forced': ['77', 'forced logout'], 'err-elsewhere': ['5', 'user already logged in elsewhere'], 'err-odd': ['99', 'something unexpected happened'] };
       if (ERR[m.user]) { stats.badLogins++; c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ERR[m.user] }); break; }
-      const ok = m.user === 'demo' && m.password === 'demo-pass' && SYSTEMS.includes(m.system_name) && !!m.app_name;
+      const ok = (m.user === 'demo' || m.user === 'demo-nohist' || m.user === 'demo-one') && m.password === 'demo-pass' && SYSTEMS.includes(m.system_name) && !!m.app_name;
       if (!ok) { stats.badLogins++; c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ['13', 'permission denied'] }); break; }
       stats.logins++;
       stats.loginsByInfra[m.infra_type] = (stats.loginsByInfra[m.infra_type] || 0) + 1;
       stats.lastApp = { app_name: m.app_name, app_version: m.app_version, template_version: m.template_version, system_name: m.system_name };
-      c.plant = m.infra_type; c.system = m.system_name;
+      c.plant = m.infra_type; c.system = m.system_name; c.noHistory = m.user === 'demo-nohist'; c.oneAccount = m.user === 'demo-one';
       c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ['0'], template_version: '3.9', fcm_id: 'MOCK', ib_id: 'MOCK', unique_user_id: 'mock-user', heartbeat_interval: 5 });
       break;
     }

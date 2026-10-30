@@ -1,9 +1,9 @@
 // Community public page + member view (c.html, served for /c/<slug>).
-// Depends on: creator.js (CH), firebase auth/firestore, progress.js (db).
+// Depends on: creator.js (CH), creator-pay.js (CP: paid join + member billing), firebase auth/firestore/functions, progress.js (db).
 (function () {
   var root = document.getElementById('cm-root');
   var slug = (location.pathname.match(/^\/c\/([a-z0-9-]+)/) || location.search.match(/[?&]c=([a-z0-9-]+)/) || [])[1];
-  var cm, plans = [], me = null, mem = null, tab = 'about', hasInvite = '', inds = null, myAccess = {};
+  var cm, plans = [], me = null, mem = null, tab = 'about', hasInvite = '', inds = null, myAccess = {}, payOpen = false, paidBack = '';
   var qs = new URLSearchParams(location.search);
   if (qs.get('tab') === 'indicators') tab = 'indicators';
   var wantInd = (qs.get('ind') || '').replace(/[^A-Za-z0-9]/g, ''), indCode = (qs.get('icode') || '').replace(/[^A-Za-z0-9]/g, '');
@@ -12,22 +12,38 @@
   function msg(t) { root.innerHTML = '<div class="cx-empty">' + t + '</div>'; }
   if (!slug) return msg('Community not found. <a href="/communities" style="color:var(--gold-bright)">Browse communities</a>');
 
-  try { var u = new URLSearchParams(location.search); hasInvite = (u.get('invite') || '').replace(/[^A-Za-z0-9]/g, ''); } catch (e) {}
+  try { var u = new URLSearchParams(location.search); hasInvite = (u.get('invite') || '').replace(/[^A-Za-z0-9]/g, ''); paidBack = u.get('paid') || ''; } catch (e) {}
 
-  Promise.all([CH.user()]).then(function (r) { me = r[0]; return db.collection('communities').doc(slug).get(); }).then(function (d) {
+  Promise.all([CH.user()]).then(function (r) { me = r[0]; return window.CP ? CP.open(me) : false; }).then(function (o) { payOpen = !!o; return db.collection('communities').doc(slug).get(); }).then(function (d) {
     if (!d.exists) return msg('Community not found. <a href="/communities" style="color:var(--gold-bright)">Browse communities</a>');
     cm = d.data(); cm.id = d.id;
     document.title = cm.name + ' — TradeZoro';
     if (cm.status === 'suspended') return msg('This community is not available right now.');
     var q = [db.collection('communities').doc(slug).collection('plans').where('status', '==', 'live').get().then(function (s) { plans = s.docs.map(function (x) { var o = x.data(); o.id = x.id; return o; }).sort(function (a, b) { return a.order - b.order; }); }).catch(function () { plans = []; })];
     if (me) q.push(db.collection('communities').doc(slug).collection('members').doc(me.uid).get().then(function (m) { mem = m.exists ? m.data() : null; }).catch(function () { mem = null; }));
-    return Promise.all(q).then(draw);
+    return Promise.all(q).then(draw).then(afterPay);
   }).catch(function (e) {
     if (e && e.code === 'permission-denied') return msg(me ? 'Community not found. <a href="/communities" style="color:var(--gold-bright)">Browse communities</a>' : 'Community not found, or it is private. <a href="/login" style="color:var(--gold-bright)">Sign in</a> if you have an invite.');
     msg('Could not load this community. Check your connection and try again.');
   });
 
   function isOwner() { return me && cm.ownerUid === me.uid; }
+  // A paid plan can be bought right now (display; the server re-checks everything).
+  function buyable(p) { return payOpen && cm.sellerReady === true && !!String(cm.refundRule || '').trim() && window.CP && CP.sellable(p); }
+  // Back from Stripe Checkout: ?paid=1 waits for the webhook to add the member; ?paid=0 = buyer cancelled.
+  function afterPay() {
+    if (!paidBack) return;
+    history.replaceState(null, '', location.pathname);
+    if (paidBack === '0') return CH.toast('info', 'Checkout cancelled. Nothing was charged.');
+    if (!me || (mem && mem.source === 'paid' && CH.isActive(mem))) return;
+    var side = document.getElementById('cm-side');
+    if (side) side.insertAdjacentHTML('afterbegin', '<div class="cx-box cp-wait" id="cp-wait" role="status" style="margin-bottom:12px"><b>Payment received.</b><p class="cx-muted">Adding you to ' + CH.esc(cm.name) + '…</p></div>');
+    CP.awaitJoin(slug, me.uid, function (ok) {
+      if (ok) return location.reload();
+      var w = document.getElementById('cp-wait');
+      if (w) w.innerHTML = '<b>Payment received.</b><p class="cx-muted">Your access is taking longer than usual. Refresh in a minute. If it still doesn\'t show, contact support@tradezoro.com.</p>';
+    });
+  }
   function enabled() { return FEATS.filter(function (f) { return cm.features && cm.features[f[0]]; }); }
 
   function draw() {
@@ -149,6 +165,7 @@
   function side(member) {
     var el = document.getElementById('cm-side'), h = '';
     if (isOwner()) h += '<div class="cx-box" style="margin-bottom:12px"><b>You run this community.</b><p class="cx-muted">Members see the page below. Manage it in the Creator Hub.</p></div>';
+    else if (member && mem.source === 'paid' && mem.pay && window.CP) h += '<div class="cx-box" style="margin-bottom:12px"><b class="cx-ok">You are a member</b>' + CP.memberBox(cm, mem) + '</div>';
     else if (member) h += '<div class="cx-box" style="margin-bottom:12px"><b class="cx-ok">You are a member</b>' + (mem.expiresAt ? '<p class="cx-muted">Access until ' + CH.esc(CH.date(mem.expiresAt)) + '</p>' : '') + '<div style="margin-top:10px"><button class="btn btn-ghost" type="button" id="cm-leave">Leave community</button></div></div>';
     else if (hasInvite) h += '<div class="cx-box" style="margin-bottom:12px"><b>You have an invite</b><p class="cx-muted">Join ' + CH.esc(cm.name) + ' with your invite link.</p><button class="btn btn-primary" type="button" id="cm-redeem">Use invite</button><div id="cm-redeem-msg" class="cx-bad" role="alert"></div></div>';
     if (member && !isOwner() && cm.features && cm.features.discord && window.CHD) h += '<div id="cm-discord"></div>';
@@ -162,8 +179,10 @@
           (p.desc ? '<p class="cx-muted" style="margin:6px 0">' + CH.esc(p.desc) + '</p>' : '') +
           ((p.bullets || []).length ? '<ul>' + p.bullets.map(function (b) { return '<li>' + CH.esc(b) + '</li>'; }).join('') + '</ul>' : '') +
           (free ? (p.joinMode === 'invite' ? '<button class="btn btn-ghost" disabled type="button" style="width:100%">Invite-only</button>' : '<button class="btn btn-primary cm-join" data-p="' + CH.esc(p.id) + '" type="button" style="width:100%">Join free</button>')
+                : buyable(p) ? '<button class="btn btn-primary cm-buy" data-p="' + CH.esc(p.id) + '" type="button" style="width:100%">Join · ' + CH.esc(CP.short(p)) + '</button>'
                 : '<button class="btn btn-ghost" disabled type="button" style="width:100%">Paid checkout opens soon</button>') + '</div>';
       });
+      if (plans.some(buyable)) h += '<div class="cp-sold"><p>Sold by ' + CH.esc(cm.ownerName || 'the creator') + ', an independent creator. Payments by Stripe.</p><p>Refunds: ask the creator first; their refund rule: ' + CH.esc(cm.refundRule) + '</p></div>';
       h += '<div id="cm-join-msg" class="cx-bad" role="alert"></div></div>';
     }
     h += '<div class="cx-box" style="margin-top:12px"><div class="cx-muted" style="margin-bottom:4px">Creator</div><b>' + CH.esc(cm.ownerName || 'Creator') + '</b>' +
@@ -178,6 +197,14 @@
       CH.join(slug, b.dataset.p).then(function (r) { if (r.ok) location.reload(); else { b.disabled = false; document.getElementById('cm-join-msg').textContent = r.data.message || 'Could not join. Try again.'; } })
         .catch(function () { b.disabled = false; document.getElementById('cm-join-msg').textContent = 'Could not join. You may be unable to join this community.'; });
     }); });
+    el.querySelectorAll('.cm-buy').forEach(function (b) { b.addEventListener('click', function () {
+      if (!me) return CH.signIn();
+      var label = b.textContent, msgEl = document.getElementById('cm-join-msg');
+      b.disabled = true; b.textContent = 'Opening secure checkout…'; msgEl.textContent = '';
+      CP.call('checkout', { cid: slug, planId: b.dataset.p }).then(function (r) { location.href = r.url; })
+        .catch(function (x) { b.disabled = false; b.textContent = label; msgEl.textContent = CP.errText(x); });
+    }); });
+    if (member && mem.source === 'paid' && window.CP) CP.bindMember(el, slug);
     var rb = document.getElementById('cm-redeem');
     if (rb) rb.addEventListener('click', function () {
       if (!me) return CH.signIn();

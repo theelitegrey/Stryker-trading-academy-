@@ -1,8 +1,16 @@
-// TradeZoro Creator Hub: one config file. CREATOR_PAYMENTS is the single switch for paid checkout.
-// While false, paid plans can be saved and shown ("Paid checkout opens soon") but nobody can buy one;
-// creators hand out access with free plans, invite links/codes and member import by email.
+// TradeZoro Creator Hub: one config file (display constants).
+// Paid checkout is switched on the SERVER: settings/commerce.creatorPayments (default false), enforced by the creatorPay
+// Cloud Function (functions-src/creatorPay.js). While it is off, paid plans show "Paid checkout opens soon" to everyone
+// except TradeZoro admins and stryker-qa-* test users; creators use free plans, invites and member import.
 window.CREATOR_CONFIG = {
-  PAYMENTS: false,                 // flip only when payouts (Stripe Connect / Razorpay Route) are live
+  PAYMENTS: false,                 // legacy client flag: no longer decides anything (the server switch does)
+  PRICE_MIN: 1, PRICE_MAX: 999, TRIAL_MAX: 30,
+  // Countries where a creator can receive payouts (Stripe Connect). Must equal PAYOUT_COUNTRIES in
+  // functions-src/creatorPay.js (tools/creator-pay/paytest.js checks). India is not in it: Stripe accounts in India are
+  // invite-only, so India-based creators keep free / invite-only communities for now.
+  PAYOUT_COUNTRIES: ['AT', 'AU', 'BE', 'BG', 'CA', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GI', 'GR',
+    'HK', 'HR', 'HU', 'IE', 'IT', 'JP', 'LI', 'LT', 'LU', 'LV', 'MT', 'MX', 'NL', 'NO', 'NZ', 'PL', 'PT', 'RO', 'SE', 'SG', 'SI', 'SK',
+    'US', 'AE', 'MY', 'TH', 'BR'],
   // Discord roles Worker (workers/discord-roles). Holds all Discord tokens; the site only talks to it with the member's Firebase ID token.
   DISCORD_API: 'https://discord-roles.theelitegrey.workers.dev',
   RULES_VERSION: '2026-10-30',

@@ -863,7 +863,7 @@ service cloud.firestore {
         && f.get('events', false) is bool && f.get('leaderboard', false) is bool && f.get('discord', false) is bool;
     }
     // Fields the owner may edit. Everything else (ownerUid, slug, status, founding, memberCount, createdAt...) is fixed.
-    function cmEditable() { return ['name', 'ownerName', 'tagline', 'about', 'logoUrl', 'coverUrl', 'introVideo', 'accent', 'visibility', 'features', 'tags', 'updatedAt']; }
+    function cmEditable() { return ['name', 'ownerName', 'tagline', 'about', 'logoUrl', 'coverUrl', 'introVideo', 'accent', 'visibility', 'features', 'tags', 'refundRule', 'updatedAt']; }
     function cmContentOk(d) {
       return d.name is string && d.name.size() >= 3 && d.name.size() <= 50
         && d.ownerName is string && d.ownerName.size() >= 1 && d.ownerName.size() <= 60
@@ -872,7 +872,9 @@ service cloud.firestore {
         && cmUrlOk(d.logoUrl) && cmUrlOk(d.coverUrl) && cmVideoOk(d.introVideo)
         && d.accent is string && d.accent.matches('^#[0-9a-fA-F]{6}$')
         && d.visibility in ['public', 'unlisted', 'private']
-        && cmFeaturesOk(d.features) && cmTagsOk(d.tags);
+        && cmFeaturesOk(d.features) && cmTagsOk(d.tags)
+        // refund rule shown at checkout (creator payments, 2026-10-30); optional, plain text
+        && (!('refundRule' in d) || (d.refundRule is string && d.refundRule.size() <= 300));
     }
 
     match /creatorMeta/{uid} {
@@ -1300,6 +1302,31 @@ service cloud.firestore {
         }
       }
     }
+
+    // CREATOR PAYMENTS (Stripe Connect, 2026-10-30; functions-src/creatorPay.js). Everything about money is written
+    // by Cloud Functions only (Admin SDK). Clients can READ their own payout status and their own sales, nothing else:
+    //  - creatorAccounts/{uid}: the creator's connected-account status (a creator can never mark himself 'active').
+    //  - creatorSales/{id}: one doc per paid invoice / one-time payment; the selling creator and staff read.
+    //  - creatorSubs, creatorSessions, creatorCustomers, creatorPrices, creatorEvents: functions only (the default
+    //    deny at the end covers them; named here so nobody adds an open rule by accident).
+    //  - communities/{cid}.sellerReady / sellerStatus and members/{uid}.pay are function-written; the owner-edit and
+    //    staff-member-edit rules above only allow their own named keys, so neither can be set from a client, and no
+    //    member-create path accepts source 'paid'.
+    // ---------------------------------------------------------------------
+    match /creatorAccounts/{uid} {
+      allow get: if isSelf(uid) || isAdmin();
+      allow list: if isAdmin();
+      allow write: if false;
+    }
+    match /creatorSales/{sid} {
+      allow get, list: if (signedIn() && resource.data.creatorUid == request.auth.uid) || isAdmin();
+      allow write: if false;
+    }
+    match /creatorSubs/{id}      { allow read, write: if false; }
+    match /creatorSessions/{id}  { allow read, write: if false; }
+    match /creatorCustomers/{id} { allow read, write: if false; }
+    match /creatorPrices/{id}    { allow read, write: if false; }
+    match /creatorEvents/{id}    { allow read, write: if false; }
 
     // Reports on communities (later phases: posts, indicators, courses). One report per person per target.
     // "My communities": collection-group query on members where uid == me (needs the members.uid

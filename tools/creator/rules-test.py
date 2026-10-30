@@ -488,6 +488,48 @@ case(DN, 'usage: no access', 'mem', 'create', IND('usage', 'mem'), new={'day': N
 case(DN, 'usage: for someone else', 'pro', 'create', IND('usage', 'mem'), new={'day': NOW_DAY, 'at': TS}, old=None)
 case(A, 'usage: owner lists', 'own', 'list', IND('usage', 'pro'), old={'day': NOW_DAY, 'at': TS})
 case(DN, 'usage: member lists', 'pro', 'list', IND('usage', 'pro'), old={'day': NOW_DAY, 'at': TS})
+# ---------- creator payments (Stripe Connect): money fields are functions-only ----------
+ACC = {'acct': 'acct_1', 'status': 'pending', 'chargesEnabled': False, 'payoutsEnabled': False, 'live': False}
+case(A, 'pay: creator reads own payout status', 'own', 'get', '/creatorAccounts/own', old=ACC)
+case(DN, 'pay: stranger reads creator payout status', 'out', 'get', '/creatorAccounts/own', old=ACC)
+case(DN, 'pay: signed out reads payout status', None, 'get', '/creatorAccounts/own', old=ACC)
+case(A, 'pay: TradeZoro admin reads payout status', 'tz', 'get', '/creatorAccounts/own', old=ACC)
+case(A, 'pay: TradeZoro admin lists payout status', 'tz', 'list', '/creatorAccounts/own', old=ACC)
+case(DN, 'pay: creator lists all payout records', 'own', 'list', '/creatorAccounts/own', old=ACC)
+case(DN, 'pay: creator marks himself active', 'own', 'update', '/creatorAccounts/own', old=ACC, new=dict(ACC, status='active', chargesEnabled=True, payoutsEnabled=True))
+case(DN, 'pay: creator creates own payout record', 'newbie', 'create', '/creatorAccounts/newbie', old=None, new=dict(ACC, status='active'))
+case(DN, 'pay: creator deletes own payout record', 'own', 'delete', '/creatorAccounts/own', old=ACC)
+SALE = {'creatorUid': 'own', 'buyerUid': 'mem', 'cid': CID, 'planId': 'p3', 'amountCents': 2900, 'status': 'paid', 'live': False}
+case(A, 'pay: creator reads own sale', 'own', 'get', '/creatorSales/inv_1', old=SALE)
+case(A, 'pay: creator lists own sales', 'own', 'list', '/creatorSales/inv_1', old=SALE)
+case(DN, 'pay: buyer reads the creator sale record', 'mem', 'get', '/creatorSales/inv_1', old=SALE)
+case(DN, 'pay: stranger lists sales', 'out', 'list', '/creatorSales/inv_1', old=SALE)
+case(A, 'pay: admin reads sale', 'tz', 'get', '/creatorSales/inv_1', old=SALE)
+case(DN, 'pay: buyer writes a sale', 'mem', 'create', '/creatorSales/inv_x', old=None, new=dict(SALE, creatorUid='mem'))
+case(DN, 'pay: creator edits a sale (hide a refund)', 'own', 'update', '/creatorSales/inv_1', old=SALE, new=dict(SALE, status='paid', amountCents=99900))
+for col in ('creatorSubs', 'creatorSessions', 'creatorCustomers', 'creatorPrices', 'creatorEvents'):
+    case(DN, f'pay: owner reads {col}', 'own', 'get', f'/{col}/x', old={'buyerUid': 'own', 'creatorUid': 'own'})
+    case(DN, f'pay: user writes {col}', 'mem', 'create', f'/{col}/x', old=None, new={'buyerUid': 'mem'})
+# buyers can never grant themselves a paid membership
+PM = member('zed', plan='p3', source='paid', pay={'status': 'active', 'subId': 'sub_1'})
+case(DN, 'pay: buyer creates own paid member doc', 'zed', 'create', C('members', 'zed'), new=PM, old=None, after={C('members', 'zed'): PM, C(): cm(memberCount=6)})
+case(DN, 'pay: join FREE route but on the paid plan', 'zed', 'create', C('members', 'zed'), new=member('zed', plan='p3', source='free'), old=None,
+     after={C('members', 'zed'): member('zed', plan='p3'), C(): cm(memberCount=6)}, before={C('plans', 'p3'): dict(PAID, status='live')})
+case(DN, 'pay: join free with a pay map', 'zed', 'create', C('members', 'zed'), new=member('zed', pay={'status': 'active'}), old=None,
+     after={C('members', 'zed'): member('zed'), C(): cm(memberCount=6)})
+PAIDMEM = member('mem', plan='p3', source='paid', exp=SOON, pay={'status': 'past_due'})
+case(DN, 'pay: member extends own expiry', 'mem', 'update', C('members', 'mem'), before={C('members', 'mem'): PAIDMEM}, old=PAIDMEM, new=dict(PAIDMEM, expiresAt=LATER))
+case(DN, 'pay: member edits own pay status', 'mem', 'update', C('members', 'mem'), before={C('members', 'mem'): PAIDMEM}, old=PAIDMEM, new=dict(PAIDMEM, pay={'status': 'active'}))
+case(DN, 'pay: member switches own plan', 'mem', 'update', C('members', 'mem'), before={C('members', 'mem'): PAIDMEM}, old=PAIDMEM, new=dict(PAIDMEM, planId='p1'))
+case(DN, 'pay: creator forges pay map on a member', 'own', 'update', C('members', 'mem'), before={C('members', 'mem'): PAIDMEM}, old=PAIDMEM, new=dict(PAIDMEM, pay={'status': 'active', 'subId': 'fake'}))
+case(DN, 'pay: creator sets source paid', 'own', 'update', C('members', 'mem'), old=member('mem'), new=member('mem', source='paid'))
+# community seller flags + refund rule
+case(DN, 'pay: owner sets sellerReady himself', 'own', 'update', C(), new=cm(sellerReady=True, sellerStatus='active', updatedAt=TS))
+case(A, 'pay: owner sets a refund rule', 'own', 'update', C(), new=cm(refundRule='7-day refund if you have not opened the course.', updatedAt=TS))
+case(DN, 'pay: refund rule too long', 'own', 'update', C(), new=cm(refundRule='x' * 301, updatedAt=TS))
+case(DN, 'pay: refund rule not a string', 'own', 'update', C(), new=cm(refundRule=7, updatedAt=TS))
+case(A, 'pay: owner edits tagline when seller flags exist', 'own', 'update', C(), old=cm(sellerReady=True, sellerStatus='active'), new=cm(sellerReady=True, sellerStatus='active', tagline='z', updatedAt=TS))
+case(DN, 'pay: admin unlocks seller via suspend path', 'tz', 'update', C(), new=cm(sellerReady=True, updatedAt=TS))
 
 # ---------- regression: old collections unchanged ----------
 case(DN, 'regression: student sets own plan', 'out', 'update', '/students/out', old={'plan': 'Free'}, new={'plan': 'Pro'}, before={'/students/out': {'plan': 'Free'}})

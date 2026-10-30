@@ -115,3 +115,46 @@ button.cx-chip{ cursor:pointer; font-family:inherit; min-height:34px; }
 .dc-plan{ display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-1); }
 .dc-pn{ min-width:0; overflow-wrap:anywhere; }
 .dc-plan select{ min-height:44px; flex:1 1 180px; max-width:100%; }
+/* Creator payments (creator-pay.js): Payouts card, sales list, paid join + member billing. Design standard: type
+   22/17/15/13/12, 4-pt spacing, 16 radius cards, 12 radius controls, one primary action per view. */
+.cp-slot{ margin:0 0 16px; }
+.cp-card h2{ font-size:22px; line-height:28px; font-weight:700; margin:0; }
+.cp-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 12px; }
+.cp-chip{ display:inline-flex; align-items:center; min-height:24px; padding:0 10px; border-radius:999px; font-size:12px; line-height:16px; font-weight:500;
+  border:1px solid var(--line); color:var(--ink-2); background:var(--bg-1); white-space:nowrap; }
+.cp-chip.on{ border-color:var(--gold); color:var(--gold-bright); background:rgba(3,201,136,.1); }
+.cp-chip.warn{ border-color:var(--amber-dim); color:var(--amber); }
+.cp-chip.bad{ border-color:var(--bear); color:var(--bear); }
+.cx-wrap .cp-lead{ font-size:15px; line-height:22px; color:var(--ink-1); margin:0 0 12px; }
+.cp-terms{ margin:0 0 16px; padding:0 0 0 20px; list-style:disc; font-size:14px; line-height:20px; color:var(--ink-2); }
+.cp-terms li{ margin:0 0 8px; }
+.cp-terms b{ color:var(--ink-0); font-weight:600; }
+.cp-terms a, .cp-card .cx-check a{ color:var(--gold-bright); }
+.cp-form{ gap:16px; }
+.cp-form .cx-actions{ margin-top:0; }
+.cp-card .cx-actions .btn{ min-height:48px; border-radius:12px; }
+.cp-card .btn-ghost{ min-height:40px; }
+.cx-f .hint.cp-warn, .cp-amber{ color:var(--amber); }
+.cx-wrap .cp-sub{ font-size:13px; line-height:18px; font-weight:500; color:var(--ink-2); margin:0 0 8px; }
+.cp-list{ margin:0 0 16px; padding:0 0 0 20px; list-style:disc; font-size:14px; line-height:20px; color:var(--ink-1); }
+.cp-list li{ margin:0 0 4px; }
+.cp-list.cp-err{ color:var(--bear); }
+.cp-h3{ font-size:17px; line-height:22px; font-weight:600; margin:24px 0 8px; color:var(--ink-0); }
+.cp-sales{ list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+.cp-sales li{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:56px; padding:8px 16px; border-bottom:1px solid var(--line-soft); }
+.cp-sales li:last-child{ border-bottom:0; }
+.cp-s-main{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.cp-s-t{ font-size:15px; line-height:20px; color:var(--ink-0); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cp-s-d{ font-size:12px; line-height:16px; color:var(--ink-2); }
+.cp-s-a{ font-size:15px; line-height:20px; font-weight:600; color:var(--ink-0); font-variant-numeric:tabular-nums; flex:none; }
+.cx-wrap .cp-foot{ font-size:12px; line-height:16px; color:var(--ink-2); margin:12px 0 0; }
+.cp-sold{ margin:4px 0 0; padding:12px 0 0; border-top:1px solid var(--line-soft); }
+.cx-wrap .cp-sold p{ font-size:12px; line-height:16px; color:var(--ink-2); margin:0 0 4px; overflow-wrap:anywhere; }
+.cp-mem{ margin-top:8px; }
+.cx-wrap .cp-mem p.cx-muted{ margin:0 0 12px; font-size:14px; line-height:20px; }
+.cp-mem-act{ display:flex; gap:8px; flex-wrap:wrap; }
+.cp-mem-act .btn{ flex:1 1 120px; min-height:40px; justify-content:center; }
+.cm-buy{ min-height:48px; }
+.cp-card .btn:focus-visible, .cm-buy:focus-visible, .cp-mem .btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+@media (prefers-reduced-motion:reduce){ .cp-card *, .cp-mem *{ transition:none !important; } }
+.cp-card .cx-check, .cp-card .cx-check span{ font-weight:400; font-size:14px; line-height:20px; color:var(--ink-1); }

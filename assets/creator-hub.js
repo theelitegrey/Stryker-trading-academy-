@@ -1,10 +1,11 @@
 // Creator Hub (creator.html): dashboard, settings, plans, members, invites, moderators for the owner of a community.
-// Depends on: creator.js (CH), firebase auth/firestore/storage, progress.js (db).
+// Depends on: creator.js (CH), creator-pay.js (CP: Payouts card, paid-plan limits), firebase auth/firestore/storage/functions, progress.js (db).
 // All writes go straight to Firestore and are checked by the rules (functions-src/firestore.rules, Creator Hub block);
 // bulk email import goes through CH.importEmails (API first, rules-checked batches as fallback).
 (function () {
   var root = document.getElementById('hb-root');
   var me, list = [], cid, cm, plans = [], members = [], invites = [], grants = [], bans = [], tab = (new URLSearchParams(location.search).get('tab') === 'discord') ? 'discord' : 'dash';
+  var payOpen = false, payAcct = null;   // payOpen: this viewer may use creator payments now (CP.open); payAcct: my payout status
   var TABS = [['dash', 'Dashboard'], ['settings', 'Settings'], ['plans', 'Plans'], ['members', 'Members'], ['invites', 'Invites'], ['indicators', 'Indicators'], ['discord', 'Discord'], ['mods', 'Moderators']];
   var FEATS = [['feed', 'Feed'], ['courses', 'Courses'], ['indicators', 'Indicators'], ['events', 'Events'], ['leaderboard', 'Leaderboard'], ['discord', 'Discord roles']];
   var $ = function (id) { return document.getElementById(id); };
@@ -17,6 +18,11 @@
 
   CH.user().then(function (u) {
     me = u;
+    if (u && window.CP) CP.open(u).then(function (o) {
+      payOpen = o; if (!o) return;
+      if (list.length && tab === 'dash') draw();
+      CP.call('status').then(function (r) { payAcct = r.account; if (list.length && tab === 'plans') draw(); }).catch(function () {});
+    });
     if (!u) { root.innerHTML = '<div class="cx-empty">Sign in to manage your communities.<div style="margin-top:14px"><button class="btn btn-primary" id="hb-login" type="button">Sign in</button></div></div>'; $('hb-login').onclick = CH.signIn; return; }
     return db.collection('communities').where('ownerUid', '==', u.uid).get().then(function (s) {
       list = s.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; });
@@ -72,9 +78,10 @@
     var active = members.filter(function (m) { return CH.isActive(m); }).length;
     var live = plans.filter(function (p) { return p.status === 'live'; }).length;
     el.innerHTML = '<div class="cx-stats"><div class="cx-box cx-stat"><b>' + (cm.memberCount || 0) + '</b>Members</div><div class="cx-box cx-stat"><b>' + joins + '</b>Joins this week</div><div class="cx-box cx-stat"><b>' + live + '</b>Live plans (' + plans.length + ' total)</div><div class="cx-box cx-stat"><b>' + grants.length + '</b>Pending email invites</div></div>' +
-      note('<b>Paid checkout opens soon.</b> You can start free communities, invite links and member import today. Founding Creators: 0% TradeZoro fee during launch; payment-processor fees will apply once paid checkout opens.') +
+      (payOpen ? '<div id="hb-pay" class="cp-slot"></div>' : note('<b>Paid checkout opens soon.</b> You can start free communities, invite links and member import today. Founding Creators: 0% TradeZoro fee during launch; payment-processor fees will apply once paid checkout opens.')) +
       '<div class="cx-box"><h2>Your link</h2><div class="cx-linkbox"><span>tradezoro.com/c/' + E(cid) + '</span><button class="btn btn-ghost" id="hb-copy" type="button">Copy</button></div><p class="cx-muted" style="margin-bottom:0">' + active + ' active of ' + members.length + ' member records.</p></div>';
     $('hb-copy').onclick = function () { copy('https://tradezoro.com/c/' + cid); };
+    if (payOpen && $('hb-pay')) CP.payoutsCard($('hb-pay'), { cid: cid, me: me, onChange: function (a) { payAcct = a; } });
   }
   function copy(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { flash('success', 'Copied'); }).catch(function () { prompt('Copy this link:', t); }); }
 
@@ -91,6 +98,7 @@
       '<div><label for="st-accent">Accent colour</label><input id="st-accent" type="color" value="' + E(cm.accent) + '"></div>' +
       '<div><label>Topics (up to 3)</label><div class="cx-pick" id="st-tags">' + CH.TAGS.map(function (t) { return '<label><input type="checkbox" value="' + t[0] + '"' + ((cm.tags || []).indexOf(t[0]) >= 0 ? ' checked' : '') + '> ' + t[1] + '</label>'; }).join('') + '</div></div>' +
       '<div><label>Features members see</label><div class="cx-pick" id="st-feats">' + FEATS.map(function (f) { return '<label><input type="checkbox" value="' + f[0] + '"' + (cm.features && cm.features[f[0]] ? ' checked' : '') + '> ' + f[1] + '</label>'; }).join('') + '</div><div class="hint">Only the tabs you turn on show to members. Courses, events and leaderboard are not live yet; their tabs say "coming soon".</div></div>' +
+      '<div><label for="st-refund">Refund rule for paid plans</label><textarea id="st-refund" maxlength="300" style="min-height:70px" placeholder="Example: Full refund within 7 days if you ask by email.">' + E(cm.refundRule || '') + '</textarea><div class="hint">Shown to buyers before they pay. You handle refunds yourself. Required before members can buy a paid plan.</div></div>' +
       '<div><label for="st-vis">Visibility</label><select id="st-vis"><option value="public">Public: listed in the directory</option><option value="unlisted">Unlisted: anyone with the link</option><option value="private">Private: invite link only</option></select></div>' +
       '<div id="st-err" class="cx-bad" role="alert"></div><div class="cx-actions"><button class="btn btn-primary" type="submit" id="st-save">Save changes</button></div></form>';
     el.innerHTML = h; $('st-vis').value = cm.visibility;
@@ -115,7 +123,12 @@
         ups.push(ref.put(f, { contentType: f.type }).then(function () { return ref.getDownloadURL(); }).then(function (u) { patch[k[1]] = u; }));
       });
       if (patch._bad) { btn.disabled = false; return err.textContent = 'Images must be PNG, JPG or WebP, up to 5 MB.'; }
-      Promise.all(ups).then(function () { return cref().update(patch); }).then(function () { flash('success', 'Saved'); return load(); })
+      var refund = $('st-refund').value.trim();
+      if (CH.RISKY.test(refund)) { btn.disabled = false; return err.textContent = 'Remove wording like "guaranteed" or "risk-free" from the refund rule.'; }
+      Promise.all(ups).then(function () { return cref().update(patch); }).then(function () {
+        if (refund === (cm.refundRule || '')) return;
+        return cref().update({ refundRule: refund, updatedAt: CH.ts() }).catch(function () { flash('info', 'Saved. The refund rule will save once paid checkout opens.'); });
+      }).then(function () { flash('success', 'Saved'); return load(); })
         .catch(function (x) { btn.disabled = false; err.textContent = 'Could not save. Check the values and try again.'; });
     });
   }
@@ -123,7 +136,9 @@
   // ---------------------------------------------------------------- plans
   function plansView(el) {
     var h = '<div class="cx-spread" style="margin-bottom:12px"><h2 style="margin:0">Plans</h2>' + (plans.length < 8 ? '<button class="btn btn-primary" id="pl-new" type="button">Add plan</button>' : '') + '</div>' +
-      note('<b>Paid checkout opens soon.</b> Priced plans are saved with their price and show "Paid checkout opens soon" to members. Give people access to any plan by invite link or by email.');
+      (payOpen ? note(payAcct && payAcct.status === 'active' ? '<b>Payouts are active.</b> Paid plans (US dollars, $' + CP.MIN + ' to $' + CP.MAX + ', monthly, yearly or one-time) are on sale as soon as they are Live.' + (cm.refundRule ? '' : ' <b>Add a refund rule under Settings</b> first: buyers see it before they pay.')
+          : '<b>Set up payouts</b> on the Dashboard tab to sell paid plans. Until then you can run free plans and give access by invite link or email.')
+        : note('<b>Paid checkout opens soon.</b> Priced plans are saved with their price and show "Paid checkout opens soon" to members. Give people access to any plan by invite link or by email.'));
     h += '<div id="pl-form"></div>';
     h += plans.length ? plans.map(function (p, i) {
       return '<div class="cx-box" style="margin-bottom:10px"><div class="cx-spread"><div><b>' + E(p.name) + '</b> ' + (p.popular ? '<span class="cx-chip on">Popular</span> ' : '') + '<span class="cx-chip' + (p.status === 'live' ? ' on' : '') + '">' + (p.status === 'live' ? 'Live' : 'Draft') + '</span> <span class="cx-chip">' + E(p.joinMode === 'invite' ? 'Invite-only' : 'Open') + '</span>' +
@@ -151,12 +166,25 @@
   }
   function planForm(p) {
     var pr = p ? p.price : { amount: 0, currency: 'USD', interval: 'free' }, f = $('pl-form');
+    // strict = creator payments are open for this viewer: the server limits apply (USD, $1-$999, month/year/one-time,
+    // trial 0-30), and paid billing is only offered once payouts are Active. Otherwise phase-A behaviour (price saved,
+    // shown as "Paid checkout opens soon").
+    var strict = payOpen && !!window.CP, paidOk = strict && payAcct && payAcct.status === 'active';
+    function billingOpts(cur) {
+      var all = [['free', 'Free'], ['week', 'Weekly'], ['month', 'Monthly'], ['year', 'Yearly'], ['lifetime', 'One-time']];
+      return all.filter(function (o) {
+        if (!strict) return true;
+        if (o[0] === cur.interval) return true;
+        return o[0] === 'free' || (paidOk && o[0] !== 'week');
+      }).map(function (o) { return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join('');
+    }
     f.innerHTML = '<form class="cx-f cx-box" id="pf" style="margin-bottom:12px" novalidate><h3>' + (p ? 'Edit plan' : 'New plan') + '</h3>' +
       '<div><label for="pf-name">Name</label><input id="pf-name" type="text" maxlength="40" value="' + E(p ? p.name : '') + '"></div>' +
-      '<div class="cx-row"><div style="flex:1 1 110px"><label for="pf-int">Billing</label><select id="pf-int"><option value="free">Free</option><option value="week">Weekly</option><option value="month">Monthly</option><option value="year">Yearly</option><option value="lifetime">One-time</option></select></div>' +
-      '<div style="flex:1 1 100px"><label for="pf-amt">Price</label><input id="pf-amt" type="number" min="0" max="100000" step="1" value="' + (pr.amount || '') + '"></div>' +
-      '<div style="flex:1 1 90px"><label for="pf-cur">Currency</label><select id="pf-cur"><option>USD</option><option>INR</option></select></div>' +
-      '<div style="flex:1 1 100px"><label for="pf-trial">Trial days</label><input id="pf-trial" type="number" min="0" max="90" step="1" value="' + (p ? p.trialDays : 0) + '"></div></div>' +
+      '<div class="cx-row"><div style="flex:1 1 110px"><label for="pf-int">Billing</label><select id="pf-int">' + billingOpts(pr) + '</select></div>' +
+      '<div style="flex:1 1 100px"><label for="pf-amt">Price</label><input id="pf-amt" type="number" min="0" max="' + (strict ? CP.MAX : 100000) + '" step="1" value="' + (pr.amount || '') + '"></div>' +
+      '<div style="flex:1 1 90px"><label for="pf-cur">Currency</label><select id="pf-cur"><option>USD</option>' + (strict && pr.currency !== 'INR' ? '' : '<option>INR</option>') + '</select></div>' +
+      '<div style="flex:1 1 100px"><label for="pf-trial">Trial days</label><input id="pf-trial" type="number" min="0" max="' + (strict ? CP.TRIAL_MAX : 90) + '" step="1" value="' + (p ? p.trialDays : 0) + '"></div></div>' +
+      (strict ? '<div class="hint" id="pf-hint">' + (paidOk ? 'Paid plans: US dollars, $' + CP.MIN + ' to $' + CP.MAX + '. Free trial 0 to ' + CP.TRIAL_MAX + ' days (monthly and yearly only).' : 'Paid billing unlocks when your payouts are Active (Dashboard tab).') + '</div>' : '') +
       '<div><label for="pf-desc">Short description</label><textarea id="pf-desc" maxlength="300" style="min-height:70px">' + E(p ? p.desc : '') + '</textarea></div>' +
       '<div><label for="pf-bul">What is included (one per line, up to 8)</label><textarea id="pf-bul" style="min-height:90px">' + E(p ? (p.bullets || []).join('\n') : '') + '</textarea></div>' +
       '<div class="cx-row"><div style="flex:1 1 140px"><label for="pf-status">Status</label><select id="pf-status"><option value="draft">Draft (hidden)</option><option value="live">Live</option></select></div>' +
@@ -171,6 +199,12 @@
       var free = $('pf-int').value === 'free', amt = free ? 0 : +$('pf-amt').value, bul = $('pf-bul').value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
       if (!$('pf-name').value.trim()) return err.textContent = 'Name the plan.';
       if (!free && !(amt >= 1 && amt <= 100000)) return err.textContent = 'Enter a price between 1 and 100000.';
+      if (strict && !free) {
+        if ($('pf-cur').value !== 'USD' || ['month', 'year', 'lifetime'].indexOf($('pf-int').value) < 0) return err.textContent = 'Paid plans are sold in US dollars, monthly, yearly or one-time.';
+        if (!(amt >= CP.MIN && amt <= CP.MAX)) return err.textContent = 'Enter a price from $' + CP.MIN + ' to $' + CP.MAX + '.';
+        if (+$('pf-trial').value > CP.TRIAL_MAX) return err.textContent = 'Free trial: 0 to ' + CP.TRIAL_MAX + ' days.';
+        if ($('pf-int').value === 'lifetime' && +$('pf-trial').value > 0) return err.textContent = 'One-time plans have no free trial. Set trial days to 0.';
+      }
       if (bul.length > 8 || bul.some(function (b) { return b.length > 120; })) return err.textContent = 'Up to 8 lines, 120 characters each.';
       var tr = +$('pf-trial').value; if (!(tr >= 0 && tr <= 90 && tr % 1 === 0)) return err.textContent = 'Trial days: 0 to 90.';
       if (CH.RISKY.test($('pf-desc').value + ' ' + bul.join(' '))) return err.textContent = 'Remove wording like "guaranteed" or "risk-free".';

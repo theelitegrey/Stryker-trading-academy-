@@ -6,3 +6,4 @@ node_modules
 tools/email-previews/
 __pycache__/
 .wrangler/
+tools/creator-pay/.last-onboard-url

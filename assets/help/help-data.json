@@ -4399,7 +4399,7 @@
       {
        "id": "creator-paid-plans",
        "q": "Can I charge for my community?",
-       "a": "<p>You can create priced plans now, but they are saved as drafts or shown as <b>Paid checkout opens soon</b>. Members cannot buy them yet.</p><p>Until paid checkout opens you can run free communities, share invite links and codes, and add members by email.</p>",
+       "a": "<p>Yes. Paid plans are sold in US dollars, from $1 to $999, monthly, yearly or one-time, with an optional free trial of up to 30 days on monthly and yearly plans.</p><p>First set up payouts on the Creator Hub dashboard (Stripe checks your identity and bank details), and add a refund rule in Settings. A plan that shows <b>Paid checkout opens soon</b> can't be bought yet.</p><p>You can always run free plans, invite links and codes, and add members by email.</p>",
        "tags": [
         "creator",
         "paid",
@@ -4407,20 +4407,105 @@
         "checkout",
         "plans"
        ],
-       "related": [],
+       "related": [
+        "creators-get-paid",
+        "creator-fee",
+        "creator-refunds",
+        "payout-countries"
+       ],
        "links": []
       },
       {
        "id": "founding-creators",
        "q": "What is Founding Creators?",
-       "a": "<p>Founding Creators: 0% TradeZoro fee during launch. Payment-processor fees will apply once paid checkout opens.</p>",
+       "a": "<p>Founding Creators: 0% TradeZoro fee during launch. Stripe's own processing fees still apply to each sale.</p>",
        "tags": [
         "creator",
         "fee",
         "founding",
         "launch"
        ],
-       "related": [],
+       "related": [
+        "creator-fee"
+       ],
+       "links": []
+      },
+      {
+       "id": "creators-get-paid",
+       "q": "How do creators get paid?",
+       "a": "<p>Through Stripe. When you set up payouts, Stripe opens its own secure page to check your identity and bank details. Your buyers then pay on Stripe Checkout, and the money goes into your own Stripe account, not through TradeZoro.</p><p>Stripe pays out to your bank on its own automatic schedule. You can see sales, payouts and refunds in your Stripe Dashboard, and your recent sales on the Creator Hub dashboard.</p>",
+       "tags": [
+        "creator",
+        "payouts",
+        "stripe",
+        "paid",
+        "money",
+        "bank"
+       ],
+       "related": [
+        "creator-fee",
+        "creator-refunds",
+        "payout-countries"
+       ],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator"
+        }
+       ]
+      },
+      {
+       "id": "creator-fee",
+       "q": "What fee does TradeZoro take?",
+       "a": "<p>None during launch: Founding Creators pay a 0% TradeZoro fee. Stripe charges its own processing fees on each payment, and those come out of your sales. See <a href=\"https://stripe.com/pricing\" target=\"_blank\" rel=\"noopener\">Stripe pricing</a> for their rates.</p>",
+       "tags": [
+        "creator",
+        "fee",
+        "commission",
+        "founding",
+        "stripe"
+       ],
+       "related": [
+        "founding-creators",
+        "creators-get-paid"
+       ],
+       "links": []
+      },
+      {
+       "id": "creator-refunds",
+       "q": "How do refunds work for creator plans?",
+       "a": "<p>Each creator sells as an independent seller and sets their own refund rule, which buyers see before they pay. If you want a refund, ask the creator first.</p><p>Creators give refunds from their Stripe Dashboard. A full refund of a one-time purchase ends that access. TradeZoro's own refund policy covers TradeZoro plans only, not creator plans.</p>",
+       "tags": [
+        "creator",
+        "refund",
+        "money back",
+        "cancel",
+        "chargeback"
+       ],
+       "related": [
+        "creators-get-paid"
+       ],
+       "links": [
+        {
+         "label": "Refund Policy",
+         "href": "/refund-policy"
+        }
+       ]
+      },
+      {
+       "id": "payout-countries",
+       "q": "Which countries can receive payouts?",
+       "a": "<p>Creators based in the countries listed in the Payouts setup (including the US, UK, Canada, Australia, most of Europe, Japan, Singapore and others Stripe supports) can receive payouts.</p><p>India-based creators can't receive payouts yet, because new Stripe accounts in India are invite-only. If your country isn't listed, keep your community free or invite-only for now.</p>",
+       "tags": [
+        "creator",
+        "payouts",
+        "country",
+        "india",
+        "stripe"
+       ],
+       "related": [
+        "creators-get-paid"
+       ],
        "links": []
       },
       {

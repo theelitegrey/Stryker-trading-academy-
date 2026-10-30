@@ -11,7 +11,9 @@
 // non-backfill bar notification ships a fresh snapshot (same as vela-pinets' own worker).
 // Bursts are coalesced on the worker side (one re-run after the in-flight one lands).
 
-const WORKER_URL = new URL('./chart-pine-next-worker.js?v=746' + (typeof window !== 'undefined' && window.__stkVela090 === true ? '&vela=090' : ''), import.meta.url);
+import { SeriesCache } from './chart-pine-series-cache.js?v=747';
+
+const WORKER_URL = new URL('./chart-pine-next-worker.js?v=747' + (typeof window !== 'undefined' && window.__stkVela090 === true ? '&vela=090' : ''), import.meta.url);
 
 // request.security ranges: the engine asks for a long warm-up before the chart's first bar
 // (seen: 33 days of 1m bars, 48k bars / 15 s of downloads, for a 3.5-day 1m chart). Keep a
@@ -68,6 +70,9 @@ export class PineNextEngine {
     this.prepares = new Map();
     this.sessions = new Map();
     this.ctxWaits = new Map();
+    // one request.security cache per chart, shared by all its scripts (dedupe, parallel cap, HTF from base, tail only)
+    const phone = typeof window !== 'undefined' && (window.innerWidth < 700 || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches));
+    this.seriesCache = new SeriesCache({ maxBars: phone ? 150000 : 500000, maxInflight: phone ? 4 : 6 });
   }
   w(){
     if (!this.worker) {
@@ -175,10 +180,17 @@ export class PineNextEngine {
       case 'fetchSeries': this.serveFetch(m); return;
     }
   }
+  cachedFetch(s, m){
+    const range = clampRange(m.range, m.timeframe, s.barsOf());
+    const mk = s.req.market || {};
+    const all = s.req.getBars ? s.req.getBars() : s.req.bars;
+    const base = mk.symbol && mk.timeframe && all && all.length ? { symbol: mk.symbol, timeframe: mk.timeframe, bars: all } : null;
+    return this.seriesCache.get(m.symbol, m.timeframe, range, (sy, tf, r) => s.req.fetchSeries(sy, tf, r), base);
+  }
   async serveFetch(m){
     const s = [...this.sessions.values()].find((x) => x.req.fetchSeries);
     if (!s) { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, bars: [] }); return; }
-    try { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, bars: await s.req.fetchSeries(m.symbol, m.timeframe, clampRange(m.range, m.timeframe, s.barsOf())) }); }
+    try { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, bars: await this.cachedFetch(s, m) }); }
     catch (e) { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, error: String((e && e.message) || e) }); }
   }
 }

@@ -392,7 +392,7 @@ body.cx-page:has(.cp-root) .cx-wrap{ max-width:none; padding:0 0 96px; }
 :root[data-theme="light"] .cp-av.ini{ background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 70%,#fff),color-mix(in srgb,var(--acc) 40%,#fff)); color:#04130d; }
 .cp-title{ grid-column:1/-1; margin-top:16px; min-width:0; }
 .cp-title h1{ margin:0; font:700 28px/34px -apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif; letter-spacing:-.01em; color:var(--ink-0); overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.cp-tl{ margin:4px 0 0; color:var(--ink-2); font-size:15px; line-height:22px; max-width:62ch; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+.cp-tl{ margin:8px 0 0; color:var(--ink-2); font-size:15px; line-height:22px; max-width:62ch; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
 .cp-meta{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .cp-chip{ display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 12px; border-radius:999px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-2); font-size:12px; line-height:16px; font-weight:500; white-space:nowrap; }
 .cp-chip.tag{ color:var(--gold-bright); background:rgba(3,201,136,.1); border-color:transparent; }

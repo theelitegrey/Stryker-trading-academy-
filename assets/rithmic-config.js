@@ -19,8 +19,8 @@
 // DATA ONLY: this feature never places, modifies or cancels orders (no order templates exist
 // in rithmic-proto.js); it reads prices and bars.
 
-// The ONE place the application name lives. Rithmic registered it for us: "Stryker Charts".
-export const APP_NAME = 'Stryker Charts';
+// The ONE place the application name lives. Rithmic registered it for us: "ZoroCharts".
+export const APP_NAME = 'ZoroCharts';
 
 // 'test'       -> only the Rithmic Test server.
 // 'production' -> the production gateways below; Rithmic Test is added for admins (allowUids) only.

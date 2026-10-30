@@ -509,7 +509,7 @@ export function createRithmic(cfg) {
         const cp = el('button', { type: 'button', class: 'stkrb-copy', id: 'stkrb-copy', text: 'Copy error' });
         cp.addEventListener('click', async () => {
           const gw = (cfg.gateways || []).find((g) => g.uri === gwSel.value);
-          const txt = 'Stryker Charts connect error\nSystem: ' + (sys.value || '-') + '\nGateway: ' + (gw ? gw.label : '-') + '\nMessage: ' + m + (raw ? '\nRithmic said: ' + raw : '') + '\nTime: ' + new Date().toISOString();
+          const txt = 'ZoroCharts connect error\nSystem: ' + (sys.value || '-') + '\nGateway: ' + (gw ? gw.label : '-') + '\nMessage: ' + m + (raw ? '\nRithmic said: ' + raw : '') + '\nTime: ' + new Date().toISOString();
           let done = false;
           try { await navigator.clipboard.writeText(txt); done = true; } catch (e) {}
           if (!done) { try { const ta = el('textarea', { style: 'position:fixed;opacity:0;left:-999px' }); ta.value = txt; document.body.appendChild(ta); ta.select(); done = document.execCommand('copy'); ta.remove(); } catch (e) {} }

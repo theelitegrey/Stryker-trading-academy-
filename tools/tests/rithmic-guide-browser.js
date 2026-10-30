@@ -9,7 +9,7 @@ const OUT = process.argv[2] || '/tmp';
 let fail = 0;
 const check = (ok, m) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + m); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const CASES = [['err-perm', /Rithmic refused the login \(permission denied\).*Bulenox.*"Stryker Charts"/s, 'perm'], ['err-pass', /not the website login/, 'pass'],
+const CASES = [['err-perm', /Rithmic refused the login \(permission denied\).*Bulenox.*"ZoroCharts"/s, 'perm'], ['err-pass', /not the website login/, 'pass'],
   ['err-md', /no CME market data/, 'md'], ['err-forced', /opened in another app/, 'forced'], ['err-elsewhere', /opened in another app/, 'else'], ['err-odd', /something unexpected happened.*Contact your prop firm/s, 'odd']];
 (async () => {
   const b = await launch();
@@ -41,7 +41,7 @@ const CASES = [['err-perm', /Rithmic refused the login \(permission denied\).*Bu
         await tap('#stkrb-where');
         check(await p.evaluate(() => !document.getElementById('stkrb-card').hidden), tag + ' ? opens checklist card');
         const gt = await p.evaluate(() => document.getElementById('stkrb-card').innerText);
-        check(/not a website login/.test(gt) && /R \| Trader Pro/.test(gt) && /CME market data/.test(gt) && /agreements once/.test(gt) && /Demo and trial logins cannot connect/.test(gt) && /Stryker Charts/.test(gt), tag + ' checklist has all 6 points');
+        check(/not a website login/.test(gt) && /R \| Trader Pro/.test(gt) && /CME market data/.test(gt) && /agreements once/.test(gt) && /Demo and trial logins cannot connect/.test(gt) && /ZoroCharts/.test(gt), tag + ' checklist has all 6 points');
         check(await p.evaluate(() => !!document.querySelector('#stkrb-card a[href="https://rithmic.com/rtraderpro-web"][target=_blank]')), tag + ' R|Trader Pro link opens new tab');
         await p.screenshot({ path: `${OUT}/t5-${tag}-checklist.png` });
         await tap('#stkrb-card-x');

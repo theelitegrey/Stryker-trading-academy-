@@ -223,7 +223,7 @@ async function loadModules() {
   if (_mods) return _mods;
   const orders = await import('./rithmic/rithmic-orders.mjs'), fills = await import('./rithmic/rithmic-fills.mjs');
   // Same app name the charts use (assets/rithmic-config.js APP_NAME); the server must present the registered name.
-  _mods = Object.assign({}, orders, fills, { APP_NAME: 'Stryker Charts', APP_VERSION: '1.0' });
+  _mods = Object.assign({}, orders, fills, { APP_NAME: 'ZoroCharts', APP_VERSION: '1.0' });
   return _mods;
 }
 

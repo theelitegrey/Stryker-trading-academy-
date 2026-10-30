@@ -151,7 +151,7 @@ const mock = spawn('node', [new URL('./rithmic-mock.mjs', import.meta.url).pathn
 await new Promise((r) => mock.stdout.once('data', r));
 const GW = 'ws://127.0.0.1:' + PORT;
 const sentIds = [];
-const open = () => new RithmicOrderHistory({ gateway: GW, appName: 'Stryker Charts', appVersion: '0', WebSocketImpl: WebSocket, onSend: (id) => sentIds.push(id) });
+const open = () => new RithmicOrderHistory({ gateway: GW, appName: 'ZoroCharts', appVersion: '0', WebSocketImpl: WebSocket, onSend: (id) => sentIds.push(id) });
 try {
   await t('mock: login, accounts, dates, day history, PnL snapshot, logout', async () => {
     const h = open();

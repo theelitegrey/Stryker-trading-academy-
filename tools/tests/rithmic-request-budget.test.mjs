@@ -147,8 +147,8 @@ ok(replays('err') === 2, 'after the pause it is allowed again');
 
 // login errors in plain English (mapped by rp code AND text; message names the member's system)
 const { explainLoginError, FORCED_LOGOUT_MSG } = await imp('rithmic-client.js');
-const X = (codes, extra) => explainLoginError({ codes, system: 'Bulenox', gateway: 'Chicago', appName: 'Stryker Charts', ...(extra || {}) });
-ok(X(['13', 'permission denied']).kind === 'permission' && X(['13', 'permission denied']).message.includes('Bulenox') && X(['13', 'permission denied']).message.includes('"Stryker Charts"'), 'rp 13 permission -> names system + app');
+const X = (codes, extra) => explainLoginError({ codes, system: 'Bulenox', gateway: 'Chicago', appName: 'ZoroCharts', ...(extra || {}) });
+ok(X(['13', 'permission denied']).kind === 'permission' && X(['13', 'permission denied']).message.includes('Bulenox') && X(['13', 'permission denied']).message.includes('"ZoroCharts"'), 'rp 13 permission -> names system + app');
 ok(X(['13']).kind === 'permission', 'rp 13 with no text -> permission');
 ok(X(['2', 'application not allowed for user']).kind === 'permission', 'app-not-allowed text, other code -> permission');
 ok(X(['13', 'invalid user id or password']).kind === 'credentials' && X(['11', 'invalid password']).message.includes('not the website login'), 'wrong password -> credentials message');
@@ -183,12 +183,12 @@ ok(!/(RequestNewOrder|RequestModifyOrder|RequestCancelOrder|RequestBracketOrder|
 // config: production gateways, Test for admins only, one app name
 const cfgm = await imp('rithmic-config.js');
 const mem = cfgm.activeGateways(false), adm = cfgm.activeGateways(true);
-ok(cfgm.APP_NAME === 'Stryker Charts', 'app name is exactly "Stryker Charts"');
+ok(cfgm.APP_NAME === 'ZoroCharts', 'app name is exactly "ZoroCharts"');
 ok(mem.length === 12 && mem[0].uri === 'wss://rprotocol.rithmic.com:443' && mem.every((g) => !g.test && /^wss:\/\/rprotocol(-[a-z0-9]+)?\.rithmic\.com:443$/.test(g.uri)), 'members: 12 production gateways, Chicago first, no Test, no Colo75 (' + mem.length + ')');
 ok(adm.length === 13 && adm.some((g) => g.test), 'admins additionally get Rithmic Test');
 ok(cfgm.nearestGatewayId('Asia/Kolkata') === 'in' && cfgm.nearestGatewayId('Europe/Dublin') === 'ie' && cfgm.nearestGatewayId('Europe/Paris') === 'de' && cfgm.nearestGatewayId('America/Chicago') === 'chicago' && cfgm.nearestGatewayId('Antarctica/Troll') === null, 'nearest-by-timezone hints');
 ok(cfgm.SYSTEM_FIRST.join('|') === 'Rithmic 01|Rithmic Paper Trading', 'system order head');
-ok(!/['"]Stryker Charts['"]|STRK_Stryker|TradeZoro Charts/.test(fs.readFileSync(path.join(SRC, 'rithmic-client.js'), 'utf8') + fs.readFileSync(path.join(SRC, 'rithmic-ui.js'), 'utf8')), 'app name not repeated in client/ui');
+ok(!/['"]ZoroCharts['"]|STRK_Stryker|TradeZoro Charts/.test(fs.readFileSync(path.join(SRC, 'rithmic-client.js'), 'utf8') + fs.readFileSync(path.join(SRC, 'rithmic-ui.js'), 'utf8')), 'app name not repeated in client/ui');
 
 const tally = {}; sent.filter((s) => s.tid !== T.HEARTBEAT).forEach((s) => { const k = s.plant + ' ' + s.tid + (s.request ? ' r' + s.request : ''); tally[k] = (tally[k] || 0) + 1; });
 console.log('requests (all phases, no heartbeats):', JSON.stringify(tally));

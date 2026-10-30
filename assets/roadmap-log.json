@@ -1,14 +1,32 @@
 [
  {
-  "build": 740,
+  "build": 744,
+  "date": "2026-10-30",
+  "title": "Creator Hub: paid plans with Stripe payouts",
+  "link": ""
+ },
+ {
+  "build": 744,
   "date": "2026-10-30",
   "title": "JournalX: import trades from Rithmic",
   "link": ""
  },
  {
-  "build": 740,
+  "build": 744,
   "date": "2026-10-30",
   "title": "Rithmic saved login and journal auto sync (off until Rithmic approves)",
+  "link": ""
+ },
+ {
+  "build": 742,
+  "date": "2026-10-30",
+  "title": "Creator Hub: Discord roles",
+  "link": ""
+ },
+ {
+  "build": 741,
+  "date": "2026-10-30",
+  "title": "Creator Hub: sell and manage indicator access on ZoroCharts",
   "link": ""
  },
  {

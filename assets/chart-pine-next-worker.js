@@ -59,8 +59,8 @@ let sealKeyP = null;
 const SEAL_REF = /^\/\/@tz-sealed=([A-Za-z0-9]{8,40})\s*$/m;
 let Seal = null, Guard = null;
 async function sealMods(){
-  if (!Seal) Seal = import('./creator-seal.js?v=762');
-  if (!Guard) Guard = fetch(new URL('./chart-pine-guard.js?v=762', import.meta.url)).then((r) => r.text()).then((t) => { const m = { exports: {} }; new Function('module', t)(m); return m.exports; });
+  if (!Seal) Seal = import('./creator-seal.js?v=763');
+  if (!Guard) Guard = fetch(new URL('./chart-pine-guard.js?v=763', import.meta.url)).then((r) => r.text()).then((t) => { const m = { exports: {} }; new Function('module', t)(m); return m.exports; });
   return [await Seal, await Guard];
 }
 function realSource(src){
@@ -72,7 +72,7 @@ function realSource(src){
 }
 const ready = (async () => {
   // O(n) ta.pivothigh/pivotlow (assets/chart-pine-next-patches.js) on pinets' Context.
-  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=762')]);
+  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=763')]);
   try { patches.install(pinets.Context, pinets, self); rewrite = patches.rewriteSource; } catch (e) { console.warn('TradeZoro: pine-next patches', e); }
   const res = await fetch(VELA_PINETS);
   if (!res.ok) throw new Error('Pine engine download failed (' + res.status + ')');

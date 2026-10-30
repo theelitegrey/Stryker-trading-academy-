@@ -23,6 +23,7 @@
     if (cm.status === 'suspended') return msg('This community is not available right now.');
     var q = [db.collection('communities').doc(slug).collection('plans').where('status', '==', 'live').get().then(function (s) { plans = s.docs.map(function (x) { var o = x.data(); o.id = x.id; return o; }).sort(function (a, b) { return a.order - b.order; }); }).catch(function () { plans = []; })];
     if (me) q.push(db.collection('communities').doc(slug).collection('members').doc(me.uid).get().then(function (m) { mem = m.exists ? m.data() : null; }).catch(function () { mem = null; }));
+    q.push(loadCounts());
     return Promise.all(q).then(draw).then(afterPay);
   }).catch(function (e) {
     if (e && e.code === 'permission-denied') return msg(me ? 'Community not found. <a href="/communities" style="color:var(--gold-bright)">Browse communities</a>' : 'Community not found, or it is private. <a href="/login" style="color:var(--gold-bright)">Sign in</a> if you have an invite.');
@@ -48,34 +49,184 @@
   }
   function enabled() { return FEATS.filter(function (f) { return cm.features && cm.features[f[0]]; }); }
 
+  // ---------------------------------------------------------------- page design (Profile layout, 2026-10-31)
+  var IC = {
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    course: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    ind: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    charts: '<path d="M7 3v3M7 17v4M17 3v5M17 15v6"/><rect x="4.5" y="6" width="5" height="11" rx="1"/><rect x="14.5" y="8" width="5" height="7" rx="1"/>',
+    cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    web: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+    x: '<path d="M4 4l16 16M20 4L4 20"/>',
+    yt: '<path d="M22.5 7.2a2.5 2.5 0 0 0-1.8-1.8C19.1 5 12 5 12 5s-7.1 0-8.7.4A2.5 2.5 0 0 0 1.5 7.2C1 8.8 1 12 1 12s0 3.2.5 4.8a2.5 2.5 0 0 0 1.8 1.8C4.9 19 12 19 12 19s7.1 0 8.7-.4a2.5 2.5 0 0 0 1.8-1.8c.5-1.6.5-4.8.5-4.8s0-3.2-.5-4.8z"/><path d="M10 15l5-3-5-3z"/>',
+    ig: '<rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/>',
+    discord: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9 10h.01M15 10h.01"/>',
+    send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+    share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
+    set: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+    check: '<path d="M20 6L9 17l-5-5"/>',
+    trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.7V17c0 .6-.5 1-1.1 1.2C7.8 18.8 7 20.2 7 22M14 14.7V17c0 .6.5 1 1.1 1.2 1.1.6 1.9 2 1.9 3.8M18 2H6v7a6 6 0 0 0 12 0z"/>',
+    msg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    flag: '<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
+  };
+  function ic(n, c) { return '<svg class="cp-i ' + (c || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (IC[n] || IC.check) + '</svg>'; }
+  var TABIC = { about: 'info', feed: 'msg', courses: 'course', indicators: 'ind', events: 'cal', leaderboard: 'trophy' };
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var counts = { courses: 0, indicators: 0, events: 0 }, animated = false, parallaxOn = false;
+
+  // Owner-saved URLs become icon chips (never raw URLs): platform from the host name.
+  function platform(u) {
+    var h = ''; try { h = new URL(u).hostname.toLowerCase().replace(/^www\./, ''); } catch (e) { return null; }
+    if (/(^|\.)(x|twitter)\.com$/.test(h)) return ['x', 'X'];
+    if (/(^|\.)(youtube\.com|youtu\.be)$/.test(h)) return ['yt', 'YouTube'];
+    if (/(^|\.)instagram\.com$/.test(h)) return ['ig', 'Instagram'];
+    if (/(^|\.)(discord\.gg|discord\.com)$/.test(h)) return ['discord', 'Discord'];
+    if (/(^|\.)(t\.me|telegram\.me)$/.test(h)) return ['send', 'Telegram'];
+    if (/(^|\.)tiktok\.com$/.test(h)) return ['web', 'TikTok'];
+    if (/(^|\.)linkedin\.com$/.test(h)) return ['web', 'LinkedIn'];
+    if (/(^|\.)github\.com$/.test(h)) return ['web', 'GitHub'];
+    return ['web', h.length > 22 ? 'Website' : h];
+  }
+  function aboutIcon(t, d) {
+    function pick(x) {
+      x = x.toLowerCase();
+      if (/indicator|script/.test(x)) return 'ind';
+      if (/\bchart|walkthrough/.test(x)) return 'charts';
+      if (/course|lesson|class|curriculum|\blearn/.test(x)) return 'course';
+      if (/week|session|event|\blive\b|call|webinar/.test(x)) return 'cal';
+      if (/community|member|chat|discord|feed|support/.test(x)) return 'users';
+      if (/replay|journal|review|recap/.test(x)) return 'clock';
+      return '';
+    }
+    return pick(t) || pick(d || '') || 'check';
+  }
+  // Splits the saved About text into: intro paragraphs, icon rows (bullet lines), a disclaimer, and link chips.
+  function parseAbout(text) {
+    var out = { blocks: [], links: [], edu: '' }, seen = {};
+    function addLink(u) { u = u.replace(/[.,;:!?)]+$/, ''); if (seen[u]) return; var pf = platform(u); if (!pf) return; seen[u] = 1; out.links.push({ u: u, ic: pf[0], l: pf[1] }); }
+    String(text || '').split(/\n{2,}/).forEach(function (para) {
+      var lines = para.split('\n'), rows = [], prose = [];
+      lines.forEach(function (ln) {
+        var t = ln.trim(); if (!t) return;
+        var urls = t.match(/https:\/\/[^\s<>"]{4,200}/g) || [];
+        var rest = t.replace(/https:\/\/[^\s<>"]{4,200}/g, '').replace(/^[\s\-•*]*[A-Za-z0-9 ]{0,24}:?\s*$/, function (m) { return urls.length ? '' : m; }).trim();
+        if (urls.length && !rest) { urls.forEach(addLink); return; }
+        if (urls.length) { urls.forEach(addLink); t = t.replace(/https:\/\/[^\s<>"]{4,200}/g, '').replace(/[\s:]+$/, ''); }
+        if (/^(education only|.*not financial advice)/i.test(t) && !out.edu) { out.edu = t; return; }
+        var bm = t.match(/^[-•*]\s+(.*)$/);
+        if (bm) { var r = bm[1], m = r.match(/^([^:.]{2,48}):\s+(.+)$/); rows.push(m ? { t: m[1], d: m[2] } : { t: r, d: '' }); }
+        else prose.push(t);
+      });
+      if (prose.length) out.blocks.push({ k: /:$/.test(prose[prose.length - 1]) && prose.join(' ').length < 70 ? 'sub' : 'p', t: prose.join(' ') });
+      if (rows.length) out.blocks.push({ k: 'rows', rows: rows });
+    });
+    return out;
+  }
+  function aboutHtml(ab) {
+    var h = '';
+    ab.blocks.forEach(function (b) {
+      if (b.k === 'p') h += '<p class="cp-p">' + CH.esc(b.t) + '</p>';
+      else if (b.k === 'sub') h += '<h3 class="cp-sub">' + CH.esc(b.t.replace(/:$/, '')) + '</h3>';
+      else h += '<div class="cp-rows">' + b.rows.map(function (r) { return '<div class="cp-row"><span class="cp-ib">' + ic(aboutIcon(r.t, r.d)) + '</span><div><b>' + CH.esc(r.t) + '</b>' + (r.d ? '<span>' + CH.esc(r.d) + '</span>' : '') + '</div></div>'; }).join('') + '</div>';
+    });
+    if (ab.edu) h += '<div class="cp-edu">' + ic('shield') + '<span>' + CH.esc(ab.edu) + '</span></div>';
+    return h;
+  }
+  function linkChips(links) {
+    if (!links.length) return '';
+    return '<div class="cp-links">' + links.map(function (l) { return '<a class="cp-lk" href="' + CH.esc(l.u) + '" target="_blank" rel="noopener noreferrer nofollow">' + ic(l.ic) + CH.esc(l.l) + '</a>'; }).join('') + '</div>';
+  }
+  function initials(n) { var w = String(n || '?').trim().split(/\s+/).filter(Boolean); return CH.esc(((w[0] || '?').charAt(0) + (w.length > 1 ? w[w.length - 1].charAt(0) : '')).toUpperCase()); }
+  function shareLink() {
+    var url = location.origin + '/c/' + slug;
+    var done = function () { CH.toast('success', 'Link copied'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(function () { prompt('Copy this link:', url); });
+    else prompt('Copy this link:', url);
+  }
+  function loadCounts() {
+    var base = db.collection('communities').doc(slug), f = cm.features || {}, ps = [];
+    if (f.courses) ps.push(base.collection('courses').where('status', '==', 'published').get().then(function (s) { counts.courses = s.size; }).catch(function () {}));
+    if (f.indicators) ps.push(base.collection('indicators').where('status', '==', 'live').get().then(function (s) { counts.indicators = s.size; }).catch(function () {}));
+    if (f.events) ps.push(base.collection('events').orderBy('startsAt', 'desc').limit(60).get().then(function (s) { var n = Date.now(); counts.events = s.docs.filter(function (d) { var x = d.data(), t = x.startsAt && x.startsAt.toMillis ? x.startsAt.toMillis() : 0; return t + (x.durationMin || 0) * 60000 >= n; }).length; }).catch(function () {}));
+    return Promise.all(ps);
+  }
+
   function draw() {
     var accent = /^#[0-9a-fA-F]{6}$/.test(cm.accent) ? cm.accent : '#03c988';
-    var cover = cm.coverUrl ? 'background-image:url(' + CH.esc(cm.coverUrl) + ')' : 'background:linear-gradient(135deg,' + accent + '40,#0b0b0d)';
-    var logo = cm.logoUrl ? '<img src="' + CH.esc(cm.logoUrl) + '" alt="">' : CH.esc((cm.name || '?').charAt(0).toUpperCase());
-    var member = mem && CH.isActive(mem);
-    var h = '<div class="cx-cover" style="' + cover + '"></div>' +
-      '<div class="cx-head"><div class="cx-logo" style="border-color:' + accent + '">' + logo + '</div><div class="cx-t"><h1>' + CH.esc(cm.name) + '</h1>' +
-      '<div class="cx-muted">' + CH.esc(cm.tagline || '') + '</div>' +
-      (cm.demo === true ? '<div class="cx-demo" role="note"><span class="cx-demo-dot" aria-hidden="true"></span>Demo community · sample members, posts and results</div>' : '') + '</div>' +
-      (isOwner() ? '<a class="btn btn-ghost" href="/creator?c=' + CH.esc(slug) + '">Manage</a>' : '') + '</div>' +
-      '<div class="cx-row" style="margin:12px 14px 0">' + (cm.tags || []).map(function (t) { return '<span class="cx-chip">' + CH.esc(CH.tagLabel(t)) + '</span>'; }).join('') +
-      '<span class="cx-chip">' + (cm.memberCount || 0) + ' member' + (cm.memberCount === 1 ? '' : 's') + '</span>' +
-      (cm.visibility === 'private' ? '<span class="cx-chip">Private</span>' : '') + '</div>';
+    var member = mem && CH.isActive(mem), cls = animated ? '' : ' rv';
+    var coverBg = cm.coverUrl ? '<div class="cp-cv" role="img" aria-label="' + CH.esc(cm.name) + ' cover" style="background-image:url(' + CH.esc(cm.coverUrl) + ')"></div>' : '<div class="cp-cv cp-nocover" style="--acc:' + accent + '"></div>';
+    var avatar = '<span class="cp-av' + (cm.logoUrl ? '' : ' ini') + '" style="--acc:' + accent + '">' + (cm.logoUrl ? '<img src="' + CH.esc(cm.logoUrl) + '" alt="' + CH.esc(cm.name) + ' logo" width="136" height="136">' : initials(cm.name)) + '</span>';
+    var chips = (cm.demo === true ? '<span class="cp-chip demo" role="note"><i aria-hidden="true"></i>Demo community</span>' : '') +
+      (cm.visibility === 'private' ? '<span class="cp-chip">' + ic('lock', 's14') + 'Private</span>' : '') +
+      (cm.tags || []).map(function (t) { return '<span class="cp-chip tag">' + CH.esc(CH.tagLabel(t)) + '</span>'; }).join('');
+    var act = (isOwner() ? '<a class="btn btn-primary cp-btn" href="/creator?c=' + CH.esc(slug) + '">' + ic('set') + 'Manage</a>' :
+      (member ? '' : '<button class="btn btn-primary cp-btn" type="button" id="cp-join">Join</button>')) +
+      '<button class="btn btn-ghost cp-btn" type="button" id="cp-share">' + ic('share') + 'Share</button>';
+    var stats = [['users', 'Member' + (cm.memberCount === 1 ? '' : 's'), cm.memberCount || 0], ['course', 'Course' + (counts.courses === 1 ? '' : 's'), counts.courses], ['ind', 'Indicator' + (counts.indicators === 1 ? '' : 's'), counts.indicators], ['cal', 'Upcoming event' + (counts.events === 1 ? '' : 's'), counts.events]].filter(function (x) { return x[2] > 0; });
+    var h = '<div class="cp-cover">' + coverBg + '</div>' +
+      '<div class="cp-in"><div class="cp-head">' +
+      '<div class="cp-avw' + cls + '" style="--i:0">' + avatar + '</div>' +
+      '<div class="cp-title' + cls + '" style="--i:1"><h1>' + CH.esc(cm.name) + '</h1>' + (cm.tagline ? '<p class="cp-tl">' + CH.esc(cm.tagline) + '</p>' : '') + (chips ? '<div class="cp-meta">' + chips + '</div>' : '') + '</div>' +
+      '<div class="cp-act' + cls + '" style="--i:3">' + act + '</div></div>' +
+      (stats.length ? '<div class="cp-stats' + cls + '" data-n="' + stats.length + '" style="--i:4">' + stats.map(function (x) { return '<div class="cp-stat"><span class="cp-ib">' + ic(x[0]) + '</span><div><b class="cp-num" data-count="' + x[2] + '">' + x[2] + '</b><span>' + x[1] + '</span></div></div>'; }).join('') + '</div>' : '') + '</div>';
     var tabs = [['about', 'About']];
-    // Indicators is visible to everyone who can see the page (so people can see what a plan includes); the code itself
-    // never leaves the server unless the person has access.
+    // Indicators and Courses are visible to everyone who can see the page (a teaser; the content is gated by the rules).
     if (cm.features && cm.features.indicators && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['indicators', 'Indicators']);
-    // Courses: like indicators, the structure is visible to everyone who can see the page (a teaser with locks); the content is gated by the rules.
     if (cm.features && cm.features.courses && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['courses', 'Courses']);
     if (member) enabled().forEach(function (f) { if (f[0] !== 'indicators' && f[0] !== 'courses') tabs.push(f); });
     if (tab === 'courses' && !tabs.some(function (t) { return t[0] === 'courses'; })) tab = 'about';
     if (tab === 'indicators' && !tabs.some(function (t) { return t[0] === 'indicators'; })) tab = 'about';
     if ((tab === 'feed' || tab === 'events') && !tabs.some(function (t) { return t[0] === tab; })) tab = 'about';
-    h += '<div class="cx-tabs" style="margin-top:16px" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>';
-    h += '<div class="cx-two"><div id="cm-main"></div><aside id="cm-side"></aside></div>';
-    root.innerHTML = h;
-    root.querySelector('.cx-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; tab = b.dataset.t; try { var q2 = new URLSearchParams(location.search); if (tab === 'about') q2.delete('tab'); else q2.set('tab', tab); history.replaceState(null, '', location.pathname + (q2.toString() ? '?' + q2.toString() : '')); window.dispatchEvent(new Event('cn:route')); } catch (x) {} draw(); });
+    h += '<div class="cp-bar"><div class="cp-in"><div class="cp-tabs"><div class="cp-tsc" role="tablist" aria-label="Community sections">' + tabs.map(function (t) {
+      return '<button type="button" role="tab" data-t="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + ic(TABIC[t[0]] || 'check', 's16') + t[1] + '</button>'; }).join('') + '<span class="cp-ind"></span></div></div></div></div>';
+    h += '<div class="cp-in"><div class="cx-two"><div id="cm-main"></div><aside id="cm-side"></aside></div></div>';
+    root.innerHTML = h; root.classList.add('cp-root');
+    var navEl = document.getElementById('site-nav'); document.documentElement.style.setProperty('--cp-nav', (navEl ? navEl.offsetHeight : 0) + 'px');
+    var wrap = root.querySelector('.cp-tabs'), sc = wrap.firstChild, ind = sc.querySelector('.cp-ind');
+    function place(instant) {
+      var b = sc.querySelector('[aria-selected=true]'); if (!b) return;
+      if (instant) ind.style.transition = 'none';
+      ind.style.width = b.offsetWidth + 'px'; ind.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+      if (instant) { void ind.offsetWidth; ind.style.transition = ''; }
+    }
+    function edges() { wrap.classList.toggle('fl', sc.scrollLeft > 4); wrap.classList.toggle('fr', sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 4); }
+    sc.addEventListener('scroll', edges, { passive: true });
+    sc.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return; tab = b.dataset.t;
+      sc.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-selected', x === b); });
+      place(); b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+      try { var q2 = new URLSearchParams(location.search); if (tab === 'about') q2.delete('tab'); else q2.set('tab', tab); history.replaceState(null, '', location.pathname + (q2.toString() ? '?' + q2.toString() : '')); window.dispatchEvent(new Event('cn:route')); } catch (x) {}
+      main(member);
+    });
+    requestAnimationFrame(function () { place(true); edges(); var sel = sc.querySelector('[aria-selected=true]'); if (sel && sc.scrollWidth > sc.clientWidth) sc.scrollLeft = Math.max(0, sel.offsetLeft - 24); });
+    if (!window.__cpResize) { window.__cpResize = 1; window.addEventListener('resize', function () { var s = document.querySelector('.cp-tsc'); if (s) { var b = s.querySelector('[aria-selected=true]'), i = s.querySelector('.cp-ind'); if (b && i) { i.style.width = b.offsetWidth + 'px'; i.style.transform = 'translateX(' + b.offsetLeft + 'px)'; } } }); }
+    var sh = document.getElementById('cp-share'); if (sh) sh.addEventListener('click', shareLink);
+    var jn = document.getElementById('cp-join'); if (jn) jn.addEventListener('click', function () { var s = document.getElementById('cm-side') || document.getElementById('cm-plans'); var t = document.getElementById('cm-plans') || s; if (!me) return CH.signIn(); if (t) t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); });
+    motion();
     main(member); side(member);
+  }
+
+  // Entrance stagger, count-up and (desktop only) cover parallax. All off under prefers-reduced-motion.
+  function motion() {
+    var els = root.querySelectorAll('.rv, .cp-num');
+    if (reduce || !window.IntersectionObserver) { els.forEach(function (e) { e.classList.add('in'); }); return; }
+    root.querySelectorAll('.cp-num').forEach(function (e) { e.textContent = '0'; });
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) {
+        if (!en.isIntersecting) return; io.unobserve(en.target); var e = en.target; e.classList.add('in');
+        if (e.classList.contains('cp-num')) { var to = +e.dataset.count, t0 = performance.now(); (function f(t) { var p = Math.min(1, (t - t0) / 1000); e.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(f); })(t0); }
+      });
+    }, { threshold: .1 });
+    els.forEach(function (e) { io.observe(e); });
+    animated = true;
+    if (!parallaxOn && matchMedia('(min-width:900px)').matches) {
+      parallaxOn = true; var tick = false;
+      window.addEventListener('scroll', function () { if (tick) return; tick = true; requestAnimationFrame(function () { var c = document.querySelector('.cp-cv'); if (c) c.style.transform = 'translate3d(0,' + Math.min(window.scrollY * .03, 10) + 'px,0) scale(1.06)'; tick = false; }); }, { passive: true });
+    }
   }
 
   function main(member) {
@@ -86,7 +237,8 @@
       else {
         var em = CH.embed(cm.introVideo);
         if (em) h += '<div class="cx-video"><iframe src="' + CH.esc(em) + '" title="Intro video" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
-        h += '<div class="cx-box"><h2>About</h2>' + (cm.about ? CH.paraLinks(cm.about) : '<p class="cx-muted">No description yet.</p>') + '</div>';
+        var ab = parseAbout(cm.about);
+        h += '<div class="cx-box cp-about"><h2>About</h2>' + (cm.about ? aboutHtml(ab) : '<p class="cx-muted">No description yet.</p>') + (ab.links.length ? '<div class="cp-find"><div class="cp-eyebrow">Find us</div>' + linkChips(ab.links) + '</div>' : '') + '</div>';
       }
       el.innerHTML = h;
       return;
@@ -180,7 +332,7 @@
     else if (hasInvite) h += '<div class="cx-box" style="margin-bottom:12px"><b>You have an invite</b><p class="cx-muted">Join ' + CH.esc(cm.name) + ' with your invite link.</p><button class="btn btn-primary" type="button" id="cm-redeem">Use invite</button><div id="cm-redeem-msg" class="cx-bad" role="alert"></div></div>';
     if (member && !isOwner() && cm.features && cm.features.discord && window.CHD) h += '<div id="cm-discord"></div>';
     if (!member && !isOwner() && !(cm.visibility === 'private' && !hasInvite)) {
-      h += '<div class="cx-box"><h2>Plans</h2>';
+      h += '<div class="cx-box cp-card" id="cm-plans"><h2>Plans</h2>';
       if (!plans.length) h += '<p class="cx-muted">No plans are open yet.</p>';
       plans.forEach(function (p) {
         var free = p.price && p.price.interval === 'free';
@@ -195,9 +347,9 @@
       if (plans.some(buyable)) h += '<div class="cp-sold"><p>Sold by ' + CH.esc(cm.ownerName || 'the creator') + ', an independent creator. ' + CH.esc(CP.platformLine()) + '</p><p>Refunds: ask the creator first; their refund rule: ' + CH.esc(cm.refundRule) + '</p></div>';
       h += '<div id="cm-join-msg" class="cx-bad" role="alert"></div></div>';
     }
-    h += '<div class="cx-box" style="margin-top:12px"><div class="cx-muted" style="margin-bottom:4px">Creator</div><b>' + CH.esc(cm.ownerName || 'Creator') + '</b>' +
+    h += '<div class="cx-box cp-card cp-by"><div class="cp-byh"><span class="cp-ib">' + ic('users') + '</span><div><span class="cp-byl">Creator</span><b>' + CH.esc(cm.ownerName || 'Creator') + '</b></div></div>' +
       '<p class="cx-indie">Run by an independent creator, not by TradeZoro. TradeZoro does not verify creators or their claims. Education only. Not financial advice.</p>' +
-      '<button class="btn btn-ghost" type="button" id="cm-report" style="margin-top:8px;width:100%">Report this community</button><div id="cm-rep" hidden></div></div>';
+      '<button class="cp-report" type="button" id="cm-report">' + ic('flag', 's14') + 'Report this community</button><div id="cm-rep" hidden></div></div>';
     el.innerHTML = h;
     var dcEl = document.getElementById('cm-discord'); if (dcEl) window.CHD.memberCard(dcEl, { cid: slug, cm: cm, mem: mem, me: me });
 

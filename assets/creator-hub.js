@@ -36,6 +36,7 @@
   function load() {
     var c = cref();
     return Promise.all([c.get(), c.collection('plans').get(), c.collection('members').get(), c.collection('invites').get(), c.collection('grants').get(), c.collection('bans').get()]).then(function (r) {
+      if (!r[0].exists) { root.innerHTML = '<div class="cx-empty">This community was not found.</div>'; return; }
       cm = r[0].data(); cm.id = cid;
       plans = r[1].docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }).sort(function (a, b) { return a.order - b.order; });
       members = r[2].docs.map(function (d) { var o = d.data(); o.id = d.id; return o; });
@@ -56,6 +57,7 @@
   }
 
   function draw() {
+    if (!cm) return;
     var h = '<div class="cx-spread"><div><p class="cx-eyebrow">Creator Hub</p><h1 style="margin:0">' + E(cm.name) + '</h1></div><div class="cx-row">' +
       (list.length > 1 ? '<select class="cx-in-s" id="hb-sw" aria-label="Switch community">' + list.map(function (c) { return '<option value="' + E(c.id) + '"' + (c.id === cid ? ' selected' : '') + '>' + E(c.name) + '</option>'; }).join('') + '</select>' : '') +
       '<a class="btn btn-ghost" href="/c/' + E(cid) + '">View page</a>' + (list.length < CH.cfg.MAX_COMMUNITIES ? '<a class="btn btn-ghost" href="/creator-new">New community</a>' : '') + '</div></div>';

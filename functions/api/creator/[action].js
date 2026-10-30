@@ -18,7 +18,13 @@ async function ensureOpen(cid, who, f) {
   if (cm.status !== 'active') throw new ApiError(403, 'suspended', 'This community is not available.');
   const me = await getDoc(`communities/${cid}/members/${who.uid}`, who.token, f);
   if (me) throw new ApiError(409, 'already', 'You are already a member.');
-  if (who.email && await getDoc(`communities/${cid}/bans/${who.email}`, who.token, f)) throw new ApiError(403, 'banned', 'You cannot join this community.');
+  // The ban list is readable by staff only, so for a normal joiner this read is refused (403). That is not an error here:
+  // the members create rule (notBanned in firestore.rules) is what really blocks a banned email, and it runs on the write below.
+  if (who.email) {
+    let banned = null;
+    try { banned = await getDoc(`communities/${cid}/bans/${who.email}`, who.token, f); } catch (e) { if (!(e instanceof ApiError) || e.status !== 403) throw e; }
+    if (banned) throw new ApiError(403, 'banned', 'You cannot join this community.');
+  }
   return cm;
 }
 

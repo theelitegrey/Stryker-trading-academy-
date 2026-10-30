@@ -13,10 +13,23 @@
 
   CP.STRIPE_PRICING = 'https://stripe.com/pricing';
 
+  // The platform's legal name for creator payments: ONE setting, settings/commerce.creatorPlatformLegalName (public read).
+  // Changing it in Firestore changes every text below on the next page load; no deploy. DEFAULT is only the fallback.
+  CP.LEGAL_DEFAULT = 'Gaurav Singh LLC';
+  CP.legal = CP.LEGAL_DEFAULT;
+  CP.legalReady = Promise.resolve().then(function () {
+    return db.collection('settings').doc('commerce').get().then(function (s) {
+      var n = s.exists ? String(s.data().creatorPlatformLegalName || '').replace(/\s+/g, ' ').trim() : '';
+      if (n && n.length <= 120) CP.legal = n;
+    });
+  }).catch(function () {});
+  CP.platformLine = function () { return 'Payments processed by Stripe on the TradeZoro platform, operated by ' + CP.legal + '.'; };
+  CP.SWITCHING = /being switched on/i;
+
   // Can THIS viewer use paid checkout / payouts right now? (display only; the server re-checks)
   CP.open = function (user) {
     if (openP) return openP;
-    openP = Promise.resolve().then(function () {
+    openP = CP.legalReady.then(function () {
       if (user && QA.test(user.email || '')) return true;
       return db.collection('settings').doc('commerce').get().then(function (s) {
         if (s.exists && s.data().creatorPayments === true) return true;
@@ -67,8 +80,11 @@
   CP.payoutsCard = function (el, ctx) {
     el.innerHTML = '<div class="cx-box cp-card" aria-busy="true"><div class="cp-head"><h2>Payouts</h2></div><p class="cx-muted">Checking your payout status…</p></div>';
     var q = new URLSearchParams(location.search).get('payouts');
-    return CP.call('status').then(function (r) {
-      render(el, ctx, r.account || { status: 'none' });
+    return CP.legalReady.then(function () { return CP.call('status'); }).then(function (r) {
+      if (r.legalName) CP.legal = r.legalName;
+      var acc = r.account || { status: 'none' };
+      if (r.switchingOn) acc = Object.assign({}, acc, { switchingOn: true });
+      render(el, ctx, acc);
       if (ctx.onChange) ctx.onChange(r.account);
       if (q === 'return' && r.account.status !== 'active') CH.toast('info', 'Thanks. Stripe is checking your details.');
       if (q === 'refresh') CH.toast('info', 'That setup link expired. Continue with a fresh one.');
@@ -82,7 +98,8 @@
       '<li><b>0% TradeZoro fee</b> during launch (Founding Creators).</li>' +
       '<li>Stripe\'s own processing fees apply and come out of your sales. <a href="' + CP.STRIPE_PRICING + '" target="_blank" rel="noopener">See Stripe pricing</a>.</li>' +
       '<li>You sell as an independent creator. You handle refunds, taxes and your own content.</li>' +
-      '<li>Stripe checks your identity and pays out to your bank on its own schedule.</li></ul>';
+      '<li>Stripe checks your identity and pays out to your bank on its own schedule.</li>' +
+      '<li>' + E(CP.platformLine()) + '</li></ul>';
   }
   function chip(status) {
     var t = { none: ['Not set up', ''], incomplete: ['Not finished', 'warn'], pending: ['Stripe is checking', 'warn'], active: ['Active', 'on'], restricted: ['Needs details', 'bad'], disabled: ['Off', 'bad'] }[status] || [status, ''];
@@ -99,7 +116,9 @@
 
   function render(el, ctx, a) {
     var h = '<div class="cx-box cp-card"><div class="cp-head"><h2>Payouts</h2>' + chip(a.status) + '</div>';
-    if (a.status === 'none') {
+    if (a.switchingOn && (a.status === 'none' || a.status === 'incomplete')) {
+      h += '<p class="cp-lead" role="status"><b>Payouts are being switched on.</b> We are finishing the payment setup with Stripe. Your community works as normal. Come back soon to set up payouts.</p>' + terms();
+    } else if (a.status === 'none') {
       h += '<p class="cp-lead">Get paid for your paid plans. Payments run through Stripe, straight to your own Stripe account.</p>' + terms() +
         '<form class="cx-f cp-form" id="cp-f" novalidate><div><label for="cp-country">Country where you or your business is based</label><select id="cp-country"><option value="">Choose a country</option>' +
         CP.countryOptions().map(function (c) { return '<option value="' + c[0] + '">' + E(c[1]) + '</option>'; }).join('') +
@@ -180,7 +199,7 @@
       h += '<div class="cp-mem-act"><button class="btn btn-ghost" type="button" id="cp-portal">Manage subscription</button>' +
         (p.cancelAtPeriodEnd ? '<button class="btn btn-ghost" type="button" id="cp-resume">Resume</button>' : '<button class="btn btn-ghost" type="button" id="cp-cancel">Cancel</button>') + '</div>';
     }
-    h += '<p class="cp-foot">Sold by ' + E(cm.ownerName || 'the creator') + ', an independent creator. Payments by Stripe. Refunds: ask the creator first.</p></div>';
+    h += '<p class="cp-foot">Sold by ' + E(cm.ownerName || 'the creator') + ', an independent creator. ' + E(CP.platformLine()) + ' Refunds: ask the creator first.</p></div>';
     return h;
   };
   CP.bindMember = function (root, cid) {

@@ -1,6 +1,6 @@
 # Creator Rules
 
-Last updated: 30 October 2026.
+Last updated: 30 October 2026 (payments section added).
 
 These rules apply to everyone who starts a community, sells an indicator or course, or posts as a creator on TradeZoro Creator Hub. They sit on top of the TradeZoro Terms & Risk Disclosure. If the two clash, the stricter rule applies.
 
@@ -88,7 +88,15 @@ We do not check every post. Not removing something does not mean we approve it. 
 - A different team member reviews the appeal where possible. We will reply with a decision. Our decision on an appeal is final, except as the law allows.
 - Serious cases (for example scams, illegal content, or threats) may be closed with no appeal.
 
-## 8. Changes
+## 8. Payments
+
+- Paid plans are sold by the creator, who is an independent seller. Payments are processed by Stripe on the TradeZoro platform, operated by {{legal}}.
+- Stripe checks your identity and pays out to your bank. Stripe, not TradeZoro, carries refunds, chargebacks and disputes on your sales. Your own Stripe fees come out of your sales.
+- You set your refund rule, and you handle refunds, taxes and receipts for your own sales.
+- The TradeZoro fee is shown in your Payouts card before you start. During launch it is 0%.
+- {{legal}} is the current operating name for creator payments and may change when the TradeZoro company is formed. We will show the new name on this page and at checkout.
+
+## 9. Changes
 
 We may update these rules. We will show the new date at the top. If you keep using Creator Hub after a change, you accept it.
 

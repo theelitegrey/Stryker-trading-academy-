@@ -79,6 +79,18 @@
   // ---------- data ----------
   var DATA = null, ITEMS = [], BY_ID = {}, CATS = [], CAT_BY_ID = {};
 
+  // {{legal}} in answers = settings/commerce.creatorPlatformLegalName (one Firestore edit, no deploy); fallback printed here.
+  var LEGAL = 'Gaurav Singh LLC';
+  function legalize(h) { return String(h).replace(/\{\{legal\}\}/g, esc(LEGAL)); }
+  function loadLegal() {
+    try {
+      return db.collection('settings').doc('commerce').get().then(function (s) {
+        var n = s.exists ? String(s.data().creatorPlatformLegalName || '').replace(/\s+/g, ' ').trim() : '';
+        if (n && n.length <= 120) LEGAL = n;
+      }).catch(function () {});
+    } catch (e) { return Promise.resolve(); }
+  }
+
   function loadData() {
     return fetch('/assets/help/help-data.json?v=' + encodeURIComponent(VER), { credentials: 'omit' })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
@@ -294,7 +306,7 @@
     var body = $('.hc-panel-body', article);
     if (body.getAttribute('data-ready')) return;
     var it = BY_ID[article.getAttribute('data-id')];
-    var h = '<div class="hc-answer">' + sanitize(it.a || '') + '</div>';
+    var h = '<div class="hc-answer">' + sanitize(legalize(it.a || '')) + '</div>';
     if (it.steps && it.steps.length) {
       h += '<h4 class="hc-sh">Steps</h4><ol class="hc-steps">' + it.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>';
     }
@@ -650,7 +662,7 @@
     CATS.forEach(function (c) {
       CAT_BY_ID[c.id] = c;
       c.subs.forEach(function (s) {
-        s.items.forEach(function (it) { it._cat = c; it._sub = s; it._order = order++; BY_ID[it.id] = it; ITEMS.push(it); indexItem(it); });
+        s.items.forEach(function (it) { it.a = legalize(it.a || ''); it._cat = c; it._sub = s; it._order = order++; BY_ID[it.id] = it; ITEMS.push(it); indexItem(it); });
       });
     });
     els.catSel.innerHTML = '<option value="">All categories</option>' + CATS.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.title) + '</option>'; }).join('');
@@ -672,7 +684,7 @@
     if (S.open) { var a = $('#item-' + CSS.escape(S.open), root); if (a) scrollToEl(a); }
   }
 
-  loadData().then(init).catch(function (err) {
+  loadData().then(function (d) { return Promise.race([loadLegal(), new Promise(function (r) { setTimeout(r, 1500); })]).then(function () { return d; }); }).then(init).catch(function (err) {
     if (els.skel) els.skel.remove();
     root.insertAdjacentHTML('afterbegin', '<div class="hc-empty"><h2>The Help Center could not load</h2><p>Check your connection and refresh the page. If it keeps happening, <a href="support">contact Support</a>.</p></div>');
     if (window.console) console.warn('help-data load failed', err);

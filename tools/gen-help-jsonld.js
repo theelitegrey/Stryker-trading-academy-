@@ -23,7 +23,7 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 // answers are our own trusted HTML; keep text-only tags for the structured data
 function cleanHtml(html) {
-  return String(html).replace(/<p>\s*<img[^>]*>\s*<\/p>/gi, '').replace(/<img[^>]*>/gi, '');
+  return String(html).replace(/\{\{legal\}\}/g, 'Gaurav Singh LLC').replace(/<p>\s*<img[^>]*>\s*<\/p>/gi, '').replace(/<img[^>]*>/gi, '');
 }
 function answerHtml(it) {
   let h = cleanHtml(it.a || '');

@@ -144,6 +144,7 @@ def inline(t):
     t = html.escape(t, quote=False)
     t = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', t)
     t = re.sub(r'\[([^\]]+)\]\((/[^)]*)\)', r'<a href="\2">\1</a>', t)
+    t = t.replace('{{legal}}', '<span data-legal-name>Gaurav Singh LLC</span>')   # live value: assets/creator-legal.js
     return t
 out, ul = [], False
 for line in md.splitlines():
@@ -155,5 +156,5 @@ for line in md.splitlines():
     elif line.startswith('# '): out.append('<h1>%s</h1>' % inline(line[2:]))
     elif line.strip(): out.append('<p>%s</p>' % inline(line))
 if ul: out.append('</ul>')
-page('creator-rules.html', 'creator-rules', 'Creator Rules', 'The rules for creators and communities on TradeZoro.', '<div class="cx-md">' + '\n'.join(out) + '</div>', '')
+page('creator-rules.html', 'creator-rules', 'Creator Rules', 'The rules for creators and communities on TradeZoro.', '<div class="cx-md">' + '\n'.join(out) + '</div>', S('creator-legal.js'))
 print('built 7 pages, build', V)

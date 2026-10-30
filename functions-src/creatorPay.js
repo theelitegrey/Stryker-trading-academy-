@@ -41,9 +41,11 @@
  *   creatorSubs/{subId}, creatorSessions/{id}, creatorCustomers/{id}, creatorPrices/{id}, creatorEvents/{id}: functions only
  *   communities/{cid}.sellerReady / sellerStatus, communities/{cid}/members/{uid} (source 'paid', pay.{...}).
  *
- * ENV: STRIPE_SECRET_KEY (existing, unchanged), STRIPE_CONNECT_WEBHOOK_SECRET (new), SITE_ORIGIN (optional).
+ * ENV: STRIPE_SECRET_KEY (existing, unchanged), STRIPE_CONNECT_WEBHOOK_SECRET (live Connect endpoint secret), STRIPE_CONNECT_WEBHOOK_SECRET_TEST (optional, test endpoint), SITE_ORIGIN (optional).
+ * LEGAL NAME: settings/commerce.creatorPlatformLegalName (default 'Gaurav Singh LLC'); one Firestore edit changes every creator-payments text.
+ * LIVE GATE: live key + creatorPayments=true still refuse paid actions until creatorLive.liveReady() passes (key permissions) and a webhook secret is set.
  * DEPLOY: firebase deploy --only functions:creatorPay,functions:creatorConnectWebhook
- * TESTS: node tools/creator-pay/paytest.js (offline); node tools/creator-pay/live-test-mode.js (real Stripe TEST mode).
+ * TESTS: node tools/creator-pay/paytest.js (offline); node tools/creator-pay/live-check.js (live key permissions, read-only).
  */
 'use strict';
 
@@ -142,12 +144,34 @@ function feePctOf(com) {
   const p = Number(com && com.creatorFeePct);
   return Number.isFinite(p) && p > 0 && p <= 30 ? p : 0;
 }
+// The platform's legal name for creator payments: settings/commerce.creatorPlatformLegalName (one Firestore edit, no deploy).
+const DEFAULT_LEGAL_NAME = 'Gaurav Singh LLC';
+function legalNameOf(com) {
+  const n = String((com && com.creatorPlatformLegalName) || '').replace(/\s+/g, ' ').trim();
+  return n && n.length <= 120 ? n : DEFAULT_LEGAL_NAME;
+}
+const platformLine = (name) => 'Payments processed by Stripe on the TradeZoro platform, operated by ' + name + '.';
+
+const { liveReady } = require('./creatorLive');
+// Live mode: paid actions stay closed until the live key passes the permission probe AND the Connect webhook secret is set.
+// Returns { ready, reason }. Test mode is always "ready" (the test gate already limits it to admins and QA).
+async function payReady() {
+  if (!isLive()) return { ready: true, reason: 'test' };
+  return liveReady(stripeKey(), !!connectSecrets().length);
+}
+const SWITCHING_ON = 'Payouts are being switched on. Paid plans open as soon as the payment setup is finished. Check back soon.';
 async function gate(uid, context) {
   const email = String((context.auth.token && context.auth.token.email) || '');
   if (QA_EMAIL.test(email)) return;
   if (await isAdminUid(uid)) return;
-  if (!isTestKey() && (await commerce()).creatorPayments === true) return;
+  if (!isTestKey() && (await commerce()).creatorPayments === true) {
+    if ((await payReady()).ready) return;
+    throw fail('failed-precondition', SWITCHING_ON);
+  }
   throw fail('failed-precondition', 'Paid checkout opens soon.');
+}
+function connectSecrets() {
+  return [process.env.STRIPE_CONNECT_WEBHOOK_SECRET, process.env.STRIPE_CONNECT_WEBHOOK_SECRET_TEST].map((x) => String(x || '').trim()).filter(Boolean);
 }
 
 // ---- account status ----------------------------------------------------------------------------------------------
@@ -223,9 +247,12 @@ const actions = {};
 
 actions.status = async (uid) => {
   const rec = await myAccount(uid);
-  if (!rec) return { account: { status: 'none' }, countries: PAYOUT_COUNTRIES };
+  const com = await commerce();
+  const legalName = legalNameOf(com);
+  const sw = (isLive() && com.creatorPayments === true) ? { switchingOn: !(await payReady()).ready } : { switchingOn: false };
+  if (!rec) return Object.assign({ account: { status: 'none' }, countries: PAYOUT_COUNTRIES, legalName }, sw);
   const a = await stripe('GET', 'accounts/' + rec.acct);
-  return { account: publicState(await saveAccount(uid, a)), countries: PAYOUT_COUNTRIES };
+  return Object.assign({ account: publicState(await saveAccount(uid, a)), countries: PAYOUT_COUNTRIES, legalName }, sw);
 };
 
 actions.onboard = async (uid, data, context) => {
@@ -362,7 +389,7 @@ actions.checkout = async (uid, data, context) => {
     billing_address_collection: 'auto',
     adaptive_pricing: { enabled: 'false' },
     metadata: meta,
-    custom_text: { submit: { message: ('Sold by ' + (cm.ownerName || 'the creator') + ', an independent creator. Refunds: ask the creator first; their refund rule: ' + refundRule).slice(0, 1200) } },
+    custom_text: { submit: { message: ('Sold by ' + (cm.ownerName || 'the creator') + ', an independent creator. ' + platformLine(legalNameOf(await commerce())) + ' Refunds: ask the creator first; their refund rule: ' + refundRule).slice(0, 1200) } },
     success_url: back + '?paid=1&session_id={CHECKOUT_SESSION_ID}',
     cancel_url: back + '?paid=0'
   };
@@ -566,7 +593,7 @@ async function onCheckoutCompleted(session, acct) {
       pay: { kind: 'one_time', status: 'one_time', acct, paymentIntent: pi, sessionId: session.id, periodEnd: null, graceUntil: null } });
     await saleCreate('pi_' + safeId(pi || session.id), { creatorUid: rec.creatorUid, buyerUid: rec.buyerUid, buyerEmail: email, cid: rec.cid, planId: rec.planId, planName: rec.planName,
       acct, kind: 'one_time', amountCents: Number(session.amount_total || rec.cents), currency: 'usd', feePct: rec.feePct, status: 'paid', paymentIntent: pi, sessionId: session.id });
-    await notify(rec.buyerUid, 'creator_join', 'You joined ' + rec.cid + ' (' + rec.planName + ').', '/c/' + rec.cid);
+    await notify(rec.buyerUid, 'creator_join', 'You joined ' + rec.cid + ' (' + rec.planName + '). ' + platformLine(legalNameOf(await commerce())), '/c/' + rec.cid);
     return 'one-time access granted to ' + rec.buyerUid;
   }
   const subId = idOf(session.subscription);
@@ -577,7 +604,7 @@ async function onCheckoutCompleted(session, acct) {
     live: isLive(), createdAt: FV.serverTimestamp() }, { merge: true });
   await grantMember({ cid: rec.cid, buyerUid: rec.buyerUid, planId: rec.planId, expiresAtMs: end + GRACE_MS, displayName: name,
     pay: { kind: 'subscription', status: sub.status === 'trialing' ? 'trialing' : 'active', acct, subId, periodEnd: end, graceUntil: null, cancelAtPeriodEnd: !!sub.cancel_at_period_end } });
-  await notify(rec.buyerUid, 'creator_join', 'You joined ' + rec.cid + ' (' + rec.planName + ').', '/c/' + rec.cid);
+  await notify(rec.buyerUid, 'creator_join', 'You joined ' + rec.cid + ' (' + rec.planName + '). ' + platformLine(legalNameOf(await commerce())), '/c/' + rec.cid);
   return 'subscription access granted to ' + rec.buyerUid + ' until ' + new Date(end).toISOString();
 }
 
@@ -715,9 +742,10 @@ async function handleConnectEvent(event) {
 }
 
 async function webhookHandler(req, res) {
-  const secret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
-  if (!secret) { console.warn('creatorConnectWebhook: STRIPE_CONNECT_WEBHOOK_SECRET not set, event refused'); res.status(500).send('webhook secret not configured'); return; }
-  if (!verifySignature(req.rawBody, req.headers['stripe-signature'], secret)) { res.status(400).send('bad signature'); return; }
+  // Live secret = STRIPE_CONNECT_WEBHOOK_SECRET. A separate test-mode endpoint secret may be set in STRIPE_CONNECT_WEBHOOK_SECRET_TEST.
+  const secrets = connectSecrets();
+  if (!secrets.length) { console.warn('creatorConnectWebhook: STRIPE_CONNECT_WEBHOOK_SECRET not set, event refused'); res.status(500).send('webhook secret not configured'); return; }
+  if (!secrets.some((sec) => verifySignature(req.rawBody, req.headers['stripe-signature'], sec))) { res.status(400).send('bad signature'); return; }
   let event;
   try { event = JSON.parse(req.rawBody.toString('utf8')); } catch (e) { res.status(400).send('bad json'); return; }
   if (event.livemode !== isLive()) { res.status(200).send('mode mismatch, ignored'); return; }
@@ -740,4 +768,4 @@ exports.creatorConnectWebhook = functions
   .https.onRequest(webhookHandler);
 
 // Not a function (the loader ignores it): for the offline tests.
-exports.__creatorPayInternals = { stripeV2, accountState, feePctOf, priceShape, handleConnectEvent, webhookHandler, actions, gate, PAYOUT_COUNTRIES, GRACE_MS };
+exports.__creatorPayInternals = { stripeV2, accountState, feePctOf, priceShape, handleConnectEvent, webhookHandler, actions, gate, payReady, legalNameOf, platformLine, DEFAULT_LEGAL_NAME, PAYOUT_COUNTRIES, GRACE_MS };

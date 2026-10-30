@@ -404,6 +404,73 @@ const QA2 = 'stryker-qa-creator@example.com';
   ok(stL.account.status === 'none', 'live mode does not reuse a test-mode account record');
   process.env.STRIPE_SECRET_KEY = 'sk_test_offline_mock';
 
+  // ---------------------------------------------------------------------- LIVE GATE: switch on is not enough
+  {
+    const LC = require(FN + 'creatorLive');
+    const TESTKEY = 'sk_' + 'test_offline_mock';
+    const realFetch = global.fetch;
+    let PROBE = 'allow';   // allow: every probe 200/404 | deny: 403 on one permission
+    const probeFetch = async (url, init) => {
+      const isProbe = /limit=1/.test(url) || /_0000000000000000/.test(url) || /account_links$|login_links$/.test(url);
+      if (!isProbe) return realFetch(url, init);
+      if (PROBE === 'deny' && /disputes/.test(url)) return { ok: false, status: 403, json: async () => ({ error: { message: 'The provided key does not have the required permissions for this endpoint.' } }) };
+      if (/_0000000000000000/.test(url) || /account_links$|login_links$/.test(url)) return { ok: false, status: 400, json: async () => ({ error: { message: 'No such object' } }) };
+      return { ok: true, status: 200, json: async () => ({ data: [{ id: 'acct_probe' }] }) };
+    };
+    const wrapped = (f) => { global.fetch = f; };
+    process.env.STRIPE_SECRET_KEY = 'rk_live_offline_mock';
+    DB['settings/commerce'] = Object.assign(DB['settings/commerce'] || {}, { creatorPayments: true });
+    wrapped(probeFetch);
+
+    // (a) key fails a permission -> paid actions refused with the friendly state, status says switchingOn
+    PROBE = 'deny'; LC.resetCache();
+    await throws(() => call('pat', { action: 'checkout', cid: 'alpha-desk', planId: 'p1' }, 'pat@gmail.com'), 'failed-precondition', 'live gate: key permission missing -> refused', /being switched on/);
+    await throws(() => call('ana', { action: 'onboard', cid: 'alpha-desk', country: 'US', agree: true }, 'ana@gmail.com'), 'failed-precondition', 'live gate: onboarding also waits', /being switched on/);
+    const stSw = await call('ana', { action: 'status' }, 'ana@gmail.com');
+    ok(stSw.switchingOn === true && stSw.legalName === 'Gaurav Singh LLC', 'status tells the UI payouts are being switched on + legal name', stSw);
+    const pr = await LC.probe('rk_live_offline_mock', probeFetch);
+    ok(!pr.ok && pr.results.filter((x) => !x.pass).map((x) => x.id).join() === 'disputes', 'probe: exactly the denied permission fails', pr.results.filter((x) => !x.pass));
+    ok(!JSON.stringify(pr).includes('rk_live'), 'probe output carries no key');
+
+    // (b) key passes but webhook secret missing -> still refused
+    PROBE = 'allow'; LC.resetCache();
+    const keepSec = process.env.STRIPE_CONNECT_WEBHOOK_SECRET; delete process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+    await throws(() => call('pat', { action: 'checkout', cid: 'alpha-desk', planId: 'p1' }, 'pat@gmail.com'), 'failed-precondition', 'live gate: webhook secret missing -> refused', /being switched on/);
+    const rdy0 = await I.payReady(); ok(rdy0.ready === false && rdy0.reason === 'webhook_secret_missing', 'payReady: no secret -> not ready', rdy0);
+
+    // (c) both fine -> gate opens (checkout proceeds past the gate; seller state decides after that)
+    process.env.STRIPE_CONNECT_WEBHOOK_SECRET = keepSec; LC.resetCache();
+    const rdy1 = await I.payReady(); ok(rdy1.ready === true, 'payReady: key ok + secret set -> ready', rdy1);
+    let gateErr = null; try { await call('pat', { action: 'checkout', cid: 'alpha-desk', planId: 'p1' }, 'pat@gmail.com'); } catch (e) { gateErr = e; }
+    ok(!gateErr || !/being switched on|opens soon/.test(gateErr.message), 'live gate: open when ready (no gate message)', gateErr && gateErr.message);
+
+    // (d) switch off still wins; admin/QA bypass untouched
+    PROBE = 'deny'; LC.resetCache(); DB['settings/commerce'].creatorPayments = false;
+    await throws(() => call('pat', { action: 'checkout', cid: 'alpha-desk', planId: 'p1' }, 'pat@gmail.com'), 'failed-precondition', 'switch off: still "opens soon"', /opens soon/);
+    DB['settings/commerce'].creatorPayments = true;
+    // test mode never calls the live probe
+    process.env.STRIPE_SECRET_KEY = TESTKEY; LC.resetCache();
+    const rdyT = await I.payReady(); ok(rdyT.ready === true && rdyT.reason === 'test', 'test mode: gate does not use the live probe');
+
+    // (e) webhook: live secret and test secret both accepted, none refused, wrong refused
+    const cryptoW = require('crypto'), raw = JSON.stringify({ id: 'evt_gate1', type: 'noop.test', livemode: false, data: { object: {} } });
+    const sigOf = (sec) => { const t = Math.floor(Date.now() / 1000); return 't=' + t + ',v1=' + cryptoW.createHmac('sha256', sec).update(t + '.' + raw).digest('hex'); };
+    const hit = async (sec) => { let code = 0; await I.webhookHandler({ rawBody: Buffer.from(raw), headers: { 'stripe-signature': sigOf(sec) } }, { status: (c) => ({ send: () => { code = c; } }) }); return code; };
+    process.env.STRIPE_CONNECT_WEBHOOK_SECRET = 'whsec_live_secret_x'; process.env.STRIPE_CONNECT_WEBHOOK_SECRET_TEST = 'whsec_test_secret_y';
+    ok((await hit('whsec_live_secret_x')) === 200, 'webhook: live Connect secret accepted');
+    DB = Object.assign(DB, {}); for (const k of Object.keys(DB)) if (k.indexOf('creatorEvents/') === 0) delete DB[k];
+    ok((await hit('whsec_test_secret_y')) === 200, 'webhook: separate test secret accepted');
+    ok((await hit('whsec_wrong')) === 400, 'webhook: wrong secret refused (400)');
+    delete process.env.STRIPE_CONNECT_WEBHOOK_SECRET; delete process.env.STRIPE_CONNECT_WEBHOOK_SECRET_TEST;
+    ok((await hit('whsec_live_secret_x')) === 500, 'webhook: no secret set -> refused (500)');
+    process.env.STRIPE_CONNECT_WEBHOOK_SECRET = keepSec;
+    global.fetch = realFetch;
+
+    // legal name is one setting
+    ok(I.legalNameOf({}) === 'Gaurav Singh LLC' && I.legalNameOf({ creatorPlatformLegalName: '  Tradezoro   LLC ' }) === 'Tradezoro LLC' && I.legalNameOf({ creatorPlatformLegalName: 'x'.repeat(200) }) === 'Gaurav Singh LLC', 'legal name: default, trimmed, length-capped');
+    ok(/operated by Tradezoro LLC\.$/.test(I.platformLine(I.legalNameOf({ creatorPlatformLegalName: 'Tradezoro LLC' }))), 'platform line uses the setting');
+  }
+
   // nothing ever printed the key
   ok(!CALLS.some((c) => JSON.stringify(c).includes('offline_mock')), 'Stripe key never in a request body/record');
 

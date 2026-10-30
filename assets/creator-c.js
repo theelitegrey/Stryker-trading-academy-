@@ -189,7 +189,7 @@
                 : buyable(p) ? '<button class="btn btn-primary cm-buy" data-p="' + CH.esc(p.id) + '" type="button" style="width:100%">Join · ' + CH.esc(CP.short(p)) + '</button>'
                 : '<button class="btn btn-ghost" disabled type="button" style="width:100%">Paid checkout opens soon</button>') + '</div>';
       });
-      if (plans.some(buyable)) h += '<div class="cp-sold"><p>Sold by ' + CH.esc(cm.ownerName || 'the creator') + ', an independent creator. Payments by Stripe.</p><p>Refunds: ask the creator first; their refund rule: ' + CH.esc(cm.refundRule) + '</p></div>';
+      if (plans.some(buyable)) h += '<div class="cp-sold"><p>Sold by ' + CH.esc(cm.ownerName || 'the creator') + ', an independent creator. ' + CH.esc(CP.platformLine()) + '</p><p>Refunds: ask the creator first; their refund rule: ' + CH.esc(cm.refundRule) + '</p></div>';
       h += '<div id="cm-join-msg" class="cx-bad" role="alert"></div></div>';
     }
     h += '<div class="cx-box" style="margin-top:12px"><div class="cx-muted" style="margin-bottom:4px">Creator</div><b>' + CH.esc(cm.ownerName || 'Creator') + '</b>' +
@@ -209,7 +209,7 @@
       var label = b.textContent, msgEl = document.getElementById('cm-join-msg');
       b.disabled = true; b.textContent = 'Opening secure checkout…'; msgEl.textContent = '';
       CP.call('checkout', { cid: slug, planId: b.dataset.p }).then(function (r) { location.href = r.url; })
-        .catch(function (x) { b.disabled = false; b.textContent = label; msgEl.textContent = CP.errText(x); });
+        .catch(function (x) { b.disabled = false; b.textContent = label; msgEl.textContent = CP.errText(x); msgEl.className = CP.SWITCHING.test(msgEl.textContent) ? 'cx-muted' : 'cx-bad'; });
     }); });
     if (member && mem.source === 'paid' && window.CP) CP.bindMember(el, slug);
     var rb = document.getElementById('cm-redeem');

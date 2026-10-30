@@ -4399,7 +4399,7 @@
       {
        "id": "creator-paid-plans",
        "q": "Can I charge for my community?",
-       "a": "<p>Yes. Paid plans are sold in US dollars, from $1 to $999, monthly, yearly or one-time, with an optional free trial of up to 30 days on monthly and yearly plans.</p><p>First set up payouts on the Creator Hub dashboard (Stripe checks your identity and bank details), and add a refund rule in Settings. A plan that shows <b>Paid checkout opens soon</b> can't be bought yet.</p><p>You can always run free plans, invite links and codes, and add members by email.</p>",
+       "a": "<p>Yes. Paid plans are sold in US dollars, from $1 to $999, monthly, yearly or one-time, with an optional free trial of up to 30 days on monthly and yearly plans.</p><p>First set up payouts on the Creator Hub dashboard (Stripe checks your identity and bank details), and add a refund rule in Settings. A plan that shows <b>Paid checkout opens soon</b> can't be bought yet, and <b>Payouts are being switched on</b> means Stripe setup is being finished: check back soon.</p><p>You can always run free plans, invite links and codes, and add members by email.</p>",
        "tags": [
         "creator",
         "paid",
@@ -4433,7 +4433,7 @@
       {
        "id": "creators-get-paid",
        "q": "How do creators get paid?",
-       "a": "<p>Through Stripe. When you set up payouts, Stripe opens its own secure page to check your identity and bank details. Your buyers then pay on Stripe Checkout, and the money goes into your own Stripe account, not through TradeZoro.</p><p>Stripe pays out to your bank on its own automatic schedule. You can see sales, payouts and refunds in your Stripe Dashboard, and your recent sales on the Creator Hub dashboard.</p>",
+       "a": "<p>Through Stripe. When you set up payouts, Stripe opens its own secure page to check your identity and bank details. Your buyers then pay on Stripe Checkout, and the money goes into your own Stripe account, not through TradeZoro.</p><p>Stripe pays out to your bank on its own automatic schedule. You can see sales, payouts and refunds in your Stripe Dashboard, and your recent sales on the Creator Hub dashboard.</p><p>Payments on creator plans are processed by Stripe on the TradeZoro platform, operated by {{legal}}.</p>",
        "tags": [
         "creator",
         "payouts",
@@ -4451,6 +4451,30 @@
         {
          "label": "Creator Hub",
          "href": "/creator"
+        }
+       ]
+      },
+      {
+       "id": "creator-payments-operator",
+       "q": "Who runs payments for creator plans?",
+       "a": "<p>Each plan is sold by its creator, an independent seller. Payments are processed by Stripe on the TradeZoro platform, operated by {{legal}}.</p><p>{{legal}} is the current operating name for creator payments and may change when the TradeZoro company is formed. Checkout and the Creator Rules always show the current name. TradeZoro's own plans are covered by the Terms and Privacy pages.</p>",
+       "tags": [
+        "creator",
+        "payments",
+        "stripe",
+        "company",
+        "legal",
+        "operator",
+        "receipt"
+       ],
+       "related": [
+        "creators-get-paid",
+        "creator-refunds"
+       ],
+       "links": [
+        {
+         "label": "Creator Rules",
+         "href": "/creator-rules"
         }
        ]
       },

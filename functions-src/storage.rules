@@ -3,10 +3,9 @@
 //
 // communities/{cid}/branding/{logo|cover}   community logo and cover: images only, 5 MB max, owner or community admin writes.
 //                                           Public read (the community page shows them to signed-out visitors).
-// communities/{cid}/files/{rest=**}         reserved for later phases (PDF / images for courses and posts): 25 MB per file,
-//                                           owner or community admin writes, members of the community read.
-//                                           The 1 GB per-community cap cannot be summed inside rules; the Phase C upload
-//                                           code keeps a running total in communities/{cid}/stats/storage and refuses past it.
+// communities/{cid}/files/{fid}            course files (phase C): owner writes, 25 MB per file, only against a Firestore reservation
+//                                           (files/{fid}) whose size and type must match. Reads: owner only; members are served
+//                                           by /api/creator/file. The 1 GB cap is the Firestore stats/storage total (see firestore.rules).
 // suggestions/{uid}/{file}                 Suggestions board screenshots (2026-10-30): public read, own uid, images < 5 MB.
 // Everything else stays denied.
 rules_version = '2';
@@ -39,11 +38,21 @@ service firebase.storage {
       allow delete: if isOwner(cid) || isSiteAdmin();
     }
 
-    match /communities/{cid}/files/{rest=**} {
-      allow read: if request.auth != null && active(cid)
-                  && (staff(cid) || isMember(cid));
-      allow write: if staff(cid) && active(cid) && request.resource.size < 25 * 1024 * 1024;
-      allow delete: if staff(cid);
+    // Course files (Creator Hub phase C): PDFs, images, attachments. Path: communities/{cid}/files/{fid}.
+    // The owner reserves the file first in Firestore (communities/{cid}/files/{fid}, which also moves the 1 GB total in
+    // the same batch), then uploads. Storage accepts the upload only if it matches that reservation: same size, same type,
+    // under 25 MB. Nobody but the owner reads through Storage rules; members get the bytes through the Pages Function
+    // /api/creator/file, which first lets Firestore decide (plan, drip, order) and adds the watermark on the viewer page.
+    match /communities/{cid}/files/{fid} {
+      function reg() { return firestore.get(/databases/(default)/documents/communities/$(cid)/files/$(fid)).data; }
+      allow read: if isOwner(cid) || isSiteAdmin();
+      allow create: if isOwner(cid) && active(cid)
+                    && firestore.exists(/databases/(default)/documents/communities/$(cid)/files/$(fid))
+                    && request.resource.size < 25 * 1024 * 1024
+                    && request.resource.size == reg().size
+                    && request.resource.contentType == reg().ct;
+      allow update: if false;
+      allow delete: if isOwner(cid) || isSiteAdmin();
     }
 
     // Suggestions board screenshots: suggestions/{uid}/{file}. Public read (the board is public), the member writes

@@ -1299,6 +1299,284 @@ service cloud.firestore {
           allow delete: if cmStaff(cid) || isAdmin();
         }
       }
+
+      // ---- courses (Phase C, 2026-10-30): video / text / PDF / link lessons in modules ----
+      // courses/{crid}                         course card + access (whole course by plans, or alone via solo). Readable like the community page
+      //                                        once published (the structure is a teaser: titles, types, locks).
+      // courses/{crid}/modules/{mid}           folders: order, status, optional plan restriction, drip.
+      // courses/{crid}/lessons/{lid}           lesson metadata ONLY (title, type, order, preview, drip, prev). No content here.
+      // courses/{crid}/lessons/{lid}/content/body   the content (video URL, rich text, file ref, link, quiz). Readable only with access:
+      //        owner, free-preview lesson, or an active member on an allowed plan / someone with the course alone, AND released (drip)
+      //        AND (if the course is in-order) the previous lesson marked done. Checked by Firestore on every read.
+      // courses/{crid}/progress/{uid}          the learner's own progress (done map, resume position). Self-reported by the player.
+      // courses/{crid}/notes/{uid_lid}         the learner's private note.
+      // courses/{crid}/access/{email}          course given alone to one person (owner grant by email, or a free claim).
+      // files/{fid}                            registry of every uploaded file (reserved BEFORE the upload; Storage rules check it).
+      // stats/storage                          running total of bytes (1 GB cap), only movable together with a files/{fid} change.
+      match /courses/{crid} {
+        function crPath() { return /databases/$(database)/documents/communities/$(cid)/courses/$(crid); }
+        function crDoc()  { return get(crPath()).data; }
+        function crNew()  { return request.resource.data; }
+        function commOpen() {
+          return get(cmPath(cid)).data.status == 'active'
+            && (get(cmPath(cid)).data.visibility in ['public', 'unlisted'] || (signedIn() && exists(cmMemPath(cid, request.auth.uid))));
+        }
+        function crKeys() {
+          return ['ownerUid', 'title', 'desc', 'coverUrl', 'status', 'access', 'solo', 'sequential', 'order', 'rulesVersion', 'createdAt', 'updatedAt'];
+        }
+        function planList(t) {
+          return t is list && t.size() <= 8
+            && (t.size() < 1 || (t[0] is string && t[0].size() <= 4)) && (t.size() < 2 || (t[1] is string && t[1].size() <= 4))
+            && (t.size() < 3 || (t[2] is string && t[2].size() <= 4)) && (t.size() < 4 || (t[3] is string && t[3].size() <= 4))
+            && (t.size() < 5 || (t[4] is string && t[4].size() <= 4)) && (t.size() < 6 || (t[5] is string && t[5].size() <= 4))
+            && (t.size() < 7 || (t[6] is string && t[6].size() <= 4)) && (t.size() < 8 || (t[7] is string && t[7].size() <= 4));
+        }
+        function crAccessOk(a) {
+          return a is map && a.keys().hasOnly(['mode', 'planIds']) && a.mode in ['all', 'plans'] && planList(a.planIds);
+        }
+        function crSoloOk(s) {
+          return s is map && s.keys().hasOnly(['mode', 'price']) && s.mode in ['off', 'free', 'invite', 'paid']
+            && s.price is map && s.price.keys().hasOnly(['amount', 'currency']) && s.price.currency in ['USD', 'INR']
+            && s.price.amount is number && s.price.amount >= 0 && s.price.amount <= 100000
+            && (s.mode != 'paid' || s.price.amount > 0);
+        }
+        function crOk(d) {
+          return d.keys().hasOnly(crKeys()) && d.keys().hasAll(crKeys())
+            && d.ownerUid == get(cmPath(cid)).data.ownerUid
+            && d.title is string && d.title.size() >= 2 && d.title.size() <= 80
+            && d.desc is string && d.desc.size() <= 2000
+            && cmUrlOk(d.coverUrl) && d.status in ['draft', 'published']
+            && crAccessOk(d.access) && crSoloOk(d.solo) && d.sequential is bool
+            && d.order is int && d.order >= 0 && d.order <= 500
+            && d.rulesVersion is string && d.rulesVersion.size() <= 20
+            && d.updatedAt == request.time;
+        }
+        allow get: if (resource.data.status == 'published' && commOpen()) || cmOwner(cid) || isAdmin();
+        allow list: if (resource.data.status == 'published' && commOpen()) || cmOwner(cid) || isAdmin();
+        allow create: if cmOwner(cid) && crid.matches('^[A-Za-z0-9]{12,24}$') && crOk(crNew()) && crNew().createdAt == request.time
+                      && get(cmPath(cid)).data.status == 'active';
+        allow update: if (cmOwner(cid) && crOk(crNew()) && crNew().createdAt == resource.data.createdAt)
+                      || (isAdmin() && crNew().diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']));
+        allow delete: if cmOwner(cid) || isAdmin();
+
+        function dripOk(dr) {
+          return dr is map && dr.keys().hasOnly(['mode', 'days', 'at']) && dr.keys().hasAll(['mode', 'days', 'at'])
+            && dr.mode in ['none', 'days', 'date'] && dr.days is int && dr.days >= 0 && dr.days <= 3650
+            && (dr.mode != 'date' || dr.at is timestamp) && (dr.at == null || dr.at is timestamp);
+        }
+        function crOwnerOnlyParent() { return cmOwner(cid) && exists(crPath()); }
+
+        match /modules/{mid} {
+          function mdNew() { return request.resource.data; }
+          function mdKeys() { return ['title', 'order', 'status', 'planIds', 'drip', 'updatedAt']; }
+          allow get, list: if (resource.data.status == 'published' && crDoc().status == 'published' && commOpen()) || cmOwner(cid) || isAdmin();
+          allow create, update: if crOwnerOnlyParent() && mid.matches('^[A-Za-z0-9]{12,24}$')
+                      && mdNew().keys().hasOnly(mdKeys()) && mdNew().keys().hasAll(mdKeys())
+                      && mdNew().title is string && mdNew().title.size() >= 1 && mdNew().title.size() <= 80
+                      && mdNew().order is int && mdNew().order >= 0 && mdNew().order <= 500
+                      && mdNew().status in ['draft', 'published'] && planList(mdNew().planIds) && dripOk(mdNew().drip)
+                      && mdNew().updatedAt == request.time;
+          allow delete: if cmOwner(cid) || isAdmin();
+        }
+
+        match /lessons/{lid} {
+          function lsPath() { return /databases/$(database)/documents/communities/$(cid)/courses/$(crid)/lessons/$(lid); }
+          function lsDoc()  { return get(lsPath()).data; }
+          function lsNew()  { return request.resource.data; }
+          function lsKeys() { return ['moduleId', 'title', 'type', 'order', 'status', 'preview', 'drip', 'prev', 'mins', 'thumb', 'hasQuiz', 'updatedAt']; }
+          function mdPathOf(m) { return /databases/$(database)/documents/communities/$(cid)/courses/$(crid)/modules/$(m); }
+          function mdOfLesson() { return get(mdPathOf(lsDoc().moduleId)).data; }
+          allow get, list: if (resource.data.status == 'published' && crDoc().status == 'published' && commOpen()) || cmOwner(cid) || isAdmin();
+          allow create, update: if crOwnerOnlyParent() && lid.matches('^[A-Za-z0-9]{12,24}$')
+                      && lsNew().keys().hasOnly(lsKeys()) && lsNew().keys().hasAll(lsKeys())
+                      && lsNew().moduleId is string && exists(mdPathOf(lsNew().moduleId))
+                      && lsNew().title is string && lsNew().title.size() >= 1 && lsNew().title.size() <= 100
+                      && lsNew().type in ['video', 'text', 'pdf', 'link']
+                      && lsNew().order is int && lsNew().order >= 0 && lsNew().order <= 2000
+                      && lsNew().status in ['draft', 'published'] && lsNew().preview is bool && dripOk(lsNew().drip)
+                      && lsNew().prev is string && lsNew().prev.size() <= 24
+                      && lsNew().mins is int && lsNew().mins >= 0 && lsNew().mins <= 600
+                      && lsNew().thumb is string && (lsNew().thumb == '' || lsNew().thumb.matches('^https://[^ ]{4,480}$'))
+                      && lsNew().hasQuiz is bool && lsNew().updatedAt == request.time;
+          allow delete: if cmOwner(cid) || isAdmin();
+
+          // ---- access logic (used by the content doc) ----
+          function myEmailC() { return request.auth.token.get('email', 'none@none').lower(); }
+          function accPathC() { return /databases/$(database)/documents/communities/$(cid)/courses/$(crid)/access/$(myEmailC()); }
+          function memActiveC() {
+            return signedIn() && exists(cmMemPath(cid, request.auth.uid))
+              && get(cmMemPath(cid, request.auth.uid)).data.status == 'active'
+              && (get(cmMemPath(cid, request.auth.uid)).data.expiresAt == null || get(cmMemPath(cid, request.auth.uid)).data.expiresAt > request.time);
+          }
+          function planAllowsC() {
+            let planId = get(cmMemPath(cid, request.auth.uid)).data.planId;
+            // a module with its own plan list overrides the course-level list (sell single modules by plan)
+            return mdOfLesson().planIds.size() > 0
+              ? planId in mdOfLesson().planIds
+              : (crDoc().access.mode == 'all' || planId in crDoc().access.planIds);
+          }
+          function notBannedC() {
+            return !exists(/databases/$(database)/documents/communities/$(cid)/bans/$(myEmailC()))
+              && (!exists(cmMemPath(cid, request.auth.uid)) || get(cmMemPath(cid, request.auth.uid)).data.status != 'banned');
+          }
+          function soloAccessC() {
+            return signedIn() && request.auth.token.email_verified == true && notBannedC() && exists(accPathC())
+              && get(accPathC()).data.status == 'active'
+              && (get(accPathC()).data.expiresAt == null || get(accPathC()).data.expiresAt > request.time);
+          }
+          function viaPlanC() { return memActiveC() && planAllowsC(); }
+          // release base: the day he joined (plan) or the day the course was given to him (alone)
+          function baseTimeC() {
+            return viaPlanC() ? get(cmMemPath(cid, request.auth.uid)).data.joinedAt : get(accPathC()).data.createdAt;
+          }
+          function released(dr) {
+            return dr.mode == 'none'
+              || (dr.mode == 'days' && request.time >= baseTimeC() + duration.value(dr.days, 'd'))
+              || (dr.mode == 'date' && request.time >= dr.at);
+          }
+          function progPathC() { return /databases/$(database)/documents/communities/$(cid)/courses/$(crid)/progress/$(request.auth.uid); }
+          function seqOkC() {
+            return crDoc().sequential == false || lsDoc().prev == ''
+              || (exists(progPathC()) && get(progPathC()).data.done.get(lsDoc().prev, 0) > 0);
+          }
+          function lessonLive() {
+            return crDoc().status == 'published' && lsDoc().status == 'published' && mdOfLesson().status == 'published' && commOpen();
+          }
+
+          match /content/{d} {
+            function cNew() { return request.resource.data; }
+            function vidOk(v) {
+              return v is map && v.keys().hasOnly(['url', 'provider']) && v.provider in ['youtube', 'vimeo', 'loom', 'bunny', 'cloudflare']
+                && v.url is string && v.url.matches('^https://(www\\.|m\\.)?(youtube\\.com|youtube-nocookie\\.com|youtu\\.be|vimeo\\.com|player\\.vimeo\\.com|loom\\.com|iframe\\.mediadelivery\\.net|iframe\\.videodelivery\\.net|[a-z0-9-]{3,60}\\.cloudflarestream\\.com)/[^ ]{1,400}$');
+            }
+            function fileOk(f) {
+              return f is map && f.keys().hasOnly(['fid', 'name', 'size', 'ct', 'download', 'sealed']) && f.keys().hasAll(['fid', 'name', 'size', 'ct', 'download', 'sealed'])
+                && f.sealed is map && f.sealed.keys().hasOnly(['alg', 'epk', 'iv', 'ct']) && f.sealed.alg == 'p256-hkdf-a256gcm'
+                && f.sealed.ct is string && f.sealed.ct.size() <= 2000
+                && f.fid is string && f.fid.matches('^[A-Za-z0-9]{16,24}$') && f.name is string && f.name.size() >= 1 && f.name.size() <= 120
+                && f.size is int && f.size > 0 && f.size < 26214400
+                && f.ct in ['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'application/zip', 'text/plain', 'text/csv',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+                && f.download is bool;
+            }
+            function attOk(a) {
+              return a is list && a.size() <= 8
+                && (a.size() < 1 || fileOk(a[0])) && (a.size() < 2 || fileOk(a[1])) && (a.size() < 3 || fileOk(a[2])) && (a.size() < 4 || fileOk(a[3]))
+                && (a.size() < 5 || fileOk(a[4])) && (a.size() < 6 || fileOk(a[5])) && (a.size() < 7 || fileOk(a[6])) && (a.size() < 8 || fileOk(a[7]));
+            }
+            function quizOk(q) {
+              return q is map && q.keys().hasOnly(['pass', 'questions']) && q.pass is int && q.pass >= 1 && q.pass <= 100
+                && q.questions is list && q.questions.size() >= 1 && q.questions.size() <= 10;
+            }
+            function contentOk(c) {
+              return c.keys().hasOnly(['type', 'video', 'html', 'file', 'link', 'attachments', 'quiz', 'updatedAt']) && c.keys().hasAll(['type', 'attachments', 'updatedAt'])
+                && c.type == lsDoc().type && attOk(c.attachments)
+                && (c.type != 'video' || ('video' in c && vidOk(c.video)))
+                && (c.type != 'text' || ('html' in c && c.html is string && c.html.size() <= 400000))
+                && (c.type != 'pdf' || ('file' in c && fileOk(c.file)))
+                && (c.type != 'link' || ('link' in c && c.link is map && c.link.keys().hasOnly(['url']) && c.link.url is string && c.link.url.matches('^https://[^ ]{4,480}$')))
+                && (!('quiz' in c) || quizOk(c.quiz))
+                && (!('html' in c) || (c.html is string && c.html.size() <= 400000))
+                && c.updatedAt == request.time;
+            }
+            allow get: if d == 'body' && (cmOwner(cid) || isAdmin()
+                         || (lessonLive() && (lsDoc().preview == true
+                              || (signedIn() && (viaPlanC() || soloAccessC()) && notBannedC()
+                                  && released(mdOfLesson().drip) && released(lsDoc().drip) && seqOkC()))));
+            allow list: if false;
+            allow create, update: if d == 'body' && cmOwner(cid) && exists(lsPath()) && contentOk(cNew());
+            allow delete: if cmOwner(cid) || isAdmin();
+          }
+        }
+
+        match /progress/{u} {
+          function pNew() { return request.resource.data; }
+          allow get: if isSelf(u) || cmOwner(cid) || isAdmin();
+          allow list: if cmOwner(cid) || isAdmin();
+          allow create, update: if isSelf(u) && crDoc().status == 'published' && commOpen()
+                      && (exists(cmMemPath(cid, request.auth.uid))
+                          || (request.auth.token.email_verified == true
+                              && exists(/databases/$(database)/documents/communities/$(cid)/courses/$(crid)/access/$(request.auth.token.get('email', 'none@none').lower()))))
+                      && pNew().keys().hasOnly(['uid', 'done', 'pos', 'last', 'quiz', 'updatedAt']) && pNew().keys().hasAll(['uid', 'done', 'pos', 'last', 'updatedAt'])
+                      && pNew().uid == u && pNew().done is map && pNew().done.keys().size() <= 400
+                      && pNew().pos is map && pNew().pos.keys().size() <= 400
+                      && pNew().last is string && pNew().last.size() <= 24
+                      && (!('quiz' in pNew()) || (pNew().quiz is map && pNew().quiz.keys().size() <= 400))
+                      && pNew().updatedAt == request.time;
+          allow delete: if isSelf(u) || cmOwner(cid) || isAdmin();
+        }
+
+        match /notes/{nid} {
+          allow get: if signedIn() && nid.matches('^' + request.auth.uid + '_[A-Za-z0-9]{12,24}$');
+          allow list: if false;
+          allow create, update: if signedIn() && nid.matches('^' + request.auth.uid + '_[A-Za-z0-9]{12,24}$')
+                      && crDoc().status == 'published' && commOpen()
+                      && request.resource.data.keys().hasOnly(['uid', 'text', 'updatedAt'])
+                      && request.resource.data.uid == request.auth.uid
+                      && request.resource.data.text is string && request.resource.data.text.size() <= 4000
+                      && request.resource.data.updatedAt == request.time;
+          allow delete: if signedIn() && nid.matches('^' + request.auth.uid + '_[A-Za-z0-9]{12,24}$');
+        }
+
+        // The course given to ONE person (email). Owner grants any expiry; a verified person claims a FREE solo course for himself.
+        match /access/{em} {
+          function aNewC() { return request.resource.data; }
+          function myEmailA() { return request.auth.token.get('email', 'none@none').lower(); }
+          allow get: if cmOwner(cid) || isAdmin() || (signedIn() && request.auth.token.email_verified == true && em == myEmailA());
+          allow list: if cmOwner(cid) || isAdmin();
+          function aBaseC() {
+            return em == em.lower() && em.matches('^[^/ ]{3,200}$')
+              && aNewC().keys().hasOnly(['email', 'source', 'status', 'expiresAt', 'createdBy', 'createdAt'])
+              && aNewC().email == em && aNewC().status == 'active' && aNewC().createdAt == request.time
+              && (aNewC().expiresAt == null || aNewC().expiresAt is timestamp);
+          }
+          allow create: if (cmOwner(cid) && aBaseC() && aNewC().source == 'manual' && aNewC().createdBy == request.auth.uid)
+                        || (signedIn() && request.auth.token.email_verified == true && em == myEmailA() && aBaseC()
+                            && aNewC().source == 'free' && aNewC().expiresAt == null && aNewC().createdBy == request.auth.uid
+                            && crDoc().status == 'published' && crDoc().solo.mode == 'free'
+                            && get(cmPath(cid)).data.status == 'active'
+                            && !exists(/databases/$(database)/documents/communities/$(cid)/bans/$(myEmailA())));
+          allow update: if cmOwner(cid) && aNewC().diff(resource.data).affectedKeys().hasOnly(['status', 'expiresAt'])
+                        && aNewC().status in ['active', 'revoked'] && (aNewC().expiresAt == null || aNewC().expiresAt is timestamp);
+          allow delete: if cmOwner(cid) || isAdmin();
+        }
+      }
+
+      // ---- file registry + storage total (Storage rules read files/{fid}; see functions-src/storage.rules) ----
+      match /files/{fid} {
+        function fNew() { return request.resource.data; }
+        function statsP() { return /databases/$(database)/documents/communities/$(cid)/stats/storage; }
+        allow get, list: if cmOwner(cid) || isAdmin();
+        allow create: if cmOwner(cid) && fid.matches('^[A-Za-z0-9]{16,24}$')
+                      && fNew().keys().hasOnly(['ownerUid', 'crid', 'lid', 'name', 'size', 'ct', 'createdAt'])
+                      && fNew().ownerUid == request.auth.uid && fNew().crid is string && fNew().lid is string
+                      && fNew().name is string && fNew().name.size() >= 1 && fNew().name.size() <= 120
+                      && fNew().size is int && fNew().size > 0 && fNew().size < 26214400
+                      && fNew().ct is string && fNew().ct.size() <= 100 && fNew().createdAt == request.time
+                      && existsAfter(statsP()) && getAfter(statsP()).data.lastFid == fid;
+        allow update: if false;
+        allow delete: if cmOwner(cid) && existsAfter(statsP()) && getAfter(statsP()).data.lastFid == fid;
+      }
+      match /stats/{s} {
+        function sNew() { return request.resource.data; }
+        function fileP(f) { return /databases/$(database)/documents/communities/$(cid)/files/$(f); }
+        allow get: if cmOwner(cid) || isAdmin();
+        allow list: if false;
+        // bytes move only by exactly the size of the one file whose registry doc appears (+) or disappears (-) in the same batch; 1 GB cap
+        allow create: if s == 'storage' && cmOwner(cid)
+                      && sNew().keys().hasOnly(['bytes', 'lastFid', 'updatedAt']) && sNew().lastFid is string && sNew().lastFid.size() <= 24
+                      && sNew().updatedAt == request.time
+                      && existsAfter(fileP(sNew().lastFid)) && !exists(fileP(sNew().lastFid))
+                      && sNew().bytes == getAfter(fileP(sNew().lastFid)).data.size && sNew().bytes <= 1073741824;
+        allow update: if s == 'storage' && cmOwner(cid)
+                      && sNew().keys().hasOnly(['bytes', 'lastFid', 'updatedAt']) && sNew().lastFid is string && sNew().lastFid.size() <= 24
+                      && sNew().updatedAt == request.time
+                      && ((existsAfter(fileP(sNew().lastFid)) && !exists(fileP(sNew().lastFid))
+                            && sNew().bytes == resource.data.bytes + getAfter(fileP(sNew().lastFid)).data.size && sNew().bytes <= 1073741824)
+                          || (exists(fileP(sNew().lastFid)) && !existsAfter(fileP(sNew().lastFid))
+                            && sNew().bytes == resource.data.bytes - get(fileP(sNew().lastFid)).data.size && sNew().bytes >= 0));
+        allow delete: if isAdmin();
+      }
     }
 
     // Reports on communities (later phases: posts, indicators, courses). One report per person per target.

@@ -40,6 +40,11 @@ function dec(f) {
   if ('booleanValue' in f) return f.booleanValue;
   if ('timestampValue' in f) return new Date(f.timestampValue);
   if ('nullValue' in f) return null;
+  if ('doubleValue' in f) return Number(f.doubleValue);
+  if ('referenceValue' in f) return f.referenceValue;
+  if ('geoPointValue' in f) return f.geoPointValue;
+  if ('bytesValue' in f) return f.bytesValue;
+  if ('arrayValue' in f) return ((f.arrayValue && f.arrayValue.values) || []).map(dec);
   if ('mapValue' in f) return Object.fromEntries(Object.entries(f.mapValue.fields || {}).map(([k, v]) => [k, dec(v)]));
   return undefined;
 }
@@ -48,7 +53,8 @@ const decDoc = (d) => Object.fromEntries(Object.entries(d.fields || {}).map(([k,
 export class Core {
   constructor(sql, env, opts = {}) {
     this.sql = sql; this.env = env || {};
-    this.f = opts.fetchImpl || fetch; this.now = opts.now || (() => Date.now());
+    // arrow wrapper: a bare `fetch` stored on the object throws "Illegal invocation" in Workers when called as this.f(...)
+    this.f = opts.fetchImpl || ((...a) => fetch(...a)); this.now = opts.now || (() => Date.now());
     this.verify = opts.verify || ((t) => verifyIdToken(t, { fetchImpl: this.f }));
     this.sleep = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
     for (const s of SCHEMA) sql.exec(s);
@@ -384,7 +390,9 @@ export class Core {
       return { status: 200, body: { ok: true, ...(await fn.call(this, who, body)) } };
     } catch (e) {
       if (e instanceof HttpErr) return { status: e.status, body: { ok: false, error: e.code, message: e.message } };
-      return { status: 500, body: { ok: false, error: 'server', message: 'Something went wrong. Try again.' } };
+      const id = Math.random().toString(36).slice(2, 8);
+      console.error('discord-roles 500 id=' + id + ' route=' + path + ' ' + (e && e.name) + ': ' + String((e && e.message) || e).slice(0, 300).replace(/Bearer\s+\S+/g, 'Bearer ***'));
+      return { status: 500, body: { ok: false, error: 'server', id, message: 'Something went wrong. Try again. (ref ' + id + ')' } };
     }
   }
 }

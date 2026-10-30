@@ -93,9 +93,8 @@
       if (!window.CHL) { el.innerHTML = '<div class="cx-empty">Could not load courses. Reload the page.</div>'; return; }
       return window.CHL.mount(el, { cid: slug, cm: cm, plans: plans, mem: mem, me: me, isOwner: isOwner(), member: !!member, signIn: CH.signIn });
     }
-    var names = { feed: 'Feed', courses: 'Courses', indicators: 'Indicators', events: 'Events', leaderboard: 'Leaderboard' };
-    // None of these ship in Phase A, so each says so honestly.
-    el.innerHTML = '<div class="cx-empty"><h3>' + names[tab] + '</h3>Coming soon. ' + CH.esc(cm.ownerName || 'The creator') + ' has turned this on; it will appear here when it launches.</div>';
+    if (!window.CHF) { el.innerHTML = '<div class="cx-empty">Could not load this tab. Reload the page.</div>'; return; }
+    return window.CHF.mount(el, tab, { cid: slug, cm: cm, mem: mem, me: me, isOwner: isOwner(), member: !!member, signIn: CH.signIn });
   }
 
   // ---------------------------------------------------------------- indicators tab (Creator Hub phase B)

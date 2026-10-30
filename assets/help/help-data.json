@@ -4906,6 +4906,66 @@
        ]
       }
      ]
+    },
+    {
+     "id": "community-feed",
+     "title": "Community feed, events and leaderboard",
+     "items": [
+      {
+       "id": "feed-use",
+       "q": "How do the community feed, events and leaderboard work?",
+       "a": "<p>When the creator turns them on, a community shows <b>Feed</b>, <b>Events</b> and <b>Leaderboard</b> tabs. They are for members only: you must be signed in and have an active plan.</p><p>In the <b>Feed</b> you can post, edit your own post, and comment. Creators and moderators can pin or delete posts and comments. In <b>Events</b> you can see upcoming sessions, press <b>I'm going</b>, and open the meeting link. The <b>Leaderboard</b> ranks the most active members of the last 30 days: 2 points for a post, 1 for a comment.</p><p>The leaderboard counts activity only. It is not a trading ranking. Education only. Not financial advice.</p>",
+       "tags": [
+        "feed",
+        "events",
+        "leaderboard",
+        "community",
+        "members"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Communities",
+         "href": "/communities"
+        }
+       ]
+      },
+      {
+       "id": "feed-rules",
+       "q": "What am I not allowed to post in a community feed?",
+       "a": "<p>Follow the <a href=\"/creator-rules\">Creator Rules</a>. Do not post profit claims, \"guaranteed\" or \"risk-free\" wording, or tips for others to copy. Do not post other people's private information. Posts that break the rules can be deleted by the creator or a moderator, and you can report a community from its About tab.</p><p>Education only. Not financial advice.</p>",
+       "tags": [
+        "feed",
+        "rules",
+        "posts",
+        "moderation"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Rules",
+         "href": "/creator-rules"
+        }
+       ]
+      },
+      {
+       "id": "event-create",
+       "q": "How does a creator schedule an event?",
+       "a": "<p>Turn on <b>Events</b> under Creator Hub &rarr; Settings &rarr; Features members see. Then open the Events tab on your community page and press <b>New event</b>. Add a title, start time, length and an optional meeting link starting with https://. Members see the link only after signing in as a member.</p>",
+       "tags": [
+        "events",
+        "creator",
+        "schedule"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creator"
+        }
+       ]
+      }
+     ]
     }
    ]
   }

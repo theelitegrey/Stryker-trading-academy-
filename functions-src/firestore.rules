@@ -1110,6 +1110,86 @@ service cloud.firestore {
                           && existsAfter(cmMemPath(cid, request.auth.uid)));
       }
 
+      // ---- community feed, events, leaderboard (Phase D, 2026-10-30) ----
+      // posts/{pid}            a member's post. Author edits own text; owner/admin/mod pin or delete; author deletes own.
+      // comments/{kid}         a comment on a post (postId). Created once, never edited; author or staff deletes.
+      // events/{eid}           an event the owner/admin schedules (title, time, optional https link). Members only.
+      // events/{eid}/rsvps/{uid}  "I'm going": one marker per member, own only.
+      // The leaderboard has no documents: the page counts posts and comments of the last 30 days, so nobody can write points.
+      // Read = an active (not banned, not expired) member of an active community, or a site admin. Writes need the tab switched on.
+      function fdMem() { return get(cmMemPath(cid, request.auth.uid)).data; }
+      function fdActive() {
+        return signedIn() && exists(cmMemPath(cid, request.auth.uid))
+          && fdMem().status == 'active'
+          && (fdMem().expiresAt == null || fdMem().expiresAt > request.time)
+          && get(cmPath(cid)).data.status == 'active';
+      }
+      function fdMod() { return fdActive() && fdMem().role in ['mod', 'admin', 'owner']; }
+      function fdOn(f) { return get(cmPath(cid)).data.features.get(f, false) == true; }
+      function fdId(s) { return s is string && s.matches('^[A-Za-z0-9]{12,24}$'); }
+      function fdName(s) { return s is string && s.size() >= 1 && s.size() <= 60; }
+
+      match /posts/{pid} {
+        function pNew() { return request.resource.data; }
+        function pKeys() { return ['authorUid', 'authorName', 'text', 'pinned', 'createdAt']; }
+        allow get, list: if fdActive() || isAdmin();
+        allow create: if fdActive() && fdOn('feed') && fdId(pid)
+                      && pNew().keys().hasOnly(pKeys()) && pNew().keys().hasAll(pKeys())
+                      && pNew().authorUid == request.auth.uid && fdName(pNew().authorName)
+                      && pNew().text is string && pNew().text.size() >= 1 && pNew().text.size() <= 2000
+                      && pNew().pinned == false && pNew().createdAt == request.time;
+        allow update: if fdActive() && fdOn('feed') && pNew().keys().hasOnly(pKeys().concat(['editedAt']))
+                      && pNew().authorUid == resource.data.authorUid && pNew().createdAt == resource.data.createdAt
+                      && ((resource.data.authorUid == request.auth.uid
+                            && pNew().diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+                            && pNew().text is string && pNew().text.size() >= 1 && pNew().text.size() <= 2000
+                            && pNew().editedAt == request.time)
+                          || (fdMod() && pNew().diff(resource.data).affectedKeys().hasOnly(['pinned']) && pNew().pinned is bool));
+        allow delete: if (fdActive() && resource.data.authorUid == request.auth.uid) || fdMod() || isAdmin();
+      }
+
+      match /comments/{kid} {
+        function kNew() { return request.resource.data; }
+        function kKeys() { return ['postId', 'authorUid', 'authorName', 'text', 'createdAt']; }
+        allow get, list: if fdActive() || isAdmin();
+        allow create: if fdActive() && fdOn('feed') && fdId(kid)
+                      && kNew().keys().hasOnly(kKeys()) && kNew().keys().hasAll(kKeys())
+                      && fdId(kNew().postId) && exists(/databases/$(database)/documents/communities/$(cid)/posts/$(kNew().postId))
+                      && kNew().authorUid == request.auth.uid && fdName(kNew().authorName)
+                      && kNew().text is string && kNew().text.size() >= 1 && kNew().text.size() <= 1000
+                      && kNew().createdAt == request.time;
+        allow update: if false;
+        allow delete: if (fdActive() && resource.data.authorUid == request.auth.uid) || fdMod() || isAdmin();
+      }
+
+      match /events/{eid} {
+        function eNew() { return request.resource.data; }
+        function eKeys() { return ['title', 'desc', 'startsAt', 'durationMin', 'link', 'createdBy', 'createdAt']; }
+        function eOk() {
+          return eNew().keys().hasOnly(eKeys()) && eNew().keys().hasAll(eKeys())
+            && eNew().title is string && eNew().title.size() >= 2 && eNew().title.size() <= 100
+            && eNew().desc is string && eNew().desc.size() <= 1000
+            && eNew().startsAt is timestamp
+            && eNew().durationMin is int && eNew().durationMin >= 5 && eNew().durationMin <= 600
+            && cmUrlOk(eNew().link) && eNew().createdBy == request.auth.uid;
+        }
+        allow get, list: if fdActive() || isAdmin();
+        allow create: if cmStaff(cid) && fdActive() && fdOn('events') && fdId(eid) && eOk() && eNew().createdAt == request.time;
+        allow update: if cmStaff(cid) && fdActive() && eOk() && eNew().createdAt == resource.data.createdAt && eNew().createdBy == resource.data.createdBy;
+        allow delete: if cmStaff(cid) || isAdmin();
+
+        match /rsvps/{u} {
+          function rNew() { return request.resource.data; }
+          allow get, list: if fdActive() || isAdmin();
+          allow create: if fdActive() && fdOn('events') && u == request.auth.uid
+                        && rNew().keys().hasOnly(['uid', 'name', 'createdAt']) && rNew().keys().hasAll(['uid', 'name', 'createdAt'])
+                        && rNew().uid == u && fdName(rNew().name) && rNew().createdAt == request.time
+                        && exists(/databases/$(database)/documents/communities/$(cid)/events/$(eid));
+          allow update: if false;
+          allow delete: if (fdActive() && u == request.auth.uid) || cmStaff(cid) || isAdmin();
+        }
+      }
+
       // ---- bans by email ----
       match /bans/{em} {
         allow read: if cmStaff(cid) || isAdmin();

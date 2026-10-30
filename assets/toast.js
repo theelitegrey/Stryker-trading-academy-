@@ -60,6 +60,7 @@
       '<div class="toast-body">' +
         (opts.title ? '<span class="toast-title">' + esc(opts.title) + '</span>' : '') +
         '<span class="toast-msg">' + esc(message) + '</span>' +
+        (opts.action ? '<button type="button" class="toast-action">' + esc(opts.action.label) + '</button>' : '') +
       '</div>' +
       '<button type="button" class="toast-close" aria-label="Dismiss">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -94,6 +95,8 @@
       }
 
       toast.querySelector('.toast-close').addEventListener('click', close);
+      var act = toast.querySelector('.toast-action');
+      if (act) act.addEventListener('click', function () { close(); try { opts.action.onClick(); } catch (e) {} });
 
       var life = opts.duration || DEFAULT_MS[type];
       // hold:true keeps it up until dismissed — used where the caller awaits

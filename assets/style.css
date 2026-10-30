@@ -1942,6 +1942,14 @@ a.todo-title:hover{ color:var(--teal); }
   color:var(--ink-3); padding:2px; line-height:0; border-radius:5px;
 }
 .toast-close:hover{ color:var(--ink-0); }
+/* Text action under the message (e.g. Retry on the heavy-indicator notice): 44px target, mint text, 12 radius. */
+.toast-action{
+  align-self:flex-start; margin-top:6px; min-height:44px; padding:0 14px; margin-left:-14px;
+  background:none; border:0; border-radius:12px; cursor:pointer;
+  font-family:inherit; font-size:14px; line-height:20px; font-weight:600; color:var(--bull);
+}
+.toast-action:hover{ background:rgba(3,201,136,0.1); }
+.toast-action:focus-visible{ outline:2px solid var(--bull); outline-offset:2px; }
 @media (prefers-reduced-motion:reduce){
   .toast{ transition:opacity .15s linear; transform:none; }
   .toast.in{ transform:none; }

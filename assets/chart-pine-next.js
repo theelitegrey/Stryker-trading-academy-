@@ -126,7 +126,7 @@ export class PineNextEngine {
       props: req.props ? Object.assign({}, req.props) : undefined, visibleRange: req.visibleRange,
       mode: s.live ? 'live' : 'static', historyState: req.historyState
     };
-    this.post({ kind: 'execute', sessionId, req: plain });
+    this.post({ kind: 'execute', sessionId, req: plain, sentAt: Date.now() });
     return {
       getContext: (select) => new Promise((resolve) => {
         const reqId = ++this.reqId;
@@ -174,6 +174,9 @@ export class PineNextEngine {
       case 'alert': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onAlert) s.handlers.onAlert(m.alert); try { if (this.opts.onAlert) this.opts.onAlert(m.alert, s); } catch (e) {} return; }
       case 'warning': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onWarning) s.handlers.onWarning(m.warning); return; }
       case 'error': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onError) s.handlers.onError(new Error(m.message)); return; }
+      // own-compute clock for the page's time limit (chart-pine.js runOnChartInner): 'started' = the worker
+      // picked the run up (queue wait ends), 'own' = ms other scripts' runs overlapped it.
+      case 'started': case 'own': { try { const f = typeof window !== 'undefined' && window.__stkPineClockHook; if (f) f(m); } catch (e) {} return; }
       case 'busy': setBusy(this, !!m.on); return;
       case 'done': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onDone) s.handlers.onDone(); return; }
       case 'contextResult': { const w = this.ctxWaits.get(m.reqId); this.ctxWaits.delete(m.reqId); if (w) w(m.snapshot); return; }

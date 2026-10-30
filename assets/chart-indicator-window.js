@@ -259,15 +259,15 @@ export function mountIndicatorWindow(ws, opts){
           opts = { engine: 'next', builtin: true, rightOffset: it.rightOffset };
         }
         const r = await P().addSource(it.name, src, opts);
-        if (!r.ok) toast(r.msg || 'Could not add the script.', 'error');
+        if (!r.ok && !r.heavy) toast(r.msg || 'Could not add the script.', 'error');
       } else if (it.kind === 'cind') {
         if (it.locked) { close(); location.href = '/c/' + encodeURIComponent(it.ci.cid) + '?tab=indicators'; return; }
         const r = await CI().add(it.ci);
-        if (!r.ok) toast(r.msg || 'Could not add the indicator.', 'error');
+        if (!r.ok && !r.heavy) toast(r.msg || 'Could not add the indicator.', 'error');
       } else if (it.kind === 'community') {
         if (!L() || !L().addItem) return;
         const r = await L().addItem(it.s);
-        if (!r.ok) toast(r.msg || 'Could not add the script.', 'error');
+        if (!r.ok && !r.heavy) toast(r.msg || 'Could not add the script.', 'error');
       }
     } catch (e) {
       console.warn('TradeZoro: add from window', e);

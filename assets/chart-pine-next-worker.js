@@ -122,6 +122,7 @@ function kick(s, fn){
   // ordinary bar re-run until it lands, so the change is not stuck behind other scripts'
   // tick re-runs (one heavy script re-running every couple of seconds kept the worker busy).
   if (!settings && settingsBusy(s)) { s.dirty = true; if (fn) s.pending = fn; s.held = true; return; }
+  if (!settings && !s.first && firstActive(s)) { s.dirty = true; if (fn) s.pending = fn; s.held = true; armHold(); return; }
   s.busy = true;
   s.runGen = s.gen;
   s.settingsRun = settings;
@@ -137,6 +138,36 @@ function kick(s, fn){
   runStarted(s);
   (fn || (() => s.handle.notifyBars('tick')))();
 }
+// FIRST-RUN PRIORITY (Round 4). A script that was just added (s.first, until its first model/done/error) goes
+// ahead of every other script's bar re-runs: those are held while it computes, at most FIRST_HOLD_MS, then they
+// resume as one coalesced re-run each. A run already in progress cannot be interrupted, so "ahead" means the
+// next re-runs do not start in front of it. Settings changes are not held.
+const FIRST_HOLD_MS = 6000;
+function firstActive(except){
+  const now = Date.now();
+  for (const x of sessions.values()) if (x !== except && x.first && !x.stopped && now - x.firstAt < FIRST_HOLD_MS) return true;
+  return false;
+}
+let holdTimer = 0;
+function armHold(){
+  if (holdTimer) return;
+  let left = 0; const now = Date.now();
+  for (const x of sessions.values()) if (x.first && !x.stopped) left = Math.max(left, FIRST_HOLD_MS - (now - x.firstAt));
+  holdTimer = setTimeout(() => { holdTimer = 0; releaseHeld(); }, Math.max(50, left + 20));
+}
+function endFirst(s){
+  if (!s.first) return;
+  s.first = false;
+  if (!firstActive(null)) releaseHeld();
+}
+// How long other scripts' runs overlapped this script's first run (the page does not count that against its clock).
+function otherRan(x, from, to){
+  for (const f of sessions.values()) {
+    if (!f.first || f === x || f.stopped) continue;
+    const ov = Math.min(to, Date.now()) - Math.max(from, f.startedAt);
+    if (ov > 0) { f.otherMs = (f.otherMs || 0) + ov; post({ kind: 'own', sessionId: f.id, otherMs: f.otherMs }); }
+  }
+}
 function settingsBusy(except){
   for (const x of sessions.values()) if (x !== except && !x.stopped && (x.pendInputs || x.pendProps || (x.busy && x.settingsRun))) return true;
   return false;
@@ -144,6 +175,8 @@ function settingsBusy(except){
 // After a settings run lands, start the bar re-runs that were held for it.
 function releaseHeld(){
   if (settingsBusy(null)) return;
+  if (firstActive(null)) { armHold(); return; }
+  for (const x of sessions.values()) if (x.held && x.liveHeld && !x.stopped) { const r = x.liveHeld.reason; x.liveHeld = null; x.held = false; liveBars(x, r); }
   for (const x of sessions.values()) if (x.held && !x.busy && !x.stopped) { x.held = false; const fn = x.pending; x.pending = null; x.dirty = false; kick(x, fn); }
 }
 function queueSettings(s, inputs, props){
@@ -156,7 +189,7 @@ function queueSettings(s, inputs, props){
 // debugState): full (re)computes started vs finished per session. A gap that keeps growing
 // means runs are stacking up.
 const runs = { started: 0, finished: 0 };
-function runStarted(s){ busyOn(s); runs.started++; s.started = (s.started || 0) + 1; }
+function runStarted(s){ s.runBegan = Date.now(); busyOn(s); runs.started++; s.started = (s.started || 0) + 1; }
 function runFinished(s){ runs.finished++; s.finished = (s.finished || 0) + 1; }
 
 // LIVE sessions (the normal case on a streaming chart). update() restarts the script's
@@ -189,6 +222,7 @@ function applyLive(s){
 }
 function restartLanded(s){
   busyOff(s);
+  if (s.runBegan && !s.first) otherRan(s, s.runBegan, Date.now());
   if (!s.restarting) return;
   s.restarting = 0;
   runFinished(s);
@@ -196,6 +230,7 @@ function restartLanded(s){
 }
 function landed(s){
   busyOff(s);
+  if (s.runBegan && !s.first) otherRan(s, s.runBegan, Date.now());
   if (s.busy) runFinished(s);
   s.busy = false;
   const wasSettings = s.settingsRun; s.settingsRun = false;
@@ -229,6 +264,9 @@ function tick(s){
 const LIVE_COMPLETE_MS = 400;
 const barsKey = (b) => b && b.length ? b.length + '|' + b[0].time : '0';
 function liveBars(s, reason){
+  // First-run priority also covers live sessions: their bar notifications wait (coalesced to the latest) while a
+  // newly added script computes its first draw, then run once.
+  if (!s.first && firstActive(s)) { s.liveHeld = { reason }; s.held = true; armHold(); return; }
   if (reason !== 'complete') { s.handle.notifyBars(reason); return; }
   clearTimeout(s.completeTimer);
   s.completeTimer = setTimeout(() => {
@@ -280,7 +318,9 @@ self.addEventListener('message', async (ev) => {
     case 'execute': {
       const id = msg.sessionId;
       const s = { id, bars: msg.req.bars || [], stopped: false, busy: false, dirty: false, pending: null, handle: null, live: msg.req.mode === 'live' };
+      s.first = true; s.firstAt = s.startedAt = Date.now();
       sessions.set(id, s);
+      post({ kind: 'started', sessionId: id, queuedMs: msg.sentAt ? Math.max(0, s.firstAt - msg.sentAt) : 0 });
       let eng;
       try { eng = await engineFor(msg); } catch (e) { post({ kind: 'error', sessionId: id, message: String(e && e.message || e) }); return; }
       if (s.stopped) return;
@@ -298,14 +338,15 @@ self.addEventListener('message', async (ev) => {
         // Static runs started before the latest settings change carry the old inputs: drop
         // their model, the queued re-run with the new inputs follows straight after.
         onModel: (model) => {
+          endFirst(s);
           if (s.stopped) return;
           if (s.live) { post({ kind: 'model', sessionId: id, model }); restartLanded(s); return; }
           if ((s.runGen || 0) === (s.gen || 0)) post({ kind: 'model', sessionId: id, model });
         },
         onAlert: (alert) => post({ kind: 'alert', sessionId: id, alert }),
         onWarning: (warning) => post({ kind: 'warning', sessionId: id, warning }),
-        onError: (e) => { post({ kind: 'error', sessionId: id, message: String(e && e.message || e) }); if (!s.live) landed(s); else restartLanded(s); },
-        onDone: () => { post({ kind: 'done', sessionId: id }); if (!s.live) landed(s); }
+        onError: (e) => { endFirst(s); post({ kind: 'error', sessionId: id, message: String(e && e.message || e) }); if (!s.live) landed(s); else restartLanded(s); },
+        onDone: () => { endFirst(s); post({ kind: 'done', sessionId: id }); if (!s.live) landed(s); }
       });
       // A backfill that never reports 'complete' (feed at its history limit, live ticks only)
       // must not leave the script waiting forever: run on what is loaded after 4 s.
@@ -346,8 +387,9 @@ self.addEventListener('message', async (ev) => {
     }
     case 'stop': {
       const s = sessions.get(msg.sessionId);
-      if (s) { busyOff(s); s.stopped = true; clearTimeout(s.tickTimer); clearTimeout(s.liveTimer); try { if (s.handle) s.handle.stop(); } catch (e) {} }
+      if (s) { busyOff(s); s.stopped = true; s.first = false; clearTimeout(s.tickTimer); clearTimeout(s.liveTimer); try { if (s.handle) s.handle.stop(); } catch (e) {} }
       sessions.delete(msg.sessionId);
+      releaseHeld();
       return;
     }
     case 'debugState': {

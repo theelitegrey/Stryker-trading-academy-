@@ -47,6 +47,10 @@
 
 const PINE_PKG = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
 const RUN_LIMIT_MS = 20000;
+// Time limit = the script's OWN compute time (not its wait in the worker queue, not the ms other scripts' runs
+// overlapped it). A phone is slower, so a first run gets 40 s there. Hard wall-clock backstop: 3x the limit.
+const RUN_LIMIT_PHONE_MS = 40000;
+const runLimitMs = () => (typeof window !== 'undefined' && (window.innerWidth <= 700 || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches))) ? RUN_LIMIT_PHONE_MS : RUN_LIMIT_MS;
 const MAX_PER_CELL = 8;
 const SRC_MAX = 65536;
 const BUILTIN_SRC_MAX = 131072;
@@ -256,7 +260,7 @@ async function addSealedOn(chart, z, inputs, restoring){
   const out = restoring
     ? (() => { const h = chart.addIndicator(stub, { language: LANG_NEXT, inputs: inputs || {} }); return { ok: !!h, handle: h }; })()
     : await runOnChart(chart, stub, inputs || {}, false, { sealed: true });
-  if (!out.ok) return { ok: false, msg: (out.msg || 'Could not run the indicator.').replace(/^Line \d+: /, '') };
+  if (!out.ok) return { ok: false, heavy: out.heavy, msg: (out.msg || 'Could not run the indicator.').replace(/^Line \d+: /, '') };
   onNext.add(out.handle);
   sealOf.set(out.handle, { cid: z.cid, iid: z.iid, name: res.name || z.name, version: res.version, logo: z.logo || '' });
   changed();
@@ -437,9 +441,18 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   if (pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
   const keep = pineHandles(chart).map(snapshot);
   let timer;
-  const timeout = new Promise((r) => { timer = setTimeout(() => r({ timedOut: true }), RUN_LIMIT_MS); });
+  const LIMIT = runLimitMs();
+  // clock.sid stays null on the old worker engine (no 'started' message): then it is plain wall time like before.
+  const clock = { t0: Date.now(), next: false, sid: null, start: 0, other: 0 };
+  const hook = (m) => {
+    if (m.kind === 'started' && clock.sid == null) { clock.sid = m.sessionId; clock.start = Date.now(); }
+    else if (m.kind === 'own' && m.sessionId === clock.sid) clock.other = m.otherMs || 0;
+  };
+  const ownMs = () => { const n = Date.now(); return clock.next ? (clock.sid == null ? 0 : n - clock.start - clock.other) : n - clock.t0; };
+  const timeout = new Promise((r) => { timer = setInterval(() => { if (ownMs() > LIMIT || Date.now() - clock.t0 > LIMIT * 3) r({ timedOut: true }); }, 500); });
   const runNext = async () => {
     try { await ensureNext(chart); } catch (e) { console.warn('TradeZoro: Pine next engine', e); return null; }
+    clock.next = true; clock.sid = null; (window.__stkPineClockHooks = window.__stkPineClockHooks || new Set()).add(hook);
     return Promise.race([chart.runIndicator(source, { language: LANG_NEXT, inputs: inputs || {} }), timeout]);
   };
   let res = null, engine = 'worker';
@@ -473,10 +486,15 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
     }
   }
   if (engine === 'worker' || !res || !res.ok) flushHeld(); // a real failure keeps vela's line
-  clearTimeout(timer);
+  clearInterval(timer);
+  if (window.__stkPineClockHooks) window.__stkPineClockHooks.delete(hook);
   if (res && res.timedOut) {
     await resetCell(chart, keep);
-    return { ok: false, msg: 'Script stopped: took too long (over ' + (RUN_LIMIT_MS / 1000) + ' seconds).' };
+    const heavyMsg = 'This indicator is heavy for this device. It did not finish within ' + (LIMIT / 1000) + ' seconds, so it was not added. Your other indicators are unchanged.';
+    // Plain editor Add keeps its inline red box (r.msg); every other caller gets the toast with Retry.
+    const again = (opts && opts.sealed) ? null : () => runOnChart(chart, source, inputs, shared, opts).then((r2) => { if (r2 && r2.ok) toast2('Added ' + titleOf(r2.handle) + ' to the chart', 'success'); return r2; });
+    if (!(opts && opts.inline)) { try { window.showToast && window.showToast('error', heavyMsg, { title: 'Indicator is heavy', duration: 15000, action: again ? { label: 'Retry', onClick: again } : null }); } catch (e) {} }
+    return { ok: false, heavy: true, msg: heavyMsg };
   }
   if (!res || !res.ok) {
     hideVelaErrorToast();
@@ -688,7 +706,7 @@ export function mountPine(ws, barL, opts){
     busy = true; addBtn.disabled = true; addBtn.textContent = enginePromise ? 'Running…' : 'Loading engine…';
     showErr('');
     try {
-      const r = await runOnChart(a.cell.chart, src);
+      const r = await runOnChart(a.cell.chart, src, undefined, false, { inline: true });
       if (r.ok) { toast('Added ' + titleOf(r.handle) + ' to the chart'); if (isPhone()) setOpen(false); }
       else showErr(r.msg, r.line);
     } catch (e) {
@@ -808,7 +826,7 @@ export function mountPine(ws, barL, opts){
     if (!a.cell) return { ok: false, msg: 'No chart to add it to.' };
     try {
       const r = await runOnChart(a.cell.chart, s.source, {}, true);
-      if (!r.ok) return { ok: false, msg: r.msg };
+      if (!r.ok) return { ok: false, heavy: r.heavy, msg: r.msg };
       libOf.set(r.handle, { id: s.id, version: s.version, openSource: s.openSource, ownerUid: s.ownerUid, name: s.name });
       changed();
       toast('Added ' + s.name + ' to the chart');
@@ -831,7 +849,7 @@ export function mountPine(ws, barL, opts){
     if (source.length > max) return { ok: false, msg: 'This script is longer than ' + Math.round(max / 1024) + ' KB.' };
     try {
       const r = await runOnChart(a.cell.chart, source, undefined, false, opts);
-      if (!r.ok) return { ok: false, msg: (r.line ? 'Line ' + r.line + ': ' : '') + r.msg };
+      if (!r.ok) return { ok: false, heavy: r.heavy, msg: (r.line ? 'Line ' + r.line + ': ' : '') + r.msg };
       toast('Added ' + (name || titleOf(r.handle)) + ' to the chart');
       if (!panel.hidden) renderLists();
       return { ok: true };
@@ -841,7 +859,7 @@ export function mountPine(ws, barL, opts){
     }
   }
 
-  toast2 = (m) => { if (m) toast(m, 'error'); };
+  toast2 = (m, t) => { if (m) toast(m, t || 'error'); };
   async function addSealed(z){
     const a = activeCell();
     if (!a.cell) return { ok: false, msg: 'No chart to add it to.' };

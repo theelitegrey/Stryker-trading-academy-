@@ -38,7 +38,7 @@ async function open(b) {
     const WP = Worker.prototype.postMessage;
     const RW = window.Worker;
     window.Worker = function (...a) { const w = new RW(...a); T.workers++; const id = T.workers;
-      w.addEventListener('message', (e) => { const d = e.data || {}; if (d.kind === 'model' || d.kind === 'done' || d.kind === 'error') T.msgs.push([Math.round(performance.now()), 'w' + id, d.kind, d.sessionId]); else if (d.type) T.msgs.push([Math.round(performance.now()), 'w' + id, d.type, d.sessionId || d.id]); });
+      w.addEventListener('message', (e) => { const d = e.data || {}; if (d.kind === 'model' || d.kind === 'done' || d.kind === 'error' || d.kind === 'started' || d.kind === 'own') T.msgs.push([Math.round(performance.now()), 'w' + id, d.kind, d.sessionId]); else if (d.type) T.msgs.push([Math.round(performance.now()), 'w' + id, d.type, d.sessionId || d.id]); });
       const pm = w.postMessage.bind(w);
       w.postMessage = (m, ...r) => { if (m && m.kind) T.msgs.push([Math.round(performance.now()), 'w' + id, '>' + m.kind, m.sessionId]); else if (m && m.type) T.msgs.push([Math.round(performance.now()), 'w' + id, '>' + m.type, m.sessionId || m.id]); return pm(m, ...r); };
       return w; };
@@ -156,7 +156,7 @@ async function addId(p, id, limitMs) {
       const s0 = await p.evaluate(() => window.__ps.msgs.length); await sleep(10000);
       const st = await p.evaluate((i) => window.__ps.msgs.slice(i), s0);
       row.steady10s = { models: st.filter((m) => m[2] === 'model').length, runs: st.filter((m) => /^>(notifyBars|execute|update)/.test(m[2])).length };
-      row.errors = errors.slice(0, 5);
+      row.errors = errors.slice(0, 5); row.clock = await p.evaluate(() => window.__ps.msgs.filter((m) => m[2] === 'started' || m[2] === 'own' || m[2] === '>execute').slice(-30));
       if (SHOTS) await p.screenshot({ path: path.join(SHOTS, `speed-${V09 ? 'v09' : 'v06'}-tf${TF}-${W}-${cs}.png`) });
       console.log(JSON.stringify(row));
       results.push(row);

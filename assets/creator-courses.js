@@ -250,7 +250,7 @@
   function uploadFile(file, lid, download) {
     if (!TYPES[file.type]) return Promise.reject(new Error('That file type is not allowed. Use PDF, PNG, JPG, WebP, ZIP, TXT, CSV, DOCX or XLSX.'));
     if (file.size < 1 || file.size > MAX_FILE) return Promise.reject(new Error('Files must be under 25 MB.'));
-    var fid = rid(20), tok = (crypto.randomUUID ? crypto.randomUUID() : rid(32)), sref = cref().collection('stats').doc('storage'), freg = cref().collection('files').doc(fid), bytes;
+    var fid = rid(20), sref = cref().collection('stats').doc('storage'), freg = cref().collection('files').doc(fid), bytes;
     return sniff(file).then(function (ok) {
       if (!ok) throw new Error('That file does not look like a real ' + file.type.split('/')[1] + '.');
       return sref.get();
@@ -262,9 +262,11 @@
       if (sd.exists) b.update(sref, { bytes: CH.inc(file.size), lastFid: fid, updatedAt: CH.ts() }); else b.set(sref, { bytes: file.size, lastFid: fid, updatedAt: CH.ts() });
       return b.commit();
     }).then(function () {
-      return firebase.storage().ref('communities/' + ctx.cid + '/files/' + fid).put(file, { contentType: file.type, customMetadata: { firebaseStorageDownloadTokens: tok } })
+      return firebase.storage().ref('communities/' + ctx.cid + '/files/' + fid).put(file, { contentType: file.type })
+        .then(function (snap) { return snap.ref.getDownloadURL(); })
+        .then(function (url) { var m = /[?&]token=([A-Za-z0-9-]{20,80})/.exec(url); if (!m) throw new Error('no token'); return m[1]; })
         .catch(function (e) { return unregister({ fid: fid, size: file.size }, true).then(function () { throw new Error('The upload failed. Check your connection and try again.'); }); });
-    }).then(function () { return mod(); }).then(function (S) { return S.seal(CH.cfg.SEAL_PUB, tok); }).then(function (sealed) {
+    }).then(function (tok) { return mod().then(function (S) { return S.seal(CH.cfg.SEAL_PUB, tok); }); }).then(function (sealed) {
       return { fid: fid, name: file.name.slice(0, 120), size: file.size, ct: file.type, download: !!download, sealed: sealed };
     });
   }

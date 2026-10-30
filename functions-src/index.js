@@ -170,6 +170,10 @@ exports.getIntel = require('./getIntel').getIntel;
 exports.refreshWorldData = require('./refreshWorldData').refreshWorldData;
 exports.marketBots = require('./marketBots').marketBots;
 Object.assign(exports, require('./brokerSync'));
+// Rithmic saved login + journal auto sync: ships OFF (settings/commerce.rithmicSavedLogin, RITHMIC_CRED_KEY).
+{ const r = require('./rithmicCreds');
+  ['rithmicCredSave', 'rithmicCredStatus', 'rithmicCredDelete', 'rithmicCredSettings', 'rithmicSessionTicket', 'rithmicCredRotate', 'rithmicJournalSync']
+    .forEach((n) => { exports[n] = r[n]; }); }
 Object.assign(exports, require('./razorpay'));
 Object.assign(exports, require('./tvAccess'));
 Object.assign(exports, require('./subscriptions'));

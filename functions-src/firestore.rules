@@ -526,6 +526,8 @@ service cloud.firestore {
     }
     match /tvSession/{doc}      { allow read, write: if false; }   // functions only
     match /brokerSync/{id}      { allow read, write: if false; }   // functions only
+    match /rithmicCreds/{uid}   { allow read, write: if false; }   // functions only: encrypted Rithmic login
+    match /rithmicCredAudit/{id} { allow read, write: if false; }  // functions only: who saved/removed/synced (no secrets)
     match /bots/{id}            { allow read: if isAdmin(); allow write: if isAdmin(); }
     match /xAutopost/config     { allow read, write: if isAdmin(); }
     match /xAutopost/state      { allow read: if isAdmin(); allow write: if false; }

@@ -3168,3 +3168,11 @@ input[type=checkbox]:not(:checked), input[type=radio]:not(:checked){ background-
 .stkw-railbtn .stk-protag, .stkgl-phonebtn .stk-protag{ position:absolute; top:-3px; right:-4px; margin:0; padding:0 4px; font-size:8px; background:var(--bg-1,#0b0b0d); }
 .stkw-railbtn, .stkgl-phonebtn{ position:relative; }
 :root[data-theme="light"] .stk-protag{ color:#058a5e; border-color:rgba(5,138,94,.5); background:rgba(5,138,94,.08); }
+#settings-connections-panel .rs-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:56px; padding:8px 0; }
+#settings-connections-panel .rs-row b{ display:block; font:600 15px/20px var(--ja-font, inherit); }
+#settings-connections-panel small{ display:block; font:400 12px/16px var(--ja-font, inherit); color:var(--ink-2); overflow-wrap:anywhere; }
+#settings-connections-panel .rs-check{ display:flex; align-items:center; gap:12px; min-height:44px; font-size:14px; color:var(--ink-1); cursor:pointer; }
+#settings-connections-panel .rs-check input{ width:22px; height:22px; accent-color:var(--gold); }
+#settings-connections-panel .rs-time{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:48px; font-size:13px; color:var(--ink-2); }
+#settings-connections-panel .rs-time input{ height:44px; padding:0 12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); color:var(--ink-0); font-size:16px; }
+#settings-connections-panel .rs-note{ margin:8px 0 0; font-size:12px; line-height:16px; color:var(--ink-2); }

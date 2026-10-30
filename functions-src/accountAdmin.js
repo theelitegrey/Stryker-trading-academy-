@@ -149,6 +149,8 @@ exports.deleteUserAccount = functions
       report.push('Trading floor posts — FAILED (' + err.message + ')');
     }
 
+    try { await db.collection('rithmicCreds').doc(targetUid).delete(); report.push('saved Rithmic login'); }
+    catch (err) { report.push('saved Rithmic login — FAILED (' + err.message + ')'); }
     await deleteByQuery(db.collection('notifications').where('recipientUid', '==', targetUid), 'notifications', report);
     await deleteByQuery(db.collection('referralCodes').where('uid', '==', targetUid), 'invite codes', report);
     await deleteByQuery(db.collection('referrals').where('referrerUid', '==', targetUid), 'invites they sent', report);

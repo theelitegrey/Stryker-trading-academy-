@@ -12,7 +12,7 @@
     b.type = 'button'; b.className = 'btn btn-ghost btn-sm'; b.id = 'ji-open-rithmic'; b.textContent = 'Import from Rithmic';
     b.addEventListener('click', function () {
       b.disabled = true;
-      import('./rithmic-journal-ui.js?v=' + build()).then(function (m) { m.openRithmicJournalImport({ uid: uid }); })
+      import('./rithmic-journal-ui.js?v=' + build()).then(function (m) { return (window.strykerRithmicSaved ? window.strykerRithmicSaved.sheetHook() : Promise.resolve(null)).catch(function () { return null; }).then(function (hook) { m.openRithmicJournalImport({ uid: uid, savedLogin: hook }); }); })
         .catch(function (e) { console.error('Rithmic import failed to load', e); if (window.showToast) window.showToast('error', 'Could not open Rithmic import.'); })
         .then(function () { b.disabled = false; });
     });

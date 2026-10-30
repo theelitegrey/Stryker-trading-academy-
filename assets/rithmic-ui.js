@@ -404,6 +404,7 @@ export function createRithmic(cfg) {
       ]),
       el('small', { class: 'stkrb-help stkrb-login-hint', id: 'stkrb-login-hint', text: 'From your firm\u2019s Rithmic email, not the website login.' }),
       el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Save username on this device' })])]),
+      el('div', { id: 'stkrb-save-slot' }),
       el('p', { class: 'stkrb-session', id: 'stkrb-session' }, [svg(ICON_WARN, 14), el('span', { text: 'One session per login: connecting can sign out your trading app. Don\u2019t connect mid-trade.' })]),
       go,
       el('p', { class: 'stkrb-lock', id: 'stkrb-lock' }, [svg(ICON_LOCK, 14), el('span', { text: 'Your login stays private: it goes from this device straight to Rithmic. We never see or store your password.' })]),
@@ -521,6 +522,21 @@ export function createRithmic(cfg) {
       err.hidden = !m;
     }
 
+    // Saved login (ships OFF): assets/rithmic-saved.js answers { available:false } until the server switch and key exist,
+    // so nothing below shows or runs by default. Default for the checkbox is OFF.
+    let savedHook = null;
+    function loadSaved() {
+      if (window.strykerRithmicSaved) return Promise.resolve(window.strykerRithmicSaved);
+      return new Promise((res) => { const sc = document.createElement('script'); sc.src = 'assets/rithmic-saved.js?v=740'; sc.onload = () => res(window.strykerRithmicSaved || null); sc.onerror = () => res(null); document.head.appendChild(sc); });
+    }
+    loadSaved().then((m) => m && m.sheetHook()).then((h) => {
+      if (!h) return; savedHook = h;
+      const slot = form.querySelector('#stkrb-save-slot'); if (!slot) return;
+      h.mount(slot);
+      slot.querySelectorAll('.rjs-check-row').forEach((n) => { n.className = 'stkc-check'; });
+      slot.querySelectorAll('.rjs-hint').forEach((n) => { n.className = 'stkrb-help'; n.removeAttribute('style'); });
+    }).catch(() => {});
+
     async function doConnect() {
       showErr('');
       const u = user.value.trim();
@@ -534,6 +550,7 @@ export function createRithmic(cfg) {
       lsSet(LS_SYS, s);
       try {
         await client.connect({ user: u, password: p, systemName: s, gateway: gwSel.value || cfg.gateway });
+        if (savedHook && savedHook.afterLogin) { try { await savedHook.afterLogin({ system: s, user: u, password: p, gateway: gwSel.value || cfg.gateway }); } catch (e2) {} }
         toast('Connected to Rithmic');
         setOpen(false);
       } catch (e) {
@@ -632,6 +649,14 @@ export function createRithmic(cfg) {
     window.addEventListener('pagehide', () => { client.disconnect(true); });
 
     render();
+
+    // Charts auto-connect with a saved login (ships OFF: ticket() resolves null unless the server switch, the key and a saved row exist).
+    // Runs once per page load, never retries on failure, and never when the member is already connected.
+    loadSaved().then((m) => (m ? m.ticket() : null)).then(async (tk) => {
+      if (!tk || !tk.password || (api.state && api.state !== 'idle')) return;
+      try { await client.connect({ user: tk.username, password: tk.password, systemName: tk.system, gateway: tk.gateway || cfg.gateway }); toast('Reconnected to Rithmic with your saved login'); }
+      catch (e) { const r = explainLoginError({ codes: e && e.rpRaw, text: e && e.message, system: tk.system, appName: cfg.appName }); toast(r.message, 'error'); }
+    }).catch(() => {});
   }
 
   return { client, providerFactory, mount, api };

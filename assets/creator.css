@@ -507,3 +507,10 @@ body.cx-page:has(.cp-root) .cx-wrap{ max-width:none; padding:0 0 96px; }
 #hb-pay .cp-chip.warn{ border-color:var(--amber-dim); color:var(--amber); }
 #hb-pay .cp-chip.bad{ border-color:var(--bear); color:var(--bear); }
 #hb-pay .cx-wrap .cp-sub, #hb-pay .cp-sub{ margin:0 0 8px !important; font-size:13px !important; line-height:18px; font-weight:500 !important; color:var(--ink-2) !important; letter-spacing:0; text-transform:none; }
+
+/* c.html (public community page): signed in = the app shell, signed out = the public marketing header + footer.
+   html.nav-authed is set by app-nav.js (from the stored flag at first paint, then from the real auth state). */
+html:not(.nav-authed) body.cx-app .mobile-topnav, html:not(.nav-authed) body.cx-app .sidebar-backdrop, html:not(.nav-authed) body.cx-app .sidebar{ display:none !important; }
+html:not(.nav-authed) body.cx-app .dash-shell.cx-shell{ display:block; }
+html:not(.nav-authed) body.cx-app .dash-shell.cx-shell .dash-main{ max-width:none; padding:0; }
+html.nav-authed body.cx-app .cx-pubnav, html.nav-authed body.cx-app .cx-pubfoot{ display:none; }

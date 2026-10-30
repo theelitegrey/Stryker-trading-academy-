@@ -336,7 +336,7 @@
       if (!plans.length) h += '<p class="cx-muted">No plans are open yet.</p>';
       plans.forEach(function (p) {
         var free = p.price && p.price.interval === 'free';
-        h += '<div class="cx-plan' + (p.popular ? ' pop' : '') + '"><div class="cx-spread"><b>' + CH.esc(p.name) + '</b>' + (p.popular ? '<span class="cx-chip on">Popular</span>' : '') + '</div><div class="price">' + CH.esc(CH.money(p)) + '</div>' +
+        h += '<div class="cx-plan' + (p.popular ? ' pop' : '') + '"><div class="cx-spread"><b>' + CH.esc(p.name) + '</b>' + (p.popular ? '<span class="cx-chip on">Popular</span>' : '') + '</div><div class="price">' + CH.esc(String(p.name || '').trim().toLowerCase() === CH.money(p).toLowerCase() ? 'No charge' : CH.money(p)) + '</div>' +
           (p.trialDays ? '<div class="cx-muted">' + p.trialDays + '-day free trial</div>' : '') +
           (p.desc ? '<p class="cx-muted" style="margin:6px 0">' + CH.esc(p.desc) + '</p>' : '') +
           ((p.bullets || []).length ? '<ul>' + p.bullets.map(function (b) { return '<li>' + CH.esc(b) + '</li>'; }).join('') + '</ul>' : '') +

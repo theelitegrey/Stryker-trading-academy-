@@ -10,7 +10,7 @@
 // aggTrades). Chart bars: { time, open, high, low, close, volume } in price units.
 // Nothing here predicts anything. Education only. Not financial advice.
 
-import { rows, imbalances, stacked, profile } from './chart-footprint-data.js?v=755';
+import { rows, imbalances, stacked, profile } from './chart-footprint-data.js?v=756';
 
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 

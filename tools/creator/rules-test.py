@@ -58,6 +58,25 @@ BASE = {
     '/creatorMeta/own': {'count': 1, 'cid': 'old', 'updatedAt': TS},
     '/creatorMeta/full': {'count': 3, 'cid': 'old', 'updatedAt': TS},
 }
+IID = 'ind00000000001'
+IND = lambda *a: C('indicators', IID, *a) if a else C('indicators', IID)
+def ind(**k):
+    d = {'ownerUid': 'own', 'name': 'Mint Bands', 'desc': 'Bands', 'settingsNotes': '', 'tags': ['trend'], 'shots': [], 'protected': True,
+         'planIds': ['p3'], 'solo': {'mode': 'invite', 'price': {'amount': 0, 'currency': 'USD'}}, 'version': 1, 'versionNotes': 'first',
+         'status': 'live', 'createdAt': TS, 'updatedAt': TS, 'publishedAt': TS, 'srcSize': 400}
+    d.update(k); return d
+SEALED = {'alg': 'p256-hkdf-a256gcm', 'epk': 'AAAA', 'iv': 'BBBB', 'ct': 'CCCC'}
+BASE.update({IND(): ind(), IND('src', 'v1'): {'version': 1, 'source': '//@version=5', 'notes': '', 'createdAt': TS},
+             IND('vault', 'v1'): {'version': 1, 'sealed': SEALED, 'createdAt': TS},
+             C('members', 'pro'): member('pro', plan='p3', source='invite'),
+             C('members', 'proold'): member('proold', plan='p3', source='invite', exp=SOON),
+             C('members', 'probad'): member('probad', plan='p3', status='banned'),
+             IND('access', 'solo@x.com'): {'email': 'solo@x.com', 'source': 'manual', 'status': 'active', 'expiresAt': None, 'createdBy': 'own', 'createdAt': TS},
+             IND('access', 'gone@x.com'): {'email': 'gone@x.com', 'source': 'manual', 'status': 'revoked', 'expiresAt': None, 'createdBy': 'own', 'createdAt': TS},
+             IND('access', 'late@x.com'): {'email': 'late@x.com', 'source': 'manual', 'status': 'active', 'expiresAt': SOON, 'createdBy': 'own', 'createdAt': TS},
+             IND('access', 'ts@x.com'): {'email': 'ts@x.com', 'source': 'manual', 'status': 'active', 'expiresAt': None, 'createdBy': 'own', 'createdAt': TS},
+             IND('codes', 'INDCODE1234'): {'uses': 0, 'maxUses': 5, 'expiresAt': None, 'grantDays': 0, 'status': 'active', 'createdBy': 'own', 'createdAt': TS}})
+USERS.update({'pro': 'pro@x.com', 'proold': 'proold@x.com', 'probad': 'probad@x.com', 'solo': 'solo@x.com', 'gone': 'gone@x.com', 'late': 'late@x.com'})
 PEOPLE = list(USERS) + ['tz', 'newbie', 'full', 'zed']
 EMAILS = list(USERS.values()) + ['newbie@x.com', 'zed@x.com']
 def mocks(before, after):
@@ -69,6 +88,9 @@ def mocks(before, after):
     paths |= {'/slugs/' + CID, '/slugs/newslug', C('plans', 'p1'), C('plans', 'p1'), '/communities/newslug', '/creatorMeta/newbie', '/creatorMeta/zed'}
     for pth in ('/communities/newslug/members/newbie', '/communities/newslug/members/zed', '/communities/newslug/members/full'):
         paths.add(pth)
+    for e in EMAILS:
+        paths.add(IND('access', e))
+    paths |= {IND(), IND('src', 'v1'), IND('src', 'v2'), IND('vault', 'v1'), IND('vault', 'v2'), IND('codes', 'INDCODE1234')}
     ms = []
     for pth in sorted(paths):
         for fn, world in (('exists', before), ('existsAfter', after), ('get', before), ('getAfter', after)):
@@ -83,7 +105,7 @@ def case(exp, name, uid, method, path, new=None, old='auto', before=None, after=
     for k in [k for k, v in b.items() if v is None]: del b[k]
     a = dict(b); a.update(after or {})
     for k in [k for k, v in a.items() if v is None]: del a[k]
-    req = {'auth': auth(uid), 'method': method, 'path': D + path, 'time': TS}
+    req = {'auth': auth(uid, verified), 'method': method, 'path': D + path, 'time': TS}
     if new is not None: req['resource'] = {'data': new}
     t = {'expectation': exp, 'request': req, 'functionMocks': mocks(b, a)}
     if old == 'auto': old = b.get(path)
@@ -367,25 +389,130 @@ case(DN, 'creator reads reports about him', 'own', 'get', '/creatorReports/commu
 case(A, 'TradeZoro admin reads reports', 'tz', 'get', '/creatorReports/community_%s_out' % CID, old=RP)
 case(A, 'TradeZoro admin closes report', 'tz', 'update', '/creatorReports/community_%s_out' % CID, old=RP, new=dict(RP, status='closed'))
 
+
+# ---------- Phase B: indicators ----------
+NOW_DAY = 20756  # int(TS ms / 86400000) for 2026-10-30
+V = IND('vault', 'v1')
+case(A, 'ind: signed-out reads live metadata (public community)', None, 'get', IND())
+case(A, 'ind: stranger lists live indicators', 'out', 'list', IND())
+case(DN, 'ind: stranger reads a draft', 'out', 'get', IND(), before={IND(): ind(status='draft')})
+case(A, 'ind: owner reads a draft', 'own', 'get', IND(), before={IND(): ind(status='draft')})
+case(DN, 'ind: private community, non-member reads metadata', 'out', 'get', IND(), before={C(): cm(visibility='private')})
+case(A, 'ind: private community, solo buyer reads metadata', 'solo', 'get', IND(), before={C(): cm(visibility='private')})
+case(DN, 'ind: suspended community metadata', 'out', 'get', IND(), before={C(): cm(status='suspended')})
+# source: owner only
+for who in ('adm', 'mod', 'mem', 'pro', 'solo', 'out', None, 'tz'):
+    case(DN, 'ind src: %s reads plain source' % who, who, 'get', IND('src', 'v1'))
+case(A, 'ind src: owner reads plain source', 'own', 'get', IND('src', 'v1'))
+case(A, 'ind src: owner lists versions', 'own', 'list', IND('src', 'v1'))
+case(DN, 'ind src: member lists versions', 'pro', 'list', IND('src', 'v1'))
+# vault: only people with access right now
+case(A, 'vault: member on included plan', 'pro', 'get', V)
+case(DN, 'vault: member on another plan', 'mem', 'get', V)
+case(DN, 'vault: expired member', 'proold', 'get', V)
+case(DN, 'vault: banned member', 'probad', 'get', V)
+case(A, 'vault: solo buyer (manual grant)', 'solo', 'get', V)
+case(DN, 'vault: solo buyer, email not verified', 'solo', 'get', V, verified=False)
+case(DN, 'vault: revoked grant', 'gone', 'get', V)
+case(DN, 'vault: grant expired', 'late', 'get', V)
+case(DN, 'vault: grant but banned by email', 'ts', 'get', V)
+case(DN, 'vault: stranger', 'out', 'get', V)
+case(DN, 'vault: signed out', None, 'get', V)
+case(DN, 'vault: list', 'pro', 'list', V)
+case(A, 'vault: owner', 'own', 'get', V)
+case(DN, 'vault: indicator hidden', 'pro', 'get', V, before={IND(): ind(status='hidden')})
+case(DN, 'vault: community suspended', 'pro', 'get', V, before={C(): cm(status='suspended')})
+case(A, 'vault: plan added later (p1 member, planIds p1+p3)', 'mem', 'get', V, before={IND(): ind(planIds=['p1', 'p3'])})
+# publish
+pub_after = {IND('src', 'v1'): BASE[IND('src', 'v1')], IND('vault', 'v1'): BASE[IND('vault', 'v1')]}
+NEWI = ind(); 
+case(A, 'publish: owner creates v1 with src + vault', 'own', 'create', IND(), new=NEWI, old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after=pub_after)
+case(DN, 'publish: without vault in batch', 'own', 'create', IND(), new=NEWI, old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after={IND('src', 'v1'): BASE[IND('src', 'v1')]})
+case(DN, 'publish: community admin (not owner)', 'adm', 'create', IND(), new=ind(), old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after=pub_after)
+case(DN, 'publish: member', 'mem', 'create', IND(), new=ind(ownerUid='mem'), old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after=pub_after)
+case(DN, 'publish: 5 screenshots', 'own', 'create', IND(), new=ind(shots=['https://a.b/1'] * 5), old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after=pub_after)
+case(A, 'publish: 4 screenshots', 'own', 'create', IND(), new=ind(shots=['https://a.b/1'] * 4), old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after=pub_after)
+case(DN, 'publish: paid solo with 0 price', 'own', 'create', IND(), new=ind(solo={'mode': 'paid', 'price': {'amount': 0, 'currency': 'USD'}}), old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after=pub_after)
+case(A, 'publish: paid solo with price (stored, checkout off)', 'own', 'create', IND(), new=ind(solo={'mode': 'paid', 'price': {'amount': 49, 'currency': 'USD'}}), old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after=pub_after)
+case(DN, 'publish: starts at version 2', 'own', 'create', IND(), new=ind(version=2), old=None, before={IND(): None, IND('src', 'v1'): None, IND('vault', 'v1'): None}, after=pub_after)
+case(A, 'src: owner writes v1', 'own', 'create', IND('src', 'v1'), new={'version': 1, 'source': 'x', 'notes': '', 'createdAt': TS}, old=None, before={IND('src', 'v1'): None})
+case(DN, 'src: owner overwrites v1', 'own', 'update', IND('src', 'v1'), new={'version': 1, 'source': 'y', 'notes': '', 'createdAt': TS})
+case(DN, 'src: member writes', 'mem', 'create', IND('src', 'v2'), new={'version': 2, 'source': 'x', 'notes': '', 'createdAt': TS}, old=None)
+case(A, 'vault: owner writes v2', 'own', 'create', IND('vault', 'v2'), new={'version': 2, 'sealed': SEALED, 'createdAt': TS}, old=None)
+case(DN, 'vault: owner writes plain source into vault', 'own', 'create', IND('vault', 'v2'), new={'version': 2, 'sealed': SEALED, 'source': 'plain', 'createdAt': TS}, old=None)
+case(DN, 'vault: member writes', 'pro', 'create', IND('vault', 'v2'), new={'version': 2, 'sealed': SEALED, 'createdAt': TS}, old=None)
+v2_after = {IND('src', 'v2'): {'version': 2, 'source': 'x', 'notes': '', 'createdAt': TS}, IND('vault', 'v2'): {'version': 2, 'sealed': SEALED, 'createdAt': TS}}
+case(A, 'new version: v2 with src + vault', 'own', 'update', IND(), new=ind(version=2, versionNotes='fix'), after=v2_after)
+case(DN, 'new version: v2 without vault', 'own', 'update', IND(), new=ind(version=2), after={IND('src', 'v2'): v2_after[IND('src', 'v2')]})
+case(DN, 'new version: jump to v3', 'own', 'update', IND(), new=ind(version=3), after=v2_after)
+case(A, 'edit metadata (same version)', 'own', 'update', IND(), new=ind(desc='new text', planIds=['p1']))
+case(DN, 'edit: change createdAt', 'own', 'update', IND(), new=ind(createdAt=LATER))
+case(DN, 'edit: member edits', 'pro', 'update', IND(), new=ind(desc='hacked'))
+case(A, 'TradeZoro admin hides indicator', 'tz', 'update', IND(), new=ind(status='hidden'))
+# access grants
+AC = lambda e: IND('access', e)
+grant = lambda e, **k: dict({'email': e, 'source': 'manual', 'status': 'active', 'expiresAt': None, 'createdBy': 'own', 'createdAt': TS}, **k)
+case(A, 'access: owner grants by email', 'own', 'create', AC('zed@x.com'), new=grant('zed@x.com'), old=None)
+case(A, 'access: admin grants with expiry', 'adm', 'create', AC('zed@x.com'), new=grant('zed@x.com', createdBy='adm', expiresAt=LATER), old=None)
+case(DN, 'access: member grants himself', 'mem', 'create', AC('mem@x.com'), new=grant('mem@x.com', createdBy='mem'), old=None)
+case(DN, 'access: member grants himself as "free" on invite-mode', 'mem', 'create', AC('mem@x.com'), new=grant('mem@x.com', createdBy='mem', source='free'), old=None)
+case(A, 'access: free solo claim by verified user', 'out', 'create', AC('out@x.com'), new=grant('out@x.com', createdBy='out', source='free'), old=None, before={IND(): ind(solo={'mode': 'free', 'price': {'amount': 0, 'currency': 'USD'}})})
+case(DN, 'access: free claim, unverified', 'out', 'create', AC('out@x.com'), new=grant('out@x.com', createdBy='out', source='free'), old=None, verified=False, before={IND(): ind(solo={'mode': 'free', 'price': {'amount': 0, 'currency': 'USD'}})})
+case(DN, 'access: free claim for someone else', 'out', 'create', AC('zed@x.com'), new=grant('zed@x.com', createdBy='out', source='free'), old=None, before={IND(): ind(solo={'mode': 'free', 'price': {'amount': 0, 'currency': 'USD'}})})
+case(DN, 'access: free claim on paid solo', 'out', 'create', AC('out@x.com'), new=grant('out@x.com', createdBy='out', source='free'), old=None, before={IND(): ind(solo={'mode': 'paid', 'price': {'amount': 9, 'currency': 'USD'}})})
+case(DN, 'access: free claim by banned email', 'ts', 'create', AC('ts@x.com'), new=grant('ts@x.com', createdBy='ts', source='free'), old=None, before={IND(): ind(solo={'mode': 'free', 'price': {'amount': 0, 'currency': 'USD'}}), AC('ts@x.com'): None})
+case(DN, 'access: paid source from client', 'out', 'create', AC('out@x.com'), new=grant('out@x.com', createdBy='out', source='paid'), old=None)
+code_after = {IND('codes', 'INDCODE1234'): dict(BASE[IND('codes', 'INDCODE1234')], uses=1)}
+case(A, 'access: redeem indicator code', 'out', 'create', AC('out@x.com'), new=grant('out@x.com', createdBy='out', source='invite', code='INDCODE1234'), old=None, after=code_after)
+case(DN, 'access: redeem without uses+1', 'out', 'create', AC('out@x.com'), new=grant('out@x.com', createdBy='out', source='invite', code='INDCODE1234'), old=None)
+case(DN, 'access: redeem used-up code', 'out', 'create', AC('out@x.com'), new=grant('out@x.com', createdBy='out', source='invite', code='INDCODE1234'), old=None,
+     before={IND('codes', 'INDCODE1234'): dict(BASE[IND('codes', 'INDCODE1234')], uses=5)}, after={IND('codes', 'INDCODE1234'): dict(BASE[IND('codes', 'INDCODE1234')], uses=6)})
+case(A, 'code: uses+1 in the redeem batch', 'out', 'update', IND('codes', 'INDCODE1234'), new=dict(BASE[IND('codes', 'INDCODE1234')], uses=1),
+     after={AC('out@x.com'): grant('out@x.com', createdBy='out', source='invite', code='INDCODE1234')})
+case(DN, 'code: uses+1 without access doc', 'out', 'update', IND('codes', 'INDCODE1234'), new=dict(BASE[IND('codes', 'INDCODE1234')], uses=1))
+case(DN, 'code: member resets uses', 'out', 'update', IND('codes', 'INDCODE1234'), new=dict(BASE[IND('codes', 'INDCODE1234')], uses=0, maxUses=0))
+case(A, 'code: owner creates', 'own', 'create', IND('codes', 'NEWCODE1234'), new=dict(BASE[IND('codes', 'INDCODE1234')]), old=None)
+case(DN, 'code: member creates', 'mem', 'create', IND('codes', 'NEWCODE1234'), new=dict(BASE[IND('codes', 'INDCODE1234')], createdBy='mem'), old=None)
+case(A, 'access: owner revokes', 'own', 'update', AC('solo@x.com'), new=dict(BASE[AC('solo@x.com')], status='revoked'))
+case(DN, 'access: holder extends own expiry', 'late', 'update', AC('late@x.com'), new=dict(BASE[AC('late@x.com')], expiresAt=LATER))
+case(DN, 'access: holder un-revokes', 'gone', 'update', AC('gone@x.com'), new=dict(BASE[AC('gone@x.com')], status='active'))
+case(A, 'access: holder reads own grant', 'solo', 'get', AC('solo@x.com'))
+case(DN, 'access: member lists grants', 'mem', 'list', AC('solo@x.com'))
+case(A, 'access: owner lists grants', 'own', 'list', AC('solo@x.com'))
+case(A, 'access: collection-group list of my grants', 'solo', 'list', '/communities/x/indicators/y/access/solo@x.com', old=BASE[AC('solo@x.com')])
+case(DN, 'access: collection-group list of others', 'out', 'list', '/communities/x/indicators/y/access/solo@x.com', old=BASE[AC('solo@x.com')])
+# usage
+case(A, 'usage: holder marks today', 'pro', 'create', IND('usage', 'pro'), new={'day': NOW_DAY, 'at': TS}, old=None)
+case(DN, 'usage: holder marks another day', 'pro', 'create', IND('usage', 'pro'), new={'day': NOW_DAY + 3, 'at': TS}, old=None)
+case(DN, 'usage: no access', 'mem', 'create', IND('usage', 'mem'), new={'day': NOW_DAY, 'at': TS}, old=None)
+case(DN, 'usage: for someone else', 'pro', 'create', IND('usage', 'mem'), new={'day': NOW_DAY, 'at': TS}, old=None)
+case(A, 'usage: owner lists', 'own', 'list', IND('usage', 'pro'), old={'day': NOW_DAY, 'at': TS})
+case(DN, 'usage: member lists', 'pro', 'list', IND('usage', 'pro'), old={'day': NOW_DAY, 'at': TS})
+
 # ---------- regression: old collections unchanged ----------
 case(DN, 'regression: student sets own plan', 'out', 'update', '/students/out', old={'plan': 'Free'}, new={'plan': 'Pro'}, before={'/students/out': {'plan': 'Free'}})
 case(DN, 'regression: random collection denied', 'out', 'create', '/secretStuff/x', new={'a': 1}, old=None)
 case(A, 'regression: public sitePages read', None, 'get', '/sitePages/home', old={'a': 1})
 
-body = {'source': {'files': [{'name': 'firestore.rules', 'content': RULES}]}, 'testSuite': {'testCases': [t for _, t in cases]}}
-req = urllib.request.Request(f'https://firebaserules.googleapis.com/v1/projects/{P}:test', data=json.dumps(body).encode(),
-                             headers={'Authorization': 'Bearer ' + TOK, 'Content-Type': 'application/json', 'x-goog-user-project': P})
-try:
-    out = json.load(urllib.request.urlopen(req))
-except urllib.error.HTTPError as e:
-    print(e.code, e.read().decode()[:2500]); sys.exit(2)
-if out.get('issues'):
-    print('ISSUES', json.dumps(out['issues'])[:1500])
-    if any(i.get('severity') == 'ERROR' for i in out['issues']): sys.exit(3)
+def run(batch):
+    body = {'source': {'files': [{'name': 'firestore.rules', 'content': RULES}]}, 'testSuite': {'testCases': [t for _, t in batch]}}
+    req = urllib.request.Request(f'https://firebaserules.googleapis.com/v1/projects/{P}:test', data=json.dumps(body).encode(),
+                                 headers={'Authorization': 'Bearer ' + TOK, 'Content-Type': 'application/json', 'x-goog-user-project': P})
+    try:
+        out = json.load(urllib.request.urlopen(req))
+    except urllib.error.HTTPError as e:
+        print(e.code, e.read().decode()[:2500]); sys.exit(2)
+    if out.get('issues'):
+        print('ISSUES', json.dumps(out['issues'])[:1500])
+        if any(i.get('severity') == 'ERROR' for i in out['issues']): sys.exit(3)
+    return out.get('testResults', [])
+# The :test API takes at most ~250 cases per call: run in batches.
 fails = 0
-for (name, t), res in zip(cases, out.get('testResults', [])):
-    ok = res['state'] == 'SUCCESS'; fails += not ok
-    if not ok or os.environ.get('V'):
-        print(('PASS' if ok else 'FAIL'), t['expectation'], name, '' if ok else json.dumps(res.get('errorPosition') or res.get('debugMessages') or res)[:260])
+for i in range(0, len(cases), 200):
+    batch = cases[i:i + 200]
+    for (name, t), res in zip(batch, run(batch)):
+        ok = res['state'] == 'SUCCESS'; fails += not ok
+        if not ok or os.environ.get('V'):
+            print(('PASS' if ok else 'FAIL'), t['expectation'], name, '' if ok else json.dumps(res.get('errorPosition') or res.get('debugMessages') or res)[:260])
 print(f'{len(cases) - fails}/{len(cases)} passed')
 sys.exit(1 if fails else 0)

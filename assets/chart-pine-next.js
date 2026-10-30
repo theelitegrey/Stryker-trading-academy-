@@ -84,6 +84,9 @@ export class PineNextEngine {
   post(m){ this.w().postMessage(m); }
   retire(){
     setBusy(this, false);
+    // A worker holding decrypted community indicators stays up: retiring it would lose them (and the session key),
+    // and the chart's stub sources would then fail to run until re-added.
+    if (this.hasSealed) return;
     const w = this.worker; if (!w) return;
     this.worker = null;
     this.ctxWaits.forEach((r) => r(null)); this.ctxWaits.clear();
@@ -96,6 +99,16 @@ export class PineNextEngine {
       this.post({ kind: 'prepare', reqId, source, instanceId, defaultProps: this.opts.defaultProps, propsVisibility: this.opts.props || 'strategy' });
     });
   }
+  // Sealed community indicators (see the worker's SEALED block): the page only ever sees ciphertext.
+  ask(kind, extra){
+    const reqId = ++this.reqId;
+    return new Promise((resolve, reject) => {
+      this.prepares.set(reqId, { resolve, reject });
+      this.post(Object.assign({ kind, reqId }, extra || {}));
+    });
+  }
+  sealKey(){ this.hasSealed = true; return this.ask('sealKey'); }
+  unseal(ref, sealedMsg){ return this.ask('unseal', { ref, sealed: sealedMsg }).then((v) => { this.hasSealed = true; return v; }); }
   execute(req, handlers){
     const sessionId = ++this.sessionId;
     const barsOf = () => (req.getBars ? req.getBars() : req.bars) || [];
@@ -138,6 +151,13 @@ export class PineNextEngine {
         const p = this.prepares.get(m.reqId); if (!p) return;
         this.prepares.delete(m.reqId);
         if (m.error) p.reject(new Error(m.error)); else p.resolve(m.prepared);
+        return;
+      }
+      case 'sealKey':
+      case 'unsealed': {
+        const p = this.prepares.get(m.reqId); if (!p) return;
+        this.prepares.delete(m.reqId);
+        if (m.error) p.reject(new Error(m.error)); else p.resolve(m.kind === 'sealKey' ? m.pub : m.version);
         return;
       }
       case 'loadError': {

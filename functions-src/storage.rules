@@ -30,6 +30,15 @@ service firebase.storage {
       allow delete: if staff(cid) || isSiteAdmin();
     }
 
+    // Indicator screenshots (Creator Hub phase B): public read (cards on the community page), owner writes images < 5 MB.
+    match /communities/{cid}/shots/{iid}/{name} {
+      allow read: if true;
+      allow write: if isOwner(cid) && active(cid)
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(png|jpeg|webp)');
+      allow delete: if isOwner(cid) || isSiteAdmin();
+    }
+
     match /communities/{cid}/files/{rest=**} {
       allow read: if request.auth != null && active(cid)
                   && (staff(cid) || isMember(cid));

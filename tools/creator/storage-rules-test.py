@@ -22,7 +22,13 @@ cases = [tc('ALLOW', 'owner uploads logo', 'create', L, 'own'), tc('ALLOW', 'adm
  tc('DENY', 'signed-out reads file', 'get', F, None), tc('ALLOW', 'owner uploads 20 MB file', 'create', F, 'own', size=20 * MB, ct='application/pdf'),
  tc('DENY', 'owner uploads 26 MB file', 'create', F, 'own', size=26 * MB, ct='application/pdf'), tc('DENY', 'member uploads file', 'create', F, 'mem', ct='application/pdf'),
  tc('DENY', 'random path write', 'create', 'other/x.png', 'own'), tc('DENY', 'random path read', 'get', 'other/x.png', 'own'),
- tc('DENY', 'member deletes logo', 'delete', L, 'mem'), tc('ALLOW', 'owner deletes logo', 'delete', L, 'own')]
+ tc('DENY', 'member deletes logo', 'delete', L, 'mem'), tc('ALLOW', 'owner deletes logo', 'delete', L, 'own'),
+ tc('ALLOW', 'owner uploads indicator shot', 'create', 'communities/alpha/shots/ind1/s0', 'own', ct='image/webp'),
+ tc('DENY', 'admin uploads indicator shot', 'create', 'communities/alpha/shots/ind1/s0', 'adm'),
+ tc('DENY', 'member uploads indicator shot', 'create', 'communities/alpha/shots/ind1/s0', 'mem'),
+ tc('DENY', 'owner uploads 6 MB shot', 'create', 'communities/alpha/shots/ind1/s0', 'own', size=6 * MB),
+ tc('DENY', 'owner uploads pine file as shot', 'create', 'communities/alpha/shots/ind1/s0', 'own', ct='text/plain'),
+ tc('ALLOW', 'signed-out reads shot', 'get', 'communities/alpha/shots/ind1/s0', None)]
 body = {'source': {'files': [{'name': 'storage.rules', 'content': src}]}, 'testSuite': {'testCases': [c[1] for c in cases]}}
 r = urllib.request.Request(f'https://firebaserules.googleapis.com/v1/projects/{P}:test', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + T, 'Content-Type': 'application/json', 'x-goog-user-project': P})
 try: out = json.load(urllib.request.urlopen(r))

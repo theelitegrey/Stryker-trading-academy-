@@ -48,7 +48,7 @@ const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GRO
 const SECTIONS = [
   ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart']]],
   ['BUILT-IN', [['orderflow', 'Order Flow'], ['tech', 'Technicals'], ['stryker', 'TradeZoro']]],
-  ['COMMUNITY', [['picks', "Editors' picks"], ['top', 'Top'], ['trending', 'Trending']]]
+  ['COMMUNITY', [['mycomm', 'From your communities'], ['picks', "Editors' picks"], ['top', 'Top'], ['trending', 'Trending']]]
 ];
 
 function catOf(name){
@@ -212,7 +212,14 @@ export function mountIndicatorWindow(ws, opts){
     return (community || []).map((s) => ({ key: 'c:' + s.id, name: s.name, author: s.authorName, authorUid: s.ownerUid, kind: 'community', s,
       boosts: s.boostCount || 0, locked: !s.openSource }));
   }
-  function allItems(){ return builtins().concat(mineItems(), commItems()); }
+  // Creator Hub indicators (assets/creator-ind-chart.js): usable ones run sealed; locked ones link to the community.
+  let cinds = null, cindErr = false;
+  const CI = () => window.StrykerCommunityInd;
+  function cindItems(){
+    return (cinds || []).map((x) => ({ key: 'ci:' + x.cid + '/' + x.iid, name: x.name, author: x.cname, kind: 'cind', ci: x, logo: x.logo, accent: x.accent,
+      locked: !x.usable, desc: x.usable ? '' : 'You are in ' + x.cname + ', but your plan does not include this one.' }));
+  }
+  function allItems(){ return builtins().concat(mineItems(), commItems(), cindItems()); }
 
   async function loadData(){
     const tasks = [Favs.load()];
@@ -221,6 +228,8 @@ export function mountIndicatorWindow(ws, opts){
       tasks.push(L().listPublic().then((a) => { community = a; communityErr = false; }).catch((e) => { console.warn('TradeZoro: community list', e); community = []; communityErr = true; }));
       tasks.push(L().isAdmin().then((a) => { isAdmin = a; }));
     } else { community = []; }
+    if (CI() && fbUser()) tasks.push(CI().list().then((a) => { cinds = a; cindErr = false; }).catch((e) => { console.warn('TradeZoro: community indicators', e); cinds = []; cindErr = true; }));
+    else cinds = [];
     await Promise.all(tasks);
   }
 
@@ -251,6 +260,10 @@ export function mountIndicatorWindow(ws, opts){
         }
         const r = await P().addSource(it.name, src, opts);
         if (!r.ok) toast(r.msg || 'Could not add the script.', 'error');
+      } else if (it.kind === 'cind') {
+        if (it.locked) { close(); location.href = '/c/' + encodeURIComponent(it.ci.cid) + '?tab=indicators'; return; }
+        const r = await CI().add(it.ci);
+        if (!r.ok) toast(r.msg || 'Could not add the indicator.', 'error');
       } else if (it.kind === 'community') {
         if (!L() || !L().addItem) return;
         const r = await L().addItem(it.s);
@@ -350,10 +363,14 @@ export function mountIndicatorWindow(ws, opts){
       } catch (err) { console.warn('TradeZoro: favourite', err); toast('Could not save the favourite.', 'error'); }
       star.disabled = false;
     });
-    const name = h('button', { type: 'button', class: 'stkiw-name', title: it.gone ? 'No longer published' : 'Add to chart' }, [
+    const name = h('button', { type: 'button', class: 'stkiw-name', title: it.gone ? 'No longer published' : it.kind === 'cind' && it.locked ? 'Get access on the community page' : 'Add to chart' }, [
+      it.kind === 'cind' ? (it.logo ? h('img', { class: 'stkiw-clogo', src: it.logo, alt: '', loading: 'lazy', width: '20', height: '20' })
+        : h('span', { class: 'stkiw-clogo', 'aria-hidden': 'true', style: 'background:' + (/^#[0-9a-f]{6}$/i.test(it.accent || '') ? it.accent : '#03c988'), text: String(it.author || '?').charAt(0).toUpperCase() })) : null,
       h('span', { class: 'stkiw-nm', text: it.name }),
       it.desc ? h('span', { class: 'stkiw-desc', text: it.desc }) : null,
-      it.locked ? h('span', { class: 'stkiw-lock', title: 'Code hidden in the editor', 'aria-label': 'code hidden', html: SVG(I_LOCK, 13) }) : null,
+      it.locked && it.kind !== 'cind' ? h('span', { class: 'stkiw-lock', title: 'Code hidden in the editor', 'aria-label': 'code hidden', html: SVG(I_LOCK, 13) }) : null,
+      it.kind === 'cind' && it.locked ? h('span', { class: 'stkiw-lock', title: 'Not in your plan', 'aria-label': 'locked', html: SVG(I_LOCK, 13) }) : null,
+      it.kind === 'cind' && !it.locked ? h('span', { class: 'stkiw-pick', text: 'protected' }) : null,
       it.s && it.s.picked ? h('span', { class: 'stkiw-pick', text: "Editors' pick" }) : null,
       it.beta ? h('span', { class: 'stkiw-pick', text: 'beta' }) : null,
       (it.kind === 'builtin' && it.key.startsWith('b:') && proLocked(proKind(it.key.slice(2)))) ? proTag() : null,
@@ -371,6 +388,7 @@ export function mountIndicatorWindow(ws, opts){
         onclick: (e) => { e.stopPropagation(); authorFilter = { uid: it.authorUid, name: it.author }; els.search.value = ''; render(); } });
     } else auth = h('span', { class: 'stkiw-auth', text: it.author || '' });
     const extra = h('span', { class: 'stkiw-x2' });
+    if (it.kind === 'cind' && it.locked) extra.appendChild(h('a', { class: 'stkiw-get', href: '/c/' + encodeURIComponent(it.ci.cid) + '?tab=indicators', text: 'Get access', onclick: (e) => e.stopPropagation() }));
     if (it.kind === 'community' && it.s) extra.appendChild(h('button', { type: 'button', class: 'stkiw-ib', 'aria-label': 'Details for ' + it.name, title: 'Details, code, report',
       html: SVG(I_INFO, 15), onclick: (e) => { e.stopPropagation(); close(); L().openCommunity('all', it.name); } }));
     if (it.kind === 'onchart') {
@@ -392,7 +410,8 @@ export function mountIndicatorWindow(ws, opts){
     if (a.cell && pine && pine.pineHandles) {
       pine.pineHandles(a.cell.chart).forEach((hd, i) => {
         const lib = pine.libOf && pine.libOf.get(hd);
-        out.push({ key: 'zp:' + i, name: lib ? lib.name : pine.titleOf(hd), author: lib ? 'Community' : 'Pine script', kind: 'onchart', handle: hd, locked: !!(lib && !lib.openSource) });
+        const z = pine.sealOf && pine.sealOf.get(hd);
+        out.push({ key: 'zp:' + i, name: z ? z.name : lib ? lib.name : pine.titleOf(hd), author: z ? 'From your communities' : lib ? 'Community' : 'Pine script', kind: 'onchart', handle: hd, locked: !!(z || (lib && !lib.openSource)) });
       });
     }
     return out;
@@ -432,6 +451,8 @@ export function mountIndicatorWindow(ws, opts){
       case 'onchart': return { title: 'On this chart', items: onChartItems(), empty: 'Nothing on this chart yet.' };
       case 'orderflow': return { title: 'Order Flow', note: 'every order-flow tool', items: all.filter((x) => x.cat === GROUP_OF && !x.hidden), empty: 'No order-flow tools on this chart.' };
       case 'stryker': return { title: 'TradeZoro', note: 'every TradeZoro indicator', items: strykerItems(all), empty: 'No TradeZoro indicators yet.' };
+      case 'mycomm': return { title: 'From your communities', note: 'indicators from communities you are in', items: all.filter((x) => x.kind === 'cind'),
+        empty: !fbUser() ? 'Sign in to see indicators from your communities.' : cindErr ? 'Could not load them. Check your connection.' : 'No community indicators yet. Join a community on TradeZoro to use its indicators here.' };
       case 'picks': {
         // Default: every TradeZoro script (same derived list as the TradeZoro tab), then
         // admin-picked community scripts. Curate later by changing strykerItems' source.
@@ -458,7 +479,8 @@ export function mountIndicatorWindow(ws, opts){
       const hit = (x) => x.name.toLowerCase().includes(q) || String(x.author || '').toLowerCase().includes(q) || (x.s && (x.s.tags || []).some((t) => t.includes(q)));
       const parts = [['My scripts', all.filter((x) => x.kind === 'mine' && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third && !x.hidden && hit(x))],
         ['Community \u00b7 third-party', all.filter((x) => x.third && hit(x))],
-        ['Community', all.filter((x) => x.kind === 'community' && hit(x)).sort((a, b) => b.boosts - a.boosts)]];
+        ['Community', all.filter((x) => x.kind === 'community' && hit(x)).sort((a, b) => b.boosts - a.boosts)],
+        ['From your communities', all.filter((x) => x.kind === 'cind' && hit(x))]];
       els.title.textContent = 'Results for \u201c' + els.search.value.trim() + '\u201d';
       let n = 0;
       parts.forEach(([t, a]) => { if (!a.length) return; n += a.length; list.appendChild(h('p', { class: 'stkiw-grp', text: t })); a.forEach((x) => list.appendChild(row(x))); });

@@ -1,14 +1,20 @@
 [
  {
-  "build": 744,
+  "build": 745,
   "date": "2026-10-30",
-  "title": "Creator Hub: paid plans with Stripe payouts",
+  "title": "Creator Hub: feed, events, leaderboard",
+  "link": ""
+ },
+ {
+  "build": 745,
+  "date": "2026-10-30",
+  "title": "Creator Hub: sell courses (video, text, PDFs, drip, quizzes)",
   "link": ""
  },
  {
   "build": 744,
   "date": "2026-10-30",
-  "title": "Creator Hub: sell courses (video, text, PDFs, drip, quizzes)",
+  "title": "Creator Hub: paid plans with Stripe payouts",
   "link": ""
  },
  {

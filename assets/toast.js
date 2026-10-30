@@ -20,12 +20,14 @@
 (function () {
 
   var HOST_ID = 'stryker-toast-host';
-  var DEFAULT_MS = { success: 4000, info: 5000, error: 7000 };
+  var DEFAULT_MS = { success: 4000, info: 5000, warning: 6000, error: 7000 };
 
+  // One icon family, 20px, stroke 2.
   var ICONS = {
-    success: '<path d="M20 6L9 17l-5-5"/>',
-    error:   '<circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>',
-    info:    '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'
+    success: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    error:   '<path d="M12 7v6M12 17h.01"/>',
+    info:    '<path d="M12 11v5M12 8h.01"/>',
+    warning: '<path d="M12 8v5M12 16.5h.01"/>'
   };
 
   function host() {
@@ -34,8 +36,7 @@
     el = document.createElement('div');
     el.id = HOST_ID;
     el.className = 'toast-host';
-    // aria-live so a screen reader announces it without stealing focus, which
-    // is the one genuine advantage alert() had.
+    // aria-live so a screen reader announces it without stealing focus.
     el.setAttribute('aria-live', 'polite');
     el.setAttribute('role', 'status');
     document.body.appendChild(el);
@@ -48,60 +49,121 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function svg(inner, size) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  }
+
   function showToast(type, message, options) {
+    // A few older callers pass (message, type); accept both orders.
+    if (!ICONS[type] && ICONS[message]) { var t0 = type; type = message; message = t0; }
     var opts = options || {};
     type = ICONS[type] ? type : 'info';
+    // Short one-line toasts ("Saved", "Link copied") read as a title, not a secondary line.
+    var title = opts.title || '', msg = message;
+    if (!title && msg && String(msg).length <= 28 && !/[.!?]$/.test(String(msg).trim()) ) { title = msg; msg = ''; }
 
     var toast = document.createElement('div');
     toast.className = 'toast toast-' + type;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
     toast.innerHTML =
-      '<span class="toast-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" ' +
-        'stroke="currentColor" stroke-width="2.2">' + ICONS[type] + '</svg></span>' +
+      '<span class="toast-grab" aria-hidden="true"></span>' +
+      '<span class="toast-icon">' + svg(ICONS[type], 20) + '</span>' +
       '<div class="toast-body">' +
-        (opts.title ? '<span class="toast-title">' + esc(opts.title) + '</span>' : '') +
-        '<span class="toast-msg">' + esc(message) + '</span>' +
-        (opts.action ? '<button type="button" class="toast-action">' + esc(opts.action.label) + '</button>' : '') +
+        (title ? '<span class="toast-title">' + esc(title) + '</span>' : '') +
+        (msg ? '<span class="toast-msg">' + esc(msg) + '</span>' : '') +
       '</div>' +
-      '<button type="button" class="toast-close" aria-label="Dismiss">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-        'stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
-      '</button>';
+      '<div class="toast-end">' +
+        (opts.action ? '<button type="button" class="toast-action">' + esc(opts.action.label) + '</button>' : '') +
+        '<button type="button" class="toast-close" aria-label="Dismiss">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 20) + '</button>' +
+      '</div>' +
+      '<span class="toast-bar" aria-hidden="true"><i></i></span>';
+    if (!title) toast.querySelector('.toast-msg').style.cssText = 'font-size:15px;line-height:20px;font-weight:600;color:var(--tg-t1)';
+
+    var life = opts.duration || DEFAULT_MS[type];
+    toast.style.setProperty('--life', life + 'ms');
+    if (opts.hold) toast.classList.add('hold');
 
     host().appendChild(toast);
-    // Next frame, so the browser registers the starting position before the
-    // class change animates away from it. Setting both in one frame skips the
-    // transition entirely.
+    // Next frame, so the start position registers before the class change animates away from it.
     requestAnimationFrame(function () { toast.classList.add('in'); });
 
-    var settled = false;
-    var timer = null;
+    var settled = false, timer = null, startedAt = 0, remaining = life, hovering = false, touching = false;
 
     return new Promise(function (resolve) {
+      function remove() {
+        if (toast.parentElement) toast.parentElement.removeChild(toast);
+        resolve();
+      }
       function close() {
         if (settled) return;
         settled = true;
         if (timer) clearTimeout(timer);
         toast.classList.remove('in');
-        toast.addEventListener('transitionend', function () {
-          if (toast.parentElement) toast.parentElement.removeChild(toast);
-          resolve();
-        }, { once: true });
-        // Belt and braces: if the transition never fires (reduced motion,
-        // background tab) the node would otherwise be orphaned forever.
-        setTimeout(function () {
-          if (toast.parentElement) toast.parentElement.removeChild(toast);
-          resolve();
-        }, 400);
+        toast.classList.add('out');
+        toast.addEventListener('transitionend', remove, { once: true });
+        // Belt and braces: if the transition never fires (reduced motion, background tab).
+        setTimeout(remove, 400);
+      }
+      function arm() {
+        if (opts.hold || settled) return;
+        startedAt = Date.now();
+        timer = setTimeout(close, remaining);
+      }
+      function pause() {
+        if (opts.hold || settled || !timer) return;
+        clearTimeout(timer); timer = null;
+        remaining = Math.max(600, remaining - (Date.now() - startedAt));
+        toast.classList.add('paused');
+      }
+      function resume() {
+        if (hovering || touching || timer) return;
+        toast.classList.remove('paused');
+        arm();
       }
 
       toast.querySelector('.toast-close').addEventListener('click', close);
       var act = toast.querySelector('.toast-action');
       if (act) act.addEventListener('click', function () { close(); try { opts.action.onClick(); } catch (e) {} });
 
-      var life = opts.duration || DEFAULT_MS[type];
-      // hold:true keeps it up until dismissed — used where the caller awaits
-      // this before navigating away.
-      if (!opts.hold) timer = setTimeout(close, life);
+      // Pause the countdown (timer and bar) while the pointer is over it or a finger is on it.
+      toast.addEventListener('pointerenter', function (e) { if (e.pointerType !== 'mouse') return; hovering = true; pause(); });
+      toast.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'mouse') return; hovering = false; resume(); });
+      toast.addEventListener('focusin', function () { hovering = true; pause(); });
+      toast.addEventListener('focusout', function () { hovering = false; resume(); });
+
+      // Swipe to dismiss (touch / pen): drag sideways past 80px, or flick.
+      var sx = 0, sy = 0, dx = 0, st = 0, drag = false;
+      toast.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'mouse' || e.target.closest('button')) return;
+        touching = true; pause(); sx = e.clientX; sy = e.clientY; dx = 0; st = Date.now(); drag = false;
+        try { toast.setPointerCapture(e.pointerId); } catch (x) {}
+      });
+      toast.addEventListener('pointermove', function (e) {
+        if (!touching) return;
+        dx = e.clientX - sx;
+        if (!drag && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - sy)) { drag = true; toast.classList.add('dragging'); }
+        if (drag) { toast.style.transform = 'translateX(' + dx + 'px)'; toast.style.opacity = String(Math.max(0.2, 1 - Math.abs(dx) / 260)); }
+      });
+      function end() {
+        if (!touching) return;
+        touching = false;
+        toast.classList.remove('dragging');
+        var fast = Math.abs(dx) / Math.max(1, Date.now() - st) > 0.5;
+        if (drag && (Math.abs(dx) > 80 || (fast && Math.abs(dx) > 30))) {
+          toast.style.transition = 'opacity .18s cubic-bezier(.2,0,0,1), transform .18s cubic-bezier(.2,0,0,1)';
+          toast.style.transform = 'translateX(' + (dx > 0 ? 120 : -120) + '%)'; toast.style.opacity = '0';
+          settled = true; if (timer) clearTimeout(timer);
+          setTimeout(remove, 200);
+        } else {
+          toast.style.transform = ''; toast.style.opacity = '';
+          resume();
+        }
+      }
+      toast.addEventListener('pointerup', end);
+      toast.addEventListener('pointercancel', end);
+
+      arm();
     });
   }
 

@@ -10492,7 +10492,7 @@ input[type=checkbox]:not(:checked), input[type=radio]:not(:checked){ background-
   .cn-sub .side-link{ min-height:44px; }
 }
 .cn-fly{
-  position:fixed; z-index:300; min-width:232px; max-width:288px; padding:8px; border-radius:16px;
+  position:fixed; z-index:780; min-width:232px; max-width:288px; padding:8px; border-radius:16px;
   display:flex; flex-direction:column; gap:2px;
   background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)), rgba(28,30,34,.78);
   border:1px solid rgba(255,255,255,.14);
@@ -10555,3 +10555,7 @@ input[type=checkbox]:not(:checked), input[type=radio]:not(:checked){ background-
 @media (prefers-reduced-motion:reduce){ .szp-btn{ transition:none; } }
 /* "Load more" button for feeds (same tokens as the pager) */
 .szp-more{ display:flex; margin:16px auto 0; min-height:44px; padding:0 20px; border-radius:12px; }
+/* phone "Manage <name>" row is a <button> (toggle only): look like the other .side-link rows */
+button.cn-mg-row{ width:100%; border:0; background:none; font:inherit; font-size:14px; font-weight:500; color:var(--ink-2); text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+button.cn-mg-row.active{ background:rgba(3,201,136,0.1); color:var(--gold-bright); font-weight:600; }
+button.cn-mg-row:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }

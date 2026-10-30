@@ -514,6 +514,36 @@ def check_roadmap_log():
         pass
 
 
+def check_drawer_touch():
+    """Menu/drawer regression guard (Owner 2026-10-31: tapping "Manage <name>" closed the menu).
+    When app-nav.js, dash-nav.js or the menu CSS changed versus origin/main, run the real-touch test
+    tools/tests/drawer-touch-browser.js (390x844, touch emulation). Skips (with a note) where
+    playwright-core / a Chromium is not installed, e.g. the CI runner."""
+    import subprocess, shutil
+    watched = ('assets/app-nav.js', 'assets/dash-nav.js')
+    try:
+        names = subprocess.run(['git', 'diff', '--name-only', 'origin/main'], capture_output=True, text=True, cwd=ROOT).stdout.split()
+        names += subprocess.run(['git', 'diff', '--name-only'], capture_output=True, text=True, cwd=ROOT).stdout.split()
+    except Exception:
+        names = []
+    if os.environ.get('STRYKER_FORCE_DRAWER_TEST') != '1' and not any(n in watched for n in names):
+        return
+    if not shutil.which('node'):
+        print('note: node missing, drawer touch test skipped'); return
+    env = dict(os.environ)
+    for cand in (os.path.join(ROOT, 'tools', 'tests', 'node_modules'), os.path.join(ROOT, 'node_modules'), '/root/projects/stryker-trading-academy/node_modules'):
+        if os.path.isdir(os.path.join(cand, 'playwright-core')):
+            env['NODE_PATH'] = cand; break
+    else:
+        print('note: playwright-core not installed, drawer touch test skipped'); return
+    cmd = ['node', os.path.join(ROOT, 'tools', 'tests', 'drawer-touch-browser.js')]
+    if os.path.exists('/usr/bin/flock') and os.path.exists('/tmp/stryker-chrome.lock'):
+        cmd = ['flock', '-w', '3400', '/tmp/stryker-chrome.lock'] + cmd
+    r = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=900)
+    if r.returncode != 0:
+        fail('drawer touch test failed (tools/tests/drawer-touch-browser.js):\n' + '\n'.join(l for l in r.stdout.splitlines() if 'FAIL' in l or 'rror' in l)[:600] + r.stderr[-300:])
+
+
 def main():
     check_roadmap_log()
     check_nav_features_menu()
@@ -533,6 +563,7 @@ def main():
     check_share_images()
     check_help_center()
     check_feature_image_frames()
+    check_drawer_touch()
 
     if FAILURES:
         print(f'FAILED — {len(FAILURES)} problem(s):\n')

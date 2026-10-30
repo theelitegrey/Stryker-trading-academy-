@@ -132,6 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // in place (href="#": sign out, quick notes, accordion toggles) are left to
   // their own handlers.
   sidebar.addEventListener('click', (e) => {
+    // In-place controls (accordion toggles etc.) must never close the drawer:
+    // anything that called preventDefault, or sits inside [data-keep-open].
+    if (e.defaultPrevented || (e.target.closest && e.target.closest('[data-keep-open]'))) return;
     const a = e.target.closest('a[href]');
     if (!a) return;
     const href = a.getAttribute('href') || '';

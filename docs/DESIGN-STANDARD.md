@@ -34,4 +34,5 @@ Never use arbitrary styling, inconsistent dimensions, or generic AI-looking desi
 2. Build with the system values above (tokens/CSS variables; no magic numbers).
 3. AFTER: screenshot the same states (empty, filled, error, loading, signed-out/in) at the same sizes; vision-check each against this list: type scale, spacing grid, tap targets, radii, colours/contrast, alignment, one primary action, no overflow/clipping, focus ring, light/dark.
 4. Fix every issue found, re-shoot, then ship. Put a "DESIGN CHECK" section in the report: before/after shot paths + the checklist with pass/fail per line.
+5. Menu/drawer changes (app-nav.js, dash-nav.js, More sheet, any sidebar control): real touch test at 390 (tap every control with tools/tests/drawer-touch-browser.js: in-place controls keep the menu open, real links close it), not only screenshots. check.py runs it automatically when those files change.
 Reviewers (Senior Website Engineer / Head of Website Development / CoS) reject work without the DESIGN CHECK section.

@@ -226,10 +226,16 @@
     var rowOn = curC === mg.id && cur !== 'dash';
     var stored = accGet(mg.id), open = stored !== null ? stored === '1' : rowOn;
     if (rowOn && stored === null) open = true;
-    return '<div class="cn-mg' + (open ? ' open' : '') + '" data-c="' + esc(mg.id) + '">' +
-      '<a href="' + mg.href + '" class="side-link cn-mg-row' + (rowOn ? ' active' : '') + '" data-mg="' + esc(mg.id) + '" aria-haspopup="true" aria-expanded="' + (open ? 'true' : 'false') + '" title="' + esc(mg.label) + '">' +
-      '<span class="cn-av" aria-hidden="true">' + initials(mg.name) + '</span><span class="cn-mg-t">' + esc(mg.label) + '</span>' + CHEV + '</a>' +
-      '<div class="cn-sub" role="group" aria-label="' + esc(mg.label) + '">' + mg.items.map(function(it){ return cnLink(it, rowOn ? cur : null, mg); }).join('') + '</div></div>';
+    // Phones (no hover): the row is a <button> that only toggles the accordion, so it can never
+    // navigate or close the drawer. Desktop keeps a real link (click = dashboard) plus the flyout.
+    var touch = !canHover(), items = mg.items;
+    if (touch) items = [['dash', 'Dashboard', 'Open ' + mg.name, mg.href]].concat(items);
+    var inner = '<span class="cn-av" aria-hidden="true">' + initials(mg.name) + '</span><span class="cn-mg-t">' + esc(mg.label) + '</span>' + CHEV;
+    var row = touch
+      ? '<button type="button" class="side-link cn-mg-row' + (rowOn ? ' active' : '') + '" data-mg="' + esc(mg.id) + '" data-keep-open aria-expanded="' + (open ? 'true' : 'false') + '" title="' + esc(mg.label) + '">' + inner + '</button>'
+      : '<a href="' + mg.href + '" class="side-link cn-mg-row' + (rowOn ? ' active' : '') + '" data-mg="' + esc(mg.id) + '" aria-haspopup="true" aria-expanded="' + (open ? 'true' : 'false') + '" title="' + esc(mg.label) + '">' + inner + '</a>';
+    return '<div class="cn-mg' + (open ? ' open' : '') + '" data-c="' + esc(mg.id) + '">' + row +
+      '<div class="cn-sub" role="group" aria-label="' + esc(mg.label) + '">' + items.map(function(it){ return cnLink(it, rowOn ? cur : null, mg); }).join('') + '</div></div>';
   }
   function renderSidebar(){
     var sec = document.getElementById('cn-section');
@@ -326,17 +332,19 @@
     sec.addEventListener('click', function(e){
       var row = e.target.closest && e.target.closest('.cn-mg-row');
       if (row && sec.contains(row)) {
-        if (canHover()) { closeFly(true); return; }   // desktop: the row itself opens the dashboard
-        e.preventDefault(); toggleAcc(row.parentNode); return;
+        if (row.tagName === 'A') { closeFly(true); return; }   // desktop: the row itself opens the dashboard
+        toggleAcc(row.parentNode); return;
       }
       var it = e.target.closest && e.target.closest('.cn-sub a'); if (it) accSet(it.closest('.cn-mg').getAttribute('data-c'), true);
     });
-    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && fly) { e.preventDefault(); closeFly(false, true); } });
+    // capture phase + stopPropagation: Esc closes only the flyout, not the drawer behind it
+    window.addEventListener('keydown', function(e){ if (e.key === 'Escape' && fly) { e.preventDefault(); e.stopPropagation(); closeFly(false, true); } }, true);
     window.addEventListener('scroll', function(){ if (fly && flyRow && Math.abs(flyRow.getBoundingClientRect().top - flyTop) > 1) closeFly(true); }, true);
     window.addEventListener('resize', function(){ closeFly(true); });
     document.addEventListener('click', function(e){ if (fly && !fly.contains(e.target) && !(flyRow && flyRow.contains(e.target))) closeFly(true); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireSidebar); else wireSidebar();
+  try { var hmq = window.matchMedia(HOVER_MQ); (hmq.addEventListener ? hmq.addEventListener('change', renderSidebar) : hmq.addListener && hmq.addListener(renderSidebar)); } catch(e) {}
 
   function loadCreatorState(user, tries){
     if (!user) { cnState = { uid: null, owned: [], admin: false }; try { sessionStorage.removeItem(CN_KEY); } catch(e) {} refreshCreator(); return; }
@@ -386,7 +394,7 @@
         var cc = cnCurrent(), ccc = cnCurComm();
         g[2].manage.forEach(function(mg){
           var rowOn = ccc === mg.id && cc !== 'dash', st = accGet(mg.id), open = st !== null ? st === '1' : rowOn;
-          h += '<li class="cn-mg appnav-acc' + (open ? ' open' : '') + '" data-c="' + esc(mg.id) + '"><button type="button" class="appnav-sh-item cn-mg-row' + (rowOn ? ' on' : '') + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="cn-acc-' + esc(mg.id) + '">' +
+          h += '<li class="cn-mg appnav-acc' + (open ? ' open' : '') + '" data-c="' + esc(mg.id) + '"><button type="button" data-keep-open class="appnav-sh-item cn-mg-row' + (rowOn ? ' on' : '') + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="cn-acc-' + esc(mg.id) + '">' +
             '<span class="appnav-sh-ic cn-av">' + initials(mg.name) + '</span><span class="appnav-sh-tx"><span class="appnav-sh-l">' + esc(mg.label) + '</span><span class="appnav-sh-d">Members, courses, plans and more</span></span>' + CHEV + '</button>' +
             '<ul class="appnav-sh-list cn-acc-list" id="cn-acc-' + esc(mg.id) + '">' + mg.items.map(function(it){
               var on = rowOn && it[0] === cc;

@@ -1,6 +1,42 @@
 [
  {
-  "build": 747,
+  "build": 755,
+  "date": "2026-10-30",
+  "title": "New notification design",
+  "link": ""
+ },
+ {
+  "build": 754,
+  "date": "2026-10-30",
+  "title": "Creator Hub section in the app menu",
+  "link": ""
+ },
+ {
+  "build": 753,
+  "date": "2026-10-30",
+  "title": "Creator Hub: demo community support",
+  "link": ""
+ },
+ {
+  "build": 753,
+  "date": "2026-10-30",
+  "title": "Creator Hub: paid plans with Stripe payouts",
+  "link": ""
+ },
+ {
+  "build": 753,
+  "date": "2026-10-30",
+  "title": "Creator payments ready for live",
+  "link": ""
+ },
+ {
+  "build": 752,
+  "date": "2026-10-30",
+  "title": "Creator Hub landing page",
+  "link": ""
+ },
+ {
+  "build": 749,
   "date": "2026-10-30",
   "title": "Faster indicators on charts",
   "link": ""
@@ -15,12 +51,6 @@
   "build": 745,
   "date": "2026-10-30",
   "title": "Creator Hub: sell courses (video, text, PDFs, drip, quizzes)",
-  "link": ""
- },
- {
-  "build": 744,
-  "date": "2026-10-30",
-  "title": "Creator Hub: paid plans with Stripe payouts",
   "link": ""
  },
  {

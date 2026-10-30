@@ -497,3 +497,13 @@ body.cx-page:has(.cp-root) .cx-wrap{ max-width:none; padding:0 0 96px; }
 .cx-app #cn-form, .cx-app #cn-gate{ max-width:720px; }
 .cx-app #hb-body > form.cx-f{ max-width:760px; }
 .cx-app .btn[hidden]{ display:none; }
+/* The Payouts card (creator-pay.js, dashboard) shares the cp- prefix with the community-page profile rules above.
+   Restore its own values inside #hb-pay so the two never mix. */
+#hb-pay .cp-card{ transition:none; }
+#hb-pay .cp-card:hover{ transform:none; border-color:var(--line); }
+#hb-pay .cp-head{ position:static; z-index:auto; margin:0 0 12px; display:flex; grid-template-columns:none; gap:12px; align-items:center; justify-content:space-between; padding:0; }
+#hb-pay .cp-chip{ height:auto; min-height:24px; padding:0 10px; background:var(--bg-1); color:var(--ink-2); }
+#hb-pay .cp-chip.on{ border-color:var(--gold); color:var(--gold-bright); background:rgba(3,201,136,.1); }
+#hb-pay .cp-chip.warn{ border-color:var(--amber-dim); color:var(--amber); }
+#hb-pay .cp-chip.bad{ border-color:var(--bear); color:var(--bear); }
+#hb-pay .cx-wrap .cp-sub, #hb-pay .cp-sub{ margin:0 0 8px !important; font-size:13px !important; line-height:18px; font-weight:500 !important; color:var(--ink-2) !important; letter-spacing:0; text-transform:none; }

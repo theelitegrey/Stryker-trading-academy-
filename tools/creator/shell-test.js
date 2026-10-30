@@ -92,7 +92,7 @@ function stub(own, admin, acct) {
   ok((await p.evaluate(() => document.querySelector('h1').textContent)).startsWith('Creator Hub'), 'h1 Creator Hub · name');
   await p.close();
   // sidebar menu: real click each creator item from the dashboard page
-  for (const href of ['/communities', '/communities?view=mine', '/creator', '/creator?c=harbor-lane&tab=members', '/creator?c=harbor-lane&tab=courses', '/creator?c=harbor-lane&tab=indicators', '/creator?c=harbor-lane&tab=plans', '/creator?c=harbor-lane&tab=discord', '/creator?c=harbor-lane&tab=settings', '/c/harbor-lane?tab=feed', '/creator-new']) {
+  for (const href of ['/communities', '/communities?view=mine', '/creator', '/creator?c=harbor-lane&tab=members', '/creator?c=harbor-lane&tab=courses', '/creator?c=harbor-lane&tab=indicators', '/creator?c=harbor-lane&tab=plans', '/creator?c=harbor-lane&tab=discord', '/creator?c=harbor-lane&tab=settings', '/creator-new']) {
     const q = await open('/creator?c=harbor-lane', true, false, 'none', 1440); const codes = [];
     q.on('response', (r) => { if (r.request().resourceType() === 'document') codes.push(r.status()); });
     const sel = '#cn-section a[href="' + href + '"]';

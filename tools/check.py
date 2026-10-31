@@ -499,8 +499,13 @@ def check_roadmap_log():
     try:
         data = json.load(open(path))
         assert isinstance(data, list)
+        titles = set()
         for e in data:
             assert e.get('title') and e.get('date')
+            title = str(e['title']).strip().casefold()
+            if title in titles:
+                fail(f'assets/roadmap-log.json has duplicate title: {e["title"]}')
+            titles.add(title)
     except Exception as exc:
         fail(f'assets/roadmap-log.json missing or invalid ({exc}); run: node tools/gen-roadmap.js')
         return

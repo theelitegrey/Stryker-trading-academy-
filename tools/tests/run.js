@@ -20,6 +20,8 @@ const SUITES = [
   ['video-test',  'chapter player'],
   ['width-check', 'phone-width layout'],
   ['cheatsheet-test', 'cheat-sheet pages + links'],
+  ['coupon-duration.test', 'coupon duration entitlement rules'],
+  ['coupon-admin-duration.test', 'coupon duration admin UI'],
 ];
 
 const want = process.argv.slice(2);

@@ -90,13 +90,18 @@ function renderCouponRow(coupon){
   const discountLabel = coupon.type === 'free' ? 'Free access'
     : coupon.type === 'percent' ? (coupon.value + '% off')
     : ('$' + coupon.value + ' off');
+  const hasDuration = coupon.type === 'free' && Number.isInteger(coupon.accessMonths) && coupon.accessMonths >= 1;
+  const durationLabel = hasDuration
+    ? '<span>' + coupon.accessMonths + ' month' + (coupon.accessMonths === 1 ? '' : 's') +
+      (coupon.marksFounding ? ' (ignored)' : '') + '</span>'
+    : '';
 
   const row = document.createElement('div');
   row.className = 'record-card';
   row.innerHTML =
     '<div style="flex:1 1 200px;">' +
       '<span class="cell-name" style="font-family:var(--font-mono);">' + coupon.code + '</span>' +
-      '<div class="chapter-meta" style="margin-top:6px;"><span class="status-tag ' + statusClass + '">' + statusLabel + '</span><span>' + discountLabel + '</span><span>' + planNameById(coupon.appliesToPlan) + '</span>' +
+      '<div class="chapter-meta" style="margin-top:6px;"><span class="status-tag ' + statusClass + '">' + statusLabel + '</span><span>' + discountLabel + '</span>' + durationLabel + '<span>' + planNameById(coupon.appliesToPlan) + '</span>' +
       (coupon.marksFounding ? '<span style="color:var(--gold); font-weight:700;">★ Founding</span>' : '') + '</div>' +
     '</div>' +
     '<div class="record-stats">' +
@@ -134,6 +139,23 @@ function loadCoupons(){
   });
 }
 
+function updateCouponDurationState(){
+  const typeEl = document.getElementById('coupon-type');
+  const foundingEl = document.getElementById('coupon-founding');
+  const field = document.getElementById('coupon-access-months-field');
+  const input = document.getElementById('coupon-access-months');
+  const hint = document.getElementById('coupon-access-help');
+  const valueInput = document.getElementById('coupon-value');
+  const isFree = typeEl.value === 'free';
+  const isFounding = isFree && foundingEl.checked;
+  field.hidden = !isFree;
+  input.disabled = isFounding;
+  valueInput.disabled = isFree;
+  hint.textContent = isFounding
+    ? 'Founding access is permanent. The month value is kept for editing but ignored at redemption.'
+    : 'For free-access coupons. Example: 6 gives six months of Pro. Blank keeps the plan\'s normal billing period.';
+}
+
 function openCouponEditor(coupon){
   EDITING_COUPON_CODE = coupon ? coupon.code : null;
   document.getElementById('coupon-edit-heading').textContent = coupon ? ('Edit: ' + coupon.code) : 'New coupon';
@@ -143,11 +165,13 @@ function openCouponEditor(coupon){
   document.getElementById('coupon-plan').value = coupon ? coupon.appliesToPlan : 'all';
   document.getElementById('coupon-type').value = coupon ? coupon.type : 'free';
   document.getElementById('coupon-value').value = coupon ? (coupon.value || '') : '';
+  document.getElementById('coupon-access-months').value = coupon && coupon.accessMonths != null ? coupon.accessMonths : '';
   document.getElementById('coupon-max').value = coupon && coupon.maxRedemptions ? coupon.maxRedemptions : '';
   document.getElementById('coupon-expires').value = coupon && coupon.expiresAt ? coupon.expiresAt : '';
   document.getElementById('coupon-active').checked = coupon ? coupon.active !== false : true;
   const foundingEl = document.getElementById('coupon-founding');
   if (foundingEl) foundingEl.checked = coupon ? !!coupon.marksFounding : false;
+  updateCouponDurationState();
   document.getElementById('delete-coupon-btn').style.display = coupon ? 'inline-flex' : 'none';
   document.getElementById('coupon-edit-panel').style.display = 'block';
   document.getElementById('coupon-edit-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -172,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('add-coupon-btn').addEventListener('click', () => openCouponEditor(null));
   document.getElementById('cancel-coupon-btn').addEventListener('click', closeCouponEditor);
+  document.getElementById('coupon-type').addEventListener('change', updateCouponDurationState);
+  document.getElementById('coupon-founding').addEventListener('change', updateCouponDurationState);
 
   document.getElementById('save-coupon-btn').addEventListener('click', () => {
     const errEl = document.getElementById('coupon-error');
@@ -183,12 +209,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const type = document.getElementById('coupon-type').value;
     const value = type === 'free' ? 0 : (parseFloat(document.getElementById('coupon-value').value) || 0);
+    const accessRaw = document.getElementById('coupon-access-months').value.trim();
+    let accessMonths = null;
+    if (type === 'free' && accessRaw) {
+      if (!/^\d+$/.test(accessRaw) || Number(accessRaw) < 1 || Number(accessRaw) > 60) {
+        errEl.textContent = 'Access duration must be a whole number from 1 to 60 months.';
+        errEl.style.display = 'block';
+        document.getElementById('coupon-access-months').focus();
+        return;
+      }
+      accessMonths = Number(accessRaw);
+    }
     const maxRedemptions = document.getElementById('coupon-max').value ? parseInt(document.getElementById('coupon-max').value, 10) : null;
     const expiresAt = document.getElementById('coupon-expires').value || null;
 
     const data = {
       type,
       value,
+      accessMonths,
       appliesToPlan: document.getElementById('coupon-plan').value,
       maxRedemptions,
       expiresAt,

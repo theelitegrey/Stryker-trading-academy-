@@ -501,7 +501,7 @@ function launchRazorpay(btn, errEl){
       currency: o.currency,
       name: 'TradeZoro',
       description: o.planName,
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=769',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=770',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
@@ -572,7 +572,7 @@ function launchRazorpaySubscription(btn, errEl){
       subscription_id: o.subscriptionId,
       name: 'TradeZoro',
       description: o.trial ? o.planName + ' · ' + STRYKER_TRIAL_DAYS + '-day free trial, then auto-renews' : o.planName + ' · auto-renews',
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=769',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=770',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
@@ -839,7 +839,8 @@ document.addEventListener('DOMContentLoaded', () => {
       couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null,
       billing: CHECKOUT_BILLING || null
     })
-      .then(() => {
+      .then((callableResult) => {
+        const granted = callableResult && callableResult.data ? callableResult.data : {};
         // Two entries, not one: the money and the access change are separate
         // facts. An order can exist without a plan change (a failed grant) and
         // an admin can grant a plan with no order behind it, so collapsing
@@ -880,17 +881,30 @@ document.addEventListener('DOMContentLoaded', () => {
           );
         }
 
-        if (!referralWork.length) return null;
+        if (!referralWork.length) return granted;
         return Promise.race([
           Promise.all(referralWork).catch(() => null),
           new Promise((resolve) => setTimeout(resolve, 6000))
-        ]);
+        ]).then(() => granted);
       })
-      .then(() => {
+      .then((granted) => {
+        const endMillis = Number(granted && granted.paidThroughMillis) || 0;
+        const months = Number(granted && granted.accessMonths) || 0;
+        let confirmation = 'Order complete — you now have ' + CHECKOUT_PLAN.name + '.';
+        if (granted && granted.foundingMember) {
+          confirmation = 'Order complete — permanent ' + CHECKOUT_PLAN.name + ' access is active.';
+        } else if (endMillis) {
+          const endDate = new Date(endMillis).toLocaleDateString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC'
+          });
+          confirmation = months
+            ? 'Your ' + months + '-month ' + CHECKOUT_PLAN.name + ' access is active through ' + endDate + '.'
+            : CHECKOUT_PLAN.name + ' access is active through ' + endDate + '.';
+        }
         // Was an inline strip pushed into the page, which shifted the layout
         // and read as content rather than a confirmation.
-        showToast('success', 'Order complete — you now have ' + CHECKOUT_PLAN.name + '.', {
-          title: 'Payment confirmed',
+        showToast('success', confirmation, {
+          title: 'Access confirmed',
           duration: 2600
         });
         // The referral work above is already settled by this point, so this

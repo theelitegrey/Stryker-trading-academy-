@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="769">
+<meta name="stryker-build" content="770">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coupons — TradeZoro Admin</title>
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=769">
-<script src="assets/sanitize.js?v=769"></script>
+<link rel="stylesheet" href="assets/style.css?v=770">
+<script src="assets/sanitize.js?v=770"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -54,10 +54,10 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="assets/toast.js?v=769" defer></script>
-<script src="assets/version-check.js?v=769" defer></script>
-<script src="assets/acquisition.js?v=769" defer></script>
-<script src="assets/focus-mode.js?v=769" defer></script>
+<script src="assets/toast.js?v=770" defer></script>
+<script src="assets/version-check.js?v=770" defer></script>
+<script src="assets/acquisition.js?v=770" defer></script>
+<script src="assets/focus-mode.js?v=770" defer></script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
 <body>
@@ -198,14 +198,14 @@
       <div class="form-row-2">
         <div class="field"><label for="coupon-code">Code</label><input type="text" id="coupon-code" placeholder="e.g. LAUNCH100" style="text-transform:uppercase;"></div>
         <div class="field"><label for="coupon-plan">Applies to plan</label>
-          <select id="coupon-plan" style="width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background-color:var(--bg-2); color:var(--ink-0); font-size:14px;">
+          <select id="coupon-plan">
             <option value="all">Any plan</option>
           </select>
         </div>
       </div>
-      <div class="form-row-2">
+      <div class="form-row-2 coupon-admin-fields">
         <div class="field"><label for="coupon-type">Discount type</label>
-          <select id="coupon-type" style="width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background-color:var(--bg-2); color:var(--ink-0); font-size:14px;">
+          <select id="coupon-type">
             <option value="free">Free (100% off / full access)</option>
             <option value="percent">Percentage off</option>
             <option value="fixed">Fixed amount off</option>
@@ -213,17 +213,22 @@
         </div>
         <div class="field"><label for="coupon-value">Discount value</label><input type="number" id="coupon-value" placeholder="e.g. 20 (for 20% or $20)" min="0"></div>
       </div>
+      <div class="field coupon-duration-field" id="coupon-access-months-field">
+        <label for="coupon-access-months">Access duration (months)</label>
+        <input type="number" id="coupon-access-months" min="1" max="60" step="1" inputmode="numeric" placeholder="Blank = one plan billing period" aria-describedby="coupon-access-help">
+        <p class="field-hint" id="coupon-access-help">For free-access coupons. Example: 6 gives six months of Pro. Blank keeps the plan's normal billing period.</p>
+      </div>
       <div class="form-row-2">
         <div class="field"><label for="coupon-max">Max redemptions (blank = unlimited)</label><input type="number" id="coupon-max" min="1" placeholder="e.g. 50"></div>
         <div class="field"><label for="coupon-expires">Expires (blank = never)</label><input type="date" id="coupon-expires"></div>
       </div>
-      <div class="field">
-        <label><input type="checkbox" id="coupon-active" checked> Active (students can redeem this now)</label>
+      <div class="field coupon-check-field">
+        <label><input type="checkbox" id="coupon-active" checked><span>Active <small>Students can redeem this now.</small></span></label>
       </div>
-      <div class="field">
-        <label><input type="checkbox" id="coupon-founding"> Marks founding member (accounts that redeem this are permanently tagged as founding members — used by the WELCOME first-50 launch offer)</label>
+      <div class="field coupon-check-field">
+        <label><input type="checkbox" id="coupon-founding"><span>Founding member <small>Permanent access. Access duration is ignored while this is checked.</small></span></label>
       </div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div class="coupon-actions">
         <button class="btn btn-primary btn-sm" id="save-coupon-btn">Save coupon</button>
         <button class="btn btn-ghost btn-sm" id="cancel-coupon-btn">Cancel</button>
         <button class="btn btn-ghost btn-sm" id="delete-coupon-btn" style="border-color:rgba(229,72,77,0.35); margin-left:auto; display:none;">Delete coupon</button>
@@ -243,36 +248,36 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=769"></script>
-<script src="assets/progress.js?v=769"></script>
-<script src="assets/presence.js?v=769"></script>
-<script src="assets/messages.js?v=769"></script>
-<script src="assets/messages-badge.js?v=769"></script>
-<script src="assets/gm-badge.js?v=769"></script>
-<script src="assets/account-menu.js?v=769"></script>
-<script src="assets/activity-log.js?v=769"></script>
-<script src="assets/banned-check.js?v=769"></script>
-<script src="assets/email-verify.js?v=769"></script>
-<script src="assets/profiles-sync.js?v=769"></script>
-<script src="assets/loading-animation.js?v=769"></script>
-<script src="assets/avatars.js?v=769"></script>
-<script src="assets/referrals.js?v=769"></script>
-<script src="assets/roles.js?v=769"></script>
-<script src="assets/admin-guard.js?v=769"></script>
-<script src="assets/branding.js?v=769"></script>
-<script src="assets/dash-nav.js?v=769"></script>
-<script src="assets/market-hours.js?v=769"></script>
-<script src="assets/achievements-data.js?v=769"></script>
-<script src="assets/notifications.js?v=769"></script>
+<script src="assets/auth.js?v=770"></script>
+<script src="assets/progress.js?v=770"></script>
+<script src="assets/presence.js?v=770"></script>
+<script src="assets/messages.js?v=770"></script>
+<script src="assets/messages-badge.js?v=770"></script>
+<script src="assets/gm-badge.js?v=770"></script>
+<script src="assets/account-menu.js?v=770"></script>
+<script src="assets/activity-log.js?v=770"></script>
+<script src="assets/banned-check.js?v=770"></script>
+<script src="assets/email-verify.js?v=770"></script>
+<script src="assets/profiles-sync.js?v=770"></script>
+<script src="assets/loading-animation.js?v=770"></script>
+<script src="assets/avatars.js?v=770"></script>
+<script src="assets/referrals.js?v=770"></script>
+<script src="assets/roles.js?v=770"></script>
+<script src="assets/admin-guard.js?v=770"></script>
+<script src="assets/branding.js?v=770"></script>
+<script src="assets/dash-nav.js?v=770"></script>
+<script src="assets/market-hours.js?v=770"></script>
+<script src="assets/achievements-data.js?v=770"></script>
+<script src="assets/notifications.js?v=770"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=769"></script>
-<script src="assets/admin-tasks.js?v=769"></script>
-<script src="assets/admin-notify.js?v=769"></script>
-<script src="assets/admin-nav.js?v=769"></script>
-<script src="assets/commerce.js?v=769"></script>
-<script src="assets/pager.js?v=769"></script>
-<script src="assets/coupons-admin.js?v=769"></script>
-<script src="assets/notes-admin.js?v=769"></script>
-<script src="assets/theme.js?v=769"></script>
+<script src="assets/push.js?v=770"></script>
+<script src="assets/admin-tasks.js?v=770"></script>
+<script src="assets/admin-notify.js?v=770"></script>
+<script src="assets/admin-nav.js?v=770"></script>
+<script src="assets/commerce.js?v=770"></script>
+<script src="assets/pager.js?v=770"></script>
+<script src="assets/coupons-admin.js?v=770"></script>
+<script src="assets/notes-admin.js?v=770"></script>
+<script src="assets/theme.js?v=770"></script>
 </body>
 </html>

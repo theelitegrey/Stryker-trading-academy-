@@ -50,6 +50,22 @@ firebase deploy --only functions:razorpayCreateOrder,functions:razorpayVerifyPay
 firebase deploy --only functions:razorpaySubscribe,functions:razorpaySubsVerify,functions:razorpayWebhook,functions:razorpaySubsCancel
 ```
 
+## Free-coupon duration schema
+
+`coupons/{CODE}.accessMonths` is optional. When present on a `type: "free"`
+coupon it must be an integer from 1 through 60. It grants that many UTC calendar
+months on a paid recurring plan, clamped at month end (for example, Jan 31 plus
+one month is Feb 28 or Feb 29). A missing or null value keeps legacy behavior:
+one period from the selected plan (`month` or `year`). `marksFounding: true` is
+permanent and ignores the duration; free plans do not receive a paid-through
+date. The callable re-reads and validates this field inside the redemption
+transaction and extends from the later of now or the member's existing
+`paidThroughMillis`.
+
+`couponRedemptions` and zero-value `orders` record `accessMonths`,
+`paidThroughMillis`, and `permanentAccess` for audit. These fields are outputs of
+the server decision and are never accepted from the client request.
+
 ## Rolling back
 
 - **A cap is throttling real users.** Raise or delete that function's

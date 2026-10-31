@@ -23,7 +23,9 @@
  *   - one redemption per coupon per account, recorded in couponRedemptions
  *   - the coupon's maxRedemptions cap, claimed in the same transaction as the
  *     per-user record so two tabs cannot both take the last seat
- *   - the billing period, derived from the plan's own period field
+ *   - accessMonths, when present, is a server-validated integer from the
+ *     coupon document; legacy coupons still use the plan's own billing period
+ *   - an existing future paid-through date is extended, never shortened
  *
  * DEPLOY (name every function or the others get deleted):
  *   firebase deploy --only functions:redeemFreeCheckout
@@ -44,7 +46,15 @@ if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
 const rzp = require('./razorpay').__internals;
-const subs = require('./subscriptions').__internals;
+const couponAccess = require('./couponAccess');
+
+function couponHttpsError(err){
+  if (err instanceof couponAccess.CouponAccessError) {
+    const code = err.code === 'already-exists' ? 'already-exists' : 'failed-precondition';
+    return new functions.https.HttpsError(code, err.message);
+  }
+  return err;
+}
 
 function requireAuth(context){
   if (!context.auth || !context.auth.uid) {
@@ -103,79 +113,89 @@ exports.redeemFreeCheckout = functions
 
     let coupon = null;
     let discount = 0;
-    if (couponCode) {
-      const cDoc = await db.collection('coupons').doc(couponCode).get();
-      if (!cDoc.exists) throw new functions.https.HttpsError('failed-precondition', 'That coupon code doesn\'t exist.');
-      coupon = cDoc.data();
-      const res = rzp.couponDiscount(coupon, price, planId);
-      if (!res.ok) throw new functions.https.HttpsError('failed-precondition', res.why);
-      discount = res.discount;
-    }
-
-    const total = Math.max(0, price - discount);
-
-    // The whole point of this route. Anything with money owed must go through
-    // Razorpay, where a real signature is checked before any grant happens.
-    if (total > 0.009) {
-      throw new functions.https.HttpsError('failed-precondition',
-        'This order still has an amount due — complete it through the payment flow.');
-    }
-    // A free plan needs no coupon; a paid plan brought to zero does.
-    if (price > 0 && !coupon) {
-      throw new functions.https.HttpsError('failed-precondition',
-        'This plan is not free. A valid coupon is required.');
-    }
-
-    // One transaction claims the per-account redemption record AND the shared
-    // seat count. create() on the redemption doc is what makes it one-per-user:
-    // it fails if the account already redeemed this code, including when two
-    // tabs fire at the same moment.
-    if (coupon) {
-      const redemptionRef = db.collection('couponRedemptions').doc(couponCode + '__' + uid);
-      const couponRef = db.collection('coupons').doc(couponCode);
-      await db.runTransaction(async (tx) => {
-        const [rDoc, cDoc] = await Promise.all([tx.get(redemptionRef), tx.get(couponRef)]);
-        if (rDoc.exists) {
-          throw new functions.https.HttpsError('already-exists',
-            'You\'ve already used this coupon on this account.');
-        }
-        if (!cDoc.exists) {
-          throw new functions.https.HttpsError('failed-precondition', 'That coupon code doesn\'t exist.');
-        }
-        const c = cDoc.data();
-        const used = c.redemptionCount || 0;
-        if (c.active === false) {
-          throw new functions.https.HttpsError('failed-precondition', 'That coupon is no longer active.');
-        }
-        if (c.maxRedemptions && used >= c.maxRedemptions) {
-          throw new functions.https.HttpsError('failed-precondition',
-            'That coupon has reached its redemption limit.');
-        }
-        tx.set(redemptionRef, {
-          couponCode, uid, planId,
-          redeemedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        tx.update(couponRef, { redemptionCount: used + 1 });
-      });
-    }
-
-    // Entitlement. Written with the Admin SDK, so it stands regardless of how
-    // tight the client-facing rules are.
-    const studentPatch = {
+    let grant = { permanent: false, accessMonths: null, paidThroughMillis: null };
+    let studentPatch = {
       plan: plan.name || planId,
       planId
     };
-    if (coupon && coupon.marksFounding) {
-      studentPatch.foundingMember = true;
-      studentPatch.foundingCoupon = couponCode;
-    } else if (subs.periodKind(plan.period) !== 'none' && listPrice > 0) {
-      // A free redemption of a paid recurring plan buys exactly one billing
-      // period, same as a payment would; the daily sweep enforces the date.
-      studentPatch.paidThroughMillis = subs.extendPeriod(Date.now(), plan.period);
-      studentPatch.subscriptionStatus = 'active';
-    }
 
-    await db.collection('students').doc(uid).set(studentPatch, { merge: true });
+    if (couponCode) {
+      // Claim the coupon and grant access in one transaction. The coupon is
+      // re-read here and every entitlement decision below uses this snapshot,
+      // never client values or an earlier browser read.
+      const redemptionRef = db.collection('couponRedemptions').doc(couponCode + '__' + uid);
+      const couponRef = db.collection('coupons').doc(couponCode);
+      const studentRef = db.collection('students').doc(uid);
+      let outcome;
+      try {
+        outcome = await db.runTransaction(async (tx) => {
+          const [rDoc, cDoc, studentDoc] = await Promise.all([
+            tx.get(redemptionRef), tx.get(couponRef), tx.get(studentRef)
+          ]);
+          const c = cDoc.exists ? cDoc.data() : null;
+          const now = Date.now();
+          const decision = couponAccess.validateCouponRedemption({
+            coupon: c,
+            redemptionExists: rDoc.exists,
+            price,
+            planId,
+            nowMillis: now
+          });
+          const total = Math.max(0, price - decision.discount);
+          if (total > 0.009) {
+            throw new functions.https.HttpsError('failed-precondition',
+              'This order still has an amount due — complete it through the payment flow.');
+          }
+
+          const currentStudent = studentDoc.exists ? studentDoc.data() : {};
+          const currentGrant = couponAccess.computeCouponGrant({
+            coupon: c,
+            plan,
+            listPrice,
+            nowMillis: now,
+            currentPaidThroughMillis: currentStudent.paidThroughMillis
+          });
+          const patch = { plan: plan.name || planId, planId };
+          if (currentGrant.permanent) {
+            patch.foundingMember = true;
+            patch.foundingCoupon = couponCode;
+            // Founding access is permanent; leave no stale expiry that could
+            // be mistaken for the entitlement boundary by another system.
+            patch.paidThroughMillis = admin.firestore.FieldValue.delete();
+          } else if (currentGrant.paidThroughMillis) {
+            patch.paidThroughMillis = currentGrant.paidThroughMillis;
+            patch.subscriptionStatus = 'active';
+          }
+
+          tx.create(redemptionRef, {
+            couponCode,
+            uid,
+            planId,
+            accessMonths: currentGrant.accessMonths,
+            paidThroughMillis: currentGrant.paidThroughMillis,
+            permanentAccess: currentGrant.permanent,
+            redeemedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          tx.update(couponRef, { redemptionCount: decision.used + 1 });
+          tx.set(studentRef, patch, { merge: true });
+          return { coupon: c, discount: decision.discount, grant: currentGrant, studentPatch: patch };
+        });
+      } catch (err) {
+        throw couponHttpsError(err);
+      }
+      coupon = outcome.coupon;
+      discount = outcome.discount;
+      grant = outcome.grant;
+      studentPatch = outcome.studentPatch;
+    } else {
+      // No coupon is valid only for a genuinely free plan. Paid orders must go
+      // through the signed payment path.
+      if (price > 0.009) {
+        throw new functions.https.HttpsError('failed-precondition',
+          'This plan is not free. A valid coupon is required.');
+      }
+      await db.collection('students').doc(uid).set(studentPatch, { merge: true });
+    }
 
     const profilePatch = { plan: studentPatch.plan };
     if (studentPatch.foundingMember) profilePatch.foundingMember = true;
@@ -194,6 +214,9 @@ exports.redeemFreeCheckout = functions
       listPrice,
       originalPrice: price,
       couponCode: couponCode || null,
+      accessMonths: grant.accessMonths,
+      paidThroughMillis: grant.paidThroughMillis,
+      permanentAccess: grant.permanent,
       discountApplied: discount,
       finalAmount: 0,
       currency: 'USD',
@@ -208,7 +231,8 @@ exports.redeemFreeCheckout = functions
     return {
       ok: true,
       planName: studentPatch.plan,
-      foundingMember: !!studentPatch.foundingMember,
-      paidThroughMillis: studentPatch.paidThroughMillis || null
+      foundingMember: grant.permanent,
+      accessMonths: grant.accessMonths,
+      paidThroughMillis: grant.paidThroughMillis
     };
   });

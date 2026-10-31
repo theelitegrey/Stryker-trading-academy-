@@ -926,6 +926,42 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 @media (max-width:560px){ .form-row-2 .field{ margin-bottom:16px; } }
 @media (max-width:560px){ .form-row-2 .field:last-child{ margin-bottom:0; } }
 
+/* Coupon editor: duration is a first-class entitlement control, so its hint,
+   disabled/founding state, and every action remain legible and touch-safe. */
+#coupon-edit-panel .field input:not([type=checkbox]),
+#coupon-edit-panel .field select{
+  min-height:48px;
+  border-radius:12px;
+  font-size:16px;
+}
+.coupon-duration-field{ max-width:calc(50% - 8px); }
+.coupon-duration-field[hidden]{ display:none !important; }
+.coupon-duration-field .field-hint{
+  margin:6px 0 0;
+  color:var(--ink-2);
+  font-size:12px;
+  line-height:16px;
+}
+.coupon-duration-field input:disabled{ opacity:.55; cursor:not-allowed; }
+.coupon-check-field{ margin-bottom:12px; }
+.coupon-check-field > label{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-height:44px;
+  margin:0;
+  cursor:pointer;
+}
+.coupon-check-field > label > span{ font-size:13px; line-height:18px; }
+.coupon-check-field small{ display:block; color:var(--ink-2); font-size:12px; font-weight:400; line-height:16px; }
+.coupon-actions{ display:flex; gap:12px; flex-wrap:wrap; }
+.coupon-actions .btn{ min-height:44px; }
+@media (max-width:560px){
+  .coupon-duration-field{ max-width:none; }
+  .coupon-actions .btn{ flex:1 1 auto; }
+  #delete-coupon-btn{ flex-basis:100%; margin-left:0 !important; }
+}
+
 /* 3-column stat row (admin analytics) — same collapse pattern as .stat-grid */
 .stat-grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:34px; }
 @media (max-width:760px){ .stat-grid-3{ grid-template-columns:1fr 1fr; } }

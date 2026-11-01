@@ -1633,7 +1633,6 @@ body.charts-page .stkchart-credit{
     border:0; border-top:1px solid var(--line); border-radius:20px 20px 0 0; background:var(--bg-2);
     box-shadow:0 -12px 32px rgba(0,0,0,.4); font-size:15px; transition:transform .3s cubic-bezier(.2,0,0,1);
   }
-.stkc-sheet:not([hidden]){ animation:stkc-sheet-in .3s cubic-bezier(.2,0,0,1); }
 .stkc-sheet .stkc-sh{ position:sticky; top:0; z-index:2; display:flex; align-items:flex-start; gap:12px; margin:0 -8px 4px; padding:20px 12px 8px 20px;
     background:var(--bg-2); touch-action:none; cursor:grab; }
 .stkc-sh-grab{ position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:var(--line); }
@@ -1650,9 +1649,7 @@ body.charts-page .stkchart-credit{
 .stkc-tpl .stkc-saverow .stkc-in{ font-size:16px; }
 .stkc-tpl .stkc-tacts .stkc-ib{ width:44px; height:44px; }
 #stkc-more-pop.stkc-ob-list.stkc-ob-sub .stkc-scrim:not([hidden]){ visibility:visible !important; }}
-@keyframes stkc-sheet-in{ from{ transform:translateY(100%); } to{ transform:none; } }
-@media (prefers-reduced-motion: reduce){.stkc-sheet:not([hidden]){ animation:none; }
-.stkc-pop.stkc-sheet{ transition:none; }}
+@media (prefers-reduced-motion: reduce){.stkc-pop.stkc-sheet{ transition:none; }}
 .stkl-banner{
   flex:none; display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:6px 12px; font-size:12.5px;
   background:rgba(3,201,136,.08); border-bottom:1px solid rgba(3,201,136,.35); color:var(--ink-1);

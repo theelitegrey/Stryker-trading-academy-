@@ -308,11 +308,15 @@ function bindPopover(btn, pop, onOpen){
       if (!scrim && pop.parentNode) {
         scrim = document.createElement('div');
         scrim.className = 'stkc-scrim';
-        scrim.addEventListener('click', (e) => { e.stopPropagation(); set(false); });
+        // tap outside = close everything, including the phone ⋯ list the sheet was opened from
+        scrim.addEventListener('click', (e) => { e.stopPropagation(); set(false); document.body.click(); });
         pop.parentNode.insertBefore(scrim, pop);
       }
       if (scrim) scrim.hidden = !open;
       pop.style.transform = '';
+      // slide up once per open (script animation: the onebar re-homes the menu every clock tick, which would restart a CSS one)
+      if (open && pop.animate && matchMedia('(max-width:599px) and (prefers-reduced-motion: no-preference)').matches)
+        pop.animate([{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,0,0,1)' });
     }
     if (open && onOpen) onOpen();
   };

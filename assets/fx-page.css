@@ -76,7 +76,7 @@
   .fx-pin .fx-spin{ display:block; position:sticky; top:calc(var(--cm-nav,64px) + 24px); }
   .fx-pin .fx-inl{ display:none; }
   .fx-pin .cm-steps-list{ gap:0; }
-  .fx-pin .cm-steps-list li{ min-height:42vh; opacity:.5; transition:opacity .3s var(--cm-ease), background-color .3s, border-color .3s; align-content:start; }
+  .fx-pin .cm-steps-list li{ min-height:30vh; opacity:.5; transition:opacity .3s var(--cm-ease), background-color .3s, border-color .3s; align-content:start; }
   .fx-pin .cm-steps-list li:last-child{ min-height:0; }
   .fx-pin .cm-steps-list li.on{ opacity:1; background:var(--bg-2); border-color:var(--line); }
   .fx-pin .cm-steps-list li.done{ opacity:.8; }

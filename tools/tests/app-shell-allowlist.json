@@ -1,6 +1,8 @@
 {
  "_readme": "Pages the app-shell audit treats specially. marketing = intentionally marketing-only even when signed in (reason required). dual = public + app pages: signed in = app shell, signed out = marketing header + footer. ignore = link targets that are not browsed pages (auth, sign-out landing, etc.).",
- "marketing": {},
+ "marketing": {
+  "toast-demo": "internal demo, noindex"
+ },
  "dual": {
   "suggestions": "public ideas board; app shell when signed in",
   "support": "public Support page",

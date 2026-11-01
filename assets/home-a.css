@@ -120,7 +120,8 @@
 .hh-c1,.hh-c3{ display:block; } .hh-c1{ left:0; top:22%; } .hh-c3{ left:0; bottom:calc(var(--ph) * .7 + 16%); }
 .hh-toasts.cm-toasts{ left:0; right:auto; bottom:0; transform:none; width:min(232px,calc(100% - var(--ph) - 8px)); height:56px; z-index:4; }
 @media (max-width:699px){
-  .hh-back{ top:-44px; } .hh-scene{ margin-top:72px; }
+  .hh-scene{ margin-top:148px; } .hh-back{ top:-124px; width:58%; } .hh-bl{ left:3%; } .hh-br{ right:3%; }
+  .hh-bl .hh-scr{ transform:rotate(-5deg); } .hh-br .hh-scr{ transform:rotate(5deg); }
   .hh-scr .cm-bar{ padding:4px 8px; gap:8px; } .hh-scr .cm-dots{ display:none; } .hh-scr .cm-tag{ padding:2px 6px; font-size:10px; }
   .hh-fl .zc-fc{ gap:8px; padding:8px 12px; border-radius:12px; } .hh-fl .zc-fc .ci{ width:16px; height:16px; }
   .hh-fl .zc-fc b{ font-size:13px; line-height:16px; } .hh-fl .zc-fc span{ font-size:11px; line-height:14px; }
@@ -128,17 +129,22 @@
   .hh-toasts.cm-toasts{ height:52px; } .hh-toasts .cm-toast{ padding:0 12px; gap:8px; }
 }
 @media (min-width:700px){
-  .hh-scene{ --ph:clamp(150px,19vw,176px); --phx:16px; margin-top:80px; padding-bottom:calc(var(--ph) * .6); }
-  .hh-back{ top:-56px; }
+  .hh-scene{ --ph:clamp(150px,19vw,176px); --phx:16px; margin-top:112px; padding-bottom:calc(var(--ph) * .6); }
+  .hh-back{ top:-100px; width:52%; } .hh-bl{ left:3%; } .hh-br{ right:3%; }
   .hh-c2{ display:block; right:0; top:10%; }
   .hh-c1{ top:24%; } .hh-c3{ bottom:calc(var(--ph) * .6 + 18%); }
   .hh-toasts.cm-toasts{ left:calc((100% - var(--mw)) / 2 + 24px); bottom:4px; }
 }
 @media (min-width:1100px){
   .hh-scene{ --ph:184px; --phx:56px; padding-bottom:calc(var(--ph) * .55); }
-  .hh-back{ top:-64px; }
+  .hh-back{ top:-100px; }
   .hh-c1{ left:-8px; top:26%; } .hh-c3{ left:-8px; bottom:calc(var(--ph) * .55 + 14%); }
   .hh-c2{ right:-8px; top:12%; } .hh-c4{ display:block; right:-8px; top:27%; }
   .hh-c5{ display:block; left:calc((100% - var(--mw)) / 2 + 96px); bottom:-4px; }
   .hh-toasts.cm-toasts{ left:auto; right:calc((100% - var(--mw)) / 2 + var(--ph) - var(--phx) + 24px); bottom:-4px; }
 }
+
+.hh-chip{ display:inline-flex; align-items:center; gap:8px; margin:16px 0 0; padding:6px 14px; border-radius:999px; border:1px solid var(--line); background:var(--bg-2); font-size:13px; line-height:18px; font-weight:600; color:var(--ink-1); }
+.hh-chip .ci{ width:16px; height:16px; color:var(--gold); }
+
+@media (min-width:1100px){ .cm-hero h1{ max-width:1080px; font-size:clamp(44px,4.4vw,56px); } }

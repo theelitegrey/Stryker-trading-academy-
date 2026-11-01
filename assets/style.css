@@ -6389,6 +6389,7 @@ body.charts-page .stkchart-credit{
   #stkc-more-pop.stkc-ob-list:not(.stkc-ob-sub)::before{ content:""; position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:var(--line); }
   #stkc-more-pop.stkc-ob-list:not(.stkc-ob-sub) [data-ob-trig][data-ob-trig]{ height:48px; min-height:48px; padding:0 20px; font-size:15px; }
   #stkc-more-pop.stkc-ob-list:not(.stkc-ob-sub) > .stkc-ob-gh{ padding:12px 20px 4px; }
+  .stkr-pop.stkc-sheet > .stkc-pop-h{ display:none; }   /* the sheet title already says Bar replay */
 }
 .stkc-ob-list > .stkc-ob-gh{
   flex:none; padding:8px 14px 4px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3);

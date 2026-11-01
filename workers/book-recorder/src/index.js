@@ -23,7 +23,7 @@ import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from '.
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
-import { isAdminToken, isRealtimeToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
+import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
 import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
@@ -498,6 +498,7 @@ async function gexHistoryRoute(u, env, ctx, h) {
   }
   const out = new Response(res.body, res);
   Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  out.headers.set('cache-control', 'private, max-age=' + maxAge);   // gated: a browser may keep it, a shared cache may not
   return out;
 }
 
@@ -533,6 +534,7 @@ async function optRoute(u, env, ctx, h) {
   }
   const out = new Response(res.body, res);
   Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  out.headers.set('cache-control', 'private, max-age=60');
   return out;
 }
 
@@ -799,6 +801,11 @@ async function route(req, env, ctx) {
         ctx.waitUntil(caches.default.put(ckey, r.clone()));
       }
       return new Response(r.body, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'private, no-store' } });
+    }
+    // GEX+ data is Pro only (Owner order 2026-11-01): the history, sessions and options-analytics reads need a verified admin / demo / active-Pro token.
+    // (/tide is ZoroTide, free.) Checked before the cache, and the 403 is never cached.
+    if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions' || u.pathname === '/opt-analytics') {
+      if (!(await isGexProToken(bearerOf(req)))) return new Response(JSON.stringify({ error: 'pro_required' }), { status: 403, headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'no-store' }, h) });
     }
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     // /orderflow has its own limiter (60/min: a footprint chart loads one request per UTC day plus a

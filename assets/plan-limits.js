@@ -7,20 +7,15 @@
 //             strykerReplayLimitOk; it always answers yes now).
 //
 // The Free plan (rank 0) gets:
-//   GEX           SPX only, 0DTE view only, no strike table
-//   Trade journal manual entry, FREE_JOURNAL_MONTHLY new trades per calendar
-//                 month; import, broker sync, analytics and AI coach are Pro.
-//                 Existing trades are never hidden or deleted, and editing an
-//                 existing trade is always allowed.
+//   GEX           NOTHING (Owner 2026-11-01): all GEX+ is Pro, enforced by the server (functions/api/gex/_pro.js)
+//   Trade journal NO limits (Owner 2026-11-01): unlimited trades, import, broker sync, analytics, AI coach.
+//                 applyJournal() below is kept but unused.
 //   Charts        NO limits for Free (Owner 2026-10-29); the only Pro parts of the
 //                 chart are order flow tools and GEX on charts (real-time futures is the separate $7 add-on, not Pro)
 //                 (assets/chart-pro-gate.js). Backtesting / replay sessions are
 //                 unlimited for every plan.
 //
-// ENFORCEMENT IS CLIENT-SIDE ONLY. The journal and replay data live under
-// students/{uid}/journal and /replay, which the member may write freely, and
-// /api/gex/* is public. These limits shape the product; they are not a
-// security boundary. Admins, Pro and anything unresolvable get no limits
+// The journal and replay are free and unlimited. GEX data is refused by the server for non-Pro members; this file only picks the UI. Admins, Pro and anything unresolvable get no limits
 // (fail open, same as plan-guard.js).
 (function () {
   'use strict';
@@ -160,8 +155,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     tier().then(function (t) {
       if (!t.free) return;
-      applyGex();
-      applyJournal();
+      // journal is free (Owner 2026-11-01): applyJournal() is no longer called. GEX is Pro only: the server refuses the data and
+      // assets/gex-auth.js shows the Pro prompt; the page does not wait for the plan to resolve.
+      if (window.strykerGexWall && document.querySelector('.gex-page-shell')) window.strykerGexWall();
     });
   });
 })();

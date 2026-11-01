@@ -154,7 +154,7 @@
         h += '<button type="button" role="tab" class="scn-tab' + (on ? ' on' : '') + '" aria-selected="' + on + '" data-tab="' + k + '">' + esc(p.title) + '</button>';
       });
     });
-    var pro = st.tier && !st.tier.free;
+    var pro = true;   // custom filters are free (2026-11-01)
     h += '<span class="scn-tgrp">Custom</span><button type="button" role="tab" class="scn-tab scn-tab-custom' + (st.custom ? ' on' : '') + '" aria-selected="' + st.custom + '" data-tab="__custom">Custom filters' + (pro ? '' : ' <span class="scn-pro">PRO</span>') + '</button>';
     return h + '</div>';
   }
@@ -201,7 +201,7 @@
     var h = tabsHtml(), m = marketOf();
     if (st.custom) {
       if (!st.tier) { root.innerHTML = h + '<p class="scn-empty">Loading…</p>'; return; }
-      if (st.tier.free) {
+      if (false) {   // custom filters are free (2026-11-01)
         root.innerHTML = h + '<div class="scn-lock"></div>';
         var slot = root.querySelector('.scn-lock');
         if (window.strykerPlanLock) slot.appendChild(window.strykerPlanLock.card('scanner', 'scanner-custom'));

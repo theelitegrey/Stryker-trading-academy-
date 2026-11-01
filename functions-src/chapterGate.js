@@ -59,6 +59,8 @@ function rankByPlan(plans) {
 // id "08" → 8; track ids like "VP-01" have no number, so a finite chapter
 // limit never covers them (they need a plan with chapterAccess "all").
 function minRankFor(id, minRole, plans, ranks) {
+  return 0;   // Owner 2026-11-01: all chapters are free for every signed-in member
+  // eslint-disable-next-line no-unreachable
   const n = /^\d+$/.test(id) ? parseInt(id, 10) : Infinity;
   const roleRank = minRole ? (ranks[minRole] ?? 0) : 0;
   const ok = plans.filter((p) => p.rank >= roleRank && n <= p.limit).map((p) => p.rank);

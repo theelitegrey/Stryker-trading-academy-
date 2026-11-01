@@ -21,6 +21,7 @@
 // PLAN: Free = SPX column only (QQQ / SPY show a "Pro" lock and are never fetched); Pro = all three.
 // BAR REPLAY: the ladder is the current chain, so it says so and does not draw during replay.
 // WORDING: "GEX updated Xs ago" / "X min ago" only; Education only. Not financial advice.
+import { rtHeadersReady } from './rt-access.js?v=777';
 import * as ProGate from './chart-pro-gate.js?v=777';
 import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, dataTime } from './chart-gex-levels.js?v=777';
 import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText, keyLevels, rowNearest, fmtPct } from './chart-gex-ladder-core.js?v=777';
@@ -68,7 +69,7 @@ function optFor(api, cb) {
   const e = optCache[api] || (optCache[api] = { j: null, at: 0, p: null });
   if (!e.p && Date.now() - e.at > 60000) {
     e.at = Date.now();
-    e.p = fetch(OPT_API + api, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => { if (j && !j.error) e.j = j; e.p = null; if (cb) cb(); return e.j; });
+    e.p = rtHeadersReady().then((hd) => fetch(OPT_API + api, { headers: Object.assign({ accept: 'application/json' }, hd) })).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => { if (j && !j.error) e.j = j; e.p = null; if (cb) cb(); return e.j; });
   }
   return e.j;
 }
@@ -119,7 +120,7 @@ export function createLadder(root, opts) {
   const colEl = (api) => root.querySelector('.stkgl-col[data-api="' + api + '"]');
   const phone = () => (opts.isPhone ? opts.isPhone() : window.innerWidth <= PHONE_MAX);
   // Default to the lock: QQQ / SPY open only once Pro is CONFIRMED (a signed-out or Free visitor never waits for it).
-  const locked = (api) => api !== 'SPX' && !(tier && !tier.free);
+  const locked = () => !(tier && !tier.free);   // all GEX is Pro (Owner 2026-11-01), SPX included
   const dteNow = () => (opts.dte ? opts.dte() : 0);
   const dataFor = (api) => (opts.dataFor && opts.dataFor(api)) || (live[dteNow()] && live[dteNow()][api]) || gexCached(api, dteNow());
 
@@ -223,12 +224,12 @@ export function createLadder(root, opts) {
     if (inflight) return;
     if (opts.replayNote && opts.replayNote()) return;
     const dte = dteNow(), my = seq;
-    let want = COLS.map((c) => c[0]).filter((a) => a === 'SPX' || (tier && !tier.free));
+    let want = COLS.map((c) => c[0]).filter(() => tier && !tier.free);
     if (opts.dataFor) want = want.filter((a) => !opts.dataFor(a));
     if (!want.length) return;
     inflight = true;
     try {
-      const r = await fetch(LADDER_API + '?u=' + want.join(',') + '&dte=' + dte, { headers: { accept: 'application/json' }, cache: 'no-cache' });
+      const r = await fetch(LADDER_API + '?u=' + want.join(',') + '&dte=' + dte, { headers: Object.assign({ accept: 'application/json' }, await rtHeadersReady()), cache: 'no-cache' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const text = await r.text();
       if (my !== seq) return;

@@ -188,6 +188,8 @@ async function notify(uid, message) {
 }
 
 async function freeRoom(uid) {
+  return null;   // journal is free and unlimited (Owner 2026-11-01); the old 20-a-month Free cap is gone
+  // eslint-disable-next-line no-unreachable
   // Free plan = a plan with rank < 1 (same rule as assets/plan-limits.js). Admins and paid plans: unlimited.
   const [adm, stu] = await Promise.all([db.collection('admins').doc(uid).get(), db.collection('students').doc(uid).get()]);
   if (adm.exists) return null;

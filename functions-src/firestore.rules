@@ -119,9 +119,9 @@ service cloud.firestore {
       return ('plan' in st && st.plan is string && st.plan in ranks) ? ranks[st.plan] : 0;
     }
     match /chapterBodies/{id} {
-      allow read: if isAdmin()
-                  || (signedIn() && (resource.data.minRank == 0
-                                     || planRankOf(request.auth.uid) >= resource.data.minRank));
+      // Owner 2026-11-01: every chapter is free for every signed-in member. minRank (chapterGate.js)
+      // is now always 0 and no longer consulted; planRankOf stays for any future paid track.
+      allow read: if isAdmin() || signedIn();
       allow write: if isAdmin();
     }
     match /models/{id}              { allow read: if signedIn(); allow write: if isAdmin(); }

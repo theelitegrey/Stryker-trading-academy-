@@ -13,7 +13,7 @@
   'use strict';
   var API = '/api/gex/flow/';
   var REFRESH_MS = 2 * 60 * 1000;
-  var MKTS = ['SPX', 'QQQ', 'SPY'], FREE = ['SPX'];
+  var MKTS = ['SPX', 'QQQ', 'SPY'], FREE = []   // all GEX is Pro (2026-11-01);
   var EACH = 10;   // strikes each side of spot
   var root, cur = 'SPX', exp = 0, tier = null, data = {};
 
@@ -97,7 +97,7 @@
   function load(u, force) {
     var e = data[u];
     if (!force && e && !e.error && Date.now() - (e._at || 0) < REFRESH_MS - 5000) { render(); return; }
-    fetch(API + u, { headers: { accept: 'application/json' } })
+    (window.strykerGexHeaders ? window.strykerGexHeaders() : Promise.resolve({})).then(function (hd) { return fetch(API + u, { headers: Object.assign({ accept: 'application/json' }, hd) }); })
       .then(function (r) { return r.ok ? r.json() : { error: 'HTTP ' + r.status }; })
       .catch(function (err) { return { error: String(err && err.message || err) }; })
       .then(function (j) {

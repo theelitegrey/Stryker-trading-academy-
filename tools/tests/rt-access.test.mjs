@@ -158,4 +158,32 @@ const brief = { bullets: [{ title: 'Dollar and commodities: crude -1%', text: 'C
 redactFutures('market-brief', brief);
 assert.ok(!/95\.66|front-month/.test(JSON.stringify(brief)), JSON.stringify(brief));
 assert.ok(/EUR\/USD 1\.1247/.test(brief.bullets[0].text));
+
+// GEX+ is Pro only (Owner 2026-11-01): admin, demo and an ACTIVE paid plan pass; Starter, lapsed/expired Pro, no plan, signed out and junk do not
+for (const M of [A, B]) {
+  M._resetForTests();
+  for (const u of ['uid-admin', 'uid-demo', 'uid-pro']) assert.equal(await M.isGexProToken(await mint({ sub: u })), true, 'GEX allowed: ' + u);
+  for (const u of ['uid-starter', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-none', 'uid-demo-false']) assert.equal(await M.isGexProToken(await mint({ sub: u })), false, 'GEX refused: ' + u);
+  assert.equal(await M.isGexProToken(''), false, 'GEX refused signed out');
+  assert.equal(await M.isGexProToken('a.b.c'), false, 'GEX refused junk token');
+  fsDown = true; M._resetForTests();
+  assert.equal(await M.isGexProToken(await mint({ sub: 'uid-pro' })), false, 'GEX fails closed on an outage');
+  fsDown = false; M._resetForTests();
+}
+{
+  const { onRequestGet: lv } = await import('../../functions/api/gex/levels/[name].js');
+  const { onRequestGet: lad } = await import('../../functions/api/gex/ladder.js');
+  const { onRequestGet: flow } = await import('../../functions/api/gex/flow/[name].js');
+  const { onRequestGet: cand } = await import('../../functions/api/gex/candles/[fut].js');
+  A._resetForTests();
+  const call = async (fn, path, params, tok) => fn({ request: new Request('https://x' + path, { headers: tok ? { authorization: 'Bearer ' + tok } : {} }), params, env: {} });
+  for (const [who, tok] of [['signed out', ''], ['Starter', await mint({ sub: 'uid-starter' })], ['lapsed Pro', await mint({ sub: 'uid-pro-lapsed' })]]) {
+    for (const [fn, path, params] of [[lv, '/api/gex/levels/SPX?dte=0', { name: 'SPX' }], [lad, '/api/gex/ladder?u=SPX&dte=0', {}], [flow, '/api/gex/flow/SPX', { name: 'SPX' }], [cand, '/api/gex/candles/ES?interval=5m', { fut: 'ES' }]]) {
+      const r = await call(fn, path, params, tok);
+      assert.equal(r.status, 403, who + ' ' + path);
+      const j = await r.json(); assert.deepEqual(Object.keys(j).sort(), ['error', 'message'], 'no GEX data in the refusal'); assert.equal(j.error, 'pro_required');
+      assert.equal(r.headers.get('cache-control'), 'no-store');
+    }
+  }
+}
 console.log('rt-access: all ok');

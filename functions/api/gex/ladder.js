@@ -5,7 +5,8 @@
 // 1 s and carries a strong ETag, so a poll with If-None-Match whose data did not change gets a 304 with no body.
 // Education only. Not financial advice.
 import { MARKETS, json } from './_engine.js';
-import { onRequestGet as levelsGet } from './levels/[name].js';
+import { handle as levelsGet } from './levels/[name].js';
+import { gexPro } from './_pro.js';
 import { gexAtSpot, netNear, ladderNear, flipAt, wallsAt } from '../../../assets/gex-fast-core.js';
 
 // FAST path (InsightSentry add-on, 2026-10-16): the server feeder gex_fast.py rebuilds per-strike gamma x OI about every
@@ -67,7 +68,7 @@ function resp(body, etag, status) {
   return new Response(status === 304 ? null : body, { status: status || 200, headers });
 }
 
-export async function onRequestGet(ctx) {
+async function handle(ctx) {
   const { request, env } = ctx;
   const url = new URL(request.url);
   const want = [...new Set((url.searchParams.get('u') || 'SPX').toUpperCase().split(',').map((s) => s.trim()))].filter((s) => ALLOWED.includes(s) && MARKETS[s]).sort();
@@ -107,3 +108,5 @@ export async function onRequestGet(ctx) {
   if (notModified(request, etag)) return resp(null, etag, 304);
   return full;
 }
+
+export const onRequestGet = gexPro(handle);

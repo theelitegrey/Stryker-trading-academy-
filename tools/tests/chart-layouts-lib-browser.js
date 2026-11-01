@@ -170,7 +170,9 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     await a.fill('.lyl-pub textarea', 'EMA, RSI and MACD with two panes');
     await a.click('.lyl-pub .lyl-chips .lyl-chip:nth-child(1)'); await a.click('.lyl-pub .lyl-chips .lyl-chip:nth-child(4)');
     await a.fill('.lyl-pub input[aria-label="Custom tag"]', 'My Tag!'); await a.keyboard.press('Enter');
-    await a.click('.lyl-vopt:nth-child(3)');
+    t('share dialog: "What to share" defaults to Setup', (await a.$eval('.lyl-kind .lyl-vopt.on', (e) => e.dataset.kind)) === 'setup');
+    await a.click('.lyl-kind .lyl-vopt[data-kind="chart"]');
+    await a.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(3)');
     await shot(a, 'share-1440-dark');
     await a.fill('.lyl-pub input[aria-label="Name"]', 'Fuck this');
     await a.click('.lyl-pub .lyl-pri'); await sleep(300);
@@ -178,12 +180,50 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     await a.fill('.lyl-pub input[aria-label="Name"]', 'Order flow pair');
     await a.click('.lyl-pub .lyl-pri'); await sleep(1800);
     const pl = DB.get('publicLayouts/' + lid);
-    t('publish public: card (author = profile name, no email, counts 0) + state doc', !!pl && pl.visibility === 'public' && pl.authorName === 'Alice T' && !JSON.stringify(pl).includes('@') && pl.likeCount === 0 && pl.useCount === 0 && pl.tags.includes('my tag') && DB.has('publicLayouts/' + lid + '/data/s'), pl && { v: pl.visibility, a: pl.authorName, tags: pl.tags });
+    t('publish public: card (author = profile name, no email, counts 0) + state doc', !!pl && pl.kind === 'chart' && pl.visibility === 'public' && pl.authorName === 'Alice T' && !JSON.stringify(pl).includes('@') && pl.likeCount === 0 && pl.useCount === 0 && pl.tags.includes('my tag') && DB.has('publicLayouts/' + lid + '/data/s'), pl && { v: pl.visibility, a: pl.authorName, tags: pl.tags });
+    // ---- a SETUP: no drawings, symbol or interval leave the browser
+    await a.evaluate(async () => {
+      const ch = window.STRYKER_VELA.chart;
+      const t0 = Date.now() - 3600e3;
+      ch.drawings.add('hline', { paneId: 'price', anchors: [{ time: t0, price: 30000 }] });
+      await new Promise((r) => setTimeout(r, 600));
+    });
+    const hadDraw = await a.evaluate(() => JSON.stringify(window.STRYKER_VELA.getState()).includes('"hline"'));
+    await a.evaluate(() => window.STRYKER_LAYOUTS.saveAsNew('Alice setup only')); await sleep(1500);
+    const sid = [...DB.entries()].find(([k, v]) => k.startsWith('students/alice/chartLayouts/') && v.name === 'Alice setup only')[0].split('/').pop();
+    await a.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), sid); await a.waitForSelector('.lyl-pub');
+    await a.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(3)'); await a.click('.lyl-pub .lyl-pri'); await sleep(1800);
+    const sc = DB.get('publicLayouts/' + sid), ss = DB.get('publicLayouts/' + sid + '/data/s');
+    const sst = ss && JSON.parse(ss.state);
+    t('publish setup: kind=setup, card symbol/interval empty, state has no drawings/symbol/timeframe', hadDraw && !!sc && sc.kind === 'setup' && sc.symbol === '' && sc.interval === '' && sst.setup === true && !/"drawings"\s*:/.test(ss.state) && !/hline/.test(ss.state) && sst.charts.every((c) => !('symbol' in c) && !('timeframe' in c)) && sst.charts.some((c) => c.indicators && JSON.stringify(c.indicators).includes('rsi')), sc && { kind: sc.kind, sym: sc.symbol, iv: sc.interval, st: ss && ss.state.slice(0, 160) });
     await a.close();
 
     // ---- bob
     const B = await session(b, 'bob', 1440, 900, false);
     const bp = await open(B, BASE); pages.push(bp);
+    // Use a setup: bob keeps his symbol, interval and drawing; gets alice's indicators + panes
+    await bp.evaluate(async () => {
+      const ch = window.STRYKER_VELA.chart;
+      ch.drawings.add('trendline', { paneId: 'price', anchors: [{ time: Date.now() - 7200e3, price: 29900 }, { time: Date.now() - 3600e3, price: 29950 }] });
+      window.STRYKER_VELA.active.setSymbol('futures:ES1!'); window.STRYKER_VELA.active.setTimeframe('5');
+      await new Promise((r) => setTimeout(r, 2000));
+    });
+    const bob0 = await bp.evaluate(() => { const c = window.STRYKER_VELA.getState().charts[0]; return { sym: c.symbol, tf: c.timeframe, d: JSON.stringify(c.drawings || '') }; });
+    await lib(bp, 'browse'); await sleep(1200);
+    const kinds = await txt(bp, '.lyl-gc .lyl-kd');
+    t('Discover: cards show "Setup" / "Chart idea" labels', kinds.includes('Setup') && kinds.includes('Chart idea'), kinds);
+    await bp.click('.lyl-topics .lyl-chip:has-text("Setups")'); await sleep(200);
+    const onlySetups = await txt(bp, '.lyl-gc h3');
+    t('kind chip "Setups" filters', onlySetups.length === 1 && onlySetups[0] === 'Alice setup only', onlySetups);
+    await bp.click('.lyl-topics .lyl-chip:has-text("Chart ideas")'); await sleep(200);
+    t('kind chip "Chart ideas" filters', (await txt(bp, '.lyl-gc h3')).join('|') === 'Order flow pair');
+    await bp.click('.lyl-topics .lyl-chip:has-text("All")'); await sleep(200);
+    await bp.click('.lyl-gc[data-id="' + sid + '"] .lyl-use'); await sleep(2500);
+    const bob1 = await bp.evaluate(() => { const st = window.STRYKER_VELA.getState(); const c = st.charts[0]; return { sym: c.symbol, tf: c.timeframe, d: JSON.stringify(c.drawings || ''), n: st.charts.length, ind: JSON.stringify(st.charts.map((x) => x.indicators)) }; });
+    t('Use setup: keeps the current symbol, interval and drawings; adds the indicators + panes', bob1.sym === bob0.sym && bob0.sym === 'futures:ES1!' && bob1.tf === bob0.tf && bob1.d === bob0.d && /trendline/.test(bob1.d) && bob1.n === 2 && /rsi/.test(bob1.ind) && /macd/.test(bob1.ind), { bob0, bob1: Object.assign({}, bob1, { ind: bob1.ind.slice(0, 120) }) });
+    // back to a plain chart for the rest of the run
+    await bp.evaluate(() => window.STRYKER_CHART_UI.applySaved({ state: { version: 1, layout: '1', charts: [{ id: 'A', symbol: 'futures:NQ1!', timeframe: '15' }] } })); await sleep(1200);
+    DB.delete('publicLayouts/' + sid); DB.delete('publicLayouts/' + sid + '/data/s'); [...DB.keys()].filter((k) => k.startsWith('publicLayouts/' + sid + '/')).forEach((k) => DB.delete(k));
     await lib(bp, 'browse'); await sleep(1200);
     const items = (await txt(bp, '.lyl-gc')).join('|');
     t('Browse: public layout listed with NEW, author, 0 counts', items.includes('Order flow pair') && items.includes('New') && items.includes('by @alicet') && /\d+ uses/.test(items), items);
@@ -235,10 +275,10 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     const bobId = [...DB.keys()].find((k) => k.startsWith('students/bob/chartLayouts/')).split('/').pop();
     await lib(bp, 'mine'); await sleep(800);
     await bp.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), bobId); await bp.waitForSelector('.lyl-pub');
-    await bp.click('.lyl-vopt:nth-child(2)'); await bp.click('.lyl-pub .lyl-pri'); await sleep(1500);
+    await bp.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(2)'); await bp.click('.lyl-pub .lyl-pri'); await sleep(1500);
     t('link only: chartShared written, NOT in publicLayouts', DB.has('chartShared/' + bobId) && !DB.has('publicLayouts/' + bobId));
     await bp.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), bobId); await bp.waitForSelector('.lyl-pub');
-    await bp.click('.lyl-vopt:nth-child(4)'); await sleep(200);
+    await bp.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(4)'); await sleep(200);
     t('community, no community owned: "Create a community in Creator Hub"', (await txt(bp, '.lyl-comm')).join('|').includes('Create a community in Creator Hub'));
     await shot(bp, 'share-community-nocomm-1440-dark');
     await bp.close();
@@ -249,7 +289,7 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     await a2.evaluate((id) => window.STRYKER_LAYOUTS.openById(id), lid); await sleep(2500);
     await lib(a2, 'mine'); await sleep(700);
     await a2.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), lid); await a2.waitForSelector('.lyl-pub');
-    await a2.click('.lyl-vopt:nth-child(4)'); await sleep(200);
+    await a2.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(4)'); await sleep(200);
     t('community option: picker lists my community', (await txt(a2, '.lyl-comm option')).includes('Zoro Room'));
     await shot(a2, 'share-community-1440-dark');
     await a2.click('.lyl-pub .lyl-pri'); await sleep(1800);
@@ -274,7 +314,8 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     DB.set('publicLayouts/' + lid + '/data/s', DB.get('publicLayouts/' + lid + '/data/s'));
     // more cards so the shots show a real grid (same state doc, different card fields)
     [['gexmap', 'GEX levels + flow', 'Mia R', ['gex', 'futures'], 'futures:ES1!', '5', 12, 7], ['scalp5', 'Fast scalp stack', 'Raj P', ['scalping', 'order flow'], 'futures:NQ1!', '1', 5, 2], ['swingd', 'Daily swing trend', 'Lena V', ['swing', 'trend'], 'crypto:BTCUSDT', 'D', 0, 0], ['cryptoh', 'Crypto hourly map', 'Tom B', ['crypto'], 'crypto:ETHUSDT', '60', 2, 1]].forEach(([id, name, au, tags, sym, iv, uc, lc], i) => {
-      DB.set('publicLayouts/' + id, Object.assign({}, cur0, { ownerUid: 'u_' + id, authorName: au, name, tags, symbol: sym, interval: iv, useCount: uc, likeCount: lc, desc: 'Sample ' + name, createdAt: { __ms: Date.now() - (i + 2) * 864e5 * 3 } }));
+      const setup = i % 2 === 0;
+      DB.set('publicLayouts/' + id, Object.assign({}, cur0, { kind: setup ? 'setup' : 'chart', ownerUid: 'u_' + id, authorName: au, name, tags, symbol: setup ? '' : sym, interval: setup ? '' : iv, useCount: uc, likeCount: lc, desc: 'Sample ' + name, createdAt: { __ms: Date.now() - (i + 2) * 864e5 * 3 } }));
       DB.set('publicLayouts/' + id + '/data/s', DB.get('publicLayouts/' + lid + '/data/s'));
     });
     const swipe = async (p, x1, x2, y) => {
@@ -350,7 +391,7 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
       if (mobile && theme === 'dark') {
         const fits = await p.$eval('.lyl-pub', (e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; });
         t('390: Publish dialog inside the viewport', fits);
-        await p.click('.lyl-vopt:nth-child(4)'); await sleep(300); await shot(p, 'share-community-390-dark');
+        await p.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(4)'); await sleep(300); await shot(p, 'share-community-390-dark');
       }
       await p.keyboard.press('Escape'); await closeLib(p);
       await p.close();

@@ -822,6 +822,8 @@ service cloud.firestore {
     //                           (an unpublished layout keeps its doc and counts). Link-only layouts stay in
     //                           chartShared. hidden: admin hides from Browse and from every non-owner read.
     // publicLayouts/{id}/data/s the chart state (<= 200000). Same read gate as the card.
+    // kind (2026-11-01): 'setup' (indicators/settings/panes; card symbol + interval empty, state has no
+    //                           drawings) or 'chart' (whole chart). Required on create, owner may change it.
     // likes/{uid}, uses/{uid}, reports/{uid}: one marker per member. The counters on the parent move by exactly
     //                           +1/-1 in the same batch as the marker (exists/existsAfter), so they cannot be
     //                           inflated. uses/ markers can never be removed, so a use counts once per member.
@@ -870,10 +872,11 @@ service cloud.firestore {
           && d.thumb is string && d.thumb.size() <= 60000 && (d.thumb == '' || d.thumb.matches('^data:image/webp;base64,.*'))
           && d.panes is int && d.panes >= 1 && d.panes <= 16
           && d.indicators is int && d.indicators >= 0 && d.indicators <= 200
-          && d.symbol is string && d.symbol.size() <= 80 && d.interval is string && d.interval.size() <= 10;
+          && d.symbol is string && d.symbol.size() <= 80 && d.interval is string && d.interval.size() <= 10
+          && d.kind in ['setup', 'chart'] && (d.kind == 'chart' || (d.symbol == '' && d.interval == ''));
       }
       function allKeys() {
-        return ['ownerUid', 'authorName', 'name', 'desc', 'tags', 'visibility', 'communityId', 'symbol', 'interval', 'thumb', 'panes',
+        return ['kind', 'ownerUid', 'authorName', 'name', 'desc', 'tags', 'visibility', 'communityId', 'symbol', 'interval', 'thumb', 'panes',
                 'indicators', 'likeCount', 'useCount', 'reportCount', 'createdAt', 'updatedAt', 'hidden'];
       }
       function onlyKeys(k) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(k); }
@@ -892,7 +895,7 @@ service cloud.firestore {
       allow update:
         // owner edits the card
         if (signedIn() && resource.data.ownerUid == request.auth.uid
-            && onlyKeys(['authorName', 'name', 'desc', 'tags', 'visibility', 'communityId', 'symbol', 'interval', 'thumb', 'panes', 'indicators', 'updatedAt'])
+            && onlyKeys(['kind', 'authorName', 'name', 'desc', 'tags', 'visibility', 'communityId', 'symbol', 'interval', 'thumb', 'panes', 'indicators', 'updatedAt'])
             && core(request.resource.data) && request.resource.data.updatedAt == request.time)
         // like / unlike: the counter moves with the member's own marker
         || (lyReadable(resource.data) && onlyKeys(['likeCount'])
@@ -916,7 +919,9 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['state', 'updatedAt']) && request.resource.data.keys().hasAll(['state', 'updatedAt'])
           && request.resource.data.state is string && request.resource.data.state.size() <= 200000
           && request.resource.data.updatedAt == request.time
-          && (exists(lyPath(id)) ? parentD().ownerUid == request.auth.uid : getAfter(lyPath(id)).data.ownerUid == request.auth.uid);
+          && getAfter(lyPath(id)).data.ownerUid == request.auth.uid
+          // a setup carries no drawings (the client strips them; this refuses a hand-made upload)
+          && (getAfter(lyPath(id)).data.get('kind', 'chart') != 'setup' || !request.resource.data.state.matches('.*"drawings"\\s*:.*'));
         allow delete: if signedIn() && (get(lyPath(id)).data.ownerUid == request.auth.uid || isAdmin());
       }
       match /likes/{u} {

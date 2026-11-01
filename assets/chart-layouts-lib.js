@@ -50,7 +50,7 @@ export function mountLib(host){
   const me = () => host.user();
   const favCol = () => db().collection('students').doc(me().uid).collection('layoutFavs');
 
-  const S = { tab: 'browse', topic: 'all', ind: {}, detail: null, sort: 'trending', filter: 'all', mySort: 'recent', q: '', items: [], mine: [], favs: new Set(), liked: new Set(), favItems: [], hiddenView: false, admin: false, busy: false, err: '' };
+  const S = { tab: 'browse', topic: 'all', kind: 'all', ind: {}, detail: null, sort: 'trending', filter: 'all', mySort: 'recent', q: '', items: [], mine: [], favs: new Set(), liked: new Set(), favItems: [], hiddenView: false, admin: false, busy: false, err: '' };
   let root = null, bodyEl = null, searchEl = null, tabBtns = {}, hdrAct = null, closeSheet = null;
 
   const isNew = (x) => x.createdAt && Date.now() - x.createdAt < WEEK;
@@ -185,7 +185,8 @@ export function mountLib(host){
     if (!snap.exists) { toast('That layout no longer exists.', 'error'); return; }
     const x = snap.data();
     const comms = await myCommunities();
-    const f = { vis: x.vis || (x.shared ? 'link' : 'private'), tags: (x.tags || []).slice(0, 5), cid: x.cid || (comms[0] && comms[0].id) || '' };
+    const pubNow = await pub().doc(id).get().then((d) => (d.exists ? d.data() : null)).catch(() => null);
+    const f = { kind: (pubNow && pubNow.kind) || 'setup', vis: x.vis || (x.shared ? 'link' : 'private'), tags: (x.tags || []).slice(0, 5), cid: x.cid || (comms[0] && comms[0].id) || '' };
 
     const name = el('input', { type: 'text', class: 'stkc-in', maxlength: '60', 'aria-label': 'Name' }); name.value = x.name || '';
     const desc = el('textarea', { class: 'lyl-ta', maxlength: '140', rows: '2', 'aria-label': 'Description', placeholder: 'What is this layout for? (optional)' }); desc.value = x.desc || '';
@@ -205,6 +206,20 @@ export function mountLib(host){
     custom.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const t = cleanTag(custom.value); if (t && !f.tags.includes(t)) { if (f.tags.length >= 5) toast('Up to 5 tags.'); else f.tags.push(t); } custom.value = ''; paintTags(); } });
     paintTags();
 
+    // What to share (Owner 2026-11-01): a Setup by default; Whole chart for a "today's idea" share.
+    const kindWrap = el('div', { class: 'lyl-vis lyl-kind', role: 'radiogroup', 'aria-label': 'What to share' });
+    const incl = el('p', { class: 'stkc-note' });
+    const KINDS = [['setup', 'Setup', 'Indicators, settings and panes. Works on any symbol. No drawings.'], ['chart', 'Whole chart', 'Everything, with symbol, interval and drawings. For today\'s idea.']];
+    const paintKind = () => {
+      kindWrap.innerHTML = '';
+      KINDS.forEach(([v, t, s]) => {
+        const b = el('button', { type: 'button', class: 'lyl-vopt' + (f.kind === v ? ' on' : ''), role: 'radio', 'aria-checked': f.kind === v ? 'true' : 'false', 'data-kind': v }, [el('b', { text: t }), el('small', { text: s })]);
+        b.addEventListener('click', () => { f.kind = v; paintKind(); });
+        kindWrap.appendChild(b);
+      });
+      incl.textContent = (f.kind === 'setup' ? 'Shared: indicators and their settings, colours and panes. Your symbol, interval and drawings stay private.' : 'Everything in the chart is included: symbol, interval, indicators and their settings, panes and drawings.') + ' Education only. Not financial advice.';
+    };
+    paintKind();
     const visWrap = el('div', { class: 'lyl-vis', role: 'radiogroup', 'aria-label': 'Visibility' });
     const note = el('p', { class: 'stkc-note lyl-note' });
     const err = el('p', { class: 'stkc-err', hidden: '' });
@@ -228,11 +243,11 @@ export function mountLib(host){
     paintVis();
     const ok = el('button', { type: 'button', class: 'stkc-sbtn lyl-pri', text: 'Share' });
     const body = el('div', { class: 'stkl-body lyl-form' }, [
+      el('label', { class: 'lyl-lbl', text: 'What to share' }), kindWrap,
       el('label', { class: 'lyl-lbl', text: 'Name' }), name,
       el('label', { class: 'lyl-lbl', text: 'Description' }), desc, cnt,
       el('label', { class: 'lyl-lbl', text: 'Tags (up to 5)' }), chips, custom,
-      el('label', { class: 'lyl-lbl', text: 'Who can see it' }), visWrap, commBox, note, err,
-      el('p', { class: 'stkc-note', text: 'Everything in the chart is included: indicators and their settings, panes and drawings. Education only. Not financial advice.' })]);
+      el('label', { class: 'lyl-lbl', text: 'Who can see it' }), visWrap, commBox, note, err, incl]);
     const m = host.modal('Share layout', body, el('div', { class: 'stkl-ft' }, [ok]));
     m.box.classList.add('lyl-dlg', 'lyl-pub');
     const bad = (t) => { err.hidden = false; err.textContent = t; ok.disabled = false; };
@@ -243,7 +258,7 @@ export function mountLib(host){
       if (f.vis !== 'private' && (blocked(nm) || blocked(ds) || f.tags.some(blocked))) return bad('Please remove offensive or adult words from the name, description or tags.');
       if (f.vis === 'community' && !f.cid) return bad('Create a community in Creator Hub first.');
       ok.disabled = true; err.hidden = true;
-      try { await doPublish(id, x, { name: nm, desc: ds, tags: f.tags.slice(0, 5), vis: f.vis, cid: f.vis === 'community' ? f.cid : '' }); m.done(); }
+      try { await doPublish(id, x, { kind: f.kind, name: nm, desc: ds, tags: f.tags.slice(0, 5), vis: f.vis, cid: f.vis === 'community' ? f.cid : '' }); m.done(); }
       catch (e) { console.warn('TradeZoro: publish', e); bad(e.userMessage || 'Could not share. Check your connection and try again.'); }
     });
   }
@@ -267,14 +282,19 @@ export function mountLib(host){
 
     if (o.vis === 'public' || o.vis === 'community') {
       const author = await authorName();
-      const card = { authorName: author, name: o.name, desc: o.desc, tags: o.tags, visibility: o.vis, communityId: o.cid, symbol: cd.symbol || '', interval: cd.interval || '', thumb: cd.thumb || '', panes: k.panes, indicators: k.indicators };
       const ex = await ref.get().catch(() => ({ exists: false }));
+      // kind: the dialog's choice; "Update shared version" keeps the card's (cards from before kinds were whole charts)
+      const kind = o.kind || (ex.exists && ex.data().kind) || 'chart';
+      const setup = kind === 'setup';
+      // a setup never uploads symbol, interval or drawings (the rules refuse drawings in a setup's state)
+      const pubState = setup && doc ? JSON.stringify(host.setupOf(doc)) : state;
+      const card = { kind, authorName: author, name: o.name, desc: o.desc, tags: o.tags, visibility: o.vis, communityId: o.cid, symbol: setup ? '' : cd.symbol || '', interval: setup ? '' : cd.interval || '', thumb: cd.thumb || '', panes: k.panes, indicators: k.indicators };
       // the layout doc first (rules need it to exist), then card + state in one batch
       await mine.set(Object.assign({ name: cd.name, state, symbol: cd.symbol || '', interval: cd.interval || '', shared: wasShared, updatedAt: host.ts(), thumb: cd.thumb || '' }, extra, { name: o.name }), { merge: true });
       const b = db().batch();
       if (ex.exists) b.update(ref, Object.assign({}, card, { updatedAt: host.ts() }));
       else b.set(ref, Object.assign({ ownerUid: me().uid }, card, { likeCount: 0, useCount: 0, reportCount: 0, hidden: false, createdAt: host.ts(), updatedAt: host.ts() }));
-      b.set(ref.collection('data').doc('s'), { state, updatedAt: host.ts() });
+      b.set(ref.collection('data').doc('s'), { state: pubState, updatedAt: host.ts() });
       await b.commit();
       if (wasShared) { await host.sharedDoc(id).delete().catch(() => {}); await mine.update({ shared: false }); }
     } else {
@@ -311,7 +331,7 @@ export function mountLib(host){
   };
   const matches = (x) => {
     const q = S.q.trim().toLowerCase().replace(/^#/, '');
-    const topic = S.topic === 'all' || (x.tags || []).includes(S.topic);
+    const topic = (S.topic === 'all' || (x.tags || []).includes(S.topic)) && (S.kind === 'all' || (S.kind === 'setup') === isSetup(x));
     return topic && (!q || String(x.name).toLowerCase().includes(q) || String(x.authorName).toLowerCase().includes(q) || (x.tags || []).some((t) => t.includes(q)));
   };
 
@@ -385,8 +405,11 @@ export function mountLib(host){
     setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
   }
 
+  const isSetup = (x) => x.kind === 'setup';
+  const kindTag = (x) => txt('span', 'lyl-kd' + (isSetup(x) ? ' k-setup' : ''), isSetup(x) ? 'Setup' : 'Chart idea');
   function useBtn(x, cls){
-    const b = el('button', { type: 'button', class: 'lyl-use ' + (cls || ''), text: 'Use layout', 'aria-label': 'Use layout ' + x.name });
+    const t = isSetup(x) ? 'Use setup' : 'Use layout';
+    const b = el('button', { type: 'button', class: 'lyl-use ' + (cls || ''), text: t, 'aria-label': t + ' ' + x.name });
     b.addEventListener('click', (e) => { e.stopPropagation(); applyItem(x); });
     return b;
   }
@@ -410,9 +433,9 @@ export function mountLib(host){
 
   function card(x){
     const th = thumbEl(x, 'lyl-fill');
-    const sym = symOf(x);
+    const sym = isSetup(x) ? 'Any symbol' : symOf(x);
     const c = el('article', { class: 'lyl-gc' + (x.hidden ? ' dim' : ''), 'data-id': x.id, tabindex: '0', role: 'button', 'aria-label': 'Details: ' + x.name }, [
-      el('div', { class: 'lyl-gth' }, [th, sym ? txt('span', 'lyl-sym', sym) : null, favBtn(x, 'lyl-bm')]),
+      el('div', { class: 'lyl-gth' }, [th, kindTag(x), sym ? txt('span', 'lyl-sym', sym) : null, favBtn(x, 'lyl-bm')]),
       el('div', { class: 'lyl-gb' }, [
         txt('h3', '', x.name),
         el('p', { class: 'lyl-by' }, [document.createTextNode('by ' + handleOf(x) + (S.admin && x.reportCount ? ' · ' + plural(x.reportCount, 'report') : '')), isNew(x) ? el('span', { class: 'lyl-newd' }, [el('i'), document.createTextNode('New')]) : null, x.visibility === 'community' ? txt('span', 'lyl-cmt', 'Community') : null]),
@@ -435,7 +458,9 @@ export function mountLib(host){
     const known = TOPICS.map((t) => t[0]);
     const count = {}; S.items.forEach((x) => (x.tags || []).forEach((t) => { count[t] = (count[t] || 0) + 1; }));
     const extra = Object.keys(count).filter((t) => !known.includes(t) && count[t] > 1).sort((a, b) => count[b] - count[a]).slice(0, 4).map((t) => [t, t.charAt(0).toUpperCase() + t.slice(1)]);
-    return el('div', { class: 'lyl-topics', role: 'group', 'aria-label': 'Topics' }, TOPICS.concat(extra).map(([v, t]) => chip(t, S.topic === v, () => { S.topic = v; S.keep = false; render(); })));
+    const kinds = [['setup', 'Setups'], ['chart', 'Chart ideas']].map(([v, t]) => chip(t, S.kind === v, () => { S.kind = S.kind === v ? 'all' : v; S.keep = false; render(); }));
+    const topics = TOPICS.concat(extra).map(([v, t]) => chip(t, S.topic === v && (v !== 'all' || S.kind === 'all'), () => { S.topic = v; if (v === 'all') S.kind = 'all'; S.keep = false; render(); }));
+    return el('div', { class: 'lyl-topics', role: 'group', 'aria-label': 'Filter' }, [topics[0]].concat(kinds, [el('span', { class: 'lyl-csep', 'aria-hidden': 'true' })], topics.slice(1)));
   }
   const grid = (list) => { const g = el('div', { class: 'lyl-grid' }, list.map(card)); setTimeout(() => hydrate(list), 0); return g; };
 
@@ -512,7 +537,17 @@ export function mountLib(host){
 
   // ---------------------------------------------------------------- detail view
   async function copyToMine(x){
-    if (await applyItem(x)) await host.saveAsNew(String(x.name).slice(0, 52) + ' copy');
+    if (!isSetup(x)) { if (await applyItem(x)) await host.saveAsNew(String(x.name).slice(0, 52) + ' copy'); return; }
+    // a setup is a template: store it with the member's templates (Pine guard first)
+    const T = window.StrykerChartTemplates;
+    try {
+      const d = await pub().doc(x.id).collection('data').doc('s').get();
+      const s = d.exists && host.sanitizeShared(JSON.parse(d.data().state));
+      if (!s || !T) throw new Error('read');
+      s.doc.setup = true;
+      await T.save(String(x.name).slice(0, 60), s.doc);
+      toast('Saved to your templates.');
+    } catch (e) { console.warn('TradeZoro: setup to templates', e); toast((e && e.userMessage) || 'Could not save the setup.', 'error'); }
   }
   function closeDetail(){
     const d = root && root.querySelector('.lyl-det'); if (d) d.remove(); S.detail = null;
@@ -525,18 +560,19 @@ export function mountLib(host){
     const more = S.admin ? el('button', { type: 'button', class: 'lyl-ib', html: ICON.dots, 'aria-label': 'Admin actions', 'aria-haspopup': 'menu' }) : null;
     if (more) more.addEventListener('click', () => menu(more, [[x.hidden ? 'Restore' : 'Hide from Discover', () => adminHide(x, !x.hidden).then(closeDetail)]]));
     const indBox = el('div', { class: 'lyl-dind' });
-    const sym = symOf(x);
+    const sym = isSetup(x) ? 'Any symbol' : symOf(x);
     const body = el('div', { class: 'lyl-dbody' }, [
-      el('div', { class: 'lyl-dprev' }, [thumbEl(x, 'lyl-fill'), sym ? txt('span', 'lyl-sym', sym) : null]),
+      el('div', { class: 'lyl-dprev' }, [thumbEl(x, 'lyl-fill'), kindTag(x), sym ? txt('span', 'lyl-sym', sym) : null]),
       el('div', { class: 'lyl-dhead' }, [el('div', {}, [txt('h3', '', x.name), el('p', { class: 'lyl-by' }, [document.createTextNode('by ' + handleOf(x) + (S.admin && x.reportCount ? ' · ' + plural(x.reportCount, 'report') : '')), isNew(x) ? el('span', { class: 'lyl-newd' }, [el('i'), document.createTextNode('New')]) : null, x.visibility === 'community' ? txt('span', 'lyl-cmt', 'Community') : null])]), favBtn(x)]),
       el('div', { class: 'lyl-stats' }, [usesEl(x), likeBtn(x), txt('span', 'lyl-stat', plural(x.panes || 1, 'pane'))]),
       x.desc ? txt('p', 'lyl-ddesc', x.desc) : txt('p', 'lyl-ddesc mute', 'No description.'),
+      txt('p', 'lyl-fine', isSetup(x) ? 'Setup: indicators, settings and panes. Applies to the symbol and interval you have open and keeps your drawings.' : 'Chart idea: the whole chart, with its symbol, interval and drawings. Opens as a new unsaved layout.'),
       txt('h4', 'lyl-dh', 'Indicators'), indBox,
       (x.tags || []).length ? txt('h4', 'lyl-dh', 'Tags') : null,
       (x.tags || []).length ? el('div', { class: 'lyl-tags' }, x.tags.map((t) => txt('span', '', '#' + t))) : null,
       lockFor(x),
       txt('p', 'lyl-fine', 'Education only. Not financial advice.')]);
-    const copy = el('button', { type: 'button', class: 'lyl-sec', text: 'Copy to mine' }); copy.addEventListener('click', () => copyToMine(x));
+    const copy = el('button', { type: 'button', class: 'lyl-sec', text: isSetup(x) ? 'Save to my templates' : 'Copy to mine' }); copy.addEventListener('click', () => copyToMine(x));
     const rep = mineOwn ? null : el('button', { type: 'button', class: 'lyl-txt', text: 'Report' }); if (rep) rep.addEventListener('click', () => report(x));
     const det = el('div', { class: 'lyl-det', role: 'region', 'aria-label': 'Layout details' }, [
       el('div', { class: 'lyl-dhd' }, [back, txt('h2', '', 'Layout'), more]),

@@ -8,7 +8,7 @@ globals().update({k: v for k, v in from_g.items() if not k.startswith('__')})
 EDU = 'Education only. Not financial advice.'
 SIGN = btn('/signup', 'Create a free account') if False else None
 def cta(open_href, open_label): return btn(open_href, open_label) + btn('/signup', 'Start free', False)
-DONE = sys.argv[1:] or ['curriculum', 'models', 'indicators', 'community', 'live-sessions', '_hub']
+DONE = sys.argv[1:] or ['curriculum', 'models', 'indicators', 'community', '_hub']
 
 # ------------------------------------------------------------------ curriculum
 if 'curriculum' in DONE:
@@ -136,27 +136,6 @@ if 'community' in DONE:
     b += final('Join the floor', 'Create an account to read the Trading Floor, start collecting badges and get your own invite link.', cta('/trading-floor', 'Open the Trading Floor'), EDU)
     page('community', P, b)
 
-# ------------------------------------------------------------------ live sessions
-if 'live-sessions' in DONE:
-    P = dict(kicker='Live Sessions', h1='Live sessions are going <em>free on YouTube.</em>',
-      sub='Every live trading session will stream 100% free on our YouTube channel. Expected from December. No sessions are running yet.',
-      cta=btn('https://youtube.com/@tradezoro?sub_confirmation=1', 'Subscribe on YouTube') + btn('/signup', 'Start free', False), fine=EDU,
-      bar='Live Sessions', tag='Coming soon', nc=' fx-nc', hero='live-banner', hero_alt='The Live Sessions page in the app: a Coming soon pill and the headline Live sessions are going free on YouTube.',
-      phone='live-phone', phone_alt='The same Live Sessions notice on a phone.',
-      cards=[('yt', 'Free on YouTube', 'On our channel'), ('bell', 'Get notified', 'Follow @tradezoro'), ('list', 'From December', 'Expected, not scheduled yet'), ('shield', 'Education only', 'Not financial advice')])
-    b = hero(P)
-    b += split('how', 'How it will work', 'yt', 'Watch on YouTube, no account needed',
-      ['Sessions have not started. When they do, every live trading session will stream on the TradeZoro YouTube channel, free to watch. The Live Sessions page in the app shows the same notice until then.'],
-      [('yt', 'Free to watch on YouTube.'), ('bell', 'Subscribe or follow @tradezoro to get notified.'), ('list', 'Expected from December. We will not list dates until they are set.')],
-      img('live-banner', 'The Live Sessions page with a Coming soon pill and the free on YouTube headline.'), title='Live Sessions', tag='Coming soon')
-    b += phones('mobile', 'Mobile', 'Same notice on your phone', 'Open Live Sessions in the app on any screen to see the latest status.', 'live-phone', 'The Live Sessions notice on a phone.', [('phone', 'Works on phone and desktop.'), ('yt', 'Subscribe button goes to the channel.')])
-    b += faq([('Are live sessions running now?', 'Not yet. They are expected from December, and the date is not fixed.'),
-      ('Is it free?', 'Yes. Every live session will stream 100% free on YouTube.'),
-      ('How do I get notified?', 'Subscribe to or follow @tradezoro on YouTube.'),
-      ('Is a session financial advice?', 'No. Sessions are for education only.')])
-    b += final('Follow along on YouTube', 'Subscribe so you hear when the first session is set.', btn('https://youtube.com/@tradezoro?sub_confirmation=1', 'Subscribe on YouTube') + btn('/signup', 'Start free', False), EDU)
-    page('live-sessions', P, b)
-
 # ------------------------------------------------------------------ hub
 if '_hub' in DONE:
     import json, re
@@ -172,18 +151,17 @@ if '_hub' in DONE:
       'charts': ('ZoroCharts', 'A full charting desk in your browser.', ''),
       'orderflow': ('Order Flow', 'Footprint and delta tools on the chart.', 'Pro'),
       'market-stats': ('Market Stats', 'How often gaps, ranges and levels played out, with sample sizes.', ''),
-      'creators': ('Creator Hub', 'Start a trading community: indicators, courses, feed and Discord roles.', ''),
-      'live-sessions': ('Live Sessions', 'Free on YouTube, expected from December.', 'Soon')}
+      'creators': ('Creator Hub', 'Start a trading community: indicators, courses, feed and Discord roles.', '')}
     js = open(f'{g.ROOT}/assets/nav-features.js', encoding='utf-8').read()
-    order = re.findall(r"id: '([a-z-]+)', name:", js)
+    order = [i for i in re.findall(r"id: '([a-z-]+)', name:", js) if i != 'live-sessions']  # live sessions module removed (Owner)
     groups = [('Charts & data', 'Read the market and practise on it.', ['charts', 'orderflow', 'gex', 'market-stats', 'global-monitor', 'smart-money-desk']),
-              ('Learn', 'Study the method, then practise it.', ['curriculum', 'models', 'indicators', 'live-sessions']),
+              ('Learn', 'Study the method, then practise it.', ['curriculum', 'models', 'indicators']),
               ('Journal & review', 'Practise, record and review.', ['backtesting', 'journal']),
               ('Community & creators', 'Learn with others, or start your own.', ['community', 'creators'])]
     assert sorted(sum([x[2] for x in groups], [])) == sorted(order), (sorted(order), 'hub groups must cover nav-features.js')
     def card(i, k):
         n, d, tag = names[k]
-        t = {'Pro': ' <em class="fx-pro">Pro</em>', 'Soon': ' <em class="fx-soon">Soon</em>'}.get(tag, '')
+        t = {'Pro': ' <em class="fx-pro">Pro</em>', 'Soon': ''}.get(tag, '')
         return f'<li><a class="cm-card fx-hc cm-rv" style="--d:{(i%3)*60}ms" href="/features/{k}"><img data-fp-nopad src="/assets/images/navfx/{k}-360.webp?v={V}" width="360" height="225" alt="" loading="lazy" decoding="async"><div><b>{e(n)}{t}</b><span>{e(d)}</span><em>Explore \u2192</em></div></a></li>'
     secs = ''.join(f'<div class="fx-hubgrp" id="g{gi}"><div class="cm-rv"><h2>{e(t)}</h2><p>{e(s)}</p></div><ul class="fx-hub">' + ''.join(card(i, k) for i, k in enumerate(ks)) + '</ul></div>\n' for gi, (t, s, ks) in enumerate(groups))
     P = dict(kicker='Features', h1='Everything in TradeZoro, <em>on one page.</em>',

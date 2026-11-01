@@ -7,6 +7,7 @@ V = '781'
 tpl = open(f'{ROOT}/features/charts.html', encoding='utf-8').read()
 a = tpl.index('<main id="main"'); b = tpl.index('</main>')
 HEAD, TAIL = tpl[:a], tpl[b + len('</main>'):]
+HEAD = re.sub(r'\s*<a href="/live-sessions\.html" class="side-link">.*?</a>', '', HEAD, flags=re.S)
 MAIN_OPEN = '<main id="main" tabindex="-1" class="dash-main cm-main-page fx-main">\n<div class="cm-scroll" aria-hidden="true"><u data-scroll-bar></u></div>\n'
 TAIL = TAIL.replace('<script src="/assets/charts-page.js?v=781" defer></script>', '<script src="/assets/fx-page.js?v=781" defer></script>')
 HEAD = HEAD.replace('<link rel="stylesheet" href="/assets/charts-page.css?v=781">', '<link rel="stylesheet" href="/assets/fx-page.css?v=781">')

@@ -31,8 +31,7 @@
   "features/curriculum": "Curriculum feature page; app shell when signed in, marketing header + footer signed out",
   "features/models": "Trading Models feature page; app shell when signed in, marketing header + footer signed out",
   "features/indicators": "Private Indicators feature page; app shell when signed in, marketing header + footer signed out",
-  "features/community": "Community feature page; app shell when signed in, marketing header + footer signed out",
-  "features/live-sessions": "Live Sessions feature page; app shell when signed in, marketing header + footer signed out"
+  "features/community": "Community feature page; app shell when signed in, marketing header + footer signed out"
  },
  "ignore": {
   "index": "public home; sign-out lands here",

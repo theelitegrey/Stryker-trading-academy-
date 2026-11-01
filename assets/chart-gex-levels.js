@@ -25,7 +25,7 @@
 //
 // PLAN (Owner 2026-10-29): GEX on charts is Pro for every symbol incl. SPX (assets/chart-pro-gate.js). The older split below (the GEX PAGE rule, unchanged): Free = SPX, 0DTE, no
 // strike table; Pro = every symbol and expiry. So Free members get SPX and ES/MES (SPX-derived)
-// levels at 0DTE; NQ/MNQ/QQQ/SPY show an "Unlock NQ GEX with Pro" pill (/#pricing) instead, and
+// levels at 0DTE; NQ/MNQ/QQQ/SPY show an "Unlock NQ GEX with Pro" pill (/pricing) instead, and
 // the strikes extra stays off. Client-side only, like the GEX page (the API itself is public).
 // Unknown plan after a few seconds fails open, as plan-guard.js does.
 //
@@ -75,7 +75,7 @@ const PREV_TOP = 2;            // biggest strikes drawn per previous day
 const API = '/api/gex/levels/';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;
-const PRICING = '/#pricing';
+const PRICING = '/pricing';
 const BARS_API = '/api/chart/bars/';
 const ANCHOR_GAP_S = 120;     // the 1-minute bar used must have closed within 2 min before the options time
 const ANCHOR_MAX_PCT = 0.03;  // a shift above 3% of price is treated as bad data and ignored
@@ -339,7 +339,8 @@ export function gexFetch(api, dte, force) {
   const e = cache.get(k) || {};
   if (e.p) return e.p;
   if (!force && e.data && Date.now() - e.at < REFRESH_MS - 5000) return Promise.resolve(e.data);
-  const p = fetch(API + api + '?dte=' + dte, { headers: { accept: 'application/json' } })
+  // Free members never reach the network: wait for the plan, then skip the GEX call entirely.
+  const p = ProGate.tier().then(() => (ProGate.isFree() ? Promise.reject(new Error('gex-pro')) : rtHeadersReady())).then((hd) => fetch(API + api + '?dte=' + dte, { headers: Object.assign({ accept: 'application/json' }, hd) }))
     .then((r) => r.json().then((j) => (r.ok ? j : { error: (j && j.error) || ('HTTP ' + r.status) })))
     .catch((err) => ({ error: String(err && err.message || err) }))
     .then((j) => {

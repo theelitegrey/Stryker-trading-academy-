@@ -189,6 +189,9 @@ function chapterLimitOf(planNameOrId){
 // chapterNum: the chapter's `num` field — a zero-padded string like "05" in
 // this curriculum, so it's parsed as an integer before comparing.
 function hasChapterNumberAccess(studentPlanNameOrId, chapterNum){
+  // Owner 2026-11-01: all chapters are free for every signed-in member.
+  return true;
+  // eslint-disable-next-line no-unreachable
   const n = parseInt(chapterNum, 10);
   if (isNaN(n)) return true; // can't parse the chapter number, fail open
 
@@ -225,6 +228,10 @@ function hasChapterNumberAccess(studentPlanNameOrId, chapterNum){
 // requiredIdOrName: the minRole on the content item / page (a plan id) —
 // null/undefined means "no restriction, anyone signed in can access."
 function hasRoleAccess(studentPlanNameOrId, requiredIdOrName){
+  // Owner 2026-11-01: pages, chapters, models and indicators are open to every signed-in member
+  // (Pro stays only on order flow tools and full GEX, gated in the chart and GEX code).
+  return true;
+  // eslint-disable-next-line no-unreachable
   if (!requiredIdOrName) return true; // unrestricted item
   if (!studentPlanNameOrId) return false; // restricted item, no plan at all
   return rankOf(studentPlanNameOrId) >= rankOf(requiredIdOrName);
@@ -248,6 +255,8 @@ function normalizePageAccessConfig(raw){
 //   'full'    — full access (at or above minRole)
 // A page with neither threshold set is unrestricted ('full' for anyone).
 function getPageAccessLevel(studentPlanNameOrId, rawConfig){
+  return 'full';   // Owner 2026-11-01: no page is plan-gated any more
+  // eslint-disable-next-line no-unreachable
   const config = normalizePageAccessConfig(rawConfig);
   if (!config.minRole && !config.viewOnlyRole) return 'full';
   if (hasRoleAccess(studentPlanNameOrId, config.minRole)) return 'full';

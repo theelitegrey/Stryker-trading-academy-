@@ -26,7 +26,7 @@
   function getJson(url) {
     var hit = cache.get(url);
     if (hit && Date.now() - hit.at < CACHE_MS) return hit.p;
-    var p = fetch(url, { credentials: 'omit' }).then(function (r) {
+    var p = (window.strykerGexHeaders ? window.strykerGexHeaders() : Promise.resolve({})).then(function (hd) { return fetch(url, { credentials: 'omit', headers: hd }); }).then(function (r) {
       if (!r.ok) throw new Error('GEX history HTTP ' + r.status);
       return r.json();
     });

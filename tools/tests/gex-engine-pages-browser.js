@@ -40,7 +40,7 @@ async function ctxFor(b, w, h, mobile) {
   });
   await ctx.route(/127\.0\.0\.1:\d+\/api\/gex\/candles\//, async (r) => {
     const u = new URL(r.request().url());
-    const res = await candles.onRequestGet({ request: new Request(u.href), params: { fut: u.pathname.split('/').pop() }, env: {} });
+    const res = await candles.handle({ request: new Request(u.href), params: { fut: u.pathname.split('/').pop() }, env: {} });
     r.fulfill({ status: res.status, contentType: 'application/json', body: await res.text() });
   });
   return ctx;

@@ -1,3 +1,4 @@
+import { gexPro } from '../_pro.js';
 import { buildLevels, json, MARKETS, cashScheduleOpen, secsToCashOpen } from '../_engine.js';
 
 const inflight = new Map();
@@ -68,7 +69,7 @@ function emStore(request) {
 
 export { cacheTtl, cacheHeaders, emStore };
 
-export async function onRequestGet({ request, params, env }) {
+export async function handle({ request, params, env }) {
   const name = String(params.name || '').toUpperCase();
   if (!MARKETS[name]) return json({ error: 'unknown market' }, { status: 404, cache: 'no-store' });
   const url = new URL(request.url);
@@ -93,3 +94,5 @@ export async function onRequestGet({ request, params, env }) {
     return json({ error: error.message || String(error) }, { status: 500, cache: 'no-store' });
   }
 }
+
+export const onRequestGet = gexPro(handle);

@@ -21,7 +21,7 @@
 //     basis(t) = chart close of the bar at the snapshot's chain time - ratio x spot(t)
 //   so the heat follows the futures the chart draws, with no lag from a separate futures quote.
 //
-// PLAN: Free = SPX-family (SPX, ES, MES) at 0DTE; everything else Pro (pill to /#pricing), the
+// PLAN: Free = SPX-family (SPX, ES, MES) at 0DTE; everything else Pro (pill to /pricing), the
 // same rule as the GEX page and the GEX Levels indicator.
 //
 // PERFORMANCE: the history is turned into one tiny offscreen image per session (gex-heat-core
@@ -41,7 +41,7 @@ import './gex-heat-core.js?v=779';
 import { gexSource, gexTier, gexFetch } from './chart-gex-levels.js?v=779';
 
 const TYPE = 'stk_gexheat';
-const PRICING = '/#pricing';
+const PRICING = '/pricing';
 const DAY_S = 86400;
 const POLL_MS = 2 * 60 * 1000;
 const K_KEY = 'stryker_gex_heat_k';

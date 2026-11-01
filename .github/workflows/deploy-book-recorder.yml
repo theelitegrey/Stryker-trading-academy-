@@ -118,18 +118,22 @@ jobs:
           echo "tide: HTTP $tg"; test "$tg" = 200
           s401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/gex-snap")
           echo "gex-snap without key: HTTP $s401"; test "$s401" = 401
-          # a new Worker version takes a few seconds to reach every edge: retry before failing
+          # GEX is Pro only (2026-11-01): without a Pro token the GEX reads answer 403. Retry: a new version takes a few seconds to reach every edge
           for i in 1 2 3 4 5 6; do
             h=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-history?u=SPX&dte=0")
-            [ "$h" = 200 ] && break; sleep 10
+            [ "$h" = 403 ] && break; sleep 10
           done
-          echo "gex-history: HTTP $h"; test "$h" = 200
+          echo "gex-history without Pro token: HTTP $h"; test "$h" = 403
           ss=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-sessions")
-          echo "gex-sessions: HTTP $ss"; test "$ss" = 200
+          echo "gex-sessions without Pro token: HTTP $ss"; test "$ss" = 403
+          gc=$(curl -s -o /dev/null -w '%{http_code}' "$URL/gex-chain?sym=SPX&part=near")
+          echo "gex-chain without key / Pro token: HTTP $gc"; test "$gc" = 403
+          gf=$(curl -s -o /dev/null -w '%{http_code}' "$URL/gex-fast")
+          echo "gex-fast without key / Pro token: HTTP $gf"; test "$gf" = 403
           o401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/opt-ingest")
           echo "opt-ingest without key: HTTP $o401"; test "$o401" = 401
           oa=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/opt-analytics?u=SPX")
-          echo "opt-analytics: HTTP $oa (404 = no feeder data yet)"; test "$oa" = 200 -o "$oa" = 404
+          echo "opt-analytics without Pro token: HTTP $oa"; test "$oa" = 403
           # the new version can take a few seconds to reach every edge (the old one answers 405/404)
           for i in 1 2 3 4 5 6; do
             n401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary '{}' "$URL/news-ingest")

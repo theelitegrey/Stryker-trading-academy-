@@ -19,7 +19,7 @@
   var API = 'https://book-recorder.theelitegrey.workers.dev/opt-analytics?u=';
   var REFRESH_MS = 5 * 60 * 1000;
   var MKTS = ['SPX', 'QQQ', 'SPY'];
-  var FREE = ['SPX'];
+  var FREE = [];   // all GEX is Pro (2026-11-01)
   var root, cur = 'SPX', tier = null, data = {}, timer = 0, agoTimer = 0;
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -178,7 +178,7 @@
   function load(u, force) {
     var e = data[u];
     if (!force && e && !e.error && Date.now() - (e._at || 0) < REFRESH_MS - 5000) { render(); return; }
-    fetch(API + u, { headers: { accept: 'application/json' } })
+    (window.strykerGexHeaders ? window.strykerGexHeaders() : Promise.resolve({})).then(function (hd) { return fetch(API + u, { headers: Object.assign({ accept: 'application/json' }, hd) }); })
       .then(function (r) { return r.ok ? r.json() : { error: 'HTTP ' + r.status }; })
       .catch(function (err) { return { error: String(err && err.message || err) }; })
       .then(function (j) {

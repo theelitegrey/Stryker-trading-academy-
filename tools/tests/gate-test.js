@@ -3,7 +3,7 @@
 //
 // The stub answers chapterBodies/{num} the way the Firestore rules do:
 // admin, or minRank 0, or plan rank >= minRank; otherwise the read rejects
-// with code 'permission-denied'. Chapters 01-07 are minRank 0, the rest 1.
+// with code 'permission-denied'. Every chapter is minRank 0 (all free, 2026-11-01).
 //
 //   node gate-test.js            assertions only
 //   GATE_SHOTS=<dir> node gate-test.js   also screenshots at 390 and 1440
@@ -22,11 +22,11 @@ function stubFor(mode) {
     window.__studentDenials = 0;
     const PLAN = { starter: 'Starter', pro: 'Pro', 'pro-flaky': 'Pro', 'pro-broken': 'Pro', admin: 'Starter', out: null }[MODE];
     const plans = [
-      { id: 'st', name: 'Starter', rank: 0, chapterAccess: '1-7', price: 0 },
+      { id: 'st', name: 'Starter', rank: 0, chapterAccess: 'all', price: 0 },
       { id: 'pr', name: 'Pro', rank: 1, chapterAccess: 'all', price: 19 },
       { id: 'el', name: 'Elite', rank: 2, chapterAccess: 'all', price: 49 }
     ];
-    const minRank = (num) => (/^\d+$/.test(num) && parseInt(num, 10) <= 7 ? 0 : 1);   // track ids: Pro
+    const minRank = () => 0;   // every chapter is free for every signed-in member (2026-11-01)
     const catalog = () => (typeof CHAPTERS_SEED !== 'undefined' ? CHAPTERS_SEED : []);
     window.__bodyReads = [];
     const snap = (id, d) => ({ id, exists: !!d, data: () => d || {} });
@@ -149,14 +149,15 @@ async function readerState(b, mode, ch, width) {
   const cases = [
     // mode,    ch,   expect text?, expect paywall heading
     ['starter', '07', true,  null],
-    ['starter', '08', false, /Upgrade/],
+    ['starter', '08', true,  null],
+    ['starter', '40', true,  null],
     ['pro',     '08', true,  null],
     ['pro',     '42', true,  null],
     ['admin',   '08', true,  null],
     ['out',     '08', false, /Sign in/],
     ['out',     '01', false, /Sign in/],
-    ['starter', 'VP-01', false, /Upgrade/],
-    ['starter', 'PF-10', false, /Upgrade/],
+    ['starter', 'VP-01', true,  null],
+    ['starter', 'PF-10', true,  null],
     ['pro',     'VP-01', true,  null],
     ['pro',     'PF-05', true,  null],
     ['out',     'VP-01', false, /Sign in/]
@@ -203,7 +204,7 @@ async function readerState(b, mode, ch, width) {
     }));
     ok(`courses @${width}: 42 core + 22 track cards`, r.cards === 64, String(r.cards));
     ok(`courses @${width}: both track headings`, r.tracks === 2, String(r.tracks));
-    ok(`courses @${width}: Starter sees 22 track locks`, r.trackLocks === 22, String(r.trackLocks));
+    ok(`courses @${width}: Starter sees no locks`, r.trackLocks === 0, String(r.trackLocks));
     ok(`courses @${width}: teaser text present`, r.text.length > 20, r.text.slice(0, 50));
     ok(`courses @${width}: no chapter bodies fetched`, r.reads.length === 0, r.reads.join(','));
     ok(`courses @${width}: no page errors`, errs.length === 0, errs.join(' | '));

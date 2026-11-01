@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const planEl = document.getElementById('settings-plan-name');
       if (planEl) planEl.textContent = (student && student.plan) ? ((typeof labelOf === 'function') ? labelOf(student.plan) : student.plan) : 'Self-Paced';
+      showProPrice();
 
       // Subscription line: when the plan expires, how healthy it is, and a
       // renew shortcut. Founding members and non-expiring plans show their
@@ -277,6 +278,18 @@ document.addEventListener('DOMContentLoaded', () => {
 // students/{uid}.liveData = { active, paidThroughMillis, source, autopay, stripeSubscriptionId | razorpaySubscriptionId }
 // (written only by the payment functions) and students/{uid}.liveFeed (an admin's approval). The chart SERVER decides
 // real-time from the same fields (functions/api/chart/_rt.js); this panel only shows them and offers cancel / buy.
+// The upgrade button is a paywall, so it may name the live Pro price (Owner 2026-11-01: no prices upfront elsewhere).
+function showProPrice(){
+  const btn = document.getElementById('settings-see-pro');
+  if (!btn || typeof loadPlansForRoles !== 'function' || typeof planSaleInfo !== 'function' || typeof planMoneyDisplay !== 'function') return;
+  const fx = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
+  Promise.all([loadPlansForRoles(), fx]).then(([all]) => {
+    const sold = (all || []).filter((p) => !p.hidden && p.archived !== true && planSaleInfo(p).price > 0);
+    const pro = sold.find((p) => p.featured) || sold[0];
+    if (pro) btn.textContent = 'See Pro: ' + planMoneyDisplay(planSaleInfo(pro).price) + ' / ' + (pro.period || 'month') + ' (order flow + GEX+)';
+  }).catch(() => {});
+}
+
 let LD_PRICE = '$7';   // plans/LiveData.price when it loads; $7 fallback
 function renderLiveData(student){
   try { db.collection('plans').doc('LiveData').get().then((d) => { if (d.exists && Number(d.data().price) > 0 && '$' + Number(d.data().price) !== LD_PRICE) { LD_PRICE = '$' + Number(d.data().price); renderLiveData(student); return; } if (!d.exists) { const b = document.getElementById('settings-ld-buy'); if (b) { b.style.display = 'none'; const n = document.getElementById('settings-ld-soon'); if (n) n.style.display = ''; } } }).catch(() => {}); } catch (e) {}

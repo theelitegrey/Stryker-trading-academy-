@@ -12,7 +12,7 @@
   // Plan limit (set by assets/plan-limits.js for Free members): which markets
   // and expiry views may load, and whether the strike table shows. null = full.
   // Client-side only: /api/gex/* itself is public.
-  var LIMIT = null;
+  var LIMIT = null;   // unused since 2026-11-01: GEX is Pro only, enforced by the server (a Free member gets the Pro wall)
   function gexAllowed(m, d){ return !LIMIT || (LIMIT.markets.indexOf(m) >= 0 && LIMIT.dtes.indexOf(d) >= 0); }
   function gexUpgrade(why){
     if(typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(why);
@@ -167,7 +167,9 @@
   }
 
   async function getJson(url){
-    var res = await fetch(url, {cache:'no-store'});
+    var hd = window.strykerGexHeaders ? await window.strykerGexHeaders() : {};
+    var res = await fetch(url, {cache:'no-store', headers: hd});
+    if(res.status === 403){ if(window.strykerGexWall) window.strykerGexWall(); throw new Error('pro_required'); }
     var text = await res.text();
     var data;
     try { data = JSON.parse(text); } catch(e) { throw new Error('bad response'); }

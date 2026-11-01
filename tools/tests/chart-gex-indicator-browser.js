@@ -209,7 +209,7 @@ async function addFromWindow(p) {
     await shot(f.p, 'gex-es-390-free.png');
     await setSym(f.p, 'futures:NQ1!', '5');
     d = await gexData(f.p); c = await chip(f.p);
-    check(d && !d.lines && c && /Unlock NQ GEX with Pro/.test(c.text) && /\/#pricing$/.test(c.href || ''), 'Free on NQ: pill "' + (c && c.text) + '" -> ' + (c && c.href));
+    check(d && !d.lines && c && /Unlock NQ GEX with Pro/.test(c.text) && /\/pricing$/.test(c.href || ''), 'Free on NQ: pill "' + (c && c.text) + '" -> ' + (c && c.href));
     check(c && c.r.right <= 390 && c.r.left >= 0, 'phone: chip inside the 390 viewport');
     check(!f.gexHits.some((x) => /QQQ/.test(x)), 'Free: no QQQ request');
     const sw = await f.p.evaluate(() => document.documentElement.scrollWidth);

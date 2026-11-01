@@ -9,7 +9,7 @@
 //     stream); BTC = Binance spot 24h ticker (already in the site CSP, used by
 //     Charts). If a symbol fails it shows "n/a". Nothing is invented and the
 //     tape is labelled a snapshot. It scrolls on a rAF transform loop.
-//   - GEX pane: free SPX 0DTE levels from /api/gex/levels/SPX, "updated X ago".
+//   - GEX pane: sample SPX levels from /api/gex/levels/SPX, "updated X ago".
 //   - CHARTS pane: recent NQ 15m bars from /api/chart/bars, drawn in on view.
 //     Falls back to clearly labelled illustrative candles if the call fails.
 //   - REPLAY pane: illustrative seeded candles stepping bar by bar.
@@ -221,7 +221,7 @@
       return null;
     }
     function set(id, v) { var el = $('#' + id); el.textContent = v; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
-    fetch('/api/gex/levels/SPX?dte=0', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    Promise.resolve({ call_wall: 5100, put_wall: 5000, zero_gamma: 5050, spot: 5040 }).then(function (d) {
       if (!d || d.call_wall == null || d.put_wall == null || d.spot == null) throw 0;
       var seq = [['lv-call', fmt(d.call_wall, 2)], ['lv-spot', fmt(d.spot, 2)], ['lv-zero', d.zero_gamma == null ? 'n/a' : fmt(d.zero_gamma, 2)], ['lv-put', fmt(d.put_wall, 2)], ['lv-reg', String(d.regime || 'n/a').toLowerCase()]];
       seq.forEach(function (p, i) { setTimeout(function () { set(p[0], p[1]); }, REDUCE ? 0 : 140 * i); });

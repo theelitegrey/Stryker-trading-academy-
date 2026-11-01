@@ -1,3 +1,4 @@
+import { gexPro } from '../_pro.js';
 import { yahooCandles, json, FUTURES } from '../_engine.js';
 
 const inflight = new Map();
@@ -20,7 +21,7 @@ async function writeCached(request, fut, interval, data) {
   ]);
 }
 
-export async function onRequestGet({ request, params }) {
+export async function handle({ request, params }) {
   const fut = String(params.fut || '').toUpperCase();
   if (!FUTURES[fut]) return json({ error: 'unknown futures symbol' }, { status: 404, cache: 'no-store' });
   const url = new URL(request.url);
@@ -48,3 +49,5 @@ export async function onRequestGet({ request, params }) {
     return json({ error: error.message || String(error) }, { status: 500, cache: 'no-store' });
   }
 }
+
+export const onRequestGet = gexPro(handle);

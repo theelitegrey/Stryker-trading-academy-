@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="777">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Plans: Free and Pro — TradeZoro">
+<meta property="og:description" content="TradeZoro is free. Pro adds order flow tools and GEX+. Compare Free and Pro, and the live futures data add-on.">
+<meta property="og:url" content="https://tradezoro.com/pricing">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/pricing.png?v=777">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Free and Pro share card with the TradeZoro logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Plans: Free and Pro — TradeZoro">
+<meta name="twitter:description" content="TradeZoro is free. Pro adds order flow tools and GEX+. Compare Free and Pro, and the live futures data add-on.">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/pricing.png?v=777">
+<meta name="twitter:image:alt" content="Free and Pro share card with the TradeZoro logo">
+<meta name="theme-color" content="#050506">
+<title>Plans: Free and Pro — TradeZoro</title>
+<link rel="canonical" href="https://tradezoro.com/pricing">
+<meta name="description" content="TradeZoro is free. Pro adds order flow tools and GEX+. Compare Free and Pro, and the live futures data add-on.">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<!-- Speed: open the Firebase connections while the CSS loads (the SDK
+     scripts sit at the end of <body>). Hints only; nothing waits on them. -->
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.googleapis.com">
+<link rel="dns-prefetch" href="https://strykertrades-e0cd8.firebaseapp.com">
+<link rel="stylesheet" href="assets/style.css?v=777">
+<link rel="stylesheet" href="assets/pricing-hero.css?v=777">
+<link rel="stylesheet" href="assets/creators-page.css?v=777">
+<link rel="stylesheet" href="assets/home-a.css?v=777">
+<noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
+<script src="assets/sanitize.js?v=777"></script>
+<script src="assets/start-page.js?v=777"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=777" defer></script>
+<script src="assets/version-check.js?v=777" defer></script>
+<script src="assets/acquisition.js?v=777" defer></script>
+<script src="assets/focus-mode.js?v=777" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=777">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=777">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=777">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=777">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=777">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+</head>
+<body class="cm-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="hn" id="site-nav"><div class="hn-in">
+<a class="hn-brand" href="/" aria-label="TradeZoro home"><img src="assets/images/tradezoro-wordmark-1014-192.webp" width="192" height="45" alt="TradeZoro"><img class="mk" src="assets/images/tradezoro-tzmark-1014-144.webp" width="32" height="32" alt=""></a>
+<nav class="hn-links" id="hn-links" aria-label="Main">
+<details class="hn-prod"><summary>Products <svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></summary><div class="hn-menu"><a href="/features/charts"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><div><b>ZoroCharts</b><span>Free futures and crypto charts with Pine Script</span></div></a><a href="/features/gex"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M3 12h18M3 18h18" stroke-dasharray="3 3"/><circle cx="17" cy="12" r="2"/></svg><div><b>GEX+</b><span>Call wall, put wall and zero gamma on the chart</span></div></a><a href="/features/backtesting"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z"/></svg><div><b>Replay One</b><span>Replay any past session bar by bar</span></div></a><a href="/features/journal"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h5"/></svg><div><b>JournalX</b><span>A trade journal that shows what is working</span></div></a><a href="/features/market-stats"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><div><b>Market Stats</b><span>How often gaps, ranges and levels played out</span></div></a><a href="/features/orderflow#sx-f-liquidity"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 5h10M3 9h16M3 13h7M3 17h13"/></svg><div><b>Liquidity Map</b><span>Resting orders as a heatmap with trade bubbles</span></div></a><a href="/features/gex"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12c3-6 6-6 10 0s7 6 10 0"/></svg><div><b>ZoroTide</b><span>Net call premium against net put premium</span></div></a><a href="/learn"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div><b>Learn</b><span>Plain-English lessons and courses</span></div></a><a href="/features/creators"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div><b>Creator Hub</b><span>Run your own trading community and share indicators</span></div></a></div></details>
+<a href="/features/creators">Creators</a><a href="/learn">Learn</a><a class="hn-login-m" href="/login">Log in</a></nav>
+<div class="hn-cta nav-cta"><button class="hn-ic" id="theme" aria-label="Switch light or dark theme" data-hn-theme><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><a class="btn btn-ghost btn-sm hn-login" href="/login">Log in</a><a class="btn btn-primary btn-sm" href="/signup">Start free</a>
+<button class="hn-ic hn-tog" id="hn-tog" aria-label="Menu" aria-expanded="false" aria-controls="hn-links"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+</div></header>
+<div class="cm-scroll" aria-hidden="true"><u data-scroll-bar></u></div>
+<main id="main" tabindex="-1" class="cm-main-page">
+<section class="cm-sec" id="pricing" style="padding-top:calc(var(--nav-h,64px) + 32px)" aria-labelledby="pr-h"><div class="cm-w">
+  <div class="section-head reveal">
+    <span class="eyebrow">Plans</span>
+    <h1 id="pr-h" class="h2">TradeZoro is free. Built by traders, for traders.</h1>
+    <p>Every member gets the chapters, JournalX, Smart Money Desk, trading models, charts and the full community, free. No card required. Pro adds order flow tools and GEX+, and more is coming. ZoroCharts futures are 10 minutes delayed by CME rule; crypto is live; real-time futures come from connecting Rithmic or the $7/month add-on.</p>
+  </div>
+  <div class="launch-banner" id="launch-banner" hidden></div>
+  <div id="pricing-root">
+  <div class="pricing-grid" id="pricing-grid">
+    <!-- Static fallback for no-JS visitors, crawlers and link previews. Mirrors the
+         plans records; pricing-hero.js replaces the whole #pricing-root with the live
+         Pro spotlight, Free strip, comparison and FAQ. Keep in sync. -->
+    <div class="price-card reveal">
+      <h3>Free</h3>
+      <div class="price-amt">$0<span>/ month</span></div>
+      <ul>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Everything else: all 64 chapters, JournalX with import, broker sync and AI coach</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>ZoroCharts, Replay One, Market Stats, Liquidity Map and ZoroTide</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Smart Money Desk, trading models and private indicators</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Full community: post, comment and send direct messages</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Creator Hub and the chart layouts library</li>
+      </ul>
+      <a href="signup" class="btn btn-ghost btn-block">Start free</a>
+    </div>
+    <div class="price-card featured reveal">
+      <h3>Pro</h3>
+      <div class="price-amt">$19<span>/ month</span></div>
+      <ul>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Order flow tools on the charts: Footprint, Delta, CVD, big trades and more</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>GEX+ for SPX, SPY, QQQ, ES, NQ and gold (GC), every expiry, and GEX on the charts</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>More coming</li>
+      </ul>
+      <a href="checkout?plan=Sj1bjdpwvYJUVErjNMAb" class="btn btn-primary btn-block">Join Pro</a>
+    </div>
+  </div>
+  </div>
+<div class="cm-card addon cm-rv"><span class="cm-lico"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span><div><b>Live futures add-on</b><span>Live CME futures data on ZoroCharts without a Rithmic login. Data only.</span></div><span class="amt2">$7<small style="font-size:13px;font-weight:500;color:var(--ink-2)"> / month</small></span></div>
+<p class="cm-note" style="text-align:center">Without the add-on or a Rithmic login, CME futures are 10 minutes delayed by CME rule. Prices exclude taxes where they apply.</p></div></section>
+<section class="cm-sec cm-last"><div class="cm-w"><p class="cm-edu" style="text-align:center">Education only. Not financial advice.</p></div></section>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+          
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Charts, data and education for futures and crypto traders.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">Learn: free articles</a>
+        <a href="indicators">Trading indicators</a>
+      </div>
+      <div>
+        <h5>Platform</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+        <a href="trade-journal">JournalX</a>
+        <a href="global-monitor">Global monitor</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About TradeZoro</a>
+        <a href="help">Help Center</a>
+        <a href="suggestions">Suggestions</a>
+        <a href="creators">Creator Hub</a>
+        <a href="support">Support</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+        <a href="market-data-terms">Market Data Terms</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro, operating as TradeZoro. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+      <a href="terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js?v=777"></script>
+<script src="assets/progress.js?v=777"></script>
+<script src="assets/activity-log.js?v=777"></script>
+<script src="assets/banned-check.js?v=777"></script>
+<script src="assets/email-verify.js?v=777"></script>
+<script src="assets/profiles-sync.js?v=777"></script>
+<script src="assets/loading-animation.js?v=777"></script>
+<script src="assets/avatars.js?v=777"></script>
+<script src="assets/referrals.js?v=777"></script>
+<script src="assets/maintenance-check.js?v=777"></script>
+<script src="assets/branding.js?v=777"></script>
+<script src="assets/seo.js?v=777"></script>
+<script src="assets/plan-price.js?v=777"></script>
+<script src="assets/pricing-hero.js?v=777"></script>
+<script src="assets/trial.js?v=777"></script>
+<script src="assets/launch-sale.js?v=777"></script>
+<script src="assets/main.js?v=777"></script>
+<script src="assets/home-a.js?v=777"></script>
+<script src="assets/theme.js?v=777"></script>
+</body>
+</html>

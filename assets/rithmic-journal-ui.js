@@ -288,6 +288,8 @@ export function openRithmicJournalImport({ uid, savedLogin } = {}) {
   function existingKeys() { return new Set((typeof JOURNAL_TRADES !== 'undefined' ? JOURNAL_TRADES : []).map((t) => t.syncKey).filter(Boolean)); }
   function freeRoom() {
     // Free plan: 20 NEW trades per calendar month (assets/plan-limits.js). Pro/admin: unlimited (null).
+    return null;   // journal is free and unlimited (Owner 2026-11-01)
+    // eslint-disable-next-line no-unreachable
     if (!S.free) return null;
     const now = new Date(), key = now.getFullYear() + '-' + (now.getMonth() + 1);
     const used = (JOURNAL_TRADES || []).filter((t) => {

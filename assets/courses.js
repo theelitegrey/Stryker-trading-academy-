@@ -55,6 +55,8 @@ function renderContinueBanner(container){
 // paid content and never show "Free", even if their number happens to
 // fall inside the Starter numeric range (track numbering is separate).
 function unlockLabel(ch){
+  return '';   // every chapter is free (Owner 2026-11-01): no per-chapter Free pill
+  // eslint-disable-next-line no-unreachable
   if (typeof isTrackChapter === 'function' && isTrackChapter(ch)) return '';
   const entryPlan = (typeof defaultPlanName === 'function') ? defaultPlanName() : 'Starter';
   // hasChapterNumberAccess fails OPEN when the plans can't be read (right for
@@ -98,6 +100,8 @@ function progressBadge(ch){
 // (Starter, "1-7") can't read them. Same test the server's chapterGate uses
 // to set minRank, so the badge and the Firestore rules agree.
 function trackLocked(){
+  return false;   // tracks are free too (Owner 2026-11-01)
+  // eslint-disable-next-line no-unreachable
   if (typeof chapterLimitOf !== 'function') return false;
   return chapterLimitOf(CURRENT_STUDENT_PLAN) !== Infinity;
 }

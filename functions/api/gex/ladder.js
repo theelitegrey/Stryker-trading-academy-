@@ -5,7 +5,8 @@
 // 1 s and carries a strong ETag, so a poll with If-None-Match whose data did not change gets a 304 with no body.
 // Education only. Not financial advice.
 import { MARKETS, json } from './_engine.js';
-import { onRequestGet as levelsGet } from './levels/[name].js';
+import { handle as levelsGet } from './levels/[name].js';
+import { gexPro } from './_pro.js';
 import { gexAtSpot, netNear, ladderNear, flipAt, wallsAt } from '../../../assets/gex-fast-core.js';
 
 // FAST path (InsightSentry add-on, 2026-10-16): the server feeder gex_fast.py rebuilds per-strike gamma x OI about every
@@ -22,7 +23,7 @@ async function fetchFast(env) {
   const base = (env && env.GEX_CHAIN_URL) || 'https://book-recorder.theelitegrey.workers.dev/gex-chain';
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort('timeout'), 1500);
   try {
-    const res = await fetch(base.replace(/\/gex-chain$/, '/gex-fast'), { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0' } });
+    const res = await fetch(base.replace(/\/gex-chain$/, '/gex-fast'), { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0', authorization: (env && env.GEX_AUTH) || '' } });
     if (!res.ok) return null;
     const text = await new Response(new Blob([await res.arrayBuffer()]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     return JSON.parse(text);
@@ -67,7 +68,7 @@ function resp(body, etag, status) {
   return new Response(status === 304 ? null : body, { status: status || 200, headers });
 }
 
-export async function onRequestGet(ctx) {
+async function handle(ctx) {
   const { request, env } = ctx;
   const url = new URL(request.url);
   const want = [...new Set((url.searchParams.get('u') || 'SPX').toUpperCase().split(',').map((s) => s.trim()))].filter((s) => ALLOWED.includes(s) && MARKETS[s]).sort();
@@ -107,3 +108,5 @@ export async function onRequestGet(ctx) {
   if (notModified(request, etag)) return resp(null, etag, 304);
   return full;
 }
+
+export const onRequestGet = gexPro(handle);

@@ -120,7 +120,7 @@ const LOCK_INFO = `(el) => {
     for (const [tz, cur, want] of [['America/New_York', 'USD', 'or $29/mo billed yearly ($349) · save 25%'],
                                    ['Asia/Kolkata', 'INR', null]]) {
       for (const w of [390, 1280]) {
-        const p = await page(b, 'out', 'index.html', { tz, w });
+        const p = await page(b, 'out', 'pricing.html', { tz, w });
         await p.evaluate(() => document.querySelectorAll('.reveal').forEach((e) => e.classList.add('in')));
         await p.evaluate(() => { const h = document.querySelector('.pv-hero'); if (h) window.scrollTo(0, h.getBoundingClientRect().top + scrollY - 80); });
         await p.waitForTimeout(900);

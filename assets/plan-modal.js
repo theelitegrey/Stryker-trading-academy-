@@ -41,10 +41,12 @@
           '<path d="M18 6L6 18M6 6l12 12"/></svg>' +
         '</button>' +
         '<h2 class="plan-modal-title">Choose your plan</h2>' +
-        '<p class="plan-modal-sub" id="plan-modal-sub">Upgrade to unlock this page.</p>' +
+        '<p class="plan-modal-sub" id="plan-modal-sub">TradeZoro is free. Pro adds order flow tools and GEX+.</p>' +
         '<div class="plan-modal-grid" id="plan-modal-grid">' +
           '<div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>' +
         '</div>' +
+        // Prices live only here, on paywalls and /pricing (Owner 2026-11-01: no prices upfront).
+        '<p class="plan-modal-all"><a href="/pricing">See all plans</a></p>' +
       '</div>';
 
     document.body.appendChild(overlay);
@@ -118,7 +120,7 @@
         '<button type="button" class="btn btn-primary plan-modal-pick">' +
           (plan.ctaLabel && String(plan.ctaLabel).trim()
             ? esc(String(plan.ctaLabel).trim())
-            : (sale.active ? 'Claim the ' + esc(shownName) + ' offer' : 'Choose ' + esc(shownName))) +
+            : (sale.active ? 'Claim the ' + esc(shownName) + ' offer' : 'Get ' + esc(shownName))) +
         '</button>';
 
       card.querySelector('.plan-modal-pick').addEventListener('click', function () {

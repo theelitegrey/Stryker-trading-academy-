@@ -23,7 +23,7 @@ import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from '.
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
-import { isAdminToken, isRealtimeToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
+import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
 import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
@@ -70,6 +70,12 @@ export function alignRange(fromQ, toQ, now) {
   to = Math.min(Math.ceil(Math.min(to, now) / M) * M, Math.ceil(now / M) * M);
   from = Math.max(Math.floor(from / ALIGN_MS) * ALIGN_MS, Math.floor((now - KEEP_MS) / M) * M);
   return { from, to };
+}
+
+// GEX is Pro only (Owner 2026-11-01): the raw chain / fast-ladder reads were open to any client without an Origin header.
+// Allowed: the server feeders (ingest secret) or a Pages Function forwarding a verified admin / demo / active-Pro token.
+async function gexChainOk(req, env) {
+  return (await authorized(req, env)) || (await isGexProToken(bearerOf(req)));
 }
 
 async function authorized(req, env) {
@@ -498,6 +504,7 @@ async function gexHistoryRoute(u, env, ctx, h) {
   }
   const out = new Response(res.body, res);
   Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  out.headers.set('cache-control', 'private, max-age=' + maxAge);   // gated: a browser may keep it, a shared cache may not
   return out;
 }
 
@@ -533,6 +540,7 @@ async function optRoute(u, env, ctx, h) {
   }
   const out = new Response(res.body, res);
   Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  out.headers.set('cache-control', 'private, max-age=60');
   return out;
 }
 
@@ -669,6 +677,7 @@ async function route(req, env, ctx) {
       // Read by the site's /api/gex/ladder Function (server to server). Edge-cached 1 s.
       if (req.method !== 'GET') return new Response('GET only', { status: 405 });
       if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
+      if (!(await gexChainOk(req, env))) return new Response('pro_required', { status: 403, headers: { 'cache-control': 'no-store' } });
       const ckey = new Request('https://book-recorder.cache/gexfast/' + Math.floor(Date.now() / 1000));
       let r = await caches.default.match(ckey);
       if (!r) {
@@ -739,6 +748,7 @@ async function route(req, env, ctx) {
       if (req.method !== 'GET') return new Response('GET only', { status: 405 });
       if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
       if (!/^[A-Z]{1,6}$/.test(sym) || !GEX_PARTS.includes(part)) return new Response('bad request', { status: 400 });
+      if (!(await gexChainOk(req, env))) return new Response('pro_required', { status: 403, headers: { 'cache-control': 'no-store' } });
       const ckey = new Request('https://book-recorder.cache/gex/' + sym + '/' + part + '/' + Math.floor(Date.now() / 30000));
       let r = await caches.default.match(ckey);
       if (!r) {
@@ -799,6 +809,11 @@ async function route(req, env, ctx) {
         ctx.waitUntil(caches.default.put(ckey, r.clone()));
       }
       return new Response(r.body, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'private, no-store' } });
+    }
+    // GEX+ data is Pro only (Owner order 2026-11-01): the history, sessions and options-analytics reads need a verified admin / demo / active-Pro token.
+    // (/tide is ZoroTide, free.) Checked before the cache, and the 403 is never cached.
+    if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions' || u.pathname === '/opt-analytics') {
+      if (!(await isGexProToken(bearerOf(req)))) return new Response(JSON.stringify({ error: 'pro_required' }), { status: 403, headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'no-store' }, h) });
     }
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     // /orderflow has its own limiter (60/min: a footprint chart loads one request per UTC day plus a

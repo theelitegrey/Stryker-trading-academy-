@@ -21,7 +21,7 @@
 
 import { RECORDER, newsSymOf, fetchNews, replayNow } from './chart-news.js?v=779';
 
-const PRICING = '/#pricing';
+const PRICING = '/pricing';
 const NEWS_TYPE = 'stk_news', ECON_TYPE = 'stk_econ';
 const NEWS_POLL = 120000, CAL_POLL = 15 * 60000;
 

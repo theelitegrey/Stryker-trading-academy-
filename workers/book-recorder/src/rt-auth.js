@@ -176,6 +176,34 @@ export async function isRealtimeToken(token, opts = {}) {
   return (await isAdminToken(token, opts)) || (await isDemoToken(token, opts));
 }
 
+// GEX / GEX+ is Pro only (Owner order 2026-11-01, "Gex+ in pro"): the GEX Pages Functions and the book-recorder GEX routes
+// (/gex-history, /gex-sessions, /tide, /opt-analytics) answer only a verified token that is an admin, the marketing demo
+// account, or an ACTIVE paid plan (isActiveProDoc, same rule as the live-feed grandfathering). The student doc is read with the
+// caller's own token, so the live rules decide. Fails CLOSED. Memoised 60 s (positive) / 10 s (negative).
+const gexMemo = new Map();
+export async function isGexProToken(token, opts = {}) {
+  const uid = await verifyIdToken(token, opts);
+  if (!uid) return false;
+  const hit = gexMemo.get(uid);
+  if (hit && Date.now() - hit.at < hit.ttl) return hit.v;
+  let v = false, ttl = 10000;
+  try {
+    if (await isAdminToken(token, opts)) { v = true; }
+    else {
+      const f = opts.fetchImpl || fetch;
+      const r = await f('https://firestore.googleapis.com/v1/projects/' + RT_PROJECT + '/databases/(default)/documents/students/' + encodeURIComponent(uid), { headers: { authorization: 'Bearer ' + token } });
+      if (r.status === 200) {
+        const fl = ((await r.json()) || {}).fields || {};
+        v = !!(fl.demo && fl.demo.booleanValue === true) || isActiveProDoc(fl, await paidPlanNames(f), opts.nowMs || Date.now());
+      }
+    }
+    if (v) ttl = 60000;
+  } catch (e) { v = false; }
+  if (gexMemo.size > 500) gexMemo.clear();
+  gexMemo.set(uid, { v, at: Date.now(), ttl });
+  return v;
+}
+
 export const bearerOf = (request) => {
   const m = /^Bearer\s+(\S+)$/i.exec(request.headers.get('authorization') || '');
   return m ? m[1] : '';
@@ -186,4 +214,4 @@ export function wsTokenOf(request) {
   const i = list.indexOf('tz-auth');
   return i >= 0 && list[i + 1] ? list[i + 1] : '';
 }
-export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; plansMemo = null; adminMemo.clear(); demoMemo.clear(); };
+export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; plansMemo = null; adminMemo.clear(); demoMemo.clear(); gexMemo.clear(); };

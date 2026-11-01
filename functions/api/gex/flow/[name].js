@@ -4,6 +4,7 @@
 // upstream: no InsightSentry, no Cboe call from here. Maths: functions/api/gex/_flow.js (pure, unit-tested).
 // Edge-cached 60 s, so every viewer shares one Worker read a minute. Read-only, public market data.
 // Education only. Not financial advice.
+import { gexPro } from '../_pro.js';
 import { json } from '../_engine.js';
 import { flowFromChain } from '../_flow.js';
 
@@ -15,14 +16,14 @@ async function readChain(sym, env) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort('timeout'), 4000);
   try {
-    const res = await fetch(base + '?sym=' + encodeURIComponent(sym) + '&part=near', { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0' } });
+    const res = await fetch(base + '?sym=' + encodeURIComponent(sym) + '&part=near', { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0', authorization: (env && env.GEX_AUTH) || '' } });
     if (!res.ok) throw new Error('chain ' + res.status);
     const text = await new Response(new Blob([await res.arrayBuffer()]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     return JSON.parse(text);
   } finally { clearTimeout(timer); }
 }
 
-export async function onRequestGet({ request, params, env }) {
+async function handle({ request, params, env }) {
   const name = String(params.name || '').toUpperCase();
   if (!ALLOWED.includes(name)) return json({ error: 'unknown market' }, { status: 404, cache: 'no-store' });
   const cache = typeof caches !== 'undefined' && caches.default ? caches.default : null;
@@ -40,3 +41,5 @@ export async function onRequestGet({ request, params, env }) {
     return json({ error: 'options volume unavailable', u: name }, { status: 503, cache: 'no-store' });
   }
 }
+
+export const onRequestGet = gexPro(handle);

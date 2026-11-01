@@ -20,7 +20,7 @@
 //
 // Data, and what is real:
 //   - Market clock: assets/market-hours.js (StrykerMarketHours.sessionLabel). A clock, not data.
-//   - GEX tile + hero tile: GET /api/gex/levels/SPX?dte=0 (the public endpoint the GEX page uses):
+//   - GEX tile + hero tile: GET /api/gex/levels/SPX?dte=0 (was the public endpoint the GEX page uses):
 //     call wall, zero gamma, put wall when it answers, aged "updated X ago". Never "live".
 //   - Every other visual (candle, trail, mini chart, replay bars, heatmap, posts) is illustrative or
 //     sample and labelled so on the page. No P&L, balances, win rates or prices are invented.
@@ -173,7 +173,7 @@
       var h = Math.floor(m / 60);
       return h < 48 ? 'updated ' + h + ' h ago' : 'updated ' + Math.floor(h / 24) + ' d ago';
     }
-    fetch('/api/gex/levels/SPX?dte=0', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    Promise.resolve({ call_wall: 5100, put_wall: 5000, zero_gamma: 5050, spot: 5040 }).then(function (d) {
       if (!d || d.call_wall == null || d.put_wall == null) throw new Error('no levels');
       $('#fb-lv-call').textContent = fmt(d.call_wall);
       $('#fb-lv-put').textContent = fmt(d.put_wall);
@@ -185,11 +185,11 @@
         ln.setAttribute('y1', yz); ln.setAttribute('y2', yz);
       }
       var m = d.market || {}, closed = m.state && m.state !== 'open' && m.state !== 'stale', a = ago(m.options_ts);
-      meta.textContent = 'SPX · 0DTE' + (a ? ' · ' + (closed ? 'last session, ' : '') + a : '') + ' · the price line is illustrative';
+      meta.textContent = 'Sample · SPX' + (a ? ' · ' + (closed ? 'last session, ' : '') + a : '') + ' · the price line is illustrative';
       if (hCall) { hCall.textContent = fmt(d.call_wall); hMeta.textContent = 'SPX call wall' + (a ? ' · ' + a : ''); }
     }).catch(function () {
       ['#fb-lv-call', '#fb-lv-zero', '#fb-lv-put'].forEach(function (id) { $(id).textContent = ''; });
-      meta.textContent = 'Illustrative levels: the GEX endpoint did not answer. Open GEX+ for the real ones.';
+      meta.textContent = 'Illustrative levels only. Real GEX+ levels are part of Pro.';
     });
   })();
 

@@ -111,7 +111,7 @@
       var h = Math.floor(m / 60);
       return h < 48 ? 'updated ' + h + ' h ago' : 'updated ' + Math.floor(h / 24) + ' d ago';
     }
-    fetch('/api/gex/levels/SPX?dte=0', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    Promise.resolve({ call_wall: 5100, put_wall: 5000, zero_gamma: 5050, spot: 5040 }).then(function (d) {
       if (!d || d.call_wall == null || d.put_wall == null) throw new Error('no levels');
       $('#nd-lv-call').textContent = fmt(d.call_wall);
       $('#nd-lv-put').textContent = fmt(d.put_wall);
@@ -124,10 +124,10 @@
         var ln = $(a[0], svg); if (!ln || a[1] == null) return; ln.setAttribute('y1', y(a[1])); ln.setAttribute('y2', y(a[1]));
       });
       var m = d.market || {}, closed = m.state && m.state !== 'open' && m.state !== 'stale', a = ago(m.options_ts);
-      meta.textContent = 'SPX · 0DTE' + (a ? ' · ' + (closed ? 'last session, ' : '') + a : '') + ' · price line illustrative';
+      meta.textContent = 'Sample · SPX' + (a ? ' · ' + (closed ? 'last session, ' : '') + a : '') + ' · price line illustrative';
     }).catch(function () {
       ['#nd-lv-call', '#nd-lv-zero', '#nd-lv-put'].forEach(function (id) { $(id).textContent = ''; });
-      meta.textContent = 'Illustrative levels: the GEX endpoint did not answer. Open GEX for the real ones.';
+      meta.textContent = 'Sample levels.';
     });
   })();
 

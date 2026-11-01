@@ -922,9 +922,12 @@ service cloud.firestore {
       match /likes/{u} {
         allow get: if signedIn() && u == request.auth.uid;
         allow list: if false;
+        // marker and counter move together in one batch (no counter-less marker: it would allow free -1 / re-+1 loops)
         allow create: if signedIn() && u == request.auth.uid && lyReadable(get(lyPath(id)).data)
-          && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
-        allow delete: if signedIn() && u == request.auth.uid;
+          && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time
+          && getAfter(lyPath(id)).data.likeCount == get(lyPath(id)).data.likeCount + 1;
+        allow delete: if signedIn() && u == request.auth.uid
+          && (!existsAfter(lyPath(id)) || getAfter(lyPath(id)).data.likeCount == get(lyPath(id)).data.likeCount - 1);
       }
       match /uses/{u} {
         allow get: if signedIn() && u == request.auth.uid;

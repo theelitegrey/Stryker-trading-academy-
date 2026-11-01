@@ -8,7 +8,8 @@
 .zc-main .cm-fl-lesson,.zc-main .cm-fl-role{ display:none; }
 .zc-main .cm-fl-ind{ left:-40px; top:150px; width:132px; }
 .zc-main .cm-fl-event{ right:-236px; top:64px; width:220px; }
-@media (max-width:1399px){ .zc-main .cm-fl-event{ display:none; } }
+/* card ends at 50vw+764px, so it only fits from 1600 wide */
+@media (max-width:1599px){ .zc-main .cm-fl-event{ display:none; } }
 .zc-shot{ display:block; width:100%; height:auto; }
 .zc-shot.l-only{ display:none; }
 :root[data-theme="light"] .zc-shot.d-only{ display:none; } :root[data-theme="light"] .zc-shot.l-only{ display:block; }

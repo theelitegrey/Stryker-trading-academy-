@@ -31,7 +31,14 @@
   "features/curriculum": "Curriculum feature page; app shell when signed in, marketing header + footer signed out",
   "features/models": "Trading Models feature page; app shell when signed in, marketing header + footer signed out",
   "features/indicators": "Private Indicators feature page; app shell when signed in, marketing header + footer signed out",
-  "features/community": "Community feature page; app shell when signed in, marketing header + footer signed out"
+  "features/community": "Community feature page; app shell when signed in, marketing header + footer signed out",
+  "features/gex": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/orderflow": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/backtesting": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/journal": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/market-stats": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/global-monitor": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/smart-money-desk": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out"
  },
  "ignore": {
   "index": "public home; sign-out lands here",

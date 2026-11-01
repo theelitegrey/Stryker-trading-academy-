@@ -1,0 +1,2 @@
+/* Feature pages A (gex, orderflow, backtesting, journal, market-stats, global-monitor, smart-money-desk): page-only tweaks on top of fx-page.css */
+.fx-sl .fx-shot{ object-fit:contain; object-position:center; }

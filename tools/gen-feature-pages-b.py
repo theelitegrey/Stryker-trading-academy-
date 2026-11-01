@@ -58,19 +58,19 @@ def hero(P):
 </header>
 '''
 def story(P):
-    steps = P['story']; n = len(steps)
-    lis = ''.join(f'<li><span class="cm-sn">{i+1}</span><div><b>{e(s[0])}</b><p>{e(s[1])}</p></div></li>\n' for i, s in enumerate(steps))
+    steps = P['story']
+    def inl(s): return f'<figure class="fx-inl">{img(s[2], s[3])}</figure>'
+    lis = ''.join(f'<li><span class="cm-sn">{i+1}</span><div><b>{e(s[0])}</b><p>{e(s[1])}</p>{inl(s)}</div></li>\n' for i, s in enumerate(steps))
     figs = ''.join(f'<figure class="fx-sl">{img(s[2], s[3])}</figure>\n' for s in steps)
-    return f'''<section class="cm-story fx-story" id="story" data-fx-story style="--n:{n}" aria-labelledby="st-h">
-<div class="cm-sticky"><div class="cm-w cm-story-grid">
-<div class="cm-story-copy"><span class="cm-eyebrow">{e(P['story_eyebrow'])}</span><h2 id="st-h">{e(P['story_h'])}</h2>
+    return f'''<section class="cm-story fx-story" id="story" data-fx-story aria-labelledby="st-h">
+<div class="cm-w fx-sgrid">
+<div class="fx-scopy"><span class="cm-eyebrow">{e(P['story_eyebrow'])}</span><h2 id="st-h">{e(P['story_h'])}</h2>
 <ol class="cm-steps-list">
-{lis}</ol><div class="cm-prog-line" aria-hidden="true"><u data-fx-bar></u></div></div>
-<div class="cm-stage-wrap"><div class="cm-stage fx-stage"><div class="cm-sbar"><span class="cm-dots" aria-hidden="true"><i></i><i></i><i></i></span><b>{e(P['bar'])}</b><span class="cm-tag">Sample data</span></div>
-<div class="fx-sv" role="group" aria-label="Screens for each step, shown one at a time">
-{figs}</div></div>
-<p class="cm-story-cap" data-fx-cap aria-hidden="true"></p></div>
-</div></div></section>
+{lis}</ol></div>
+<div class="fx-spin"><div class="cm-stage fx-stage"><div class="cm-sbar"><span class="cm-dots" aria-hidden="true"><i></i><i></i><i></i></span><b>{e(P['bar'])}</b><span class="cm-tag">Sample data</span></div>
+<div class="fx-sv" aria-hidden="true">
+{figs}</div></div></div>
+</div></section>
 '''
 def split(sid, eyebrow, icon, h, ps, items, shot_html, flip=False, title='', tag='Screenshot', cap=''):
     ul = ''.join(f'<li>{ico(i)}<span>{e(t)}</span></li>' for i, t in items)

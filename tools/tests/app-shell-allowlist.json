@@ -2,7 +2,14 @@
  "_readme": "Pages the app-shell audit treats specially. marketing = intentionally marketing-only even when signed in (reason required). dual = public + app pages: signed in = app shell, signed out = marketing header + footer. ignore = link targets that are not browsed pages (auth, sign-out landing, etc.).",
  "marketing": {
   "toast-demo": "internal demo, noindex",
-  "pricing": "public plans page reached from paywalls; homepage-style marketing header like index"
+  "pricing": "public plans page reached from paywalls; homepage-style marketing header like index",
+  "features/backtesting": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/gex": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/global-monitor": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/journal": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/market-stats": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/orderflow": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/smart-money-desk": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)"
  },
  "dual": {
   "suggestions": "public ideas board; app shell when signed in",

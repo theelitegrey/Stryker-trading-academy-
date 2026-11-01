@@ -20,7 +20,14 @@
   "creator-rules": "public creator rules (legal text)",
   "c": "public community page /c/<slug>",
   "features/creators": "Creator Hub landing, linked from the app menu (How it works); app shell when signed in",
-  "features/charts": "ZoroCharts feature page; app shell when signed in, marketing header + footer signed out"
+  "features/charts": "ZoroCharts feature page; app shell when signed in, marketing header + footer signed out",
+  "features/gex": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/orderflow": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/backtesting": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/journal": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/market-stats": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/global-monitor": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out",
+  "features/smart-money-desk": "Feature page on the new hub; app shell when signed in, marketing header + footer signed out"
  },
  "ignore": {
   "index": "public home; sign-out lands here",

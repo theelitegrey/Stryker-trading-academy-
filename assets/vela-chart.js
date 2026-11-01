@@ -1075,14 +1075,17 @@ function lateLists(provider){
       if (o.ext) { o.ext = Object.assign({}, o.ext); delete o.ext['stryker.grid']; }
       return o;
     });
-    return { version: 1, setup: true, layout: st.layout, sync: st.sync, trackSizes: st.trackSizes, charts };
+    // drawings sync is a drawing setting, not a setup one (and the rules refuse "drawings" in a setup)
+    const sync = st.sync ? Object.assign({}, st.sync) : undefined; if (sync) delete sync.drawings;
+    return { version: 1, setup: true, layout: st.layout, sync, trackSizes: st.trackSizes, charts };
   }
   // Setup onto the current workspace: chart i keeps its own symbol, interval and drawings (extra charts take the active one's market).
   function mergeSetup(curSt, s){
-    const now = (curSt && curSt.charts) || [];
+    curSt = curSt || { version: 1, charts: [] };
+    const now = (Array.isArray(curSt.charts) ? curSt.charts : []).filter(Boolean);
     const act = now.find((c) => c.id === curSt.activeCellId) || now[0] || {};
     const used = new Set();
-    const charts = (s.charts || []).map((c, i) => {
+    const charts = (Array.isArray(s.charts) ? s.charts : []).filter((c) => c && typeof c === 'object').map((c, i) => {
       const keep = now[i] || { symbol: act.symbol, provider: act.provider, timeframe: act.timeframe };
       const o = Object.assign({}, keep, c);
       SETUP_DROP.forEach((k) => { if (k in keep) o[k] = keep[k]; else delete o[k]; });
@@ -1092,8 +1095,11 @@ function lateLists(provider){
       used.add(id); o.id = id;
       return o;
     });
+    if (!charts.length) return curSt;  // nothing to apply: never swap the member's charts for an empty list
+    // charts beyond the setup's count stay (Vela pools them), so their drawings and symbols survive a smaller grid
+    now.slice(charts.length).forEach((c) => { if (c && c.id && !used.has(c.id)) { used.add(c.id); charts.push(c); } });
     const out = Object.assign({}, curSt, { layout: s.layout || curSt.layout, charts });
-    if (s.sync) out.sync = s.sync;
+    if (s.sync) { out.sync = Object.assign({}, s.sync); delete out.sync.drawings; if (curSt.sync && curSt.sync.drawings) out.sync.drawings = curSt.sync.drawings; }
     if (s.trackSizes) out.trackSizes = s.trackSizes; else delete out.trackSizes;
     if (!charts.some((c) => c.id === out.activeCellId)) delete out.activeCellId;
     return out;

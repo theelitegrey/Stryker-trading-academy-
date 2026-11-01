@@ -920,8 +920,10 @@ service cloud.firestore {
           && request.resource.data.state is string && request.resource.data.state.size() <= 200000
           && request.resource.data.updatedAt == request.time
           && getAfter(lyPath(id)).data.ownerUid == request.auth.uid
-          // a setup carries no drawings (the client strips them; this refuses a hand-made upload)
-          && (getAfter(lyPath(id)).data.get('kind', 'chart') != 'setup' || !request.resource.data.state.matches('.*"drawings"\\s*:.*'));
+          // a setup carries no drawings (the client strips them; this refuses a hand-made upload). [\s\S] not '.':
+          // '.' stops at a newline, so a pretty-printed upload slipped past. Not airtight (a \u-escaped key still
+          // parses); the real guarantee is the client: a setup card's state always goes through mergeSetup.
+          && (getAfter(lyPath(id)).data.get('kind', 'chart') != 'setup' || !request.resource.data.state.matches('[\\s\\S]*"drawings"\\s*:[\\s\\S]*'));
         allow delete: if signedIn() && (get(lyPath(id)).data.ownerUid == request.auth.uid || isAdmin());
       }
       match /likes/{u} {

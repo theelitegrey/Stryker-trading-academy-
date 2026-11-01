@@ -87,6 +87,7 @@ case("DENY","state 200001","alice","create",SP,new=dict(ST,state="x"*200001),moc
 DRW={"state":'{"version":1,"charts":[{"id":"A","drawings":{"version":1,"drawings":[]}}]}',"updatedAt":TS}
 case("ALLOW","setup state without drawings","alice","create",SP,new={"state":'{"version":1,"setup":true,"charts":[{"id":"A","indicators":{}}]}',"updatedAt":TS},mocks=[m("getAfter",PL,doc(SETUP))])
 case("DENY","setup state WITH drawings","alice","create",SP,new=DRW,mocks=[m("getAfter",PL,doc(SETUP))])
+case("DENY","setup state WITH drawings after a newline","alice","create",SP,new={"state":'{\n"version":1,"charts":[{"id":"A","drawings":{}}]}',"updatedAt":TS},mocks=[m("getAfter",PL,doc(SETUP))])
 case("ALLOW","whole-chart state with drawings","alice","create",SP,new=DRW,mocks=[m("getAfter",PL,doc(CARD))])
 case("ALLOW","old card (no kind) state update with drawings","alice","update",SP,new=DRW,old=ST,mocks=[m("getAfter",PL,doc({k:v for k,v in CARD.items() if k!="kind"}))])
 case("ALLOW","setup state: a Pine source that mentions drawings is not a drawing","alice","create",SP,new={"state":json.dumps({"setup":True,"charts":[{"ext":{"stryker.pine":[{"source":'// "drawings": none'}]}}]}),"updatedAt":TS},mocks=[m("getAfter",PL,doc(SETUP))])

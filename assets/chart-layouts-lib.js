@@ -117,6 +117,8 @@ export function mountLib(host){
       if (!d.exists) { toast('This layout is no longer available.', 'error'); return false; }
       let doc; try { doc = JSON.parse(d.data().state); } catch (e) { doc = null; }
       if (!doc) { toast('This layout could not be read.', 'error'); return false; }
+      // the card's kind decides: a setup card always merges (keeps the member's symbol, interval, drawings)
+      if (isSetup(x)) doc.setup = true;
       const ok = await host.applyForeign(doc, x.name);
       if (!ok) return false;
       closeSheet();

@@ -12,17 +12,31 @@ let TICKET_PAGER = null;
 let TICKET_MSG_UNSUB = null;
 let TICKET_FUNCTIONS = null;
 let TICKET_MESSAGES = [];
+let TICKET_LINK_FETCHED = Object.create(null);
+let CONTACT_LINK_FETCHED = Object.create(null);
 
 const TICKET_STATUS = { waiting_for_support:'Waiting for support', waiting_for_member:'Waiting for member', closed:'Closed' };
 function supEsc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function supWhen(ts){ return ts && typeof ts.toDate === 'function' ? ts.toDate().toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Just now'; }
 function supMillis(ts){ return ts && typeof ts.toMillis === 'function' ? ts.toMillis() : 0; }
 function supError(err){ return (err && err.message ? err.message : String(err || 'Something went wrong.')).replace(/^Firebase:\s*/i,''); }
+function ticketRequestId(){
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+  return 'req_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+}
+function ticketFormRequestId(form,fingerprint){
+  if (!form.dataset.requestId || form.dataset.requestFingerprint !== fingerprint) {
+    form.dataset.requestId = ticketRequestId(); form.dataset.requestFingerprint = fingerprint;
+  }
+  return form.dataset.requestId;
+}
+function ticketClearRequestId(form){ delete form.dataset.requestId; delete form.dataset.requestFingerprint; }
 function ticketCall(data){
   if (!TICKET_FUNCTIONS) TICKET_FUNCTIONS = firebase.app().functions('us-central1');
   return TICKET_FUNCTIONS.httpsCallable('supportTicketAction')(data).then((r) => r.data || {});
 }
 function linkedTicket(){ const m = location.hash.match(/^#ticket-([A-Za-z0-9_-]+)$/); return m ? m[1] : null; }
+function linkedContact(){ const m = location.hash.match(/^#contact-([A-Za-z0-9_-]+)$/); return m ? m[1] : null; }
 function ticketById(id){ return TICKETS.find((t) => t.id === id); }
 
 function selectTopTab(name){
@@ -75,7 +89,7 @@ function openAdminTicket(id, focus){
     renderAdminThread(ticketById(id) || ticket, TICKET_MESSAGES);
     if (focus) { const h = document.querySelector('#ticket-admin-thread h2'); if (h) { h.focus(); document.getElementById('ticket-admin-thread').scrollIntoView({block:'start'}); } focus = false; }
   }, (err) => { document.getElementById('ticket-admin-thread').innerHTML = '<p class="support-state support-error">Could not load conversation: ' + supEsc(supError(err)) + '</p>'; });
-  if (ticket.adminAttention) ticketCall({action:'markRead',ticketId:id}).catch(() => {});
+  if (ticket.adminAttention) ticketCall({action:'markRead',ticketId:id,expectedUpdatedAt:supMillis(ticket.updatedAt)}).catch(() => {});
 }
 
 function supRenderStats(){
@@ -113,21 +127,27 @@ function initSupportAdmin(){
   document.querySelectorAll('[data-ticket-filter]').forEach((b) => b.setAttribute('aria-selected',String(b.dataset.ticketFilter === TICKET_FILTER)));
   document.querySelectorAll('#sup-filter .term-cat').forEach((b) => b.classList.toggle('is-on',b.dataset.f === SUP_FILTER));
 
-  db.collection('supportTickets').limit(200).onSnapshot((snap) => {
-    TICKETS = snap.docs.map((d) => Object.assign({id:d.id},d.data())).sort((a,b) => supMillis(b.updatedAt) - supMillis(a.updatedAt));
+  db.collection('supportTickets').orderBy('updatedAt','desc').limit(200).onSnapshot((snap) => {
+    TICKETS = snap.docs.map((d) => Object.assign({id:d.id},d.data()));
+    const want = linkedTicket();
+    if (want && !ticketById(want) && !TICKET_LINK_FETCHED[want]) {
+      // A deep-linked ticket older than the newest 200 is fetched directly so the link still opens it.
+      TICKET_LINK_FETCHED[want] = true;
+      db.collection('supportTickets').doc(want).get().then((d) => { if (d.exists && !ticketById(d.id)) { TICKETS.push(Object.assign({id:d.id},d.data())); renderTicketStats(); renderTicketList(); if (TICKET_SELECTED !== d.id) openAdminTicket(d.id,true); } }).catch(() => {});
+    }
     renderTicketStats(); renderTicketList();
     const target = linkedTicket();
     if (target && ticketById(target) && TICKET_SELECTED !== target) openAdminTicket(target,true);
     else if (TICKET_SELECTED && ticketById(TICKET_SELECTED) && TICKET_MESSAGES.length) renderAdminThread(ticketById(TICKET_SELECTED),TICKET_MESSAGES);
   }, (err) => { document.getElementById('ticket-admin-list').innerHTML = '<p class="support-state support-error">Could not load tickets: ' + supEsc(supError(err)) + '</p>'; });
 
-  db.collection('contactMessages').orderBy('createdAt','desc').limit(200).get().then((snap) => { SUP_MESSAGES = snap.docs.map((d) => Object.assign({id:d.id},d.data())); supRenderStats(); supRenderList(); }).catch((err) => { document.getElementById('sup-list').innerHTML = '<p class="support-state support-error">Could not load external messages: ' + supEsc(supError(err)) + '</p>'; });
+  db.collection('contactMessages').orderBy('createdAt','desc').limit(200).get().then((snap) => { SUP_MESSAGES = snap.docs.map((d) => Object.assign({id:d.id},d.data())); const wantC = linkedContact(); if (wantC && !SUP_MESSAGES.some((m) => m.id === wantC) && !CONTACT_LINK_FETCHED[wantC]) { CONTACT_LINK_FETCHED[wantC] = true; return db.collection('contactMessages').doc(wantC).get().then((d) => { if (d.exists) SUP_MESSAGES.push(Object.assign({id:d.id},d.data())); }).catch(() => {}).then(() => { supRenderStats(); supRenderList(); }); } supRenderStats(); supRenderList(); }).catch((err) => { document.getElementById('sup-list').innerHTML = '<p class="support-state support-error">Could not load external messages: ' + supEsc(supError(err)) + '</p>'; });
 
   document.querySelector('[aria-label="Support inbox"]').addEventListener('click',(e) => { const b = e.target.closest('[data-support-tab]'); if (b) selectTopTab(b.dataset.supportTab); });
   document.getElementById('ticket-filter').addEventListener('click',(e) => { const b = e.target.closest('[data-ticket-filter]'); if (!b) return; TICKET_FILTER = b.dataset.ticketFilter; if (TICKET_PAGER) TICKET_PAGER.reset(); document.querySelectorAll('[data-ticket-filter]').forEach((x) => x.setAttribute('aria-selected',String(x === b))); renderTicketList(); });
   document.getElementById('ticket-admin-list').addEventListener('click',(e) => { const b = e.target.closest('[data-ticket-id]'); if (b) openAdminTicket(b.dataset.ticketId,true); });
-  document.getElementById('ticket-admin-thread').addEventListener('submit',(e) => { if (e.target.id !== 'ticket-admin-reply') return; e.preventDefault(); const form = e.target, field = document.getElementById('ticket-admin-reply-text'), error = document.getElementById('ticket-admin-error'); error.hidden = true; Array.from(form.elements).forEach((x) => x.disabled = true); ticketCall({action:'reply',ticketId:TICKET_SELECTED,message:field.value}).then(() => { field.value = ''; if (typeof showToast === 'function') showToast('success','Reply sent.'); }).catch((err) => { error.textContent = supError(err); error.hidden = false; }).finally(() => Array.from(form.elements).forEach((x) => x.disabled = false)); });
-  document.getElementById('ticket-admin-thread').addEventListener('change',(e) => { if (e.target.id !== 'ticket-admin-status') return; const select = e.target; select.disabled = true; ticketCall({action:'status',ticketId:TICKET_SELECTED,status:select.value}).catch((err) => { if (typeof showToast === 'function') showToast('error',supError(err)); }).finally(() => { select.disabled = false; }); });
+  document.getElementById('ticket-admin-thread').addEventListener('submit',(e) => { if (e.target.id !== 'ticket-admin-reply') return; e.preventDefault(); const form = e.target, field = document.getElementById('ticket-admin-reply-text'), error = document.getElementById('ticket-admin-error'); error.hidden = true; Array.from(form.elements).forEach((x) => x.disabled = true); const payload = {action:'reply',ticketId:TICKET_SELECTED,message:field.value}; payload.requestId = ticketFormRequestId(form,[TICKET_SELECTED,field.value].join('\u0000')); ticketCall(payload).then(() => { ticketClearRequestId(form); field.value = ''; if (typeof showToast === 'function') showToast('success','Reply sent.'); }).catch((err) => { error.textContent = supError(err); error.hidden = false; }).finally(() => Array.from(form.elements).forEach((x) => x.disabled = false)); });
+  document.getElementById('ticket-admin-thread').addEventListener('change',(e) => { if (e.target.id !== 'ticket-admin-status') return; const select = e.target; select.disabled = true; ticketCall({action:'status',ticketId:TICKET_SELECTED,status:select.value,requestId:ticketRequestId()}).catch((err) => { if (typeof showToast === 'function') showToast('error',supError(err)); }).finally(() => { select.disabled = false; }); });
   document.getElementById('sup-filter').addEventListener('click',(e) => { const b = e.target.closest('.term-cat'); if (!b) return; SUP_FILTER = b.dataset.f; if (SUP_PAGER) SUP_PAGER.reset(); document.querySelectorAll('#sup-filter .term-cat').forEach((x) => x.classList.toggle('is-on',x === b)); supRenderList(); });
   document.getElementById('sup-list').addEventListener('click',(e) => { const b = e.target.closest('[data-sup-act]'); if (!b) return; b.disabled = true; supSetStatus(b.dataset.id,b.dataset.supAct === 'handle' ? 'handled' : 'new'); });
 }

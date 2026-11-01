@@ -118,7 +118,10 @@ exports.onContactMessageCreated = onDocumentCreated(
 
     const batch = db.batch();
     adminsSnap.forEach((doc) => {
-      const ref = db.collection('notifications').doc();
+      // Deterministic per contact/admin so an at-least-once trigger retry cannot
+      // create a second bell item for the same external message.
+      const notificationId = ['contact', event.params.messageId, doc.id].join('_').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 1500);
+      const ref = db.collection('notifications').doc(notificationId);
       batch.set(ref, {
         recipientUid: doc.id,
         type: 'contact',

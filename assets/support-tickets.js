@@ -30,6 +30,21 @@
   function errorText(err) {
     return (err && err.message ? err.message : String(err || 'Something went wrong.')).replace(/^Firebase:\s*/i, '');
   }
+  function makeRequestId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return 'req_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  }
+  function formRequestId(form, fingerprint) {
+    if (!form.dataset.requestId || form.dataset.requestFingerprint !== fingerprint) {
+      form.dataset.requestId = makeRequestId();
+      form.dataset.requestFingerprint = fingerprint;
+    }
+    return form.dataset.requestId;
+  }
+  function clearFormRequestId(form) {
+    delete form.dataset.requestId;
+    delete form.dataset.requestFingerprint;
+  }
   function call(payload) {
     if (!functionsApi) functionsApi = firebase.app().functions('us-central1');
     return functionsApi.httpsCallable('supportTicketAction')(payload).then(function (r) { return r.data || {}; });
@@ -106,7 +121,7 @@
     selectedId = id;
     setHash(id);
     renderList();
-    if (ticket.memberUnread) call({ action:'markRead', ticketId:id }).catch(function () {});
+    if (ticket.memberUnread) call({ action:'markRead', ticketId:id, expectedUpdatedAt:millis(ticket.updatedAt) }).catch(function () {});
     if (activeMessageTicket === id) {
       renderThread(ticket, currentMessages);
       if (focus) {
@@ -175,7 +190,16 @@
       var error = document.getElementById('support-create-error');
       error.hidden = true;
       setBusy(form, true);
-      call({ action:'create', category:document.getElementById('support-category').value, subject:document.getElementById('support-subject').value, message:document.getElementById('support-message').value }).then(function (result) {
+      var createPayload = {
+        action:'create',
+        category:document.getElementById('support-category').value,
+        subject:document.getElementById('support-subject').value,
+        message:document.getElementById('support-message').value
+      };
+      var createFingerprint = [createPayload.category, createPayload.subject, createPayload.message].join('\u0000');
+      createPayload.requestId = formRequestId(form, createFingerprint);
+      call(createPayload).then(function (result) {
+        clearFormRequestId(form);
         form.reset(); createPanel.hidden = true; selectedId = result.ticketId; setHash(selectedId);
         if (typeof showToast === 'function') showToast('success', 'Support ticket created.');
       }).catch(function (err) {
@@ -195,7 +219,10 @@
       var field = document.getElementById('support-reply');
       var error = document.getElementById('support-reply-error');
       error.hidden = true; setBusy(form, true);
-      call({ action:'reply', ticketId:selectedId, message:field.value }).then(function () {
+      var replyPayload = { action:'reply', ticketId:selectedId, message:field.value };
+      replyPayload.requestId = formRequestId(form, [selectedId, field.value].join('\u0000'));
+      call(replyPayload).then(function () {
+        clearFormRequestId(form);
         field.value = '';
         if (typeof showToast === 'function') showToast('success', 'Reply sent.');
       }).catch(function (err) { error.textContent = errorText(err); error.hidden = false; }).finally(function () { setBusy(form, false); });
@@ -206,7 +233,7 @@
       if (!button || !selectedId) return;
       button.disabled = true;
       var status = button.dataset.ticketAction === 'close' ? 'closed' : 'waiting_for_support';
-      call({ action:'status', ticketId:selectedId, status:status }).catch(function (err) {
+      call({ action:'status', ticketId:selectedId, status:status, requestId:makeRequestId() }).catch(function (err) {
         if (typeof showToast === 'function') showToast('error', errorText(err));
         button.disabled = false;
       });

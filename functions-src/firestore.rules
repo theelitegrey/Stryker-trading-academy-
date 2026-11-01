@@ -526,6 +526,7 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
     match /contactNotifyThrottle/{hour} { allow read, write: if false; }
+    match /supportTicketThrottle/{uid} { allow read, write: if false; }
 
     // Member support tickets. All mutations use supportTicketAction, which
     // validates ownership, sender role, lengths, status transitions and writes

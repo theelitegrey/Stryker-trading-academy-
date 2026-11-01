@@ -44,14 +44,20 @@ test('callable pins ownership and sender roles instead of trusting request data'
   assert.match(fn, /Members can only close or reopen their own ticket/);
   assert.match(fn, /CATEGORIES = \['Account', 'Billing', 'Charts & data', 'Creator Hub', 'Technical issue', 'Other'\]/);
   assert.match(fn, /clean\(data\.message, 4000/);
+  assert.match(fn, /requestId\(data\.requestId\)/);
+  assert.match(fn, /stableId\('ticket', user\.uid, opId\)/);
+  assert.match(fn, /existingMessage\.exists/);
+  assert.match(fn, /notifyAdminsInWrite\(tx/);
+  assert.match(fn, /notifyOwnerInWrite\(tx/);
+  assert.doesNotMatch(fn, /await notifyAdmins\(/);
 });
 
 test('notifications use existing collection, trusted recipients and exact deep links', () => {
   assert.match(fn, /collection\('notifications'\)/);
-  assert.match(fn, /recipientUid: doc\.id/);
-  assert.match(fn, /recipientUid: ticket\.ownerUid/);
-  assert.match(fn, /link: 'support-admin#ticket-' \+ ticketId/);
-  assert.match(fn, /link: 'help#ticket-' \+ ticketId/);
+  assert.match(fn, /notificationData\(doc\.id, 'support_ticket_admin'/);
+  assert.match(fn, /notificationData\(ticket\.ownerUid, 'support_ticket_member'/);
+  assert.match(fn, /'support-admin#ticket-' \+ ticketId/);
+  assert.match(fn, /'help#ticket-' \+ ticketId/);
   assert.match(fn, /notificationId\(ticketId, eventId/);
   assert.match(contactFn, /link: 'support-admin\.html#contact-' \+ event\.params\.messageId/);
   assert.doesNotMatch(contactFn, /pages-admin\.html#contact-/);
@@ -68,4 +74,16 @@ test('member and admin UIs open exact ticket hashes and expose required actions'
   assert.match(adminUi, /data-ticket-filter/);
   assert.match(adminUi, /action:'reply'/);
   assert.match(adminUi, /action:'status'/);
+});
+
+test('admin ticket inbox orders by updatedAt and fetches older deep-linked docs', () => {
+  const admin = adminUi;
+  assert.match(admin, /collection\('supportTickets'\)\.orderBy\('updatedAt','desc'\)\.limit\(200\)/);
+  assert.match(admin, /TICKET_LINK_FETCHED\[want\]/);
+  assert.match(admin, /CONTACT_LINK_FETCHED\[wantC\]/);
+});
+
+test('server-only support throttle collection is closed to clients', () => {
+  assert.match(rules, /match \/supportTicketThrottle\/\{uid\} \{ allow read, write: if false; \}/);
+  assert.match(fn, /CREATE_COOLDOWN_MS/);
 });

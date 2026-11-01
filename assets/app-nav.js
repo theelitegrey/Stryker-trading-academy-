@@ -58,45 +58,62 @@
   // ---- "More" sheet --------------------------------------------------------
   var NEW_UNTIL = Date.parse('2026-10-21T23:59:59+05:30');
   var SV = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-  // [file, label, one-line description, svg paths, extra files that count as this item]
+  // THE app menu model (one source for the desktop sidebar, the phone More sheet and the dock's "current"
+  // logic). [sectionId, title, [item...]]; item = [file, label, one-line description, svg paths, extra files
+  // that count as this item]. Only real pages. Pro items are in PRO. Owner order 2026-11-01 (menu restructure).
+  var HOME = ['dashboard-user', 'Home', 'Your dashboard and progress', '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>', ['index']];
+  var PRO = { gex: 1 };
+  var LEARN_ARTICLES = ['learn-bos-vs-choch', 'learn-fair-value-gap', 'learn-how-prop-firms-work', 'learn-liquidity-sweeps', 'learn-order-blocks', 'learn-order-flow', 'learn-prop-firm-challenge-rules', 'learn-smt-divergence', 'learn-volume-profile'];
   var MORE = [
-    ['Main', [
-      ['dashboard-user', 'Home', 'Your dashboard and progress', '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>', ['index']],
-      ['trading-floor', 'Trading Floor', 'Community posts and chat', '<path d="M9 9V5a2.5 2.5 0 0 1 2.5-2.5h8A2.5 2.5 0 0 1 22 5v3.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M4.5 9h8a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-3.5 3v-3H4.5A2.5 2.5 0 0 1 2 15.5v-4A2.5 2.5 0 0 1 4.5 9z"/>'],
-      ['global-monitor', 'Global Monitor', 'World events and market news', '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'],
-      ['messages', 'Messages', 'Direct messages', '<path d="M4 5h16v11H8l-4 4z"/>']
-    ]],
-    ['Tools', [
+    ['trade', 'Trade', [
+      ['charts', 'ZoroCharts', 'Free futures and crypto charts', '<path d="M7 3v4M7 17v4M15 2v3M15 19v3"/><rect x="4.5" y="7" width="5" height="10" rx="1"/><rect x="12.5" y="5" width="5" height="14" rx="1"/>'],
       ['backtests', 'Replay One', 'Test a model on past data', '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/>', ['replay']],
-      ['paper-review', 'Trade review', 'Review your paper trades', '<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="m9 14 2 2 4-4"/>'],
-      ['leaderboard', 'Paper leaderboard', 'Opt-in demo-account ranks', '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>'],
-      ['models', 'Models', 'Trading model playbooks', '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', ['model']],
-      ['indicators', 'Indicators', 'Our chart indicators', '<path d="M3 17l5-6 4 4 8-9"/><path d="M15 6h5v5"/>', ['indicator']],
+      ['trade-journal', 'JournalX', 'Log trades and see what is working', '<path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h5"/>'],
+      ['paper-review', 'Paper trade review', 'Review your paper trades', '<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="m9 14 2 2 4-4"/>'],
+      ['leaderboard', 'Paper leaderboard', 'Opt-in demo-account ranks', '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>']
+    ]],
+    ['markets', 'Markets', [
+      ['gex', 'GEX+', 'Gamma levels as context on the chart', '<path d="M3 18h18"/><path d="M6 15l3.5-4 3 2.5L18 6"/><path d="M18 6h-4M18 6v4"/>'],
       ['market-brief', 'Market brief', 'Daily notes on key levels', '<path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 12h8M8 16h6"/>'],
-      ['economic-calendar', 'Economic calendar', 'Upcoming news events', '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'],
+      ['market-map', 'Market map', 'Markets at a glance', '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'],
       ['scanner', 'Market scanner', 'Movers, gaps, 52-week highs', '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/><path d="M8 12.5l2-2.5 2 1.5 2-3"/>'],
       ['market-stats', 'Market stats', 'How often sessions behave, with sample sizes', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
-      ['market-map', 'Market map', 'Markets at a glance', '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'],
-      ['smart-money', 'Smart money', 'Institutional flow view', '<path d="M12 3v18"/><path d="M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'],
-      ['live-sessions', 'Live sessions', 'Free on YouTube (from December)', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>']
+      ['economic-calendar', 'Economic calendar', 'Upcoming news events', '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'],
+      ['smart-money', 'Smart Money Desk', 'Institutional flow view', '<path d="M12 3v18"/><path d="M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'],
+      ['global-monitor', 'Global Monitor', 'World events and market news', '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>']
     ]],
-    ['Account', [
+    ['learn', 'Learn', [
+      ['courses', 'Curriculum', 'Chapters in a deliberate order', '<path d="M12 6.5C10.5 5 8 4 4 4v14c4 0 6.5 1 8 2.5 1.5-1.5 4-2.5 8-2.5V4c-4 0-6.5 1-8 2.5zM12 6.5v14"/>', ['chapter']],
+      ['models', 'Models', 'Trading model playbooks', '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', ['model']],
+      ['indicators', 'Indicators', 'Our chart indicators', '<path d="M3 17l5-6 4 4 8-9"/><path d="M15 6h5v5"/>', ['indicator']],
+      ['live-sessions', 'Live sessions', 'Free on YouTube (from December)', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>'],
+      ['learn', 'Learn articles', 'Plain-English lessons', '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>', LEARN_ARTICLES]
+    ]],
+    ['community', 'Community', [
+      ['trading-floor', 'Trading Floor', 'Community posts and chat', '<path d="M9 9V5a2.5 2.5 0 0 1 2.5-2.5h8A2.5 2.5 0 0 1 22 5v3.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M4.5 9h8a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-3.5 3v-3H4.5A2.5 2.5 0 0 1 2 15.5v-4A2.5 2.5 0 0 1 4.5 9z"/>'],
+      ['messages', 'Messages', 'Direct messages', '<path d="M4 5h16v11H8l-4 4z"/>']
+    ]],
+    // 'creator' (Creator Hub) sits here, after Community; it is built by the Creator Hub code below.
+    ['account', 'Account', [
       ['profile', 'Profile', 'Your public profile', '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'],
       ['settings', 'Settings', 'Account and preferences', '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'],
       ['achievements', 'Achievements', 'Badges and streaks', '<circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/>'],
       ['referrals', 'Referrals', 'Invite friends', '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/>'],
-      ['giveaways', 'Giveaways', 'Current giveaways', '<rect x="3" y="8" width="18" height="5" rx="1"/><path d="M5 13v8h14v-8M12 8v13"/><path d="M12 8c-1.5-3-5-4-5-1.5S10 8 12 8zm0 0c1.5-3 5-4 5-1.5S14 8 12 8z"/>'],
-      ['roadmap', 'Roadmap', 'What we are building next', '<path d="M4 21V4M4 4h12l-2 4 2 4H4"/>'],
+      ['giveaways', 'Giveaways', 'Current giveaways', '<rect x="3" y="8" width="18" height="5" rx="1"/><path d="M5 13v8h14v-8M12 8v13"/><path d="M12 8c-1.5-3-5-4-5-1.5S10 8 12 8zm0 0c1.5-3 5-4 5-1.5S14 8 12 8z"/>']
+    ]],
+    ['help', 'Help & feedback', [
+      ['help', 'Help & support', 'Answers and private support tickets', '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/>'],
       ['suggestions', 'Suggestions', 'Suggest features and vote', '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"/>'],
-      ['help', 'Help & support', 'Answers and private support tickets', '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/>']
+      ['roadmap', 'Roadmap', 'What we are building next', '<path d="M4 21V4M4 4h12l-2 4 2 4H4"/>']
     ]]
   ];
 
   var CREATOR_FILES = ['communities', 'c', 'creator', 'creator-new', 'creator-admin', 'creators'];
   function moreKey(f){
     if (CREATOR_FILES.indexOf(f) !== -1) return 'creator-hub';
+    if (HOME[0] === f || HOME[4].indexOf(f) !== -1) return HOME[0];
     for (var g = 0; g < MORE.length; g++) {
-      var list = MORE[g][1];
+      var list = MORE[g][2];
       for (var i = 0; i < list.length; i++) {
         if (list[i][0] === f || (list[i][4] && list[i][4].indexOf(f) !== -1)) return list[i][0];
       }
@@ -211,10 +228,68 @@
   function creatorGroups(){
     var m = cnModel(), cur = cnCurrent();
     var conv = function(it){ return ['cn-' + it[0], it[1], it[2], CI[it[0]], [], it[3], it[0] === cur, '']; };
-    var g = [['Creator Hub', m.main.map(conv)]];
-    g[0][2] = m;
+    var g = ['creator', 'Creator Hub', m.main.map(conv)];
+    g[3] = m;
     return g;
   }
+
+  // ---- Section state (sidebar + sheet share it): which sections are expanded ----
+  // localStorage tz_nav_sec = { trade: 1, markets: 0, ... }. The section holding the current page is always
+  // opened on load (without being saved), so the highlight never hides inside a closed section.
+  var SEC_KEY = 'tz_nav_sec', SEC_DEFAULT = { trade: 1 };
+  function secStore(){ try { return JSON.parse(localStorage.getItem(SEC_KEY) || '{}') || {}; } catch(e) { return {}; } }
+  function secSave(id, open){ var o = secStore(); o[id] = open ? 1 : 0; try { localStorage.setItem(SEC_KEY, JSON.stringify(o)); } catch(e) {} }
+  function secIsOpen(id, hasCur){
+    if (hasCur) return true;
+    var o = secStore(); return id in o ? !!o[id] : !!SEC_DEFAULT[id];
+  }
+  var HEAD_CHEV = '<svg class="side-group-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  function proChip(f){ return PRO[f] ? '<span class="pro-chip">Pro</span>' : ''; }
+  function itemLink(it, cur){
+    var on = it[0] === cur;
+    return '<a href="/' + it[0] + '" class="side-link' + (on ? ' active' : '') + '"' + (on ? ' aria-current="page"' : '') + ' data-menu="' + it[0] + '">' +
+      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + it[3] + '</svg>' +
+      '<span class="side-t">' + esc(it[1]) + '</span>' + proChip(it[0]) + '</a>';
+  }
+  function groupHtml(id, title, open, inner, attrs){
+    return '<div class="side-section side-group' + (open ? ' open' : '') + '" data-sec="' + id + '"' + (attrs || '') + '>' +
+      '<button type="button" class="side-group-head" data-keep-open id="nv-h-' + id + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="nv-b-' + id + '"><span>' + esc(title) + '</span>' + HEAD_CHEV + '</button>' +
+      '<div class="side-group-body"><div class="side-group-inner" id="nv-b-' + id + '" role="group" aria-labelledby="nv-h-' + id + '"' + (open ? '' : ' inert') + '>' + inner + '</div></div></div>';
+  }
+  // Builds the whole sidebar menu into <aside.sidebar> (replaces the static per-page markup).
+  function buildMenu(){
+    var sb = document.querySelector('.sidebar'); if (!sb || (document.getElementById('app-menu') && document.getElementById('app-menu').children.length)) return;
+    var brand = sb.querySelector('.brand'), foot = sb.querySelector('.sidebar-foot');
+    var cur = moreKey(pageFile()), curC = cur === 'creator-hub';
+    var h = '<div class="side-section side-home">' + itemLink(HOME, cur) + '</div>';
+    MORE.forEach(function(g, i){
+      var has = g[2].some(function(it){ return it[0] === cur; });
+      h += groupHtml(g[0], g[1], secIsOpen(g[0], has), g[2].map(function(it){ return itemLink(it, cur); }).join(''));
+      if (g[0] === 'community') h += '<div id="cn-section" data-sec="creator"></div>';
+    });
+    var wrap = document.getElementById('app-menu');
+    if (!wrap) { wrap = document.createElement('nav'); wrap.id = 'app-menu'; wrap.className = 'app-menu'; wrap.setAttribute('aria-label', 'App sections'); if (foot) sb.insertBefore(wrap, foot); else sb.appendChild(wrap); }
+    wrap.innerHTML = h;
+    wrap.addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('.side-group-head'); if (!b || !wrap.contains(b)) return;
+      toggleSec(b.closest('.side-group'), b);
+    });
+  }
+  function toggleSec(g, b){
+    var open = !g.classList.contains('open');
+    g.classList.toggle('open', open);
+    b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    var inner = g.querySelector('.side-group-inner');
+    if (inner) { if (open) inner.removeAttribute('inert'); else inner.setAttribute('inert', ''); }
+    secSave(g.getAttribute('data-sec'), open);
+  }
+  // Tour (and anything else) can ask for a link to be shown: opens its section, returns nothing.
+  window.appNavReveal = function(el){
+    var g = el && el.closest && el.closest('.side-group'); if (!g || g.classList.contains('open')) return;
+    var bd = g.querySelector('.side-group-body'); if (bd) { bd.style.transition = 'none'; void bd.offsetHeight; setTimeout(function(){ bd.style.transition = ''; }, 50); }
+    var b = g.querySelector('.side-group-head'); g.classList.add('open'); if (b) b.setAttribute('aria-expanded', 'true');
+    var inner = g.querySelector('.side-group-inner'); if (inner) inner.removeAttribute('inert');
+  };
 
   // Sidebar section: same markup as the static HTML in each page.
   function cnLink(it, cur, mg){
@@ -240,10 +315,15 @@
     var sec = document.getElementById('cn-section');
     if (!sec) return;
     var m = cnModel(), cur = cnCurrent(), curC = cnCurComm();
-    var h = '<div class="side-label" id="cn-label">Creator Hub</div>' + m.main.map(function(it){ return cnLink(it, cur, null); }).join('');
-    h += m.manage.map(function(mg){ return manageRow(mg, cur, curC); }).join('');
-    if (m.more) h += '<a href="/creator" class="side-link cn-all" data-cn="all">' + ICON_SVG('dash', 17) + 'All my communities' + CHEV + '</a>';
-    if (sec.innerHTML !== h) { closeFly(true); sec.innerHTML = h; }
+    var inner = m.main.map(function(it){ return cnLink(it, cur, null); }).join('');
+    inner += m.manage.map(function(mg){ return manageRow(mg, cur, curC); }).join('');
+    if (m.more) inner += '<a href="/creator" class="side-link cn-all" data-cn="all">' + ICON_SVG('dash', 17) + 'All my communities' + CHEV + '</a>';
+    // the Creator Hub section keeps its open/closed state across re-renders; the section holding this page opens
+    var was = sec.querySelector('.side-group');
+    var open = was ? was.classList.contains('open') : secIsOpen('creator', !!cur || moreKey(pageFile()) === 'creator-hub');
+    if (cur && !open) open = true;
+    var h = groupHtml('creator', 'Creator Hub', open, inner, ' role="group"').replace('<div class="side-section side-group', '<div class="side-section side-group cn-sec');
+    if (!was || sec._sig !== h) { closeFly(true); sec.innerHTML = h; sec._sig = h; }
   }
   function refreshCreator(){
     renderSidebar();
@@ -379,30 +459,37 @@
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="appnav-sh-body">';
     var groups = MORE.slice();
-    var cg = creatorGroups();
-    groups.splice.apply(groups, [1, 0].concat(cg));
+    groups.splice(4, 0, creatorGroups());   // Creator Hub sits after Community
+    var sheetItem = function(it, on, href, aria, key){
+      return '<li><a class="appnav-sh-item' + (on ? ' on' : '') + '" href="' + href + '"' + (on ? ' aria-current="page"' : '') + (aria ? ' aria-label="' + esc(aria) + '"' : '') + ' data-more="' + key + '">' +
+        '<span class="appnav-sh-ic"><svg ' + SV + '>' + it[3] + '</svg></span>' +
+        '<span class="appnav-sh-tx"><span class="appnav-sh-l">' + esc(it[1]) + proChip(it[0]) + '</span><span class="appnav-sh-d">' + esc(it[2]) + '</span></span></a></li>';
+    };
+    h += '<ul class="appnav-sh-list appnav-sh-home">' + sheetItem(HOME, HOME[0] === cur, '/' + HOME[0], '', HOME[0]) + '</ul>';
     groups.forEach(function(g){
-      h += '<div class="appnav-sh-group">' + esc(g[0]) + '</div><ul class="appnav-sh-list">';
-      g[1].forEach(function(it){
-        var on = it[6] !== undefined ? it[6] : it[0] === cur;
-        h += '<li><a class="appnav-sh-item' + (on ? ' on' : '') + '" href="' + (it[5] || it[0]) + '"' + (on ? ' aria-current="page"' : '') + (it[7] ? ' aria-label="' + esc(it[7]) + '"' : '') + ' data-more="' + it[0] + '">' +
-          '<span class="appnav-sh-ic"><svg ' + SV + '>' + it[3] + '</svg></span>' +
-          '<span class="appnav-sh-tx"><span class="appnav-sh-l">' + it[1] + '</span><span class="appnav-sh-d">' + it[2] + '</span></span></a></li>';
+      var isCr = g[0] === 'creator', hasCur = isCr ? cur === 'creator-hub' : g[2].some(function(it){ return it[0] === cur; });
+      var open = secIsOpen(g[0], hasCur);
+      h += '<section class="appnav-sec appnav-acc-sec' + (open ? ' open' : '') + '" data-sec="' + g[0] + '">' +
+        '<button type="button" class="appnav-sh-group" data-keep-open aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="nvs-' + g[0] + '"><span>' + esc(g[1]) + '</span>' + HEAD_CHEV + '</button>' +
+        '<ul class="appnav-sh-list" id="nvs-' + g[0] + '">';
+      g[2].forEach(function(it){
+        if (isCr) h += sheetItem([it[0], it[1], it[2], it[3]], it[6], it[5], it[7], it[0]);
+        else h += sheetItem(it, it[0] === cur, '/' + it[0], '', it[0]);
       });
-      if (g[2]) {
+      if (isCr) {
         var cc = cnCurrent(), ccc = cnCurComm();
-        g[2].manage.forEach(function(mg){
-          var rowOn = ccc === mg.id && cc !== 'dash', st = accGet(mg.id), open = st !== null ? st === '1' : rowOn;
-          h += '<li class="cn-mg appnav-acc' + (open ? ' open' : '') + '" data-c="' + esc(mg.id) + '"><button type="button" data-keep-open class="appnav-sh-item cn-mg-row' + (rowOn ? ' on' : '') + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="cn-acc-' + esc(mg.id) + '">' +
+        g[3].manage.forEach(function(mg){
+          var rowOn = ccc === mg.id && cc !== 'dash', st = accGet(mg.id), mopen = st !== null ? st === '1' : rowOn;
+          h += '<li class="cn-mg appnav-acc' + (mopen ? ' open' : '') + '" data-c="' + esc(mg.id) + '"><button type="button" data-keep-open class="appnav-sh-item cn-mg-row' + (rowOn ? ' on' : '') + '" aria-expanded="' + (mopen ? 'true' : 'false') + '" aria-controls="cn-acc-' + esc(mg.id) + '">' +
             '<span class="appnav-sh-ic cn-av">' + initials(mg.name) + '</span><span class="appnav-sh-tx"><span class="appnav-sh-l">' + esc(mg.label) + '</span><span class="appnav-sh-d">Members, courses, plans and more</span></span>' + CHEV + '</button>' +
             '<ul class="appnav-sh-list cn-acc-list" id="cn-acc-' + esc(mg.id) + '">' + mg.items.map(function(it){
               var on = rowOn && it[0] === cc;
-              return '<li><a class="appnav-sh-item' + (on ? ' on' : '') + '" href="' + it[3] + '"' + (on ? ' aria-current="page"' : '') + ' aria-label="' + esc(cnAria(it, mg)) + '" data-more="cn-' + it[0] + '"><span class="appnav-sh-ic"><svg ' + SV + '>' + CI[it[0]] + '</svg></span><span class="appnav-sh-tx"><span class="appnav-sh-l">' + it[1] + '</span></span></a></li>';
+              return '<li><a class="appnav-sh-item' + (on ? ' on' : '') + '" href="' + it[3] + '"' + (on ? ' aria-current="page"' : '') + ' aria-label="' + esc(cnAria(it, mg)) + '" data-more="cn-' + it[0] + '"><span class="appnav-sh-ic"><svg ' + SV + '>' + CI[it[0]] + '</svg></span><span class="appnav-sh-tx"><span class="appnav-sh-l">' + esc(it[1]) + '</span></span></a></li>';
             }).join('') + '</ul></li>';
         });
-        if (g[2].more) h += '<li><a class="appnav-sh-item" href="/creator" data-more="cn-all"><span class="appnav-sh-ic"><svg ' + SV + '>' + CI.dash + '</svg></span><span class="appnav-sh-tx"><span class="appnav-sh-l">All my communities</span></span></a></li>';
+        if (g[3].more) h += '<li><a class="appnav-sh-item" href="/creator" data-more="cn-all"><span class="appnav-sh-ic"><svg ' + SV + '>' + CI.dash + '</svg></span><span class="appnav-sh-tx"><span class="appnav-sh-l">All my communities</span></span></a></li>';
       }
-      h += '</ul>';
+      h += '</ul></section>';
     });
     h += '</div>';
     sheet.innerHTML = h;
@@ -410,6 +497,8 @@
     document.body.appendChild(sheet);
 
     sheet.addEventListener('click', function(e){
+      var sh = e.target.closest('.appnav-sh-group');
+      if (sh) { var sc = sh.parentNode, so = !sc.classList.contains('open'); sc.classList.toggle('open', so); sh.setAttribute('aria-expanded', so ? 'true' : 'false'); secSave(sc.getAttribute('data-sec'), so); return; }
       var b = e.target.closest('.cn-mg-row'); if (b) { toggleAcc(b.parentNode); return; }
       var a = e.target.closest('.cn-acc-list a'); if (a) accSet(a.closest('.cn-mg').getAttribute('data-c'), true);
     });
@@ -418,7 +507,7 @@
     sheet.addEventListener('keydown', function(e){
       if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
       if (e.key !== 'Tab') return;
-      var f = sheet.querySelectorAll('a, button');
+      var f = [].filter.call(sheet.querySelectorAll('a, button'), function(x){ return x.offsetParent !== null; });
       var first = f[0], last = f[f.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
@@ -589,6 +678,8 @@
     if (storedAuthed()) setAuthedClass(true);
     paint();
     wire();
+    buildMenu();
+    wireSidebar();
     renderSidebar();
     wireAuth();
   });

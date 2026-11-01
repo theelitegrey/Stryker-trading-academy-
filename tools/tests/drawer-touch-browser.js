@@ -116,7 +116,7 @@ function ok(c, m) { if (!c) { fails++; console.log('  FAIL ' + m); } else consol
   ok(!(await sheetOpen()), 'More dock toggle closes the sheet in place');
   await pg.tap('#appnav-more'); await pg.waitForTimeout(500);
   ok(await sheetOpen(), 'More dock toggle reopens the sheet');
-  const inPlace = await pg.$$eval('#appnav-sheet button:not(.appnav-sh-x)', (n) => n.length);
+  const inPlace = await pg.$$eval('#appnav-sheet button:not(.appnav-sh-x):not(.appnav-sh-group)', (n) => n.length);
   ok(inPlace === 1, 'all sheet in-place content controls discovered (1 Manage accordion)');
   const sr = await pg.$('#appnav-sheet .cn-mg-row');
   ok(!!sr, 'sheet has the Manage accordion row');
@@ -132,6 +132,50 @@ function ok(c, m) { if (!c) { fails++; console.log('  FAIL ' + m); } else consol
     await Promise.all([pg.waitForNavigation({ timeout: 8000 }).catch(() => null), pg.tap('#appnav-sheet .cn-acc-list a[data-more="cn-plans"]')]);
     ok(/tab=plans/.test(pg.url()), 'tap Plans in sheet: navigated (' + pg.url().replace(BASE, '') + ')');
   }
+  // ---------- phone: menu sections (Owner 2026-11-01 restructure) ----------
+  console.log('PHONE menu sections');
+  await pg.close();
+  pg = await page(ctx, '/dashboard-user');
+  await pg.evaluate(() => localStorage.removeItem('tz_nav_sec')); await pg.reload(); await pg.waitForTimeout(700);
+  await pg.tap('#appnav-more'); await pg.waitForTimeout(500);
+  const secs = await pg.$$eval('#appnav-sheet .appnav-sh-group', (n) => n.map((x) => x.textContent.trim()));
+  ok(JSON.stringify(secs) === JSON.stringify(['Trade', 'Markets', 'Learn', 'Community', 'Creator Hub', 'Account', 'Help & feedback']), 'sheet section headers: ' + secs.join(' / '));
+  const hdr = '#appnav-sheet .appnav-sec[data-sec="markets"] > .appnav-sh-group';
+  const mOpen = () => pg.$eval('#appnav-sheet .appnav-sec[data-sec="markets"]', (n) => n.classList.contains('open'));
+  ok(!(await mOpen()), 'Markets starts collapsed');
+  await (await pg.$(hdr)).scrollIntoViewIfNeeded(); await pg.tap(hdr); await pg.waitForTimeout(250);
+  ok(await sheetOpen(), 'tap section header: sheet stays open');
+  ok(await mOpen(), 'tap section header: section expands');
+  ok(await pg.$$eval('#appnav-sheet .appnav-sec[data-sec="markets"] a', (n) => n.filter((a) => a.offsetParent).length) === 8, 'Markets shows 8 links');
+  ok(await pg.$eval('#appnav-sheet a[data-more="gex"] .pro-chip', (n) => n.textContent) === 'Pro', 'GEX+ has the Pro chip');
+  await pg.tap(hdr); await pg.waitForTimeout(250);
+  ok(await sheetOpen() && !(await mOpen()), 'second tap collapses it, sheet still open');
+  await pg.tap(hdr); await pg.waitForTimeout(250);
+  await Promise.all([pg.waitForNavigation({ timeout: 8000 }).catch(() => null), pg.tap('#appnav-sheet a[data-more="market-brief"]')]);
+  ok(/\/market-brief/.test(pg.url()), 'tap link in sheet: navigated (' + pg.url().replace(BASE, '') + ')');
+  await pg.waitForTimeout(500);
+  ok(!(await sheetOpen().catch(() => false)), 'tap link in sheet: sheet closed (new page)');
+  // the choice is remembered, and the section holding the current page is open on load
+  await pg.tap('#appnav-more'); await pg.waitForTimeout(500);
+  ok(await mOpen(), 'Markets open (holds the current page)');
+  await pg.close();
+  // phone drawer: same sections, accordion stays open on tap, link navigates and closes
+  pg = await page(ctx, '/dashboard-user');
+  await openDrawer(pg);
+  const heads = await pg.$$eval('.sidebar #app-menu .side-group-head', (n) => n.map((x) => x.textContent.trim()));
+  ok(heads.join('|') === 'Trade|Markets|Learn|Community|Account|Help & feedback' || heads.join('|') === 'Trade|Markets|Learn|Community|Creator Hub|Account|Help & feedback', 'drawer headers: ' + heads.join(' / '));
+  const dh = '.sidebar .side-group[data-sec="learn"] > .side-group-head';
+  await (await pg.$(dh)).scrollIntoViewIfNeeded();
+  const l0 = await pg.getAttribute(dh, 'aria-expanded');
+  await pg.tap(dh); await pg.waitForTimeout(300);
+  ok(await drawerOpen(pg), 'tap drawer section header: drawer stays open');
+  ok((await pg.getAttribute(dh, 'aria-expanded')) !== l0, 'drawer section toggled');
+  if ((await pg.getAttribute(dh, 'aria-expanded')) !== 'true') { await pg.tap(dh); await pg.waitForTimeout(300); }
+  await Promise.all([pg.waitForNavigation({ timeout: 8000 }).catch(() => null), pg.tap('.sidebar a[data-menu="models"]')]);
+  ok(/\/models/.test(pg.url()), 'tap drawer link: navigated (' + pg.url().replace(BASE, '') + ')');
+  await pg.waitForTimeout(500);
+  ok(!(await drawerOpen(pg)), 'tap drawer link: drawer closed');
+  await pg.close();
   await ctx.close();
 
   // ---------- desktop ----------
@@ -150,6 +194,20 @@ function ok(c, m) { if (!c) { fails++; console.log('  FAIL ' + m); } else consol
   await pg.hover('.cn-mg-row'); await pg.waitForTimeout(450);
   await Promise.all([pg.waitForNavigation({ timeout: 8000 }).catch(() => null), pg.click('.cn-fly a[data-cn="settings"]')]);
   ok(/tab=settings/.test(pg.url()), 'click Settings in flyout: navigated');
+  console.log('DESKTOP sidebar accordion');
+  const d2 = await page(dctx, '/dashboard-user');
+  await d2.evaluate(() => { localStorage.removeItem('tz_nav_sec'); }); await d2.reload(); await d2.waitForTimeout(700);
+  await d2.evaluate(() => { const sb = document.querySelector('.sidebar'); if (sb.getBoundingClientRect().right <= 0) sb.classList.add('mobile-open'); });
+  await d2.waitForTimeout(400);
+  const dg = '.sidebar .side-group[data-sec="markets"] > .side-group-head';
+  await d2.click(dg); await d2.waitForTimeout(350);
+  ok(await d2.getAttribute(dg, 'aria-expanded') === 'true', 'desktop: click header expands Markets');
+  await d2.reload(); await d2.waitForTimeout(700);
+  ok(await d2.$eval('.sidebar .side-group[data-sec="markets"]', (n) => n.classList.contains('open')), 'desktop: open state remembered after reload');
+  await d2.evaluate(() => { const sb = document.querySelector('.sidebar'); if (sb.getBoundingClientRect().right <= 0) sb.classList.add('mobile-open'); });
+  await d2.waitForTimeout(400);
+  await Promise.all([d2.waitForNavigation({ timeout: 8000 }).catch(() => null), d2.click('.sidebar a[data-menu="scanner"]')]);
+  ok(/\/scanner/.test(d2.url()), 'desktop: click link navigated (' + d2.url().replace(BASE, '') + ')');
   await dctx.close(); await b.close(); srv.close();
   console.log(fails ? ('FAILED: ' + fails) : 'drawer-touch-browser: all passed');
   process.exit(fails ? 1 : 0);

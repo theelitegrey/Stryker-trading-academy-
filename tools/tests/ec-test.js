@@ -569,28 +569,11 @@ async function open(b, url, override, viewport, opts) {
   await p.close();
 
   // ---- 15. navigation --------------------------------------------------
-  const pages = fs.readdirSync(ROOT).filter(f => f.endsWith('.html'));
-  const withNav = pages.filter(f => fs.readFileSync(ROOT + '/' + f, 'utf8').includes('href="market-brief.html" class="side-link'));
-  const bad = [];
-  withNav.forEach(f => {
-    const s = fs.readFileSync(ROOT + '/' + f, 'utf8');
-    const nav = s.slice(s.indexOf('<aside class="sidebar"'), s.indexOf('sidebar-foot'));
-    const order = (nav.match(/side-label">([^<]+)|href="([a-z-]+\.html)"/g) || []);
-    const idx = (needle) => order.findIndex(x => x.includes(needle));
-    const terminal = idx('>Terminal'), community = idx('>Community');
-    ['economic-calendar.html', 'market-brief.html', 'market-map.html'].forEach(h => {
-      const i = idx('"' + h + '"');
-      if (i < 0 || i < terminal || i > community) bad.push(f + ':' + h);
-    });
-    if (idx('"roadmap.html"') < community) bad.push(f + ':roadmap-too-early');
-  });
-  ok('the three terminal modules sit inside Terminal on every page', bad.length === 0, bad.slice(0, 4).join(' '));
-  ok('roadmap stays out of Terminal', !bad.some(x => /roadmap/.test(x)));
-  ok('every nav page links the calendar',
-     withNav.every(f => fs.readFileSync(ROOT + '/' + f, 'utf8').includes('href="economic-calendar.html" class="side-link')),
-     withNav.length + ' pages');
-  ok('the calendar page marks its own link active',
-     /href="economic-calendar\.html" class="side-link active"/.test(fs.readFileSync(ROOT + '/economic-calendar.html', 'utf8')));
+  // The menu is one model in assets/app-nav.js (Owner 2026-11-01): the three modules sit in the Markets section.
+  const nav = fs.readFileSync(ROOT + '/assets/app-nav.js', 'utf8');
+  const mk = nav.slice(nav.indexOf("['markets', 'Markets'"), nav.indexOf("['learn', 'Learn'"));
+  ok('the three modules sit inside Markets', ['economic-calendar', 'market-brief', 'market-map'].every(h => mk.includes("['" + h + "'")));
+  ok('roadmap stays out of Markets', !mk.includes("['roadmap'"));
   ok('roadmap.html still exists as a module', fs.existsSync(ROOT + '/roadmap.html'));
   ok('the dashboard no longer loads the roadmap scripts',
      !fs.readFileSync(ROOT + '/dashboard-user.html', 'utf8').includes('roadmap.js'));

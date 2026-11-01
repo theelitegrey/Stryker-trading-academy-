@@ -40,9 +40,7 @@ function toDual(html, opts) {
     .replace('<div class="sidebar-backdrop"', '<div class="sidebar-backdrop dual-app"')
     .replace('<aside class="sidebar">', '<aside class="sidebar dual-app">');
   if (opts.active) {
-    const re = new RegExp('<a href="' + opts.active.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '" class="side-link">');
-    if (!re.test(shell)) throw new Error('active link not in menu: ' + opts.active);
-    shell = shell.replace(re, '<a href="' + opts.active + '" class="side-link active" aria-current="page">');
+    // the active item is marked at run time by assets/app-nav.js (buildMenu); opts.active is kept for old callers
   }
   const mm = html.match(/<main\b([^>]*)>/);
   if (!mm) throw new Error('<main> not found');

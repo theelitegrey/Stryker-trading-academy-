@@ -49,61 +49,61 @@
     },
     {
       id: 'curriculum',
-      target: '.sidebar a[href="courses.html"]',
+      target: '.sidebar [data-menu="courses"]',
       title: 'Curriculum',
       body: 'Forty-two chapters in a deliberate order, with your progress tracked. Everything else on the site assumes the ideas taught here, so it is worth starting at chapter one even if the early titles look familiar.'
     },
     {
       id: 'models',
-      target: '.sidebar a[href="models.html"]',
+      target: '.sidebar [data-menu="models"]',
       title: 'Trading models',
       body: 'Six complete setups, each written as an explicit sequence of rules rather than a vibe. These are what you turn into a playbook and then measure.'
     },
     {
       id: 'journal',
-      target: '.sidebar a[href="trade-journal.html"]',
+      target: '.sidebar [data-menu="trade-journal"]',
       title: 'JournalX',
       body: 'Log every trade and the analytics build themselves: expectancy, drawdown, results by session and by day. It also holds your Playbook and your prop firm accounts.'
     },
     {
       id: 'playbook',
-      target: '.sidebar a[href="trade-journal.html"]',
+      target: '.sidebar [data-menu="trade-journal"]',
       title: 'The Playbook, inside JournalX',
       body: 'The part worth finding early. Adopt a taught model, tick its rules as you log each trade, and it tells you what following the plan is worth to you per trade — and which single rule costs you most when you skip it.'
     },
     {
       id: 'backtests',
-      target: '.sidebar a[href="backtests.html"]',
+      target: '.sidebar [data-menu="backtests"]',
       title: 'Replay One',
       body: 'Replay past sessions bar by bar and trade them as if live. Run a session against a playbook and an evening here produces the same graded evidence a month of live trading would.'
     },
     {
       id: 'charts',
-      target: '.sidebar a[href="charts.html"]',
+      target: '.sidebar [data-menu="charts"]',
       title: 'ZoroCharts',
       body: 'Multi-provider charting with every tool and indicator, free on every plan. Pro adds order flow tools and GEX on the charts. CME futures are 10 minutes delayed unless you connect Rithmic or add live futures data.'
     },
     {
       id: 'indicators',
-      target: '.sidebar a[href="indicators.html"]',
+      target: '.sidebar [data-menu="indicators"]',
       title: 'Indicators',
       body: 'Request access to the private TradingView indicators included with your plan. Add your TradingView username here and access is granted to your account.'
     },
     {
       id: 'floor',
-      target: '.sidebar a[href="trading-floor.html"]',
+      target: '.sidebar [data-menu="trading-floor"]',
       title: 'Trading floor',
       body: 'The members-only feed. Post setups, mark up charts, argue about them. Quieter and more useful than a public group.'
     },
     {
       id: 'monitor',
-      target: '.sidebar a[href="global-monitor.html"]',
+      target: '.sidebar [data-menu="global-monitor"]',
       title: 'Global monitor',
       body: 'Sessions, macro events and market movers on one screen, refreshed through the day, so you know what is about to move before it does.'
     },
     {
       id: 'smart-money',
-      target: '.sidebar a[href="smart-money.html"]',
+      target: '.sidebar [data-menu="smart-money"]',
       title: 'Smart money desk',
       body: 'Congressional trades and insider filings, refreshed daily from official sources. Slow signal, but genuinely public information most people never read.'
     },
@@ -206,6 +206,7 @@
     if (!root || !hole || !card) { finish('error'); return; }
 
     if (step.target) ensureSidebarOpen();
+    if (step.target && window.appNavReveal) window.appNavReveal(document.querySelector(step.target));
 
     const rect = step.target ? visibleRect(step.target) : null;
 

@@ -66,6 +66,8 @@
 }
 @media (max-width:900px){
   .nav-links.nfx-has{ max-height:calc(100vh - 80px); overflow-y:auto; overscroll-behavior:contain; }
+  .nav-links.nfx-has{ align-items:stretch !important; }
+  .nav-links.nfx-has > a{ display:flex; align-items:center; min-height:44px; }
   .nfx-row{ display:flex; justify-content:space-between; width:100%; }
   .nfx-chev{ display:inline-flex; align-items:center; justify-content:center; width:40px; height:36px; margin:-8px -8px -8px 0;
     background:none; border:1px solid var(--line); border-radius:8px; color:var(--ink-1); }

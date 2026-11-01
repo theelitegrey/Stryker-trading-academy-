@@ -93,7 +93,7 @@
   function annotateSidebarLocks(plan, pageAccess){
     if (!pageAccess || typeof getPageAccessLevel !== 'function') return;
     document.querySelectorAll('.sidebar a.side-link').forEach((a) => {
-      const file = (a.getAttribute('href') || '').split(/[?#]/)[0];
+      const file = (a.getAttribute('href') || '').split(/[?#]/)[0].replace(/^\//, '').replace(/(\.html)?$/, '.html');
       const key = PAGE_KEY_BY_FILE[file];
       if (!key) return;
       const level = getPageAccessLevel(plan, pageAccess[key]);

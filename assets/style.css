@@ -10829,3 +10829,35 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 }
 @media (min-width:1100px){ .lyl-panel{ max-width:1040px; } .lyl-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); } }
 @media (prefers-reduced-motion:reduce){ .lyl-back, .lyl-panel{ transition:none; } }
+
+/* ---- App menu sections (Owner order 2026-11-01, menu restructure) -------------------------------
+   One model in assets/app-nav.js feeds the desktop sidebar (accordion, .side-group from the admin menu
+   styles above) and the phone More sheet (.appnav-msec). Open state is remembered (localStorage tz_nav_sec). */
+.app-menu{ display:block; }
+.app-menu .side-home{ margin-bottom:2px; }
+.app-menu .side-group{ margin-bottom:2px; }
+.app-menu .side-group-head{ min-height:40px; padding:12px 12px 8px; }
+.app-menu .side-group-head:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; border-radius:8px; color:var(--ink-1); }
+.app-menu .side-group-inner[inert]{ visibility:hidden; }
+.app-menu .side-link{ min-height:40px; }
+.side-link .side-t{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pro-chip{
+  flex:none; display:inline-flex; align-items:center; height:16px; padding:0 6px; margin-left:6px; border-radius:999px;
+  font-family:var(--font-mono); font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; line-height:1;
+  color:var(--gold-bright); background:rgba(3,201,136,.12); border:1px solid rgba(3,201,136,.35);
+}
+.side-link .pro-chip{ margin-left:auto; }
+.appnav-sh-l .pro-chip{ vertical-align:1px; }
+:root[data-theme="light"] .pro-chip{ color:#067a55; background:rgba(7,153,106,.1); border-color:rgba(7,153,106,.4); }
+@media (prefers-reduced-motion:reduce){ .app-menu .side-group-body, .side-group-chev{ transition:none; } }
+/* phone More sheet: section headers are buttons that fold their list */
+.appnav-sh-home{ padding-top:4px; }
+.appnav-sh-group{
+  display:flex; align-items:center; justify-content:space-between; width:100%; min-height:44px; border:0; background:none; cursor:pointer;
+  font-family:inherit; text-align:left; -webkit-tap-highlight-color:transparent;
+}
+.appnav-sh-group:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; border-radius:10px; }
+.appnav-sh-group .side-group-chev{ transition:transform .2s ease; opacity:.8; }
+.appnav-msec.open > .appnav-sh-group .side-group-chev{ transform:rotate(180deg); }
+.appnav-msec > .appnav-sh-list{ display:none; }
+.appnav-msec.open > .appnav-sh-list{ display:block; }

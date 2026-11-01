@@ -39,7 +39,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) fai
       console.log(tag, JSON.stringify(labels));
       const exp = own ? ['Explore communities', 'My communities', 'Creator dashboard', 'Members', 'Courses', 'Indicators', 'Feed & events', 'Plans', 'Discord', 'Settings'] : ['Explore communities', 'My communities', 'Start a community', 'How it works'];
       ok(JSON.stringify(labels.filter((x) => x !== 'How it works' || !own)) === JSON.stringify(exp.filter((x) => x !== 'How it works' || !own)), tag + ' sidebar items');
-      const order = await page.$$eval('.sidebar .side-label', (a) => a.map((x) => x.textContent.trim()));
+      const order = await page.$$eval('.sidebar .side-group-head', (a) => a.map((x) => x.textContent.trim()));
       ok(order.join('|').includes('Community|Creator Hub|Account'), tag + ' section order ' + order.join('>'));
       ok(!(await page.$$eval('.sidebar .side-link', (a) => a.some((x) => /^(Communities|Creator Hub)$/.test(x.textContent.trim())))), tag + ' old items removed');
       // click every item

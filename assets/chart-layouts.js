@@ -4,7 +4,7 @@
 // (bindPopover, toast, ui = window.STRYKER_CHART_UI, grid, Pine); assets/chart-pine-guard.js
 // (window.StrykerPineGuard); style.css (.stkl-*).
 //
-// Owner order 2026-10-06 ("Build all"): TradingView's layout menu.
+// Owner order 2026-10-06 ("Build all"): a pro-charting layout menu.
 //   Save layout (Ctrl/Cmd+S) · Autosave (default ON, 2 s after any change) · Make a copy… ·
 //   Rename… · Create new layout… · Open layout… (search, symbol + interval, last modified,
 //   delete) · Recently used (last 5) · Share layout + Copy link · Download chart data… (CSV)
@@ -207,7 +207,7 @@ export function mountLayouts(ws, o){
       pop.appendChild(item('Leave shared layout', { run: leaveShared }));
       pop.appendChild(el('hr', { class: 'stkl-hr' }));
     } else {
-      pop.appendChild(item('Layouts library…', { run: () => lib && lib.open(), disabled: !signed }));
+      pop.appendChild(item('Chart Library…', { run: () => lib && lib.open(), disabled: !signed }));
       pop.appendChild(el('hr', { class: 'stkl-hr' }));
       pop.appendChild(item('Save layout', { kbd: isMac ? '⌘S' : 'Ctrl+S', run: () => saveNow(true), disabled: !signed }));
       pop.appendChild(sw('Autosave', auto(), !signed, (v) => { lsSet(K.auto(), v); if (v && dirty) schedule(); }, 'Save the open layout 2 seconds after any change'));
@@ -344,15 +344,19 @@ export function mountLayouts(ws, o){
 
   // A layout from the library (another member's, or a community's): the Pine guard runs first, then it loads
   // into the chart as an UNSAVED layout. Save layout keeps it.
+  // A SETUP (doc.setup) merges onto the open chart (ui.applySaved keeps symbol, interval, drawings) and
+  // stays in the current layout; a whole chart replaces it as an unsaved layout.
   async function applyForeign(doc, name){
     const s = sanitizeShared(doc);
     if (!s) { toast('This layout could not be read.', 'error'); return false; }
+    const setup = !!s.doc.setup;
     if (viewing) endViewing();
-    if (cur && dirty && auto()) await saveNow(false);
+    if (!setup && cur && dirty && auto()) await saveNow(false);
     apply(s.doc);
-    cur = null; lsSet(K.cur(), null); dirty = false; paintBtn();
+    if (setup) { if (cur) { dirty = true; schedule(); } paintBtn(); }
+    else { cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); }
     if (s.dropped) toast(s.dropped + ' Pine script(s) in this layout failed our safety check and were not loaded.', 'error');
-    else toast('Applied \"' + name + '\". Save layout to keep it.');
+    else toast(setup ? 'Applied setup \"' + name + '\" to your chart.' : 'Applied \"' + name + '\". Save layout to keep it.');
     return true;
   }
 
@@ -611,7 +615,7 @@ export function mountLayouts(ws, o){
   // ---- library sheet (assets/chart-layouts-lib.js), loaded on first use ----
   let lib = null, mounted = null;
   const host = { user, db, col, saveAsNew, sharedDoc, writeShared, ts, tsMs, toast, list, pack, askName, modal, el, openById, remove, renameId, duplicate, applyForeign, linkOf,
-    saveNow, createNew, sanitizeShared, countOf, symLabel, tfLabel, ago, copyLink: async (id) => { try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); } catch (e) { window.prompt('Copy this link', linkOf(id)); } },
+    saveNow, createNew, sanitizeShared, countOf, setupOf: (st) => ui.setupOf(st), symLabel, tfLabel, ago, copyLink: async (id) => { try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); } catch (e) { window.prompt('Copy this link', linkOf(id)); } },
     get cur(){ return cur; }, get dirty(){ return dirty; }, refresh(id, patch){ cache = null; if (cur && cur.id === id && patch) { Object.assign(cur, patch); setCur(Object.assign({}, cur)); } } };
   const libApi = { open: (tab) => import('./chart-layouts-lib.js?v=779').then((m) => { if (!mounted) mounted = m.mountLib(host); return mounted.open(tab); }).catch((e) => { console.warn('TradeZoro: layouts library', e); toast('Could not open the layouts library.', 'error'); }) };
   lib = libApi;

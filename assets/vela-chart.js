@@ -1065,10 +1065,50 @@ function lateLists(provider){
     SYNCS.forEach(([k]) => { if (s.sync[k]) { try { ws.sync.set(k, true); } catch (e) {} } });
     afterStructural();
   }
+  // A SETUP (Owner 2026-11-01) = indicators, their settings/colours and panes only. No symbol, interval,
+  // drawings or date range, so it lands on whatever the member has open. Templates and library setups share it.
+  const SETUP_DROP = ['symbol', 'provider', 'timeframe', 'drawings'];
+  function setupOf(st){
+    const charts = ((st && st.charts) || []).map((c) => {
+      const o = Object.assign({}, c);
+      SETUP_DROP.forEach((k) => delete o[k]);
+      if (o.ext) { o.ext = Object.assign({}, o.ext); delete o.ext['stryker.grid']; }
+      return o;
+    });
+    // drawings sync is a drawing setting, not a setup one (and the rules refuse "drawings" in a setup)
+    const sync = st.sync ? Object.assign({}, st.sync) : undefined; if (sync) delete sync.drawings;
+    return { version: 1, setup: true, layout: st.layout, sync, trackSizes: st.trackSizes, charts };
+  }
+  // Setup onto the current workspace: chart i keeps its own symbol, interval and drawings (extra charts take the active one's market).
+  function mergeSetup(curSt, s){
+    curSt = curSt || { version: 1, charts: [] };
+    const now = (Array.isArray(curSt.charts) ? curSt.charts : []).filter(Boolean);
+    const act = now.find((c) => c.id === curSt.activeCellId) || now[0] || {};
+    const used = new Set();
+    const charts = (Array.isArray(s.charts) ? s.charts : []).filter((c) => c && typeof c === 'object').map((c, i) => {
+      const keep = now[i] || { symbol: act.symbol, provider: act.provider, timeframe: act.timeframe };
+      const o = Object.assign({}, keep, c);
+      SETUP_DROP.forEach((k) => { if (k in keep) o[k] = keep[k]; else delete o[k]; });
+      if (keep.ext && keep.ext['stryker.grid']) o.ext = Object.assign({}, o.ext, { 'stryker.grid': keep.ext['stryker.grid'] });
+      let id = now[i] ? now[i].id : c.id;
+      if (!id || used.has(id)) id = 'S' + i;
+      used.add(id); o.id = id;
+      return o;
+    });
+    if (!charts.length) return curSt;  // nothing to apply: never swap the member's charts for an empty list
+    // charts beyond the setup's count stay (Vela pools them), so their drawings and symbols survive a smaller grid
+    now.slice(charts.length).forEach((c) => { if (c && c.id && !used.has(c.id)) { used.add(c.id); charts.push(c); } });
+    const out = Object.assign({}, curSt, { layout: s.layout || curSt.layout, charts });
+    if (s.sync) { out.sync = Object.assign({}, s.sync); delete out.sync.drawings; if (curSt.sync && curSt.sync.drawings) out.sync.drawings = curSt.sync.drawings; }
+    if (s.trackSizes) out.trackSizes = s.trackSizes; else delete out.trackSizes;
+    if (!charts.some((c) => c.id === out.activeCellId)) delete out.activeCellId;
+    return out;
+  }
   function applySaved(t){
     let doc = t.state;
     if (typeof doc === 'string') { try { doc = JSON.parse(doc); } catch (e) { doc = null; } }
     if (!doc) { toast('That template could not be read.', 'error'); return; }
+    if (doc.setup) doc = mergeSetup(ws.getState(), doc);
     try { ws.maximizeCell(null); } catch (e) {}
     try { Pine.clearAllPine(); } catch (e) {}
     ws.applyState(doc);
@@ -1076,7 +1116,7 @@ function lateLists(provider){
   }
   function applyAny(t){ if (t.starter) applyStarter(t); else applySaved(t); }
 
-  window.STRYKER_CHART_UI = { applyStarter, applySaved, STARTERS, setLayout, refreshLayoutUi, grid };
+  window.STRYKER_CHART_UI = { applyStarter, applySaved, setupOf, mergeSetup, STARTERS, setLayout, refreshLayoutUi, grid };
 
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
@@ -1101,19 +1141,22 @@ function lateLists(provider){
 
     const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: String(T.NAME_MAX), placeholder: 'Template name', 'aria-label': 'Template name' });
     const saveBtn = el('button', { type: 'button', class: 'stkc-sbtn', text: 'Save' });
-    const doSave = async () => {
+    const setupBtn = el('button', { type: 'button', class: 'stkc-sbtn stkc-sbtn-2', text: 'Save as setup', title: 'Indicators, settings and panes only. Applies to any symbol and keeps your drawings.' });
+    const doSave = async (setup) => {
       const name = nameIn.value.trim();
       if (!name) { nameIn.focus(); return; }
       if (saving) return;
-      saving = true; saveBtn.disabled = true; lastErr = '';
-      try { await T.save(name, ws.getState()); toast('Template saved'); }
+      saving = true; saveBtn.disabled = setupBtn.disabled = true; lastErr = '';
+      try { await T.save(name, setup ? setupOf(ws.getState()) : ws.getState()); toast(setup ? 'Setup saved' : 'Template saved'); }
       catch (e) { lastErr = (e && e.userMessage) || 'Could not save the template.'; console.warn('TradeZoro: template save', e); }
       saving = false; renderTemplates();
     };
-    saveBtn.addEventListener('click', doSave);
-    nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(); });
+    saveBtn.addEventListener('click', () => doSave(false));
+    setupBtn.addEventListener('click', () => doSave(true));
+    nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(false); });
     tplPop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Save current as…' }));
     tplPop.appendChild(el('div', { class: 'stkc-saverow' }, [nameIn, saveBtn]));
+    tplPop.appendChild(el('div', { class: 'stkc-saverow stkc-saverow-2' }, [setupBtn]));
     const msg = lastErr || note;
     if (msg) tplPop.appendChild(el('p', { class: 'stkc-err', role: 'status', text: msg }));
 

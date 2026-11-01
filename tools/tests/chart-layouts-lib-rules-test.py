@@ -19,7 +19,7 @@ def case(exp,name,uid,method,path,new=None,old=None,mocks=None,admin=False):
     cases.append((name,c))
 PL=f"/publicLayouts/{ID}"
 THUMB="data:image/webp;base64,AAAA"
-CARD={"ownerUid":"alice","authorName":"Alice","name":"Order flow","desc":"d","tags":["gex"],"visibility":"public","communityId":"","symbol":"futures:NQ1!","interval":"15","thumb":THUMB,"panes":2,"indicators":3,"likeCount":0,"useCount":0,"reportCount":0,"createdAt":TS,"updatedAt":TS,"hidden":False}
+CARD={"kind":"chart","ownerUid":"alice","authorName":"Alice","name":"Order flow","desc":"d","tags":["gex"],"visibility":"public","communityId":"","symbol":"futures:NQ1!","interval":"15","thumb":THUMB,"panes":2,"indicators":3,"likeCount":0,"useCount":0,"reportCount":0,"createdAt":TS,"updatedAt":TS,"hidden":False}
 prof=[m("exists","/profiles/alice",True),m("get","/profiles/alice",doc({"displayName":"Alice"}))]
 own=[m("exists",f"/students/alice/chartLayouts/{ID}",True)]
 noown=[m("exists",f"/students/alice/chartLayouts/{ID}",False)]
@@ -42,6 +42,18 @@ case("DENY","thumb over 60000","alice","create",PL,new=dict(CARD,thumb="data:ima
 case("DENY","visibility link not in publicLayouts","alice","create",PL,new=dict(CARD,visibility="link"),mocks=prof+own)
 case("DENY","extra key","alice","create",PL,new=dict(CARD,email="a@b.c"),mocks=prof+own)
 case("DENY","signed out create",None,"create",PL,new=CARD,mocks=prof+own)
+# kind (setup vs whole chart)
+SETUP=dict(CARD,kind="setup",symbol="",interval="")
+case("ALLOW","A publish a setup (no symbol/interval)","alice","create",PL,new=SETUP,mocks=prof+own)
+case("DENY","kind missing on create","alice","create",PL,new={k:v for k,v in CARD.items() if k!="kind"},mocks=prof+own)
+case("DENY","kind junk","alice","create",PL,new=dict(CARD,kind="idea"),mocks=prof+own)
+case("DENY","setup with a symbol","alice","create",PL,new=dict(SETUP,symbol="futures:NQ1!"),mocks=prof+own)
+case("DENY","setup with an interval","alice","create",PL,new=dict(SETUP,interval="15"),mocks=prof+own)
+case("ALLOW","owner switches chart -> setup","alice","update",PL,new=dict(SETUP,updatedAt=TS),old=CARD,mocks=prof)
+case("ALLOW","owner switches setup -> chart","alice","update",PL,new=dict(CARD,updatedAt=TS),old=SETUP,mocks=prof)
+case("DENY","B changes A's kind","bob","update",PL,new=dict(SETUP,updatedAt=TS),old=CARD,mocks=prof)
+case("DENY","owner update drops kind","alice","update",PL,new={k:v for k,v in CARD.items() if k!="kind"},old=CARD,mocks=prof)
+case("ALLOW","B likes an old card without kind","bob","update",PL,new=dict({k:v for k,v in CARD.items() if k!="kind"},likeCount=1),old={k:v for k,v in CARD.items() if k!="kind"},mocks=[m("exists",f"{PL}/likes/bob",False),m("existsAfter",f"{PL}/likes/bob",True)])
 # community
 CM=dict(CARD,visibility="community",communityId="zoro")
 cmo=[m("get","/communities/zoro",doc({"ownerUid":"alice","status":"active"}))]
@@ -69,9 +81,16 @@ case("DENY","NON-member reads community state","bob","get",SP,old=ST,mocks=ccm+n
 case("DENY","banned member reads community state","bob","get",SP,old=ST,mocks=ccm+mem("bob","banned"))
 case("ALLOW","community owner reads state","alice","get",SP,old=ST,mocks=ccm+[m("exists","/communities/zoro/members/alice",False),m("get","/communities/zoro",doc({"ownerUid":"alice","status":"active"}))])
 case("DENY","list state docs","bob","list",f"{PL}/data/x",old=ST,mocks=cpub)
-case("ALLOW","A write state with the card","alice","create",SP,new=ST,mocks=[m("exists",PL,False),m("getAfter",PL,doc(CARD))])
-case("DENY","B write state of A's card","bob","update",SP,new=ST,old=ST,mocks=[m("exists",PL,True),m("get",PL,doc(CARD))])
-case("DENY","state 200001","alice","create",SP,new=dict(ST,state="x"*200001),mocks=[m("exists",PL,False),m("getAfter",PL,doc(CARD))])
+case("ALLOW","A write state with the card","alice","create",SP,new=ST,mocks=[m("getAfter",PL,doc(CARD))])
+case("DENY","B write state of A's card","bob","update",SP,new=ST,old=ST,mocks=[m("getAfter",PL,doc(CARD))])
+case("DENY","state 200001","alice","create",SP,new=dict(ST,state="x"*200001),mocks=[m("getAfter",PL,doc(CARD))])
+DRW={"state":'{"version":1,"charts":[{"id":"A","drawings":{"version":1,"drawings":[]}}]}',"updatedAt":TS}
+case("ALLOW","setup state without drawings","alice","create",SP,new={"state":'{"version":1,"setup":true,"charts":[{"id":"A","indicators":{}}]}',"updatedAt":TS},mocks=[m("getAfter",PL,doc(SETUP))])
+case("DENY","setup state WITH drawings","alice","create",SP,new=DRW,mocks=[m("getAfter",PL,doc(SETUP))])
+case("DENY","setup state WITH drawings after a newline","alice","create",SP,new={"state":'{\n"version":1,"charts":[{"id":"A","drawings":{}}]}',"updatedAt":TS},mocks=[m("getAfter",PL,doc(SETUP))])
+case("ALLOW","whole-chart state with drawings","alice","create",SP,new=DRW,mocks=[m("getAfter",PL,doc(CARD))])
+case("ALLOW","old card (no kind) state update with drawings","alice","update",SP,new=DRW,old=ST,mocks=[m("getAfter",PL,doc({k:v for k,v in CARD.items() if k!="kind"}))])
+case("ALLOW","setup state: a Pine source that mentions drawings is not a drawing","alice","create",SP,new={"state":json.dumps({"setup":True,"charts":[{"ext":{"stryker.pine":[{"source":'// "drawings": none'}]}}]}),"updatedAt":TS},mocks=[m("getAfter",PL,doc(SETUP))])
 # --- edit / delete
 case("ALLOW","A edit own card","alice","update",PL,new=dict(CARD,name="New",updatedAt=TS),old=CARD,mocks=prof)
 case("DENY","B edit A's card","bob","update",PL,new=dict(CARD,name="New"),old=CARD,mocks=prof)

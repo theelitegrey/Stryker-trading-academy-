@@ -1,4 +1,4 @@
-// Layouts LIBRARY browser test (assets/chart-layouts-lib.js). No network: recorded NQ bars + an in-memory
+// Chart Library browser test (assets/chart-layouts-lib.js). No network: recorded NQ bars + an in-memory
 // Firestore shared by every browser context (the "server"), with a small copy of the access rules for the
 // cases under test (private layouts, link-only, community members). The real rules are covered by
 // tools/tests/chart-layouts-lib-rules-test.py.
@@ -157,79 +157,130 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     t('save -> wipe -> open: indicators + inputs, drawings, panes identical', before === after, before === after ? undefined : { before: before.slice(0, 200), after: after.slice(0, 200) });
 
     await lib(a, 'browse'); await sleep(900);
-    t('Browse empty: friendly state + "Publish your first layout"', (await txt(a, '.lyl-empty')).join('|').includes('No layouts here yet') && (await txt(a, '.lyl-empty button')).includes('Publish your first layout'));
+    t('Discover empty: friendly state + "Share your first layout"', (await txt(a, '.lyl-empty')).join('|').includes('The library is empty') && (await txt(a, '.lyl-empty button')).includes('Share your first layout'));
     await shot(a, 'browse-empty-1440-dark');
     await closeLib(a);
 
     await lib(a, 'mine'); await sleep(900);
-    const mc = (await txt(a, '.lyl-mc')).join('|');
-    t('My Layouts: ACTIVE badge + "2 panes · N indicators"', mc.includes('ACTIVE') && /2 panes · [3-9] indicators/.test(mc), mc);
+    const mc = (await txt(a, '.lyl-mr')).join('|');
+    t('Mine: Current tag, visibility pill, edited + "2 panes · N indicators"', mc.includes('Current') && /Private/.test(mc) && /edited/.test(mc) && /2 panes · [3-9] indicators/.test(mc), mc);
     await shot(a, 'mine-1440-dark');
-    await a.click('.lyl-pubbtn'); await a.waitForSelector('.lyl-pub');
+    await a.click('.lyl-hd .lyl-ib[aria-label="More actions"]'); await a.click('.lyl-menu button:has-text("Share")'); await a.waitForSelector('.lyl-pub');
     await a.fill('.lyl-pub input[aria-label="Name"]', 'Order flow pair');
     await a.fill('.lyl-pub textarea', 'EMA, RSI and MACD with two panes');
     await a.click('.lyl-pub .lyl-chips .lyl-chip:nth-child(1)'); await a.click('.lyl-pub .lyl-chips .lyl-chip:nth-child(4)');
     await a.fill('.lyl-pub input[aria-label="Custom tag"]', 'My Tag!'); await a.keyboard.press('Enter');
-    await a.click('.lyl-vopt:nth-child(3)');
-    await shot(a, 'publish-1440-dark');
+    t('share dialog: "What to share" defaults to Setup', (await a.$eval('.lyl-kind .lyl-vopt.on', (e) => e.dataset.kind)) === 'setup');
+    await a.click('.lyl-kind .lyl-vopt[data-kind="chart"]');
+    await a.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(3)');
+    await shot(a, 'share-1440-dark');
     await a.fill('.lyl-pub input[aria-label="Name"]', 'Fuck this');
     await a.click('.lyl-pub .lyl-pri'); await sleep(300);
     t('publish: blocked word refused, nothing written', (await a.$eval('.lyl-pub .stkc-err', (e) => !e.hidden && /offensive/.test(e.textContent))) && ![...DB.keys()].some((k) => k.startsWith('publicLayouts/')));
     await a.fill('.lyl-pub input[aria-label="Name"]', 'Order flow pair');
     await a.click('.lyl-pub .lyl-pri'); await sleep(1800);
     const pl = DB.get('publicLayouts/' + lid);
-    t('publish public: card (author = profile name, no email, counts 0) + state doc', !!pl && pl.visibility === 'public' && pl.authorName === 'Alice T' && !JSON.stringify(pl).includes('@') && pl.likeCount === 0 && pl.useCount === 0 && pl.tags.includes('my tag') && DB.has('publicLayouts/' + lid + '/data/s'), pl && { v: pl.visibility, a: pl.authorName, tags: pl.tags });
+    t('publish public: card (author = profile name, no email, counts 0) + state doc', !!pl && pl.kind === 'chart' && pl.visibility === 'public' && pl.authorName === 'Alice T' && !JSON.stringify(pl).includes('@') && pl.likeCount === 0 && pl.useCount === 0 && pl.tags.includes('my tag') && DB.has('publicLayouts/' + lid + '/data/s'), pl && { v: pl.visibility, a: pl.authorName, tags: pl.tags });
+    // ---- a SETUP: no drawings, symbol or interval leave the browser
+    await a.evaluate(async () => {
+      const ch = window.STRYKER_VELA.chart;
+      const t0 = Date.now() - 3600e3;
+      ch.drawings.add('hline', { paneId: 'price', anchors: [{ time: t0, price: 30000 }] });
+      await new Promise((r) => setTimeout(r, 600));
+    });
+    const hadDraw = await a.evaluate(() => JSON.stringify(window.STRYKER_VELA.getState()).includes('"hline"'));
+    await a.evaluate(() => window.STRYKER_LAYOUTS.saveAsNew('Alice setup only')); await sleep(1500);
+    const sid = [...DB.entries()].find(([k, v]) => k.startsWith('students/alice/chartLayouts/') && v.name === 'Alice setup only')[0].split('/').pop();
+    await a.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), sid); await a.waitForSelector('.lyl-pub');
+    await a.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(3)'); await a.click('.lyl-pub .lyl-pri'); await sleep(1800);
+    const sc = DB.get('publicLayouts/' + sid), ss = DB.get('publicLayouts/' + sid + '/data/s');
+    const sst = ss && JSON.parse(ss.state);
+    t('publish setup: kind=setup, card symbol/interval empty, state has no drawings/symbol/timeframe', hadDraw && !!sc && sc.kind === 'setup' && sc.symbol === '' && sc.interval === '' && sst.setup === true && !/"drawings"\s*:/.test(ss.state) && !/hline/.test(ss.state) && sst.charts.every((c) => !('symbol' in c) && !('timeframe' in c)) && sst.charts.some((c) => c.indicators && JSON.stringify(c.indicators).includes('rsi')), sc && { kind: sc.kind, sym: sc.symbol, iv: sc.interval, st: ss && ss.state.slice(0, 160) });
     await a.close();
 
     // ---- bob
     const B = await session(b, 'bob', 1440, 900, false);
     const bp = await open(B, BASE); pages.push(bp);
+    // Use a setup: bob keeps his symbol, interval and drawing; gets alice's indicators + panes
+    await bp.evaluate(async () => {
+      const ch = window.STRYKER_VELA.chart;
+      ch.drawings.add('trendline', { paneId: 'price', anchors: [{ time: Date.now() - 7200e3, price: 29900 }, { time: Date.now() - 3600e3, price: 29950 }] });
+      window.STRYKER_VELA.active.setSymbol('futures:ES1!'); window.STRYKER_VELA.active.setTimeframe('5');
+      await new Promise((r) => setTimeout(r, 2000));
+    });
+    const bob0 = await bp.evaluate(() => { const c = window.STRYKER_VELA.getState().charts[0]; return { sym: c.symbol, tf: c.timeframe, d: JSON.stringify(c.drawings || '') }; });
     await lib(bp, 'browse'); await sleep(1200);
-    const items = (await txt(bp, '.lyl-item')).join('|');
-    t('Browse: public layout listed with NEW, author, 0 counts', items.includes('Order flow pair') && items.includes('NEW') && items.includes('by Alice T'), items);
-    t('Browse: "N indicators" shown + trending carousel', /\d+ indicators/.test(items) && !!(await bp.$('.lyl-car')));
+    const kinds = await txt(bp, '.lyl-gc .lyl-kd');
+    t('Discover: cards show "Setup" / "Chart idea" labels', kinds.includes('Setup') && kinds.includes('Chart idea'), kinds);
+    await bp.click('.lyl-topics .lyl-chip:has-text("Setups")'); await sleep(200);
+    const onlySetups = await txt(bp, '.lyl-gc h3');
+    t('kind chip "Setups" filters', onlySetups.length === 1 && onlySetups[0] === 'Alice setup only', onlySetups);
+    await bp.click('.lyl-topics .lyl-chip:has-text("Chart ideas")'); await sleep(200);
+    t('kind chip "Chart ideas" filters', (await txt(bp, '.lyl-gc h3')).join('|') === 'Order flow pair');
+    await bp.click('.lyl-topics .lyl-chip:has-text("All")'); await sleep(200);
+    await bp.click('.lyl-gc[data-id="' + sid + '"] .lyl-use'); await sleep(2500);
+    const bob1 = await bp.evaluate(() => { const st = window.STRYKER_VELA.getState(); const c = st.charts[0]; return { sym: c.symbol, tf: c.timeframe, d: JSON.stringify(c.drawings || ''), n: st.charts.length, ind: JSON.stringify(st.charts.map((x) => x.indicators)) }; });
+    t('Use setup: keeps the current symbol, interval and drawings; adds the indicators + panes', bob1.sym === bob0.sym && bob0.sym === 'futures:ES1!' && bob1.tf === bob0.tf && bob1.d === bob0.d && /trendline/.test(bob1.d) && bob1.n === 2 && /rsi/.test(bob1.ind) && /macd/.test(bob1.ind), { bob0, bob1: Object.assign({}, bob1, { ind: bob1.ind.slice(0, 120) }) });
+    // back to a plain chart for the rest of the run
+    await bp.evaluate(() => window.STRYKER_CHART_UI.applySaved({ state: { version: 1, layout: '1', charts: [{ id: 'A', symbol: 'futures:NQ1!', timeframe: '15' }] } })); await sleep(1200);
+    DB.delete('publicLayouts/' + sid); DB.delete('publicLayouts/' + sid + '/data/s'); [...DB.keys()].filter((k) => k.startsWith('publicLayouts/' + sid + '/')).forEach((k) => DB.delete(k));
+    await lib(bp, 'browse'); await sleep(1200);
+    const items = (await txt(bp, '.lyl-gc')).join('|');
+    t('Browse: public layout listed with NEW, author, 0 counts', items.includes('Order flow pair') && items.includes('New') && items.includes('by @alicet') && /\d+ uses/.test(items), items);
+    await sleep(800);
+    const ics = (await txt(bp, '.lyl-gc .lyl-ic')).join('|');
+    t('Discover: indicator-name chips (first 2 + "+N") and topic row, no carousel', /EMA|Ema/.test(ics) && /\+\d/.test(ics) && !!(await bp.$('.lyl-topics')) && !(await bp.$('.lyl-car')), ics);
+    await bp.click('.lyl-topics .lyl-chip:has-text("Scalping")'); await sleep(200);
+    t('topic chip filters (no scalping layout)', (await txt(bp, '.lyl-gc')).length === 0);
+    await bp.click('.lyl-topics .lyl-chip:has-text("All")'); await sleep(200);
+    await bp.click('.lyl-gc h3'); await sleep(900);
+    const dt = (await txt(bp, '.lyl-det')).join('|');
+    t('detail: description, indicators with settings, tags, Use / Copy to mine / Report', dt.includes('EMA, RSI and MACD') && (await bp.$$('.lyl-irow')).length >= 3 && /length 34/.test(dt) && dt.includes('#my tag') && dt.includes('Use layout') && dt.includes('Copy to mine') && dt.includes('Report'), dt.slice(0, 300));
+    await shot(bp, 'detail-1440-dark');
+    await bp.click('.lyl-det .lyl-dback'); await sleep(300);
+    t('detail: back returns to the grid', !(await bp.$('.lyl-det')));
     await bp.fill('.lyl-search', 'nomatch'); await sleep(200);
-    t('search: no match state', (await txt(bp, '.lyl-empty')).join('|').includes('No matches'));
+    t('search: no match state', (await txt(bp, '.lyl-empty')).join('|').includes('Nothing matches'));
     await bp.fill('.lyl-search', '#my tag'); await sleep(200);
-    t('search by tag', (await txt(bp, '.lyl-item')).length === 1);
+    t('search by tag', (await txt(bp, '.lyl-gc')).length === 1);
     await bp.fill('.lyl-search', 'alice'); await sleep(200);
-    t('search by author', (await txt(bp, '.lyl-item')).length === 1);
+    t('search by author', (await txt(bp, '.lyl-gc')).length === 1);
     await bp.fill('.lyl-search', ''); await sleep(200);
-    await bp.click('.lyl-item .lyl-like'); await sleep(600);
+    await bp.click('.lyl-gc .lyl-like'); await sleep(600);
     t('like: count 1 + marker', DB.get('publicLayouts/' + lid).likeCount === 1 && DB.has('publicLayouts/' + lid + '/likes/bob'));
-    await bp.click('.lyl-item .lyl-like'); await sleep(600);
+    await bp.click('.lyl-gc .lyl-like'); await sleep(600);
     t('unlike: back to 0, marker gone', DB.get('publicLayouts/' + lid).likeCount === 0 && !DB.has('publicLayouts/' + lid + '/likes/bob'));
-    await bp.click('.lyl-item .lyl-like'); await sleep(500);
-    await bp.click('.lyl-item .lyl-fav'); await sleep(600);
+    await bp.click('.lyl-gc .lyl-like'); await sleep(500);
+    await bp.click('.lyl-gc .lyl-fav'); await sleep(600);
     t('favourite: layoutFavs doc', DB.has('students/bob/layoutFavs/' + lid));
     await shot(bp, 'browse-1440-dark');
     await bp.click('#lyl-tab-favs'); await sleep(900);
-    t('Favorites tab lists it', (await txt(bp, '.lyl-item')).join('|').includes('Order flow pair'));
+    t('Favorites tab lists it', (await txt(bp, '.lyl-gc')).join('|').includes('Order flow pair'));
     await shot(bp, 'favs-1440-dark');
     await bp.click('#lyl-tab-browse'); await sleep(800);
-    await bp.click('.lyl-item .lyl-apply'); await sleep(2500);
+    await bp.click('.lyl-gc .lyl-use'); await sleep(2500);
     const bfp = await fp(bp);
     t('apply: chart matches the published layout', bfp === before, bfp.slice(0, 120));
     t('apply: use counted once, sheet closed', DB.get('publicLayouts/' + lid).useCount === 1 && DB.has('publicLayouts/' + lid + '/uses/bob') && !(await bp.$('.lyl-panel')));
-    await lib(bp, 'browse'); await sleep(800); await bp.click('.lyl-item .lyl-apply'); await sleep(2000);
+    await lib(bp, 'browse'); await sleep(800); await bp.click('.lyl-gc .lyl-use'); await sleep(2000);
     t('apply again: still 1 use for bob', DB.get('publicLayouts/' + lid).useCount === 1);
     await lib(bp, 'favs'); await sleep(600); await bp.click('.lyl-fav'); await sleep(500);
-    t('unstar -> "No favorites yet"', (await txt(bp, '.lyl-empty')).join('|').includes('No favorites yet') && !DB.has('students/bob/layoutFavs/' + lid));
+    t('unstar -> "Nothing starred yet"', (await txt(bp, '.lyl-empty')).join('|').includes('Nothing starred yet') && !DB.has('students/bob/layoutFavs/' + lid));
     await shot(bp, 'favs-empty-1440-dark');
     await bp.click('#lyl-tab-browse'); await sleep(600);
-    await bp.click('.lyl-item .lyl-ib[aria-haspopup]'); await bp.click('.lyl-menu button:has-text("Report")'); await bp.click('.lyl-row:has-text("Spam")'); await sleep(700);
+    await bp.click('.lyl-gc h3'); await sleep(500); await bp.click('.lyl-det .lyl-txt'); await bp.click('.lyl-row:has-text("Spam")'); await sleep(700);
     t('report: marker + reportCount 1', DB.get('publicLayouts/' + lid).reportCount === 1 && DB.has('publicLayouts/' + lid + '/reports/bob'));
     await closeLib(bp);
     await bp.evaluate(() => window.STRYKER_LAYOUTS.saveAsNew('Bob private')); await sleep(1200);
     const bobId = [...DB.keys()].find((k) => k.startsWith('students/bob/chartLayouts/')).split('/').pop();
     await lib(bp, 'mine'); await sleep(800);
     await bp.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), bobId); await bp.waitForSelector('.lyl-pub');
-    await bp.click('.lyl-vopt:nth-child(2)'); await bp.click('.lyl-pub .lyl-pri'); await sleep(1500);
+    await bp.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(2)'); await bp.click('.lyl-pub .lyl-pri'); await sleep(1500);
     t('link only: chartShared written, NOT in publicLayouts', DB.has('chartShared/' + bobId) && !DB.has('publicLayouts/' + bobId));
     await bp.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), bobId); await bp.waitForSelector('.lyl-pub');
-    await bp.click('.lyl-vopt:nth-child(4)'); await sleep(200);
+    await bp.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(4)'); await sleep(200);
     t('community, no community owned: "Create a community in Creator Hub"', (await txt(bp, '.lyl-comm')).join('|').includes('Create a community in Creator Hub'));
-    await shot(bp, 'publish-community-nocomm-1440-dark');
+    await shot(bp, 'share-community-nocomm-1440-dark');
     await bp.close();
 
     // ---- alice sells to community zoro
@@ -238,9 +289,9 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     await a2.evaluate((id) => window.STRYKER_LAYOUTS.openById(id), lid); await sleep(2500);
     await lib(a2, 'mine'); await sleep(700);
     await a2.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), lid); await a2.waitForSelector('.lyl-pub');
-    await a2.click('.lyl-vopt:nth-child(4)'); await sleep(200);
+    await a2.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(4)'); await sleep(200);
     t('community option: picker lists my community', (await txt(a2, '.lyl-comm option')).includes('Zoro Room'));
-    await shot(a2, 'publish-community-1440-dark');
+    await shot(a2, 'share-community-1440-dark');
     await a2.click('.lyl-pub .lyl-pri'); await sleep(1800);
     const cd = DB.get('publicLayouts/' + lid);
     t('community: card visibility=community, communityId=zoro', cd.visibility === 'community' && cd.communityId === 'zoro', cd);
@@ -249,7 +300,7 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     const D = await session(b, 'dave', 1440, 900, false);
     const dp = await open(D, BASE); pages.push(dp);
     await lib(dp, 'browse'); await sleep(1000);
-    t('Browse hides the community layout from the public list', !(await txt(dp, '.lyl-item')).join('|').includes('Order flow pair'));
+    t('Browse hides the community layout from the public list', !(await txt(dp, '.lyl-gc')).join('|').includes('Order flow pair'));
     const dr = await dp.evaluate(async (id) => { const r = {}; try { await firebase.firestore().doc('publicLayouts/' + id + '/data/s').get(); r.state = 'READ'; } catch (e) { r.state = e.code; } try { await firebase.firestore().doc('students/alice/chartLayouts/' + id).get(); r.priv = 'READ'; } catch (e) { r.priv = e.code; } return r; }, lid);
     t('non-member: community state denied; another member\'s private layout denied', dr.state === 'permission-denied' && dr.priv === 'permission-denied', dr);
     await dp.close();
@@ -261,6 +312,12 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     // ================= shots + real touch test (card is made public again so Browse has content)
     const cur0 = DB.get('publicLayouts/' + lid); cur0.visibility = 'public'; cur0.communityId = ''; cur0.useCount = 3; cur0.likeCount = 2;
     DB.set('publicLayouts/' + lid + '/data/s', DB.get('publicLayouts/' + lid + '/data/s'));
+    // more cards so the shots show a real grid (same state doc, different card fields)
+    [['gexmap', 'GEX levels + flow', 'Mia R', ['gex', 'futures'], 'futures:ES1!', '5', 12, 7], ['scalp5', 'Fast scalp stack', 'Raj P', ['scalping', 'order flow'], 'futures:NQ1!', '1', 5, 2], ['swingd', 'Daily swing trend', 'Lena V', ['swing', 'trend'], 'crypto:BTCUSDT', 'D', 0, 0], ['cryptoh', 'Crypto hourly map', 'Tom B', ['crypto'], 'crypto:ETHUSDT', '60', 2, 1]].forEach(([id, name, au, tags, sym, iv, uc, lc], i) => {
+      const setup = i % 2 === 0;
+      DB.set('publicLayouts/' + id, Object.assign({}, cur0, { kind: setup ? 'setup' : 'chart', ownerUid: 'u_' + id, authorName: au, name, tags, symbol: setup ? '' : sym, interval: setup ? '' : iv, useCount: uc, likeCount: lc, desc: 'Sample ' + name, createdAt: { __ms: Date.now() - (i + 2) * 864e5 * 3 } }));
+      DB.set('publicLayouts/' + id + '/data/s', DB.get('publicLayouts/' + lid + '/data/s'));
+    });
     const swipe = async (p, x1, x2, y) => {
       const c = await p.context().newCDPSession(p);
       await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x1, y }] });
@@ -268,8 +325,8 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
       await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       await sleep(900);
     };
-    const tabNow = (p) => p.$eval('.lyl-tab.on', (e) => e.textContent).catch(async () => { await p.screenshot({ path: OUT + '/debug.png' }); return 'NONE ' + p.url() + ' ' + (await p.evaluate(() => document.body && document.body.innerText.slice(0, 80)).catch((e) => 'x ' + e.message)); });
-    for (const [w, h, theme, mobile] of [[390, 844, 'dark', true], [390, 844, 'light', true], [1440, 900, 'light', false]]) {
+    const tabNow = (p) => p.$eval('.lyl-tab.on', (e) => e.textContent.trim()).catch(async () => { await p.screenshot({ path: OUT + '/debug.png' }); return 'NONE ' + p.url() + ' ' + (await p.evaluate(() => document.body && document.body.innerText.slice(0, 80)).catch((e) => 'x ' + e.message)); });
+    for (const [w, h, theme, mobile] of [[390, 844, 'dark', true], [390, 844, 'light', true], [1440, 900, 'light', false], [1440, 900, 'dark', false]]) {
       const tag = w + '-' + theme;
       const Bs = await session(b, 'bob', w, h, mobile, theme);
       const p = await open(Bs, BASE);
@@ -277,50 +334,64 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
         // open from the real layout menu with a tap
         await p.tap('#stkc-more-btn'); await sleep(600);
         await p.tap('#stkc-more-pop [data-ob-label^="Layout"]'); await sleep(700);
-        const menuItem = await p.$('#stkl-pop .stkl-item:has-text("Layouts library")');
-        t('390: ⋯ > Layout menu has "Layouts library…"', !!menuItem);
+        const menuItem = await p.$('#stkl-pop .stkl-item:has-text("Chart Library")');
+        t('390: ⋯ > Layout menu has "Chart Library…"', !!menuItem);
         if (menuItem) await menuItem.tap(); else await lib(p, 'browse');
         await p.waitForSelector('.lyl-panel', { timeout: 8000 }); await sleep(1200);
         const box = await p.$eval('.lyl-panel', (e) => { const r = e.getBoundingClientRect(); return { w: r.width, b: r.bottom, h: innerHeight, sw: document.documentElement.scrollWidth }; });
         t('390: sheet fits (no horizontal scroll, bottom sheet)', box.w <= 390 && box.sw <= 390 && Math.abs(box.b - box.h) < 4, box);
         await swipe(p, 320, 60, 640);
-        t('390: swipe left -> My Layouts', (await tabNow(p)) === 'My Layouts', await tabNow(p));
+        t('390: swipe left -> Mine', (await tabNow(p)) === 'Mine', await tabNow(p));
         await swipe(p, 320, 60, 640);
-        t('390: swipe left -> Favorites', (await tabNow(p)) === 'Favorites', await tabNow(p));
+        t('390: swipe left -> Starred', (await tabNow(p)) === 'Starred', await tabNow(p));
         await swipe(p, 100, 340, 640); await swipe(p, 100, 340, 640);
-        t('390: swipe right x2 -> Browse', (await tabNow(p)) === 'Browse', await tabNow(p));
-        await p.tap('.lyl-item .lyl-fav'); await sleep(700);
+        t('390: swipe right x2 -> Discover', (await tabNow(p)) === 'Discover', await tabNow(p));
+        await p.tap('.lyl-gc[data-id="' + lid + '"] .lyl-fav'); await sleep(700);
         t('390: tap star favourites', DB.has('students/bob/layoutFavs/' + lid));
-        await p.tap('.lyl-item .lyl-ib[aria-haspopup]'); await sleep(500);
-        t('390: tap ⋯ opens menu inside the sheet', !!(await p.$('.lyl-menu')) && (await p.$eval('.lyl-menu', (e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; })));
-        await shot(p, 'browse-menu-390-dark');
+        await p.tap('.lyl-filter'); await sleep(500);
+        t('390: tap sort/filter opens menu inside the sheet', !!(await p.$('.lyl-menu')) && (await p.$eval('.lyl-menu', (e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; })));
+        await shot(p, 'menu-390-dark');
         await p.tap('.lyl-panel .lyl-hd h2').catch(() => {}); await sleep(300);
+        await p.tap('.lyl-gc[data-id="' + lid + '"] h3'); await sleep(900);
+        t('390: tap card opens the detail view', !!(await p.$('.lyl-det')) && (await p.$$('.lyl-irow')).length >= 3);
+        await shot(p, 'detail-390-dark-touch');
+        await p.tap('.lyl-det .lyl-dback'); await sleep(400);
         const tapTargets = await p.$$eval('.lyl-panel button, .lyl-panel select, .lyl-panel input', (a) => a.filter((x) => x.offsetParent && !x.closest('.lyl-menu')).map((x) => { const r = x.getBoundingClientRect(); return { c: x.className.slice(0, 20), h: Math.round(r.height), w: Math.round(r.width) }; }).filter((x) => x.h < 40 || x.w < 40));
         t('390: tap targets >= 40px (excluding inline like count)', tapTargets.filter((x) => !/lyl-stat|lyl-chip/.test(x.c)).length === 0, tapTargets);
-        await p.tap('.lyl-item .lyl-apply'); await sleep(2500);
-        t('390: tap Apply loads the layout and closes the sheet', (await fp(p)) === before && !(await p.$('.lyl-panel')));
+        await p.tap('.lyl-gc[data-id="' + lid + '"] .lyl-use'); await sleep(2500);
+        t('390: tap Use layout loads the layout and closes the sheet', (await fp(p)) === before && !(await p.$('.lyl-panel')));
       }
-      await lib(p, 'browse'); await sleep(1200); await shot(p, 'browse-' + tag);
-      if (!mobile || theme === 'light') {
-        await p.fill('.lyl-search', ''); 
+      await lib(p, 'browse'); await sleep(1800); await shot(p, 'discover-' + tag);
+      await p.click('.lyl-gc[data-id="' + lid + '"] h3'); await sleep(1000); await shot(p, 'detail-' + tag);
+      if (theme === 'dark' && w === 390) {
+        await p.click('.lyl-det .lyl-sec'); await sleep(2500);
+        t('detail: Copy to mine applies + saves a copy', [...DB.keys()].some((k) => k.startsWith('students/bob/chartLayouts/') && /copy$/.test((DB.get(k) || {}).name || '')));
+        await lib(p, 'browse'); await sleep(1000);
       }
-      await p.click('#lyl-tab-favs'); await sleep(900); await shot(p, 'favs-' + tag);
+      await p.click('.lyl-det .lyl-dback').catch(() => {}); await sleep(300);
+      await p.click('#lyl-tab-favs'); await sleep(900); await shot(p, 'starred-' + tag);
       await p.click('#lyl-tab-mine'); await sleep(900); await shot(p, 'mine-' + tag);
       await closeLib(p);
       await p.close();
     }
-    for (const [w, h, theme, mobile] of [[390, 844, 'dark', true], [390, 844, 'light', true], [1440, 900, 'light', false]]) {
+    for (const [w, h, theme, mobile] of [[390, 844, 'dark', true], [390, 844, 'light', true], [1440, 900, 'light', false], [1440, 900, 'dark', false]]) {
       const tag = w + '-' + theme;
       const As = await session(b, 'alice', w, h, mobile, theme);
       const p = await open(As, BASE);
       await p.evaluate((id) => window.STRYKER_LAYOUTS.openById(id), lid); await sleep(2500);
       await lib(p, 'mine'); await sleep(1000); await shot(p, 'mine-owner-' + tag);
+      if (mobile && theme === 'dark') {
+        await p.tap('.lyl-mr .lyl-more'); await sleep(500);
+        const mm = (await txt(p, '.lyl-menu button')).join('|');
+        t('390: Mine overflow menu has Share…, Duplicate, Delete', ['Share…', 'Duplicate', 'Delete'].every((w) => mm.includes(w)), mm);
+        await shot(p, 'mine-menu-390-dark'); await p.tap('.lyl-panel .lyl-hd h2'); await sleep(300);
+      }
       await p.evaluate((id) => window.STRYKER_LAYOUTS_LIB.publishDialog(id), lid); await p.waitForSelector('.lyl-pub'); await sleep(500);
-      await shot(p, 'publish-' + tag);
+      await shot(p, 'share-' + tag);
       if (mobile && theme === 'dark') {
         const fits = await p.$eval('.lyl-pub', (e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; });
         t('390: Publish dialog inside the viewport', fits);
-        await p.click('.lyl-vopt:nth-child(4)'); await sleep(300); await shot(p, 'publish-community-390-dark');
+        await p.click('.lyl-pub .lyl-vis:not(.lyl-kind) .lyl-vopt:nth-child(4)'); await sleep(300); await shot(p, 'share-community-390-dark');
       }
       await p.keyboard.press('Escape'); await closeLib(p);
       await p.close();

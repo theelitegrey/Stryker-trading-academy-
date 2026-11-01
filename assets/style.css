@@ -9918,6 +9918,32 @@ html.stk-cps #stkc-bar .mclock-tiny{ display:inline; color:var(--ink-2); font-we
 html.stk-cps #stkc-bar .mclock.mclock-dotonly .mclock-tiny{ display:none; }
 html.stk-cps #stkc-bar .mclock-pill{ padding:0 5px; }
 html.stk-cps #stkc-bar .mclock-pop{ position:fixed; top:46px; left:8px; right:8px; width:auto; }
+/* Charts phone: the session clock popover is a bottom sheet (assets/chart-phone-space.js clockSheet; Charts only,
+   other pages keep the popover). The header + ⓘ footer exist only on Charts and show only on the phone layout. */
+.stkms-hd, .stkms-ft, .stkms-scrim{ display:none; }
+html.stk-cps .stkms-scrim:not([hidden]){ display:block; position:fixed; inset:0; z-index:9070; background:rgba(0,0,0,.5); }
+html.stk-cps #stkc-bar .mclock .mclock-pop{ position:fixed; left:0; right:0; top:auto; bottom:0; z-index:9071; width:auto; box-sizing:border-box;
+  max-height:min(85dvh, calc(100dvh - 16px)); overflow-y:auto; overscroll-behavior:contain; padding:0 20px calc(16px + env(safe-area-inset-bottom));
+  border:0; border-top:1px solid var(--line); border-radius:20px 20px 0 0; background:var(--bg-2); box-shadow:0 -12px 32px rgba(0,0,0,.4);
+  font-size:15px; color:var(--ink-2); transition:transform .3s cubic-bezier(.2,0,0,1); }
+html.stk-cps .stkms-hd{ position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:12px; margin:0 -20px 4px; padding:20px 8px 8px 20px; background:var(--bg-2); touch-action:none; cursor:grab; }
+html.stk-cps .stkms-hd .stkc-sh-grab{ position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:var(--line); }
+html.stk-cps .stkms-hd h2{ flex:1 1 auto; margin:0; font-size:17px; line-height:22px; font-weight:600; color:var(--ink-0); }
+html.stk-cps .stkms-x{ position:relative; isolation:isolate; flex:none; width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:50%; background:transparent; color:var(--ink-2); cursor:pointer; }
+html.stk-cps .stkms-x::before{ content:""; position:absolute; width:30px; height:30px; border-radius:50%; background:var(--bg-3); z-index:-1; }
+html.stk-cps .stkms-x:focus-visible, html.stk-cps .stkms-i:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+html.stk-cps .mclock-pop .mclock-row{ min-height:40px; align-items:center; padding:0; font-size:15px; }
+html.stk-cps .mclock-pop .mclock-row b{ font-size:14px; }
+html.stk-cps .mclock-pop .mclock-legend{ gap:8px; padding-top:12px; margin-top:8px; }
+html.stk-cps .mclock-pop .mclock-legend span{ height:28px; padding:0 10px; border:1px solid var(--line); border-radius:999px; font-size:12px; color:var(--ink-1); }
+html.stk-cps .stkms-ft{ display:flex; align-items:center; gap:8px; margin-top:12px; padding-top:8px; border-top:1px solid var(--line-soft); font-size:13px; line-height:18px; color:var(--ink-2); }
+html.stk-cps .stkms-ft span{ flex:1 1 auto; }
+html.stk-cps .stkms-i{ flex:none; width:44px; height:44px; margin:-6px -10px -6px 0; display:inline-flex; align-items:center; justify-content:center; border:0; background:transparent; color:var(--ink-1); cursor:pointer; font:italic 700 13px/1 Georgia,serif; position:relative; isolation:isolate; }
+html.stk-cps .stkms-i::before{ content:""; position:absolute; width:24px; height:24px; border-radius:50%; border:1.5px solid currentColor; box-sizing:border-box; z-index:-1; }
+html.stk-cps .stkms-i[aria-expanded="true"]{ color:var(--gold); }
+html.stk-cps .mclock-pop .mclock-note{ display:none; margin:0; padding:8px 0 0; border-top:0; font-size:13px; line-height:18px; color:var(--ink-2); }
+html.stk-cps .mclock-pop.stkms-more .mclock-note{ display:block; }
+@media (prefers-reduced-motion: reduce){ html.stk-cps #stkc-bar .mclock .mclock-pop{ transition:none; } }
 .mclock-tiny{ display:none; }
 /* the source line, now shown in Symbol info and Credits */
 .stkin-src, .stkc-pop-src{ margin:8px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-3); }

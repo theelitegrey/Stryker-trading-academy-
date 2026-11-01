@@ -141,7 +141,7 @@ if 'live-sessions' in DONE:
     P = dict(kicker='Live Sessions', h1='Live sessions are going <em>free on YouTube.</em>',
       sub='Every live trading session will stream 100% free on our YouTube channel. Expected from December. No sessions are running yet.',
       cta=btn('https://youtube.com/@tradezoro?sub_confirmation=1', 'Subscribe on YouTube') + btn('/signup', 'Start free', False), fine=EDU,
-      bar='Live Sessions', tag='Coming soon', hero='live-banner', hero_alt='The Live Sessions page in the app: a Coming soon pill and the headline Live sessions are going free on YouTube.',
+      bar='Live Sessions', tag='Coming soon', nc=' fx-nc', hero='live-banner', hero_alt='The Live Sessions page in the app: a Coming soon pill and the headline Live sessions are going free on YouTube.',
       phone='live-phone', phone_alt='The same Live Sessions notice on a phone.',
       cards=[('yt', 'Free on YouTube', 'On our channel'), ('bell', 'Get notified', 'Follow @tradezoro'), ('list', 'From December', 'Expected, not scheduled yet'), ('shield', 'Education only', 'Not financial advice')])
     b = hero(P)

@@ -41,6 +41,7 @@
   .fx-l1{ top:auto; bottom:calc(var(--ph) * 1.27 + 40px); width:min(176px,46vw); }
   .fx-r2{ bottom:calc(var(--ph) * 1.27 - 20px); }
 }
+@media (max-width:699px){ .fx-scene.fx-nc .fx-fl{ display:none; } }
 @media (min-width:700px){
   .fx-scene{ --ph:clamp(168px,22vw,200px); --phx:12px; padding-bottom:calc(var(--ph) * .5 + 16px); }
   .fx-phone-fl{ bottom:calc(var(--ph) * -.5); }

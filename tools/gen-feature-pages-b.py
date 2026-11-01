@@ -46,7 +46,7 @@ def hero(P):
 <div class="cm-cta cm-in" style="--d:240ms">{P['cta']}</div>
 <p class="cm-fine cm-in" style="--d:300ms">{P['fine']}</p>
 </div>
-<div class="cm-w"><div class="cm-scene fx-scene" data-scene>
+<div class="cm-w"><div class="cm-scene fx-scene{P.get('nc','')}" data-scene>
 <div class="cm-fl cm-fl-main" style="--d:350ms"><div class="cm-px" data-depth="6"><figure class="cm-frame cm-hero-frame">
 <div class="cm-bar"><span class="cm-dots" aria-hidden="true"><i></i><i></i><i></i></span><b>{e(P['bar'])}</b><span class="cm-tag">{P.get('tag','Sample data')}</span></div>
 {img(P['hero'], P['hero_alt'], lazy=False)}

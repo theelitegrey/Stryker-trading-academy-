@@ -595,6 +595,21 @@ function footer(dlg){
   foot.appendChild(wrap);
   dlg.addEventListener('click', (e) => { if (!tplWrap.contains(e.target)) menu.hidden = true; });
 }
+// Phone (Vela's .vela-sd-mobile): the header reads "Chart settings" (Vela titles it with the open tab, which the
+// tab row below already shows) and a tap anywhere on a switch row toggles it, not only on the small switch.
+function phoneDialog(dlg){
+  if (!dlg.closest('.vela-sd-mobile')) return;
+  const t = dlg.querySelector('.vela-dialog-header .vela-dialog-title');
+  if (t && t.textContent !== 'Chart settings') t.textContent = 'Chart settings';
+  if (dlg.dataset.stkRowTap) return;
+  dlg.dataset.stkRowTap = '1';
+  dlg.addEventListener('click', (e) => {
+    const row = e.target.closest('.vela-sd-bool');
+    if (!row || e.target.closest('button, .vela-hint, input, select, a') || row.classList.contains('stk-sd-off')) return;
+    const sw = row.querySelector('.vela-switch[role="switch"]');
+    if (sw && !sw.disabled) sw.click();
+  });
+}
 function close(){ const c = cellOf(dlgCell); try { c.chart.renderer.closeDialogs(); } catch (e) {} }
 function reopen(){
   // Rebuild the open dialog so its controls show the restored values (snapshot kept).
@@ -622,6 +637,7 @@ function watchDialogs(){
     }
     foldTabs(dlg);
     footer(dlg);
+    phoneDialog(dlg);
   };
   let raf = 0;
   new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; scan(); }); })
@@ -641,7 +657,29 @@ const CSS = `
   padding:6px; border-radius:8px; border:1px solid rgba(128,128,128,.28); background:var(--vela-surface, #1e222d); box-shadow:0 12px 32px -8px rgba(0,0,0,.55); }
 .stk-sd-menu[hidden]{ display:none; }
 .stk-sd-menu .stk-sd-mi{ text-align:left; width:100%; justify-content:flex-start; }
-.vela-dialog--settings .stk-sd-ok{ background:#2962ff; color:#fff; border-color:#2962ff; }
+.vela-dialog--settings .stk-sd-ok{ background:var(--gold, #03c988); color:#062a1d; border-color:var(--gold, #03c988); font-weight:600; }
+.vela-dialog--settings .stk-sd-ok:hover{ filter:brightness(1.08); }
+.vela-dialog--settings .stk-sd-tplbtn{ background:transparent; border-color:transparent; }
+/* phone (Vela's mobile dialog): tabs as a scrolling segment row under the header (no burger), 16 px sides,
+   24 px hint targets, 44 px footer buttons on two rows: Template + Apply to all, then Cancel + Ok */
+.vela-sd-mobile .vela-sd-burger, .vela-sd-mobile .vela-sd-railscrim{ display:none !important; }
+.vela-sd-mobile .vela-dialog--settings .vela-dialog-header{ padding-left:16px; }
+.vela-sd-mobile .vela-dialog--settings .vela-dialog-body > div:has(> .vela-sd-rail){ flex-direction:column !important; }
+.vela-sd-mobile .vela-sd-rail{ position:static !important; transform:none !important; width:auto !important; box-shadow:none !important; border-right:0 !important;
+  flex-direction:row !important; flex:none !important; gap:8px !important; padding:8px 16px !important; overflow-x:auto !important; overflow-y:hidden !important;
+  border-bottom:1px solid var(--vela-border) !important; scrollbar-width:none; transition:none !important; }
+.vela-sd-mobile .vela-sd-rail::-webkit-scrollbar{ display:none; }
+.vela-sd-mobile .vela-sd-rail .vela-sd-tab{ flex:none; height:36px; padding:0 14px !important; border-radius:999px; white-space:nowrap; border:1px solid var(--vela-border); }
+.vela-sd-mobile .vela-sd-rail .vela-sd-tab.on{ background:rgba(3,201,136,.14); border-color:var(--gold, #03c988); color:var(--vela-fg-bright); }
+.vela-sd-mobile .vela-sd-pane{ padding-left:16px !important; padding-right:16px !important; }
+.vela-sd-mobile .vela-sd-bool{ min-height:44px; cursor:pointer; }
+.vela-sd-mobile .vela-hint{ width:24px !important; height:24px !important; }
+.vela-sd-mobile .vela-dialog--settings .vela-dialog-footer{ padding:8px 16px calc(8px + env(safe-area-inset-bottom)); }
+.vela-sd-mobile .stk-sd-foot{ display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; }
+.vela-sd-mobile .stk-sd-foot > *{ min-width:0; }
+.vela-sd-mobile .stk-sd-tpl{ margin:0; }
+.vela-sd-mobile .stk-sd-foot .vela-sd-btn{ width:100%; height:44px; justify-content:center; font-size:15px; }
+.vela-sd-mobile .stk-sd-tplbtn{ justify-content:flex-start !important; }
 .stk-sd-off{ opacity:.45; cursor:not-allowed; }
 .stk-sd-off button{ pointer-events:none; }
 .vela-dialog--settings .vela-sd-pane, .vela-dialog--settings .vela-sd-rail{ scrollbar-width:thin; scrollbar-color:rgba(128,128,128,.35) transparent; }

@@ -40,9 +40,9 @@
   ];
 
   var st = { presets: null, cols: null, t: 0, tab: 'gainers', sortK: null, sortD: 1, tier: null, custom: false,
-    cmarket: 'stock', filters: [{ f: 'chg', op: 'gt', v: '3' }], tables: {}, err: '' };
-  try { var saved = JSON.parse(localStorage.getItem('stryker_scanner') || 'null'); if (saved) { if (saved.tab) st.tab = saved.tab; if (Array.isArray(saved.filters)) st.filters = saved.filters.slice(0, 8); if (saved.cmarket) st.cmarket = saved.cmarket; } } catch (e) {}
-  function persist() { try { localStorage.setItem('stryker_scanner', JSON.stringify({ tab: st.tab, filters: st.filters, cmarket: st.cmarket })); } catch (e) {} }
+    cmarket: 'stock', view: 'heat', chip: 'all', filters: [{ f: 'chg', op: 'gt', v: '3' }], tables: {}, err: '' };
+  try { var saved = JSON.parse(localStorage.getItem('stryker_scanner') || 'null'); if (saved) { if (saved.tab) st.tab = saved.tab; if (Array.isArray(saved.filters)) st.filters = saved.filters.slice(0, 8); if (saved.cmarket) st.cmarket = saved.cmarket; if (saved.view) st.view = saved.view; } } catch (e) {}
+  function persist() { try { localStorage.setItem('stryker_scanner', JSON.stringify({ tab: st.tab, filters: st.filters, cmarket: st.cmarket, view: st.view })); } catch (e) {} }
 
   // ---- pure helpers (exported for tests on window.__stkScan) --------------------------------
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -114,7 +114,7 @@
     for (var i = 0; i < n; i++) { var o = {}; t.cols.forEach(function (c) { o[c] = d[c][i]; }); out.push(o); }
     return out;
   }
-  window.__stkScan = { fmt: fmt, agoText: agoText, buildFilter: buildFilter, sortRows: sortRows, val: val };
+  window.__stkScan = { chipTest: chipTest, fmt: fmt, agoText: agoText, buildFilter: buildFilter, sortRows: sortRows, val: val };
 
   // ---- data -----------------------------------------------------------------------------------
   function load(part) {
@@ -193,6 +193,73 @@
     });
     return h + '</tbody></table></div>';
   }
+
+  // ---- visual views: heatmap, cards, list toggle ------------------------------------------------
+  // Uses only the columns the feed already sends (chg, vol, gap, hi52, lo52, c). No new data.
+  var CHIPS = [['all', 'All'], ['up', 'Up today'], ['dn', 'Down today'], ['gap', 'Gap ≥ 2%'], ['nh', 'Near 52-wk high'], ['nl', 'Near 52-wk low'], ['rv', 'Rel vol ≥ 2×']];
+  function chipTest(k, r) {
+    if (k === 'up') return isNum(r.chg) && r.chg > 0;
+    if (k === 'dn') return isNum(r.chg) && r.chg < 0;
+    if (k === 'gap') return isNum(r.gap) && Math.abs(r.gap) >= 2;
+    if (k === 'nh') { var a = val(r, 'off52h'); return isNum(a) && a <= 5; }
+    if (k === 'nl') { var b = val(r, 'off52l'); return isNum(b) && b <= 5; }
+    if (k === 'rv') return isNum(r.rvol) && r.rvol >= 2;
+    return true;
+  }
+  var VZ = function () { return window.stkViz; };
+  function tickerOf(r) { var t = String(r.s || '').split(':'); return t[1] || t[0]; }
+  function chgStep(v) { return VZ().bucket(v, [1, 3, 6], 1); }
+  function rangeBar(r) {
+    if (!isNum(r.c) || !isNum(r.hi52) || !isNum(r.lo52) || r.hi52 <= r.lo52) return '';
+    var pos = Math.max(0, Math.min(100, (r.c - r.lo52) / (r.hi52 - r.lo52) * 100));
+    return '<span class="rng" role="img" aria-label="Price is ' + pos.toFixed(0) + ' percent of the way from the 52-week low to the high"><i style="left:' + pos.toFixed(1) + '%"></i></span>' +
+      '<span class="lbl"><span>' + fmt(r.lo52, 'px') + '</span><span>52-wk</span><span>' + fmt(r.hi52, 'px') + '</span></span>';
+  }
+  function chipsHtml() {
+    return '<div class="scn-chiprow" role="group" aria-label="Filter the list">' + CHIPS.map(function (c) {
+      return '<button type="button" class="mv-chip" data-chip="' + c[0] + '" aria-pressed="' + (st.chip === c[0]) + '">' + c[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function viewsHtml() {
+    return '<div class="scn-views" role="group" aria-label="View">' + [['heat', 'Heatmap'], ['cards', 'Cards'], ['list', 'List']].map(function (v) {
+      return '<button type="button" data-view="' + v[0] + '" aria-pressed="' + (st.view === v[0]) + '">' + v[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function heatHtml(rows) {
+    var items = rows.map(function (r, i) { return { a: Math.max(isNum(r.vol) && isNum(r.c) ? r.vol * r.c : 0, 0) || Math.abs(r.chg || 0) + 0.1, r: r, i: i }; });
+    // tile area = traded value (volume × price) when both are present; falls back to |change|
+    return '<div class="scn-heat"><p class="mv-sub">Tile size is traded value (volume × price); colour is today’s change. Tap a tile for the numbers.</p>' +
+      VZ().treemapHtml(items, { ratio: window.innerWidth > 820 ? 2.2 : 0.95, width: Math.min(window.innerWidth - 40, 1100),
+        label: function (it) { return { t: tickerOf(it.r), v: fmt(it.r.chg, 'pct') }; },
+        cls: function (it) { return VZ().cls(chgStep(it.r.chg)); },
+        attr: function (it) { return 'data-row="' + it.i + '"'; } }) +
+      '<div class="mv-legend"><span>Down</span><i class="mm-bd3"></i><i class="mm-bd2"></i><i class="mm-bd1"></i><i class="mm-b0"></i><i class="mm-bu1"></i><i class="mm-bu2"></i><i class="mm-bu3"></i><span>Up</span></div></div>';
+  }
+  function cardsHtml(rows, m) {
+    var mx = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.chg || 0); }).concat([0.01]));
+    var sorts = [['chg', 'Change'], ['vol', 'Volume'], ['gap', 'Gap']];
+    var h = '<div class="mv-scroll-row" role="group" aria-label="Sort cards by">' + sorts.map(function (x) {
+      var on = (st.sortK || 'chg') === x[0];
+      return '<button type="button" class="mv-chip" data-sort="' + x[0] + '" aria-pressed="' + on + '">' + x[1] + (on ? (st.sortD > 0 ? ' ▲' : ' ▼') : '') + '</button>';
+    }).join('') + '</div><div class="scn-cards">';
+    rows.forEach(function (r, i) {
+      var w = Math.min(50, Math.abs(r.chg || 0) / mx * 50), b = chgStep(r.chg);
+      var gp = isNum(r.gap) && Math.abs(r.gap) >= 0.5 ? '<span class="gp ' + VZ().cls(VZ().bucket(r.gap, [1, 3, 6], 1)) + '">Gap ' + fmt(r.gap, 'pct') + '</span>' : '';
+      h += '<button type="button" class="scn-cardx" data-row="' + i + '"><b>' + esc(tickerOf(r)) + '</b><small>' + esc(r.n || '') + '</small>' +
+        '<div class="px">' + fmt(r.c, 'px') + '</div><div class="pc ' + (r.chg > 0 ? 'mv-up' : r.chg < 0 ? 'mv-dn' : '') + '">' + fmt(r.chg, 'pct') + '</div>' +
+        '<span class="mini" aria-hidden="true"><i class="' + VZ().cls(b) + '" style="' + (r.chg < 0 ? 'right:50%' : 'left:50%') + ';width:' + w.toFixed(1) + '%"></i></span>' +
+        gp + rangeBar(r) + '</button>';
+    });
+    return h + '</div>';
+  }
+  function bodyHtml(rows, m, total) {
+    var cnt = '<div class="scn-count">' + (total != null ? total + ' match' + (total === 1 ? '' : 'es') : rows.length + ' symbols') + (st.chip !== 'all' ? ' · filter: ' + CHIPS.filter(function (c) { return c[0] === st.chip; })[0][1] : '') + '</div>';
+    if (!rows.length) return cnt + '<p class="scn-empty">Nothing matches right now.</p>';
+    if (st.view === 'heat') return cnt + heatHtml(rows);
+    if (st.view === 'cards') return cnt + cardsHtml(rows, m);
+    return tableHtml(rows, m, total);
+  }
+  function toolbarHtml() { return '<div class="scn-toolbar">' + viewsHtml() + '</div>' + chipsHtml(); }
   var shown = [];
   function render() {
     var ago = document.getElementById('scn-ago');
@@ -215,11 +282,12 @@
       var flt = buildFilter(st.filters);
       var all = tb.rows.filter(flt.test);
       shown = sortRows(all, st.sortK || 'chg', st.sortK ? st.sortD : -1).slice(0, 200);
-      root.innerHTML = h + tableHtml(shown, m, all.length);
+      shown = shown.filter(function (r) { return chipTest(st.chip, r); });
+      root.innerHTML = h + toolbarHtml() + bodyHtml(shown, m, shown.length);
     } else {
       var p = st.presets[st.tab] || st.presets[Object.keys(st.presets)[0]];
-      shown = sortRows(rowsOfPreset(p, st.cols), st.sortK, st.sortD);
-      root.innerHTML = h + tableHtml(shown, p.kind);
+      shown = sortRows(rowsOfPreset(p, st.cols), st.sortK, st.sortD).filter(function (r) { return chipTest(st.chip, r); });
+      root.innerHTML = h + toolbarHtml() + bodyHtml(shown, p.kind, shown.length);
     }
     wire();
   }
@@ -242,7 +310,7 @@
     d.className = 'scn-sheet-wrap';
     d.innerHTML = '<div class="scn-scrim" data-close></div><div class="scn-sheet" role="dialog" aria-modal="true" aria-label="' + esc(t2[1] || r.s) + '">' +
       '<div class="scn-sh-head"><div><b>' + esc(t2[1] || t2[0]) + '</b><small>' + esc(r.n || '') + ' · ' + esc(t2[0]) + '</small></div><button type="button" class="scn-x" data-close aria-label="Close">×</button></div>' +
-      '<dl class="scn-dl">' + rows.map(function (x) { return '<div><dt>' + x[0] + '</dt><dd>' + x[1] + '</dd></div>'; }).join('') + '</dl>' +
+      (rangeBar(r) ? '<div class="scn-cardx" style="cursor:default;margin-bottom:12px">' + rangeBar(r) + '</div>' : '') + '<dl class="scn-dl">' + rows.map(function (x) { return '<div><dt>' + x[0] + '</dt><dd>' + x[1] + '</dd></div>'; }).join('') + '</dl>' +
       '<p class="scn-note">Our charts cover futures, forex and crypto, not single stocks, so this symbol opens here. Education only. Not financial advice.</p></div>';
     document.body.appendChild(d);
     d.addEventListener('click', function (e) { if (e.target.closest('[data-close]')) closeInfo(); });
@@ -267,10 +335,12 @@
         render();
       });
     });
-    root.querySelectorAll('tr[data-row]').forEach(function (tr) {
+    root.querySelectorAll('[data-view]').forEach(function (b) { b.addEventListener('click', function () { st.view = b.getAttribute('data-view'); persist(); render(); }); });
+    root.querySelectorAll('[data-chip]').forEach(function (b) { b.addEventListener('click', function () { st.chip = b.getAttribute('data-chip'); render(); }); });
+    root.querySelectorAll('[data-row]').forEach(function (tr) {
       var go = function () { var r = shown[Number(tr.getAttribute('data-row'))]; if (r) openInfo(r); };
       tr.addEventListener('click', go);
-      tr.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+      tr.addEventListener('keydown', function (e) { if (e.key === 'Enter' && tr.tagName === 'TR') go(); });
     });
     var cm = root.querySelector('[data-cm]');
     if (cm) cm.addEventListener('change', function () { st.cmarket = cm.value; st.sortK = null; persist(); render(); });
@@ -293,6 +363,7 @@
     if (i != null) { var inp = root.querySelector('.scn-frow[data-i="' + i + '"] [data-fv]'); if (inp) { inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (e) {} } }
   }
 
+  window.addEventListener('resize', (function () { var w = window.innerWidth > 820, t = 0; return function () { clearTimeout(t); t = setTimeout(function () { var n = window.innerWidth > 820; if (n !== w) { w = n; if (st.presets && st.view === 'heat') render(); } }, 200); }; })());
   // ---- start ---------------------------------------------------------------------------------------
   var t0 = setTimeout(function () { if (!st.tier) { st.tier = { free: true, unknown: true }; render(); } }, 8000);
   if (typeof window.strykerPlanTier === 'function') {

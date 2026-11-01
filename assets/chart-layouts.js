@@ -604,6 +604,8 @@ export function mountLayouts(ws, o){
     let sid = null;
     try { sid = new URL(location.href).searchParams.get('layout'); } catch (e) {}
     if (sid) await openShared(sid);
+    let al = null; try { al = new URL(location.href).searchParams.get('applylayout'); } catch (e) {}
+    if (al && /^[A-Za-z0-9]{20,40}$/.test(al)) libApi.open('browse').then(() => mounted && mounted.applyId(al));
   });
 
   // ---- library sheet (assets/chart-layouts-lib.js), loaded on first use ----

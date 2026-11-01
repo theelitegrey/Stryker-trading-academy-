@@ -394,6 +394,7 @@ export function mountLib(host){
       ['Open', () => { closeSheet(); host.openById(x.id); }],
       ['Rename…', () => host.askName('Rename layout', x.name, async (n) => { await host.renameId(x.id, n); await loadMine(); render(); })],
       ['Duplicate', async () => { await host.duplicate(x.id); await loadMine(); render(); }],
+      published ? ['Update published version', () => doPublish(x.id, x, { name: x.name, desc: x.desc || '', tags: x.tags || [], vis: x.vis, cid: x.cid || '' }).then(() => toast('Published version updated.')).catch(() => toast('Could not update the published version.', 'error'))] : null,
       published || x.vis === 'link' ? ['Unpublish', () => unpublish(x)] : ['Publish…', () => publishDialog(x.id)],
       ['Visibility…', () => publishDialog(x.id)],
       x.vis === 'link' ? ['Copy link', () => host.copyLink(x.id)] : null,
@@ -498,7 +499,13 @@ export function mountLib(host){
     if (!tab || tab === 'browse') searchEl.blur();
   }
 
-  const api = { open, state: S, blocked, publishDialog };
+  // Apply by id (community page → charts?applylayout=<id>); applyItem checks access via rules.
+  async function applyId(id){
+    if (!me()) { toast('Sign in to use layouts.', 'error'); return; }
+    try { const d = await pub().doc(id).get(); if (!d.exists) throw 0; await applyItem(pubOf(d)); }
+    catch (e) { toast('This layout is not available to you.', 'error'); }
+  }
+  const api = { open, state: S, blocked, publishDialog, applyId };
   window.STRYKER_LAYOUTS_LIB = api;
   return api;
 }

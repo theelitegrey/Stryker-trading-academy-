@@ -6,7 +6,7 @@
   var cm, plans = [], me = null, mem = null, tab = 'about', hasInvite = '', inds = null, myAccess = {}, payOpen = false, paidBack = '';
   var qs = new URLSearchParams(location.search);
   if (qs.get('tab') === 'indicators') tab = 'indicators';
-  if (qs.get('tab') === 'courses') tab = 'courses';
+  if (qs.get('tab') === 'courses' || qs.get('tab') === 'layouts') tab = qs.get('tab');
   if (qs.get('tab') === 'feed' || qs.get('tab') === 'events') tab = qs.get('tab');   // app menu deep links (owner: Feed & events)
   var wantInd = (qs.get('ind') || '').replace(/[^A-Za-z0-9]/g, ''), indCode = (qs.get('icode') || '').replace(/[^A-Za-z0-9]/g, '');
   var FEATS = [['feed', 'Feed'], ['courses', 'Courses'], ['indicators', 'Indicators'], ['events', 'Events'], ['leaderboard', 'Leaderboard']];
@@ -74,7 +74,7 @@
     lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
   };
   function ic(n, c) { return '<svg class="cp-i ' + (c || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (IC[n] || IC.check) + '</svg>'; }
-  var TABIC = { about: 'info', feed: 'msg', courses: 'course', indicators: 'ind', events: 'cal', leaderboard: 'trophy' };
+  var TABIC = { layouts: 'ind', about: 'info', feed: 'msg', courses: 'course', indicators: 'ind', events: 'cal', leaderboard: 'trophy' };
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var counts = { courses: 0, indicators: 0, events: 0 }, animated = false, parallaxOn = false;
 
@@ -177,8 +177,10 @@
     // Indicators and Courses are visible to everyone who can see the page (a teaser; the content is gated by the rules).
     if (cm.features && cm.features.indicators && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['indicators', 'Indicators']);
     if (cm.features && cm.features.courses && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['courses', 'Courses']);
+    if (!(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['layouts', 'Layouts']);
     if (member) enabled().forEach(function (f) { if (f[0] !== 'indicators' && f[0] !== 'courses') tabs.push(f); });
     if (tab === 'courses' && !tabs.some(function (t) { return t[0] === 'courses'; })) tab = 'about';
+    if (tab === 'layouts' && !tabs.some(function (t) { return t[0] === 'layouts'; })) tab = 'about';
     if (tab === 'indicators' && !tabs.some(function (t) { return t[0] === 'indicators'; })) tab = 'about';
     if ((tab === 'feed' || tab === 'events') && !tabs.some(function (t) { return t[0] === tab; })) tab = 'about';
     h += '<div class="cp-bar"><div class="cp-in"><div class="cp-tabs"><div class="cp-tsc" role="tablist" aria-label="Community sections">' + tabs.map(function (t) {
@@ -244,6 +246,7 @@
       return;
     }
     if (tab === 'indicators') return indicatorsTab(el, member);
+    if (tab === 'layouts') return layoutsTab(el, member);
     if (tab === 'courses') {
       if (!window.CHL) { el.innerHTML = '<div class="cx-empty">Could not load courses. Reload the page.</div>'; return; }
       return window.CHL.mount(el, { cid: slug, cm: cm, plans: plans, mem: mem, me: me, isOwner: isOwner(), member: !!member, signIn: CH.signIn });
@@ -269,6 +272,21 @@
       return Promise.all(inds.map(function (x) { return col.doc(x.id).collection('access').doc(em).get().then(function (d) { if (d.exists) myAccess[x.id] = d.data(); }).catch(function () {}); })).then(function () { return inds; });
     });
   }
+  // Layouts tab: ZoroCharts layouts sold to this community (publicLayouts, visibility 'community'). Rules gate the state read.
+  function layoutsTab(el, member) {
+    el.innerHTML = '<div class="cx-empty">Loading layouts…</div>';
+    if (!me) { el.innerHTML = '<div class="cx-empty"><h3>Layouts</h3>Sign in to see this community\'s chart layouts.<div style="margin-top:12px"><button class="btn btn-primary" type="button" id="cl-in">Sign in</button></div></div>'; el.querySelector('#cl-in').onclick = function () { CH.signIn(); }; return; }
+    db.collection('publicLayouts').where('visibility', '==', 'community').where('communityId', '==', slug).where('hidden', '==', false).limit(60).get().then(function (qs2) {
+      var list = qs2.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+      if (!list.length) { el.innerHTML = '<div class="cx-empty"><h3>Layouts</h3>No chart layouts shared here yet.</div>'; return; }
+      var ok = member || isOwner();
+      el.innerHTML = '<p class="cx-muted" style="margin:0 0 12px">Chart layouts with full indicator settings, for members. Apply opens ZoroCharts with the layout loaded. Education only. Not financial advice.</p><div class="cx-igrid">' + list.map(function (x) {
+        return '<div class="cx-icard"><div class="cx-ibody"><h3 style="margin:0">' + CH.esc(x.name) + '</h3><p class="cx-muted">' + CH.esc(x.desc || '') + '</p><p class="cx-muted">' + (x.indicators || 0) + ' indicator' + (x.indicators === 1 ? '' : 's') + ' · ' + (x.panes || 1) + ' pane' + (x.panes > 1 ? 's' : '') + ' · by ' + CH.esc(x.authorName || 'Member') + '</p>' +
+          (ok ? '<a class="btn btn-primary" href="/charts?applylayout=' + CH.esc(x.id) + '">Apply</a>' : '<button class="btn btn-ghost cl-join" type="button">Locked · Join ' + CH.esc(cm.name) + ' to use</button>') + '</div></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(el.querySelectorAll('.cl-join'), function (b) { b.onclick = function () { tab = 'about'; var t = document.querySelector('.cp-tsc [data-t=about]'); if (t) t.click(); var j = document.getElementById('cp-join'); if (j) j.scrollIntoView({ behavior: 'smooth', block: 'center' }); }; });
+    }).catch(function () { el.innerHTML = '<div class="cx-empty">Could not load layouts. Reload the page.</div>'; });
+  }
+
   function indicatorsTab(el, member) {
     el.innerHTML = '<div class="cx-empty">Loading indicators…</div>';
     loadInds().then(function (list) {

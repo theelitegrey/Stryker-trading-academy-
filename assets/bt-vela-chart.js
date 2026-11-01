@@ -59,9 +59,13 @@
       if (!document.getElementById('bt-phone-js')) { const s = document.createElement('script'); s.id = 'bt-phone-js'; s.src = '/assets/bt-phone.js' + V; document.head.appendChild(s); }
       if (!document.getElementById('bt-vela-css')) { const l = document.createElement('link'); l.id = 'bt-vela-css'; l.rel = 'stylesheet'; l.href = '/assets/bt-vela.css' + V; document.head.appendChild(l); }
       el.classList.add('rp-chartwrap', 'bt-vela');
-      el.innerHTML = '<div class="stkc-bar" id="stkc-bar" role="toolbar" aria-label="Chart toolbar"><div class="stkc-bar-l" id="stkc-bar-l"></div><div class="stkc-bar-r"></div></div>' +
+      el.innerHTML = '<div class="stkc-bar" id="stkc-bar" role="toolbar" aria-label="Chart toolbar"><div class="stkc-bar-l" id="stkc-bar-l"></div><div class="stkc-bar-r">' +
+        // Vela NOTICE: the on-chart mark is off (vela-chart.js), so the name + link must be on this page: same (i) Credits as /charts
+        '<button type="button" class="stkc-ib" id="stkc-credits-btn" aria-label="Credits" title="Credits" aria-expanded="false" aria-controls="stkc-credits"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><path d="M12 7.5h.01"/></svg></button>' +
+        '<div class="stkc-pop stkc-credits" id="stkc-credits" role="dialog" aria-label="Credits" hidden><p class="stkc-pop-h">Credits</p><p>Charting engine: <a href="https://luxalgo.com/vela" target="_blank" rel="noopener">Vela</a> (Apache-2.0) by LuxAlgo, <a href="https://luxalgo.com/vela" target="_blank" rel="noopener">luxalgo.com/vela</a></p><p class="stkc-pop-s"><a href="/assets/vendor/VELA-NOTICE.txt" target="_blank" rel="noopener">NOTICE</a> · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache License 2.0</a></p></div>' +
+        '</div></div>' +
         '<div class="panel stkchart-panel"><div id="vela-chart"></div><div id="stkchart-fallback" class="stkchart-fallback" hidden><p><b>The chart engine did not load.</b></p><p>Check your connection and reload. Switch back with <a href="?chart=lw">?chart=lw</a>.</p></div></div>';
-      // the credits button vela-chart.js looks for (optional)
+      const cr = document.getElementById('rp-chart-credit'); if (cr) cr.innerHTML = 'Charts: <a href="https://luxalgo.com/vela" target="_blank" rel="noopener">Vela</a>.';
       const feedCtx = this.ctx;
       const { createBtFeed, velaTf } = await import('/assets/bt-vela-feed.js' + V);
       this.velaTf = velaTf;

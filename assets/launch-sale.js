@@ -56,7 +56,7 @@
     var left = s.limit - s.taken;
     var a = document.createElement('a');
     a.className = 'launch-strip';
-    a.href = 'index.html#pricing';
+    a.href = '/pricing';
     a.innerHTML = '<span aria-hidden="true">🔥</span><b>Launch sale</b>' +
       '<span class="ls-long">: founding prices for the first ' + s.limit + ' members</span>' +
       '<span class="ls-dot">·</span>' + left + ' spot' + (left === 1 ? '' : 's') + ' left' +

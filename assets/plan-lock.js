@@ -12,7 +12,7 @@
 // "Education only. Not financial advice." No countdowns, no scarcity.
 //
 // Button: a link to checkout for the Pro plan, the same link the pricing card
-// uses. It reads "Join Pro" and strykerTrialDecorate() relabels it "Start
+// uses. It reads "Get Pro" and strykerTrialDecorate() relabels it "Start
 // 7-day free trial" (plus the small-print icon) only when the server says this
 // member can still have a trial. A member who already used one, or any member
 // while the trial switch is off, keeps "Join Pro". Until the plans have loaded
@@ -115,12 +115,14 @@
     el.innerHTML =
       (opts.closable ? '<button type="button" class="plan-lock-x" aria-label="Close">×</button>' : '') +
       '<div class="plan-lock-head"><span class="plan-lock-ico">' + LOCK_SVG + '</span><h3></h3></div>' +
+      '<p class="plan-lock-price" hidden></p>' +
       '<ul class="plan-lock-list">' + c.bullets(n).map(function () { return '<li>' + TICK_SVG + '<span></span></li>'; }).join('') + '</ul>' +
-      '<a class="btn btn-primary plan-lock-cta" href="#" data-open-plan-modal>Join Pro</a>' +
+      '<a class="btn btn-primary plan-lock-cta" href="#" data-open-plan-modal>Get Pro</a>' +
+      '<a class="plan-lock-back" href="/pricing">See all plans</a>' +
       (opts.back ? '<a class="plan-lock-back" href="#"></a>' : '') +
       '<p class="plan-lock-edu">Education only. Not financial advice.</p>';
     if (opts.back) {
-      var bk = el.querySelector('.plan-lock-back');
+      var bk = el.querySelectorAll('.plan-lock-back')[1];
       bk.href = opts.back.href; bk.textContent = opts.back.label;
     }
     el.querySelector('h3').textContent = title;
@@ -134,7 +136,13 @@
       cta.removeAttribute('data-open-plan-modal');
       cta.href = 'checkout.html?plan=' + encodeURIComponent(pro.id);
       var name = (typeof planDisplayName === 'function') ? planDisplayName(pro) : 'Pro';
-      if (cta.getAttribute('data-trial') !== '1') cta.textContent = 'Join ' + name;
+      if (cta.getAttribute('data-trial') !== '1') cta.textContent = 'Get ' + name;
+      // Paywall price: "Pro: $19 / month", live plan price in the visitor's currency (plan-price.js).
+      if (typeof planSaleInfo === 'function' && typeof planMoneyDisplay === 'function') {
+        var pr = el.querySelector('.plan-lock-price');
+        pr.textContent = name + ': ' + planMoneyDisplay(planSaleInfo(pro).price) + ' / ' + (pro.period || 'month');
+        pr.hidden = false;
+      }
       if (typeof strykerTrialDecorate === 'function') strykerTrialDecorate(cta, pro);
     });
 

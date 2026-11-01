@@ -172,7 +172,7 @@ async function page(browser, url, cfg, width) {
       // Homepage pricing: the "Hero Pro" layout (build 393, assets/pricing-hero.js).
       // The spotlight CTA .pv-hero [data-pro-cta] gets the trial label and small
       // print; the "Start free" strip must stay untouched.
-      ({ p, ctx, errors } = await page(browser, 'index.html', { trialOn: true, eligible: true, signedIn: true }, w));
+      ({ p, ctx, errors } = await page(browser, 'pricing.html', { trialOn: true, eligible: true, signedIn: true }, w));
       await p.waitForSelector('.pv-hero [data-pro-cta]', { timeout: 8000 }).catch(() => {});
       await p.waitForTimeout(800);
       r = await p.evaluate(() => {
@@ -191,7 +191,7 @@ async function page(browser, url, cfg, width) {
       await ctx.close();
 
       // Switch off: the Hero Pro CTA keeps its normal label, no small print
-      ({ p, ctx, errors } = await page(browser, 'index.html', { trialOn: false, eligible: true, signedIn: true }, w));
+      ({ p, ctx, errors } = await page(browser, 'pricing.html', { trialOn: false, eligible: true, signedIn: true }, w));
       await p.waitForSelector('.pv-hero [data-pro-cta]', { timeout: 8000 }).catch(() => {});
       await p.waitForTimeout(800);
       r = await p.evaluate(() => {

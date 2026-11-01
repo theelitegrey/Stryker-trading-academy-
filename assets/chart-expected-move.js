@@ -17,7 +17,7 @@ import * as ProGate from './chart-pro-gate.js?v=777';
 const API = 'https://book-recorder.theelitegrey.workers.dev/opt-analytics?u=';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;
-const PRICING = '/#pricing';
+const PRICING = '/pricing';
 export const EM_KEYS = ['0DTE', '1DTE', 'Weekly', 'Monthly'];
 const COLORS = { '0DTE': '#00adb5', '1DTE': '#4fe3ac', Weekly: '#8b7cf6', Monthly: '#f59e0b' };
 

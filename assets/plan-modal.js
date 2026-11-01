@@ -45,6 +45,8 @@
         '<div class="plan-modal-grid" id="plan-modal-grid">' +
           '<div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>' +
         '</div>' +
+        // Prices live only here, on paywalls and /pricing (Owner 2026-11-01: no prices upfront).
+        '<p class="plan-modal-all"><a href="/pricing">See all plans</a></p>' +
       '</div>';
 
     document.body.appendChild(overlay);
@@ -118,7 +120,7 @@
         '<button type="button" class="btn btn-primary plan-modal-pick">' +
           (plan.ctaLabel && String(plan.ctaLabel).trim()
             ? esc(String(plan.ctaLabel).trim())
-            : (sale.active ? 'Claim the ' + esc(shownName) + ' offer' : 'Choose ' + esc(shownName))) +
+            : (sale.active ? 'Claim the ' + esc(shownName) + ' offer' : 'Get ' + esc(shownName))) +
         '</button>';
 
       card.querySelector('.plan-modal-pick').addEventListener('click', function () {

@@ -1,4 +1,4 @@
-// TradeZoro: homepage pricing section, "Hero Pro" layout (index.html #pricing)
+// TradeZoro: pricing page, "Hero Pro" layout (pricing.html #pricing). The homepage shows no prices (Owner 2026-11-01).
 // Depends on: assets/progress.js (`db`), assets/plan-price.js (strykerLoadPlans,
 //             strykerFxReady, planSaleInfo, planMoneyDisplay, planDisplayName,
 //             planIsArchived, planEscape, strykerCurrencyNoteHtml),

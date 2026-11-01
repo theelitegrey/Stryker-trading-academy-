@@ -64,7 +64,7 @@
       {
        "id": "is-it-free",
        "q": "Is TradeZoro free?",
-       "a": "<p>Yes. TradeZoro is free for every signed-in member and built by traders, for traders. Free gives you all 64 chapters, ZoroCharts, Replay One, Market Stats, JournalX (unlimited, with import, broker sync, analytics and the coach), Smart Money Desk, trading models, private indicators and the full community. Pro adds order flow tools and GEX+, and more is coming. No card is needed to sign up.</p>",
+       "a": "<p>Yes. TradeZoro is free for every signed-in member and built by traders, for traders. Free gives you all 64 chapters, ZoroCharts, Replay One, Market Stats, JournalX (unlimited, with import, broker sync, analytics and the coach), Smart Money Desk, trading models, private indicators and the full community. Some advanced tools (order flow, GEX+) are part of Pro, and more is coming. No card is needed to sign up.</p>",
        "plans": "all",
        "tags": [
         "free",
@@ -76,12 +76,6 @@
        "related": [
         "free-vs-pro",
         "pro-price"
-       ],
-       "links": [
-        {
-         "label": "See pricing",
-         "href": "/#pricing"
-        }
        ]
       },
       {
@@ -757,7 +751,7 @@
       {
        "id": "not-signed-in-nav",
        "q": "Why do I see a different menu when I am signed out?",
-       "a": "<p>The app menu (dock and pills) only shows when you are signed in. Signed-out visitors see the marketing menu: Features, Curriculum, Pricing, Courses, Log in and Start learning.</p>",
+       "a": "<p>The app menu (dock and pills) only shows when you are signed in. Signed-out visitors see the marketing menu: Features, Curriculum, Courses, Log in and Start learning.</p>",
        "tags": [
         "signed out",
         "menu missing",
@@ -784,7 +778,7 @@
       {
        "id": "free-vs-pro",
        "q": "What is the difference between Free and Pro?",
-       "a": "<p>Almost everything is free. Pro adds order flow tools and GEX+ (GEX+ for every symbol and expiry, and GEX on charts). Futures data is 10 minutes delayed on Free and Pro unless you connect Rithmic, add live futures data for $7/month, or we approve you.</p><ul><li><strong>Free</strong>: all 64 chapters, ZoroCharts (CME futures 10 minutes delayed, crypto live), Replay One, unlimited JournalX with import, broker sync, analytics and AI coach, Smart Money Desk, trading models, private indicators, full community with posting and messages, scanner.</li><li><strong>Pro</strong>: order flow tools, GEX+ and GEX on charts, more coming.</li></ul>",
+       "a": "<p>Almost everything is free. Pro adds order flow tools and GEX+ (GEX+ for every symbol and expiry, and GEX on charts). Futures data is 10 minutes delayed on Free and Pro unless you connect Rithmic, add the live futures data add-on, or we approve you.</p><ul><li><strong>Free</strong>: all 64 chapters, ZoroCharts (CME futures 10 minutes delayed, crypto live), Replay One, unlimited JournalX with import, broker sync, analytics and AI coach, Smart Money Desk, trading models, private indicators, full community with posting and messages, scanner.</li><li><strong>Pro</strong>: order flow tools, GEX+ and GEX on charts, more coming.</li></ul>",
        "plans": "all",
        "tags": [
         "pro",
@@ -798,24 +792,17 @@
         "pro-price",
         "what-is-locked",
         "upgrade-how"
-       ],
-       "links": [
-        {
-         "label": "Compare plans",
-         "href": "/#pricing"
-        }
        ]
       },
       {
        "id": "pro-price",
-       "q": "How much is Pro?",
-       "a": "<p>The homepage shows Pro at $19 / month. There is also a yearly option shown on the pricing section, with the monthly equivalent and the saving. Prices are read live from the plan, so the pricing section always has the current figure.</p>",
+       "q": "How much does Pro cost?",
+       "a": "<p>TradeZoro is free. Some advanced tools (order flow, GEX+) are part of Pro. Open one of them, or Settings → Plan, and the Pro prompt shows the current price, read live from the plan, in your currency.</p>",
        "plans": "pro",
        "tags": [
         "price",
         "cost",
         "how much",
-        "$19",
         "monthly",
         "yearly",
         "annual"
@@ -823,12 +810,6 @@
        "related": [
         "inr-price",
         "free-vs-pro"
-       ],
-       "links": [
-        {
-         "label": "Pricing",
-         "href": "/#pricing"
-        }
        ]
       },
       {
@@ -867,15 +848,15 @@
       {
        "id": "upgrade-how",
        "q": "How do I upgrade to Pro?",
-       "a": "<p>Tap any Join Pro or See Pro button, or use the pricing section, and follow the checkout.</p><p><img src=\"/assets/help/shots/pricing-desktop.webp\" alt=\"The pricing section\"></p>",
+       "a": "<p>Tap any Join Pro or See Pro button (on a PRO tag, an order flow or GEX+ tool, or Settings → Plan) and follow the checkout.</p>",
        "steps": [
-        "Open the pricing section on the home page, or tap a PRO tag.",
+        "Tap a PRO tag, open an order flow or GEX+ tool, or open Settings → Plan.",
         "Tap Join Pro.",
         "Fill in your billing details.",
         "Add a coupon if you have one and tap Apply.",
         "Pay by card (Stripe) or, from India, in rupees (Razorpay)."
        ],
-       "path": "Home → Pricing → Join Pro",
+       "path": "PRO tag → Join Pro",
        "tags": [
         "upgrade",
         "subscribe",
@@ -887,18 +868,12 @@
         "razorpay-stripe",
         "coupon-how",
         "payment-failed"
-       ],
-       "links": [
-        {
-         "label": "Pricing",
-         "href": "/#pricing"
-        }
        ]
       },
       {
        "id": "free-trial",
        "q": "Is there a free trial?",
-       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and GEX+ are Pro. Live futures data is a separate $7/month add-on.</p>",
+       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and GEX+ are Pro. Live futures data is a separate add-on.</p>",
        "tags": [
         "trial",
         "free trial",
@@ -1370,7 +1345,7 @@
       {
        "id": "zorocharts-what",
        "q": "What is ZoroCharts?",
-       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Pro adds order flow tools and GEX on charts. CME futures are 10 minutes delayed (CME rule) unless you connect Rithmic, add live futures data ($7/month) or are approved by us. Crypto is live for everyone.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
+       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Pro adds order flow tools and GEX on charts. CME futures are 10 minutes delayed (CME rule) unless you connect Rithmic, add the live futures data add-on or are approved by us. Crypto is live for everyone.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
        "path": "ZoroCharts (dock)",
        "tags": [
         "charts",
@@ -1469,7 +1444,7 @@
       {
        "id": "data-dot",
        "q": "What is the coloured dot next to the symbol?",
-       "a": "<p>It shows the data status: green with Live, amber with 10 min delayed · CME, grey with Closed. CME futures are 10 minutes behind (CME rule) unless you connect Rithmic (Live (Rithmic)), have the $7/month live futures data add-on, or were approved by us. Forex is also delayed. Crypto from the public feeds is live. Tap or hover the dot for the full line.</p>",
+       "a": "<p>It shows the data status: green with Live, amber with 10 min delayed · CME, grey with Closed. CME futures are 10 minutes behind (CME rule) unless you connect Rithmic (Live (Rithmic)), have the live futures data add-on, or were approved by us. Forex is also delayed. Crypto from the public feeds is live. Tap or hover the dot for the full line.</p>",
        "tags": [
         "dot",
         "green",
@@ -3609,7 +3584,7 @@
        "a": "<p>First look at the data dot by the symbol. Amber 10 min delayed · CME means futures data is 10 minutes behind (CME rule). Grey Closed means the market is shut.</p>",
        "steps": [
         "Check the dot by the symbol.",
-        "On CME futures, get live data: connect Rithmic, add live futures data ($7/month), or ask us for approval.",
+        "On CME futures, get live data: connect Rithmic, add the live futures data add-on, or ask us for approval.",
         "Check your connection and refresh the page.",
         "Try crypto (e.g. BTC) to see a live feed."
        ],
@@ -3647,7 +3622,7 @@
       {
        "id": "live-futures-data",
        "q": "How do I get live futures data?",
-       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are three ways to get them live:</p><ol><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li><li><strong>Live futures data, $7/month</strong>: tap Live data $7/mo on the strip or open Settings → Live futures data. Cancel any time in Settings. Works on Free and Pro.</li><li><strong>Ask us for approval</strong>: we can switch live futures data on for your account by hand. Email support.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
+       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are three ways to get them live:</p><ol><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li><li><strong>Live futures data add-on</strong>: tap Live data on the strip (it shows the price) or open Settings → Live futures data. Cancel any time in Settings. Works on Free and Pro.</li><li><strong>Ask us for approval</strong>: we can switch live futures data on for your account by hand. Email support.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
        "plans": "all",
        "tags": [
         "live futures data",
@@ -3656,7 +3631,6 @@
         "delayed",
         "10 minutes",
         "cme rule",
-        "$7",
         "connect data source"
        ],
        "related": [
@@ -3668,7 +3642,7 @@
       {
        "id": "pro-realtime",
        "q": "I am Pro but data still shows delayed.",
-       "a": "<p>Pro does not include real-time CME futures by itself. To get live futures data, connect your Rithmic login (Connect broker), add live futures data for $7/month, or ask us for approval. If you already did and it still shows delayed, refresh the page and check Settings → Live futures data. If it still shows delayed, contact support with your account email.</p>",
+       "a": "<p>Pro does not include real-time CME futures by itself. To get live futures data, connect your Rithmic login (Connect broker), add the live futures data add-on, or ask us for approval. If you already did and it still shows delayed, refresh the page and check Settings → Live futures data. If it still shows delayed, contact support with your account email.</p>",
        "plans": "pro",
        "tags": [
         "pro delayed",

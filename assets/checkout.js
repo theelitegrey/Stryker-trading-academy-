@@ -718,14 +718,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (plan && typeof planIsArchived === 'function' && planIsArchived(plan) &&
           myPlan.toLowerCase() !== String(plan.name || '').toLowerCase()) {
         document.getElementById('checkout-plan-summary').innerHTML =
-          '<p style="color:var(--ink-3); font-size:13.5px;">This plan is no longer offered. <a href="index.html#pricing" style="color:var(--teal);">See the current plans</a>.</p>';
+          '<p style="color:var(--ink-3); font-size:13.5px;">This plan is no longer offered. <a href="/pricing" style="color:var(--teal);">See the current plans</a>.</p>';
         const btn = document.getElementById('checkout-complete-btn');
         if (btn) btn.disabled = true;
         return;
       }
       if (!plan) {
         document.getElementById('checkout-plan-summary').innerHTML =
-          '<p style="color:var(--ink-3); font-size:13.5px;">That plan could not be found — <a href="index.html#pricing" style="color:var(--teal);">choose a plan</a> and try again.</p>';
+          '<p style="color:var(--ink-3); font-size:13.5px;">That plan could not be found — <a href="/pricing" style="color:var(--teal);">choose a plan</a> and try again.</p>';
         return;
       }
       CHECKOUT_PLAN = plan;

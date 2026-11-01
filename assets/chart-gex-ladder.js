@@ -170,7 +170,7 @@ export function createLadder(root, opts) {
       const kind = rn ? 'note' : lock ? 'lock' : 'wait';
       if (st && st.kind === kind) return;
       cols[api] = { kind };
-      el.innerHTML = headHtml(api, label, lock) + (rn ? '<div class="stkgl-empty">' + esc(rn) + '</div>' : lock ? '<div class="stkgl-lock"><p>' + api + ' ladder is part of Pro.</p><a class="btn btn-primary btn-sm" href="/#pricing">See Pro</a></div>' : '<div class="stkgl-empty">Loading…</div>');
+      el.innerHTML = headHtml(api, label, lock) + (rn ? '<div class="stkgl-empty">' + esc(rn) + '</div>' : lock ? '<div class="stkgl-lock"><p>' + api + ' ladder is part of Pro.</p><a class="btn btn-primary btn-sm" href="/pricing">See Pro</a></div>' : '<div class="stkgl-empty">Loading…</div>');
       return;
     }
     if (!st || st.kind !== 'list' || st.sig !== model.sig) {

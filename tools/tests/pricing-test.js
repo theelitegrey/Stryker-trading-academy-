@@ -107,7 +107,7 @@ if (require.main === module) (async () => {
     // 1. homepage cards, USD and INR
     for (const [tz, cur] of [['America/New_York', 'USD'], ['Asia/Kolkata', 'INR']]) {
       for (const w of [1440, 390]) {
-        const p = await page(b, 'out', 'index.html', { tz, w });
+        const p = await page(b, 'out', 'pricing.html', { tz, w });
         const r = await p.evaluate(() => {
           const cards = [...document.querySelectorAll('.price-card')];
           return { names: cards.map((c) => (c.querySelector('h3') || {}).textContent), text: cards.map((c) => c.innerText).join(' | '),
@@ -174,7 +174,7 @@ if (require.main === module) (async () => {
       ok('chapter 11 free: paywall', r);
       await p.__ctx.close(); }
     // 6. one day-mode shot
-    { const p = await page(b, 'out', 'index.html', { day: true });
+    { const p = await page(b, 'out', 'pricing.html', { day: true });
       await p.evaluate(() => document.querySelectorAll('.reveal').forEach((e) => e.classList.add('in')));
       await p.waitForTimeout(900);
       await (await p.$('#pricing')).screenshot({ path: SHOTS + '/home-USD-1440-day.png' });

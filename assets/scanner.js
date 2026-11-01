@@ -205,7 +205,7 @@
         root.innerHTML = h + '<div class="scn-lock"></div>';
         var slot = root.querySelector('.scn-lock');
         if (window.strykerPlanLock) slot.appendChild(window.strykerPlanLock.card('scanner', 'scanner-custom'));
-        else slot.innerHTML = '<p class="scn-empty">Custom filters are part of Pro. <a href="/#pricing">See plans</a></p>';
+        else slot.innerHTML = '<p class="scn-empty">Custom filters are part of Pro. <a href="/pricing">See plans</a></p>';
         wire(); return;
       }
       h += filtersHtml();

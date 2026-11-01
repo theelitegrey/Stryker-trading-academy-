@@ -101,7 +101,7 @@ const rect = (el) => { const r = el.getBoundingClientRect(); return { l: r.left,
     // 1. Home pricing, USD + INR, 390 and 1280
     for (const [tz, cur] of [['America/New_York', 'USD'], ['Asia/Kolkata', 'INR']]) {
       for (const w of [390, 1280]) {
-        const p = await page(b, 'out', 'index.html', { tz, w });
+        const p = await page(b, 'out', 'pricing.html', { tz, w });
         await p.evaluate(() => document.querySelectorAll('.reveal').forEach((e) => e.classList.add('in')));
         await p.evaluate(() => document.getElementById('pricing').scrollIntoView());
         await p.waitForTimeout(900);

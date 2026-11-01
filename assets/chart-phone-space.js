@@ -212,7 +212,7 @@ export function mountPhoneSpace() {
     const scrim = document.createElement('div');
     scrim.className = 'stkms-scrim'; scrim.hidden = true;
     scrim.addEventListener('click', (e) => { e.stopPropagation(); close(); });
-    document.body.appendChild(scrim);
+    w.insertBefore(scrim, pop);   // same stacking context as the sheet (the top bar makes one), so it sits under it
     new MutationObserver(() => {
       scrim.hidden = pop.hidden || !on;
       pop.style.transform = '';

@@ -172,7 +172,7 @@ export function mountOneBar(ws){
   moreBtn.type = 'button';
   moreBtn.className = 'stkc-ib stkc-ob-more-btn';
   moreBtn.id = 'stkc-more-btn';
-  moreBtn.title = 'More';
+  moreBtn.title = 'More tools and chart options';
   moreBtn.setAttribute('aria-label', 'More toolbar items');
   moreBtn.setAttribute('aria-haspopup', 'true');
   moreBtn.setAttribute('aria-expanded', 'false');

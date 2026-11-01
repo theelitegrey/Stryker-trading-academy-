@@ -2185,6 +2185,13 @@ body.sidebar-locked .mobile-topnav{ z-index:740; }
 .mclock.is-closed .mclock-pstate{ color:var(--bear, #f23645); }
 .mclock-hours{ margin:4px 0; padding:4px 0; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft); }
 .mclock-note{ margin:8px 0 0; padding-top:8px; border-top:1px solid var(--line-soft); font-size:11.5px; line-height:1.5; color:var(--ink-3); }
+/* clock popover: legend for the dot colours (the phone pill is just a dot) */
+.mclock-legend{ display:flex; flex-wrap:wrap; gap:4px 12px; margin:8px 0 0; padding-top:8px; border-top:1px solid var(--line-soft); font-size:12px; line-height:16px; color:var(--ink-2); }
+.mclock-legend span{ display:inline-flex; align-items:center; gap:4px; }
+.mclock-legend .mclock-dot::after{ display:none; }
+.mclock-legend .is-open .mclock-dot{ --mc-dot:var(--bull, #03c988); }
+.mclock-legend .is-nosess .mclock-dot{ --mc-dot:var(--amber, #f5c542); }
+.mclock-legend .is-closed .mclock-dot{ --mc-dot:var(--bear, #f23645); }
 .mclock.fit-1 .mclock-state{ display:none; }
 .mclock.fit-1 .mclock-short{ display:inline; }
 .mclock.fit-2 .mclock-pill{ font-size:10px; gap:5px; padding:0 6px; letter-spacing:-.02em; }

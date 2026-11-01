@@ -81,3 +81,19 @@
   .support-tabs::-webkit-scrollbar { height:6px; }
   .support-tabs::-webkit-scrollbar-thumb { background:var(--line); border-radius:999px; }
 }
+
+/* Signed-in Help: Questions | My tickets switch; the Help Center DOM is re-parented into #member-faq-panel. */
+.support-view-tabs { width:100%; max-width:420px; margin-bottom:20px; }
+.support-view-tabs button { flex:1 1 0; min-height:44px; font-weight:600; }
+.support-layout.no-thread { grid-template-columns:minmax(0, 1fr); max-width:720px; }
+.member-faq .container { width:100%; max-width:none; padding-left:0; padding-right:0; }
+.member-faq .hc-hero { padding:28px 16px 24px; border:1px solid var(--line); border-radius:16px; }
+.member-faq .hc-hero h1 { font-size:clamp(24px, 4vw, 32px); line-height:1.15; }
+.member-faq .hc-hero-in { max-width:none; }
+.member-faq .hc-wrap { padding-top:20px; padding-bottom:16px; }
+.member-faq .hc-still { margin-top:32px; }
+@media (max-width:520px) {
+  .member-faq .hc-hero { padding:20px 12px 16px; }
+  .member-faq .hc-lede { margin-bottom:16px; }
+  .member-faq .hc-still { padding:20px 16px; }
+}

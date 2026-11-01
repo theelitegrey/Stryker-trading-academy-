@@ -85,7 +85,7 @@ async function open(b, vp, url, tag) {
   await ctx.addInitScript(stub);
   // Public Help regression coverage must stay signed out now that authenticated
   // members intentionally receive the private ticket shell on this URL.
-  await ctx.addInitScript(() => {
+  if (!process.env.HELP_SIGNED_IN) await ctx.addInitScript(() => {
     if (!window.__stubAuth) return;
     window.__stubAuth.currentUser = null;
     window.__stubAuth.onAuthStateChanged = (cb) => { setTimeout(() => cb(null), 10); return () => {}; };
@@ -115,7 +115,7 @@ async function suite(b, vp) {
   check(cards.every(([id, n]) => n === catCount(id)), tag + ': every card count equals the data');
   check(cards.reduce((a, c) => a + c[1], 0) === ITEMS.length, tag + ': card counts sum to ' + ITEMS.length + ' questions');
   check((await p.textContent('#hc-count')).startsWith(ITEMS.length + ' questions'), tag + ': header count says ' + ITEMS.length);
-  check(await p.$eval('h1', (h) => h.textContent) === 'Help Center', tag + ': h1 Help Center');
+  check(await p.$eval('#hc-title', (h) => h.textContent) === 'Help Center', tag + ': h1 Help Center');
   check((await p.$$eval('.hc-chip', (a) => a.length)) >= 6, tag + ': popular chips shown');
   check(await p.$eval('meta[name=robots]', (m) => m.content).catch(() => 'none') !== 'noindex', tag + ': page is indexable (no noindex)');
   const over0 = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -309,7 +309,7 @@ async function suite(b, vp) {
   await p.click('.hc-item.is-open .hc-copy'); await sleep(200);
   const clip = await p.evaluate(() => navigator.clipboard.readText().catch(() => 'n/a'));
   check(clip === BASE + '/help#refund' || clip === 'n/a', tag + ': Copy link copies the deep link (' + clip + ')');
-  check(await p.$$eval('.hc-still a', (a) => a.map((x) => x.getAttribute('href')).join('|')) === 'support|contact|mailto:support@tradezoro.com', tag + ': Still-need-help links: support, contact, support email');
+  check(await p.$$eval('.hc-still a', (a) => a.map((x) => x.getAttribute('href')).join('|')) === (process.env.HELP_SIGNED_IN ? '#new-ticket|mailto:support@tradezoro.com' : 'support|contact|mailto:support@tradezoro.com'), tag + ': Still-need-help links');
 
   // ---- no-JS fallback + JSON-LD
   const html = fs.readFileSync(path.join(ROOT, 'help.html'), 'utf8');

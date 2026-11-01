@@ -64,19 +64,74 @@
     document.body.classList.remove('help-auth-pending');
     member.hidden = !user;
     dock.hidden = !user;
+    if (!user && faqMoved) { location.reload(); return; }
     if (user) {
+      moveFaqIntoMember();
       document.querySelector('.skip-link').setAttribute('href', '#member-main');
       var name = document.querySelector('#member-help-shell .chip-name');
       if (name) name.textContent = user.displayName || user.email || 'Member';
     }
   }
 
+  var faqMoved = false;
+  // Re-parent the existing Help Center DOM (search, filters, FAQ, lightbox) into the member shell.
+  function moveFaqIntoMember() {
+    if (faqMoved) return;
+    var src = document.getElementById('main');
+    var dest = document.getElementById('member-faq-panel');
+    if (!src || !dest) return;
+    while (src.firstChild) dest.appendChild(src.firstChild);
+    faqMoved = true;
+    var h1 = dest.querySelector('.hc-hero h1');
+    if (h1) { h1.setAttribute('role', 'heading'); h1.setAttribute('aria-level', '2'); }
+    var primary = dest.querySelector('.hc-still-btns a[href="support"]');
+    if (primary) {
+      primary.textContent = 'New support ticket';
+      primary.setAttribute('href', '#new-ticket');
+      primary.addEventListener('click', function (event) { event.preventDefault(); openNewTicket(); });
+    }
+    var contact = dest.querySelector('.hc-still-btns a[href="contact"]');
+    if (contact) contact.remove();
+    var still = dest.querySelector('.hc-still p');
+    if (still) still.textContent = 'Open a private ticket and follow the replies here. Include what you were doing and what you saw.';
+  }
+
+  function ticketHash() { return /^#(tickets|ticket-[A-Za-z0-9_-]+)$/.test(location.hash); }
+  function setView(view, opts) {
+    var tickets_ = view === 'tickets';
+    document.getElementById('member-faq-panel').hidden = tickets_;
+    document.getElementById('member-tickets-panel').hidden = !tickets_;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-help-view]'), function (b) {
+      var on = b.dataset.helpView === view;
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    });
+    if (opts && opts.user) {
+      if (tickets_ && !ticketHash()) history.replaceState(null, '', location.pathname + location.search + '#tickets');
+      if (!tickets_ && ticketHash()) history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+  function openNewTicket() {
+    setView('tickets', { user:true });
+    var panel = document.getElementById('support-create');
+    panel.hidden = false;
+    panel.scrollIntoView({ block:'start' });
+    document.getElementById('support-category').focus({ preventScroll:true });
+  }
+  function syncThread() {
+    var thread = document.getElementById('support-thread');
+    var layout = document.getElementById('tickets');
+    if (!thread) return;
+    thread.hidden = !selectedId;
+    layout.classList.toggle('no-thread', !selectedId);
+  }
+
   function renderList() {
     var wrap = document.getElementById('support-ticket-list');
     if (!wrap) return;
+    syncThread();
     if (!tickets.length) {
       wrap.innerHTML = '<p class="support-state">No tickets yet. Create one when you need help from the team.</p>';
-      document.getElementById('support-thread').innerHTML = '<p class="support-state">Your conversation will appear here.</p>';
       return;
     }
     wrap.innerHTML = tickets.map(function (t) {
@@ -176,6 +231,18 @@
     });
 
     var createPanel = document.getElementById('support-create');
+    setView(ticketHash() ? 'tickets' : 'questions');
+    var tabRow = document.querySelector('.support-view-tabs');
+    tabRow.addEventListener('click', function (event) {
+      var b = event.target.closest('[data-help-view]');
+      if (b) setView(b.dataset.helpView, { user:true });
+    });
+    tabRow.addEventListener('keydown', function (event) {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      var tabs = tabRow.querySelectorAll('[data-help-view]');
+      var next = tabs[event.key === 'ArrowRight' ? 1 : 0];
+      setView(next.dataset.helpView, { user:true }); next.focus(); event.preventDefault();
+    });
     document.getElementById('support-new-btn').addEventListener('click', function () {
       createPanel.hidden = false;
       document.getElementById('support-category').focus();
@@ -241,6 +308,8 @@
 
     window.addEventListener('hashchange', function () {
       var id = hashTicket();
+      if (ticketHash()) setView('tickets');
+      else if (location.hash && location.hash !== '#new-ticket') setView('questions');
       if (id && ticketById(id)) openTicket(id, true);
     });
   });

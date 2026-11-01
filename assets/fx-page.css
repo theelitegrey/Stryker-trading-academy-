@@ -41,6 +41,7 @@
   .fx-l1{ top:auto; bottom:calc(var(--ph) * 1.27 + 40px); width:min(176px,46vw); }
   .fx-r2{ bottom:calc(var(--ph) * 1.27 - 20px); }
 }
+@media (max-width:699px){ .fx-scene.fx-nc .fx-fl{ display:none; } }
 @media (min-width:700px){
   .fx-scene{ --ph:clamp(168px,22vw,200px); --phx:12px; padding-bottom:calc(var(--ph) * .5 + 16px); }
   .fx-phone-fl{ bottom:calc(var(--ph) * -.5); }
@@ -56,17 +57,30 @@
   .fx-r2{ right:calc(var(--ph) - var(--phx) - 28px); bottom:-56px; top:auto; }
 }
 
-/* ---------- screenshot scroll story: JS adds .on to the stage layer of the current step ---------- */
-.fx-story.on{ height:calc(100vh + var(--n,5) * 62vh); }
+/* ---------- screenshot scroll story ----------
+   Default (phones, reduced motion, no JS): each step shows its screenshot inline under its text, the stage is hidden.
+   .fx-pin (set by fx-page.js, desktop + motion allowed): the stage is sticky beside the steps; the section is only as tall as the steps. */
+.fx-story{ padding-top:72px; }
+.fx-sgrid{ display:grid; grid-template-columns:1fr; gap:24px; }
+.fx-sgrid > *{ min-width:0; }
+.fx-spin{ display:none; }
+.fx-inl{ display:block; margin:12px 0 0; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--bg-0); }
+.fx-inl .fx-shot{ width:100%; height:auto; }
 .fx-stage .fx-sv{ position:relative; background:var(--bg-0); aspect-ratio:16/10; overflow:hidden; }
-.fx-sl{ position:absolute; inset:0; margin:0; opacity:1; }
+.fx-sl{ position:absolute; inset:0; margin:0; opacity:0; transform:translateY(12px) scale(.985); transition:opacity .5s var(--cm-ease), transform .6s var(--cm-ease); }
+.fx-sl.on{ opacity:1; transform:none; }
 .fx-sl .fx-shot{ width:100%; height:100%; object-fit:cover; object-position:top left; }
-.fx-story.on .fx-sl{ opacity:0; transform:translateY(12px) scale(.985); transition:opacity .5s var(--cm-ease), transform .6s var(--cm-ease); }
-.fx-story.on .fx-sl.on{ opacity:1; transform:none; }
-.fx-story .cm-steps-list{ gap:2px; } .fx-story .cm-steps-list li{ padding:8px 16px; }
-.fx-story .cm-steps-list p{ font-size:13px; line-height:18px; }
-.fx-no-js .fx-sl:not(:first-child){ display:none; }
-@media (max-width:899px){ .fx-story.on{ height:calc(100vh + var(--n,5) * 56vh); } }
+.fx-story .cm-steps-list p{ font-size:14px; line-height:20px; }
+@media (min-width:900px){
+  .fx-pin .fx-sgrid{ grid-template-columns:.8fr 1.2fr; gap:56px; align-items:start; }
+  .fx-pin .fx-spin{ display:block; position:sticky; top:calc(var(--cm-nav,64px) + 24px); }
+  .fx-pin .fx-inl{ display:none; }
+  .fx-pin .cm-steps-list{ gap:0; }
+  .fx-pin .cm-steps-list li{ min-height:42vh; opacity:.5; transition:opacity .3s var(--cm-ease), background-color .3s, border-color .3s; align-content:start; }
+  .fx-pin .cm-steps-list li:last-child{ min-height:0; }
+  .fx-pin .cm-steps-list li.on{ opacity:1; background:var(--bg-2); border-color:var(--line); }
+  .fx-pin .cm-steps-list li.done{ opacity:.8; }
+}
 
 /* ---------- bento + small grid ---------- */
 .fx-bento{ display:grid; grid-template-columns:1fr; gap:16px; }
@@ -102,4 +116,3 @@
 .fx-tri{ display:grid; grid-template-columns:1fr; gap:16px; } @media (min-width:900px){ .fx-tri{ grid-template-columns:repeat(3,1fr); } }
 
 @media (prefers-reduced-motion:reduce){ .fx-fc{ animation:none!important; } .fx-sl{ transition:none!important; } }
-html.cm-rm .fx-story .fx-sl{ opacity:1; }

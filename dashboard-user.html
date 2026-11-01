@@ -11,6 +11,7 @@
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=786">
 <link rel="stylesheet" href="assets/dash-path.css?v=786">
+<link rel="stylesheet" href="assets/mkt-viz.css?v=786">
 <!-- Kept synchronous, NOT deferred (audit P2-1 win 3 asked to check this):
      every stkEsc/stkHtml/stkUrl/stkImgUrl caller across the site (34 files,
      e.g. dashboard.js, community.js, checkout.js) is itself a plain sync
@@ -182,156 +183,107 @@
   </defs>
 </svg>
 
-    <!-- ===== HERO: the learning path ===== -->
-    <section class="gp-hero" id="gp-hero" aria-labelledby="gp-hello">
-      <div class="gp-aurora" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div class="gp-hero-top">
-        <div class="gp-hello-wrap">
-          <p class="gp-eyebrow"><span class="gp-eyebrow-dot" aria-hidden="true"></span>Your learning path</p>
-          <h1 id="gp-hello"><span id="dov-greet">Welcome back</span>, <span id="dash-first-name">Trader</span></h1>
-          <p id="dash-subtitle" class="gp-sub">Loading your progress…</p>
-        </div>
-        <div class="gp-mkt" id="gp-mkt" role="group" aria-label="US stock market clock">
-          <svg class="gpi gp-mkt-ic" aria-hidden="true" focusable="false"><use href="#gpi-clock"/></svg>
-          <div><span class="gp-mkt-k">US stocks · NYSE</span><b class="gp-mkt-v" id="gp-mkt-v">—</b></div>
-        </div>
-      </div>
-
-      <div class="gp-path-wrap">
-        <div class="gp-path-scroll" id="gp-path-scroll" tabindex="0" aria-label="Core chapters, scroll sideways">
-          <ol class="gp-path" id="gp-path" aria-label="Core chapter path">
-            <li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li>
-          </ol>
+    <!-- ===== YOUR DESK: trading-desk home ===== -->
+    <section class="dk-hero dk-rv" id="dk-hero" aria-labelledby="gp-hello">
+      <div class="dk-aurora" aria-hidden="true"><i></i><i></i></div>
+      <div class="dk-hero-l">
+        <p class="dk-pill" id="dk-session" role="status"><span class="dk-live" aria-hidden="true"></span><span id="dk-session-t">Market clock</span></p>
+        <h1 id="gp-hello"><span id="dov-greet">Welcome back</span>, <span id="dash-first-name">Trader</span></h1>
+        <p class="dk-sub">Your desk: charts, journal, replay and the market in one place.</p>
+        <div class="dk-tiles" id="dk-tiles">
+          <a class="dk-tile" href="charts.html"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-candles"/></svg><b>Open ZoroCharts</b><span>Free charts</span></a>
+          <a class="dk-tile" href="trade-journal.html"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-journal"/></svg><b>Log a trade</b><span>JournalX</span></a>
+          <a class="dk-tile" href="backtests.html"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-replay"/></svg><b>Replay One</b><span>Practise on past data</span></a>
+          <a class="dk-tile" href="gex.html" id="dk-gex" data-upgrade-reason="Pro unlocks GEX+ for every symbol."><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-gex"/></svg><b>GEX+ <em class="dk-chip-pro" id="dk-gex-pro">Pro</em></b><span>Gamma levels</span></a>
+          <a class="dk-tile" href="scanner.html"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-globe"/></svg><b>Market scanner</b><span>Movers and gaps</span></a>
         </div>
       </div>
-
-      <div class="gp-hero-bottom">
-        <div class="gp-ring" id="gp-ring" role="img" aria-label="Core chapters progress">
-          <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="gp-ring-bg" cx="32" cy="32" r="27"/><circle class="gp-ring-fg" id="gp-ring-fg" cx="32" cy="32" r="27"/></svg>
-          <div class="gp-ring-txt"><b id="gp-ring-pct">0%</b><span>core</span></div>
+      <div class="dk-viz" aria-hidden="true">
+        <div class="dk-card-tick">
+          <div class="dk-tick-head"><span class="dk-live"></span><b>ES · sample</b><em>Sample</em></div>
+          <svg id="dk-tick" viewBox="0 0 240 90" preserveAspectRatio="none"><path id="dk-tick-a" class="dk-tick-area"/><polyline id="dk-tick-l" class="dk-tick-line" points=""/></svg>
         </div>
-        <div class="gp-next">
-          <span class="gp-next-k" id="gp-next-k">Up next</span>
-          <b class="gp-next-t" id="gp-next-t"><span class="gp-skel-line"></span></b>
-          <a href="courses" class="btn btn-primary gp-cta" id="dash-resume-btn">Resume</a>
-        </div>
-        <div class="gp-chips">
-          <div class="gp-chip gp-chip-flame"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-flame"/></svg><div><b id="stat-streak">0 days</b><span>study streak</span></div></div>
-          <div class="gp-chip"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-check"/></svg><div><b id="stat-lessons">0</b><span>lessons done</span></div></div>
-        </div>
+        <span class="dk-float dk-f1"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-candles"/></svg>Charts</span>
+        <span class="dk-float dk-f2"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-replay"/></svg>Replay</span>
+        <span class="dk-float dk-f3"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-journal"/></svg>Journal</span>
       </div>
     </section>
 
     <div id="dash-onboarding" hidden></div>
 
-    <!-- ===== BANDS: one open detail per band ===== -->
-    <div class="gp-bands" id="dov">
+    <div class="dk-grid" id="dk-grid">
 
-      <section class="gp-band" id="band-learn" aria-labelledby="band-learn-h" style="--gp-band:var(--gold)">
-        <header class="gp-band-head">
-          <span class="gp-band-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-book"/></svg></span>
-          <div class="gp-band-t"><h2 id="band-learn-h">Learn</h2><p>Pick up where you left off, step by step.</p></div>
-          <div class="gp-tabs" role="tablist" aria-label="Learn">
-            <button type="button" role="tab" class="gp-tab" aria-selected="true" aria-controls="lp-next" id="lt-next">Up next</button>
-            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="lp-badges" id="lt-badges" tabindex="-1">Achievements</button>
-            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="lp-track" id="lt-track" tabindex="-1">Your track</button>
-          </div>
-        </header>
-        <div class="gp-panel" role="tabpanel" id="lp-next" aria-labelledby="lt-next">
-          <div id="continue-learning-list"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:85%"></div><div class="dov-skel" style="width:55%"></div></div>
-          <div class="gp-links">
-            <a href="courses"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-book"/></svg>Full curriculum</a><a href="models.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-model"/></svg>Trading models</a><a href="indicators"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-wave"/></svg>Indicators</a>
-          </div>
-        </div>
-        <div class="gp-panel" role="tabpanel" id="lp-badges" aria-labelledby="lt-badges" hidden>
-          <div class="gp-badges">
-            <div class="gp-badge locked" id="badge-first-chapter"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-star"/></svg><span>First chapter complete</span></div>
-            <div class="gp-badge locked" id="badge-foundations"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-book"/></svg><span>Foundations complete</span></div>
-            <div class="gp-badge locked" id="badge-structure-master"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-model"/></svg><span>Structure master</span></div>
-            <div class="gp-badge locked" id="badge-smt-certified"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-trophy"/></svg><span>SMT certified</span></div>
-          </div>
-          <a class="gp-more" href="achievements.html">See all achievements →</a>
-        </div>
-        <div class="gp-panel" role="tabpanel" id="lp-track" aria-labelledby="lt-track" hidden>
-          <div class="gp-track">
-            <div class="gp-track-row"><span>Self-paced core path</span><b id="stat-chapters">0 / 42</b></div>
-            <div class="progress-track"><div class="progress-fill" id="track-progress-fill" style="width:0%"></div></div>
-            <p class="gp-track-meta" id="track-progress-label">0 of 42 chapters · 0% complete</p>
-            <p class="gp-track-meta">Member since <b id="stat-member-since">—</b></p>
-          </div>
+      <section class="dk-sec dk-pulse dk-rv" aria-labelledby="dk-pulse-h">
+        <header class="dk-sec-h"><h2 id="dk-pulse-h">Market pulse</h2><span class="dk-sec-note" id="dk-pulse-when"></span></header>
+        <div class="dk-cards dk-cards-3">
+          <article class="dk-card dk-rv" data-tilt>
+            <div class="dk-card-h"><b>Next high-impact event</b><a href="economic-calendar.html">Calendar →</a></div>
+            <div id="dk-ev"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:45%"></div></div>
+          </article>
+          <article class="dk-card dk-rv" data-tilt>
+            <div class="dk-card-h"><b>Market map</b><a href="market-map.html">Full map →</a></div>
+            <div id="dk-map"><div class="dov-skel" style="width:90%"></div><div class="dov-skel" style="width:60%"></div></div>
+          </article>
+          <article class="dk-card dk-rv" data-tilt>
+            <div class="dk-card-h"><b>Index key levels</b><a href="market-brief.html">Brief →</a></div>
+            <div id="dk-lad"><div class="dov-skel" style="width:80%"></div><div class="dov-skel" style="width:55%"></div></div>
+          </article>
         </div>
       </section>
 
-      <section class="gp-band" id="band-tools" aria-labelledby="band-tools-h" style="--gp-band:var(--teal)">
-        <header class="gp-band-head">
-          <span class="gp-band-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-tools"/></svg></span>
-          <div class="gp-band-t"><h2 id="band-tools-h">Trade tools</h2><p>Your desk: plan, log and review.</p></div>
-          <div class="gp-tabs" role="tablist" aria-label="Trade tools">
-            <button type="button" role="tab" class="gp-tab" aria-selected="true" aria-controls="tp-tools" id="tt-tools">All tools</button>
-            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="tp-journal" id="tt-journal" tabindex="-1">JournalX</button>
-          </div>
-        </header>
-        <div class="gp-panel" role="tabpanel" id="tp-tools" aria-labelledby="tt-tools">
-          <div class="gp-tools" data-mod="gex">
-            <a class="gp-tool" href="gex.html"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-gex"/></svg></span><span class="gp-tool-t"><b>GEX+</b><span>Gamma walls, zero gamma and value areas</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
-            <a class="gp-tool" href="trade-journal"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-journal"/></svg></span><span class="gp-tool-t"><b>JournalX</b><span>Log trades, review your stats</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
-            <a class="gp-tool" href="backtests"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-replay"/></svg></span><span class="gp-tool-t"><b>Replay One</b><span>Replay sessions bar by bar</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
-            <a class="gp-tool" href="charts.html"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-candles"/></svg></span><span class="gp-tool-t"><b>ZoroCharts</b><span>Full charting workspace</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
-            <a class="gp-tool" href="smart-money.html"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-bank"/></svg></span><span class="gp-tool-t"><b>Smart money</b><span>Institutional filings</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
-            <a class="gp-tool" href="global-monitor"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-globe"/></svg></span><span class="gp-tool-t"><b>Global Monitor</b><span>The markets terminal</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
-          </div>
-        </div>
-        <div class="gp-panel" role="tabpanel" id="tp-journal" aria-labelledby="tt-journal" hidden>
-          <div class="gp-card" data-mod="journal">
-            <div id="dov-journal-body"><div class="dov-skel" style="width:60%"></div><div class="dov-skel" style="width:80%"></div><div class="dov-skel" style="width:45%"></div></div>
-          </div>
-          <a class="gp-more" href="trade-journal">Open JournalX →</a>
+      <section class="dk-sec dk-activity dk-rv" aria-labelledby="dk-act-h">
+        <header class="dk-sec-h"><h2 id="dk-act-h">Your activity</h2></header>
+        <div class="dk-cards dk-cards-3">
+          <article class="dk-card dk-rv" data-tilt>
+            <div class="dk-card-h"><b>Chart layouts</b><a href="charts.html">Charts →</a></div>
+            <div id="dk-layouts"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:50%"></div></div>
+          </article>
+          <article class="dk-card dk-rv" data-tilt>
+            <div class="dk-card-h"><b>JournalX this week</b><a href="trade-journal.html">Journal →</a></div>
+            <div id="dk-journal"><div class="dov-skel" style="width:60%"></div><div class="dov-skel" style="width:80%"></div></div>
+          </article>
+          <article class="dk-card dk-rv" data-tilt>
+            <div class="dk-card-h"><b>Replay One</b><a href="backtests.html">Sessions →</a></div>
+            <div id="dk-replay"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:45%"></div></div>
+          </article>
         </div>
       </section>
 
-      <section class="gp-band" id="band-market" aria-labelledby="band-market-h" style="--gp-band:var(--amber)">
-        <header class="gp-band-head">
-          <span class="gp-band-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-pulse"/></svg></span>
-          <div class="gp-band-t"><h2 id="band-market-h">Market today</h2><p>Context before the session, in one place.</p></div>
-          <div class="gp-tabs" role="tablist" aria-label="Market today">
-            <button type="button" role="tab" class="gp-tab" aria-selected="true" aria-controls="mp-brief" id="mt-brief">Briefing</button>
-            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="mp-markets" id="mt-markets" tabindex="-1">Markets</button>
-            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="mp-pre" id="mt-pre" tabindex="-1">Pre-market</button>
+      <section class="dk-sec dk-learn dk-rv" aria-labelledby="dk-learn-h">
+        <header class="dk-sec-h"><h2 id="dk-learn-h">Learn</h2><a class="dk-sec-link" href="courses">Curriculum →</a></header>
+        <article class="dk-card dk-learn-card">
+          <div class="gp-ring dk-ring" id="gp-ring" role="img" aria-label="Core chapters progress">
+            <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="gp-ring-bg" cx="32" cy="32" r="27"/><circle class="gp-ring-fg" id="gp-ring-fg" cx="32" cy="32" r="27"/></svg>
+            <div class="gp-ring-txt"><b id="gp-ring-pct">0%</b><span>core</span></div>
           </div>
-        </header>
-        <div class="gp-panel" role="tabpanel" id="mp-brief" aria-labelledby="mt-brief">
-          <div class="gp-card dov-brief">
-            <div class="dov-brief-head"><b>Daily briefing</b><span class="dov-date" id="dov-brief-date"></span></div>
-            <div id="dov-brief-body"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:60%"></div></div>
+          <div class="dk-learn-mid">
+            <span class="gp-next-k" id="gp-next-k">Up next</span>
+            <b class="gp-next-t" id="gp-next-t"><span class="gp-skel-line"></span></b>
+            <div class="dk-learn-chips"><span class="dk-mini"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-flame"/></svg><b id="stat-streak">0 days</b> streak</span><span class="dk-mini"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-check"/></svg><b id="stat-lessons">0</b> lessons</span></div>
           </div>
-        </div>
-        <div class="gp-panel" role="tabpanel" id="mp-markets" aria-labelledby="mt-markets" hidden>
-          <div class="gp-card" data-mod="markets">
-            <div id="dov-markets-body"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:55%"></div><div class="dov-skel" style="width:65%"></div></div>
-          </div>
-          <a class="gp-more" href="global-monitor">Open Global Monitor →</a>
-        </div>
-        <div class="gp-panel" role="tabpanel" id="mp-pre" aria-labelledby="mt-pre" hidden>
-          <div id="dash-brief" hidden></div>
-          <div id="dash-cal" hidden></div>
-          <div id="dash-map" hidden></div>
-          <div class="gp-links">
-            <a href="market-brief.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-brief"/></svg>Pre-market brief</a><a href="economic-calendar.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-calendar"/></svg>Economic calendar</a><a href="market-map.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-map"/></svg>Market map</a>
-          </div>
-        </div>
+          <a href="courses" class="btn btn-primary btn-sm gp-cta" id="dash-resume-btn">Resume</a>
+          <div class="gp-path-wrap dk-path"><div class="gp-path-scroll" id="gp-path-scroll" tabindex="0" aria-label="Core chapters, scroll sideways"><ol class="gp-path" id="gp-path" aria-label="Core chapter path"><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li></ol></div></div>
+        </article>
       </section>
 
-      <section class="gp-band" id="band-community" aria-labelledby="band-community-h" style="--gp-band:#7fb4ff">
-        <header class="gp-band-head">
-          <span class="gp-band-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-people"/></svg></span>
-          <div class="gp-band-t"><h2 id="band-community-h">Community</h2><p>Learn alongside other members.</p></div>
-        </header>
-        <div class="gp-panel" id="cp-floor">
-          <div class="gp-card" data-mod="floor">
-            <div id="dov-floor-body"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:50%"></div><div class="dov-skel" style="width:65%"></div></div>
-          </div>
-          <div class="gp-links">
-            <a href="trading-floor"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-people"/></svg>Trading floor</a><a href="messages.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-chat"/></svg>Messages</a><a href="referrals.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-gift"/></svg>Invite friends</a>
+      <section class="dk-sec dk-comm dk-rv" aria-labelledby="dk-comm-h">
+        <header class="dk-sec-h"><h2 id="dk-comm-h">Community and creators</h2><a class="dk-sec-link" href="trading-floor.html">Trading Floor →</a></header>
+        <div class="dk-cards dk-cards-2">
+          <article class="dk-card dk-rv" data-tilt>
+            <div class="dk-card-h"><b>Latest on the floor</b></div>
+            <div id="dk-floor"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:50%"></div><div class="dov-skel" style="width:65%"></div></div>
+          </article>
+          <div class="dk-stack">
+            <article class="dk-card dk-creator dk-rv" data-tilt>
+              <div class="dk-card-h"><b>Creator Hub</b></div>
+              <p id="dk-cr-t">Start your trading community. Share ideas and chart layouts with your own members.</p>
+              <a class="btn btn-ghost btn-sm" id="dk-cr-a" href="creator-new.html">Start your community</a>
+            </article>
+            <article class="dk-card dk-pro dk-rv" id="dk-pro" data-tilt hidden>
+              <div class="dk-card-h"><b>Pro adds Order Flow and GEX+</b></div>
+              <p>See where the volume traded and where gamma levels sit, on top of everything free.</p>
+              <button type="button" class="btn btn-primary btn-sm" data-open-plan-modal data-upgrade-reason="Pro adds Order Flow and GEX+.">See Pro</button>
+            </article>
           </div>
         </div>
       </section>
@@ -408,10 +360,11 @@
 <script src="assets/onboarding.js?v=786"></script>
 <script src="assets/tour.js?v=786"></script>
 <script src="assets/journal-calc.js?v=786"></script>
-<script src="assets/dash-overview.js?v=786"></script>
 <script src="assets/dash-nav.js?v=786"></script>
 <script src="assets/market-hours.js?v=786"></script>
 <script src="assets/theme.js?v=786"></script>
 <script src="assets/dash-path.js?v=786"></script>
+<script src="assets/mkt-viz.js?v=786"></script>
+<script src="assets/dash-desk.js?v=786"></script>
 </body>
 </html>

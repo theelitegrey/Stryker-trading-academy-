@@ -59,6 +59,41 @@
       stop(); draw();
     })();
 
+    // ------------------------------------------------------------ 1b. phone demo (sample data ticking) + real-time pill
+    var scene = doc.querySelector('.zc-main .cm-scene'), phone = doc.querySelector('[data-zc-phone]'), sceneOn = true;
+    if (scene && 'IntersectionObserver' in window) new IntersectionObserver(function (es) { sceneOn = es[0].isIntersecting; scene.classList.toggle('zc-off', !sceneOn); }).observe(scene);
+    if (phone) (function () {
+      var svg = phone.querySelector('svg'), W = 200, H = 300, PR = 40, N = 28, st = (W - PR) / N, r = rng(77);
+      var a = walk(N, 21400, 0.0016, 77);
+      function draw() {
+        var lo = 1e12, hi = 0; a.forEach(function (x) { lo = Math.min(lo, x[2]); hi = Math.max(hi, x[1]); });
+        var pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+        var Y = function (v) { return 8 + (hi - v) / (hi - lo) * (H - 16); }, X = function (i) { return i * st + st / 2; };
+        svg.textContent = '';
+        for (var i = 0; i < 4; i++) { var y = 8 + i * (H - 16) / 3; el('line', { x1: 0, x2: W - PR, y1: y, y2: y, class: 'gl' }, svg); el('text', { x: W - PR + 4, y: y + 3, class: 'ax' }, svg).textContent = Math.round(hi - i * (hi - lo) / 3); }
+        var m = 0, d = '', kf = 2 / 8;
+        a.forEach(function (b, k) { var g = el('g', { class: b[3] >= b[0] ? 'u' : 'd' }, svg); el('line', { x1: X(k), x2: X(k), y1: Y(b[1]), y2: Y(b[2]), 'stroke-width': 1 }, g); el('rect', { x: X(k) - st * 0.32, width: st * 0.64, y: Math.min(Y(b[0]), Y(b[3])), height: Math.max(1.5, Math.abs(Y(b[0]) - Y(b[3]))) }, g); m = k ? b[3] * kf + m * (1 - kf) : b[3]; d += (k ? 'L' : 'M') + X(k).toFixed(1) + ' ' + Y(m).toFixed(1); });
+        el('path', { d: d, class: 'ema' }, svg);
+        var c = a[N - 1][3], cy = Y(c); el('line', { x1: 0, x2: W - PR, y1: cy, y2: cy, class: 'pl' }, svg); el('rect', { x: W - PR + 1, y: cy - 7, width: PR - 2, height: 14, rx: 3, class: 'plb' }, svg); el('text', { x: W - PR + 4, y: cy + 3, class: 'plt' }, svg).textContent = Math.round(c);
+      }
+      draw();
+      if (rm) return;
+      var t = 0;
+      setInterval(function () {
+        if (!sceneOn || doc.hidden) return;
+        var b = a[N - 1], c = b[3] * (1 + (r() - 0.5) * 0.0012); b[3] = c; b[1] = Math.max(b[1], c); b[2] = Math.min(b[2], c);
+        if (++t % 8 === 0) { a.shift(); a.push([c, c, c, c, 0.5]); }
+        draw();
+      }, 700);
+    })();
+    var rt = doc.querySelector('.zc-rt');
+    if (rt) { // tap toggles the tooltip on touch; hover/focus handle desktop in CSS
+      var rb = rt.querySelector('button');
+      rb.addEventListener('click', function (e) { e.stopPropagation(); var o = !rt.classList.contains('open'); rt.classList.toggle('open', o); rb.setAttribute('aria-expanded', String(o)); });
+      doc.addEventListener('click', function () { rt.classList.remove('open'); rb.setAttribute('aria-expanded', 'false'); });
+      doc.addEventListener('keydown', function (e) { if (e.key === 'Escape') { rt.classList.remove('open'); rb.setAttribute('aria-expanded', 'false'); } });
+    }
+
     // ------------------------------------------------------------ 2. scroll story
     var story = doc.querySelector('[data-zc-story]');
     if (story) (function () {

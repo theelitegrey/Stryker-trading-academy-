@@ -332,6 +332,7 @@
         '<div class="mclock-row"><span class="mclock-pmkl">Market</span><b class="mclock-pmk"></b></div>' +
         '<div class="mclock-row"><span>Next</span><b class="mclock-pnext"></b></div>' +
         '<div class="mclock-hours"></div>' +
+        '<div class="mclock-legend" aria-label="Dot colours"><span class="is-open"><i class="mclock-dot"></i>Session open</span><span class="is-nosess"><i class="mclock-dot"></i>Between sessions</span><span class="is-closed"><i class="mclock-dot"></i>Market closed</span></div>' +
         '<p class="mclock-note">Session hours in your time zone. Asia 09:00-18:00 Tokyo, London 08:00-17:00 London, New York 08:00-17:00 New York, Mon-Fri; each follows its own city\'s daylight saving. Market = CME equity-index futures (NQ/ES): Sun 18:00 to Fri 17:00 New York time, daily break 17:00-18:00. A clock from the calendar, not market data. Holidays not included.</p>' +
       '</div>';
     var right = host.querySelector('.topnav-right');
@@ -368,6 +369,8 @@
       w.classList.toggle('is-open', l.state === 'session');
       w.classList.toggle('is-nosess', l.state === 'nosession');
       w.classList.toggle('is-closed', l.state === 'closed');
+      var tip = 'Session clock: ' + l.head;   // the phone shows only the dot, so name its meaning
+      if (pill.title !== tip) { pill.title = tip; pill.setAttribute('aria-label', tip); }
       setAll('.mclock-head', l.head);
       setAll('.mclock-tail', l.tail ? '\u00b7 ' + l.tail : '');
       setAll('.mclock-shead', l.shortHead);

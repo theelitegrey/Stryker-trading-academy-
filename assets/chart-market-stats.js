@@ -102,6 +102,7 @@ function layer() {
     if (!chip && canvas && canvas.parentElement) {
       chip = document.createElement('div');
       chip.className = 'stk-gex-chip stk-ms-chip';
+      chip.hidden = true;   // no empty grey pill before the first text (the stray handle under the toolbar)
       canvas.parentElement.appendChild(chip);
     }
     if (!chip || text === last) return;

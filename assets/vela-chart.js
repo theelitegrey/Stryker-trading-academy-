@@ -299,9 +299,28 @@ setTimeout(measureFrame, 4000);
 // ---- tiny popover helper (toolbar menus + credits) ----
 const pops = [];
 function bindPopover(btn, pop, onOpen){
+  // phone (<600 px, style.css .stkc-sheet): the menu is a bottom sheet over a scrim; tap the scrim to close
+  let scrim = null;
   const set = (open) => {
+    const was = !pop.hidden;
     pop.hidden = !open;
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (pop.classList.contains('stkc-sheet')) {
+      if (!scrim && pop.parentNode) {
+        scrim = document.createElement('div');
+        scrim.className = 'stkc-scrim';
+        scrim.addEventListener('click', (e) => { e.stopPropagation(); set(false); });
+        pop.parentNode.insertBefore(scrim, pop);
+      }
+      if (scrim) scrim.hidden = !open;
+      // a phone sheet closing (X, swipe, tap outside, Apply) goes back to the chart, not to the ⋯ list it came from
+      const list = was && !open && pop.closest('#stkc-more-pop');
+      if (list && !list.hidden) document.body.click();
+      pop.style.transform = '';
+      // slide up once per open (script animation: the onebar re-homes the menu every clock tick, which would restart a CSS one)
+      if (open && pop.animate && matchMedia('(max-width:599px) and (prefers-reduced-motion: no-preference)').matches)
+        pop.animate([{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,0,0,1)' });
+    }
     if (open && onOpen) onOpen();
   };
   btn.addEventListener('click', (e) => {
@@ -316,6 +335,27 @@ function bindPopover(btn, pop, onOpen){
 }
 document.addEventListener('click', () => pops.forEach((p) => { if (!p.pop.hidden) p.set(false); }));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') pops.forEach((p) => { if (!p.pop.hidden) p.set(false); }); });
+// Sheet header (grabber, title, one-line subtitle, round close). Shown only on phones (style.css);
+// dragging it down more than 64 px closes the sheet.
+function sheetHead(pop, title, sub){
+  const close = () => { const p = pops.find((x) => x.pop === pop); if (p) p.set(false); };
+  const x = document.createElement('button');
+  x.type = 'button'; x.className = 'stkc-sh-x'; x.setAttribute('aria-label', 'Close');
+  x.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  x.addEventListener('click', close);
+  const h = document.createElement('div');
+  h.className = 'stkc-sh';
+  h.innerHTML = '<span class="stkc-sh-grab" aria-hidden="true"></span><div class="stkc-sh-t"><h2></h2><p></p></div>';
+  h.querySelector('h2').textContent = title;
+  const p = h.querySelector('p'); if (sub) p.textContent = sub; else p.remove();
+  h.appendChild(x);
+  let y0 = null, dy = 0;
+  h.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; y0 = e.clientY; dy = 0; pop.style.transition = 'none'; try { h.setPointerCapture(e.pointerId); } catch (er) {} });
+  h.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); pop.style.transform = 'translateY(' + dy + 'px)'; });
+  const end = () => { if (y0 == null) return; y0 = null; pop.style.transition = ''; pop.style.transform = ''; if (dy > 64) close(); };
+  h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+  return h;
+}
 
 const credBtn = document.getElementById('stkc-credits-btn');
 const credPop = document.getElementById('stkc-credits');
@@ -789,7 +829,7 @@ function lateLists(provider){
   // Templates menu
   const tplBtn = el('button', { type: 'button', class: 'stkc-btn', id: 'stkc-tpl-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Templates',
     html: icon('<path d="M6 4h12v16l-6-4-6 4z"/>') + '<span class="stkc-btn-l">Templates</span>' });
-  const tplPop = el('div', { class: 'stkc-pop stkc-tpl', id: 'stkc-tpl-pop', role: 'dialog', 'aria-label': 'Templates', hidden: '' });
+  const tplPop = el('div', { class: 'stkc-pop stkc-sheet stkc-tpl', id: 'stkc-tpl-pop', role: 'dialog', 'aria-label': 'Templates', hidden: '' });
   const tplWrap = el('div', { class: 'stkc-menu' }, [tplBtn, tplPop]);
   const setTpl = bindPopover(tplBtn, tplPop, () => renderTemplates());
 
@@ -1045,9 +1085,9 @@ function lateLists(provider){
 
   // Built-in starters (read-only, never stored).
   const STARTERS = [
-    { id: 'starter:nq-scalp', name: 'NQ scalping', layout: '2h', cells: [['futures:NQ1!', '1'], ['futures:NQ1!', '5']], sync: { crosshair: true, viewport: true } },
-    { id: 'starter:index-pair', name: 'Index pair', layout: '2h', cells: [['futures:NQ1!', '5'], ['futures:ES1!', '5']], sync: {} },
-    { id: 'starter:quad', name: 'Quad', layout: '4', cells: [['futures:NQ1!', '15'], ['futures:ES1!', '15'], ['futures:GC1!', '15'], ['futures:CL1!', '15']], sync: {} }
+    { id: 'starter:nq-scalp', name: 'NQ scalping', desc: 'NQ 1m + 5m side by side, synced', layout: '2h', cells: [['futures:NQ1!', '1'], ['futures:NQ1!', '5']], sync: { crosshair: true, viewport: true } },
+    { id: 'starter:index-pair', name: 'Index pair', desc: 'NQ + ES on 5m', layout: '2h', cells: [['futures:NQ1!', '5'], ['futures:ES1!', '5']], sync: {} },
+    { id: 'starter:quad', name: 'Quad', desc: 'NQ, ES, gold, crude on 15m', layout: '4', cells: [['futures:NQ1!', '15'], ['futures:ES1!', '15'], ['futures:GC1!', '15'], ['futures:CL1!', '15']], sync: {} }
   ];
 
   function applyStarter(s){
@@ -1121,8 +1161,8 @@ function lateLists(provider){
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
   function mountLayoutMenu(){
-    import('./chart-layouts.js?v=779')
-      .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
+    import('./chart-layouts.js?v=777')
+      .then((m) => m.mountLayouts(ws, { barL, bindPopover, sheetHead, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
       .catch((e) => console.warn('TradeZoro: layout menu', e));
   }
   if (!T) { tplWrap.hidden = true; mountLayoutMenu(); return; }
@@ -1138,8 +1178,9 @@ function lateLists(provider){
     try { const r = await T.list(); list = r.items; defId = r.defaultId; note = r.note || ''; }
     catch (e) { note = 'Could not load your templates.'; }
     tplPop.innerHTML = '';
+    tplPop.appendChild(sheetHead(tplPop, 'Templates', T.signedIn() ? 'Saved to your account' : 'Saved in this browser. Sign in to keep them on your account.'));
 
-    const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: String(T.NAME_MAX), placeholder: 'Template name', 'aria-label': 'Template name' });
+    const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: String(T.NAME_MAX), placeholder: 'Name this chart setup', 'aria-label': 'Template name', enterkeyhint: 'done' });
     const saveBtn = el('button', { type: 'button', class: 'stkc-sbtn', text: 'Save' });
     const setupBtn = el('button', { type: 'button', class: 'stkc-sbtn stkc-sbtn-2', text: 'Save as setup', title: 'Indicators, settings and panes only. Applies to any symbol and keeps your drawings.' });
     const doSave = async (setup) => {
@@ -1154,14 +1195,14 @@ function lateLists(provider){
     saveBtn.addEventListener('click', () => doSave(false));
     setupBtn.addEventListener('click', () => doSave(true));
     nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(false); });
-    tplPop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Save current as…' }));
+    tplPop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Save current chart' }));
     tplPop.appendChild(el('div', { class: 'stkc-saverow' }, [nameIn, saveBtn]));
     tplPop.appendChild(el('div', { class: 'stkc-saverow stkc-saverow-2' }, [setupBtn]));
     const msg = lastErr || note;
     if (msg) tplPop.appendChild(el('p', { class: 'stkc-err', role: 'status', text: msg }));
 
     tplPop.appendChild(el('p', { class: 'stkc-pop-h', text: 'My templates' + (list.length ? ' (' + list.length + '/' + T.MAX_COUNT + ')' : '') }));
-    if (!list.length) tplPop.appendChild(el('p', { class: 'stkc-empty', text: 'None saved yet.' }));
+    if (!list.length) tplPop.appendChild(el('div', { class: 'stkc-tpl-empty' }, [el('span', { class: 'stkc-mi-ic', html: icon('<path d="M6 4h12v16l-6-4-6 4z"/>') }), el('span', { text: 'Name the chart above and tap Save to keep it here.' })]));
     const ul = el('ul', { class: 'stkc-tlist' });
     list.forEach((t) => ul.appendChild(row(t, t.id === defId)));
     tplPop.appendChild(ul);
@@ -1170,9 +1211,9 @@ function lateLists(provider){
     const ul2 = el('ul', { class: 'stkc-tlist' });
     STARTERS.forEach((s) => ul2.appendChild(row(Object.assign({ starter: true }, s), s.id === defId)));
     tplPop.appendChild(ul2);
-    tplPop.appendChild(el('p', { class: 'stkc-note', text: T.signedIn() ? 'Saved to your account. The default opens when this browser has no chart session yet.' : 'Saved in this browser. Sign in to keep them on your account.' }));
   }
 
+  const STAR = '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"';
   function row(t, isDef){
     const li = el('li', { class: 'stkc-trow' + (isDef ? ' is-def' : '') });
     if (editing === t.id && !t.starter) {
@@ -1193,13 +1234,17 @@ function lateLists(provider){
       setTimeout(() => inp.focus(), 0);
       return li;
     }
-    li.appendChild(el('button', { type: 'button', class: 'stkc-tname', title: 'Load',
-      onclick: () => { applyAny(t); setTpl(false); } }, [el('span', { text: t.name }), isDef ? el('em', { text: 'default' }) : null]));
+    const sub = [t.desc, isDef ? 'Default' : ''].filter(Boolean).join(' · ');
+    li.appendChild(el('button', { type: 'button', class: 'stkc-tname', title: 'Apply ' + t.name, 'aria-label': 'Apply ' + t.name,
+      onclick: () => { applyAny(t); setTpl(false); toast('Applied "' + t.name + '"'); } }, [
+      el('span', { class: 'stkc-mi-t' }, [el('span', { class: 'stkc-mi-l', text: t.name }), sub ? el('small', { class: 'stkc-mi-s', text: sub }) : null]),
+      el('span', { class: 'stkc-tapply', 'aria-hidden': 'true', text: 'Apply' })]));
     const acts = el('span', { class: 'stkc-tacts' });
-    acts.appendChild(el('button', { type: 'button', class: 'stkc-ib' + (isDef ? ' on' : ''),
-      title: isDef ? 'Default (click to clear)' : 'Set as default', 'aria-label': (isDef ? 'Clear default: ' : 'Set as default: ') + t.name, 'aria-pressed': isDef ? 'true' : 'false',
-      html: icon('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"' + (isDef ? ' fill="currentColor"' : '') + '/>'),
-      onclick: async () => { try { await T.setDefault(isDef ? null : t.id); lastErr = ''; } catch (e) { lastErr = 'Could not set the default.'; } renderTemplates(); } }));
+    const defTip = isDef ? 'Default: opens when this browser has no chart yet. Tap to clear.' : 'Set as default: opens when this browser has no chart yet';
+    acts.appendChild(el('button', { type: 'button', class: 'stkc-ib stkc-tstar' + (isDef ? ' on' : ''),
+      title: defTip, 'aria-label': (isDef ? 'Clear default: ' : 'Set as default: ') + t.name, 'aria-pressed': isDef ? 'true' : 'false',
+      html: icon(STAR + (isDef ? ' fill="currentColor"' : '') + '/>'),
+      onclick: async () => { try { await T.setDefault(isDef ? null : t.id); lastErr = ''; toast(isDef ? 'Default cleared' : '"' + t.name + '" is now your default'); } catch (e) { lastErr = 'Could not set the default.'; } renderTemplates(); } }));
     if (!t.starter) {
       acts.appendChild(el('button', { type: 'button', class: 'stkc-ib', title: 'Rename', 'aria-label': 'Rename ' + t.name,
         html: icon('<path d="M4 20h4L19 9l-4-4L4 16z"/>'), onclick: () => { editing = t.id; renderTemplates(); } }));

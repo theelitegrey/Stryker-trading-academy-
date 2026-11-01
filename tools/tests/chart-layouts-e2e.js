@@ -114,8 +114,10 @@ const btnText = (p) => p.$eval('#stkl-btn', (e) => e.textContent.trim());
     t('A: delete from Open dialog', rows3.length === 0 && n3 === 2, { rows3, n3 });
     // Share on
     await A.p.click('#stkl-btn');
-    await A.p.click('#stkl-pop .stkg-swrow:has-text("Share layout") input');
+    await A.p.click('#stkl-pop .stkl-item:has-text("Share link")');   // opens the Share layout sheet
+    await A.p.click('.stkl-dlg .stkg-swrow:has-text("Share with a link") input');
     await A.p.waitForTimeout(2500);
+    await A.p.keyboard.press('Escape');   // close the Share layout sheet
     shareId = await L(A.p, () => window.STRYKER_LAYOUTS.current.shared && window.STRYKER_LAYOUTS.current.id);
     const clip = await A.p.evaluate(() => navigator.clipboard.readText().catch(() => ''));
     t('A: share on + link copied', shareId === id1 && clip.endsWith('?layout=' + id1), clip);
@@ -176,8 +178,10 @@ const btnText = (p) => p.$eval('#stkl-btn', (e) => e.textContent.trim());
 
     // ================= A turns share off -> link fails
     await A.p.click('#stkl-btn');
-    await A.p.click('#stkl-pop .stkg-swrow:has-text("Share layout") input');
+    await A.p.click('#stkl-pop .stkl-item:has-text("Share link")');   // opens the Share layout sheet
+    await A.p.click('.stkl-dlg .stkg-swrow:has-text("Share with a link") input');
     await A.p.waitForTimeout(2500);
+    await A.p.keyboard.press('Escape');   // close the Share layout sheet
     const B2 = await session(b, 'B', 1440, 900, '/charts?layout=' + id1);
     await B2.p.waitForTimeout(3000);
     const gone = await L(B2.p, async (id) => ({ viewing: window.STRYKER_LAYOUTS.viewing, toast: [...document.querySelectorAll('.toast, [class*=toast]')].map((x) => x.textContent).join(' | ').slice(0, 200), get: await firebase.firestore().collection('chartShared').doc(id).get().then((d) => d.exists ? 'EXISTS' : 'MISSING').catch((e) => e.code) }), id1);

@@ -124,6 +124,7 @@ async function run(b, v09, w, h, doItems) {
   const EXPECT = {
     'Data source & credits': () => !document.getElementById('stkc-credits').hidden,
     'Templates': () => !document.getElementById('stkc-tpl-pop').hidden,
+    'Connect data (Rithmic)': () => { const e = document.getElementById('stkrb-pop'); return !!(e && !e.hidden && e.getClientRects().length); },
     'Pine Script editor': () => { const e = document.getElementById('stkc-pine'); return !!(e && !e.hidden && e.getClientRects().length); },
     'Full screen': () => document.documentElement.classList.contains('stk-chart-fs'),
     'Chart settings': () => [...document.querySelectorAll('body *')].some((e) => e.children.length === 0 && /^Apply to all$/.test(e.textContent.trim()) && e.getClientRects().length),

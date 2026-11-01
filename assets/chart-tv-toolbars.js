@@ -345,7 +345,7 @@ export function mountTvToolbars(ws, opts){
   // ------------------------------------------------------------------ top: tooltips
   // TradingView shows a tooltip on every toolbar control; Vela's symbol and Indicators have none.
   [['.vela-widget-symbol', 'Symbol search'], ['.vela-widget-indicators', 'Indicators, metrics and strategies (/)'], ['.vela-mb-symbol', 'Symbol search'],
-   ['.vela-mb-tf', 'Interval'], ['.vela-mb-indicators', 'Indicators'], ['.vela-mb-drawings', 'Drawing tools'], ['.vela-mb-more', 'Chart menu']].forEach(([sel, t]) => {
+   ['.vela-mb-tf', 'Interval'], ['.vela-mb-indicators', 'Indicators'], ['.vela-mb-drawings', 'Drawing tools'], ['.vela-mb-more', 'Object tree & chart menu']].forEach(([sel, t]) => {
     document.querySelectorAll(sel).forEach((b) => { if (!b.title) b.title = t; });
   });
 

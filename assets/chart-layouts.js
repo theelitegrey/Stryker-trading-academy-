@@ -169,8 +169,8 @@ export function mountLayouts(ws, o){
 
   // ---- toolbar button + menu ----
   const btn = el('button', { type: 'button', class: 'stkc-btn stkl-btn', id: 'stkl-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false',
-    title: 'Layouts: whole saved charts (grid, symbols, drawings, indicators). Templates are reusable style and indicator presets.' });
-  const pop = el('div', { class: 'stkc-pop stkl-pop', id: 'stkl-pop', role: 'menu', 'aria-label': 'Layout', hidden: '' });
+    title: 'Layout menu: save, share and open whole charts' });
+  const pop = el('div', { class: 'stkc-pop stkc-sheet stkl-pop', id: 'stkl-pop', role: 'menu', 'aria-label': 'Layout', hidden: '' });
   const wrap = el('div', { class: 'stkc-menu stkl-menu' }, [btn, pop]);
   barL.insertBefore(wrap, barL.firstChild);
   const setOpen = bindPopover(btn, pop, () => renderMenu());
@@ -185,57 +185,95 @@ export function mountLayouts(ws, o){
 
   const auto = () => lsGet(K.auto(), true) !== false;
 
+  // Menu rows (Owner 2026-11-01 "cleaner chart menus on phone"): leading icon, title, optional one-line
+  // sub-label, grouped under small headers; a bottom sheet on phones (style.css .stkc-sheet).
+  const IC = {
+    save: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
+    auto: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
+    copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+    rename: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+    add: '<path d="M12 5v14M5 12h14"/>',
+    open: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    lib: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+    share: '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/>',
+    link: '<path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/>',
+    dl: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+    recent: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    leave: '<path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/>',
+    signin: '<path d="M14 4h5v16h-5M10 8l4 4-4 4M14 12H4"/>',
+    chev: '<path d="M9 6l6 6-6 6"/>'
+  };
+  const svg = (k) => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[k] + '</svg>';
+  const lead = (k) => el('span', { class: 'stkc-mi-ic', html: svg(k) });
+  const txt = (label, sub) => el('span', { class: 'stkc-mi-t' }, [el('span', { class: 'stkc-mi-l', text: label }), sub ? el('small', { class: 'stkc-mi-s', text: sub }) : null]);
   function item(label, opts){
-    const b = el('button', { type: 'button', class: 'stkc-item stkl-item', role: 'menuitem' }, [el('span', { text: label }), opts && opts.kbd ? el('kbd', { text: opts.kbd }) : null]);
-    if (opts && opts.disabled) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); }
+    const b = el('button', { type: 'button', class: 'stkc-item stkc-mi stkl-item', role: 'menuitem' }, [opts.icon ? lead(opts.icon) : null, txt(label, opts.sub),
+      opts.kbd ? el('kbd', { text: opts.kbd }) : null, opts.chev ? el('span', { class: 'stkc-mi-end', html: svg('chev') }) : null]);
+    if (opts.disabled) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); }
     b.addEventListener('click', () => { setOpen(false); opts.run(); });
     return b;
   }
-  function sw(label, on, disabled, fn, tip){
-    const cb = el('input', { type: 'checkbox', role: 'switch', class: 'stkg-sw' });
+  function sw(label, on, disabled, fn, tip, icon, sub){
+    const cb = el('input', { type: 'checkbox', role: 'switch', class: 'stkg-sw', 'aria-label': label });
     cb.checked = !!on; cb.disabled = !!disabled;
     cb.addEventListener('change', () => fn(cb.checked, cb));
-    return el('label', { class: 'stkg-swrow', title: tip || '' }, [el('span', { text: label }), cb]);
+    return el('label', { class: 'stkg-swrow stkc-mi', title: tip || '' }, [icon ? lead(icon) : null, txt(label, sub), cb]);
   }
+  const head = (t) => el('p', { class: 'stkc-pop-h', text: t });
 
   function renderMenu(){
     pop.innerHTML = '';
     const signed = !!user();
+    const name = viewing ? 'Viewing: ' + viewing.name : (cur ? cur.name : 'Unsaved layout');
+    if (o.sheetHead) pop.appendChild(o.sheetHead(pop, 'Chart', name + (cur && dirty && !viewing ? ' · unsaved changes' : '')));
     if (viewing) {
       pop.appendChild(el('p', { class: 'stkl-view', text: 'Read-only: a layout shared by another member. Make a copy to keep it.' }));
-      pop.appendChild(item('Make a copy…', { run: () => askName('Make a copy', viewing.name + ' (copy)', saveAsNew) }));
-      pop.appendChild(item('Leave shared layout', { run: leaveShared }));
-      pop.appendChild(el('hr', { class: 'stkl-hr' }));
+      pop.appendChild(item('Make a copy…', { icon: 'copy', run: () => askName('Make a copy', viewing.name + ' (copy)', saveAsNew) }));
+      pop.appendChild(item('Leave shared layout', { icon: 'leave', run: leaveShared }));
+    } else if (!signed) {
+      // Signed out: no greyed rows, one way forward.
+      const a = el('a', { class: 'stkc-item stkc-mi stkl-item', role: 'menuitem', href: 'login.html?next=' + encodeURIComponent(location.pathname) }, [lead('signin'), txt('Sign in to save layouts', 'Keep charts on your account and share them')]);
+      pop.appendChild(a);
     } else {
-      pop.appendChild(item('Layouts library…', { run: () => lib && lib.open(), disabled: !signed }));
-      pop.appendChild(el('hr', { class: 'stkl-hr' }));
-      pop.appendChild(item('Save layout', { kbd: isMac ? '⌘S' : 'Ctrl+S', run: () => saveNow(true), disabled: !signed }));
-      pop.appendChild(sw('Autosave', auto(), !signed, (v) => { lsSet(K.auto(), v); if (v && dirty) schedule(); }, 'Save the open layout 2 seconds after any change'));
-      pop.appendChild(el('hr', { class: 'stkl-hr' }));
-      pop.appendChild(item('Make a copy…', { run: () => askName('Make a copy', (cur ? cur.name : 'My layout') + ' (copy)', saveAsNew), disabled: !signed }));
-      pop.appendChild(item('Rename…', { run: () => askName('Rename layout', cur.name, renameCur), disabled: !signed || !cur }));
-      pop.appendChild(item('Create new layout…', { run: () => askName('Create new layout', 'New layout', createNew), disabled: !signed }));
-      pop.appendChild(item('Open layout…', { run: openDialog, disabled: !signed }));
+      pop.appendChild(head('This layout'));
+      pop.appendChild(item('Save layout', { icon: 'save', kbd: isMac ? '⌘S' : 'Ctrl+S', sub: cur ? '' : 'Save first to rename or share it', run: () => saveNow(true) }));
+      pop.appendChild(sw('Autosave', auto(), false, (v) => { lsSet(K.auto(), v); if (v && dirty) schedule(); }, 'Save the open layout 2 seconds after any change', 'auto', 'Saves changes automatically'));
+      pop.appendChild(item('Make a copy…', { icon: 'copy', run: () => askName('Make a copy', (cur ? cur.name : 'My layout') + ' (copy)', saveAsNew) }));
+      if (cur) {
+        pop.appendChild(item('Rename…', { icon: 'rename', run: () => askName('Rename layout', cur.name, renameCur) }));
+        pop.appendChild(item('Share link', { icon: 'share', sub: cur.shared ? 'On: anyone with the link can view' : 'Off', chev: true, run: shareSheet }));
+      }
+      pop.appendChild(head('Layouts'));
+      pop.appendChild(item('Layouts library…', { icon: 'lib', run: () => lib && lib.open() }));
+      pop.appendChild(item('Open layout…', { icon: 'open', run: openDialog }));
+      pop.appendChild(item('Create new layout…', { icon: 'add', run: () => askName('Create new layout', 'New layout', createNew) }));
       const rec = lsGet(K.recent(), []).filter((r) => r && r.id && (!cur || r.id !== cur.id)).slice(0, RECENT_MAX);
       if (rec.length) {
-        pop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Recently used' }));
+        pop.appendChild(head('Recently used'));
         rec.forEach((r) => {
-          const b = el('button', { type: 'button', class: 'stkc-item stkl-item stkl-rec', role: 'menuitem' }, [el('span', { text: r.name }), el('small', { text: (r.sub || '') })]);
+          const b = el('button', { type: 'button', class: 'stkc-item stkc-mi stkl-item stkl-rec', role: 'menuitem' }, [lead('recent'), txt(r.name, r.sub || '')]);
           b.addEventListener('click', () => { setOpen(false); openById(r.id); });
           pop.appendChild(b);
         });
       }
-      pop.appendChild(el('hr', { class: 'stkl-hr' }));
-      pop.appendChild(sw('Share layout', cur && cur.shared, !signed || !cur, (v, cb) => setShared(v, cb),
-        cur ? 'Anyone signed in with the link can view this layout (read-only)' : 'Save the layout first'));
-      const copyB = item('Copy link', { run: copyLink, disabled: !(cur && cur.shared) });
-      copyB.classList.add('stkl-sub');
-      pop.appendChild(copyB);
     }
-    pop.appendChild(el('hr', { class: 'stkl-hr' }));
-    pop.appendChild(item('Download chart data…', { run: csvDialog }));
-    pop.appendChild(el('p', { class: 'stkc-note stkl-tip', text: 'Layouts save whole charts. Templates are reusable style and indicator presets.' }));
-    if (!signed) pop.appendChild(el('p', { class: 'stkc-err', text: 'Sign in to save layouts to your account.' }));
+    pop.appendChild(head('Data'));
+    pop.appendChild(item('Download chart data…', { icon: 'dl', sub: 'Visible bars as CSV', run: csvDialog }));
+  }
+
+  // Share link: one small sheet (switch + link + Copy) instead of a switch with a dangling row.
+  function shareSheet(){
+    if (!cur) return;
+    const url = el('input', { type: 'text', class: 'stkc-in', readonly: '', 'aria-label': 'Layout link' });
+    const copyB = el('button', { type: 'button', class: 'stkc-sbtn', text: 'Copy link' });
+    const linkRow = el('div', { class: 'stkc-saverow stkl-linkrow' }, [url, copyB]);
+    const paint = () => { const on = !!(cur && cur.shared); linkRow.hidden = !on; url.value = on ? linkOf(cur.id) : ''; };
+    copyB.addEventListener('click', () => copyLink());
+    const row = sw('Share with a link', cur.shared, false, async (v, cb) => { await setShared(v, cb); paint(); }, '', 'link',
+      'Anyone signed in with the link can view (read-only)');
+    modal('Share layout', el('div', { class: 'stkl-body' }, [row, linkRow,
+      el('p', { class: 'stkc-note stkl-sharenote', text: 'Turning it off breaks the link. Your own copy never changes.' })]));
+    paint();
   }
 
   // ---- data ----

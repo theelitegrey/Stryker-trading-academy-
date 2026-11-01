@@ -98,6 +98,14 @@ function iconSvg(id, n, tilesIn){
   }).join('');
   return '<svg width="28" height="22" viewBox="0 0 28 22" fill="currentColor" aria-hidden="true">' + rects + '</svg>';
 }
+// Phone picker preview: the screen outline with the panes inside (portrait 20x30, landscape 30x20).
+function previewSvg(tiles, mode){
+  const land = mode === 'landscape', W = land ? 30 : 20, H = land ? 20 : 30, g = 2;
+  const rects = tiles.map(([x, y, w, h]) => '<rect class="stkg-pane" x="' + (2 + x * (W - 4) + g / 2).toFixed(2) + '" y="' + (2 + y * (H - 4) + g / 2).toFixed(2) +
+    '" width="' + Math.max(1, w * (W - 4) - g).toFixed(2) + '" height="' + Math.max(1, h * (H - 4) - g).toFixed(2) + '" rx="1.5"/>').join('');
+  return '<svg class="stkg-prev" width="' + (W + 2) + '" height="' + (H + 2) + '" viewBox="-1 -1 ' + (W + 2) + ' ' + (H + 2) + '" aria-hidden="true"><rect class="stkg-frame" x="0" y="0" width="' + W + '" height="' + H + '" rx="4"/>' + rects + '</svg>';
+}
+const CHECK = '<i class="stkg-ck" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.4 2.4 4.6-5"/></svg></i>';
 function gridFor(n){ return { 10: grid(5, 2), 12: grid(4, 3), 14: grid(7, 2), 16: grid(4, 4) }[n] || grid(1, 1); }
 
 export function countOf(id){
@@ -216,7 +224,8 @@ let capFromId = null;
 export function mountGrid(ws, opts){
   getWs = () => ws;
   const btn = el('button', { type: 'button', class: 'stkc-btn stkg-btn', id: 'stkc-layout-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Chart grid and sync' });
-  const pop = el('div', { class: 'stkc-pop stkg-pop', id: 'stkc-layout-pop', role: 'dialog', 'aria-label': 'Chart grid', hidden: '' });
+  // a bottom sheet on phones (<600 px, style.css .stkc-sheet), a popover on desktop
+  const pop = el('div', { class: 'stkc-pop stkc-sheet stkg-pop', id: 'stkc-layout-pop', role: 'dialog', 'aria-label': 'Chart layout', hidden: '' });
   const wrap = el('div', { class: 'stkc-menu' }, [btn, pop]);
   const items = {};
 
@@ -248,14 +257,18 @@ export function mountGrid(ws, opts){
   // or it stays over the new panes
   const closeMore = () => { if (pop.closest('#stkc-more-pop')) document.dispatchEvent(new MouseEvent('click')); };
   const capNote = el('p', { class: 'stkg-note', hidden: '' });
+  if (opts.sheetHead) pop.appendChild(opts.sheetHead(pop, 'Chart layout'));
   pop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Charts in layout' }));
   pop.appendChild(gridBox);
   pop.appendChild(phoneBox);
   pop.appendChild(capNote);
 
-  const syncHead = el('p', { class: 'stkc-pop-h', text: 'Sync in layout' });
+  const syncHead = el('p', { class: 'stkc-pop-h', text: 'Sync between charts' });
   pop.appendChild(syncHead);
-  const boxes = {};
+  // one chart: nothing to sync, so one line instead of five dead switches
+  const syncNote = el('p', { class: 'stkg-note stkg-syncnote', text: 'Pick 2 or more charts to sync symbol, interval, crosshair, time and date range', hidden: '' });
+  pop.appendChild(syncNote);
+  const boxes = {}, rows = [];
   SYNCS.forEach(([kind, label, tip]) => {
     const cb = el('input', { type: 'checkbox', role: 'switch', class: 'stkg-sw', 'data-sync': kind });
     cb.addEventListener('change', () => {
@@ -264,7 +277,8 @@ export function mountGrid(ws, opts){
       refresh();
     });
     boxes[kind] = cb;
-    pop.appendChild(el('label', { class: 'stkg-swrow', title: tip }, [el('span', { text: label }), cb]));
+    const row = el('label', { class: 'stkg-swrow', title: tip }, [el('span', { text: label }), cb]);
+    rows.push(row); pop.appendChild(row);
   });
   const setOpen = opts.bindPopover(btn, pop, refresh);
   onSync = () => refresh();
@@ -305,13 +319,13 @@ export function mountGrid(ws, opts){
       const cur = countOf(id);
       Object.keys(phoneItems).forEach((k) => {
         const n = +k, b = phoneItems[k];
-        b.innerHTML = iconSvg(null, null, phoneTiles(n, pm)) + '<span>' + (n === 1 ? '1 chart' : n + ' charts') + '</span>';
+        b.innerHTML = previewSvg(phoneTiles(n, pm), pm) + '<b>' + n + '</b><span>' + (n === 1 ? 'chart' : 'charts') + '</span>' + CHECK;
         b.setAttribute('aria-pressed', n === cur ? 'true' : 'false');
       });
     }
-    capNote.hidden = !(pm || cap < 8 || capFromId);
+    capNote.hidden = !((pm && countOf(id) > 1) || cap < 8 || capFromId);
     capNote.textContent = pm
-      ? 'On a phone you can use up to 4 charts. ' + (opts.isStrip && opts.isStrip() ? 'Swipe the tabs or tap them to switch charts.' : 'Tap a chart to work on it; the toolbar changes that chart.') + (capFromId ? ' This layout has ' + countOf(capFromId) + ' charts; open it on a computer to see them all.' : '')
+      ? (opts.isStrip && opts.isStrip() ? 'Swipe the tabs to switch charts.' : 'Tap a chart to make it active.') + (capFromId ? ' This layout has ' + countOf(capFromId) + ' charts; open it on a computer to see them all.' : '')
       : capFromId
         ? 'This layout has ' + countOf(capFromId) + ' charts; this device shows up to ' + cap + '.'
         : 'Up to ' + cap + ' charts on this device.';
@@ -322,7 +336,8 @@ export function mountGrid(ws, opts){
       boxes[k].checked = k === 'dateRange' ? dateRange : !!st[k];
       boxes[k].disabled = !multi;
     });
-    syncHead.textContent = multi ? 'Sync in layout' : 'Sync in layout (needs 2+ charts)';
+    rows.forEach((r) => { r.hidden = !multi; });
+    syncNote.hidden = multi;
   }
 
   // Over-cap layout (restored session, template, saved layout) -> widest allowed shape.

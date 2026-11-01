@@ -109,7 +109,7 @@ async function session(b, uid, w, h, mobile, theme) {
     window.__UID = u;
     window.__fs = (...a) => window.__fsRaw(...a).then((r) => { if (r.err) { const e = new Error(r.msg); e.code = r.err; throw e; } return r.ok; });
     try { localStorage.setItem('stryker_theme', th === 'light' ? 'day' : 'night'); } catch (e) {}
-    if (th === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    if (th === 'light' && document.documentElement) document.documentElement.setAttribute('data-theme', 'light');
   }, [uid, theme || 'dark']);
   await ctx.addInitScript('(' + mockInit.toString() + ')()');
   return ctx;
@@ -190,6 +190,79 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     const th = await p.$eval('#stkc-tpl-pop .stkc-sh', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + 120, y: r.top + 20 }; });
     await drag(th.x, th.y, th.y + 220);
     t('swipe down closes Templates', !(await vis('#stkc-tpl-pop')));
+    // 7. Chart layout sheet (Owner 2026-11-01 follow-up): pick 2 charts, Symbol sync, swipe down, state kept
+    await p.evaluate(() => window.STRYKER_CHART_UI.grid.setLayout('1')); await sleep(800);
+    await openMenu('Charts in layout');
+    const gb = await p.$eval('#stkc-layout-pop', (e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight, t: (e.querySelector('.stkc-sh h2') || {}).textContent }; });
+    t('Charts in layout opens the "Chart layout" bottom sheet', gb.l === 0 && gb.w === 390 && Math.abs(gb.b - gb.h) < 2 && gb.t === 'Chart layout', gb);
+    const one = await p.evaluate(() => ({ note: !document.querySelector('.stkg-syncnote').hidden, rows: [...document.querySelectorAll('#stkc-layout-pop .stkg-swrow')].filter((r) => r.getClientRects().length).length }));
+    t('1 chart: sync switches hidden, one line shown', one.note && one.rows === 0, one);
+    await p.screenshot({ path: OUT + '/touch-390-grid-1.png' });
+    await p.tap('#stkc-layout-pop .stkg-pc[data-n="2"]'); await sleep(1500);
+    t('picking 2 charts closes the sheet + sets 2 charts', !(await vis('#stkc-layout-pop')) && await p.evaluate(() => window.STRYKER_VELA.getState().charts.length === 2));
+    await openMenu('Charts in layout');
+    const sel = await p.$eval('#stkc-layout-pop .stkg-pc[data-n="2"]', (e) => [e.getAttribute('aria-pressed'), getComputedStyle(e.querySelector('.stkg-ck')).display]);
+    t('2 tile selected with check', sel[0] === 'true' && sel[1] !== 'none', sel);
+    const s0 = await p.$eval('#stkc-layout-pop [data-sync="symbol"]', (c) => c.checked);
+    await p.tap('#stkc-layout-pop .stkg-swrow:has([data-sync="symbol"])'); await sleep(500);
+    const s1 = await p.$eval('#stkc-layout-pop [data-sync="symbol"]', (c) => c.checked);
+    t('tap Symbol sync toggles it', s0 !== s1 && s1, { s0, s1 });
+    const sw = await p.$eval('#stkc-layout-pop [data-sync="symbol"]', (c) => { const cs = getComputedStyle(c), k = getComputedStyle(c, '::after'); return [cs.backgroundColor, k.backgroundColor, c.getBoundingClientRect().height]; });
+    t('on switch = solid green track, white knob', /rgb\(3, 201, 136\)/.test(sw[0]) && sw[1] === 'rgb(255, 255, 255)', sw);
+    await p.screenshot({ path: OUT + '/touch-390-grid-2-sync.png' });
+    const gh = await p.$eval('#stkc-layout-pop .stkc-sh', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + 120, y: r.top + 20 }; });
+    await drag(gh.x, gh.y, gh.y + 220);
+    t('swipe down closes the Chart layout sheet', !(await vis('#stkc-layout-pop')));
+    await openMenu('Charts in layout');
+    const kept = await p.evaluate(() => [document.querySelector('#stkc-layout-pop [data-sync="symbol"]').checked, window.STRYKER_CHART_UI.grid.syncState().symbol]);
+    t('reopen: Symbol sync still on', kept[0] === true && !!kept[1], kept);
+    await p.touchscreen.tap(195, 60); await sleep(500);
+    t('tap outside closes the Chart layout sheet', !(await vis('#stkc-layout-pop')));
+    // 8. Market sessions (clock) sheet: title, ⓘ expands the note, swipe down closes
+    await p.tap('.mclock-pill'); await sleep(700);
+    const ck = await p.$eval('.mclock-pop', (e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight, t: (e.querySelector('.stkms-hd h2') || {}).textContent, note: getComputedStyle(e.querySelector('.mclock-note')).display }; });
+    t('clock opens the "Market sessions" bottom sheet, note folded', ck.l === 0 && ck.w === 390 && Math.abs(ck.b - ck.h) < 2 && ck.t === 'Market sessions' && ck.note === 'none', ck);
+    await p.tap('.stkms-i'); await sleep(400);
+    t('ⓘ expands the session note', await p.$eval('.mclock-note', (e) => getComputedStyle(e).display !== 'none' && !e.closest('[hidden]')));
+    const cs = await p.$eval('.stkms-hd', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + 120, y: r.top + 20 }; });
+    await drag(cs.x, cs.y, cs.y + 220);
+    t('swipe down closes the clock sheet', !(await vis('.mclock-pop')));
+    // 9. Chart settings: header, green Ok, 44 px footer, tapping a row label toggles its switch
+    await openMenu('Chart settings'); await sleep(600);
+    const sd = await p.evaluate(() => { const d = document.querySelector('.vela-dialog--settings'); const ok = d.querySelector('.stk-sd-ok'); return { t: d.querySelector('.vela-dialog-title').textContent, ok: getComputedStyle(ok).backgroundColor, small: [...d.querySelectorAll('.stk-sd-foot .vela-sd-btn')].filter((b) => b.getClientRects().length && b.getBoundingClientRect().height < 44).length, burger: !!(d.querySelector('.vela-sd-burger') || {}).offsetParent }; });
+    t('settings: "Chart settings", green Ok, footer >= 44 px, no burger', sd.t === 'Chart settings' && /rgb\(3, 201, 136\)/.test(sd.ok) && sd.small === 0 && !sd.burger, sd);
+    const lab = await p.$('.vela-dialog--settings .vela-sd-bool:not(.stk-sd-off) .vela-field-label');
+    const sw0 = await lab.evaluate((l) => l.closest('.vela-sd-bool').querySelector('[role=switch]').getAttribute('aria-checked'));
+    await lab.tap(); await sleep(400);
+    const sw1 = await lab.evaluate((l) => l.closest('.vela-sd-bool').querySelector('[role=switch]').getAttribute('aria-checked'));
+    t('tap on a settings row label toggles its switch', sw0 !== sw1, { sw0, sw1 });
+    await p.tap('.vela-dialog--settings .stk-sd-foot .vela-sd-btn:has-text("Cancel")'); await sleep(600);
+    t('Cancel closes settings', !(await vis('.vela-dialog--settings')));
+    // 10. Alerts: empty state + quiet Sounds + counter
+    await openMenu('Alerts'); await sleep(600);
+    const al = await p.evaluate(() => { const b = document.querySelector('.stk-al-box'); return { empty: !!b.querySelector('.stk-al-empty b') && b.querySelector('.stk-al-empty b').textContent, cnt: b.querySelector('.stk-al-count').textContent, snd: getComputedStyle(b.querySelector('.stk-al-sounds')).backgroundColor }; });
+    t('alerts: empty state, "0 of 200 alerts", Sounds not a filled primary', al.empty === 'No alerts yet' && /^0 of 200 alerts/.test(al.cnt) && !/rgb\(3, 201, 136\)/.test(al.snd), al);
+    await p.tap('.stk-al-x'); await sleep(500);
+    // 11. Watchlist ⋯ menu is a bottom sheet; tapping outside closes it
+    await openMenu('Watchlist'); await sleep(600);
+    await p.tap('.stkw-ib[title="More"]'); await sleep(500);
+    const wm = await p.evaluate(() => { const m = [...document.querySelectorAll('.stkw-menu')].find((x) => !x.hidden); const r = m.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight, foot: document.querySelector('.stkw-foot').textContent }; });
+    t('watchlist ⋯ opens as a bottom sheet; one-line footer', wm.l === 0 && wm.w === 390 && Math.abs(wm.b - wm.h) < 2 && /dot = data status/.test(wm.foot), wm);
+    await p.touchscreen.tap(195, 120); await sleep(500);
+    t('tap outside closes the watchlist menu', await p.evaluate(() => [...document.querySelectorAll('.stkw-menu')].every((x) => x.hidden)));
+    t('"Education only" still on the page', await p.evaluate(() => /Education only/.test(document.querySelector('.stkchart-credit').textContent)));
+    await p.tap('.stkw-close'); await sleep(500);
+    // 12. ⋯ list is a bottom sheet; Replay opens from it as a sheet and swipes closed
+    await p.tap('#stkc-more-btn'); await sleep(600);
+    const ml = await p.$eval('#stkc-more-pop', (e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight }; });
+    t('⋯ list is a bottom sheet', ml.l === 0 && ml.w === 390 && Math.abs(ml.b - ml.h) < 2, ml);
+    await p.tap('#stkc-more-pop [data-ob-label^="Replay"]'); await sleep(800);
+    const rp = await p.$eval('#stkr-pop', (e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight, t: (e.querySelector('.stkc-sh h2') || {}).textContent }; });
+    t('Replay opens as the "Bar replay" sheet', rp.l === 0 && rp.w === 390 && Math.abs(rp.b - rp.h) < 2 && rp.t === 'Bar replay', rp);
+    await p.screenshot({ path: OUT + '/touch-390-replay.png' });
+    const rh = await p.$eval('#stkr-pop .stkc-sh', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + 120, y: r.top + 20 }; });
+    await drag(rh.x, rh.y, rh.y + 220);
+    t('swipe down closes Replay and the ⋯ list', !(await vis('#stkr-pop')) && !(await vis('#stkc-more-pop')));
     await p.screenshot({ path: OUT + '/touch-390-after-swipe.png' }); console.log('page errors', JSON.stringify(p.errs));
   } catch (e) { fail++; console.log('FAIL exception', e.message); }
   await b.close();

@@ -275,7 +275,7 @@ export function mountWatchlist(ws, o){
   const thead = el('div', { class: 'stkw-th', role: 'row' });
   const body = el('div', { class: 'stkw-body', role: 'grid', 'aria-label': 'Watchlist symbols', tabindex: '0' });
   const banner = el('div', { class: 'stkw-banner', hidden: true });
-  const foot = el('p', { class: 'stkw-foot', text: 'Futures: continuous front-month prices (the dot shows the data status). Education only. Not financial advice.' });
+  const foot = el('p', { class: 'stkw-foot', text: 'Futures are continuous front-month · dot = data status' });   // "Education only" stays in the page credit line
   const grip = el('div', { class: 'stkw-grip', title: 'Drag to resize', 'aria-hidden': 'true' });
   const panel = el('aside', { class: 'stkw', id: 'stkw', 'aria-label': 'Watchlist', hidden: true }, [grip, head, banner, thead, body, foot]);
   panelHost.appendChild(panel);
@@ -288,12 +288,20 @@ export function mountWatchlist(ws, o){
 
   // ---- popover menus (our own: they sit inside the panel) ----
   const menus = [];
+  const sheetScrim = el('div', { class: 'stkw-scrim', hidden: true });
+  document.body.appendChild(sheetScrim);
+  sheetScrim.addEventListener('click', (e) => { e.stopPropagation(); menus.forEach((m) => m.set(false)); });
   function menu(btn, build){
     const pop = el('div', { class: 'stkw-menu', role: 'menu', hidden: true });
     document.body.appendChild(pop);
     const set = (open) => {
-      if (open) { menus.forEach((m) => m.set(false)); pop.innerHTML = ''; build(pop); pop.hidden = false; place(btn, pop); }
+      // phone: the menu is a bottom sheet over a scrim (style.css .stkw-menu.stkw-sheet), like the other chart menus
+      if (open) menus.forEach((m) => { if (m.pop !== pop) m.set(false); });
+      const sheet = open && matchMedia('(max-width:599px)').matches;
+      pop.classList.toggle('stkw-sheet', sheet);
+      if (open) { pop.innerHTML = ''; build(pop); pop.hidden = false; if (sheet) { pop.style.left = pop.style.top = ''; } else place(btn, pop); }
       else pop.hidden = true;
+      sheetScrim.hidden = !sheet;
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     };
     btn.addEventListener('click', (e) => { e.stopPropagation(); set(pop.hidden); });

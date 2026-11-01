@@ -611,7 +611,7 @@ function build(){
       <div class="stk-al-wide stk-al-nw" hidden><span>Notify</span><label class="stk-al-chk"><input type="checkbox" name="popup" checked> Popup</label><label class="stk-al-chk"><input type="checkbox" name="sound" checked> Sound</label><em>Phone push: price alerts only</em></div>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-cancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
-    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-sounds">Sounds</button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
+    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-sounds" aria-label="Alert sounds" title="Alert sounds"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Sounds</span></button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
     <div class="stk-al-confirm" hidden role="alertdialog" aria-modal="true" aria-labelledby="stk-al-ctl"><div class="stk-al-csheet"><p id="stk-al-ctl"></p><div class="stk-al-cbtn"><button type="button" class="stk-al-ccancel">Cancel</button><button type="button" class="stk-al-cok">Delete all</button></div></div></div>
     <div class="stk-al-list"></div>
   </div>`;
@@ -771,8 +771,14 @@ function renderList(){
   if (!panel) return;
   const list = panel.querySelector('.stk-al-list'); list.textContent = '';
   panel.querySelector('.stk-al-delall').hidden = !alerts.length;
-  panel.querySelector('.stk-al-count').textContent = alerts.length + ' / ' + MAX_ALERTS + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
-  if (!alerts.length) { const p = document.createElement('p'); p.className = 'stk-al-empty'; p.textContent = 'No alerts yet.'; list.appendChild(p); return; }
+  panel.querySelector('.stk-al-count').textContent = alerts.length + ' of ' + MAX_ALERTS + ' alerts' + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
+  panel.querySelector('.stk-al-tools').classList.toggle('stk-al-none', !alerts.length);
+  if (!alerts.length) {
+    const e = document.createElement('div'); e.className = 'stk-al-empty';
+    e.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>No alerts yet</b><span>Get notified when price or an indicator crosses a level</span><button type="button" class="stk-al-new stk-al-new2">+ New alert</button>';
+    e.querySelector('.stk-al-new2').onclick = () => panel.querySelector('.stk-al-new').click();
+    list.appendChild(e); return;
+  }
   for (const a of alerts) {
     const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');
     row.innerHTML = '<div class="stk-al-txt"><b></b><span></span></div><button type="button" data-k="pause"></button><button type="button" data-k="edit">Edit</button><button type="button" data-k="del" aria-label="Delete alert">Delete</button>';
@@ -965,7 +971,7 @@ const CSS = `
 .stk-al-fbtn{ grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; }
 .stk-al-box button,.stk-snd-box button,.stk-snd-ui button{ border-radius:999px; padding:7px 13px; border:1px solid rgba(3,201,136,.28); background:rgba(3,201,136,.08); color:inherit; cursor:pointer; font:inherit; font-size:13px; transition:background .16s ease,border-color .16s ease,transform .16s ease; }
 .stk-al-box button:hover,.stk-snd-box button:hover,.stk-snd-ui button:hover{ background:rgba(3,201,136,.15); border-color:rgba(3,201,136,.55); transform:translateY(-1px); }
-.stk-al-box .stk-al-save,.stk-al-box .stk-al-new,.stk-al-box .stk-al-sounds,.stk-snd-pill{ background:#03c988; border-color:#03c988; color:#07110d; font-weight:700; }
+.stk-al-box .stk-al-save,.stk-al-box .stk-al-new,.stk-snd-pill{ background:#03c988; border-color:#03c988; color:#07110d; font-weight:700; }
 .stk-al-tools{ display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:12px; opacity:.95; flex-wrap:wrap; }
 .stk-snd-body,.stk-snd-settings,.stk-snd-ui{ min-height:0; }
 .stk-snd-ui{ display:flex; flex-direction:column; gap:12px; color:#eeeeee; font-family:Archivo,system-ui,sans-serif; }
@@ -1019,7 +1025,20 @@ const CSS = `
   .stk-al-box .stk-al-info{ width:32px; height:32px; }
   .stk-al-box .stk-al-popx{ width:44px; height:44px; top:0; right:0; }
 }
-.stk-al-empty{ opacity:.6; font-size:13px; }
+.stk-al-empty{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:40px 16px; text-align:center; }
+.stk-al-empty svg{ color:#03c988; margin-bottom:4px; }
+.stk-al-empty b{ font-size:17px; line-height:22px; font-weight:600; }
+.stk-al-empty span{ font-size:14px; line-height:20px; opacity:.72; max-width:280px; }
+.stk-al-empty .stk-al-new2{ margin-top:8px; min-height:44px; padding:0 20px; }
+/* tools row: one primary (+ New alert, hidden while the empty state shows its own), Sounds as a quiet
+   secondary, count as a small muted counter at the end */
+.stk-al-box .stk-al-sounds{ display:inline-flex; align-items:center; gap:6px; background:transparent; border-color:rgba(128,128,128,.4); color:inherit; font-weight:500; }
+.stk-al-box .stk-al-sounds:hover{ background:rgba(128,128,128,.12); border-color:rgba(128,128,128,.6); }
+.stk-al-tools.stk-al-none .stk-al-new{ display:none; }
+.stk-al-count{ margin-left:auto; font-size:12px; line-height:16px; opacity:.65; }
+.stk-al-head .stk-al-x{ width:44px; height:44px; margin:-6px -10px -6px 0; padding:0; display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:50%; background:none; font-size:22px; line-height:1; position:relative; isolation:isolate; }
+.stk-al-head .stk-al-x::before{ content:""; position:absolute; width:30px; height:30px; border-radius:50%; background:rgba(128,128,128,.16); z-index:-1; }
+.stk-al-head .stk-al-x:hover{ transform:none; }
 #stk-al-toasts{ position:fixed; right:16px; bottom:16px; z-index:9100; display:flex; flex-direction:column; gap:8px; max-width:min(360px,calc(100vw - 32px)); }
 .stk-al-toast{ position:relative; background:#0b0b0d; color:#eeeeee; border:1px solid #03c988; border-radius:12px; padding:10px 34px 10px 12px; box-shadow:0 10px 30px rgba(0,0,0,.45); display:flex; flex-direction:column; font:13px/1.35 Archivo,system-ui,sans-serif; }
 :root[data-theme="light"] .stk-al-toast{ background:#fff; color:#131316; }

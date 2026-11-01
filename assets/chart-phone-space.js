@@ -184,7 +184,46 @@ export function mountPhoneSpace() {
     // right after the spacer chart-onebar.js puts at the start of the right half
     const sp = barR.querySelector('.stkc-ob-sp');
     moveInto(w, barR, sp ? sp.nextSibling : barR.firstChild);
+    clockSheet(w);
     paintTiny();
+  }
+  // Phone: the clock popover (market-hours.js, shared by every page) becomes a bottom sheet on Charts
+  // only: grabber, title, close, scrim, swipe down; the long note folds behind an ⓘ. style.css html.stk-cps .mclock-pop
+  function clockSheet(w) {
+    const pop = w.querySelector('.mclock-pop'), pill = w.querySelector('.mclock-pill');
+    if (!pop || !pill || pop.querySelector('.stkms-hd')) return;
+    const close = () => { if (!pop.hidden) pill.click(); };
+    const hd = document.createElement('div');
+    hd.className = 'stkms-hd';
+    hd.innerHTML = '<span class="stkc-sh-grab" aria-hidden="true"></span><h2>Market sessions</h2>' +
+      '<button type="button" class="stkms-x" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+    hd.querySelector('.stkms-x').addEventListener('click', (e) => { e.stopPropagation(); close(); });
+    pop.insertBefore(hd, pop.firstChild);
+    const note = pop.querySelector('.mclock-note');
+    if (note) {
+      const ft = document.createElement('div');
+      ft.className = 'stkms-ft';
+      ft.innerHTML = '<span>Times in your time zone · not market data</span><button type="button" class="stkms-i" aria-label="More about these times" aria-expanded="false" aria-controls="mclock-note">i</button>';
+      note.id = 'mclock-note';
+      const ib = ft.querySelector('.stkms-i');
+      ib.addEventListener('click', (e) => { e.stopPropagation(); const on = !pop.classList.contains('stkms-more'); pop.classList.toggle('stkms-more', on); ib.setAttribute('aria-expanded', String(on)); });
+      pop.insertBefore(ft, note);
+    }
+    const scrim = document.createElement('div');
+    scrim.className = 'stkms-scrim'; scrim.hidden = true;
+    scrim.addEventListener('click', (e) => { e.stopPropagation(); close(); });
+    w.insertBefore(scrim, pop);   // same stacking context as the sheet (the top bar makes one), so it sits under it
+    new MutationObserver(() => {
+      scrim.hidden = pop.hidden || !on;
+      pop.style.transform = '';
+      if (!pop.hidden && on && pop.animate && matchMedia('(prefers-reduced-motion: no-preference)').matches)
+        pop.animate([{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,0,0,1)' });
+    }).observe(pop, { attributes: true, attributeFilter: ['hidden'] });
+    let y0 = null, dy = 0;
+    hd.addEventListener('pointerdown', (e) => { if (!on || e.target.closest('button')) return; y0 = e.clientY; dy = 0; pop.style.transition = 'none'; try { hd.setPointerCapture(e.pointerId); } catch (er) {} });
+    hd.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); pop.style.transform = 'translateY(' + dy + 'px)'; });
+    const end = () => { if (y0 == null) return; y0 = null; pop.style.transition = ''; pop.style.transform = ''; if (dy > 64) close(); };
+    hd.addEventListener('pointerup', end); hd.addEventListener('pointercancel', end);
   }
   apply();
   window.addEventListener('resize', apply, { passive: true });

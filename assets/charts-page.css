@@ -5,10 +5,12 @@
 .zc-main .cm-hero-frame{ max-width:860px; margin:0 auto; }
 
 /* ---------- hero scene: floating cards + phone demo ----------
-   >=1280: 3 cards left of the frame, 2 right, phone overlapping the frame's bottom-right corner by 40px only
-   (the demo gets 40px right padding there, so the phone never covers a control).
-   700-1279: phone centred below the frame with one card each side. <700: phone below, no extra cards. */
-.zc-fl{ position:absolute; z-index:2; width:196px; pointer-events:none; display:none; }
+   One layered composition at every width: the phone overlaps the demo's bottom-right corner, cards float over
+   the edges of both. --ph = phone width, --phx = how far it sticks out past the demo. The replay row and the
+   fine print get right padding of (--ph - --phx), so the phone never covers the play button or the slider.
+   Cards sit over the bar's empty left end, the chart area, the price axis or below the frame, never over a control.
+   <700: 3 cards (l1, r2, toast). 700-1279: 4 (+ r1). >=1280: 5 + toast. */
+.zc-fl{ position:absolute; z-index:4; width:196px; pointer-events:none; display:none; }
 .zc-fc{ display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:16px; border:1px solid var(--line); background:var(--cm-glass); -webkit-backdrop-filter:blur(14px) saturate(1.4); backdrop-filter:blur(14px) saturate(1.4); box-shadow:var(--cm-sh); color:var(--gold); }
 .zc-fc .ci{ width:20px; height:20px; flex:none; }
 .zc-fc div{ min-width:0; flex:1; }
@@ -17,26 +19,45 @@
 .zc-fc .zc-pro{ font-size:10px; line-height:12px; padding:1px 6px; }
 .zc-fc .cm-prog u{ transform:scaleX(.55); animation:none; }
 .cm-js:not(.cm-rm) .zc-fc{ animation:zc-bob 6s ease-in-out infinite; animation-delay:calc(var(--d,0ms) * 2); }
-.cm-js:not(.cm-rm) .zc-r1 .zc-fc,.cm-js:not(.cm-rm) .zc-l2 .zc-fc{ animation-duration:7s; }
+.cm-js:not(.cm-rm) .zc-r1 .zc-fc,.cm-js:not(.cm-rm) .zc-r2 .zc-fc{ animation-duration:7s; }
 @keyframes zc-bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
 .zc-off .zc-fc,.zc-off .zc-dot::after{ animation-play-state:paused!important; }
-@media (min-width:700px) and (max-width:1279px){
-  .zc-l1,.zc-r1{ display:block; bottom:200px; }
-  .zc-l1{ left:calc(50% - 312px); } .zc-r1{ right:calc(50% - 312px); }
+.zc-main .cm-scene{ --ph:clamp(112px,33vw,150px); --phx:8px; margin-top:56px; padding-bottom:calc(var(--ph) * .62 + 8px); }
+.zc-main .cm-fl-main{ position:relative; }
+.zc-main .zc-demo .dm-rp,.zc-main .zc-demo .dm-fine{ padding-right:calc(var(--ph) - var(--phx)); }
+.zc-main .zc-phone-fl{ position:absolute; z-index:3; margin:0; width:var(--ph); right:calc(-1 * var(--phx)); bottom:calc(var(--ph) * -.62); }
+.zc-main .zc-phone{ box-shadow:0 24px 48px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04) inset; }
+:root[data-theme="light"] .zc-main .zc-phone{ box-shadow:0 24px 48px rgba(20,30,50,.28); }
+.zc-l1,.zc-r2{ display:block; }
+.zc-l1{ top:-30px; left:-8px; width:min(196px,52vw); }
+.zc-r2{ right:calc(var(--ph) - var(--phx) - 28px); bottom:calc(var(--ph) * 1.27 - 20px); width:min(176px,48vw); }
+.zc-main .cm-toasts{ left:auto; right:calc(var(--ph) - var(--phx) - 24px); bottom:-60px; transform:none; width:min(232px,58vw); height:56px; z-index:4; }
+@media (max-width:699px){
+  .zc-main .zc-demo .dm-rp output{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .zc-fc{ gap:8px; padding:8px 12px; border-radius:12px; } .zc-fc .ci{ width:16px; height:16px; }
+  .zc-fc b{ font-size:13px; line-height:16px; } .zc-fc span{ font-size:11px; line-height:14px; }
+  .zc-main .cm-toast{ padding:0 12px; gap:8px; }
+  /* the bar is too short for a card beside the pill here, so l1 floats over the chart's lower-left edge */
+  .zc-l1{ top:auto; bottom:128px; width:min(176px,46vw); }
+  .zc-r2{ bottom:calc(var(--ph) * 1.27 + 40px); }
+}
+@media (min-width:700px){
+  .zc-main .cm-scene{ --ph:clamp(168px,22vw,200px); --phx:12px; padding-bottom:calc(var(--ph) * .5 + 16px); }
+  .zc-main .zc-phone-fl{ bottom:calc(var(--ph) * -.5); }
+  .zc-r2{ bottom:calc(var(--ph) * 1.39 - 20px); }
+  .zc-r1{ display:block; right:-12px; top:36%; }
+  .zc-l1{ left:-12px; top:-50px; }
 }
 @media (min-width:1280px){
-  .zc-main .zc-demo .dm{ padding-right:64px; }
-  .zc-main .cm-toasts{ right:auto; left:8px; }
-  .zc-main .cm-scene{ padding-bottom:120px; }
-  .zc-fl{ display:block; }
-  .zc-l1,.zc-l2,.zc-l3{ left:-100px; } .zc-r1,.zc-r2{ right:-100px; }
-  .zc-l1{ top:132px; } .zc-l2{ top:236px; } .zc-l3{ top:340px; }
-  .zc-r1{ top:120px; } .zc-r2{ top:212px; }
-  .zc-main .zc-phone-fl{ position:absolute; z-index:3; margin:0; right:calc(50% - 566px); top:330px; }
+  .zc-main .cm-scene{ --ph:200px; --phx:56px; }
+  .zc-l3{ display:block; left:-88px; top:54%; }
+  .zc-l1{ left:-64px; top:-50px; }
+  .zc-r1{ right:-88px; top:22%; }
+  .zc-r2{ right:calc(var(--ph) - var(--phx) - 28px); bottom:-56px; top:auto; }
+  .zc-main .cm-toasts{ right:-96px; bottom:44px; width:240px; }
 }
 
 /* phone frame (sample data, follows the theme) */
-.zc-phone-fl{ position:relative; width:176px; margin:24px auto 0; }
 .zc-phone{ margin:0; padding:6px; border-radius:32px; background:#0b0c0e; border:1px solid var(--line); box-shadow:var(--cm-sh), 0 0 0 1px rgba(255,255,255,.04) inset; }
 :root[data-theme="light"] .zc-phone{ background:#1c1f24; }
 .zc-ph-scr{ position:relative; border-radius:26px; overflow:hidden; background:var(--bg-1); padding-top:28px; }

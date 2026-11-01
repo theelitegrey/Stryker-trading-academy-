@@ -79,14 +79,14 @@ const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a
 const onNext = new WeakSet();      // handles running on the next engine
 let NextMod = null;
 function loadNext(){
-  if (!NextMod) NextMod = import('./chart-pine-next.js?v=777').catch((e) => { NextMod = null; throw e; });
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=778').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
 // TradingView-style painting of Pine drawings (assets/chart-pine-tv-style.js); once per chart.
 let TvStyle = null;
 async function tvStyle(chart){
   try {
-    if (!TvStyle) TvStyle = import('./chart-pine-tv-style.js?v=777');
+    if (!TvStyle) TvStyle = import('./chart-pine-tv-style.js?v=778');
     (await TvStyle).installTvStyle(chart);
   } catch (e) { TvStyle = null; }
 }

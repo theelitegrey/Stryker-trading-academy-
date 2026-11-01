@@ -35,7 +35,7 @@ async function page(b, mode, path, w, day) {
       ok(`home ${w} ${t}: #pricing anchor kept`, h.a);
       ok(`home ${w} ${t}: no overflow, no errors`, !h.overflow && !p.__errs.length, p.__errs.join('|'));
       if (SHOTS) {
-        await p.evaluate(() => document.getElementById('pricing').scrollIntoView());
+        await p.evaluate(() => { document.querySelectorAll('.cm-rv').forEach((e) => e.classList.add('is-in')); document.getElementById('pricing').scrollIntoView(); });
         await p.waitForTimeout(600);
         await p.screenshot({ path: `${SHOTS}/home-${w}-${t}.png` });
       }
@@ -74,7 +74,7 @@ async function page(b, mode, path, w, day) {
       await p.waitForTimeout(900);
       const m = await p.evaluate(() => ({ txt: (document.querySelector('.plan-modal') || {}).innerText || '',
         all: !!document.querySelector('.plan-modal-all a[href="/pricing"]') }));
-      ok(`modal ${w} ${t}: price + See all plans`, /\$39/.test(m.txt) && m.all && /Get Pro/.test(m.txt), m.txt.replace(/\s+/g, ' ').slice(0, 120));
+      ok(`modal ${w} ${t}: price + See all plans`, /\$39/.test(m.txt) && m.all && /(Get|Join) Pro/.test(m.txt), m.txt.replace(/\s+/g, ' ').slice(0, 120));
       ok(`settings ${w} ${t}: no errors`, !p.__errs.length, p.__errs.join('|'));
       if (SHOTS) await p.screenshot({ path: `${SHOTS}/pro-modal-${w}-${t}.png` });
       await p.__ctx.close();

@@ -82,5 +82,23 @@
     }).join('') + '</ul>';
   }
 
+
+  // Text colour per tile from the tile's own resolved fill: whichever of white / dark ink has the
+  // higher contrast. Re-run on DOM or theme change.
+  function lum(rgb) { var m = rgb.match(/[\d.]+/g).map(Number); var f = function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); }
+  function inkAll() {
+    document.querySelectorAll('.mv-tile,.mv-pill,.scn-cardx .gp').forEach(function (t) {
+      var bg = getComputedStyle(t).backgroundColor; if (!bg || /rgba\(.*, 0\)$/.test(bg)) return;
+      var L = lum(bg), white = 1.05 / (L + 0.05), dark = (L + 0.05) / (0.0085 + 0.05);
+      t.style.color = white >= dark ? '#ffffff' : '#0e1621';
+    });
+  }
+  var raf = 0;
+  function queueInk() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; inkAll(); }); }
+  new MutationObserver(function (m) { for (var i = 0; i < m.length; i++) { if (m[i].type === 'childList' || m[i].attributeName === 'data-theme') { queueInk(); return; } } })
+    .observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-theme'] });
+  window.addEventListener('stryker:theme', queueInk);
+  document.addEventListener('DOMContentLoaded', queueInk);
+
   window.stkViz = { esc: esc, isNum: isNum, bucket: bucket, cls: cls, treemap: treemap, treemapHtml: treemapHtml, openSheet: openSheet, closeSheet: closeSheet, divBars: divBars };
 })();

@@ -10786,7 +10786,7 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 
 /* ---- App menu sections (Owner order 2026-11-01, menu restructure) -------------------------------
    One model in assets/app-nav.js feeds the desktop sidebar (accordion, .side-group from the admin menu
-   styles above) and the phone More sheet (.appnav-sec). Open state is remembered (localStorage tz_nav_sec). */
+   styles above) and the phone More sheet (.appnav-msec). Open state is remembered (localStorage tz_nav_sec). */
 .app-menu{ display:block; }
 .app-menu .side-home{ margin-bottom:2px; }
 .app-menu .side-group{ margin-bottom:2px; }
@@ -10812,6 +10812,6 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 }
 .appnav-sh-group:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; border-radius:10px; }
 .appnav-sh-group .side-group-chev{ transition:transform .2s ease; opacity:.8; }
-.appnav-sec.open > .appnav-sh-group .side-group-chev{ transform:rotate(180deg); }
-.appnav-sec > .appnav-sh-list{ display:none; }
-.appnav-sec.open > .appnav-sh-list{ display:block; }
+.appnav-msec.open > .appnav-sh-group .side-group-chev{ transform:rotate(180deg); }
+.appnav-msec > .appnav-sh-list{ display:none; }
+.appnav-msec.open > .appnav-sh-list{ display:block; }

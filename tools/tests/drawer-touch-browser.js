@@ -140,13 +140,13 @@ function ok(c, m) { if (!c) { fails++; console.log('  FAIL ' + m); } else consol
   await pg.tap('#appnav-more'); await pg.waitForTimeout(500);
   const secs = await pg.$$eval('#appnav-sheet .appnav-sh-group', (n) => n.map((x) => x.textContent.trim()));
   ok(JSON.stringify(secs) === JSON.stringify(['Trade', 'Markets', 'Learn', 'Community', 'Creator Hub', 'Account', 'Help & feedback']), 'sheet section headers: ' + secs.join(' / '));
-  const hdr = '#appnav-sheet .appnav-sec[data-sec="markets"] > .appnav-sh-group';
-  const mOpen = () => pg.$eval('#appnav-sheet .appnav-sec[data-sec="markets"]', (n) => n.classList.contains('open'));
+  const hdr = '#appnav-sheet .appnav-msec[data-sec="markets"] > .appnav-sh-group';
+  const mOpen = () => pg.$eval('#appnav-sheet .appnav-msec[data-sec="markets"]', (n) => n.classList.contains('open'));
   ok(!(await mOpen()), 'Markets starts collapsed');
   await (await pg.$(hdr)).scrollIntoViewIfNeeded(); await pg.tap(hdr); await pg.waitForTimeout(250);
   ok(await sheetOpen(), 'tap section header: sheet stays open');
   ok(await mOpen(), 'tap section header: section expands');
-  ok(await pg.$$eval('#appnav-sheet .appnav-sec[data-sec="markets"] a', (n) => n.filter((a) => a.offsetParent).length) === 8, 'Markets shows 8 links');
+  ok(await pg.$$eval('#appnav-sheet .appnav-msec[data-sec="markets"] a', (n) => n.filter((a) => a.offsetParent).length) === 8, 'Markets shows 8 links');
   ok(await pg.$eval('#appnav-sheet a[data-more="gex"] .pro-chip', (n) => n.textContent) === 'Pro', 'GEX+ has the Pro chip');
   await pg.tap(hdr); await pg.waitForTimeout(250);
   ok(await sheetOpen() && !(await mOpen()), 'second tap collapses it, sheet still open');

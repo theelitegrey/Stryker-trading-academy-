@@ -469,7 +469,7 @@
     groups.forEach(function(g){
       var isCr = g[0] === 'creator', hasCur = isCr ? cur === 'creator-hub' : g[2].some(function(it){ return it[0] === cur; });
       var open = secIsOpen(g[0], hasCur);
-      h += '<section class="appnav-sec appnav-acc-sec' + (open ? ' open' : '') + '" data-sec="' + g[0] + '">' +
+      h += '<div class="appnav-msec' + (open ? ' open' : '') + '" data-sec="' + g[0] + '">' +
         '<button type="button" class="appnav-sh-group" data-keep-open aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="nvs-' + g[0] + '"><span>' + esc(g[1]) + '</span>' + HEAD_CHEV + '</button>' +
         '<ul class="appnav-sh-list" id="nvs-' + g[0] + '">';
       g[2].forEach(function(it){
@@ -489,7 +489,7 @@
         });
         if (g[3].more) h += '<li><a class="appnav-sh-item" href="/creator" data-more="cn-all"><span class="appnav-sh-ic"><svg ' + SV + '>' + CI.dash + '</svg></span><span class="appnav-sh-tx"><span class="appnav-sh-l">All my communities</span></span></a></li>';
       }
-      h += '</ul></section>';
+      h += '</ul></div>';
     });
     h += '</div>';
     sheet.innerHTML = h;

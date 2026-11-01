@@ -108,7 +108,7 @@
         ticking = false;
         var b = story.getBoundingClientRect(), total = b.height - innerHeight, p = Math.max(0, Math.min(1, -b.top / Math.max(1, total)));
         if (bar) bar.style.transform = 'scaleX(' + p + ')';
-        set(b.top > innerHeight * 0.5 ? -1 : Math.min(L.length - 1, Math.floor(p * L.length * 0.999)));
+        set(b.top > innerHeight * 0.5 ? -1 : Math.min(L.length - 1, Math.floor(p * (L.length + 0.7))));
       }
       addEventListener('scroll', function () { if (!ticking) { ticking = true; raf(tick); } }, { passive: true });
       addEventListener('resize', tick); tick();

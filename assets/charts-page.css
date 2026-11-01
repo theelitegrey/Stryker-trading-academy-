@@ -3,6 +3,12 @@
    Depends on: assets/style.css tokens, assets/creators-page.css. Used by: features/charts.html. */
 
 .zc-main .cm-hero-frame{ max-width:860px; margin:0 auto; }
+/* floating cards never sit on the demo's controls: phone card on the left edge, alert above the top-right corner */
+.zc-main .cm-fl-ind,.zc-main .cm-fl-event,.zc-main .cm-toasts{ pointer-events:none; }
+.zc-main .cm-fl-lesson,.zc-main .cm-fl-role{ display:none; }
+.zc-main .cm-fl-ind{ left:-40px; top:150px; width:132px; }
+.zc-main .cm-fl-event{ right:-236px; top:64px; width:220px; }
+@media (max-width:1399px){ .zc-main .cm-fl-event{ display:none; } }
 .zc-shot{ display:block; width:100%; height:auto; }
 .zc-shot.l-only{ display:none; }
 :root[data-theme="light"] .zc-shot.d-only{ display:none; } :root[data-theme="light"] .zc-shot.l-only{ display:block; }

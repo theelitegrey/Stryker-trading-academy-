@@ -237,5 +237,5 @@ function jzRenderEdge(trades, currency){
         '</div>';
       }).join('') +
     '</div>' +
-    '<p class="gm-fineprint" style="margin:10px 0 0;">Documented, versioned formula from the open-source LuxAlgo journal engine — six components, fixed weights, no black box.</p>';
+    '<p class="gm-fineprint" style="margin:10px 0 0;">Documented, versioned formula from an open-source journal engine — six components, fixed weights, no black box.</p>';
 }

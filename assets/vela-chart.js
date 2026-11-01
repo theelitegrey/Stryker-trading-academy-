@@ -819,7 +819,7 @@ function lateLists(provider){
 
   // Grid picker + Sync in layout (assets/chart-grid.js)
   let plMode = null;   // phone layout mode (applyPhoneLayout below): null | 'p2'..'p4' | 'l2'..'l4' | 'strip'
-  const grid = Grid.mountGrid(ws, { bindPopover, onStructural: () => afterStructural(), isStrip: () => plMode === 'strip' });
+  const grid = Grid.mountGrid(ws, { bindPopover, sheetHead, onStructural: () => afterStructural(), isStrip: () => plMode === 'strip' });
   const layWrap = grid.el;
   const SYNCS = [['crosshair'], ['viewport'], ['symbol'], ['timeframe']];
 

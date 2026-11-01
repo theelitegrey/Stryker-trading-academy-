@@ -6436,15 +6436,25 @@ body.charts-page .stkchart-credit{
 .stkc-cells-dots{ display:flex; justify-content:center; gap:5px; }
 .stkc-cells-dots i{ width:5px; height:5px; border-radius:50%; background:var(--ink-3); opacity:.45; }
 .stkc-cells-dots i.on{ background:var(--gold); opacity:1; }
-/* phone picker in the "Charts in layout" menu: 1-4 only, big tap targets */
-.stkg-phone{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; padding:0 2px; }
+/* phone picker in the "Charts in layout" menu: 1-4 only; each tile is a mini phone with its real split */
+.stkg-phone{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; padding:0 4px; }
 .stkg-phone[hidden], .stkg-grid[hidden]{ display:none; }
-.stkg-pc{ display:flex; align-items:center; gap:10px; height:48px; padding:0 12px; border:1px solid var(--line); border-radius:8px;
-  background:transparent; color:var(--ink-1); font:600 13px/1 inherit; font-family:inherit; cursor:pointer; }
-.stkg-pc svg rect{ fill:currentColor; opacity:.55; }
-.stkg-pc[aria-pressed="true"]{ border-color:var(--gold); color:var(--gold); background:rgba(3,201,136,.08); }
-.stkg-pc[aria-pressed="true"] svg rect{ opacity:.9; }
-.stkg-pc:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
+.stkg-pc{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-height:96px; padding:12px 4px 8px;
+  border:1px solid var(--line); border-radius:12px; background:transparent; color:var(--ink-1); font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.stkg-pc b{ font-size:17px; line-height:22px; font-weight:600; color:var(--ink-0); }
+.stkg-pc span{ font-size:12px; line-height:16px; color:var(--ink-2); }
+.stkg-prev{ display:block; margin-bottom:4px; }
+.stkg-prev .stkg-frame{ fill:none; stroke:var(--ink-2); stroke-width:1.5; }
+.stkg-prev .stkg-pane{ fill:var(--ink-2); opacity:.55; }
+.stkg-ck{ display:none; position:absolute; top:6px; right:6px; width:18px; height:18px; border-radius:50%; background:var(--gold); color:var(--bg-2); align-items:center; justify-content:center; }
+.stkg-pc[aria-pressed="true"]{ border:2px solid var(--gold); padding:11px 3px 7px; background:rgba(3,201,136,.08); }
+.stkg-pc[aria-pressed="true"] .stkg-ck{ display:inline-flex; }
+.stkg-pc[aria-pressed="true"] .stkg-frame{ stroke:var(--gold); }
+.stkg-pc[aria-pressed="true"] .stkg-pane{ fill:var(--gold); opacity:.9; }
+.stkg-pc:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+.stkg-syncnote{ padding:0 12px 4px !important; }
+.stkc-sheet .stkg-note{ padding:8px 12px 0; }
+@media (hover:none), (pointer:coarse){ .stkg-pop .stkg-swrow{ min-height:48px; padding:0 12px; font-size:15px; } }
 /* ---- Charts: grid picker + Sync in layout (assets/chart-grid.js, 2026-10-06) ---- */
 .stkg-pop{ width:300px; }
 .stkg-btn svg{ flex:none; }
@@ -6465,20 +6475,25 @@ body.charts-page .stkchart-credit{
 .stkg-greyrow{ padding-left:24px; border-top:1px dashed var(--line-soft); margin-top:4px; padding-top:4px; flex-wrap:wrap; }
 .stkg-off{ opacity:.32; cursor:help; }
 .stkg-off b{ font:600 10.5px/1 inherit; font-family:inherit; }
-.stkg-note{ color:var(--ink-3); font-size:11.5px; padding:4px 4px 0; margin:0 !important; }
+.stkg-note{ color:var(--ink-2); font-size:12px; line-height:16px; padding:6px 4px 0; margin:0 !important; }
 .stkg-note[hidden]{ display:none; }
 .stkg-swrow{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 8px; border-radius:6px; cursor:pointer; color:var(--ink-1); }
 .stkg-swrow:hover{ background:var(--bg-3, rgba(255,255,255,.05)); }
-.stkg-swrow:has(input:disabled){ opacity:.45; cursor:default; }
-.stkg-sw{
-  appearance:none; -webkit-appearance:none; flex:none; position:relative; width:30px; height:17px; margin:0;
-  border-radius:999px; background:var(--line); cursor:inherit; transition:background .15s;
+.stkg-swrow[hidden]{ display:none !important; }
+.stkg-swrow:has(input:disabled){ cursor:default; }
+/* Chart switches (Sync, Autosave, Share, watchlist): white knob, solid green track when on, a 3:1 grey track when
+   off, faded only when disabled. Doubled class beats the global input[type=checkbox]:checked tick (style.css forms). */
+input[type=checkbox].stkg-sw.stkg-sw, input[type=checkbox].stkw-sw.stkw-sw{
+  appearance:none; -webkit-appearance:none; flex:none; position:relative; width:40px; height:24px; margin:0; padding:0;
+  border:0; border-radius:999px; background:var(--ink-3) none; cursor:pointer; transition:background-color .15s;
 }
-.stkg-sw::after{ content:""; position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:var(--ink-1); transition:transform .15s; }
-.stkg-sw:checked{ background:var(--gold); }
-.stkg-sw:checked::after{ transform:translateX(13px); background:#fff; }
-.stkg-sw:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
-@media (prefers-reduced-motion: reduce){ .stkg-sw, .stkg-sw::after{ transition:none; } }
+input[type=checkbox].stkg-sw.stkg-sw::after, input[type=checkbox].stkw-sw.stkw-sw::after{ content:""; position:absolute; top:3px; left:3px; width:18px; height:18px;
+  border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.3); transition:transform .15s; }
+input[type=checkbox].stkg-sw.stkg-sw:checked, input[type=checkbox].stkw-sw.stkw-sw:checked{ background:var(--gold) none; }
+input[type=checkbox].stkg-sw.stkg-sw:checked::after, input[type=checkbox].stkw-sw.stkw-sw:checked::after{ transform:translateX(16px); }
+input[type=checkbox].stkg-sw.stkg-sw:disabled, input[type=checkbox].stkw-sw.stkw-sw:disabled{ opacity:.38; cursor:not-allowed; }
+input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw.stkw-sw:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; box-shadow:none; }
+@media (prefers-reduced-motion: reduce){ .stkg-sw, .stkg-sw::after, .stkw-sw, .stkw-sw::after{ transition:none !important; } }
 /* ---- Charts: layout menu (assets/chart-layouts.js, 2026-10-06) ---- */
 .stkl-btn{ max-width:220px; }
 .stkl-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
@@ -9193,11 +9208,6 @@ body.stkiw-open{ overflow:hidden; }
 .stkw-note{ margin:4px 10px; font-size:11.5px; color:var(--ink-3); line-height:1.4; }
 .stkw-swrow{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:36px; padding:4px 10px; border-radius:6px; cursor:pointer; color:var(--ink-0); }
 .stkw-swrow:hover{ background:var(--bg-2); }
-.stkw-sw{ appearance:none; -webkit-appearance:none; flex:none; width:36px; height:20px; border-radius:10px; background:var(--bg-3, #3a3d45); position:relative; cursor:pointer; transition:background .15s; margin:0; }
-.stkw-sw::after{ content:""; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:#fff; transition:transform .15s; }
-.stkw-sw:checked{ background:#2962ff; }
-.stkw-sw:checked::after{ transform:translateX(16px); }
-.stkw-sw:disabled{ opacity:.4; cursor:default; }
 .stkw-chk{ display:flex; align-items:center; gap:10px; min-height:34px; padding:4px 10px; border-radius:6px; cursor:pointer; color:var(--ink-0); }
 .stkw-chk:hover{ background:var(--bg-2); }
 .stkw-chk input{ width:16px; height:16px; margin:0; accent-color:#2962ff; }

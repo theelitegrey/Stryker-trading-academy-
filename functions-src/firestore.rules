@@ -504,13 +504,43 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // The public contact form. Anonymous create is intentional; the fan-out
-    // to admins is rate-limited in onContactMessageCreated.
+    // Public contact is strictly for signed-out visitors. Existing documents
+    // may contain legacy fields (including userUid), so admin reads/updates stay
+    // compatible; only NEW creates use the tight external-message shape.
     match /contactMessages/{id} {
-      allow create: if true;
+      allow create: if !signedIn()
+                    && request.resource.data.keys().hasOnly(['name', 'email', 'message', 'status', 'createdAt'])
+                    && request.resource.data.keys().hasAll(['name', 'email', 'message', 'status', 'createdAt'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() >= 1
+                    && request.resource.data.name.size() <= 100
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() >= 3
+                    && request.resource.data.email.size() <= 254
+                    && request.resource.data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$')
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() >= 1
+                    && request.resource.data.message.size() <= 4000
+                    && request.resource.data.status == 'new'
+                    && request.resource.data.createdAt == request.time;
       allow read, update, delete: if isAdmin();
     }
     match /contactNotifyThrottle/{hour} { allow read, write: if false; }
+
+    // Member support tickets. All mutations use supportTicketAction, which
+    // validates ownership, sender role, lengths, status transitions and writes
+    // notifications with the Admin SDK. Denying client writes prevents a member
+    // from forging a staff reply, changing ownerUid or choosing recipients.
+    match /supportTickets/{ticketId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create, update, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAdmin() || (signedIn()
+          && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.ownerUid == request.auth.uid);
+        allow create, update, delete: if false;
+      }
+    }
 
     // ---------------------------------------------------------------------
     // Settings and admin tooling

@@ -1,0 +1,83 @@
+/* TradeZoro — member support tickets inside signed-in Help. */
+.help-auth-pending > #site-nav,
+.help-auth-pending > #main,
+.help-auth-pending > footer,
+.help-auth-pending > #member-help-shell { visibility:hidden; }
+.help-page.member-mode > #site-nav,
+.help-page.member-mode > #main,
+.help-page.member-mode > footer { display:none; }
+.help-page:not(.member-mode) #member-help-shell,
+.help-page:not(.member-mode) #appnav-dock { display:none; }
+
+.support-help-main { min-width:0; }
+.support-help-head { margin-bottom:24px; }
+.support-help-head h1 { font-size:28px; line-height:34px; }
+.support-help-head p { color:var(--ink-2); font-size:15px; line-height:22px; margin-top:4px; }
+.support-actions { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.support-layout { display:grid; grid-template-columns:minmax(260px, .8fr) minmax(0, 1.4fr); gap:20px; align-items:start; }
+.support-card { background:var(--bg-1); border:1px solid var(--line); border-radius:16px; padding:16px; min-width:0; }
+.support-card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.support-card-head h2 { font-size:17px; line-height:22px; }
+.support-ticket-list { display:grid; gap:8px; }
+.support-ticket-row { width:100%; min-height:60px; appearance:none; border:1px solid transparent; border-radius:12px; background:transparent; color:var(--ink-0); padding:12px; text-align:left; display:grid; gap:4px; cursor:pointer; }
+.support-ticket-row:hover { background:var(--bg-2); }
+.support-ticket-row.is-active { border-color:var(--gold); background:var(--bg-2); }
+.support-ticket-row:focus-visible,
+.support-tabs button:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+.support-row-top { display:flex; align-items:center; gap:8px; justify-content:space-between; }
+.support-row-subject { font-size:15px; line-height:22px; font-weight:600; overflow-wrap:anywhere; }
+.support-row-meta,.support-row-preview { color:var(--ink-2); font-size:12px; line-height:16px; }
+.support-row-preview { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.support-attention { width:8px; height:8px; flex:0 0 8px; border-radius:50%; background:var(--gold); }
+.support-status { display:inline-flex; align-items:center; min-height:28px; padding:4px 10px; border-radius:999px; font-size:12px; line-height:16px; font-weight:600; background:var(--bg-3); color:var(--ink-1); }
+.support-status.waiting_for_support { color:var(--amber); }
+.support-status.waiting_for_member { color:var(--gold); }
+.support-status.closed { color:var(--ink-2); }
+.support-thread-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+.support-thread-title { min-width:0; }
+.support-thread-title h2 { font-size:22px; line-height:28px; overflow-wrap:anywhere; }
+.support-thread-title p { color:var(--ink-2); font-size:13px; line-height:18px; margin-top:4px; }
+.support-messages { max-height:520px; overflow:auto; padding-right:4px; display:grid; gap:12px; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.support-messages::-webkit-scrollbar { width:8px; }
+.support-messages::-webkit-scrollbar-track { background:transparent; }
+.support-messages::-webkit-scrollbar-thumb { background:var(--line); border-radius:999px; }
+.support-messages::-webkit-scrollbar-thumb:hover { background:var(--ink-3); }
+.support-message { max-width:85%; padding:12px 16px; border:1px solid var(--line); border-radius:16px; background:var(--bg-2); }
+.support-message.member { margin-left:auto; border-bottom-right-radius:8px; }
+.support-message.admin { margin-right:auto; border-bottom-left-radius:8px; }
+.support-message-meta { color:var(--ink-2); font-size:12px; line-height:16px; margin-bottom:6px; }
+.support-message-body { color:var(--ink-0); font-size:15px; line-height:22px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.support-reply { border-top:1px solid var(--line); margin-top:16px; padding-top:16px; }
+.support-reply textarea,.support-create textarea { min-height:112px; resize:vertical; }
+.support-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.support-form-actions { display:flex; gap:12px; align-items:center; justify-content:flex-end; margin-top:16px; }
+.support-state { color:var(--ink-2); font-size:14px; line-height:20px; padding:24px 8px; text-align:center; }
+.support-error { color:var(--bear); }
+.support-tabs { display:flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); width:max-content; max-width:100%; }
+.support-tabs button { min-height:40px; border:0; border-radius:8px; padding:0 12px; color:var(--ink-2); background:transparent; font:inherit; cursor:pointer; }
+.support-tabs button[aria-selected="true"] { color:var(--ink-0); background:var(--bg-3); }
+.contact-member-card { margin-top:20px; }
+.contact-member-card p { color:var(--ink-2); font-size:15px; line-height:22px; margin:0 0 16px; }
+/* Opt dashboard panels out of the marketing page's global section spacing. */
+#support-admin-tickets,
+#support-admin-external { padding:0; }
+
+@media (max-width:900px) {
+  .support-layout { grid-template-columns:1fr; }
+  .support-help-main { padding-bottom:96px; }
+  .support-message { max-width:92%; }
+}
+@media (max-width:520px) {
+  .help-page.member-mode .mobile-topnav .icon-btn { min-width:44px; min-height:44px; }
+  .support-help-head h1 { font-size:28px; }
+  .support-card { padding:16px; border-radius:16px; }
+  .support-form-grid { grid-template-columns:1fr; }
+  .support-form-actions { align-items:stretch; flex-direction:column-reverse; }
+  .support-form-actions .btn { min-height:48px; width:100%; }
+  .support-thread-head { flex-direction:column; }
+  .support-thread-head .btn { min-height:44px; }
+  .support-tabs { width:100%; overflow:auto; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+  .support-tabs button { flex:1 0 auto; min-height:44px; }
+  .support-tabs::-webkit-scrollbar { height:6px; }
+  .support-tabs::-webkit-scrollbar-thumb { background:var(--line); border-radius:999px; }
+}

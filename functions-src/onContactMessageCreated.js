@@ -123,11 +123,9 @@ exports.onContactMessageCreated = onDocumentCreated(
         recipientUid: doc.id,
         type: 'contact',
         message: text,
-        // pages-admin.html is where contact messages are listed. Verified
-        // against the actual markup rather than assumed — the first version of
-        // this pointed at contact-admin.html, which does not exist, so every
-        // notification would have been a dead link.
-        link: 'pages-admin.html#contact-' + event.params.messageId,
+        // The real inbox is support-admin.html. Keep the exact record hash so
+        // the admin lands on the message even when it is already handled.
+        link: 'support-admin.html#contact-' + event.params.messageId,
         read: false,
         // Lets the admin panel jump straight to the message rather than
         // making someone scan a list for it.

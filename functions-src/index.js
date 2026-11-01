@@ -189,6 +189,7 @@ Object.assign(exports, require('./xAutopost'));
 Object.assign(exports, require('./accountAdmin'));
 Object.assign(exports, require('./chapterGate'));
 exports.onContactMessageCreated = require('./onContactMessageCreated').onContactMessageCreated;
+exports.supportTicketAction = require('./supportTickets').supportTicketAction;
 exports.launchSaleOnOrder = require('./launchSale').launchSaleOnOrder;
 // Admin analytics snapshot. Named exports only: adminStats.js also exposes
 // _test helpers for the unit test, which must not be deployed as a group.

@@ -61,6 +61,21 @@ var ADMIN_TASK_SOURCES = [
     sub: 'Students cannot load the indicators until these are granted.'
   },
   {
+    key: 'supportTickets',
+    link: 'support-admin.html',
+    notifType: 'support_ticket_admin',
+    icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/>',
+    tone: 'normal',
+    load: function () {
+      return db.collection('supportTickets').where('adminAttention', '==', true).get()
+        .then(function (snap) { return snap.size; });
+    },
+    label: function (n) {
+      return n + (n === 1 ? ' member ticket needs attention' : ' member tickets need attention');
+    },
+    sub: 'A member opened a ticket or replied.'
+  },
+  {
     key: 'contact',
     link: 'support-admin.html',
     notifType: 'contact_message',

@@ -148,6 +148,26 @@ firebase deploy --only functions:adminStatsScheduled,functions:adminStatsRefresh
 
 No composite index is needed. The count() queries use single-field range filters (`createdAt >=`, `lastActiveDate >=`, `startsAt >`), which Firestore indexes automatically.
 
+## Member support tickets (build 771)
+
+`supportTicketAction` is the only write path for `supportTickets/{ticketId}` and
+its `messages` subcollection. Deploy the tightened rules and callable together,
+then redeploy the contact trigger so its corrected inbox link is active:
+
+```bash
+# From the rules project/folder
+firebase deploy --only firestore:rules --project strykertrades-e0cd8
+# From the functions project/folder; name every function
+firebase deploy --only functions:supportTicketAction,functions:onContactMessageCreated --project strykertrades-e0cd8
+```
+
+No composite index is required. Member ticket lists filter on `ownerUid` only;
+admin lists are bounded and sorted in the client; message ordering uses the
+automatic single-field `createdAt` index. Roll back by restoring the previous
+rules and function revisions, then revert the site commit. Existing ticket and
+contact documents can remain because the old site does not query tickets and
+legacy contact reads are unchanged.
+
 Rollback:
 
 - functions: `firebase functions:delete adminStatsScheduled adminStatsRefresh --region us-central1` (nothing else calls them; the dashboard shows "Unavailable" / "No data yet").

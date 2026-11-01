@@ -28,6 +28,8 @@ function serve() {
     const s = http.createServer((req, rsp) => {
       let p = decodeURIComponent(req.url.split('?')[0]);
       if (p === '/') p = '/index.html';
+      // Mirror the production Cloudflare redirect used by Help links.
+      if (p === '/creators' || p === '/creators.html') p = '/features/creators.html';
       let f = path.join(ROOT, p);
       if (!f.startsWith(ROOT)) { rsp.writeHead(403); return rsp.end(); }
       if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { if (fs.existsSync(f + '.html')) f += '.html'; else { rsp.writeHead(404); return rsp.end('nf'); } }
@@ -81,6 +83,13 @@ async function open(b, vp, url, tag) {
     ? { viewport: vp, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
     : { viewport: vp });
   await ctx.addInitScript(stub);
+  // Public Help regression coverage must stay signed out now that authenticated
+  // members intentionally receive the private ticket shell on this URL.
+  await ctx.addInitScript(() => {
+    if (!window.__stubAuth) return;
+    window.__stubAuth.currentUser = null;
+    window.__stubAuth.onAuthStateChanged = (cb) => { setTimeout(() => cb(null), 10); return () => {}; };
+  });
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
   const p = await ctx.newPage();
   const errors = [];

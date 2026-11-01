@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="770">
+<meta name="stryker-build" content="771">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Contact TradeZoro: questions about the curriculum, your account, billing or anything else. Send us a message and we reply by email.">
 <meta property="og:type" content="website">
@@ -10,7 +10,7 @@
 <meta property="og:title" content="Contact Us — TradeZoro">
 <meta property="og:description" content="Contact TradeZoro: questions about the curriculum, your account, billing or anything else. Send us a message and we reply by email.">
 <meta property="og:url" content="https://tradezoro.com/contact">
-<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/contact.png?v=770">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/contact.png?v=771">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
@@ -18,16 +18,16 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Contact Us — TradeZoro">
 <meta name="twitter:description" content="Contact TradeZoro: questions about the curriculum, your account, billing or anything else. Send us a message and we reply by email.">
-<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/contact.png?v=770">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/contact.png?v=771">
 <meta name="twitter:image:alt" content="Contact Us share card with the TradeZoro logo">
 <meta name="theme-color" content="#050506">
 <title>Contact Us — TradeZoro</title>
 <link rel="canonical" href="https://tradezoro.com/contact">
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=770">
-<link rel="stylesheet" href="assets/nav-features.css?v=770">
-<script src="assets/sanitize.js?v=770"></script>
+<link rel="stylesheet" href="assets/style.css?v=771">
+<link rel="stylesheet" href="assets/nav-features.css?v=771">
+<script src="assets/sanitize.js?v=771"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -72,16 +72,16 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="assets/toast.js?v=770" defer></script>
-<script src="assets/version-check.js?v=770" defer></script>
-<script src="assets/acquisition.js?v=770" defer></script>
-<script src="assets/focus-mode.js?v=770" defer></script>
+<script src="assets/toast.js?v=771" defer></script>
+<script src="assets/version-check.js?v=771" defer></script>
+<script src="assets/acquisition.js?v=771" defer></script>
+<script src="assets/focus-mode.js?v=771" defer></script>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=770">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=770">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=770">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=770">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=770">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=771">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=771">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=771">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=771">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=771">
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
 <body data-page-key="contact">
@@ -122,23 +122,32 @@
       <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div>
     </div>
 
-    <p style="color:var(--ink-3); font-size:13.5px; margin-top:18px;">Prefer email? Write to us directly at <a href="mailto:support@tradezoro.com">support@tradezoro.com</a> — or use the form below.</p>
+    <div id="contact-audience" hidden>
+      <div id="contact-public" hidden>
+        <p style="color:var(--ink-3); font-size:13.5px; margin-top:18px;">Prefer email? Write to us directly at <a href="mailto:support@tradezoro.com">support@tradezoro.com</a> — or use the form below.</p>
 
-    <div class="panel" style="margin-top:20px;">
-      <div class="panel-head"><h2>Send us a message</h2></div>
-      <div class="auth-error" id="contact-form-error"></div>
-      <div class="auth-error" id="contact-form-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
-      <form id="contact-form">
-        <div class="form-row-2">
-          <div class="field" style="margin-bottom:0;"><label for="contact-name">Name</label><input type="text" id="contact-name" required></div>
-          <div class="field" style="margin-bottom:0;"><label for="contact-email">Email</label><input type="email" id="contact-email" required></div>
+        <div class="panel" style="margin-top:20px;">
+          <div class="panel-head"><h2>Send us a message</h2></div>
+          <div class="auth-error" id="contact-form-error"></div>
+          <div class="auth-error" id="contact-form-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
+          <form id="contact-form">
+            <div class="form-row-2">
+              <div class="field" style="margin-bottom:0;"><label for="contact-name">Name</label><input type="text" id="contact-name" maxlength="100" required></div>
+              <div class="field" style="margin-bottom:0;"><label for="contact-email">Email</label><input type="email" id="contact-email" maxlength="254" required></div>
+            </div>
+            <div class="field" style="margin-top:16px;">
+              <label for="contact-message">Message</label>
+              <textarea id="contact-message" rows="5" maxlength="4000" class="textarea-field" required placeholder="How can we help?"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Send message</button>
+          </form>
         </div>
-        <div class="field" style="margin-top:16px;">
-          <label for="contact-message">Message</label>
-          <textarea id="contact-message" rows="5" class="textarea-field" required placeholder="How can we help?"></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm">Send message</button>
-      </form>
+      </div>
+      <section class="panel contact-member-card" id="contact-member" hidden aria-labelledby="contact-member-title">
+        <div class="panel-head"><h2 id="contact-member-title">Member support is inside Help</h2></div>
+        <p>Open a support ticket to keep replies, status updates and notifications together in your account.</p>
+        <a class="btn btn-primary" href="help#tickets">My support tickets</a>
+      </section>
     </div>
   </div>
 </div>
@@ -197,20 +206,21 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/nav-features.js?v=770" defer></script>
-<script src="assets/main.js?v=770"></script>
-<script src="assets/auth.js?v=770"></script>
-<script src="assets/progress.js?v=770"></script>
-<script src="assets/activity-log.js?v=770"></script>
-<script src="assets/banned-check.js?v=770"></script>
-<script src="assets/email-verify.js?v=770"></script>
-<script src="assets/profiles-sync.js?v=770"></script>
-<script src="assets/loading-animation.js?v=770"></script>
-<script src="assets/site-pages.js?v=770"></script>
-<script src="assets/site-pages-defaults.js?v=770"></script>
-<script src="assets/site-page-render.js?v=770"></script>
-<script src="assets/branding.js?v=770"></script>
-<script src="assets/seo.js?v=770"></script>
-<script src="assets/theme.js?v=770"></script>
+<script src="assets/nav-features.js?v=771" defer></script>
+<script src="assets/main.js?v=771"></script>
+<script src="assets/auth.js?v=771"></script>
+<script src="assets/progress.js?v=771"></script>
+<script src="assets/activity-log.js?v=771"></script>
+<script src="assets/banned-check.js?v=771"></script>
+<script src="assets/email-verify.js?v=771"></script>
+<script src="assets/profiles-sync.js?v=771"></script>
+<script src="assets/loading-animation.js?v=771"></script>
+<script src="assets/site-pages.js?v=771"></script>
+<script src="assets/site-pages-defaults.js?v=771"></script>
+<script src="assets/site-page-render.js?v=771"></script>
+<script src="assets/contact-access.js?v=771"></script>
+<script src="assets/branding.js?v=771"></script>
+<script src="assets/seo.js?v=771"></script>
+<script src="assets/theme.js?v=771"></script>
 </body>
 </html>

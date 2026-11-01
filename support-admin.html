@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="770">
+<meta name="stryker-build" content="771">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Support Inbox — TradeZoro Admin</title>
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=770">
-<script src="assets/sanitize.js?v=770"></script>
+<link rel="stylesheet" href="assets/style.css?v=771">
+<link rel="stylesheet" href="assets/member-support.css?v=771">
+<script src="assets/sanitize.js?v=771"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -54,16 +55,16 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="assets/toast.js?v=770" defer></script>
-<script src="assets/version-check.js?v=770" defer></script>
-<script src="assets/acquisition.js?v=770" defer></script>
-<script src="assets/focus-mode.js?v=770" defer></script>
+<script src="assets/toast.js?v=771" defer></script>
+<script src="assets/version-check.js?v=771" defer></script>
+<script src="assets/acquisition.js?v=771" defer></script>
+<script src="assets/focus-mode.js?v=771" defer></script>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=770">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=770">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=770">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=770">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=770">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=771">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=771">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=771">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=771">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=771">
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
 <body>
@@ -189,66 +190,68 @@
   </aside>
 
   <main class="dash-main" id="main" tabindex="-1">
-    <div class="dash-topbar">
-      <div>
-        <h1>Support inbox</h1>
-        <p>Messages sent through the public contact form. Mark each one handled once it's dealt with.</p>
-      </div>
+    <div class="dash-topbar"><div><h1>Support inbox</h1><p>Member ticket conversations and external contact messages in one place.</p></div></div>
+
+    <div class="support-tabs" role="tablist" aria-label="Support inbox" style="margin-bottom:20px;">
+      <button type="button" role="tab" aria-selected="true" data-support-tab="tickets">Member tickets</button>
+      <button type="button" role="tab" aria-selected="false" data-support-tab="external">External messages</button>
     </div>
 
-    <div class="stat-grid-3" style="margin-bottom:24px;">
-      <div class="stat-card"><div class="stat-val" id="sup-stat-new" style="color:var(--gold);">—</div><div class="stat-label">Awaiting reply</div></div>
-      <div class="stat-card"><div class="stat-val" id="sup-stat-handled" style="color:var(--bull);">—</div><div class="stat-label">Handled</div></div>
-      <div class="stat-card"><div class="stat-val" id="sup-stat-total">—</div><div class="stat-label">All time</div></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Messages</h2>
-        <div class="term-cats" id="sup-filter">
-          <button type="button" class="term-cat is-on" data-f="new">New</button>
-          <button type="button" class="term-cat" data-f="handled">Handled</button>
-          <button type="button" class="term-cat" data-f="all">All</button>
-        </div>
+    <section id="support-admin-tickets" role="tabpanel">
+      <div class="stat-grid-3" style="margin-bottom:24px;">
+        <div class="stat-card"><div class="stat-val" id="ticket-stat-attention" style="color:var(--gold);">—</div><div class="stat-label">Needs attention</div></div>
+        <div class="stat-card"><div class="stat-val" id="ticket-stat-member" style="color:var(--amber);">—</div><div class="stat-label">Waiting for member</div></div>
+        <div class="stat-card"><div class="stat-val" id="ticket-stat-closed">—</div><div class="stat-label">Closed</div></div>
       </div>
-      <div id="sup-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-    </div>
+      <div class="support-card-head"><div class="support-tabs" id="ticket-filter" role="radiogroup" aria-label="Filter member tickets"><button type="button" aria-selected="true" data-ticket-filter="attention">Needs attention</button><button type="button" aria-selected="false" data-ticket-filter="open">Open</button><button type="button" aria-selected="false" data-ticket-filter="closed">Closed</button><button type="button" aria-selected="false" data-ticket-filter="all">All</button></div></div>
+      <div class="support-layout"><section class="support-card" aria-labelledby="ticket-list-title"><div class="support-card-head"><h2 id="ticket-list-title">Member tickets</h2></div><div id="ticket-admin-list" class="support-ticket-list" aria-live="polite"><p class="support-state">Loading tickets…</p></div></section><section class="support-card" id="ticket-admin-thread" aria-live="polite"><p class="support-state">Choose a ticket to see the conversation.</p></section></div>
+    </section>
+
+    <section id="support-admin-external" role="tabpanel" hidden>
+      <div class="stat-grid-3" style="margin-bottom:24px;">
+        <div class="stat-card"><div class="stat-val" id="sup-stat-new" style="color:var(--gold);">—</div><div class="stat-label">Awaiting reply</div></div>
+        <div class="stat-card"><div class="stat-val" id="sup-stat-handled" style="color:var(--bull);">—</div><div class="stat-label">Handled</div></div>
+        <div class="stat-card"><div class="stat-val" id="sup-stat-total">—</div><div class="stat-label">All time</div></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>External messages</h2><div class="term-cats" id="sup-filter"><button type="button" class="term-cat is-on" data-f="new">New</button><button type="button" class="term-cat" data-f="handled">Handled</button><button type="button" class="term-cat" data-f="all">All</button></div></div><div id="sup-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div></div>
+    </section>
   </main>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=770"></script>
-<script src="assets/progress.js?v=770"></script>
-<script src="assets/presence.js?v=770"></script>
-<script src="assets/messages.js?v=770"></script>
-<script src="assets/messages-badge.js?v=770"></script>
-<script src="assets/gm-badge.js?v=770"></script>
-<script src="assets/account-menu.js?v=770"></script>
-<script src="assets/activity-log.js?v=770"></script>
-<script src="assets/banned-check.js?v=770"></script>
-<script src="assets/email-verify.js?v=770"></script>
-<script src="assets/profiles-sync.js?v=770"></script>
-<script src="assets/loading-animation.js?v=770"></script>
-<script src="assets/avatars.js?v=770"></script>
-<script src="assets/referrals.js?v=770"></script>
-<script src="assets/branding.js?v=770"></script>
-<script src="assets/admin-guard.js?v=770"></script>
-<script src="assets/dash-nav.js?v=770"></script>
-<script src="assets/market-hours.js?v=770"></script>
-<script src="assets/achievements-data.js?v=770"></script>
-<script src="assets/notifications.js?v=770"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+<script src="assets/auth.js?v=771"></script>
+<script src="assets/progress.js?v=771"></script>
+<script src="assets/presence.js?v=771"></script>
+<script src="assets/messages.js?v=771"></script>
+<script src="assets/messages-badge.js?v=771"></script>
+<script src="assets/gm-badge.js?v=771"></script>
+<script src="assets/account-menu.js?v=771"></script>
+<script src="assets/activity-log.js?v=771"></script>
+<script src="assets/banned-check.js?v=771"></script>
+<script src="assets/email-verify.js?v=771"></script>
+<script src="assets/profiles-sync.js?v=771"></script>
+<script src="assets/loading-animation.js?v=771"></script>
+<script src="assets/avatars.js?v=771"></script>
+<script src="assets/referrals.js?v=771"></script>
+<script src="assets/branding.js?v=771"></script>
+<script src="assets/admin-guard.js?v=771"></script>
+<script src="assets/dash-nav.js?v=771"></script>
+<script src="assets/market-hours.js?v=771"></script>
+<script src="assets/achievements-data.js?v=771"></script>
+<script src="assets/notifications.js?v=771"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=770"></script>
-<script src="assets/admin-tasks.js?v=770"></script>
-<script src="assets/admin-notify.js?v=770"></script>
-<script src="assets/admin-nav.js?v=770"></script>
-<script src="assets/roles.js?v=770"></script>
-<script src="assets/site-pages-defaults.js?v=770"></script>
-<script src="assets/pager.js?v=770"></script>
-<script src="assets/support-admin.js?v=770"></script>
-<script src="assets/notes-admin.js?v=770"></script>
-<script src="assets/theme.js?v=770"></script>
+<script src="assets/push.js?v=771"></script>
+<script src="assets/admin-tasks.js?v=771"></script>
+<script src="assets/admin-notify.js?v=771"></script>
+<script src="assets/admin-nav.js?v=771"></script>
+<script src="assets/roles.js?v=771"></script>
+<script src="assets/site-pages-defaults.js?v=771"></script>
+<script src="assets/pager.js?v=771"></script>
+<script src="assets/support-admin.js?v=771"></script>
+<script src="assets/notes-admin.js?v=771"></script>
+<script src="assets/theme.js?v=771"></script>
 </body>
 </html>

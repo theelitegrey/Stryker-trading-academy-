@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = true;
       db.collection('contactMessages').add({
         name: name, email: email, message: message,
-        userUid: (typeof auth !== 'undefined' && auth && auth.currentUser) ? auth.currentUser.uid : null,
         status: 'new',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {

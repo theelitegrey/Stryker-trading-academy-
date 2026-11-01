@@ -302,5 +302,11 @@
     });
   });
 
-  window.__MB = { isStale, ageHours, renderCard, renderPage, whenLabel };
+  // The desk (dashboard-user) reads the index ladders without mounting a card.
+  function ladders(brief, n) {
+    if (!V()) return '';
+    const mv = parseMoves(brief).filter((m) => m.unit === '%' && !m.isYield && m.level > 0 && /S&P|Nasdaq|Dow|Russell/i.test(m.name)).slice(0, n || 4);
+    return mv.length ? '<div class="mv-ladders">' + mv.map(ladder).join('') + '</div>' : '';
+  }
+  window.__MB = { isStale, ageHours, renderCard, renderPage, whenLabel, load, ladders };
 })();

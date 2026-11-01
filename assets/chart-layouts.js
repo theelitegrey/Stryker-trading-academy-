@@ -646,6 +646,8 @@ export function mountLayouts(ws, o){
     let sid = null;
     try { sid = new URL(location.href).searchParams.get('layout'); } catch (e) {}
     if (sid) await openShared(sid);
+    let ol = null; try { ol = new URL(location.href).searchParams.get('openlayout'); } catch (e) {}   // the dashboard's "Open" on a saved layout
+    if (!sid && ol && /^[A-Za-z0-9]{20,40}$/.test(ol) && user()) await openById(ol);
     let al = null; try { al = new URL(location.href).searchParams.get('applylayout'); } catch (e) {}
     if (al && /^[A-Za-z0-9]{20,40}$/.test(al)) libApi.open('browse').then(() => mounted && mounted.applyId(al));
   });

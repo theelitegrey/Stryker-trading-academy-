@@ -629,6 +629,8 @@
     renderStrip: renderStrip,
     renderPage: renderPage,
     setData: function (d) { DATA = d; PERIOD = (d && d.defaultPeriod) || '1D'; },
-    getPeriod: function () { return PERIOD; }
+    getPeriod: function () { return PERIOD; },
+    load: load,
+    whenLabel: whenLabel
   };
 })();

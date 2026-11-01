@@ -325,6 +325,7 @@
     if (!was || sec._sig !== h) { closeFly(true); sec.innerHTML = h; sec._sig = h; }
   }
   function refreshCreator(){
+    try { document.dispatchEvent(new CustomEvent('cn:owned', { detail: { owned: cnState.owned } })); } catch(e) {}   // the dashboard's Creator Hub card
     renderSidebar();
     if (sheet && !isOpen()) { sheet.remove(); scrim.remove(); sheet = null; scrim = null; }
   }

@@ -38,10 +38,10 @@ const pages = { brief: 'market-brief.html', scanner: 'scanner.html', map: 'marke
       if (k === 'scanner') { extra += ' views=' + (await p.evaluate(() => document.querySelectorAll('[data-view]').length)); }
       if (tapSel) {
         await p.evaluate((s) => { const t = document.querySelector(s); t && t.scrollIntoView({ block: 'center' }); }, tapSel);
-        const bx = await p.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, tapSel);
-        if (w < 500) await p.touchscreen.tap(bx[0], bx[1]); else await p.mouse.click(bx[0], bx[1]);
+        await p.waitForTimeout(400);
+        if (w < 500) await p.locator(tapSel).first().tap(); else await p.locator(tapSel).first().click();
         await p.waitForTimeout(600);
-        const sh = await p.evaluate(() => { const e = document.querySelector('.mv-sheet, .scn-sheet'); if (!e) return null; const r = e.getBoundingClientRect(); return { w: r.width, bottom: r.bottom, vh: innerHeight, vw: innerWidth, left: r.left, right: r.right }; });
+        const sh = await p.evaluate(() => { const e = document.querySelector('.mv-sheet, .scn-sheet'); if (e) e.scrollIntoView(); if (!e) return null; const r = e.getBoundingClientRect(); return { w: r.width, bottom: r.bottom, vh: innerHeight, vw: innerWidth, left: r.left, right: r.right }; });
         extra += ' sheet=' + JSON.stringify(sh);
         await p.screenshot({ path: `${OUT}/${tag}-${k}-${w}-${th}-sheet.png` });
         await p.keyboard.press('Escape');
@@ -50,6 +50,12 @@ const pages = { brief: 'market-brief.html', scanner: 'scanner.html', map: 'marke
       if (k === 'scanner') { await p.evaluate(() => document.querySelector('[data-view="cards"]').click()); await p.waitForTimeout(500); await p.screenshot({ path: `${OUT}/${tag}-${k}-${w}-${th}-cards.png` }); extra += ' cardsOv=' + (await p.evaluate(() => document.documentElement.scrollWidth - innerWidth)); await p.evaluate(() => document.querySelector('[data-view="list"]').click()); await p.waitForTimeout(400); extra += ' listRows=' + (await p.evaluate(() => document.querySelectorAll('.scn-table tbody tr').length)); extra += ' listOv=' + (await p.evaluate(() => document.documentElement.scrollWidth - innerWidth)); }
       if (k === 'map') { await p.evaluate(() => window.dispatchEvent(new Event('stryker:theme'))); await p.waitForTimeout(300); extra += ' tiles=' + (await p.evaluate(() => document.querySelectorAll('.mv-tile').length)); }
       if (k === 'brief') extra += ' ladders=' + (await p.evaluate(() => document.querySelectorAll('.mv-lad').length)) + ' details=' + (await p.evaluate(() => document.querySelectorAll('.mv-det').length)) + ' stale=' + (await p.evaluate(() => !!document.querySelector('.mb-stale')));
+      const lowC = await p.evaluate(() => {
+        const lum = (c) => { const m = c.match(/[\d.]+/g).map(Number); const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
+        let bad = []; document.querySelectorAll('.mv-tile,.mv-pill,.scn-cardx .gp').forEach((t) => { const cs = getComputedStyle(t); const a = lum(cs.backgroundColor), b = lum(cs.color); const r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); if (r < 4.5) bad.push((t.textContent || '').slice(0, 14) + ':' + r.toFixed(2)); });
+        return bad.slice(0, 6).join(',');
+      });
+      if (lowC) extra += ' LOWCONTRAST=' + lowC;
       res.push(`${k} ${w} ${th} overflow=${ov}${extra} errs=${errs.join('|').slice(0, 200)}`);
       await ctx.close();
     }

@@ -53,8 +53,8 @@
       '</div>' +
       '<div class="push-prompt-body">' +
         '<h3>Never miss a setup</h3>' +
-        '<p>Turn on notifications and this device will alert you the moment a live ' +
-          'session starts, someone replies to your post, or a message arrives — even ' +
+        '<p>Turn on notifications and this device will alert you the moment ' +
+          'someone replies to your post, or a message arrives — even ' +
           'with the site closed.</p>' +
         '<div class="push-prompt-actions">' +
           '<button type="button" class="btn btn-primary btn-sm" id="push-prompt-enable">Turn on notifications</button>' +

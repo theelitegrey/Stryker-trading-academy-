@@ -8,7 +8,7 @@ const TRACKERS = process.env.STRYKER_TRACKERS_DIR ? process.env.STRYKER_TRACKERS
 const PAGES=['dashboard-user.html','market-brief.html','market-map.html','economic-calendar.html',
   'global-monitor.html','smart-money.html','courses.html','chapter.html?ch=01','trade-journal.html',
   'backtests.html','models.html','model.html?id=ict-2022-model','indicators.html',
-  'indicator.html?id=fvg-relay','live-sessions.html','trading-floor.html','achievements.html',
+  'indicator.html?id=fvg-relay','trading-floor.html','achievements.html',
   'profile.html','settings.html','referrals.html'];
 (async()=>{
   const b=await launch();

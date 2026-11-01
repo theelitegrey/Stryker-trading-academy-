@@ -12,8 +12,6 @@ const FEATURES = [
     blurb: 'Complete, rule-based trading models — context, entry, invalidation and management — documented step by step in the TradeZoro model library.' },
   { page: 'features-indicators.html', title: 'Private Indicators',
     blurb: 'Invite-only TradingView indicators — Liquidity Master, SMT Divergence Pro, IFVG Pro, FVG Relay and HTF PO3 Lens — with licensed access granted to your TradingView username.' },
-  { page: 'features-live.html', title: 'Live Sessions',
-    blurb: 'Live trading sessions with real-time chat, session replays with recap stats, and a next-session countdown shown in your own timezone.' },
   { page: 'features-monitor.html', title: 'Global Monitor',
     blurb: 'A single screen for global market context — the monitor every TradeZoro student checks before the session starts.' },
   { page: 'features-smart-money.html', title: 'Smart Money Desk',

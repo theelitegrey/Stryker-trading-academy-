@@ -1,7 +1,7 @@
 // TradeZoro — "Guided Path" dashboard layer (dashboard-user.html)
 //
 // Purpose: the presentation layer for the journey-style dashboard. It does NOT
-// load member data itself, except the upcoming live-sessions list; it listens
+// load member data itself; it listens
 // to what dashboard.js already renders and draws on top of it:
 //   - the chapter path ribbon in the hero (done / you-are-here / ahead),
 //   - the animated progress ring and count-up chips,
@@ -12,7 +12,7 @@
 //
 // Depends on: dashboard.js (global renderDashboard, wrapped here), the
 // CHAPTERS global from chapters-store.js, market-hours.js
-// (window.StrykerMarketHours), and `db`/`auth` for the live-sessions list.
+// (window.StrykerMarketHours).
 
 (function () {
   'use strict';
@@ -199,51 +199,10 @@
     });
   }
 
-  // ---- upcoming live sessions (replaces the old hard-coded August list) -----------
-  function renderLive(rows) {
-    var host = $('gp-live');
-    if (!host) return;
-    var now = Date.now();
-    var up = rows.map(function (s) {
-      var ms = (typeof s.startAtMillis === 'number' && isFinite(s.startAtMillis)) ? s.startAtMillis
-        : new Date((s.date || '') + 'T' + (s.time || '00:00')).getTime();
-      return { s: s, ms: ms };
-    }).filter(function (x) { return !x.s.completed && isFinite(x.ms) && (x.s.isLive || x.ms > now - 3 * 3600e3); })
-      .sort(function (a, b) { return a.ms - b.ms; }).slice(0, 3);
-    if (!up.length) {
-      host.innerHTML = '<p class="dov-empty">No sessions on the schedule yet. New ones appear here as soon as they are booked.</p>';
-      return;
-    }
-    host.innerHTML = up.map(function (x) {
-      var d = new Date(x.ms);
-      return '<a class="gp-ev" href="live-sessions.html">' +
-        '<span class="gp-ev-d"><b>' + d.getDate() + '</b>' + esc(d.toLocaleDateString(undefined, { month: 'short' })) + '</span>' +
-        '<span class="gp-ev-t"><b>' + esc(x.s.title || 'Live session') + '</b><span>' +
-          esc(d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })) +
-          (x.s.instrument ? ' · ' + esc(x.s.instrument) : '') + '</span></span>' +
-        (x.s.isLive ? '<span class="live-badge"><i></i>LIVE</span>' : '<span class="gp-tool-go" aria-hidden="true">→</span>') +
-      '</a>';
-    }).join('');
-  }
-  function loadLive() {
-    if (typeof db === 'undefined' || !db || typeof auth === 'undefined' || !auth) { renderLive([]); return; }
-    var done = false;
-    auth.onAuthStateChanged(function (user) {
-      if (done || !user) return;
-      done = true;
-      db.collection('liveSessions').orderBy('date', 'asc').get().then(function (snap) {
-        var rows = [];
-        snap.forEach(function (d) { var o = d.data(); o.id = d.id; rows.push(o); });
-        renderLive(rows);
-      }).catch(function () { renderLive([]); });
-    });
-  }
-
   function boot() {
     wireTabs();
     wireMotion();
     startMarket();
-    loadLive();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

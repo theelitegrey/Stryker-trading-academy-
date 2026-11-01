@@ -187,45 +187,6 @@ function hideSessionNotice(){
   if (el) el.remove();
 }
 
-// ---- "Live now" strip -------------------------------------------------------
-// If a session is live (liveSessions.isLive with a video attached), a red
-// strip appears at the top of the dashboard linking to the player. Uses a
-// realtime listener so the strip appears/disappears while the tab is open.
-(function(){
-  document.addEventListener('DOMContentLoaded', () => {
-    const main = document.querySelector('.dash-main');
-    if (!main || typeof db === 'undefined' || !db) return;
-    function wire(tries){
-      tries = tries || 0;
-      if (typeof auth === 'undefined' || !auth) {
-        if (tries < 120) setTimeout(() => wire(tries + 1), 150);
-        return;
-      }
-      auth.onAuthStateChanged((user) => {
-        if (!user) return;
-        db.collection('liveSessions').where('isLive', '==', true).limit(1)
-          .onSnapshot((snap) => {
-            let strip = document.getElementById('dash-live-strip');
-            if (snap.empty) { if (strip) strip.remove(); return; }
-            const s = snap.docs[0].data();
-            if (!strip) {
-              strip = document.createElement('a');
-              strip.id = 'dash-live-strip';
-              strip.className = 'dash-live-strip';
-              strip.href = 'live-sessions.html';
-              main.insertBefore(strip, main.firstChild);
-            }
-            strip.innerHTML =
-              '<span class="live-badge"><i></i>LIVE</span>' +
-              '<b>' + stkEsc(s.title || 'Live session') + '</b>' +
-              '<span>join now →</span>';
-          }, () => { /* rules may not allow yet — no strip */ });
-      });
-    }
-    wire();
-  });
-})();
-
 // ---- Subscription renewal strip ---------------------------------------------
 // When the student's paid plan is inside the reminder window (3 days before
 // expiry) or past it (grace), an amber strip points at renewal checkout.

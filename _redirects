@@ -21,8 +21,12 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 /features-charts.html /features/charts 301
 /features-monitor /features/global-monitor 301
 /features-monitor.html /features/global-monitor 301
-/features-live /features/live-sessions 301
-/features-live.html /features/live-sessions 301
+/features-live /features 301
+/features-live.html /features 301
+/features/live-sessions /features 301
+/features/live-sessions.html /features 301
+/live-sessions /dashboard-user.html 301
+/live-sessions.html /dashboard-user.html 301
 /features-community /features/community 301
 /features-community.html /features/community 301
 

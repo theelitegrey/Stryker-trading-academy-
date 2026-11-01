@@ -671,7 +671,7 @@
       {
        "id": "more-sheet",
        "q": "What is inside the More menu?",
-       "a": "<p>More opens a sheet with every other page, in three groups.</p><ul><li><strong>Main</strong>: Home, Trading Floor, Global Monitor, Messages.</li><li><strong>Tools</strong>: Replay One, Trade review, Paper leaderboard, Models, Indicators, Market brief, Economic calendar, Market scanner, Market stats, Market map, Smart money, Live sessions.</li><li><strong>Account</strong>: Profile, Settings, Achievements, Referrals, Giveaways, Roadmap, Suggestions, Help Center, Support.</li></ul><p><img src=\"/assets/help/shots/charts-more-phone.webp\" alt=\"The ... More menu on the phone chart\"></p>",
+       "a": "<p>More opens a sheet with every other page, in three groups.</p><ul><li><strong>Main</strong>: Home, Trading Floor, Global Monitor, Messages.</li><li><strong>Tools</strong>: Replay One, Trade review, Paper leaderboard, Models, Indicators, Market brief, Economic calendar, Market scanner, Market stats, Market map, Smart money.</li><li><strong>Account</strong>: Profile, Settings, Achievements, Referrals, Giveaways, Roadmap, Suggestions, Help Center, Support.</li></ul><p><img src=\"/assets/help/shots/charts-more-phone.webp\" alt=\"The ... More menu on the phone chart\"></p>",
        "path": "Dock → More",
        "tags": [
         "more",
@@ -1304,27 +1304,6 @@
         {
          "label": "Models",
          "href": "/models"
-        }
-       ]
-      },
-      {
-       "id": "live-sessions",
-       "q": "When are live sessions?",
-       "a": "<p>Live sessions are going free on YouTube. The page says they are expected from December. Follow @tradezoro on YouTube.</p>",
-       "path": "More → Live sessions",
-       "tags": [
-        "live",
-        "youtube",
-        "webinar",
-        "stream"
-       ],
-       "related": [
-        "social"
-       ],
-       "links": [
-        {
-         "label": "Live sessions",
-         "href": "/live-sessions"
         }
        ]
       }
@@ -4298,9 +4277,7 @@
         "youtube",
         "social"
        ],
-       "related": [
-        "live-sessions"
-       ]
+       "related": []
       },
       {
        "id": "curriculum-help",

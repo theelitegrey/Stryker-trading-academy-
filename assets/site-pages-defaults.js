@@ -50,7 +50,7 @@ const SITE_PAGES_DEFAULTS = {
       '<p>You must be at least 18 years old to create an account. TradeZoro does not offer accounts to anyone under 18, given the financial risk involved in the subject matter taught here.</p>' +
       '<h2>3. Risk disclosure</h2>' +
       '<p><strong>Trading foreign exchange, indices, commodities, and other financial instruments carries a high level of risk and may not be suitable for everyone.</strong> You could lose some or all of your invested capital, and you should not trade with money you cannot afford to lose.</p>' +
-      '<p>TradeZoro is an <strong>educational service only</strong>. We do not provide personalized financial, investment, or trading advice, and we do not manage funds on behalf of any student. Nothing in our curriculum, trading models, live sessions, or community content constitutes a recommendation to buy, sell, or hold any specific financial instrument.</p>' +
+      '<p>TradeZoro is an <strong>educational service only</strong>. We do not provide personalized financial, investment, or trading advice, and we do not manage funds on behalf of any student. Nothing in our curriculum, trading models, or community content constitutes a recommendation to buy, sell, or hold any specific financial instrument.</p>' +
       '<p>Past performance shown in course materials, including any illustrative charts or worked examples, is not indicative of future results. Any hypothetical or simulated performance results have inherent limitations and do not represent actual trading.</p>' +
       '<h2>4. Your account</h2>' +
       '<p>You\'re responsible for keeping your login credentials secure and for all activity under your account. Let us know immediately if you believe your account has been compromised.</p>' +

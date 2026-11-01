@@ -17,7 +17,7 @@ fs.mkdirSync(SHOTS_DIR, { recursive: true });
 
 const REQUIRED_PANEL_IDS = [
   'admin-ai-panel', 'todo-panel', 'dash-notes-list', 'recent-students-list',
-  'chapter-engagement', 'aa-sessions'
+  'chapter-engagement'
 ];
 
 async function newCtx(browser, viewport, theme) {
@@ -95,9 +95,6 @@ async function runMode(browser, mode) {
           const cards = Array.from(document.querySelectorAll('.aa-card .v'));
           return cards.some((el) => {
             if (el.querySelector('#aa-online-now')) return false;
-            // aa-sessions: the liveSessions read answered (empty list in this
-            // fixture), so 0 upcoming is a real answer, same rule as above.
-            if (el.id === 'aa-sessions') return false;
             return el.textContent.trim() === '0';
           });
         });
@@ -117,8 +114,6 @@ async function runMode(browser, mode) {
         if (mode === 'failed') {
           const online = await p.evaluate(() => (document.getElementById('aa-online-now') || {}).textContent || '');
           results.checks.push({ name: 'failed online-now reads "Unavailable"', pass: online.trim() === 'Unavailable', detail: online.trim() });
-          const sess = await p.evaluate(() => (document.getElementById('aa-sessions') || {}).textContent || '');
-          results.checks.push({ name: 'failed upcoming-sessions reads "Unavailable"', pass: sess.trim() === 'Unavailable', detail: sess.trim() });
         }
       }
 
@@ -159,8 +154,6 @@ async function runMode(browser, mode) {
       results.checks.push({ name: mode + ' online dot green iff a real count is shown', pass: dot.live === isNumber, detail: dot });
 
       if (mode === 'loaded') {
-        const sess = await p.evaluate(() => (document.getElementById('aa-sessions') || {}).textContent || '');
-        results.checks.push({ name: 'loaded upcoming-sessions is a number (bento card)', pass: /^\d+$/.test(sess.trim()), detail: sess.trim() });
 
         // Manager review B: labels follow the chip.
         const want = { today: ['New today', 'Active today'], '7d': ['New · 7 days', 'Active · 7 days'],

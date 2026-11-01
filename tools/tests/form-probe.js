@@ -18,13 +18,13 @@ const path = require('path');
 const DEFAULT_PAGES = ['index.html', 'features.html', 'features-charts.html', 'login.html', 'signup.html', 'dashboard-user.html',
   'settings.html', 'profile.html', 'trade-journal.html', 'backtests.html', 'replay.html', 'gex.html', 'scanner.html', 'courses.html',
   'chapter.html', 'learn.html', 'checkout.html', 'support.html', 'contact.html', 'referrals.html', 'giveaways.html', 'messages.html',
-  'trading-floor.html', 'economic-calendar.html', 'market-brief.html', 'global-monitor.html', 'smart-money.html', 'live-sessions.html',
+  'trading-floor.html', 'economic-calendar.html', 'market-brief.html', 'global-monitor.html', 'smart-money.html',
   'indicators.html', 'models.html', 'roadmap.html', 'achievements.html', 'leaderboard.html', 'paper-review.html',
   'dashboard-admin.html', 'settings-admin.html', 'students-admin.html', 'access-admin.html', 'appearance-admin.html', 'billing-admin.html',
   'bots-admin.html', 'chapters-admin.html', 'chapter-editor.html', 'commerce-admin.html', 'coupons-admin.html', 'giveaways-admin.html',
   'indicators-admin.html', 'indicator-editor.html', 'logs-admin.html', 'models-admin.html', 'model-editor.html', 'moderation-admin.html',
   'notes-admin.html', 'orders-admin.html', 'pages-admin.html', 'page-editor.html', 'referrals-admin.html', 'roadmap-admin.html',
-  'seo-admin.html', 'sessions-admin.html', 'support-admin.html', 'x-admin.html', 'prop-firm-cheat-sheet.html', 'cheat-sheet.html'];
+  'seo-admin.html', 'support-admin.html', 'x-admin.html', 'prop-firm-cheat-sheet.html', 'cheat-sheet.html'];
 
 const ADMIN_INIT = () => {
   const wrap = () => {

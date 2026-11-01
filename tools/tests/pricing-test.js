@@ -21,7 +21,6 @@ function stubFor(mode) {
     const PLAN = { free: 'Starter', pro: 'Pro', out: null }[MODE];
     const pageAccess = {
       'trade-journal': { minRole: FREE, viewOnlyRole: FREE },
-      'live-sessions': { minRole: PRO, viewOnlyRole: PRO },
       'trading-floor': { minRole: PRO, viewOnlyRole: FREE },
       models: { minRole: PRO, viewOnlyRole: PRO }
     };

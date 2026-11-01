@@ -6,11 +6,6 @@ const R = require('./bt-rig.js'); const { PROBE, ADMIN_INIT } = require('./form-
   const ok = (k, v, x) => { console.log((v ? 'PASS ' : 'FAIL ') + k + (x ? ' ' + JSON.stringify(x) : '')); if (!v) fails++; };
   for (const dev of ['desktop', 'phone']) {
     const { ctx, p, errors } = await R.page(b, srv, dev); await ctx.addInitScript(ADMIN_INIT);
-    await p.goto(srv.base + '/sessions-admin.html', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(2200);
-    const h = await p.evaluate(() => ['admin-session-date', 'admin-session-time', 'admin-session-tz'].map((id) => Math.round(document.getElementById(id).getBoundingClientRect().height)));
-    ok(dev + ' sessions date/time/tz same height', Math.max(...h) - Math.min(...h) <= 1, h);
-    await p.fill('#admin-session-date', '2026-11-02'); await p.fill('#admin-session-time', '14:30');
-    ok(dev + ' sessions date/time accept values', (await p.inputValue('#admin-session-date')) === '2026-11-02' && (await p.inputValue('#admin-session-time')) === '14:30');
     await p.goto(srv.base + '/logs-admin.html', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(2200);
     const lh = await p.evaluate(() => ['log-filter-user', 'log-filter-action', 'log-filter-from', 'log-filter-to'].map((id) => Math.round(document.getElementById(id).getBoundingClientRect().height)));
     ok(dev + ' logs filter row one height', Math.max(...lh) - Math.min(...lh) <= 1, lh);

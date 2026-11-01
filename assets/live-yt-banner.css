@@ -1,4 +1,4 @@
-/* Live sessions: "free on YouTube" banner (shared by live-sessions.html and features/live-sessions.html) */
+/* "Free on YouTube"-style banner; now used by the indicators pages (ZoroCharts banner) */
 .lyt{position:relative;isolation:isolate;overflow:hidden;border-radius:28px;margin:clamp(12px,3vw,32px) auto;max-width:1040px;
   min-height:min(620px,calc(100svh - 160px));display:flex;align-items:center;justify-content:center;text-align:center;
   padding:clamp(40px,8vw,96px) clamp(20px,5vw,64px);color:#f4f5f7;

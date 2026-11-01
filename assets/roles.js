@@ -320,7 +320,6 @@ const GATEABLE_PAGES = [
   { key: 'trading-floor', label: 'Trading floor (community)' },
   { key: 'trade-journal', label: 'Trade journal' },
   { key: 'messages', label: 'Direct messages' },
-  { key: 'live-sessions', label: 'Live sessions' },
   { key: 'global-monitor', label: 'Global Monitor (war & geopolitics terminal)' },
   { key: 'achievements', label: 'Achievements' },
   { key: 'referrals', label: 'Invite & Earn (referrals)' }

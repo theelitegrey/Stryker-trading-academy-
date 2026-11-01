@@ -11,7 +11,7 @@
 // no backend, no cost.
 //
 // PLAN GATE: Elite (rank 2+), same pattern as the live room in
-// live-sessions.js — gated by RANK so plan renames don't break it, admins
+// the former live room — gated by RANK so plan renames don't break it, admins
 // bypass, unresolvable plan data fails open. Locked students see the page
 // framing and an upgrade pitch, never the tables (and no fetch happens).
 

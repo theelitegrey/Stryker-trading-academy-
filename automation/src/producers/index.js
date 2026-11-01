@@ -9,7 +9,7 @@
  *   lesson    one educational Short a day, drawn from a chapter lesson
  *   promo     a features / signup promo video on chosen weekdays
  *   feature   a text promo for one features page, rotating daily
- *   announce  a new chapter, model, indicator or live session
+ *   announce  a new chapter, model or indicator
  */
 const db = require('../db');
 const log = require('../log');
@@ -230,11 +230,7 @@ const ANNOUNCE = [
     src: (d) => d.name && !/^untitled/i.test(d.name) && { title: d.name, source: { type: 'New trading model', name: d.name, category: d.category || null,
       summary: d.summary || null, steps: (d.steps || []).map((x) => x.title).filter(Boolean).slice(0, 6) } } },
   { coll: 'indicators', kind: 'indicator', path: (d) => '/indicator.html?id=' + encodeURIComponent(d.id), campaign: 'new-indicator',
-    src: (d) => d.name && !/^untitled/i.test(d.name) && { title: d.name, source: { type: 'New indicator', name: d.name, summary: d.summary || null } } },
-  { coll: 'liveSessions', kind: 'session', path: () => '/live-sessions.html', campaign: 'live-session',
-    src: (d) => d.title && { title: d.title, source: { type: 'Upcoming live session', title: d.title, instrument: d.instrument || null,
-      startsUtc: d.startAtMillis ? new Date(d.startAtMillis).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : null,
-      localDate: d.date || null, localTime: d.time || null, timezone: d.timezone || null, description: d.description || null } } }
+    src: (d) => d.name && !/^untitled/i.test(d.name) && { title: d.name, source: { type: 'New indicator', name: d.name, summary: d.summary || null } } }
 ];
 
 async function produceAnnounce(s, state, t) {

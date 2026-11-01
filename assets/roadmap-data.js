@@ -48,7 +48,7 @@
         details: 'TradingView Lightweight Charts engine, draggable stops and targets, classic and ICT indicators, setup tags, mistakes and notes per trade, chart snapshots, one-click copy into JournalX, and a rule-based coach.' },
       { id: 'feature-pages', title: 'Feature pages', desc: 'A hub and a page per module explaining what each part of the academy does.', status: 'shipped', when: 'Shipped', link: 'features.html', build: 277, date: '2026-09-08' },
       { id: 'smart-money', title: 'Smart Money desk', desc: 'Congress trades and insider filings, refreshed daily and sourced on every row.', status: 'shipped', when: 'Shipped', link: 'smart-money.html', build: 275, date: '2026-09-08' },
-      { id: 'live-controls', title: 'Live session controls', desc: 'End and complete controls for streams, forced HD playback, timezone-correct countdowns.', status: 'shipped', when: 'Shipped', link: 'live-sessions.html', build: 274, date: '2026-09-08' },
+      { id: 'live-controls', title: 'Live session controls', desc: 'End and complete controls for streams, forced HD playback, timezone-correct countdowns. Live Sessions was removed from the site in November 2026.', status: 'shipped', when: 'Shipped, since removed', link: '', build: 274, date: '2026-09-08' },
       { id: 'fx-rate', title: 'Live USD to INR pricing', desc: 'Prices convert at the market rate, refreshed once a day.', status: 'shipped', when: 'Shipped', build: 270, date: '2026-09-08' }
     ],
     changelog: [

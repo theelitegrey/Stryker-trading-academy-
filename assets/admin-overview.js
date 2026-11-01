@@ -46,28 +46,6 @@ function renderRecentStudents(students){
 // Missing/loading/failed states are distinct so a "—" never gets mistaken
 // for a real zero.
 
-function renderAdminStats(stats, sessions){
-  // Total users, MRR and avg completion now live only in the analytics bento
-  // (assets/admin-analytics.js, from adminStats/current), so the old stat row
-  // is gone. This keeps the one figure the bento did not have: upcoming live
-  // sessions, from the small liveSessions collection read below.
-  const el = document.getElementById('aa-sessions');
-  if (!el) return;
-  let value;
-  if (sessions === undefined) {
-    value = 'Unavailable';
-  } else {
-    const now = Date.now();
-    value = String(sessions.filter((v) => {
-      const t = v.startsAt && v.startsAt.toMillis ? v.startsAt.toMillis() : 0;
-      return t > now;
-    }).length);
-  }
-  el.textContent = value;
-  // "Unavailable" reads as state text, not as a figure.
-  el.classList.toggle('aa-v-text', /[A-Za-z]{2,}/.test(value));
-}
-
 function renderChapterEngagement(stats){
   const wrap = document.getElementById('chapter-engagement');
   if (!wrap) return;
@@ -129,13 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch((err) => { console.error('TradeZoro: recent students query failed', err); return null; }),
       db.collection('adminStats').doc('current').get()
         .then((doc) => (doc.exists ? doc.data() : null))
-        .catch((err) => { console.error('TradeZoro: adminStats/current read failed', err); return undefined; }),
-      db.collection('liveSessions').get()
-        .then((snap) => { const out = []; snap.forEach((doc) => out.push(doc.data())); return out; })
-        .catch((err) => { console.error('TradeZoro: liveSessions read failed', err); return undefined; })
-    ]).then(([students, stats, sessions]) => {
+        .catch((err) => { console.error('TradeZoro: adminStats/current read failed', err); return undefined; })
+    ]).then(([students, stats]) => {
       renderRecentStudents(students);
-      renderAdminStats(stats, sessions);
       renderChapterEngagement(stats);
     });
   });

@@ -5574,16 +5574,6 @@ a.floor-tag:hover{ text-decoration:underline; }
   text-shadow:0 0 22px rgba(3,201,136,.35); letter-spacing:.04em;
 }
 
-/* dashboard "live now" strip */
-.dash-live-strip{
-  display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:12px 16px;
-  border-radius:13px; text-decoration:none;
-  border:1px solid rgba(229,72,77,.45); background:rgba(229,72,77,.07);
-}
-.dash-live-strip .live-badge{ flex:0 0 auto; }
-.dash-live-strip b{ color:var(--ink-0); font-size:13.5px; }
-.dash-live-strip span{ color:var(--ink-3); font-size:12px; margin-left:auto; font-family:var(--font-mono); }
-
 /* dashboard subscription-renewal strip — amber cousin of the live strip */
 .dash-renew-strip{
   display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:12px 16px;

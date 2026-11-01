@@ -28,7 +28,7 @@ const PAGES = [
   'roadmap.html', 'backtests.html', 'replay.html', 'trade-journal.html',
   'global-monitor.html', 'smart-money.html', 'achievements.html', 'referrals.html',
   'settings.html', 'profile.html', 'courses.html', 'models.html', 'indicators.html',
-  'live-sessions.html', 'giveaways.html', 'trading-floor.html', 'charts.html'
+  'giveaways.html', 'trading-floor.html', 'charts.html'
 ];
 
 (async () => {

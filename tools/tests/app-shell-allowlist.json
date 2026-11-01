@@ -18,7 +18,8 @@
   "learn-how-prop-firms-work": "SEO article",
   "creator-rules": "public creator rules (legal text)",
   "c": "public community page /c/<slug>",
-  "features/creators": "Creator Hub landing, linked from the app menu (How it works); app shell when signed in"
+  "features/creators": "Creator Hub landing, linked from the app menu (How it works); app shell when signed in",
+  "features/charts": "ZoroCharts feature page; app shell when signed in, marketing header + footer signed out"
  },
  "ignore": {
   "index": "public home; sign-out lands here",

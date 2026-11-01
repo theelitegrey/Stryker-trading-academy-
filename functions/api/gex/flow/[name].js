@@ -16,7 +16,7 @@ async function readChain(sym, env) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort('timeout'), 4000);
   try {
-    const res = await fetch(base + '?sym=' + encodeURIComponent(sym) + '&part=near', { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0' } });
+    const res = await fetch(base + '?sym=' + encodeURIComponent(sym) + '&part=near', { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0', authorization: (env && env.GEX_AUTH) || '' } });
     if (!res.ok) throw new Error('chain ' + res.status);
     const text = await new Response(new Blob([await res.arrayBuffer()]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     return JSON.parse(text);

@@ -5,10 +5,12 @@ import { isGexProToken, bearerOf } from '../chart/_rt.js';
 
 export function gexPro(handler) {
   return async (ctx) => {
-    if (!(await isGexProToken(bearerOf(ctx.request)))) {
+    const tok = bearerOf(ctx.request);
+    if (!(await isGexProToken(tok))) {
       return new Response(JSON.stringify({ error: 'pro_required', message: 'GEX+ is part of Pro.' }), { status: 403, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
     }
-    const r = await handler(ctx);
+    // the recorder's raw chain reads (/gex-chain, /gex-fast) re-check this same token (env.GEX_AUTH)
+    const r = await handler(Object.assign({}, ctx, { env: Object.assign({}, ctx.env, { GEX_AUTH: 'Bearer ' + tok }) }));
     const h = new Headers(r.headers);
     h.set('cache-control', (h.get('cache-control') || 'no-store').replace(/\bpublic\b/g, 'private').replace(/,?\s*s-maxage=\d+/g, ''));
     h.append('vary', 'Authorization');

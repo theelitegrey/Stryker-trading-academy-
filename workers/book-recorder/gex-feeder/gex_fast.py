@@ -254,7 +254,7 @@ def main():
             t0 = time.monotonic()
             try:
                 if u not in oi or now - oi[u][0] > OI_REFRESH:
-                    raw = urllib.request.urlopen(urllib.request.Request('%s/gex-chain?sym=%s&part=near' % (url, CBOE_SYM[u]), headers={'User-Agent': UA}), timeout=10).read()
+                    raw = urllib.request.urlopen(urllib.request.Request('%s/gex-chain?sym=%s&part=near' % (url, CBOE_SYM[u]), headers={'User-Agent': UA, 'x-ingest-key': key}), timeout=10).read()
                     oi[u] = (now, json.loads(gzip.decompress(raw)))
                 sp = spots.get().get(u)
                 en = None

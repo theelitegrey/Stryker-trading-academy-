@@ -23,7 +23,7 @@ async function fetchFast(env) {
   const base = (env && env.GEX_CHAIN_URL) || 'https://book-recorder.theelitegrey.workers.dev/gex-chain';
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort('timeout'), 1500);
   try {
-    const res = await fetch(base.replace(/\/gex-chain$/, '/gex-fast'), { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0' } });
+    const res = await fetch(base.replace(/\/gex-chain$/, '/gex-fast'), { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0', authorization: (env && env.GEX_AUTH) || '' } });
     if (!res.ok) return null;
     const text = await new Response(new Blob([await res.arrayBuffer()]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     return JSON.parse(text);

@@ -472,7 +472,8 @@ def daily_closes(code, key, now_epoch):
 
 
 def cboe_term(url, sym):
-    req = urllib.request.Request('%s/gex-chain?sym=%s&part=term' % (url, sym), headers={'User-Agent': UA})
+    key = os.environ.get('BOOK_INGEST_SECRET', '')   # /gex-chain is Pro / server only (2026-11-01)
+    req = urllib.request.Request('%s/gex-chain?sym=%s&part=term' % (url, sym), headers={'User-Agent': UA, 'x-ingest-key': key})
     with urllib.request.urlopen(req, timeout=POST_TIMEOUT) as r:
         raw = r.read()
     if raw[:2] == b'\x1f\x8b':

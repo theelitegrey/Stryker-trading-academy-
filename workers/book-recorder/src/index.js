@@ -72,6 +72,12 @@ export function alignRange(fromQ, toQ, now) {
   return { from, to };
 }
 
+// GEX is Pro only (Owner 2026-11-01): the raw chain / fast-ladder reads were open to any client without an Origin header.
+// Allowed: the server feeders (ingest secret) or a Pages Function forwarding a verified admin / demo / active-Pro token.
+async function gexChainOk(req, env) {
+  return (await authorized(req, env)) || (await isGexProToken(bearerOf(req)));
+}
+
 async function authorized(req, env) {
   const secret = env.INGEST_SECRET;
   if (!secret || secret.length < 32) return false;
@@ -671,6 +677,7 @@ async function route(req, env, ctx) {
       // Read by the site's /api/gex/ladder Function (server to server). Edge-cached 1 s.
       if (req.method !== 'GET') return new Response('GET only', { status: 405 });
       if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
+      if (!(await gexChainOk(req, env))) return new Response('pro_required', { status: 403, headers: { 'cache-control': 'no-store' } });
       const ckey = new Request('https://book-recorder.cache/gexfast/' + Math.floor(Date.now() / 1000));
       let r = await caches.default.match(ckey);
       if (!r) {
@@ -741,6 +748,7 @@ async function route(req, env, ctx) {
       if (req.method !== 'GET') return new Response('GET only', { status: 405 });
       if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
       if (!/^[A-Z]{1,6}$/.test(sym) || !GEX_PARTS.includes(part)) return new Response('bad request', { status: 400 });
+      if (!(await gexChainOk(req, env))) return new Response('pro_required', { status: 403, headers: { 'cache-control': 'no-store' } });
       const ckey = new Request('https://book-recorder.cache/gex/' + sym + '/' + part + '/' + Math.floor(Date.now() / 30000));
       let r = await caches.default.match(ckey);
       if (!r) {

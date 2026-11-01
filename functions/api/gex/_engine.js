@@ -165,7 +165,7 @@ async function fetchCompact(name, dteMax, env = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort('timeout'), 4000);
   try {
-    const res = await fetch(`${base}?sym=${encodeURIComponent(name)}&part=${part}`, { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0' } });
+    const res = await fetch(`${base}?sym=${encodeURIComponent(name)}&part=${part}`, { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0', authorization: (env && env.GEX_AUTH) || '' } });
     if (!res.ok) throw new Error(`compact chain ${res.status}`);
     const buf = await res.arrayBuffer();
     const text = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

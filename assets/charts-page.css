@@ -25,13 +25,14 @@
   .zc-l1{ left:calc(50% - 312px); } .zc-r1{ right:calc(50% - 312px); }
 }
 @media (min-width:1280px){
-  .zc-main .zc-demo .dm{ padding-right:40px; }
+  .zc-main .zc-demo .dm{ padding-right:64px; }
+  .zc-main .cm-toasts{ right:auto; left:8px; }
   .zc-main .cm-scene{ padding-bottom:120px; }
   .zc-fl{ display:block; }
   .zc-l1,.zc-l2,.zc-l3{ left:-100px; } .zc-r1,.zc-r2{ right:-100px; }
   .zc-l1{ top:132px; } .zc-l2{ top:236px; } .zc-l3{ top:340px; }
   .zc-r1{ top:120px; } .zc-r2{ top:212px; }
-  .zc-phone-fl{ position:absolute; z-index:3; margin:0; right:calc(50% - 566px); top:330px; }
+  .zc-main .zc-phone-fl{ position:absolute; z-index:3; margin:0; right:calc(50% - 566px); top:330px; }
 }
 
 /* phone frame (sample data, follows the theme) */

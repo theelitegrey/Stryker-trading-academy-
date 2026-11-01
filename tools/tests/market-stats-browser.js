@@ -46,12 +46,12 @@ async function shot(p, name) { await p.mouse.move(2, 2).catch(() => {}); await s
         first: (document.querySelector('.ms-card.main') || {}).innerText,
         ox: document.documentElement.scrollWidth - window.innerWidth,
         disc: /Historical frequencies with sample sizes\. Not predictions\./.test(document.body.innerText),
-        credit: /Statistics engine based on LuxAlgo Edge Stats \(MIT\)/.test(document.body.innerText),
+        credit: !/LuxAlgo/i.test(document.body.innerText),  // Owner 2026-11-01: no LuxAlgo name in view (MIT notice stays in the source)
         bad: /win rate|real-?time|delayed|profit/i.test(document.querySelector('.ms-page').innerText)
       }));
       check(s.cards >= 10, tag + ': ' + s.cards + ' cards');
       check(/N = \d+/.test(s.first) && /95% interval/.test(s.first), tag + ': first card shows N and 95% interval: ' + String(s.first).replace(/\n/g, ' | ').slice(0, 140));
-      check(s.disc && s.credit && !s.bad, tag + ': disclaimer line + LuxAlgo credit, no banned words');
+      check(s.disc && s.credit && !s.bad, tag + ': disclaimer line, no LuxAlgo name, no banned words');
       check(s.ox <= 0, tag + ': no sideways overflow (' + s.ox + ')');
       // Today dashboard (step 1): bars come from /api/chart/bars on the dev server
       await p.waitForSelector('.ms-tc', { timeout: 20000 }).catch(() => {});

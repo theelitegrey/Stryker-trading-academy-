@@ -115,9 +115,9 @@
       var m = d.market || {};
       var closed = m.state && m.state !== 'open' && m.state !== 'stale';
       var a = ago(m.options_ts);
-      meta.textContent = 'SPX · 0DTE' + (a ? ' · ' + (closed ? 'last session, ' : '') + a : '');
+      meta.textContent = 'Sample · SPX' + (a ? ' · ' + (closed ? 'last session, ' : '') + a : '');
     }
-    fetch('/api/gex/levels/SPX?dte=0', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    Promise.resolve({ call_wall: 5100, put_wall: 5000, zero_gamma: 5050, spot: 5040 }).then(function (d) {
       if (!d || d.spot == null || !d.ladder || !d.ladder.length) throw new Error('no ladder');
       $('#tm-cw').textContent = d.call_wall != null ? fmt(d.call_wall) : '—';
       $('#tm-pw').textContent = d.put_wall != null ? fmt(d.put_wall) : '—';

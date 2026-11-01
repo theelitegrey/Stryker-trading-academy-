@@ -346,7 +346,7 @@
   (function () {
     var age = $('[data-gex-age]');
     function fmt(n) { return Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
-    fetch('/api/gex/levels/SPX?dte=0', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    Promise.resolve({ call_wall: 5100, put_wall: 5000, zero_gamma: 5050, spot: 5040 }).then(function (d) {
       if (!d || d.call_wall == null) throw new Error('no levels');
       $$('[data-lv]').forEach(function (b) { var v = d[b.getAttribute('data-lv')]; b.textContent = v == null ? '\u2013' : fmt(v); });
       var m = d.market || {}, at = +m.options_ts || +m.data_ts || +d.fetched_at || 0;

@@ -339,7 +339,8 @@ export function gexFetch(api, dte, force) {
   const e = cache.get(k) || {};
   if (e.p) return e.p;
   if (!force && e.data && Date.now() - e.at < REFRESH_MS - 5000) return Promise.resolve(e.data);
-  const p = rtHeadersReady().then((hd) => fetch(API + api + '?dte=' + dte, { headers: Object.assign({ accept: 'application/json' }, hd) }))
+  // Free members never reach the network: wait for the plan, then skip the GEX call entirely.
+  const p = ProGate.tier().then(() => (ProGate.isFree() ? Promise.reject(new Error('gex-pro')) : rtHeadersReady())).then((hd) => fetch(API + api + '?dte=' + dte, { headers: Object.assign({ accept: 'application/json' }, hd) }))
     .then((r) => r.json().then((j) => (r.ok ? j : { error: (j && j.error) || ('HTTP ' + r.status) })))
     .catch((err) => ({ error: String(err && err.message || err) }))
     .then((j) => {

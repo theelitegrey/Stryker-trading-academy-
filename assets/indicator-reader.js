@@ -28,8 +28,8 @@ function setIndicatorPaywallMessage(reason, requiredRoleName){
   const actions = document.getElementById('paywall-actions');
   if (!heading || !body || !actions) return;
   if (reason === 'role') {
-    heading.textContent = 'Upgrade to unlock this indicator';
-    body.textContent = 'This indicator requires the ' + (requiredRoleName || 'a higher') + ' plan. Upgrade to keep reading.';
+    heading.textContent = 'This indicator needs a different plan';
+    body.textContent = 'This indicator requires the ' + (requiredRoleName || 'a higher') + ' plan.';
     actions.innerHTML = '<button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
   } else {
     heading.textContent = 'Sign in to keep reading';

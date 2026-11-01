@@ -64,7 +64,7 @@
       {
        "id": "is-it-free",
        "q": "Is TradeZoro free?",
-       "a": "<p>Yes, there is a Free plan. Pro is a paid plan with more tools.</p><p>Free gives you chapters 1 to 10, ZoroCharts with every chart tool and indicator (except order flow and GEX tools), Replay One, GEX+ for SPX same-day, and JournalX with up to 20 new trades a month. No card is needed to sign up.</p>",
+       "a": "<p>Yes. TradeZoro is free for every signed-in member and built by traders, for traders. Free gives you all 64 chapters, ZoroCharts, Replay One, Market Stats, JournalX (unlimited, with import, broker sync, analytics and the coach), Smart Money Desk, trading models, private indicators and the full community. Pro adds order flow tools and GEX+, and more is coming. No card is needed to sign up.</p>",
        "plans": "all",
        "tags": [
         "free",
@@ -784,7 +784,7 @@
       {
        "id": "free-vs-pro",
        "q": "What is the difference between Free and Pro?",
-       "a": "<p>Charts are free for everyone. Pro adds order flow tools, GEX on charts, and more. Futures data is 10 minutes delayed on Free and Pro unless you connect Rithmic, add live futures data for $7/month, or we approve you.</p><ul><li><strong>Free</strong>: chapters 1-10, ZoroCharts (CME futures 10 minutes delayed, crypto live), Replay One, GEX+ SPX same-day, JournalX up to 20 new trades a month, read-only community, scanner presets.</li><li><strong>Pro</strong>: order flow tools, GEX on charts and GEX+ for every symbol and expiry, unlimited JournalX with import, broker sync, analytics and AI coach, all 64 chapters, Smart Money Desk, trading models, private indicators, posting and messages, custom scanner filters.</li></ul>",
+       "a": "<p>Almost everything is free. Pro adds order flow tools and GEX+ (GEX+ for every symbol and expiry, and GEX on charts). Futures data is 10 minutes delayed on Free and Pro unless you connect Rithmic, add live futures data for $7/month, or we approve you.</p><ul><li><strong>Free</strong>: all 64 chapters, ZoroCharts (CME futures 10 minutes delayed, crypto live), Replay One, unlimited JournalX with import, broker sync, analytics and AI coach, Smart Money Desk, trading models, private indicators, full community with posting and messages, scanner.</li><li><strong>Pro</strong>: order flow tools, GEX+ and GEX on charts, more coming.</li></ul>",
        "plans": "all",
        "tags": [
         "pro",
@@ -850,7 +850,7 @@
       {
        "id": "what-is-locked",
        "q": "What do the PRO tags mean?",
-       "a": "<p>A small PRO tag marks a tool that is part of the Pro plan. Tapping it opens the upgrade window. It is not an error.</p>",
+       "a": "<p>A small PRO tag marks an order flow or GEX+ tool, which are part of Pro. Tapping it opens the upgrade window. It is not an error.</p>",
        "plans": "free",
        "tags": [
         "pro tag",
@@ -898,7 +898,7 @@
       {
        "id": "free-trial",
        "q": "Is there a free trial?",
-       "a": "<p>A 7-day free trial is available only when it is switched on for the site. When it applies, the button reads Start 7-day free trial and the small print under it shows the date of the first charge. Nothing is charged during the trial and you can cancel before it ends.</p><p>If you do not see that button, no trial is offered right now.</p>",
+       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and GEX+ are Pro. Live futures data is a separate $7/month add-on.</p>",
        "tags": [
         "trial",
         "free trial",
@@ -913,7 +913,7 @@
       {
        "id": "downgrade-data",
        "q": "What happens to my data if I go back to Free?",
-       "a": "<p>Your JournalX trades and progress stay saved. Nothing is deleted. You just see the Free limits again.</p>",
+       "a": "<p>Your JournalX trades and progress stay saved. Nothing is deleted. Only order flow tools and GEX+ are locked again.</p>",
        "tags": [
         "downgrade",
         "cancel",
@@ -1043,7 +1043,7 @@
       {
        "id": "cancel-subscription",
        "q": "How do I cancel my subscription?",
-       "a": "<p>Cancel online at any time from Settings. You keep access until the end of the period you have already paid for and are not charged again.</p><p>Which button you see depends on how you paid:</p><ul><li><strong>Card (Stripe)</strong>: Manage billing (card, invoices, cancel) opens Stripe's billing page.</li><li><strong>India (Razorpay AutoPay)</strong>: Cancel auto-renewal. Confirm the dialog and you see \"Auto-renewal is off ...\".</li><li><strong>On a free trial</strong>: Cancel free trial.</li></ul>",
+       "a": "<p>Cancel online at any time from Settings. You keep access until the end of the period you have already paid for and are not charged again.</p><p>Which button you see depends on how you paid:</p><ul><li><strong>Card (Stripe)</strong>: Manage billing (card, invoices, cancel) opens Stripe's billing page.</li><li><strong>India (Razorpay AutoPay)</strong>: Cancel auto-renewal. Confirm the dialog and you see \"Auto-renewal is off ...\".</li></ul>",
        "steps": [
         "Open Settings.",
         "Scroll to Plan & membership.",
@@ -1154,7 +1154,7 @@
       {
        "id": "free-chapters",
        "q": "Which chapters are free?",
-       "a": "<p>Chapters 1 to 10 are free with a free account. Pro unlocks all 64. A later chapter shows a lock card, for example \"Chapters 11+ are part of Pro\".</p>",
+       "a": "<p>All 64 chapters are free with a free account. Progress is saved to your account.</p>",
        "plans": "all",
        "tags": [
         "free chapters",
@@ -1314,7 +1314,7 @@
       {
        "id": "models-page",
        "q": "What are the Trading models?",
-       "a": "<p>Trading models are named setups, each with full criteria and a written walkthrough. They follow a five-step process: prep, apply the rules, confirm, size from your stop, journal. The page is part of Pro.</p>",
+       "a": "<p>Trading models are named setups, each with full criteria and a written walkthrough. They follow a five-step process: prep, apply the rules, confirm, size from your stop, journal. They are free for every signed-in member.</p>",
        "path": "More → Models",
        "plans": "pro",
        "tags": [
@@ -2239,8 +2239,8 @@
       },
       {
        "id": "gex-free",
-       "q": "What does Free include on GEX+?",
-       "a": "<p>Free shows SPX and the 0DTE (same-day) expiry. Other symbols and expiries show a lock. The page says: \"Free plan: SPX, 0DTE view. Pro unlocks every symbol and expiry.\"</p>",
+       "q": "Is any GEX+ free?",
+       "a": "<p>No. GEX+ is part of Pro, for every symbol and expiry. On Free, GEX+ and GEX on charts show the Pro prompt.</p>",
        "plans": "free",
        "tags": [
         "free gex",
@@ -2415,7 +2415,7 @@
       {
        "id": "zorotide-free",
        "q": "Is ZoroTide free?",
-       "a": "<p>On the GEX+ page, SPX is free; SPY and QQQ need Pro (\"Pro unlocks ZoroTide for SPY and QQQ. The Free plan covers SPX.\"). The chart indicator is Pro.</p>",
+       "a": "<p>ZoroTide on the GEX+ page and the chart indicator are part of Pro.</p>",
        "tags": [
         "zorotide free",
         "spx"
@@ -2561,7 +2561,7 @@
       {
        "id": "replay-to-journal",
        "q": "Can I send replay trades to JournalX?",
-       "a": "<p>Yes. Use Send to JournalX in the session. If every trade is already there you see \"Every trade in this session is already in your journal\". Otherwise \"N of M trades copied to the journal\". Free journals still follow the 20-trades-a-month limit.</p>",
+       "a": "<p>Yes. Use Send to JournalX in the session. If every trade is already there you see \"Every trade in this session is already in your journal\". Otherwise \"N of M trades copied to the journal\".</p>",
        "tags": [
         "send to journal",
         "export",
@@ -2844,7 +2844,7 @@
       {
        "id": "journalx-edit",
        "q": "How do I edit or delete a trade?",
-       "a": "<p>Open History, tap the trade, and edit it (Save trade turns into Update; you see \"Trade updated.\") or delete it. Editing is always allowed, including on Free.</p>",
+       "a": "<p>Open History, tap the trade, and edit it (Save trade turns into Update; you see \"Trade updated.\") or delete it.</p>",
        "path": "JournalX → History",
        "tags": [
         "edit trade",
@@ -2857,8 +2857,8 @@
       },
       {
        "id": "journalx-limit",
-       "q": "What is the Free limit in JournalX?",
-       "a": "<p>Free can log 20 new trades per calendar month. The Add trade tab shows \"N of 20 trades logged this month on the Free plan.\" At the limit: \"You have logged 20 trades this month, the Free plan limit. Your trades stay saved. Pro is unlimited.\" Existing trades are never hidden.</p><p><img src=\"/assets/help/shots/journalx-dashboard-free.webp\" alt=\"JournalX on the Free plan\"></p>",
+       "q": "Is there a limit in JournalX?",
+       "a": "<p>No. JournalX is unlimited and free for every signed-in member.</p>",
        "plans": "free",
        "tags": [
         "limit",
@@ -2970,7 +2970,7 @@
       {
        "id": "journal-import",
        "q": "How do I import trades from a CSV file?",
-       "a": "<p>Open History → Import & export, choose the file type (trades, payouts, expenses or combined), pick the file and check the column mapping. Duplicates are skipped. Import and export are part of Pro.</p><p><img src=\"/assets/help/shots/journalx-history.webp\" alt=\"History tab with Import & export\"></p>",
+       "a": "<p>Open History → Import & export, choose the file type (trades, payouts, expenses or combined), pick the file and check the column mapping. Duplicates are skipped.</p>",
        "steps": [
         "Open JournalX → History.",
         "Open Import & export.",
@@ -3018,7 +3018,7 @@
       {
        "id": "journal-export",
        "q": "How do I export my journal?",
-       "a": "<p>Use Export CSV in History → Import & export (Pro). If you see \"Nothing to export yet.\" the journal is empty.</p>",
+       "a": "<p>Use Export CSV in History → Import & export. If you see \"Nothing to export yet.\" the journal is empty.</p>",
        "plans": "pro",
        "tags": [
         "export",
@@ -3034,7 +3034,7 @@
       {
        "id": "journal-analytics",
        "q": "What is in Analytics?",
-       "a": "<p>Deeper statistics from your trades. Analytics is part of Pro; on Free the tab shows \"Analytics are part of Pro\" with a See Pro button.</p>",
+       "a": "<p>Deeper statistics from your trades. Analytics is free for every signed-in member.</p>",
        "path": "JournalX → Analytics",
        "plans": "pro",
        "tags": [
@@ -3049,7 +3049,7 @@
       {
        "id": "journal-ai-coach",
        "q": "What is the AI Coach?",
-       "a": "<p>A rule-based coach that reads your journal and points out patterns such as overtrading or revenge trades. It runs on your own device from your own entries and is not a chatbot. It is part of Pro.</p>",
+       "a": "<p>A rule-based coach that reads your journal and points out patterns such as overtrading or revenge trades. It runs on your own device from your own entries and is not a chatbot. It is free.</p>",
        "path": "JournalX → AI Coach",
        "plans": "pro",
        "tags": [
@@ -3065,7 +3065,7 @@
       {
        "id": "broker-sync",
        "q": "How does JournalX broker sync work?",
-       "a": "<p>Broker sync imports your trades automatically every few hours using read-only API keys, so it can never place trades. Keys are encrypted on the server and never shown again. It is part of Pro.</p>",
+       "a": "<p>Broker sync imports your trades automatically every few hours using read-only API keys, so it can never place trades. Keys are encrypted on the server and never shown again. It is free.</p>",
        "steps": [
         "Open JournalX → History.",
         "Open Broker sync.",
@@ -3184,7 +3184,7 @@
       {
        "id": "scanner-what",
        "q": "What does the Market scanner do?",
-       "a": "<p>It filters US stocks, ETFs and crypto using presets and refreshes every 3 minutes. Presets are free. Custom filters (field, operator, value) are part of Pro. A crypto row opens ZoroCharts; a stock or ETF row opens an info sheet.</p>",
+       "a": "<p>It filters US stocks, ETFs and crypto using presets and refreshes every 3 minutes. Presets and custom filters (field, operator, value) are free. A crypto row opens ZoroCharts; a stock or ETF row opens an info sheet.</p>",
        "path": "More → Market scanner",
        "tags": [
         "scanner",
@@ -3253,7 +3253,7 @@
       {
        "id": "smart-money",
        "q": "What is the Smart Money desk?",
-       "a": "<p>A Pro desk that shows Congress and insider filings. It says \"This is a Pro desk tool\" with an Upgrade to unlock button on Free.</p>",
+       "a": "<p>A desk that shows Congress and insider filings. It is free for every signed-in member.</p>",
        "path": "More → Smart money",
        "plans": "pro",
        "tags": [
@@ -3415,7 +3415,7 @@
       {
        "id": "trading-floor-what",
        "q": "What is the Trading Floor?",
-       "a": "<p>A member feed with Posts and Prop firm feed tabs, sorted by New, Top or Trending, with filters for Setups, Questions and From X. Free members can read. Posting, reacting and replying need Pro (\"You're viewing the Trading Floor in read-only mode\").</p><p><img src=\"/assets/help/shots/trading-floor.webp\" alt=\"The Trading Floor\"></p>",
+       "a": "<p>A member feed with Posts and Prop firm feed tabs, sorted by New, Top or Trending, with filters for Setups, Questions and From X. Every signed-in member can read, post, react and reply.</p>",
        "path": "More → Trading Floor",
        "tags": [
         "trading floor",
@@ -3437,7 +3437,7 @@
       {
        "id": "messages-what",
        "q": "How do direct messages work?",
-       "a": "<p>More → Messages lets members send direct messages. Messaging is part of Pro.</p>",
+       "a": "<p>More → Messages lets members send direct messages. Messaging is free for every signed-in member.</p>",
        "path": "More → Messages",
        "plans": "pro",
        "tags": [
@@ -3697,7 +3697,7 @@
       {
        "id": "gex-missing-symbol",
        "q": "GEX is missing for a symbol.",
-       "a": "<p>GEX+ covers SPX, SPY, QQQ and Gold only. On Free you only see SPX 0DTE and other choices show a lock. Outside hours you may see \"No data available\", \"Session data unavailable\" or Waiting for the next update.</p>",
+       "a": "<p>GEX+ covers SPX, SPY, QQQ and Gold only, and is part of Pro. Outside hours you may see \"No data available\", \"Session data unavailable\" or Waiting for the next update.</p>",
        "tags": [
         "gex missing",
         "no gex",
@@ -4085,7 +4085,7 @@
       {
        "id": "lost-layout",
        "q": "My saved layout, watchlist or drawings disappeared.",
-       "a": "<p>Check you are signed in with the same account. Layouts, watchlists and templates are saved to your account; clearing site data signs you out. After the Free-plan lock, only Pro tools are removed from a loaded layout.</p>",
+       "a": "<p>Check you are signed in with the same account. Layouts, watchlists and templates are saved to your account; clearing site data signs you out. On Free, only Pro tools (order flow and GEX) are removed from a loaded layout.</p>",
        "tags": [
         "lost",
         "missing",
@@ -4177,7 +4177,7 @@
       {
        "id": "data-export",
        "q": "How do I get a copy of my data?",
-       "a": "<p>There is no one-click export of everything. JournalX has Export CSV (Pro) for your trades. For a full copy of your data, send a request through the contact form or support@tradezoro.com, as described on our GDPR page.</p>",
+       "a": "<p>There is no one-click export of everything. JournalX has Export CSV for your trades. For a full copy of your data, send a request through the contact form or support@tradezoro.com, as described on our GDPR page.</p>",
        "tags": [
         "export data",
         "download my data",

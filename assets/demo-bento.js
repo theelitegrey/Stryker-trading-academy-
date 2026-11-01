@@ -295,7 +295,7 @@
       var a = ago(m.options_ts); if (a) parts.push((closed ? 'last session, ' : '') + a);
       meta.textContent = parts.join(' · ');
     }
-    fetch('/api/gex/levels/SPX?dte=0', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    Promise.resolve({ call_wall: 5100, put_wall: 5000, zero_gamma: 5050, spot: 5040 }).then(function (d) {
       if (!d || d.call_wall == null || d.put_wall == null || d.spot == null) throw new Error('no levels');
       real = true;
       lv = { call: d.call_wall, zero: d.zero_gamma, put: d.put_wall, spot: d.spot };
@@ -561,7 +561,7 @@
     var ov = $('#bx-ov'); if (!ov) return;
     var panel = $('.bx-ov-panel', ov), opener = null;
     var V = {
-      gex: { k: 'GEX levels', t: 'Free SPX GEX, with every level on the chart', p: 'Call wall, zero gamma and put wall from the options chain, plotted on the futures chart, with the strike ladder and regime notes. The Free plan covers SPX same-day (0DTE); Pro opens every symbol and expiry. Education only. Not financial advice.', img: 'assets/images/gex-real/chart-nq-5m-plot.webp', go: 'gex', b: 'Open GEX' },
+      gex: { k: 'GEX levels', t: 'GEX levels, with every level on the chart', p: 'Call wall, zero gamma and put wall from the options chain, plotted on the futures chart, with the strike ladder and regime notes. GEX+ is part of Pro. Education only. Not financial advice.', img: 'assets/images/gex-real/chart-nq-5m-plot.webp', go: 'gex', b: 'Open GEX' },
       charts: { k: 'ZoroCharts', t: 'Watchlist, Layouts 1–8, Pine scripts, Volume Profile', p: 'Candles from public exchange feeds, 70+ built-in indicators, drawing tools, up to 8 charts on one screen, Pine scripts from you and the community, and our own session Volume Profile.', img: 'assets/images/charts/hero.webp', go: 'charts', b: 'Open ZoroCharts' },
       journal: { k: 'Journal', t: 'A P&L calendar and a coach that reads your own trades', p: 'Log trades by hand or import them, see every day on the calendar, and let the rule-based AI coach point out where you broke your own plan. Screenshot shows sample data.', img: 'assets/images/journal/calendar.webp', go: 'trade-journal', b: 'Open Journal' }
     };

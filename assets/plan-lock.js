@@ -39,36 +39,36 @@
 
   var COPY = {
     gex: {
-      title: function () { return 'Futures GEX+ levels are part of Pro'; },
+      title: function () { return 'GEX+ is part of Pro'; },
       bullets: function () {
-        return ['ES, NQ and gold (GC) futures levels at every expiry (Free covers SPX 0DTE)',
+        return ['GEX+ levels for SPX, SPY, QQQ, ES, NQ and gold (GC) at every expiry',
                 'The strike table: net GEX, DEX and open interest by strike'];
       },
-      reason: 'Pro unlocks GEX+ for every market and expiry, and the strike table.'
+      reason: 'Pro adds GEX+ for every market and expiry, and the strike table.'
     },
     scanner: {
-      title: function () { return 'Custom scanner filters are part of Pro'; },
+      title: function () { return 'The scanner is free'; },
       bullets: function () {
         return ['Build your own scans: any column, any value, on US stocks, ETFs and crypto',
-                'Free keeps every preset scan'];
+                'Presets and custom filters are free'];
       },
       reason: 'Pro unlocks custom scanner filters.'
     },
     options: {
-      title: function () { return 'QQQ and SPY options analytics are part of Pro'; },
+      title: function () { return 'Options analytics are part of Pro'; },
       bullets: function () {
-        return ['Expected move, IV rank, term structure and skew for QQQ (NQ) and SPY (Free covers SPX)',
-                'Plus futures GEX+ for every market and expiry, gold (GC) included'];
+        return ['Expected move, IV rank, term structure and skew for SPX, QQQ (NQ) and SPY',
+                'Plus GEX+ for every market and expiry, gold (GC) included'];
       },
-      reason: 'Pro unlocks options analytics for every market.'
+      reason: 'Pro adds options analytics for every market.'
     },
     chapters: {
-      title: function (n) { return n ? 'Chapters ' + (n + 1) + '+ are part of Pro' : 'Later chapters are part of Pro'; },
+      title: function (n) { return n ? 'Chapters ' + (n + 1) + '+ need a different plan' : 'Later chapters need a different plan'; },
       bullets: function (n) {
         return [(n ? 'Chapter ' + (n + 1) + ' to the end of the course' : 'Every chapter of the course') + ', with progress saved',
-                'Plus futures GEX+ for every market and an unlimited JournalX'];
+                'Chapters are free for every signed-in member on the standard plan'];
       },
-      reason: 'Pro unlocks every chapter of the course.'
+      reason: 'Your plan limits chapter access.'
     }
   };
 

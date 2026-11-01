@@ -13,6 +13,7 @@
 
 const TYPE = 'stk_em';
 import { rtHeadersReady } from './rt-access.js?v=777';
+import * as ProGate from './chart-pro-gate.js?v=777';
 const API = 'https://book-recorder.theelitegrey.workers.dev/opt-analytics?u=';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;
@@ -97,7 +98,7 @@ function emFetch(u) {
   const e = cache.get(u) || {};
   if (e.p) return e.p;
   if (e.data && Date.now() - e.at < REFRESH_MS - 5000) return Promise.resolve(e.data);
-  const p = rtHeadersReady().then((hd) => fetch(API + u, { headers: Object.assign({ accept: 'application/json' }, hd) }))
+  const p = ProGate.tier().then(() => (ProGate.isFree() ? Promise.reject(new Error('gex-pro')) : rtHeadersReady())).then((hd) => fetch(API + u, { headers: Object.assign({ accept: 'application/json' }, hd) }))
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null)
     .then((j) => {

@@ -41,7 +41,7 @@
           '<path d="M18 6L6 18M6 6l12 12"/></svg>' +
         '</button>' +
         '<h2 class="plan-modal-title">Choose your plan</h2>' +
-        '<p class="plan-modal-sub" id="plan-modal-sub">Upgrade to unlock this page.</p>' +
+        '<p class="plan-modal-sub" id="plan-modal-sub">TradeZoro is free. Pro adds order flow tools and GEX+.</p>' +
         '<div class="plan-modal-grid" id="plan-modal-grid">' +
           '<div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>' +
         '</div>' +

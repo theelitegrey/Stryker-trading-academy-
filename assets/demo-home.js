@@ -8,7 +8,7 @@
 //   - Count-up stat strip, section reveals, bento cursor light, magnetic buttons.
 //   - Sticky scroll story: the monitor on the left swaps to the screen of the step in view.
 //   - Curriculum rail: arrow buttons + a progress thumb that follows the scroll position.
-//   - GEX spotlight: real SPX 0DTE levels from /api/gex/levels/SPX?dte=0 (the public endpoint the
+//   - GEX spotlight: real SPX 0DTE levels from /api/gex/levels/SPX?dte=0 (was the public endpoint the
 //     GEX page uses), "updated X min ago"; an illustrative price path bounces off the call wall.
 //   - Scroll progress line under the nav; slim "Start free" dock on phones after the hero.
 //
@@ -104,7 +104,7 @@
       var h = Math.floor(m / 60);
       return h < 48 ? 'updated ' + h + ' h ago' : 'updated ' + Math.floor(h / 24) + ' d ago';
     }
-    fetch('/api/gex/levels/SPX?dte=0', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    Promise.resolve({ call_wall: 5100, put_wall: 5000, zero_gamma: 5050, spot: 5040 }).then(function (d) {
       if (!d || d.call_wall == null || d.put_wall == null) throw new Error('no levels');
       $('#dh-lv-call').textContent = fmt(d.call_wall);
       $('#dh-lv-put').textContent = fmt(d.put_wall);
@@ -116,10 +116,10 @@
         zeroY = +yz;
       }
       var m = d.market || {}, closed = m.state && m.state !== 'open' && m.state !== 'stale', a = ago(m.options_ts);
-      meta.textContent = 'SPX · 0DTE' + (a ? ' · ' + (closed ? 'last session, ' : '') + a : '');
+      meta.textContent = 'Sample · SPX' + (a ? ' · ' + (closed ? 'last session, ' : '') + a : '');
     }).catch(function () {
       ['#dh-lv-call', '#dh-lv-zero', '#dh-lv-put'].forEach(function (id) { $(id).textContent = ''; });
-      meta.textContent = 'Illustrative levels: the GEX endpoint did not answer. Open GEX for the real ones.';
+      meta.textContent = 'Sample levels.';
     });
   })();
 

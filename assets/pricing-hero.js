@@ -232,33 +232,25 @@
     root.innerHTML =
       '<div class="pv-hero">' +
         '<div class="pv-hero-l">' +
-          '<span class="pv-pill">Most popular</span>' +
+          '<span class="pv-pill">Order flow + GEX+, more coming</span>' +
           '<h3>' + esc(proName) + '</h3>' +
           heroPriceHtml(P.pro) +
           yearlyLine(P) +
           '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary pv-cta-xl" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
-          '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime.</p>' +
+          '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime. Live CME futures data is a separate $7/month add-on.</p>' +
         '</div>' +
         '<ul class="pv-icons">' + feats + '</ul>' +
       '</div>' +
       '<div class="pv-strip">' +
-        '<p><b>Not ready? Start free:</b> ' + esc(freeChaptersText(P.free)) + ', ZoroCharts with every tool and indicator, free, SPX on GEX+, JournalX with 20 trades a month.</p>' +
+        '<p><b>' + esc(freeName) + ' is free for every member:</b> all 64 chapters, JournalX with import, broker sync and AI coach, Smart Money Desk, trading models, private indicators, ZoroCharts, Replay One and the full community. No trial, no card.</p>' +
         '<a href="signup" class="btn btn-ghost">' + ctaLabel(P.free, 'Start free') + '</a>' +
       '</div>' +
-      '<div class="pv-compare-wrap">' +
-        '<button type="button" class="pv-compare-btn" aria-expanded="false" aria-controls="pv-compare">' +
-          '<span class="pv-compare-label">Compare ' + esc(freeName) + ' and ' + esc(proName) + '</span>' +
-          '<svg class="pv-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' +
-        '</button>' +
-      '</div>' +
-      '<div class="pv-compare" id="pv-compare" hidden><div class="pv-compare-inner"></div></div>' +
       '<div class="pv-faq">' +
         faq('Can I cancel anytime?', 'Yes. Cancel from Billing in Settings. You keep ' + proName + ' until the end of the period you have already paid for, and you are not charged again.') +
         faq('Why can the rupee price change?', proName + ' is priced in US dollars. The rupee price is the dollar price at that day\'s exchange rate. Once you subscribe, your amount stays fixed.') +
-        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. You just see the ' + freeName + ' limits: the JournalX cap, and order flow tools and GEX on the charts stay with Pro.') +
+        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. On ' + freeName + ' only order flow tools and GEX+ are locked.') +
         '<a class="pv-faq-all" href="help?cat=plans-billing">See all questions \u2192</a>' +
       '</div>';
-    wireCompare(root, P);
   }
 
   document.addEventListener('DOMContentLoaded', function () {

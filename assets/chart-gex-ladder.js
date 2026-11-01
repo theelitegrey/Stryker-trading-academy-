@@ -69,7 +69,7 @@ function optFor(api, cb) {
   const e = optCache[api] || (optCache[api] = { j: null, at: 0, p: null });
   if (!e.p && Date.now() - e.at > 60000) {
     e.at = Date.now();
-    e.p = rtHeadersReady().then((hd) => fetch(OPT_API + api, { headers: Object.assign({ accept: 'application/json' }, hd) })).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => { if (j && !j.error) e.j = j; e.p = null; if (cb) cb(); return e.j; });
+    e.p = ProGate.tier().then(() => (ProGate.isFree() ? Promise.reject(new Error('gex-pro')) : rtHeadersReady())).then((hd) => fetch(OPT_API + api, { headers: Object.assign({ accept: 'application/json' }, hd) })).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => { if (j && !j.error) e.j = j; e.p = null; if (cb) cb(); return e.j; });
   }
   return e.j;
 }

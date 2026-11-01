@@ -84,7 +84,7 @@ function setPaywallMessage(reason, requiredRoleName){
   const body = document.getElementById('paywall-body');
   const actions = document.getElementById('paywall-actions');
   if (!heading || !body || !actions) return;
-  // Chapters past the plan's limit (Free: 11+) get the shared Pro lock card
+  // Chapters past the plan's limit get the shared lock card (legacy plan limits only)
   // (assets/plan-lock.js) in place of the generic paywall text.
   const overlay = document.getElementById('guest-paywall-overlay');
   const pwCard = overlay && overlay.querySelector('.paywall-card');
@@ -98,10 +98,10 @@ function setPaywallMessage(reason, requiredRoleName){
     return;
   }
   if (reason === 'role') {
-    heading.textContent = 'Upgrade to unlock this chapter';
+    heading.textContent = 'This chapter needs a different plan';
     body.textContent = requiredRoleName
-      ? ('This chapter requires the ' + requiredRoleName + ' plan. Upgrade to keep reading.')
-      : "This chapter is beyond your current plan's chapter access. Upgrade to keep reading.";
+      ? ('This chapter requires the ' + requiredRoleName + ' plan.')
+      : "This chapter is not included in your current plan.";
     actions.innerHTML = '<button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
   } else {
     heading.textContent = 'Sign in to keep reading';

@@ -53,7 +53,7 @@
  * daily sweep lapses the account after trial end + grace.
  * Webhook events to enable: subscription.authenticated (new) plus the four above.
  *
- * LIVE FUTURES DATA ADD-ON (Owner 2026-10-30, $5/month, plans/LiveData with addon:true): same functions, but the grant goes to
+ * LIVE FUTURES DATA ADD-ON (Owner 2026-10-30, $7/month, plans/LiveData with addon:true): same functions, but the grant goes to
  * students/{uid}.liveData = { active, paidThroughMillis, source:'razorpay', autopay, razorpaySubscriptionId } and never touches
  * plan / paidThroughMillis. No trial. razorpaySubsCancel({ addon:true }) cancels it at cycle end.
  *
@@ -206,6 +206,7 @@ exports.razorpaySubscribe = functions
     }
     if (addon) {
       const cur = await db.collection('students').doc(uid).get();
+      require('./marketData').__marketData.requireAgreement(cur.exists ? cur.data() : {});   // Owner 2026-11-01: terms first
       const ld = cur.exists ? (cur.data().liveData || {}) : {};
       if (ld.razorpaySubscriptionId && ld.autopay && (ld.paidThroughMillis || 0) > Date.now()) {
         throw new functions.https.HttpsError('already-exists', 'You already have Live Futures Data. Manage it from Settings > Billing.');

@@ -138,10 +138,10 @@ export function installDataDot(ws, opts = {}) {
       return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };
     }
     const root = rootOf(sym);
-    // Real-time CME futures: admins, a connected Rithmic login, the $5 add-on or an Owner approval (2026-10-30); the server delivers everyone else 10 min late.
+    // Real-time CME futures: admins, a connected Rithmic login, the $7 add-on or an Owner approval (2026-10-30); the server delivers everyone else 10 min late.
     if (rithLive()) return { s: 'rt', text: 'Live data from your Rithmic connection', tag: 'Live (Rithmic)' };
     if (insightRealtime(root) && rtConfirmed()) return { s: 'rt', text: 'Live data', tag: 'Live' };
-    if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Delayed data · the server has not confirmed real-time on this chart yet (retrying)' : 'CME futures are 10 minutes delayed (CME rule). Connect your Rithmic login, add live futures data for $5/month, or ask us for approval.', tag: '10 min delayed · CME' };
+    if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Delayed data · the server has not confirmed real-time on this chart yet (retrying)' : 'CME futures are 10 minutes delayed (CME rule). Connect your Rithmic login, add live futures data for $7/month, or ask us for approval.', tag: '10 min delayed · CME' };
     measure(root);
     const m = lag.get(root);
     return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };

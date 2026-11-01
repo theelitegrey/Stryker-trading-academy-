@@ -4,7 +4,7 @@
 // assets/rithmic-ui.js (window.STRYKER_RITHMIC.open, set once Connect broker has loaded), assets/auth.js (auth),
 // assets/progress.js (db, for the plans/LiveData check), assets/toast.js (showToast).
 // Owner order 2026-10-30: CME futures are 10 minutes behind by CME rule unless the member (a) connects Rithmic,
-// (b) has the $5/month Live Futures Data add-on, or (c) is approved by the Owner (all make the server / the
+// (b) has the $7/month Live Futures Data add-on, or (c) is approved by the Owner (all make the server / the
 // Rithmic provider real-time; this module only reflects that).
 // Owner 2026-10-30 (second pass): the full-width strip under the toolbar was "too provoking". Now ONE small
 // translucent pill floats at the bottom-centre of the active chart pane's plot (clear of the price axis, the time
@@ -129,8 +129,9 @@ export function installDataBanner(ws, opts = {}) {
     '<p class="stkdp-lead">CME futures are 10 minutes delayed on free data.</p>' +
     '<ul class="stkdp-list">' +
     '<li><button type="button" class="stkdp-row" id="stkdp-connect"><span class="stkdp-ic">' + ICON_LINK + '</span><span class="stkdp-tx"><b>Connect your prop firm</b><span>Use your own Rithmic login. Free.</span></span>' + CHEV + '</button></li>' +
-    '<li><a class="stkdp-row" id="stkdp-buy" href="' + CHECKOUT + '"><span class="stkdp-ic b">' + ICON_BOLT + '</span><span class="stkdp-tx"><b>Live data add-on</b><span>$5 a month. Cancel anytime.</span></span>' + CHEV + '</a></li>' +
+    '<li><a class="stkdp-row" id="stkdp-buy" href="' + CHECKOUT + '"><span class="stkdp-ic b">' + ICON_BOLT + '</span><span class="stkdp-tx"><b>Live data add-on</b><span><b id="stkdp-price" style="font-weight:inherit">$7</b> a month. Cancel anytime.</span></span>' + CHEV + '</a></li>' +
     '</ul>' +
+    '<p class="stkdp-lead" style="font-size:12px;margin:8px 0 0;opacity:.8">Market data is provided as is and may be delayed or inaccurate. Personal, non-commercial use only. <a href="/market-data-terms" style="text-decoration:underline">Terms</a></p>' +
     '<div class="stkdp-foot"><a href="' + HELP + '" id="stkdp-why">Why is it delayed?</a><button type="button" id="stkdp-hide">Hide for today</button></div>';
   document.body.append(scrim, sheet);
 
@@ -267,11 +268,12 @@ export function installDataBanner(ws, opts = {}) {
   });
   // The add-on is sold only once plans/LiveData exists (the CoS writes it after a test-mode purchase works).
   // Until then the row says so instead of leading to a dead checkout.
+  try { db.collection('plans').doc('LiveData').get().then((d) => { const p = d.exists && Number(d.data().price); const el = document.getElementById('stkdp-price'); if (p > 0 && el) el.textContent = '$' + p; }).catch(() => {}); } catch (x) {}
   document.getElementById('stkdp-buy').addEventListener('click', (e) => {
     e.preventDefault();
     closeSheet();
     const go = () => { location.href = CHECKOUT; };
-    const soon = () => { try { if (window.showToast) window.showToast('info', 'Live futures data ($5/month) opens today. For now, connect your Rithmic login or ask us for approval.'); } catch (x) {} };
+    const soon = () => { try { if (window.showToast) window.showToast('info', 'Live futures data ($7/month) opens today. For now, connect your Rithmic login or ask us for approval.'); } catch (x) {} };
     if (!signedIn()) { try { sessionStorage.setItem('stryker_return_to', '/' + CHECKOUT); } catch (x) {} go(); return; }
     try { db.collection('plans').doc('LiveData').get().then((d) => (d.exists && d.data().archived !== true ? go() : soon())).catch(soon); } catch (x) { soon(); }
   });

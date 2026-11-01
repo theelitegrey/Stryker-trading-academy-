@@ -1,7 +1,7 @@
-// Live Futures Data $5 add-on: server-side purchase flow against the REAL functions-src/stripe.js and razorpaySubs.js,
+// Live Futures Data $7 add-on: server-side purchase flow against the REAL functions-src/stripe.js and razorpaySubs.js,
 // with an in-memory Firestore and mocked Stripe / Razorpay HTTP. No network, no keys, no emulator needed.
 //   node tools/tests/addon-checkout.test.js
-// Proves: stripeCreateCheckout builds a $5 monthly subscription session (no trial / coupon, one at a time),
+// Proves: stripeCreateCheckout builds a $7 monthly subscription session (no trial / coupon, one at a time),
 // the SIGNED webhook (checkout.session.completed, invoice.paid renew, invoice.payment_failed, subscription
 // updated/deleted) writes students.liveData and never touches plan / paidThroughMillis, bad signatures are refused,
 // duplicate events do nothing; Razorpay: subscribe, verify (signed), renewal charge, cancel, halted.
@@ -121,18 +121,51 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
 
 (async () => {
   // plan docs + member (Free member, also has an old Pro doc elsewhere is not needed)
-  store.set('plans/LiveData', { name: 'Live Futures Data', price: 5, period: 'month', interval: 'month', rank: 0, addon: true, hidden: true });
+  store.set('plans/LiveData', { name: 'Live Futures Data', price: 7, period: 'month', interval: 'month', rank: 0, addon: true, hidden: true });
   store.set('plans/pro', { name: 'Pro', price: 19, period: 'month', rank: 1 });
   store.set('students/' + UID, { name: 'QA Buyer', plan: 'Starter', planId: 'free' });
   store.set('settings/commerce', { stripeCheckout: true, usdInr: 88 });
 
+  // ---------- MARKET DATA AGREEMENT (Owner 2026-11-01): no add-on checkout without it ----------
+  let noAg = null; try { await S.stripeCreateCheckout({ planId: 'LiveData' }, ctx); } catch (e) { noAg = e; }
+  ok('stripe: add-on refused without agreement (failed-precondition)', noAg && noAg.code === 'failed-precondition' && /Accept the Market Data Terms first/.test(noAg.message), noAg && noAg.message);
+  let noAgR = null; try { await Z.razorpaySubscribe({ planId: 'LiveData', currency: 'INR' }, ctx); } catch (e) { noAgR = e; }
+  ok('razorpay: add-on refused without agreement', noAgR && noAgR.code === 'failed-precondition' && /Accept the Market Data Terms first/.test(noAgR.message), noAgR && noAgR.message);
+  store.set('students/' + UID, Object.assign(get('students/' + UID), { marketDataAgreement: { version: 'v0', nonProfessional: true } }));
+  let oldV = null; try { await S.stripeCreateCheckout({ planId: 'LiveData' }, ctx); } catch (e) { oldV = e; }
+  ok('stripe: old agreement version refused', oldV && oldV.code === 'failed-precondition');
+  store.set('students/' + UID, Object.assign(get('students/' + UID), { marketDataAgreement: { version: 'v1', nonProfessional: false } }));
+  let notNp = null; try { await S.stripeCreateCheckout({ planId: 'LiveData' }, ctx); } catch (e) { notNp = e; }
+  ok('stripe: nonProfessional false refused', notNp && notNp.code === 'failed-precondition');
+  // the callable itself: Yes answers, missing name, missing checkbox are refused; a good call writes the record
+  const M = require(path.join(__dirname, '../../functions-src/marketData.js'));
+  const NO = { regulated: false, business: false, advisor: false, redistribute: false };
+  const rej = async (d, code) => { let e = null; try { await M.acceptMarketDataAgreement(d, ctx); } catch (x) { e = x; } return !!e && e.code === code; };
+  for (const q of Object.keys(NO)) ok('accept: a Yes on ' + q + ' is refused', await rej({ name: 'Jane Roe', confirmed: true, answers: Object.assign({}, NO, { [q]: true }) }, 'failed-precondition'));
+  ok('accept: missing name refused', await rej({ confirmed: true, answers: NO }, 'invalid-argument'));
+  ok('accept: one-letter name refused', await rej({ name: 'J', confirmed: true, answers: NO }, 'invalid-argument'));
+  ok('accept: missing checkbox refused', await rej({ name: 'Jane Roe', answers: NO }, 'invalid-argument'));
+  ok('accept: unanswered question refused', await rej({ name: 'Jane Roe', confirmed: true, answers: { regulated: false } }, 'invalid-argument'));
+  ok('accept: signed-out refused', await (async () => { let e = null; try { await M.acceptMarketDataAgreement({ name: 'Jane Roe', confirmed: true, answers: NO }, {}); } catch (x) { e = x; } return !!e && e.code === 'unauthenticated'; })());
+  ok('accept: nothing written by the refusals', !(get('students/' + UID).marketDataAgreement || {}).acceptedAt);
+  const good = await M.acceptMarketDataAgreement({ name: '  Jane   Roe ', confirmed: true, answers: NO }, { auth: ctx.auth, rawRequest: { headers: { 'user-agent': 'UA'.repeat(300) } } });
+  const rec = get('students/' + UID).marketDataAgreement;
+  ok('accept: good call writes v1 record', good.ok && rec.version === 'v1' && rec.nonProfessional === true && rec.name === 'Jane Roe' && rec.acceptedAt && rec.userAgent.length === 200 && Object.values(rec.answers).every((v) => v === false), rec);
+  const stuA = get('students/' + UID);
+  ok('accept: only marketDataAgreement changed (plan etc. kept)', stuA.plan === 'Starter' && stuA.planId === 'free');
+  ok('client JS version matches server constant', /VERSION = '([^']+)'/.exec(require('fs').readFileSync(path.join(__dirname, '../../assets/market-data-agreement.js'), 'utf8'))[1] === M.__marketData.AGREEMENT_VERSION);
+
+  // rules: the field is in all three privileged lists (touches / creates / keys), so a member cannot write it (live test: tools/tests/live-feed-rules-test.py)
+  const rulesSrc = require('fs').readFileSync(path.join(__dirname, '../../functions-src/firestore.rules'), 'utf8');
+  ok('rules: marketDataAgreement is privileged in all 3 lists', (rulesSrc.match(/'liveData', 'marketDataAgreement'/g) || []).length === 3);
+
   // ---------- STRIPE ----------
   const r1 = await S.stripeCreateCheckout({ planId: 'LiveData' }, ctx);
   ok('stripe: checkout returns hosted url', /^https:\/\/checkout\.stripe\.com\//.test(r1.url));
-  ok('stripe: $5.00 monthly, no trial', r1.amountCents === 500 && r1.renewCents === 500 && r1.interval === 'month' && r1.trial === false, r1);
+  ok('stripe: $7.00 monthly, no trial', r1.amountCents === 700 && r1.renewCents === 700 && r1.interval === 'month' && r1.trial === false, r1);
   const sessCall = calls.find((c) => c.url.endsWith('/checkout/sessions'));
   ok('stripe: session is a subscription with addon metadata', /mode=subscription/.test(sessCall.body) && /metadata%5Baddon%5D=1/.test(sessCall.body), sessCall.body.slice(0, 200));
-  ok('stripe: price created for 500 cents usd monthly', calls.some((c) => c.url.endsWith('/prices') && /unit_amount=500/.test(c.body) && /recurring%5Binterval%5D=month/.test(c.body)));
+  ok('stripe: price created for 700 cents usd monthly', calls.some((c) => c.url.endsWith('/prices') && /unit_amount=700/.test(c.body) && /recurring%5Binterval%5D=month/.test(c.body)));
   ok('stripe: session record has addon:true', get('stripeSessions/cs_test_1').addon === true);
   for (const [label, d] of [['trial', { planId: 'LiveData', trial: true }], ['coupon', { planId: 'LiveData', couponCode: 'SAVE' }]]) {
     let err = null; try { await S.stripeCreateCheckout(d, ctx); } catch (e) { err = e; }
@@ -142,7 +175,7 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
   ok('stripe: test-key mode blocks non-QA, non-admin members', notQa && /not open yet/.test(notQa.message));
 
   // webhook security
-  const sess = { id: 'cs_test_1', mode: 'subscription', payment_status: 'paid', client_reference_id: UID, subscription: 'sub_t1', amount_total: 500, customer_details: { email: 'stryker-qa-buyer@example.com', name: 'QA Buyer' } };
+  const sess = { id: 'cs_test_1', mode: 'subscription', payment_status: 'paid', client_reference_id: UID, subscription: 'sub_t1', amount_total: 700, customer_details: { email: 'stryker-qa-buyer@example.com', name: 'QA Buyer' } };
   let bad = await send(S.stripeWebhook, signedReq(ev('checkout.session.completed', sess), 'whsec_wrong'));
   ok('webhook: wrong signature -> 400, nothing written', bad.code === 400 && !get('students/' + UID).liveData);
   const stale = await send(S.stripeWebhook, signedReq(ev('checkout.session.completed', sess), WH_SECRET, Math.floor(Date.now() / 1000) - 3600));
@@ -158,7 +191,7 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
   ok('PAY: webhook 200', res.code === 200, res);
   ok('PAY: students.liveData written (active, source stripe, autopay, paidThrough = period end)', st.liveData && st.liveData.active === true && st.liveData.source === 'stripe' && st.liveData.autopay === true && st.liveData.paidThroughMillis === periodEnd * 1000 && st.liveData.stripeSubscriptionId === 'sub_t1', st.liveData);
   ok('PAY: plan / paidThroughMillis / status NOT touched', st.plan === 'Starter' && st.planId === 'free' && st.paidThroughMillis === undefined && st.subscriptionStatus === undefined, st);
-  ok('PAY: order recorded as addon, $5 usd', [...store.entries()].some(([k, v]) => k.startsWith('orders/') && v.kind === 'addon' && v.amountUsd === 5 && v.studentUid === UID));
+  ok('PAY: order recorded as addon, $7 usd', [...store.entries()].some(([k, v]) => k.startsWith('orders/') && v.kind === 'addon' && v.amountUsd === 7 && v.studentUid === UID));
   ok('PAY: member notified', [...store.entries()].some(([k, v]) => k.startsWith('notifications/') && v.type === 'livedata_on'));
   ok('PAY: stripeSubs record flagged addon', get('stripeSubs/sub_t1').addon === true);
   const dup = await send(S.stripeWebhook, signedReq(payEv));
@@ -167,20 +200,20 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
   ok('PAY: second purchase while active refused (no double billing)', dupBuy && dupBuy.code === 'already-exists');
 
   // first invoice.paid arrives too (must not duplicate)
-  const inv1 = { id: 'in_1', subscription: 'sub_t1', billing_reason: 'subscription_create', amount_paid: 500, currency: 'usd', customer_email: 'x@y.z', lines: { data: [{ period: { end: periodEnd } }] } };
+  const inv1 = { id: 'in_1', subscription: 'sub_t1', billing_reason: 'subscription_create', amount_paid: 700, currency: 'usd', customer_email: 'x@y.z', lines: { data: [{ period: { end: periodEnd } }] } };
   res = await send(S.stripeWebhook, signedReq(ev('invoice.paid', inv1)));
   ok('PAY: first invoice.paid is idempotent (no second order)', res.code === 200 && [...store.keys()].filter((k) => k.startsWith('orders/')).length === 1);
 
   // RENEW
   const oldEnd = periodEnd; periodEnd += 30 * 86400;
-  const inv2 = { id: 'in_2', subscription: 'sub_t1', billing_reason: 'subscription_cycle', amount_paid: 500, currency: 'usd', customer_email: 'x@y.z', lines: { data: [{ period: { end: periodEnd } }] } };
+  const inv2 = { id: 'in_2', subscription: 'sub_t1', billing_reason: 'subscription_cycle', amount_paid: 700, currency: 'usd', customer_email: 'x@y.z', lines: { data: [{ period: { end: periodEnd } }] } };
   res = await send(S.stripeWebhook, signedReq(ev('invoice.paid', inv2)));
   st = get('students/' + UID);
   ok('RENEW: paidThroughMillis moved forward 30 days', res.code === 200 && st.liveData.paidThroughMillis === periodEnd * 1000 && periodEnd * 1000 > oldEnd * 1000, st.liveData);
   ok('RENEW: renewal order written once; plan still untouched', [...store.entries()].filter(([k, v]) => k.startsWith('orders/') && v.studentName === 'Auto-renewal').length === 1 && st.plan === 'Starter');
   const short = { id: 'in_2b', subscription: 'sub_t1', billing_reason: 'subscription_cycle', amount_paid: 100, currency: 'usd', lines: { data: [{ period: { end: periodEnd + 86400 * 30 } }] } };
   await send(S.stripeWebhook, signedReq(ev('invoice.paid', short)));
-  ok('RENEW: underpaid invoice (less than $5) does not extend', get('students/' + UID).liveData.paidThroughMillis === periodEnd * 1000);
+  ok('RENEW: underpaid invoice (less than $7) does not extend', get('students/' + UID).liveData.paidThroughMillis === periodEnd * 1000);
 
   // FAIL
   const before = get('students/' + UID).liveData.paidThroughMillis;
@@ -197,10 +230,10 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
 
   // ---------- RAZORPAY ----------
   const RUID = 'uid-rzp';
-  store.set('students/' + RUID, { name: 'India Buyer', plan: 'Starter', planId: 'free' });
+  store.set('students/' + RUID, { name: 'India Buyer', plan: 'Starter', planId: 'free', marketDataAgreement: { version: 'v1', nonProfessional: true } });
   const rctx = { auth: { uid: RUID, token: { email: 'in@example.com', name: 'India Buyer' } } };
   const sub = await Z.razorpaySubscribe({ planId: 'LiveData', currency: 'INR' }, rctx);
-  ok('razorpay: subscribe returns subscription, INR monthly', sub.subscriptionId === 'sub_rz1' && sub.currency === 'INR' && sub.trial === false && sub.amountMinor === 5 * 88 * 100, sub);
+  ok('razorpay: subscribe returns subscription, INR monthly', sub.subscriptionId === 'sub_rz1' && sub.currency === 'INR' && sub.trial === false && sub.amountMinor === 7 * 88 * 100, sub);
   ok('razorpay: subscription record flagged addon', get('razorpaySubs/sub_rz1').addon === true);
   let rtrial = null; try { await Z.razorpaySubscribe({ planId: 'LiveData', currency: 'INR', trial: true }, rctx); } catch (e) { rtrial = e; }
   ok('razorpay: add-on refuses a trial', rtrial && rtrial.code === 'failed-precondition');
@@ -215,17 +248,17 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
   ok('razorpay PAY: verifying twice refused', again && again.code === 'already-exists');
 
   const rzEvent = (event, pay, status) => { const raw = Buffer.from(JSON.stringify({ event, payload: { subscription: { entity: { id: 'sub_rz1', status: status || 'active' } }, payment: pay ? { entity: pay } : undefined } })); return { rawBody: raw, body: JSON.parse(raw.toString()), headers: { 'x-razorpay-signature': crypto.createHmac('sha256', RZP_WH).update(raw).digest('hex') } }; };
-  const badWh = rzEvent('subscription.charged', { id: 'pay_2', amount: 44000, status: 'captured' }); badWh.headers['x-razorpay-signature'] = 'nope';
+  const badWh = rzEvent('subscription.charged', { id: 'pay_2', amount: 61600, status: 'captured' }); badWh.headers['x-razorpay-signature'] = 'nope';
   ok('razorpay webhook: bad signature -> 400', (await send(Z.razorpayWebhook, badWh)).code === 400);
   const p1 = get('students/' + RUID).liveData.paidThroughMillis;
-  await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_1', amount: 44000, status: 'captured' }));
+  await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_1', amount: 61600, status: 'captured' }));
   ok('razorpay: first charge event (already covered by verify) does not extend twice', get('students/' + RUID).liveData.paidThroughMillis === p1);
-  await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_2', amount: 44000, status: 'captured' }));
+  await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_2', amount: 61600, status: 'captured' }));
   const p2 = get('students/' + RUID).liveData.paidThroughMillis;
   ok('razorpay RENEW: captured renewal extends paidThroughMillis', p2 > p1, { p1, p2 });
-  const dupR = await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_2', amount: 44000, status: 'captured' }));
+  const dupR = await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_2', amount: 61600, status: 'captured' }));
   ok('razorpay RENEW: same payment twice -> duplicate', dupR.body === 'duplicate' && get('students/' + RUID).liveData.paidThroughMillis === p2);
-  await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_3', amount: 44000, status: 'failed' }));
+  await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_3', amount: 61600, status: 'failed' }));
   ok('razorpay FAIL: non-captured charge does not extend', get('students/' + RUID).liveData.paidThroughMillis === p2);
   await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_4', amount: 100, status: 'captured' }));
   ok('razorpay FAIL: underpaid charge refused', get('students/' + RUID).liveData.paidThroughMillis === p2);

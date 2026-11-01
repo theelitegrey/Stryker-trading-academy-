@@ -56,7 +56,8 @@ const PAGES = [
   ['/privacy',              '0.3', 'yearly'],
   ['/cookies',              '0.3', 'yearly'],
   ['/gdpr',                 '0.3', 'yearly'],
-  ['/refund-policy',        '0.3', 'yearly']
+  ['/refund-policy',        '0.3', 'yearly'],
+  ['/market-data-terms',    '0.3', 'yearly']
 ];
 
 // Guard: every indexable page (no noindex) with a canonical URL must be

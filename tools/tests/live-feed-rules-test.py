@@ -36,6 +36,15 @@ case("ALLOW", "student edits theme while liveFeed on", 'alice', "update", A, new
 # admin can write it
 case("ALLOW", "admin turns liveFeed on", 'admin', "update", A, new=dict(OLD, liveFeed=True, liveFeedBy="admin", liveFeedAt=TS), old=OLD)
 case("ALLOW", "admin turns liveFeed off", 'admin', "update", A, new=dict(ON, liveFeed=False, liveFeedBy="admin", liveFeedAt=TS), old=ON)
+# marketDataAgreement (2026-11-01): written only by the acceptMarketDataAgreement function, never by a client
+AG = {"version": "v1", "nonProfessional": True, "name": "Alice A", "acceptedAt": TS}
+case("DENY", "student writes marketDataAgreement on self", 'alice', "update", A, new=dict(OLD, marketDataAgreement=AG), old=OLD)
+case("DENY", "student writes marketDataAgreement + theme", 'alice', "update", A, new=dict(OLD, marketDataAgreement=AG, theme="dark"), old=OLD)
+case("DENY", "student edits own marketDataAgreement", 'alice', "update", A, new=dict(OLD, marketDataAgreement=dict(AG, version="v2")), old=dict(OLD, marketDataAgreement=AG))
+case("DENY", "student creates own doc with marketDataAgreement", 'alice', "create", A, new={"plan": "Starter", "marketDataAgreement": AG})
+case("DENY", "student writes marketDataAgreement on bob", 'alice', "update", B, new=dict(OLD, marketDataAgreement=AG), old=OLD)
+case("ALLOW", "student edits theme while agreement exists", 'alice', "update", A, new=dict(OLD, marketDataAgreement=AG, theme="light"), old=dict(OLD, marketDataAgreement=AG))
+case("ALLOW", "admin writes marketDataAgreement", 'admin', "update", A, new=dict(OLD, marketDataAgreement=AG), old=OLD)
 # regressions on untouched privileged keys
 case("DENY", "student sets own plan Elite", 'alice', "update", A, new=dict(OLD, plan="Elite"), old=OLD)
 case("DENY", "student sets own demo", 'alice', "update", A, new=dict(OLD, demo=True), old=OLD)

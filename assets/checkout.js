@@ -198,7 +198,23 @@ function checkoutFmt(usd){
   return (typeof planMoneyDisplay === 'function') ? planMoneyDisplay(usd) : ('$' + usd.toFixed(2));
 }
 
+// Live Futures Data: no payment button until the Market Data Agreement (non-professional check + e-signature) is saved on the server.
+let CHECKOUT_MDA = null;   // students/{uid}.marketDataAgreement as read at load, or set after accepting
+function checkoutMdaNeeded(){ return checkoutIsAddon() && !(window.StkMDA && StkMDA.accepted({ marketDataAgreement: CHECKOUT_MDA })); }
 function updateOrderSummary(){
+  updateOrderSummaryBase();
+  const host = document.getElementById('checkout-mda'), btn = document.getElementById('checkout-complete-btn');
+  if (!host || !checkoutIsAddon() || !window.StkMDA) return;
+  host.style.display = '';
+  if (checkoutMdaNeeded()) {
+    btn.disabled = true;
+    if (!host.firstChild) StkMDA.form(host, () => { CHECKOUT_MDA = { version: StkMDA.VERSION, nonProfessional: true, acceptedAt: new Date() }; host.innerHTML = ''; updateOrderSummary(); });
+  } else if (!host.querySelector('.mda-ok')) {
+    host.innerHTML = '<p class="mda-ok">Agreement accepted on ' + StkMDA.fmtDate(CHECKOUT_MDA && CHECKOUT_MDA.acceptedAt) + ' · <a href="/market-data-terms" style="color:var(--teal); text-decoration:underline;">Market Data Terms</a></p>';
+  }
+  if (!host.querySelector('.mda-note')) { const n = document.createElement('p'); n.className = 'mda-note'; n.innerHTML = StkMDA.note(); host.appendChild(n); }
+}
+function updateOrderSummaryBase(){
   // An active offer is applied before any coupon: the coupon then discounts
   // the offer price, not the list price.
   const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(CHECKOUT_PLAN) : { active: false };
@@ -312,7 +328,7 @@ function updateOrderSummary(){
   completeBtn.textContent = total > 0 ? 'Pay ' + checkoutFmt(total) + ' securely' : 'Complete order';
 }
 
-// The Live Futures Data add-on (plans/LiveData, addon:true, Owner 2026-10-30, $5/month): plain monthly subscription, no trial, no coupon.
+// The Live Futures Data add-on (plans/LiveData, addon:true, Owner 2026-10-30; $7/month since 2026-11-01): plain monthly subscription, no trial, no coupon.
 function checkoutIsAddon(){ return !!(CHECKOUT_PLAN && CHECKOUT_PLAN.addon === true); }
 
 function autopayRowOkForAddon(){ return typeof strykerCurrency === 'function' && strykerCurrency() === 'INR'; }
@@ -713,6 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       CHECKOUT_PLAN = plan;
+      CHECKOUT_MDA = (studentDoc && studentDoc.exists && studentDoc.data().marketDataAgreement) || null;
       if (plan.addon === true) {   // no coupon / referral on the add-on; the heading says what it is
         document.querySelectorAll('#checkout-coupon-input').forEach((i) => { const pn = i.closest('.panel'); if (pn) pn.style.display = 'none'; });
       }
@@ -771,7 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('checkout-complete-btn').addEventListener('click', () => {
     const errEl = document.getElementById('checkout-error');
     errEl.style.display = 'none';
-    if (!CHECKOUT_UID || !CHECKOUT_PLAN) return;
+    if (!CHECKOUT_UID || !CHECKOUT_PLAN || checkoutMdaNeeded()) return;
 
     // Billing details validate and save BEFORE any money — or a free coupon
     // seat — changes hands, so every order has a name and address behind it.

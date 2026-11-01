@@ -57,7 +57,7 @@
  *          access, which cannot be sold as a recurring subscription, so they are
  *          refused on this path with a clear message.
  *
- * LIVE FUTURES DATA ADD-ON (Owner 2026-10-30, $5/month): plans/LiveData has addon:true. Same checkout, same webhook, but a
+ * LIVE FUTURES DATA ADD-ON (Owner 2026-10-30, $7/month): plans/LiveData has addon:true. Same checkout, same webhook, but a
  *          purchase never touches plan / paidThroughMillis. It writes students/{uid}.liveData = { active, paidThroughMillis,
  *          source:'stripe', autopay, stripeSubscriptionId }, which the chart server reads (functions/api/chart/_rt.js). No trial,
  *          no coupon, no founding lock. A member can hold Pro and the add-on at once (two subscriptions, one Stripe customer).
@@ -315,6 +315,7 @@ exports.stripeCreateCheckout = functions
     const stu = await db.collection('students').doc(uid).get();
     const s = stu.exists ? stu.data() : {};
     if (addon) {
+      require('./marketData').__marketData.requireAgreement(s);   // Owner 2026-11-01: terms first
       const ld = s.liveData || {};
       if (ld.stripeSubscriptionId && ld.autopay && (ld.paidThroughMillis || 0) > Date.now()) {
         throw new functions.https.HttpsError('already-exists',

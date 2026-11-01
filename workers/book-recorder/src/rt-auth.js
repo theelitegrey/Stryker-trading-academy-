@@ -25,7 +25,7 @@ const adminMemo = new Map();
 const demoMemo = new Map();
 let plansMemo = null;   // { at, paid:Set(lowercased plan names/ids with rank >= 1) }
 
-// Live Futures Data add-on (Owner order 2026-10-30, $5/month): students/{uid}.liveData = { active, paidThroughMillis,
+// Live Futures Data add-on (Owner order 2026-10-30, $7/month): students/{uid}.liveData = { active, paidThroughMillis,
 // source: 'stripe'|'razorpay'|'manual' }, written only by Cloud Functions / an admin. Active = active === true and, when there is a
 // paidThroughMillis, now <= paidThrough + 3 days grace. Being on Pro does NOT count. Fails closed (missing / odd shapes = no).
 export function isActiveLiveDataDoc(f, nowMs = Date.now()) {
@@ -144,7 +144,7 @@ export async function isAdminToken(token, opts = {}) {
 
 // Real-time entitlement = admin, OR the marketing demo account (CoS decision 2026-10-17), OR a member the
 // Owner switched on from the admin page (liveFeed, Owner 2026-10-26 "I can select which users get live feed"):
-// a token-verified uid whose OWN students/{uid} document has demo === true or liveFeed === true, OR an active Live Futures Data add-on (students/{uid}.liveData, $5/month, Owner 2026-10-30). Pro alone no longer includes real-time, EXCEPT the 46 grandfathered early Pro members (liveFeed + liveFeedGrandfathered, CoS-set): live only while isActiveProDoc stays true (Owner 2026-10-30). The doc is read
+// a token-verified uid whose OWN students/{uid} document has demo === true or liveFeed === true, OR an active Live Futures Data add-on (students/{uid}.liveData, $7/month, Owner 2026-10-30). Pro alone no longer includes real-time, EXCEPT the 46 grandfathered early Pro members (liveFeed + liveFeedGrandfathered, CoS-set): live only while isActiveProDoc stays true (Owner 2026-10-30). The doc is read
 // over the Firestore REST API with the caller's own token, so the live rules decide (a student can only read
 // their own doc), and `demo` / `liveFeed` are server-only fields (privileged in firestore.rules: only an admin
 // writes them). Fails CLOSED. Nobody else gets in.

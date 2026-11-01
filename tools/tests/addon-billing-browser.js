@@ -20,7 +20,7 @@ function stub(cfg) {
       'settings/commerce': { usdInr: 88.2, stripeCheckout: true, trialEnabled: CFG.trialOn },
       'settings/pageAccess': {},
       'plans/free': { name: 'Starter', displayName: 'Free', rank: 0, price: '0', period: 'month', features: ['Core lessons'] },
-      'plans/LiveData': { name: 'Live Futures Data', displayName: 'Live Futures Data', rank: 0, price: '5', period: 'month', interval: 'month', addon: true, hidden: true, features: ['Real-time CME futures data on ZoroCharts'] },
+      'plans/LiveData': { name: 'Live Futures Data', displayName: 'Live Futures Data', rank: 0, price: '7', period: 'month', interval: 'month', addon: true, hidden: true, features: ['Real-time CME futures data on ZoroCharts'] },
       'plans/pro': { name: 'Pro', rank: 1, price: '39', period: 'month', featured: true, yearlyPlanId: 'proy', color: '#03c988',
         features: ['Full curriculum', 'Trade journal', 'Backtesting', 'Community'] },
       'plans/proy': { name: 'Pro', rank: 1, price: '349', period: 'year', hidden: true },
@@ -119,7 +119,7 @@ async function page(browser, url, cfg, width) {
       console.log('\n== width ' + w + ' ==');
       let { p, ctx, errors } = await page(browser, 'checkout.html?plan=LiveData', { trialOn: true, eligible: true, signedIn: true }, w);
       let r = await p.evaluate(() => ({ txt: document.body.innerText, total: (document.getElementById('checkout-total') || {}).textContent, overflow: document.documentElement.scrollWidth > window.innerWidth }));
-      check('addon checkout: total shows $5', /\$5(\.00)?/.test(r.total || ''), true);
+      check('addon checkout: total shows $7', /\$7(\.00)?/.test(r.total || ''), true);
       check('addon checkout: bullet present', /Real-time CME futures/.test(r.txt), true);
       check('addon checkout: no overflow', r.overflow, false);
       check('addon checkout: no trial wording', /free trial|7-day/i.test(r.txt), false);
@@ -129,7 +129,7 @@ async function page(browser, url, cfg, width) {
       ({ p, ctx, errors } = await page(browser, 'settings.html', { signedIn: true, student: { name: 'Test Trader', plan: 'Starter', planId: 'free', liveData: { active: true, source: 'stripe', autopay: true, paidThroughMillis: soon, stripeSubscriptionId: 'sub_1' } } }, w));
       r = await p.evaluate(() => ({ st: document.getElementById('settings-ld-status').textContent, date: document.getElementById('settings-ld-date').textContent }));
       check('settings add-on: status on', r.st, 'On: real-time CME futures');
-      check('settings add-on: renews line', /\$5\/month/.test(r.date), true);
+      check('settings add-on: renews line', /\$7\/month/.test(r.date), true);
       await shot(p, '#settings-livedata-panel', 'settings-addon-' + w, true);
       await ctx.close();
       ({ p, ctx, errors } = await page(browser, 'settings.html', { signedIn: true, student: { name: 'Test Trader', plan: 'Pro', planId: 'pro', subscriptionStatus: 'active', paidThroughMillis: soon, liveFeed: true, liveFeedGrandfathered: true } }, w));

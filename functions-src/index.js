@@ -179,6 +179,7 @@ Object.assign(exports, require('./tvAccess'));
 Object.assign(exports, require('./subscriptions'));
 Object.assign(exports, require('./razorpaySubs'));
 Object.assign(exports, require('./stripe'));
+exports.acceptMarketDataAgreement = require('./marketData').acceptMarketDataAgreement;
 Object.assign(exports, require('./creatorPay'));   // Creator Hub payouts (Stripe Connect): creatorPay, creatorConnectWebhook
 Object.assign(exports, require('./trial'));
 Object.assign(exports, require('./fxRate'));

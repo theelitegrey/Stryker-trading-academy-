@@ -57,6 +57,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>5. Plans, payment, and coupons</h2>' +
       '<p>Access to certain curriculum, trading models and community features may require an active plan. Paid plans are subscriptions billed monthly or yearly. Payments in Indian rupees are processed by Razorpay (one-time or UPI AutoPay). All other payments are processed by Stripe and renew automatically each billing period at the price shown at checkout until you cancel. You can cancel online at any time from Settings; access continues until the end of the period you\'ve paid for. If a renewal payment fails, we\'ll retry it and let you know; if it can\'t be collected, your plan returns to the free plan after a short grace period. Coupons apply to the first payment only unless stated otherwise.</p>' +
       '<p>See our <a href="refund-policy.html">Refund Policy</a> for details on refund eligibility.</p>' +
+      '<p>Live futures data is also covered by the separate <a href="market-data-terms">Market Data Terms</a>.</p>' +
       '<h2>6. Referral program</h2>' +
       '<p>Our referral program awards points for successful invites, shown on the leaderboard for recognition. Points do not currently have a cash or credit redemption value. We reserve the right to adjust, withhold, or reverse points awarded through fraudulent activity, self-referral, or abuse of the program.</p>' +
       '<h2>7. Community conduct</h2>' +

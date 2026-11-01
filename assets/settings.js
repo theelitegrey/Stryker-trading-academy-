@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       }
-      // Live futures data (Owner 2026-10-30): the $5/month add-on, an admin approval (liveFeed) or neither.
+      // Live futures data (Owner 2026-10-30): the $7/month add-on, an admin approval (liveFeed) or neither.
       try { renderLiveData(student); } catch (e) { console.warn('TradeZoro: live data panel', e); }
       renderAvatarPreview(student);
       document.getElementById('settings-bio').value = (student && student.bio) || '';
@@ -277,8 +277,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // students/{uid}.liveData = { active, paidThroughMillis, source, autopay, stripeSubscriptionId | razorpaySubscriptionId }
 // (written only by the payment functions) and students/{uid}.liveFeed (an admin's approval). The chart SERVER decides
 // real-time from the same fields (functions/api/chart/_rt.js); this panel only shows them and offers cancel / buy.
+let LD_PRICE = '$7';   // plans/LiveData.price when it loads; $7 fallback
 function renderLiveData(student){
-  try { db.collection('plans').doc('LiveData').get().then((d) => { if (!d.exists) { const b = document.getElementById('settings-ld-buy'); if (b) { b.style.display = 'none'; const n = document.getElementById('settings-ld-soon'); if (n) n.style.display = ''; } } }).catch(() => {}); } catch (e) {}
+  try { db.collection('plans').doc('LiveData').get().then((d) => { if (d.exists && Number(d.data().price) > 0 && '$' + Number(d.data().price) !== LD_PRICE) { LD_PRICE = '$' + Number(d.data().price); renderLiveData(student); return; } if (!d.exists) { const b = document.getElementById('settings-ld-buy'); if (b) { b.style.display = 'none'; const n = document.getElementById('settings-ld-soon'); if (n) n.style.display = ''; } } }).catch(() => {}); } catch (e) {}
   const panel = document.getElementById('settings-livedata-panel');
   if (!panel) return;
   const st = document.getElementById('settings-ld-status'), row = document.getElementById('settings-ld-row'),
@@ -294,7 +295,7 @@ function renderLiveData(student){
     st.textContent = 'On: real-time CME futures'; st.style.color = 'var(--bull)';
     if (pt) {
       row.style.display = '';
-      if (ld.autopay) { rowL.textContent = 'Renews'; dateEl.textContent = label(pt) + ' · $5/month'; }
+      if (ld.autopay) { rowL.textContent = 'Renews'; dateEl.textContent = label(pt) + ' · ' + LD_PRICE + '/month'; }
       else { rowL.textContent = 'Ends'; dateEl.textContent = label(pt) + ' (auto-renewal off)'; }
     }
     if (ld.autopay && ld.stripeSubscriptionId) {
@@ -322,17 +323,22 @@ function renderLiveData(student){
           cancel.style.display = 'none'; rowL.textContent = 'Ends'; dateEl.textContent = label(pt) + ' (auto-renewal off)';
         }).catch((err) => { showToast('error', 'Could not cancel: ' + ((err && err.message) || err)); cancel.disabled = false; cancel.textContent = 'Cancel live futures data'; });
       };
-    } else if (!ld.autopay) { buy.style.display = ''; buy.textContent = 'Renew live futures data: $5/month'; }
+    } else if (!ld.autopay) { buy.style.display = ''; buy.textContent = 'Renew live futures data: ' + LD_PRICE + '/month'; }
   } else if (s.liveFeed === true && s.liveFeedGrandfathered === true) {
     // Early Pro members keep live futures while Pro stays active (mirrors isActiveProDoc in functions/api/chart/_rt.js).
     const proOn = !!s.plan && (typeof rankOf === 'function' ? rankOf(s.plan) >= 1 : !/^(free|starter|)$/i.test(String(s.plan))) && ['expired', 'cancelled', 'canceled'].indexOf(s.subscriptionStatus) === -1 &&
       (s.foundingMember === true || !(Number(s.paidThroughMillis) > 0 && Date.now() > Number(s.paidThroughMillis) + GRACE));
     if (proOn) { st.textContent = 'Live futures data: included for you as an early Pro member'; st.style.color = 'var(--bull)'; }
-    else { st.textContent = 'Off: futures are 10 minutes behind'; st.style.color = 'var(--ink-1)'; buy.style.display = ''; buy.textContent = 'Get live futures data: $5/month'; }
+    else { st.textContent = 'Off: futures are 10 minutes behind'; st.style.color = 'var(--ink-1)'; buy.style.display = ''; buy.textContent = 'Get live futures data: ' + LD_PRICE + '/month'; }
   } else if (s.liveFeed === true || (paid && ld.source === 'manual')) {
     st.textContent = 'On: approved by TradeZoro'; st.style.color = 'var(--bull)';
   } else {
     st.textContent = 'Off: futures are 10 minutes behind'; st.style.color = 'var(--ink-1)';
-    buy.style.display = ''; buy.textContent = 'Get live futures data: $5/month';
+    buy.style.display = ''; buy.textContent = 'Get live futures data: ' + LD_PRICE + '/month';
+  }
+  const ag = document.getElementById('settings-ld-agree'), m = s.marketDataAgreement;
+  if (ag) {
+    const ok = !!m && m.version === 'v1' && m.nonProfessional === true, at = ok && m.acceptedAt, when = at ? label(at.toDate ? at.toDate().getTime() : (at.seconds || 0) * 1000) : '';
+    ag.innerHTML = ok ? 'Market data agreement: accepted ' + when + ' \u00b7 <a href="market-data-terms">View terms</a>' : 'Market data agreement: Not accepted \u00b7 <a href="market-data-terms">View terms</a>';
   }
 }

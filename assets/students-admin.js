@@ -506,11 +506,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // The line under the switch: who approved it and when, or why they are live anyway.
   function liveNote(s, liveOn, why){
+    const m = s.marketDataAgreement, mt = m && m.acceptedAt && (m.acceptedAt.toDate ? m.acceptedAt.toDate() : (m.acceptedAt.seconds ? new Date(m.acceptedAt.seconds * 1000) : null));
+    const ag = ' Market data agreement: ' + (m && m.nonProfessional === true ? m.version + ' accepted' + (mt ? ' ' + mt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '') : 'not accepted') + '.';
+    return liveNote0(s, liveOn, why) + ag;
+  }
+  function liveNote0(s, liveOn, why){
     const by = s.liveFeedBy && ALL_STUDENTS ? ALL_STUDENTS.find(x => x.uid === s.liveFeedBy) : null;
     let at = '';
     try { const t = s.liveFeedAt; const d = t && t.toDate ? t.toDate() : (t && t.seconds ? new Date(t.seconds * 1000) : null); if (d) at = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) {}
     const who = liveOn ? 'Approved' + (by ? ' by ' + (by.displayName || by.name || (by.email || '').split('@')[0]) : (s.liveFeedBy ? ' by an admin' : '')) + (at ? ' on ' + at : '') + '. ' : '';
-    if (why.indexOf('Add-on') !== -1) return who + 'Also has the paid $5/month Live Futures Data add-on.';
+    if (why.indexOf('Add-on') !== -1) return who + 'Also has the paid $7/month Live Futures Data add-on.';
     if (s.liveFeed === true && s.liveFeedGrandfathered === true) return 'Live futures: On (kept from Pro)' + (why.indexOf('Kept from Pro') === -1 ? ' \u2014 paused: Pro is no longer active, so futures are 10 min delayed.' : '. Stays on while their Pro is active; switch off to remove.');
     if (liveOn) return who + 'Real-time CME futures on ZoroCharts.';
     return 'Off: futures on ZoroCharts are 10 min delayed (unless they connect Rithmic or buy the add-on).';
@@ -534,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Early Pro member kept live (Owner 2026-10-30): server keeps real-time only while Pro stays active.
       if (proStillActive(s)) why.push('Kept from Pro');
     } else if (s.liveFeed === true) why.push('Switch');
-    // Owner 2026-10-30: Pro no longer includes real-time futures. The $5/month add-on does (liveData, 3 days grace).
+    // Owner 2026-10-30: Pro no longer includes real-time futures. The $7/month add-on does (liveData, 3 days grace).
     const ld = s.liveData || {}, lpt = Number(ld.paidThroughMillis) || 0;
     if (ld.active === true && (!lpt || Date.now() <= lpt + 3 * 86400000)) why.push('Add-on');
     return why;

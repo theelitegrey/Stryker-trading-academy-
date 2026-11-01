@@ -92,7 +92,7 @@ const sheetState = (p) => p.evaluate(() => { const s = document.getElementById('
         const s = await sheetState(r.p);
         check(s.open && /Get live futures data/.test(s.text) && /CME futures are 10 minutes delayed on free data\./.test(s.text)
           && /Connect your prop firm/.test(s.text) && /Use your own Rithmic login\. Free\./.test(s.text)
-          && /Live data add-on/.test(s.text) && /\$5 a month\. Cancel anytime\./.test(s.text) && /Why is it delayed\?/.test(s.text) && /Hide for today/.test(s.text),
+          && /Live data add-on/.test(s.text) && /\$7 a month\. Cancel anytime\./.test(s.text) && /Why is it delayed\?/.test(s.text) && /Hide for today/.test(s.text),
           `${tag} tap opens the sheet with both rows`);
         check(/LiveData/.test(s.buy) && /help\.html#free-data-delay/.test(s.why), `${tag} row b -> checkout, footer -> help answer`);
         if (mobile) check(/phone/.test(s.cls) && Math.abs(s.b - h) <= 1 && s.l === 0 && s.w === w, `${tag} bottom sheet docked to the bottom ${JSON.stringify({ b: s.b, l: s.l, w: s.w })}`);

@@ -2,7 +2,14 @@
  "_readme": "Pages the app-shell audit treats specially. marketing = intentionally marketing-only even when signed in (reason required). dual = public + app pages: signed in = app shell, signed out = marketing header + footer. ignore = link targets that are not browsed pages (auth, sign-out landing, etc.).",
  "marketing": {
   "toast-demo": "internal demo, noindex",
-  "pricing": "public plans page reached from paywalls; homepage-style marketing header like index"
+  "pricing": "public plans page reached from paywalls; homepage-style marketing header like index",
+  "features/backtesting": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/gex": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/global-monitor": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/journal": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/market-stats": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/orderflow": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "features/smart-money-desk": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)"
  },
  "dual": {
   "suggestions": "public ideas board; app shell when signed in",
@@ -20,7 +27,11 @@
   "creator-rules": "public creator rules (legal text)",
   "c": "public community page /c/<slug>",
   "features/creators": "Creator Hub landing, linked from the app menu (How it works); app shell when signed in",
-  "features/charts": "ZoroCharts feature page; app shell when signed in, marketing header + footer signed out"
+  "features/charts": "ZoroCharts feature page; app shell when signed in, marketing header + footer signed out",
+  "features/curriculum": "Curriculum feature page; app shell when signed in, marketing header + footer signed out",
+  "features/models": "Trading Models feature page; app shell when signed in, marketing header + footer signed out",
+  "features/indicators": "Private Indicators feature page; app shell when signed in, marketing header + footer signed out",
+  "features/community": "Community feature page; app shell when signed in, marketing header + footer signed out"
  },
  "ignore": {
   "index": "public home; sign-out lands here",
@@ -33,10 +44,10 @@
   "terminal": "admin tool target, no page",
   "rithmic-review": "unlisted partner page",
   "contact": "only linked from the banned-account notice",
-  "features": "marketing features index, only linked from the marketing flyout (nav-features.js, hidden when signed in)",
   "refund-policy": "legal text linked from checkout, public",
   "market-data-terms": "legal text linked from live-data checkout and settings, public (same as refund-policy)",
-  "help": "own signed-in member shell (#member-help-shell: Questions | My tickets), public FAQ signed out; covered by help-center-browser.js and member-support QA"
+  "help": "own signed-in member shell (#member-help-shell: Questions | My tickets), public FAQ signed out; covered by help-center-browser.js and member-support QA",
+  "features": "marketing features index, only linked from the marketing flyout (nav-features.js, hidden when signed in). Carries the dual shell like the other feature pages, but the local http.server serves /features as the features/ folder, so the audit cannot load it."
  },
  "noheader": {
   "charts": "full-screen chart app: its own toolbar replaces the phone header; menu and dock still present"

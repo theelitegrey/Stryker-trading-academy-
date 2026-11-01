@@ -1,7 +1,2 @@
 /* Feature pages A (gex, orderflow, backtesting, journal, market-stats, global-monitor, smart-money-desk): page-only tweaks on top of fx-page.css */
 .fx-sl .fx-shot{ object-fit:contain; object-position:center; }
-.fx-story.on .fx-stage .fx-sv{ display:flex; align-items:center; justify-content:center; }
-/* reduced motion / no sticky story: fx-page.js stacks the figures inline, so each step shows its own full image */
-.fx-sv:not(.fx-story.on *){ display:block; }
-.fx-sl[style*="relative"]{ width:100%; }
-.fx-sl[style*="relative"] .fx-shot{ height:auto; object-fit:contain; }

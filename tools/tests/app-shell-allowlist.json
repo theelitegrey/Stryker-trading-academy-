@@ -25,8 +25,7 @@
   "features/models": "Trading Models feature page; app shell when signed in, marketing header + footer signed out",
   "features/indicators": "Private Indicators feature page; app shell when signed in, marketing header + footer signed out",
   "features/community": "Community feature page; app shell when signed in, marketing header + footer signed out",
-  "features/live-sessions": "Live Sessions feature page; app shell when signed in, marketing header + footer signed out",
-  "features": "Features hub; app shell when signed in, marketing header + footer signed out (links to every /features page)"
+  "features/live-sessions": "Live Sessions feature page; app shell when signed in, marketing header + footer signed out"
  },
  "ignore": {
   "index": "public home; sign-out lands here",
@@ -41,7 +40,8 @@
   "contact": "only linked from the banned-account notice",
   "refund-policy": "legal text linked from checkout, public",
   "market-data-terms": "legal text linked from live-data checkout and settings, public (same as refund-policy)",
-  "help": "own signed-in member shell (#member-help-shell: Questions | My tickets), public FAQ signed out; covered by help-center-browser.js and member-support QA"
+  "help": "own signed-in member shell (#member-help-shell: Questions | My tickets), public FAQ signed out; covered by help-center-browser.js and member-support QA",
+  "features": "marketing features index, only linked from the marketing flyout (nav-features.js, hidden when signed in). Carries the dual shell like the other feature pages, but the local http.server serves /features as the features/ folder, so the audit cannot load it."
  },
  "noheader": {
   "charts": "full-screen chart app: its own toolbar replaces the phone header; menu and dock still present"

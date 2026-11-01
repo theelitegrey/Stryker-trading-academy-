@@ -251,6 +251,18 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     await p.touchscreen.tap(195, 120); await sleep(500);
     t('tap outside closes the watchlist menu', await p.evaluate(() => [...document.querySelectorAll('.stkw-menu')].every((x) => x.hidden)));
     t('"Education only" still on the page', await p.evaluate(() => /Education only/.test(document.querySelector('.stkchart-credit').textContent)));
+    await p.tap('.stkw-close'); await sleep(500);
+    // 12. ⋯ list is a bottom sheet; Replay opens from it as a sheet and swipes closed
+    await p.tap('#stkc-more-btn'); await sleep(600);
+    const ml = await p.$eval('#stkc-more-pop', (e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight }; });
+    t('⋯ list is a bottom sheet', ml.l === 0 && ml.w === 390 && Math.abs(ml.b - ml.h) < 2, ml);
+    await p.tap('#stkc-more-pop [data-ob-label^="Replay"]'); await sleep(800);
+    const rp = await p.$eval('#stkr-pop', (e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight, t: (e.querySelector('.stkc-sh h2') || {}).textContent }; });
+    t('Replay opens as the "Bar replay" sheet', rp.l === 0 && rp.w === 390 && Math.abs(rp.b - rp.h) < 2 && rp.t === 'Bar replay', rp);
+    await p.screenshot({ path: OUT + '/touch-390-replay.png' });
+    const rh = await p.$eval('#stkr-pop .stkc-sh', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + 120, y: r.top + 20 }; });
+    await drag(rh.x, rh.y, rh.y + 220);
+    t('swipe down closes Replay and the ⋯ list', !(await vis('#stkr-pop')) && !(await vis('#stkc-more-pop')));
     await p.screenshot({ path: OUT + '/touch-390-after-swipe.png' }); console.log('page errors', JSON.stringify(p.errs));
   } catch (e) { fail++; console.log('FAIL exception', e.message); }
   await b.close();

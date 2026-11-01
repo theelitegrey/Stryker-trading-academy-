@@ -1503,6 +1503,12 @@ body.charts-page .stkchart-credit{
   font-size:14px; font-weight:500; line-height:1.2; font-family:inherit;
 }
 #stkc-more-pop.stkc-ob-list[hidden]{ display:none !important; }
+@media (max-width:599px){#stkc-more-pop.stkc-ob-list:not(.stkc-ob-sub){ position:fixed !important; left:0 !important; right:0 !important; top:auto !important; bottom:0 !important; width:auto !important;
+    max-height:min(85dvh, calc(100dvh - 56px)); padding:24px 0 calc(8px + env(safe-area-inset-bottom)); border:0; border-top:1px solid var(--line); border-radius:20px 20px 0 0;
+    background:var(--bg-2); box-shadow:0 0 0 100vmax rgba(0,0,0,.5), 0 -12px 32px rgba(0,0,0,.4); z-index:9060; }
+#stkc-more-pop.stkc-ob-list:not(.stkc-ob-sub)::before{ content:""; position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:var(--line); }
+#stkc-more-pop.stkc-ob-list:not(.stkc-ob-sub) [data-ob-trig][data-ob-trig]{ height:48px; min-height:48px; padding:0 20px; font-size:15px; }
+#stkc-more-pop.stkc-ob-list:not(.stkc-ob-sub) > .stkc-ob-gh{ padding:12px 20px 4px; }}
 .stkc-ob-list > .stkc-ob-gh{
   flex:none; padding:8px 14px 4px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3);
   border-top:1px solid var(--line-soft, var(--line)); margin-top:4px;

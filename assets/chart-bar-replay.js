@@ -809,11 +809,11 @@ const ICON = {
 function toast(m, type) { if (rhActive()) return; try { OPT.toast ? OPT.toast(m, type) : (window.showToast && window.showToast(type || 'success', m)); } catch (e) {} }
 
 const ui = (() => {
-  let btn, pop, badge, bar, playB, fwdB, backB, speedS, stepS, clock, spin, simL;
+  let scrim, btn, pop, badge, bar, playB, fwdB, backB, speedS, stepS, clock, spin, simL;
   function mountButton(barL) {
     btn = el('button', { type: 'button', class: 'stkc-btn stkr-btn', id: 'stkr-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Bar replay',
       html: svg(ICON.replay, 15) + '<span class="stkc-btn-l">Replay</span>' });
-    pop = el('div', { class: 'stkc-pop stkr-pop', id: 'stkr-pop', role: 'menu', 'aria-label': 'Bar replay', hidden: '' });
+    pop = el('div', { class: 'stkc-pop stkc-sheet stkr-pop', id: 'stkr-pop', role: 'menu', 'aria-label': 'Bar replay', hidden: '' });
     const item = (label, sub, fn) => el('button', { type: 'button', class: 'stkc-item stkr-item', role: 'menuitem', onclick: (e) => { e.stopPropagation(); close(); fn(); } },
       [el('span', { class: 'stkr-il', text: label }), sub ? el('span', { class: 'stkr-is', text: sub }) : null]);
     const date = el('input', { type: 'datetime-local', class: 'stkr-date', 'aria-label': 'Replay start date and time (New York time)' });
@@ -825,7 +825,18 @@ const ui = (() => {
       const ms = MH && MH.nyToUtc ? MH.nyToUtc(+m[1], +m[2], +m[3], +m[4], +m[5]) : Date.parse(v);
       close(); startAtDate(ms);
     } });
+    // phone (<600 px): a bottom sheet like the other chart menus (style.css .stkc-sheet): grabber, title, close,
+    // scrim, swipe down. The header markup is the shared sheetHead's (vela-chart.js); hidden on desktop.
+    const shX = el('button', { type: 'button', class: 'stkc-sh-x', 'aria-label': 'Close', html: svg(ICON.x, 18), onclick: (e) => { e.stopPropagation(); close(); } });
+    const sh = el('div', { class: 'stkc-sh' }, [el('span', { class: 'stkc-sh-grab', 'aria-hidden': 'true' }), el('div', { class: 'stkc-sh-t' }, [el('h2', { text: 'Bar replay' })]), shX]);
+    let y0 = null, dy = 0;
+    sh.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; y0 = e.clientY; dy = 0; pop.style.transition = 'none'; try { sh.setPointerCapture(e.pointerId); } catch (er) {} });
+    sh.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); pop.style.transform = 'translateY(' + dy + 'px)'; });
+    const shEnd = () => { if (y0 == null) return; y0 = null; pop.style.transition = ''; pop.style.transform = ''; if (dy > 64) close(); };
+    sh.addEventListener('pointerup', shEnd); sh.addEventListener('pointercancel', shEnd);
+    scrim = el('div', { class: 'stkc-scrim', hidden: '', onclick: (e) => { e.stopPropagation(); close(); } });
     pop.append(
+      sh,
       el('p', { class: 'stkc-pop-h', text: 'Bar replay' }),
       item('Select bar', 'Pick the start on the chart', () => selectMode(true)),
       el('div', { class: 'stkr-dt' }, [el('label', { class: 'stkr-il', text: 'Select date (New York time)' }), el('div', { class: 'stkr-dtr' }, [date, go])]),
@@ -833,7 +844,7 @@ const ui = (() => {
       item('First available bar', 'The oldest loaded bar', startFirst),
       el('p', { class: 'stkc-pop-s stkr-note', text: 'Replay hides the bars to the right and plays them back one by one. Indicators only see revealed bars. Paper trades use a separate Replay account.' })
     );
-    const wrap = el('div', { class: 'stkc-menu stkr-menu' }, [btn, pop]);
+    const wrap = el('div', { class: 'stkc-menu stkr-menu' }, [btn, scrim, pop]);
     btn.addEventListener('click', (e) => { e.stopPropagation(); if (pop.hidden) open(); else close(); });
     document.addEventListener('click', (e) => { if (!pop.hidden && !wrap.contains(e.target)) close(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { close(); btn.focus(); } });
@@ -844,7 +855,9 @@ const ui = (() => {
     barL.insertBefore(badge, wrap);
   }
   function open() {
-    pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+    pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); scrim.hidden = false;
+    if (pop.animate && matchMedia('(max-width:599px) and (prefers-reduced-motion: no-preference)').matches)
+      pop.animate([{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,0,0,1)' });
     const d = pop.querySelector('.stkr-date');
     if (d && !d.value) {
       const t = S.on ? S.E : Date.now() - 7 * Core.DAY;
@@ -855,7 +868,14 @@ const ui = (() => {
       } catch (e) {}
     }
   }
-  function close() { if (pop) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); } }
+  function close() {
+    if (!pop) return;
+    const was = !pop.hidden;
+    pop.hidden = true; scrim.hidden = true; pop.style.transform = ''; btn.setAttribute('aria-expanded', 'false');
+    // a phone sheet opened from the ⋯ list goes back to the chart, not to the list (same as bindPopover)
+    const list = was && pop.closest('#stkc-more-pop');
+    if (list && !list.hidden) document.body.click();
+  }
 
   function mountBar() {
     const B = (cls, label, icon, fn, extra) => el('button', Object.assign({ type: 'button', class: 'stkr-b ' + cls, 'aria-label': label, title: label, html: svg(icon), onclick: (e) => { e.stopPropagation(); fn(); } }, extra || {}));

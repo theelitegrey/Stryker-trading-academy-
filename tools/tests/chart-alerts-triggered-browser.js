@@ -163,7 +163,7 @@ const last = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const b =
   check(!rows.some((r) => /Triggered/.test(r.t) || r.b === 'Restart'), 'no Triggered / Restart rows left after the one-time cleanup', rows);
   const left = await p.evaluate(() => Object.values(window.__fakeFs.all()['students/u1/chartAlerts'] || {}).map((d) => d.message).sort());
   check(left.length === 2 && left.includes('every test') && left.includes('paused keep'), 'store keeps only the Every-time and the Paused alerts', left);
-  check(/^2 \/ 200/.test(await p.evaluate(() => document.querySelector('.stk-al-count').textContent)), 'counter shows 2 / 200');
+  check(/^2 of 200/.test(await p.evaluate(() => document.querySelector('.stk-al-count').textContent)), 'counter shows 2 of 200');
   await p.screenshot({ path: OUT + '/alerts-1440-list.png' });
   // The paused one reads Paused / Resume.
   const pr = await p.evaluate(() => { const r = [...document.querySelectorAll('.stk-al-row')].find((x) => /paused keep/.test(x.textContent)); return { t: r.querySelector('span').textContent, b: r.querySelector('[data-k=pause]').textContent }; });

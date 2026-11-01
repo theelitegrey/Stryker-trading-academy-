@@ -187,7 +187,7 @@ const NAV = about.slice(about.indexOf('<nav class="nav"'), about.indexOf('</nav>
 const FOOTER = about.slice(about.indexOf('<footer>'), about.indexOf('</footer>') + 9)
   ;  // about.html's footer already links Learn
 // Internal links are clean URLs (no .html) since build 327.
-if (!/href="learn(\.html)?"/.test(NAV) || !/href="learn(\.html)?"/.test(FOOTER)) throw new Error('nav/footer anchors moved; update gen-learn.js');
+if (!/href="\/?learn(\.html)?"/.test(NAV) || !/href="\/?learn(\.html)?"/.test(FOOTER)) throw new Error('nav/footer anchors moved; update gen-learn.js');
 
 // Everything else in <head> (stylesheet, scripts, icons, theme snippet) and
 // the scripts after the footer are copied from about.html, so Learn pages load

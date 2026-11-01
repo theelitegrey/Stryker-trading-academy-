@@ -207,7 +207,7 @@ export function mountLayouts(ws, o){
       pop.appendChild(item('Leave shared layout', { run: leaveShared }));
       pop.appendChild(el('hr', { class: 'stkl-hr' }));
     } else {
-      pop.appendChild(item('Layouts library…', { run: () => lib && lib.open(), disabled: !signed }));
+      pop.appendChild(item('Chart Library…', { run: () => lib && lib.open(), disabled: !signed }));
       pop.appendChild(el('hr', { class: 'stkl-hr' }));
       pop.appendChild(item('Save layout', { kbd: isMac ? '⌘S' : 'Ctrl+S', run: () => saveNow(true), disabled: !signed }));
       pop.appendChild(sw('Autosave', auto(), !signed, (v) => { lsSet(K.auto(), v); if (v && dirty) schedule(); }, 'Save the open layout 2 seconds after any change'));

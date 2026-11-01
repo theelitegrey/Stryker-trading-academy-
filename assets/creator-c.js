@@ -177,7 +177,7 @@
     // Indicators and Courses are visible to everyone who can see the page (a teaser; the content is gated by the rules).
     if (cm.features && cm.features.indicators && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['indicators', 'Indicators']);
     if (cm.features && cm.features.courses && !(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['courses', 'Courses']);
-    if (!(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['layouts', 'Layouts']);
+    if (!(cm.visibility === 'private' && !member && !isOwner())) tabs.push(['layouts', 'Chart Library']);
     if (member) enabled().forEach(function (f) { if (f[0] !== 'indicators' && f[0] !== 'courses') tabs.push(f); });
     if (tab === 'courses' && !tabs.some(function (t) { return t[0] === 'courses'; })) tab = 'about';
     if (tab === 'layouts' && !tabs.some(function (t) { return t[0] === 'layouts'; })) tab = 'about';
@@ -274,11 +274,11 @@
   }
   // Layouts tab: ZoroCharts layouts sold to this community (publicLayouts, visibility 'community'). Rules gate the state read.
   function layoutsTab(el, member) {
-    el.innerHTML = '<div class="cx-empty">Loading layouts…</div>';
-    if (!me) { el.innerHTML = '<div class="cx-empty"><h3>Layouts</h3>Sign in to see this community\'s chart layouts.<div style="margin-top:12px"><button class="btn btn-primary" type="button" id="cl-in">Sign in</button></div></div>'; el.querySelector('#cl-in').onclick = function () { CH.signIn(); }; return; }
+    el.innerHTML = '<div class="cx-empty">Loading the library…</div>';
+    if (!me) { el.innerHTML = '<div class="cx-empty"><h3>Chart Library</h3>Sign in to see this community\'s chart layouts.<div style="margin-top:12px"><button class="btn btn-primary" type="button" id="cl-in">Sign in</button></div></div>'; el.querySelector('#cl-in').onclick = function () { CH.signIn(); }; return; }
     db.collection('publicLayouts').where('visibility', '==', 'community').where('communityId', '==', slug).where('hidden', '==', false).limit(60).get().then(function (qs2) {
       var list = qs2.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
-      if (!list.length) { el.innerHTML = '<div class="cx-empty"><h3>Layouts</h3>No chart layouts shared here yet.</div>'; return; }
+      if (!list.length) { el.innerHTML = '<div class="cx-empty"><h3>Chart Library</h3>No chart layouts shared here yet.</div>'; return; }
       var ok = member || isOwner();
       el.innerHTML = '<p class="cx-muted" style="margin:0 0 12px">Chart layouts with full indicator settings, for members. Apply opens ZoroCharts with the layout loaded. Education only. Not financial advice.</p><div class="cx-igrid">' + list.map(function (x) {
         return '<div class="cx-icard"><div class="cx-ibody"><h3 style="margin:0">' + CH.esc(x.name) + '</h3><p class="cx-muted">' + CH.esc(x.desc || '') + '</p><p class="cx-muted">' + (x.indicators || 0) + ' indicator' + (x.indicators === 1 ? '' : 's') + ' · ' + (x.panes || 1) + ' pane' + (x.panes > 1 ? 's' : '') + ' · by ' + CH.esc(x.authorName || 'Member') + '</p>' +

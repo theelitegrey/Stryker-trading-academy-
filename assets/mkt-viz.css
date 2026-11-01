@@ -140,3 +140,13 @@
 .ecv-tl .tm{font:600 12px/16px var(--font-body);color:var(--teal);min-width:84px;font-variant-numeric:tabular-nums}
 .ecv-tl .ev{font:500 14px/20px var(--font-body);color:var(--ink-0);flex:1 1 200px}
 .ecv-tl .cc{font:600 11px/13px var(--font-body);color:var(--ink-3);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+.ecv-wk{display:flex;gap:8px;overflow-x:auto;padding:0 0 8px;margin:0 0 4px}
+.ecv-day{flex:1 0 64px;min-height:72px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:8px;text-decoration:none;display:flex;flex-direction:column;gap:6px;color:var(--ink-1)}
+.ecv-day:hover{border-color:var(--teal)}
+.ecv-dl{font:500 12px/16px var(--font-body);color:var(--ink-2);white-space:nowrap}
+.ecv-dots{display:flex;flex-wrap:wrap;gap:4px;flex:1;align-content:flex-start}
+.ecv-dots i,.ecv-key i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.ecv-dots i.hi,.ecv-key i.hi{background:var(--bear)}.ecv-dots i.md,.ecv-key i.md{background:var(--amber)}
+.ecv-n{font:600 12px/16px var(--font-body);font-variant-numeric:tabular-nums;color:var(--ink-3)}
+.ecv-key{font:400 12px/16px var(--font-body);color:var(--ink-3);margin:0 0 16px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ecv-key i{margin-left:8px}.ecv-key i:first-child{margin-left:0}

@@ -329,7 +329,7 @@
   function dayBlock(key, rows, startIdx) {
     const lab = dayLabel(key);
     const highs = rows.filter((e) => e.impact === 'high').length;
-    return '<section class="ec-day">' +
+    return '<section class="ec-day" id="ec-day-' + esc(key) + '">' +
       '<header class="ec-day-head stk-rise">' +
         '<h3>' + esc(lab.name) + '</h3>' +
         (lab.tag ? '<span class="ec-daytag">' + esc(lab.tag) + '</span>' : '') +
@@ -531,6 +531,22 @@
 
   // ---- page ----------------------------------------------------------------
 
+  // Impact-at-a-glance: one column per day in the current view, a dot per release coloured by
+  // impact. Counts only what the table below would list, so the two can never disagree.
+  function weekStrip() {
+    const rows = shown().filter((e) => e.impact !== 'holiday');
+    if (!rows.length) return '';
+    const by = {};
+    rows.forEach((e) => { (by[dayKey(e.at)] = by[dayKey(e.at)] || []).push(e); });
+    const keys = Object.keys(by).sort().slice(0, 14);
+    return '<div class="ecv-wk" role="group" aria-label="Releases per day by impact">' + keys.map((k) => {
+      const ev = by[k].slice().sort((a, b) => IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact]);
+      return '<a class="ecv-day" href="#ec-day-' + esc(k) + '"><span class="ecv-dl">' + esc(new Date(k + 'T12:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })) + '</span>' +
+        '<span class="ecv-dots">' + ev.slice(0, 12).map((e) => '<i class="' + (e.impact === 'high' ? 'hi' : e.impact === 'medium' ? 'md' : 'lo') + '"></i>').join('') + '</span>' +
+        '<span class="ecv-n">' + ev.length + '</span></a>';
+    }).join('') + '</div><p class="ecv-key"><i class="hi"></i>High <i class="md"></i>Medium <i class="lo"></i>Low impact</p>';
+  }
+
   function renderPage(mount) {
     mount.innerHTML =
       '<header class="ec-head stk-rise">' +
@@ -657,7 +673,7 @@
     // Re-sorting under a filter change is a FLIP so surviving rows travel to
     // their new place instead of the table simply looking different.
     M().flip(days, '.ec-row', () => {
-      if (days) days.innerHTML = renderDays();
+      if (days) days.innerHTML = weekStrip() + renderDays();
     });
     if (ctrls) ctrls.innerHTML = renderControls();
     if (next) next.innerHTML = renderNext();

@@ -772,6 +772,7 @@
     getRange: function () { return RANGE; },
     shown: shown,
     nextUp: nextUp,
+    load: load,
     dayKey: dayKey,
     renderPage: renderPage
   };

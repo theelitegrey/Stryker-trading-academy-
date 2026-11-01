@@ -72,6 +72,31 @@ function ago(ms){
   return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// Panes and indicators of a saved workspace, for the library cards (volume is the default, not counted).
+export function countOf(st){
+  const ch = st && Array.isArray(st.charts) ? st.charts : [];
+  let n = 0;
+  ch.forEach((c) => {
+    const i = (c && c.indicators) || {};
+    n += (i.natives || []).filter((x) => x !== 'volume' && !(x && x.type === 'volume')).length + (i.manifest || []).length;
+    const p = c && c.ext && c.ext['stryker.pine'];
+    if (Array.isArray(p)) n += p.length;
+  });
+  return { panes: Math.max(1, Math.min(16, ch.length)), indicators: Math.min(200, n) };
+}
+// Card thumbnail: the active chart as a small webp data URL (<= 45000 chars; rules cap it at 60000). '' when unavailable.
+export function thumbOf(cell){
+  try {
+    const src = cell.screenshotCanvas();
+    if (!src || !src.width) return '';
+    const w = 320, h = Math.max(1, Math.round(w * src.height / src.width));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    c.getContext('2d').drawImage(src, 0, 0, w, h);
+    for (const q of [0.6, 0.4, 0.25]) { const u = c.toDataURL('image/webp', q); if (u.startsWith('data:image/webp') && u.length <= 45000) return u; }
+  } catch (e) {}
+  return '';
+}
+
 // ---------------------------------------------------------------- shared-doc safety
 export function sanitizeShared(doc){
   if (!doc || typeof doc !== 'object') return null;
@@ -182,6 +207,8 @@ export function mountLayouts(ws, o){
       pop.appendChild(item('Leave shared layout', { run: leaveShared }));
       pop.appendChild(el('hr', { class: 'stkl-hr' }));
     } else {
+      pop.appendChild(item('Layouts library…', { run: () => lib && lib.open(), disabled: !signed }));
+      pop.appendChild(el('hr', { class: 'stkl-hr' }));
       pop.appendChild(item('Save layout', { kbd: isMac ? '⌘S' : 'Ctrl+S', run: () => saveNow(true), disabled: !signed }));
       pop.appendChild(sw('Autosave', auto(), !signed, (v) => { lsSet(K.auto(), v); if (v && dirty) schedule(); }, 'Save the open layout 2 seconds after any change'));
       pop.appendChild(el('hr', { class: 'stkl-hr' }));
@@ -220,14 +247,16 @@ export function mountLayouts(ws, o){
     const bytes = new Blob([s]).size;
     if (bytes > STATE_MAX) { const e = new Error('big'); e.userMessage = 'This layout is too big to save (' + Math.round(bytes / 1024) + ' KB, limit ' + Math.round(STATE_MAX / 1024) + ' KB). Remove some drawings and try again.'; throw e; }
     let a = null; try { a = ws.active; } catch (e) {}
-    return { state: s, symbol: String((a && a.symbol) || '').slice(0, 80), interval: String((a && a.timeframe) || '').slice(0, 10) };
+    const k = countOf(st);
+    return { state: s, symbol: String((a && a.symbol) || '').slice(0, 80), interval: String((a && a.timeframe) || '').slice(0, 10), panes: k.panes, indicators: k.indicators, thumb: a ? thumbOf(a) : '' };
   }
   const subOf = (d) => [symLabel(d.symbol), tfLabel(d.interval)].filter(Boolean).join(' · ');
 
   async function list(){
     const snap = await col().get();
     const out = [];
-    snap.forEach((d) => { const x = d.data() || {}; out.push({ id: d.id, name: x.name || 'Untitled', symbol: x.symbol || '', interval: x.interval || '', shared: !!x.shared, updatedAt: tsMs(x.updatedAt) }); });
+    snap.forEach((d) => { const x = d.data() || {}; out.push({ id: d.id, name: x.name || 'Untitled', symbol: x.symbol || '', interval: x.interval || '', shared: !!x.shared, updatedAt: tsMs(x.updatedAt),
+      thumb: x.thumb || '', panes: x.panes || 1, indicators: x.indicators || 0, vis: x.vis || (x.shared ? 'link' : 'private'), desc: x.desc || '', tags: x.tags || [], cid: x.cid || '' }); });
     out.sort((a, b) => b.updatedAt - a.updatedAt);
     cache = out;
     return out;
@@ -257,7 +286,7 @@ export function mountLayouts(ws, o){
     try { p = pack(); } catch (e) { toast(e.userMessage || 'Could not save the layout.', 'error'); return; }
     const id = cur.id, name = cur.name, shared = cur.shared;
     saving = (async () => {
-      await col().doc(id).set({ name, state: p.state, symbol: p.symbol, interval: p.interval, shared, updatedAt: ts() });
+      await col().doc(id).set(Object.assign({ name, state: p.state, symbol: p.symbol, interval: p.interval, shared, updatedAt: ts(), panes: p.panes, indicators: p.indicators }, p.thumb ? { thumb: p.thumb } : {}), { merge: true });
       if (shared) await writeShared(id, name, p.state);
     })();
     try {
@@ -278,7 +307,7 @@ export function mountLayouts(ws, o){
       const all = cache || await list();
       if (all.length >= MAX_COUNT) { toast('You have ' + MAX_COUNT + ' layouts. Delete one to save another.', 'error'); return; }
       const ref = col().doc();
-      await ref.set({ name, state: p.state, symbol: p.symbol, interval: p.interval, shared: false, updatedAt: ts() });
+      await ref.set({ name, state: p.state, symbol: p.symbol, interval: p.interval, shared: false, updatedAt: ts(), panes: p.panes, indicators: p.indicators, thumb: p.thumb || '', vis: 'private' });
       cache = null;
       if (viewing) endViewing();
       setCur({ id: ref.id, name, shared: false, symbol: p.symbol, interval: p.interval });
@@ -286,14 +315,45 @@ export function mountLayouts(ws, o){
     } catch (e) { console.warn('TradeZoro: layout save as', e); toast('Could not save the layout.', 'error'); }
   }
 
-  async function renameCur(name){
-    if (!cur) return;
+  async function renameId(id, name){
     try {
-      await col().doc(cur.id).update({ name, updatedAt: ts() });
-      if (cur.shared) await sharedDoc(cur.id).update({ name, updatedAt: ts() });
-      cur.name = name; cache = null; setCur(Object.assign({}, cur));
+      const was = (cache || await list()).find((x) => x.id === id) || {};
+      await col().doc(id).update({ name, updatedAt: ts() });
+      if (was.shared) await sharedDoc(id).update({ name, updatedAt: ts() });
+      if (was.vis === 'public' || was.vis === 'community') {
+        const pd = await db().collection('publicLayouts').doc(id).get();
+        if (pd.exists) { const x = pd.data(); await db().collection('publicLayouts').doc(id).update({ name, authorName: x.authorName, desc: x.desc, tags: x.tags, visibility: x.visibility, communityId: x.communityId, symbol: x.symbol, interval: x.interval, thumb: x.thumb, panes: x.panes, indicators: x.indicators, updatedAt: ts() }); }
+      }
+      if (cur && cur.id === id) { cur.name = name; setCur(Object.assign({}, cur)); }
+      cache = null;
       toast('Renamed');
     } catch (e) { console.warn('TradeZoro: layout rename', e); toast('Could not rename.', 'error'); }
+  }
+  const renameCur = (name) => (cur ? renameId(cur.id, name) : null);
+
+  async function duplicate(id){
+    try {
+      const all = cache || await list();
+      if (all.length >= MAX_COUNT) { toast('You have ' + MAX_COUNT + ' layouts. Delete one to save another.', 'error'); return; }
+      const d = await col().doc(id).get(); if (!d.exists) return;
+      const x = d.data(); const ref = col().doc();
+      await ref.set({ name: (x.name + ' (copy)').slice(0, NAME_MAX), state: x.state, symbol: x.symbol || '', interval: x.interval || '', shared: false, updatedAt: ts(), panes: x.panes || 1, indicators: x.indicators || 0, thumb: x.thumb || '', vis: 'private' });
+      cache = null; toast('Duplicated');
+    } catch (e) { console.warn('TradeZoro: layout duplicate', e); toast('Could not duplicate.', 'error'); }
+  }
+
+  // A layout from the library (another member's, or a community's): the Pine guard runs first, then it loads
+  // into the chart as an UNSAVED layout. Save layout keeps it.
+  async function applyForeign(doc, name){
+    const s = sanitizeShared(doc);
+    if (!s) { toast('This layout could not be read.', 'error'); return false; }
+    if (viewing) endViewing();
+    if (cur && dirty && auto()) await saveNow(false);
+    apply(s.doc);
+    cur = null; lsSet(K.cur(), null); dirty = false; paintBtn();
+    if (s.dropped) toast(s.dropped + ' Pine script(s) in this layout failed our safety check and were not loaded.', 'error');
+    else toast('Applied \"' + name + '\". Save layout to keep it.');
+    return true;
   }
 
   async function createNew(name){
@@ -331,6 +391,7 @@ export function mountLayouts(ws, o){
     try {
       const was = (cache || []).find((x) => x.id === id);
       if (was && was.shared) { try { await sharedDoc(id).delete(); } catch (e) {} }
+      if (was && (was.vis === 'public' || was.vis === 'community')) { try { const r = db().collection('publicLayouts').doc(id); await r.collection('data').doc('s').delete(); await r.delete(); } catch (e) {} }
       await col().doc(id).delete();
       dropRecent(id); cache = null;
       if (cur && cur.id === id) setCur(null);
@@ -545,7 +606,15 @@ export function mountLayouts(ws, o){
     if (sid) await openShared(sid);
   });
 
-  const api = { saveNow, saveAsNew, renameCur, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
+  // ---- library sheet (assets/chart-layouts-lib.js), loaded on first use ----
+  let lib = null, mounted = null;
+  const host = { user, db, col, saveAsNew, sharedDoc, writeShared, ts, tsMs, toast, list, pack, askName, modal, el, openById, remove, renameId, duplicate, applyForeign, linkOf,
+    saveNow, createNew, sanitizeShared, countOf, symLabel, tfLabel, ago, copyLink: async (id) => { try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); } catch (e) { window.prompt('Copy this link', linkOf(id)); } },
+    get cur(){ return cur; }, get dirty(){ return dirty; }, refresh(id, patch){ cache = null; if (cur && cur.id === id && patch) { Object.assign(cur, patch); setCur(Object.assign({}, cur)); } } };
+  const libApi = { open: (tab) => import('./chart-layouts-lib.js?v=776').then((m) => { if (!mounted) mounted = m.mountLib(host); return mounted.open(tab); }).catch((e) => { console.warn('TradeZoro: layouts library', e); toast('Could not open the layouts library.', 'error'); }) };
+  lib = libApi;
+
+  const api = { saveNow, saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
     get current(){ return cur; }, get viewing(){ return viewing; }, get dirty(){ return dirty; }, linkOf };
   window.STRYKER_LAYOUTS = api;
   return api;

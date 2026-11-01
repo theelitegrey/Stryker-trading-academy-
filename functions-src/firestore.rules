@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'chartAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'layoutFavs', 'chartAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
 
       // Charts PAPER TRADING account (assets/chart-paper.js, 2026-10-12). Demo money only: the
       // whole simulated account (balance, positions, orders, history) is one JSON string the
@@ -303,8 +303,17 @@ service cloud.firestore {
       // 50-per-member cap is client-side. Carved out of the wildcard above.
       match /chartLayouts/{lid} {
         function validLayout(d) {
-          return d.keys().hasOnly(['name', 'state', 'symbol', 'interval', 'shared', 'updatedAt'])
+          return d.keys().hasOnly(['name', 'state', 'symbol', 'interval', 'shared', 'updatedAt', 'thumb', 'panes', 'indicators', 'vis', 'desc', 'tags', 'cid'])
             && d.keys().hasAll(['name', 'state', 'shared', 'updatedAt'])
+            // Layouts library (2026-11-01): card thumbnail (webp data URL <= 60000 chars), counts, and the
+            // last Publish-dialog choices, so My Layouts can draw cards without reading the state.
+            && (!('thumb' in d) || (d.thumb is string && d.thumb.size() <= 60000 && (d.thumb == '' || d.thumb.matches('^data:image/webp;base64,.*'))))
+            && (!('panes' in d) || (d.panes is int && d.panes >= 0 && d.panes <= 16))
+            && (!('indicators' in d) || (d.indicators is int && d.indicators >= 0 && d.indicators <= 200))
+            && (!('vis' in d) || d.vis in ['private', 'link', 'public', 'community'])
+            && (!('desc' in d) || (d.desc is string && d.desc.size() <= 140))
+            && (!('tags' in d) || (d.tags is list && d.tags.size() <= 5))
+            && (!('cid' in d) || (d.cid is string && d.cid.size() <= 40))
             && d.name is string && d.name.size() > 0 && d.name.size() <= 60
             && d.state is string && d.state.size() <= 200000
             && (!('symbol' in d) || (d.symbol is string && d.symbol.size() <= 80))
@@ -314,6 +323,13 @@ service cloud.firestore {
         }
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid) && lid.size() <= 40 && validLayout(request.resource.data);
+      }
+
+      // Layouts library favourites (2026-11-01): the id of a library layout I starred. Owner only.
+      match /layoutFavs/{fid} {
+        allow read, delete: if isSelf(uid);
+        allow create: if isSelf(uid) && fid.size() >= 20 && fid.size() <= 40
+          && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
       }
 
       // Charts page saved Pine scripts (assets/chart-pine-scripts.js, 2026-10-05).
@@ -796,6 +812,134 @@ service cloud.firestore {
         && validShared(request.resource.data)
         && exists(/databases/$(database)/documents/students/$(request.auth.uid)/chartLayouts/$(id));
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------------
+    // LAYOUTS LIBRARY (assets/chart-layouts-lib.js, 2026-11-01. Roadmap: Save and share chart layouts)
+    // publicLayouts/{id}        card + counters. id = the owner's own chartLayouts id. No chart state here, so
+    //                           Browse stays light. visibility: 'public' (listed in Browse), 'community' (only
+    //                           active members of communityId, whose owner is the author) or 'private'
+    //                           (an unpublished layout keeps its doc and counts). Link-only layouts stay in
+    //                           chartShared. hidden: admin hides from Browse and from every non-owner read.
+    // publicLayouts/{id}/data/s the chart state (<= 200000). Same read gate as the card.
+    // likes/{uid}, uses/{uid}, reports/{uid}: one marker per member. The counters on the parent move by exactly
+    //                           +1/-1 in the same batch as the marker (exists/existsAfter), so they cannot be
+    //                           inflated. uses/ markers can never be removed, so a use counts once per member.
+    // students/{uid}/layoutFavs/{id}: own favourites (carved out of the students wildcard above).
+    // ---------------------------------------------------------------------
+    function lyPath(id) { return /databases/$(database)/documents/publicLayouts/$(id); }
+    function lyMember(cid) {
+      return signedIn() && cid is string && cid.size() > 0 && cid.size() <= 40
+        && exists(cmMemPath(cid, request.auth.uid))
+        && get(cmMemPath(cid, request.auth.uid)).data.status == 'active'
+        && (get(cmMemPath(cid, request.auth.uid)).data.expiresAt == null || get(cmMemPath(cid, request.auth.uid)).data.expiresAt > request.time)
+        && get(cmPath(cid)).data.status == 'active';
+    }
+    // Card: any signed-in member sees a public or community card (a community card is the teaser the non-member sees locked).
+    function lyReadable(d) {
+      return signedIn() && (d.ownerUid == request.auth.uid || isAdmin()
+        || (d.hidden == false && d.visibility in ['public', 'community']));
+    }
+    // State + uses: public layouts, or a community layout for an active member (or the community owner).
+    function lyUsable(d) {
+      return signedIn() && (d.ownerUid == request.auth.uid || isAdmin()
+        || (d.hidden == false && (d.visibility == 'public'
+            || (d.visibility == 'community' && (lyMember(d.communityId) || cmOwner(d.communityId))))));
+    }
+    match /publicLayouts/{id} {
+      function tagOk(t) { return t is string && t.size() > 0 && t.size() <= 20 && t.matches('^[a-z0-9][a-z0-9 _-]*$'); }
+      function tagsOk(t) {
+        return t is list && t.size() <= 5
+          && (t.size() < 1 || tagOk(t[0])) && (t.size() < 2 || tagOk(t[1])) && (t.size() < 3 || tagOk(t[2]))
+          && (t.size() < 4 || tagOk(t[3])) && (t.size() < 5 || tagOk(t[4]));
+      }
+      function profName() {
+        let p = /databases/$(database)/documents/profiles/$(request.auth.uid);
+        return exists(p) && get(p).data.get('displayName', '') is string && get(p).data.get('displayName', '').size() > 0
+               && get(p).data.get('displayName', '').size() <= 60 && !get(p).data.get('displayName', '').matches('.*@.*') ? get(p).data.displayName : 'Member';
+      }
+      function core(d) {
+        return d.ownerUid == request.auth.uid
+          && d.authorName is string && d.authorName == profName()
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && d.desc is string && d.desc.size() <= 140
+          && tagsOk(d.tags)
+          && d.visibility in ['public', 'community', 'private']
+          && d.communityId is string && d.communityId.size() <= 40
+          && (d.visibility == 'community' ? cmOwner(d.communityId) : d.communityId == '')
+          && d.thumb is string && d.thumb.size() <= 60000 && (d.thumb == '' || d.thumb.matches('^data:image/webp;base64,.*'))
+          && d.panes is int && d.panes >= 1 && d.panes <= 16
+          && d.indicators is int && d.indicators >= 0 && d.indicators <= 200
+          && d.symbol is string && d.symbol.size() <= 80 && d.interval is string && d.interval.size() <= 10;
+      }
+      function allKeys() {
+        return ['ownerUid', 'authorName', 'name', 'desc', 'tags', 'visibility', 'communityId', 'symbol', 'interval', 'thumb', 'panes',
+                'indicators', 'likeCount', 'useCount', 'reportCount', 'createdAt', 'updatedAt', 'hidden'];
+      }
+      function onlyKeys(k) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(k); }
+      function likeP()   { return /databases/$(database)/documents/publicLayouts/$(id)/likes/$(request.auth.uid); }
+      function useP()    { return /databases/$(database)/documents/publicLayouts/$(id)/uses/$(request.auth.uid); }
+      function reportP() { return /databases/$(database)/documents/publicLayouts/$(id)/reports/$(request.auth.uid); }
+
+      allow get, list: if lyReadable(resource.data);
+      allow create: if signedIn() && id.size() >= 20 && id.size() <= 40
+        && request.resource.data.keys().hasOnly(allKeys()) && request.resource.data.keys().hasAll(allKeys())
+        && core(request.resource.data)
+        && request.resource.data.likeCount == 0 && request.resource.data.useCount == 0 && request.resource.data.reportCount == 0
+        && request.resource.data.hidden == false
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
+        && exists(/databases/$(database)/documents/students/$(request.auth.uid)/chartLayouts/$(id));
+      allow update:
+        // owner edits the card
+        if (signedIn() && resource.data.ownerUid == request.auth.uid
+            && onlyKeys(['authorName', 'name', 'desc', 'tags', 'visibility', 'communityId', 'symbol', 'interval', 'thumb', 'panes', 'indicators', 'updatedAt'])
+            && core(request.resource.data) && request.resource.data.updatedAt == request.time)
+        // like / unlike: the counter moves with the member's own marker
+        || (lyReadable(resource.data) && onlyKeys(['likeCount'])
+            && ((request.resource.data.likeCount == resource.data.likeCount + 1 && !exists(likeP()) && existsAfter(likeP()))
+                || (request.resource.data.likeCount == resource.data.likeCount - 1 && resource.data.likeCount > 0 && exists(likeP()) && !existsAfter(likeP()))))
+        // a use counts once per member
+        || (lyUsable(resource.data) && resource.data.ownerUid != request.auth.uid && onlyKeys(['useCount'])
+            && request.resource.data.useCount == resource.data.useCount + 1 && !exists(useP()) && existsAfter(useP()))
+        // a report counts once per member
+        || (lyReadable(resource.data) && resource.data.ownerUid != request.auth.uid && onlyKeys(['reportCount'])
+            && request.resource.data.reportCount == resource.data.reportCount + 1 && !exists(reportP()) && existsAfter(reportP()))
+        // admin hides or restores
+        || (isAdmin() && onlyKeys(['hidden']) && request.resource.data.hidden is bool);
+      allow delete: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+
+      match /data/{k} {
+        function parentD() { return get(lyPath(id)).data; }
+        allow get: if k == 's' && lyUsable(parentD());
+        allow list: if false;
+        allow create, update: if k == 's' && signedIn()
+          && request.resource.data.keys().hasOnly(['state', 'updatedAt']) && request.resource.data.keys().hasAll(['state', 'updatedAt'])
+          && request.resource.data.state is string && request.resource.data.state.size() <= 200000
+          && request.resource.data.updatedAt == request.time
+          && (exists(lyPath(id)) ? parentD().ownerUid == request.auth.uid : getAfter(lyPath(id)).data.ownerUid == request.auth.uid);
+        allow delete: if signedIn() && (get(lyPath(id)).data.ownerUid == request.auth.uid || isAdmin());
+      }
+      match /likes/{u} {
+        allow get: if signedIn() && u == request.auth.uid;
+        allow list: if false;
+        allow create: if signedIn() && u == request.auth.uid && lyReadable(get(lyPath(id)).data)
+          && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
+        allow delete: if signedIn() && u == request.auth.uid;
+      }
+      match /uses/{u} {
+        allow get: if signedIn() && u == request.auth.uid;
+        allow list: if false;
+        allow create: if signedIn() && u == request.auth.uid && lyUsable(get(lyPath(id)).data)
+          && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
+      }
+      match /reports/{u} {
+        allow read: if isAdmin();
+        allow create: if signedIn() && u == request.auth.uid && lyReadable(get(lyPath(id)).data)
+          && request.resource.data.keys().hasOnly(['reason', 'at'])
+          && request.resource.data.reason in ['spam', 'abuse', 'copied', 'results', 'other']
+          && request.resource.data.at == request.time;
+        allow delete: if isAdmin();
+      }
     }
 
     // ---------------------------------------------------------------------

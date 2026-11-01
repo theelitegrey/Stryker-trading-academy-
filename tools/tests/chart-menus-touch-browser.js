@@ -109,7 +109,7 @@ async function session(b, uid, w, h, mobile, theme) {
     window.__UID = u;
     window.__fs = (...a) => window.__fsRaw(...a).then((r) => { if (r.err) { const e = new Error(r.msg); e.code = r.err; throw e; } return r.ok; });
     try { localStorage.setItem('stryker_theme', th === 'light' ? 'day' : 'night'); } catch (e) {}
-    if (th === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    if (th === 'light' && document.documentElement) document.documentElement.setAttribute('data-theme', 'light');
   }, [uid, theme || 'dark']);
   await ctx.addInitScript('(' + mockInit.toString() + ')()');
   return ctx;

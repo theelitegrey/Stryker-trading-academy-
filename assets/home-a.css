@@ -96,3 +96,49 @@
 
 .hn-cta [hidden]{ display:none !important; }
 .cm-anchor{position:absolute;width:0;height:0;overflow:hidden;scroll-margin-top:80px}
+
+/* ---------- hero scene (Owner 2026-11-01): back screens + main chart + phone + real-time pill + floating cards ----------
+   Layers, back to front: JournalX + Replay One screens (z1, tilted, peeking out left/right and above), the main chart (z2),
+   the phone over the chart's bottom-right (z3), cards (z4), the pill (z5). --mw = main frame width, --ph = phone width,
+   --phx = how far the phone sticks out past the frame. Cards: 6 at >=1100 (5 + toast), 4 at 700-1099, 3 below. */
+.hh-scene{ --mw:min(860px,100%); --ph:clamp(104px,30vw,124px); --phx:4px; margin-top:64px; padding-bottom:calc(var(--ph) * .7); }
+.hh-scene .cm-fl-main{ position:relative; z-index:2; }
+.hh-back{ position:absolute; z-index:1; top:-36px; width:47%; pointer-events:none; } /* 47% + 3% insets: the two never touch */
+.hh-bl{ left:3%; } .hh-br{ right:3%; } /* inset: the 4deg tilt swings the outer corner out ~7% of the height */
+.hh-scr{ box-shadow:var(--cm-sh); opacity:.9; }
+.hh-bl .hh-scr{ transform:rotate(-4deg); transform-origin:100% 100%; } .hh-br .hh-scr{ transform:rotate(4deg); transform-origin:0 100%; }
+.hh-scr .cm-bar{ min-height:32px; padding:4px 12px; }
+.hh-scr img{ aspect-ratio:960/726; }
+.hh-phone{ position:absolute; z-index:3; width:var(--ph); right:calc((100% - var(--mw)) / 2 - var(--phx)); bottom:0; }
+.hh-phone .zc-phone{ box-shadow:0 24px 48px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04) inset; }
+:root[data-theme="light"] .hh-phone .zc-phone{ box-shadow:0 24px 48px rgba(20,30,50,.28); }
+.hh-rt-fl{ position:absolute; z-index:5; top:-18px; left:50%; translate:-50% 0; }
+.hh-rt .zc-rt-b{ min-height:36px; padding:0 14px; font-size:12px; background:var(--bg-2); box-shadow:var(--cm-sh); }
+:root[data-theme="light"] .hh-rt .zc-rt-b{ background:#fff; }
+.hh-rt .zc-rt-tip{ right:auto; left:50%; margin-left:-132px; }
+.hh-fl{ position:absolute; z-index:4; width:min(216px,46vw); pointer-events:none; display:none; }
+.hh-c1,.hh-c3{ display:block; } .hh-c1{ left:0; top:22%; } .hh-c3{ left:0; bottom:calc(var(--ph) * .7 + 16%); }
+.hh-toasts.cm-toasts{ left:0; right:auto; bottom:0; transform:none; width:min(232px,calc(100% - var(--ph) - 8px)); height:56px; z-index:4; }
+@media (max-width:699px){
+  .hh-back{ top:-44px; } .hh-scene{ margin-top:72px; }
+  .hh-scr .cm-bar{ padding:4px 8px; gap:8px; } .hh-scr .cm-dots{ display:none; } .hh-scr .cm-tag{ padding:2px 6px; font-size:10px; }
+  .hh-fl .zc-fc{ gap:8px; padding:8px 12px; border-radius:12px; } .hh-fl .zc-fc .ci{ width:16px; height:16px; }
+  .hh-fl .zc-fc b{ font-size:13px; line-height:16px; } .hh-fl .zc-fc span{ font-size:11px; line-height:14px; }
+  .hh-c1{ top:64px; width:min(176px,46vw); } .hh-c3{ top:148px; bottom:auto; width:min(176px,46vw); }
+  .hh-toasts.cm-toasts{ height:52px; } .hh-toasts .cm-toast{ padding:0 12px; gap:8px; }
+}
+@media (min-width:700px){
+  .hh-scene{ --ph:clamp(150px,19vw,176px); --phx:16px; margin-top:80px; padding-bottom:calc(var(--ph) * .6); }
+  .hh-back{ top:-56px; }
+  .hh-c2{ display:block; right:0; top:10%; }
+  .hh-c1{ top:24%; } .hh-c3{ bottom:calc(var(--ph) * .6 + 18%); }
+  .hh-toasts.cm-toasts{ left:calc((100% - var(--mw)) / 2 + 24px); bottom:4px; }
+}
+@media (min-width:1100px){
+  .hh-scene{ --ph:184px; --phx:56px; padding-bottom:calc(var(--ph) * .55); }
+  .hh-back{ top:-64px; }
+  .hh-c1{ left:-8px; top:26%; } .hh-c3{ left:-8px; bottom:calc(var(--ph) * .55 + 14%); }
+  .hh-c2{ right:-8px; top:12%; } .hh-c4{ display:block; right:-8px; top:27%; }
+  .hh-c5{ display:block; left:calc((100% - var(--mw)) / 2 + 96px); bottom:-4px; }
+  .hh-toasts.cm-toasts{ left:auto; right:calc((100% - var(--mw)) / 2 + var(--ph) - var(--phx) + 24px); bottom:-4px; }
+}

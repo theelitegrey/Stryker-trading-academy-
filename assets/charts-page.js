@@ -60,7 +60,7 @@
     })();
 
     // ------------------------------------------------------------ 1b. phone demo (sample data ticking) + real-time pill
-    var scene = doc.querySelector('.zc-main .cm-scene'), phone = doc.querySelector('[data-zc-phone]'), sceneOn = true;
+    var scene = doc.querySelector('.zc-main .cm-scene, .hh-scene'), phone = doc.querySelector('[data-zc-phone]'), sceneOn = true;
     if (scene && 'IntersectionObserver' in window) new IntersectionObserver(function (es) { sceneOn = es[0].isIntersecting; scene.classList.toggle('zc-off', !sceneOn); }).observe(scene);
     if (phone) (function () {
       var svg = phone.querySelector('svg'), W = 200, H = 300, PR = 40, N = 28, st = (W - PR) / N, r = rng(77);

@@ -4,7 +4,7 @@
 // (bindPopover, toast, ui = window.STRYKER_CHART_UI, grid, Pine); assets/chart-pine-guard.js
 // (window.StrykerPineGuard); style.css (.stkl-*).
 //
-// Owner order 2026-10-06 ("Build all"): TradingView's layout menu.
+// Owner order 2026-10-06 ("Build all"): a pro-charting layout menu.
 //   Save layout (Ctrl/Cmd+S) · Autosave (default ON, 2 s after any change) · Make a copy… ·
 //   Rename… · Create new layout… · Open layout… (search, symbol + interval, last modified,
 //   delete) · Recently used (last 5) · Share layout + Copy link · Download chart data… (CSV)

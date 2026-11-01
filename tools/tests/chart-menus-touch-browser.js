@@ -190,6 +190,34 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     const th = await p.$eval('#stkc-tpl-pop .stkc-sh', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + 120, y: r.top + 20 }; });
     await drag(th.x, th.y, th.y + 220);
     t('swipe down closes Templates', !(await vis('#stkc-tpl-pop')));
+    // 7. Chart layout sheet (Owner 2026-11-01 follow-up): pick 2 charts, Symbol sync, swipe down, state kept
+    await p.evaluate(() => window.STRYKER_CHART_UI.grid.setLayout('1')); await sleep(800);
+    await openMenu('Charts in layout');
+    const gb = await p.$eval('#stkc-layout-pop', (e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight, t: (e.querySelector('.stkc-sh h2') || {}).textContent }; });
+    t('Charts in layout opens the "Chart layout" bottom sheet', gb.l === 0 && gb.w === 390 && Math.abs(gb.b - gb.h) < 2 && gb.t === 'Chart layout', gb);
+    const one = await p.evaluate(() => ({ note: !document.querySelector('.stkg-syncnote').hidden, rows: [...document.querySelectorAll('#stkc-layout-pop .stkg-swrow')].filter((r) => r.getClientRects().length).length }));
+    t('1 chart: sync switches hidden, one line shown', one.note && one.rows === 0, one);
+    await p.screenshot({ path: OUT + '/touch-390-grid-1.png' });
+    await p.tap('#stkc-layout-pop .stkg-pc[data-n="2"]'); await sleep(1500);
+    t('picking 2 charts closes the sheet + sets 2 charts', !(await vis('#stkc-layout-pop')) && await p.evaluate(() => window.STRYKER_VELA.getState().charts.length === 2));
+    await openMenu('Charts in layout');
+    const sel = await p.$eval('#stkc-layout-pop .stkg-pc[data-n="2"]', (e) => [e.getAttribute('aria-pressed'), getComputedStyle(e.querySelector('.stkg-ck')).display]);
+    t('2 tile selected with check', sel[0] === 'true' && sel[1] !== 'none', sel);
+    const s0 = await p.$eval('#stkc-layout-pop [data-sync="symbol"]', (c) => c.checked);
+    await p.tap('#stkc-layout-pop .stkg-swrow:has([data-sync="symbol"])'); await sleep(500);
+    const s1 = await p.$eval('#stkc-layout-pop [data-sync="symbol"]', (c) => c.checked);
+    t('tap Symbol sync toggles it', s0 !== s1 && s1, { s0, s1 });
+    const sw = await p.$eval('#stkc-layout-pop [data-sync="symbol"]', (c) => { const cs = getComputedStyle(c), k = getComputedStyle(c, '::after'); return [cs.backgroundColor, k.backgroundColor, c.getBoundingClientRect().height]; });
+    t('on switch = solid green track, white knob', /rgb\(3, 201, 136\)/.test(sw[0]) && sw[1] === 'rgb(255, 255, 255)', sw);
+    await p.screenshot({ path: OUT + '/touch-390-grid-2-sync.png' });
+    const gh = await p.$eval('#stkc-layout-pop .stkc-sh', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + 120, y: r.top + 20 }; });
+    await drag(gh.x, gh.y, gh.y + 220);
+    t('swipe down closes the Chart layout sheet', !(await vis('#stkc-layout-pop')));
+    await openMenu('Charts in layout');
+    const kept = await p.evaluate(() => [document.querySelector('#stkc-layout-pop [data-sync="symbol"]').checked, window.STRYKER_CHART_UI.grid.syncState().symbol]);
+    t('reopen: Symbol sync still on', kept[0] === true && !!kept[1], kept);
+    await p.touchscreen.tap(195, 60); await sleep(500);
+    t('tap outside closes the Chart layout sheet', !(await vis('#stkc-layout-pop')));
     await p.screenshot({ path: OUT + '/touch-390-after-swipe.png' }); console.log('page errors', JSON.stringify(p.errs));
   } catch (e) { fail++; console.log('FAIL exception', e.message); }
   await b.close();

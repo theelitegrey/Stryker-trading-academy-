@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="774">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#050506">
+<title>Toast demo — TradeZoro</title>
+<link rel="stylesheet" href="assets/style.css?v=774">
+<script src="assets/toast.js?v=774" defer></script>
+<script src="assets/version-check.js?v=774" defer></script>
+<style>
+  body{ padding:72px 16px 40px; max-width:520px; margin:0 auto; }
+  h1{ font-size:22px; line-height:28px; margin:0 0 4px; }
+  p{ color:var(--tg-t2,#9aa0a6); margin:0 0 20px; font-size:14px; line-height:20px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid button{ min-height:48px; border-radius:12px; border:1px solid var(--line,#2a2d33); background:var(--tg-surface,transparent); color:inherit; font:600 14px/20px sans-serif;font-family:inherit; cursor:pointer; }
+  .grid button:focus-visible{ outline:2px solid var(--teal,#03c988); outline-offset:2px; }
+</style>
+</head>
+<body>
+<h1>Toast demo</h1>
+<p>Internal preview of the notification style. Tap a button.</p>
+<div class="grid" id="g">
+  <button data-k="success">Success</button>
+  <button data-k="error">Error + Retry</button>
+  <button data-k="info">Info</button>
+  <button data-k="warning">Warning</button>
+  <button data-k="ok">Promise → success</button>
+  <button data-k="fail">Promise → error</button>
+  <button data-k="long">Long + action</button>
+  <button data-k="stack">3 stacked</button>
+</div>
+<script>
+var wait = function (ok) { return new Promise(function (res, rej) { setTimeout(ok ? res : rej, 1800); }); };
+var F = {
+  success: function () { showToast('success', 'Saved'); },
+  error: function () { showToast('error', 'Could not save', { description: 'The server did not answer. Check your connection and try again.', action: { label: 'Retry', onClick: function () { showToast('info', 'Retrying…'); } } }); },
+  info: function () { showToast('info', 'Link copied'); },
+  warning: function () { showToast('warning', 'Market closes soon'); },
+  ok: function () { showToast.promise(wait(true), { loading: 'Saving…', success: 'Saved', error: 'Save failed' }); },
+  fail: function () { showToast.promise(wait(false), { loading: 'Booking flight', success: 'Booked', error: { title: 'Payment failed', description: 'Your card was declined.', action: { label: 'Retry', onClick: function () {} } } }); },
+  long: function () { showToast('success', 'Changes saved', { description: 'Your changes were saved. Refresh the page to see them everywhere, or undo to go back to the previous version.', action: { label: 'Undo', onClick: function () { showToast('info', 'Undone'); } } }); },
+  stack: function () { showToast('success', 'Saved'); showToast('info', 'Link copied'); showToast('warning', 'Almost there'); }
+};
+document.getElementById('g').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) F[b.dataset.k](); });
+</script>
+</body>
+</html>

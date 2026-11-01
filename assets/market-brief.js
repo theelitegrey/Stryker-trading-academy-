@@ -133,6 +133,80 @@
     M().reveal(mount, {});
   }
 
+
+  // ---- visuals -------------------------------------------------------------
+  // Everything below is read out of the numbers the brief already prints in its bullets
+  // ("the S&P 500 is at 7,714.25 (−1.17%)"). Nothing is added: no new levels, no forecasts. The
+  // "prior close" on a ladder is arithmetic on the printed price and day change, and says so.
+  const V = () => window.stkViz;
+  const num = (t) => parseFloat(String(t).replace(/,/g, ''));
+  const sgn = (t) => (/^[\u2212\-]/.test(t) ? -1 : 1) * Math.abs(num(String(t).replace(/^[\u2212\-+]/, '')));
+  function parseMoves(brief) {
+    const re = /(?:^|[,:.;]\s+|\band\s+)(?:the |The )?([A-Za-z][A-Za-z0-9&\/. \-]{1,26}?)\s+(?:is at |at )?([\d,]+(?:\.\d+)?)(%?)\s*\(([+\u2212\-]?[\d.]+)(%|bp)/g;
+    const out = [], seen = {};
+    (brief.bullets || []).forEach((b) => {
+      let m; re.lastIndex = 0;
+      while ((m = re.exec(b.text || ''))) {
+        let name = m[1].trim().replace(/^(?:and|the)\s+/i, '');
+        name = name.charAt(0).toUpperCase() + name.slice(1);
+        if (seen[name] || !isFinite(sgn(m[4]))) continue;
+        seen[name] = 1;
+        const dec = (m[2].split('.')[1] || '').length;
+        out.push({ name: name, level: num(m[2]), dec: dec, isYield: m[3] === '%', v: sgn(m[4]), unit: m[5] });
+      }
+    });
+    return out;
+  }
+  const fmtN = (n, d) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmtMove = (m) => (m.v > 0 ? '+' : m.v < 0 ? '\u2212' : '') + Math.abs(m.v).toFixed(m.unit === 'bp' ? 0 : 2) + (m.unit === 'bp' ? 'bp' : '%');
+  const dir = (v) => (v < 0 ? 'd' : 'u');
+
+  function chipRow(moves) {
+    const top = moves.slice().sort((a, b) => Math.abs(b.v) / (b.unit === 'bp' ? 10 : 1) - Math.abs(a.v) / (a.unit === 'bp' ? 10 : 1)).slice(0, 8);
+    if (!top.length) return '';
+    return '<div class="mv-chg" role="list" aria-label="What changed">' + top.map((m) => {
+      const bk = m.unit === 'bp' ? V().bucket(m.v, [1, 3, 6], 1) : V().bucket(m.v, [0.25, 0.75, 1.5], 1);
+      return '<span role="listitem" class="mv-pill ' + V().cls(bk) + '">' + esc(m.name) + ' <small>' + esc(fmtMove(m)) + '</small></span>';
+    }).join('') + '</div>';
+  }
+
+  function ladder(m) {
+    const now = m.level, prev = now / (1 + m.v / 100), span = Math.abs(now - prev) || now * 0.001;
+    const lo = Math.min(now, prev) - span * 0.6, hi = Math.max(now, prev) + span * 0.6;
+    const y = (p) => 14 + (hi - p) / (hi - lo) * 122;
+    const yn = y(now), yp = y(prev), c = dir(m.v), X = 56;
+    let ticks = '';
+    for (let i = 0; i <= 6; i++) ticks += '<line class="tk" x1="' + (X - 5) + '" x2="' + X + '" y1="' + (14 + i * 122 / 6).toFixed(1) + '" y2="' + (14 + i * 122 / 6).toFixed(1) + '"/>';
+    const top = yn < yp;   // now above prior close
+    return '<div class="mv-lad"><div class="mv-lad-h"><b>' + esc(m.name) + '</b><span class="mv-' + (c === 'd' ? 'dn' : 'up') + '">' + esc(fmtMove(m)) + '</span></div>' +
+      '<svg viewBox="0 0 170 150" role="img" aria-label="' + esc(m.name + ' now ' + fmtN(now, m.dec) + ', prior close about ' + fmtN(prev, m.dec) + ' (derived from the day change)') + '">' +
+      '<line class="rl" x1="' + X + '" x2="' + X + '" y1="14" y2="136"/>' + ticks +
+      '<line class="seg ' + c + '" x1="' + X + '" x2="' + X + '" y1="' + yn.toFixed(1) + '" y2="' + yp.toFixed(1) + '"/>' +
+      '<circle class="dot pr" cx="' + X + '" cy="' + yp.toFixed(1) + '" r="5"/>' +
+      '<circle class="dot now ' + c + '" cx="' + X + '" cy="' + yn.toFixed(1) + '" r="6"/>' +
+      '<text class="ml now" x="' + (X + 12) + '" y="' + (yn + (top ? -2 : 12)).toFixed(1) + '">Now ' + esc(fmtN(now, m.dec)) + '</text>' +
+      '<text class="ml" x="' + (X + 12) + '" y="' + (yp + (top ? 12 : -2)).toFixed(1) + '">Prior ' + esc(fmtN(prev, m.dec)) + '</text></svg></div>';
+  }
+
+  function visuals(moves) {
+    const lev = moves.filter((m) => m.unit === '%' && !m.isYield && m.level > 0).slice(0, 8);
+    const pct = moves.filter((m) => m.unit === '%' && !m.isYield).map((m) => ({ label: m.name, v: m.v }));
+    const bp = moves.filter((m) => m.unit === 'bp').map((m) => ({ label: m.name + ' yield', v: m.v }));
+    if (!moves.length) return '';
+    const mp = Math.max.apply(null, pct.map((r) => Math.abs(r.v)).concat([0.01]));
+    const mb = Math.max.apply(null, bp.map((r) => Math.abs(r.v)).concat([1]));
+    return '<section class="mv-block stk-rise"><h2 class="mv-h">What changed</h2>' + chipRow(moves) + '</section>' +
+      (lev.length ? '<section class="mv-block stk-rise"><h2 class="mv-h">Where price sits against the prior close</h2>' +
+        '<div class="mv-ladders">' + lev.map(ladder).join('') + '</div>' +
+        '<p class="mv-foot-note">Prior close is worked out from the printed price and day change; the brief publishes no other levels.</p></section>' : '') +
+      '<section class="mv-block stk-rise"><h2 class="mv-h">Session move</h2><div class="mv-card"><div class="mv-bars-2">' +
+        (pct.length ? '<div><p class="mv-sub">Percent change on the day</p>' + V().divBars(pct, mp, (v) => (v > 0 ? '+' : '\u2212') + Math.abs(v).toFixed(2) + '%') + '</div>' : '') +
+        (bp.length ? '<div><p class="mv-sub">Treasury yields, basis points on the day</p>' + V().divBars(bp, mb, (v) => (v > 0 ? '+' : v < 0 ? '\u2212' : '') + Math.abs(v) + 'bp', 1, [1, 3, 6]) + '</div>' : '') +
+      '</div></div></section>';
+  }
+
+  const det = (title, body, open) => '<details class="mv-det"' + (open ? ' open' : '') + '><summary class="mv-sum">' + esc(title) + '</summary><p>' + esc(body) + '</p></details>';
+
   // ---- full page -----------------------------------------------------------
 
   function renderPage(mount, brief) {
@@ -162,6 +236,7 @@
         '</section>'
       : '';
 
+    mount.classList.add('mv-wide');
     mount.innerHTML =
       '<header class="mb-head stk-rise">' +
         '<span class="mb-kicker">Pre-market brief</span>' +
@@ -172,21 +247,16 @@
 
       (stale ? staleBanner(brief) : '') +
 
+      visuals(parseMoves(brief)) +
+
       '<section class="mb-block stk-rise">' +
-        '<h2>What is actually moving it</h2>' +
-        '<ul class="mb-points">' + (brief.bullets || []).map((b) =>
-          '<li class="stk-rise"><b>' + esc(b.title) + '</b><p>' + esc(b.text) + '</p></li>').join('') + '</ul>' +
+        '<h2 class="mv-h">The notes behind it</h2>' +
+        '<div class="mv-notes">' + (brief.bullets || []).map((b) => det(b.title, b.text)).join('') +
+          (brief.sessionNote ? det('Reading the session', brief.sessionNote) : '') +
+          (brief.watchOut ? det('The trap today', brief.watchOut, true) : '') + '</div>' +
       '</section>' +
 
       calendar +
-
-      (brief.sessionNote
-        ? '<section class="mb-block mb-note stk-rise"><h2>Reading the session</h2><p>' + esc(brief.sessionNote) + '</p></section>'
-        : '') +
-
-      (brief.watchOut
-        ? '<section class="mb-block mb-warn stk-rise"><h2>The trap today</h2><p>' + esc(brief.watchOut) + '</p></section>'
-        : '') +
 
       archive +
 

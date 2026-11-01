@@ -441,6 +441,62 @@
     '</div>';
   }
 
+
+  // ---- visual layer: treemap, bars, tap-for-detail sheet ----------------------------------
+  // Same numbers as the grids below, same colour steps (bucket()). Tile area = size of the move
+  // over the selected window (the map has no market-cap weights, so it never pretends to).
+  let GROUP = null;
+  const VZ = () => window.stkViz;
+  function groupRows(g, period) {
+    const i = periodIndex(period);
+    return (g.rows || []).map((r) => ({ r: r, v: r.v[i] })).filter((x) => isFinite(x.v) && x.v !== null);
+  }
+  function renderViz() {
+    if (!VZ()) return '';
+    const groups = DATA.groups || [];
+    const g = groups.filter((x) => x.id === GROUP)[0] || groups[0];
+    if (!g) return '';
+    GROUP = g.id;
+    const rows = groupRows(g, PERIOD);
+    const max = Math.max.apply(null, rows.map((x) => Math.abs(x.v)).concat([0.01]));
+    const items = rows.map((x) => ({ a: Math.abs(x.v) + max * 0.12, v: x.v, r: x.r }));
+    const chips = groups.map((x) => '<button type="button" class="mv-chip" data-mmgroup="' + esc(x.id) + '" aria-pressed="' + (x.id === GROUP) + '">' + esc(x.title.replace(/^Equities by /, '')) + '</button>').join('');
+    // one bar per asset class: its median move over the window
+    const med = groups.filter((x) => !x.excess).map((x) => {
+      const v = groupRows(x, PERIOD).map((y) => y.v).sort((a, b) => a - b);
+      return v.length ? { label: x.title.replace(/^Equities by /, ''), v: v[Math.floor((v.length - 1) / 2)] + (v.length % 2 ? 0 : (v[v.length / 2] - v[v.length / 2 - 1]) / 2), k: x.scale } : null;
+    }).filter(Boolean);
+    const mm = Math.max.apply(null, med.map((x) => Math.abs(x.v)).concat([0.01]));
+    const sorted = rows.slice().sort((a, b) => b.v - a.v).map((x) => ({ label: x.r.label, v: x.v }));
+    return '<section class="mm-viz mm-block"><h2>Board at a glance, ' + esc(PERIOD) + '</h2>' +
+      '<div class="mv-scroll-row" role="group" aria-label="Asset class">' + chips + '</div>' +
+      '<div class="mm-viz-grid"><div class="mv-card">' +
+        '<p class="mv-sub">' + esc(g.title) + (g.excess ? ' (excess return vs the S&amp;P 500)' : '') + '. Tile size is the size of the move; tap a tile for detail.</p>' +
+        VZ().treemapHtml(items, { ratio: 1.45, width: 340,
+          label: (it) => ({ t: it.r.label, v: fmtPct(it.v), sub: it.r.ticker }),
+          cls: (it) => VZ().cls(bucket(it.v, PERIOD, g.scale)),
+          attr: (it) => 'data-mmtile="' + esc(g.id + '|' + it.r.ticker) + '"' }) +
+        '<div class="mv-legend"><span>Down</span><i class="mm-bd3"></i><i class="mm-bd2"></i><i class="mm-bd1"></i><i class="mm-b0"></i><i class="mm-bu1"></i><i class="mm-bu2"></i><i class="mm-bu3"></i><span>Up</span></div>' +
+      '</div><div class="mv-card">' +
+        '<p class="mv-sub">Typical move by asset class over ' + esc(PERIOD) + ' (median of its rows)</p>' +
+        VZ().divBars(med, mm, fmtPct, 1) +
+      '</div></div>' +
+      '<div class="mv-card" style="margin-top:16px"><p class="mv-sub">' + esc(g.title) + ', ranked over ' + esc(PERIOD) + '</p>' +
+        VZ().divBars(sorted, max, fmtPct, g.scale) + '</div></section>';
+  }
+  function openTile(key) {
+    const parts = key.split('|'), g = (DATA.groups || []).filter((x) => x.id === parts[0])[0];
+    const r = g && (g.rows || []).filter((x) => x.ticker === parts[1])[0];
+    if (!r) return;
+    const per = DATA.periods || [];
+    const mx = Math.max.apply(null, r.v.filter(isFinite).map(Math.abs).concat([0.01]));
+    const body = '<dl class="mv-dl"><div><dt>Price</dt><dd>' + esc(fmtPrice(r.price)) + '</dd></div><div><dt>' + esc(PERIOD) + (g.excess ? ' excess' : ' return') + '</dt><dd>' + esc(fmtPct(r.v[periodIndex(PERIOD)])) + '</dd></div></dl>' +
+      '<p class="mv-sub" style="margin-top:16px">Return by window</p>' +
+      VZ().divBars(per.map((p, i) => ({ label: p, v: r.v[i] })).filter((x) => isFinite(x.v) && x.v !== null), mx, fmtPct, g.scale) +
+      '<p class="mv-sh-note">' + esc(g.title) + '. Period returns to the latest print, not live quotes. Educational context, not trading advice.</p>';
+    VZ().openSheet(r.label, r.ticker, body);
+  }
+
   // ---- the full page -------------------------------------------------------
 
   function renderPage(mount) {
@@ -492,6 +548,10 @@
     if (now) M().drawPath(now, 1000, 320);
 
     mount.addEventListener('click', (e) => {
+      const gb = e.target.closest('[data-mmgroup]');
+      if (gb) { GROUP = gb.getAttribute('data-mmgroup'); paintPeriodDependent(mount, false); return; }
+      const tl = e.target.closest('[data-mmtile]');
+      if (tl) { openTile(tl.getAttribute('data-mmtile')); return; }
       const btn = e.target.closest('.mm-chip[data-period]');
       if (!btn) return;
       const p = btn.getAttribute('data-period');
@@ -512,7 +572,7 @@
       // which — a re-sorted table that simply appears tells them only that
       // something changed.
       M().flip(grids, 'tr.mm-tr', () => {
-        grids.innerHTML = renderControls() + (DATA.groups || []).map(renderGroup).join('');
+        grids.innerHTML = renderControls() + renderViz() + '<details class="mv-det" style="margin-bottom:24px"' + (window.innerWidth > 820 ? ' open' : '') + '><summary class="mv-sum">Full tables, every window</summary><div style="padding:0 16px 16px">' + (DATA.groups || []).map(renderGroup).join('') + '</div></details>';
       });
       if (first) M().reveal(grids, { stagger: 24 });
       else Array.prototype.forEach.call(grids.querySelectorAll('.stk-rise'),
@@ -523,6 +583,9 @@
   }
 
   // ---- boot ----------------------------------------------------------------
+
+  // Colours come from CSS variables, so a theme change only needs a repaint to be safe.
+  window.addEventListener('stryker:theme', () => { const g = document.getElementById('mm-grids'); if (g && DATA && g.parentNode) paintPeriodDependent(g.parentNode, false); });
 
   function load() {
     return loadTerminal('market-map', MAP_URL);

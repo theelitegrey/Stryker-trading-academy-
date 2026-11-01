@@ -451,6 +451,7 @@
     const i = periodIndex(period);
     return (g.rows || []).map((r) => ({ r: r, v: r.v[i] })).filter((x) => isFinite(x.v) && x.v !== null);
   }
+  const gl = (g) => (g.id === 'regions' ? 'Countries' : g.title.replace(/^Equities by /, ''));
   function renderViz() {
     if (!VZ()) return '';
     const groups = DATA.groups || [];
@@ -460,11 +461,11 @@
     const rows = groupRows(g, PERIOD);
     const max = Math.max.apply(null, rows.map((x) => Math.abs(x.v)).concat([0.01]));
     const items = rows.map((x) => ({ a: Math.abs(x.v) + max * 0.12, v: x.v, r: x.r }));
-    const chips = groups.map((x) => '<button type="button" class="mv-chip" data-mmgroup="' + esc(x.id) + '" aria-pressed="' + (x.id === GROUP) + '">' + esc(x.title.replace(/^Equities by /, '')) + '</button>').join('');
+    const chips = groups.map((x) => '<button type="button" class="mv-chip" data-mmgroup="' + esc(x.id) + '" aria-pressed="' + (x.id === GROUP) + '">' + esc(gl(x)) + '</button>').join('');
     // one bar per asset class: its median move over the window
     const med = groups.filter((x) => !x.excess).map((x) => {
       const v = groupRows(x, PERIOD).map((y) => y.v).sort((a, b) => a - b);
-      return v.length ? { label: x.title.replace(/^Equities by /, ''), v: v[Math.floor((v.length - 1) / 2)] + (v.length % 2 ? 0 : (v[v.length / 2] - v[v.length / 2 - 1]) / 2), k: x.scale } : null;
+      return v.length ? { label: gl(x), v: v[Math.floor((v.length - 1) / 2)] + (v.length % 2 ? 0 : (v[v.length / 2] - v[v.length / 2 - 1]) / 2), k: x.scale } : null;
     }).filter(Boolean);
     const mm = Math.max.apply(null, med.map((x) => Math.abs(x.v)).concat([0.01]));
     const sorted = rows.slice().sort((a, b) => b.v - a.v).map((x) => ({ label: x.r.label, v: x.v }));
@@ -513,6 +514,7 @@
       (isStale() ? staleBanner() : '') +
 
       '<div id="mm-strip-inline"></div>' +
+      '<div id="mm-grids"></div>' +
 
       ((read.points || []).length
         ? '<section class="mm-block mm-read stk-rise">' +
@@ -524,8 +526,6 @@
         : '') +
 
       renderCurve(DATA.curve) +
-
-      '<div id="mm-grids"></div>' +
 
       '<footer class="mm-foot">' +
         ((DATA.sources || []).length

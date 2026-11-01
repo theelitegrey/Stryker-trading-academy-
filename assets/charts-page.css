@@ -1,0 +1,117 @@
+/* TradeZoro: ZoroCharts feature page (/features/charts). Builds on assets/creators-page.css (cm-* system).
+   Only the page-specific parts live here: hero demo, chart-building story stage, bento, gallery tabs, practice cards.
+   Depends on: assets/style.css tokens, assets/creators-page.css. Used by: features/charts.html. */
+
+.zc-main .cm-hero-frame{ max-width:860px; margin:0 auto; }
+.zc-shot{ display:block; width:100%; height:auto; }
+.zc-shot.l-only{ display:none; }
+:root[data-theme="light"] .zc-shot.d-only{ display:none; } :root[data-theme="light"] .zc-shot.l-only{ display:block; }
+.zc-phonecard{ overflow:hidden; aspect-ratio:390/600; } .zc-phonecard img{ object-fit:cover; object-position:top; height:100%; }
+.zc-pro,.zc-new{ display:inline-block; margin-left:4px; padding:2px 8px; border-radius:999px; font:600 11px/14px var(--font-body); letter-spacing:.04em; text-transform:none; }
+.zc-pro{ background:rgba(0,173,181,.16); color:var(--teal,#00adb5); }
+.zc-new{ background:rgba(3,201,136,.16); color:var(--gold); }
+
+/* ---------- hero demo (sample data) ---------- */
+.zc-demo .dm{ display:grid; gap:12px; padding:12px; background:var(--bg-1); }
+.zc-demo .dm-top{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.zc-demo .seg{ display:inline-flex; padding:4px; gap:4px; border-radius:12px; background:var(--bg-3); border:1px solid var(--line); }
+.zc-demo .seg button{ min-width:56px; min-height:40px; padding:0 12px; border:0; border-radius:8px; background:none; color:var(--ink-2); font:600 14px/20px var(--font-body); cursor:pointer; }
+.zc-demo .seg button[aria-pressed="true"]{ background:var(--bg-2); color:var(--ink-0); box-shadow:0 0 0 1px var(--line); }
+.zc-demo .chipb{ display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 16px; border-radius:999px; border:1px solid var(--line); background:none; color:var(--ink-1); font:600 13px/18px var(--font-body); cursor:pointer; transition:border-color .2s var(--cm-ease), background-color .2s; }
+.zc-demo .chipb[aria-pressed="true"]{ border-color:var(--gold); color:var(--gold); background:rgba(3,201,136,.1); }
+.zc-demo .chipb::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--ink-3); }
+.zc-demo .chipb[aria-pressed="true"]::before{ background:var(--gold); }
+.zc-demo button:focus-visible,.zc-demo input:focus-visible,.zc-tabs button:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.zc-demo .dm-cv{ position:relative; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); overflow:hidden; touch-action:pan-y; }
+.zc-demo .dm-cv svg{ display:block; width:100%; height:auto; aspect-ratio:640/300; }
+.zc-demo .gl,.zc-sv .gl{ stroke:var(--line); stroke-width:1; }
+.zc-demo .ax,.zc-sv .ax{ fill:var(--ink-2); font:11px var(--font-mono); }
+.zc-demo .u line,.zc-demo .u rect,.zc-sv .u line,.zc-sv .u rect{ stroke:var(--gold); fill:var(--gold); }
+.zc-demo .d line,.zc-demo .d rect,.zc-sv .d line,.zc-sv .d rect{ stroke:#e5484d; fill:#e5484d; }
+:root[data-theme="light"] .zc-demo .d line,:root[data-theme="light"] .zc-demo .d rect,:root[data-theme="light"] .zc-sv .d line,:root[data-theme="light"] .zc-sv .d rect{ stroke:#c9353a; fill:#c9353a; }
+.zc-demo .vb{ fill:var(--ink-3); opacity:.35; }
+.zc-demo .ema,.zc-sv .ema{ fill:none; stroke:#f0b429; stroke-width:1.75; }
+:root[data-theme="light"] .zc-demo .ema,:root[data-theme="light"] .zc-sv .ema{ stroke:#a5761a; }
+.zc-demo .tl{ stroke:var(--teal,#00adb5); stroke-width:1.75; } .zc-demo .tlh{ fill:var(--bg-1); stroke:var(--teal,#00adb5); stroke-width:1.5; }
+.zc-demo .cur{ stroke:var(--ink-2); stroke-dasharray:3 4; }
+.zc-demo .dm-rp{ display:flex; align-items:center; gap:12px; min-height:48px; }
+.zc-demo .dm-rp button{ width:44px; height:44px; border-radius:50%; border:0; background:var(--gold); color:#04130d; display:grid; place-items:center; cursor:pointer; flex:none; }
+.zc-demo .dm-rp button .ci{ width:18px; height:18px; fill:currentColor; stroke:none; }
+.zc-demo .dm-rp input{ flex:1; min-width:0; height:44px; accent-color:var(--gold); background:none; margin:0; }
+.zc-demo .dm-rp output{ flex:none; font:12px/16px var(--font-mono); color:var(--ink-2); min-width:84px; text-align:right; }
+.zc-demo .dm-fine{ margin:0; font-size:12px; line-height:16px; color:var(--ink-2); }
+
+/* ---------- story stage ---------- */
+.zc-story.on{ height:520vh; }
+.zc-sv{ background:var(--bg-1); }
+.zc-sv svg{ display:block; width:100%; height:auto; aspect-ratio:640/380; }
+.zc-sv .zl{ transition:opacity .5s var(--cm-ease), transform .6s var(--cm-ease); }
+.zc-story.on .zc-sv .zl{ opacity:0; transform:translateY(10px); }
+.zc-story.on .zc-sv .zl.on{ opacity:1; transform:none; }
+.zc-sv .ind{ fill:none; stroke:#7c8cff; stroke-width:1.5; } .zc-sv .pl{ stroke:var(--line); stroke-width:1; }
+.zc-sv .drw{ stroke:var(--teal,#00adb5); stroke-width:1.75; fill:none; } .zc-sv .box{ fill:rgba(0,173,181,.14); stroke:rgba(0,173,181,.6); stroke-width:1; }
+.zc-sv .hd{ fill:var(--bg-1); stroke:var(--teal,#00adb5); stroke-width:1.5; }
+.zc-sv .dp{ fill:var(--gold); opacity:.8; } .zc-sv .dn{ fill:#e5484d; opacity:.8; }
+.zc-sv .cvd{ fill:none; stroke:var(--ink-1); stroke-width:1.5; }
+.zc-sv .gx{ stroke-width:1.5; stroke-dasharray:6 5; } .zc-sv .gc{ stroke:var(--gold); } .zc-sv .gz{ stroke:#f5a623; } .zc-sv .gp{ stroke:#e5484d; }
+.zc-sv .gt{ font:600 10px var(--font-mono); } .zc-sv .gt.gc{ fill:var(--gold); stroke:none; } .zc-sv .gt.gz{ fill:#f5a623; stroke:none; } .zc-sv .gt.gp{ fill:#e5484d; stroke:none; }
+.zc-sv .fut{ fill:var(--bg-1); opacity:.82; } .zc-sv .rcur{ stroke:var(--gold); stroke-width:1.5; }
+.zc-sv .rbar{ fill:var(--bg-3); stroke:var(--line); } .zc-sv .rbt{ fill:var(--ink-1); font:600 11px var(--font-body); } .zc-sv .rpl{ fill:var(--gold); }
+.zc-sv .card{ fill:var(--bg-2); stroke:var(--gold); stroke-width:1.2; } .zc-sv .ct{ fill:var(--ink-0); font:600 13px var(--font-body); } .zc-sv .cs{ fill:var(--ink-2); font:11px var(--font-body); }
+.zc-sv .lbl{ fill:var(--ink-2); font:10px var(--font-mono); }
+.zc-story .cm-steps-list{ gap:2px; } .zc-story .cm-steps-list li{ padding:8px 16px; }
+.zc-story .cm-steps-list p{ font-size:13px; line-height:18px; }
+
+/* ---------- drawings bento ---------- */
+.zc-bento{ display:grid; grid-template-columns:1fr; gap:16px; }
+@media (min-width:900px){ .zc-bento{ grid-template-columns:repeat(3,1fr); } .zc-b2{ grid-column:span 2; } }
+.zc-bento > *{ min-width:0; }
+.zc-p{ margin:0 0 16px; font-size:14px; line-height:20px; color:var(--ink-2); }
+.zc-bimg{ display:block; width:100%; height:auto; border-radius:12px; border:1px solid var(--line); max-height:280px; object-fit:cover; object-position:center; }
+.zc-keys{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.zc-keys li{ display:flex; align-items:center; gap:4px; font-size:14px; line-height:20px; color:var(--ink-1); }
+.zc-keys span{ margin-left:8px; }
+.zc-keys kbd{ display:inline-grid; place-items:center; min-width:28px; height:28px; padding:0 8px; border-radius:8px; border:1px solid var(--line); border-bottom-width:2px; background:var(--bg-3); font:600 12px/16px var(--font-mono); color:var(--ink-0); box-sizing:border-box; }
+
+/* ---------- layouts / library ---------- */
+.zc-chips{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+.zc-vis{ list-style:none; margin:0 0 16px; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.zc-vis li{ border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--bg-2); display:grid; gap:4px; }
+.zc-vis b{ font-size:14px; line-height:20px; color:var(--ink-0); } .zc-vis span{ font-size:12px; line-height:16px; color:var(--ink-2); }
+.zc-libfig{ max-width:380px; margin:0 auto; width:100%; }
+
+/* ---------- order flow gallery ---------- */
+.zc-gal{ max-width:960px; margin:0 auto; }
+.zc-tabs{ display:flex; gap:8px; overflow-x:auto; padding:4px 2px 12px; margin-bottom:4px; scrollbar-width:thin; scrollbar-color:var(--line) transparent; -webkit-overflow-scrolling:touch; }
+.zc-tabs::-webkit-scrollbar{ height:4px; } .zc-tabs::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; } .zc-tabs::-webkit-scrollbar-button{ display:none; }
+.zc-tabs button{ flex:none; min-height:44px; padding:0 16px; border-radius:999px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-1); font:600 13px/18px var(--font-body); cursor:pointer; transition:background-color .2s, border-color .2s, color .2s; }
+.zc-tabs button[aria-selected="true"]{ background:rgba(0,173,181,.14); border-color:var(--teal,#00adb5); color:var(--ink-0); }
+.zc-galm{ background:var(--bg-0); display:grid; place-items:center; aspect-ratio:1200/640; overflow:hidden; }
+.zc-galm img{ display:block; max-width:100%; max-height:100%; width:auto; height:auto; transition:opacity .25s var(--cm-ease); }
+.zc-galm img.swap{ opacity:0; }
+
+/* ---------- practice ---------- */
+.zc-tri3{ display:grid; grid-template-columns:1fr; gap:16px; } @media (min-width:900px){ .zc-tri3{ grid-template-columns:repeat(3,1fr); } }
+.zc-pc{ overflow:hidden; box-shadow:none; display:flex; flex-direction:column; }
+.zc-pci{ aspect-ratio:16/10; overflow:hidden; background:var(--bg-0); border-bottom:1px solid var(--line); }
+.zc-pci img{ width:100%; height:100%; object-fit:cover; object-position:top left; border-radius:0; }
+.zc-pci-c img{ object-fit:contain; object-position:center; padding:8px; box-sizing:border-box; }
+.zc-pc figcaption{ padding:16px 20px 20px; display:grid; gap:4px; }
+.zc-pc figcaption b{ font-size:17px; line-height:22px; color:var(--ink-0); } .zc-pc figcaption span{ font-size:14px; line-height:20px; color:var(--ink-2); }
+
+/* ---------- phones + grid ---------- */
+.zc-phones{ display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:440px; margin:0 auto; width:100%; }
+.zc-phones .cm-card{ overflow:hidden; } .zc-phones figure:nth-child(2){ transform:translateY(32px); }
+.zc-grid{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr; gap:12px; }
+@media (min-width:600px){ .zc-grid{ grid-template-columns:1fr 1fr; } } @media (min-width:1000px){ .zc-grid{ grid-template-columns:repeat(4,1fr); } }
+.zc-grid li{ display:grid; gap:4px; align-content:start; }
+.zc-grid b{ font-size:15px; line-height:20px; color:var(--ink-0); } .zc-grid span{ font-size:13px; line-height:18px; color:var(--ink-2); }
+
+@media (max-width:699px){
+  .zc-demo .dm{ padding:8px; } .zc-demo .dm-rp output{ min-width:64px; }
+  .zc-demo .seg button{ min-width:48px; } .zc-demo .chipb{ padding:0 12px; }
+  .zc-vis{ grid-template-columns:1fr; }
+  .zc-story.on{ height:480vh; }
+}
+@media (prefers-reduced-motion: reduce){ .zc-sv .zl,.zc-galm img,.zc-tabs button{ transition:none!important; } }
+html.cm-rm .zc-sv .zl{ opacity:1!important; transform:none!important; }

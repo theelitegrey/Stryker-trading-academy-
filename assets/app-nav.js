@@ -86,7 +86,6 @@
       ['courses', 'Curriculum', 'Chapters in a deliberate order', '<path d="M12 6.5C10.5 5 8 4 4 4v14c4 0 6.5 1 8 2.5 1.5-1.5 4-2.5 8-2.5V4c-4 0-6.5 1-8 2.5zM12 6.5v14"/>', ['chapter']],
       ['models', 'Models', 'Trading model playbooks', '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', ['model']],
       ['indicators', 'Indicators', 'Our chart indicators', '<path d="M3 17l5-6 4 4 8-9"/><path d="M15 6h5v5"/>', ['indicator']],
-      ['live-sessions', 'Live sessions', 'Free on YouTube (from December)', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>'],
       ['learn', 'Learn articles', 'Plain-English lessons', '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>', LEARN_ARTICLES]
     ]],
     ['community', 'Community', [

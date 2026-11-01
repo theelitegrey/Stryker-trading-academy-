@@ -90,12 +90,6 @@
       body: 'Request access to the private TradingView indicators included with your plan. Add your TradingView username here and access is granted to your account.'
     },
     {
-      id: 'live',
-      target: '.sidebar [data-menu="live-sessions"]',
-      title: 'Live sessions',
-      body: 'Live sessions: free on YouTube (from December).'
-    },
-    {
       id: 'floor',
       target: '.sidebar [data-menu="trading-floor"]',
       title: 'Trading floor',

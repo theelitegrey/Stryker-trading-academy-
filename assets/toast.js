@@ -62,7 +62,7 @@
   '.tz-card-in{min-height:0;overflow:hidden;opacity:0;transition:opacity .25s ease}' +
   '.toast.open .tz-card-in{opacity:1;transition-delay:.12s}' +
   '.tz-card-pad{padding:6px 16px 16px;display:flex;flex-direction:column;gap:12px}' +
-  '.toast-msg{margin:0;font:400 13px/18px sans-serif;font-family:inherit;color:rgba(255,255,255,.74);word-break:break-word}' +
+  '.toast-msg{margin:0;font:400 13px/18px sans-serif;font-family:inherit;color:rgba(255,255,255,.74);word-break:break-word;white-space:pre-line}' +
   '.toast-action{min-height:44px;width:100%;border:0;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.1);color:var(--tc);font:600 14px/20px sans-serif;font-family:inherit;transition:background .15s}' +
   '.toast-action:hover{background:rgba(255,255,255,.16)}.toast-action:focus-visible{outline:2px solid var(--tc);outline-offset:2px}' +
   '@media (prefers-reduced-motion:reduce){.toast,.toast.in,.toast.out{transform:none;transition:opacity .15s linear}.tz-goo .gt,.tz-goo .gb,.tz-tab,.tz-card,.tz-card-in{transition:none}.toast-icon.swap,.toast-title.swap{animation:none}}';

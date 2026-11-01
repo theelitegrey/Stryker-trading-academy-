@@ -302,17 +302,20 @@ function bindPopover(btn, pop, onOpen){
   // phone (<600 px, style.css .stkc-sheet): the menu is a bottom sheet over a scrim; tap the scrim to close
   let scrim = null;
   const set = (open) => {
+    const was = !pop.hidden;
     pop.hidden = !open;
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (pop.classList.contains('stkc-sheet')) {
       if (!scrim && pop.parentNode) {
         scrim = document.createElement('div');
         scrim.className = 'stkc-scrim';
-        // tap outside = close everything, including the phone ⋯ list the sheet was opened from
-        scrim.addEventListener('click', (e) => { e.stopPropagation(); set(false); document.body.click(); });
+        scrim.addEventListener('click', (e) => { e.stopPropagation(); set(false); });
         pop.parentNode.insertBefore(scrim, pop);
       }
       if (scrim) scrim.hidden = !open;
+      // a phone sheet closing (X, swipe, tap outside, Apply) goes back to the chart, not to the ⋯ list it came from
+      const list = was && !open && pop.closest('#stkc-more-pop');
+      if (list && !list.hidden) document.body.click();
       pop.style.transform = '';
       // slide up once per open (script animation: the onebar re-homes the menu every clock tick, which would restart a CSS one)
       if (open && pop.animate && matchMedia('(max-width:599px) and (prefers-reduced-motion: no-preference)').matches)

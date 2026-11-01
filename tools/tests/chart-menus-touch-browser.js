@@ -218,6 +218,39 @@ const closeLib = async (p) => { await p.keyboard.press('Escape'); await sleep(40
     t('reopen: Symbol sync still on', kept[0] === true && !!kept[1], kept);
     await p.touchscreen.tap(195, 60); await sleep(500);
     t('tap outside closes the Chart layout sheet', !(await vis('#stkc-layout-pop')));
+    // 8. Market sessions (clock) sheet: title, ⓘ expands the note, swipe down closes
+    await p.tap('.mclock-pill'); await sleep(700);
+    const ck = await p.$eval('.mclock-pop', (e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight, t: (e.querySelector('.stkms-hd h2') || {}).textContent, note: getComputedStyle(e.querySelector('.mclock-note')).display }; });
+    t('clock opens the "Market sessions" bottom sheet, note folded', ck.l === 0 && ck.w === 390 && Math.abs(ck.b - ck.h) < 2 && ck.t === 'Market sessions' && ck.note === 'none', ck);
+    await p.tap('.stkms-i'); await sleep(400);
+    t('ⓘ expands the session note', await p.$eval('.mclock-note', (e) => getComputedStyle(e).display !== 'none' && !e.closest('[hidden]')));
+    const cs = await p.$eval('.stkms-hd', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + 120, y: r.top + 20 }; });
+    await drag(cs.x, cs.y, cs.y + 220);
+    t('swipe down closes the clock sheet', !(await vis('.mclock-pop')));
+    // 9. Chart settings: header, green Ok, 44 px footer, tapping a row label toggles its switch
+    await openMenu('Chart settings'); await sleep(600);
+    const sd = await p.evaluate(() => { const d = document.querySelector('.vela-dialog--settings'); const ok = d.querySelector('.stk-sd-ok'); return { t: d.querySelector('.vela-dialog-title').textContent, ok: getComputedStyle(ok).backgroundColor, small: [...d.querySelectorAll('.stk-sd-foot .vela-sd-btn')].filter((b) => b.getClientRects().length && b.getBoundingClientRect().height < 44).length, burger: !!(d.querySelector('.vela-sd-burger') || {}).offsetParent }; });
+    t('settings: "Chart settings", green Ok, footer >= 44 px, no burger', sd.t === 'Chart settings' && /rgb\(3, 201, 136\)/.test(sd.ok) && sd.small === 0 && !sd.burger, sd);
+    const lab = await p.$('.vela-dialog--settings .vela-sd-bool:not(.stk-sd-off) .vela-field-label');
+    const sw0 = await lab.evaluate((l) => l.closest('.vela-sd-bool').querySelector('[role=switch]').getAttribute('aria-checked'));
+    await lab.tap(); await sleep(400);
+    const sw1 = await lab.evaluate((l) => l.closest('.vela-sd-bool').querySelector('[role=switch]').getAttribute('aria-checked'));
+    t('tap on a settings row label toggles its switch', sw0 !== sw1, { sw0, sw1 });
+    await p.tap('.vela-dialog--settings .stk-sd-foot .vela-sd-btn:has-text("Cancel")'); await sleep(600);
+    t('Cancel closes settings', !(await vis('.vela-dialog--settings')));
+    // 10. Alerts: empty state + quiet Sounds + counter
+    await openMenu('Alerts'); await sleep(600);
+    const al = await p.evaluate(() => { const b = document.querySelector('.stk-al-box'); return { empty: !!b.querySelector('.stk-al-empty b') && b.querySelector('.stk-al-empty b').textContent, cnt: b.querySelector('.stk-al-count').textContent, snd: getComputedStyle(b.querySelector('.stk-al-sounds')).backgroundColor }; });
+    t('alerts: empty state, "0 of 200 alerts", Sounds not a filled primary', al.empty === 'No alerts yet' && /^0 of 200 alerts/.test(al.cnt) && !/rgb\(3, 201, 136\)/.test(al.snd), al);
+    await p.tap('.stk-al-x'); await sleep(500);
+    // 11. Watchlist ⋯ menu is a bottom sheet; tapping outside closes it
+    await openMenu('Watchlist'); await sleep(600);
+    await p.tap('.stkw-ib[title="More"]'); await sleep(500);
+    const wm = await p.evaluate(() => { const m = [...document.querySelectorAll('.stkw-menu')].find((x) => !x.hidden); const r = m.getBoundingClientRect(); return { l: r.left, w: r.width, b: Math.round(r.bottom), h: innerHeight, foot: document.querySelector('.stkw-foot').textContent }; });
+    t('watchlist ⋯ opens as a bottom sheet; one-line footer', wm.l === 0 && wm.w === 390 && Math.abs(wm.b - wm.h) < 2 && /dot = data status/.test(wm.foot), wm);
+    await p.touchscreen.tap(195, 120); await sleep(500);
+    t('tap outside closes the watchlist menu', await p.evaluate(() => [...document.querySelectorAll('.stkw-menu')].every((x) => x.hidden)));
+    t('"Education only" still on the page', await p.evaluate(() => /Education only/.test(document.querySelector('.stkchart-credit').textContent)));
     await p.screenshot({ path: OUT + '/touch-390-after-swipe.png' }); console.log('page errors', JSON.stringify(p.errs));
   } catch (e) { fail++; console.log('FAIL exception', e.message); }
   await b.close();

@@ -31,6 +31,7 @@
   "contact": "only linked from the banned-account notice",
   "features": "marketing features index, only linked from the marketing flyout (nav-features.js, hidden when signed in)",
   "refund-policy": "legal text linked from checkout, public",
+  "market-data-terms": "legal text linked from live-data checkout and settings, public (same as refund-policy)",
   "help": "own signed-in member shell (#member-help-shell: Questions | My tickets), public FAQ signed out; covered by help-center-browser.js and member-support QA"
  },
  "noheader": {

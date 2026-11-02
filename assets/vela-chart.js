@@ -519,6 +519,7 @@ function lateLists(provider){
   const HyperliquidProvider = mods[3].HyperliquidProvider;
   const FuturesProvider = mods[4].FuturesProvider;
   const FxProvider = mods[4].FxProvider;
+  const IdxProvider = mods[4].IdxProvider;
   const COMMODITY_ROOTS = mods[4].COMMODITY_ROOTS || [];
   let Flow, Gex, GexHeat;
   // EMPTY LAYER CANVASES OFF (speed, 2026-10-23): Vela gives every registered renderer layer
@@ -725,6 +726,8 @@ function lateLists(provider){
         hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new HyperliquidProvider()), 'hyperliquid'), 'hyperliquid'),
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
         fx: Replay.wrapFactory(Iv.wrapFactory(() => new FxProvider(), 'fx'), 'fx'),
+        // Indices & ETFs (SPX NDX VIX RUT QQQ SPY IWM DIA): same endpoint, Yahoo, delayed; admin live candle from the hub's quote frames.
+        idx: Replay.wrapFactory(Iv.wrapFactory(() => new IdxProvider(), 'idx'), 'idx'),
       },
       persist: PERSIST_KEY
     });
@@ -858,7 +861,7 @@ function lateLists(provider){
     .catch((e) => console.warn('TradeZoro: data banner', e));
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
   import('./chart-data-dot.js?v=791')
-    .then((m) => m.installDataDot(ws, { rith: rithRef, FuturesProvider, FxProvider }))
+    .then((m) => m.installDataDot(ws, { rith: rithRef, FuturesProvider, FxProvider, IdxProvider }))
     .catch((e) => console.warn('TradeZoro: data dot', e));
   // Stronger weak magnet on 0.9.0 (nearest OHLC in pixels across nearby candles, 28 px): assets/chart-magnet.js.
   if (VELA090) import('./chart-magnet.js?v=791')

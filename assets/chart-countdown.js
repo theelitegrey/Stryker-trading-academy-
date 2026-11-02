@@ -31,10 +31,11 @@
 // ("Countdown to bar close" in the chart settings dialog) still decides: when it is off
 // nothing is drawn and Vela's timer is stopped, as before.
 
-import { globexOpen, fxOpen } from './chart-data-dot.js?v=791';
+import { globexOpen, fxOpen, idxOpen } from './chart-data-dot.js?v=791';
 
 const FUT = /^futures:|^[A-Z0-9]+1!$/i;
 const FX = /^fx:/i;
+const IDX = /^idx:/i;
 const MIN = 60000, HOUR = 3600000, DAY = 86400000;
 
 let nyFmt = null;
@@ -82,7 +83,8 @@ export function barCloseMs(now, lastTime, intervalMs, futures) {
   if (futures && intervalMs >= DAY) return next1700(now);
   let close = lastTime + intervalMs;
   if (close <= now) close = lastTime + Math.floor((now - lastTime) / intervalMs + 1) * intervalMs;
-  if (futures && futures !== 'fx') close = Math.min(close, next1700(now));
+  if (futures === 'idx') { const p = nyParts(now); close = Math.min(close, nyWall(p.y, p.mo, p.d, 16)); }   // cash close 16:00
+  else if (futures && futures !== 'fx') close = Math.min(close, next1700(now));
   return close;
 }
 
@@ -105,7 +107,7 @@ function velaFmt(ms) {
 
 /** What the chip should show for this scene now: { text } or null (draw no countdown). */
 export function countdownFor(now, lastTime, intervalMs, futures) {
-  if (futures === 'fx' ? !fxOpen(now) : (futures && !globexOpen(now))) return null;
+  if (futures === 'idx' ? !idxOpen(now) : futures === 'fx' ? !fxOpen(now) : (futures && !globexOpen(now))) return null;
   const close = barCloseMs(now, lastTime, intervalMs, futures);
   if (close == null || close <= now) return null;
   return { close, left: close - now, text: fmtCountdown(close - now) };
@@ -166,7 +168,7 @@ export function installCountdown(ws) {
       if (!R || !R.scene) return;
       if (R.chrome) patchChrome(R.chrome);
       const sym = String(c.symbol || '');
-      R.scene.__stkCdFut = FX.test(sym) ? 'fx' : FUT.test(sym);
+      R.scene.__stkCdFut = FX.test(sym) ? 'fx' : IDX.test(sym) ? 'idx' : FUT.test(sym);
     });
   };
   sweep();

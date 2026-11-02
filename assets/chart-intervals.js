@@ -180,11 +180,11 @@ export function planFor(provider, tf) {
   if (p.kind === 'month' && p.n > 1) return { base: 'M', ratio: p.n, key: (t) => monthKey(t, p.n) };
   if (p.kind === 'day' && p.n > 1) return { base: 'D', ratio: p.n, key: (t) => Math.floor(Math.floor((t + 12 * H) / 864e5) / p.n) };
   if (p.kind === 'week' && p.n > 1) return { base: 'W', ratio: p.n, key: (t) => Math.floor(Math.floor((t + 3.5 * 864e5) / 6048e5) / p.n) };
-  if ((provider !== 'futures' && provider !== 'fx') || p.kind !== 'min' || NATIVE_FUT_MIN.includes(p.n)) return null;
+  if ((provider !== 'futures' && provider !== 'fx' && provider !== 'idx') || p.kind !== 'min' || NATIVE_FUT_MIN.includes(p.n)) return null;
   if (p.n >= 1440) return null;
   const base = NATIVE_FUT_MIN.filter((m) => m < p.n && p.n % m === 0).pop() || 1;
   const size = p.n * MIN;
-  const anchor = provider === 'fx' ? 17 : 18;
+  const anchor = provider === 'fx' ? 17 : provider === 'idx' ? 9.5 : 18;
   return { base: String(base), ratio: p.n / base, key: (t) => sessionKey(t, size, anchor) };
 }
 
@@ -465,7 +465,7 @@ export function wrapProvider(inner, name, pollMs) {
     }
   });
 }
-export const wrapFactory = (factory, name, pollMs) => () => wrapProvider(factory(), name, pollMs || (name === 'futures' || name === 'fx' ? 20000 : 5000));
+export const wrapFactory = (factory, name, pollMs) => () => wrapProvider(factory(), name, pollMs || (name === 'futures' || name === 'fx' || name === 'idx' ? 20000 : 5000));
 
 // ---------------- UI ----------------
 const CSS = `

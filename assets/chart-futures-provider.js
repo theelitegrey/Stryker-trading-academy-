@@ -1,7 +1,8 @@
 // TradeZoro — Charts futures data provider (ES module)
 // Depends on: /api/chart/bars/:sym (functions/api/chart/bars/[sym].js + functions/api/chart/_bars.js).
 // Imported by assets/vela-chart.js and registered with Vela as the "futures" provider, and
-// (FxProvider, same paging code) as the "fx" provider for spot forex pairs.
+// (FxProvider, same paging code) as the "fx" provider for spot forex pairs, and (IdxProvider) as "idx" for
+// the index / ETF symbols (SPX NDX VIX RUT QQQ SPY IWM DIA).
 //
 // Implements Vela's DataProvider port (@luxalgo/vela 0.6.17, dist/DataProvider-*.d.ts):
 //   getBars, listSymbols, getSymbolInfo, getCalendar, resolveSymbolIcon, subscribe, info.
@@ -630,7 +631,7 @@ export function prefetchBars(sym, tf) {
   try {
     const ticker = String(sym || '').replace(/^[a-z_]+:/i, '');
     const t = normTf(tf) || '15';
-    const P = rootOf(ticker) ? FuturesProvider : (pairOf(ticker) ? FxProvider : null);
+    const P = rootOf(ticker) ? FuturesProvider : (pairOf(ticker) ? FxProvider : (quoteKey(ticker) ? IdxProvider : null));
     if (!P) return Promise.resolve(false);
     const k = ticker.toUpperCase() + '|' + t;
     if (Date.now() - (prefetched.get(k) || 0) < 20000) return Promise.resolve(false);
@@ -713,4 +714,84 @@ export class FxProvider extends FuturesProvider {
     }
     return out;
   }
+}
+
+
+// ---- indices & ETFs ----------------------------------------------------------------------
+// SPX NDX VIX RUT QQQ SPY IWM DIA: same endpoint (Yahoo ^GSPC ... / ETF series, edge-cached, delayed like forex).
+// ticker: [description, type, exchange, tick]. Mirrors the 'equity' rows of SYMBOLS in functions/api/chart/_bars.js.
+export const IDX_SYMBOLS = {
+  SPX: ['S&P 500 Index', 'index', 'INDEX', 0.01],
+  NDX: ['Nasdaq-100 Index', 'index', 'INDEX', 0.01],
+  VIX: ['CBOE Volatility Index', 'index', 'INDEX', 0.01],
+  RUT: ['Russell 2000 Index', 'index', 'INDEX', 0.01],
+  QQQ: ['Invesco QQQ', 'etf', 'NASDAQ', 0.01],
+  SPY: ['SPDR S&P 500 ETF', 'etf', 'NYSE', 0.01],
+  IWM: ['iShares Russell 2000 ETF', 'etf', 'NYSE', 0.01],
+  DIA: ['SPDR Dow Jones ETF', 'etf', 'NYSE', 0.01]
+};
+
+// Cash session 09:30-16:00 New York, Monday to Friday. No exchange-holiday calendar.
+export class IdxProvider extends FuturesProvider {
+  info() {
+    return {
+      name: 'idx',
+      displayName: 'Indices & ETFs',
+      requiresApiKey: false
+      supportedTimeframes: SUPPORTED,
+      capabilities: { enumerate: true, stream: false, symbolInfo: true }
+    };
+  }
+
+  keyOf(ticker) { return quoteKey(ticker); }
+
+  async listSymbols() {
+    return Object.entries(IDX_SYMBOLS).map(([t, s]) => ({
+      ticker: t, description: s[0], type: s[1], prefix: 'IDX', market: 'equity', exchange: s[2], mintick: s[3], pointvalue: 1
+    }));
+  }
+
+  async getSymbolInfo(ticker) {
+    const k = quoteKey(ticker);
+    if (!k) return undefined;
+    const [description, type, exchange, tick] = IDX_SYMBOLS[k];
+    return {
+      ticker: k, tickerid: `IDX:${k}`, prefix: 'IDX', description, type, market: 'equity', currency: 'USD',
+      mintick: tick, pricescale: 100, minmove: 1, pointvalue: 1,
+      timezone: 'America/New_York', session: '0930-1600', session_extended: '0930-1600'
+    };
+  }
+
+  async getCalendar(ticker, range) {
+    if (!quoteKey(ticker)) return [];
+    const out = [];
+    let day = Math.floor(range.from / 1000 / D) * D - D;
+    const end = range.to / 1000 + D;
+    for (; day < end; day += D) {
+      const dow = new Date(day * 1000).getUTCDay();
+      if (dow === 0 || dow === 6) continue;
+      const s = (nyWall(day, 9) + 1800) * 1000, e = nyWall(day, 16) * 1000;
+      if (e > range.from && s < range.to) out.push([Math.max(s, range.from), Math.min(e, range.to)]);
+    }
+    return out;
+  }
+
+  // History is delayed Yahoo; for an admin the hub's quote frames (chart-futures-l2.js, via l2Subscribe)
+  // move the current candle. Quote frames carry the level only, so each live candle is merged onto the candle
+  // the chart already has (open/high/low kept), and a delayed poll bar not newer than the live candle is
+  // dropped so the poll cannot pull the close back.
+  subscribe(ticker, timeframe, onBar) {
+    const k = quoteKey(ticker);
+    let known = null, liveT = 0;
+    const live = () => !!(window.__stkL2Live && window.__stkL2Live.has(k));
+    const poll = (b) => { if (live() && b.time <= liveT) return; known = b; onBar(b); };
+    this.hubBar = (b) => {
+      liveT = Math.max(liveT, b.time);
+      if (known && known.time === b.time) b = { time: b.time, open: known.open, high: Math.max(known.high, b.high), low: Math.min(known.low, b.low), close: b.close, volume: known.volume };
+      known = b; onBar(b);
+    };
+    this.getBars(ticker, timeframe, { limit: 1 }).then((bs) => { if (bs.length && !known) known = bs[bs.length - 1]; }).catch(() => {});
+    return super.subscribe(ticker, timeframe, poll);
+  }
+  l2Subscribe(root, timeframe) { return super.l2Subscribe(root, timeframe, (b) => this.hubBar(b)); }
 }

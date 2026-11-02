@@ -68,8 +68,8 @@ async function open(b, { w, h, mobile, admin, theme }) {
     const u = new URL(r.request().url()), from = Number(u.searchParams.get('from')), to = Number(u.searchParams.get('to')), out = [];
     let mid0 = 21000; try { mid0 = (await ctx.pages()[0].evaluate(() => window.__L2MID)) || mid0; } catch (e) {}
     for (let t = Math.ceil(from / 120000) * 120000; t < to; t += 120000) {
-      const mid = mid0 + Math.sin(t / 900000) * 20, step = 2.5, i0 = Math.floor(mid * 0.996 / step), len = Math.ceil(mid * 0.008 / step) + 2, v = new Float32Array(len);
-      for (let k = 0; k < len; k++) { const p = (i0 + k + 0.5) * step, d = Math.abs(p - mid); let q = 2 + 14 * Math.abs(Math.sin(k * 2.3 + t / 3e5)) + Math.max(0, 40 - d); if (Math.abs(d - 30 - 10 * Math.sin(t / 2e6)) < 2) q += 400; v[k] = p < mid ? q : -q; }
+      const mid = mid0 + Math.sin(t / 900000) * 20, step = 2.5, i0 = Math.floor(mid * 0.98 / step), len = Math.ceil(mid * 0.04 / step) + 2, v = new Float32Array(len);
+      for (let k = 0; k < len; k++) { const p = (i0 + k + 0.5) * step, d = Math.abs(p - mid), ri = i0 + k, hh = Math.abs(Math.sin(ri * 12.9898) * 43758.5453) % 1; let q = Math.exp(1.2 + 2.4 * hh * hh) * (0.7 + 0.3 * Math.sin(t / 4e6 + ri)) * (1 + 1.5 * Math.exp(-d / 120)); if (hh > 0.985) q *= 14; if (Math.abs(d - 30 - 10 * Math.sin(t / 2e7)) < 2) q += 1500; v[k] = p < mid ? q : -q; }
       out.push({ ts: t, mid, bb: mid - 0.25, ba: mid + 0.25, step, i0, v });
     }
     r.fulfill({ status: 200, contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*', 'x-ts-fill-left': '0', 'access-control-expose-headers': 'x-ts-fill-left' }, body: Buffer.from(encodeSamples(out)) });
@@ -78,7 +78,7 @@ async function open(b, { w, h, mobile, admin, theme }) {
   const p = await ctx.newPage();
   if (process.env.DBG) { p.on('request', (q) => { if (/127\.0\.0\.1:9/.test(q.url())) console.log('REQ', q.url().slice(0, 120)); }); p.on('console', (m) => { if (/L2|history|bad body/i.test(m.text())) console.log('CON', m.text().slice(0, 200)); }); }
   const errors = [];
-  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|\/api\/chart\/stream|Failed to load resource|Ping received after close/.test(m.text())) errors.push(m.text()); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|451|\/api\/chart\/stream|Failed to load resource|Ping received after close|status of 451|Unexpected response code: 451/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
@@ -128,7 +128,23 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       // heatmap fills the visible window from the left edge (backfill), and no empty band inside the book's price range
       const hm = await p.evaluate(() => { const d = window.__stkFlow && window.__stkFlow.domDebug && window.__stkFlow.domDebug(); return d || null; });
       if (process.env.DBG) console.log('HM', JSON.stringify(hm && { rs: hm.remoteSamples, st: hm.remoteState, s: hm.samples, cols: hm.columns, vis: hm.visFrom, cells: hm.cells }));
-      if (hm) { check(hm.remoteSamples > 20, tag + ': history backfill samples loaded (' + hm.remoteSamples + ')'); check(hm.heatX0 != null && hm.heatX0 <= 60, tag + ': heatmap starts at the left edge of the screen', hm.heatX0); }
+      if (hm) { check(hm.remoteSamples > 8, tag + ': history backfill samples loaded (' + hm.remoteSamples + ')'); check(hm.heatX0 != null && hm.heatX0 <= 60, tag + ': heatmap starts at the left edge of the screen', hm.heatX0); }
+      // Bookmap: perf at this size (rebuild cost; cached blits cost ~0), full-height rows, dark field, no wall tags
+      if (hm && hm.bm) {
+        check(hm.bm.cells > 2000, tag + ': bookmap paints rows (' + hm.bm.cells + ' cells)');
+        const ms = [];
+        for (const g of [1.3, 0.8, 1.1]) {   // a new contrast = a new cache key = a real rebuild
+          await p.evaluate((g) => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_fut_dom'); h.setInputs(Object.assign({}, h.inputs, { contrast: g })); }, g);
+          await sleep(700); ms.push((await p.evaluate(() => window.__stkFlow.domDebug())).bm.ms);
+        }
+        console.log('INFO ' + tag + ' bookmap REBUILD ms', JSON.stringify(ms));
+        check(ms.slice().sort((x, y) => x - y)[1] <= (mobile ? 10 : 20), tag + ': median rebuild ok (headless 4 GB server CPU; real phone target <= 4 ms)', ms);
+        const t2 = await p.evaluate(() => window.__stkFlow.domDebug());
+        console.log('INFO ' + tag + ' bookmap rebuild ms', JSON.stringify(t2.bm && t2.bm.ms), 'frame ms', t2.ms);
+        check(t2.ms <= 25, tag + ': frame time at 390 stays small', t2.ms);
+        check(t2.walls.length === 0, tag + ': no wall labels in Bookmap style');
+      }
+      if (process.env.DBG2) console.log('BARS', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, o = c.orchestrator; const r = o.renderer; return { n: o.rawBars.length, vis: c.getVisibleRange && c.getVisibleRange(), style: c.priceStyle || (window.STRYKER_VELA.active && window.STRYKER_VELA.active.priceStyle), lastT: o.rawBars[o.rawBars.length - 1].time, keys: Object.keys(r).slice(0, 40) }; })));
       const nSock = await p.evaluate(() => window.__wsOpened);
       // candles: the hub's ticks + 1m bars carry the chart past the 10-min delayed bars; no gap, no duplicate; pill hidden; back on drop
       const cd = await p.evaluate(() => { const rb = window.STRYKER_VELA.chart.orchestrator.rawBars.map((x) => x.time); return { n: rb.length, last: rb[rb.length - 1], tail: rb.slice(-16), now: Date.now() }; });

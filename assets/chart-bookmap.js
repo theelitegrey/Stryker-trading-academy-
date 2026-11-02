@@ -14,7 +14,7 @@ const RAMPS = {
     [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]]
 };
 export const STYLES = {
-  bookmap: { ramp: 'bookmap', bg: BM_BG, floor: 0.07, dyn: 220, hold: HOLD_MS, cap: 0.97 }
+  bookmap: { ramp: 'bookmap', bg: BM_BG, floor: 0.06, pow: 1.7, hold: HOLD_MS, cap: 0.97 }
 };
 const lutCache = new Map();
 function lutOf(name) {   // 256 entries of packed ABGR (little endian) for the ramp
@@ -58,17 +58,19 @@ export function drawBookmap(g, view) {
   const BINS = 400, LMAX = 16, hist = new Uint32Array(BINS); let total = 0;
   for (const c of cols) { const v = c.s.v; for (let k = 0; k < v.length; k++) { const a = v[k] < 0 ? -v[k] : v[k]; if (a > 0) { const b = Math.min(BINS - 1, (Math.log(a + 1) / LMAX * BINS) | 0); hist[b]++; total++; } } }
   let p97 = 1; if (total) { let acc = 0; const want = total * S.cap; for (let b = 0; b < BINS; b++) { acc += hist[b]; if (acc >= want) { p97 = Math.exp((b + 1) / BINS * LMAX) - 1; break; } } }
-  const lut = lutOf(S.ramp), s0 = Math.max(1, p97 / S.dyn), inv = 1 / Math.log1p(p97 / s0), gam = 1 / Math.max(0.3, view.gamma || 1);
+  // t = ln(1 + size) against ln(1 + 2.5 x p97), then a power > 1 so the many small levels stay in the blues: p97 lands in orange,
+  // 2.5 x p97 and above is white. `contrast` (gamma) steepens or flattens it.
+  const lut = lutOf(S.ramp), den = 1 / Math.log1p(p97 * 2.5), gam = S.pow / Math.max(0.3, view.gamma || 1);
   const tmap = new Uint8Array(1024);   // size -> ramp index, quantised (the pixel loop does one lookup)
-  const qmax = p97 * 1.6 / 1023;
-  for (let q = 0; q < 1024; q++) { const v = q * qmax; let t = Math.log1p(v / s0) * inv; t = t > 1 ? 1 : t; t = Math.pow(t, gam); t = S.floor + (1 - S.floor) * t; tmap[q] = Math.round(Math.min(1, t) * 255); }
+  const qmax = p97 * 2.5 / 1023;
+  for (let q = 0; q < 1024; q++) { let t = Math.log1p(q * qmax) * den; t = t > 1 ? 1 : Math.pow(t, gam); t = S.floor + (1 - S.floor) * t; tmap[q] = Math.round(Math.min(1, t) * 255); }
   let cv = cache.canvas;
   if (!cv || cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv = cache.canvas = document.createElement('canvas'); cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   const cg = cv.getContext('2d'), W = cv.width, H = cv.height;
   const img = cg.createImageData(W, H), px = new Uint32Array(img.data.buffer), bg = (255 << 24) | (S.bg[2] << 16) | (S.bg[1] << 8) | S.bg[0];
   px.fill(bg);
   const rowPrice = new Float64Array(H); for (let y = 0; y < H; y++) rowPrice[y] = view.priceOfY(top + (y + 0.5) / dpr);
-  let cells = 0; const scale = 1023 / (p97 * 1.6);
+  let cells = 0; const scale = 1023 / (p97 * 2.5);
   for (const c of cols) {
     const s = c.s, v = s.v, step = s.step, i0 = s.i0, n = v.length;
     const xa = Math.max(0, Math.round((c.xa - x0) * dpr)), xb = Math.min(W, Math.round((c.xb - x0) * dpr));

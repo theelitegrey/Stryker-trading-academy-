@@ -13,7 +13,8 @@
 //   ticks  trades since the last frame                                               -> walls pulled / consumed, ladder volume
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
-import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=795';
+import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=793';
+import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=793';
 
 export const L2_MEMBERS = false;          // licence flag: true only after the Owner confirms Tick-stream's Redistribution licence
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
@@ -162,11 +163,11 @@ class Conn {
     if (m.event) return;
     r.lastFrame = Date.now();
     if (m.type === 'snap') {
-      r.snap = m; r.status = 'live';
+      r.nSnap = (r.nSnap || 0) + 1; r.snap = m; r.status = 'live';
       const last = r.imb[r.imb.length - 1], now = Date.now();
       if (!last || now - last[0] >= 1000) { r.imb.push([now, m.imb, m.imb10]); if (r.imb.length > 21600) r.imb.splice(0, r.imb.length - 21600); }
     } else if (m.type === 'coarse') r.coarse = m;
-    else if (m.type === 'ticks') { if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(m.t || [], false); }
+    else if (m.type === 'ticks') { r.nTick = (r.nTick || 0) + (m.t ? m.t.length : 0); if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(m.t || [], false); }
     r.listeners.forEach((f) => { try { f(m); } catch (e) {} });
   }
   close() { this.stopped = true; clearTimeout(this.tm); clearTimeout(this.dog); clearTimeout(this.closeTm); document.removeEventListener('visibilitychange', this.onVis); if (this.ws) { try { this.ws.close(1000); } catch (e) {} this.ws = null; } }
@@ -319,38 +320,34 @@ function nearNice(raw) {
   return best;
 }
 
-// ---------------------------------------------------------------------------------------- status badge ("Live L2" / "Reconnecting…")
-let badge = null, badgeTm = 0, badgeUsers = 0;
-const ago = (ms) => (ms < 1500 ? '' : ms < 60000 ? Math.round(ms / 1000) + 's' : Math.round(ms / 60000) + ' min');
-function badgeRender() {
-  if (!badge) return;
-  let live = false, last = 0, any = false;
-  roots.forEach((r) => { if (r.conn) { any = true; if (r.status === 'live') live = true; if (r.lastFrame > last) last = r.lastFrame; } });
-  if (!any) { badge.hidden = true; return; }
-  badge.hidden = false;
-  const age = last ? Date.now() - last : -1;
-  badge.className = 'stkl2-badge' + (live ? ' is-live' : ' is-wait');
-  badge.querySelector('.stkl2-txt').textContent = live ? 'Live L2' : 'Reconnecting…';
-  badge.querySelector('.stkl2-age').textContent = live ? (age > 5000 ? 'updated ' + ago(age) + ' ago' : '') : '';
+// ---------------------------------------------------------------------------------------- feed badges (L1 · L2 · L3, assets/chart-feeds.js)
+// The old "Live L2" pill is now the L2 chip. badgeUse stays as a no-op so the attach() code paths (shared with the DOM-ladder fix) need no edit.
+export function badgeUse() {}
+const rateMem = new Map();
+// -> { status, ageMs, bookRate, tradeRate } for the chart's root (rates = changes per second since the last call, smoothed)
+function feedStats(sym, now) {
+  const m = /^futures:(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]), r = root && roots.get(root);
+  if (!r || !r.conn) return null;
+  const k = rateMem.get(root) || { t: now, b: r.nSnap || 0, x: r.nTick || 0, bookRate: null, tradeRate: null };
+  const dt = (now - k.t) / 1000;
+  if (dt >= 0.9) { const f = (a, b) => (a == null ? b : a * 0.5 + b * 0.5); k.bookRate = f(k.bookRate, ((r.nSnap || 0) - k.b) / dt); k.tradeRate = f(k.tradeRate, ((r.nTick || 0) - k.x) / dt); k.t = now; k.b = r.nSnap || 0; k.x = r.nTick || 0; }
+  rateMem.set(root, k);
+  return { status: r.status === 'live' ? 'live' : 'wait', ageMs: r.lastFrame ? now - r.lastFrame : 0, bookRate: k.bookRate, tradeRate: k.tradeRate };
 }
-export function badgeUse(on) {
-  if (typeof document === 'undefined') return;
-  if (on) {
-    badgeUsers++;
-    if (!badge) {
-      badge = document.createElement('div'); badge.className = 'stkl2-badge'; badge.id = 'stkl2-badge'; badge.setAttribute('role', 'status'); badge.hidden = true;
-      badge.innerHTML = '<i class="stkl2-dot" aria-hidden="true"></i><span class="stkl2-txt">Reconnecting…</span><span class="stkl2-age"></span>';
-      const host = document.querySelector('.stkchart-panel') || document.body; host.appendChild(badge);
-    }
-    if (!badgeTm) badgeTm = setInterval(badgeRender, 1000);
-    badgeRender();
-  } else if (--badgeUsers <= 0) { badgeUsers = 0; clearInterval(badgeTm); badgeTm = 0; if (badge) { badge.remove(); badge = null; } }
+export function registerL2Feeds() {
+  registerFeed('stk_fut_dom', { needs: 'L2', title: 'Order book heatmap (L2)', mkt: 'futures' });
+  registerFeed('stk_fut_walls', { needs: 'L2', title: 'Liquidity Walls (L2)', mkt: 'futures' });
+  registerFeed('stk_fut_imb', { needs: 'L2', title: 'Book Imbalance (L2)', mkt: 'futures' });
+  registerFeed('stk_crypto_dom', { needs: 'L2', title: 'Order book heatmap (L2)', mkt: 'crypto' });
+  registerFeed('stk_liqmap', { needs: 'L2', title: 'Liquidity Map (L2)' });
+  setStats('futures', feedStats);
+  if (typeof window !== 'undefined') window.STRYKER_L2_OK = l2Visible;
 }
 
 // ---------------------------------------------------------------------------------------- indicators
 export const L2_TYPES = ['stk_fut_dom', 'stk_fut_imb'];
 const NEED = 'Futures DOM works on NQ, MNQ, ES, MES, YM, RTY, CL and GC charts (MYM, M2K, MCL, MGC show their mini\'s book).';
-const NOT_YET = 'Futures L2 is not available yet.';
+const NOT_YET = 'Needs L2 (full order book). Your plan includes L1.';
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const BOOK_WALLS = 'Walls (persist 30 s+, pulled / consumed tags)';
@@ -359,6 +356,7 @@ const BOOK_WALLS = 'Walls (persist 30 s+, pulled / consumed tags)';
 const fcfg = (i, walls) => Object.assign({ look: walls ? 'Classic' : 'Bookmap' }, i || {});
 export function installFuturesL2(Core, H, reg) {
   HOOK = H;
+  registerL2Feeds();
   // 1) Futures DOM Heatmap (L2): the Crypto DOM renderer on the futures book. Default view = Deep; walls = top 3 each side.
   const schema = H.DOM_SCHEMA.map((x) => {
     if (x.key === 'bucketUsd') return Object.assign({}, x, { title: 'Price bucket (points, 0 = auto)' });
@@ -401,7 +399,7 @@ export function installFuturesL2(Core, H, reg) {
     setInputs(i) { this.inputs = i; if (this.h) this.h.feed.l2Levels = Number(i.l2Levels) || 60; const st = this.root && rootState(this.root); if (st && st.conn) st.conn.setLevels('dom' + this.root, Number(i.l2Levels) || 60); this.render(); }
     render() {
       if (!this.ctx || this.hidden) return;
-      const msg = this.note();
+      const msg = this.note() === NOT_YET ? '' : this.note();
       const f = this.h && this.h.feed;
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       this.ctx.emit({ tables: msg ? [H.message('stk_dom-msg', msg, H.pageIsDay(), 'top_right')] : [] });
@@ -467,7 +465,7 @@ export function installFuturesL2(Core, H, reg) {
       const mk = (id, title, vals, color) => H.line(id, title, bars, vals, color, 2);
       const series = [mk('stk_fut_imb-v', 'Top-of-book imbalance', vendor, inp.vendorColor || '#03c988')];
       if (inp.showOurs !== false) series.push(mk('stk_fut_imb-o', '10-level depth-weighted', ours, inp.oursColor || '#00adb5'));
-      const note = this.block ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
+      const note = this.block && this.block !== NOT_YET ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
       this.ctx.setStatus(this.block ? 'idle' : r && r.status === 'live' ? 'live' : 'loading');
       this.ctx.emit({ series: this.block ? [] : series, tables: note, priceLines: [{ id: 'stk_fut_imb-0', paneId: '', price: 0, color: '#787b86', lineStyle: 'dotted', width: 1 }] });
     }
@@ -572,7 +570,7 @@ export function mountL2Ladder(ws, opts) {
   }
   function setLevels(n) { levels = n; seg.querySelectorAll('.stkl2-lv').forEach((b) => { b.classList.toggle('on', Number(b.dataset.n) === n); b.setAttribute('aria-pressed', String(Number(b.dataset.n) === n)); }); if (h) h.levels(n); }
   function setOpen(v) {
-    open = !!v; panel.hidden = !open; host.classList.toggle('stkl2-open', open);
+    open = !!v; setPanel('dom_ladder', open && l2Visible(), { needs: 'L2', title: 'DOM ladder', mkt: 'futures' }); panel.hidden = !open; host.classList.toggle('stkl2-open', open);
     document.documentElement.classList.toggle('stkl2-sheet', open && isPhone());
     railBtn.setAttribute('aria-pressed', String(open)); railBtn.classList.toggle('on', open); phoneBtn.classList.toggle('on', open);
     if (open) { try { const g = window.__stkGexLadder; if (g && g.isOpen) g.close(); } catch (e) {} attach(); requestAnimationFrame(() => { size(); paint(); }); }

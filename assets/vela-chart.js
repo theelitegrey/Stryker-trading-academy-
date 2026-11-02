@@ -904,7 +904,8 @@ function lateLists(provider){
   // GEX Ladder panel (right icon bar, phones: a sheet): SPX / QQQ / SPY strikes, click draws the level (assets/chart-gex-ladder.js).
   import('./chart-gex-ladder.js?v=795').then((m) => m.mountGexLadder(ws, { toast })).catch((e) => console.warn('TradeZoro: gex ladder', e));
   // Futures L2 DOM ladder (admin only until the Tick-stream licence flag flips): assets/chart-futures-l2.js
-  import('./chart-futures-l2.js?v=795').then((m) => m.mountL2Ladder(ws, { toast })).catch((e) => console.warn('TradeZoro: futures L2', e));
+  import('./chart-futures-l2.js?v=793').then((m) => m.mountL2Ladder(ws, { toast })).catch((e) => console.warn('TradeZoro: futures L2', e));
+  import('./chart-feeds.js?v=793').then((m) => m.mountFeedBadges(ws)).catch((e) => console.warn('TradeZoro: feed badges', e));
   // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
   import('./chart-symbol-info.js?v=795').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
   try { IndStyle.mountIndStyle(ws); } catch (e) { console.warn('TradeZoro: indicator style', e); }

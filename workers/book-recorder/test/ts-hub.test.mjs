@@ -4,7 +4,7 @@
 // 'pro' flag only opens it to a verified Pro/demo token); 4029 / silent / auth closes back off; bucketed history uses
 // the crypto bucketer (parity) and survives a round trip; imbalance + footprint recorded; hours rule.
 import assert from 'node:assert/strict';
-import { TSHub, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS } from '../src/ts-hub.js';
+import { TSHub, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
 import { bucketSnapshot, decodeSamples, encodeSamples } from '../src/bucket.js';
 import { tsAllowed, tsAccess } from '../src/ts-access.js';
 
@@ -49,7 +49,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.equal(socks.length, 1, '10 viewers = 1 upstream socket');
   assert.match(socks[0].url, /^wss:\/\/stream\.tick-stream\.xyz\/v1\/stream\?key=SECRETKEY$/);
   assert.deepEqual(socks[0].sent.map((m) => m.channel).sort(), ['book', 'ticks']);
-  assert.deepEqual(socks[0].sent[0].symbols, ['NQ', 'ES']);
+  assert.deepEqual(socks[0].sent[0].symbols, ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC']);
   socks[0].msg(book(28000));
   socks[0].msg({ type: 'tick', symbol: 'NQ', price: 28000.25, size: 3, side: 'buy', ts: 1 });
   socks[0].msg({ type: 'ping' });
@@ -278,7 +278,27 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 {
   const o = tsOpts({ TS_SYMBOLS: 'nq, zz', TS_KEEP_HOURS: '500', TS_MODE: 'relay', TS_RECORD: '0' });
   assert.deepEqual(o.SYMBOLS, ['NQ']); assert.equal(o.KEEP_H, 48); assert.equal(o.MODE, 'relay'); assert.equal(o.RECORD, false);
-  assert.deepEqual(tsOpts({}).SYMBOLS, ['NQ', 'ES']);
+  assert.deepEqual(tsOpts({}).SYMBOLS, ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC']);
   ok('env options validated');
+}
+// ---- eight symbols: tick sizes, bucket rows that are whole ticks and never finer than the tick, own books for the micros
+{
+  assert.deepEqual(TICK_SIZE, { NQ: 0.25, ES: 0.25, MNQ: 0.25, MES: 0.25, YM: 1, RTY: 0.1, CL: 0.01, GC: 0.1 });
+  const want = { NQ: [28700, 2.5], MNQ: [28700, 2.5], ES: [7640, 0.5], MES: [7640, 0.5], YM: [45000, 2], RTY: [2300, 0.2], CL: [60, 0.01], GC: [4000, 0.2] };
+  for (const [sym, [mid, step]] of Object.entries(want)) {
+    const r = coarseRule(mid, sym); assert.equal(r.step, step, sym + ' row step');
+    assert.ok(Math.abs(r.step / TICK_SIZE[sym] - Math.round(r.step / TICK_SIZE[sym])) < 1e-6, sym + ' step is whole ticks');
+    const rows = (2 * mid * r.range) / r.step; assert.ok(rows > 20 && rows < 400, sym + ' rows ' + Math.round(rows));
+  }
+  assert.equal(coarseRule(7640).step, 0.5, 'no symbol = the old rule');
+  // CL / GC books on their own price scale, MNQ separate from NQ
+  const lv = (mid, tk) => { const bids = [], asks = []; for (let i = 0; i < 400; i++) { bids.push([+(mid - tk - i * tk).toFixed(4), 5 + (i % 7)]); asks.push([+(mid + tk + i * tk).toFixed(4), 4 + (i % 5)]); } return { type: 'book', bids, asks, imbalance: 0.1, ts: 1 }; };
+  socks = []; const { hub } = mk({ RECORD: false }); const c = client(); hub.attach(c, 'CL', 20); await sleep(30);
+  socks[0].msg(Object.assign(lv(60.5, 0.01), { symbol: 'CL' })); socks[0].msg(Object.assign(lv(4012.3, 0.1), { symbol: 'GC' })); socks[0].msg(Object.assign(lv(28001, 0.25), { symbol: 'MNQ' }));
+  await sleep(60);
+  const cl = hub.coarseOf('CL', hub.clock()), gc = hub.coarseOf('GC', hub.clock()), mnq = hub.coarseOf('MNQ', hub.clock());
+  assert.equal(cl.step, 0.01); assert.equal(gc.step, 0.2); assert.equal(mnq.step, 2.5); assert.equal(hub.coarseOf('NQ', hub.clock()), null, 'MNQ frames never feed NQ');
+  assert.ok(Math.abs(cl.mid - 60.5) < 0.01 && Math.abs(gc.mid - 4012.3) < 0.1);
+  hub.shutdown(); ok('8 symbols: tick sizes, whole-tick bucket rows (CL 0.01, GC 0.2, YM 2, RTY 0.2), MNQ own book');
 }
 console.log(n + ' checks passed'); process.exit(0);

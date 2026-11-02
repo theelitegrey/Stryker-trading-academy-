@@ -572,7 +572,7 @@ async function scanRoute(u, env, ctx, h) {
 // (src/orderflow.js), gzip'd in the DO and sent as application/octet-stream with x-of-gzip: 1; the
 // client un-gzips with DecompressionStream (a stored gzip body with content-encoding does not
 // survive the Cache API reliably). Edge-cached: a closed range a day, the range holding now 15 s.
-// Micros ask for their mini (the site maps MNQ -> NQ). Plan gating is done by the site.
+// Footprint/orderflow micros still ask for their mini (OF_SYMBOLS has no micros); the L2 book (ts-hub) has its own MNQ / MES books. Plan gating is done by the site.
 async function orderflowRoute(u, env, ctx, h, req) {
   const sym = String(u.searchParams.get('sym') || '').toUpperCase();
   if (!OF_SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 404, headers: Object.assign({ 'cache-control': 'public, max-age=300' }, h) });

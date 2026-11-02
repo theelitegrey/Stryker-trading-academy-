@@ -28,12 +28,20 @@
 import { bucketSnapshot, encodeSamples, decodeSamples, nearNiceStep } from './bucket.js';
 
 export const TS_WS = 'wss://stream.tick-stream.xyz/v1/stream';
-export const TS_SYMBOLS = ['NQ', 'ES'];   // MNQ / MES are separate books (different bid/ask), not worth the 2x frames
+// Owner 2026-11-02: all eight, each with its OWN book (MNQ / MES are separate books, not mapped to NQ / ES). One socket, unlimited symbols on realtime-l2.
+export const TS_SYMBOLS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
 export const LEVELS = [20, 60, 150];
 export const COARSE_RANGE = 0.004;        // +-0.4% of the mid: NQ ~ +-115 pts, ES ~ +-30 pts (the 400-level book spans less)
 // Row step for the heatmap rows: the nice step at or below 0.01% of the price. NQ 28.7k -> 2.5, ES 7.6k -> 0.5.
-export const coarseRule = (mid) => ({ step: nearNiceStep(mid * 0.0001), range: COARSE_RANGE });
-export const TICK_SIZE = { NQ: 0.25, ES: 0.25 };
+export const TICK_SIZE = { NQ: 0.25, ES: 0.25, MNQ: 0.25, MES: 0.25, YM: 1, RTY: 0.1, CL: 0.01, GC: 0.1 };
+// Never finer than the contract tick (CL 60.00 -> 0.005 would leave every other row empty), and always a whole number of
+// ticks (GC 4000 -> 0.25 would split 0.1 ticks across rows). Without `sym` it is the old rule (NQ / ES unchanged).
+export const coarseRule = (mid, sym) => {
+  const tk = TICK_SIZE[sym];
+  let step = nearNiceStep(Math.max(mid * 0.0001, tk || 0));
+  if (tk) step = Math.round(Math.max(1, Math.floor(step / tk + 1e-6)) * tk * 1e6) / 1e6;
+  return { step, range: COARSE_RANGE };
+};
 
 const DEF = {
   SYMBOLS: TS_SYMBOLS, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
@@ -235,7 +243,7 @@ export class TSHub {
       this.nextSample.set(sym, Math.floor(now / this.o.SAMPLE_MS) * this.o.SAMPLE_MS + this.o.SAMPLE_MS);
       const mid = L.bids.length && L.asks.length ? (L.bids[0][0] + L.asks[0][0]) / 2 : 0;
       if (!(mid > 0)) continue;
-      const s = bucketSnapshot({ bids: L.bids, asks: L.asks }, Math.floor(now / 1000) * 1000, coarseRule(mid));
+      const s = bucketSnapshot({ bids: L.bids, asks: L.asks }, Math.floor(now / 1000) * 1000, coarseRule(mid, sym));
       const a = this.accFor(sym, now);
       if (s && s.v.length) a.samples.push(s);
       a.imb.push([Math.floor(now / 1000), L.imb, this.imb10Of(L)]);
@@ -248,7 +256,7 @@ export class TSHub {
     if (!L) return null;
     if (L.coarse && now - L.coarseAt < this.o.COARSE_MS - 50) return L.coarse;
     const mid = L.bids.length && L.asks.length ? (L.bids[0][0] + L.asks[0][0]) / 2 : 0;
-    const s = mid > 0 ? bucketSnapshot({ bids: L.bids, asks: L.asks }, now, coarseRule(mid)) : null;
+    const s = mid > 0 ? bucketSnapshot({ bids: L.bids, asks: L.asks }, now, coarseRule(mid, sym)) : null;
     L.coarse = s ? { type: 'coarse', symbol: sym, ts: now, mid: s.mid, bb: s.bb, ba: s.ba, step: s.step, i0: s.i0, v: Array.from(s.v) } : null;
     L.coarseAt = now;
     return L.coarse;
@@ -395,7 +403,7 @@ export class TSHub {
         if (bids.length && asks.length) {
           bids.sort((x, y) => y[0] - x[0]); asks.sort((x, y) => x[0] - y[0]);
           const mid = (bids[0][0] + asks[0][0]) / 2;
-          const smp = mid > 0 ? bucketSnapshot({ bids, asks }, Math.floor(first / 1000), coarseRule(mid)) : null;
+          const smp = mid > 0 ? bucketSnapshot({ bids, asks }, Math.floor(first / 1000), coarseRule(mid, sym)) : null;
           if (smp && smp.v.length) book = encodeSamples([smp]);
         }
         try { for (const m of mins) this.store.putMin(sym, m, m === t ? book : null, null, null); } catch (e) { this.lastError = 'store failed'; break; }

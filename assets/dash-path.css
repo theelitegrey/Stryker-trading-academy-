@@ -253,7 +253,7 @@
 .dk-tick-area{ fill:rgba(3,201,136,.12); }
 .dk-float{ position:absolute; display:inline-flex; align-items:center; gap:6px; padding:7px 12px 7px 8px; border-radius:14px; border:1px solid var(--line); background:var(--bg-2); box-shadow:var(--shadow-card); font-size:12px; font-weight:600; color:var(--ink-0); animation:dkBob 6s ease-in-out infinite; }
 .dk-float .gpi{ width:20px; height:20px; }
-.dk-f1{ right:0; top:0; } .dk-f2{ right:8px; bottom:8px; animation-delay:-2s; } .dk-f3{ left:-6px; bottom:-4px; animation-delay:-4s; }
+.dk-f1{ right:-8px; top:46%; } .dk-f2{ right:8px; bottom:8px; animation-delay:-2s; } .dk-f3{ left:-6px; bottom:-4px; animation-delay:-4s; }
 @keyframes dkBob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
 
 .dk-grid{ display:grid; gap:18px; }
@@ -322,3 +322,7 @@
   .dk-learn-card .gp-cta{ grid-column:auto; }
   .dk-learn-card > .dk-path{ grid-column:1 / -1; }
 }
+section.dk-sec, section.dk-hero{ padding-top:0; padding-bottom:0; margin-top:0; margin-bottom:0; }
+section.dk-hero{ padding:20px 16px 18px; margin-bottom:18px; }
+@media (min-width:700px){ section.dk-hero{ padding:24px 26px; } }
+@media (max-width:699px){ .dk-card .mv-ladders{ grid-template-columns:repeat(2,minmax(0,1fr)); } .dk-card .mv-ladders .mv-lad:nth-child(3){ display:none; } }

@@ -93,4 +93,26 @@ t('filter count: stocks >= 60 distinct fields, ~80 options with crosses', () => 
   const f = C.filterFieldsFor('stock', {}); assert.ok(f.length >= 60, 'stock ' + f.length);
   const opts = f.reduce((a, d) => a + C.opsFor(d).length, 0); assert.ok(opts >= 80, 'ops ' + opts);
 });
+t('outlier: CASK +2856.67% never tops Top gainers', () => {
+  const cask = { s: 'NASDAQ:CASK', n: 'MGP Ingredients', c: 20, chg: 2856.67, vol: 400000, cap: 5e8 };
+  const ok = { s: 'NASDAQ:OKK', n: 'Real', c: 12, chg: 18, vol: 2e6, cap: 1e9 };
+  const rows = [cask, ok].map((r) => C.enrich(r, 0, 'stock'));
+  assert.strictEqual(rows[0].chg, null); assert.strictEqual(rows[0].bad, 1);
+  const p = C.presetById('gainers'), v = C.sortRows(rows.filter(C.buildFilter(p.flt, 'stock', {}).test), p.sort[0], p.sort[1]);
+  assert.deepStrictEqual(v.map((r) => r.n), ['Real']);
+});
+t('outlier: a big move on heavy volume and a >$1 previous close is kept', () => {
+  assert.strictEqual(C.enrich({ s: 'A:B', c: 40, chg: 400, vol: 5e6 }, 0, 'stock').chg, 400);
+  assert.strictEqual(C.enrich({ s: 'A:B', c: 40, chg: 400, vol: 5e6 }, 0, 'stock').bad, undefined);
+  assert.strictEqual(C.enrich({ s: 'A:B', c: 4, chg: 400, vol: 5e6 }, 0, 'etf').chg, null);   // prev close $0.80
+  assert.strictEqual(C.enrich({ s: 'A:B', c: 40, chg: -350, vol: 5e6 }, 0, 'stock').chg, null);
+  assert.strictEqual(C.enrich({ s: 'B:C', c: 1, chg: 500, vol: 1e5 }, 0, 'crypto').chg, null);  // $100k traded
+  assert.strictEqual(C.enrich({ s: 'B:C', c: 12, chg: 500, vol: 1e6 }, 0, 'crypto').chg, 500);
+});
+t('quick screens have price >= 1 and volume >= 100k floors', () => {
+  ['gainers', 'losers', 'unusual', 'gapup', 'gapdown'].forEach((id) => {
+    const f = C.presetById(id).flt;
+    assert.ok(f.some((x) => x.f === 'c' && x.op === 'gt' && x.v >= 1), id + ' price'); assert.ok(f.some((x) => x.f === 'vol' && x.v >= 1e5), id + ' vol');
+  });
+});
 console.log(n + ' passed');

@@ -118,7 +118,16 @@
 
   // ---- derived values ------------------------------------------------------------------------------------------------------
   var pctOf = function (a, b) { return isNum(a) && isNum(b) && b !== 0 ? (a / b - 1) * 100 : null; };
-  function enrich(r, nowSec) {
+  // A 1D move beyond +/-300% is almost always bad source data (ticker change, split, stale previous close). It is kept only when the
+  // name trades heavily (volume > 1M; for crypto traded value > $1M) AND the previous close was above $1. Otherwise the move is
+  // blanked (shown as a dash, never matches a change filter), so one bad row cannot top Top gainers.
+  function cleanMove(r, m) {
+    if (!isNum(r.chg) || Math.abs(r.chg) <= 300 || !isNum(r.c)) return;
+    var prev = r.c / (1 + r.chg / 100), heavy = m === 'crypto' ? isNum(r.vol) && r.vol * r.c > 1e6 : isNum(r.vol) && r.vol > 1e6;
+    if (!(heavy && prev > 1)) { r.chg = null; r.gap = isNum(r.gap) && Math.abs(r.gap) > 300 ? null : r.gap; r.bad = 1; }
+  }
+  function enrich(r, nowSec, m) {
+    cleanMove(r, m);
     var c = r.c;
     r.perfWm = isNum(r.perfW) && isNum(r.perfM) ? r.perfW - r.perfM : null;
     r.chgAbs = isNum(r.chg) ? Math.abs(r.chg) : null;
@@ -217,7 +226,7 @@
 
   // ---- preset screens (quick screens on top of the screener) -----------------------------------------------------------------
   // The feeder still sends its ranked preset lists; these are the same ideas as ordinary filters so they edit like any screen.
-  var BASE_LIQ = [{ f: 'c', op: 'gt', v: 1 }, { f: 'dv', op: 'gt', v: 1e6 }];
+  var BASE_LIQ = [{ f: 'c', op: 'gt', v: 1 }, { f: 'vol', op: 'gt', v: 1e5 }, { f: 'dv', op: 'gt', v: 1e6 }];
   var PRESETS = [
     { id: 'gainers', m: 'stock', t: 'Top gainers', flt: BASE_LIQ.concat([{ f: 'chg', op: 'gt', v: 0 }]), sort: ['chg', -1] },
     { id: 'losers', m: 'stock', t: 'Top losers', flt: BASE_LIQ.concat([{ f: 'chg', op: 'lt', v: 0 }]), sort: ['chg', 1] },
@@ -312,7 +321,7 @@
       var p = symParts(o.s);
       o.exch = exchName(p.ex);
       if (m === 'fut') o.grp = o.sec;
-      out.push(enrich(o, nowSec));
+      out.push(enrich(o, nowSec, m));
     }
     return out;
   }

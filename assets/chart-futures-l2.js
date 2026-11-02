@@ -25,7 +25,7 @@ const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.
 const testOn = () => isLocal() && typeof window !== 'undefined' && window.__stkL2Test;
 export function l2Visible() { return !!(L2_MEMBERS || isRealtimeAdmin() || testOn()); }
 export const l2Root = (ticker) => L2_ROOTS[String(ticker || '').toUpperCase().replace(/\d?!$/, '').replace(/^[A-Z_]+:/, '')] || null;
-const baseUrl = (H) => { const u = (H && H.recorderUrl && H.recorderUrl()) || (testOn() && window.__stkL2Test.base) || ''; return u; };
+const baseUrl = (H) => (testOn() && window.__stkL2Test.base) || (H && H.recorderUrl && H.recorderUrl()) || '';   // localhost test flag wins
 const wsBase = (b) => String(b).replace(/^http/i, 'ws');
 let HOOK = null;   // H from chart-orderflow (recorderUrl)
 

@@ -16,7 +16,7 @@ let fail = 0;
 const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg + (!ok && x !== undefined ? ' ' + JSON.stringify(x).slice(0, 300) : '')); };
 
 function fakeWs(admin) {
-  window.__wsOpened = 0;
+  window.__wsOpened = 0; window.__L2MID = 28750;
   if (admin) window.__stkL2Test = { base: 'http://127.0.0.1:9' };
   const Real = window.WebSocket;
   window.WebSocket = function (url, proto) {
@@ -62,8 +62,21 @@ async function open(b, { w, h, mobile, admin, theme }) {
   await ctx.addInitScript(fakeWs, !!admin);
   await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker.vela.session', ''); if (t) localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); } catch (e) {} }, theme || '');
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
-  await ctx.route(/127\.0\.0\.1:9\//, (r) => r.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  await ctx.route(/127\.0\.0\.1:9\/ts-book-history/, async (r) => {
+    // the Worker's archive-backed history: one sample per 2 min over the asked range, thin rows everywhere, a few walls
+    const { encodeSamples } = await import('../../workers/book-recorder/src/bucket.js');
+    const u = new URL(r.request().url()), from = Number(u.searchParams.get('from')), to = Number(u.searchParams.get('to')), out = [];
+    let mid0 = 21000; try { mid0 = (await ctx.pages()[0].evaluate(() => window.__L2MID)) || mid0; } catch (e) {}
+    for (let t = Math.ceil(from / 120000) * 120000; t < to; t += 120000) {
+      const mid = mid0 + Math.sin(t / 900000) * 20, step = 2.5, i0 = Math.floor(mid * 0.996 / step), len = Math.ceil(mid * 0.008 / step) + 2, v = new Float32Array(len);
+      for (let k = 0; k < len; k++) { const p = (i0 + k + 0.5) * step, d = Math.abs(p - mid); let q = 2 + 14 * Math.abs(Math.sin(k * 2.3 + t / 3e5)) + Math.max(0, 40 - d); if (Math.abs(d - 30 - 10 * Math.sin(t / 2e6)) < 2) q += 400; v[k] = p < mid ? q : -q; }
+      out.push({ ts: t, mid, bb: mid - 0.25, ba: mid + 0.25, step, i0, v });
+    }
+    r.fulfill({ status: 200, contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*', 'x-ts-fill-left': '0', 'access-control-expose-headers': 'x-ts-fill-left' }, body: Buffer.from(encodeSamples(out)) });
+  });
+  await ctx.route(/127\.0\.0\.1:9\/(?!ts-book-history)/, (r) => r.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' }));
   const p = await ctx.newPage();
+  if (process.env.DBG) { p.on('request', (q) => { if (/127\.0\.0\.1:9/.test(q.url())) console.log('REQ', q.url().slice(0, 120)); }); p.on('console', (m) => { if (/L2|history|bad body/i.test(m.text())) console.log('CON', m.text().slice(0, 200)); }); }
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|\/api\/chart\/stream|Failed to load resource|Ping received after close/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
@@ -77,8 +90,8 @@ async function setNQ(p) {
   await p.evaluate(async () => {
     const ws = window.STRYKER_VELA; ws.active.setSymbol('futures:NQ1!'); ws.active.setTimeframe('1');
     for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 300)); const c = ws.chart; if (c.market.symbol === 'futures:NQ1!' && c.orchestrator.rawBars.length > 50) break; }
-    const rb = ws.chart.orchestrator.rawBars; const last = rb[rb.length - 1];
-    window.__L2MID = last.close != null ? last.close : last.c;
+    const rb = ws.chart.orchestrator.rawBars; const last = rb[rb.length - 1], px = last && (last.close != null ? last.close : last.c);
+    if (px > 20000 && Math.abs(px - 28750) < 3000) window.__L2MID = px;
   });
   await sleep(800);
 }
@@ -109,9 +122,13 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
     for (const [w, h, mobile, theme, tag] of (process.env.ONE === "m" ? [[390, 844, true, "dark", "390-dark"]] : process.env.ONE ? [[1440, 900, false, "dark", "1440-dark"]] : [[1440, 900, false, "dark", "1440-dark"], [1440, 900, false, "light", "1440-light"], [390, 844, true, "dark", "390-dark"], [390, 844, true, "light", "390-light"]])) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
       await setNQ(p);
-      await add(p, 'stk_fut_dom', { style: 'Combined (heatmap + depth + walls)' });
+      await add(p, 'stk_fut_dom', { style: process.env.DOMSTYLE || 'Combined (heatmap + depth + walls)' });
       await add(p, 'stk_fut_imb');
       await sleep(9000);   // ~90 fake coarse columns
+      // heatmap fills the visible window from the left edge (backfill), and no empty band inside the book's price range
+      const hm = await p.evaluate(() => { const d = window.__stkFlow && window.__stkFlow.domDebug && window.__stkFlow.domDebug(); return d || null; });
+      if (process.env.DBG) console.log('HM', JSON.stringify(hm && { rs: hm.remoteSamples, st: hm.remoteState, s: hm.samples, cols: hm.columns, vis: hm.visFrom, cells: hm.cells }));
+      if (hm) { check(hm.remoteSamples > 20, tag + ': history backfill samples loaded (' + hm.remoteSamples + ')'); check(hm.heatX0 != null && hm.heatX0 <= 60, tag + ': heatmap starts at the left edge of the screen', hm.heatX0); }
       const nSock = await p.evaluate(() => window.__wsOpened);
       // candles: the hub's ticks + 1m bars carry the chart past the 10-min delayed bars; no gap, no duplicate; pill hidden; back on drop
       const cd = await p.evaluate(() => { const rb = window.STRYKER_VELA.chart.orchestrator.rawBars.map((x) => x.time); return { n: rb.length, last: rb[rb.length - 1], tail: rb.slice(-16), now: Date.now() }; });

@@ -1947,8 +1947,9 @@ function acquireBookFeed(provider, ticker, fn, opts) {
 // read straight off. A coarser frame step (an integer multiple, see render) sums rows; a sample
 // stored coarser than the frame (recorded before a finer manual bucket) spreads each row evenly
 // over the frame rows it covers. The frame's mid row is skipped (it would mix both sides).
+let keepMidRow = false;   // futures L2: the row holding the mid carries size too (no empty band at the price)
 function rowsAt(s, step, iLo, iHi, out) {
-  const v = s.v, n = v.length, ss = s.step, mi = rowOf(s.mid, step);
+  const v = s.v, n = v.length, ss = s.step, mi = keepMidRow ? NaN : rowOf(s.mid, step);
   if (Math.abs(ss - step) < 1e-9 * step) {
     for (let k = 0; k < n; k++) { const i = s.i0 + k, x = v[k]; if (x !== 0 && i >= iLo && i <= iHi && i !== mi) out.push(i, x); }
     return out;
@@ -2147,6 +2148,7 @@ function cryptoDomLayer() {
       }
       // visible values (all columns + the current book) -> percentiles
       const range = cfg.range;
+      keepMidRow = !!f.custom;
       const curS = bucketBook(f.book, step, range);
       const curFlat = curS ? rowsAt(curS, step, iLo, iHi, []) : [];
       const vals = [];

@@ -94,6 +94,24 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   hub.shutdown(); ok('~70 upstream frames in 1.1 s -> ' + snaps + ' client frames (<= 4/s)');
 }
 
+// ---- 1-minute candles for a late viewer: bars frame first, ticks continue after it with no overlap
+{
+  socks = []; const { hub } = mk({ RECORD: false }); const a = client(); hub.attach(a, 'NQ', 20); await sleep(20);
+  const up = socks[0]; up.msg({ type: 'book', symbol: 'NQ', ...book(100) });
+  for (let i = 0; i < 5; i++) up.msg({ type: 'tick', symbol: 'NQ', price: 100 + i, size: 2, side: 'buy', ts: 1 });
+  await sleep(30);
+  const late = client(); hub.attach(late, 'NQ', 20); await sleep(40);
+  const bf = late.got.find((m) => m.type === 'bars');
+  assert.ok(bf && bf.b.length >= 1, 'late viewer gets a bars frame');
+  const last = bf.b[bf.b.length - 1];
+  assert.equal(last[1], 100); assert.equal(last[2], 104); assert.equal(last[3], 100); assert.equal(last[4], 104); assert.equal(last[5], 10);
+  assert.ok(late.got.findIndex((m) => m.type === 'bars') < (late.got.findIndex((m) => m.type === 'ticks') + 1 || 1e9), 'bars before ticks');
+  assert.equal(late.got.filter((m) => m.type === 'ticks').reduce((n, m) => n + m.t.length, 0), 0, 'ticks already inside the bars are not replayed');
+  up.msg({ type: 'tick', symbol: 'NQ', price: 105, size: 1, side: 'sell', ts: 1 }); await sleep(250);
+  assert.equal(late.got.filter((m) => m.type === 'ticks').reduce((n, m) => n + m.t.length, 0), 1, 'new ticks continue');
+  hub.shutdown(); ok('1m candle buffer: late viewer is back-filled, no duplicate ticks');
+}
+
 // ---- viewer cap
 {
   socks = []; const { hub } = mk({ RECORD: false, MAX_CLIENTS: 2 });

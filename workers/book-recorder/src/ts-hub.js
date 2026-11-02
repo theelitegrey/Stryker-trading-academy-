@@ -38,7 +38,7 @@ export const TICK_SIZE = { NQ: 0.25, ES: 0.25 };
 const DEF = {
   SYMBOLS: TS_SYMBOLS, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
   SAMPLE_MS: 5000, BACK_MIN_MS: 2000, BACK_MAX_MS: 60000, STABLE_MS: 30000, DEAD_SLOT_MS: 50000, AUTH_PAUSE_MS: 300000,
-  SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, TICKS_PER_FRAME: 200, PRUNE_MS: 3600000
+  SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, TICKS_PER_FRAME: 200, PRUNE_MS: 3600000
 };
 export function tsOpts(env) {
   const n = (v, d, lo, hi) => { const x = Math.floor(Number(v)); return Number.isFinite(x) && x >= lo && x <= hi ? x : d; };
@@ -75,7 +75,7 @@ export class TSHub {
   constructor(store, key, opts = {}) {
     this.store = store; this.key = key; this.o = Object.assign({}, DEF, opts);
     this.WS = opts.WebSocket || globalThis.WebSocket; this.clock = opts.now || (() => Date.now());
-    this.ws = null; this.state = 'idle'; this.clients = new Set(); this.latest = new Map(); this.rings = new Map(); this.seq = 0;
+    this.ws = null; this.state = 'idle'; this.clients = new Set(); this.latest = new Map(); this.rings = new Map(); this.bars1m = new Map(); this.seq = 0;
     this.acc = new Map(); this.nextSample = new Map(); this.timers = {}; this.retryN = 0; this.openedAt = 0; this.lastMsgAt = 0; this.lastDataAt = 0;
     this.nextAt = 0; this.pauseUntil = 0; this.lastError = ''; this.minWait = 0; this.noViewerSince = 0; this.lastPrune = 0;
     this.n = { connects: 0, frames: 0, ticks: 0, snaps: 0, coarse: 0, rows: 0, drops: 0, refused: 0, throttled: 0 };
@@ -196,6 +196,12 @@ export class TSHub {
     const side = m.side === 'buy' ? 1 : m.side === 'sell' ? -1 : 0;
     if (!side) return;
     this.n.ticks++; this.lastDataAt = now;
+    // 1-minute candles of the last BARS_MIN minutes: a viewer's chart is back-filled from these on subscribe (candles the
+    // 10-minute-delayed lane has not delivered yet), then continues from the tick frames.
+    const bm = Math.floor(now / 60000) * 60000, bl = this.bars1m.get(m.symbol) || []; this.bars1m.set(m.symbol, bl);
+    let bb = bl[bl.length - 1];
+    if (!bb || bb[0] !== bm) { bb = [bm, m.price, m.price, m.price, m.price, 0]; bl.push(bb); if (bl.length > this.o.BARS_MIN) bl.splice(0, bl.length - this.o.BARS_MIN); }
+    if (m.price > bb[2]) bb[2] = m.price; if (m.price < bb[3]) bb[3] = m.price; bb[4] = m.price; bb[5] += m.size;
     const ring = this.rings.get(m.symbol) || []; this.rings.set(m.symbol, ring);
     ring.push([++this.seq, m.price, m.size, side, now]);
     if (ring.length > this.o.RING) ring.splice(0, ring.length - this.o.RING);
@@ -268,7 +274,11 @@ export class TSHub {
   }
   setSub(c, sym, levels) {
     const s = String(sym || '').toUpperCase();
-    if (this.o.SYMBOLS.includes(s) && s !== c.sym) { c.sym = s; c.sentVer = -1; c.lastCoarse = 0; c.lastSeq = this.seq; }
+    if (this.o.SYMBOLS.includes(s) && s !== c.sym) {
+      c.sym = s; c.sentVer = -1; c.lastCoarse = 0; c.lastSeq = this.seq;
+      const bl = this.bars1m.get(s);
+      if (bl && bl.length) this.send(c, JSON.stringify({ type: 'bars', symbol: s, b: bl }));   // [[t_ms,o,h,l,c,vol]..] 1m, newest last
+    }
     const l = Number(levels);
     if (LEVELS.includes(l)) c.levels = l;
     c.sentVer = -1;

@@ -145,11 +145,13 @@ export function installDataBanner(ws, opts = {}) {
   const inReplay = () => !!(window.__stkReplay && window.__stkReplay.on);
   const isPhone = () => window.innerWidth < 768 || document.documentElement.getAttribute('data-device') === 'mobile';
   let ready = false;
+  // Live L2 candles (assets/chart-futures-l2.js) make the chart current for NQ / ES: no delayed pill for that symbol while they flow.
+  const l2Fed = (sym) => { try { const r = String(sym || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, ''); const k = { MNQ: 'NQ', MES: 'ES' }[r] || r; return !!(window.__stkL2Live && window.__stkL2Live.has(k)); } catch (e) { return false; } };
 
   function anyDelayed() {
     const cs = cells();
-    if (cs.length) return cs.some((c) => isCmeSymbol(c.symbol));
-    try { return isCmeSymbol(ws.active ? ws.active.symbol : ''); } catch (e) { return false; }
+    if (cs.length) return cs.some((c) => isCmeSymbol(c.symbol) && !l2Fed(c.symbol));
+    try { return isCmeSymbol(ws.active ? ws.active.symbol : '') && !l2Fed(ws.active.symbol); } catch (e) { return false; }
   }
   // Viewer would see delayed CME data (independent of the "hide for today" choice): the data dot uses this too.
   const delayedViewer = () => ready && !rithLive() && !isRealtimeAdmin();
@@ -289,6 +291,7 @@ export function installDataBanner(ws, opts = {}) {
   Promise.resolve(rtReady()).then(() => { ready = true; sync(); }).catch(() => { ready = true; sync(); });
   setTimeout(() => { ready = true; sync(); }, 6000);   // never wait forever on the auth answer
   rtOnChange(sync);
+  window.addEventListener('stryker:l2live', sync);
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, () => requestAnimationFrame(sync)); } catch (e) {} });
   if (opts.rith && opts.rith.client && opts.rith.client.on) opts.rith.client.on(sync);
   if (typeof ResizeObserver === 'function') { try { new ResizeObserver(() => { if (!pill.hidden) place(); }).observe(panel); } catch (e) {} }

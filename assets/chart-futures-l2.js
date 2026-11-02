@@ -201,6 +201,58 @@ function seedHistory(r) {
   }).catch(() => {});
 }
 
+// ---------------------------------------------------------------------------------------- candles from the hub's ticks
+// The chart's own futures bars can run 10 min behind (CME delay lane). While Live L2 is connected for NQ/ES the hub's
+// ticks build the current and recent candles: the hub sends its last 20 min of 1m candles when we subscribe ({type:'bars'}),
+// then trade ticks. They are folded into the chart's timeframe and handed to the provider's onBar. Bars the delayed lane
+// delivers later are older than ours and are dropped by the chart. Only while Live L2 is up and the real-time lane is not.
+// Higher timeframes only emit a bucket the 20 min buffer fully covers (no half-built candle). shortcut: 1-60 min charts,
+// the front-month NQ/ES book vs the continuous series can differ by the roll basis, upgrade if a roll week shows a jump.
+const MIN_TFS = { '1': 1, '5': 5, '15': 15, '30': 30, '60': 60 };
+export function l2Fed(root) { try { return !!(window.__stkL2Live && window.__stkL2Live.has(root)); } catch (e) { return false; } }
+export function l2Candles(root, timeframe, onBar, realtimeConfirmed) {
+  const tf = MIN_TFS[String(timeframe)];
+  if (!tf || !l2Visible() || typeof document === 'undefined') return () => {};
+  const mins = new Map();   // minute ms -> [o,h,l,c,v]
+  let firstMin = Infinity, fed = false;
+  const live = window.__stkL2Live || (window.__stkL2Live = new Set());
+  const setFed = (v) => { if (v === fed) return; fed = v; if (v) live.add(root); else live.delete(root); try { window.dispatchEvent(new Event('stryker:l2live')); } catch (e) {} };
+  const emit = (touched) => {
+    const bk = new Set();
+    touched.forEach((t) => bk.add(Math.floor(t / (tf * 60000)) * tf * 60000));
+    [...bk].sort((x, y) => x - y).forEach((b) => {
+      if (b < firstMin && tf > 1) return;   // not fully covered
+      let o, h = -Infinity, l = Infinity, c, v = 0, n = 0;
+      for (let t = b; t < b + tf * 60000; t += 60000) {
+        const m = mins.get(t); if (!m) continue;
+        if (n++ === 0) o = m[0];
+        h = Math.max(h, m[1]); l = Math.min(l, m[2]); c = m[3]; v += m[4];
+      }
+      if (n) onBar({ time: b, open: o, high: h, low: l, close: c, volume: v });
+    });
+  };
+  const fn = (m) => {
+    const r = rootState(root);
+    const on = r.status === 'live' && l2Visible() && !(realtimeConfirmed && realtimeConfirmed());
+    if (!m) { if (!on) setFed(false); return; }
+    if (!on) return;
+    const touched = [];
+    if (m.type === 'bars') {
+      for (const b of m.b || []) { mins.set(b[0], [b[1], b[2], b[3], b[4], b[5]]); touched.push(b[0]); if (b[0] < firstMin) firstMin = b[0]; }
+    } else if (m.type === 'ticks') {
+      for (const x of m.t || []) {
+        const t = Math.floor(x[3] / 60000) * 60000, e = mins.get(t);
+        if (!e) { if (firstMin === Infinity) continue; mins.set(t, [x[0], x[0], x[0], x[0], x[1]]); }
+        else { if (x[0] > e[1]) e[1] = x[0]; if (x[0] < e[2]) e[2] = x[0]; e[3] = x[0]; e[4] += x[1]; }
+        touched.push(t);
+      }
+    }
+    if (touched.length) { setFed(true); emit(touched); }
+  };
+  const h = acquire(root, fn, 20);
+  return () => { h.release(); setFed(false); };
+}
+
 // ---------------------------------------------------------------------------------------- feed options for BookFeed
 // What chart-orderflow's BookFeed needs from a custom source (see its constructor).
 export function l2Source(root) {

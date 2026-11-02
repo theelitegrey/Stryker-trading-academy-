@@ -24,7 +24,14 @@ function fakeWs(admin) {
     window.__wsOpened++;
     const ws = { readyState: 0, send() {}, close() { this.readyState = 3; clearInterval(this.iv); this.onclose && this.onclose({ code: 1000 }); } };
     const T0 = Date.now(); let n = 0;
-    setTimeout(() => { ws.readyState = 1; ws.onopen && ws.onopen(); ws.onmessage && ws.onmessage({ data: JSON.stringify({ event: 'status', state: 'live' }) }); }, 50);
+    window.__l2ws = ws;
+    setTimeout(() => {
+      ws.readyState = 1; ws.onopen && ws.onopen(); ws.onmessage && ws.onmessage({ data: JSON.stringify({ event: 'status', state: 'live' }) });
+      // the hub's last 15 min of 1m candles (what the 10-min-delayed lane has not delivered yet)
+      const m0 = Math.floor(Date.now() / 60000) * 60000, mid0 = window.__L2MID || 21000, b = [];
+      for (let k = 15; k >= 0; k--) { const o = mid0 + Math.sin(k) * 4; b.push([m0 - k * 60000, o, o + 6, o - 5, o + 2, 300 + k]); }
+      ws.onmessage({ data: JSON.stringify({ type: 'bars', symbol: 'NQ', b }) });
+    }, 50);
     ws.iv = setInterval(() => {
       if (ws.readyState !== 1 || !ws.onmessage) return;
       n++;
@@ -99,13 +106,26 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       await ctx.close();
     }
     // ---- admin: 1440 dark + light, then 390 dark + light
-    for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, "dark", "1440-dark"]] : [[1440, 900, false, "dark", "1440-dark"], [1440, 900, false, "light", "1440-light"], [390, 844, true, "dark", "390-dark"], [390, 844, true, "light", "390-light"]])) {
+    for (const [w, h, mobile, theme, tag] of (process.env.ONE === "m" ? [[390, 844, true, "dark", "390-dark"]] : process.env.ONE ? [[1440, 900, false, "dark", "1440-dark"]] : [[1440, 900, false, "dark", "1440-dark"], [1440, 900, false, "light", "1440-light"], [390, 844, true, "dark", "390-dark"], [390, 844, true, "light", "390-light"]])) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
       await setNQ(p);
       await add(p, 'stk_fut_dom', { style: 'Combined (heatmap + depth + walls)' });
       await add(p, 'stk_fut_imb');
       await sleep(9000);   // ~90 fake coarse columns
-      const n = await p.evaluate(() => window.__wsOpened);
+      const nSock = await p.evaluate(() => window.__wsOpened);
+      // candles: the hub's ticks + 1m bars carry the chart past the 10-min delayed bars; no gap, no duplicate; pill hidden; back on drop
+      const cd = await p.evaluate(() => { const rb = window.STRYKER_VELA.chart.orchestrator.rawBars.map((x) => x.time); return { n: rb.length, last: rb[rb.length - 1], tail: rb.slice(-16), now: Date.now() }; });
+      const minNow = Math.floor(cd.now / 60000) * 60000;
+      check(cd.last >= minNow - 60000, tag + ': newest candle is the current minute (not 10 min behind)', { lag: Math.round((cd.now - cd.last) / 60000) });
+      check(cd.tail.every((t, i, a) => i === 0 || (a[i] > a[i - 1] && (a[i] - a[i - 1]) % 60000 === 0)), tag + ': candles strictly increasing, whole minutes (no duplicate bar)', cd.tail.slice(-5));
+      check(cd.tail.every((t, i, a) => i === 0 || a[i] - a[i - 1] === 60000) || process.env.CME_CLOSED, tag + ': no gap in the last 15 candles', cd.tail.slice(-5));
+      check(await p.evaluate(() => { const pl = document.getElementById('stkdp'); return !pl || pl.hidden || getComputedStyle(pl).display === 'none'; }), tag + ': delayed pill hidden while Live L2 feeds the chart');
+      await p.evaluate(() => window.__l2ws.close());
+      await sleep(700);
+      check(await p.evaluate(() => !(window.__stkL2Live && window.__stkL2Live.has('NQ'))), tag + ': L2 drop releases the candle feed');
+      check(await p.evaluate(() => { const pl = document.getElementById('stkdp'); return !!pl && !pl.hidden; }), tag + ': delayed pill is back after the drop');
+      await sleep(4000);   // the hook reconnects on its own backoff
+      const n = nSock;
       check(n === 1, tag + ': ONE browser socket shared by dom + imbalance (+ ladder)', n);
       check((await canv(p)) > 300, tag + ': heatmap / depth pixels drawn', await canv(p));
       check(await p.evaluate(() => { const b = document.getElementById('stkl2-badge'); return !!b && !b.hidden && /Live L2/.test(b.textContent) && !!b.querySelector('.stkl2-dot'); }), tag + ': "Live L2" badge with the dot');
@@ -120,7 +140,10 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       if (!mobile) {
         await p.click('.stkl2-railbtn');
       } else {
-        await p.tap('.stkl2-phonebtn');
+        // header: the full symbol shows (the L2 button lives in the ⋯ menu, not the bar)
+        const hd = await p.evaluate(() => { const bs = [...document.querySelectorAll('#stkc-bar-l button, #stkc-bar button')].filter((x) => /^(NQ1!|N)/.test(x.textContent.trim()) && x.offsetWidth); const b = bs[0]; return { txt: b && b.textContent.trim(), clipped: b ? b.scrollWidth > b.clientWidth + 1 || getComputedStyle(b).textOverflow === 'ellipsis' && b.scrollWidth > b.clientWidth : null, w: b && b.offsetWidth }; });
+        check(hd.clipped === false && /NQ1!/.test(hd.txt || ''), tag + ': header shows "NQ1!" in full', hd);
+        await p.evaluate(() => window.__stkL2Ladder.open());
       }
       await sleep(1800);
       if (process.env.DBG) console.log(await p.evaluate(() => { const ws = window.STRYKER_VELA; const sym = ws.active.symbol; let r; try { r = ws.cell(ws.active.id).data.resolve(sym); } catch (e) { r = String(e); } return JSON.stringify([sym, r, document.getElementById('stkl2') && document.getElementById('stkl2').innerText.slice(0, 200)]); }));

@@ -490,7 +490,7 @@ export async function tsHubFetch(hub, env, u, req) {
     let left = 0;
     if (u.searchParams.get('fill') !== '0') { try { left = (await hub.tb.backfill(sym, from, to, hub.key)).left; } catch (e) { hub.lastError = 'trade fill failed'; } }
     const r = hub.tb.read(sym, from, to);
-    return new Response(JSON.stringify({ sym, floor: hub.tb.floor[sym], left, trades: r.trades, delta: r.delta }), { headers: { 'content-type': 'application/json', 'x-ts-fill-left': String(left) } });
+    return new Response(JSON.stringify({ sym, at: Date.now(), floor: hub.tb.floor[sym], left, trades: r.trades, delta: r.delta }), { headers: { 'content-type': 'application/json', 'x-ts-fill-left': String(left) } });
   }
   // END TS-TRADES block
   if (u.pathname === '/ts-book-history' || u.pathname === '/ts-aux') {

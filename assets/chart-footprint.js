@@ -27,6 +27,7 @@ import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=793';
 import { rtHeadersReady } from './rt-access.js?v=793';
 import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=793';
 import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=793';
+import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=793';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -890,13 +891,17 @@ export function installFootprint(Core, flowMod) {
     subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
     use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); }
   });
+  // Tick-stream twins of Big Trades / Delta / CVD (assets/chart-ts-trades.js): admin only, for the feed comparison
+  installTsTrades(Core, { flowFor, rootOf, sessionOf, tfMin, frame, idxOf, alpha, fmt, sgn, light, replayE, clamp, num, MONO,
+    use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); },
+    subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn) });
   linkFlow(flowMod);
 }
 // the picker group + the "stryker" badge + settings persistence (assets/chart-orderflow.js); that module
 // loads lazily, so this is called again once it is here.
 function linkFlow(flowMod) {
   if (!flowMod || !Array.isArray(flowMod.OUR_TYPES)) return;
-  for (const type of OF_TYPES.concat(DS_TYPES, PRO_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
+  for (const type of OF_TYPES.concat(DS_TYPES, PRO_TYPES, TS_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
 }
 export const FP_DISCLAIMER = DISCLAIMER;
 // Read-only handle for the browser suite (tools/tests/chart-footprint-browser.js) and debugging.

@@ -3525,3 +3525,5 @@ button.lyl-stat.on svg{ fill:currentColor; }
 .appnav-msec.open > .appnav-sh-group .side-group-chev{ transform:rotate(180deg); }
 .appnav-msec > .appnav-sh-list{ display:none; }
 .appnav-msec.open > .appnav-sh-list{ display:block; }
+@keyframes stkl2-pulse{ 0%{ box-shadow:0 0 0 0 rgba(3,201,136,.5) } 70%,100%{ box-shadow:0 0 0 6px rgba(3,201,136,0) } }
+@keyframes stkl2-up{ from{ transform:translateY(24px); opacity:0 } to{ transform:none; opacity:1 } }

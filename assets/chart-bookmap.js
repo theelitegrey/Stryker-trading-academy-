@@ -77,7 +77,10 @@ export function drawBookmap(g, view) {
   px.fill(bg);
   const rowPrice = new Float64Array(H); for (let y = 0; y < H; y++) rowPrice[y] = view.priceOfY(top + (y + 0.5) / dpr);
   let cells = 0, blue = 0, tot = 0; const scale = 1023 / (maxSz * 1.0001);
-  for (const c of cols) {
+  // one value of column ci at a price row index (same step), 0 when outside / empty
+  const at = (ci, ri) => { if (ci < 0 || ci >= cols.length) return 0; const q = cols[ci].s; if (q.step !== cols[Math.max(0, Math.min(cols.length - 1, ci))].s.step) return 0; const k = ri - q.i0; return k >= 0 && k < q.v.length ? q.v[k] : 0; };
+  for (let ci = 0; ci < cols.length; ci++) {
+    const c = cols[ci];
     const s = c.s, v = s.v, step = s.step, i0 = s.i0, n = v.length;
     const xa = Math.max(0, Math.round((c.xa - x0) * dpr)), xb = Math.min(W, Math.round((c.xb - x0) * dpr));
     if (xb <= xa) continue;
@@ -89,9 +92,11 @@ export function drawBookmap(g, view) {
         const lo = Math.max(0, Math.min(kA, kB)), hi = Math.min(n - 1, Math.max(kA, kB));
         if (hi > lo) { for (let m = lo; m <= hi; m++) { const z = v[m] < 0 ? -v[m] : v[m]; if (z > a) a = z; } k = lo; }
       }
-      if (k < 0 || k >= n) continue;
-      if (a === 0) { a = v[k]; if (a < 0) a = -a; }
-      if (a === 0) continue;
+      if (a === 0 && k >= 0 && k < n) { a = v[k]; if (a < 0) a = -a; }
+      if (a === 0) {   // hold: Bookmap keeps the last known size until it changes; a one-sample hole (size before AND after) is not a gap
+        const ri = Math.floor(rowPrice[y] / step + 1e-9), pv = at(ci - 1, ri), nx = at(ci + 1, ri);
+        if (pv !== 0 && nx !== 0 && (pv > 0) === (nx > 0)) a = pv < 0 ? -pv : pv; else continue;
+      }
       const q = a * scale, ti = tmap[q > 1023 ? 1023 : q | 0], col = lut[ti], o = y * W;
       if (ti < 128) blue += xb - xa; tot += xb - xa;
       for (let x = xa; x < xb; x++) px[o + x] = col;

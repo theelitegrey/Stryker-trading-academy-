@@ -2,6 +2,12 @@
  {
   "build": 800,
   "date": "2026-11-03",
+  "title": "Order book, DOM and trades panel",
+  "link": ""
+ },
+ {
+  "build": 800,
+  "date": "2026-11-03",
   "title": "Screener for all markets",
   "link": ""
  },
@@ -21,12 +27,6 @@
   "build": 793,
   "date": "2026-11-03",
   "title": "Live index & ETF prices (SPX, NDX, VIX, QQQ, SPY...)",
-  "link": ""
- },
- {
-  "build": 793,
-  "date": "2026-11-03",
-  "title": "Order book, DOM and trades panel",
   "link": ""
  },
  {

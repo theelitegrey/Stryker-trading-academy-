@@ -14,8 +14,8 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=789';
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=789';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=790';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=790';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -394,7 +394,7 @@ export class FuturesProvider {
   l2Subscribe(root, timeframe, onBar) {
     if (!['NQ', 'ES', 'MNQ', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC'].includes(root)) return NOOP;
     let stop = null, dead = false;
-    import('./chart-futures-l2.js?v=789').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
+    import('./chart-futures-l2.js?v=790').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
     return () => { dead = true; if (stop) stop(); };
   }
   subscribeBase(ticker, timeframe, onBar, root, tf) {

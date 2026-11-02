@@ -148,13 +148,14 @@ function readout(type, s, f, thr, same) {
   const tt = Math.max(thr, s.floor);
   const r = compareFeeds({ isBars: f.mins, tsMins: minutes(s), tsTrades: s.trades, thr: tt, tick: s.tick, from, to: now + 60000 });
   const d = 'Δ IS ' + G(r.is.delta) + ' · TS ' + G(r.ts.delta) + (r.corr != null ? ' · r ' + r.corr.toFixed(2) : '');
-  if (type === 'stk_ts_big') return ['Feed compare, last 60 min', 'Big IS ' + r.is.bubbles + ' · TS ' + r.ts.bubbles + ' | Vol IS ' + F(r.is.vol) + ' · TS ' + F(r.ts.vol) + ' | lag p50 ' + lag(r.lagP50) + ' (' + (r.matchedPct == null ? 'n/a' : r.matchedPct + '% matched') + ') | ' + d];
-  return ['Feed compare, last 60 min', d + ' | Buy IS ' + F(r.is.buy) + ' · TS ' + F(r.ts.buy) + ' | Sell IS ' + F(r.is.sell) + ' · TS ' + F(r.ts.sell)];
+  const head = 'Feed compare, last 60 min';
+  if (type === 'stk_ts_big') return [head, 'Big trades IS ' + r.is.bubbles + ' · TS ' + r.ts.bubbles, 'Volume IS ' + F(r.is.vol) + ' · TS ' + F(r.ts.vol), 'Lag p50 ' + lag(r.lagP50) + (r.matchedPct == null ? '' : ' · ' + Math.round(r.matchedPct) + '% matched'), d];
+  return [head, d, 'Buy IS ' + F(r.is.buy) + ' · TS ' + F(r.ts.buy) + ' | Sell IS ' + F(r.is.sell) + ' · TS ' + F(r.ts.sell)];
 }
-function table(id, rows, accent) {
+function table(id, rows, accent, t0) {
   const day = H.light();
-  return { id, paneId: '', position: 'bottom_center', columns: 1, rows: rows.length, bgColor: day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.9)', frameWidth: 0, borderWidth: 0,
-    cells: rows.map((t, i) => [{ text: t, textColor: i === 0 || accent ? '#00adb5' : (day ? '#334155' : '#a3a9b6'), hAlign: 'center', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: false, italic: false }]), merges: [] };
+  return { id, paneId: '', position: t0 ? 'top_right' : 'bottom_center', columns: 1, rows: rows.length, bgColor: day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.9)', frameWidth: 0, borderWidth: 0,
+    cells: rows.map((t, i) => [{ text: t, textColor: i === 0 || accent ? '#00adb5' : (day ? '#334155' : '#a3a9b6'), hAlign: t0 ? 'right' : 'center', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: false, italic: false }]), merges: [] };
 }
 
 // ---------------------------------------------------------------------------------------------- indicator
@@ -191,7 +192,9 @@ class TsNative {
     ctx.setStatus(s.loading ? 'loading' : 'idle');
     const msg = s.loading && !mins.length ? 'Loading Tick-stream trades…' : s.err && !mins.length ? s.err : !mins.length ? 'Waiting for Tick-stream trades…' : '';
     const thr = H.bigThreshold(same ? isF.thr : s.floor, H.num(I.mult, 1), H.num(I.minSize, 0));
-    const tables = msg ? [table(t + '-msg', [msg], true)] : E != null ? [] : [table(t + '-cmp', readout(t, s, isF, t === 'stk_ts_big' ? thr : 0, same))];
+    const cmp = msg || E != null ? null : readout(t, s, isF, t === 'stk_ts_big' ? thr : 0, same);
+    (window.__tsReadout || (window.__tsReadout = {}))[t] = cmp || [msg];   // read by tools/tests/ts-bigtrades-browser.js (the table itself is drawn on the canvas)
+    const tables = msg ? [table(t + '-msg', [msg], true)] : cmp ? [table(t + '-cmp', cmp, false, t === 'stk_ts_big')] : [];
     if (t === 'stk_ts_big') { ctx.emit({ tables }); ctx.pushData({ owner: this, root, isRoot: same ? isRoot : null, timeframe: ctx.timeframe, inputs: I, v: s.v, vr: bars.length }); return; }
     const agg = aggregateMins(mins, tf * 60000), map = new Map(agg.map((b) => [b.t, b]));
     if (t === 'stk_ts_delta') {

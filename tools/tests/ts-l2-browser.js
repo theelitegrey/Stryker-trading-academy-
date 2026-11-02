@@ -9,14 +9,17 @@ const fs = require('fs');
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
+// SYM=CL|GC|... runs the same suite on another root (price scale from the CFG table); default NQ.
+const SYM = process.env.SYM || 'NQ';
+const CFG = { NQ: { tk: 0.25, step: 2.5, mid: 28750 }, MNQ: { tk: 0.25, step: 2.5, mid: 28750 }, YM: { tk: 1, step: 2, mid: 45000 }, RTY: { tk: 0.1, step: 0.2, mid: 2300 }, CL: { tk: 0.01, step: 0.01, mid: 60.5 }, GC: { tk: 0.1, step: 0.2, mid: 4012.3 } }[SYM];
 const OUT = process.argv[2] || '/tmp';
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fail = 0;
 const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg + (!ok && x !== undefined ? ' ' + JSON.stringify(x).slice(0, 300) : '')); };
 
-function fakeWs(admin) {
-  window.__wsOpened = 0; window.__L2MID = 28750;
+function fakeWs([admin, SYM, C]) {
+  window.__wsOpened = 0; window.__L2MID = C.mid;
   if (admin) window.__stkL2Test = { base: 'http://127.0.0.1:9' };
   const Real = window.WebSocket;
   window.WebSocket = function (url, proto) {
@@ -29,28 +32,28 @@ function fakeWs(admin) {
       ws.readyState = 1; ws.onopen && ws.onopen(); ws.onmessage && ws.onmessage({ data: JSON.stringify({ event: 'status', state: 'live' }) });
       // the hub's last 15 min of 1m candles (what the 10-min-delayed lane has not delivered yet)
       const m0 = Math.floor(Date.now() / 60000) * 60000, mid0 = window.__L2MID || 21000, b = [];
-      for (let k = 15; k >= 0; k--) { const o = mid0 + Math.sin(k) * 4; b.push([m0 - k * 60000, o, o + 6, o - 5, o + 2, 300 + k]); }
-      ws.onmessage({ data: JSON.stringify({ type: 'bars', symbol: 'NQ', b }) });
+      for (let k = 15; k >= 0; k--) { const o = mid0 + Math.sin(k) * 4 * C.step / 2.5; b.push([m0 - k * 60000, o, o + 6 * C.step / 2.5, o - 5 * C.step / 2.5, o + 2 * C.step / 2.5, 300 + k]); }
+      ws.onmessage({ data: JSON.stringify({ type: 'bars', symbol: SYM, b }) });
     }, 50);
     ws.iv = setInterval(() => {
       if (ws.readyState !== 1 || !ws.onmessage) return;
       n++;
-      const mid = Math.round((window.__L2MID || 21000) * 4) / 4 + Math.sin(n / 9) * 3, now = Date.now();
-      const step = 2.5, i0 = Math.floor(mid * 0.996 / step), len = Math.ceil(mid * 0.008 / step) + 2;
+      const mid = Math.round((window.__L2MID || 21000) / C.tk) * C.tk + Math.sin(n / 9) * 3 * C.step / 2.5, now = Date.now();
+      const step = C.step, i0 = Math.floor(mid * 0.996 / step), len = Math.ceil(mid * 0.008 / step) + 2;
       const v = new Array(len).fill(0);
       for (let k = 0; k < len; k++) {
         const p = (i0 + k + 0.5) * step, d = Math.abs(p - mid);
-        let q = 30 + 25 * Math.abs(Math.sin(k * 1.7 + n / 40)) + Math.max(0, 200 - d * 4);
-        if (Math.abs(d - 14) < 1.1) q += 900;                       // standing wall each side
-        if (p > mid && Math.abs(d - 40) < 1.1 && n < 90) q += 700;  // a wall that is pulled at n=90
+        let q = 30 + 25 * Math.abs(Math.sin(k * 1.7 + n / 40)) + Math.max(0, 200 - d * 4 * 2.5 / C.step);
+        if (Math.abs(d - 14 * C.step / 2.5) < 1.1 * C.step / 2.5) q += 900;                       // standing wall each side
+        if (p > mid && Math.abs(d - 40 * C.step / 2.5) < 1.1 * C.step / 2.5 && n < 90) q += 700;  // a wall that is pulled at n=90
         v[k] = p < mid ? Math.round(q) : -Math.round(q);
       }
-      const bid = Math.floor(mid * 4) / 4, ask = bid + 0.25, bids = [], asks = [];
-      for (let j = 0; j < 150; j++) { bids.push([bid - j * 0.25, Math.round(5 + 40 * Math.abs(Math.sin(j / 3 + n / 20)) + (j === 40 ? 500 : 0))]); asks.push([ask + j * 0.25, Math.round(5 + 40 * Math.abs(Math.cos(j / 3 + n / 25)) + (j === 52 ? 450 : 0))]); }
+      const bid = Math.floor(mid / C.tk) * C.tk, ask = bid + C.tk, bids = [], asks = [];
+      for (let j = 0; j < 150; j++) { bids.push([bid - j * C.tk, Math.round(5 + 40 * Math.abs(Math.sin(j / 3 + n / 20)) + (j === 40 ? 500 : 0))]); asks.push([ask + j * C.tk, Math.round(5 + 40 * Math.abs(Math.cos(j / 3 + n / 25)) + (j === 52 ? 450 : 0))]); }
       const send = (o) => ws.onmessage({ data: JSON.stringify(o) });
-      send({ type: 'snap', symbol: 'NQ', ts: now, bids, asks, imb: Math.sin(n / 30) * 0.6, imb10: Math.sin(n / 30 + 0.7) * 0.45 });
-      send({ type: 'coarse', symbol: 'NQ', ts: now, mid, bb: bid, ba: ask, step, i0, v });
-      send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, now], [ask, 2 + (n % 5), 1, now], [ask + 0.5, 3, 1, now]] });
+      send({ type: 'snap', symbol: SYM, ts: now, bids, asks, imb: Math.sin(n / 30) * 0.6, imb10: Math.sin(n / 30 + 0.7) * 0.45 });
+      send({ type: 'coarse', symbol: SYM, ts: now, mid, bb: bid, ba: ask, step, i0, v });
+      send({ type: 'ticks', symbol: SYM, t: [[bid, 1 + (n % 7), -1, now], [ask, 2 + (n % 5), 1, now], [ask + 2 * C.tk, 3, 1, now]] });
     }, 100);
     return ws;
   };
@@ -59,7 +62,7 @@ function fakeWs(admin) {
 async function open(b, { w, h, mobile, admin, theme }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
-  await ctx.addInitScript(fakeWs, !!admin);
+  await ctx.addInitScript(fakeWs, [!!admin, SYM, CFG]);
   await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker.vela.session', ''); if (t) localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); } catch (e) {} }, theme || '');
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   await ctx.route(/127\.0\.0\.1:9\/ts-book-history/, async (r) => {
@@ -68,7 +71,7 @@ async function open(b, { w, h, mobile, admin, theme }) {
     const u = new URL(r.request().url()), from = Number(u.searchParams.get('from')), to = Number(u.searchParams.get('to')), out = [];
     let mid0 = 21000; try { mid0 = (await ctx.pages()[0].evaluate(() => window.__L2MID)) || mid0; } catch (e) {}
     for (let t = Math.ceil(from / 120000) * 120000; t < to; t += 120000) {
-      const mid = mid0 + Math.sin(t / 900000) * 20, step = 2.5, i0 = Math.floor(mid * 0.996 / step), len = Math.ceil(mid * 0.008 / step) + 2, v = new Float32Array(len);
+      const mid = mid0 + Math.sin(t / 900000) * 20 * CFG.step / 2.5, step = CFG.step, i0 = Math.floor(mid * 0.996 / step), len = Math.ceil(mid * 0.008 / step) + 2, v = new Float32Array(len);
       for (let k = 0; k < len; k++) { const p = (i0 + k + 0.5) * step, d = Math.abs(p - mid); let q = 2 + 14 * Math.abs(Math.sin(k * 2.3 + t / 3e5)) + Math.max(0, 40 - d); if (Math.abs(d - 30 - 10 * Math.sin(t / 2e6)) < 2) q += 400; v[k] = p < mid ? q : -q; }
       out.push({ ts: t, mid, bb: mid - 0.25, ba: mid + 0.25, step, i0, v });
     }
@@ -87,12 +90,12 @@ async function open(b, { w, h, mobile, admin, theme }) {
 }
 const chartOf = (p) => p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.market.symbol);
 async function setNQ(p) {
-  await p.evaluate(async () => {
-    const ws = window.STRYKER_VELA; ws.active.setSymbol('futures:NQ1!'); ws.active.setTimeframe('1');
-    for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 300)); const c = ws.chart; if (c.market.symbol === 'futures:NQ1!' && c.orchestrator.rawBars.length > 50) break; }
+  await p.evaluate(async (S) => {
+    const ws = window.STRYKER_VELA; ws.active.setSymbol('futures:' + S + '1!'); ws.active.setTimeframe('1');
+    for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 300)); const c = ws.chart; if (c.market.symbol === 'futures:' + S + '1!' && c.orchestrator.rawBars.length > 50) break; }
     const rb = ws.chart.orchestrator.rawBars; const last = rb[rb.length - 1], px = last && (last.close != null ? last.close : last.c);
-    if (px > 20000 && Math.abs(px - 28750) < 3000) window.__L2MID = px;
-  });
+    if (px > 0) window.__L2MID = px;   // follow the stub's candles when on the same scale
+  }, SYM);
   await sleep(800);
 }
 const add = (p, type, inputs) => p.evaluate(([t, i]) => { const c = window.STRYKER_VELA.context().cells[0].chart; c.addNativeIndicator(t, { inputs: i || {} }); window.STRYKER_VELA.context().stateChanged(); }, [type, inputs]);
@@ -139,7 +142,7 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       check(await p.evaluate(() => { const pl = document.getElementById('stkdp'); return !pl || pl.hidden || getComputedStyle(pl).display === 'none'; }), tag + ': delayed pill hidden while Live L2 feeds the chart');
       await p.evaluate(() => window.__l2ws.close());
       await sleep(700);
-      check(await p.evaluate(() => !(window.__stkL2Live && window.__stkL2Live.has('NQ'))), tag + ': L2 drop releases the candle feed');
+      check(await p.evaluate((S) => !(window.__stkL2Live && window.__stkL2Live.has(S)), SYM), tag + ': L2 drop releases the candle feed');
       check(await p.evaluate(() => { const pl = document.getElementById('stkdp'); return !!pl && !pl.hidden; }), tag + ': delayed pill is back after the drop');
       await sleep(4000);   // the hook reconnects on its own backoff
       const n = nSock;
@@ -158,8 +161,8 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
         await p.click('.stkl2-railbtn');
       } else {
         // header: the full symbol shows (the L2 button lives in the ⋯ menu, not the bar)
-        const hd = await p.evaluate(() => { const bs = [...document.querySelectorAll('#stkc-bar-l button, #stkc-bar button')].filter((x) => /^(NQ1!|N)/.test(x.textContent.trim()) && x.offsetWidth); const b = bs[0]; return { txt: b && b.textContent.trim(), clipped: b ? b.scrollWidth > b.clientWidth + 1 || getComputedStyle(b).textOverflow === 'ellipsis' && b.scrollWidth > b.clientWidth : null, w: b && b.offsetWidth }; });
-        check(hd.clipped === false && /NQ1!/.test(hd.txt || ''), tag + ': header shows "NQ1!" in full', hd);
+        const hd = await p.evaluate((S) => { const bs = [...document.querySelectorAll('#stkc-bar-l button, #stkc-bar button')].filter((x) => new RegExp('^(' + S + '1!|' + S[0] + ')').test(x.textContent.trim()) && x.offsetWidth); const b = bs[0]; return { txt: b && b.textContent.trim(), clipped: b ? b.scrollWidth > b.clientWidth + 1 || getComputedStyle(b).textOverflow === 'ellipsis' && b.scrollWidth > b.clientWidth : null, w: b && b.offsetWidth }; }, SYM);
+        check(hd.clipped === false && new RegExp(SYM + '1!').test(hd.txt || ''), tag + ': header shows "NQ1!" in full', hd);
         await p.evaluate(() => window.__stkL2Ladder.open());
       }
       await sleep(1800);

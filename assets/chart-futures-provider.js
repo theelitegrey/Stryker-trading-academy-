@@ -390,11 +390,11 @@ export class FuturesProvider {
     if (stopL2 !== NOOP) { const inner = this.subscribeBase(ticker, timeframe, onBar, root, tf); return () => { stopL2(); inner(); }; }
     return this.subscribeBase(ticker, timeframe, onBar, root, tf);
   }
-  // admin-only futures L2 candles (assets/chart-futures-l2.js): lazy import, NQ / ES only
+  // admin-only futures L2 candles (assets/chart-futures-l2.js): lazy import, the eight L2 books (+ micros of those minis)
   l2Subscribe(root, timeframe, onBar) {
-    if (root !== 'NQ' && root !== 'ES' && root !== 'MNQ' && root !== 'MES') return NOOP;
+    if (!['NQ', 'ES', 'MNQ', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC'].includes(root)) return NOOP;
     let stop = null, dead = false;
-    import('./chart-futures-l2.js?v=789').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(root === 'MNQ' ? 'NQ' : root === 'MES' ? 'ES' : root, timeframe, onBar, rtConfirmed); }).catch(() => {});
+    import('./chart-futures-l2.js?v=789').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
     return () => { dead = true; if (stop) stop(); };
   }
   subscribeBase(ticker, timeframe, onBar, root, tf) {

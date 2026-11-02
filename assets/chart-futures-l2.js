@@ -16,15 +16,22 @@
 import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=789';
 
 export const L2_MEMBERS = false;          // licence flag: true only after the Owner confirms Tick-stream's Redistribution licence
-export const L2_ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES' };
+// Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
+export const L2_BOOKS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
+export const L2_ROOTS = { NQ: 'NQ', MNQ: 'MNQ', ES: 'ES', MES: 'MES', YM: 'YM', MYM: 'YM', RTY: 'RTY', M2K: 'RTY', CL: 'CL', MCL: 'CL', GC: 'GC', MGC: 'GC' };
+export const L2_TICK = { NQ: 0.25, MNQ: 0.25, ES: 0.25, MES: 0.25, YM: 1, RTY: 0.1, CL: 0.01, GC: 0.1 };   // = TICK_SIZE in the Worker's ts-hub.js
 const TICK = 0.25;
+const tickOf = (root) => L2_TICK[root] || TICK;
 const LEVELS = [20, 60, 150];
 const KEEP_MS = 48 * 3600000;
 const READ_MS = 6 * 3600000;
 const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname); } catch (e) { return false; } };
 const testOn = () => isLocal() && typeof window !== 'undefined' && window.__stkL2Test;
 export function l2Visible() { return !!(L2_MEMBERS || isRealtimeAdmin() || testOn()); }
-export const l2Root = (ticker) => L2_ROOTS[String(ticker || '').toUpperCase().replace(/\d?!$/, '').replace(/^[A-Z_]+:/, '')] || null;
+const symOf = (ticker) => String(ticker || '').toUpperCase().replace(/\d?!$/, '').replace(/^[A-Z_]+:/, '');
+export const l2Root = (ticker) => L2_ROOTS[symOf(ticker)] || null;
+// "showing YM book" for a micro that has no book of its own, else ''
+export const l2Note = (ticker) => { const s = symOf(ticker), r = L2_ROOTS[s]; return r && r !== s ? 'Showing the ' + r + ' book' : ''; };
 const baseUrl = (H) => (testOn() && window.__stkL2Test.base) || (H && H.recorderUrl && H.recorderUrl()) || '';   // localhost test flag wins
 const wsBase = (b) => String(b).replace(/^http/i, 'ws');
 let HOOK = null;   // H from chart-orderflow (recorderUrl)
@@ -42,7 +49,7 @@ const tell = (r) => r.listeners.forEach((f) => { try { f(); } catch (e) {} });
 // Same minute-bar shape as chart-footprint-crypto.js bars(): { t, lo, hi, buy[], sell[] } in tick-index rows, so
 // tradedAt / vanishKind / icebergEvents (chart-liquidity-data.js) work on it unchanged.
 class TickFeed {
-  constructor() { this.mins = new Map(); this.tick = TICK; this.coverFrom = Infinity; this.v = 0; this.sorted = null; this.sortedV = -1; this.ring = []; }
+  constructor(root) { this.mins = new Map(); this.tick = tickOf(root); this.coverFrom = Infinity; this.v = 0; this.sorted = null; this.sortedV = -1; this.ring = []; }
   add(list, backfill) {
     for (const x of list) {
       const price = x[0], size = x[1], side = x[2], T = x[3];
@@ -155,7 +162,7 @@ class Conn {
       const last = r.imb[r.imb.length - 1], now = Date.now();
       if (!last || now - last[0] >= 1000) { r.imb.push([now, m.imb, m.imb10]); if (r.imb.length > 21600) r.imb.splice(0, r.imb.length - 21600); }
     } else if (m.type === 'coarse') r.coarse = m;
-    else if (m.type === 'ticks') { if (!r.trades) r.trades = new TickFeed(); r.trades.add(m.t || [], false); }
+    else if (m.type === 'ticks') { if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(m.t || [], false); }
     r.listeners.forEach((f) => { try { f(m); } catch (e) {} });
   }
   close() { this.stopped = true; clearTimeout(this.tm); clearTimeout(this.dog); clearTimeout(this.closeTm); document.removeEventListener('visibilitychange', this.onVis); if (this.ws) { try { this.ws.close(1000); } catch (e) {} this.ws = null; } }
@@ -164,7 +171,7 @@ let idSeq = 0;
 // subscribe to one root: fn(frame) per frame, fn() on state changes. -> { r, release(), levels(n) }
 export function acquire(root, fn, levels) {
   const r = rootState(root), id = ++idSeq;
-  if (!r.trades) r.trades = new TickFeed();
+  if (!r.trades) r.trades = new TickFeed(r.root);
   r.listeners.add(fn);
   if (!r.conn) r.conn = new Conn(root);
   r.conn.refs++; r.conn.setLevels(id, levels || 60);
@@ -256,10 +263,11 @@ export function l2Candles(root, timeframe, onBar, realtimeConfirmed) {
 // ---------------------------------------------------------------------------------------- feed options for BookFeed
 // What chart-orderflow's BookFeed needs from a custom source (see its constructor).
 export function l2Source(root) {
-  const rule = (mid) => ({ step: nearNice(mid * 0.0001), range: 0.004 });   // identical to the Worker's coarseRule (ts-hub.js)
+  const tk = tickOf(root);
+  const rule = (mid) => { const st = nearNice(Math.max(mid * 0.0001, tk)); return { step: Math.round(Math.max(1, Math.floor(st / tk + 1e-6)) * tk * 1e6) / 1e6, range: 0.004 }; };   // identical to the Worker's coarseRule (ts-hub.js)
   return {
     base: 'contracts', keepMs: KEEP_MS, rule,
-    trades: () => rootState(root).trades || (rootState(root).trades = new TickFeed()),
+    trades: () => rootState(root).trades || (rootState(root).trades = new TickFeed(root)),
     remote: async (from, to) => {
       const base = baseUrl(HOOK);
       const x = await authFetch(base + '/ts-book-history?symbol=' + root + '&from=' + from + '&to=' + to);
@@ -329,7 +337,7 @@ export function badgeUse(on) {
 
 // ---------------------------------------------------------------------------------------- indicators
 export const L2_TYPES = ['stk_fut_dom', 'stk_fut_imb'];
-const NEED = 'Futures DOM needs an NQ or ES chart (MNQ / MES show the NQ / ES book).';
+const NEED = 'Futures DOM works on NQ, MNQ, ES, MES, YM, RTY, CL and GC charts (MYM, M2K, MCL, MGC show their mini\'s book).';
 const NOT_YET = 'Futures L2 is not available yet.';
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -371,7 +379,7 @@ export function installFuturesL2(Core, H, reg) {
       if (st.status !== 'live') return 'Reconnecting to the order book…';
       const cfg = H.domConfig(Object.assign({}, this.inputs, this.inputs.l2Walls === false ? {} : {}));
       if ((cfg.heat || cfg.walls) && f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
-      return '';
+      try { return l2Note(H.marketOf(this.ctx).ticker); } catch (e) { return ''; }
     }
     setInputs(i) { this.inputs = i; if (this.h) this.h.feed.l2Levels = Number(i.l2Levels) || 60; const st = this.root && rootState(this.root); if (st && st.conn) st.conn.setLevels('dom' + this.root, Number(i.l2Levels) || 60); this.render(); }
     render() {
@@ -462,7 +470,8 @@ const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls)
 const fmtP = (p) => p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtQ = (q) => (q >= 10000 ? (q / 1000).toFixed(1) + 'k' : String(Math.round(q)));
 // Pure: the ladder rows for one snapshot. rows = N price rows centred on the touch, asks above, bids below.
-export function ladderRows(snap, atPrice, count) {
+export function ladderRows(snap, atPrice, count, tick) {
+  const TICK = tick || 0.25;
   if (!snap || !snap.bids || !snap.bids.length || !snap.asks || !snap.asks.length) return null;
   const bid = new Map(), ask = new Map();
   for (const [p, q] of snap.bids) bid.set(Math.round(p / TICK), q);
@@ -506,11 +515,11 @@ export function mountL2Ladder(ws, opts) {
     if (!open) return;
     const r = root ? rootState(root) : null;
     panel.querySelector('.stkl2-sym').textContent = root || '';
-    if (!root) { list.innerHTML = '<div class="stkl2-empty">Open an NQ or ES chart to see its order book.</div>'; stat.textContent = ''; return; }
+    if (!root) { list.innerHTML = '<div class="stkl2-empty">Open an NQ, ES, YM, RTY, CL or GC chart (or a micro) to see its order book.</div>'; stat.textContent = ''; return; }
     const age = r && r.lastFrame ? Date.now() - r.lastFrame : -1;
     stat.className = 'stkl2-stat' + (r && r.status === 'live' ? ' is-live' : ' is-wait');
     stat.innerHTML = '<i class="stkl2-dot" aria-hidden="true"></i><span>' + (r && r.status === 'live' ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (r && r.status === 'live' && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em><u>' + (r && r.snap ? (() => { const n = Math.round((r.snap.asks[0][0] - r.snap.bids[0][0]) / TICK); return 'Spread ' + n + (n === 1 ? ' tick' : ' ticks'); })() : '') + '</u>';
-    const m = ladderRows(r && r.snap, r && r.trades && r.trades.atPrice(300000), rows);
+    const m = ladderRows(r && r.snap, r && r.trades && r.trades.atPrice(300000), rows, tickOf(root));
     if (!m) { list.innerHTML = '<div class="stkl2-empty">Waiting for the order book…</div>'; return; }
     if (list.children.length !== m.rows.length || list.firstChild.classList.contains('stkl2-empty')) {
       list.innerHTML = m.rows.map(() => '<div class="stkl2-row" role="row"><span class="stkl2-b"><i></i><b></b></span><span class="stkl2-p"></span><span class="stkl2-a"><i></i><b></b></span><span class="stkl2-t"><u></u><s></s></span></div>').join('');

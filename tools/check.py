@@ -26,6 +26,7 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 FAILURES = []
+SLOT = os.path.join(ROOT, 'tools', 'chrome-slot.sh')   # 3-slot Chrome semaphore
 
 
 def html_files():
@@ -131,9 +132,11 @@ def check_versioned_sources():
 
 
 def check_js_syntax():
-    for path in sorted(glob.glob('assets/*.js')):
-        result = subprocess.run(['node', '--check', path],
-                                capture_output=True, text=True)
+    from concurrent.futures import ThreadPoolExecutor
+    paths = sorted(glob.glob('assets/*.js'))
+    with ThreadPoolExecutor(8) as ex:
+        results = list(ex.map(lambda p: subprocess.run(['node', '--check', p], capture_output=True, text=True), paths))
+    for path, result in zip(paths, results):
         if result.returncode != 0:
             first = result.stderr.strip().split('\n')[0]
             fail(f'{path}: JS syntax error — {first}')
@@ -563,8 +566,7 @@ def check_drawer_touch():
     else:
         print('note: playwright-core not installed, drawer touch test skipped'); return
     cmd = ['node', os.path.join(ROOT, 'tools', 'tests', 'drawer-touch-browser.js')]
-    if os.path.exists('/usr/bin/flock') and os.path.exists('/tmp/stryker-chrome.lock'):
-        cmd = ['flock', '-w', '3400', '/tmp/stryker-chrome.lock'] + cmd
+    cmd = [SLOT, '-w', '3400'] + cmd
     r = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=900)
     if r.returncode != 0:
         fail('drawer touch test failed (tools/tests/drawer-touch-browser.js):\n' + '\n'.join(l for l in r.stdout.splitlines() if 'FAIL' in l or 'rror' in l)[:600] + r.stderr[-300:])
@@ -618,47 +620,53 @@ def check_app_shell_browser():
     if probe.returncode != 0:
         fail('app-shell-audit.js cannot run: playwright-core or Chromium is unavailable')
         return
-    cmd = ['node', 'tools/tests/app-shell-audit.js']
-    if shutil.which('flock'):
-        cmd = ['flock', '-w', '3600', '/tmp/stryker-chrome.lock'] + cmd
+    cmd = [SLOT, '-w', '3600', 'node', 'tools/tests/app-shell-audit.js']
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=1500)
     if r.returncode != 0:
         fail('app-shell-audit.js failed:\n' + '\n'.join('      ' + l for l in (r.stdout + r.stderr).strip().splitlines()[-25:]))
 
 
 def main():
-    check_roadmap_log()
-    check_roadmap_cards()
-    check_nav_features_menu()
-    check_charts_css_subset()
-    check_merge_markers()
-    check_unversioned_assets()
-    version = check_version_consistency()
-    check_module_import_versions()
-    check_versioned_sources()
-    check_js_syntax()
-    check_html_structure()
-    check_css_braces()
-    check_referenced_assets_exist()
-    check_build_markers()
-    check_mobile_width_guards()
-    check_assets_changed_without_bump()
-    check_share_images()
-    check_help_center()
-    check_feature_image_frames()
-    check_drawer_touch()
-    check_app_shell()
-    check_sidebar_closed_before_main()
-    check_app_shell_browser()
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+    t0 = time.time()
+    timings = []
+
+    def timed(fn):
+        t = time.time()
+        try:
+            return fn()
+        finally:
+            timings.append((time.time() - t, fn.__name__))
+
+    version = timed(check_version_consistency)
+    # all checks are independent read-only scans (failures are sorted by check order below); the
+    # two browser checks start first so they overlap the rest
+    order = [check_app_shell_browser, check_drawer_touch, check_roadmap_log, check_roadmap_cards,
+             check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
+             check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
+             check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,
+             check_assets_changed_without_bump, check_share_images, check_help_center,
+             check_feature_image_frames, check_app_shell, check_sidebar_closed_before_main]
+    with ThreadPoolExecutor(len(order)) as ex:
+        list(ex.map(timed, order))
+    FAILURES.sort()
+
+    def report():
+        total = time.time() - t0
+        slow = ', '.join(f'{n} {d:.1f}s' for d, n in sorted(timings, reverse=True)[:3])
+        print(f'total {total:.1f}s; slowest: {slow}')
 
     if FAILURES:
         print(f'FAILED — {len(FAILURES)} problem(s):\n')
         for f in FAILURES:
             print('  •', f)
+        report()
         sys.exit(1)
 
     print(f'All checks passed. {len(html_files())} HTML, '
           f'{len(glob.glob("assets/*.js"))} JS, cache v={version}.')
+    report()
 
 
 if __name__ == '__main__':

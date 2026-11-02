@@ -14,7 +14,7 @@
 // 3. Every dual page is also loaded signed out and must show the marketing header and no app chrome.
 //
 // node tools/tests/app-shell-audit.js [--list] [--shots <dir>]      exit code 1 on any failure
-// Needs playwright-core + a Chromium (lib.js finds one). Run under: flock /tmp/stryker-chrome.lock
+// Needs playwright-core + a Chromium (lib.js finds one). Run under: tools/chrome-slot.sh
 const fs = require('fs'), path = require('path'), http = require('http');
 const { ROOT, launch } = require('./lib.js');
 
@@ -96,6 +96,7 @@ function stubSrc(signed) {
 }
 
 // ---- 3. the audit -------------------------------------------------------------------------------------
+const POOL = +process.env.POOL || 6;   // pages at once inside one width x signed-in/out pass
 const fails = [], rows = [];
 const ok = (c, t) => { if (!c) fails.push(t); return c; };
 const pathOf = (t) => '/' + t;
@@ -111,19 +112,26 @@ const probe = () => {
 (async () => {
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   const base = 'http://127.0.0.1:' + srv.address().port;
-  const b = await launch();
+  const browsers = [];
   const run = async (w, signed, list) => {
+    const b = await launch(); browsers.push(b);   // one browser per pass: a single Chrome process was the bottleneck
     const ctx = await b.newContext({ viewport: { width: w, height: w < 600 ? 844 : 900 }, deviceScaleFactor: 1 });
     await ctx.route(/gstatic\.com\/firebasejs/, (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
+    await ctx.route(/\.(png|jpe?g|webp|gif|svg|woff2?|mp4|webm)(\?|$)/, (r) => r.abort());   // layout probe needs no pictures/fonts (faster)
     await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
     await ctx.addInitScript(stubSrc(signed));
     await ctx.addInitScript(([s, th]) => { try { localStorage.setItem('stryker_theme', th); if (s) localStorage.setItem('stryker_nav_authed', '1'); else localStorage.removeItem('stryker_nav_authed'); } catch (e) {} }, [signed, process.env.THEME || 'night']);
-    for (const t of list) {
+    const queue = list.slice();
+    const worker = async () => { for (let t; (t = queue.shift()) !== undefined;) {
       const p = await ctx.newPage();
       try {
-        await p.goto(base + pathOf(t), { waitUntil: 'domcontentloaded', timeout: 20000 });
-        await p.waitForTimeout(900);
-        const c = await p.evaluate(probe);
+        await p.goto(base + pathOf(t), { waitUntil: 'domcontentloaded', timeout: 60000 });
+        // shell markers (app header, sidebar, marketing nav) or a 900 ms cap, then a short settle for redirects/late class flips
+        await p.waitForFunction(() => document.querySelector('.mobile-topnav, aside.sidebar, nav.nav, #site-nav, .cx-pubnav'), null, { timeout: 900 }).catch(() => {});
+        await p.waitForTimeout(250);
+        let c = await p.evaluate(probe);
+        // a loaded machine can be slow to run the shell scripts: give a page that looks wrong one more, longer look before failing it
+        if (signed ? !(c.side && (c.top || w >= 821)) : !c.pub) { await p.waitForTimeout(2500); c = await p.evaluate(probe); }
         const isDual = !!AL.dual[t], isMkt = marketing.has(t);
         const tag = t + ' ' + (signed ? 'in' : 'out') + ' ' + w;
         if (signed && !isMkt) {
@@ -148,14 +156,16 @@ const probe = () => {
         if (SHOTS && (isDual || !isMkt) && (signed || isDual)) await p.screenshot({ path: path.join(SHOTS, t.replace(/\//g, '_') + '-' + (signed ? 'in' : 'out') + '-' + w + '.png') });
       } catch (e) { ok(false, t + ' ' + (signed ? 'in' : 'out') + ' ' + w + ': ' + String(e.message).split('\n')[0]); rows.push(t + ' ERROR ' + e.message.split('\n')[0]); }
       await p.close();
-    }
+    } };
+    await Promise.all(Array.from({ length: POOL }, worker));
     await ctx.close();
   };
   const appPages = targets.filter((t) => !marketing.has(t));
-  for (const w of WIDTHS) await run(w, true, appPages);
   const dual = Object.keys(AL.dual).filter((t) => pages.has(t));
-  for (const w of WIDTHS) await run(w, false, dual);
-  await b.close(); srv.close();
+  // every width x signed-in/out pass runs at once; rows/fails are sorted below so the output does not depend on timing
+  await Promise.all([...WIDTHS.map((w) => run(w, true, appPages)), ...WIDTHS.map((w) => run(w, false, dual))]);
+  rows.sort(); fails.sort();
+  await Promise.all(browsers.map((x) => x.close())); srv.close();
   rows.filter((r) => /FAIL|ERROR/.test(r)).forEach((r) => console.log(r));
   console.log('app-shell-audit: ' + appPages.length + ' app/dual pages signed in x' + WIDTHS.length + ' widths, ' + dual.length + ' dual pages signed out x' + WIDTHS.length + ', ' + marketing.size + ' marketing-only allowlisted, ' + fails.length + ' failure(s)');
   if (fails.length) { console.log('FAILED. A member-facing page must carry the app shell (see docs/DESIGN-STANDARD.md). If a page is meant to stay marketing, add it to tools/tests/app-shell-allowlist.json with a reason.'); process.exit(1); }

@@ -310,7 +310,16 @@
     return lbl + ' ' + (x.op === 'gt' ? 'above ' : 'below ') + x.v;
   }
 
+  // rows to draw for a virtual list: first / last index for a scroll position (+ overscan each side). Pure.
+  function windowOf(total, rowH, scrollTop, viewH, over) {
+    over = over == null ? 6 : over;
+    var a = Math.max(0, Math.floor(scrollTop / rowH) - over), b = Math.min(total, Math.ceil((scrollTop + viewH) / rowH) + over);
+    a = Math.min(a, total);
+    return { first: a, last: Math.max(a, b) };
+  }
+
   var api = {
+    windowOf: windowOf,
     ALL: ALL, MARKETS: MARKETS, FIELDS: F, BY: BY, SETS: SETS, PRESETS: PRESETS, FUT_ROOTS: FUT_ROOTS, IDX_SYMS: IDX_SYMS, MAXF: MAXF,
     fieldsFor: fieldsFor, filterFieldsFor: filterFieldsFor, allFor: allFor, gateCols: gateCols, setKeys: setKeys, setsFor: setsFor, setLocked: setLocked,
     enrich: enrich, symParts: symParts, opsFor: opsFor, clean: clean, buildFilter: buildFilter, sortRows: sortRows, presetsFor: presetsFor, presetById: presetById,

@@ -60,4 +60,37 @@ t('wall: first level >= 2.5x median', () => {
   assert.strictEqual(L2.wallOf([[1, 1], [2, 1]]), null);
 });
 t('delta: buy minus sell', () => assert.strictEqual(L2.deltaOf([{ lv: [[1, 5, 2], [2, 1, 4]] }]), 0));
+// GEX levels (Pro)
+const G = require('../../assets/scanner-gex.js');
+t('GEX columns exist only with Pro, only on ETFs + futures', () => {
+  ['cw', 'zg', 'pw'].forEach((k) => {
+    assert.ok(!C.fieldsFor('etf', { pro: false }).some((d) => d.k === k));
+    assert.ok(C.fieldsFor('etf', { pro: true }).some((d) => d.k === k));
+    assert.ok(C.fieldsFor('fut', { pro: true }).some((d) => d.k === k));
+    assert.ok(!C.fieldsFor('stock', { pro: true }).some((d) => d.k === k));
+    assert.ok(!C.fieldsFor('crypto', { pro: true }).some((d) => d.k === k));
+  });
+  assert.deepStrictEqual(C.setKeys('gexs', 'etf', { pro: false }), []);
+  assert.deepStrictEqual(C.setKeys('gexs', 'etf', { pro: true }), ['cw', 'zg', 'pw']);
+});
+t('GEX levels map to tickers (ETF direct, futures via converted block)', () => {
+  const o = G.levelsOf({ SPY: { call_wall: 700, zero_gamma: 690, put_wall: 680 }, SPX: { futures: { ES: { levels: { call_wall: 7000, zero_gamma: 6900, put_wall: 6800 } }, MES: { error: 'x' } } }, QQQ: {}, GLD: null });
+  assert.deepStrictEqual(o.SPY, { cw: 700, zg: 690, pw: 680 });
+  assert.deepStrictEqual(o.ES, { cw: 7000, zg: 6900, pw: 6800 });
+  assert.ok(!o.MES && !o.QQQ && !o.NQ);
+});
+t('chip values are abbreviated', () => {
+  assert.strictEqual(C.describe({ f: 'cap', op: 'gt', v: 50000000 }), 'Market cap above 50M');
+  assert.strictEqual(C.describe({ f: 'cap', op: 'bt', v: 1200000000, v2: 5e9 }), 'Market cap between 1.2B and 5B');
+  assert.strictEqual(C.describe({ f: 'rsi', op: 'gt', v: 70 }), 'RSI (14) above 70');
+});
+t('derived ATR columns', () => {
+  const r = C.enrich({ s: 'X:Y', c: 100, atr: 2, sma20: 96, sma50: 90, sma200: 80, chg: 4, gap: 2 }, 0);
+  assert.strictEqual(r.pS20Atr, 2); assert.strictEqual(r.chgAtr, 2); assert.strictEqual(r.gapAtr, 1);
+  assert.strictEqual(r.maSpread, 16);
+});
+t('filter count: stocks >= 60 distinct fields, ~80 options with crosses', () => {
+  const f = C.filterFieldsFor('stock', {}); assert.ok(f.length >= 60, 'stock ' + f.length);
+  const opts = f.reduce((a, d) => a + C.opsFor(d).length, 0); assert.ok(opts >= 80, 'ops ' + opts);
+});
 console.log(n + ' passed');

@@ -43,7 +43,7 @@
   def('loAtr', 'Distance to 52-week low (ATRs)', 'Performance', 'n1');
   // technicals
   def('rsi', 'RSI (14)', 'Technicals', 'n1');
-  def('atr', 'ATR (14)', 'Technicals', 'px', ALL, { nofilter: true });
+  def('atr', 'ATR (14)', 'Technicals', 'px', ALL);
   def('atrp', 'ATR (14) % of price', 'Technicals', 'n2');
   [['s', 'SMA'], ['e', 'EMA']].forEach(function (t) {
     [20, 50, 200].forEach(function (n) {
@@ -56,6 +56,18 @@
   def('s20v50', 'SMA 20 vs SMA 50 %', 'Moving averages', 'pct');
   def('e20v50', 'EMA 20 vs EMA 50 %', 'Moving averages', 'pct');
   def('e50v200', 'EMA 50 vs EMA 200 %', 'Moving averages', 'pct');
+  def('s20v200', 'SMA 20 vs SMA 200 %', 'Moving averages', 'pct');
+  def('e20v200', 'EMA 20 vs EMA 200 %', 'Moving averages', 'pct');
+  def('s50ve50', 'SMA 50 vs EMA 50 %', 'Moving averages', 'pct');
+  def('s200ve200', 'SMA 200 vs EMA 200 %', 'Moving averages', 'pct');
+  def('maSpread', 'Spread of 20/50/200 SMAs % of price', 'Moving averages', 'n2');
+  def('pS20Atr', 'Price vs SMA 20 (in ATRs)', 'Moving averages', 'n1');
+  def('pS50Atr', 'Price vs SMA 50 (in ATRs)', 'Moving averages', 'n1');
+  def('pS200Atr', 'Price vs SMA 200 (in ATRs)', 'Moving averages', 'n1');
+  def('gapAtr', 'Gap size (in ATRs)', 'Price & volume', 'n1');
+  def('chgAtr', '1D move (in ATRs)', 'Price & volume', 'n1');
+  def('perfYvY', 'Change 1Y minus YTD %', 'Performance', 'pct');
+  def('perfQvM', 'Change 3M minus 1M %', 'Performance', 'pct', ['stock', 'etf', 'fut']);
   // valuation & events
   def('cap', 'Market cap', 'Valuation', 'big', SC);
   def('pe', 'P/E (trailing)', 'Valuation', 'n1', ['stock']);
@@ -92,10 +104,10 @@
 
   // ---- column sets -----------------------------------------------------------------------------------------------------
   var SETS = {
-    overview: { l: 'Overview', c: { stock: ['c', 'chg', 'vol', 'rvol', 'cap', 'pe', 'sec'], etf: ['c', 'chg', 'vol', 'rvol', 'avgv', 'perfYtd'], crypto: ['c', 'chg', 'vol', 'cap', 'perfW', 'perfYtd'], fut: ['c', 'chg', 'vol', 'rvol', 'gap', 'grp'] } },
-    perf: { l: 'Performance', c: { stock: ['chg', 'perfW', 'perfM', 'perf3m', 'perfYtd', 'perfY', 'off52h', 'r52'], etf: ['chg', 'perfW', 'perfM', 'perf3m', 'perfYtd', 'perfY', 'off52h', 'r52'], crypto: ['chg', 'perfW', 'perfM', 'perfYtd', 'perfY', 'off52h', 'r52'], fut: ['chg', 'perfW', 'perfM', 'perf3m', 'perfYtd', 'perfY', 'off52h', 'r52'] } },
-    tech: { l: 'Technicals', c: { stock: ['rsi', 'atr', 'pS20', 'pS50', 'pS200', 's50v200', 'gap'], etf: ['rsi', 'atr', 'pS20', 'pS50', 'pS200', 's50v200', 'gap'], crypto: ['rsi', 'atr', 'pS20', 'pS50', 'pS200', 's50v200', 'gap'], fut: ['rsi', 'atr', 'pS20', 'pS50', 'pS200', 's50v200', 'gap'] } },
-    val: { l: 'Valuation', c: { stock: ['cap', 'pe', 'dy', 'beta', 'earn', 'earnD', 'ind'], etf: ['beta', 'avgv', 'perfYtd'], crypto: ['cap', 'dv', 'perfYtd'] } },
+    overview: { l: 'Overview', c: { stock: ['c', 'chg', 'vol', 'rvol', 'cap', 'pe', 'sec'], etf: ['c', 'chg', 'vol', 'rvol', 'av', 'perfYtd'], crypto: ['c', 'chg', 'vol', 'cap', 'perfW', 'perfYtd'], fut: ['c', 'chg', 'vol', 'rvol', 'gap', 'sec'] } },
+    perf: { l: 'Performance', c: { stock: ['chg', 'perfW', 'perfM', 'perfQ', 'perfYtd', 'perfY', 'off52h', 'r52'], etf: ['chg', 'perfM', 'perfQ', 'perfYtd', 'perfY', 'off52h', 'r52'], crypto: ['chg', 'perfW', 'perfM', 'perfYtd', 'perfY', 'off52h', 'r52'], fut: ['chg', 'perfW', 'perfM', 'perfQ', 'perfYtd', 'perfY', 'off52h', 'r52'] } },
+    tech: { l: 'Technicals', c: { stock: ['rsi', 'atrp', 'pSMA20', 'pSMA50', 'pSMA200', 's50v200', 'gap'], etf: ['rsi', 'atrp', 'pSMA20', 'pSMA50', 'pSMA200', 's50v200', 'gap'], crypto: ['rsi', 'atrp', 'pSMA20', 'pSMA50', 'pSMA200', 's50v200', 'gap'], fut: ['rsi', 'atrp', 'pSMA20', 'pSMA50', 'pSMA200', 's50v200', 'gap'] } },
+    val: { l: 'Valuation', c: { stock: ['cap', 'pe', 'dy', 'beta', 'earn', 'earnD', 'ind'], etf: ['beta', 'av', 'perfYtd'], crypto: ['cap', 'dv', 'perfYtd'] } },
     flow: { l: 'Order flow', c: { fut: ['imb', 'bw', 'bwS', 'aw', 'awS', 'delta', 'bigN'] } },
     gexs: { l: 'GEX levels', c: { etf: ['cw', 'zg', 'pw'], fut: ['cw', 'zg', 'pw'] } }
   };
@@ -114,12 +126,19 @@
     r.off52h = isNum(c) && isNum(r.hi52) && r.hi52 > 0 ? (1 - c / r.hi52) * 100 : null;
     r.off52l = isNum(c) && isNum(r.lo52) && r.lo52 > 0 ? (c / r.lo52 - 1) * 100 : null;
     r.w52 = isNum(r.hi52) && isNum(r.lo52) && r.lo52 > 0 ? (r.hi52 / r.lo52 - 1) * 100 : null;
-    r.hiAtr = isNum(r.atrAbs) && r.atrAbs > 0 && isNum(c) && isNum(r.hi52) ? (r.hi52 - c) / r.atrAbs : null;
-    r.loAtr = isNum(r.atrAbs) && r.atrAbs > 0 && isNum(c) && isNum(r.lo52) ? (c - r.lo52) / r.atrAbs : null;
-    r.adv = isNum(c) && isNum(r.avgv) ? c * r.avgv : null;
+    r.hiAtr = isNum(r.atr) && r.atr > 0 && isNum(c) && isNum(r.hi52) ? (r.hi52 - c) / r.atr : null;
+    r.loAtr = isNum(r.atr) && r.atr > 0 && isNum(c) && isNum(r.lo52) ? (c - r.lo52) / r.atr : null;
+    r.adv = isNum(c) && isNum(r.av) ? c * r.av : null;
     r.r52 = isNum(c) && isNum(r.hi52) && isNum(r.lo52) && r.hi52 > r.lo52 ? (c - r.lo52) / (r.hi52 - r.lo52) * 100 : null;
     ['sma20', 'sma50', 'sma200', 'ema20', 'ema50', 'ema200'].forEach(function (k) { r['p' + k.toUpperCase()] = pctOf(c, r[k]); });
     r.s50v200 = pctOf(r.sma50, r.sma200); r.s20v50 = pctOf(r.sma20, r.sma50); r.e20v50 = pctOf(r.ema20, r.ema50); r.e50v200 = pctOf(r.ema50, r.ema200);
+    r.s20v200 = pctOf(r.sma20, r.sma200); r.e20v200 = pctOf(r.ema20, r.ema200); r.s50ve50 = pctOf(r.sma50, r.ema50); r.s200ve200 = pctOf(r.sma200, r.ema200);
+    var mas = [r.sma20, r.sma50, r.sma200].filter(isNum);
+    r.maSpread = mas.length === 3 && isNum(c) && c > 0 ? (Math.max.apply(null, mas) - Math.min.apply(null, mas)) / c * 100 : null;
+    var ok = isNum(r.atr) && r.atr > 0 && isNum(c);
+    r.pS20Atr = ok && isNum(r.sma20) ? (c - r.sma20) / r.atr : null; r.pS50Atr = ok && isNum(r.sma50) ? (c - r.sma50) / r.atr : null; r.pS200Atr = ok && isNum(r.sma200) ? (c - r.sma200) / r.atr : null;
+    r.gapAtr = ok && isNum(r.gap) ? c * r.gap / 100 / r.atr : null; r.chgAtr = ok && isNum(r.chg) ? c * r.chg / 100 / r.atr : null;
+    r.perfYvY = isNum(r.perfY) && isNum(r.perfYtd) ? r.perfY - r.perfYtd : null; r.perfQvM = isNum(r.perfQ) && isNum(r.perfM) ? r.perfQ - r.perfM : null;
     r.atrp = isNum(r.atr) && isNum(c) && c > 0 ? r.atr / c * 100 : null;
     if (!r.exch) r.exch = symParts(r.s).ex || null;
     if (isNum(r.earn)) { var dd = (r.earn - (nowSec || Date.now() / 1000)) / 86400; r.earnD = dd >= -0.5 ? Math.max(0, Math.ceil(dd)) : null; }
@@ -282,15 +301,14 @@
     var h = Math.floor(m / 60);
     return h < 24 ? 'Updated ' + h + ' h ago' : 'Updated ' + Math.floor(h / 24) + ' days ago';
   }
-  // The feed's column names -> the names used here. The feed sends ATR in price units; the screener filters it as % of price.
-  var ALIAS = { sma20: 's20', sma50: 's50', sma200: 's200', ema20: 'e20', ema50: 'e50', ema200: 'e200', av: 'avgv', perfQ: 'perf3m', atr: 'atrAbs' };
+  // The feed's column names -> the names used here. The feed's names are the screener's names; ATR is in price units and atrp is derived.
+  var ALIAS = {};
   // columnar table { n, cols, d } -> row objects, enriched (market m adds exchange / group)
   function rowsOfTable(t, m, nowSec) {
     var out = [], n = t.n, d = t.d, cols = t.cols;
     for (var i = 0; i < n; i++) {
       var o = {};
       for (var j = 0; j < cols.length; j++) o[ALIAS[cols[j]] || cols[j]] = d[cols[j]][i];
-      o.atr = isNum(o.atrAbs) && isNum(o.c) && o.c > 0 ? o.atrAbs / o.c * 100 : null;
       var p = symParts(o.s);
       o.exch = exchName(p.ex);
       if (m === 'fut') o.grp = o.sec;
@@ -300,14 +318,25 @@
   }
   function exchName(e) { return { CME_MINI: 'CME', CBOT_MINI: 'CBOT', COMEX_MINI: 'COMEX' }[e] || e; }
   // one filter as a short sentence for its chip
+  function shortV(d, v) {
+    if (!isNum(Number(v)) || v === '' || v == null) return v;
+    var n = Number(v), a = Math.abs(n);
+    if (d && (d.f === 'big') ) {
+      if (a >= 1e12) return +(n / 1e12).toFixed(2) + 'T';
+      if (a >= 1e9) return +(n / 1e9).toFixed(2) + 'B';
+      if (a >= 1e6) return +(n / 1e6).toFixed(2) + 'M';
+      if (a >= 1e3) return +(n / 1e3).toFixed(1) + 'K';
+    }
+    return v;
+  }
   function describe(x) {
     var d = BY[x.f]; if (!d) return '';
     if (x.op === 'cu') return d.l.replace(/^Price vs /, 'Price crossed above ').replace(/ %$/, '');
     if (x.op === 'cd') return d.l.replace(/^Price vs /, 'Price crossed below ').replace(/ %$/, '');
     var lbl = d.l.replace(/ %$/, ' %');
     if (d.t === 'cat') return lbl + ' ' + (x.op === 'not' ? 'is not ' : x.op === 'has' ? 'contains ' : 'is ') + x.v;
-    if (x.op === 'bt') return lbl + ' between ' + x.v + ' and ' + x.v2;
-    return lbl + ' ' + (x.op === 'gt' ? 'above ' : 'below ') + x.v;
+    if (x.op === 'bt') return lbl + ' between ' + shortV(d, x.v) + ' and ' + shortV(d, x.v2);
+    return lbl + ' ' + (x.op === 'gt' ? 'above ' : 'below ') + shortV(d, x.v);
   }
 
   // rows to draw for a virtual list: first / last index for a scroll position (+ overscan each side). Pure.
@@ -324,7 +353,7 @@
     fieldsFor: fieldsFor, filterFieldsFor: filterFieldsFor, allFor: allFor, gateCols: gateCols, setKeys: setKeys, setsFor: setsFor, setLocked: setLocked,
     enrich: enrich, symParts: symParts, opsFor: opsFor, clean: clean, buildFilter: buildFilter, sortRows: sortRows, presetsFor: presetsFor, presetById: presetById,
     chartSymbol: chartSymbol, sanitize: sanitize, encodeScreen: encodeScreen, decodeScreen: decodeScreen, fmt: fmt, agoText: agoText, rowsOfTable: rowsOfTable,
-    describe: describe, isNum: isNum
+    describe: describe, shortV: shortV, isNum: isNum
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.stkScreener = api;
 })(typeof window !== 'undefined' ? window : this);

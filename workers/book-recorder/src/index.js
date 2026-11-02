@@ -777,7 +777,7 @@ async function route(req, env, ctx) {
     // Futures L2 from Tick-stream (src/ts-hub.js). LICENCE GATE: env TS_ACCESS = 'admin' (default) lets only admins in; 'pro'
     // adds the marketing demo account and active Pro members. Token: Authorization header, or the "tz-auth" subprotocol on
     // a WebSocket. A browser WebSocket must come from an allowed origin. Fails closed.
-    if (u.pathname === '/ts-live' || u.pathname === '/ts-book-history' || u.pathname === '/ts-aux') {
+    if (u.pathname === '/ts-live' || u.pathname === '/ts-book-history' || u.pathname === '/ts-aux' || u.pathname === '/ts-trades') {
       const h = cors(req), o = req.headers.get('origin');
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
       if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });

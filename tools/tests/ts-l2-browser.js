@@ -149,7 +149,7 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
         console.log('INFO ' + tag + ' bookmap rebuild ms', JSON.stringify(t2.bm && t2.bm.ms), 'frame ms', t2.ms);
         check(t2.ms <= 25, tag + ': frame time at 390 stays small', t2.ms);
         check(t2.walls.length === 0, tag + ': no wall labels in Bookmap style');
-        console.log('INFO ' + tag + ' blue share of coloured pixels', t2.bm && t2.bm.blueShare, '%');
+        console.log('INFO ' + tag + ' blue share of coloured pixels', t2.bm && t2.bm.blueShare, '%', JSON.stringify(t2.bm));
         check(t2.bm && t2.bm.blueShare >= 60, tag + ': >= 60% of coloured cells read as blue (rank colouring)', t2.bm && t2.bm.blueShare);
         check(t2.sizeLabels >= 5, tag + ': depth bars carry size numbers (' + t2.sizeLabels + ')', t2.sizeLabels);
       }
@@ -201,6 +201,12 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       check(sheetBox[0] >= -1 && sheetBox[1] <= sheetBox[4] + 1 && sheetBox[3] <= sheetBox[5] + 1, tag + ': ladder inside the viewport', sheetBox);
       check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), tag + ': no horizontal overflow');
       await p.screenshot({ path: OUT + '/l2-' + tag + '-ladder.png' });
+      if (hm) {   // C: with the DOM ladder open, depth bars + sizes on and (FARBOOK) a +-2% live column, the axis still fits the candles
+        const sc = await p.evaluate(() => { const c = window.STRYKER_VELA.chart, st = window.__stkFlow.domDebug(), vr = c.getVisibleRange(), rb = c.orchestrator.rawBars.filter((b) => b.time >= vr.from && b.time <= vr.to); return { lo: st.scaleMin, hi: st.scaleMax, cl: Math.min(...rb.map((b) => b.low)), ch: Math.max(...rb.map((b) => b.high)) }; });
+        const pad = (sc.ch - sc.cl) * 0.6 + 20;
+        console.log('INFO ' + tag + ' axis', JSON.stringify(sc));
+        check(sc.lo >= sc.cl - pad && sc.hi <= sc.ch + pad, tag + ': price axis fits the candles (not the book / far strip)', sc);
+      }
       if (mobile) {
         // touch: level switch 150, then close with the round x (44 px target)
         const lvBox = await p.evaluate(() => { const b = document.querySelector('.stkl2-lv[data-n="150"]').getBoundingClientRect(); const c = document.querySelector('.stkl2-close').getBoundingClientRect(); return [b.width, b.height, c.width, c.height]; });

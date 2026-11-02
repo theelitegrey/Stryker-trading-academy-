@@ -2391,7 +2391,8 @@ function cryptoDomLayer() {
           const chunks = []; let cur = null;
           for (const r of rows) {
             const side = r.v > 0 ? 1 : -1;
-            if (cur && cur.side === side && r.y + r.h - cur.y0 <= Math.max(need, r.h) + 0.5 && cur.y1 - cur.y0 < need) { cur.sum += Math.abs(r.v); cur.y1 = r.y + r.h; cur.mx = Math.max(cur.mx, Math.abs(r.v)); }
+            if (cur && cur.side === side && cur.y1 - cur.y0 < need) {   // merge every row until the chunk is as tall as the font (thin rows near the price too)
+              cur.sum += Math.abs(r.v); cur.y1 = r.y + r.h; cur.mx = Math.max(cur.mx, Math.abs(r.v)); }
             else { cur = { side, sum: Math.abs(r.v), y0: r.y, y1: r.y + r.h, mx: Math.abs(r.v) }; chunks.push(cur); }
           }
           const top3 = (sd) => chunks.filter((c) => c.side === sd).map((c) => c.sum).sort((a, b) => b - a)[2] || 0;
@@ -2399,7 +2400,7 @@ function cryptoDomLayer() {
           g.save(); g.beginPath(); g.rect(x0, top, depthW, a.bounds.height); g.clip(); g.textBaseline = 'middle';
           let lastY = -1e9; stat.sizeLabels = 0;
           for (const c of chunks) {
-            const cy = (c.y0 + c.y1) / 2; if (cy - lastY < need) continue;   // never two numbers closer than the font
+            const cy = (c.y0 + c.y1) / 2; if (cy - lastY < need + 1) continue;   // never two numbers closer than the font (+1 px)
             const big = c.sum >= t3[c.side] && t3[c.side] > 0, label = fmt(c.sum);
             g.font = (big ? 'bold ' : '') + FS + 'px ' + font; g.fontVariantNumeric = 'tabular-nums';
             const tw = g.measureText(label).width, bw = Math.max(1, Math.sqrt(c.mx / mx) * wmax);

@@ -382,7 +382,7 @@ section.dk-status{ padding:10px 14px; }
   .dk-viz{ grid-template-columns:minmax(0,1fr) 168px; } .dk-card-tick{ min-height:210px; } .dk-dial svg{ max-width:150px; } .dk-dial-key{ display:flex; }
   .dk-grid > .dk-status{ grid-column:1 / -1; }
 }
-@media (max-width:379px){ .dk-viz{ grid-template-columns:minmax(0,1fr) 112px; } }
+
 @media (prefers-reduced-motion:reduce){ .dk-grid-bg::after,.dk-float,.dk-st-h .dk-live::after{ animation:none !important; } .dk-d-arc{ transition:none; } }
 
 /* ===== Market pulse upgrades ===== */
@@ -448,3 +448,21 @@ section.dk-status{ padding:10px 14px; }
 @media (max-width:699px){ .dk-wv-i:nth-child(even) span{ display:none; } .dk-wv-i span{ width:58px; } }
 @media (min-width:700px){ .dk-pulse .dk-cards-3{ align-items:start; } }
 @media (max-width:699px){ .dk-wv-i:nth-child(even) b{ display:none; } .dk-wv-i b{ font-size:10.5px; } }
+
+/* ===== Pulse row as a bento: event + wave and ladders stack beside a tall breadth/map card ===== */
+.dk-pulse .dk-cards{ align-items:stretch; }
+.dk-c-map{ display:flex; flex-direction:column; }
+.dk-c-map #dk-map{ flex:1; display:flex; flex-direction:column; min-height:0; }
+.dk-c-map #dk-map .mv-tm{ flex:1; aspect-ratio:auto !important; min-height:210px; }
+@media (min-width:700px){
+  .dk-pulse .dk-cards-3{ grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); grid-template-areas:"ev map" "lad map"; }
+  .dk-c-ev{ grid-area:ev; } .dk-c-lad{ grid-area:lad; } .dk-c-map{ grid-area:map; }
+}
+/* ladders: bigger, readable labels (SVG units scale with the card) and names may wrap */
+.dk-card .mv-lad .ml{ font-size:13.5px; fill:var(--ink-1); } .dk-card .mv-lad .ml.now{ fill:var(--ink-0); }
+.dk-card .mv-lad-h{ align-items:flex-start; } .dk-card .mv-lad-h b{ white-space:normal; overflow:visible; font-size:13px; }
+.dk-card .mv-ladders{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.dk-c-lad .mv-lad{ padding:10px 10px 6px; }
+@media (max-width:699px){ .dk-card .mv-ladders .mv-lad:nth-child(n+3){ display:none; } }
+/* hero: stack chart and dial when the dial would be under 150px */
+@media (max-width:519px){ .dk-viz{ grid-template-columns:minmax(0,1fr); } .dk-dial{ flex-direction:row; justify-content:center; gap:14px; padding:10px 14px; } .dk-dial svg{ width:120px; flex:none; } .dk-dial-c{ text-align:left; } .dk-dial-c span{ padding:0; font-size:11px; line-height:15px; } .dk-dial-c b{ font-size:18px; line-height:24px; } .dk-dial-key{ display:flex; margin-top:6px; } }

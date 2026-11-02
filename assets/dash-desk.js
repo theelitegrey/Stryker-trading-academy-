@@ -108,7 +108,7 @@
       var mx = Math.max.apply(null, rows.map(function (x) { return Math.abs(x.v); }).concat([0.01]));
       var items = rows.slice(0, 12).map(function (x) { return { a: Math.abs(x.v) + mx * 0.12, v: x.v, r: x.r }; });
       host.innerHTML = (MM.isStale() ? stale('Built a while ago. Treat as history.') : '') +
-        V.treemapHtml(items, { ratio: 1.6, width: 300, label: function (it) { return { t: it.r.ticker || it.r.label, v: MM.fmtPct(it.v) }; }, cls: function (it) { return V.cls(V.bucket(it.v, undefined, g.scale)); } }) +
+        V.treemapHtml(items, { ratio: 1.3, width: 300, label: function (it) { return { t: it.r.ticker || it.r.label, v: MM.fmtPct(it.v) }; }, cls: function (it) { return V.cls(V.bucket(it.v, undefined, g.scale)); } }) +
         '<p class="dk-dim">' + esc(g.title) + ' · ' + esc(per) + '</p>';
       var all = []; (d.groups || []).forEach(function (x) { if (x.excess) return; (x.rows || []).forEach(function (r) { var v = r.v[i]; if (typeof v === 'number' && isFinite(v)) all.push(v); }); });
       var up = all.filter(function (v) { return v > 0; }).length, dn = all.filter(function (v) { return v < 0; }).length, tot = up + dn;
@@ -128,7 +128,7 @@
       DK.set('mb', b);
       var host = $('dk-lad');
       if (MB.isStale(b)) { host.innerHTML = stale('The brief has not been refreshed. Open it for the latest.'); return; }
-      var h = MB.ladders ? MB.ladders(b, 3) : '';
+      var h = MB.ladders ? MB.ladders(b, 4) : '';
       host.innerHTML = h || '<p class="dk-empty">Key levels appear when the brief is published.</p>';
     }).catch(function () { DK.set('mb', false); $('dk-lad').innerHTML = stale('Brief unavailable. Open the full brief.'); });
   }

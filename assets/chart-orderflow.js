@@ -2157,7 +2157,11 @@ function cryptoDomLayer() {
       for (let k = 0; k < curFlat.length; k += 2) curRows.push([curFlat[k], curFlat[k + 1]]);
       if (!vals.length) curRows.forEach(r => vals.push(Math.abs(r[1])));
       vals.sort((x, y) => x - y);
-      const qLo = quant(vals, cfg.hide), cap = Math.max(qLo * 1.0001, quant(vals, 0.985));
+      // Futures L2 (f.custom): EVERY row with resting size is painted (Owner 2026-11-03: no empty bands). Log scale against the
+      // visible p95 so one huge wall does not flatten the rest; small size = dim cool colour, still visible.
+      const cust = !!f.custom, med = cust ? Math.max(1e-9, quant(vals, 0.5)) : 0;
+      const qLo = cust ? 0 : quant(vals, cfg.hide), cap = cust ? Math.max(med * 1.5, quant(vals, 0.95)) : Math.max(qLo * 1.0001, quant(vals, 0.985));
+      const lcap = cust ? Math.log1p(cap / med) : 1;
       stat.columns = cols.length; stat.heatX0 = cols.length ? Math.round(Math.max(0, cols[0].x0)) : null;
 
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
@@ -2174,6 +2178,13 @@ function cryptoDomLayer() {
           if (i < hLo) hLo = i; if (i > hHi) hHi = i;
         };
         const styleOf = (v) => {
+          if (cust) {
+            if (!(Math.abs(v) > 0)) return null;
+            const n = clamp(Math.log1p(Math.abs(v) / med) / lcap, 0, 1);
+            if (cfg.twoTone) { const al = Math.round(cfg.opacity * (0.14 + 0.86 * n) * 40) / 40; return 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',' + al + ')'; }
+            const nq = Math.round(n * 32) / 32, c = deepColor(0.14 + 0.86 * Math.pow(nq, 1.35));
+            return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (cfg.opacity * (0.28 + 0.72 * nq)).toFixed(2) + ')';
+          }
           const n = Math.pow(Math.max(0, (Math.abs(v) - qLo) / (cap - qLo)), 0.75);
           if (n < 0.04) return null;
           if (cfg.twoTone) { const al = Math.round(cfg.opacity * Math.min(1, n * 1.3) * 20) / 20; return al > 0 ? 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',' + al + ')' : null; }

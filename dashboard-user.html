@@ -185,7 +185,7 @@
 
     <!-- ===== YOUR DESK: trading-desk home ===== -->
     <section class="dk-hero dk-rv" id="dk-hero" aria-labelledby="gp-hello">
-      <div class="dk-aurora" aria-hidden="true"><i></i><i></i></div>
+      <div class="dk-aurora" aria-hidden="true"><i></i><i></i></div><div class="dk-grid-bg" aria-hidden="true"></div>
       <div class="dk-hero-l">
         <p class="dk-pill" id="dk-session" role="status"><span class="dk-live" aria-hidden="true"></span><span id="dk-session-t">Market clock</span></p>
         <h1 id="gp-hello"><span id="dov-greet">Welcome back</span>, <span id="dash-first-name">Trader</span></h1>
@@ -198,20 +198,32 @@
           <a class="dk-tile" href="scanner.html"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-globe"/></svg><b>Market scanner</b><span>Movers and gaps</span></a>
         </div>
       </div>
-      <div class="dk-viz" aria-hidden="true">
+      <div class="dk-viz">
         <div class="dk-card-tick">
-          <div class="dk-tick-head"><span class="dk-live"></span><b>ES · sample</b><em>Sample</em></div>
-          <svg id="dk-tick" viewBox="0 0 240 90" preserveAspectRatio="none"><path id="dk-tick-a" class="dk-tick-area"/><polyline id="dk-tick-l" class="dk-tick-line" points=""/></svg>
+          <div class="dk-tick-head"><span class="dk-live" aria-hidden="true"></span><b>ES · 1m bars</b><em>Sample</em></div>
+          <canvas id="dk-cv" aria-hidden="true"></canvas>
         </div>
-        <span class="dk-float dk-f1"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-candles"/></svg>Charts</span>
-        <span class="dk-float dk-f2"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-replay"/></svg>Replay</span>
-        <span class="dk-float dk-f3"><svg class="gpi" aria-hidden="true" focusable="false"><use href="#gpi-journal"/></svg>Journal</span>
+        <div class="dk-dial" id="dk-dial-box">
+          <svg id="dk-dial" viewBox="0 0 160 160" role="img" aria-label="24 hour dial of the Asia, London and New York sessions in your time"></svg>
+          <div class="dk-dial-c"><span id="dk-dial-k">Sessions</span><b id="dk-dial-v">--:--:--</b></div>
+          <ul class="dk-dial-key" aria-hidden="true"><li class="k-as">Asia</li><li class="k-lo">London</li><li class="k-ny">New York</li></ul>
+        </div>
+        <div class="dk-chips">
+          <a class="dk-float dk-f1" id="dk-chip-ev" href="economic-calendar.html"><small>Next high-impact</small><b>--</b></a>
+          <a class="dk-float dk-f2" id="dk-chip-mv" href="market-map.html"><small>Top mover</small><b>--</b></a>
+        </div>
       </div>
+      <i class="dk-br dk-br1" aria-hidden="true"></i><i class="dk-br dk-br2" aria-hidden="true"></i><i class="dk-br dk-br3" aria-hidden="true"></i><i class="dk-br dk-br4" aria-hidden="true"></i>
     </section>
 
     <div id="dash-onboarding" hidden></div>
 
     <div class="dk-grid" id="dk-grid">
+
+      <section class="dk-status dk-rv" id="dk-status" aria-label="System status">
+        <p class="dk-st-h"><span class="dk-live" aria-hidden="true"></span><span>Checking feeds</span></p>
+        <ul></ul>
+      </section>
 
       <section class="dk-sec dk-pulse dk-rv" aria-labelledby="dk-pulse-h">
         <header class="dk-sec-h"><h2 id="dk-pulse-h">Market pulse</h2><span class="dk-sec-note" id="dk-pulse-when"></span></header>
@@ -366,5 +378,6 @@
 <script src="assets/dash-path.js?v=786"></script>
 <script src="assets/mkt-viz.js?v=786"></script>
 <script src="assets/dash-desk.js?v=786"></script>
+<script src="assets/dash-hud.js?v=786"></script>
 </body>
 </html>

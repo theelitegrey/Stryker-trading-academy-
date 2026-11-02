@@ -11,6 +11,8 @@
 (function () {
   'use strict';
   var reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  // Shared store for dash-hud.js (hero + status strip): feeds land here once, readers subscribe.
+  var DK = window.__dk = { data: {}, subs: [], set: function (k, v) { DK.data[k] = v; DK.subs.forEach(function (f) { try { f(k, v); } catch (e) {} }); }, on: function (f) { DK.subs.push(f); Object.keys(DK.data).forEach(function (k) { f(k, DK.data[k]); }); } };
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function ago(ms) { if (!ms) return ''; var m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; }
@@ -38,30 +40,6 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden) { clearInterval(id); id = 0; } else if (!id) { tick(); id = setInterval(tick, 1000); } });
   }
 
-  // ---- sample ticker: seeded walk, labelled Sample, paused when hidden -------------
-  function ticker() {
-    var line = $('dk-tick-l'), area = $('dk-tick-a');
-    if (!line) return;
-    var seed = 11, N = 48, pts = [];
-    function r() { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; }
-    var v = 50; for (var i = 0; i < N; i++) { v += r() * 9; pts.push(v); }
-    function draw() {
-      var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts), sp = (hi - lo) || 1;
-      var xy = pts.map(function (p, i) { return (i / (N - 1) * 240).toFixed(1) + ',' + (80 - (p - lo) / sp * 70).toFixed(1); });
-      line.setAttribute('points', xy.join(' '));
-      area.setAttribute('d', 'M' + xy.join('L') + 'L240,90L0,90Z');
-    }
-    draw();
-    if (reduced) return;
-    var id = 0, hero = $('dk-hero'), on = true;
-    function step() { pts.shift(); pts.push(pts[pts.length - 1] + r() * 9); draw(); }
-    function go() { if (!id && on && !document.hidden) id = setInterval(step, 900); }
-    function stop() { clearInterval(id); id = 0; }
-    document.addEventListener('visibilitychange', function () { document.hidden ? stop() : go(); });
-    if ('IntersectionObserver' in window && hero) new IntersectionObserver(function (e) { on = e[0].isIntersecting; on ? go() : stop(); }).observe(hero);
-    go();
-  }
-
   // ---- plan: Pro chip / Pro card ----------------------------------------------------
   function plan() {
     var tries = 0;
@@ -81,20 +59,22 @@
     var MM = window.__MM, MB = window.__MB, EC = window.__EC, V = window.stkViz;
     var when = $('dk-pulse-when');
     if (EC && EC.load) EC.load().then(function (d) {
+      DK.set('ec', d);
       var host = $('dk-ev'), until = Date.parse(d.goodUntil), old = isFinite(until) ? Date.now() > until : (Date.now() - Date.parse(d.generatedAt)) / 36e5 > (Number(d.staleAfterHours) || 30);
       var cur = d.defaultCurrency || 'USD', now = Date.now();
       var ev = (d.events || []).filter(function (e) { return e.cur === cur && Date.parse(e.at) > now && e.impact === 'high'; }).sort(function (a, b) { return Date.parse(a.at) - Date.parse(b.at); })[0];
       if (old) { host.innerHTML = stale('The calendar has not been refreshed. Open it for the latest.'); return; }
       if (!ev) { host.innerHTML = '<p class="dk-empty">No high-impact releases are scheduled right now.</p>'; return; }
       var at = Date.parse(ev.at);
-      host.innerHTML = '<b class="dk-ev-t">' + esc(ev.title || ev.name || 'Release') + '</b><span class="dk-dim">' + esc(cur) + ' · ' + esc(new Date(at).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })) + '</span><div class="dk-cd" id="dk-cd"></div>';
+      host.innerHTML = '<b class="dk-ev-t">' + esc(ev.event || 'Release') + '</b><span class="dk-dim">' + esc(cur) + ' · ' + esc(new Date(at).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })) + '</span><div class="dk-cd" id="dk-cd"></div>';
       var cd = $('dk-cd');
       (function t() { var left = at - Date.now(); cd.textContent = left > 0 ? EC.countdown(left) : 'Now'; })();
       if (!reduced) setInterval(function () { var left = at - Date.now(); cd.textContent = left > 0 ? EC.countdown(left) : 'Now'; }, 1000);
-    }).catch(function () { $('dk-ev').innerHTML = stale('Calendar unavailable. Open the full calendar.'); });
+    }).catch(function () { DK.set('ec', false); $('dk-ev').innerHTML = stale('Calendar unavailable. Open the full calendar.'); });
     else $('dk-ev').innerHTML = '';
 
     if (MM && MM.load && V) MM.load().then(function (d) {
+      DK.set('mm', d);
       var host = $('dk-map'); MM.setData(d);
       var g = (d.groups || []).filter(function (x) { return !x.excess; })[0], per = d.defaultPeriod || '1D', i = Math.max(0, (d.periods || []).indexOf(per));
       var rows = g ? (g.rows || []).map(function (r) { return { r: r, v: r.v[i] }; }).filter(function (x) { return typeof x.v === 'number' && isFinite(x.v); }) : [];
@@ -106,14 +86,15 @@
         '<p class="dk-dim">' + esc(g.title) + ' · ' + esc(per) + '</p>';
       host.querySelectorAll('.mv-tile').forEach(function (b) { b.tabIndex = -1; b.addEventListener('click', function () { location.href = 'market-map.html'; }); });
       if (when && MM.whenLabel) when.textContent = 'Map: ' + MM.whenLabel();
-    }).catch(function () { $('dk-map').innerHTML = stale('Map unavailable. Open the full map.'); });
+    }).catch(function () { DK.set('mm', false); $('dk-map').innerHTML = stale('Map unavailable. Open the full map.'); });
 
     if (MB && MB.load && V) MB.load().then(function (b) {
+      DK.set('mb', b);
       var host = $('dk-lad');
       if (MB.isStale(b)) { host.innerHTML = stale('The brief has not been refreshed. Open it for the latest.'); return; }
       var h = MB.ladders ? MB.ladders(b, 3) : '';
       host.innerHTML = h || '<p class="dk-empty">Key levels appear when the brief is published.</p>';
-    }).catch(function () { $('dk-lad').innerHTML = stale('Brief unavailable. Open the full brief.'); });
+    }).catch(function () { DK.set('mb', false); $('dk-lad').innerHTML = stale('Brief unavailable. Open the full brief.'); });
   }
 
   // ---- your activity ---------------------------------------------------------------------
@@ -181,7 +162,7 @@
   function greet() { var el = $('dov-greet'); if (el) { var h = new Date().getHours(); el.textContent = h < 5 ? 'Burning the midnight oil' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; } }
 
   function boot() {
-    greet(); motion(); session(); ticker(); plan(); creator(); pulse();
+    greet(); motion(); session(); plan(); creator(); pulse();
     if (typeof auth === 'undefined' || !auth || typeof db === 'undefined' || !db) return;
     var done = false;
     auth.onAuthStateChanged(function (u) { if (!u || done) return; done = true; activity(u.uid); });

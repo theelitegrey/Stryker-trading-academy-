@@ -141,6 +141,7 @@ export function installDataDot(ws, opts = {}) {
     // Real-time CME futures: admins, a connected Rithmic login, the $7 add-on or an Owner approval (2026-10-30); the server delivers everyone else 10 min late.
     if (rithLive()) return { s: 'rt', text: 'Live data from your Rithmic connection', tag: 'Live (Rithmic)' };
     if (insightRealtime(root) && rtConfirmed()) return { s: 'rt', text: 'Live data', tag: 'Live' };
+    if ((root === 'NQ' || root === 'ES' || root === 'MNQ' || root === 'MES') && window.__stkL2Live && window.__stkL2Live.has(root.replace(/^M/, ''))) return { s: 'rt', text: 'Live data from the futures order book feed', tag: 'Live' };
     if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Delayed data · the server has not confirmed real-time on this chart yet (retrying)' : 'CME futures are 10 minutes delayed (CME rule). Connect your Rithmic login, add live futures data for $7/month, or ask us for approval.', tag: '10 min delayed · CME' };
     measure(root);
     const m = lag.get(root);
@@ -266,6 +267,7 @@ export function installDataDot(ws, opts = {}) {
   if (host) new MutationObserver(schedule).observe(host, { childList: true, subtree: true });
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, schedule); } catch (e) {} });
   try { rtOnChange(schedule); } catch (e) {}
+  window.addEventListener('stryker:l2live', schedule);
   if (rith && rith.client && rith.client.on) { try { rith.client.on((ev) => { if (ev && ev.type === 'state') schedule(); }); } catch (e) {} }
   // Market open/close and the lag re-measure: a light timer, plus straight away when the tab returns.
   setInterval(() => { if (!document.hidden) sync(); }, TICK_MS);

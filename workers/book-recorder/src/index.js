@@ -23,8 +23,10 @@ import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from '.
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
-import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
+import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, wsTokenOf, RT_DELAY_S } from './rt-auth.js';
 import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
+import { TSHub, tsHubFetch, tsStore, tsOpts } from './ts-hub.js';
+import { tsAllowed, tsAccess } from './ts-access.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
@@ -118,6 +120,8 @@ export class BookRecorder {
     this.ofLive = new Map(); this.ofMeta = new Map(); this.ofAt = new Map(); this.ofFirst = new Map();
     // the site's ONE InsightSentry realtime socket (src/is-hub.js); idle (no socket) until an admin chart attaches
     this.isHub = new ISHub(ctx.storage, env.INSIGHTSENTRY_WEBSOCKET_API_KEY || '', hubOpts(env));
+    // the site's ONE Tick-stream socket (futures L2, src/ts-hub.js); admin-only until the licence flag flips
+    this.tsHub = new TSHub(tsStore(this.sql), env.TICKSTREAM_API_KEY || '', tsOpts(env));
   }
   // QUOTA (2026-10-15 outage): the Durable Object is evicted ~10 s after its last request and the
   // feeder posts every 30 s, so every post used to start a fresh DO and reload 26 h x 6 symbols
@@ -437,6 +441,7 @@ export class BookRecorder {
       return Response.json(j);
     }
     if (u.pathname === '/is-live') return isHubFetch(this.isHub, this.env, u, req);
+    if (u.pathname.startsWith('/ts-')) return tsHubFetch(this.tsHub, this.env, u, req);
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/t/')) return terminalDo(this, u, req);   // terminal files (src/terminal.js)
     if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
@@ -768,6 +773,32 @@ async function route(req, env, ctx) {
       if (req.headers.get('upgrade') !== 'websocket') return new Response('websocket required', { status: 426 });
       if (!(await isRealtimeToken(bearerOf(req)))) return new Response('forbidden', { status: 403 });
       return stub(env).fetch(new Request('https://do/is-live' + u.search, req));
+    }
+    // Futures L2 from Tick-stream (src/ts-hub.js). LICENCE GATE: env TS_ACCESS = 'admin' (default) lets only admins in; 'pro'
+    // adds the marketing demo account and active Pro members. Token: Authorization header, or the "tz-auth" subprotocol on
+    // a WebSocket. A browser WebSocket must come from an allowed origin. Fails closed.
+    if (u.pathname === '/ts-live' || u.pathname === '/ts-book-history' || u.pathname === '/ts-aux') {
+      const h = cors(req), o = req.headers.get('origin');
+      if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
+      if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
+      const ws = u.pathname === '/ts-live';
+      if (ws && req.headers.get('upgrade') !== 'websocket') return new Response('websocket required', { status: 426, headers: h });
+      if (!(await tsAllowed(env, ws ? wsTokenOf(req) : bearerOf(req)))) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
+      if (!ws) { const rl = await env.RL_OF.limit({ key: 'ts:' + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }
+      const r = await stub(env).fetch(new Request('https://do' + u.pathname + u.search, req));
+      if (ws) return r;
+      return new Response(r.body, { status: r.status, headers: Object.assign({ 'cache-control': 'private, no-store', 'content-type': r.headers.get('content-type') || 'application/json' }, h) });
+    }
+    // GET /ts-health: counts and states only (no data, no secrets), for the CoS and the smoke test
+    if (u.pathname === '/ts-health') {
+      const d = await stub(env).fetch('https://do/ts-stats');
+      return new Response(d.body, { status: d.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, cors(req)) });
+    }
+    // Plan B relay (server -> Worker, /root/projects/book-feeder/ts_relay.py): same shared secret as /ingest
+    if (u.pathname === '/ts-ingest') {
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      return stub(env).fetch(new Request('https://do/ts-ingest', { method: 'POST', body: await req.arrayBuffer() }));
     }
     if (u.pathname === '/is-health') {
       const ckey = new Request('https://book-recorder.cache/is-health/' + Math.floor(Date.now() / 10000));

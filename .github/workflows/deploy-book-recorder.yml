@@ -30,6 +30,8 @@ jobs:
           node-version: 22
       - name: Unit tests (bucketing parity, wire format, merge)
         run: node workers/book-recorder/test/parity.test.mjs
+      - name: Tick-stream L2 hub tests
+        run: node workers/book-recorder/test/ts-hub.test.mjs
       - name: GEX chain ingest tests
         run: node workers/book-recorder/test/gex.test.mjs
       - name: GEX history tests (feeder vs engine parity, validation, no-lookahead lookup)
@@ -63,9 +65,11 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           INGEST_SECRET: ${{ secrets.BOOK_INGEST_SECRET }}
           IS_KEY: ${{ secrets.INSIGHTSENTRY_WEBSOCKET_API_KEY }}
+          TS_KEY: ${{ secrets.TICKSTREAM_API_KEY }}
         run: |
           echo "::add-mask::$INGEST_SECRET"
           [ -n "$IS_KEY" ] && echo "::add-mask::$IS_KEY"
+          [ -n "$TS_KEY" ] && echo "::add-mask::$TS_KEY"
           # Same clean-up as deploy-site.yml: the secrets were pasted with extra text around them.
           TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
           [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
@@ -95,6 +99,13 @@ jobs:
               && echo "INSIGHTSENTRY_WEBSOCKET_API_KEY set" || { echo "::error::could not set INSIGHTSENTRY_WEBSOCKET_API_KEY"; exit 1; }
           else
             echo "::warning::INSIGHTSENTRY_WEBSOCKET_API_KEY repo secret missing: the IS hub stays off (charts poll)"
+          fi
+          # Tick-stream L2 hub (src/ts-hub.js, admin-only until TS_ACCESS=pro). Optional: without the secret the hub stays off.
+          if [ -n "$TS_KEY" ]; then
+            printf '%s' "$TS_KEY" | CLOUDFLARE_API_TOKEN="$TOKEN" CLOUDFLARE_ACCOUNT_ID="$ACCOUNT" npx --yes wrangler@4.149.0 secret put TICKSTREAM_API_KEY >/dev/null 2>&1 \
+              && echo "TICKSTREAM_API_KEY set" || { echo "::error::could not set TICKSTREAM_API_KEY"; exit 1; }
+          else
+            echo "::warning::TICKSTREAM_API_KEY repo secret missing: the L2 hub stays off"
           fi
       - name: Smoke test
         run: |

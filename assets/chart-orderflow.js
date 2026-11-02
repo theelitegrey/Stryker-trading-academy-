@@ -30,10 +30,11 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=787';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=787';
-import * as ProGate from './chart-pro-gate.js?v=787';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=787';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=786';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=786';
+import * as ProGate from './chart-pro-gate.js?v=786';
+import { installFuturesL2, l2Visible, L2_TYPES } from './chart-futures-l2.js?v=786';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=786';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -1367,7 +1368,7 @@ function domConfig(inputs) {
     walls: view === 'walls' || (combined && i.showWalls !== false),
     twoTone: view === 'combined' || view === 'depth' || view === 'walls',
     deep: view === 'deep',
-    vanish: view === 'deep' && i.showVanish !== false,
+    vanish: (view === 'deep' || i.l2Walls === true) && i.showVanish !== false,
     ice: view === 'deep' && i.showIce !== false,
     askDepth: str(i.askDepthColor, '#8b5cf6'),
     wallTop: clamp(num(i.wallTopPct, 2.5), 0.5, 20) / 100,
@@ -1795,9 +1796,13 @@ export function mergeBookHistory(remote, local) {
 }
 
 class BookFeed {
-  constructor(provider, ticker) {
+  // opts = a custom source (futures L2, assets/chart-futures-l2.js): { open(onBook, onStatus, onCoarse) -> stop, rule(mid) -> { step, range },
+  // base, keepMs, remote(from, to) -> Promise<{ buf, held }>, trades() -> footprint-bar feed }. Its history comes ready bucketed
+  // (pushCoarse), so the 1 s book sampling below is off for it.
+  constructor(provider, ticker, opts) {
     this.provider = provider; this.ticker = ticker; this.key = bookKey(provider, ticker);
-    this.base = baseAsset(ticker);
+    this.custom = opts || null; this.keepMs = (opts && opts.keepMs) || 0;
+    this.base = (opts && opts.base) || baseAsset(ticker);
     this.status = 'loading'; this.err = ''; this.version = 0; this.refs = 0; this.listeners = new Set(); this.closeTm = 0;
     this.book = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null, ts: 0 };
     this.history = []; this.lastSample = 0; this.pending = [];
@@ -1815,18 +1820,31 @@ class BookFeed {
       this.loaded = true; this.bump();
     });
     this.flushTm = setInterval(() => domSave(this), DOM_FLUSH_MS);
-    this.stop = binanceBookSource(ticker, (book) => { this.book = book; this.sample(); this.bump(); }, (st, err) => { this.status = st; this.err = err || ''; this.bump(); });
+    const onStatus = (st, err) => { this.status = st; this.err = err || ''; this.bump(); };
+    this.stop = opts ? opts.open((book) => { this.book = book; this.bump(); }, onStatus, (c) => this.pushCoarse(c))
+      : binanceBookSource(ticker, (book) => { this.book = book; this.sample(); this.bump(); }, onStatus);
+  }
+  // custom source: one already bucketed column (the hub's rule == the recorder's rule), stamped with this page's clock
+  pushCoarse(c) {
+    if (!c || !(c.mid > 0) || !c.v || !c.v.length) return;
+    const s = { ts: Date.now(), mid: c.mid, bb: c.bb || null, ba: c.ba || null, step: c.step, i0: c.i0, v: Float32Array.from(c.v) };
+    this.lastSample = s.ts;
+    this.history = pushBookSample(this.history, s);
+    this.pending.push(s);
+    this.bump();
   }
   // Storage step + band for new samples: the finest manual bucket any indicator on this symbol
   // asks for (else auto ~0.05% of the price), the widest range; never more than
   // BOOK_ROWS_SIDE_MAX rows a side.
   store(mid) {
+    if (this.custom) { const r = this.custom.rule(mid); return { step: r.step, range: r.range, autoStep: r.step }; }
     const r = bookStoreRule(mid, this.autoStep, this.wants);
     this.autoStep = r.autoStep;
     return r;
   }
-  fineStep(mid) { return nearNiceStep(mid * BOOK_FINE_ROW); }
+  fineStep(mid) { return this.custom ? 0 : nearNiceStep(mid * BOOK_FINE_ROW); }
   addFine(s, step, mid) {
+    if (this.custom) return;
     const fs = this.fineStep(mid);
     if (!(fs < step / 1.5)) return;
     const fb = bucketBook(this.book, fs, BOOK_FINE_RANGE);
@@ -1834,6 +1852,7 @@ class BookFeed {
   }
   storeStep() { const m = bookMid(this.book.bestBid, this.book.bestAsk); return m > 0 ? this.store(m).step : 0; }
   sample() {
+    if (this.custom) return;
     const now = Date.now();
     if (now - this.lastSample < BOOK_SAMPLE_MS) return;
     const mid = bookMid(this.book.bestBid, this.book.bestAsk);
@@ -1850,6 +1869,7 @@ class BookFeed {
   // Ask the recorder for history back to `fromMs` (the left edge of the visible chart). One
   // request in flight; only the part older than what is held; a failure waits 5 min.
   needRemote(fromMs) {
+    if (this.custom) return this.needRemoteCustom(fromMs);
     if (/\.P$/i.test(this.ticker) || this.remoteBusy) return;
     const base = recorderUrl();
     if (!base) return;
@@ -1873,6 +1893,29 @@ class BookFeed {
       .catch(() => { this.remoteFailAt = Date.now(); if (this.remoteState === 'none') this.remoteState = 'failed'; })
       .then(() => { this.remoteBusy = false; });
   }
+  // futures L2: the same bookkeeping against the custom source's own history call (ts-hub /ts-book-history, 48 h kept, 6 h per read)
+  needRemoteCustom(fromMs) {
+    if (this.remoteBusy || !this.custom.remote) return;
+    const now = Date.now();
+    if (this.remoteFailAt && now - this.remoteFailAt < BOOK_REMOTE_RETRY_MS) return;
+    const keep = this.keepMs || BOOK_REMOTE_KEEP_MS;
+    const from = Math.max(Math.floor((now - keep) / 60000) * 60000 + 60000, Math.floor(fromMs / BOOK_REMOTE_ALIGN_MS) * BOOK_REMOTE_ALIGN_MS);
+    if (!(from < this.remoteFrom - 60000)) return;
+    const to = Number.isFinite(this.remoteFrom) ? this.remoteFrom : now;
+    this.remoteBusy = true;
+    this.custom.remote(from, Math.ceil(to / 60000) * 60000)
+      .then((r) => {
+        const got = decodeBookHistory(r.buf);
+        if (!got) throw new Error('bad body');
+        if (r.held > 0) this.remoteHeld = r.held;
+        const cut = Date.now() - keep, seen = new Set(this.remote.map((x) => x.ts));
+        this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).filter((x) => x.ts >= cut).sort((x, y) => x.ts - y.ts);
+        this.remoteFrom = from; this.remoteFailAt = 0; this.remoteState = 'ok';
+        this.bump();
+      })
+      .catch(() => { this.remoteFailAt = Date.now(); if (this.remoteState === 'none') this.remoteState = 'failed'; })
+      .then(() => { this.remoteBusy = false; });
+  }
   // recorder + local history, merged once per change (not per frame)
   allHistory() {
     const h = this.history, r = this.remote;
@@ -1883,10 +1926,10 @@ class BookFeed {
   bump() { this.version++; this.listeners.forEach(fn => { try { fn(); } catch (e) {} }); }
   close() { try { this.stop(); } catch (e) {} clearInterval(this.flushTm); domSave(this); }
 }
-function acquireBookFeed(provider, ticker, fn) {
+function acquireBookFeed(provider, ticker, fn, opts) {
   const key = bookKey(provider, ticker);
   let f = bookFeeds.get(key);
-  if (!f) { f = new BookFeed(provider, ticker); bookFeeds.set(key, f); }
+  if (!f) { f = new BookFeed(provider, ticker, opts); bookFeeds.set(key, f); }
   clearTimeout(f.closeTm); f.refs++; f.listeners.add(fn);
   return { feed: f,
     want(w) { f.wants.set(fn, w); },
@@ -2019,6 +2062,8 @@ function hhmm(ms, tz) {
   return g('hour') + ':' + g('minute');
 }
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+// the trade feed behind the pulled / filled tags and the iceberg hint: Binance aggTrades, or the futures L2 tick feed
+const feedTrades = (f) => (f.custom && f.custom.trades ? f.custom.trades() : cryptoFeed('binance:' + f.ticker.toUpperCase()));
 function cryptoDomLayer() {
   let canvas = null;
   return {
@@ -2183,11 +2228,21 @@ function cryptoDomLayer() {
             w.t1 = col.ts1; w.x1 = col.x1; w.max = Math.max(w.max, Math.abs(v)); w.lastC = c; w.last = Math.abs(v);
           }
         }
-        const list = [...seen.values()].filter(w => w.t1 - w.t0 >= cfg.wallMinMs).sort((x, y) => y.max - x.max).slice(0, 12);
+        let list = [...seen.values()].filter(w => w.t1 - w.t0 >= cfg.wallMinMs).sort((x, y) => y.max - x.max).slice(0, 12);
+        // futures L2: the top 3 sizes each side, a level within 2 ticks (0.5 pt) of a bigger one on the same side is merged into it
+        if (f.custom) {
+          const pick = [], cnt = { 1: 0, '-1': 0 };
+          for (const w of list) {
+            if (cnt[w.side] >= 3) continue;
+            if (pick.some((q) => q.side === w.side && Math.abs((q.i - w.i) * step) <= 0.5 + 1e-9)) continue;
+            pick.push(w); cnt[w.side]++;
+          }
+          list = pick;
+        }
         // Deep: did a big level vanish (pulled) or trade away (filled)? Only levels gone before the newest
         // column, checked against the crypto footprint trades at that price (null = trades do not reach back).
         if (cfg.vanish && list.length) {
-          const tf = cryptoFeed('binance:' + f.ticker.toUpperCase());
+          const tf = feedTrades(f);
           const mins = tf.bars(), tick = tf.tick || 0;
           const curMap = new Map(curRows);
           for (const w of list) {
@@ -2221,8 +2276,8 @@ function cryptoDomLayer() {
           stat.walls.push(rec);
           if (w.kind) stat.vanished.push({ price: rec.price, kind: w.kind, last: w.last, traded: w.traded, side: rec.side });
           if (!cfg.wallSizes || used.length >= maxLabels || y < top + 10 || y > bot - 8) continue;
-          const gone = cfg.deep && w.goneAt != null;
-          const tag = gone && w.kind ? (w.kind === 'filled' ? ' FILLED' : ' PULLED') : '';
+          const gone = cfg.vanish && w.goneAt != null;
+          const tag = gone && w.kind ? (w.kind === 'filled' ? (f.custom ? ' CONSUMED' : ' FILLED') : ' PULLED') : '';
           const txt = lab + tag;
           const tw = g.measureText(txt).width;
           // a gone level is labelled where it ended, a live one at the right edge
@@ -2249,7 +2304,7 @@ function cryptoDomLayer() {
       // ---- iceberg hint (Deep): only on minutes this page recorded at 1 sample a second ----
       stat.ice = [];
       if (cfg.ice && cols.length) {
-        const tf = cryptoFeed('binance:' + f.ticker.toUpperCase());
+        const tf = feedTrades(f);
         const mins = tf.bars().filter((b) => b.t >= tf.coverFrom), tick = tf.tick || 0;
         const iStep = fst > 0 ? Math.max(fst, tick) : sst;
         const loc = f.history.filter((x) => x.ts >= visFrom);
@@ -2301,10 +2356,11 @@ function cryptoDomLayer() {
       // book data there is (the recorder's, or this page's own when the recorder is out) ----
       const remoteFirst = f.remote.length ? f.remote[0].ts : 0;
       const held = remoteFirst ? Math.min(remoteFirst, f.remoteHeld || remoteFirst) : 0;
-      const full = held > 0 && held <= now - BOOK_REMOTE_KEEP_MS + 15 * 60000;
+      const keepMs = f.keepMs || BOOK_REMOTE_KEEP_MS;
+      const full = held > 0 && held <= now - keepMs + 15 * 60000;
       if ((cfg.heat || cfg.walls) && cols.length && (cols[0].x0 > 2 || remoteFirst)) {
         const tz = chartTz();
-        const lab = full ? 'book history: 24 h' : 'book history from ' + hhmm(held && held < cols[0].ts0 ? held : cols[0].ts0, tz);
+        const lab = full ? 'book history: ' + Math.round(keepMs / 3600000) + ' h' : 'book history from ' + hhmm(held && held < cols[0].ts0 ? held : cols[0].ts0, tz);
         g.font = '10px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle';
         const tw = g.measureText(lab).width, x = Math.max(0, cols[0].x0);
         const tx = x - tw - 8 >= 2 ? x - tw - 6 : Math.min(x + 6, Math.max(2, right - tw - 4));
@@ -2401,7 +2457,7 @@ const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap
 // same tool as stk_of_delta / stk_of_cvd, so they stay registered but are HIDDEN from the list (OF_HIDDEN).
 const OF_GROUP = 'Order Flow';
 const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_vwap',
-  'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap'];
+  'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_fut_dom', 'stk_fut_walls', 'stk_fut_imb'];
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
@@ -2435,6 +2491,7 @@ export function installOrderflow(Core) {
   reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap (Binance)', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
+  installFuturesL2(Core, { cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds }, reg);
   installLiquidityMap(Core, { beginFrame, bookFeeds, sampleRows, bookMid, bucketBook, chartTz, hhmm, openTradeSource, marketOf, bookKey, acquireBookFeed,
     message, pageIsDay, rithmicDepthOn: () => !!(window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.depthEnabled) }, reg);
   Core.registerRendererLayer({ id: 'stk_footprint', placement: 'above-data', create: footprintLayer });
@@ -2498,6 +2555,7 @@ export function mountOrderflow(ws, opts) {
     const base = origRows.call(self);
     const group = [], ofg = [], rest = [];
     base.forEach((r, i) => {
+      if (r.native && L2_TYPES.indexOf(r.nativeType) >= 0 && !l2Visible()) return;   // futures L2: admin only until the licence flag flips
       const hid = r.native && OF_HIDDEN.indexOf(r.nativeType) >= 0;
       const oi = r.native ? OF_GROUP_TYPES.indexOf(r.nativeType) : -1;
       const gi = r.native ? GROUP_TYPES.indexOf(r.nativeType) : -1;

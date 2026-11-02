@@ -65,6 +65,7 @@ const STEPS = [
   ['more', () => [q('.vela-mb-maximize')]],
   ['more', () => [q('.stknw-phonebtn')]],
   ['more', () => [q('.stkgl-phonebtn')]],
+  ['more', () => [q('.stkl2-phonebtn')]],
   ['more', () => [q('.stkw-phonebtn')]],
   ['more', () => [byId('stkc-alerts-btn')]],
   ['more', () => [q('.stkr-menu'), q('.stkr-badge')]],
@@ -131,6 +132,7 @@ const ROWS = [
   [(n) => n.classList.contains('stknw-phonebtn') && n, 'panels', 21, () => 'News', 'news'],
   [(n) => n.classList.contains('stkw-phonebtn') && n, 'panels', 22, () => 'Watchlist', 'list'],
   [(n) => n.classList.contains('stkgl-phonebtn') && n, 'panels', 23, () => 'GEX Ladder', 'ladder'],
+  [(n) => n.classList.contains('stkl2-phonebtn') && n, 'panels', 23, () => 'DOM ladder (L2)', 'ladder'],
   [(n) => n.id === 'stkc-credits-btn' && n, 'panels', 24, () => 'Data source & credits', 'info']
 ];
 const GROUP_ORDER = { chart: 0, tools: 10, panels: 20 };

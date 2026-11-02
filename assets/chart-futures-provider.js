@@ -14,8 +14,8 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=787';
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck } from './rt-access.js?v=787';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=786';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=786';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -87,6 +87,7 @@ export function cmeOpenNow(ms = Date.now()) {
 }
 if (typeof window !== 'undefined') window.tzStallStats = () => JSON.parse(JSON.stringify(stallLog));
 
+const NOOP = () => {};
 export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
 const H = 3600, D = 86400;
 
@@ -385,6 +386,18 @@ export class FuturesProvider {
   subscribe(ticker, timeframe, onBar) {
     const root = this.keyOf(ticker);
     const tf = normTf(timeframe);
+    const stopL2 = this.l2Subscribe(root, timeframe, onBar);
+    if (stopL2 !== NOOP) { const inner = this.subscribeBase(ticker, timeframe, onBar, root, tf); return () => { stopL2(); inner(); }; }
+    return this.subscribeBase(ticker, timeframe, onBar, root, tf);
+  }
+  // admin-only futures L2 candles (assets/chart-futures-l2.js): lazy import, NQ / ES only
+  l2Subscribe(root, timeframe, onBar) {
+    if (root !== 'NQ' && root !== 'ES' && root !== 'MNQ' && root !== 'MES') return NOOP;
+    let stop = null, dead = false;
+    import('./chart-futures-l2.js?v=786').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(root === 'MNQ' ? 'NQ' : root === 'MES' ? 'ES' : root, timeframe, onBar, rtConfirmed); }).catch(() => {});
+    return () => { dead = true; if (stop) stop(); };
+  }
+  subscribeBase(ticker, timeframe, onBar, root, tf) {
     if (root && tf && INSIGHTSENTRY_ROOTS.includes(root) && typeof WebSocket === 'function' && typeof location !== 'undefined') {
       // Real-time is admin only (Owner 2026-10-16): the server refuses the socket for anyone else, so
       // non-admins never open it and poll the (10 min delayed) bars instead.

@@ -40,7 +40,7 @@ const rowOf = (p, step) => Math.floor(p / step + 1e-9);
 // Binance /depth JSON ({ bids: [[price, qty], ...] best first, asks: same }) -> one sample.
 // Prices go through a Map exactly like the client's book (a repeated price keeps its LAST size,
 // at its FIRST position), so even a malformed snapshot buckets identically on both sides.
-export function bucketSnapshot(d, ts) {
+export function bucketSnapshot(d, ts, rule) {   // rule = { step, range } overrides the crypto rule (futures L2, src/ts-hub.js)
   const toMap = (rows) => { const m = new Map(); for (const r of rows || []) { const p = Number(r[0]), q = Number(r[1]); if (Number.isFinite(p) && Number.isFinite(q) && q > 0) m.set(p, q); } return m; };
   const bids = toMap(d && d.bids), asks = toMap(d && d.asks);
   let bb = null, ba = null;
@@ -48,7 +48,7 @@ export function bucketSnapshot(d, ts) {
   asks.forEach((q, p) => { if (ba == null || p < ba) ba = p; });
   const mid = bookMid(bb, ba);
   if (!(mid > 0)) return null;
-  const { step, range } = storeRule(mid);
+  const { step, range } = rule || storeRule(mid);
   const mi = rowOf(mid, step), lo = rowOf(mid * (1 - range), step), hi = rowOf(mid * (1 + range), step);
   const v = new Float32Array(hi - lo + 1);
   bids.forEach((q, p) => { const i = rowOf(p, step); if (i < mi && i >= lo) v[i - lo] += q; });

@@ -1,0 +1,25 @@
+[Unit]
+Description=TradeZoro Tick-stream relay (PLAN B only): one upstream socket -> book-recorder Worker /ts-ingest
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/tickstream.env
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/ts_relay.py
+Restart=always
+RestartSec=10
+MemoryMax=128M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=ts-relay
+
+# DISABLED by default: Plan A (the Worker holds the socket) is the plan. The CoS enables this only if Cloudflare egress is refused,
+# together with TS_MODE=relay on the Worker:   systemctl enable --now ts-relay
+
+[Install]
+WantedBy=multi-user.target

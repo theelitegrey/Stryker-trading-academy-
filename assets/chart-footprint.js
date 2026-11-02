@@ -19,7 +19,7 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=794';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=795';
 
 import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=793';
 import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=793';

@@ -1,9 +1,9 @@
 // TradeZoro — Charts: Tick-stream twins of the order-flow indicators (Owner order 2026-11-02: "update the big trades indicator to use
 // the new data feed, I want to check the difference with tick stream"; "what about delta?"). ADMIN ONLY (same l2Visible() gate as the
 // futures L2 tools), for a side-by-side check of the two trade feeds on one chart:
-//   stk_ts_big    "Big Trades (Tick-stream)"        same schema as stk_of_big, outline-only bubbles, other default colours
-//   stk_ts_delta  "Delta (Tick-stream)"             same schema as stk_of_delta
-//   stk_ts_cvd    "Cumulative Delta (Tick-stream)"  same schema as stk_of_cvd (session reset 18:00 New York)
+//   stk_ts_big    "Big Trades (L1)"        same schema as stk_of_big, outline-only bubbles, other default colours
+//   stk_ts_delta  "Delta (L1)"             same schema as stk_of_delta
+//   stk_ts_cvd    "Cumulative Delta (L1)"  same schema as stk_of_cvd (session reset 18:00 New York)
 // Data: the book-recorder Worker's GET /ts-trades (history, 48 h, 6 h a read, gaps back-filled from Tick-stream's REST archive by the
 // Worker) + the hub's live {type:'ticks'} frames over the ONE /ts-live socket that chart-futures-l2.js already shares (acquire()).
 // Every indicator also shows a "Feed compare" readout (last 60 min): InsightSentry order flow (chart-footprint.js flowFor) vs Tick-stream.
@@ -65,7 +65,7 @@ async function pump(s) {
       bump(s);
       if (from <= s.need || from <= Date.now() - KEEP) break;
     }
-  } catch (e) { if (s.gen === gen) { s.err = 'Tick-stream trades unavailable right now'; if (s.loading) { s.loading = false; s.at = 0; const p = s.pending; s.pending = []; for (const x of p) fold(s, x); } bump(s); } }
+  } catch (e) { if (s.gen === gen) { s.err = 'L1 trades unavailable right now'; if (s.loading) { s.loading = false; s.at = 0; const p = s.pending; s.pending = []; for (const x of p) fold(s, x); } bump(s); } }
   finally { if (s.gen === gen) s.pumping = false; }
 }
 // a live trade (hub tick frame: [price, size, 1|-1, ts_ms]); history already holds everything up to s.at
@@ -122,16 +122,16 @@ function minutes(s) {
 // ---------------------------------------------------------------------------------------------- schemas (same keys / titles as the InsightSentry tools)
 let H = null;
 const IND = () => ({
-  stk_ts_big: { title: 'Big Trades (Tick-stream)', short: 'Big Trades TS', pane: 'price', overlay: true, schema: [
+  stk_ts_big: { title: 'Big Trades (L1)', short: 'Big Trades L1', pane: 'price', overlay: true, schema: [
     { key: 'mult', title: 'Threshold (x the auto size)', type: 'float', defval: 1, min: 0.5, max: 20, step: 0.5, tooltip: 'Auto size = the 99.5th percentile of single orders for this symbol (the same number the InsightSentry bubbles use). 2 = only orders twice that size.' },
     { key: 'minSize', title: 'Min size (contracts, 0 = off)', type: 'float', defval: 0, min: 0, max: 100000, step: 1, tooltip: 'A floor on top of the threshold: smaller prints are never drawn.' },
     { key: 'cluster', title: 'Merge split fills (same side, 1 tick, 1 s)', type: 'bool', defval: true },
     { key: 'labels', title: 'Size labels', type: 'bool', defval: false },
     { key: 'buyColor', title: 'Buyers (hit the ask)', type: 'color', defval: TS_UP },
     { key: 'sellColor', title: 'Sellers (hit the bid)', type: 'color', defval: TS_DN }] },
-  stk_ts_delta: { title: 'Delta (Tick-stream)', short: 'Delta TS', pane: 'new', overlay: false, schema: [
+  stk_ts_delta: { title: 'Delta (L1)', short: 'Delta L1', pane: 'new', overlay: false, schema: [
     { key: 'upColor', title: 'Positive', type: 'color', defval: TS_UP }, { key: 'downColor', title: 'Negative', type: 'color', defval: TS_DN }] },
-  stk_ts_cvd: { title: 'Cumulative Delta (Tick-stream)', short: 'CVD TS', pane: 'new', overlay: false, schema: [
+  stk_ts_cvd: { title: 'Cumulative Delta (L1)', short: 'CVD L1', pane: 'new', overlay: false, schema: [
     { key: 'style', title: 'Show as', type: 'string', defval: 'candles', options: ['candles', 'line'] },
     { key: 'reset', title: 'Reset', type: 'string', defval: 'session', options: ['session', 'day', 'none'], tooltip: 'session = the CME day (18:00 New York).' },
     { key: 'upColor', title: 'Up', type: 'color', defval: TS_UP }, { key: 'downColor', title: 'Down', type: 'color', defval: TS_DN }] }
@@ -143,7 +143,7 @@ const lag = (v) => (v == null ? 'n/a' : (v >= 0 ? '+' : '-') + Math.abs(Math.rou
 function readout(type, s, f, thr, same) {
   const now = Date.now(), from = (Math.floor(now / 60000) - 60) * 60000, F = H.fmt, G = H.sgn;
   if (!f || !f.mins || !f.mins.length) return ['Feed compare, last 60 min', 'InsightSentry data not available for this chart'];
-  if (s.loading || s.loadedFrom > from) return ['Feed compare, last 60 min', 'Loading Tick-stream history…'];
+  if (s.loading || s.loadedFrom > from) return ['Feed compare, last 60 min', 'Loading L1 history…'];
   if (!same) return ['Feed compare, last 60 min', 'n/a on a micro: InsightSentry order flow is the mini\'s'];
   const tt = Math.max(thr, s.floor);
   const r = compareFeeds({ isBars: f.mins, tsMins: minutes(s), tsTrades: s.trades, thr: tt, tick: s.tick, from, to: now + 60000 });
@@ -175,11 +175,11 @@ class TsNative {
     if (!this.ctx || this.off) return;
     const ctx = this.ctx, I = this.inputs, t = this.type, bars = ctx.bars();
     const note = (txt) => { this.unbind(); ctx.setStatus('idle'); ctx.emit({ tables: [table(t + '-msg', [txt], true)] }); try { ctx.pushData({ owner: this, off: true }); } catch (e) {} };
-    if (!l2Visible()) return note('Tick-stream trades are not available yet.');
+    if (!l2Visible()) return note('L1 trades are not available yet.');
     const root = l2Root(ctx.symbol);
-    if (!root) return note('Tick-stream trades: NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.');
+    if (!root) return note('L1 trades: NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.');
     const tf = H.tfMin(ctx.timeframe);
-    if (tf == null || tf < 1 || tf > 240) return note('Tick-stream trades work on 1-minute to 4-hour charts.');
+    if (tf == null || tf < 1 || tf > 240) return note('L1 trades work on 1-minute to 4-hour charts.');
     this.bind(root);
     const s = this.h.s;
     if (bars.length) s.need = Math.min(s.need || Infinity, bars[0].time);
@@ -190,7 +190,7 @@ class TsNative {
     const isRoot = H.rootOf(ctx), same = isRoot === root;   // a micro chart: InsightSentry order flow is the mini's, so no like-for-like
     const isF = H.flowFor({ root: isRoot, timeframe: ctx.timeframe, bars, owner: this });
     ctx.setStatus(s.loading ? 'loading' : 'idle');
-    const msg = s.loading && !mins.length ? 'Loading Tick-stream trades…' : s.err && !mins.length ? s.err : !mins.length ? 'Waiting for Tick-stream trades…' : '';
+    const msg = s.loading && !mins.length ? 'Loading L1 trades…' : s.err && !mins.length ? s.err : !mins.length ? 'Waiting for L1 trades…' : '';
     const thr = H.bigThreshold(same ? isF.thr : s.floor, H.num(I.mult, 1), H.num(I.minSize, 0));
     const cmp = msg || E != null ? null : readout(t, s, isF, t === 'stk_ts_big' ? thr : 0, same);
     (window.__tsReadout || (window.__tsReadout = {}))[t] = cmp || [msg];   // read by tools/tests/ts-bigtrades-browser.js (the table itself is drawn on the canvas)
@@ -199,17 +199,17 @@ class TsNative {
     const agg = aggregateMins(mins, tf * 60000), map = new Map(agg.map((b) => [b.t, b]));
     if (t === 'stk_ts_delta') {
       const pts = bars.map((b) => { const x = map.get(b.time); return x ? { time: b.time, value: x.delta, color: x.delta >= 0 ? I.upColor : I.downColor } : { time: b.time, value: null }; });
-      ctx.emit({ series: [{ id: 'ts-delta', title: 'Delta TS', paneId: '', kind: 'histogram', points: pts, style: { color: I.upColor, width: 1, lineStyle: 'solid', base: 0 } }], tables });
+      ctx.emit({ series: [{ id: 'ts-delta', title: 'Delta L1', paneId: '', kind: 'histogram', points: pts, style: { color: I.upColor, width: 1, lineStyle: 'solid', base: 0 } }], tables });
       return;
     }
     const cc = cvdCandles(agg, I.reset, H.sessionOf), byT = new Map(cc.map((c) => [c.t, c]));
     if (I.style === 'line') {
       const pts = bars.map((b) => { const c = byT.get(b.time); return c ? { time: b.time, value: c.c } : { time: b.time, value: null }; });
-      ctx.emit({ series: [{ id: 'ts-cvd', title: 'CVD TS', paneId: '', kind: 'line', points: pts, style: { color: I.upColor, width: 2, lineStyle: 'solid' } }], tables });
+      ctx.emit({ series: [{ id: 'ts-cvd', title: 'CVD L1', paneId: '', kind: 'line', points: pts, style: { color: I.upColor, width: 2, lineStyle: 'solid' } }], tables });
     } else {
       const cb = bars.map((b) => { const c = byT.get(b.time); return c ? { time: b.time, open: c.o, high: c.h, low: c.l, close: c.c } : null; }).filter(Boolean);
       if (!cb.length) { ctx.emit({ tables }); return; }
-      ctx.emit({ series: [{ id: 'ts-cvd', title: 'CVD TS', paneId: '', kind: 'candle', bars: cb, style: { up: I.upColor, down: I.downColor } }], tables });
+      ctx.emit({ series: [{ id: 'ts-cvd', title: 'CVD L1', paneId: '', kind: 'candle', bars: cb, style: { up: I.upColor, down: I.downColor } }], tables });
     }
   }
 }

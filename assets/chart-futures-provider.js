@@ -155,6 +155,11 @@ function rootOf(ticker) {
   const r = String(ticker || '').trim().toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
   return Object.prototype.hasOwnProperty.call(SYMBOLS, r) ? r : null;
 }
+// SPX / QQQ ... (also "CBOE:SPX", "^SPX"): the quote-only symbols of the Tick-stream hub, or null
+function quoteKey(ticker) {
+  const r = String(ticker || '').trim().toUpperCase().replace(/^[A-Z_]+:/, '').replace(/^\^/, '');
+  return ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'].includes(r) ? r : null;
+}
 function decimalsOf(tick) {
   const s = String(tick);
   return s.includes('.') ? s.split('.')[1].length : 0;
@@ -384,7 +389,7 @@ export class FuturesProvider {
   // Realtime futures updates through our server-side InsightSentry bridge. The browser never gets
   // the vendor key. If the bridge is closed/unavailable, fall back to the old safe polling path.
   subscribe(ticker, timeframe, onBar) {
-    const root = this.keyOf(ticker);
+    const root = this.keyOf(ticker) || quoteKey(ticker);
     const tf = normTf(timeframe);
     const stopL2 = this.l2Subscribe(root, timeframe, onBar);
     if (stopL2 !== NOOP) { const inner = this.subscribeBase(ticker, timeframe, onBar, root, tf); return () => { stopL2(); inner(); }; }
@@ -392,7 +397,7 @@ export class FuturesProvider {
   }
   // admin-only futures L2 candles (assets/chart-futures-l2.js): lazy import, the eight L2 books (+ micros of those minis)
   l2Subscribe(root, timeframe, onBar) {
-    if (!['NQ', 'ES', 'MNQ', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC'].includes(root)) return NOOP;
+    if (!['NQ', 'ES', 'MNQ', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'].includes(root)) return NOOP;   // last 8 = quote-only (no book): same hub, same gate
     let stop = null, dead = false;
     import('./chart-futures-l2.js?v=790').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
     return () => { dead = true; if (stop) stop(); };

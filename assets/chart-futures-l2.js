@@ -18,6 +18,10 @@ import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange
 export const L2_MEMBERS = false;          // licence flag: true only after the Owner confirms Tick-stream's Redistribution licence
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
 export const L2_BOOKS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
+// Quote-only symbols (indices send size 0 = the level, ETFs the last price): ticks channel only, no book, no footprint, no volume.
+// Same gate as the futures hub (l2Visible). A chart on one of these gets its current candle from the live value.
+export const L2_QUOTES = ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'];
+export const isQuoteSym = (s) => L2_QUOTES.includes(String(s || '').toUpperCase());
 export const L2_ROOTS = { NQ: 'NQ', MNQ: 'MNQ', ES: 'ES', MES: 'MES', YM: 'YM', MYM: 'YM', RTY: 'RTY', M2K: 'RTY', CL: 'CL', MCL: 'CL', GC: 'GC', MGC: 'GC' };
 export const L2_TICK = { NQ: 0.25, MNQ: 0.25, ES: 0.25, MES: 0.25, YM: 1, RTY: 0.1, CL: 0.01, GC: 0.1 };   // = TICK_SIZE in the Worker's ts-hub.js
 const TICK = 0.25;
@@ -194,7 +198,7 @@ async function authFetch(url) {
 }
 // imbalance + footprint minutes recorded by the hub (last 3 h), once per page
 function seedHistory(r) {
-  if (r.seeded) return; r.seeded = true;
+  if (r.seeded || isQuoteSym(r.root)) return; r.seeded = true;
   const base = baseUrl(HOOK); if (!base) return;
   const to = Date.now(), from = to - 3 * 3600000;
   authFetch(base + '/ts-aux?symbol=' + r.root + '&from=' + from + '&to=' + to).then((x) => (x.ok ? x.json() : null)).then((j) => {
@@ -246,6 +250,12 @@ export function l2Candles(root, timeframe, onBar, realtimeConfirmed) {
     const touched = [];
     if (m.type === 'bars') {
       for (const b of m.b || []) { mins.set(b[0], [b[1], b[2], b[3], b[4], b[5]]); touched.push(b[0]); if (b[0] < firstMin) firstMin = b[0]; }
+    } else if (m.type === 'quote' && m.symbol === root && m.p > 0) {
+      // the level only: open/high/low/close move, volume stays 0
+      const t = Math.floor((m.ts || Date.now()) / 60000) * 60000, e = mins.get(t);
+      if (!e) { if (firstMin === Infinity) return; mins.set(t, [m.p, m.p, m.p, m.p, 0]); }
+      else { if (m.p > e[1]) e[1] = m.p; if (m.p < e[2]) e[2] = m.p; e[3] = m.p; }
+      touched.push(t);
     } else if (m.type === 'ticks') {
       for (const x of m.t || []) {
         const t = Math.floor(x[3] / 60000) * 60000, e = mins.get(t);

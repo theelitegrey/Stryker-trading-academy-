@@ -8,16 +8,17 @@
 import fs from 'node:fs';
 const secs = Number(process.argv[2] || 8) * 1000;
 const syms = String(process.argv[3] || 'NQ,ES,MNQ,MES,YM,RTY,CL,GC').split(',').map((x) => x.trim().toUpperCase()).filter(Boolean);
+const QUOTES = ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'];   // quote-only: ticks channel, no book
 const envFile = process.env.TICKSTREAM_ENV || '/root/.hermes/profiles/chief-of-staff/scripts/tickstream.env';
 const base = (process.env.TS_SMOKE_BASE || 'https://book-recorder.theelitegrey.workers.dev').replace(/\/$/, '');
 let fail = 0;
 const ok = (c, m) => { if (!c) fail++; console.log((c ? 'PASS ' : 'FAIL ') + m); };
 const tally = (url, proto, onOpen) => new Promise((res) => {
-  const t = {}, out = { open: false, code: 0, t, bySym: {}, maxBytes: 0, bytes: 0 };
+  const t = {}, out = { open: false, code: 0, t, bySym: {}, tickBy: {}, zero: 0, maxBytes: 0, bytes: 0 };
   let ws;
   try { ws = new WebSocket(url, proto); } catch (e) { out.err = 'ctor'; return res(out); }
   ws.onopen = () => { out.open = true; onOpen(ws); };
-  ws.onmessage = (e) => { const L = typeof e.data === 'string' ? e.data.length : 0; out.bytes += L; if (L > out.maxBytes) out.maxBytes = L; try { const m = JSON.parse(e.data); const k = m.type || (m.event && 'event:' + m.event) || 'other'; t[k] = (t[k] || 0) + 1; if (m.type === 'book' && m.symbol) out.bySym[m.symbol] = (out.bySym[m.symbol] || 0) + 1; if (m.type === 'ping' || m.op === 'ping') ws.send(JSON.stringify({ op: 'pong' })); } catch (x) {} };
+  ws.onmessage = (e) => { const L = typeof e.data === 'string' ? e.data.length : 0; out.bytes += L; if (L > out.maxBytes) out.maxBytes = L; try { const m = JSON.parse(e.data); const k = m.type || (m.event && 'event:' + m.event) || 'other'; t[k] = (t[k] || 0) + 1; if (m.type === 'book' && m.symbol) out.bySym[m.symbol] = (out.bySym[m.symbol] || 0) + 1; if (m.type === 'tick' && m.symbol) out.tickBy[m.symbol] = (out.tickBy[m.symbol] || 0) + 1; if (m.type === 'tick' && m.size === 0) out.zero++; if (m.type === 'ping' || m.op === 'ping') ws.send(JSON.stringify({ op: 'pong' })); } catch (x) {} };
   ws.onclose = (e) => { out.code = e.code; res(out); };
   ws.onerror = () => {};
   setTimeout(() => { try { ws.close(1000); } catch (e) {} setTimeout(() => res(out), 500); }, secs);
@@ -27,15 +28,27 @@ let key = '';
 try { key = (fs.readFileSync(envFile, 'utf8').match(/^TICKSTREAM_API_KEY=(.*)$/m) || [])[1] || ''; key = key.trim().replace(/^["']|["']$/g, ''); } catch (e) {}
 if (!key) console.log('SKIP upstream: no key file');
 else {
-  const r = await tally('wss://stream.tick-stream.xyz/v1/stream?key=' + encodeURIComponent(key), undefined, (ws) => { for (const c of ['book', 'ticks']) ws.send(JSON.stringify({ op: 'subscribe', channel: c, symbols: syms })); });
+  const r = await tally('wss://stream.tick-stream.xyz/v1/stream?key=' + encodeURIComponent(key), undefined, (ws) => { for (const c of ['book', 'ticks']) ws.send(JSON.stringify({ op: 'subscribe', channel: c, symbols: c === 'ticks' ? syms.concat(QUOTES) : syms })); });
   console.log('upstream frames', JSON.stringify(r.t));
   console.log('upstream book frames per symbol', JSON.stringify(r.bySym), '| biggest frame KB', Math.round(r.maxBytes / 1024), '| total KB/s', Math.round(r.bytes / 1024 / (secs / 1000)));
   ok(r.open && (r.t.book || 0) > 0, 'upstream: book frames arrive');
   for (const s of syms) ok((r.bySym[s] || 0) > 0, 'upstream: ' + s + ' book frames arrive (0 can mean the market is closed)');
   ok(r.maxBytes < 900 * 1024, 'upstream: biggest frame well under 1 MiB (Worker WebSocket message limit)');
+  console.log('upstream quote tick frames per symbol', JSON.stringify(Object.fromEntries(QUOTES.map((q) => [q, r.tickBy[q] || 0]))), '| size-0 ticks', r.zero);
+  ok(!QUOTES.some((q) => r.bySym[q]), 'upstream: quote symbols send no book frames');
+  // indices tick slowly (VIX can be quiet for 10+ s): need most of the eight, not every one, in a short run
+  ok(QUOTES.filter((q) => r.tickBy[q]).length >= 6, 'upstream: at least 6 of 8 quote symbols tick (0 can mean the market is closed)');
   console.log('upstream tick frames: ' + (r.t.tick || 0) + ' (0 is fine outside CME hours)');
 }
 // 2) through our hub
+const tq = process.env.TS_SMOKE_TOKEN || '';
+if (tq) {
+  const x = await fetch(base + '/ts-quotes', { headers: { authorization: 'Bearer ' + tq } });
+  const j = x.ok ? await x.json() : {};
+  console.log('hub /ts-quotes status', x.status, 'symbols with a value', Object.keys(j.q || {}).length);
+  ok(x.status === 200, 'hub: /ts-quotes answers an admin');
+}
+const nq = await fetch(base + '/ts-quotes'); if (nq.status === 404) console.log('SKIP hub /ts-quotes: route not deployed yet'); else ok(nq.status === 403, 'hub: /ts-quotes refuses a request with no token (status ' + nq.status + ')');
 const tok = process.env.TS_SMOKE_TOKEN || '';
 const bad = await tally(base.replace(/^http/, 'ws') + '/ts-live?symbol=NQ', ['tz-auth', 'not-a-token'], () => {});
 ok(!bad.open || (Object.keys(bad.t).length === 0), 'hub: a bad token gets no data frames');

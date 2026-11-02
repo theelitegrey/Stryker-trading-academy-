@@ -256,13 +256,15 @@ export function l2Candles(root, timeframe, onBar, realtimeConfirmed) {
 // ---------------------------------------------------------------------------------------- feed options for BookFeed
 // What chart-orderflow's BookFeed needs from a custom source (see its constructor).
 export function l2Source(root) {
-  const rule = (mid) => ({ step: nearNice(mid * 0.0001), range: 0.004 });   // identical to the Worker's coarseRule (ts-hub.js)
+  const rule = (mid) => ({ step: nearNice(mid * 0.0001), range: 0.02 });   // identical to the Worker's coarseRule (ts-hub.js)
   return {
     base: 'contracts', keepMs: KEEP_MS, rule,
     trades: () => rootState(root).trades || (rootState(root).trades = new TickFeed()),
     remote: async (from, to) => {
       const base = baseUrl(HOOK);
-      const x = await authFetch(base + '/ts-book-history?symbol=' + root + '&from=' + from + '&to=' + to);
+      let x = await authFetch(base + '/ts-book-history?symbol=' + root + '&from=' + from + '&to=' + to);
+      // the Worker rate limit is 60 reads / min / IP: back off 6 s once instead of failing the whole backfill for 5 min
+      if (x.status === 429) { await new Promise((r) => setTimeout(r, 6000)); x = await authFetch(base + '/ts-book-history?symbol=' + root + '&from=' + from + '&to=' + to); }
       if (!x.ok) throw new Error('HTTP ' + x.status);
       return { buf: await x.arrayBuffer(), held: 0, left: Number(x.headers.get('x-ts-fill-left')) || 0 };
     },
@@ -335,6 +337,8 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const BOOK_WALLS = 'Walls (persist 30 s+, pulled / consumed tags)';
 
+// inputs saved before the style choice existed have no `look`: they get the default (Bookmap)
+const fcfg = (i, walls) => Object.assign({ look: walls ? 'Classic' : 'Bookmap' }, i || {});
 export function installFuturesL2(Core, H, reg) {
   HOOK = H;
   // 1) Futures DOM Heatmap (L2): the Crypto DOM renderer on the futures book. Default view = Deep; walls = top 3 each side.
@@ -346,6 +350,9 @@ export function installFuturesL2(Core, H, reg) {
     if (x.key === 'wallTopPct') return Object.assign({}, x, { defval: 3 });
     return x;
   }).filter(Boolean);
+  // style table (assets/chart-bookmap.js STYLES): 'Bookmap' (default) = dark field, heatmap only; 'Classic' = the earlier look with walls and tags
+  schema.unshift({ key: 'look', title: 'Style', type: 'string', defval: 'Bookmap', options: ['Bookmap', 'Classic'] });
+  schema.splice(1, 0, { key: 'contrast', title: 'Contrast (Bookmap)', type: 'float', defval: 1, min: 0.5, max: 2.5, step: 0.1 }, { key: 'showDepthBars', title: 'Show depth bars (Bookmap)', type: 'bool', defval: true });
   schema.push({ key: 'l2Levels', title: 'Depth levels per side (ladder + bars)', type: 'string', defval: '60', options: ['20', '60', '150'] });
   schema.push({ key: 'l2Walls', title: 'Pulled / consumed tags in every view', type: 'bool', defval: true });
   const Dom = class FutDomNative extends H.CryptoDomNative {
@@ -369,8 +376,8 @@ export function installFuturesL2(Core, H, reg) {
       if (!f || f.status === 'loading') return 'Connecting to the futures order book…';
       if (f.status === 'error') return st.err === 'busy' ? 'Order book is busy. Retrying…' : 'Order book unavailable.';
       if (st.status !== 'live') return 'Reconnecting to the order book…';
-      const cfg = H.domConfig(Object.assign({}, this.inputs, this.inputs.l2Walls === false ? {} : {}));
-      if ((cfg.heat || cfg.walls) && f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
+      const cfg = H.domConfig(fcfg(this.inputs, this.walls));
+      if ((cfg.heat || cfg.walls || cfg.bm) && f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
       return '';
     }
     setInputs(i) { this.inputs = i; if (this.h) this.h.feed.l2Levels = Number(i.l2Levels) || 60; const st = this.root && rootState(this.root); if (st && st.conn) st.conn.setLevels('dom' + this.root, Number(i.l2Levels) || 60); this.render(); }
@@ -381,16 +388,16 @@ export function installFuturesL2(Core, H, reg) {
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       this.ctx.emit({ tables: msg ? [H.message('stk_dom-msg', msg, H.pageIsDay(), 'top_right')] : [] });
       // Walls-only view with "pulled / consumed" on shows the tags too (domConfig reads l2Walls)
-      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: H.domConfig(this.inputs) } : { off: true });
+      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: H.domConfig(fcfg(this.inputs, this.walls)) } : { off: true });
     }
   };
   Core.registerRendererLayer({ id: 'stk_fut_dom', placement: 'below-data', create: H.cryptoDomLayer });
   // 3) Liquidity Walls: the same engine, "Walls only" by default: big resting levels that persisted >= 30 s, faded when pulled; the end of
   // a wall is tagged PULLED (gone before trades reached it) or CONSUMED (traded through, from the tick feed).
-  const wallSchema = schema.map((x) => (x.key === 'style' ? Object.assign({}, x, { defval: x.options[4] }) : x));
+  const wallSchema = schema.filter((x) => x.key !== 'contrast' && x.key !== 'showDepthBars').map((x) => (x.key === 'style' ? Object.assign({}, x, { defval: x.options[4] }) : x.key === 'look' ? Object.assign({}, x, { defval: 'Classic' }) : x));
   Core.registerRendererLayer({ id: 'stk_fut_walls', placement: 'below-data', create: H.cryptoDomLayer });
   reg(Core, { type: 'stk_fut_walls', title: 'Liquidity Walls (L2)', shortTitle: 'Liquidity Walls', paneHint: 'price', overlay: true,
-    inputsSchema: () => wallSchema, create: () => new Dom() });
+    inputsSchema: () => wallSchema, create: () => { const d = new Dom(); d.walls = true; return d; } });
   reg(Core, { type: 'stk_fut_dom', title: 'Futures DOM Heatmap (L2)', shortTitle: 'Futures DOM (L2)', paneHint: 'price', overlay: true,
     inputsSchema: () => schema, create: () => new Dom() });
   // 2) Book Imbalance pane: vendor top-of-book imbalance + ours (10 levels, depth-weighted), both -1..+1

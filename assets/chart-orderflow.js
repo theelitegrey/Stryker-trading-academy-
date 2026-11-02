@@ -30,6 +30,7 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
+import { drawBookmap, BM_BG } from './chart-bookmap.js?v=789';
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=789';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=789';
 import * as ProGate from './chart-pro-gate.js?v=789';
@@ -1361,6 +1362,15 @@ function domConfig(inputs) {
   const vi = i.style === 'right ladder' ? 3 : i.style === 'liquidity heatmap' ? 1 : DOM_VIEWS.indexOf(i.style);
   const view = ['deep', 'combined', 'heat', 'depth', 'walls'][vi < 0 ? 0 : vi];
   const combined = view === 'combined' || view === 'deep';
+  // look: the futures L2 heatmap's style table (assets/chart-bookmap.js). 'bookmap' = heatmap only on a dark field; anything else = Classic
+  const bm = String(i.look || '').toLowerCase() === 'bookmap';
+  if (bm) return {
+    view: 'bookmap', bm: true, look: 'bookmap', heat: false, walls: false, vanish: false, ice: false, twoTone: false, deep: false,
+    depth: i.showDepthBars !== false, gamma: clamp(num(i.contrast, 1), 0.4, 2.5), widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
+    opacity: 0.9, wallSizes: false, showBest: false, showScale: false, bid: str(i.bidColor, '#03c988'), ask: str(i.askColor, '#e5484d'), askDepth: str(i.askDepthColor, '#8b5cf6'),
+    wallTop: 0.025, wallMinMs: 0, hide: 0, bucket: Math.max(0, num(i.bucketUsd, 0)), range: clamp(num(i.bookRangePct, 2), 0.5, 5) / 100,
+    historyMin: clamp(Math.round(num(i.historyMinutes, 360)), 5, 2880)
+  };
   return {
     view,
     heat: view === 'heat' || (combined && i.showHeat !== false),
@@ -1914,7 +1924,7 @@ class BookFeed {
         this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).filter((x) => x.ts >= cut).sort((x, y) => x.ts - y.ts);
         this.remoteFailAt = 0; this.remoteState = 'ok';
         // the Worker fills its gaps from the archive a slice at a time: ask the SAME range again until nothing is left (the screen fills as it goes)
-        if (r.left > 0 && (this.fillTries = (this.fillTries || 0) + 1) < 40) setTimeout(() => { this.remoteBusy = false; this.needRemoteCustom(fromMs); }, 200);
+        if (r.left > 0 && (this.fillTries = (this.fillTries || 0) + 1) < 60) setTimeout(() => { this.remoteBusy = false; this.needRemoteCustom(fromMs); }, 1100);   // <= ~55 reads a minute (Worker limit 60)
         else { this.remoteFrom = from; this.fillTries = 0; this.remoteBusy = false; }
         this.bump();
       })
@@ -2124,9 +2134,9 @@ function cryptoDomLayer() {
       let lo = 0, hi = a.bars.length - 1;
       while (lo < hi) { const m = (lo + hi) >> 1; if (co.timeToX(a.bars[m].time) < 0) lo = m + 1; else hi = m; }
       const visFrom = a.bars[lo] ? a.bars[lo].time : now;
-      if (cfg.heat || cfg.walls) f.needRemote(Math.max(visFrom, now - cfg.historyMin * 60000));
+      if (cfg.heat || cfg.walls || cfg.bm) f.needRemote(cfg.bm ? visFrom : Math.max(visFrom, now - cfg.historyMin * 60000));
       const all = f.allHistory();
-      const hist = all.filter(h => now - h.ts <= cfg.historyMin * 60000);
+      const hist = cfg.bm ? all.filter(h => h.ts >= visFrom - 5 * 60000) : all.filter(h => now - h.ts <= cfg.historyMin * 60000);
       stat.samples = hist.length; stat.histFrom = hist.length ? hist[0].ts : 0; stat.recordedFrom = f.history.length ? f.history[0].ts : 0;
       stat.remoteSamples = f.remote.length; stat.remoteFrom = f.remote.length ? f.remote[0].ts : 0; stat.remoteState = f.remoteState; stat.visFrom = visFrom;
       const newest = f.history[f.history.length - 1];
@@ -2172,6 +2182,15 @@ function cryptoDomLayer() {
 
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
 
+      // ---- Bookmap look (futures L2): dark field, one band per price row, continuous columns, ramp on log(size) ----
+      if (cfg.bm) {
+        g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
+        const bmv = { look: cfg.look, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
+          priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
+        const r = drawBookmap(g, bmv);
+        stat.cells = r.cells; stat.columns = r.columns; stat.bm = r; stat.heatX0 = hist.length ? Math.round(Math.max(0, co.timeToX(hist[0].ts))) : null;
+        g.restore();
+      }
       // ---- heatmap: run-length merged cells per bucket ----
       if (cfg.heat && cols.length) {
         g.save(); g.beginPath(); g.rect(0, top, Math.max(0, right), a.bounds.height); g.clip();

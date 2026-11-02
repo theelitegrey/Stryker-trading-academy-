@@ -30,6 +30,8 @@ jobs:
           node-version: 22
       - name: Unit tests (bucketing parity, wire format, merge)
         run: node workers/book-recorder/test/parity.test.mjs
+      - name: Tick-stream L2 hub tests
+        run: node workers/book-recorder/test/ts-hub.test.mjs
       - name: GEX chain ingest tests
         run: node workers/book-recorder/test/gex.test.mjs
       - name: GEX history tests (feeder vs engine parity, validation, no-lookahead lookup)

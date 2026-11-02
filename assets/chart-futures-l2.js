@@ -399,7 +399,7 @@ export function installFuturesL2(Core, H, reg) {
     setInputs(i) { this.inputs = i; if (this.h) this.h.feed.l2Levels = Number(i.l2Levels) || 60; const st = this.root && rootState(this.root); if (st && st.conn) st.conn.setLevels('dom' + this.root, Number(i.l2Levels) || 60); this.render(); }
     render() {
       if (!this.ctx || this.hidden) return;
-      const msg = this.note();
+      const msg = this.note() === NOT_YET ? '' : this.note();
       const f = this.h && this.h.feed;
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       this.ctx.emit({ tables: msg ? [H.message('stk_dom-msg', msg, H.pageIsDay(), 'top_right')] : [] });
@@ -465,7 +465,7 @@ export function installFuturesL2(Core, H, reg) {
       const mk = (id, title, vals, color) => H.line(id, title, bars, vals, color, 2);
       const series = [mk('stk_fut_imb-v', 'Top-of-book imbalance', vendor, inp.vendorColor || '#03c988')];
       if (inp.showOurs !== false) series.push(mk('stk_fut_imb-o', '10-level depth-weighted', ours, inp.oursColor || '#00adb5'));
-      const note = this.block ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
+      const note = this.block && this.block !== NOT_YET ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
       this.ctx.setStatus(this.block ? 'idle' : r && r.status === 'live' ? 'live' : 'loading');
       this.ctx.emit({ series: this.block ? [] : series, tables: note, priceLines: [{ id: 'stk_fut_imb-0', paneId: '', price: 0, color: '#787b86', lineStyle: 'dotted', width: 1 }] });
     }

@@ -10958,7 +10958,10 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
   .stkfeeds{ left:8px; bottom:56px; }
   .stkfeed{ height:32px; padding:0 10px; }
   .stkfeed-sheet{ left:8px; right:8px; width:auto; max-width:none; bottom:96px; }
-  .stkfeed-note{ left:8px; right:8px; max-width:none; bottom:96px; }
+  .stkfeed-note{ left:8px; right:8px; max-width:none; bottom:96px; flex-wrap:nowrap; }
+  .stkfeed-note > span{ flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stkfeed-note em{ display:none; }
+  .stkfeed-note .stkfeed-unlock{ flex:none; }
   .stkfeeds.is-up{ bottom:100px; } .stkfeed-sheet.is-up, .stkfeed-note.is-up{ bottom:140px; }
 }
 @media (prefers-reduced-motion:reduce){ .stkfeed.is-lit .stkfeed-dot{ animation:none } }

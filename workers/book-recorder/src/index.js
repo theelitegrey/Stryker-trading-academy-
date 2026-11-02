@@ -789,6 +789,22 @@ async function route(req, env, ctx) {
       if (ws) return r;
       return new Response(r.body, { status: r.status, headers: Object.assign({ 'cache-control': 'private, no-store', 'content-type': r.headers.get('content-type') || 'application/json', 'x-ts-fill-left': r.headers.get('x-ts-fill-left') || '0', 'access-control-expose-headers': 'x-ts-fill-left' }, h) });
     }
+    // GET /ts-quotes: latest SPX NDX VIX RUT QQQ SPY IWM DIA values from the hub's ticks. SAME gate as /ts-live (TS_ACCESS), checked BEFORE the
+    // 2 s edge cache is read, so a cached body is never served to someone the gate refuses.
+    if (u.pathname === '/ts-quotes') {
+      const h = cors(req), o = req.headers.get('origin');
+      if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
+      if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
+      if (!(await tsAllowed(env, bearerOf(req)))) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
+      const ckey = new Request('https://book-recorder.cache/ts-quotes/' + Math.floor(Date.now() / 2000));
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch('https://do/ts-quotes');
+        r = new Response(await d.arrayBuffer(), { status: d.status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=2' } });
+        if (d.status === 200) ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return new Response(r.body, { status: r.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'private, max-age=2' }, h) });
+    }
     // GET /ts-health: counts and states only (no data, no secrets), for the CoS and the smoke test
     if (u.pathname === '/ts-health') {
       const d = await stub(env).fetch('https://do/ts-stats');

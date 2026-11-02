@@ -4,7 +4,7 @@
 // 'pro' flag only opens it to a verified Pro/demo token); 4029 / silent / auth closes back off; bucketed history uses
 // the crypto bucketer (parity) and survives a round trip; imbalance + footprint recorded; hours rule.
 import assert from 'node:assert/strict';
-import { TSHub, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
+import { TSHub, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
 import { bucketSnapshot, decodeSamples, encodeSamples } from '../src/bucket.js';
 import { tsAllowed, tsAccess } from '../src/ts-access.js';
 
@@ -49,7 +49,9 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.equal(socks.length, 1, '10 viewers = 1 upstream socket');
   assert.match(socks[0].url, /^wss:\/\/stream\.tick-stream\.xyz\/v1\/stream\?key=SECRETKEY$/);
   assert.deepEqual(socks[0].sent.map((m) => m.channel).sort(), ['book', 'ticks']);
-  assert.deepEqual(socks[0].sent[0].symbols, ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC']);
+  const bookSub = socks[0].sent.find((m) => m.channel === 'book'), tickSub = socks[0].sent.find((m) => m.channel === 'ticks');
+  assert.deepEqual(bookSub.symbols, ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'], 'book: futures only, no quote symbols');
+  assert.deepEqual(tickSub.symbols, [...bookSub.symbols, ...TS_QUOTES], 'ticks: futures + the 8 quote symbols');
   socks[0].msg(book(28000));
   socks[0].msg({ type: 'tick', symbol: 'NQ', price: 28000.25, size: 3, side: 'buy', ts: 1 });
   socks[0].msg({ type: 'ping' });
@@ -300,5 +302,40 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.equal(cl.step, 0.01); assert.equal(gc.step, 0.2); assert.equal(mnq.step, 2.5); assert.equal(hub.coarseOf('NQ', hub.clock()), null, 'MNQ frames never feed NQ');
   assert.ok(Math.abs(cl.mid - 60.5) < 0.01 && Math.abs(gc.mid - 4012.3) < 0.1);
   hub.shutdown(); ok('8 symbols: tick sizes, whole-tick bucket rows (CL 0.01, GC 0.2, YM 2, RTY 0.2), MNQ own book');
+}
+// ---- quote-only symbols: latest value, fan-out to asking clients, no volume, no recording, gate = tsAllowed
+{
+  socks = []; const { hub, store } = mk({ RECORD: true });
+  assert.deepEqual(TS_QUOTES, ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA']);
+  const spx = client(), nq = client(); hub.attach(spx, 'SPX', 60); hub.attach(nq, 'NQ', 60);
+  await sleep(30);
+  socks[0].msg({ type: 'tick', symbol: 'SPX', price: 6000.5, size: 0, ts: 1 });
+  socks[0].msg({ type: 'tick', symbol: 'SPX', price: 6001.25, size: 0, ts: 2 });
+  socks[0].msg({ type: 'tick', symbol: 'QQQ', price: 520.1, size: 100, side: 'buy', ts: 2 });
+  socks[0].msg({ type: 'tick', symbol: 'ZZZ', price: 1, size: 1, side: 'buy', ts: 2 });
+  await sleep(60);
+  const qs = spx.got.filter((m) => m.type === 'quote');
+  assert.ok(qs.length >= 1 && qs.at(-1).p === 6001.25 && qs.at(-1).symbol === 'SPX', 'SPX client gets the latest level');
+  assert.ok(!spx.got.some((m) => m.type === 'quote' && m.symbol !== 'SPX'), 'only the symbol it asked for');
+  assert.ok(!nq.got.some((m) => m.type === 'quote'), 'futures client gets no quote frames');
+  assert.deepEqual(Object.keys(hub.quoteMap()).sort(), ['QQQ', 'SPX'], 'unknown symbol ignored');
+  const bar = hub.bars1m.get('SPX').at(-1);
+  assert.deepEqual([bar[2], bar[3], bar[4], bar[5]], [6001.25, 6000.5, 6001.25, 0], 'OHLC from the level, volume stays 0');
+  assert.equal(hub.rings.has('SPX'), false, 'no tick ring / footprint for a quote symbol');
+  assert.equal(hub.bars1m.get('QQQ').at(-1)[5], 0, 'ETF quote adds no volume either');
+  const late = client(); hub.attach(late, 'SPX', 60);
+  assert.ok(late.got.some((m) => m.type === 'bars' && m.symbol === 'SPX'), 'new viewer is back-filled with the 1m bars');
+  hub.shutdown();
+  ok('quote-only symbols: latest value, fan-out, zero volume, no ring');
+}
+{
+  const { hub } = mk({ RECORD: false }); hub.attach(client(), 'NQ', 60); await sleep(20);
+  socks.at(-1).msg({ type: 'tick', symbol: 'VIX', price: 17.2, size: 0, ts: 1 });
+  assert.equal(hub.quoteMap().VIX[0], 17.2);
+  const T = hub.clock() + 11 * 60000; assert.deepEqual(hub.quoteMap(T), {}, 'stale quotes (10 min) are left out');
+  hub.shutdown();
+  // gate: the quotes route uses tsAllowed, so admin-only by default and the same single TS_ACCESS flag widens it
+  assert.equal(await tsAllowed({}, ''), false); assert.equal(tsAccess({}), 'admin'); assert.equal(tsAccess({ TS_ACCESS: 'pro' }), 'pro');
+  ok('quotes: stale cut-off, gate is the futures gate (TS_ACCESS)');
 }
 console.log(n + ' checks passed'); process.exit(0);

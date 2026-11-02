@@ -30,6 +30,8 @@ import { bucketSnapshot, encodeSamples, decodeSamples, nearNiceStep } from './bu
 export const TS_WS = 'wss://stream.tick-stream.xyz/v1/stream';
 // Owner 2026-11-02: all eight, each with its OWN book (MNQ / MES are separate books, not mapped to NQ / ES). One socket, unlimited symbols on realtime-l2.
 export const TS_SYMBOLS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
+// Quote-only symbols (Owner 2026-11-02): indices send {price = the level, size 0}, ETFs the last price. ticks channel only, no book.
+export const TS_QUOTES = ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'];
 export const LEVELS = [20, 60, 150];
 export const COARSE_RANGE = 0.02;         // +-2% of the mid (was 0.4%): NQ ~ +-570 pts; unused rows are trimmed, so a sample only holds what the 400-level book spans
 // Row step for the heatmap rows: the nice step at or below 0.01% of the price. NQ 28.7k -> 2.5, ES 7.6k -> 0.5.
@@ -44,7 +46,7 @@ export const coarseRule = (mid, sym) => {
 };
 
 const DEF = {
-  SYMBOLS: TS_SYMBOLS, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
+  SYMBOLS: TS_SYMBOLS, QUOTES: TS_QUOTES, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
   SAMPLE_MS: 5000, BACK_MIN_MS: 2000, BACK_MAX_MS: 60000, STABLE_MS: 30000, DEAD_SLOT_MS: 50000, AUTH_PAUSE_MS: 300000,
   SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, FILL_MAX_MIN: 60, FILL_BUDGET_MS: 25000, FILL_SPAN_H: 6, FILL_STEP: 5, FILL_LAG_MS: 2 * 60000, FILL_PAUSE_MS: 60000, REST: 'https://api.tick-stream.xyz/v1', TICKS_PER_FRAME: 200, PRUNE_MS: 3600000
 };
@@ -83,7 +85,7 @@ export class TSHub {
   constructor(store, key, opts = {}) {
     this.store = store; this.key = key; this.o = Object.assign({}, DEF, opts);
     this.WS = opts.WebSocket || globalThis.WebSocket; this.clock = opts.now || (() => Date.now());
-    this.ws = null; this.state = 'idle'; this.clients = new Set(); this.latest = new Map(); this.rings = new Map(); this.bars1m = new Map(); this.seq = 0;
+    this.ws = null; this.state = 'idle'; this.clients = new Set(); this.latest = new Map(); this.quotes = new Map(); this.rings = new Map(); this.bars1m = new Map(); this.seq = 0;
     this.acc = new Map(); this.nextSample = new Map(); this.timers = {}; this.retryN = 0; this.openedAt = 0; this.lastMsgAt = 0; this.lastDataAt = 0;
     this.nextAt = 0; this.pauseUntil = 0; this.lastError = ''; this.minWait = 0; this.noViewerSince = 0; this.lastPrune = 0;
     this.n = { connects: 0, frames: 0, ticks: 0, snaps: 0, coarse: 0, rows: 0, drops: 0, refused: 0, throttled: 0 };
@@ -119,7 +121,7 @@ export class TSHub {
     on('open', () => {
       if (this.ws !== ws) return;
       this.openedAt = this.lastMsgAt = this.clock();
-      for (const channel of ['book', 'ticks']) { try { ws.send(JSON.stringify({ op: 'subscribe', channel, symbols: this.o.SYMBOLS })); } catch (e) {} }
+      for (const channel of ['book', 'ticks']) { try { ws.send(JSON.stringify({ op: 'subscribe', channel, symbols: channel === 'ticks' ? this.o.SYMBOLS.concat(this.o.QUOTES) : this.o.SYMBOLS })); } catch (e) {} }
       this.setState('open');
     });
     on('message', (ev) => { if (this.ws === ws) this.onRaw(ev && ev.data); });
@@ -187,6 +189,7 @@ export class TSHub {
         else if (/unauthor|invalid|forbidden|no_subscription|plan_required/.test(t)) { this.minWait = this.o.AUTH_PAUSE_MS; this.pauseUntil = now + this.minWait; }
         continue;
       }
+      if (m.type === 'tick' && this.o.QUOTES.includes(m.symbol)) { this.onQuote(m, now); continue; }
       if (!this.o.SYMBOLS.includes(m.symbol)) continue;
       if (m.type === 'book') this.onBook(m, now);
       else if (m.type === 'tick') this.onTick(m, now);
@@ -199,6 +202,19 @@ export class TSHub {
     this.latest.set(m.symbol, { bids: m.bids, asks: m.asks, imb: Number.isFinite(m.imbalance) ? m.imbalance : 0, ts: m.ts, at: now, ver: (prev ? prev.ver : 0) + 1, imb10: null, coarse: null, coarseAt: 0 });
     this.announce();
   }
+  // Quote-only: keep the latest value and a 1-minute OHLC (volume stays 0: index ticks have size 0). No ring, no recording.
+  onQuote(m, now) {
+    if (!(m.price > 0)) return;
+    this.lastDataAt = now;
+    const q = this.quotes.get(m.symbol), p = Number(m.price);
+    this.quotes.set(m.symbol, { p, at: now, ver: (q ? q.ver : 0) + 1 });
+    const bm = Math.floor(now / 60000) * 60000, bl = this.bars1m.get(m.symbol) || []; this.bars1m.set(m.symbol, bl);
+    let bb = bl[bl.length - 1];
+    if (!bb || bb[0] !== bm) { bb = [bm, p, p, p, p, 0]; bl.push(bb); if (bl.length > this.o.BARS_MIN) bl.splice(0, bl.length - this.o.BARS_MIN); }
+    if (p > bb[2]) bb[2] = p; if (p < bb[3]) bb[3] = p; bb[4] = p;
+  }
+  // { SPX: [price, ts_ms], .. } for /ts-quotes; values older than 10 min are left out
+  quoteMap(now = this.clock()) { const o = {}; for (const [s, q] of this.quotes) if (now - q.at < 600000) o[s] = [q.p, q.at]; return o; }
   onTick(m, now) {
     if (!(m.price > 0) || !(m.size > 0)) return;
     const side = m.side === 'buy' ? 1 : m.side === 'sell' ? -1 : 0;
@@ -270,7 +286,7 @@ export class TSHub {
     this.clients.add(c);
     this.setSub(c, sym, levels);
     this.startTimer();
-    this.send(c, JSON.stringify({ event: 'hub_attached', state: this.liveState(), symbols: this.o.SYMBOLS }));
+    this.send(c, JSON.stringify({ event: 'hub_attached', state: this.liveState(), symbols: this.o.SYMBOLS.concat(this.o.QUOTES) }));
     this.maintain();
     return {
       close: () => { this.clients.delete(c); },
@@ -282,7 +298,7 @@ export class TSHub {
   }
   setSub(c, sym, levels) {
     const s = String(sym || '').toUpperCase();
-    if (this.o.SYMBOLS.includes(s) && s !== c.sym) {
+    if ((this.o.SYMBOLS.includes(s) || this.o.QUOTES.includes(s)) && s !== c.sym) {
       c.sym = s; c.sentVer = -1; c.lastCoarse = 0; c.lastSeq = this.seq;
       const bl = this.bars1m.get(s);
       if (bl && bl.length) this.send(c, JSON.stringify({ type: 'bars', symbol: s, b: bl }));   // [[t_ms,o,h,l,c,vol]..] 1m, newest last
@@ -308,6 +324,11 @@ export class TSHub {
       if (!c.sym) continue;
       if (now - c.lastPing >= 5000) { c.lastPing = now; this.send(c, JSON.stringify({ event: 'ping', up: this.lastDataAt ? now - this.lastDataAt : -1, state: this.liveState(now) })); }
       if (now - c.lastSend < this.o.MIN_GAP_MS - 20) { this.n.throttled++; continue; }
+      if (this.o.QUOTES.includes(c.sym)) {   // quote-only symbol: one small frame per change, <= 4/s
+        const q = this.quotes.get(c.sym);
+        if (q && q.ver !== c.sentVer) { this.send(c, JSON.stringify({ type: 'quote', symbol: c.sym, p: q.p, ts: q.at })); c.sentVer = q.ver; c.lastSend = now; }
+        continue;
+      }
       const L = this.latest.get(c.sym);
       let sent = false;
       if (L && L.ver !== c.sentVer) {
@@ -337,7 +358,7 @@ export class TSHub {
     const now = this.clock();
     return {
       v: 1, at: Math.floor(now / 1000), mode: this.o.MODE, configured: !!this.key || this.o.MODE === 'relay', state: this.state, live: this.liveState(now),
-      cmeOpen: cmeOpen(now), recording: this.o.RECORD, clients: this.clients.size, symbols: this.o.SYMBOLS, upstreamSockets: this.ws ? 1 : 0,
+      cmeOpen: cmeOpen(now), recording: this.o.RECORD, clients: this.clients.size, symbols: this.o.SYMBOLS, quotes: this.o.QUOTES, upstreamSockets: this.ws ? 1 : 0,
       lastDataAgoMs: this.lastDataAt ? now - this.lastDataAt : null, retryN: this.retryN, nextRetryInMs: this.timers.retry ? Math.max(0, this.nextAt - now) : 0,
       lastError: this.lastError, keepHours: this.o.KEEP_H, ...this.n
     };
@@ -438,6 +459,7 @@ export async function tsHubFetch(hub, env, u, req) {
   if (!hub.key && hub.o.MODE === 'direct') hub.key = env.TICKSTREAM_API_KEY || '';
   hub.poke();
   if (u.pathname === '/ts-stats') return Response.json(hub.stats());
+  if (u.pathname === '/ts-quotes') return Response.json({ q: hub.quoteMap(), live: hub.liveState() });
   if (u.pathname === '/ts-ingest') {
     if (hub.o.MODE !== 'relay') return new Response('relay mode is off', { status: 409 });
     let b; try { b = await req.json(); } catch (e) { return new Response('bad json', { status: 400 }); }

@@ -48,6 +48,8 @@ const FUT_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'GC', 'M
 // Spot forex pairs (the "fx" provider, mirrors FX_PAIRS in assets/chart-futures-provider.js).
 const FX_PAIRS = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 'EURCHF',
   'EURAUD', 'EURCAD', 'AUDJPY', 'CADJPY', 'CHFJPY', 'GBPCHF', 'AUDNZD'];
+// Indices & ETFs (the "idx" provider, mirrors IDX_SYMBOLS in assets/chart-futures-provider.js).
+const IDX_SYMS = ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'];
 const RTH = {   // mirrors assets/chart-events.js RTH (New York minutes)
   index: [570, 960], metals: [500, 810], energy: [540, 870], rates: [500, 900], fx: [500, 900]
 };
@@ -166,6 +168,12 @@ export function normalizeSymbol(raw, feed){
     const p = t.replace(/[\/_\s]/g, '');
     if (FX_PAIRS.includes(p)) return 'fx:' + p;
     if (pre && pre.startsWith('fx')) return null;
+  }
+  // Indices & ETFs: "SPX", "^SPX", "idx:SPX", "CBOE:SPX", "SP:SPX", "NASDAQ:QQQ", "AMEX:SPY", "TVC:VIX".
+  if (!pre || /^(idx|index|cboe|sp|spx|nasdaq|nyse|amex|arca|tvc|russell|dj|djc)$/.test(pre)) {
+    const i = t.replace(/^\^/, '');
+    if (IDX_SYMS.includes(i)) return 'idx:' + i;
+    if (pre === 'idx') return null;
   }
   const venues = ['binance', 'coinbase', 'hyperliquid'];
   if (pre && !venues.includes(pre)) pre = '';
@@ -988,7 +996,7 @@ export function mountWatchlist(ws, o){
   }
   function uploadDialog(){
     const file = el('input', { type: 'file', accept: '.txt,.csv,text/plain,text/csv', class: 'stkw-file', 'aria-label': 'Choose a .txt or .csv file' });
-    const info = el('p', { class: 'stkw-note', text: 'A .txt or .csv of symbols, separated by commas or new lines (TradingView exports work). "###NAME" starts a section. Futures we carry: ' + FUT_ROOTS.join(', ') + '; forex pairs: ' + FX_PAIRS.join(', ') + '; crypto pairs from our exchange feeds.' });
+    const info = el('p', { class: 'stkw-note', text: 'A .txt or .csv of symbols, separated by commas or new lines (TradingView exports work). "###NAME" starts a section. Futures we carry: ' + FUT_ROOTS.join(', ') + '; forex pairs: ' + FX_PAIRS.join(', ') + '; indices and ETFs: ' + IDX_SYMS.join(', ') + '; crypto pairs from our exchange feeds.' });
     const out = el('div', { class: 'stkw-upout' });
     const nameIn = el('input', { type: 'text', class: 'stkw-in', maxlength: String(NAME_MAX), 'aria-label': 'New list name', placeholder: 'New list name' });
     const ok = el('button', { type: 'button', class: 'stkw-pbtn', text: 'Create list', disabled: true });

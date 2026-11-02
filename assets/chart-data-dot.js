@@ -30,6 +30,7 @@ const TICK_MS = 30000;           // re-check open/closed and lag
 const CRYPTO = /^(binance|coinbase|hyperliquid):/i;
 const FUT = /^futures:/i;
 const FX = /^fx:/i;
+const IDX = /^idx:/i;
 
 let nyFmt = null;
 function nyParts(ms) {
@@ -54,10 +55,15 @@ export function fxOpen(ms) {
   if (dow === 5) return min < 17 * 60;
   return true;
 }
+// Index / ETF cash session: Monday to Friday 09:30-16:00 New York (no holiday calendar; the delayed Yahoo bars are what the chart shows).
+export function idxOpen(ms) {
+  const { dow, min } = nyParts(ms);
+  return dow >= 1 && dow <= 5 && min >= 570 && min < 960;
+}
 // Next open, epoch ms. Every Globex open is at 18:00 New York (forex 17:00), so 15-minute
 // steps land on it.
 export function nextOpen(ms, fx) {
-  const open = fx ? fxOpen : globexOpen;
+  const open = fx === 'idx' ? idxOpen : fx ? fxOpen : globexOpen;
   let t = Math.ceil(ms / 900000) * 900000;
   for (let i = 0; i < 400; i++, t += 900000) if (open(t)) return t;
   return null;
@@ -78,6 +84,7 @@ export function installDataDot(ws, opts = {}) {
   const probe = Futures ? new Futures() : null;
   const Fx = opts.FxProvider;
   const fxProbe = Fx ? new Fx() : null;
+  const idxProbe = opts.IdxProvider ? new opts.IdxProvider() : null;
   const lag = new Map();           // root -> { at, min }  (min null = could not measure)
   const pending = new Set();
 
@@ -90,7 +97,7 @@ export function installDataDot(ws, opts = {}) {
   let tipFor = null;
 
   const rootOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '').replace(/1!$/, '').toUpperCase();
-  const isFx = (root) => !!root && root.startsWith('FX:');
+  const isFx = (root) => !!root && (root.startsWith('FX:') || root.startsWith('IDX:'));
   const rithLive = () => { try { return !!(rith && rith.client && rith.client.state === 'connected'); } catch (e) { return false; } };
   const insightRealtime = (root) => {
     try { return !!(Futures && Array.isArray(Futures.INSIGHTSENTRY_ROOTS) && Futures.INSIGHTSENTRY_ROOTS.includes(root)); }
@@ -99,12 +106,12 @@ export function installDataDot(ws, opts = {}) {
 
   // root: a futures root ("NQ") or "FX:EURUSD" for a forex pair.
   function measure(root) {
-    const p = isFx(root) ? fxProbe : probe;
+    const p = root.startsWith('IDX:') ? idxProbe : isFx(root) ? fxProbe : probe;
     if (!p || pending.has(root)) return;
     const hit = lag.get(root);
     if (hit && Date.now() - hit.at < LAG_TTL_MS) return;
     pending.add(root);
-    p.getBars(isFx(root) ? root.slice(3) : root + '1!', '1', { limit: 1 }).then((bars) => {
+    p.getBars(root.startsWith('IDX:') ? root.slice(4) : isFx(root) ? root.slice(3) : root + '1!', '1', { limit: 1 }).then((bars) => {
       const b = bars && bars[bars.length - 1];
       let min = null;
       if (b && b.time) {
@@ -129,6 +136,18 @@ export function installDataDot(ws, opts = {}) {
       const key = 'FX:' + rootOf(sym);
       measure(key);
       const m = lag.get(key);
+      return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };
+    }
+    if (IDX.test(sym)) {
+      const now = Date.now(), k = rootOf(sym);
+      // Admin: the hub's quote frames are moving the current candle (chart-futures-l2.js sets __stkL2Live).
+      if (window.__stkL2Live && window.__stkL2Live.has(k)) return { s: 'rt', text: 'Live data from the Tick-stream feed', tag: 'Live' };
+      if (!idxOpen(now)) {
+        const n = nextOpen(now, 'idx');
+        return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };
+      }
+      measure('IDX:' + k);
+      const m = lag.get('IDX:' + k);
       return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };
     }
     if (!FUT.test(sym) && !/^[A-Z0-9]+1!$/i.test(sym)) return null;
@@ -277,7 +296,7 @@ export function installDataDot(ws, opts = {}) {
   window.addEventListener('resize', hideTip, { passive: true });
   sync();
 
-  const api = { sync, statusOf, lag, globexOpen, fxOpen, nextOpen, creditFor };
+  const api = { sync, statusOf, lag, globexOpen, fxOpen, idxOpen, nextOpen, creditFor };
   window.STRYKER_DATA_DOT = api;
   return api;
 }

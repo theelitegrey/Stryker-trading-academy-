@@ -5,7 +5,7 @@
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
 import { isRealtimeToken, bearerOf, RT_DELAY_S } from '../_rt.js';
-import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, mergeTail, ttlFor, OutOfRange, fetchRecorderTail, TAIL_SYMS, bucketTail } from '../_bars.js';
+import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isNonCme, normSym, normTf, pageOf, fetchPage, mergeTail, ttlFor, OutOfRange, fetchRecorderTail, TAIL_SYMS, bucketTail } from '../_bars.js';
 
 const VERSION = 1;
 const inflight = new Map();
@@ -69,8 +69,8 @@ async function serve(ctx, admin) {
   const cache = edge();
   // Non-admins read a separate cache lane and a Yahoo-only source (no InsightSentry env at all), so a
   // real-time row can never enter their response; Yahoo's CME feed is itself ~10 min behind.
-  const KD = admin || isForex(sym) ? '' : 'd';
-  const env = admin || isForex(sym) ? (ctx.env || {}) : {};
+  const KD = admin || isNonCme(sym) ? '' : 'd';
+  const env = admin || isNonCme(sym) ? (ctx.env || {}) : {};
   const freshKey = keyFor(request, sym, tf, page, 'fresh' + KD);
   try {
     if (cache) {
@@ -124,7 +124,7 @@ export function delayRows(rows, nowSec) {
 
 export async function onRequestGet(ctx) {
   const sym = normSym(ctx.params.sym);
-  if (!sym || isForex(sym)) return serve(ctx, true);
+  if (!sym || isNonCme(sym)) return serve(ctx, true);
   const admin = await isRealtimeToken(bearerOf(ctx.request));
   ctx.noTail = !admin;
   const res = await serve(ctx, admin);

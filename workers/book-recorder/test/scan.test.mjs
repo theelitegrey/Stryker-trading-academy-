@@ -3,7 +3,7 @@
 //   node workers/book-recorder/test/scan.test.mjs
 import { gzipSync, gunzipSync } from 'node:zlib';
 import assert from 'node:assert/strict';
-import { validateScan, validateScanPart, SCAN_COLS, MS_COLS } from '../src/scan.js';
+import { validateScan, validateScanPart, SCAN_COLS, SCAN_COLS_V2, MS_COLS } from '../src/scan.js';
 
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS ' + m); };
@@ -42,6 +42,16 @@ ok(/bad row/.test(validateScanPart('presets', p3, now)), 'short row rejected');
 ok((await validateScan('stock', gz(table()), Date.now())).t === now - 30, 'gzip body ok');
 ok((await validateScan('stock', new TextEncoder().encode(JSON.stringify(table())).buffer, Date.now())).error === 'not gzip', 'plain JSON rejected');
 
+// ---- screener v2 tables (more columns) and the futures part
+const rowV2 = (s, chg) => row(s, chg).concat(['Software', 1.1, 0.5, 1793577600, 2.5, 3.2, 8.1, 20, 2e6, 9, 9.5, 8, 9.1, 9.4, 8.2]);
+const tableV2 = (o) => { const rows = [rowV2('NASDAQ:AAA', 9), rowV2('CME_MINI:NQ1!', -3)]; const d = {}; SCAN_COLS_V2.forEach((c, i) => { d[c] = rows.map((r) => r[i]); }); return Object.assign({ v: 2, t: now - 30, cols: SCAN_COLS_V2, n: rows.length, d }, o || {}); };
+ok(SCAN_COLS_V2.slice(0, SCAN_COLS.length).join() === SCAN_COLS.join(), 'v2 columns extend v1');
+ok(validateScanPart('stock', tableV2(), now) === '', 'v2 stock table valid');
+ok(validateScanPart('fut', tableV2(), now) === '', 'futures part valid');
+ok(validateScanPart('stock', table(), now) === '', 'v1 table still valid (old feeder keeps working)');
+ok(validateScanPart('stock', tableV2({ cols: SCAN_COLS }), now) === 'bad cols', 'v2 header with v1 columns rejected');
+ok(validateScanPart('presets', tableV2(), now) === 'bad header', 'presets stay v1');
+ok(/bad cells ind/.test(validateScanPart('stock', (() => { const t = tableV2(); t.d.ind[0] = { x: 1 }; return t; })(), now)), 'object cell rejected');
 // ---- routes on a real DO (node:sqlite) ----
 let sqlite = null;
 try { sqlite = await import('node:sqlite'); } catch (e) {}

@@ -8,9 +8,17 @@
 // gzip bytes as they came; GET /scan?part= serves them as-is (x-scan-gzip: 1; the page un-gzips with
 // DecompressionStream, as /orderflow does), edge-cached 60 s, so InsightSentry is never called per
 // visitor. Plan gating (custom filters = Pro) is the site's.
-export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'syminfo', 'ms_nq', 'ms_es', 'ms_spx', 'ms_ym', 'ms_rty', 'ms_gc', 'ms_cl'];
-export const SCAN_MAX_BODY = 512 * 1024;
-export const SCAN_COLS = ['s', 'n', 'c', 'chg', 'vol', 'rvol', 'gap', 'rsi', 'hi52', 'lo52', 'cap', 'pe', 'sec', 'perfW', 'perfYtd'];
+export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'fut', 'syminfo', 'ms_nq', 'ms_es', 'ms_spx', 'ms_ym', 'ms_rty', 'ms_gc', 'ms_cl'];
+export const SCAN_MAX_BODY = 900 * 1024;   // screener v2: more columns per market table (was 512 KB)
+export const SCAN_COLS = ['s', 'n', 'c', 'chg', 'vol', 'rvol', 'gap', 'rsi', 'hi52', 'lo52', 'cap', 'pe', 'sec', 'perfW', 'perfYtd'];   // presets + v1 tables
+// Screener v2 (2026-11-03): the market tables carry the slow fields too (industry, beta, dividend yield, next earnings, ATR,
+// month / quarter / year performance, average volume, SMA / EMA 20 / 50 / 200). Text cells: s n sec ind; the rest numbers.
+export const SCAN_COLS_V2 = SCAN_COLS.concat(['ind', 'beta', 'dy', 'earn', 'atr', 'perfM', 'perfQ', 'perfY', 'av', 'sma20', 'sma50', 'sma200', 'ema20', 'ema50', 'ema200']);
+// Screener columns (2026-11-03). A table (stock / etf / crypto / fut) starts with its base columns and may add any of these; the page
+// reads them by name, so an older feeder (base only) keeps working. 'presets' keeps the exact base list.
+export const SCAN_EXTRA = ['perfM', 'perf3m', 'perfY', 'avgv', 'atr', 'beta', 'dy', 'ind', 'exch', 'earn', 'adx', 'mfi', 'macd', 's20', 's50', 's200', 'e20', 'e50', 'e200'];
+export const FUT_COLS = ['s', 'n', 'c', 'chg', 'vol'];
+export const FUT_EXTRA = ['open', 'hi', 'lo', 'pc', 'gap', 'rvol', 'avgv', 'rsi', 'hi52', 'lo52', 'perfW', 'perfM', 'perf3m', 'perfY', 'perfYtd', 'atr', 'adx', 's20', 's50', 's200', 'e20', 'e50', 'e200', 'grp', 'exch'];
 const FRESH_S = 15 * 60;
 const MAX_ROWS = 20000;
 const PRESET_RE = /^[a-z0-9]{2,20}$/;
@@ -56,11 +64,12 @@ export function validateSymInfo(d) {
 // Parsed part -> '' when valid, else the reason. Pure.
 export function validateScanPart(part, d, nowSec) {
   if (!SCAN_PARTS.includes(part)) return 'bad part';
-  if (!d || typeof d !== 'object' || d.v !== 1) return 'bad header';
+  if (!d || typeof d !== 'object' || (d.v !== 1 && !(d.v === 2 && part !== 'presets'))) return 'bad header';
   if (!fin(d.t) || d.t > nowSec + 60 || nowSec - d.t > (part === 'syminfo' || part.startsWith('ms_') ? 3600 : FRESH_S)) return 'stale or future t';
   if (part === 'syminfo') return validateSymInfo(d);
   if (part.startsWith('ms_')) return validateMarketStats(part, d);
-  if (!Array.isArray(d.cols) || d.cols.join() !== SCAN_COLS.join()) return 'bad cols';
+  const cols = part !== 'presets' && d.v === 2 ? SCAN_COLS_V2 : SCAN_COLS;
+  if (!Array.isArray(d.cols) || d.cols.join() !== cols.join()) return 'bad cols';
   if (part === 'presets') {
     const ks = Object.keys(d.presets || {});
     if (!ks.length || ks.length > 40) return 'bad presets';
@@ -75,12 +84,12 @@ export function validateScanPart(part, d, nowSec) {
     return '';
   }
   if (!fin(d.n) || d.n < 1 || d.n > MAX_ROWS || !d.d || typeof d.d !== 'object') return 'bad table';
-  for (const c of SCAN_COLS) {
+  for (const c of cols) {
     const col = d.d[c];
     if (!Array.isArray(col) || col.length !== d.n) return 'bad column ' + c;
   }
   if (!d.d.s.every((x) => typeof x === 'string' && x.length <= 40)) return 'bad symbols';
-  for (const c of SCAN_COLS) if (!d.d[c].every(cellOk)) return 'bad cells ' + c;
+  for (const c of cols) if (!d.d[c].every(cellOk)) return 'bad cells ' + c;
   return '';
 }
 

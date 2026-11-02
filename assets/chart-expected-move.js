@@ -12,8 +12,8 @@
 // window.strykerPlanTier (assets/plan-limits.js, optional).
 
 const TYPE = 'stk_em';
-import { rtHeadersReady } from './rt-access.js?v=787';
-import * as ProGate from './chart-pro-gate.js?v=787';
+import { rtHeadersReady } from './rt-access.js?v=788';
+import * as ProGate from './chart-pro-gate.js?v=788';
 const API = 'https://book-recorder.theelitegrey.workers.dev/opt-analytics?u=';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;

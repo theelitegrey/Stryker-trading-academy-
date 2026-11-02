@@ -36,6 +36,13 @@ export const COARSE_RANGE = 0.02;         // +-2% of the mid (was 0.4%): NQ ~ +-
 export const TICK_SIZE = { NQ: 0.25, ES: 0.25, MNQ: 0.25, MES: 0.25, YM: 1, RTY: 0.1, CL: 0.01, GC: 0.1 };
 // Never finer than the contract tick (CL 60.00 -> 0.005 would leave every other row empty), and always a whole number of
 // ticks (GC 4000 -> 0.25 would split 0.1 ticks across rows). Without `sym` it is the old rule (NQ / ES unchanged).
+// true when a stored sample was cut at the old +-0.4% band: its rows reach that band's edge on a side, so a +-2% rewrite would be wider
+export function narrowBook(buf) {
+  const list = decodeSamples(buf instanceof ArrayBuffer ? buf : new Uint8Array(buf).buffer);
+  if (!list || !list.length) return false;
+  const s = list[0], lo = s.i0 * s.step, hi = (s.i0 + s.v.length) * s.step, e = s.mid * 0.004, tol = 2 * s.step;
+  return Math.abs(s.mid - lo - e) <= tol || Math.abs(hi - s.mid - e) <= tol;   // an edge sits on the old +-0.4% line
+}
 export const coarseRule = (mid, sym) => {
   const tk = TICK_SIZE[sym];
   let step = nearNiceStep(Math.max(mid * 0.0001, tk || 0));
@@ -371,7 +378,11 @@ export class TSHub {
     const nowMin = Math.floor(this.clock() / 60000), t1 = Math.min(Math.floor(to / 60000), nowMin - Math.ceil(o.FILL_LAG_MS / 60000));
     const t0 = Math.max(Math.floor(from / 60000), t1 - o.FILL_SPAN_H * 60, nowMin - o.KEEP_H * 60);
     if (!(t1 > t0)) return { filled: 0, left: 0 };
-    const have = new Set(); for (const r of this.store.range(sym, t0, t1)) have.add(r.t);
+    // minutes stored by the archive backfill BEFORE the +-2% range (build <= 790) hold a +-0.4% ribbon: drop them from `have` so they are
+    // fetched once more at the wide range (an archive row has no imb / fp, so nothing else is lost). Recorder rows (imb / fp / 12 samples a minute)
+    // are never replaced; they age out with KEEP_H.
+    const have = new Set();
+    for (const r of this.store.range(sym, t0, t1)) { if (r.book && !r.imb && !r.fp && narrowBook(r.book)) continue; have.add(r.t); }
     const a = this.acc.get(sym); if (a) have.add(a.t);
     const missing = []; for (let t = t1; t >= t0; t--) if (!have.has(t)) missing.push(t);
     if (!missing.length) return { filled: 0, left: 0 };

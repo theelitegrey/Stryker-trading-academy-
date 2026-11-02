@@ -301,4 +301,11 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.ok(Math.abs(cl.mid - 60.5) < 0.01 && Math.abs(gc.mid - 4012.3) < 0.1);
   hub.shutdown(); ok('8 symbols: tick sizes, whole-tick bucket rows (CL 0.01, GC 0.2, YM 2, RTY 0.2), MNQ own book');
 }
+// ---- archive rows stored at the old +-0.4% band are re-fetched once at +-2% (recorder rows never)
+{
+  const { narrowBook } = await import('../src/ts-hub.js'), B = await import('../src/bucket.js');
+  const mkBook = (r) => B.encodeSamples([B.bucketSnapshot({ bids: [[28000, 1], [28000 * (1 - r), 2]], asks: [[28001, 1], [28001 * (1 + r), 2]] }, 1, { step: 2.5, range: 0.02 })]);
+  const cut = B.encodeSamples([B.bucketSnapshot({ bids: [[28000, 1], [28000 * (1 - 0.012), 2]], asks: [[28001, 1], [28001 * (1 + 0.012), 2]] }, 1, { step: 2.5, range: 0.004 })]);
+  assert.ok(narrowBook(cut) && !narrowBook(mkBook(0.012)) && !narrowBook(mkBook(0.001))); ok('narrowBook: a +-0.4% cut sample is flagged, a wide or a thin-book one is not');
+}
 console.log(n + ' checks passed'); process.exit(0);

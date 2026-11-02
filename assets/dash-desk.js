@@ -65,9 +65,9 @@
     if (!ev.length) { host.innerHTML = '<p class="dk-empty">No releases are scheduled right now.</p>'; return; }
     var H = { high: 3, medium: 2, low: 1 }, t0 = Date.parse(ev[0].at), span = Math.max(Date.parse(ev[ev.length - 1].at) - t0, 36e5);
     host.innerHTML = '<div class="dk-wv" role="list">' + ev.map(function (e, i) {
-      var at = Date.parse(e.at), x = ev.length === 1 ? 50 : 4 + (at - t0) / span * 92, lv = H[e.impact] || 1;
+      var at = Date.parse(e.at), x = ev.length === 1 ? 50 : 8 + i / (ev.length - 1) * 84, lv = H[e.impact] || 1;
       return '<div class="dk-wv-i is-' + esc(e.impact) + '" role="listitem" style="left:' + x.toFixed(1) + '%;--i:' + i + '"><i style="--h:' + (lv * 14) + 'px"></i><b>' + esc(new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })) + '</b><span>' + esc(e.event || '') + '</span></div>';
-    }).join('') + '<u class="dk-wv-ln" aria-hidden="true"></u></div><p class="dk-dim">Taller bar = bigger expected impact. ' + esc(cur) + ', your local time.</p>';
+    }).join('') + '<u class="dk-wv-ln" aria-hidden="true"></u></div><p class="dk-dim">In time order. Taller bar = bigger expected impact. ' + esc(cur) + ', your local time.</p>';
   }
 
   // count-up the first time an element is seen (text keeps its own format; reduced motion: untouched)

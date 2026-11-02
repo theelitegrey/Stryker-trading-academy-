@@ -443,3 +443,6 @@ section.dk-status{ padding:10px 14px; }
 @keyframes dkSeg{ from{ opacity:0 } }
 @keyframes dkGlowSeg{ 50%{ stroke:var(--gold) } }
 @media (prefers-reduced-motion:reduce){ .dk-ring .gp-seg{ animation:none !important; } }
+.dk-st-h{ flex:none; white-space:nowrap; } .dk-st-h span:last-child{ white-space:nowrap; }
+.dk-wv-i:first-child span,.dk-wv-i:first-child b{ transform:translateX(-20%); } .dk-wv-i:last-of-type span,.dk-wv-i:last-of-type b{ transform:translateX(-80%); }
+@media (max-width:699px){ .dk-wv-i:nth-child(even) span{ display:none; } .dk-wv-i span{ width:58px; } }

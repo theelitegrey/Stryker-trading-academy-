@@ -35,6 +35,8 @@ export const bmStats = () => ({ key: cache.key, ms: cache.ms, p97: cache.p97 });
 // via priceOfY(y), version, from, to, gamma, look, now }. Returns { cells, columns, ms, rows } for the test hook.
 export function drawBookmap(g, view) {
   const t0 = performance.now(), S = STYLES[view.look] || STYLES.bookmap;
+  // the field is the ramp's "no liquidity" navy (Owner 2026-11-03: no black inside the chart; black = outside the chart)
+  if (!S.bgc) { const u = lutOf(S.ramp)[S.empty]; S.bgc = [u & 255, (u >> 8) & 255, (u >> 16) & 255]; S.bg = S.bgc; }
   const x0 = Math.floor(view.x0), x1 = Math.ceil(view.x1), top = Math.floor(view.top), bot = Math.ceil(view.bot), dpr = view.dpr || 1;
   const w = Math.max(0, x1 - x0), h = Math.max(0, bot - top);
   g.fillStyle = 'rgb(' + S.bg.join(',') + ')'; g.fillRect(x0, top, w + (view.fullW ? view.fullW - x1 : 0), h);

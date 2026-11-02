@@ -49,7 +49,7 @@ function fakeWs(admin) {
       const bid = Math.floor(mid * 4) / 4, ask = bid + 0.25, bids = [], asks = [];
       for (let j = 0; j < 150; j++) { bids.push([bid - j * 0.25, Math.round(5 + 40 * Math.abs(Math.sin(j / 3 + n / 20)) + (j === 40 ? 500 : 0))]); asks.push([ask + j * 0.25, Math.round(5 + 40 * Math.abs(Math.cos(j / 3 + n / 25)) + (j === 52 ? 450 : 0))]); }
       const send = (o) => ws.onmessage({ data: JSON.stringify(o) });
-      if (window.__REAL) { const L = window.__REAL.live; send({ type: 'snap', symbol: 'NQ', ts: now, bids: L.bids.filter((x) => x[0] < L.mid), asks: L.asks.filter((x) => x[0] > L.mid), imb: 0, imb10: 0 }); send({ type: 'coarse', symbol: 'NQ', ts: now, mid: L.mid, bb: L.bb, ba: L.ba, step: L.step, i0: L.i0, v: L.v }); return; }
+      if (window.__REAL) { const L = window.__REAL.live; send({ type: 'snap', symbol: 'NQ', ts: now, bids: L.bids.filter((x) => x[0] < L.mid), asks: L.asks.filter((x) => x[0] > L.mid), imb: 0, imb10: 0 }); send({ type: 'coarse', symbol: 'NQ', ts: now, mid: L.mid, bb: L.bb, ba: L.ba, step: L.step, i0: L.i0, v: L.v }); const b0 = L.bb, a0 = L.ba; send({ type: 'ticks', symbol: 'NQ', t: [[b0, 1 + (n % 7), -1, now], [a0, 2 + (n % 5), 1, now], [a0 + 0.5, 3, 1, now]] }); return; }
       send({ type: 'snap', symbol: 'NQ', ts: now, bids, asks, imb: Math.sin(n / 30) * 0.6, imb10: Math.sin(n / 30 + 0.7) * 0.45 });
       send({ type: 'coarse', symbol: 'NQ', ts: now, mid, bb: bid, ba: ask, step, i0, v });
       send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, now], [ask, 2 + (n % 5), 1, now], [ask + 0.5, 3, 1, now]] });
@@ -188,7 +188,8 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       const rows = await p.evaluate(() => document.querySelectorAll('.stkl2-row').length);
       const open_ = await p.evaluate(() => { const a = document.getElementById('stkl2'); return !!a && !a.hidden; });
       check(open_ && rows >= 11, tag + ': DOM ladder open with rows', rows);
-      check(await p.evaluate(() => { const r = [...document.querySelectorAll('.stkl2-row')]; const i = r.findIndex((x) => x.classList.contains('is-ask')); const j = r.findIndex((x) => x.classList.contains('is-bid')); return i >= 0 && j === i + 1 && Math.abs(i - r.length / 2) <= 2; }), tag + ': ladder auto-centred, ask row directly above bid row');
+      if (process.env.DBG4) console.log('ROWS', await p.evaluate(() => [...document.querySelectorAll('.stkl2-row')].map((x) => x.className.replace('stkl2-row', '').trim() || '.').join(',')));
+      check(await p.evaluate(() => { const r = [...document.querySelectorAll('.stkl2-row')]; const i = r.findIndex((x) => x.classList.contains('is-ask')); const j = r.findIndex((x) => x.classList.contains('is-bid')); return i >= 0 && j > i && j - i <= 4 && Math.abs(i - r.length / 2) <= 2; }), tag + ': ladder auto-centred, ask row above bid row (spread rows between)');
       check(await p.evaluate(() => document.querySelectorAll('.stkl2-t u:not(:empty), .stkl2-t s:not(:empty)').length > 0), tag + ': traded-at-price column filled');
       const sheetBox = await p.evaluate(() => { const r = document.getElementById('stkl2').getBoundingClientRect(); return [r.left, r.right, r.top, r.bottom, innerWidth, innerHeight]; });
       check(sheetBox[0] >= -1 && sheetBox[1] <= sheetBox[4] + 1 && sheetBox[3] <= sheetBox[5] + 1, tag + ': ladder inside the viewport', sheetBox);

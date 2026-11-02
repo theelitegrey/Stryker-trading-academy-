@@ -26,6 +26,7 @@
 // ticks (price -> buy / sell volume). CME hours only (Sun 18:00 - Fri 17:00 ET, daily break 17:00-18:00 ET) unless a
 // viewer is watching.
 import { bucketSnapshot, encodeSamples, decodeSamples, nearNiceStep } from './bucket.js';
+import { TradeBook, tradeStore } from './ts-trades.js';   // TS-TRADES block: big-trade candidates + per-minute delta (src/ts-trades.js)
 
 export const TS_WS = 'wss://stream.tick-stream.xyz/v1/stream';
 // Owner 2026-11-02: all eight, each with its OWN book (MNQ / MES are separate books, not mapped to NQ / ES). One socket, unlimited symbols on realtime-l2.
@@ -97,6 +98,7 @@ export class TSHub {
     this.nextAt = 0; this.pauseUntil = 0; this.lastError = ''; this.minWait = 0; this.noViewerSince = 0; this.lastPrune = 0;
     this.n = { connects: 0, frames: 0, ticks: 0, snaps: 0, coarse: 0, rows: 0, drops: 0, refused: 0, throttled: 0 };
     this.lastState = '';
+    this.tb = new TradeBook(store.tb || null, { KEEP_H: this.o.KEEP_H, now: this.clock, fetch: this.o.fetch, REST: this.o.REST });   // TS-TRADES
   }
 
   // ---- when must the upstream socket be up?
@@ -234,6 +236,7 @@ export class TSHub {
     if (!bb || bb[0] !== bm) { bb = [bm, m.price, m.price, m.price, m.price, 0]; bl.push(bb); if (bl.length > this.o.BARS_MIN) bl.splice(0, bl.length - this.o.BARS_MIN); }
     if (m.price > bb[2]) bb[2] = m.price; if (m.price < bb[3]) bb[3] = m.price; bb[4] = m.price; bb[5] += m.size;
     const ring = this.rings.get(m.symbol) || []; this.rings.set(m.symbol, ring);
+    if (this.o.RECORD) this.tb.add(m.symbol, m.price, m.size, side, now);   // TS-TRADES
     ring.push([++this.seq, m.price, m.size, side, now]);
     if (ring.length > this.o.RING) ring.splice(0, ring.length - this.o.RING);
     const a = this.accFor(m.symbol, now), key = String(m.price);
@@ -271,7 +274,7 @@ export class TSHub {
       if (s && s.v.length) a.samples.push(s);
       a.imb.push([Math.floor(now / 1000), L.imb, this.imb10Of(L)]);
     }
-    if (now - this.lastPrune > this.o.PRUNE_MS) { this.lastPrune = now; try { this.store.prune(Math.floor((now - this.o.KEEP_H * 3600000) / 60000)); } catch (e) {} }
+    if (now - this.lastPrune > this.o.PRUNE_MS) { this.lastPrune = now; try { this.store.prune(Math.floor((now - this.o.KEEP_H * 3600000) / 60000)); } catch (e) {} this.tb.prune(now); }
   }
   imb10Of(L) { if (L.imb10 == null) L.imb10 = imbalance10(L.bids, L.asks); return L.imb10; }
   coarseOf(sym, now) {
@@ -324,6 +327,7 @@ export class TSHub {
       else if (cmeOpen(now) && now - Math.max(this.lastDataAt, this.openedAt) > this.o.NODATA_MS) this.drop('no data');
     }
     this.record(now);
+    this.tb.flush(now);   // TS-TRADES
     this.announce();
     for (const c of [...this.clients]) {
       if (c.errors > 5) { this.clients.delete(c); continue; }
@@ -367,7 +371,7 @@ export class TSHub {
       v: 1, at: Math.floor(now / 1000), mode: this.o.MODE, configured: !!this.key || this.o.MODE === 'relay', state: this.state, live: this.liveState(now),
       cmeOpen: cmeOpen(now), recording: this.o.RECORD, clients: this.clients.size, symbols: this.o.SYMBOLS, quotes: this.o.QUOTES, upstreamSockets: this.ws ? 1 : 0,
       lastDataAgoMs: this.lastDataAt ? now - this.lastDataAt : null, retryN: this.retryN, nextRetryInMs: this.timers.retry ? Math.max(0, this.nextAt - now) : 0,
-      lastError: this.lastError, keepHours: this.o.KEEP_H, ...this.n
+      lastError: this.lastError, keepHours: this.o.KEEP_H, tsBig: this.tb.n.big, tsFilledMin: this.tb.n.filledMin, ...this.n
     };
   }
   shutdown() { for (const k of Object.keys(this.timers)) if (this.timers[k]) { clearTimeout(this.timers[k]); clearInterval(this.timers[k]); this.timers[k] = null; } try { if (this.ws) this.ws.close(); } catch (e) {} this.ws = null; }
@@ -460,6 +464,7 @@ export class TSHub {
 export function tsStore(sql) {
   sql.exec('CREATE TABLE IF NOT EXISTS tsmin (sym TEXT NOT NULL, t INTEGER NOT NULL, book BLOB, imb TEXT, fp TEXT, PRIMARY KEY (sym, t)) WITHOUT ROWID');
   return {
+    tb: tradeStore(sql),   // TS-TRADES
     putMin(sym, t, book, imb, fp) { sql.exec('INSERT OR REPLACE INTO tsmin (sym, t, book, imb, fp) VALUES (?, ?, ?, ?, ?)', sym, t, book, imb, fp); },
     prune(t) { sql.exec('DELETE FROM tsmin WHERE t < ?', t); },
     range(sym, t0, t1) { return sql.exec('SELECT t, book, imb, fp FROM tsmin WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, t0, t1).toArray(); }
@@ -477,6 +482,17 @@ export async function tsHubFetch(hub, env, u, req) {
     hub.feed(Array.isArray(b && b.frames) ? b.frames.slice(0, 200) : []);
     return Response.json({ want: hub.wanted(), clients: hub.clients.size });
   }
+  // TS-TRADES block: GET /ts-trades?sym=&from=&to=[&fill=0] -> { sym, floor, trades: [[ts_ms, price, size, side 1|-1]..], delta: [[t_ms, buy, sell, runHi, runLo]..] }. Same gate as /ts-book-history (index.js), at most 6 h a read.
+  if (u.pathname === '/ts-trades') {
+    const sym = String(u.searchParams.get('sym') || u.searchParams.get('symbol') || '').toUpperCase();
+    if (!hub.o.SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 404 });
+    const now = Date.now(), to = Math.min(now + 60000, Number(u.searchParams.get('to')) || now), from = Math.max(to - 6 * 3600000, Number(u.searchParams.get('from')) || to - 3600000);
+    let left = 0;
+    if (u.searchParams.get('fill') !== '0') { try { left = (await hub.tb.backfill(sym, from, to, hub.key)).left; } catch (e) { hub.lastError = 'trade fill failed'; } }
+    const r = hub.tb.read(sym, from, to);
+    return new Response(JSON.stringify({ sym, at: Date.now(), floor: hub.tb.floor[sym], left, trades: r.trades, delta: r.delta }), { headers: { 'content-type': 'application/json', 'x-ts-fill-left': String(left) } });
+  }
+  // END TS-TRADES block
   if (u.pathname === '/ts-book-history' || u.pathname === '/ts-aux') {
     const sym = String(u.searchParams.get('symbol') || '').toUpperCase();
     if (!hub.o.SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 404 });

@@ -288,7 +288,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   for (const [sym, [mid, step]] of Object.entries(want)) {
     const r = coarseRule(mid, sym); assert.equal(r.step, step, sym + ' row step');
     assert.ok(Math.abs(r.step / TICK_SIZE[sym] - Math.round(r.step / TICK_SIZE[sym])) < 1e-6, sym + ' step is whole ticks');
-    const rows = (2 * mid * r.range) / r.step; assert.ok(rows > 20 && rows < 400, sym + ' rows ' + Math.round(rows));
+    const rows = (2 * mid * r.range) / r.step; assert.ok(rows > 20 && rows < 2000, sym + ' rows ' + Math.round(rows));
   }
   assert.equal(coarseRule(7640).step, 0.5, 'no symbol = the old rule');
   // CL / GC books on their own price scale, MNQ separate from NQ

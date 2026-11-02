@@ -71,9 +71,22 @@ export const SYMBOLS = {
   CADJPY: ['CADJPY=X', 'Canadian Dollar / Japanese Yen',  'FX', 'forex', 0.001,   1],
   CHFJPY: ['CHFJPY=X', 'Swiss Franc / Japanese Yen',      'FX', 'forex', 0.001,   1],
   GBPCHF: ['GBPCHF=X', 'British Pound / Swiss Franc',     'FX', 'forex', 0.00001, 1],
-  AUDNZD: ['AUDNZD=X', 'Australian Dollar / New Zealand Dollar', 'FX', 'forex', 0.00001, 1]
+  AUDNZD: ['AUDNZD=X', 'Australian Dollar / New Zealand Dollar', 'FX', 'forex', 0.00001, 1],
+  // Indices & ETFs (market 'equity', Yahoo cash-session series, not CME: served like forex, no real-time lane here).
+  // The live candle for an admin comes from the Tick-stream hub's quote frames in the browser.
+  SPX: ['^GSPC', 'S&P 500 Index',             'INDEX',  'equity', 0.01, 1],
+  NDX: ['^NDX',  'Nasdaq-100 Index',          'INDEX',  'equity', 0.01, 1],
+  VIX: ['^VIX',  'CBOE Volatility Index',     'INDEX',  'equity', 0.01, 1],
+  RUT: ['^RUT',  'Russell 2000 Index',        'INDEX',  'equity', 0.01, 1],
+  QQQ: ['QQQ',   'Invesco QQQ',               'NASDAQ', 'equity', 0.01, 1],
+  SPY: ['SPY',   'SPDR S&P 500 ETF',          'NYSE',   'equity', 0.01, 1],
+  IWM: ['IWM',   'iShares Russell 2000 ETF',  'NYSE',   'equity', 0.01, 1],
+  DIA: ['DIA',   'SPDR Dow Jones ETF',        'NYSE',   'equity', 0.01, 1]
 };
 export const isForex = (sym) => !!SYMBOLS[sym] && SYMBOLS[sym][3] === 'forex';
+export const isEquity = (sym) => !!SYMBOLS[sym] && SYMBOLS[sym][3] === 'equity';
+// Non-CME symbols: no recorder tail, no 10-minute cut lane (the Yahoo series is what everyone gets).
+export const isNonCme = (sym) => isForex(sym) || isEquity(sym);
 
 const H = 3600, D = 86400;
 // tf -> { yahoo interval, step seconds (0 = calendar), page seconds, depth seconds, agg hours }
@@ -160,7 +173,8 @@ export function parseYahoo(data, tf, dec = 6, anchor = 18) {
     let t = ts[i];
     const v = Math.round(q.volume?.[i] || 0);
     const base = cfg.agg ? 3600 : cfg.step;
-    if (base) t = Math.floor(t / base) * base;
+    // equities (anchor 9.5): Yahoo's hourly bars open at :30 (09:30, 10:30 ...); keep that label
+    if (base) { const off = base === 3600 && anchor % 1 ? 1800 : 0; t = Math.floor((t - off) / base) * base + off; }
     const prev = out[out.length - 1];
     const span = base || cfg.span;
     if (prev && t < prev[0] + span) {
@@ -274,7 +288,7 @@ async function fetchYahooPage(sym, tf, page, now, fetchImpl) {
     // 422 = "data not available for startTime/endTime" (outside Yahoo's window), 404 = no data.
     if (res.status === 422 || res.status === 404) throw new OutOfRange(`upstream ${res.status}`);
     if (!res.ok) throw new Error(`upstream ${res.status}`);
-    const rows = parseYahoo(await res.json(), tf, decimalsOf(SYMBOLS[sym][4]), isForex(sym) ? 17 : 18);
+    const rows = parseYahoo(await res.json(), tf, decimalsOf(SYMBOLS[sym][4]), isForex(sym) ? 17 : isEquity(sym) ? 9.5 : 18);   // equities: 2h/4h bars start at the 09:30 open
     if (!cfg.page) return rows;
     const [p1, p2] = pageBounds(tf, page);
     return rows.filter((r) => r[0] >= p1 && r[0] < p2);
@@ -290,7 +304,7 @@ export function ttlFor(tf, page, now, sym) {
   const end = cfg.page ? pageBounds(tf, page)[1] : Infinity;
   const current = end > now - 2 * H; // still may change (late prints, the forming bar)
   if (!current) return 86400;
-  if (!(sym && isForex(sym) ? fxOpen(now) : globexOpen(now))) return 300;
+  if (!(sym && isForex(sym) ? fxOpen(now) : globexOpen(now))) return 300;   // equities: the Globex window is a close enough cache hint
   if (cfg.step && cfg.step <= 900) return 15;
   return cfg.page ? 30 : 60;
 }

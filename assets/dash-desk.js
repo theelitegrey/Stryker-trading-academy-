@@ -54,6 +54,29 @@
     })();
   }
 
+  // news wave: next 6 releases on one horizontal timeline, bar height = impact (from the file, nothing derived)
+  function wave(d, old) {
+    var host = $('dk-wave'); if (!host) return;
+    if (old) { host.innerHTML = stale('The calendar has not been refreshed. Open it for the latest.'); return; }
+    var cur = d.defaultCurrency || 'USD', now = Date.now();
+    var ev = (d.events || []).filter(function (e) { return e.cur === cur && Date.parse(e.at) > now && e.impact !== 'holiday'; }).sort(function (a, b) { return Date.parse(a.at) - Date.parse(b.at); }).slice(0, 6);
+    if (!ev.length) { host.innerHTML = '<p class="dk-empty">No releases are scheduled right now.</p>'; return; }
+    var H = { high: 3, medium: 2, low: 1 }, t0 = Date.parse(ev[0].at), span = Math.max(Date.parse(ev[ev.length - 1].at) - t0, 36e5);
+    host.innerHTML = '<div class="dk-wv" role="list">' + ev.map(function (e, i) {
+      var at = Date.parse(e.at), x = ev.length === 1 ? 50 : 4 + (at - t0) / span * 92, lv = H[e.impact] || 1;
+      return '<div class="dk-wv-i is-' + esc(e.impact) + '" role="listitem" style="left:' + x.toFixed(1) + '%;--i:' + i + '"><i style="--h:' + (lv * 14) + 'px"></i><b>' + esc(new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })) + '</b><span>' + esc(e.event || '') + '</span></div>';
+    }).join('') + '<u class="dk-wv-ln" aria-hidden="true"></u></div><p class="dk-dim">Taller bar = bigger expected impact. ' + esc(cur) + ', your local time.</p>';
+  }
+
+  // count-up the first time an element is seen (text keeps its own format; reduced motion: untouched)
+  function countOnView(el, fmt) {
+    if (!el) return;
+    var to = parseFloat(el.getAttribute('data-to'));
+    if (reduced || !isFinite(to) || !('IntersectionObserver' in window)) { el.textContent = fmt(to); return; }
+    var io = new IntersectionObserver(function (es) { if (!es[0].isIntersecting) return; io.disconnect(); var t0 = performance.now(); (function f(now) { var p = Math.min(1, (now - t0) / 900); el.textContent = fmt(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(f); })(t0); });
+    io.observe(el);
+  }
+
   // ---- market pulse -------------------------------------------------------------------
   function pulse() {
     var MM = window.__MM, MB = window.__MB, EC = window.__EC, V = window.stkViz;
@@ -63,6 +86,7 @@
       var host = $('dk-ev'), until = Date.parse(d.goodUntil), old = isFinite(until) ? Date.now() > until : (Date.now() - Date.parse(d.generatedAt)) / 36e5 > (Number(d.staleAfterHours) || 30);
       var cur = d.defaultCurrency || 'USD', now = Date.now();
       var ev = (d.events || []).filter(function (e) { return e.cur === cur && Date.parse(e.at) > now && e.impact === 'high'; }).sort(function (a, b) { return Date.parse(a.at) - Date.parse(b.at); })[0];
+      wave(d, old);
       if (old) { host.innerHTML = stale('The calendar has not been refreshed. Open it for the latest.'); return; }
       if (!ev) { host.innerHTML = '<p class="dk-empty">No high-impact releases are scheduled right now.</p>'; return; }
       var at = Date.parse(ev.at);
@@ -84,7 +108,17 @@
       host.innerHTML = (MM.isStale() ? stale('Built a while ago. Treat as history.') : '') +
         V.treemapHtml(items, { ratio: 1.6, width: 300, label: function (it) { return { t: it.r.ticker || it.r.label, v: MM.fmtPct(it.v) }; }, cls: function (it) { return V.cls(V.bucket(it.v, undefined, g.scale)); } }) +
         '<p class="dk-dim">' + esc(g.title) + ' · ' + esc(per) + '</p>';
-      host.querySelectorAll('.mv-tile').forEach(function (b) { b.tabIndex = -1; b.addEventListener('click', function () { location.href = 'market-map.html'; }); });
+      var all = []; (d.groups || []).forEach(function (x) { if (x.excess) return; (x.rows || []).forEach(function (r) { var v = r.v[i]; if (typeof v === 'number' && isFinite(v)) all.push(v); }); });
+      var up = all.filter(function (v) { return v > 0; }).length, dn = all.filter(function (v) { return v < 0; }).length, tot = up + dn;
+      var br = $('dk-breadth');
+      if (br && tot) {
+        var C = 2 * Math.PI * 26, pu = up / tot;
+        br.hidden = false;
+        br.innerHTML = '<svg viewBox="0 0 64 64" class="dk-donut" role="img" aria-label="' + up + ' of ' + tot + ' markets up over ' + esc(per) + '"><circle cx="32" cy="32" r="26" class="dk-dn-bg"/><circle cx="32" cy="32" r="26" class="dk-dn-up" style="stroke-dasharray:' + (C * pu).toFixed(1) + ' ' + C.toFixed(1) + '"/></svg>' +
+          '<div><b><span data-to="' + up + '">' + up + '</span> up · <span data-to="' + dn + '">' + dn + '</span> down</b><span class="dk-dim">of ' + tot + ' markets on the board, ' + esc(per) + '</span></div>';
+        br.querySelectorAll('[data-to]').forEach(function (e) { countOnView(e, function (v) { return Math.round(v); }); });
+      }
+      host.querySelectorAll('.mv-tile').forEach(function (b, n) { b.style.setProperty('--n', n); b.tabIndex = -1; b.addEventListener('click', function () { location.href = 'market-map.html'; }); });
       if (when && MM.whenLabel) when.textContent = 'Map: ' + MM.whenLabel();
     }).catch(function () { DK.set('mm', false); $('dk-map').innerHTML = stale('Map unavailable. Open the full map.'); });
 

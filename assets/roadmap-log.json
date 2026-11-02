@@ -1,8 +1,14 @@
 [
  {
-  "build": 800,
+  "build": 801,
   "date": "2026-11-03",
   "title": "Order book, DOM and trades panel",
+  "link": ""
+ },
+ {
+  "build": 801,
+  "date": "2026-11-03",
+  "title": "panel shipped",
   "link": ""
  },
  {

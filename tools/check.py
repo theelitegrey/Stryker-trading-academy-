@@ -519,6 +519,27 @@ def check_roadmap_log():
         pass
 
 
+def check_roadmap_cards():
+    """Roadmap cards (DEFAULT in assets/roadmap-data.js) must not go stale: a planned/in-progress
+    item whose title matches a shipped roadmap-log title is stale, and a shipped item must link to a page that exists."""
+    try:
+        r = subprocess.run(['node', '-e', "global.window={};require('./assets/roadmap-data.js');console.log(JSON.stringify(window.StrykerRoadmap.DEFAULT.items))"],
+                           capture_output=True, text=True, cwd=ROOT, timeout=30)
+        items = json.loads(r.stdout)
+        log = json.load(open(os.path.join(ROOT, 'assets', 'roadmap-log.json')))
+    except Exception as exc:
+        fail(f'roadmap cards check could not run ({exc})')
+        return
+    shipped = [str(e['title']).casefold() for e in log if e.get('title')]
+    for it in items:
+        t = str(it.get('title', '')).casefold()
+        if it.get('status') in ('progress', 'planned') and t and any(t in x or x in t for x in shipped):
+            fail(f'roadmap card "{it["title"]}" is still {it["status"]} but the build log says it shipped: update assets/roadmap-data.js')
+        link = (it.get('link') or '').split('#')[0].split('?')[0]
+        if it.get('status') == 'shipped' and link and not any(os.path.exists(os.path.join(ROOT, d, link)) for d in ('', 'features')):
+            fail(f'roadmap card "{it["title"]}" links to {link}, which does not exist')
+
+
 def check_drawer_touch():
     """Menu/drawer regression guard (Owner 2026-10-31: tapping "Manage <name>" closed the menu).
     When app-nav.js, dash-nav.js or the menu CSS changed versus origin/main, run the real-touch test
@@ -607,6 +628,7 @@ def check_app_shell_browser():
 
 def main():
     check_roadmap_log()
+    check_roadmap_cards()
     check_nav_features_menu()
     check_charts_css_subset()
     check_merge_markers()

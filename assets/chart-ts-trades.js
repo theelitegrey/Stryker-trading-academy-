@@ -14,7 +14,7 @@ import { l2Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './char
 import { rtReady, rtHeaders } from './rt-access.js?v=793';
 import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=793';
 import { cvdCandles } from './chart-footprint-data.js?v=793';
-import { aggregateMins, compareFeeds } from './chart-ts-data.js?v=793';
+import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=793';
 
 export const TS_TYPES = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
@@ -76,7 +76,12 @@ function fold(s, x) {
   let c = s.live.get(t); if (!c) { c = { t, buy: 0, sell: 0, run: 0, hi: 0, lo: 0 }; s.live.set(t, c); }
   if (side > 0) c.buy += sz; else c.sell += sz;
   c.run += side * sz; if (c.run > c.hi) c.hi = c.run; if (c.run < c.lo) c.lo = c.run;
-  if (sz >= s.floor) s.trades.push([ts, px, sz, side]);
+  // fills of one order arrive as separate ticks: merge same side + price within MERGE_MS, then apply the floor (same rule as the Worker's store)
+  const o = s.open;
+  if (o && o.side === side && o.px === px && ts - o.last <= MERGE_MS) { o.size += sz; o.last = ts; if (o.row) o.row[2] = o.size; }
+  else s.open = { ts, last: ts, px, side, size: sz, row: null };
+  const q = s.open;
+  if (!q.row && q.size >= s.floor) { q.row = [q.ts, px, q.size, side]; s.trades.push(q.row); }
 }
 function onFrame(s, m) {
   const r = rootState(s.root);
@@ -91,7 +96,7 @@ function onFrame(s, m) {
     bump(s);
   }
 }
-function reset(s) { s.gen++; s.pumping = false; s.hist.clear(); s.live.clear(); s.trades = []; s.pending = []; s.loadedFrom = Infinity; s.loading = true; s.at = 0; s.mm = null; }
+function reset(s) { s.gen++; s.pumping = false; s.hist.clear(); s.live.clear(); s.trades = []; s.pending = []; s.open = null; s.loadedFrom = Infinity; s.loading = true; s.at = 0; s.mm = null; }
 function acquireStore(root, listener) {
   const s = getStore(root);
   s.refs++; s.ls.add(listener);

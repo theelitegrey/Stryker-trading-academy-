@@ -4,6 +4,18 @@
 // Education only. Not financial advice.
 import { bigPrints } from './chart-of-pro-data.js?v=793';
 
+// Tick-stream sends one tick per FILL (an order that lifts 20 lots at one price = 20 ticks of 1); InsightSentry has one print per order and price.
+// mergeFills() makes the Tick-stream side comparable: consecutive fills of the same side and price with the SAME time stamp (REST rows carry
+// microseconds: pass t in microseconds and gap 0) form one print. Live frames only have receive ms: gap 1. ticks: [[t, price, size, side]..] sorted.
+export const MERGE_MS = 1;
+export function mergeFills(ticks, gap = 0) {
+  const out = []; let o = null;
+  for (const t of ticks) {
+    if (o && o[3] === t[3] && o[1] === t[1] && t[0] - o.last <= gap) { o[2] += t[2]; o.last = t[0]; continue; }
+    o = [t[0], t[1], t[2], t[3]]; o.last = t[0]; out.push(o);
+  }
+  return out;
+}
 // Tick-stream minutes -> bars of tfMs in the SAME shape as the order-flow bars (t, buy, sell, vol, delta, dmax, dmin), so cvdCandles()
 // and the delta pane work unchanged. dmax / dmin are the running-delta extremes inside the bar (relative to its open).
 export function aggregateMins(mins, tfMs) {

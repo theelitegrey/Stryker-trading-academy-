@@ -15,12 +15,19 @@
 // as the book backfill (KEEP_H back, FILL_SPAN_H wide). The caller repeats while `left` > 0.
 export const TS_BIG_FLOOR = { NQ: 5, ES: 20, MNQ: 20, MES: 50, YM: 5, RTY: 5, CL: 10, GC: 5 };
 export const READ_H = 6;
+// Tick-stream sends every FILL as its own tick: one aggressive order that lifts 20 lots at one price arrives as 20 ticks of 1 (same side,
+// same price). InsightSentry has ONE print per order and price, so a floor on single fills would miss most big orders. Fills of one order
+// are ONE candidate and the floor applies to the merged size. Measured 2026-11-02 on 1 h of NQ: grouping the REST archive's fills by the same
+// MICROSECOND stamp matches 91 % of the InsightSentry big prints (a 15 ms window only 55 %, it glues separate orders). The live frames carry
+// no microsecond stamp, so live fills merge when they arrive within MERGE_MS (1 ms) of each other (150 s of live NQ: 5036 orders at 1 ms vs
+// 5053 from the archive). chart-ts-trades.js uses the same live rule.
+export const MERGE_MS = 1;
 
 export class TradeBook {
   // store = { putTrades(rows[[sym,ts,price,size,side]..]), putDeltas(rows[[sym,t,buy,sell,hi,lo]..]), trades(sym,from,to), deltas(sym,t0,t1), prune(ms) } | null (memory only)
   constructor(store, o = {}) {
     this.store = store; this.floor = o.floor || TS_BIG_FLOOR; this.clock = o.now || (() => Date.now());
-    this.keepH = o.KEEP_H || 48; this.cur = new Map(); this.pendT = []; this.pendD = []; this.lastCur = 0;
+    this.keepH = o.KEEP_H || 48; this.cur = new Map(); this.open = new Map(); this.pendT = []; this.pendD = []; this.lastCur = 0;
     this.fillSpanH = o.FILL_SPAN_H || 6; this.fillMax = o.FILL_MAX_MIN || 60; this.fillBudget = o.FILL_BUDGET_MS || 25000;
     this.fillLag = o.FILL_LAG_MS || 2 * 60000; this.fillPause = 0; this.filling = false;
     this.rest = o.REST || 'https://api.tick-stream.xyz/v1'; this.doFetch = o.fetch || ((u, i) => fetch(u, i));
@@ -34,10 +41,19 @@ export class TradeBook {
     if (side > 0) c.buy += size; else c.sell += size;
     c.run += side * size; if (c.run > c.hi) c.hi = c.run; if (c.run < c.lo) c.lo = c.run; c.dirty = true;
     this.n.trades++;
-    if (size >= (this.floor[sym] || Infinity)) { this.pendT.push([sym, now, price, size, side]); this.n.big++; }
+    const o = this.open.get(sym);
+    if (o && o.side === side && o.price === price && now - o.last <= MERGE_MS) { o.size += size; o.last = now; return; }
+    this.closeOpen(sym);
+    this.open.set(sym, { ts: now, last: now, price, size, side });
+  }
+  closeOpen(sym) {
+    const o = this.open.get(sym); if (!o) return;
+    this.open.delete(sym);
+    if (o.size >= (this.floor[sym] || Infinity)) { this.pendT.push([sym, o.ts, o.price, o.size, o.side]); this.n.big++; }
   }
   // write what is waiting; the open minute is upserted at most every 5 s so a restart loses little
   flush(now = this.clock()) {
+    for (const [sym, o] of [...this.open]) if (now - o.last > MERGE_MS) this.closeOpen(sym);
     if (!this.store) { this.pendT = []; this.pendD = []; return; }
     try {
       if (this.pendT.length) { const r = this.pendT; this.pendT = []; this.store.putTrades(r); }
@@ -106,8 +122,16 @@ export class TradeBook {
           let c = acc.get(t); if (!c) { c = { buy: 0, sell: 0, run: 0, hi: 0, lo: 0 }; acc.set(t, c); }
           if (side > 0) c.buy += size; else c.sell += size;
           c.run += side * size; if (c.run > c.hi) c.hi = c.run; if (c.run < c.lo) c.lo = c.run;
-          if (size >= fl) big.push([sym, Math.floor(ts / 1000), price, size, side]);
         }
+        let o = null;   // one order = fills with the same microsecond, price and side
+        for (const [ts, price, size, side] of ticks) {
+          if (!side || !(price > 0) || !(size > 0)) continue;
+          const ms = ts / 1000;
+          if (o && o.side === side && o.price === price && ts === o.us) { o.size += size; continue; }
+          if (o && o.size >= fl) big.push([sym, Math.floor(o.ts), o.price, o.size, o.side]);
+          o = { ts: ms, us: ts, price, size, side };
+        }
+        if (o && o.size >= fl) big.push([sym, Math.floor(o.ts), o.price, o.size, o.side]);
         try {
           if (big.length) this.store.putTrades(big);
           this.store.putDeltas(mins.map((t) => { const c = acc.get(t) || { buy: 0, sell: 0, hi: 0, lo: 0 }; return [sym, t, c.buy, c.sell, c.hi, c.lo]; }));   // an empty minute gets an empty row: asked once

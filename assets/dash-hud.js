@@ -163,7 +163,7 @@
       }).join('');
       var bad = FEEDS.some(function (f) { return st[f[0]] === false || (st[f[0]] && stale(st[f[0]])); });
       var all = FEEDS.every(function (f) { return st[f[0]] !== undefined; });
-      var lab = host.querySelector('.dk-st-h span'); if (lab) lab.textContent = !all ? 'Checking feeds' : bad ? 'Some feeds are behind' : 'All feeds current';
+      var lab = host.querySelector('.dk-st-h span:last-child'); if (lab) lab.textContent = !all ? 'Checking feeds' : bad ? 'Some feeds are behind' : 'All feeds current';
       host.classList.toggle('is-warn', all && bad);
     }
     DK.on(function (k, d) { st[k] = d; paint(); });

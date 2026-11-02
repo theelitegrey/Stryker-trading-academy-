@@ -10,12 +10,12 @@
 // Threshold: the auto size is the recorder's 99.5th percentile for the symbol (the same number the InsightSentry bubbles use), so the
 // two indicators ask the same question; a print below the Worker's per-symbol floor was never stored.
 // Education only. Not financial advice.
-import { l2Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=793';
-import { rtReady, rtHeaders } from './rt-access.js?v=793';
-import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=793';
-import { cvdCandles } from './chart-footprint-data.js?v=793';
-import * as BT from './chart-bigtrades.js?v=793';
-import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=793';
+import { l2Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=794';
+import { rtReady, rtHeaders } from './rt-access.js?v=794';
+import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=794';
+import { cvdCandles } from './chart-footprint-data.js?v=794';
+import * as BT from './chart-bigtrades.js?v=794';
+import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=794';
 
 export const TS_TYPES = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
@@ -123,7 +123,7 @@ function minutes(s) {
 // ---------------------------------------------------------------------------------------------- schemas (same keys / titles as the InsightSentry tools)
 let H = null;
 const IND = () => ({
-  stk_ts_big: { title: 'Big Trades (L1)', short: 'Big Trades L1', pane: 'price', overlay: true, schema: BT.schema({ buy: TS_UP, sell: TS_DN }) },
+  stk_ts_big: { title: 'Big Trades (L1)', short: 'Big Trades L1', pane: 'price', overlay: true, schema: BT.schema() },
   stk_ts_delta: { title: 'Delta (L1)', short: 'Delta L1', pane: 'new', overlay: false, schema: [
     { key: 'upColor', title: 'Positive', type: 'color', defval: TS_UP }, { key: 'downColor', title: 'Negative', type: 'color', defval: TS_DN }] },
   stk_ts_cvd: { title: 'Cumulative Delta (L1)', short: 'CVD L1', pane: 'new', overlay: false, schema: [

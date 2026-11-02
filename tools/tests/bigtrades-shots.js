@@ -34,6 +34,20 @@ fs.mkdirSync(OUT, { recursive: true });
       await sleep(2500);
       const n = await p.evaluate(([a, z]) => { const O = window.__stkOrderflow; const bs = O.minuteBars('NQ', a, z); return bs.reduce((s, x) => s + (x.bigs || []).filter((y) => y[0] >= a && y[0] <= z).length, 0); }, [t0, t1]);
       console.log(TAG, w + 'px', tf + 'm', 'recorder big prints in session:', n, 'errors', errs.length);
+      const sh = await p.evaluate(() => (window.__stkBigShown ? window.__stkBigShown() : null));
+      if (sh) {
+        console.log(TAG, w + 'px', tf + 'm', 'markers drawn:', sh.n);
+        if (mobile && tf === 1 && sh.d.length) {   // a real touch tap on the biggest marker opens the card
+          const m = sh.d.slice().sort((x, y) => y.r - x.r)[0];
+          await p.touchscreen.tap(m.c + m.x, m.t + m.y); await sleep(500);
+          console.log('EV', JSON.stringify(await p.evaluate(() => window.__ev)), await p.evaluate(() => { const e = document.querySelector('.stk-bigtip'); return e ? e.outerHTML.slice(0, 120) : 'none'; }));
+          const card = await p.evaluate(() => { const e = document.querySelector('.stk-bigtip'); return e && !e.hidden ? e.innerText : null; });
+          await p.evaluate(() => { window.__ev = []; for (const t of ['pointerdown', 'touchstart', 'click']) document.addEventListener(t, (e) => window.__ev.push(t + ':' + Math.round(e.clientX || 0)), true); });
+          console.log('DBG', JSON.stringify(m), await p.evaluate(() => [innerWidth, devicePixelRatio, [...document.querySelectorAll('canvas')].filter((c) => c.__bigTip).map((c) => { const r = c.getBoundingClientRect(); return [r.left, r.top, r.width, r.height, c.width]; })]));
+          console.log(TAG, 'tap card:', JSON.stringify(card));
+          await p.screenshot({ path: OUT + '/bt-' + TAG + '-390-tap.png' });
+        }
+      }
       await p.screenshot({ path: OUT + '/bt-' + TAG + '-' + w + '-' + tf + 'm.png' });
       await ctx.close();
     }

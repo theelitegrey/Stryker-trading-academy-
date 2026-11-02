@@ -19,16 +19,16 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=793';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=794';
 
-import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=793';
-import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=793';
-import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=793';
-import { rtHeadersReady } from './rt-access.js?v=793';
-import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=793';
-import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=793';
-import * as BT from './chart-bigtrades.js?v=793';
-import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=793';
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=794';
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=794';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=794';
+import { rtHeadersReady } from './rt-access.js?v=794';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=794';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=794';
+import * as BT from './chart-bigtrades.js?v=794';
+import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=794';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -579,7 +579,7 @@ const IND = {
     { key: 'style', title: 'Show as', type: 'string', defval: 'candles', options: ['candles', 'line'] },
     { key: 'reset', title: 'Reset', type: 'string', defval: 'session', options: ['session', 'day', 'none'], tooltip: 'session = the CME day (18:00 New York).' },
     { key: 'upColor', title: 'Up', type: 'color', defval: UP }, { key: 'downColor', title: 'Down', type: 'color', defval: DN }] },
-  stk_of_big: { title: 'Big Trades', short: 'Big Trades', pane: 'price', overlay: true, schema: BT.schema({ buy: UP, sell: SELL }) },
+  stk_of_big: { title: 'Big Trades', short: 'Big Trades', pane: 'price', overlay: true, schema: BT.schema({ buy: UP, sell: DN }) },
   stk_of_vp: { title: 'Volume Profile (trades: session / swing + naked POC)', short: 'VP (trades)', pane: 'price', overlay: true, schema: [
     { key: 'range', title: 'Range', type: 'string', defval: 'session', options: ['session', 'swing', 'visible'], tooltip: 'session = the CME day (18:00 New York). swing = from one swing high / low to the next.' },
     { key: 'swingLen', title: 'Swing strength (bars each side)', type: 'int', defval: 10, min: 2, max: 100, step: 1, when: { key: 'range', anyOf: ['swing'] } },

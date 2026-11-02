@@ -22,14 +22,22 @@ ok('floor table matches the brief and the hub symbols');
 { // floor: only >= floor is a candidate; delta counts everything
   const { st, tb } = mk();
   tb.add('NQ', 100, 4, 1, NOW); tb.add('NQ', 100, 5, -1, NOW + 1); tb.add('NQ', 101, 40, 1, NOW + 2);
-  tb.add('ES', 50, 19, 1, NOW); tb.add('ES', 50, 20, 1, NOW + 1); tb.add('MES', 5, 49, -1, NOW); tb.add('XX', 5, 99, 1, NOW);
+  tb.add('ES', 50, 19, 1, NOW); tb.add('ES', 51, 20, 1, NOW + 1); tb.add('MES', 5, 49, -1, NOW); tb.add('XX', 5, 99, 1, NOW);
   tb.flush(NOW + 10);
-  assert.deepEqual(st.T.map((r) => [r[0], r[3]]), [['NQ', 5], ['NQ', 40], ['ES', 20]], 'floor NQ 5, ES 20, MES 50, unknown symbol never');
+  assert.deepEqual(st.T.map((r) => [r[0], r[3]]).sort(), [['ES', 20], ['NQ', 40], ['NQ', 5]].sort(), 'floor NQ 5, ES 20, MES 50, unknown symbol never');
   const r = tb.read('NQ', NOW - 1000, NOW + 1000);
   assert.deepEqual(r.trades.map((x) => x[2]), [5, 40]);
   const d = r.delta[0]; assert.equal(d[1], 44); assert.equal(d[2], 5);   // buy 4+40, sell 5
   assert.equal(d[3], 39, 'running delta high: 4, -1, 39'); assert.equal(d[4], -1, 'running delta low');
   ok('big candidates kept at the per-symbol floor; delta from every trade (incl. small)');
+}
+{ // fills of one order (same side + price, <= 1 ms apart) are ONE candidate; the floor applies to the merged size
+  const { st, tb } = mk();
+  for (let i = 0; i < 6; i++) tb.add('NQ', 100, 1, 1, NOW + (i >> 1));   // 6 fills of 1 within 3 ms
+  tb.add('NQ', 100, 1, 1, NOW + 50); tb.add('NQ', 100, 1, 1, NOW + 100);   // separate singles: below the floor
+  tb.flush(NOW + 500);
+  assert.deepEqual(st.T.map((r) => [r[3], r[4]]), [[6, 1]], 'six 1-lots = one 6-lot buy');
+  ok('split fills merge before the floor');
 }
 { // minute roll + open minute visible to reads
   const { st, tb } = mk();
@@ -41,7 +49,7 @@ ok('floor table matches the brief and the hub symbols');
 { // 6 h cap, 48 h prune
   const { st, tb } = mk();
   const T = NOW;
-  for (const h of [0.5, 5, 7, 47, 49]) tb.add('NQ', 1, 9, 1, T - h * 3600000);
+  for (const h of [49, 47, 7, 5, 0.5]) tb.add('NQ', 1, 9, 1, T - h * 3600000);
   tb.flush(T);
   const r = tb.read('NQ', T - 100 * 3600000, T);
   assert.equal(r.trades.length, 2, 'a 100 h ask is cut to the last 6 h (0.5 h and 5 h)');

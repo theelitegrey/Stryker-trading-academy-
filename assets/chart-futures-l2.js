@@ -378,7 +378,7 @@ export function installFuturesL2(Core, H, reg) {
         const avg = (k, a, b) => { let s = 0, n = 0; for (let j = a; j < b; j++) { s += h[j][k]; n++; } return n ? s / n : null; };
         let j = 0;
         for (let i = 0; i < bars.length; i++) {
-          const t1 = i + 1 < bars.length ? bars[i + 1].time : bars[i].time + (bars[i].time - (bars[i - 1] ? bars[i - 1].time : bars[i].time - 60000));
+          const t1 = i + 1 < bars.length ? bars[i + 1].time : Infinity;   // the last bar takes the newest reading
           let a = j; while (j < h.length && h[j][0] < t1) j++;
           // last reading inside the bar (or smoothed over the trailing window); none before the first reading
           if (j > 0 && h[j - 1][0] >= bars[i].time - 60000 * 3) {
@@ -448,7 +448,7 @@ export function mountL2Ladder(ws, opts) {
   panel.append(grab, head, stat, cols, list, foot); host.appendChild(panel);
   const barR = document.querySelector('#stkc-bar .stkc-bar-r'); if (barR) barR.insertBefore(phoneBtn, barR.firstChild);
   let levels = 60;
-  const activeRoot = () => { try { const sym = ws.active.symbol; const r = ws.cell(ws.active.id).data.resolve(sym); return r && r.provider === 'futures' ? l2Root(r.ticker) : null; } catch (e) { return null; } };
+  const activeRoot = () => { try { const m = /^futures:(.+)$/i.exec(ws.active.symbol || ''); return m ? l2Root(m[1]) : null; } catch (e) { return null; } };
   function paint() {
     raf = 0;
     if (!open) return;
@@ -457,7 +457,7 @@ export function mountL2Ladder(ws, opts) {
     if (!root) { list.innerHTML = '<div class="stkl2-empty">Open an NQ or ES chart to see its order book.</div>'; stat.textContent = ''; return; }
     const age = r && r.lastFrame ? Date.now() - r.lastFrame : -1;
     stat.className = 'stkl2-stat' + (r && r.status === 'live' ? ' is-live' : ' is-wait');
-    stat.innerHTML = '<i class="stkl2-dot" aria-hidden="true"></i><span>' + (r && r.status === 'live' ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (r && r.status === 'live' && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em><u>' + (r && r.snap ? 'Spread ' + (((r.snap.asks[0][0] - r.snap.bids[0][0]) / TICK) | 0) + ' ticks' : '') + '</u>';
+    stat.innerHTML = '<i class="stkl2-dot" aria-hidden="true"></i><span>' + (r && r.status === 'live' ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (r && r.status === 'live' && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em><u>' + (r && r.snap ? (() => { const n = Math.round((r.snap.asks[0][0] - r.snap.bids[0][0]) / TICK); return 'Spread ' + n + (n === 1 ? ' tick' : ' ticks'); })() : '') + '</u>';
     const m = ladderRows(r && r.snap, r && r.trades && r.trades.atPrice(300000), rows);
     if (!m) { list.innerHTML = '<div class="stkl2-empty">Waiting for the order book…</div>'; return; }
     if (list.children.length !== m.rows.length || list.firstChild.classList.contains('stkl2-empty')) {

@@ -11,7 +11,7 @@
   var API = 'https://book-recorder.theelitegrey.workers.dev/scan?part=';
   var REFRESH_MS = 3 * 60 * 1000, ROW_H = 56, HEAD_H = 44, SYM_W = 148;
   var MK = C.MARKETS;
-  var COLW = { px: 96, pct: 88, big: 92, x: 80, n1: 76, n2: 84, int: 72, txt: 140, date: 84 };
+  var COLW = { px: 96, pct: 100, big: 92, x: 92, n1: 92, n2: 96, int: 72, txt: 140, date: 84 };
 
   var st = { m: 'stock', q: 'gainers', flt: [], setId: 'overview', cols: null, sortK: null, sortD: -1, search: '', tables: {}, l2: false, rows: [], view: [], eSort: ['chg', -1] };
   try {

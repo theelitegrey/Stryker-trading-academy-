@@ -108,8 +108,9 @@ async function shot(p, name) { await p.mouse.move(2, 2).catch(() => {}); await s
     check(!(await p.$('.mv-sheet-wrap')), '390: sheet closed after Add');
     const chip = await p.evaluate(() => document.querySelector('.scn-fchip').innerText);
     check(/Change/i.test(chip), '390: chip shows "' + chip.replace(/\n/g, ' ') + '"');
-    await p.tap('[data-fdel="0"]'); await sleep(300);
-    check((await state(p)).total === (await state(p)).all, '390: removing the chip clears the filter');
+    // the quick screen's own condition was carried into the chips: remove every chip
+    for (let i = 0; i < 4 && (await p.$('[data-fdel="0"]')); i++) { await p.tap('[data-fdel="0"]'); await sleep(250); }
+    check((await state(p)).total === (await state(p)).all, '390: removing the chips clears the filter');
     // between + cross
     await p.tap('[data-fadd]'); await sleep(300);
     await p.selectOption('.mv-sheet select[name=f]', 'rsi'); await p.selectOption('.mv-sheet select[name=op]', 'bt'); await p.fill('.mv-sheet input[name=v]', '60'); await p.fill('.mv-sheet input[name=v2]', '70');

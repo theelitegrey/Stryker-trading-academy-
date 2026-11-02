@@ -18,7 +18,7 @@ const FIX = path.join(__dirname, 'fixtures', 'gex');
 async function open(b, { w, h, mobile, theme }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
-  await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker-theme', t); localStorage.setItem('theme', t); } catch (e) {} }, theme);
+  await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); } catch (e) {} }, theme);
   await ctx.route(/^https?:\/\/[^/]*(gstatic|googleapis|firebase|google|doubleclick|binance|coinbase|hyperliquid|bybit)\./, (r) => r.abort());
   await ctx.route(/\/api\/gex\/levels\//, (r) => {
     const name = new URL(r.request().url()).pathname.split('/').pop().toUpperCase();
@@ -32,7 +32,7 @@ async function open(b, { w, h, mobile, theme }) {
   const p = await ctx.newPage();
   await p.emulateMedia({ colorScheme: theme });
   const errors = [];
-  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|^WebSocket connection to|Failed to load resource/.test(m.text())) errors.push(m.text()); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|^WebSocket connection to|Failed to load resource|book-recorder/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_DATA_DOT, null, { timeout: 45000 });

@@ -96,6 +96,10 @@ const probe = () => {
           check(kind === 'pro' ? !r.proCard : r.proCard, `${tag}: Pro card ${kind === 'pro' ? 'hidden' : 'shown'}`);
           check(/\$|€|£|\/mo|per month/.test(await p.evaluate(() => document.querySelector('#dk-grid').textContent + document.querySelector('#dk-hero').textContent)) === false, `${tag}: no price text on the desk`);
           if (OUT && theme) {
+            // scroll through once so every count-up / draw-on has played before the full-page shot
+            const H0 = await p.evaluate(() => document.documentElement.scrollHeight);
+            for (let y = 0; y < H0; y += 500) { await p.evaluate((yy) => window.scrollTo(0, yy), y); await p.waitForTimeout(120); }
+            await p.waitForTimeout(1800); await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(300);
             await p.screenshot({ path: `${OUT}/${kind}-${w}-${theme}-full.png`, fullPage: true });
           }
           if (kind === 'active' && w === 390 && theme === 'dark') {

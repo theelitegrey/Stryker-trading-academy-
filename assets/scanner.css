@@ -1,70 +1,82 @@
-/* TradeZoro — Market scanner page (scanner.html, assets/scanner.js). Own file; scroll areas use
-   the shared thin scrollbar from assets/style.css (no default scrollbars). Phone-first. */
-.scn-page{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
-.scn-head h1{font-family:'Archivo',sans-serif;font-size:24px;letter-spacing:.02em;margin:0 0 4px;color:var(--ink-0,#f4f5f7)}
-.scn-sub{margin:0 0 14px;color:var(--ink-3,#8a8f98);font-size:13px}
-.scn-ago{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-3,#8a8f98);margin-left:6px}
-.scn-empty{color:var(--ink-3,#8a8f98);font-size:13px;margin:16px 0}
-.scn-edu{margin:18px 0 0;color:var(--ink-3,#8a8f98);font-size:11.5px}
-.scn-tabs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px}
-.scn-tgrp{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3,#8a8f98);margin:0 2px 0 8px}
-.scn-tgrp:first-child{margin-left:0}
-.scn-tab{appearance:none;border:1px solid rgba(255,255,255,.08);background:#131316;color:var(--ink-1,#d5d8de);border-radius:999px;padding:6px 12px;font:600 12.5px 'Archivo',sans-serif;cursor:pointer;white-space:nowrap}
-.scn-tab:hover{border-color:rgba(3,201,136,.4)}
-.scn-tab.on{background:#03c988;border-color:#03c988;color:#050506}
-.scn-pro{font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.06em;background:rgba(0,173,181,.18);color:#4fe3ac;border-radius:4px;padding:1px 4px;margin-left:4px}
-.scn-tab.on .scn-pro{background:rgba(5,5,6,.2);color:#050506}
-.scn-count{font:12px 'JetBrains Mono',monospace;color:var(--ink-3,#8a8f98);margin:4px 0 8px}
-.scn-tw{overflow:auto;max-height:70vh;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:#0b0b0d}
-.scn-table{width:100%;border-collapse:collapse;font:12.5px 'JetBrains Mono',monospace;min-width:640px}
-.scn-table thead th{position:sticky;top:0;background:#131316;z-index:1;text-align:right;padding:0;border-bottom:1px solid rgba(255,255,255,.08)}
-.scn-table thead th button{appearance:none;border:0;background:none;color:var(--ink-3,#8a8f98);font:600 10.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:9px 10px;cursor:pointer;width:100%;text-align:right;white-space:nowrap}
-.scn-table thead th[aria-sort="ascending"] button,.scn-table thead th[aria-sort="descending"] button{color:#4fe3ac}
-.scn-table th.scn-sym{text-align:left;position:sticky;left:0;background:#0b0b0d;z-index:2}
-.scn-table thead th.scn-sym{background:#131316;z-index:3;padding:9px 10px;font:600 10.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3,#8a8f98)}
-.scn-table tbody th.scn-sym{padding:7px 10px;font-weight:400;max-width:200px}
-.scn-table tbody th.scn-sym b{display:block;font:700 13px 'Archivo',sans-serif;color:var(--ink-0,#f4f5f7)}
-.scn-table tbody th.scn-sym small{display:block;font:11px 'Archivo',sans-serif;color:var(--ink-3,#8a8f98);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
-.scn-table td{text-align:right;padding:7px 10px;color:var(--ink-1,#d5d8de);white-space:nowrap}
-.scn-table tbody tr{border-top:1px solid rgba(255,255,255,.04);cursor:pointer}
-.scn-table tbody tr:hover td,.scn-table tbody tr:hover th,.scn-table tbody tr:focus td,.scn-table tbody tr:focus th{background:#131316}
-.scn-table tbody tr:focus{outline:1px solid rgba(3,201,136,.5);outline-offset:-1px}
-.scn-table td.up{color:#4fe3ac}.scn-table td.dn{color:#ff5d6c}
-.scn-filters{display:flex;flex-direction:column;gap:8px;margin:0 0 12px;padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:#0b0b0d}
-.scn-frow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.scn-frow label{font:12px 'Archivo',sans-serif;color:var(--ink-3,#8a8f98);display:flex;gap:8px;align-items:center}
-.scn-filters select,.scn-filters input{background:#131316;color:var(--ink-0,#f4f5f7);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 9px;font:13px 'Archivo',sans-serif}
-.scn-filters input{width:96px;font-family:'JetBrains Mono',monospace}
-.scn-filters select:focus,.scn-filters input:focus{outline:none;border-color:#03c988}
-.scn-x{appearance:none;border:1px solid rgba(255,255,255,.1);background:#131316;color:var(--ink-2,#b3b8c2);border-radius:8px;width:32px;height:32px;font-size:18px;line-height:1;cursor:pointer}
-.scn-x:hover{color:#ff5d6c;border-color:rgba(255,93,108,.5)}
-.scn-add{appearance:none;border:1px dashed rgba(3,201,136,.45);background:none;color:#4fe3ac;border-radius:8px;padding:7px 12px;font:600 12.5px 'Archivo',sans-serif;cursor:pointer}
-.scn-add[disabled]{opacity:.4;cursor:default}
-.scn-lock{margin:10px 0}
-.scn-sheet-wrap{position:fixed;inset:0;z-index:1000}
-.scn-scrim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
-.scn-sheet{position:absolute;right:0;top:0;bottom:0;width:380px;max-width:100%;background:#0b0b0d;border-left:1px solid rgba(255,255,255,.08);padding:18px;overflow:auto}
-.scn-sh-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
-.scn-sh-head b{display:block;font:700 20px 'Archivo',sans-serif;color:var(--ink-0,#f4f5f7)}
-.scn-sh-head small{display:block;font:12px 'Archivo',sans-serif;color:var(--ink-3,#8a8f98);margin-top:2px}
+/* TradeZoro — Screener page (scanner.html, assets/scanner.js). Tokens from assets/style.css (dark + light). 4-pt spacing,
+   44px touch targets, 12px radii. Scroll areas use the shared thin scrollbar (no default bars). */
+.scn-page{max-width:1280px;margin:0 auto;padding:24px 20px 64px}
+.scn-head h1{font:700 24px/32px var(--font-display,'Archivo',sans-serif);margin:0 0 4px;color:var(--ink-0)}
+.scn-sub{margin:0 0 16px;color:var(--ink-3);font:400 14px/20px var(--font-body,'Archivo',sans-serif)}
+.scn-ago{font:400 12px/16px var(--font-mono,'JetBrains Mono',monospace);margin-left:4px;white-space:nowrap}
+.scn-empty{color:var(--ink-3);font:400 14px/20px var(--font-body,'Archivo',sans-serif);margin:24px 0;text-align:center}
+.scn-edu{margin:16px 0 0;color:var(--ink-3);font:400 12px/16px var(--font-body,'Archivo',sans-serif)}
+.scn-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* market tabs: segmented control */
+.scn-seg{display:flex;gap:4px;padding:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;margin:0 0 12px}
+.scn-seg button{flex:1;min-height:44px;appearance:none;border:0;border-radius:8px;background:none;color:var(--ink-2);font:600 14px/20px var(--font-body,'Archivo',sans-serif);cursor:pointer}
+.scn-seg button[aria-selected="true"]{background:var(--bg-0);color:var(--ink-0);box-shadow:0 0 0 1px var(--line)}
+.scn-seg button:focus-visible,.scn-fedit:focus-visible,.scn-fx:focus-visible,.scn-addf:focus-visible,.scn-c:focus-visible,.scn-r:focus-visible,.scn-vp:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* chip rows */
+.scn-row{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:0 0 8px;margin:0 -2px 4px;scrollbar-width:thin}
+.scn-row .mv-chip{flex:none;min-height:44px}
+.scn-lab{flex:none;font:600 12px/16px var(--font-body,'Archivo',sans-serif);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;padding-right:4px}
+.scn-pick{border-style:dashed}
+.scn-chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+.scn-fchip{display:inline-flex;align-items:center;min-height:44px;border:1px solid var(--line);background:var(--bg-2);border-radius:999px;color:var(--ink-1);font:500 13px/18px var(--font-body,'Archivo',sans-serif);overflow:hidden}
+.scn-fchip.is-fixed{padding:0 14px;color:var(--ink-2)}
+.scn-fedit{appearance:none;border:0;background:none;color:inherit;font:inherit;min-height:44px;padding:0 4px 0 14px;cursor:pointer}
+.scn-fx{appearance:none;border:0;background:none;color:var(--ink-3);width:44px;min-height:44px;font-size:20px;line-height:1;cursor:pointer}
+.scn-fx:hover{color:var(--red,#ff5d6c)}
+.scn-addf{appearance:none;min-height:44px;padding:0 16px;border:1px dashed var(--gold);background:none;color:var(--gold);border-radius:999px;font:600 13px/18px var(--font-body,'Archivo',sans-serif);cursor:pointer}
+
+/* search + count */
+.scn-bar{display:flex;align-items:center;gap:12px;margin:0 0 8px}
+.scn-search{flex:1;min-width:0}
+.scn-search input{width:100%;box-sizing:border-box;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg-1);color:var(--ink-0);font:400 16px/24px var(--font-body,'Archivo',sans-serif)}
+.scn-search input:focus{outline:2px solid var(--gold);outline-offset:1px}
+.scn-count{flex:none;font:400 12px/16px var(--font-mono,'JetBrains Mono',monospace);color:var(--ink-3)}
+
+/* virtual table */
+.scn-vp{position:relative;overflow:auto;height:min(68vh,720px);min-height:320px;border:1px solid var(--line);border-radius:12px;background:var(--bg-1);overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.scn-grid{position:relative;min-width:100%}
+.scn-hd{position:sticky;top:0;z-index:4;display:flex;background:var(--bg-2);border-bottom:1px solid var(--line)}
+.scn-bd{position:relative}
+.scn-r{position:absolute;left:0;right:0;display:flex;align-items:center;border-top:1px solid var(--line);cursor:pointer;background:var(--bg-1)}
+.scn-r:hover,.scn-r:hover .scn-sym{background:var(--bg-2)}
+.scn-c{flex:none;box-sizing:border-box;padding:0 12px;text-align:right;white-space:nowrap;color:var(--ink-1);font:400 13px/18px var(--font-mono,'JetBrains Mono',monospace)}
+.scn-c.up{color:var(--green,#4fe3ac)}.scn-c.dn{color:var(--red,#ff5d6c)}
+.scn-c.scn-t{text-align:left;overflow:hidden;text-overflow:ellipsis}
+.scn-sym{position:sticky;left:0;z-index:3;width:148px;text-align:left;background:var(--bg-1);border-right:1px solid var(--line);overflow:hidden}
+.scn-hd .scn-sym{background:var(--bg-2);z-index:5}
+.scn-r .scn-sym b{display:block;font:700 14px/20px var(--font-body,'Archivo',sans-serif);color:var(--ink-0);overflow:hidden;text-overflow:ellipsis}
+.scn-r .scn-sym small{display:block;font:400 12px/16px var(--font-body,'Archivo',sans-serif);color:var(--ink-3);overflow:hidden;text-overflow:ellipsis}
+button.scn-c{appearance:none;border:0;background:none;display:flex;align-items:center;justify-content:flex-end;gap:4px;height:100%;cursor:pointer;color:var(--ink-3);font:600 11px/14px var(--font-body,'Archivo',sans-serif);text-transform:uppercase;letter-spacing:.04em}
+button.scn-c.scn-sym{justify-content:flex-start;text-align:left;background:var(--bg-2)}
+button.scn-c span{white-space:normal;text-align:right;overflow-wrap:anywhere}
+button.scn-c{padding:0 8px;letter-spacing:.02em}
+button.scn-c.on{color:var(--gold)}
+button.scn-c i{font-style:normal;font-size:10px}
+
+/* sheets (shared mkt-viz sheet) */
+.scn-form label,.scn-pk fieldset{display:block;margin:0 0 16px}
+.scn-form label{font:600 12px/16px var(--font-body,'Archivo',sans-serif);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+.scn-form select,.scn-form input{display:block;width:100%;box-sizing:border-box;margin-top:6px;min-height:48px;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg-2);color:var(--ink-0);font:400 16px/24px var(--font-body,'Archivo',sans-serif);text-transform:none;letter-spacing:0}
+.scn-form [hidden]{display:none}
+.scn-vals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.scn-vals{grid-template-columns:1fr}
+.scn-err{color:var(--red,#ff5d6c);font:400 13px/18px var(--font-body,'Archivo',sans-serif);margin:0 0 12px}
+.scn-act{margin-top:8px}.scn-act .btn{width:100%;min-height:48px}
+.scn-pk fieldset{border:0;padding:0}
+.scn-pk legend{font:600 12px/16px var(--font-body,'Archivo',sans-serif);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;padding:0;margin:0 0 4px}
+.scn-chk{display:flex;align-items:center;gap:12px;min-height:44px;color:var(--ink-1);font:400 15px/20px var(--font-body,'Archivo',sans-serif)}
+.scn-chk input{width:20px;height:20px;margin:0;accent-color:var(--gold)}
+.mv-sub{color:var(--ink-3);font:400 13px/18px var(--font-body,'Archivo',sans-serif);margin:0 0 12px}
 .scn-dl{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.scn-dl div{background:#131316;border-radius:10px;padding:9px 10px}
-.scn-dl dt{font:10.5px 'JetBrains Mono',monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3,#8a8f98)}
-.scn-dl dd{margin:3px 0 0;font:600 14px 'JetBrains Mono',monospace;color:var(--ink-0,#f4f5f7)}
-.scn-note{margin:14px 0 0;font-size:12px;color:var(--ink-3,#8a8f98);line-height:1.5}
+.scn-dl div{background:var(--bg-2);border-radius:12px;padding:12px}
+.scn-dl dt{font:600 11px/14px var(--font-body,'Archivo',sans-serif);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.scn-dl dd{margin:4px 0 0;font:600 15px/20px var(--font-mono,'JetBrains Mono',monospace);color:var(--ink-0)}
+
 @media(max-width:820px){
-  .scn-page{padding:14px 12px 90px}
-  .scn-head h1{font-size:20px}
-  .scn-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-right:-12px;padding-right:12px}
-  .scn-table{min-width:560px;font-size:12px}
-  .scn-table tbody th.scn-sym{max-width:120px}
-  .scn-table tbody th.scn-sym small{max-width:112px}
-  .scn-sheet{top:auto;left:0;width:auto;max-height:82vh;border-left:0;border-top:1px solid rgba(255,255,255,.08);border-radius:16px 16px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
-  .scn-filters input{width:80px}
+  .scn-page{padding:16px 12px 96px}
+  .scn-head h1{font-size:20px;line-height:28px}
+  .scn-vp{height:calc(100vh - 340px);height:calc(100dvh - 340px);min-height:300px}
 }
-:root[data-theme="light"] .scn-tab{background:#fff;color:#1b1f27;border-color:rgba(0,0,0,.1)}
-:root[data-theme="light"] .scn-tab.on{background:#03c988;color:#050506}
-:root[data-theme="light"] .scn-tw,:root[data-theme="light"] .scn-filters,:root[data-theme="light"] .scn-sheet{background:#fff;border-color:rgba(0,0,0,.08)}
-:root[data-theme="light"] .scn-table thead th,:root[data-theme="light"] .scn-table thead th.scn-sym,:root[data-theme="light"] .scn-dl div,:root[data-theme="light"] .scn-filters select,:root[data-theme="light"] .scn-filters input{background:#f3f4f6;color:#1b1f27}
-:root[data-theme="light"] .scn-table th.scn-sym{background:#fff}
-:root[data-theme="light"] .scn-table tbody tr:hover td,:root[data-theme="light"] .scn-table tbody tr:hover th{background:#f3f4f6}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}

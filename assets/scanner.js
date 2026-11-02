@@ -1,381 +1,266 @@
-// TradeZoro — Market scanner page (scanner.html). Classic script, no dependencies.
-// Owner-approved 2026-10-14 (InsightSentry market scanner; design approved by the CoS).
-// Data: the book-recorder Worker GET /scan?part=presets|stock|etf|crypto, filled every 3 min by
-// workers/book-recorder/scan-feeder/scan_feeder.py (4 InsightSentry screener calls per run, never one
-// per visitor). Bodies are gzip JSON (x-scan-gzip: 1), un-gzipped here with DecompressionStream.
-// Free: every preset. Pro: custom filters (field / operator / value) run in this page on the cached
-// market table (assets/plan-lock.js card 'scanner' for Free). Sortable columns. A crypto row opens
-// /charts?symbol=BINANCE:XXXUSDT; a stock / ETF row (our charts have no stock feed) opens an info
-// sheet with the row's numbers. Status wording: "updated X min ago" only.
-// Depends on: assets/plan-limits.js (window.strykerPlanTier, optional), assets/plan-lock.js (optional).
+// TradeZoro — Screener page (scanner.html). Classic script. Depends on: assets/screener-core.js (filters, columns, symbols),
+// assets/mkt-viz.js (bottom sheet), assets/scanner-l2.js (futures book columns, admin gate).
+// Data: the book-recorder Worker GET /scan?part=stock|etf|crypto|fut (gzip JSON tables, edge cached, filled by the feeder on our
+// server). Filtering, sorting and column sets run here on that cached copy. A row opens ZoroCharts (charts?symbol=) when we
+// chart the symbol, else an info sheet. Status wording: "Updated X min ago".
 (function () {
   'use strict';
-  var API = 'https://book-recorder.theelitegrey.workers.dev/scan?part=';
-  var REFRESH_MS = 3 * 60 * 1000;
+  var C = window.stkScreener, V = window.stkViz;
   var root = document.getElementById('scn-root');
-  if (!root) return;
+  if (!root || !C || !V) return;
+  var API = 'https://book-recorder.theelitegrey.workers.dev/scan?part=';
+  var REFRESH_MS = 3 * 60 * 1000, ROW_H = 56, HEAD_H = 44, SYM_W = 148;
+  var MK = C.MARKETS;
+  var COLW = { px: 96, pct: 100, big: 92, x: 92, n1: 92, n2: 96, int: 72, txt: 140, date: 84 };
 
-  // Column definitions: key, label, kind of number, which markets show it.
-  var COLS = [
-    { k: 'c', l: 'Price', f: 'px' },
-    { k: 'chg', l: 'Chg %', f: 'pct' },
-    { k: 'vol', l: 'Volume', f: 'big' },
-    { k: 'rvol', l: 'Rel vol', f: 'x', m: ['stock', 'etf'] },
-    { k: 'gap', l: 'Gap %', f: 'pct' },
-    { k: 'rsi', l: 'RSI 14', f: 'n1' },
-    { k: 'cap', l: 'Mkt cap', f: 'big', m: ['stock', 'crypto'] },
-    { k: 'pe', l: 'P/E', f: 'n1', m: ['stock'] },
-    { k: 'perfYtd', l: 'YTD %', f: 'pct' }
-  ];
-  var FILTER_FIELDS = [
-    ['chg', 'Change %'], ['gap', 'Gap %'], ['c', 'Price'], ['vol', 'Volume'], ['rvol', 'Relative volume'],
-    ['rsi', 'RSI 14'], ['cap', 'Market cap'], ['pe', 'P/E'], ['perfW', 'Week %'], ['perfYtd', 'YTD %'], ['off52h', '% below 52-week high'],
-    ['off52l', '% above 52-week low']
-  ];
-  var OPS = [['gt', '>'], ['lt', '<'], ['ge', '≥'], ['le', '≤']];
-  var GROUPS = [
-    ['Stocks', ['gainers', 'losers', 'unusual', 'high52', 'low52', 'gapup', 'gapdown', 'rsihigh', 'rsilow']],
-    ['ETFs', ['etfup', 'etfdown']],
-    ['Crypto', ['cryptoup', 'cryptodown']]
-  ];
+  var st = { m: 'stock', q: 'gainers', flt: [], setId: 'overview', cols: null, sortK: null, sortD: -1, search: '', tables: {}, l2: false, rows: [], view: [], eSort: ['chg', -1] };
+  try {
+    var sv = JSON.parse(localStorage.getItem('stryker_screener') || 'null');
+    if (sv && C.ALL.indexOf(sv.m) !== -1) { st.m = sv.m; st.q = sv.q || ''; st.flt = Array.isArray(sv.flt) ? sv.flt.slice(0, C.MAXF) : []; st.setId = sv.setId || 'overview'; st.cols = Array.isArray(sv.cols) ? sv.cols : null; st.sortK = sv.sortK || null; st.sortD = sv.sortD === 1 ? 1 : -1; }
+  } catch (e) {}
+  function persist() { try { localStorage.setItem('stryker_screener', JSON.stringify({ m: st.m, q: st.q, flt: st.flt, setId: st.setId, cols: st.cols, sortK: st.sortK, sortD: st.sortD })); } catch (e) {} }
+  var esc = V.esc;
+  var ctx = function () { return { l2: st.l2, pro: false }; };
+  var mName = function () { return MK.filter(function (m) { return m[0] === st.m; })[0][1]; };
 
-  var st = { presets: null, cols: null, t: 0, tab: 'gainers', sortK: null, sortD: 1, tier: null, custom: false,
-    cmarket: 'stock', view: 'heat', chip: 'all', filters: [{ f: 'chg', op: 'gt', v: '3' }], tables: {}, err: '' };
-  try { var saved = JSON.parse(localStorage.getItem('stryker_scanner') || 'null'); if (saved) { if (saved.tab) st.tab = saved.tab; if (Array.isArray(saved.filters)) st.filters = saved.filters.slice(0, 8); if (saved.cmarket) st.cmarket = saved.cmarket; if (saved.view) st.view = saved.view; } } catch (e) {}
-  function persist() { try { localStorage.setItem('stryker_scanner', JSON.stringify({ tab: st.tab, filters: st.filters, cmarket: st.cmarket, view: st.view })); } catch (e) {} }
-
-  // ---- pure helpers (exported for tests on window.__stkScan) --------------------------------
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function isNum(v) { return typeof v === 'number' && isFinite(v); }
-  function fmt(v, f) {
-    if (!isNum(v)) return '—';
-    if (f === 'pct') return (v > 0 ? '+' : '') + v.toFixed(2) + '%';
-    if (f === 'x') return v.toFixed(2) + '×';
-    if (f === 'n1') return v.toFixed(1);
-    if (f === 'big') {
-      var a = Math.abs(v);
-      if (a >= 1e12) return (v / 1e12).toFixed(2) + 'T';
-      if (a >= 1e9) return (v / 1e9).toFixed(2) + 'B';
-      if (a >= 1e6) return (v / 1e6).toFixed(2) + 'M';
-      if (a >= 1e3) return (v / 1e3).toFixed(1) + 'K';
-      return String(Math.round(v));
-    }
-    if (f === 'px') return v >= 1000 ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : v >= 1 ? v.toFixed(2) : v.toPrecision(4);
-    return String(v);
-  }
-  function agoText(t, now) {
-    if (!isNum(t) || !t) return '';
-    var m = Math.max(0, Math.floor(((now || Date.now()) / 1000 - t) / 60));
-    if (m < 1) return 'Updated just now';
-    if (m < 60) return 'Updated ' + m + ' min ago';
-    var h = Math.floor(m / 60);
-    return h < 24 ? 'Updated ' + h + ' h ago' : 'Updated ' + Math.floor(h / 24) + ' days ago';
-  }
-  // derived fields for filters
-  function val(r, k) {
-    if (k === 'off52h') return isNum(r.c) && isNum(r.hi52) && r.hi52 > 0 ? (1 - r.c / r.hi52) * 100 : null;
-    if (k === 'off52l') return isNum(r.c) && isNum(r.lo52) && r.lo52 > 0 ? (r.c / r.lo52 - 1) * 100 : null;
-    return r[k];
-  }
-  // Custom filter list -> a predicate (rows with a missing value never match). Pure.
-  function buildFilter(filters) {
-    var fs = (filters || []).filter(function (x) { return x && FILTER_FIELDS.some(function (f) { return f[0] === x.f; }) && OPS.some(function (o) { return o[0] === x.op; }) && x.v !== '' && isFinite(Number(x.v)); })
-      .map(function (x) { return { f: x.f, op: x.op, v: Number(x.v) }; });
-    return {
-      n: fs.length,
-      test: function (r) {
-        for (var i = 0; i < fs.length; i++) {
-          var a = val(r, fs[i].f), b = fs[i].v;
-          if (!isNum(a)) return false;
-          if (fs[i].op === 'gt' && !(a > b)) return false;
-          if (fs[i].op === 'lt' && !(a < b)) return false;
-          if (fs[i].op === 'ge' && !(a >= b)) return false;
-          if (fs[i].op === 'le' && !(a <= b)) return false;
-        }
-        return true;
-      }
-    };
-  }
-  function sortRows(rows, k, d) {
-    if (!k) return rows;
-    return rows.slice().sort(function (a, b) {
-      var x = a[k], y = b[k];
-      if (!isNum(x) && !isNum(y)) return 0;
-      if (!isNum(x)) return 1;
-      if (!isNum(y)) return -1;
-      return (x - y) * d;
-    });
-  }
-  function rowsOfPreset(p, cols) {
-    return p.rows.map(function (a) { var o = {}; cols.forEach(function (c, i) { o[c] = a[i]; }); return o; });
-  }
-  function rowsOfTable(t) {
-    var out = [], n = t.n, d = t.d;
-    for (var i = 0; i < n; i++) { var o = {}; t.cols.forEach(function (c) { o[c] = d[c][i]; }); out.push(o); }
-    return out;
-  }
-  window.__stkScan = { chipTest: chipTest, fmt: fmt, agoText: agoText, buildFilter: buildFilter, sortRows: sortRows, val: val };
-
-  // ---- data -----------------------------------------------------------------------------------
+  // ---- data ---------------------------------------------------------------------------------------------------------
   function load(part) {
     return fetch(API + part, { headers: { accept: 'application/octet-stream' } }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      if (r.headers.get('x-scan-gzip') === '1' && typeof DecompressionStream === 'function') {
-        return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();
-      }
+      if (r.headers.get('x-scan-gzip') === '1' && typeof DecompressionStream === 'function') return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();
       return r.json();
     });
   }
-  function loadPresets() {
-    return load('presets').then(function (d) {
-      st.presets = d.presets; st.cols = d.cols; st.t = d.t; st.err = '';
-    }, function () { if (!st.presets) st.err = 'Scanner data is temporarily unavailable. Try again in a minute.'; });
-  }
-  function loadTable(m) {
+  function table(m) {
     var e = st.tables[m];
-    if (e && (e.p || Date.now() - e.at < REFRESH_MS)) return e.p || Promise.resolve(e);
-    var p = load(m).then(function (d) { st.tables[m] = { rows: rowsOfTable(d), t: d.t, at: Date.now() }; return st.tables[m]; },
-      function () { st.tables[m] = { rows: [], t: 0, at: 0, err: true }; return st.tables[m]; });
-    st.tables[m] = { p: p, rows: (e && e.rows) || [], at: 0 };
+    if (e && (e.p || (e.rows && Date.now() - e.at < REFRESH_MS) || (e.err && Date.now() - e.at < 30000))) return e.p || Promise.resolve(e);
+    var p = load(m).then(function (d) { st.tables[m] = { rows: C.rowsOfTable(d, m, d.t), t: d.t, at: Date.now() }; return st.tables[m]; },
+      function () { st.tables[m] = { rows: null, t: 0, at: Date.now(), err: true }; return st.tables[m]; });
+    st.tables[m] = { p: p, rows: e && e.rows, t: e && e.t, at: 0 };
     return p;
   }
 
-  // ---- render -----------------------------------------------------------------------------------
-  function marketOf() { return st.custom ? st.cmarket : (st.presets && st.presets[st.tab] ? st.presets[st.tab].kind : 'stock'); }
-  function colsFor(m) { return COLS.filter(function (c) { return !c.m || c.m.indexOf(m) !== -1; }); }
-  function tabsHtml() {
-    var h = '<div class="scn-tabs" role="tablist" aria-label="Scans">';
-    GROUPS.forEach(function (g) {
-      h += '<span class="scn-tgrp">' + g[0] + '</span>';
-      g[1].forEach(function (k) {
-        var p = st.presets && st.presets[k];
-        if (!p) return;
-        var on = !st.custom && st.tab === k;
-        h += '<button type="button" role="tab" class="scn-tab' + (on ? ' on' : '') + '" aria-selected="' + on + '" data-tab="' + k + '">' + esc(p.title) + '</button>';
-      });
-    });
-    var pro = true;   // custom filters are free (2026-11-01)
-    h += '<span class="scn-tgrp">Custom</span><button type="button" role="tab" class="scn-tab scn-tab-custom' + (st.custom ? ' on' : '') + '" aria-selected="' + st.custom + '" data-tab="__custom">Custom filters' + (pro ? '' : ' <span class="scn-pro">PRO</span>') + '</button>';
-    return h + '</div>';
+  // ---- state helpers ------------------------------------------------------------------------------------------------------
+  function preset() { return st.q ? C.presetById(st.q) : null; }
+  function colKeys() {
+    var k = st.cols && st.cols.length ? st.cols : C.setKeys(st.setId, st.m, ctx());
+    k = C.gateCols(k, st.m, ctx());
+    return k.length ? k : C.setKeys('overview', st.m, ctx());
   }
-  function filtersHtml() {
-    var h = '<div class="scn-filters"><div class="scn-frow scn-fmarket"><label>Market <select data-cm>';
-    [['stock', 'US stocks'], ['etf', 'US ETFs'], ['crypto', 'Crypto']].forEach(function (m) { h += '<option value="' + m[0] + '"' + (st.cmarket === m[0] ? ' selected' : '') + '>' + m[1] + '</option>'; });
-    h += '</select></label></div>';
-    st.filters.forEach(function (x, i) {
-      h += '<div class="scn-frow" data-i="' + i + '"><select data-ff aria-label="Field">';
-      FILTER_FIELDS.forEach(function (f) { h += '<option value="' + f[0] + '"' + (x.f === f[0] ? ' selected' : '') + '>' + f[1] + '</option>'; });
-      h += '</select><select data-fo aria-label="Operator">';
-      OPS.forEach(function (o) { h += '<option value="' + o[0] + '"' + (x.op === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; });
-      h += '</select><input data-fv type="text" inputmode="decimal" aria-label="Value" value="' + esc(x.v) + '"><button type="button" class="scn-x" data-fx aria-label="Remove filter">×</button></div>';
-    });
-    h += '<div class="scn-frow"><button type="button" class="scn-add" data-fadd' + (st.filters.length >= 8 ? ' disabled' : '') + '>+ Add filter</button></div></div>';
-    return h;
-  }
-  function tableHtml(rows, m, total) {
-    var cols = colsFor(m);
-    var h = '<div class="scn-count">' + (total != null ? total + ' match' + (total === 1 ? '' : 'es') + (total > rows.length ? ', first ' + rows.length + ' shown' : '') : rows.length + ' symbols') + '</div>';
-    if (!rows.length) return h + '<p class="scn-empty">Nothing matches right now.</p>';
-    h += '<div class="scn-tw"><table class="scn-table"><thead><tr><th scope="col" class="scn-sym">Symbol</th>';
-    cols.forEach(function (c) {
-      var on = st.sortK === c.k;
-      h += '<th scope="col" aria-sort="' + (on ? (st.sortD > 0 ? 'ascending' : 'descending') : 'none') + '"><button type="button" data-sort="' + c.k + '">' + c.l + (on ? (st.sortD > 0 ? ' ▲' : ' ▼') : '') + '</button></th>';
-    });
-    h += '</tr></thead><tbody>';
-    rows.forEach(function (r, i) {
-      var t = String(r.s || '').split(':');
-      h += '<tr tabindex="0" data-row="' + i + '"><th scope="row" class="scn-sym"><b>' + esc(t[1] || t[0]) + '</b><small>' + esc(r.n || '') + '</small></th>';
-      cols.forEach(function (c) {
-        var v = r[c.k], cls = c.f === 'pct' && isNum(v) ? (v > 0 ? ' class="up"' : v < 0 ? ' class="dn"' : '') : '';
-        h += '<td' + cls + '>' + fmt(v, c.f) + '</td>';
-      });
-      h += '</tr>';
-    });
-    return h + '</tbody></table></div>';
+  function compute() {
+    var tb = st.tables[st.m];
+    st.rows = tb && tb.rows || [];
+    var p = preset(), flt = C.buildFilter(p ? p.flt : st.flt, st.m, ctx()), q = st.search.trim().toLowerCase();
+    var v = st.rows.filter(flt.test);
+    if (q) v = v.filter(function (r) { return String(r.s || '').toLowerCase().indexOf(q) !== -1 || String(r.n || '').toLowerCase().indexOf(q) !== -1; });
+    var sk = st.sortK, sd = st.sortD;
+    if (!sk && p && p.sort) { sk = p.sort[0]; sd = p.sort[1]; }
+    if (!sk) { sd = -1; sk = st.m === 'etf' ? 'avgv' : st.m === 'fut' ? 'chg' : 'cap'; }
+    st.eSort = [sk, sd];
+    if (st.m === 'fut' && st.l2) { st.rows.forEach(function () {}); mergeL2(st.rows); }
+    st.view = C.sortRows(v, sk, sd);
   }
 
-  // ---- visual views: heatmap, cards, list toggle ------------------------------------------------
-  // Uses only the columns the feed already sends (chg, vol, gap, hi52, lo52, c). No new data.
-  var CHIPS = [['all', 'All'], ['up', 'Up today'], ['dn', 'Down today'], ['gap', 'Gap ≥ 2%'], ['nh', 'Near 52-wk high'], ['nl', 'Near 52-wk low'], ['rv', 'Rel vol ≥ 2×']];
-  function chipTest(k, r) {
-    if (k === 'up') return isNum(r.chg) && r.chg > 0;
-    if (k === 'dn') return isNum(r.chg) && r.chg < 0;
-    if (k === 'gap') return isNum(r.gap) && Math.abs(r.gap) >= 2;
-    if (k === 'nh') { var a = val(r, 'off52h'); return isNum(a) && a <= 5; }
-    if (k === 'nl') { var b = val(r, 'off52l'); return isNum(b) && b <= 5; }
-    if (k === 'rv') return isNum(r.rvol) && r.rvol >= 2;
-    return true;
-  }
-  var VZ = function () { return window.stkViz; };
-  function tickerOf(r) { var t = String(r.s || '').split(':'); return t[1] || t[0]; }
-  function chgStep(v) { return VZ().bucket(v, [1, 3, 6], 1); }
-  function rangeBar(r) {
-    if (!isNum(r.c) || !isNum(r.hi52) || !isNum(r.lo52) || r.hi52 <= r.lo52) return '';
-    var pos = Math.max(0, Math.min(100, (r.c - r.lo52) / (r.hi52 - r.lo52) * 100));
-    return '<span class="rng" role="img" aria-label="Price is ' + pos.toFixed(0) + ' percent of the way from the 52-week low to the high"><i style="left:' + pos.toFixed(1) + '%"></i></span>' +
-      '<span class="lbl"><span>' + fmt(r.lo52, 'px') + '</span><span>52-wk</span><span>' + fmt(r.hi52, 'px') + '</span></span>';
-  }
+  // ---- render ---------------------------------------------------------------------------------------------------------------
+  var vp = null, body = null, drawRaf = 0;
   function chipsHtml() {
-    return '<div class="scn-chiprow" role="group" aria-label="Filter the list">' + CHIPS.map(function (c) {
-      return '<button type="button" class="mv-chip" data-chip="' + c[0] + '" aria-pressed="' + (st.chip === c[0]) + '">' + c[1] + '</button>';
-    }).join('') + '</div>';
-  }
-  function viewsHtml() {
-    return '<div class="scn-views" role="group" aria-label="View">' + [['heat', 'Heatmap'], ['cards', 'Cards'], ['list', 'List']].map(function (v) {
-      return '<button type="button" data-view="' + v[0] + '" aria-pressed="' + (st.view === v[0]) + '">' + v[1] + '</button>';
-    }).join('') + '</div>';
-  }
-  function heatHtml(rows) {
-    var items = rows.map(function (r, i) { return { a: Math.max(isNum(r.vol) && isNum(r.c) ? r.vol * r.c : 0, 0) || Math.abs(r.chg || 0) + 0.1, r: r, i: i }; });
-    // tile area = traded value (volume × price) when both are present; falls back to |change|
-    return '<div class="scn-heat"><p class="mv-sub">Tile size is traded value (volume × price); colour is today’s change. Tap a tile for the numbers.</p>' +
-      VZ().treemapHtml(items, { ratio: window.innerWidth > 820 ? 2.2 : 0.95, width: Math.min(window.innerWidth - 40, 1100),
-        label: function (it) { return { t: tickerOf(it.r), v: fmt(it.r.chg, 'pct') }; },
-        cls: function (it) { return VZ().cls(chgStep(it.r.chg)); },
-        attr: function (it) { return 'data-row="' + it.i + '"'; } }) +
-      '<div class="mv-legend"><span>Down</span><i class="mm-bd3"></i><i class="mm-bd2"></i><i class="mm-bd1"></i><i class="mm-b0"></i><i class="mm-bu1"></i><i class="mm-bu2"></i><i class="mm-bu3"></i><span>Up</span></div></div>';
-  }
-  function cardsHtml(rows, m) {
-    var mx = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.chg || 0); }).concat([0.01]));
-    var sorts = [['chg', 'Change'], ['vol', 'Volume'], ['gap', 'Gap']];
-    var h = '<div class="mv-scroll-row" role="group" aria-label="Sort cards by">' + sorts.map(function (x) {
-      var on = (st.sortK || 'chg') === x[0];
-      return '<button type="button" class="mv-chip" data-sort="' + x[0] + '" aria-pressed="' + on + '">' + x[1] + (on ? (st.sortD > 0 ? ' ▲' : ' ▼') : '') + '</button>';
-    }).join('') + '</div><div class="scn-cards">';
-    rows.forEach(function (r, i) {
-      var w = Math.min(50, Math.abs(r.chg || 0) / mx * 50), b = chgStep(r.chg);
-      var gp = isNum(r.gap) && Math.abs(r.gap) >= 0.5 ? '<span class="gp ' + VZ().cls(VZ().bucket(r.gap, [1, 3, 6], 1)) + '">Gap ' + fmt(r.gap, 'pct') + '</span>' : '';
-      h += '<button type="button" class="scn-cardx" data-row="' + i + '"><b>' + esc(tickerOf(r)) + '</b><small>' + esc(r.n || '') + '</small>' +
-        '<div class="px">' + fmt(r.c, 'px') + '</div><div class="pc ' + (r.chg > 0 ? 'mv-up' : r.chg < 0 ? 'mv-dn' : '') + '">' + fmt(r.chg, 'pct') + '</div>' +
-        '<span class="mini" aria-hidden="true"><i class="' + VZ().cls(b) + '" style="' + (r.chg < 0 ? 'right:50%' : 'left:50%') + ';width:' + w.toFixed(1) + '%"></i></span>' +
-        gp + rangeBar(r) + '</button>';
+    var p = preset(), list = p ? p.flt.filter(function (x) { return x.f !== 'dv' && !(x.f === 'c' && x.v === 1); }) : st.flt;
+    var h = '<div class="scn-chips" role="group" aria-label="Filters">';
+    list.forEach(function (x, i) {
+      var c = C.clean(x, st.m, ctx());
+      if (!c) return;
+      h += p ? '<span class="scn-fchip is-fixed">' + esc(C.describe(c)) + '</span>'
+        : '<span class="scn-fchip"><button type="button" class="scn-fedit" data-fedit="' + i + '">' + esc(C.describe(c)) + '</button><button type="button" class="scn-fx" data-fdel="' + i + '" aria-label="Remove filter">×</button></span>';
     });
-    return h + '</div>';
+    return h + '<button type="button" class="scn-addf" data-fadd>+ Filter</button></div>';
   }
-  function bodyHtml(rows, m, total) {
-    var cnt = '<div class="scn-count">' + (total != null ? total + ' match' + (total === 1 ? '' : 'es') : rows.length + ' symbols') + (st.chip !== 'all' ? ' · filter: ' + CHIPS.filter(function (c) { return c[0] === st.chip; })[0][1] : '') + '</div>';
-    if (!rows.length) return cnt + '<p class="scn-empty">Nothing matches right now.</p>';
-    if (st.view === 'heat') return cnt + heatHtml(rows);
-    if (st.view === 'cards') return cnt + cardsHtml(rows, m);
-    return tableHtml(rows, m, total);
+  function quickHtml() {
+    return '<div class="scn-row scroll-x" role="group" aria-label="Quick screens"><span class="scn-lab">Quick screens</span>' + C.presetsFor(st.m).map(function (p) {
+      return '<button type="button" class="mv-chip" data-q="' + p.id + '" aria-pressed="' + (st.q === p.id) + '">' + esc(p.t) + '</button>';
+    }).join('') + '</div>';
   }
-  function toolbarHtml() { return '<div class="scn-toolbar">' + viewsHtml() + '</div>' + chipsHtml(); }
-  var shown = [];
-  function render() {
-    var ago = document.getElementById('scn-ago');
-    if (ago) ago.textContent = agoText(st.custom && st.tables[st.cmarket] && st.tables[st.cmarket].t ? st.tables[st.cmarket].t : st.t);
-    if (!st.presets) { root.innerHTML = '<p class="scn-empty">' + esc(st.err || 'Loading scans…') + '</p>'; return; }
-    var h = tabsHtml(), m = marketOf();
-    if (st.custom) {
-      if (!st.tier) { root.innerHTML = h + '<p class="scn-empty">Loading…</p>'; return; }
-      if (false) {   // custom filters are free (2026-11-01)
-        root.innerHTML = h + '<div class="scn-lock"></div>';
-        var slot = root.querySelector('.scn-lock');
-        if (window.strykerPlanLock) slot.appendChild(window.strykerPlanLock.card('scanner', 'scanner-custom'));
-        else slot.innerHTML = '<p class="scn-empty">Custom filters are part of Pro. <a href="/pricing">See plans</a></p>';
-        wire(); return;
-      }
-      h += filtersHtml();
-      var tb = st.tables[st.cmarket];
-      if (!tb || (!tb.rows.length && !tb.err && tb.p)) { root.innerHTML = h + '<p class="scn-empty">Loading the ' + st.cmarket + ' table…</p>'; wire(); loadTable(st.cmarket).then(render); return; }
-      if (tb.err) { root.innerHTML = h + '<p class="scn-empty">This table is temporarily unavailable. Try again in a minute.</p>'; wire(); return; }
-      var flt = buildFilter(st.filters);
-      var all = tb.rows.filter(flt.test);
-      shown = sortRows(all, st.sortK || 'chg', st.sortK ? st.sortD : -1).slice(0, 200);
-      shown = shown.filter(function (r) { return chipTest(st.chip, r); });
-      root.innerHTML = h + toolbarHtml() + bodyHtml(shown, m, shown.length);
-    } else {
-      var p = st.presets[st.tab] || st.presets[Object.keys(st.presets)[0]];
-      shown = sortRows(rowsOfPreset(p, st.cols), st.sortK, st.sortD).filter(function (r) { return chipTest(st.chip, r); });
-      root.innerHTML = h + toolbarHtml() + bodyHtml(shown, p.kind, shown.length);
-    }
+  function setsHtml() {
+    var ids = C.setsFor(st.m).filter(function (id) { return id !== 'gexs' && (id !== 'flow' || st.l2); });
+    return '<div class="scn-row scroll-x" role="group" aria-label="Column sets"><span class="scn-lab">Columns</span>' + ids.map(function (id) {
+      return '<button type="button" class="mv-chip" data-set="' + id + '" aria-pressed="' + (!st.cols && st.setId === id) + '">' + C.SETS[id].l + '</button>';
+    }).join('') + '<button type="button" class="mv-chip scn-pick" data-pick>Customise</button></div>';
+  }
+  function shell(msg) {
+    var h = '<div class="scn-seg" role="tablist" aria-label="Market">' + MK.map(function (m) {
+      return '<button type="button" role="tab" data-m="' + m[0] + '" aria-selected="' + (st.m === m[0]) + '">' + m[1] + '</button>';
+    }).join('') + '</div>';
+    h += quickHtml() + chipsHtml() + '<div class="scn-bar"><label class="scn-search"><span class="scn-sr">Search symbol or name</span><input type="search" data-search placeholder="Search symbol or name" value="' + esc(st.search) + '" autocomplete="off" autocapitalize="off" spellcheck="false"></label><div class="scn-count" id="scn-count" aria-live="polite"></div></div>' + setsHtml();
+    h += msg ? '<p class="scn-empty">' + esc(msg) + '</p>' : '<div class="scn-vp" id="scn-vp" tabindex="0" aria-label="Results"></div>';
+    root.innerHTML = h;
     wire();
   }
-
-  // ---- symbol info sheet (stocks / ETFs: our charts have no stock feed) ---------------------------
-  function openInfo(r) {
-    var m = marketOf();
-    if (m === 'crypto') {
-      var t = String(r.s || '').split(':').pop();
-      location.href = 'charts?symbol=' + encodeURIComponent('binance:' + t);
-      return;
+  function render() {
+    var tb = st.tables[st.m], ago = document.getElementById('scn-ago');
+    if (ago) ago.textContent = C.agoText(tb && tb.t);
+    vp = body = null;
+    if (!tb || (tb.p && !tb.rows)) { shell('Loading ' + mName().toLowerCase() + '…'); return; }
+    if (tb.err || !tb.rows) { shell(st.m === 'fut' ? 'Futures data is not available yet. Try again in a few minutes.' : 'Scanner data is temporarily unavailable. Try again in a minute.'); return; }
+    compute();
+    shell('');
+    var cnt = document.getElementById('scn-count'); if (cnt) cnt.textContent = st.view.length.toLocaleString('en-US') + ' of ' + st.rows.length.toLocaleString('en-US');
+    vp = document.getElementById('scn-vp');
+    if (!st.view.length) { vp.outerHTML = '<p class="scn-empty">Nothing matches right now. Try removing a filter.</p>'; vp = null; return; }
+    buildGrid();
+  }
+  function colDef(k) { return C.BY[k] || { k: k, l: k, f: 'n2' }; }
+  function buildGrid() {
+    var defs = colKeys().map(colDef), w = SYM_W + defs.reduce(function (s, d) { return s + (COLW[d.f] || 88); }, 0);
+    var sk = st.eSort[0], sd = st.eSort[1];
+    var h = '<div class="scn-grid" style="width:' + w + 'px"><div class="scn-hd" role="row" style="height:' + HEAD_H + 'px"><button type="button" class="scn-c scn-sym" data-sort="s" aria-sort="' + (sk === 's' ? (sd > 0 ? 'ascending' : 'descending') : 'none') + '">Symbol' + (sk === 's' ? (sd > 0 ? ' ▲' : ' ▼') : '') + '</button>';
+    defs.forEach(function (d) {
+      h += '<button type="button" class="scn-c scn-h' + (sk === d.k ? ' on' : '') + '" style="width:' + (COLW[d.f] || 88) + 'px" data-sort="' + d.k + '" aria-sort="' + (sk === d.k ? (sd > 0 ? 'ascending' : 'descending') : 'none') + '" title="' + esc(d.l) + '"><span>' + esc(d.l) + '</span>' + (sk === d.k ? '<i>' + (sd > 0 ? '▲' : '▼') + '</i>' : '') + '</button>';
+    });
+    h += '</div><div class="scn-bd" id="scn-bd" style="height:' + (st.view.length * ROW_H) + 'px"></div></div>';
+    vp.innerHTML = h;
+    body = document.getElementById('scn-bd');
+    vp._defs = defs;
+    vp.addEventListener('scroll', schedule, { passive: true });
+    body.addEventListener('click', onRow);
+    body.addEventListener('keydown', function (e) { if (e.key === 'Enter') onRow(e); });
+    vp.querySelector('.scn-hd').addEventListener('click', function (e) { var b = e.target.closest('[data-sort]'); if (b) sortBy(b.getAttribute('data-sort')); });
+    draw();
+  }
+  function schedule() { if (!drawRaf) drawRaf = requestAnimationFrame(function () { drawRaf = 0; draw(); }); }
+  function draw() {
+    if (!vp || !body) return;
+    var w = C.windowOf(st.view.length, ROW_H, Math.max(0, vp.scrollTop - HEAD_H), vp.clientHeight, 6), defs = vp._defs, h = '';
+    for (var i = w.first; i < w.last; i++) {
+      var r = st.view[i], t = C.symParts(r.s).t.replace(/1!$/, '');
+      h += '<div class="scn-r" role="row" tabindex="0" data-i="' + i + '" style="top:' + (i * ROW_H) + 'px;height:' + ROW_H + 'px"><div class="scn-c scn-sym"><b>' + esc(t) + '</b><small>' + esc(r.n || '') + '</small></div>';
+      for (var j = 0; j < defs.length; j++) {
+        var d = defs[j], v = r[d.k], cls = d.f === 'pct' && C.isNum(v) ? (v > 0 ? ' up' : v < 0 ? ' dn' : '') : '';
+        h += '<div class="scn-c' + (d.f === 'txt' ? ' scn-t' : '') + cls + '" style="width:' + (COLW[d.f] || 88) + 'px">' + esc(C.fmt(v, d.f)) + '</div>';
+      }
+      h += '</div>';
     }
-    closeInfo();
-    var t2 = String(r.s || '').split(':');
-    var rows = [['Price', fmt(r.c, 'px')], ['Change today', fmt(r.chg, 'pct')], ['Gap at the open', fmt(r.gap, 'pct')], ['Volume', fmt(r.vol, 'big')],
-      ['Relative volume', fmt(r.rvol, 'x')], ['RSI 14 (daily)', fmt(r.rsi, 'n1')], ['52-week high', fmt(r.hi52, 'px')], ['52-week low', fmt(r.lo52, 'px')],
-      ['Market cap', fmt(r.cap, 'big')], ['P/E (TTM)', fmt(r.pe, 'n1')], ['Week', fmt(r.perfW, 'pct')], ['Year to date', fmt(r.perfYtd, 'pct')]];
-    if (r.sec) rows.push(['Sector', esc(r.sec)]);
-    var d = document.createElement('div');
-    d.className = 'scn-sheet-wrap';
-    d.innerHTML = '<div class="scn-scrim" data-close></div><div class="scn-sheet" role="dialog" aria-modal="true" aria-label="' + esc(t2[1] || r.s) + '">' +
-      '<div class="scn-sh-head"><div><b>' + esc(t2[1] || t2[0]) + '</b><small>' + esc(r.n || '') + ' · ' + esc(t2[0]) + '</small></div><button type="button" class="scn-x" data-close aria-label="Close">×</button></div>' +
-      (rangeBar(r) ? '<div class="scn-cardx" style="cursor:default;margin-bottom:12px">' + rangeBar(r) + '</div>' : '') + '<dl class="scn-dl">' + rows.map(function (x) { return '<div><dt>' + x[0] + '</dt><dd>' + x[1] + '</dd></div>'; }).join('') + '</dl>' +
-      '<p class="scn-note">Our charts cover futures, forex and crypto, not single stocks, so this symbol opens here. Education only. Not financial advice.</p></div>';
-    document.body.appendChild(d);
-    d.addEventListener('click', function (e) { if (e.target.closest('[data-close]')) closeInfo(); });
-    d.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeInfo(); });
-    var b = d.querySelector('.scn-sh-head .scn-x'); if (b) b.focus();
+    body.innerHTML = h;
   }
-  function closeInfo() { var w = document.querySelector('.scn-sheet-wrap'); if (w) w.remove(); }
+  function sortBy(k) {
+    if (st.eSort[0] === k) st.sortD = -st.eSort[1]; else st.sortD = k === 's' ? 1 : -1;
+    st.sortK = k; persist(); render();
+  }
 
+  // ---- row tap: ZoroCharts for symbols we chart, else an info sheet --------------------------------------------------------------
+  function onRow(e) {
+    var el = e.target.closest('.scn-r'); if (!el) return;
+    var r = st.view[Number(el.getAttribute('data-i'))]; if (!r) return;
+    var sym = C.chartSymbol(r, st.m);
+    if (sym) { location.href = 'charts?symbol=' + encodeURIComponent(sym); return; }
+    var p = C.symParts(r.s), ks = ['c', 'chg', 'gap', 'vol', 'rvol', 'rsi', 'hi52', 'lo52', 'cap', 'pe', 'dy', 'beta', 'perfW', 'perfM', 'perfYtd', 'sec', 'ind', 'earn'];
+    var dl = ks.filter(function (k) { return C.BY[k] && C.BY[k].m.indexOf(st.m) !== -1 && r[k] != null; }).map(function (k) { return '<div><dt>' + esc(C.BY[k].l) + '</dt><dd>' + esc(C.fmt(r[k], C.BY[k].f)) + '</dd></div>'; }).join('');
+    V.openSheet(p.t, (r.n || '') + (p.ex ? ' · ' + p.ex : ''), '<dl class="scn-dl">' + dl + '</dl><p class="mv-sh-note">ZoroCharts covers futures, indexes, index ETFs and crypto. Single stocks open here instead. Education only. Not financial advice.</p>');
+  }
+
+  // ---- sheets: add / edit a filter, customise columns -----------------------------------------------------------------------------
+  function openFilter(idx) {
+    var cur = idx != null ? st.flt[idx] : null, fs = C.filterFieldsFor(st.m, ctx()), g = {};
+    fs.forEach(function (d) { (g[d.g] = g[d.g] || []).push(d); });
+    var f0 = cur ? cur.f : fs[0].k;
+    var h = '<form class="scn-form" id="scn-fform" novalidate><label>Filter<select name="f">' + Object.keys(g).map(function (k) {
+      return '<optgroup label="' + esc(k) + '">' + g[k].map(function (d) { return '<option value="' + d.k + '"' + (d.k === f0 ? ' selected' : '') + '>' + esc(d.l) + '</option>'; }).join('') + '</optgroup>';
+    }).join('') + '</select></label><div id="scn-fop"></div><p class="scn-err" id="scn-ferr" role="alert" hidden></p><div class="scn-act"><button type="submit" class="btn btn-primary">' + (cur ? 'Save filter' : 'Add filter') + '</button></div></form>';
+    var sh = V.openSheet(cur ? 'Edit filter' : 'Add a filter', st.rows.length.toLocaleString('en-US') + ' ' + mName().toLowerCase(), h);
+    var form = sh.querySelector('#scn-fform'), box = sh.querySelector('#scn-fop');
+    function vis() { var op = form.op.value; box.querySelector('[data-v1]').hidden = op === 'cu' || op === 'cd'; box.querySelector('[data-v2]').hidden = op !== 'bt'; }
+    function ops() {
+      var d = C.BY[form.f.value], use = cur && cur.f === d.k ? cur : {}, os = C.opsFor(d), op = use.op || os[0][0], html = '', lid = '';
+      html += '<label>Condition<select name="op">' + os.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === op ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>';
+      if (d.t === 'cat') {
+        var seen = {}; st.rows.forEach(function (r) { if (r[d.k]) seen[r[d.k]] = 1; });
+        lid = ' list="scn-dl-v"'; html += '<datalist id="scn-dl-v">' + Object.keys(seen).sort().slice(0, 200).map(function (v) { return '<option value="' + esc(v) + '">'; }).join('') + '</datalist>';
+      }
+      html += '<div class="scn-vals"><label data-v1>Value<input name="v" type="text" inputmode="' + (d.t === 'cat' ? 'text' : 'decimal') + '"' + lid + ' value="' + esc(use.v == null ? '' : use.v) + '" autocomplete="off"></label><label data-v2>and<input name="v2" type="text" inputmode="decimal" value="' + esc(use.v2 == null ? '' : use.v2) + '" autocomplete="off"></label></div>';
+      box.innerHTML = html; vis(); form.op.addEventListener('change', vis);
+    }
+    ops(); form.f.addEventListener('change', function () { cur = null; ops(); });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var c = C.clean({ f: form.f.value, op: form.op.value, v: form.v.value, v2: form.v2.value }, st.m, ctx());
+      if (!c) { var er = sh.querySelector('#scn-ferr'); er.hidden = false; er.textContent = 'Enter a value for this filter.'; return; }
+      var was = st.flt.slice(); if (idx != null) was[idx] = c; else if (was.length < C.MAXF) was.push(c);
+      st.flt = was; st.q = ''; persist(); V.closeSheet(); render();
+    });
+  }
+  function openCols() {
+    var ks = colKeys(), g = {};
+    C.fieldsFor(st.m, ctx()).forEach(function (d) { (g[d.g] = g[d.g] || []).push(d); });
+    var h = '<div class="scn-pk"><p class="mv-sub">Up to 12 columns. The sets on the page are quick starts.</p>' + Object.keys(g).map(function (k) {
+      return '<fieldset><legend>' + esc(k) + '</legend>' + g[k].map(function (d) {
+        return '<label class="scn-chk"><input type="checkbox" value="' + d.k + '"' + (ks.indexOf(d.k) !== -1 ? ' checked' : '') + '><span>' + esc(d.l) + '</span></label>';
+      }).join('') + '</fieldset>';
+    }).join('') + '<div class="scn-act"><button type="button" class="btn btn-primary" data-apply>Show these columns</button></div></div>';
+    var sh = V.openSheet('Columns', 'Choose what the table shows', h);
+    sh.querySelector('[data-apply]').addEventListener('click', function () {
+      var on = Array.prototype.map.call(sh.querySelectorAll('input:checked'), function (i) { return i.value; }).slice(0, 12);
+      if (on.length) { st.cols = on; persist(); }
+      V.closeSheet(); render(); l2Sync();
+    });
+  }
+
+  // ---- futures book columns (same gate as the L2 indicators: admin now) ----------------------------------------------------------
+  var L2 = window.StkScanL2, l2Tm = 0;
+  function mergeL2(rows) {
+    var rs = L2 ? L2.rows() : {};
+    rows.forEach(function (r) { var x = rs[C.symParts(r.s).t.replace(/1!$/, '')]; if (x) { r.imb = x.imb; r.bw = x.bw; r.bwS = x.bwS; r.aw = x.aw; r.awS = x.awS; r.delta = x.delta; r.bigN = x.bigN; } });
+  }
+  function l2Sync() {
+    if (!L2) return;
+    var want = st.m === 'fut' && st.l2 && colKeys().some(function (k) { return C.BY[k] && C.BY[k].gate === 'l2'; });
+    if (want) L2.start(L2.ROOTS, function () { if (!l2Tm) l2Tm = setTimeout(function () { l2Tm = 0; if (vp) { mergeL2(st.rows); draw(); } }, 400); }); else L2.stop();
+  }
+
+  // ---- wiring ---------------------------------------------------------------------------------------------------------------------------
   function wire() {
-    root.querySelectorAll('[data-tab]').forEach(function (b) {
+    root.querySelectorAll('[data-m]').forEach(function (b) { b.addEventListener('click', function () { setMarket(b.getAttribute('data-m')); }); });
+    root.querySelectorAll('[data-q]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var k = b.getAttribute('data-tab');
-        st.sortK = null; st.sortD = 1;
-        if (k === '__custom') st.custom = true; else { st.custom = false; st.tab = k; }
-        persist(); render();
+        var id = b.getAttribute('data-q'), p = C.presetById(id);
+        st.q = st.q === id ? '' : id; st.sortK = null; if (st.q && p && p.set && !st.cols) st.setId = p.set; persist(); render();
       });
     });
-    root.querySelectorAll('[data-sort]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var k = b.getAttribute('data-sort');
-        if (st.sortK === k) st.sortD = -st.sortD; else { st.sortK = k; st.sortD = -1; }
-        render();
-      });
-    });
-    root.querySelectorAll('[data-view]').forEach(function (b) { b.addEventListener('click', function () { st.view = b.getAttribute('data-view'); persist(); render(); }); });
-    root.querySelectorAll('[data-chip]').forEach(function (b) { b.addEventListener('click', function () { st.chip = b.getAttribute('data-chip'); render(); }); });
-    root.querySelectorAll('[data-row]').forEach(function (tr) {
-      var go = function () { var r = shown[Number(tr.getAttribute('data-row'))]; if (r) openInfo(r); };
-      tr.addEventListener('click', go);
-      tr.addEventListener('keydown', function (e) { if (e.key === 'Enter' && tr.tagName === 'TR') go(); });
-    });
-    var cm = root.querySelector('[data-cm]');
-    if (cm) cm.addEventListener('change', function () { st.cmarket = cm.value; st.sortK = null; persist(); render(); });
-    var timer = 0;
-    var upd = function () { clearTimeout(timer); timer = setTimeout(function () { persist(); renderKeepFocus(); }, 350); };
-    root.querySelectorAll('.scn-frow[data-i]').forEach(function (row) {
-      var i = Number(row.getAttribute('data-i'));
-      row.querySelector('[data-ff]').addEventListener('change', function (e) { st.filters[i].f = e.target.value; persist(); render(); });
-      row.querySelector('[data-fo]').addEventListener('change', function (e) { st.filters[i].op = e.target.value; persist(); render(); });
-      row.querySelector('[data-fv]').addEventListener('input', function (e) { st.filters[i].v = e.target.value.trim(); upd(); });
-      row.querySelector('[data-fx]').addEventListener('click', function () { st.filters.splice(i, 1); persist(); render(); });
-    });
+    root.querySelectorAll('[data-set]').forEach(function (b) { b.addEventListener('click', function () { st.setId = b.getAttribute('data-set'); st.cols = null; persist(); render(); l2Sync(); }); });
+    root.querySelectorAll('[data-fedit]').forEach(function (b) { b.addEventListener('click', function () { openFilter(Number(b.getAttribute('data-fedit'))); }); });
+    root.querySelectorAll('[data-fdel]').forEach(function (b) { b.addEventListener('click', function () { st.flt.splice(Number(b.getAttribute('data-fdel')), 1); persist(); render(); }); });
     var add = root.querySelector('[data-fadd]');
-    if (add) add.addEventListener('click', function () { if (st.filters.length < 8) st.filters.push({ f: 'rvol', op: 'gt', v: '2' }); persist(); render(); });
+    if (add) add.addEventListener('click', function () {
+      if (st.q) { var p = preset(); st.flt = p ? p.flt.filter(function (x) { return x.f !== 'dv' && !(x.f === 'c' && x.v === 1); }) : []; st.q = ''; }
+      openFilter(null);
+    });
+    var pk = root.querySelector('[data-pick]'); if (pk) pk.addEventListener('click', openCols);
+    var se = root.querySelector('[data-search]');
+    if (se) se.addEventListener('input', function () {
+      clearTimeout(se._t);
+      se._t = setTimeout(function () { st.search = se.value; var pos = se.selectionStart; render(); var n = root.querySelector('[data-search]'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }, 250);
+    });
   }
-  function renderKeepFocus() {
-    var a = document.activeElement, row = a && a.closest && a.closest('.scn-frow[data-i]');
-    var i = row ? row.getAttribute('data-i') : null, pos = a && a.selectionStart;
-    render();
-    if (i != null) { var inp = root.querySelector('.scn-frow[data-i="' + i + '"] [data-fv]'); if (inp) { inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (e) {} } }
+  function setMarket(m) {
+    if (m === st.m) return;
+    var ps = C.presetsFor(m);
+    st.m = m; st.q = ps[0] ? ps[0].id : ''; st.flt = []; st.cols = null; st.setId = 'overview'; st.sortK = null; st.search = '';
+    persist(); show();
   }
+  function show() { render(); table(st.m).then(function () { render(); l2Sync(); }); }
 
-  window.addEventListener('resize', (function () { var w = window.innerWidth > 820, t = 0; return function () { clearTimeout(t); t = setTimeout(function () { var n = window.innerWidth > 820; if (n !== w) { w = n; if (st.presets && st.view === 'heat') render(); } }, 200); }; })());
-  // ---- start ---------------------------------------------------------------------------------------
-  var t0 = setTimeout(function () { if (!st.tier) { st.tier = { free: true, unknown: true }; render(); } }, 8000);
-  if (typeof window.strykerPlanTier === 'function') {
-    window.strykerPlanTier().then(function (t) { clearTimeout(t0); st.tier = t || { free: true }; render(); }, function () { clearTimeout(t0); st.tier = { free: true }; render(); });
-  } else { clearTimeout(t0); st.tier = { free: true, unknown: true }; }
-  loadPresets().then(render);
+  // ---- start ---------------------------------------------------------------------------------------------------------------------------------
+  if (st.q && (!C.presetById(st.q) || C.presetById(st.q).m !== st.m)) st.q = '';
+  if (L2) {
+    L2.gate().then(function (ok) { if (ok !== st.l2) { st.l2 = ok; if (st.tables[st.m] && st.tables[st.m].rows) render(); l2Sync(); } });
+    L2.onGate(function (ok) { if (ok !== st.l2) { st.l2 = ok; render(); l2Sync(); } });
+  }
+  show();
   setInterval(function () {
     if (document.visibilityState === 'hidden') return;
-    loadPresets().then(function () {
-      if (st.custom && st.tables[st.cmarket]) st.tables[st.cmarket].at = 0;
-      if (!document.querySelector('.scn-filters :focus')) render(); else { var a = document.getElementById('scn-ago'); if (a) a.textContent = agoText(st.t); }
+    table(st.m).then(function () {
+      var ae = document.activeElement;
+      if ((ae && ae.closest && ae.closest('.scn-bar')) || document.querySelector('.mv-sheet-wrap')) return;
+      var top = vp ? vp.scrollTop : 0; render(); if (vp) { vp.scrollTop = top; draw(); }
     });
   }, REFRESH_MS);
-  setInterval(function () { var a = document.getElementById('scn-ago'); if (a) a.textContent = agoText(st.t); }, 60000);
+  setInterval(function () { var a = document.getElementById('scn-ago'), tb = st.tables[st.m]; if (a && tb) a.textContent = C.agoText(tb.t); }, 60000);
+  window.__stkScn = st;
 })();

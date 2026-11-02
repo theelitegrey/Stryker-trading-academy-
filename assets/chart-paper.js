@@ -196,9 +196,12 @@ function toast(msg, type){
     if (!box || box.parentElement !== host) { if (box) box.remove(); box = h('div', { id: 'stkpt-toasts', 'aria-live': 'polite', role: 'status' }); host.appendChild(box); }
     const el = h('div', { class: 'stkpt-toast ' + type, title: 'Dismiss' }, [h('i', { 'aria-hidden': 'true' }), h('span', { text: String(msg) })]);
     el.addEventListener('click', () => el.remove());
+    // Book panel open on a phone: one short toast at a time, 2.5 s, parked above the sheet (CSS)
+    const sheet = document.documentElement.classList.contains('stkbp-sheet');
+    if (sheet) box.textContent = '';
     box.appendChild(el);
     while (box.children.length > TOAST_MAX) box.firstChild.remove();
-    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 220); }, type === 'error' ? 6000 : TOAST_MS);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 220); }, sheet && type !== 'error' ? 2500 : type === 'error' ? 6000 : TOAST_MS);
   } catch (e) {}
 }
 function fbUser(){ try { return window.firebase && firebase.auth && firebase.auth().currentUser; } catch (e) { return null; } }
@@ -578,7 +581,7 @@ function act(fn, okMsg){
 }
 export function placeOrder(o){
   const r = act(() => acct.placeOrder(o));
-  if (r && r.order) toast('Paper ' + o.side + ' ' + o.type + ' ' + r.order.qty + ' ' + showSym(o.symbol) + ' @ ' + fmtP(o.symbol, r.order.price) + ' working', 'success');
+  if (r && r.order) toast(document.documentElement.classList.contains('stkbp-sheet') ? (o.side === 'buy' ? 'Buy ' : 'Sell ') + o.type + ' ' + r.order.qty + ' @ ' + fmtP(o.symbol, r.order.price) + ' placed' : 'Paper ' + o.side + ' ' + o.type + ' ' + r.order.qty + ' ' + showSym(o.symbol) + ' @ ' + fmtP(o.symbol, r.order.price) + ' working', 'success');
   return r;
 }
 function closePos(sym){ return act(() => acct.closePosition(sym)); }
@@ -678,6 +681,8 @@ function layerFactory(){
         // left of the earlier one) instead of on top of each other. Widths are read in one pass
         // before any write, so this costs one layout per frame at most.
         let nUp = 0, nDn = 0;
+        // pinned chips start below the chart legend (and the one-click box on phones), never on top of it
+        const pinTop = window.innerWidth <= 700 ? 76 : 40;
         const chips = [...overlay.querySelectorAll('.stkpt-chip')];
         const widths = chips.map((c) => c.offsetWidth);
         const placed = [];
@@ -686,7 +691,7 @@ function layerFactory(){
           const y = ys[chip.dataset.id];
           if (y == null) { chip.style.visibility = 'hidden'; return; }
           let cy = y - 11, pin = '';
-          if (y < top + 12) { pin = 'up'; cy = top + 4 + 26 * nUp++; }
+          if (y < top + 12) { pin = 'up'; cy = top + pinTop + 26 * nUp++; }
           else if (y > bot - 12) { pin = 'down'; cy = bot - 26 - 26 * nDn++; }
           let right = baseRight;
           const clash = () => placed.some((p) => Math.abs(p.cy - cy) < 24 && right < p.right + p.w + 4 && p.right < right + widths[i] + 4);
@@ -1624,6 +1629,7 @@ const CSS = `
 }
 /* switched off (Chart settings → Paper trading): nothing of paper trading on the page */
 .stkpt[hidden],#stkc-paper-btn[hidden]{ display:none !important; }
+html.stkbp-sheet #stkpt-toasts{ position:fixed; left:8px; right:8px; top:auto; bottom:calc(var(--stkc-dock, 0px) + min(78dvh, 600px) + 8px); max-width:none; z-index:8001; }
 html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on) .stkpt-chip,html:not(.stkpt-on) #stkpt-offers,html:not(.stkpt-on) #stkpt-toasts,html:not(.stkpt-on) #stkpt-tk{ display:none !important; }
 /* settings tab: same card look as the Sounds tab */
 .stkpt-set-ui{ display:flex; flex-direction:column; gap:12px; padding:2px 0 12px; color:#eeeeee; font-family:Archivo,system-ui,sans-serif; }

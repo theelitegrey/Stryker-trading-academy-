@@ -8,6 +8,7 @@
 const fs = require('fs');
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
+const REAL = process.env.REAL ? JSON.parse(fs.readFileSync(process.env.REAL, 'utf8')) : null;   // real archive + live snapshot (ts-l2-real-fetch.mjs)
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
 const OUT = process.argv[2] || '/tmp';
 fs.mkdirSync(OUT, { recursive: true });
@@ -48,6 +49,7 @@ function fakeWs(admin) {
       const bid = Math.floor(mid * 4) / 4, ask = bid + 0.25, bids = [], asks = [];
       for (let j = 0; j < 150; j++) { bids.push([bid - j * 0.25, Math.round(5 + 40 * Math.abs(Math.sin(j / 3 + n / 20)) + (j === 40 ? 500 : 0))]); asks.push([ask + j * 0.25, Math.round(5 + 40 * Math.abs(Math.cos(j / 3 + n / 25)) + (j === 52 ? 450 : 0))]); }
       const send = (o) => ws.onmessage({ data: JSON.stringify(o) });
+      if (window.__REAL) { const L = window.__REAL.live; send({ type: 'snap', symbol: 'NQ', ts: now, bids: L.bids.filter((x) => x[0] < L.mid), asks: L.asks.filter((x) => x[0] > L.mid), imb: 0, imb10: 0 }); send({ type: 'coarse', symbol: 'NQ', ts: now, mid: L.mid, bb: L.bb, ba: L.ba, step: L.step, i0: L.i0, v: L.v }); return; }
       send({ type: 'snap', symbol: 'NQ', ts: now, bids, asks, imb: Math.sin(n / 30) * 0.6, imb10: Math.sin(n / 30 + 0.7) * 0.45 });
       send({ type: 'coarse', symbol: 'NQ', ts: now, mid, bb: bid, ba: ask, step, i0, v });
       send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, now], [ask, 2 + (n % 5), 1, now], [ask + 0.5, 3, 1, now]] });
@@ -60,6 +62,7 @@ async function open(b, { w, h, mobile, admin, theme }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript(fakeWs, !!admin);
+  if (REAL) await ctx.addInitScript((r) => { window.__REAL = r; window.__L2MID = r.live.mid; }, REAL);
   await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker.vela.session', ''); if (t) localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); } catch (e) {} }, theme || '');
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   await ctx.route(/127\.0\.0\.1:9\/ts-book-history/, async (r) => {
@@ -67,6 +70,7 @@ async function open(b, { w, h, mobile, admin, theme }) {
     const { encodeSamples } = await import('../../workers/book-recorder/src/bucket.js');
     const u = new URL(r.request().url()), from = Number(u.searchParams.get('from')), to = Number(u.searchParams.get('to')), out = [];
     let mid0 = 21000; try { mid0 = (await ctx.pages()[0].evaluate(() => window.__L2MID)) || mid0; } catch (e) {}
+    if (REAL) { const enc = REAL.samples.filter((x) => x.ts >= from - 300000 && x.ts <= to).map((x) => Object.assign({}, x, { v: Float32Array.from(x.v) })); return r.fulfill({ status: 200, contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*', 'x-ts-fill-left': '0', 'access-control-expose-headers': 'x-ts-fill-left' }, body: Buffer.from(encodeSamples(enc)) }); }
     for (let t = Math.ceil(from / 120000) * 120000; t < to; t += 120000) {
       const mid = mid0 + Math.sin(t / 900000) * 20, step = 2.5, i0 = Math.floor(mid * 0.98 / step), len = Math.ceil(mid * 0.04 / step) + 2, v = new Float32Array(len);
       for (let k = 0; k < len; k++) { const p = (i0 + k + 0.5) * step, d = Math.abs(p - mid), ri = i0 + k, hh = Math.abs(Math.sin(ri * 12.9898) * 43758.5453) % 1; let q = Math.exp(1.2 + 2.4 * hh * hh) * (0.7 + 0.3 * Math.sin(t / 4e6 + ri)) * (1 + 1.5 * Math.exp(-d / 120)); if (hh > 0.985) q *= 14; if (Math.abs(d - 30 - 10 * Math.sin(t / 2e7)) < 2) q += 1500; v[k] = p < mid ? q : -q; }
@@ -145,6 +149,7 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
         check(t2.walls.length === 0, tag + ': no wall labels in Bookmap style');
       }
       if (process.env.DBG2) console.log('BARS', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, o = c.orchestrator; const r = o.renderer; return { n: o.rawBars.length, vis: c.getVisibleRange && c.getVisibleRange(), style: c.priceStyle || (window.STRYKER_VELA.active && window.STRYKER_VELA.active.priceStyle), lastT: o.rawBars[o.rawBars.length - 1].time, keys: Object.keys(r).slice(0, 40) }; })));
+      if (hm && process.env.DBG3) console.log('SCALE', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, st = window.__stkFlow.domDebug(), o = c.orchestrator, vr = c.getVisibleRange(), rb = o.rawBars.filter((b) => b.time >= vr.from && b.time <= vr.to); return { scale: [st.scaleMin, st.scaleMax], vis: [Math.min(...rb.map((b) => b.low)), Math.max(...rb.map((b) => b.high))], n: rb.length, fitBtn: !!document.querySelector('.vela-fit-price, [data-fit-price]'), api: Object.getOwnPropertyNames(Object.getPrototypeOf(c)).filter((k) => /scale|fit|auto|range/i.test(k)) }; })));
       const nSock = await p.evaluate(() => window.__wsOpened);
       // candles: the hub's ticks + 1m bars carry the chart past the 10-min delayed bars; no gap, no duplicate; pill hidden; back on drop
       const cd = await p.evaluate(() => { const rb = window.STRYKER_VELA.chart.orchestrator.rawBars.map((x) => x.time); return { n: rb.length, last: rb[rb.length - 1], tail: rb.slice(-16), now: Date.now() }; });

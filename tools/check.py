@@ -569,6 +569,20 @@ def check_app_shell():
             fail(f'{f}: listed as dual in the allowlist but is not wired for signed-out/signed-in switching')
 
 
+def check_sidebar_closed_before_main():
+    """The sidebar's </aside> must come before the <main> that follows it, or the page renders
+    inside the menu (the build-786 bug on 40 member pages)."""
+    for f in html_files():
+        s = open(f, encoding='utf-8').read()
+        m = re.search(r'<aside[^>]*class="sidebar', s)
+        if not m:
+            continue
+        close = s.find('</aside>', m.end())
+        main = s.find('<main', m.end())
+        if main != -1 and (close == -1 or close > main):
+            fail(f'{f}: <main> opens before the sidebar\'s </aside> closes (page would render inside the menu)')
+
+
 def check_app_shell_browser():
     """Browser half of the app-shell rule: tools/tests/app-shell-audit.js. Always runs at the deploy gate
     under the shared Chrome lock; a missing browser runtime is a failure, not a silent pass.
@@ -612,6 +626,7 @@ def main():
     check_feature_image_frames()
     check_drawer_touch()
     check_app_shell()
+    check_sidebar_closed_before_main()
     check_app_shell_browser()
 
     if FAILURES:

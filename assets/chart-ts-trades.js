@@ -1,20 +1,21 @@
 // TradeZoro — Charts: Tick-stream twins of the order-flow indicators (Owner order 2026-11-02: "update the big trades indicator to use
 // the new data feed, I want to check the difference with tick stream"; "what about delta?"). ADMIN ONLY (same l2Visible() gate as the
 // futures L2 tools), for a side-by-side check of the two trade feeds on one chart:
-//   stk_ts_big    "Big Trades (L1)"        same schema as stk_of_big, outline-only bubbles, other default colours
-//   stk_ts_delta  "Delta (L1)"             same schema as stk_of_delta
-//   stk_ts_cvd    "Cumulative Delta (L1)"  same schema as stk_of_cvd (session reset 18:00 New York)
+//   stk_ts_big    "Big Trades (Tick-stream)"        same schema as stk_of_big, outline-only bubbles, other default colours
+//   stk_ts_delta  "Delta (Tick-stream)"             same schema as stk_of_delta
+//   stk_ts_cvd    "Cumulative Delta (Tick-stream)"  same schema as stk_of_cvd (session reset 18:00 New York)
 // Data: the book-recorder Worker's GET /ts-trades (history, 48 h, 6 h a read, gaps back-filled from Tick-stream's REST archive by the
 // Worker) + the hub's live {type:'ticks'} frames over the ONE /ts-live socket that chart-futures-l2.js already shares (acquire()).
 // Every indicator also shows a "Feed compare" readout (last 60 min): InsightSentry order flow (chart-footprint.js flowFor) vs Tick-stream.
 // Threshold: the auto size is the recorder's 99.5th percentile for the symbol (the same number the InsightSentry bubbles use), so the
 // two indicators ask the same question; a print below the Worker's per-symbol floor was never stored.
 // Education only. Not financial advice.
-import { l2Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=798';
-import { rtReady, rtHeaders } from './rt-access.js?v=798';
-import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=798';
-import { cvdCandles } from './chart-footprint-data.js?v=798';
-import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=798';
+import { l2Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=794';
+import { rtReady, rtHeaders } from './rt-access.js?v=794';
+import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=794';
+import { cvdCandles } from './chart-footprint-data.js?v=794';
+import * as BT from './chart-bigtrades.js?v=794';
+import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=794';
 
 export const TS_TYPES = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
@@ -122,13 +123,7 @@ function minutes(s) {
 // ---------------------------------------------------------------------------------------------- schemas (same keys / titles as the InsightSentry tools)
 let H = null;
 const IND = () => ({
-  stk_ts_big: { title: 'Big Trades (L1)', short: 'Big Trades L1', pane: 'price', overlay: true, schema: [
-    { key: 'mult', title: 'Threshold (x the auto size)', type: 'float', defval: 1, min: 0.5, max: 20, step: 0.5, tooltip: 'Auto size = the 99.5th percentile of single orders for this symbol (the same number the InsightSentry bubbles use). 2 = only orders twice that size.' },
-    { key: 'minSize', title: 'Min size (contracts, 0 = off)', type: 'float', defval: 0, min: 0, max: 100000, step: 1, tooltip: 'A floor on top of the threshold: smaller prints are never drawn.' },
-    { key: 'cluster', title: 'Merge split fills (same side, 1 tick, 1 s)', type: 'bool', defval: true },
-    { key: 'labels', title: 'Size labels', type: 'bool', defval: false },
-    { key: 'buyColor', title: 'Buyers (hit the ask)', type: 'color', defval: TS_UP },
-    { key: 'sellColor', title: 'Sellers (hit the bid)', type: 'color', defval: TS_DN }] },
+  stk_ts_big: { title: 'Big Trades (L1)', short: 'Big Trades L1', pane: 'price', overlay: true, schema: BT.schema() },
   stk_ts_delta: { title: 'Delta (L1)', short: 'Delta L1', pane: 'new', overlay: false, schema: [
     { key: 'upColor', title: 'Positive', type: 'color', defval: TS_UP }, { key: 'downColor', title: 'Negative', type: 'color', defval: TS_DN }] },
   stk_ts_cvd: { title: 'Cumulative Delta (L1)', short: 'CVD L1', pane: 'new', overlay: false, schema: [
@@ -142,15 +137,15 @@ const defaults = (schema) => Object.fromEntries(schema.map((i) => [i.key, i.defv
 const lag = (v) => (v == null ? 'n/a' : (v >= 0 ? '+' : '-') + Math.abs(Math.round(v)) + ' ms');
 function readout(type, s, f, thr, same) {
   const now = Date.now(), from = (Math.floor(now / 60000) - 60) * 60000, F = H.fmt, G = H.sgn;
-  if (!f || !f.mins || !f.mins.length) return ['Feed compare, last 60 min', 'InsightSentry data not available for this chart'];
-  if (s.loading || s.loadedFrom > from) return ['Feed compare, last 60 min', 'Loading L1 history…'];
-  if (!same) return ['Feed compare, last 60 min', 'n/a on a micro: InsightSentry order flow is the mini\'s'];
+  if (!f || !f.mins || !f.mins.length) return ['Standard vs L1, last 60 min', 'Standard feed not available for this chart'];
+  if (s.loading || s.loadedFrom > from) return ['Standard vs L1, last 60 min', 'Loading L1 history…'];
+  if (!same) return ['Standard vs L1, last 60 min', 'n/a on a micro: InsightSentry order flow is the mini\'s'];
   const tt = Math.max(thr, s.floor);
   const r = compareFeeds({ isBars: f.mins, tsMins: minutes(s), tsTrades: s.trades, thr: tt, tick: s.tick, from, to: now + 60000 });
-  const d = 'Δ IS ' + G(r.is.delta) + ' · TS ' + G(r.ts.delta) + (r.corr != null ? ' · r ' + r.corr.toFixed(2) : '');
-  const head = 'Feed compare, last 60 min';
-  if (type === 'stk_ts_big') return [head, 'Big trades IS ' + r.is.bubbles + ' · TS ' + r.ts.bubbles, 'Volume IS ' + F(r.is.vol) + ' · TS ' + F(r.ts.vol), 'Lag p50 ' + lag(r.lagP50) + (r.matchedPct == null ? '' : ' · ' + Math.round(r.matchedPct) + '% matched'), d];
-  return [head, d, 'Buy IS ' + F(r.is.buy) + ' · TS ' + F(r.ts.buy) + ' | Sell IS ' + F(r.is.sell) + ' · TS ' + F(r.ts.sell)];
+  const d = 'Δ Std ' + G(r.is.delta) + ' · L1 ' + G(r.ts.delta) + (r.corr != null ? ' · r ' + r.corr.toFixed(2) : '');
+  const head = 'Standard vs L1, last 60 min';
+  if (type === 'stk_ts_big') return [head, 'Big trades Std ' + r.is.bubbles + ' · L1 ' + r.ts.bubbles, 'Volume Std ' + F(r.is.vol) + ' · L1 ' + F(r.ts.vol), 'Lag p50 ' + lag(r.lagP50) + (r.matchedPct == null ? '' : ' · ' + Math.round(r.matchedPct) + '% matched'), d];
+  return [head, d, 'Buy Std ' + F(r.is.buy) + ' · L1 ' + F(r.ts.buy) + ' | Sell Std ' + F(r.is.sell) + ' · L1 ' + F(r.ts.sell)];
 }
 function table(id, rows, accent, t0) {
   const day = H.light();
@@ -161,11 +156,11 @@ function table(id, rows, accent, t0) {
 // ---------------------------------------------------------------------------------------------- indicator
 class TsNative {
   constructor(type) { this.type = type; this.inputs = {}; this.tm = 0; this.root = null; this.h = null; this.onAny = () => this.later(); }
-  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(IND()[this.type].schema), inputs); H.use(); H.subscribe(this.onAny); this.render(); }
+  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(IND()[this.type].schema), this.type === 'stk_ts_big' ? BT.migrate(inputs) : inputs); H.use(); H.subscribe(this.onAny); this.render(); }
   later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 250); }
   onBars() { this.later(); }
   onViewport() { if (this.type === 'stk_ts_big') this.render(); }
-  setInputs(i) { this.inputs = Object.assign(defaults(IND()[this.type].schema), i); this.render(); }
+  setInputs(i) { this.inputs = Object.assign(defaults(IND()[this.type].schema), this.type === 'stk_ts_big' ? BT.migrate(i) : i); this.render(); }
   suspend() { H.unsubscribe(this.onAny); }
   resume() { H.subscribe(this.onAny); this.render(); }
   stop() { H.unsubscribe(this.onAny); clearTimeout(this.tm); H.unuse(); this.off = true; this.unbind(); try { if (this.ctx) this.ctx.pushData({ owner: this, off: true }); } catch (e) {} }
@@ -191,7 +186,7 @@ class TsNative {
     const isF = H.flowFor({ root: isRoot, timeframe: ctx.timeframe, bars, owner: this });
     ctx.setStatus(s.loading ? 'loading' : 'idle');
     const msg = s.loading && !mins.length ? 'Loading L1 trades…' : s.err && !mins.length ? s.err : !mins.length ? 'Waiting for L1 trades…' : '';
-    const thr = H.bigThreshold(same ? isF.thr : s.floor, H.num(I.mult, 1), H.num(I.minSize, 0));
+    const thr = same && isF.thr ? isF.thr : s.floor;   // the readout compares the feeds at the recorder's own big-print size
     const cmp = msg || E != null ? null : readout(t, s, isF, t === 'stk_ts_big' ? thr : 0, same);
     (window.__tsReadout || (window.__tsReadout = {}))[t] = cmp || [msg];   // read by tools/tests/ts-bigtrades-browser.js (the table itself is drawn on the canvas)
     const tables = msg ? [table(t + '-msg', [msg], true)] : cmp ? [table(t + '-cmp', cmp, false, t === 'stk_ts_big')] : [];
@@ -218,38 +213,18 @@ class TsNative {
 function tsBigLayer() {
   let canvas = null, memo = null;
   return {
-    mount(c) { canvas = c; },
+    mount(c) { canvas = c; BT.installTip(c); },
     render(a) {
-      const g = H.frame(canvas, a);
-      if (!g) return;
-      const d = a.data, co = a.coords, I = d.inputs, s = stores.get(d.root);
+      if (!H.frame(canvas, a)) return;
+      const d = a.data, I = d.inputs, s = stores.get(d.root);
       if (!s || !s.trades.length) return;
-      const isF = d.isRoot ? H.flowFor({ root: d.isRoot, timeframe: d.timeframe, bars: a.bars, owner: d.owner }) : null;
-      const thr = Math.max(H.bigThreshold(isF && isF.thr, H.num(I.mult, 1), H.num(I.minSize, 0)), s.floor);
-      const key = s.v + '|' + s.trades.length + '|' + (I.cluster !== false);
+      const tf = (H.tfMin(d.timeframe) || 1) * 60000, lb = a.bars[a.bars.length - 1];
+      const key = s.v + '|' + s.trades.length + '|' + JSON.stringify(I) + '|' + a.bars.length + '|' + (lb && lb.close);
       if (!memo || memo.key !== key || memo.s !== s) {
         const raw = s.trades.map((x) => [x[0], Math.round(x[1] / s.tick), x[2], x[3] > 0 ? 1 : 0]);
-        memo = { key, s, prints: bigPrints([{ bigs: raw }], { cluster: I.cluster !== false }) };
+        memo = { key, s, sel: BT.select(raw, I, { floor: s.floor, bars: a.bars, tfMs: tf, tick: s.tick }) };
       }
-      const vr = co.visibleLogicalRange();
-      const t0 = a.bars[Math.max(0, Math.floor(vr.from))].time, t1 = a.bars[Math.min(a.bars.length - 1, Math.ceil(vr.to))].time + 86400000;
-      const top = a.bounds.top, bot = top + a.bounds.height, phone = co.width < 520, clamp = H.clamp;
-      g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      const E = H.replayE(), buyC = I.buyColor || TS_UP, sellC = I.sellColor || TS_DN, rMax = phone ? 18 : 28;
-      for (const p of memo.prints) {
-        if (p.size < thr || p.ms < t0 || p.ms > t1 || (E != null && p.ms > E)) continue;
-        const i = H.idxOf(a.bars, p.ms);
-        if (i < 0) continue;
-        const x = co.logicalToX(i), y = co.priceToY(p.pi * s.tick, a.scale, a.bounds);
-        if (y < top - 30 || y > bot + 30) continue;
-        const q = Math.sqrt(p.size / thr), r = clamp(3 + 4.5 * (q - 1) + 3 * Math.min(1, q - 1), 3, rMax), k = clamp((q - 1) / 2.5, 0, 1);
-        const col = p.side ? buyC : sellC;
-        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
-        g.lineWidth = 1.5 + k; g.strokeStyle = H.alpha(col, 0.75 + 0.25 * k); g.stroke();   // outline only: the InsightSentry bubbles are filled
-        if (I.labels && r >= 10) { g.font = '600 ' + clamp(Math.floor(r * 0.75), 9, 13) + 'px ' + H.MONO; g.fillStyle = H.light() ? '#0f172a' : '#f5f5f5'; g.fillText(H.fmt(p.size), x, y); }
-      }
-      g.restore();
+      BT.draw(canvas, a, memo.sel, I, s.tick, H);
     },
     destroy() { canvas = null; }
   };

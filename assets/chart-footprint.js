@@ -21,13 +21,14 @@
 
 import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=798';
 
-import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=798';
-import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=798';
-import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=798';
-import { rtHeadersReady } from './rt-access.js?v=798';
-import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=798';
-import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=798';
-import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=798';
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=794';
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=794';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=794';
+import { rtHeadersReady } from './rt-access.js?v=794';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=794';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=794';
+import * as BT from './chart-bigtrades.js?v=794';
+import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=794';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -578,13 +579,7 @@ const IND = {
     { key: 'style', title: 'Show as', type: 'string', defval: 'candles', options: ['candles', 'line'] },
     { key: 'reset', title: 'Reset', type: 'string', defval: 'session', options: ['session', 'day', 'none'], tooltip: 'session = the CME day (18:00 New York).' },
     { key: 'upColor', title: 'Up', type: 'color', defval: UP }, { key: 'downColor', title: 'Down', type: 'color', defval: DN }] },
-  stk_of_big: { title: 'Big Trades (bubbles)', short: 'Big Trades', pane: 'price', overlay: true, schema: [
-    { key: 'mult', title: 'Threshold (x the auto size)', type: 'float', defval: 1, min: 0.5, max: 20, step: 0.5, tooltip: 'Auto size = the 99.5th percentile of single orders for this symbol (futures: the previous session; crypto: the loaded trades). 2 = only orders twice that size.' },
-    { key: 'minSize', title: 'Min size (contracts / coins, 0 = off)', type: 'float', defval: 0, min: 0, max: 100000, step: 1, tooltip: 'A floor on top of the threshold: smaller prints are never drawn.' },
-    { key: 'cluster', title: 'Merge split fills (same side, 1 tick, 1 s)', type: 'bool', defval: true },
-    { key: 'labels', title: 'Size labels', type: 'bool', defval: false },
-    { key: 'buyColor', title: 'Buyers (hit the ask)', type: 'color', defval: UP },
-    { key: 'sellColor', title: 'Sellers (hit the bid)', type: 'color', defval: SELL }] },
+  stk_of_big: { title: 'Big Trades', short: 'Big Trades', pane: 'price', overlay: true, schema: BT.schema({ buy: UP, sell: DN }) },
   stk_of_vp: { title: 'Volume Profile (trades: session / swing + naked POC)', short: 'VP (trades)', pane: 'price', overlay: true, schema: [
     { key: 'range', title: 'Range', type: 'string', defval: 'session', options: ['session', 'swing', 'visible'], tooltip: 'session = the CME day (18:00 New York). swing = from one swing high / low to the next.' },
     { key: 'swingLen', title: 'Swing strength (bars each side)', type: 'int', defval: 10, min: 2, max: 100, step: 1, when: { key: 'range', anyOf: ['swing'] } },
@@ -613,11 +608,11 @@ function msgTable(id, text, locked) {
 
 class OfNative {
   constructor(type) { this.type = type; this.inputs = {}; this.tm = 0; this.onAny = () => this.later(); }
-  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(IND[this.type].schema), inputs); users++; startRefresh(); listeners.add(this.onAny); this.render(); }
+  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(IND[this.type].schema), this.type === 'stk_of_big' ? BT.migrate(inputs) : inputs); users++; startRefresh(); listeners.add(this.onAny); this.render(); }
   later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 250); }
   onBars() { this.later(); }
   onViewport() { if (this.type === 'stk_of_vp' || this.type === 'stk_of_big') this.render(); }
-  setInputs(i) { this.inputs = Object.assign(defaults(IND[this.type].schema), i); this.render(); }
+  setInputs(i) { this.inputs = Object.assign(defaults(IND[this.type].schema), this.type === 'stk_of_big' ? BT.migrate(i) : i); this.render(); }
   suspend() { listeners.delete(this.onAny); }
   resume() { listeners.add(this.onAny); this.render(); }
   // the layer canvas outlives the indicator on some engines: push an empty frame so it clears
@@ -687,42 +682,19 @@ function idxOf(bars, t) {   // last chart bar with time <= t
 function bigLayer() {
   let canvas = null, memo = null;
   return {
-    mount(c) { canvas = c; },
+    mount(c) { canvas = c; BT.installTip(c); },
     render(a) {
-      const g = frame(canvas, a);
-      if (!g) return;
-      const d = a.data, co = a.coords, I = d.inputs;
+      if (!frame(canvas, a)) return;
+      const d = a.data, I = d.inputs;
       const f = flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.owner });
       if (!f.mins || !f.mins.length) return;
-      const thr = bigThreshold(f.thr, num(I.mult, 1), num(I.minSize, 0));
-      const last = f.mins[f.mins.length - 1];
-      const key = f.mins.length + '|' + f.mins[0].t + '|' + last.t + '|' + last.bigs.length + '|' + (I.cluster !== false);
-      if (!memo || memo.key !== key) memo = { key, prints: bigPrints(f.mins, { cluster: I.cluster !== false }) };
-      const vr = co.visibleLogicalRange();
-      const t0 = a.bars[Math.max(0, Math.floor(vr.from))].time, t1 = a.bars[Math.min(a.bars.length - 1, Math.ceil(vr.to))].time + 86400000;
-      const top = a.bounds.top, bot = top + a.bounds.height, phone = co.width < 520;
-      g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      const E = replayE(), buyC = I.buyColor || UP, sellC = I.sellColor || SELL;
-      const rMax = phone ? 18 : 28;
-      for (const p of memo.prints) {
-        if (p.size < thr || p.ms < t0 || p.ms > t1 || (E != null && p.ms > E)) continue;
-        const i = idxOf(a.bars, p.ms);
-        if (i < 0) continue;
-        const x = co.logicalToX(i), y = co.priceToY(p.pi * f.tick, a.scale, a.bounds);
-        if (y < top - 30 || y > bot + 30) continue;
-        // size steps like the desktop platforms: small prints stay small and faint, the big ones grow
-        // and get more solid (fill 18% -> 55%), one thin ring in the same colour
-        const q = Math.sqrt(p.size / thr);
-        const r = clamp(3 + 4.5 * (q - 1) + 3 * Math.min(1, q - 1), 3, rMax);
-        const k = clamp((q - 1) / 2.5, 0, 1);
-        const col = p.side ? buyC : sellC;
-        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
-        g.fillStyle = alpha(col, 0.18 + 0.37 * k); g.fill();
-        g.lineWidth = 1; g.strokeStyle = alpha(col, 0.7 + 0.3 * k); g.stroke();
-        if (I.labels && r >= 10) { g.font = '600 ' + clamp(Math.floor(r * 0.75), 9, 13) + 'px ' + MONO; g.fillStyle = light() ? '#0f172a' : '#f5f5f5'; g.fillText(fmt(p.size), x, y); }
+      const last = f.mins[f.mins.length - 1], tf = (tfMin(d.timeframe) || 1) * 60000, lb = a.bars[a.bars.length - 1];
+      const key = f.mins.length + '|' + f.mins[0].t + '|' + last.t + '|' + last.bigs.length + '|' + JSON.stringify(I) + '|' + a.bars.length + '|' + (lb && lb.close);
+      if (!memo || memo.key !== key) {
+        const prints = []; for (const b of f.mins) for (const x of b.bigs || []) prints.push(x);
+        memo = { key, sel: BT.select(prints, I, { floor: 0, bars: a.bars, tfMs: tf, tick: f.tick }) };
       }
-      g.restore();
+      BT.draw(canvas, a, memo.sel, I, f.tick, { frame, idxOf, alpha, light, replayE, MONO });
     },
     destroy() { canvas = null; }
   };

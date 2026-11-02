@@ -2182,10 +2182,13 @@ function cryptoDomLayer() {
 
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
 
+      if (!cfg.bm) { try { const bd = canvas.nextElementSibling; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} }
       // ---- Bookmap look (futures L2): dark field, one band per price row, continuous columns, ramp on log(size) ----
       if (cfg.bm) {
         // the field is opaque, so it must sit UNDER the candles: the first canvas of the plot (background / grid and candles draw above it)
         try { const par = canvas.parentElement; if (par && par.firstElementChild !== canvas && !canvas.__stkBmUnder) { par.insertBefore(canvas, par.firstElementChild); canvas.__stkBmUnder = true; } } catch (e) {}
+        // the grid (backdrop canvas, drawn above this field) is dimmed while the heatmap is on, in this chart only
+        try { const bd = canvas.nextElementSibling; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0') { bd.style.opacity = '0'; bd.__stkGridDim = true; } } catch (e) {}
         g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
         const bmv = { look: cfg.look, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
           priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
@@ -2388,15 +2391,23 @@ function cryptoDomLayer() {
           const chunks = []; let cur = null;
           for (const r of rows) {
             const side = r.v > 0 ? 1 : -1;
-            if (cur && cur.side === side && r.y + r.h - cur.y0 <= Math.max(need, r.h) + 0.5 && cur.y1 - cur.y0 < need) { cur.sum += Math.abs(r.v); cur.y1 = r.y + r.h; cur.mx = Math.max(cur.mx, Math.abs(r.v)); }
+            if (cur && cur.side === side && cur.y1 - cur.y0 < need) {   // merge every row until the chunk is as tall as the font (thin rows near the price too)
+              cur.sum += Math.abs(r.v); cur.y1 = r.y + r.h; cur.mx = Math.max(cur.mx, Math.abs(r.v)); }
             else { cur = { side, sum: Math.abs(r.v), y0: r.y, y1: r.y + r.h, mx: Math.abs(r.v) }; chunks.push(cur); }
           }
           const top3 = (sd) => chunks.filter((c) => c.side === sd).map((c) => c.sum).sort((a, b) => b - a)[2] || 0;
           const t3 = { 1: top3(1), '-1': top3(-1) };
           g.save(); g.beginPath(); g.rect(x0, top, depthW, a.bounds.height); g.clip(); g.textBaseline = 'middle';
-          let lastY = -1e9; stat.sizeLabels = 0;
-          for (const c of chunks) {
-            const cy = (c.y0 + c.y1) / 2; if (cy - lastY < need) continue;   // never two numbers closer than the font
+          // placement: biggest first, one number per minGap px (14 at 390), and when the strip is tight only the top 30% by size compete;
+          // nothing is drawn within 9 px of the last-price line (the price label sits there)
+          const minGap = W < 520 ? 14 : need + 1, lastPx = f.book && f.book.bestBid ? yOf((f.book.bestBid + f.book.bestAsk) / 2) : -1e9;
+          const cand = chunks.filter((c) => Math.abs((c.y0 + c.y1) / 2 - lastPx) >= 9).sort((a, b) => b.sum - a.sum);
+          const tight = cand.length * minGap > a.bounds.height * 0.9;
+          const pool = tight ? cand.slice(0, Math.max(3, Math.ceil(cand.length * 0.3))) : cand;
+          const placed = []; stat.sizeLabels = 0;
+          for (const c of pool) {
+            const cy = (c.y0 + c.y1) / 2; if (placed.some((y) => Math.abs(y - cy) < minGap)) continue;
+            placed.push(cy);
             const big = c.sum >= t3[c.side] && t3[c.side] > 0, label = fmt(c.sum);
             g.font = (big ? 'bold ' : '') + FS + 'px ' + font; g.fontVariantNumeric = 'tabular-nums';
             const tw = g.measureText(label).width, bw = Math.max(1, Math.sqrt(c.mx / mx) * wmax);
@@ -2404,7 +2415,7 @@ function cryptoDomLayer() {
             g.textAlign = outside ? 'left' : 'right';
             g.fillStyle = outside ? (c.side > 0 ? (light ? '#0a7f56' : '#5eead4') : (light ? '#b3262d' : '#fca5a5')) : '#ffffff';
             g.fillText(label, outside ? x0 + bw + 3 : W - 3, cy);
-            lastY = cy; stat.sizeLabels++;
+            stat.sizeLabels++;
           }
           g.restore();
         }
@@ -2459,7 +2470,7 @@ function cryptoDomLayer() {
       stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = 0;
       domLast = stat;
     },
-    destroy() { canvas = null; }
+    destroy() { try { const bd = canvas && canvas.nextElementSibling; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} canvas = null; }
   };
 }
 // Hiding the indicator (eye) keeps the feed open, so the page keeps recording; only removing

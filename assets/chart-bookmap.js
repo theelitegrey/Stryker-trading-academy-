@@ -14,7 +14,7 @@ const RAMPS = {
     [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]]
 };
 export const STYLES = {
-  bookmap: { ramp: 'bookmap', bg: BM_BG, floor: 0.1, pow: 1.7, hold: HOLD_MS, cap: 0.97 }
+  bookmap: { ramp: 'bookmap', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 }
 };
 const lutCache = new Map();
 function lutOf(name) {   // 256 entries of packed ABGR (little endian) for the ramp
@@ -59,36 +59,52 @@ export function drawBookmap(g, view) {
   // each column counts by the pixels it covers, so ~1 live sample a second (a few px each) cannot outvote a 5-min archive column
   // (Owner 2026-11-03: history was hot while the live column was dark blue)
   for (const c of cols) { const wt = Math.max(1, c.xb - c.xa), v = c.s.v; for (let k = 0; k < v.length; k++) { const a = v[k] < 0 ? -v[k] : v[k]; if (a > 0) { const b = Math.min(BINS - 1, (Math.log(a + 1) / LMAX * BINS) | 0); hist[b] += wt; total += wt; } } }
-  let p97 = 1; if (total) { let acc = 0; const want = total * S.cap; for (let b = 0; b < BINS; b++) { acc += hist[b]; if (acc >= want) { p97 = Math.exp((b + 1) / BINS * LMAX) - 1; break; } } }
-  // t = ln(1 + size) against ln(1 + 2.5 x p97), then a power > 1 so the many small levels stay in the blues: p97 lands in orange,
-  // 2.5 x p97 and above is white. `contrast` (gamma) steepens or flattens it.
-  const lut = lutOf(S.ramp), den = 1 / Math.log1p(p97 * 2.5), gam = S.pow / Math.max(0.3, view.gamma || 1);
+  // RANK colouring (CoS 2026-11-03): a row's colour follows its percentile among the VISIBLE rows (history + live column together, each
+  // weighted by the pixels it covers), not its raw size: the median row is dark blue, p75 medium blue, p90 cyan, p97 yellow, p99 orange/red,
+  // the biggest white. Most of the field therefore reads blue and only real walls glow. `contrast` bends the rank (gamma).
+  const cdf = new Float64Array(BINS); { let acc = 0; for (let b = 0; b < BINS; b++) { cdf[b] = total ? (acc + hist[b] / 2) / total : 0; acc += hist[b]; } }
+  let maxSz = 1, p97 = 1; for (let b = BINS - 1; b >= 0; b--) if (hist[b] > 0) { maxSz = Math.exp((b + 1) / BINS * LMAX) - 1; break; }
+  for (let b = 0; b < BINS; b++) if (cdf[b] >= S.cap) { p97 = Math.exp((b + 1) / BINS * LMAX) - 1; break; }
+  const lut = lutOf(S.ramp), gam = Math.max(0.3, view.gamma || 1);
   const tmap = new Uint8Array(1024);   // size -> ramp index, quantised (the pixel loop does one lookup)
-  const qmax = p97 * 2.5 / 1023;
-  for (let q = 0; q < 1024; q++) { let t = Math.log1p(q * qmax) * den; t = t > 1 ? 1 : Math.pow(t, gam); t = S.floor + (1 - S.floor) * t; tmap[q] = Math.round(Math.min(1, t) * 255); }
+  const qmax = maxSz * 1.0001 / 1023;
+  const rankT = (r) => { const A = S.anchors; if (r <= A[0][0]) return A[0][1]; for (let k = 1; k < A.length; k++) if (r <= A[k][0]) return A[k - 1][1] + (A[k][1] - A[k - 1][1]) * (r - A[k - 1][0]) / (A[k][0] - A[k - 1][0]); return 1; };
+  for (let q = 0; q < 1024; q++) { const a = q * qmax; const b = Math.min(BINS - 1, (Math.log(a + 1) / LMAX * BINS) | 0); let r = cdf[b]; if (q === 1023) r = 1; r = Math.pow(r, 1 / gam); tmap[q] = Math.round(Math.min(1, rankT(r)) * 255); }
   let cv = cache.canvas;
   if (!cv || cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv = cache.canvas = document.createElement('canvas'); cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   const cg = cv.getContext('2d'), W = cv.width, H = cv.height;
   const img = cg.createImageData(W, H), px = new Uint32Array(img.data.buffer), bg = (255 << 24) | (S.bg[2] << 16) | (S.bg[1] << 8) | S.bg[0];
   px.fill(bg);
   const rowPrice = new Float64Array(H); for (let y = 0; y < H; y++) rowPrice[y] = view.priceOfY(top + (y + 0.5) / dpr);
-  let cells = 0; const scale = 1023 / (p97 * 2.5);
-  for (const c of cols) {
+  let cells = 0, blue = 0, tot = 0; const scale = 1023 / (maxSz * 1.0001);
+  // one value of column ci at a price row index (same step), 0 when outside / empty
+  const at = (ci, ri) => { if (ci < 0 || ci >= cols.length) return 0; const q = cols[ci].s; if (q.step !== cols[Math.max(0, Math.min(cols.length - 1, ci))].s.step) return 0; const k = ri - q.i0; return k >= 0 && k < q.v.length ? q.v[k] : 0; };
+  for (let ci = 0; ci < cols.length; ci++) {
+    const c = cols[ci];
     const s = c.s, v = s.v, step = s.step, i0 = s.i0, n = v.length;
     const xa = Math.max(0, Math.round((c.xa - x0) * dpr)), xb = Math.min(W, Math.round((c.xb - x0) * dpr));
     if (xb <= xa) continue;
     // one colour per pixel row for this column, then the span is filled across its x range
     for (let y = 0; y < H; y++) {
-      const k = Math.floor(rowPrice[y] / step + 1e-9) - i0;
-      if (k < 0 || k >= n) continue;
-      let a = v[k]; if (a === 0) continue; if (a < 0) a = -a;
-      const q = a * scale, col = lut[tmap[q > 1023 ? 1023 : q | 0]], o = y * W;
+      let k = Math.floor(rowPrice[y] / step + 1e-9) - i0, a = 0;
+      if (y > 0 && y < H - 1) {   // rows thinner than a device pixel: the pixel shows the biggest row it covers
+        const kA = Math.floor((rowPrice[y] + rowPrice[y - 1]) / 2 / step + 1e-9) - i0, kB = Math.floor((rowPrice[y] + rowPrice[y + 1]) / 2 / step + 1e-9) - i0;
+        const lo = Math.max(0, Math.min(kA, kB)), hi = Math.min(n - 1, Math.max(kA, kB));
+        if (hi > lo) { for (let m = lo; m <= hi; m++) { const z = v[m] < 0 ? -v[m] : v[m]; if (z > a) a = z; } k = lo; }
+      }
+      if (a === 0 && k >= 0 && k < n) { a = v[k]; if (a < 0) a = -a; }
+      if (a === 0) {   // hold: Bookmap keeps the last known size until it changes; a one-sample hole (size before AND after) is not a gap
+        const ri = Math.floor(rowPrice[y] / step + 1e-9), pv = at(ci - 1, ri), nx = at(ci + 1, ri);
+        if (pv !== 0 && nx !== 0 && (pv > 0) === (nx > 0)) a = pv < 0 ? -pv : pv; else continue;
+      }
+      const q = a * scale, ti = tmap[q > 1023 ? 1023 : q | 0], col = lut[ti], o = y * W;
+      if (ti < 128) blue += xb - xa; tot += xb - xa;
       for (let x = xa; x < xb; x++) px[o + x] = col;
       cells++;
     }
   }
   cg.putImageData(img, 0, 0);
   g.drawImage(cv, x0, top, w, h);
-  cache.key = key; cache.ms = performance.now() - t0; cache.p97 = p97; cache.stat = { cells, columns: cols.length, rows: H, p97: Math.round(p97) };
+  cache.key = key; cache.ms = performance.now() - t0; cache.p97 = p97; cache.maxSz = maxSz; cache.stat = { blueShare: tot ? Math.round(blue / tot * 100) : 0, cells, columns: cols.length, rows: H, p97: Math.round(p97) };
   return Object.assign({ ms: Math.round(cache.ms * 10) / 10 }, cache.stat);
 }

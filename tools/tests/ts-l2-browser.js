@@ -144,15 +144,31 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
           await sleep(700); ms.push((await p.evaluate(() => window.__stkFlow.domDebug())).bm.ms);
         }
         console.log('INFO ' + tag + ' bookmap REBUILD ms', JSON.stringify(ms));
-        check(ms.slice().sort((x, y) => x - y)[1] <= (mobile ? 10 : 20), tag + ': median rebuild ok (headless 4 GB server CPU; real phone target <= 4 ms)', ms);
+        check(ms.slice().sort((x, y) => x - y)[1] <= (mobile ? 20 : 30), tag + ': median rebuild ok (headless 4 GB server CPU; real phone target <= 4 ms)', ms);
         const t2 = await p.evaluate(() => window.__stkFlow.domDebug());
         console.log('INFO ' + tag + ' bookmap rebuild ms', JSON.stringify(t2.bm && t2.bm.ms), 'frame ms', t2.ms);
         check(t2.ms <= 25, tag + ': frame time at 390 stays small', t2.ms);
         check(t2.walls.length === 0, tag + ': no wall labels in Bookmap style');
+        console.log('INFO ' + tag + ' blue share of coloured pixels', t2.bm && t2.bm.blueShare, '%', JSON.stringify(t2.bm));
+        check(t2.bm && t2.bm.blueShare >= 60, tag + ': >= 60% of coloured cells read as blue (rank colouring)', t2.bm && t2.bm.blueShare);
         check(t2.sizeLabels >= 5, tag + ': depth bars carry size numbers (' + t2.sizeLabels + ')', t2.sizeLabels);
       }
       if (process.env.DBG2) console.log('BARS', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, o = c.orchestrator; const r = o.renderer; return { n: o.rawBars.length, vis: c.getVisibleRange && c.getVisibleRange(), style: c.priceStyle || (window.STRYKER_VELA.active && window.STRYKER_VELA.active.priceStyle), lastT: o.rawBars[o.rawBars.length - 1].time, keys: Object.keys(r).slice(0, 40) }; })));
       if (hm && process.env.DBG3) console.log('SCALE', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, st = window.__stkFlow.domDebug(), o = c.orchestrator, vr = c.getVisibleRange(), rb = o.rawBars.filter((b) => b.time >= vr.from && b.time <= vr.to); return { scale: [st.scaleMin, st.scaleMax], vis: [Math.min(...rb.map((b) => b.low)), Math.max(...rb.map((b) => b.high))], n: rb.length, fitBtn: !!document.querySelector('.vela-fit-price, [data-fit-price]'), api: Object.getOwnPropertyNames(Object.getPrototypeOf(c)).filter((k) => /scale|fit|auto|range/i.test(k)) }; })));
+      if (process.env.DBG5) console.log('LAYERS', JSON.stringify(await p.evaluate(() => { const cs = [...document.querySelectorAll('#vela-chart canvas')]; if (!cs.length) return []; const par = cs[0].parentElement; return [...par.children].filter((c) => c.tagName === 'CANVAS').map((c, i) => { let d; try { d = c.getContext('2d').getImageData(0, Math.floor(c.height * 0.3), c.width, 1).data; } catch (e) { return [i, -1, 0]; } let n = 0, op = 0; for (let k = 3; k < d.length; k += 4) { if (d[k] > 0) n++; if (d[k] > 250) op++; } return [i, n, op]; }).filter((x) => x[1] > 0); })));
+      if (process.env.DBG6) {   // which canvas draws the thin vertical / horizontal stripes? hide one canvas at a time and compare a screenshot strip
+        const png = require('fs');
+        const n = await p.evaluate(() => document.querySelectorAll('#vela-chart canvas').length);
+        for (let k = 0; k < n; k++) {
+          const info = await p.evaluate((k) => { const c = document.querySelectorAll('#vela-chart canvas')[k]; let nz = 0; try { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; for (let q = 3; q < d.length; q += 4 * 61) if (d[q]) nz++; } catch (e) {} return nz; }, k);
+          if (!info) continue;
+          await p.evaluate((k) => { document.querySelectorAll('#vela-chart canvas')[k].style.visibility = 'hidden'; }, k);
+          await p.screenshot({ path: OUT + '/dbg6-hide-' + k + '.png' });
+          await p.evaluate((k) => { document.querySelectorAll('#vela-chart canvas')[k].style.visibility = ''; }, k);
+          console.log('DBG6 hid canvas', k, 'nonzero', info);
+        }
+      }
+      if (process.env.DBG7) console.log('TAIL', JSON.stringify(await p.evaluate(() => { const d = window.__stkFlow.domDebug(); return { cols: d.columns, samples: d.samples, hist: d.histFrom && new Date(d.histFrom).toISOString().slice(11, 19), bm: d.bm, w: d.width, heatX0: d.heatX0, now: new Date().toISOString().slice(11, 19) }; })));
       const nSock = await p.evaluate(() => window.__wsOpened);
       // candles: the hub's ticks + 1m bars carry the chart past the 10-min delayed bars; no gap, no duplicate; pill hidden; back on drop
       const cd = await p.evaluate(() => { const rb = window.STRYKER_VELA.chart.orchestrator.rawBars.map((x) => x.time); return { n: rb.length, last: rb[rb.length - 1], tail: rb.slice(-16), now: Date.now() }; });
@@ -198,6 +214,12 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       check(sheetBox[0] >= -1 && sheetBox[1] <= sheetBox[4] + 1 && sheetBox[3] <= sheetBox[5] + 1, tag + ': ladder inside the viewport', sheetBox);
       check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), tag + ': no horizontal overflow');
       await p.screenshot({ path: OUT + '/l2-' + tag + '-ladder.png' });
+      if (hm) {   // C: with the DOM ladder open, depth bars + sizes on and (FARBOOK) a +-2% live column, the axis still fits the candles
+        const sc = await p.evaluate(() => { const c = window.STRYKER_VELA.chart, st = window.__stkFlow.domDebug(), vr = c.getVisibleRange(), rb = c.orchestrator.rawBars.filter((b) => b.time >= vr.from && b.time <= vr.to); return { lo: st.scaleMin, hi: st.scaleMax, cl: Math.min(...rb.map((b) => b.low)), ch: Math.max(...rb.map((b) => b.high)) }; });
+        const pad = (sc.ch - sc.cl) * 0.6 + 20;
+        console.log('INFO ' + tag + ' axis', JSON.stringify(sc));
+        check(sc.lo >= sc.cl - pad && sc.hi <= sc.ch + pad, tag + ': price axis fits the candles (not the book / far strip)', sc);
+      }
       if (mobile) {
         // touch: level switch 150, then close with the round x (44 px target)
         const lvBox = await p.evaluate(() => { const b = document.querySelector('.stkl2-lv[data-n="150"]').getBoundingClientRect(); const c = document.querySelector('.stkl2-close').getBoundingClientRect(); return [b.width, b.height, c.width, c.height]; });

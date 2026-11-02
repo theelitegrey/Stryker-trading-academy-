@@ -737,7 +737,7 @@ export class IdxProvider extends FuturesProvider {
     return {
       name: 'idx',
       displayName: 'Indices & ETFs',
-      requiresApiKey: false
+      requiresApiKey: false,
       supportedTimeframes: SUPPORTED,
       capabilities: { enumerate: true, stream: false, symbolInfo: true }
     };

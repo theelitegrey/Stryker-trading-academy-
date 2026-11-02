@@ -14,7 +14,7 @@ const RAMPS = {
     [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]]
 };
 export const STYLES = {
-  bookmap: { ramp: 'bookmap', bg: BM_BG, floor: 0.1, empty: 14, pow: 1.7, hold: HOLD_MS, cap: 0.97 }
+  bookmap: { ramp: 'bookmap', bg: BM_BG, floor: 0.1, pow: 1.7, hold: HOLD_MS, cap: 0.97 }
 };
 const lutCache = new Map();
 function lutOf(name) {   // 256 entries of packed ABGR (little endian) for the ramp
@@ -35,8 +35,6 @@ export const bmStats = () => ({ key: cache.key, ms: cache.ms, p97: cache.p97 });
 // via priceOfY(y), version, from, to, gamma, look, now }. Returns { cells, columns, ms, rows } for the test hook.
 export function drawBookmap(g, view) {
   const t0 = performance.now(), S = STYLES[view.look] || STYLES.bookmap;
-  // the field is the ramp's "no liquidity" navy (Owner 2026-11-03: no black inside the chart; black = outside the chart)
-  if (!S.bgc) { const u = lutOf(S.ramp)[S.empty]; S.bgc = [u & 255, (u >> 8) & 255, (u >> 16) & 255]; S.bg = S.bgc; }
   const x0 = Math.floor(view.x0), x1 = Math.ceil(view.x1), top = Math.floor(view.top), bot = Math.ceil(view.bot), dpr = view.dpr || 1;
   const w = Math.max(0, x1 - x0), h = Math.max(0, bot - top);
   g.fillStyle = 'rgb(' + S.bg.join(',') + ')'; g.fillRect(x0, top, w + (view.fullW ? view.fullW - x1 : 0), h);
@@ -74,7 +72,7 @@ export function drawBookmap(g, view) {
   const img = cg.createImageData(W, H), px = new Uint32Array(img.data.buffer), bg = (255 << 24) | (S.bg[2] << 16) | (S.bg[1] << 8) | S.bg[0];
   px.fill(bg);
   const rowPrice = new Float64Array(H); for (let y = 0; y < H; y++) rowPrice[y] = view.priceOfY(top + (y + 0.5) / dpr);
-  const emptyCol = lut[S.empty]; let cells = 0; const scale = 1023 / (p97 * 2.5);
+  let cells = 0; const scale = 1023 / (p97 * 2.5);
   for (const c of cols) {
     const s = c.s, v = s.v, step = s.step, i0 = s.i0, n = v.length;
     const xa = Math.max(0, Math.round((c.xa - x0) * dpr)), xb = Math.min(W, Math.round((c.xb - x0) * dpr));
@@ -83,8 +81,8 @@ export function drawBookmap(g, view) {
     for (let y = 0; y < H; y++) {
       const k = Math.floor(rowPrice[y] / step + 1e-9) - i0;
       if (k < 0 || k >= n) continue;
-      let a = v[k]; if (a < 0) a = -a;
-      const q = a * scale, col = a === 0 ? emptyCol : lut[tmap[q > 1023 ? 1023 : q | 0]], o = y * W;
+      let a = v[k]; if (a === 0) continue; if (a < 0) a = -a;
+      const q = a * scale, col = lut[tmap[q > 1023 ? 1023 : q | 0]], o = y * W;
       for (let x = xa; x < xb; x++) px[o + x] = col;
       cells++;
     }

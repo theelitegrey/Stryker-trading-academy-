@@ -1366,7 +1366,7 @@ function domConfig(inputs) {
   const bm = String(i.look || '').toLowerCase() === 'bookmap';
   if (bm) return {
     view: 'bookmap', bm: true, look: 'bookmap', heat: false, walls: false, vanish: false, ice: false, twoTone: false, deep: false,
-    depth: i.showDepthBars !== false, gamma: clamp(num(i.contrast, 1), 0.4, 2.5), widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
+    depth: i.showDepthBars !== false, sizes: i.showSizes !== false, gamma: clamp(num(i.contrast, 1), 0.4, 2.5), widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
     opacity: 0.9, wallSizes: false, showBest: false, showScale: false, bid: str(i.bidColor, '#03c988'), ask: str(i.askColor, '#e5484d'), askDepth: str(i.askDepthColor, '#8b5cf6'),
     wallTop: 0.025, wallMinMs: 0, hide: 0, bucket: Math.max(0, num(i.bucketUsd, 0)), range: clamp(num(i.bookRangePct, 2), 0.5, 5) / 100,
     historyMin: clamp(Math.round(num(i.historyMinutes, 360)), 5, 2880)
@@ -1374,7 +1374,7 @@ function domConfig(inputs) {
   return {
     view,
     heat: view === 'heat' || (combined && i.showHeat !== false),
-    depth: view === 'depth' || (combined && i.showDepth !== false),
+    depth: view === 'depth' || (combined && i.showDepth !== false), sizes: i.showSizes !== false,
     walls: view === 'walls' || (combined && i.showWalls !== false),
     twoTone: view === 'combined' || view === 'depth' || view === 'walls',
     deep: view === 'deep',
@@ -2380,6 +2380,34 @@ function cryptoDomLayer() {
           if (i < dLo) dLo = i; if (i > dHi) dHi = i;
         }
         if (dHi >= dLo) { stat.depthLo = dLo * step; stat.depthHi = (dHi + 1) * step; }
+        // resting SIZE as a number on each row (futures L2; Owner 2026-11-03): rows thinner than the font are merged into chunks and summed,
+        // the biggest 3 per side are bold, numbers go compact (1.2k) when the strip is narrow
+        if (cfg.sizes && f.custom) {
+          const FS = 10, need = FS + 2, compact = depthW < 96, fmt = (n) => (compact || n >= 10000) && n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : String(Math.round(n));
+          const rows = curRows.map(([i, v]) => { const [y, h] = rowY(i); return { i, v, y, h }; }).filter((r) => r.y <= bot && r.y + r.h >= top).sort((a, b) => a.y - b.y);
+          const chunks = []; let cur = null;
+          for (const r of rows) {
+            const side = r.v > 0 ? 1 : -1;
+            if (cur && cur.side === side && r.y + r.h - cur.y0 <= Math.max(need, r.h) + 0.5 && cur.y1 - cur.y0 < need) { cur.sum += Math.abs(r.v); cur.y1 = r.y + r.h; cur.mx = Math.max(cur.mx, Math.abs(r.v)); }
+            else { cur = { side, sum: Math.abs(r.v), y0: r.y, y1: r.y + r.h, mx: Math.abs(r.v) }; chunks.push(cur); }
+          }
+          const top3 = (sd) => chunks.filter((c) => c.side === sd).map((c) => c.sum).sort((a, b) => b - a)[2] || 0;
+          const t3 = { 1: top3(1), '-1': top3(-1) };
+          g.save(); g.beginPath(); g.rect(x0, top, depthW, a.bounds.height); g.clip(); g.textBaseline = 'middle';
+          let lastY = -1e9; stat.sizeLabels = 0;
+          for (const c of chunks) {
+            const cy = (c.y0 + c.y1) / 2; if (cy - lastY < need) continue;   // never two numbers closer than the font
+            const big = c.sum >= t3[c.side] && t3[c.side] > 0, label = fmt(c.sum);
+            g.font = (big ? 'bold ' : '') + FS + 'px ' + font; g.fontVariantNumeric = 'tabular-nums';
+            const tw = g.measureText(label).width, bw = Math.max(1, Math.sqrt(c.mx / mx) * wmax);
+            const outside = x0 + bw + 3 + tw <= W - 2;
+            g.textAlign = outside ? 'left' : 'right';
+            g.fillStyle = outside ? (c.side > 0 ? (light ? '#0a7f56' : '#5eead4') : (light ? '#b3262d' : '#fca5a5')) : '#ffffff';
+            g.fillText(label, outside ? x0 + bw + 3 : W - 3, cy);
+            lastY = cy; stat.sizeLabels++;
+          }
+          g.restore();
+        }
         if (depthW >= 64) {
           g.font = '10px ' + font; g.textAlign = 'left';
           const tw = g.measureText('RESTING').width;

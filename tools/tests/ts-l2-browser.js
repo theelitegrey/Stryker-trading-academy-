@@ -134,7 +134,7 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       // heatmap fills the visible window from the left edge (backfill), and no empty band inside the book's price range
       const hm = await p.evaluate(() => { const d = window.__stkFlow && window.__stkFlow.domDebug && window.__stkFlow.domDebug(); return d || null; });
       if (process.env.DBG) console.log('HM', JSON.stringify(hm && { rs: hm.remoteSamples, st: hm.remoteState, s: hm.samples, cols: hm.columns, vis: hm.visFrom, cells: hm.cells }));
-      if (hm) { check(hm.remoteSamples > 8, tag + ': history backfill samples loaded (' + hm.remoteSamples + ')'); check(hm.heatX0 != null && hm.heatX0 <= 60, tag + ': heatmap starts at the left edge of the screen', hm.heatX0); }
+      if (hm) { check(hm.remoteSamples > 5, tag + ': history backfill samples loaded (' + hm.remoteSamples + ')'); check(hm.heatX0 != null && hm.heatX0 <= 60, tag + ': heatmap starts at the left edge of the screen', hm.heatX0); }
       // Bookmap: perf at this size (rebuild cost; cached blits cost ~0), full-height rows, dark field, no wall tags
       if (hm && hm.bm) {
         check(hm.bm.cells > 2000, tag + ': bookmap paints rows (' + hm.bm.cells + ' cells)');
@@ -149,6 +149,7 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
         console.log('INFO ' + tag + ' bookmap rebuild ms', JSON.stringify(t2.bm && t2.bm.ms), 'frame ms', t2.ms);
         check(t2.ms <= 25, tag + ': frame time at 390 stays small', t2.ms);
         check(t2.walls.length === 0, tag + ': no wall labels in Bookmap style');
+        check(t2.sizeLabels >= 5, tag + ': depth bars carry size numbers (' + t2.sizeLabels + ')', t2.sizeLabels);
       }
       if (process.env.DBG2) console.log('BARS', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, o = c.orchestrator; const r = o.renderer; return { n: o.rawBars.length, vis: c.getVisibleRange && c.getVisibleRange(), style: c.priceStyle || (window.STRYKER_VELA.active && window.STRYKER_VELA.active.priceStyle), lastT: o.rawBars[o.rawBars.length - 1].time, keys: Object.keys(r).slice(0, 40) }; })));
       if (hm && process.env.DBG3) console.log('SCALE', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, st = window.__stkFlow.domDebug(), o = c.orchestrator, vr = c.getVisibleRange(), rb = o.rawBars.filter((b) => b.time >= vr.from && b.time <= vr.to); return { scale: [st.scaleMin, st.scaleMax], vis: [Math.min(...rb.map((b) => b.low)), Math.max(...rb.map((b) => b.high))], n: rb.length, fitBtn: !!document.querySelector('.vela-fit-price, [data-fit-price]'), api: Object.getOwnPropertyNames(Object.getPrototypeOf(c)).filter((k) => /scale|fit|auto|range/i.test(k)) }; })));

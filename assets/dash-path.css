@@ -411,3 +411,35 @@ section.dk-status{ padding:10px 14px; }
 .dk-wv-i:first-child span,.dk-wv-i:first-child b{ transform:translateX(-30%); } .dk-wv-i:last-of-type span,.dk-wv-i:last-of-type b{ transform:translateX(-70%); }
 @media (max-width:699px){ .dk-wv-i span{ width:54px; font-size:9.5px; } .dk-wv-i:nth-child(even) span{ display:none; } .dk-wv{ height:112px; } }
 @media (prefers-reduced-motion:reduce){ .dk-dn-up,.dk-card .mv-tile,.dk-wv-i i,.dk-card .mv-lad .dot.now{ animation:none !important; } }
+
+/* ===== Your activity upgrades ===== */
+.dk-slot{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; padding:16px 12px; border-radius:14px; border:1.5px dashed rgba(3,201,136,.5); background:rgba(3,201,136,.04); box-shadow:inset 0 0 18px rgba(3,201,136,.07), 0 0 14px -6px rgba(3,201,136,.5); animation:dkSlot 3.2s ease-in-out infinite; }
+.dk-slot svg{ width:40px; height:40px; fill:none; stroke:var(--gold); stroke-width:2; stroke-linecap:round; stroke-dasharray:3 4; }
+.dk-slot b{ font-size:14px; line-height:20px; color:var(--ink-0); } .dk-slot p{ margin:0 0 6px; font-size:12.5px; line-height:18px; color:var(--ink-2); }
+@keyframes dkSlot{ 50%{ border-color:rgba(3,201,136,.9); box-shadow:inset 0 0 22px rgba(3,201,136,.12), 0 0 20px -4px rgba(3,201,136,.6) } }
+.dk-lay{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.dk-lay-c{ display:flex; align-items:center; gap:12px; padding:8px; border-radius:14px; border:1px solid rgba(3,201,136,.45); background:var(--bg-3); text-decoration:none; box-shadow:0 0 12px -5px rgba(3,201,136,.7), inset 0 0 12px -8px rgba(3,201,136,.8); transition:box-shadow .2s, transform .2s; }
+.dk-lay-c:hover{ box-shadow:0 0 20px -3px rgba(3,201,136,.9); transform:translateY(-1px); }
+.dk-lay-th{ flex:none; width:72px; height:44px; border-radius:9px; overflow:hidden; background:rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; }
+:root[data-theme="light"] .dk-lay-th{ background:rgba(7,153,106,.08); }
+.dk-lay-th img{ width:100%; height:100%; object-fit:cover; } .dk-lay-th svg{ width:80%; fill:none; stroke:var(--gold); stroke-width:2.5; stroke-linejoin:round; }
+.dk-lay-t{ flex:1; min-width:0; } .dk-lay-t b{ display:block; font-size:13.5px; line-height:18px; color:var(--ink-0); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dk-lay-c em{ font-style:normal; font-size:12px; font-weight:600; color:var(--gold); padding-right:6px; }
+.dk-heat{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; margin:2px 0 10px; }
+.dk-heat span{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; height:40px; border-radius:9px; background:rgba(3,201,136,var(--a)); border:1px solid var(--line); animation:dkTile .5s ease both; animation-delay:calc(var(--i) * 50ms); }
+.dk-heat i{ font-style:normal; font-family:var(--font-mono); font-size:13px; line-height:16px; color:var(--ink-0); font-weight:600; }
+.dk-heat em{ position:absolute; bottom:-15px; font-style:normal; font-size:10px; color:var(--ink-3); }
+.dk-heat{ margin-bottom:22px; }
+.dk-spark polyline{ stroke-dasharray:1; stroke-dashoffset:0; animation:dkLine 1.6s ease-out both; filter:drop-shadow(0 0 3px rgba(3,201,136,.7)); }
+@keyframes dkLine{ from{ stroke-dashoffset:1 } }
+@media (prefers-reduced-motion:reduce){ .dk-slot,.dk-heat span,.dk-spark polyline{ animation:none !important; } }
+
+/* ===== Learn: segmented ring (one arc per chapter) ===== */
+.dk-ring{ width:72px; height:72px; }
+.dk-ring .gp-ring-fg{ opacity:0; }
+.dk-ring .gp-seg{ fill:none; stroke:var(--line); stroke-width:6; stroke-linecap:butt; }
+.dk-ring .gp-seg.is-done{ stroke:var(--gold); filter:drop-shadow(0 0 2px rgba(3,201,136,.7)); animation:dkSeg .5s ease both; animation-delay:calc(var(--i) * 28ms); }
+.dk-ring .gp-seg.is-cur{ stroke:var(--ink-2); animation:dkGlowSeg 2s ease-in-out infinite; }
+@keyframes dkSeg{ from{ opacity:0 } }
+@keyframes dkGlowSeg{ 50%{ stroke:var(--gold) } }
+@media (prefers-reduced-motion:reduce){ .dk-ring .gp-seg{ animation:none !important; } }

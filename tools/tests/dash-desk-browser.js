@@ -54,7 +54,7 @@ const probe = () => {
     pill: (q('#dk-session-t') || {}).textContent, name: (q('#dash-first-name') || {}).textContent,
     ev: (q('#dk-ev') || {}).textContent, map: !!q('#dk-map .mv-tile'), lad: !!q('#dk-lad .mv-lad'),
     layouts: (q('#dk-layouts') || {}).textContent, journal: (q('#dk-journal') || {}).textContent, replay: (q('#dk-replay') || {}).textContent, floor: (q('#dk-floor') || {}).textContent,
-    cr: (q('#dk-cr-a') || {}).textContent, ring: (q('#gp-ring-pct') || {}).textContent, nextT: (q('#gp-next-t') || {}).textContent
+    cr: (q('#dk-cr-a') || {}).textContent, ring: (q('#gp-ring-pct') || {}).textContent, segs: document.querySelectorAll('.gp-seg').length, doneSegs: document.querySelectorAll('.gp-seg.is-done').length, status: [...document.querySelectorAll('#dk-status li')].map((l) => l.className + ':' + l.textContent), wave: document.querySelectorAll('.dk-wv-i').length, breadth: !!q('#dk-breadth svg'), heat: document.querySelectorAll('.dk-heat span').length, slots: document.querySelectorAll('.dk-slot').length, lay: document.querySelectorAll('.dk-lay-c').length, dial: document.querySelectorAll('.dk-d-arc').length, cv: (() => { const c = q('#dk-cv'); if (!c) return 0; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n; })(), nextT: (q('#gp-next-t') || {}).textContent
   };
 };
 
@@ -88,6 +88,11 @@ const probe = () => {
           check(!!r.map && !!r.lad && /\d/.test(r.ev || ''), `${tag}: market pulse filled (map ${r.map}, ladders ${r.lad}, event "${(r.ev || '').slice(0, 40)}")`);
           if (kind === 'new') check(/Save your first layout/.test(r.layouts) && /Log your first trade/.test(r.journal) && /Start a replay/.test(r.replay), `${tag}: empty states with first actions`);
           if (kind === 'active') check(/Open/.test(r.layouts) && /trades? in the last 7 days/.test(r.journal), `${tag}: layouts + journal snapshot (${(r.journal || '').slice(0, 30)})`);
+          check(r.segs > 10, `${tag}: segmented ring (${r.segs} segs, ${r.doneSegs} done)`);
+          check(r.status.length === 3 && r.status.every((x) => /is-ok/.test(x)), `${tag}: system status strip all current (${r.status.join(' | ').slice(0, 120)})`);
+          check(r.wave >= 3 && r.breadth && r.dial >= 6 && r.cv > 500, `${tag}: HUD parts drawn (wave ${r.wave}, breadth ${r.breadth}, dial arcs ${r.dial}, canvas px ${r.cv})`);
+          if (kind === 'new') check(r.slots >= 3, `${tag}: ${r.slots} illustrated empty slots`);
+          if (kind === 'active') check(r.heat === 7 && r.lay === 2, `${tag}: heat strip ${r.heat}, layout cards ${r.lay}`);
           check(kind === 'pro' ? !r.proCard : r.proCard, `${tag}: Pro card ${kind === 'pro' ? 'hidden' : 'shown'}`);
           check(/\$|€|£|\/mo|per month/.test(await p.evaluate(() => document.querySelector('#dk-grid').textContent + document.querySelector('#dk-hero').textContent)) === false, `${tag}: no price text on the desk`);
           if (OUT && theme) {

@@ -18,6 +18,8 @@
   function ago(ms) { if (!ms) return ''; var m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; }
   function ms(v) { return v && v.toMillis ? v.toMillis() : (typeof v === 'number' ? v : 0); }
   function empty(text, href, cta) { return '<p class="dk-empty">' + esc(text) + '</p><a class="btn btn-primary btn-sm" href="' + href + '">' + esc(cta) + '</a>'; }
+  // illustrated empty slot: dashed glowing outline, one first action
+  function slot(title, text, href, cta) { return '<div class="dk-slot"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="9"/><path d="M24 16v16M16 24h16"/></svg><b>' + esc(title) + '</b><p>' + esc(text) + '</p><a class="btn btn-primary btn-sm" href="' + href + '">' + esc(cta) + '</a></div>'; }
   function stale(why) { return '<p class="dk-stale">' + esc(why) + '</p>'; }
   function countUp(el, n) {
     if (!el) return;
@@ -135,31 +137,36 @@
   function activity(uid) {
     var S = db.collection('students').doc(uid);
     S.collection('chartLayouts').orderBy('updatedAt', 'desc').limit(3).get().then(function (snap) {
-      var out = []; snap.forEach(function (d) { var x = d.data() || {}; out.push({ id: d.id, name: x.name || 'Untitled', sub: [x.symbol, x.interval].filter(Boolean).join(' · '), at: ms(x.updatedAt) }); });
-      $('dk-layouts').innerHTML = out.length ? '<ul class="dk-list">' + out.map(function (l) {
-        return '<li><div><b>' + esc(l.name) + '</b><span class="dk-dim">' + esc(l.sub) + (l.at ? ' · ' + esc(ago(l.at)) : '') + '</span></div><a class="btn btn-ghost btn-sm" href="charts.html?openlayout=' + encodeURIComponent(l.id) + '">Open</a></li>';
-      }).join('') + '</ul>' : empty('Save a chart setup once and it is here next time.', 'charts.html', 'Save your first layout');
-    }).catch(function () { $('dk-layouts').innerHTML = empty('Save a chart setup once and it is here next time.', 'charts.html', 'Open ZoroCharts'); });
+      var out = []; snap.forEach(function (d) { var x = d.data() || {}; out.push({ id: d.id, thumb: /^(data:image\/|https:\/\/)/.test(x.thumb || '') ? x.thumb : '', name: x.name || 'Untitled', sub: [x.symbol, x.interval].filter(Boolean).join(' · '), at: ms(x.updatedAt) }); });
+      $('dk-layouts').innerHTML = out.length ? '<ul class="dk-lay">' + out.map(function (l) {
+        return '<li><a class="dk-lay-c" href="charts.html?openlayout=' + encodeURIComponent(l.id) + '" aria-label="Open layout ' + esc(l.name) + '"><span class="dk-lay-th">' + (l.thumb ? '<img src="' + esc(l.thumb) + '" alt="" loading="lazy">' : '<svg viewBox="0 0 80 40" aria-hidden="true"><path d="M2 30l12-8 10 5 14-14 12 8 14-12 14 6"/></svg>') + '</span><span class="dk-lay-t"><b>' + esc(l.name) + '</b><span class="dk-dim">' + esc(l.sub) + (l.at ? ' · ' + esc(ago(l.at)) : '') + '</span></span><em>Open</em></a></li>';
+      }).join('') + '</ul>' : slot('Save your first layout', 'Save a chart setup once and it is here next time.', 'charts.html', 'Open ZoroCharts');
+    }).catch(function () { $('dk-layouts').innerHTML = slot('Save your first layout', 'Save a chart setup once and it is here next time.', 'charts.html', 'Open ZoroCharts'); });
 
     S.collection('journal').orderBy('date', 'desc').limit(100).get().then(function (snap) {
       var t = []; snap.forEach(function (d) { if (d.id.charAt(0) !== '_') t.push(d.data()); });
       var from = new Date(); from.setHours(0, 0, 0, 0); from.setDate(from.getDate() - 6);
       var wk = t.filter(function (x) { return x.date && new Date(x.date + 'T00:00:00').getTime() >= from.getTime(); });
       var host = $('dk-journal');
-      if (!t.length) { host.innerHTML = empty('Log a trade and your week shows up here.', 'trade-journal.html', 'Log your first trade'); return; }
+      if (!t.length) { host.innerHTML = slot('Log your first trade', 'Log a trade and your week shows up here.', 'trade-journal.html', 'Log your first trade'); return; }
+      var days = [], names = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      for (var k = 6; k >= 0; k--) { var dd = new Date(); dd.setDate(dd.getDate() - k); var key = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0'); days.push({ key: key, n: 0, l: names[dd.getDay()] }); }
+      t.forEach(function (x) { days.forEach(function (c) { if (x.date === c.key) c.n++; }); });
+      var mx = Math.max.apply(null, days.map(function (c) { return c.n; }).concat([1]));
       var closed = t.filter(function (x) { return typeof x.pnl === 'number'; }).sort(function (a, b) { return ((a.date || '') + (a.time || '')).localeCompare((b.date || '') + (b.time || '')); });
       var run = 0, pts = closed.slice(-30).map(function (x) { run += x.pnl; return run; });
       var spark = '';
-      if (pts.length > 1) { var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts), sp = (hi - lo) || 1; spark = '<svg class="dk-spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-label="Equity curve of your last closed trades"><polyline points="' + pts.map(function (p, i) { return (i / (pts.length - 1) * 120).toFixed(1) + ',' + (29 - (p - lo) / sp * 26).toFixed(1); }).join(' ') + '"/></svg>'; }
-      host.innerHTML = '<div class="dk-big"><b id="dk-wk">0</b><span>trade' + (wk.length === 1 ? '' : 's') + ' in the last 7 days</span></div>' + spark + '<a class="dk-more" href="trade-journal.html">Review in JournalX →</a>';
-      countUp($('dk-wk'), wk.length);
-    }).catch(function () { $('dk-journal').innerHTML = empty('Log a trade and your week shows up here.', 'trade-journal.html', 'Log your first trade'); });
+      if (pts.length > 1) { var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts), sp = (hi - lo) || 1; spark = '<svg class="dk-spark" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label="Shape of your last closed trades"><polyline pathLength="1" points="' + pts.map(function (p, i) { return (i / (pts.length - 1) * 120).toFixed(1) + ',' + (29 - (p - lo) / sp * 26).toFixed(1); }).join(' ') + '"/></svg>'; }
+      host.innerHTML = '<div class="dk-big"><b id="dk-wk" data-to="' + wk.length + '">0</b><span>trade' + (wk.length === 1 ? '' : 's') + ' in the last 7 days</span></div>' +
+        '<div class="dk-heat" role="img" aria-label="Trades per day, last 7 days">' + days.map(function (c, i) { return '<span style="--a:' + (c.n ? (0.25 + 0.75 * c.n / mx).toFixed(2) : 0.07) + ';--i:' + i + '" title="' + c.n + ' on ' + c.key + '"><i>' + (c.n || '') + '</i><em>' + c.l + '</em></span>'; }).join('') + '</div>' + spark + '<a class="dk-more" href="trade-journal.html">Review in JournalX →</a>';
+      countOnView($('dk-wk'), function (v) { return Math.round(v); });
+    }).catch(function () { $('dk-journal').innerHTML = slot('Log your first trade', 'Log a trade and your week shows up here.', 'trade-journal.html', 'Log your first trade'); });
 
     S.collection('replay').orderBy('updatedAt', 'desc').limit(1).get().then(function (snap) {
       var x = null, id = ''; snap.forEach(function (d) { x = d.data(); id = d.id; });
       $('dk-replay').innerHTML = x ? '<ul class="dk-list"><li><div><b>' + esc(x.name || x.symbolLabel || 'Replay session') + '</b><span class="dk-dim">' + esc(x.symbolLabel || '') + (x.total ? ' · ' + Math.round(100 * ((x.cursor || 0) + 1) / x.total) + '% replayed' : '') + '</span></div><a class="btn btn-ghost btn-sm" href="replay.html?session=' + encodeURIComponent(id) + '">Resume</a></li></ul>'
-        : empty('Replay a past day bar by bar to practise a setup.', 'backtests.html', 'Start a replay');
-    }).catch(function () { $('dk-replay').innerHTML = empty('Replay a past day bar by bar to practise a setup.', 'backtests.html', 'Start a replay'); });
+        : slot('Start a replay', 'Replay a past day bar by bar to practise a setup.', 'backtests.html', 'Start a replay');
+    }).catch(function () { $('dk-replay').innerHTML = slot('Start a replay', 'Replay a past day bar by bar to practise a setup.', 'backtests.html', 'Start a replay'); });
 
     db.collection('communityPosts').orderBy('createdAt', 'desc').limit(3).get().then(function (snap) {
       var h = ''; snap.forEach(function (d) { var p = d.data() || {}, tx = document.createElement('div'); tx.innerHTML = String(p.textHtml || ''); var t = (tx.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 110); h += '<li class="dk-post"><div><b>' + esc(p.authorName || 'Trader') + '</b><span class="dk-dim">' + esc(ago(ms(p.createdAt))) + '</span></div><p>' + esc(t) + '</p></li>'; });

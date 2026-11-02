@@ -102,6 +102,20 @@
         requestAnimationFrame(function () { fg.style.strokeDashoffset = (C * (1 - ringPct / 100)).toFixed(2); });
       });
     }
+    // Desk card: the same ring as one arc segment per chapter, filled in order (the plain arc above is hidden by CSS there)
+    var rsvg = fg && fg.parentNode;
+    if (rsvg && $('dk-hero') && !rsvg.querySelector('.gp-seg')) {
+      var nSeg = CHAPTERS.length, gap = 1.6, segLen = (360 / nSeg) - gap, rr = 27, circ = 2 * Math.PI * rr, k = 0;
+      CHAPTERS.forEach(function (c, i) {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        el.setAttribute('cx', 32); el.setAttribute('cy', 32); el.setAttribute('r', rr);
+        el.setAttribute('class', 'gp-seg' + (done.has(c.num) ? ' is-done' : (c.num === next.num ? ' is-cur' : '')));
+        el.setAttribute('stroke-dasharray', (circ * segLen / 360).toFixed(2) + ' ' + circ.toFixed(2));
+        el.setAttribute('transform', 'rotate(' + (i * 360 / nSeg).toFixed(2) + ' 32 32)');
+        el.style.setProperty('--i', i);
+        rsvg.appendChild(el);
+      });
+    }
     countUp($('gp-ring-pct'), ringPct, function (v) { return v + '%'; });
     var ring = $('gp-ring');
     if (ring) ring.setAttribute('aria-label', done.size + ' of ' + CHAPTERS.length + ' core chapters complete, ' + ringPct + ' percent');

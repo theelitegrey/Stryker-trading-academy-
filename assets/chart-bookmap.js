@@ -14,7 +14,7 @@ const RAMPS = {
     [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]]
 };
 export const STYLES = {
-  bookmap: { ramp: 'bookmap', bg: BM_BG, floor: 0.06, pow: 1.7, hold: HOLD_MS, cap: 0.97 }
+  bookmap: { ramp: 'bookmap', bg: BM_BG, floor: 0.1, pow: 1.7, hold: HOLD_MS, cap: 0.97 }
 };
 const lutCache = new Map();
 function lutOf(name) {   // 256 entries of packed ABGR (little endian) for the ramp
@@ -55,8 +55,10 @@ export function drawBookmap(g, view) {
   }
   // price of each pixel row (centre), and the log histogram of what is visible -> p97
   const py = new Float64Array(h); for (let y = 0; y < h; y++) py[y] = view.priceOfY(top + y + 0.5);
-  const BINS = 400, LMAX = 16, hist = new Uint32Array(BINS); let total = 0;
-  for (const c of cols) { const v = c.s.v; for (let k = 0; k < v.length; k++) { const a = v[k] < 0 ? -v[k] : v[k]; if (a > 0) { const b = Math.min(BINS - 1, (Math.log(a + 1) / LMAX * BINS) | 0); hist[b]++; total++; } } }
+  const BINS = 400, LMAX = 16, hist = new Float64Array(BINS); let total = 0;
+  // each column counts by the pixels it covers, so ~1 live sample a second (a few px each) cannot outvote a 5-min archive column
+  // (Owner 2026-11-03: history was hot while the live column was dark blue)
+  for (const c of cols) { const wt = Math.max(1, c.xb - c.xa), v = c.s.v; for (let k = 0; k < v.length; k++) { const a = v[k] < 0 ? -v[k] : v[k]; if (a > 0) { const b = Math.min(BINS - 1, (Math.log(a + 1) / LMAX * BINS) | 0); hist[b] += wt; total += wt; } } }
   let p97 = 1; if (total) { let acc = 0; const want = total * S.cap; for (let b = 0; b < BINS; b++) { acc += hist[b]; if (acc >= want) { p97 = Math.exp((b + 1) / BINS * LMAX) - 1; break; } } }
   // t = ln(1 + size) against ln(1 + 2.5 x p97), then a power > 1 so the many small levels stay in the blues: p97 lands in orange,
   // 2.5 x p97 and above is white. `contrast` (gamma) steepens or flattens it.

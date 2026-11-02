@@ -1899,22 +1899,26 @@ class BookFeed {
     const now = Date.now();
     if (this.remoteFailAt && now - this.remoteFailAt < BOOK_REMOTE_RETRY_MS) return;
     const keep = this.keepMs || BOOK_REMOTE_KEEP_MS;
-    const from = Math.max(Math.floor((now - keep) / 60000) * 60000 + 60000, Math.floor(fromMs / BOOK_REMOTE_ALIGN_MS) * BOOK_REMOTE_ALIGN_MS);
-    if (!(from < this.remoteFrom - 60000)) return;
+    const target = Math.max(Math.floor((now - keep) / 60000) * 60000 + 60000, Math.floor(fromMs / BOOK_REMOTE_ALIGN_MS) * BOOK_REMOTE_ALIGN_MS);
+    if (!(target < this.remoteFrom - 60000)) return;
     const to = Number.isFinite(this.remoteFrom) ? this.remoteFrom : now;
+    const from = Math.max(target, to - 6 * 3600000);   // the Worker answers at most 6 h a read; the next read continues leftwards
     this.remoteBusy = true;
     this.custom.remote(from, Math.ceil(to / 60000) * 60000)
       .then((r) => {
         const got = decodeBookHistory(r.buf);
         if (!got) throw new Error('bad body');
-        if (r.held > 0) this.remoteHeld = r.held;
+        // archive backfill = one snapshot per few minutes: stretch each column to the next sample (at most 5 min)
+        for (let k = 0; k < got.length; k++) got[k].span = k + 1 < got.length ? Math.max(BOOK_REMOTE_SPAN_MS, Math.min(5 * 60000, got[k + 1].ts - got[k].ts)) : BOOK_REMOTE_SPAN_MS * 5;
         const cut = Date.now() - keep, seen = new Set(this.remote.map((x) => x.ts));
         this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).filter((x) => x.ts >= cut).sort((x, y) => x.ts - y.ts);
-        this.remoteFrom = from; this.remoteFailAt = 0; this.remoteState = 'ok';
+        this.remoteFailAt = 0; this.remoteState = 'ok';
+        // the Worker fills its gaps from the archive a slice at a time: ask the SAME range again until nothing is left (the screen fills as it goes)
+        if (r.left > 0 && (this.fillTries = (this.fillTries || 0) + 1) < 40) setTimeout(() => { this.remoteBusy = false; this.needRemoteCustom(fromMs); }, 200);
+        else { this.remoteFrom = from; this.fillTries = 0; this.remoteBusy = false; }
         this.bump();
       })
-      .catch(() => { this.remoteFailAt = Date.now(); if (this.remoteState === 'none') this.remoteState = 'failed'; })
-      .then(() => { this.remoteBusy = false; });
+      .catch(() => { this.remoteFailAt = Date.now(); this.fillTries = 0; this.remoteBusy = false; if (this.remoteState === 'none') this.remoteState = 'failed'; });
   }
   // recorder + local history, merged once per change (not per frame)
   allHistory() {

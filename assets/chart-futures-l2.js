@@ -264,7 +264,7 @@ export function l2Source(root) {
       const base = baseUrl(HOOK);
       const x = await authFetch(base + '/ts-book-history?symbol=' + root + '&from=' + from + '&to=' + to);
       if (!x.ok) throw new Error('HTTP ' + x.status);
-      return { buf: await x.arrayBuffer(), held: 0 };
+      return { buf: await x.arrayBuffer(), held: 0, left: Number(x.headers.get('x-ts-fill-left')) || 0 };
     },
     open(onBook, onStatus, onCoarse) {
       const book = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null, ts: 0 };

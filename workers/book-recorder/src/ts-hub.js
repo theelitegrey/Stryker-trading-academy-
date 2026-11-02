@@ -38,7 +38,7 @@ export const TICK_SIZE = { NQ: 0.25, ES: 0.25 };
 const DEF = {
   SYMBOLS: TS_SYMBOLS, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
   SAMPLE_MS: 5000, BACK_MIN_MS: 2000, BACK_MAX_MS: 60000, STABLE_MS: 30000, DEAD_SLOT_MS: 50000, AUTH_PAUSE_MS: 300000,
-  SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, TICKS_PER_FRAME: 200, PRUNE_MS: 3600000
+  SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, FILL_MAX_MIN: 40, FILL_BUDGET_MS: 25000, FILL_SPAN_H: 6, FILL_STEP: 5, FILL_LAG_MS: 15 * 60000, FILL_PAUSE_MS: 60000, REST: 'https://api.tick-stream.xyz/v1', TICKS_PER_FRAME: 200, PRUNE_MS: 3600000
 };
 export function tsOpts(env) {
   const n = (v, d, lo, hi) => { const x = Math.floor(Number(v)); return Number.isFinite(x) && x >= lo && x <= hi ? x : d; };
@@ -351,6 +351,59 @@ export class TSHub {
     if (a) for (const s of a.samples) if (s.ts >= from && s.ts <= to) out.push(s);
     return encodeSamples(out);
   }
+  // REST backfill of the recorder's gaps (Owner 2026-11-03: the heatmap must fill the visible screen). Plan realtime-l2 has 5 y of
+  // /history/book. For each minute in [from, to] (<= FILL_SPAN_H) that has NO row in tsmin, ask the archive for ONE full snapshot at
+  // that minute (a 2 s window, limit 900 rows = one 400+400 snapshot), bucket it with the SAME rule as the live recorder, and store it
+  // as that minute's row. A minute with nothing in the archive (market closed) gets an empty row so it is asked once only. Serial, one
+  // run at a time, at most FILL_MAX_MIN minutes / FILL_BUDGET_MS per call; the caller repeats while `left` > 0. Newest first (closest to
+  // what the recorder already has). Minutes newer than FILL_LAG_MS are left to the live recorder. Returns { filled, left }.
+  async backfill(sym, from, to) {
+    const o = this.o, doFetch = o.fetch || ((u, i) => fetch(u, i));
+    if (!this.key || !o.SYMBOLS.includes(sym)) return { filled: 0, left: 0 };
+    const nowMin = Math.floor(this.clock() / 60000), t1 = Math.min(Math.floor(to / 60000), nowMin - Math.ceil(o.FILL_LAG_MS / 60000));
+    const t0 = Math.max(Math.floor(from / 60000), t1 - o.FILL_SPAN_H * 60, nowMin - o.KEEP_H * 60);
+    if (!(t1 > t0)) return { filled: 0, left: 0 };
+    const have = new Set(); for (const r of this.store.range(sym, t0, t1)) have.add(r.t);
+    const a = this.acc.get(sym); if (a) have.add(a.t);
+    const missing = []; for (let t = t1; t >= t0; t--) if (!have.has(t)) missing.push(t);
+    if (!missing.length) return { filled: 0, left: 0 };
+    if (this.filling || this.clock() < (this.fillPause || 0)) return { filled: 0, left: missing.length };
+    this.filling = true;
+    const start = this.clock(); let filled = 0;
+    try {
+      // one snapshot stands for FILL_STEP minutes (the client stretches a column to the next sample, at most FILL_STEP min)
+      const groups = new Map();
+      for (const t of missing) { const g = Math.floor(t / o.FILL_STEP); (groups.get(g) || groups.set(g, []).get(g)).push(t); }
+      for (const [, mins] of groups) {
+        if (filled >= o.FILL_MAX_MIN || this.clock() - start > o.FILL_BUDGET_MS) break;
+        mins.sort((x, y) => x - y);
+        const t = mins[0];
+        let r;
+        try { r = await doFetch(o.REST + '/history/book?symbol=' + sym + '&start=' + t * 60 + '&end=' + (t * 60 + 2) + '&limit=900', { headers: { authorization: 'Bearer ' + this.key } }); }
+        catch (e) { this.fillPause = this.clock() + o.FILL_PAUSE_MS; this.lastError = 'fill fetch'; break; }
+        if (r.status === 429 || r.status >= 500) { this.fillPause = this.clock() + o.FILL_PAUSE_MS; this.lastError = 'fill http ' + r.status; break; }
+        if (r.status === 401 || r.status === 403) { this.fillPause = this.clock() + o.AUTH_PAUSE_MS; this.lastError = 'fill auth'; break; }
+        let j = null; try { j = await r.json(); } catch (e) {}
+        const rows = (j && Array.isArray(j.book) ? j.book : []);
+        let first = null; const bids = [], asks = [];
+        for (const x of rows) {
+          if (first == null) first = x.ts; if (x.ts !== first) break;
+          if (x.flag) { bids.length = 0; asks.length = 0; break; }   // the old incremental tape (before mid-June 2026) is not a snapshot: skip
+          (x.side === 'bid' ? bids : asks).push([Number(x.price), Number(x.size)]);
+        }
+        let book = null;
+        if (bids.length && asks.length) {
+          bids.sort((x, y) => y[0] - x[0]); asks.sort((x, y) => x[0] - y[0]);
+          const mid = (bids[0][0] + asks[0][0]) / 2;
+          const smp = mid > 0 ? bucketSnapshot({ bids, asks }, Math.floor(first / 1000), coarseRule(mid)) : null;
+          if (smp && smp.v.length) book = encodeSamples([smp]);
+        }
+        try { for (const m of mins) this.store.putMin(sym, m, m === t ? book : null, null, null); } catch (e) { this.lastError = 'store failed'; break; }
+        filled += mins.length; if (book) this.n.filled = (this.n.filled || 0) + 1;
+      }
+    } finally { this.filling = false; }
+    return { filled, left: Math.max(0, missing.length - filled) };
+  }
   // { imb: [[t_s, vendor, ours]..], fp: [{ t, o, h, l, c, lv }..] } between from..to (ms), at most 6 h
   aux(sym, from, to) {
     const t1 = Math.floor(to / 60000), t0 = Math.max(Math.floor(from / 60000), t1 - 360);
@@ -388,7 +441,10 @@ export async function tsHubFetch(hub, env, u, req) {
     if (!hub.o.SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 404 });
     const now = Date.now(), to = Math.min(now + 60000, Number(u.searchParams.get('to')) || now), from = Math.max(to - hub.o.KEEP_H * 3600000, Number(u.searchParams.get('from')) || to - 3600000);
     if (u.pathname === '/ts-aux') return Response.json(hub.aux(sym, from, to));
-    return new Response(hub.bookHistory(sym, from, to), { headers: { 'content-type': 'application/octet-stream' } });
+    if (!hub.key && hub.o.MODE === 'direct') hub.key = env.TICKSTREAM_API_KEY || '';
+    // fill the recorder's gaps from the archive first (bounded per call); the client repeats while x-ts-fill-left > 0
+    let left = 0; if (u.searchParams.get('fill') !== '0') { try { left = (await hub.backfill(sym, from, to)).left; } catch (e) { hub.lastError = 'fill failed'; } }
+    return new Response(hub.bookHistory(sym, from, to), { headers: { 'content-type': 'application/octet-stream', 'x-ts-fill-left': String(left) } });
   }
   if (req.headers.get('upgrade') !== 'websocket') return new Response('websocket required', { status: 426 });
   if (hub.o.MODE === 'direct' && !hub.key) return new Response('feed not configured', { status: 503 });

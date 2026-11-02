@@ -787,7 +787,7 @@ async function route(req, env, ctx) {
       if (!ws) { const rl = await env.RL_OF.limit({ key: 'ts:' + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }
       const r = await stub(env).fetch(new Request('https://do' + u.pathname + u.search, req));
       if (ws) return r;
-      return new Response(r.body, { status: r.status, headers: Object.assign({ 'cache-control': 'private, no-store', 'content-type': r.headers.get('content-type') || 'application/json' }, h) });
+      return new Response(r.body, { status: r.status, headers: Object.assign({ 'cache-control': 'private, no-store', 'content-type': r.headers.get('content-type') || 'application/json', 'x-ts-fill-left': r.headers.get('x-ts-fill-left') || '0', 'access-control-expose-headers': 'x-ts-fill-left' }, h) });
     }
     // GET /ts-health: counts and states only (no data, no secrets), for the CoS and the smoke test
     if (u.pathname === '/ts-health') {

@@ -112,6 +112,45 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   hub.shutdown(); ok('1m candle buffer: late viewer is back-filled, no duplicate ticks');
 }
 
+// ---- archive backfill: gaps filled once, bucketed like the recorder, serial, errors pause
+{
+  const base = Date.now() - 3 * 3600000, calls = [];
+  const snap = (t0) => { const rows = []; for (let i = 0; i < 400; i++) { rows.push({ ts: t0 * 1e6, side: 'bid', level: i + 1, price: 28700 - i * 0.25, size: 5 + (i % 9), flag: 0 }); rows.push({ ts: t0 * 1e6, side: 'ask', level: i + 1, price: 28700.25 + i * 0.25, size: 6 + (i % 7), flag: 0 }); } return rows; };
+  let inflight = 0, maxIn = 0, mode = 'ok';
+  const fetchFake = async (url, init) => {
+    inflight++; maxIn = Math.max(maxIn, inflight); calls.push(url); await sleep(3); inflight--;
+    assert.match(init.headers.authorization, /^Bearer SECRETKEY$/);
+    if (mode === '429') return { status: 429, json: async () => ({}) };
+    const t0 = Number(/start=(\d+)/.exec(url)[1]);
+    return { status: 200, json: async () => ({ book: snap(t0) }) };
+  };
+  const store = memStore(); const { hub } = mk({ RECORD: false, fetch: fetchFake, FILL_MAX_MIN: 100, FILL_BUDGET_MS: 5000 }, store);
+  hub.clock = () => Date.now();
+  const from = base, to = base + 60 * 60000;
+  const r1 = await hub.backfill('NQ', from, to);
+  assert.equal(r1.left, 0, 'one hour filled in one call'); assert.ok(r1.filled >= 55);
+  assert.ok(calls.length >= 11 && calls.length <= 14, 'one request per 5 minutes: ' + calls.length);
+  assert.equal(maxIn, 1, 'serial');
+  assert.ok(calls.every((u) => /history\/book\?symbol=NQ&start=\d+&end=\d+&limit=900$/.test(u)) && !calls.some((u) => /SECRETKEY/.test(u)), 'key only in the header');
+  const n = calls.length; const r2 = await hub.backfill('NQ', from, to); assert.equal(calls.length, n, 'nothing refetched'); assert.equal(r2.filled, 0);
+  const rows = store.range('NQ', Math.floor(from / 60000), Math.floor(to / 60000)).filter((x) => x.book);
+  const list = decodeSamples(new Uint8Array(rows[0].book).buffer);
+  const want = bucketSnapshot({ bids: snap(1).filter((x) => x.side === 'bid').map((x) => [x.price, x.size]), asks: snap(1).filter((x) => x.side === 'ask').map((x) => [x.price, x.size]) }, 0, coarseRule(28700.125));
+  assert.equal(list[0].step, want.step); assert.equal(list[0].i0, want.i0); assert.deepEqual(Array.from(list[0].v), Array.from(want.v), 'same bucket rule as the live recorder');
+  const bh = decodeSamples(hub.bookHistory('NQ', from, to)); assert.ok(bh.length >= 11, 'served through bookHistory');
+  // budget: a small cap leaves the rest for the next call
+  const s2 = memStore(); const h2 = mk({ RECORD: false, fetch: fetchFake, FILL_MAX_MIN: 10 }, s2).hub; h2.clock = () => Date.now();
+  const q1 = await h2.backfill('NQ', from, to); assert.ok(q1.left > 0 && q1.filled <= 14); const q2 = await h2.backfill('NQ', from, to); assert.ok(q2.left < q1.left);
+  // 429 pauses, no hammering
+  const s3 = memStore(); const h3 = mk({ RECORD: false, fetch: fetchFake }, s3).hub; h3.clock = () => Date.now(); mode = '429'; const c0 = calls.length;
+  const z1 = await h3.backfill('NQ', from, to); const z2 = await h3.backfill('NQ', from, to); assert.equal(calls.length - c0, 1, 'one failed request then a pause'); assert.equal(z1.filled, 0); assert.ok(z2.left > 0);
+  // the closed market (empty answer) is stored as an empty row, asked once
+  mode = 'ok'; const s4 = memStore(); const emptyFetch = async (u) => { calls.push(u); return { status: 200, json: async () => ({ book: [] }) }; };
+  const h4 = mk({ RECORD: false, fetch: emptyFetch }, s4).hub; h4.clock = () => Date.now(); await h4.backfill('NQ', from, from + 20 * 60000); const c1 = calls.length; await h4.backfill('NQ', from, from + 20 * 60000); assert.equal(calls.length, c1, 'empty minutes are not asked twice');
+  hub.shutdown(); h2.shutdown(); h3.shutdown(); h4.shutdown();
+  ok('archive backfill: gaps only, once, serial, same bucketing, capped, 429 pause, closed-market rows');
+}
+
 // ---- viewer cap
 {
   socks = []; const { hub } = mk({ RECORD: false, MAX_CLIENTS: 2 });

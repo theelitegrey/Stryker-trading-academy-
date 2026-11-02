@@ -141,7 +141,7 @@ export function installDataDot(ws, opts = {}) {
     if (IDX.test(sym)) {
       const now = Date.now(), k = rootOf(sym);
       // Admin: the hub's quote frames are moving the current candle (chart-futures-l2.js sets __stkL2Live).
-      if (window.__stkL2Live && window.__stkL2Live.has(k)) return { s: 'rt', text: 'Live data from the Tick-stream feed', tag: 'Live' };
+      if (window.__stkL2Live && window.__stkL2Live.has(k)) return { s: 'rt', text: 'Live data (L2 feed)', tag: 'Live' };
       if (!idxOpen(now)) {
         const n = nextOpen(now, 'idx');
         return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };

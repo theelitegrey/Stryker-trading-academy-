@@ -10865,14 +10865,6 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 /* ============ FUTURES L2 (assets/chart-futures-l2.js): status badge + DOM ladder panel ============
    Admin-only until the Tick-stream licence flag flips. Tokens only (design standard); the ladder lists scroll with the
    shared thin scrollbar (global block). Phones: the ladder is a bottom sheet (grabber, title left, round x). */
-.stkl2-badge{
-  position:absolute; left:12px; bottom:48px; z-index:28; display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 12px;
-  border-radius:999px; background:var(--bg-1); border:1px solid var(--line-soft); color:var(--ink-1); font:500 12px/16px var(--font-sans, -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Segoe UI", system-ui, sans-serif);
-  pointer-events:none; white-space:nowrap;
-}
-.stkl2-badge[hidden]{ display:none; }
-.stkl2-badge .stkl2-age{ color:var(--ink-2); }
-.stkl2-badge .stkl2-age:empty{ display:none; }
 .stkl2-dot{ width:8px; height:8px; border-radius:50%; background:var(--ink-3); flex:none; }
 .is-live .stkl2-dot{ background:var(--gold); animation:stkl2-pulse 1.6s cubic-bezier(.2,0,0,1) infinite; }
 .is-wait .stkl2-dot{ background:#e0a526; }
@@ -10933,7 +10925,42 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
   .stkl2-close{ width:44px; height:44px; background:var(--bg-3); }
   .stkl2-row{ height:28px; font-size:13px; } .stkl2-cols{ height:28px; }
   .stkl2-foot{ padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
-  .stkl2-badge{ bottom:56px; left:8px; }
 }
+/* ============ DATA FEED BADGES (assets/chart-feeds.js): L1 · L2 · L3 chips + detail sheet + locked note ============ */
+.stkfeeds{ position:absolute; left:12px; bottom:48px; z-index:28; display:inline-flex; gap:4px; }
+.stkfeeds[hidden], .stkfeed-sheet[hidden], .stkfeed-note[hidden]{ display:none; }
+.stkfeed{ display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 10px; border-radius:999px; background:var(--bg-1); border:1px solid var(--line-soft);
+  color:var(--ink-3); font:600 12px/16px var(--font-sans, -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Segoe UI", system-ui, sans-serif); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.stkfeed:hover{ border-color:var(--ink-3); }
+.stkfeed:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+.stkfeed-dot{ width:8px; height:8px; border-radius:50%; background:transparent; border:1.5px solid var(--ink-3); flex:none; box-sizing:border-box; }
+.stkfeed.is-lit{ color:var(--ink-1); }
+.stkfeed.is-lit .stkfeed-dot{ background:var(--gold); border-color:var(--gold); animation:stkl2-pulse 1.6s cubic-bezier(.2,0,0,1) infinite; }
+.stkfeeds.is-wait .stkfeed.is-lit .stkfeed-dot{ background:#e0a526; border-color:#e0a526; animation:none; }
+.stkfeed.is-locked{ color:var(--ink-2); border-style:dashed; }
+.stkfeed.is-locked .stkfeed-dot{ display:none; }
+.stkfeed.on{ border-color:var(--ink-2); }
+.stkfeed-sheet{ position:absolute; left:12px; bottom:84px; z-index:30; width:300px; max-width:calc(100% - 24px); max-height:60%; overflow:auto; padding:12px 16px 16px;
+  background:var(--bg-1); border:1px solid var(--line-soft); border-radius:16px; box-shadow:0 8px 28px rgba(0,0,0,.35); color:var(--ink-1); font-size:13px; line-height:18px; }
+.stkfeed-sheet p{ margin:0 0 8px; color:var(--ink-2); }
+.stkfeed-sheet h4{ margin:12px 0 4px; font:600 11px/16px var(--font-sans, system-ui); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); }
+.stkfeed-sheet ul{ margin:0; padding:0 0 0 16px; } .stkfeed-sheet li{ margin:2px 0; }
+.stkfeed-hd{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
+.stkfeed-x{ width:44px; height:44px; margin:-10px -12px -10px 0; border:0; border-radius:50%; background:none; color:var(--ink-2); font-size:22px; cursor:pointer; }
+.stkfeed-mute{ color:var(--ink-3) !important; }
+.stkfeed-unlock{ margin-top:12px; height:44px; padding:0 20px; border:0; border-radius:999px; background:var(--gold); color:#04120d; font:600 14px/20px var(--font-sans, system-ui); cursor:pointer; }
+.stkfeed-note{ position:absolute; left:12px; bottom:84px; z-index:27; max-width:min(360px, calc(100% - 24px)); display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; padding:8px 12px;
+  background:var(--bg-1); border:1px solid var(--line-soft); border-radius:12px; color:var(--ink-1); font-size:12px; line-height:16px; }
+.stkfeed-note em{ font-style:normal; color:var(--ink-3); flex-basis:100%; }
+.stkfeed-note .stkfeed-unlock{ margin:0; height:36px; padding:0 16px; font-size:13px; }
+@media (min-width:701px){ .stkfeeds{ left:52px; } .stkfeed-sheet, .stkfeed-note{ left:52px; } }
+@media (max-width:700px){
+  .stkfeeds{ left:8px; bottom:56px; }
+  .stkfeed{ height:32px; padding:0 10px; }
+  .stkfeed-sheet{ left:8px; right:8px; width:auto; max-width:none; bottom:96px; }
+  .stkfeed-note{ left:8px; right:8px; max-width:none; bottom:96px; }
+  .stkfeeds.is-up{ bottom:100px; } .stkfeed-sheet.is-up, .stkfeed-note.is-up{ bottom:140px; }
+}
+@media (prefers-reduced-motion:reduce){ .stkfeed.is-lit .stkfeed-dot{ animation:none } }
 @keyframes stkl2-up{ from{ transform:translateY(24px); opacity:0 } to{ transform:none; opacity:1 } }
 @media (prefers-reduced-motion:reduce){ .stkl2{ animation:none } }

@@ -2182,10 +2182,13 @@ function cryptoDomLayer() {
 
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
 
+      if (!cfg.bm) { try { const bd = canvas.nextElementSibling; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} }
       // ---- Bookmap look (futures L2): dark field, one band per price row, continuous columns, ramp on log(size) ----
       if (cfg.bm) {
         // the field is opaque, so it must sit UNDER the candles: the first canvas of the plot (background / grid and candles draw above it)
         try { const par = canvas.parentElement; if (par && par.firstElementChild !== canvas && !canvas.__stkBmUnder) { par.insertBefore(canvas, par.firstElementChild); canvas.__stkBmUnder = true; } } catch (e) {}
+        // the grid (backdrop canvas, drawn above this field) is dimmed while the heatmap is on, in this chart only
+        try { const bd = canvas.nextElementSibling; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0.22') { bd.style.opacity = '0.22'; bd.__stkGridDim = true; } } catch (e) {}
         g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
         const bmv = { look: cfg.look, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
           priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
@@ -2459,7 +2462,7 @@ function cryptoDomLayer() {
       stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = 0;
       domLast = stat;
     },
-    destroy() { canvas = null; }
+    destroy() { try { const bd = canvas && canvas.nextElementSibling; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} canvas = null; }
   };
 }
 // Hiding the indicator (eye) keeps the feed open, so the page keeps recording; only removing

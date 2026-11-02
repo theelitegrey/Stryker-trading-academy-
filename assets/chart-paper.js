@@ -682,7 +682,7 @@ function layerFactory(){
         // before any write, so this costs one layout per frame at most.
         let nUp = 0, nDn = 0;
         // pinned chips start below the chart legend (and the one-click box on phones), never on top of it
-        const pinTop = window.innerWidth <= 700 ? 76 : 40;
+        const pinTop = window.innerWidth <= 700 ? 118 : 40;
         const chips = [...overlay.querySelectorAll('.stkpt-chip')];
         const widths = chips.map((c) => c.offsetWidth);
         const placed = [];

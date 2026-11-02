@@ -154,6 +154,21 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth <=
         check(!!o2 && o2.side === 'sell' && o2.type === 'limit' && o2.price > (o1 ? o1.price : 0), tag + ': ask cell -> paper SELL limit', o2);
         check(await p.evaluate(() => document.querySelectorAll('.stkbp-r .chip:not([hidden])').length >= 1), tag + ': working orders shown on the ladder rows');
         await p.screenshot({ path: OUT + '/bp-' + tag + '-btc-dom-paper.png' });
+        // chips on the chart: no overlap between chips, none over the legend; one short toast at a time on the phone
+        const chips = await p.evaluate(() => { const r = [...document.querySelectorAll('.stkpt-chip')].filter((c) => c.style.visibility !== 'hidden').map((c) => c.getBoundingClientRect()); let over = 0; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) if (r[i].left < r[j].right && r[j].left < r[i].right && r[i].top < r[j].bottom && r[j].top < r[i].bottom) over++; const lg = document.querySelector('.stkc-legend, .vela-legend, [class*=legend]'); const lb = lg ? lg.getBoundingClientRect().bottom : 0; return { n: r.length, over, minTop: Math.min(...r.map((x) => x.top)), lb }; });
+        check(chips.n >= 2 && chips.over === 0, tag + ': paper chips do not overlap each other', chips);
+        check(chips.minTop >= chips.lb - 1, tag + ': paper chips stay clear of the legend', chips);
+        if (mobile) {
+          const tt = await p.evaluate(() => { const b = document.getElementById('stkpt-toasts'), s = document.getElementById('stkbp').getBoundingClientRect(); const r = b.getBoundingClientRect(); return { n: b.children.length, txt: b.textContent, bottom: r.bottom, sheetTop: s.top }; });
+          check(tt.n <= 1 && /placed/.test(tt.txt) && tt.bottom <= tt.sheetTop + 1, tag + ': one short toast, above the sheet', tt);
+          await sleep(3000);
+          check(await p.evaluate(() => document.getElementById('stkpt-toasts').children.length) === 0, tag + ': toast auto-hides after 2.5 s');
+        }
+        // drag a chip to another row moves the order
+        const dg = await p.evaluate(() => { const c = document.querySelector('.stkbp-r .chip.buy:not([hidden])'); const rows = [...document.querySelectorAll('.stkbp-list[data-t=dom] .stkbp-r')]; const from = c.closest('.stkbp-r'); const to = rows[rows.indexOf(from) + 2]; const a = c.getBoundingClientRect(), b = to.getBoundingClientRect(); return { oid: +c.dataset.oid, x: a.left + 10, y: a.top + a.height / 2, ty: b.top + b.height / 2, price: +to.dataset.p, old: +from.dataset.p }; });
+        await p.mouse.move(dg.x, dg.y); await p.mouse.down(); await p.mouse.move(dg.x, dg.y + 10, { steps: 3 }); await p.mouse.move(dg.x, dg.ty, { steps: 6 }); await p.mouse.up(); await sleep(700);
+        const mv = await p.evaluate((id) => { const o = window.__stkPaper.account.state.orders.find((x) => x.id === id); return o ? o.price : null; }, dg.oid);
+        check(mv != null && Math.abs(mv - dg.price) < 1e-6 && mv !== dg.old, tag + ': dragging the chip to another row moves the paper order', { mv, want: dg.price, old: dg.old });
         // × cancels
         const n0 = await p.evaluate(() => window.__stkPaper.account.state.orders.length);
         const xp = await p.evaluate(() => { const s = document.querySelector('.stkbp-r .chip:not([hidden]) s'); const r = s.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });

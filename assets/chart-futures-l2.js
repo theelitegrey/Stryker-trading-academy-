@@ -526,7 +526,15 @@ export function mountL2Ladder(ws, opts) {
   panel.append(grab, head, stat, cols, list, foot); host.appendChild(panel);
   const barR = document.querySelector('#stkc-bar .stkc-bar-r'); if (barR) barR.insertBefore(phoneBtn, barR.firstChild);
   let levels = 60;
-  const activeRoot = () => { try { const m = /^futures:(.+)$/i.exec(ws.active.symbol || ''); return m ? l2Root(m[1]) : null; } catch (e) { return null; } };
+  // Same resolution as the indicator (marketOf): data.resolve() of the active cell, then any prefix / 1! / contract month.
+  const activeRoot = () => {
+    try {
+      const sym = String(ws.active.symbol || ''); let prov = '', t = sym;
+      try { const r = ws.cell(ws.active.id).data.resolve(sym); if (r) { prov = r.provider; t = r.ticker; } } catch (e) {}
+      if (prov && !/^(futures|rith|rithmic)/i.test(prov)) return null;
+      return l2Root(t) || l2Root(String(t).toUpperCase().replace(/^[A-Z_]+:/, '').replace(/[FGHJKMNQUVXZ]\d{1,4}$/, ''));
+    } catch (e) { return null; }
+  };
   function paint() {
     raf = 0;
     if (!open) return;

@@ -1,0 +1,55 @@
+<!doctype html><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1200px;height:630px;overflow:hidden;background:#05070d;font-family:Inter,"Helvetica Neue",Arial,sans-serif;color:#fff;position:relative}
+.glow{position:absolute;inset:0;background:radial-gradient(620px 420px at 82% 48%,rgba(3,201,136,.22),transparent 70%),radial-gradient(500px 300px at 8% 105%,rgba(0,173,181,.14),transparent 70%)}
+.logo{position:absolute;left:50px;top:22px;width:210px;height:138px;object-fit:contain;filter:drop-shadow(0 0 18px rgba(3,201,136,.35))}
+h1{position:absolute;left:64px;top:182px;font-size:72px;line-height:78px;font-weight:800;letter-spacing:-2px}
+h1 em{font-style:normal;background:linear-gradient(90deg,#4fe3ac,#03c988);-webkit-background-clip:text;color:transparent}
+.sub{position:absolute;left:66px;top:430px;font-size:21px;color:#aab4c3;font-weight:500;white-space:nowrap}
+.pill{position:absolute;left:66px;top:500px;padding:11px 24px;border-radius:99px;border:1.5px solid rgba(79,227,172,.55);background:rgba(3,201,136,.12);color:#4fe3ac;font-size:22px;font-weight:700}
+.stage{position:absolute;left:560px;top:0;width:640px;height:630px;perspective:1600px;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 90px);mask-image:linear-gradient(90deg,transparent 0,#000 90px)}
+.card{position:absolute;left:36px;top:95px;width:640px;height:440px;transform:rotateY(-14deg) rotateX(5deg) rotateZ(1deg);transform-origin:left center;
+ background:#000;border:1.5px solid rgba(255,255,255,.14);border-radius:18px;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.7),0 0 70px rgba(3,201,136,.22)}
+.bar{height:34px;background:#0a0e15;border-bottom:1px solid #1b222d;display:flex;align-items:center;gap:7px;padding:0 14px;font-size:12px;color:#7d8896}
+.bar i{width:9px;height:9px;border-radius:50%;background:#2a3340}
+.bar b{margin-left:10px;color:#cfd6e0;font-weight:600}
+svg{display:block}
+</style>
+<div class="glow"></div>
+<img class="logo" src="../../assets/images/logo-full.png">
+<h1>Pro trading<br>tools.<br><em>Free to start.</em></h1>
+<div class="sub">Charts · Order flow · GEX+ · Heatmap · Screener</div>
+<div class="pill">tradezoro.com</div>
+<div class="stage"><div class="card"><div class="bar"><i></i><i></i><i></i><b>Chart · Heatmap · GEX</b></div>
+<svg id="c" width="640" height="406" viewBox="0 0 640 406"></svg></div></div>
+<script>
+let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+const W=760,H=406,CW=470,N=30,T0=14,bot=392,P=y=>T0+(1-y)*(bot-T0);
+let o='<rect width="640" height="406" fill="#000"/>';
+// heatmap band
+const heat=v=>v<.5?`rgba(0,${Math.round(90+v*200)},${Math.round(110+v*60)},${v*.5})`:v<.8?`rgba(${Math.round((v-.5)*600)},${Math.round(200)},${Math.round(160-(v-.5)*300)},${.4+v*.4})`:`rgba(255,${Math.round(230-(v-.8)*600)},60,.95)`;
+const cols=60,rows=44,cw=CW/cols,rh=(bot-T0)/rows;
+// price path
+let p=.5,path=[];for(let i=0;i<N;i++){p+= (r()-.47)*.12;p=Math.max(.2,Math.min(.85,p));path.push(p)}
+for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){const y=1-j/rows,pc=path[Math.min(N-1,Math.floor(i/cols*N))];
+ let v=Math.exp(-Math.pow((y-pc)*9,2))*.35*r()+ (r()<.03?r()*.5:0);
+ [.68,.31].forEach(l=>{v+=Math.exp(-Math.pow((y-l)*40,2))*(.5+.4*Math.sin(i/9+l*9))});
+ v=Math.min(1,v);if(v>.06)o+=`<rect x="${i*cw}" y="${T0+j*rh}" width="${cw+.5}" height="${rh+.5}" fill="${heat(v)}"/>`}
+// candles
+let prev=path[0];const bw=CW/N;
+for(let i=0;i<N;i++){const c=path[i],op=prev,hi=Math.max(c,op)+r()*.03,lo=Math.min(c,op)-r()*.03,up=c>=op,col=up?'#03c988':'#e5484d';prev=c;
+ const x=i*bw+bw/2;o+=`<line x1="${x}" x2="${x}" y1="${P(hi)}" y2="${P(lo)}" stroke="${col}" stroke-width="1.6"/><rect x="${x-bw*.32}" y="${P(Math.max(c,op))}" width="${bw*.64}" height="${Math.max(2,Math.abs(P(c)-P(op)))}" fill="${col}"/>`}
+// GEX lines
+const gl=(y,t,c,d)=>`<line x1="0" x2="${CW}" y1="${P(y)}" y2="${P(y)}" stroke="${c}" stroke-width="2" ${d?'stroke-dasharray="8 6"':''}/><rect x="${CW-104}" y="${P(y)-26}" width="104" height="22" rx="5" fill="#000" stroke="${c}"/><text x="${CW-52}" y="${P(y)-10}" font-size="13" font-weight="700" fill="${c}" text-anchor="middle" font-family="Inter,Arial">${t}</text>`;
+o+=gl(.8,'Call wall','#4fe3ac')+gl(.5,'Zero gamma','#f5c542',1);
+// price axis ticks (plain ticks)
+for(let k=0;k<7;k++){const y=T0+k*(bot-T0)/6;o+=`<text x="${CW+6}" y="${y+4}" font-size="11" fill="#6b7685" font-family="Inter,Arial">${(5400-k*10)}</text>`}
+// DOM ladder
+const lx=CW+44,lw=96;o+=`<rect x="${lx}" y="${T0}" width="${lw}" height="${bot-T0}" fill="#06090f"/>`;
+const lr=26,lh=(bot-T0)/lr;for(let j=0;j<lr;j++){const a=j<lr/2,v=.25+r()*.75*(1-Math.abs(j-lr/2)/lr*1.2),w=v*(lw-8),col=a?'#e5484d':'#03c988';
+ o+=`<rect x="${lx+(a?lw-4-w:4)}" y="${T0+j*lh+1}" width="${w}" height="${lh-2}" fill="${col}" opacity=".85" rx="2"/>`}
+o+=`<line x1="${lx}" x2="${lx}" y1="${T0}" y2="${bot}" stroke="#1b222d"/>`;
+document.getElementById('c').innerHTML=o;
+</script>

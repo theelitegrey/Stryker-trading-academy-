@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="816">
+<meta name="stryker-build" content="820">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Partner programme — TradeZoro</title>
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=816">
-<link rel="stylesheet" href="assets/partner.css?v=816">
-<script src="assets/sanitize.js?v=816"></script>
+<link rel="stylesheet" href="assets/style.css?v=820">
+<link rel="stylesheet" href="assets/partner.css?v=820">
+<script src="assets/sanitize.js?v=820"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -55,16 +55,17 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="assets/toast.js?v=816" defer></script>
-<script src="assets/version-check.js?v=816" defer></script>
-<script src="assets/acquisition.js?v=816" defer></script>
-<script src="assets/focus-mode.js?v=816" defer></script>
+<script src="assets/toast.js?v=820" defer></script>
+<script src="assets/version-check.js?v=820" defer></script>
+<script src="assets/cookie-notice.js?v=820" defer></script>
+<script src="assets/acquisition.js?v=820" defer></script>
+<script src="assets/focus-mode.js?v=820" defer></script>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=816">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=816">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=816">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=816">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=816">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=820">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=820">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=820">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=820">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=820">
 <script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
@@ -77,7 +78,7 @@
   <a class="appnav-dk" data-nav="learn" href="courses"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg></span><span class="appnav-dkl">Learn</span></a>
   <button type="button" class="appnav-dk appnav-more" data-nav="more" id="appnav-more" aria-haspopup="dialog" aria-expanded="false" aria-controls="appnav-sheet"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="appnav-dkl">More</span></button>
 </nav>
-<script src="assets/app-nav.js?v=816"></script>
+<script src="assets/app-nav.js?v=820"></script>
 
 <div class="access-gate-overlay" id="access-gate-overlay">
   <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
@@ -139,12 +140,9 @@
   </aside>
   
 
-  <main class="dash-main" id="main" tabindex="-1">
-    <div class="dash-topbar">
-      <div>
-        <h1>Partner programme</h1>
-        <p>Share TradeZoro with your audience and use Pro for free while you are a partner.</p>
-      </div>
+  <main class="dash-main pv" id="main" tabindex="-1">
+    <div class="dash-topbar" id="pt-topbar">
+      <div><h1>Partner programme</h1></div>
       <span class="pt-badge" id="pt-badge" hidden></span>
     </div>
 
@@ -153,24 +151,111 @@
 
     <!-- State A: not applied -->
     <section id="pt-apply" hidden>
-      <div class="panel pt-hero">
-        <h2>Become a TradeZoro Partner, get Pro free</h2>
-        <p>If you post about trading and markets to an audience, apply below. Once you are approved, Pro is free for as long as you stay a partner.</p>
+      <!-- 1 HERO -->
+      <div class="pv-hero">
+        <div class="pv-hero-copy">
+          <span class="pv-eyebrow">Partner programme</span>
+          <h1 class="pv-h1">Grow with TradeZoro. Get Pro free.</h1>
+          <p class="pv-sub">Share TradeZoro with your audience and use every Pro tool free for as long as you're a partner.</p>
+          <div class="pv-cta">
+            <a class="btn btn-primary" href="#pt-form" id="pv-apply-link">Apply now</a>
+            <a class="btn btn-secondary" href="#pv-terms" id="pv-terms-link">See the terms</a>
+          </div>
+        </div>
+        <div class="pv-hero-vis" aria-hidden="true">
+          <div class="pv-glow"></div>
+          <div class="pv-profile">
+            <div class="pv-prof-top">
+              <span class="pv-av" id="pv-av">Y</span>
+              <div class="pv-prof-id"><span class="pv-prof-name" id="pv-name">Your name</span><span class="pv-pbadge"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.4 2.4 4.6-5"/></svg>Partner</span></div>
+            </div>
+            <p class="pv-bio">Markets, charts and study notes.<br><mark class="pv-bio-hl" data-bio></mark></p>
+            <div class="pv-tiles"><span></span><span></span><span></span></div>
+          </div>
+        </div>
       </div>
-      <div id="pt-terms"></div>
-      <form class="panel" id="pt-form" novalidate>
-        <div class="panel-head"><h2>Apply</h2></div>
+
+      <!-- 2 WHAT YOU GET -->
+      <div class="pv-sec">
+        <h2 class="pv-h2">What you get</h2>
+        <div class="pv-cards">
+          <article class="pv-card"><span class="pv-ico"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.4 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg></span><h3>Pro, free</h3><p>Every Pro tool: order flow, GEX+, L2 heatmap and more, for as long as you're a partner.</p></article>
+          <article class="pv-card"><span class="pv-ico"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.6-3 8.2-7 10-4-1.8-7-5.4-7-10V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.6"/></svg></span><h3>Partner badge</h3><p>A Partner badge shown on your TradeZoro profile.</p></article>
+          <article class="pv-card"><span class="pv-ico"><svg viewBox="0 0 24 24"><path d="M4 20c0-6 4-10 10-11l3-3 3 3-3 3c-1 6-5 10-11 8z"/><path d="M4 20l3-3M15 9l2 2"/></svg></span><h3>Early access</h3><p>Try new tools before everyone else.</p></article>
+          <article class="pv-card"><span class="pv-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2 2M16.4 16.4l2 2M18.4 5.6l-2 2M7.6 16.4l-2 2"/></svg></span><h3>Get featured</h3><p>A chance to be shared on our socials.</p></article>
+        </div>
+      </div>
+
+      <!-- 3 HOW IT WORKS -->
+      <div class="pv-sec">
+        <h2 class="pv-h2">How it works</h2>
+        <ol class="pv-steps">
+          <li><span class="pv-num">1</span><h3>Apply</h3><p>Takes about 2 minutes.</p></li>
+          <li><span class="pv-num">2</span><h3>We review</h3><p>Usually within a few days.</p></li>
+          <li><span class="pv-num">3</span><h3>Post and keep Pro</h3><p>Add the bio line, post <span data-t="postsPerWeek"></span>× a week and paste your links here each week.</p></li>
+        </ol>
+      </div>
+
+      <!-- 4 WHAT WE ASK -->
+      <div class="pv-sec" id="pv-terms">
+        <h2 class="pv-h2">What we ask</h2>
+        <ul class="pv-ask">
+          <li><span class="pv-tick"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.4 2.4 4.6-5"/></svg></span><div><strong>Keep the bio line</strong><span>"<span data-bio></span>" and the <span data-t="link"></span> link stay in the bio of your main platform.</span></div></li>
+          <li><span class="pv-tick"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.4 2.4 4.6-5"/></svg></span><div><strong><span data-t="postsPerWeek"></span> posts a week, tagging <span data-t="handle"></span></strong><span>Posts, reels, videos or threads. Stories don't count.</span></div></li>
+          <li><span class="pv-tick"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.4 2.4 4.6-5"/></svg></span><div><strong>Label them <span data-t="tags"></span></strong><span>So your audience knows it's a partner post.</span></div></li>
+          <li><span class="pv-tick"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.4 2.4 4.6-5"/></svg></span><div><strong>No profit or win-rate claims</strong><span>Keep it about learning. No financial advice, no "guaranteed", no fake reviews.</span></div></li>
+          <li><span class="pv-tick"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.4 2.4 4.6-5"/></svg></span><div><strong>Keep posts up for <span data-t="keepPostsDays"></span> days</strong><span>Don't delete a partner post in its first month.</span></div></li>
+        </ul>
+        <p class="pv-fine">Missed a week? You get a reminder. <button type="button" class="pt-linkbtn" id="pt-open-terms-2">Read the full terms</button></p>
+      </div>
+
+      <!-- 5 CREATOR KIT -->
+      <div class="pv-sec">
+        <h2 class="pv-h2">Creator kit</h2>
+        <div class="pv-kit">
+          <div class="pv-kit-main">
+            <span class="pv-label">Your bio line</span>
+            <button type="button" class="pv-copyrow" data-copy-bio aria-label="Copy the bio line"><code data-bio-link></code><span class="pv-copytag">Copy</span></button>
+            <span class="pv-label">Caption ideas</span>
+            <ul class="pv-caps" id="pv-caps"></ul>
+            <span class="pv-label">Post ideas</span>
+            <div class="pv-chips"><span>Show a chart walkthrough</span><span>Screener find of the day</span><span>GEX levels before the open</span></div>
+          </div>
+          <div class="pv-kit-logos">
+            <span class="pv-label">Logos</span>
+            <a class="pv-logo" href="assets/images/tradezoro-logo-emblem-494.png" download><span class="pv-logo-img"><img src="assets/images/tradezoro-tzmark-1014-144.webp" alt="" width="40" height="40" loading="lazy"></span><span class="pv-logo-t"><strong>Emblem</strong><span>PNG · download</span></span></a>
+            <a class="pv-logo" href="assets/images/tradezoro-logo-full-494.png" download><span class="pv-logo-img"><img src="assets/images/tradezoro-wordmark-1014-144.webp" alt="" width="94" height="22" loading="lazy"></span><span class="pv-logo-t"><strong>Full logo</strong><span>PNG · download</span></span></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 WHO CAN APPLY -->
+      <div class="pv-sec">
+        <h2 class="pv-h2">Who can apply</h2>
+        <div class="pv-pills"><span><span data-t="minFollowersPlus"></span> followers</span><span>Trading or markets content</span><span>Account <span data-t="minAccountMonths"></span>+ months old</span></div>
+        <div class="pv-plats" aria-label="Platforms"><span class="pv-plat" id="pv-plats"></span></div>
+      </div>
+
+      <!-- 7 FAQ -->
+      <div class="pv-sec">
+        <h2 class="pv-h2">Questions</h2>
+        <div class="pv-faq" id="pv-faq"></div>
+      </div>
+
+      <!-- 8 FORM -->
+      <form class="pv-form" id="pt-form" novalidate>
+        <div class="pv-form-head"><span class="pv-step">Apply</span><span class="pv-dotsep"></span><span class="pv-form-time">Takes about 2 minutes</span></div>
         <div class="pt-grid">
-          <label class="tz-field"><span class="tz-label">Main platform</span>
-            <select class="tz-select" id="pt-platform" required></select></label>
+          <div class="tz-field pt-wide"><span class="tz-label" id="pt-platform-l">Main platform</span>
+            <div class="pv-seg" id="pt-platform" role="radiogroup" aria-labelledby="pt-platform-l"></div></div>
           <label class="tz-field"><span class="tz-label">Your handle</span>
             <input class="tz-input" id="pt-handle" type="text" maxlength="60" autocomplete="off" placeholder="@yourname" required></label>
-          <label class="tz-field pt-wide"><span class="tz-label">Link to your profile</span>
-            <input class="tz-input" id="pt-profile" type="url" inputmode="url" autocomplete="off" placeholder="https://" required>
-            <small class="tz-help">Your account must be public.</small></label>
           <label class="tz-field"><span class="tz-label">Followers</span>
             <input class="tz-input" id="pt-followers" type="number" min="0" step="1" inputmode="numeric" required>
             <small class="tz-help" id="pt-followers-help"></small></label>
+          <label class="tz-field pt-wide"><span class="tz-label">Link to your profile</span>
+            <input class="tz-input" id="pt-profile" type="url" inputmode="url" autocomplete="off" placeholder="https://" required>
+            <small class="tz-help">Your account must be public.</small></label>
           <div class="pt-wide pt-posts">
             <span class="tz-label">Links to 3 recent posts about trading or markets</span>
             <input class="tz-input" id="pt-post-0" type="url" inputmode="url" placeholder="https://" aria-label="Post link 1" required>
@@ -184,14 +269,21 @@
         <label class="pt-agree"><input class="tz-check" type="checkbox" id="pt-agree"><span>I agree to the <button type="button" class="pt-linkbtn" id="pt-open-terms">Partner terms</button></span></label>
         <div class="auth-error" id="pt-form-error" role="alert"></div>
         <div class="pt-actions"><button type="submit" class="btn btn-primary" id="pt-submit">Send application</button></div>
+        <p class="pv-fine">Education only. Not financial advice.</p>
       </form>
+      <div class="pv-sticky" id="pv-sticky"><a class="btn btn-primary" href="#pt-form">Apply now</a></div>
     </section>
 
     <!-- State B: pending / rejected / ended -->
     <section id="pt-status" hidden>
-      <div class="panel">
-        <div class="panel-head"><h2 id="pt-status-title"></h2><span class="pt-badge" id="pt-status-badge"></span></div>
+      <div class="pv-statuscard">
+        <div class="pv-sc-head"><h2 id="pt-status-title"></h2><span class="pt-badge" id="pt-status-badge"></span></div>
         <p class="pt-lead" id="pt-status-text"></p>
+        <ol class="pv-steps pv-steps-sm" id="pv-timeline" hidden>
+          <li class="is-done"><span class="pv-num">✓</span><h3>Applied</h3><p>Your application is in.</p></li>
+          <li class="is-now"><span class="pv-num">2</span><h3>We review</h3><p>Usually within a few days.</p></li>
+          <li><span class="pv-num">3</span><h3>Post and keep Pro</h3><p>Add the bio line and start posting.</p></li>
+        </ol>
         <div class="pt-note" id="pt-status-reason" hidden></div>
         <div class="pt-actions" id="pt-status-actions"></div>
       </div>
@@ -199,24 +291,33 @@
 
     <!-- State C: active / paused -->
     <section id="pt-active" hidden>
-      <div class="panel">
-        <div class="panel-head"><h2 id="pt-active-title">Pro is active</h2><span class="pt-badge" id="pt-active-badge"></span></div>
+      <div class="pv-statuscard pv-hero-status">
+        <div class="pv-glow" aria-hidden="true"></div>
+        <div class="pv-sc-head"><h2 id="pt-active-title">You're a TradeZoro Partner</h2><span class="pt-badge" id="pt-active-badge"></span></div>
         <p class="pt-lead" id="pt-until"></p>
         <div class="pt-note" id="pt-active-reason" hidden></div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h2>This week</h2><span class="pt-meta" id="pt-week-label"></span></div>
-        <ul class="pt-list" id="pt-checklist"></ul>
-        <form id="pt-links-form" novalidate>
-          <label class="tz-field"><span class="tz-label">Paste links to this week's posts</span>
-            <textarea class="tz-textarea" id="pt-links" rows="3" placeholder="One link per line, https only"></textarea>
-            <small class="tz-help">Posts, reels, videos or threads. Stories don't count.</small></label>
-          <div class="auth-error" id="pt-links-error" role="alert"></div>
-          <div class="pt-actions"><button type="submit" class="btn btn-primary" id="pt-links-btn">Add links</button></div>
-        </form>
+      <div class="pv-grid2">
+        <div class="pv-panel">
+          <div class="pv-ph"><h2>This week</h2><span class="pt-meta" id="pt-week-label"></span></div>
+          <div class="pv-ring-wrap"><div class="pv-ring" id="pv-ring"></div><div class="pv-ring-t"><strong id="pv-ring-n"></strong><span>posts this week</span></div></div>
+          <ul class="pt-list" id="pt-checklist"></ul>
+        </div>
+        <div class="pv-panel">
+          <div class="pv-ph"><h2>Last 8 weeks</h2></div>
+          <div class="pv-weeks" id="pv-weeks"></div>
+          <div class="pv-legend"><span><i class="is-ok"></i>Met</span><span><i class="is-part"></i>Partial</span><span><i></i>None</span></div>
+          <form id="pt-links-form" novalidate>
+            <label class="tz-field"><span class="tz-label">Paste links to this week's posts</span>
+              <textarea class="tz-textarea" id="pt-links" rows="3" placeholder="One link per line, https only"></textarea>
+              <small class="tz-help">Posts, reels, videos or threads. Stories don't count.</small></label>
+            <div class="auth-error" id="pt-links-error" role="alert"></div>
+            <div class="pt-actions"><button type="submit" class="btn btn-primary" id="pt-links-btn">Add links</button></div>
+          </form>
+        </div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h2>History</h2></div>
+      <div class="pv-panel">
+        <div class="pv-ph"><h2>History</h2></div>
         <ul class="pt-list" id="pt-history"></ul>
       </div>
       <div id="pt-terms-active"></div>
@@ -238,36 +339,36 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="assets/auth.js?v=816"></script>
-<script src="assets/gate-timeout.js?v=816"></script>
-<script src="assets/progress.js?v=816"></script>
-<script src="assets/presence.js?v=816"></script>
-<script src="assets/messages.js?v=816"></script>
-<script src="assets/messages-badge.js?v=816"></script>
-<script src="assets/gm-badge.js?v=816"></script>
-<script src="assets/activity-log.js?v=816"></script>
-<script src="assets/banned-check.js?v=816"></script>
-<script src="assets/email-verify.js?v=816"></script>
-<script src="assets/notifications.js?v=816"></script>
+<script src="assets/auth.js?v=820"></script>
+<script src="assets/gate-timeout.js?v=820"></script>
+<script src="assets/progress.js?v=820"></script>
+<script src="assets/presence.js?v=820"></script>
+<script src="assets/messages.js?v=820"></script>
+<script src="assets/messages-badge.js?v=820"></script>
+<script src="assets/gm-badge.js?v=820"></script>
+<script src="assets/activity-log.js?v=820"></script>
+<script src="assets/banned-check.js?v=820"></script>
+<script src="assets/email-verify.js?v=820"></script>
+<script src="assets/notifications.js?v=820"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=816"></script>
-<script src="assets/admin-link.js?v=816"></script>
-<script src="assets/profiles-sync.js?v=816"></script>
-<script src="assets/loading-animation.js?v=816"></script>
-<script src="assets/avatars.js?v=816"></script>
-<script src="assets/account-menu.js?v=816"></script>
-<script src="assets/roles.js?v=816"></script>
-<script src="assets/plan-price.js?v=816"></script>
-<script src="assets/plan-modal.js?v=816"></script>
-<script src="assets/trial.js?v=816"></script>
-<script src="assets/plan-guard.js?v=816"></script>
-<script src="assets/maintenance-check.js?v=816"></script>
-<script src="assets/branding.js?v=816"></script>
-<script src="assets/dash-nav.js?v=816"></script>
-<script src="assets/market-hours.js?v=816"></script>
-<script src="assets/partner-terms.js?v=816"></script>
-<script src="assets/tz-form.js?v=816"></script>
-<script src="assets/partner-page.js?v=816"></script>
-<script src="assets/theme.js?v=816"></script>
+<script src="assets/push.js?v=820"></script>
+<script src="assets/admin-link.js?v=820"></script>
+<script src="assets/profiles-sync.js?v=820"></script>
+<script src="assets/loading-animation.js?v=820"></script>
+<script src="assets/avatars.js?v=820"></script>
+<script src="assets/account-menu.js?v=820"></script>
+<script src="assets/roles.js?v=820"></script>
+<script src="assets/plan-price.js?v=820"></script>
+<script src="assets/plan-modal.js?v=820"></script>
+<script src="assets/trial.js?v=820"></script>
+<script src="assets/plan-guard.js?v=820"></script>
+<script src="assets/maintenance-check.js?v=820"></script>
+<script src="assets/branding.js?v=820"></script>
+<script src="assets/dash-nav.js?v=820"></script>
+<script src="assets/market-hours.js?v=820"></script>
+<script src="assets/partner-terms.js?v=820"></script>
+<script src="assets/tz-form.js?v=820"></script>
+<script src="assets/partner-page.js?v=820"></script>
+<script src="assets/theme.js?v=820"></script>
 </body>
 </html>

@@ -152,11 +152,25 @@ const DRAW = {
   }
 };
 
+const FIT = new Set(['stk_renko', 'stk_range', 'stk_linebreak', 'stk_kagi', 'stk_pnf']);
 function typeLayer(id) {
-  let canvas = null;
+  let canvas = null, fitted = false;
   return {
     mount(c) { canvas = c; },
     render(a) {
+      if (a.priceStyle !== id) fitted = false;
+      else { try { window.__stkCT = { id, bars: a.bars }; } catch (e) {} }
+      // Price-based types have far fewer elements than candles: on first paint open them wide enough to read.
+      if (a.priceStyle === id && FIT.has(id) && !fitted && a.bars.length > 3) {
+        fitted = true;
+        try {
+          const co = a.coords, vp = co.getViewport();
+          const want = Math.max(id === 'stk_pnf' ? 16 : 7, Math.min(28, Math.floor((co.width - 70) / (a.bars.length + 6))));
+          const rr = window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.renderer;
+          const ctl = rr && (rr.applyViewport ? rr : rr.renderer);
+          if (ctl && ctl.applyViewport && Math.abs(vp.barSpacing - want) > 1) ctl.applyViewport({ barSpacing: want, rightOffset: Math.max(vp.rightOffset, 4) });
+        } catch (e) {}
+      }
       const f = a.priceStyle === id && a.bars.length ? frame(a, canvas) : null;
       if (!f) { const g = canvas && canvas.getContext('2d'); if (g && a.priceStyle !== id) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, canvas.width, canvas.height); } return; }
       try { DRAW[id](f, a); } finally { f.g.restore(); }

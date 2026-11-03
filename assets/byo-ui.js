@@ -2,6 +2,7 @@
 // Depends on: assets/byo-core.js (SOURCES, connect, forget, onByoChange, statusOf). Mounted by assets/vela-chart.js into
 // the chart toolbar (.stkc-bar-r). Rithmic is listed here and opens its own existing flow (window.STRYKER_RITHMIC.open).
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
+import { pair, loopbackState, HELPER_DOWNLOADS } from './byo-bridge.js?v=842';
 import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=842';
 let CTR = null;   // byo-ctrader.js, loaded with the chart
 const OAUTH = () => import('./byo-oauth.js?v=842');
@@ -87,6 +88,10 @@ const CSS = `
 :root[data-theme="light"] .byo-go.danger{ border-color:#b42318; color:#b42318; }
 .byo-lock{ display:flex; gap:8px; margin:16px 0 0; font:400 13px/18px var(--by-font); color:var(--ink-2,#8b93a0); }
 .byo-lock svg{ flex:none; margin-top:1px; }
+.byo-dl, .byo-dlrow{ display:block; margin:4px 0 0; font:400 12px/16px var(--by-font); color:var(--ink-2,#8b93a0); }
+.byo-dlrow{ margin:0 0 16px; font-size:13px; }
+.byo-steps-l{ margin:0 0 12px; padding-left:20px; font:400 14px/20px var(--by-font); color:var(--ink-1,#c9cdd3); }
+.byo-steps-l li{ margin:0 0 6px; }
 .byo-state{ display:flex; align-items:center; gap:8px; margin:0 0 16px; font:500 15px/20px var(--by-font); }
 .byo-state i{ width:10px; height:10px; border-radius:50%; background:#089981; box-shadow:0 0 0 2px rgba(8,153,129,.25); }
 .byo-state.warn i{ background:#F5A623; box-shadow:0 0 0 2px rgba(245,166,35,.25); }
@@ -170,10 +175,16 @@ export function mountByo(opts = {}) {
   }
   function go(v, src) { view = v; cur = src || null; render(); body.scrollTop = 0; }
 
+  function dl(s, cls) {
+    const u = HELPER_DOWNLOADS[s.id];
+    return u ? el('a', { class: cls + ' byo-link', href: u, rel: 'noopener', text: 'Download helper' }) : el('span', { class: cls, 'data-dl': 'off', text: 'Download helper · not available yet' });
+  }
+
   function rowFor(s) {
     const connected = connectedIds().includes(s.id);
     let b;
     if (s.state === 'rithmic') b = el('button', { type: 'button', class: 'byo-row-b', text: 'Connect', 'aria-label': 'Connect Rithmic', onclick: () => { setOpen(false); try { window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.open && window.STRYKER_RITHMIC.open(); } catch (e) { /* not loaded yet */ } } });
+    else if (s.state === 'ready' && s.bridge) b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Pair', 'aria-label': (connected ? 'Manage ' : 'Pair ') + s.name, onclick: () => go(connected ? 'manage' : 'pair', s) });
     else if (s.state === 'ready' && s.oauth) {
       const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
       b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : s.keyAlt || s.signin ? go('signin', s) : startOauth(s)) });
@@ -182,7 +193,7 @@ export function mountByo(opts = {}) {
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
       logoTile(s),
       el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }), s.relay && s.state === 'ready' ? el('span', { class: 'byo-cv', text: s.noteText }) : null,
-        el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' })]),
+        el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' }), s.bridge ? dl(s, 'byo-dl') : null]),
       b]);
   }
 
@@ -267,6 +278,38 @@ export function mountByo(opts = {}) {
     body.appendChild(el('p', { class: 'byo-note', text: DATA_ONLY }));
   }
 
+  function renderPair(s) {
+    title.textContent = 'Pair ' + s.name; backBtn.hidden = false;
+    body.replaceChildren();
+    const err = el('p', { class: 'byo-err', role: 'alert', hidden: true });
+    const safari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+    body.appendChild(el('p', { class: 'byo-lead', text: s.note }));
+    if (safari) body.appendChild(el('p', { class: 'byo-err', text: 'Safari does not allow this. Use Chrome, Edge or Firefox.' }));
+    body.appendChild(el('ol', { class: 'byo-steps-l' }, [
+      el('li', { text: s.help }),
+      el('li', { text: 'The helper shows an 8-digit code. Type it below.' })]));
+    body.appendChild(dl(s, 'byo-dlrow'));
+    const inp = el('input', { class: 'byo-in', id: 'byo-f-code', type: 'text', inputmode: 'numeric', maxlength: '9', placeholder: '12345678', autocomplete: 'off', 'aria-label': 'Code from the helper' });
+    const form = el('form', { novalidate: true, autocomplete: 'off' }, [err, el('label', { class: 'byo-f' }, [el('span', { text: 'Code from the helper' }), inp])]);
+    const submit = el('button', { type: 'submit', class: 'byo-go', text: 'Pair' });
+    form.append(submit, el('p', { class: 'byo-lock', html: LOCK + '<span>Your browser may ask to allow tradezoro.com to connect to apps on this device. Choose Allow. The helper only listens on this computer.</span>' }), el('p', { class: 'byo-note', text: DATA_ONLY }));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.hidden = true; submit.disabled = true; submit.textContent = 'Pairing…';
+      try {
+        const st = await loopbackState();
+        if (st === 'denied') throw Object.assign(new Error('Allow local access for tradezoro.com in the address-bar lock menu, then try again.'), { code: 'denied' });
+        const r = await pair(s.id, inp.value);
+        await connect(s.id, { token: r.token, port: r.port }); inp.value = ''; go('manage', s);
+      } catch (x) {
+        const c = x && x.code;
+        err.textContent = c === 'unreachable' ? 'Could not reach the helper. Start it first. If your browser asked about local access, choose Allow.' : c === 'bad-code' || c === 'code' ? (x.message || 'That code is not right.') : x && x.message ? x.message : 'Could not pair. Try again.';
+        err.hidden = false;
+      } finally { if (view === 'pair') { submit.disabled = false; submit.textContent = 'Pair'; } }
+    });
+    body.appendChild(form);
+  }
+
   function renderManage(s) {
     title.replaceChildren(logoTile(s), s.name); backBtn.hidden = false;
     body.replaceChildren();
@@ -275,14 +318,14 @@ export function mountByo(opts = {}) {
     const bad = st.status === 'error';
     body.appendChild(el('p', { class: 'byo-state' + (bad ? ' bad' : live ? '' : ' warn'), 'data-state': st.status, html: '<i aria-hidden="true"></i><span></span>' }));
     body.querySelector('.byo-state span').textContent = bad ? (st.msg || 'Connection refused') : live ? 'Connected, live data' : 'Connected, waiting for a chart that uses ' + s.name + (st.msg ? ' · ' + st.msg : '');
-    body.appendChild(el('p', { class: 'byo-lead', text: s.manage ? s.manage : s.id === 'alpaca' || s.id === 'schwab' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
+    body.appendChild(el('p', { class: 'byo-lead', text: s.manage ? s.manage : s.bridge ? 'Open a symbol by typing it like byo:' + (s.id === 'ibkr' ? 'AAPL' : s.id === 'ninja' ? 'ES 12-26' : 'EURUSD') + '. Prices come from ' + s.name + ' on this computer.' : s.id === 'alpaca' || s.id === 'schwab' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
     body.appendChild(el('button', { type: 'button', class: 'byo-go danger', id: 'byo-forget', text: 'Forget this connection', onclick: async () => { await forget(s.id); go('list'); } }));
     body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
     body.querySelector('.byo-lock span').textContent = noteOf(s);
   }
 
   function render() {
-    if (view === 'form' && cur) renderForm(cur); else if (view === 'manage' && cur) renderManage(cur); else if (view === 'signin' && cur) renderSignin(cur); else renderList();
+    if (view === 'pair' && cur) renderPair(cur); else if (view === 'form' && cur) renderForm(cur); else if (view === 'manage' && cur) renderManage(cur); else if (view === 'signin' && cur) renderSignin(cur); else renderList();
   }
 
   btn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.stkc-pop').forEach((p) => { p.hidden = true; }); view = 'list'; setOpen(!open); });

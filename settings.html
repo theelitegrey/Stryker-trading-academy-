@@ -8,9 +8,10 @@
 <title>Settings — TradeZoro</title>
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=812">
-<script src="assets/sanitize.js?v=812"></script>
-<script src="assets/start-page.js?v=812"></script>
+<link rel="stylesheet" href="assets/style.css?v=811">
+<link rel="stylesheet" href="assets/passkeys.css?v=811">
+<script src="assets/sanitize.js?v=811"></script>
+<script src="assets/start-page.js?v=811"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -284,6 +285,15 @@
           </p>
         </div>
 
+        <div class="panel" id="passkeys-panel" hidden>
+          <div class="panel-head"><h2>Passkeys</h2></div>
+          <p style="font-size:13.5px; color:var(--ink-2); margin-bottom:16px;">Sign in with your fingerprint, face or screen lock instead of a password.</p>
+          <ul class="pk-list" id="pk-list" hidden></ul>
+          <p class="pk-empty" id="pk-empty">You have no passkeys yet.</p>
+          <button class="btn btn-primary btn-sm" id="pk-add" type="button">Add a passkey</button>
+          <p class="pk-msg" id="pk-msg" role="status" aria-live="polite"></p>
+        </div>
+
         <div class="panel">
           <div class="panel-head"><h2>Security</h2></div>
           <p style="font-size:13.5px; color:var(--ink-2); margin-bottom:16px;">Send a password reset link to your email address to change your password.</p>
@@ -357,40 +367,42 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="assets/auth.js?v=812"></script>
-<script src="assets/gate-timeout.js?v=812"></script>
-<script src="assets/progress.js?v=812"></script>
-<script src="assets/presence.js?v=812"></script>
-<script src="assets/messages.js?v=812"></script>
-<script src="assets/messages-badge.js?v=812"></script>
-<script src="assets/gm-badge.js?v=812"></script>
-<script src="assets/activity-log.js?v=812"></script>
-<script src="assets/banned-check.js?v=812"></script>
-<script src="assets/email-verify.js?v=812"></script>
-<script src="assets/notifications.js?v=812"></script>
+<script src="assets/passkeys.js?v=811"></script>
+<script src="assets/auth.js?v=811"></script>
+<script src="assets/gate-timeout.js?v=811"></script>
+<script src="assets/progress.js?v=811"></script>
+<script src="assets/presence.js?v=811"></script>
+<script src="assets/messages.js?v=811"></script>
+<script src="assets/messages-badge.js?v=811"></script>
+<script src="assets/gm-badge.js?v=811"></script>
+<script src="assets/activity-log.js?v=811"></script>
+<script src="assets/banned-check.js?v=811"></script>
+<script src="assets/email-verify.js?v=811"></script>
+<script src="assets/notifications.js?v=811"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=812"></script>
-<script src="assets/install-prompt.js?v=812"></script>
-<script src="assets/admin-link.js?v=812"></script>
-<script src="assets/profiles-sync.js?v=812"></script>
-<script src="assets/usernames.js?v=812"></script>
-<script src="assets/loading-animation.js?v=812"></script>
-<script src="assets/avatars.js?v=812"></script>
-<script src="assets/account-menu.js?v=812"></script>
-<script src="assets/referrals.js?v=812"></script>
-<script src="assets/roles.js?v=812"></script>
-<script src="assets/plan-price.js?v=812"></script>
-<script src="assets/plan-modal.js?v=812"></script>
-<script src="assets/trial.js?v=812"></script>
-<script src="assets/plan-guard.js?v=812"></script>
-<script src="assets/maintenance-check.js?v=812"></script>
-<script src="assets/branding.js?v=812"></script>
-<script src="assets/dash-nav.js?v=812"></script>
-<script src="assets/market-hours.js?v=812"></script>
-<script src="assets/settings.js?v=812"></script>
-<script src="assets/rithmic-saved.js?v=812"></script>
-<script src="assets/tour.js?v=812"></script>
-<script src="assets/theme.js?v=812"></script>
+<script src="assets/push.js?v=811"></script>
+<script src="assets/install-prompt.js?v=811"></script>
+<script src="assets/admin-link.js?v=811"></script>
+<script src="assets/profiles-sync.js?v=811"></script>
+<script src="assets/usernames.js?v=811"></script>
+<script src="assets/loading-animation.js?v=811"></script>
+<script src="assets/avatars.js?v=811"></script>
+<script src="assets/account-menu.js?v=811"></script>
+<script src="assets/referrals.js?v=811"></script>
+<script src="assets/roles.js?v=811"></script>
+<script src="assets/plan-price.js?v=811"></script>
+<script src="assets/plan-modal.js?v=811"></script>
+<script src="assets/trial.js?v=811"></script>
+<script src="assets/plan-guard.js?v=811"></script>
+<script src="assets/maintenance-check.js?v=811"></script>
+<script src="assets/branding.js?v=811"></script>
+<script src="assets/dash-nav.js?v=811"></script>
+<script src="assets/market-hours.js?v=811"></script>
+<script src="assets/settings.js?v=811"></script>
+<script src="assets/passkeys-ui.js?v=811"></script>
+<script src="assets/rithmic-saved.js?v=811"></script>
+<script src="assets/tour.js?v=811"></script>
+<script src="assets/theme.js?v=811"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   var host = document.getElementById('settings-theme-card');

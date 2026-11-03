@@ -169,6 +169,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT }}
           INSIGHTSENTRY_WEBSOCKET_API_KEY: ${{ secrets.INSIGHTSENTRY_WEBSOCKET_API_KEY }}
           CREATOR_SEAL_KEY: ${{ secrets.CREATOR_SEAL_KEY }}
+          FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SA_KEY }}
         run: |
           if [ -n "$INSIGHTSENTRY_WEBSOCKET_API_KEY" ]; then
             printf '%s' "$INSIGHTSENTRY_WEBSOCKET_API_KEY" | npx --yes wrangler@4.138.0 pages secret put INSIGHTSENTRY_WEBSOCKET_API_KEY --project-name "${{ steps.proj.outputs.name }}"
@@ -180,6 +181,34 @@ jobs:
             printf '%s' "$CREATOR_SEAL_KEY" | npx --yes wrangler@4.138.0 pages secret put CREATOR_SEAL_KEY --project-name "${{ steps.proj.outputs.name }}"
           else
             echo "CREATOR_SEAL_KEY repo secret not set; community indicators cannot be delivered."
+          fi
+          # Passkeys: the tz-passkeys service account (Firebase Authentication Viewer only) that mints sign-in tokens.
+          if [ -n "$FIREBASE_SA_KEY" ]; then
+            printf '%s' "$FIREBASE_SA_KEY" | npx --yes wrangler@4.138.0 pages secret put FIREBASE_SA_KEY --project-name "${{ steps.proj.outputs.name }}" >/dev/null
+          else
+            echo "FIREBASE_SA_KEY repo secret not set; passkey sign-in stays off (503)."
+          fi
+
+      # Passkeys storage: one KV namespace, bound as PASSKEYS on the production Pages deployment. Idempotent:
+      # creates the namespace once, then makes sure the binding is on the project (Cloudflare API, same token).
+      - name: Passkeys KV binding
+        env:
+          CF_T: ${{ env.CF_TOKEN }}
+          CF_A: ${{ env.CF_ACCOUNT }}
+          PROJ: ${{ steps.proj.outputs.name }}
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $CF_T" -H "Content-Type: application/json" "$@"; }
+          B="https://api.cloudflare.com/client/v4/accounts/$CF_A"
+          ID=$(api "$B/storage/kv/namespaces?per_page=100" | python3 -c "import json,sys;d=json.load(sys.stdin);print(next((n['id'] for n in d.get('result') or [] if n['title']=='tradezoro-passkeys'),''))")
+          if [ -z "$ID" ]; then
+            ID=$(api -X POST "$B/storage/kv/namespaces" -d '{"title":"tradezoro-passkeys"}' | python3 -c "import json,sys;d=json.load(sys.stdin);print((d.get('result') or {}).get('id',''))")
+          fi
+          if [ -z "$ID" ]; then echo "::warning::could not create the passkeys KV namespace (token scope?); passkeys stay off"; exit 0; fi
+          HAVE=$(api "$B/pages/projects/$PROJ" | python3 -c "import json,sys;d=json.load(sys.stdin);print(((((d.get('result') or {}).get('deployment_configs') or {}).get('production') or {}).get('kv_namespaces') or {}).get('PASSKEYS',{}).get('namespace_id',''))")
+          if [ "$HAVE" != "$ID" ]; then
+            api -X PATCH "$B/pages/projects/$PROJ" -d "{\"deployment_configs\":{\"production\":{\"kv_namespaces\":{\"PASSKEYS\":{\"namespace_id\":\"$ID\"}}}}}" | python3 -c "import json,sys;d=json.load(sys.stdin);print('PASSKEYS binding', 'ok' if d.get('success') else d.get('errors'))"
+          else
+            echo "PASSKEYS binding already set"
           fi
 
       - name: Deploy to production

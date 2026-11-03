@@ -152,9 +152,11 @@ function symIndex(feed){
 
 // Normalise anything a member types or uploads to one of OUR symbols, or null.
 // Accepts "NQ1!", "NQ", "CME_MINI:NQ1!", "futures:NQ1!", "BTCUSDT", "BINANCE:BTCUSDT", "binance:BTCUSDT".
+import { canonicalSymbol as canonicalFormula } from './chart-formula-core.js?v=842';
 export function normalizeSymbol(raw, feed){
   let s = String(raw || '').trim().replace(/^["']|["']$/g, '');
   if (!s) return null;
+  if (/^formula:/i.test(s)) return canonicalFormula(s);   // formula symbols (assets/chart-formula-core.js)
   const m = /^([A-Za-z_]+):(.+)$/.exec(s);
   let pre = m ? m[1].toLowerCase() : '';
   let t = (m ? m[2] : s).trim().toUpperCase();

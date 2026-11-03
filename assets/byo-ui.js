@@ -2,7 +2,7 @@
 // Depends on: assets/byo-core.js (SOURCES, connect, forget, onByoChange, statusOf). Mounted by assets/vela-chart.js into
 // the chart toolbar (.stkc-bar-r). Rithmic is listed here and opens its own existing flow (window.STRYKER_RITHMIC.open).
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
-import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById } from './byo-core.js?v=831';
+import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=831';
 
 const CSS = `
 .byo-btn svg{ flex:none; }
@@ -147,13 +147,24 @@ export function mountByo(opts = {}) {
     const glyph = GLYPH[s.cls[0]] || GLYPH.stocks;
     let b;
     if (s.state === 'rithmic') b = el('button', { type: 'button', class: 'byo-row-b', text: 'Connect', 'aria-label': 'Connect Rithmic', onclick: () => { setOpen(false); try { window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.open && window.STRYKER_RITHMIC.open(); } catch (e) { /* not loaded yet */ } } });
-    else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
+    else if (s.state === 'ready' && s.oauth) {
+      const re = connected && (statusOf(s.id) || {}).msg === 'Reconnect Schwab';
+      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : startOauth(s)) });
+    } else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
     else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
       el('span', { class: 'byo-ic', html: I(glyph) }),
       el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }),
         el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' })]),
       b]);
+  }
+
+  async function startOauth(s) {
+    try {
+      const u = window.firebase && firebase.auth().currentUser;
+      if (!u) { go('list'); body.prepend(el('p', { class: 'byo-err', role: 'alert', text: 'Sign in to connect your own data.' })); return; }
+      location.assign(await schwabAuthUrl(s.clientId, u.uid));
+    } catch (e) { /* stays on the list */ }
   }
 
   function renderList() {
@@ -221,7 +232,7 @@ export function mountByo(opts = {}) {
     const bad = st.status === 'error';
     body.appendChild(el('p', { class: 'byo-state' + (bad ? ' bad' : live ? '' : ' warn'), 'data-state': st.status, html: '<i aria-hidden="true"></i><span></span>' }));
     body.querySelector('.byo-state span').textContent = bad ? (st.msg || 'Connection refused') : live ? 'Connected, live data' : 'Connected, waiting for a chart that uses ' + s.name + (st.msg ? ' · ' + st.msg : '');
-    body.appendChild(el('p', { class: 'byo-lead', text: s.id === 'alpaca' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
+    body.appendChild(el('p', { class: 'byo-lead', text: s.id === 'alpaca' || s.id === 'schwab' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
     body.appendChild(el('button', { type: 'button', class: 'byo-go danger', id: 'byo-forget', text: 'Forget this connection', onclick: async () => { await forget(s.id); go('list'); } }));
     body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
     body.querySelector('.byo-lock span').textContent = NOTE.replace('{name}', s.name);
@@ -246,6 +257,7 @@ export function mountByo(opts = {}) {
   });
   onByoChange(() => { if (open && view === 'manage') render(); else if (open && view === 'list') renderList(); });
 
+  enableSchwabIfConfigured().then((on) => { if (on && open) render(); }).catch(() => {});
   const api = window.STRYKER_BYO = { open: () => { view = 'list'; setOpen(true); }, close: () => setOpen(false), get isOpen() { return open; } };
   return api;
 }

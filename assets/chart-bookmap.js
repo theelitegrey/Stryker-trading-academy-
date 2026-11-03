@@ -16,18 +16,19 @@ const RAMPS = {
   zoro: [[0, [5, 7, 13]], [0.16, [26, 26, 26]], [0.34, [46, 46, 46]], [0.5, [64, 74, 56]], [0.64, [150, 232, 70]], [0.74, [250, 226, 40]],
     [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]],
   // Split: colour by SIDE. Asks violet, bids green; thin = nearly the field, heavy = neon, the heaviest near-white
-  splitAsk: [[0, [5, 7, 13]], [0.25, [42, 15, 61]], [0.55, [110, 36, 176]], [0.8, [192, 77, 255]], [0.93, [222, 150, 255]], [1, [230, 200, 255]]],
-  splitBid: [[0, [5, 7, 13]], [0.25, [11, 42, 20]], [0.55, [24, 140, 58]], [0.8, [57, 255, 106]], [0.93, [150, 255, 175]], [1, [201, 255, 214]]],
+  splitAsk: [[0, [5, 7, 13]], [0.12, [30, 12, 45]], [0.45, [120, 40, 190]], [0.7, [165, 64, 235]], [0.85, [192, 77, 255]], [0.95, [222, 150, 255]], [1, [230, 200, 255]]],
+  splitBid: [[0, [5, 7, 13]], [0.12, [9, 30, 17]], [0.45, [22, 125, 54]], [0.7, [34, 190, 80]], [0.85, [57, 255, 106]], [0.95, [150, 255, 175]], [1, [201, 255, 214]]],
   // Split / Heat: one ramp for size, thin -> heavy: black, dark blue, blue, white, yellow, orange, red
   splitHeat: [[0, [5, 7, 13]], [0.2, [10, 24, 92]], [0.4, [30, 80, 232]], [0.6, [255, 255, 255]], [0.75, [255, 228, 40]], [0.88, [255, 140, 20]], [1, [236, 30, 30]]]
 };
 // rank -> ramp position for Split: the thin book stays near the field, only real walls light up
-const SPLIT_ANCHORS = [[0, 0], [0.5, 0.06], [0.8, 0.16], [0.93, 0.34], [0.97, 0.62], [0.99, 0.86], [1, 1]];
+// thinnest 30% near the field, median ~45% brightness, p90 and up full neon
+const SPLIT_ANCHORS = [[0, 0], [0.3, 0.12], [0.5, 0.45], [0.75, 0.65], [0.9, 0.85], [0.97, 0.95], [1, 1]];
 export const STYLES = {
   bookmap: { ramp: 'bookmap', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 },
   zoro: { ramp: 'zoro', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 },
-  // sided: the ramp is picked by the row's side (bid 0 / ask 1); glow: 1 px soft halo above / below a strong row (cells at ramp index >= glowFrom)
-  split: { id: 'split', ramps: ['splitBid', 'splitAsk'], sided: true, glow: 0.4, glowFrom: 150, bg: BM_BG, anchors: SPLIT_ANCHORS, hold: HOLD_MS, cap: 0.97,
+  // sided: the ramp is picked by the row's side (bid 0 / ask 1); walls: a row at ramp index >= glowFrom draws as a lineHalf*2 px full-neon line across the middle of its row, a 1.2 px halo (glow x) and a dimmer body (also glow x); liveHold: the newest column goes dark after 10 s without a sample
+  split: { id: 'split', ramps: ['splitBid', 'splitAsk'], sided: true, glow: 0.55, glowFrom: 215, lineHalf: 1.5, liveHold: 10000, bg: BM_BG, anchors: SPLIT_ANCHORS, hold: HOLD_MS, cap: 0.97,
     heat: { id: 'splitHeat', ramps: ['splitHeat'], sided: false } }
 };
 // the table row for a view: Split + colorBy 'heat' swaps the two side ramps for the single size ramp
@@ -76,10 +77,11 @@ export function drawBookmap(g, view) {
   for (let k = 0; k < hs.length; k++) {
     const s = hs[k]; if (!s.v || !s.v.length || !(s.step > 0)) continue;
     const next = k + 1 < hs.length ? hs[k + 1] : null;
+    const lh = S.liveHold || S.hold;
     let end = next ? Math.min(next.ts, s.ts + S.hold) : view.now + 1;   // the live column runs to the edge while fresh
-    if (!next && view.now - s.ts > S.hold) end = s.ts + S.hold;
+    if (!next && view.now - s.ts > lh) end = s.ts + lh;
     let xa = view.tsToX(s.ts), xb = next && next.ts <= s.ts + S.hold ? view.tsToX(next.ts) : view.tsToX(end);
-    if (!next && view.now - s.ts <= S.hold) xb = x1;
+    if (!next && view.now - s.ts <= lh) xb = x1;
     if (!(xb > xa) || xb < x0 || xa > x1) continue;
     cols.push({ s, xa: Math.max(x0, Math.floor(xa)), xb: Math.min(x1, Math.ceil(xb)) });
   }
@@ -131,13 +133,12 @@ export function drawBookmap(g, view) {
       }
       const q = a * scale; tiA[y] = tmap[q > 1023 ? 1023 : q | 0]; sdA[y] = S.sided ? sideOf(rowPrice[y], bound, sg) : 0;
     }
+    const rowPx = H > 1 ? step / Math.abs(rowPrice[1] - rowPrice[0]) : 0, lineOn = S.lineHalf && rowPx > 4;
     for (let y = 0; y < H; y++) {
-      let ti = tiA[y], sd = sdA[y];
-      if (S.glow) {   // soft halo: a strong neighbouring row lends this one a dimmer copy of its colour
-        for (let d = -1; d <= 1; d += 2) {
-          const j = y + d; if (j < 0 || j >= H || tiA[j] < S.glowFrom) continue;
-          const gi = (tiA[j] * S.glow) | 0; if (gi > ti) { ti = gi; sd = sdA[j]; }
-        }
+      let ti = tiA[y]; const sd = sdA[y];
+      if (lineOn && ti >= S.glowFrom) {   // a wall: crisp line in the middle of its row, halo, dimmer body
+        const fr = rowPrice[y] / step, d = Math.abs(fr - Math.floor(fr + 1e-9) - 0.5) * rowPx;
+        if (d > S.lineHalf) ti = (ti * S.glow) | 0;
       }
       if (ti < 0) continue;
       const col = luts[sd][ti], o = y * W;

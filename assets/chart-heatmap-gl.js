@@ -52,7 +52,7 @@ const FS = `#version 300 es
 precision highp float; precision highp int; precision highp sampler2D;
 flat in vec4 vSpan; flat in vec2 vRow; flat in vec4 vPrev; flat in vec4 vNext;
 uniform sampler2D uBook; uniform sampler2D uRamp; uniform sampler2D uTmap;
-uniform float uH, uTy0, uHh, uTop, uDpr, uP0, uDp, uScale, uSided, uGlow, uGlowFrom;
+uniform float uH, uTy0, uHh, uTop, uDpr, uP0, uDp, uScale, uSided, uGlow, uGlowFrom, uLine;
 out vec4 o;
 float price(float r) { return uP0 + (uTop + (r + 0.5) / uDpr) * uDp; }   // priceOfY is linear in y
 float sz(float slot, float i0, float n, float ri) {   // size at absolute row index ri in a column, 0 outside
@@ -75,16 +75,17 @@ float cell(float r, out float side) {
   }
   side = uSided < 0.5 ? 0.0 : (vNext.w > 0.5 ? (pc > vPrev.w ? 1.0 : 0.0) : (sg < 0.0 ? 1.0 : 0.0));
   float q = min(1023.0, floor(a * uScale));
-  return floor(texelFetch(uTmap, ivec2(int(q), 0), 0).r * 255.0 + 0.5);
+  float ti = floor(texelFetch(uTmap, ivec2(int(q), 0), 0).r * 255.0 + 0.5);
+  float rowPx = step / (abs(uDp) / uDpr);
+  if (uLine > 0.0 && rowPx > 4.0 && ti >= uGlowFrom) {   // a wall: crisp line in the middle of its row, dimmer body
+    float fr = pc / step, d = abs(fr - floor(fr + 1e-9) - 0.5) * rowPx;
+    if (d > uLine) ti = floor(ti * uGlow);
+  }
+  return ti;
 }
 void main() {
-  float r = floor(uH - gl_FragCoord.y) - uTy0, sd, su, sl;
+  float r = floor(uH - gl_FragCoord.y) - uTy0, sd;
   float ti = cell(r, sd);
-  if (uGlow > 0.0) {   // soft halo: a strong row above / below lends this one a dimmer copy of its colour
-    float tu = cell(r - 1.0, su), tl = cell(r + 1.0, sl);
-    if (tu >= uGlowFrom && tu * uGlow > ti) { ti = floor(tu * uGlow); sd = su; }
-    if (tl >= uGlowFrom && tl * uGlow > ti) { ti = floor(tl * uGlow); sd = sl; }
-  }
   if (ti < 0.0) discard;
   o = vec4(texelFetch(uRamp, ivec2(int(ti), int(sd)), 0).rgb, 1.0);
 }`;
@@ -119,7 +120,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-    loc = {}; for (const n of ['uCanvas', 'uY', 'uBook', 'uRamp', 'uH', 'uTmap', 'uHh', 'uTy0', 'uTop', 'uDpr', 'uP0', 'uDp', 'uScale', 'uSided', 'uGlow', 'uGlowFrom']) loc[n] = gl.getUniformLocation(prog, n);
+    loc = {}; for (const n of ['uCanvas', 'uY', 'uBook', 'uRamp', 'uH', 'uTmap', 'uHh', 'uTy0', 'uTop', 'uDpr', 'uP0', 'uDp', 'uScale', 'uSided', 'uGlow', 'uGlowFrom', 'uLine']) loc[n] = gl.getUniformLocation(prog, n);
     vao = gl.createVertexArray(); gl.bindVertexArray(vao); vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
     for (const [n, size, off] of [['iSpan', 4, 0], ['iRow', 2, 16], ['iPrev', 4, 24], ['iNext', 4, 40]]) { const a = gl.getAttribLocation(prog, n); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, size, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(a, 1); }
     rampTex = gl.createTexture(); tmapTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tmapTex); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R8, 1024, 1); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); tmapDirty = true; tex = null; texH = 0; rampName = '';
@@ -199,10 +200,11 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     for (let k = 0; k < hs.length; k++) {
       const s = hs[k]; if (!s.v || !s.v.length || !(s.step > 0)) continue;
       const next = k + 1 < hs.length ? hs[k + 1] : null;
+      const lh = S.liveHold || S.hold;
       let end = next ? Math.min(next.ts, s.ts + S.hold) : view.now + 1;
-      if (!next && view.now - s.ts > S.hold) end = s.ts + S.hold;
+      if (!next && view.now - s.ts > lh) end = s.ts + lh;
       let xa = view.tsToX(s.ts), xb = next && next.ts <= s.ts + S.hold ? view.tsToX(next.ts) : view.tsToX(end);
-      if (!next && view.now - s.ts <= S.hold) xb = x1;
+      if (!next && view.now - s.ts <= lh) xb = x1;
       if (!(xb > xa) || xb < x0 || xa > x1) continue;
       cols.push({ s, xa: Math.max(x0, Math.floor(xa)), xb: Math.min(x1, Math.ceil(xb)) });
     }
@@ -242,7 +244,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     const pa = view.priceOfY(0), dp = view.priceOfY(1) - pa;
     gl.uniform2f(loc.uCanvas, W, H); gl.uniform2f(loc.uY, ty0, ty1); gl.uniform1f(loc.uH, H); gl.uniform1f(loc.uTy0, ty0); gl.uniform1f(loc.uHh, ty1 - ty0); gl.uniform1f(loc.uTop, top);
     gl.uniform1f(loc.uDpr, dpr); gl.uniform1f(loc.uP0, pa); gl.uniform1f(loc.uDp, dp);
-    gl.uniform1f(loc.uScale, 1023 / maxSz); gl.uniform1f(loc.uSided, S.sided ? 1 : 0); gl.uniform1f(loc.uGlow, S.glow || 0); gl.uniform1f(loc.uGlowFrom, S.glowFrom || 0);
+    gl.uniform1f(loc.uScale, 1023 / maxSz); gl.uniform1f(loc.uSided, S.sided ? 1 : 0); gl.uniform1f(loc.uGlow, S.glow || 0); gl.uniform1f(loc.uGlowFrom, S.glowFrom || 0); gl.uniform1f(loc.uLine, S.lineHalf || 0);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, nI);
     const ms = Math.round((performance.now() - t0) * 10) / 10;
     return { cells, columns: nI, ms, rows: ty1 - ty0, p97: Math.round(p97), gl: true, uploads: stats.uploads };

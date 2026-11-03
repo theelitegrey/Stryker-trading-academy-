@@ -2432,15 +2432,13 @@ function cryptoDomLayer() {
         }
       }
 
-      // ---- Split: dotted last-price line across the heat area + a price tag at its right end ----
+      // ---- Split: dotted last-price line across the heat area (the axis keeps the one price tag) ----
       if (split && f.book && f.book.bestBid > 0 && f.book.bestAsk > 0) {
         const lp = (f.book.bestBid + f.book.bestAsk) / 2, ly = Math.round(yOf(lp)) + 0.5;
         if (ly > top && ly < bot) {
           g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
           g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(0, ly); g.lineTo(W, ly); g.stroke(); g.setLineDash([]);
-          const txt = (Math.round(lp * 100) / 100).toFixed(2); g.font = 'bold 10px ' + font; g.textAlign = 'right'; g.textBaseline = 'middle';
-          const tw = g.measureText(txt).width + 8; g.fillStyle = '#0b0f1a'; g.fillRect(W - tw, ly - 7, tw, 14); g.strokeStyle = 'rgba(255,255,255,.8)'; g.strokeRect(W - tw + 0.5, ly - 6.5, tw - 1, 13);
-          g.fillStyle = '#ffffff'; g.fillText(txt, W - 4, ly + 0.5); g.textBaseline = 'alphabetic'; g.restore();
+          g.restore();   // one tag only: the axis' own last-price tag
           stat.lastPrice = lp;
         }
       }

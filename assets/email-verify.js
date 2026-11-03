@@ -115,7 +115,9 @@
     overlay.className = 'paywall-overlay';
     overlay.style.display = 'flex';
     overlay.style.background = 'rgba(5,5,6,0.94)';
-    overlay.style.zIndex = '900';
+    // Above the onboarding wizard (.ob-modal, z 1400), which opens on first
+    // dashboard load and otherwise swallows every click on this card.
+    overlay.style.zIndex = '1500';
 
     overlay.innerHTML =
       '<div class="paywall-card">' +
@@ -125,7 +127,7 @@
         '</div>' +
         '<h2>Confirm your email</h2>' +
         '<p id="ev-body">We sent a confirmation link to <b>' + (user.email || 'your email address') + '</b>. ' +
-          'Open it to activate your account. Check spam if it hasn\'t arrived within a minute.</p>' +
+          'Open it, then press <b>Complete verification</b> on the page that opens. Check spam or promotions if it hasn\'t arrived within a minute.</p>' +
         '<div class="paywall-actions" style="flex-direction:column; gap:10px;">' +
           '<button class="btn btn-primary" id="ev-check">I\'ve confirmed it</button>' +
           '<button class="btn btn-ghost" id="ev-resend">Resend the email</button>' +

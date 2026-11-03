@@ -57,7 +57,7 @@ const J = async (u, o = {}) => { const r = await fetch('https://api.mail.tm' + u
     if (await cont.count()) { await cont.click(); await p2.waitForTimeout(9000); }
     await shot(p2, '3-after-continue'); log('tab2 state', JSON.stringify(await state(p2)));
     // tab1 "I've confirmed it"
-    if (await page.locator('#ev-check').count()) { await page.evaluate(() => document.getElementById('ev-check').click()); await page.waitForTimeout(7000); }
+    if (await page.locator('#ev-check').count()) { await page.click('#ev-check'); await page.waitForTimeout(7000); }
     await shot(page, '3b-tab1-before').catch(()=>{}); await shot(page, '4-tab1-after-check'); log('tab1 state', JSON.stringify(await state(page)));
     // fresh login on mobile after verification
     const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

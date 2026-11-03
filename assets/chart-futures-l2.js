@@ -454,8 +454,8 @@ export function installFuturesL2(Core, H, reg) {
     attach() {
       if (!this.ctx) return;
       const mk = H.marketOf(this.ctx), root = mk.futures ? l2Root(mk.ticker) : null;
-      if (bookTier === null && liveVisible()) { if (!this._probing) { this._probing = true; l2Probe().then(() => { this._probing = false; this.attach(); }); } this.block = ''; this.render(); return; }
-      if (!l2Visible()) { this.detach(); this.block = NOT_YET; this.render(); return; }
+      if (!this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }   // tier unknown -> connect, then re-decide when the hub says
+      if (!l2Badge()) { this.detach(); this.block = NOT_YET; this.render(); return; }
       const want = root ? 'tsl2|' + root : '';
       if (this.h && this.h.feed.key === want) { this.render(); return; }
       this.detach();
@@ -464,6 +464,7 @@ export function installFuturesL2(Core, H, reg) {
       this.render();
     }
     wantNow() {}
+    stop() { if (this.tierFn) { window.removeEventListener('stryker:l2tier', this.tierFn); this.tierFn = null; } super.stop(); }
     detach() { if (this.badged) { badgeUse(false); this.badged = false; } super.detach(); }
     note() {
       if (this.block === NOT_YET) return ''; // the feed note (chart-feeds.js, top-left) already says this; never draw it over the legend/tables
@@ -480,7 +481,7 @@ export function installFuturesL2(Core, H, reg) {
     setInputs(i) { this.inputs = i; if (this.h) this.h.feed.l2Levels = Number(i.l2Levels) || 60; const st = this.root && rootState(this.root); if (st && st.conn) st.conn.setLevels('dom' + this.root, Number(i.l2Levels) || 60); this.render(); }
     render() {
       if (!this.ctx || this.hidden) return;
-      const msg = this.note();
+      const msg = this.block === NOT_YET ? '' : this.note();   // the lock reason lives in the feed note (chart-feeds.js), never drawn over the legend
       const f = this.h && this.h.feed;
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       this.ctx.emit({ tables: msg ? [H.message('stk_dom-msg', msg, H.pageIsDay(), 'top_right')] : [] });
@@ -509,8 +510,8 @@ export function installFuturesL2(Core, H, reg) {
     start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.attach(); }
     attach() {
       const mk = H.marketOf(this.ctx), root = mk.futures ? l2Root(mk.ticker) : null;
-      if (bookTier === null && liveVisible()) { if (!this._probing) { this._probing = true; l2Probe().then(() => { this._probing = false; this.attach(); }); } this.block = ''; this.compute(); return; }
-      if (!l2Visible()) { this.block = NOT_YET; this.compute(); return; }
+      if (!this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }
+      if (!l2Badge()) { this.detach(); this.block = NOT_YET; this.compute(); return; }
       if (!root) { this.block = NEED; this.compute(); return; }
       if (this.root === root && this.h) return;
       this.detach(); this.block = ''; this.root = root;
@@ -524,7 +525,7 @@ export function installFuturesL2(Core, H, reg) {
     setInputs(i) { this.inputs = i; this.compute(); }
     suspend() { this.hidden = true; clearTimeout(this.tm); this.tm = 0; }
     resume() { this.hidden = false; this.attach(); this.compute(); }
-    stop() { this.detach(); }
+    stop() { if (this.tierFn) { window.removeEventListener('stryker:l2tier', this.tierFn); this.tierFn = null; } this.detach(); }
     compute() {
       if (!this.ctx) return;
       const bars = this.ctx.bars(), inp = this.inputs || {};

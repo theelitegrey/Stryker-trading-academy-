@@ -215,23 +215,27 @@ export function mountOneBar(ws){
   more.className = 'stkc-menu stkc-ob-more';
   more.hidden = true;
   more.append(moreBtn, morePop);
-  const setMore = (open) => {
+  const setMore = (open, keep) => {
     // phone list: room from just under the toolbar to the bottom of the screen; taller lists scroll
     if (open && !merged) {
       const b = bar.getBoundingClientRect().bottom;
       // just under the toolbar (never over it), whatever the ⋯ button's height
       morePop.style.top = Math.ceil(b - more.getBoundingClientRect().top + 4) + 'px';
       morePop.style.setProperty('--ob-maxh', Math.max(160, Math.floor(window.innerHeight - b - 14)) + 'px');
-      morePop.scrollTop = 0;
+      if (!keep) morePop.scrollTop = 0;
     } else if (merged) morePop.style.removeProperty('top');
     if (!open) morePop.classList.remove('stkc-ob-sub');
     morePop.hidden = !open; moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) { const n = document.getElementById('notif-panel'); if (n) n.style.display = 'none'; }   // one menu at a time
+    else if (late) { late = false; queue(); }
   };
   moreBtn.addEventListener('click', (e) => { e.stopPropagation(); setMore(morePop.hidden); });
   // Items that open their own popover (Templates, Credits, grid, layout menu) stop the click's
   // propagation, so More stays open around them; any other click (an action, or outside) closes it.
   document.addEventListener('click', () => { if (!morePop.hidden) setMore(false); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !morePop.hidden) setMore(false); });
+  // the bell stops its click, so it never reaches the handler above: close the sheet here (one menu at a time)
+  document.addEventListener('click', (e) => { if (!morePop.hidden && e.target.closest && e.target.closest('#notif-bell-btn')) setMore(false); }, true);
 
   barR.insertBefore(spacer, barR.firstChild);
   barR.appendChild(more);
@@ -379,7 +383,7 @@ export function mountOneBar(ws){
     if (fitting) return;
     fitting = true;
     try {
-      const wasOpen = !morePop.hidden;
+      const wasOpen = !morePop.hidden, st = morePop.scrollTop;
       restoreMoved();
       CLASSES.forEach((c) => bar.classList.remove(c));
       more.hidden = true;
@@ -390,7 +394,7 @@ export function mountOneBar(ws){
         else if (moveToMore(arg())) more.hidden = false;
       }
       listify();
-      if (more.hidden) setMore(false); else if (wasOpen) setMore(true);
+      if (more.hidden) setMore(false); else if (wasOpen) { setMore(true, true); morePop.scrollTop = st; }
       tidyDividers();
     } finally {
       mo.takeRecords();
@@ -398,8 +402,12 @@ export function mountOneBar(ws){
     }
   }
   let raf = 0;
+  // Ticks / clocks / badges mutate the bar many times a second. A refit pulls every row out of the open
+  // sheet and puts it back (scroll jumps to 0, taps land on rebuilt nodes), so while the phone sheet is
+  // open a mutation-driven refit waits until it closes; resize still refits (scroll position is kept).
+  let late = false;
   const queue = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; fit(); }); };
-  const mo = new MutationObserver(() => { if (!fitting) queue(); });
+  const mo = new MutationObserver(() => { if (fitting) return; if (!merged && !morePop.hidden) { late = true; return; } queue(); });
   mo.observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
   new ResizeObserver(queue).observe(bar);
 

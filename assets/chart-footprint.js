@@ -24,6 +24,7 @@ import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, 
 import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=823';
 import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=823';
 import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=823';
+import { installChartTypes } from './chart-types.js?v=823';
 import { rtHeadersReady } from './rt-access.js?v=823';
 import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=823';
 import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=823';
@@ -823,12 +824,13 @@ let installed = false;
 export function installFootprint(Core, flowMod) {
   if (installed) { linkFlow(flowMod); return; }
   installed = true;
+  try { installChartTypes(Core); } catch (e) { console.warn('TradeZoro: chart types', e); }   // assets/chart-types.js
   Core.registerRendererLayer({ id: FP_TYPE, placement: 'above-data', create: footprintLayer });
   Core.registerChartType({
-    id: FP_TYPE, label: 'Footprint', icon: FP_ICON,
+    id: FP_TYPE, label: 'Volume footprint', icon: FP_ICON,
     dataEngine: () => new FootprintEngine(),
     settings: {
-      title: 'Footprint',
+      title: 'Volume footprint',
       rows: [
         { kind: 'select', key: 'fpMode', label: 'Cells show', defval: FP_DEF.fpMode, options: [['bidask', 'Bid x Ask (sell x buy)'], ['delta', 'Delta'], ['volume', 'Volume'], ['ladder', 'Ladder (candle + level bars)']] },
         { kind: 'select', key: 'fpScale', label: 'Ladder bar scale', defval: FP_DEF.fpScale, options: [['range', 'Visible range'], ['bar', 'Per bar']] },

@@ -51,7 +51,7 @@
 
 const LAYER = 'stk_alerts';
 const PREFS_KEY = 'stryker_chart_alert_prefs';
-const MAX_ALERTS = 200;
+const MAX_ALERTS = 1000;
 const CONDS = [
   ['crossing', 'Crossing'], ['crossing_up', 'Crossing up'], ['crossing_down', 'Crossing down'],
   ['greater', 'Greater than'], ['less', 'Less than']

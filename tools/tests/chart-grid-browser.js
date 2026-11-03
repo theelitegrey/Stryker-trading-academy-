@@ -8,7 +8,7 @@ const OUT = process.argv[2] || '/tmp';
 const ONLY = process.env.ONLY || '';
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
-const SHAPES = ['1', '2h', '2v', '3c', '3r', '3l', '4', '4c', '4r', '4l', '5a', '5l', '6', '6r', '8', '8r'];
+const SHAPES = ['1', '2h', '2v', '3c', '3r', '3l', '4', '4c', '4r', '4l', '5a', '5l', '6', '6r', '8', '8r', '9', '10', '12', '14', '16'];
 
 async function open(b, { w, h, mobile, tablet }) {
   const ua = mobile ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148'
@@ -47,16 +47,15 @@ async function desktop(b, w, h) {
       const rects = ws.cells().map((c) => c.host.getBoundingClientRect()).map((r) => [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]);
       return { id: ws.layout.id, n: ws.cells().length, rects, minW: Math.min(...rects.map((x) => x[2])), minH: Math.min(...rects.map((x) => x[3])), sw: document.documentElement.scrollWidth, btn: document.getElementById('stkc-layout-btn').textContent };
     });
-    const want = { '1': 1, '2h': 2, '2v': 2, '3c': 3, '3r': 3, '3l': 3, '4': 4, '4c': 4, '4r': 4, '4l': 4, '5a': 5, '5l': 5, '6': 6, '6r': 6, '8': 8, '8r': 8 }[id];
+    const want = { '1': 1, '2h': 2, '2v': 2, '3c': 3, '3r': 3, '3l': 3, '4': 4, '4c': 4, '4r': 4, '4l': 4, '5a': 5, '5l': 5, '6': 6, '6r': 6, '8': 8, '8r': 8, '9': 9, '10': 10, '12': 12, '14': 14, '16': 16 }[id];
     check(r.id === id && r.n === want && r.minW > 100 && r.minH > 60 && r.sw <= w + 1, `${tag} ${id}: ${r.n} cells, smallest ${r.minW}x${r.minH}, btn "${r.btn}"`);
     if (w === 1440 || ['3l', '4l', '5a', '5l', '6', '8', '8r'].includes(id)) await p.screenshot({ path: `${OUT}/grid-${w}-${id}.png` });
   }
-  // Picker open (shows greyed 10-16) — screenshot
+  // Picker open: 9-16 are real choices now, with the slow-computer note above 8
   await p.click('#stkc-layout-btn');
-  await p.hover('.stkg-off');
   await p.waitForTimeout(300);
-  const pk = await p.evaluate(() => ({ grey: [...document.querySelectorAll('.stkg-off')].map((e) => e.title), disabled: [...document.querySelectorAll('.stkg-ic[aria-disabled="true"]')].length, pressed: document.querySelector('.stkg-ic[aria-pressed="true"]').dataset.layout }));
-  check(pk.grey.length === 4 && pk.grey.every((t) => t === 'Up to 8 charts on our site for smooth performance') && pk.disabled === 0, `${tag} picker: 4 greyed with tooltip, none disabled, pressed ${pk.pressed}`);
+  const pk = await p.evaluate(() => ({ off: document.querySelectorAll('.stkg-off').length, disabled: document.querySelectorAll('.stkg-ic[aria-disabled="true"]').length, pressed: document.querySelector('.stkg-ic[aria-pressed="true"]').dataset.layout, note: (document.querySelector('.stkg-note:not([hidden])') || {}).textContent }));
+  check(pk.off === 0 && pk.disabled === 0 && pk.pressed === '16' && pk.note === 'Lots of charts can slow older computers.', `${tag} picker: none greyed, pressed ${pk.pressed}, note "${pk.note}"`);
   await p.screenshot({ path: `${OUT}/picker-${w}.png` });
   await p.keyboard.press('Escape');
   check(errors.length === 0, `${tag} no page errors ${errors.slice(0, 3).join(' | ')}`);

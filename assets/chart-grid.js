@@ -6,7 +6,7 @@
 // (side / stacked), 3 (columns, rows, one big + two), 4 (2x2, 4 columns, 4 rows, 1 + 3),
 // 5, 6 and 8 charts. Caps: 8 on desktop (performance), 4 on tablets AND phones (a phone
 // gets its own 1-4 picker and shows every chart at once: phoneMode() below). 10/12/14/16 are
-// shown greyed on desktop with "Up to 8 charts on our site for smooth performance".
+// offered on desktop (9, 10, 12, 14, 16 added 2026-11-04).
 //
 // SYNC IN LAYOUT: separate switches for Symbol, Interval, Crosshair, Time (Vela's
 // 'symbol' / 'timeframe' / 'crosshair' / 'viewport' links) and Date range (ours): a
@@ -34,7 +34,12 @@ const DEFS = [
   { id: '5l', label: '1 big + 4', cols: [2, 1, 1], rows: [1, 1], areas: ['main a b', 'main c d'], cells: ['main', 'a', 'b', 'c', 'd'] },
   { id: '6', label: '3 x 2', cols: [1, 1, 1], rows: [1, 1], n: 6 },
   { id: '6r', label: '2 x 3', cols: [1, 1], rows: [1, 1, 1], n: 6 },
-  { id: '8r', label: '2 x 4', cols: [1, 1], rows: [1, 1, 1, 1], n: 8 }
+  { id: '8r', label: '2 x 4', cols: [1, 1], rows: [1, 1, 1, 1], n: 8 },
+  { id: '9', label: '3 x 3', cols: [1, 1, 1], rows: [1, 1, 1], n: 9 },
+  { id: '10', label: '5 x 2', cols: [1, 1, 1, 1, 1], rows: [1, 1], n: 10 },
+  { id: '12', label: '4 x 3', cols: [1, 1, 1, 1], rows: [1, 1, 1], n: 12 },
+  { id: '14', label: '7 x 2', cols: [1, 1, 1, 1, 1, 1, 1], rows: [1, 1], n: 14 },
+  { id: '16', label: '4 x 4', cols: [1, 1, 1, 1], rows: [1, 1, 1, 1], n: 16 }
 ];
 
 // Picker rows: [count, [[id, label], ...]]
@@ -45,9 +50,14 @@ const GROUPS = [
   [4, [['4', '2 x 2 grid'], ['4c', '4 columns'], ['4r', '4 rows'], ['4l', '1 big + 3']]],
   [5, [['5a', '3 on top, 2 below'], ['5l', '1 big + 4']]],
   [6, [['6', '3 x 2 grid'], ['6r', '2 x 3 grid']]],
-  [8, [['8', '4 x 2 grid'], ['8r', '2 x 4 grid']]]
+  [8, [['8', '4 x 2 grid'], ['8r', '2 x 4 grid']]],
+  [9, [['9', '3 x 3 grid']]],
+  [10, [['10', '5 x 2 grid']]],
+  [12, [['12', '4 x 3 grid']]],
+  [14, [['14', '7 x 2 grid']]],
+  [16, [['16', '4 x 4 grid']]]
 ];
-const GREY = [10, 12, 14, 16];
+const SLOW_NOTE = 'Lots of charts can slow older computers.';
 
 const SYNCS = [
   ['symbol', 'Symbol', 'Changing the symbol on one chart changes it on all charts'],
@@ -90,7 +100,7 @@ function grid(cols, rows){
   return out;
 }
 function iconSvg(id, n, tilesIn){
-  const tiles = tilesIn || (n ? gridFor(n) : tilesOf(id));
+  const tiles = tilesIn || tilesOf(id);
   const W = 26, H = 20, g = 1.5;
   const rects = tiles.map(([x, y, w, h]) => {
     const rx = 1 + x * W + g / 2, ry = 1 + y * H + g / 2;
@@ -106,7 +116,6 @@ function previewSvg(tiles, mode){
   return '<svg class="stkg-prev" width="' + (W + 2) + '" height="' + (H + 2) + '" viewBox="-1 -1 ' + (W + 2) + ' ' + (H + 2) + '" aria-hidden="true"><rect class="stkg-frame" x="0" y="0" width="' + W + '" height="' + H + '" rx="4"/>' + rects + '</svg>';
 }
 const CHECK = '<i class="stkg-ck" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.4 2.4 4.6-5"/></svg></i>';
-function gridFor(n){ return { 10: grid(5, 2), 12: grid(4, 3), 14: grid(7, 2), 16: grid(4, 4) }[n] || grid(1, 1); }
 
 export function countOf(id){
   if (id === '1') return 1;
@@ -122,14 +131,13 @@ export function labelOf(id){
   return countOf(id) + ' charts';
 }
 
-// Device cap: desktop 8; tablets and phones 4. (Phones: every chart of a 2-4 chart layout
+// Device cap: desktop 16 (a note shows above 8); tablets and phones 4. (Phones: every chart of a 2-4 chart layout
 // is on screen at once, see phoneMode() below; 5-16 are not offered on a phone at all.)
-// 10/12/14/16 are shown greyed with "Up to 8 charts on our site for smooth performance".
 export function maxCells(){
   const dev = document.documentElement.getAttribute('data-device');
   if (dev === 'mobile' || dev === 'tablet') return 4;
   if (window.innerWidth <= 1024) return 4;
-  return 8;
+  return 16;
 }
 // PHONE (Owner bug 2026-10-26: "Chart layouts not working properly on Mobile phone. Not showing
 // up"): a phone shows every chart of a 2-4 chart layout at once, in a phone shape that does not
@@ -156,7 +164,7 @@ function phoneTiles(n, mode){
 const PHONE_IDS = { 1: '1', 2: '2v', 3: '3r', 4: '4' };
 
 // Widest allowed fallback for an over-cap layout.
-function fallbackFor(id){ const cap = maxCells(); return cap >= 8 ? id : (countOf(id) > cap ? '4' : id); }
+function fallbackFor(id){ const cap = maxCells(); return cap >= 16 ? id : (countOf(id) > cap ? '4' : id); }
 
 // ---------------------------------------------------------------- install (before boot)
 export function installGrid(W, Core, wsGetter){
@@ -239,12 +247,6 @@ export function mountGrid(ws, opts){
     });
     gridBox.appendChild(row);
   });
-  const greyRow = el('div', { class: 'stkg-row stkg-greyrow' });
-  GREY.forEach((n) => {
-    greyRow.appendChild(el('span', { class: 'stkg-ic stkg-off', role: 'img', tabindex: '0', 'aria-label': n + ' charts: up to 8 charts on our site for smooth performance', title: 'Up to 8 charts on our site for smooth performance',
-      html: '<b>' + n + '</b>' + iconSvg(null, n) }));
-  });
-  gridBox.appendChild(greyRow);
   // Phone picker: only what a phone can show (1 to 4 charts), drawn in the phone's own shape.
   const phoneBox = el('div', { class: 'stkg-phone', role: 'group', 'aria-label': 'Charts in the layout', hidden: '' });
   const phoneItems = {};
@@ -323,12 +325,12 @@ export function mountGrid(ws, opts){
         b.setAttribute('aria-pressed', n === cur ? 'true' : 'false');
       });
     }
-    capNote.hidden = !((pm && countOf(id) > 1) || cap < 8 || capFromId);
+    capNote.hidden = !((pm && countOf(id) > 1) || cap < 16 || capFromId || countOf(id) > 8);
     capNote.textContent = pm
       ? (opts.isStrip && opts.isStrip() ? 'Swipe the tabs to switch charts.' : 'Tap a chart to make it active.') + (capFromId ? ' This layout has ' + countOf(capFromId) + ' charts; open it on a computer to see them all.' : '')
       : capFromId
         ? 'This layout has ' + countOf(capFromId) + ' charts; this device shows up to ' + cap + '.'
-        : 'Up to ' + cap + ' charts on this device.';
+        : cap < 16 ? 'Up to ' + cap + ' charts on this device.' : SLOW_NOTE;
     let st = {};
     try { st = ws.sync.state() || {}; } catch (e) {}
     const multi = countOf(id) > 1;

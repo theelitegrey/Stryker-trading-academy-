@@ -41,6 +41,10 @@ const POLL_MS = 25000;
 const W_MIN = 260, W_MAX = 560, W_DEF = 340;
 const PHONE_MAX = 700;
 const SEC = '###';
+// Colour flags (Apple system colours). Saved as view.flags = { symbol: colour } with the list.
+export const FLAGS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+
+const cap1 = (c) => c.charAt(0).toUpperCase() + c.slice(1);
 const DEFAULT_ITEMS = ['###FUTURES', 'futures:NQ1!', 'futures:ES1!', 'futures:YM1!', 'futures:RTY1!', 'futures:GC1!', 'futures:CL1!',
   '###FOREX', 'fx:EURUSD', 'fx:GBPUSD', 'fx:USDJPY', '###CRYPTO', 'binance:BTCUSDT', 'binance:ETHUSDT'];
 const VIEW_DEF = { table: true, last: true, chg: true, chgp: true, vol: false, ext: false, logo: true, disp: 'symbol' };
@@ -106,6 +110,7 @@ const I = {
   trash: svg('<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>', 16),
   down: svg('<path d="M12 4v12M7 11l5 5 5-5"/><path d="M5 20h14"/>', 16),
   sort: svg('<path d="M7 4v16M4 7l3-3 3 3M17 20V4M14 17l3 3 3-3"/>', 16),
+  flag: svg('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>', 16),
   hide: svg('<path d="M15 6l6 6-6 6M3 12h17"/>', 16)
 };
 
@@ -277,9 +282,10 @@ export function mountWatchlist(ws, o){
   const titleBtn = el('button', { type: 'button', class: 'stkw-title', 'aria-haspopup': 'menu', 'aria-expanded': 'false' });
   const addBtn = el('button', { type: 'button', class: 'stkw-ib', title: 'Add symbol', 'aria-label': 'Add symbol', html: I.plus });
   const colBtn = el('button', { type: 'button', class: 'stkw-ib', title: 'Columns and display', 'aria-label': 'Columns and display', 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: I.table });
+  const flagBtn = el('button', { type: 'button', class: 'stkw-ib stkw-flagfilter', title: 'Filter by flag', 'aria-label': 'Filter by flag', 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: I.flag });
   const moreBtn = el('button', { type: 'button', class: 'stkw-ib', title: 'More', 'aria-label': 'More', 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: I.dots });
   const closeBtn = el('button', { type: 'button', class: 'stkw-ib stkw-close', title: 'Close', 'aria-label': 'Close watchlist', html: I.close });
-  const head = el('div', { class: 'stkw-hd' }, [titleBtn, el('span', { class: 'stkw-hsp' }), addBtn, colBtn, moreBtn, closeBtn]);
+  const head = el('div', { class: 'stkw-hd' }, [titleBtn, el('span', { class: 'stkw-hsp' }), addBtn, flagBtn, colBtn, moreBtn, closeBtn]);
   const thead = el('div', { class: 'stkw-th', role: 'row' });
   const body = el('div', { class: 'stkw-body', role: 'grid', 'aria-label': 'Watchlist symbols', tabindex: '0' });
   const banner = el('div', { class: 'stkw-banner', hidden: true });
@@ -563,8 +569,64 @@ export function mountWatchlist(ws, o){
     if (v.ext) c.push(['ext', 'Ext']);
     return c;
   }
+  // ---- colour flags ----
+  let flagFilter = '';     // '' = all, 'any' = any flag, or a colour
+  let lastFlag = 'red';
+  const flagsOf = () => (view().flags && typeof view().flags === 'object' ? view().flags : {});
+  function setFlag(sym, color){
+    if (!cur || viewing) return;
+    const f = Object.assign({}, flagsOf());
+    if (color && FLAGS.includes(color)) { f[sym] = color; lastFlag = color; } else delete f[sym];
+    cur.view = Object.assign({}, view(), { flags: f });
+    render(); dirty();
+  }
+  function paletteRow(sym){
+    const row = el('div', { class: 'stkw-fpal', role: 'group', 'aria-label': 'Flag colour' });
+    FLAGS.forEach((c) => {
+      const b = el('button', { type: 'button', class: 'stkw-fsw', 'data-f': c, title: cap1(c), 'aria-label': cap1(c) + ' flag', 'aria-pressed': flagsOf()[sym] === c ? 'true' : 'false' });
+      b.addEventListener('click', () => { hideCtx(); setFlag(sym, c); });
+      row.appendChild(b);
+    });
+    return row;
+  }
+  function flagPalette(e, sym){
+    showCtx(e, (m) => {
+      m.appendChild(el('p', { class: 'stkw-mh', text: 'FLAG ' + tickerOf(sym) }));
+      m.appendChild(paletteRow(sym));
+      if (flagsOf()[sym]) m.appendChild(mi(I.close, 'Clear flag', () => setFlag(sym, '')));
+    });
+  }
+  function flagButton(sym){
+    const cur1 = flagsOf()[sym];
+    const b = el('button', { type: 'button', class: 'stkw-flag', 'data-f': cur1 || '', tabindex: '-1', title: cur1 ? cap1(cur1) + ' flag (click to clear, right-click for colours)' : 'Flag (click to set, right-click for colours)', 'aria-label': cur1 ? cap1(cur1) + ' flag on ' + tickerOf(sym) : 'Flag ' + tickerOf(sym), html: I.flag });
+    if (viewing) { b.disabled = true; return b; }
+    b.addEventListener('click', (e) => { e.stopPropagation(); if (b.dataset.lp) { delete b.dataset.lp; return; } setFlag(sym, flagsOf()[sym] ? '' : lastFlag); });
+    b.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); sel = sym; markSel(); flagPalette(e, sym); });
+    b.addEventListener('mousedown', (e) => e.stopPropagation());
+    let t = null, pt = null;   // long-press (touch) opens the palette
+    b.addEventListener('touchstart', (e) => { const x = e.touches[0]; pt = { clientX: x.clientX, clientY: x.clientY }; t = setTimeout(() => { t = null; b.dataset.lp = '1'; flagPalette(pt, sym); }, 450); }, { passive: true });
+    ['touchend', 'touchmove', 'touchcancel'].forEach((ev) => b.addEventListener(ev, () => { if (t) { clearTimeout(t); t = null; } }, { passive: true }));
+    return b;
+  }
+  const flagMenu = menu(flagBtn, (pop) => {
+    const f = flagsOf(); const counts = {}; Object.keys(f).forEach((k) => { if (cur && cur.items.includes(k)) counts[f[k]] = (counts[f[k]] || 0) + 1; });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const item = (key, label, n, color) => {
+      const b = mi('', label, () => { flagFilter = key; render(); });
+      if (color) b.querySelector('.stkw-mic').innerHTML = '<i class="stkw-fsw stkw-fdot" data-f="' + color + '"></i>';
+      b.appendChild(el('kbd', { text: key === flagFilter ? '\u2713' : String(n) }));
+      if (key === flagFilter) b.setAttribute('aria-current', 'true');
+      return b;
+    };
+    pop.appendChild(el('p', { class: 'stkw-mh', text: 'SHOW' }));
+    pop.appendChild(mi('', 'All symbols', () => { flagFilter = ''; render(); }));
+    pop.appendChild(item('any', 'Flagged', total));
+    FLAGS.forEach((c) => pop.appendChild(item(c, cap1(c), counts[c] || 0, c)));
+  });
   function render(){
     if (!open) return;
+    flagBtn.classList.toggle('on', !!flagFilter);
+    flagBtn.dataset.f = FLAGS.includes(flagFilter) ? flagFilter : '';
     const v = Object.assign(view(), tmpView);
     titleBtn.innerHTML = '';
     titleBtn.append(el('span', { class: 'stkw-tn', text: viewing ? viewing.name : (cur ? cur.name : 'Watchlist') }), el('span', { class: 'stkw-tc', html: I.chev }));
@@ -581,6 +643,7 @@ export function mountWatchlist(ws, o){
     body.innerHTML = '';
     if (loading) { body.appendChild(el('p', { class: 'stkw-empty', text: 'Loading…' })); return; }
     if (!cur) { body.appendChild(el('p', { class: 'stkw-empty', text: 'No list.' })); return; }
+    if (flagFilter && !body.querySelector('.stkw-row') && cur.items.some((x) => !isSec(x))) body.appendChild(el('p', { class: 'stkw-empty', text: 'No symbols with this flag. Use the flag button to show all.' }));
     if (!cur.items.length) body.appendChild(el('p', { class: 'stkw-empty', text: viewing ? 'This list is empty.' : 'This list is empty. Use + to add a symbol.' }));
     const act = activeSym();
     let collapsed = false, secIdx = -1;
@@ -598,8 +661,10 @@ export function mountWatchlist(ws, o){
       }
       if (collapsed) return;
       const row = el('div', { class: 'stkw-row' + (it === act ? ' act' : '') + (it === sel || selSet.has(it) ? ' sel' : ''), role: 'row', 'data-sym': it, 'data-idx': String(idx), tabindex: '-1', draggable: viewing || isPhone() ? null : 'true' });
+      if (flagFilter && !(flagFilter === 'any' ? flagsOf()[it] : flagsOf()[it] === flagFilter)) return;
       const name = v.disp === 'name' ? nameOf(it) : tickerOf(it);
       const c0 = el('span', { class: 'stkw-c0', role: 'gridcell', title: tickerOf(it) + ' · ' + nameOf(it) }, [
+        flagButton(it),
         v.logo ? logo(it) : null,
         el('span', { class: 'stkw-sym', text: name }),
         el('i', { class: 'stkw-dd', 'aria-hidden': 'true' })
@@ -742,6 +807,8 @@ export function mountWatchlist(ws, o){
         try { window.__stkAlerts.open({ symbol: sym, cond: 'crossing', price: q && Number.isFinite(q.last) ? q.last : '' }); }
         catch (err) { toast('Alerts are not ready yet. Try again in a moment.', 'error'); }
       }));
+      m.appendChild(mi(I.flag, flagsOf()[sym] ? 'Clear flag' : 'Flag', () => setFlag(sym, flagsOf()[sym] ? '' : lastFlag)));
+      m.appendChild(paletteRow(sym));
       m.appendChild(mi(I.sec, 'Add section above', () => askName('Add section', 'NEW SECTION', (n) => addSection(n, idx), 'Section name', 40)));
       m.appendChild(hr());
       m.appendChild(mi(I.trash, selSet.size > 1 && selSet.has(sym) ? 'Remove ' + selSet.size + ' symbols' : 'Remove from list', () => removeSyms(selSet.size > 1 && selSet.has(sym) ? [...selSet] : [sym]), { kbd: 'Del' }));
@@ -763,9 +830,11 @@ export function mountWatchlist(ws, o){
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveNow, 700);
   }
+  function pruneFlags(){ const f = cur && cur.view && cur.view.flags; if (!f) return; const keep = {}; Object.keys(f).forEach((k) => { if (cur.items.includes(k)) keep[k] = f[k]; }); cur.view.flags = keep; }
   async function saveNow(){
     clearTimeout(saveTimer);
     if (viewing || !cur) return;
+    pruneFlags();
     try { const d = await store.save(cur); cur.updatedAt = d.updatedAt; }
     catch (e) { console.warn('TradeZoro watchlist: save', e); toast('Could not save the watchlist. Check your connection.', 'error'); }
   }
@@ -838,7 +907,7 @@ export function mountWatchlist(ws, o){
   }
   async function newDoc(name, items, extra){
     if (lists.length >= MAX_LISTS) { toast('You have ' + MAX_LISTS + ' lists. Delete one to make another.', 'error'); return null; }
-    const d = Object.assign({ id: rid(), name: String(name).slice(0, NAME_MAX), items: items.slice(0, MAX_ITEMS), collapsed: [], view: Object.assign({}, view()), shared: false }, extra || {});
+    const d = Object.assign({ id: rid(), name: String(name).slice(0, NAME_MAX), items: items.slice(0, MAX_ITEMS), collapsed: [], view: Object.assign({}, view(), { flags: {} }), shared: false }, extra || {});
     try { const s = await store.save(d); lists.push(s); return s; }
     catch (e) { console.warn('TradeZoro watchlist: create', e); toast('Could not create the list.', 'error'); return null; }
   }

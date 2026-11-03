@@ -4,7 +4,7 @@
 // `derive` bar transform, see tools/vela-090-ctypes-patch.py): Renko, Range, Line break, Kagi, Point & Figure.
 // Pattern copied from chart-footprint.js: registerChartType + one renderer layer per type (basePainting none).
 // Education only. Not financial advice.
-import { renko, range, lineBreak, kagi, pnf, sizeOf } from './chart-types-math.js?v=824';
+import { renko, range, lineBreak, kagi, pnf, sizeOf } from './chart-types-math.js?v=825';
 
 export const CT_TIME = ['stk_hollow', 'stk_volcandle', 'stk_linemark', 'stk_step', 'stk_hlcarea', 'stk_columns', 'stk_highlow'];
 export const CT_PRICE = ['stk_renko', 'stk_range', 'stk_linebreak', 'stk_kagi', 'stk_pnf'];

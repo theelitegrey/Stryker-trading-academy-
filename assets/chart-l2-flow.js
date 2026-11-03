@@ -1,0 +1,594 @@
+// TradeZoro — Charts: ORDER FLOW with the book (L2). Six indicators, the L2 twins of the trade-only (L1) order-flow tools (Owner order 2026-11-03):
+//   stk_l2f_delta  Delta (L2)            pane: trade delta + book delta per bar (stacked), "pulled vs added" readout
+//   stk_l2f_cvd    Cumulative Delta (L2) pane: running total of both, candles or line, session reset
+//   stk_l2f_fp     Footprint (L2)        overlay: traded volume per price (thin bars) + the resting size at bar close beside it
+//   stk_l2f_big    Big Trades (L2)       overlay: big orders tagged W (hit a resting wall) / C (consumed) / P (book pulled)
+//   stk_l2f_stop   Stop Runs (L2)        overlay: a sweep counts only if resting liquidity on that side was pulled / consumed through >= N levels
+//   stk_l2f_vp     Volume Profile (L2)   overlay: session average resting size per price next to the traded profile
+// Imbalance Zones = Book Imbalance (L2), Absorption = Absorption & Iceberg Tracker (L2): not repeated here.
+// DATA, nothing fetched twice: the book is the heatmap's own BookFeed (chart-orderflow.js acquireBookFeed 'tsl2|ROOT' / Binance; its /ts-book-history
+// backfill and /ts-live frames), the trades are the L1 tools' own stores (chart-ts-trades.js tsOpen for futures; chart-footprint-crypto.js for Binance)
+// and the hub's footprint minutes (chart-futures-l2.js TickFeed). A "level" here is one book row as the recorder stores it (a few ticks wide, rule in ts-hub.js).
+// Same gate as the other L2 tools (futures: l2Visible(); crypto: Pro). No data = a plain note, never made-up numbers. Education only. Not financial advice.
+import { registerFeed } from './chart-feeds.js?v=839';
+import { isFree } from './chart-pro-gate.js?v=839';
+import { l2Visible, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart-futures-l2.js?v=839';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=839';
+import { tsOpen } from './chart-ts-trades.js?v=839';
+import { aggregateMins } from './chart-ts-data.js?v=839';
+import { aggregate, profile as tradedProfile } from './chart-footprint-data.js?v=839';
+import * as BT from './chart-bigtrades.js?v=839';
+import { sweepEvents } from './chart-of-pro-data.js?v=839';
+import { sweepBars } from './chart-of-pro.js?v=839';
+import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=839';
+
+export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];
+const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
+const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NEED = 'These tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and Binance crypto.';
+const MIN_GAP = 200;                 // redraw at most 5 a second
+const GAP_MAX = 5 * 60000;           // two book samples further apart than this are not one "change" (the recorder's archive is one sample per few minutes)
+const ROW_STEPS = [1, 2, 4, 5, 8, 10, 16, 20, 25, 40, 50, 80, 100, 200, 400];
+const light = () => { try { return document.documentElement.getAttribute('data-theme') === 'light'; } catch (e) { return false; } };
+const defaults = (schema) => Object.fromEntries(schema.map((i) => [i.key, i.defval]));
+const hhmm = (ms) => { try { return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return ''; } };
+const sgn = (v) => (v >= 0 ? '+' : '-') + fmtK(Math.abs(v));
+function rgba(hex, a) {
+  const m = /^#?([0-9a-f]{6})/i.exec(String(hex || ''));
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+function idxOf(bars, t) {   // last bar with time <= t, or -1
+  let lo = 0, hi = bars.length - 1, r = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (bars[m].time <= t) { r = m; lo = m + 1; } else hi = m - 1; }
+  return r;
+}
+function lastLE(arr, t) {   // index of the last item with .ts <= t, or -1
+  let lo = 0, hi = arr.length - 1, r = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (arr[m].ts <= t) { r = m; lo = m + 1; } else hi = m - 1; }
+  return r;
+}
+
+// ---------------------------------------------------------------------------------------- book samples: sums and rows
+// A sample = { ts, mid, step, i0, v: Float32Array } one value per row of `step`, bids +, asks - (decodeBookHistory / BookFeed.pushCoarse).
+const sums = new WeakMap();
+function topSums(s, N) {   // resting size in the N rows nearest the touch on each side
+  let m = sums.get(s); if (!m) { m = new Map(); sums.set(s, m); }
+  let r = m.get(N); if (r) return r;
+  const v = s.v, n = v.length; let bt = -1, at = -1, bid = 0, ask = 0;
+  for (let k = n - 1; k >= 0; k--) if (v[k] > 0) { bt = k; break; }
+  for (let k = 0; k < n; k++) if (v[k] < 0) { at = k; break; }
+  if (bt >= 0) for (let k = bt; k > bt - N && k >= 0; k--) if (v[k] > 0) bid += v[k];
+  if (at >= 0) for (let k = at; k < at + N && k < n; k++) if (v[k] < 0) ask -= v[k];
+  r = { bid, ask }; m.set(N, r); return r;
+}
+const avgs = new WeakMap();
+function avgSize(s) { let a = avgs.get(s); if (a == null) { let t = 0, c = 0; for (let k = 0; k < s.v.length; k++) if (s.v[k]) { t += Math.abs(s.v[k]); c++; } a = c ? t / c : 0; avgs.set(s, a); } return a; }
+// resting size on one side in the rows r0..r1 (row index at the sample's own step)
+function restRows(s, side, r0, r1) {
+  let t = 0;
+  for (let r = r0; r <= r1; r++) { const k = r - s.i0; if (k < 0 || k >= s.v.length) continue; const q = s.v[k]; if (side > 0 ? q > 0 : q < 0) t += Math.abs(q); }
+  return t;
+}
+
+// ---------------------------------------------------------------------------------------- one hub per symbol (shared by the six indicators)
+const hubs = new Map();
+let H = null;
+class Hub {
+  constructor(spec, firstT) {
+    this.spec = spec; this.kind = spec.kind; this.refs = 0; this.ls = new Set(); this.v = 0; this.memo = {};
+    const poke = () => this.poke();
+    if (spec.kind === 'futures') {
+      this.book = H.acquireBookFeed('tsl2', spec.root, poke, l2Source(spec.root));   // the heatmap's own feed object (same key): history + live, one fetch
+      this.ts = tsOpen(spec.root, firstT, poke);                                       // the L1 tools' 48 h trade store
+    } else {
+      this.book = H.acquireBookFeed('binance', spec.ticker, poke);
+      this.cfRoot = 'binance:' + spec.ticker;
+    }
+    this.feed = this.book.feed;
+  }
+  poke() { this.v++; this.ls.forEach((f) => { try { f(); } catch (e) {} }); }
+  release() { this.book.release(); if (this.ts) this.ts.release(); }
+  cf() { return this.kind === 'crypto' ? cryptoFeed(this.cfRoot) : null; }   // touching it keeps the stream alive
+  tick() { return this.kind === 'futures' ? this.spec.tick : (this.cf().tick || 0); }
+  samples() { return this.feed.allHistory(); }
+  sampleAt(t, maxAge = GAP_MAX) { const a = this.samples(), i = lastLE(a, t); return i >= 0 && t - a[i].ts <= maxAge ? a[i] : null; }
+  tver() { return this.kind === 'futures' ? this.ts.s.v : this.cf().v; }
+  fver() { return this.kind === 'futures' ? this.footFeed().v : this.cf().v; }
+  footFeed() { return rootState(this.spec.root).trades; }
+  // 1-minute rows { t, buy, sell, hi, lo } of trades (futures: 48 h from the L1 store; crypto: the stream's backfill)
+  minutes() {
+    const key = this.tver(); if (this.memo.mk === key) return this.memo.m;
+    let m;
+    if (this.kind === 'futures') m = this.ts.mins();
+    else { const f = this.cf(); m = f.bars().filter((b) => b.t >= f.coverFrom).map((b) => ({ t: b.t, buy: (b.vol + b.delta) / 2, sell: (b.vol - b.delta) / 2, hi: b.dmax, lo: b.dmin })); }
+    this.memo.mk = key; this.memo.m = m; return m;
+  }
+  tradeBars(tf) { const k = this.tver() + '|' + tf; if (this.memo.tk !== k) { this.memo.tk = k; this.memo.tb = new Map(aggregateMins(this.minutes(), tf).map((b) => [b.t, b])); } return this.memo.tb; }
+  // per-price minutes (footprint): futures from the hub's TickFeed (3 h), crypto from the stream
+  footBars() {
+    const f = this.kind === 'futures' ? this.footFeed() : this.cf();
+    if (!f) return { bars: [], tick: 0 };
+    return { bars: f.bars().filter((b) => b.t >= f.coverFrom), tick: f.tick || 0, from: f.coverFrom };
+  }
+  footAgg(tf) {
+    const k = this.fver() + '|' + tf; if (this.memo.fk === k) return this.memo.fa;
+    const fb = this.footBars(), map = new Map(aggregate(fb.bars, tf).map((b) => [b.t, b]));
+    this.memo.fk = k; this.memo.fa = { map, tick: fb.tick, from: fb.from }; return this.memo.fa;
+  }
+  prints() {   // [ms, tick idx, size, side 1 buy] for Big Trades
+    const k = this.tver(); if (this.memo.pk === k) return this.memo.p;
+    let p, floor = 0;
+    if (this.kind === 'futures') { const s = this.ts.s; p = s.trades.map((x) => [x[0], Math.round(x[1] / s.tick), x[2], x[3] > 0 ? 1 : 0]); floor = s.floor; }
+    else { p = []; for (const b of this.cf().bars()) for (const x of b.bigs || []) p.push(x); }
+    this.memo.pk = k; this.memo.p = p; this.memo.floor = floor; return p;
+  }
+  // book delta per chart bar: change of resting bid size minus change of resting ask size over the bar (top N rows); pulled / added = size taken away / put in
+  bookSeries(N, bars, tf) {
+    const a = this.samples(), key = a.length + '|' + (a.length ? a[a.length - 1].ts : 0) + '|' + N + '|' + tf + '|' + bars.length + '|' + (bars.length ? bars[0].time : 0);
+    if (this.memo.bk === key) return this.memo.bs;
+    const n = bars.length, bd = new Array(n).fill(null), pulled = new Array(n).fill(0), added = new Array(n).fill(0), end = n ? bars[n - 1].time + tf : 0;
+    let prev = null, prevTs = 0;
+    for (const s of a) {
+      const cur = topSums(s, N);
+      if (prev && s.ts - prevTs > 0 && s.ts - prevTs <= GAP_MAX && s.ts < end) {
+        const i = idxOf(bars, s.ts);
+        if (i >= 0) {
+          const db = cur.bid - prev.bid, da = cur.ask - prev.ask;
+          bd[i] = (bd[i] || 0) + db - da; added[i] += Math.max(db, 0) + Math.max(da, 0); pulled[i] += Math.max(-db, 0) + Math.max(-da, 0);
+        }
+      }
+      prev = cur; prevTs = s.ts;
+    }
+    this.memo.bk = key; this.memo.bs = { bd, pulled, added }; return this.memo.bs;
+  }
+  // average resting size per row over the session so far (time weighted), rows of the newest sample's step
+  restProfile(ss) {
+    const a = this.samples(), last = a[a.length - 1];
+    if (!last) return null;
+    const key = ss + '|' + a.length + '|' + Math.floor(last.ts / 5000);
+    if (this.memo.rk === key) return this.memo.rp;
+    const S = last.step, bid = new Map(), ask = new Map(); let W = 0, first = 0;
+    for (let j = lastLE(a, ss - 1) + 1; j < a.length; j++) {
+      const s = a[j], w = Math.min(j + 1 < a.length ? a[j + 1].ts - s.ts : 5000, GAP_MAX);
+      if (Math.abs(s.step - S) > 1e-9 * S || !(w > 0)) continue;
+      if (!first) first = s.ts;
+      W += w;
+      for (let k = 0; k < s.v.length; k++) { const q = s.v[k]; if (q) { const m = q > 0 ? bid : ask, r = s.i0 + k; m.set(r, (m.get(r) || 0) + Math.abs(q) * w); } }
+    }
+    const out = W > 0 ? { S, W, first, bid: new Map([...bid].map(([r, q]) => [r, q / W])), ask: new Map([...ask].map(([r, q]) => [r, q / W])) } : null;
+    this.memo.rk = key; this.memo.rp = out; return out;
+  }
+}
+function acquireHub(spec, firstT, listener) {
+  let h = hubs.get(spec.key);
+  if (!h) { h = new Hub(spec, firstT); hubs.set(spec.key, h); }
+  h.refs++; h.ls.add(listener);
+  return { h, release() { h.ls.delete(listener); if (--h.refs <= 0) { h.release(); hubs.delete(spec.key); } } };
+}
+function specOf(ctx) {
+  const sym = String(ctx.symbol || ''), m = /^([a-z0-9]+):(.+)$/i.exec(sym), prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
+  if (prov === 'futures') { const root = l2Root(tk); return root ? { kind: 'futures', root, key: 'f|' + root, tick: L2_TICK[root] || 0.25 } : null; }
+  if (prov === 'binance') { const t = tk.toUpperCase().replace(/\.P$/, ''); return { kind: 'crypto', ticker: t, key: 'c|' + t }; }
+  return null;
+}
+
+// ---------------------------------------------------------------------------------------- settings
+const ROWS = { key: 'rows', title: 'Book rows each side of price (top N levels)', type: 'int', defval: 10, min: 1, max: 40, step: 1, tooltip: 'Counts the N book rows nearest the best bid and the best ask. A row is one recorded price step.' };
+const SCHEMA = {
+  stk_l2f_delta: [ROWS,
+    { key: 'tradeUp', title: 'Trade delta: buying', type: 'color', defval: UP }, { key: 'tradeDn', title: 'Trade delta: selling', type: 'color', defval: DN },
+    { key: 'bookUp', title: 'Book delta: bid side added', type: 'color', defval: CYAN }, { key: 'bookDn', title: 'Book delta: ask side added', type: 'color', defval: AMBER }],
+  stk_l2f_cvd: [ROWS,
+    { key: 'style', title: 'Show as', type: 'string', defval: 'candles', options: ['candles', 'line'] },
+    { key: 'reset', title: 'Reset', type: 'string', defval: 'session', options: ['session', 'day', 'none'], tooltip: 'session = the CME day (18:00 New York); crypto = the UTC day.' },
+    { key: 'showTrade', title: 'Also show trade-only delta (dashed)', type: 'bool', defval: true },
+    { key: 'upColor', title: 'Up', type: 'color', defval: UP }, { key: 'downColor', title: 'Down', type: 'color', defval: DN }],
+  stk_l2f_fp: [
+    { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
+    { key: 'mult', title: 'Highlight resting size above (x average)', type: 'float', defval: 3, min: 1.5, max: 20, step: 0.5 },
+    { key: 'numbers', title: 'Show traded numbers', type: 'bool', defval: true },
+    { key: 'buyColor', title: 'Buyers', type: 'color', defval: UP }, { key: 'sellColor', title: 'Sellers', type: 'color', defval: DN },
+    { key: 'bidColor', title: 'Resting bids', type: 'color', defval: CYAN }, { key: 'askColor', title: 'Resting asks', type: 'color', defval: AMBER }],
+  stk_l2f_big: BT.schema().filter((x) => !['absorption', 'sweep', 'extend'].includes(x.key)).concat([
+    { group: 'Plot', key: 'tags', title: 'Show W / C / P tags', type: 'bool', defval: true, tooltip: 'W = the order hit a resting wall that held. C = the resting size was consumed. P = the resting size was pulled.' }]),
+  stk_l2f_stop: [
+    { key: 'len', title: 'Swing length (bars)', type: 'int', defval: 5, min: 2, max: 50, step: 1 },
+    { key: 'levels', title: 'Liquidity pulled / consumed through at least (levels)', type: 'int', defval: 3, min: 1, max: 20, step: 1 },
+    { key: 'volMult', title: 'Volume spike (x average)', type: 'float', defval: 1.5, min: 1, max: 10, step: 0.1 },
+    { key: 'showAll', title: 'Also show sweeps the book did not confirm (hollow)', type: 'bool', defval: false },
+    { key: 'upColor', title: 'Lows swept (bullish)', type: 'color', defval: UP }, { key: 'downColor', title: 'Highs swept (bearish)', type: 'color', defval: DN }],
+  stk_l2f_vp: [
+    { key: 'widthPct', title: 'Width of each profile (% of the chart)', type: 'int', defval: 14, min: 5, max: 30, step: 1 },
+    { key: 'tradedColor', title: 'Traded', type: 'color', defval: CYAN },
+    { key: 'bidColor', title: 'Resting bids', type: 'color', defval: UP }, { key: 'askColor', title: 'Resting asks', type: 'color', defval: DN }]
+};
+const TITLES = {
+  stk_l2f_delta: ['Delta (L2)', 'Delta L2', 'new', false],
+  stk_l2f_cvd: ['Cumulative Delta (L2)', 'CVD L2', 'new', false],
+  stk_l2f_fp: ['Footprint (L2)', 'Footprint L2', 'price', true],
+  stk_l2f_big: ['Big Trades (L2)', 'Big Trades L2', 'price', true],
+  stk_l2f_stop: ['Stop Runs (L2)', 'Stop Runs L2', 'price', true],
+  stk_l2f_vp: ['Volume Profile (L2)', 'Volume Profile L2', 'price', true]
+};
+const LAYERS = ['stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];
+
+// ---------------------------------------------------------------------------------------- the indicator
+// Overlay tools state themselves in a one-line plate drawn by their own layer, stacked down the top right (a chart table would pile up on top of the others).
+const ovLive = [];
+function plateLine(g, a, owner, W) {
+  let txt = owner.text; if (!txt) return;
+  const slot = ovLive.filter((x) => x.on).indexOf(owner); if (slot < 0) return;
+  const phone = a.coords.width < 520;
+  g.save(); g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
+  const room = a.coords.width - 70; while (txt.length > 8 && g.measureText(txt).width + 10 > room) txt = txt.slice(0, -2).replace(/[ ·]+$/, '') + '…';   // phone: never wider than the chart minus the price scale
+  const tw = g.measureText(txt).width + 10, y = a.bounds.top + 10 + slot * 17, x = a.coords.width - 6;
+  g.fillStyle = plate(); g.fillRect(x - tw, y - 7, tw, 14); g.fillStyle = light() ? '#0e7490' : '#4fd1d9'; g.fillText(txt, x - 5, y); g.restore();
+}
+class L2Flow {
+  constructor(type) { this.type = type; this.inputs = defaults(SCHEMA[type]); this.tm = 0; this.last = 0; this.u = null; this.spec = null; this.on = false; this.off = false; this.memo = {}; this.onAny = () => this.later(); }
+  start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); this.render(); }
+  later() { if (this.tm || this.off || document.hidden) return; this.tm = setTimeout(() => { this.tm = 0; this.render(); }, Math.max(0, MIN_GAP - (Date.now() - this.last))); }
+  onBars() { this.later(); }
+  onViewport() { if (LAYERS.includes(this.type)) this.push(); }
+  setInputs(i) { this.inputs = Object.assign(defaults(SCHEMA[this.type]), i); this.memo = {}; this.render(); }
+  suspend() { this.on = false; clearTimeout(this.tm); this.tm = 0; this.push(); }
+  resume() { this.on = true; this.render(); }
+  stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); this.off = true; this.on = false; clearTimeout(this.tm); document.removeEventListener('visibilitychange', this.onVis); this.unbind(); this.push(); }
+  unbind() { if (this.u) { this.u.release(); this.u = null; this.spec = null; } }
+  push(extra) { try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
+  ov(...lines) { this.text = this.base = lines.filter(Boolean).join(' · '); this.ctx.emit({ tables: [] }); }
+  say(txt) {
+    this.text = ''; this.ctx.setStatus('idle');
+    this.ctx.emit({ series: [], tables: [H.message(this.type + '-msg', txt, H.pageIsDay(), 'top_right')] });
+    this.push({ off: true });
+  }
+  legend(lines, color) {
+    const day = light();
+    return { id: this.type + '-leg', paneId: '', position: 'top_right', columns: 1, rows: lines.length, bgColor: day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.88)', frameWidth: 0, borderWidth: 0,
+      cells: lines.map((t, i) => [{ text: t, textColor: i === 0 && color ? color : (day ? '#334155' : '#a3a9b6'), hAlign: 'right', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: i === 0, italic: false }]), merges: [] };
+  }
+  render() {
+    this.last = Date.now();
+    if (!this.ctx || this.off) return;
+    try { this.draw(); } catch (e) { console.warn('TradeZoro: ' + this.type, e); window.__l2fErr = String(e && e.stack || e).slice(0, 400); }
+  }
+  draw() {
+    const ctx = this.ctx, spec = specOf(ctx);
+    if (!spec) { this.unbind(); return this.say(NEED); }
+    if (spec.kind === 'futures' ? !l2Visible() : isFree()) { this.unbind(); return this.say(NOT_YET); }
+    const bars = ctx.bars();
+    if (!bars.length) { ctx.setStatus('loading'); return; }
+    if (!this.spec || this.spec.key !== spec.key) { this.unbind(); this.u = acquireHub(spec, bars[0].time, this.onAny); this.spec = spec; }
+    const hub = this.u.h, tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
+    if (tf < 60000 || tf > 4 * 3600000) return this.say('Works on 1-minute to 4-hour charts.');
+    hub.feed.needRemote(bars[0].time);          // book history back to the left edge of the chart (the heatmap's own loader, one request in flight)
+    if (hub.ts) hub.ts.need(bars[0].time);       // trade history back to the left edge
+    const samples = hub.samples(), first = samples.length ? samples[0].ts : 0;
+    const since = first && first > bars[0].time + 120000 ? 'Book history from ' + hhmm(first) : '';
+    const t = this.type;
+    ctx.setStatus(samples.length ? 'live' : 'loading');
+    if (t === 'stk_l2f_delta') return this.drawDelta(hub, bars, tf, since);
+    if (t === 'stk_l2f_cvd') return this.drawCvd(hub, bars, tf, since);
+    if (t === 'stk_l2f_fp') return this.drawFp(hub, bars, tf, since);
+    if (t === 'stk_l2f_big') return this.drawBig(hub, bars, tf, since);
+    if (t === 'stk_l2f_stop') return this.drawStop(hub, bars, tf, since);
+    return this.drawVp(hub, bars, tf, since);
+  }
+  // per bar: trade delta, book delta
+  deltas(hub, bars, tf) {
+    const N = clamp(Math.round(num(this.inputs.rows, 10)), 1, 40), agg = hub.tradeBars(tf), bk = hub.bookSeries(N, bars, tf);
+    const T = bars.map((b) => { const x = agg.get(b.time); return x ? x.delta : null; });
+    return { T, B: bk.bd, bk, N };
+  }
+  noteLine(hub, since, T) {
+    if (since) return since;
+    return T.some((x) => x != null) || hub.samples().length ? 'order book + trades' : 'Loading order-book and trade history…';
+  }
+  drawDelta(hub, bars, tf, since) {
+    const I = this.inputs, { T, B, bk } = this.deltas(hub, bars, tf), mk = (f) => bars.map((b, i) => (T[i] == null && B[i] == null ? { time: b.time, value: null } : f(T[i] || 0, B[i] || 0)));
+    const pts = (fn) => mk((t, b) => fn(t, b));
+    const topPos = pts((t, b) => ({ time: 0, value: Math.max(t, 0) + Math.max(b, 0), color: rgba(I.bookUp, 0.85) })), topNeg = pts((t, b) => ({ time: 0, value: Math.min(t, 0) + Math.min(b, 0), color: rgba(I.bookDn, 0.85) }));
+    const tr = pts((t) => ({ time: 0, value: t, color: rgba(t >= 0 ? I.tradeUp : I.tradeDn, 0.95) }));
+    const fix = (a) => a.map((p, i) => Object.assign(p, { time: bars[i].time }));
+    const hist = (id, title, a) => ({ id, title, paneId: '', kind: 'histogram', points: fix(a), style: { color: I.tradeUp, width: 1, lineStyle: 'solid', base: 0 } });
+    const li = B.length - 1;
+    let lastI = li; while (lastI > 0 && T[lastI] == null && B[lastI] == null) lastI--;
+    const sumP = bk.pulled.reduce((x, y) => x + y, 0), sumA = bk.added.reduce((x, y) => x + y, 0);
+    this.ctx.emit({
+      series: [hist('l2f-bpos', 'Book delta (bid side added)', topPos), hist('l2f-bneg', 'Book delta (ask side added)', topNeg), hist('l2f-trade', 'Trade delta', tr)],
+      priceLines: [{ id: 'l2f-d0', paneId: '', price: 0, color: light() ? 'rgba(15,23,42,0.35)' : 'rgba(255,255,255,0.3)', lineStyle: 'dashed', width: 1, title: '' }],
+      tables: [this.legend(['Delta (L2) trade ' + (T[lastI] == null ? 'n/a' : sgn(T[lastI])) + ' · book ' + (B[lastI] == null ? 'n/a' : sgn(B[lastI])),
+        'Bar: pulled ' + fmtK(bk.pulled[lastI] || 0) + ' · added ' + fmtK(bk.added[lastI] || 0), 'Shown: pulled ' + fmtK(sumP) + ' · added ' + fmtK(sumA), this.noteLine(hub, since, T)], B[lastI] >= 0 ? I.bookUp : I.bookDn)]
+    });
+    this.stat(bars, (i) => T[i] != null || B[i] != null);
+    this.push({ off: true });
+  }
+  drawCvd(hub, bars, tf, since) {
+    const I = this.inputs, { T, B } = this.deltas(hub, bars, tf), kind = hub.kind, ss = (t) => (I.reset === 'none' ? 0 : I.reset === 'day' ? Math.floor(t / 86400000) : sessionStart(t, kind));
+    let acc = 0, accT = 0, key = null; const cs = [], ls = [], ts = [];
+    bars.forEach((b, i) => {
+      if (T[i] == null && B[i] == null) { ls.push(null); ts.push(null); cs.push({ open: acc, high: acc, low: acc, close: acc }); return; }   // candles are one per chart bar, no time field (the chart reads them by position, like chart-footprint.js)
+      const k = ss(b.time); if (k !== key) { key = k; acc = 0; accT = 0; }
+      const o = acc; acc += (T[i] || 0) + (B[i] || 0); accT += T[i] || 0;
+      cs.push({ open: o, high: Math.max(o, acc), low: Math.min(o, acc), close: acc }); ls.push(acc); ts.push(accT);
+    });
+    const series = [];
+    if (I.style === 'line') series.push(H.line('l2f-cvd', 'CVD (L2)', bars, ls, I.upColor, 2));
+    else if (cs.length >= 20) series.push({ id: 'l2f-cvd', title: 'CVD (L2)', paneId: '', kind: 'candle', bars: cs, style: { up: I.upColor, down: I.downColor } });
+    if (I.showTrade !== false) series.push(H.line('l2f-cvdt', 'CVD trade only', bars, ts, light() ? '#64748b' : '#8a90a0', 1, 'dashed'));
+    const now = ls.length ? [...ls].reverse().find((x) => x != null) : null;
+    this.ctx.emit({ series, tables: [this.legend(['CVD (L2) ' + (now == null ? '…' : sgn(now)) + ' · reset ' + I.reset, this.noteLine(hub, since, T)], I.upColor)] });
+    this.stat(bars, (i) => ls[i] != null);
+    this.push({ off: true });
+  }
+  stat(bars, has) { let n = 0; for (let i = 0; i < bars.length; i++) if (has(i)) n++; (window.__stkL2Flow || (window.__stkL2Flow = {}))[this.type] = Object.assign((window.__stkL2Flow || {})[this.type] || {}, { n, bars: bars.length }); }
+  drawFp(hub, bars, tf, since) {
+    const fa = hub.footAgg(tf);
+    this.ov('Footprint (L2): traded | resting at close', fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '');
+    this.stat(bars, (i) => fa.map.has(bars[i].time));
+    this.push({ hub, v: hub.v + ':' + hub.fver() });
+  }
+  drawBig(hub, bars, tf, since) {
+    const I = this.inputs, key = hub.tver() + '|' + bars.length + '|' + bars[0].time + '|' + JSON.stringify(I) + '|' + hub.samples().length;
+    if (this.memo.bk !== key) {
+      const tick = hub.tick(), raw = hub.prints(), sel = tick && raw.length ? BT.select(raw, I, { floor: hub.memo.floor || 0, bars, tfMs: tf, tick }) : { list: [], thr: 0, all: 0 };
+      const cnt = { W: 0, C: 0, P: 0, none: 0 };
+      for (const p of sel.list) { p.kind = classify(hub, p, tick); cnt[p.kind || 'none']++; }
+      this.memo.bk = key; this.memo.sel = sel; this.memo.cnt = cnt; this.memo.tick = tick;
+    }
+    const { sel, cnt } = this.memo;
+    this.ov('Big Trades (L2) ' + sel.list.length, 'W wall ' + cnt.W, 'C consumed ' + cnt.C, 'P pulled ' + cnt.P, cnt.none ? cnt.none + ' no book' : '');
+    this.stat(bars, (i) => sel.list.some((p) => idxOf(bars, p.ms) === i));
+    window.__stkL2Flow.stk_l2f_big.prints = sel.list.length; window.__stkL2Flow.stk_l2f_big.tagged = sel.list.length - cnt.none;
+    this.push({ sel, tick: this.memo.tick });
+  }
+  drawStop(hub, bars, tf, since) {
+    const I = this.inputs, key = bars.length + '|' + bars[0].time + '|' + bars[bars.length - 1].close + '|' + I.len + '|' + I.volMult + '|' + I.levels + '|' + hub.samples().length;
+    if (this.memo.sk !== key) {
+      const tick = hub.tick() || 0.25, raw = bars.length > 12 ? sweepEvents(sweepBars(bars, null).slice(0, -1), { len: clamp(Math.round(num(I.len, 5)), 2, 50), volMult: num(I.volMult, 1.5) }) : [];
+      const ev = raw.map((e) => Object.assign({}, e, stopRun(hub, bars[e.i], e, tf, clamp(Math.round(num(I.levels, 3)), 1, 20))));
+      this.memo.sk = key; this.memo.ev = ev;
+    }
+    const ev = this.memo.ev, ok = ev.filter((e) => e.ok).length, unk = ev.filter((e) => e.known === false).length;
+    this.ov('Stop Runs (L2) ' + ok + ' of ' + ev.length + ' sweeps confirmed (' + I.levels + '+ levels)', unk ? unk + ' no book' : '');
+    this.stat(bars, (i) => ev.some((e) => e.i === i));
+    window.__stkL2Flow.stk_l2f_stop.sweeps = ev.length; window.__stkL2Flow.stk_l2f_stop.confirmed = ok;
+    this.push({ ev });
+  }
+  drawVp(hub, bars, tf, since) {
+    const ss = sessionStart(bars[bars.length - 1].time, hub.kind), rp = hub.restProfile(ss);
+    this.ov('Volume Profile (L2)', rp ? 'resting avg since ' + hhmm(Math.max(ss, rp.first)) : 'loading book history…');
+    let rows = 0; if (rp) rows = new Set([...rp.bid.keys(), ...rp.ask.keys()]).size;
+    this.stat(bars, () => false); window.__stkL2Flow.stk_l2f_vp.n = rows;
+    this.push({ hub, ss, v: hub.v + ':' + hub.fver() });
+  }
+}
+
+// ---------------------------------------------------------------------------------------- Big Trades: what did the book do around the print?
+// W = the resting size at the levels the order hit is still >= half there afterwards (a wall that held); C = it fell and about as much traded
+// as vanished (consumed); P = it fell by clearly more than traded (pulled). Needs a book sample just before and just after, else no tag.
+function classify(hub, p, tick) {
+  const before = hub.sampleAt(p.ms);
+  if (!before) return '';
+  const aa = hub.samples(), j = lastLE(aa, p.last + 300) + 1, after = aa[j];
+  if (!after || after.ts - p.last > 150000 || Math.abs(after.step - before.step) > 1e-9 * before.step) return '';
+  const S = before.step, r0 = Math.floor(p.lo * tick / S + 1e-9), r1 = Math.floor(p.hi * tick / S + 1e-9), side = p.side ? -1 : 1;   // a buy hits the asks
+  const b = restRows(before, side, r0, r1), a = restRows(after, side, r0, r1);
+  if (!(b > 0)) return '';
+  if (a >= 0.5 * b) return 'W';
+  return b - a <= 1.25 * p.size ? 'C' : 'P';
+}
+// Stop Runs: of the book rows between the bar's open (or the swept level) and its extreme, on the side that was run, how many lost half their size at some point in the bar?
+function stopRun(hub, bar, e, tf, need) {
+  const tick = hub.tick(), before = hub.sampleAt(bar.time);
+  if (!tick || !before) return { known: false, ok: false, got: 0 };
+  const S = before.step, side = e.side === 1 ? -1 : 1, lo = e.side === 1 ? Math.min(e.level, bar.open) : e.extreme, hi = e.side === 1 ? e.extreme : Math.max(e.level, bar.open);
+  const r0 = Math.floor(lo / S + 1e-9), r1 = Math.floor(hi / S + 1e-9);
+  const a = hub.samples(), min = new Map();
+  for (let r = r0; r <= r1; r++) { const q = restRows(before, side, r, r); if (q > 0) min.set(r, q); }
+  const orig = new Map(min);
+  for (let j = lastLE(a, bar.time) + 1; j < a.length && a[j].ts < bar.time + tf; j++) {
+    const s = a[j]; if (Math.abs(s.step - S) > 1e-9 * S) continue;
+    for (const [r, q] of min) { const x = restRows(s, side, r, r); if (x < q) min.set(r, x); }
+  }
+  let got = 0; for (const [r, q0] of orig) if (min.get(r) <= 0.5 * q0) got++;
+  return { known: true, ok: got >= need, got };
+}
+
+// ---------------------------------------------------------------------------------------- canvas layers
+function frame(canvas, a) {
+  const g = canvas && canvas.getContext('2d');
+  if (!g) return null;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, canvas.width, canvas.height);
+  const d = a.data;
+  if (!d || !d.owner || !d.owner.on || d.off || !a.bars || !a.bars.length) return null;
+  const dpr = a.coords.dpr || 1;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.save(); g.beginPath(); g.rect(0, a.bounds.top, a.coords.width, a.bounds.height); g.clip();
+  return g;
+}
+const Yp = (a, p) => a.coords.priceToY(p, a.scale, a.bounds);
+const plate = () => (light() ? 'rgba(255,255,255,0.9)' : 'rgba(11,11,13,0.85)');
+const ink = () => (light() ? '#0f172a' : '#f4f4f6');
+function tfOf(bars) { return bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000; }
+function rowsOfSample(s, R) {   // resting size per row of R price units: Map row -> { bid, ask }
+  const out = new Map();
+  for (let k = 0; k < s.v.length; k++) {
+    const q = s.v[k]; if (!q) continue;
+    const lowP = (s.i0 + k) * s.step, per = s.step > R * 1.0001 ? Math.round(s.step / R) : 1, r0 = per > 1 ? Math.floor(lowP / R + 1e-9) : Math.floor((lowP + s.step / 2) / R + 1e-9);
+    for (let j = 0; j < per; j++) { const e = out.get(r0 + j) || { bid: 0, ask: 0 }; if (q > 0) e.bid += q / per; else e.ask -= q / per; out.set(r0 + j, e); }
+  }
+  return out;
+}
+function fpLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        a.data.owner.text = a.data.owner.base;
+        const d = a.data, I = d.owner.inputs, hub = d.hub, co = a.coords, phone = co.width < 520, tf = tfOf(a.bars), fa = hub.footAgg(tf), tick = fa.tick;
+        if (!tick) return;
+        const ppb = co.pxPerBar(), vr = co.visibleLogicalRange(), i0 = clamp(Math.floor(vr.from), 0, a.bars.length - 1), i1 = clamp(Math.ceil(vr.to), 0, a.bars.length - 1);
+        const top = a.bounds.top, bot = top + a.bounds.height;
+        if (ppb < (phone ? 28 : 34)) { g.font = '600 11px ' + MONO; g.textAlign = 'center'; d.owner.text = 'Footprint (L2): zoom in to see it'; return; }
+        const newest = hub.samples()[hub.samples().length - 1], S = newest ? newest.step : tick;
+        const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), minPx = phone ? 16 : 12;
+        let m = I.rowTicks > 0 ? I.rowTicks : ROW_STEPS.find((s) => tickPx * s >= minPx) || 400;
+        m = Math.max(m, Math.round(S / tick));               // a row is never finer than the book's own rows
+        const R = m * tick, mult = num(I.mult, 3), now = Date.now();
+        const colW = Math.min(ppb * 0.92, 150), restW = colW * 0.3, trW = colW - restW - 2, fs = phone ? 9 : 10;
+        g.font = '600 ' + fs + 'px ' + MONO; g.textBaseline = 'middle';
+        let hot = 0;
+        for (let i = i0; i <= i1; i++) {
+          const b = a.bars[i], bar = fa.map.get(b.time), x = co.logicalToX(i), left = x - colW / 2;
+          const s = hub.sampleAt(Math.min(b.time + tf, now) - 1, 6 * 60000), rest = s && s.ts >= b.time - 6 * 60000 ? rowsOfSample(s, R) : null, avg = s ? avgSize(s) : 0;
+          const tr = new Map();
+          if (bar) for (let j = 0; j < bar.buy.length; j++) { const r = Math.floor((bar.lo + j) * tick / R + 1e-9), e = tr.get(r) || { buy: 0, sell: 0 }; e.buy += bar.buy[j]; e.sell += bar.sell[j]; tr.set(r, e); }
+          let mx = 1; tr.forEach((e) => { mx = Math.max(mx, e.buy + e.sell); });
+          const keys = new Set([...tr.keys(), ...(rest ? rest.keys() : [])]);
+          for (const r of keys) {
+            const yT = Yp(a, (r + 1) * R), yB = Yp(a, r * R), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (Math.abs(yB - yT) > 4 ? 1 : 0));
+            if (y > bot || y + h < top) continue;
+            const e = rest && rest.get(r);
+            if (e) {   // resting size at bar close, thin bar growing from the left edge of the candle column
+              const q = Math.max(e.bid, e.ask), isBid = e.bid >= e.ask, big = avg > 0 && q >= mult * avg, col = isBid ? I.bidColor : I.askColor;
+              const len = Math.max(1, Math.min(1, q / (avg * mult * 1.5 || 1)) * restW);
+              g.fillStyle = rgba(col, big ? 0.95 : 0.5); g.fillRect(left, y, len, h);
+              if (big) { g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(left + 0.5, y + 0.5, Math.max(restW - 1, len - 1), h - 1); hot++; }
+            }
+            const t = tr.get(r);
+            if (t) {
+              const tot = t.buy + t.sell, w = Math.max(1, trW * tot / mx), x0 = left + restW + 2, wb = w * t.buy / tot;
+              g.fillStyle = rgba(I.sellColor, 0.8); g.fillRect(x0, y, w - wb, h);
+              g.fillStyle = rgba(I.buyColor, 0.8); g.fillRect(x0 + w - wb, y, wb, h);
+              if (I.numbers !== false && h >= 11 && trW >= 40) { g.fillStyle = ink(); g.textAlign = 'left'; g.fillText(Math.round(t.sell) + 'x' + Math.round(t.buy), x0 + 2, y + h / 2); }
+            }
+          }
+        }
+        window.__stkL2Flow.stk_l2f_fp.hot = hot;
+      } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+function bigLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        const d = a.data, I = Object.assign({}, BT.DEFAULTS, d.owner.inputs), sel = d.sel, tick = d.tick, co = a.coords, phone = co.width < 520;
+        if (!sel || !tick) return;
+        const top = a.bounds.top, bot = top + a.bounds.height, vr = co.visibleLogicalRange(), t0 = a.bars[Math.max(0, Math.floor(vr.from))].time, t1 = a.bars[Math.min(a.bars.length - 1, Math.ceil(vr.to))].time + 86400000;
+        const pos = new Map(), vis = sel.list.filter((p) => p.ms >= t0 && p.ms <= t1);
+        const kept = BT.cap(vis, phone ? 10 : 14, (p) => { const i = idxOf(a.bars, p.ms); if (i < 0) return null; pos.set(p, i); return co.logicalToX(i); });
+        const placed = [], items = [], col = { W: AMBER, C: VIOLET, P: CYAN };
+        for (const p of kept.sort((x, y) => y.impact - x.impact)) {
+          const x = co.logicalToX(pos.get(p)), y = Yp(a, p.vwap * tick); if (y < top - 30 || y > bot + 30) continue;
+          const r = BT.radius(p.impact, phone);
+          if (placed.some((q) => BT.lens(r, q.r, Math.hypot(x - q.x, y - q.y)) > 0.5 * Math.PI * Math.min(r, q.r) ** 2)) continue;
+          placed.push({ x, y, r }); items.push({ p, x, y, r });
+        }
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        for (const { p, x, y, r } of items.slice().reverse()) {
+          const c = p.side ? I.buyColor : I.sellColor;
+          g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fillStyle = rgba(c, I.minOpacity); g.fill(); g.lineWidth = 1; g.strokeStyle = c; g.stroke();
+          if (I.tags !== false && p.kind) {
+            g.beginPath(); g.arc(x, y, r + 2.5, 0, Math.PI * 2); g.lineWidth = 2; g.strokeStyle = col[p.kind]; g.stroke();
+            g.font = '700 ' + clamp(Math.round(r), 8, 12) + 'px ' + MONO; g.fillStyle = light() ? '#0f172a' : '#fff'; g.fillText(p.kind, x, y + 0.5);
+          }
+          if (I.showSize) { g.font = '600 ' + (phone ? 10 : 11) + 'px ' + MONO; g.fillStyle = ink(); g.fillText(BT.compact(p.size), x + r + 12, y); }
+        }
+      } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+function stopLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        const d = a.data, I = d.owner.inputs, co = a.coords, phone = co.width < 520, top = a.bounds.top, bot = top + a.bounds.height, vr = co.visibleLogicalRange();
+        const i0 = Math.floor(vr.from) - 1, i1 = Math.ceil(vr.to) + 1;
+        g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 ' + (phone ? 9 : 10) + 'px ' + MONO;
+        for (const e of d.ev || []) {
+          if (e.i < i0 || e.i > i1 || (!e.ok && !I.showAll)) continue;
+          const x = co.logicalToX(e.i), y = Yp(a, e.extreme), up = e.side === 1, c = up ? I.downColor : I.upColor, r = e.ok ? 7 : 5, ty = up ? y - r - 4 : y + r + 4;
+          if (y < top - 10 || y > bot + 10) continue;
+          g.beginPath();
+          if (up) { g.moveTo(x, ty + r); g.lineTo(x + r, ty - r * 0.7); g.lineTo(x - r, ty - r * 0.7); } else { g.moveTo(x, ty - r); g.lineTo(x + r, ty + r * 0.7); g.lineTo(x - r, ty + r * 0.7); }
+          g.closePath();
+          if (e.ok) { g.fillStyle = c; g.fill(); g.strokeStyle = light() ? '#fff' : '#0b0b0d'; g.lineWidth = 1; g.stroke(); const ly = up ? ty - r - 7 : ty + r + 7; g.fillStyle = c; g.fillText(e.got + ' lv', x, ly); }
+          else { g.strokeStyle = rgba(c, 0.8); g.lineWidth = 1.2; g.stroke(); }
+        }
+      } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+function vpLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        const d = a.data, I = d.owner.inputs, hub = d.hub, co = a.coords, phone = co.width < 520, top = a.bounds.top, bot = top + a.bounds.height, W = co.width;
+        const rp = hub.restProfile(d.ss); if (!rp) return;
+        const S = rp.S, tick = hub.tick(), maxW = Math.max(30, W * num(I.widthPct, 14) / 100 * (phone ? 1.2 : 1));
+        // traded profile of the same session, rows of the book's own step
+        const fa = hub.footBars(), vr = co.visibleLogicalRange(), lastT = a.bars[clamp(Math.ceil(vr.to), 0, a.bars.length - 1)].time;
+        const tb = tick ? fa.bars.filter((b) => b.t >= d.ss && b.t <= lastT) : [], tp = tb.length ? tradedProfile(tb, Math.max(1, Math.round(S / tick))) : null;
+        let rmax = 0; rp.bid.forEach((q) => { rmax = Math.max(rmax, q); }); rp.ask.forEach((q) => { rmax = Math.max(rmax, q); });
+        let tmax = 0; if (tp) for (let k = 0; k < tp.n; k++) tmax = Math.max(tmax, tp.buy[k] + tp.sell[k]);
+        const xT = W - 2, xR = W - 2 - (tp ? maxW + 3 : 0);
+        const rowH = (r) => { const yT = Yp(a, (r + 1) * S), yB = Yp(a, r * S); return [Math.min(yT, yB), Math.max(1, Math.abs(yB - yT) - (Math.abs(yB - yT) > 4 ? 1 : 0))]; };
+        const rows = new Set([...rp.bid.keys(), ...rp.ask.keys()]);
+        for (const r of rows) {
+          const [y, h] = rowH(r); if (y > bot || y + h < top) continue;
+          const b = rp.bid.get(r) || 0, k = rp.ask.get(r) || 0, q = Math.max(b, k), w = Math.max(1, maxW * q / rmax);
+          g.fillStyle = rgba(b >= k ? I.bidColor : I.askColor, 0.55); g.fillRect(xR - w, y, w, h);
+        }
+        if (tp) for (let k = 0; k < tp.n; k++) {
+          const v = tp.buy[k] + tp.sell[k]; if (!v) continue;
+          const r = tp.r0 + k, [y, h] = rowH(r); if (y > bot || y + h < top) continue;
+          const w = Math.max(1, maxW * v / tmax), isP = r === tp.poc;
+          g.fillStyle = rgba(I.tradedColor, isP ? 0.95 : 0.55); g.fillRect(xT - w, y, w, h);
+        }
+        g.font = '700 10px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
+        const lab = (txt, xr) => { const tw = g.measureText(txt).width + 8; g.fillStyle = plate(); g.fillRect(xr - tw, bot - 22, tw, 14); g.fillStyle = ink(); g.fillText(txt, xr - 4, bot - 15); };
+        if (tp) lab('Traded', xT); lab('Resting', xR);
+        window.__stkL2Flow.stk_l2f_vp.traded = tp ? tp.n : 0;
+      } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+
+// ---------------------------------------------------------------------------------------- install
+export function installL2Flow(Core, hooks, reg) {
+  if (H) return;
+  H = hooks;
+  window.__stkL2Flow = window.__stkL2Flow || {};
+  Core.registerRendererLayer({ id: 'stk_l2f_fp', placement: 'above-data', create: fpLayer });
+  Core.registerRendererLayer({ id: 'stk_l2f_big', placement: 'above-data', create: bigLayer });
+  Core.registerRendererLayer({ id: 'stk_l2f_stop', placement: 'above-data', create: stopLayer });
+  Core.registerRendererLayer({ id: 'stk_l2f_vp', placement: 'above-data', create: vpLayer });
+  for (const type of L2F_TYPES) {
+    const [title, short, pane, overlay] = TITLES[type];
+    if (!L2_TYPES.includes(type)) L2_TYPES.push(type);
+    registerFeed(type, { needs: 'L2', title });
+    reg(Core, { type, title, shortTitle: short, paneHint: pane, overlay, reactsToViewport: LAYERS.includes(type), inputsSchema: () => SCHEMA[type], create: () => new L2Flow(type) });
+  }
+}
+if (typeof window !== 'undefined') window.__stkL2FlowHubs = hubs;

@@ -853,7 +853,7 @@ export function installFootprint(Core, flowMod) {
   }
   // The Delta suite (assets/chart-delta-suite.js): same data, same timers, same plan rules.
   installDeltaSuite(Core, {
-    flowFor, rootOf, sessionOf, version: () => version,
+    flowFor, rootOf, sessionOf, tfMin, replayE, version: () => version,
     subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
     use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); }
   });

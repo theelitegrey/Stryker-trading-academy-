@@ -8,10 +8,16 @@
 // with the same plan + delay rules and the same refresh timers (no polling of its own). Nothing is
 // estimated from candles: a symbol without trade data shows a note instead.
 // Depends on: assets/chart-delta-suite-data.js (maths), hooks handed over by installFootprint().
+import { registerFeed } from './chart-feeds.js?v=810';
+import { l2Visible, l2Root, L2_TYPES, acquire, rootState, fillGap } from './chart-futures-l2.js?v=810';
+import { aggregate, clipTo } from './chart-footprint-data.js?v=810';
 import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=810';
 
 export const DS_TYPE = 'stk_dsuite';
 export const DP_TYPE = 'stk_dpane';
+export const DS_L2 = 'stk_ts_dsuite';   // "Delta (L2)": the same overlay, fed by the live trade hub
+export const DP_L2 = 'stk_ts_dpane';    // "Delta pane (L2)"
+const MIN_GAP = 200;                    // live redraw: at most ~5 a second
 const UP = '#03c988', UP2 = '#4fe3ac', SELL = '#9d4dff', CYAN = '#00adb5';   // sellers purple: the same as Big Trades / footprint
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const NO_DATA = 'Delta needs order-flow data. Available on futures (NQ, ES, YM, GC, SI, CL and their micros) and crypto.';
@@ -62,22 +68,89 @@ function note(id, text, locked) {
 }
 
 let H = null;               // hooks from chart-footprint.js: { flowFor, rootOf, sessionOf, subscribe, unsubscribe, use, unuse, version }
-const live = new Set();     // running "Delta" instances (Vela 0.6.17 has one layer canvas for all of them)
+const live = new Map([[DS_TYPE, new Set()], [DS_L2, new Set()]]);   // running overlay instances per type (Vela 0.6.17 has one layer canvas per type for all of them)
 const VELA090 = typeof window !== 'undefined' && window.__stkVela090 === true;
 
+// DATA-SOURCE HOOK. The classes below take their per-minute order flow from flow(bars). Three sources, one shape ({ map, list, mins, tick, thr, note, loading }):
+//   REST     chart-footprint.js flowFor (the book-recorder store, polled)           -> "Delta" / "Delta: pane" history
+//   REST+hub the same, with the forming + previous minute taken from the hub ticks  -> "Delta" / "Delta: pane" on a hub symbol (live)
+//   hub      the L2 feed's minutes only (3 h of the hub's footprint + every tick)    -> "Delta (L2)" / "Delta pane (L2)"
+// The hub's minute bars (chart-futures-l2.js TickFeed.bars()) have the exact shape of the REST ones, so the maths and the drawing are untouched.
+const hubNote = (ctx) => (!l2Visible() ? 'Delta (L2) is part of Pro.' : !l2Root(ctx.symbol) ? 'Delta (L2): NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.' : '');
+function hubOut(root, tf, feed, restMins, E) {
+  const hub = feed.bars().filter((b) => b.t >= feed.coverFrom);
+  let mins = hub;
+  if (restMins) {   // REST history + the hub's last two minutes (only where the hub holds at least as much volume: a bar never shrinks)
+    const cut = Math.floor(Date.now() / 60000) * 60000 - 60000, byT = new Map(restMins.map((b) => [b.t, b]));
+    for (const b of hub) { const r = byT.get(b.t); if (b.t >= cut || !r) { if (!r || b.vol >= r.vol) byT.set(b.t, b); } }
+    mins = [...byT.values()].sort((x, y) => x.t - y.t);
+  }
+  return aggregate(clipTo(mins, E), tf * 60000);
+}
+
 class Base {
-  constructor(schema) { this.schema = schema; this.inputs = defaults(schema); this.tm = 0; this.on = false; this.onAny = () => this.later(); }
-  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(this.schema), inputs); this.on = true; H.use(); H.subscribe(this.onAny); this.started(); this.render(); }
+  constructor(schema, l2) { this.schema = schema; this.l2 = !!l2; this.inputs = defaults(schema); this.tm = 0; this.lt = 0; this.lastR = 0; this.on = false; this.hub = null; this.hubRoot = null; this.memo = null;
+    this.onAny = () => this.later(); this.onHub = () => this.live(); this.onVis = () => this.visible(); }
+  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(this.schema), inputs); this.on = true; if (!this.l2) { H.use(); H.subscribe(this.onAny); } document.addEventListener('visibilitychange', this.onVis); this.started(); this.render(); }
   started() {}
   later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 250); }
+  // a hub frame: redraw on the next animation frame, at least MIN_GAP ms after the last one; nothing while the tab is hidden
+  live() {
+    if (this.lt || !this.on || document.hidden) return;
+    this.lt = setTimeout(() => requestAnimationFrame(() => { this.lt = 0; this.lastR = performance.now(); window.__dsLive = (window.__dsLive || 0) + 1; this.render(); }), Math.max(0, MIN_GAP - (performance.now() - this.lastR)));
+  }
+  visible() {   // back in the tab: fetch the minutes the hub sent while we were away, then redraw
+    if (document.hidden) { clearTimeout(this.lt); this.lt = 0; return; }
+    if (this.hubRoot) fillGap(this.hubRoot);
+    this.live();
+  }
   onBars() { this.later(); }
   setInputs(i) { this.inputs = Object.assign(defaults(this.schema), i); this.render(); }
-  suspend() { this.on = false; H.unsubscribe(this.onAny); this.render(); }
-  resume() { this.on = true; H.subscribe(this.onAny); this.render(); }
-  stop() { this.on = false; H.unsubscribe(this.onAny); clearTimeout(this.tm); H.unuse(); this.stopped(); }
+  suspend() { this.on = false; if (!this.l2) H.unsubscribe(this.onAny); this.unbind(); this.render(); }
+  resume() { this.on = true; if (!this.l2) H.subscribe(this.onAny); this.render(); }
+  stop() { this.on = false; document.removeEventListener('visibilitychange', this.onVis); clearTimeout(this.tm); clearTimeout(this.lt); this.unbind(); if (!this.l2) { H.unsubscribe(this.onAny); H.unuse(); } this.stopped(); }
   stopped() {}
-  flow(bars) { return H.flowFor({ root: H.rootOf(this.ctx), timeframe: this.ctx.timeframe, bars, owner: this }); }
+  // hub socket only when it will be used: an L2 tool, or Delta on a symbol whose REST root IS the hub root (a micro's REST flow is the mini's)
+  wantHub() {
+    const ctx = this.ctx, root = l2Root(ctx.symbol), tf = H.tfMin ? H.tfMin(ctx.timeframe) : 1;
+    if (!root || !l2Visible() || (tf != null && (tf < 1 || tf > 240))) return null;
+    return this.l2 || H.rootOf(ctx) === root ? root : null;
+  }
+  bind() {
+    const root = this.on ? this.wantHub() : null;
+    if (root === this.hubRoot) return;
+    this.unbind();
+    if (root) { this.hub = acquire(root, this.onHub, 20); this.hubRoot = root; }
+  }
+  unbind() { if (this.hub) { this.hub.release(); this.hub = null; this.hubRoot = null; } }
+  replayOn() { return H.replayE ? H.replayE() : null; }
+  flow(bars) {
+    const ctx = this.ctx, E = this.replayOn();
+    if (!this.l2) {
+      const f = H.flowFor({ root: H.rootOf(ctx), timeframe: ctx.timeframe, bars, owner: this });
+      if (!this.hubRoot || E != null || !f.mins || f.crypto || !bars.length) return f;
+      return this.fromHub(f, bars, f.mins, f);
+    }
+    if (!bars.length || this.hubNote()) return { note: this.hubNote() || '', list: [], map: new Map() };
+    return this.fromHub(null, bars, null, { tick: 0, thr: 0 });
+  }
+  hubNote() { return hubNote(this.ctx); }
+  fromHub(rest, bars, restMins, base) {
+    const feed = this.hubRoot && rootState(this.hubRoot).trades;
+    const tf = H.tfMin(this.ctx.timeframe), E = this.replayOn();
+    if (!feed) return rest || { note: 'Waiting for L2 trades…', list: [], map: new Map() };
+    const key = this.hubRoot + '|' + tf + '|' + feed.v + '|' + (rest ? rest.mins.length + ':' + (rest.mins[rest.mins.length - 1] || {}).vol : '') + '|' + (E == null ? '' : Math.floor(E / 60000));
+    if (this.memo && this.memo.key === key) return this.memo.out;
+    const list = hubOut(this.hubRoot, tf, feed, restMins, E), map = new Map();
+    for (const b of list) map.set(b.t, b);
+    const st = rootState(this.hubRoot).status;
+    const note = list.length ? '' : st === 'live' ? 'Waiting for L2 trades…' : st === 'error' ? 'L2 feed unavailable right now' : 'Connecting to the L2 feed…';
+    const out = { map, list, mins: restMins || list, tick: feed.tick, thr: base.thr || 0, note, free: false, loading: !list.length && st !== 'error' };
+    this.memo = { key, out };
+    return out;
+  }
   msgs(f) {
+    if (this.l2) return f.note ? [note(this.type + '-msg', f.note, !l2Visible())] : [];
     if (!H.rootOf(this.ctx)) return [note(this.type + '-msg', NO_DATA)];
     return f.note ? [note(this.type + '-msg', f.note, f.locked)] : [];
   }
@@ -85,11 +158,12 @@ class Base {
 
 // ---------------------------------------------------------------- "Delta" (price chart)
 class SuiteNative extends Base {
-  constructor() { super(DS_SCHEMA); this.type = DS_TYPE; this.cache = new Map(); }
-  started() { live.add(this); }
-  stopped() { live.delete(this); this.push(); }
+  constructor(l2) { super(DS_SCHEMA, l2); this.type = l2 ? DS_L2 : DS_TYPE; this.cache = new Map(); }
+  started() { live.get(this.type).add(this); }
+  stopped() { live.get(this.type).delete(this); this.push(); }
   render() {
     if (!this.ctx) return;
+    this.bind();
     const bars = this.ctx.bars();
     const f = this.flow(bars);
     this.ctx.setStatus(f.loading ? 'loading' : 'idle');
@@ -98,13 +172,15 @@ class SuiteNative extends Base {
   }
   push() {
     if (!this.ctx) return;
-    try { this.ctx.pushData({ owner: this, all: !VELA090, v: H.version(), n: live.size, on: this.on, i: JSON.stringify(this.inputs) }); } catch (e) {}
+    try { this.ctx.pushData({ owner: this, all: !VELA090, v: H.version() + ':' + (this.memo ? this.memo.key : ''), n: live.get(this.type).size, on: this.on, i: JSON.stringify(this.inputs) }); } catch (e) {}
   }
 }
 
 // Row size (ticks) for profiles: the input, else the smallest step whose row is >= 4 px tall.
-function rowSize(I, tickPx, minPx = 12) {
+// Phone (<520 px): rows at least 16 px tall, so the per-price numbers never touch each other or the axis.
+function rowSize(I, tickPx, minPx = 12, phone = false) {
   if (I.rowTicks > 0) return I.rowTicks;
+  if (phone) minPx = Math.max(minPx, 16);
   for (const s of ROW_STEPS) if (tickPx * s >= minPx) return s;
   return 400;
 }
@@ -150,7 +226,7 @@ function drawH1(g, a, f, I, inst, phone) {
   // the session of the last visible bar (the current one when the chart is at the right edge)
   const k = sessKey(f, a.bars[i1].time), tLast = a.bars[i1].time;
   const tickPx = Math.abs(co.priceToY(f.tick, a.scale, a.bounds) - co.priceToY(0, a.scale, a.bounds));
-  const m = rowSize(I, tickPx);
+  const m = rowSize(I, tickPx, 12, phone);
   const ck = 'h1|' + k + '|' + m + '|' + tLast + '|' + f.list.length + '|' + (f.list.length && f.list[f.list.length - 1].vol);
   let p = inst.cache.get('h1');
   if (!p || p.ck !== ck) {
@@ -159,22 +235,26 @@ function drawH1(g, a, f, I, inst, phone) {
     p.ck = ck; inst.cache.set('h1', p);
   }
   if (!p.n) return;
+  window.__dsH1 = { type: inst.type, net: p.net, topBuy: p.topBuy == null ? null : p.delta[p.topBuy - p.r0], topSell: p.topSell == null ? null : p.delta[p.topSell - p.r0], m, draws: ((window.__dsH1 || {}).draws || 0) + 1 };   // read by tools/tests/delta-l2-browser.js
   const span = co.width * clamp(num(I.widthPct, 25), 5, 90) / 100 * (phone ? 0.8 : 1);
   deltaRows(g, a, p, f, co.width - 1, span, -1, I, phone, { hot: true });
   // the biggest buy / sell rows: a tag at the axis edge of the profile
-  const tag = (r, d) => {
+  // the biggest buy / sell rows: a tag at the axis edge of the profile; when the two rows are close the lower tag moves down so they never overlap
+  const yOf = (r) => co.priceToY((r + 0.5) * m * f.tick, a.scale, a.bounds);
+  let yb = p.topBuy != null ? yOf(p.topBuy) : null, ys = p.topSell != null ? yOf(p.topSell) : null;
+  if (yb != null && ys != null && Math.abs(yb - ys) < 16) { if (ys >= yb) ys = yb + 16; else yb = ys + 16; }
+  const tag = (r, d, y) => {
     if (r == null) return;
-    const y = co.priceToY((r + 0.5) * m * f.tick, a.scale, a.bounds);
     if (y < a.bounds.top + 8 || y > a.bounds.top + a.bounds.height - 8) return;
     const txt = (d > 0 ? 'Top buy ' : 'Top sell ') + fmtSigned(d);
     g.font = '700 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
-    const len = span * Math.abs(d) / (p.dmax || 1), x = co.width - len - 8;
-    const w = g.measureText(txt).width + 8;
+    const len = span * Math.abs(d) / (p.dmax || 1), w = g.measureText(txt).width + 8;
+    const x = Math.max(w + 4, co.width - len - 8);   // never left of the pane edge
     g.fillStyle = light() ? 'rgba(255,255,255,0.9)' : 'rgba(11,11,13,0.85)'; g.fillRect(x - w, y - 7, w, 14);
     g.fillStyle = d > 0 ? UP2 : '#c4b5fd'; g.fillText(txt, x - 4, y);
   };
-  if (p.topBuy != null) tag(p.topBuy, p.delta[p.topBuy - p.r0]);
-  if (p.topSell != null) tag(p.topSell, p.delta[p.topSell - p.r0]);
+  if (p.topBuy != null) tag(p.topBuy, p.delta[p.topBuy - p.r0], yb);
+  if (p.topSell != null) tag(p.topSell, p.delta[p.topSell - p.r0], ys);
 }
 
 function drawH5(g, a, f, I, inst, phone) {
@@ -183,7 +263,7 @@ function drawH5(g, a, f, I, inst, phone) {
   const t0 = a.bars[i0].time, t1 = a.bars[i1].time;
   const blockMin = I.block === '1h' ? 60 : 30;
   const tickPx = Math.abs(co.priceToY(f.tick, a.scale, a.bounds) - co.priceToY(0, a.scale, a.bounds));
-  const m = rowSize(I, tickPx, 8);
+  const m = rowSize(I, tickPx, 8, phone);
   const vis = f.list.filter((b) => b.t >= t0 - blockMin * 60000 && b.t <= t1);
   const blocks = timeBlocks(vis, blockMin);
   const top = a.bounds.top;
@@ -313,7 +393,7 @@ function header(g, x, y, txt, align) { g.font = '700 10px ' + MONO; g.textAlign 
 function drawH2(g, a, f, I, inst, phone) {
   const co = a.coords, vb = visibleBars(a, f);
   if (!vb.bars.length) return;
-  const m = rowSize(I, rowGeom(a, f, 1).tickPx), p = cachedProfile(inst, 'h2', vb.bars, m);
+  const m = rowSize(I, rowGeom(a, f, 1).tickPx, 12, phone), p = cachedProfile(inst, 'h2', vb.bars, m);
   if (!p.n) return;
   const { rowPx } = rowGeom(a, f, m);
   const half = co.width * clamp(num(I.widthPct, 25), 5, 90) / 100 * (phone ? 0.42 : 0.5);
@@ -339,7 +419,7 @@ function drawH2(g, a, f, I, inst, phone) {
 function drawH3(g, a, f, I, inst, phone) {
   const co = a.coords, vb = visibleBars(a, f);
   if (!vb.bars.length) return;
-  const m = rowSize(I, rowGeom(a, f, 1).tickPx), p = cachedProfile(inst, 'h3', vb.bars, m);
+  const m = rowSize(I, rowGeom(a, f, 1).tickPx, 12, phone), p = cachedProfile(inst, 'h3', vb.bars, m);
   if (!p.n) return;
   const { rowPx } = rowGeom(a, f, m);
   const span = co.width * clamp(num(I.widthPct, 25), 5, 90) / 100 * (phone ? 0.8 : 1);
@@ -369,7 +449,7 @@ function drawH3(g, a, f, I, inst, phone) {
 function drawH4(g, a, f, I, inst, phone) {
   const co = a.coords, vb = visibleBars(a, f);
   if (!vb.bars.length) return;
-  const m = rowSize(I, rowGeom(a, f, 1).tickPx);
+  const m = rowSize(I, rowGeom(a, f, 1).tickPx, 12, phone);
   const pv = cachedProfile(inst, 'h4v', vb.bars, m);
   const tl = vb.bars[vb.bars.length - 1].t, recent = vb.bars.filter((b) => b.t > tl - clamp(num(I.recentMin, 30), 5, 240) * 60000);
   const pr = cachedProfile(inst, 'h4r', recent, m);
@@ -524,7 +604,7 @@ function drawV8(g, a, f, I, inst, phone) {
 
 const DRAW = { H1: drawH1, H2: drawH2, H3: drawH3, H4: drawH4, H5: drawH5, H6: drawH6, V3: drawV3, V4: drawV4, V5: drawV5, V6: drawV6, V7: drawV7, V8: drawV8 };
 
-function suiteLayer() {
+function suiteLayer(type) {
   let canvas = null;
   return {
     mount(c) { canvas = c; },
@@ -535,7 +615,7 @@ function suiteLayer() {
       g.clearRect(0, 0, canvas.width, canvas.height);
       const d = a.data;
       if (!d || !d.owner || !a.bars || !a.bars.length) return;
-      const insts = d.all ? [...live] : [d.owner];
+      const insts = d.all ? [...live.get(type)] : [d.owner];
       const dpr = a.coords.dpr || 1;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.save(); g.beginPath(); g.rect(0, a.bounds.top, a.coords.width, a.bounds.height); g.clip();
@@ -555,7 +635,7 @@ function suiteLayer() {
     modulateBase(a) {
       const d = a && a.data;
       if (!d || !d.owner) return null;
-      const insts = d.all ? [...live] : [d.owner];
+      const insts = d.all ? [...live.get(type)] : [d.owner];
       return insts.some((x) => x.on && styleId(x.inputs.style) === 'V4') ? { candleBodyAlpha: 0.08 } : null;
     },
     destroy() { canvas = null; }
@@ -564,9 +644,10 @@ function suiteLayer() {
 
 // ---------------------------------------------------------------- "Delta: pane" (V1 / V2)
 class PaneNative extends Base {
-  constructor() { super(DP_SCHEMA); this.type = DP_TYPE; }
+  constructor(l2) { super(DP_SCHEMA, l2); this.type = l2 ? DP_L2 : DP_TYPE; }
   render() {
     if (!this.ctx) return;
+    this.bind();
     const bars = this.ctx.bars();
     const f = this.flow(bars);
     const tables = this.msgs(f);
@@ -610,14 +691,21 @@ class PaneNative extends Base {
 
 // ---------------------------------------------------------------- install (from installFootprint)
 let installed = false;
-export const DS_TYPES = [DS_TYPE, DP_TYPE];
+export const DS_TYPES = [DS_TYPE, DP_TYPE, DS_L2, DP_L2];
 export function installDeltaSuite(Core, hooks) {
   if (installed) return;
   installed = true;
   H = hooks;
-  Core.registerRendererLayer({ id: DS_TYPE, placement: 'above-data', create: suiteLayer });
-  Core.registerNativeIndicator({ type: DS_TYPE, title: 'Delta', shortTitle: 'Delta', paneHint: 'price', overlay: true, multiInstance: true,
-    inputsSchema: () => DS_SCHEMA, defaultInputs: () => defaults(DS_SCHEMA), create: () => new SuiteNative() });
-  Core.registerNativeIndicator({ type: DP_TYPE, title: 'Delta: pane (bars / CVD + divergence)', shortTitle: 'Delta pane', paneHint: 'new', overlay: false, multiInstance: true,
-    inputsSchema: () => DP_SCHEMA, defaultInputs: () => defaults(DP_SCHEMA), create: () => new PaneNative() });
+  // L2 tools: the picker hides them until l2Visible() (Free get the Pro lock); the L2 badge lights while one is on the chart
+  for (const t of [DS_L2, DP_L2]) if (!L2_TYPES.includes(t)) L2_TYPES.push(t);
+  registerFeed(DS_L2, { needs: 'L2', title: 'Delta (L2)', mkt: 'futures' });
+  registerFeed(DP_L2, { needs: 'L2', title: 'Delta pane (L2)', mkt: 'futures' });
+  Core.registerRendererLayer({ id: DS_TYPE, placement: 'above-data', create: () => suiteLayer(DS_TYPE) });
+  Core.registerRendererLayer({ id: DS_L2, placement: 'above-data', create: () => suiteLayer(DS_L2) });
+  const reg = (type, title, short, pane, overlay, schema, mk) => Core.registerNativeIndicator({ type, title, shortTitle: short, paneHint: pane, overlay, multiInstance: true,
+    inputsSchema: () => schema, defaultInputs: () => defaults(schema), create: mk });
+  reg(DS_TYPE, 'Delta', 'Delta', 'price', true, DS_SCHEMA, () => new SuiteNative(false));
+  reg(DP_TYPE, 'Delta: pane (bars / CVD + divergence)', 'Delta pane', 'new', false, DP_SCHEMA, () => new PaneNative(false));
+  reg(DS_L2, 'Delta (L2)', 'Delta L2', 'price', true, DS_SCHEMA, () => new SuiteNative(true));
+  reg(DP_L2, 'Delta pane (L2)', 'Delta pane L2', 'new', false, DP_SCHEMA, () => new PaneNative(true));
 }

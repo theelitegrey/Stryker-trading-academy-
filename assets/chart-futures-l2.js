@@ -64,7 +64,7 @@ const tell = (r) => r.listeners.forEach((f) => { try { f(); } catch (e) {} });
 // ---------------------------------------------------------------------------------------- tick feed (footprint minutes)
 // Same minute-bar shape as chart-footprint-crypto.js bars(): { t, lo, hi, buy[], sell[] } in tick-index rows, so
 // tradedAt / vanishKind / icebergEvents (chart-liquidity-data.js) work on it unchanged.
-class TickFeed {
+export class TickFeed {
   constructor(root) { this.mins = new Map(); this.tick = tickOf(root); this.coverFrom = Infinity; this.v = 0; this.sorted = null; this.sortedV = -1; this.ring = []; }
   add(list, backfill) {
     for (const x of list) {
@@ -76,6 +76,9 @@ class TickFeed {
       const i = Math.floor(price / this.tick + 1e-9);
       const mp = side > 0 ? m.b : m.s;
       mp.set(i, (mp.get(i) || 0) + size); m.dirty = true;
+      // open / close row, running delta extremes and trade count: what the Delta (L2) tools read (same fields as an /orderflow bar)
+      if (m.o === undefined) m.o = i;
+      m.c = i; m.run = (m.run || 0) + (side > 0 ? size : -size); m.dh = Math.max(m.dh || 0, m.run); m.dl = Math.min(m.dl || 0, m.run); m.n = (m.n || 0) + 1;
       if (!backfill) { this.ring.push([T, price, size, side]); if (this.coverFrom === Infinity) this.coverFrom = t + 60000; }
     }
     if (this.ring.length > 30000) this.ring.splice(0, this.ring.length - 30000);
@@ -83,11 +86,14 @@ class TickFeed {
     this.v++;
   }
   // one minute from /ts-aux { t (minute index), lv: [[price, buy, sell]..] }
-  seed(fp) {
+  // replace: a gap fill (tab was hidden / socket dropped): swap in the server's minute when it holds more volume than ours
+  seed(fp, replace) {
+    const sum = (mp) => { let v = 0; mp.forEach((x) => { v += x; }); return v; };
     for (const r of fp) {
-      const T = r.t * 60000;
-      if (this.mins.has(T)) continue;
+      const T = r.t * 60000, old = this.mins.get(T);
+      if (old && !replace) continue;
       const m = { b: new Map(), s: new Map(), dirty: true, bar: null };
+      if (old) { let sv = 0; for (const x of r.lv || []) sv += (x[1] || 0) + (x[2] || 0); if (sv <= sum(old.b) + sum(old.s)) continue; m.o = old.o; m.c = old.c; m.n = old.n; }
       for (const [p, b, s] of r.lv || []) { const i = Math.floor(p / this.tick + 1e-9); if (b) m.b.set(i, b); if (s) m.s.set(i, s); }
       this.mins.set(T, m);
       if (T < this.coverFrom) this.coverFrom = T;
@@ -105,7 +111,10 @@ class TickFeed {
         if (hi >= lo) {
           const n = hi - lo + 1, buy = new Float64Array(n), sell = new Float64Array(n);
           m.b.forEach((v, i) => { buy[i - lo] = v; }); m.s.forEach((v, i) => { sell[i - lo] = v; });
-          m.bar = { t: k, lo, hi, buy, sell };
+          let vol = 0, delta = 0;
+          for (let j = 0; j < n; j++) { vol += buy[j] + sell[j]; delta += buy[j] - sell[j]; }
+          m.bar = { t: k, lo, hi, o: m.o === undefined ? lo + (n >> 1) : m.o, c: m.c === undefined ? lo + (n >> 1) : m.c, buy, sell, vol, delta,
+            dmax: m.dh === undefined ? Math.max(0, delta) : m.dh, dmin: m.dl === undefined ? Math.min(0, delta) : m.dl, trades: m.n || 0, bigs: [], mins: 1 };
         } else m.bar = null;
         m.dirty = false;
       }
@@ -133,7 +142,7 @@ class Conn {
   constructor(root) {
     this.root = root; this.refs = 0; this.levels = 60; this.ws = null; this.retryN = 0; this.tm = 0; this.closeTm = 0; this.stopped = false; this.dog = 0;
     this.openedAt = 0; this.want = new Map();
-    this.onVis = () => { if (document.hidden) { clearTimeout(this.closeTm); this.closeTm = setTimeout(() => this.park(), 30000); } else { clearTimeout(this.closeTm); if (!this.ws && !this.stopped) this.connect(); } };
+    this.onVis = () => { if (document.hidden) { clearTimeout(this.closeTm); this.closeTm = setTimeout(() => this.park(), 30000); } else { clearTimeout(this.closeTm); if (!this.ws && !this.stopped) this.connect(); else fillGap(this.root); } };
     document.addEventListener('visibilitychange', this.onVis);
     this.connect();
   }
@@ -155,7 +164,7 @@ class Conn {
     let ws;
     try { ws = new WebSocket(wsBase(base) + '/ts-live?symbol=' + this.root + '&levels=' + this.levels, token ? ['tz-auth', token] : undefined); } catch (e) { this.later(); return; }
     this.ws = ws;
-    ws.onopen = () => { this.openedAt = Date.now(); liveGap(this.root); this.send({ op: 'sub', symbol: this.root, levels: this.levels }); this.arm(); };
+    ws.onopen = () => { this.openedAt = Date.now(); liveGap(this.root); fillGap(this.root); this.send({ op: 'sub', symbol: this.root, levels: this.levels }); this.arm(); };
     ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } this.arm(); this.frame(m); };
     ws.onclose = (e) => {
       if (this.ws !== ws) return; this.ws = null; clearTimeout(this.dog);
@@ -181,7 +190,7 @@ class Conn {
       if (!last || now - last[0] >= 1000) { r.imb.push([now, m.imb, m.imb10]); if (r.imb.length > 21600) r.imb.splice(0, r.imb.length - 21600); }
     } else if (m.type === 'coarse') r.coarse = m;
     else if (m.type === 'ticks') {
-      r.nTick = (r.nTick || 0) + (m.t ? m.t.length : 0); r.status = 'live'; if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(m.t || [], false);
+      r.nTick = (r.nTick || 0) + (m.t ? m.t.length : 0); r.lastTickAt = Date.now(); r.status = 'live'; if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(m.t || [], false);
       // live order flow (assets/chart-live-of.js) from the same trades: [t s, price, size, 1 buy / 0 sell]. Times are made strictly increasing (the hub stamps ms,
       // several prints can share one) so LiveFlow's duplicate check keeps them all.
       if (hubLive() && liveOfOn() && liveOfRoot(r.root) && m.t && m.t.length) {
@@ -230,20 +239,25 @@ async function authFetch(url) {
   return fetch(url, { headers: h, credentials: 'omit' });
 }
 // imbalance + footprint minutes recorded by the hub (last 3 h), once per page
-function seedHistory(r) {
-  if (r.seeded || isQuoteSym(r.root)) return; r.seeded = true;
+function seedHistory(r, gap) {
+  if (isQuoteSym(r.root)) return;
+  if (!gap) { if (r.seeded) return; r.seeded = true; }
   const base = baseUrl(HOOK); if (!base) return;
-  const to = Date.now(), from = to - 3 * 3600000;
+  const to = Date.now(), from = gap ? Math.max(to - 3 * 3600000, (r.lastTickAt || to) - 120000) : to - 3 * 3600000;
   authFetch(base + '/ts-aux?symbol=' + r.root + '&from=' + from + '&to=' + to).then((x) => (x.ok ? x.json() : null)).then((j) => {
     if (!j) return;
-    const first = r.imb.length ? r.imb[0][0] : Infinity;
-    const old = (j.imb || []).map((x) => [x[0] * 1000, x[1], x[2]]).filter((x) => x[0] < first - 500);
-    r.imb = old.concat(r.imb);
-    const cur = Math.floor(Date.now() / 60000);
-    if (r.trades) r.trades.seed((j.fp || []).filter((x) => x.t < cur));
+    if (!gap) {
+      const first = r.imb.length ? r.imb[0][0] : Infinity;
+      const old = (j.imb || []).map((x) => [x[0] * 1000, x[1], x[2]]).filter((x) => x[0] < first - 500);
+      r.imb = old.concat(r.imb);
+    }
+    // the forming minute too: the feed only holds the ticks since we subscribed, the server's minute holds all of them (a minute only ever grows)
+    if (r.trades) r.trades.seed(j.fp || [], true);
     tell(r);
   }).catch(() => {});
 }
+// back after a hidden tab / a dropped socket: fetch the minutes we missed (Delta (L2) and the ladder read them)
+export function fillGap(root) { const r = rootState(root); if (r.seeded) seedHistory(r, true); }
 
 // ---------------------------------------------------------------------------------------- candles from the hub's ticks
 // The chart's own futures bars can run 10 min behind (CME delay lane). While Live L2 is connected for NQ/ES the hub's
@@ -406,7 +420,7 @@ export function registerL2Feeds() {
 }
 
 // ---------------------------------------------------------------------------------------- indicators
-export const L2_TYPES = ['stk_fut_dom', 'stk_fut_imb'];
+export const L2_TYPES = ['stk_fut_dom', 'stk_fut_imb'];   // chart-ts-trades.js and chart-delta-suite.js add their L2 tools
 const NEED = 'Futures DOM works on NQ, MNQ, ES, MES, YM, RTY, CL and GC charts (MYM, M2K, MCL, MGC show their mini\'s book).';
 const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));

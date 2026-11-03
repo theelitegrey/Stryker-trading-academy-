@@ -39,11 +39,16 @@ const testOn = () => isLocal() && typeof window !== 'undefined' && window.__stkL
 export const liveVisible = () => !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS && rtToken() && !isFree()));
 // May this visitor use the L2 BOOK? Only once the hub's hub_attached frame says tier 'book' (null = not told yet = hidden: fails closed). Pro = book, live add-on = trades only, Free = neither.
 let bookTier = null;
-export function l2Visible() { return liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades)); }
+// DATA IS PROOF (L2 lock fix 3, Owner 2026-11-04): the hub only sends book frames (snap / coarse) to a book-tier socket. A root that got a book
+// snap in the last 60 s means this member has L2, whatever isFree() / a hub_attached / the sign-in state says. Never the other way round: no frames = no proof.
+export const l2Proven = (root) => { const r = roots.get(root); return !!(r && r.nSnap > 0 && r.lastFrame && Date.now() - r.lastFrame < 60000); };
+export const l2AnyProven = () => { let ok = false; roots.forEach((r, k) => { if (!ok && l2Proven(k)) ok = true; }); return ok; };
+export const l2ProvenSym = (sym) => { const m = /^futures:(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]); return root ? l2Proven(root) : l2AnyProven(); };
+export function l2Visible() { return l2AnyProven() || (liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades))); }
 // For the badges only: bookTier null = the hub has not said yet, so a Pro / admin member is NOT shown a lock. A definite Free member is. The server stays the real gate.
-export const l2Badge = () => (liveVisible() || (bookTier === null && !rtState().ready && !isFree()) || l2Visible());   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
+export const l2Badge = () => (l2AnyProven() || liveVisible() || (bookTier === null && !rtState().ready && !isFree()) || l2Visible());   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
 const DIAG = { tier: '-', close: '-', closeAt: 0 };
-function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades); if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
+function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades) || l2AnyProven(); /* a late 'trades' never re-locks a member whose book frames are arriving */ if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
 // Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.
 export const l2Listed = () => L2_MEMBERS || l2Visible();
 export const l2Unlock = () => upgrade('of');
@@ -188,16 +193,18 @@ class Conn {
       DIAG.tier = String(m.tier) + '/' + String(m.state);
       // A Pro member can be told 'trades' by one socket (the tier check on the Worker hit a hiccup / stale token) while the book history, gated the same way, loads fine.
       // That showed Unlock beside real data. A non-Free member told 'trades' reconnects up to 2 times with a fresh token before the lock may show. The server stays the gate.
-      if (m.tier !== 'book' && bookTier !== true && liveVisible() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
+      if (m.tier !== 'book' && bookTier !== true && !l2Proven(this.root) && liveVisible() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
       if (m.tier === 'book') this.tierTry = 0;
       setTier(m.tier); r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
     if (m.event === 'ping') { const st = m.state === 'live' ? 'live' : 'reconnecting'; if (r.status !== st && r.status !== 'error') { r.status = st; tell(r); } return; }   // the hub's 5 s heartbeat carries its data state: no data for 10 s = reconnecting
     if (m.event === 'hub_full') { r.status = 'error'; r.err = 'busy'; tell(r); return; }
     if (m.event) return;
+    const wasProven = m.type === 'snap' && l2Proven(this.root);
     r.lastFrame = Date.now();
-    if ((m.type === 'snap' || m.type === 'coarse') && bookTier !== true) setTier('book');   // the server only sends book frames to a book-tier socket: the data is proof, whatever the earlier hub_attached said
+    if ((m.type === 'snap' || m.type === 'coarse') && bookTier !== true) { if (m.type === 'snap') r.nSnap = (r.nSnap || 0) + 1, r.snapCounted = true; setTier('book'); }   // the server only sends book frames to a book-tier socket: the data is proof, whatever the earlier hub_attached said
     if (m.type === 'snap') {
-      r.nSnap = (r.nSnap || 0) + 1; r.snap = m; r.status = 'live';
+      if (r.snapCounted) r.snapCounted = false; else r.nSnap = (r.nSnap || 0) + 1; r.snap = m; r.status = 'live';
+      if (!wasProven) { try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }   // first proof for this root: every gate (badges, DOM, book pack, L2 flow) re-decides now, not on a reload
       const last = r.imb[r.imb.length - 1], now = Date.now();
       if (!last || now - last[0] >= 1000) { r.imb.push([now, m.imb, m.imb10]); if (r.imb.length > 21600) r.imb.splice(0, r.imb.length - 21600); }
     } else if (m.type === 'coarse') r.coarse = m;
@@ -222,7 +229,7 @@ export function l2Diag(sym0) {
   const sock = {}; roots.forEach((r, k) => { sock[k] = (r.conn && r.conn.ws ? ['connecting', 'open', 'closing', 'closed'][r.conn.ws.readyState] : 'none') + ' status=' + r.status + (r.err ? ' err=' + r.err : '') + ' snaps=' + (r.nSnap || 0) + ' retry=' + (r.conn ? r.conn.retryN : '-'); });
   let spec = '';
   try { const sym = sym0 || (window.ws && window.ws.active && window.ws.active.symbol) || ''; spec = sym + ' -> root ' + (l2Root(String(sym).replace(/^[a-z0-9]+:/i, '')) /* chart-book-pack also asks the chart's own resolver */ || 'none'); } catch (e) {}
-  return { build: '845+', rtState: g(rtState), isFree: g(isFree), planTier: g(() => (window.strykerPlanTier ? 'fn' : 'none') + ' free=' + window.__stkChartFree), liveVisible: g(liveVisible), l2Visible: g(l2Visible), l2Badge: g(l2Badge), bookTier, token: pfx(g(rtToken)), lastHubAttached: DIAG.tier, lastClose: DIAG.close + (DIAG.closeAt ? ' ' + Math.round((Date.now() - DIAG.closeAt) / 1000) + 's ago' : ''), base: g(() => baseUrl(HOOK) ? 'set' : 'EMPTY'), sockets: sock, spec, hidden: document.hidden };
+  return { build: '845+', rtState: g(rtState), isFree: g(isFree), planTier: g(() => (window.strykerPlanTier ? 'fn' : 'none') + ' free=' + window.__stkChartFree), liveVisible: g(liveVisible), l2Visible: g(l2Visible), l2Badge: g(l2Badge), l2Proven: g(l2AnyProven), bookTier, token: pfx(g(rtToken)), lastHubAttached: DIAG.tier, lastClose: DIAG.close + (DIAG.closeAt ? ' ' + Math.round((Date.now() - DIAG.closeAt) / 1000) + 's ago' : ''), base: g(() => baseUrl(HOOK) ? 'set' : 'EMPTY'), sockets: sock, spec, hidden: document.hidden };
 }
 if (typeof window !== 'undefined') window.tzL2Diag = l2Diag;
 export function l2Probe() {
@@ -452,7 +459,7 @@ export function registerL2Feeds() {
   registerFeed('stk_crypto_dom', { needs: 'L2', title: 'Order book heatmap (L2)', mkt: 'crypto' });
   registerFeed('stk_liqmap', { needs: 'L2', title: 'Liquidity Map (L2)' });
   setStats('futures', feedStats);
-  if (typeof window !== 'undefined') window.STRYKER_L2_OK = l2Visible; window.STRYKER_L2_BADGE = l2Badge;
+  if (typeof window !== 'undefined') window.STRYKER_L2_OK = l2Visible; window.STRYKER_L2_BADGE = l2Badge; window.STRYKER_L2_PROVEN = l2ProvenSym;
 }
 
 // ---------------------------------------------------------------------------------------- indicators

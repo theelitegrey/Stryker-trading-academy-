@@ -35,7 +35,7 @@ export function setPanel(id, on, o) { if (on) panels.set(id, Object.assign({ nee
 
 // What the plan includes, from the market kind + the existing gates (l2Visible for futures, Pro for crypto books). Never changes who gets what.
 export function haveFor({ mkt, l2, free }) {
-  return { L1: mkt === 'futures' ? !free : true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto' ? !free : false, L3: false };
+  return { L1: mkt === 'futures' ? (!free || !!l2) : true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto' ? !free : false, L3: false };
 }
 export const bestOf = (have) => (have.L2 ? 'L2' : 'L1');
 export const reasonFor = (lvl, have) => (lvl === 'L3' ? L3_SOON : 'Needs ' + lvl + ' (' + LEVELS[lvl].short + '). It is part of Pro.');
@@ -68,6 +68,7 @@ const cleanSym = (s) => String(s || '').replace(/^[a-z]+:/i, '');
 export function nowLines(L, st, s, have, mkt, symbol) {
   if (st[L].state === 'locked') return [st[L].locked];
   if (st[L].state === 'dim') return ['Not in use on this chart.'];
+  if (st[L].wait) return ['Symbol: ' + symbol, 'Status: ' + CONNECTING];
   const lines = ['Symbol: ' + symbol];
   if (mkt === 'futures' && !have.L2) { lines.push('Status: Standard feed, about 10 min delayed'); lines.push('Receiving: price candles'); return lines; }
   const live = !s || s.status === 'live';
@@ -80,6 +81,10 @@ export function nowLines(L, st, s, have, mkt, symbol) {
 const LOCK = '<svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M5 7V5a3 3 0 0 1 6 0v2h.5A1.5 1.5 0 0 1 13 8.5v5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 13.5v-5A1.5 1.5 0 0 1 4.5 7H5Zm1.5 0h3V5a1.5 1.5 0 0 0-3 0v2Z"/></svg>';
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// SAFETY (L2 lock fix 3): an admin, or a member the plan check answered as NOT Free, is never shown a lock: while their book connects
+// they see "Connecting to the order book…" instead. Only a confirmed Free / signed-out member with no book frames sees Unlock.
+const noLock = () => { try { if (window.tzRtState && window.tzRtState().admin) return true; } catch (e) {} return window.__stkChartFree !== undefined && !isFree(); };   // __stkChartFree is set only once the plan check answered
+export const CONNECTING = 'Connecting to the order book…';
 export function mountFeedBadges(ws) {
   if (typeof document === 'undefined' || !ws || document.getElementById('stkfeeds')) return null;
   const host = document.querySelector('.stkchart-panel.stkw-host') || document.querySelector('.stkchart-panel') || document.body;
@@ -100,7 +105,9 @@ export function mountFeedBadges(ws) {
     panels.forEach((p, id) => { if (!p.mkt || p.mkt === mkt) used.push({ id, title: p.title, needs: p.needs }); });
     const free = isFree();
     let l2 = false; try { l2 = !!((window.STRYKER_L2_BADGE || window.STRYKER_L2_OK)()); } catch (e) {}
-    return { sym, mkt, used, have: haveFor({ mkt, l2, free }) };
+    // data is proof: book frames for this root arriving now = the member has L2 (the hub sends them to book-tier sockets only)
+    try { if (window.STRYKER_L2_PROVEN && window.STRYKER_L2_PROVEN(sym)) l2 = true; } catch (e) {}
+    return { sym, mkt, used, have: haveFor({ mkt, l2, free }), sure: noLock() };
   };
   const unlock = (reason, L) => { const w = whyFor(cur && cur.mkt, L); if (w) reason = reason + ' ' + w.long; if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(reason); };
 
@@ -117,6 +124,7 @@ export function mountFeedBadges(ws) {
   function paint() {
     cur = usedNow();
     const st = feedState(cur.used, cur.have);
+    if (cur.sure) for (const L of ['L1', 'L2']) if (st[L].state === 'locked') { st[L].state = 'lit'; st[L].locked = ''; st[L].wait = true; }
     last = st;
     row.hidden = !st.show;
     place();
@@ -142,7 +150,8 @@ export function mountFeedBadges(ws) {
         (w ? '<div class="stkfeed-why"><span class="stkfeed-why-l"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.4" d="M8 14.2A6.2 6.2 0 1 0 8 1.8a6.2 6.2 0 0 0 0 12.4ZM8 7.2v3.6"/><circle cx="8" cy="5" r=".9" fill="currentColor"/></svg>' + esc(w.short) +
         ' <button type="button" class="stkfeed-why-b" aria-expanded="' + whyOpen + '">Why?' + (whyOpen ? '' : ' →') + '</button></span>' + (whyOpen ? '<p class="stkfeed-why-t">' + esc(w.long) + '</p>' : '') + '</div>' : '');
       note.dataset.l = lk; note.hidden = false;
-    } else note.hidden = true;
+    } else if (!openL && lv.some((L) => st[L].wait)) { note.innerHTML = '<span class="stkfeed-reason">' + esc(CONNECTING) + '</span>'; note.dataset.l = ''; note.hidden = false; }
+    else note.hidden = true;
     if (openL) paintSheet(st, s);
   }
   function paintSheet(st, s) {
@@ -183,6 +192,7 @@ export function mountFeedBadges(ws) {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openL) close(); });
   refresh = paint;
   try { ws.on('state:changed', paint); } catch (e) {}
+  window.addEventListener('stryker:l2tier', () => paint());   // the first book frame clears the lock at once, no reload
   const tm = setInterval(paint, 1000), tp = setInterval(place, 250);   // the legend reflows when rows are added / folded: follow it fast
   window.addEventListener('pagehide', () => { clearInterval(tm); clearInterval(tp); });
   paint();

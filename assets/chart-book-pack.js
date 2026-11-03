@@ -77,7 +77,7 @@ class Store {
     this.tick = spec.kind === 'futures' ? (L2_TICK[spec.root] || 0.25) : 0; this.status = 'loading'; this.note = '';
     this.last = null; this.since = 0; this.v = 0; this.views = new Map(); this.refills = new Map(); this.larges = new Map(); this.hist = new D.LogHist(); this.sess = 0;
     this.samples = []; this.secT = 0; this.minT = 0; this.absEv = []; this.iceEv = []; this.iceFrom = 0; this.pending = []; this.tf = null; this.lastCrypto = 0; this.stopFn = null; this.h = null;
-    this.remote = []; this.hFrom = Infinity; this.hBusy = false; this.hFailAt = 0; this.hDone = false; this.hv = 0;
+    this.remote = []; this.hFrom = Infinity; this.hBusy = false; this.hFailAt = 0; this.hDone = false; this.hv = 0; this.born = Date.now(); this.hAt = 0;
     this.onVis = () => { if (!document.hidden) this.poke(); };
     document.addEventListener('visibilitychange', this.onVis);
     this.start();
@@ -108,8 +108,9 @@ class Store {
     const target = Math.floor(Math.max(fromMs, now - 24 * 3600000) / 60000) * 60000;
     if (!(target < this.hFrom - 60000)) { this.hDone = true; return; }
     const to = Number.isFinite(this.hFrom) ? this.hFrom : Math.ceil(now / 60000) * 60000, from = Math.max(target, to - 6 * 3600000);
-    this.hBusy = true;
-    bookHistory(this.spec.root, from, to).then((r) => {
+    this.hBusy = true; if (!this.hAt) this.hAt = now;
+    // never hang: a read that has not answered in 12 s counts as failed (retried after 60 s); the note never sits on "Loading"
+    Promise.race([bookHistory(this.spec.root, from, to), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))]).then((r) => {
       const got = decodeBookHistory(r.buf); if (!got) throw new Error('bad body');
       const seen = new Set(this.remote.map((x) => x.ts));
       this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).sort((a, b) => a.ts - b.ts);
@@ -284,7 +285,7 @@ const TITLES = {
 let H = null;
 class BkNative {
   constructor(type) { this.type = type; this.inputs = defaults(SCHEMA[type]); this.tm = 0; this.last = 0; this.h = null; this.spec = null; this.on = false; this.off = false; this.onAny = () => this.later(); this.ms = 0; this.n = 0; this.memo = {}; }
-  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); this.render(); }
+  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); this.onTier = () => this.later(); window.addEventListener('stryker:l2tier', this.onTier); this.render(); }
   // at most 5 redraws a second; none while the tab is hidden
   later() {
     if (this.tm || this.off || document.hidden) return;
@@ -295,7 +296,7 @@ class BkNative {
   setInputs(i) { this.inputs = Object.assign(defaults(SCHEMA[this.type]), i); this.memo = {}; this.render(); }
   suspend() { this.on = false; clearTimeout(this.tm); this.tm = 0; this.push(); }
   resume() { this.on = true; this.render(); }
-  stop() { this.off = true; this.on = false; clearTimeout(this.tm); document.removeEventListener('visibilitychange', this.onVis); this.unbind(); this.push(); }
+  stop() { this.off = true; this.on = false; clearTimeout(this.tm); clearTimeout(this.ltm); document.removeEventListener('visibilitychange', this.onVis); if (this.onTier) window.removeEventListener('stryker:l2tier', this.onTier); this.unbind(); this.push(); }
   unbind() { if (this.h) { this.h.release(); this.h = null; this.spec = null; } }
   bind(spec) { if (this.spec && this.spec.key === spec.key && this.h) return; this.unbind(); this.h = acquireStore(spec, this.onAny); this.spec = spec; }
   push(extra) { try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
@@ -336,7 +337,10 @@ class BkNative {
     const kind = s.kind, ss = D.sessionStart(Date.now(), kind);
     // honest note only once the recorder read is settled and truly holds nothing earlier than the first bar shown (member's local time)
     const kf = s.knownFrom(), first = bars.length ? bars[0].time : 0;
-    const since = s.kind === 'futures' && !(s.hDone || s.hFailAt) ? 'Loading book history…' : (kf > Math.max(ss, first) + 300000 ? 'No book history before ' + hhmm(kf) : '');
+    // "Loading" at most ~10 s from the first read (or from the store's birth if no read could start yet); then the honest result
+    const loading = s.kind === 'futures' && !(s.hDone || s.hFailAt) && Date.now() - (s.hAt || s.born || 0) < 10000;
+    const since = loading ? 'Loading book history…' : s.kind === 'futures' && !s.remote.length && (s.hDone || s.hFailAt || s.hAt) ? 'No earlier book history' : (kf > Math.max(ss, first) + 300000 ? 'No book history before ' + hhmm(kf) : '');
+    if (loading && !this.ltm) this.ltm = setTimeout(() => { this.ltm = 0; this.later(); }, 2500);   // re-check so the 10 s cap shows even with no new frames
     if (t === 'stk_bk_speed') return this.drawSpeed(s, I, bars, tf, ss, since);
     if (t === 'stk_bk_bal') return this.drawBal(s, I, bars, tf, ss, since);
     if (t === 'stk_bk_regime') return this.drawRegime(s, I, bars, tf, since);

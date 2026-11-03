@@ -305,7 +305,7 @@ export function mountBookPanel(ws, opts) {
     return true;
   }
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
-  rtReady().then(showBtns); try { rtOnChange(() => { showBtns(); schedule(); }); } catch (e) {} showBtns();
+  rtReady().then(showBtns); try { rtOnChange(() => { showBtns(); schedule(); }); } catch (e) {} window.addEventListener('stryker:l2tier', () => { showBtns(); schedule(); }); showBtns();
   railBtn.addEventListener('click', () => { if (kindOf().kind === 'fut' && !l2Visible()) { l2Unlock(); return; } setOpen(!open); });
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); if (kindOf().kind === 'fut' && !l2Visible()) { l2Unlock(); return; } setOpen(!open); });
   $('.stkbp-x').addEventListener('click', () => setOpen(false));

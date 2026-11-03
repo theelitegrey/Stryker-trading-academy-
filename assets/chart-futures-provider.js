@@ -15,8 +15,9 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=806';
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=806';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=805';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=805';
+import { hubLive, hubCovers } from './live-source.js?v=805';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -89,6 +90,9 @@ export function cmeOpenNow(ms = Date.now()) {
 if (typeof window !== 'undefined') window.tzStallStats = () => JSON.parse(JSON.stringify(stallLog));
 
 const NOOP = () => {};
+const HUB_QUIET_MS = 90000;
+const localTest = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname) && !!window.__stkL2Test; } catch (e) { return false; } };   // tests only, same flag as chart-futures-l2.js
+const MIN_HUB_TFS = ['1', '5', '15', '30', '60', '120', '240'];   // minute / hour timeframes the hub builds from trades
 export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
 const H = 3600, D = 86400;
 
@@ -392,9 +396,47 @@ export class FuturesProvider {
   subscribe(ticker, timeframe, onBar) {
     const root = this.keyOf(ticker) || quoteKey(ticker);
     const tf = normTf(timeframe);
+    // LIVE_SOURCE 'hub' (assets/live-source.js, default): every root the hub covers streams from the hub, never from /api/chart/stream.
+    if (hubLive() && root && tf && hubCovers(root) && MIN_HUB_TFS.includes(tf) && typeof location !== 'undefined') return this.hubSubscribe(ticker, timeframe, onBar, root, tf);
     const stopL2 = this.l2Subscribe(root, timeframe, onBar);
     if (stopL2 !== NOOP) { const inner = this.subscribeBase(ticker, timeframe, onBar, root, tf); return () => { stopL2(); inner(); }; }
     return this.subscribeBase(ticker, timeframe, onBar, root, tf);
+  }
+  // PRIMARY live path (2026-11-03): the forming candle is built from the hub's trades (assets/chart-futures-l2.js l2Candles). Who is let in is the
+  // SERVER's call (/ts-live refuses the rest), the page only skips a socket that would be refused. The delayed REST poll runs until the hub
+  // delivers, and again whenever it stops delivering (hub down: the Conn watchdog drops the feed after 20 s of silence), so the chart never freezes.
+  // The old bridge socket is never opened on this path.
+  hubSubscribe(ticker, timeframe, onBar, root, tf) {
+    let stopped = false, stopHub = null, stopPoll = null, mode = '', off = null;
+    const fed = () => { try { return !!(window.__stkL2Live && window.__stkL2Live.has(root)); } catch (e) { return false; } };
+    const out = (b) => { if (fed()) { try { rtNoteStreamBar(); } catch (e) {} } onBar(b); };
+    const poll = () => { if (!stopPoll && !stopped) stopPoll = this.pollSubscribe(ticker, timeframe, (b) => { if (!(fed() && b.time <= lastHub)) out(b); }, FALLBACK_POLL_MS); };
+    const unpoll = () => { if (stopPoll) { const p = stopPoll; stopPoll = null; p(); } };
+    let lastHub = 0, lastHubAt = 0;
+    const hubOut = (b) => { lastHubAt = Date.now(); if (b.time > lastHub) lastHub = b.time; if (this.hubBar) this.hubBar(b); else out(b); };   // an index provider merges the level onto its own candle (hubBar)
+    const sync = () => { if (stopped) return; if (fed() && Date.now() - lastHubAt < HUB_QUIET_MS) unpoll(); else poll(); };   // a root the hub has been silent on for 90 s is polled again (delayed bars older than the hub's candle are dropped)
+    const onLive = () => sync();
+    const pick = () => {
+      if (stopped) return;
+      const want = 'hub';   // always try: l2Candles stays silent unless the account may see live data (liveVisible), and the server refuses the rest; the REST poll covers meanwhile
+      if (want === mode) return;
+      if (stopHub) { try { stopHub(); } catch (e) {} stopHub = null; }
+      mode = want;
+      if (want === 'hub') {
+        import('./chart-futures-l2.js?v=805').then((m) => {
+          if (stopped || mode !== 'hub' || stopHub) return;
+          const seed = tf === '1' ? null : () => this.getBars(ticker, '1', { limit: Math.min(1000, Number(tf) * 2 + 30), fresh: true });
+          stopHub = m.l2Candles(root, tf, hubOut, null, seed);
+        }).catch(() => {});
+      }
+      sync();
+    };
+    window.addEventListener('stryker:l2live', onLive);
+    const watch = setInterval(sync, 5000);
+    off = rtOnChange(pick);
+    poll();
+    rtReady().then(pick);
+    return () => { stopped = true; clearInterval(watch); window.removeEventListener('stryker:l2live', onLive); try { if (off) off(); } catch (e) {} if (stopHub) { try { stopHub(); } catch (e) {} } unpoll(); };
   }
   // admin-only futures L2 candles (assets/chart-futures-l2.js): lazy import, the eight L2 books (+ micros of those minis)
   l2Subscribe(root, timeframe, onBar) {

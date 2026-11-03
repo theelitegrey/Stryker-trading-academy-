@@ -139,7 +139,7 @@ function readout(type, s, f, thr, same) {
   const now = Date.now(), from = (Math.floor(now / 60000) - 60) * 60000, F = H.fmt, G = H.sgn;
   if (!f || !f.mins || !f.mins.length) return ['Standard vs L1, last 60 min', 'Standard feed not available for this chart'];
   if (s.loading || s.loadedFrom > from) return ['Standard vs L1, last 60 min', 'Loading L1 history…'];
-  if (!same) return ['Standard vs L1, last 60 min', 'n/a on a micro: standard order flow is the mini\'s'];
+  if (!same) return ['Standard vs L1, last 60 min', 'n/a on a micro: the standard order flow is the mini\'s'];
   const tt = Math.max(thr, s.floor);
   const r = compareFeeds({ isBars: f.mins, tsMins: minutes(s), tsTrades: s.trades, thr: tt, tick: s.tick, from, to: now + 60000 });
   const d = 'Δ Std ' + G(r.is.delta) + ' · L1 ' + G(r.ts.delta) + (r.corr != null ? ' · r ' + r.corr.toFixed(2) : '');

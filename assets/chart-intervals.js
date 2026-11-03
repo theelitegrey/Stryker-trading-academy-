@@ -36,8 +36,9 @@
 // button, starred on add. TYPED INTERVALS: a digit or "," on the chart opens a small box ("5",
 // "4h", "1D", "15s", "100t") and Enter applies it; keys inside inputs are never taken.
 // No order or trade button anywhere here (Owner rule: no buying/selling on the website).
-import { liveSubscribe } from './chart-live-resume.js?v=806';
-import { rtReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=806';
+import { liveSubscribe } from './chart-live-resume.js?v=805';
+import { rtReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=805';
+import { hubLive, hubCovers } from './live-source.js?v=805';
 
 const LS_FAVS = 'stryker_chart_iv_favs';
 const LS_COLLAPSED = 'stryker_chart_iv_collapsed';
@@ -253,7 +254,32 @@ export async function binanceSeconds(ticker, n, range = {}) {
   return out;
 }
 
+// Second / tick bars for a hub root (LIVE_SOURCE 'hub'): built here from the hub's trades, from the moment the chart opens (the hub keeps no
+// second-level history; the bars before that are empty, as for any provider without history). Never opens /api/chart/stream.
+const rootOfTicker = (ticker) => String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
+const onHub = (ticker) => hubLive() && hubCovers(rootOfTicker(ticker));
+function hubSecTickSubscribe(ticker, tf, onBar) {
+  const root = rootOfTicker(ticker), kind = tf.slice(-1), n = Number(tf.slice(0, -1)) || 1;
+  let stopped = false, stop = null, cur = null, count = 0;
+  rtReady().then(() => { if (stopped || !isRealtimeAdmin()) return; return import('./chart-futures-l2.js?v=805'); }).then((m) => {
+    if (!m || stopped) return;
+    stop = m.acquire(root, (f) => {
+      if (!f || f.type !== 'ticks' || f.symbol !== root) return;
+      for (const x of f.t || []) {
+        const price = x[0], size = x[1], ms = x[3];
+        let t, fresh = false;
+        if (kind === 'S') { t = Math.floor(ms / (n * 1000)) * n * 1000; fresh = !cur || cur.time !== t; }
+        else { fresh = !cur || count >= n; t = fresh ? Math.max(ms, cur ? cur.time + 1 : 0) : cur.time; }
+        if (fresh) { cur = { time: t, open: price, high: price, low: price, close: price, volume: 0 }; count = 0; }
+        cur.high = Math.max(cur.high, price); cur.low = Math.min(cur.low, price); cur.close = price; cur.volume += size; count++;
+        onBar({ ...cur });
+      }
+    }, 20).release;
+  }).catch(() => {});
+  return () => { stopped = true; if (stop) stop(); };
+}
 function futuresStreamBars(ticker, tf, range = {}) {
+  if (onHub(ticker)) return Promise.resolve([]);
   if (typeof WebSocket !== 'function' || typeof location === 'undefined') return Promise.resolve([]);
   const root = String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
   if (!root) return Promise.resolve([]);
@@ -289,6 +315,7 @@ function futuresStreamBars(ticker, tf, range = {}) {
 }
 
 function futuresStreamSubscribe(ticker, tf, onBar) {
+  if (onHub(ticker)) return hubSecTickSubscribe(ticker, tf, onBar);
   if (typeof WebSocket !== 'function' || typeof location === 'undefined') return () => {};
   const root = String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
   let ws = null, stopped = false;

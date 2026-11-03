@@ -22,7 +22,8 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
-import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=806';
+import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=805';
+import { hubCovers } from './live-source.js?v=805';
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
@@ -100,7 +101,7 @@ export function installDataDot(ws, opts = {}) {
   const isFx = (root) => !!root && (root.startsWith('FX:') || root.startsWith('IDX:'));
   const rithLive = () => { try { return !!(rith && rith.client && rith.client.state === 'connected'); } catch (e) { return false; } };
   const insightRealtime = (root) => {
-    try { return !!(Futures && Array.isArray(Futures.INSIGHTSENTRY_ROOTS) && Futures.INSIGHTSENTRY_ROOTS.includes(root)); }
+    try { return hubCovers(root) || !!(Futures && Array.isArray(Futures.INSIGHTSENTRY_ROOTS) && Futures.INSIGHTSENTRY_ROOTS.includes(root)); }
     catch (e) { return false; }
   };
 
@@ -141,7 +142,7 @@ export function installDataDot(ws, opts = {}) {
     if (IDX.test(sym)) {
       const now = Date.now(), k = rootOf(sym);
       // Admin: the hub's quote frames are moving the current candle (chart-futures-l2.js sets __stkL2Live).
-      if (window.__stkL2Live && window.__stkL2Live.has(k)) return { s: 'rt', text: 'Live data from the L2 feed', tag: 'Live' };
+      if (window.__stkL2Live && window.__stkL2Live.has(k)) return { s: 'rt', text: 'Live data', tag: 'Live' };
       if (!idxOpen(now)) {
         const n = nextOpen(now, 'idx');
         return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };
@@ -159,9 +160,10 @@ export function installDataDot(ws, opts = {}) {
     const root = rootOf(sym);
     // Real-time CME futures: admins, a connected Rithmic login, the $7 add-on or an Owner approval (2026-10-30); the server delivers everyone else 10 min late.
     if (rithLive()) return { s: 'rt', text: 'Live data from your Rithmic connection', tag: 'Live (Rithmic)' };
+    // LIVE (2026-11-03): the hub is feeding this root's candle (assets/chart-futures-l2.js), or the server confirmed real-time on the delayed lane's tail
+    if (window.__stkL2Live && window.__stkL2Live.has(root)) return { s: 'rt', text: 'Live data', tag: 'Live' };
     if (insightRealtime(root) && rtConfirmed()) return { s: 'rt', text: 'Live data', tag: 'Live' };
-    if (window.__stkL2Live && window.__stkL2Live.has({ MYM: 'YM', M2K: 'RTY', MCL: 'CL', MGC: 'GC' }[root] || root)) return { s: 'rt', text: 'Live data from the futures order book feed', tag: 'Live' };
-    if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Delayed data · the server has not confirmed real-time on this chart yet (retrying)' : 'CME futures are 10 minutes delayed (CME rule). Connect your Rithmic login, add live futures data for $7/month, or ask us for approval.', tag: '10 min delayed · CME' };
+    if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Reconnecting · showing delayed data until live data returns' : 'CME futures are 10 minutes delayed (CME rule). Connect your Rithmic login, add live futures data for $7/month, or ask us for approval.', tag: '10 min delayed · CME' };
     measure(root);
     const m = lag.get(root);
     return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };

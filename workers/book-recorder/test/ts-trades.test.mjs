@@ -103,7 +103,7 @@ ok('floor table matches the brief and the hub symbols');
 // route gate: index.js lists /ts-trades with the same tsAllowed check and rate limit as /ts-book-history
 {
   const src = fs.readFileSync(new URL('../src/index.js', import.meta.url), 'utf8');
-  assert.match(src, /u\.pathname === '\/ts-aux' \|\| u\.pathname === '\/ts-trades'\) \{[\s\S]{0,900}tsAllowed\(env, ws \? wsTokenOf\(req\) : bearerOf\(req\)\)[\s\S]{0,200}RL_OF\.limit/);
+  assert.match(src, /u\.pathname === '\/ts-aux' \|\| u\.pathname === '\/ts-trades'\) \{[\s\S]{0,900}tsAllowed\(env, bearerOf\(req\)\)[\s\S]{0,600}RL_OF\.limit/);
   const hubSrc = fs.readFileSync(new URL('../src/ts-hub.js', import.meta.url), 'utf8');
   assert.match(hubSrc, /\/ts-trades[\s\S]{0,300}symbol not recorded/);
   ok('/ts-trades sits behind the admin gate + rate limit like /ts-book-history');

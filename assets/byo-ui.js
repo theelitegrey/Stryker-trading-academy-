@@ -2,7 +2,7 @@
 // Depends on: assets/byo-core.js (SOURCES, connect, forget, onByoChange, statusOf). Mounted by assets/vela-chart.js into
 // the chart toolbar (.stkc-bar-r). Rithmic is listed here and opens its own existing flow (window.STRYKER_RITHMIC.open).
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
-import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById } from './byo-core.js?v=832';
+import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById } from './byo-core.js?v=833';
 
 const CSS = `
 .byo-btn svg{ flex:none; }

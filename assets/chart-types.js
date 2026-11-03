@@ -4,11 +4,13 @@
 // `derive` bar transform, see tools/vela-090-ctypes-patch.py): Renko, Range, Line break, Kagi, Point & Figure.
 // Pattern copied from chart-footprint.js: registerChartType + one renderer layer per type (basePainting none).
 // Education only. Not financial advice.
-import { renko, range, lineBreak, kagi, pnf, sizeOf } from './chart-types-math.js?v=823';
+import { renko, range, lineBreak, kagi, pnf, sizeOf, guessTick } from './chart-types-math.js?v=823';
+import { tpoProfile, tpoLetter, autoRow, rthKey } from './chart-of-pro-data.js?v=823';
 
 export const CT_TIME = ['stk_hollow', 'stk_volcandle', 'stk_linemark', 'stk_step', 'stk_hlcarea', 'stk_columns', 'stk_highlow'];
 export const CT_PRICE = ['stk_renko', 'stk_range', 'stk_linebreak', 'stk_kagi', 'stk_pnf'];
-export const CT_ALL = CT_TIME.concat(CT_PRICE);
+export const CT_PRO = ['stk_tpoc', 'stk_svp'];   // Pro, like the order-flow tools they reuse
+export const CT_ALL = CT_TIME.concat(CT_PRICE, CT_PRO);
 
 const svg = (inner) => '<svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
 export const CT_ICONS = {
@@ -23,12 +25,15 @@ export const CT_ICONS = {
   stk_range: svg('<path d="M6 6v12M12 10v13M18 5v14M24 9v12"/><path d="M4 6h4M10 10h4M16 5h4M22 9h4" opacity="0"/>'),
   stk_linebreak: svg('<rect x="5" y="15" width="5" height="6" rx=".8"/><rect x="11" y="11" width="5" height="9" rx=".8" fill="currentColor" stroke="none"/><rect x="17" y="6" width="5" height="9" rx=".8" fill="currentColor" stroke="none"/><rect x="22" y="13" width="3" height="9" rx=".8"/>'),
   stk_kagi: svg('<path d="M5 20v-8h6V6h6v14h6v-9"/>'),
+  stk_tpoc: svg('<path d="M5 6h6M5 11h10M5 16h14M5 21h8"/><path d="M19 6v16" opacity=".35"/>'),
+  stk_svp: svg('<path d="M5 5v18"/><path d="M5 7h7M5 11h13M5 15h9M5 19h5" stroke-width="3"/>'),
   stk_pnf: svg('<path d="M6 6l5 5M11 6l-5 5M6 12l5 5M11 12l-5 5"/><circle cx="19" cy="17" r="2.6"/><circle cx="19" cy="9" r="2.6" opacity="0"/><circle cx="19" cy="22.5" r="2.6" opacity="0"/>')
 };
 export const CT_LABELS = {
   stk_hollow: 'Hollow candles', stk_volcandle: 'Volume candles', stk_linemark: 'Line with markers', stk_step: 'Step line',
   stk_hlcarea: 'HLC area', stk_columns: 'Columns', stk_highlow: 'High-low',
-  stk_renko: 'Renko', stk_range: 'Range', stk_linebreak: 'Line break', stk_kagi: 'Kagi', stk_pnf: 'Point & Figure'
+  stk_renko: 'Renko', stk_range: 'Range', stk_linebreak: 'Line break', stk_kagi: 'Kagi', stk_pnf: 'Point & Figure',
+  stk_tpoc: 'Time price opportunity', stk_svp: 'Session volume profile'
 };
 
 // ---------------------------------------------------------------- drawing
@@ -262,6 +267,105 @@ function boxes(f, a) {
   }
 }
 
+// ---------------------------------------------------------------- group 4: TPO + session volume profile (Pro)
+const FUT = /^(MNQ|NQ|MES|ES|MYM|YM|MGC|GC|SIL|SI|MCL|CL|RTY|M2K)\d*!?$/i;
+const isFut = () => { try { const sym = String(window.STRYKER_VELA.active.symbol || '').replace(/^.*:/, ''); return FUT.test(sym); } catch (e) { return false; } };
+const lightPage = () => { try { return document.documentElement.getAttribute('data-theme') === 'light'; } catch (e) { return false; } };
+const TPO_IN = '#9aa3ad', TPO_OUT = '#3f8f9a', MAGENTA = '#e040fb', VAL_LN = '#8fd8dc';
+function sessionsOf(bars, fut) {   // futures: the regular session (New York day); everything else: the UTC day
+  const out = []; let cur = null;
+  bars.forEach((b, i) => {
+    const k = fut ? rthKey(b.time) : Math.floor(b.time / 86400000);
+    if (k == null) { cur = null; return; }
+    if (!cur || cur.k !== k) { cur = { k, i0: i, i1: i }; out.push(cur); } else cur.i1 = i;
+  });
+  return out;
+}
+// session volume histogram: each candle's volume spread evenly over the rows it touched; POC + value area as in the TPO maths
+function volProfile(bars, row, va) {
+  let lo = Infinity, hi = -Infinity;
+  for (const b of bars) { lo = Math.min(lo, b.low); hi = Math.max(hi, b.high); }
+  const r0 = Math.floor(lo / row + 1e-9), n = Math.floor(hi / row + 1e-9) - r0 + 1, vol = new Float64Array(n);
+  for (const b of bars) {
+    const a = Math.floor(b.low / row + 1e-9) - r0, z = Math.floor(b.high / row + 1e-9) - r0, v = (b.volume || 0) / (z - a + 1);
+    for (let k = a; k <= z; k++) vol[k] += v;
+  }
+  let total = 0, pk = 0;
+  for (let k = 0; k < n; k++) { total += vol[k]; if (vol[k] > vol[pk]) pk = k; }
+  let a = pk, z = pk, acc = vol[pk];
+  while (acc < total * va / 100 && (a > 0 || z < n - 1)) {
+    const up = z < n - 1 ? vol[z + 1] : -1, dn = a > 0 ? vol[a - 1] : -1;
+    if (up >= dn) { z++; acc += up; } else { a--; acc += dn; }
+  }
+  return { r0, n, vol, max: vol[pk], poc: pk, val: a, vah: z };
+}
+function notePill(f, txt) {
+  const { g, co } = f; g.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const w = Math.round(g.measureText(txt).width + 20), x = Math.round((co.width - 56 - w) / 2), y = Math.round(f.bot - 60);
+  g.fillStyle = lightPage() ? 'rgba(255,255,255,.94)' : 'rgba(15,15,15,.88)'; g.strokeStyle = 'rgba(128,128,128,.35)';
+  g.beginPath(); if (g.roundRect) g.roundRect(x + .5, y + .5, w, 22, 11); else g.rect(x + .5, y + .5, w, 22); g.fill(); g.stroke();
+  g.fillStyle = lightPage() ? '#334155' : '#cbd5e1'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, x + w / 2, y + 11.5);
+}
+function profileDraw(kind) {
+  const memo = new Map();
+  return (f, a) => {
+    const { g, co, X, Y } = f, bars = a.bars, tf = bars.length > 2 ? bars[2].time - bars[1].time : 60000;
+    const settings = a.settings || {}, va = NUM(+settings.va, 70), periodMin = NUM(+settings.block, 30);
+    if (kind === 'tpo' && tf > periodMin * 60000) { notePill(f, 'Time price opportunity needs a chart timeframe of ' + periodMin + ' min or less'); return; }
+    const fut = isFut(), tick = guessTick(bars), phone = co.width < 520, ink = lightPage() ? '#0f172a' : '#e8ecf1';
+    const vr = co.visibleLogicalRange(), i0 = Math.max(0, Math.floor(vr.from)), i1 = Math.min(bars.length - 1, Math.ceil(vr.to));
+    const key = bars.length + '|' + bars[0].time + '|' + fut; let ss = memo.get('s'); if (!ss || ss.key !== key) { ss = { key, list: sessionsOf(bars, fut) }; memo.set('s', ss); }
+    const tickPx = Math.abs(Y(tick) - Y(0));
+    // close line behind the profile, so price is still readable
+    g.strokeStyle = lightPage() ? 'rgba(15,23,42,.35)' : 'rgba(209,212,220,.35)'; g.lineWidth = 1; g.beginPath();
+    for (let i = Math.max(0, i0 - 1); i <= Math.min(bars.length - 1, i1 + 1); i++) { const x = X(i), y = Y(bars[i].close); if (i === Math.max(0, i0 - 1)) g.moveTo(x, y); else g.lineTo(x, y); }
+    g.stroke();
+    for (const s of ss.list) {
+      if (s.i1 < i0 || s.i0 > i1) continue;
+      const sb = bars.slice(s.i0, s.i1 + 1); let hi = -Infinity, lo = Infinity;
+      for (const b of sb) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
+      let row = autoRow(hi - lo, tick, 40);
+      for (let guard = 0; guard < 12 && (row / tick) * tickPx < (kind === 'tpo' ? (phone ? 9 : 11) : 4); guard++) row *= 2;
+      const x0 = Math.max(X(s.i0) - f.pitch / 2, 8), x1 = X(s.i1) + f.pitch / 2;
+      if (x1 < 0 || x0 > co.width) continue;
+      const last = s.i1 >= bars.length - 1, span = Math.max(30, (x1 - x0) * 0.9);
+      if (kind === 'tpo') {
+        const p = tpoProfile(sb, { periodMs: periodMin * 60000, row, va, ibPeriods: 2 }); if (!p) continue;
+        const maxC = Math.max(...p.counts), cellW = Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
+        const rowPx = Math.abs(Y(row) - Y(0)), letters = rowPx >= (phone ? 9 : 11) && cellW >= (phone ? 6 : 7);
+        const fs = Math.max(7, Math.min(phone ? 9 : 11, Math.floor(Math.min(rowPx * .85, cellW * 1.2))));
+        g.font = '600 ' + fs + 'px "JetBrains Mono", ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        for (let k = 0; k < p.n; k++) {
+          if (!p.counts[k]) continue;
+          const yT = Y((p.r0 + k + 1) * row), yB = Y((p.r0 + k) * row), y = Math.min(yT, yB), h = Math.abs(yB - yT);
+          const c = k === p.poc ? MAGENTA : k >= p.val && k <= p.vah ? TPO_IN : TPO_OUT;
+          p.cols[k].forEach((per, j) => {
+            g.fillStyle = alpha(c, k === p.poc ? 0.95 : 0.6); g.fillRect(x0 + cellW * j + .5, y + .5, Math.max(1, cellW - 1), Math.max(1, h - 1));
+            if (letters) { g.fillStyle = k === p.poc ? '#fff' : ink; g.fillText(tpoLetter(per), x0 + cellW * (j + .5), y + h / 2); }
+          });
+        }
+        const ln = (k, c, w, d) => { const y = Y((p.r0 + k + .5) * row); g.setLineDash(d); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y); g.lineTo(last ? co.width : x1, y); g.stroke(); g.setLineDash([]); };
+        ln(p.poc, alpha(MAGENTA, .9), 1.5, []); ln(p.vah, alpha(VAL_LN, .7), 1, [4, 3]); ln(p.val, alpha(VAL_LN, .7), 1, [4, 3]);
+      } else {
+        const p = volProfile(sb, row, va); if (!(p.max > 0)) continue;
+        const wMax = Math.min(span, (x1 - x0) * 0.9);
+        for (let k = 0; k < p.n; k++) {
+          if (!p.vol[k]) continue;
+          const yT = Y((p.r0 + k + 1) * row), yB = Y((p.r0 + k) * row), y = Math.min(yT, yB), h = Math.abs(yB - yT), w = wMax * p.vol[k] / p.max;
+          const c = k === p.poc ? MAGENTA : k >= p.val && k <= p.vah ? '#f59e0b' : '#b8a15a';
+          g.fillStyle = alpha(c, k === p.poc ? .95 : .7); g.fillRect(x0, y + (h > 3 ? .5 : 0), w, Math.max(1, h - (h > 3 ? 1 : 0)));
+        }
+        const ln = (k, c, w, d) => { const y = Y((p.r0 + k + .5) * row); g.setLineDash(d); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y); g.lineTo(last ? co.width : x1, y); g.stroke(); g.setLineDash([]); };
+        ln(p.poc, alpha(MAGENTA, .9), 1.5, []); ln(p.vah, alpha(VAL_LN, .7), 1, [4, 3]); ln(p.val, alpha(VAL_LN, .7), 1, [4, 3]);
+      }
+    }
+  };
+}
+DRAW.stk_tpoc = profileDraw('tpo');
+DRAW.stk_svp = profileDraw('svp');
+SETTINGS.stk_tpoc = { title: 'Time price opportunity', rows: [{ kind: 'select', key: 'block', label: 'Letter block (minutes)', defval: 30, options: [[5, '5'], [10, '10'], [15, '15'], [30, '30'], [60, '60']] }, { kind: 'number', key: 'va', label: 'Value area %', defval: 70, min: 10, max: 100, step: 1 }] };
+SETTINGS.stk_svp = { title: 'Session volume profile', rows: [{ kind: 'number', key: 'va', label: 'Value area %', defval: 70, min: 10, max: 100, step: 1 }] };
+
 // ---------------------------------------------------------------- install
 let installed = false;
 export function installChartTypes(Core) {
@@ -271,7 +375,8 @@ export function installChartTypes(Core) {
     if (!DRAW[id]) continue;
     Core.registerRendererLayer({ id, placement: 'above-data', create: () => typeLayer(id) });
     const def = { id, label: CT_LABELS[id], icon: CT_ICONS[id], basePainting: 'none' };
-    if (DERIVE[id]) { def.barTransform = DERIVE[id]; def.settings = SETTINGS[id]; }
+    if (DERIVE[id]) def.barTransform = DERIVE[id];
+    if (SETTINGS[id]) def.settings = SETTINGS[id];
     Core.registerChartType(def);
   }
 }

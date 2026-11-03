@@ -76,6 +76,9 @@ edit(C, '''      this.typeSettings.set(typeId, values);
         this.reexecuteIndicators();
       }''')
 
+# 4) phone: the More drawer's "Chart style" row opens our grid sheet when assets/chart-type-picker.js is mounted
+edit('chunk-4WAHYL7Y.js', '  renderStyle(doc) {\n    const list = doc.createElement("div");', '  renderStyle(doc) {\n    if (globalThis.STK_CT_OPEN) { this.drawer.hide(); setTimeout(globalThis.STK_CT_OPEN, 60); return; }   // TradeZoro: the chart-type grid sheet (assets/chart-type-picker.js)\n    const list = doc.createElement("div");')
+
 for f, s in BUF.items():
     open(os.path.join(D, f), 'w', encoding='utf-8').write(s)
 open(os.path.join(D, 'CHANGES.md'), 'a', encoding='utf-8').write(

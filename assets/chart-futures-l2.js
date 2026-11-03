@@ -15,8 +15,8 @@
 import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=805';
 import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=805';
 import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=805';
-import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=804';
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=804';
+import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=805';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=805';
 
 export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).

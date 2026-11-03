@@ -38,7 +38,7 @@
 // No order or trade button anywhere here (Owner rule: no buying/selling on the website).
 import { liveSubscribe } from './chart-live-resume.js?v=805';
 import { rtReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=805';
-import { hubLive, hubCovers } from './live-source.js?v=804';
+import { hubLive, hubCovers } from './live-source.js?v=805';
 
 const LS_FAVS = 'stryker_chart_iv_favs';
 const LS_COLLAPSED = 'stryker_chart_iv_collapsed';
@@ -261,7 +261,7 @@ const onHub = (ticker) => hubLive() && hubCovers(rootOfTicker(ticker));
 function hubSecTickSubscribe(ticker, tf, onBar) {
   const root = rootOfTicker(ticker), kind = tf.slice(-1), n = Number(tf.slice(0, -1)) || 1;
   let stopped = false, stop = null, cur = null, count = 0;
-  rtReady().then(() => { if (stopped || !isRealtimeAdmin()) return; return import('./chart-futures-l2.js?v=804'); }).then((m) => {
+  rtReady().then(() => { if (stopped || !isRealtimeAdmin()) return; return import('./chart-futures-l2.js?v=805'); }).then((m) => {
     if (!m || stopped) return;
     stop = m.acquire(root, (f) => {
       if (!f || f.type !== 'ticks' || f.symbol !== root) return;

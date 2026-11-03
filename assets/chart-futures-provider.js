@@ -17,7 +17,7 @@
 
 import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=805';
 import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=805';
-import { hubLive, hubCovers } from './live-source.js?v=804';
+import { hubLive, hubCovers } from './live-source.js?v=805';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -423,7 +423,7 @@ export class FuturesProvider {
       if (stopHub) { try { stopHub(); } catch (e) {} stopHub = null; }
       mode = want;
       if (want === 'hub') {
-        import('./chart-futures-l2.js?v=804').then((m) => {
+        import('./chart-futures-l2.js?v=805').then((m) => {
           if (stopped || mode !== 'hub' || stopHub) return;
           const seed = tf === '1' ? null : () => this.getBars(ticker, '1', { limit: Math.min(1000, Number(tf) * 2 + 30), fresh: true });
           stopHub = m.l2Candles(root, tf, hubOut, null, seed);

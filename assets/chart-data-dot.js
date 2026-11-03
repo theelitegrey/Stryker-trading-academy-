@@ -23,7 +23,7 @@
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
 import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=805';
-import { hubCovers } from './live-source.js?v=804';
+import { hubCovers } from './live-source.js?v=805';
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute

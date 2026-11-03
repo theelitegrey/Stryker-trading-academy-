@@ -10,7 +10,7 @@ export const hubLive = () => LIVE_SOURCE === 'hub';
 // Futures roots the hub streams live (trades -> candles + order flow). Same list as TS_SYMBOLS + TS_TRADES in
 // workers/book-recorder/src/ts-hub.js (tools/tests/ts-live-source.test.mjs keeps the two equal). Micros have their OWN trades.
 export const HUB_BOOKS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];                                   // trades + L2 book
-export const HUB_TRADES = ['SI', 'SIL', 'NG', 'ZB', 'ZN', '6E', 'HG', 'MHG', 'MGC', 'MCL', 'MYM', 'M2K'];       // trades only
+export const HUB_TRADES = ['SI', 'SIL', 'ZB', 'ZN', '6E', 'HG', 'MHG', 'MGC', 'MCL', 'MYM', 'M2K'];       // trades only
 export const HUB_FUTURES = HUB_BOOKS.concat(HUB_TRADES);
 export const HUB_QUOTES = ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'];                              // index / ETF level only
 export const hubCovers = (root) => HUB_FUTURES.includes(root) || HUB_QUOTES.includes(root);

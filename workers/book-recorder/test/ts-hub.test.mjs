@@ -44,7 +44,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 // ---- fan out: 10 viewers, 1 upstream socket, subscribe frames, key only upstream
 {
   socks = []; const { hub } = mk({ RECORD: false });
-  const cs = []; for (let i = 0; i < 10; i++) { const c = client(); cs.push(c); assert.ok(hub.attach(c, 'NQ', 60)); }
+  const cs = []; for (let i = 0; i < 10; i++) { const c = client(); cs.push(c); assert.ok(hub.attach(c, 'NQ', 60, 'book')); }
   await sleep(30);
   assert.equal(socks.length, 1, '10 viewers = 1 upstream socket');
   assert.match(socks[0].url, /^wss:\/\/stream\.tick-stream\.xyz\/v1\/stream\?key=SECRETKEY$/);
@@ -72,7 +72,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 
 // ---- level choice + symbol switch
 {
-  socks = []; const { hub } = mk({ RECORD: false }); const c = client(); const h = hub.attach(c, 'NQ', 20);
+  socks = []; const { hub } = mk({ RECORD: false }); const c = client(); const h = hub.attach(c, 'NQ', 20, 'book');
   await sleep(20); socks[0].msg(book(28000)); await sleep(40);
   assert.equal(c.got.find((m) => m.type === 'snap').bids.length, 20);
   h.onMessage(JSON.stringify({ op: 'sub', symbol: 'NQ', levels: 150 })); c.got.length = 0; await sleep(150);
@@ -87,7 +87,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 
 // ---- throttle: 7 upstream frames per 100 ms window -> well under the gap; real default is 250 ms = 4/s
 {
-  socks = []; const { hub } = mk({ RECORD: false, MIN_GAP_MS: 250, FLUSH_MS: 20 }); const c = client(); hub.attach(c, 'NQ', 20);
+  socks = []; const { hub } = mk({ RECORD: false, MIN_GAP_MS: 250, FLUSH_MS: 20 }); const c = client(); hub.attach(c, 'NQ', 20, 'book');
   await sleep(20);
   const t0 = Date.now(); let k = 0;
   while (Date.now() - t0 < 1100) { socks[0].msg(book(28000 + (k++ % 5))); await sleep(14); }
@@ -98,11 +98,11 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 
 // ---- 1-minute candles for a late viewer: bars frame first, ticks continue after it with no overlap
 {
-  socks = []; const { hub } = mk({ RECORD: false }); const a = client(); hub.attach(a, 'NQ', 20); await sleep(20);
+  socks = []; const { hub } = mk({ RECORD: false }); const a = client(); hub.attach(a, 'NQ', 20, 'book'); await sleep(20);
   const up = socks[0]; up.msg({ type: 'book', symbol: 'NQ', ...book(100) });
   for (let i = 0; i < 5; i++) up.msg({ type: 'tick', symbol: 'NQ', price: 100 + i, size: 2, side: 'buy', ts: 1 });
   await sleep(30);
-  const late = client(); hub.attach(late, 'NQ', 20); await sleep(40);
+  const late = client(); hub.attach(late, 'NQ', 20, 'book'); await sleep(40);
   const bf = late.got.find((m) => m.type === 'bars');
   assert.ok(bf && bf.b.length >= 1, 'late viewer gets a bars frame');
   const last = bf.b[bf.b.length - 1];
@@ -156,7 +156,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 // ---- viewer cap
 {
   socks = []; const { hub } = mk({ RECORD: false, MAX_CLIENTS: 2 });
-  assert.ok(hub.attach(client(), 'NQ')); assert.ok(hub.attach(client(), 'NQ')); assert.equal(hub.attach(client(), 'NQ'), null); assert.equal(hub.stats().refused, 1);
+  assert.ok(hub.attach(client(), 'NQ', 60, 'book')); assert.ok(hub.attach(client(), 'NQ', 60, 'book')); assert.equal(hub.attach(client(), 'NQ', 60, 'book'), null); assert.equal(hub.stats().refused, 1);
   hub.shutdown(); ok('viewer cap refuses the extra socket');
 }
 
@@ -164,7 +164,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 {
   socks = []; const closedHub = mk({ RECORD: true, now: clockAt(SAT) }).hub;
   closedHub.poke(); await sleep(30); assert.equal(socks.length, 0, 'weekend, nobody watching: no socket');
-  const c = client(); const h = closedHub.attach(c, 'NQ'); await sleep(30); assert.equal(socks.length, 1, 'a viewer wakes it');
+  const c = client(); const h = closedHub.attach(c, 'NQ', 60, 'book'); await sleep(30); assert.equal(socks.length, 1, 'a viewer wakes it');
   h.close(); await sleep(200); assert.equal(closedHub.ws, null, 'last viewer gone (weekend): socket closed after IDLE_MS');
   closedHub.shutdown();
   socks = []; const openHub = mk({ RECORD: true }).hub; openHub.poke(); await sleep(30);
@@ -172,14 +172,14 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   openHub.shutdown();
   socks = []; const off = mk({ RECORD: false }).hub; off.poke(); await sleep(30); assert.equal(socks.length, 0, 'recording off, no viewer: down');
   off.shutdown();
-  const noKey = new TSHub(memStore(), '', { WebSocket: FakeWS, now: clockAt(OPEN) }); noKey.attach(client(), 'NQ'); await sleep(20); assert.equal(socks.length, 0, 'no key: no socket');
+  const noKey = new TSHub(memStore(), '', { WebSocket: FakeWS, now: clockAt(OPEN) }); noKey.attach(client(), 'NQ', 60, 'book'); await sleep(20); assert.equal(socks.length, 0, 'no key: no socket');
   noKey.shutdown();
   ok('socket only while watched or in CME hours; none without a key');
 }
 
 // ---- reconnect / 4029 / silent / auth backoff
 {
-  socks = []; const { hub } = mk({ RECORD: false }); hub.attach(client(), 'NQ'); await sleep(20);
+  socks = []; const { hub } = mk({ RECORD: false }); hub.attach(client(), 'NQ', 60, 'book'); await sleep(20);
   const t = Date.now(); socks[0].die(4029);
   await sleep(150); assert.equal(socks.length, 1, '4029: nothing during the dead-slot wait (' + hub.stats().nextRetryInMs + ' ms left)');
   assert.ok(hub.stats().nextRetryInMs > 0);
@@ -187,7 +187,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   hub.shutdown(); ok('4029 waits out the 45-50 s dead slot (scaled) before one retry');
 }
 {
-  socks = []; const { hub } = mk({ RECORD: false }); hub.attach(client(), 'NQ'); await sleep(20);
+  socks = []; const { hub } = mk({ RECORD: false }); hub.attach(client(), 'NQ', 60, 'book'); await sleep(20);
   const gaps = []; let last = Date.now();
   for (let i = 0; i < 5; i++) { const before = socks.length; socks.at(-1).die(1006); const t = Date.now(); while (socks.length === before && Date.now() - t < 1500) await sleep(5); gaps.push(Date.now() - last); last = Date.now(); assert.equal(socks.length, before + 1); }
   assert.ok(gaps[3] > gaps[0] && gaps[4] >= 150, 'exponential: ' + gaps.join(','));
@@ -195,12 +195,12 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   hub.shutdown(); ok('plain drops reconnect with exponential backoff: ' + gaps.join(' / ') + ' ms');
 }
 {
-  socks = []; const { hub } = mk({ RECORD: false, AUTH_PAUSE_MS: 5000 }); hub.attach(client(), 'NQ'); await sleep(20);
+  socks = []; const { hub } = mk({ RECORD: false, AUTH_PAUSE_MS: 5000 }); hub.attach(client(), 'NQ', 60, 'book'); await sleep(20);
   socks[0].msg({ type: 'error', error: { code: 'plan_required' } }); socks[0].die(1008); await sleep(400);
   assert.equal(socks.length, 1, 'an auth refusal pauses retries'); hub.shutdown(); ok('auth / plan refusal = long pause, no retry storm');
 }
 {
-  socks = []; const { hub } = mk({ RECORD: false }); const c = client(); hub.attach(c, 'NQ'); await sleep(20);
+  socks = []; const { hub } = mk({ RECORD: false }); const c = client(); hub.attach(c, 'NQ', 60, 'book'); await sleep(20);
   socks[0].msg(book(28000)); await sleep(50);
   assert.equal(c.got.filter((m) => m.event === 'status').at(-1)?.state, 'live');
   await sleep(450); assert.equal(socks.length >= 2 || hub.stats().drops >= 1, true, 'silent socket dropped and reopened');
@@ -240,7 +240,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 
 // ---- relay mode: no upstream socket, frames come in through feed()
 {
-  socks = []; const { hub } = mk({ MODE: 'relay', RECORD: false }); const c = client(); hub.attach(c, 'NQ', 20); await sleep(20);
+  socks = []; const { hub } = mk({ MODE: 'relay', RECORD: false }); const c = client(); hub.attach(c, 'NQ', 20, 'book'); await sleep(20);
   assert.equal(socks.length, 0, 'relay mode never opens a socket'); assert.equal(hub.wanted(), true);
   hub.feed([book(28000)]); await sleep(40); assert.ok(c.got.some((m) => m.type === 'snap'));
   hub.feed([{ type: 'book', symbol: 'ZZ', bids: [], asks: [] }, null, 5, { type: 'book', symbol: 'NQ', bids: 'x', asks: [] }]); assert.equal(hub.stats().frames, 1, 'junk ignored');
@@ -304,7 +304,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.equal(coarseRule(7640).step, 0.5, 'no symbol = the old rule');
   // CL / GC books on their own price scale, MNQ separate from NQ
   const lv = (mid, tk) => { const bids = [], asks = []; for (let i = 0; i < 400; i++) { bids.push([+(mid - tk - i * tk).toFixed(4), 5 + (i % 7)]); asks.push([+(mid + tk + i * tk).toFixed(4), 4 + (i % 5)]); } return { type: 'book', bids, asks, imbalance: 0.1, ts: 1 }; };
-  socks = []; const { hub } = mk({ RECORD: false }); const c = client(); hub.attach(c, 'CL', 20); await sleep(30);
+  socks = []; const { hub } = mk({ RECORD: false }); const c = client(); hub.attach(c, 'CL', 20, 'book'); await sleep(30);
   socks[0].msg(Object.assign(lv(60.5, 0.01), { symbol: 'CL' })); socks[0].msg(Object.assign(lv(4012.3, 0.1), { symbol: 'GC' })); socks[0].msg(Object.assign(lv(28001, 0.25), { symbol: 'MNQ' }));
   await sleep(60);
   const cl = hub.coarseOf('CL', hub.clock()), gc = hub.coarseOf('GC', hub.clock()), mnq = hub.coarseOf('MNQ', hub.clock());
@@ -316,7 +316,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
 {
   socks = []; const { hub, store } = mk({ RECORD: true });
   assert.deepEqual(TS_QUOTES, ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA']);
-  const spx = client(), nq = client(); hub.attach(spx, 'SPX', 60); hub.attach(nq, 'NQ', 60);
+  const spx = client(), nq = client(); hub.attach(spx, 'SPX', 60, 'book'); hub.attach(nq, 'NQ', 60, 'book');
   await sleep(30);
   socks[0].msg({ type: 'tick', symbol: 'SPX', price: 6000.5, size: 0, ts: 1 });
   socks[0].msg({ type: 'tick', symbol: 'SPX', price: 6001.25, size: 0, ts: 2 });
@@ -332,13 +332,13 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.deepEqual([bar[2], bar[3], bar[4], bar[5]], [6001.25, 6000.5, 6001.25, 0], 'OHLC from the level, volume stays 0');
   assert.equal(hub.rings.has('SPX'), false, 'no tick ring / footprint for a quote symbol');
   assert.equal(hub.bars1m.get('QQQ').at(-1)[5], 0, 'ETF quote adds no volume either');
-  const late = client(); hub.attach(late, 'SPX', 60);
+  const late = client(); hub.attach(late, 'SPX', 60, 'book');
   assert.ok(late.got.some((m) => m.type === 'bars' && m.symbol === 'SPX'), 'new viewer is back-filled with the 1m bars');
   hub.shutdown();
   ok('quote-only symbols: latest value, fan-out, zero volume, no ring');
 }
 {
-  const { hub } = mk({ RECORD: false }); hub.attach(client(), 'NQ', 60); await sleep(20);
+  const { hub } = mk({ RECORD: false }); hub.attach(client(), 'NQ', 60, 'book'); await sleep(20);
   socks.at(-1).msg({ type: 'tick', symbol: 'VIX', price: 17.2, size: 0, ts: 1 });
   assert.equal(hub.quoteMap().VIX[0], 17.2);
   const T = hub.clock() + 11 * 60000; assert.deepEqual(hub.quoteMap(T), {}, 'stale quotes (10 min) are left out');
@@ -359,7 +359,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   const { hub } = mk(); const a = client(), b = client();
   hub.attach(a, 'NQ', 20, 'book'); hub.attach(b, 'NQ', 20, 'trades');
   assert.deepEqual(TS_TRADES.filter((s) => TS_SYMBOLS.includes(s)), [], 'no root is both book and trades-only');
-  assert.ok(['SI', 'NG', 'ZB', 'ZN', '6E', 'HG', 'MGC', 'MCL', 'MYM', 'M2K'].every((s) => TS_TRADES.includes(s)), 'the roots we used to stream live are all covered');
+  assert.ok(['SI', 'ZB', 'ZN', '6E', 'HG', 'MGC', 'MCL', 'MYM', 'M2K'].every((s) => TS_TRADES.includes(s)), 'the roots we used to stream live are all covered');
   hub.connect(); await sleep(10);
   const up = socks[socks.length - 1], subTicks = up.sent.find((x) => x.channel === 'ticks').symbols;
   assert.ok(TS_TRADES.every((s) => subTicks.includes(s)) && !up.sent.find((x) => x.channel === 'book').symbols.some((s) => TS_TRADES.includes(s)), 'trades roots on the ticks channel only, never the book channel');
@@ -417,5 +417,19 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   const P = { TS_ACCESS: 'pro' };
   assert.equal(await T(P, 'adm1'), 'book'); assert.equal(await T(P, 'pro1'), 'book'); assert.equal(await T(P, 'addon1'), 'trades'); assert.equal(await T(P, 'free1'), null); assert.equal(await T(P, null), null);
   ok('gate: admin = book; Pro = book (TS_ACCESS=pro); add-on = trades, refused the book; free / expired add-on / signed out = nothing');
+}
+// ---- advisor findings (2026-11-03): periodic re-check, slot reserve, no-tier = trades
+{
+  const answers = ['book']; const { hub } = mk({ RECORD: false, RECHECK_MS: 30, TRADES_RESERVE: 1, MAX_CLIENTS: 3, tierOf: async () => answers[0] });
+  const a = client(), b = client();
+  hub.attach(a, 'NQ', 20, 'book', { tok: 't', env: {}, exp: 0 }); hub.attach(b, 'NQ', 20, undefined, { tok: 't', env: {}, exp: 0 });
+  assert.equal(b.got.find((m) => m.event === 'hub_attached').tier, 'trades', 'no tier given = trades (fails closed)');
+  hub.attach(client(), 'NQ', 20, 'trades'); assert.equal(hub.attach(client(), 'NQ', 20, 'trades'), null, 'trades tier cannot take the last (reserved) slot');
+  assert.ok(hub.attach(client(), 'NQ', 20, 'book'), 'book tier can');
+  hub.startTimer(); answers[0] = 'trades'; await sleep(120);
+  assert.equal([...hub.clients].find((c) => c.sock === a).book, false, 'access downgraded in place on re-check');
+  answers[0] = null; await sleep(120);
+  assert.equal(a.closed, 4003, 'access ended: socket closed with 4003'); assert.ok(hub.stats().revoked >= 1);
+  hub.shutdown(); ok('hub: access re-checked while a socket is open (downgrade / revoke), trades slots capped, no tier = trades');
 }
 console.log(n + ' checks passed'); process.exit(0);

@@ -26,7 +26,9 @@
 // ticks (price -> buy / sell volume). CME hours only (Sun 18:00 - Fri 17:00 ET, daily break 17:00-18:00 ET) unless a
 // viewer is watching.
 import { bucketSnapshot, encodeSamples, decodeSamples, nearNiceStep } from './bucket.js';
-import { TradeBook, tradeStore } from './ts-trades.js';   // TS-TRADES block: big-trade candidates + per-minute delta (src/ts-trades.js)
+import { TradeBook, tradeStore } from './ts-trades.js';
+import { tsTier } from './ts-access.js';
+import { wsTokenOf } from './rt-auth.js';   // TS-TRADES block: big-trade candidates + per-minute delta (src/ts-trades.js)
 
 export const TS_WS = 'wss://stream.tick-stream.xyz/v1/stream';
 // Owner 2026-11-02: all eight, each with its OWN book (MNQ / MES are separate books, not mapped to NQ / ES). One socket, unlimited symbols on realtime-l2.
@@ -35,8 +37,8 @@ export const TS_SYMBOLS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
 export const TS_QUOTES = ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'];
 // TRADES-ONLY roots (Owner order 2026-11-03): the roots we used to stream live elsewhere and the hub had no book for. Ticks channel only, on the
 // SAME upstream socket: no book, no footprint recording, no trade store (cost / storage). Each micro has its OWN trades (not its mini's).
-// Candles and quotes only. tools/tests/ts-live-source.test.mjs checks this list equals HUB_TRADES in assets/live-source.js.
-export const TS_TRADES = ['SI', 'SIL', 'NG', 'ZB', 'ZN', '6E', 'HG', 'MHG', 'MGC', 'MCL', 'MYM', 'M2K'];
+// Candles and quotes only. NG was tried and dropped: the feed accepted it but sent no trades in three 60 s probes (CME open), so it stays on delayed bars. tools/tests/ts-live-source.test.mjs checks this list equals HUB_TRADES in assets/live-source.js.
+export const TS_TRADES = ['SI', 'SIL', 'ZB', 'ZN', '6E', 'HG', 'MHG', 'MGC', 'MCL', 'MYM', 'M2K'];
 export const LEVELS = [20, 60, 150];
 export const COARSE_RANGE = 0.02;         // +-2% of the mid (was 0.4%): NQ ~ +-570 pts; unused rows are trimmed, so a sample only holds what the 400-level book spans
 // Row step for the heatmap rows: the nice step at or below 0.01% of the price. NQ 28.7k -> 2.5, ES 7.6k -> 0.5.
@@ -60,7 +62,7 @@ export const coarseRule = (mid, sym) => {
 const DEF = {
   SYMBOLS: TS_SYMBOLS, TRADES: TS_TRADES, QUOTES: TS_QUOTES, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
   SAMPLE_MS: 5000, BACK_MIN_MS: 2000, BACK_MAX_MS: 60000, STABLE_MS: 30000, DEAD_SLOT_MS: 50000, AUTH_PAUSE_MS: 300000,
-  SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, FILL_MAX_MIN: 60, FILL_BUDGET_MS: 25000, FILL_SPAN_H: 6, FILL_STEP: 5, FILL_LAG_MS: 2 * 60000, FILL_PAUSE_MS: 60000, REST: 'https://api.tick-stream.xyz/v1', TICKS_PER_FRAME: 200, PRUNE_MS: 3600000
+  SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, FILL_MAX_MIN: 60, FILL_BUDGET_MS: 25000, FILL_SPAN_H: 6, FILL_STEP: 5, FILL_LAG_MS: 2 * 60000, FILL_PAUSE_MS: 60000, REST: 'https://api.tick-stream.xyz/v1', TICKS_PER_FRAME: 200, PRUNE_MS: 3600000, RECHECK_MS: 60000, TRADES_RESERVE: 5
 };
 export function tsOpts(env) {
   const n = (v, d, lo, hi) => { const x = Math.floor(Number(v)); return Number.isFinite(x) && x >= lo && x <= hi ? x : d; };
@@ -297,10 +299,11 @@ export class TSHub {
 
   // ---- clients
   // sock = { send(str), close(code, reason) }. -> handle { close(), onMessage(str) } or null (full)
-  // tier: 'book' (trades + L2 book) or 'trades' (candles / trades / quotes only, never the book). Omitted = 'book' (the class is only reachable through the Worker, whose glue always passes it); any other value = 'trades'.
-  attach(sock, sym, levels, tier) {
-    if (this.clients.size >= this.o.MAX_CLIENTS) { this.n.refused++; return null; }
-    const c = { sock, book: tier === undefined || tier === 'book', sym: null, levels: 60, errors: 0, sentVer: -1, lastSend: 0, lastCoarse: 0, lastSeq: this.seq, lastPing: 0, bornAt: this.clock() };
+  // tier: 'book' (trades + L2 book) or 'trades' (candles / trades / quotes only, never the book). Anything but 'book' = 'trades' (fails closed). who = { tok, env, exp } lets the hub re-check access every minute (advisor review 2026-11-03).
+  attach(sock, sym, levels, tier, who) {
+    // the last TRADES_RESERVE slots are for book-tier viewers, so a flood of trades-tier sockets cannot lock them out
+    if (this.clients.size >= this.o.MAX_CLIENTS || (tier !== 'book' && this.clients.size >= this.o.MAX_CLIENTS - this.o.TRADES_RESERVE)) { this.n.refused++; return null; }
+    const c = { sock, book: tier === 'book', who: who || null, nextCheck: this.clock() + this.o.RECHECK_MS, sym: null, levels: 60, errors: 0, sentVer: -1, lastSend: 0, lastCoarse: 0, lastSeq: this.seq, lastPing: 0, bornAt: this.clock() };
     this.clients.add(c);
     this.setSub(c, sym, levels);
     this.startTimer();
@@ -313,6 +316,17 @@ export class TSHub {
         if (m && m.op === 'sub') this.setSub(c, m.symbol, m.levels);
       }
     };
+  }
+  // Access can end while a socket is open (add-on cancelled, switched off, TS_ACCESS flipped): ask the gate again every RECHECK_MS. No answer
+  // (outage) keeps the current tier; a definite 'no' closes the socket with 4003, a lower tier downgrades it in place.
+  recheck(c, now) {
+    c.nextCheck = now + this.o.RECHECK_MS;
+    const f = this.o.tierOf; if (!f) return;
+    Promise.resolve(f(c.who.env, c.who.tok)).then((t) => {
+      if (!this.clients.has(c)) return;
+      if (!t) { try { c.sock.close(4003, 'access ended'); } catch (e) {} this.clients.delete(c); this.n.revoked = (this.n.revoked || 0) + 1; }
+      else c.book = t === 'book';
+    }).catch(() => {});
   }
   setSub(c, sym, levels) {
     const s = String(sym || '').toUpperCase();
@@ -339,7 +353,8 @@ export class TSHub {
     this.announce();
     for (const c of [...this.clients]) {
       if (c.errors > 5) { this.clients.delete(c); continue; }
-      if (c.bornAt && now - c.bornAt >= this.o.TOKEN_MS) { try { c.sock.close(4401, 'token'); } catch (e) {} this.clients.delete(c); continue; }   // the browser reconnects with a fresh token
+      if (c.who && now >= c.nextCheck) this.recheck(c, now);
+      if (c.bornAt && now - c.bornAt >= Math.min(this.o.TOKEN_MS, c.who && c.who.exp ? c.who.exp * 1000 - c.bornAt : Infinity)) { try { c.sock.close(4401, 'token'); } catch (e) {} this.clients.delete(c); continue; }   // the browser reconnects with a fresh token
       if (!c.sym) continue;
       if (now - c.lastPing >= 5000) { c.lastPing = now; this.send(c, JSON.stringify({ event: 'ping', up: this.lastDataAt ? now - this.lastDataAt : -1, state: this.liveState(now) })); }
       if (now - c.lastSend < this.o.MIN_GAP_MS - 20) { this.n.throttled++; continue; }
@@ -479,6 +494,8 @@ export function tsStore(sql) {
   };
 }
 const SOCK_LIMIT = 256;
+// JWT exp (epoch s) of a token the Worker already verified; 0 when unreadable (then only TOKEN_MS applies)
+const tokExp = (t) => { try { return JSON.parse(atob(String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp || 0; } catch (e) { return 0; } };
 export async function tsHubFetch(hub, env, u, req) {
   if (!hub.key && hub.o.MODE === 'direct') hub.key = env.TICKSTREAM_API_KEY || '';
   hub.poke();
@@ -516,7 +533,9 @@ export async function tsHubFetch(hub, env, u, req) {
   const pair = new WebSocketPair(), client = pair[0], server = pair[1];
   server.accept();
   const sock = { send: (s) => server.send(s), close: (c, r) => { try { server.close(c, r); } catch (e) {} } };
-  const h = hub.attach(sock, u.searchParams.get('symbol'), u.searchParams.get('levels'), u.searchParams.get('tier') === 'book' ? 'book' : 'trades');
+  if (!hub.o.tierOf) hub.o.tierOf = tsTier;
+  const tok = wsTokenOf(req), who = { tok, env, exp: tokExp(tok) };
+  const h = hub.attach(sock, u.searchParams.get('symbol'), u.searchParams.get('levels'), u.searchParams.get('tier') === 'book' ? 'book' : 'trades', who);
   const proto = String(req.headers.get('sec-websocket-protocol') || '').includes('tz-auth') ? { 'sec-websocket-protocol': 'tz-auth' } : {};
   if (!h) { server.send(JSON.stringify({ event: 'hub_full' })); server.close(1013, 'hub full'); return new Response(null, { status: 101, webSocket: client, headers: proto }); }
   server.addEventListener('message', (ev) => { if (typeof ev.data === 'string' && ev.data.length <= SOCK_LIMIT) h.onMessage(ev.data); });

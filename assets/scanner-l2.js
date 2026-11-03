@@ -38,7 +38,7 @@
   // true when this visitor may see the live book columns. Never throws.
   function gate() {
     if (testOn()) return Promise.resolve(true);
-    return mods().then(function (m) { return m.rt.rtReady().then(function () { return !!m.l2.l2Visible(); }); }, function () { return false; });
+    return mods().then(function (m) { return m.rt.rtReady().then(function () { return m.l2.l2Probe(); }).then(function (ok) { return !!ok; }); }, function () { return false; });
   }
   function onGate(fn) { return mods().then(function (m) { m.rt.rtOnChange(function () { gate().then(fn); }); }, function () {}); }
 

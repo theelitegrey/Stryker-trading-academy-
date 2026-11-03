@@ -194,6 +194,16 @@ class Conn {
   }
   close() { this.stopped = true; clearTimeout(this.tm); clearTimeout(this.dog); clearTimeout(this.closeTm); document.removeEventListener('visibilitychange', this.onVis); if (this.ws) { try { this.ws.close(1000); } catch (e) {} this.ws = null; } }
 }
+// Resolves once the hub has said which tier this account has (hub_attached), by opening NQ briefly if no socket is open yet. Never rejects.
+export function l2Probe() {
+  if (bookTier !== null || !liveVisible()) return Promise.resolve(l2Visible());
+  return new Promise((res) => {
+    const done = () => { try { window.removeEventListener('stryker:l2tier', done); } catch (e) {} clearTimeout(tm); try { h.release(); } catch (e) {} res(l2Visible()); };
+    const h = acquire('NQ', () => {}, 20), tm = setTimeout(done, 8000);
+    window.addEventListener('stryker:l2tier', done);
+    if (bookTier !== null) done();
+  });
+}
 let idSeq = 0;
 // subscribe to one root: fn(frame) per frame, fn() on state changes. -> { r, release(), levels(n) }
 export function acquire(root, fn, levels) {
@@ -637,7 +647,7 @@ export function mountL2Ladder(ws, opts) {
   }
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
   const show = () => { railBtn.hidden = phoneBtn.hidden = !l2Listed(); if (!l2Visible() && open) setOpen(false); };
-  rtReady().then(show); try { rtOnChange(show); onTier(show); } catch (e) {} show();
+  rtReady().then(() => { show(); l2Probe(); }); try { rtOnChange(show); onTier(show); } catch (e) {} window.addEventListener('stryker:l2tier', show); show();
   const toggle = () => { if (!l2Visible()) { l2Unlock(); return; } setOpen(!open); };
   railBtn.addEventListener('click', toggle);
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });

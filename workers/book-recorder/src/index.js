@@ -787,7 +787,7 @@ async function route(req, env, ctx) {
       // History reads (book, aux, trades store) stay book-tier. The tier goes to the hub as a query param WE set (any client-sent one is dropped).
       const tier = ws ? await tsTier(env, wsTokenOf(req)) : ((await tsAllowed(env, bearerOf(req))) ? 'book' : null);
       if (!tier) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
-      if (!ws) { const rl = await env.RL_OF.limit({ key: 'ts:' + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }
+      { const rl = await env.RL_OF.limit({ key: (ws ? 'tsws:' : 'ts:') + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }   // sockets too (a reconnect storm / socket flood from one IP)
       const du = new URL('https://do' + u.pathname + u.search); du.searchParams.set('tier', tier);
       const r = await stub(env).fetch(new Request(du.toString(), req));
       if (ws) return r;

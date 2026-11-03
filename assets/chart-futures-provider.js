@@ -91,6 +91,7 @@ if (typeof window !== 'undefined') window.tzStallStats = () => JSON.parse(JSON.s
 
 const NOOP = () => {};
 const HUB_QUIET_MS = 90000;
+const localTest = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname) && !!window.__stkL2Test; } catch (e) { return false; } };   // tests only, same flag as chart-futures-l2.js
 const MIN_HUB_TFS = ['1', '5', '15', '30', '60', '120', '240'];   // minute / hour timeframes the hub builds from trades
 export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
 const H = 3600, D = 86400;
@@ -417,7 +418,7 @@ export class FuturesProvider {
     const onLive = () => sync();
     const pick = () => {
       if (stopped) return;
-      const want = isRealtimeAdmin() ? 'hub' : 'poll';
+      const want = 'hub';   // always try: l2Candles stays silent unless the account may see live data (liveVisible), and the server refuses the rest; the REST poll covers meanwhile
       if (want === mode) return;
       if (stopHub) { try { stopHub(); } catch (e) {} stopHub = null; }
       mode = want;

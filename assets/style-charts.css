@@ -1802,6 +1802,12 @@ body.charts-page .stkchart-panel{ position:relative; }
 .down{ color:var(--bear) !important; }
 @keyframes bt-bars{ 0%,100%{ transform:scaleY(.8); } 50%{ transform:scaleY(1.1); } }
 .btn-sm{ padding:5px 11px; font-size:12px; }
+.ob-modal{
+  position: fixed; inset: 0; z-index: 1400; display: flex;
+  align-items: center; justify-content: center; padding: 20px;
+  background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+}
+.ob-modal[hidden]{ display: none; }
 .tour-root{ position: fixed; inset: 0; z-index: 1500; }
 .tour-root[hidden]{ display: none; }
 :root{

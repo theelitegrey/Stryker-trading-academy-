@@ -28,7 +28,8 @@
 .az-bar b{ font-weight:500; color:var(--ink-1); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .az-dots{ display:flex; gap:6px; } .az-dots i{ width:8px; height:8px; border-radius:50%; background:var(--line); display:block; }
 .az-tag{ margin-left:auto; flex:none; font-size:11px; line-height:13px; padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-2); background:var(--bg-2); }
-.az-phone{ display:none; }
+.az-desk{ display:none; }
+.az-phone{ display:block; width:min(100%,300px); margin:0 auto; border:6px solid var(--bg-3); border-radius:28px; overflow:hidden; box-shadow:var(--az-sh); background:var(--bg-1); }
 .az-chartcard{ position:relative; margin-top:16px; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); padding:12px 16px 8px; box-shadow:var(--az-sh); }
 .az-chartcard .az-tag{ position:absolute; top:12px; right:12px; margin:0; }
 .az-chartcard small{ display:block; font-size:12px; line-height:16px; color:var(--ink-2); }
@@ -38,8 +39,8 @@
 .az-chart text{ font:11px var(--font-mono, monospace); fill:var(--ink-2); } .az-chart text.a{ fill:var(--gold); }
 @media (min-width:900px){
   .az-hero{ padding:56px 0 40px; } .az-hero-grid{ grid-template-columns:minmax(0,5fr) minmax(0,7fr); align-items:center; gap:40px; }
-  .az-scene{ padding-bottom:0; } .az-desk{ width:100%; }
-  .az-phone{ display:block; position:absolute; right:-8px; bottom:-24px; width:28%; border:6px solid var(--bg-3); border-radius:28px; overflow:hidden; box-shadow:var(--az-sh); background:var(--bg-1); margin:0; }
+  .az-scene{ padding-bottom:0; } .az-desk{ display:block; width:100%; }
+  .az-phone{ position:absolute; right:-8px; bottom:-24px; width:28%; margin:0; }
   .az-chartcard{ position:absolute; left:-24px; bottom:-32px; width:46%; margin:0; }
   .az-hero{ padding-bottom:64px; }
 }

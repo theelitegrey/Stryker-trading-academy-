@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (page && page.updatedAt && typeof page.updatedAt.toDate === 'function' && updatedEl) {
       updatedEl.textContent = 'Last updated ' + page.updatedAt.toDate().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
     }
+    else if (page && page.updated && updatedEl) updatedEl.textContent = 'Last updated ' + page.updated;
     if (bodyEl) {
       bodyEl.innerHTML = (page && page.bodyHtml)
         ? page.bodyHtml

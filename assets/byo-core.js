@@ -11,7 +11,7 @@
 // before any request is made for anything else (see assets/tests in tools/tests/byo-core.test.mjs).
 
 // ---------- guard ----------
-const ALLOW = {
+export const ALLOW = {
   alpaca: {
     hosts: ['data.alpaca.markets'],
     paths: [/^\/v2\/stocks\/[A-Z0-9.\-]{1,12}\/bars$/],
@@ -47,7 +47,7 @@ export function guardWs(source, url) {
 export function guardWsMessage(source, msg) {
   const rule = ALLOW[source];
   let a = null;
-  try { a = (typeof msg === 'string' ? JSON.parse(msg) : msg).action; } catch (e) { /* falls through */ }
+  try { const o = typeof msg === 'string' ? JSON.parse(msg) : msg; a = o.action || o.type; } catch (e) { /* falls through */ }
   if (!rule || !rule.wsSend || !rule.wsSend.includes(a)) throw new Error('byo-guard: blocked ' + source + ' message (data only)');
   return typeof msg === 'string' ? msg : JSON.stringify(msg);
 }
@@ -387,19 +387,22 @@ export async function connect(id, creds, deps) {
   const ad = ADAPTERS[id]; if (!ad) throw new Error('Unknown source');
   const c = { ...creds }; await ad.check(c, deps);   // throws on a bad key; nothing is stored before it passes
   if (!uid) throw new Error('Sign in to connect your own data');
-  await V().save(id, c); activate(id, c, deps);
+  if (c.keep !== 'no') await V().save(id, c);   // keep:'no' = this tab only, nothing written to the vault
+  activate(id, c, deps);
 }
 export async function forget(id) { const r = live.get(id); if (r && r.hub) r.hub.stop(); live.delete(id); await V().forget(id); emit(id); }
 export async function restore(deps) { if (!uid) return; try { for (const id of await V().ids()) { const c = await V().load(id); if (c && ADAPTERS[id]) activate(id, c, deps); } } catch (e) { /* no IndexedDB: nothing saved */ } }
 export const connectedIds = () => [...live.keys()];
 export const statusOf = (id) => { const r = live.get(id); return r ? { status: r.status, msg: r.msg } : null; };
 // Which connected source serves a chart provider kind + ticker? kind: 'fx' | 'idx' | 'byo'.
+export const ROUTERS = {};
 const IDX_OK = new Set(['SPY', 'QQQ', 'IWM', 'DIA']);
 export function route(kind, ticker) {
   for (const [id, r] of live) {
     if (r.status === 'error') continue;
     const ad = ADAPTERS[id];
     if (id === 'oanda' && kind === 'fx' && ad.symbolOf(ticker)) return { id, ad, rec: r };
+    if (ROUTERS[id] && ROUTERS[id](kind, ticker, ad)) return { id, ad, rec: r };   // adapters in their own files (byo-tastytrade.js)
     if (id === 'ironbeam' && kind === 'byo' && ad.symbolOf(ticker)) return { id, ad, rec: r };
     if (id === 'alpaca' && ((kind === 'idx' && IDX_OK.has(String(ticker).replace(/^[a-z]+:/i, '').toUpperCase())) || (kind === 'byo' && ad.symbolOf(ticker)))) return { id, ad, rec: r };
   }

@@ -54,6 +54,11 @@ const CSS = `
 .byo-link{ color:var(--gold,#03c988); font:500 14px/20px var(--by-font); text-decoration:none; padding:12px 0; }
 :root[data-theme="light"] .byo-link{ color:#047857; }
 .byo-link:hover{ text-decoration:underline; }
+.byo-steps{ margin:0 0 16px; border:1px solid var(--line,#2c2c32); border-radius:12px; padding:0 14px; }
+.byo-steps summary{ min-height:44px; display:flex; align-items:center; cursor:pointer; font:600 14px/20px var(--by-font); color:var(--ink-0,#eee); }
+.byo-steps ol{ margin:0 0 4px; padding-left:20px; font:400 13px/20px var(--by-font); color:var(--ink-1,#c9cdd3); }
+.byo-steps li{ margin:0 0 6px; }
+.byo-steps .byo-link{ display:inline-block; }
 .byo-note{ margin:12px 0 0; font:400 12px/18px var(--by-font); color:var(--ink-2,#8b93a0); }
 .byo-f{ display:block; margin:0 0 16px; }
 .byo-f > span{ display:block; margin:0 0 8px; font:500 13px/18px var(--by-font); color:var(--ink-1,#c9cdd3); }
@@ -176,6 +181,8 @@ export function mountByo(opts = {}) {
     const inputs = {};
     const form = el('form', { novalidate: true, autocomplete: 'off' });
     body.appendChild(el('p', { class: 'byo-lead', text: s.help }));
+    if (s.steps) body.appendChild(el('details', { class: 'byo-steps' }, [el('summary', { text: 'How to get these' }),
+      el('ol', {}, s.steps.map((t) => el('li', { text: t }))), el('a', { class: 'byo-link', href: s.docs, target: '_blank', rel: 'noopener noreferrer', text: s.name + ' API page' })]));
     form.appendChild(err);
     s.fields.forEach((f) => {
       const id = 'byo-f-' + f.k;
@@ -205,7 +212,7 @@ export function mountByo(opts = {}) {
       try { await connect(s.id, creds); Object.values(inputs).forEach((i) => { i.value = ''; }); go('manage', s); }
       catch (x) {
         const st = x && x.status;
-        err.textContent = x && /^(Sign in|Enter your OANDA)/.test(x.message) ? x.message : st === 401 || st === 403 ? s.name + ' did not accept this key. Check it and try again.' : st === 429 ? 'Too many tries. Wait a minute and try again.' : 'Could not reach ' + s.name + '. Check your connection and try again.';
+        err.textContent = x && /^(Sign in|Enter your OANDA|This token can)/.test(x.message) ? x.message : st === 401 || st === 403 ? s.name + ' did not accept this key. Check it and try again.' : st === 429 ? 'Too many tries. Wait a minute and try again.' : 'Could not reach ' + s.name + '. Check your connection and try again.';
         err.hidden = false;
       } finally { if (view === 'form') { submit.disabled = false; submit.textContent = 'Connect'; } }
     });
@@ -221,7 +228,7 @@ export function mountByo(opts = {}) {
     const bad = st.status === 'error';
     body.appendChild(el('p', { class: 'byo-state' + (bad ? ' bad' : live ? '' : ' warn'), 'data-state': st.status, html: '<i aria-hidden="true"></i><span></span>' }));
     body.querySelector('.byo-state span').textContent = bad ? (st.msg || 'Connection refused') : live ? 'Connected, live data' : 'Connected, waiting for a chart that uses ' + s.name + (st.msg ? ' · ' + st.msg : '');
-    body.appendChild(el('p', { class: 'byo-lead', text: s.id === 'alpaca' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
+    body.appendChild(el('p', { class: 'byo-lead', text: s.manage ? s.manage : s.id === 'alpaca' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
     body.appendChild(el('button', { type: 'button', class: 'byo-go danger', id: 'byo-forget', text: 'Forget this connection', onclick: async () => { await forget(s.id); go('list'); } }));
     body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
     body.querySelector('.byo-lock span').textContent = NOTE.replace('{name}', s.name);

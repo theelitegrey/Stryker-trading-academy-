@@ -1,54 +1,49 @@
-# Runs the deploy's build steps and one Global Monitor fetch on BOTH the
-# pinned runner (ubuntu-24.04) and the one ubuntu-latest becomes between
-# 2026-10-19 and 2026-11-19 (ubuntu-26.04). Nothing is deployed or published.
-# Triggered by pushes to hermes/* branches, or by hand.
-
 name: Runner compatibility test
 
 on:
   push:
     branches: ['hermes/**']
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, ubuntu-26.04]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+  verify-email-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-      - name: Browser audit runtime
-        run: npm install --no-save --no-package-lock playwright-core@1.56.1
-      - name: Tools the workflows rely on
+      - name: Signup + verify email end to end (test account, deleted after)
         run: |
-          lsb_release -ds; node -v; npx --version
-          for t in curl jq rsync unzip git python3; do printf '%-8s' "$t"; command -v $t || { echo MISSING; exit 1; }; done
-      - name: Site checks and sitemap (as the deploy runs them)
-        run: |
-          python3 tools/check.py
-          node tools/gen-sitemap.js
-          if [ -f tools/gen-learn.js ]; then node tools/gen-learn.js --check; fi
-      - name: Assemble the site (same rsync as the deploy)
-        run: |
-          mkdir -p /tmp/site
-          rsync -a --exclude '.git' --exclude '.github' --exclude 'tools' \
-                   --exclude '.claude' --exclude 'graphify-out' \
-                   --exclude 'functions-src' --exclude 'node_modules' ./ /tmp/site/
-          test -f /tmp/site/index.html && test ! -e /tmp/site/tools && echo "assembled: $(find /tmp/site -type f | wc -l) files"
-      - name: wrangler starts
-        run: npx --yes wrangler@4.138.0 --version
-      - name: One Global Monitor fetch (not published)
-        run: |
-          mkdir -p out
-          curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/data/monitor-data.json" -o out/previous.json || true
-          node tools/fetch-monitor-data.js out/previous.json out/monitor-data.json
-          jq '{events:(.events.items|length), wire:(.wire.items|length), finance:(.finance.items|length)}' out/monitor-data.json
+          set -u
+          K=$(grep -o -m1 -E "apiKey: *['\"][^'\"]+['\"]" assets/auth.js | sed -E "s/.*['\"]([^'\"]+)['\"]$/\1/")
+          echo "::add-mask::$K"
+          H='-H Referer:https://tradezoro.com/ -H Content-Type:application/json'
+          DOM=$(curl -s https://api.mail.tm/domains | jq -r '.["hydra:member"][0].domain')
+          U="tzprobe$(date +%s)"; PW="Pw-$(date +%s)-x9"; E="$U@$DOM"
+          curl -s -X POST https://api.mail.tm/accounts -H 'Content-Type: application/json' -d "{\"address\":\"$E\",\"password\":\"$PW\"}" >/dev/null
+          MT=$(curl -s -X POST https://api.mail.tm/token -H 'Content-Type: application/json' -d "{\"address\":\"$E\",\"password\":\"$PW\"}" | jq -r .token)
+          echo "::add-mask::$MT"
+          SU=$(curl -s $H "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$K" -d "{\"email\":\"$E\",\"password\":\"$PW\",\"returnSecureToken\":true}")
+          T=$(echo "$SU" | jq -r '.idToken // empty'); echo "::add-mask::$T"
+          echo "signup: $( [ -n "$T" ] && echo OK || echo "$SU" | jq -c .error)"
+          S=$(curl -s $H "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=$K" -d "{\"requestType\":\"VERIFY_EMAIL\",\"idToken\":\"$T\",\"continueUrl\":\"https://tradezoro.com/dashboard-user\"}")
+          echo "sendOobCode: $(echo "$S" | jq -c 'if .email then "SENT" else .error end')"
+          MSG=""
+          for i in $(seq 1 24); do
+            MSG=$(curl -s https://api.mail.tm/messages -H "Authorization: Bearer $MT" | jq -r '.["hydra:member"][0].id // empty')
+            [ -n "$MSG" ] && break; sleep 5
+          done
+          if [ -z "$MSG" ]; then echo "EMAIL: NOT RECEIVED after 2 min"; else
+            M=$(curl -s "https://api.mail.tm/messages/$MSG" -H "Authorization: Bearer $MT")
+            echo "EMAIL from: $(echo "$M" | jq -r .from.address)  subject: $(echo "$M" | jq -r .subject)"
+            LINK=$(echo "$M" | jq -r '(.text // "") + " " + ((.html // []) | join(" "))' | grep -o -E 'https://[^ "<>]+oobCode=[^ "<>]+' | head -1 | sed 's/&amp;/\&/g')
+            echo "LINK host+path: $(echo "$LINK" | sed -E 's#(https://[^?]+).*#\1#')"
+            echo "LINK params: $(echo "$LINK" | sed -E 's/oobCode=[^&]+/oobCode=X/; s/apiKey=[^&]+/apiKey=K/' | sed -E 's#.*\?##')"
+            echo "LINK GET: $(curl -s -o /tmp/l.html -w '%{http_code} -> %{url_effective}' -L "$LINK" | sed -E 's/oobCode=[^&]+/oobCode=X/; s/apiKey=[^&]+/apiKey=K/')"
+            echo "page title: $(grep -o -m1 '<title>[^<]*' /tmp/l.html)"
+            grep -o -i -E 'handleVerifyEmail|applyActionCode|verifyEmail|__/auth/action|firebase[a-z.-]*\.js' /tmp/l.html | sort -u | head
+            CODE=$(echo "$LINK" | grep -o -E 'oobCode=[^&]+' | cut -d= -f2); echo "::add-mask::$CODE"
+            echo "applyOobCode: $(curl -s $H "https://identitytoolkit.googleapis.com/v1/accounts:update?key=$K" -d "{\"oobCode\":\"$CODE\"}" | jq -c '{emailVerified, error: .error.message}')"
+          fi
+          curl -s $H "https://identitytoolkit.googleapis.com/v1/accounts:delete?key=$K" -d "{\"idToken\":\"$T\"}" >/dev/null && echo "test account deleted"

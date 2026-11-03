@@ -6,7 +6,7 @@
 // through chart-paper.js (same switch, same rules as the chart's ticket). Right-click / long-press a row: draw a level or a zone.
 // Logic lives in book-panel-core.js (unit-tested), streams in book-panel-sources.js. Phones <= 700 px: bottom sheet.
 // Wording: "updated Xs ago" only; no real-time claims. Education only. Not financial advice.
-import { l2Visible, l2Root, acquire, rootState, L2_TICK } from './chart-futures-l2.js?v=801';
+import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK } from './chart-futures-l2.js?v=801';
 import { rtReady, rtOnChange } from './rt-access.js?v=801';
 import * as C from './book-panel-core.js?v=801';
 import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=801';
@@ -74,7 +74,7 @@ export function mountBookPanel(ws, opts) {
     const k = kindOf(), key = feedKey(k);
     if (feed && feed.key === key) { feed.k = k; return; }
     detach();
-    if (!key || (k.kind === 'fut' && !l2Visible())) { feed = k.kind === 'fut' ? { key: '', k, books: new Map(), stops: [], store: new C.TradeStore(), msg: 'The futures order book is not available yet.' } : null; if (feed) feed.k = k; schedule(); return; }
+    if (!key || (k.kind === 'fut' && !l2Visible())) { feed = k.kind === 'fut' ? { key: '', k, books: new Map(), stops: [], store: new C.TradeStore(), msg: 'The futures order book is part of Pro. Upgrade to unlock it.' } : null; if (feed) feed.k = k; schedule(); return; }
     const f = feed = { key, k, books: new Map(), stops: [], store: new C.TradeStore(), step: 0, msg: '', dirty: true };
     if (k.kind === 'fut') {
       f.store.notional = false;
@@ -252,7 +252,7 @@ export function mountBookPanel(ws, opts) {
     let msg = '';
     if (!feed) msg = 'Open a crypto or futures chart (BTC, ETH, NQ, ES …) to see its order book.';
     else if (feed.msg) msg = feed.msg;
-    else if (fut && !feed.key) msg = 'The futures order book is not available yet.';
+    else if (fut && !feed.key) msg = 'The futures order book is part of Pro. Upgrade to unlock it.';
     const M = msg ? null : model();
     stat.innerHTML = statusHtml(M);
     if (!M || (S.tab === 'trades' && feed && feed.key && false)) {
@@ -295,7 +295,7 @@ export function mountBookPanel(ws, opts) {
     requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} });
   }
   function showBtns() {
-    const k = kindOf(), ok = k.kind === 'crypto' || (k.kind === 'fut' && l2Visible());
+    const k = kindOf(), ok = k.kind === 'crypto' || (k.kind === 'fut' && l2Listed());
     railBtn.hidden = phoneBtn.hidden = !ok;
     if (!ok && open && !isPhone() && k.kind === 'none') { /* stays open: shows the hint */ }
   }
@@ -306,8 +306,8 @@ export function mountBookPanel(ws, opts) {
   }
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
   rtReady().then(showBtns); try { rtOnChange(() => { showBtns(); schedule(); }); } catch (e) {} showBtns();
-  railBtn.addEventListener('click', () => setOpen(!open));
-  phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
+  railBtn.addEventListener('click', () => { if (kindOf().kind === 'fut' && !l2Visible()) { l2Unlock(); return; } setOpen(!open); });
+  phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); if (kindOf().kind === 'fut' && !l2Visible()) { l2Unlock(); return; } setOpen(!open); });
   $('.stkbp-x').addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) { if (zoneFrom != null || !menu.hidden) { zoneFrom = null; closeMenu(); schedule(); } else if (isPhone()) setOpen(false); } });
   window.addEventListener('resize', () => { document.documentElement.classList.toggle('stkbp-sheet', open && isPhone()); if (open) schedule(); }, { passive: true });

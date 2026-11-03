@@ -30,7 +30,7 @@ export function haveFor({ mkt, l2, free }) {
   return { L1: true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto' ? !free : false, L3: false };
 }
 export const bestOf = (have) => (have.L2 ? 'L2' : 'L1');
-export const reasonFor = (lvl, have) => (lvl === 'L3' ? L3_SOON : 'Needs ' + lvl + ' (' + LEVELS[lvl].short + '). Your plan includes ' + bestOf(have) + '.');
+export const reasonFor = (lvl, have) => (lvl === 'L3' ? L3_SOON : 'Needs ' + lvl + ' (' + LEVELS[lvl].short + '). It is part of Pro.');
 
 // used: [{ id, title, needs }]  ->  { show, L1: { state, users, locked }, L2, L3 }   state = 'lit' | 'dim' | 'locked'
 export function feedState(used, have) {

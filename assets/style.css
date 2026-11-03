@@ -10863,7 +10863,7 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 .appnav-msec.open > .appnav-sh-list{ display:block; }
 
 /* ============ FUTURES L2 (assets/chart-futures-l2.js): status badge + DOM ladder panel ============
-   Admin-only until the Tick-stream licence flag flips. Tokens only (design standard); the ladder lists scroll with the
+   Pro feature (futures L2). Tokens only (design standard); the ladder lists scroll with the
    shared thin scrollbar (global block). Phones: the ladder is a bottom sheet (grabber, title left, round x). */
 .stkl2-dot{ width:8px; height:8px; border-radius:50%; background:var(--ink-3); flex:none; }
 .is-live .stkl2-dot{ background:var(--gold); animation:stkl2-pulse 1.6s cubic-bezier(.2,0,0,1) infinite; }

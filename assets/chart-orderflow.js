@@ -34,7 +34,7 @@ import { drawBookmap, BM_BG } from './chart-bookmap.js?v=801';
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=801';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=801';
 import * as ProGate from './chart-pro-gate.js?v=801';
-import { installFuturesL2, l2Visible, L2_TYPES } from './chart-futures-l2.js?v=801';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=801';
 import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=801';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
@@ -2535,7 +2535,7 @@ const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap
 const OF_GROUP = 'Order Flow';
 const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_vwap',
   'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_fut_dom', 'stk_fut_walls', 'stk_fut_imb',
-  'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];   // Tick-stream twins (chart-ts-trades.js, admin only)
+  'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];   // Tick-stream twins (chart-ts-trades.js, Pro)
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
@@ -2633,7 +2633,7 @@ export function mountOrderflow(ws, opts) {
     const base = origRows.call(self);
     const group = [], ofg = [], rest = [];
     base.forEach((r, i) => {
-      if (r.native && L2_TYPES.indexOf(r.nativeType) >= 0 && !l2Visible()) return;   // futures L2: admin only until the licence flag flips
+      if (r.native && L2_TYPES.indexOf(r.nativeType) >= 0 && !l2Listed()) return;   // futures L2: listed for everyone once released; Free get the Pro lock
       const hid = r.native && OF_HIDDEN.indexOf(r.nativeType) >= 0;
       const oi = r.native ? OF_GROUP_TYPES.indexOf(r.nativeType) : -1;
       const gi = r.native ? GROUP_TYPES.indexOf(r.nativeType) : -1;

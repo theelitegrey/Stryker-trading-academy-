@@ -13,7 +13,7 @@ ok(!s.show && s.L1.state === 'dim' && s.L2.state === 'dim', 'nothing registered:
 s = F.feedState([U('L2', 'Heatmap')], admin);
 ok(s.show && s.L2.state === 'lit' && s.L1.state === 'lit' && s.L3.state === 'dim', 'L2 user with L2: L2 lit, L1 lit (book feed carries trades), L3 dim');
 s = F.feedState([U('L2', 'Heatmap')], l1only);
-ok(s.L2.state === 'locked' && s.L1.state === 'dim' && /^Needs L2 \(full order book\)\. Your plan includes L1\.$/.test(s.L2.locked), 'L2 user with only L1: L2 locked with reason', s.L2.locked);
+ok(s.L2.state === 'locked' && s.L1.state === 'dim' && /^Needs L2 \(full order book\)\. It is part of Pro\.$/.test(s.L2.locked), 'L2 user with only L1: L2 locked with reason', s.L2.locked);
 s = F.feedState([U('L1', 'Big Trades')], l1only);
 ok(s.L1.state === 'lit' && s.L2.state === 'dim', 'L1 user: L1 lit, L2 dim');
 s = F.feedState([U('L3', 'Orders')], admin);

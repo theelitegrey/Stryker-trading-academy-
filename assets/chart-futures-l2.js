@@ -2,9 +2,8 @@
 // Depends on: assets/rt-access.js (admin check + ID token), chart-orderflow.js (hands in its helpers as H, so the Crypto
 // DOM Heatmap renderer, styles and history merge are REUSED, not copied), the book-recorder Worker's /ts-live hub.
 //
-// LICENCE GATE: Tick-stream's Redistribution licence is not confirmed, so everything here is ADMIN ONLY. The Worker refuses
-// every other token (TS_ACCESS=admin); this file also hides the indicators, the badge and the ladder. To open it to Pro
-// members later: set TS_ACCESS=pro on the Worker AND L2_MEMBERS=true below (two lines, one release). No public copy.
+// ACCESS (Owner 2026-11-03, released to Pro): active Pro members, admins and the marketing demo account. The Worker is the real
+// gate (TS_ACCESS=pro, same rule as GEX+); this file only shapes the UI. Free / signed-out members see the Pro lock + Unlock.
 //
 // Browser -> /ts-live (the Worker's ONE upstream socket fans out; this page never talks to Tick-stream). One browser socket
 // per symbol, shared by every indicator and the ladder on that symbol, closed after 30 s in a hidden tab.
@@ -14,9 +13,10 @@
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
 import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=801';
+import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=801';
 import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=801';
 
-export const L2_MEMBERS = false;          // licence flag: true only after the Owner confirms Tick-stream's Redistribution licence
+export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
 export const L2_BOOKS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
 // Quote-only symbols (indices send size 0 = the level, ETFs the last price): ticks channel only, no book, no footprint, no volume.
@@ -32,7 +32,12 @@ const KEEP_MS = 48 * 3600000;
 const READ_MS = 6 * 3600000;
 const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname); } catch (e) { return false; } };
 const testOn = () => isLocal() && typeof window !== 'undefined' && window.__stkL2Test;
-export function l2Visible() { return !!(L2_MEMBERS || isRealtimeAdmin() || testOn()); }
+// May this visitor USE the feed? admin / demo (rt-access) or a signed-in member who is not confirmed Free. Same Free test as chart-pro-gate.
+export function l2Visible() { return !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS && rtToken() && !isFree())); }
+// Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.
+export const l2Listed = () => L2_MEMBERS || l2Visible();
+export const l2Unlock = () => upgrade('of');
+export { onTier };
 const symOf = (ticker) => String(ticker || '').toUpperCase().replace(/\d?!$/, '').replace(/^[A-Z_]+:/, '');
 export const l2Root = (ticker) => L2_ROOTS[symOf(ticker)] || null;
 // "showing YM book" for a micro that has no book of its own, else ''
@@ -347,7 +352,7 @@ export function registerL2Feeds() {
 // ---------------------------------------------------------------------------------------- indicators
 export const L2_TYPES = ['stk_fut_dom', 'stk_fut_imb'];
 const NEED = 'Futures DOM works on NQ, MNQ, ES, MES, YM, RTY, CL and GC charts (MYM, M2K, MCL, MGC show their mini\'s book).';
-const NOT_YET = 'Needs L2 (full order book). Your plan includes L1.';
+const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const BOOK_WALLS = 'Walls (persist 30 s+, pulled / consumed tags)';
@@ -399,7 +404,7 @@ export function installFuturesL2(Core, H, reg) {
     setInputs(i) { this.inputs = i; if (this.h) this.h.feed.l2Levels = Number(i.l2Levels) || 60; const st = this.root && rootState(this.root); if (st && st.conn) st.conn.setLevels('dom' + this.root, Number(i.l2Levels) || 60); this.render(); }
     render() {
       if (!this.ctx || this.hidden) return;
-      const msg = this.note() === NOT_YET ? '' : this.note();
+      const msg = this.note();
       const f = this.h && this.h.feed;
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       this.ctx.emit({ tables: msg ? [H.message('stk_dom-msg', msg, H.pageIsDay(), 'top_right')] : [] });
@@ -465,7 +470,7 @@ export function installFuturesL2(Core, H, reg) {
       const mk = (id, title, vals, color) => H.line(id, title, bars, vals, color, 2);
       const series = [mk('stk_fut_imb-v', 'Top-of-book imbalance', vendor, inp.vendorColor || '#03c988')];
       if (inp.showOurs !== false) series.push(mk('stk_fut_imb-o', '10-level depth-weighted', ours, inp.oursColor || '#00adb5'));
-      const note = this.block && this.block !== NOT_YET ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
+      const note = this.block ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
       this.ctx.setStatus(this.block ? 'idle' : r && r.status === 'live' ? 'live' : 'loading');
       this.ctx.emit({ series: this.block ? [] : series, tables: note, priceLines: [{ id: 'stk_fut_imb-0', paneId: '', price: 0, color: '#787b86', lineStyle: 'dotted', width: 1 }] });
     }
@@ -583,10 +588,11 @@ export function mountL2Ladder(ws, opts) {
     return true;
   }
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
-  const show = () => { const ok = l2Visible(); railBtn.hidden = phoneBtn.hidden = !ok; if (!ok && open) setOpen(false); };
-  rtReady().then(show); try { rtOnChange(show); } catch (e) {} show();
-  railBtn.addEventListener('click', () => setOpen(!open));
-  phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
+  const show = () => { railBtn.hidden = phoneBtn.hidden = !l2Listed(); if (!l2Visible() && open) setOpen(false); };
+  rtReady().then(show); try { rtOnChange(show); onTier(show); } catch (e) {} show();
+  const toggle = () => { if (!l2Visible()) { l2Unlock(); return; } setOpen(!open); };
+  railBtn.addEventListener('click', toggle);
+  phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
   closeBtn.addEventListener('click', () => setOpen(false));
   seg.addEventListener('click', (e) => { const b = e.target.closest('.stkl2-lv'); if (b) setLevels(Number(b.dataset.n)); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone()) setOpen(false); });

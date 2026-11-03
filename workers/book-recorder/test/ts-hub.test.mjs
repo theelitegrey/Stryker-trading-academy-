@@ -266,6 +266,9 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
     if (/jwk/.test(url)) return Response.json({ keys: [jwk] });
     if (/admins\/adm1/.test(url)) return Response.json({ name: 'x' });
     if (/admins\//.test(url)) return new Response('{}', { status: 404 });
+    if (/students\/pro1/.test(url)) return Response.json({ fields: { plan: { stringValue: 'pro' } } });
+    if (/students\/exp1/.test(url)) return Response.json({ fields: { plan: { stringValue: 'pro' }, subscriptionStatus: { stringValue: 'expired' } } });
+    if (/students\/demo1/.test(url)) return Response.json({ fields: { demo: { booleanValue: true } } });
     if (/students\//.test(url)) return Response.json({ fields: { plan: { stringValue: 'free' } } });
     if (/plans/.test(url)) return Response.json({ documents: [{ name: 'p/pro', fields: { rank: { integerValue: '1' } } }] });
     return new Response('{}', { status: 404 });
@@ -275,7 +278,13 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.equal(await tsAllowed({}, tok('mem1'), { fetchImpl }), false, 'member refused');
   assert.equal(await tsAllowed({ TS_ACCESS: 'pro' }, tok('mem1'), { fetchImpl }), false, 'free member refused even with the pro flag');
   assert.equal(await tsAllowed({ TS_ACCESS: 'pro' }, tok('adm1'), { fetchImpl }), true, 'admin still in with the pro flag');
-  ok('verified admin in; verified non-admin refused; free member refused even when the flag says pro');
+  const P = { TS_ACCESS: 'pro' };
+  assert.equal(await tsAllowed(P, tok('pro1'), { fetchImpl }), true, 'active Pro member in');
+  assert.equal(await tsAllowed(P, tok('demo1'), { fetchImpl }), true, 'demo account in');
+  assert.equal(await tsAllowed(P, tok('exp1'), { fetchImpl }), false, 'expired Pro refused');
+  assert.equal(await tsAllowed(P, '', { fetchImpl }), false, 'signed out refused');
+  assert.equal(await tsAllowed({}, tok('pro1'), { fetchImpl }), false, 'flag off: Pro refused');
+  ok('admin in; free refused; with TS_ACCESS=pro: active Pro + demo + admin in, Free / expired / signed-out refused');
 }
 {
   const o = tsOpts({ TS_SYMBOLS: 'nq, zz', TS_KEEP_HOURS: '500', TS_MODE: 'relay', TS_RECORD: '0' });

@@ -149,9 +149,12 @@ const defs = [
   { id: 'mt5', name: 'MetaTrader 5', cls: ['forex', 'futures', 'stocks'], covers: 'Prices from your MetaTrader 5 terminal', help: 'Open MetaTrader 5 and log in (an investor password is enough). Then start the TradeZoro Data Bridge.' },
   { id: 'ninja', name: 'NinjaTrader', cls: ['futures'], covers: 'Prices from your NinjaTrader 8 data connection', help: 'Import the add-on in NinjaTrader 8, then turn it on from the New menu.' },
   { id: 'ibkr', name: 'Interactive Brokers', cls: ['stocks', 'futures', 'forex', 'options'], covers: 'Prices from Trader Workstation or IB Gateway', help: 'Open Trader Workstation (or IB Gateway), turn on Read-Only API, then start the TradeZoro Data Bridge.' }
+  ,{ id: 'ctrader', name: 'cTrader', cls: ['forex', 'crypto'], covers: 'Forex and crypto CFDs from your cTrader', fee: 'free', feeNote: 'Free with your account.', help: 'Install the TradeZoro cBot in cTrader (Automate, import, add to any chart, Start), run the Data Bridge, then Pair.' }
 ];
 for (const x of defs) {
   ADAPTERS[x.id] = make(x.id);
   ROUTERS[x.id] = (kind, ticker, ad) => kind === 'byo' && !!ad.symbolOf(ticker);
-  SOURCES.push({ ...x, fee: 'paid', feeNote: 'Your data fees apply.', state: 'ready', beta: true, bridge: true, fields: [], note: NOTE });
+  const row = { fee: 'paid', feeNote: 'Your data fees apply.', ...x, state: 'ready', beta: true, bridge: true, fields: [], note: NOTE };
+  const old = SOURCES.findIndex((r) => r.id === x.id); // cTrader starts as a Coming soon row in byo-core.js: flip it in place
+  if (old >= 0) SOURCES[old] = { ...SOURCES[old], ...row }; else SOURCES.push(row);
 }

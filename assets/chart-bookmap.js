@@ -12,6 +12,9 @@ export const HOLD_MS = 5 * 60000;
 const RAMPS = {
   bookmap: [[0, [6, 12, 44]], [0.16, [14, 40, 140]], [0.34, [18, 96, 205]], [0.5, [0, 196, 224]], [0.64, [150, 232, 70]], [0.74, [250, 226, 40]],
     [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]],
+  // Zoro: Bookmap with the blue half of the ramp swapped for black -> charcoal; the warm half is identical
+  zoro: [[0, [5, 7, 13]], [0.16, [26, 26, 26]], [0.34, [46, 46, 46]], [0.5, [64, 74, 56]], [0.64, [150, 232, 70]], [0.74, [250, 226, 40]],
+    [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]],
   // Split: colour by SIDE. Asks violet, bids green; thin = nearly the field, heavy = neon, the heaviest near-white
   splitAsk: [[0, [5, 7, 13]], [0.25, [42, 15, 61]], [0.55, [110, 36, 176]], [0.8, [192, 77, 255]], [0.93, [222, 150, 255]], [1, [230, 200, 255]]],
   splitBid: [[0, [5, 7, 13]], [0.25, [11, 42, 20]], [0.55, [24, 140, 58]], [0.8, [57, 255, 106]], [0.93, [150, 255, 175]], [1, [201, 255, 214]]],
@@ -22,6 +25,7 @@ const RAMPS = {
 const SPLIT_ANCHORS = [[0, 0], [0.5, 0.06], [0.8, 0.16], [0.93, 0.34], [0.97, 0.62], [0.99, 0.86], [1, 1]];
 export const STYLES = {
   bookmap: { ramp: 'bookmap', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 },
+  zoro: { ramp: 'zoro', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 },
   // sided: the ramp is picked by the row's side (bid 0 / ask 1); glow: 1 px soft halo above / below a strong row (cells at ramp index >= glowFrom)
   split: { id: 'split', ramps: ['splitBid', 'splitAsk'], sided: true, glow: 0.4, glowFrom: 150, bg: BM_BG, anchors: SPLIT_ANCHORS, hold: HOLD_MS, cap: 0.97,
     heat: { id: 'splitHeat', ramps: ['splitHeat'], sided: false } }

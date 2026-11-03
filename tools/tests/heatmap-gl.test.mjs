@@ -41,3 +41,17 @@ const th = rampTexBytes(ht);
 assert.deepEqual([...th.slice(0, 1024)], [...th.slice(1024)]);                          // heat: both rows are the same ramp
 assert.deepEqual([...th.slice(1020, 1024)], [236, 30, 30, 255]);                        // heaviest = red
 console.log('split unit OK');
+// ---- Zoro: Bookmap ramp without blue ----
+{
+  const z = rampTexBytes(styleFor({ look: 'zoro' })), bmr = rampTexBytes(styleFor({ look: 'bookmap' }));
+  assert.equal(z.length, 256 * 2 * 4);
+  let blue = 0, bmBlue = 0;
+  for (let k = 0; k < 256; k++) { const o = k * 4; if (z[o + 2] > z[o] + 20 && z[o + 2] > z[o + 1] + 20) blue++; if (bmr[o + 2] > bmr[o] + 20 && bmr[o + 2] > bmr[o + 1] + 20) bmBlue++; }
+  assert.equal(blue, 0); assert.ok(bmBlue > 40);                       // Bookmap has a blue half, Zoro none
+  assert.deepEqual([...z.slice(0, 4)], [5, 7, 13, 255]);               // thin = the field
+  assert.deepEqual([...z.slice(1020, 1024)], [...bmr.slice(1020, 1024)]);   // heaviest = white, as Bookmap
+  const k = 200 * 4; assert.deepEqual([...z.slice(k, k + 4)], [...bmr.slice(k, k + 4)]);   // the warm part is identical
+  assert.equal(styleFor({ look: 'zoro' }).sided, false);
+  assert.deepEqual(styleFor({ look: 'zoro' }).anchors, styleFor({ look: 'bookmap' }).anchors);
+}
+console.log('zoro unit OK');

@@ -36,7 +36,7 @@ jobs:
             [ -f "$t" ] || continue
             echo "== $t"
             FB_TOKEN_FILE=/tmp/fbtok python3 "$t" functions-src/firestore.rules | tee /tmp/out.txt | tail -5
-            grep -q -E "FAIL|ISSUES|Error|403" /tmp/out.txt && { echo "::error::rules test failed: $t"; exit 1; } || true
+            python3 -c "import re,sys;m=re.search(r'(\\d+)/(\\d+) passed',open('/tmp/out.txt').read());sys.exit(0 if m and m.group(1)==m.group(2) else 1)" || { echo "::error::rules test failed: $t"; exit 1; }
           done
       - name: Deploy rules + functions
         run: |

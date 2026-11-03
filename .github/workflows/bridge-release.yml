@@ -93,7 +93,8 @@ jobs:
           $semantic = 'CS0246','CS0234','CS0103','CS0115','CS1061','CS0012','CS0518','CS0535','CS0039','CS0266','CS1503','CS1501','CS1929','CS0029','CS1579','CS0117'
           $syntax = $errs | Where-Object { $_ -notin $semantic }
           if ($syntax) { Write-Error "possible syntax errors: $($syntax -join ', ')"; $o; exit 1 }
-          Write-Host "no syntax-class errors"
+          Write-Host "no syntax-class errors (the file parses; type errors from missing NinjaTrader DLLs ignored)"
+          exit 0   # dotnet build leaves a non-zero exit code behind
 
       - name: Checksums
         shell: bash

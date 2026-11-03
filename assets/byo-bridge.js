@@ -147,9 +147,12 @@ export const HELPER_DOWNLOADS = { mt5: 'https://github.com/theelitegrey/Stryker-
 export const HOWTO_URL = '/help/desktop-bridge';
 const NOTE = 'Beta. Runs a small helper on your Windows PC. Prices go from your platform to the helper to this browser tab, never through TradeZoro.';
 const defs = [
-  { id: 'mt5', name: 'MetaTrader 5', cls: ['forex', 'futures', 'stocks'], covers: 'Prices from your MetaTrader 5 terminal', help: 'Open MetaTrader 5 and log in (an investor password is enough). Then start the TradeZoro Data Bridge.' },
-  { id: 'ninja', name: 'NinjaTrader', cls: ['futures'], covers: 'Prices from your NinjaTrader 8 data connection', help: 'Import the add-on in NinjaTrader 8, then turn it on from the New menu.' },
-  { id: 'ibkr', name: 'Interactive Brokers', cls: ['stocks', 'futures', 'forex', 'options'], covers: 'Prices from Trader Workstation or IB Gateway', help: 'Open Trader Workstation (or IB Gateway), turn on Read-Only API, then start the TradeZoro Data Bridge.' }
+  { id: 'mt5', name: 'MetaTrader 5', cls: ['forex', 'futures', 'stocks'], covers: 'Prices from your MetaTrader 5 terminal', help: 'Open MetaTrader 5 and log in (an investor password is enough). Then start the TradeZoro Data Bridge.',
+    steps: ['Tap Download below to get TradeZoroBridge.exe.', 'Open the file. If Windows warns you, tap More info, then Run anyway.', 'Open MetaTrader 5 and log in (an investor password is enough). The helper shows an 8-digit code.', 'Copy the 8-digit code into the box below.', 'Tap Pair.'] },
+  { id: 'ninja', name: 'NinjaTrader', cls: ['futures'], covers: 'Prices from your NinjaTrader 8 data connection', help: 'Import the add-on in NinjaTrader 8, then turn it on from the New menu.',
+    steps: ['Tap Download below to get the add-on file. Do not unzip it.', 'In NinjaTrader 8 go to Tools, then Import, then NinjaScript Add-On, and pick the file. If Windows warns you, tap More info, then Run anyway.', 'Make sure NinjaTrader 8 is connected to your data, then turn the add-on on from the New menu. It shows an 8-digit code.', 'Copy the 8-digit code into the box below.', 'Tap Pair.'] },
+  { id: 'ibkr', name: 'Interactive Brokers', cls: ['stocks', 'futures', 'forex', 'options'], covers: 'Prices from Trader Workstation or IB Gateway', help: 'Open Trader Workstation (or IB Gateway), turn on Read-Only API, then start the TradeZoro Data Bridge.',
+    steps: ['Tap Download below to get TradeZoroBridge.exe.', 'Open the file. If Windows warns you, tap More info, then Run anyway.', 'Open Trader Workstation (or IB Gateway) and log in. In Settings, API, turn on the socket API, tick Read-Only API, and note the port number. The helper shows an 8-digit code.', 'Copy the 8-digit code into the box below.', 'Tap Pair.'] }
 ];
 for (const x of defs) {
   ADAPTERS[x.id] = make(x.id);

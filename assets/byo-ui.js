@@ -2,6 +2,7 @@
 // Depends on: assets/byo-core.js (SOURCES, connect, forget, onByoChange, statusOf). Mounted by assets/vela-chart.js into
 // the chart toolbar (.stkc-bar-r). Rithmic is listed here and opens its own existing flow (window.STRYKER_RITHMIC.open).
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
+import { pair, loopbackState, HELPER_DOWNLOADS, HOWTO_URL } from './byo-bridge.js?v=857';
 import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=857';
 let CTR = null;   // byo-ctrader.js, loaded with the chart
 const OAUTH = () => import('./byo-oauth.js?v=857');
@@ -95,6 +96,9 @@ const CSS = `
 .byo-warn b{ font-weight:600; }
 .byo-steps-l{ margin:0 0 12px; padding-left:20px; font:400 14px/20px var(--by-font); color:var(--ink-1,#c9cdd3); }
 .byo-steps-l li{ margin:0 0 6px; }
+.byo-dlbtn{ display:flex; align-items:center; justify-content:center; box-sizing:border-box; width:100%; min-height:48px; margin:0 0 16px; border:1px solid var(--gold,#03c988); border-radius:12px; font:600 15px/20px var(--by-font); text-decoration:none !important; }
+.byo-stepsh{ margin:0 0 8px; font:600 14px/20px var(--by-font); color:var(--ink-0,#eee); }
+.byo-soon{ display:block; margin:0 0 16px; padding:12px; text-align:center; border-radius:12px; border:1px solid var(--line,#2c2c32); color:var(--ink-2,#8b93a0); font:600 15px/20px var(--by-font); }
 .byo-state{ display:flex; align-items:center; gap:8px; margin:0 0 16px; font:500 15px/20px var(--by-font); }
 .byo-state i{ width:10px; height:10px; border-radius:50%; background:#089981; box-shadow:0 0 0 2px rgba(8,153,129,.25); }
 .byo-state.warn i{ background:#F5A623; box-shadow:0 0 0 2px rgba(245,166,35,.25); }
@@ -112,7 +116,7 @@ const GLYPH = {
   crypto: '<circle cx="12" cy="12" r="8"/><path d="M9 9h5a1.5 1.5 0 0 1 0 3H9h5.5a1.5 1.5 0 0 1 0 3H9M9 7v10"/>'
 };
 // Official brand marks (own-site icons, see assets/images/brokers/SOURCES.md). White tile so every mark reads in dark + light.
-const LOGO = { alpaca: 'svg', oanda: 'png', ironbeam: 'png', tastytrade: 'svg', rithmic: 'png', schwab: 'png', ctrader: 'svg', upstox: 'png', fyers: 'png' };
+const LOGO = { alpaca: 'svg', oanda: 'png', ironbeam: 'png', tastytrade: 'svg', rithmic: 'png', schwab: 'png', ctrader: 'svg', upstox: 'png', fyers: 'png', mt5: 'png', ninja: 'png', ibkr: 'png' };
 function logoTile(s) {
   const glyph = I(GLYPH[s.cls[0]] || GLYPH.stocks);
   if (!LOGO[s.id]) return el('span', { class: 'byo-ic', html: glyph });
@@ -130,6 +134,8 @@ const LOCK = I('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V
 const NOTE = 'Your sign-in or key stays on this device. Market data goes straight from {name} to your browser.';
 const noteOf = (s) => s.noteText || NOTE.replace('{name}', s.name);
 const DATA_ONLY = 'Data only. TradeZoro never places, changes or cancels trades, and never reads your account, positions or balance.';
+
+const stepsEl = (list) => list && list.length ? [el('p', { class: 'byo-stepsh', text: 'Steps' }), el('ol', { class: 'byo-steps-l' }, list.map((t) => el('li', { text: t })))] : [];
 
 function el(tag, attrs, kids) {
   const n = document.createElement(tag);
@@ -178,11 +184,6 @@ export function mountByo(opts = {}) {
   }
   function go(v, src) { view = v; cur = src || null; render(); body.scrollTop = 0; }
 
-  function dl(s, cls) {
-    const u = HELPER_DOWNLOADS[s.id];
-    return u ? el('a', { class: cls + ' byo-link', href: u, rel: 'noopener', text: s.id === 'ninja' ? 'Download the add-on (.zip)' : 'Download TradeZoroBridge.exe' }) : el('span', { class: cls, 'data-dl': 'off', text: 'Download not available yet' });
-  }
-
   function rowFor(s) {
     const connected = connectedIds().includes(s.id);
     let b;
@@ -192,7 +193,7 @@ export function mountByo(opts = {}) {
       const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
       b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : s.keyAlt || s.signin ? go('signin', s) : startOauth(s)) });
     } else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
-    else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
+    else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', 'aria-label': s.name + ', coming soon, see steps', onclick: () => go('soon', s) });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
       logoTile(s),
       el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }), s.relay && s.state === 'ready' ? el('span', { class: 'byo-cv', text: s.noteText }) : null,
@@ -228,8 +229,8 @@ export function mountByo(opts = {}) {
     const inputs = {};
     const form = el('form', { novalidate: true, autocomplete: 'off' });
     body.appendChild(el('p', { class: 'byo-lead', text: s.help }));
-    if (s.steps) body.appendChild(el('details', { class: 'byo-steps' }, [el('summary', { text: 'How to get these' }),
-      el('ol', {}, s.steps.map((t) => el('li', { text: t }))), el('a', { class: 'byo-link', href: s.docs, target: '_blank', rel: 'noopener noreferrer', text: s.name + ' API page' })]));
+    stepsEl(s.steps).forEach((n) => body.appendChild(n));
+    if (s.docs) body.appendChild(el('a', { class: 'byo-link', href: s.docs, target: '_blank', rel: 'noopener noreferrer', text: s.name + ' API page' }));
     form.appendChild(err);
     s.fields.forEach((f) => {
       const id = 'byo-f-' + f.k;
@@ -272,6 +273,7 @@ export function mountByo(opts = {}) {
     title.replaceChildren(logoTile(s), s.name); backBtn.hidden = false;
     body.replaceChildren();
     body.appendChild(el('p', { class: 'byo-lead', text: s.signin ? 'Sign in on ' + s.name + (s.name.endsWith('s') ? '’' : '’s') + ' own page. TradeZoro only reads prices. It can\'t place trades.' : 'Sign in on ' + s.name + '\'s own page. Only market data is requested (read-only). You can take it back any time from ' + s.name + '.' }));
+    stepsEl(s.signSteps || s.steps).forEach((n) => body.appendChild(n));
     if (s.signinNote) body.appendChild(el('p', { class: 'byo-note2', text: s.signinNote }));
     const go1 = el('button', { type: 'button', class: 'byo-go byo-signin', id: 'byo-signin', onclick: () => startOauth(s) }, [logoTile(s), el('span', { text: s.cta })]);
     body.appendChild(go1);
@@ -288,17 +290,10 @@ export function mountByo(opts = {}) {
     const safari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
     body.appendChild(el('p', { class: 'byo-lead', text: s.note }));
     if (safari) body.appendChild(el('p', { class: 'byo-err', text: 'Safari does not allow this. Use Chrome, Edge or Firefox.' }));
-    body.appendChild(el('ol', { class: 'byo-steps-l' }, [
-      el('li', { text: s.help }),
-      el('li', { text: 'The helper shows an 8-digit code. Type it below.' })]));
-    if (HELPER_DOWNLOADS[s.id]) {
-      body.appendChild(el('p', { class: 'byo-warn', role: 'note' }, [
-        el('b', { text: 'Heads-up before you download. ' }),
-        document.createTextNode(s.id === 'ninja' ? 'This add-on is not code-signed, so NinjaTrader or Windows may ask you to confirm. ' : 'Windows will warn you because the helper isn\u2019t signed yet. Click More info, then Run anyway. Your antivirus may also ask. '),
-        el('a', { class: 'byo-link', href: HOWTO_URL, target: '_blank', rel: 'noopener', text: 'Step-by-step guide' })]));
-    }
-    body.appendChild(dl(s, 'byo-dlrow'));
-    const inp = el('input', { class: 'byo-in', id: 'byo-f-code', type: 'text', inputmode: 'numeric', maxlength: '9', placeholder: '12345678', autocomplete: 'off', 'aria-label': 'Code from the helper' });
+    stepsEl(s.steps).forEach((n) => body.appendChild(n));
+    body.appendChild(HELPER_DOWNLOADS[s.id] ? el('a', { class: 'byo-dlbtn byo-link', id: 'byo-dl', href: HELPER_DOWNLOADS[s.id], rel: 'noopener', text: s.id === 'ninja' ? 'Download the add-on (.zip)' : 'Download TradeZoroBridge.exe' }) : el('span', { class: 'byo-dlrow', 'data-dl': 'off', text: 'Download not available yet' }));
+    body.appendChild(el('a', { class: 'byo-link', href: HOWTO_URL, target: '_blank', rel: 'noopener', text: 'Step-by-step guide (how-to)' }));
+    const inp = el('input', { class: 'byo-in', id: 'byo-f-code', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', maxlength: '8', placeholder: '12345678', autocomplete: 'one-time-code', 'aria-label': 'Code from the helper' });
     const form = el('form', { novalidate: true, autocomplete: 'off' }, [err, el('label', { class: 'byo-f' }, [el('span', { text: 'Code from the helper' }), inp])]);
     const submit = el('button', { type: 'submit', class: 'byo-go', text: 'Pair' });
     form.append(submit, el('p', { class: 'byo-lock', html: LOCK + '<span>Your browser may ask to allow tradezoro.com to connect to apps on this device. Choose Allow. The helper only listens on this computer.</span>' }), el('p', { class: 'byo-note', text: DATA_ONLY }));
@@ -319,6 +314,15 @@ export function mountByo(opts = {}) {
     body.appendChild(form);
   }
 
+  function renderSoon(s) {
+    title.replaceChildren(logoTile(s), s.name); backBtn.hidden = false;
+    body.replaceChildren();
+    body.appendChild(el('p', { class: 'byo-lead', text: s.help || s.covers }));
+    stepsEl(s.steps).forEach((n) => body.appendChild(n));
+    body.appendChild(el('span', { class: 'byo-soon', text: 'Coming soon' }));
+    body.appendChild(el('p', { class: 'byo-note', text: DATA_ONLY }));
+  }
+
   function renderManage(s) {
     title.replaceChildren(logoTile(s), s.name); backBtn.hidden = false;
     body.replaceChildren();
@@ -334,7 +338,7 @@ export function mountByo(opts = {}) {
   }
 
   function render() {
-    if (view === 'pair' && cur) renderPair(cur); else if (view === 'form' && cur) renderForm(cur); else if (view === 'manage' && cur) renderManage(cur); else if (view === 'signin' && cur) renderSignin(cur); else renderList();
+    if (view === 'pair' && cur) renderPair(cur); else if (view === 'form' && cur) renderForm(cur); else if (view === 'manage' && cur) renderManage(cur); else if (view === 'signin' && cur) renderSignin(cur); else if (view === 'soon' && cur) renderSoon(cur); else renderList();
   }
 
   btn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.stkc-pop').forEach((p) => { p.hidden = true; }); view = 'list'; setOpen(!open); });

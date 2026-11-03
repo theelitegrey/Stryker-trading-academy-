@@ -13,14 +13,23 @@ const isProbe = (u) => {
   try { const r = await fetch('https://api.mail.tm/domains'); for (const d of (await r.json())['hydra:member']) MAILTM.add(d.domain); } catch (e) { console.log('mail.tm domain list unavailable; using known domains'); }
   const hits = []; let tok;
   do { const r = await admin.auth().listUsers(1000, tok); r.users.forEach((u) => isProbe(u) && hits.push(u)); tok = r.pageToken; } while (tok);
-  console.log('matched', hits.length); hits.forEach((u) => console.log(' ', u.email));
+  console.log('auth matched', hits.length); hits.forEach((u) => console.log(' ', u.email));
+  // Orphans: probes deleted their login but left students/{uid}.
+  const db = admin.firestore(); const seen = new Set(hits.map((u) => u.uid)); const orphans = [];
+  for (const d of (await db.collection('students').select('displayName', 'email').get()).docs) {
+    if (!seen.has(d.id) && isProbe(d.data())) orphans.push(d.id);
+  }
+  console.log('orphan student docs matched', orphans.length);
+  const all = await db.collection('students').select('email', 'displayName').get();
+  all.docs.filter((d) => orphans.includes(d.id)).forEach((d) => console.log(' ', d.data().email));
   if (!DELETE) return console.log('dry run, nothing deleted');
-  const db = admin.firestore(); let n = 0;
+  let n = 0;
   for (const u of hits) {
     const ref = db.collection('students').doc(u.uid);
     await db.recursiveDelete(ref);
     await db.collection('profiles').doc(u.uid).delete();
     await admin.auth().deleteUser(u.uid); n++;
   }
+  for (const id of orphans) { await db.recursiveDelete(db.collection('students').doc(id)); await db.collection('profiles').doc(id).delete(); n++; }
   console.log('deleted', n);
 })().catch((e) => { console.error('ERR', e.code || e.message); process.exit(1); });

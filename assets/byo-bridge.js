@@ -15,7 +15,7 @@ ALLOW.bridge = { hosts: [], paths: [], ws: /^ws:\/\/127\.0\.0\.1:487(1[5-9])$/, 
 
 function check(list, msg, what) {
   const o = typeof msg === 'string' ? (msg.length > 4096 ? null : JSON.parse(msg)) : msg;
-  const f = o && typeof o === 'object' && list[o.t];
+  const f = o && typeof o === 'object' && typeof o.t === 'string' && Object.prototype.hasOwnProperty.call(list, o.t) && list[o.t];
   if (!f || !Object.keys(o).every((k) => k === 't' || f.includes(k))) throw new Error('byo-bridge: blocked ' + what + ' message (data only)');
   for (const s of [o.sym, ...(Array.isArray(o.syms) ? o.syms : [])]) if (s !== undefined && !(typeof s === 'string' && SYM.test(s))) throw new Error('byo-bridge: bad symbol');
   if (o.syms !== undefined && (!Array.isArray(o.syms) || o.syms.length > 10)) throw new Error('byo-bridge: too many symbols');
@@ -50,12 +50,13 @@ class Link {
         try {
           if (m.t === 'error' && step !== 'done') return bad(fail(m.msg || 'Helper refused', m.code || 'refused'));
           if (step === 'welcome' && m.t === 'welcome') {
+            if (m.source && m.source !== this.id) return bad(fail('That helper serves a different source', 'source'));
             hn = m.hn; if (typeof hn !== 'string' || hn.length < 16) return bad(fail('Bad helper hello', 'protocol'));
             if (pairCode) { step = 'paired'; ws.send(JSON.stringify(guardSend({ t: 'pair', code: pairCode, sn }))); } else {
               if (!this.c.token) return bad(fail('Pair the helper first', 'unpaired'));
               step = 'ready'; ws.send(JSON.stringify(guardSend({ t: 'hello', sn, proof: await proofOf(this.c.token, 'site', sn, hn, port, originOf()) })));
             }
-          } else if (step === 'paired' && m.t === 'paired') { clearTimeout(to); step = 'done'; res({ ws, token: m.token, source: m.source }); }
+          } else if (step === 'paired' && m.t === 'paired') { clearTimeout(to); step = 'done'; res({ ws, token: m.token }); }
           else if (step === 'ready' && m.t === 'ready') {
             // The helper must prove it knows the token too: a program that merely grabbed the port cannot.
             if (!same(m.proof, await proofOf(this.c.token, 'helper', sn, hn, port, originOf()))) return bad(fail('The helper did not prove who it is. Forget and pair again.', 'proof'));
@@ -98,7 +99,6 @@ export async function pair(id, code, d) {
   if (!/^\d{8}$/.test(code)) throw fail('Enter the 8-digit code from the helper window.', 'code');
   const l = new Link(id, {}, d); const r = await l.connect(code);
   try { r.ws.onclose = r.ws.onmessage = null; r.ws.close(); } catch (e) { /* closed */ }
-  if (r.source && r.source !== id) throw fail('That helper serves a different source', 'source');
   return { token: r.token, port: l.port };
 }
 // Permission state of the browser's "apps on this device" prompt (Chrome 145+). Unknown name or no API -> "prompt".

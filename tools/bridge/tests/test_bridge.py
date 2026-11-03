@@ -29,6 +29,15 @@ class Proto(unittest.TestCase):
         self.assertFalse(names & set(bc.PROTO["forbiddenNames"]), names & set(bc.PROTO["forbiddenNames"]))
 
 
+class Vectors(unittest.TestCase):
+    def test_nt8_vectors(self):
+        import base64, hashlib
+        v = json.loads((H.parent / "ninjatrader" / "vectors.json").read_text())
+        self.assertEqual(base64.b64encode(hashlib.sha1((v["acceptKey"]["in"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode(), v["acceptKey"]["out"])
+        p = v["proof"]; self.assertEqual(proof(p["token"], p["dir"], p["sn"], p["hn"], p["port"], p["origin"]), p["out"])
+        self.assertIn(p["out"], (H.parent / "ninjatrader" / "TradeZoroBridge.cs").read_text())   # the add-on self-test uses the same vector
+
+
 class Static(unittest.TestCase):
     def test_imports_and_calls(self):
         bad_calls = set(FORBIDDEN) | set(FORBIDDEN_IB)

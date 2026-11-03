@@ -321,7 +321,7 @@ export function mountByo(opts = {}) {
     body.appendChild(el('p', { class: 'byo-lead', text: s.manage ? s.manage : s.bridge ? 'Open a symbol by typing it like byo:' + (s.id === 'ibkr' ? 'AAPL' : s.id === 'ninja' ? 'ES 12-26' : 'EURUSD') + '. Prices come from ' + s.name + ' on this computer.' : s.id === 'alpaca' || s.id === 'schwab' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
     body.appendChild(el('button', { type: 'button', class: 'byo-go danger', id: 'byo-forget', text: 'Forget this connection', onclick: async () => { await forget(s.id); go('list'); } }));
     body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
-    body.querySelector('.byo-lock span').textContent = noteOf(s);
+    body.querySelector('.byo-lock span').textContent = s.bridge ? 'The pairing token stays on this device. Prices go from ' + s.name + ' to the helper to this tab, never through TradeZoro.' : noteOf(s);
   }
 
   function render() {

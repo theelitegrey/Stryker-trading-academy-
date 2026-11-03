@@ -454,6 +454,7 @@ export function installFuturesL2(Core, H, reg) {
     attach() {
       if (!this.ctx) return;
       const mk = H.marketOf(this.ctx), root = mk.futures ? l2Root(mk.ticker) : null;
+      if (bookTier === null && liveVisible()) { if (!this._probing) { this._probing = true; l2Probe().then(() => { this._probing = false; this.attach(); }); } this.block = ''; this.render(); return; }
       if (!l2Visible()) { this.detach(); this.block = NOT_YET; this.render(); return; }
       const want = root ? 'tsl2|' + root : '';
       if (this.h && this.h.feed.key === want) { this.render(); return; }
@@ -465,6 +466,7 @@ export function installFuturesL2(Core, H, reg) {
     wantNow() {}
     detach() { if (this.badged) { badgeUse(false); this.badged = false; } super.detach(); }
     note() {
+      if (this.block === NOT_YET) return ''; // the feed note (chart-feeds.js, top-left) already says this; never draw it over the legend/tables
       if (this.block) return this.block;
       const f = this.h && this.h.feed;
       const st = rootState(this.root);
@@ -507,6 +509,7 @@ export function installFuturesL2(Core, H, reg) {
     start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.attach(); }
     attach() {
       const mk = H.marketOf(this.ctx), root = mk.futures ? l2Root(mk.ticker) : null;
+      if (bookTier === null && liveVisible()) { if (!this._probing) { this._probing = true; l2Probe().then(() => { this._probing = false; this.attach(); }); } this.block = ''; this.compute(); return; }
       if (!l2Visible()) { this.block = NOT_YET; this.compute(); return; }
       if (!root) { this.block = NEED; this.compute(); return; }
       if (this.root === root && this.h) return;
@@ -544,7 +547,7 @@ export function installFuturesL2(Core, H, reg) {
       const mk = (id, title, vals, color) => H.line(id, title, bars, vals, color, 2);
       const series = [mk('stk_fut_imb-v', 'Top-of-book imbalance', vendor, inp.vendorColor || '#03c988')];
       if (inp.showOurs !== false) series.push(mk('stk_fut_imb-o', '10-level depth-weighted', ours, inp.oursColor || '#00adb5'));
-      const note = this.block ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
+      const note = this.block && this.block !== NOT_YET ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
       this.ctx.setStatus(this.block ? 'idle' : r && r.status === 'live' ? 'live' : 'loading');
       this.ctx.emit({ series: this.block ? [] : series, tables: note, priceLines: [{ id: 'stk_fut_imb-0', paneId: '', price: 0, color: '#787b86', lineStyle: 'dotted', width: 1 }] });
     }

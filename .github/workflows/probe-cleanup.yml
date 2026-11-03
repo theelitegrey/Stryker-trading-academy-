@@ -1,0 +1,23 @@
+# Deletes e2e "Probe Test" accounts. Manual only; dry run unless "delete" is true.
+name: Probe account cleanup
+on:
+  workflow_dispatch:
+    inputs:
+      delete:
+        description: 'true = delete, else dry run'
+        default: 'false'
+permissions:
+  contents: read
+jobs:
+  sweep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-package-lock firebase-admin@12
+      - run: node tools/e2e/sweep-probes.js ${{ inputs.delete == 'true' && '--delete' || '' }}
+        env:
+          FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SA_KEY }}

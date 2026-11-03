@@ -21,6 +21,7 @@ const J = async (u, o = {}) => { const r = await fetch('https://api.mail.tm' + u
     verified: (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser.emailVerified : null,
     obModalOpen: !!document.querySelector('#ob-modal:not([hidden])') }));
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await ctx.addInitScript(() => { try { localStorage.setItem('tz_test_user', '1'); } catch (e) {} });
   const page = await ctx.newPage();
   page.on('console', m => { if (/error|warn/i.test(m.type())) log('console', m.text().slice(0, 200)); });
   let pass = 'Zq9!' + Math.random().toString(36).slice(2) + 'Xx';
@@ -67,10 +68,12 @@ const J = async (u, o = {}) => { const r = await fetch('https://api.mail.tm' + u
     await mp.click('#login-form button[type=submit]'); await mp.waitForTimeout(8000);
     await shot(mp, '5-mobile-login'); log('mobile state', JSON.stringify(await state(mp)));
   } catch (e) { log('ERROR', e.message); await shot(page, 'error').catch(() => {}); }
-  // cleanup: delete the Firebase account
+  finally {
+  // cleanup: delete the Firebase account (always)
   try {
-    const r = await page.evaluate(async (pw) => { if (!auth.currentUser) return 'no user'; try { await auth.currentUser.delete(); return 'deleted'; } catch (e) { return e.code; } }, pass);
+    const r = await page.evaluate(async (pw) => { if (!auth.currentUser) return 'no user'; try { try { await db.collection('students').doc(auth.currentUser.uid).delete(); } catch (e) {} await auth.currentUser.delete(); return 'deleted'; } catch (e) { return e.code; } }, pass);
     log('cleanup', r);
   } catch (e) { log('cleanup err', e.message); }
   await browser.close();
+  }
 })();

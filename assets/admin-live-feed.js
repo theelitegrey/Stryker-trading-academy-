@@ -82,7 +82,7 @@
     }
     function loadLive() {
       return db.collection('students').where('liveFeed', '==', true).get().then((snap) => {
-        live = []; snap.forEach((d) => live.push(Object.assign({ uid: d.id }, d.data())));
+        live = []; snap.forEach((d) => !d.data().test && live.push(Object.assign({ uid: d.id }, d.data())));
         live.sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
         paintLive();
       }).catch((err) => { listEl.innerHTML = '<p class="live-feed-empty">Could not load: ' + esc(err.message || err) + '</p>'; });
@@ -92,7 +92,7 @@
       if (q.length < 2) { resEl.innerHTML = ''; return; }
       if (!all) {
         resEl.innerHTML = '<p class="live-feed-empty">Loading members…</p>';
-        if (!allP) allP = db.collection('students').get().then((snap) => { all = []; snap.forEach((d) => all.push(Object.assign({ uid: d.id }, d.data()))); }).catch((err) => { allP = null; resEl.innerHTML = '<p class="live-feed-empty">Could not load members: ' + esc(err.message || err) + '</p>'; });
+        if (!allP) allP = db.collection('students').get().then((snap) => { all = []; snap.forEach((d) => !d.data().test && all.push(Object.assign({ uid: d.id }, d.data()))); }).catch((err) => { allP = null; resEl.innerHTML = '<p class="live-feed-empty">Could not load members: ' + esc(err.message || err) + '</p>'; });
         allP.then(() => { if (all) search(); });
         return;
       }

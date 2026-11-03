@@ -55,3 +55,14 @@ console.log('split unit OK');
   assert.deepEqual(styleFor({ look: 'zoro' }).anchors, styleFor({ look: 'bookmap' }).anchors);
 }
 console.log('zoro unit OK');
+// ---- Split v2: mid brightness, thin 30% near black, wall line settings ----
+{
+  const S2 = styleFor({ look: 'split', colorBy: 'side' }), t2 = rampTexBytes(S2), A = S2.anchors;
+  const posOf = (rank) => { for (let k = 1; k < A.length; k++) if (rank <= A[k][0]) return A[k - 1][1] + (A[k][1] - A[k - 1][1]) * (rank - A[k - 1][0]) / (A[k][0] - A[k - 1][0]); return 1; };
+  const at = (row, rank) => { const o = row * 1024 + Math.round(posOf(rank) * 255) * 4; return Math.max(t2[o], t2[o + 1], t2[o + 2]); };
+  assert.ok(at(0, 0.3) < 50 && at(1, 0.3) < 50);                         // the thinnest 30% stay near black
+  assert.ok(at(0, 0.5) >= 255 * 0.35 && at(1, 0.5) >= 255 * 0.35);      // the median reads 35%+ bright
+  assert.ok(at(0, 0.9) >= 250 && at(1, 0.9) >= 250);                     // p90 = full neon
+  assert.ok(S2.lineHalf > 0 && S2.liveHold === 10000 && S2.glowFrom <= Math.round(posOf(0.9) * 255));
+}
+console.log('split v2 unit OK');

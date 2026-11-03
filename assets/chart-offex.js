@@ -121,8 +121,8 @@ class OffexNative {
     const pts = dailyTf(ctx.timeframe) ? shareSeries(d.daily[sym], bars) : bars.map((b) => ({ time: b.time, value: null }));
     const have = pts.filter((p) => p.value != null);
     const last = have.length ? have[have.length - 1] : null;
-    const text = dailyTf(ctx.timeframe) ? (last ? 'Off-exchange share ' + last.value + ' %. ' : 'Off-exchange share: no matching days. ') + note
-      : 'Off-exchange share needs the 1 day timeframe';
+    const text = dailyTf(ctx.timeframe) ? (last ? 'Off-exchange ' + last.value + ' % · ' : 'No matching days · ') + note
+      : 'Needs the 1 day timeframe';
     this.frame([{ id: 'offex-share', title: 'Off-exchange share %', paneId: '', kind: 'line', points: pts, style: { color: I.color, width: 2, lineStyle: 'solid' } }],
       I.showPane === false ? [] : [msgTable(text)]);
     try { window.__stkOffex = Object.assign(window.__stkOffex || {}, { sym, n: have.length, last: last && last.value }); } catch (e) {}   // read by tools/tests/offex-browser.js
@@ -181,7 +181,7 @@ function layer() {
         if (used.every((u) => Math.abs(u - y) > 16)) {   // labels never overlap: a close level keeps its line only
           used.push(y);
           const txt = (phone ? '' : 'Off-exch ') + L.price.toFixed(2) + ' · ' + shortNum(L.shares) + ' sh';
-          const tw = Math.ceil(g.measureText(txt).width) + 12, x1 = W - 8;
+          const tw = Math.ceil(g.measureText(txt).width) + 12, x1 = tw + 8;   // left side: the right edge carries the last-price tag
           g.fillStyle = day ? 'rgba(255,255,255,.94)' : 'rgba(19,19,22,.94)'; g.strokeStyle = d.color; g.lineWidth = 1;
           g.beginPath(); g.roundRect ? g.roundRect(x1 - tw, y - 9, tw, 18, 8) : g.rect(x1 - tw, y - 9, tw, 18); g.fill(); g.stroke();
           g.fillStyle = day ? '#1d1d1f' : 'rgba(255,255,255,.92)'; g.fillText(txt, x1 - 6, y + 0.5);

@@ -99,11 +99,11 @@ class FlowNative {
   push(p) { const sig = JSON.stringify(p && p.note ? p : { n: p && p.marks.length, last: p && p.last, I: p && p.I, b: p && p.bars }); if (sig === this.sig) return; this.sig = sig; try { this.ctx.pushData(p); } catch (e) {} }
   refresh() {
     if (!this.ctx) return;
-    if (replayOn()) return this.push({ note: 'Options Flow Marks are hidden during bar replay' });
+    if (replayOn()) return this.push({ note: 'Options flow: hidden in replay' });
     const src = this.src();
-    if (!src) return this.push({ note: 'Options Flow Marks: SPX, SPY, QQQ, ES, NQ' });
+    if (!src) return this.push({ note: 'Options flow: SPX, SPY, QQQ, ES, NQ' });
     const ms = (tfMin(this.ctx.timeframe) || 0) * 60000;
-    if (!ms || ms >= 86400000) return this.push({ note: 'Options Flow Marks show intraday charts (1 minute to 4 hours)' });
+    if (!ms || ms >= 86400000) return this.push({ note: 'Options flow: intraday charts only' });
     const e = cache.get(src.u), data = e && e.data;
     if (!data) return this.push({ note: 'Loading options flow…' });
     const bars = this.ctx.bars() || [];

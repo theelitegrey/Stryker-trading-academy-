@@ -585,9 +585,11 @@ function lateLists(provider){
   };
   // SPEED (2026-10-29): the four import groups below used to be awaited one after the other (each its own
   // round trip on a phone); they are independent, so they are requested together and installed in the old order.
-  const newsP = import('./chart-news-markers.js?v=851');
-  const msP = import('./chart-market-stats.js?v=851');
-  const tideP = import('./chart-zorotide.js?v=851');
+  const newsP = import('./chart-news-markers.js?v=843');
+  const msP = import('./chart-market-stats.js?v=843');
+  const tideP = import('./chart-zorotide.js?v=843');
+  const flowP = import('./chart-optflow.js?v=843');
+  const offexP = import('./chart-offex.js?v=843');
   let MSess = null;
   if (heavyNeeded) installHeavy();
   else {
@@ -609,6 +611,9 @@ function lateLists(provider){
   try { (await newsP).installNewsMarkers(LCore); } catch (e) { console.warn('TradeZoro: news markers install', e); }
   // ZoroTide (assets/chart-zorotide.js, Pro): options money flow in a lower pane, registered before boot so a saved chart restores it.
   try { (await tideP).installZoroTide(LCore); } catch (e) { console.warn('TradeZoro: ZoroTide install', e); }
+  // Options Flow Marks (Pro) and Off-exchange Volume (Free): natives with a price-pane layer, registered before boot like the others.
+  try { (await flowP).installOptFlow(LCore); } catch (e) { console.warn('TradeZoro: options flow install', e); }
+  try { (await offexP).installOffex(LCore); } catch (e) { console.warn('TradeZoro: off-exchange install', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
   try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.

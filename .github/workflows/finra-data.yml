@@ -1,0 +1,45 @@
+# Off-exchange Volume data (FINRA public files). Same pattern as monitor-data.yml: a scheduled job fetches the public
+# data and force-pushes ONE small file (finra-data.json) to its own `data-finra` branch (single commit, no history).
+# The chart reads it from raw.githubusercontent.com (CORS). No key anywhere: both FINRA sources are public.
+# Daily files appear in the evening (US time), the weekly summary only a few weeks after the week it covers,
+# so one run a day is enough; a failed source keeps the previous data for that part.
+
+name: Off-exchange data (FINRA)
+
+on:
+  schedule:
+    - cron: '47 23 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finra-data
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Seed previous data
+        run: |
+          mkdir -p out
+          curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/data-finra/finra-data.json" -o out/previous.json || echo "no previous data yet"
+      - name: Fetch FINRA files
+        run: node tools/fetch-finra.js out/previous.json out/finra-data.json
+      - name: Publish to the data-finra branch
+        run: |
+          cd out
+          rm -rf .git
+          git init -q -b data-finra
+          git config user.email "actions@github.com"
+          git config user.name "finra-data bot"
+          git add finra-data.json
+          git commit -q -m "refresh $(date -u +%FT%TZ)"
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data-finra

@@ -19,7 +19,7 @@ export const OF_TYPES = ['stk_footprint', 'stk_fp', 'stk_of_delta', 'stk_of_cvd'
   'stk_of_vp', 'stk_of_vwap', 'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_delta', 'stk_cvd', 'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane',
   'stk_fut_dom', 'stk_fut_walls', 'stk_fut_imb', 'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track',
   'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];
-export const GEX_TYPES = ['stk_gex', 'stk_gexheat', 'stk_em'];   // ZoroTide (stk_tide) is free since 2026-11-01
+export const GEX_TYPES = ['stk_gex', 'stk_gexheat', 'stk_em', 'stk_optflow'];   // ZoroTide (stk_tide) is free since 2026-11-01
 export const REASON = { of: 'Order flow tools are part of Pro.', gex: 'GEX and options flow on charts are part of Pro.' };
 
 export const PRO_STYLES = ['stk_fp', 'stk_tpoc', 'stk_svp'];   // Pro chart types (Volume footprint, TPO, Session volume profile)

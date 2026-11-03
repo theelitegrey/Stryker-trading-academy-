@@ -189,6 +189,9 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_gexheat') { cat = GROUP_STRYKER; desc = 'Net GEX at every strike through the session, drawn behind the candles (SPX, SPY, QQQ, ES, NQ and gold GC)'; }
       if (r.native && r.nativeType === 'stk_em') { cat = GROUP_STRYKER; desc = 'Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_tide') { cat = GROUP_STRYKER; desc = 'Options money flow: net call premium (green) vs net put premium (red) since the open, in a lower pane (SPX, SPY, QQQ, ES, NQ)'; }
+      if (r.native && r.nativeType === 'stk_optflow') { cat = GROUP_STRYKER; desc = 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium; hover or tap for details. Per-bar totals, not single trades (SPX, SPY, QQQ, ES, NQ)'; }
+      if (r.native && r.nativeType === 'stk_offex') { cat = GROUP_STRYKER; desc = 'Daily off-exchange share of volume in a lower pane. FINRA data, updated daily'; }
+      if (r.native && r.nativeType === 'stk_offex_lv') { cat = GROUP_STRYKER; desc = 'Price levels where weekly off-exchange volume clustered (average price of the week). FINRA data, updated weekly'; }
       if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them'; }
       if (r.native && r.nativeType === 'stk_earn') { cat = GROUP_STRYKER; desc = 'An “E” on the day a US company reports earnings, with the EPS estimate on hover. Data updated daily'; }
       if (r.native && r.nativeType === 'stk_econ') { cat = GROUP_STRYKER; desc = 'High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip'; }

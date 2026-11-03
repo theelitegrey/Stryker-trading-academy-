@@ -6,6 +6,7 @@
 //   GET    /api/passkey                    (Firebase ID token; lists the caller's passkeys)
 //   PATCH  /api/passkey/:credId            {name}   own credentials only
 //   DELETE /api/passkey/:credId            own credentials only
+// KV keys: cred:<id>, ucred:<uid>:<id> (one key per credential: no read-modify-write races), handle:<uid>, chal:<c>, rl:<ip>:<min>.
 // Bindings: KV PASSKEYS; secret FIREBASE_SA_KEY (service-account JSON, never logged); env DEV=1 allows http://127.0.0.1:*.
 // Same-origin only: no CORS headers, and every state-changing call must carry our own Origin.
 // Fails closed: no KV or no/odd FIREBASE_SA_KEY -> 503 "Passkeys are not available right now".
@@ -24,7 +25,7 @@ const UNAVAILABLE = () => fail(503, 'Passkeys are not available right now');
 const randB64u = (n) => b64u(crypto.getRandomValues(new Uint8Array(n)));
 
 function cfgFor(request, env) {
-  const dev = env.DEV === '1';
+  const dev = env.DEV === '1' && new URL(request.url).hostname !== 'tradezoro.com';   // never on the real domain
   const devOk = (o) => { try { const u = new URL(o); return u.protocol === 'http:' && (u.hostname === '127.0.0.1' || u.hostname === 'localhost'); } catch (e) { return false; } };
   const origin = request.headers.get('origin') || '';
   const rpId = dev && devOk(origin) ? new URL(origin).hostname : RP_ID;
@@ -47,10 +48,12 @@ async function readBody(request) {
 async function rateLimited(env, request) {
   const ip = request.headers.get('cf-connecting-ip') || 'unknown';
   const key = 'rl:' + ip + ':' + Math.floor(Date.now() / 60000);
-  const n = Number(await env.PASSKEYS.get(key)) || 0;
-  if (n >= RATE_MAX) return true;
-  await env.PASSKEYS.put(key, String(n + 1), { expirationTtl: 120 });
-  return false;
+  try {   // shortcut: KV counter is not atomic, a burst can slip past; the real limit is a Cloudflare WAF rule (see report)
+    const n = Number(await env.PASSKEYS.get(key)) || 0;
+    if (n >= RATE_MAX) return true;
+    await env.PASSKEYS.put(key, String(n + 1), { expirationTtl: 120 });
+    return false;
+  } catch (e) { return true; }   // fail closed
 }
 
 // Challenges: chal:<challenge> -> {t:'reg'|'login', uid?}. Deleted on first read, win or lose.
@@ -65,6 +68,7 @@ function consumer(env, type, uid) {
   return async (challenge) => {
     const k = 'chal:' + challenge, now = Date.now();
     for (const [s, t] of spent) if (now - t > CHAL_TTL * 1000) spent.delete(s);
+    if (spent.size > 10000) spent.clear();
     if (spent.has(challenge)) return false;
     spent.set(challenge, now);
     const raw = await env.PASSKEYS.get(k);
@@ -73,10 +77,11 @@ function consumer(env, type, uid) {
     let rec; try { rec = JSON.parse(raw); } catch (e) { return false; }
     if (rec.t !== type) return false;
     if (type === 'reg' && rec.uid !== uid) return false;
-    return true;
+    return type === 'reg' ? rec : true;
   };
 }
 
+const credIds = async (env, uid) => (await env.PASSKEYS.list({ prefix: 'ucred:' + uid + ':' })).keys.map((k) => k.name.slice(('ucred:' + uid + ':').length));
 const getJson = async (env, k) => { const r = await env.PASSKEYS.get(k); if (!r) return null; try { return JSON.parse(r); } catch (e) { return null; } };
 const putJson = (env, k, v) => env.PASSKEYS.put(k, JSON.stringify(v));
 
@@ -107,20 +112,20 @@ async function signJwt(sa, claims) {
 }
 function unb64(s) { const bin = atob(s), o = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) o[i] = bin.charCodeAt(i); return o; }
 
-async function accountState(sa, uid, fetchImpl) {   // 'ok' | 'disabled' | 'missing' | 'error'
+async function accountState(sa, uid, fetchImpl) {   // { st: 'ok'|'disabled'|'missing'|'error', validSince (s) }
   try {
     const now = Math.floor(Date.now() / 1000);
     const assertion = await signJwt(sa, { iss: sa.client_email, sub: sa.client_email, aud: 'https://oauth2.googleapis.com/token', scope: 'https://www.googleapis.com/auth/cloud-platform', iat: now, exp: now + 300 });
     const tr = await fetchImpl('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer') + '&assertion=' + assertion });
-    if (!tr.ok) return 'error';
+    if (!tr.ok) return { st: 'error' };
     const at = (await tr.json()).access_token;
-    if (!at) return 'error';
+    if (!at) return { st: 'error' };
     const r = await fetchImpl('https://identitytoolkit.googleapis.com/v1/projects/' + RT_PROJECT + '/accounts:lookup', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + at }, body: JSON.stringify({ localId: [uid] }) });
-    if (!r.ok) return 'error';
+    if (!r.ok) return { st: 'error' };
     const u = ((await r.json()).users || [])[0];
-    if (!u || u.localId !== uid) return 'missing';
-    return u.disabled ? 'disabled' : 'ok';
-  } catch (e) { return 'error'; }
+    if (!u || u.localId !== uid) return { st: 'missing' };
+    return { st: u.disabled ? 'disabled' : 'ok', validSince: Number(u.validSince || 0) };   // validSince moves on password reset / revoke
+  } catch (e) { return { st: 'error' }; }
 }
 async function mintCustomToken(sa, uid) {
   const now = Math.floor(Date.now() / 1000);
@@ -165,14 +170,12 @@ export async function handle(request, env, deps = {}) {
           if (e && e.clone) { cred.flagged = true; await putJson(env, 'cred:' + credId, cred); }
           throw e;
         });
-      if (r.userHandle) {   // when the device sends it, it must be the handle we issued to this uid
-        const h = await env.PASSKEYS.get('handle:' + cred.uid);
-        if (!h || !safeEqual(h, String(r.userHandle))) return BAD();
-      }
+      if (!r.userHandle || !cred.handle || !safeEqual(cred.handle, String(r.userHandle))) return BAD();   // discoverable credentials always send it
       const sa = saFrom(env);
-      const st = await accountState(sa, cred.uid, fetchImpl);
-      if (st === 'disabled' || st === 'missing') return fail(403, 'This account cannot sign in.');
-      if (st !== 'ok') return UNAVAILABLE();
+      const acct = await accountState(sa, cred.uid, fetchImpl);
+      if (acct.st === 'disabled' || acct.st === 'missing') return fail(403, 'This account cannot sign in.');
+      if (acct.st !== 'ok') return UNAVAILABLE();
+      if (cred.createdAt < acct.validSince * 1000) return BAD();   // sessions were revoked after this passkey was added
       cred.signCount = res.signCount; cred.lastUsedAt = Date.now();
       await putJson(env, 'cred:' + credId, cred);
       return json({ token: await mintCustomToken(sa, cred.uid) });
@@ -185,7 +188,7 @@ export async function handle(request, env, deps = {}) {
   const uid = who.uid;
 
   if (method === 'GET' && route === '') {
-    const ids = (await getJson(env, 'user:' + uid)) || [];
+    const ids = (await credIds(env, uid));
     const list = [];
     for (const id of ids) { const c = await getJson(env, 'cred:' + id); if (c && c.uid === uid) list.push({ id, name: c.name, createdAt: c.createdAt, lastUsedAt: c.lastUsedAt || null, flagged: !!c.flagged }); }
     return json({ passkeys: list });
@@ -194,11 +197,11 @@ export async function handle(request, env, deps = {}) {
   if (method === 'POST' && route === 'register/options') {
     if (await rateLimited(env, request)) return fail(429, 'Too many tries. Wait a minute and try again.');
     if (!who.authTime || Math.floor(Date.now() / 1000) - who.authTime > RECENT_S) return fail(403, 'Please sign in again first', { code: 'recent-login' });
-    const ids = (await getJson(env, 'user:' + uid)) || [];
+    const ids = (await credIds(env, uid));
     if (ids.length >= MAX_KEYS) return fail(400, 'You have reached the limit of ' + MAX_KEYS + ' passkeys.');
     let handle = await env.PASSKEYS.get('handle:' + uid);
     if (!handle) { handle = randB64u(32); await env.PASSKEYS.put('handle:' + uid, handle); }
-    const challenge = await putChallenge(env, { t: 'reg', uid });
+    const challenge = await putChallenge(env, { t: 'reg', uid, handle });
     return json({ publicKey: {
       challenge, rp: { id: cfg.rpId, name: RP_NAME },
       user: { id: handle, name: String(body.email || uid).slice(0, 100), displayName: String(body.displayName || body.email || 'TradeZoro member').slice(0, 100) },
@@ -214,14 +217,17 @@ export async function handle(request, env, deps = {}) {
     if (!who.authTime || Math.floor(Date.now() / 1000) - who.authTime > RECENT_S + 300) return fail(403, 'Please sign in again first', { code: 'recent-login' });
     try {
       const r = body.response || {};
-      const ids = (await getJson(env, 'user:' + uid)) || [];
+      const ids = (await credIds(env, uid));
       if (ids.length >= MAX_KEYS) return fail(400, 'You have reached the limit of ' + MAX_KEYS + ' passkeys.');
-      const v = await verifyRegistration({ clientDataJSON: unb64u(r.clientDataJSON), attestationObject: unb64u(r.attestationObject), rawId: unb64u(String(body.rawId || body.id || '')) }, cfg, consumer(env, 'reg', uid));
+      const acct = await accountState(saFrom(env), uid, fetchImpl);
+      if (acct.st !== 'ok' || who.authTime < acct.validSince) return fail(403, 'Please sign in again first', { code: 'recent-login' });
+      let regHandle = null;
+      const regConsume = consumer(env, 'reg', uid);
+      const v = await verifyRegistration({ clientDataJSON: unb64u(r.clientDataJSON), attestationObject: unb64u(r.attestationObject), rawId: unb64u(String(body.rawId || body.id || '')) }, cfg, async (c) => { const rec = await regConsume(c); if (rec) regHandle = rec.handle; return !!rec; });
       if (await env.PASSKEYS.get('cred:' + v.credId)) return fail(409, 'That passkey is already saved.');
       const now = Date.now();
-      await putJson(env, 'cred:' + v.credId, { uid, jwk: v.jwk, alg: v.alg, signCount: v.signCount, transports: Array.isArray(body.transports) ? body.transports.filter((t) => typeof t === 'string').slice(0, 6) : [], name: cleanName(body.name) || deviceName(request.headers.get('user-agent')), createdAt: now, lastUsedAt: null });
-      ids.push(v.credId);
-      await putJson(env, 'user:' + uid, ids);
+      await putJson(env, 'cred:' + v.credId, { uid, jwk: v.jwk, alg: v.alg, signCount: v.signCount, transports: Array.isArray(body.transports) ? body.transports.filter((t) => typeof t === 'string').slice(0, 6) : [], name: cleanName(body.name) || deviceName(request.headers.get('user-agent')), createdAt: now, lastUsedAt: null, handle: regHandle });
+      await env.PASSKEYS.put('ucred:' + uid + ':' + v.credId, '1');
       return json({ ok: true, id: v.credId });
     } catch (e) { return fail(400, "We couldn't save that passkey. Please try again."); }
   }
@@ -237,8 +243,7 @@ export async function handle(request, env, deps = {}) {
       return json({ ok: true });
     }
     await env.PASSKEYS.delete('cred:' + id);
-    const ids = ((await getJson(env, 'user:' + uid)) || []).filter((x) => x !== id);
-    await putJson(env, 'user:' + uid, ids);
+    await env.PASSKEYS.delete('ucred:' + uid + ':' + id);
     return json({ ok: true });
   }
   return fail(404, 'Not found');

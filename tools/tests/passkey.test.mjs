@@ -82,19 +82,19 @@ assert.throws(() => cborDecode(Buffer.from([0xa1])), /eof/);
 
 // ---- integration: the route handler ----
 const kv = new Map();
-const KV = { get: async (k) => kv.get(k) ?? null, put: async (k, v) => { kv.set(k, v); }, delete: async (k) => { kv.delete(k); } };
+const KV = { list: async ({ prefix }) => ({ keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })) }), get: async (k) => kv.get(k) ?? null, put: async (k, v) => { kv.set(k, v); }, delete: async (k) => { kv.delete(k); } };
 const sak = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
 const pem = '-----BEGIN PRIVATE KEY-----\n' + Buffer.from(await crypto.subtle.exportKey('pkcs8', sak.privateKey)).toString('base64') + '\n-----END PRIVATE KEY-----\n';
 const env = { PASSKEYS: KV, FIREBASE_SA_KEY: JSON.stringify({ client_email: 'sa@test.iam.gserviceaccount.com', private_key: pem }) };
 // stub Google: JWKS for ID tokens, OAuth token, accounts:lookup
 const idk = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
 const idjwk = { ...(await crypto.subtle.exportKey('jwk', idk.publicKey)), kid: 'k1', alg: 'RS256', use: 'sig' };
-let disabled = false;
+let disabled = false, validSince = 0;
 const fetchImpl = async (u, init) => {
   u = String(u);
   if (u.includes('securetoken@system')) return new Response(JSON.stringify({ keys: [idjwk] }), { headers: { 'cache-control': 'max-age=3600' } });
   if (u.includes('oauth2.googleapis.com/token')) return new Response(JSON.stringify({ access_token: 'x' }));
-  if (u.includes('accounts:lookup')) { const id = JSON.parse(init.body).localId[0]; return new Response(JSON.stringify(id === 'gone' ? {} : { users: [{ localId: id, disabled }] })); }
+  if (u.includes('accounts:lookup')) { const id = JSON.parse(init.body).localId[0]; return new Response(JSON.stringify(id === 'gone' ? {} : { users: [{ localId: id, disabled, validSince: String(validSince) }] })); }
   throw new Error('unexpected fetch ' + u);
 };
 async function idToken(uid, authAgo = 0) {
@@ -124,6 +124,7 @@ const T2 = await idToken('u1');
 const ro2 = await J(await call('POST', '/register/options', {}, T2));
 assert.equal((await call('POST', '/register/verify', regBody(dev, ro2.publicKey.challenge), T2)).status, 200);
 assert.equal((await call('POST', '/register/verify', regBody(dev, ro2.publicKey.challenge), T2)).status, 400);   // replay
+assert.equal((await handle(new Request('https://tradezoro.com/api/passkey/login/options', { method: 'POST', headers: { origin: 'http://127.0.0.1:8044' } }), { ...env, DEV: '1' }, { fetchImpl })).status, 403);   // DEV never on the real host
 const list = await J(await call('GET', '', null, T));
 assert.equal(list.passkeys.length, 1); assert.equal(list.passkeys[0].name, 'iPhone');
 const ro3 = await J(await call('POST', '/register/options', {}, T));
@@ -145,6 +146,7 @@ assert.equal(cl.aud, 'https://identitytoolkit.googleapis.com/google.identity.ide
 assert.ok(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', sak.publicKey, Buffer.from(s, 'base64url'), Buffer.from(h + '.' + p)));
 assert.equal((await call('POST', '/login/verify', ok.b)).status, 401);   // replay of the same assertion
 assert.equal((await login(dev, { handle: b64u(crypto.getRandomValues(new Uint8Array(32))) })).res.status, 401);   // wrong user handle
+assert.equal((await login(dev, { handle: '' })).res.status, 401);   // missing user handle
 assert.equal((await login(dev, { tamper: true })).res.status, 401);
 dev.count = 1; assert.equal((await login(dev, { count: 1 })).res.status, 401);   // counter did not rise -> refused + flagged
 assert.equal((await login(dev)).res.status, 401);   // flagged stays blocked
@@ -165,6 +167,8 @@ const d2 = await newAuth(-257);
 const T3 = await idToken('u3'); const r3 = await J(await call('POST', '/register/options', {}, T3));
 assert.equal((await call('POST', '/register/verify', regBody(d2, r3.publicKey.challenge), T3)).status, 200);
 const hd = r3.publicKey.user.id;
+// a revoke (password reset) after the passkey was added kills it and blocks adding new ones from the old session
+validSince = Math.floor(Date.now() / 1000) + 5; assert.equal((await login(d2, { handle: hd })).res.status, 401); validSince = 0;
 disabled = true; assert.equal((await login(d2, { handle: hd })).res.status, 403); disabled = false;
 assert.equal((await login(d2, { handle: hd })).res.status, 200);
 for (const k of [...kv.keys()]) if (k.startsWith('rl:')) kv.delete(k);

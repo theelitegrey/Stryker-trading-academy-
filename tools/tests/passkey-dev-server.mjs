@@ -11,7 +11,7 @@ import { b64u } from '../../functions/api/passkey/_webauthn.js';
 
 const ROOT = path.resolve(new URL('../..', import.meta.url).pathname), PORT = Number(process.argv[2] || 8044);
 const mem = new Map();
-const KV = { get: async (k) => mem.get(k) ?? null, put: async (k, v) => { mem.set(k, v); }, delete: async (k) => { mem.delete(k); } };
+const KV = { list: async ({ prefix }) => ({ keys: [...mem.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })) }), get: async (k) => mem.get(k) ?? null, put: async (k, v) => { mem.set(k, v); }, delete: async (k) => { mem.delete(k); } };
 const rsa = () => crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
 const idk = await rsa(), sak = await rsa();
 const idjwk = { ...(await crypto.subtle.exportKey('jwk', idk.publicKey)), kid: 'k1', alg: 'RS256', use: 'sig' };
@@ -21,7 +21,7 @@ const fetchImpl = async (u, init) => {
   u = String(u);
   if (u.includes('securetoken@system')) return new Response(JSON.stringify({ keys: [idjwk] }), { headers: { 'cache-control': 'max-age=3600' } });
   if (u.includes('oauth2.googleapis.com/token')) return new Response(JSON.stringify({ access_token: 'x' }));
-  if (u.includes('accounts:lookup')) return new Response(JSON.stringify({ users: [{ localId: JSON.parse(init.body).localId[0] }] }));
+  if (u.includes('accounts:lookup')) return new Response(JSON.stringify({ users: [{ localId: JSON.parse(init.body).localId[0], validSince: '0' }] }));
   throw new Error('unexpected fetch');
 };
 async function idToken(uid, ago) {

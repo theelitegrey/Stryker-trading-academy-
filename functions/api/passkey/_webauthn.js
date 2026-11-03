@@ -37,6 +37,8 @@ export function cborDecode(buf, start = 0, depth = 0) {
     if (p >= buf.length) throw new Error('cbor eof');
     const ib = buf[p++], mt = ib >> 5, ai = ib & 31;
     let n;
+    const need = ai === 24 ? 1 : ai === 25 ? 2 : ai === 26 ? 4 : 0;
+    if (p + need > buf.length) throw new Error('cbor eof');
     if (ai < 24) n = ai;
     else if (ai === 24) n = buf[p++];
     else if (ai === 25) { n = (buf[p] << 8) | buf[p + 1]; p += 2; }
@@ -63,6 +65,7 @@ export function cborDecode(buf, start = 0, depth = 0) {
     for (let i = 0; i < n; i++) {
       const k = cborDecode(buf, p, depth + 1); p = k.end;
       const x = cborDecode(buf, p, depth + 1); p = x.end;
+      if (v.has(k.value)) throw new Error('cbor duplicate key');
       v.set(k.value, x.value);
     }
   } else if (mt === 7) {
@@ -82,6 +85,7 @@ export function parseAuthData(ad) {
     if (idLen < 1 || idLen > 1023 || ad.length < 55 + idLen) throw new Error('bad credId length');
     out.credId = ad.slice(55, 55 + idLen);
     const k = cborDecode(ad, 55 + idLen);
+    if (k.end !== ad.length && !(out.flags & 128)) throw new Error('trailing bytes');
     out.coseKey = k.value;
   }
   return out;
@@ -146,7 +150,9 @@ function checkClientData(clientDataJSON, type, { origins, devOriginOk }) {
 export async function verifyRegistration({ clientDataJSON, attestationObject, rawId }, cfg, consumeChallenge) {
   const challenge = checkClientData(clientDataJSON, 'webauthn.create', cfg);
   if (!(await consumeChallenge(challenge))) throw new Error('unknown or used challenge');
-  const att = cborDecode(attestationObject).value;
+  const attR = cborDecode(attestationObject);
+  if (attR.end !== attestationObject.length) throw new Error('trailing bytes');
+  const att = attR.value;
   if (!(att instanceof Map)) throw new Error('bad attestation');
   const fmt = att.get('fmt'), stmt = att.get('attStmt'), adBytes = att.get('authData');
   if (!(adBytes instanceof Uint8Array)) throw new Error('bad authData');

@@ -2516,7 +2516,7 @@ class CryptoDomNative {
   setInputs(i) { this.inputs = i; this.wantNow(); this.render(); }
   suspend() { this.hidden = true; clearTimeout(this.tm); this.tm = 0; }
   resume() { this.hidden = false; this.attach(); }
-  stop() { this.detach(); window.removeEventListener('stryker:theme', this.onTheme); }
+  stop() { this.detach(); try { this.ctx.pushData({ off: true }); } catch (e) {} window.removeEventListener('stryker:theme', this.onTheme); }
   note() {
     if (this.block) return this.block;
     const f = this.h && this.h.feed;

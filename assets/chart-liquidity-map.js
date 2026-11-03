@@ -742,7 +742,7 @@ export function makeNative(H) {
     setInputs(i) { this.inputs = i; this.render(); }
     suspend() { this.hidden = true; clearTimeout(this.tm); this.tm = 0; }
     resume() { this.hidden = false; this.attach(); }
-    stop() { this.detach(); window.removeEventListener('stryker:booksource', this.srcEvt); window.removeEventListener('stryker:tradesource', this.srcEvt); }
+    stop() { this.detach(); try { this.ctx.pushData({ off: true }); } catch (e) {} window.removeEventListener('stryker:booksource', this.srcEvt); window.removeEventListener('stryker:tradesource', this.srcEvt); }
     note() {
       const f = this.h && this.h.feed;
       if (this.block) return { msg: this.block, off: true };

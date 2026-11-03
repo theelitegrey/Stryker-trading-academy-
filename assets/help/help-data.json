@@ -1809,7 +1809,7 @@
       {
        "id": "chart-grid",
        "q": "Can I show several charts at once?",
-       "a": "<p>Yes. The chart grid button picks a layout of up to 8 charts on a computer and up to 4 on tablets and phones. You can sync symbol, interval, crosshair, time and date range between them.</p>",
+       "a": "<p>Yes. The chart grid button picks a layout of up to 16 charts on a computer and up to 4 on tablets and phones. You can sync symbol, interval, crosshair, time and date range between them.</p>",
        "path": "ZoroCharts → Chart grid (\"1 chart\")",
        "tags": [
         "multi chart",

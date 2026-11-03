@@ -1,0 +1,64 @@
+/* TradeZoro /pro. Loads after style.css, home-a.css and creators-page.css (cm-* tokens). 4-pt spacing, radii 12/16, one primary action per view. */
+.pp-hero{ padding:calc(var(--nav-h,64px) + 32px) 0 48px; background:radial-gradient(ellipse 900px 360px at 50% -100px, rgba(3,201,136,.10), transparent 65%), var(--bg-0); border-bottom:1px solid var(--line); overflow:clip; }
+.pp-hero-in{ display:grid; gap:32px; align-items:center; }
+.pp-copy{ text-align:center; }
+.pp-copy h1{ font-size:clamp(32px,6vw,56px); line-height:1.06; letter-spacing:-.025em; color:var(--ink-0); margin:0 0 16px; }
+.pp-sub{ font-size:17px; line-height:24px; color:var(--ink-2); margin:0 auto 24px; max-width:520px; }
+.pp-vis{ position:relative; max-width:640px; margin:0 auto; width:100%; padding-bottom:40px; }
+.pp-main,.pp-fp{ display:flex; flex-direction:column; }
+.pp-main img,.pp-fp img{ display:block; width:100%; height:auto; }
+.pp-main img{ aspect-ratio:16/10; object-fit:cover; object-position:100% 40%; }
+.pp-fp{ position:absolute; right:-4px; bottom:0; width:52%; box-shadow:var(--cm-sh); }
+.pp-jump{ display:flex; gap:8px; overflow-x:auto; padding-top:16px; padding-bottom:4px; scrollbar-width:none; }
+.pp-jump::-webkit-scrollbar{ display:none; }
+.pp-jump a{ flex:none; display:inline-flex; align-items:center; min-height:44px; padding:0 16px; border:1px solid var(--line); border-radius:999px; font-size:13px; color:var(--ink-1); background:var(--bg-2); }
+.pp-jump a:hover{ color:var(--ink-0); border-color:var(--gold); }
+.pp-grid{ list-style:none; margin:0; padding:0; display:grid; gap:16px; grid-template-columns:1fr; }
+.pp-card{ background:var(--bg-2); border:1px solid var(--line); border-radius:16px; padding:16px; min-width:0; display:flex; flex-direction:column; }
+.pp-card h3{ font-size:17px; line-height:22px; font-weight:600; color:var(--ink-0); margin:16px 0 4px; }
+.pp-card p{ font-size:14px; line-height:20px; color:var(--ink-2); margin:0; }
+.pp-card.is-soon{ background:transparent; border-style:dashed; }
+.pp-ch{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.pp-chip{ font:600 11px/13px var(--font-mono, ui-monospace, monospace); padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-1); }
+.pp-chip.pp-l2{ border-color:rgba(3,201,136,.5); color:var(--gold); }
+.pp-chip.pp-l1{ border-color:rgba(0,173,181,.5); color:#00adb5; }
+:root[data-theme="light"] .pp-chip.pp-l1{ color:#00747a; }
+.pp-soon{ color:var(--ink-2); }
+.pp-cmp{ max-width:880px; margin:0 auto; border:1px solid var(--line); border-radius:16px; background:var(--bg-2); overflow:hidden; }
+.pp-r{ display:grid; grid-template-columns:1fr; gap:8px; padding:16px; border-top:1px solid var(--line); }
+.pp-r:first-child{ border-top:0; }
+.pp-rh{ display:none; font-size:13px; font-weight:600; color:var(--ink-0); background:var(--bg-3); }
+.pp-rn{ font-size:15px; line-height:22px; color:var(--ink-0); }
+.pp-c{ display:flex; gap:8px; font-size:14px; line-height:20px; color:var(--ink-2); }
+.pp-c::before{ content:attr(data-l); min-width:40px; font-size:13px; color:var(--ink-2); }
+.pp-y{ color:var(--gold); font-weight:700; } .pp-n{ color:var(--ink-3); }
+.pp-faq{ max-width:780px; margin:0 auto; display:grid; gap:8px; }
+.pp-faq details{ background:var(--bg-2); border:1px solid var(--line); border-radius:12px; }
+.pp-faq summary{ min-height:52px; padding:14px 16px; font-size:15px; font-weight:600; color:var(--ink-0); cursor:pointer; list-style:none; display:flex; align-items:center; }
+.pp-faq summary::-webkit-details-marker{ display:none; }
+.pp-faq summary::after{ content:"+"; margin-left:auto; padding-left:12px; color:var(--ink-2); font-size:20px; }
+.pp-faq details[open] summary::after{ content:"–"; }
+.pp-faq details > div{ padding:0 16px 16px; }
+.pp-faq p{ margin:0; font-size:14px; line-height:22px; color:var(--ink-2); }
+.pp-faq a, .cm-fine a{ color:var(--gold); text-decoration:underline; }
+.pp-faq summary:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.pp-bar{ display:none; }
+@media (max-width:699px){
+  .pp-bar{ position:fixed; left:0; right:0; bottom:0; z-index:40; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 16px calc(8px + env(safe-area-inset-bottom)); background:var(--bg-1); border-top:1px solid var(--line); font-size:15px; font-weight:600; color:var(--ink-0); }
+  .pp-bar .btn{ min-height:48px; padding:0 24px; border-radius:12px; }
+  .cm-last{ padding-bottom:96px; }
+  .pp-fp{ width:56%; }
+}
+@media (min-width:700px){
+  .pp-grid{ grid-template-columns:repeat(2,1fr); }
+  .pp-r{ grid-template-columns:1fr 160px 160px; align-items:center; }
+  .pp-rh{ display:grid; }
+  .pp-c::before{ content:none; }
+  .pp-c{ justify-content:flex-start; }
+}
+@media (min-width:1000px){
+  .pp-grid{ grid-template-columns:repeat(3,1fr); }
+  .pp-hero-in{ grid-template-columns:1fr 1.15fr; }
+  .pp-copy{ text-align:left; } .pp-sub{ margin-left:0; } .pp-copy .cm-cta{ justify-content:flex-start; }
+  .pp-vis{ margin:0; max-width:none; }
+}

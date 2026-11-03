@@ -18,7 +18,8 @@ const J = async (u, o = {}) => { const r = await fetch('https://api.mail.tm' + u
   const state = async p => p.evaluate(() => ({
     url: location.pathname, gate: !!document.getElementById('email-verify-overlay'),
     gateText: (document.getElementById('email-verify-overlay') || {}).innerText || '',
-    verified: window.auth && auth.currentUser ? auth.currentUser.emailVerified : null }));
+    verified: (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser.emailVerified : null,
+    obModalOpen: !!document.querySelector('#ob-modal:not([hidden])') }));
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   page.on('console', m => { if (/error|warn/i.test(m.type())) log('console', m.text().slice(0, 200)); });
@@ -46,15 +47,18 @@ const J = async (u, o = {}) => { const r = await fetch('https://api.mail.tm' + u
     const p2 = await ctx.newPage();
     await p2.goto(link, { waitUntil: 'domcontentloaded' }); await p2.waitForTimeout(2500);
     await shot(p2, '2-action-page'); log('action page text:', (await p2.innerText('body')).replace(/\s+/g, ' ').slice(0, 200));
+    const complete = p2.locator('button, a').filter({ hasText: /complete verification/i }).first();
+    log('complete-verification button', await complete.count());
+    log('tab1 state before link applied', JSON.stringify(await state(page)));
+    if (await complete.count()) { await complete.click(); await p2.waitForTimeout(4000); }
+    await shot(p2, '2b-after-complete'); log('action page text after:', (await p2.innerText('body')).replace(/\s+/g, ' ').slice(0, 200));
     const cont = p2.locator('button, a').filter({ hasText: /continue/i }).first();
     log('continue present', await cont.count());
-    // meanwhile tab 1 state before refresh
-    log('tab1 state (stale?)', JSON.stringify(await state(page)));
-    if (await cont.count()) { await cont.click(); await p2.waitForTimeout(8000); }
+    if (await cont.count()) { await cont.click(); await p2.waitForTimeout(9000); }
     await shot(p2, '3-after-continue'); log('tab2 state', JSON.stringify(await state(p2)));
     // tab1 "I've confirmed it"
-    if (await page.locator('#ev-check').count()) { await page.click('#ev-check'); await page.waitForTimeout(7000); }
-    await shot(page, '4-tab1-after-check'); log('tab1 state', JSON.stringify(await state(page)));
+    if (await page.locator('#ev-check').count()) { await page.evaluate(() => document.getElementById('ev-check').click()); await page.waitForTimeout(7000); }
+    await shot(page, '3b-tab1-before').catch(()=>{}); await shot(page, '4-tab1-after-check'); log('tab1 state', JSON.stringify(await state(page)));
     // fresh login on mobile after verification
     const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const mp = await mctx.newPage();

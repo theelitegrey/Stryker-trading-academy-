@@ -498,7 +498,8 @@ function lateLists(provider){
       Promise.resolve(null),
       import('./chart-tool-icons.js?v=830'),
       import(VELA_BASE + (VELA090 ? 'chunk-YRCL3WMD.js' : 'chunk-IFJJPXSV.js')),
-      import('./chart-ind-style.js?v=830')
+      import('./chart-ind-style.js?v=829'),
+      import('./byo-provider.js?v=829')   // last: connect-your-own-data providers (assets/byo-provider.js)
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -520,6 +521,7 @@ function lateLists(provider){
   const FuturesProvider = mods[4].FuturesProvider;
   const FxProvider = mods[4].FxProvider;
   const IdxProvider = mods[4].IdxProvider;
+  const BYO = mods[mods.length - 1];   // withByo(), ByoProvider
   const COMMODITY_ROOTS = mods[4].COMMODITY_ROOTS || [];
   let Flow, Gex, GexHeat;
   // EMPTY LAYER CANVASES OFF (speed, 2026-10-23): Vela gives every registered renderer layer
@@ -725,9 +727,11 @@ function lateLists(provider){
         coinbase: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new CoinbaseProvider()), 'coinbase'), 'coinbase'),
         hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new HyperliquidProvider()), 'hyperliquid'), 'hyperliquid'),
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
-        fx: Replay.wrapFactory(Iv.wrapFactory(() => new FxProvider(), 'fx'), 'fx'),
+        fx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(FxProvider, 'fx'))(), 'fx'), 'fx'),
         // Indices & ETFs (SPX NDX VIX RUT QQQ SPY IWM DIA): same endpoint, Yahoo, delayed; admin live candle from the hub's quote frames.
-        idx: Replay.wrapFactory(Iv.wrapFactory(() => new IdxProvider(), 'idx'), 'idx'),
+        idx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(IdxProvider, 'idx'))(), 'idx'), 'idx'),
+        // Stocks from the member's OWN connected account (assets/byo-core.js); empty until they connect one.
+        byo: Replay.wrapFactory(Iv.wrapFactory(() => new BYO.ByoProvider(), 'byo'), 'byo'),
       },
       persist: PERSIST_KEY
     });
@@ -855,6 +859,13 @@ function lateLists(provider){
   };
   if (window.__stkFirstCandles) setTimeout(loadRithLater, 0);
   else window.addEventListener('stk:first-candles', () => (window.requestIdleCallback ? requestIdleCallback(loadRithLater, { timeout: 2500 }) : setTimeout(loadRithLater, 800)), { once: true });
+  // Connect your own data (Data source sheet): restores saved connections (decrypted on this device only), mounts the toolbar button.
+  import('./byo-core.js?v=829').then((c) => {
+    // Keys follow the signed-in user: sign-out or another account wipes the vault and closes the streams.
+    const bind = (u) => c.bindUser(u && u.uid).then(() => c.restore()).catch((e) => console.warn('TradeZoro: own data', e));
+    try { if (typeof firebase !== 'undefined') firebase.auth().onAuthStateChanged(bind); } catch (e) { /* no auth on this page */ }
+  }).catch((e) => console.warn('TradeZoro: own data', e));
+  import('./byo-ui.js?v=829').then((m) => m.mountByo()).catch((e) => console.warn('TradeZoro: data source sheet', e));
   // Delayed-data pill at the bottom of the chart + its sheet (CME futures, viewer not real-time): assets/chart-data-banner.js.
   import('./chart-data-banner.js?v=830')
     .then((m) => m.installDataBanner(ws, { rith: rithRef, getRith: () => rith }))

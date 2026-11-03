@@ -550,7 +550,7 @@
       all = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
       loaded = true;
       return loadMyVotes(all.filter(function (s) { return !s.mergedInto; }).map(function (s) { return s.id; }));
-    }).then(function () { renderList(); route(); }).catch(function (e) {
+    }).then(function () { renderList(); route(); try { var pre = new URLSearchParams(location.search).get('new'); if (pre) { history.replaceState(null, '', location.pathname + location.hash); openForm(pre.slice(0, 120)); } } catch (e) {} }).catch(function (e) {
       console.warn('TradeZoro: suggestions load failed', e); loaded = true; all = [];
       $('sg-list').innerHTML = ''; var em = $('sg-empty'); em.hidden = false; em.textContent = 'Could not load suggestions. Check your connection and try again.';
       route();

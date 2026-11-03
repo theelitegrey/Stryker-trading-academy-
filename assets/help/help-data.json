@@ -2265,6 +2265,34 @@
        ]
       },
       {
+       "id": "orderbook-pack",
+       "q": "What are the order-book indicators (Book Speed, Liquidity Balance and more)?",
+       "a": "<p>Six order-book tools read the order book we already record. <strong>Book Speed (L2)</strong> shows how nervous the book is: fast books often come before big moves. <strong>Liquidity Balance (L2)</strong> compares resting bid and ask size near price. <strong>Refill Detector (L2)</strong> marks levels that were hit and quickly refilled. <strong>Volatility Regime (L2)</strong> shows Tight, Normal or Wide from how spread the resting size is. <strong>Large Resting Orders (L2)</strong> highlights the biggest single levels. <strong>Absorption &amp; Iceberg Tracker (L1+L2)</strong> counts absorption, iceberg hints and stop runs through the session. They work on futures (NQ, ES, YM, RTY, CL, GC) and crypto books, are part of Pro, and show a note when there is no book. Education only. Not financial advice.</p><p><strong>Where to find it:</strong> ZoroCharts → Indicators → Order Flow</p>",
+       "path": "ZoroCharts → Indicators → Order Flow",
+       "plans": "pro",
+       "tags": [
+        "order book",
+        "book speed",
+        "liquidity balance",
+        "refill",
+        "volatility regime",
+        "large orders",
+        "iceberg",
+        "absorption",
+        "L2"
+       ],
+       "related": [
+        "footprint-what",
+        "indicator-pro-tag"
+       ],
+       "links": [
+        {
+         "label": "Order flow features",
+         "href": "/features/orderflow"
+        }
+       ]
+      },
+      {
        "id": "footprint-what",
        "q": "How do I turn on the footprint chart?",
        "a": "<p>Choose Footprint from the chart style menu. Each row shows sellers x buyers at that price. A yellow box marks the busiest price. Zoom out and it turns back into candles coloured by delta.</p>",

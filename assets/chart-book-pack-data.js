@@ -146,10 +146,9 @@ export function cumulate(bars, events, kind) {
   const delta = new Array(bars.length).fill(0);
   for (const e of events) { const i = idxOf(bars, e.t); if (i >= 0) delta[i] += e.d; }
   const out = new Array(bars.length);
-  let run = 0, key = null;
+  let run = 0, key = null, end = -Infinity;
   for (let i = 0; i < bars.length; i++) {
-    const k = sessionStart(bars[i].time, kind);
-    if (k !== key) { key = k; run = 0; }
+    if (bars[i].time >= end || bars[i].time < key) { key = sessionStart(bars[i].time, kind); end = key + 86400000; run = 0; }   // sessions are 24 h
     run += delta[i]; out[i] = run;
   }
   return out;
@@ -222,3 +221,6 @@ export function fmtK(v) {
   if (a >= 1e3) return (v / 1e3).toFixed(1) + 'K';
   return Number.isInteger(v) || a >= 100 ? String(Math.round(v)) : String(+v.toFixed(2));
 }
+
+// Absorption events (the Absorption indicator's own rule, passed in) as +1 / -1 steps: sellers absorbed = support = buy side up (+1), buyers absorbed = -1.
+export const absorptionList = (fn, bars) => fn(bars).map((e) => ({ t: e.t, d: e.side === 0 ? 1 : -1 }));

@@ -7,6 +7,7 @@ const REAL = process.env.REAL ? JSON.parse(fs.readFileSync(process.env.REAL, 'ut
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
 const OUT = process.argv[2] || '/tmp';
 fs.mkdirSync(OUT, { recursive: true });
+const window_mid = () => 28750;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fail = 0;
 const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg + (!ok && x !== undefined ? ' ' + JSON.stringify(x).slice(0, 300) : '')); };
@@ -63,9 +64,15 @@ async function open(b, { w, h, mobile, admin, theme }) {
     }
     r.fulfill({ status: 200, contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*', 'x-ts-fill-left': '0', 'access-control-expose-headers': 'x-ts-fill-left' }, body: Buffer.from(encodeSamples(out)) });
   });
-  await ctx.route(/127\.0\.0\.1:9\/(?!ts-book-history)/, (r) => r.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  await ctx.route(/127\.0\.0\.1:9\/ts-aux/, (r) => {
+    // 30 quiet footprint minutes, then one heavy narrow minute with net selling that closes up: one absorption event (sellers absorbed = buy side up)
+    const m0 = Math.floor(Date.now() / 60000) - 40, fp = [], P = window_mid();
+    for (let k = 0; k < 30; k++) fp.push({ t: m0 + k, lv: [0, 1, 2, 3, 4].map((j) => [P + j * 0.25, 5, 5]) });
+    fp.push({ t: m0 + 30, lv: [[P + 0.5, 10, 200], [P + 0.75, 10, 10]] });
+    r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ fp, imb: [] }) });
+  });
+  await ctx.route(/127\.0\.0\.1:9\/(?!ts-book-history|ts-aux)/, (r) => r.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' }));
   const p = await ctx.newPage();
-  if (process.env.DBG) { p.on('request', (q) => { if (/127\.0\.0\.1:9/.test(q.url())) console.log('REQ', q.url().slice(0, 120)); }); p.on('console', (m) => { if (/L2|history|bad body/i.test(m.text())) console.log('CON', m.text().slice(0, 200)); }); }
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|451|\/api\/chart\/stream|Failed to load resource|Ping received after close|status of 451|Unexpected response code: 451/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
@@ -89,13 +96,13 @@ const _unused = (p) => 0; const pickerHas = (p) => p.evaluate(() => { const t = 
 const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.querySelectorAll('#vela-chart canvas')) { if (!c.width) continue; const g = c.getContext('2d'); if (!g) continue; let d; try { d = g.getImageData(0, 0, c.width, c.height).data; } catch (e) { continue; } let n = 0; for (let i = 3; i < d.length; i += 64) if (d[i] > 0) n++; best = Math.max(best, n); } return best; });
 
 
-const TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track'];
+const TYPES = (process.env.TYPES || 'stk_bk_speed,stk_bk_bal,stk_bk_refill,stk_bk_regime,stk_bk_large,stk_bk_track').split(',');
 const read = (p) => p.evaluate(() => {
   const st = [...(window.__stkBookPackStores || new Map()).values()][0];
   const v = st && st.views.get(20), rf = st && [...st.refills.values()][0], lg = st && [...st.larges.values()][0];
   const tabs = [...document.querySelectorAll('.stkchart-panel *')].length;
   return { stores: window.__stkBookPackStores ? window.__stkBookPackStores.size : -1, v: st ? st.v : -1, bid: v ? v.cur.bid : -1, ask: v ? v.cur.ask : -1, speedN: v ? v.speed.t.length : -1, sd: v && v.cur.sd,
-    refills: rf ? rf.events.length : -1, thr: lg ? lg.thr : -1, live: lg ? lg.tr.live.size : -1, perf: window.__stkBookPack || {}, tabs };
+    abs: st ? st.absEv.length : -1, absSum: st ? st.absEv.reduce((a, e) => a + e.d, 0) : 0, hid: document.hidden, refills: rf ? rf.events.length : -1, thr: lg ? lg.thr : -1, live: lg ? lg.tr.live.size : -1, perf: window.__stkBookPack || {}, tabs };
 });
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
@@ -112,25 +119,87 @@ const read = (p) => p.evaluate(() => {
     }
     for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [1440, 900, false, 'light', '1440-light'], [390, 844, true, 'dark', '390-dark'], [390, 844, true, 'light', '390-light']])) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
-      await setNQ(p); await p.evaluate(() => { window.__DBGS = 1; window.__EXP = !!1; window.__KIND = 'line'; });
+      await setNQ(p);
       for (const t of TYPES) await add(p, t);
       await sleep(12000);
-      const a = await read(p); await sleep(3000); const c = await read(p);
-      if (process.env.DBG) console.log('DBG', JSON.stringify(await p.evaluate(() => { const st = [...window.__stkBookPackStores.values()][0]; const r = [...st.refills.values()]; return { n: r.length, pend: r.map((x) => [...x.pend.values()].length), ev: r.map((x) => x.events), cool: r.map((x) => x.cool.size), tick: st.tick, last: !!st.last }; })));
-      if (process.env.DBG) { console.log('EMIT', await p.evaluate(() => window.__emit)); console.log('SER', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const h = c.indicators().filter((x) => x.nativeType === 'stk_bk_speed')[0]; const o = {}; for (const k of Object.keys(h)) { const v = h[k]; o[k] = typeof v === 'object' ? Object.keys(v || {}).slice(0, 12) : typeof v; } return o; }))); await p.screenshot({ path: OUT + '/dbg1.png' }); console.log('DBGS', await p.evaluate(() => window.__spk)); }
+      const a = await read(p); await sleep(3000); let c = await read(p);
+      for (let k = 0; k < 10 && c.refills < 1; k++) { await sleep(1500); c = await read(p); }   // a loaded machine drops fixture frames
       check(a.stores === 1, tag + ': one shared store for six indicators', a.stores);
       check(c.v > a.v && c.speedN > a.speedN - 1, tag + ': book updates keep coming (' + a.v + ' -> ' + c.v + ')');
       check(c.bid > 0 && c.ask > 0 && (c.bid !== a.bid || c.ask !== a.ask), tag + ': liquidity values change over 3 s (bid ' + a.bid + ' -> ' + c.bid + ')', [a, c]);
       check(c.speedN >= 5, tag + ': book speed has per-second samples (' + c.speedN + ')');
       check(c.refills >= 1, tag + ': refill detector found the fixture refills (' + c.refills + ')', c);
       check(c.thr > 0 && c.live >= 1, tag + ': large resting orders threshold learned (' + c.thr + ', live ' + c.live + ')', c);
+      check(c.abs >= 1 && c.absSum >= 1, tag + ': absorption tracker subscribed: the fixture absorption minute counts, buy side up (' + c.abs + ')', c);
       for (const t of TYPES) { const m = c.perf[t]; check(m && m.renders > 3 && m.avgMs < 2.5, tag + ': ' + t + ' avg ' + (m ? m.avgMs.toFixed(2) : '?') + ' ms per draw (limit 2.5 on this shared, software-rendered browser; draws run at most 5 a second), ' + (m && m.renders) + ' draws', m); }
       const cnt = await p.evaluate(() => (window.STRYKER_VELA.context().cells[0].chart.indicators() || []).filter((h) => /^stk_bk_/.test(h.nativeType)).length);
-      check(cnt === 6, tag + ': six indicators on the chart', cnt);
+      check(cnt === TYPES.length, tag + ': six indicators on the chart', cnt);
       // hidden tab: no work
       const before = await p.evaluate(() => JSON.stringify(window.__stkBookPack));
       check(errors.length === 0, tag + ': no console errors', errors);
       await p.screenshot({ path: OUT + '/bk-' + tag + '.png' });
+      await ctx.close();
+    }
+    // hidden tab: no book work while hidden
+    {
+      const { ctx, p, errors } = await open(b, { w: 1440, h: 900, admin: true, theme: 'dark' });
+      await setNQ(p); for (const t of TYPES) await add(p, t); await sleep(4000);
+      await p.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+      await sleep(300); const a = await read(p); const pa = JSON.stringify(a.perf); await sleep(3000); const c = await read(p);
+      check(c.v === a.v && JSON.stringify(c.perf) === pa, 'hidden tab: no book updates and no redraws (' + a.v + ' -> ' + c.v + ')', [a.v, c.v]);
+      await p.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); });
+      await sleep(2500); const d = await read(p);
+      check(d.v > c.v, 'visible again: updates resume (' + c.v + ' -> ' + d.v + ')');
+      check(errors.length === 0, 'hidden tab: no console errors', errors);
+      await ctx.close();
+    }
+    // crypto book (BTC on Binance): fake REST depth + stream
+    {
+      const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+      await ctx.addInitScript(stub);
+      await ctx.addInitScript(() => {
+        const Real = window.WebSocket; window.__cws = 0;
+        window.WebSocket = function (url, proto) {
+          if (!/stream\.binance|fstream\.binance/.test(String(url))) return new Real(url, proto);
+          window.__cws++;
+          const ws = { readyState: 1, send() {}, close() { clearInterval(this.iv); this.onclose && this.onclose({}); } };
+          let n = 0, u = 1000;
+          setTimeout(() => ws.onopen && ws.onopen(), 20);
+          ws.iv = setInterval(() => {
+            n++; u++;
+            const row = (p, q) => [String(p), String(q)];
+            const d = { e: 'depthUpdate', u, b: [row(67000 - (n % 5) * 0.1, 1 + n)], a: [row(67000.1 + (n % 4) * 0.1, 2 + n)] };
+            ws.onmessage && ws.onmessage({ data: JSON.stringify({ data: d }) });
+            if (n % 3 === 0) ws.onmessage({ data: JSON.stringify({ data: { e: 'aggTrade', T: Date.now(), p: '67000.1', q: '0.5', m: n % 2 === 0 } }) });
+          }, 100);
+          return ws;
+        };
+      });
+      await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker.vela.session', ''); } catch (e) {} });
+      await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => {
+        const u = r.request().url();
+        if (/api\.binance\.com\/api\/v3\/depth/.test(u)) {
+          const bids = [], asks = []; for (let j = 0; j < 100; j++) { bids.push([String(67000 - j * 0.1), String(1 + (j % 7))]); asks.push([String(67000.1 + j * 0.1), String(1 + (j % 5))]); }
+          return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ lastUpdateId: 1, bids, asks }) });
+        }
+        if (/aggTrades/.test(u)) return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '[]' });
+        return r.abort();
+      });
+      const p = await ctx.newPage(); const errors = [];
+      p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|451|Failed to load resource|Unexpected re/.test(m.text())) errors.push(m.text()); });
+      p.on('pageerror', (e) => errors.push(String(e)));
+      await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+      await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
+      await sleep(2000);
+      await p.evaluate(async () => { const ws = window.STRYKER_VELA; ws.active.setSymbol('binance:BTCUSDT'); ws.active.setTimeframe('1'); await new Promise((r) => setTimeout(r, 2500)); });
+      for (const t of TYPES) await add(p, t);
+      await sleep(6000);
+      const a = await read(p); await sleep(3000); const c = await read(p);
+      check(a.stores === 1 && (await p.evaluate(() => window.__cws)) >= 1, 'crypto: one store, exchange stream opened', a.stores);
+      check(c.v > a.v && c.bid > 0 && c.ask > 0 && (c.bid !== a.bid || c.ask !== a.ask), 'crypto: BTC book values change over 3 s (bid ' + a.bid + ' -> ' + c.bid + ')', [a, c]);
+      check(c.speedN >= 5, 'crypto: book speed has samples (' + c.speedN + ')');
+      check(errors.length === 0, 'crypto: no console errors', errors);
+      await p.screenshot({ path: OUT + '/bk-crypto-1440.png' });
       await ctx.close();
     }
   } finally { await b.close(); }

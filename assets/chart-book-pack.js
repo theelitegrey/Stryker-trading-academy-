@@ -139,15 +139,20 @@ class Store {
     bk.bid.forEach((q, i) => { v[i - lo] = q; }); bk.ask.forEach((q, i) => { v[i - lo] = -q; });
     this.samples.push({ ts, step: this.tick, i0: lo, v });
     while (this.samples.length && this.samples[0].ts < ts - 12 * 60000) this.samples.shift();
+    if (Math.floor(ts / 1000) % 10 === 0 || !this.absAt) this.refreshAbs(Math.floor(ts / 60000) * 60000);
     const m = Math.floor(ts / 60000) * 60000;
     if (m !== this.minT) { const first = !this.minT; this.minT = m; if (!first) this.minuteClosed(m); else this.iceFrom = m; }
   }
   // the minute before `m` is closed: absorption (whole session, from the footprint minutes) and iceberg hints (new minute only)
+  refreshAbs(m) {
+    const tf = this.feed(); if (!tf) return;
+    this.absAt = Date.now();
+    try { this.absEv = D.absorptionList(absorptionEvents, tf.bars().filter((b) => b.t < m)); } catch (e) { /* a bad minute never breaks the chart */ }
+  }
   minuteClosed(m) {
     const tf = this.feed(); if (!tf) return;
     try {
       const bars = tf.bars().filter((b) => b.t < m);
-      this.absEv = absorptionEvents(bars).map((e) => ({ t: e.t, d: e.side === 0 ? 1 : -1 }));
       const from = m - 10 * 60000;
       const mins = bars.filter((b) => b.t >= from && b.t >= tf.coverFrom), samples = this.samples.filter((s) => s.ts >= from);
       if (mins.length && samples.length) for (const e of icebergEvents(samples, mins, { step: this.tick, tick: this.tick })) if (e.t >= this.iceFrom && e.t < m) this.iceEv.push({ t: e.t + 30000, d: e.side });
@@ -261,7 +266,7 @@ class BkNative {
     this.last = Date.now();
     if (!this.ctx || this.off) return;
     const t0 = performance.now(); this.emitMs = 0;
-    if (!this.emitWrapped) { this.emitWrapped = true; const me = this; for (const k of ['emit', 'setStatus', 'pushData']) { const f = this.ctx[k].bind(this.ctx); this.ctx[k] = (x) => { const a = performance.now(); if (k === 'emit' && window.__EXP && me.type === 'stk_bk_speed') window.__emit = JSON.stringify(x.series && x.series.map((z) => ({ id: z.id, kind: z.kind, n: z.points.length, nn: z.points.filter((q) => q.value != null).length, last: z.points.slice(-2) }))); try { return f(x); } finally { me.emitMs += performance.now() - a; } }; } }
+    if (!this.emitWrapped) { this.emitWrapped = true; const me = this; for (const k of ['emit', 'setStatus', 'pushData']) { const f = this.ctx[k].bind(this.ctx); this.ctx[k] = (x) => { const a = performance.now(); try { return f(x); } finally { me.emitMs += performance.now() - a; } }; } }
     // our own work only: the chart library's emit / pushData (its layout + paint) is timed apart
     try { this.draw(); } finally { this.ms += performance.now() - t0 - this.emitMs; this.n++; (window.__stkBookPack || (window.__stkBookPack = {}))[this.type] = { renders: this.n, avgMs: this.ms / this.n }; }
   }
@@ -274,7 +279,7 @@ class BkNative {
     ctx.setStatus('live');
     const tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
     const kind = s.kind, ss = D.sessionStart(Date.now(), kind);
-    const since = s.since > ss ? 'No book history before ' + hhmm(s.since) : '';
+    const since = s.since > ss + 60000 ? 'No book history before ' + hhmm(s.since) : '';
     if (t === 'stk_bk_speed') return this.drawSpeed(s, I, bars, tf, ss, since);
     if (t === 'stk_bk_bal') return this.drawBal(s, I, bars, tf, ss, since);
     if (t === 'stk_bk_regime') return this.drawRegime(s, I, bars, tf, since);
@@ -294,11 +299,10 @@ class BkNative {
     const raw = D.perBar(v.speed, bars, tf, 'mean'), sm = D.ema(raw, clamp(Math.round(num(I.smooth, 3)), 1, 30));
     const b = this.bands(sm, bars, num(I.calmPct, 25), num(I.fastPct, 75)), cols = [I.calmColor, I.normalColor, I.fastColor], names = ['Calm', 'Normal', 'Fast'];
     const pts = bars.map((x, i) => (sm[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(sm[i]), color: cols[b.band[i]] }));
-    if (window.__EXP) for (let k = pts.length - 6; k < pts.length - 1; k++) if (pts[k].value == null) pts[k] = { time: pts[k].time, value: 30 + k, color: cols[1] };
-    window.__spk = JSON.stringify(pts.slice(-2));
     let li = sm.length - 1; while (li >= 0 && sm[li] == null) li--;
     const now = li >= 0 ? sm[li] : null, bi = li >= 0 ? b.band[li] : 1;
-    this.ctx.emit({ series: [{ id: 'bk-speed', title: 'Book changes per second', paneId: '', kind: window.__KIND || 'histogram', points: pts, style: { color: I.normalColor, width: 1, lineStyle: 'solid', base: 0 } }],
+    this.ctx.emit({ series: [{ id: 'bk-speed', title: 'Book changes per second', paneId: '', kind: 'histogram', points: pts, style: { color: I.normalColor, width: 1, lineStyle: 'solid', base: 0 } }],
+      priceLines: [{ id: 'bk-speed-0', paneId: '', price: 0, color: light() ? 'rgba(15,23,42,0.35)' : 'rgba(255,255,255,0.3)', lineStyle: 'dashed', width: 1, title: '' }],
       tables: [this.legend(['Book Speed ' + (now == null ? '…' : now.toFixed(1) + '/s · ' + names[bi]), since || 'how nervous the book is'], cols[bi])] });
     this.push({ off: true });
   }

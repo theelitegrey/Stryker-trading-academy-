@@ -83,4 +83,11 @@ lt.update(t += 5000, big(300), 200); ok(lt.live.size === 1 && [...lt.live.values
 lt.update(t += 1000, big(10), 200); ok(lt.live.size === 0 && lt.gone.length === 1, 'large: pulled -> moves to fading');
 lt.update(t += 4000, big(10), 200); ok(lt.gone.length === 0, 'large: faded out after 3 s');
 ok(D.fmtDur(75000) === '1m 15s' && D.fmtDur(4500000) === '1h 15m' && D.fmtDur(9000) === '9s', 'duration text');
+// absorption list on minute bars (the real absorptionEvents rule): 20 quiet bars, then one heavy narrow bar with net selling that closes up
+const P = await import('../../assets/chart-of-pro-data.js');
+const mb = (t, buy, sell, lo = 0) => ({ t, lo, hi: lo + buy.length - 1, o: lo, c: lo, buy, sell, vol: buy.reduce((a, b) => a + b, 0) + sell.reduce((a, b) => a + b, 0), delta: buy.reduce((a, b) => a + b, 0) - sell.reduce((a, b) => a + b, 0) });
+const quiet = Array.from({ length: 25 }, (_, i) => mb(i * 60000, [5, 5, 5, 5, 5], [5, 5, 5, 5, 5], 10));
+quiet.push(mb(25 * 60000, [10, 10], [200, 10], 12)); quiet[25].c = 14; quiet[25].o = 12;
+const ab = D.absorptionList(P.absorptionEvents, quiet);
+ok(ab.length === 1 && ab[0].d === 1 && ab[0].t === 25 * 60000, 'absorption list: sellers absorbed = +1 (buy side up)', ab);
 console.log('chart-book-pack: ' + n + ' checks passed');

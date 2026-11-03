@@ -42,7 +42,7 @@
   function activeKey(){
     var segs = location.pathname.split('/').filter(Boolean);
     var f = (segs.length ? segs[segs.length - 1] : 'index').toLowerCase().replace(/\.html$/, '');
-    if (f === 'courses' || f === 'chapter') return 'learn';
+    if (f === 'courses' || f === 'chapter' || f === 'academy') return 'learn';
     if (f === 'trade-journal') return 'journal';
     if (f === 'charts') return 'charts';
     if (f === 'gex') return 'gex';
@@ -82,11 +82,12 @@
       ['smart-money', 'Smart Money Desk', 'Institutional flow view', '<path d="M12 3v18"/><path d="M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'],
       ['global-monitor', 'Global Monitor', 'World events and market news', '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>']
     ]],
-    ['learn', 'Learn', [
+    ['learn', 'ZoroAcademy', [
+      ['academy', 'ZoroAcademy home', 'Lessons, courses and guides in one place', '<path d="M12 4 2.5 9 12 14l9.5-5z"/><path d="M6 11.5V16c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5"/>'],
       ['courses', 'Curriculum', 'Chapters in a deliberate order', '<path d="M12 6.5C10.5 5 8 4 4 4v14c4 0 6.5 1 8 2.5 1.5-1.5 4-2.5 8-2.5V4c-4 0-6.5 1-8 2.5zM12 6.5v14"/>', ['chapter']],
       ['models', 'Models', 'Trading model playbooks', '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', ['model']],
       ['indicators', 'Indicators', 'Our chart indicators', '<path d="M3 17l5-6 4 4 8-9"/><path d="M15 6h5v5"/>', ['indicator']],
-      ['learn', 'Learn articles', 'Plain-English lessons', '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>', LEARN_ARTICLES]
+      ['learn', 'Articles', 'Free plain-English guides', '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>', LEARN_ARTICLES]
     ]],
     ['community', 'Community', [
       ['trading-floor', 'Trading Floor', 'Community posts and chat', '<path d="M9 9V5a2.5 2.5 0 0 1 2.5-2.5h8A2.5 2.5 0 0 1 22 5v3.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M4.5 9h8a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-3.5 3v-3H4.5A2.5 2.5 0 0 1 2 15.5v-4A2.5 2.5 0 0 1 4.5 9z"/>'],

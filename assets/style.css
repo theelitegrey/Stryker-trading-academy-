@@ -11102,3 +11102,7 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 /* the phone ⋯ sheet scrolls on its own: no scroll chaining into the page / pull-to-refresh, momentum kept */
 #stkc-more-pop.stkc-ob-list{ overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
 #stk-iv-menu, .stkiw-list, #vela-sp-list, #vela-drawer-body, #stkin-body, #notif-list{ overscroll-behavior:contain; }
+
+/* ZoroAcademy eyebrow/breadcrumb on learning pages (same mono-caps pattern as product names) */
+.zx-crumb{ margin:0 0 6px; font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; color:var(--ink-3); }
+.zx-crumb .zx-eyebrow{ color:var(--ink-3); } .zx-crumb a.zx-eyebrow{ color:var(--gold); text-decoration:none; } .zx-crumb a.zx-eyebrow:hover{ text-decoration:underline; }

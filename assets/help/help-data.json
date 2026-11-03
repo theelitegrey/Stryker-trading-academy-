@@ -145,12 +145,12 @@
        "a": "<p>Start with the curriculum, then try the tools one by one.</p>",
        "steps": [
         "Create a free account.",
-        "Open Learn and read chapter 1.",
+        "Open ZoroAcademy and read chapter 1.",
         "Open ZoroCharts and look at a chart of NQ or BTC.",
         "Try Replay One to practise on past data.",
         "Log a trade in JournalX."
        ],
-       "path": "Learn (dock) → Curriculum",
+       "path": "ZoroAcademy (dock) → Curriculum",
        "tags": [
         "beginner",
         "start",
@@ -654,7 +654,7 @@
       {
        "id": "phone-dock",
        "q": "What is the bar at the bottom of my phone?",
-       "a": "<p>It is the dock. It has five buttons: ZoroCharts, GEX+, JournalX, Learn and More.</p>",
+       "a": "<p>It is the dock. It has five buttons: ZoroCharts, GEX+, JournalX, ZoroAcademy and More.</p>",
        "tags": [
         "dock",
         "bottom bar",
@@ -688,7 +688,7 @@
       {
        "id": "desktop-nav",
        "q": "How is the menu laid out on a computer?",
-       "a": "<p>On a computer the top bar has pills for ZoroCharts, GEX+, JournalX, Learn and More. The menu button on the left opens a side menu with the rest of the pages, grouped as Learn, ZoroCharts tools, Community, JournalX, Invite & earn, Giveaways and Account.</p><p><img src=\"/assets/help/shots/dashboard-desktop.webp\" alt=\"The desktop dashboard\"></p>",
+       "a": "<p>On a computer the top bar has pills for ZoroCharts, GEX+, JournalX, ZoroAcademy and More. The menu button on the left opens a side menu with the rest of the pages, grouped as ZoroAcademy, ZoroCharts tools, Community, JournalX, Invite & earn, Giveaways and Account.</p><p><img src=\"/assets/help/shots/dashboard-desktop.webp\" alt=\"The desktop dashboard\"></p>",
        "tags": [
         "desktop",
         "sidebar",
@@ -702,7 +702,7 @@
       {
        "id": "find-tool",
        "q": "Where do I find a specific tool?",
-       "a": "<ul><li>Charts, indicators, alerts, paper trading: ZoroCharts (dock).</li><li>Gamma levels: GEX+ (dock).</li><li>Trade journal: JournalX (dock).</li><li>Courses: Learn (dock).</li><li>Backtesting: More → Replay One.</li><li>Scanner, calendar, Market stats: More → Tools.</li><li>Settings and billing: More → Settings.</li></ul>",
+       "a": "<ul><li>Charts, indicators, alerts, paper trading: ZoroCharts (dock).</li><li>Gamma levels: GEX+ (dock).</li><li>Trade journal: JournalX (dock).</li><li>Courses: ZoroAcademy (dock).</li><li>Backtesting: More → Replay One.</li><li>Scanner, calendar, Market stats: More → Tools.</li><li>Settings and billing: More → Settings.</li></ul>",
        "tags": [
         "where",
         "find",
@@ -1092,7 +1092,7 @@
   },
   {
    "id": "learning",
-   "title": "Learning: courses and articles",
+   "title": "ZoroAcademy: courses and articles",
    "icon": "book",
    "desc": "The curriculum, progress and free guides.",
    "subs": [
@@ -1104,7 +1104,7 @@
        "id": "curriculum-what",
        "q": "What is in the curriculum?",
        "a": "<p>The curriculum has 64 chapters: 42 core chapters plus the Volume Profile and Prop Firm specialist tracks. They are written lessons with chart diagrams and a checklist for each lesson.</p><p>Filters: All chapters, Foundation, Intermediate, Advanced, Specialist tracks.</p><p><img src=\"/assets/help/shots/curriculum.webp\" alt=\"The curriculum page\"></p>",
-       "path": "Learn (dock) → Curriculum",
+       "path": "ZoroAcademy (dock) → Curriculum",
        "tags": [
         "courses",
         "chapters",
@@ -1146,7 +1146,7 @@
        "id": "mark-complete",
        "q": "How do I mark a lesson or chapter complete?",
        "a": "<p>Tick the lesson checkbox inside a chapter. Mark all lessons complete ticks every lesson at once. Your progress is saved to your account.</p>",
-       "path": "Learn → open a chapter → Lessons in this chapter",
+       "path": "ZoroAcademy → open a chapter → Lessons in this chapter",
        "tags": [
         "progress",
         "complete",
@@ -1244,7 +1244,7 @@
       {
        "id": "learn-articles",
        "q": "Are there free articles?",
-       "a": "<p>Yes. The Learn section has free guides: fair value gaps, order blocks, liquidity sweeps, BOS vs CHoCH, SMT divergence, order flow, volume profile, how prop firms work and prop firm challenge rules.</p>",
+       "a": "<p>Yes. ZoroAcademy has free guides: fair value gaps, order blocks, liquidity sweeps, BOS vs CHoCH, SMT divergence, order flow, volume profile, how prop firms work and prop firm challenge rules.</p>",
        "tags": [
         "articles",
         "guides",

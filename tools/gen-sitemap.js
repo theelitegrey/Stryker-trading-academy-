@@ -20,6 +20,7 @@ const PAGES = [
   ['/',                     '1.0', 'weekly'],
   ['/about',                '0.8', 'monthly'],
   ['/signup',               '0.8', 'monthly'],
+  ['/academy',              '0.9', 'weekly'],
   ['/learn',                '0.8', 'weekly'],
   ['/learn-fair-value-gap', '0.8', 'monthly'],
   ['/learn-order-blocks',   '0.8', 'monthly'],

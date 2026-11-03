@@ -196,7 +196,8 @@ class TsNative {
     const thr = same && isF.thr ? isF.thr : s.floor;   // the readout compares the feeds at the recorder's own big-print size
     const cmp = msg || E != null ? null : readout(t, s, isF, t === 'stk_ts_big' ? thr : 0, same);
     (window.__tsReadout || (window.__tsReadout = {}))[t] = cmp || [msg];   // read by tools/tests/ts-bigtrades-browser.js (the table itself is drawn on the canvas)
-    const tables = msg ? [table(t + '-msg', [msg], true)] : cmp ? [table(t + '-cmp', cmp, false, t === 'stk_ts_big')] : [];
+    const showCmp = (() => { try { return localStorage.getItem('tz_feedcheck') === '1'; } catch (e) { return false; } })();   // internal feed check: hidden from members unless turned on
+    const tables = msg ? [table(t + '-msg', [msg], true)] : cmp && showCmp ? [table(t + '-cmp', cmp, false, t === 'stk_ts_big')] : [];
     if (t === 'stk_ts_big') { ctx.emit({ tables }); ctx.pushData({ owner: this, root, isRoot: same ? isRoot : null, timeframe: ctx.timeframe, inputs: I, v: s.v, vr: bars.length }); return; }
     const agg = aggregateMins(mins, tf * 60000), map = new Map(agg.map((b) => [b.t, b]));
     if (t === 'stk_ts_delta') {

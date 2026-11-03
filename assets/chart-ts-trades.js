@@ -1,5 +1,5 @@
 // TradeZoro — Charts: Tick-stream twins of the order-flow indicators (Owner order 2026-11-02: "update the big trades indicator to use
-// the new data feed, I want to check the difference with tick stream"; "what about delta?"). Pro (same l2Visible() gate as the
+// the new data feed, I want to check the difference with tick stream"; "what about delta?"). Pro (same l1Visible() gate as the
 // futures L2 tools), for a side-by-side check of the two trade feeds on one chart:
 //   stk_ts_big    "Big Trades (Tick-stream)"        same schema as stk_of_big, outline-only bubbles, other default colours
 //   stk_ts_delta  "Delta (Tick-stream)"             same schema as stk_of_delta
@@ -10,7 +10,7 @@
 // Threshold: the auto size is the recorder's 99.5th percentile for the symbol (the same number the InsightSentry bubbles use), so the
 // two indicators ask the same question; a print below the Worker's per-symbol floor was never stored.
 // Education only. Not financial advice.
-import { l2Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=815';
+import { liveVisible as l1Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=815';
 import { registerFeed } from './chart-feeds.js?v=815';
 import { rtReady, rtHeaders } from './rt-access.js?v=815';
 import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=815';
@@ -171,7 +171,7 @@ class TsNative {
     if (!this.ctx || this.off) return;
     const ctx = this.ctx, I = this.inputs, t = this.type, bars = ctx.bars();
     const note = (txt) => { this.unbind(); ctx.setStatus('idle'); ctx.emit({ tables: [table(t + '-msg', [txt], true)] }); try { ctx.pushData({ owner: this, off: true }); } catch (e) {} };
-    if (!l2Visible()) return note('L1 trades are part of Pro.');
+    if (!l1Visible()) return note('L1 trades are part of Pro.');
     const root = l2Root(ctx.symbol);
     if (!root) return note('L1 trades: NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.');
     const tf = H.tfMin(ctx.timeframe);
@@ -235,7 +235,7 @@ function tsBigLayer() {
 export function installTsTrades(Core, hooks) {
   if (H) return;
   H = Object.assign({ bigThreshold }, hooks);
-  for (const t of TS_TYPES) if (!L2_TYPES.includes(t)) L2_TYPES.push(t);   // chart-orderflow.js hides L2_TYPES from the picker until l2Visible()
+  for (const t of TS_TYPES) if (!L2_TYPES.includes(t)) L2_TYPES.push(t);   // chart-orderflow.js hides L2_TYPES from the picker until l1Visible()
   for (const type of TS_TYPES) registerFeed(type, { needs: 'L1', title: IND()[type].title, mkt: 'futures' });   // trades only: L1, not the book
   Core.registerRendererLayer({ id: 'stk_ts_big', placement: 'above-data', create: tsBigLayer });
   const ind = IND();

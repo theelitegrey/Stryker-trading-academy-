@@ -40,11 +40,13 @@ async function open(b, w, h, mobile, theme) {
       await p.evaluate(() => document.querySelector('#byo-btn').click());
       await p.waitForSelector('.byo-row');
       const rows = await p.$$eval('.byo-row', (r) => r.map((x) => ({ id: x.dataset.src, txt: x.textContent, btn: x.querySelector('button').textContent })));
-      for (const id of ['mt5', 'ninja', 'ibkr']) { const r = rows.find((x) => x.id === id); check(r && /Beta/.test(r.txt) && /Download helper/.test(r.txt) && r.btn === 'Pair', t + id + ' row: Beta, Download helper, Pair', r && r.btn); }
+      for (const id of ['mt5', 'ninja', 'ibkr']) { const r = rows.find((x) => x.id === id); check(r && /Beta/.test(r.txt) && !/Download/.test(r.txt) && r.btn === 'Pair', t + id + ' row: Beta, Pair, no download link that skips the warning', r && r.btn); }
       check(!/MetaTrader|NinjaTrader|Interactive Brokers/.test(await p.evaluate(() => { const s = document.querySelector('#byo-sheet'); s.hidden = true; const x = document.body.innerText; s.hidden = false; return x; })), t + 'no vendor names outside the sheet');
       await p.screenshot({ path: `${OUT}/bridge-list-${tag}.png` });
       await p.click('.byo-row[data-src="mt5"] button'); await p.waitForSelector('#byo-f-code');
       await p.screenshot({ path: `${OUT}/bridge-pair-${tag}.png` });
+      const wn = await p.evaluate(() => { const e = document.querySelector('.byo-warn'), a = document.querySelector('a.byo-dlrow'); return { warn: e && e.textContent, before: !!(e && a && (e.compareDocumentPosition(a) & 4)), href: a && a.href, guide: e && e.querySelector('a').getAttribute('href') }; });
+      check(/More info, then Run anyway/.test(wn.warn || "") && /antivirus/.test(wn.warn) && wn.before && /releases\/download\/bridge-v1\.0\.0\/TradeZoroBridge\.exe$/.test(wn.href) && wn.guide === '/help/desktop-bridge', t + 'warning shown before the download link, links to the guide', wn);
       await p.fill('#byo-f-code', '00000000'); await p.click('.byo-go');
       await p.waitForSelector('.byo-err:not([hidden])', { timeout: 8000 });
       check(/not right/.test(await p.$eval('.byo-err:not([hidden])', (e) => e.textContent)), t + 'wrong code shows a plain message');
@@ -52,7 +54,7 @@ async function open(b, w, h, mobile, theme) {
       await p.waitForSelector('#byo-forget', { timeout: 15000 });
       check(true, t + 'paired with the helper (manage view)');
       const r = await p.evaluate(async () => {
-        const core = await import('/assets/byo-core.js?v=835'); const br = await import('/assets/byo-bridge.js?v=835');
+        const core = await import('/assets/byo-core.js?v=842'); const br = await import('/assets/byo-bridge.js?v=842');
         const rec = core.statusRec('mt5'); const ad = core.ADAPTERS.mt5; const out = {};
         const bars = await ad.getBars(rec.creds, 'byo:EURUSD', '1', { limit: 20 }); out.n = bars.length; out.ok = bars.every((x) => x.time > 1e12 && x.high >= x.low);
         const got = []; const off = ad.subscribe(rec.hub, 'byo:EURUSD', '1', bars[bars.length - 1], (c) => got.push(c));

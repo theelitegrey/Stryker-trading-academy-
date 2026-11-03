@@ -143,7 +143,8 @@ function make(id) {
 
 // ---------- registration ----------
 // Download links stay empty until the Owner approves hosting the built helpers (then: { mt5: 'https://…', … }).
-export const HELPER_DOWNLOADS = {};
+export const HELPER_DOWNLOADS = { mt5: 'https://github.com/theelitegrey/Stryker-trading-academy-/releases/download/bridge-v1.0.0/TradeZoroBridge.exe', ibkr: 'https://github.com/theelitegrey/Stryker-trading-academy-/releases/download/bridge-v1.0.0/TradeZoroBridge.exe', ninja: 'https://github.com/theelitegrey/Stryker-trading-academy-/releases/download/bridge-v1.0.0/TradeZoroBridge-NT8.zip' };
+export const HOWTO_URL = '/help/desktop-bridge';
 const NOTE = 'Beta. Runs a small helper on your Windows PC. Prices go from your platform to the helper to this browser tab, never through TradeZoro.';
 const defs = [
   { id: 'mt5', name: 'MetaTrader 5', cls: ['forex', 'futures', 'stocks'], covers: 'Prices from your MetaTrader 5 terminal', help: 'Open MetaTrader 5 and log in (an investor password is enough). Then start the TradeZoro Data Bridge.' },

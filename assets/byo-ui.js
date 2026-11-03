@@ -2,7 +2,7 @@
 // Depends on: assets/byo-core.js (SOURCES, connect, forget, onByoChange, statusOf). Mounted by assets/vela-chart.js into
 // the chart toolbar (.stkc-bar-r). Rithmic is listed here and opens its own existing flow (window.STRYKER_RITHMIC.open).
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
-import { pair, loopbackState, HELPER_DOWNLOADS } from './byo-bridge.js?v=842';
+import { pair, loopbackState, HELPER_DOWNLOADS, HOWTO_URL } from './byo-bridge.js?v=842';
 import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=842';
 let CTR = null;   // byo-ctrader.js, loaded with the chart
 const OAUTH = () => import('./byo-oauth.js?v=842');
@@ -90,6 +90,10 @@ const CSS = `
 .byo-lock svg{ flex:none; margin-top:1px; }
 .byo-dl, .byo-dlrow{ display:block; margin:4px 0 0; font:400 12px/16px var(--by-font); color:var(--ink-2,#8b93a0); }
 .byo-dlrow{ margin:0 0 16px; font-size:13px; }
+.byo-warn{ margin:0 0 12px; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,176,32,.55); background:rgba(255,176,32,.08); font:400 13px/18px var(--by-font); color:var(--ink-1,#c9cdd3); }
+:root[data-theme="light"] .byo-warn{ border-color:rgba(176,112,0,.55); background:rgba(176,112,0,.08); }
+.byo-warn .byo-link{ padding:0; font-size:13px; }
+.byo-warn b{ font-weight:600; }
 .byo-steps-l{ margin:0 0 12px; padding-left:20px; font:400 14px/20px var(--by-font); color:var(--ink-1,#c9cdd3); }
 .byo-steps-l li{ margin:0 0 6px; }
 .byo-state{ display:flex; align-items:center; gap:8px; margin:0 0 16px; font:500 15px/20px var(--by-font); }
@@ -177,7 +181,7 @@ export function mountByo(opts = {}) {
 
   function dl(s, cls) {
     const u = HELPER_DOWNLOADS[s.id];
-    return u ? el('a', { class: cls + ' byo-link', href: u, rel: 'noopener', text: 'Download helper' }) : el('span', { class: cls, 'data-dl': 'off', text: 'Download helper · not available yet' });
+    return u ? el('a', { class: cls + ' byo-link', href: u, rel: 'noopener', text: s.id === 'ninja' ? 'Download the add-on (.zip)' : 'Download TradeZoroBridge.exe' }) : el('span', { class: cls, 'data-dl': 'off', text: 'Download not available yet' });
   }
 
   function rowFor(s) {
@@ -193,7 +197,7 @@ export function mountByo(opts = {}) {
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
       logoTile(s),
       el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }), s.relay && s.state === 'ready' ? el('span', { class: 'byo-cv', text: s.noteText }) : null,
-        el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' }), s.bridge ? dl(s, 'byo-dl') : null]),
+        el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' })]),
       b]);
   }
 
@@ -288,6 +292,12 @@ export function mountByo(opts = {}) {
     body.appendChild(el('ol', { class: 'byo-steps-l' }, [
       el('li', { text: s.help }),
       el('li', { text: 'The helper shows an 8-digit code. Type it below.' })]));
+    if (HELPER_DOWNLOADS[s.id]) {
+      body.appendChild(el('p', { class: 'byo-warn', role: 'note' }, [
+        el('b', { text: 'Heads-up before you download. ' }),
+        document.createTextNode(s.id === 'ninja' ? 'This add-on is not code-signed, so NinjaTrader or Windows may ask you to confirm. ' : 'Windows will warn you because the helper isn\u2019t signed yet. Click More info, then Run anyway. Your antivirus may also ask. '),
+        el('a', { class: 'byo-link', href: HOWTO_URL, target: '_blank', rel: 'noopener', text: 'Step-by-step guide' })]));
+    }
     body.appendChild(dl(s, 'byo-dlrow'));
     const inp = el('input', { class: 'byo-in', id: 'byo-f-code', type: 'text', inputmode: 'numeric', maxlength: '9', placeholder: '12345678', autocomplete: 'off', 'aria-label': 'Code from the helper' });
     const form = el('form', { novalidate: true, autocomplete: 'off' }, [err, el('label', { class: 'byo-f' }, [el('span', { text: 'Code from the helper' }), inp])]);

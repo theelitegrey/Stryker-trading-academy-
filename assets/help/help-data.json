@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updated": "2026-10-30",
+ "updated": "2026-11-04",
  "categories": [
   {
    "id": "getting-started",
@@ -3608,6 +3608,38 @@
         "rithmic-what"
        ],
        "level": "advanced"
+      },
+      {
+       "id": "desktop-bridge",
+       "q": "How do I use MetaTrader 5, NinjaTrader 8 or Interactive Brokers prices on a chart?",
+       "a": "<p>Use the TradeZoro Data Bridge, a small beta helper for Windows. It reads prices from your own platform and shows them in your browser tab. Prices never go through TradeZoro servers, they are for your own use, and the helper cannot place orders.</p><p>Windows will warn you because the helper isn't signed yet. Click More info, then Run anyway. Your antivirus may also ask. Use Chrome, Edge or Firefox; Safari is not supported.</p>",
+       "steps": [
+        "Read the full guide first, including the Windows warning.",
+        "Download the helper (or the NinjaTrader add-on) from the Data source sheet.",
+        "Start it and note the 8-digit pairing code.",
+        "Open Data source on a chart, choose your platform, press Pair and type the code."
+       ],
+       "tags": [
+        "desktop bridge",
+        "data bridge",
+        "mt5",
+        "metatrader",
+        "ninjatrader",
+        "interactive brokers",
+        "ibkr",
+        "tws",
+        "smartscreen",
+        "helper"
+       ],
+       "related": [
+        "rithmic-what"
+       ],
+       "links": [
+        {
+         "label": "Desktop Bridge: step by step",
+         "href": "/help/desktop-bridge"
+        }
+       ]
       }
      ]
     }

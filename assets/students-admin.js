@@ -410,7 +410,7 @@ function loadStudents(){
   ])
     .then(([snap]) => {
       ALL_STUDENTS = [];
-      snap.forEach((doc) => ALL_STUDENTS.push(Object.assign({ uid: doc.id }, doc.data())));
+      snap.forEach((doc) => { if (!doc.data().test) ALL_STUDENTS.push(Object.assign({ uid: doc.id }, doc.data())); });
       // Through applyFilters rather than straight to render, so the count
       // label is populated on first paint and any role filter already chosen
       // is respected after a reload.

@@ -407,9 +407,22 @@ export function mountOneBar(ws){
   // open a mutation-driven refit waits until it closes; resize still refits (scroll position is kept).
   let late = false;
   const queue = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; fit(); }); };
+  // While the phone sheet is open, NOTHING rebuilds it: on Android the address bar shows/hides as the finger scrolls
+  // inside the sheet, which fires resize; a refit then reset the scroll mid-fling ("scroll up -> jumps back down").
+  // An open sheet only gets its height re-measured; the full refit runs when it closes.
+  const sheetOpen = () => !merged && !morePop.hidden;
+  const onResize = () => {
+    if (sheetOpen()) {
+      late = true;
+      const b = bar.getBoundingClientRect().bottom;
+      morePop.style.setProperty('--ob-maxh', Math.max(160, Math.floor(window.innerHeight - b - 14)) + 'px');
+      return;
+    }
+    queue();
+  };
   const mo = new MutationObserver(() => { if (fitting) return; if (!merged && !morePop.hidden) { late = true; return; } queue(); });
   mo.observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
-  new ResizeObserver(queue).observe(bar);
+  new ResizeObserver(onResize).observe(bar);
 
   let started = false;
   function merge(on){
@@ -436,7 +449,7 @@ export function mountOneBar(ws){
   apply();
   fit();
   new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ['data-layout'] });
-  window.addEventListener('resize', queue, { passive: true });
+  window.addEventListener('resize', onResize, { passive: true });
   try { document.fonts && document.fonts.ready.then(queue); } catch (e) {}
 
   const api = { fit, get merged(){ return merged; }, get moreCount(){ return moved.length; }, more: moreBtn, mobileBar: mb };

@@ -3786,3 +3786,6 @@ button.lyl-stat.on svg{ fill:currentColor; }
 @keyframes stkbp-up{ from{ transform:translateY(24px); opacity:0 } to{ transform:none; opacity:1 } }
 @media (prefers-reduced-motion:reduce){.stkbp{ animation:none }
 .stkbp-tabs button, .stkbp-grip::after{ transition:none }}
+/* the phone ⋯ sheet scrolls on its own: no scroll chaining into the page / pull-to-refresh, momentum kept */
+#stkc-more-pop.stkc-ob-list{ overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+#stk-iv-menu, .stkiw-list, #vela-sp-list, #vela-drawer-body, #stkin-body, #notif-list{ overscroll-behavior:contain; }

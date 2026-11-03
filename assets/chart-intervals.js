@@ -845,11 +845,18 @@ export function mountIntervals(ws, opts) {
   menu.addEventListener('click', (e) => e.stopPropagation());
   scrim.addEventListener('click', () => setOpen(false));
 
-  function renderMenu() {
-    if (menu.hidden) return;
-    const keepScroll = menu.scrollTop;
+  // Live data fires state:changed many times a second. Rebuilding the open menu under the finger killed the scroll
+  // and snapped it back ("scroll up -> it scrolls down again"), so only rebuild when what the menu shows changed.
+  let menuSig = '';
+  function renderMenu(force) {
+    if (menu.hidden) { menuSig = ''; return; }
     const cur = activeTf();
     const fut = providerOf(activeSym()) === 'futures';
+    let sig = '';
+    try { sig = JSON.stringify([cur, fut, favs, custom, collapsed, SECTIONS.map((sec) => sec.rows.concat(custom).map((tf) => blocked(tf) || '').join('|'))]); } catch (e) { sig = String(Math.random()); }
+    if (force !== true && sig === menuSig) return;
+    menuSig = sig;
+    const keepScroll = menu.scrollTop;
     menu.innerHTML = '';
     const add = document.createElement('button');
     add.type = 'button';
@@ -938,7 +945,7 @@ export function mountIntervals(ws, opts) {
     if (open) {
       anchor = from || caret;
       menu.hidden = false;
-      renderMenu();
+      renderMenu(true);
       place();
       const on = menu.querySelector('.stk-iv-r.on');
       if (on && !isPhone()) {

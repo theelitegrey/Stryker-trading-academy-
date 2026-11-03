@@ -1,5 +1,17 @@
 [
  {
+  "build": 804,
+  "date": "2026-11-03",
+  "title": "Futures order book (L2)",
+  "link": ""
+ },
+ {
+  "build": 804,
+  "date": "2026-11-03",
+  "title": "heatmap shipped",
+  "link": ""
+ },
+ {
   "build": 803,
   "date": "2026-11-03",
   "title": "Bookmap-style order book heatmap",
@@ -27,12 +39,6 @@
   "build": 799,
   "date": "2026-11-03",
   "title": "Big Trades and Delta on the L1 feed",
-  "link": ""
- },
- {
-  "build": 798,
-  "date": "2026-11-03",
-  "title": "Futures order book (L2)",
   "link": ""
  },
  {

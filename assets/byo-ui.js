@@ -35,6 +35,9 @@ const CSS = `
 .byo-list{ list-style:none; margin:0; padding:0; border:1px solid var(--line,#2c2c32); border-radius:12px; overflow:hidden; }
 .byo-row{ display:flex; align-items:center; gap:12px; min-height:64px; padding:10px 12px; border-top:1px solid var(--line,#2c2c32); }
 .byo-row:first-child{ border-top:0; }
+.byo-ic.lg{ background:#fff; border:1px solid rgba(128,128,128,.35); border-radius:8px; overflow:hidden; }
+.byo-ic.lg img{ width:100%; height:100%; display:block; object-fit:contain; }
+#byo-title .byo-ic{ display:inline-grid; width:28px; height:28px; vertical-align:middle; margin-right:10px; }
 .byo-ic{ flex:none; width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--bg-2,#131316); color:var(--ink-1,#c9cdd3); }
 .byo-tx{ flex:1; min-width:0; }
 .byo-nm{ display:block; font:600 15px/20px var(--by-font); color:var(--ink-0,#eee); }
@@ -84,7 +87,7 @@ const CSS = `
 `;
 
 const I = (d, s = 20) => '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
-// Our own monochrome glyphs, one per asset class. No broker logos.
+// Our own monochrome glyphs, one per asset class. Fallback when a logo fails.
 const GLYPH = {
   stocks: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
   futures: '<path d="M3 17l5-6 4 3 8-9"/><path d="M15 5h5v5"/>',
@@ -92,6 +95,17 @@ const GLYPH = {
   options: '<circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/>',
   crypto: '<circle cx="12" cy="12" r="8"/><path d="M9 9h5a1.5 1.5 0 0 1 0 3H9h5.5a1.5 1.5 0 0 1 0 3H9M9 7v10"/>'
 };
+// Official brand marks (own-site icons, see assets/images/brokers/SOURCES.md). White tile so every mark reads in dark + light.
+const LOGO = { alpaca: 'svg', oanda: 'png', ironbeam: 'png', tastytrade: 'svg', rithmic: 'png', schwab: 'png', ctrader: 'svg' };
+function logoTile(s) {
+  const glyph = I(GLYPH[s.cls[0]] || GLYPH.stocks);
+  if (!LOGO[s.id]) return el('span', { class: 'byo-ic', html: glyph });
+  const img = new Image(); img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+  const t = el('span', { class: 'byo-ic lg' }, [img]);
+  img.onerror = () => { t.classList.remove('lg'); t.innerHTML = glyph; };
+  img.src = '/assets/images/brokers/' + s.id + '.' + LOGO[s.id];
+  return t;
+}
 const CHIPS = [['all', 'All'], ['stocks', 'Stocks'], ['futures', 'Futures'], ['forex', 'Forex'], ['options', 'Options'], ['crypto', 'Crypto']];
 const RITHMIC = { id: 'rithmic', name: 'Rithmic', cls: ['futures'], covers: 'CME futures through your prop firm or broker login', fee: 'paid', feeNote: 'Your data fees apply.', state: 'rithmic' };
 const X = I('<path d="M6 6l12 12M18 6 6 18"/>');
@@ -149,7 +163,6 @@ export function mountByo(opts = {}) {
 
   function rowFor(s) {
     const connected = connectedIds().includes(s.id);
-    const glyph = GLYPH[s.cls[0]] || GLYPH.stocks;
     let b;
     if (s.state === 'rithmic') b = el('button', { type: 'button', class: 'byo-row-b', text: 'Connect', 'aria-label': 'Connect Rithmic', onclick: () => { setOpen(false); try { window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.open && window.STRYKER_RITHMIC.open(); } catch (e) { /* not loaded yet */ } } });
     else if (s.state === 'ready' && s.oauth) {
@@ -158,7 +171,7 @@ export function mountByo(opts = {}) {
     } else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
     else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
-      el('span', { class: 'byo-ic', html: I(glyph) }),
+      logoTile(s),
       el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }),
         el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' })]),
       b]);
@@ -186,7 +199,7 @@ export function mountByo(opts = {}) {
   }
 
   function renderForm(s) {
-    title.textContent = 'Connect ' + s.name; backBtn.hidden = false;
+    title.replaceChildren(logoTile(s), 'Connect ' + s.name); backBtn.hidden = false;
     body.replaceChildren();
     const err = el('p', { class: 'byo-err', role: 'alert', hidden: true });
     const inputs = {};
@@ -232,7 +245,7 @@ export function mountByo(opts = {}) {
   }
 
   function renderManage(s) {
-    title.textContent = s.name; backBtn.hidden = false;
+    title.replaceChildren(logoTile(s), s.name); backBtn.hidden = false;
     body.replaceChildren();
     const st = statusOf(s.id) || { status: 'idle' };
     const live = st.status === 'live';

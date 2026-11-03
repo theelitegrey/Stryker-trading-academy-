@@ -1,0 +1,122 @@
+/* /academy hub. Loads after style.css; uses its tokens (--bg-*, --ink-*, --line, --gold, --bull, --bear, --font-*).
+   4-pt spacing, buttons 48, radii 12/16, one primary action per view. Motion: transform+opacity only; html.az-rm / reduced-motion = static. */
+.az-page{ --az-ease:cubic-bezier(.2,0,0,1); --az-r:16px; --az-sh:0 12px 32px rgba(0,0,0,.38); }
+:root[data-theme="light"] .az-page{ --az-sh:0 12px 32px rgba(20,30,50,.14); }
+.az-main{ padding:0!important; overflow-x:clip; }
+.az-w{ width:100%; max-width:1120px; margin:0 auto; padding:0 16px; box-sizing:border-box; }
+@media (min-width:700px){ .az-w{ padding:0 24px; } } @media (min-width:1100px){ .az-w{ padding:0 32px; } }
+.az-i{ width:20px; height:20px; flex:none; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
+.az-l{ display:none!important; } :root[data-theme="light"] .az-d{ display:none!important; } :root[data-theme="light"] .az-l{ display:block!important; }
+.az-main img{ max-width:100%; height:auto; display:block; }
+.sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+.az-hero{ padding:32px 0 24px; background:radial-gradient(60% 50% at 70% 0%, rgba(3,201,136,.10), transparent 70%); overflow:clip; }
+.az-hero-grid{ display:grid; gap:32px; grid-template-columns:minmax(0,1fr); }
+.az-crumbs{ font-size:13px; line-height:18px; color:var(--ink-2); margin-bottom:16px; } .az-crumbs a{ color:var(--ink-2); }
+.az-kicker,.az-eyebrow{ display:inline-flex; align-items:center; gap:8px; font:600 12px/16px var(--font-mono, ui-monospace, monospace); letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
+.az-main h1{ font-size:clamp(40px,8vw,64px); line-height:1.05; letter-spacing:-.03em; color:var(--ink-0); margin:0 0 16px; }
+.az-sub{ font-size:17px; line-height:24px; color:var(--ink-1); margin:0 0 24px; max-width:520px; }
+.az-cta{ display:flex; gap:12px; flex-wrap:wrap; }
+.az-btn{ min-height:48px; padding:0 24px; font-size:15px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; }
+.az-fine{ margin:16px 0 0; font-size:12px; line-height:16px; color:var(--ink-2); }
+.az-in{ animation:az-up .6s var(--az-ease) both; animation-delay:var(--d,0ms); }
+@keyframes az-up{ from{ opacity:0; transform:translateY(16px); } to{ opacity:1; transform:none; } }
+
+.az-scene{ position:relative; padding-bottom:24px; min-width:0; }
+.az-frame{ margin:0; border:1px solid var(--line); border-radius:var(--az-r); overflow:hidden; background:var(--bg-1); box-shadow:var(--az-sh); min-width:0; }
+.az-bar{ display:flex; align-items:center; gap:12px; padding:8px 16px; min-height:40px; background:var(--bg-3); border-bottom:1px solid var(--line); font-size:12px; line-height:16px; color:var(--ink-2); }
+.az-bar b{ font-weight:500; color:var(--ink-1); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.az-dots{ display:flex; gap:6px; } .az-dots i{ width:8px; height:8px; border-radius:50%; background:var(--line); display:block; }
+.az-tag{ margin-left:auto; flex:none; font-size:11px; line-height:13px; padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-2); background:var(--bg-2); }
+.az-phone{ display:none; }
+.az-chartcard{ position:relative; margin-top:16px; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); padding:12px 16px 8px; box-shadow:var(--az-sh); }
+.az-chartcard .az-tag{ position:absolute; top:12px; right:12px; margin:0; }
+.az-chartcard small{ display:block; font-size:12px; line-height:16px; color:var(--ink-2); }
+.az-chart{ width:100%; height:auto; display:block; margin-top:20px; }
+.az-chart .u{ fill:var(--bull); stroke:var(--bull); } .az-chart .d{ fill:var(--bear); stroke:var(--bear); } .az-chart line{ stroke-width:1.5; }
+.az-chart .lv{ stroke:var(--gold); stroke-dasharray:4 4; stroke-width:1; opacity:.7; }
+.az-chart text{ font:11px var(--font-mono, monospace); fill:var(--ink-2); } .az-chart text.a{ fill:var(--gold); }
+@media (min-width:900px){
+  .az-hero{ padding:56px 0 40px; } .az-hero-grid{ grid-template-columns:minmax(0,5fr) minmax(0,7fr); align-items:center; gap:40px; }
+  .az-scene{ padding-bottom:0; } .az-desk{ width:100%; }
+  .az-phone{ display:block; position:absolute; right:-8px; bottom:-24px; width:28%; border:6px solid var(--bg-3); border-radius:28px; overflow:hidden; box-shadow:var(--az-sh); background:var(--bg-1); margin:0; }
+  .az-chartcard{ position:absolute; left:-24px; bottom:-32px; width:46%; margin:0; }
+  .az-hero{ padding-bottom:64px; }
+}
+
+.az-stats{ margin-top:8px; } .az-stats ul{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.az-stats li{ background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); padding:16px; }
+.az-stats b{ display:block; font-size:28px; line-height:34px; font-weight:700; color:var(--ink-0); font-variant-numeric:tabular-nums; }
+.az-stats span{ font-size:13px; line-height:18px; color:var(--ink-2); }
+@media (min-width:900px){ .az-stats ul{ grid-template-columns:repeat(6,1fr); } }
+
+.az-sec{ padding-top:72px; } .az-sec.az-w{ } 
+.az-head{ text-align:center; max-width:680px; margin:0 auto 32px; }
+.az-main h2{ font-size:clamp(24px,3.6vw,36px); line-height:1.15; letter-spacing:-.02em; color:var(--ink-0); margin:0 0 12px; text-wrap:balance; }
+.az-head p{ font-size:16px; line-height:24px; color:var(--ink-2); margin:0; }
+.az-link{ display:inline-flex; align-items:center; gap:8px; font-size:14px; line-height:20px; font-weight:600; color:var(--gold); text-decoration:none; min-height:44px; }
+@media (max-width:640px){ .az-sec{ padding-top:56px; } }
+
+.az-continue{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:var(--bg-2); border:1px solid var(--gold-dim); border-radius:var(--az-r); padding:16px 20px; margin-bottom:16px; }
+.az-continue[hidden]{ display:none; } .az-continue b{ display:block; font-size:17px; line-height:22px; color:var(--ink-0); } .az-continue span:not(.az-eyebrow){ font-size:13px; color:var(--ink-2); } .az-continue .az-eyebrow{ margin-bottom:4px; }
+.az-path{ list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+.az-step{ display:flex; gap:16px; align-items:flex-start; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); padding:20px; }
+.az-sn{ width:32px; height:32px; border-radius:50%; flex:none; display:grid; place-items:center; font-weight:700; font-size:14px; color:var(--gold); border:1px solid var(--gold-dim); }
+.az-step > div{ flex:1; min-width:0; } .az-step h3{ font-size:17px; line-height:22px; margin:0 0 4px; color:var(--ink-0); } .az-step p{ margin:0 0 8px; font-size:14px; line-height:20px; color:var(--ink-2); }
+.az-meta{ display:block; font-size:12px; line-height:16px; color:var(--ink-3); margin-bottom:4px; }
+.az-ring{ position:relative; width:56px; height:56px; flex:none; } .az-ring[hidden]{ display:none; } .az-ring svg{ width:100%; height:100%; transform:rotate(-90deg); } .az-ring circle{ fill:none; stroke-width:3.5; } .az-ring .t{ stroke:var(--line); } .az-ring .p{ stroke:var(--gold); stroke-linecap:round; }
+.az-ring b{ position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:var(--ink-0); font-variant-numeric:tabular-nums; }
+@media (min-width:900px){ .az-path{ grid-template-columns:repeat(3,1fr); } .az-step{ flex-wrap:wrap; } .az-ring{ margin-left:auto; } }
+
+.az-rail{ display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; margin:0 -16px; padding:4px 16px 16px; scroll-padding:0 16px; overscroll-behavior-x:contain; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.az-rail::-webkit-scrollbar{ height:6px; } .az-rail::-webkit-scrollbar-thumb{ background:var(--line); border-radius:3px; } .az-rail::-webkit-scrollbar-button{ display:none; }
+.az-course{ flex:0 0 78%; max-width:300px; scroll-snap-align:start; display:flex; flex-direction:column; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); overflow:hidden; text-decoration:none; color:inherit; transition:transform .25s var(--az-ease), border-color .2s; }
+.az-course:hover{ transform:translateY(-4px); border-color:var(--gold-dim); }
+.az-cv{ display:block; aspect-ratio:560/294; background:var(--bg-0); } .az-cv img{ width:100%; height:100%; object-fit:cover; }
+.az-cb{ display:flex; flex-direction:column; gap:4px; padding:16px; } .az-cb b{ font-size:17px; line-height:22px; color:var(--ink-0); } .az-cb span{ font-size:14px; line-height:20px; color:var(--ink-2); } .az-cb i{ font-style:normal; font-size:12px; line-height:16px; color:var(--gold); margin-top:4px; }
+@media (min-width:900px){ .az-rail{ display:grid; grid-template-columns:repeat(3,1fr); overflow:visible; margin:0; padding:0; gap:16px; } .az-course{ flex:none; max-width:none; } }
+
+.az-show{ display:grid; gap:24px; align-items:center; }
+@media (min-width:900px){ .az-show{ grid-template-columns:minmax(0,5fr) minmax(0,6fr); gap:40px; } }
+.az-tabs{ display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:16px; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.az-tabs button{ min-height:44px; padding:0 16px; flex:none; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--ink-1); font:600 14px/20px var(--font-body, inherit); cursor:pointer; transition:background .2s, color .2s; }
+.az-tabs button[aria-selected="true"]{ background:var(--gold); border-color:var(--gold); color:#04130d; }
+.az-showtxt p{ font-size:15px; line-height:22px; color:var(--ink-2); margin:0 0 16px; }
+.az-chl{ list-style:none; margin:0 0 16px; padding:0; border:1px solid var(--line); border-radius:var(--az-r); background:var(--bg-2); overflow:hidden; }
+.az-chl a{ display:flex; align-items:center; gap:12px; min-height:52px; padding:8px 16px; text-decoration:none; color:var(--ink-0); border-top:1px solid var(--line); } .az-chl li:first-child a{ border-top:0; }
+.az-chl a:hover{ background:var(--bg-3); } .az-chl span{ font:600 12px var(--font-mono, monospace); color:var(--gold); min-width:44px; } .az-chl b{ flex:1; min-width:0; font-weight:500; font-size:14px; line-height:20px; } .az-chl .az-i{ width:16px; height:16px; color:var(--ink-3); }
+
+.az-bento{ display:grid; gap:16px; grid-template-columns:1fr; }
+.az-tile{ display:flex; flex-direction:column; gap:8px; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); padding:20px; text-decoration:none; color:inherit; min-width:0; overflow:hidden; transition:transform .25s var(--az-ease), border-color .2s; }
+.az-tile:hover{ transform:translateY(-4px); border-color:var(--gold-dim); }
+.az-tile h3{ font-size:17px; line-height:22px; margin:0; color:var(--ink-0); } .az-tile p{ margin:0; font-size:14px; line-height:20px; color:var(--ink-2); }
+.az-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; } .az-chips i{ font-style:normal; font-size:12px; line-height:16px; padding:6px 12px; border-radius:999px; border:1px solid var(--line); color:var(--ink-1); background:var(--bg-3); }
+.az-sheets{ display:flex; gap:12px; margin-top:8px; } .az-sheets img{ width:calc(50% - 6px); border-radius:8px; border:1px solid var(--line); object-fit:cover; object-position:top; max-height:220px; }
+.az-shot{ position:relative; margin-top:8px; border-radius:12px; overflow:hidden; border:1px solid var(--line); } .az-shot .az-tag{ position:absolute; top:8px; right:8px; margin:0; }
+.az-t-ind{ justify-content:center; }
+@media (min-width:900px){ .az-bento{ grid-template-columns:repeat(6,1fr); } .az-t-gloss{ grid-column:span 3; } .az-t-sheet{ grid-column:span 3; grid-row:span 2; } .az-t-models{ grid-column:span 3; } .az-t-ind{ grid-column:span 6; flex-direction:row; align-items:center; justify-content:space-between; } }
+
+.az-search{ max-width:680px; margin:0 auto; }
+.az-search input{ width:100%; box-sizing:border-box; min-height:52px; padding:0 16px; font-size:16px; border-radius:12px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); }
+.az-search input:focus-visible,.az-main a:focus-visible,.az-main button:focus-visible,.az-main summary:focus-visible,.az-rail:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+#az-res{ list-style:none; margin:12px 0 0; padding:0; border:1px solid var(--line); border-radius:var(--az-r); background:var(--bg-2); overflow:hidden; } #az-res:empty{ display:none; }
+#az-res a{ display:flex; gap:12px; align-items:center; min-height:52px; padding:8px 16px; border-top:1px solid var(--line); color:var(--ink-0); text-decoration:none; font-size:14px; line-height:20px; } #az-res li:first-child a{ border-top:0; } #az-res a:hover{ background:var(--bg-3); }
+#az-res em{ font-style:normal; font-size:11px; line-height:13px; padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-2); flex:none; min-width:56px; text-align:center; } #az-res small{ color:var(--ink-3); display:block; font-size:12px; }
+
+.az-feat{ display:grid; gap:24px; align-items:center; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); padding:20px; }
+.az-featimg img{ width:100%; border-radius:12px; border:1px solid var(--line); } .az-feat p{ font-size:15px; line-height:22px; color:var(--ink-2); margin:0 0 20px; }
+@media (min-width:900px){ .az-feat{ grid-template-columns:5fr 6fr; padding:32px; gap:40px; } }
+
+.az-faq{ max-width:780px; margin:0 auto; display:grid; gap:12px; }
+.az-faq details{ background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); }
+.az-faq summary{ min-height:56px; padding:16px 48px 16px 20px; font-size:16px; line-height:24px; font-weight:600; color:var(--ink-0); cursor:pointer; list-style:none; position:relative; } .az-faq summary::-webkit-details-marker{ display:none; }
+.az-faq summary::after{ content:""; position:absolute; right:20px; top:50%; width:8px; height:8px; margin-top:-6px; border-right:2px solid var(--ink-2); border-bottom:2px solid var(--ink-2); transform:rotate(45deg); transition:transform .2s var(--az-ease); }
+.az-faq details[open] summary::after{ transform:rotate(-135deg); margin-top:-2px; } .az-faq .a{ padding:0 20px 20px; font-size:15px; line-height:22px; color:var(--ink-2); }
+
+.az-last{ padding-bottom:72px; }
+.az-final{ text-align:center; background:var(--bg-2); border:1px solid var(--line); border-radius:24px; padding:48px 20px; background-image:radial-gradient(60% 80% at 50% 0%, rgba(3,201,136,.12), transparent 70%); }
+.az-final p:not(.az-fine){ color:var(--ink-2); font-size:16px; line-height:24px; margin:0 0 24px; } .az-final .az-cta{ justify-content:center; } .az-final .az-fine{ max-width:520px; margin:24px auto 0; }
+
+.az-rv{ transition:opacity .7s var(--az-ease) var(--d,0ms), transform .7s var(--az-ease) var(--d,0ms); }
+.az-rv-on .az-rv:not(.is-in){ opacity:0; transform:translateY(24px); }
+@media (prefers-reduced-motion:reduce){ .az-in{ animation:none!important; } .az-rv,.az-course,.az-tile{ transition:none!important; } .az-rv-on .az-rv:not(.is-in){ opacity:1; transform:none; } }

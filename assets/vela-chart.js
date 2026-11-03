@@ -882,7 +882,7 @@ function lateLists(provider){
     .then((m) => m.mountFavToolbar(ws, Core, { toast }))
     .catch((e) => console.warn('TradeZoro: favorites toolbar', e));
   // "Chart type" grid sheet + favourites in the top bar (assets/chart-type-picker.js).
-  import('./chart-type-picker.js?v=823')
+  import('./chart-type-picker.js?v=826')
     .then((m) => m.mountChartTypePicker(ws, { toast }))
     .catch((e) => console.warn('TradeZoro: chart type picker', e));
   const mountHeavy = () => {

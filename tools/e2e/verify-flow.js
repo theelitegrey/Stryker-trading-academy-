@@ -25,8 +25,8 @@ const J = async (u, o = {}) => { const r = await fetch('https://api.mail.tm' + u
   let pass = 'Zq9!' + Math.random().toString(36).slice(2) + 'Xx';
   console.log('::add-mask::' + pass);
   try {
-    await page.goto(BASE + '/signup', { waitUntil: 'networkidle' });
-    await page.fill('#signup-name', 'Probe Test'); await page.fill('#signup-email', addr); await page.fill('#signup-password', pass);
+    await page.goto(BASE + '/signup', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3000); await page.fill('#signup-name', 'Probe Test'); await page.fill('#signup-email', addr); await page.fill('#signup-password', pass);
     await page.click('#signup-form button[type=submit]');
     await page.waitForTimeout(8000);
     await shot(page, '1-after-signup'); log('state', JSON.stringify(await state(page)));
@@ -44,7 +44,7 @@ const J = async (u, o = {}) => { const r = await fetch('https://api.mail.tm' + u
     log('link host/path', link.split('?')[0], 'continueUrl', decodeURIComponent((link.match(/continueUrl=([^&]+)/) || [])[1] || ''));
     // Test A: open link in a SECOND page of same context (same device, other tab) while first tab stays on gate
     const p2 = await ctx.newPage();
-    await p2.goto(link, { waitUntil: 'networkidle' }); await p2.waitForTimeout(2500);
+    await p2.goto(link, { waitUntil: 'domcontentloaded' }); await p2.waitForTimeout(2500);
     await shot(p2, '2-action-page'); log('action page text:', (await p2.innerText('body')).replace(/\s+/g, ' ').slice(0, 200));
     const cont = p2.locator('button, a').filter({ hasText: /continue/i }).first();
     log('continue present', await cont.count());
@@ -58,8 +58,8 @@ const J = async (u, o = {}) => { const r = await fetch('https://api.mail.tm' + u
     // fresh login on mobile after verification
     const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const mp = await mctx.newPage();
-    await mp.goto(BASE + '/login', { waitUntil: 'networkidle' });
-    await mp.fill('#login-email', addr); await mp.fill('#login-password', pass);
+    await mp.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
+    await mp.waitForTimeout(3000); await mp.fill('#login-email', addr); await mp.fill('#login-password', pass);
     await mp.click('#login-form button[type=submit]'); await mp.waitForTimeout(8000);
     await shot(mp, '5-mobile-login'); log('mobile state', JSON.stringify(await state(mp)));
   } catch (e) { log('ERROR', e.message); await shot(page, 'error').catch(() => {}); }

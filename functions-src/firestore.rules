@@ -51,7 +51,7 @@ service cloud.firestore {
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis',
-        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'];
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'];
     }
     function touchesPrivileged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -60,7 +60,7 @@ service cloud.firestore {
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis',
-        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'
       ]);
     }
     function createsPrivileged() {
@@ -69,7 +69,7 @@ service cloud.firestore {
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
-        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'
       ]);
     }
 
@@ -2125,6 +2125,67 @@ service cloud.firestore {
     match /suggestBans/{uid} {
       allow get: if isSelf(uid) || isAdmin();
       allow list, write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // PARTNER PROGRAMME (2026-11-03) - NEW, FOR COS REVIEW + PUBLISH
+    // partners/{uid}: one application per member (partner.html). The member creates it with ONLY the
+    // application fields + agreedAt, reads it, and appends weekly post links (partners/{uid}/weeks/{isoWeek}: https,
+    // max 10 a week, append-only). status, approvedAt, reviewNote, proUntil and every other field are
+    // written only by the Cloud Functions partnerAdmin / partnerLeave (Admin SDK), never by a client,
+    // not even an admin's browser. A closed application (rejected/ended/left) can be deleted by its
+    // owner once reapplyAfterMillis has passed, which is how "re-apply after 30 days" works.
+    // The follower minimum is NOT checked here (assets/partner-terms.js owns every number); the admin
+    // sees the count and decides. students.partner / planSource are in privilegedKeys above.
+    // ---------------------------------------------------------------------
+    match /partners/{uid} {
+      function pUrl(u) { return u is string && u.matches('^https://[^ ]{4,300}$'); }
+      function pAt(l, i) { return l.size() <= i || pUrl(l[i]); }
+      function pLinks10(l) {
+        return l is list && l.size() <= 10 && pAt(l, 0) && pAt(l, 1) && pAt(l, 2) && pAt(l, 3) && pAt(l, 4)
+          && pAt(l, 5) && pAt(l, 6) && pAt(l, 7) && pAt(l, 8) && pAt(l, 9);
+      }
+      function validApplication(d) {
+        return d.keys().hasOnly(['platform', 'handle', 'profileUrl', 'followers', 'postLinks', 'why', 'agreedAt'])
+          && d.keys().hasAll(['platform', 'handle', 'profileUrl', 'followers', 'postLinks', 'why', 'agreedAt'])
+          && d.platform in ['instagram', 'x', 'youtube', 'tiktok']
+          && d.handle is string && d.handle.size() >= 1 && d.handle.size() <= 60
+          && pUrl(d.profileUrl)
+          && d.followers is int && d.followers >= 0 && d.followers <= 1000000000
+          && d.postLinks is list && d.postLinks.size() == 3 && pAt(d.postLinks, 0) && pAt(d.postLinks, 1) && pAt(d.postLinks, 2)
+          && d.why is string && d.why.size() >= 1 && d.why.size() <= 600
+          && d.agreedAt == request.time;
+      }
+      allow read: if isSelf(uid) || isAdmin();
+      allow create: if isSelf(uid) && validApplication(request.resource.data);
+      // No member update on the application itself: weekly links go to the weeks subcollection below.
+      allow delete: if isSelf(uid)
+        && resource.data.get('status', 'pending') in ['rejected', 'ended', 'left']
+        && resource.data.get('reapplyAfterMillis', 9999999999999) <= request.time.toMillis();
+
+      // Weekly post links: partners/{uid}/weeks/{2026-W45} = { links: [https urls, max 10], updatedAt }.
+      // Only while the partnership is active or paused. Append-only: the list may grow and must keep
+      // what was there. (A subcollection, because rules cannot read the one changed key of a map.)
+      match /weeks/{wk} {
+        function wkOk(d) {
+          return d.keys().hasOnly(['links', 'updatedAt']) && d.keys().hasAll(['links', 'updatedAt'])
+            && d.links is list && d.links.size() >= 1 && pLinks10(d.links)
+            && d.updatedAt == request.time;
+        }
+        function partnerOpen() {
+          return get(/databases/$(database)/documents/partners/$(uid)).data.get('status', 'pending') in ['active', 'paused'];
+        }
+        allow read: if isSelf(uid) || isAdmin();
+        allow create: if isSelf(uid) && wk.matches('^20[0-9][0-9]-W(0[1-9]|[1-4][0-9]|5[0-3])$') && partnerOpen() && wkOk(request.resource.data);
+        allow update: if isSelf(uid) && partnerOpen() && wkOk(request.resource.data)
+          && request.resource.data.links.size() >= resource.data.links.size()
+          && request.resource.data.links[0:resource.data.links.size()] == resource.data.links;
+      }
+    }
+    // Audit trail written by partnerAdmin / partnerLeave. Admins read it; nobody writes from a browser.
+    match /partnerLog/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // ---------------------------------------------------------------------

@@ -1,0 +1,52 @@
+name: Firebase deploy (rules + named functions)
+# Runs on a push to fbdeploy/** (the CoS pushes one when rules or functions change).
+# Deploys from GitHub's machines because Google refuses some admin calls from our server's address.
+# 1) tests the new Firestore rules against the rules tests in tools/tests/*-rules-test.py,
+# 2) deploys firestore:rules, 3) deploys the functions named in .github/fbdeploy-functions.txt.
+on:
+  push:
+    branches: ['fbdeploy/**']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
+      P: strykertrades-e0cd8
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Access token
+        run: |
+          python3 - <<'EOF'
+          import json,os,urllib.request,urllib.parse
+          d=urllib.parse.urlencode({'grant_type':'refresh_token','refresh_token':os.environ['FIREBASE_TOKEN'],'client_id':'563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com','client_secret':'j9iVZfS8kkCEFUPaAeJV0sAi'}).encode()
+          t=json.load(urllib.request.urlopen('https://oauth2.googleapis.com/token',d))['access_token']
+          print('::add-mask::'+t)
+          open('/tmp/fbtok','w').write(t)
+          EOF
+      - name: Rules tests
+        run: |
+          set -e
+          for t in tools/tests/screens-rules-test.py tools/tests/partners-rules-test.py; do
+            [ -f "$t" ] || continue
+            echo "== $t"
+            FB_TOKEN_FILE=/tmp/fbtok python3 "$t" functions-src/firestore.rules | tee /tmp/out.txt | tail -5
+            python3 -c "import re,sys;m=re.search(r'([0-9]+)/([0-9]+) passed',open('/tmp/out.txt').read());sys.exit(0 if m and m.group(1)==m.group(2) else 1)" || { echo "::error::rules test failed: $t"; exit 1; }
+          done
+      - name: Deploy rules + functions
+        run: |
+          set -e
+          mkdir -p /tmp/fb && cd /tmp/fb
+          cp -r "$GITHUB_WORKSPACE/functions-src" ./functions
+          cp functions/firestore.rules ./firestore.rules
+          [ -f functions/firestore.indexes.json ] && cp functions/firestore.indexes.json ./ || echo '{"indexes":[],"fieldOverrides":[]}' > firestore.indexes.json
+          printf '{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"functions":{"source":"functions"}}' > firebase.json
+          (cd functions && npm ci --omit=dev --no-audit --no-fund >/dev/null 2>&1 || npm install --omit=dev --no-audit --no-fund >/dev/null)
+          npx --yes firebase-tools@13 deploy --project "$P" --only firestore:rules --non-interactive --token "$FIREBASE_TOKEN"
+          FN=$(tr -s ' \n' ',' < "$GITHUB_WORKSPACE/.github/fbdeploy-functions.txt" | sed 's/^,//;s/,$//;s/[^,][^,]*/functions:&/g')
+          if [ -n "$FN" ]; then npx --yes firebase-tools@13 deploy --project "$P" --only "$FN" --non-interactive --force --token "$FIREBASE_TOKEN"; fi

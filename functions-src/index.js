@@ -188,6 +188,7 @@ Object.assign(exports, require('./freeCheckout'));
 Object.assign(exports, require('./referralPoints'));
 Object.assign(exports, require('./xAutopost'));
 Object.assign(exports, require('./accountAdmin'));
+Object.assign(exports, require('./partnerAdmin'));   // Partner programme: partnerAdmin, partnerLeave
 Object.assign(exports, require('./chapterGate'));
 exports.onContactMessageCreated = require('./onContactMessageCreated').onContactMessageCreated;
 exports.supportTicketAction = require('./supportTickets').supportTicketAction;

@@ -7,7 +7,7 @@
 //      toolbar as a small coloured dot + short countdown ("● Asia 4m"); tap it for the full text;
 //   3. the grey footnote strip under the chart is hidden; its text (kept live: it follows the
 //      symbol, chart-data-dot.js) is shown in the ⓘ Symbol info panel and the Credits popover;
-//   4. the bottom nav (Charts / GEX / Journal / Learn / More) hides; a small handle at the bottom
+//   4. the bottom nav (Charts / GEX / Journal / ZoroAcademy / More) hides; a small handle at the bottom
 //      edge (tap, or swipe up from the bottom) brings it back over the chart; it hides again after
 //      a few seconds without a touch on it, or on a tap anywhere on the chart;
 //   5. the favourites drawing bar starts folded (assets/chart-fav-toolbar.js).

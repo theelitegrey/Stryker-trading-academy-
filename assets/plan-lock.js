@@ -118,11 +118,12 @@
       '<p class="plan-lock-price" hidden></p>' +
       '<ul class="plan-lock-list">' + c.bullets(n).map(function () { return '<li>' + TICK_SVG + '<span></span></li>'; }).join('') + '</ul>' +
       '<a class="btn btn-primary plan-lock-cta" href="#" data-open-plan-modal>Get Pro</a>' +
+      '<a class="plan-lock-back" href="/pro">What\'s in Pro?</a>' +
       '<a class="plan-lock-back" href="/pricing">See all plans</a>' +
       (opts.back ? '<a class="plan-lock-back" href="#"></a>' : '') +
       '<p class="plan-lock-edu">Education only. Not financial advice.</p>';
     if (opts.back) {
-      var bk = el.querySelectorAll('.plan-lock-back')[1];
+      var bk = el.querySelectorAll('.plan-lock-back')[2];
       bk.href = opts.back.href; bk.textContent = opts.back.label;
     }
     el.querySelector('h3').textContent = title;

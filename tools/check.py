@@ -626,6 +626,41 @@ def check_app_shell_browser():
         fail('app-shell-audit.js failed:\n' + '\n'.join('      ' + l for l in (r.stdout + r.stderr).strip().splitlines()[-25:]))
 
 
+def check_pro_features():
+    """/pro never goes stale: every Pro-gated tool id (chart-pro-gate.js OF_TYPES + GEX_TYPES, registerFeed types, setPanel ids)
+    must appear in the ids of an item in assets/pro-features-data.js, and /pro must show no price."""
+    try:
+        r = subprocess.run(['node', '-e', "const d=require('./assets/pro-features-data.js');console.log(JSON.stringify(d.items))"],
+                           capture_output=True, text=True, cwd=ROOT, timeout=30)
+        items = json.loads(r.stdout)
+    except Exception as exc:
+        fail(f'pro features check could not run ({exc})')
+        return
+    have = {i for it in items for i in it.get('ids', [])}
+    gate = open(os.path.join(ROOT, 'assets', 'chart-pro-gate.js'), encoding='utf-8').read()
+    need = set()
+    for name in ('OF_TYPES', 'GEX_TYPES'):
+        m = re.search(name + r"\s*=\s*\[(.*?)\]", gate, re.S)
+        need |= set(re.findall(r"'([a-z0-9_]+)'", m.group(1))) if m else set()
+    for f in glob.glob(os.path.join(ROOT, 'assets', '*.js')):
+        t = open(f, encoding='utf-8').read()
+        need |= set(re.findall(r"registerFeed\(\s*'([a-z0-9_]+)'", t))
+        need |= set(re.findall(r"registerFeed\(\s*([A-Z][A-Z0-9_]+)\s*,", t))
+        need |= set(re.findall(r"setPanel\(\s*'([a-z0-9_]+)'", t))
+    consts = {}
+    for f in glob.glob(os.path.join(ROOT, 'assets', '*.js')):
+        for k, v in re.findall(r"\b([A-Z][A-Z0-9_]+)\s*=\s*'(stk_[a-z0-9_]+)'", open(f, encoding='utf-8').read()):
+            consts[k] = v
+    need = {consts.get(n, n) for n in need}
+    need = {n for n in need if re.match(r'^(stk_|dom_ladder)', n)}
+    for n in sorted(need - have):
+        fail(f'Pro tool id {n} is missing from assets/pro-features-data.js (add it to an item so /pro lists it)')
+    if os.path.exists(os.path.join(ROOT, 'pro.html')):
+        html = open(os.path.join(ROOT, 'pro.html'), encoding='utf-8').read() + open(os.path.join(ROOT, 'assets', 'pro-features-data.js'), encoding='utf-8').read() + open(os.path.join(ROOT, 'assets', 'pro-page.js'), encoding='utf-8').read()
+        if '$' in re.sub(r"\$\{|\$'", '', html).replace('$(', ''):
+            fail('pro.html / pro-page.js / pro-features-data.js contain a "$": /pro shows no prices')
+
+
 def main():
     import time
     from concurrent.futures import ThreadPoolExecutor
@@ -642,7 +677,7 @@ def main():
     version = timed(check_version_consistency)
     # all checks are independent read-only scans (failures are sorted by check order below); the
     # two browser checks start first so they overlap the rest
-    order = [check_app_shell_browser, check_drawer_touch, check_roadmap_log, check_roadmap_cards,
+    order = [check_pro_features, check_app_shell_browser, check_drawer_touch, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

@@ -88,7 +88,7 @@
 
   // ---------------------------------------------------------------- comparison (B)
   var GROUPS = [
-    ['Learn', [
+    ['ZoroAcademy', [
       ['Curriculum chapters', '@free-ch', 'All 64'],
       ['Volume Profile and Prop Firm tracks', false, true],
       ['Progress dashboard, achievements, streak', true, true]]],
@@ -232,11 +232,12 @@
     root.innerHTML =
       '<div class="pv-hero">' +
         '<div class="pv-hero-l">' +
-          '<span class="pv-pill">Order flow + GEX+, more coming</span>' +
+          '<span class="pv-pill">Order book, order flow and GEX+</span>' +
           '<h3>' + esc(proName) + '</h3>' +
           heroPriceHtml(P.pro) +
           yearlyLine(P) +
           '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary pv-cta-xl" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
+          '<a href="/pro" class="pp-see">See everything in Pro →</a>' +
           '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime. Live CME futures data is a separate $7/month add-on.</p>' +
         '</div>' +
         '<ul class="pv-icons">' + feats + '</ul>' +

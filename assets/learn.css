@@ -123,3 +123,12 @@
 @media (prefers-reduced-motion:reduce){
   .lx-ix [data-step], .lx-ix [data-mode], .lx-ix [data-variant]{ transition:none; }
 }
+
+/* ZoroAcademy eyebrow, same pattern as the product names in the nav */
+.lx-eyebrow{ font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); margin:0 0 8px; font-weight:700; }
+
+.ac-wrap{ max-width:1040px; }
+.ac-grid{ grid-template-columns:1fr; }
+@media (min-width:640px){ .ac-grid{ grid-template-columns:1fr 1fr; } }
+@media (min-width:1000px){ .ac-grid{ grid-template-columns:repeat(3,1fr); } }
+.ac-card{ height:100%; box-sizing:border-box; }

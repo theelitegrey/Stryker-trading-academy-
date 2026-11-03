@@ -2,6 +2,7 @@
  "_readme": "Pages the app-shell audit treats specially. marketing = intentionally marketing-only even when signed in (reason required). dual = public + app pages: signed in = app shell, signed out = marketing header + footer. ignore = link targets that are not browsed pages (auth, sign-out landing, etc.).",
  "marketing": {
   "toast-demo": "internal demo, noindex",
+  "pro": "public Everything-in-Pro page, linked from pricing and the paywalls; homepage-style marketing header like pricing",
   "pricing": "public plans page reached from paywalls; homepage-style marketing header like index",
   "features/backtesting": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
   "features/gex": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
@@ -14,6 +15,7 @@
  "dual": {
   "suggestions": "public ideas board; app shell when signed in",
   "support": "public Support page",
+  "academy": "ZoroAcademy hub (SEO)",
   "learn": "public free articles index (SEO)",
   "learn-fair-value-gap": "SEO article",
   "learn-order-blocks": "SEO article",

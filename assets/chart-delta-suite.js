@@ -8,10 +8,10 @@
 // with the same plan + delay rules and the same refresh timers (no polling of its own). Nothing is
 // estimated from candles: a symbol without trade data shows a note instead.
 // Depends on: assets/chart-delta-suite-data.js (maths), hooks handed over by installFootprint().
-import { registerFeed } from './chart-feeds.js?v=825';
-import { liveVisible as l1Visible, l2Root, L2_TYPES, acquire, rootState, fillGap } from './chart-futures-l2.js?v=825';
-import { aggregate, clipTo } from './chart-footprint-data.js?v=825';
-import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=825';
+import { registerFeed } from './chart-feeds.js?v=829';
+import { liveVisible as l1Visible, l2Root, L2_TYPES, acquire, rootState, fillGap } from './chart-futures-l2.js?v=829';
+import { aggregate, clipTo } from './chart-footprint-data.js?v=829';
+import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=829';
 
 export const DS_TYPE = 'stk_dsuite';
 export const DP_TYPE = 'stk_dpane';
@@ -76,7 +76,7 @@ const VELA090 = typeof window !== 'undefined' && window.__stkVela090 === true;
 //   REST+hub the same, with the forming + previous minute taken from the hub ticks  -> "Delta" / "Delta: pane" on a hub symbol (live)
 //   hub      the L2 feed's minutes only (3 h of the hub's footprint + every tick)    -> "Delta (L2)" / "Delta pane (L2)"
 // The hub's minute bars (chart-futures-l2.js TickFeed.bars()) have the exact shape of the REST ones, so the maths and the drawing are untouched.
-const hubNote = (ctx) => (!l1Visible() ? 'Delta (L1) is part of Pro.' : !l2Root(ctx.symbol) ? 'Delta (L1): NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.' : '');
+const hubNote = (ctx) => (!l1Visible() ? '' : !l2Root(ctx.symbol) ? 'Delta (L1): NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.' : '');
 function hubOut(root, tf, feed, restMins, E) {
   const hub = feed.bars().filter((b) => b.t >= feed.coverFrom);
   let mins = hub;
@@ -131,26 +131,26 @@ class Base {
       if (!this.hubRoot || E != null || !f.mins || f.crypto || !bars.length) return f;
       return this.fromHub(f, bars, f.mins, f);
     }
-    if (!bars.length || this.hubNote()) return { note: this.hubNote() || '', list: [], map: new Map() };
+    if (!bars.length || this.hubNote() || !l1Visible()) return { note: this.hubNote() || '', list: [], map: new Map() };
     return this.fromHub(null, bars, null, { tick: 0, thr: 0 });
   }
   hubNote() { return hubNote(this.ctx); }
   fromHub(rest, bars, restMins, base) {
     const feed = this.hubRoot && rootState(this.hubRoot).trades;
     const tf = H.tfMin(this.ctx.timeframe), E = this.replayOn();
-    if (!feed) return rest || { note: 'Waiting for L2 trades…', list: [], map: new Map() };
+    if (!feed) return rest || { note: '', list: [], map: new Map() };
     const key = this.hubRoot + '|' + tf + '|' + feed.v + '|' + (rest ? rest.mins.length + ':' + (rest.mins[rest.mins.length - 1] || {}).vol : '') + '|' + (E == null ? '' : Math.floor(E / 60000));
     if (this.memo && this.memo.key === key) return this.memo.out;
     const list = hubOut(this.hubRoot, tf, feed, restMins, E), map = new Map();
     for (const b of list) map.set(b.t, b);
     const st = rootState(this.hubRoot).status;
-    const note = list.length ? '' : st === 'live' ? 'Waiting for L2 trades…' : st === 'error' ? 'L2 feed unavailable right now' : 'Connecting to the L2 feed…';
+    const note = !list.length && st === 'error' ? 'L1 trades unavailable right now' : '';   // no transient 'Connecting…' text on the canvas (it sat under Fit price / Latest); the chip dot shows live / reconnecting
     const out = { map, list, mins: restMins || list, tick: feed.tick, thr: base.thr || 0, note, free: false, loading: !list.length && st !== 'error' };
     this.memo = { key, out };
     return out;
   }
   msgs(f) {
-    if (this.l2) return f.note ? [note(this.type + '-msg', f.note, !l1Visible())] : [];
+    if (this.l2) return f.note ? [note(this.type + '-msg', f.note, false)] : [];
     if (!H.rootOf(this.ctx)) return [note(this.type + '-msg', NO_DATA)];
     return f.note ? [note(this.type + '-msg', f.note, f.locked)] : [];
   }

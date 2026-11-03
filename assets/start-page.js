@@ -48,7 +48,7 @@
     { id: 'charts',    label: 'ZoroCharts',    path: '/charts.html',         access: null },
     { id: 'gex',       label: 'GEX+',      path: '/gex.html',            access: null },
     { id: 'journal',   label: 'JournalX',   path: '/trade-journal.html',  access: 'trade-journal' },
-    { id: 'learn',     label: 'Learn',     path: '/courses.html',        access: 'curriculum' },
+    { id: 'learn',     label: 'ZoroAcademy',     path: '/courses.html',        access: 'curriculum' },
     { id: 'replay',    label: 'Replay One',    path: '/replay.html',         access: null }
   ];
   var CACHE = 'tz_start_page';

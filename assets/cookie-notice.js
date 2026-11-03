@@ -11,7 +11,7 @@
   window.tzConsent={get:get};
   if(window.self!==window.top||get())return;
   if(/^\/(overlay|stream-overlay|terminal)(\.html)?$/.test(location.pathname))return;
-  var css='.tzc{position:fixed;z-index:2147483000;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:420px;box-sizing:border-box;padding:14px 16px;border-radius:16px;'
+  var css='.tzc{position:fixed;z-index:2147483000;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:420px;box-sizing:border-box;padding:14px 16px;border-radius:16px;'+''
   +'background:rgba(19,19,22,.78);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);border:1px solid rgba(255,255,255,.09);box-shadow:0 12px 40px rgba(0,0,0,.45);'
   +'color:#c9cdd3;font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;opacity:0;transform:translateY(16px);transition:opacity .25s ease,transform .25s ease}'
   +'.tzc.on{opacity:1;transform:none}.tzc.off{opacity:0;transform:translateY(16px)}'
@@ -26,6 +26,9 @@
   +'.tzc-d li{padding:8px 0;border-bottom:1px solid rgba(127,127,127,.14)}.tzc-d b{color:inherit}'
   +'.tzc a.tzc-l{color:#03c988;padding:0;justify-content:flex-start}'
   +'@media(min-width:700px){.tzc{right:auto;left:20px;bottom:20px}}'
+  +'body:has(.sidebar.mobile-open) .tzc.on,body.sidebar-locked .tzc.on{opacity:0;pointer-events:none;transform:translateY(16px)}'
+  +'@media(max-width:820px){body.nav-authed .tzc,body.has-appdock .tzc{bottom:calc(84px + env(safe-area-inset-bottom))}}'
+  +'body:has(#appnav-sheet.open) .tzc.on{opacity:0;pointer-events:none}'
   +'@media(prefers-reduced-motion:reduce){.tzc{transition:none;transform:none}}';
   function show(){
     if(document.querySelector('.tzc'))return;

@@ -34,7 +34,7 @@ const stub = '(' + function () {
   }
   if (sc.startsWith('admin')) {
     put('partners/u1', Object.assign({}, APP, { status: 'pending' }));
-    put('partners/u2', Object.assign({}, APP, { handle: '@dev.trades', platform: 'x', followers: 640, status: 'pending' }));
+    put('partners/u2', Object.assign({}, APP, { handle: '@dev.trades', platform: 'x', followers: 60, status: 'pending' }));
     put('partners/u3', Object.assign({}, APP, { handle: '@samflow', platform: 'youtube', followers: 18000, status: 'active', approvedAtMillis: NOW - 40 * D, proUntil: NOW + 3 * D }));
     put('partners/u3/weeks/' + cur, { links: L(2) }); put('partners/u3/weeks/' + w1, { links: L(1) }); put('partners/u3/weeks/' + w2, { links: L(0) }); put('partners/u3/weeks/' + w3, { links: L(2) });
     put('partners/u4', Object.assign({}, APP, { handle: '@anacruz', platform: 'tiktok', status: 'paused', approvedAtMillis: NOW - 60 * D, proUntil: NOW + 6 * D, reviewNote: 'Bio line missing.' }));
@@ -97,7 +97,7 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++
       const txt = await page.evaluate(() => document.getElementById('main').innerText);
       ok(!/\$\s?\d/.test(txt), tag + ' ' + sc + ' no $ amount on the page');
       if (sc === 'none') {
-        ok(/Become a TradeZoro Partner, get Pro free/.test(txt) && /1,000 followers/.test(txt) && /at least 2 times a week/.test(txt), tag + ' apply: hero + terms from constants');
+        ok(/Become a TradeZoro Partner, get Pro free/.test(txt) && /100 followers/.test(txt) && /at least 2 times a week/.test(txt), tag + ' apply: hero + terms from constants');
         if (theme === 'dark' || vp.w > 700) {}
         await page.screenshot({ path: path.join(SHOTS, tag + '-1-apply-top.png') });
         await page.evaluate(() => document.getElementById('pt-form').scrollIntoView());
@@ -106,9 +106,9 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++
         await page.evaluate(() => { window.__writes.length = 0; });
         await page.click('#pt-submit');
         ok(await page.evaluate(() => document.getElementById('pt-form-error').textContent.length > 0) && await page.evaluate(() => window.__writes.length === 0), tag + ' empty form: error, no write');
-        await page.fill('#pt-handle', '@marketminded'); await page.fill('#pt-profile', 'https://instagram.com/marketminded'); await page.fill('#pt-followers', '500');
+        await page.fill('#pt-handle', '@marketminded'); await page.fill('#pt-profile', 'https://instagram.com/marketminded'); await page.fill('#pt-followers', '50');
         await page.click('#pt-submit');
-        ok(/at least 1,000/.test(await page.textContent('#pt-form-error')), tag + ' under 1,000 followers refused');
+        ok(/at least 100/.test(await page.textContent('#pt-form-error')), tag + ' under 100 followers refused');
         await page.fill('#pt-followers', '4200');
         for (let i = 0; i < 3; i++) await page.fill('#pt-post-' + i, i === 2 ? 'http://x.com/insecure' : 'https://instagram.com/p/' + i);
         await page.fill('#pt-why', 'I post futures breakdowns.');
@@ -165,7 +165,7 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++
     await page.waitForTimeout(300);
     await noOverflow('admin');
     ok(await page.locator('.pa-card').count() === 2, tag + ' admin: 2 pending cards');
-    ok(await page.locator('.pa-card', { hasText: 'Under 1,000' }).count() === 1, tag + ' admin: under-1,000 flag on Dev');
+    ok(await page.locator('.pa-card', { hasText: 'Under 100 ' }).count() === 1, tag + ' admin: under-100 flag on Dev');
     await page.screenshot({ path: path.join(SHOTS, tag + '-4-admin-pending.png') });
     await page.click('[data-tab="active"]');
     const a = await page.textContent('.pa-card');

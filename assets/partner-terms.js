@@ -5,7 +5,7 @@
 (function (root) {
   'use strict';
   var PARTNER_TERMS = {
-    minFollowers: 1000,
+    minFollowers: 100,
     minAccountMonths: 3,
     postsPerWeek: 2,
     maxLinksPerWeek: 10,

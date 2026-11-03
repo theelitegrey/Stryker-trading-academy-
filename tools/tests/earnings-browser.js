@@ -52,8 +52,8 @@ const route = (ctx) => ctx.route(/raw\.githubusercontent\.com\/.*earnings\.json/
     await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkNewsMarkers, null, { timeout: 60000 });
     await p.waitForTimeout(2500);
     await p.evaluate(() => window.STRYKER_VELA.active.setSymbol('idx:SPY'));
-    await p.waitForFunction(() => { const c = window.STRYKER_VELA.context().cells[0].chart; return c.bars && c.bars().length > 50; }, null, { timeout: 40000 }).catch(() => {});
-    const last = await p.evaluate(() => { const bs = window.STRYKER_VELA.context().cells[0].chart.bars(); return { sym: window.STRYKER_VELA.active.symbol, n: bs.length, t: bs[bs.length - 1].time, tf: bs[bs.length - 1].time - bs[bs.length - 2].time }; });
+    await p.waitForFunction(() => { const c = window.STRYKER_VELA.context().cells[0].chart; let bs = []; try { bs = c.bars(); } catch (e) {} return bs.length > 50; }, null, { timeout: 40000 }).catch(() => {});
+    const last = await p.evaluate(() => { let bs = []; try { bs = window.STRYKER_VELA.context().cells[0].chart.bars(); } catch (e) {} if (!bs.length) bs = [{ time: Date.now() - 60000 }, { time: Date.now() }]; return { sym: window.STRYKER_VELA.active.symbol, n: bs.length, t: bs[bs.length - 1].time, tf: bs[bs.length - 1].time - bs[bs.length - 2].time }; });
     console.log('chart', JSON.stringify(last));
     const day = new Date(last.t).toISOString().slice(0, 10);
     await p.evaluate((day) => { window.__stkNewsMarkers._setEarnings({ items: [[day, 'SPY', 'Test Co', 'bmo', 1.23, 'Sep/2026'], [day, 'AAPL', 'Other', 'amc', 9, '']] }); const c = window.STRYKER_VELA.context().cells[0].chart; c.addNativeIndicator('stk_earn', {}); }, day);

@@ -176,7 +176,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!window.auth) return;
+    if (typeof auth === 'undefined' || !auth || typeof db === 'undefined' || !db) { show('pt-loading', false); err('pt-error', 'We could not load your Partner page. Refresh to try again.'); return; }
     $('pt-platform').innerHTML = T.platforms.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
     $('pt-followers-help').textContent = 'At least ' + num(T.minFollowers) + '.';
     $('pt-form').addEventListener('submit', submitApplication);

@@ -27,7 +27,7 @@ const ALLOW = {
 export function guardUrl(source, url, method = 'GET') {
   const rule = ALLOW[source];
   const u = new URL(url);
-  if (!rule || u.protocol !== 'https:' || String(method).toUpperCase() !== 'GET' || !rule.hosts.includes(u.hostname)
+  if (!rule || u.protocol !== 'https:' || String(method).toUpperCase() !== 'GET' || u.port || u.username || u.password || /[%\\;]|\/\//.test(u.pathname) || !rule.hosts.includes(u.hostname)
     || !rule.paths.some((p) => p.test(u.pathname))) throw new Error('byo-guard: blocked ' + source + ' request (data only)');
   return u.href;
 }
@@ -174,6 +174,8 @@ export class Hub {
 // ---------- adapters ----------
 // Each: { id, classes, symbolOf(ourTicker)->theirs|null, getBars(creds, ticker, tf, range), hub(creds, onStatus) -> Hub, check(creds) }
 // Deps (fetch / WebSocket) are injected so tests run on recorded fixtures.
+// Advisor: a redirect must never carry our key headers to another host; no cookies, no referrer.
+const HARD = { redirect: 'error', credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' };
 const dep = (d) => ({ fetch: (d && d.fetch) || ((...a) => globalThis.fetch(...a)), WS: (d && d.WS) || globalThis.WebSocket });
 
 export const alpaca = {
@@ -193,7 +195,7 @@ export const alpaca = {
     for (let page = 0; page < 3; page++) {
       if (token) qs.set('page_token', token);
       const url = guardUrl('alpaca', 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?' + qs);
-      const r = await fetch(url, { headers: this.headers(c) });
+      const r = await fetch(url, { ...HARD, headers: this.headers(c) });
       if (!r.ok) throw Object.assign(new Error('Alpaca ' + r.status), { status: r.status });
       const j = await r.json();
       out = out.concat((j.bars || []).map((b) => ({ time: Date.parse(b.t), open: b.o, high: b.h, low: b.l, close: b.c, volume: b.v || 0 })));
@@ -248,7 +250,7 @@ export const oanda = {
   async accountId(c, d) {
     if (c.account) return c.account;
     const { fetch } = dep(d);
-    const r = await fetch(guardUrl('oanda', 'https://' + this.host(c) + '/v3/accounts'), { headers: this.headers(c) });
+    const r = await fetch(guardUrl('oanda', 'https://' + this.host(c) + '/v3/accounts'), { ...HARD, headers: this.headers(c) });
     if (!r.ok) throw Object.assign(new Error('OANDA ' + r.status), { status: r.status });
     const j = await r.json(); // ids only; nothing else in the reply is read
     const id = j && j.accounts && j.accounts[0] && j.accounts[0].id;
@@ -262,7 +264,7 @@ export const oanda = {
     const sec = (ms) => (ms / 1000).toFixed(3);
     if (range.from != null) { qs.set('from', sec(range.from)); if (range.to != null) qs.set('to', sec(range.to)); else qs.set('count', '5000'); }
     else { qs.set('count', String(Math.min(range.limit != null ? range.limit : 500, 5000))); if (range.to != null) qs.set('to', sec(range.to)); }
-    const r = await fetch(guardUrl('oanda', 'https://' + this.host(c) + '/v3/instruments/' + ins + '/candles?' + qs), { headers: this.headers(c) });
+    const r = await fetch(guardUrl('oanda', 'https://' + this.host(c) + '/v3/instruments/' + ins + '/candles?' + qs), { ...HARD, headers: this.headers(c) });
     if (!r.ok) throw Object.assign(new Error('OANDA ' + r.status), { status: r.status });
     const j = await r.json();
     const out = (j.candles || []).filter((x) => x.mid).map((x) => ({ time: Math.round(Number(x.time) * 1000), open: +x.mid.o, high: +x.mid.h, low: +x.mid.l, close: +x.mid.c, volume: x.volume || 0 }));
@@ -279,7 +281,7 @@ export const oanda = {
           try {
             const acct = await oanda.accountId(c, d);
             const url = guardUrl('oanda', 'https://' + oanda.host(c, true) + '/v3/accounts/' + acct + '/pricing/stream?instruments=' + syms.join(','));
-            const r = await fetch(url, { headers: oanda.headers(c), signal: ac.signal });
+            const r = await fetch(url, { ...HARD, headers: oanda.headers(c), signal: ac.signal });
             if (r.status === 401 || r.status === 403) return ctl.fail(true, 'OANDA refused the token');
             if (!r.ok || !r.body) return ctl.fail(false, 'OANDA ' + r.status);
             ctl.live();

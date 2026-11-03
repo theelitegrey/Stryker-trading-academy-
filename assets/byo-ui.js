@@ -198,7 +198,7 @@ export function mountByo(opts = {}) {
         inputs[f.k].setAttribute('aria-invalid', miss ? 'true' : 'false');
         if (miss && !bad) bad = f;
       });
-      if (bad) { err.textContent = 'Enter your ' + bad.label.toLowerCase() + '.'; err.hidden = false; inputs[bad.k].focus(); return; }
+      if (bad) { err.textContent = 'Enter your ' + bad.label.replace(/^API/, 'API') + '.'; err.hidden = false; inputs[bad.k].focus(); return; }
       if (s.id === 'oanda' && creds.account && !/^\d{3}-\d{3}-\d{4,}-\d{3}$/.test(creds.account)) { err.textContent = 'Account ID looks like 101-001-1234567-001.'; err.hidden = false; inputs.account.focus(); return; }
       err.hidden = true; submit.disabled = true; submit.textContent = 'Checking…';
       try { await connect(s.id, creds); Object.values(inputs).forEach((i) => { i.value = ''; }); go('manage', s); }

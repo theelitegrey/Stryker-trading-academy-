@@ -27,7 +27,7 @@ export function setPanel(id, on, o) { if (on) panels.set(id, Object.assign({ nee
 
 // What the plan includes, from the market kind + the existing gates (l2Visible for futures, Pro for crypto books). Never changes who gets what.
 export function haveFor({ mkt, l2, free }) {
-  return { L1: true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto' ? !free : false, L3: false };
+  return { L1: mkt === 'futures' ? !free : true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto' ? !free : false, L3: false };
 }
 export const bestOf = (have) => (have.L2 ? 'L2' : 'L1');
 export const reasonFor = (lvl, have) => (lvl === 'L3' ? L3_SOON : 'Needs ' + lvl + ' (' + LEVELS[lvl].short + '). It is part of Pro.');
@@ -89,18 +89,27 @@ export function mountFeedBadges(ws) {
     types.forEach((t) => { const r = reg.get(t); if (r && (!r.mkt || r.mkt === mkt)) used.push({ id: t, title: r.title, needs: r.needs }); });
     panels.forEach((p, id) => { if (!p.mkt || p.mkt === mkt) used.push({ id, title: p.title, needs: p.needs }); });
     const free = isFree();
-    let l2 = false; try { l2 = !!(window.STRYKER_L2_OK && window.STRYKER_L2_OK()); } catch (e) {}
+    let l2 = false; try { l2 = !!((window.STRYKER_L2_BADGE || window.STRYKER_L2_OK)()); } catch (e) {}
     return { sym, mkt, used, have: haveFor({ mkt, l2, free }) };
   };
   const unlock = (reason) => { if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(reason); };
 
+  // Chips sit top-left, just under the symbol legend + indicator rows (they can fold), so the pencil FAB, GEX pill, Fit price / Latest and the delayed pill never cover them.
+  function place() {
+    const hr = host.getBoundingClientRect(); let b = 0;
+    host.querySelectorAll('.vela-statusline, .vela-ind-fold').forEach((e) => {
+      const n = e.classList.contains('vela-ind-fold') ? e.parentElement : e;   // the fold button's own row block (the indicator rows)
+      const r = n.getBoundingClientRect(); if (r.height && r.height < 300 && r.top - hr.top < 300) b = Math.max(b, r.bottom - hr.top);
+    });
+    const t = Math.round(b ? b + 4 : 48);
+    row.style.top = t + 'px'; note.style.top = sheet.style.top = (t + (row.offsetHeight || 32) + 4) + 'px';
+  }
   function paint() {
     cur = usedNow();
     const st = feedState(cur.used, cur.have);
     last = st;
     row.hidden = !st.show;
-    const pill = document.getElementById('stkdp'), up = !!(pill && !pill.hidden && pill.offsetWidth);   // the delayed pill sits bottom-centre on a phone: lift the chips clear of it
-    [row, note, sheet].forEach((e) => e.classList.toggle('is-up', up));
+    place();
     if (!st.show) { note.hidden = true; sheet.hidden = true; openL = ''; return; }
     const lv = visibleLevels(st);
     if (row.dataset.sig !== lv.join() + ['L1', 'L2', 'L3'].map((L) => st[L].state).join()) {
@@ -148,8 +157,8 @@ export function mountFeedBadges(ws) {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openL) close(); });
   refresh = paint;
   try { ws.on('state:changed', paint); } catch (e) {}
-  const tm = setInterval(paint, 1000);
-  window.addEventListener('pagehide', () => clearInterval(tm));
+  const tm = setInterval(paint, 1000), tp = setInterval(place, 250);   // the legend reflows when rows are added / folded: follow it fast
+  window.addEventListener('pagehide', () => { clearInterval(tm); clearInterval(tp); });
   paint();
   const api = { paint, open: openSheet, close, state: () => last, get isOpen() { return !!openL; } };
   window.__stkFeeds = api;

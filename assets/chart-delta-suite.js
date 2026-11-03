@@ -8,10 +8,10 @@
 // with the same plan + delay rules and the same refresh timers (no polling of its own). Nothing is
 // estimated from candles: a symbol without trade data shows a note instead.
 // Depends on: assets/chart-delta-suite-data.js (maths), hooks handed over by installFootprint().
-import { registerFeed } from './chart-feeds.js?v=820';
-import { l2Visible, l2Root, L2_TYPES, acquire, rootState, fillGap } from './chart-futures-l2.js?v=820';
-import { aggregate, clipTo } from './chart-footprint-data.js?v=820';
-import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=820';
+import { registerFeed } from './chart-feeds.js?v=815';
+import { liveVisible as l1Visible, l2Root, L2_TYPES, acquire, rootState, fillGap } from './chart-futures-l2.js?v=815';
+import { aggregate, clipTo } from './chart-footprint-data.js?v=815';
+import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=815';
 
 export const DS_TYPE = 'stk_dsuite';
 export const DP_TYPE = 'stk_dpane';
@@ -76,7 +76,7 @@ const VELA090 = typeof window !== 'undefined' && window.__stkVela090 === true;
 //   REST+hub the same, with the forming + previous minute taken from the hub ticks  -> "Delta" / "Delta: pane" on a hub symbol (live)
 //   hub      the L2 feed's minutes only (3 h of the hub's footprint + every tick)    -> "Delta (L2)" / "Delta pane (L2)"
 // The hub's minute bars (chart-futures-l2.js TickFeed.bars()) have the exact shape of the REST ones, so the maths and the drawing are untouched.
-const hubNote = (ctx) => (!l2Visible() ? 'Delta (L2) is part of Pro.' : !l2Root(ctx.symbol) ? 'Delta (L2): NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.' : '');
+const hubNote = (ctx) => (!l1Visible() ? 'Delta (L1) is part of Pro.' : !l2Root(ctx.symbol) ? 'Delta (L1): NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.' : '');
 function hubOut(root, tf, feed, restMins, E) {
   const hub = feed.bars().filter((b) => b.t >= feed.coverFrom);
   let mins = hub;
@@ -113,7 +113,7 @@ class Base {
   // hub socket only when it will be used: an L2 tool, or Delta on a symbol whose REST root IS the hub root (a micro's REST flow is the mini's)
   wantHub() {
     const ctx = this.ctx, root = l2Root(ctx.symbol), tf = H.tfMin ? H.tfMin(ctx.timeframe) : 1;
-    if (!root || !l2Visible() || (tf != null && (tf < 1 || tf > 240))) return null;
+    if (!root || !l1Visible() || (tf != null && (tf < 1 || tf > 240))) return null;
     return this.l2 || H.rootOf(ctx) === root ? root : null;
   }
   bind() {
@@ -150,7 +150,7 @@ class Base {
     return out;
   }
   msgs(f) {
-    if (this.l2) return f.note ? [note(this.type + '-msg', f.note, !l2Visible())] : [];
+    if (this.l2) return f.note ? [note(this.type + '-msg', f.note, !l1Visible())] : [];
     if (!H.rootOf(this.ctx)) return [note(this.type + '-msg', NO_DATA)];
     return f.note ? [note(this.type + '-msg', f.note, f.locked)] : [];
   }
@@ -696,16 +696,16 @@ export function installDeltaSuite(Core, hooks) {
   if (installed) return;
   installed = true;
   H = hooks;
-  // L2 tools: the picker hides them until l2Visible() (Free get the Pro lock); the L2 badge lights while one is on the chart
+  // L2 tools: the picker hides them until l1Visible() (Free get the Pro lock); the L2 badge lights while one is on the chart
   for (const t of [DS_L2, DP_L2]) if (!L2_TYPES.includes(t)) L2_TYPES.push(t);
-  registerFeed(DS_L2, { needs: 'L2', title: 'Delta (L2)', mkt: 'futures' });
-  registerFeed(DP_L2, { needs: 'L2', title: 'Delta pane (L2)', mkt: 'futures' });
+  registerFeed(DS_L2, { needs: 'L1', title: 'Delta (L1)', mkt: 'futures' });
+  registerFeed(DP_L2, { needs: 'L1', title: 'Delta pane (L1)', mkt: 'futures' });
   Core.registerRendererLayer({ id: DS_TYPE, placement: 'above-data', create: () => suiteLayer(DS_TYPE) });
   Core.registerRendererLayer({ id: DS_L2, placement: 'above-data', create: () => suiteLayer(DS_L2) });
   const reg = (type, title, short, pane, overlay, schema, mk) => Core.registerNativeIndicator({ type, title, shortTitle: short, paneHint: pane, overlay, multiInstance: true,
     inputsSchema: () => schema, defaultInputs: () => defaults(schema), create: mk });
   reg(DS_TYPE, 'Delta', 'Delta', 'price', true, DS_SCHEMA, () => new SuiteNative(false));
   reg(DP_TYPE, 'Delta: pane (bars / CVD + divergence)', 'Delta pane', 'new', false, DP_SCHEMA, () => new PaneNative(false));
-  reg(DS_L2, 'Delta (L2)', 'Delta L2', 'price', true, DS_SCHEMA, () => new SuiteNative(true));
-  reg(DP_L2, 'Delta pane (L2)', 'Delta pane L2', 'new', false, DP_SCHEMA, () => new PaneNative(true));
+  reg(DS_L2, 'Delta (L1)', 'Delta L1', 'price', true, DS_SCHEMA, () => new SuiteNative(true));
+  reg(DP_L2, 'Delta pane (L1)', 'Delta pane L1', 'new', false, DP_SCHEMA, () => new PaneNative(true));
 }

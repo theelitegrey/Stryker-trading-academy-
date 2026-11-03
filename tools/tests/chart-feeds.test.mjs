@@ -23,6 +23,11 @@ const lines = F.nowLines('L2', F.feedState([U('L2', 'x')], admin), { status: 'li
 ok(lines.join('|') === 'Symbol: NQ1!|Status: Live|Receiving: book updates (~6.2/s)', 'nowLines L2', lines);
 ok(F.nowLines('L2', F.feedState([U('L2', 'x')], admin), { status: 'wait', ageMs: 0 }, admin, 'futures', 'NQ1!')[1] === 'Status: Reconnecting…', 'nowLines reconnecting');
 ok(/Updated|updated 12 s ago/.test(F.nowLines('L1', F.feedState([U('L1', 'x')], admin), { status: 'live', ageMs: 12000 }, admin, 'futures', 'NQ1!')[1]), 'nowLines updated X s ago');
+const proNull = F.haveFor({ mkt: 'futures', l2: true, free: false });   // l2Badge(): Pro with bookTier null = have L2
+s = F.feedState([U('L1', 'Delta (L1)')], proNull);
+ok(s.L1.state === 'lit' && s.L2.state === 'dim' && !s.L2.locked, 'Pro, tier unknown: Delta (L1) lights L1, no lock');
+s = F.feedState([U('L1', 'Delta (L1)')], F.haveFor({ mkt: 'futures', l2: false, free: true }));
+ok(s.L1.state === 'locked', 'Free: L1 tool locked');
 F.registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
 ok(F.feedOf('stk_of_big').needs === 'L1' && window.STRYKER_FEEDS.of('stk_of_big').title === 'Big Trades', 'registry: one-line register works, exposed on window');
 assert.throws(() => F.registerFeed('x', { needs: 'L9' })); n++;

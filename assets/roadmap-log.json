@@ -1,5 +1,11 @@
 [
  {
+  "build": 812,
+  "date": "2026-11-03",
+  "title": "Passkey sign-in",
+  "link": ""
+ },
+ {
   "build": 811,
   "date": "2026-11-03",
   "title": "Futures order book (L2)",

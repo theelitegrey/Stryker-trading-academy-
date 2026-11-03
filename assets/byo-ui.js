@@ -46,6 +46,7 @@ const CSS = `
 :root[data-theme="light"] .byo-row-b{ color:#047857; border-color:#047857; }
 .byo-row-b:hover{ background:rgba(3,201,136,.1); }
 .byo-row-b.soon{ border-color:var(--line,#2c2c32); color:var(--ink-3,#6b7280); cursor:default; background:transparent; }
+:root[data-theme="light"] .byo-row-b.soon{ border-color:#d0d5dd; color:#667085; }
 .byo-row-b.on{ background:var(--gold,#03c988); color:#050506; }
 :root[data-theme="light"] .byo-row-b.on{ background:#047857; color:#fff; }
 .byo-empty{ padding:20px 12px; font:400 14px/20px var(--by-font); color:var(--ink-2,#8b93a0); text-align:center; }
@@ -198,13 +199,13 @@ export function mountByo(opts = {}) {
         inputs[f.k].setAttribute('aria-invalid', miss ? 'true' : 'false');
         if (miss && !bad) bad = f;
       });
-      if (bad) { err.textContent = 'Enter your ' + bad.label.replace(/^API/, 'API') + '.'; err.hidden = false; inputs[bad.k].focus(); return; }
+      if (bad) { err.textContent = 'Enter your ' + bad.label.replace(/^(\w+)( |$)/, (m, w) => (w === 'API' || w === 'ID' ? w : w.toLowerCase()) + m.slice(w.length)) + '.'; err.hidden = false; inputs[bad.k].focus(); return; }
       if (s.id === 'oanda' && creds.account && !/^\d{3}-\d{3}-\d{4,}-\d{3}$/.test(creds.account)) { err.textContent = 'Account ID looks like 101-001-1234567-001.'; err.hidden = false; inputs.account.focus(); return; }
       err.hidden = true; submit.disabled = true; submit.textContent = 'Checking…';
       try { await connect(s.id, creds); Object.values(inputs).forEach((i) => { i.value = ''; }); go('manage', s); }
       catch (x) {
         const st = x && x.status;
-        err.textContent = st === 401 || st === 403 ? s.name + ' did not accept this key. Check it and try again.' : st === 429 ? 'Too many tries. Wait a minute and try again.' : 'Could not reach ' + s.name + '. Check your connection and try again.';
+        err.textContent = x && /^(Sign in|Enter your OANDA)/.test(x.message) ? x.message : st === 401 || st === 403 ? s.name + ' did not accept this key. Check it and try again.' : st === 429 ? 'Too many tries. Wait a minute and try again.' : 'Could not reach ' + s.name + '. Check your connection and try again.';
         err.hidden = false;
       } finally { if (view === 'form') { submit.disabled = false; submit.textContent = 'Connect'; } }
     });

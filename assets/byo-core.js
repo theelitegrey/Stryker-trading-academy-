@@ -20,8 +20,8 @@ const ALLOW = {
   },
   oanda: {
     hosts: ['api-fxpractice.oanda.com', 'api-fxtrade.oanda.com', 'stream-fxpractice.oanda.com', 'stream-fxtrade.oanda.com'],
-    // /v3/accounts (ids only, never read for balances) is allowed ONLY to find the account id for the price stream.
-    paths: [/^\/v3\/instruments\/[A-Z]{3}_[A-Z]{3}\/candles$/, /^\/v3\/accounts$/, /^\/v3\/accounts\/[0-9\-]{5,32}\/pricing\/stream$/]
+    // Exactly two paths: candles and the price stream. The member types their own account id; we never list accounts.
+    paths: [/^\/v3\/instruments\/[A-Z]{3}_[A-Z]{3}\/candles$/, /^\/v3\/accounts\/[0-9\-]{5,32}\/pricing\/stream$/]
   }
 };
 export function guardUrl(source, url, method = 'GET') {
@@ -52,7 +52,7 @@ export const SOURCES = [
     fields: [{ k: 'key', label: 'API key ID', ph: 'PK…', secret: false }, { k: 'secret', label: 'API secret', ph: '', secret: true }, { k: 'feed', label: 'Feed', type: 'select', opts: [['iex', 'IEX (free plan)'], ['sip', 'SIP (paid plan)']] }],
     help: 'In your Alpaca dashboard create an API key. A paper key works for market data.' },
   { id: 'oanda', name: 'OANDA', cls: ['forex'], covers: 'Forex pairs, live bid/ask prices', fee: 'free', feeNote: 'Free with your account.', state: 'ready',
-    fields: [{ k: 'token', label: 'Personal access token', ph: '', secret: true }, { k: 'env', label: 'Account type', type: 'select', opts: [['practice', 'Practice'], ['live', 'Live']] }, { k: 'account', label: 'Account ID (optional)', ph: '101-001-1234567-001', secret: false, optional: true }],
+    fields: [{ k: 'token', label: 'Personal access token', ph: '', secret: true }, { k: 'env', label: 'Account type', type: 'select', opts: [['practice', 'Practice'], ['live', 'Live']] }, { k: 'account', label: 'Account ID', ph: '101-001-1234567-001', secret: false }],
     help: 'In OANDA create a personal access token (Manage API Access).' },
   { id: 'ironbeam', name: 'Ironbeam', cls: ['futures'], covers: 'CME futures', fee: 'paid', feeNote: 'Your exchange data fees apply.', state: 'soon' },
   { id: 'tastytrade', name: 'tastytrade', cls: ['futures', 'stocks'], covers: 'CME futures and US stocks', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon' },
@@ -72,12 +72,15 @@ function idbStore() {
   return { get: (k) => run('readonly', (s) => s.get(k)), put: (k, v) => run('readwrite', (s) => s.put(v, k)), del: (k) => run('readwrite', (s) => s.delete(k)), keys: () => run('readonly', (s) => s.getAllKeys()) };
 }
 // store/subtle are injectable so the unit test runs in Node.
-export function makeVault(store, subtle) {
+export function makeVault(store, subtle, uidOf = () => '') {
   store = store || idbStore();
   subtle = subtle || globalThis.crypto.subtle;
   const rnd = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n));
   const b64 = (u8) => btoa(String.fromCharCode(...u8));
   const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  // The signed-in user id is bound into every record: another account on this device cannot decrypt it.
+  const aad = () => new TextEncoder().encode('tz-byo|' + id0(uidOf()));
+  const id0 = (u) => { if (!u) throw new Error('Sign in to connect your own data'); return u; };
   async function key() {
     let k = await store.get('master');
     if (!k) { k = await subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']); await store.put('master', k); }
@@ -86,16 +89,17 @@ export function makeVault(store, subtle) {
   return {
     async save(id, obj) {
       const iv = rnd(12);
-      const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, await key(), new TextEncoder().encode(JSON.stringify(obj))));
+      const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad() }, await key(), new TextEncoder().encode(JSON.stringify(obj))));
       await store.put('c:' + id, { iv: b64(iv), ct: b64(ct) });
     },
     async load(id) {
       const rec = await store.get('c:' + id);
       if (!rec) return null;
-      try { return JSON.parse(new TextDecoder().decode(await subtle.decrypt({ name: 'AES-GCM', iv: unb64(rec.iv) }, await key(), unb64(rec.ct)))); }
+      try { return JSON.parse(new TextDecoder().decode(await subtle.decrypt({ name: 'AES-GCM', iv: unb64(rec.iv), additionalData: aad() }, await key(), unb64(rec.ct)))); }
       catch (e) { return null; }
     },
     async forget(id) { await store.del('c:' + id); },
+    async wipe() { for (const k of (await store.keys()) || []) await store.del(k); },
     async ids() { return ((await store.keys()) || []).filter((k) => String(k).startsWith('c:')).map((k) => String(k).slice(2)); }
   };
 }
@@ -247,16 +251,7 @@ export const oanda = {
   gran: { '1': 'M1', '5': 'M5', '15': 'M15', '30': 'M30', '60': 'H1', '120': 'H2', '240': 'H4', D: 'D', W: 'W', M: 'M' },
   host: (c, stream) => (stream ? 'stream-' : 'api-') + (c.env === 'live' ? 'fxtrade' : 'fxpractice') + '.oanda.com',
   headers: (c) => ({ Authorization: 'Bearer ' + c.token, 'Accept-Datetime-Format': 'UNIX' }),
-  async accountId(c, d) {
-    if (c.account) return c.account;
-    const { fetch } = dep(d);
-    const r = await fetch(guardUrl('oanda', 'https://' + this.host(c) + '/v3/accounts'), { ...HARD, headers: this.headers(c) });
-    if (!r.ok) throw Object.assign(new Error('OANDA ' + r.status), { status: r.status });
-    const j = await r.json(); // ids only; nothing else in the reply is read
-    const id = j && j.accounts && j.accounts[0] && j.accounts[0].id;
-    if (!id) throw new Error('No OANDA account found for this token');
-    return id;
-  },
+  accountId: async (c) => { if (!/^[0-9\-]{5,32}$/.test(String(c.account || ''))) throw new Error('Enter your OANDA account ID (like 101-001-1234567-001).'); return c.account; },
   async getBars(c, ticker, timeframe, range = {}, d) {
     const { fetch } = dep(d); const tf = norm(timeframe); const ins = this.symbolOf(ticker);
     const g = this.gran[tf]; if (!ins || !g) return [];
@@ -270,7 +265,7 @@ export const oanda = {
     const out = (j.candles || []).filter((x) => x.mid).map((x) => ({ time: Math.round(Number(x.time) * 1000), open: +x.mid.o, high: +x.mid.h, low: +x.mid.l, close: +x.mid.c, volume: x.volume || 0 }));
     return range.limit != null && out.length > range.limit ? out.slice(-range.limit) : out;
   },
-  async check(c, d) { c.account = await this.accountId(c, d); await this.getBars(c, 'EURUSD', '1D', { limit: 1 }, d); },
+  async check(c, d) { await this.accountId(c); await this.getBars(c, 'EURUSD', '1D', { limit: 1 }, d); },
   hub(c, onStatus, d) {
     const { fetch } = dep(d);
     const h = new Hub({
@@ -320,7 +315,17 @@ const listeners = new Set();
 let vault = null;
 export const onByoChange = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
 const emit = (id) => { listeners.forEach((f) => { try { f(id); } catch (e) { /* ui error */ } }); try { window.dispatchEvent(new CustomEvent('tz:byo', { detail: { id } })); } catch (e) { /* node */ } };
-const V = () => vault || (vault = makeVault());
+let uid = null;
+const V = () => vault || (vault = makeVault(null, null, () => uid));
+function dropLive() { for (const r of live.values()) { try { r.hub && r.hub.stop(); } catch (e) { /* closed */ } r.creds = null; } live.clear(); }
+// Sign-in state changed: on sign-out or another account, stop every stream, drop keys from memory, wipe the vault.
+export async function bindUser(next, deps) {
+  next = next || null;
+  if (next === uid) return;
+  const had = uid; uid = null; dropLive();
+  try { if (had || next) await V().wipe(); } catch (e) { /* no IndexedDB */ }
+  uid = next; emit('*');
+}
 export function activate(id, creds, deps) {
   const ad = ADAPTERS[id]; if (!ad) return;
   const prev = live.get(id); if (prev && prev.hub) prev.hub.stop();
@@ -331,10 +336,11 @@ export function activate(id, creds, deps) {
 export async function connect(id, creds, deps) {
   const ad = ADAPTERS[id]; if (!ad) throw new Error('Unknown source');
   const c = { ...creds }; await ad.check(c, deps);   // throws on a bad key; nothing is stored before it passes
+  if (!uid) throw new Error('Sign in to connect your own data');
   await V().save(id, c); activate(id, c, deps);
 }
 export async function forget(id) { const r = live.get(id); if (r && r.hub) r.hub.stop(); live.delete(id); await V().forget(id); emit(id); }
-export async function restore(deps) { try { for (const id of await V().ids()) { const c = await V().load(id); if (c && ADAPTERS[id]) activate(id, c, deps); } } catch (e) { /* no IndexedDB: nothing saved */ } }
+export async function restore(deps) { if (!uid) return; try { for (const id of await V().ids()) { const c = await V().load(id); if (c && ADAPTERS[id]) activate(id, c, deps); } } catch (e) { /* no IndexedDB: nothing saved */ } }
 export const connectedIds = () => [...live.keys()];
 export const statusOf = (id) => { const r = live.get(id); return r ? { status: r.status, msg: r.msg } : null; };
 // Which connected source serves a chart provider kind + ticker? kind: 'fx' | 'idx' | 'byo'.

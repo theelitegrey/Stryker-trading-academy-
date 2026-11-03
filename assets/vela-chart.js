@@ -860,7 +860,11 @@ function lateLists(provider){
   if (window.__stkFirstCandles) setTimeout(loadRithLater, 0);
   else window.addEventListener('stk:first-candles', () => (window.requestIdleCallback ? requestIdleCallback(loadRithLater, { timeout: 2500 }) : setTimeout(loadRithLater, 800)), { once: true });
   // Connect your own data (Data source sheet): restores saved connections (decrypted on this device only), mounts the toolbar button.
-  import('./byo-core.js?v=825').then((c) => c.restore()).catch((e) => console.warn('TradeZoro: own data', e));
+  import('./byo-core.js?v=825').then((c) => {
+    // Keys follow the signed-in user: sign-out or another account wipes the vault and closes the streams.
+    const bind = (u) => c.bindUser(u && u.uid).then(() => c.restore()).catch((e) => console.warn('TradeZoro: own data', e));
+    try { if (typeof firebase !== 'undefined') firebase.auth().onAuthStateChanged(bind); } catch (e) { /* no auth on this page */ }
+  }).catch((e) => console.warn('TradeZoro: own data', e));
   import('./byo-ui.js?v=825').then((m) => m.mountByo()).catch((e) => console.warn('TradeZoro: data source sheet', e));
   // Delayed-data pill at the bottom of the chart + its sheet (CME futures, viewer not real-time): assets/chart-data-banner.js.
   import('./chart-data-banner.js?v=825')

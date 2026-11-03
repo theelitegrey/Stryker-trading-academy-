@@ -2,7 +2,7 @@
 // Run: node tools/tests/byo-core.test.mjs
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
-import { guardUrl, guardWs, guardWsMessage, makeVault, candleBuilder, alpaca, oanda, Hub, activate, route, forget, labelFor, statusOf, SOURCES } from '../../assets/byo-core.js?v=825';
+import { bindUser, guardUrl, guardWs, guardWsMessage, makeVault, candleBuilder, alpaca, oanda, Hub, activate, route, forget, labelFor, statusOf, SOURCES } from '../../assets/byo-core.js?v=825';
 import { withByo, ByoProvider } from '../../assets/byo-provider.js';
 
 const FAKE = { key: 'PKTESTFAKE', secret: 'SECRETFAKE', feed: 'iex' };
@@ -16,10 +16,9 @@ await t('guard allows market-data paths only', () => {
   guardUrl('alpaca', 'https://data.alpaca.markets/v2/stocks/AAPL/bars?timeframe=1Min');
   guardUrl('oanda', 'https://api-fxpractice.oanda.com/v3/instruments/EUR_USD/candles?granularity=M1');
   guardUrl('oanda', 'https://stream-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/pricing/stream?instruments=EUR_USD');
-  guardUrl('oanda', 'https://api-fxtrade.oanda.com/v3/accounts');
   for (const [s, u] of [
     ['alpaca', 'https://api.alpaca.markets/v2/orders'], ['alpaca', 'https://paper-api.alpaca.markets/v2/account'], ['alpaca', 'https://data.alpaca.markets/v2/positions'],
-    ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/orders'], ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/summary'],
+    ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/orders'], ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/summary'], ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts'], ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/positions'], ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/pricing'], ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/trades'], ['alpaca', 'https://data.alpaca.markets/v2/account'], ['alpaca', 'https://data.alpaca.markets:444/v2/stocks/AAPL/bars'], ['alpaca', 'https://u:p@data.alpaca.markets/v2/stocks/AAPL/bars'], ['alpaca', 'https://data.alpaca.markets/v2/stocks/AAPL%2Forders/bars'],
     ['oanda', 'https://api-fxtrade.oanda.com/v3/accounts/101-001-1234567-001/openPositions'], ['oanda', 'https://evil.example.com/v3/accounts'], ['alpaca', 'http://data.alpaca.markets/v2/stocks/AAPL/bars']
   ]) assert.throws(() => guardUrl(s, u), /byo-guard/, u);
   assert.throws(() => guardUrl('alpaca', 'https://data.alpaca.markets/v2/stocks/AAPL/bars', 'POST'), /byo-guard/);
@@ -44,7 +43,8 @@ await t('catalogue: unbuilt sources are soon, built are ready, none mention orde
 await t('vault: encrypts, round-trips, key is non-extractable, forget wipes', async () => {
   const m = new Map();
   const store = { get: async (k) => m.get(k), put: async (k, v) => { m.set(k, v); }, del: async (k) => { m.delete(k); }, keys: async () => [...m.keys()] };
-  const v = makeVault(store, webcrypto.subtle);
+  let who = 'u1';
+  const v = makeVault(store, webcrypto.subtle, () => who);
   await v.save('alpaca', FAKE);
   const raw = JSON.stringify(m.get('c:alpaca'));
   assert.ok(!raw.includes('SECRETFAKE') && !raw.includes('PKTESTFAKE'), 'ciphertext must not contain the secret');
@@ -55,6 +55,9 @@ await t('vault: encrypts, round-trips, key is non-extractable, forget wipes', as
   await v.forget('alpaca');
   assert.equal(await v.load('alpaca'), null);
   assert.deepEqual(await v.ids(), []);
+  who = 'u2'; assert.equal(await v.load('alpaca'), null, 'another user id cannot decrypt'); who = 'u1';
+  who = ''; await assert.rejects(() => v.save('x', {}), /Sign in/); who = 'u1';
+  await v.save('alpaca', FAKE); await v.wipe(); assert.deepEqual(await v.ids(), []); assert.equal(m.size, 0);
   // a different master key cannot read it
   await v.save('oanda', { token: 'T' }); m.delete('master');
   assert.equal(await v.load('oanda'), null);
@@ -143,6 +146,9 @@ await t('oanda: symbol mapping + candles request + parsing', async () => {
   assert.match(seen.url, /api-fxtrade/); assert.equal(live.length, 1);
 });
 function streamBody(lines) { const enc = new TextEncoder(); let i = 0; return { getReader: () => ({ read: async () => (i < lines.length ? { value: enc.encode(lines[i++]), done: false } : (await new Promise(() => {}))) }) }; }
+await t('oanda: account id is required, never listed', async () => {
+  await assert.rejects(() => oanda.check({ token: 'T', env: 'live' }, { fetch: async () => { throw new Error('must not fetch'); } }), /account ID/);
+});
 await t('oanda: price stream (split chunks, heartbeat) becomes a live candle at mid price', async () => {
   const urls = [];
   const t0 = Math.floor(Date.now() / 60000) * 60000;
@@ -180,6 +186,11 @@ await t('hub: backs off between reconnects, resets after data, stops when hidden
 });
 
 // ---- chart path: provider wrapper + fake WebSocket proves the chart gets live bars from the adapter ----
+await t('sign-out wipes memory + streams', async () => {
+  await bindUser('u1'); activate('alpaca', FAKE, { WS: FakeWS });
+  await bindUser(null);
+  assert.equal(statusOf('alpaca'), null);
+});
 await t('chart: withByo(fx) uses OANDA while connected and falls back when not; byo provider streams Alpaca', async () => {
   const calls = [];
   class Base { async getBars() { calls.push('base'); return [{ time: 1, open: 1, high: 1, low: 1, close: 1, volume: 0 }]; } subscribe() { calls.push('base-sub'); return () => {}; } }

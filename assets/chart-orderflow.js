@@ -36,6 +36,7 @@ import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './cha
 import { cryptoFeed } from './chart-footprint-crypto.js?v=842';
 import * as ProGate from './chart-pro-gate.js?v=842';
 import { installBookPack } from './chart-book-pack.js?v=842';
+import { installPatterns } from './chart-patterns.js?v=842';
 import { installL2Flow } from './chart-l2-flow.js?v=842';
 import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=842';
 import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=842';
@@ -2547,7 +2548,7 @@ function reg(Core, d) {
 }
 
 // Picker group order: these types (Vela natives + ours), then the two drawing-tool rows.
-const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vheatmap'];
+const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vheatmap', 'stk_patterns'];
 // ORDER FLOW section (Owner order 2026-10-28), one list in this order. Types are unchanged, so saved
 // charts, templates and favourites keep working. stk_delta / stk_cvd (older per-bar trades tools) are the
 // same tool as stk_of_delta / stk_of_cvd, so they stay registered but are HIDDEN from the list (OF_HIDDEN).
@@ -2592,6 +2593,7 @@ export function installOrderflow(Core) {
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
   installFuturesL2(Core, { cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds }, reg);
   installBookPack(Core, { line, message, pageIsDay }, reg);
+  installPatterns(Core, {}, reg);   // Auto Chart Patterns: Free for every plan (assets/chart-patterns.js)
   installL2Flow(Core, { line, message, pageIsDay, acquireBookFeed }, reg);
   installLiquidityMap(Core, { beginFrame, bookFeeds, sampleRows, bookMid, bucketBook, chartTz, hhmm, openTradeSource, marketOf, bookKey, acquireBookFeed,
     message, pageIsDay, rithmicDepthOn: () => !!(window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.depthEnabled) }, reg);

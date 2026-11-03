@@ -10,10 +10,10 @@
 // Rithmic allows one login at a time for some firms, so the order session is closed after the history is
 // read (and after 3 idle minutes, or when the sheet closes).
 
-import { listSystems, explainLoginError } from './rithmic-client.js?v=808';
-import { RithmicOrderHistory, explainHistoryError, tradeDateCT } from './rithmic-orders.js?v=808';
-import { fillsFromNotes, buildTrips, tripToJournalTrade, planImport, tripDocId, crossCheck, pointValueFor, rootOf, zoneParts, EXCHANGE_TZ, IST_TZ } from './rithmic-fills.js?v=808';
-import { journalRithmicConfig } from './rithmic-config.js?v=808';
+import { listSystems, explainLoginError } from './rithmic-client.js?v=809';
+import { RithmicOrderHistory, explainHistoryError, tradeDateCT } from './rithmic-orders.js?v=809';
+import { fillsFromNotes, buildTrips, tripToJournalTrade, planImport, tripDocId, crossCheck, pointValueFor, rootOf, zoneParts, EXCHANGE_TZ, IST_TZ } from './rithmic-fills.js?v=809';
+import { journalRithmicConfig } from './rithmic-config.js?v=809';
 
 const FREE_MONTHLY = 20;        // mirrors assets/plan-limits.js
 const IDLE_MS = 3 * 60 * 1000;

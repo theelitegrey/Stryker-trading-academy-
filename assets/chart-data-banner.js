@@ -146,7 +146,7 @@ export function installDataBanner(ws, opts = {}) {
   const isPhone = () => window.innerWidth < 768 || document.documentElement.getAttribute('data-device') === 'mobile';
   let ready = false;
   // Live L2 candles (assets/chart-futures-l2.js) make the chart current for NQ / ES: no delayed pill for that symbol while they flow.
-  const l2Fed = (sym) => { try { const r = String(sym || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, ''); const k = { MYM: 'YM', M2K: 'RTY', MCL: 'CL', MGC: 'GC' }[r] || r; return !!(window.__stkL2Live && window.__stkL2Live.has(k)); } catch (e) { return false; } };
+  const l2Fed = (sym) => { try { const r = String(sym || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, ''); return !!(window.__stkL2Live && window.__stkL2Live.has(r)); } catch (e) { return false; } };
 
   function anyDelayed() {
     const cs = cells();

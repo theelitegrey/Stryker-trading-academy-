@@ -15,13 +15,15 @@
 import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=805';
 import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=805';
 import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=805';
+import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=804';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=804';
 
 export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
 export const L2_BOOKS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
 // Quote-only symbols (indices send size 0 = the level, ETFs the last price): ticks channel only, no book, no footprint, no volume.
 // Same gate as the futures hub (l2Visible). A chart on one of these gets its current candle from the live value.
-export const L2_QUOTES = ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'];
+export const L2_QUOTES = HUB_QUOTES;
 export const isQuoteSym = (s) => L2_QUOTES.includes(String(s || '').toUpperCase());
 export const L2_ROOTS = { NQ: 'NQ', MNQ: 'MNQ', ES: 'ES', MES: 'MES', YM: 'YM', MYM: 'YM', RTY: 'RTY', M2K: 'RTY', CL: 'CL', MCL: 'CL', GC: 'GC', MGC: 'GC' };
 export const L2_TICK = { NQ: 0.25, MNQ: 0.25, ES: 0.25, MES: 0.25, YM: 1, RTY: 0.1, CL: 0.01, GC: 0.1 };   // = TICK_SIZE in the Worker's ts-hub.js
@@ -32,8 +34,12 @@ const KEEP_MS = 48 * 3600000;
 const READ_MS = 6 * 3600000;
 const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname); } catch (e) { return false; } };
 const testOn = () => isLocal() && typeof window !== 'undefined' && window.__stkL2Test;
-// May this visitor USE the feed? admin / demo (rt-access) or a signed-in member who is not confirmed Free. Same Free test as chart-pro-gate.
-export function l2Visible() { return !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS && rtToken() && !isFree())); }
+// May this visitor see LIVE data (candles / trades / quotes)? admin / demo / switched-on / add-on (rt-access) or a signed-in member who is not confirmed Free (Pro release). The SERVER decides (/ts-live tier); this only skips a refused socket.
+export const liveVisible = () => !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS && rtToken() && !isFree()));
+// May this visitor use the L2 BOOK? Only once the hub's hub_attached frame says tier 'book' (null = not told yet = hidden: fails closed). Pro = book, live add-on = trades only, Free = neither.
+let bookTier = null;
+export function l2Visible() { return liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades)); }
+function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades); if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
 // Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.
 export const l2Listed = () => L2_MEMBERS || l2Visible();
 export const l2Unlock = () => upgrade('of');
@@ -149,7 +155,7 @@ class Conn {
     let ws;
     try { ws = new WebSocket(wsBase(base) + '/ts-live?symbol=' + this.root + '&levels=' + this.levels, token ? ['tz-auth', token] : undefined); } catch (e) { this.later(); return; }
     this.ws = ws;
-    ws.onopen = () => { this.openedAt = Date.now(); this.send({ op: 'sub', symbol: this.root, levels: this.levels }); this.arm(); };
+    ws.onopen = () => { this.openedAt = Date.now(); liveGap(this.root); this.send({ op: 'sub', symbol: this.root, levels: this.levels }); this.arm(); };
     ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } this.arm(); this.frame(m); };
     ws.onclose = (e) => {
       if (this.ws !== ws) return; this.ws = null; clearTimeout(this.dog);
@@ -164,6 +170,8 @@ class Conn {
   frame(m) {
     const r = rootState(this.root);
     if (m.event === 'status') { r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
+    if (m.event === 'hub_attached') { setTier(m.tier); r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
+    if (m.event === 'ping') { const st = m.state === 'live' ? 'live' : 'reconnecting'; if (r.status !== st && r.status !== 'error') { r.status = st; tell(r); } return; }   // the hub's 5 s heartbeat carries its data state: no data for 10 s = reconnecting
     if (m.event === 'hub_full') { r.status = 'error'; r.err = 'busy'; tell(r); return; }
     if (m.event) return;
     r.lastFrame = Date.now();
@@ -172,7 +180,16 @@ class Conn {
       const last = r.imb[r.imb.length - 1], now = Date.now();
       if (!last || now - last[0] >= 1000) { r.imb.push([now, m.imb, m.imb10]); if (r.imb.length > 21600) r.imb.splice(0, r.imb.length - 21600); }
     } else if (m.type === 'coarse') r.coarse = m;
-    else if (m.type === 'ticks') { r.nTick = (r.nTick || 0) + (m.t ? m.t.length : 0); if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(m.t || [], false); }
+    else if (m.type === 'ticks') {
+      r.nTick = (r.nTick || 0) + (m.t ? m.t.length : 0); r.status = 'live'; if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(m.t || [], false);
+      // live order flow (assets/chart-live-of.js) from the same trades: [t s, price, size, 1 buy / 0 sell]. Times are made strictly increasing (the hub stamps ms,
+      // several prints can share one) so LiveFlow's duplicate check keeps them all.
+      if (hubLive() && liveOfOn() && liveOfRoot(r.root) && m.t && m.t.length) {
+        const rows = [];
+        for (const x of m.t) { const t = Math.max(x[3] / 1000, (r.ofT || 0) + 1e-6); r.ofT = t; rows.push([t, x[0], x[1], x[2] > 0 ? 1 : 0]); }
+        pushLiveTrades(r.root, rows);
+      }
+    }
     r.listeners.forEach((f) => { try { f(m); } catch (e) {} });
   }
   close() { this.stopped = true; clearTimeout(this.tm); clearTimeout(this.dog); clearTimeout(this.closeTm); document.removeEventListener('visibilitychange', this.onVis); if (this.ws) { try { this.ws.close(1000); } catch (e) {} this.ws = null; } }
@@ -225,18 +242,32 @@ function seedHistory(r) {
 // delivers later are older than ours and are dropped by the chart. Only while Live L2 is up and the real-time lane is not.
 // Higher timeframes only emit a bucket the 20 min buffer fully covers (no half-built candle). shortcut: 1-60 min charts,
 // the front-month NQ/ES book vs the continuous series can differ by the roll basis, upgrade if a roll week shows a jump.
-const MIN_TFS = { '1': 1, '5': 5, '15': 15, '30': 30, '60': 60 };
+const MIN_TFS = { '1': 1, '5': 5, '15': 15, '30': 30, '60': 60, '120': 120, '240': 240 };
 export function l2Fed(root) { try { return !!(window.__stkL2Live && window.__stkL2Live.has(root)); } catch (e) { return false; } }
-export function l2Candles(root, timeframe, onBar, realtimeConfirmed) {
+// Bucket start (ms) of the minute t for a timeframe of tf minutes. Same buckets as the REST bars (functions/api/chart/_bars.js): epoch-aligned,
+// and 2h / 4h anchored to the 18:00 New York Globex open (aggregateHours).
+const nyOff = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'longOffset' });
+function nyOffsetSec(ms) { const z = (nyOff.formatToParts(new Date(ms)).find((p) => p.type === 'timeZoneName') || {}).value || 'GMT-05:00', m = /GMT([+-])(\d+)(?::(\d+))?/.exec(z); return m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 3600 + Number(m[3] || 0) * 60) : -18000; }
+export function bucketStart(ms, tf) {
+  if (tf < 120) return Math.floor(ms / (tf * 60000)) * tf * 60000;
+  const size = tf * 60, sec = ms / 1000, shift = nyOffsetSec(ms) + 6 * 3600;
+  return (Math.floor((sec + shift) / size) * size - shift) * 1000;
+}
+// Candles from the hub's trades (Owner 2026-11-03: the hub is the PRIMARY live source for every hub root, for everyone the server lets in).
+// The hub sends its last 20 min of 1m candles on subscribe ({type:'bars'}), then trades. For a timeframe above 1m the bucket starts before
+// those 20 min, so `seed()` (the provider hands in the delayed 1m REST bars) fills the minutes the hub has not seen; hub minutes always win.
+// Only while the hub is live: when it stops (no data), the feed flag drops and the provider's REST poll takes over again.
+export function l2Candles(root, timeframe, onBar, _unused, seed) {
   const tf = MIN_TFS[String(timeframe)];
-  if (!tf || !l2Visible() || typeof document === 'undefined') return () => {};
+  if (!tf || !liveVisible() || typeof document === 'undefined') return () => {};
   const mins = new Map();   // minute ms -> [o,h,l,c,v]
-  let firstMin = Infinity, fed = false;
+  const hubMin = new Set();
+  let firstMin = Infinity, fed = false, stopped = false, seeded = tf === 1;
   const live = window.__stkL2Live || (window.__stkL2Live = new Set());
   const setFed = (v) => { if (v === fed) return; fed = v; if (v) live.add(root); else live.delete(root); try { window.dispatchEvent(new Event('stryker:l2live')); } catch (e) {} };
   const emit = (touched) => {
     const bk = new Set();
-    touched.forEach((t) => bk.add(Math.floor(t / (tf * 60000)) * tf * 60000));
+    touched.forEach((t) => bk.add(bucketStart(t, tf)));
     [...bk].sort((x, y) => x - y).forEach((b) => {
       if (b < firstMin && tf > 1) return;   // not fully covered
       let o, h = -Infinity, l = Infinity, c, v = 0, n = 0;
@@ -248,32 +279,47 @@ export function l2Candles(root, timeframe, onBar, realtimeConfirmed) {
       if (n) onBar({ time: b, open: o, high: h, low: l, close: c, volume: v });
     });
   };
+  const doSeed = () => {
+    if (seeded || !seed) return; seeded = true;
+    Promise.resolve(seed()).then((bars) => {
+      if (stopped) return;
+      if (!bars || !bars.length) { for (const t of hubMin) if (t < firstMin) firstMin = t; return; }   // nothing to fill from: only buckets the hub saw from their start are shown
+      const touched = [];
+      for (const b of bars) { if (!mins.has(b.time)) { mins.set(b.time, [b.open, b.high, b.low, b.close, b.volume || 0]); } touched.push(b.time); if (b.time < firstMin) firstMin = b.time; }
+      for (const t of hubMin) if (t < firstMin) firstMin = t;
+      if (fed) emit(touched.slice(-2 * tf - 2));
+    }).catch(() => {});
+  };
   const fn = (m) => {
     const r = rootState(root);
-    const on = r.status === 'live' && l2Visible() && !(realtimeConfirmed && realtimeConfirmed());
-    if (!m) { if (!on) setFed(false); return; }
-    if (!on) return;
+    const on = r.status === 'live' && liveVisible();
+    if (!m) { if (!on) setFed(false); else if (!fed && mins.size) { setFed(true); emit([...mins.keys()].sort((x, y) => x - y).slice(-3)); } return; }   // live again: show the newest stored candles at once
+    if (!on && m.type !== 'bars' && !(m.event === 'hub_attached')) return;   // the hub sends its 1m candles BEFORE it says it is live: keep them, show nothing yet
     const touched = [];
     if (m.type === 'bars') {
-      for (const b of m.b || []) { mins.set(b[0], [b[1], b[2], b[3], b[4], b[5]]); touched.push(b[0]); if (b[0] < firstMin) firstMin = b[0]; }
+      for (const b of m.b || []) { mins.set(b[0], [b[1], b[2], b[3], b[4], b[5]]); hubMin.add(b[0]); touched.push(b[0]); if (!seed && b[0] < firstMin) firstMin = b[0]; }
+      if (tf === 1) firstMin = -Infinity;   // nothing to fold: every 1m candle is complete in itself
+      doSeed(); if (!on) return;
     } else if (m.type === 'quote' && m.symbol === root && m.p > 0) {
       // the level only: open/high/low/close move, volume stays 0
       const t = Math.floor((m.ts || Date.now()) / 60000) * 60000, e = mins.get(t);
       if (!e) { if (firstMin === Infinity) return; mins.set(t, [m.p, m.p, m.p, m.p, 0]); }
       else { if (m.p > e[1]) e[1] = m.p; if (m.p < e[2]) e[2] = m.p; e[3] = m.p; }
       touched.push(t);
-    } else if (m.type === 'ticks') {
+    } else if (m.type === 'ticks' && m.symbol === root) {
       for (const x of m.t || []) {
         const t = Math.floor(x[3] / 60000) * 60000, e = mins.get(t);
-        if (!e) { if (firstMin === Infinity) continue; mins.set(t, [x[0], x[0], x[0], x[0], x[1]]); }
-        else { if (x[0] > e[1]) e[1] = x[0]; if (x[0] < e[2]) e[2] = x[0]; e[3] = x[0]; e[4] += x[1]; }
+        if (!e || !hubMin.has(t)) {
+          // a minute the hub has no candle for yet: it starts here
+          mins.set(t, [x[0], x[0], x[0], x[0], x[1]]); hubMin.add(t);
+        } else { if (x[0] > e[1]) e[1] = x[0]; if (x[0] < e[2]) e[2] = x[0]; e[3] = x[0]; e[4] += x[1]; }
         touched.push(t);
       }
     }
     if (touched.length) { setFed(true); emit(touched); }
   };
   const h = acquire(root, fn, 20);
-  return () => { h.release(); setFed(false); };
+  return () => { stopped = true; h.release(); setFed(false); };
 }
 
 // ---------------------------------------------------------------------------------------- feed options for BookFeed

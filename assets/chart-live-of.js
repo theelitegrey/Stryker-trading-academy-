@@ -23,10 +23,12 @@
 // Education only. Not financial advice.
 
 export const LIVE_OF_DEFAULT = true;
-export const LIVE_OF_ROOTS = ['NQ', 'ES'];
-const TICK = { NQ: 0.25, ES: 0.25 };
+// 2026-11-03: fed from the HUB's trades (assets/chart-futures-l2.js, LIVE_SOURCE 'hub' in assets/live-source.js) for every root the hub books
+// (own trades per micro); the old /api/chart/stream `of=1` path still feeds NQ / ES when LIVE_SOURCE is 'is'. Tick sizes = TICK_SIZE in ts-hub.js.
+export const LIVE_OF_ROOTS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
+const TICK = { NQ: 0.25, ES: 0.25, MNQ: 0.25, MES: 0.25, YM: 1, RTY: 0.1, CL: 0.01, GC: 0.1 };
 const KEEP_MIN = 30;           // live minutes kept (the recorder has them final long before)
-const DEF_THR = { NQ: 19, ES: 76 };
+const DEF_THR = { NQ: 19, ES: 76, MNQ: 19, MES: 76, YM: 10, RTY: 25, CL: 25, GC: 10 };   // big-trade size; footprint.js overrides it with the chart's own setting (setLiveThr)
 
 export function liveOfOn() {
   try {

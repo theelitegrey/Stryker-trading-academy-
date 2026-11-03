@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'layoutFavs', 'chartAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
 
       // Charts PAPER TRADING account (assets/chart-paper.js, 2026-10-12). Demo money only: the
       // whole simulated account (balance, positions, orders, history) is one JSON string the
@@ -324,6 +324,25 @@ service cloud.firestore {
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid) && lid.size() <= 40 && validLayout(request.resource.data);
       }
+
+      // === SCREENER SAVED SCREENS (2026-11-03) — NEW, FOR COS REVIEW ===
+      // Scanner page saved screens (assets/scanner.js). Owner only (not even admins). A screen is the filter
+      // set, columns and sort, stored as one JSON string the client re-validates on load (screener-core sanitize).
+      // name 1-60, spec <= 4000 chars, market one of stock/etf/crypto/fut, updatedAt = server time.
+      // 30-per-member cap is client-side. Carved out of the wildcard above (added to its exclusion list).
+      match /screens/{sid} {
+        function validScreen(d) {
+          return d.keys().hasOnly(['name', 'spec', 'm', 'updatedAt'])
+            && d.keys().hasAll(['name', 'spec', 'm', 'updatedAt'])
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+            && d.spec is string && d.spec.size() <= 4000
+            && d.m in ['stock', 'etf', 'crypto', 'fut']
+            && d.updatedAt == request.time;
+        }
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && sid.size() <= 40 && validScreen(request.resource.data);
+      }
+      // === END SCREENER SAVED SCREENS ===
 
       // Layouts library favourites (2026-11-01): the id of a library layout I starred. Owner only.
       match /layoutFavs/{fid} {

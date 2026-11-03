@@ -21,9 +21,18 @@ let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function open(b, { w, h, mobile, light }) {
+async function open(b, { w, h, mobile, light, url, free }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
+  await ctx.addInitScript((free) => {
+    Object.defineProperty(window, 'strykerPlanTier', { configurable: false, get: () => () => Promise.resolve({ free: !!free }), set() {} });
+    window.__plan = []; window.openPlanUpgradeModal = (w) => { window.__plan.push(w); };
+  }, !!free);
+  await ctx.route(/\/api\/gex\/levels\//, (r) => {
+    const m = r.request().url().match(/levels\/([A-Z]+)/)[1];
+    const lv = { SPX: { call_wall: 7000, zero_gamma: 6900, put_wall: 6800, futures: { ES: { levels: { call_wall: 7010, zero_gamma: 6910, put_wall: 6810 } }, MES: { levels: { call_wall: 7010, zero_gamma: 6910, put_wall: 6810 } } } }, SPY: { call_wall: 700, zero_gamma: 690, put_wall: 680 }, QQQ: { call_wall: 600, zero_gamma: 590, put_wall: 580 }, GLD: { call_wall: 400, zero_gamma: 390, put_wall: 380 } }[m] || {};
+    r.fulfill({ status: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify(lv) });
+  });
   await ctx.addInitScript((light) => {
     try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.removeItem('stryker_screener'); if (light) localStorage.setItem('stryker_theme', 'day'); } catch (e) {}
   }, !!light);
@@ -38,7 +47,7 @@ async function open(b, { w, h, mobile, light }) {
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', (e) => errors.push(String(e)));
-  await p.goto(BASE + '/scanner.html', { waitUntil: 'domcontentloaded' });
+  await p.goto(url || (BASE + '/scanner.html'), { waitUntil: 'domcontentloaded' });
   await p.waitForSelector('#scn-root .scn-r', { timeout: 30000 }).catch(() => {});
   await p.evaluate(() => { document.querySelectorAll('.gate-pending').forEach((e) => e.classList.remove('gate-pending')); });
   await sleep(400);
@@ -141,6 +150,47 @@ async function shot(p, name) { await p.mouse.move(2, 2).catch(() => {}); await s
     check(nav && /charts\?symbol=futures%3A[A-Z0-9]+1!$/.test(nav.url()), '390: futures row opens ' + (nav && nav.url()));
     check(!errors.length, '390: no page errors ' + errors.join(' | ').slice(0, 300));
     await ctx.close();
+    // ---- Pro gate: GEX levels ----
+    {
+      const o = await open(b, { w: 390, h: 844, mobile: true, free: true });
+      await o.p.tap('.scn-seg [data-m="etf"]'); await sleep(800);
+      check(!!(await o.p.$('[data-lock="gex"]')), '390 free: GEX levels chip is locked with a PRO tag');
+      const txt = await o.p.evaluate(() => document.body.innerText);
+      check(!/\$\s?\d/.test(txt.replace(/\$[A-Z]/g, '')), '390 free: no prices on the page');
+      check(!(await o.p.$('[data-sort="cw"]')), '390 free: no GEX column in the table');
+      await o.p.evaluate(() => { window.__plan = []; window.openPlanUpgradeModal = (w) => { window.__plan.push(w); }; });
+      await o.p.tap('[data-lock="gex"]'); await sleep(200);
+      check((await o.p.evaluate(() => window.__plan)).length === 1, '390 free: tap opens the plan modal');
+      await shot(o.p, 'screener-gex-locked-390.png');
+      await o.ctx.close();
+      const q = await open(b, { w: 390, h: 844, mobile: true });
+      await q.p.tap('.scn-seg [data-m="etf"]'); await sleep(600);
+      await q.p.tap('[data-set="gexs"]'); await q.p.waitForFunction(() => window.__stkScn.rows.some((x) => x.cw != null), null, { timeout: 9000 }).catch(() => {}); await sleep(300);
+      const cw = await q.p.evaluate(() => { const r = window.__stkScn.rows.filter((x) => /:SPY$/.test(x.s))[0]; return r && [r.cw, r.zg, r.pw]; });
+      check(cw && cw.join() === '700,690,680', '390 pro: SPY GEX levels ' + cw);
+      await shot(q.p, 'screener-gex-pro-390.png');
+      await q.ctx.close();
+    }
+    // ---- share link: build in one page, open in a fresh one ----
+    {
+      const o = await open(b, { w: 390, h: 844, mobile: true });
+      await o.p.tap('[data-fadd]'); await sleep(300);
+      await o.p.selectOption('.mv-sheet select[name=f]', 'chg'); await o.p.selectOption('.mv-sheet select[name=op]', 'gt'); await o.p.fill('.mv-sheet input[name=v]', '3');
+      await o.p.tap('.mv-sheet button[type=submit]'); await sleep(300);
+      await o.p.evaluate(() => { window.prompt = (m, u) => { window.__link = u; }; Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }); });
+      await o.p.tap('[data-share]'); await sleep(300);
+      const link = await o.p.evaluate(() => window.__link);
+      check(/scanner\.html\?s=/.test(link || ''), '390: share link built ' + (link || '').slice(0, 80));
+      const want = PARTS.stock.d.d.chg.filter((v) => typeof v === 'number' && v > 3).length;
+      await o.ctx.close();
+      const o2 = await open(b, { w: 390, h: 844, mobile: true, url: link });
+      const s2 = await state(o2.p);
+      check(s2.total === want, '390: opened share link -> ' + s2.total + ' rows (expect ' + want + ')');
+      await o2.p.tap('[data-saved]'); await sleep(300);
+      check(/Sign in/.test(await o2.p.evaluate(() => (document.querySelector('.mv-sheet') || {}).innerText || '')), '390: saved screens ask for sign-in when signed out');
+      await shot(o2.p, 'screener-saved-signedout-390.png');
+      await o2.ctx.close();
+    }
     // ---- crypto row + stock row ----
     const o = await open(b, { w: 1440, h: 900 });
     await o.p.click('.scn-seg [data-m="crypto"]'); await sleep(700);

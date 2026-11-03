@@ -80,3 +80,16 @@ button.scn-c i{font-style:normal;font-size:10px}
   .scn-vp{height:calc(100vh - 340px);height:calc(100dvh - 340px);min-height:300px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+
+.scn-sv{list-style:none;margin:0;padding:0}
+.scn-sv li{display:flex;align-items:center;gap:4px;border-top:1px solid var(--line)}
+.scn-sv li:first-child{border-top:0}
+.scn-sv-open{flex:1;min-width:0;min-height:56px;appearance:none;border:0;background:none;text-align:left;color:var(--ink-0);font:600 15px/20px var(--font-body,'Archivo',sans-serif);cursor:pointer;padding:8px 0}
+.scn-sv-open small{display:block;font:400 12px/16px var(--font-body,'Archivo',sans-serif);color:var(--ink-3)}
+.scn-sv-b{appearance:none;border:0;background:none;min-height:44px;min-width:44px;padding:0 8px;color:var(--ink-2);font:500 13px/18px var(--font-body,'Archivo',sans-serif);cursor:pointer}
+.scn-sv-b[data-del]{color:var(--red,#ff5d6c)}
+
+/* quick-screen / column-set rows: scroll sideways with a soft fade on the right edge */
+.scn-row{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);padding-right:28px}
+.scn-row::-webkit-scrollbar{height:0}.scn-row{scrollbar-width:none}
+@media(min-width:821px){.scn-row{-webkit-mask-image:none;mask-image:none;padding-right:0;flex-wrap:wrap;overflow:visible}}

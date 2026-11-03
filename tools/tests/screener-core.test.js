@@ -60,4 +60,59 @@ t('wall: first level >= 2.5x median', () => {
   assert.strictEqual(L2.wallOf([[1, 1], [2, 1]]), null);
 });
 t('delta: buy minus sell', () => assert.strictEqual(L2.deltaOf([{ lv: [[1, 5, 2], [2, 1, 4]] }]), 0));
+// GEX levels (Pro)
+const G = require('../../assets/scanner-gex.js');
+t('GEX columns exist only with Pro, only on ETFs + futures', () => {
+  ['cw', 'zg', 'pw'].forEach((k) => {
+    assert.ok(!C.fieldsFor('etf', { pro: false }).some((d) => d.k === k));
+    assert.ok(C.fieldsFor('etf', { pro: true }).some((d) => d.k === k));
+    assert.ok(C.fieldsFor('fut', { pro: true }).some((d) => d.k === k));
+    assert.ok(!C.fieldsFor('stock', { pro: true }).some((d) => d.k === k));
+    assert.ok(!C.fieldsFor('crypto', { pro: true }).some((d) => d.k === k));
+  });
+  assert.deepStrictEqual(C.setKeys('gexs', 'etf', { pro: false }), []);
+  assert.deepStrictEqual(C.setKeys('gexs', 'etf', { pro: true }), ['cw', 'zg', 'pw']);
+});
+t('GEX levels map to tickers (ETF direct, futures via converted block)', () => {
+  const o = G.levelsOf({ SPY: { call_wall: 700, zero_gamma: 690, put_wall: 680 }, SPX: { futures: { ES: { levels: { call_wall: 7000, zero_gamma: 6900, put_wall: 6800 } }, MES: { error: 'x' } } }, QQQ: {}, GLD: null });
+  assert.deepStrictEqual(o.SPY, { cw: 700, zg: 690, pw: 680 });
+  assert.deepStrictEqual(o.ES, { cw: 7000, zg: 6900, pw: 6800 });
+  assert.ok(!o.MES && !o.QQQ && !o.NQ);
+});
+t('chip values are abbreviated', () => {
+  assert.strictEqual(C.describe({ f: 'cap', op: 'gt', v: 50000000 }), 'Market cap above 50M');
+  assert.strictEqual(C.describe({ f: 'cap', op: 'bt', v: 1200000000, v2: 5e9 }), 'Market cap between 1.2B and 5B');
+  assert.strictEqual(C.describe({ f: 'rsi', op: 'gt', v: 70 }), 'RSI (14) above 70');
+});
+t('derived ATR columns', () => {
+  const r = C.enrich({ s: 'X:Y', c: 100, atr: 2, sma20: 96, sma50: 90, sma200: 80, chg: 4, gap: 2 }, 0);
+  assert.strictEqual(r.pS20Atr, 2); assert.strictEqual(r.chgAtr, 2); assert.strictEqual(r.gapAtr, 1);
+  assert.strictEqual(r.maSpread, 16);
+});
+t('filter count: stocks >= 60 distinct fields, ~80 options with crosses', () => {
+  const f = C.filterFieldsFor('stock', {}); assert.ok(f.length >= 60, 'stock ' + f.length);
+  const opts = f.reduce((a, d) => a + C.opsFor(d).length, 0); assert.ok(opts >= 80, 'ops ' + opts);
+});
+t('outlier: CASK +2856.67% never tops Top gainers', () => {
+  const cask = { s: 'NASDAQ:CASK', n: 'MGP Ingredients', c: 20, chg: 2856.67, vol: 400000, cap: 5e8 };
+  const ok = { s: 'NASDAQ:OKK', n: 'Real', c: 12, chg: 18, vol: 2e6, cap: 1e9 };
+  const rows = [cask, ok].map((r) => C.enrich(r, 0, 'stock'));
+  assert.strictEqual(rows[0].chg, null); assert.strictEqual(rows[0].bad, 1);
+  const p = C.presetById('gainers'), v = C.sortRows(rows.filter(C.buildFilter(p.flt, 'stock', {}).test), p.sort[0], p.sort[1]);
+  assert.deepStrictEqual(v.map((r) => r.n), ['Real']);
+});
+t('outlier: a big move on heavy volume and a >$1 previous close is kept', () => {
+  assert.strictEqual(C.enrich({ s: 'A:B', c: 40, chg: 400, vol: 5e6 }, 0, 'stock').chg, 400);
+  assert.strictEqual(C.enrich({ s: 'A:B', c: 40, chg: 400, vol: 5e6 }, 0, 'stock').bad, undefined);
+  assert.strictEqual(C.enrich({ s: 'A:B', c: 4, chg: 400, vol: 5e6 }, 0, 'etf').chg, null);   // prev close $0.80
+  assert.strictEqual(C.enrich({ s: 'A:B', c: 40, chg: -350, vol: 5e6 }, 0, 'stock').chg, null);
+  assert.strictEqual(C.enrich({ s: 'B:C', c: 1, chg: 500, vol: 1e5 }, 0, 'crypto').chg, null);  // $100k traded
+  assert.strictEqual(C.enrich({ s: 'B:C', c: 12, chg: 500, vol: 1e6 }, 0, 'crypto').chg, 500);
+});
+t('quick screens have price >= 1 and volume >= 100k floors', () => {
+  ['gainers', 'losers', 'unusual', 'gapup', 'gapdown'].forEach((id) => {
+    const f = C.presetById(id).flt;
+    assert.ok(f.some((x) => x.f === 'c' && x.op === 'gt' && x.v >= 1), id + ' price'); assert.ok(f.some((x) => x.f === 'vol' && x.v >= 1e5), id + ' vol');
+  });
+});
 console.log(n + ' passed');

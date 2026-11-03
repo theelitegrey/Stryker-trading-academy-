@@ -32,4 +32,4 @@ const isProbe = (u) => {
   }
   for (const id of orphans) { await db.recursiveDelete(db.collection('students').doc(id)); await db.collection('profiles').doc(id).delete(); n++; }
   console.log('deleted', n);
-})().catch((e) => { console.error('ERR', e.code || e.message); process.exit(1); });
+})().catch((e) => { console.error('ERR', e.code, String(e.message).slice(0, 300)); process.exit(1); });

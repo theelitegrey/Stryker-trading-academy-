@@ -1,5 +1,5 @@
 // TradeZoro — Charts: Tick-stream twins of the order-flow indicators (Owner order 2026-11-02: "update the big trades indicator to use
-// the new data feed, I want to check the difference with tick stream"; "what about delta?"). ADMIN ONLY (same l2Visible() gate as the
+// the new data feed, I want to check the difference with tick stream"; "what about delta?"). Pro (same l2Visible() gate as the
 // futures L2 tools), for a side-by-side check of the two trade feeds on one chart:
 //   stk_ts_big    "Big Trades (Tick-stream)"        same schema as stk_of_big, outline-only bubbles, other default colours
 //   stk_ts_delta  "Delta (Tick-stream)"             same schema as stk_of_delta
@@ -20,7 +20,7 @@ import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=803'
 export const TS_TYPES = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const WIN = 6 * 3600000, KEEP = 48 * 3600000;
-const TS_UP = '#22d3ee', TS_DN = '#ff9f1c';   // cyan / amber: not the green / purple of the InsightSentry tools
+const TS_UP = '#22d3ee', TS_DN = '#ff9f1c';   // cyan / amber: not the green / purple of the standard tools
 const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname); } catch (e) { return false; } };
 const testBase = () => (isLocal() && window.__stkL2Test && window.__stkL2Test.base) || '';
 
@@ -139,7 +139,7 @@ function readout(type, s, f, thr, same) {
   const now = Date.now(), from = (Math.floor(now / 60000) - 60) * 60000, F = H.fmt, G = H.sgn;
   if (!f || !f.mins || !f.mins.length) return ['Standard vs L1, last 60 min', 'Standard feed not available for this chart'];
   if (s.loading || s.loadedFrom > from) return ['Standard vs L1, last 60 min', 'Loading L1 history…'];
-  if (!same) return ['Standard vs L1, last 60 min', 'n/a on a micro: InsightSentry order flow is the mini\'s'];
+  if (!same) return ['Standard vs L1, last 60 min', 'n/a on a micro: standard order flow is the mini\'s'];
   const tt = Math.max(thr, s.floor);
   const r = compareFeeds({ isBars: f.mins, tsMins: minutes(s), tsTrades: s.trades, thr: tt, tick: s.tick, from, to: now + 60000 });
   const d = 'Δ Std ' + G(r.is.delta) + ' · L1 ' + G(r.ts.delta) + (r.corr != null ? ' · r ' + r.corr.toFixed(2) : '');
@@ -170,7 +170,7 @@ class TsNative {
     if (!this.ctx || this.off) return;
     const ctx = this.ctx, I = this.inputs, t = this.type, bars = ctx.bars();
     const note = (txt) => { this.unbind(); ctx.setStatus('idle'); ctx.emit({ tables: [table(t + '-msg', [txt], true)] }); try { ctx.pushData({ owner: this, off: true }); } catch (e) {} };
-    if (!l2Visible()) return note('L1 trades are not available yet.');
+    if (!l2Visible()) return note('L1 trades are part of Pro.');
     const root = l2Root(ctx.symbol);
     if (!root) return note('L1 trades: NQ, ES, MNQ, MES, YM, RTY, CL and GC futures.');
     const tf = H.tfMin(ctx.timeframe);
@@ -182,7 +182,7 @@ class TsNative {
     const E = H.replayE();
     let mins = minutes(s);
     if (E != null) mins = mins.filter((m) => m.t + 60000 <= E);
-    const isRoot = H.rootOf(ctx), same = isRoot === root;   // a micro chart: InsightSentry order flow is the mini's, so no like-for-like
+    const isRoot = H.rootOf(ctx), same = isRoot === root;   // a micro chart: standard order flow is the mini's, so no like-for-like
     const isF = H.flowFor({ root: isRoot, timeframe: ctx.timeframe, bars, owner: this });
     ctx.setStatus(s.loading ? 'loading' : 'idle');
     const msg = s.loading && !mins.length ? 'Loading L1 trades…' : s.err && !mins.length ? s.err : !mins.length ? 'Waiting for L1 trades…' : '';

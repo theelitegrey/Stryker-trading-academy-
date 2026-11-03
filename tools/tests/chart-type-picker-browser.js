@@ -18,7 +18,7 @@ let fail = 0; const check = (ok, m, x) => { if (!ok) fail++; console.log((ok ? '
     await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STK_CT_OPEN, null, { timeout: 60000 }).catch(() => {});
     await p.waitForTimeout(3500);
     const tag = theme + '-' + z.tag;
-    const openIt = async () => { if (z.mobile) await p.evaluate(() => window.STK_CT_OPEN()); else await p.click('.vela-widget-style'); await p.waitForTimeout(500); };
+    const openIt = async () => { if (z.mobile) { const more = await p.$('.stkc-ob-more-btn'); const vis = more && await more.isVisible(); if (vis) { await more.tap(); await p.waitForTimeout(400); } const st = p.locator('.vela-widget-style').first(); if (await st.isVisible()) await st.tap(); else await p.evaluate(() => window.STK_CT_OPEN()); } else await p.click('.vela-widget-style'); await p.waitForTimeout(500); };
     await openIt();
     const info = await p.evaluate(() => { const g = document.querySelector('.stk-ct-g'); if (!g) return null; const cs = getComputedStyle(g).gridTemplateColumns.split(' ').length; const items = [...g.querySelectorAll('.stk-ct-b')].map((x) => x.dataset.type); const r = document.querySelector('.stk-ct').getBoundingClientRect(); return { cols: cs, n: items.length, items, w: Math.round(r.width), h: Math.round(r.height), ovf: document.documentElement.scrollWidth > innerWidth }; });
     check(info && info.n === 21 && info.cols === (z.mobile ? 3 : 4) && !info.ovf, tag + ' sheet opens: 21 types, ' + (z.mobile ? 3 : 4) + ' columns', info && { cols: info.cols, n: info.n, w: info.w, h: info.h });

@@ -68,7 +68,21 @@ export function mountChartTypePicker(ws, opts) {
     try { c.setPriceStyle(id); try { ws.context().stateChanged(); } catch (e) {} } catch (e) { toast('That chart type is not available here.', 'error'); return false; }
     return true;
   }
+  // Opened from inside the phone "More" drawer (a modal sheet that blocks taps outside it): close that sheet first, then open.
   function open() {
+    // phone toolbar "More" list (chart-onebar.js) holds the Chart type button: close it so it can't sit over the sheet
+    const mb = document.querySelector('.stkc-ob-more-btn[aria-expanded="true"]');
+    if (mb) mb.click();
+    const dr = document.querySelector('.vela-drawer[data-state="open"]');
+    if (dr) {
+      dr.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+      const bd = document.querySelector('.vela-drawer-backdrop');
+      setTimeout(() => { if (document.querySelector('.vela-drawer[data-state="open"]') && bd) bd.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); }, 60);
+      setTimeout(open2, 260); return;
+    }
+    open2();
+  }
+  function open2() {
     if (document.querySelector('.stk-ct-ov')) return;
     const ov = document.createElement('div'); ov.className = 'stk-ct-ov';
     ov.innerHTML = '<div class="stk-ct" role="dialog" aria-modal="true" aria-label="Chart type"><div class="stk-ct-h"><b>Chart type</b><button class="stk-ct-x" aria-label="Close">&times;</button></div><div class="stk-ct-hint">Press and hold (or tap the star) to add a type to your top bar.</div><div class="stk-ct-g"></div></div>';

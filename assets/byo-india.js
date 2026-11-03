@@ -29,8 +29,8 @@ export function symbolOf(t) {
   if (/^[A-Z0-9&\-]{1,20}$/.test(r) && !r.includes('!')) return IDX[r] ? 'NSE:' + IDX[r] + '-INDEX' : 'NSE:' + r + '-EQ';
   return null;
 }
-const parts = (k) => { const m = /^(NSE|MCX):(.+?)(-EQ|-INDEX|1!)?$/.exec(k); const t = m[3] || (/FUT$/.test(m[2]) ? 'CON' : ''); return { ex: m[1], name: m[2], type: t === '-EQ' ? 'EQ' : t === '-INDEX' ? 'IDX' : t === '1!' ? 'FRONT' : 'CON' }; };
-const info = (k) => { const p = parts(k); return { ticker: k, tickerid: 'BYO:' + k, prefix: 'BYO', description: p.name + (p.type === 'FRONT' ? ' front month' : p.type === 'IDX' ? ' index' : ''), type: p.type === 'IDX' ? 'index' : p.type === 'EQ' ? 'stock' : 'futures', market: p.type === 'EQ' || p.type === 'IDX' ? 'equity' : 'futures', currency: 'INR', mintick: 0.05, pricescale: 100, minmove: 5, pointvalue: 1, timezone: 'Asia/Kolkata', session: p.ex === 'MCX' ? '0900-2330' : '0915-1530' }; };
+export const parts = (k) => { const m = /^(NSE|MCX):(.+?)(-EQ|-INDEX|1!)?$/.exec(k); const t = m[3] || (/FUT$/.test(m[2]) ? 'CON' : ''); return { ex: m[1], name: m[2], type: t === '-EQ' ? 'EQ' : t === '-INDEX' ? 'IDX' : t === '1!' ? 'FRONT' : 'CON' }; };
+export const info = (k) => { const p = parts(k); return { ticker: k, tickerid: 'BYO:' + k, prefix: 'BYO', description: p.name + (p.type === 'FRONT' ? ' front month' : p.type === 'IDX' ? ' index' : ''), type: p.type === 'IDX' ? 'index' : p.type === 'EQ' ? 'stock' : 'futures', market: p.type === 'EQ' || p.type === 'IDX' ? 'equity' : 'futures', currency: 'INR', mintick: 0.05, pricescale: 100, minmove: 5, pointvalue: 1, timezone: 'Asia/Kolkata', session: p.ex === 'MCX' ? '0900-2330' : '0915-1530' }; };
 // Month label of a front-month search: current month first, then the next five.
 export function monthSyms(ex, name, now = Date.now()) {
   const d = new Date(now + IST); const out = [];

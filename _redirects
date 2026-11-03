@@ -46,6 +46,7 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 /connect/tastytrade/callback /oauth-callback 200
 /connect/upstox/callback /oauth-callback 200
 /connect/fyers/callback /oauth-callback 200
+/connect/dhan/callback /oauth-callback 200
 
 # Creator Hub landing moved under /features (2026-10-30).
 /creators /features/creators 301

@@ -2,9 +2,10 @@
 // Depends on: assets/byo-core.js (SOURCES, connect, forget, onByoChange, statusOf). Mounted by assets/vela-chart.js into
 // the chart toolbar (.stkc-bar-r). Rithmic is listed here and opens its own existing flow (window.STRYKER_RITHMIC.open).
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
-import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=853';
+import { SOURCES, connect, forget, onByoChange, statusOf, statusRec, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=853';
 let CTR = null;   // byo-ctrader.js, loaded with the chart
 const OAUTH = () => import('./byo-oauth.js?v=853');
+const DHAN = () => import('./byo-dhan.js?v=853');
 const ctr = () => CTR || import('./byo-ctrader.js?v=853').then((m) => (CTR = m));
 
 const CSS = `
@@ -87,6 +88,12 @@ const CSS = `
 :root[data-theme="light"] .byo-go.danger{ border-color:#b42318; color:#b42318; }
 .byo-lock{ display:flex; gap:8px; margin:16px 0 0; font:400 13px/18px var(--by-font); color:var(--ink-2,#8b93a0); }
 .byo-lock svg{ flex:none; margin-top:1px; }
+.byo-steps.open{ padding:12px 14px; }
+.byo-steps.open h3{ margin:0 0 8px; font:600 14px/20px var(--by-font); color:var(--ink-0,#eee); }
+.byo-steps.open ol{ margin:0; }
+.byo-or{ display:flex; align-items:center; gap:12px; margin:16px 0; font:500 12px/16px var(--by-font); color:var(--ink-2,#8b93a0); }
+.byo-or::before, .byo-or::after{ content:""; flex:1; height:1px; background:var(--line,#2c2c32); }
+.byo-warn{ margin:0 0 16px; padding:10px 12px; border-radius:12px; border:1px solid rgba(245,166,35,.5); font:500 13px/18px var(--by-font); color:var(--ink-1,#c9cdd3); }
 .byo-state{ display:flex; align-items:center; gap:8px; margin:0 0 16px; font:500 15px/20px var(--by-font); }
 .byo-state i{ width:10px; height:10px; border-radius:50%; background:#089981; box-shadow:0 0 0 2px rgba(8,153,129,.25); }
 .byo-state.warn i{ background:#F5A623; box-shadow:0 0 0 2px rgba(245,166,35,.25); }
@@ -104,7 +111,7 @@ const GLYPH = {
   crypto: '<circle cx="12" cy="12" r="8"/><path d="M9 9h5a1.5 1.5 0 0 1 0 3H9h5.5a1.5 1.5 0 0 1 0 3H9M9 7v10"/>'
 };
 // Official brand marks (own-site icons, see assets/images/brokers/SOURCES.md). White tile so every mark reads in dark + light.
-const LOGO = { alpaca: 'svg', oanda: 'png', ironbeam: 'png', tastytrade: 'svg', rithmic: 'png', schwab: 'png', ctrader: 'svg', upstox: 'png', fyers: 'png' };
+const LOGO = { alpaca: 'svg', oanda: 'png', ironbeam: 'png', tastytrade: 'svg', rithmic: 'png', schwab: 'png', ctrader: 'svg', upstox: 'png', fyers: 'png', dhan: 'png' };
 function logoTile(s) {
   const glyph = I(GLYPH[s.cls[0]] || GLYPH.stocks);
   if (!LOGO[s.id]) return el('span', { class: 'byo-ic', html: glyph });
@@ -177,8 +184,11 @@ export function mountByo(opts = {}) {
     else if (s.state === 'ready' && s.oauth) {
       const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
       b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : s.keyAlt || s.signin ? go('signin', s) : startOauth(s)) });
-    } else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
-    else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
+    } else if (s.state === 'ready') {
+      const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
+      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected && !re ? 'manage' : 'form', s) });
+    }
+    if (!b) b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
       logoTile(s),
       el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }), s.relay && s.state === 'ready' ? el('span', { class: 'byo-cv', text: s.noteText }) : null,
@@ -192,6 +202,14 @@ export function mountByo(opts = {}) {
       if (!u) { go('list'); body.prepend(el('p', { class: 'byo-err', role: 'alert', text: 'Sign in to connect your own data.' })); return; }
       location.assign(s.keyAlt || s.signin ? (await OAUTH()).oauthAuthUrl(s.id, s.clientId, u.uid) : s.id === 'ctrader' ? (await ctr()).ctraderAuthUrl(s.clientId, u.uid) : await schwabAuthUrl(s.clientId, u.uid));
     } catch (e) { /* stays on the list */ }
+  }
+
+  async function startDhan(err) {
+    try {
+      const u = window.firebase && firebase.auth().currentUser;
+      if (!u) { err.textContent = 'Sign in to connect your own data.'; err.hidden = false; return; }
+      location.assign(await (await DHAN()).dhanStart(u.uid, await u.getIdToken()));
+    } catch (e) { err.textContent = 'Dhan sign-in is not available right now. Paste a token instead.'; err.hidden = false; }
   }
 
   function renderList() {
@@ -214,9 +232,16 @@ export function mountByo(opts = {}) {
     const inputs = {};
     const form = el('form', { novalidate: true, autocomplete: 'off' });
     body.appendChild(el('p', { class: 'byo-lead', text: s.help }));
-    if (s.steps) body.appendChild(el('details', { class: 'byo-steps' }, [el('summary', { text: 'How to get these' }),
+    if (s.partner) {   // Dhan one-tap: only when the function says it has its partner keys
+      body.appendChild(el('button', { type: 'button', class: 'byo-go byo-signin', id: 'byo-signin', onclick: () => startDhan(err) }, [logoTile(s), el('span', { text: 'Sign in with Dhan' })]));
+      body.appendChild(el('div', { class: 'byo-or', text: 'or paste a token' }));
+    }
+    if (s.id === 'dhan') body.appendChild(el('div', { class: 'byo-steps open' }, [el('h3', { text: 'Get your token in 4 steps' }), el('ol', {}, s.steps.map((t) => el('li', { text: t }))),
+      el('a', { class: 'byo-link', href: s.docs, target: '_blank', rel: 'noopener noreferrer', text: 'Dhan help page' })]));
+    else if (s.steps) body.appendChild(el('details', { class: 'byo-steps' }, [el('summary', { text: 'How to get these' }),
       el('ol', {}, s.steps.map((t) => el('li', { text: t }))), el('a', { class: 'byo-link', href: s.docs, target: '_blank', rel: 'noopener noreferrer', text: s.name + ' API page' })]));
     form.appendChild(err);
+    if (s.id === 'dhan') form.appendChild(el('p', { class: 'byo-warn', text: 'Dhan charges for market data. This works only if the Data plan is on your Dhan account.' }));
     s.fields.forEach((f) => {
       const id = 'byo-f-' + f.k;
       let inp;
@@ -245,7 +270,7 @@ export function mountByo(opts = {}) {
       try { await connect(s.id, creds); Object.values(inputs).forEach((i) => { i.value = ''; }); go('manage', s); }
       catch (x) {
         const st = x && x.status;
-        err.textContent = x && /^(Sign in|Enter your OANDA|This token can)/.test(x.message) ? x.message : st === 401 || st === 403 ? s.name + ' did not accept this key. Check it and try again.' : st === 429 ? 'Too many tries. Wait a minute and try again.' : 'Could not reach ' + s.name + '. Check your connection and try again.';
+        err.textContent = x && (x.show || /^(Sign in|Enter your OANDA|This token can)/.test(x.message)) ? x.message : st === 401 || st === 403 ? s.name + ' did not accept this key. Check it and try again.' : st === 429 ? 'Too many tries. Wait a minute and try again.' : 'Could not reach ' + s.name + '. Check your connection and try again.';
         err.hidden = false;
       } finally { if (view === 'form') { submit.disabled = false; submit.textContent = 'Connect'; } }
     });
@@ -276,6 +301,12 @@ export function mountByo(opts = {}) {
     body.appendChild(el('p', { class: 'byo-state' + (bad ? ' bad' : live ? '' : ' warn'), 'data-state': st.status, html: '<i aria-hidden="true"></i><span></span>' }));
     body.querySelector('.byo-state span').textContent = bad ? (st.msg || 'Connection refused') : live ? 'Connected, live data' : 'Connected, waiting for a chart that uses ' + s.name + (st.msg ? ' · ' + st.msg : '');
     body.appendChild(el('p', { class: 'byo-lead', text: s.manage ? s.manage : s.id === 'alpaca' || s.id === 'schwab' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
+    if (s.id === 'dhan') {
+      const c = statusRec('dhan') && statusRec('dhan').creds, left = c && c.exp ? c.exp - Date.now() : 0;
+      const t = left > 0 ? 'Token ends in ' + (left >= 36e5 ? Math.floor(left / 36e5) + ' h ' + Math.floor(left % 36e5 / 6e4) + ' min' : Math.max(1, Math.ceil(left / 6e4)) + ' min') + '.' : 'Token ended.';
+      body.appendChild(el('p', { class: 'byo-note2', id: 'byo-expiry', text: t }));
+      body.appendChild(el('div', { class: 'byo-steps open' }, [el('h3', { text: 'Renew it (once a day)' }), el('ol', {}, ['Open web.dhan.co, My Profile, Access DhanHQ APIs.', 'Generate a new Access Token (24 hours).', 'Tap Reconnect here and paste it.', 'Your Client ID stays the same.'].map((x) => el('li', { text: x })))]));
+    }
     body.appendChild(el('button', { type: 'button', class: 'byo-go danger', id: 'byo-forget', text: 'Forget this connection', onclick: async () => { await forget(s.id); go('list'); } }));
     body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
     body.querySelector('.byo-lock span').textContent = noteOf(s);
@@ -300,6 +331,7 @@ export function mountByo(opts = {}) {
   });
   onByoChange(() => { if (open && view === 'manage') render(); else if (open && view === 'list') renderList(); });
 
+  DHAN().then((m) => m.enableDhanIfConfigured()).then((on) => { if (on && open) render(); }).catch(() => {});
   enableSchwabIfConfigured().then((on) => { if (on && open) render(); }).catch(() => {});
   OAUTH().then((m) => m.enableOauthIfConfigured()).then((on) => { if (on && open) render(); }).catch(() => {});
   ctr().then((m) => m.enableCtraderIfConfigured()).then((on) => { if (on && open) render(); }).catch(() => {});

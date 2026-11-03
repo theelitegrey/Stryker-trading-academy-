@@ -1,0 +1,223 @@
+[
+ {
+  "name": "ticker NSE_EQ",
+  "hex": "02100001450b00009a519a44308b0869",
+  "official": {
+   "type": "Ticker Data",
+   "exchange_segment": 1,
+   "security_id": 2885,
+   "LTP": "1234.55",
+   "LTT": "11:00:00"
+  }
+ },
+ {
+  "name": "ticker IDX_I",
+  "hex": "021000000d0000008068bf46318b0869",
+  "official": {
+   "type": "Ticker Data",
+   "exchange_segment": 0,
+   "security_id": 13,
+   "LTP": "24500.25",
+   "LTT": "11:00:01"
+  }
+ },
+ {
+  "name": "prev close",
+  "hex": "06100002ddd5000000a0be463ae20100",
+  "official": {
+   "type": "Previous Close",
+   "exchange_segment": 2,
+   "security_id": 54749,
+   "prev_close": "24400.00",
+   "prev_OI": 123450
+  }
+ },
+ {
+  "name": "quote NSE_FNO",
+  "hex": "04320002ddd50000007dbf464b00328b08699a40bf4606120f00881300007017000000a0be46008cbe4600ccbf460078be46",
+  "official": {
+   "type": "Quote Data",
+   "exchange_segment": 2,
+   "security_id": 54749,
+   "LTP": "24510.50",
+   "LTQ": 75,
+   "LTT": "11:00:02",
+   "avg_price": "24480.30",
+   "volume": 987654,
+   "total_sell_quantity": 5000,
+   "total_buy_quantity": 6000,
+   "open": "24400.00",
+   "close": "24390.00",
+   "high": "24550.00",
+   "low": "24380.00"
+  }
+ },
+ {
+  "name": "quote MCX_COMM",
+  "hex": "043200056d8e0700c0be0c480200338b086900870c48d7110000640000005a000000006e0c4800550c4800eb0c48003c0c48",
+  "official": {
+   "type": "Quote Data",
+   "exchange_segment": 5,
+   "security_id": 495213,
+   "LTP": "144123.00",
+   "LTQ": 2,
+   "LTT": "11:00:03",
+   "avg_price": "143900.00",
+   "volume": 4567,
+   "total_sell_quantity": 100,
+   "total_buy_quantity": 90,
+   "open": "143800.00",
+   "close": "143700.00",
+   "high": "144300.00",
+   "low": "143600.00"
+  }
+ },
+ {
+  "name": "oi",
+  "hex": "050c0002ddd50000b1cb7400",
+  "official": {
+   "type": "OI Data",
+   "exchange_segment": 2,
+   "security_id": 54749,
+   "OI": 7654321
+  }
+ },
+ {
+  "name": "status",
+  "hex": "0708000000000000",
+  "official": "Markets Open"
+ },
+ {
+  "name": "full NSE_EQ",
+  "hex": "08a20001450b00009a519a440a00348b086933c39944b0af54002c01000090010000000000000000000000000000008098440030994400009b4400e0974464000000c8000000030004008068bf460069bf4665000000c9000000040005006668bf461a69bf4666000000ca000000050006004d68bf463369bf4667000000cb000000060007003368bf464d69bf4668000000cc000000070008001a68bf466669bf46",
+  "official": {
+   "type": "Full Data",
+   "exchange_segment": 1,
+   "security_id": 2885,
+   "LTP": "1234.55",
+   "LTQ": 10,
+   "LTT": "11:00:04",
+   "avg_price": "1230.10",
+   "volume": 5550000,
+   "total_sell_quantity": 300,
+   "total_buy_quantity": 400,
+   "OI": 0,
+   "oi_day_high": 0,
+   "oi_day_low": 0,
+   "open": "1220.00",
+   "close": "1225.50",
+   "high": "1240.00",
+   "low": "1215.00",
+   "depth": [
+    {
+     "bid_quantity": 100,
+     "ask_quantity": 200,
+     "bid_orders": 3,
+     "ask_orders": 4,
+     "bid_price": "24500.25",
+     "ask_price": "24500.50"
+    },
+    {
+     "bid_quantity": 101,
+     "ask_quantity": 201,
+     "bid_orders": 4,
+     "ask_orders": 5,
+     "bid_price": "24500.20",
+     "ask_price": "24500.55"
+    },
+    {
+     "bid_quantity": 102,
+     "ask_quantity": 202,
+     "bid_orders": 5,
+     "ask_orders": 6,
+     "bid_price": "24500.15",
+     "ask_price": "24500.60"
+    },
+    {
+     "bid_quantity": 103,
+     "ask_quantity": 203,
+     "bid_orders": 6,
+     "ask_orders": 7,
+     "bid_price": "24500.10",
+     "ask_price": "24500.65"
+    },
+    {
+     "bid_quantity": 104,
+     "ask_quantity": 204,
+     "bid_orders": 7,
+     "ask_orders": 8,
+     "bid_price": "24500.05",
+     "ask_price": "24500.70"
+    }
+   ]
+  }
+ },
+ {
+  "name": "depth (5 level)",
+  "hex": "03700001450b00009a519a4464000000c8000000030004008068bf460069bf4665000000c9000000040005006668bf461a69bf4666000000ca000000050006004d68bf463369bf4667000000cb000000060007003368bf464d69bf4668000000cc000000070008001a68bf466669bf46",
+  "official": {
+   "type": "Market Depth",
+   "exchange_segment": 1,
+   "security_id": 2885,
+   "LTP": 1234.550048828125,
+   "depth": [
+    {
+     "bid_quantity": 100,
+     "ask_quantity": 200,
+     "bid_orders": 3,
+     "ask_orders": 4,
+     "bid_price": "24500.25",
+     "ask_price": "24500.50"
+    },
+    {
+     "bid_quantity": 101,
+     "ask_quantity": 201,
+     "bid_orders": 4,
+     "ask_orders": 5,
+     "bid_price": "24500.20",
+     "ask_price": "24500.55"
+    },
+    {
+     "bid_quantity": 102,
+     "ask_quantity": 202,
+     "bid_orders": 5,
+     "ask_orders": 6,
+     "bid_price": "24500.15",
+     "ask_price": "24500.60"
+    },
+    {
+     "bid_quantity": 103,
+     "ask_quantity": 203,
+     "bid_orders": 6,
+     "ask_orders": 7,
+     "bid_price": "24500.10",
+     "ask_price": "24500.65"
+    },
+    {
+     "bid_quantity": 104,
+     "ask_quantity": 204,
+     "bid_orders": 7,
+     "ask_orders": 8,
+     "bid_price": "24500.05",
+     "ask_price": "24500.70"
+    }
+   ]
+  }
+ },
+ {
+  "name": "disconnect 807 token expired",
+  "hex": "320a0000000000002703",
+  "official": {
+   "type": "disconnect",
+   "code": 807
+  }
+ },
+ {
+  "name": "disconnect 806 no data plan",
+  "hex": "320a0000000000002603",
+  "official": {
+   "type": "disconnect",
+   "code": 806
+  }
+ }
+]

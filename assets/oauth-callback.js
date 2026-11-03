@@ -3,15 +3,15 @@
 // /connect/<id>/token, test the token with a harmless market-data call, keep the tokens in the device vault, go back to /charts
 // (fixed address; never taken from the URL).
 (function () {
-  var m = /^\/connect\/(alpaca|tastytrade|upstox|fyers)\/callback\/?$/.exec(location.pathname), id = m && m[1];
+  var m = /^\/connect\/(alpaca|tastytrade|upstox|fyers|dhan)\/callback\/?$/.exec(location.pathname), id = m && m[1];
   var q = new URLSearchParams(location.search);
-  var code = id === 'fyers' ? q.get('auth_code') : q.get('code'),   // Fyers sends code=200 and the real one as auth_code
+  var code = id === 'fyers' ? q.get('auth_code') : id === 'dhan' ? q.get('tokenId') : q.get('code'),   // Fyers sends code=200 and the real one as auth_code
        state = q.get('state'), denied = q.get('error');
   try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignore */ }
   var h = document.getElementById('oa-h'), p = document.getElementById('oa-p'), a = document.getElementById('oa-a');
   function end(title, text) { h.textContent = title; p.textContent = text; a.hidden = false; }   // textContent only: nothing from the URL is ever shown
-  var NAME = { alpaca: 'Alpaca', tastytrade: 'tastytrade', upstox: 'Upstox', fyers: 'Fyers' }[id] || 'Your data source';
-  if (!id || denied || !code || !state) return end(NAME + ' was not connected', 'You can try again from Data source in the charts.');
+  var NAME = { alpaca: 'Alpaca', tastytrade: 'tastytrade', upstox: 'Upstox', fyers: 'Fyers', dhan: 'Dhan' }[id] || 'Your data source';
+  if (!id || denied || !code || (!state && id !== 'dhan')) return end(NAME + ' was not connected', 'You can try again from Data source in the charts.');
   h.textContent = 'Connecting ' + NAME + '…';
   function user() {
     return new Promise(function (res) {
@@ -22,8 +22,13 @@
   }
   user().then(function (u) {
     if (!u) return end('Sign in first', 'Sign in to TradeZoro, then connect ' + NAME + ' again.');
-    return Promise.all([import('./byo-core.js?v=853'), import('./byo-oauth.js?v=853'), import('./byo-tastytrade.js?v=853'), import('./byo-india.js?v=853')]).then(function (mm) {
+    return Promise.all([import('./byo-core.js?v=853'), import('./byo-oauth.js?v=853'), import('./byo-tastytrade.js?v=853'), import('./byo-india.js?v=853'), import('./byo-dhan.js?v=853')]).then(function (mm) {
       var c = mm[0], oa = mm[1];
+      if (id === 'dhan') {   // partner one-tap: the return carries tokenId (step 3). Same user + 10-minute window as the others.
+        return u.getIdToken().then(function (idt) { return mm[4].dhanFinish(code, u.uid, idt); })
+          .then(function (creds) { return c.bindUser(u.uid).then(function () { return c.ADAPTERS.dhan.check(creds); }).then(function () { return c.saveSource('dhan', creds, undefined, true); }); })
+          .then(function () { location.replace('/charts'); });
+      }
       var rec = oa.takeOauthState(id, state, u.uid);
       if (!rec) return end(NAME + ' was not connected', 'The sign-in link expired. Start again from Data source in the charts.');
       return u.getIdToken().then(function (idt) { return oa.oauthTokenCall(id, { grant: 'code', code: code }, idt); })

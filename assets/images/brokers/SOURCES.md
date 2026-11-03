@@ -8,3 +8,4 @@ schwab.png    https://www.schwab.com/themes/custom/sch_beacon_retail/favicons/ap
 ctrader.svg   https://ctrader.com/icon.svg
 upstox.png    https://upstox.com/marketing-page-assets/favicon/favicon-128.png (icon linked from upstox.com, 128px)
 fyers.png     https://fyers.in/icon.png (icon linked from fyers.in, 192px)
+dhan.png      https://dhan.co/favicon.png (icon linked from dhan.co, 192px)

@@ -1,14 +1,20 @@
 [
  {
-  "build": 813,
+  "build": 814,
   "date": "2026-11-03",
-  "title": "Passkey sign-in",
+  "title": "Partner programme",
+  "link": ""
+ },
+ {
+  "build": 814,
+  "date": "2026-11-03",
+  "title": "passkeys shipped",
   "link": ""
  },
  {
   "build": 813,
   "date": "2026-11-03",
-  "title": "passkeys shipped",
+  "title": "Passkey sign-in",
   "link": ""
  },
  {

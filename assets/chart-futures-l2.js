@@ -41,7 +41,8 @@ export const liveVisible = () => !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS
 let bookTier = null;
 export function l2Visible() { return liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades)); }
 // For the badges only: bookTier null = the hub has not said yet, so a Pro / admin member is NOT shown a lock. A definite Free member is. The server stays the real gate.
-export const l2Badge = () => (bookTier === null ? (liveVisible() || (!rtState().ready && !isFree())) : l2Visible());   // sign-in answer not in yet = unknown, not Free: no lock
+export const l2Badge = () => (liveVisible() || (bookTier === null && !rtState().ready && !isFree()) || l2Visible());   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
+const DIAG = { tier: '-', close: '-', closeAt: 0 };
 function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades); if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
 // Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.
 export const l2Listed = () => L2_MEMBERS || l2Visible();
@@ -156,20 +157,21 @@ class Conn {
     if (this.stopped || this.ws) return;
     const r = rootState(this.root);
     const base = baseUrl(HOOK);
-    if (!base) { r.status = 'error'; tell(r); return; }
+    if (!base) { r.status = 'error'; r.err = 'no base'; tell(r); this.later(); return; }   // retry: the recorder URL / hook may land a moment later
     r.status = 'reconnecting'; tell(r);
     let token = '';
     if (!testOn()) {
       await rtReady(); try { await rtEnsureFresh(120); } catch (e) {} token = rtToken() || '';
-      if (!token) { r.status = 'error'; r.err = 'sign in'; tell(r); return; }
+      if (!token) { r.status = 'error'; r.err = 'sign in'; tell(r); this.later(); return; }   // used to stay dead for good: keep asking, the token can land after the first try
     }
     if (this.stopped || this.ws) return;
     let ws;
     try { ws = new WebSocket(wsBase(base) + '/ts-live?symbol=' + this.root + '&levels=' + this.levels, token ? ['tz-auth', token] : undefined); } catch (e) { this.later(); return; }
     this.ws = ws;
-    ws.onopen = () => { this.openedAt = Date.now(); liveGap(this.root); fillGap(this.root); this.send({ op: 'sub', symbol: this.root, levels: this.levels }); this.arm(); };
+    ws.onopen = () => { r.err = ''; this.openedAt = Date.now(); liveGap(this.root); fillGap(this.root); this.send({ op: 'sub', symbol: this.root, levels: this.levels }); this.arm(); };
     ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } this.arm(); this.frame(m); };
     ws.onclose = (e) => {
+      DIAG.close = (e && e.code) + ' ' + String((e && e.reason) || '').slice(0, 40); DIAG.closeAt = Date.now();
       if (this.ws !== ws) return; this.ws = null; clearTimeout(this.dog);
       r.status = 'reconnecting'; tell(r);
       if (Date.now() - this.openedAt > 30000) this.retryN = 0;
@@ -183,6 +185,7 @@ class Conn {
     const r = rootState(this.root);
     if (m.event === 'status') { r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
     if (m.event === 'hub_attached') {
+      DIAG.tier = String(m.tier) + '/' + String(m.state);
       // A Pro member can be told 'trades' by one socket (the tier check on the Worker hit a hiccup / stale token) while the book history, gated the same way, loads fine.
       // That showed Unlock beside real data. A non-Free member told 'trades' reconnects up to 2 times with a fresh token before the lock may show. The server stays the gate.
       if (m.tier !== 'book' && bookTier !== true && liveVisible() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
@@ -213,6 +216,15 @@ class Conn {
   close() { this.stopped = true; clearTimeout(this.tm); clearTimeout(this.dog); clearTimeout(this.closeTm); document.removeEventListener('visibilitychange', this.onVis); if (this.ws) { try { this.ws.close(1000); } catch (e) {} this.ws = null; } }
 }
 // Resolves once the hub has said which tier this account has (hub_attached), by opening NQ briefly if no socket is open yet. Never rejects.
+const pfx = (v) => (v ? String(v).slice(0, 4) + '…' : '');
+export function l2Diag(sym0) {
+  const g = (f) => { try { return f(); } catch (e) { return 'err'; } };
+  const sock = {}; roots.forEach((r, k) => { sock[k] = (r.conn && r.conn.ws ? ['connecting', 'open', 'closing', 'closed'][r.conn.ws.readyState] : 'none') + ' status=' + r.status + (r.err ? ' err=' + r.err : '') + ' snaps=' + (r.nSnap || 0) + ' retry=' + (r.conn ? r.conn.retryN : '-'); });
+  let spec = '';
+  try { const sym = sym0 || (window.ws && window.ws.active && window.ws.active.symbol) || ''; spec = sym + ' -> root ' + (l2Root(String(sym).replace(/^[a-z0-9]+:/i, '')) /* chart-book-pack also asks the chart's own resolver */ || 'none'); } catch (e) {}
+  return { build: '845+', rtState: g(rtState), isFree: g(isFree), planTier: g(() => (window.strykerPlanTier ? 'fn' : 'none') + ' free=' + window.__stkChartFree), liveVisible: g(liveVisible), l2Visible: g(l2Visible), l2Badge: g(l2Badge), bookTier, token: pfx(g(rtToken)), lastHubAttached: DIAG.tier, lastClose: DIAG.close + (DIAG.closeAt ? ' ' + Math.round((Date.now() - DIAG.closeAt) / 1000) + 's ago' : ''), base: g(() => baseUrl(HOOK) ? 'set' : 'EMPTY'), sockets: sock, spec, hidden: document.hidden };
+}
+if (typeof window !== 'undefined') window.tzL2Diag = l2Diag;
 export function l2Probe() {
   if (bookTier !== null || !liveVisible()) return Promise.resolve(l2Visible());
   return new Promise((res) => {

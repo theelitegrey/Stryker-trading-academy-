@@ -10,7 +10,7 @@
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
 import { registerFeed } from './chart-feeds.js?v=845';
 import { isFree } from './chart-pro-gate.js?v=845';
-import { l2Visible, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory } from './chart-futures-l2.js?v=845';
+import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory } from './chart-futures-l2.js?v=845';
 import { decodeBookHistory } from './chart-orderflow.js?v=845';
 import * as C from './book-panel-core.js?v=845';
 import { openSource } from './book-panel-sources.js?v=845';
@@ -24,7 +24,7 @@ const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLE
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus'];
 const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
-const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto (Binance, Coinbase, Hyperliquid).';
+const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_GAP = 200;   // redraw at most 5 a second
 const { clamp, num } = D;
 const minHist = () => (typeof window !== 'undefined' && window.__stkBookPackMin) || 800;   // level sizes seen this session before the top-% size means anything (~20 s of a 20-level book)
@@ -222,7 +222,8 @@ function acquireStore(spec, listener) {
 }
 function specOf(ctx) {
   const sym = String(ctx.symbol || ''), m = /^([a-z0-9]+):(.+)$/i.exec(sym), prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
-  if (prov === 'futures') { const root = l2Root(tk); return root ? { kind: 'futures', root, key: 'f|' + root } : null; }
+  let p2 = prov, t2 = tk; try { const r = ctx.data.resolve(ctx.symbol); if (r && r.provider) { p2 = String(r.provider).toLowerCase(); t2 = r.ticker || tk; } } catch (e) {}   // same lookup as the chart's own market test
+  if (p2 === 'futures' || (!CRYPTO.includes(p2) && /1!$/.test(t2))) { const root = l2Root(t2); return root ? { kind: 'futures', root, key: 'f|' + root } : null; }
   if (CRYPTO.includes(prov)) { const pair = C.pairOf(tk); return { kind: 'crypto', prov, pair, key: 'c|' + prov + '|' + pair.base + pair.quote + pair.perp }; }
   return null;
 }
@@ -307,7 +308,7 @@ class BkNative {
   gate() {
     const spec = specOf(this.ctx);
     if (!spec) return { msg: NEED };
-    if (spec.kind === 'futures' ? !l2Visible() : isFree()) return { msg: NOT_YET };
+    if (spec.kind === 'futures' ? !l2Badge() : isFree()) return { msg: NOT_YET };
     return { spec };
   }
   legend(lines, color) {
@@ -329,7 +330,7 @@ class BkNative {
     this.bind(g.spec);
     const s = this.h.s, I = this.inputs, ctx = this.ctx, bars = ctx.bars(), t = this.type;
     if (s.kind === 'futures' && bars.length) s.need(bars[0].time);
-    if (!s.last && !s.remote.length) { ctx.setStatus('loading'); ctx.emit({ series: [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Waiting for the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
+    if (!s.last && !s.remote.length) { ctx.setStatus('loading'); ctx.emit({ series: [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Connecting to the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
     ctx.setStatus('live');
     const tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
     const kind = s.kind, ss = D.sessionStart(Date.now(), kind);

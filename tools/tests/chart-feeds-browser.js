@@ -136,6 +136,13 @@ const box = (p) => p.evaluate(() => { const q = (s) => { const e = document.quer
       const sb = await box(p); check(sb.sheet && sb.sheet[0] >= 0 && sb.sheet[2] <= sb.vw && sb.sheet[1] >= 0, tag + ': sheet inside viewport', sb.sheet);
       await p.screenshot({ path: OUT + '/fb-' + tag + '-sheet.png' });
       if (/nq-admin-1440/.test(tag)) { await p.evaluate(() => window.STRYKER_FEEDS.register('fake_l3', { needs: 'L3', title: 'Order-level test' })); await p.evaluate(() => { const c = window.STRYKER_VELA.chart; }); }
+      if (/nq-admin-390/.test(tag)) {   // hidden diagnostic: 5 taps on the L2 chip
+        await p.evaluate(() => { for (let i = 0; i < 5; i++) document.querySelector('.stkfeed[data-l="L2"]').click(); }); await sleep(300);
+        const dg = await p.evaluate(() => { const d = document.querySelector('.stkfeed-diag'); return d && !d.hidden ? d.textContent : ''; });
+        console.log('DIAG ' + dg.replace(/\n/g, ' ').slice(0, 900));
+        check(/liveVisible/.test(dg) && /l2Badge/.test(dg), tag + ': 5 taps open the diagnostic');
+        await p.screenshot({ path: OUT + '/fb-' + tag + '-diag.png' });
+      }
       check(errors.length === 0, tag + ': no console errors', errors);
       await ctx.close();
     }

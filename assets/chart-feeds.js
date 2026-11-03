@@ -159,6 +159,19 @@ export function mountFeedBadges(ws) {
   }
   function openSheet(L) { openL = openL === L ? '' : L; row.dataset.sig = ''; if (!openL) sheet.hidden = true; paint(); }
   function close() { openL = ''; sheet.hidden = true; row.dataset.sig = ''; paint(); }
+  // Hidden diagnostic: long-press (0.7 s) or 5 quick taps on the L2 chip -> a small panel to screenshot. Same data as window.tzL2Diag(). No tokens, 4-char prefixes only.
+  let taps = [], lp = 0, dg = null, suppress = 0;
+  const showDiag = () => {
+    suppress = Date.now() + 600;
+    if (!dg) { dg = document.createElement('pre'); dg.className = 'stkfeed-diag'; dg.style.cssText = 'position:absolute;left:8px;right:8px;top:60px;z-index:60;margin:0;padding:10px 12px;max-height:70%;overflow:auto;background:rgba(11,11,13,.96);color:#e6e8ee;border:1px solid #3a3f4b;border-radius:12px;font:11px/1.45 ui-monospace,monospace;white-space:pre-wrap;word-break:break-all'; dg.addEventListener('click', () => { dg.hidden = true; }); host.appendChild(dg); }
+    let t = ''; try { t = JSON.stringify(window.tzL2Diag ? window.tzL2Diag(cur && cur.sym) : { err: 'diag not loaded yet' }, null, 1); } catch (e) { t = 'diag error'; }
+    dg.textContent = 'L2 diagnostic (tap to close)\n' + t; dg.hidden = false;
+  };
+  const isL2 = (e) => { const b = e.target.closest && e.target.closest('.stkfeed'); return b && b.dataset.l === 'L2'; };
+  row.addEventListener('pointerdown', (e) => { if (isL2(e)) { clearTimeout(lp); lp = setTimeout(showDiag, 700); } });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((n) => row.addEventListener(n, () => clearTimeout(lp)));
+  row.addEventListener('click', (e) => { if (!isL2(e)) return; const n = Date.now(); taps = taps.filter((x) => n - x < 2500); taps.push(n); if (taps.length >= 5) { taps = []; showDiag(); } }, true);
+  row.addEventListener('click', (e) => { if (Date.now() < suppress) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
   row.addEventListener('click', (e) => { const b = e.target.closest('.stkfeed'); if (b) { e.stopPropagation(); openSheet(b.dataset.l); } });
   sheet.addEventListener('click', (e) => {
     e.stopPropagation();

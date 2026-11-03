@@ -25256,6 +25256,11 @@ var EngineOrchestrator = class _EngineOrchestrator {
     this.renderer.onChartTypeSettingsChange?.((typeId, values) => {
       this.typeSettings.set(typeId, values);
       this.typeEngines.get(typeId)?.onSettings?.(values);
+      if (this.barTransform && this.barTransform.derive && this.priceStyle === typeId && this.rawBars.length) {
+        this.bars = this.barTransform.full(this.rawBars, values);
+        this.renderer.setBars(this.bars, { preserveView: true });
+        this.reexecuteIndicators();
+      }
     });
     this.renderer.onMoveIndicator?.((id, target) => this.moveIndicator(id, target));
     this.renderer.onThemeSelect?.((name) => this.setTheme(resolveTheme(name)));
@@ -26307,7 +26312,7 @@ var EngineOrchestrator = class _EngineOrchestrator {
     if (transform === this.barTransform) return;
     this.barTransform = transform;
     if (this.rawBars.length === 0) return;
-    this.bars = transform ? transform.full(this.rawBars) : this.rawBars;
+    this.bars = transform ? transform.full(this.rawBars, this.typeSettings.get(style)) : this.rawBars;
     this.renderer.setBars(this.bars, { preserveView: true });
     this.reexecuteIndicators();
     if (this.switchingMarket) return;
@@ -26365,9 +26370,25 @@ var EngineOrchestrator = class _EngineOrchestrator {
    */
   setBarSeries(raw, opts) {
     this.rawBars = raw;
-    this.bars = this.barTransform ? this.barTransform.full(raw) : raw;
+    this.bars = this.barTransform ? this.barTransform.full(raw, this.typeSettings.get(this.priceStyle)) : raw;
     this.renderer.setBars(this.bars, { preserveView: opts?.preserveView });
     if (!opts?.clearing && this.bars.length > 0) this.endLoad();
+  }
+  /** TradeZoro (chart types): rebuild a deriving transform's view after a raw change and push only what changed. */
+  stkRederive() {
+    const old = this.bars;
+    const nb = this.barTransform.full(this.rawBars, this.typeSettings.get(this.priceStyle));
+    this.bars = nb;
+    const same = (x, y) => x && y && x.time === y.time && x.open === y.open && x.high === y.high && x.low === y.low && x.close === y.close;
+    const n0 = old.length;
+    if (nb.length === n0 && same(nb[n0 - 1], old[n0 - 1]) && same(nb[n0 - 2], old[n0 - 2])) return;
+    const stable = n0 > 0 && nb.length >= n0 && (n0 < 2 || same(nb[n0 - 2], old[n0 - 2])) && nb[0] && nb[0].time === old[0].time;
+    if (!stable) {
+      this.renderer.setBars(nb, { preserveView: true });
+      this.reexecuteIndicators();
+      return;
+    }
+    for (let k = n0 - 1; k < nb.length; k += 1) this.renderer.updateBar(nb[k]);
   }
   /**
    * Reconcile one live bar into the canonical array + renderer (no gap detection). The raw
@@ -26384,19 +26405,20 @@ var EngineOrchestrator = class _EngineOrchestrator {
     if (last && bar.time === last.time) {
       this.rawBars[this.rawBars.length - 1] = bar;
       this.barCause = "tick";
-      if (this.barTransform) {
+      if (this.barTransform && !this.barTransform.derive) {
         viewBar = this.barTransform.next(bar, this.bars[this.bars.length - 2]);
         this.bars[this.bars.length - 1] = viewBar;
       }
     } else if (!last || bar.time > last.time) {
       this.rawBars.push(bar);
       this.barCause = "bar";
-      if (this.barTransform) {
+      if (this.barTransform && !this.barTransform.derive) {
         viewBar = this.barTransform.next(bar, this.bars[this.bars.length - 1]);
         this.bars.push(viewBar);
       }
     } else return;
-    this.renderer.updateBar(viewBar);
+    if (this.barTransform && this.barTransform.derive) this.stkRederive();
+    else this.renderer.updateBar(viewBar);
     this.events.emit("bar", bar);
     if (notify) this.notifySessionsBars(this.historyState === "backfill" ? "backfill" : void 0);
   }

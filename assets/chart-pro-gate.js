@@ -113,7 +113,7 @@ export function mountProGate(ws, opts) {
     const it = item(e.target);
     if (!it || !it.closest('[data-stk-style-menu], .vela-menu, [role="menu"], [role="listbox"]')) return;
     if (it.closest('.stkiw-ov')) return;   // the indicators window has its own guard
-    if (/^\s*Footprint\b/i.test(it.textContent || '') && it.textContent.length < 40) {
+    if (/^\s*(Volume )?Footprint\b/i.test(it.textContent || '') && it.textContent.length < 40) {
       e.stopImmediatePropagation(); e.preventDefault(); upgrade('of');
     }
   }, true);
@@ -122,7 +122,7 @@ export function mountProGate(ws, opts) {
     document.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [role="option"]').forEach((it) => {
       if (it.querySelector('.stk-protag') || it.closest('.stkiw-ov')) return;
       const t = (it.textContent || '').trim();
-      if (/^Footprint\b/i.test(t) && t.length < 30) it.appendChild(proTag());
+      if (/^(Volume )?Footprint\b/i.test(t) && t.length < 30) it.appendChild(proTag());
     });
   };
   new MutationObserver(tag).observe(document.body, { childList: true, subtree: true });

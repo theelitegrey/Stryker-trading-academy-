@@ -11,6 +11,7 @@
 // two indicators ask the same question; a print below the Worker's per-symbol floor was never stored.
 // Education only. Not financial advice.
 import { l2Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=815';
+import { registerFeed } from './chart-feeds.js?v=815';
 import { rtReady, rtHeaders } from './rt-access.js?v=815';
 import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=815';
 import { cvdCandles } from './chart-footprint-data.js?v=815';
@@ -235,6 +236,7 @@ export function installTsTrades(Core, hooks) {
   if (H) return;
   H = Object.assign({ bigThreshold }, hooks);
   for (const t of TS_TYPES) if (!L2_TYPES.includes(t)) L2_TYPES.push(t);   // chart-orderflow.js hides L2_TYPES from the picker until l2Visible()
+  for (const type of TS_TYPES) registerFeed(type, { needs: 'L1', title: IND()[type].title, mkt: 'futures' });   // trades only: L1, not the book
   Core.registerRendererLayer({ id: 'stk_ts_big', placement: 'above-data', create: tsBigLayer });
   const ind = IND();
   for (const type of TS_TYPES) {

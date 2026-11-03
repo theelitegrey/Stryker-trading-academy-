@@ -39,6 +39,8 @@ export const liveVisible = () => !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS
 // May this visitor use the L2 BOOK? Only once the hub's hub_attached frame says tier 'book' (null = not told yet = hidden: fails closed). Pro = book, live add-on = trades only, Free = neither.
 let bookTier = null;
 export function l2Visible() { return liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades)); }
+// For the badges only: bookTier null = the hub has not said yet, so a Pro / admin member is NOT shown a lock. A definite Free member is. The server stays the real gate.
+export const l2Badge = () => (bookTier === null ? liveVisible() : l2Visible());
 function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades); if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
 // Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.
 export const l2Listed = () => L2_MEMBERS || l2Visible();
@@ -416,7 +418,7 @@ export function registerL2Feeds() {
   registerFeed('stk_crypto_dom', { needs: 'L2', title: 'Order book heatmap (L2)', mkt: 'crypto' });
   registerFeed('stk_liqmap', { needs: 'L2', title: 'Liquidity Map (L2)' });
   setStats('futures', feedStats);
-  if (typeof window !== 'undefined') window.STRYKER_L2_OK = l2Visible;
+  if (typeof window !== 'undefined') window.STRYKER_L2_OK = l2Visible; window.STRYKER_L2_BADGE = l2Badge;
 }
 
 // ---------------------------------------------------------------------------------------- indicators

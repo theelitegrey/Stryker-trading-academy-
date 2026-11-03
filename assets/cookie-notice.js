@@ -28,7 +28,7 @@
   +'@media(min-width:700px){.tzc{right:auto;left:20px;bottom:20px}}'
   +'body:has(.sidebar.mobile-open) .tzc.on,body.sidebar-locked .tzc.on{opacity:0;pointer-events:none;transform:translateY(16px)}'
   +'@media(max-width:820px){body.nav-authed .tzc,body.has-appdock .tzc{bottom:calc(84px + env(safe-area-inset-bottom))}}'
-  +'body:has(#appnav-sheet.open) .tzc.on{opacity:0;pointer-events:none}'
+  +'body:has(#appnav-sheet.open) .tzc.on,body:has([role=dialog][aria-modal=true]:not(.tzc-d)) .tzc.on,body:has(.stk-ct-ov) .tzc.on{opacity:0;pointer-events:none}'
   +'@media(prefers-reduced-motion:reduce){.tzc{transition:none;transform:none}}';
   function show(){
     if(document.querySelector('.tzc'))return;

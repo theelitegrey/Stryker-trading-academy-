@@ -430,7 +430,7 @@ const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const BOOK_WALLS = 'Walls (persist 30 s+, pulled / consumed tags)';
 
 // inputs saved before the style choice existed have no `look`: they get the default (Bookmap)
-const fcfg = (i, walls) => Object.assign({ look: walls ? 'Classic' : 'Bookmap' }, i || {});
+const fcfg = (i, walls) => Object.assign({ look: walls ? 'Classic' : 'Midnight' }, i || {});
 export function installFuturesL2(Core, H, reg) {
   HOOK = H;
   registerL2Feeds();
@@ -444,7 +444,7 @@ export function installFuturesL2(Core, H, reg) {
     return x;
   }).filter(Boolean);
   // style table (assets/chart-bookmap.js STYLES): 'Bookmap' (default) = dark field, heatmap only; 'Classic' = the earlier look with walls and tags
-  schema.unshift({ key: 'look', title: 'Style', type: 'string', defval: 'Bookmap', options: ['Bookmap', 'Zoro', 'Classic', 'Split'] });
+  schema.unshift({ key: 'look', title: 'Style', type: 'string', defval: 'Midnight', options: ['Midnight', 'Zoro', 'Classic', 'Split'] });
   schema.splice(1, 0, { key: 'colorBy', title: 'Colour by (Split)', type: 'string', defval: 'Side', options: ['Side', 'Heat'], when: { key: 'look', anyOf: ['Split'] } });
   schema.splice(1, 0, { key: 'contrast', title: 'Contrast (Bookmap / Split)', type: 'float', defval: 1, min: 0.5, max: 2.5, step: 0.1 }, { key: 'showDepthBars', title: 'Show depth bars (Bookmap)', type: 'bool', defval: true }, { key: 'showSizes', title: 'Show sizes (numbers on the depth bars)', type: 'bool', defval: true });
   schema.push({ key: 'gpuHeatmap', title: 'Graphics card (smoother)', type: 'bool', defval: true });

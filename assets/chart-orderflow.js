@@ -1364,7 +1364,8 @@ function domConfig(inputs) {
   const view = ['deep', 'combined', 'heat', 'depth', 'walls'][vi < 0 ? 0 : vi];
   const combined = view === 'combined' || view === 'deep';
   // look: the futures L2 heatmap's style table (assets/chart-bookmap.js). 'bookmap' = heatmap only on a dark field; anything else = Classic
-  const lk = String(i.look || '').toLowerCase(), bm = lk === 'bookmap' || lk === 'zoro' || lk === 'split';
+  let lk = String(i.look || '').toLowerCase(); if (lk === 'midnight') lk = 'bookmap';   // 'Midnight' = the display name (older saved charts say 'Bookmap')
+  const bm = lk === 'bookmap' || lk === 'zoro' || lk === 'split';
   if (bm) return {
     view: 'bookmap', bm: true, look: lk, colorBy: String(i.colorBy || '').toLowerCase() === 'heat' ? 'heat' : 'side', heat: false, walls: false, vanish: false, ice: false, twoTone: false, deep: false,
     gpu: i.gpuHeatmap !== false, depth: i.showDepthBars !== false, sizes: i.showSizes !== false, gamma: clamp(num(i.contrast, 1), 0.4, 2.5), widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,

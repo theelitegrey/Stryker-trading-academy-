@@ -37,7 +37,7 @@
   var ITEMS = [
     // ---- Order book (L2) ----
     { group: 'book', name: 'Order book heatmap', feed: 'L2', icon: 'heat', ids: ['stk_fut_dom', 'stk_crypto_dom'], img: 'liquidity',
-      desc: 'Resting orders at every price as a heatmap behind the candles, in four looks: Bookmap, Zoro, Classic and Split.' },
+      desc: 'Resting orders at every price as a heatmap behind the candles, in four looks: Midnight, Zoro, Classic and Split.' },
     { group: 'book', name: 'Liquidity Map', feed: 'L2', icon: 'heat', ids: ['stk_liqmap'],
       desc: 'The order book heatmap with trade bubbles on top, so you see what rested and what traded.' },
     { group: 'book', name: 'DOM ladder', feed: 'L2', icon: 'ladder', ids: ['dom_ladder'],

@@ -52,29 +52,41 @@ const FS = `#version 300 es
 precision highp float; precision highp int; precision highp sampler2D;
 flat in vec4 vSpan; flat in vec2 vRow; flat in vec4 vPrev; flat in vec4 vNext;
 uniform sampler2D uBook; uniform sampler2D uRamp; uniform sampler2D uTmap;
-uniform float uH, uTy0, uHh, uTop, uDpr, uP0, uDp, uScale;
+uniform float uH, uTy0, uHh, uTop, uDpr, uP0, uDp, uScale, uSided, uGlow, uGlowFrom;
 out vec4 o;
 float price(float r) { return uP0 + (uTop + (r + 0.5) / uDpr) * uDp; }   // priceOfY is linear in y
 float sz(float slot, float i0, float n, float ri) {   // size at absolute row index ri in a column, 0 outside
   float k = ri - i0; if (slot < 0.0 || k < 0.0 || k >= n) return 0.0;
   return texelFetch(uBook, ivec2(int(slot), int(k)), 0).r;   // signed: bid +, ask -
 }
-void main() {
-  float r = floor(uH - gl_FragCoord.y) - uTy0;            // device pixel row inside the heat area
+// ramp index (0..255) of the cell under device row r of this column, -1 = empty; side 0 bid / 1 ask (Split: row price vs the column's
+// boundary in vPrev.w, no boundary -> the stored sign)
+float cell(float r, out float side) {
   float pc = price(r), step = vRow.y;
-  float ri = floor(pc / step + 1e-9), a = abs(sz(vSpan.z, vRow.x, vSpan.w, ri));
+  float ri = floor(pc / step + 1e-9), raw = sz(vSpan.z, vRow.x, vSpan.w, ri), a = abs(raw), sg = raw;
   if (r > 0.0 && r < uHh - 1.0) {   // rows thinner than a device pixel: the pixel shows the biggest row it covers
     float kA = floor(price(r - 0.5) / step + 1e-9) - vRow.x, kB = floor(price(r + 0.5) / step + 1e-9) - vRow.x;
     float lo = max(0.0, min(kA, kB)), hi = min(vSpan.w - 1.0, max(kA, kB));
-    if (hi > lo) { a = 0.0; for (int m = 0; m < 256; m++) { float kk = lo + float(m); if (kk > hi) break; a = max(a, abs(texelFetch(uBook, ivec2(int(vSpan.z), int(kk)), 0).r)); } }
+    if (hi > lo) { a = 0.0; for (int m = 0; m < 256; m++) { float kk = lo + float(m); if (kk > hi) break; float t = texelFetch(uBook, ivec2(int(vSpan.z), int(kk)), 0).r; if (abs(t) > a) { a = abs(t); sg = t; } } }
   }
-  if (a <= 0.0) {   // hold: a one-sample hole (same sign of size before AND after; the book stores sign, here the sign is in the flag) is not a gap
+  if (a <= 0.0) {   // hold: a one-sample hole (same sign of size before AND after) is not a gap
     float pv = sz(vPrev.x, vPrev.y, vPrev.z, ri), nx = sz(vNext.x, vNext.y, vNext.z, ri);
-    if (pv != 0.0 && nx != 0.0 && (pv > 0.0) == (nx > 0.0)) a = abs(pv); else discard;
+    if (pv != 0.0 && nx != 0.0 && (pv > 0.0) == (nx > 0.0)) { a = abs(pv); sg = pv; } else return -1.0;
   }
+  side = uSided < 0.5 ? 0.0 : (vNext.w > 0.5 ? (pc > vPrev.w ? 1.0 : 0.0) : (sg < 0.0 ? 1.0 : 0.0));
   float q = min(1023.0, floor(a * uScale));
-  float ti = texelFetch(uTmap, ivec2(int(q), 0), 0).r;   // R8 normalised: ramp index / 255
-  o = vec4(texelFetch(uRamp, ivec2(int(floor(ti * 255.0 + 0.5)), 0), 0).rgb, 1.0);
+  return floor(texelFetch(uTmap, ivec2(int(q), 0), 0).r * 255.0 + 0.5);
+}
+void main() {
+  float r = floor(uH - gl_FragCoord.y) - uTy0, sd, su, sl;
+  float ti = cell(r, sd);
+  if (uGlow > 0.0) {   // soft halo: a strong row above / below lends this one a dimmer copy of its colour
+    float tu = cell(r - 1.0, su), tl = cell(r + 1.0, sl);
+    if (tu >= uGlowFrom && tu * uGlow > ti) { ti = floor(tu * uGlow); sd = su; }
+    if (tl >= uGlowFrom && tl * uGlow > ti) { ti = floor(tl * uGlow); sd = sl; }
+  }
+  if (ti < 0.0) discard;
+  o = vec4(texelFetch(uRamp, ivec2(int(ti), int(sd)), 0).rgb, 1.0);
 }`;
 
 const STRIDE = 14;   // floats per column instance
@@ -107,7 +119,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-    loc = {}; for (const n of ['uCanvas', 'uY', 'uBook', 'uRamp', 'uH', 'uTmap', 'uHh', 'uTy0', 'uTop', 'uDpr', 'uP0', 'uDp', 'uScale']) loc[n] = gl.getUniformLocation(prog, n);
+    loc = {}; for (const n of ['uCanvas', 'uY', 'uBook', 'uRamp', 'uH', 'uTmap', 'uHh', 'uTy0', 'uTop', 'uDpr', 'uP0', 'uDp', 'uScale', 'uSided', 'uGlow', 'uGlowFrom']) loc[n] = gl.getUniformLocation(prog, n);
     vao = gl.createVertexArray(); gl.bindVertexArray(vao); vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
     for (const [n, size, off] of [['iSpan', 4, 0], ['iRow', 2, 16], ['iPrev', 4, 24], ['iNext', 4, 40]]) { const a = gl.getAttribLocation(prog, n); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, size, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(a, 1); }
     rampTex = gl.createTexture(); tmapTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tmapTex); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R8, 1024, 1); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); tmapDirty = true; tex = null; texH = 0; rampName = '';
@@ -122,13 +134,14 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     texH = stats.texH = h; owner = new Map(); slotV = new Array(RING_COLS); seq = 0; sentKey = '';
     if (worker) { worker.terminate(); worker = null; }
   }
-  function setRamp(name) {
-    const b = rampBytes(name); if (!b) throw new Error('no ramp');
+  function setRamp(S) {   // 256 x 2: row 0 bid ramp, row 1 ask ramp (one-ramp styles fill both)
+    const b = BM.rampTexBytes ? BM.rampTexBytes(S) : null; if (!b) throw new Error('no ramp');
     gl.bindTexture(gl.TEXTURE_2D, rampTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, b);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, b);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    rampName = name;
+    rampName = S.id;
   }
   function getWorker() {
     if (worker || worker === false) return worker;
@@ -167,7 +180,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
 
   function draw(g, view) {
     if (dead || lost || !gl || gl.isContextLost()) { cv.style.display = 'none'; return null; }
-    const S = BM.STYLES[view.look] || BM.STYLES.bookmap;
+    const S = BM.styleFor(view);
     if (!S.anchors) { cv.style.display = 'none'; return null; }   // an unknown style table: the 2D path
     const t0 = performance.now();
     const par = host.parentElement; if (!par) return null;
@@ -194,10 +207,10 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
       cols.push({ s, xa: Math.max(x0, Math.floor(xa)), xb: Math.min(x1, Math.ceil(xb)) });
     }
     upload(cols.map((c) => c.s), gl);
-    if (rampName !== S.ramp) setRamp(S.ramp);
+    if (rampName !== S.id) setRamp(S);
     // normalisation: first time on this thread, then the Worker, debounced on the visible set
     const wl = cols.map((c) => ({ v: c.s.v, wt: Math.max(1, c.xb - c.xa) }));
-    if (!tmap || normKey !== view.look + '|' + view.gamma) { const r = normOf(wl, S.anchors, S.cap, view.gamma); tmap = r.tmap; maxSz = r.maxSz; p97 = r.p97; tmapDirty = true; normKey = view.look + '|' + view.gamma; sentKey = ''; }
+    if (!tmap || normKey !== view.look + '|' + view.colorBy + '|' + view.gamma) { const r = normOf(wl, S.anchors, S.cap, view.gamma); tmap = r.tmap; maxSz = r.maxSz; p97 = r.p97; tmapDirty = true; normKey = view.look + '|' + view.colorBy + '|' + view.gamma; sentKey = ''; }
     wantKey = cols.length + ':' + (cols.length ? sid.get(cols[0].s.v) + ':' + sid.get(cols[cols.length - 1].s.v) : '') + ':' + Math.round(cols.reduce((a, c) => a + c.xb - c.xa, 0));
     if (wantKey !== sentKey) {
       clearTimeout(timer);
@@ -216,7 +229,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
       const sl = owner.get(c.s.v); if (xb <= xa || sl === undefined) continue;
       const o = nI++ * STRIDE, s = c.s, pv = nb(ci - 1, s), nx = nb(ci + 1, s);
       inst[o] = xa; inst[o + 1] = xb; inst[o + 2] = sl; inst[o + 3] = Math.min(s.v.length, texH); inst[o + 4] = s.i0; inst[o + 5] = s.step;
-      inst[o + 6] = pv[0]; inst[o + 7] = pv[1]; inst[o + 8] = pv[2]; inst[o + 9] = 0; inst[o + 10] = nx[0]; inst[o + 11] = nx[1]; inst[o + 12] = nx[2]; inst[o + 13] = 0; cells += s.v.length;
+      inst[o + 6] = pv[0]; inst[o + 7] = pv[1]; inst[o + 8] = pv[2]; inst[o + 9] = S.sided ? BM.boundOf(s) : 0; inst[o + 10] = nx[0]; inst[o + 11] = nx[1]; inst[o + 12] = nx[2]; inst[o + 13] = S.sided && inst[o + 9] > 0 ? 1 : 0; cells += s.v.length;
     }
     gl.useProgram(prog); gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, inst.subarray(0, nI * STRIDE), gl.STREAM_DRAW);
@@ -229,7 +242,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     const pa = view.priceOfY(0), dp = view.priceOfY(1) - pa;
     gl.uniform2f(loc.uCanvas, W, H); gl.uniform2f(loc.uY, ty0, ty1); gl.uniform1f(loc.uH, H); gl.uniform1f(loc.uTy0, ty0); gl.uniform1f(loc.uHh, ty1 - ty0); gl.uniform1f(loc.uTop, top);
     gl.uniform1f(loc.uDpr, dpr); gl.uniform1f(loc.uP0, pa); gl.uniform1f(loc.uDp, dp);
-    gl.uniform1f(loc.uScale, 1023 / maxSz);
+    gl.uniform1f(loc.uScale, 1023 / maxSz); gl.uniform1f(loc.uSided, S.sided ? 1 : 0); gl.uniform1f(loc.uGlow, S.glow || 0); gl.uniform1f(loc.uGlowFrom, S.glowFrom || 0);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, nI);
     const ms = Math.round((performance.now() - t0) * 10) / 10;
     return { cells, columns: nI, ms, rows: ty1 - ty0, p97: Math.round(p97), gl: true, uploads: stats.uploads };

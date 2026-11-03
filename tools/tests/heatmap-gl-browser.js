@@ -116,10 +116,10 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme: 'dark' });
       p.on('crash', () => console.log('PAGE CRASH')); p.on('close', () => console.log('PAGE CLOSE'));
       await setNQ(p);
-      if (!process.env.NOIND) await add(p, 'stk_fut_dom', { style: 'Combined (heatmap + depth + walls)' });
+      if (!process.env.NOIND) await add(p, 'stk_fut_dom', { style: 'Combined (heatmap + depth + walls)', look: process.env.LOOK || 'Bookmap', colorBy: process.env.COLORBY || 'Side' });
       await sleep(9000);
       const info = await p.evaluate(() => { const d = window.__stkFlow.domDebug(); return { gl: !!document.querySelector('canvas[data-stk-heatmap-gl]'), cells: d && d.bm && d.bm.cells, cols: d && d.bm && d.bm.columns, p97: d && d.bm && d.bm.p97, glflag: d && d.bm && d.bm.gl }; });
-      console.log('INFO', JSON.stringify(info), JSON.stringify(await p.evaluate(() => { const d = window.__stkFlow.domDebug(); return d && { rs: d.remoteSamples, w: d.width, hx: d.heatX0, col: d.columns, mid: d.mid, lo: d.rowLo, hi: d.rowHi, sm: d.scaleMin, sM: d.scaleMax, st: d.remoteState, s: d.samples, vf: d.visFrom, hf: d.remoteFrom }; }))); await p.screenshot({ path: OUT + '/hm-' + (process.env.HM2D ? '2d' : 'gl') + '-' + tag + '.png' });
+      console.log('INFO', JSON.stringify(info), JSON.stringify(await p.evaluate(() => { const d = window.__stkFlow.domDebug(); return d && { rs: d.remoteSamples, w: d.width, hx: d.heatX0, col: d.columns, mid: d.mid, lo: d.rowLo, hi: d.rowHi, sm: d.scaleMin, sM: d.scaleMax, st: d.remoteState, s: d.samples, vf: d.visFrom, hf: d.remoteFrom }; }))); await p.screenshot({ path: OUT + '/hm-' + (process.env.LOOK || 'bm') + (process.env.COLORBY || '') + '-' + (process.env.HM2D ? '2d' : 'gl') + '-' + tag + '.png' });
       // per-sample main-thread ms: the layer's own ms for the frame each new book sample (every 100 ms) triggers
       console.log('A'); const per = await p.evaluate(() => new Promise((r) => { const a = []; let last = -1; const iv = setInterval(() => { const d = window.__stkFlow.domDebug(); if (d && d.ms !== last) { last = d.ms; a.push(d.bm ? d.bm.ms : d.ms); } }, 15); setTimeout(() => { clearInterval(iv); r(a); }, 6000); }));
       // pan + zoom: drag across the plot, then wheel; count rAF frames and worst frame
@@ -139,7 +139,7 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       const tot = ft.reduce((a, c) => a + c, 0), sorted = ft.slice().sort((x, y) => x - y);
       per.sort((x, y) => x - y);
       res[tag] = { info, fps: Math.round(ft.length / (tot / 1000) * 10) / 10, p95Frame: Math.round(sorted[Math.floor(sorted.length * 0.95)] * 10) / 10, panLayerMedianMs: med(run.lay), panHeatmapMedianMs: med(run.bmm), panHeatmapMaxMs: Math.max(...run.bmm), perSampleMedianMs: per[per.length >> 1], perSampleMaxMs: per[per.length - 1], samples: per.length, errors: errors.slice(0, 3) };
-      await p.screenshot({ path: OUT + '/hm-' + (process.env.HM2D ? '2d' : 'gl') + '-' + tag + '-after.png' });
+      await p.screenshot({ path: OUT + '/hm-' + (process.env.LOOK || 'bm') + (process.env.COLORBY || '') + '-' + (process.env.HM2D ? '2d' : 'gl') + '-' + tag + '-after.png' });
       await ctx.close();
     }
     console.log(JSON.stringify(res, null, 1));

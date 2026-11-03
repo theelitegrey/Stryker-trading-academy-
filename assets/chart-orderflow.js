@@ -1364,9 +1364,9 @@ function domConfig(inputs) {
   const view = ['deep', 'combined', 'heat', 'depth', 'walls'][vi < 0 ? 0 : vi];
   const combined = view === 'combined' || view === 'deep';
   // look: the futures L2 heatmap's style table (assets/chart-bookmap.js). 'bookmap' = heatmap only on a dark field; anything else = Classic
-  const bm = String(i.look || '').toLowerCase() === 'bookmap';
+  const lk = String(i.look || '').toLowerCase(), bm = lk === 'bookmap' || lk === 'zoro' || lk === 'split';
   if (bm) return {
-    view: 'bookmap', bm: true, look: 'bookmap', heat: false, walls: false, vanish: false, ice: false, twoTone: false, deep: false,
+    view: 'bookmap', bm: true, look: lk, colorBy: String(i.colorBy || '').toLowerCase() === 'heat' ? 'heat' : 'side', heat: false, walls: false, vanish: false, ice: false, twoTone: false, deep: false,
     gpu: i.gpuHeatmap !== false, depth: i.showDepthBars !== false, sizes: i.showSizes !== false, gamma: clamp(num(i.contrast, 1), 0.4, 2.5), widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
     opacity: 0.9, wallSizes: false, showBest: false, showScale: false, bid: str(i.bidColor, '#03c988'), ask: str(i.askColor, '#e5484d'), askDepth: str(i.askDepthColor, '#8b5cf6'),
     wallTop: 0.025, wallMinMs: 0, hide: 0, bucket: Math.max(0, num(i.bucketUsd, 0)), range: clamp(num(i.bookRangePct, 2), 0.5, 5) / 100,
@@ -2126,7 +2126,9 @@ function cryptoDomLayer() {
         if (Number.isFinite(xNow) && xNow > depthX && xNow < W - 36) { depthX = xNow; depthW = W - xNow; }
       }
       const right = cfg.depth ? depthX - 2 : W;
-      const bidRgb = rgbOf(cfg.bid).join(','), askRgb = rgbOf(cfg.ask).join(',');
+      const split = cfg.bm && cfg.look === 'split', splitSide = split && cfg.colorBy !== 'heat';
+      // Split (side colours): neon green bids, neon violet asks on the depth bars and the size numbers
+      const bidRgb = splitSide ? '57,255,106' : rgbOf(cfg.bid).join(','), askRgb = splitSide ? '192,77,255' : rgbOf(cfg.ask).join(',');
       const stat = { view: cfg.view, step, storeStep: sst, fineStep: fst, samples: 0, columns: 0, cells: 0, depthBars: 0, walls: [], base: f.base, width: W,
         scaleMin: a.scale.min, scaleMax: a.scale.max };
 
@@ -2192,7 +2194,7 @@ function cryptoDomLayer() {
         // the grid (backdrop canvas, drawn above this field) is dimmed while the heatmap is on, in this chart only
         try { const bd = canvas.nextElementSibling; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0') { bd.style.opacity = '0'; bd.__stkGridDim = true; } } catch (e) {}
         g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
-        const bmv = { look: cfg.look, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
+        const bmv = { look: cfg.look, colorBy: cfg.colorBy, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
           priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
         const wantGl = cfg.gpu && heatmapGLOk(); if (wantGl && !glr) glr = createHeatmapGL(canvas); else if (!wantGl && glr) { glr.destroy(); glr = null; }
         const r = (glr && glr.draw(g, bmv)) || drawBookmap(g, bmv);
@@ -2380,7 +2382,7 @@ function cryptoDomLayer() {
           const [y, h] = rowY(i);
           if (y > bot || y + h < top) continue;
           const w = Math.max(1, Math.sqrt(Math.abs(v) / mx) * wmax);
-          g.fillStyle = 'rgba(' + (v > 0 ? bidRgb : (cfg.deep ? rgbOf(cfg.askDepth).join(',') : askRgb)) + ',0.75)';
+          g.fillStyle = 'rgba(' + (v > 0 ? bidRgb : (cfg.deep ? rgbOf(cfg.askDepth).join(',') : askRgb)) + (splitSide ? ',0.9)' : ',0.75)');
           g.fillRect(x0, y + (h > 3 ? 0.5 : 0), w, Math.max(1, h - (h > 3 ? 1 : 0)));
           stat.depthBars++;
           if (i < dLo) dLo = i; if (i > dHi) dHi = i;
@@ -2416,7 +2418,7 @@ function cryptoDomLayer() {
             const tw = g.measureText(label).width, bw = Math.max(1, Math.sqrt(c.mx / mx) * wmax);
             const outside = x0 + bw + 3 + tw <= W - 2;
             g.textAlign = outside ? 'left' : 'right';
-            g.fillStyle = outside ? (c.side > 0 ? (light ? '#0a7f56' : '#5eead4') : (light ? '#b3262d' : '#fca5a5')) : '#ffffff';
+            g.fillStyle = outside ? (splitSide ? (c.side > 0 ? '#7dffa0' : '#dba3ff') : c.side > 0 ? (light ? '#0a7f56' : '#5eead4') : (light ? '#b3262d' : '#fca5a5')) : '#ffffff';
             g.fillText(label, outside ? x0 + bw + 3 : W - 3, cy);
             stat.sizeLabels++;
           }
@@ -2427,6 +2429,19 @@ function cryptoDomLayer() {
           const tw = g.measureText('RESTING').width;
           g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)'; g.fillRect(x0, top + 2, tw + 6, 14);
           g.fillStyle = light ? 'rgba(71,85,105,.95)' : 'rgba(139,147,160,.95)'; g.fillText('RESTING', x0 + 3, top + 12);
+        }
+      }
+
+      // ---- Split: dotted last-price line across the heat area + a price tag at its right end ----
+      if (split && f.book && f.book.bestBid > 0 && f.book.bestAsk > 0) {
+        const lp = (f.book.bestBid + f.book.bestAsk) / 2, ly = Math.round(yOf(lp)) + 0.5;
+        if (ly > top && ly < bot) {
+          g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
+          g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(0, ly); g.lineTo(W, ly); g.stroke(); g.setLineDash([]);
+          const txt = (Math.round(lp * 100) / 100).toFixed(2); g.font = 'bold 10px ' + font; g.textAlign = 'right'; g.textBaseline = 'middle';
+          const tw = g.measureText(txt).width + 8; g.fillStyle = '#0b0f1a'; g.fillRect(W - tw, ly - 7, tw, 14); g.strokeStyle = 'rgba(255,255,255,.8)'; g.strokeRect(W - tw + 0.5, ly - 6.5, tw - 1, 13);
+          g.fillStyle = '#ffffff'; g.fillText(txt, W - 4, ly + 0.5); g.textBaseline = 'alphabetic'; g.restore();
+          stat.lastPrice = lp;
         }
       }
 

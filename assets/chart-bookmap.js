@@ -11,11 +11,37 @@ export const BM_BG = [5, 7, 13];
 export const HOLD_MS = 5 * 60000;
 const RAMPS = {
   bookmap: [[0, [6, 12, 44]], [0.16, [14, 40, 140]], [0.34, [18, 96, 205]], [0.5, [0, 196, 224]], [0.64, [150, 232, 70]], [0.74, [250, 226, 40]],
-    [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]]
+    [0.84, [250, 140, 20]], [0.93, [232, 40, 30]], [1, [255, 255, 255]]],
+  // Split: colour by SIDE. Asks violet, bids green; thin = nearly the field, heavy = neon, the heaviest near-white
+  splitAsk: [[0, [5, 7, 13]], [0.25, [42, 15, 61]], [0.55, [110, 36, 176]], [0.8, [192, 77, 255]], [0.93, [222, 150, 255]], [1, [230, 200, 255]]],
+  splitBid: [[0, [5, 7, 13]], [0.25, [11, 42, 20]], [0.55, [24, 140, 58]], [0.8, [57, 255, 106]], [0.93, [150, 255, 175]], [1, [201, 255, 214]]],
+  // Split / Heat: one ramp for size, thin -> heavy: black, dark blue, blue, white, yellow, orange, red
+  splitHeat: [[0, [5, 7, 13]], [0.2, [10, 24, 92]], [0.4, [30, 80, 232]], [0.6, [255, 255, 255]], [0.75, [255, 228, 40]], [0.88, [255, 140, 20]], [1, [236, 30, 30]]]
 };
+// rank -> ramp position for Split: the thin book stays near the field, only real walls light up
+const SPLIT_ANCHORS = [[0, 0], [0.5, 0.06], [0.8, 0.16], [0.93, 0.34], [0.97, 0.62], [0.99, 0.86], [1, 1]];
 export const STYLES = {
-  bookmap: { ramp: 'bookmap', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 }
+  bookmap: { ramp: 'bookmap', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 },
+  // sided: the ramp is picked by the row's side (bid 0 / ask 1); glow: 1 px soft halo above / below a strong row (cells at ramp index >= glowFrom)
+  split: { id: 'split', ramps: ['splitBid', 'splitAsk'], sided: true, glow: 0.4, glowFrom: 150, bg: BM_BG, anchors: SPLIT_ANCHORS, hold: HOLD_MS, cap: 0.97,
+    heat: { id: 'splitHeat', ramps: ['splitHeat'], sided: false } }
 };
+// the table row for a view: Split + colorBy 'heat' swaps the two side ramps for the single size ramp
+export function styleFor(view) {
+  const S = STYLES[view.look] || STYLES.bookmap;
+  if (!S.ramps) return Object.assign({ id: view.look, ramps: [S.ramp], sided: false }, S);
+  return view.colorBy === 'heat' && S.heat ? Object.assign({}, S, S.heat) : S;
+}
+export const BID = 0, ASK = 1;
+// side of a row: above the column's boundary (mid of best bid / ask) = ask; no boundary known -> the sign the book stores (bid +, ask -)
+export const sideOf = (rowPrice, bound, signed) => (bound > 0 ? (rowPrice > bound ? ASK : BID) : (signed < 0 ? ASK : BID));
+export const boundOf = (s) => (s.bb > 0 && s.ba > 0 ? (s.bb + s.ba) / 2 : s.mid > 0 ? s.mid : 0);
+// ramp texture rows for the GPU: 256 x 2 RGBA (row 0 bid, row 1 ask; the heat ramp fills both)
+export function rampTexBytes(S) {
+  const out = new Uint8Array(256 * 2 * 4);
+  for (let r = 0; r < 2; r++) out.set(new Uint8Array(lutOf(S.ramps[Math.min(r, S.ramps.length - 1)]).buffer.slice(0)), r * 1024);
+  return out;
+}
 const lutCache = new Map();
 function lutOf(name) {   // 256 entries of packed ABGR (little endian) for the ramp
   let l = lutCache.get(name); if (l) return l;
@@ -34,12 +60,12 @@ export const bmStats = () => ({ key: cache.key, ms: cache.ms, p97: cache.p97 });
 // Draw into g (CSS px, already scaled by dpr). view = { x0, x1 (heat area), top, bot, dpr, hist: [{ts,step,i0,v}], tsToX(ts), yToPrice(y)
 // via priceOfY(y), version, from, to, gamma, look, now }. Returns { cells, columns, ms, rows } for the test hook.
 export function drawBookmap(g, view) {
-  const t0 = performance.now(), S = STYLES[view.look] || STYLES.bookmap;
+  const t0 = performance.now(), S = styleFor(view);
   const x0 = Math.floor(view.x0), x1 = Math.ceil(view.x1), top = Math.floor(view.top), bot = Math.ceil(view.bot), dpr = view.dpr || 1;
   const w = Math.max(0, x1 - x0), h = Math.max(0, bot - top);
   g.fillStyle = 'rgb(' + S.bg.join(',') + ')'; g.fillRect(x0, top, w + (view.fullW ? view.fullW - x1 : 0), h);
   if (!w || !h) return { cells: 0, columns: 0, ms: 0, rows: 0 };
-  const key = [view.version, view.look, w, h, dpr, Math.round(view.priceTop * 100), Math.round(view.priceBot * 100), Math.round(view.tsToX(view.now - 3600000) * 4), Math.round(view.tsToX(view.now) * 4), view.gamma, view.hist.length, Math.floor(view.now / 5000)].join('|');
+  const key = [view.version, view.look, view.colorBy, w, h, dpr, Math.round(view.priceTop * 100), Math.round(view.priceBot * 100), Math.round(view.tsToX(view.now - 3600000) * 4), Math.round(view.tsToX(view.now) * 4), view.gamma, view.hist.length, Math.floor(view.now / 5000)].join('|');
   if (cache.key === key && cache.canvas) { g.drawImage(cache.canvas, x0, top, w, h); return Object.assign({ ms: 0, cached: true }, cache.stat); }
   // samples in view, each with its pixel span [xa, xb): carried forward to the next sample, at most `hold`, the newest to the right edge
   const hs = view.hist, cols = [];
@@ -65,7 +91,7 @@ export function drawBookmap(g, view) {
   const cdf = new Float64Array(BINS); { let acc = 0; for (let b = 0; b < BINS; b++) { cdf[b] = total ? (acc + hist[b] / 2) / total : 0; acc += hist[b]; } }
   let maxSz = 1, p97 = 1; for (let b = BINS - 1; b >= 0; b--) if (hist[b] > 0) { maxSz = Math.exp((b + 1) / BINS * LMAX) - 1; break; }
   for (let b = 0; b < BINS; b++) if (cdf[b] >= S.cap) { p97 = Math.exp((b + 1) / BINS * LMAX) - 1; break; }
-  const lut = lutOf(S.ramp), gam = Math.max(0.3, view.gamma || 1);
+  const luts = S.ramps.map(lutOf), gam = Math.max(0.3, view.gamma || 1);
   const tmap = new Uint8Array(1024);   // size -> ramp index, quantised (the pixel loop does one lookup)
   const qmax = maxSz * 1.0001 / 1023;
   const rankT = (r) => { const A = S.anchors; if (r <= A[0][0]) return A[0][1]; for (let k = 1; k < A.length; k++) if (r <= A[k][0]) return A[k - 1][1] + (A[k][1] - A[k - 1][1]) * (r - A[k - 1][0]) / (A[k][0] - A[k - 1][0]); return 1; };
@@ -76,6 +102,7 @@ export function drawBookmap(g, view) {
   const img = cg.createImageData(W, H), px = new Uint32Array(img.data.buffer), bg = (255 << 24) | (S.bg[2] << 16) | (S.bg[1] << 8) | S.bg[0];
   px.fill(bg);
   const rowPrice = new Float64Array(H); for (let y = 0; y < H; y++) rowPrice[y] = view.priceOfY(top + (y + 0.5) / dpr);
+  const tiA = new Int16Array(H), sdA = new Uint8Array(H);
   let cells = 0, blue = 0, tot = 0; const scale = 1023 / (maxSz * 1.0001);
   // one value of column ci at a price row index (same step), 0 when outside / empty
   const at = (ci, ri) => { if (ci < 0 || ci >= cols.length) return 0; const q = cols[ci].s; if (q.step !== cols[Math.max(0, Math.min(cols.length - 1, ci))].s.step) return 0; const k = ri - q.i0; return k >= 0 && k < q.v.length ? q.v[k] : 0; };
@@ -84,20 +111,32 @@ export function drawBookmap(g, view) {
     const s = c.s, v = s.v, step = s.step, i0 = s.i0, n = v.length;
     const xa = Math.max(0, Math.round((c.xa - x0) * dpr)), xb = Math.min(W, Math.round((c.xb - x0) * dpr));
     if (xb <= xa) continue;
-    // one colour per pixel row for this column, then the span is filled across its x range
+    // ramp index + side per pixel row for this column (-1 = empty), then the span is filled across its x range
+    const bound = S.sided ? boundOf(s) : 0;
     for (let y = 0; y < H; y++) {
-      let k = Math.floor(rowPrice[y] / step + 1e-9) - i0, a = 0;
+      let k = Math.floor(rowPrice[y] / step + 1e-9) - i0, a = 0, sg = 0;
       if (y > 0 && y < H - 1) {   // rows thinner than a device pixel: the pixel shows the biggest row it covers
         const kA = Math.floor((rowPrice[y] + rowPrice[y - 1]) / 2 / step + 1e-9) - i0, kB = Math.floor((rowPrice[y] + rowPrice[y + 1]) / 2 / step + 1e-9) - i0;
         const lo = Math.max(0, Math.min(kA, kB)), hi = Math.min(n - 1, Math.max(kA, kB));
-        if (hi > lo) { for (let m = lo; m <= hi; m++) { const z = v[m] < 0 ? -v[m] : v[m]; if (z > a) a = z; } k = lo; }
+        if (hi > lo) { for (let m = lo; m <= hi; m++) { const z = v[m] < 0 ? -v[m] : v[m]; if (z > a) { a = z; sg = v[m]; } } k = lo; }
       }
-      if (a === 0 && k >= 0 && k < n) { a = v[k]; if (a < 0) a = -a; }
+      if (a === 0 && k >= 0 && k < n) { a = v[k]; sg = a; if (a < 0) a = -a; }
       if (a === 0) {   // hold: Bookmap keeps the last known size until it changes; a one-sample hole (size before AND after) is not a gap
         const ri = Math.floor(rowPrice[y] / step + 1e-9), pv = at(ci - 1, ri), nx = at(ci + 1, ri);
-        if (pv !== 0 && nx !== 0 && (pv > 0) === (nx > 0)) a = pv < 0 ? -pv : pv; else continue;
+        if (pv !== 0 && nx !== 0 && (pv > 0) === (nx > 0)) { a = pv < 0 ? -pv : pv; sg = pv; } else { tiA[y] = -1; continue; }
       }
-      const q = a * scale, ti = tmap[q > 1023 ? 1023 : q | 0], col = lut[ti], o = y * W;
+      const q = a * scale; tiA[y] = tmap[q > 1023 ? 1023 : q | 0]; sdA[y] = S.sided ? sideOf(rowPrice[y], bound, sg) : 0;
+    }
+    for (let y = 0; y < H; y++) {
+      let ti = tiA[y], sd = sdA[y];
+      if (S.glow) {   // soft halo: a strong neighbouring row lends this one a dimmer copy of its colour
+        for (let d = -1; d <= 1; d += 2) {
+          const j = y + d; if (j < 0 || j >= H || tiA[j] < S.glowFrom) continue;
+          const gi = (tiA[j] * S.glow) | 0; if (gi > ti) { ti = gi; sd = sdA[j]; }
+        }
+      }
+      if (ti < 0) continue;
+      const col = luts[sd][ti], o = y * W;
       if (ti < 128) blue += xb - xa; tot += xb - xa;
       for (let x = xa; x < xb; x++) px[o + x] = col;
       cells++;

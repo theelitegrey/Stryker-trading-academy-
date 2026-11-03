@@ -4,12 +4,13 @@
 // Only swaps / refreshes at the broker's token URL, returns a trimmed reply, stores nothing, logs nothing. redirect_uri is fixed here.
 import { verifyIdToken, bearerOf } from '../api/chart/_rt.js';
 
-const ORIGIN = 'https://tradezoro.com', RATE_MAX = 20, TIMEOUT_MS = 8000;
-const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } });
-const fail = (status, error) => json({ error }, status);
+export const ORIGIN = 'https://tradezoro.com';
+const RATE_MAX = 20, TIMEOUT_MS = 8000;
+export const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } });
+export const fail = (status, error) => json({ error }, status);
 const mem = new Map();
 
-async function rateLimited(env, request, name) {
+export async function rateLimited(env, request, name) {
   const key = 'rl:' + name + ':' + (request.headers.get('cf-connecting-ip') || 'unknown') + ':' + Math.floor(Date.now() / 60000);
   try {
     if (env.PASSKEYS) {   // shortcut: KV counter is not atomic; the hard limit is a Cloudflare WAF rule
@@ -22,7 +23,7 @@ async function rateLimited(env, request, name) {
     const n = (mem.get(key) || 0) + 1; mem.set(key, n); return n > RATE_MAX;
   } catch (e) { return true; }
 }
-const okOrigin = (request, env) => {
+export const okOrigin = (request, env) => {
   const o = request.headers.get('origin');
   const dev = env.DEV === '1' && new URL(request.url).hostname !== 'tradezoro.com' && /^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(o || '');
   const sfs = request.headers.get('sec-fetch-site');

@@ -54,6 +54,19 @@ export const ALLOW = {
     wsCheck: (o) => o.data && o.data.mode === 'ltpc' && Array.isArray(o.data.instrumentKeys) && o.data.instrumentKeys.length > 0 && o.data.instrumentKeys.length <= 100
       && o.data.instrumentKeys.every((k) => typeof k === 'string' && /^(NSE|BSE|MCX)_(EQ|INDEX|FO)\|[A-Za-z0-9 ]{1,40}$/.test(k))   // last price only
   },
+  // Dhan (India). The member pastes their own 24-hour token. Prices only: the live feed socket (subscribe to ticker / quote requests) and the
+  // two chart-history calls, which go through our own pass-through (/connect/dhan/data) because Dhan's REST host refuses browser requests.
+  // NOT allowed (unit-tested): every other api.dhan.co path (orders, super/forever orders, funds, holdings, positions, profile, statement, kill switch, IP, RenewToken), auth.dhan.co.
+  dhan: {
+    hosts: [],   // our own site only (rule.self): the two pass-through functions below. The browser never calls api.dhan.co (it refuses browsers) or auth.dhan.co.
+    self: true,
+    paths: [/^\/connect\/dhan\/data$/, /^\/connect\/dhan\/master$/],
+    post: [/^\/connect\/dhan\/data$/],
+    ws: /^wss:\/\/api-feed\.dhan\.co\?version=2&token=[A-Za-z0-9._\-]{20,2048}&clientId=\d{4,20}&authType=2$/,
+    wsSend: ['code15', 'code17'],   // 15 = ticker, 17 = quote. Never the full / depth modes, never the disconnect message.
+    wsCheck: (o) => Array.isArray(o.InstrumentList) && o.InstrumentList.length > 0 && o.InstrumentList.length <= 100 && o.InstrumentCount === o.InstrumentList.length
+      && o.InstrumentList.every((x) => x && ['NSE_EQ', 'BSE_EQ', 'IDX_I', 'NSE_FNO', 'MCX_COMM'].includes(x.ExchangeSegment) && /^\d{1,10}$/.test(x.SecurityId))
+  },
   'upstox-master': { hosts: ['assets.upstox.com'], paths: [/^\/market-quote\/instruments\/exchange\/MCX\.json\.gz$/] },   // MCX futures list (small file)
   fyers: {
     hosts: ['api-t1.fyers.in'],
@@ -65,7 +78,8 @@ export function guardUrl(source, url, method = 'GET') {
   const rule = ALLOW[source];
   const u = new URL(url);
   const pn = rule && rule.pct ? u.pathname.replace(/%20/g, ' ').replace(/%7C/gi, '|') : u.pathname;   // decoded only for the listed escapes; any other % is refused below
-  if (!rule || u.protocol !== 'https:' || !(String(method).toUpperCase() === 'GET' || (String(method).toUpperCase() === 'POST' && (rule.post || []).some((p) => p.test(u.pathname)))) || u.port || u.username || u.password || /[%\\;]|\/\//.test(pn) || !rule.hosts.includes(u.hostname)
+  const dev = rule && rule.self && globalThis.location && /^(127\.0\.0\.1|localhost)$/.test(globalThis.location.hostname) && u.protocol === 'http:';   // our own function on a local preview only
+  if (!rule || (u.protocol !== 'https:' && !dev) || !(String(method).toUpperCase() === 'GET' || (String(method).toUpperCase() === 'POST' && (rule.post || []).some((p) => p.test(u.pathname)))) || (u.port && !(rule.self && globalThis.location && u.port === globalThis.location.port)) || u.username || u.password || /[%\\;]|\/\//.test(pn) || !(rule.hosts.includes(u.hostname) || (rule.self && globalThis.location && u.hostname === globalThis.location.hostname))
     || !rule.paths.some((p) => p.test(pn))) throw new Error('byo-guard: blocked ' + source + ' request (data only)');
   return u.href;
 }
@@ -85,7 +99,7 @@ export function guardWsMessage(source, msg) {
   }
   let a = null;
   let o = null;
-  try { o = typeof msg === 'string' ? JSON.parse(msg) : msg; a = o.action || o.type || o.method; } catch (e) { /* falls through */ }
+  try { o = typeof msg === 'string' ? JSON.parse(msg) : msg; a = o.action || o.type || o.method || (o.RequestCode != null ? 'code' + o.RequestCode : undefined); } catch (e) { /* falls through */ }
   if (!rule || !rule.wsSend || !rule.wsSend.includes(a) || (rule.wsCheck && !rule.wsCheck(o))) throw new Error('byo-guard: blocked ' + source + ' message (data only)');
   return typeof msg === 'string' ? msg : JSON.stringify(msg);
 }
@@ -112,6 +126,13 @@ export const SOURCES = [
   { id: 'fyers', name: 'Fyers', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX, prices every few seconds', fee: 'free', feeNote: 'Free with your Fyers account (Standard plan).', state: 'soon', oauth: true, steps: ['Tap Sign in with Fyers.', 'Log in on Fyers\' own page.', 'Approve the request when Fyers asks.', 'You come back here, connected. Sign in again each day.'],
     help: 'Sign in on Fyers\' own page. Fyers ends the sign-in every morning, so you sign in again each day.',
     manage: 'Open a symbol like byo:NSE:RELIANCE-EQ, byo:NSE:NIFTY-INDEX, byo:NSE:NIFTY1! (front month) or byo:MCX:GOLD1!.' },
+  { id: 'dhan', name: 'Dhan', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX. Needs the Data plan on your Dhan account.', fee: 'paid', feeNote: 'Needs the Data plan on your Dhan account.', state: 'ready',
+    fields: [{ k: 'clientId', label: 'Dhan Client ID', ph: '1000000001', secret: false }, { k: 'token', label: 'Access token (24 hours)', ph: '', secret: true }],
+    help: 'Paste your own Dhan Client ID and a 24-hour access token.',
+    steps: ['Open web.dhan.co and sign in.', 'Tap My Profile, then Access DhanHQ APIs.', 'Choose Access Token and generate one (valid 24 hours).', 'Copy your Client ID and the token, and paste them here.'],
+    docs: 'https://dhanhq.co/docs/v2/authentication/',
+    noteText: 'Your token stays on this device. Live prices come from Dhan straight to your browser. Chart history passes through TradeZoro for that one call and is not stored.',
+    manage: 'Open a symbol like byo:NSE:RELIANCE-EQ, byo:NSE:NIFTY-INDEX, byo:NSE:BANKNIFTY-INDEX, byo:NSE:NIFTY1! (front month) or byo:MCX:GOLD1!.' },
   { id: 'ctrader', name: 'cTrader', cls: ['forex', 'crypto'], covers: 'Forex and crypto CFDs', fee: 'free', feeNote: 'Free with your account.', state: 'soon' }   // details + sign-in: assets/byo-ctrader.js
 ];
 // Flag: the function says it has its Schwab keys -> the row becomes ready (OAuth connect). Otherwise it stays Coming soon.
@@ -611,7 +632,7 @@ export function activate(id, creds, deps) {
   }
   rec.hub = ad.hub(creds, (st, msg) => { rec.status = st === 'idle' ? 'ready' : st; rec.msg = msg; emit(id); }, deps);
   live.set(id, rec); emit(id);
-  if (creds.oauth && creds.daily) {   // Upstox / Fyers: the sign-in ends once a day and cannot be refreshed. At that time the row says Reconnect.
+  if ((creds.oauth && creds.daily) || creds.expires) {   // Upstox / Fyers: the sign-in ends once a day and cannot be refreshed; Dhan (creds.expires): a 24-hour token. At that time the row says Reconnect.
     const gone = () => { if (Date.now() < creds.exp || rec.reconnect) return; rec.status = 'error'; rec.msg = 'Reconnect ' + srcById(id).name; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); };
     rec.timer = setInterval(gone, 60000); gone();
   }

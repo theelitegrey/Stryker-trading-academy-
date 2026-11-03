@@ -34,7 +34,7 @@ await t('guard sockets + messages', () => {
   assert.throws(() => guardWsMessage('alpaca', 'not json'), /byo-guard/);
 });
 await t('catalogue: unbuilt sources are soon, built are ready, none mention orders', () => {
-  assert.deepEqual(SOURCES.filter((s) => s.state === 'ready').map((s) => s.id), ['alpaca', 'oanda', 'ironbeam']);
+  assert.deepEqual(SOURCES.filter((s) => s.state === 'ready').map((s) => s.id), ['alpaca', 'oanda', 'ironbeam', 'dhan']);
   assert.ok(SOURCES.filter((s) => s.state === 'soon').length >= 3);
   assert.ok(!/order|trade|position|balance/i.test(JSON.stringify(SOURCES.map((s) => [s.covers, s.help, s.feeNote]))));
 });

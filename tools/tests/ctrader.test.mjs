@@ -174,7 +174,7 @@ await t('symbols + catalogue', () => {
   assert.equal(ct.symbolOf('EURUSD'), 'EURUSD'); assert.equal(ct.symbolOf('fx:eur/usd'), 'EURUSD'); assert.equal(ct.symbolOf('byo:BTCUSD'), 'BTCUSD'); assert.equal(ct.symbolOf('XAUUSD'), 'XAUUSD');
   assert.equal(ct.symbolOf('AAPL'), null); assert.equal(ct.symbolOf('../x'), null); assert.equal(ct.symbolOf(''), null);
   const row = SOURCES.find((s) => s.id === 'ctrader'); assert.equal(row.state, 'soon'); assert.equal(row.beta, true); assert.match(row.noteText, /secure relay; nothing is stored/);
-  assert.ok(!SOURCES.filter((s) => s.id !== 'ctrader').some((s) => s.noteText), 'other sources keep the default line');
+  assert.ok(!SOURCES.filter((s) => !['ctrader', 'dhan'].includes(s.id)).some((s) => s.noteText), 'other sources keep the default line');
 });
 await t('adapter: history, then a live spot becomes a candle (fake relay socket)', async () => {
   const sent = [];

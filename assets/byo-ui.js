@@ -214,6 +214,14 @@ export function mountByo(opts = {}) {
     } catch (e) { /* stays on the list */ }
   }
 
+  async function startDhan(err) {
+    try {
+      const u = window.firebase && firebase.auth().currentUser;
+      if (!u) { err.textContent = 'Sign in to connect your own data.'; err.hidden = false; return; }
+      location.assign(await (await DHAN()).dhanStart(u.uid, await u.getIdToken()));
+    } catch (e) { err.textContent = 'Dhan sign-in is not available right now. Paste a token instead.'; err.hidden = false; }
+  }
+
   function renderList() {
     title.textContent = 'Data source'; backBtn.hidden = true;
     body.replaceChildren();
@@ -237,6 +245,7 @@ export function mountByo(opts = {}) {
     stepsEl(s.steps).forEach((n) => body.appendChild(n));
     if (s.docs) body.appendChild(el('a', { class: 'byo-link', href: s.docs, target: '_blank', rel: 'noopener noreferrer', text: s.name + ' API page' }));
     form.appendChild(err);
+    if (s.id === 'dhan') form.appendChild(el('p', { class: 'byo-warn', text: 'Dhan charges for market data. This works only if the Data plan is on your Dhan account.' }));
     s.fields.forEach((f) => {
       const id = 'byo-f-' + f.k;
       let inp;
@@ -265,7 +274,7 @@ export function mountByo(opts = {}) {
       try { await connect(s.id, creds); Object.values(inputs).forEach((i) => { i.value = ''; }); go('manage', s); }
       catch (x) {
         const st = x && x.status;
-        err.textContent = x && /^(Sign in|Enter your OANDA|This token can)/.test(x.message) ? x.message : st === 401 || st === 403 ? s.name + ' did not accept this key. Check it and try again.' : st === 429 ? 'Too many tries. Wait a minute and try again.' : 'Could not reach ' + s.name + '. Check your connection and try again.';
+        err.textContent = x && (x.show || /^(Sign in|Enter your OANDA|This token can)/.test(x.message)) ? x.message : st === 401 || st === 403 ? s.name + ' did not accept this key. Check it and try again.' : st === 429 ? 'Too many tries. Wait a minute and try again.' : 'Could not reach ' + s.name + '. Check your connection and try again.';
         err.hidden = false;
       } finally { if (view === 'form') { submit.disabled = false; submit.textContent = 'Connect'; } }
     });

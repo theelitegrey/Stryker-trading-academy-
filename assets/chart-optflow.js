@@ -16,13 +16,13 @@ import { tideSource, tfMin, tideFetch, cache, money, agoText } from './chart-zor
 export const OPTFLOW_TYPE = 'stk_optflow';
 export const OPTFLOW_DESC = 'Bubbles on the candles where call (green, above) or put (red, below) premium was unusually large, sized by premium; hover or tap for premium and contracts. Per-bar totals from the options data feed, not single trades (SPX, SPY, QQQ, ES, NQ)';
 const SCHEMA = [
-  { key: 'sensitivity', title: 'Marks', type: 'string', defval: 'Medium', options: ['Few', 'Medium', 'Many'] },
-  { key: 'minPremium', title: 'Smallest premium to mark ($)', type: 'integer', defval: 100000, minval: 0, maxval: 100000000 },
+  { key: 'sensitivity', title: 'Sensitivity', type: 'string', defval: 'Low', options: ['Low', 'Medium', 'High'] },
   { key: 'callColor', title: 'Calls colour', type: 'color', defval: '#22c55e' },
   { key: 'putColor', title: 'Puts colour', type: 'color', defval: '#ef4444' }
 ];
-const KEEP = { Few: 0.05, Medium: 0.1, Many: 0.2 };   // share of bars (per side) that get a mark
-const R_MIN = 4, R_MAX = 13;
+const KEEP = { Low: 0.05, Medium: 0.1, High: 0.2 };   // share of the VISIBLE bars (per side) that qualify: an adaptive threshold, no fixed $ floor
+const GAP = 3;   // at most one bubble per 3 bars
+const R_MIN = 3;
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
 // ---- pure: samples -> per-bar totals ------------------------------------------------------------
@@ -46,19 +46,24 @@ export function perBar(days, bars, ms) {
   return out;
 }
 const quantile = (sorted, q) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * q + 1e-9))] : 0);
-// Which bars get a mark: per side, gross premium >= max(minPremium, the (1 - keep) quantile of that side's non-zero bars).
-// Returns [{ i, side: 'C'|'P', prem, r, b }] (r = bubble radius px, scaled by sqrt of premium against the biggest mark).
-export function pickMarks(agg, I = {}) {
-  const keep = KEEP[I.sensitivity] || KEEP.Medium, floor = Math.max(0, Number(I.minPremium) || 0);
-  const marks = [];
+// Which bars get a mark, among bars [from, to] (the visible range): per side, premium >= the (1 - keep) quantile of that side's non-zero bars;
+// then biggest first, a mark is dropped if another kept mark is closer than GAP bars (so never more than 1 per 3 bars).
+// Returns [{ i, side: 'C'|'P', prem, r, b }]; r = bubble radius px (sqrt of premium against the biggest mark, at most rMax).
+export function pickMarks(agg, I = {}, from = 0, to = agg.length - 1, rMax = 7) {
+  const keep = KEEP[I.sensitivity] || KEEP.Low, cand = [];
+  from = Math.max(0, from); to = Math.min(agg.length - 1, to);
   for (const side of ['C', 'P']) {
-    const key = side === 'C' ? 'cp' : 'pp';
-    const vals = agg.map((b) => (b ? b[key] : 0)).filter((v) => v > 0).sort((a, b) => a - b);
-    const th = Math.max(floor, quantile(vals, 1 - keep), 1);
-    agg.forEach((b, i) => { if (b && b[key] >= th) marks.push({ i, side, prem: b[key], b }); });
+    const key = side === 'C' ? 'cp' : 'pp', vals = [];
+    for (let i = from; i <= to; i++) if (agg[i] && agg[i][key] > 0) vals.push(agg[i][key]);
+    vals.sort((a, b) => a - b);
+    const th = Math.max(quantile(vals, 1 - keep), 1);
+    for (let i = from; i <= to; i++) if (agg[i] && agg[i][key] >= th) cand.push({ i, side, prem: agg[i][key], b: agg[i] });
   }
-  const max = marks.reduce((m, x) => Math.max(m, x.prem), 0) || 1;
-  marks.forEach((m) => { m.r = R_MIN + (R_MAX - R_MIN) * Math.sqrt(m.prem / max); });
+  cand.sort((a, b) => b.prem - a.prem);
+  const marks = [];
+  for (const c of cand) if (marks.every((m) => Math.abs(m.i - c.i) >= GAP)) marks.push(c);
+  const max = marks.length ? marks[0].prem : 1;
+  marks.forEach((m) => { m.r = R_MIN + (rMax - R_MIN) * Math.sqrt(m.prem / max); });
   return marks;
 }
 export function tipRows(m) {
@@ -96,7 +101,7 @@ class FlowNative {
   suspend() {}
   resume() { this.sig = ''; this.load(); }
   stop() { clearInterval(this.timer); try { this.ctx.pushData(null); } catch (e) {} }
-  push(p) { const sig = JSON.stringify(p && p.note ? p : { n: p && p.marks.length, last: p && p.last, I: p && p.I, b: p && p.bars }); if (sig === this.sig) return; this.sig = sig; try { this.ctx.pushData(p); } catch (e) {} }
+  push(p) { const sig = JSON.stringify(p && p.note ? p : { n: p && p.agg.length, last: p && p.last, I: p && p.I, b: p && p.bars, s: p && p.agg.reduce((t, x) => t + (x ? x.cp + x.pp : 0), 0) }); if (sig === this.sig) return; this.sig = sig; try { this.ctx.pushData(p); } catch (e) {} }
   refresh() {
     if (!this.ctx) return;
     if (replayOn()) return this.push({ note: 'Options flow: hidden in replay' });
@@ -108,9 +113,8 @@ class FlowNative {
     if (!data) return this.push({ note: 'Loading options flow…' });
     const bars = this.ctx.bars() || [];
     const agg = perBar(data.days, bars, ms);
-    const marks = pickMarks(agg, this.inputs);
     const last = data.days.length && data.days[0].t.length ? data.days[0].t[data.days[0].t.length - 1] : 0;
-    this.push({ marks, bars: bars.length ? bars[0].time + '|' + bars[bars.length - 1].time : '', last, I: this.inputs, label: src.label, ago: agoText(last) });
+    this.push({ agg, bars: bars.length ? bars[0].time + '|' + bars[bars.length - 1].time : '', last, I: this.inputs, label: src.label, ago: agoText(last) });
   }
 }
 
@@ -132,11 +136,14 @@ function layer() {
       const boxes = []; hits.set(canvas, boxes);
       if (!d) return setChip('', canvas.parentElement);
       if (d.note) return setChip(d.note, canvas.parentElement);
-      setChip(d.marks.length ? d.label + ': per-bar options premium totals, estimated. ' + d.ago : 'No unusual options premium in the loaded bars', canvas.parentElement);
-      const bars = a.bars, I = d.I, day = light();
-      const top = a.bounds.top, bot = top + a.bounds.height, W = co.width;
+      const bars = a.bars, I = d.I, day = light(), W = co.width;
+      let v0 = 0, v1 = bars.length - 1;
+      try { const vr = co.visibleLogicalRange(); v0 = Math.max(0, Math.floor(vr.from)); v1 = Math.min(bars.length - 1, Math.ceil(vr.to)); } catch (e) {}
+      const marks = pickMarks(d.agg, I, v0, v1, W < 520 ? 7 : 8);
+      setChip(marks.length ? d.label + ': per-bar options premium totals, estimated. ' + d.ago : 'No large options premium in view', canvas.parentElement);
+      const top = a.bounds.top, bot = top + a.bounds.height;
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
-      for (const m of d.marks) {
+      for (const m of marks) {
         const bar = bars[m.i]; if (!bar) continue;
         const x = co.timeToX(bar.time);
         if (!Number.isFinite(x) || x < -20 || x > W + 20) continue;
@@ -144,8 +151,8 @@ function layer() {
         const y = Math.min(bot - m.r, Math.max(top + m.r, y0 + (calls ? -(m.r + 4) : m.r + 4)));
         const col = calls ? I.callColor : I.putColor;
         g.beginPath(); g.arc(x, y, m.r, 0, Math.PI * 2);
-        g.globalAlpha = 0.45; g.fillStyle = col; g.fill();
-        g.globalAlpha = 1; g.lineWidth = 1.5; g.strokeStyle = day ? 'rgba(15,23,42,.55)' : col; g.stroke();
+        g.globalAlpha = 0.35; g.fillStyle = col; g.fill();
+        g.globalAlpha = 0.8; g.lineWidth = 1; g.strokeStyle = day ? 'rgba(15,23,42,.55)' : col; g.stroke(); g.globalAlpha = 1;
         boxes.push({ x, y, r: Math.max(m.r, 12), m });
       }
       g.restore();
@@ -219,7 +226,7 @@ export function installOptFlow(Core) {
   Core.registerNativeIndicator({
     type: OPTFLOW_TYPE, title: 'Options Flow Marks', shortTitle: 'Options flow', paneHint: 'price', overlay: true,
     inputsSchema: () => SCHEMA, defaultInputs: () => Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])),
-    create: () => new FlowNative(), legendNote: (d) => (!d ? '' : d.note || (d.marks.length + ' marks'))
+    create: () => new FlowNative(), legendNote: (d) => (!d ? '' : d.note || '')
   });
   Core.registerStatePersistence({
     key: PERSIST_KEY, scope: 'cell',

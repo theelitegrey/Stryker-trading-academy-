@@ -22,16 +22,20 @@ t('perBar ignores a sample after the last bar and an empty list', () => {
   assert.equal(perBar([day], bars, 5 * MIN).reduce((s, b) => s + (b ? b.cp : 0), 0), 400);
   assert.deepEqual(perBar([], bars, 5 * MIN), [null, null, null, null]);
 });
-t('pickMarks: floor, side, size scaling', () => {
+t('pickMarks: adaptive threshold, side, size, 1 per 3 bars', () => {
   const a = perBar([day], bars, 5 * MIN);
-  const m = pickMarks(a, { sensitivity: 'Many', minPremium: 100 });
-  assert.deepEqual(m.map((x) => x.side + x.i).sort(), ['C0', 'P2']);
-  assert.ok(m.find((x) => x.side === 'P').r > m.find((x) => x.side === 'C').r);   // 900 > 400
-  assert.equal(pickMarks(a, { minPremium: 500 }).length, 1);
-  assert.equal(pickMarks(a, { minPremium: 5000 }).length, 0);
+  const m = pickMarks(a, { sensitivity: 'High' });
+  assert.deepEqual(m.map((x) => x.side + x.i), ['P2']);   // C0 (400) is 2 bars from the bigger P2 (900): dropped by the 1-per-3-bars rule
+  assert.ok(m.every((x) => x.r <= 7));
+  const big = Array.from({ length: 100 }, (_, i) => ({ cp: 1000 + i * 10, pp: 0, cn: 0, pn: 0, cv: 1, pv: 0, n: 1 }));
+  const lo = pickMarks(big, { sensitivity: 'Low' }), hi = pickMarks(big, { sensitivity: 'High' });
+  assert.ok(lo.length >= 1 && lo.length <= 6 && lo.length <= hi.length);
+  const all = pickMarks(big, { sensitivity: 'High' }).map((x) => x.i).sort((x, y) => x - y);
+  all.forEach((v, k) => { if (k) assert.ok(v - all[k - 1] >= 3); });
+  assert.equal(pickMarks(big, { sensitivity: 'Low' }, 0, 9).every((x) => x.i <= 9), true);
 });
 t('tipRows says strike / expiry are not in the data, never invents them', () => {
-  const m = pickMarks(perBar([day], bars, 5 * MIN), { minPremium: 0 })[0];
+  const m = pickMarks(perBar([day], bars, 5 * MIN), { sensitivity: 'High' })[0];
   const r = tipRows(m); const txt = JSON.stringify(r);
   assert.match(txt, /Strike \/ expiry/); assert.match(txt, /not in the data/); assert.match(txt, /Not a single trade/);
   assert.doesNotMatch(txt, /live|real-time|delayed/i);

@@ -105,14 +105,14 @@ async function run(b, tag, o) {
     await p.keyboard.press('Escape'); await sleep(300);
   } else {
     await setSym(p, 'futures:ES1!', '5');
-    await add(p, 'stk_optflow', { minPremium: 1, sensitivity: 'Many' }); await sleep(3500);   // synthetic premiums are a few hundred $, so the $100K default floor is lowered here
+    await add(p, 'stk_optflow', { sensitivity: 'Medium' }); await sleep(3500);   // synthetic premiums are a few hundred $, so the $100K default floor is lowered here
     check((await count(p, 'stk_optflow')) === 1, tag + ': Options Flow Marks added');
     const ok = await p.evaluate(() => { const cv = document.querySelector('canvas[data-stk-of]'); return !!cv; });
     check(ok, tag + ': marks layer canvas mounted');
     const painted = await p.evaluate(() => { let g = 0, r = 0; for (const c of document.querySelectorAll('canvas[data-stk-of]')) { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; for (let i = 0; i < d.length; i += 4) { if (d[i + 3] > 60 && d[i + 1] > 150 && d[i] < 120) g++; if (d[i + 3] > 60 && d[i] > 200 && d[i + 1] < 110) r++; } } return { g, r }; });
     check(painted.g > 100 && painted.r > 100, tag + ': green and red bubbles painted (' + painted.g + ' / ' + painted.r + ' px)');
     // hover / tap the first mark: find its screen position through the canvas hit list
-    const pos = await p.evaluate(() => { const cv = document.querySelector('canvas[data-stk-of]'); const r = cv.getBoundingClientRect(); const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; const dpr = cv.width / r.width; for (let y = 0; y < cv.height; y += 2) for (let x = 0; x < cv.width; x += 2) { const i = (y * cv.width + x) * 4; if (d[i + 3] > 200) return { x: r.left + x / dpr + 1, y: r.top + y / dpr + 6 }; } return null; });
+    const pos = await p.evaluate(() => { const cv = document.querySelector('canvas[data-stk-of]'); const r = cv.getBoundingClientRect(); const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; const dpr = cv.width / r.width; for (let y = 0; y < cv.height; y += 2) for (let x = 0; x < cv.width; x += 2) { const i = (y * cv.width + x) * 4; if (d[i + 3] > 120) return { x: r.left + x / dpr + 1, y: r.top + y / dpr + 6 }; } return null; });
     if (pos) {
       for (let k = 0; k < 8; k++) {
         if (phone(o)) await p.touchscreen.tap(pos.x, pos.y + k); else await p.mouse.move(pos.x, pos.y + k);

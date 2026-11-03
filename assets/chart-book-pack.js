@@ -23,7 +23,7 @@ const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLE
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus'];
 const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
-const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto (Binance, Coinbase, Hyperliquid).';
+const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_GAP = 200;   // redraw at most 5 a second
 const { clamp, num } = D;
 const minHist = () => (typeof window !== 'undefined' && window.__stkBookPackMin) || 800;   // level sizes seen this session before the top-% size means anything (~20 s of a 20-level book)

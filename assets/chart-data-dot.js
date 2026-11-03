@@ -269,7 +269,7 @@ export function installDataDot(ws, opts = {}) {
     const m = /^(binance|coinbase|hyperliquid):/i.exec(String(sym || ''));
     if (!m) return '';
     const v = VENUE[m[1].toLowerCase()];
-    return 'Crypto: ' + v + ' public market data (candles, trades' + (v === 'Binance' ? ', order book' : '') + ') · Education only. Not financial advice.';
+    return 'Crypto: public exchange market data (candles, trades' + (v === 'Binance' ? ', order book' : '') + ') · Education only. Not financial advice.';
   }
   function syncCredit() {
     const el = document.querySelector('.stkchart-credit');

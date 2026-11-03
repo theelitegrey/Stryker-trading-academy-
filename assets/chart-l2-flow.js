@@ -27,7 +27,7 @@ export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
-const NEED = 'These tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and Binance crypto.';
+const NEED = 'These tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_GAP = 200;                 // redraw at most 5 a second
 const GAP_MAX = 5 * 60000;           // two book samples further apart than this are not one "change" (the recorder's archive is one sample per few minutes)
 const ROW_STEPS = [1, 2, 4, 5, 8, 10, 16, 20, 25, 40, 50, 80, 100, 200, 400];

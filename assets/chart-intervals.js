@@ -205,7 +205,7 @@ export function secTickBlock(tf, provider, ticker) {
   if (!p || (p.kind !== 'sec' && p.kind !== 'tick')) return '';
   if (provider === 'futures') return '';
   if (provider === 'binance') return (p.kind === 'tick' || isPerp(ticker || '')) && !hasTrades('binance') ? 'Live trades are not available right now.' : '';
-  return (p.kind === 'sec' ? 'Seconds' : 'Tick') + ' charts need Binance data. Pick a Binance symbol for this interval.';
+  return (p.kind === 'sec' ? 'Seconds' : 'Tick') + ' charts need exchange trade data. Pick a crypto symbol for this interval.';
 }
 
 const SPOT_REST = ['https://api.binance.com/api/v3', 'https://data-api.binance.vision/api/v3'];

@@ -616,7 +616,7 @@ export function createRithmic(cfg) {
       if (credit) {
         if (!credit.dataset.std) credit.dataset.std = credit.textContent;
         const fut = st === 'connected'
-          ? 'Futures: live from your own Rithmic connection (' + (client.systemName || 'Rithmic') + ') · crypto: public Binance, Coinbase and Hyperliquid feeds · Education only. Not financial advice.'
+          ? 'Futures: live from your own Rithmic connection (' + (client.systemName || 'Rithmic') + ') · crypto: public exchange feeds · Education only. Not financial advice.'
           : credit.dataset.std;
         credit.dataset.fut = fut;
         // a crypto chart shows its own venue line (assets/chart-data-dot.js syncCredit)

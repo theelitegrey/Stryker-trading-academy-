@@ -130,13 +130,13 @@
         try { json = await getJson(`${h}/api/v3/klines?symbol=${sym}&interval=${iv}&startTime=${from}&endTime=${Math.min(endMs, from + step)}&limit=1000`); host = h; break; }
         catch (e) { lastErr = e; }
       }
-      if (!json) throw new Error('Binance unreachable (' + (lastErr && lastErr.message) + '). If you are in a region Binance blocks, use a CSV file instead.');
+      if (!json) throw new Error('Exchange data unreachable (' + (lastErr && lastErr.message) + '). If your region blocks it, use a CSV file instead.');
       if (!json.length) { from += step; continue; }
       for (const k of json) rows.push([k[0], k[1], k[2], k[3], k[4], k[5]]);
       from = json[json.length - 1][0] + BINANCE_MS[iv];
       if (onProgress) onProgress(Math.min(0.98, (from - startMs) / (endMs - startMs)), rows.length);
     }
-    return { bars: compact(rows), baseTf: iv, source: 'Binance', note: 'Binance public klines · ' + iv + ' resolution' };
+    return { bars: compact(rows), baseTf: iv, source: 'Binance', note: 'Public exchange candles · ' + iv + ' resolution' };
   }
 
   // Yahoo via Cloud Function: finest resolution available for the start date.

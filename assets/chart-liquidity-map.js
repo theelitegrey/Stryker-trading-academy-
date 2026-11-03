@@ -706,7 +706,7 @@ function drawLadder(g, a, src, o) {
 }
 
 // ---------------------------------------------------------------------------------------- the native indicator
-const NEED_SYMBOL = 'Liquidity Map needs a Binance crypto symbol (BTC, ETH) or a futures symbol connected through Rithmic.';
+const NEED_SYMBOL = 'Liquidity Map needs a crypto symbol (BTC, ETH) or a futures symbol connected through Rithmic.';
 export function makeNative(H) {
   return class LiquidityMapNative {
     constructor() { this.fitted = false; this.inputs = {}; this.ctx = null; this.h = null; this.tr = null; this.tm = 0; this.hidden = false; this.kind = ''; }

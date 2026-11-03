@@ -45,6 +45,7 @@ export function guardDx(msg) {
 // ---------- symbols ----------
 // Chart symbol -> our key. Stocks: AAPL. Futures: ES1! or /ES -> "/ES" (front month is looked up, never guessed).
 export function symbolOf(t) {
+  if (/^(byo:)?(NSE|BSE|MCX):/i.test(String(t || ''))) return null;   // India tickers belong to Upstox / Fyers
   const s = String(t || '').replace(/^[a-z]+:/i, '').toUpperCase();
   let m = /^([A-Z0-9]{1,4})1!$/.exec(s) || /^\/([A-Z0-9]{1,4})$/.exec(s);
   if (m) return '/' + m[1];

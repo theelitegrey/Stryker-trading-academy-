@@ -44,6 +44,8 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 # Alpaca + tastytrade sign-in return page (read-only scopes). Token swap: functions/connect/<id>/token.js.
 /connect/alpaca/callback /oauth-callback 200
 /connect/tastytrade/callback /oauth-callback 200
+/connect/upstox/callback /oauth-callback 200
+/connect/fyers/callback /oauth-callback 200
 
 # Creator Hub landing moved under /features (2026-10-30).
 /creators /features/creators 301

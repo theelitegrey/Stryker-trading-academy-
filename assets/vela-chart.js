@@ -860,7 +860,7 @@ function lateLists(provider){
   if (window.__stkFirstCandles) setTimeout(loadRithLater, 0);
   else window.addEventListener('stk:first-candles', () => (window.requestIdleCallback ? requestIdleCallback(loadRithLater, { timeout: 2500 }) : setTimeout(loadRithLater, 800)), { once: true });
   // Connect your own data (Data source sheet): restores saved connections (decrypted on this device only), mounts the toolbar button.
-  import('./byo-tastytrade.js?v=839').then(() => import('./byo-ctrader.js?v=839')).then(() => import('./byo-oauth.js?v=839')).then(() => import('./byo-core.js?v=839')).then((c) => {
+  import('./byo-tastytrade.js?v=839').then(() => import('./byo-ctrader.js?v=839')).then(() => import('./byo-oauth.js?v=839')).then(() => import('./byo-india.js?v=839')).then(() => import('./byo-core.js?v=839')).then((c) => {
     // Keys follow the signed-in user: sign-out or another account wipes the vault and closes the streams.
     const bind = (u) => c.bindUser(u && u.uid).then(() => c.restore()).catch((e) => console.warn('TradeZoro: own data', e));
     try { if (typeof firebase !== 'undefined') firebase.auth().onAuthStateChanged(bind); } catch (e) { /* no auth on this page */ }

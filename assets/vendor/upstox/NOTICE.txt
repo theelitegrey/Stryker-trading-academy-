@@ -1,0 +1,4 @@
+MarketDataFeed.proto: official Upstox Market Data Feed V3 schema, unmodified.
+Source: https://assets.upstox.com/feed/market-data-feed/v3/MarketDataFeed.proto (linked from
+https://upstox.com/developer/api-documentation/v3/get-market-data-feed). Fetched 2026-11-03.
+The browser decodes only LTPC (last price) with a tiny reader in assets/byo-india.js; field numbers are from this file.

@@ -39,13 +39,34 @@ export const ALLOW = {
     ws: /^wss:\/\/streamer-api\.schwab\.com\/ws$/,
     services: ['LEVELONE_EQUITIES', 'LEVELONE_FUTURES', 'CHART_EQUITY', 'CHART_FUTURES'],
     commands: ['SUBS', 'ADD', 'UNSUBS']
+  },
+  // India. Upstox and Fyers tokens have NO view-only scope (the token can also trade), so this list is the only protection:
+  // price history, the instrument search, and the price-feed address. NOT allowed (each has a unit test): /v2/order*, /v2/portfolio/*,
+  // /v2/user/* (profile, funds, ip), /v2/charges, /v2/login/* (the token swap is our own function), the portfolio-stream feed.
+  upstox: {
+    hosts: ['api.upstox.com'],
+    pct: true,   // only %20 and %7C are tolerated in the path (instrument keys look like NSE_INDEX|Nifty 50)
+    paths: [/^\/v3\/historical-candle\/(NSE|BSE|MCX)_(EQ|INDEX|FO)\|[A-Za-z0-9 ]{1,40}\/(minutes|hours|days|weeks|months)\/\d{1,3}\/\d{4}-\d{2}-\d{2}\/\d{4}-\d{2}-\d{2}$/,
+      /^\/v3\/historical-candle\/intraday\/(NSE|BSE|MCX)_(EQ|INDEX|FO)\|[A-Za-z0-9 ]{1,40}\/(minutes|hours|days)\/\d{1,3}$/,
+      /^\/v2\/instruments\/search$/, /^\/v3\/feed\/market-data-feed\/authorize$/],
+    ws: /^wss:\/\/[a-z0-9\-]+(\.[a-z0-9\-]+)*\.upstox\.com\/market-data-feeder\/v3\/upstox-developer-api\/feeds\?requestId=[A-Za-z0-9\-]{8,64}&code=[A-Za-z0-9\-]{8,64}$/,
+    wsSend: ['sub', 'unsub'],
+    wsCheck: (o) => o.data && o.data.mode === 'ltpc' && Array.isArray(o.data.instrumentKeys) && o.data.instrumentKeys.length > 0 && o.data.instrumentKeys.length <= 100
+      && o.data.instrumentKeys.every((k) => typeof k === 'string' && /^(NSE|BSE|MCX)_(EQ|INDEX|FO)\|[A-Za-z0-9 ]{1,40}$/.test(k))   // last price only
+  },
+  'upstox-master': { hosts: ['assets.upstox.com'], paths: [/^\/market-quote\/instruments\/exchange\/MCX\.json\.gz$/] },   // MCX futures list (small file)
+  fyers: {
+    hosts: ['api-t1.fyers.in'],
+    // price history and quotes only. No /api/v3/* at all (profile, funds, holdings, positions, orders, validate-authcode) and no websocket (see byo-india.js).
+    paths: [/^\/data\/history$/, /^\/data\/quotes$/]
   }
 };
 export function guardUrl(source, url, method = 'GET') {
   const rule = ALLOW[source];
   const u = new URL(url);
-  if (!rule || u.protocol !== 'https:' || !(String(method).toUpperCase() === 'GET' || (String(method).toUpperCase() === 'POST' && (rule.post || []).some((p) => p.test(u.pathname)))) || u.port || u.username || u.password || /[%\\;]|\/\//.test(u.pathname) || !rule.hosts.includes(u.hostname)
-    || !rule.paths.some((p) => p.test(u.pathname))) throw new Error('byo-guard: blocked ' + source + ' request (data only)');
+  const pn = rule && rule.pct ? u.pathname.replace(/%20/g, ' ').replace(/%7C/gi, '|') : u.pathname;   // decoded only for the listed escapes; any other % is refused below
+  if (!rule || u.protocol !== 'https:' || !(String(method).toUpperCase() === 'GET' || (String(method).toUpperCase() === 'POST' && (rule.post || []).some((p) => p.test(u.pathname)))) || u.port || u.username || u.password || /[%\\;]|\/\//.test(pn) || !rule.hosts.includes(u.hostname)
+    || !rule.paths.some((p) => p.test(pn))) throw new Error('byo-guard: blocked ' + source + ' request (data only)');
   return u.href;
 }
 export function guardWs(source, url) {
@@ -63,8 +84,9 @@ export function guardWsMessage(source, msg) {
     return typeof msg === 'string' ? msg : JSON.stringify(msg);
   }
   let a = null;
-  try { const o = typeof msg === 'string' ? JSON.parse(msg) : msg; a = o.action || o.type; } catch (e) { /* falls through */ }
-  if (!rule || !rule.wsSend || !rule.wsSend.includes(a)) throw new Error('byo-guard: blocked ' + source + ' message (data only)');
+  let o = null;
+  try { o = typeof msg === 'string' ? JSON.parse(msg) : msg; a = o.action || o.type || o.method; } catch (e) { /* falls through */ }
+  if (!rule || !rule.wsSend || !rule.wsSend.includes(a) || (rule.wsCheck && !rule.wsCheck(o))) throw new Error('byo-guard: blocked ' + source + ' message (data only)');
   return typeof msg === 'string' ? msg : JSON.stringify(msg);
 }
 
@@ -84,6 +106,12 @@ export const SOURCES = [
   { id: 'tastytrade', name: 'tastytrade', cls: ['futures', 'stocks'], covers: 'CME futures and US stocks', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon' },
   { id: 'schwab', name: 'Charles Schwab', cls: ['stocks', 'futures', 'options'], covers: 'Stocks, futures and options', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon', oauth: true,
     help: 'You sign in on Schwab\'s own page. Only market data is requested. Schwab asks you to sign in again about once a week.' },
+  { id: 'upstox', name: 'Upstox', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX, live prices', fee: 'free', feeNote: 'Free with your Upstox account.', state: 'soon', oauth: true,
+    help: 'Sign in on Upstox\'s own page. Upstox ends the sign-in every night, so you sign in again each day.',
+    manage: 'Open a symbol like byo:NSE:RELIANCE-EQ, byo:NSE:NIFTY-INDEX, byo:NSE:NIFTY1! (front month) or byo:MCX:GOLD1!.' },
+  { id: 'fyers', name: 'Fyers', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX, prices every few seconds', fee: 'free', feeNote: 'Free with your Fyers account (Standard plan).', state: 'soon', oauth: true,
+    help: 'Sign in on Fyers\' own page. Fyers ends the sign-in every morning, so you sign in again each day.',
+    manage: 'Open a symbol like byo:NSE:RELIANCE-EQ, byo:NSE:NIFTY-INDEX, byo:NSE:NIFTY1! (front month) or byo:MCX:GOLD1!.' },
   { id: 'ctrader', name: 'cTrader', cls: ['forex', 'crypto'], covers: 'Forex and crypto CFDs', fee: 'free', feeNote: 'Free with your account.', state: 'soon' }   // details + sign-in: assets/byo-ctrader.js
 ];
 // Flag: the function says it has its Schwab keys -> the row becomes ready (OAuth connect). Otherwise it stays Coming soon.
@@ -219,7 +247,7 @@ const dep = (d) => ({ fetch: (d && d.fetch) || ((...a) => globalThis.fetch(...a)
 
 export const alpaca = {
   id: 'alpaca',
-  symbolOf: (t) => { const s = String(t || '').replace(/^[a-z]+:/i, '').toUpperCase(); return /^[A-Z][A-Z0-9.\-]{0,11}$/.test(s) ? s : null; },
+  symbolOf: (t) => { if (/^(byo:)?(NSE|BSE|MCX):/i.test(String(t || ''))) return null; const s = String(t || '').replace(/^[a-z]+:/i, '').toUpperCase(); return /^[A-Z][A-Z0-9.\-]{0,11}$/.test(s) ? s : null; },   // India tickers belong to Upstox / Fyers
   frame: { '1': '1Min', '5': '5Min', '15': '15Min', '30': '30Min', '60': '1Hour', '120': '2Hour', '240': '4Hour', D: '1Day', W: '1Week', M: '1Month' },
   headers: (c) => (c.oauth ? { Authorization: 'Bearer ' + c.access } : { 'APCA-API-KEY-ID': c.key, 'APCA-API-SECRET-KEY': c.secret }),   // sign-in (scope data) or pasted key
   async getBars(c, ticker, timeframe, range = {}, d) {
@@ -583,6 +611,10 @@ export function activate(id, creds, deps) {
   }
   rec.hub = ad.hub(creds, (st, msg) => { rec.status = st === 'idle' ? 'ready' : st; rec.msg = msg; emit(id); }, deps);
   live.set(id, rec); emit(id);
+  if (creds.oauth && creds.daily) {   // Upstox / Fyers: the sign-in ends once a day and cannot be refreshed. At that time the row says Reconnect.
+    const gone = () => { if (Date.now() < creds.exp || rec.reconnect) return; rec.status = 'error'; rec.msg = 'Reconnect ' + srcById(id).name; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); };
+    rec.timer = setInterval(gone, 60000); gone();
+  }
 }
 export async function connect(id, creds, deps) {
   const ad = ADAPTERS[id]; if (!ad) throw new Error('Unknown source');

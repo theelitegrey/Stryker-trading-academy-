@@ -29,7 +29,7 @@ const okOrigin = (request, env) => {
   return (o === ORIGIN || dev) && (!sfs || sfs === 'same-origin');
 };
 
-// cfg: { name, idVar, secretVar, redirect, upstream, as: 'form'|'json', refresh: bool }
+// cfg: { name, idVar, secretVar, redirect, upstream, as: 'form'|'json', refresh: bool, build?(q, env) -> body }  (build: brokers whose swap body differs, e.g. Fyers' appIdHash)
 export function makeHandler(cfg) {
   return async function handle(request, env, deps = {}) {
     const configured = !!(env[cfg.idVar] && env[cfg.secretVar]);
@@ -52,7 +52,8 @@ export function makeHandler(cfg) {
     if (b && b.grant === 'code' && tok(b.code)) q = { grant_type: 'authorization_code', code: b.code, redirect_uri: cfg.redirect };
     else if (cfg.refresh && b && b.grant === 'refresh' && tok(b.refresh_token)) q = { grant_type: 'refresh_token', refresh_token: b.refresh_token };
     else return fail(400, 'Bad request');
-    q.client_id = env[cfg.idVar]; q.client_secret = env[cfg.secretVar];
+    if (cfg.build) q = await cfg.build(q, env);   // the hash / secret stays on this server
+    else { q.client_id = env[cfg.idVar]; q.client_secret = env[cfg.secretVar]; }
     let r;
     try {
       r = await (deps.fetchImpl || fetch)(cfg.upstream, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS),

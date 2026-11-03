@@ -6,3 +6,5 @@ tastytrade.svg https://tastytrade.com/favicon.svg
 rithmic.png   https://www.rithmic.com/favicon.png (apple-touch-icon, 128px)
 schwab.png    https://www.schwab.com/themes/custom/sch_beacon_retail/favicons/apple-icon.png (128px)
 ctrader.svg   https://ctrader.com/icon.svg
+upstox.png    https://upstox.com/marketing-page-assets/favicon/favicon-128.png (icon linked from upstox.com, 128px)
+fyers.png     https://fyers.in/icon.png (icon linked from fyers.in, 192px)

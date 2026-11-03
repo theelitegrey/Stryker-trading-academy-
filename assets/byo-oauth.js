@@ -8,10 +8,22 @@ import { saveSource, srcById } from './byo-core.js?v=839';
 export const OA = {
   alpaca: { AUTH: 'https://app.alpaca.markets/oauth/authorize', SCOPE: 'data', cta: 'Sign in with Alpaca', refresh: false },
   tastytrade: { AUTH: 'https://my.tastytrade.com/auth.html', SCOPE: 'read', cta: 'Sign in with tastytrade', refresh: true, REFRESH_BEFORE: 2 * 60000,
-    note: 'Needs two-factor sign-in turned on in your tastytrade account.' }
+    note: 'Needs two-factor sign-in turned on in your tastytrade account.' },
+  // India. No scope parameter exists at either broker, and their token can also trade: byo-core.js ALLOW.upstox / ALLOW.fyers is the protection.
+  // daily [h, m] = the sign-in ends at that India time every day, no refresh (Fyers refresh needs the member's PIN, so we ask for a new sign-in instead).
+  upstox: { AUTH: 'https://api.upstox.com/v2/login/authorization/dialog', SCOPE: null, cta: 'Sign in with Upstox', refresh: false, daily: [3, 30], signin: true,
+    note: 'Upstox ends the sign-in every night (about 3:30 AM India time), so you sign in again each day.' },
+  fyers: { AUTH: 'https://api-t1.fyers.in/api/v3/generate-authcode', SCOPE: null, cta: 'Sign in with Fyers', refresh: false, daily: [6, 30], signin: true,
+    note: 'Fyers ends the sign-in every morning (6:30 AM India time), so you sign in again each day.' }
 };
-const TRADE_SCOPE = new RegExp('\\b(trade|trading|account:' + 'write)\\b', 'i');   // built from parts so the repo-wide "no write scope word" test stays strict
+// Next daily end of a sign-in, as ms epoch. India time is UTC+5:30 all year (no daylight saving).
+export function nextDaily([h, m], now = Date.now()) {
+  const IST = 330 * MIN, local = now + IST, day = Math.floor(local / 864e5) * 864e5;
+  let t = day + (h * 60 + m) * MIN; if (t <= local) t += 864e5;
+  return t - IST;
+}
 const KEY = 'tz-oauth-state', MIN = 60000;
+const TRADE_SCOPE = new RegExp('\\b(trade|trading|account:' + 'write)\\b', 'i');   // built from parts so the repo-wide "no write scope word" test stays strict
 const HARD = { redirect: 'error', credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' };
 const dep = (d) => ({ fetch: (d && d.fetch) || ((...a) => globalThis.fetch(...a)) });
 const fail = (msg, o) => Object.assign(new Error(msg), o);
@@ -31,7 +43,8 @@ export async function enableOauthIfConfigured(d) {
   let any = false;
   for (const id of Object.keys(OA)) {
     const cid = await probeOauth(id, d), row = srcById(id);
-    if (cid && row) { Object.assign(row, { oauth: true, clientId: cid, cta: OA[id].cta, keyAlt: true, signinNote: OA[id].note || '' }); any = true; }
+    if (cid && row && OA[id].signin) { Object.assign(row, { state: 'ready', oauth: true, signin: true, clientId: cid, cta: OA[id].cta, signinNote: OA[id].note || '' }); any = true; }   // sign-in only: there is no key form
+    else if (cid && row) { Object.assign(row, { oauth: true, clientId: cid, cta: OA[id].cta, keyAlt: true, signinNote: OA[id].note || '' }); any = true; }
   }
   return any;
 }
@@ -40,7 +53,9 @@ export function oauthAuthUrl(id, clientId, userId, store = globalThis.sessionSto
   if (!userId) throw new Error('Sign in to connect your own data');
   const rec = { id, state: b64url(globalThis.crypto.getRandomValues(new Uint8Array(16))), uid: userId, exp: Date.now() + 10 * MIN };
   store.setItem(KEY, JSON.stringify(rec));
-  return o.AUTH + '?' + new URLSearchParams({ response_type: 'code', client_id: clientId, redirect_uri: redirectOf(id), scope: o.SCOPE, state: rec.state });
+  const q = { response_type: 'code', client_id: clientId, redirect_uri: redirectOf(id), state: rec.state };
+  if (o.SCOPE) q.scope = o.SCOPE;
+  return o.AUTH + '?' + new URLSearchParams(q);
 }
 export function takeOauthState(id, state, userId, store = globalThis.sessionStorage) {
   let rec = null; try { rec = JSON.parse(store.getItem(KEY) || 'null'); } catch (e) { /* none */ }
@@ -58,7 +73,7 @@ export async function oauthTokenCall(id, body, idToken, d) {
 }
 // access: bearer for the data calls. refresh: tastytrade only (never expires; lives only in the device vault). exp: ms epoch (0 = no expiry known).
 export const oauthCreds = (id, j, prev, now = Date.now()) => ({ ...(prev || {}), oauth: true, access: j.access_token, refresh: j.refresh_token || (prev && prev.refresh),
-  exp: j.expires_in ? now + Number(j.expires_in) * 1000 : (OA[id].refresh ? now + 15 * MIN : 0) });
+  exp: OA[id].daily ? nextDaily(OA[id].daily, now) : j.expires_in ? now + Number(j.expires_in) * 1000 : (OA[id].refresh ? now + 15 * MIN : 0), ...(OA[id].daily ? { daily: true } : {}) });
 
 const idTokenOf = (d) => (d && d.idToken ? d.idToken() : globalThis.firebase.auth().currentUser.getIdToken());
 // tastytrade: the 15-minute access token is refreshed through our function shortly before it ends. A refused refresh = Reconnect.

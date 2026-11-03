@@ -104,7 +104,7 @@ const GLYPH = {
   crypto: '<circle cx="12" cy="12" r="8"/><path d="M9 9h5a1.5 1.5 0 0 1 0 3H9h5.5a1.5 1.5 0 0 1 0 3H9M9 7v10"/>'
 };
 // Official brand marks (own-site icons, see assets/images/brokers/SOURCES.md). White tile so every mark reads in dark + light.
-const LOGO = { alpaca: 'svg', oanda: 'png', ironbeam: 'png', tastytrade: 'svg', rithmic: 'png', schwab: 'png', ctrader: 'svg' };
+const LOGO = { alpaca: 'svg', oanda: 'png', ironbeam: 'png', tastytrade: 'svg', rithmic: 'png', schwab: 'png', ctrader: 'svg', upstox: 'png', fyers: 'png' };
 function logoTile(s) {
   const glyph = I(GLYPH[s.cls[0]] || GLYPH.stocks);
   if (!LOGO[s.id]) return el('span', { class: 'byo-ic', html: glyph });
@@ -176,7 +176,7 @@ export function mountByo(opts = {}) {
     if (s.state === 'rithmic') b = el('button', { type: 'button', class: 'byo-row-b', text: 'Connect', 'aria-label': 'Connect Rithmic', onclick: () => { setOpen(false); try { window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.open && window.STRYKER_RITHMIC.open(); } catch (e) { /* not loaded yet */ } } });
     else if (s.state === 'ready' && s.oauth) {
       const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
-      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : s.keyAlt ? go('signin', s) : startOauth(s)) });
+      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : s.keyAlt || s.signin ? go('signin', s) : startOauth(s)) });
     } else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
     else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
@@ -190,7 +190,7 @@ export function mountByo(opts = {}) {
     try {
       const u = window.firebase && firebase.auth().currentUser;
       if (!u) { go('list'); body.prepend(el('p', { class: 'byo-err', role: 'alert', text: 'Sign in to connect your own data.' })); return; }
-      location.assign(s.keyAlt ? (await OAUTH()).oauthAuthUrl(s.id, s.clientId, u.uid) : s.id === 'ctrader' ? (await ctr()).ctraderAuthUrl(s.clientId, u.uid) : await schwabAuthUrl(s.clientId, u.uid));
+      location.assign(s.keyAlt || s.signin ? (await OAUTH()).oauthAuthUrl(s.id, s.clientId, u.uid) : s.id === 'ctrader' ? (await ctr()).ctraderAuthUrl(s.clientId, u.uid) : await schwabAuthUrl(s.clientId, u.uid));
     } catch (e) { /* stays on the list */ }
   }
 
@@ -257,11 +257,11 @@ export function mountByo(opts = {}) {
   function renderSignin(s) {
     title.replaceChildren(logoTile(s), s.name); backBtn.hidden = false;
     body.replaceChildren();
-    body.appendChild(el('p', { class: 'byo-lead', text: 'Sign in on ' + s.name + '\'s own page. Only market data is requested (read-only). You can take it back any time from ' + s.name + '.' }));
+    body.appendChild(el('p', { class: 'byo-lead', text: s.signin ? 'Sign in on ' + s.name + (s.name.endsWith('s') ? '’' : '’s') + ' own page. TradeZoro only reads prices. It can\'t place trades.' : 'Sign in on ' + s.name + '\'s own page. Only market data is requested (read-only). You can take it back any time from ' + s.name + '.' }));
     if (s.signinNote) body.appendChild(el('p', { class: 'byo-note2', text: s.signinNote }));
     const go1 = el('button', { type: 'button', class: 'byo-go byo-signin', id: 'byo-signin', onclick: () => startOauth(s) }, [logoTile(s), el('span', { text: s.cta })]);
     body.appendChild(go1);
-    body.appendChild(el('button', { type: 'button', class: 'byo-link byo-alt', id: 'byo-keyalt', text: 'Use an API key instead', onclick: () => go('form', s) }));
+    if (!s.signin) body.appendChild(el('button', { type: 'button', class: 'byo-link byo-alt', id: 'byo-keyalt', text: 'Use an API key instead', onclick: () => go('form', s) }));
     body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
     body.querySelector('.byo-lock span').textContent = noteOf(s);
     body.appendChild(el('p', { class: 'byo-note', text: DATA_ONLY }));

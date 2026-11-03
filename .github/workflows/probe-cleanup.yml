@@ -1,11 +1,9 @@
-# Deletes e2e "Probe Test" accounts. Manual only; dry run unless "delete" is true.
+# Deletes e2e "Probe Test" accounts. Runs on push to hermes/w5-probe-cleanup; deletes only if sweep-mode.txt says delete.
 name: Probe account cleanup
 on:
-  workflow_dispatch:
-    inputs:
-      delete:
-        description: 'true = delete, else dry run'
-        default: 'false'
+  push:
+    branches: ['hermes/w5-probe-cleanup']
+    paths: ['tools/e2e/sweep-mode.txt', '.github/workflows/probe-cleanup.yml']
 permissions:
   contents: read
 jobs:
@@ -18,6 +16,6 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock firebase-admin@12
-      - run: node tools/e2e/sweep-probes.js ${{ inputs.delete == 'true' && '--delete' || '' }}
+      - run: node tools/e2e/sweep-probes.js $(grep -qx delete tools/e2e/sweep-mode.txt && echo --delete)
         env:
           FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SA_KEY }}

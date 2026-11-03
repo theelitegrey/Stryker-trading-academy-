@@ -30,12 +30,13 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG } from './chart-bookmap.js?v=802';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=802';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=802';
-import * as ProGate from './chart-pro-gate.js?v=802';
-import { installFuturesL2, l2Visible, L2_TYPES } from './chart-futures-l2.js?v=802';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=802';
+import { drawBookmap, BM_BG } from './chart-bookmap.js?v=797';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=797';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=797';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=797';
+import * as ProGate from './chart-pro-gate.js?v=797';
+import { installFuturesL2, l2Visible, L2_TYPES } from './chart-futures-l2.js?v=797';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=797';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -1366,7 +1367,7 @@ function domConfig(inputs) {
   const bm = String(i.look || '').toLowerCase() === 'bookmap';
   if (bm) return {
     view: 'bookmap', bm: true, look: 'bookmap', heat: false, walls: false, vanish: false, ice: false, twoTone: false, deep: false,
-    depth: i.showDepthBars !== false, sizes: i.showSizes !== false, gamma: clamp(num(i.contrast, 1), 0.4, 2.5), widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
+    gpu: i.gpuHeatmap !== false, depth: i.showDepthBars !== false, sizes: i.showSizes !== false, gamma: clamp(num(i.contrast, 1), 0.4, 2.5), widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
     opacity: 0.9, wallSizes: false, showBest: false, showScale: false, bid: str(i.bidColor, '#03c988'), ask: str(i.askColor, '#e5484d'), askDepth: str(i.askDepthColor, '#8b5cf6'),
     wallTop: 0.025, wallMinMs: 0, hide: 0, bucket: Math.max(0, num(i.bucketUsd, 0)), range: clamp(num(i.bookRangePct, 2), 0.5, 5) / 100,
     historyMin: clamp(Math.round(num(i.historyMinutes, 360)), 5, 2880)
@@ -2080,11 +2081,12 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 // the trade feed behind the pulled / filled tags and the iceberg hint: Binance aggTrades, or the futures L2 tick feed
 const feedTrades = (f) => (f.custom && f.custom.trades ? f.custom.trades() : cryptoFeed('binance:' + f.ticker.toUpperCase()));
 function cryptoDomLayer() {
-  let canvas = null;
+  let canvas = null, glr = null;   // glr: the graphics-card heatmap (chart-heatmap-gl.js), Bookmap look only
   return {
     mount(c) { canvas = c; },
     render(a) {
       const g = beginFrame(canvas, a.coords);
+      if (glr) glr.canvas.style.display = 'none';   // draw() shows it again
       if (!g || !a.data || a.data.off || !a.bars.length) return;
       const f = bookFeeds.get(a.data.feed);
       if (!f || !f.book) return;
@@ -2192,7 +2194,8 @@ function cryptoDomLayer() {
         g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
         const bmv = { look: cfg.look, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
           priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
-        const r = drawBookmap(g, bmv);
+        const wantGl = cfg.gpu && heatmapGLOk(); if (wantGl && !glr) glr = createHeatmapGL(canvas); else if (!wantGl && glr) { glr.destroy(); glr = null; }
+        const r = (glr && glr.draw(g, bmv)) || drawBookmap(g, bmv);
         stat.cells = r.cells; stat.columns = r.columns; stat.bm = r; stat.heatX0 = hist.length ? Math.round(Math.max(0, co.timeToX(hist[0].ts))) : null;
         g.restore();
       }
@@ -2470,7 +2473,7 @@ function cryptoDomLayer() {
       stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = 0;
       domLast = stat;
     },
-    destroy() { try { const bd = canvas && canvas.nextElementSibling; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} canvas = null; }
+    destroy() { try { const bd = canvas && canvas.nextElementSibling; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} if (glr) glr.destroy(); glr = null; canvas = null; }
   };
 }
 // Hiding the indicator (eye) keeps the feed open, so the page keeps recording; only removing

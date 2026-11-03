@@ -108,3 +108,4 @@ export function drawBookmap(g, view) {
   cache.key = key; cache.ms = performance.now() - t0; cache.p97 = p97; cache.maxSz = maxSz; cache.stat = { blueShare: tot ? Math.round(blue / tot * 100) : 0, cells, columns: cols.length, rows: H, p97: Math.round(p97) };
   return Object.assign({ ms: Math.round(cache.ms * 10) / 10 }, cache.stat);
 }
+export { lutOf };   // for chart-heatmap-gl.js (the colour ramp texture)

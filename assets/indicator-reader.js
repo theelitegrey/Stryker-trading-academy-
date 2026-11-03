@@ -84,6 +84,7 @@ function buildIndicatorTOC(activeId){
 
 function renderIndicator(ind){
   document.getElementById('indicator-crumb-title').textContent = ind.name || 'Indicator';
+  document.getElementById('indicator-eyebrow').textContent = ind.name || 'Indicator';
   document.getElementById('indicator-title').textContent = ind.name || 'Untitled indicator';
   document.getElementById('indicator-meta').innerHTML =
     (ind.summary ? '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + stkEsc(ind.summary) + '</span>' : '');

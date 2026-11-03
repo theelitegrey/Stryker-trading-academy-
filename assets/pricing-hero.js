@@ -88,7 +88,7 @@
 
   // ---------------------------------------------------------------- comparison (B)
   var GROUPS = [
-    ['Learn', [
+    ['ZoroAcademy', [
       ['Curriculum chapters', '@free-ch', 'All 64'],
       ['Volume Profile and Prop Firm tracks', false, true],
       ['Progress dashboard, achievements, streak', true, true]]],

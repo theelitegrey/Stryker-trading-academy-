@@ -179,6 +179,7 @@ function renderModelHero(m){
 
 function renderModel(m){
   document.getElementById('model-crumb-title').textContent = m.name || 'Model';
+  document.getElementById('model-eyebrow').textContent = m.name || 'Model';
   document.getElementById('model-title').textContent = m.name || 'Untitled model';
 
   const mins = (typeof modelReadMinutes === 'function') ? modelReadMinutes(m) : 0;

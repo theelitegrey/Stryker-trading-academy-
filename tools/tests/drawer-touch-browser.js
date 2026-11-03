@@ -139,7 +139,7 @@ function ok(c, m) { if (!c) { fails++; console.log('  FAIL ' + m); } else consol
   await pg.evaluate(() => localStorage.removeItem('tz_nav_sec')); await pg.reload(); await pg.waitForTimeout(700);
   await pg.tap('#appnav-more'); await pg.waitForTimeout(500);
   const secs = await pg.$$eval('#appnav-sheet .appnav-sh-group', (n) => n.map((x) => x.textContent.trim()));
-  ok(JSON.stringify(secs) === JSON.stringify(['Trade', 'Markets', 'Learn', 'Community', 'Creator Hub', 'Account', 'Help & feedback']), 'sheet section headers: ' + secs.join(' / '));
+  ok(JSON.stringify(secs) === JSON.stringify(['Trade', 'Markets', 'ZoroAcademy', 'Community', 'Creator Hub', 'Account', 'Help & feedback']), 'sheet section headers: ' + secs.join(' / '));
   const hdr = '#appnav-sheet .appnav-msec[data-sec="markets"] > .appnav-sh-group';
   const mOpen = () => pg.$eval('#appnav-sheet .appnav-msec[data-sec="markets"]', (n) => n.classList.contains('open'));
   ok(!(await mOpen()), 'Markets starts collapsed');
@@ -163,7 +163,7 @@ function ok(c, m) { if (!c) { fails++; console.log('  FAIL ' + m); } else consol
   pg = await page(ctx, '/dashboard-user');
   await openDrawer(pg);
   const heads = await pg.$$eval('.sidebar #app-menu .side-group-head', (n) => n.map((x) => x.textContent.trim()));
-  ok(heads.join('|') === 'Trade|Markets|Learn|Community|Account|Help & feedback' || heads.join('|') === 'Trade|Markets|Learn|Community|Creator Hub|Account|Help & feedback', 'drawer headers: ' + heads.join(' / '));
+  ok(heads.join('|') === 'Trade|Markets|ZoroAcademy|Community|Account|Help & feedback' || heads.join('|') === 'Trade|Markets|ZoroAcademy|Community|Creator Hub|Account|Help & feedback', 'drawer headers: ' + heads.join(' / '));
   const dh = '.sidebar .side-group[data-sec="learn"] > .side-group-head';
   await (await pg.$(dh)).scrollIntoViewIfNeeded();
   const l0 = await pg.getAttribute(dh, 'aria-expanded');

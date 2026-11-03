@@ -1,1 +1,1 @@
-tools/ops/lucky25_extend.py
+tools/ops/lucky25_extend.py --apply

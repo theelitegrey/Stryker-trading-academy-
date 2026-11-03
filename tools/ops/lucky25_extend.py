@@ -53,7 +53,7 @@ for d in rows:
     tag = '%s red %s plan %s now %s -> %s' % (uid[:6], rdt.date(), plan, curd, target.date())
     if paid: print(tag, 'SKIP paid subscription'); skip += 1; continue
     if cur is None: print(tag, 'SKIP no expiry (permanent or none)'); skip += 1; continue
-    if cur >= tms: print(tag, 'SKIP already >= 6 months'); skip += 1; continue
+    if cur >= tms - 86400000: print(tag, 'SKIP already >= 6 months'); skip += 1; continue
     print(tag, 'EXTEND' + ('' if APPLY else ' (dry run)'))
     if APPLY:
         patch = {'fields': {'paidThroughMillis': {'integerValue': str(tms)}, 'lucky25ExtendedAt': {'timestampValue': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}}}

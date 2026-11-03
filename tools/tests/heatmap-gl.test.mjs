@@ -21,3 +21,23 @@ for (let q = 1; q < 1024; q++) assert.ok(n.tmap[q] >= n.tmap[q - 1]);           
 assert.ok(n.p97 > 900 && n.p97 < 1100 && n.maxSz > 1000);
 assert.ok(normOf([], A, 0.97, 1).tmap[5] >= 0);                                     // empty view does not throw
 console.log('heatmap-gl unit OK');
+// ---- Split style: side pick, ramp textures, style switch ----
+const BMm = await import('../../assets/chart-bookmap.js');
+const { sideOf, boundOf, rampTexBytes, styleFor, BID, ASK } = BMm;
+assert.equal(sideOf(105, 100, 5), ASK); assert.equal(sideOf(95, 100, -5), BID);        // the boundary wins over the stored sign
+assert.equal(sideOf(100, 100, 5), BID);                                                // at the boundary = bid side
+assert.equal(sideOf(95, 0, -5), ASK); assert.equal(sideOf(95, 0, 5), BID);              // no boundary: the stored sign
+assert.equal(boundOf({ bb: 99.5, ba: 100.5, mid: 90 }), 100); assert.equal(boundOf({ mid: 90 }), 90); assert.equal(boundOf({}), 0);
+const sp = styleFor({ look: 'split', colorBy: 'side' }), ht = styleFor({ look: 'split', colorBy: 'heat' });
+assert.equal(sp.sided, true); assert.equal(ht.sided, false); assert.equal(styleFor({ look: 'bookmap' }).sided, false);
+const tx = rampTexBytes(sp);
+assert.equal(tx.length, 256 * 2 * 4);
+assert.deepEqual([...tx.slice(0, 4)], [5, 7, 13, 255]); assert.deepEqual([...tx.slice(1024, 1028)], [5, 7, 13, 255]);  // thin = the field
+assert.deepEqual([...tx.slice(1020, 1024)], [201, 255, 214, 255]);                      // bid row, heaviest: near-white green
+assert.deepEqual([...tx.slice(2044, 2048)], [230, 200, 255, 255]);                      // ask row, heaviest: near-white lilac
+const gC = (b, o) => b[o + 1], rC = (b, o) => b[o];
+assert.ok(gC(tx, 4 * 200) > rC(tx, 4 * 200) && rC(tx, 1024 + 4 * 200) > gC(tx, 1024 + 4 * 200));   // bid reads green, ask reads violet
+const th = rampTexBytes(ht);
+assert.deepEqual([...th.slice(0, 1024)], [...th.slice(1024)]);                          // heat: both rows are the same ramp
+assert.deepEqual([...th.slice(1020, 1024)], [236, 30, 30, 255]);                        // heaviest = red
+console.log('split unit OK');

@@ -85,10 +85,10 @@ export function money(v) {
 }
 
 // ---- shared fetch cache (one per underlying) ---------------------------------------------------
-const cache = new Map();
+export const cache = new Map();   // read by chart-optflow.js (same samples, one fetch)
 const subs = new Set();
 const replayOn = () => !!(window.__stkReplay && window.__stkReplay.on);
-function tideFetch(u) {
+export function tideFetch(u) {
   const e = cache.get(u) || {};
   if (e.p) return e.p;
   if (e.data && Date.now() - e.at < REFRESH_MS - 5000) return Promise.resolve(e.data);

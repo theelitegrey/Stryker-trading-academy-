@@ -86,6 +86,8 @@
       desc: 'Gamma exposure by strike as a heatmap on the chart.' },
     { group: 'gex', name: 'Expected Move', feed: '—', icon: 'expiry', ids: ['stk_em'],
       desc: 'The range the options market implies, from the same options chain.' },
+    { group: 'gex', name: 'Options Flow Marks', feed: '—', icon: 'bubble', ids: ['stk_optflow'],
+      desc: 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium. Per-bar totals from the options data feed, not single trades.' },
     { group: 'gex', name: 'Every expiry', feed: '—', icon: 'expiry', ids: ['gex_expiry'],
       desc: 'Same-day, 1 day, 7 days, 30 days and more, not just 0DTE.' },
     { group: 'gex', name: 'GEX+ strike table', feed: '—', icon: 'list', ids: ['gex_table'],

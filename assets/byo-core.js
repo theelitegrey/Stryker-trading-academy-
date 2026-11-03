@@ -221,7 +221,7 @@ export const alpaca = {
   id: 'alpaca',
   symbolOf: (t) => { const s = String(t || '').replace(/^[a-z]+:/i, '').toUpperCase(); return /^[A-Z][A-Z0-9.\-]{0,11}$/.test(s) ? s : null; },
   frame: { '1': '1Min', '5': '5Min', '15': '15Min', '30': '30Min', '60': '1Hour', '120': '2Hour', '240': '4Hour', D: '1Day', W: '1Week', M: '1Month' },
-  headers: (c) => ({ 'APCA-API-KEY-ID': c.key, 'APCA-API-SECRET-KEY': c.secret }),
+  headers: (c) => (c.oauth ? { Authorization: 'Bearer ' + c.access } : { 'APCA-API-KEY-ID': c.key, 'APCA-API-SECRET-KEY': c.secret }),   // sign-in (scope data) or pasted key
   async getBars(c, ticker, timeframe, range = {}, d) {
     const { fetch } = dep(d); const tf = norm(timeframe); const sym = this.symbolOf(ticker);
     const frame = this.frame[tf]; if (!sym || !frame) return [];
@@ -255,11 +255,11 @@ export const alpaca = {
         ws.onmessage = (ev) => {
           let arr; try { arr = JSON.parse(ev.data); } catch (e) { return; }
           for (const m of Array.isArray(arr) ? arr : [arr]) {
-            if (m.T === 'success' && m.msg === 'connected') send({ action: 'auth', key: c.key, secret: c.secret });
+            if (m.T === 'success' && m.msg === 'connected') send(c.oauth ? { action: 'auth', key: 'oauth', secret: c.access } : { action: 'auth', key: c.key, secret: c.secret });
             else if (m.T === 'success' && m.msg === 'authenticated') send({ action: 'subscribe', trades: syms });
             else if (m.T === 't') onTick(m.S, m.p, Date.parse(m.t), m.s || 0);
             else if (m.T === 'error') {
-              if (m.code === 402 || m.code === 401) ctl.fail(true, 'Alpaca refused the key');
+              if (m.code === 402 || m.code === 401) ctl.fail(true, c.oauth ? 'Reconnect Alpaca' : 'Alpaca refused the key');
               else if (m.code === 406) ctl.fail(false, 'Another app is using your Alpaca stream (one connection per account)');
               else if (m.code === 409) ctl.fail(true, 'Your Alpaca plan has no access to this feed');
               else if (m.code === 405) ctl.fail(true, 'Alpaca symbol limit reached');
@@ -576,6 +576,10 @@ export function activate(id, creds, deps) {
   if (id === 'ctrader') {   // refresh long before the token expires; a refused refresh says Reconnect
     const tick = () => ad.fresh(creds, deps).catch((e) => { if (e && e.reconnect) { rec.status = 'error'; rec.msg = 'Reconnect cTrader'; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); } });
     rec.timer = setInterval(tick, 6 * 36e5); tick();
+  }
+  if ((id === 'tastytrade') && creds.oauth) {   // 15-minute access token: refresh shortly before it ends; a refused refresh says Reconnect
+    const tick = () => import('./byo-oauth.js?v=838').then((m) => m.freshOauth(id, creds, deps)).catch((e) => { if (e && e.reconnect) { rec.status = 'error'; rec.msg = e.message; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); } });
+    rec.timer = setInterval(tick, 5 * 60000);
   }
   rec.hub = ad.hub(creds, (st, msg) => { rec.status = st === 'idle' ? 'ready' : st; rec.msg = msg; emit(id); }, deps);
   live.set(id, rec); emit(id);

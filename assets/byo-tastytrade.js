@@ -5,6 +5,7 @@
 // market data over DXLink. Allowed requests: POST /oauth/token, GET /api-quote-tokens, GET /instruments/futures. Nothing
 // else (no /accounts, /orders, /positions). Docs: developer.tastytrade.com/oauth, /streaming-market-data.
 // Unverified until a real account tries it: the browser User-Agent rule, DXLink Origin policy, candle snapshot end flag.
+import { freshOauth } from './byo-oauth.js?v=838';
 import { ALLOW, ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf } from './byo-core.js?v=838';
 
 const API = 'https://api.tastyworks.com';
@@ -71,6 +72,11 @@ export async function accessToken(c, d) {
   const { fetch } = dep(d);
   s.p = (async () => {
     try {
+      if (c.oauth) {   // one-tap sign-in: the access token comes from our token function (it holds the client secret); same refuse-trade rule
+        const at = await freshOauth('tastytrade', c, d);
+        s.at = at; s.exp = Math.max(Date.now() + 30000, c.exp - 60000);
+        return at;
+      }
       const r = await fetch(guardUrl('tastytrade', API + '/oauth/token', 'POST'), { ...HARD, method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'User-Agent': 'tradezoro-charts/1.0' },
         body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: c.refreshToken, client_secret: c.clientSecret, client_id: c.clientId }) });

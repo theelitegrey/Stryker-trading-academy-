@@ -41,6 +41,9 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 /connect/schwab/callback /schwab-callback 200
 # cTrader sign-in return page (view-only). Token swap: functions/connect/ctrader/token.js; price relay: functions/connect/ctrader/ws.js.
 /connect/ctrader/callback /ctrader-callback 200
+# Alpaca + tastytrade sign-in return page (read-only scopes). Token swap: functions/connect/<id>/token.js.
+/connect/alpaca/callback /oauth-callback 200
+/connect/tastytrade/callback /oauth-callback 200
 
 # Creator Hub landing moved under /features (2026-10-30).
 /creators /features/creators 301

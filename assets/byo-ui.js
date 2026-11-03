@@ -4,6 +4,7 @@
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
 import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=838';
 let CTR = null;   // byo-ctrader.js, loaded with the chart
+const OAUTH = () => import('./byo-oauth.js?v=838');
 const ctr = () => CTR || import('./byo-ctrader.js?v=838').then((m) => (CTR = m));
 
 const CSS = `
@@ -76,6 +77,11 @@ const CSS = `
 .byo-err[hidden]{ display:none; }
 .byo-go{ width:100%; height:48px; border:0; border-radius:12px; background:var(--gold,#03c988); color:#050506; font:600 17px/22px var(--by-font); cursor:pointer; }
 :root[data-theme="light"] .byo-go{ background:#047857; color:#fff; }
+.byo-signin{ display:flex; align-items:center; justify-content:center; gap:12px; background:#fff; color:#111; border:1px solid rgba(128,128,128,.35); }
+:root[data-theme="light"] .byo-signin{ background:#fff; color:#111; border-color:#d0d5dd; }
+.byo-signin .byo-ic{ width:28px; height:28px; border-radius:6px; }
+.byo-alt{ display:block; width:100%; min-height:44px; margin:8px 0 0; background:none; border:0; cursor:pointer; text-align:center; }
+.byo-note2{ margin:0 0 16px; padding:10px 12px; border-radius:12px; border:1px solid var(--line,#2c2c32); font:500 13px/18px var(--by-font); color:var(--ink-1,#c9cdd3); }
 .byo-go[disabled]{ opacity:.6; cursor:default; }
 .byo-go.danger{ background:transparent; border:1px solid #ff6b6b; color:#ff6b6b; }
 :root[data-theme="light"] .byo-go.danger{ border-color:#b42318; color:#b42318; }
@@ -170,7 +176,7 @@ export function mountByo(opts = {}) {
     if (s.state === 'rithmic') b = el('button', { type: 'button', class: 'byo-row-b', text: 'Connect', 'aria-label': 'Connect Rithmic', onclick: () => { setOpen(false); try { window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.open && window.STRYKER_RITHMIC.open(); } catch (e) { /* not loaded yet */ } } });
     else if (s.state === 'ready' && s.oauth) {
       const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
-      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : startOauth(s)) });
+      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : s.keyAlt ? go('signin', s) : startOauth(s)) });
     } else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
     else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
@@ -184,7 +190,7 @@ export function mountByo(opts = {}) {
     try {
       const u = window.firebase && firebase.auth().currentUser;
       if (!u) { go('list'); body.prepend(el('p', { class: 'byo-err', role: 'alert', text: 'Sign in to connect your own data.' })); return; }
-      location.assign(s.id === 'ctrader' ? (await ctr()).ctraderAuthUrl(s.clientId, u.uid) : await schwabAuthUrl(s.clientId, u.uid));
+      location.assign(s.keyAlt ? (await OAUTH()).oauthAuthUrl(s.id, s.clientId, u.uid) : s.id === 'ctrader' ? (await ctr()).ctraderAuthUrl(s.clientId, u.uid) : await schwabAuthUrl(s.clientId, u.uid));
     } catch (e) { /* stays on the list */ }
   }
 
@@ -247,6 +253,20 @@ export function mountByo(opts = {}) {
     setTimeout(() => { const f = body.querySelector('input,select'); if (f && !phone) f.focus(); }, 30);
   }
 
+  // One-tap sign-in screen for Alpaca / tastytrade, with the paste-a-key form one tap away.
+  function renderSignin(s) {
+    title.replaceChildren(logoTile(s), s.name); backBtn.hidden = false;
+    body.replaceChildren();
+    body.appendChild(el('p', { class: 'byo-lead', text: 'Sign in on ' + s.name + '\'s own page. Only market data is requested (read-only). You can take it back any time from ' + s.name + '.' }));
+    if (s.signinNote) body.appendChild(el('p', { class: 'byo-note2', text: s.signinNote }));
+    const go1 = el('button', { type: 'button', class: 'byo-go byo-signin', id: 'byo-signin', onclick: () => startOauth(s) }, [logoTile(s), el('span', { text: s.cta })]);
+    body.appendChild(go1);
+    body.appendChild(el('button', { type: 'button', class: 'byo-link byo-alt', id: 'byo-keyalt', text: 'Use an API key instead', onclick: () => go('form', s) }));
+    body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
+    body.querySelector('.byo-lock span').textContent = noteOf(s);
+    body.appendChild(el('p', { class: 'byo-note', text: DATA_ONLY }));
+  }
+
   function renderManage(s) {
     title.replaceChildren(logoTile(s), s.name); backBtn.hidden = false;
     body.replaceChildren();
@@ -262,7 +282,7 @@ export function mountByo(opts = {}) {
   }
 
   function render() {
-    if (view === 'form' && cur) renderForm(cur); else if (view === 'manage' && cur) renderManage(cur); else renderList();
+    if (view === 'form' && cur) renderForm(cur); else if (view === 'manage' && cur) renderManage(cur); else if (view === 'signin' && cur) renderSignin(cur); else renderList();
   }
 
   btn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.stkc-pop').forEach((p) => { p.hidden = true; }); view = 'list'; setOpen(!open); });
@@ -281,6 +301,7 @@ export function mountByo(opts = {}) {
   onByoChange(() => { if (open && view === 'manage') render(); else if (open && view === 'list') renderList(); });
 
   enableSchwabIfConfigured().then((on) => { if (on && open) render(); }).catch(() => {});
+  OAUTH().then((m) => m.enableOauthIfConfigured()).then((on) => { if (on && open) render(); }).catch(() => {});
   ctr().then((m) => m.enableCtraderIfConfigured()).then((on) => { if (on && open) render(); }).catch(() => {});
   const api = window.STRYKER_BYO = { open: () => { view = 'list'; setOpen(true); }, close: () => setOpen(false), get isOpen() { return open; } };
   return api;

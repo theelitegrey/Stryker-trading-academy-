@@ -28,7 +28,7 @@
 // without turning the mark back on.
 //
 // MULTI-CHART: TradingView-style grid picker + "Sync in layout" switches live in
-// assets/chart-grid.js (1 to 8 charts on desktop, 4 on tablets/phones); Vela's
+// assets/chart-grid.js (1 to 16 charts on desktop, 4 on tablets/phones); Vela's
 // built-in picker (which goes up to 4x4) is dropped from its topbar, and
 // maxWebglCells keeps every cell on WebGL only up to 4. Phones show every chart of a
 // 2-4 chart layout at once (stacked / 2 x 2; a tab strip when panes would be too small):

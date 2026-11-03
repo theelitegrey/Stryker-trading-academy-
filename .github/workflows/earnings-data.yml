@@ -1,0 +1,42 @@
+# US earnings feeder: once a day, pulls Nasdaq's public earnings calendar JSON (no key) with
+# tools/fetch-earnings.js and force-pushes earnings.json to the `data-earnings` branch (one commit,
+# no history). Charts and the Economic calendar read it from raw.githubusercontent.com (CORS-open).
+# Separate branch so it never touches the Global Monitor's `data` branch. Data is "updated daily".
+name: Earnings data
+
+on:
+  schedule:
+    - cron: '23 11 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: earnings-data
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Fetch earnings
+        run: |
+          mkdir -p out
+          curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/data-earnings/earnings.json" -o out/previous.json || echo "no previous data yet"
+          node tools/fetch-earnings.js out/earnings.json out/previous.json
+      - name: Publish to the data-earnings branch
+        run: |
+          cd out
+          rm -rf .git
+          git init -q -b data-earnings
+          git config user.email "actions@github.com"
+          git config user.name "earnings-data bot"
+          git add earnings.json
+          git commit -q -m "earnings $(date -u +%FT%TZ)"
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data-earnings

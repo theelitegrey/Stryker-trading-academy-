@@ -1602,9 +1602,6 @@ body.charts-page .stkchart-credit{
 .stkg-ic[aria-pressed="true"] svg rect{ opacity:.9; }
 .stkg-ic[aria-disabled="true"]{ opacity:.35; cursor:not-allowed; }
 .stkg-ic:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
-.stkg-greyrow{ padding-left:24px; border-top:1px dashed var(--line-soft); margin-top:4px; padding-top:4px; flex-wrap:wrap; }
-.stkg-off{ opacity:.32; cursor:help; }
-.stkg-off b{ font:600 10.5px/1 inherit; font-family:inherit; }
 .stkg-note{ color:var(--ink-2); font-size:12px; line-height:16px; padding:6px 4px 0; margin:0 !important; }
 .stkg-note[hidden]{ display:none; }
 .stkg-swrow{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 8px; border-radius:6px; cursor:pointer; color:var(--ink-1); }
@@ -2498,6 +2495,38 @@ body.stkiw-open{ overflow:hidden; }
 .stkw-sym{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
 .stkw-dd{ flex:none; width:7px; height:7px; border-radius:50%; background:#787B86; }
 .stkw-dd[hidden]{ display:none; }
+.stkw-flag{ flex:none; display:inline-flex; align-items:center; justify-content:center; width:24px; height:28px; margin-left:-4px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--ink-3); opacity:0; cursor:pointer; }
+.stkw-flag svg{ width:14px; height:14px; }
+.stkw-row:hover .stkw-flag,.stkw-flag:focus-visible,.stkw-flag[data-f]:not([data-f=""]){ opacity:1; }
+@media (hover:none){.stkw-flag{ opacity:.5; }
+.stkw-flag[data-f]:not([data-f=""]){ opacity:1; }}
+.stkw-flag:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }
+.stkw-flag:disabled{ cursor:default; }
+.stkw-flag[data-f="red"],.stkw-flagfilter[data-f="red"]{ color:#ff3b30; }
+.stkw-flag[data-f="orange"],.stkw-flagfilter[data-f="orange"]{ color:#ff9500; }
+.stkw-flag[data-f="yellow"],.stkw-flagfilter[data-f="yellow"]{ color:#ffcc00; }
+.stkw-flag[data-f="green"],.stkw-flagfilter[data-f="green"]{ color:#34c759; }
+.stkw-flag[data-f="blue"],.stkw-flagfilter[data-f="blue"]{ color:#007aff; }
+.stkw-flag[data-f="purple"],.stkw-flagfilter[data-f="purple"]{ color:#af52de; }
+.stkw-flag[data-f="pink"],.stkw-flagfilter[data-f="pink"]{ color:#ff2d55; }
+.stkw-flag[data-f]:not([data-f=""]) svg{ fill:currentColor; }
+.stkw-flagfilter.on{ color:var(--teal); background:var(--bg-2); }
+.stkw-flagfilter.on svg{ fill:currentColor; }
+.stkw-fpal{ display:flex; gap:8px; padding:8px 12px 10px; }
+.stkw-fsw{ flex:none; width:24px; height:24px; padding:0; border:2px solid transparent; border-radius:50%; background:#8e8e93; cursor:pointer; box-shadow:inset 0 0 0 2px var(--bg-1,#fff); }
+.stkw-fdot{ display:inline-block; width:14px; height:14px; box-shadow:none; border:0; cursor:inherit; }
+.stkw-fsw[aria-pressed="true"]{ border-color:var(--ink-0); }
+.stkw-fsw:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+.stkw-fsw[data-f="red"]{ background:#ff3b30; }
+.stkw-fsw[data-f="orange"]{ background:#ff9500; }
+.stkw-fsw[data-f="yellow"]{ background:#ffcc00; }
+.stkw-fsw[data-f="green"]{ background:#34c759; }
+.stkw-fsw[data-f="blue"]{ background:#007aff; }
+.stkw-fsw[data-f="purple"]{ background:#af52de; }
+.stkw-fsw[data-f="pink"]{ background:#ff2d55; }
+@media (max-width:599px){.stkw-fsw{ width:32px; height:32px; }
+.stkw-flag{ width:32px; height:36px; }
+.stkw-fpal{ gap:10px; }}
 .stkw-dd[data-s="rt"]{ background:#089981; }
 .stkw-dd[data-s="delayed"]{ background:#F5A623; }
 .stkw-cn[data-dir="up"]{ color:#089981; }
@@ -2969,6 +2998,9 @@ html.appnav-sheet-open, html.appnav-sheet-open body{ overflow:hidden; }}
 .plb-you{ margin-left:4px; }}
 .ec-tabs{ display:flex; gap:6px; margin:0 0 14px; overflow-x:auto; }
 .ec-tab{ flex:none; height:34px; padding:0 14px; border:1px solid var(--line-soft); border-radius:999px; background:transparent; color:var(--ink-2); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.ec-search{ margin-left:auto; height:34px; min-width:200px; padding:0 12px; border:1px solid var(--line-soft); border-radius:10px; background:var(--bg-1); color:var(--ink-0); font:inherit; font-size:14px; }
+.ec-search:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
+@media (max-width:599px){.ec-search{ width:100%; margin-left:0; font-size:16px; min-height:44px; }}
 .ec-tab:hover{ color:var(--ink-0); background:var(--bg-2); }
 .ec-tab.is-on{ color:#04150e; background:var(--gold); border-color:var(--gold); }
 .ec-corp{ min-width:0; }

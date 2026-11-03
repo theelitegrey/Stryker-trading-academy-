@@ -216,7 +216,7 @@ service cloud.firestore {
       }
 
       // Charts page price alerts (assets/chart-alerts.js, 2026-10-06). Owner only (not even
-      // admins read them). Validated shape; the 200-per-member cap is enforced in the client.
+      // admins read them). Validated shape; the 1000-per-member cap is enforced in the client.
       match /chartAlerts/{aid} {
         function validAlert(d) {
           return d.keys().hasOnly(['symbol', 'cond', 'price', 'message', 'freq', 'active', 'createdAt', 'updatedAt'])

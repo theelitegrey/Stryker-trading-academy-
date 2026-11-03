@@ -51,7 +51,7 @@
 
 const LAYER = 'stk_alerts';
 const PREFS_KEY = 'stryker_chart_alert_prefs';
-const MAX_ALERTS = 200;
+const MAX_ALERTS = 1000;
 const CONDS = [
   ['crossing', 'Crossing'], ['crossing_up', 'Crossing up'], ['crossing_down', 'Crossing down'],
   ['greater', 'Greater than'], ['less', 'Less than']
@@ -767,6 +767,7 @@ function openForm(a){
   f.querySelector('.stk-al-save').textContent = editing ? 'Save' : 'Create';
   try { (f.price.required ? f.price : f.src).focus(); } catch (e) {}
 }
+let listLimit = 100;
 function renderList(){
   if (!panel) return;
   const list = panel.querySelector('.stk-al-list'); list.textContent = '';
@@ -779,7 +780,8 @@ function renderList(){
     e.querySelector('.stk-al-new2').onclick = () => panel.querySelector('.stk-al-new').click();
     list.appendChild(e); return;
   }
-  for (const a of alerts) {
+  const shown = alerts.slice(0, listLimit);   // 1000 rows at once is slow: show more on request
+  for (const a of shown) {
     const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');
     row.innerHTML = '<div class="stk-al-txt"><b></b><span></span></div><button type="button" data-k="pause"></button><button type="button" data-k="edit">Edit</button><button type="button" data-k="del" aria-label="Delete alert">Delete</button>';
     row.querySelector('b').textContent = isCond(a) ? (a.symbol + ' \u00b7 ' + a.src.title + ' \u2192 ' + (a.src.any ? 'Any alert() function call' : a.src.cond)) : a.src ? (a.symbol + ' · ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond] + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price))) : (a.symbol + ' · ' + CONDL[a.cond] + ' ' + fmt(a.price));
@@ -791,6 +793,11 @@ function renderList(){
     row.querySelector('[data-k=edit]').onclick = () => openForm(a);
     row.querySelector('[data-k=del]').onclick = async () => { pendClose.delete(a.id); try { await storeOf(a).remove(a.id); alerts = alerts.filter((x) => x !== a); } catch (e) { toastFn('Could not delete the alert.'); } pushLines(); renderList(); };
     list.appendChild(row);
+  }
+  if (alerts.length > shown.length) {
+    const more = document.createElement('button'); more.type = 'button'; more.className = 'stk-al-new2'; more.textContent = 'Show more (' + (alerts.length - shown.length) + ' left)';
+    more.onclick = () => { listLimit += 100; renderList(); };
+    list.appendChild(more);
   }
 }
 
@@ -1030,6 +1037,7 @@ const CSS = `
 .stk-al-empty b{ font-size:17px; line-height:22px; font-weight:600; }
 .stk-al-empty span{ font-size:14px; line-height:20px; opacity:.72; max-width:280px; }
 .stk-al-empty .stk-al-new2{ margin-top:8px; min-height:44px; padding:0 20px; }
+.stk-al-list>.stk-al-new2{ display:block; width:calc(100% - 24px); margin:8px 12px; min-height:44px; border:0; border-radius:10px; background:rgba(120,120,128,.16); color:inherit; font:inherit; font-weight:600; cursor:pointer; }
 /* tools row: one primary (+ New alert, hidden while the empty state shows its own), Sounds as a quiet
    secondary, count as a small muted counter at the end */
 .stk-al-box .stk-al-sounds{ display:inline-flex; align-items:center; gap:6px; background:transparent; border-color:rgba(128,128,128,.4); color:inherit; font-weight:500; }

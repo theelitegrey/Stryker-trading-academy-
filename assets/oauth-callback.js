@@ -22,7 +22,7 @@
   }
   user().then(function (u) {
     if (!u) return end('Sign in first', 'Sign in to TradeZoro, then connect ' + NAME + ' again.');
-    return Promise.all([import('./byo-core.js?v=851'), import('./byo-oauth.js?v=851'), import('./byo-tastytrade.js?v=851'), import('./byo-india.js?v=851')]).then(function (mm) {
+    return Promise.all([import('./byo-core.js?v=852'), import('./byo-oauth.js?v=852'), import('./byo-tastytrade.js?v=852'), import('./byo-india.js?v=852')]).then(function (mm) {
       var c = mm[0], oa = mm[1];
       var rec = oa.takeOauthState(id, state, u.uid);
       if (!rec) return end(NAME + ' was not connected', 'The sign-in link expired. Start again from Data source in the charts.');

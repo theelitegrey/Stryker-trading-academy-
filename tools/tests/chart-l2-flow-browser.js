@@ -21,7 +21,8 @@ function fakeWs(admin) {
     const ws = { readyState: 0, send() {}, close() { this.readyState = 3; clearInterval(this.iv); this.onclose && this.onclose({ code: 1000 }); } };
     let n = 0;
     setTimeout(() => {
-      ws.readyState = 1; ws.onopen && ws.onopen(); ws.onmessage({ data: JSON.stringify({ event: 'status', state: 'live' }) });
+      ws.readyState = 1; ws.onopen && ws.onopen(); ws.onmessage({ data: JSON.stringify({ event: 'hub_attached', state: 'live', tier: window.__TIER1 && window.__wsOpened === 1 ? 'trades' : 'book' }) });   // lock-bug repro: the hub says 'trades' first, then sends book frames
+      ws.onmessage({ data: JSON.stringify({ event: 'status', state: 'live' }) });
       const m0 = Math.floor(Date.now() / 60000) * 60000, mid0 = window.__L2MID, b = [];
       for (let k = 15; k >= 0; k--) { const o = mid0 + Math.sin(k) * 4; b.push([m0 - k * 60000, o, o + 6, o - 5, o + 2, 300 + k]); }
       ws.onmessage({ data: JSON.stringify({ type: 'bars', symbol: 'NQ', b }) });
@@ -128,10 +129,12 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
     }
     for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [1440, 900, false, 'light', '1440-light'], [390, 844, true, 'dark', '390-dark'], [390, 844, true, 'light', '390-light']])) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
+      if (process.env.TIER1) await p.evaluate(() => { window.__TIER1 = 1; });
       await setNQ(p);
       for (const t of TYPES) await add(p, t, t === 'stk_l2f_cvd' && process.env.CVD ? JSON.parse(process.env.CVD) : t === 'stk_l2f_big' ? { mode: 'Manual', minSize: 100 } : t === 'stk_l2f_stop' ? { showAll: true, levels: 1 } : {});
       if (process.env.L1) await add(p, 'stk_ts_cvd');
       await sleep(14000);
+      if (process.env.TIER1) { const lk = await p.evaluate(() => ({ chips: [...document.querySelectorAll('.stkfeed.is-locked')].length, note: (document.querySelector('#stkfeed-note') || {}).hidden === false ? document.querySelector('#stkfeed-note').innerText : '', msg: /Needs L2/.test(document.body.innerText) })); check(lk.chips === 0 && !lk.msg, tag + ': no false lock after tier trades then book frames', lk); }
       const f = await readFlow(p); if (process.env.WARN) console.log('ERR', JSON.stringify(await p.evaluate(() => [window.__l2fErr, window.__l2fCvd])));
       for (const t of ['stk_l2f_delta', 'stk_l2f_cvd']) check(f[t] && f[t].n >= 20, tag + ': ' + t + ' has ' + (f[t] && f[t].n) + ' bars with data (>= 20) of ' + (f[t] && f[t].bars), f[t]);
       check(f.stk_l2f_fp && f.stk_l2f_fp.n >= 20, tag + ': footprint has traded minutes (' + (f.stk_l2f_fp && f.stk_l2f_fp.n) + ')', f.stk_l2f_fp);

@@ -325,7 +325,7 @@ export class TSHub {
     Promise.resolve(f(c.who.env, c.who.tok)).then((t) => {
       if (!this.clients.has(c)) return;
       if (!t) { try { c.sock.close(4003, 'access ended'); } catch (e) {} this.clients.delete(c); this.n.revoked = (this.n.revoked || 0) + 1; }
-      else c.book = t === 'book';
+      else { const was = c.book; c.book = t === 'book'; if (was !== c.book) this.send(c, JSON.stringify({ event: 'hub_attached', state: this.liveState(), tier: c.book ? 'book' : 'trades', symbols: this.o.SYMBOLS.concat(this.o.QUOTES), trades: this.o.TRADES })); }   // tell the page, or its lock chip goes stale
     }).catch(() => {});
   }
   setSub(c, sym, levels) {

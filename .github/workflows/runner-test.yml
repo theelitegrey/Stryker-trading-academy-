@@ -8,42 +8,23 @@ permissions:
   contents: read
 
 jobs:
-  verify-email-probe:
+  dmarc:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
-      - name: Signup + verify email end to end (test account, deleted after)
+      - name: Add DMARC record for tradezoro.com (monitor mode)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          set -u
-          K=$(grep -o -m1 -E "apiKey: *['\"][^'\"]+['\"]" assets/auth.js | sed -E "s/.*['\"]([^'\"]+)['\"]$/\1/")
-          echo "::add-mask::$K"
-          H='-H Referer:https://tradezoro.com/ -H Content-Type:application/json'
-          DOM=$(curl -s https://api.mail.tm/domains | jq -r '.["hydra:member"][0].domain')
-          U="tzprobe$(date +%s)"; PW="Pw-$(date +%s)-x9"; E="$U@$DOM"
-          curl -s -X POST https://api.mail.tm/accounts -H 'Content-Type: application/json' -d "{\"address\":\"$E\",\"password\":\"$PW\"}" >/dev/null
-          MT=$(curl -s -X POST https://api.mail.tm/token -H 'Content-Type: application/json' -d "{\"address\":\"$E\",\"password\":\"$PW\"}" | jq -r .token)
-          echo "::add-mask::$MT"
-          SU=$(curl -s $H "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$K" -d "{\"email\":\"$E\",\"password\":\"$PW\",\"returnSecureToken\":true}")
-          T=$(echo "$SU" | jq -r '.idToken // empty'); echo "::add-mask::$T"
-          echo "signup: $( [ -n "$T" ] && echo OK || echo "$SU" | jq -c .error)"
-          S=$(curl -s $H "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=$K" -d "{\"requestType\":\"VERIFY_EMAIL\",\"idToken\":\"$T\",\"continueUrl\":\"https://tradezoro.com/dashboard-user\"}")
-          echo "sendOobCode: $(echo "$S" | jq -c 'if .email then "SENT" else .error end')"
-          MSG=""
-          for i in $(seq 1 24); do
-            MSG=$(curl -s https://api.mail.tm/messages -H "Authorization: Bearer $MT" | jq -r '.["hydra:member"][0].id // empty')
-            [ -n "$MSG" ] && break; sleep 5
-          done
-          if [ -z "$MSG" ]; then echo "EMAIL: NOT RECEIVED after 2 min"; else
-            M=$(curl -s "https://api.mail.tm/messages/$MSG" -H "Authorization: Bearer $MT")
-            echo "EMAIL from: $(echo "$M" | jq -r .from.address)  subject: $(echo "$M" | jq -r .subject)"
-            LINK=$(echo "$M" | jq -r '(.text // "") + " " + ((.html // []) | join(" "))' | grep -o -E 'https://[^ "<>]+oobCode=[^ "<>]+' | head -1 | sed 's/&amp;/\&/g')
-            echo "LINK host+path: $(echo "$LINK" | sed -E 's#(https://[^?]+).*#\1#')"
-            echo "LINK params: $(echo "$LINK" | sed -E 's/oobCode=[^&]+/oobCode=X/; s/apiKey=[^&]+/apiKey=K/' | sed -E 's#.*\?##')"
-            echo "LINK GET: $(curl -s -o /tmp/l.html -w '%{http_code} -> %{url_effective}' -L "$LINK" | sed -E 's/oobCode=[^&]+/oobCode=X/; s/apiKey=[^&]+/apiKey=K/')"
-            echo "page title: $(grep -o -m1 '<title>[^<]*' /tmp/l.html)"
-            grep -o -i -E 'handleVerifyEmail|applyActionCode|verifyEmail|__/auth/action|firebase[a-z.-]*\.js' /tmp/l.html | sort -u | head
-            CODE=$(echo "$LINK" | grep -o -E 'oobCode=[^&]+' | cut -d= -f2); echo "::add-mask::$CODE"
-            echo "applyOobCode: $(curl -s $H "https://identitytoolkit.googleapis.com/v1/accounts:update?key=$K" -d "{\"oobCode\":\"$CODE\"}" | jq -c '{emailVerified, error: .error.message}')"
-          fi
-          curl -s $H "https://identitytoolkit.googleapis.com/v1/accounts:delete?key=$K" -d "{\"idToken\":\"$T\"}" >/dev/null && echo "test account deleted"
+          set -euo pipefail
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          echo "::add-mask::$TOKEN"
+          api() { curl -sS -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' "$@"; }
+          ZONE_ID=$(api "https://api.cloudflare.com/client/v4/zones?name=tradezoro.com&per_page=1" | jq -r '.result[0].id // empty')
+          [ -z "$ZONE_ID" ] && { echo "no zone"; exit 1; }
+          EXIST=$(api "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=TXT&name=_dmarc.tradezoro.com" | jq -r '.result[0].id // empty')
+          VAL='v=DMARC1; p=none; adkim=r; aspf=r; rua=mailto:support@tradezoro.com'
+          BODY=$(jq -n --arg c "$VAL" '{type:"TXT",name:"_dmarc.tradezoro.com",content:$c,ttl:3600}')
+          if [ -n "$EXIST" ]; then R=$(api -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$EXIST" --data "$BODY"); else R=$(api -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" --data "$BODY"); fi
+          echo "DMARC: $(echo "$R" | jq -c '{success, errors, content: .result.content}')"

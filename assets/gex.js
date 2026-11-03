@@ -170,6 +170,7 @@
     var hd = window.strykerGexHeaders ? await window.strykerGexHeaders() : {};
     var res = await fetch(url, {cache:'no-store', headers: hd});
     if(res.status === 403){ if(window.strykerGexWall) window.strykerGexWall(); throw new Error('pro_required'); }
+    if(res.ok && window.strykerGexUnwall) window.strykerGexUnwall();
     var text = await res.text();
     var data;
     try { data = JSON.parse(text); } catch(e) { throw new Error('bad response'); }

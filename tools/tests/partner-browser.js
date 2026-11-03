@@ -97,9 +97,19 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++
       const txt = await page.evaluate(() => document.getElementById('main').innerText);
       ok(!/\$\s?\d/.test(txt), tag + ' ' + sc + ' no $ amount on the page');
       if (sc === 'none') {
-        ok(/Become a TradeZoro Partner, get Pro free/.test(txt) && /100 followers/.test(txt) && /at least 2 times a week/.test(txt), tag + ' apply: hero + terms from constants');
+        ok(/Grow with TradeZoro. Get Pro free./.test(txt) && /100\+\s*followers/.test(txt) && /2 posts a week/.test(txt) && /Partner @thetradezoro/.test(txt), tag + ' apply: hero + terms from constants');
         if (theme === 'dark' || vp.w > 700) {}
         await page.screenshot({ path: path.join(SHOTS, tag + '-1-apply-top.png') });
+        await page.evaluate(() => document.getElementById('pt-form').scrollIntoView());
+        await page.screenshot({ path: path.join(SHOTS, tag + '-1-apply-form.png') });
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.screenshot({ path: path.join(SHOTS, tag + '-1-apply-full.png'), fullPage: true });
+        await page.click('#pv-faq summary');
+        ok(await page.evaluate(() => !!document.querySelector('#pv-faq details[open]')), tag + ' faq opens');
+        ok(await page.locator('#pv-caps li').count() === 3, tag + ' 3 captions');
+        await page.click('[data-copy-bio]');
+        await page.waitForTimeout(200);
+        for (const [n, sel] of [['mid1', '.pv-steps'], ['mid2', '.pv-kit'], ['mid3', '.pv-pills']]) { await page.evaluate((q) => { const e = document.querySelector(q); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 120); }, sel); await page.waitForTimeout(150); await page.screenshot({ path: path.join(SHOTS, tag + '-1-apply-' + n + '.png') }); }
         await page.evaluate(() => document.getElementById('pt-form').scrollIntoView());
         await page.screenshot({ path: path.join(SHOTS, tag + '-1-apply-form.png') });
         // validation

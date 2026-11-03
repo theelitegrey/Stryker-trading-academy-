@@ -55,7 +55,8 @@
     show('pt-loading', false);
     show('pt-apply', false); show('pt-status', false); show('pt-active', false);
     var top = $('pt-badge');
-    if (!doc) { badge(top, '', ''); $('pt-terms').innerHTML = termsHtml(false); show('pt-apply', true); return; }
+    show('pt-topbar', !!doc);
+    if (!doc) { badge(top, '', ''); show('pt-apply', true); return; }
     var st = doc.status || 'pending';
     if (st === 'active' || st === 'paused') { renderActive(st); return; }
     var map = {
@@ -67,6 +68,7 @@
     var m = map[st] || map.pending;
     $('pt-status-title').textContent = m[0]; badge($('pt-status-badge'), m[1], m[2]); badge(top, m[1], m[2]);
     $('pt-status-text').textContent = m[3];
+    show('pv-timeline', st === 'pending');
     var reason = $('pt-status-reason');
     if (doc.reviewNote) { reason.hidden = false; reason.innerHTML = '<strong>Reason:</strong> ' + esc(doc.reviewNote); } else reason.hidden = true;
     var acts = $('pt-status-actions'); acts.innerHTML = '';
@@ -84,7 +86,7 @@
     var paused = st === 'paused', until = Number(doc.proUntil) || 0;
     badge($('pt-badge'), paused ? 'Paused' : 'Partner', paused ? 'is-warn' : 'is-ok');
     badge($('pt-active-badge'), paused ? 'Paused' : 'Active', paused ? 'is-warn' : 'is-ok');
-    $('pt-active-title').textContent = paused ? 'Your partnership is paused' : 'Pro is active';
+    $('pt-active-title').textContent = paused ? 'Your partnership is paused' : 'You\'re a TradeZoro Partner';
     var untilEl = $('pt-until');
     if (paused) untilEl.innerHTML = until > Date.now() ? 'Pro stays on until <strong>' + esc(fmtDate(until)) + '</strong>. Fix the points below and tell us, and we will renew it.' : 'Pro is not being renewed right now. Fix the points below and we will review it.';
     else untilEl.innerHTML = until ? 'Pro active until <strong>' + esc(fmtDate(until)) + '</strong>. It renews after the monthly check.' : 'Pro is active.';
@@ -93,6 +95,11 @@
 
     var key = weekKeyNow(), links = (weeks[key] && weeks[key].links) || [], n = links.length, goal = T.postsPerWeek;
     $('pt-week-label').textContent = key.replace('-', ' ');
+    $('pv-ring').style.setProperty('--p', Math.min(1, n / goal));
+    $('pv-ring-n').textContent = n + '/' + goal;
+    var wk = [];
+    for (var i = 8; i >= 1; i--) { var k = PT.isoWeekKey(PT.weekStartMs(Date.now()) - i * 7 * 864e5 + 3 * 864e5), c = weeks[k] ? weeks[k].links.length : 0; wk.push('<span class="pv-wk ' + (c >= goal ? 'is-ok' : c > 0 ? 'is-part' : '') + '" title="' + esc(k.replace('-', ' ')) + ': ' + c + '/' + goal + '"><i></i><small>' + esc(k.slice(-3)) + '</small></span>'); }
+    $('pv-weeks').innerHTML = wk.join('');
     $('pt-checklist').innerHTML =
       row(true, 'Bio line in place', 'Checked when you were approved. We re-check it every month.', 'Required') +
       row(n >= goal, 'Posts this week', 'Tag ' + T.handle + ' and label ' + T.tags.join(' or ') + '.', n + '/' + goal);
@@ -102,7 +109,7 @@
       return row(ok, k.replace('-', ' '), weeks[k] ? weeks[k].links.slice(0, 3).map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(u.replace(/^https:\/\//, '').slice(0, 48)) + '</a>'; }).join('<br>') : 'No links', c + '/' + goal, !ok && miss.indexOf(k) >= 0);
     }).join('') : '<li class="pt-row"><span class="pt-row-main pt-meta">Nothing yet. Your weeks will show here.</span></li>';
     show('pt-active', true);
-    $('pt-terms-active').innerHTML = '<details class="panel pt-details"><summary class="pt-linkbtn">Partner terms</summary><div class="pt-sheet-body" style="margin-top:16px;max-height:none">' + termsHtml(true) + '</div></details>';
+    $('pt-terms-active').innerHTML = '<details class="pv-panel pt-details"><summary class="pt-linkbtn">Partner terms</summary><div class="pt-sheet-body" style="margin-top:16px;max-height:none">' + termsHtml(true) + '</div></details>';
   }
   function row(done, title, sub, end, miss) {
     return '<li class="pt-row"><span class="pt-dot' + (done ? ' is-done' : miss ? ' is-miss' : '') + '">' + (done ? CHECK : '') + '</span><span class="pt-row-main">' + esc(title) + '<span class="pt-row-sub">' + (sub.indexOf('<a') >= 0 ? sub : esc(sub)) + '</span></span><span class="pt-row-end">' + esc(end) + '</span></li>';
@@ -126,7 +133,7 @@
     if (new Set(posts).size < 3) return { error: 'Add three different posts.' };
     if (!v('pt-why')) return { error: 'Tell us briefly why you want to be a partner.' };
     if (!$('pt-agree').checked) return { error: 'Please agree to the Partner terms.' };
-    return { data: { platform: v('pt-platform'), handle: v('pt-handle').slice(0, 60), profileUrl: PT.cleanLink(v('pt-profile')), followers: f, postLinks: posts, why: v('pt-why').slice(0, 600), agreedAt: firebase.firestore.FieldValue.serverTimestamp() } };
+    return { data: { platform: (document.querySelector('#pt-platform input:checked') || {}).value || T.platforms[0].id, handle: v('pt-handle').slice(0, 60), profileUrl: PT.cleanLink(v('pt-profile')), followers: f, postLinks: posts, why: v('pt-why').slice(0, 600), agreedAt: firebase.firestore.FieldValue.serverTimestamp() } };
   }
   function submitApplication(e) {
     e.preventDefault(); err('pt-form-error', '');
@@ -164,6 +171,67 @@
   function openTerms() { $('pt-terms-sheet').innerHTML = termsHtml(true); $('pt-terms-modal').hidden = false; var c = $('pt-terms-modal').querySelector('[data-close]'); if (c) c.focus(); }
   function closeTerms() { $('pt-terms-modal').hidden = true; }
 
+  // ---- V2 page furniture (static copy, all numbers from T) ------------------------------------------
+  var ICONS = {
+    instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/>',
+    x: '<path d="M4 4l16 16M20 4L4 20"/>',
+    youtube: '<rect x="2.8" y="5.5" width="18.4" height="13" rx="4"/><path d="M10 9.4v5.2l4.4-2.6z" fill="currentColor"/>',
+    tiktok: '<path d="M14 3v11.2a3.7 3.7 0 1 1-3.7-3.7"/><path d="M14 3c.3 2.6 1.9 4.2 4.6 4.4"/>'
+  };
+  var icon = function (id) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[id] || '') + '</svg>'; };
+  function copyText(txt) {
+    var done = function () { if (window.showToast) showToast('success', 'Copied'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, fallback); else fallback();
+    function fallback() { var t = document.createElement('textarea'); t.value = txt; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove(); done(); }
+  }
+  function validateField(el, msg) { // inline validation: red hint under the field, cleared when fixed
+    var help = el.parentNode.querySelector('.tz-help'); if (!help) return;
+    if (!help.dataset.def) help.dataset.def = help.textContent;
+    el.setAttribute('aria-invalid', msg ? 'true' : 'false');
+    help.textContent = msg || help.dataset.def; help.classList.toggle('pv-bad', !!msg);
+  }
+  function initPage() {
+    var fill = { postsPerWeek: T.postsPerWeek, link: T.link, handle: T.handle, tags: T.tags.join(' or '), keepPostsDays: T.keepPostsDays, minAccountMonths: T.minAccountMonths, minFollowersPlus: num(T.minFollowers) + '+' };
+    document.querySelectorAll('[data-t]').forEach(function (e) { e.textContent = fill[e.dataset.t]; });
+    document.querySelectorAll('[data-bio]').forEach(function (e) { e.textContent = T.bioLine + ' · ' + T.link; });
+    var bio = T.bioLine + ' · ' + T.link;
+    document.querySelector('[data-bio-link]').textContent = bio;
+    document.querySelector('[data-copy-bio]').addEventListener('click', function () { copyText(bio); });
+    var caps = [
+      'I use TradeZoro\'s free charts and order flow to study NQ. Check it out → ' + T.link + ' ' + T.tags[0],
+      'My pre-market routine: mark the levels, read the order flow, journal what I saw. Learning in public with ' + T.handle + ' ' + T.tags[0],
+      'Screener find of the day, and why I put it on my watchlist. Study notes only, not advice. ' + T.link + ' ' + T.tags[0]
+    ];
+    $('pv-caps').innerHTML = caps.map(function (c, i) { return '<li><p>' + esc(c) + '</p><button type="button" class="pv-copybtn" data-cap="' + i + '" aria-label="Copy caption ' + (i + 1) + '">Copy</button></li>'; }).join('');
+    $('pv-caps').addEventListener('click', function (e) { var b = e.target.closest('[data-cap]'); if (b) copyText(caps[b.dataset.cap]); });
+    $('pv-plats').innerHTML = T.platforms.map(function (p) { return '<span class="pv-plat-i">' + icon(p.id) + esc(p.name) + '</span>'; }).join('');
+    $('pt-platform').innerHTML = T.platforms.map(function (p, i) { return '<label class="pv-seg-i"><input type="radio" name="pt-plat" value="' + esc(p.id) + '"' + (i ? '' : ' checked') + '><span>' + icon(p.id) + '<em>' + esc(p.name) + '</em></span></label>'; }).join('');
+    $('pt-followers-help').textContent = num(T.minFollowers) + '+ needed';
+    var faq = [
+      ['Do I need to pay?', 'No. Pro is free for as long as you are a partner.'],
+      ['What happens if I miss a week?', 'You get a reminder. Miss ' + T.missedWeeksToPause + ' weeks in a month, or remove the bio line, and Pro pauses at the end of the paid month. You have ' + T.graceDays + ' days\' grace to fix it.'],
+      ['Can I leave?', 'Yes, any time, from this page. Pro stays on until the end of the month already given. You can re-apply after ' + T.reapplyDays + ' days.'],
+      ['Can I apply with more than one account?', 'Apply with your main platform. The bio line goes on that account.'],
+      ['What counts as a post?', 'A post, reel, video or thread that tags ' + T.handle + ' and is labelled ' + T.tags.join(' or ') + '. Stories don\'t count. Keep it up for ' + T.keepPostsDays + ' days.'],
+      ['When does Pro start?', 'Once your application is approved. Pro is given ' + T.grantDays + ' days at a time and renewed after a monthly check.']
+    ];
+    $('pv-faq').innerHTML = faq.map(function (f) { return '<details><summary>' + esc(f[0]) + '</summary><p>' + esc(f[1]) + '</p></details>'; }).join('');
+    $('pv-terms-link').addEventListener('click', function (e) { e.preventDefault(); $('pv-terms').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    $('pv-apply-link').addEventListener('click', function (e) { e.preventDefault(); $('pt-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    $('pt-handle').addEventListener('blur', function () { validateField(this, this.value.trim() ? '' : 'Add your handle.'); });
+    $('pt-profile').addEventListener('blur', function () { validateField(this, !this.value.trim() || PT.cleanLink(this.value) ? '' : 'Must start with https://'); });
+    $('pt-followers').addEventListener('input', function () { var f = parseInt(this.value, 10); validateField(this, this.value && f < T.minFollowers ? 'You need at least ' + num(T.minFollowers) + ' followers.' : ''); });
+    ['0', '1', '2'].forEach(function (i) { $('pt-post-' + i).addEventListener('blur', function () { this.setAttribute('aria-invalid', this.value.trim() && !PT.cleanLink(this.value) ? 'true' : 'false'); }); });
+    // sticky CTA until the form is in view (phones only, via CSS)
+    var form = $('pt-form'), sticky = $('pv-sticky');
+    if (window.IntersectionObserver) new IntersectionObserver(function (en) { sticky.classList.toggle('is-off', en[0].isIntersecting); }, { rootMargin: '0px 0px -20% 0px' }).observe(form);
+  }
+
+  function setPreview(u) {
+    if (u) { var n = u.displayName || (u.email || '').split('@')[0]; if (n) { $('pv-name').textContent = n; $('pv-av').textContent = n.charAt(0).toUpperCase(); }
+      if (/^https:\/\//.test(u.photoURL || '')) { var im = document.createElement('img'); im.src = u.photoURL; im.alt = ''; im.referrerPolicy = 'no-referrer'; $('pv-av').textContent = ''; $('pv-av').appendChild(im); } }
+  }
+
   // ---- load -----------------------------------------------------------------------------------------
   function load() {
     err('pt-error', '');
@@ -177,12 +245,11 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     if (typeof auth === 'undefined' || !auth || typeof db === 'undefined' || !db) { show('pt-loading', false); err('pt-error', 'We could not load your Partner page. Refresh to try again.'); return; }
-    $('pt-platform').innerHTML = T.platforms.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('');
-    $('pt-followers-help').textContent = 'At least ' + num(T.minFollowers) + '.';
+    initPage();
     $('pt-form').addEventListener('submit', submitApplication);
     $('pt-links-form').addEventListener('submit', addLinks);
     $('pt-leave').addEventListener('click', leave);
-    $('pt-open-terms').addEventListener('click', openTerms);
+    $('pt-open-terms').addEventListener('click', openTerms); $('pt-open-terms-2').addEventListener('click', openTerms);
     $('pt-why').addEventListener('input', function () { $('pt-why-count').textContent = this.value.length; });
     $('pt-terms-modal').addEventListener('click', function (e) { if (e.target === this || e.target.closest('[data-close]')) closeTerms(); });
     document.addEventListener('click', function (e) {
@@ -193,7 +260,7 @@
     auth.onAuthStateChanged(function (u) {
       if (handled) return;
       if (!u) { setTimeout(function () { if (!handled && typeof goToLoginPreservingReturn === 'function') goToLoginPreservingReturn(); }, 1500); return; }
-      handled = true; uid = u.uid; load();
+      handled = true; uid = u.uid; setPreview(u); load();
     });
   });
 })();

@@ -24,7 +24,7 @@
   function load(force) {
     if (inflight) return inflight;
     if (!force && cache && Date.now() - at < 290000) return Promise.resolve(cache);
-    inflight = import('./rt-access.js?v=811').then(function (rt) { return rt.rtHeadersReady(); }).then(function (hd) {
+    inflight = import('./rt-access.js?v=812').then(function (rt) { return rt.rtHeadersReady(); }).then(function (hd) {
       return Promise.all(['SPX', 'SPY', 'QQQ', 'GLD'].map(function (m) {
         return fetch(API + m + '?dte=0', { headers: Object.assign({ accept: 'application/json' }, hd) }).then(function (r) { return r.ok ? r.json() : null; }, function () { return null; });
       }));

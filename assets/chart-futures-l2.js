@@ -12,11 +12,11 @@
 //   ticks  trades since the last frame                                               -> walls pulled / consumed, ladder volume
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
-import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=811';
-import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=811';
-import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=811';
-import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=811';
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=811';
+import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=812';
+import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=812';
+import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=812';
+import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=812';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=812';
 
 export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).

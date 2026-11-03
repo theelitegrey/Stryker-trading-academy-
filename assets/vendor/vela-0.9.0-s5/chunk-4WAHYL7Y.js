@@ -8713,6 +8713,7 @@ var MoreDrawer = class {
     });
   }
   renderStyle(doc) {
+    if (globalThis.STK_CT_OPEN) { this.drawer.hide(); setTimeout(globalThis.STK_CT_OPEN, 60); return; }   // TradeZoro: the chart-type grid sheet (assets/chart-type-picker.js)
     const list = doc.createElement("div");
     list.className = "vela-md-list";
     const current = this.opts.priceStyle();

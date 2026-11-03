@@ -1406,7 +1406,7 @@
       {
        "id": "chart-style",
        "q": "How do I change the chart type?",
-       "a": "<p>Open the chart style button next to the intervals. Options: Candles, Bars, Line, Area, Baseline, Heikin Ashi, and Footprint (Pro).</p>",
+       "a": "<p>Tap the chart style button (phone: More, then Chart type) to open the chart type sheet. Press and hold a type, or tap its star, to add it to your top bar. Volume footprint, Time price opportunity and Session volume profile are Pro.</p>",
        "path": "ZoroCharts → Chart style",
        "tags": [
         "candles",
@@ -1414,7 +1414,16 @@
         "heikin ashi",
         "chart type",
         "bars",
-        "footprint"
+        "footprint",
+        "hollow candles",
+        "renko",
+        "kagi",
+        "point and figure",
+        "line break",
+        "range bars",
+        "step line",
+        "columns",
+        "tpo"
        ],
        "related": [
         "footprint-what"
@@ -1482,6 +1491,202 @@
        "related": [
         "phone-dock"
        ]
+      },
+      {
+       "id": "ctype-hollow",
+       "q": "What is the Hollow candles chart type?",
+       "a": "<p>Candle bodies are hollow when the close is above the open and filled when it is below. The outline colour follows the close against the previous close.</p>",
+       "path": "ZoroCharts → Chart type → Hollow candles",
+       "tags": [
+        "chart type",
+        "hollow candles"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-volume-candles",
+       "q": "What is the Volume candles chart type?",
+       "a": "<p>Candle width follows the volume of each bar: a wider candle means more volume.</p>",
+       "path": "ZoroCharts → Chart type → Volume candles",
+       "tags": [
+        "chart type",
+        "volume candles"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-line-markers",
+       "q": "What is the Line with markers chart type?",
+       "a": "<p>The close line with a dot on every close.</p>",
+       "path": "ZoroCharts → Chart type → Line with markers",
+       "tags": [
+        "chart type",
+        "line with markers"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-step-line",
+       "q": "What is the Step line chart type?",
+       "a": "<p>The close drawn as horizontal steps that hold the last close until the next bar.</p>",
+       "path": "ZoroCharts → Chart type → Step line",
+       "tags": [
+        "chart type",
+        "step line"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-hlc-area",
+       "q": "What is the HLC area chart type?",
+       "a": "<p>A band between each bar’s high and low, with the close line on top. There is no open.</p>",
+       "path": "ZoroCharts → Chart type → HLC area",
+       "tags": [
+        "chart type",
+        "hlc area"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-columns",
+       "q": "What is the Columns chart type?",
+       "a": "<p>The close as a histogram from the bottom, coloured by close against the previous close.</p>",
+       "path": "ZoroCharts → Chart type → Columns",
+       "tags": [
+        "chart type",
+        "columns"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-high-low",
+       "q": "What is the High-low chart type?",
+       "a": "<p>One vertical bar from the high to the low of each candle, with no open or close ticks.</p>",
+       "path": "ZoroCharts → Chart type → High-low",
+       "tags": [
+        "chart type",
+        "high-low"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-renko",
+       "q": "What is the Renko chart type?",
+       "a": "<p>Equal-size bricks that ignore time. A new brick forms only when price moves a full box beyond the last brick (a reversal needs two boxes). Set ATR or a fixed box size in the type settings.</p>",
+       "path": "ZoroCharts → Chart type → Renko",
+       "tags": [
+        "chart type",
+        "renko"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-range-bars",
+       "q": "What is the Range chart type?",
+       "a": "<p>Every bar has the same high-to-low range. A new bar starts once the range is filled, so quiet periods draw fewer bars. Set the range size in the type settings.</p>",
+       "path": "ZoroCharts → Chart type → Range",
+       "tags": [
+        "chart type",
+        "range"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-line-break",
+       "q": "What is the Line break chart type?",
+       "a": "<p>Three-line break: a new line forms only when the close passes the high or low of the last three lines. Lines have no wicks.</p>",
+       "path": "ZoroCharts → Chart type → Line break",
+       "tags": [
+        "chart type",
+        "line break"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-kagi",
+       "q": "What is the Kagi chart type?",
+       "a": "<p>One line that reverses only when price turns by the reversal amount (ATR or fixed). The line is thick once it passes the previous high and thin once it passes the previous low.</p>",
+       "path": "ZoroCharts → Chart type → Kagi",
+       "tags": [
+        "chart type",
+        "kagi"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-point-figure",
+       "q": "What is the Point & Figure chart type?",
+       "a": "<p>Columns of X (rising) and O (falling). A box size and a 3-box reversal decide when a new column starts. Time is not shown.</p>",
+       "path": "ZoroCharts → Chart type → Point & Figure",
+       "tags": [
+        "chart type",
+        "point & figure"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-tpo",
+       "q": "What is the Time price opportunity chart type?",
+       "a": "<p>A letter for each time block (30 minutes by default) at each price, per session, with the point of control and the value area. Pro. Use a chart timeframe of 30 minutes or less.</p>",
+       "path": "ZoroCharts → Chart type → Time price opportunity",
+       "tags": [
+        "chart type",
+        "time price opportunity"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "ctype-session-vp",
+       "q": "What is the Session volume profile chart type?",
+       "a": "<p>A volume histogram per session with the point of control and the value area (70% by default). Pro.</p>",
+       "path": "ZoroCharts → Chart type → Session volume profile",
+       "tags": [
+        "chart type",
+        "session volume profile"
+       ],
+       "related": [
+        "chart-style"
+       ],
+       "level": "beginner"
       }
      ]
     },
@@ -3283,6 +3488,30 @@
        "related": [
         "rithmic-errors",
         "rithmic-disconnect"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "own-data-source",
+       "q": "How do I plot data from my own broker account?",
+       "a": "<p>Open ZoroCharts and tap <b>Data source</b> in the toolbar. Pick your source, enter your key, and tap Connect. Your key is encrypted and stays on this device; market data goes straight from your broker to your browser. It is data only: TradeZoro never places or changes trades and never reads your account or balance.</p><p>Today: Alpaca (US stocks and ETFs), OANDA (forex) and Ironbeam (CME futures, beta). More sources are coming. Tap Forget this connection to remove the key from this device.</p>",
+       "steps": [
+        "Open ZoroCharts and tap Data source.",
+        "Pick a source and tap Connect.",
+        "Enter your key. Use a data-only or paper key if your broker offers one.",
+        "Open a stock (symbol picker, Your data) or a forex pair. The chart now follows your own feed and the data dot says it."
+       ],
+       "path": "ZoroCharts → Data source",
+       "tags": [
+        "data source",
+        "alpaca",
+        "oanda",
+        "own data",
+        "api key",
+        "connect"
+       ],
+       "related": [
+        "rithmic-connect"
        ],
        "level": "advanced"
       },

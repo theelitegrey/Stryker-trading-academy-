@@ -134,6 +134,7 @@ jobs:
         run: |
           python3 tools/check.py
           node tools/gen-learn.js --check
+          node tools/tests/passkey.test.mjs
 
       # Roadmap page + dashboard strip: shipped list comes from `Roadmap:` trailers
       # in the git log (full history needed, the checkout above is shallow).

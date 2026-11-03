@@ -23,7 +23,7 @@ const isProbe = (u) => {
   do {
     const r = await (await fetch(`${base}/students?pageSize=300&mask.fieldPaths=displayName&mask.fieldPaths=email${pt}`, { headers: H })).json();
     if (r.error) throw new Error('list ' + r.error.message);
-    (r.documents || []).forEach((d) => docs.push({ id: d.name.split('/').pop(), displayName: (d.fields.displayName || {}).stringValue, email: (d.fields.email || {}).stringValue }));
+    (r.documents || []).forEach((d) => docs.push({ id: d.name.split('/').pop(), displayName: ((d.fields || {}).displayName || {}).stringValue, email: ((d.fields || {}).email || {}).stringValue }));
     pt = r.nextPageToken ? '&pageToken=' + encodeURIComponent(r.nextPageToken) : '';
   } while (pt);
   console.log('students scanned', docs.length);

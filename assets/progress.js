@@ -84,6 +84,8 @@ function ensureStudentDoc(user){
       };
       // Where this person first arrived from (utm tags / referrer), if the
       // browser recorded it. Absent rather than empty when there is nothing.
+      // Our own e2e probes set this flag so their accounts can be hidden and swept.
+      try { if (localStorage.getItem('tz_test_user') === '1') data.test = true; } catch (e) { /* ignore */ }
       const acquisition = acquisitionForStudentDoc();
       if (acquisition) data.acquisition = acquisition;
       return ref.set(data).then(() => {

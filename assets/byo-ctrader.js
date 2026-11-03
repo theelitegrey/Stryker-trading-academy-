@@ -4,7 +4,7 @@
 // Our function /connect/ctrader/token swaps the code (it holds the client secret). Prices come over our relay
 // /connect/ctrader/ws (it adds the secret and lets only market-data messages through). Nothing is stored on our side;
 // the member's tokens stay in the encrypted, user-bound device vault. Docs: help.ctrader.com/open-api.
-import { ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, normTf, saveSource, srcById } from './byo-core.js?v=853';
+import { ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, normTf, saveSource, srcById } from './byo-core.js?v=859';
 
 const MIN = 60000;
 export const CT = {
@@ -249,6 +249,7 @@ ADAPTERS.ctrader = ctrader;
 ROUTERS.ctrader = (kind, ticker) => (kind === 'fx' || kind === 'byo') && !!symbolOf(ticker);
 Object.assign(srcById('ctrader'), {
   state: 'soon', oauth: true, beta: true, covers: 'Forex, metals and crypto CFDs, live prices (beta)', cta: 'Sign in with cTrader',
+  steps: ['Tap Sign in with cTrader.', 'Log in with your cTrader ID on cTrader\'s own page.', 'Pick the trading account you want prices from.', 'Choose Allow (view-only). You come back here, connected.'],
   relay: true, noteText: 'Prices stream through TradeZoro\'s secure relay; nothing is stored.',
   help: 'Beta. Sign in on cTrader\'s own page. Only market data is requested (view-only). Open a pair like EURUSD or a crypto like byo:BTCUSD.',
   manage: 'Open a forex pair, for example EURUSD, or byo:BTCUSD. It now plots your cTrader prices.'

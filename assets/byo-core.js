@@ -108,22 +108,22 @@ export function guardWsMessage(source, msg) {
 // state: 'ready' (built, Connect works) | 'soon' (Coming soon, never a dead button).
 // fields: the connect form. Names are used only in the sheet and in the one "Data feed: your <name>" label.
 export const SOURCES = [
-  { id: 'alpaca', name: 'Alpaca', cls: ['stocks'], covers: 'US stocks and ETFs, live prices', fee: 'free', feeNote: 'Free with your account (IEX feed). The paid SIP feed follows your Alpaca plan.', state: 'ready',
+  { id: 'alpaca', name: 'Alpaca', cls: ['stocks'], covers: 'US stocks and ETFs, live prices', fee: 'free', feeNote: 'Free with your account (IEX feed). The paid SIP feed follows your Alpaca plan.', state: 'ready', steps: ['Log in at app.alpaca.markets. Pick your Paper account (it works for prices).', 'On the home page find the API Keys box on the right and tap Generate New Keys.', 'Copy the Key ID and the Secret now. The secret is shown only once.', 'Paste the Key ID and Secret in the two boxes here. Keep Feed on IEX unless you pay for SIP.', 'Tap Connect.'], signSteps: ['Tap Sign in with Alpaca.', 'Log in on Alpaca\'s page.', 'Tap Allow to share prices only.', 'You come back here, connected.'],
     fields: [{ k: 'key', label: 'API key ID', ph: 'PK…', secret: false }, { k: 'secret', label: 'API secret', ph: '', secret: true }, { k: 'feed', label: 'Feed', type: 'select', opts: [['iex', 'IEX (free plan)'], ['sip', 'SIP (paid plan)']] }],
     help: 'In your Alpaca dashboard create an API key. A paper key works for market data.' },
-  { id: 'oanda', name: 'OANDA', cls: ['forex'], covers: 'Forex pairs, live bid/ask prices', fee: 'free', feeNote: 'Free with your account.', state: 'ready',
+  { id: 'oanda', name: 'OANDA', cls: ['forex'], covers: 'Forex pairs, live bid/ask prices', fee: 'free', feeNote: 'Free with your account.', state: 'ready', steps: ['Log in at oanda.com to your account hub.', 'Open My Services, then Manage API Access, and tap Generate for a personal access token.', 'Copy the token and paste it in the first box here.', 'Pick Practice or Live to match your account, and paste your Account ID (like 101-001-1234567-001). It is shown on your account page.', 'Tap Connect.'],
     fields: [{ k: 'token', label: 'Personal access token', ph: '', secret: true }, { k: 'env', label: 'Account type', type: 'select', opts: [['practice', 'Practice'], ['live', 'Live']] }, { k: 'account', label: 'Account ID', ph: '101-001-1234567-001', secret: false }],
     help: 'In OANDA create a personal access token (Manage API Access).' },
-  { id: 'ironbeam', name: 'Ironbeam', cls: ['futures'], covers: 'CME futures, live last price (beta)', fee: 'paid', feeNote: 'Your exchange data fees apply.', state: 'ready', beta: true,
+  { id: 'ironbeam', name: 'Ironbeam', cls: ['futures'], covers: 'CME futures, live last price (beta)', fee: 'paid', feeNote: 'Your exchange data fees apply.', state: 'ready', beta: true, steps: ['Log in to your Ironbeam account and ask for an API key. If you can\'t find it, ask Ironbeam support.', 'Copy the API key when they give it to you.', 'Paste your Ironbeam username, password and the API key in the boxes here.', 'Pick Live or Demo to match your account.', 'Tap Connect.'],
     fields: [{ k: 'username', label: 'Ironbeam username', ph: '', secret: false }, { k: 'password', label: 'Ironbeam password', ph: '', secret: true }, { k: 'apiKey', label: 'API key', ph: '', secret: true }, { k: 'env', label: 'Account type', type: 'select', opts: [['live', 'Live'], ['demo', 'Demo']] }],
     help: 'Beta. Request an API key in your Ironbeam account. Open a contract by typing it like byo:XCME:ES.Z26. Live prices only for now: no history yet.' },
   { id: 'tastytrade', name: 'tastytrade', cls: ['futures', 'stocks'], covers: 'CME futures and US stocks', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon' },
-  { id: 'schwab', name: 'Charles Schwab', cls: ['stocks', 'futures', 'options'], covers: 'Stocks, futures and options', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon', oauth: true,
+  { id: 'schwab', name: 'Charles Schwab', cls: ['stocks', 'futures', 'options'], covers: 'Stocks, futures and options', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon', oauth: true, steps: ['Tap Sign in with Schwab (or Connect) when it is available.', 'Log in on Schwab\'s own page.', 'Choose Allow when Schwab asks to share market data.', 'You come back here, connected. Schwab asks you to sign in again about once a week.'],
     help: 'You sign in on Schwab\'s own page. Only market data is requested. Schwab asks you to sign in again about once a week.' },
-  { id: 'upstox', name: 'Upstox', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX, live prices', fee: 'free', feeNote: 'Free with your Upstox account.', state: 'soon', oauth: true,
+  { id: 'upstox', name: 'Upstox', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX, live prices', fee: 'free', feeNote: 'Free with your Upstox account.', state: 'soon', oauth: true, steps: ['Tap Sign in with Upstox.', 'Log in on Upstox\'s own page.', 'Approve the request when Upstox asks.', 'You come back here, connected. Sign in again each day.'],
     help: 'Sign in on Upstox\'s own page. Upstox ends the sign-in every night, so you sign in again each day.',
     manage: 'Open a symbol like byo:NSE:RELIANCE-EQ, byo:NSE:NIFTY-INDEX, byo:NSE:NIFTY1! (front month) or byo:MCX:GOLD1!.' },
-  { id: 'fyers', name: 'Fyers', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX, prices every few seconds', fee: 'free', feeNote: 'Free with your Fyers account (Standard plan).', state: 'soon', oauth: true,
+  { id: 'fyers', name: 'Fyers', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX, prices every few seconds', fee: 'free', feeNote: 'Free with your Fyers account (Standard plan).', state: 'soon', oauth: true, steps: ['Tap Sign in with Fyers.', 'Log in on Fyers\' own page.', 'Approve the request when Fyers asks.', 'You come back here, connected. Sign in again each day.'],
     help: 'Sign in on Fyers\' own page. Fyers ends the sign-in every morning, so you sign in again each day.',
     manage: 'Open a symbol like byo:NSE:RELIANCE-EQ, byo:NSE:NIFTY-INDEX, byo:NSE:NIFTY1! (front month) or byo:MCX:GOLD1!.' },
   { id: 'dhan', name: 'Dhan', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX. Needs the Data plan on your Dhan account.', fee: 'paid', feeNote: 'Needs the Data plan on your Dhan account.', state: 'ready',
@@ -627,7 +627,7 @@ export function activate(id, creds, deps) {
     rec.timer = setInterval(tick, 6 * 36e5); tick();
   }
   if ((id === 'tastytrade') && creds.oauth) {   // 15-minute access token: refresh shortly before it ends; a refused refresh says Reconnect
-    const tick = () => import('./byo-oauth.js?v=853').then((m) => m.freshOauth(id, creds, deps)).catch((e) => { if (e && e.reconnect) { rec.status = 'error'; rec.msg = e.message; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); } });
+    const tick = () => import('./byo-oauth.js?v=859').then((m) => m.freshOauth(id, creds, deps)).catch((e) => { if (e && e.reconnect) { rec.status = 'error'; rec.msg = e.message; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); } });
     rec.timer = setInterval(tick, 5 * 60000);
   }
   rec.hub = ad.hub(creds, (st, msg) => { rec.status = st === 'idle' ? 'ready' : st; rec.msg = msg; emit(id); }, deps);

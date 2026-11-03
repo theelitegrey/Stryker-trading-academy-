@@ -22,7 +22,7 @@
   }
   user().then(function (u) {
     if (!u) return end('Sign in first', 'Sign in to TradeZoro, then connect ' + NAME + ' again.');
-    return Promise.all([import('./byo-core.js?v=853'), import('./byo-oauth.js?v=853'), import('./byo-tastytrade.js?v=853'), import('./byo-india.js?v=853'), import('./byo-dhan.js?v=853')]).then(function (mm) {
+    return Promise.all([import('./byo-core.js?v=859'), import('./byo-oauth.js?v=859'), import('./byo-tastytrade.js?v=859'), import('./byo-india.js?v=859'), import('./byo-dhan.js?v=859')]).then(function (mm) {
       var c = mm[0], oa = mm[1];
       if (id === 'dhan') {   // partner one-tap: the return carries tokenId (step 3). Same user + 10-minute window as the others.
         return u.getIdToken().then(function (idt) { return mm[4].dhanFinish(code, u.uid, idt); })

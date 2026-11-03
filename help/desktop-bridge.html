@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="859">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Step-by-step guide to the TradeZoro Data Bridge for Windows: download, the Windows SmartScreen warning, pairing code, checksum, and fixes if it does not connect. Prices only, no orders.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Desktop Bridge: connect MetaTrader 5, NinjaTrader 8 or Interactive Brokers prices">
+<meta property="og:description" content="Step-by-step guide to the TradeZoro Data Bridge for Windows: download, the Windows SmartScreen warning, pairing code, checksum, and fixes if it does not connect. Prices only, no orders.">
+<meta property="og:url" content="https://tradezoro.com/help/desktop-bridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Desktop Bridge: connect MetaTrader 5, NinjaTrader 8 or Interactive Brokers prices">
+<meta name="twitter:description" content="Step-by-step guide to the TradeZoro Data Bridge for Windows: download, the Windows SmartScreen warning, pairing code, checksum, and fixes if it does not connect. Prices only, no orders.">
+<meta name="theme-color" content="#050506">
+<title>Desktop Bridge: connect MetaTrader 5, NinjaTrader 8 or Interactive Brokers prices | TradeZoro</title>
+<link rel="canonical" href="https://tradezoro.com/help/desktop-bridge">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=859">
+<link rel="stylesheet" href="/assets/nav-features.css?v=859">
+<script src="/assets/sanitize.js?v=859"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=859" defer></script>
+<script src="/assets/version-check.js?v=859" defer></script>
+<script src="/assets/cookie-notice.js?v=859" defer></script>
+<script src="/assets/acquisition.js?v=859" defer></script>
+<script src="/assets/focus-mode.js?v=859" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/tradezoro-favicon-32-494.png?v=859">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=859">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/tradezoro-favicon-16-494.png?v=859">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=859">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/tradezoro-icon-192-494.png?v=859">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<style>
+.bh-card{ border:1px solid var(--line,#2c2c32); border-radius:12px; padding:16px; margin:0 0 20px; background:var(--bg-2,rgba(255,255,255,.03)); }
+.bh-card ul{ margin:8px 0 8px; }
+.bh-warn{ border-color:rgba(255,176,32,.6); background:rgba(255,176,32,.09); }
+:root[data-theme="light"] .bh-warn{ border-color:rgba(176,112,0,.6); background:rgba(176,112,0,.08); }
+.bh-small{ font-size:13px; line-height:20px; color:var(--ink-2,#8b93a0); margin:8px 0 0; }
+.bh-figs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin:0 0 16px; }
+.bh-fig{ margin:0 0 16px; } .bh-figs .bh-fig{ margin:0; }
+.bh-fig svg{ display:block; width:100%; height:auto; border-radius:8px; font-family:'Segoe UI',system-ui,sans-serif; }
+.bh-fig figcaption{ font-size:13px; line-height:20px; color:var(--ink-2,#8b93a0); margin-top:6px; }
+.bh-pre{ overflow-x:auto; border:1px solid var(--line,#2c2c32); border-radius:8px; padding:12px 14px; margin:0 0 16px; background:var(--bg-2,rgba(255,255,255,.04)); font-size:13px; line-height:20px; }
+.bh code{ font-family:var(--font-mono,'JetBrains Mono',monospace); font-size:.9em; overflow-wrap:anywhere; }
+.bh-pre code{ white-space:pre; overflow-wrap:normal; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/academy">ZoroAcademy</a>
+      <a href="/features/community">Community</a>
+      <a href="/help">Help</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<header class="site-page-hero"><div class="container"><h1 id="site-page-title">Desktop Bridge: step by step</h1>
+<span class="updated-note">Beta · Windows · Version 1.0.0 · Last updated 4 November 2026</span></div></header>
+<div class="container"><div class="article-wrap"><div class="article-body bh">
+<p>The TradeZoro Data Bridge is a small program for Windows. It reads prices from <strong>your own</strong> MetaTrader 5, NinjaTrader 8 or Interactive Brokers (TWS or IB Gateway), and hands them to a chart in your browser. Pick a platform below, or read the safety notes first.</p>
+<div class="bh-card bh-key"><strong>What it does, in plain words</strong>
+<ul><li><strong>Prices stay on your own computer and browser.</strong> They go from your platform to the helper to your browser tab. They never go through TradeZoro servers.</li>
+<li><strong>For your own use only.</strong> It shows your own data feed to you. Do not share or redistribute it. Your platform and data provider terms still apply.</li>
+<li><strong>It never places orders.</strong> It cannot buy, sell, change or cancel anything, and it does not read your balance or positions.</li>
+<li><strong>Use Chrome, Edge or Firefox.</strong> Safari does not allow this connection. Brave works after you allow it in Shields.</li></ul>
+<p class="bh-small">Education only. Not financial advice.</p></div>
+<h2 id="warning">1. Before you download: Windows will warn you</h2>
+<div class="bh-card bh-warn"><strong>The helper is not code-signed yet.</strong> Windows will show a warning because it does not know the publisher, not because anything was found. Click <strong>More info</strong>, then <strong>Run anyway</strong>. Your antivirus may also ask. We publish a checksum so you can check the file yourself (section 6).</div>
+<h2 id="download">2. Download</h2>
+<ol><li>On a ZoroCharts page open <strong>Data source</strong>, pick your platform, then <strong>Pair</strong>. Read the heads-up and use the download link. Or use these links:</li></ol>
+<ul><li><a href="https://github.com/theelitegrey/Stryker-trading-academy-/releases/download/bridge-v1.0.0/TradeZoroBridge.exe" rel="noopener">TradeZoroBridge.exe</a> (MetaTrader 5 and Interactive Brokers)</li>
+<li><a href="https://github.com/theelitegrey/Stryker-trading-academy-/releases/download/bridge-v1.0.0/TradeZoroBridge-NT8.zip" rel="noopener">TradeZoroBridge-NT8.zip</a> (NinjaTrader 8 add-on)</li>
+<li><a href="https://github.com/theelitegrey/Stryker-trading-academy-/releases/tag/bridge-v1.0.0" rel="noopener">All files and checksums</a></li></ul>
+<p>Your browser may also say the file is "not commonly downloaded". Choose <strong>Keep</strong>.</p>
+<h2 id="smartscreen">3. The Windows SmartScreen warning</h2>
+<p>Double-click <strong>TradeZoroBridge.exe</strong>. If you see the blue box:</p>
+<ol><li>Click <strong>More info</strong>.</li><li>Click <strong>Run anyway</strong>.</li></ol>
+<div class="bh-figs"><figure class="bh-fig"><svg viewBox="0 0 360 190" role="img" aria-label="Illustration: the blue "Windows protected your PC" box. Click "More info"." xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="344" height="174" rx="6" fill="#1f4e9c"/><text x="24" y="44" fill="#fff" font-size="17" font-weight="600">Windows protected your PC</text><text x="24" y="70" fill="#dbe7ff" font-size="11">SmartScreen prevented an unrecognised app</text><text x="24" y="85" fill="#dbe7ff" font-size="11">from starting.</text><rect x="22" y="96" width="76" height="22" rx="2" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 3"/><text x="30" y="111" fill="#fff" font-size="12" text-decoration="underline">More info</text><rect x="258" y="146" width="84" height="26" rx="2" fill="#3b6cc0" stroke="#9db8e8"/><text x="274" y="163" fill="#fff" font-size="12">Don't run</text></svg><figcaption>Illustration: the blue "Windows protected your PC" box. Click "More info".</figcaption></figure><figure class="bh-fig"><svg viewBox="0 0 360 190" role="img" aria-label="Illustration: after "More info" a "Run anyway" button appears. Click it." xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="344" height="174" rx="6" fill="#1f4e9c"/><text x="24" y="38" fill="#fff" font-size="17" font-weight="600">Windows protected your PC</text><text x="24" y="62" fill="#dbe7ff" font-size="11">App: TradeZoroBridge.exe</text><text x="24" y="77" fill="#dbe7ff" font-size="11">Publisher: Unknown publisher</text><rect x="136" y="140" width="116" height="28" rx="2" fill="#fff" stroke="#fff" stroke-width="3"/><text x="158" y="158" fill="#1f4e9c" font-size="12" font-weight="600">Run anyway</text><rect x="128" y="134" width="132" height="40" rx="4" fill="none" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="5 3"/><rect x="266" y="140" width="76" height="28" rx="2" fill="#3b6cc0" stroke="#9db8e8"/><text x="278" y="158" fill="#fff" font-size="12">Don't run</text></svg><figcaption>Illustration: after "More info" a "Run anyway" button appears. Click it.</figcaption></figure></div>
+<h3 id="antivirus">Antivirus notes</h3>
+<ul><li>Small unsigned programs are sometimes flagged by mistake. If your antivirus blocks or quarantines the file, check the checksum first (section 6). If it matches, restore the file and add it to the allowed list.</li>
+<li>Windows Defender may scan it for a few seconds the first time. Wait for it to finish.</li>
+<li>If you do not feel comfortable, do not run it. The chart sources that need no download (Alpaca, tastytrade and others) still work.</li>
+<li>Windows Firewall may ask about network access. The helper only listens on 127.0.0.1, which is your own computer. You can choose <strong>Cancel</strong> or allow private networks. It does not need public access.</li></ul>
+<h2 id="pair">4. The pairing code</h2>
+<p>When the helper starts it opens a window with an <strong>8-digit code</strong> (valid for 2 minutes). Type it into TradeZoro. After the first time you do not need a code again.</p>
+<figure class="bh-fig"><svg viewBox="0 0 360 190" role="img" aria-label="Illustration: the helper window shows an 8-digit pairing code. Type it into TradeZoro." xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="344" height="174" rx="6" fill="#0c0c0e" stroke="#4a4a52"/><rect x="8" y="8" width="344" height="22" rx="6" fill="#2a2a30"/><text x="18" y="24" fill="#c9cdd3" font-size="11">TradeZoroBridge.exe</text><text x="20" y="52" fill="#9aa1ab" font-size="10" font-family="monospace">TradeZoro Data Bridge (beta). Data only.</text><text x="20" y="68" fill="#9aa1ab" font-size="10" font-family="monospace">Listening on 127.0.0.1:48715</text><text x="20" y="94" fill="#9aa1ab" font-size="10" font-family="monospace">Pairing code (valid 2 minutes):</text><text x="20" y="128" fill="#03c988" font-size="30" font-weight="700" font-family="monospace">4821 7305</text><text x="20" y="162" fill="#6c7380" font-size="10" font-family="monospace">Keep this window open while you chart.</text></svg><figcaption>Illustration: the helper window shows an 8-digit pairing code. Type it into TradeZoro.</figcaption></figure>
+<h2 id="mt5">5a. MetaTrader 5</h2>
+<ol><li>Open MetaTrader 5 and log in. The <strong>investor (read-only) password</strong> is enough and is the safer choice.</li>
+<li>Start <strong>TradeZoroBridge.exe</strong> from a Command Prompt: <code>TradeZoroBridge.exe mt5</code>, or double-click it and choose MetaTrader 5 if asked.</li>
+<li>Note the pairing code in the window.</li>
+<li>In TradeZoro: <strong>Data source</strong>, then <strong>MetaTrader 5</strong>, then <strong>Pair</strong>. Type the code.</li>
+<li>Open a chart and type the symbol like <code>byo:EURUSD</code>. Use the symbol name as it appears in your Market Watch.</li></ol>
+<h2 id="ibkr">5b. Interactive Brokers (TWS or IB Gateway)</h2>
+<ol><li>Open TWS or IB Gateway and log in.</li>
+<li>Go to <strong>File &gt; Global Configuration &gt; API &gt; Settings</strong> (in IB Gateway: <strong>Configure &gt; Settings &gt; API &gt; Settings</strong>).</li>
+<li>Tick <strong>Enable ActiveX and Socket Clients</strong>, tick <strong>Read-Only API</strong>, and tick <strong>Allow connections from localhost only</strong>. The socket port is 7497 (paper) or 7496 (live).</li></ol>
+<figure class="bh-fig"><svg viewBox="0 0 360 190" role="img" aria-label="Illustration: TWS > Settings > API > Settings. Tick Read-Only API and localhost only." xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="344" height="174" rx="6" fill="#f4f5f7" stroke="#b6bcc6"/><text x="22" y="32" fill="#222" font-size="12" font-weight="600">API &gt; Settings</text><rect x="22" y="46" width="12" height="12" fill="#1f4e9c"/><text x="42" y="56" fill="#222" font-size="11">Enable ActiveX and Socket Clients</text><text x="22" y="82" fill="#222" font-size="11">Socket port:  7497 (paper)   7496 (live)</text><rect x="22" y="94" width="12" height="12" fill="#1f4e9c"/><text x="42" y="104" fill="#222" font-size="11">Read-Only API</text><rect x="16" y="88" width="190" height="24" rx="3" fill="none" stroke="#e08a00" stroke-width="2" stroke-dasharray="4 3"/><rect x="22" y="124" width="12" height="12" fill="#1f4e9c"/><text x="42" y="134" fill="#222" font-size="11">Allow connections from localhost only</text><rect x="16" y="118" width="238" height="24" rx="3" fill="none" stroke="#e08a00" stroke-width="2" stroke-dasharray="4 3"/></svg><figcaption>Illustration: TWS > Settings > API > Settings. Tick Read-Only API and localhost only.</figcaption></figure>
+<ol start="4"><li>Start the helper: <code>TradeZoroBridge.exe ibkr --tws-port 7496</code> (or 7497 for paper).</li>
+<li>In TradeZoro: <strong>Data source</strong>, then <strong>Interactive Brokers</strong>, then <strong>Pair</strong>. Type the code.</li>
+<li>Open a chart with <code>byo:AAPL</code> or a futures name such as <code>byo:ES 12-26</code>.</li></ol>
+<p>Good to know: TWS itself sends your account numbers to any program that connects to it. The helper ignores them and never logs or sends them. Live prices need your own Interactive Brokers market data subscriptions, which may have fees.</p>
+<h2 id="nt8">5c. NinjaTrader 8</h2>
+<ol><li>Download <strong>TradeZoroBridge-NT8.zip</strong>. Do not unzip it.</li>
+<li>In the NinjaTrader Control Center choose <strong>Tools &gt; Import &gt; NinjaScript Add-On</strong> and pick the zip. NinjaTrader compiles it on import. If a compile error shows, see "When it does not connect".</li></ol>
+<figure class="bh-fig"><svg viewBox="0 0 360 190" role="img" aria-label="Illustration: NinjaTrader Control Center > Tools > Import > NinjaScript Add-On." xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="344" height="174" rx="6" fill="#16181d" stroke="#4a4a52"/><rect x="8" y="8" width="344" height="24" rx="6" fill="#262a32"/><text x="20" y="25" fill="#c9cdd3" font-size="11">File   Connections   New   Tools   Help</text><rect x="126" y="36" width="140" height="88" rx="4" fill="#262a32" stroke="#4a4a52"/><text x="136" y="56" fill="#c9cdd3" font-size="11">Import &#9656;</text><text x="136" y="76" fill="#c9cdd3" font-size="11">Export &#9656;</text><rect x="272" y="40" width="76" height="40" rx="4" fill="#262a32" stroke="#e08a00" stroke-width="2"/><text x="278" y="56" fill="#fff" font-size="10">NinjaScript</text><text x="278" y="70" fill="#fff" font-size="10">Add-On...</text></svg><figcaption>Illustration: NinjaTrader Control Center > Tools > Import > NinjaScript Add-On.</figcaption></figure>
+<ol start="3"><li>Open <strong>New &gt; NinjaScript Output</strong>. It prints the port (48715 to 48719) and the 8-digit code. The add-on starts with NinjaTrader after that.</li>
+<li>In TradeZoro: <strong>Data source</strong>, then <strong>NinjaTrader</strong>, then <strong>Pair</strong>. Type the code.</li>
+<li>Open a chart with the NinjaTrader instrument name, for example <code>byo:ES 12-26</code>.</li></ol>
+<p class="bh-small"><strong>Beta note:</strong> the NinjaTrader add-on has not yet been tested on a live NinjaTrader 8, and has no market depth. If it will not import or compile, tell support which NinjaTrader version you have.</p>
+<h2 id="connect">Connect in TradeZoro</h2>
+<ol><li>Open a chart (ZoroCharts) in Chrome, Edge or Firefox.</li><li>Open <strong>Data source</strong>, choose your platform, press <strong>Pair</strong>.</li>
+<li>Your browser may ask to allow tradezoro.com to connect to apps on this device. Choose <strong>Allow</strong>. This is the helper on your own computer.</li>
+<li>Type the 8-digit code. The status changes to <strong>Connected</strong>.</li></ol>
+<h2 id="checksum">6. Check the file (SHA-256)</h2>
+<p>This proves the file is the one we published. In Command Prompt, go to your Downloads folder and run:</p>
+<pre class="bh-pre"><code>certutil -hashfile TradeZoroBridge.exe SHA256</code></pre>
+<p>The long string it prints must match this one exactly (version 1.0.0):</p>
+<pre class="bh-pre"><code>TradeZoroBridge.exe
+71a25f8269f854952c6b2445db630f7fd71ac6a2d1db9281deb0c1fc2aa12e33
+
+TradeZoroBridge-NT8.zip
+07d4551a5b1f5f321b2f5a478e178176f16b86dc2393cecf5e3c3d1221d8efba</code></pre>
+<p>Use <code>certutil -hashfile TradeZoroBridge-NT8.zip SHA256</code> for the NinjaTrader file. The same numbers are in the release notes and in SHA256SUMS.txt on the <a href="https://github.com/theelitegrey/Stryker-trading-academy-/releases/tag/bridge-v1.0.0" rel="noopener">release page</a>. If they do not match, do not run the file. Download again, and if it still differs, contact support.</p>
+<h2 id="fix">When it does not connect</h2>
+<ul><li><strong>"Could not reach the helper".</strong> The helper window is not open. Start it, then press Pair again. Keep the window open while you chart.</li>
+<li><strong>The browser did not ask, or I clicked Block.</strong> Click the lock icon in the address bar, open site settings, set local network access (or "apps on this device") for tradezoro.com to Allow, then reload.</li>
+<li><strong>Safari.</strong> Safari does not allow this. Use Chrome, Edge or Firefox.</li>
+<li><strong>Brave.</strong> Open the Shields icon and allow local connections for tradezoro.com.</li>
+<li><strong>Code not right or expired.</strong> The code lasts 2 minutes and changes after 5 wrong tries. Close the helper and start it again for a new code.</li>
+<li><strong>"Pairing no longer valid".</strong> Choose Forget in the Data source sheet, then pair again.</li>
+<li><strong>Port in use.</strong> The helper tries ports 48715 to 48719. Close other copies of the helper.</li>
+<li><strong>Interactive Brokers: connection refused.</strong> Check Enable ActiveX and Socket Clients is on and the port matches 7496 or 7497. Make sure TWS is logged in.</li>
+<li><strong>Interactive Brokers: no live prices.</strong> You need your own market data subscription for that exchange.</li>
+<li><strong>MetaTrader 5: symbol not found.</strong> Use the exact name from Market Watch. The helper starts only after MetaTrader 5 is logged in.</li>
+<li><strong>NinjaTrader: add-on will not import or compile.</strong> Check you did not unzip it, and that NinjaTrader is version 8. Tell support the version and the error text.</li>
+<li><strong>Windows blocked the file.</strong> Right-click the file, choose Properties, tick Unblock if shown, then run again.</li>
+<li><strong>Work or school computer.</strong> Company rules may block unsigned programs. Ask your IT team or use another source.</li></ul>
+<p>Still stuck? <a href="/help#new-ticket">Contact support</a> (Help, then New support ticket).</p>
+<h2 id="quit">7. Quit or uninstall</h2>
+<ul><li><strong>Quit:</strong> close the helper window (or press Ctrl+C in it). The chart goes quiet straight away. For NinjaTrader, close NinjaTrader or remove the add-on.</li>
+<li><strong>Disconnect in TradeZoro:</strong> Data source, your platform, <strong>Forget this connection</strong>.</li>
+<li><strong>Remove the pairing on your PC:</strong> <code>TradeZoroBridge.exe mt5 --revoke</code> (or <code>ibkr</code>).</li>
+<li><strong>Uninstall:</strong> there is no installer. Delete <code>TradeZoroBridge.exe</code>, and delete the folder <code>%APPDATA%\TradeZoroBridge</code> to remove the saved pairing. For NinjaTrader delete <code>TradeZoroBridge.cs</code> from <code>Documents\NinjaTrader 8\bin\Custom\AddOns</code> and recompile.</li></ul>
+<p class="bh-small">The helper only listens on 127.0.0.1 and only accepts connections from tradezoro.com. Prices are never sent to TradeZoro. Education only. Not financial advice.</p>
+</div></div></div>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>ZoroAcademy</h5>
+        <a href="/academy">ZoroAcademy home</a>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="/learn">ZoroAcademy articles</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About TradeZoro</a>
+        <a href="/help">Help Center</a>
+        <a href="/suggestions">Suggestions</a>
+        <a href="/creators">Creator Hub</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro LLC. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+      <a href="/market-data-terms">Market Data Terms</a>
+      <a href="/terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/nav-features.js?v=859" defer></script>
+<script src="/assets/main.js?v=859"></script>
+<script src="/assets/auth.js?v=859"></script>
+<script src="/assets/progress.js?v=859"></script>
+<script src="/assets/activity-log.js?v=859"></script>
+<script src="/assets/banned-check.js?v=859"></script>
+<script src="/assets/email-verify.js?v=859"></script>
+<script src="/assets/profiles-sync.js?v=859"></script>
+<script src="/assets/loading-animation.js?v=859"></script>
+<script src="/assets/branding.js?v=859"></script>
+<script src="/assets/seo.js?v=859"></script>
+<script src="/assets/theme.js?v=859"></script>
+</body>
+</html>

@@ -5,8 +5,8 @@
 // market data over DXLink. Allowed requests: POST /oauth/token, GET /api-quote-tokens, GET /instruments/futures. Nothing
 // else (no /accounts, /orders, /positions). Docs: developer.tastytrade.com/oauth, /streaming-market-data.
 // Unverified until a real account tries it: the browser User-Agent rule, DXLink Origin policy, candle snapshot end flag.
-import { freshOauth } from './byo-oauth.js?v=853';
-import { ALLOW, ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf } from './byo-core.js?v=853';
+import { freshOauth } from './byo-oauth.js?v=859';
+import { ALLOW, ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf } from './byo-core.js?v=859';
 
 const API = 'https://api.tastyworks.com';
 const HARD = { redirect: 'error', credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' };
@@ -225,7 +225,9 @@ Object.assign(SOURCES.find((s) => s.id === 'tastytrade'), {
   steps: ['On my.tastytrade.com open Manage, My Profile, API, OAuth Applications and press New OAuth client.',
     'Tick only the Read scope. Any redirect address works, we do not use it. Copy the Client ID and Client Secret (shown once).',
     'Press Manage on your new app, then Create Grant, and copy the Refresh token.',
-    'Paste the three values here. They stay encrypted on this device and go only to tastytrade.'],
+    'Paste the three values in the boxes here. They stay encrypted on this device and go only to tastytrade.',
+    'Tap Connect.'],
+  signSteps: ['Tap Sign in with tastytrade.', 'Log in on tastytrade\'s page and finish the two-step check.', 'Tap Allow to share prices only.', 'You come back here, connected.'],
   fields: [{ k: 'clientId', label: 'Client ID', ph: '', secret: false }, { k: 'clientSecret', label: 'Client secret', ph: '', secret: true }, { k: 'refreshToken', label: 'Refresh token', ph: '', secret: true },
     { k: 'keep', label: 'Keep this connection', type: 'select', opts: [['yes', 'Remember on this device (encrypted)'], ['no', 'This tab only']] }]
 });

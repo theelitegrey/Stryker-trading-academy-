@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "ports": [
+    48715,
+    48716,
+    48717,
+    48718,
+    48719
+  ],
+  "origin": "https://tradezoro.com",
+  "symbolPattern": "^[A-Za-z0-9._\\-/ ]{1,32}$",
+  "maxSubscribe": 10,
+  "maxFrameBytes": 4096,
+  "c2h": {
+    "pair": [
+      "code",
+      "sn"
+    ],
+    "hello": [
+      "sn",
+      "proof"
+    ],
+    "history": [
+      "rid",
+      "sym",
+      "tf",
+      "count",
+      "from",
+      "to"
+    ],
+    "subscribe": [
+      "syms",
+      "depth"
+    ],
+    "unsubscribe": [
+      "syms"
+    ],
+    "ping": [],
+    "symbol": [
+      "rid",
+      "sym"
+    ]
+  },
+  "h2c": {
+    "welcome": [
+      "hn",
+      "v",
+      "paired",
+      "source"
+    ],
+    "paired": [
+      "token"
+    ],
+    "ready": [
+      "proof",
+      "source",
+      "caps"
+    ],
+    "bars": [
+      "rid",
+      "sym",
+      "tf",
+      "bars"
+    ],
+    "tick": [
+      "sym",
+      "price",
+      "ts",
+      "size"
+    ],
+    "depth": [
+      "sym",
+      "bids",
+      "asks"
+    ],
+    "error": [
+      "code",
+      "msg",
+      "rid"
+    ],
+    "pong": [],
+    "symbol": [
+      "rid",
+      "sym",
+      "digits",
+      "desc"
+    ]
+  },
+  "forbiddenNames": [
+    "order",
+    "orders",
+    "place",
+    "cancel",
+    "modify",
+    "position",
+    "positions",
+    "account",
+    "accounts",
+    "balance",
+    "equity",
+    "margin",
+    "portfolio",
+    "execution",
+    "executions",
+    "deal",
+    "deals",
+    "trade",
+    "buy",
+    "sell"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "acceptKey": {
+    "in": "dGhlIHNhbXBsZSBub25jZQ==",
+    "out": "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+  },
+  "proof": {
+    "token": "tok",
+    "dir": "site",
+    "sn": "sn",
+    "hn": "hn",
+    "port": 48715,
+    "origin": "https://tradezoro.com",
+    "out": "8868584dac4fdcc6b8680bfa4fde688af06810e0ed91595bd19b6a79de3a20c3"
+  }
+}

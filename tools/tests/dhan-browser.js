@@ -36,7 +36,7 @@ async function open(b, w, h, mobile, theme, partner) {
       if (!partner) { await p.$eval('.byo-row[data-src="dhan"]', (x) => x.scrollIntoView({ block: 'center' })); await p.waitForTimeout(200); await p.screenshot({ path: `${OUT}/dhan-list-${tag}.png` }); }
       await p.evaluate(() => document.querySelector('.byo-row[data-src="dhan"] button').click()); await p.waitForTimeout(400);
       const body = await p.$eval('.byo-body', (x) => x.textContent);
-      check(/Get your token in 4 steps/.test(body) && (await p.$$eval('.byo-steps.open li', (l) => l.length)) === 4, t + '4-step how-to shown');
+      check(/Steps/.test(body) && (await p.$$eval('.byo-steps-l li', (l) => l.length)) === 4, t + '4-step how-to shown');
       check(/Dhan charges for market data/.test(body), t + 'plain Data-plan warning');
       check((await p.$$eval('.byo-body input', (l) => l.length)) === 2 && (await p.$eval('#byo-f-token', (i) => i.type)) === 'password', t + 'two fields, token hidden');
       check(!!(await p.$('#byo-signin')) === partner, t + 'one-tap button only when the partner flag is on');

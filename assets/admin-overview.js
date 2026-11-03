@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // snapshot, not from students at all.
     Promise.all([
       db.collection('students').orderBy('createdAt', 'desc').limit(5).get()
-        .then((snap) => { const out = []; snap.forEach((doc) => out.push(Object.assign({ uid: doc.id }, doc.data()))); return out; })
+        .then((snap) => { const out = []; snap.forEach((doc) => !doc.data().test && out.push(Object.assign({ uid: doc.id }, doc.data()))); return out; })
         .catch((err) => { console.error('TradeZoro: recent students query failed', err); return null; }),
       db.collection('adminStats').doc('current').get()
         .then((doc) => (doc.exists ? doc.data() : null))

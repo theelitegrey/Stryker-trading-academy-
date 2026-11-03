@@ -1,0 +1,125 @@
+# TradeZoro Data Bridge: build on Windows, self-test, publish to a GitHub Release (UNSIGNED: no code-signing certificate, Owner decision 2026-11-04).
+# Run by pushing a tag  bridge-vX.Y.Z  or by hand (Actions > Bridge release > Run workflow, give the tag).
+name: Bridge release
+
+on:
+  push:
+    tags: ['bridge-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, e.g. bridge-v1.0.0'
+        required: true
+        default: 'bridge-v1.0.0'
+
+permissions:
+  contents: write   # create the release + upload assets
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install
+        shell: bash
+        run: python -m pip install --upgrade pip websockets MetaTrader5 ib_async pyinstaller
+
+      - name: Python tests
+        shell: bash
+        run: python tools/bridge/tests/test_bridge.py
+
+      - name: Build TradeZoroBridge.exe (one file, MT5 + IBKR)
+        shell: bash
+        working-directory: tools/bridge/helper
+        run: |
+          pyinstaller --onefile --console --name TradeZoroBridge --clean \
+            --add-data "../protocol.json;." \
+            --hidden-import mt5_source --hidden-import ibkr_source --hidden-import fakes --hidden-import selftest \
+            --collect-submodules websockets \
+            main.py
+          ls -l dist
+
+      - name: Self-test the built exe (fake terminals, 127.0.0.1)
+        shell: bash
+        run: |
+          ./tools/bridge/helper/dist/TradeZoroBridge.exe --selftest | tee selftest.log
+          grep -q "SELFTEST PASS" selftest.log
+
+      - name: Self-test, real start-up path (exe opens the port and prints a pairing code)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath tools/bridge/helper/dist/TradeZoroBridge.exe -ArgumentList 'mt5','--fake' -PassThru -RedirectStandardOutput run.log -RedirectStandardError run.err -NoNewWindow
+          $ok = $false
+          foreach ($i in 1..20) {
+            Start-Sleep -Seconds 1
+            if ((Test-NetConnection -ComputerName 127.0.0.1 -Port 48715 -WarningAction SilentlyContinue).TcpTestSucceeded) { $ok = $true; break }
+          }
+          $out = Get-Content run.log -Raw
+          Stop-Process -Id $p.Id -Force
+          if (-not $ok) { Write-Error "port 48715 never opened"; Get-Content run.err; exit 1 }
+          if ($out -notmatch 'Pairing code') { Write-Error "no pairing code printed"; exit 1 }
+          Write-Host "exe opened 127.0.0.1:48715 and printed a pairing code"
+
+      - name: NinjaTrader 8 archive
+        shell: bash
+        run: |
+          python tools/bridge/package_nt8.py TradeZoroBridge-NT8.zip
+          python - <<'PY'
+          import zipfile
+          n = sorted(zipfile.ZipFile("TradeZoroBridge-NT8.zip").namelist())
+          assert n == ["AddOns/TradeZoroBridge.cs", "Info.xml"], n
+          print("archive layout OK:", n)
+          PY
+
+      - name: C# syntax check (dotnet, syntax errors only)
+        shell: pwsh
+        run: |
+          # NinjaTrader's DLLs are not available here, so missing-type errors are expected and ignored.
+          # Only real syntax errors (parser codes) fail this step. This does NOT prove it compiles inside NinjaTrader.
+          $d = New-Item -ItemType Directory -Force syntaxcheck
+          Copy-Item tools/bridge/ninjatrader/TradeZoroBridge.cs $d
+          Set-Content "$d/s.csproj" '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Library</OutputType><LangVersion>7.3</LangVersion></PropertyGroup></Project>'
+          $o = dotnet build $d --nologo 2>&1 | Out-String
+          $errs = [regex]::Matches($o, 'error (CS\d+)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+          Write-Host "distinct error codes: $($errs -join ', ')"
+          $semantic = 'CS0246','CS0234','CS0103','CS0115','CS1061','CS0012','CS0518','CS0535','CS0039','CS0266','CS1503','CS1501','CS1929','CS0029','CS1579','CS0117'
+          $syntax = $errs | Where-Object { $_ -notin $semantic }
+          if ($syntax) { Write-Error "possible syntax errors: $($syntax -join ', ')"; $o; exit 1 }
+          Write-Host "no syntax-class errors (the file parses; type errors from missing NinjaTrader DLLs ignored)"
+          exit 0   # dotnet build leaves a non-zero exit code behind
+
+      - name: Checksums
+        shell: bash
+        run: |
+          cp tools/bridge/helper/dist/TradeZoroBridge.exe .
+          sha256sum TradeZoroBridge.exe TradeZoroBridge-NT8.zip | tee SHA256SUMS.txt
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXE=$(grep TradeZoroBridge.exe SHA256SUMS.txt | cut -d' ' -f1)
+          ZIP=$(grep NT8 SHA256SUMS.txt | cut -d' ' -f1)
+          cat > notes.md <<EOF
+          TradeZoro Data Bridge ${TAG} (beta, UNSIGNED). Data only: prices to your own browser, never orders. Guide: https://tradezoro.com/help/desktop-bridge
+
+          Windows will warn you because the helper is not signed yet. Click More info, then Run anyway. Your antivirus may also ask.
+
+          SHA-256
+          - TradeZoroBridge.exe: ${EXE}
+          - TradeZoroBridge-NT8.zip: ${ZIP}
+
+          Check on Windows: certutil -hashfile TradeZoroBridge.exe SHA256
+          EOF
+          sed -i 's/^          //' notes.md
+          gh release view "$TAG" >/dev/null 2>&1 && gh release delete "$TAG" --yes || true
+          gh release create "$TAG" TradeZoroBridge.exe TradeZoroBridge-NT8.zip SHA256SUMS.txt --title "TradeZoro Data Bridge $TAG" --notes-file notes.md --target "$GITHUB_SHA" --prerelease

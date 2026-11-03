@@ -250,7 +250,7 @@ function aaLoadRecentSignups(){
   return db.collection('students').orderBy('createdAt', 'desc').limit(5).get()
     .then(function (snap) {
       var out = [];
-      snap.forEach(function (d) { out.push(Object.assign({ uid: d.id }, d.data())); });
+      snap.forEach(function (d) { if (!d.data().test) out.push(Object.assign({ uid: d.id }, d.data())); });
       aaRenderRecentSignups(out);
       return out;
     })

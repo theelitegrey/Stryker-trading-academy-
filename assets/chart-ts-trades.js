@@ -106,6 +106,12 @@ function acquireStore(root, listener) {
   if (rootState(root).status === 'live' && !s.started) onFrame(s, null);
   return { s, release() { s.ls.delete(listener); if (--s.refs <= 0) { s.gen++; s.pumping = false; if (s.handle) s.handle.release(); stores.delete(root); } } };
 }
+// shared handle for assets/chart-l2-flow.js: the same store the L1 tools use (no second fetch). need(t) asks for history back to t.
+export function tsOpen(root, firstT, listener) {
+  const h = acquireStore(root, listener), need = (t) => { const s = h.s; s.need = Math.min(s.need || Infinity, t); if (s.started && s.need < s.loadedFrom) pump(s); };
+  need(firstT);
+  return { s: h.s, release: h.release, need, mins: () => minutes(h.s) };
+}
 // merged 1-minute rows { t, buy, sell, hi, lo }, sorted (history + live adds on top of the open history minute)
 function minutes(s) {
   if (s.mm && s.mmV === s.v) return s.mm;

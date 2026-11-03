@@ -467,6 +467,9 @@ export function mountIndicatorWindow(ws, opts){
     }
   }
 
+  // the L2 versions that already exist under another name (Owner 2026-11-03): typing the old name finds them
+  const SEARCH_ALIAS = { 'b:stk_fut_imb': 'imbalance zones imbalance', 'b:stk_bk_track': 'absorption absorption (l2)' };
+
   function render(){
     if (!els) return;
     paint();
@@ -476,7 +479,7 @@ export function mountIndicatorWindow(ws, opts){
     list.innerHTML = '';
     let view;
     if (q) {
-      const hit = (x) => x.name.toLowerCase().includes(q) || String(x.author || '').toLowerCase().includes(q) || (x.s && (x.s.tags || []).some((t) => t.includes(q)));
+      const hit = (x) => x.name.toLowerCase().includes(q) || (SEARCH_ALIAS[x.key] || '').includes(q) || String(x.author || '').toLowerCase().includes(q) || (x.s && (x.s.tags || []).some((t) => t.includes(q)));
       const parts = [['My scripts', all.filter((x) => x.kind === 'mine' && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third && !x.hidden && hit(x))],
         ['Community \u00b7 third-party', all.filter((x) => x.third && hit(x))],
         ['Community', all.filter((x) => x.kind === 'community' && hit(x)).sort((a, b) => b.boosts - a.boosts)],

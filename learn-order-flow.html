@@ -99,7 +99,7 @@
       ],
       "datePublished": "2026-09-24",
       "dateModified": "2026-09-24",
-      "wordCount": 1865,
+      "wordCount": 1950,
       "inLanguage": "en",
       "author": {
         "@type": "Organization",
@@ -279,7 +279,7 @@
 <header class="lx-head">
 <h1>Order flow trading explained</h1>
 <p class="lx-dek">Market and limit orders, the order book, how CME matches trades, footprint charts, delta and imbalances, worked through on illustrative data, plus the limits of what order flow shows.</p>
-<p class="lx-meta">TradeZoro · Updated <time datetime="2026-09-24">September 24, 2026</time> · 8 min read</p>
+<p class="lx-meta">TradeZoro · Updated <time datetime="2026-09-24">September 24, 2026</time> · 9 min read</p>
 </header>
 <div class="lx-body">
 <p><strong>Order flow</strong> is the study of the orders behind every price move: who was willing to wait, who was in a hurry, and what happened when they met. Where a candlestick shows you four prices, order-flow tools show you the trades inside the candle. This guide explains the building blocks: market and limit orders, the order book, how an exchange matches trades, footprint charts, delta and imbalances. It also covers what order flow can and can't tell you.</p>
@@ -341,6 +341,7 @@
 <li><strong>Exhaustion:</strong> aggressive volume shrinks as price pushes to a new extreme, until the high or low prints on very few contracts.</li>
 <li><strong>Icebergs:</strong> large limit orders that show only part of their size. CME supports this as a display quantity that refills each time it is filled. The tell is more volume trading at a price than was ever displayed.</li>
 <li><strong>Book speed and refills:</strong> how fast resting orders are added, pulled and resized, and levels that are hit and then quickly refilled. Order-book indicators such as Book Speed, Liquidity Balance and the Refill Detector show these from the recorded book.</li>
+<li><strong>Order flow with the book (L2):</strong> Delta (L2), Cumulative Delta (L2), Footprint (L2), Big Trades (L2), Stop Runs (L2) and Volume Profile (L2) put the resting book next to the trades. Delta (L2), for example, adds the change in resting bid and ask size over each bar to the traded delta, so you can see orders being added or pulled while trades happen. Imbalance and absorption from the book are in Book Imbalance (L2) and the Absorption &amp; Iceberg Tracker (L2). Education only. Not financial advice.</li>
 <li><strong>Trapped traders:</strong> traders who entered aggressively on a breakout that then fails. Their stop-losses can add fuel to the reversal. This is the order-flow view of a <a href="learn-liquidity-sweeps.html">liquidity sweep</a>.</li>
 </ul>
 <p>These are practitioner patterns. Many traders use them, and platform documentation describes them, but none is a reliable signal on its own. They are most useful at prices you already marked for another reason, such as a <a href="learn-volume-profile.html">volume profile</a> level or a set of equal highs.</p>

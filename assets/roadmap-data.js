@@ -20,6 +20,7 @@
     heading: "What's next at TradeZoro",
     note: 'Built in the open. Members see new modules the day they ship.',
     items: [
+      { id: 'everything-in-pro', title: 'Everything in Pro page', desc: 'One page that lists every Pro tool: the order book, order flow, GEX+ and what is coming next. No prices.', status: 'shipped', when: 'Shipped', link: 'pro.html' },
       { id: 'passkey-signin', title: 'Passkey sign-in', desc: 'Sign in with your fingerprint, face or screen lock instead of a password. Add passkeys in Settings.', status: 'shipped', when: 'Shipped', link: 'settings.html' },
       { id: 'partner-programme', title: 'Partner programme', desc: 'Share TradeZoro with your audience and use Pro for free while you are a partner. Apply from the dashboard.', status: 'shipped', when: 'Shipped', link: 'partner.html' },
       { id: 'screener-all-markets', title: 'Screener for stocks, ETFs, crypto and futures', desc: 'Filter and sort every market, pick your columns, and open any row on ZoroCharts. Saved screens and share links next.', status: 'progress', progress: 40, when: 'In progress', link: 'scanner.html' },

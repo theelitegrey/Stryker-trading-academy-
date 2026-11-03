@@ -46,7 +46,7 @@
           '<div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>' +
         '</div>' +
         // Prices live only here, on paywalls and /pricing (Owner 2026-11-01: no prices upfront).
-        '<p class="plan-modal-all"><a href="/pricing">See all plans</a></p>' +
+        '<p class="plan-modal-all"><a href="/pro">What\'s in Pro?</a> · <a href="/pricing">See all plans</a></p>' +
       '</div>';
 
     document.body.appendChild(overlay);

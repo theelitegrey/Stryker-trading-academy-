@@ -33,6 +33,7 @@ const PAGES = [
   ['/cheat-sheet',          '0.7', 'monthly'],
   ['/prop-firm-cheat-sheet', '0.7', 'monthly'],
   ['/features',             '0.7', 'monthly'],
+  ['/pro',                  '0.6', 'monthly'],
   ['/pricing',              '0.6', 'monthly'],
   ['/features/gex',         '0.6', 'monthly'],
   ['/features/smart-money-desk', '0.6', 'monthly'],

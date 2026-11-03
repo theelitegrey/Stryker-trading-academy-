@@ -1,12 +1,12 @@
 // TradeZoro — Charts: data-feed badges L1 · L2 · L3 (Owner order 2026-11-03). One chip row on the chart + a tap-for-details sheet.
 // Lit = in use on this chart now. Dim = not in use. Locked = an indicator on the chart needs it but the plan does not include it.
 // REGISTER AN INDICATOR OR PANEL (one line, from any module):
-//   import { registerFeed } from './chart-feeds.js?v=823';   registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
+//   import { registerFeed } from './chart-feeds.js?v=826';   registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
 //   (no module? window.STRYKER_FEEDS.register('stk_of_big', { needs: 'L1', title: 'Big Trades' }))
 // Options: mkt 'futures' | 'crypto' (only counts on that market; default any). A panel that is not an indicator calls setPanel(id, true|false).
 // Plain names only in the UI: no vendor names. Education only. Not financial advice.
 
-import { isFree } from './chart-pro-gate.js?v=823';
+import { isFree } from './chart-pro-gate.js?v=826';
 
 export const LEVELS = {
   L1: { name: 'L1', short: 'trades and best bid/ask', what: 'Every trade plus the best bid and ask.' },
@@ -14,6 +14,14 @@ export const LEVELS = {
   L3: { name: 'L3', short: 'individual orders', what: 'Every single order in the book.' }
 };
 export const L3_SOON = "Individual-order data (L3) isn't available yet.";
+
+// WHY NOTES (Owner 2026-11-03): subtle reason shown every time a locked feed is on the chart, in the Unlock prompt and in the sheet. Edit the words here only.
+// Plain English: no prices, no fee amounts, no vendor names except CME / "the exchange", no "required by law".
+export const WHY = {
+  futures: { short: 'Live exchange data · Pro', long: "Live futures data comes from the exchange (CME) under a paid licence. The licence lets us show it only to paying members, so we can't include it free. It's part of Pro." },
+  crypto: { short: 'Full order book · Pro', long: "The full order book streams thousands of price updates a second from several exchanges. That's costly to run, so it's part of Pro. Trades and candles stay free." }
+};
+export const whyFor = (mkt, L) => (L === 'L3' ? null : mkt === 'crypto' ? WHY.crypto : mkt === 'futures' ? WHY.futures : null);
 
 const reg = new Map();     // indicator type -> { needs, title, mkt }
 const panels = new Map();  // panel id -> { needs, title, mkt }
@@ -78,7 +86,9 @@ export function mountFeedBadges(ws) {
   const row = document.createElement('div'); row.id = 'stkfeeds'; row.className = 'stkfeeds'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Data feeds'); row.hidden = true;
   const sheet = document.createElement('div'); sheet.id = 'stkfeed-sheet'; sheet.className = 'stkfeed-sheet'; sheet.setAttribute('role', 'dialog'); sheet.hidden = true;
   const note = document.createElement('div'); note.id = 'stkfeed-note'; note.className = 'stkfeed-note'; note.hidden = true;
-  host.append(row, note, sheet);
+  const wrap = document.createElement('div'); wrap.id = 'stkfeeds-wrap'; wrap.className = 'stkfeeds-wrap';   // chips + lock note + why in ONE normal-flow column: nothing inside can overlap another
+  wrap.append(row, note); host.append(wrap, sheet);
+  let whyOpen = false;
   let openL = '', last = null, cur = null;
 
   const usedNow = () => {
@@ -92,7 +102,7 @@ export function mountFeedBadges(ws) {
     let l2 = false; try { l2 = !!((window.STRYKER_L2_BADGE || window.STRYKER_L2_OK)()); } catch (e) {}
     return { sym, mkt, used, have: haveFor({ mkt, l2, free }) };
   };
-  const unlock = (reason) => { if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(reason); };
+  const unlock = (reason, L) => { const w = whyFor(cur && cur.mkt, L); if (w) reason = reason + ' ' + w.long; if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(reason); };
 
   // Chips sit top-left, just under the symbol legend + indicator rows (they can fold), so the pencil FAB, GEX pill, Fit price / Latest and the delayed pill never cover them.
   function place() {
@@ -102,7 +112,7 @@ export function mountFeedBadges(ws) {
       const r = n.getBoundingClientRect(); if (r.height && r.height < 300 && r.top - hr.top < 300) b = Math.max(b, r.bottom - hr.top);
     });
     const t = Math.round(b ? b + 4 : 48);
-    row.style.top = t + 'px'; note.style.top = sheet.style.top = (t + (row.offsetHeight || 32) + 4) + 'px';
+    wrap.style.top = t + 'px'; sheet.style.top = (t + wrap.offsetHeight + 4) + 'px';
   }
   function paint() {
     cur = usedNow();
@@ -110,6 +120,7 @@ export function mountFeedBadges(ws) {
     last = st;
     row.hidden = !st.show;
     place();
+    wrap.hidden = !st.show;
     if (!st.show) { note.hidden = true; sheet.hidden = true; openL = ''; return; }
     const lv = visibleLevels(st);
     if (row.dataset.sig !== lv.join() + ['L1', 'L2', 'L3'].map((L) => st[L].state).join()) {
@@ -126,8 +137,10 @@ export function mountFeedBadges(ws) {
     // brief reason on the chart for the first locked level (not L3: that one has no plan to unlock)
     const lk = lv.find((L) => st[L].state === 'locked' && L !== 'L3');
     if (lk && !openL) {
-      const names = st[lk].users.join(', ');
-      note.innerHTML = '<span>' + esc(st[lk].locked) + '</span> <em>' + esc(names) + '</em><button type="button" class="stkfeed-unlock">Unlock</button>';
+      const names = st[lk].users.join(', '), w = whyFor(cur.mkt, lk);
+      note.innerHTML = '<span class="stkfeed-reason">' + esc(st[lk].locked) + '</span><em>' + esc(names) + '</em><button type="button" class="stkfeed-unlock">Unlock</button>' +
+        (w ? '<div class="stkfeed-why"><span class="stkfeed-why-l"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.4" d="M8 14.2A6.2 6.2 0 1 0 8 1.8a6.2 6.2 0 0 0 0 12.4ZM8 7.2v3.6"/><circle cx="8" cy="5" r=".9" fill="currentColor"/></svg>' + esc(w.short) +
+        ' <button type="button" class="stkfeed-why-b" aria-expanded="' + whyOpen + '">Why?' + (whyOpen ? '' : ' →') + '</button></span>' + (whyOpen ? '<p class="stkfeed-why-t">' + esc(w.long) + '</p>' : '') + '</div>' : '');
       note.dataset.l = lk; note.hidden = false;
     } else note.hidden = true;
     if (openL) paintSheet(st, s);
@@ -141,7 +154,7 @@ export function mountFeedBadges(ws) {
       '<p>' + (L === 'L3' ? esc(L3_SOON) : esc(LEVELS[L].what)) + '</p>' +
       (L === 'L3' ? '' : '<h4>Right now</h4><ul class="stkfeed-now">' + lines.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>') +
       '<h4>Used by</h4>' + who +
-      (S.state === 'locked' && L !== 'L3' ? '<button type="button" class="stkfeed-unlock">Unlock</button>' : '');
+      (S.state === 'locked' && L !== 'L3' ? (whyFor(cur.mkt, L) ? '<p class="stkfeed-why-t">' + esc(whyFor(cur.mkt, L).long) + '</p>' : '') + '<button type="button" class="stkfeed-unlock">Unlock</button>' : '');
     sheet.setAttribute('aria-label', L + ' data feed details'); sheet.hidden = false;
   }
   function openSheet(L) { openL = openL === L ? '' : L; row.dataset.sig = ''; if (!openL) sheet.hidden = true; paint(); }
@@ -150,9 +163,9 @@ export function mountFeedBadges(ws) {
   sheet.addEventListener('click', (e) => {
     e.stopPropagation();
     if (e.target.closest('.stkfeed-x')) close();
-    else if (e.target.closest('.stkfeed-unlock')) unlock(last && last[openL] ? last[openL].locked : '');
+    else if (e.target.closest('.stkfeed-unlock')) unlock(last && last[openL] ? last[openL].locked : '', openL);
   });
-  note.addEventListener('click', (e) => { if (e.target.closest('.stkfeed-unlock')) unlock(last && last[note.dataset.l] ? last[note.dataset.l].locked : ''); });
+  note.addEventListener('click', (e) => { if (e.target.closest('.stkfeed-why-b')) { whyOpen = !whyOpen; paint(); return; } if (e.target.closest('.stkfeed-unlock')) unlock(last && last[note.dataset.l] ? last[note.dataset.l].locked : '', note.dataset.l); });
   document.addEventListener('click', (e) => { if (openL && !sheet.contains(e.target) && !row.contains(e.target)) close(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openL) close(); });
   refresh = paint;

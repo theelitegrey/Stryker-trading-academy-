@@ -15,9 +15,9 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=836';
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=836';
-import { hubLive, hubCovers } from './live-source.js?v=836';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=837';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=837';
+import { hubLive, hubCovers } from './live-source.js?v=837';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -423,7 +423,7 @@ export class FuturesProvider {
       if (stopHub) { try { stopHub(); } catch (e) {} stopHub = null; }
       mode = want;
       if (want === 'hub') {
-        import('./chart-futures-l2.js?v=836').then((m) => {
+        import('./chart-futures-l2.js?v=837').then((m) => {
           if (stopped || mode !== 'hub' || stopHub) return;
           const seed = tf === '1' ? null : () => this.getBars(ticker, '1', { limit: Math.min(1000, Number(tf) * 2 + 30), fresh: true });
           stopHub = m.l2Candles(root, tf, hubOut, null, seed);
@@ -442,7 +442,7 @@ export class FuturesProvider {
   l2Subscribe(root, timeframe, onBar) {
     if (!['NQ', 'ES', 'MNQ', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'].includes(root)) return NOOP;   // last 8 = quote-only (no book): same hub, same gate
     let stop = null, dead = false;
-    import('./chart-futures-l2.js?v=836').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
+    import('./chart-futures-l2.js?v=837').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
     return () => { dead = true; if (stop) stop(); };
   }
   subscribeBase(ticker, timeframe, onBar, root, tf) {

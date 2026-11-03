@@ -127,17 +127,27 @@ const read = (p) => p.evaluate(() => {
       check(a.stores === 1, tag + ': one shared store for six indicators', a.stores);
       check(c.v > a.v && c.speedN > a.speedN - 1, tag + ': book updates keep coming (' + a.v + ' -> ' + c.v + ')');
       check(c.bid > 0 && c.ask > 0 && (c.bid !== a.bid || c.ask !== a.ask), tag + ': liquidity values change over 3 s (bid ' + a.bid + ' -> ' + c.bid + ')', [a, c]);
+      // recorder backfill: every pane has history across the visible range (>= 20 non-null points), not only the seconds since the chart opened
+      const hp = await p.evaluate(() => { const st = [...window.__stkBookPackStores.values()][0], v = st.views.get(20), n = (k) => v.all(k).v.filter((x) => x != null).length;
+        const bars = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const t0 = Date.now() - 2 * 3600000;
+        const rb = bars.map((b) => b.time != null ? b.time : b.t); const sp = v.all('speed');
+        return { rb0: rb[0], rbN: rb[rb.length - 1], nb: rb.length, s0: sp.t[0], sN: sp.t[sp.t.length - 1], rem: st.remote.length, speed: n('speed'), bid: n('bid'), ask: n('ask'), sd: n('sd'), early: v.all('bid').t.filter((t) => t < t0 + 3600000).length, abs: st.absEv.length,  note: document.body.innerText.match(/No book history before \d\d:\d\d/) }; });
+      check(hp.speed >= 20 && hp.bid >= 20 && hp.ask >= 20 && hp.sd >= 20, tag + ': speed / balance / regime panes have >= 20 history points', hp);
+      check(hp.early >= 20, tag + ': history reaches back before the last hour', hp);
+      check(!hp.note, tag + ': no "No book history before" note on a normal open', hp.note);
       check(c.speedN >= 5, tag + ': book speed has per-second samples (' + c.speedN + ')');
       check(c.refills >= 1, tag + ': refill detector found the fixture refills (' + c.refills + ')', c);
       check(c.thr > 0 && c.live >= 1, tag + ': large resting orders threshold learned (' + c.thr + ', live ' + c.live + ')', c);
       check(c.abs >= 1 && c.absSum >= 1, tag + ': absorption tracker subscribed: the fixture absorption minute counts, buy side up (' + c.abs + ')', c);
       for (const t of TYPES) { const m = c.perf[t]; check(m && m.renders > 3 && m.avgMs < 2.5, tag + ': ' + t + ' avg ' + (m ? m.avgMs.toFixed(2) : '?') + ' ms per draw (limit 2.5 on this shared, software-rendered browser; draws run at most 5 a second), ' + (m && m.renders) + ' draws', m); }
-      const cnt = await p.evaluate(() => (window.STRYKER_VELA.context().cells[0].chart.indicators() || []).filter((h) => /^stk_bk_/.test(h.nativeType)).length);
+            const cnt = await p.evaluate(() => (window.STRYKER_VELA.context().cells[0].chart.indicators() || []).filter((h) => /^stk_bk_/.test(h.nativeType)).length);
       check(cnt === TYPES.length, tag + ': six indicators on the chart', cnt);
       // hidden tab: no work
       const before = await p.evaluate(() => JSON.stringify(window.__stkBookPack));
       check(errors.length === 0, tag + ': no console errors', errors);
+      console.log('SP', await p.evaluate(() => JSON.stringify(window.__sp)));
       await p.screenshot({ path: OUT + '/bk-' + tag + '.png' });
+      await sleep(4000); await p.screenshot({ path: OUT + '/bk-' + tag + '-b.png' });
       await ctx.close();
     }
     // hidden tab: no book work while hidden

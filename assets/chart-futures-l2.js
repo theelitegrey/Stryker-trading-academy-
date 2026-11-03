@@ -240,6 +240,28 @@ async function authFetch(url) {
   const h = testOn() ? {} : (await rtReady(), rtHeaders());
   return fetch(url, { headers: h, credentials: 'omit' });
 }
+// ONE fetch of /ts-book-history per root + window, shared by the heatmap (l2Source.remote) and the order-book pack: the same window is
+// never requested twice (a failed read is forgotten so it can be retried). Resolves { buf, held, left } like the heatmap expects.
+const histMemo = [];   // { root, from, to, p } reads still valid
+export function bookHistory(root, from, to) {
+  // a read that already covers this window (its end within 90 s) answers it: the heatmap and the pack ask the same range once
+  const hit = histMemo.find((e) => e.root === root && e.from <= from && e.to >= to - 90000);
+  if (hit) return hit.p;
+  const url = baseUrl(HOOK) + '/ts-book-history?symbol=' + root + '&from=' + from + '&to=' + to;
+  const p = (async () => {
+    let x = await authFetch(url);
+    // the Worker rate limit is 60 reads / min / IP: back off 6 s once instead of failing the whole backfill for 5 min
+    if (x.status === 429) { await new Promise((r) => setTimeout(r, 6000)); x = await authFetch(url); }
+    if (!x.ok) throw new Error('HTTP ' + x.status);
+    return { buf: await x.arrayBuffer(), held: 0, left: Number(x.headers.get('x-ts-fill-left')) || 0 };
+  })();
+  const e = { root, from, to, p };
+  histMemo.push(e);
+  if (histMemo.length > 12) histMemo.shift();
+  const drop = () => { const i = histMemo.indexOf(e); if (i >= 0) histMemo.splice(i, 1); };
+  p.then((r) => { if (r.left > 0) drop(); }, drop);   // failed, or the Worker is still filling from the archive: the next ask must hit it again
+  return p;
+}
 // imbalance + footprint minutes recorded by the hub (last 3 h), once per page
 function seedHistory(r, gap) {
   if (isQuoteSym(r.root)) return;
@@ -356,14 +378,7 @@ export function l2Source(root) {
   return {
     base: 'contracts', keepMs: KEEP_MS, rule,
     trades: () => rootState(root).trades || (rootState(root).trades = new TickFeed(root)),
-    remote: async (from, to) => {
-      const base = baseUrl(HOOK);
-      let x = await authFetch(base + '/ts-book-history?symbol=' + root + '&from=' + from + '&to=' + to);
-      // the Worker rate limit is 60 reads / min / IP: back off 6 s once instead of failing the whole backfill for 5 min
-      if (x.status === 429) { await new Promise((r) => setTimeout(r, 6000)); x = await authFetch(base + '/ts-book-history?symbol=' + root + '&from=' + from + '&to=' + to); }
-      if (!x.ok) throw new Error('HTTP ' + x.status);
-      return { buf: await x.arrayBuffer(), held: 0, left: Number(x.headers.get('x-ts-fill-left')) || 0 };
-    },
+    remote: (from, to) => bookHistory(root, from, to),
     open(onBook, onStatus, onCoarse) {
       const book = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null, ts: 0 };
       let lastCoarseAt = 0;

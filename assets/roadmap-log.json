@@ -1,5 +1,11 @@
 [
  {
+  "build": 802,
+  "date": "2026-11-03",
+  "title": "Screener for all markets",
+  "link": ""
+ },
+ {
   "build": 801,
   "date": "2026-11-03",
   "title": "Order book, DOM and trades panel",
@@ -9,12 +15,6 @@
   "build": 801,
   "date": "2026-11-03",
   "title": "panel shipped",
-  "link": ""
- },
- {
-  "build": 800,
-  "date": "2026-11-03",
-  "title": "Screener for all markets",
   "link": ""
  },
  {

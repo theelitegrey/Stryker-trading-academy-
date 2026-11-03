@@ -57,7 +57,11 @@ export function currenciesOf(events) {
 export function countriesOf(events) {
   return [...new Set(events.filter((e) => e.impact === 'high' || e.impact === 'medium').map((e) => e.country).filter(Boolean))].sort();
 }
+export const EARN_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data-earnings/earnings.json';
 export async function fetchCal(kind, timeoutMs) {
+  if (kind === 'useps') {   // free daily file, written by .github/workflows/earnings-data.yml
+    try { const r = await fetch(EARN_URL, { credentials: 'omit' }); const j = r.ok ? await r.json() : null; return j && Array.isArray(j.items) ? { items: j.items, updated: j.generatedAt } : null; } catch (e) { return null; }
+  }
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs || 7000);
   try {
@@ -72,7 +76,7 @@ const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/&/g, 
 const money = (n) => (n === null || n === undefined ? '' : Math.abs(n) >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : String(n));
 const num = (n, d) => (n === null || n === undefined || !Number.isFinite(Number(n)) ? '' : Number(n).toFixed(d === undefined ? 2 : d));
 const tick = (code) => String(code || '').split(':').pop();
-export const TABS = [['econ', 'Economic'], ['earnings', 'Earnings'], ['dividends', 'Dividends'], ['ipos', 'IPOs']];
+export const TABS = [['econ', 'Economic'], ['useps', 'US earnings'], ['earnings', 'Earnings'], ['dividends', 'Dividends'], ['ipos', 'IPOs']];
 // scope: 'us' | 'all' ; mode: tz mode ; range: 'ahead' | 'past' | 'all' (today onward / last 7 days / everything)
 export function filterCorp(items, o) {
   const today = dayKey(Date.now(), o.mode);
@@ -123,4 +127,25 @@ export function renderCorp(kind, items, o) {
     '<div class="ec-scroll"><table class="ec-table ec-corp"><caption class="sr-only">' + esc(kind) + '</caption><thead><tr>' +
     heads.map((h, i) => '<th scope="col"' + (i > 1 ? ' class="ec-num"' : '') + '>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' +
     g.r.slice(0, 120).map(row).join('') + '</tbody></table></div></section>').join('');
+}
+
+// ---- US earnings tab: rows [date, symbol, name, 'bmo'|'amc'|'', epsEst|null, fiscalQtr] (updated daily) ------
+// o: { range: 'ahead'|'past'|'all', q: ticker/name search }. Dates are New York calendar days, no clock conversion.
+export function renderUsEarnings(items, o, todayKey) {
+  const back = new Date(Date.parse(todayKey + 'T12:00:00Z') - 7 * 86400000).toISOString().slice(0, 10);
+  const q = String(o.q || '').trim().toLowerCase();
+  const list = (items || []).filter((r) => Array.isArray(r) && (o.range === 'ahead' ? r[0] >= todayKey : o.range === 'past' ? r[0] >= back && r[0] < todayKey : true) &&
+    (!q || String(r[1]).toLowerCase().startsWith(q) || String(r[2]).toLowerCase().includes(q)))
+    .sort((a, b) => (o.range === 'past' ? (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0) : (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)) || (a[3] === 'bmo' ? -1 : 0) - (b[3] === 'bmo' ? -1 : 0) || a[1].localeCompare(b[1]));
+  if (!list.length) return '<div class="ec-empty"><b>Nothing in this window.</b><p>Try “All dates” or clear the search.</p></div>';
+  const groups = [];
+  list.forEach((r) => { const g = groups[groups.length - 1]; if (g && g.k === r[0]) g.r.push(r); else groups.push({ k: r[0], r: [r] }); });
+  const when = (w) => (w === 'bmo' ? 'Before open' : w === 'amc' ? 'After close' : 'Not stated');
+  return groups.slice(0, 31).map((g) => '<section class="ec-day">' + dayHead(g.k, g.r.length) +
+    '<div class="ec-scroll"><table class="ec-table ec-corp"><caption class="sr-only">US earnings</caption><thead><tr>' +
+    ['When', 'Company', 'EPS est.', 'Quarter'].map((h, i) => '<th scope="col"' + (i > 1 ? ' class="ec-num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+    g.r.slice(0, 400).map((r) => '<tr class="ec-row is-earnings"><td class="ec-time"><span class="ec-time-v">' + when(r[3]) + '</span></td>' +
+      '<td class="ec-name"><span class="ec-name-v">' + esc(r[2]) + '</span><span class="ec-tick">' + esc(r[1]) + '</span></td>' +
+      '<td class="ec-num ec-fc">' + (r[4] == null ? '<i>—</i>' : num(r[4])) + '</td><td class="ec-num ec-prev">' + esc(r[5] || '') + '</td></tr>').join('') +
+    '</tbody></table></div></section>').join('');
 }

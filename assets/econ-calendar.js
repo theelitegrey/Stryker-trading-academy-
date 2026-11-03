@@ -70,6 +70,7 @@
   let SCOPE = 'us';          // earnings/dividends/IPO tabs: 'us' | 'all'
   let CRANGE = 'ahead';      // those tabs: 'ahead' | 'past' | 'all'
   let IS = null;             // ./econ-calendar-is.js (InsightSentry rows, via the recorder)
+  let QSEARCH = '';          // US earnings tab: ticker / name search
   const CORP = {};           // kind -> items
   let SRC = 'file';          // where the event rows came from: 'is' | 'file'
   let TICKER = null;         // countdown interval
@@ -589,6 +590,11 @@
       const row = e.target.closest('.ec-row[data-note]');
       if (row) toggleNote(row);
     });
+    mount.addEventListener('input', (e) => {
+      if (!e.target || e.target.id !== 'ec-q') return;
+      QSEARCH = e.target.value; const d = mount.querySelector('#ec-days'), pos = e.target.selectionStart;
+      paintCorp(mount, d, null, null); void pos;
+    });
     mount.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       const row = e.target.closest && e.target.closest('.ec-row[data-note]');
@@ -620,6 +626,11 @@
       '" aria-selected="' + (TAB === t[0]) + '">' + esc(t[1]) + '</button>').join('') + '</div>';
   }
   function corpControls() {
+    if (TAB === 'useps') {
+      const bb = (v, label) => '<button type="button" class="ec-chip' + (CRANGE === v ? ' is-on' : '') + '" data-crange="' + v + '" aria-pressed="' + (CRANGE === v) + '">' + label + '</button>';
+      return '<div class="ec-controls"><div class="ec-ctrl-row"><span class="ec-ctrl-label">Showing</span>' + bb('ahead', 'From today') + bb('past', 'Past week') + bb('all', 'All dates') +
+        '<span class="ec-ctrl-spacer"></span><input type="search" class="ec-search" id="ec-q" placeholder="Search ticker or company" aria-label="Search ticker or company" value="' + esc(QSEARCH) + '" autocomplete="off" spellcheck="false"></div></div>';
+    }
     const b = (attr, v, cur, label) => '<button type="button" class="ec-chip' + (cur === v ? ' is-on' : '') + '" ' + attr + '="' + v + '" aria-pressed="' + (cur === v) + '">' + label + '</button>';
     return '<div class="ec-controls">' +
       '<div class="ec-ctrl-row"><span class="ec-ctrl-label">Showing</span>' +
@@ -636,10 +647,16 @@
     if (!days) return;
     if (items === undefined) {
       days.innerHTML = '<div class="ec-empty"><b>Loading…</b></div>';
-      IS.fetchCal(TAB).then((j) => { CORP[TAB] = j && Array.isArray(j.items) ? j.items : null; if (TAB) paint(mount, false); });
+      IS.fetchCal(TAB).then((j) => { CORP[TAB] = j && Array.isArray(j.items) ? j.items : null; if (j && j.updated) CORP.useps_updated = j.updated; if (TAB) paint(mount, false); });
       return;
     }
     if (items === null) { days.innerHTML = '<div class="ec-stale"><b>This list is temporarily unavailable.</b> Refresh in a moment.</div>'; return; }
+    if (TAB === 'useps') {
+      const upd = CORP.useps_updated ? new Date(CORP.useps_updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+      days.innerHTML = IS.renderUsEarnings(items, { range: CRANGE, q: QSEARCH }, new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })) +
+        '<p class="ec-note-p">US companies only. Updated daily' + (upd ? ' (last update ' + esc(upd) + ')' : '') + ': dates and estimates can change. Source: Nasdaq public earnings calendar. Education only. Not financial advice.</p>';
+      return;
+    }
     days.innerHTML = IS.renderCorp(TAB, items, { scope: SCOPE, range: CRANGE, mode: TZMODE }) +
       '<p class="ec-note-p">Company data from our market-data provider; dates and estimates change. Education only. Not financial advice.</p>';
   }

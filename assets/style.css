@@ -9770,6 +9770,9 @@ button.appnav-dk.on{
 /* ===== Economic calendar tabs (assets/econ-calendar.js, B1/B3, 2026-10-14) ===== */
 .ec-tabs{ display:flex; gap:6px; margin:0 0 14px; overflow-x:auto; }
 .ec-tab{ flex:none; height:34px; padding:0 14px; border:1px solid var(--line-soft); border-radius:999px; background:transparent; color:var(--ink-2); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.ec-search{ margin-left:auto; height:34px; min-width:200px; padding:0 12px; border:1px solid var(--line-soft); border-radius:10px; background:var(--bg-1); color:var(--ink-0); font:inherit; font-size:14px; }
+.ec-search:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
+@media (max-width:599px){ .ec-search{ width:100%; margin-left:0; font-size:16px; min-height:44px; } }
 .ec-tab:hover{ color:var(--ink-0); background:var(--bg-2); }
 .ec-tab.is-on{ color:#04150e; background:var(--gold); border-color:var(--gold); }
 /* corporate tabs: 5-6 columns (time/ex-date, company, numbers) */

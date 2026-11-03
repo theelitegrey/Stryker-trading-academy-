@@ -22,7 +22,8 @@
 import { RECORDER, newsSymOf, fetchNews, replayNow } from './chart-news.js?v=842';
 
 const PRICING = '/pricing';
-const NEWS_TYPE = 'stk_news', ECON_TYPE = 'stk_econ';
+const NEWS_TYPE = 'stk_news', ECON_TYPE = 'stk_econ', EARN_TYPE = 'stk_earn';
+const EARN_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data-earnings/earnings.json';
 const NEWS_POLL = 120000, CAL_POLL = 15 * 60000;
 
 // ---- pure helpers (unit-tested: tools/tests/chart-news-unit.mjs) ------------------------------
@@ -100,6 +101,31 @@ function calendar() {
   return calP;
 }
 
+// ---- US earnings dates (file written daily by .github/workflows/earnings-data.yml; not live) ---
+// rows: [date 'YYYY-MM-DD', symbol, name, 'bmo'|'amc'|'', epsEst|null, fiscalQtr]
+let earnP = null, earnAt = 0;
+function earnings() {
+  if (earnP && Date.now() - earnAt < 3600000) return earnP;
+  earnAt = Date.now();
+  earnP = fetch(EARN_URL, { credentials: 'omit' }).then((r) => (r.ok ? r.json() : null)).then((j) => (j && Array.isArray(j.items) ? j : { items: [] })).catch(() => { earnAt = 0; return { items: [] }; });
+  return earnP;
+}
+// Test hook: replace the earnings file.
+export function _setEarnings(j) { earnP = Promise.resolve(j); earnAt = Date.now() + 1e12; }
+// Chart symbol ("idx:AAPL", "NASDAQ:AAPL") -> ticker, '' when it cannot be a US stock.
+export function stockTicker(symbol) { const t = String(symbol || '').split(':').pop().toUpperCase(); return /^[A-Z.\-]{1,6}$/.test(t) ? t : ''; }
+// Earnings rows for one ticker -> [{t (ms, the bar the marker sits on), w, e, d, q}]. Before the open = 13:30 UTC (earliest US open), else after the close.
+export function pickEarnings(items, ticker, cutMs) {
+  if (!ticker) return [];
+  const out = [];
+  for (const r of items || []) {
+    if (!Array.isArray(r) || r[1] !== ticker) continue;
+    const t = Date.parse(r[0] + (r[3] === 'amc' ? 'T21:00:00Z' : 'T13:30:00Z'));
+    if (Number.isFinite(t)) out.push({ t, w: r[3] || '', e: r[4] == null ? null : r[4], d: r[0], q: r[5] || '' });
+  }
+  return out.sort((a, b) => a.t - b.t);
+}
+
 // ---- natives ----------------------------------------------------------------------------------
 const subs = new Set();
 let timer = 0;
@@ -166,6 +192,15 @@ class EconNative extends Base {
     // replay: only events at or before the clock are drawn
     const evs = rn ? all.filter((e) => e.t <= rn) : all;
     this.push({ kind: 'econ', cut: rn || 0, evs, chip: w ? w.text : '', color: i.color || '#f23645', medColor: '#ff9800', labels: i.labels !== false });
+  }
+}
+
+class EarnNative extends Base {
+  constructor() { super('earn'); this.items = []; }
+  load() { this.lastLoad = Date.now(); if (!this.ctx) return; earnings().then((j) => { this.items = j.items; this.refresh(); }); }
+  refresh() {
+    if (!this.ctx) return;
+    this.push({ kind: 'earn', evs: pickEarnings(this.items, stockTicker(this.ctx.symbol)), color: this.inputs.color || '#ff9f0a' });
   }
 }
 
@@ -250,6 +285,19 @@ function layer() {
           boxes.push({ x: xx, y: plotBottom - 10, r: 7, kind: 'econ', data: list });
         }
       }
+      else if (d.kind === 'earn') {
+        const seen = new Set();
+        g.font = '700 10px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        for (const e of d.evs) {
+          const k = Math.floor(e.t / tf) * tf; if (seen.has(k)) continue; seen.add(k);
+          const x = co.timeToX(k);
+          if (!Number.isFinite(x) || x < 8 || x > W - 8) continue;
+          const xx = Math.round(x) + 0.5, y = plotBottom - 46;
+          g.fillStyle = d.color; g.beginPath(); g.roundRect ? g.roundRect(xx - 7, y - 7, 14, 14, 4) : g.rect(xx - 7, y - 7, 14, 14); g.fill();
+          g.fillStyle = '#1c1c1e'; g.fillText('E', xx, y + 0.5);
+          boxes.push({ x: xx, y, r: 9, kind: 'earn', data: e });
+        }
+      }
       g.restore();
     },
     destroy() { if (chip) chip.remove(); chip = null; canvas = null; }
@@ -284,6 +332,11 @@ function fill(node, h) {
       node.appendChild(row);
     });
     if (b.data.items.length > 6) node.appendChild(Object.assign(document.createElement('em'), { textContent: '+' + (b.data.items.length - 6) + ' more in the News panel' }));
+  } else if (b.kind === 'earn') {
+    const e = b.data;
+    node.appendChild(Object.assign(document.createElement('b'), { textContent: 'Earnings · ' + e.d + (e.w === 'bmo' ? ' · before the open' : e.w === 'amc' ? ' · after the close' : '') }));
+    node.appendChild(Object.assign(document.createElement('span'), { className: 'stk-nm-num', textContent: (e.e == null ? 'EPS estimate not available' : 'EPS estimate ' + e.e) + (e.q ? ' · quarter ' + e.q : '') }));
+    node.appendChild(Object.assign(document.createElement('em'), { textContent: 'Updated daily. Dates and estimates can change.' }));
   } else {
     node.appendChild(Object.assign(document.createElement('b'), { textContent: fmt(b.data[0].t) }));
     b.data.slice(0, 8).forEach((e) => {
@@ -344,6 +397,9 @@ a.stk-nm-row:hover span:last-child{ color:#4fe3ac; }
 `;
 
 // ---- registration -------------------------------------------------------------------------------
+const EARN_SCHEMA = [
+  { key: 'color', title: 'Marker colour', type: 'color', defval: '#ff9f0a' }
+];
 const NEWS_SCHEMA = [
   { key: 'color', title: 'Marker colour', type: 'color', defval: '#00adb5' }
 ];
@@ -356,6 +412,7 @@ const ECON_SCHEMA = [
   { key: 'color', title: 'High-impact colour', type: 'color', defval: '#f23645' }
 ];
 export const NEWS_DESC = 'Headline markers on the time axis for the chart’s market; hover or tap to read them (Pro)';
+export const EARN_DESC = 'An “E” on the day a US company reports earnings (before or after the market), with the EPS estimate on hover. Data updated daily';
 export const ECON_DESC = 'High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip (Pro)';
 let installed = false;
 export function installNewsMarkers(Core) {
@@ -363,25 +420,28 @@ export function installNewsMarkers(Core) {
   installed = true;
   Core.registerRendererLayer({ id: NEWS_TYPE, placement: 'above-data', create: layer });
   Core.registerRendererLayer({ id: ECON_TYPE, placement: 'above-data', create: layer });
-  const legend = (d) => (!d ? '' : d.pill || d.note || (d.kind === 'news' ? (d.items.length + ' headlines, 7 days') : (d.chip || d.evs.length + ' events')));
+  Core.registerRendererLayer({ id: EARN_TYPE, placement: 'above-data', create: layer });
+  const legend = (d) => (!d ? '' : d.pill || d.note || (d.kind === 'news' ? (d.items.length + ' headlines, 7 days') : d.kind === 'earn' ? (d.evs.length ? d.evs.length + ' earnings dates' : 'US stocks only') : (d.chip || d.evs.length + ' events')));
   Core.registerNativeIndicator({ type: NEWS_TYPE, title: 'TradeZoro News markers', shortTitle: 'News', paneHint: 'price', overlay: true,
     inputsSchema: () => NEWS_SCHEMA, defaultInputs: () => Object.fromEntries(NEWS_SCHEMA.map((x) => [x.key, x.defval])), create: () => new NewsNative(), legendNote: legend });
   Core.registerNativeIndicator({ type: ECON_TYPE, title: 'TradeZoro Economic events', shortTitle: 'Econ events', paneHint: 'price', overlay: true,
     inputsSchema: () => ECON_SCHEMA, defaultInputs: () => Object.fromEntries(ECON_SCHEMA.map((x) => [x.key, x.defval])), create: () => new EconNative(), legendNote: legend });
+  Core.registerNativeIndicator({ type: EARN_TYPE, title: 'TradeZoro Earnings dates', shortTitle: 'Earnings', paneHint: 'price', overlay: true,
+    inputsSchema: () => EARN_SCHEMA, defaultInputs: () => Object.fromEntries(EARN_SCHEMA.map((x) => [x.key, x.defval])), create: () => new EarnNative(), legendNote: legend });
   Core.registerStatePersistence({
     key: 'stryker.newsmarkers', scope: 'cell',
     serialize(ctx) {
       const out = [];
-      try { ctx.chart.indicators().forEach((h) => { if (h.nativeType === NEWS_TYPE || h.nativeType === ECON_TYPE) out.push([h.nativeType, h.inputValues()]); }); } catch (e) {}
+      try { ctx.chart.indicators().forEach((h) => { if ([NEWS_TYPE, ECON_TYPE, EARN_TYPE].includes(h.nativeType)) out.push([h.nativeType, h.inputValues()]); }); } catch (e) {}
       return out.length ? out : undefined;
     },
     restore(payload, ctx) {
       if (!Array.isArray(payload)) return;
       let hs = [];
       try { hs = ctx.chart.indicators(); } catch (e) { return; }
-      for (const type of [NEWS_TYPE, ECON_TYPE]) {
+      for (const type of [NEWS_TYPE, ECON_TYPE, EARN_TYPE]) {
         const mine = hs.filter((h) => h.nativeType === type), saved = payload.filter((p) => Array.isArray(p) && p[0] === type);
-        const schema = type === NEWS_TYPE ? NEWS_SCHEMA : ECON_SCHEMA;
+        const schema = type === NEWS_TYPE ? NEWS_SCHEMA : type === EARN_TYPE ? EARN_SCHEMA : ECON_SCHEMA;
         saved.slice(0, 2).forEach((p, i) => {
           if (!mine[i] || !p[1] || typeof p[1] !== 'object') return;
           const clean = {};
@@ -398,6 +458,6 @@ export function installNewsMarkers(Core) {
     document.addEventListener('pointerdown', onDown, { capture: true });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pop) pop.hidden = true; });
   }
-  window.__stkNewsMarkers = { _setTier, bucketNews, pickEvents, nextWarning, hits: (cv) => hits.get(cv) };
+  window.__stkNewsMarkers = { _setTier, _setEarnings, pickEarnings, stockTicker, bucketNews, pickEvents, nextWarning, hits: (cv) => hits.get(cv) };
 }
-export { NEWS_TYPE, ECON_TYPE };
+export { NEWS_TYPE, ECON_TYPE, EARN_TYPE };

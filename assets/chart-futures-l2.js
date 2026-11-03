@@ -13,8 +13,8 @@
 //   ticks  trades since the last frame                                               -> walls pulled / consumed, ladder volume
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
-import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=801';
-import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=801';
+import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=802';
+import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=802';
 
 export const L2_MEMBERS = false;          // licence flag: true only after the Owner confirms Tick-stream's Redistribution licence
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).

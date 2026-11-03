@@ -1,5 +1,23 @@
 [
  {
+  "build": 813,
+  "date": "2026-11-03",
+  "title": "Passkey sign-in",
+  "link": ""
+ },
+ {
+  "build": 813,
+  "date": "2026-11-03",
+  "title": "passkeys shipped",
+  "link": ""
+ },
+ {
+  "build": 811,
+  "date": "2026-11-03",
+  "title": "Futures order book (L2)",
+  "link": ""
+ },
+ {
   "build": 810,
   "date": "2026-11-03",
   "title": "Phone chart menus",
@@ -27,12 +45,6 @@
   "build": 806,
   "date": "2026-11-03",
   "title": "Bookmap-style order book heatmap",
-  "link": ""
- },
- {
-  "build": 804,
-  "date": "2026-11-03",
-  "title": "Futures order book (L2)",
   "link": ""
  },
  {

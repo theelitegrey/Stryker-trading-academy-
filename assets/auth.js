@@ -179,6 +179,7 @@ function applyChosenPersistence(){
 }
 
 function routeAfterAuth(){
+  try { if (!window.__tzViaPasskey) sessionStorage.setItem('tz_pk_offer', '1'); } catch (e) { /* ignore */ }
   // Small delay before navigating away: gives Firebase's persistence layer
   // a moment to actually finish writing the session to storage before a
   // full page reload immediately needs to read it back on the next page.
@@ -398,6 +399,27 @@ document.addEventListener('DOMContentLoaded', () => {
         .finally(() => { btn.disabled = false; btn.innerHTML = original; });
     });
   });
+
+  // ---- Passkey sign-in (login only; assets/passkeys.js + functions/api/passkey) ----
+  const pkBtn = document.querySelector('[data-passkey-signin]');
+  if (pkBtn && window.TZPasskeys && window.TZPasskeys.supported) {
+    const pkDone = (token) => applyChosenPersistence()
+      .then(() => auth.signInWithCustomToken(token))
+      .then(() => {
+        window.__tzViaPasskey = true;
+        if (typeof logActivityBeforeNavigating === 'function') return logActivityBeforeNavigating('auth.login', 'Logged in with a passkey').then(routeAfterAuth);
+        return routeAfterAuth();
+      });
+    const pkFail = (err) => { if (err && err.code === 'cancelled') { showAuthError('login-error', 'No passkey was used. Try again, or log in with your email.'); return; } showAuthError('login-error', err && err.pk ? err.message : friendlyAuthError(err)); };
+    pkBtn.hidden = false;
+    pkBtn.addEventListener('click', () => {
+      clearAuthError('login-error');
+      pkBtn.disabled = true;
+      window.TZPasskeys.signIn(false).then(pkDone).catch(pkFail).finally(() => { pkBtn.disabled = false; });
+    });
+    // Conditional UI: the phone/browser offers the passkey inside the email box.
+    window.TZPasskeys.conditional().then((t) => { if (t) return pkDone(t); }).catch(() => {});
+  }
 
   // ---- Forgot password ----
   document.querySelectorAll('[data-forgot-password]').forEach(link => {

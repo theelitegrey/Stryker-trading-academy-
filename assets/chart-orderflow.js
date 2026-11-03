@@ -30,13 +30,13 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG } from './chart-bookmap.js?v=810';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=810';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=810';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=810';
-import * as ProGate from './chart-pro-gate.js?v=810';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=810';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=810';
+import { drawBookmap, BM_BG } from './chart-bookmap.js?v=813';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=813';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=813';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=813';
+import * as ProGate from './chart-pro-gate.js?v=813';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=813';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=813';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -2551,7 +2551,7 @@ const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap
 const OF_GROUP = 'Order Flow';
 const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_vwap',
   'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_fut_dom', 'stk_fut_walls', 'stk_fut_imb',
-  'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];   // Tick-stream twins (chart-ts-trades.js, Pro)
+  'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane'];   // Tick-stream twins (chart-ts-trades.js, Pro)
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },

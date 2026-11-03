@@ -20,7 +20,11 @@
     heading: "What's next at TradeZoro",
     note: 'Built in the open. Members see new modules the day they ship.',
     items: [
+<<<<<<< HEAD
       { id: 'partner-programme', title: 'Partner programme', desc: 'Share TradeZoro with your audience and use Pro for free while you are a partner. Apply from the dashboard.', status: 'progress', progress: 80, when: 'In progress', link: 'partner.html' },
+=======
+      { id: 'passkey-signin', title: 'Passkey sign-in', desc: 'Sign in with your fingerprint, face or screen lock instead of a password. Add passkeys in Settings.', status: 'shipped', when: 'Shipped', link: 'settings.html' },
+>>>>>>> origin/main
       { id: 'screener-all-markets', title: 'Screener for stocks, ETFs, crypto and futures', desc: 'Filter and sort every market, pick your columns, and open any row on ZoroCharts. Saved screens and share links next.', status: 'progress', progress: 40, when: 'In progress', link: 'scanner.html' },
       { id: 'book-dom-trades', title: 'Order book, DOM and trades panel', desc: 'Book, DOM and Trades tabs beside the chart for crypto and futures: one exchange or several combined, bought / sold / delta per price, and paper trading from the ladder (simulated).', status: 'shipped', when: 'Shipped', link: 'charts.html' },
       { id: 'futures-dom', title: 'Futures order book for members', desc: 'Full order book (L2), DOM ladder, liquidity walls and L1 Big Trades and Delta on NQ, ES, MNQ, MES, YM, RTY, CL and GC charts. Part of Pro.', status: 'shipped', when: 'Shipped', link: 'features/orderflow.html', build: 802, date: '2026-11-03' },

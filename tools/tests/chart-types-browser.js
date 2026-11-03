@@ -38,10 +38,17 @@ const ALL = ['candles', 'bars', 'stk_hollow', 'stk_volcandle', 'line', 'stk_line
         const ws = window.STRYKER_VELA; const c = ws.active;
         try { c.setPriceStyle(id); } catch (e) { return { err: String(e) }; }
         await wait(1400);
-        const ch = c.chart || c.inner;
-        const bars = (ch && ch.bars) || (ch && ch.controller && ch.controller.bars) || [];
+        const o = c.inner.orchestrator;
+        const bars = o.bars;
         const last = bars[bars.length - 1];
-        return { style: c.priceStyle, n: bars.length, last: last ? [last.time, last.open, last.high, last.low, last.close] : null };
+        // live tick: push a +/-1.5% move into the newest raw bar; the last element must change (or a new one appear)
+        const raw = o.rawBars, rl = raw[raw.length - 1], before = JSON.stringify(bars[bars.length - 1]), n0 = bars.length;
+        const px = rl.close * 1.015;
+        o.applyBar({ ...rl, high: Math.max(rl.high, px), close: px });
+        await wait(300);
+        const after = o.bars, moved = after.length !== n0 || JSON.stringify(after[after.length - 1]) !== before;
+        o.applyBar(rl); await wait(200);
+        return { style: c.priceStyle, n: bars.length, moved, last: last ? [last.open, last.high, last.low, last.close].map((x) => +x.toFixed(2)) : null };
       }, id);
       const host = await p.$('#vela-chart');
       if (host) {
@@ -49,7 +56,7 @@ const ALL = ['candles', 'bars', 'stk_hollow', 'stk_volcandle', 'line', 'stk_line
         await p.mouse.move(bb.x + bb.width * 0.6, bb.y + bb.height * 0.45); await p.waitForTimeout(250);
       }
       await p.screenshot({ path: `${OUT}/${theme}-${z.tag}-${id}.png` });
-      check(!r.err && r.style === id && errors.length === 0, `${theme} ${z.tag} ${id}`, { r, errors: errors.slice(0, 3) });
+      check(!r.err && r.style === id && r.n > 0 && r.moved && errors.length === 0, `${theme} ${z.tag} ${id}`, { r, errors: errors.slice(0, 3) });
     }
     await ctx.close();
   }

@@ -1,0 +1,471 @@
+// TradeZoro — Charts: ORDER-BOOK PACK (Owner order 2026-11-03). Six indicators in the "Order Flow" group, all built from data we already
+// record: the futures L2 hub snapshots + trades (assets/chart-futures-l2.js) and the crypto exchange books + trades (assets/book-panel-sources.js).
+//   stk_bk_speed   Book Speed (L2)                 sub-pane: how many resting levels change per second, calm / normal / fast from the session's own percentiles
+//   stk_bk_bal     Liquidity Balance (L2)          sub-pane: resting bid and ask size within N ticks of price + their difference + the change since the session start
+//   stk_bk_refill  Refill Detector (L2)            markers: a level hit by aggressive trades gets its size back within a few seconds
+//   stk_bk_regime  Volatility Regime (L2)          bottom strip + legend: Tight / Normal / Wide from how spread the resting size is around price
+//   stk_bk_large   Large Resting Orders (L2)       the single biggest levels now (top 0.5 % of the session), with size + how long they have sat there
+//   stk_bk_track   Absorption & Iceberg Tracker (L1+L2)  sub-pane: cumulative absorption / iceberg hints / stop runs, buy side up, sell side down
+// Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
+// Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
+import { registerFeed } from './chart-feeds.js?v=824';
+import { isFree } from './chart-pro-gate.js?v=824';
+import { l2Visible, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed } from './chart-futures-l2.js?v=824';
+import * as C from './book-panel-core.js?v=824';
+import { openSource } from './book-panel-sources.js?v=824';
+import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=824';
+import { sweepBars } from './chart-of-pro.js?v=824';
+import { icebergEvents } from './chart-liquidity-data.js?v=824';
+import * as D from './chart-book-pack-data.js?v=824';
+
+export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track'];
+const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
+const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus'];
+const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto (Binance, Coinbase, Hyperliquid).';
+const MIN_GAP = 200;   // redraw at most 5 a second
+const { clamp, num } = D;
+const minHist = () => (typeof window !== 'undefined' && window.__stkBookPackMin) || 800;   // level sizes seen this session before the top-% size means anything (~20 s of a 20-level book)
+const defaults = (schema) => Object.fromEntries(schema.map((i) => [i.key, i.defval]));
+const light = () => { try { return document.documentElement.getAttribute('data-theme') === 'light'; } catch (e) { return false; } };
+function rgba(hex, a) {
+  const m = /^#?([0-9a-f]{6})/i.exec(String(hex || ''));
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+const hhmm = (ms) => { try { return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return ''; } };
+
+// ---------------------------------------------------------------------------------------- one view of the book per N ticks
+class DepthView {
+  constructor(N) { this.N = N; this.speed = new D.Series(); this.bid = new D.Series(); this.ask = new D.Series(); this.sd = new D.Series(); this.prev = null; this.sec = 0; this.chg = 0; this.cur = { bid: 0, ask: 0, sd: null }; }
+  update(ts, bk) {
+    const sec = Math.floor(ts / 1000);
+    if (this.sec && sec !== this.sec) {   // the second is over: store it (a quiet second stores 0 changes)
+      const t = this.sec * 1000;
+      this.speed.push(t, this.chg); this.bid.push(t, this.cur.bid); this.ask.push(t, this.cur.ask); if (this.cur.sd != null) this.sd.push(t, this.cur.sd);
+      this.chg = 0;
+    }
+    this.sec = sec;
+    if (this.prev) this.chg += D.changes(this.prev, bk, this.N);
+    this.prev = bk;
+    const b = D.balance(bk, this.N); this.cur = { bid: b.bid, ask: b.ask, sd: D.spread(bk, this.N) };
+  }
+}
+
+// ---------------------------------------------------------------------------------------- one store per symbol (shared by every indicator on it)
+const stores = new Map();
+class Store {
+  constructor(spec) {
+    this.spec = spec; this.key = spec.key; this.kind = spec.kind === 'futures' ? 'futures' : 'crypto'; this.refs = 0; this.ls = new Set();
+    this.tick = spec.kind === 'futures' ? (L2_TICK[spec.root] || 0.25) : 0; this.status = 'loading'; this.note = '';
+    this.last = null; this.since = 0; this.v = 0; this.views = new Map(); this.refills = new Map(); this.larges = new Map(); this.hist = new D.LogHist(); this.sess = 0;
+    this.samples = []; this.secT = 0; this.minT = 0; this.absEv = []; this.iceEv = []; this.iceFrom = 0; this.pending = []; this.tf = null; this.lastCrypto = 0; this.stopFn = null; this.h = null;
+    this.onVis = () => { if (!document.hidden) this.poke(); };
+    document.addEventListener('visibilitychange', this.onVis);
+    this.start();
+  }
+  start() {
+    const s = this.spec;
+    if (this.kind === 'futures') {
+      this.h = acquire(s.root, (m) => this.frame(m), 20);   // the hub's 20-level snapshot is enough for every pack tool (N <= 20 ticks)
+    } else {
+      this.stopFn = openSource(s.prov, s.pair, {
+        book: (b) => this.cryptoBook(b),
+        trades: (l, back) => this.cryptoTrades(l, back),
+        status: (st, note) => { this.status = st; this.note = note || ''; this.poke(); }
+      });
+    }
+  }
+  stop() { document.removeEventListener('visibilitychange', this.onVis); if (this.h) { this.h.release(); this.h = null; } if (this.stopFn) { try { this.stopFn(); } catch (e) {} this.stopFn = null; } }
+  poke() { this.ls.forEach((f) => { try { f(); } catch (e) {} }); }
+  feed() { return this.kind === 'futures' ? rootState(this.spec.root).trades : this.tf; }
+  view(N) { let v = this.views.get(N); if (!v) { v = new DepthView(N); this.views.set(N, v); } return v; }
+  refill(o) { const k = [o.refillPct, o.withinSec, o.hitPct].join('|'); let r = this.refills.get(k); if (!r) { r = new D.RefillTracker(o); this.refills.set(k, r); r.since = Date.now(); } return r; }
+  large(pct) { let l = this.larges.get(pct); if (!l) { l = { pct, tr: new D.LargeTracker(), thr: null }; this.larges.set(pct, l); } return l; }
+
+  // ---- futures hub frames
+  frame(m) {
+    const r = rootState(this.spec.root);
+    if (!m) { this.status = r.status === 'live' ? 'live' : r.status === 'error' ? 'error' : 'loading'; this.poke(); return; }
+    if (document.hidden) return;
+    if (m.type === 'snap') { const bk = D.bookFromLists(m.bids, m.asks, this.tick); if (bk) { this.status = 'live'; this.onBook(bk); } }
+    else if (m.type === 'ticks' && m.t && m.t.length) {
+      const rows = m.t.map((x) => ({ idx: Math.round(x[0] / this.tick), size: x[1], side: x[2] > 0 ? 1 : -1 }));
+      this.refills.forEach((t) => t.onTrades(Date.now(), rows));
+    }
+  }
+  // ---- crypto
+  cryptoBook(b) {
+    if (document.hidden) return;
+    const now = Date.now(); if (now - this.lastCrypto < 250) return; this.lastCrypto = now;
+    if (!this.tick) {
+      let bp = 0, ap = Infinity; b.bids.forEach((q, p) => { if (p > bp) bp = p; }); b.asks.forEach((q, p) => { if (p < ap) ap = p; });
+      if (!(bp > 0) || !(ap < Infinity)) return;
+      this.tick = C.autoStep((bp + ap) / 2); this.tf = new TickFeed('NQ'); this.tf.tick = this.tick;
+      const p = this.pending; this.pending = []; for (const x of p) this.cryptoTrades(x.l, x.back);
+    }
+    const bk = D.bookFromMaps(b.bids, b.asks, this.tick); if (bk) { this.status = 'live'; this.onBook(bk); }
+  }
+  cryptoTrades(list, back) {
+    if (!this.tick) { this.pending.push({ l: list, back }); if (this.pending.length > 50) this.pending.shift(); return; }
+    this.tf.add(list.map((x) => [x.p, x.s, x.side, x.t]), !!back);
+    if (!back && !document.hidden) { const rows = list.map((x) => ({ idx: x.side > 0 ? Math.ceil(x.p / this.tick - 1e-9) : Math.floor(x.p / this.tick + 1e-9), size: x.s, side: x.side > 0 ? 1 : -1 })); this.refills.forEach((t) => t.onTrades(Date.now(), rows)); }
+  }
+
+  // ---- one book update
+  onBook(bk) {
+    const ts = Date.now();
+    if (!this.since) this.since = ts;
+    this.last = bk; this.lastTs = ts;
+    this.views.forEach((v) => v.update(ts, bk));
+    this.refills.forEach((t) => t.onBook(ts, bk));
+    this.larges.forEach((l) => l.tr.update(ts, bk, l.thr));
+    const sec = Math.floor(ts / 1000);
+    if (sec !== this.secT) { this.secT = sec; this.perSecond(ts, bk); }
+    this.v++; this.poke();
+  }
+  perSecond(ts, bk) {
+    const ss = D.sessionStart(ts, this.kind);
+    if (ss !== this.sess) { this.sess = ss; this.hist.reset(); }
+    for (let i = bk.bb, k = 0; k < 20; i--, k++) this.hist.add(bk.bid.get(i));
+    for (let i = bk.ba, k = 0; k < 20; i++, k++) this.hist.add(bk.ask.get(i));
+    this.larges.forEach((l) => { l.thr = this.hist.n >= minHist() ? this.hist.top(l.pct) : null; });
+    // 1 s sample for the iceberg hint (bids +, asks -): the same row shape icebergEvents reads
+    let lo = bk.bb, hi = bk.ba;
+    bk.bid.forEach((q, i) => { if (i < lo) lo = i; }); bk.ask.forEach((q, i) => { if (i > hi) hi = i; });
+    const v = new Float32Array(hi - lo + 1);
+    bk.bid.forEach((q, i) => { v[i - lo] = q; }); bk.ask.forEach((q, i) => { v[i - lo] = -q; });
+    this.samples.push({ ts, step: this.tick, i0: lo, v });
+    while (this.samples.length && this.samples[0].ts < ts - 12 * 60000) this.samples.shift();
+    const m = Math.floor(ts / 60000) * 60000;
+    if (m !== this.minT) { const first = !this.minT; this.minT = m; if (!first) this.minuteClosed(m); else this.iceFrom = m; }
+  }
+  // the minute before `m` is closed: absorption (whole session, from the footprint minutes) and iceberg hints (new minute only)
+  minuteClosed(m) {
+    const tf = this.feed(); if (!tf) return;
+    try {
+      const bars = tf.bars().filter((b) => b.t < m);
+      this.absEv = absorptionEvents(bars).map((e) => ({ t: e.t, d: e.side === 0 ? 1 : -1 }));
+      const from = m - 10 * 60000;
+      const mins = bars.filter((b) => b.t >= from && b.t >= tf.coverFrom), samples = this.samples.filter((s) => s.ts >= from);
+      if (mins.length && samples.length) for (const e of icebergEvents(samples, mins, { step: this.tick, tick: this.tick })) if (e.t >= this.iceFrom && e.t < m) this.iceEv.push({ t: e.t + 30000, d: e.side });
+      if (this.iceEv.length > 5000) this.iceEv.splice(0, this.iceEv.length - 5000);
+    } catch (e) { /* a bad minute never breaks the chart */ }
+    this.iceFrom = m;
+  }
+}
+function acquireStore(spec, listener) {
+  let s = stores.get(spec.key);
+  if (!s) { s = new Store(spec); stores.set(spec.key, s); }
+  s.refs++; s.ls.add(listener);
+  return { s, release() { s.ls.delete(listener); if (--s.refs <= 0) { s.stop(); stores.delete(spec.key); } } };
+}
+function specOf(ctx) {
+  const sym = String(ctx.symbol || ''), m = /^([a-z0-9]+):(.+)$/i.exec(sym), prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
+  if (prov === 'futures') { const root = l2Root(tk); return root ? { kind: 'futures', root, key: 'f|' + root } : null; }
+  if (CRYPTO.includes(prov)) { const pair = C.pairOf(tk); return { kind: 'crypto', prov, pair, key: 'c|' + prov + '|' + pair.base + pair.quote + pair.perp }; }
+  return null;
+}
+
+// ---------------------------------------------------------------------------------------- settings
+const BAND_COLORS = [{ key: 'calmColor', title: 'Calm', type: 'color', defval: CYAN }, { key: 'normalColor', title: 'Normal', type: 'color', defval: GREY }, { key: 'fastColor', title: 'Fast', type: 'color', defval: AMBER }];
+const SCHEMA = {
+  stk_bk_speed: [
+    { key: 'ticks', title: 'Depth (ticks each side of price)', type: 'int', defval: 20, min: 3, max: 20, step: 1, tooltip: 'Counts level changes this close to price.' },
+    { key: 'smooth', title: 'Smoothing (bars)', type: 'int', defval: 3, min: 1, max: 30, step: 1 },
+    { key: 'calmPct', title: 'Calm at or below (session percentile)', type: 'int', defval: 25, min: 5, max: 45, step: 1 },
+    { key: 'fastPct', title: 'Fast at or above (session percentile)', type: 'int', defval: 75, min: 55, max: 95, step: 1 }
+  ].concat(BAND_COLORS),
+  stk_bk_bal: [
+    { key: 'ticks', title: 'Depth (ticks each side of price)', type: 'int', defval: 20, min: 3, max: 20, step: 1 },
+    { key: 'bidColor', title: 'Bid size', type: 'color', defval: UP },
+    { key: 'askColor', title: 'Ask size', type: 'color', defval: DN },
+    { key: 'showLines', title: 'Show the two size lines', type: 'bool', defval: true }
+  ],
+  stk_bk_refill: [
+    { key: 'refillPct', title: 'Refilled to at least (% of the size before the hit)', type: 'int', defval: 70, min: 10, max: 200, step: 5 },
+    { key: 'withinSec', title: 'Within (seconds)', type: 'float', defval: 3, min: 0.5, max: 30, step: 0.5 },
+    { key: 'hitPct', title: 'Level hit by at least (% of its size)', type: 'int', defval: 30, min: 5, max: 100, step: 5 },
+    { key: 'labels', title: 'Show the R label', type: 'bool', defval: true },
+    { key: 'bidColor', title: 'Bid refilled (supports up)', type: 'color', defval: UP },
+    { key: 'askColor', title: 'Ask refilled (supports down)', type: 'color', defval: DN }
+  ],
+  stk_bk_regime: [
+    { key: 'ticks', title: 'Depth (ticks each side of price)', type: 'int', defval: 20, min: 3, max: 20, step: 1 },
+    { key: 'tightPct', title: 'Tight at or below (session percentile)', type: 'int', defval: 25, min: 5, max: 45, step: 1 },
+    { key: 'widePct', title: 'Wide at or above (session percentile)', type: 'int', defval: 75, min: 55, max: 95, step: 1 },
+    { key: 'tightColor', title: 'Tight', type: 'color', defval: CYAN }, { key: 'normalColor', title: 'Normal', type: 'color', defval: GREY }, { key: 'wideColor', title: 'Wide', type: 'color', defval: AMBER }
+  ],
+  stk_bk_large: [
+    { key: 'topPct', title: 'Top % of the session\'s level sizes', type: 'float', defval: 0.5, min: 0.1, max: 5, step: 0.1 },
+    { key: 'maxShown', title: 'Show at most', type: 'int', defval: 6, min: 1, max: 20, step: 1 },
+    { key: 'bidColor', title: 'Bid', type: 'color', defval: UP }, { key: 'askColor', title: 'Ask', type: 'color', defval: DN }
+  ],
+  stk_bk_track: [
+    { key: 'showAbs', title: 'Absorption', type: 'bool', defval: true },
+    { key: 'showIce', title: 'Iceberg hints', type: 'bool', defval: true },
+    { key: 'showSweep', title: 'Stop runs / sweeps', type: 'bool', defval: true },
+    { key: 'absColor', title: 'Absorption', type: 'color', defval: CYAN },
+    { key: 'iceColor', title: 'Iceberg hints', type: 'color', defval: AMBER },
+    { key: 'sweepColor', title: 'Stop runs', type: 'color', defval: VIOLET }
+  ]
+};
+const TITLES = {
+  stk_bk_speed: ['Book Speed (L2)', 'Book Speed', 'new', false, 'L2'],
+  stk_bk_bal: ['Liquidity Balance (L2)', 'Liquidity Balance', 'new', false, 'L2'],
+  stk_bk_refill: ['Refill Detector (L2)', 'Refill Detector', 'price', true, 'L2'],
+  stk_bk_regime: ['Volatility Regime (L2)', 'Volatility Regime', 'price', true, 'L2'],
+  stk_bk_large: ['Large Resting Orders (L2)', 'Large Resting Orders', 'price', true, 'L2'],
+  stk_bk_track: ['Absorption & Iceberg Tracker (L1+L2)', 'Abs & Iceberg Tracker', 'new', false, 'L2']
+};
+
+// ---------------------------------------------------------------------------------------- the indicator
+let H = null;
+class BkNative {
+  constructor(type) { this.type = type; this.inputs = defaults(SCHEMA[type]); this.tm = 0; this.last = 0; this.h = null; this.spec = null; this.on = false; this.off = false; this.onAny = () => this.later(); this.ms = 0; this.n = 0; this.memo = {}; }
+  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); this.render(); }
+  // at most 5 redraws a second; none while the tab is hidden
+  later() {
+    if (this.tm || this.off || document.hidden) return;
+    this.tm = setTimeout(() => { this.tm = 0; this.render(); }, Math.max(0, MIN_GAP - (Date.now() - this.last)));
+  }
+  onBars() { this.later(); }
+  onViewport() { if (this.type === 'stk_bk_refill' || this.type === 'stk_bk_large') this.push(); }
+  setInputs(i) { this.inputs = Object.assign(defaults(SCHEMA[this.type]), i); this.memo = {}; this.render(); }
+  suspend() { this.on = false; clearTimeout(this.tm); this.tm = 0; this.push(); }
+  resume() { this.on = true; this.render(); }
+  stop() { this.off = true; this.on = false; clearTimeout(this.tm); document.removeEventListener('visibilitychange', this.onVis); this.unbind(); this.push(); }
+  unbind() { if (this.h) { this.h.release(); this.h = null; this.spec = null; } }
+  bind(spec) { if (this.spec && this.spec.key === spec.key && this.h) return; this.unbind(); this.h = acquireStore(spec, this.onAny); this.spec = spec; }
+  push(extra) { try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
+  say(txt, series) {
+    const id = this.type;
+    this.ctx.setStatus('idle');
+    this.ctx.emit({ series: series || [], tables: [H.message(id + '-msg', txt, H.pageIsDay(), 'top_right')] });
+    this.push({ off: true });
+  }
+  gate() {
+    const spec = specOf(this.ctx);
+    if (!spec) return { msg: NEED };
+    if (spec.kind === 'futures' ? !l2Visible() : isFree()) return { msg: NOT_YET };
+    return { spec };
+  }
+  legend(lines, color) {
+    const day = light();
+    return { id: this.type + '-leg', paneId: '', position: 'top_right', columns: 1, rows: lines.length, bgColor: day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.88)', frameWidth: 0, borderWidth: 0,
+      cells: lines.map((t, i) => [{ text: t, textColor: i === 0 && color ? color : (day ? '#334155' : '#a3a9b6'), hAlign: 'right', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: i === 0, italic: false }]), merges: [] };
+  }
+  render() {
+    this.last = Date.now();
+    if (!this.ctx || this.off) return;
+    const t0 = performance.now(); this.emitMs = 0;
+    if (!this.emitWrapped) { this.emitWrapped = true; const me = this; for (const k of ['emit', 'setStatus', 'pushData']) { const f = this.ctx[k].bind(this.ctx); this.ctx[k] = (x) => { const a = performance.now(); if (k === 'emit' && window.__EXP && me.type === 'stk_bk_speed') window.__emit = JSON.stringify(x.series && x.series.map((z) => ({ id: z.id, kind: z.kind, n: z.points.length, nn: z.points.filter((q) => q.value != null).length, last: z.points.slice(-2) }))); try { return f(x); } finally { me.emitMs += performance.now() - a; } }; } }
+    // our own work only: the chart library's emit / pushData (its layout + paint) is timed apart
+    try { this.draw(); } finally { this.ms += performance.now() - t0 - this.emitMs; this.n++; (window.__stkBookPack || (window.__stkBookPack = {}))[this.type] = { renders: this.n, avgMs: this.ms / this.n }; }
+  }
+  draw() {
+    const g = this.gate();
+    if (g.msg) { this.unbind(); return this.say(g.msg); }
+    this.bind(g.spec);
+    const s = this.h.s, I = this.inputs, ctx = this.ctx, bars = ctx.bars(), t = this.type;
+    if (!s.last) { ctx.setStatus('loading'); ctx.emit({ series: [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Waiting for the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
+    ctx.setStatus('live');
+    const tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
+    const kind = s.kind, ss = D.sessionStart(Date.now(), kind);
+    const since = s.since > ss ? 'No book history before ' + hhmm(s.since) : '';
+    if (t === 'stk_bk_speed') return this.drawSpeed(s, I, bars, tf, ss, since);
+    if (t === 'stk_bk_bal') return this.drawBal(s, I, bars, tf, ss, since);
+    if (t === 'stk_bk_regime') return this.drawRegime(s, I, bars, tf, since);
+    if (t === 'stk_bk_refill') return this.drawRefill(s, I, since);
+    if (t === 'stk_bk_large') return this.drawLarge(s, I);
+    return this.drawTrack(s, I, bars, kind, since);
+  }
+  // values per bar -> { cuts, band[] } against the bars' own session history (needs >= 8 values)
+  bands(vals, bars, lo, hi) {
+    const ss = D.sessionStart(bars.length ? bars[bars.length - 1].time : Date.now(), this.spec.kind === 'futures' ? 'futures' : 'crypto');
+    const sv = []; for (let i = 0; i < bars.length; i++) if (bars[i].time >= ss && vals[i] != null) sv.push(vals[i]);
+    const [a, b] = sv.length >= 8 ? D.percentiles(sv, [lo, hi]) : [null, null];
+    return { lo: a, hi: b, band: vals.map((v) => D.band(v, a, b)) };
+  }
+  drawSpeed(s, I, bars, tf, ss, since) {
+    const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
+    const raw = D.perBar(v.speed, bars, tf, 'mean'), sm = D.ema(raw, clamp(Math.round(num(I.smooth, 3)), 1, 30));
+    const b = this.bands(sm, bars, num(I.calmPct, 25), num(I.fastPct, 75)), cols = [I.calmColor, I.normalColor, I.fastColor], names = ['Calm', 'Normal', 'Fast'];
+    const pts = bars.map((x, i) => (sm[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(sm[i]), color: cols[b.band[i]] }));
+    if (window.__EXP) for (let k = pts.length - 6; k < pts.length - 1; k++) if (pts[k].value == null) pts[k] = { time: pts[k].time, value: 30 + k, color: cols[1] };
+    window.__spk = JSON.stringify(pts.slice(-2));
+    let li = sm.length - 1; while (li >= 0 && sm[li] == null) li--;
+    const now = li >= 0 ? sm[li] : null, bi = li >= 0 ? b.band[li] : 1;
+    this.ctx.emit({ series: [{ id: 'bk-speed', title: 'Book changes per second', paneId: '', kind: window.__KIND || 'histogram', points: pts, style: { color: I.normalColor, width: 1, lineStyle: 'solid', base: 0 } }],
+      tables: [this.legend(['Book Speed ' + (now == null ? '…' : now.toFixed(1) + '/s · ' + names[bi]), since || 'how nervous the book is'], cols[bi])] });
+    this.push({ off: true });
+  }
+  drawBal(s, I, bars, tf, ss, since) {
+    const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
+    const bid = D.perBar(v.bid, bars, tf, 'last'), ask = D.perBar(v.ask, bars, tf, 'last');
+    const diff = bid.map((x, i) => (x == null || ask[i] == null ? null : x - ask[i]));
+    const series = [{ id: 'bk-diff', title: 'Bid - ask', paneId: '', kind: 'histogram', points: bars.map((x, i) => (diff[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(diff[i]), color: rgba(diff[i] >= 0 ? I.bidColor : I.askColor, 0.55) })), style: { color: I.bidColor, width: 1, lineStyle: 'solid', base: 0 } }];
+    if (I.showLines !== false) series.push(H.line('bk-bid', 'Resting bid size', bars, bid, I.bidColor, 2), H.line('bk-ask', 'Resting ask size', bars, ask, I.askColor, 2));
+    const j = v.bid.from(ss), lb = v.bid.last, la = v.ask.last;
+    const pct = (a, b) => (a > 0 && b != null ? (b / a - 1) * 100 : null), sg = (x) => (x == null ? 'n/a' : (x >= 0 ? '+' : '') + x.toFixed(0) + '%');
+    const hasStart = j < v.bid.t.length && v.bid.t[j] - ss < 120000;
+    const l2 = hasStart ? 'Since session start: bid ' + sg(pct(v.bid.v[j], lb)) + ' · ask ' + sg(pct(v.ask.v[j], la)) : (since || 'Since session start: n/a');
+    this.ctx.emit({ series, tables: [this.legend(['Bid ' + D.fmtK(v.cur.bid) + ' · Ask ' + D.fmtK(v.cur.ask) + ' · Δ ' + (v.cur.bid - v.cur.ask >= 0 ? '+' : '') + D.fmtK(v.cur.bid - v.cur.ask), l2], v.cur.bid >= v.cur.ask ? I.bidColor : I.askColor)] });
+    this.push({ off: true });
+  }
+  drawRegime(s, I, bars, tf, since) {
+    const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
+    const raw = D.perBar(v.sd, bars, tf, 'mean'), sm = D.ema(raw, 3);
+    const b = this.bands(sm, bars, num(I.tightPct, 25), num(I.widePct, 75)), cols = [I.tightColor, I.normalColor, I.wideColor], names = ['Tight', 'Normal', 'Wide'];
+    let li = sm.length - 1; while (li >= 0 && sm[li] == null) li--;
+    const bi = li >= 0 ? b.band[li] : 1;
+    this.ctx.emit({ tables: [this.legend(['Regime ' + (li >= 0 ? names[bi] : '…'), since || (v.cur.sd != null ? 'spread ' + v.cur.sd.toFixed(1) + ' ticks' : '')], cols[bi])] });
+    this.push({ strip: bars.map((x, i) => (sm[i] == null ? -1 : b.band[i])), cols, nbars: bars.length, firstT: bars.length ? bars[0].time : 0 });
+  }
+  drawRefill(s, I, since) {
+    const tr = s.refill(I);
+    this.tracker = tr; this.store = s;
+    const n = tr.events.length;
+    this.ctx.emit({ tables: [this.legend(['Refills ' + n, 'since ' + hhmm(tr.since) + (since ? '' : '')])] });
+    this.push({ tracker: tr, tick: s.tick, v: s.v });
+  }
+  drawLarge(s, I) {
+    const pct = clamp(num(I.topPct, 0.5), 0.1, 5), l = s.large(pct);
+    this.large = l; this.store = s;
+    const learning = l.thr == null;
+    this.ctx.emit({ tables: [this.legend([learning ? 'Learning this session\'s sizes…' : 'Large ≥ ' + D.fmtK(l.thr), 'top ' + pct + '% of levels'])] });
+    this.push({ large: l, tick: s.tick, v: s.v });
+  }
+  drawTrack(s, I, bars, kind, since) {
+    const series = [], row = [];
+    if (I.showAbs !== false) { const a = D.cumulate(bars, s.absEv, kind); series.push(H.line('bk-abs', 'Absorption', bars, a, I.absColor, 2)); row.push('Abs ' + (a.length ? a[a.length - 1] : 0)); }
+    if (I.showIce !== false) { const a = D.cumulate(bars, s.iceEv, kind); series.push(H.line('bk-ice', 'Iceberg hints', bars, a, I.iceColor, 2)); row.push('Ice ' + (a.length ? a[a.length - 1] : 0)); }
+    if (I.showSweep !== false && bars.length > 12) {
+      const key = bars.length + '|' + bars[0].time + '|' + bars[bars.length - 1].time + '|' + bars[bars.length - 2].close;
+      if (this.memo.swKey !== key) { this.memo.swKey = key; this.memo.sw = sweepEvents(sweepBars(bars, null).slice(0, -1)).map((e) => ({ t: bars[e.i].time, d: e.side === 0 ? 1 : -1 })); }
+      const a = D.cumulate(bars, this.memo.sw, kind); series.push(H.line('bk-swp', 'Stop runs', bars, a, I.sweepColor, 2)); row.push('Runs ' + (a.length ? a[a.length - 1] : 0));
+    }
+    this.ctx.emit({ series, tables: [this.legend([row.join(' · ') || 'Nothing selected', since || 'buy side up · sell side down'])], priceLines: [{ id: 'bk-track-0', paneId: '', price: 0, color: '#787b86', lineStyle: 'dotted', width: 1 }] });
+    this.push({ off: true });
+  }
+}
+
+// ---------------------------------------------------------------------------------------- canvas layers
+function frame(canvas, a) {
+  const g = canvas && canvas.getContext('2d');
+  if (!g) return null;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, canvas.width, canvas.height);
+  const d = a.data;
+  if (!d || !d.owner || !d.owner.on || d.off || !a.bars || !a.bars.length) return null;
+  const dpr = a.coords.dpr || 1;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.save(); g.beginPath(); g.rect(0, a.bounds.top, a.coords.width, a.bounds.height); g.clip();
+  return g;
+}
+const Yp = (a, p) => a.coords.priceToY(p, a.scale, a.bounds);
+const plate = () => (light() ? 'rgba(255,255,255,0.9)' : 'rgba(11,11,13,0.85)');
+
+function refillLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        const o = a.data.owner, I = o.inputs, tr = a.data.tracker, tick = a.data.tick, co = a.coords, phone = co.width < 520;
+        if (!tr || !tick) return;
+        const vr = co.visibleLogicalRange(), i0 = Math.floor(vr.from) - 1, i1 = Math.ceil(vr.to) + 1, top = a.bounds.top, bot = top + a.bounds.height, r = phone ? 4.5 : 5.5;
+        g.font = '700 ' + (phone ? 8 : 9) + 'px ' + MONO; g.textAlign = 'center'; g.textBaseline = 'middle';
+        let drawn = 0;
+        for (let k = tr.events.length - 1; k >= 0 && drawn < 120; k--) {
+          const e = tr.events[k], i = D.idxOf(a.bars, e.t);
+          if (i < i0 || i > i1) continue;
+          const x = co.logicalToX(i), y = Yp(a, e.idx * tick);
+          if (y < top - 10 || y > bot + 10) continue;
+          const col = e.side > 0 ? (I.bidColor || UP) : (I.askColor || DN), up = e.side > 0, ty = up ? y + r + 3 : y - r - 3;
+          g.fillStyle = col; g.strokeStyle = light() ? '#ffffff' : '#0b0b0d'; g.lineWidth = 1;
+          g.beginPath();
+          if (up) { g.moveTo(x, ty - r); g.lineTo(x + r, ty + r * 0.7); g.lineTo(x - r, ty + r * 0.7); } else { g.moveTo(x, ty + r); g.lineTo(x + r, ty - r * 0.7); g.lineTo(x - r, ty - r * 0.7); }
+          g.closePath(); g.fill(); g.stroke();
+          if (I.labels !== false) { const ly = up ? ty + r + 7 : ty - r - 7; g.fillStyle = col; g.fillText('R', x, ly); }
+          drawn++;
+        }
+      } finally { g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+function largeLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        const o = a.data.owner, I = o.inputs, L = a.data.large, tick = a.data.tick, co = a.coords, phone = co.width < 520;
+        if (!L || !tick || !(L.thr > 0)) return;
+        const now = Date.now(), top = a.bounds.top, bot = top + a.bounds.height, maxW = phone ? 36 : 64, right = co.width - (phone ? 46 : 62);
+        const rows = [];
+        L.tr.live.forEach((e) => rows.push({ e, al: 1 }));
+        for (const e of L.tr.gone) rows.push({ e, al: Math.max(0, 1 - (now - e.goneAt) / 3000) * 0.6 });
+        rows.sort((x, y) => y.e.size - x.e.size);
+        const shown = rows.slice(0, clamp(Math.round(num(I.maxShown, 6)), 1, 20));
+        g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textBaseline = 'middle'; g.textAlign = 'right';
+        const hpx = Math.max(4, Math.abs(Yp(a, tick) - Yp(a, 0)) || 4);
+        for (const { e, al } of shown) {
+          const y = Yp(a, e.idx * tick);
+          if (y < top - 6 || y > bot + 6 || al <= 0) continue;
+          const col = e.side > 0 ? (I.bidColor || UP) : (I.askColor || DN), w = Math.max(10, Math.min(1, e.size / (L.thr * 3)) * maxW);
+          g.globalAlpha = al;
+          g.fillStyle = rgba(col, 0.85); g.fillRect(co.width - w - 1, y - Math.min(hpx, 7) / 2, w, Math.min(hpx, 7));
+          const txt = D.fmtK(e.size) + ' · ' + D.fmtDur((e.goneAt || now) - e.since);
+          const tw = g.measureText(txt).width + 8;
+          g.fillStyle = plate(); g.fillRect(co.width - w - 4 - tw, y - 7, tw, 14);
+          g.fillStyle = col; g.fillText(txt, co.width - w - 8, y);
+        }
+        g.globalAlpha = 1;
+      } finally { g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+function regimeLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        const d = a.data, co = a.coords, n = a.bars.length;
+        if (!d.strip || d.nbars !== n || a.bars[0].time !== d.firstT) return;
+        const vr = co.visibleLogicalRange(), i0 = Math.max(0, Math.floor(vr.from)), i1 = Math.min(n - 1, Math.ceil(vr.to)), ppb = co.pxPerBar(), h = 4, y = a.bounds.top + a.bounds.height - h - 1;
+        for (let i = i0; i <= i1; i++) {
+          const k = d.strip[i]; if (k < 0) continue;
+          g.fillStyle = rgba(d.cols[k], 0.9);
+          g.fillRect(co.logicalToX(i) - ppb / 2, y, Math.max(1, ppb), h);
+        }
+      } finally { g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+
+// ---------------------------------------------------------------------------------------- install
+export function installBookPack(Core, hooks, reg) {
+  if (H) return;
+  H = hooks;
+  Core.registerRendererLayer({ id: 'stk_bk_refill', placement: 'above-data', create: refillLayer });
+  Core.registerRendererLayer({ id: 'stk_bk_large', placement: 'above-data', create: largeLayer });
+  Core.registerRendererLayer({ id: 'stk_bk_regime', placement: 'above-data', create: regimeLayer });
+  for (const type of BK_TYPES) {
+    const [title, short, pane, overlay, needs] = TITLES[type];
+    if (!L2_TYPES.includes(type)) L2_TYPES.push(type);
+    registerFeed(type, { needs, title });
+    reg(Core, { type, title, shortTitle: short, paneHint: pane, overlay, reactsToViewport: type === 'stk_bk_refill' || type === 'stk_bk_large', inputsSchema: () => SCHEMA[type], create: () => new BkNative(type) });
+  }
+}
+// test hooks (read-only)
+if (typeof window !== 'undefined') window.__stkBookPackStores = stores;

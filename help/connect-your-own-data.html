@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="859">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="What happens when you connect your own data feed to TradeZoro, including Alpaca sign-in. Market data only. TradeZoro never places orders.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Connect your own data: Alpaca sign-in and what TradeZoro can see">
+<meta property="og:description" content="What happens when you connect your own data feed to TradeZoro, including Alpaca sign-in. Market data only. TradeZoro never places orders.">
+<meta property="og:url" content="https://tradezoro.com/help/connect-your-own-data">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Connect your own data: Alpaca sign-in and what TradeZoro can see">
+<meta name="twitter:description" content="What happens when you connect your own data feed to TradeZoro, including Alpaca sign-in. Market data only. TradeZoro never places orders.">
+<meta name="theme-color" content="#050506">
+<title>Connect your own data: Alpaca sign-in and what TradeZoro can see | TradeZoro</title>
+<link rel="canonical" href="https://tradezoro.com/help/connect-your-own-data">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=859">
+<link rel="stylesheet" href="/assets/nav-features.css?v=859">
+<script src="/assets/sanitize.js?v=859"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=859" defer></script>
+<script src="/assets/version-check.js?v=859" defer></script>
+<script src="/assets/cookie-notice.js?v=859" defer></script>
+<script src="/assets/acquisition.js?v=859" defer></script>
+<script src="/assets/focus-mode.js?v=859" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/tradezoro-favicon-32-494.png?v=859">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=859">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/tradezoro-favicon-16-494.png?v=859">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=859">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/tradezoro-icon-192-494.png?v=859">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<style>
+.bh-card{ border:1px solid var(--line,#2c2c32); border-radius:12px; padding:16px; margin:0 0 20px; background:var(--bg-2,rgba(255,255,255,.03)); }
+.bh-card ul{ margin:8px 0 8px; }
+.bh-warn{ border-color:rgba(255,176,32,.6); background:rgba(255,176,32,.09); }
+:root[data-theme="light"] .bh-warn{ border-color:rgba(176,112,0,.6); background:rgba(176,112,0,.08); }
+.bh-small{ font-size:13px; line-height:20px; color:var(--ink-2,#8b93a0); margin:8px 0 0; }
+.bh-figs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin:0 0 16px; }
+.bh-fig{ margin:0 0 16px; } .bh-figs .bh-fig{ margin:0; }
+.bh-fig svg{ display:block; width:100%; height:auto; border-radius:8px; font-family:'Segoe UI',system-ui,sans-serif; }
+.bh-fig figcaption{ font-size:13px; line-height:20px; color:var(--ink-2,#8b93a0); margin-top:6px; }
+.bh-pre{ overflow-x:auto; border:1px solid var(--line,#2c2c32); border-radius:8px; padding:12px 14px; margin:0 0 16px; background:var(--bg-2,rgba(255,255,255,.04)); font-size:13px; line-height:20px; }
+.bh code{ font-family:var(--font-mono,'JetBrains Mono',monospace); font-size:.9em; overflow-wrap:anywhere; }
+.bh-pre code{ white-space:pre; overflow-wrap:normal; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/academy">ZoroAcademy</a>
+      <a href="/features/community">Community</a>
+      <a href="/help">Help</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<header class="site-page-hero"><div class="container"><h1 id="site-page-title">Connect your own data</h1>
+<span class="updated-note">Last updated 4 November 2026</span></div></header>
+<div class="container"><div class="article-wrap"><div class="article-body bh">
+<p>You can show prices from your own broker or data account on a TradeZoro chart. This page explains what that means, in plain words.</p>
+<div class="bh-card bh-key"><strong>The short version</strong>
+<ul><li><strong>Market data only.</strong> TradeZoro reads prices. It never places, changes or cancels orders.</li>
+<li><strong>We do not read your balance, positions or orders.</strong></li>
+<li><strong>Prices go from your account straight to your browser.</strong> They do not pass through TradeZoro servers.</li>
+<li><strong>You stay in control.</strong> Disconnect at any time in TradeZoro (Data source, then Forget this connection) and in your Alpaca account.</li></ul>
+<p class="bh-small">Education only. Not financial advice.</p></div>
+<h2 id="alpaca">Sign in with Alpaca</h2>
+<ol><li>Open a ZoroCharts page and tap <strong>Data source</strong>.</li>
+<li>Pick <strong>Alpaca</strong>, then tap <strong>Sign in with Alpaca</strong>.</li>
+<li>Log in on Alpaca's own page. TradeZoro never sees your Alpaca password.</li>
+<li>Alpaca shows its authorization screen. TradeZoro asks only for the <strong>data</strong> permission.</li>
+<li>You come back to TradeZoro, connected. Open a stock or ETF, for example AAPL. The chart is labelled <strong>Data feed: your Alpaca</strong>.</li></ol>
+<p>Alpaca's authorization wording says an app may be allowed to place transactions at your direction. That is Alpaca's standard text for every app. TradeZoro asks for the data permission only and has no order feature.</p>
+<h2 id="disconnect">Take it back</h2>
+<ul><li>In TradeZoro: Data source, Alpaca, <strong>Forget this connection</strong>.</li>
+<li>In Alpaca: remove TradeZoro from your connected apps in your Alpaca account settings.</li></ul>
+<p>Other sources use the same rule: prices only. Your data provider terms still apply, and the feed is for your own use. Need help? <a href="/help#new-ticket">Contact support</a> (Help, then New support ticket).</p>
+<p class="bh-small">Education only. Not financial advice.</p>
+</div></div></div>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>ZoroAcademy</h5>
+        <a href="/academy">ZoroAcademy home</a>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="/learn">ZoroAcademy articles</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About TradeZoro</a>
+        <a href="/help">Help Center</a>
+        <a href="/suggestions">Suggestions</a>
+        <a href="/creators">Creator Hub</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro LLC. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+      <a href="/market-data-terms">Market Data Terms</a>
+      <a href="/terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/nav-features.js?v=859" defer></script>
+<script src="/assets/main.js?v=859"></script>
+<script src="/assets/auth.js?v=859"></script>
+<script src="/assets/progress.js?v=859"></script>
+<script src="/assets/activity-log.js?v=859"></script>
+<script src="/assets/banned-check.js?v=859"></script>
+<script src="/assets/email-verify.js?v=859"></script>
+<script src="/assets/profiles-sync.js?v=859"></script>
+<script src="/assets/loading-animation.js?v=859"></script>
+<script src="/assets/branding.js?v=859"></script>
+<script src="/assets/seo.js?v=859"></script>
+<script src="/assets/theme.js?v=859"></script>
+</body>
+</html>

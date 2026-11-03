@@ -60,7 +60,8 @@ const PAGES = [
   ['/gdpr',                 '0.3', 'yearly'],
   ['/refund-policy',        '0.3', 'yearly'],
   ['/market-data-terms',    '0.3', 'yearly'],
-  ['/help/desktop-bridge',  '0.5', 'monthly']
+  ['/help/desktop-bridge',  '0.5', 'monthly'],
+  ['/help/connect-your-own-data', '0.5', 'monthly']
 ];
 
 // Guard: every indexable page (no noindex) with a canonical URL must be

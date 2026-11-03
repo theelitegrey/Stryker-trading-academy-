@@ -66,6 +66,11 @@ const CSS = `
 .byo-steps ol{ margin:0 0 4px; padding-left:20px; font:400 13px/20px var(--by-font); color:var(--ink-1,#c9cdd3); }
 .byo-steps li{ margin:0 0 6px; }
 .byo-steps .byo-link{ display:inline-block; }
+.byo-disc{ margin:12px 0; padding:12px 16px; border:1px solid var(--line,#2c2c32); border-radius:12px; background:rgba(150,160,175,.1); font:400 13px/20px var(--by-font); color:var(--ink-1,#c9cdd3); }
+.byo-disc strong{ color:var(--ink-0,#eee); font-weight:600; }
+.byo-disc a{ color:var(--gold,#03c988); text-decoration:underline; }
+:root[data-theme="light"] .byo-disc a{ color:#047857; }
+.byo-disc p{ margin:0; } .byo-disc p+p{ margin-top:8px; color:var(--ink-2,#8b93a0); }
 .byo-note{ margin:12px 0 0; font:400 12px/18px var(--by-font); color:var(--ink-2,#8b93a0); }
 .byo-f{ display:block; margin:0 0 16px; }
 .byo-f > span{ display:block; margin:0 0 8px; font:500 13px/18px var(--by-font); color:var(--ink-1,#c9cdd3); }
@@ -275,6 +280,11 @@ export function mountByo(opts = {}) {
     body.appendChild(el('p', { class: 'byo-lead', text: s.signin ? 'Sign in on ' + s.name + (s.name.endsWith('s') ? '’' : '’s') + ' own page. TradeZoro only reads prices. It can\'t place trades.' : 'Sign in on ' + s.name + '\'s own page. Only market data is requested (read-only). You can take it back any time from ' + s.name + '.' }));
     stepsEl(s.signSteps || s.steps).forEach((n) => body.appendChild(n));
     if (s.signinNote) body.appendChild(el('p', { class: 'byo-note2', text: s.signinNote }));
+    if (s.id === 'alpaca') {   // Alpaca's required OAuth disclosure, exact text, plus our own data-only line
+      body.appendChild(el('div', { class: 'byo-disc', id: 'byo-alpaca-disc' }, [
+        el('p', {}, [el('strong', { text: 'Authorize TradeZoro. ' }), document.createTextNode('By allowing TradeZoro to access your Alpaca account, you are granting TradeZoro access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that TradeZoro will work as advertised or expected. Before authorizing, '), el('a', { href: '/help/connect-your-own-data', target: '_blank', rel: 'noopener', text: 'learn more about TradeZoro' }), document.createTextNode('.')]),
+        el('p', { text: 'TradeZoro only reads market data. It never places orders.' })]));
+    }
     const go1 = el('button', { type: 'button', class: 'byo-go byo-signin', id: 'byo-signin', onclick: () => startOauth(s) }, [logoTile(s), el('span', { text: s.cta })]);
     body.appendChild(go1);
     if (!s.signin) body.appendChild(el('button', { type: 'button', class: 'byo-link byo-alt', id: 'byo-keyalt', text: 'Use an API key instead', onclick: () => go('form', s) }));
@@ -356,6 +366,7 @@ export function mountByo(opts = {}) {
   });
   onByoChange(() => { if (open && view === 'manage') render(); else if (open && view === 'list') renderList(); });
 
+  if (/[?&]byoPreview\b/.test(location.search)) { const a = srcById('alpaca'); if (a) Object.assign(a, { oauth: true, clientId: 'PREVIEW', cta: 'Sign in with Alpaca', keyAlt: true, signinNote: '' }); }   // preview only: shows the sign-in step while the flag is off
   enableSchwabIfConfigured().then((on) => { if (on && open) render(); }).catch(() => {});
   OAUTH().then((m) => m.enableOauthIfConfigured()).then((on) => { if (on && open) render(); }).catch(() => {});
   ctr().then((m) => m.enableCtraderIfConfigured()).then((on) => { if (on && open) render(); }).catch(() => {});

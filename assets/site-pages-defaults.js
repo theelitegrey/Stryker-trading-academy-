@@ -116,6 +116,7 @@ const SITE_PAGES_DEFAULTS = {
       '<p>We keep this simple and honest: TradeZoro currently uses only the storage that\'s strictly necessary to keep you signed in. We do not currently use advertising cookies, marketing trackers, or third-party analytics.</p>' +
       '<h2>Strictly necessary storage</h2>' +
       '<p>We use Firebase Authentication, which relies on browser storage (cookies and similar technologies like localStorage) to keep you signed in between visits. Without this, you\'d need to log in again on every page.</p>' +
+      '<p>Your settings, such as theme and chart preferences, and your cookie notice choice are kept in localStorage on your device. They are not used to track you.</p>' +
       '<h2>Third-party embeds</h2>' +
       '<p>Chapter pages may embed a live chart from TradingView. TradingView may set its own cookies as part of that embed, governed by their own cookie policy, independent of us.</p>' +
       '<h2>Controlling cookies</h2>' +

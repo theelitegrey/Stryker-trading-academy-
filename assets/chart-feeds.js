@@ -1,12 +1,12 @@
 // TradeZoro — Charts: data-feed badges L1 · L2 · L3 (Owner order 2026-11-03). One chip row on the chart + a tap-for-details sheet.
 // Lit = in use on this chart now. Dim = not in use. Locked = an indicator on the chart needs it but the plan does not include it.
 // REGISTER AN INDICATOR OR PANEL (one line, from any module):
-//   import { registerFeed } from './chart-feeds.js?v=830';   registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
+//   import { registerFeed } from './chart-feeds.js?v=831';   registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
 //   (no module? window.STRYKER_FEEDS.register('stk_of_big', { needs: 'L1', title: 'Big Trades' }))
 // Options: mkt 'futures' | 'crypto' (only counts on that market; default any). A panel that is not an indicator calls setPanel(id, true|false).
 // Plain names only in the UI: no vendor names. Education only. Not financial advice.
 
-import { isFree } from './chart-pro-gate.js?v=830';
+import { isFree } from './chart-pro-gate.js?v=831';
 
 export const LEVELS = {
   L1: { name: 'L1', short: 'trades and best bid/ask', what: 'Every trade plus the best bid and ask.' },

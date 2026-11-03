@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+raise SystemExit("DEPRECATED 11-03: builds from the old panther master. Use tools/make_logo_1103.py.")
 """
 Remove the black background from the STA logo and regenerate every site asset.
 

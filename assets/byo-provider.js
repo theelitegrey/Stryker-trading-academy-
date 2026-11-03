@@ -46,7 +46,7 @@ export class ByoProvider {
     const r = route('byo', ticker);
     if (!r) return undefined;
     const t = r.ad.symbolOf(ticker);
-    if (r.ad.info) return r.ad.info(t);
+    if (r.ad.info) return r.ad.info(t, r.rec.creds);
     if (r.id === 'ironbeam') return { ticker: t, tickerid: 'BYO:' + t, prefix: 'BYO', description: t.split(':')[1], type: 'futures', market: 'futures', currency: 'USD', mintick: 0.01, pricescale: 100, minmove: 1, pointvalue: 1, timezone: 'America/Chicago', session: '1700-1600' };
     const known = POPULAR.find((p) => p[0] === t);
     return { ticker: t, tickerid: 'BYO:' + t, prefix: 'BYO', description: known ? known[1] : t, type: 'stock', market: 'equity', currency: 'USD', mintick: 0.01, pricescale: 100, minmove: 1, pointvalue: 1,

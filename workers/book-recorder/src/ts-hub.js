@@ -33,6 +33,10 @@ export const TS_WS = 'wss://stream.tick-stream.xyz/v1/stream';
 export const TS_SYMBOLS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
 // Quote-only symbols (Owner 2026-11-02): indices send {price = the level, size 0}, ETFs the last price. ticks channel only, no book.
 export const TS_QUOTES = ['SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'];
+// TRADES-ONLY roots (Owner order 2026-11-03): the roots we used to stream live elsewhere and the hub had no book for. Ticks channel only, on the
+// SAME upstream socket: no book, no footprint recording, no trade store (cost / storage). Each micro has its OWN trades (not its mini's).
+// Candles and quotes only. tools/tests/ts-live-source.test.mjs checks this list equals HUB_TRADES in assets/live-source.js.
+export const TS_TRADES = ['SI', 'SIL', 'NG', 'ZB', 'ZN', '6E', 'HG', 'MHG', 'MGC', 'MCL', 'MYM', 'M2K'];
 export const LEVELS = [20, 60, 150];
 export const COARSE_RANGE = 0.02;         // +-2% of the mid (was 0.4%): NQ ~ +-570 pts; unused rows are trimmed, so a sample only holds what the 400-level book spans
 // Row step for the heatmap rows: the nice step at or below 0.01% of the price. NQ 28.7k -> 2.5, ES 7.6k -> 0.5.
@@ -54,7 +58,7 @@ export const coarseRule = (mid, sym) => {
 };
 
 const DEF = {
-  SYMBOLS: TS_SYMBOLS, QUOTES: TS_QUOTES, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
+  SYMBOLS: TS_SYMBOLS, TRADES: TS_TRADES, QUOTES: TS_QUOTES, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
   SAMPLE_MS: 5000, BACK_MIN_MS: 2000, BACK_MAX_MS: 60000, STABLE_MS: 30000, DEAD_SLOT_MS: 50000, AUTH_PAUSE_MS: 300000,
   SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, FILL_MAX_MIN: 60, FILL_BUDGET_MS: 25000, FILL_SPAN_H: 6, FILL_STEP: 5, FILL_LAG_MS: 2 * 60000, FILL_PAUSE_MS: 60000, REST: 'https://api.tick-stream.xyz/v1', TICKS_PER_FRAME: 200, PRUNE_MS: 3600000
 };
@@ -130,7 +134,7 @@ export class TSHub {
     on('open', () => {
       if (this.ws !== ws) return;
       this.openedAt = this.lastMsgAt = this.clock();
-      for (const channel of ['book', 'ticks']) { try { ws.send(JSON.stringify({ op: 'subscribe', channel, symbols: channel === 'ticks' ? this.o.SYMBOLS.concat(this.o.QUOTES) : this.o.SYMBOLS })); } catch (e) {} }
+      for (const channel of ['book', 'ticks']) { try { ws.send(JSON.stringify({ op: 'subscribe', channel, symbols: channel === 'ticks' ? this.o.SYMBOLS.concat(this.o.TRADES, this.o.QUOTES) : this.o.SYMBOLS })); } catch (e) {} }
       this.setState('open');
     });
     on('message', (ev) => { if (this.ws === ws) this.onRaw(ev && ev.data); });
@@ -199,6 +203,7 @@ export class TSHub {
         continue;
       }
       if (m.type === 'tick' && this.o.QUOTES.includes(m.symbol)) { this.onQuote(m, now); continue; }
+      if (m.type === 'tick' && this.o.TRADES.includes(m.symbol)) { this.onTick(m, now, true); continue; }
       if (!this.o.SYMBOLS.includes(m.symbol)) continue;
       if (m.type === 'book') this.onBook(m, now);
       else if (m.type === 'tick') this.onTick(m, now);
@@ -224,7 +229,8 @@ export class TSHub {
   }
   // { SPX: [price, ts_ms], .. } for /ts-quotes; values older than 10 min are left out
   quoteMap(now = this.clock()) { const o = {}; for (const [s, q] of this.quotes) if (now - q.at < 600000) o[s] = [q.p, q.at]; return o; }
-  onTick(m, now) {
+  // light = trades-only root: the 1m candle + the ring for the browsers, nothing recorded
+  onTick(m, now, light = false) {
     if (!(m.price > 0) || !(m.size > 0)) return;
     const side = m.side === 'buy' ? 1 : m.side === 'sell' ? -1 : 0;
     if (!side) return;
@@ -236,9 +242,10 @@ export class TSHub {
     if (!bb || bb[0] !== bm) { bb = [bm, m.price, m.price, m.price, m.price, 0]; bl.push(bb); if (bl.length > this.o.BARS_MIN) bl.splice(0, bl.length - this.o.BARS_MIN); }
     if (m.price > bb[2]) bb[2] = m.price; if (m.price < bb[3]) bb[3] = m.price; bb[4] = m.price; bb[5] += m.size;
     const ring = this.rings.get(m.symbol) || []; this.rings.set(m.symbol, ring);
-    if (this.o.RECORD) this.tb.add(m.symbol, m.price, m.size, side, now);   // TS-TRADES
+    if (!light && this.o.RECORD) this.tb.add(m.symbol, m.price, m.size, side, now);   // TS-TRADES
     ring.push([++this.seq, m.price, m.size, side, now]);
     if (ring.length > this.o.RING) ring.splice(0, ring.length - this.o.RING);
+    if (light) return;
     const a = this.accFor(m.symbol, now), key = String(m.price);
     let lv = a.lv.get(key);
     if (!lv) { lv = [m.price, 0, 0]; a.lv.set(key, lv); }
@@ -290,13 +297,14 @@ export class TSHub {
 
   // ---- clients
   // sock = { send(str), close(code, reason) }. -> handle { close(), onMessage(str) } or null (full)
-  attach(sock, sym, levels) {
+  // tier: 'book' (trades + L2 book) or 'trades' (candles / trades / quotes only, never the book). Omitted = 'book' (the class is only reachable through the Worker, whose glue always passes it); any other value = 'trades'.
+  attach(sock, sym, levels, tier) {
     if (this.clients.size >= this.o.MAX_CLIENTS) { this.n.refused++; return null; }
-    const c = { sock, sym: null, levels: 60, errors: 0, sentVer: -1, lastSend: 0, lastCoarse: 0, lastSeq: this.seq, lastPing: 0, bornAt: this.clock() };
+    const c = { sock, book: tier === undefined || tier === 'book', sym: null, levels: 60, errors: 0, sentVer: -1, lastSend: 0, lastCoarse: 0, lastSeq: this.seq, lastPing: 0, bornAt: this.clock() };
     this.clients.add(c);
     this.setSub(c, sym, levels);
     this.startTimer();
-    this.send(c, JSON.stringify({ event: 'hub_attached', state: this.liveState(), symbols: this.o.SYMBOLS.concat(this.o.QUOTES) }));
+    this.send(c, JSON.stringify({ event: 'hub_attached', state: this.liveState(), tier: c.book ? 'book' : 'trades', symbols: this.o.SYMBOLS.concat(this.o.QUOTES), trades: this.o.TRADES }));
     this.maintain();
     return {
       close: () => { this.clients.delete(c); },
@@ -308,7 +316,7 @@ export class TSHub {
   }
   setSub(c, sym, levels) {
     const s = String(sym || '').toUpperCase();
-    if ((this.o.SYMBOLS.includes(s) || this.o.QUOTES.includes(s)) && s !== c.sym) {
+    if ((this.o.SYMBOLS.includes(s) || this.o.TRADES.includes(s) || this.o.QUOTES.includes(s)) && s !== c.sym) {
       c.sym = s; c.sentVer = -1; c.lastCoarse = 0; c.lastSeq = this.seq;
       const bl = this.bars1m.get(s);
       if (bl && bl.length) this.send(c, JSON.stringify({ type: 'bars', symbol: s, b: bl }));   // [[t_ms,o,h,l,c,vol]..] 1m, newest last
@@ -340,7 +348,7 @@ export class TSHub {
         if (q && q.ver !== c.sentVer) { this.send(c, JSON.stringify({ type: 'quote', symbol: c.sym, p: q.p, ts: q.at })); c.sentVer = q.ver; c.lastSend = now; }
         continue;
       }
-      const L = this.latest.get(c.sym);
+      const L = c.book ? this.latest.get(c.sym) : null;   // trades tier: never a snap or a coarse (heatmap) frame
       let sent = false;
       if (L && L.ver !== c.sentVer) {
         const k = c.levels;
@@ -369,7 +377,7 @@ export class TSHub {
     const now = this.clock();
     return {
       v: 1, at: Math.floor(now / 1000), mode: this.o.MODE, configured: !!this.key || this.o.MODE === 'relay', state: this.state, live: this.liveState(now),
-      cmeOpen: cmeOpen(now), recording: this.o.RECORD, clients: this.clients.size, symbols: this.o.SYMBOLS, quotes: this.o.QUOTES, upstreamSockets: this.ws ? 1 : 0,
+      cmeOpen: cmeOpen(now), recording: this.o.RECORD, clients: this.clients.size, symbols: this.o.SYMBOLS, trades: this.o.TRADES, quotes: this.o.QUOTES, bookClients: [...this.clients].filter((c) => c.book).length, upstreamSockets: this.ws ? 1 : 0,
       lastDataAgoMs: this.lastDataAt ? now - this.lastDataAt : null, retryN: this.retryN, nextRetryInMs: this.timers.retry ? Math.max(0, this.nextAt - now) : 0,
       lastError: this.lastError, keepHours: this.o.KEEP_H, tsBig: this.tb.n.big, tsFilledMin: this.tb.n.filledMin, ...this.n
     };
@@ -508,7 +516,7 @@ export async function tsHubFetch(hub, env, u, req) {
   const pair = new WebSocketPair(), client = pair[0], server = pair[1];
   server.accept();
   const sock = { send: (s) => server.send(s), close: (c, r) => { try { server.close(c, r); } catch (e) {} } };
-  const h = hub.attach(sock, u.searchParams.get('symbol'), u.searchParams.get('levels'));
+  const h = hub.attach(sock, u.searchParams.get('symbol'), u.searchParams.get('levels'), u.searchParams.get('tier') === 'book' ? 'book' : 'trades');
   const proto = String(req.headers.get('sec-websocket-protocol') || '').includes('tz-auth') ? { 'sec-websocket-protocol': 'tz-auth' } : {};
   if (!h) { server.send(JSON.stringify({ event: 'hub_full' })); server.close(1013, 'hub full'); return new Response(null, { status: 101, webSocket: client, headers: proto }); }
   server.addEventListener('message', (ev) => { if (typeof ev.data === 'string' && ev.data.length <= SOCK_LIMIT) h.onMessage(ev.data); });

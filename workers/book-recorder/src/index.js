@@ -26,7 +26,7 @@ import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './
 import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, wsTokenOf, RT_DELAY_S } from './rt-auth.js';
 import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
 import { TSHub, tsHubFetch, tsStore, tsOpts } from './ts-hub.js';
-import { tsAllowed, tsAccess } from './ts-access.js';
+import { tsAllowed, tsAccess, tsTier } from './ts-access.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
@@ -783,9 +783,13 @@ async function route(req, env, ctx) {
       if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
       const ws = u.pathname === '/ts-live';
       if (ws && req.headers.get('upgrade') !== 'websocket') return new Response('websocket required', { status: 426, headers: h });
-      if (!(await tsAllowed(env, ws ? wsTokenOf(req) : bearerOf(req)))) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
+      // /ts-live has two tiers (src/ts-access.js tsTier): 'book' = trades + L2 book, 'trades' = trades / candles / quotes only (live-data add-on etc.).
+      // History reads (book, aux, trades store) stay book-tier. The tier goes to the hub as a query param WE set (any client-sent one is dropped).
+      const tier = ws ? await tsTier(env, wsTokenOf(req)) : ((await tsAllowed(env, bearerOf(req))) ? 'book' : null);
+      if (!tier) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
       if (!ws) { const rl = await env.RL_OF.limit({ key: 'ts:' + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }
-      const r = await stub(env).fetch(new Request('https://do' + u.pathname + u.search, req));
+      const du = new URL('https://do' + u.pathname + u.search); du.searchParams.set('tier', tier);
+      const r = await stub(env).fetch(new Request(du.toString(), req));
       if (ws) return r;
       return new Response(r.body, { status: r.status, headers: Object.assign({ 'cache-control': 'private, no-store', 'content-type': r.headers.get('content-type') || 'application/json', 'x-ts-fill-left': r.headers.get('x-ts-fill-left') || '0', 'access-control-expose-headers': 'x-ts-fill-left' }, h) });
     }
@@ -795,7 +799,7 @@ async function route(req, env, ctx) {
       const h = cors(req), o = req.headers.get('origin');
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
       if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
-      if (!(await tsAllowed(env, bearerOf(req)))) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
+      if (!(await tsTier(env, bearerOf(req)))) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });   // any live-futures tier (quotes are trades-level)
       const ckey = new Request('https://book-recorder.cache/ts-quotes/' + Math.floor(Date.now() / 2000));
       let r = await caches.default.match(ckey);
       if (!r) {

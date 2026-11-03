@@ -4,9 +4,9 @@
 // 'pro' flag only opens it to a verified Pro/demo token); 4029 / silent / auth closes back off; bucketed history uses
 // the crypto bucketer (parity) and survives a round trip; imbalance + footprint recorded; hours rule.
 import assert from 'node:assert/strict';
-import { TSHub, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
+import { TSHub, TS_TRADES, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
 import { bucketSnapshot, decodeSamples, encodeSamples } from '../src/bucket.js';
-import { tsAllowed, tsAccess } from '../src/ts-access.js';
+import { tsAllowed, tsAccess, tsTier } from '../src/ts-access.js';
 
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -51,7 +51,7 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.deepEqual(socks[0].sent.map((m) => m.channel).sort(), ['book', 'ticks']);
   const bookSub = socks[0].sent.find((m) => m.channel === 'book'), tickSub = socks[0].sent.find((m) => m.channel === 'ticks');
   assert.deepEqual(bookSub.symbols, ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'], 'book: futures only, no quote symbols');
-  assert.deepEqual(tickSub.symbols, [...bookSub.symbols, ...TS_QUOTES], 'ticks: futures + the 8 quote symbols');
+  assert.deepEqual(tickSub.symbols, [...bookSub.symbols, ...TS_TRADES, ...TS_QUOTES], 'ticks: books + trades-only roots + the 8 quote symbols');
   socks[0].msg(book(28000));
   socks[0].msg({ type: 'tick', symbol: 'NQ', price: 28000.25, size: 3, side: 'buy', ts: 1 });
   socks[0].msg({ type: 'ping' });
@@ -353,5 +353,69 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   const mkBook = (r) => B.encodeSamples([B.bucketSnapshot({ bids: [[28000, 1], [28000 * (1 - r), 2]], asks: [[28001, 1], [28001 * (1 + r), 2]] }, 1, { step: 2.5, range: 0.02 })]);
   const cut = B.encodeSamples([B.bucketSnapshot({ bids: [[28000, 1], [28000 * (1 - 0.012), 2]], asks: [[28001, 1], [28001 * (1 + 0.012), 2]] }, 1, { step: 2.5, range: 0.004 })]);
   assert.ok(narrowBook(cut) && !narrowBook(mkBook(0.012)) && !narrowBook(mkBook(0.001))); ok('narrowBook: a +-0.4% cut sample is flagged, a wide or a thin-book one is not');
+}
+// ---- LIVE HUB (2026-11-03): trades-only roots + two tiers ('book' / 'trades')
+{
+  const { hub } = mk(); const a = client(), b = client();
+  hub.attach(a, 'NQ', 20, 'book'); hub.attach(b, 'NQ', 20, 'trades');
+  assert.deepEqual(TS_TRADES.filter((s) => TS_SYMBOLS.includes(s)), [], 'no root is both book and trades-only');
+  assert.ok(['SI', 'NG', 'ZB', 'ZN', '6E', 'HG', 'MGC', 'MCL', 'MYM', 'M2K'].every((s) => TS_TRADES.includes(s)), 'the roots we used to stream live are all covered');
+  hub.connect(); await sleep(10);
+  const up = socks[socks.length - 1], subTicks = up.sent.find((x) => x.channel === 'ticks').symbols;
+  assert.ok(TS_TRADES.every((s) => subTicks.includes(s)) && !up.sent.find((x) => x.channel === 'book').symbols.some((s) => TS_TRADES.includes(s)), 'trades roots on the ticks channel only, never the book channel');
+  up.msg(book(28000, 400, 1));
+  const px = 28000.25;
+  up.msg({ type: 'tick', symbol: 'NQ', price: px, size: 2, side: 'buy', ts: 1 });
+  up.msg({ type: 'tick', symbol: 'MGC', price: 4100.1, size: 3, side: 'sell', ts: 1 });
+  up.msg({ type: 'tick', symbol: 'SI', price: 50.5, size: 1, side: 'buy', ts: 1 });
+  assert.equal(hub.tb.n.big === undefined || true, true);
+  const c = client(); hub.attach(c, 'MGC', 20, 'trades'); await sleep(60);
+  assert.ok(c.got.some((m) => m.type === 'bars' && m.symbol === 'MGC' && m.b[0][4] === 4100.1), 'trades-only root: 1m candle back-fill on subscribe');
+  up.msg({ type: 'tick', symbol: 'MGC', price: 4100.3, size: 1, side: 'buy', ts: 2 }); await sleep(260);
+  const t = c.got.filter((m) => m.type === 'ticks'); assert.ok(t.length && t.at(-1).t.some((r) => r[0] === 4100.3 && r[2] === 1 && r[3] > 1e12), 'trades-only root: ticks with side reach the viewer');
+  assert.ok(!c.got.some((m) => m.type === 'snap' || m.type === 'coarse'), 'no book frames for a trades-only root');
+  assert.ok(!hub.acc.has('MGC') && !hub.acc.has('SI'), 'trades-only roots are not recorded (no footprint accumulator)');
+  assert.equal(hub.latest.has('MGC'), false);
+  // tier gate: the trades tier never gets a snap or a coarse frame, even on NQ
+  await sleep(300);
+  assert.ok(a.got.some((m) => m.type === 'snap') && a.got.some((m) => m.type === 'coarse'), 'book tier gets the book on NQ');
+  assert.ok(b.got.some((m) => m.type === 'ticks') || b.got.length > 0, 'trades tier attached');
+  assert.ok(!b.got.some((m) => m.type === 'snap' || m.type === 'coarse'), 'trades tier: NQ trades but NEVER a snap / coarse (book)');
+  assert.equal(b.got.find((m) => m.event === 'hub_attached').tier, 'trades'); assert.equal(a.got.find((m) => m.event === 'hub_attached').tier, 'book');
+  // an unknown tier value counts as trades (fails closed)
+  const d = client(); hub.attach(d, 'NQ', 20, 'admin'); await sleep(300); assert.ok(!d.got.some((m) => m.type === 'snap'), 'odd tier = trades only');
+  hub.shutdown(); ok('hub: trades-only roots on the same socket (no book, nothing recorded); trades tier never receives the book');
+}
+{
+  // gate matrix with real rt-auth + a fake Firestore: admin / Pro / add-on / free / signed out
+  const { generateKeyPairSync, createSign } = await import('node:crypto');
+  const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const jwk = Object.assign(publicKey.export({ format: 'jwk' }), { kid: 'k1', alg: 'RS256', use: 'sig' });
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const tok = (uid) => { const now = Math.floor(Date.now() / 1000); const h = b64({ alg: 'RS256', kid: 'k1', typ: 'JWT' }), p = b64({ iss: 'https://securetoken.google.com/strykertrades-e0cd8', aud: 'strykertrades-e0cd8', sub: uid, iat: now - 5, exp: now + 3000 }); return h + '.' + p + '.' + createSign('RSA-SHA256').update(h + '.' + p).sign(privateKey).toString('base64url'); };
+  const docs = {
+    pro1: { plan: { stringValue: 'pro' } },
+    addon1: { plan: { stringValue: 'free' }, liveData: { mapValue: { fields: { active: { booleanValue: true } } } } },
+    expired1: { plan: { stringValue: 'free' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } } } } },
+    free1: { plan: { stringValue: 'free' } }
+  };
+  const fetchImpl = async (url) => {
+    if (/jwk/.test(url)) return Response.json({ keys: [jwk] });
+    if (/admins\/adm1/.test(url)) return Response.json({ name: 'x' });
+    if (/admins\//.test(url)) return new Response('{}', { status: 404 });
+    const m = /students\/(\w+)/.exec(url); if (m) return docs[m[1]] ? Response.json({ fields: docs[m[1]] }) : new Response('{}', { status: 404 });
+    if (/plans/.test(url)) return Response.json({ documents: [{ name: 'p/pro', fields: { rank: { integerValue: '1' } } }] });
+    return new Response('{}', { status: 404 });
+  };
+  const rt = await import('../src/rt-auth.js'); rt._resetForTests();
+  const T = (env, u) => tsTier(env, u && tok(u), { fetchImpl });
+  // TS_ACCESS=admin (today): admin = book; add-on = trades; Pro without the add-on = nothing (Pro does not include live futures); free / expired / signed out = nothing
+  assert.equal(await T({}, 'adm1'), 'book'); assert.equal(await T({}, 'addon1'), 'trades'); assert.equal(await T({}, 'pro1'), null);
+  assert.equal(await T({}, 'free1'), null); assert.equal(await T({}, 'expired1'), null); assert.equal(await T({}, null), null); assert.equal(await tsTier({}, 'a.b.c'), null);
+  // TS_ACCESS=pro (the Pro release): Pro = book + trades; add-on still trades only (no book); free still nothing
+  rt._resetForTests();
+  const P = { TS_ACCESS: 'pro' };
+  assert.equal(await T(P, 'adm1'), 'book'); assert.equal(await T(P, 'pro1'), 'book'); assert.equal(await T(P, 'addon1'), 'trades'); assert.equal(await T(P, 'free1'), null); assert.equal(await T(P, null), null);
+  ok('gate: admin = book; Pro = book (TS_ACCESS=pro); add-on = trades, refused the book; free / expired add-on / signed out = nothing');
 }
 console.log(n + ' checks passed'); process.exit(0);

@@ -32,7 +32,7 @@
   var testOn = function () { return isLocal() && root.__stkL2Test; };
   var modP = null;
   function mods() {
-    if (!modP) modP = Promise.all([import('./chart-futures-l2.js?v=806'), import('./rt-access.js?v=806')]).then(function (m) { return { l2: m[0], rt: m[1] }; });
+    if (!modP) modP = Promise.all([import('./chart-futures-l2.js?v=807'), import('./rt-access.js?v=807')]).then(function (m) { return { l2: m[0], rt: m[1] }; });
     return modP;
   }
   // true when this visitor may see the live book columns. Never throws.

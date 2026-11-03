@@ -30,13 +30,13 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG } from './chart-bookmap.js?v=823';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=823';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=823';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=823';
-import * as ProGate from './chart-pro-gate.js?v=823';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=823';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=823';
+import { drawBookmap, BM_BG } from './chart-bookmap.js?v=824';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=824';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=824';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=824';
+import * as ProGate from './chart-pro-gate.js?v=824';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=824';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=824';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';

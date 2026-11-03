@@ -170,7 +170,24 @@ jobs:
           INSIGHTSENTRY_WEBSOCKET_API_KEY: ${{ secrets.INSIGHTSENTRY_WEBSOCKET_API_KEY }}
           CREATOR_SEAL_KEY: ${{ secrets.CREATOR_SEAL_KEY }}
           FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SA_KEY }}
+          ALPACA_CLIENT_ID: ${{ secrets.ALPACA_CLIENT_ID }}
+          ALPACA_CLIENT_SECRET: ${{ secrets.ALPACA_CLIENT_SECRET }}
+          TASTY_CLIENT_ID: ${{ secrets.TASTY_CLIENT_ID }}
+          TASTY_CLIENT_SECRET: ${{ secrets.TASTY_CLIENT_SECRET }}
+          UPSTOX_CLIENT_ID: ${{ secrets.UPSTOX_CLIENT_ID }}
+          UPSTOX_CLIENT_SECRET: ${{ secrets.UPSTOX_CLIENT_SECRET }}
+          FYERS_CLIENT_ID: ${{ secrets.FYERS_CLIENT_ID }}
+          FYERS_CLIENT_SECRET: ${{ secrets.FYERS_CLIENT_SECRET }}
+          CTRADER_CLIENT_ID: ${{ secrets.CTRADER_CLIENT_ID }}
+          CTRADER_CLIENT_SECRET: ${{ secrets.CTRADER_CLIENT_SECRET }}
+          DHAN_PARTNER_ID: ${{ secrets.DHAN_PARTNER_ID }}
+          DHAN_PARTNER_SECRET: ${{ secrets.DHAN_PARTNER_SECRET }}
         run: |
+          # Connect-your-own-data sign-in apps: each one is optional; a missing key keeps that row on "Coming soon" (probe says configured:false).
+          for n in ALPACA_CLIENT_ID ALPACA_CLIENT_SECRET TASTY_CLIENT_ID TASTY_CLIENT_SECRET UPSTOX_CLIENT_ID UPSTOX_CLIENT_SECRET FYERS_CLIENT_ID FYERS_CLIENT_SECRET CTRADER_CLIENT_ID CTRADER_CLIENT_SECRET DHAN_PARTNER_ID DHAN_PARTNER_SECRET; do
+            v="${!n}"
+            if [ -n "$v" ]; then printf '%s' "$v" | npx --yes wrangler@4.138.0 pages secret put "$n" --project-name "${{ steps.proj.outputs.name }}" >/dev/null && echo "set $n"; fi
+          done
           if [ -n "$INSIGHTSENTRY_WEBSOCKET_API_KEY" ]; then
             printf '%s' "$INSIGHTSENTRY_WEBSOCKET_API_KEY" | npx --yes wrangler@4.138.0 pages secret put INSIGHTSENTRY_WEBSOCKET_API_KEY --project-name "${{ steps.proj.outputs.name }}"
           else

@@ -2,7 +2,7 @@
 // Run: node tools/tests/byo-core.test.mjs
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
-import { bindUser, guardUrl, guardWs, guardWsMessage, makeVault, candleBuilder, alpaca, oanda, Hub, activate, route, forget, labelFor, statusOf, SOURCES } from '../../assets/byo-core.js?v=829';
+import { ironbeam, bindUser, guardUrl, guardWs, guardWsMessage, makeVault, candleBuilder, alpaca, oanda, Hub, activate, route, forget, labelFor, statusOf, SOURCES } from '../../assets/byo-core.js?v=829';
 import { withByo, ByoProvider } from '../../assets/byo-provider.js';
 
 const FAKE = { key: 'PKTESTFAKE', secret: 'SECRETFAKE', feed: 'iex' };
@@ -34,8 +34,8 @@ await t('guard sockets + messages', () => {
   assert.throws(() => guardWsMessage('alpaca', 'not json'), /byo-guard/);
 });
 await t('catalogue: unbuilt sources are soon, built are ready, none mention orders', () => {
-  assert.deepEqual(SOURCES.filter((s) => s.state === 'ready').map((s) => s.id), ['alpaca', 'oanda']);
-  assert.ok(SOURCES.filter((s) => s.state === 'soon').length >= 4);
+  assert.deepEqual(SOURCES.filter((s) => s.state === 'ready').map((s) => s.id), ['alpaca', 'oanda', 'ironbeam']);
+  assert.ok(SOURCES.filter((s) => s.state === 'soon').length >= 3);
   assert.ok(!/order|trade|position|balance/i.test(JSON.stringify(SOURCES.map((s) => [s.covers, s.help, s.feeNote]))));
 });
 
@@ -186,6 +186,25 @@ await t('hub: backs off between reconnects, resets after data, stops when hidden
 });
 
 // ---- chart path: provider wrapper + fake WebSocket proves the chart gets live bars from the adapter ----
+await t('ironbeam: guard, sign-in, stream, quote frame -> live candle', async () => {
+  for (const u of ['https://live.ironbeamapi.com/v2/account/123/balance', 'https://live.ironbeamapi.com/v2/order/place', 'https://live.ironbeamapi.com/v2/position/list']) assert.throws(() => guardUrl('ironbeam', u), /byo-guard/);
+  assert.throws(() => guardUrl('ironbeam', 'https://live.ironbeamapi.com/v2/stream/create', 'POST'), /byo-guard/);
+  guardUrl('ironbeam', 'https://live.ironbeamapi.com/v2/auth', 'POST');
+  assert.equal(ironbeam.symbolOf('byo:xcme:es.z26'), 'XCME:ES.Z26'); assert.equal(ironbeam.symbolOf('AAPL'), null);
+  const calls = [];
+  const fetch = async (url, init) => { calls.push([url, init.method || 'GET']); if (/auth$/.test(url)) return { ok: true, json: async () => ({ token: 'TOKENFAKE12345', status: 'OK' }) }; if (/create$/.test(url)) return { ok: true, json: async () => ({ streamId: 'sid-12345678' }) }; return { ok: true, json: async () => ({}) }; };
+  class WS2 { constructor(u) { this.url = u; WS2.last = this; setTimeout(() => this.onopen && this.onopen(), 0); } close() {} }
+  const hub = ironbeam.hub({ username: 'u', password: 'p', apiKey: 'k', env: 'demo' }, () => {}, { fetch, WS: WS2 });
+  const bars = []; const t0 = Math.floor(Date.now() / 60000) * 60000;
+  ironbeam.subscribe(hub, 'byo:XCME:ES.Z26', '1', { time: t0, open: 1, high: 1, low: 1, close: 1, volume: 0 }, (b) => bars.push(b));
+  await flush(600);
+  assert.match(WS2.last.url, /^wss:\/\/demo\.ironbeamapi\.com\/v2\/stream\/sid-12345678\?token=/);
+  assert.ok(calls.some(([u]) => /market\/quotes\/subscribe\/sid-12345678\?symbols=XCME%3AES\.Z26$/.test(u)));
+  WS2.last.onmessage({ data: JSON.stringify({ p: { ping: 'ping' }, q: [{ s: 'XCME:ES.Z26', l: 5300.25, sz: 1 }] }) });
+  assert.equal(bars.length, 1); assert.equal(bars[0].close, 5300.25);
+  await assert.rejects(() => ironbeam.check({ username: 'u', password: 'p', apiKey: 'k' }, { fetch: async () => ({ ok: false, status: 401 }) }), (e) => e.status === 401);
+  hub.stop();
+});
 await t('sign-out wipes memory + streams', async () => {
   await bindUser('u1'); activate('alpaca', FAKE, { WS: FakeWS });
   await bindUser(null);

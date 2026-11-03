@@ -3494,7 +3494,7 @@
       {
        "id": "own-data-source",
        "q": "How do I plot data from my own broker account?",
-       "a": "<p>Open ZoroCharts and tap <b>Data source</b> in the toolbar. Pick your source, enter your key, and tap Connect. Your key is encrypted and stays on this device; market data goes straight from your broker to your browser. It is data only: TradeZoro never places or changes trades and never reads your account or balance.</p><p>Today: Alpaca (US stocks and ETFs) and OANDA (forex). More sources are coming. Tap Forget this connection to remove the key from this device.</p>",
+       "a": "<p>Open ZoroCharts and tap <b>Data source</b> in the toolbar. Pick your source, enter your key, and tap Connect. Your key is encrypted and stays on this device; market data goes straight from your broker to your browser. It is data only: TradeZoro never places or changes trades and never reads your account or balance.</p><p>Today: Alpaca (US stocks and ETFs), OANDA (forex) and Ironbeam (CME futures, beta). More sources are coming. Tap Forget this connection to remove the key from this device.</p>",
        "steps": [
         "Open ZoroCharts and tap Data source.",
         "Pick a source and tap Connect.",

@@ -18,6 +18,14 @@ const ALLOW = {
     ws: /^wss:\/\/stream\.data\.alpaca\.markets\/v2\/(iex|sip|test)$/,
     wsSend: ['auth', 'subscribe', 'unsubscribe']
   },
+  ironbeam: {
+    hosts: ['live.ironbeamapi.com', 'demo.ironbeamapi.com'],
+    // Sign-in (POST), then a stream id and a quotes subscription. Nothing under /account, /order or /position.
+    paths: [/^\/v2\/auth$/, /^\/v2\/stream\/create$/, /^\/v2\/market\/quotes\/subscribe\/[A-Za-z0-9\-]{6,64}$/],
+    post: [/^\/v2\/auth$/],
+    ws: /^wss:\/\/(live|demo)\.ironbeamapi\.com\/v2\/stream\/[A-Za-z0-9\-]{6,64}\?token=[A-Za-z0-9._\-]{8,2048}$/,
+    wsSend: []
+  },
   oanda: {
     hosts: ['api-fxpractice.oanda.com', 'api-fxtrade.oanda.com', 'stream-fxpractice.oanda.com', 'stream-fxtrade.oanda.com'],
     // Exactly two paths: candles and the price stream. The member types their own account id; we never list accounts.
@@ -27,7 +35,7 @@ const ALLOW = {
 export function guardUrl(source, url, method = 'GET') {
   const rule = ALLOW[source];
   const u = new URL(url);
-  if (!rule || u.protocol !== 'https:' || String(method).toUpperCase() !== 'GET' || u.port || u.username || u.password || /[%\\;]|\/\//.test(u.pathname) || !rule.hosts.includes(u.hostname)
+  if (!rule || u.protocol !== 'https:' || !(String(method).toUpperCase() === 'GET' || (String(method).toUpperCase() === 'POST' && (rule.post || []).some((p) => p.test(u.pathname)))) || u.port || u.username || u.password || /[%\\;]|\/\//.test(u.pathname) || !rule.hosts.includes(u.hostname)
     || !rule.paths.some((p) => p.test(u.pathname))) throw new Error('byo-guard: blocked ' + source + ' request (data only)');
   return u.href;
 }
@@ -54,7 +62,9 @@ export const SOURCES = [
   { id: 'oanda', name: 'OANDA', cls: ['forex'], covers: 'Forex pairs, live bid/ask prices', fee: 'free', feeNote: 'Free with your account.', state: 'ready',
     fields: [{ k: 'token', label: 'Personal access token', ph: '', secret: true }, { k: 'env', label: 'Account type', type: 'select', opts: [['practice', 'Practice'], ['live', 'Live']] }, { k: 'account', label: 'Account ID', ph: '101-001-1234567-001', secret: false }],
     help: 'In OANDA create a personal access token (Manage API Access).' },
-  { id: 'ironbeam', name: 'Ironbeam', cls: ['futures'], covers: 'CME futures', fee: 'paid', feeNote: 'Your exchange data fees apply.', state: 'soon' },
+  { id: 'ironbeam', name: 'Ironbeam', cls: ['futures'], covers: 'CME futures, live last price (beta)', fee: 'paid', feeNote: 'Your exchange data fees apply.', state: 'ready', beta: true,
+    fields: [{ k: 'username', label: 'Ironbeam username', ph: '', secret: false }, { k: 'password', label: 'Ironbeam password', ph: '', secret: true }, { k: 'apiKey', label: 'API key', ph: '', secret: true }, { k: 'env', label: 'Account type', type: 'select', opts: [['live', 'Live'], ['demo', 'Demo']] }],
+    help: 'Beta. Request an API key in your Ironbeam account. Open a contract by typing it like byo:XCME:ES.Z26. Live prices only for now: no history yet.' },
   { id: 'tastytrade', name: 'tastytrade', cls: ['futures', 'stocks'], covers: 'CME futures and US stocks', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon' },
   { id: 'schwab', name: 'Charles Schwab', cls: ['stocks', 'futures', 'options'], covers: 'Stocks, futures and options', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon' },
   { id: 'ctrader', name: 'cTrader', cls: ['forex', 'crypto'], covers: 'Forex and crypto CFDs', fee: 'free', feeNote: 'Free with your account.', state: 'soon' }
@@ -306,7 +316,47 @@ export const oanda = {
     return hub.add(this.symbolOf(ticker), candleBuilder(timeframe, seed, onBar));
   }
 };
-export const ADAPTERS = { alpaca, oanda };
+export const ironbeam = {
+  id: 'ironbeam',
+  symbolOf: (t) => { const s = String(t || '').replace(/^byo:/i, '').toUpperCase(); return /^X[A-Z]{3}:[A-Z0-9]{1,6}\.[A-Z]\d{2}$/.test(s) ? s : null; },
+  base: (c) => 'https://' + (c.env === 'demo' ? 'demo' : 'live') + '.ironbeamapi.com/v2',
+  // shortcut: bar shapes (time-bar frames) are unconfirmed without a real account, so no history yet; live prices only.
+  async getBars() { return []; },
+  async token(c, d) {
+    const { fetch } = dep(d);
+    const r = await fetch(guardUrl('ironbeam', this.base(c) + '/auth', 'POST'), { ...HARD, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: c.username, password: c.password, apiKey: c.apiKey }) });
+    if (!r.ok) throw Object.assign(new Error('Ironbeam ' + r.status), { status: r.status });
+    const j = await r.json(); if (!j || !j.token) throw Object.assign(new Error('Ironbeam refused the sign-in'), { status: 401 });
+    return j.token;
+  },
+  async check(c, d) { await this.token(c, d); },
+  hub(c, onStatus, d) {
+    const { fetch, WS } = dep(d);
+    return new Hub({
+      onStatus,
+      open: (syms, onTick, ctl) => {
+        let ws = null, dead = false;
+        (async () => {
+          try {
+            const tok = await ironbeam.token(c, d);
+            const auth = { ...HARD, headers: { Authorization: 'Bearer ' + tok } };
+            const sr = await fetch(guardUrl('ironbeam', ironbeam.base(c) + '/stream/create'), auth);
+            if (!sr.ok) return ctl.fail(sr.status === 401 || sr.status === 403, 'Ironbeam ' + sr.status);
+            const id = (await sr.json()).streamId; if (dead) return;
+            ws = new WS(guardWs('ironbeam', ironbeam.base(c).replace('https', 'wss') + '/stream/' + id + '?token=' + tok));
+            ws.onopen = async () => { try { await fetch(guardUrl('ironbeam', ironbeam.base(c) + '/market/quotes/subscribe/' + id + '?symbols=' + encodeURIComponent(syms.slice(0, 10).join(','))), auth); ctl.live(); } catch (e) { ctl.fail(false); } };
+            ws.onmessage = (ev) => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } for (const q of (m && m.q) || []) if (q && q.s && Number.isFinite(+q.l)) onTick(q.s, +q.l, Date.now(), 0); };
+            ws.onclose = () => ctl.fail(false);
+            ws.onerror = () => { try { ws.close(); } catch (e) { /* closed */ } };
+          } catch (e) { if (!dead) ctl.fail(!!(e && (e.status === 401 || e.status === 403)), e && e.status ? 'Ironbeam refused the sign-in' : ''); }
+        })();
+        return () => { dead = true; if (ws) { ws.onclose = ws.onmessage = ws.onerror = ws.onopen = null; try { ws.close(); } catch (e) { /* closed */ } } };
+      }
+    });
+  },
+  subscribe(hub, ticker, timeframe, seed, onBar) { return hub.add(this.symbolOf(ticker), candleBuilder(timeframe, seed, onBar)); }
+};
+export const ADAPTERS = { alpaca, oanda, ironbeam };
 
 // ---------- runtime registry: connected sources on this device ----------
 // Listeners get { id, status, msg }. Credentials live in memory only after decrypt; they are never logged or exposed on window.
@@ -350,6 +400,7 @@ export function route(kind, ticker) {
     if (r.status === 'error') continue;
     const ad = ADAPTERS[id];
     if (id === 'oanda' && kind === 'fx' && ad.symbolOf(ticker)) return { id, ad, rec: r };
+    if (id === 'ironbeam' && kind === 'byo' && ad.symbolOf(ticker)) return { id, ad, rec: r };
     if (id === 'alpaca' && ((kind === 'idx' && IDX_OK.has(String(ticker).replace(/^[a-z]+:/i, '').toUpperCase())) || (kind === 'byo' && ad.symbolOf(ticker)))) return { id, ad, rec: r };
   }
   return null;

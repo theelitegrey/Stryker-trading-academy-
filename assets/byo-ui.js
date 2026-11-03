@@ -151,7 +151,7 @@ export function mountByo(opts = {}) {
     else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
       el('span', { class: 'byo-ic', html: I(glyph) }),
-      el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name }), el('span', { class: 'byo-cv', text: s.covers }),
+      el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }),
         el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' })]),
       b]);
   }

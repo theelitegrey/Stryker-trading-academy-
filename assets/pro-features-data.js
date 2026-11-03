@@ -97,18 +97,18 @@
       desc: 'The crypto order book and trades come from live exchange feeds.' },
     { group: 'live', name: 'Live CME futures', feed: '—', icon: 'clock', ids: ['live_cme'],
       desc: 'Live CME data needs a market-data licence, so it is separate from Pro. Without it, CME futures are 10 minutes delayed.' },
-    // ---- Coming soon (being built; drop soon:true when the id is registered) ----
-    { group: 'soon', name: 'Book Speed', feed: 'L2', icon: 'speed', ids: ['stk_book_speed'], soon: true,
+    // ---- Order-book pack (L2), shipped 11-03 ----
+    { group: 'book', name: 'Book Speed', feed: 'L2', icon: 'speed', ids: ['stk_bk_speed'],
       desc: 'How fast the book is changing, shown as a pane under the chart.' },
-    { group: 'soon', name: 'Liquidity Balance', feed: 'L2', icon: 'balance', ids: ['stk_liq_balance'], soon: true,
+    { group: 'book', name: 'Liquidity Balance', feed: 'L2', icon: 'balance', ids: ['stk_bk_bal'],
       desc: 'Resting size on the bid side against the ask side over time.' },
-    { group: 'soon', name: 'Refill Detector', feed: 'L2', icon: 'refill', ids: ['stk_refill'], soon: true,
+    { group: 'book', name: 'Refill Detector', feed: 'L2', icon: 'refill', ids: ['stk_bk_refill'],
       desc: 'Spots a price level whose resting orders are refilled after they trade.' },
-    { group: 'soon', name: 'Volatility Regime', feed: '—', icon: 'vol', ids: ['stk_vol_regime'], soon: true,
+    { group: 'book', name: 'Volatility Regime', feed: 'L2', icon: 'vol', ids: ['stk_bk_regime'],
       desc: 'Shows whether the market is quiet or fast compared with its own recent past.' },
-    { group: 'soon', name: 'Large Resting Orders', feed: 'L2', icon: 'wall', ids: ['stk_large_resting'], soon: true,
+    { group: 'book', name: 'Large Resting Orders', feed: 'L2', icon: 'wall', ids: ['stk_bk_large'],
       desc: 'Lists and marks the biggest orders waiting in the book.' },
-    { group: 'soon', name: 'Absorption & Iceberg Tracker', feed: 'L2', icon: 'ice', ids: ['stk_abs_ice'], soon: true,
+    { group: 'book', name: 'Absorption & Iceberg Tracker', feed: 'L2', icon: 'ice', ids: ['stk_bk_track'],
       desc: 'Tracks prices that keep absorbing volume and hidden-size hints.' }
   ];
   var API = { icons: ICONS, groups: G, items: ITEMS };

@@ -1023,7 +1023,7 @@ function binanceSource(ticker, onTrade, onStatus) {
     } catch (e) {
       backfilled = true;
       onTrade(buf, false); buf.length = 0;
-      onStatus('error', 'Could not load recent trades from Binance.');
+      onStatus('error', 'Could not load recent trades.');
     }
   })();
   return () => { stopped = true; clearTimeout(tm); try { if (ws) ws.close(); } catch (e) {} };
@@ -1103,7 +1103,7 @@ export function flowFeeds() { return feeds; }
 function flowBlocker(mk, tfMin) {
   if (!tradeSources.has(mk.provider)) {
     if (mk.provider === 'futures') return NEED_RITHMIC;
-    return 'Real order flow needs trade data: available on Binance symbols for now.';
+    return 'Real order flow needs trade data: available on crypto symbols for now.';
   }
   if (tfMin == null || tfMin > FLOW_MAX_TF || tfMin < 1) return 'Order flow works on 1m to 15m charts.';
   return '';
@@ -1330,7 +1330,7 @@ const BOOK_AUTO_ROW = 0.0005;              // auto row = the nice step at or bel
 // kept for the newest 30 min only (older samples drop it when thinned, coarse rows stay).
 const BOOK_FINE_ROW = 0.00003, BOOK_FINE_RANGE = 0.005;
 const bookFeeds = new Map();
-const BOOK_NEEDS_BINANCE = 'Crypto DOM needs a Binance crypto symbol.';
+const BOOK_NEEDS_BINANCE = 'Crypto DOM needs a crypto symbol.';
 const DOM_VIEWS = ['Deep heatmap (heat + depth + sizes + pulled / filled)', 'Combined (heatmap + depth + walls)', 'Heatmap only', 'Depth bars only', 'Walls only'];
 const DOM_SCHEMA = [
   { key: 'style', title: 'Style', type: 'string', defval: DOM_VIEWS[0], options: DOM_VIEWS },
@@ -1524,7 +1524,7 @@ function binanceBookSource(ticker, onBook, onStatus) {
       ready = true;
       emit(); onStatus('live');
     } catch (e) {
-      if (!ready) onStatus('error', 'Could not load Binance order book.');
+      if (!ready) onStatus('error', 'Could not load the order book.');
     }
   }
   function open() {
@@ -1543,7 +1543,7 @@ function binanceBookSource(ticker, onBook, onStatus) {
       };
       ws.onclose = () => { if (stopped) return; onStatus('reconnecting'); tm = setTimeout(() => { open(); snapshot(); }, Math.min(15000, 1000 * Math.pow(2, ++retry))); };
       ws.onerror = () => { try { ws.close(); } catch (e) {} };
-    } catch (e) { onStatus('error', 'Could not open Binance depth stream.'); }
+    } catch (e) { onStatus('error', 'Could not open the depth stream.'); }
   }
   // The ~320 KB snapshot only runs while the page is visible (a backgrounded phone tab would
   // keep pulling it every 2 min). Back on screen: one snapshot if the last is older than the
@@ -2520,9 +2520,9 @@ class CryptoDomNative {
   note() {
     if (this.block) return this.block;
     const f = this.h && this.h.feed;
-    if (!f || f.status === 'loading') return 'Loading Binance order book…';
+    if (!f || f.status === 'loading') return 'Loading order book…';
     if (f.status === 'error') return f.err || 'Order book unavailable.';
-    if (f.status === 'reconnecting') return 'Reconnecting to Binance order book…';
+    if (f.status === 'reconnecting') return 'Reconnecting to order book…';
     const cfg = domConfig(this.inputs);
     if ((cfg.heat || cfg.walls) && f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
     return '';
@@ -2557,7 +2557,7 @@ const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsui
   'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_fut_dom', 'stk_fut_walls', 'stk_fut_imb',
   'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane',
   'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track',
-  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];   // Tick-stream twins + the order-book pack (chart-book-pack.js) (chart-ts-trades.js, Pro)
+  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad'];   // Tick-stream twins + the order-book pack (chart-book-pack.js) (chart-ts-trades.js, Pro)
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
@@ -2588,7 +2588,7 @@ export function installOrderflow(Core) {
   reg(Core, { type: 'stk_lth', title: 'Liquidity Trend Heatmap', shortTitle: 'Liquidity Heatmap', paneHint: 'price', overlay: true,
     inputsSchema: () => LTH_SCHEMA, create: () => new LayerNative(lthBuild) });
   Core.registerRendererLayer({ id: 'stk_crypto_dom', placement: 'below-data', create: cryptoDomLayer });
-  reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap (Binance)', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
+  reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
   installFuturesL2(Core, { cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds }, reg);

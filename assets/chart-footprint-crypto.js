@@ -164,7 +164,7 @@ class CryptoFeed {
       this.add(this.buf); this.buf.length = 0;
       this.backfilled = true;
       this.status = 'error';
-      this.err = 'Binance trade data is temporarily unavailable. Retrying…';
+      this.err = 'Crypto trade data is temporarily unavailable. Retrying…';
       this.bump();
       this.tm = setTimeout(() => { if (!this.stopped) { this.backfilled = false; this.ids.size || (this.coverFrom = Infinity); this.backfill(); } }, 15000);
     }

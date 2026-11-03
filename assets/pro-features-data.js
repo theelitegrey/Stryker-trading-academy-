@@ -112,6 +112,8 @@
       desc: 'Stop runs counted only when resting liquidity on that side was pulled or consumed through several levels.' },
     { group: 'flow', name: 'Volume Profile (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_vp'],
       desc: 'The session profile of traded volume next to the average resting size at each price.' },
+    { group: 'flow', name: 'Delta Ladder (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_lad'],
+      desc: 'Delta at each price on the price axis: traded buy and sell, plus a thin bar for book size added or pulled. Added with Delta (L2).' },
     // ---- Order-book pack (L2), shipped 11-03 ----
     { group: 'book', name: 'Book Speed', feed: 'L2', icon: 'speed', ids: ['stk_bk_speed'],
       desc: 'How fast the book is changing, shown as a pane under the chart.' },

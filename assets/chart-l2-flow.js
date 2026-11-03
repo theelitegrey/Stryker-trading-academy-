@@ -23,7 +23,7 @@ import { sweepEvents } from './chart-of-pro-data.js?v=852';
 import { sweepBars } from './chart-of-pro.js?v=852';
 import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=852';
 
-export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];
+export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
@@ -178,6 +178,12 @@ function specOf(ctx) {
 }
 
 // ---------------------------------------------------------------------------------------- settings
+const LADDER = ['stk_l2f_lad'];   // price-axis ladder: a price-pane overlay; Delta (L2) and CVD (L2) add it when they start (a sub-pane layer cannot draw on the price scale)
+const ladders = [];
+const LAD_SCHEMA = [
+  { key: 'ladder', title: 'Show the ladder', type: 'bool', defval: true, tooltip: 'One bar per price: traded delta (green buy / red sell), and a thin second bar for the book: size added minus pulled at that price.' },
+  { key: 'ladWidth', title: 'Ladder width (% of the chart)', type: 'int', defval: 16, min: 5, max: 40, step: 1 },
+  { key: 'ladRange', title: 'Ladder range', type: 'string', defval: 'visible', options: ['visible', 'session'] }];
 const ROWS = { key: 'rows', title: 'Book rows each side of price (top N levels)', type: 'int', defval: 10, min: 1, max: 40, step: 1, tooltip: 'Counts the N book rows nearest the best bid and the best ask. A row is one recorded price step.' };
 const SCHEMA = {
   stk_l2f_delta: [ROWS,
@@ -202,6 +208,7 @@ const SCHEMA = {
     { key: 'volMult', title: 'Volume spike (x average)', type: 'float', defval: 1.5, min: 1, max: 10, step: 0.1 },
     { key: 'showAll', title: 'Also show sweeps the book did not confirm (hollow)', type: 'bool', defval: false },
     { key: 'upColor', title: 'Lows swept (bullish)', type: 'color', defval: UP }, { key: 'downColor', title: 'Highs swept (bearish)', type: 'color', defval: DN }],
+  stk_l2f_lad: LAD_SCHEMA.slice(1),
   stk_l2f_vp: [
     { key: 'widthPct', title: 'Width of each profile (% of the chart)', type: 'int', defval: 14, min: 5, max: 30, step: 1 },
     { key: 'tradedColor', title: 'Traded', type: 'color', defval: CYAN },
@@ -213,7 +220,8 @@ const TITLES = {
   stk_l2f_fp: ['Footprint (L2)', 'Footprint L2', 'price', true],
   stk_l2f_big: ['Big Trades (L2)', 'Big Trades L2', 'price', true],
   stk_l2f_stop: ['Stop Runs (L2)', 'Stop Runs L2', 'price', true],
-  stk_l2f_vp: ['Volume Profile (L2)', 'Volume Profile L2', 'price', true]
+  stk_l2f_vp: ['Volume Profile (L2)', 'Volume Profile L2', 'price', true],
+  stk_l2f_lad: ['Delta Ladder (L2)', 'Delta Ladder L2', 'price', true]
 };
 const LAYERS = ['stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];
 
@@ -225,21 +233,27 @@ function plateLine(g, a, owner, W) {
   const slot = ovLive.filter((x) => x.on).indexOf(owner); if (slot < 0) return;
   const phone = a.coords.width < 520;
   g.save(); g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
-  const room = a.coords.width - 70; while (txt.length > 8 && g.measureText(txt).width + 10 > room) txt = txt.slice(0, -2).replace(/[ ·]+$/, '') + '…';   // phone: never wider than the chart minus the price scale
+  const room = phone ? a.coords.width * 0.46 : a.coords.width - 70; while (txt.length > 8 && g.measureText(txt).width + 10 > room) txt = txt.slice(0, -2).replace(/[ ·]+$/, '') + '…';   // phone: never wider than the chart minus the price scale
   const tw = g.measureText(txt).width + 10, y = a.bounds.top + 10 + slot * 17, x = a.coords.width - 6;
   g.fillStyle = plate(); g.fillRect(x - tw, y - 7, tw, 14); g.fillStyle = light() ? '#0e7490' : '#4fd1d9'; g.fillText(txt, x - 5, y); g.restore();
 }
 class L2Flow {
   constructor(type) { this.type = type; this.inputs = defaults(SCHEMA[type]); this.tm = 0; this.last = 0; this.u = null; this.spec = null; this.on = false; this.off = false; this.memo = {}; this.onAny = () => this.later(); this.onTier = () => { this.memo = {}; this.later(); }; }
-  start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); window.addEventListener('stryker:l2tier', this.onTier); this.offRt = rtOnChange(this.onTier); this.render(); }
+  start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); if (LADDER.includes(this.type)) ladders.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); window.addEventListener('stryker:l2tier', this.onTier); this.offRt = rtOnChange(this.onTier); this.render(); }
   later() { if (this.tm || this.off || document.hidden) return; this.tm = setTimeout(() => { this.tm = 0; this.render(); }, Math.max(0, MIN_GAP - (Date.now() - this.last))); }
   onBars() { this.later(); }
-  onViewport() { if (LAYERS.includes(this.type)) this.push(); }
+  onViewport() { if (LAYERS.includes(this.type)) this.push(); else if (LADDER.includes(this.type)) this.pushLadder(); }
+  // Delta / CVD (L2) bring the ladder with them once, unless one is already on the chart (a saved layout, or the member removed it)
+  addLadder() {
+    try { const c = this.ctx.chart || window.STRYKER_VELA.chart; if (this.ladAdded || !c || (c.indicators() || []).some((h) => h.nativeType === 'stk_l2f_lad')) { this.ladAdded = true; return this.push({ off: true }); } this.ladAdded = true; setTimeout(() => { try { c.addNativeIndicator('stk_l2f_lad', {}); window.STRYKER_VELA.context().stateChanged(); } catch (e) {} }, 0); } catch (e) {}
+    this.push({ off: true });
+  }
+  pushLadder() { this.push(this.hub && this.inputs.ladder !== false ? { hub: this.hub, v: this.hub.v + ':' + this.hub.fver() + ':' + this.inputs.ladWidth + this.inputs.ladRange } : { off: true }); }
   setInputs(i) { this.inputs = Object.assign(defaults(SCHEMA[this.type]), i); this.memo = {}; this.render(); }
   suspend() { this.on = false; clearTimeout(this.tm); this.tm = 0; this.push(); }
   resume() { this.on = true; this.render(); }
-  stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); this.off = true; this.on = false; clearTimeout(this.tm); document.removeEventListener('visibilitychange', this.onVis); window.removeEventListener('stryker:l2tier', this.onTier); if (this.offRt) this.offRt(); this.unbind(); this.push(); }
-  unbind() { if (this.u) { this.u.release(); this.u = null; this.spec = null; } }
+  stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); const kl = ladders.indexOf(this); if (kl >= 0) ladders.splice(kl, 1); this.off = true; this.on = false; clearTimeout(this.tm); document.removeEventListener('visibilitychange', this.onVis); window.removeEventListener('stryker:l2tier', this.onTier); if (this.offRt) this.offRt(); this.unbind(); this.push(); }
+  unbind() { this.hub = null; if (this.u) { this.u.release(); this.u = null; this.spec = null; } }
   push(extra) { try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
   ov(...lines) { this.text = this.base = lines.filter(Boolean).join(' · '); this.ctx.emit({ tables: [] }); }
   say(txt) {
@@ -272,6 +286,7 @@ class L2Flow {
     const since = first && first > bars[0].time + 120000 ? 'Book history from ' + hhmm(first) : '';
     const t = this.type;
     ctx.setStatus(samples.length ? 'live' : 'loading');
+    if (t === 'stk_l2f_lad') { this.hub = hub; this.ov('Delta Ladder (L2)'); return this.pushLadder(); }
     if (t === 'stk_l2f_delta') return this.drawDelta(hub, bars, tf, since);
     if (t === 'stk_l2f_cvd') return this.drawCvd(hub, bars, tf, since);
     if (t === 'stk_l2f_fp') return this.drawFp(hub, bars, tf, since);
@@ -306,7 +321,7 @@ class L2Flow {
         'Bar: pulled ' + fmtK(bk.pulled[lastI] || 0) + ' · added ' + fmtK(bk.added[lastI] || 0), 'Shown: pulled ' + fmtK(sumP) + ' · added ' + fmtK(sumA), this.noteLine(hub, since, T)], B[lastI] >= 0 ? I.bookUp : I.bookDn)]
     });
     this.stat(bars, (i) => T[i] != null || B[i] != null);
-    this.push({ off: true });
+    this.addLadder();
   }
   drawCvd(hub, bars, tf, since) {
     const I = this.inputs, { T, B } = this.deltas(hub, bars, tf), kind = hub.kind, ss = (t) => (I.reset === 'none' ? 0 : I.reset === 'day' ? Math.floor(t / 86400000) : sessionStart(t, kind));
@@ -324,7 +339,7 @@ class L2Flow {
     const now = ls.length ? [...ls].reverse().find((x) => x != null) : null;
     this.ctx.emit({ series, tables: [this.legend(['CVD (L2) ' + (now == null ? '…' : sgn(now)) + ' · reset ' + I.reset, this.noteLine(hub, since, T)], I.upColor)] });
     this.stat(bars, (i) => ls[i] != null);
-    this.push({ off: true });
+    this.addLadder();
   }
   stat(bars, has) { let n = 0; for (let i = 0; i < bars.length; i++) if (has(i)) n++; (window.__stkL2Flow || (window.__stkL2Flow = {}))[this.type] = Object.assign((window.__stkL2Flow || {})[this.type] || {}, { n, bars: bars.length }); }
   drawFp(hub, bars, tf, since) {
@@ -547,13 +562,15 @@ function vpLayer() {
       try {
         const d = a.data, I = d.owner.inputs, hub = d.hub, co = a.coords, phone = co.width < 520, top = a.bounds.top, bot = top + a.bounds.height, W = co.width;
         const rp = hub.restProfile(d.ss); if (!rp) return;
-        const S = rp.S, tick = hub.tick(), maxW = Math.max(30, W * num(I.widthPct, 14) / 100 * (phone ? 1.2 : 1));
+        const lad = ladders.find((x) => x.on && !x.off && x.inputs.ladder !== false);   // the delta ladder owns the right edge: the profile sits left of it, never under it
+        const ladW = lad ? W * num(lad.inputs.ladWidth, 16) / 100 * (phone ? 0.8 : 1) + 4 : 0;
+        const S = rp.S, tick = hub.tick(), maxW = Math.max(24, W * num(I.widthPct, 14) / 100 * (phone ? (lad ? 0.6 : 1.2) : 1));
         // traded profile of the same session, rows of the book's own step
         const fa = hub.footBars(), vr = co.visibleLogicalRange(), lastT = a.bars[clamp(Math.ceil(vr.to), 0, a.bars.length - 1)].time;
         const tb = tick ? fa.bars.filter((b) => b.t >= d.ss && b.t <= lastT) : [], tp = tb.length ? tradedProfile(tb, Math.max(1, Math.round(S / tick))) : null;
         let rmax = 0; rp.bid.forEach((q) => { rmax = Math.max(rmax, q); }); rp.ask.forEach((q) => { rmax = Math.max(rmax, q); });
         let tmax = 0; if (tp) for (let k = 0; k < tp.n; k++) tmax = Math.max(tmax, tp.buy[k] + tp.sell[k]);
-        const xT = W - 2, xR = W - 2 - (tp ? maxW + 3 : 0);
+        const xT = W - 2 - ladW, xR = xT - (tp ? maxW + 3 : 0);
         const rowH = (r) => { const yT = Yp(a, (r + 1) * S), yB = Yp(a, r * S); return [Math.min(yT, yB), Math.max(1, Math.abs(yB - yT) - (Math.abs(yB - yT) > 4 ? 1 : 0))]; };
         const rows = new Set([...rp.bid.keys(), ...rp.ask.keys()]);
         for (const r of rows) {
@@ -568,10 +585,73 @@ function vpLayer() {
           g.fillStyle = rgba(I.tradedColor, isP ? 0.95 : 0.55); g.fillRect(xT - w, y, w, h);
         }
         g.font = '700 10px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
-        const lab = (txt, xr) => { const tw = g.measureText(txt).width + 8; g.fillStyle = plate(); g.fillRect(xr - tw, bot - 22, tw, 14); g.fillStyle = ink(); g.fillText(txt, xr - 4, bot - 15); };
-        if (tp) lab('Traded', xT); lab('Resting', xR);
+        let up = 0; const lab = (txt, xr) => { const tw = g.measureText(txt).width + 8; g.fillStyle = plate(); g.fillRect(xr - tw, bot - 22 - up, tw, 14); g.fillStyle = ink(); g.fillText(txt, xr - 4, bot - 15 - up); };
+        if (tp) { lab('Traded', xT); const need = g.measureText('Traded').width + 8 + g.measureText('Resting').width + 12; if (xT - xR >= need) lab('Resting', xR); else { up = 16; lab('Resting', xR); } } else lab('Resting', xR);   // too close side by side: Resting goes one line up   // Traded sits at xT, Resting at xR: labels short enough not to meet
         window.__stkL2Flow.stk_l2f_vp.traded = tp ? tp.n : 0;
       } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+
+// book size added minus pulled at each price row over [t0, t1]: Map row -> net (rows of R price units, R >= the book step)
+function bookNet(hub, t0, t1, R) {
+  const a = hub.samples(), last = a[a.length - 1]; if (!last) return new Map();
+  const key = t0 + '|' + Math.floor(t1 / 5000) + '|' + R + '|' + a.length;
+  if (hub.memo.bnk === key) return hub.memo.bn;
+  const out = new Map(); let prev = null;
+  for (let j = lastLE(a, t0 - 1) + 1; j < a.length && a[j].ts <= t1; j++) {
+    const s = a[j];
+    if (prev && s.ts - prev.ts <= GAP_MAX && Math.abs(s.step - prev.step) < 1e-9 * s.step && Math.abs(s.step - R) < 1e-9 + R * 0.999999) {
+      const lo = Math.min(s.i0, prev.i0), hi = Math.max(s.i0 + s.v.length, prev.i0 + prev.v.length);
+      for (let r = lo; r < hi; r++) { const q = s.v[r - s.i0] || 0, o = prev.v[r - prev.i0] || 0, d = Math.abs(q) - Math.abs(o); if (d) out.set(r, (out.get(r) || 0) + d); }
+    }
+    prev = s;
+  }
+  hub.memo.bnk = key; hub.memo.bn = out; return out;
+}
+function ladderLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        const d = a.data, o = d.owner, I = o.inputs, hub = d.hub; if (!hub || I.ladder === false || ladders.find((x) => x.on && !x.off) !== o) return;
+        const co = a.coords, phone = co.width < 520, top = a.bounds.top, bot = top + a.bounds.height, W = co.width, tick = hub.tick(); if (!tick) return;
+        const vr = co.visibleLogicalRange(), n = a.bars.length, iA = clamp(Math.floor(vr.from), 0, n - 1), iB = clamp(Math.ceil(vr.to), 0, n - 1), tf = tfOf(a.bars);
+        const tEnd = a.bars[iB].time + tf, tStart = I.ladRange === 'session' ? sessionStart(a.bars[iB].time, hub.kind) : a.bars[iA].time;
+        const fb = hub.footBars(), bars = fb.bars.filter((b) => b.t >= tStart && b.t < tEnd);
+        const newest = hub.samples()[hub.samples().length - 1], S = newest ? newest.step : tick;
+        const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), visTicks = a.bounds.height / (tickPx || 1); let m = ROW_STEPS.find((x) => visTicks / x <= 40 && tickPx * x >= 9) || ROW_STEPS.find((x) => tickPx * x >= 9) || 400;   // about 25-40 rows over the visible price range
+        m = Math.max(m, Math.round(S / tick)); const R = m * tick;
+        const tp = bars.length ? tradedProfile(bars, m) : null, bn = newest ? bookNet(hub, tStart, tEnd, S === R ? S : R) : new Map();
+        const net = new Map(); bn.forEach((v, r) => { const k = Math.floor(((r + 0.5) * S) / R + 1e-9); net.set(k, (net.get(k) || 0) + v); });
+        let dmax = 1, bmax = 1; const dl = new Map();
+        if (tp) for (let k = 0; k < tp.n; k++) { const v = tp.buy[k] - tp.sell[k]; if (v) { dl.set(tp.r0 + k, v); dmax = Math.max(dmax, Math.abs(v)); } }
+        net.forEach((v) => { bmax = Math.max(bmax, Math.abs(v)); });
+        const span = W * num(I.ladWidth, 16) / 100 * (phone ? 0.8 : 1), x = W - 1;
+        const rowPx = Math.abs(Yp(a, R) - Yp(a, 0)), showNum = rowPx >= 11, fs = clamp(Math.floor(rowPx * 0.7), 8, phone ? 10 : 11);
+        g.textBaseline = 'middle';
+        g.fillStyle = light() ? 'rgba(241,245,249,0.55)' : 'rgba(11,11,13,0.45)'; g.fillRect(x - span, top, span + 1, bot - top);   // strip: labels read on it, candles stay visible beside it
+        const rows = new Set([...dl.keys(), ...net.keys()]);
+        for (const r of rows) {
+          const yT = Yp(a, (r + 1) * R), yB = Yp(a, r * R), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0));
+          if (y > bot || y + h < top) continue;
+          const dv = dl.get(r), bv = net.get(r);
+          if (dv) {
+            const len = Math.max(1, span * Math.abs(dv) / dmax);
+            g.fillStyle = rgba(dv > 0 ? UP : DN, 0.62); g.fillRect(x - len, y, len, h);
+            if (showNum) { g.font = '600 ' + fs + 'px ' + MONO; const tx = fmtK(dv); if (g.measureText(tx).width + 6 <= span) { g.textAlign = 'right'; g.fillStyle = ink(); g.fillText(tx, x - 3, y + h / 2); } }   // inside the strip, at the axis edge: never over candles
+          }
+          if (bv) {   // L2 part: thin bar along the lower edge of the row, cyan = book added, amber = pulled
+            const len = Math.max(1, span * 0.9 * Math.abs(bv) / bmax), th = Math.max(2, Math.round(h * 0.3));
+            g.fillStyle = bv > 0 ? CYAN : AMBER; g.fillRect(x - len, y + h - th, len, th);
+          }
+        }
+        o.ladInfo = { rows: rows.size, m, trade: dl.size, book: net.size };
+        window.__stkL2Flow.ladder = Object.assign({ draws: 0 }, window.__stkL2Flow.ladder, o.ladInfo, { draws: ((window.__stkL2Flow.ladder || {}).draws || 0) + 1 });
+      } finally { g.restore(); }
     },
     destroy() { canvas = null; }
   };
@@ -586,11 +666,12 @@ export function installL2Flow(Core, hooks, reg) {
   Core.registerRendererLayer({ id: 'stk_l2f_big', placement: 'above-data', create: bigLayer });
   Core.registerRendererLayer({ id: 'stk_l2f_stop', placement: 'above-data', create: stopLayer });
   Core.registerRendererLayer({ id: 'stk_l2f_vp', placement: 'above-data', create: vpLayer });
+  for (const id of LADDER) Core.registerRendererLayer({ id, placement: 'above-data', create: ladderLayer });
   for (const type of L2F_TYPES) {
     const [title, short, pane, overlay] = TITLES[type];
     if (!L2_TYPES.includes(type)) L2_TYPES.push(type);
     registerFeed(type, { needs: 'L2', title });
-    reg(Core, { type, title, shortTitle: short, paneHint: pane, overlay, reactsToViewport: LAYERS.includes(type), inputsSchema: () => SCHEMA[type], create: () => new L2Flow(type) });
+    reg(Core, { type, title, shortTitle: short, paneHint: pane, overlay, reactsToViewport: LAYERS.includes(type) || LADDER.includes(type), inputsSchema: () => SCHEMA[type], create: () => new L2Flow(type) });
   }
 }
 if (typeof window !== 'undefined') window.__stkL2FlowHubs = hubs;

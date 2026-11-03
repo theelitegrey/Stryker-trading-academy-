@@ -247,7 +247,7 @@ function stopRefresh() { if (users <= 0 && refreshTm) { clearInterval(refreshTm)
 const viewCache = new WeakMap();
 export function flowFor(ctxLike) {
   const root = ctxLike.root;
-  if (!root) return { note: 'Order flow from trades: Binance crypto, and NQ, ES, YM, GC, SI and CL futures.' };
+  if (!root) return { note: 'Order flow from trades: crypto, and NQ, ES, YM, GC, SI and CL futures.' };
   const tf = tfMin(ctxLike.timeframe);
   if (tf == null || tf < 1 || tf > MAX_TF_MIN) return { note: 'Order flow works on 1-minute to 4-hour charts.' };
   if (isCrypto(root)) return cryptoFlow(ctxLike, root, tf);
@@ -289,7 +289,7 @@ function cryptoFlow(ctxLike, root, tf) {
   const loading = feed.status === 'loading' && !agg.length;
   const note = loading ? 'Loading recent trades…'
     : feed.status === 'error' && !agg.length ? feed.err
-    : feed.status === 'error' ? 'Binance trades temporarily unavailable. Showing what loaded.'
+    : feed.status === 'error' ? 'Crypto trades temporarily unavailable. Showing what loaded.'
     : feed.status === 'reconnecting' ? 'Trade stream reconnecting…'
     : !agg.length ? 'Waiting for trades…' : '';
   const out = { map, list: agg, mins: clipped, tick: feed.tick || 1, thr: feed.bigThr || 0, note, free: false, loading, crypto: true, partial: feed.status === 'loading' };

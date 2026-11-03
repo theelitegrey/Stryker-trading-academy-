@@ -39,7 +39,7 @@ function fakeWs(admin) {
       }
       const send = (o) => ws.onmessage({ data: JSON.stringify(o) });
       send({ type: 'snap', symbol: 'NQ', ts: Date.now(), bids, asks, imb: 0, imb10: 0 });
-      send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, Date.now()], [ask, 2 + (n % 5), 1, Date.now()], ...(cyc === 3 ? [[ask + 0.5, 110, 1, Date.now()]] : [])] });
+      send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, Date.now()], [ask, 2 + (n % 5), 1, Date.now()], ...(cyc === 3 ? [[ask + 0.5, 110, 1, Date.now()]] : []), ...Array.from({ length: 30 }, (_, q) => { const k = ((n * 37 + q * 23) % 240) - 120, sd = (n + q) % 3 === 0 ? -1 : 1; return [bid + k * 0.25, 1 + ((n + q * 3) % 9) + Math.abs(k) % 4, sd, Date.now()]; })] });   // many traded price rows for the ladder
     }, 100);
     return ws;
   };
@@ -68,7 +68,7 @@ async function open(b, { w, h, mobile, admin, theme }) {
   await ctx.route(/127\.0\.0\.1:9\/ts-aux/, (r) => {
     // 30 quiet footprint minutes, then one heavy narrow minute with net selling that closes up: one absorption event (sellers absorbed = buy side up)
     const m0 = Math.floor(Date.now() / 60000) - 40, fp = [], P = window_mid();
-    for (let k = 0; k < 30; k++) fp.push({ t: m0 + k, lv: [0, 1, 2, 3, 4].map((j) => [P + j * 0.25, 5, 5]) });
+    for (let k = 0; k < 30; k++) fp.push({ t: m0 + k, lv: Array.from({ length: 160 }, (_, j) => [P + (j - 80) * 0.25 + Math.sin(k) * 2, 5 + Math.round(40 * Math.abs(Math.sin(j * 0.7 + k))), 5 + Math.round(40 * Math.abs(Math.cos(j * 0.45 + k * 0.3)))]) });   // many traded price rows, buy/sell mixed
     fp.push({ t: m0 + 30, lv: [[P + 0.5, 10, 200], [P + 0.75, 10, 10]] });
     r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ fp, imb: [] }) });
   });
@@ -127,11 +127,11 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       check((await p.evaluate(() => window.__wsOpened)) === 0, 'non-admin: no socket opened');
       await ctx.close();
     }
-    for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [1440, 900, false, 'light', '1440-light'], [390, 844, true, 'dark', '390-dark'], [390, 844, true, 'light', '390-light']])) {
+    for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [412, 915, true, 'dark', '412-dark'], [390, 844, true, 'light', '390-light'], [390, 844, true, 'light', '390-light']])) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
       if (process.env.TIER1) await p.evaluate(() => { window.__TIER1 = 1; });
       await setNQ(p);
-      for (const t of TYPES) await add(p, t, t === 'stk_l2f_cvd' && process.env.CVD ? JSON.parse(process.env.CVD) : t === 'stk_l2f_big' ? { mode: 'Manual', minSize: 100 } : t === 'stk_l2f_stop' ? { showAll: true, levels: 1 } : {});
+      for (const t of (process.env.ONLY ? process.env.ONLY.split(',') : TYPES)) await add(p, t, t === 'stk_l2f_cvd' && process.env.CVD ? JSON.parse(process.env.CVD) : t === 'stk_l2f_big' ? { mode: 'Manual', minSize: 100 } : t === 'stk_l2f_stop' ? { showAll: true, levels: 1 } : {});
       if (process.env.L1) await add(p, 'stk_ts_cvd');
       await sleep(14000);
       if (process.env.TIER1) { const lk = await p.evaluate(() => ({ chips: [...document.querySelectorAll('.stkfeed.is-locked')].length, note: (document.querySelector('#stkfeed-note') || {}).hidden === false ? document.querySelector('#stkfeed-note').innerText : '', msg: /Needs L2/.test(document.body.innerText) })); check(lk.chips === 0 && !lk.msg, tag + ': no false lock after tier trades then book frames', lk); }
@@ -142,10 +142,11 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       check(f.stk_l2f_stop && typeof f.stk_l2f_stop.sweeps === 'number', tag + ': stop runs evaluated (' + JSON.stringify(f.stk_l2f_stop) + ')');
       check(f.stk_l2f_vp && f.stk_l2f_vp.n >= 20 && f.stk_l2f_vp.traded > 0, tag + ': volume profile rows resting ' + (f.stk_l2f_vp && f.stk_l2f_vp.n) + ' traded ' + (f.stk_l2f_vp && f.stk_l2f_vp.traded), f.stk_l2f_vp);
       const cnt = await p.evaluate(() => (window.STRYKER_VELA.context().cells[0].chart.indicators() || []).filter((h) => /^stk_l2f_/.test(h.nativeType)).length);
-      check(cnt === 6, tag + ': six on the chart', cnt);
+      check(cnt === 7, tag + ': six + the auto-added ladder on the chart', cnt);
       const reqs = await p.evaluate(() => performance.getEntriesByType('resource').map((e) => e.name).filter((n) => /ts-book-history|ts-trades|ts-aux/.test(n)));
       const dup = reqs.filter((u, i) => reqs.indexOf(u) !== i);
       check(dup.length === 0, tag + ': no window fetched twice (' + reqs.length + ' history requests)', dup);
+      console.log('LAD', JSON.stringify(f.ladder)); check(f.ladder && f.ladder.draws > 0 && f.ladder.trade > 0 && f.ladder.book > 0, tag + ': delta ladder drawn (rows ' + JSON.stringify(f.ladder) + ')', f.ladder);
       check(errors.length === 0, tag + ': no console errors', errors);
       await p.screenshot({ path: OUT + '/l2f-' + tag + '.png' });
       // zoomed: the footprint + resting profile need room (a few dozen bars)

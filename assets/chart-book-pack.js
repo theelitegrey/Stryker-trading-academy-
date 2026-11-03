@@ -8,16 +8,16 @@
 //   stk_bk_track   Absorption & Iceberg Tracker (L1+L2)  sub-pane: cumulative absorption / iceberg hints / stop runs, buy side up, sell side down
 // Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=847';
-import { isFree } from './chart-pro-gate.js?v=847';
-import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory } from './chart-futures-l2.js?v=847';
-import { decodeBookHistory } from './chart-orderflow.js?v=847';
-import * as C from './book-panel-core.js?v=847';
-import { openSource } from './book-panel-sources.js?v=847';
-import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=847';
-import { sweepBars } from './chart-of-pro.js?v=847';
-import { icebergEvents } from './chart-liquidity-data.js?v=847';
-import * as D from './chart-book-pack-data.js?v=847';
+import { registerFeed } from './chart-feeds.js?v=848';
+import { isFree } from './chart-pro-gate.js?v=848';
+import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory } from './chart-futures-l2.js?v=848';
+import { decodeBookHistory } from './chart-orderflow.js?v=848';
+import * as C from './book-panel-core.js?v=848';
+import { openSource } from './book-panel-sources.js?v=848';
+import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=848';
+import { sweepBars } from './chart-of-pro.js?v=848';
+import { icebergEvents } from './chart-liquidity-data.js?v=848';
+import * as D from './chart-book-pack-data.js?v=848';
 
 export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';

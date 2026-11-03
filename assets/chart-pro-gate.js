@@ -21,6 +21,8 @@ export const OF_TYPES = ['stk_footprint', 'stk_fp', 'stk_of_delta', 'stk_of_cvd'
 export const GEX_TYPES = ['stk_gex', 'stk_gexheat', 'stk_em'];   // ZoroTide (stk_tide) is free since 2026-11-01
 export const REASON = { of: 'Order flow tools are part of Pro.', gex: 'GEX and options flow on charts are part of Pro.' };
 
+export const PRO_STYLES = ['stk_fp', 'stk_tpoc', 'stk_svp'];   // Pro chart types (Volume footprint, TPO, Session volume profile)
+
 // 'of' | 'gex' | null for a native indicator type (or the 'stk_fp' chart style).
 export function kindOf(type) {
   if (OF_TYPES.indexOf(type) >= 0) return 'of';
@@ -78,7 +80,7 @@ export function sweep(ws, toast) {
   let n = 0, kind = null;
   cellsOf(ws).forEach((cell) => {
     try {
-      if (cell.priceStyle === 'stk_fp') { cell.setPriceStyle('candles'); n++; kind = 'of'; }
+      if (PRO_STYLES.indexOf(cell.priceStyle) >= 0) { cell.setPriceStyle('candles'); n++; kind = 'of'; }
     } catch (e) {}
     try {
       (cell.chart.indicators() || []).forEach((h) => {
@@ -113,7 +115,7 @@ export function mountProGate(ws, opts) {
     const it = item(e.target);
     if (!it || !it.closest('[data-stk-style-menu], .vela-menu, [role="menu"], [role="listbox"]')) return;
     if (it.closest('.stkiw-ov')) return;   // the indicators window has its own guard
-    if (/^\s*(Volume )?Footprint\b/i.test(it.textContent || '') && it.textContent.length < 40) {
+    if (/^\s*(Volume footprint|Footprint|Time price opportunity|Session volume profile)\b/i.test(it.textContent || '') && it.textContent.length < 40) {
       e.stopImmediatePropagation(); e.preventDefault(); upgrade('of');
     }
   }, true);
@@ -122,7 +124,7 @@ export function mountProGate(ws, opts) {
     document.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [role="option"]').forEach((it) => {
       if (it.querySelector('.stk-protag') || it.closest('.stkiw-ov')) return;
       const t = (it.textContent || '').trim();
-      if (/^(Volume )?Footprint\b/i.test(t) && t.length < 30) it.appendChild(proTag());
+      if (/^(Volume footprint|Footprint|Time price opportunity|Session volume profile)\b/i.test(t) && t.length < 40) it.appendChild(proTag());
     });
   };
   new MutationObserver(tag).observe(document.body, { childList: true, subtree: true });

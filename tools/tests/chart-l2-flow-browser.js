@@ -39,7 +39,7 @@ function fakeWs(admin) {
       }
       const send = (o) => ws.onmessage({ data: JSON.stringify(o) });
       send({ type: 'snap', symbol: 'NQ', ts: Date.now(), bids, asks, imb: 0, imb10: 0 });
-      send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, Date.now()], [ask, 2 + (n % 5), 1, Date.now()], ...(cyc === 3 ? [[ask + 0.5, 110, 1, Date.now()]] : [])] });
+      send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, Date.now()], [ask, 2 + (n % 5), 1, Date.now()], ...(cyc === 3 ? [[ask + 0.5, 110, 1, Date.now()]] : []), ...Array.from({ length: 12 }, (_, q) => { const k = ((n * 7 + q * 5) % 60) - 30, sd = (n + q) % 3 === 0 ? -1 : 1; return [bid + k * 0.25, 1 + ((n + q * 3) % 9) + Math.abs(k) % 4, sd, Date.now()]; })] });   // many traded price rows for the ladder
     }, 100);
     return ws;
   };
@@ -68,7 +68,7 @@ async function open(b, { w, h, mobile, admin, theme }) {
   await ctx.route(/127\.0\.0\.1:9\/ts-aux/, (r) => {
     // 30 quiet footprint minutes, then one heavy narrow minute with net selling that closes up: one absorption event (sellers absorbed = buy side up)
     const m0 = Math.floor(Date.now() / 60000) - 40, fp = [], P = window_mid();
-    for (let k = 0; k < 30; k++) fp.push({ t: m0 + k, lv: [0, 1, 2, 3, 4].map((j) => [P + j * 0.25, 5, 5]) });
+    for (let k = 0; k < 30; k++) fp.push({ t: m0 + k, lv: Array.from({ length: 160 }, (_, j) => [P + (j - 80) * 0.25 + Math.sin(k) * 2, 5 + Math.round(40 * Math.abs(Math.sin(j * 0.7 + k))), 5 + Math.round(40 * Math.abs(Math.cos(j * 0.45 + k * 0.3)))]) });   // many traded price rows, buy/sell mixed
     fp.push({ t: m0 + 30, lv: [[P + 0.5, 10, 200], [P + 0.75, 10, 10]] });
     r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ fp, imb: [] }) });
   });
@@ -127,7 +127,7 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       check((await p.evaluate(() => window.__wsOpened)) === 0, 'non-admin: no socket opened');
       await ctx.close();
     }
-    for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [1440, 900, false, 'light', '1440-light'], [390, 844, true, 'dark', '390-dark'], [390, 844, true, 'light', '390-light']])) {
+    for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [1440, 900, false, 'light', '1440-light'], [412, 915, true, 'dark', '412-dark'], [390, 844, true, 'dark', '390-dark'], [390, 844, true, 'light', '390-light']])) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
       if (process.env.TIER1) await p.evaluate(() => { window.__TIER1 = 1; });
       await setNQ(p);

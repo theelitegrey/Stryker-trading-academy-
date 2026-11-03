@@ -561,13 +561,15 @@ function vpLayer() {
       try {
         const d = a.data, I = d.owner.inputs, hub = d.hub, co = a.coords, phone = co.width < 520, top = a.bounds.top, bot = top + a.bounds.height, W = co.width;
         const rp = hub.restProfile(d.ss); if (!rp) return;
-        const S = rp.S, tick = hub.tick(), maxW = Math.max(30, W * num(I.widthPct, 14) / 100 * (phone ? 1.2 : 1));
+        const lad = ladders.find((x) => x.on && !x.off && x.inputs.ladder !== false);   // the delta ladder owns the right edge: the profile sits left of it, never under it
+        const ladW = lad ? W * num(lad.inputs.ladWidth, 16) / 100 * (phone ? 0.8 : 1) + 4 : 0;
+        const S = rp.S, tick = hub.tick(), maxW = Math.max(24, W * num(I.widthPct, 14) / 100 * (phone ? (lad ? 0.6 : 1.2) : 1));
         // traded profile of the same session, rows of the book's own step
         const fa = hub.footBars(), vr = co.visibleLogicalRange(), lastT = a.bars[clamp(Math.ceil(vr.to), 0, a.bars.length - 1)].time;
         const tb = tick ? fa.bars.filter((b) => b.t >= d.ss && b.t <= lastT) : [], tp = tb.length ? tradedProfile(tb, Math.max(1, Math.round(S / tick))) : null;
         let rmax = 0; rp.bid.forEach((q) => { rmax = Math.max(rmax, q); }); rp.ask.forEach((q) => { rmax = Math.max(rmax, q); });
         let tmax = 0; if (tp) for (let k = 0; k < tp.n; k++) tmax = Math.max(tmax, tp.buy[k] + tp.sell[k]);
-        const xT = W - 2, xR = W - 2 - (tp ? maxW + 3 : 0);
+        const xT = W - 2 - ladW, xR = xT - (tp ? maxW + 3 : 0);
         const rowH = (r) => { const yT = Yp(a, (r + 1) * S), yB = Yp(a, r * S); return [Math.min(yT, yB), Math.max(1, Math.abs(yB - yT) - (Math.abs(yB - yT) > 4 ? 1 : 0))]; };
         const rows = new Set([...rp.bid.keys(), ...rp.ask.keys()]);
         for (const r of rows) {

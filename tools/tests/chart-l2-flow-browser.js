@@ -39,7 +39,7 @@ function fakeWs(admin) {
       }
       const send = (o) => ws.onmessage({ data: JSON.stringify(o) });
       send({ type: 'snap', symbol: 'NQ', ts: Date.now(), bids, asks, imb: 0, imb10: 0 });
-      send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, Date.now()], [ask, 2 + (n % 5), 1, Date.now()], ...(cyc === 3 ? [[ask + 0.5, 110, 1, Date.now()]] : []), ...Array.from({ length: 12 }, (_, q) => { const k = ((n * 7 + q * 5) % 60) - 30, sd = (n + q) % 3 === 0 ? -1 : 1; return [bid + k * 0.25, 1 + ((n + q * 3) % 9) + Math.abs(k) % 4, sd, Date.now()]; })] });   // many traded price rows for the ladder
+      send({ type: 'ticks', symbol: 'NQ', t: [[bid, 1 + (n % 7), -1, Date.now()], [ask, 2 + (n % 5), 1, Date.now()], ...(cyc === 3 ? [[ask + 0.5, 110, 1, Date.now()]] : []), ...Array.from({ length: 30 }, (_, q) => { const k = ((n * 37 + q * 23) % 240) - 120, sd = (n + q) % 3 === 0 ? -1 : 1; return [bid + k * 0.25, 1 + ((n + q * 3) % 9) + Math.abs(k) % 4, sd, Date.now()]; })] });   // many traded price rows for the ladder
     }, 100);
     return ws;
   };
@@ -127,7 +127,7 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       check((await p.evaluate(() => window.__wsOpened)) === 0, 'non-admin: no socket opened');
       await ctx.close();
     }
-    for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [1440, 900, false, 'light', '1440-light'], [412, 915, true, 'dark', '412-dark'], [390, 844, true, 'dark', '390-dark'], [390, 844, true, 'light', '390-light']])) {
+    for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [412, 915, true, 'dark', '412-dark'], [390, 844, true, 'light', '390-light'], [390, 844, true, 'light', '390-light']])) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
       if (process.env.TIER1) await p.evaluate(() => { window.__TIER1 = 1; });
       await setNQ(p);

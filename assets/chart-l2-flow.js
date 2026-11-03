@@ -232,7 +232,7 @@ function plateLine(g, a, owner, W) {
   const slot = ovLive.filter((x) => x.on).indexOf(owner); if (slot < 0) return;
   const phone = a.coords.width < 520;
   g.save(); g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
-  const room = a.coords.width - 70; while (txt.length > 8 && g.measureText(txt).width + 10 > room) txt = txt.slice(0, -2).replace(/[ ·]+$/, '') + '…';   // phone: never wider than the chart minus the price scale
+  const room = phone ? a.coords.width * 0.46 : a.coords.width - 70; while (txt.length > 8 && g.measureText(txt).width + 10 > room) txt = txt.slice(0, -2).replace(/[ ·]+$/, '') + '…';   // phone: never wider than the chart minus the price scale
   const tw = g.measureText(txt).width + 10, y = a.bounds.top + 10 + slot * 17, x = a.coords.width - 6;
   g.fillStyle = plate(); g.fillRect(x - tw, y - 7, tw, 14); g.fillStyle = light() ? '#0e7490' : '#4fd1d9'; g.fillText(txt, x - 5, y); g.restore();
 }
@@ -584,8 +584,8 @@ function vpLayer() {
           g.fillStyle = rgba(I.tradedColor, isP ? 0.95 : 0.55); g.fillRect(xT - w, y, w, h);
         }
         g.font = '700 10px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
-        const lab = (txt, xr) => { const tw = g.measureText(txt).width + 8; g.fillStyle = plate(); g.fillRect(xr - tw, bot - 22, tw, 14); g.fillStyle = ink(); g.fillText(txt, xr - 4, bot - 15); };
-        if (tp) lab('Traded', xT); lab('Resting', xR);
+        let up = 0; const lab = (txt, xr) => { const tw = g.measureText(txt).width + 8; g.fillStyle = plate(); g.fillRect(xr - tw, bot - 22 - up, tw, 14); g.fillStyle = ink(); g.fillText(txt, xr - 4, bot - 15 - up); };
+        if (tp) { lab('Traded', xT); const need = g.measureText('Traded').width + 8 + g.measureText('Resting').width + 12; if (xT - xR >= need) lab('Resting', xR); else { up = 16; lab('Resting', xR); } } else lab('Resting', xR);   // too close side by side: Resting goes one line up   // Traded sits at xT, Resting at xR: labels short enough not to meet
         window.__stkL2Flow.stk_l2f_vp.traded = tp ? tp.n : 0;
       } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
     },
@@ -622,7 +622,7 @@ function ladderLayer() {
         const tEnd = a.bars[iB].time + tf, tStart = I.ladRange === 'session' ? sessionStart(a.bars[iB].time, hub.kind) : a.bars[iA].time;
         const fb = hub.footBars(), bars = fb.bars.filter((b) => b.t >= tStart && b.t < tEnd);
         const newest = hub.samples()[hub.samples().length - 1], S = newest ? newest.step : tick;
-        const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)); let m = ROW_STEPS.find((x) => tickPx * x >= (phone ? 16 : 12)) || 400;
+        const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), visTicks = a.bounds.height / (tickPx || 1); let m = ROW_STEPS.find((x) => visTicks / x <= 40 && tickPx * x >= 9) || ROW_STEPS.find((x) => tickPx * x >= 9) || 400;   // about 25-40 rows over the visible price range
         m = Math.max(m, Math.round(S / tick)); const R = m * tick;
         const tp = bars.length ? tradedProfile(bars, m) : null, bn = newest ? bookNet(hub, tStart, tEnd, S === R ? S : R) : new Map();
         const net = new Map(); bn.forEach((v, r) => { const k = Math.floor(((r + 0.5) * S) / R + 1e-9); net.set(k, (net.get(k) || 0) + v); });
@@ -630,8 +630,9 @@ function ladderLayer() {
         if (tp) for (let k = 0; k < tp.n; k++) { const v = tp.buy[k] - tp.sell[k]; if (v) { dl.set(tp.r0 + k, v); dmax = Math.max(dmax, Math.abs(v)); } }
         net.forEach((v) => { bmax = Math.max(bmax, Math.abs(v)); });
         const span = W * num(I.ladWidth, 16) / 100 * (phone ? 0.8 : 1), x = W - 1;
-        const rowPx = Math.abs(Yp(a, R) - Yp(a, 0)), showNum = rowPx >= (phone ? 12 : 11), fs = clamp(Math.floor(rowPx * 0.8), 9, phone ? 10 : 11);
+        const rowPx = Math.abs(Yp(a, R) - Yp(a, 0)), showNum = rowPx >= 11, fs = clamp(Math.floor(rowPx * 0.7), 8, phone ? 10 : 11);
         g.textBaseline = 'middle';
+        g.fillStyle = light() ? 'rgba(241,245,249,0.55)' : 'rgba(11,11,13,0.45)'; g.fillRect(x - span, top, span + 1, bot - top);   // strip: labels read on it, candles stay visible beside it
         const rows = new Set([...dl.keys(), ...net.keys()]);
         for (const r of rows) {
           const yT = Yp(a, (r + 1) * R), yB = Yp(a, r * R), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0));
@@ -640,7 +641,7 @@ function ladderLayer() {
           if (dv) {
             const len = Math.max(1, span * Math.abs(dv) / dmax);
             g.fillStyle = rgba(dv > 0 ? UP : DN, 0.62); g.fillRect(x - len, y, len, h);
-            if (showNum) { g.font = '600 ' + fs + 'px ' + MONO; g.textAlign = 'right'; g.fillStyle = ink(); g.fillText(fmtK(dv), x - len - 3 < x - 24 ? x - 4 : x - len - 3, y + h / 2); }
+            if (showNum) { g.font = '600 ' + fs + 'px ' + MONO; const tx = fmtK(dv); if (g.measureText(tx).width + 6 <= span) { g.textAlign = 'right'; g.fillStyle = ink(); g.fillText(tx, x - 3, y + h / 2); } }   // inside the strip, at the axis edge: never over candles
           }
           if (bv) {   // L2 part: thin bar along the lower edge of the row, cyan = book added, amber = pulled
             const len = Math.max(1, span * 0.9 * Math.abs(bv) / bmax), th = Math.max(2, Math.round(h * 0.3));

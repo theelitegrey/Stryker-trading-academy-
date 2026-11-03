@@ -224,3 +224,29 @@ export function fmtK(v) {
 
 // Absorption events (the Absorption indicator's own rule, passed in) as +1 / -1 steps: sellers absorbed = support = buy side up (+1), buyers absorbed = -1.
 export const absorptionList = (fn, bars) => fn(bars).map((e) => ({ t: e.t, d: e.side === 0 ? 1 : -1 }));
+
+// ---------------------------------------------------------------- recorder history (coarse snapshots)
+// A recorded sample is the whole book bucketed to `step` (v > 0 bids, v < 0 asks, from row i0). These read it like balance / spread / changes
+// read a live book, within N ticks of the touch; a bucket that is only partly inside the window counts pro rata.
+// shortcut: history is a few snapshots a minute, so "changes per second" there = levels that differ between two snapshots / seconds apart (a floor, not the live count).
+export function coarseWindow(s, N, tick) {
+  const mid = s.mid, bbp = s.bb || mid - tick / 2, bap = s.ba || mid + tick / 2, reach = N * tick, m = new Map();
+  let bid = 0, ask = 0, w = 0, sq = 0;
+  for (let k = 0; k < s.v.length; k++) {
+    const q = s.v[k]; if (!q) continue;
+    const p0 = (s.i0 + k) * s.step, p1 = p0 + s.step;
+    const lo = q > 0 ? bbp - reach : bap, hi = q > 0 ? bbp : bap + reach;
+    const ov = Math.min(p1, hi) - Math.max(p0, lo); if (!(ov > 0)) continue;
+    const f = ov / s.step, size = Math.abs(q) * f, d = ((p0 + p1) / 2 - mid) / tick;
+    if (q > 0) bid += size; else ask += size;
+    w += size; sq += size * d * d; m.set(s.i0 + k, { q, f });
+  }
+  return { bid, ask, sd: w > 0 ? Math.sqrt(sq / w) : null, m, step: s.step };
+}
+export function coarseChanges(a, b, tick) {
+  let n = 0;
+  const lv = (e) => Math.max(1, e.f * b.step / tick);
+  b.m.forEach((e, i) => { const o = a.m.get(i); if (!o || o.q !== e.q) n += lv(e); });
+  a.m.forEach((e, i) => { if (!b.m.has(i)) n += lv(e); });
+  return n;
+}

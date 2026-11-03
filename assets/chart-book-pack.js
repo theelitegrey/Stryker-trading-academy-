@@ -8,15 +8,16 @@
 //   stk_bk_track   Absorption & Iceberg Tracker (L1+L2)  sub-pane: cumulative absorption / iceberg hints / stop runs, buy side up, sell side down
 // Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=842';
-import { isFree } from './chart-pro-gate.js?v=842';
-import { l2Visible, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed } from './chart-futures-l2.js?v=842';
-import * as C from './book-panel-core.js?v=842';
-import { openSource } from './book-panel-sources.js?v=842';
-import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=842';
-import { sweepBars } from './chart-of-pro.js?v=842';
-import { icebergEvents } from './chart-liquidity-data.js?v=842';
-import * as D from './chart-book-pack-data.js?v=842';
+import { registerFeed } from './chart-feeds.js?v=838';
+import { isFree } from './chart-pro-gate.js?v=838';
+import { l2Visible, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory } from './chart-futures-l2.js?v=838';
+import { decodeBookHistory } from './chart-orderflow.js?v=838';
+import * as C from './book-panel-core.js?v=838';
+import { openSource } from './book-panel-sources.js?v=838';
+import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=838';
+import { sweepBars } from './chart-of-pro.js?v=838';
+import { icebergEvents } from './chart-liquidity-data.js?v=838';
+import * as D from './chart-book-pack-data.js?v=838';
 
 export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
@@ -39,7 +40,21 @@ const hhmm = (ms) => { try { return new Date(ms).toLocaleTimeString([], { hour: 
 
 // ---------------------------------------------------------------------------------------- one view of the book per N ticks
 class DepthView {
-  constructor(N) { this.N = N; this.speed = new D.Series(); this.bid = new D.Series(); this.ask = new D.Series(); this.sd = new D.Series(); this.prev = null; this.sec = 0; this.chg = 0; this.cur = { bid: 0, ask: 0, sd: null }; }
+  constructor(N) { this.N = N; this.speed = new D.Series(); this.bid = new D.Series(); this.ask = new D.Series(); this.sd = new D.Series(); this.prev = null; this.hist = null; this.hv = 0; this.sec = 0; this.chg = 0; this.cur = { bid: 0, ask: 0, sd: null }; }
+  // live series with the recorder history in front (history = this.hist[name], built by Store.rebuildHist), rebuilt once per change
+  all(name) {
+    const live = this[name], h = this.hist && this.hist[name];
+    if (!h || !h.t.length) return live;
+    const key = live.t.length + ':' + (live.t.length ? live.t[0] : 0) + ':' + this.hv;
+    this.memoAll = this.memoAll || {};
+    const m = this.memoAll[name];
+    if (m && m.key === key) return m.s;
+    const cut = live.t.length ? live.t[0] : Infinity, out = new D.Series(1e9);
+    for (let i = 0; i < h.t.length && h.t[i] < cut; i++) { out.t.push(h.t[i]); out.v.push(h.v[i]); }
+    for (let i = 0; i < live.t.length; i++) { out.t.push(live.t[i]); out.v.push(live.v[i]); }
+    this.memoAll[name] = { key, s: out };
+    return out;
+  }
   update(ts, bk) {
     const sec = Math.floor(ts / 1000);
     if (this.sec && sec !== this.sec) {   // the second is over: store it (a quiet second stores 0 changes)
@@ -62,6 +77,7 @@ class Store {
     this.tick = spec.kind === 'futures' ? (L2_TICK[spec.root] || 0.25) : 0; this.status = 'loading'; this.note = '';
     this.last = null; this.since = 0; this.v = 0; this.views = new Map(); this.refills = new Map(); this.larges = new Map(); this.hist = new D.LogHist(); this.sess = 0;
     this.samples = []; this.secT = 0; this.minT = 0; this.absEv = []; this.iceEv = []; this.iceFrom = 0; this.pending = []; this.tf = null; this.lastCrypto = 0; this.stopFn = null; this.h = null;
+    this.remote = []; this.hFrom = Infinity; this.hBusy = false; this.hFailAt = 0; this.hDone = false; this.hv = 0;
     this.onVis = () => { if (!document.hidden) this.poke(); };
     document.addEventListener('visibilitychange', this.onVis);
     this.start();
@@ -81,9 +97,46 @@ class Store {
   stop() { document.removeEventListener('visibilitychange', this.onVis); if (this.h) { this.h.release(); this.h = null; } if (this.stopFn) { try { this.stopFn(); } catch (e) {} this.stopFn = null; } }
   poke() { this.ls.forEach((f) => { try { f(); } catch (e) {} }); }
   feed() { return this.kind === 'futures' ? rootState(this.spec.root).trades : this.tf; }
-  view(N) { let v = this.views.get(N); if (!v) { v = new DepthView(N); this.views.set(N, v); } return v; }
   refill(o) { const k = [o.refillPct, o.withinSec, o.hitPct].join('|'); let r = this.refills.get(k); if (!r) { r = new D.RefillTracker(o); this.refills.set(k, r); r.since = Date.now(); } return r; }
   large(pct) { let l = this.larges.get(pct); if (!l) { l = { pct, tr: new D.LargeTracker(), thr: null }; this.larges.set(pct, l); } return l; }
+
+  // ---- recorder backfill (futures): the SAME /ts-book-history read the heatmap uses (bookHistory shares it), 6 h a read, leftwards
+  need(fromMs) {
+    if (this.kind !== 'futures' || this.hBusy || this.hDone) return;
+    const now = Date.now();
+    if (this.hFailAt && now - this.hFailAt < 60000) return;
+    const target = Math.floor(Math.max(fromMs, now - 24 * 3600000) / 60000) * 60000;
+    if (!(target < this.hFrom - 60000)) { this.hDone = true; return; }
+    const to = Number.isFinite(this.hFrom) ? this.hFrom : Math.ceil(now / 60000) * 60000, from = Math.max(target, to - 6 * 3600000);
+    this.hBusy = true;
+    bookHistory(this.spec.root, from, to).then((r) => {
+      const got = decodeBookHistory(r.buf); if (!got) throw new Error('bad body');
+      const seen = new Set(this.remote.map((x) => x.ts));
+      this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).sort((a, b) => a.ts - b.ts);
+      this.hFailAt = 0; this.rebuildHist();
+      if (r.left > 0 && (this.tries = (this.tries || 0) + 1) < 60) setTimeout(() => { this.hBusy = false; this.need(fromMs); }, 1100);
+      else { this.hFrom = from; this.tries = 0; this.hBusy = false; if (from <= target) this.hDone = true; this.poke(); }
+    }).catch(() => { this.hFailAt = Date.now(); this.tries = 0; this.hBusy = false; });
+  }
+  // first time the book is known: recorder history, else the first live frame
+  knownFrom() { return this.remote.length ? Math.min(this.remote[0].ts, this.since || Infinity) : this.since; }
+  rebuildHist() {
+    const R = this.remote, tick = this.tick;
+    this.views.forEach((v) => {
+      const h = { speed: new D.Series(1e9), bid: new D.Series(1e9), ask: new D.Series(1e9), sd: new D.Series(1e9) };
+      for (let k = 0; k < R.length; k++) {
+        const a = R[k], nx = k + 1 < R.length ? R[k + 1].ts : a.ts + 60000, end = Math.min(nx, a.ts + 5 * 60000);
+        const w = D.coarseWindow(a, v.N, tick), pw = k && R[k - 1].step === a.step ? D.coarseWindow(R[k - 1], v.N, tick) : null;
+        const sp = pw ? D.coarseChanges(pw, w, tick) / Math.max(1, (a.ts - R[k - 1].ts) / 1000) : null;
+        for (let t = a.ts; t < end; t += 30000) {
+          h.bid.push(t, w.bid); h.ask.push(t, w.ask); if (w.sd != null) h.sd.push(t, w.sd); if (sp != null) h.speed.push(t, sp);
+        }
+      }
+      v.hist = h; v.hv++; v.memoAll = null;
+    });
+    this.hv++; this.poke();
+  }
+  view(N) { let v = this.views.get(N); if (!v) { v = new DepthView(N); this.views.set(N, v); if (this.remote.length) this.rebuildHist(); } return v; }
 
   // ---- futures hub frames
   frame(m) {
@@ -275,11 +328,14 @@ class BkNative {
     if (g.msg) { this.unbind(); return this.say(g.msg); }
     this.bind(g.spec);
     const s = this.h.s, I = this.inputs, ctx = this.ctx, bars = ctx.bars(), t = this.type;
-    if (!s.last) { ctx.setStatus('loading'); ctx.emit({ series: [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Waiting for the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
+    if (s.kind === 'futures' && bars.length) s.need(bars[0].time);
+    if (!s.last && !s.remote.length) { ctx.setStatus('loading'); ctx.emit({ series: [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Waiting for the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
     ctx.setStatus('live');
     const tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
     const kind = s.kind, ss = D.sessionStart(Date.now(), kind);
-    const since = s.since > ss + 60000 ? 'No book history before ' + hhmm(s.since) : '';
+    // honest note only once the recorder read is settled and truly holds nothing earlier than the first bar shown (member's local time)
+    const kf = s.knownFrom(), first = bars.length ? bars[0].time : 0;
+    const since = s.kind === 'futures' && !(s.hDone || s.hFailAt) ? 'Loading book history…' : (kf > Math.max(ss, first) + 300000 ? 'No book history before ' + hhmm(kf) : '');
     if (t === 'stk_bk_speed') return this.drawSpeed(s, I, bars, tf, ss, since);
     if (t === 'stk_bk_bal') return this.drawBal(s, I, bars, tf, ss, since);
     if (t === 'stk_bk_regime') return this.drawRegime(s, I, bars, tf, since);
@@ -288,11 +344,12 @@ class BkNative {
     return this.drawTrack(s, I, bars, kind, since);
   }
   // values per bar -> { cuts, band[] } against the bars' own session history (needs >= 8 values)
-  bands(vals, bars, lo, hi) {
+  // history and live are different measures (recorded snapshots vs every update), so each gets its own percentiles
+  bands(vals, bars, lo, hi, cut) {
     const ss = D.sessionStart(bars.length ? bars[bars.length - 1].time : Date.now(), this.spec.kind === 'futures' ? 'futures' : 'crypto');
-    const sv = []; for (let i = 0; i < bars.length; i++) if (bars[i].time >= ss && vals[i] != null) sv.push(vals[i]);
-    const [a, b] = sv.length >= 8 ? D.percentiles(sv, [lo, hi]) : [null, null];
-    return { lo: a, hi: b, band: vals.map((v) => D.band(v, a, b)) };
+    const seg = (a, b) => { const sv = []; for (let i = 0; i < bars.length; i++) if (bars[i].time >= Math.max(ss, a) && bars[i].time < b && vals[i] != null) sv.push(vals[i]); return sv.length >= 8 ? D.percentiles(sv, [lo, hi]) : [null, null]; };
+    const c = cut || 0, h = c ? seg(0, c) : [null, null], l = seg(c, Infinity);
+    return { band: vals.map((v, i) => { const p = c && bars[i].time < c ? h : l; return D.band(v, p[0], p[1]); }) };
   }
   drawSpeed(s, I, bars, tf, ss, since) {
     const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
@@ -308,24 +365,25 @@ class BkNative {
   }
   drawBal(s, I, bars, tf, ss, since) {
     const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
-    const bid = D.perBar(v.bid, bars, tf, 'last'), ask = D.perBar(v.ask, bars, tf, 'last');
+    const vb = v.all('bid'), va = v.all('ask'), bid = D.perBar(vb, bars, tf, 'last'), ask = D.perBar(va, bars, tf, 'last');
     const diff = bid.map((x, i) => (x == null || ask[i] == null ? null : x - ask[i]));
     const series = [{ id: 'bk-diff', title: 'Bid - ask', paneId: '', kind: 'histogram', points: bars.map((x, i) => (diff[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(diff[i]), color: rgba(diff[i] >= 0 ? I.bidColor : I.askColor, 0.55) })), style: { color: I.bidColor, width: 1, lineStyle: 'solid', base: 0 } }];
     if (I.showLines !== false) series.push(H.line('bk-bid', 'Resting bid size', bars, bid, I.bidColor, 2), H.line('bk-ask', 'Resting ask size', bars, ask, I.askColor, 2));
-    const j = v.bid.from(ss), lb = v.bid.last, la = v.ask.last;
+    const j = vb.from(ss), lb = vb.last, la = va.last;
     const pct = (a, b) => (a > 0 && b != null ? (b / a - 1) * 100 : null), sg = (x) => (x == null ? 'n/a' : (x >= 0 ? '+' : '') + x.toFixed(0) + '%');
-    const hasStart = j < v.bid.t.length && v.bid.t[j] - ss < 120000;
-    const l2 = hasStart ? 'Since session start: bid ' + sg(pct(v.bid.v[j], lb)) + ' · ask ' + sg(pct(v.ask.v[j], la)) : (since || 'Since session start: n/a');
-    this.ctx.emit({ series, tables: [this.legend(['Bid ' + D.fmtK(v.cur.bid) + ' · Ask ' + D.fmtK(v.cur.ask) + ' · Δ ' + (v.cur.bid - v.cur.ask >= 0 ? '+' : '') + D.fmtK(v.cur.bid - v.cur.ask), l2], v.cur.bid >= v.cur.ask ? I.bidColor : I.askColor)] });
+    const hasStart = j < vb.t.length && vb.t[j] - ss < 120000;
+    const l2 = hasStart ? 'Since session start: bid ' + sg(pct(vb.v[j], lb)) + ' · ask ' + sg(pct(va.v[j], la)) : (since || 'Since session start: n/a');
+    const cb = lb == null ? 0 : lb, ca = la == null ? 0 : la;
+    this.ctx.emit({ series, priceLines: [{ id: 'bk-bal-0', paneId: '', price: 0, color: '#787b86', lineStyle: 'dashed', width: 1, title: '' }], tables: [this.legend(['Bid ' + D.fmtK(cb) + ' · Ask ' + D.fmtK(ca) + ' · Δ ' + (cb - ca >= 0 ? '+' : '') + D.fmtK(cb - ca), l2], cb >= ca ? I.bidColor : I.askColor)] });
     this.push({ off: true });
   }
   drawRegime(s, I, bars, tf, since) {
     const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
-    const raw = D.perBar(v.sd, bars, tf, 'mean'), sm = D.ema(raw, 3);
-    const b = this.bands(sm, bars, num(I.tightPct, 25), num(I.widePct, 75)), cols = [I.tightColor, I.normalColor, I.wideColor], names = ['Tight', 'Normal', 'Wide'];
+    const sdv = v.all('sd'), raw = D.perBar(sdv, bars, tf, 'mean'), sm = D.ema(raw, 3);
+    const b = this.bands(sm, bars, num(I.tightPct, 25), num(I.widePct, 75), s.since), cols = [I.tightColor, I.normalColor, I.wideColor], names = ['Tight', 'Normal', 'Wide'];
     let li = sm.length - 1; while (li >= 0 && sm[li] == null) li--;
     const bi = li >= 0 ? b.band[li] : 1;
-    this.ctx.emit({ tables: [this.legend(['Regime ' + (li >= 0 ? names[bi] : '…'), since || (v.cur.sd != null ? 'spread ' + v.cur.sd.toFixed(1) + ' ticks' : '')], cols[bi])] });
+    this.ctx.emit({ tables: [this.legend(['Regime ' + (li >= 0 ? names[bi] : '…'), since || (sdv.last != null ? 'spread ' + sdv.last.toFixed(1) + ' ticks' : '')], cols[bi])] });
     this.push({ strip: bars.map((x, i) => (sm[i] == null ? -1 : b.band[i])), cols, nbars: bars.length, firstT: bars.length ? bars[0].time : 0 });
   }
   drawRefill(s, I, since) {
@@ -344,6 +402,7 @@ class BkNative {
   }
   drawTrack(s, I, bars, kind, since) {
     const series = [], row = [];
+    if (!s.absAt || Date.now() - s.absAt > 10000) s.refreshAbs(Math.floor(Date.now() / 60000) * 60000);   // footprint minutes come from /ts-aux, also before the first live frame
     if (I.showAbs !== false) { const a = D.cumulate(bars, s.absEv, kind); series.push(H.line('bk-abs', 'Absorption', bars, a, I.absColor, 2)); row.push('Abs ' + (a.length ? a[a.length - 1] : 0)); }
     if (I.showIce !== false) { const a = D.cumulate(bars, s.iceEv, kind); series.push(H.line('bk-ice', 'Iceberg hints', bars, a, I.iceColor, 2)); row.push('Ice ' + (a.length ? a[a.length - 1] : 0)); }
     if (I.showSweep !== false && bars.length > 12) {

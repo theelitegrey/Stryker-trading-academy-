@@ -24,6 +24,7 @@
 
 import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=825';
 import { hubCovers } from './live-source.js?v=825';
+import { labelFor } from './byo-core.js?v=825';   // member's own connected source (Connect your own data)
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
@@ -128,6 +129,10 @@ export function installDataDot(ws, opts = {}) {
     sym = String(sym || '');
     if (window.__stkReplay && window.__stkReplay.on) return { s: 'replay', text: 'Bar replay: historical bars, not live data', tag: 'Replay' };
     if (CRYPTO.test(sym)) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
+    // Own source (assets/byo-core.js): the one place a source name shows on the chart. Green only while its stream is live.
+    const own = labelFor(sym);
+    if (own) return own.status === 'live' ? { s: 'rt', text: 'Data feed: your ' + own.name, tag: 'Your feed' }
+      : { s: 'delayed', text: 'Data feed: your ' + own.name + (own.status === 'error' ? ' (refused, check the Data source sheet)' : ' (connecting)'), tag: own.status === 'error' ? 'Feed error' : 'Connecting' };
     if (FX.test(sym)) {
       const now = Date.now();
       if (!fxOpen(now)) {
@@ -259,6 +264,8 @@ export function installDataDot(ws, opts = {}) {
   // (assets/rithmic-ui.js writes that one to dataset.fut and leaves the text alone on crypto).
   const VENUE = { binance: 'Binance', coinbase: 'Coinbase', hyperliquid: 'Hyperliquid' };
   function creditFor(sym) {
+    const own = labelFor(sym);
+    if (own) return 'Data feed: your ' + own.name + ' · market data goes straight from your account to your browser · Education only. Not financial advice.';
     const m = /^(binance|coinbase|hyperliquid):/i.exec(String(sym || ''));
     if (!m) return '';
     const v = VENUE[m[1].toLowerCase()];
@@ -289,6 +296,7 @@ export function installDataDot(ws, opts = {}) {
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, schedule); } catch (e) {} });
   try { rtOnChange(schedule); } catch (e) {}
   window.addEventListener('stryker:l2live', schedule);
+  window.addEventListener('tz:byo', schedule);
   if (rith && rith.client && rith.client.on) { try { rith.client.on((ev) => { if (ev && ev.type === 'state') schedule(); }); } catch (e) {} }
   // Market open/close and the lag re-measure: a light timer, plus straight away when the tab returns.
   setInterval(() => { if (!document.hidden) sync(); }, TICK_MS);

@@ -3287,6 +3287,30 @@
        "level": "advanced"
       },
       {
+       "id": "own-data-source",
+       "q": "How do I plot data from my own broker account?",
+       "a": "<p>Open ZoroCharts and tap <b>Data source</b> in the toolbar. Pick your source, enter your key, and tap Connect. Your key is encrypted and stays on this device; market data goes straight from your broker to your browser. It is data only: TradeZoro never places or changes trades and never reads your account or balance.</p><p>Today: Alpaca (US stocks and ETFs) and OANDA (forex). More sources are coming. Tap Forget this connection to remove the key from this device.</p>",
+       "steps": [
+        "Open ZoroCharts and tap Data source.",
+        "Pick a source and tap Connect.",
+        "Enter your key. Use a data-only or paper key if your broker offers one.",
+        "Open a stock (symbol picker, Your data) or a forex pair. The chart now follows your own feed and the data dot says it."
+       ],
+       "path": "ZoroCharts → Data source",
+       "tags": [
+        "data source",
+        "alpaca",
+        "oanda",
+        "own data",
+        "api key",
+        "connect"
+       ],
+       "related": [
+        "rithmic-connect"
+       ],
+       "level": "advanced"
+      },
+      {
        "id": "rithmic-disconnect",
        "q": "How do I disconnect?",
        "a": "<p>Open the same sheet and tap Disconnect. Futures charts go back to the standard data (\"Disconnected from Rithmic\").</p>",

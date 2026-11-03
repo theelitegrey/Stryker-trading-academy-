@@ -718,7 +718,8 @@ html[data-device="tablet"] .sidebar-backdrop{ display:none !important; }}
     background:rgba(11,11,13,.95); backdrop-filter:blur(12px);
     border-top:1px solid var(--line-soft);
     padding:4px 6px calc(6px + env(safe-area-inset-bottom));
-  }}
+  }
+body.has-appdock{ padding-bottom:84px; }}
 .appnav-dk{
   flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
   padding:9px 0 7px; color:var(--ink-3); position:relative;

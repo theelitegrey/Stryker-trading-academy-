@@ -4,7 +4,7 @@
 // Each pattern: outline lines, a small name label, a dotted neckline / breakout line, and (optional) a dotted measured-move target line.
 // A pattern is "forming" until a bar closes through its neckline / trendline; then it is complete. Maths: assets/chart-patterns-data.js.
 // Incremental (only new closed bars are read) and bounded (last N pivots). Words: "pattern", never "signal". Education only. Not financial advice.
-import * as D from './chart-patterns-data.js?v=850';
+import * as D from './chart-patterns-data.js?v=851';
 
 export const PATTERN_TYPES = ['stk_patterns'];
 const UP = '#03c988', DN = '#f23645', NEUTRAL = '#f5b301';

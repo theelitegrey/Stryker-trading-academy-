@@ -180,3 +180,6 @@
 .pv-faq-all{ align-self:center; margin-top:6px; font-weight:600; font-size:14px; color:var(--gold-bright); text-decoration:none; padding:8px 4px; }
 .pv-faq-all:hover{ text-decoration:underline; }
 :root[data-theme="light"] .pv-faq-all{ color:var(--gold); }
+
+.pp-see{ display:flex; align-items:center; justify-content:center; min-height:44px; margin-top:8px; font-size:14px; font-weight:500; color:var(--gold); }
+.pp-see:hover{ text-decoration:underline; }

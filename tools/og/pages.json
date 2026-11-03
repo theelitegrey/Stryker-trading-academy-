@@ -37,6 +37,7 @@
     {"page": "about.html", "title": "About TradeZoro", "og_title": "About TradeZoro — What We Teach and How the Curriculum Is Built", "visual": "brand", "alt": "About TradeZoro share card with the TradeZoro logo"},
     {"page": "signup.html", "title": "Create Account", "og_title": "Create Account — Start the Free Chapters at TradeZoro", "visual": "brand", "alt": "Create Account share card with the TradeZoro logo"},
     {"page": "pricing.html", "title": "Free and Pro", "og_title": "Plans: Free and Pro — TradeZoro", "visual": "brand", "alt": "Free and Pro share card with the TradeZoro logo"},
+    {"page": "pro.html", "title": "Everything in Pro", "og_title": "Everything in Pro: order flow, order book and GEX+ — TradeZoro", "visual": "brand", "alt": "Everything in Pro share card with the TradeZoro logo"},
     {"page": "login.html", "title": "Member Login", "og_title": "Member Login — TradeZoro", "visual": "brand", "alt": "Member Login share card with the TradeZoro logo"},
     {"page": "contact.html", "title": "Contact Us", "og_title": "Contact Us — TradeZoro", "visual": "brand", "alt": "Contact Us share card with the TradeZoro logo"},
     {"page": "help.html", "title": "Help Center", "og_title": "Help Center — TradeZoro", "visual": "brand", "alt": "Help Center share card with the TradeZoro logo"},

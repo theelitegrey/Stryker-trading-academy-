@@ -131,7 +131,7 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
       if (process.env.TIER1) await p.evaluate(() => { window.__TIER1 = 1; });
       await setNQ(p);
-      for (const t of TYPES) await add(p, t, t === 'stk_l2f_cvd' && process.env.CVD ? JSON.parse(process.env.CVD) : t === 'stk_l2f_big' ? { mode: 'Manual', minSize: 100 } : t === 'stk_l2f_stop' ? { showAll: true, levels: 1 } : {});
+      for (const t of (process.env.ONLY ? process.env.ONLY.split(',') : TYPES)) await add(p, t, t === 'stk_l2f_cvd' && process.env.CVD ? JSON.parse(process.env.CVD) : t === 'stk_l2f_big' ? { mode: 'Manual', minSize: 100 } : t === 'stk_l2f_stop' ? { showAll: true, levels: 1 } : {});
       if (process.env.L1) await add(p, 'stk_ts_cvd');
       await sleep(14000);
       if (process.env.TIER1) { const lk = await p.evaluate(() => ({ chips: [...document.querySelectorAll('.stkfeed.is-locked')].length, note: (document.querySelector('#stkfeed-note') || {}).hidden === false ? document.querySelector('#stkfeed-note').innerText : '', msg: /Needs L2/.test(document.body.innerText) })); check(lk.chips === 0 && !lk.msg, tag + ': no false lock after tier trades then book frames', lk); }
@@ -142,10 +142,11 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       check(f.stk_l2f_stop && typeof f.stk_l2f_stop.sweeps === 'number', tag + ': stop runs evaluated (' + JSON.stringify(f.stk_l2f_stop) + ')');
       check(f.stk_l2f_vp && f.stk_l2f_vp.n >= 20 && f.stk_l2f_vp.traded > 0, tag + ': volume profile rows resting ' + (f.stk_l2f_vp && f.stk_l2f_vp.n) + ' traded ' + (f.stk_l2f_vp && f.stk_l2f_vp.traded), f.stk_l2f_vp);
       const cnt = await p.evaluate(() => (window.STRYKER_VELA.context().cells[0].chart.indicators() || []).filter((h) => /^stk_l2f_/.test(h.nativeType)).length);
-      check(cnt === 6, tag + ': six on the chart', cnt);
+      check(cnt === 7, tag + ': six + the auto-added ladder on the chart', cnt);
       const reqs = await p.evaluate(() => performance.getEntriesByType('resource').map((e) => e.name).filter((n) => /ts-book-history|ts-trades|ts-aux/.test(n)));
       const dup = reqs.filter((u, i) => reqs.indexOf(u) !== i);
       check(dup.length === 0, tag + ': no window fetched twice (' + reqs.length + ' history requests)', dup);
+      console.log('LAD', JSON.stringify(f.ladder)); check(f.ladder && f.ladder.draws > 0 && f.ladder.trade > 0 && f.ladder.book > 0, tag + ': delta ladder drawn (rows ' + JSON.stringify(f.ladder) + ')', f.ladder);
       check(errors.length === 0, tag + ': no console errors', errors);
       await p.screenshot({ path: OUT + '/l2f-' + tag + '.png' });
       // zoomed: the footprint + resting profile need room (a few dozen bars)

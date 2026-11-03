@@ -697,6 +697,8 @@ function lateLists(provider){
     });
   };
 
+  let FormulaMod = null, FormulaNorm = null;
+  try { [FormulaMod, { normalizeSymbol: FormulaNorm }] = await Promise.all([import('./chart-formula.js?v=842'), import('./chart-watchlist.js?v=842')]); } catch (e) { console.warn('TradeZoro: formula', e); }
   try {
     ws = window.STRYKER_VELA = new VelaWorkspace('#vela-chart', {
       layout: '1',
@@ -732,6 +734,8 @@ function lateLists(provider){
         idx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(IdxProvider, 'idx'))(), 'idx'), 'idx'),
         // Stocks from the member's OWN connected account (assets/byo-core.js); empty until they connect one.
         byo: Replay.wrapFactory(Iv.wrapFactory(() => new BYO.ByoProvider(), 'byo'), 'byo'),
+        // Formula symbols ("ES1!-NQ1!*0.25"): candles computed from the legs' own providers (assets/chart-formula.js).
+        ...(FormulaMod ? { formula: () => FormulaMod.createFormulaProvider(() => window.STRYKER_VELA && window.STRYKER_VELA.feed, FormulaNorm) } : {}),
       },
       persist: PERSIST_KEY
     });
@@ -927,6 +931,7 @@ function lateLists(provider){
   try { IndStyle.mountIndStyle(ws); } catch (e) { console.warn('TradeZoro: indicator style', e); }
   // Indicator Settings → Inputs: every input.symbol opens the same symbol search
   // (assets/chart-symbol-input.js).
+  try { FormulaMod && FormulaMod.mountFormula(ws, { SymbolPicker: null, normalize: FormulaNorm }); } catch (e) {}
   Promise.all([import('./chart-symbol-input.js?v=842'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountSymbolInputPicker(ws, { toast, SymbolPicker: Wd.SymbolPicker, COMMODITY_ROOTS }))
     .catch((e) => console.warn('TradeZoro: symbol inputs', e));

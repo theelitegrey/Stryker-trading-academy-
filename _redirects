@@ -39,6 +39,8 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 
 # Schwab sign-in return page (Connect your own data). The token swap itself is functions/connect/schwab/token.js.
 /connect/schwab/callback /schwab-callback 200
+# cTrader sign-in return page (view-only). Token swap: functions/connect/ctrader/token.js; price relay: functions/connect/ctrader/ws.js.
+/connect/ctrader/callback /ctrader-callback 200
 
 # Creator Hub landing moved under /features (2026-10-30).
 /creators /features/creators 301

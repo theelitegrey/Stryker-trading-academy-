@@ -84,7 +84,7 @@ export const SOURCES = [
   { id: 'tastytrade', name: 'tastytrade', cls: ['futures', 'stocks'], covers: 'CME futures and US stocks', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon' },
   { id: 'schwab', name: 'Charles Schwab', cls: ['stocks', 'futures', 'options'], covers: 'Stocks, futures and options', fee: 'paid', feeNote: 'Your data fees apply.', state: 'soon', oauth: true,
     help: 'You sign in on Schwab\'s own page. Only market data is requested. Schwab asks you to sign in again about once a week.' },
-  { id: 'ctrader', name: 'cTrader', cls: ['forex', 'crypto'], covers: 'Forex and crypto CFDs', fee: 'free', feeNote: 'Free with your account.', state: 'soon' }
+  { id: 'ctrader', name: 'cTrader', cls: ['forex', 'crypto'], covers: 'Forex and crypto CFDs', fee: 'free', feeNote: 'Free with your account.', state: 'soon' }   // details + sign-in: assets/byo-ctrader.js
 ];
 // Flag: the function says it has its Schwab keys -> the row becomes ready (OAuth connect). Otherwise it stays Coming soon.
 export async function enableSchwabIfConfigured(d) {
@@ -573,6 +573,10 @@ export function activate(id, creds, deps) {
     const tick = () => schwab.fresh(creds, deps).catch((e) => { if (e && e.reconnect) { rec.status = 'error'; rec.msg = 'Reconnect Schwab'; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); } });
     rec.timer = setInterval(tick, SCHWAB.REFRESH_EVERY); tick();
   }
+  if (id === 'ctrader') {   // refresh long before the token expires; a refused refresh says Reconnect
+    const tick = () => ad.fresh(creds, deps).catch((e) => { if (e && e.reconnect) { rec.status = 'error'; rec.msg = 'Reconnect cTrader'; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); } });
+    rec.timer = setInterval(tick, 6 * 36e5); tick();
+  }
   rec.hub = ad.hub(creds, (st, msg) => { rec.status = st === 'idle' ? 'ready' : st; rec.msg = msg; emit(id); }, deps);
   live.set(id, rec); emit(id);
 }
@@ -587,6 +591,11 @@ export async function connect(id, creds, deps) {
 export async function saveSchwab(j, deps) {
   if (!uid) throw new Error('Sign in to connect your own data');
   const c = schwabCreds(j); await V().save('schwab', c); activate('schwab', c, deps);
+}
+// Adapters outside this file (byo-ctrader.js) keep refreshed / new tokens in the same encrypted vault.
+export async function saveSource(id, creds, deps, start) {
+  if (!uid) throw new Error('Sign in to connect your own data');
+  await V().save(id, creds); if (start) activate(id, creds, deps);
 }
 export const statusRec = (id) => live.get(id) || null;
 export async function forget(id) { const r = live.get(id); if (r) clearInterval(r.timer); if (r && r.hub) r.hub.stop(); live.delete(id); await V().forget(id); emit(id); }

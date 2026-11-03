@@ -106,6 +106,17 @@
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
 
+# cTrader sign-in return page: the one-time code is in the URL, so no referrer, no cache, never indexed.
+/ctrader-callback.html
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/connect/ctrader/callback
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
 /manifest.json
   Cache-Control: public, max-age=0, must-revalidate
 

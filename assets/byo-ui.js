@@ -3,6 +3,8 @@
 // the chart toolbar (.stkc-bar-r). Rithmic is listed here and opens its own existing flow (window.STRYKER_RITHMIC.open).
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
 import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=837';
+let CTR = null;   // byo-ctrader.js, loaded with the chart
+const ctr = () => CTR || import('./byo-ctrader.js?v=837').then((m) => (CTR = m));
 
 const CSS = `
 .byo-btn svg{ flex:none; }
@@ -112,6 +114,7 @@ const X = I('<path d="M6 6l12 12M18 6 6 18"/>');
 const BACK = I('<path d="m15 6-6 6 6 6"/>');
 const LOCK = I('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', 16);
 const NOTE = 'Your sign-in or key stays on this device. Market data goes straight from {name} to your browser.';
+const noteOf = (s) => s.noteText || NOTE.replace('{name}', s.name);
 const DATA_ONLY = 'Data only. TradeZoro never places, changes or cancels trades, and never reads your account, positions or balance.';
 
 function el(tag, attrs, kids) {
@@ -166,13 +169,13 @@ export function mountByo(opts = {}) {
     let b;
     if (s.state === 'rithmic') b = el('button', { type: 'button', class: 'byo-row-b', text: 'Connect', 'aria-label': 'Connect Rithmic', onclick: () => { setOpen(false); try { window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.open && window.STRYKER_RITHMIC.open(); } catch (e) { /* not loaded yet */ } } });
     else if (s.state === 'ready' && s.oauth) {
-      const re = connected && (statusOf(s.id) || {}).msg === 'Reconnect Schwab';
-      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : startOauth(s)) });
+      const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
+      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : startOauth(s)) });
     } else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
     else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', disabled: true, 'aria-label': s.name + ', coming soon' });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
       logoTile(s),
-      el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }),
+      el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }), s.relay && s.state === 'ready' ? el('span', { class: 'byo-cv', text: s.noteText }) : null,
         el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' })]),
       b]);
   }
@@ -181,7 +184,7 @@ export function mountByo(opts = {}) {
     try {
       const u = window.firebase && firebase.auth().currentUser;
       if (!u) { go('list'); body.prepend(el('p', { class: 'byo-err', role: 'alert', text: 'Sign in to connect your own data.' })); return; }
-      location.assign(await schwabAuthUrl(s.clientId, u.uid));
+      location.assign(s.id === 'ctrader' ? (await ctr()).ctraderAuthUrl(s.clientId, u.uid) : await schwabAuthUrl(s.clientId, u.uid));
     } catch (e) { /* stays on the list */ }
   }
 
@@ -219,7 +222,7 @@ export function mountByo(opts = {}) {
     const submit = el('button', { type: 'submit', class: 'byo-go', text: 'Connect' });
     form.appendChild(submit);
     form.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
-    form.querySelector('.byo-lock span').textContent = NOTE.replace('{name}', s.name);
+    form.querySelector('.byo-lock span').textContent = noteOf(s);
     form.appendChild(el('p', { class: 'byo-note', text: DATA_ONLY }));
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -255,7 +258,7 @@ export function mountByo(opts = {}) {
     body.appendChild(el('p', { class: 'byo-lead', text: s.manage ? s.manage : s.id === 'alpaca' || s.id === 'schwab' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
     body.appendChild(el('button', { type: 'button', class: 'byo-go danger', id: 'byo-forget', text: 'Forget this connection', onclick: async () => { await forget(s.id); go('list'); } }));
     body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
-    body.querySelector('.byo-lock span').textContent = NOTE.replace('{name}', s.name);
+    body.querySelector('.byo-lock span').textContent = noteOf(s);
   }
 
   function render() {
@@ -278,6 +281,7 @@ export function mountByo(opts = {}) {
   onByoChange(() => { if (open && view === 'manage') render(); else if (open && view === 'list') renderList(); });
 
   enableSchwabIfConfigured().then((on) => { if (on && open) render(); }).catch(() => {});
+  ctr().then((m) => m.enableCtraderIfConfigured()).then((on) => { if (on && open) render(); }).catch(() => {});
   const api = window.STRYKER_BYO = { open: () => { view = 'list'; setOpen(true); }, close: () => setOpen(false), get isOpen() { return open; } };
   return api;
 }

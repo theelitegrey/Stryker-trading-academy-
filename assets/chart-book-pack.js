@@ -319,7 +319,7 @@ class BkNative {
     this.last = Date.now();
     if (!this.ctx || this.off) return;
     const t0 = performance.now(); this.emitMs = 0;
-    if (!this.emitWrapped) { this.emitWrapped = true; const me = this; for (const k of ['emit', 'setStatus', 'pushData']) { const f = this.ctx[k].bind(this.ctx); this.ctx[k] = (x) => { const a = performance.now(); try { if (k === 'emit' && me.type === 'stk_bk_speed') window.__sp = (x.series || []).map((q) => [q.id, q.kind, q.points.length, q.points.filter((z) => z.value != null).length, JSON.stringify(q.points[q.points.length - 1]), JSON.stringify(q.style)]); return f(x); } finally { me.emitMs += performance.now() - a; } }; } }
+    if (!this.emitWrapped) { this.emitWrapped = true; const me = this; for (const k of ['emit', 'setStatus', 'pushData']) { const f = this.ctx[k].bind(this.ctx); this.ctx[k] = (x) => { const a = performance.now(); try { return f(x); } finally { me.emitMs += performance.now() - a; } }; } }
     // our own work only: the chart library's emit / pushData (its layout + paint) is timed apart
     try { this.draw(); } finally { this.ms += performance.now() - t0 - this.emitMs; this.n++; (window.__stkBookPack || (window.__stkBookPack = {}))[this.type] = { renders: this.n, avgMs: this.ms / this.n }; }
   }
@@ -353,14 +353,14 @@ class BkNative {
   }
   drawSpeed(s, I, bars, tf, ss, since) {
     const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
-    const raw = D.perBar(v.all('speed'), bars, tf, 'mean'), sm = D.ema(raw, clamp(Math.round(num(I.smooth, 3)), 1, 30));
-    const b = this.bands(sm, bars, num(I.calmPct, 25), num(I.fastPct, 75), s.since), cols = [I.calmColor, I.normalColor, I.fastColor], names = ['Calm', 'Normal', 'Fast'];
+    const raw = D.perBar(v.speed, bars, tf, 'mean'), sm = D.ema(raw, clamp(Math.round(num(I.smooth, 3)), 1, 30));
+    const b = this.bands(sm, bars, num(I.calmPct, 25), num(I.fastPct, 75)), cols = [I.calmColor, I.normalColor, I.fastColor], names = ['Calm', 'Normal', 'Fast'];
     const pts = bars.map((x, i) => (sm[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(sm[i]), color: cols[b.band[i]] }));
     let li = sm.length - 1; while (li >= 0 && sm[li] == null) li--;
     const now = li >= 0 ? sm[li] : null, bi = li >= 0 ? b.band[li] : 1;
-    this.ctx.emit({ series: [{ id: 'bk-speed', title: 'Book changes per second', paneId: '', kind: 'histogram', points: pts, style: { color: I.normalColor, width: 1, lineStyle: 'solid', base: 0 } }, H.line('bk-speed-l', 'Book speed (line)', bars, sm.map((x) => (x == null ? null : Math.round(x))), I.normalColor, 1)],
-      priceLines: [{ id: 'bk-speed-0', paneId: '', price: 0, color: '#787b86', lineStyle: 'dashed', width: 1, title: '' }],
-      tables: [this.legend(['Book Speed ' + (now == null ? '…' : now.toFixed(1) + '/s · ' + names[bi]), since || (v.hist && v.hist.speed.t.length ? 'earlier: recorded snapshots (lower count)' : 'how nervous the book is')], cols[bi])] });
+    this.ctx.emit({ series: [{ id: 'bk-speed', title: 'Book changes per second', paneId: '', kind: 'histogram', points: pts, style: { color: I.normalColor, width: 1, lineStyle: 'solid', base: 0 } }],
+      priceLines: [{ id: 'bk-speed-0', paneId: '', price: 0, color: light() ? 'rgba(15,23,42,0.35)' : 'rgba(255,255,255,0.3)', lineStyle: 'dashed', width: 1, title: '' }],
+      tables: [this.legend(['Book Speed ' + (now == null ? '…' : now.toFixed(1) + '/s · ' + names[bi]), since || 'how nervous the book is'], cols[bi])] });
     this.push({ off: true });
   }
   drawBal(s, I, bars, tf, ss, since) {

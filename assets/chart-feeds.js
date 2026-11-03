@@ -61,7 +61,8 @@ let refresh = null;
 const poke = () => { if (refresh) refresh(); };
 const rate = (v) => (v == null ? '' : ' (~' + (v >= 10 ? Math.round(v) : v >= 0.95 ? Math.round(v * 10) / 10 : '<1') + '/s)');
 const ago = (ms) => (ms < 60000 ? Math.round(ms / 1000) + ' s' : Math.round(ms / 60000) + ' min');
-const mktOf = (sym) => (/^futures:/i.test(sym) ? 'futures' : /^(binance|coinbase|hyperliquid):/i.test(sym) ? 'crypto' : '');
+const FUT_PFX = /^(futures|cme|cme_mini|cbot|cbot_mini|nymex|comex|nymex_mini|comex_mini):/i;   // the chart can name NQ as 'futures:NQ1!' or 'CME:NQ1!' (phone): both are futures
+const mktOf = (sym) => (FUT_PFX.test(sym) ? 'futures' : /^(binance|coinbase|hyperliquid):/i.test(sym) ? 'crypto' : '');
 const cleanSym = (s) => String(s || '').replace(/^[a-z]+:/i, '');
 
 // Right-now lines for one level (pure given the stats object s, which may be null)

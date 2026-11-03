@@ -437,7 +437,7 @@ export function badgeUse() {}
 const rateMem = new Map();
 // -> { status, ageMs, bookRate, tradeRate } for the chart's root (rates = changes per second since the last call, smoothed)
 function feedStats(sym, now) {
-  const m = /^futures:(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]), r = root && roots.get(root);
+  const m = /^(?:futures|cme|cme_mini|cbot|cbot_mini|nymex|comex|nymex_mini|comex_mini):(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]), r = root && roots.get(root);
   if (!r || !r.conn) return null;
   const k = rateMem.get(root) || { t: now, b: r.nSnap || 0, x: r.nTick || 0, bookRate: null, tradeRate: null };
   const dt = (now - k.t) / 1000;

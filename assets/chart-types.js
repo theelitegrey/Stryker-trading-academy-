@@ -165,14 +165,99 @@ function typeLayer(id) {
   };
 }
 
+// ---------------------------------------------------------------- price-based types (derive transforms)
+const NUM = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
+const PB_DEF = { method: 'atr', atrLen: 14, fixed: 0, pct: 1, ticks: 10, source: 'close', rev: 3, lines: 3 };
+const opts = (s) => Object.assign({}, PB_DEF, s || {});
+// the size comes from the finished bars (not the forming one), so it stays put between ticks
+const sizeFor = (raw, o) => sizeOf(raw.length > 20 ? raw.slice(0, -1) : raw, o.fixed > 0 ? Object.assign({}, o, { method: 'fixed' }) : o);
+const DERIVE = {
+  stk_renko: { derive: true, full: (raw, s) => { const o = opts(s); return renko(raw, sizeFor(raw, o), o.source); }, next: (b) => b },
+  stk_range: { derive: true, full: (raw, s) => { const o = opts(s); return range(raw, sizeFor(raw, o)); }, next: (b) => b },
+  stk_linebreak: { derive: true, full: (raw, s) => lineBreak(raw, opts(s).lines), next: (b) => b },
+  stk_kagi: { derive: true, full: (raw, s) => { const o = opts(s); return kagi(raw, sizeFor(raw, o), o.source); }, next: (b) => b },
+  stk_pnf: { derive: true, full: (raw, s) => { const o = opts(s); return pnf(raw, sizeFor(raw, o), o.rev, o.source); }, next: (b) => b }
+};
+const M_OPTS = [['atr', 'ATR (adapts to the symbol)'], ['fixed', 'Fixed size'], ['pct', 'Percent of price']];
+const rowsSize = (what, extra) => [
+  { kind: 'select', key: 'method', label: what + ' size method', defval: 'atr', options: M_OPTS.concat(extra || []) },
+  { kind: 'number', key: 'atrLen', label: 'ATR length', defval: 14, min: 1, max: 200, step: 1 },
+  { kind: 'number', key: 'fixed', label: 'Fixed size in price (0 = use the method above)', defval: 0, min: 0, max: 1e9, step: 0.01 },
+  { kind: 'number', key: 'pct', label: 'Percent of last price', defval: 1, min: 0.01, max: 50, step: 0.01 }
+];
+const SRC = { kind: 'select', key: 'source', label: 'Source', defval: 'close', options: [['close', 'Close'], ['hl', 'High / low']] };
+const SETTINGS = {
+  stk_renko: { title: 'Renko', rows: rowsSize('Brick').concat([SRC]) },
+  stk_range: { title: 'Range bars', rows: rowsSize('Range', [['ticks', 'Ticks']]).concat([{ kind: 'number', key: 'ticks', label: 'Range in ticks (method: Ticks)', defval: 10, min: 1, max: 100000, step: 1 }]) },
+  stk_linebreak: { title: 'Line break', rows: [{ kind: 'number', key: 'lines', label: 'Number of lines', defval: 3, min: 1, max: 12, step: 1 }] },
+  stk_kagi: { title: 'Kagi', rows: rowsSize('Reversal').concat([SRC]) },
+  stk_pnf: { title: 'Point & Figure', rows: rowsSize('Box').concat([{ kind: 'number', key: 'rev', label: 'Reversal (boxes)', defval: 3, min: 1, max: 10, step: 1 }, SRC]) }
+};
+Object.assign(DRAW, {
+  // bricks / lines: filled boxes, corners touching (Renko, Line break)
+  stk_renko: (f, a) => boxes(f, a),
+  stk_linebreak: (f, a) => boxes(f, a),
+  stk_range(f, a) {
+    const { g, X, Y, dpr } = f, w = bodyW(f.sp);
+    for (let i = f.i0; i <= f.i1; i++) {
+      const b = a.bars[i]; if (!b) continue;
+      const col = b.close >= b.open ? f.up : f.dn, x = X(i);
+      g.fillStyle = col;
+      const wd = Math.max(1, Math.floor(dpr)) / dpr;
+      g.fillRect(Math.round(x * dpr) / dpr - wd / 2, px(Y(b.high), dpr), wd, px(Y(b.low), dpr) - px(Y(b.high), dpr));
+      const oY = Y(b.open), cY = Y(b.close), yT = px(Math.min(oY, cY), dpr);
+      g.fillRect(Math.round(x - w / 2), yT, w, Math.max(1 / dpr, px(Math.max(oY, cY), dpr) - yT));
+    }
+  },
+  stk_kagi(f, a) {
+    const { g, X, Y } = f, lo = Math.max(0, f.i0 - 1), hi = Math.min(a.bars.length - 1, f.i1 + 1);
+    const thick = Math.max(2.5, Math.min(5, f.pitch / 3)), thin = 1.4;
+    g.lineCap = 'butt';
+    const seg = (x0, y0, x1, y1, yang) => { g.strokeStyle = yang ? f.up : f.dn; g.lineWidth = yang ? thick : thin; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
+    for (let i = lo; i <= hi; i++) {
+      const b = a.bars[i]; if (!b) continue;
+      const x = X(i), yO = Y(b.open), yC = Y(b.close);
+      if (i > 0) seg(X(i - 1), yO, x, yO, b.thick0);   // the shoulder / waist joining the strokes
+      if (b.brk != null) { const yB = Y(b.brk); seg(x, yO, x, yB, b.thick0); seg(x, yB, x, yC, b.thick1); } else seg(x, yO, x, yC, b.thick0);
+    }
+  },
+  stk_pnf(f, a) {
+    const { g, X, Y } = f;
+    for (let i = f.i0; i <= f.i1; i++) {
+      const b = a.bars[i]; if (!b) continue;
+      const bh = Math.abs(Y(b.low) - Y(b.low + b.box)), s = Math.min(bh, f.pitch) * 0.78, x = X(i);
+      if (s < 3) { g.fillStyle = b.up ? f.up : f.dn; g.fillRect(x - 1, Y(b.high), 2, Y(b.low) - Y(b.high)); continue; }
+      g.lineWidth = Math.max(1.2, Math.min(2, s / 7)); g.strokeStyle = b.up ? f.up : f.dn;
+      for (let k = 0; k < b.boxes; k++) {
+        const yc = Y(b.low + (k + 0.5) * b.box);
+        g.beginPath();
+        if (b.up) { g.moveTo(x - s / 2, yc - s / 2); g.lineTo(x + s / 2, yc + s / 2); g.moveTo(x + s / 2, yc - s / 2); g.lineTo(x - s / 2, yc + s / 2); }
+        else g.ellipse(x, yc, s / 2, s / 2, 0, 0, 6.2832);
+        g.stroke();
+      }
+    }
+  }
+});
+function boxes(f, a) {
+  const { g, X, Y, dpr } = f, w = Math.max(1, Math.round(f.pitch * 0.92));
+  for (let i = f.i0; i <= f.i1; i++) {
+    const b = a.bars[i]; if (!b) continue;
+    g.fillStyle = b.close >= b.open ? f.up : f.dn;
+    const y0 = px(Y(b.high), dpr), y1 = px(Y(b.low), dpr);
+    g.fillRect(Math.round(X(i) - w / 2), y0, w, Math.max(1 / dpr, y1 - y0));
+  }
+}
+
 // ---------------------------------------------------------------- install
 let installed = false;
 export function installChartTypes(Core) {
   if (installed) return;
   installed = true;
   for (const id of CT_ALL) {
-    if (!DRAW[id]) continue;   // later groups register themselves below
+    if (!DRAW[id]) continue;
     Core.registerRendererLayer({ id, placement: 'above-data', create: () => typeLayer(id) });
-    Core.registerChartType({ id, label: CT_LABELS[id], icon: CT_ICONS[id], basePainting: 'none' });
+    const def = { id, label: CT_LABELS[id], icon: CT_ICONS[id], basePainting: 'none' };
+    if (DERIVE[id]) { def.barTransform = DERIVE[id]; def.settings = SETTINGS[id]; }
+    Core.registerChartType(def);
   }
 }

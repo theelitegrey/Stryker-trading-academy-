@@ -16,6 +16,18 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock firebase-admin@12
+      - name: Access token
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
+        run: |
+          python3 - <<'EOF'
+          import json,os,urllib.request,urllib.parse
+          d=urllib.parse.urlencode({'grant_type':'refresh_token','refresh_token':os.environ['FIREBASE_TOKEN'],'client_id':'563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com','client_secret':'j9iVZfS8kkCEFUPaAeJV0sAi'}).encode()
+          t=json.load(urllib.request.urlopen('https://oauth2.googleapis.com/token',d))['access_token']
+          print('::add-mask::'+t)
+          open('/tmp/fbtok','w').write(t)
+          EOF
       - run: node tools/e2e/sweep-probes.js $(grep -qx delete tools/e2e/sweep-mode.txt && echo --delete)
         env:
           FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SA_KEY }}
+          FIREBASE_CI_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}

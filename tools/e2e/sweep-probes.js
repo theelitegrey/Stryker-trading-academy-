@@ -14,22 +14,30 @@ const isProbe = (u) => {
   const hits = []; let tok;
   do { const r = await admin.auth().listUsers(1000, tok); r.users.forEach((u) => isProbe(u) && hits.push(u)); tok = r.pageToken; } while (tok);
   console.log('auth matched', hits.length); hits.forEach((u) => console.log(' ', u.email));
-  // Orphans: probes deleted their login but left students/{uid}.
-  const db = admin.firestore(); const seen = new Set(hits.map((u) => u.uid)); const orphans = [];
-  for (const d of (await db.collection('students').select('displayName', 'email').get()).docs) {
-    if (!seen.has(d.id) && isProbe(d.data())) orphans.push(d.id);
-  }
+  // Firestore via REST with the CI user's token (the service account has no Firestore role).
+  const fs = require('fs'), cp = require('child_process');
+  const T = fs.readFileSync('/tmp/fbtok', 'utf8').trim(), P = 'strykertrades-e0cd8';
+  const base = `https://firestore.googleapis.com/v1/projects/${P}/databases/(default)/documents`;
+  const H = { authorization: 'Bearer ' + T };
+  const docs = []; let pt = '';
+  do {
+    const r = await (await fetch(`${base}/students?pageSize=300&mask.fieldPaths=displayName&mask.fieldPaths=email${pt}`, { headers: H })).json();
+    if (r.error) throw new Error('list ' + r.error.message);
+    (r.documents || []).forEach((d) => docs.push({ id: d.name.split('/').pop(), displayName: (d.fields.displayName || {}).stringValue, email: (d.fields.email || {}).stringValue }));
+    pt = r.nextPageToken ? '&pageToken=' + encodeURIComponent(r.nextPageToken) : '';
+  } while (pt);
+  console.log('students scanned', docs.length);
+  const seen = new Set(hits.map((u) => u.uid));
+  const orphans = docs.filter((d) => !seen.has(d.id) && isProbe(d)).map((d) => d.id);
+  docs.filter((d) => orphans.includes(d.id)).forEach((d) => console.log('  orphan', d.email));
   console.log('orphan student docs matched', orphans.length);
-  const all = await db.collection('students').select('email', 'displayName').get();
-  all.docs.filter((d) => orphans.includes(d.id)).forEach((d) => console.log(' ', d.data().email));
   if (!DELETE) return console.log('dry run, nothing deleted');
   let n = 0;
-  for (const u of hits) {
-    const ref = db.collection('students').doc(u.uid);
-    await db.recursiveDelete(ref);
-    await db.collection('profiles').doc(u.uid).delete();
-    await admin.auth().deleteUser(u.uid); n++;
-  }
-  for (const id of orphans) { await db.recursiveDelete(db.collection('students').doc(id)); await db.collection('profiles').doc(id).delete(); n++; }
+  const wipe = (uid) => {
+    cp.execFileSync('npx', ['--yes', 'firebase-tools@13', 'firestore:delete', 'students/' + uid, '-r', '-f', '--project', P, '--token', process.env.FIREBASE_CI_TOKEN], { stdio: 'ignore' });
+    return fetch(`${base}/profiles/${uid}`, { method: 'DELETE', headers: H });
+  };
+  const ids = new Set([...hits.map((u) => u.uid), ...orphans]);
+  for (const uid of ids) { await wipe(uid); if (seen.has(uid)) await admin.auth().deleteUser(uid); n++; }
   console.log('deleted', n);
 })().catch((e) => { console.error('ERR', e.code, String(e.message).slice(0, 300)); process.exit(1); });

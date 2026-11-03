@@ -183,11 +183,11 @@ ${JSON.stringify(jsonld, null, 2)}
 // Nav and footer are the site's standard public ones (as on about.html).
 const about = fs.readFileSync(path.join(ROOT, 'about.html'), 'utf8');
 const NAV = about.slice(about.indexOf('<nav class="nav"'), about.indexOf('</nav>') + 6)
-  .replace(/<a href="features(\.html)?">Features<\/a>/, (m) => m.includes('learn') ? m : m + '\n      <a href="learn">Learn</a>');
+  .replace(/<a href="features(\.html)?">Features<\/a>/, (m) => m.includes('academy') ? m : m + '\n      <a href="academy">ZoroAcademy</a>');
 const FOOTER = about.slice(about.indexOf('<footer>'), about.indexOf('</footer>') + 9)
   ;  // about.html's footer already links Learn
 // Internal links are clean URLs (no .html) since build 327.
-if (!/href="\/?learn(\.html)?"/.test(NAV) || !/href="\/?learn(\.html)?"/.test(FOOTER)) throw new Error('nav/footer anchors moved; update gen-learn.js');
+if (!/href="\/?academy"/.test(NAV) || !/href="\/?learn(\.html)?"/.test(FOOTER)) throw new Error('nav/footer anchors moved; update gen-learn.js');
 
 // Everything else in <head> (stylesheet, scripts, icons, theme snippet) and
 // the scripts after the footer are copied from about.html, so Learn pages load
@@ -241,13 +241,14 @@ function articlePage(a) {
         mainEntityOfPage: { '@type': 'WebPage', '@id': url }, isAccessibleForFree: true },
       { '@type': 'BreadcrumbList', itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-        { '@type': 'ListItem', position: 2, name: 'Learn', item: ORIGIN + '/learn' },
-        { '@type': 'ListItem', position: 3, name: a.short, item: url } ] }
+        { '@type': 'ListItem', position: 2, name: 'ZoroAcademy', item: ORIGIN + '/academy' },
+        { '@type': 'ListItem', position: 3, name: 'Articles', item: ORIGIN + '/learn' },
+        { '@type': 'ListItem', position: 4, name: a.short, item: url } ] }
     ].concat(faq.length ? [{ '@type': 'FAQPage', mainEntity: faq }] : [])
   };
   const d = new Date(a.modified + 'T00:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   const main = `<div class="lx-wrap">
-<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="learn">Learn</a> / <span aria-current="page">${esc(a.short)}</span></nav>
+<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="academy">ZoroAcademy</a> / <a href="learn">Articles</a> / <span aria-current="page">${esc(a.short)}</span></nav>
 <article>
 <header class="lx-head">
 <h1>${esc(a.short)}</h1>
@@ -279,17 +280,19 @@ function indexPage() {
   const jsonld = {
     '@context': 'https://schema.org',
     '@graph': [
-      { '@type': 'CollectionPage', name: 'Learn: free ICT & smart money guides', description, url, publisher: PUBLISHER,
+      { '@type': 'CollectionPage', name: 'ZoroAcademy articles: free ICT & smart money guides', description, url, publisher: PUBLISHER,
         hasPart: ARTICLES.map((a) => ({ '@type': 'Article', headline: a.short, url: `${ORIGIN}/learn-${a.slug}` })) },
       { '@type': 'BreadcrumbList', itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-        { '@type': 'ListItem', position: 2, name: 'Learn', item: url } ] }
+        { '@type': 'ListItem', position: 2, name: 'ZoroAcademy', item: ORIGIN + '/academy' },
+        { '@type': 'ListItem', position: 3, name: 'Articles', item: url } ] }
     ]
   };
   const main = `<div class="lx-wrap">
-<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <span aria-current="page">Learn</span></nav>
+<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="academy">ZoroAcademy</a> / <span aria-current="page">Articles</span></nav>
 <header class="lx-head">
-<h1>Learn</h1>
+<p class="lx-eyebrow">ZoroAcademy</p>
+<h1>Articles</h1>
 <p class="lx-dek">Free, plain-English guides to the ICT and smart money concepts we teach, with simple diagrams. Start with any of them.</p>
 </header>
 <ul class="lx-list">
@@ -302,7 +305,7 @@ ${ARTICLES.map((a) => `<li><a class="lx-card" href="learn-${a.slug}"><h2>${esc(a
 </aside>
 <p class="lx-disclaimer">${DISCLAIMER}</p>
 </div>`;
-  return page({ title: 'Learn: Free ICT & Smart Money Trading Guides', description, url, ogType: 'website', jsonld, key: 'learn', main });
+  return page({ title: 'ZoroAcademy: Free ICT & Smart Money Trading Guides', description, url, ogType: 'website', jsonld, key: 'learn', main });
 }
 
 const out = { 'learn.html': indexPage() };

@@ -308,6 +308,7 @@ function renderReader(){
 
   document.title = 'Chapter ' + ch.num + ' — ' + ch.title + ' | TradeZoro';
   document.getElementById('reader-crumb-title').textContent = 'Chapter ' + ch.num;
+  document.getElementById('reader-eyebrow').textContent = 'Chapter ' + ch.num;
   document.getElementById('reader-title').textContent = ch.title;
 
   // `dur` is the runtime of the chapter's recording, so it is only meaningful

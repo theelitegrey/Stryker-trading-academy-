@@ -10,17 +10,18 @@
 // backfill and /ts-live frames), the trades are the L1 tools' own stores (chart-ts-trades.js tsOpen for futures; chart-footprint-crypto.js for Binance)
 // and the hub's footprint minutes (chart-futures-l2.js TickFeed). A "level" here is one book row as the recorder stores it (a few ticks wide, rule in ts-hub.js).
 // Same gate as the other L2 tools (futures: l2Visible(); crypto: Pro). No data = a plain note, never made-up numbers. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=843';
-import { isFree } from './chart-pro-gate.js?v=843';
-import { l2Visible, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart-futures-l2.js?v=843';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=843';
-import { tsOpen } from './chart-ts-trades.js?v=843';
-import { aggregateMins } from './chart-ts-data.js?v=843';
-import { aggregate, profile as tradedProfile } from './chart-footprint-data.js?v=843';
-import * as BT from './chart-bigtrades.js?v=843';
-import { sweepEvents } from './chart-of-pro-data.js?v=843';
-import { sweepBars } from './chart-of-pro.js?v=843';
-import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=843';
+import { registerFeed } from './chart-feeds.js?v=842';
+import { isFree } from './chart-pro-gate.js?v=842';
+import { rtOnChange } from './rt-access.js?v=842';
+import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart-futures-l2.js?v=842';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=842';
+import { tsOpen } from './chart-ts-trades.js?v=842';
+import { aggregateMins } from './chart-ts-data.js?v=842';
+import { aggregate, profile as tradedProfile } from './chart-footprint-data.js?v=842';
+import * as BT from './chart-bigtrades.js?v=842';
+import { sweepEvents } from './chart-of-pro-data.js?v=842';
+import { sweepBars } from './chart-of-pro.js?v=842';
+import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=842';
 
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
@@ -228,15 +229,15 @@ function plateLine(g, a, owner, W) {
   g.fillStyle = plate(); g.fillRect(x - tw, y - 7, tw, 14); g.fillStyle = light() ? '#0e7490' : '#4fd1d9'; g.fillText(txt, x - 5, y); g.restore();
 }
 class L2Flow {
-  constructor(type) { this.type = type; this.inputs = defaults(SCHEMA[type]); this.tm = 0; this.last = 0; this.u = null; this.spec = null; this.on = false; this.off = false; this.memo = {}; this.onAny = () => this.later(); }
-  start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); this.render(); }
+  constructor(type) { this.type = type; this.inputs = defaults(SCHEMA[type]); this.tm = 0; this.last = 0; this.u = null; this.spec = null; this.on = false; this.off = false; this.memo = {}; this.onAny = () => this.later(); this.onTier = () => { this.memo = {}; this.later(); }; }
+  start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); window.addEventListener('stryker:l2tier', this.onTier); this.offRt = rtOnChange(this.onTier); this.render(); }
   later() { if (this.tm || this.off || document.hidden) return; this.tm = setTimeout(() => { this.tm = 0; this.render(); }, Math.max(0, MIN_GAP - (Date.now() - this.last))); }
   onBars() { this.later(); }
   onViewport() { if (LAYERS.includes(this.type)) this.push(); }
   setInputs(i) { this.inputs = Object.assign(defaults(SCHEMA[this.type]), i); this.memo = {}; this.render(); }
   suspend() { this.on = false; clearTimeout(this.tm); this.tm = 0; this.push(); }
   resume() { this.on = true; this.render(); }
-  stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); this.off = true; this.on = false; clearTimeout(this.tm); document.removeEventListener('visibilitychange', this.onVis); this.unbind(); this.push(); }
+  stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); this.off = true; this.on = false; clearTimeout(this.tm); document.removeEventListener('visibilitychange', this.onVis); window.removeEventListener('stryker:l2tier', this.onTier); if (this.offRt) this.offRt(); this.unbind(); this.push(); }
   unbind() { if (this.u) { this.u.release(); this.u = null; this.spec = null; } }
   push(extra) { try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
   ov(...lines) { this.text = this.base = lines.filter(Boolean).join(' · '); this.ctx.emit({ tables: [] }); }
@@ -258,7 +259,7 @@ class L2Flow {
   draw() {
     const ctx = this.ctx, spec = specOf(ctx);
     if (!spec) { this.unbind(); return this.say(NEED); }
-    if (spec.kind === 'futures' ? !l2Visible() : isFree()) { this.unbind(); return this.say(NOT_YET); }
+    if (spec.kind === 'futures' ? !l2Badge() : isFree()) { this.unbind(); return this.say(NOT_YET); }
     const bars = ctx.bars();
     if (!bars.length) { ctx.setStatus('loading'); return; }
     if (!this.spec || this.spec.key !== spec.key) { this.unbind(); this.u = acquireHub(spec, bars[0].time, this.onAny); this.spec = spec; }

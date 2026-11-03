@@ -12,11 +12,11 @@
 //   ticks  trades since the last frame                                               -> walls pulled / consumed, ladder volume
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
-import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=843';
-import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=843';
-import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange } from './rt-access.js?v=843';
-import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=843';
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=843';
+import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=842';
+import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=842';
+import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=842';
+import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=842';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=842';
 
 export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
@@ -33,6 +33,7 @@ const LEVELS = [20, 60, 150];
 const KEEP_MS = 48 * 3600000;
 const READ_MS = 6 * 3600000;
 const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname); } catch (e) { return false; } };
+const testOn0 = () => !!(window.__stkL2Test && window.__stkL2Test.retry === false);   // tests: set retry:false to see the raw tier
 const testOn = () => isLocal() && typeof window !== 'undefined' && window.__stkL2Test;
 // May this visitor see LIVE data (candles / trades / quotes)? admin / demo / switched-on / add-on (rt-access) or a signed-in member who is not confirmed Free (Pro release). The SERVER decides (/ts-live tier); this only skips a refused socket.
 export const liveVisible = () => !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS && rtToken() && !isFree()));
@@ -40,7 +41,7 @@ export const liveVisible = () => !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS
 let bookTier = null;
 export function l2Visible() { return liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades)); }
 // For the badges only: bookTier null = the hub has not said yet, so a Pro / admin member is NOT shown a lock. A definite Free member is. The server stays the real gate.
-export const l2Badge = () => (bookTier === null ? liveVisible() : l2Visible());
+export const l2Badge = () => (bookTier === null ? (liveVisible() || (!rtState().ready && !isFree())) : l2Visible());   // sign-in answer not in yet = unknown, not Free: no lock
 function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades); if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
 // Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.
 export const l2Listed = () => L2_MEMBERS || l2Visible();
@@ -181,11 +182,17 @@ class Conn {
   frame(m) {
     const r = rootState(this.root);
     if (m.event === 'status') { r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
-    if (m.event === 'hub_attached') { setTier(m.tier); r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
+    if (m.event === 'hub_attached') {
+      // A Pro member can be told 'trades' by one socket (the tier check on the Worker hit a hiccup / stale token) while the book history, gated the same way, loads fine.
+      // That showed Unlock beside real data. A non-Free member told 'trades' reconnects up to 2 times with a fresh token before the lock may show. The server stays the gate.
+      if (m.tier !== 'book' && bookTier !== true && liveVisible() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
+      if (m.tier === 'book') this.tierTry = 0;
+      setTier(m.tier); r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
     if (m.event === 'ping') { const st = m.state === 'live' ? 'live' : 'reconnecting'; if (r.status !== st && r.status !== 'error') { r.status = st; tell(r); } return; }   // the hub's 5 s heartbeat carries its data state: no data for 10 s = reconnecting
     if (m.event === 'hub_full') { r.status = 'error'; r.err = 'busy'; tell(r); return; }
     if (m.event) return;
     r.lastFrame = Date.now();
+    if ((m.type === 'snap' || m.type === 'coarse') && bookTier !== true) setTier('book');   // the server only sends book frames to a book-tier socket: the data is proof, whatever the earlier hub_attached said
     if (m.type === 'snap') {
       r.nSnap = (r.nSnap || 0) + 1; r.snap = m; r.status = 'live';
       const last = r.imb[r.imb.length - 1], now = Date.now();

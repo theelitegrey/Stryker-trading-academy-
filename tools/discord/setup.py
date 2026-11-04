@@ -24,6 +24,17 @@ if mode == 'info':
     print('BOT_USER', me.get('username'), 'APP_ID', app.get('id') or me.get('id'))
     for g in call('GET', '/users/@me/guilds') or []: print('GUILD', g['id'], g['name'], 'perms', g.get('permissions'))
     sys.exit(0)
+if mode == 'verify':
+    rs = {r['id']: r['name'] for r in call('GET', f'/guilds/{gid}/roles') or []}
+    print('ROLES', [(r['name'], hex(r['color'])) for r in sorted(call('GET', f'/guilds/{gid}/roles') or [], key=lambda r: -r['position'])])
+    ch = call('GET', f'/guilds/{gid}/channels') or []; cats = {c['id']: c['name'] for c in ch if c['type'] == 4}
+    for c in sorted(ch, key=lambda c: (cats.get(c.get('parent_id'), c['name']) if c['type'] != 4 else c['name'], c['type'] != 4, c['position'])):
+        ow = ' '.join(f"{rs.get(o['id'], 'everyone')}[+{o['allow']}/-{o['deny']}]" for o in c.get('permission_overwrites', []))
+        print('CH', c['type'], cats.get(c.get('parent_id'), '-'), '|', c['name'], '| slow', c.get('rate_limit_per_user', 0), '|', ow)
+    print('ONB', {k: v for k, v in (call('GET', f'/guilds/{gid}/onboarding') or {}).items() if k in ('enabled', 'mode')})
+    print('AUTOMOD', [(r['name'], r['enabled']) for r in call('GET', f'/guilds/{gid}/auto-moderation/rules') or []])
+    g = call('GET', f'/guilds/{gid}') or {}; print('GUILD', {k: g.get(k) for k in ('verification_level', 'explicit_content_filter', 'default_message_notifications', 'system_channel_id', 'features')})
+    sys.exit(0)
 plan_path = os.path.join(os.path.dirname(__file__), 'plan.json')
 if not os.path.exists(plan_path): sys.exit('plan.json missing')
 import builder  # noqa

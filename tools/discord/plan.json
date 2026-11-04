@@ -8,7 +8,7 @@
  "roles": [
   {
    "name": "Admin",
-   "color": "#9aa4b2",
+   "color": "#e74c3c",
    "hoist": true,
    "perms": [
     "ADMINISTRATOR"
@@ -16,7 +16,7 @@
   },
   {
    "name": "Moderator",
-   "color": "#9aa4b2",
+   "color": "#3498db",
    "hoist": true,
    "perms": [
     "KICK_MEMBERS",
@@ -34,53 +34,63 @@
   },
   {
    "name": "Member",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#95a5a6",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "Futures",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#f39c12",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "Stocks",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#2ecc71",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "Crypto",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#f1c40f",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "Forex",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#1abc9c",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "India",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#ff9933",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "Options",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#9b59b6",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "Beginner",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#a3e4d7",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "Intermediate",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#5dade2",
+   "perms": [],
+   "hoist": false
   },
   {
    "name": "Advanced",
-   "color": "#6b7280",
-   "perms": []
+   "color": "#af7ac5",
+   "perms": [],
+   "hoist": false
   }
  ],
  "categories": [

@@ -3,9 +3,10 @@
 // the chart toolbar (.stkc-bar-r). Rithmic is listed here and opens its own existing flow (window.STRYKER_RITHMIC.open).
 // Design: docs/DESIGN-STANDARD.md (bottom sheet + grabber on phones, centred dialog on desktop; 44 px taps; day + dark).
 import { pair, loopbackState, HELPER_DOWNLOADS, HOWTO_URL } from './byo-bridge.js?v=861';
-import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=861';
+import { SOURCES, connect, forget, onByoChange, statusOf, connectedIds, srcById, saveKeys, loadKeys, enableSchwabIfConfigured, schwabAuthUrl } from './byo-core.js?v=861';
 let CTR = null;   // byo-ctrader.js, loaded with the chart
 const OAUTH = () => import('./byo-oauth.js?v=861');
+const DHAN = () => import('./byo-dhan.js?v=861');
 const ctr = () => CTR || import('./byo-ctrader.js?v=861').then((m) => (CTR = m));
 
 const CSS = `
@@ -95,6 +96,9 @@ const CSS = `
 .byo-lock svg{ flex:none; margin-top:1px; }
 .byo-dl, .byo-dlrow{ display:block; margin:4px 0 0; font:400 12px/16px var(--by-font); color:var(--ink-2,#8b93a0); }
 .byo-dlrow{ margin:0 0 16px; font-size:13px; }
+.dk-red{ display:flex; align-items:center; gap:8px; margin:0 0 12px; padding:8px 8px 8px 12px; border-radius:12px; border:1px solid var(--line,#2c2c32); }
+.dk-red code{ flex:1; min-width:0; overflow-wrap:anywhere; font:500 13px/18px ui-monospace,monospace; color:var(--ink-1,#c9cdd3); }
+.dk-red .byo-link{ padding:12px; min-height:44px; flex:none; background:none; border:0; cursor:pointer; }
 .byo-warn{ margin:0 0 12px; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,176,32,.55); background:rgba(255,176,32,.08); font:400 13px/18px var(--by-font); color:var(--ink-1,#c9cdd3); }
 :root[data-theme="light"] .byo-warn{ border-color:rgba(176,112,0,.55); background:rgba(176,112,0,.08); }
 .byo-warn .byo-link{ padding:0; font-size:13px; }
@@ -197,6 +201,9 @@ export function mountByo(opts = {}) {
     else if (s.state === 'ready' && s.oauth) {
       const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
       b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : s.cta ? 'Sign in' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : s.cta ? 'Sign in with ' : 'Connect ') + s.name, onclick: () => (connected && !re ? go('manage', s) : s.keyAlt || s.signin ? go('signin', s) : startOauth(s)) });
+    } else if (s.state === 'ready' && s.keyLogin) {
+      const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
+      b = el('button', { type: 'button', class: 'byo-row-b' + (connected && !re ? ' on' : ''), text: re ? 'Reconnect' : connected ? 'Connected' : 'Connect', 'aria-label': (re ? 'Reconnect ' : connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected && !re ? 'manage' : 'dhankey', s) });
     } else if (s.state === 'ready') b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Connect', 'aria-label': (connected ? 'Manage ' : 'Connect ') + s.name, onclick: () => go(connected ? 'manage' : 'form', s) });
     else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', 'aria-label': s.name + ', coming soon, see steps', onclick: () => go('soon', s) });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
@@ -214,12 +221,62 @@ export function mountByo(opts = {}) {
     } catch (e) { /* stays on the list */ }
   }
 
-  async function startDhan(err) {
-    try {
-      const u = window.firebase && firebase.auth().currentUser;
-      if (!u) { err.textContent = 'Sign in to connect your own data.'; err.hidden = false; return; }
-      location.assign(await (await DHAN()).dhanStart(u.uid, await u.getIdToken()));
-    } catch (e) { err.textContent = 'Dhan sign-in is not available right now. Paste a token instead.'; err.hidden = false; }
+  // Mode C (recommended): the member's own Dhan API key. Keys live only in the device vault; the daily tap runs steps 1-2 and the callback page finishes step 3.
+  function renderDhanKey(s) {
+    title.replaceChildren(logoTile(s), 'Connect ' + s.name); backBtn.hidden = false;
+    body.replaceChildren();
+    const err = el('p', { class: 'byo-err', role: 'alert', hidden: true });
+    const showErr = (m) => { err.textContent = m; err.hidden = false; };
+    const connected = connectedIds().includes(s.id), again = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
+    body.appendChild(el('p', { class: 'byo-lead', text: 'Sign in with your own Dhan API key. You set it up once, then it is one tap a day. TradeZoro only reads prices. It can\'t place trades.' }));
+    const paint = async (editing) => {
+      body.querySelectorAll('.dk').forEach((n) => n.remove());
+      const add = (n) => { n.classList.add('dk'); body.appendChild(n); return n; };
+      let keys = null; try { keys = await loadKeys('dhan-key'); } catch (e) { keys = null; }
+      const has = !!keys && !editing;
+      const go1 = async (k) => {
+        try {
+          const u = window.firebase && firebase.auth().currentUser;
+          if (!u) { showErr('Sign in to connect your own data.'); return; }
+          const dh = await DHAN(); go1b.disabled = true;
+          location.assign(await dh.dhanKeyStart(k, u.uid, await u.getIdToken()));
+        } catch (x) { go1b.disabled = false; showErr(x && x.show ? x.message : 'Dhan sign-in is not available right now. Try again, or paste a token instead.'); }
+      };
+      let go1b;
+      if (has) {
+        add(err);
+        go1b = add(el('button', { type: 'button', class: 'byo-go byo-signin', id: 'dhan-signin', onclick: () => go1(keys) }, [logoTile(s), el('span', { text: again ? 'Sign in with Dhan again' : 'Sign in with Dhan' })]));
+        add(el('button', { type: 'button', class: 'byo-link byo-alt', id: 'dhan-edit', text: 'Change my API key', onclick: () => paint(true) }));
+      } else {
+        stepsEl(['Open web.dhan.co, tap My Profile, then Access DhanHQ APIs.', 'Turn on API key. App name: TradeZoro. Redirect URL: the one below (tap Copy).', 'Copy the API key and API secret, and paste them here with your Client ID.', 'Tap Sign in with Dhan.']).forEach(add);
+        const red = el('div', { class: 'dk-red' }, [el('code', { id: 'dhan-redirect', text: 'https://tradezoro.com/connect/dhan/callback' }),
+          el('button', { type: 'button', class: 'byo-link', id: 'dhan-copy', text: 'Copy', onclick: async (e) => { try { await navigator.clipboard.writeText('https://tradezoro.com/connect/dhan/callback'); e.target.textContent = 'Copied'; } catch (x) { e.target.textContent = 'Press and hold to copy'; } } })]);
+        add(red);
+        add(el('p', { class: 'byo-warn', text: 'Dhan charges for market data. This works only if the Data plan is on your Dhan account.' }));
+        add(err);
+        const f = el('form', { novalidate: true, autocomplete: 'off' }); const ins = {};
+        [['clientId', 'Dhan Client ID', false, '1000000001'], ['appId', 'API key', true, ''], ['appSecret', 'API secret', true, '']].forEach(([k, l, sec, ph]) => {
+          ins[k] = el('input', { class: 'byo-in', id: 'dhan-k-' + k, type: sec ? 'password' : 'text', placeholder: ph, autocomplete: 'off', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', 'data-lpignore': 'true' });
+          f.appendChild(el('label', { class: 'byo-f' }, [el('span', { text: l }), ins[k]]));
+        });
+        go1b = el('button', { type: 'submit', class: 'byo-go', id: 'dhan-save', text: 'Save and sign in with Dhan' }); f.appendChild(go1b);
+        f.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const k = {}; for (const n of Object.keys(ins)) k[n] = String(ins[n].value || '').trim();
+          const dh = await DHAN();
+          if (!dh.keyShape(k)) { showErr('Enter your Dhan Client ID (numbers), API key and API secret.'); return; }
+          err.hidden = true;
+          try { const u = window.firebase && firebase.auth().currentUser; if (!u) { showErr('Sign in to connect your own data.'); return; } await saveKeys('dhan-key', k); } catch (x) { showErr('Sign in to connect your own data.'); return; }
+          go1(k);
+        });
+        add(f);
+        if (editing) add(el('button', { type: 'button', class: 'byo-link byo-alt', text: 'Cancel', onclick: () => paint(false) }));
+      }
+      add(el('button', { type: 'button', class: 'byo-link byo-alt', id: 'dhan-paste', text: 'Paste a token instead', onclick: () => go('form', s) }));
+      add(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' })).querySelector('span').textContent = 'Your Client ID, API key and secret stay in this device\'s encrypted store. TradeZoro passes them to Dhan for the sign-in call only and does not keep them. Live prices come from Dhan straight to your browser.';
+      add(el('p', { class: 'byo-note', text: DATA_ONLY }));
+    };
+    paint(false);
   }
 
   function renderList() {
@@ -351,13 +408,14 @@ export function mountByo(opts = {}) {
     body.appendChild(el('p', { class: 'byo-state' + (bad ? ' bad' : live ? '' : ' warn'), 'data-state': st.status, html: '<i aria-hidden="true"></i><span></span>' }));
     body.querySelector('.byo-state span').textContent = bad ? (st.msg || 'Connection refused') : live ? 'Connected, live data' : 'Connected, waiting for a chart that uses ' + s.name + (st.msg ? ' · ' + st.msg : '');
     body.appendChild(el('p', { class: 'byo-lead', text: s.manage ? s.manage : s.bridge ? 'Open a symbol by typing it like byo:' + (s.id === 'ibkr' ? 'AAPL' : s.id === 'ninja' ? 'ES 12-26' : 'EURUSD') + '. Prices come from ' + s.name + ' on this computer.' : s.id === 'alpaca' || s.id === 'schwab' ? 'Open a stock or ETF with the symbol picker (Your data tab) or type it, for example AAPL. SPY, QQQ, IWM and DIA also use it.' : 'Open any forex pair, for example EURUSD. It now plots your OANDA prices.' }));
+    if (s.keyLogin && bad && /^Reconnect /.test(st.msg || '')) body.appendChild(el('button', { type: 'button', class: 'byo-go', id: 'dhan-again', text: 'Sign in with Dhan again', onclick: () => go('dhankey', s) }));
     body.appendChild(el('button', { type: 'button', class: 'byo-go danger', id: 'byo-forget', text: 'Forget this connection', onclick: async () => { await forget(s.id); go('list'); } }));
     body.appendChild(el('p', { class: 'byo-lock', html: LOCK + '<span></span>' }));
     body.querySelector('.byo-lock span').textContent = s.bridge ? 'The pairing token stays on this device. Prices go from ' + s.name + ' to the helper to this tab, never through TradeZoro.' : noteOf(s);
   }
 
   function render() {
-    if (view === 'pair' && cur) renderPair(cur); else if (view === 'form' && cur) renderForm(cur); else if (view === 'manage' && cur) renderManage(cur); else if (view === 'signin' && cur) renderSignin(cur); else if (view === 'soon' && cur) renderSoon(cur); else renderList();
+    if (view === 'pair' && cur) renderPair(cur); else if (view === 'form' && cur) renderForm(cur); else if (view === 'manage' && cur) renderManage(cur); else if (view === 'signin' && cur) renderSignin(cur); else if (view === 'dhankey' && cur) renderDhanKey(cur); else if (view === 'soon' && cur) renderSoon(cur); else renderList();
   }
 
   btn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.stkc-pop').forEach((p) => { p.hidden = true; }); view = 'list'; setOpen(!open); });

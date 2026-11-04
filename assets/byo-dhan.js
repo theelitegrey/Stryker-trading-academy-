@@ -206,3 +206,27 @@ export async function dhanFinish(tokenId, userId, idToken, d, store = globalThis
   if (typeof j.access_token !== 'string' || !/^\d{4,20}$/.test(j.client_id || '')) throw fail('Dhan did not accept this sign-in', { status: 400 });
   return { access: j.access_token, clientId: j.client_id, expires: true, exp: Number(j.expires_at) || jwtExp(j.access_token) || dep(d).now() + 24 * 36e5 };
 }
+
+// ---------- Mode C: sign in with the member's OWN Dhan API key (recommended) ----------
+// Setup once: Client ID + API key + API secret go into the device vault ('dhan-key'), never to our server except inside the one pass-through call below.
+// Daily: step 1 (consent) and step 3 (tokenId -> token) go through /connect/dhan/key; step 2 is the browser on Dhan's own login page.
+export const DHAN_REDIRECT = 'https://tradezoro.com/connect/dhan/callback';
+export const keyShape = (k) => !!k && /^\d{4,20}$/.test(String(k.clientId || '')) && /^[A-Za-z0-9._\-]{6,200}$/.test(String(k.appId || '')) && /^[A-Za-z0-9._\-]{6,200}$/.test(String(k.appSecret || ''));
+const keyPost = async (body, idt, d) => { const u = new URL('/connect/dhan/key', globalThis.location ? globalThis.location.origin : 'https://tradezoro.com').href; const r = await dep(d).fetch(guardUrl('dhan', u, 'POST'), { method: 'POST', ...HARD, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + idt }, body: JSON.stringify(body) }); const j = r.ok ? await r.json().catch(() => null) : null; if (!j) throw fail(r.status === 429 ? 'Too many tries. Wait a minute.' : r.status === 401 ? 'Sign in again' : 'Dhan did not accept this API key. Check the key and secret.', { status: r.status, show: true }); return j; };
+export async function dhanKeyStart(keys, userId, idToken, d, store = globalThis.sessionStorage) {
+  if (!userId) throw new Error('Sign in to connect your own data');
+  if (!keyShape(keys)) throw shown('Enter your Dhan Client ID, API key and API secret.', { status: 400 });
+  const { url } = await keyPost({ grant: 'start', clientId: keys.clientId, appId: keys.appId, appSecret: keys.appSecret }, idToken, d);
+  if (!/^https:\/\/auth\.dhan\.co\/login\/consentApp-login\?consentAppId=[A-Za-z0-9%\-]{8,100}$/.test(url || '')) throw shown('Dhan sign-in is not available right now.', { status: 502 });
+  store.setItem(SKEY, JSON.stringify({ uid: userId, mode: 'key', exp: dep(d).now() + 10 * MIN }));
+  return url;
+}
+export async function dhanKeyFinish(tokenId, keys, userId, idToken, d, store = globalThis.sessionStorage) {
+  let rec = null; try { rec = JSON.parse(store.getItem(SKEY) || 'null'); } catch (e) { /* none */ }
+  store.removeItem(SKEY);
+  if (!rec || rec.mode !== 'key' || rec.uid !== userId || rec.exp <= dep(d).now()) throw fail('The sign-in link expired', { status: 400 });
+  if (!keyShape(keys)) throw fail('Dhan keys are not saved on this device', { status: 400 });
+  const j = await keyPost({ grant: 'code', code: tokenId, appId: keys.appId, appSecret: keys.appSecret }, idToken, d);
+  if (typeof j.access_token !== 'string' || !/^\d{4,20}$/.test(j.client_id || '')) throw fail('Dhan did not accept this sign-in', { status: 400 });
+  return { access: j.access_token, clientId: j.client_id, expires: true, exp: Number(j.expires_at) || jwtExp(j.access_token) || dep(d).now() + 24 * 36e5 };
+}

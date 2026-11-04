@@ -60,8 +60,8 @@ export const ALLOW = {
   dhan: {
     hosts: [],   // our own site only (rule.self): the two pass-through functions below. The browser never calls api.dhan.co (it refuses browsers) or auth.dhan.co.
     self: true,
-    paths: [/^\/connect\/dhan\/data$/, /^\/connect\/dhan\/master$/],
-    post: [/^\/connect\/dhan\/data$/],
+    paths: [/^\/connect\/dhan\/data$/, /^\/connect\/dhan\/master$/, /^\/connect\/dhan\/key$/],
+    post: [/^\/connect\/dhan\/data$/, /^\/connect\/dhan\/key$/],
     ws: /^wss:\/\/api-feed\.dhan\.co\?version=2&token=[A-Za-z0-9._\-]{20,2048}&clientId=\d{4,20}&authType=2$/,
     wsSend: ['code15', 'code17'],   // 15 = ticker, 17 = quote. Never the full / depth modes, never the disconnect message.
     wsCheck: (o) => Array.isArray(o.InstrumentList) && o.InstrumentList.length > 0 && o.InstrumentList.length <= 100 && o.InstrumentCount === o.InstrumentList.length
@@ -128,7 +128,7 @@ export const SOURCES = [
     manage: 'Open a symbol like byo:NSE:RELIANCE-EQ, byo:NSE:NIFTY-INDEX, byo:NSE:NIFTY1! (front month) or byo:MCX:GOLD1!.' },
   { id: 'dhan', name: 'Dhan', cls: ['stocks', 'futures'], covers: 'India stocks, index futures and MCX. Needs the Data plan on your Dhan account.', fee: 'paid', feeNote: 'Needs the Data plan on your Dhan account.', state: 'ready',
     fields: [{ k: 'clientId', label: 'Dhan Client ID', ph: '1000000001', secret: false }, { k: 'token', label: 'Access token (24 hours)', ph: '', secret: true }],
-    help: 'Paste your own Dhan Client ID and a 24-hour access token.',
+    help: 'Paste your own Dhan Client ID and a 24-hour access token.', keyLogin: true,
     steps: ['Open web.dhan.co and sign in.', 'Tap My Profile, then Access DhanHQ APIs.', 'Choose Access Token and generate one (valid 24 hours).', 'Copy your Client ID and the token, and paste them here.'],
     docs: 'https://dhanhq.co/docs/v2/authentication/',
     noteText: 'Your token stays on this device. Live prices come from Dhan straight to your browser. Chart history passes through TradeZoro for that one call and is not stored.',
@@ -650,12 +650,16 @@ export async function saveSchwab(j, deps) {
   const c = schwabCreds(j); await V().save('schwab', c); activate('schwab', c, deps);
 }
 // Adapters outside this file (byo-ctrader.js) keep refreshed / new tokens in the same encrypted vault.
+// Dhan own-key setup (Client ID, API key, API secret): same encrypted, user-bound vault, under its own name. Never sent anywhere except the one pass-through call.
+export const saveKeys = (id, o) => V().save(id, o);
+export const loadKeys = (id) => V().load(id);
+export const forgetKeys = (id) => V().forget(id);
 export async function saveSource(id, creds, deps, start) {
   if (!uid) throw new Error('Sign in to connect your own data');
   await V().save(id, creds); if (start) activate(id, creds, deps);
 }
 export const statusRec = (id) => live.get(id) || null;
-export async function forget(id) { const r = live.get(id); if (r) clearInterval(r.timer); if (r && r.hub) r.hub.stop(); live.delete(id); await V().forget(id); emit(id); }
+export async function forget(id) { if (id === 'dhan') await V().forget('dhan-key'); const r = live.get(id); if (r) clearInterval(r.timer); if (r && r.hub) r.hub.stop(); live.delete(id); await V().forget(id); emit(id); }
 export async function restore(deps) { if (!uid) return; try { for (const id of await V().ids()) { const c = await V().load(id); if (c && ADAPTERS[id]) activate(id, c, deps); } } catch (e) { /* no IndexedDB: nothing saved */ } }
 export const connectedIds = () => [...live.keys()];
 export const statusOf = (id) => { const r = live.get(id); return r ? { status: r.status, msg: r.msg } : null; };

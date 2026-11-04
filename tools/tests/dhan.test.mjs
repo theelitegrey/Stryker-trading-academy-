@@ -7,6 +7,7 @@ import { decodePacket, decodeFrame, SEG_CODE } from '../../assets/dhan-feed.js';
 import { guardUrl, guardWs, guardWsMessage, ADAPTERS, SOURCES } from '../../assets/byo-core.js?v=861';
 import * as dh from '../../assets/byo-dhan.js?v=861';
 import { handle as dataH, clean } from '../../functions/connect/dhan/data.js';
+import { handle as keyH, ALLOWED } from '../../functions/connect/dhan/key.js';
 import { handle as tokH } from '../../functions/connect/dhan/token.js';
 import { handle as mastH, pick } from '../../functions/connect/dhan/master.js';
 let n = 0; const t = async (name, fn) => { await fn(); n++; console.log('ok', name); };
@@ -237,4 +238,56 @@ await t('browser code never holds a partner secret, never names an order / accou
   assert.ok(/PARTNER_SECRET/.test(read('functions/connect/dhan/token.js')));
   for (const p of ['functions/connect/dhan/data.js']) assert.ok(!/\/v2\/(orders|super|forever|positions|holdings|fundlimit|profile)/.test(read(p)), 'pass-through names no order path');
 });
+
+// ---------- Mode C: own API key ----------
+const KJ = (o) => ({ appId: 'appid-1234', appSecret: 'secret-APPSECRET-9', ...o });
+await t('own-key function: allow-list is exactly two Dhan URLs; anything else refused', () => {
+  assert.ok(ALLOWED('https://auth.dhan.co/app/generate-consent?client_id=1000000001')); assert.ok(ALLOWED('https://auth.dhan.co/app/consumeApp-consent?tokenId=abc'));
+  for (const u of ['https://api.dhan.co/v2/orders', 'https://auth.dhan.co/app/generateAccessToken?pin=1', 'https://auth.dhan.co/app/RenewToken', 'https://auth.dhan.co/partner/consume-consent', 'https://auth.dhan.co/app/generate-consent/x', 'https://auth.dhan.co.evil.com/app/generate-consent', 'http://auth.dhan.co/app/generate-consent', 'https://evil.com/app/generate-consent', 'https://auth.dhan.co:444/app/generate-consent', 'https://u@auth.dhan.co/app/generate-consent', 'nonsense']) assert.ok(!ALLOWED(u), u);
+});
+await t('own-key function: unsigned user, wrong origin, bad body, bad method all refused with zero upstream calls', async () => {
+  let ups = 0; const fetchImpl = async () => { ups++; return new Response('{}'); }; const call = (r) => keyH(r, {}, { verifyFetch, fetchImpl });
+  const start = { grant: 'start', clientId: '1000000001' };
+  assert.equal((await call(req('key', { json: KJ(start), h: { authorization: '' } }))).status, 401); assert.equal((await call(req('key', { json: KJ(start), h: { authorization: 'Bearer nope' } }))).status, 401);
+  assert.equal((await call(req('key', { json: KJ(start), h: { origin: 'https://evil.example.com' } }))).status, 403); assert.equal((await call(req('key', { json: KJ(start), h: { 'content-type': 'text/plain' } }))).status, 415);
+  assert.equal((await call(req('key', { method: 'GET' }))).status, 405);
+  for (const b of [{ grant: 'start', clientId: '1000000001' }, KJ({ grant: 'start', clientId: 'abc' }), KJ({ grant: 'code', code: 'x y' }), KJ({ grant: 'orders', clientId: '1000000001' }), KJ({ grant: 'start', clientId: '1000000001', appId: 'bad id!' }), KJ({ grant: 'start', clientId: '1000000001', url: 'https://api.dhan.co/v2/orders' })].slice(0, 5)) assert.equal((await call(req('key', { json: b }))).status, 400, JSON.stringify(b));
+  assert.equal(ups, 0);
+});
+await t('own-key function: step 1 and step 3 forward the member key for that call only; reply trimmed; nothing logged', async () => {
+  const ups = [], logs = []; const orig = { log: console.log, error: console.error, warn: console.warn }; console.log = console.error = console.warn = (...a) => logs.push(a.join(' '));
+  const fetchImpl = async (u, o) => { ups.push({ u, o }); return new Response(JSON.stringify(u.includes('generate-consent') ? { consentAppId: 'f1e2d3c4-aaaa-bbbb-cccc-123456789012', consentAppStatus: 'GENERATED' } : { dhanClientId: '1000000001', dhanClientName: 'JOHN DOE', dhanClientUcc: 'UCC1', givenPowerOfAttorney: true, accessToken: TOK, expiryTime: '2026-11-05T12:37:23' })); };
+  const call = (b) => keyH(req('key', { json: b }), {}, { verifyFetch, fetchImpl });
+  let a, c; try { a = await (await call(KJ({ grant: 'start', clientId: '1000000001' }))).json(); c = await (await call(KJ({ grant: 'code', code: 'tokenid-1234567' }))).json(); } finally { Object.assign(console, orig); }
+  assert.deepEqual(a, { url: 'https://auth.dhan.co/login/consentApp-login?consentAppId=f1e2d3c4-aaaa-bbbb-cccc-123456789012' });
+  assert.equal(ups[0].u, 'https://auth.dhan.co/app/generate-consent?client_id=1000000001'); assert.equal(ups[0].o.method, 'POST'); assert.equal(ups[0].o.headers.app_id, 'appid-1234'); assert.equal(ups[0].o.headers.app_secret, 'secret-APPSECRET-9');
+  assert.equal(ups[1].u, 'https://auth.dhan.co/app/consumeApp-consent?tokenId=tokenid-1234567'); assert.equal(ups[1].o.method, 'GET'); assert.equal(ups[1].o.redirect, 'error');
+  assert.deepEqual(Object.keys(c).sort(), ['access_token', 'client_id', 'expires_at']); assert.equal(c.expires_at, Date.parse('2026-11-05T12:37:23+05:30')); assert.ok(!JSON.stringify([a, c]).match(/JOHN|UCC1|APPSECRET/));
+  assert.equal(logs.length, 0);
+  const bad = await keyH(req('key', { json: KJ({ grant: 'code', code: 'tokenid-1234567' }) }), {}, { verifyFetch, fetchImpl: async () => new Response(JSON.stringify({ message: 'secret-APPSECRET-9' }), { status: 400 }) }); assert.equal(bad.status, 400); assert.ok(!(await bad.text()).includes('APPSECRET'));
+  assert.equal((await keyH(req('key', { json: KJ({ grant: 'start', clientId: '1000000001' }) }), {}, { verifyFetch, fetchImpl: async () => { throw new Error('x'); } })).status, 502);
+});
+await t('own-key function: rate limited, source has no logging and no order path', async () => {
+  const src = read('functions/connect/dhan/key.js'); assert.match(src, /rateLimited\(env, request, 'dhan-key'\)/); assert.ok(!/console\./.test(src)); assert.ok(!/\/v2\//.test(src.replace(/\/\/.*$/gm, '')));
+});
+await t('own-key browser flow: guard allows only /connect/dhan/key; start stores a one-time state; finish swaps tokenId for a token; stale/other user/no keys refused', async () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }; };
+  const KEYS = { clientId: '1000000001', appId: 'appid-1234', appSecret: 'secret-APPSECRET-9' };
+  assert.ok(guardUrl('dhan', 'https://tradezoro.com/connect/dhan/key', 'POST')); assert.throws(() => guardUrl('dhan', 'https://tradezoro.com/connect/dhan/key?x=1'.replace('?x=1', '/x'), 'POST')); assert.throws(() => guardUrl('dhan', 'https://auth.dhan.co/app/generate-consent', 'POST'));
+  assert.equal(dh.DHAN_REDIRECT, 'https://tradezoro.com/connect/dhan/callback'); assert.ok(dh.keyShape(KEYS)); assert.ok(!dh.keyShape({ ...KEYS, clientId: 'x' })); assert.ok(!dh.keyShape(null));
+  const log = []; const fetch = async (u, o) => { log.push({ u: String(u), b: JSON.parse(o.body), o }); const g = JSON.parse(o.body).grant; return new Response(JSON.stringify(g === 'start' ? { url: 'https://auth.dhan.co/login/consentApp-login?consentAppId=f1e2d3c4-aaaa-bbbb' } : { access_token: TOK, client_id: '1000000001', expires_at: NOW + 864e5 })); };
+  const d = { fetch, now: () => NOW }, st = mem();
+  const url = await dh.dhanKeyStart(KEYS, 'u1', 'IDT', d, st); assert.match(url, /^https:\/\/auth\.dhan\.co\/login\/consentApp-login\?consentAppId=/);
+  assert.equal(log[0].u, 'https://tradezoro.com/connect/dhan/key'); assert.equal(log[0].o.headers.Authorization, 'Bearer IDT'); assert.ok(!st.getItem('tz-dhan-state').includes('APPSECRET'), 'secret never in session storage');
+  const creds = await dh.dhanKeyFinish('tokenid-1234567', KEYS, 'u1', 'IDT', d, st); assert.deepEqual(creds, { access: TOK, clientId: '1000000001', expires: true, exp: NOW + 864e5 }); assert.equal(log[1].b.code, 'tokenid-1234567');
+  await assert.rejects(() => dh.dhanKeyFinish('tokenid-1234567', KEYS, 'u1', 'IDT', d, st), /expired/, 'single use');
+  await dh.dhanKeyStart(KEYS, 'u1', 'IDT', d, st); await assert.rejects(() => dh.dhanKeyFinish('tokenid-1234567', KEYS, 'u2', 'IDT', d, st), /expired/);
+  await dh.dhanKeyStart(KEYS, 'u1', 'IDT', d, st); await assert.rejects(() => dh.dhanKeyFinish('tokenid-1234567', KEYS, 'u1', 'IDT', { ...d, now: () => NOW + 11 * 60000 }, st), /expired/);
+  await dh.dhanKeyStart(KEYS, 'u1', 'IDT', d, st); await assert.rejects(() => dh.dhanKeyFinish('tokenid-1234567', null, 'u1', 'IDT', d, st), /not saved/);
+  await assert.rejects(() => dh.dhanKeyStart({ clientId: 'x' }, 'u1', 'IDT', d, st), /Client ID/); await assert.rejects(() => dh.dhanKeyStart(KEYS, '', 'IDT', d, st), /Sign in/);
+  const evil = { fetch: async () => new Response(JSON.stringify({ url: 'https://evil.com/login' })) }; await assert.rejects(() => dh.dhanKeyStart(KEYS, 'u1', 'IDT', { ...evil, now: () => NOW }, st), /not available/);
+  await assert.rejects(() => dh.dhanKeyStart(KEYS, 'u1', 'IDT', { fetch: async () => new Response('{}', { status: 400 }), now: () => NOW }, st), /did not accept/);
+  assert.equal(srcFlag(), true);
+});
+function srcFlag() { return SOURCES.find((x) => x.id === 'dhan').keyLogin === true; }
 console.log('ALL PASS', n); process.exit(0);

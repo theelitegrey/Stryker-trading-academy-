@@ -22,11 +22,13 @@
   }
   user().then(function (u) {
     if (!u) return end('Sign in first', 'Sign in to TradeZoro, then connect ' + NAME + ' again.');
-    return Promise.all([import('./byo-core.js?v=861'), import('./byo-oauth.js?v=861'), import('./byo-tastytrade.js?v=861'), import('./byo-india.js?v=861')]).then(function (mm) {
+    return Promise.all([import('./byo-core.js?v=861'), import('./byo-oauth.js?v=861'), import('./byo-tastytrade.js?v=861'), import('./byo-india.js?v=861'), import('./byo-dhan.js?v=861')]).then(function (mm) {
       var c = mm[0], oa = mm[1];
-      if (id === 'dhan') {   // partner one-tap: the return carries tokenId (step 3). Same user + 10-minute window as the others.
-        return u.getIdToken().then(function (idt) { return mm[4].dhanFinish(code, u.uid, idt); })
-          .then(function (creds) { return c.bindUser(u.uid).then(function () { return c.ADAPTERS.dhan.check(creds); }).then(function () { return c.saveSource('dhan', creds, undefined, true); }); })
+      if (id === 'dhan') {   // tokenId back from Dhan. Own-key mode (keys in the device vault) first; else the partner one-tap. Same user + 10-minute window.
+        var dh = mm[4];
+        return c.bindUser(u.uid).then(function () { return c.loadKeys('dhan-key'); }).then(function (keys) {
+          return u.getIdToken().then(function (idt) { return keys ? dh.dhanKeyFinish(code, keys, u.uid, idt) : dh.dhanFinish(code, u.uid, idt); });
+        }).then(function (creds) { return c.ADAPTERS.dhan.check(creds).then(function () { return c.saveSource('dhan', creds, undefined, true); }); })
           .then(function () { location.replace('/charts'); });
       }
       var rec = oa.takeOauthState(id, state, u.uid);

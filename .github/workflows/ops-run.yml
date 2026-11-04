@@ -1,0 +1,26 @@
+name: Ops script (one-off Firestore admin task)
+# Push to ops/<name> with .github/ops-run.txt holding: "<script path> [args]". Runs it with a Google token
+# from FIREBASE_CI_TOKEN. Google refuses some admin calls from our server's address, so these run here.
+on:
+  push:
+    branches: ['ops/**']
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Token
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
+        run: |
+          python3 - <<'EOF'
+          import json,os,urllib.request,urllib.parse
+          d=urllib.parse.urlencode({'grant_type':'refresh_token','refresh_token':os.environ['FIREBASE_TOKEN'],'client_id':'563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com','client_secret':'j9iVZfS8kkCEFUPaAeJV0sAi'}).encode()
+          t=json.load(urllib.request.urlopen('https://oauth2.googleapis.com/token',d))['access_token']
+          print('::add-mask::'+t); open('/tmp/fbtok','w').write(t)
+          EOF
+      - name: Run
+        run: FB_TOKEN_FILE=/tmp/fbtok python3 $(cat .github/ops-run.txt)

@@ -8,11 +8,12 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#050506">
 <title>TradeZoro: the chart is the product</title>
-<meta name="description" content="Demo homepage A: one real NQ1! chart with footprint, delta and CVD, then an index of the tools. Education only.">
+<meta name="description" content="Demo homepage A, v2: a footprint chart replaying a recorded NQ1! session, an interactive order book heatmap, and every TradeZoro tool. Education only.">
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=862">
 <link rel="stylesheet" href="assets/demo-real-a.css?v=862">
+<link rel="preload" href="assets/data/demo-nq.json" as="fetch" crossorigin>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 <script src="assets/version-check.js?v=862" defer></script>
 <script src="assets/cookie-notice.js?v=862" defer></script>
@@ -23,9 +24,10 @@
 </head>
 <body class="ra-page">
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="ra-top"><div class="ra-w ra-top-in">
+<header class="ra-top" id="ra-top"><div class="ra-w ra-top-in">
   <a href="/" class="ra-brand" aria-label="TradeZoro home"><img src="assets/images/tradezoro-wordmark-1103-192.webp" alt="TradeZoro" width="120" height="28"></a>
-  <nav class="ra-nav" aria-label="Main"><a href="/charts">Charts</a><a href="/features/gex">GEX+</a><a href="/academy">Academy</a><a href="/login">Log in</a></nav>
+  <nav class="ra-nav" aria-label="Main"><a href="#tour">Tour</a><a href="#tools">Tools</a><a href="#data">Data</a><a href="#plans">Free and Pro</a><a href="#faq">FAQ</a></nav>
+  <a class="ra-top-cta" href="/signup">Start free</a>
   <button type="button" class="ra-theme" id="ra-theme" aria-label="Switch light or dark theme">
     <svg class="i-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
     <svg class="i-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -33,49 +35,219 @@
 </div></header>
 
 <main id="main" tabindex="-1">
-<section class="ra-hero ra-w" aria-labelledby="ra-h1">
-  <h1 id="ra-h1">Charts with order flow, GEX levels, replay and a journal. Free to start.</h1>
-  <p class="ra-lede">TradeZoro is a charting desk for futures and index traders: footprint, delta, liquidity heatmap and GEX on the same chart, plus the lessons to read them.</p>
-  <div class="ra-cta"><a class="ra-btn ra-btn-p" href="/signup">Start free</a><a class="ra-btn ra-btn-s" href="/charts">Open charts</a></div>
-  <figure class="ra-shot">
-      <img class="ra-shot-d" src="assets/images/demo-real-a/hero-d.webp" width="2400" height="1345" alt="ZoroCharts on NQ1! one-minute bars in footprint mode, with a Delta pane and a CVD pane underneath">
-    <img class="ra-shot-md" src="assets/images/demo-real-a/hero-m-d.webp" width="780" height="1160" alt="ZoroCharts on NQ1! one-minute bars in footprint mode on a phone" fetchpriority="high">
-    <figcaption>NQ1!, 1m, Footprint with Delta and CVD panes. Bars from 21 Oct 2026.</figcaption>
-  </figure>
+
+<!-- HERO: always dark, the chart is the page -->
+<section class="ra-hero ra-dark" aria-labelledby="ra-h1">
+  <div class="ra-w">
+    <h1 id="ra-h1">The chart that shows who is trading.<span> Footprint, order book heatmap, GEX levels and replay in one workspace.</span></h1>
+    <div class="ra-cta"><a class="ra-btn ra-btn-p" href="/signup">Start free</a><a class="ra-btn ra-btn-o" href="/charts">Open charts</a></div>
+  </div>
+  <div class="ra-w ra-hero-fig">
+    <figure class="ra-win" id="fp-win">
+      <div class="ra-win-bar"><b>NQ1!</b><span>1m</span><span>Footprint</span><span class="ra-win-r" id="fp-clock">&nbsp;</span></div>
+      <div class="ra-cv-wrap" id="fp-wrap"><canvas id="fp" aria-label="Footprint chart of NQ1! one-minute bars forming one at a time, with a ladder on the right and a delta pane underneath" role="img"></canvas><div class="ra-tip" id="fp-tip" hidden></div></div>
+      <figcaption>Recorded NQ1! session, 21 Oct 2026, replayed bar by bar. Hover or tap a cell for bid and ask.</figcaption>
+    </figure>
+  </div>
 </section>
 
-<section class="ra-w ra-index" aria-labelledby="ra-h2">
-  <h2 id="ra-h2">What is in the workspace</h2>
-  <ul class="ra-list">
-    <li><img src="assets/images/demo-real-a/r-footprint.webp" width="800" height="480" loading="lazy" decoding="async" alt="Footprint bars on NQ1!"><div><h3>Footprint</h3><p>Each candle split by price into contracts sold at the bid and bought at the ask. The busiest price is boxed.</p></div></li>
-    <li><img src="assets/images/demo-real-a/r-ladder.webp" width="800" height="480" loading="lazy" decoding="async" alt="Footprint in ladder style on NQ1!"><div><h3>Footprint, ladder style</h3><p>One column of numbers per bar, with net delta at every price. Good when you zoom out.</p></div></li>
-    <li><img src="assets/images/demo-real-a/r-delta.webp" width="800" height="480" loading="lazy" decoding="async" alt="Delta and CVD panes"><div><h3>Delta and CVD</h3><p>Net buying minus selling per bar, and the running total under the price chart.</p></div></li>
-    <li><img src="assets/images/demo-real-a/r-heatmap.webp" width="800" height="400" loading="lazy" decoding="async" alt="Liquidity heatmap on BTCUSDT"><div><h3>Liquidity heatmap</h3><p>Resting orders in the book over time, with the size of big levels pulled or filled. Shown on BTCUSDT.</p></div></li>
-    <li><img src="assets/images/demo-real-a/r-gex.webp" width="800" height="536" loading="lazy" decoding="async" alt="GEX levels on an NQ chart"><div><h3>GEX levels</h3><p>Call wall, put wall and zero gamma from options positioning, drawn on the chart for SPX, ES and NQ.</p></div></li>
-    <li><img src="assets/images/demo-real-a/r-vp.webp" width="800" height="388" loading="lazy" decoding="async" alt="Session volume profile"><div><h3>Volume profile</h3><p>Volume by price for the session, with the point of control marked.</p></div></li>
-    <li><img src="assets/images/demo-real-a/r-replay.webp" width="800" height="440" loading="lazy" decoding="async" alt="Bar replay on NQ"><div><h3>Replay</h3><p>Step through a past session one bar at a time. Order flow tools work in replay too.</p></div></li>
-    <li><img src="assets/images/demo-real-a/r-journal.webp" width="800" height="488" loading="lazy" decoding="async" alt="Journal add-trade form"><div><h3>Journal</h3><p>Log each trade with setup, session and notes, then review them by tag.</p></div></li>
-  </ul>
-</section>
-
-<section class="ra-w ra-facts" aria-label="In numbers">
+<!-- NUMBERS -->
+<section class="ra-w ra-nums" aria-label="In numbers">
   <dl>
-    <div><dt>Chart types</dt><dd>21</dd></div>
-    <div><dt>Tools in the Order Flow group</dt><dd>39</dd></div>
-    <div><dt>L2 order-flow tools</dt><dd>7</dd></div>
-    <div><dt>Academy chapters</dt><dd>64</dd></div>
+    <div><dd data-n="21">21</dd><dt>chart types</dt></div>
+    <div><dd data-n="39">39</dd><dt>order flow tools</dt></div>
+    <div><dd data-n="7">7</dd><dt>L2 order-flow tools</dt></div>
+    <div><dd data-n="1000">1000</dd><dt>alerts per account</dt></div>
+    <div><dd data-n="64">64</dd><dt>Academy chapters</dt></div>
   </dl>
 </section>
 
-<section class="ra-w ra-close" aria-labelledby="ra-h3">
-  <h2 id="ra-h3">Open a chart and try it.</h2>
-  <div class="ra-cta"><a class="ra-btn ra-btn-p" href="/signup">Start free</a><a class="ra-btn ra-btn-s" href="/charts">Open charts</a></div>
+<!-- TOUR: tabbed viewer, full-bleed dark -->
+<section class="ra-dark ra-tour" id="tour" aria-labelledby="ra-tour-h">
+  <div class="ra-w">
+    <div class="ra-sec-h"><h2 id="ra-tour-h">Four ways to look at the same market</h2><p>Pick one. The heatmap is a recorded order book you can filter yourself.</p></div>
+    <div class="ra-tabs" role="tablist" aria-label="Tool">
+      <button role="tab" id="tb-heat" aria-controls="tp-heat" aria-selected="true" type="button">Heatmap</button>
+      <button role="tab" id="tb-fp" aria-controls="tp-fp" aria-selected="false" tabindex="-1" type="button">Footprint</button>
+      <button role="tab" id="tb-gex" aria-controls="tp-gex" aria-selected="false" tabindex="-1" type="button">GEX</button>
+      <button role="tab" id="tb-rep" aria-controls="tp-rep" aria-selected="false" tabindex="-1" type="button">Replay</button>
+    </div>
+    <div class="ra-panel" role="tabpanel" id="tp-heat" aria-labelledby="tb-heat">
+      <div class="ra-panel-txt">
+        <h3>Order book heatmap</h3>
+        <p>Resting orders at every price, drawn behind the candles. Big levels get a size label. Move the slider to hide the small ones.</p>
+        <div class="ra-ctl">
+          <label for="hm-min">Minimum size <output id="hm-min-o">0.5 BTC</output></label>
+          <input type="range" id="hm-min" min="0.25" max="60" step="0.25" value="0.5">
+          <p class="ra-ctl-n" id="hm-n" aria-live="polite">&nbsp;</p>
+        </div>
+        <div class="ra-seg" role="group" aria-label="Colour look" id="hm-look">
+          <button type="button" aria-pressed="true" data-look="zoro">Zoro</button><button type="button" aria-pressed="false" data-look="midnight">Midnight</button><button type="button" aria-pressed="false" data-look="classic">Classic</button><button type="button" aria-pressed="false" data-look="split">Split</button>
+        </div>
+      </div>
+      <figure class="ra-panel-vis ra-win">
+        <div class="ra-win-bar"><b>BTCUSDT</b><span>Heatmap</span></div>
+        <div class="ra-cv-wrap" id="hm-wrap"><canvas id="hm" role="img" aria-label="Order book heatmap of BTCUSDT: resting orders by price over 50 minutes, with the mid price line"></canvas></div>
+        <figcaption>BTCUSDT, 50 minutes of the recorded public order book. The heatmap is crypto only.</figcaption>
+      </figure>
+    </div>
+    <div class="ra-panel" role="tabpanel" id="tp-fp" aria-labelledby="tb-fp" hidden>
+      <div class="ra-panel-txt">
+        <h3>Footprint</h3>
+        <p>Every candle split by price, with the volume sold at the bid and bought at the ask. The busiest price is boxed. Switch to ladder style when you zoom out.</p>
+        <ul class="ra-ticks"><li>Delta and CVD panes under the price</li><li>Imbalance zones and absorption flags</li><li>NQ, ES, YM, GC, SI, CL and crypto pairs</li></ul>
+      </div>
+      <figure class="ra-panel-vis ra-shot-frame"><img src="assets/images/demo-real-a/v-footprint.webp" width="1800" height="1009" alt="ZoroCharts footprint on NQ1! with delta and CVD panes" loading="lazy" decoding="async"></figure>
+    </div>
+    <div class="ra-panel" role="tabpanel" id="tp-gex" aria-labelledby="tb-gex" hidden>
+      <div class="ra-panel-txt">
+        <h3>GEX levels</h3>
+        <p>Call wall, put wall and zero gamma from options positioning, drawn on the chart and listed by expiry. SPX, SPY, QQQ, ES, NQ and gold.</p>
+        <ul class="ra-ticks"><li>0DTE, 1DTE, weekly and monthly</li><li>Prior day value area, overnight range, RTH markers</li><li>Also as a heatmap behind the candles</li></ul>
+      </div>
+      <div class="ra-panel-vis ra-stack">
+        <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-gexchart.webp" width="1000" height="670" alt="GEX call wall, put wall and zero gamma on a chart" loading="lazy" decoding="async"></figure>
+        <figure class="ra-shot-frame ra-stack-b"><img src="assets/images/demo-real-a/c-gexfut.webp" width="740" height="590" alt="GEX levels list: call wall, spot, zero gamma, put wall" loading="lazy" decoding="async"></figure>
+      </div>
+    </div>
+    <div class="ra-panel" role="tabpanel" id="tp-rep" aria-labelledby="tb-rep" hidden>
+      <div class="ra-panel-txt">
+        <h3>Replay One</h3>
+        <p>Step through a past session one bar at a time. Order flow tools keep working in replay, so you can practise reading it before it matters.</p>
+        <ul class="ra-ticks"><li>Paper orders with stop and target</li><li>Play, pause and step one bar at a time</li><li>Drawings and indicators work the same as on the chart</li></ul>
+      </div>
+      <figure class="ra-panel-vis ra-shot-frame"><img src="assets/images/demo-real-a/c-replay.webp" width="1200" height="660" alt="Replay One on a chart with a paper trade, stop and target" loading="lazy" decoding="async"></figure>
+    </div>
+  </div>
+</section>
+
+<!-- WHY: light-weight text section, asymmetric -->
+<section class="ra-w ra-why" aria-labelledby="ra-why-h">
+  <div class="ra-why-l"><h2 id="ra-why-h">Candles tell you where price went.</h2></div>
+  <div class="ra-why-r">
+    <p class="ra-big">Order flow adds who traded, what is resting in the book and where options positioning sits. Futures order flow is built on our server from every trade and the side that started it.</p>
+    <div class="ra-cols">
+      <div><h3>Level 1</h3><p>Every trade plus the best bid and ask: footprint, delta, CVD, big trades, absorption, imbalance zones, stop runs, effort vs result.</p></div>
+      <div><h3>Level 2</h3><p>The order book: heatmap, DOM ladder, liquidity walls, book imbalance and a Book, DOM and Trades panel.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS: bento with real cut-outs -->
+<section class="ra-w ra-tools" id="tools" aria-labelledby="ra-tools-h">
+  <div class="ra-sec-h"><h2 id="ra-tools-h">Everything in the workspace</h2><p>Each one opens in the same window, on the same data.</p></div>
+  <div class="ra-bento">
+    <article class="ra-card ra-c-charts">
+      <div class="ra-card-t"><h3>ZoroCharts</h3><p>21 chart types, drawings, Pine Script, layouts and paper trading. Build a grid from one chart to sixteen.</p></div>
+      <div class="ra-seg" role="group" aria-label="Charts in layout" id="lay-seg"><button type="button" aria-pressed="true" data-n="1">1</button><button type="button" aria-pressed="false" data-n="2">2</button><button type="button" aria-pressed="false" data-n="4">4</button><button type="button" aria-pressed="false" data-n="16">16</button></div>
+      <div class="ra-lay" id="lay" data-n="1" role="img" aria-label="A layout grid of mini charts, recorded NQ1! at several timeframes"></div>
+    </article>
+    <article class="ra-card ra-c-of">
+      <div class="ra-card-t"><h3>Order flow, L1 and L2</h3><p>39 tools in the Order Flow group, 7 of them L2: Delta ladder, Delta, CVD, footprint, big trades, stop runs and volume profile.</p></div>
+      <div class="ra-cut"><figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-cells.webp" width="900" height="540" alt="Footprint cells on NQ1!" loading="lazy" decoding="async"></figure><figure class="ra-shot-frame ra-cut-b"><img src="assets/images/demo-real-a/c-ladder.webp" width="700" height="420" alt="Footprint in ladder style" loading="lazy" decoding="async"></figure></div>
+    </article>
+    <article class="ra-card ra-c-gex">
+      <div class="ra-card-t"><h3>GEX+</h3><p>Call wall, put wall, zero gamma and IV range for SPX, SPY, QQQ, ES, NQ and gold.</p></div>
+      <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-gexfut.webp" width="740" height="590" alt="GEX levels list" loading="lazy" decoding="async"></figure>
+    </article>
+    <article class="ra-card ra-c-liq">
+      <div class="ra-card-t"><h3>Liquidity Map</h3><p>Resting orders as a heatmap with trade bubbles, in four colour looks.</p></div>
+      <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-liq.webp" width="1200" height="581" alt="Liquidity heatmap with a volume ladder" loading="lazy" decoding="async"></figure>
+    </article>
+    <article class="ra-card ra-c-rep">
+      <div class="ra-card-t"><h3>Replay One</h3><p>Any past session, bar by bar, with paper orders.</p></div>
+      <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-replay.webp" width="1200" height="660" alt="Replay One" loading="lazy" decoding="async"></figure>
+    </article>
+    <article class="ra-card ra-c-jr">
+      <div class="ra-card-t"><h3>JournalX</h3><p>Log setup, session and notes. Import from your broker and review by tag.</p></div>
+      <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-journal.webp" width="1000" height="610" alt="JournalX add-trade form" loading="lazy" decoding="async"></figure>
+    </article>
+    <article class="ra-card ra-c-ms">
+      <div class="ra-card-t"><h3>Market Stats</h3><p>How often gaps, opening ranges and levels played out, with the sample size beside every number.</p></div>
+      <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-stats.webp" width="1160" height="430" alt="Market Stats gap and opening range panels" loading="lazy" decoding="async"></figure>
+    </article>
+    <article class="ra-card ra-c-sc">
+      <div class="ra-card-t"><h3>Screener</h3><p>US stocks, ETFs and crypto: gainers, losers, unusual volume, new highs and lows, or your own filters.</p></div>
+      <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-screener.webp" width="640" height="310" alt="Screener filter tabs" loading="lazy" decoding="async"></figure>
+    </article>
+    <article class="ra-card ra-c-al">
+      <div class="ra-card-t"><h3>Alerts</h3><p>Up to 1000 price alerts. Price alerts on futures and crypto reach your phone with Charts closed.</p></div>
+      <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-alerts.webp" width="640" height="236" alt="Alerts list with pause, edit and delete" loading="lazy" decoding="async"></figure>
+    </article>
+    <article class="ra-card ra-c-td">
+      <div class="ra-card-t"><h3>ZoroTide</h3><p>Net call premium against net put premium since the open, for SPX, SPY, QQQ, ES and NQ.</p></div>
+      <figure class="ra-shot-frame"><img src="assets/images/demo-real-a/c-tide.webp" width="1000" height="572" alt="ZoroTide call and put premium lines" loading="lazy" decoding="async"></figure>
+    </article>
+  </div>
+</section>
+
+<!-- DATA -->
+<section class="ra-dark ra-data" id="data" aria-labelledby="ra-data-h">
+  <div class="ra-w ra-data-grid">
+    <div class="ra-data-t">
+      <h2 id="ra-data-h">Bring your own data</h2>
+      <p>Connect a feed and the same charts and order flow tools run on it. TradeZoro is data only: it never places real orders, so you keep trading at your broker.</p>
+      <ul class="ra-brokers"><li><img src="assets/images/brokers/alpaca.svg" width="40" height="40" alt="" loading="lazy" decoding="async"><span>Alpaca</span></li><li><img src="assets/images/brokers/tastytrade.svg" width="40" height="40" alt="" loading="lazy" decoding="async"><span>tastytrade</span></li><li><img src="assets/images/brokers/dhan.png" width="40" height="40" alt="" loading="lazy" decoding="async"><span>Dhan</span></li><li><img src="assets/images/brokers/oanda.png" width="40" height="40" alt="" loading="lazy" decoding="async"><span>OANDA</span></li><li><img src="assets/images/brokers/rithmic.png" width="40" height="40" alt="" loading="lazy" decoding="async"><span>Rithmic</span></li><li><img src="assets/images/brokers/ninja.png" width="40" height="40" alt="" loading="lazy" decoding="async"><span>NinjaTrader 8</span></li><li><img src="assets/images/brokers/mt5.png" width="40" height="40" alt="" loading="lazy" decoding="async"><span>MetaTrader 5</span></li><li><img src="assets/images/brokers/ibkr.png" width="40" height="40" alt="" loading="lazy" decoding="async"><span>Interactive Brokers</span></li></ul>
+      <p class="ra-note">NinjaTrader 8, MetaTrader 5 and Interactive Brokers connect through the desktop helper. Rithmic is your own prop firm login.</p>
+    </div>
+    <figure class="ra-shot-frame ra-data-vis"><img src="assets/images/demo-real-a/c-connect.webp" width="1000" height="537" alt="Connect your prop firm sheet in ZoroCharts" loading="lazy" decoding="async"></figure>
+  </div>
+</section>
+
+<!-- FREE vs PRO -->
+<section class="ra-w ra-plans" id="plans" aria-labelledby="ra-plans-h">
+  <div class="ra-sec-h"><h2 id="ra-plans-h">Free and Pro</h2><p>Everything else on TradeZoro stays free.</p></div>
+  <div class="ra-plan-grid">
+    <div class="ra-plan">
+      <h3>Free</h3>
+      <ul class="ra-ticks">
+        <li>ZoroCharts with every chart type, interval, indicator, drawing and layout</li>
+        <li>Alerts, paper trading and Replay One</li>
+        <li>Market Stats, Liquidity Map and ZoroTide</li>
+        <li>All 64 chapters of ZoroAcademy</li>
+        <li>JournalX with import, broker sync and AI coach</li>
+        <li>Smart Money Desk, trading models and the community</li>
+      </ul>
+      <a class="ra-btn ra-btn-p" href="/signup">Start free</a>
+    </div>
+    <div class="ra-plan ra-plan-pro">
+      <h3>Pro</h3>
+      <p class="ra-plan-lead">Everything in Free, plus:</p>
+      <ul class="ra-ticks">
+        <li>Order flow: footprint, delta, CVD, big trades, absorption and more</li>
+        <li>The order book: heatmap, DOM ladder, Book, DOM and Trades panel</li>
+        <li>L1 and L2 data feeds shown on the chart</li>
+        <li>GEX+ for SPX, SPY, QQQ, ES, NQ and gold, every expiry, plus GEX on the charts</li>
+      </ul>
+      <a class="ra-btn ra-btn-o" href="/pro">See Pro</a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="ra-w ra-faq" id="faq" aria-labelledby="ra-faq-h">
+  <div class="ra-faq-l"><h2 id="ra-faq-h">Questions</h2></div>
+  <div class="ra-faq-r">
+    <details><summary>Is ZoroCharts free?</summary><p>Yes. Every chart type, interval, indicator, drawing, layout, alert, paper trade and bar replay is on every plan. Pro adds the order flow tools and GEX on the charts.</p></details>
+    <details><summary>Where does the data come from?</summary><p>Crypto comes from public Binance, Coinbase and Hyperliquid feeds. CME futures run 10 minutes behind by CME rule unless you connect your own Rithmic login or add the futures data add-on. Futures order flow is built on our server from every trade.</p></details>
+    <details><summary>Which markets have order flow?</summary><p>NQ, ES, YM, GC, SI and CL with their micro contracts, and Binance crypto pairs. The liquidity heatmap is crypto only.</p></details>
+    <details><summary>Can I trade from the chart?</summary><p>Only with demo money. Paper trading fills simulated orders against the chart. TradeZoro never places real orders.</p></details>
+    <details><summary>Does it work on my phone?</summary><p>Yes. The chart is built for touch: pinch to zoom, drag to pan, and menus open as sheets. Your layouts follow you between phone and desktop.</p></details>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="ra-dark ra-final" aria-labelledby="ra-fin-h">
+  <div class="ra-w">
+    <h2 id="ra-fin-h">Open a chart and look at the order flow yourself.</h2>
+    <div class="ra-cta"><a class="ra-btn ra-btn-p" href="/signup">Start free</a><a class="ra-btn ra-btn-o" href="/charts">Open charts</a></div>
+  </div>
 </section>
 </main>
 
 <footer class="ra-foot"><div class="ra-w">
-  <nav aria-label="Footer"><a href="/features/charts">Charts</a><a href="/features/orderflow">Order flow</a><a href="/features/gex">GEX+</a><a href="/academy">Academy</a><a href="/help">Help</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
-  <p>Education only. Not financial advice. Chart images on this page are from recorded sessions.</p>
+  <nav aria-label="Footer"><a href="/features/charts">Charts</a><a href="/features/orderflow">Order flow</a><a href="/features/gex">GEX+</a><a href="/academy">Academy</a><a href="/pro">Pro</a><a href="/help">Help</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+  <p>Education only. Not financial advice. Charts on this page replay recorded sessions.</p>
 </div></footer>
 <script src="assets/demo-real-a.js?v=862" defer></script>
 </body>

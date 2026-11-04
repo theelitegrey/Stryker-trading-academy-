@@ -47,15 +47,42 @@ function pickEmailActionSettings(hostname, kind, path) {
   if (!ok) p = '/dashboard-user';
   return { url: origin + p };
 }
+// Own emails: our callable sends the mail through Resend with a tradezoro.com
+// link. Any failure, or {fallback:true}, drops to Firebase's own send below,
+// so nobody is left stuck. Only on EMAIL_RETURN_HOSTS (same as the settings).
+function loadFunctionsSdk() {
+  if (window.firebase && firebase.functions) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js';
+    sc.onload = resolve;
+    sc.onerror = () => reject(new Error('functions sdk'));
+    document.head.appendChild(sc);
+  });
+}
+function callSendAuthEmail(payload) {
+  if (EMAIL_RETURN_HOSTS.indexOf(window.location.hostname) === -1) return Promise.resolve({ fallback: true });
+  return loadFunctionsSdk()
+    .then(() => firebase.app().functions('us-central1').httpsCallable('sendAuthEmail')(payload))
+    .then((r) => (r && r.data) || { fallback: true })
+    .catch((err) => { console.warn('TradeZoro: own email unavailable, using Firebase', err); return { fallback: true }; });
+}
 // Thin wrappers so every send goes through the same choice. Without settings
 // they call the SDK with the original single argument, unchanged.
 function sendResetEmailWithReturn(email) {
-  const s = pickEmailActionSettings(window.location.hostname, 'reset');
-  return s ? auth.sendPasswordResetEmail(email, s) : auth.sendPasswordResetEmail(email);
+  return callSendAuthEmail({ kind: 'reset', email: email }).then((r) => {
+    if (!r.fallback) return;
+    const s = pickEmailActionSettings(window.location.hostname, 'reset');
+    return s ? auth.sendPasswordResetEmail(email, s) : auth.sendPasswordResetEmail(email);
+  });
 }
 function sendVerifyEmailWithReturn(user, path) {
-  const s = pickEmailActionSettings(window.location.hostname, 'verify', path);
-  return s ? user.sendEmailVerification(s) : user.sendEmailVerification();
+  return callSendAuthEmail({ kind: 'verify', continuePath: path }).then((r) => {
+    if (r.rateLimited) { const e = new Error(r.message || 'Please try again in a few minutes.'); e.code = 'auth/too-many-requests'; throw e; }
+    if (r.alreadyVerified || !r.fallback) return;
+    const s = pickEmailActionSettings(window.location.hostname, 'verify', path);
+    return s ? user.sendEmailVerification(s) : user.sendEmailVerification();
+  });
 }
 
 const firebaseConfig = {

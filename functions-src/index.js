@@ -190,6 +190,7 @@ Object.assign(exports, require('./xAutopost'));
 Object.assign(exports, require('./accountAdmin'));
 Object.assign(exports, require('./partnerAdmin'));   // Partner programme: partnerAdmin, partnerLeave
 Object.assign(exports, require('./chapterGate'));
+exports.sendAuthEmail = require('./authEmail').sendAuthEmail;   // own verify/reset emails via Resend
 exports.onContactMessageCreated = require('./onContactMessageCreated').onContactMessageCreated;
 exports.supportTicketAction = require('./supportTickets').supportTicketAction;
 exports.launchSaleOnOrder = require('./launchSale').launchSaleOnOrder;

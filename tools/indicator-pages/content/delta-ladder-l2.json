@@ -1,0 +1,19 @@
+{
+  "slug": "delta-ladder-l2",
+  "summary": "A ladder on the price axis with delta at each price, for the visible part of the chart.",
+  "overview": [
+    "Delta Ladder (L2) draws a ladder on the right of the price chart. Each row shows buying minus selling at that price.",
+    "Delta (L2) and Cumulative Delta (L2) add it automatically; you can also add it on its own."
+  ],
+  "how": [
+    "It sums trade delta per price row over the visible range by default (the range setting can change this). The ladder takes 16 % of the chart width by default."
+  ],
+  "use": [
+    "Use it to see at which prices buyers or sellers were most active on screen.",
+    "Some traders compare the ladder with levels from other tools."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books."
+  ],
+  "learn": "order-flow"
+}

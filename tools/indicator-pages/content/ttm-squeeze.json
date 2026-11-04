@@ -1,0 +1,22 @@
+{
+  "slug": "ttm-squeeze",
+  "summary": "TTM Squeeze: momentum histogram with dots that show when Bollinger Bands sit inside Keltner Channels.",
+  "overview": [
+    "The TTM Squeeze, by John Carter, shows two things in its own pane. A histogram shows momentum, and dots on the zero line show whether the market is in a squeeze.",
+    "Orange dots mean the squeeze is on; gray dots mean it is off. A cross on the zero line marks the first bar after a squeeze ends (a fire)."
+  ],
+  "how": [
+    "Squeeze is on when both Bollinger Bands (20 bars, 2 deviations) are inside the Keltner Channels (20 bars, 1.5 ATR).",
+    "Momentum is a linear regression of price minus the average of the Donchian midline and the SMA over 20 bars. Bars are solid when building away from zero and dim when fading back."
+  ],
+  "use": [
+    "Some traders watch for the first gray dot after a run of orange dots.",
+    "Use the histogram color to see momentum direction at the fire.",
+    "Watch for momentum fading as a sign a move is slowing.",
+    "Use a long squeeze as a sign of building pressure."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data."
+  ]
+}

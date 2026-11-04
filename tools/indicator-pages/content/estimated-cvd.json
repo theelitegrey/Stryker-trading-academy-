@@ -1,0 +1,20 @@
+{
+  "slug": "estimated-cvd",
+  "summary": "Estimates buying and selling from where each candle closed in its range, and plots it as a cumulative line or per-bar delta.",
+  "overview": [
+    "Estimated CVD (from candles) gives a rough delta for charts with no trade data. It draws a cumulative line in its own pane by default, or per-bar estimated delta as a histogram. A note on the chart says it is estimated from candles, not real order flow."
+  ],
+  "how": [
+    "Each candle's volume is split by where it closed in its range. A candle closing at its high counts as all buying, at its low as all selling, and in the middle as even. The formula is volume times (close minus low, minus high minus close), divided by the range.",
+    "The cumulative line resets each session by default, or never."
+  ],
+  "use": [
+    "Some traders use it as a rough guide to buying and selling pressure on any symbol.",
+    "Use it to compare the direction of the line with price.",
+    "Some traders use it where real trade data is not available."
+  ],
+  "notes": [
+    "It is a guess from candles; it does not see individual trades.",
+    "For real order flow, see Cumulative Delta (trades) or the L1 tools."
+  ]
+}

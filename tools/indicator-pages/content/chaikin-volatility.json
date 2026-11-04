@@ -1,0 +1,24 @@
+{
+  "slug": "chaikin-volatility",
+  "summary": "Chaikin Volatility: percent change of the 10-bar EMA of high minus low, compared with 10 bars earlier.",
+  "overview": [
+    "Chaikin Volatility shows whether bar ranges are getting wider or narrower, in its own pane around zero. Above zero, the smoothed range is wider than it was 10 bars ago.",
+    "The line turns orange during expansion."
+  ],
+  "how": [
+    "Smoothed range = EMA(high - low, 10). Chaikin Volatility = (smoothed range - smoothed range 10 bars ago) / smoothed range 10 bars ago x 100.",
+    "Both lengths can be changed. It compares two values of the same smoothed range, so the reading shows the speed of change, not the size of the range."
+  ],
+  "use": [
+    "Use rising readings to see ranges expanding.",
+    "Some traders watch a sharp rise after a quiet stretch as a sign of a new move.",
+    "Use falling readings to see the market calming down.",
+    "Pair it with a trend tool, since it shows no direction."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It looks only at high-low ranges, not gaps.",
+    "Large positive readings are common after sudden moves."
+  ]
+}

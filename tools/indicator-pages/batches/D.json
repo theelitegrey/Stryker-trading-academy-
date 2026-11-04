@@ -1,0 +1,441 @@
+[
+ {
+  "slug": "book-imbalance-l2",
+  "key": "b:stk_fut_imb",
+  "name": "Book Imbalance (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-futures-l2.js",
+  "settings": [
+   "Top-of-book imbalance colour = \"#03c988\"",
+   "10-level depth-weighted colour = \"#00adb5\"",
+   "Show the 10-level depth-weighted line = true",
+   "Smoothing (seconds, 0 = none) = 0"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "big-trades-l1",
+  "key": "b:stk_ts_big",
+  "name": "Big Trades (L1)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-ts-trades.js",
+  "settings": [
+   "Aggregate fills into one order = true",
+   "Burst gap (ms) = 150",
+   "Price walk (ticks) = 4",
+   "Also count fills at one price over (s) = 0",
+   "Filter = \"Automatic\"",
+   "Intensity = \"Medium\"",
+   "Min size (contracts) = 0",
+   "Max size (0 = no limit) = 0",
+   "Marker = \"Circle\"",
+   "Size scale (SD) = 1",
+   "Fill opacity = 0.7",
+   "Buyers (hit the ask) = \"#03c988\"",
+   "Sellers (hit the bid) = \"#f23645\"",
+   "Show size = false",
+   "Show fills count = false",
+   "Mark absorption (A) = true",
+   "Show levels swept = true",
+   "Extend levels (bars, 0 = off) = 0"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "delta-l1",
+  "key": "b:stk_ts_delta",
+  "name": "Delta (L1)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-ts-trades.js",
+  "settings": [
+   "Positive = \"#22d3ee\"",
+   "Negative = \"#ff9f1c\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "cumulative-delta-l1",
+  "key": "b:stk_ts_cvd",
+  "name": "Cumulative Delta (L1)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-ts-trades.js",
+  "settings": [
+   "Show as = \"candles\"",
+   "Reset = \"session\"",
+   "Up = \"#22d3ee\"",
+   "Down = \"#ff9f1c\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "delta-styles-l1",
+  "key": "b:stk_ts_dsuite",
+  "name": "Delta (L1)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-delta-suite.js",
+  "settings": [
+   "Style = \"H1 Session delta profile\"",
+   "Row size (ticks, 0 = auto) = 0",
+   "Profile width % = 25",
+   "Block length = \"30m\"",
+   "Recent window (minutes) = 30",
+   "Big / strong delta at (x average |delta|) = 2.5",
+   "Key prices per candle = 5",
+   "Last N minutes = 5",
+   "Box position = \"top right\"",
+   "Show numbers = true",
+   "Buyers = \"#03c988\"",
+   "Sellers = \"#9d4dff\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "delta-pane-l1",
+  "key": "b:stk_ts_dpane",
+  "name": "Delta pane (L1)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-delta-suite.js",
+  "settings": [
+   "Style = \"V1 Delta bars\"",
+   "Strong bar at (x average |delta|) = 2",
+   "CVD reset = \"session\"",
+   "Mark divergences = true",
+   "Buyers = \"#03c988\"",
+   "Sellers = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "book-speed-l2",
+  "key": "b:stk_bk_speed",
+  "name": "Book Speed (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-book-pack.js",
+  "settings": [
+   "Depth (ticks each side of price) = 20",
+   "Smoothing (bars) = 3",
+   "Calm at or below (session percentile) = 25",
+   "Fast at or above (session percentile) = 75",
+   "Calm = \"#00adb5\"",
+   "Normal = \"#8a90a0\"",
+   "Fast = \"#f5b301\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "liquidity-balance-l2",
+  "key": "b:stk_bk_bal",
+  "name": "Liquidity Balance (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-book-pack.js",
+  "settings": [
+   "Depth (ticks each side of price) = 20",
+   "Bid size = \"#03c988\"",
+   "Ask size = \"#f23645\"",
+   "Show the two size lines = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "refill-detector-l2",
+  "key": "b:stk_bk_refill",
+  "name": "Refill Detector (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-book-pack.js",
+  "settings": [
+   "Refilled to at least (% of the size before the hit) = 70",
+   "Within (seconds) = 3",
+   "Level hit by at least (% of its size) = 30",
+   "Show the R label = true",
+   "Bid refilled (supports up) = \"#03c988\"",
+   "Ask refilled (supports down) = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "volatility-regime-l2",
+  "key": "b:stk_bk_regime",
+  "name": "Volatility Regime (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-book-pack.js",
+  "settings": [
+   "Depth (ticks each side of price) = 20",
+   "Tight at or below (session percentile) = 25",
+   "Wide at or above (session percentile) = 75",
+   "Tight = \"#00adb5\"",
+   "Normal = \"#8a90a0\"",
+   "Wide = \"#f5b301\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "large-resting-orders-l2",
+  "key": "b:stk_bk_large",
+  "name": "Large Resting Orders (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-book-pack.js",
+  "settings": [
+   "Top % of the session's level sizes = 0.5",
+   "Show at most = 6",
+   "Bid = \"#03c988\"",
+   "Ask = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "absorption-iceberg-tracker",
+  "key": "b:stk_bk_track",
+  "name": "Absorption & Iceberg Tracker (L1+L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-book-pack.js",
+  "settings": [
+   "Absorption = true",
+   "Iceberg hints = true",
+   "Stop runs / sweeps = true",
+   "Absorption = \"#00adb5\"",
+   "Iceberg hints = \"#f5b301\"",
+   "Stop runs = \"#9b7bff\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "wall-events-l2",
+  "key": "b:stk_bk_walls",
+  "name": "Wall Events (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-book-pack.js",
+  "settings": [
+   "A wall is = \"Heatmap colour filter\"",
+   "Top % of the session's level sizes = 0.5",
+   "Min size (contracts / coins) = 200",
+   "Wall eaten (filled square) = true",
+   "Traded at the wall at least (% of its size) = 50",
+   "Wall held / refilled (hollow square + H) = true",
+   "Traded into it at least (% of its size) = 50",
+   "Price turned away by (ticks) = 4",
+   "Wall pulled (grey x) = true",
+   "Traded less than (% of its size) = 10",
+   "While price was within (ticks) = 8",
+   "Buyers (ask wall) = \"#03c988\"",
+   "Sellers (bid wall) = \"#f23645\"",
+   "Pulled = \"#8a90a0\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "delta-l2",
+  "key": "b:stk_l2f_delta",
+  "name": "Delta (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-l2-flow.js",
+  "settings": [
+   "Book rows each side of price (top N levels) = 10",
+   "Trade delta: buying = \"#03c988\"",
+   "Trade delta: selling = \"#f23645\"",
+   "Book delta: bid side added = \"#00adb5\"",
+   "Book delta: ask side added = \"#f5b301\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "cumulative-delta-l2",
+  "key": "b:stk_l2f_cvd",
+  "name": "Cumulative Delta (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-l2-flow.js",
+  "settings": [
+   "Book rows each side of price (top N levels) = 10",
+   "Show as = \"candles\"",
+   "Reset = \"session\"",
+   "Also show trade-only delta (dashed) = true",
+   "Up = \"#03c988\"",
+   "Down = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "footprint-l2",
+  "key": "b:stk_l2f_fp",
+  "name": "Footprint (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-l2-flow.js",
+  "settings": [
+   "Row size (ticks, 0 = auto) = 0",
+   "Highlight resting size above (x average) = 3",
+   "Show traded numbers = true",
+   "Buyers = \"#03c988\"",
+   "Sellers = \"#f23645\"",
+   "Resting bids = \"#00adb5\"",
+   "Resting asks = \"#f5b301\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "big-trades-l2",
+  "key": "b:stk_l2f_big",
+  "name": "Big Trades (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-l2-flow.js",
+  "settings": [
+   "Aggregate fills into one order = true",
+   "Burst gap (ms) = 150",
+   "Price walk (ticks) = 4",
+   "Also count fills at one price over (s) = 0",
+   "Filter = \"Automatic\"",
+   "Intensity = \"Medium\"",
+   "Min size (contracts) = 0",
+   "Max size (0 = no limit) = 0",
+   "Marker = \"Circle\"",
+   "Size scale (SD) = 1",
+   "Fill opacity = 0.7",
+   "Buyers (hit the ask) = \"#03c988\"",
+   "Sellers (hit the bid) = \"#f23645\"",
+   "Show size = false",
+   "Show fills count = false",
+   "Show W / C / P tags = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "stop-runs-l2",
+  "key": "b:stk_l2f_stop",
+  "name": "Stop Runs (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-l2-flow.js",
+  "settings": [
+   "Swing length (bars) = 5",
+   "Liquidity pulled / consumed through at least (levels) = 3",
+   "Volume spike (x average) = 1.5",
+   "Also show sweeps the book did not confirm (hollow) = false",
+   "Lows swept (bullish) = \"#03c988\"",
+   "Highs swept (bearish) = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "volume-profile-l2",
+  "key": "b:stk_l2f_vp",
+  "name": "Volume Profile (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-l2-flow.js",
+  "settings": [
+   "Width of each profile (% of the chart) = 14",
+   "Traded = \"#00adb5\"",
+   "Resting bids = \"#03c988\"",
+   "Resting asks = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "delta-ladder-l2",
+  "key": "b:stk_l2f_lad",
+  "name": "Delta Ladder (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-l2-flow.js",
+  "settings": [
+   "Ladder width (% of the chart) = 16",
+   "Ladder range = \"visible\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ }
+]

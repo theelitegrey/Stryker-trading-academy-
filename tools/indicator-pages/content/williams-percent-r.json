@@ -1,0 +1,23 @@
+{
+  "slug": "williams-percent-r",
+  "summary": "Williams %R: where the close sits in its 14-bar high-low range, from 0 to -100, with levels at -20 and -80.",
+  "overview": [
+    "Williams %R shows where the close sits within the recent range, in its own pane. It runs from 0 (at the high) to -100 (at the low). Levels sit at -20 (overbought) and -80 (oversold).",
+    "It is a mirror of the fast stochastic."
+  ],
+  "how": [
+    "%R = (highest high of 14 bars - close) / (highest high - lowest low) x -100.",
+    "A close at the top of the range gives 0; at the bottom, -100. It uses the high and low of the window, so a single large bar can shift the range."
+  ],
+  "use": [
+    "Some traders watch readings above -20 or below -80 as stretched.",
+    "Use moves out of those zones as signs of a turn starting.",
+    "In strong trends it can stay in a zone; some read that as strength.",
+    "Look for divergence with price."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It reacts fast and can be noisy."
+  ]
+}

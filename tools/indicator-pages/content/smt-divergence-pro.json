@@ -1,0 +1,25 @@
+{
+  "slug": "smt-divergence-pro",
+  "summary": "Joins two swing points with a line where one correlated futures market makes a new swing and the other fails to, on several timeframes.",
+  "overview": [
+    "SMT Divergence Pro compares your chart with a correlated instrument. When one makes a new swing high or low and the other does not, the two swing points are joined by a line, with a small up or down marker at the divergence. Bullish SMT is read from swing lows and bearish SMT from swing highs.",
+    "It runs on the chart timeframe plus up to three higher timeframes, each with its own pivot strength, colours and number of past SMTs kept (20 by default). A watermark lists the symbols and timeframes in use."
+  ],
+  "how": [
+    "With auto-pair on, NQ is compared with ES, ES with NQ, and YM and RTY with ES. With it off you can set up to three comparison symbols yourself. Swings are found on both symbols independently, so a divergence is caught whichever instrument prints the pivot. Pivot strength Weak, Medium and Strong mean 2, 5 and 10 candles either side, or a custom number.",
+    "Higher-timeframe candles are built from the chart's own bars, so each line is anchored to the exact chart bar that made the swing. While a swing is still forming, a provisional dotted line can be drawn and is then replaced on confirmation or removed if the pivot fails. When price later trades through the divergence swing, the SMT is removed by default, or kept dimmed. An optional session filter limits detection to set time windows."
+  ],
+  "use": [
+    "Some traders look for SMT near a session high or low as a sign one market is not confirming the other.",
+    "Use the higher-timeframe lines to see divergences that the chart timeframe alone would miss.",
+    "Some traders combine it with liquidity sweeps or fair value gaps from other tools.",
+    "Use the session filter to study only the hours you trade."
+  ],
+  "alerts": "Alerts: members can create an alert on Bullish SMT, Bearish SMT or Any SMT from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Needs data for the comparison symbol on the same timeframe.",
+    "Higher timeframes must be above the chart timeframe.",
+    "A divergence is a comparison of swings, not a signal on its own."
+  ],
+  "learn": "smt-divergence"
+}

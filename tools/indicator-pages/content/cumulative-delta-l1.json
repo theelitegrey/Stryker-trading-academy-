@@ -1,0 +1,21 @@
+{
+  "slug": "cumulative-delta-l1",
+  "summary": "The running total of buying minus selling volume from the futures trade stream, as candles or a line, reset each session.",
+  "overview": [
+    "Cumulative Delta (L1) adds up each bar's delta into a running total in its own pane. A rising line means more volume has traded at the ask than at the bid since the reset.",
+    "You can show it as candles (open, high, low and close of the running total within each bar) or as a line."
+  ],
+  "how": [
+    "Trades from the futures trade stream are split into buys and sells by the side they hit, summed per bar and added to the total. By default the total resets each session at 18:00 New York time."
+  ],
+  "use": [
+    "Use it to see whether buying or selling has been in control over the session.",
+    "Some traders compare new price highs or lows with the cumulative delta at the same time.",
+    "Watch the slope around key levels."
+  ],
+  "notes": [
+    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
+    "The total depends on the reset point; a different reset gives different numbers."
+  ],
+  "learn": "order-flow"
+}

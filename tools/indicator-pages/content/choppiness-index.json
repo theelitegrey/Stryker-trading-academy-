@@ -1,0 +1,22 @@
+{
+  "slug": "choppiness-index",
+  "summary": "Choppiness Index: how much price wandered versus how far it went over 14 bars, from 0 to 100, with bands at 61.8 and 38.2.",
+  "overview": [
+    "The Choppiness Index shows whether the market is trending or moving sideways, in its own pane. High values mean choppy price; low values mean a cleaner trend.",
+    "Bands sit at 61.8 and 38.2 by default, and the line takes the trending or choppy color near them."
+  ],
+  "how": [
+    "CHOP = 100 x log10(sum of true range over 14 bars / (highest high - lowest low over 14 bars)) / log10(14).",
+    "When price travels far in one direction, the range is large relative to the summed true ranges, so CHOP is low."
+  ],
+  "use": [
+    "Some traders avoid trend-following ideas while CHOP is above 61.8.",
+    "Use readings below 38.2 to see a strong trend in place.",
+    "Watch a drop from high readings as a sign a range may be ending.",
+    "Pair it with a direction tool, since CHOP shows none."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data."
+  ]
+}

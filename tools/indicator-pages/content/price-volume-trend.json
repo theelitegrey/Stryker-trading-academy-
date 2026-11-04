@@ -1,0 +1,23 @@
+{
+  "slug": "price-volume-trend",
+  "summary": "Price Volume Trend: a running total of volume times the percent change in close, with an optional signal line.",
+  "overview": [
+    "Price Volume Trend (PVT) is a running volume line in its own pane, like OBV but scaled by how much price moved.",
+    "It is green while rising and red while falling. An optional signal line (21 bars, SMA by default) can be shown."
+  ],
+  "how": [
+    "PVT = previous PVT + volume x (close - previous close) / previous close.",
+    "Large moves add more volume than small ones, unlike OBV which adds full volume on any up close."
+  ],
+  "use": [
+    "Some traders look for divergence between PVT and price.",
+    "Use the signal line to see when PVT turns.",
+    "Compare it with OBV to see the effect of move size.",
+    "Use a rising PVT in a range as a sign of accumulation."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "Its starting level has no meaning; read its slope."
+  ]
+}

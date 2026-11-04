@@ -1,0 +1,23 @@
+{
+  "slug": "chande-momentum-oscillator",
+  "summary": "Chande Momentum Oscillator: net up moves versus down moves over 9 bars, from -100 to +100, with levels at plus and minus 50.",
+  "overview": [
+    "The Chande Momentum Oscillator (CMO) measures momentum on a scale from -100 to +100 in its own pane. Overbought and oversold levels sit at +50 and -50 by default.",
+    "The line and fill are green while momentum is positive and red while negative."
+  ],
+  "how": [
+    "Over the last 9 bars, add all up moves (Su) and all down moves (Sd) of the source. CMO = 100 x (Su - Sd) / (Su + Sd).",
+    "Unlike RSI it uses raw sums without smoothing, so it reacts quickly."
+  ],
+  "use": [
+    "Some traders watch moves beyond +50 or -50 as stretched conditions.",
+    "Use zero-line crosses to see changes in momentum direction.",
+    "Look for divergence between CMO and price at swing points.",
+    "Use its absolute value as a measure of trend strength."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Short lengths make it jumpy; longer ones smooth it."
+  ]
+}

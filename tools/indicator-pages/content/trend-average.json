@@ -1,0 +1,24 @@
+{
+  "slug": "trend-average",
+  "summary": "Adaptive trend ribbon with pullback Entry and Conf signals, trend phase colors and optional layered filters.",
+  "overview": [
+    "This community script draws an adaptive trend average as a ribbon of bands around a center line. The ribbon widens and changes color with trend strength: strong, early or weak, bull or bear.",
+    "It prints Entry labels on pullbacks within the trend and Conf labels when price then closes beyond a tracked confirmation level, each with a short level line. Optional extras color the background or candles, or add a trend tracker line."
+  ],
+  "how": [
+    "The center line has a base length of 40 and adapts its speed using directional efficiency over 14 bars: it reacts faster in clean moves and steadies in noise. Ribbon Spread (0.5) sets the gap between bands.",
+    "In Intraday mode an Entry needs at least two counter-trend bars; Scalping mode reacts faster and turns on the phase color engine. After an Entry, price must close beyond the Conf level within 30 bars, or the setup is dropped.",
+    "Directional flow is scored from recent bullish and bearish events, including swing breaks. Optional filters can require ribbon direction, ribbon structure, a higher timeframe, or another indicator's value to agree."
+  ],
+  "use": [
+    "Use the ribbon color to see trend direction and strength.",
+    "Some traders treat an Entry as a pullback to watch and a Conf as follow-through.",
+    "Turn on the filter layers to see fewer signals that agree with more conditions.",
+    "Use the phase colors in Scalping mode to spot weakening trends."
+  ],
+  "alerts": "Alerts: members can create an alert on its conditions (for example \"Long Entry\", \"Short Entry\", \"Long Conf\", \"Short Conf\", \"Bullish Trend\", \"Bearish Trend\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Signals follow the script's own rules; filters change which ones you see.",
+    "The higher-timeframe filter needs an extra data request."
+  ]
+}

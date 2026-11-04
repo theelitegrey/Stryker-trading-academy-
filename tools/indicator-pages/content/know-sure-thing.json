@@ -1,0 +1,23 @@
+{
+  "slug": "know-sure-thing",
+  "summary": "Know Sure Thing: a weighted blend of four smoothed rates of change, with a 9-bar signal line.",
+  "overview": [
+    "The Know Sure Thing (KST), by Martin Pring, combines momentum from four time spans into one line in its own pane, with a signal line in orange.",
+    "Colors show direction: green while KST is above its signal, red while below."
+  ],
+  "how": [
+    "Take four rates of change (10, 15, 20 and 30 bars) and smooth them with simple averages (10, 10, 10 and 15). KST = RCMA1 x 1 + RCMA2 x 2 + RCMA3 x 3 + RCMA4 x 4.",
+    "The signal line is a 9-bar SMA of KST."
+  ],
+  "use": [
+    "Some traders watch KST crossing its signal line as a change in momentum.",
+    "Use zero-line crosses as broader momentum shifts.",
+    "Look for divergence between KST and price.",
+    "Use it on higher timeframes for a long-term momentum view."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It is smooth and slow; turns appear after price has moved."
+  ]
+}

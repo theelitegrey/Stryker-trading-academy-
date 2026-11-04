@@ -1,0 +1,22 @@
+{
+  "slug": "delta-pane",
+  "summary": "Shows delta bars or CVD candles from recorded trades in a lower pane, with strong bars highlighted and price-versus-CVD divergences marked.",
+  "overview": [
+    "Delta: pane has two styles in its own pane. V1 Delta bars draws buying minus selling per bar as a histogram around a dashed zero line, with strong bars highlighted. V2 CVD plus divergence draws cumulative delta as candles and marks divergences with a line on the CVD pane and a dashed line on the price chart."
+  ],
+  "how": [
+    "The data is the same per-trade order flow as Footprint and Delta (trades). Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.",
+    "In V1, a bar counts as strong when its delta is at least 2 times the average absolute delta. In V2, the CVD resets each session by default. A bearish divergence is a higher swing high in price with a lower CVD high between the two pivots; a bullish divergence is the mirror at lows. Up to four of the clearest recent divergences are drawn."
+  ],
+  "use": [
+    "Some traders watch for price making a new high while CVD does not.",
+    "Use strong delta bars to spot one-sided flow in a bar.",
+    "Some traders compare CVD candles with price candles through the session."
+  ],
+  "notes": [
+    "Needs per-trade data; other symbols show a note.",
+    "Divergences are found between swing pivots, so they appear a few bars after the swing.",
+    "For the Data feed L1 version, see Delta pane (L1)."
+  ],
+  "learn": "order-flow"
+}

@@ -1,0 +1,22 @@
+{
+  "slug": "money-flow-index",
+  "summary": "Money Flow Index: a volume-weighted RSI of typical price over 14 bars, with levels at 80 and 20.",
+  "overview": [
+    "The Money Flow Index (MFI) looks like RSI but includes volume. It runs from 0 to 100 in its own pane, with levels at 80 and 20 and a shaded zone between.",
+    "It is sometimes called volume-weighted RSI."
+  ],
+  "how": [
+    "Typical price = (high + low + close) / 3. Raw money flow = typical price x volume. Over 14 bars, add money flow on bars where typical price rose (positive) and fell (negative). MFI = 100 - 100 / (1 + positive / negative).",
+    "Levels can be changed."
+  ],
+  "use": [
+    "Some traders watch readings above 80 or below 20 as stretched.",
+    "Look for divergence between MFI and price.",
+    "Use crosses of 50 as changes in money flow direction.",
+    "Compare with RSI to see if volume agrees with price momentum."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful."
+  ]
+}

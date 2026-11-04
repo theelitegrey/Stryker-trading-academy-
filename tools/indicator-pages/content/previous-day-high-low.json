@@ -1,0 +1,20 @@
+{
+  "slug": "previous-day-high-low",
+  "summary": "Tracks each day's high and low and draws the previous day's high in green and low as step lines on the chart.",
+  "overview": [
+    "Previous day high/low is a short example Pine script. It draws the prior day's high and low as flat step lines on the price chart, so you can see yesterday's range while today trades."
+  ],
+  "how": [
+    "The script tracks the highest high and lowest low of the current day. When a new day starts, those values become the previous day's high and low, and the tracking starts again. The lines stay flat for the whole day and step to the new values at the next day."
+  ],
+  "use": [
+    "Some traders watch how price reacts at the previous day's high or low.",
+    "Use it to see whether today is trading inside or outside yesterday's range.",
+    "Some traders watch for a break and close beyond either level.",
+    "Use it as an example of how Pine scripts carry values from one day to the next."
+  ],
+  "notes": [
+    "The day boundary follows the chart's daily session.",
+    "There are no settings and no alert conditions."
+  ]
+}

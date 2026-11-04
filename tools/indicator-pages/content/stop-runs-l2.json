@@ -1,0 +1,21 @@
+{
+  "slug": "stop-runs-l2",
+  "summary": "Marks sweeps of a recent high or low that the order book confirms: liquidity on that side was pulled or consumed through several levels.",
+  "overview": [
+    "Stop Runs (L2) marks a bar that pokes past a recent swing high or low on a volume spike, but only when the order book shows that liquidity on that side was pulled or consumed through at least 3 levels.",
+    "Lows swept are drawn green and highs swept red. Sweeps the book did not confirm can be shown hollow."
+  ],
+  "how": [
+    "Swings use 5 bars on each side by default. A volume spike is 1.5 times the average volume. The book check compares resting size beyond the swing before and during the sweep."
+  ],
+  "use": [
+    "Use it to see where stops beyond a swing may have been taken.",
+    "Some traders watch what price does after a confirmed sweep.",
+    "Turn on hollow marks to compare confirmed and unconfirmed sweeps."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "A mark describes what happened at that bar; it is not a signal."
+  ],
+  "learn": "liquidity-sweeps"
+}

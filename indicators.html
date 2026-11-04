@@ -3,15 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="stryker-build" content="879">
-<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Indicators — TradeZoro</title>
-<meta name="description" content="Trading indicators used across the TradeZoro curriculum.">
-<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=879">
-<script src="assets/skeleton.js?v=879"></script>
-<script src="assets/sanitize.js?v=879"></script>
+<meta name="description" content="Every indicator in ZoroCharts, 162 in total: TradeZoro tools, order flow, moving averages, oscillators, volatility, volume, trend, levels and community scripts. What each one shows and how to read it.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Indicator Library: every ZoroCharts indicator explained">
+<meta property="og:description" content="Every indicator in ZoroCharts, 162 in total: TradeZoro tools, order flow, moving averages, oscillators, volatility, volume, trend, levels and community scripts. What each one shows and how to read it.">
+<meta property="og:url" content="https://tradezoro.com/indicators">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/indicators.png?v=879">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="ZoroCharts indicators: footprint, big trades, SMT divergence and Bollinger Bands on NQ charts">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Indicator Library: every ZoroCharts indicator explained">
+<meta name="twitter:description" content="Every indicator in ZoroCharts, 162 in total: TradeZoro tools, order flow, moving averages, oscillators, volatility, volume, trend, levels and community scripts. What each one shows and how to read it.">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/indicators.png?v=879">
+<meta name="twitter:image:alt" content="ZoroCharts indicators: footprint, big trades, SMT divergence and Bollinger Bands on NQ charts">
+<meta name="theme-color" content="#050506">
+<title>Indicators: every ZoroCharts indicator explained | TradeZoro</title>
+<link rel="canonical" href="https://tradezoro.com/indicators">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=879">
+<link rel="stylesheet" href="/assets/indicator-pages.css?v=879">
+<script src="/assets/skeleton.js?v=879"></script>
+<link rel="stylesheet" href="/assets/nav-features.css?v=879">
+<script src="/assets/sanitize.js?v=879"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -56,52 +74,898 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="assets/toast.js?v=879" defer></script>
-<script src="assets/version-check.js?v=879" defer></script>
-<script src="assets/cookie-notice.js?v=879" defer></script>
-<script src="assets/acquisition.js?v=879" defer></script>
-<script src="assets/focus-mode.js?v=879" defer></script>
+<script src="/assets/toast.js?v=879" defer></script>
+<script src="/assets/version-check.js?v=879" defer></script>
+<script src="/assets/cookie-notice.js?v=879" defer></script>
+<script src="/assets/acquisition.js?v=879" defer></script>
+<script src="/assets/focus-mode.js?v=879" defer></script>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=879">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=879">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=879">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=879">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=879">
-<script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
+<link rel="icon" type="image/x-icon" href="/assets/images/tradezoro-favicon-32-494.png?v=879">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=879">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/tradezoro-favicon-16-494.png?v=879">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=879">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/tradezoro-icon-192-494.png?v=879">
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
-<link rel="stylesheet" href="/assets/live-yt-banner.css?v=879">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CollectionPage",
+      "name": "ZoroCharts indicators",
+      "description": "Every indicator in ZoroCharts, 162 in total: TradeZoro tools, order flow, moving averages, oscillators, volatility, volume, trend, levels and community scripts. What each one shows and how to read it.",
+      "url": "https://tradezoro.com/indicators",
+      "publisher": {
+        "@type": "Organization",
+        "name": "TradeZoro",
+        "url": "https://tradezoro.com/"
+      },
+      "hasPart": [
+        {
+          "@type": "WebPage",
+          "name": "TradeZoro GEX Levels",
+          "url": "https://tradezoro.com/indicators/gex-levels"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TradeZoro GEX Heatmap",
+          "url": "https://tradezoro.com/indicators/gex-heatmap"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Off-exchange levels (FINRA data)",
+          "url": "https://tradezoro.com/indicators/off-exchange-levels"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Off-exchange Volume (FINRA data)",
+          "url": "https://tradezoro.com/indicators/off-exchange-volume"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Options Flow Marks",
+          "url": "https://tradezoro.com/indicators/options-flow-marks"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TradeZoro Earnings dates",
+          "url": "https://tradezoro.com/indicators/earnings-dates"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TradeZoro Economic events",
+          "url": "https://tradezoro.com/indicators/economic-events"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TradeZoro Expected Move",
+          "url": "https://tradezoro.com/indicators/expected-move"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TradeZoro News markers",
+          "url": "https://tradezoro.com/indicators/news-markers"
+        },
+        {
+          "@type": "WebPage",
+          "name": "ZoroTide (options money flow: calls vs puts)",
+          "url": "https://tradezoro.com/indicators/zorotide"
+        },
+        {
+          "@type": "WebPage",
+          "name": "SMT Divergence Pro [TradeZoro]",
+          "url": "https://tradezoro.com/indicators/smt-divergence-pro"
+        },
+        {
+          "@type": "WebPage",
+          "name": "IFVG Pro+ [TradeZoro]",
+          "url": "https://tradezoro.com/indicators/ifvg-pro-plus"
+        },
+        {
+          "@type": "WebPage",
+          "name": "HTF PO3 Lens [TradeZoro]",
+          "url": "https://tradezoro.com/indicators/htf-po3-lens"
+        },
+        {
+          "@type": "WebPage",
+          "name": "FVG Relay [TradeZoro]",
+          "url": "https://tradezoro.com/indicators/fvg-relay"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TZ Fractal Model [TradeZoro]",
+          "url": "https://tradezoro.com/indicators/tz-fractal-model"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Liquidity Master [TradeZoro]",
+          "url": "https://tradezoro.com/indicators/liquidity-master"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Session Sweep SMT + IFVG [TradeZoro]",
+          "url": "https://tradezoro.com/indicators/session-sweep-smt-plus-ifvg"
+        },
+        {
+          "@type": "WebPage",
+          "name": "EMA 9/21 cross",
+          "url": "https://tradezoro.com/indicators/ema-9-21-cross"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Exponential Moving Average",
+          "url": "https://tradezoro.com/indicators/exponential-moving-average"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Least Squares Moving Average",
+          "url": "https://tradezoro.com/indicators/least-squares-moving-average"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Moving Average",
+          "url": "https://tradezoro.com/indicators/moving-average"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Moving Average Envelope",
+          "url": "https://tradezoro.com/indicators/moving-average-envelope"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Simple Moving Average",
+          "url": "https://tradezoro.com/indicators/simple-moving-average"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Smoothed Moving Average",
+          "url": "https://tradezoro.com/indicators/smoothed-moving-average"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Variable Index Dynamic Average",
+          "url": "https://tradezoro.com/indicators/variable-index-dynamic-average"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Williams Alligator",
+          "url": "https://tradezoro.com/indicators/williams-alligator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Zero-Lag Exponential Moving Average",
+          "url": "https://tradezoro.com/indicators/zero-lag-exponential-moving-average"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Awesome Oscillator",
+          "url": "https://tradezoro.com/indicators/awesome-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Balance of Power",
+          "url": "https://tradezoro.com/indicators/balance-of-power"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Chande Momentum Oscillator",
+          "url": "https://tradezoro.com/indicators/chande-momentum-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Commodity Channel Index",
+          "url": "https://tradezoro.com/indicators/commodity-channel-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Connors RSI",
+          "url": "https://tradezoro.com/indicators/connors-rsi"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Coppock Curve",
+          "url": "https://tradezoro.com/indicators/coppock-curve"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Detrended Price Oscillator",
+          "url": "https://tradezoro.com/indicators/detrended-price-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Elder Ray",
+          "url": "https://tradezoro.com/indicators/elder-ray"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Fisher Transform",
+          "url": "https://tradezoro.com/indicators/fisher-transform"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Gator Oscillator",
+          "url": "https://tradezoro.com/indicators/gator-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Know Sure Thing",
+          "url": "https://tradezoro.com/indicators/know-sure-thing"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Linear Regression Slope",
+          "url": "https://tradezoro.com/indicators/linear-regression-slope"
+        },
+        {
+          "@type": "WebPage",
+          "name": "MACD",
+          "url": "https://tradezoro.com/indicators/macd"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Percentage Price Oscillator",
+          "url": "https://tradezoro.com/indicators/percentage-price-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Rate of Change",
+          "url": "https://tradezoro.com/indicators/rate-of-change"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Relative Strength Index",
+          "url": "https://tradezoro.com/indicators/relative-strength-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Relative Vigor Index",
+          "url": "https://tradezoro.com/indicators/relative-vigor-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Schaff Trend Cycle",
+          "url": "https://tradezoro.com/indicators/schaff-trend-cycle"
+        },
+        {
+          "@type": "WebPage",
+          "name": "SMI Ergodic Oscillator",
+          "url": "https://tradezoro.com/indicators/smi-ergodic-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Stochastic",
+          "url": "https://tradezoro.com/indicators/stochastic"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Stochastic RSI",
+          "url": "https://tradezoro.com/indicators/stochastic-rsi"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TradeZoro Market Stats session",
+          "url": "https://tradezoro.com/indicators/market-stats-session"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TRIX",
+          "url": "https://tradezoro.com/indicators/trix"
+        },
+        {
+          "@type": "WebPage",
+          "name": "True Strength Index",
+          "url": "https://tradezoro.com/indicators/true-strength-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Ultimate Oscillator",
+          "url": "https://tradezoro.com/indicators/ultimate-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Williams %R",
+          "url": "https://tradezoro.com/indicators/williams-percent-r"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Average True Range",
+          "url": "https://tradezoro.com/indicators/average-true-range"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Bollinger Bands",
+          "url": "https://tradezoro.com/indicators/bollinger-bands"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Bollinger Bands %B",
+          "url": "https://tradezoro.com/indicators/bollinger-bands-percent-b"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Bollinger Bands Width",
+          "url": "https://tradezoro.com/indicators/bollinger-bands-width"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Chaikin Volatility",
+          "url": "https://tradezoro.com/indicators/chaikin-volatility"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Chandelier Exit",
+          "url": "https://tradezoro.com/indicators/chandelier-exit"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Choppiness Index",
+          "url": "https://tradezoro.com/indicators/choppiness-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Donchian Channels",
+          "url": "https://tradezoro.com/indicators/donchian-channels"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Historical Volatility",
+          "url": "https://tradezoro.com/indicators/historical-volatility"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Keltner Channels",
+          "url": "https://tradezoro.com/indicators/keltner-channels"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Mass Index",
+          "url": "https://tradezoro.com/indicators/mass-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Relative Volatility Index",
+          "url": "https://tradezoro.com/indicators/relative-volatility-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Standard Deviation",
+          "url": "https://tradezoro.com/indicators/standard-deviation"
+        },
+        {
+          "@type": "WebPage",
+          "name": "TTM Squeeze",
+          "url": "https://tradezoro.com/indicators/ttm-squeeze"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Ulcer Index",
+          "url": "https://tradezoro.com/indicators/ulcer-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volume",
+          "url": "https://tradezoro.com/indicators/volume"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Visible Range Volume Profile",
+          "url": "https://tradezoro.com/indicators/visible-range-volume-profile"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Session Volume Profile",
+          "url": "https://tradezoro.com/indicators/session-volume-profile"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Previous Day POC / VAH / VAL",
+          "url": "https://tradezoro.com/indicators/previous-day-poc-vah-val"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Anchored VWAP (±1/2/3 sd bands)",
+          "url": "https://tradezoro.com/indicators/anchored-vwap"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volume Weighted Average Price",
+          "url": "https://tradezoro.com/indicators/volume-weighted-average-price"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Relative Volume",
+          "url": "https://tradezoro.com/indicators/relative-volume"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volume Heatmap",
+          "url": "https://tradezoro.com/indicators/volume-heatmap"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Auto Chart Patterns",
+          "url": "https://tradezoro.com/indicators/auto-chart-patterns"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Anchored VWAP: click a bar to anchor",
+          "url": "https://tradezoro.com/indicators/anchored-vwap-click"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Fixed Range Volume Profile (drag a range)",
+          "url": "https://tradezoro.com/indicators/fixed-range-volume-profile"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Accumulation / Distribution",
+          "url": "https://tradezoro.com/indicators/accumulation-distribution"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Chaikin Money Flow",
+          "url": "https://tradezoro.com/indicators/chaikin-money-flow"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Chaikin Oscillator",
+          "url": "https://tradezoro.com/indicators/chaikin-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Ease of Movement",
+          "url": "https://tradezoro.com/indicators/ease-of-movement"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Force Index",
+          "url": "https://tradezoro.com/indicators/force-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Intraday Intensity",
+          "url": "https://tradezoro.com/indicators/intraday-intensity"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Klinger Oscillator",
+          "url": "https://tradezoro.com/indicators/klinger-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Money Flow Index",
+          "url": "https://tradezoro.com/indicators/money-flow-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Negative Volume Index",
+          "url": "https://tradezoro.com/indicators/negative-volume-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "On Balance Volume",
+          "url": "https://tradezoro.com/indicators/on-balance-volume"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Percentage Volume Oscillator",
+          "url": "https://tradezoro.com/indicators/percentage-volume-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Positive Volume Index",
+          "url": "https://tradezoro.com/indicators/positive-volume-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Price Volume Trend",
+          "url": "https://tradezoro.com/indicators/price-volume-trend"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volume Flow Indicator",
+          "url": "https://tradezoro.com/indicators/volume-flow-indicator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volume Oscillator",
+          "url": "https://tradezoro.com/indicators/volume-oscillator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Session VWAP",
+          "url": "https://tradezoro.com/indicators/session-vwap"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Aroon",
+          "url": "https://tradezoro.com/indicators/aroon"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Average Directional Index",
+          "url": "https://tradezoro.com/indicators/average-directional-index"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Chande Kroll Stop",
+          "url": "https://tradezoro.com/indicators/chande-kroll-stop"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Parabolic SAR",
+          "url": "https://tradezoro.com/indicators/parabolic-sar"
+        },
+        {
+          "@type": "WebPage",
+          "name": "SuperTrend",
+          "url": "https://tradezoro.com/indicators/supertrend"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Vortex Indicator",
+          "url": "https://tradezoro.com/indicators/vortex-indicator"
+        },
+        {
+          "@type": "WebPage",
+          "name": "ZigZag",
+          "url": "https://tradezoro.com/indicators/zigzag"
+        },
+        {
+          "@type": "WebPage",
+          "name": "52-Week High/Low",
+          "url": "https://tradezoro.com/indicators/52-week-high-low"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Pivot Points Standard",
+          "url": "https://tradezoro.com/indicators/pivot-points-standard"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Previous day high/low",
+          "url": "https://tradezoro.com/indicators/previous-day-high-low"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Williams Fractal",
+          "url": "https://tradezoro.com/indicators/williams-fractal"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Footprint (bid x ask)",
+          "url": "https://tradezoro.com/indicators/footprint"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Delta (trades)",
+          "url": "https://tradezoro.com/indicators/delta-trades"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Cumulative Delta (trades)",
+          "url": "https://tradezoro.com/indicators/cumulative-delta-trades"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Delta",
+          "url": "https://tradezoro.com/indicators/delta-styles"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Delta: pane (bars / CVD + divergence)",
+          "url": "https://tradezoro.com/indicators/delta-pane"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Big Trades",
+          "url": "https://tradezoro.com/indicators/big-trades"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Absorption (levels until broken)",
+          "url": "https://tradezoro.com/indicators/absorption"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Imbalance Zones (stacked, until filled)",
+          "url": "https://tradezoro.com/indicators/imbalance-zones"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volume Profile (trades: session / swing + naked POC)",
+          "url": "https://tradezoro.com/indicators/volume-profile-trades"
+        },
+        {
+          "@type": "WebPage",
+          "name": "VWAP (trades, ±1/2 SD)",
+          "url": "https://tradezoro.com/indicators/vwap-trades"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Market Profile (TPO)",
+          "url": "https://tradezoro.com/indicators/market-profile"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Effort vs Result",
+          "url": "https://tradezoro.com/indicators/effort-vs-result"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Stop Runs / Sweeps (swing high / low + volume spike)",
+          "url": "https://tradezoro.com/indicators/stop-runs-sweeps"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Estimated CVD (from candles)",
+          "url": "https://tradezoro.com/indicators/estimated-cvd"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volume Bubble / Big Prints",
+          "url": "https://tradezoro.com/indicators/volume-bubble-big-prints"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Liquidity Trend Heatmap",
+          "url": "https://tradezoro.com/indicators/liquidity-trend-heatmap"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Crypto DOM Heatmap",
+          "url": "https://tradezoro.com/indicators/crypto-dom-heatmap"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Liquidity Map (order book heatmap)",
+          "url": "https://tradezoro.com/indicators/liquidity-map"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Futures DOM Heatmap (L2)",
+          "url": "https://tradezoro.com/indicators/futures-dom-heatmap-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Liquidity Walls (L2)",
+          "url": "https://tradezoro.com/indicators/liquidity-walls-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Book Imbalance (L2)",
+          "url": "https://tradezoro.com/indicators/book-imbalance-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Big Trades (L1)",
+          "url": "https://tradezoro.com/indicators/big-trades-l1"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Delta (L1)",
+          "url": "https://tradezoro.com/indicators/delta-l1"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Cumulative Delta (L1)",
+          "url": "https://tradezoro.com/indicators/cumulative-delta-l1"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Delta styles (L1)",
+          "url": "https://tradezoro.com/indicators/delta-styles-l1"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Delta pane (L1)",
+          "url": "https://tradezoro.com/indicators/delta-pane-l1"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Book Speed (L2)",
+          "url": "https://tradezoro.com/indicators/book-speed-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Liquidity Balance (L2)",
+          "url": "https://tradezoro.com/indicators/liquidity-balance-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Refill Detector (L2)",
+          "url": "https://tradezoro.com/indicators/refill-detector-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volatility Regime (L2)",
+          "url": "https://tradezoro.com/indicators/volatility-regime-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Large Resting Orders (L2)",
+          "url": "https://tradezoro.com/indicators/large-resting-orders-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Absorption & Iceberg Tracker (L1+L2)",
+          "url": "https://tradezoro.com/indicators/absorption-iceberg-tracker"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Wall Events (L2)",
+          "url": "https://tradezoro.com/indicators/wall-events-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Delta (L2)",
+          "url": "https://tradezoro.com/indicators/delta-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Cumulative Delta (L2)",
+          "url": "https://tradezoro.com/indicators/cumulative-delta-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Footprint (L2)",
+          "url": "https://tradezoro.com/indicators/footprint-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Big Trades (L2)",
+          "url": "https://tradezoro.com/indicators/big-trades-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Stop Runs (L2)",
+          "url": "https://tradezoro.com/indicators/stop-runs-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Volume Profile (L2)",
+          "url": "https://tradezoro.com/indicators/volume-profile-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Delta Ladder (L2)",
+          "url": "https://tradezoro.com/indicators/delta-ladder-l2"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Dynamic Liquidity HeatMap Profile [BigBeluga]",
+          "url": "https://tradezoro.com/indicators/dynamic-liquidity-heatmap-profile"
+        },
+        {
+          "@type": "WebPage",
+          "name": "2022 Model Pro+ | ICTKESIK",
+          "url": "https://tradezoro.com/indicators/2022-model-pro-plus-ictkesik"
+        },
+        {
+          "@type": "WebPage",
+          "name": "CISD Model+ | Triton Trades",
+          "url": "https://tradezoro.com/indicators/cisd-model-plus-triton-trades"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Forever Pro°",
+          "url": "https://tradezoro.com/indicators/forever-pro"
+        },
+        {
+          "@type": "WebPage",
+          "name": "ICT Pro+ | TimmyNQ [TakingProphets]",
+          "url": "https://tradezoro.com/indicators/ict-pro-plus-timmynq"
+        },
+        {
+          "@type": "WebPage",
+          "name": "iFVG Ultimate+ Deluxe | DodgysDD",
+          "url": "https://tradezoro.com/indicators/ifvg-ultimate-plus-deluxe-dodgysdd"
+        },
+        {
+          "@type": "WebPage",
+          "name": "IFVG° [Pro+]",
+          "url": "https://tradezoro.com/indicators/ifvg-degree-pro-plus"
+        },
+        {
+          "@type": "WebPage",
+          "name": "London Intraday Protraction° [Pro+]",
+          "url": "https://tradezoro.com/indicators/london-intraday-protraction-pro-plus"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Manipulation Model [FB]",
+          "url": "https://tradezoro.com/indicators/manipulation-model-fb"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Real-Time Big Trades Bubbles & Absorbtions & Deep Pressure",
+          "url": "https://tradezoro.com/indicators/real-time-big-trades-bubbles"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Smart Signals Assistant",
+          "url": "https://tradezoro.com/indicators/smart-signals-assistant"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Stoic Edge Compass",
+          "url": "https://tradezoro.com/indicators/stoic-edge-compass"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Trend Average (Zeiierman)",
+          "url": "https://tradezoro.com/indicators/trend-average"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Trinity ATR Levels - The Ultimate Milkman Edition",
+          "url": "https://tradezoro.com/indicators/trinity-atr-levels"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Unicorn Model",
+          "url": "https://tradezoro.com/indicators/unicorn-model"
+        },
+        {
+          "@type": "WebPage",
+          "name": "WCSMC + SP v3.0 [WinWorld]",
+          "url": "https://tradezoro.com/indicators/wcsmc-sp-v3"
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://tradezoro.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Indicators",
+          "item": "https://tradezoro.com/indicators"
+        }
+      ]
+    }
+  ]
+}
+</script>
+<script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 </head>
-<body data-page-access="indicators">
+<body data-page-key="indicators-hub" class="dual-shell">
 <a class="skip-link" href="#main">Skip to content</a>
 <nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
-  <a class="appnav-dk" data-nav="charts" href="charts"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v3M7 17v4M17 3v5M17 15v6"/><rect x="4.5" y="6" width="5" height="11" rx="1"/><rect x="14.5" y="8" width="5" height="7" rx="1"/></svg><span class="appnav-new" aria-hidden="true"></span></span><span class="appnav-dkl">ZoroCharts</span></a>
-  <a class="appnav-dk" data-nav="gex" href="gex"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M6 12V6M10 12V4M14 12v5M18 12v7"/></svg></span><span class="appnav-dkl">GEX+</span></a>
-  <a class="appnav-dk" data-nav="journal" href="trade-journal"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18M4 7h4M4 12h4M4 17h4M10 8h6M10 12h4"/></svg></span><span class="appnav-dkl">JournalX</span></a>
-  <a class="appnav-dk" data-nav="learn" href="academy"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg></span><span class="appnav-dkl">ZoroAcademy</span></a>
+  <a class="appnav-dk" data-nav="charts" href="/charts"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v3M7 17v4M17 3v5M17 15v6"/><rect x="4.5" y="6" width="5" height="11" rx="1"/><rect x="14.5" y="8" width="5" height="7" rx="1"/></svg><span class="appnav-new" aria-hidden="true"></span></span><span class="appnav-dkl">ZoroCharts</span></a>
+  <a class="appnav-dk" data-nav="gex" href="/gex"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M6 12V6M10 12V4M14 12v5M18 12v7"/></svg></span><span class="appnav-dkl">GEX+</span></a>
+  <a class="appnav-dk" data-nav="journal" href="/trade-journal"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18M4 7h4M4 12h4M4 17h4M10 8h6M10 12h4"/></svg></span><span class="appnav-dkl">JournalX</span></a>
+  <a class="appnav-dk" data-nav="learn" href="/academy"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg></span><span class="appnav-dkl">ZoroAcademy</span></a>
   <button type="button" class="appnav-dk appnav-more" data-nav="more" id="appnav-more" aria-haspopup="dialog" aria-expanded="false" aria-controls="appnav-sheet"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="appnav-dkl">More</span></button>
 </nav>
-<script src="assets/app-nav.js?v=879"></script>
+<script src="/assets/app-nav.js?v=879"></script>
 
-<div class="access-gate-overlay" id="access-gate-overlay">
-  <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
-</div>
-
-<div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
-  <div class="paywall-card">
-    <div class="paywall-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+<nav class="nav dual-pub" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/academy">ZoroAcademy</a>
+      <a href="/features/community">Community</a>
+      <a href="/help">Help</a>
     </div>
-    <h2 id="paywall-heading">Sign in to browse trading indicators</h2>
-    <p id="paywall-body">Create a free account or log in to see the full list.</p>
-    <div class="paywall-actions" id="paywall-actions">
-      <a href="login" class="btn btn-primary">Log in</a>
-      <a href="signup" class="btn btn-ghost">Create free account</a>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
     </div>
   </div>
-</div>
-
-<div class="mobile-topnav">
-  <div class="topnav-left"><button class="icon-btn menu-toggle-btn" id="dash-menu-toggle" aria-label="Open menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><a href="dashboard-user" class="brand"><picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture></a></div>
+</nav>
+<div class="mobile-topnav dual-app">
+  <div class="topnav-left"><button class="icon-btn menu-toggle-btn" id="dash-menu-toggle" aria-label="Open menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><a href="/dashboard-user" class="brand"><picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" data-fp-nopad src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture></a></div>
   <div class="topnav-right">
     <div class="notif-bell-wrap">
       <button class="icon-btn" id="notif-bell-btn" aria-label="Notifications" title="Notifications">
@@ -118,19 +982,18 @@
     </button>
   </div>
 </div>
-<div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
+<div class="sidebar-backdrop dual-app" id="dash-sidebar-backdrop"></div>
+<div class="dash-shell dual-wrap">
+<aside class="sidebar dual-app">
+    <a href="/dashboard-user" class="brand">
+      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" data-fp-nopad src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
 
-<div class="dash-shell gate-pending" id="indicators-content-wrap">
-
-  <aside class="sidebar">
-    <a href="dashboard-user" class="brand">
-      <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
     </a>
 
     <nav class="app-menu" id="app-menu" aria-label="App sections"></nav>
 
     <div class="sidebar-foot">
-      <a href="dashboard-user" class="user-chip">
+      <a href="/dashboard-user" class="user-chip">
         <div class="chip-avatar"></div>
         <div>
           <div class="chip-name">Trader</div>
@@ -140,102 +1003,651 @@
       <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
     </div>
   </aside>
-  
-
-  <main class="dash-main" id="main" tabindex="-1">
-<div class="lyt-wrap"><section class="lyt lyt-ind" id="ind-charts-banner" aria-labelledby="lyt-ind-h">
-  <div class="lyt-glow" aria-hidden="true"></div><div class="lyt-grid" aria-hidden="true"></div>
-  <div class="lyt-in">
-    <span class="lyt-pill"><i></i>New</span>
-    <div class="lyt-play" aria-hidden="true"><svg viewBox="0 0 52 37" fill="none" stroke="#4fe3ac" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 31 14 20l8 6 12-16 14 7"/><path d="M9 6v8M9 22v6M26 14v4M40 6v6" stroke="#00adb5"/></svg></div>
-    <h2 id="lyt-ind-h">All our indicators are now on <em>ZoroCharts</em></h2>
-    <p class="lyt-sub">Use every TradeZoro indicator right inside our charts: no TradingView needed. You can still use them on TradingView too.</p>
-    <div class="lyt-cta">
-      <a class="lyt-btn" href="/charts">Open ZoroCharts</a>
-      <a class="lyt-link" href="/charts">See the list</a>
-    </div>
-    <p class="lyt-edu">Indicators mark concepts on the chart; they are not trade signals. Education only. Not financial advice.</p>
-  </div>
-</section></div>
-    <div class="dash-topbar">
-      <div>
-        <p class="zx-crumb"><a class="zx-eyebrow" href="academy">ZoroAcademy</a> <span class="zx-eyebrow-sep" aria-hidden="true">›</span> <span class="zx-eyebrow">Indicator guides</span></p>
-        <h1>Trading indicators</h1>
-        <p>Indicators used across the curriculum, with setup and usage notes.</p>
-      </div>
-    </div>
-
-    <div class="panel" id="tv-access-panel">
-      <div class="panel-head">
-        <h2 style="font-size:15px;">TradingView indicator access</h2>
-        <span class="status-tag" id="tv-access-status" style="display:none;"></span>
-      </div>
-      <div class="auth-error" id="tv-access-error"></div>
-      <div class="auth-error" id="tv-access-success" style="display:none; background:rgba(47,191,143,0.1); border-color:rgba(47,191,143,0.3); color:#7fe0c2;"></div>
-
-      <div id="tv-access-request-section">
-        <p style="font-size:13px; color:var(--ink-2); margin-bottom:16px;">If your plan includes access to private TradingView indicators, enter your exact TradingView username here so we can grant it. This is done by hand on our end, so it may take a little time after you submit it.</p>
-        <div class="field">
-          <label for="tv-access-username">TradingView username</label>
-          <input type="text" id="tv-access-username" placeholder="Your exact TradingView username" autocapitalize="none" autocorrect="off">
-        </div>
-        <button class="btn btn-primary btn-sm" id="tv-access-save">Save</button>
-      </div>
-
-      <div id="tv-access-granted-section" style="display:none;">
-        <div class="field">
-          <label for="tv-access-approved-username">Approved TradingView username</label>
-          <input type="text" id="tv-access-approved-username" readonly style="opacity:0.65; cursor:not-allowed;">
-        </div>
-        <p style="font-size:12.5px; color:var(--ink-3); margin:16px 0 10px;">Switching to a different TradingView account? Enter it below — it'll need to be approved again.</p>
-        <div class="field">
-          <label for="tv-access-update-username">New TradingView username</label>
-          <input type="text" id="tv-access-update-username" placeholder="New TradingView username" autocapitalize="none" autocorrect="off">
-        </div>
-        <button class="btn btn-ghost btn-sm" id="tv-access-update-save">Request update</button>
-      </div>
-    </div>
-
-    <div id="indicators-showcase"></div>
-
-    <div id="indicators-render-target"></div>
-  </main>
+<main id="main" tabindex="-1" class="dash-main">
+<div class="ixh-wrap">
+<nav class="ixp-crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Indicators</span></nav>
+<header class="ixh-head">
+<h1>Indicators</h1>
+<p class="ixh-dek">Every indicator in ZoroCharts, with what it shows, how it works and its settings. Open one, then add it to a chart in one click.</p>
+</header>
+<div class="ixh-tools">
+<label class="ixh-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span class="sr-only">Search indicators</span><input type="search" id="ixh-q" placeholder="Search 162 indicators" autocomplete="off" spellcheck="false"></label>
+<div class="ixh-chips scroll-x" role="group" aria-label="Filter by group">
+<button type="button" class="ixh-chipb" data-g="" aria-pressed="true">All <span>162</span></button>
+<button type="button" class="ixh-chipb" data-g="tradezoro" aria-pressed="false">TradeZoro <span>17</span></button>
+<button type="button" class="ixh-chipb" data-g="order-flow" aria-pressed="false">Order flow <span>40</span></button>
+<button type="button" class="ixh-chipb" data-g="moving-averages" aria-pressed="false">Moving averages <span>10</span></button>
+<button type="button" class="ixh-chipb" data-g="oscillators" aria-pressed="false">Oscillators <span>26</span></button>
+<button type="button" class="ixh-chipb" data-g="volatility" aria-pressed="false">Volatility <span>15</span></button>
+<button type="button" class="ixh-chipb" data-g="volume" aria-pressed="false">Volume <span>27</span></button>
+<button type="button" class="ixh-chipb" data-g="trend" aria-pressed="false">Trend <span>7</span></button>
+<button type="button" class="ixh-chipb" data-g="levels" aria-pressed="false">Levels <span>4</span></button>
+<button type="button" class="ixh-chipb" data-g="community" aria-pressed="false">Community <span>16</span></button>
 </div>
+</div>
+<p class="ixh-empty" id="ixh-empty" hidden>No indicator matches. Try another word.</p>
+<section class="ixh-sec" id="tradezoro" data-sec="tradezoro" aria-labelledby="h-tradezoro">
+<h2 id="h-tradezoro">TradeZoro</h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="tradezoro" data-q="tradezoro gex levels tradezoro tradezoro tradezoro gex levels">
+<a href="/indicators/gex-levels"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/gex-levels-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TradeZoro GEX Levels</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="tradezoro gex heatmap tradezoro tradezoro tradezoro gex heatmap">
+<a href="/indicators/gex-heatmap"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/gex-heatmap-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TradeZoro GEX Heatmap</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="off-exchange levels (finra data) tradezoro tradezoro off-exchange levels (finra data)">
+<a href="/indicators/off-exchange-levels"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/off-exchange-levels-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Off-exchange levels (FINRA data)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="off-exchange volume (finra data) tradezoro tradezoro off-exchange volume (finra data)">
+<a href="/indicators/off-exchange-volume"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/off-exchange-volume-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Off-exchange Volume (FINRA data)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="options flow marks tradezoro tradezoro options flow marks">
+<a href="/indicators/options-flow-marks"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/options-flow-marks-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Options Flow Marks</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="tradezoro earnings dates tradezoro tradezoro tradezoro earnings dates">
+<a href="/indicators/earnings-dates"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/earnings-dates-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TradeZoro Earnings dates</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="tradezoro economic events tradezoro tradezoro tradezoro economic events">
+<a href="/indicators/economic-events"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/economic-events-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TradeZoro Economic events</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="tradezoro expected move tradezoro tradezoro tradezoro expected move">
+<a href="/indicators/expected-move"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/expected-move-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TradeZoro Expected Move</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="tradezoro news markers tradezoro tradezoro tradezoro news markers">
+<a href="/indicators/news-markers"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/news-markers-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TradeZoro News markers</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="zorotide (options money flow: calls vs puts) tradezoro tradezoro zorotide (options money flow: calls vs puts)">
+<a href="/indicators/zorotide"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/zorotide-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">ZoroTide (options money flow: calls vs puts)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="smt divergence pro [tradezoro] tradezoro tradezoro smt divergence pro [tradezoro]">
+<a href="/indicators/smt-divergence-pro"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/smt-divergence-pro-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">SMT Divergence Pro [TradeZoro]</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="ifvg pro+ [tradezoro] tradezoro tradezoro ifvg pro+ [tradezoro]">
+<a href="/indicators/ifvg-pro-plus"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ifvg-pro-plus-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">IFVG Pro+ [TradeZoro]</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="htf po3 lens [tradezoro] tradezoro tradezoro htf po3 lens [tradezoro]">
+<a href="/indicators/htf-po3-lens"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/htf-po3-lens-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">HTF PO3 Lens [TradeZoro]</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="fvg relay [tradezoro] tradezoro tradezoro fvg relay [tradezoro]">
+<a href="/indicators/fvg-relay"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/fvg-relay-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">FVG Relay [TradeZoro]</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="tz fractal model [tradezoro] tradezoro tradezoro tz fractal model [tradezoro]">
+<a href="/indicators/tz-fractal-model"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/tz-fractal-model-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TZ Fractal Model [TradeZoro]</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="liquidity master [tradezoro] tradezoro tradezoro liquidity master [tradezoro]">
+<a href="/indicators/liquidity-master"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/liquidity-master-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Liquidity Master [TradeZoro]</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="tradezoro" data-q="session sweep smt + ifvg [tradezoro] tradezoro tradezoro session sweep smt + ifvg [tradezoro]">
+<a href="/indicators/session-sweep-smt-plus-ifvg"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/session-sweep-smt-plus-ifvg-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Session Sweep SMT + IFVG [TradeZoro]</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec" id="order-flow" data-sec="order-flow" aria-labelledby="h-order-flow">
+<h2 id="h-order-flow">Order flow</h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="order-flow" data-q="footprint (bid x ask) tradezoro order flow footprint (bid x ask)">
+<a href="/indicators/footprint"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/footprint-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Footprint (bid x ask)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="delta (trades) tradezoro order flow delta (trades)">
+<a href="/indicators/delta-trades"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/delta-trades-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Delta (trades)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="cumulative delta (trades) tradezoro order flow cumulative delta (trades)">
+<a href="/indicators/cumulative-delta-trades"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/cumulative-delta-trades-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Cumulative Delta (trades)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="delta tradezoro order flow delta">
+<a href="/indicators/delta-styles"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/delta-styles-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Delta</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="delta: pane (bars / cvd + divergence) tradezoro order flow delta: pane (bars / cvd + divergence)">
+<a href="/indicators/delta-pane"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/delta-pane-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Delta: pane (bars / CVD + divergence)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="big trades tradezoro order flow big trades">
+<a href="/indicators/big-trades"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/big-trades-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Big Trades</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="absorption (levels until broken) tradezoro order flow absorption (levels until broken)">
+<a href="/indicators/absorption"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/absorption-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Absorption (levels until broken)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="imbalance zones (stacked, until filled) tradezoro order flow imbalance zones (stacked, until filled)">
+<a href="/indicators/imbalance-zones"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/imbalance-zones-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Imbalance Zones (stacked, until filled)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="volume profile (trades: session / swing + naked poc) tradezoro order flow volume profile (trades: session / swing + naked poc)">
+<a href="/indicators/volume-profile-trades"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volume-profile-trades-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volume Profile (trades: session / swing + naked POC)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="vwap (trades, ±1/2 sd) tradezoro order flow vwap (trades, ±1/2 sd)">
+<a href="/indicators/vwap-trades"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/vwap-trades-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">VWAP (trades, ±1/2 SD)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="market profile (tpo) tradezoro order flow market profile (tpo)">
+<a href="/indicators/market-profile"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/market-profile-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Market Profile (TPO)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="effort vs result tradezoro order flow effort vs result">
+<a href="/indicators/effort-vs-result"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/effort-vs-result-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Effort vs Result</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="stop runs / sweeps (swing high / low + volume spike) tradezoro order flow stop runs / sweeps (swing high / low + volume spike)">
+<a href="/indicators/stop-runs-sweeps"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/stop-runs-sweeps-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Stop Runs / Sweeps (swing high / low + volume spike)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="estimated cvd (from candles) tradezoro order flow estimated cvd (from candles)">
+<a href="/indicators/estimated-cvd"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/estimated-cvd-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Estimated CVD (from candles)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="volume bubble / big prints tradezoro order flow volume bubble / big prints">
+<a href="/indicators/volume-bubble-big-prints"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volume-bubble-big-prints-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volume Bubble / Big Prints</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="liquidity trend heatmap tradezoro order flow liquidity trend heatmap">
+<a href="/indicators/liquidity-trend-heatmap"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/liquidity-trend-heatmap-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Liquidity Trend Heatmap</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="crypto dom heatmap tradezoro order flow crypto dom heatmap">
+<a href="/indicators/crypto-dom-heatmap"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/crypto-dom-heatmap-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Crypto DOM Heatmap</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="liquidity map (order book heatmap) tradezoro order flow liquidity map (order book heatmap)">
+<a href="/indicators/liquidity-map"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/liquidity-map-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Liquidity Map (order book heatmap)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="futures dom heatmap (l2) tradezoro order flow futures dom heatmap (l2)">
+<a href="/indicators/futures-dom-heatmap-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/futures-dom-heatmap-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Futures DOM Heatmap (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="liquidity walls (l2) tradezoro order flow liquidity walls (l2)">
+<a href="/indicators/liquidity-walls-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/liquidity-walls-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Liquidity Walls (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="book imbalance (l2) tradezoro order flow book imbalance (l2)">
+<a href="/indicators/book-imbalance-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/book-imbalance-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Book Imbalance (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="big trades (l1) tradezoro order flow big trades (l1)">
+<a href="/indicators/big-trades-l1"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/big-trades-l1-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Big Trades (L1)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="delta (l1) tradezoro order flow delta (l1)">
+<a href="/indicators/delta-l1"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/delta-l1-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Delta (L1)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="cumulative delta (l1) tradezoro order flow cumulative delta (l1)">
+<a href="/indicators/cumulative-delta-l1"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/cumulative-delta-l1-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Cumulative Delta (L1)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="delta styles (l1) tradezoro order flow delta (l1)">
+<a href="/indicators/delta-styles-l1"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/delta-styles-l1-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Delta styles (L1)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="delta pane (l1) tradezoro order flow delta pane (l1)">
+<a href="/indicators/delta-pane-l1"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/delta-pane-l1-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Delta pane (L1)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="book speed (l2) tradezoro order flow book speed (l2)">
+<a href="/indicators/book-speed-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/book-speed-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Book Speed (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="liquidity balance (l2) tradezoro order flow liquidity balance (l2)">
+<a href="/indicators/liquidity-balance-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/liquidity-balance-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Liquidity Balance (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="refill detector (l2) tradezoro order flow refill detector (l2)">
+<a href="/indicators/refill-detector-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/refill-detector-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Refill Detector (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="volatility regime (l2) tradezoro order flow volatility regime (l2)">
+<a href="/indicators/volatility-regime-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volatility-regime-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volatility Regime (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="large resting orders (l2) tradezoro order flow large resting orders (l2)">
+<a href="/indicators/large-resting-orders-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/large-resting-orders-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Large Resting Orders (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="absorption &amp; iceberg tracker (l1+l2) tradezoro order flow absorption &amp; iceberg tracker (l1+l2)">
+<a href="/indicators/absorption-iceberg-tracker"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/absorption-iceberg-tracker-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Absorption &amp; Iceberg Tracker (L1+L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="wall events (l2) tradezoro order flow wall events (l2)">
+<a href="/indicators/wall-events-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/wall-events-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Wall Events (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="delta (l2) tradezoro order flow delta (l2)">
+<a href="/indicators/delta-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/delta-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Delta (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="cumulative delta (l2) tradezoro order flow cumulative delta (l2)">
+<a href="/indicators/cumulative-delta-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/cumulative-delta-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Cumulative Delta (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="footprint (l2) tradezoro order flow footprint (l2)">
+<a href="/indicators/footprint-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/footprint-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Footprint (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="big trades (l2) tradezoro order flow big trades (l2)">
+<a href="/indicators/big-trades-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/big-trades-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Big Trades (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="stop runs (l2) tradezoro order flow stop runs (l2)">
+<a href="/indicators/stop-runs-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/stop-runs-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Stop Runs (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="volume profile (l2) tradezoro order flow volume profile (l2)">
+<a href="/indicators/volume-profile-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volume-profile-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volume Profile (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+<li class="ixh-card" data-group="order-flow" data-q="delta ladder (l2) tradezoro order flow delta ladder (l2)">
+<a href="/indicators/delta-ladder-l2"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/delta-ladder-l2-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Delta Ladder (L2)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-pro">Pro</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec" id="moving-averages" data-sec="moving-averages" aria-labelledby="h-moving-averages">
+<h2 id="h-moving-averages">Moving averages</h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="moving-averages" data-q="ema 9/21 cross tradezoro moving averages ema 9/21 cross">
+<a href="/indicators/ema-9-21-cross"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ema-9-21-cross-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">EMA 9/21 cross</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="exponential moving average tradezoro moving averages exponential moving average">
+<a href="/indicators/exponential-moving-average"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/exponential-moving-average-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Exponential Moving Average</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="least squares moving average tradezoro moving averages least squares moving average">
+<a href="/indicators/least-squares-moving-average"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/least-squares-moving-average-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Least Squares Moving Average</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="moving average tradezoro moving averages moving average">
+<a href="/indicators/moving-average"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/moving-average-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Moving Average</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="moving average envelope tradezoro moving averages moving average envelope">
+<a href="/indicators/moving-average-envelope"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/moving-average-envelope-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Moving Average Envelope</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="simple moving average tradezoro moving averages simple moving average">
+<a href="/indicators/simple-moving-average"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/simple-moving-average-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Simple Moving Average</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="smoothed moving average tradezoro moving averages smoothed moving average">
+<a href="/indicators/smoothed-moving-average"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/smoothed-moving-average-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Smoothed Moving Average</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="variable index dynamic average tradezoro moving averages variable index dynamic average">
+<a href="/indicators/variable-index-dynamic-average"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/variable-index-dynamic-average-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Variable Index Dynamic Average</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="williams alligator tradezoro moving averages williams alligator">
+<a href="/indicators/williams-alligator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/williams-alligator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Williams Alligator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="moving-averages" data-q="zero-lag exponential moving average tradezoro moving averages zero-lag exponential moving average">
+<a href="/indicators/zero-lag-exponential-moving-average"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/zero-lag-exponential-moving-average-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Zero-Lag Exponential Moving Average</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec" id="oscillators" data-sec="oscillators" aria-labelledby="h-oscillators">
+<h2 id="h-oscillators">Oscillators</h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="oscillators" data-q="awesome oscillator tradezoro oscillators awesome oscillator">
+<a href="/indicators/awesome-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/awesome-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Awesome Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="balance of power tradezoro oscillators balance of power">
+<a href="/indicators/balance-of-power"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/balance-of-power-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Balance of Power</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="chande momentum oscillator tradezoro oscillators chande momentum oscillator">
+<a href="/indicators/chande-momentum-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/chande-momentum-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Chande Momentum Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="commodity channel index tradezoro oscillators commodity channel index">
+<a href="/indicators/commodity-channel-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/commodity-channel-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Commodity Channel Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="connors rsi tradezoro oscillators connors rsi">
+<a href="/indicators/connors-rsi"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/connors-rsi-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Connors RSI</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="coppock curve tradezoro oscillators coppock curve">
+<a href="/indicators/coppock-curve"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/coppock-curve-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Coppock Curve</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="detrended price oscillator tradezoro oscillators detrended price oscillator">
+<a href="/indicators/detrended-price-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/detrended-price-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Detrended Price Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="elder ray tradezoro oscillators elder ray">
+<a href="/indicators/elder-ray"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/elder-ray-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Elder Ray</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="fisher transform tradezoro oscillators fisher transform">
+<a href="/indicators/fisher-transform"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/fisher-transform-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Fisher Transform</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="gator oscillator tradezoro oscillators gator oscillator">
+<a href="/indicators/gator-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/gator-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Gator Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="know sure thing tradezoro oscillators know sure thing">
+<a href="/indicators/know-sure-thing"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/know-sure-thing-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Know Sure Thing</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="linear regression slope tradezoro oscillators linear regression slope">
+<a href="/indicators/linear-regression-slope"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/linear-regression-slope-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Linear Regression Slope</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="macd tradezoro oscillators macd">
+<a href="/indicators/macd"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/macd-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">MACD</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="percentage price oscillator tradezoro oscillators percentage price oscillator">
+<a href="/indicators/percentage-price-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/percentage-price-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Percentage Price Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="rate of change tradezoro oscillators rate of change">
+<a href="/indicators/rate-of-change"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/rate-of-change-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Rate of Change</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="relative strength index tradezoro oscillators relative strength index">
+<a href="/indicators/relative-strength-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/relative-strength-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Relative Strength Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="relative vigor index tradezoro oscillators relative vigor index">
+<a href="/indicators/relative-vigor-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/relative-vigor-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Relative Vigor Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="schaff trend cycle tradezoro oscillators schaff trend cycle">
+<a href="/indicators/schaff-trend-cycle"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/schaff-trend-cycle-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Schaff Trend Cycle</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="smi ergodic oscillator tradezoro oscillators smi ergodic oscillator">
+<a href="/indicators/smi-ergodic-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/smi-ergodic-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">SMI Ergodic Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="stochastic tradezoro oscillators stochastic">
+<a href="/indicators/stochastic"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/stochastic-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Stochastic</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="stochastic rsi tradezoro oscillators stochastic rsi">
+<a href="/indicators/stochastic-rsi"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/stochastic-rsi-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Stochastic RSI</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="tradezoro market stats session tradezoro oscillators tradezoro market stats session">
+<a href="/indicators/market-stats-session"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/market-stats-session-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TradeZoro Market Stats session</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="trix tradezoro oscillators trix">
+<a href="/indicators/trix"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/trix-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TRIX</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="true strength index tradezoro oscillators true strength index">
+<a href="/indicators/true-strength-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/true-strength-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">True Strength Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="ultimate oscillator tradezoro oscillators ultimate oscillator">
+<a href="/indicators/ultimate-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ultimate-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Ultimate Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="oscillators" data-q="williams %r tradezoro oscillators williams %r">
+<a href="/indicators/williams-percent-r"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/williams-percent-r-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Williams %R</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec" id="volatility" data-sec="volatility" aria-labelledby="h-volatility">
+<h2 id="h-volatility">Volatility</h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="volatility" data-q="average true range tradezoro volatility average true range">
+<a href="/indicators/average-true-range"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/average-true-range-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Average True Range</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="bollinger bands tradezoro volatility bollinger bands">
+<a href="/indicators/bollinger-bands"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/bollinger-bands-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Bollinger Bands</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="bollinger bands %b tradezoro volatility bollinger bands %b">
+<a href="/indicators/bollinger-bands-percent-b"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/bollinger-bands-percent-b-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Bollinger Bands %B</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="bollinger bands width tradezoro volatility bollinger bands width">
+<a href="/indicators/bollinger-bands-width"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/bollinger-bands-width-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Bollinger Bands Width</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="chaikin volatility tradezoro volatility chaikin volatility">
+<a href="/indicators/chaikin-volatility"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/chaikin-volatility-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Chaikin Volatility</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="chandelier exit tradezoro volatility chandelier exit">
+<a href="/indicators/chandelier-exit"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/chandelier-exit-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Chandelier Exit</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="choppiness index tradezoro volatility choppiness index">
+<a href="/indicators/choppiness-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/choppiness-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Choppiness Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="donchian channels tradezoro volatility donchian channels">
+<a href="/indicators/donchian-channels"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/donchian-channels-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Donchian Channels</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="historical volatility tradezoro volatility historical volatility">
+<a href="/indicators/historical-volatility"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/historical-volatility-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Historical Volatility</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="keltner channels tradezoro volatility keltner channels">
+<a href="/indicators/keltner-channels"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/keltner-channels-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Keltner Channels</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="mass index tradezoro volatility mass index">
+<a href="/indicators/mass-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/mass-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Mass Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="relative volatility index tradezoro volatility relative volatility index">
+<a href="/indicators/relative-volatility-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/relative-volatility-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Relative Volatility Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="standard deviation tradezoro volatility standard deviation">
+<a href="/indicators/standard-deviation"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/standard-deviation-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Standard Deviation</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="ttm squeeze tradezoro volatility ttm squeeze">
+<a href="/indicators/ttm-squeeze"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ttm-squeeze-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">TTM Squeeze</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volatility" data-q="ulcer index tradezoro volatility ulcer index">
+<a href="/indicators/ulcer-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ulcer-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Ulcer Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec" id="volume" data-sec="volume" aria-labelledby="h-volume">
+<h2 id="h-volume">Volume</h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="volume" data-q="volume tradezoro volume volume">
+<a href="/indicators/volume"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volume-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volume</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="visible range volume profile tradezoro volume visible range volume profile">
+<a href="/indicators/visible-range-volume-profile"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/visible-range-volume-profile-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Visible Range Volume Profile</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="session volume profile tradezoro volume session volume profile">
+<a href="/indicators/session-volume-profile"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/session-volume-profile-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Session Volume Profile</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="previous day poc / vah / val tradezoro volume previous day poc / vah / val">
+<a href="/indicators/previous-day-poc-vah-val"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/previous-day-poc-vah-val-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Previous Day POC / VAH / VAL</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="anchored vwap (±1/2/3 sd bands) tradezoro volume anchored vwap (±1/2/3 sd bands)">
+<a href="/indicators/anchored-vwap"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/anchored-vwap-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Anchored VWAP (±1/2/3 sd bands)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="volume weighted average price tradezoro volume volume weighted average price">
+<a href="/indicators/volume-weighted-average-price"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volume-weighted-average-price-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volume Weighted Average Price</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="relative volume tradezoro volume relative volume">
+<a href="/indicators/relative-volume"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/relative-volume-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Relative Volume</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="volume heatmap tradezoro volume volume heatmap">
+<a href="/indicators/volume-heatmap"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volume-heatmap-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volume Heatmap</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="auto chart patterns tradezoro volume auto chart patterns">
+<a href="/indicators/auto-chart-patterns"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/auto-chart-patterns-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Auto Chart Patterns</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="anchored vwap: click a bar to anchor tradezoro volume anchored vwap: click a bar to anchor">
+<a href="/indicators/anchored-vwap-click"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/anchored-vwap-click-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Anchored VWAP: click a bar to anchor</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="fixed range volume profile (drag a range) tradezoro volume fixed range volume profile (drag a range)">
+<a href="/indicators/fixed-range-volume-profile"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/fixed-range-volume-profile-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Fixed Range Volume Profile (drag a range)</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="accumulation / distribution tradezoro volume accumulation / distribution">
+<a href="/indicators/accumulation-distribution"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/accumulation-distribution-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Accumulation / Distribution</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="chaikin money flow tradezoro volume chaikin money flow">
+<a href="/indicators/chaikin-money-flow"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/chaikin-money-flow-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Chaikin Money Flow</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="chaikin oscillator tradezoro volume chaikin oscillator">
+<a href="/indicators/chaikin-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/chaikin-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Chaikin Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="ease of movement tradezoro volume ease of movement">
+<a href="/indicators/ease-of-movement"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ease-of-movement-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Ease of Movement</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="force index tradezoro volume force index">
+<a href="/indicators/force-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/force-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Force Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="intraday intensity tradezoro volume intraday intensity">
+<a href="/indicators/intraday-intensity"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/intraday-intensity-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Intraday Intensity</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="klinger oscillator tradezoro volume klinger oscillator">
+<a href="/indicators/klinger-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/klinger-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Klinger Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="money flow index tradezoro volume money flow index">
+<a href="/indicators/money-flow-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/money-flow-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Money Flow Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="negative volume index tradezoro volume negative volume index">
+<a href="/indicators/negative-volume-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/negative-volume-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Negative Volume Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="on balance volume tradezoro volume on balance volume">
+<a href="/indicators/on-balance-volume"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/on-balance-volume-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">On Balance Volume</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="percentage volume oscillator tradezoro volume percentage volume oscillator">
+<a href="/indicators/percentage-volume-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/percentage-volume-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Percentage Volume Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="positive volume index tradezoro volume positive volume index">
+<a href="/indicators/positive-volume-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/positive-volume-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Positive Volume Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="price volume trend tradezoro volume price volume trend">
+<a href="/indicators/price-volume-trend"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/price-volume-trend-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Price Volume Trend</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="volume flow indicator tradezoro volume volume flow indicator">
+<a href="/indicators/volume-flow-indicator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volume-flow-indicator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volume Flow Indicator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="volume oscillator tradezoro volume volume oscillator">
+<a href="/indicators/volume-oscillator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/volume-oscillator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Volume Oscillator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="volume" data-q="session vwap tradezoro volume session vwap">
+<a href="/indicators/session-vwap"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/session-vwap-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Session VWAP</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec" id="trend" data-sec="trend" aria-labelledby="h-trend">
+<h2 id="h-trend">Trend</h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="trend" data-q="aroon tradezoro trend aroon">
+<a href="/indicators/aroon"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/aroon-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Aroon</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="trend" data-q="average directional index tradezoro trend average directional index">
+<a href="/indicators/average-directional-index"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/average-directional-index-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Average Directional Index</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="trend" data-q="chande kroll stop tradezoro trend chande kroll stop">
+<a href="/indicators/chande-kroll-stop"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/chande-kroll-stop-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Chande Kroll Stop</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="trend" data-q="parabolic sar tradezoro trend parabolic sar">
+<a href="/indicators/parabolic-sar"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/parabolic-sar-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Parabolic SAR</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="trend" data-q="supertrend tradezoro trend supertrend">
+<a href="/indicators/supertrend"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/supertrend-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">SuperTrend</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="trend" data-q="vortex indicator tradezoro trend vortex indicator">
+<a href="/indicators/vortex-indicator"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/vortex-indicator-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Vortex Indicator</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="trend" data-q="zigzag tradezoro trend zigzag">
+<a href="/indicators/zigzag"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/zigzag-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">ZigZag</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec" id="levels" data-sec="levels" aria-labelledby="h-levels">
+<h2 id="h-levels">Levels</h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="levels" data-q="52-week high/low tradezoro levels 52-week high/low">
+<a href="/indicators/52-week-high-low"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/52-week-high-low-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">52-Week High/Low</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="levels" data-q="pivot points standard tradezoro levels pivot points standard">
+<a href="/indicators/pivot-points-standard"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/pivot-points-standard-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Pivot Points Standard</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="levels" data-q="previous day high/low tradezoro levels previous day high/low">
+<a href="/indicators/previous-day-high-low"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/previous-day-high-low-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Previous day high/low</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="levels" data-q="williams fractal tradezoro levels williams fractal">
+<a href="/indicators/williams-fractal"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/williams-fractal-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Williams Fractal</h3><span class="ixh-meta"><span class="ixh-auth">TradeZoro</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec" id="community" data-sec="community" aria-labelledby="h-community">
+<h2 id="h-community">Community <small>third-party scripts, credited to their authors</small></h2>
+<ul class="ixh-grid">
+<li class="ixh-card" data-group="community" data-q="dynamic liquidity heatmap profile [bigbeluga] bigbeluga community dynamic liquidity heatmap profile [bigbeluga]">
+<a href="/indicators/dynamic-liquidity-heatmap-profile"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/dynamic-liquidity-heatmap-profile-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Dynamic Liquidity HeatMap Profile [BigBeluga]</h3><span class="ixh-meta"><span class="ixh-auth">BigBeluga</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="2022 model pro+ | ictkesik ictkesik community 2022 model pro+ | ictkesik">
+<a href="/indicators/2022-model-pro-plus-ictkesik"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/2022-model-pro-plus-ictkesik-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">2022 Model Pro+ | ICTKESIK</h3><span class="ixh-meta"><span class="ixh-auth">ICTKESIK</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="cisd model+ | triton trades triton trades community cisd model+ | triton trades">
+<a href="/indicators/cisd-model-plus-triton-trades"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/cisd-model-plus-triton-trades-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">CISD Model+ | Triton Trades</h3><span class="ixh-meta"><span class="ixh-auth">Triton Trades</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="forever pro° community community forever pro°">
+<a href="/indicators/forever-pro"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/forever-pro-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Forever Pro°</h3><span class="ixh-meta"><span class="ixh-auth">Community</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="ict pro+ | timmynq [takingprophets] timmynq (takingprophets) community ict pro+ | timmynq [takingprophets]">
+<a href="/indicators/ict-pro-plus-timmynq"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ict-pro-plus-timmynq-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">ICT Pro+ | TimmyNQ [TakingProphets]</h3><span class="ixh-meta"><span class="ixh-auth">TimmyNQ (TakingProphets)</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="ifvg ultimate+ deluxe | dodgysdd dodgysdd community ifvg ultimate+ deluxe | dodgysdd">
+<a href="/indicators/ifvg-ultimate-plus-deluxe-dodgysdd"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ifvg-ultimate-plus-deluxe-dodgysdd-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">iFVG Ultimate+ Deluxe | DodgysDD</h3><span class="ixh-meta"><span class="ixh-auth">DodgysDD</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="ifvg° [pro+] community community ifvg° [pro+]">
+<a href="/indicators/ifvg-degree-pro-plus"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/ifvg-degree-pro-plus-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">IFVG° [Pro+]</h3><span class="ixh-meta"><span class="ixh-auth">Community</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="london intraday protraction° [pro+] community community london intraday protraction° [pro+]">
+<a href="/indicators/london-intraday-protraction-pro-plus"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/london-intraday-protraction-pro-plus-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">London Intraday Protraction° [Pro+]</h3><span class="ixh-meta"><span class="ixh-auth">Community</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="manipulation model [fb] fb community manipulation model [fb]">
+<a href="/indicators/manipulation-model-fb"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/manipulation-model-fb-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Manipulation Model [FB]</h3><span class="ixh-meta"><span class="ixh-auth">FB</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="real-time big trades bubbles &amp; absorbtions &amp; deep pressure samet_lezki community real-time big trades bubbles &amp; absorbtions &amp; deep pressure">
+<a href="/indicators/real-time-big-trades-bubbles"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/real-time-big-trades-bubbles-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Real-Time Big Trades Bubbles &amp; Absorbtions &amp; Deep Pressure</h3><span class="ixh-meta"><span class="ixh-auth">samet_lezki</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="smart signals assistant algoalpha community smart signals assistant">
+<a href="/indicators/smart-signals-assistant"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/smart-signals-assistant-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Smart Signals Assistant</h3><span class="ixh-meta"><span class="ixh-auth">AlgoAlpha</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="stoic edge compass community community stoic edge compass">
+<a href="/indicators/stoic-edge-compass"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/stoic-edge-compass-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Stoic Edge Compass</h3><span class="ixh-meta"><span class="ixh-auth">Community</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="trend average (zeiierman) zeiierman community trend average (zeiierman)">
+<a href="/indicators/trend-average"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/trend-average-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Trend Average (Zeiierman)</h3><span class="ixh-meta"><span class="ixh-auth">Zeiierman</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="trinity atr levels - the ultimate milkman edition satymahajan / ema34trader community trinity atr levels - the ultimate milkman edition">
+<a href="/indicators/trinity-atr-levels"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/trinity-atr-levels-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Trinity ATR Levels - The Ultimate Milkman Edition</h3><span class="ixh-meta"><span class="ixh-auth">satymahajan / EMA34TRADER</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="unicorn model community community unicorn model">
+<a href="/indicators/unicorn-model"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/unicorn-model-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">Unicorn Model</h3><span class="ixh-meta"><span class="ixh-auth">Community</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+<li class="ixh-card" data-group="community" data-q="wcsmc + sp v3.0 [winworld] winworld community wcsmc + sp v3.0 [winworld]">
+<a href="/indicators/wcsmc-sp-v3"><span class="ixh-thumb"><img src="/assets/images/indicators/pages/wcsmc-sp-v3-t.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span>
+<span class="ixh-body"><h3 class="ixh-name">WCSMC + SP v3.0 [WinWorld]</h3><span class="ixh-meta"><span class="ixh-auth">WinWorld</span><span class="ixp-chip is-free">Free</span></span></span></a></li>
+</ul>
+</section>
+<section class="ixh-sec ixh-access dual-app" aria-labelledby="h-access">
+<h2 id="h-access">Your TradingView indicator access</h2>
+<p>Private TradingView indicators, your access request and the indicator guides from the curriculum are on their own page.</p>
+<a class="btn btn-ghost" href="/indicators-access">Open indicator access</a>
+</section>
+<p class="ixp-disclaimer">Education only. Not financial advice. Indicators mark what happened on the chart; they do not predict what price will do. Trading futures, forex, crypto and other markets carries a high level of risk and may not be suitable for everyone.</p>
+</div>
+</main>
+</div>
+<footer class="dual-pub">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>ZoroAcademy</h5>
+        <a href="/academy">ZoroAcademy home</a>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="/learn">ZoroAcademy articles</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About TradeZoro</a>
+        <a href="/help">Help Center</a>
+        <a href="/suggestions">Suggestions</a>
+        <a href="/creators">Creator Hub</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro LLC. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+      <a href="/market-data-terms">Market Data Terms</a>
+      <a href="/terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=879"></script>
-<script src="assets/gate-timeout.js?v=879"></script>
-<script src="assets/progress.js?v=879"></script>
-<script src="assets/presence.js?v=879"></script>
-<script src="assets/messages.js?v=879"></script>
-<script src="assets/messages-badge.js?v=879"></script>
-<script src="assets/gm-badge.js?v=879"></script>
-<script src="assets/activity-log.js?v=879"></script>
-<script src="assets/banned-check.js?v=879"></script>
-<script src="assets/email-verify.js?v=879"></script>
-<script src="assets/notifications.js?v=879"></script>
+<script src="/assets/nav-features.js?v=879" defer></script>
+<script src="/assets/main.js?v=879"></script>
+<script src="/assets/auth.js?v=879"></script>
+<script src="/assets/plan-price.js?v=879"></script>
+<script src="/assets/progress.js?v=879"></script>
+<script src="/assets/activity-log.js?v=879"></script>
+<script src="/assets/banned-check.js?v=879"></script>
+<script src="/assets/email-verify.js?v=879"></script>
+<script src="/assets/profiles-sync.js?v=879"></script>
+<script src="/assets/loading-animation.js?v=879"></script>
+<script src="/assets/site-pages.js?v=879"></script>
+<script src="/assets/site-pages-defaults.js?v=879"></script>
+<script src="/assets/site-page-render.js?v=879"></script>
+<script src="/assets/branding.js?v=879"></script>
+<script src="/assets/seo.js?v=879"></script>
+<script src="/assets/notifications.js?v=879"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=879"></script>
-<script src="assets/admin-link.js?v=879"></script>
-<script src="assets/profiles-sync.js?v=879"></script>
-<script src="assets/loading-animation.js?v=879"></script>
-<script src="assets/avatars.js?v=879"></script>
-<script src="assets/account-menu.js?v=879"></script>
-<script src="assets/referrals.js?v=879"></script>
-<script src="assets/roles.js?v=879"></script>
-<script src="assets/plan-price.js?v=879"></script>
-<script src="assets/plan-modal.js?v=879"></script>
-<script src="assets/trial.js?v=879"></script>
-<script src="assets/plan-guard.js?v=879"></script>
-<script src="assets/maintenance-check.js?v=879"></script>
-<script src="assets/branding.js?v=879"></script>
-<script src="assets/dash-nav.js?v=879"></script>
-<script src="assets/market-hours.js?v=879"></script>
-<script src="assets/indicators-store.js?v=879"></script>
-<script src="assets/indicators-showcase.js?v=879"></script>
-<script src="assets/indicators-list.js?v=879"></script>
-<script src="assets/theme.js?v=879"></script>
+<script src="/assets/push.js?v=879"></script>
+<script src="/assets/admin-link.js?v=879"></script>
+<script src="/assets/avatars.js?v=879"></script>
+<script src="/assets/account-menu.js?v=879"></script>
+<script src="/assets/referrals.js?v=879"></script>
+<script src="/assets/roles.js?v=879"></script>
+<script src="/assets/plan-modal.js?v=879"></script>
+<script src="/assets/trial.js?v=879"></script>
+<script src="/assets/maintenance-check.js?v=879"></script>
+<script src="/assets/dash-nav.js?v=879"></script>
+<script src="/assets/theme.js?v=879"></script>
+<script src="/assets/indicator-pages.js?v=879" defer></script>
 </body>
 </html>

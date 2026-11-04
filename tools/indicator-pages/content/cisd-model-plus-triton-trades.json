@@ -1,0 +1,26 @@
+{
+  "slug": "cisd-model-plus-triton-trades",
+  "summary": "CISD model toolkit: change-in-state-of-delivery lines after liquidity sweeps, HTF FVGs, session liquidity, SMT and graded setups.",
+  "overview": [
+    "This community script is built around the CISD (change in state of delivery) idea. After price sweeps liquidity, it tracks the open of the leg that delivered into that liquidity and prints a CISD line when price closes back through it. Each CISD can carry a grade, a stop level and a strategy checklist.",
+    "Around it, the script draws buyside and sellside liquidity lines and sweeps, Asia and London session highs and lows, previous day and week highs and lows, higher-timeframe fair value gaps, and SMT divergence lines."
+  ],
+  "how": [
+    "CISDs are found on the chart timeframe and, optionally, on higher timeframes. Max Bars to Confirm (15 by default) limits how long a CISD can take to form. Setups can be filtered by bias and by grade, and invalidated setups can be hidden.",
+    "Higher-timeframe FVGs come from up to three timeframes, picked automatically from the chart interval or set manually (60, 240 and D by default). SMT compares swings with a correlated symbol, chosen automatically for common pairs or set by you.",
+    "An optional sizing helper shows a contract size from a risk amount you enter."
+  ],
+  "use": [
+    "Use the CISD lines to see where the delivery of price changed direction after a sweep.",
+    "Some traders combine a CISD with a nearby higher-timeframe FVG or session level for context.",
+    "Use the grade and checklist to see which conditions a setup meets.",
+    "Watch SMT lines when the chart and its correlated symbol disagree at a swing."
+  ],
+  "alerts": "Alerts: members can create an alert on its conditions (for example \"Bullish CISD confirmed\", \"Bearish CISD confirmed\", \"Buyside liquidity swept\", \"Sellside liquidity swept\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Session times follow New York time.",
+    "SMT needs data for the correlated symbol.",
+    "The stop and sizing shown are the script's own rules; check them against your own plan.",
+    "Potential CISDs can change before they are confirmed."
+  ]
+}

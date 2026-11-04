@@ -1,0 +1,21 @@
+{
+  "slug": "wall-events-l2",
+  "summary": "Marks what happens to big order-book walls: eaten, held and refilled, or pulled, right on the heatmap.",
+  "overview": [
+    "Wall Events (L2) puts a marker on each big resting wall when something happens to it. A filled square means the wall was eaten, a hollow square with H means it held or refilled, and a grey x means it was pulled.",
+    "It was built because big walls are often filled by many small orders or pulled, which Big Trades (single aggressive bursts) does not show."
+  ],
+  "how": [
+    "A wall is either a level that passes the heatmap's colour filter (default) or a level in the top 0.5 % of the session's sizes, and at least 200 contracts or coins. Eaten: at least 50 % of its size traded. Held: at least 50 % traded and price turned away by 4 ticks. Pulled: under 10 % traded while price was within 8 ticks."
+  ],
+  "use": [
+    "Use it to see whether big walls get traded, defended or cancelled.",
+    "Some traders watch for walls pulled as price comes close.",
+    "Use it on top of a DOM heatmap so the markers sit on the bands."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Pulled versus eaten is worked out from trades at the price; it is an estimate."
+  ],
+  "learn": "order-flow"
+}

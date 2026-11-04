@@ -1,0 +1,23 @@
+{
+  "slug": "bollinger-bands",
+  "summary": "Bollinger Bands: a 20-bar SMA with bands two standard deviations above and below, filled between them.",
+  "overview": [
+    "Bollinger Bands draw a middle line (orange) with an upper and lower band (blue) on the price chart. The bands widen when price swings more and tighten when it is quiet.",
+    "The area between the bands is lightly shaded."
+  ],
+  "how": [
+    "Basis = SMA(close, 20). Upper = basis + 2 x standard deviation of close over 20 bars. Lower = basis - 2 x the same standard deviation.",
+    "Length, source and multiplier can be changed."
+  ],
+  "use": [
+    "Some traders watch a tight squeeze of the bands as a sign of low volatility before a larger move.",
+    "Use touches of the bands to see price stretched from its average.",
+    "In strong trends price can walk along one band; some traders read that as strength.",
+    "Use the basis as a mid-line for pullbacks."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "A touch of a band is not a signal on its own."
+  ]
+}

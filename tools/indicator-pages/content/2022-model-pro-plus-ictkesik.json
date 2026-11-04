@@ -1,0 +1,27 @@
+{
+  "slug": "2022-model-pro-plus-ictkesik",
+  "summary": "ICT 2022-model toolkit: liquidity sweeps, market structure shifts, FVGs, breakers, SMT, key levels, killzones and graded setups.",
+  "overview": [
+    "This community script maps the steps of the ICT 2022 model on the chart. It marks liquidity sweeps with a $$$ tag, the market structure shift (MSS) that follows, the displacement fair value gap, and breaker blocks. It also draws higher-timeframe FVGs, previous day and week highs and lows, session highs and lows, and vertical time lines for midnight, 8:30 and 9:30 New York.",
+    "When the steps line up, it draws a setup with entry, stop and two targets, optional risk/reward boxes, a grade, and a checklist table that ticks off each condition."
+  ],
+  "how": [
+    "Swings are built from pivots (Swing Length 3 by default). A sweep is a wick beyond a recent swing within a set number of bars; an MSS is a close (or wick) through the opposite pivot within a waiting window. The FVG and breaker come from the displacement leg.",
+    "SMT divergence compares the chart with a correlated symbol that it picks automatically for common futures, FX, metals and crypto pairs, or one you choose. Higher-timeframe FVGs come from two timeframes chosen from the chart interval, or set manually.",
+    "Each setup gets a grade from how many items it meets (SMT, FVG, premium/discount zone, session). Only setups at or above Min Grade are shown, by default inside killzones only."
+  ],
+  "use": [
+    "Use the checklist to see which parts of the model are present on the current setup.",
+    "Some traders study the sweep, MSS and FVG sequence to learn how the model is put together.",
+    "Watch the higher-timeframe FVGs and previous day levels as reference areas.",
+    "Filter by bias or grade to see fewer, stricter setups."
+  ],
+  "alerts": "Alerts: members can create an alert on its conditions (for example \"ICTKESIK Setup Formed\", \"ICTKESIK Entry Filled\", \"ICTKESIK Stop Hit\", \"SMT Divergence\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Times and killzones follow New York time.",
+    "SMT needs data for the correlated symbol.",
+    "Entry, stop and target lines are the script's own rules, not advice; review them on past data before relying on them.",
+    "It has many drawings; on small screens you may want to turn some modules off."
+  ],
+  "learn": "liquidity-sweeps"
+}

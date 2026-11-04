@@ -1,0 +1,24 @@
+{
+  "slug": "coppock-curve",
+  "summary": "Coppock Curve: a 10-bar weighted average of the sum of a 14-bar and an 11-bar rate of change, around zero.",
+  "overview": [
+    "The Coppock Curve is a slow momentum line in its own pane. It was first made for monthly charts to spot the end of long declines.",
+    "The line and fill are green above zero and red below."
+  ],
+  "how": [
+    "Coppock = WMA(ROC(source, 14) + ROC(source, 11), 10). ROC is the percent change from that many bars ago.",
+    "The original used monthly closes; here the lengths are in chart bars. Because the weighted average favors recent values, the curve turns a little sooner than a simple average would."
+  ],
+  "use": [
+    "Some traders watch an upturn from below zero as a sign of recovering momentum.",
+    "Use zero-line crosses as broad momentum changes.",
+    "Use it on weekly or monthly charts as in its original design.",
+    "Compare its slope with price to see momentum fading."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It is slow by design and better suited to higher timeframes.",
+    "It is not built to mark tops; its original use was spotting the end of declines."
+  ]
+}

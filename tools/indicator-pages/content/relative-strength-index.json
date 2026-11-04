@@ -1,0 +1,23 @@
+{
+  "slug": "relative-strength-index",
+  "summary": "Relative Strength Index: Wilder RSI over 14 bars from 0 to 100, with overbought at 70 and oversold at 30.",
+  "overview": [
+    "The Relative Strength Index (RSI) shows momentum on a scale from 0 to 100 in its own pane. Levels sit at 70 (overbought) and 30 (oversold), with a shaded band between.",
+    "The line takes the overbought or oversold color as it reaches those zones."
+  ],
+  "how": [
+    "Over 14 bars, average gains and average losses are smoothed with Wilder's method (RMA). RS = average gain / average loss. RSI = 100 - 100 / (1 + RS).",
+    "When gains and losses are equal, RSI is 50."
+  ],
+  "use": [
+    "Some traders watch readings above 70 or below 30 as stretched conditions.",
+    "Use the 50 line to separate up momentum from down momentum.",
+    "Look for divergence: price makes a new high while RSI does not.",
+    "In strong trends RSI can stay in a zone; some traders read that as strength, not a turn."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Overbought does not mean price must fall."
+  ]
+}

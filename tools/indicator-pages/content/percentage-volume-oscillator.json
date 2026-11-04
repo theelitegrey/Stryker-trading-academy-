@@ -1,0 +1,22 @@
+{
+  "slug": "percentage-volume-oscillator",
+  "summary": "Percentage Volume Oscillator: the gap between a 12 and 26-bar EMA of volume as a percent, with signal and histogram.",
+  "overview": [
+    "The Percentage Volume Oscillator (PVO) works like a MACD on volume. It shows whether recent volume is above or below its longer average, in its own pane.",
+    "It has a signal line in orange and a histogram, with colors for expansion and contraction."
+  ],
+  "how": [
+    "PVO = (EMA(volume, 12) - EMA(volume, 26)) / EMA(volume, 26) x 100. Signal = EMA(PVO, 9). Histogram = PVO - Signal.",
+    "Because it is a percent, it can be compared across symbols. The signal line and histogram can each be turned off."
+  ],
+  "use": [
+    "Some traders watch PVO above zero as a sign of rising activity.",
+    "Use it to check if a breakout comes with expanding volume.",
+    "Watch PVO crossing its signal line for changes in volume trend.",
+    "Use falling PVO in a trend as a sign of waning interest."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful."
+  ]
+}

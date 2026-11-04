@@ -1,0 +1,24 @@
+{
+  "slug": "liquidity-map",
+  "summary": "A full-screen map of resting order-book liquidity over time, with trade bubbles, a price ladder on the right and volume bars below.",
+  "overview": [
+    "Liquidity Map turns the chart into a view of the order book. The size resting at each price shows as a glow, from deep blue for small size to yellow, orange and red for the biggest walls.",
+    "A thin price line runs through it, with bubbles for traded volume, an order-book ladder on the right and volume bars along the bottom."
+  ],
+  "how": [
+    "For crypto it reads the exchange's public order book and trade stream, plus recorded book history. Each time bucket becomes one column of the heatmap. A wall that is pulled or filled simply stops.",
+    "Trade bubbles are sized by traded volume and split green and red by the share of aggressive buying and selling. The right-hand columns show the current size per price and the running total from the best price outward."
+  ],
+  "use": [
+    "Use it to see where size is resting and whether price trades into it or away from it.",
+    "Some traders watch bubbles that appear right at a bright wall.",
+    "Use the ladder to read the size near the current price at a glance.",
+    "Turn Hide candles off if you want to keep your candles under the map."
+  ],
+  "notes": [
+    "It describes resting orders and prints. It does not predict anything and has no order buttons.",
+    "Futures depth for this tool is limited to admins for now; crypto works for Pro members.",
+    "Contrast and size filters change only how the map looks, not the data."
+  ],
+  "learn": "order-flow"
+}

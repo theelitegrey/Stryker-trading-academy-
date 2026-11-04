@@ -528,7 +528,28 @@ export function mountIndicatorWindow(ws, opts){
 
   onProTier(() => { if (ov) render(); });
 
-  const api = { open, close, render, Favs, fmtCount, ws };
+  // Add one row by its window key (b:<type>, p:<id>, x:<id>): the /indicators/<slug> "Add to chart" deep link.
+  // Waits until the row's source is ready (built-ins: the cell's library; Pine: the engine).
+  async function addByKey(key){
+    for (let i = 0; i < 120; i++) {
+      const it = builtins().find((x) => x.key === key);
+      let ready = !!it;
+      if (it && it.kind === 'builtin') { try { ready = ws.active.libraryRows().some((r) => r && ((r.native && 'b:' + r.nativeType === key) || (r.pseudo && 'p:' + r.pseudo === key))); } catch (e) { ready = false; } }
+      if (it && it.kind === 'example') ready = !!(P() && P().addSource);
+      if (ready) { await addItem(it, null); return true; }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return false;
+  }
+  try {
+    const u = new URL(location.href), k = u.searchParams.get('ind');
+    if (k && /^[bpx]:[\w.-]{1,80}$/.test(k)) {
+      u.searchParams.delete('ind'); history.replaceState(null, '', u.pathname + u.search + u.hash);
+      addByKey(k).then((ok) => { if (!ok) toast('That indicator is not available on this chart.', 'error'); });
+    }
+  } catch (e) {}
+
+  const api = { open, close, render, Favs, fmtCount, ws, addByKey };
   window.StrykerIndicatorWindow = api;
   return api;
 }

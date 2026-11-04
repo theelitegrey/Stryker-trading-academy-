@@ -1,0 +1,24 @@
+{
+  "slug": "tz-fractal-model",
+  "summary": "Marks a higher-timeframe candle that sweeps the prior candle's high or low and closes back, then CISD confirmation, projections and right-side candles.",
+  "overview": [
+    "TZ Fractal Model pairs a lower and a higher timeframe and looks for one pattern. A higher-timeframe candle (C2) trades beyond the prior candle's (C1) low or high and closes back inside it. The model then waits for a change in state of delivery (CISD) on the chart: a close back through the open of the run of candles that made the extreme.",
+    "When confirmed, it draws the CISD line, projection lines, the C2 midpoint (EQ), a T-spot box, the C1 liquidity ray and nearby formation liquidity. C2, C3 and C4 labels mark the candles; they turn red if the setup fails. Higher-timeframe candles are also drawn to the right of the last bar, with an info table."
+  ],
+  "how": [
+    "Pairing is automatic from the chart timeframe (for example 5m with 1H) or set by hand: 1m-15m, 3m-30m, 5m-1H, 15m-4H, 1H-1D or 4H-1W. Higher-timeframe candles are built from chart bars with no lookahead.",
+    "A setup fails if price returns beyond the C2 extreme. If confirmation comes after the next higher-timeframe candle, the labels show in the no-fail colour. Projections are multiples of the leg from the C2 extreme to the CISD level: 1, 2, 2.5, 4 and 4.5 by default. The info table shows the model name, a countdown to the higher-timeframe close, the bias and whether the time filter is on. Up to three New York time windows can limit where setups form."
+  ],
+  "use": [
+    "Some traders use it to study higher-timeframe sweeps from a lower-timeframe chart.",
+    "Use the CISD line to see where the lower timeframe changed direction.",
+    "Some traders use the projection lines as reference levels for the move.",
+    "Use the history setting to review recent setups that held or failed."
+  ],
+  "notes": [
+    "If the chart timeframe is above the pair's lower timeframe, only the higher-timeframe candles are drawn.",
+    "The bias setting limits setups to one direction.",
+    "The script has no alert conditions."
+  ],
+  "learn": "liquidity-sweeps"
+}

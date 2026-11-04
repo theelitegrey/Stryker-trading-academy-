@@ -1,0 +1,21 @@
+{
+  "slug": "delta-pane-l1",
+  "summary": "A delta pane from the futures trade stream: delta bars or cumulative delta candles, with marked divergences.",
+  "overview": [
+    "Delta pane (L1) puts delta in its own pane in one of two styles: delta bars, with strong bars highlighted, or cumulative delta candles.",
+    "It can mark divergences, where price and delta move in opposite directions."
+  ],
+  "how": [
+    "Trades from the futures trade stream are split into buys and sells by the side they hit. A bar is strong when its delta is at least 2 times the average absolute delta. The cumulative total resets each session by default."
+  ],
+  "use": [
+    "Use it to see whether buying or selling led each bar.",
+    "Some traders watch the marked divergences near highs and lows.",
+    "Switch to the candle style to follow the session total."
+  ],
+  "notes": [
+    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
+    "Divergence marks describe what already happened; they are not signals."
+  ],
+  "learn": "order-flow"
+}

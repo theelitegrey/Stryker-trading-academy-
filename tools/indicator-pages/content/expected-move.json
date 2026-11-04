@@ -1,0 +1,22 @@
+{
+  "slug": "expected-move",
+  "summary": "Draws the options-implied expected move for the chosen expiry as a shaded range with dashed edges and price tags on the chart.",
+  "overview": [
+    "TradeZoro Expected Move shows the range the options market implies for an expiry. It draws a shaded box with dashed lines at the upper and lower edges and tags at the right edge. You can pick 0DTE, 1DTE, Weekly or Monthly, or show every expiry at once in its own colour.",
+    "A status line shows when the data was last updated (for example 'updated 3 min ago')."
+  ],
+  "how": [
+    "The expected move is based on the at-the-money straddle for the chosen expiry, computed on the server from the options chain for SPX, SPY and QQQ. ES and MES charts use the SPX range converted to the futures; NQ and MNQ use the QQQ range. The data is fetched every 5 minutes.",
+    "When the Weekly and Monthly entries point to the same expiry, they are shown as one range named 'Weekly / Monthly'."
+  ],
+  "use": [
+    "Some traders compare the day's high and low with the 0DTE expected move.",
+    "Use it to see whether price is near or outside the implied range.",
+    "Some traders show every expiry at once to compare short and longer ranges."
+  ],
+  "notes": [
+    "Works on SPX, SPY, QQQ, ES, MES, NQ and MNQ.",
+    "Nothing is drawn in bar replay, because the range is today's.",
+    "The range is what options pricing implies, not a forecast of where price will go."
+  ]
+}

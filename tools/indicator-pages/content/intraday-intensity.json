@@ -1,0 +1,22 @@
+{
+  "slug": "intraday-intensity",
+  "summary": "Intraday Intensity: volume weighted by where each bar closes in its range, as a 21-bar oscillator or a running line.",
+  "overview": [
+    "Intraday Intensity, by David Bostian, shows whether closes sit near highs or lows on volume. By default it is shown as a normalized oscillator (II%) around zero in its own pane.",
+    "You can switch to the cumulative line, which is read by its slope. Positive readings are green and negative ones red."
+  ],
+  "how": [
+    "Intensity for one bar = (2 x close - high - low) / (high - low) x volume. II% = sum of intensity over 21 bars / sum of volume over 21 bars x 100.",
+    "The cumulative form is the running total of intensity; the length does not affect it."
+  ],
+  "use": [
+    "Some traders watch II% staying positive as steady buying near highs.",
+    "Use the cumulative line to compare its slope with price.",
+    "Look for divergence between the line and price.",
+    "Use zero crosses as changes in pressure."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful."
+  ]
+}

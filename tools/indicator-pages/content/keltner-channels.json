@@ -1,0 +1,23 @@
+{
+  "slug": "keltner-channels",
+  "summary": "Keltner Channels: a 20-bar EMA of the close with bands set two times the 10-bar ATR above and below it.",
+  "overview": [
+    "Keltner Channels draw a middle EMA with an upper and lower band on the price chart. The bands widen with volatility, measured by ATR.",
+    "Colors follow direction: bullish and bearish colors with a gray basis."
+  ],
+  "how": [
+    "Basis = EMA(close, 20). Upper = basis + 2 x ATR(10). Lower = basis - 2 x ATR(10).",
+    "Because it uses ATR, the bands are usually smoother than Bollinger Bands. Length, ATR length, multiplier and source can be changed."
+  ],
+  "use": [
+    "Some traders watch closes outside a band as a sign of a strong move.",
+    "Use the basis as a level for pullbacks in a trend.",
+    "Compare with Bollinger Bands to spot squeezes (as in the TTM Squeeze).",
+    "Use the band width to see changes in volatility."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Wider multipliers mean fewer closes outside the bands."
+  ]
+}

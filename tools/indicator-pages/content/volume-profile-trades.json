@@ -1,0 +1,23 @@
+{
+  "slug": "volume-profile-trades",
+  "summary": "Draws a traded-volume profile per session or per swing from recorded trades, with POC, value area lines and naked POC lines.",
+  "overview": [
+    "Volume Profile (trades) shows how much volume traded at each price, built from trades rather than candles. You can build it per session, per swing (from one swing high or low to the next), or for the visible range. The POC is magenta, the value area orange and the area outside it khaki, with light cyan VAH and VAL lines.",
+    "Naked POC lines extend each finished profile's POC to the right until price comes back to it. A buy / sell colour mode splits each row into sellers and buyers."
+  ],
+  "how": [
+    "Each recorded trade is added to its price row. Rows are sized automatically, or you can set them in ticks. The value area holds 70% of the volume. A session is the futures trading day starting at 18:00 New York; crypto uses the UTC day. Swings use a strength of 10 bars each side. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.",
+    "Naked POCs use a fixed row size so they do not move as you zoom."
+  ],
+  "use": [
+    "Some traders watch untested naked POCs as reference levels.",
+    "Use the swing profile to see where volume built up within a single move.",
+    "Some traders compare where today's value area sits against yesterday's.",
+    "Use the buy / sell mode to see which side traded more at each price."
+  ],
+  "notes": [
+    "Needs per-trade data; other symbols show a note.",
+    "For a candle-based profile on any symbol, see Session Volume Profile."
+  ],
+  "learn": "volume-profile"
+}

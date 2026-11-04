@@ -1,0 +1,21 @@
+{
+  "slug": "anchored-vwap",
+  "summary": "Plots a volume-weighted average price from a chosen bar, with bands one, two and three standard deviations above and below.",
+  "overview": [
+    "Anchored VWAP draws the volume-weighted average price starting from an anchor bar, with up to three bands above and below it. The area between the first bands is lightly shaded. By default the anchor is the start of the latest session, and you can add more than one copy with different anchors."
+  ],
+  "how": [
+    "From the anchor onward, each bar's typical price (high plus low plus close, divided by three) is weighted by its volume. The VWAP is the running sum of price times volume divided by the running sum of volume. The bands are the volume-weighted standard deviation of typical price around the VWAP, at 1, 2 and 3 deviations.",
+    "If the chart has no volume, every bar counts equally. You can set the anchor time in the settings, or use the 'click a bar to anchor' row in the picker."
+  ],
+  "use": [
+    "Some traders anchor to a major high, low or news bar to see the average price since then.",
+    "Use the bands to see how far price has stretched from its average.",
+    "Some traders watch how price reacts when it returns to the VWAP line.",
+    "Use several copies to compare averages from different starting points."
+  ],
+  "notes": [
+    "Built from candles, so it uses the typical price of each bar rather than every trade.",
+    "The anchor stays fixed until you change it."
+  ]
+}

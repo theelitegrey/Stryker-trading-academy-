@@ -1,0 +1,23 @@
+{
+  "slug": "52-week-high-low",
+  "summary": "The rolling 52-week high and low drawn as levels on the chart, with an optional all-time high and low.",
+  "overview": [
+    "This study draws the highest high and lowest low of the last 52 weeks as lines on the price chart. The high is green and the low red.",
+    "You can also show the all-time high and low across the loaded history."
+  ],
+  "how": [
+    "The window is a rolling span of 52 weeks in time, not a bar count, so it works on any timeframe. The all-time levels track the symbol's full loaded history.",
+    "The number of weeks can be changed."
+  ],
+  "use": [
+    "Some traders watch the 52-week high as a breakout level.",
+    "Use the distance to each level to see where price sits in its yearly range.",
+    "Watch reactions near the 52-week low as signs of support.",
+    "Use the all-time high to see if price is in new territory."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe.",
+    "The all-time levels depend on how much history is loaded."
+  ]
+}

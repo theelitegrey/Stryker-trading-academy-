@@ -34,6 +34,7 @@ jobs:
       - run: |
           node tools/gen-sitemap.js
           if [ -f tools/gen-learn.js ]; then node tools/gen-learn.js --check; fi
+          if [ -f tools/gen-indicator-pages.js ]; then node tools/gen-indicator-pages.js --check; fi
 
   browser:
     name: browser (${{ matrix.name }})

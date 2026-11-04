@@ -1,0 +1,21 @@
+{
+  "slug": "zorotide",
+  "summary": "Plots net call premium (green) and net put premium (red) since the 9:30 ET open as two running lines in a lower pane.",
+  "overview": [
+    "ZoroTide shows options money flow for the day. In a pane below the chart, the green line is the running net call premium and the red line is the running net put premium, both in dollars, starting from the 9:30 ET open. A status line shows when it was last updated."
+  ],
+  "how": [
+    "The data comes from per-minute samples built from the options chains for SPX, SPY and QQQ (ES and MES map to SPX, NQ and MNQ to QQQ). For each contract, new volume is the volume now minus the previous sample, and premium is new volume times price times 100 (last trade, otherwise mid).",
+    "A last trade in the top 25% of the bid-ask spread counts as bought, in the bottom 25% as sold, and in between as half and half. Net is bought minus sold, and the lines add the samples up from the open. Each bar shows the totals at its close; gaps longer than 20 minutes are left blank."
+  ],
+  "use": [
+    "Some traders watch whether the call and put lines are moving apart or coming together.",
+    "Use it to see whether price moves line up with options money flow.",
+    "Some traders compare the slope of each line through the session."
+  ],
+  "notes": [
+    "Works on SPX, SPY, QQQ, ES, MES, NQ and MNQ.",
+    "The bought and sold split is estimated from options volume and quotes.",
+    "Nothing is drawn in bar replay, because the day's totals would show the future."
+  ]
+}

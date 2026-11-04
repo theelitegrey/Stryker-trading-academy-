@@ -327,7 +327,7 @@ def main():
         if not a.tags_only:
             rel, n = save(render(e), image_stem(e['page']))
             print(f'{rel:55} {n // 1024:4} KB  {e["title"]}')
-        if not e['page'].startswith('learn'):
+        if not e['page'].startswith(('learn', 'indicators')):   # generated pages write their own tags (gen-learn.js, gen-indicator-pages.js)
             if write_tags(e, ver):
                 print('  tags ->', e['page'])
     if a.sheet:

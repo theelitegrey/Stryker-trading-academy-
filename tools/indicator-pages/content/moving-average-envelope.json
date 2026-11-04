@@ -1,0 +1,23 @@
+{
+  "slug": "moving-average-envelope",
+  "summary": "A moving average with upper and lower bands set a fixed percent away, 2.5% around a 20-bar SMA by default.",
+  "overview": [
+    "The Moving Average Envelope draws a basis moving average with two bands, one above and one below, at a fixed percentage distance. By default the basis is a 20-bar SMA of the close and the bands sit 2.5% away.",
+    "Colors follow direction: bullish and bearish colors, with a gray basis."
+  ],
+  "how": [
+    "Upper band = basis x (1 + percent / 100). Lower band = basis x (1 - percent / 100). The basis can be SMA, EMA, WMA, RMA (SMMA), HMA or VWMA.",
+    "Unlike Bollinger Bands, the width does not change with volatility; it is always the same share of the basis."
+  ],
+  "use": [
+    "Some traders watch touches of the bands as signs price is stretched from its average.",
+    "Use a close outside the band to spot strong moves.",
+    "Use the basis as the trend line and the bands as a range around it.",
+    "Adjust the percent to fit how much the symbol usually moves."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "A fixed percent may be too wide on quiet symbols and too narrow on volatile ones."
+  ]
+}

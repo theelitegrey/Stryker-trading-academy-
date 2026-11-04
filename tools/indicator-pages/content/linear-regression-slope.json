@@ -1,0 +1,23 @@
+{
+  "slug": "linear-regression-slope",
+  "summary": "Linear regression slope: the slope of a straight-line fit over the last 100 bars, green when rising and red when falling.",
+  "overview": [
+    "The Linear Regression Slope shows how steep the recent trend is, in its own pane. Above zero the fitted line points up; below zero it points down.",
+    "Colors show whether the slope is rising or falling from the previous bar."
+  ],
+  "how": [
+    "On each bar a least-squares line is fitted to the last N values (100 by default). The plotted value is that line's slope: price change per bar.",
+    "The larger the absolute value, the steeper the fitted trend."
+  ],
+  "use": [
+    "Use zero crossings to see when the fitted trend flips direction.",
+    "Some traders watch a falling slope while price rises as a sign the trend is tiring.",
+    "Use shorter lengths for swings and longer ones for the main trend.",
+    "Compare the slope across symbols with care, since it is in price units."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Values are in price per bar, so they differ by symbol."
+  ]
+}

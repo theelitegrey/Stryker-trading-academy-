@@ -1,0 +1,23 @@
+{
+  "slug": "relative-vigor-index",
+  "summary": "Relative Vigor Index: the close-minus-open move compared with the bar range over 10 bars, with a signal line.",
+  "overview": [
+    "The Relative Vigor Index (RVGI) compares where bars close relative to where they open, in its own pane. In up moves, closes tend to be above opens; in down moves, below.",
+    "It shows an RVGI line in green and a signal line in red."
+  ],
+  "how": [
+    "Numerator = (close - open) smoothed with weights 1, 2, 2, 1 over four bars. Denominator = (high - low) smoothed the same way. RVGI = sum of numerators / sum of denominators over 10 bars.",
+    "Signal = RVGI smoothed with the same 1, 2, 2, 1 weights."
+  ],
+  "use": [
+    "Some traders watch RVGI crossing its signal line.",
+    "Use readings above zero as a sign closes are beating opens.",
+    "Look for divergence with price.",
+    "Pair it with a trend tool for context."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It reacts quickly and can cross often in ranges."
+  ]
+}

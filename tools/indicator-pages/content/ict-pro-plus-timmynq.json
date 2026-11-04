@@ -1,0 +1,25 @@
+{
+  "slug": "ict-pro-plus-timmynq",
+  "summary": "ICT toolkit: inversion FVGs, CISD lines, HTF gaps, weekly, daily and session highs and lows, session boxes and SMT against a paired symbol.",
+  "overview": [
+    "This community script gathers ICT reference points in one overlay. It draws inversion fair value gaps after liquidity sweeps, CISD lines, and the nearest unmitigated higher-timeframe gap on each side. It marks previous week and day highs and lows, Asia and London highs and lows, the all-time high, and the 8:30 AM New York open.",
+    "It also shades Asia, London, NY AM and NY PM sessions, and draws SMT divergence lines between the chart and a correlated symbol."
+  ],
+  "how": [
+    "After a sweep, the most recent qualifying FVG that price closes through is drawn as an inversion box; pending gaps can be shown first and are removed if they never invert. The open of the delivering leg is tracked, and a close back through it prints a CISD line. A CISD whose implied stop is broken is removed.",
+    "Higher-timeframe gaps come from two timeframes chosen from the chart interval. Levels close to each other (within 8 ticks by default) share one label.",
+    "SMT pairs are automatic for NQ-ES, MNQ-MES, YM-ES, MYM-MES, GC-SI and MGC-SIL, or manual. A sensitivity setting sets swing size for the three-point pattern, and an optional mode adds gap divergence."
+  ],
+  "use": [
+    "Use the level labels to see where key highs and lows sit before the session opens.",
+    "Some traders watch inversion FVGs and CISDs that form after a sweep of a marked level.",
+    "Use session boxes to see which session made the high or low of the day.",
+    "Watch SMT lines when the chart and its paired market disagree at a swing."
+  ],
+  "notes": [
+    "Session times are New York time; session labels show on 15-minute and lower charts.",
+    "SMT needs data for the correlated symbol and is made for the futures and metal pairs listed.",
+    "The script has no alert conditions."
+  ],
+  "learn": "fair-value-gap"
+}

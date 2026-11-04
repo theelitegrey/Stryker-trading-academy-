@@ -1,0 +1,20 @@
+{
+  "slug": "volume-profile-l2",
+  "summary": "A session volume profile with the average resting bid and ask size at each price beside it.",
+  "overview": [
+    "Volume Profile (L2) draws the traded volume at each price for the session, and next to it the average size that rested on the bid and the ask at that price.",
+    "You can see where volume traded and where orders waited."
+  ],
+  "how": [
+    "Traded volume comes from the trade stream. Resting size is averaged from the order-book samples over the session. Each profile takes 14 % of the chart width by default."
+  ],
+  "use": [
+    "Use it to compare high-volume prices with where size sat in the book.",
+    "Some traders watch prices with a lot of resting size but little traded volume.",
+    "Use it alongside the standard volume profile tools."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books."
+  ],
+  "learn": "volume-profile"
+}

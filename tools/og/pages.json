@@ -1,57 +1,2092 @@
 {
   "_doc": "Share-image table for every public page (tools/og/gen_og.py renders the images from it and rewrites the head tags; tools/check.py and tools/gen-learn.js read it). page = html file; title = big card title (2-3 words, unique); og_title = og:title/twitter:title (null = keep the page's own headline, which must contain the title); visual = brand | capture file(s) | collage; focus = x,y crop focus (0..1). No claims, results, win rates, profits or timing words in any text here.",
   "pages": [
-    {"page": "index.html", "title": "TradeZoro", "og_title": null, "visual": ["tools/og/captures/index-card.webp"], "focus": "0.5,0.25", "alt": "TradeZoro share card: an illustrative chart with GEX, volume profile and ICT levels, with the TradeZoro logo"},
-    {"page": "features.html", "title": "Platform Features", "og_title": "Platform Features — One Membership, a Complete Trading Desk", "visual": ["assets/images/gex-real/sec-chart.webp", "assets/images/smart-money-desk/overview.webp", "assets/images/curriculum/hero-1440.webp", "assets/images/global-monitor/hero-1440.webp"], "alt": "Platform Features share card: GEX, Smart Money Desk, Curriculum and Global Monitor screens in a grid, with the TradeZoro logo"},
-    {"page": "features/gex.html", "title": "GEX+", "og_title": "GEX+ · Gamma exposure (GEX) levels: call wall, put wall and zero gamma", "visual": ["assets/images/gex-real/chart-nq-5m-plot.webp"], "focus": "0.5,0.35", "alt": "GEX+ share card: call wall and put wall levels drawn on a futures chart, with the TradeZoro logo"},
-    {"page": "features/models.html", "title": "Trading Models", "og_title": "Trading Models — Complete Rule-Based Playbooks", "visual": ["assets/images/models/hero-1440.webp"], "alt": "Trading Models share card: the model library screen, with the TradeZoro logo"},
-    {"page": "features/journal.html", "title": "JournalX", "og_title": "JournalX — Coach, Calendar and Prop-Firm Tools", "visual": ["assets/images/journal/add-trade-2x.webp"], "alt": "JournalX share card: the add-trade form, with the TradeZoro logo"},
-    {"page": "features/indicators.html", "title": "Private Indicators", "og_title": "Private Indicators — Invite-Only TradingView Tools", "visual": ["assets/images/indicators/hero-1440.webp"], "alt": "Private Indicators share card: an indicator drawn on a chart, with the TradeZoro logo"},
-    {"page": "features/curriculum.html", "title": "ICT Curriculum", "og_title": "ICT Curriculum — ICT and SMT, Chapter by Chapter", "visual": ["assets/images/curriculum/hero-1440.webp"], "alt": "ICT Curriculum share card: the chapter list screen, with the TradeZoro logo"},
-    {"page": "features/charts.html", "title": "ZoroCharts", "og_title": "ZoroCharts · Free trading charts: a full charting desk inside the academy", "visual": ["assets/images/charts/hero.webp"], "alt": "ZoroCharts share card: a candlestick chart with indicators, with the TradeZoro logo"},
-    {"page": "features/orderflow.html", "title": "Order Flow Tools", "og_title": "Order Flow Tools — See Who Is Trading at Every Price", "visual": ["assets/images/orderflow/footprint.webp"], "alt": "Order Flow Tools share card: a footprint chart with buy and sell volume at each price, with the TradeZoro logo"},
-    {"page": "features/market-stats.html", "title": "Market Stats", "og_title": "Market Stats — Historical Frequencies With Sample Sizes", "visual": ["assets/images/market-stats/hero.webp"], "alt": "Market Stats share card: gap fill statistics with sample sizes, with the TradeZoro logo"},
-    {"page": "features/backtesting.html", "title": "Replay One", "og_title": "Replay One — Practise on Past Charts, One Bar at a Time", "visual": ["assets/images/og/features-backtesting.png"], "crop": "0.0334,0.2191,0.9666,0.9682", "alt": "Replay One share card: a bar-by-bar replay chart, with the TradeZoro logo"},
-    {"page": "features/community.html", "title": "Trader Community", "og_title": "Trader Community — The Trading Floor, Achievements and Referrals", "visual": ["assets/images/community/hero-1440.webp"], "alt": "Trader Community share card: the Trading Floor posts screen, with the TradeZoro logo"},
-    {"page": "features/global-monitor.html", "title": "Global Monitor", "og_title": "Global Monitor — Market Context on One Screen", "visual": ["assets/images/global-monitor/hero-1440.webp"], "alt": "Global Monitor share card: a world map of events and a market list, with the TradeZoro logo"},
-    {"page": "features/smart-money-desk.html", "title": "Smart Money Desk", "og_title": "Smart Money Desk — Congress and Insider Filings", "visual": ["assets/images/smart-money-desk/overview.webp"], "alt": "Smart Money Desk share card: Congress and insider filing tables, with the TradeZoro logo"},
-    {"page": "features-charts.html", "title": "Charting Desk", "og_title": "Charting Desk — A Real Charting Desk Inside the Academy", "visual": ["assets/images/charts/drawings.webp"], "alt": "Charting Desk share card: a chart with drawing tools, with the TradeZoro logo"},
-    {"page": "features-community.html", "title": "Community & Tools", "og_title": "Community & Tools — Nobody Learns This Alone", "visual": ["assets/images/community/floor.webp"], "alt": "Community and Tools share card: the Trading Floor screen, with the TradeZoro logo"},
-    {"page": "features-curriculum.html", "title": "The Curriculum", "og_title": "The Curriculum — Learn the Market Like a Desk Analyst", "visual": ["assets/images/curriculum/reader.webp"], "alt": "The Curriculum share card: a chapter reader screen, with the TradeZoro logo"},
-    {"page": "features-indicators.html", "title": "TradingView Indicators", "og_title": "TradingView Indicators — Invite-Only Tools, Licensed to You", "visual": ["assets/images/indicators/smt-pro.webp"], "alt": "TradingView Indicators share card: an indicator drawn on a chart, with the TradeZoro logo"},
-    {"page": "features-models.html", "title": "Model Library", "og_title": "Model Library — Complete Models, Not Lone Setups", "visual": ["assets/images/models/cards.webp"], "alt": "Model Library share card: model cards screen, with the TradeZoro logo"},
-    {"page": "features-monitor.html", "title": "Market Monitor", "og_title": "Market Monitor — The Market's Weather Report on One Screen", "visual": ["assets/images/global-monitor/markets.webp"], "alt": "Market Monitor share card: a market overview screen, with the TradeZoro logo"},
-    {"page": "features-smart-money.html", "title": "Insider Filings", "og_title": "Insider Filings — See What Congress and Insiders File", "visual": ["assets/images/smart-money-desk/insider.webp"], "alt": "Insider Filings share card: an insider filing table, with the TradeZoro logo"},
-    {"page": "academy.html", "title": "ZoroAcademy", "og_title": "ZoroAcademy — Free Trading Lessons, Courses and Guides", "visual": ["assets/images/curriculum/hero-1440.webp"], "alt": "ZoroAcademy share card: the chapter list screen, with the TradeZoro logo"},
-    {"page": "learn.html", "title": "ZoroAcademy Articles", "og_title": "ZoroAcademy Articles — ICT and Smart Money Concepts, Explained", "visual": ["tools/og/captures/learn-fair-value-gap.webp", "tools/og/captures/learn-order-blocks.webp", "tools/og/captures/learn-liquidity-sweeps.webp", "tools/og/captures/learn-volume-profile.webp"], "alt": "ZoroAcademy Articles share card: four illustrative chart diagrams from the guides, with the TradeZoro logo"},
-    {"page": "learn-fair-value-gap.html", "title": "Fair Value Gap", "og_title": null, "visual": ["tools/og/captures/learn-fair-value-gap.webp"], "focus": "0.5,0.5", "alt": "Fair Value Gap share card: an illustrative three-candle fair value gap diagram, with the TradeZoro logo"},
-    {"page": "learn-order-blocks.html", "title": "Order Blocks", "og_title": null, "visual": ["tools/og/captures/learn-order-blocks.webp"], "focus": "0.5,0.5", "alt": "Order Blocks share card: an illustrative order block diagram, with the TradeZoro logo"},
-    {"page": "learn-liquidity-sweeps.html", "title": "Liquidity Sweeps", "og_title": null, "visual": ["tools/og/captures/learn-liquidity-sweeps.webp"], "focus": "0.5,0.5", "alt": "Liquidity Sweeps share card: an illustrative liquidity sweep diagram, with the TradeZoro logo"},
-    {"page": "learn-bos-vs-choch.html", "title": "BOS vs CHoCH", "og_title": null, "visual": ["tools/og/captures/learn-bos-vs-choch.webp"], "focus": "0.5,0.6", "alt": "BOS vs CHoCH share card: an illustrative swing path with breaks of structure, with the TradeZoro logo"},
-    {"page": "learn-smt-divergence.html", "title": "SMT Divergence", "og_title": null, "visual": ["tools/og/captures/learn-smt-divergence.webp"], "focus": "0.5,0.5", "alt": "SMT Divergence share card: an illustrative divergence diagram, with the TradeZoro logo"},
-    {"page": "learn-volume-profile.html", "title": "Volume Profile", "og_title": null, "visual": ["tools/og/captures/learn-volume-profile.webp"], "focus": "0.5,0.45", "alt": "Volume Profile share card: an illustrative volume profile with POC and value area, with the TradeZoro logo"},
-    {"page": "learn-order-flow.html", "title": "Order Flow", "og_title": null, "visual": ["tools/og/captures/learn-order-flow.webp"], "focus": "0.5,0.4", "alt": "Order Flow share card: an illustrative depth-of-market ladder, with the TradeZoro logo"},
-    {"page": "learn-prop-firm-challenge-rules.html", "title": "Prop Firm Challenge", "og_title": null, "visual": ["tools/og/captures/learn-prop-firm-challenge-rules.webp"], "focus": "0.5,0.5", "alt": "Prop Firm Challenge share card: a hypothetical drawdown floor diagram, with the TradeZoro logo"},
-    {"page": "learn-how-prop-firms-work.html", "title": "How Prop Firms Work", "og_title": null, "visual": ["tools/og/captures/learn-how-prop-firms-work.webp"], "focus": "0.5,0.5", "alt": "How Prop Firms Work share card: the four stages of a prop firm account, with the TradeZoro logo"},
-    {"page": "cheat-sheet.html", "title": "FVG & OB Cheat Sheet", "og_title": "FVG & OB Cheat Sheet — Free Fair Value Gap and Order Block Guide", "visual": ["assets/images/cheatsheet-preview.jpg"], "focus": "0.5,0.12", "alt": "FVG and Order Block Cheat Sheet share card: a preview of the cheat sheet, with the TradeZoro logo"},
-    {"page": "prop-firm-cheat-sheet.html", "title": "Prop Firm Cheat Sheet", "og_title": "Prop Firm Cheat Sheet — Free Guide to Prop Firm Rules", "visual": ["assets/images/propfirm-cheatsheet-preview.jpg"], "focus": "0.5,0.12", "alt": "Prop Firm Cheat Sheet share card: a preview of the cheat sheet, with the TradeZoro logo"},
-    {"page": "about.html", "title": "About TradeZoro", "og_title": "About TradeZoro — What We Teach and How the Curriculum Is Built", "visual": "brand", "alt": "About TradeZoro share card with the TradeZoro logo"},
-    {"page": "signup.html", "title": "Create Account", "og_title": "Create Account — Start the Free Chapters at TradeZoro", "visual": "brand", "alt": "Create Account share card with the TradeZoro logo"},
-    {"page": "pricing.html", "title": "Free and Pro", "og_title": "Plans: Free and Pro — TradeZoro", "visual": "brand", "alt": "Free and Pro share card with the TradeZoro logo"},
-    {"page": "compare.html", "title": "TradeZoro compared", "og_title": "TradeZoro compared: TradingView, OpenMarket, Alertsify", "visual": "brand", "alt": "TradeZoro compared share card with the TradeZoro logo"},
-    {"page": "pro.html", "title": "Everything in Pro", "og_title": "Everything in Pro: order flow, order book and GEX+ — TradeZoro", "visual": "brand", "alt": "Everything in Pro share card with the TradeZoro logo"},
-    {"page": "login.html", "title": "Member Login", "og_title": "Member Login — TradeZoro", "visual": "brand", "alt": "Member Login share card with the TradeZoro logo"},
-    {"page": "contact.html", "title": "Contact Us", "og_title": "Contact Us — TradeZoro", "visual": "brand", "alt": "Contact Us share card with the TradeZoro logo"},
-    {"page": "help.html", "title": "Help Center", "og_title": "Help Center — TradeZoro", "visual": "brand", "alt": "Help Center share card with the TradeZoro logo"},
-    {"page": "support.html", "title": "Help & Support", "og_title": "Help & Support — TradeZoro", "visual": "brand", "alt": "Help and Support share card with the TradeZoro logo"},
-    {"page": "terms.html", "title": "Terms & Risk", "og_title": "Terms & Risk Disclosure — TradeZoro", "visual": "brand", "alt": "Terms and Risk Disclosure share card with the TradeZoro logo"},
-    {"page": "privacy.html", "title": "Privacy Policy", "og_title": "Privacy Policy — TradeZoro", "visual": "brand", "alt": "Privacy Policy share card with the TradeZoro logo"},
-    {"page": "cookies.html", "title": "Cookie Policy", "og_title": "Cookie Policy — TradeZoro", "visual": "brand", "alt": "Cookie Policy share card with the TradeZoro logo"},
-    {"page": "gdpr.html", "title": "GDPR Rights", "og_title": "GDPR Rights — TradeZoro", "visual": "brand", "alt": "GDPR Rights share card with the TradeZoro logo"},
-    {"page": "refund-policy.html", "title": "Refund Policy", "og_title": "Refund Policy — TradeZoro", "visual": "brand", "alt": "Refund Policy share card with the TradeZoro logo"},
-    {"page": "fix-link.html", "title": "Email link not opening", "og_title": "Email link not opening — TradeZoro", "visual": "brand", "alt": "Email link fix share card with the TradeZoro logo"},
-    {"page": "market-data-terms.html", "title": "Market Data Terms", "og_title": "Market Data Terms — TradeZoro", "visual": "brand", "alt": "Market Data Terms share card with the TradeZoro logo"},
-    {"page": "suggestions.html", "title": "Suggestions", "og_title": "Suggestions \u2014 TradeZoro", "visual": "brand", "alt": "Suggestions share card with the TradeZoro logo"},
-    {"page": "features/creators.html", "title": "Creator Hub", "og_title": "Creator Hub — Start your trading community on TradeZoro", "visual": ["assets/images/creators/hero-1440.webp"], "focus": "0.5,0.2", "alt": "Creator Hub share card: a demo community page with plans, with the TradeZoro logo"}
+    {
+      "page": "index.html",
+      "title": "TradeZoro",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/index-card.webp"
+      ],
+      "focus": "0.5,0.25",
+      "alt": "TradeZoro share card: an illustrative chart with GEX, volume profile and ICT levels, with the TradeZoro logo"
+    },
+    {
+      "page": "features.html",
+      "title": "Platform Features",
+      "og_title": "Platform Features — One Membership, a Complete Trading Desk",
+      "visual": [
+        "assets/images/gex-real/sec-chart.webp",
+        "assets/images/smart-money-desk/overview.webp",
+        "assets/images/curriculum/hero-1440.webp",
+        "assets/images/global-monitor/hero-1440.webp"
+      ],
+      "alt": "Platform Features share card: GEX, Smart Money Desk, Curriculum and Global Monitor screens in a grid, with the TradeZoro logo"
+    },
+    {
+      "page": "features/gex.html",
+      "title": "GEX+",
+      "og_title": "GEX+ · Gamma exposure (GEX) levels: call wall, put wall and zero gamma",
+      "visual": [
+        "assets/images/gex-real/chart-nq-5m-plot.webp"
+      ],
+      "focus": "0.5,0.35",
+      "alt": "GEX+ share card: call wall and put wall levels drawn on a futures chart, with the TradeZoro logo"
+    },
+    {
+      "page": "features/models.html",
+      "title": "Trading Models",
+      "og_title": "Trading Models — Complete Rule-Based Playbooks",
+      "visual": [
+        "assets/images/models/hero-1440.webp"
+      ],
+      "alt": "Trading Models share card: the model library screen, with the TradeZoro logo"
+    },
+    {
+      "page": "features/journal.html",
+      "title": "JournalX",
+      "og_title": "JournalX — Coach, Calendar and Prop-Firm Tools",
+      "visual": [
+        "assets/images/journal/add-trade-2x.webp"
+      ],
+      "alt": "JournalX share card: the add-trade form, with the TradeZoro logo"
+    },
+    {
+      "page": "features/indicators.html",
+      "title": "Private Indicators",
+      "og_title": "Private Indicators — Invite-Only TradingView Tools",
+      "visual": [
+        "assets/images/indicators/hero-1440.webp"
+      ],
+      "alt": "Private Indicators share card: an indicator drawn on a chart, with the TradeZoro logo"
+    },
+    {
+      "page": "features/curriculum.html",
+      "title": "ICT Curriculum",
+      "og_title": "ICT Curriculum — ICT and SMT, Chapter by Chapter",
+      "visual": [
+        "assets/images/curriculum/hero-1440.webp"
+      ],
+      "alt": "ICT Curriculum share card: the chapter list screen, with the TradeZoro logo"
+    },
+    {
+      "page": "features/charts.html",
+      "title": "ZoroCharts",
+      "og_title": "ZoroCharts · Free trading charts: a full charting desk inside the academy",
+      "visual": [
+        "assets/images/charts/hero.webp"
+      ],
+      "alt": "ZoroCharts share card: a candlestick chart with indicators, with the TradeZoro logo"
+    },
+    {
+      "page": "features/orderflow.html",
+      "title": "Order Flow Tools",
+      "og_title": "Order Flow Tools — See Who Is Trading at Every Price",
+      "visual": [
+        "assets/images/orderflow/footprint.webp"
+      ],
+      "alt": "Order Flow Tools share card: a footprint chart with buy and sell volume at each price, with the TradeZoro logo"
+    },
+    {
+      "page": "features/market-stats.html",
+      "title": "Market Stats",
+      "og_title": "Market Stats — Historical Frequencies With Sample Sizes",
+      "visual": [
+        "assets/images/market-stats/hero.webp"
+      ],
+      "alt": "Market Stats share card: gap fill statistics with sample sizes, with the TradeZoro logo"
+    },
+    {
+      "page": "features/backtesting.html",
+      "title": "Replay One",
+      "og_title": "Replay One — Practise on Past Charts, One Bar at a Time",
+      "visual": [
+        "assets/images/og/features-backtesting.png"
+      ],
+      "crop": "0.0334,0.2191,0.9666,0.9682",
+      "alt": "Replay One share card: a bar-by-bar replay chart, with the TradeZoro logo"
+    },
+    {
+      "page": "features/community.html",
+      "title": "Trader Community",
+      "og_title": "Trader Community — The Trading Floor, Achievements and Referrals",
+      "visual": [
+        "assets/images/community/hero-1440.webp"
+      ],
+      "alt": "Trader Community share card: the Trading Floor posts screen, with the TradeZoro logo"
+    },
+    {
+      "page": "features/global-monitor.html",
+      "title": "Global Monitor",
+      "og_title": "Global Monitor — Market Context on One Screen",
+      "visual": [
+        "assets/images/global-monitor/hero-1440.webp"
+      ],
+      "alt": "Global Monitor share card: a world map of events and a market list, with the TradeZoro logo"
+    },
+    {
+      "page": "features/smart-money-desk.html",
+      "title": "Smart Money Desk",
+      "og_title": "Smart Money Desk — Congress and Insider Filings",
+      "visual": [
+        "assets/images/smart-money-desk/overview.webp"
+      ],
+      "alt": "Smart Money Desk share card: Congress and insider filing tables, with the TradeZoro logo"
+    },
+    {
+      "page": "features-charts.html",
+      "title": "Charting Desk",
+      "og_title": "Charting Desk — A Real Charting Desk Inside the Academy",
+      "visual": [
+        "assets/images/charts/drawings.webp"
+      ],
+      "alt": "Charting Desk share card: a chart with drawing tools, with the TradeZoro logo"
+    },
+    {
+      "page": "features-community.html",
+      "title": "Community & Tools",
+      "og_title": "Community & Tools — Nobody Learns This Alone",
+      "visual": [
+        "assets/images/community/floor.webp"
+      ],
+      "alt": "Community and Tools share card: the Trading Floor screen, with the TradeZoro logo"
+    },
+    {
+      "page": "features-curriculum.html",
+      "title": "The Curriculum",
+      "og_title": "The Curriculum — Learn the Market Like a Desk Analyst",
+      "visual": [
+        "assets/images/curriculum/reader.webp"
+      ],
+      "alt": "The Curriculum share card: a chapter reader screen, with the TradeZoro logo"
+    },
+    {
+      "page": "features-indicators.html",
+      "title": "TradingView Indicators",
+      "og_title": "TradingView Indicators — Invite-Only Tools, Licensed to You",
+      "visual": [
+        "assets/images/indicators/smt-pro.webp"
+      ],
+      "alt": "TradingView Indicators share card: an indicator drawn on a chart, with the TradeZoro logo"
+    },
+    {
+      "page": "features-models.html",
+      "title": "Model Library",
+      "og_title": "Model Library — Complete Models, Not Lone Setups",
+      "visual": [
+        "assets/images/models/cards.webp"
+      ],
+      "alt": "Model Library share card: model cards screen, with the TradeZoro logo"
+    },
+    {
+      "page": "features-monitor.html",
+      "title": "Market Monitor",
+      "og_title": "Market Monitor — The Market's Weather Report on One Screen",
+      "visual": [
+        "assets/images/global-monitor/markets.webp"
+      ],
+      "alt": "Market Monitor share card: a market overview screen, with the TradeZoro logo"
+    },
+    {
+      "page": "features-smart-money.html",
+      "title": "Insider Filings",
+      "og_title": "Insider Filings — See What Congress and Insiders File",
+      "visual": [
+        "assets/images/smart-money-desk/insider.webp"
+      ],
+      "alt": "Insider Filings share card: an insider filing table, with the TradeZoro logo"
+    },
+    {
+      "page": "academy.html",
+      "title": "ZoroAcademy",
+      "og_title": "ZoroAcademy — Free Trading Lessons, Courses and Guides",
+      "visual": [
+        "assets/images/curriculum/hero-1440.webp"
+      ],
+      "alt": "ZoroAcademy share card: the chapter list screen, with the TradeZoro logo"
+    },
+    {
+      "page": "learn.html",
+      "title": "ZoroAcademy Articles",
+      "og_title": "ZoroAcademy Articles — ICT and Smart Money Concepts, Explained",
+      "visual": [
+        "tools/og/captures/learn-fair-value-gap.webp",
+        "tools/og/captures/learn-order-blocks.webp",
+        "tools/og/captures/learn-liquidity-sweeps.webp",
+        "tools/og/captures/learn-volume-profile.webp"
+      ],
+      "alt": "ZoroAcademy Articles share card: four illustrative chart diagrams from the guides, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-fair-value-gap.html",
+      "title": "Fair Value Gap",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-fair-value-gap.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Fair Value Gap share card: an illustrative three-candle fair value gap diagram, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-order-blocks.html",
+      "title": "Order Blocks",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-order-blocks.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Order Blocks share card: an illustrative order block diagram, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-liquidity-sweeps.html",
+      "title": "Liquidity Sweeps",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-liquidity-sweeps.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Liquidity Sweeps share card: an illustrative liquidity sweep diagram, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-bos-vs-choch.html",
+      "title": "BOS vs CHoCH",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-bos-vs-choch.webp"
+      ],
+      "focus": "0.5,0.6",
+      "alt": "BOS vs CHoCH share card: an illustrative swing path with breaks of structure, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-smt-divergence.html",
+      "title": "SMT Divergence",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-smt-divergence.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "SMT Divergence share card: an illustrative divergence diagram, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-volume-profile.html",
+      "title": "Volume Profile",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-volume-profile.webp"
+      ],
+      "focus": "0.5,0.45",
+      "alt": "Volume Profile share card: an illustrative volume profile with POC and value area, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-order-flow.html",
+      "title": "Order Flow",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-order-flow.webp"
+      ],
+      "focus": "0.5,0.4",
+      "alt": "Order Flow share card: an illustrative depth-of-market ladder, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-prop-firm-challenge-rules.html",
+      "title": "Prop Firm Challenge",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-prop-firm-challenge-rules.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Prop Firm Challenge share card: a hypothetical drawdown floor diagram, with the TradeZoro logo"
+    },
+    {
+      "page": "learn-how-prop-firms-work.html",
+      "title": "How Prop Firms Work",
+      "og_title": null,
+      "visual": [
+        "tools/og/captures/learn-how-prop-firms-work.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "How Prop Firms Work share card: the four stages of a prop firm account, with the TradeZoro logo"
+    },
+    {
+      "page": "cheat-sheet.html",
+      "title": "FVG & OB Cheat Sheet",
+      "og_title": "FVG & OB Cheat Sheet — Free Fair Value Gap and Order Block Guide",
+      "visual": [
+        "assets/images/cheatsheet-preview.jpg"
+      ],
+      "focus": "0.5,0.12",
+      "alt": "FVG and Order Block Cheat Sheet share card: a preview of the cheat sheet, with the TradeZoro logo"
+    },
+    {
+      "page": "prop-firm-cheat-sheet.html",
+      "title": "Prop Firm Cheat Sheet",
+      "og_title": "Prop Firm Cheat Sheet — Free Guide to Prop Firm Rules",
+      "visual": [
+        "assets/images/propfirm-cheatsheet-preview.jpg"
+      ],
+      "focus": "0.5,0.12",
+      "alt": "Prop Firm Cheat Sheet share card: a preview of the cheat sheet, with the TradeZoro logo"
+    },
+    {
+      "page": "about.html",
+      "title": "About TradeZoro",
+      "og_title": "About TradeZoro — What We Teach and How the Curriculum Is Built",
+      "visual": "brand",
+      "alt": "About TradeZoro share card with the TradeZoro logo"
+    },
+    {
+      "page": "signup.html",
+      "title": "Create Account",
+      "og_title": "Create Account — Start the Free Chapters at TradeZoro",
+      "visual": "brand",
+      "alt": "Create Account share card with the TradeZoro logo"
+    },
+    {
+      "page": "pricing.html",
+      "title": "Free and Pro",
+      "og_title": "Plans: Free and Pro — TradeZoro",
+      "visual": "brand",
+      "alt": "Free and Pro share card with the TradeZoro logo"
+    },
+    {
+      "page": "compare.html",
+      "title": "TradeZoro compared",
+      "og_title": "TradeZoro compared: TradingView, OpenMarket, Alertsify",
+      "visual": "brand",
+      "alt": "TradeZoro compared share card with the TradeZoro logo"
+    },
+    {
+      "page": "pro.html",
+      "title": "Everything in Pro",
+      "og_title": "Everything in Pro: order flow, order book and GEX+ — TradeZoro",
+      "visual": "brand",
+      "alt": "Everything in Pro share card with the TradeZoro logo"
+    },
+    {
+      "page": "login.html",
+      "title": "Member Login",
+      "og_title": "Member Login — TradeZoro",
+      "visual": "brand",
+      "alt": "Member Login share card with the TradeZoro logo"
+    },
+    {
+      "page": "contact.html",
+      "title": "Contact Us",
+      "og_title": "Contact Us — TradeZoro",
+      "visual": "brand",
+      "alt": "Contact Us share card with the TradeZoro logo"
+    },
+    {
+      "page": "help.html",
+      "title": "Help Center",
+      "og_title": "Help Center — TradeZoro",
+      "visual": "brand",
+      "alt": "Help Center share card with the TradeZoro logo"
+    },
+    {
+      "page": "support.html",
+      "title": "Help & Support",
+      "og_title": "Help & Support — TradeZoro",
+      "visual": "brand",
+      "alt": "Help and Support share card with the TradeZoro logo"
+    },
+    {
+      "page": "terms.html",
+      "title": "Terms & Risk",
+      "og_title": "Terms & Risk Disclosure — TradeZoro",
+      "visual": "brand",
+      "alt": "Terms and Risk Disclosure share card with the TradeZoro logo"
+    },
+    {
+      "page": "privacy.html",
+      "title": "Privacy Policy",
+      "og_title": "Privacy Policy — TradeZoro",
+      "visual": "brand",
+      "alt": "Privacy Policy share card with the TradeZoro logo"
+    },
+    {
+      "page": "cookies.html",
+      "title": "Cookie Policy",
+      "og_title": "Cookie Policy — TradeZoro",
+      "visual": "brand",
+      "alt": "Cookie Policy share card with the TradeZoro logo"
+    },
+    {
+      "page": "gdpr.html",
+      "title": "GDPR Rights",
+      "og_title": "GDPR Rights — TradeZoro",
+      "visual": "brand",
+      "alt": "GDPR Rights share card with the TradeZoro logo"
+    },
+    {
+      "page": "refund-policy.html",
+      "title": "Refund Policy",
+      "og_title": "Refund Policy — TradeZoro",
+      "visual": "brand",
+      "alt": "Refund Policy share card with the TradeZoro logo"
+    },
+    {
+      "page": "fix-link.html",
+      "title": "Email link not opening",
+      "og_title": "Email link not opening — TradeZoro",
+      "visual": "brand",
+      "alt": "Email link fix share card with the TradeZoro logo"
+    },
+    {
+      "page": "market-data-terms.html",
+      "title": "Market Data Terms",
+      "og_title": "Market Data Terms — TradeZoro",
+      "visual": "brand",
+      "alt": "Market Data Terms share card with the TradeZoro logo"
+    },
+    {
+      "page": "suggestions.html",
+      "title": "Suggestions",
+      "og_title": "Suggestions — TradeZoro",
+      "visual": "brand",
+      "alt": "Suggestions share card with the TradeZoro logo"
+    },
+    {
+      "page": "features/creators.html",
+      "title": "Creator Hub",
+      "og_title": "Creator Hub — Start your trading community on TradeZoro",
+      "visual": [
+        "assets/images/creators/hero-1440.webp"
+      ],
+      "focus": "0.5,0.2",
+      "alt": "Creator Hub share card: a demo community page with plans, with the TradeZoro logo"
+    },
+    {
+      "page": "indicators.html",
+      "title": "Indicator Library",
+      "og_title": "Indicator Library: every ZoroCharts indicator explained",
+      "visual": [
+        "assets/images/indicators/pages/footprint.webp",
+        "assets/images/indicators/pages/big-trades.webp",
+        "assets/images/indicators/pages/smt-divergence-pro.webp",
+        "assets/images/indicators/pages/bollinger-bands.webp"
+      ],
+      "alt": "ZoroCharts indicators: footprint, big trades, SMT divergence and Bollinger Bands on NQ charts"
+    },
+    {
+      "page": "indicators/gex-levels.html",
+      "title": "GEX Levels",
+      "og_title": "GEX Levels: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/gex-levels.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TradeZoro GEX Levels preview card"
+    },
+    {
+      "page": "indicators/gex-heatmap.html",
+      "title": "GEX Heatmap",
+      "og_title": "GEX Heatmap: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/gex-heatmap.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TradeZoro GEX Heatmap preview card"
+    },
+    {
+      "page": "indicators/off-exchange-levels.html",
+      "title": "Off-exchange levels",
+      "og_title": "Off-exchange levels: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/off-exchange-levels.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Off-exchange levels (FINRA data) preview card"
+    },
+    {
+      "page": "indicators/off-exchange-volume.html",
+      "title": "Off-exchange Volume",
+      "og_title": "Off-exchange Volume: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/off-exchange-volume.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Off-exchange Volume (FINRA data) preview card"
+    },
+    {
+      "page": "indicators/options-flow-marks.html",
+      "title": "Options Flow Marks",
+      "og_title": "Options Flow Marks: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/options-flow-marks.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Options Flow Marks preview card"
+    },
+    {
+      "page": "indicators/earnings-dates.html",
+      "title": "Earnings dates",
+      "og_title": "Earnings dates: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/earnings-dates.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TradeZoro Earnings dates preview card"
+    },
+    {
+      "page": "indicators/economic-events.html",
+      "title": "Economic events",
+      "og_title": "Economic events: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/economic-events.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TradeZoro Economic events preview card"
+    },
+    {
+      "page": "indicators/expected-move.html",
+      "title": "Expected Move",
+      "og_title": "Expected Move: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/expected-move.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TradeZoro Expected Move preview card"
+    },
+    {
+      "page": "indicators/news-markers.html",
+      "title": "News markers",
+      "og_title": "News markers: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/news-markers.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TradeZoro News markers preview card"
+    },
+    {
+      "page": "indicators/zorotide.html",
+      "title": "ZoroTide",
+      "og_title": "ZoroTide: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/zorotide.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "ZoroTide (options money flow: calls vs puts) preview card"
+    },
+    {
+      "page": "indicators/smt-divergence-pro.html",
+      "title": "SMT Divergence Pro",
+      "og_title": "SMT Divergence Pro: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/smt-divergence-pro.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "SMT Divergence Pro [TradeZoro] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ifvg-pro-plus.html",
+      "title": "IFVG Pro",
+      "og_title": "IFVG Pro: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ifvg-pro-plus.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "IFVG Pro+ [TradeZoro] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/htf-po3-lens.html",
+      "title": "HTF PO3 Lens",
+      "og_title": "HTF PO3 Lens: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/htf-po3-lens.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "HTF PO3 Lens [TradeZoro] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/fvg-relay.html",
+      "title": "FVG Relay",
+      "og_title": "FVG Relay: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/fvg-relay.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "FVG Relay [TradeZoro] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/tz-fractal-model.html",
+      "title": "TZ Fractal Model",
+      "og_title": "TZ Fractal Model: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/tz-fractal-model.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TZ Fractal Model [TradeZoro] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/liquidity-master.html",
+      "title": "Liquidity Master",
+      "og_title": "Liquidity Master: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/liquidity-master.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Liquidity Master [TradeZoro] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/session-sweep-smt-plus-ifvg.html",
+      "title": "Session Sweep SMT + IFVG",
+      "og_title": "Session Sweep SMT + IFVG: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/session-sweep-smt-plus-ifvg.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Session Sweep SMT + IFVG [TradeZoro] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ema-9-21-cross.html",
+      "title": "EMA 9/21 cross",
+      "og_title": "EMA 9/21 cross: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ema-9-21-cross.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "EMA 9/21 cross drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/exponential-moving-average.html",
+      "title": "Exponential Moving Average",
+      "og_title": "Exponential Moving Average: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/exponential-moving-average.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Exponential Moving Average drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/least-squares-moving-average.html",
+      "title": "Least Squares Moving",
+      "og_title": "Least Squares Moving: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/least-squares-moving-average.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Least Squares Moving Average drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/moving-average.html",
+      "title": "Moving Average",
+      "og_title": "Moving Average: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/moving-average.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Moving Average drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/moving-average-envelope.html",
+      "title": "Moving Average Envelope",
+      "og_title": "Moving Average Envelope: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/moving-average-envelope.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Moving Average Envelope drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/simple-moving-average.html",
+      "title": "Simple Moving Average",
+      "og_title": "Simple Moving Average: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/simple-moving-average.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Simple Moving Average drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/smoothed-moving-average.html",
+      "title": "Smoothed Moving Average",
+      "og_title": "Smoothed Moving Average: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/smoothed-moving-average.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Smoothed Moving Average drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/variable-index-dynamic-average.html",
+      "title": "Variable Index Dynamic",
+      "og_title": "Variable Index Dynamic: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/variable-index-dynamic-average.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Variable Index Dynamic Average drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/williams-alligator.html",
+      "title": "Williams Alligator",
+      "og_title": "Williams Alligator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/williams-alligator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Williams Alligator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/zero-lag-exponential-moving-average.html",
+      "title": "Zero-Lag Exponential",
+      "og_title": "Zero-Lag Exponential: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/zero-lag-exponential-moving-average.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Zero-Lag Exponential Moving Average drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/awesome-oscillator.html",
+      "title": "Awesome Oscillator",
+      "og_title": "Awesome Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/awesome-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Awesome Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/balance-of-power.html",
+      "title": "Balance of Power",
+      "og_title": "Balance of Power: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/balance-of-power.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Balance of Power drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/chande-momentum-oscillator.html",
+      "title": "Chande Momentum Oscillator",
+      "og_title": "Chande Momentum Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/chande-momentum-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Chande Momentum Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/commodity-channel-index.html",
+      "title": "Commodity Channel Index",
+      "og_title": "Commodity Channel Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/commodity-channel-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Commodity Channel Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/connors-rsi.html",
+      "title": "Connors RSI",
+      "og_title": "Connors RSI: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/connors-rsi.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Connors RSI drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/coppock-curve.html",
+      "title": "Coppock Curve",
+      "og_title": "Coppock Curve: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/coppock-curve.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Coppock Curve drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/detrended-price-oscillator.html",
+      "title": "Detrended Price Oscillator",
+      "og_title": "Detrended Price Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/detrended-price-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Detrended Price Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/elder-ray.html",
+      "title": "Elder Ray",
+      "og_title": "Elder Ray: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/elder-ray.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Elder Ray drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/fisher-transform.html",
+      "title": "Fisher Transform",
+      "og_title": "Fisher Transform: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/fisher-transform.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Fisher Transform drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/gator-oscillator.html",
+      "title": "Gator Oscillator",
+      "og_title": "Gator Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/gator-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Gator Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/know-sure-thing.html",
+      "title": "Know Sure Thing",
+      "og_title": "Know Sure Thing: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/know-sure-thing.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Know Sure Thing drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/linear-regression-slope.html",
+      "title": "Linear Regression Slope",
+      "og_title": "Linear Regression Slope: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/linear-regression-slope.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Linear Regression Slope drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/macd.html",
+      "title": "MACD",
+      "og_title": "MACD: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/macd.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "MACD drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/percentage-price-oscillator.html",
+      "title": "Percentage Price",
+      "og_title": "Percentage Price: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/percentage-price-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Percentage Price Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/rate-of-change.html",
+      "title": "Rate of Change",
+      "og_title": "Rate of Change: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/rate-of-change.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Rate of Change drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/relative-strength-index.html",
+      "title": "Relative Strength Index",
+      "og_title": "Relative Strength Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/relative-strength-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Relative Strength Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/relative-vigor-index.html",
+      "title": "Relative Vigor Index",
+      "og_title": "Relative Vigor Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/relative-vigor-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Relative Vigor Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/schaff-trend-cycle.html",
+      "title": "Schaff Trend Cycle",
+      "og_title": "Schaff Trend Cycle: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/schaff-trend-cycle.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Schaff Trend Cycle drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/smi-ergodic-oscillator.html",
+      "title": "SMI Ergodic Oscillator",
+      "og_title": "SMI Ergodic Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/smi-ergodic-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "SMI Ergodic Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/stochastic.html",
+      "title": "Stochastic",
+      "og_title": "Stochastic: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/stochastic.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Stochastic drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/stochastic-rsi.html",
+      "title": "Stochastic RSI",
+      "og_title": "Stochastic RSI: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/stochastic-rsi.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Stochastic RSI drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/market-stats-session.html",
+      "title": "Market Stats session",
+      "og_title": "Market Stats session: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/market-stats-session.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TradeZoro Market Stats session drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/trix.html",
+      "title": "TRIX",
+      "og_title": "TRIX: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/trix.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TRIX drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/true-strength-index.html",
+      "title": "True Strength Index",
+      "og_title": "True Strength Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/true-strength-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "True Strength Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ultimate-oscillator.html",
+      "title": "Ultimate Oscillator",
+      "og_title": "Ultimate Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ultimate-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Ultimate Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/williams-percent-r.html",
+      "title": "Williams %R",
+      "og_title": "Williams %R: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/williams-percent-r.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Williams %R drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/average-true-range.html",
+      "title": "Average True Range",
+      "og_title": "Average True Range: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/average-true-range.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Average True Range drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/bollinger-bands.html",
+      "title": "Bollinger Bands",
+      "og_title": "Bollinger Bands: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/bollinger-bands.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Bollinger Bands drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/bollinger-bands-percent-b.html",
+      "title": "Bollinger Bands %B",
+      "og_title": "Bollinger Bands %B: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/bollinger-bands-percent-b.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Bollinger Bands %B drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/bollinger-bands-width.html",
+      "title": "Bollinger Bands Width",
+      "og_title": "Bollinger Bands Width: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/bollinger-bands-width.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Bollinger Bands Width drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/chaikin-volatility.html",
+      "title": "Chaikin Volatility",
+      "og_title": "Chaikin Volatility: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/chaikin-volatility.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Chaikin Volatility drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/chandelier-exit.html",
+      "title": "Chandelier Exit",
+      "og_title": "Chandelier Exit: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/chandelier-exit.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Chandelier Exit drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/choppiness-index.html",
+      "title": "Choppiness Index",
+      "og_title": "Choppiness Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/choppiness-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Choppiness Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/donchian-channels.html",
+      "title": "Donchian Channels",
+      "og_title": "Donchian Channels: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/donchian-channels.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Donchian Channels drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/historical-volatility.html",
+      "title": "Historical Volatility",
+      "og_title": "Historical Volatility: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/historical-volatility.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Historical Volatility drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/keltner-channels.html",
+      "title": "Keltner Channels",
+      "og_title": "Keltner Channels: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/keltner-channels.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Keltner Channels drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/mass-index.html",
+      "title": "Mass Index",
+      "og_title": "Mass Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/mass-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Mass Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/relative-volatility-index.html",
+      "title": "Relative Volatility Index",
+      "og_title": "Relative Volatility Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/relative-volatility-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Relative Volatility Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/standard-deviation.html",
+      "title": "Standard Deviation",
+      "og_title": "Standard Deviation: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/standard-deviation.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Standard Deviation drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ttm-squeeze.html",
+      "title": "TTM Squeeze",
+      "og_title": "TTM Squeeze: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ttm-squeeze.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "TTM Squeeze drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ulcer-index.html",
+      "title": "Ulcer Index",
+      "og_title": "Ulcer Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ulcer-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Ulcer Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/volume.html",
+      "title": "Volume",
+      "og_title": "Volume: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volume.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volume drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/visible-range-volume-profile.html",
+      "title": "Visible Range Volume",
+      "og_title": "Visible Range Volume: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/visible-range-volume-profile.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Visible Range Volume Profile drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/session-volume-profile.html",
+      "title": "Session Volume Profile",
+      "og_title": "Session Volume Profile: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/session-volume-profile.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Session Volume Profile drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/previous-day-poc-vah-val.html",
+      "title": "Previous Day POC / VAH /",
+      "og_title": "Previous Day POC / VAH /: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/previous-day-poc-vah-val.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Previous Day POC / VAH / VAL drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/anchored-vwap.html",
+      "title": "Anchored VWAP",
+      "og_title": "Anchored VWAP: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/anchored-vwap.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Anchored VWAP (±1/2/3 sd bands) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/volume-weighted-average-price.html",
+      "title": "Volume Weighted Average",
+      "og_title": "Volume Weighted Average: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volume-weighted-average-price.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volume Weighted Average Price drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/relative-volume.html",
+      "title": "Relative Volume",
+      "og_title": "Relative Volume: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/relative-volume.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Relative Volume drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/volume-heatmap.html",
+      "title": "Volume Heatmap",
+      "og_title": "Volume Heatmap: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volume-heatmap.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volume Heatmap drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/auto-chart-patterns.html",
+      "title": "Auto Chart Patterns",
+      "og_title": "Auto Chart Patterns: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/auto-chart-patterns.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Auto Chart Patterns drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/anchored-vwap-click.html",
+      "title": "Anchored VWAP: click a bar",
+      "og_title": "Anchored VWAP: click a bar: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/anchored-vwap-click.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Anchored VWAP: click a bar to anchor drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/fixed-range-volume-profile.html",
+      "title": "Fixed Range Volume Profile",
+      "og_title": "Fixed Range Volume Profile: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/fixed-range-volume-profile.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Fixed Range Volume Profile (drag a range) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/accumulation-distribution.html",
+      "title": "Accumulation /",
+      "og_title": "Accumulation /: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/accumulation-distribution.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Accumulation / Distribution drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/chaikin-money-flow.html",
+      "title": "Chaikin Money Flow",
+      "og_title": "Chaikin Money Flow: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/chaikin-money-flow.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Chaikin Money Flow drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/chaikin-oscillator.html",
+      "title": "Chaikin Oscillator",
+      "og_title": "Chaikin Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/chaikin-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Chaikin Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ease-of-movement.html",
+      "title": "Ease of Movement",
+      "og_title": "Ease of Movement: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ease-of-movement.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Ease of Movement drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/force-index.html",
+      "title": "Force Index",
+      "og_title": "Force Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/force-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Force Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/intraday-intensity.html",
+      "title": "Intraday Intensity",
+      "og_title": "Intraday Intensity: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/intraday-intensity.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Intraday Intensity drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/klinger-oscillator.html",
+      "title": "Klinger Oscillator",
+      "og_title": "Klinger Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/klinger-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Klinger Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/money-flow-index.html",
+      "title": "Money Flow Index",
+      "og_title": "Money Flow Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/money-flow-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Money Flow Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/negative-volume-index.html",
+      "title": "Negative Volume Index",
+      "og_title": "Negative Volume Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/negative-volume-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Negative Volume Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/on-balance-volume.html",
+      "title": "On Balance Volume",
+      "og_title": "On Balance Volume: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/on-balance-volume.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "On Balance Volume drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/percentage-volume-oscillator.html",
+      "title": "Percentage Volume",
+      "og_title": "Percentage Volume: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/percentage-volume-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Percentage Volume Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/positive-volume-index.html",
+      "title": "Positive Volume Index",
+      "og_title": "Positive Volume Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/positive-volume-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Positive Volume Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/price-volume-trend.html",
+      "title": "Price Volume Trend",
+      "og_title": "Price Volume Trend: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/price-volume-trend.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Price Volume Trend drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/volume-flow-indicator.html",
+      "title": "Volume Flow Indicator",
+      "og_title": "Volume Flow Indicator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volume-flow-indicator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volume Flow Indicator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/volume-oscillator.html",
+      "title": "Volume Oscillator",
+      "og_title": "Volume Oscillator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volume-oscillator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volume Oscillator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/session-vwap.html",
+      "title": "Session VWAP",
+      "og_title": "Session VWAP: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/session-vwap.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Session VWAP drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/aroon.html",
+      "title": "Aroon",
+      "og_title": "Aroon: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/aroon.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Aroon drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/average-directional-index.html",
+      "title": "Average Directional Index",
+      "og_title": "Average Directional Index: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/average-directional-index.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Average Directional Index drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/chande-kroll-stop.html",
+      "title": "Chande Kroll Stop",
+      "og_title": "Chande Kroll Stop: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/chande-kroll-stop.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Chande Kroll Stop drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/parabolic-sar.html",
+      "title": "Parabolic SAR",
+      "og_title": "Parabolic SAR: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/parabolic-sar.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Parabolic SAR drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/supertrend.html",
+      "title": "SuperTrend",
+      "og_title": "SuperTrend: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/supertrend.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "SuperTrend drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/vortex-indicator.html",
+      "title": "Vortex Indicator",
+      "og_title": "Vortex Indicator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/vortex-indicator.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Vortex Indicator drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/zigzag.html",
+      "title": "ZigZag",
+      "og_title": "ZigZag: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/zigzag.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "ZigZag drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/52-week-high-low.html",
+      "title": "52-Week High/Low",
+      "og_title": "52-Week High/Low: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/52-week-high-low.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "52-Week High/Low drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/pivot-points-standard.html",
+      "title": "Pivot Points Standard",
+      "og_title": "Pivot Points Standard: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/pivot-points-standard.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Pivot Points Standard drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/previous-day-high-low.html",
+      "title": "Previous day high/low",
+      "og_title": "Previous day high/low: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/previous-day-high-low.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Previous day high/low drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/williams-fractal.html",
+      "title": "Williams Fractal",
+      "og_title": "Williams Fractal: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/williams-fractal.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Williams Fractal drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/footprint.html",
+      "title": "Footprint",
+      "og_title": "Footprint: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/footprint.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Footprint (bid x ask) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/delta-trades.html",
+      "title": "Delta",
+      "og_title": "Delta: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-trades.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta (trades) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/cumulative-delta-trades.html",
+      "title": "Cumulative Delta",
+      "og_title": "Cumulative Delta: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/cumulative-delta-trades.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Cumulative Delta (trades) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/delta-styles.html",
+      "title": "Delta indicator",
+      "og_title": "Delta indicator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-styles.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/delta-pane.html",
+      "title": "Delta: pane",
+      "og_title": "Delta: pane: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-pane.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta: pane (bars / CVD + divergence) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/big-trades.html",
+      "title": "Big Trades",
+      "og_title": "Big Trades: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/big-trades.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Big Trades drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/absorption.html",
+      "title": "Absorption",
+      "og_title": "Absorption: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/absorption.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Absorption (levels until broken) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/imbalance-zones.html",
+      "title": "Imbalance Zones",
+      "og_title": "Imbalance Zones: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/imbalance-zones.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Imbalance Zones (stacked, until filled) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/volume-profile-trades.html",
+      "title": "Volume Profile indicator",
+      "og_title": "Volume Profile indicator: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volume-profile-trades.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volume Profile (trades: session / swing + naked POC) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/vwap-trades.html",
+      "title": "VWAP",
+      "og_title": "VWAP: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/vwap-trades.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "VWAP (trades, ±1/2 SD) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/market-profile.html",
+      "title": "Market Profile",
+      "og_title": "Market Profile: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/market-profile.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Market Profile (TPO) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/effort-vs-result.html",
+      "title": "Effort vs Result",
+      "og_title": "Effort vs Result: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/effort-vs-result.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Effort vs Result drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/stop-runs-sweeps.html",
+      "title": "Stop Runs / Sweeps",
+      "og_title": "Stop Runs / Sweeps: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/stop-runs-sweeps.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Stop Runs / Sweeps (swing high / low + volume spike) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/estimated-cvd.html",
+      "title": "Estimated CVD",
+      "og_title": "Estimated CVD: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/estimated-cvd.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Estimated CVD (from candles) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/volume-bubble-big-prints.html",
+      "title": "Volume Bubble / Big Prints",
+      "og_title": "Volume Bubble / Big Prints: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volume-bubble-big-prints.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volume Bubble / Big Prints drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/liquidity-trend-heatmap.html",
+      "title": "Liquidity Trend Heatmap",
+      "og_title": "Liquidity Trend Heatmap: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/liquidity-trend-heatmap.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Liquidity Trend Heatmap drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/crypto-dom-heatmap.html",
+      "title": "Crypto DOM Heatmap",
+      "og_title": "Crypto DOM Heatmap: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/crypto-dom-heatmap.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Crypto DOM Heatmap drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/liquidity-map.html",
+      "title": "Liquidity Map",
+      "og_title": "Liquidity Map: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/liquidity-map.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Liquidity Map (order book heatmap) preview card"
+    },
+    {
+      "page": "indicators/futures-dom-heatmap-l2.html",
+      "title": "Futures DOM Heatmap (L2)",
+      "og_title": "Futures DOM Heatmap (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/futures-dom-heatmap-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Futures DOM Heatmap (L2) preview card"
+    },
+    {
+      "page": "indicators/liquidity-walls-l2.html",
+      "title": "Liquidity Walls (L2)",
+      "og_title": "Liquidity Walls (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/liquidity-walls-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Liquidity Walls (L2) preview card"
+    },
+    {
+      "page": "indicators/book-imbalance-l2.html",
+      "title": "Book Imbalance (L2)",
+      "og_title": "Book Imbalance (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/book-imbalance-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Book Imbalance (L2) preview card"
+    },
+    {
+      "page": "indicators/big-trades-l1.html",
+      "title": "Big Trades (L1)",
+      "og_title": "Big Trades (L1): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/big-trades-l1.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Big Trades (L1) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/delta-l1.html",
+      "title": "Delta (L1)",
+      "og_title": "Delta (L1): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-l1.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta (L1) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/cumulative-delta-l1.html",
+      "title": "Cumulative Delta (L1)",
+      "og_title": "Cumulative Delta (L1): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/cumulative-delta-l1.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Cumulative Delta (L1) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/delta-styles-l1.html",
+      "title": "Delta styles (L1)",
+      "og_title": "Delta styles (L1): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-styles-l1.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta styles (L1) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/delta-pane-l1.html",
+      "title": "Delta pane (L1)",
+      "og_title": "Delta pane (L1): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-pane-l1.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta pane (L1) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/book-speed-l2.html",
+      "title": "Book Speed (L2)",
+      "og_title": "Book Speed (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/book-speed-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Book Speed (L2) preview card"
+    },
+    {
+      "page": "indicators/liquidity-balance-l2.html",
+      "title": "Liquidity Balance (L2)",
+      "og_title": "Liquidity Balance (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/liquidity-balance-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Liquidity Balance (L2) preview card"
+    },
+    {
+      "page": "indicators/refill-detector-l2.html",
+      "title": "Refill Detector (L2)",
+      "og_title": "Refill Detector (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/refill-detector-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Refill Detector (L2) preview card"
+    },
+    {
+      "page": "indicators/volatility-regime-l2.html",
+      "title": "Volatility Regime (L2)",
+      "og_title": "Volatility Regime (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volatility-regime-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volatility Regime (L2) preview card"
+    },
+    {
+      "page": "indicators/large-resting-orders-l2.html",
+      "title": "Large Resting Orders (L2)",
+      "og_title": "Large Resting Orders (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/large-resting-orders-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Large Resting Orders (L2) preview card"
+    },
+    {
+      "page": "indicators/absorption-iceberg-tracker.html",
+      "title": "Absorption & Iceberg",
+      "og_title": "Absorption & Iceberg: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/absorption-iceberg-tracker.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Absorption & Iceberg Tracker (L1+L2) preview card"
+    },
+    {
+      "page": "indicators/wall-events-l2.html",
+      "title": "Wall Events (L2)",
+      "og_title": "Wall Events (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/wall-events-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Wall Events (L2) preview card"
+    },
+    {
+      "page": "indicators/delta-l2.html",
+      "title": "Delta (L2)",
+      "og_title": "Delta (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta (L2) preview card"
+    },
+    {
+      "page": "indicators/cumulative-delta-l2.html",
+      "title": "Cumulative Delta (L2)",
+      "og_title": "Cumulative Delta (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/cumulative-delta-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Cumulative Delta (L2) preview card"
+    },
+    {
+      "page": "indicators/footprint-l2.html",
+      "title": "Footprint (L2)",
+      "og_title": "Footprint (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/footprint-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Footprint (L2) preview card"
+    },
+    {
+      "page": "indicators/big-trades-l2.html",
+      "title": "Big Trades (L2)",
+      "og_title": "Big Trades (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/big-trades-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Big Trades (L2) preview card"
+    },
+    {
+      "page": "indicators/stop-runs-l2.html",
+      "title": "Stop Runs (L2)",
+      "og_title": "Stop Runs (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/stop-runs-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Stop Runs (L2) preview card"
+    },
+    {
+      "page": "indicators/volume-profile-l2.html",
+      "title": "Volume Profile (L2)",
+      "og_title": "Volume Profile (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/volume-profile-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Volume Profile (L2) preview card"
+    },
+    {
+      "page": "indicators/delta-ladder-l2.html",
+      "title": "Delta Ladder (L2)",
+      "og_title": "Delta Ladder (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-ladder-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta Ladder (L2) preview card"
+    },
+    {
+      "page": "indicators/dynamic-liquidity-heatmap-profile.html",
+      "title": "Dynamic Liquidity HeatMap",
+      "og_title": "Dynamic Liquidity HeatMap: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/dynamic-liquidity-heatmap-profile.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Dynamic Liquidity HeatMap Profile [BigBeluga] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/2022-model-pro-plus-ictkesik.html",
+      "title": "2022 Model Pro",
+      "og_title": "2022 Model Pro: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/2022-model-pro-plus-ictkesik.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "2022 Model Pro+ | ICTKESIK drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/cisd-model-plus-triton-trades.html",
+      "title": "CISD Model",
+      "og_title": "CISD Model: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/cisd-model-plus-triton-trades.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "CISD Model+ | Triton Trades drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/forever-pro.html",
+      "title": "Forever Pro",
+      "og_title": "Forever Pro: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/forever-pro.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Forever Pro° drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ict-pro-plus-timmynq.html",
+      "title": "ICT Pro",
+      "og_title": "ICT Pro: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ict-pro-plus-timmynq.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "ICT Pro+ | TimmyNQ [TakingProphets] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ifvg-ultimate-plus-deluxe-dodgysdd.html",
+      "title": "iFVG Ultimate+ Deluxe",
+      "og_title": "iFVG Ultimate+ Deluxe: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ifvg-ultimate-plus-deluxe-dodgysdd.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "iFVG Ultimate+ Deluxe | DodgysDD drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/ifvg-degree-pro-plus.html",
+      "title": "IFVG",
+      "og_title": "IFVG: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/ifvg-degree-pro-plus.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "IFVG° [Pro+] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/london-intraday-protraction-pro-plus.html",
+      "title": "London Intraday",
+      "og_title": "London Intraday: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/london-intraday-protraction-pro-plus.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "London Intraday Protraction° [Pro+] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/manipulation-model-fb.html",
+      "title": "Manipulation Model",
+      "og_title": "Manipulation Model: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/manipulation-model-fb.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Manipulation Model [FB] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/real-time-big-trades-bubbles.html",
+      "title": "Real-Time Big Trades",
+      "og_title": "Real-Time Big Trades: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/real-time-big-trades-bubbles.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Real-Time Big Trades Bubbles & Absorbtions & Deep Pressure drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/smart-signals-assistant.html",
+      "title": "Smart Signals Assistant",
+      "og_title": "Smart Signals Assistant: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/smart-signals-assistant.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Smart Signals Assistant drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/stoic-edge-compass.html",
+      "title": "Stoic Edge Compass",
+      "og_title": "Stoic Edge Compass: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/stoic-edge-compass.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Stoic Edge Compass drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/trend-average.html",
+      "title": "Trend Average",
+      "og_title": "Trend Average: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/trend-average.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Trend Average (Zeiierman) drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/trinity-atr-levels.html",
+      "title": "Trinity ATR Levels - The",
+      "og_title": "Trinity ATR Levels - The: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/trinity-atr-levels.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Trinity ATR Levels - The Ultimate Milkman Edition drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/unicorn-model.html",
+      "title": "Unicorn Model",
+      "og_title": "Unicorn Model: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/unicorn-model.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Unicorn Model drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "indicators/wcsmc-sp-v3.html",
+      "title": "WCSMC + SP v3.0",
+      "og_title": "WCSMC + SP v3.0: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/wcsmc-sp-v3.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "WCSMC + SP v3.0 [WinWorld] drawn on an NQ futures chart in ZoroCharts"
+    }
   ]
 }

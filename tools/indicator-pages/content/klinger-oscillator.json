@@ -1,0 +1,23 @@
+{
+  "slug": "klinger-oscillator",
+  "summary": "Klinger Oscillator: the 34-bar EMA minus the 55-bar EMA of volume force, with a 13-bar signal line.",
+  "overview": [
+    "The Klinger Oscillator, by Stephen Klinger, compares long-term and short-term volume flow, in its own pane. It has an oscillator line and a signal line in orange.",
+    "Colors are green while the oscillator is above its signal and red while below."
+  ],
+  "how": [
+    "Trend = +1 when typical price (high + low + close) is higher than the previous bar, -1 when lower. Volume force uses volume, trend and the bar's range. KO = EMA(volume force, 34) - EMA(volume force, 55). Signal = EMA(KO, 13).",
+    "Lengths can be changed."
+  ],
+  "use": [
+    "Some traders watch KO crossing its signal line.",
+    "Use zero-line crosses as long-term flow changes.",
+    "Look for divergence between KO and price.",
+    "Use it with a trend filter to read crosses in context."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "The volume force also uses a running sum of bar ranges that resets when the trend flips."
+  ]
+}

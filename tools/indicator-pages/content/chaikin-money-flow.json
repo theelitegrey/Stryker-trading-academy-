@@ -1,0 +1,23 @@
+{
+  "slug": "chaikin-money-flow",
+  "summary": "Chaikin Money Flow: 20-bar money flow volume divided by 20-bar volume, around a zero line.",
+  "overview": [
+    "Chaikin Money Flow (CMF) shows whether money has been flowing in or out over a window, in its own pane. Above zero means more closes near highs on volume; below zero means more near lows.",
+    "The line and fill are green above zero and red below."
+  ],
+  "how": [
+    "Money flow volume = ((close - low) - (high - close)) / (high - low) x volume. CMF = sum of money flow volume over 20 bars / sum of volume over 20 bars.",
+    "Values range from -1 to +1. Bars that close near their high add most of their volume; bars that close near the low subtract it."
+  ],
+  "use": [
+    "Some traders watch CMF staying above zero as steady buying pressure.",
+    "Use zero-line crosses as changes in flow.",
+    "Look for divergence between CMF and price.",
+    "Use it to check breakouts for volume support."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "Bars with no range add nothing."
+  ]
+}

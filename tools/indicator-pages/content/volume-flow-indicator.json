@@ -1,0 +1,23 @@
+{
+  "slug": "volume-flow-indicator",
+  "summary": "Volume Flow Indicator: signed volume over 130 bars with a volatility cutoff and volume cap, plus a signal line.",
+  "overview": [
+    "The Volume Flow Indicator (VFI), by Markos Katsanos, shows the balance of buying and selling volume in its own pane around zero. It has a signal line in orange and a gradient fill.",
+    "Above zero, volume on up moves has been heavier; below zero, on down moves."
+  ],
+  "how": [
+    "For each bar, compare typical price with the previous bar. If the change is larger than a cutoff (0.2 x the 30-bar standard deviation of log changes x close), the volume is added as positive or negative. Each bar's volume is capped at 2.5 times average volume.",
+    "VFI = sum over 130 bars / average volume, then smoothed with a 3-bar EMA. Signal = 5-bar EMA."
+  ],
+  "use": [
+    "Some traders watch VFI above zero as a sign of net buying volume.",
+    "Use zero-line crosses as changes in volume flow.",
+    "Look for divergence between VFI and price.",
+    "Use it on daily charts as in its original design."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "The 130-bar window makes it slow on purpose."
+  ]
+}

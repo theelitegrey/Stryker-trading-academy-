@@ -1,0 +1,24 @@
+{
+  "slug": "trix",
+  "summary": "TRIX: the one-bar percent change of a triple-smoothed 18-bar EMA, plotted with a 9-bar signal line.",
+  "overview": [
+    "TRIX shows momentum with heavy smoothing, in its own pane around zero, with a signal line in orange.",
+    "Colors are green while TRIX is above its signal and red while below."
+  ],
+  "how": [
+    "Smooth the close three times with an 18-bar EMA. TRIX = one-bar percent change of that triple EMA. Signal = 9-bar EMA of TRIX.",
+    "The triple smoothing filters out small moves. Because it is a percent change, TRIX readings can be compared across symbols."
+  ],
+  "use": [
+    "Some traders watch TRIX crossing its signal line.",
+    "Use zero-line crosses as trend changes in the smoothed price.",
+    "Look for divergence between TRIX and price.",
+    "Use it to ignore short noise and focus on larger swings."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It lags because of the triple smoothing.",
+    "Its zero line marks where the triple-smoothed average stops rising or falling."
+  ]
+}

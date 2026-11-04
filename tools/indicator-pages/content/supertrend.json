@@ -1,0 +1,23 @@
+{
+  "slug": "supertrend",
+  "summary": "SuperTrend: a trailing line set three 10-bar ATRs from median price, green in uptrends and red in downtrends.",
+  "overview": [
+    "SuperTrend draws a single trailing line on the price chart. While the trend is up, the line sits below price in green; while it is down, it sits above in red.",
+    "The line switches sides when price closes through it."
+  ],
+  "how": [
+    "Basic upper band = (high + low) / 2 + 3 x ATR(10). Basic lower band = (high + low) / 2 - 3 x ATR(10). The final lower band can only rise and the upper band can only fall, while the previous close stays on the right side.",
+    "The trend turns up when the close goes above the upper band, and down when it goes below the lower band."
+  ],
+  "use": [
+    "Some traders use the line as a trailing stop.",
+    "Use the color change as a sign of a trend change.",
+    "Use a higher factor for fewer flips and a lower factor for more.",
+    "Watch the distance from price to see how stretched the trend is."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It can flip often in ranges."
+  ]
+}

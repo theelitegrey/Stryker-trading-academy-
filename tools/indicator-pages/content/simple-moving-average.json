@@ -1,0 +1,23 @@
+{
+  "slug": "simple-moving-average",
+  "summary": "A single simple moving average line on the price chart: the plain average of the last 20 closes by default.",
+  "overview": [
+    "The Simple Moving Average (SMA) draws one line that is the plain average of the last N values. By default it averages 20 closing prices and is drawn in blue.",
+    "You can change the source, shift the line with an offset, and pick its color."
+  ],
+  "how": [
+    "SMA = sum of the last N values / N. Each bar in the window counts the same, and the oldest bar drops out when a new one arrives.",
+    "Because every bar weighs the same, the SMA is smoother but slower to react than an EMA of the same length."
+  ],
+  "use": [
+    "Some traders watch whether price closes above or below the line.",
+    "Use its slope to read the direction of the trend.",
+    "Add a second SMA of another length and watch where they cross.",
+    "Some traders use well-known lengths like 50 or 200 as broad trend references."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "The line can jump when a large bar drops out of the window."
+  ]
+}

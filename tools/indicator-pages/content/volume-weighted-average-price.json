@@ -1,0 +1,23 @@
+{
+  "slug": "volume-weighted-average-price",
+  "summary": "VWAP: the volume weighted average of typical price, reset each session, with optional deviation bands.",
+  "overview": [
+    "The Volume Weighted Average Price (VWAP) draws one line on the price chart that shows the average price paid, weighted by volume, since the start of the period. It resets each session by default.",
+    "The line is green while price closes above it and red while below. Optional bands sit at one, two or three standard deviations, or at percent distances."
+  ],
+  "how": [
+    "VWAP = sum of (typical price x volume) / sum of volume, from the start of the anchor period. Typical price = (high + low + close) / 3.",
+    "The anchor can be session, week, month, quarter or year (UTC). Bands use the volume-weighted standard deviation of price around VWAP, or a percentage of VWAP. By default only band 1 is shown, and VWAP is hidden on daily and higher charts."
+  ],
+  "use": [
+    "Some traders watch whether price holds above or below VWAP during the day.",
+    "Use the bands to see price stretched from the day's average.",
+    "Watch returns to VWAP after a move as a reference level.",
+    "Use a weekly or monthly anchor for a longer view."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "Periods reset in UTC."
+  ]
+}

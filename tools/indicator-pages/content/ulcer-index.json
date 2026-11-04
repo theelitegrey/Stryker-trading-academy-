@@ -1,0 +1,23 @@
+{
+  "slug": "ulcer-index",
+  "summary": "Ulcer Index: the root-mean-square of percent drawdowns from the 14-bar high, with a stress level at 5.",
+  "overview": [
+    "The Ulcer Index measures downside risk in its own pane. It rises when price falls from recent highs and stays down, and it stays near zero in steady uptrends.",
+    "A dashed stress line sits at 5 by default, and the line shifts to red as it nears that level. Drawdown columns can be shown too."
+  ],
+  "how": [
+    "At each bar, percent drawdown = (close - highest close of 14 bars) / highest close x 100. Square these values, average them over 14 bars and take the square root.",
+    "Deeper and longer drops raise the index more than short, shallow ones."
+  ],
+  "use": [
+    "Use it to see how painful recent declines have been.",
+    "Some traders compare the index across symbols to judge downside risk.",
+    "Watch readings above the stress line as deep or long drawdowns.",
+    "Use it with trend tools to see if a pullback is getting larger."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It only looks at drops from highs, not upside moves."
+  ]
+}

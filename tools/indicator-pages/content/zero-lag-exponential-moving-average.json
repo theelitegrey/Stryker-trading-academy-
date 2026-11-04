@@ -1,0 +1,23 @@
+{
+  "slug": "zero-lag-exponential-moving-average",
+  "summary": "Zero-lag EMA: an exponential average with a de-lag step, 21 bars by default, colored by slope.",
+  "overview": [
+    "The Zero-Lag Exponential Moving Average (ZLEMA) is an EMA that tries to cancel most of the usual delay. It hugs price more closely than a plain EMA of the same length.",
+    "With Slope Trend Coloring on, it is green while rising, red while falling and gray when flat. Length is 21 by default."
+  ],
+  "how": [
+    "An EMA of length N lags by about (N - 1) / 2 bars. ZLEMA first builds a de-lagged source: price + (price - price from that many bars ago). It then takes an EMA of that series with a smoothing share of 2 / (N + 1).",
+    "The extra step adds recent momentum back in, which reduces lag but can cause small overshoots."
+  ],
+  "use": [
+    "Use it as a faster trend line than a standard EMA.",
+    "Some traders watch the color flip as an early sign of a turn.",
+    "Compare it with a normal EMA to see how much lag is removed.",
+    "Use it on lower timeframes where quick response matters."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It can overshoot after sharp moves."
+  ]
+}

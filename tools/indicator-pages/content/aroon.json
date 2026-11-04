@@ -1,0 +1,22 @@
+{
+  "slug": "aroon",
+  "summary": "Aroon Up and Aroon Down: how recently the 14-bar high and low were made, each on a 0 to 100 scale.",
+  "overview": [
+    "Aroon, by Tushar Chande, shows how recently price made a new high or low, in its own pane. Aroon Up is green and Aroon Down is red.",
+    "A reading of 100 means the extreme was made on the current bar; 0 means it was made the full length ago."
+  ],
+  "how": [
+    "Aroon Up = 100 x (14 - bars since the 14-bar highest high) / 14. Aroon Down = 100 x (14 - bars since the 14-bar lowest low) / 14.",
+    "Only the length can be changed."
+  ],
+  "use": [
+    "Some traders watch Aroon Up above 70 and Aroon Down below 30 as a sign of an uptrend.",
+    "Use crosses of the two lines as changes in trend.",
+    "Watch both lines low together as a sign of a range.",
+    "Use it to see how fresh the latest high or low is."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data."
+  ]
+}

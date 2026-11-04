@@ -1,0 +1,22 @@
+{
+  "slug": "bollinger-bands-percent-b",
+  "summary": "Bollinger %B: where price sits relative to 20-bar, 2-deviation Bollinger Bands; 1 is the upper band, 0 the lower.",
+  "overview": [
+    "Bollinger %B turns Bollinger Bands into one line in its own pane. A reading of 1 means price is at the upper band, 0 at the lower band, and 0.5 at the middle.",
+    "Values above 1 or below 0 mean price is outside the bands. The gradient fill runs from the 0.5 midline."
+  ],
+  "how": [
+    "%B = (close - lower band) / (upper band - lower band). The bands use a 20-bar SMA and 2 standard deviations by default.",
+    "Overbought and oversold levels default to 1 and 0."
+  ],
+  "use": [
+    "Some traders watch readings above 1 or below 0 as price outside its normal range.",
+    "Use crosses of 0.5 to see price moving above or below the middle band.",
+    "Look for divergence: price makes a new high but %B does not.",
+    "Compare it with volume tools to see if moves outside the bands have support."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data."
+  ]
+}

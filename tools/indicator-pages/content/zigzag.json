@@ -1,0 +1,23 @@
+{
+  "slug": "zigzag",
+  "summary": "ZigZag: straight lines joining swing highs and lows that reverse by at least 5% with at least 10 bars between pivots.",
+  "overview": [
+    "The ZigZag connects major swing highs and lows with straight lines on the price chart. Rising legs are green and falling legs are red.",
+    "Small moves are filtered out so only the main swings remain."
+  ],
+  "how": [
+    "A new pivot is confirmed when price reverses from the current leg extreme by at least the deviation (5% of that extreme by default), with at least 10 bars between pivots.",
+    "The last leg can change while price is still extending it. Raising the depth spaces pivots further apart; raising the deviation keeps only bigger swings."
+  ],
+  "use": [
+    "Use it to see the main swings of a move without noise.",
+    "Some traders use the pivots to draw trend lines or measure retracements.",
+    "Use it to study the size and length of past swings.",
+    "Lower the deviation for smaller swings."
+  ],
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "The last leg can move until a new pivot is confirmed.",
+    "Lines are drawn after the fact; they mark swings that already happened."
+  ]
+}

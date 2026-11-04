@@ -1,0 +1,24 @@
+{
+  "slug": "crypto-dom-heatmap",
+  "summary": "Draws the crypto order book as a heatmap behind the candles: how much size rests at each price, and how it changed over time.",
+  "overview": [
+    "The Crypto DOM Heatmap paints the resting orders of a crypto order book behind your candles. Brighter bands mean more size waiting at that price. When a band ends, the orders there were pulled or filled.",
+    "Several looks are available, from a plain heatmap to a deep view with depth bars, wall sizes and tags on big levels that vanished."
+  ],
+  "how": [
+    "The chart reads the exchange's public order book for the symbol, groups prices into buckets and stores one column per moment. Recorded book history fills in the part of the chart before you opened it.",
+    "Walls are the biggest levels on screen (the top 2.5 % of sizes by default) that stayed for at least 12 seconds. Thin levels below a percentile can be hidden to keep the picture clean."
+  ],
+  "use": [
+    "Use it to see where large resting orders sit above and below price.",
+    "Some traders watch how price behaves when it reaches a bright band.",
+    "Watch for walls that disappear before price reaches them (pulled) versus ones that get traded through (filled).",
+    "Combine it with Big Trades to compare resting orders with what actually traded."
+  ],
+  "notes": [
+    "Crypto symbols only; for futures use Futures DOM Heatmap (L2).",
+    "History depends on how long the book has been recorded for the symbol.",
+    "Resting orders can be added or pulled at any moment; the heatmap shows what was there, not what will happen."
+  ],
+  "learn": "order-flow"
+}

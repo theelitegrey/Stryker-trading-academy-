@@ -1,0 +1,23 @@
+{
+  "slug": "smoothed-moving-average",
+  "summary": "Smoothed (Wilder) moving average, 14 bars by default, a slow and steady line colored by its slope.",
+  "overview": [
+    "The Smoothed Moving Average, also called RMA or Wilder's average, draws a slow and steady line over price. It is the same smoothing used inside RSI and ATR.",
+    "With Slope Trend Coloring on, the line is green while rising, red while falling and gray when flat. Length is 14 by default."
+  ],
+  "how": [
+    "Each new value = (previous value x (N - 1) + latest price) / N. This works like an EMA with a smoothing share of 1 / N instead of 2 / (N + 1), so it reacts more slowly than an EMA of the same length.",
+    "The first value is seeded with a simple average."
+  ],
+  "use": [
+    "Use it as a calm trend line that ignores small swings.",
+    "Some traders watch the color change as a sign the trend has turned.",
+    "Compare it with an EMA of the same length to see how much smoothing changes the picture.",
+    "Use it as a longer-term trend filter on lower timeframes."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It lags more than an EMA of the same length."
+  ]
+}

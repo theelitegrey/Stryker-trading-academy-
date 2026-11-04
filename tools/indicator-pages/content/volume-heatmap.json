@@ -1,0 +1,21 @@
+{
+  "slug": "volume-heatmap",
+  "summary": "Shades horizontal bands behind price where the most volume traded in the visible range, coloured by candle direction.",
+  "overview": [
+    "Volume Heatmap paints horizontal rows behind the candles at the prices where volume built up. Busier rows are wider and more opaque. By default each row is green when up candles contributed more of its volume and red when down candles did; a single-colour mode is also available."
+  ],
+  "how": [
+    "For the visible bars, each bar's volume is spread evenly across the price rows between its low and high, and added with the sign of the candle (up or down). Rows on futures are 4 ticks by default, and are doubled in size when they would be too thin on screen. On other markets the row size follows the visible price range.",
+    "Only rows above 8% of the busiest row are drawn, with opacity up to 42%."
+  ],
+  "use": [
+    "Some traders use it to see high-volume price areas at a glance.",
+    "Use the colour to see whether up or down candles built each area.",
+    "Some traders watch how price behaves when it returns to a heavy band."
+  ],
+  "notes": [
+    "Built from candle volume and range, not from trades at each price.",
+    "The heatmap follows the visible range, so it changes as you scroll or zoom.",
+    "It does not show resting orders; for the order book, see the order-flow heatmaps."
+  ]
+}

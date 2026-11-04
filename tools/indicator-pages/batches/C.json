@@ -1,0 +1,529 @@
+[
+ {
+  "slug": "footprint",
+  "key": "b:stk_footprint",
+  "name": "Footprint (bid x ask)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-footprint.js assets/chart-orderflow.js",
+  "settings": [
+   "Cells show = \"bidask\"",
+   "Row size (x the base step) = 1",
+   "Imbalance at (%) = 300",
+   "Show cells from bar width (px) = 44",
+   "Buy colour = \"#089981\"",
+   "Sell colour = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "delta-trades",
+  "key": "b:stk_of_delta",
+  "name": "Delta (trades)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-footprint.js assets/chart-orderflow.js",
+  "settings": [
+   "Positive = \"#03c988\"",
+   "Negative = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "cumulative-delta-trades",
+  "key": "b:stk_of_cvd",
+  "name": "Cumulative Delta (trades)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-footprint.js assets/chart-orderflow.js",
+  "settings": [
+   "Show as = \"candles\"",
+   "Reset = \"session\"",
+   "Up = \"#03c988\"",
+   "Down = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "delta-styles",
+  "key": "b:stk_dsuite",
+  "name": "Delta",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-delta-suite.js",
+  "settings": [
+   "Style = \"H1 Session delta profile\"",
+   "Row size (ticks, 0 = auto) = 0",
+   "Profile width % = 25",
+   "Block length = \"30m\"",
+   "Recent window (minutes) = 30",
+   "Big / strong delta at (x average |delta|) = 2.5",
+   "Key prices per candle = 5",
+   "Last N minutes = 5",
+   "Box position = \"top right\"",
+   "Show numbers = true",
+   "Buyers = \"#03c988\"",
+   "Sellers = \"#9d4dff\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "delta-pane",
+  "key": "b:stk_dpane",
+  "name": "Delta: pane (bars / CVD + divergence)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-delta-suite.js",
+  "settings": [
+   "Style = \"V1 Delta bars\"",
+   "Strong bar at (x average |delta|) = 2",
+   "CVD reset = \"session\"",
+   "Mark divergences = true",
+   "Buyers = \"#03c988\"",
+   "Sellers = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "big-trades",
+  "key": "b:stk_of_big",
+  "name": "Big Trades",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-footprint.js assets/chart-orderflow.js",
+  "settings": [
+   "Aggregate fills into one order = true",
+   "Burst gap (ms) = 150",
+   "Price walk (ticks) = 4",
+   "Also count fills at one price over (s) = 0",
+   "Filter = \"Automatic\"",
+   "Intensity = \"Medium\"",
+   "Min size (contracts) = 0",
+   "Max size (0 = no limit) = 0",
+   "Marker = \"Circle\"",
+   "Size scale (SD) = 1",
+   "Fill opacity = 0.7",
+   "Buyers (hit the ask) = \"#03c988\"",
+   "Sellers (hit the bid) = \"#f23645\"",
+   "Show size = false",
+   "Show fills count = false",
+   "Mark absorption (A) = true",
+   "Show levels swept = true",
+   "Extend levels (bars, 0 = off) = 0"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "absorption",
+  "key": "b:stk_of_abs",
+  "name": "Absorption (levels until broken)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-of-pro.js assets/chart-orderflow.js",
+  "settings": [
+   "Volume at least (x average) = 1.2",
+   "Volume per tick of range at least (x average) = 1.3",
+   "Delta at least (% of the bar volume) = 8",
+   "Broken when a bar closes beyond by (ticks) = 2",
+   "Show broken levels (faded; off = hide them) = true",
+   "Labels = true",
+   "Sellers absorbed (support) = \"#03c988\"",
+   "Buyers absorbed (resistance) = \"#9d4dff\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "imbalance-zones",
+  "key": "b:stk_of_imb",
+  "name": "Imbalance Zones (stacked, until filled)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-of-pro.js assets/chart-orderflow.js",
+  "settings": [
+   "Imbalance ratio % = 300",
+   "Stacked rows (at least) = 3",
+   "Row size (ticks) = 1",
+   "Filled zones = \"faded\"",
+   "Buy imbalance zone = \"#03c988\"",
+   "Sell imbalance zone = \"#9d4dff\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "volume-profile-trades",
+  "key": "b:stk_of_vp",
+  "name": "Volume Profile (trades: session / swing + naked POC)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-footprint.js assets/chart-orderflow.js",
+  "settings": [
+   "Range = \"session\"",
+   "Swing strength (bars each side) = 10",
+   "Row size (ticks, 0 = auto) = 0",
+   "Value area % = 70",
+   "Width % = 30",
+   "Colour = \"value area\"",
+   "Value area = \"#c8602a\"",
+   "Outside value area = \"#b8a84a\"",
+   "POC = \"#e040fb\"",
+   "VAH / VAL lines = \"#8fd8dc\"",
+   "Naked POC lines (until revisited) = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "vwap-trades",
+  "key": "b:stk_of_vwap",
+  "name": "VWAP (trades, ±1/2 SD)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-footprint.js assets/chart-orderflow.js",
+  "settings": [
+   "Reset = \"session\"",
+   "SD bands = \"1 and 2\"",
+   "VWAP colour = \"#00adb5\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "market-profile",
+  "key": "b:stk_of_tpo",
+  "name": "Market Profile (TPO)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-of-pro.js assets/chart-orderflow.js",
+  "settings": [
+   "Session = \"auto\"",
+   "Period (minutes per letter) = 30",
+   "Show as = \"auto\"",
+   "Row size (ticks, 0 = auto) = 0",
+   "Value area % = 70",
+   "Initial balance (periods) = 2",
+   "Width % of the session = 70",
+   "Value area = \"#9aa3ad\"",
+   "Outside value area = \"#3f8f9a\"",
+   "POC = \"#e040fb\"",
+   "VAH / VAL lines = \"#8fd8dc\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "effort-vs-result",
+  "key": "b:stk_of_evr",
+  "name": "Effort vs Result",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-of-pro.js assets/chart-orderflow.js",
+  "settings": [
+   "Average over (bars) = 20",
+   "Flag when effort at least (x average) = 1.5",
+   "and effort / result at least = 2",
+   "Also flag low effort / high result = true",
+   "Effort (volume) = \"#5b6474\"",
+   "Result (range) = \"#00adb5\"",
+   "High effort, low result = \"#f5b301\"",
+   "Low effort, high result = \"#9b7bff\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "stop-runs-sweeps",
+  "key": "b:stk_of_sweep",
+  "name": "Stop Runs / Sweeps (swing high / low + volume spike)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-of-pro.js assets/chart-orderflow.js",
+  "settings": [
+   "Swing strength (bars each side) = 5",
+   "Volume spike at least (x average) = 1.5",
+   "Average volume over (bars) = 20",
+   "Swings older than (bars) are ignored = 300",
+   "Line from the swing to the sweep = true",
+   "Labels = true",
+   "Swing high swept = \"#f23645\"",
+   "Swing low swept = \"#03c988\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "estimated-cvd",
+  "key": "b:stk_estcvd",
+  "name": "Estimated CVD (from candles)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-orderflow.js",
+  "settings": [
+   "Show = \"cvd\"",
+   "Reset CVD = \"session\"",
+   "Buying colour = \"#089981\"",
+   "Selling colour = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "volume-bubble-big-prints",
+  "key": "b:stk_vbubble",
+  "name": "Volume Bubble / Big Prints",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-orderflow.js",
+  "settings": [
+   "Average lookback = 50",
+   "Show above (x avg volume) = 2",
+   "Max bubbles on screen = 80",
+   "Min bubble size = 8",
+   "Max bubble size = 42",
+   "Show size labels = true",
+   "Up candle colour = \"#22c55e\"",
+   "Down candle colour = \"#ef4444\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "liquidity-trend-heatmap",
+  "key": "b:stk_lth",
+  "name": "Liquidity Trend Heatmap",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-orderflow.js",
+  "settings": [
+   "Lookback bars = 180",
+   "Price levels = 26",
+   "Show above (% of POC volume) = 8",
+   "Max opacity % = 48",
+   "Zone extension % of chart = 42",
+   "Node size = 18",
+   "Show POC = true",
+   "Show trend baseline = true",
+   "Trend length = 55",
+   "Heat style = \"blocks + nodes\"",
+   "POC colour = \"#f5c542\"",
+   "Trend colour = \"#eeeeee\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "crypto-dom-heatmap",
+  "key": "b:stk_crypto_dom",
+  "name": "Crypto DOM Heatmap",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-futures-l2.js",
+  "settings": [
+   "Style = \"Deep heatmap (heat + depth + sizes + pulled / filled)\"",
+   "Show heatmap (Combined) = true",
+   "Show depth bars (Combined) = true",
+   "Show walls (Combined) = true",
+   "Wall threshold (top % of sizes) = 2.5",
+   "Wall min lifetime (seconds) = 12",
+   "Show wall sizes = true",
+   "Pulled / filled tags on vanished big levels (Deep) = true",
+   "Iceberg hint (Deep; minutes this page recorded at 1 s) = true",
+   "Ask depth colour (Deep) = \"#8b5cf6\"",
+   "Hide thin levels below (percentile) = 60",
+   "Price bucket size (0 = auto) = 0",
+   "Book range % = 2",
+   "History window (minutes) = 1440",
+   "Depth bars width % = 15",
+   "Max opacity % = 85",
+   "Best bid / ask lines = false",
+   "Colour scale (Heatmap only) = true",
+   "Bid colour = \"#03c988\"",
+   "Ask colour = \"#e5484d\"",
+   "Show from colour = \"All\"",
+   "Min size (coins, 0 = off) = 0",
+   "Max size (coins, 0 = off) = 0",
+   "Top N levels per column (0 = off) = 0"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "liquidity-map",
+  "key": "b:stk_liqmap",
+  "name": "Liquidity Map (order book heatmap)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-futures-l2.js assets/chart-liquidity-map.js",
+  "settings": [
+   "Hide candles (show a price line) = true",
+   "Resting liquidity heatmap = true",
+   "Contrast = 1",
+   "Min size (coins / contracts, 0 = off) = 0",
+   "Show from colour = \"All\"",
+   "Max size (coins / contracts, 0 = off) = 0",
+   "Top N levels per column (0 = off) = 0",
+   "History (minutes) = 120",
+   "Trade bubbles = true",
+   "Min bubble size (0 = biggest on screen) = 0",
+   "Bubble size % = 100",
+   "Order book ladder (right side) = true",
+   "Volume bars = true",
+   "Time grid = true",
+   "Colour scale (blue = small, yellow = large, red = biggest) = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "futures-dom-heatmap-l2",
+  "key": "b:stk_fut_dom",
+  "name": "Futures DOM Heatmap (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-futures-l2.js",
+  "settings": [
+   "Style = \"Midnight\"",
+   "Contrast (Bookmap / Split) = 1",
+   "Show depth bars (Bookmap) = true",
+   "Show sizes (numbers on the depth bars) = true",
+   "Colour by (Split) = \"Side\"",
+   "Style = \"Deep heatmap (heat + depth + sizes + pulled / filled)\"",
+   "Show heatmap (Combined) = true",
+   "Show depth bars (Combined) = true",
+   "Show walls (Combined) = true",
+   "Wall threshold (top % of sizes) = 3",
+   "Wall min lifetime (seconds) = 30",
+   "Show wall sizes = true",
+   "Pulled / filled tags on vanished big levels (Deep) = true",
+   "Iceberg hint (Deep; minutes this page recorded at 1 s) = true",
+   "Ask depth colour (Deep) = \"#8b5cf6\"",
+   "Hide thin levels below (percentile) = 60",
+   "Price bucket (points, 0 = auto) = 0",
+   "History window (minutes, recorder keeps 48 h) = 360",
+   "Depth bars width % = 15",
+   "Max opacity % = 85",
+   "Best bid / ask lines = false",
+   "Colour scale (Heatmap only) = true",
+   "Bid colour = \"#03c988\"",
+   "Ask colour = \"#e5484d\"",
+   "Show from colour = \"All\"",
+   "Show from colour = \"All\"",
+   "Show from colour = \"All\"",
+   "Show from colour = \"All\"",
+   "Show from colour = \"All\"",
+   "Min size (contracts, 0 = off) = 0",
+   "Max size (contracts, 0 = off) = 0",
+   "Top N levels per column (0 = off) = 0",
+   "Graphics card (smoother) = true",
+   "Depth levels per side (ladder + bars) = \"60\"",
+   "Pulled / consumed tags in every view = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "liquidity-walls-l2",
+  "key": "b:stk_fut_walls",
+  "name": "Liquidity Walls (L2)",
+  "author": "TradeZoro",
+  "group": "Order flow",
+  "plan": "Pro",
+  "short": "",
+  "source": "assets/chart-futures-l2.js",
+  "settings": [
+   "Style = \"Classic\"",
+   "Colour by (Split) = \"Side\"",
+   "Style = \"Walls only\"",
+   "Show heatmap (Combined) = true",
+   "Show depth bars (Combined) = true",
+   "Show walls (Combined) = true",
+   "Wall threshold (top % of sizes) = 3",
+   "Wall min lifetime (seconds) = 30",
+   "Show wall sizes = true",
+   "Pulled / filled tags on vanished big levels (Deep) = true",
+   "Iceberg hint (Deep; minutes this page recorded at 1 s) = true",
+   "Ask depth colour (Deep) = \"#8b5cf6\"",
+   "Hide thin levels below (percentile) = 60",
+   "Price bucket (points, 0 = auto) = 0",
+   "History window (minutes, recorder keeps 48 h) = 360",
+   "Depth bars width % = 15",
+   "Max opacity % = 85",
+   "Best bid / ask lines = false",
+   "Colour scale (Heatmap only) = true",
+   "Bid colour = \"#03c988\"",
+   "Ask colour = \"#e5484d\"",
+   "Min size (contracts, 0 = off) = 0",
+   "Max size (contracts, 0 = off) = 0",
+   "Top N levels per column (0 = off) = 0",
+   "Depth levels per side (ladder + bars) = \"60\"",
+   "Pulled / consumed tags in every view = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ }
+]

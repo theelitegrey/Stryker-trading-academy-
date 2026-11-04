@@ -1,0 +1,22 @@
+{
+  "slug": "on-balance-volume",
+  "summary": "On Balance Volume: a running total that adds volume on up closes and subtracts it on down closes.",
+  "overview": [
+    "On Balance Volume (OBV), by Joe Granville, is a running volume line in its own pane. It rises when volume comes on up closes and falls when it comes on down closes.",
+    "An optional moving average can be added as a smoothing or signal line."
+  ],
+  "how": [
+    "If close is above the previous close, add the bar's volume. If below, subtract it. If equal, OBV stays the same.",
+    "The smoothing line can be SMA or another type, 20 bars by default. The level of OBV has no meaning by itself; the slope does."
+  ],
+  "use": [
+    "Some traders watch OBV breaking out before price does.",
+    "Look for divergence between OBV and price.",
+    "Use the smoothing line to see when OBV turns.",
+    "Use it to check whether a breakout comes with rising volume."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful."
+  ]
+}

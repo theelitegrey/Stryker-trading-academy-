@@ -1,0 +1,23 @@
+{
+  "slug": "macd",
+  "summary": "MACD: the 12 EMA minus the 26 EMA, a 9-bar signal line and a histogram showing the gap between the two lines.",
+  "overview": [
+    "MACD (Moving Average Convergence Divergence) shows momentum in its own pane. It has a blue MACD line, an orange signal line and a histogram.",
+    "Histogram bars are bright when the gap is growing and faded when it is shrinking, green above zero and red below."
+  ],
+  "how": [
+    "MACD line = EMA(close, 12) - EMA(close, 26). Signal = EMA(MACD, 9). Histogram = MACD - Signal.",
+    "Above zero, the fast average is above the slow one."
+  ],
+  "use": [
+    "Some traders watch the MACD line crossing the signal line as a change in momentum.",
+    "Use zero-line crosses to see the fast and slow averages swap places.",
+    "Look for divergence between MACD peaks and price peaks.",
+    "Watch the histogram shrink as an early sign a move is slowing."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Values are in price units, so they are not directly comparable across symbols."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "commodity-channel-index",
+  "summary": "Commodity Channel Index: how far typical price sits from its 20-bar average, in units of mean deviation, with plus and minus 100 levels.",
+  "overview": [
+    "The Commodity Channel Index (CCI) shows how far price has moved from its average, in its own pane. Reference levels sit at +100 and -100.",
+    "The line and fill are green above zero and red below."
+  ],
+  "how": [
+    "CCI = (source - SMA(source, 20)) / (0.015 x mean absolute deviation). The source is typical price, (high + low + close) / 3, by default.",
+    "The 0.015 constant scales the result so most readings fall between -100 and +100."
+  ],
+  "use": [
+    "Some traders read moves above +100 as strong upside and below -100 as strong downside.",
+    "Use returns inside the levels to see a move losing pace.",
+    "Watch zero-line crosses for changes in direction.",
+    "Look for divergence between CCI and price."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "CCI has no fixed upper or lower limit."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "delta-trades",
+  "summary": "Plots each bar's delta, the volume bought at the ask minus the volume sold at the bid, as a histogram in a lower pane.",
+  "overview": [
+    "Delta (trades) draws one histogram bar per candle in its own pane. A bar above zero means more volume bought at the ask than sold at the bid during that candle; below zero means the reverse. Positive bars are green and negative bars red by default."
+  ],
+  "how": [
+    "Each recorded trade is tagged by its aggressor side. For every chart bar, the indicator adds up the buy volume and the sell volume and plots buy minus sell. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.",
+    "The trades are stored as 1-minute footprint bars and re-aggregated to your chart's timeframe."
+  ],
+  "use": [
+    "Some traders compare the size of delta with the size of the candle.",
+    "Use it to see whether a push higher came with net buying, or not.",
+    "Some traders watch for a large delta that price did not follow.",
+    "Use it next to Cumulative Delta to see both the bar and the running total."
+  ],
+  "notes": [
+    "Needs per-trade data; other symbols show a note.",
+    "In bar replay only bars complete at the replay time are used.",
+    "For the version built from the Data feed L1 trade stream, see Delta (L1)."
+  ],
+  "learn": "order-flow"
+}

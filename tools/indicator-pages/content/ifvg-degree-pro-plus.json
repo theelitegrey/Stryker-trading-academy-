@@ -1,0 +1,26 @@
+{
+  "slug": "ifvg-degree-pro-plus",
+  "summary": "Inverse fair value gap setups after liquidity sweeps, with target lines, invalidation, ghost boxes and a small dashboard.",
+  "overview": [
+    "This community script marks inverse fair value gaps (IFVGs). It watches for a fair value gap that price later closes through, which turns the gap into a zone on the other side. Confirmed IFVGs are drawn as boxes in bullish or bearish colors, with optional midpoint (CE) lines and dotted target lines.",
+    "It can also draw sweep lines when swing liquidity is taken, ghost boxes for potential IFVGs, and gray boxes for invalidated setups. A dashboard at the bottom of the chart summarizes the setups."
+  ],
+  "how": [
+    "Swings are found on a liquidity timeframe (15 minutes by default) with a swing lookback of 15. By default an IFVG only counts if a liquidity sweep came first, and the inversion must happen within a valid window of 8 bars.",
+    "Raw gaps expire after 80 bars if they never invert. A setup is invalidated on a close (or a wick, if set) through the zone. Optional filters limit setups to one or two session windows, to the first and last 10 minutes of each hour, or to gaps that agree with a higher-timeframe FVG.",
+    "Up to 15 active setups stay on the chart."
+  ],
+  "use": [
+    "Use the boxes to see where a gap has flipped from one side to the other.",
+    "Some traders wait for a sweep, then look for the first IFVG as a sign of a change in direction.",
+    "Watch the target lines to see where the script projects the move to.",
+    "Use the session filter to study only the hours you trade."
+  ],
+  "alerts": "Alerts: members can create an alert on its conditions (for example \"+IFVG Inversion Confirmed\", \"-IFVG Inversion Confirmed\", \"IFVG Target Hit\", \"Buyside Liquidity (BSL) Swept\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Times use the timezone setting (UTC-4 by default).",
+    "Targets and invalidation follow the script's own rules.",
+    "It works on any symbol with intraday data."
+  ],
+  "learn": "fair-value-gap"
+}

@@ -1,0 +1,24 @@
+{
+  "slug": "true-strength-index",
+  "summary": "True Strength Index: double-smoothed price momentum (25 and 13 EMAs) with a 13-bar signal line.",
+  "overview": [
+    "The True Strength Index (TSI) shows momentum as a smooth line in its own pane, with a signal line in orange.",
+    "Colors are green while TSI is above its signal and red while below."
+  ],
+  "how": [
+    "Take the one-bar change of the close. Smooth it with a 25-bar EMA, then a 13-bar EMA. Do the same with the absolute change. TSI = 100 x smoothed change / smoothed absolute change.",
+    "Signal = 13-bar EMA of TSI. Using the absolute change in the second part keeps the result on a fixed scale."
+  ],
+  "use": [
+    "Some traders watch TSI crossing its signal line.",
+    "Use zero-line crosses as changes in momentum direction.",
+    "Look for divergence with price.",
+    "Use high and low readings as signs of stretched momentum for that symbol."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Values usually stay between -100 and +100.",
+    "It is closely related to the SMI Ergodic Oscillator."
+  ]
+}

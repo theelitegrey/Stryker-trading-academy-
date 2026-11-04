@@ -1,0 +1,21 @@
+{
+  "slug": "effort-vs-result",
+  "summary": "A lower pane comparing each bar's volume with its range, flagging high-effort, low-result bars and the reverse.",
+  "overview": [
+    "Effort vs Result compares how much traded with how far price moved. Effort is the bar's volume against its average; result is the bar's range against its average. Both are drawn in their own pane.",
+    "Bars with high effort and low result are flagged in amber. Bars with low effort and high result are flagged in violet."
+  ],
+  "how": [
+    "Averages run over 20 bars. A bar is flagged as high effort, low result when its effort is at least 1.5 times average and its effort-to-result ratio is at least 2. The reverse flag marks bars that moved far on little volume; it can be turned off.",
+    "It uses traded volume where order flow exists and the chart's own volume elsewhere."
+  ],
+  "use": [
+    "Some traders read high effort with little movement as one side meeting the other.",
+    "Use the low effort flags to see moves that came on thin volume.",
+    "Some traders compare the flags with nearby support or resistance."
+  ],
+  "notes": [
+    "Needs bars with volume.",
+    "It compares bars with their own recent average, so the same volume can flag differently on different days."
+  ]
+}

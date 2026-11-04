@@ -1,0 +1,23 @@
+{
+  "slug": "parabolic-sar",
+  "summary": "Parabolic SAR: Wilder's stop-and-reverse dots that trail price and speed up as the trend extends.",
+  "overview": [
+    "The Parabolic SAR, by Welles Wilder, plots dots above or below the candles. Dots below price (green) mean an uptrend; dots above price (red) mean a downtrend.",
+    "When price crosses the dots, they flip to the other side."
+  ],
+  "how": [
+    "SAR next = SAR + AF x (EP - SAR). EP is the extreme point of the trend (highest high in an uptrend, lowest low in a downtrend). AF starts at 0.02, adds 0.02 each time a new extreme is made, and stops at 0.2.",
+    "On a flip, SAR resets to the previous extreme point and AF resets to the start."
+  ],
+  "use": [
+    "Some traders use the dots as a trailing stop.",
+    "Use the flip as a sign of a possible trend change.",
+    "Watch the gap between price and dots to see how extended the trend is.",
+    "Pair it with a trend strength tool to avoid flips in ranges."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It flips often in sideways markets."
+  ]
+}

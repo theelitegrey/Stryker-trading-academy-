@@ -1,0 +1,25 @@
+{
+  "slug": "session-sweep-smt-plus-ifvg",
+  "summary": "Marks session and previous-day highs and lows, the sweep of each, SMT against the correlated symbol and the IFVG that follows.",
+  "overview": [
+    "Session Sweep SMT + IFVG marks one model step by step. It draws Asia, London and NY AM session highs and lows (NY PM is optional) and the previous day high and low, each running right until swept. A sweep stops the line and places a small swept mark on the wick.",
+    "If the correlated symbol did not take its own level for the same session, the sweep has SMT and a dashed line joins the two swing points. After that, the first fair value gap against the move that price closes through is boxed as the IFVG. When all three happen, a compact tag sits on the IFVG candle."
+  ],
+  "how": [
+    "A sweep is a candle trading through a level by at least one tick. With auto-pair on, NQ is compared with ES, MNQ with MES, ES with NQ, YM and RTY with ES, SPX with NDX, and GC with SI; otherwise you set the symbol. Sessions use New York time by default, and the trading day starts at 18:00.",
+    "The IFVG must come within 20 bars of the sweep, be at least 2 ticks, and may start up to 10 bars before the sweep. By default an IFVG is marked only after a sweep with SMT. Everything is drawn on closed candles. Open levels farther than 0.5% from price are hidden until price gets close, and 5 days of history are shown."
+  ],
+  "use": [
+    "Some traders use it to study how often a session sweep is followed by SMT and an IFVG.",
+    "Use the swept marks to see which session levels were taken today.",
+    "Some traders turn on the table to see today's sessions in one place.",
+    "Use partial sequences to review sweeps that did not complete the model."
+  ],
+  "alerts": "Alerts: members can create an alert on level swept, sweep with SMT or full sequence from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Needs data for the correlated symbol.",
+    "It only marks the chart; it does not place orders.",
+    "Partial sequences show only the parts that happened."
+  ],
+  "learn": "liquidity-sweeps"
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "accumulation-distribution",
+  "summary": "Accumulation/Distribution line: a running total of volume weighted by where each bar closes in its range.",
+  "overview": [
+    "The Accumulation/Distribution (A/D) line adds up volume, weighted by where each candle closes, in its own pane. It rises when closes sit near highs on good volume and falls when they sit near lows.",
+    "With slope coloring on, it is green while rising and red while falling."
+  ],
+  "how": [
+    "Money flow multiplier = ((close - low) - (high - close)) / (high - low). Money flow volume = multiplier x volume. A/D = running total of money flow volume.",
+    "The level itself has no meaning; the slope and direction are what count."
+  ],
+  "use": [
+    "Some traders watch for divergence between A/D and price.",
+    "Use a rising line during a range as a sign of accumulation.",
+    "Use a falling line during a rally as a sign of weaker support.",
+    "Compare it with OBV to see two views of volume flow."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "It ignores gaps between bars."
+  ]
+}

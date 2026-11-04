@@ -1,0 +1,21 @@
+{
+  "slug": "liquidity-balance-l2",
+  "summary": "A pane showing the resting bid and ask size near price, their difference, and the change since the session start.",
+  "overview": [
+    "Liquidity Balance (L2) shows how much size rests on the bid and on the ask within a set distance of price, and the difference between them.",
+    "Two size lines can be shown, together with the balance."
+  ],
+  "how": [
+    "For every order-book snapshot it adds up the resting size within 20 ticks each side of price (by default). The pane shows bid size, ask size, their difference and how the balance has changed since the session began."
+  ],
+  "use": [
+    "Use it to see which side of the book holds more size near price.",
+    "Some traders watch the balance shift as price approaches a level.",
+    "Compare the change since the session start with the session's direction."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Resting size can be pulled at any time."
+  ],
+  "learn": "order-flow"
+}

@@ -1,0 +1,21 @@
+{
+  "slug": "liquidity-trend-heatmap",
+  "summary": "Paints heat zones from volume at price over the last 180 bars, with the point of control and a moving-average trend baseline.",
+  "overview": [
+    "Liquidity Trend Heatmap shows where volume built up over recent bars as horizontal heat zones extending across the right part of the chart. Zones can be drawn as blocks, nodes or both. The point of control is drawn in gold, and a trend baseline follows price."
+  ],
+  "how": [
+    "The last 180 bars are split into 26 price levels. Each bar's volume is spread over the levels between its low and high and added with the candle's direction. Only levels above 8% of the POC's volume are drawn, with opacity up to 48%.",
+    "The trend baseline is a simple moving average of the close over 55 bars. Everything is built from the chart's own candle volume."
+  ],
+  "use": [
+    "Some traders use it to see the main high-volume area of the recent range.",
+    "Use the POC as a reference for where most recent volume traded.",
+    "Some traders read the baseline to see whether price is above or below its recent average."
+  ],
+  "notes": [
+    "Needs bars with volume.",
+    "Built from candles, not from the order book, despite the name."
+  ],
+  "learn": "volume-profile"
+}

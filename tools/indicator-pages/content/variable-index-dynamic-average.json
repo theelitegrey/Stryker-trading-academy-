@@ -1,0 +1,23 @@
+{
+  "slug": "variable-index-dynamic-average",
+  "summary": "VIDYA: an adaptive moving average that speeds up in strong moves and slows in quiet ones, colored by trend regime.",
+  "overview": [
+    "The Variable Index Dynamic Average (VIDYA) is a moving average whose speed changes bar by bar. It moves faster when momentum is strong and almost stops when the market is quiet.",
+    "With Trend Regime Coloring on, it is green while sloping up, red while sloping down and gray when flat. The adaptive gradient fades the color as momentum dies."
+  ],
+  "how": [
+    "VIDYA starts from an EMA smoothing share of 2 / (N + 1), with N = 12 by default, and multiplies it by a scaler each bar. In Momentum mode the scaler is the absolute Chande Momentum Oscillator (9 bars) divided by 100. In Volatility mode it is a short standard deviation divided by a reference standard deviation (30 bars).",
+    "The line counts as flat when its one-bar change is below 0.05 of ATR(14)."
+  ],
+  "use": [
+    "Use the flat color to spot ranges where the average stops moving.",
+    "Some traders watch the regime color change as a sign of a new trend.",
+    "Use it as a trend line that stays still in noise.",
+    "Compare Momentum and Volatility modes to see which suits the symbol."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It can stay flat for long periods in quiet markets."
+  ]
+}

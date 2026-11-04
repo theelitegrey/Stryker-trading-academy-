@@ -1,0 +1,24 @@
+{
+  "slug": "ultimate-oscillator",
+  "summary": "Ultimate Oscillator: buying pressure over 7, 14 and 28 bars blended 4:2:1, from 0 to 100, with levels at 70 and 30.",
+  "overview": [
+    "The Ultimate Oscillator, by Larry Williams, mixes three time spans into one line from 0 to 100 in its own pane. Levels sit at 70 and 30.",
+    "Using several windows helps reduce the false signals one window can give."
+  ],
+  "how": [
+    "Buying pressure (BP) = close - min(low, previous close). True range (TR) = max(high, previous close) - min(low, previous close). For each window, average = sum of BP / sum of TR.",
+    "UO = 100 x (4 x avg7 + 2 x avg14 + avg28) / 7."
+  ],
+  "use": [
+    "Some traders watch readings above 70 or below 30.",
+    "Look for divergence between UO and price, as in the original method.",
+    "Use the 50 line to separate up and down pressure.",
+    "Compare it with RSI to see how the blend changes signals."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "The fast window has the most weight.",
+    "Williams' original method also looked for a divergence followed by a break of the oscillator's recent high or low."
+  ]
+}

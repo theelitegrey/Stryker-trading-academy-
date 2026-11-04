@@ -1,0 +1,24 @@
+{
+  "slug": "htf-po3-lens",
+  "summary": "Draws candles from up to five higher timeframes to the right of the last bar, with their fair value gaps, sweeps and a countdown to each close.",
+  "overview": [
+    "HTF PO3 Lens lets you read higher-timeframe candles without leaving your chart. To the right of the last bar it draws a stack of candles for each chosen timeframe, lined up with the chart's price scale. By default it shows two candles each for 15m, 1h and 4h; daily and weekly can be switched on.",
+    "Each stack carries its timeframe name and a countdown to the candle close. Fair value gaps between the stacked candles are shaded, and sweeps of a prior candle's high or low are marked with a short line across the wick that took it."
+  ],
+  "how": [
+    "The higher-timeframe candles are built from completed chart bars, with no lookahead. You set how many candles per timeframe (1 to 6), the distance from the last bar, the candle width and the gaps between candles and stacks.",
+    "A fair value gap is the space left between candles in the stack, and it can be extended to the end of the stack. Sweeps shown per stack default to the most recent one. Optional extras add BSL or SSL text beside the sweep marker and extend swept levels back across the chart as dashed lines. A price line runs across the panel at the current price."
+  ],
+  "use": [
+    "Some traders read the open, high, low and close of the higher-timeframe candle to frame the session (the Power of Three idea).",
+    "Use the countdown to see how much time is left in each higher-timeframe candle.",
+    "Some traders watch whether price is trading into a higher-timeframe gap.",
+    "Use the sweep marks to see which candle highs or lows were taken."
+  ],
+  "notes": [
+    "The chosen timeframes should be above the chart timeframe.",
+    "The stack sits in the space right of the last bar, so leave room on the chart.",
+    "The script has no alert conditions."
+  ],
+  "learn": "fair-value-gap"
+}

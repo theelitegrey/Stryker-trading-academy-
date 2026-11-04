@@ -1,0 +1,21 @@
+{
+  "slug": "imbalance-zones",
+  "summary": "Draws zones where three or more stacked diagonal buy or sell imbalances formed, and extends them right until price trades through.",
+  "overview": [
+    "Imbalance Zones finds places inside bars where one side clearly outweighed the other for several price rows in a row. Each stack is drawn as a zone that extends to the right until price trades through it, then it fades. Buy imbalance zones are green and sell imbalance zones purple."
+  ],
+  "how": [
+    "An imbalance is diagonal: buys at a price compared with sells one row lower, and sells compared with buys one row higher. It counts when one side is at least 300% of the other. A zone needs at least 3 such rows stacked together. Rows are 1 tick by default.",
+    "Filled zones are faded by default and can be hidden. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto."
+  ],
+  "use": [
+    "Some traders watch how price reacts on a return to an unfilled imbalance zone.",
+    "Use it to see where aggressive buying or selling stacked up during a move.",
+    "Some traders compare zones with the footprint cells that made them."
+  ],
+  "notes": [
+    "Needs per-trade data; other symbols show a note.",
+    "Larger row sizes find fewer, wider zones."
+  ],
+  "learn": "order-flow"
+}

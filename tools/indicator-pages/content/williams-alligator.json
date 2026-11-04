@@ -1,0 +1,23 @@
+{
+  "slug": "williams-alligator",
+  "summary": "Williams Alligator: three smoothed averages of median price, shifted forward, called the jaw, teeth and lips.",
+  "overview": [
+    "The Williams Alligator draws three lines on the price chart. The jaw (purple) is slow, the teeth (orange) are medium and the lips (yellow) are fast. Each one is pushed forward in time by a few bars.",
+    "When the lines are tangled, the market is often ranging. When they fan out in order, price is trending."
+  ],
+  "how": [
+    "Each line is a smoothed moving average (SMMA) of median price, (high + low) / 2. Classic settings: jaw 13 bars shifted 8, teeth 8 bars shifted 5, lips 5 bars shifted 3.",
+    "The forward shift means the last few bars of each line extend past the current candle."
+  ],
+  "use": [
+    "Some traders read tangled lines as the Alligator sleeping and stay patient.",
+    "Watch the lines spread apart in order (lips, teeth, jaw) as a sign of a trend.",
+    "Use price crossing the jaw as a broad trend change signal.",
+    "Pair it with the Gator Oscillator to see the spread as a histogram."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "The forward shift is part of the design; it is not a forecast."
+  ]
+}

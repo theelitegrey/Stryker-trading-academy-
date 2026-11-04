@@ -1,0 +1,25 @@
+{
+  "slug": "london-intraday-protraction-pro-plus",
+  "summary": "CBDR and Asian range boxes, CBDR deviations, London protraction markers and profile labels, with a session statistics table.",
+  "overview": [
+    "This community script follows ICT's London protraction idea for FX. It boxes the Central Bank Dealers Range (CBDR, 14:00 to 20:00 New York) and the Asian Range (20:00 to 00:00), labels their size in pips, and marks each range as valid or invalid against size limits.",
+    "It then projects CBDR standard deviations above and below, watches the protraction window (00:00 to 02:00) and the London session (02:00 to 05:00), and marks protraction highs or lows with short level lines and signal text. A statistics table counts how sessions played out, and a panel shows the timeframe and symbol."
+  ],
+  "how": [
+    "The ideal CBDR is below 40 pips and the ideal Asian Range between 20 and 30 pips by default; ranges outside these limits are marked invalid. Up to three CBDR deviations can be drawn.",
+    "A protraction is confirmed when its extreme holds for a set number of bars (2 by default) and price closes back inside the range. Each day is assigned a profile, such as normal or negated, based on when the protraction printed.",
+    "Colors can adapt to a light or dark chart background."
+  ],
+  "use": [
+    "Use the range boxes to see whether the day's setup meets the size rules.",
+    "Some traders watch the deviation lines as possible areas for the London move to reach.",
+    "Use the statistics table to review how often each profile appeared on past sessions.",
+    "Compare the protraction marker time with the normal window."
+  ],
+  "alerts": "Alerts: members can create an alert on its conditions (for example \"Profile Assigned\", \"Protraction\", \"Confirmed Protraction\", \"No Protraction\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Made for FX pairs; ranges are measured in pips.",
+    "All times are New York time.",
+    "Five past sessions stay on the chart by default; the statistics count every session loaded."
+  ]
+}

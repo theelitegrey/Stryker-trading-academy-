@@ -1,0 +1,23 @@
+{
+  "slug": "options-flow-marks",
+  "summary": "Places bubbles on candles where call premium (green, above) or put premium (red, below) was unusually large, sized by premium.",
+  "overview": [
+    "Options Flow Marks highlights bars with heavy options premium. A green bubble above the candle marks large call premium; a red bubble below marks large put premium. Bigger bubbles mean more premium in that bar.",
+    "Hover or tap a bubble to see a card with calls or puts, the premium, the number of contracts and the net bought-minus-sold estimate. The card says plainly that strike and expiry are not in the data."
+  ],
+  "how": [
+    "It uses the same per-minute options samples as ZoroTide for SPX, SPY and QQQ (ES and NQ charts map to SPX and QQQ). Samples are added up per chart bar, so each mark is a bar total across all contracts, not a single trade.",
+    "Within the visible bars, a bar qualifies when its call or put premium is in the top share for that side: 5% at Low sensitivity, 10% at Medium, 20% at High. The biggest marks are kept first, with at most one bubble every 3 bars. Bubble size scales with the square root of premium against the biggest mark."
+  ],
+  "use": [
+    "Some traders watch where heavy call or put premium showed up during a move.",
+    "Use it to see whether options activity clustered near a high, a low or a breakout.",
+    "Some traders compare the bubbles with ZoroTide's running totals."
+  ],
+  "notes": [
+    "Intraday charts only, on SPX, SPY, QQQ, ES and NQ.",
+    "Premium is estimated from options volume and quotes.",
+    "Nothing is drawn in bar replay, because the day's totals would show the future.",
+    "Strike and expiry are not available, so the marks do not show which contracts traded."
+  ]
+}

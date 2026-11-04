@@ -1,0 +1,23 @@
+{
+  "slug": "least-squares-moving-average",
+  "summary": "Least squares moving average: the end point of a straight-line fit over the last 25 bars, colored by its slope.",
+  "overview": [
+    "The Least Squares Moving Average (LSMA) fits a straight line through the last 25 closes on every bar and plots where that line ends. The result tracks price more closely than a simple average of the same length.",
+    "With Slope Trend Coloring on, the line turns green while rising, red while falling and gray when flat."
+  ],
+  "how": [
+    "On each bar the indicator runs a linear regression on the last N values (25 by default) and plots the fitted value at the current bar. Regression Offset steps back along the fitted line: 0 uses the end point, larger values read the line further back for a smoother result.",
+    "Because it follows the fitted trend, it can lead turns that a same-length SMA trails, but it can overshoot after sharp moves."
+  ],
+  "use": [
+    "Use the color change to see when the fitted trend flips direction.",
+    "Some traders compare price with the LSMA to see how far it has stretched from its recent trend.",
+    "Use it as a faster alternative to an SMA of the same length.",
+    "Watch a flat gray line as a sign of a pause in trend."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It can overshoot after sudden moves because it projects the recent slope."
+  ]
+}

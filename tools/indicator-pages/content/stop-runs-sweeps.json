@@ -1,0 +1,22 @@
+{
+  "slug": "stop-runs-sweeps",
+  "summary": "Marks bars that poke past a recent swing high or low on a volume spike and close back inside, with a line from the swing.",
+  "overview": [
+    "Stop Runs / Sweeps marks bars that trade beyond a recent swing high or low, on unusually high volume, and then close back inside. A small triangle sits at the wick, a dotted line runs from the swing to the sweep, and a short label names it. Swing highs swept are red and swing lows swept are green."
+  ],
+  "how": [
+    "A swing high or low is the extreme of 5 bars on each side. A sweep needs volume of at least 1.5 times the 20-bar average. Swings older than 300 bars are ignored.",
+    "It uses traded volume where order flow exists and the chart's own volume on other symbols, so it works anywhere bars have volume."
+  ],
+  "use": [
+    "Some traders watch sweeps of swing highs or lows as places where stops may have been run.",
+    "Use the line to see which swing was taken.",
+    "Some traders combine sweeps with absorption or delta to see what happened at the sweep."
+  ],
+  "notes": [
+    "Needs bars with volume.",
+    "A sweep is a past pattern, not a forecast.",
+    "For a version confirmed by the order book, see Stop Runs (L2)."
+  ],
+  "learn": "liquidity-sweeps"
+}

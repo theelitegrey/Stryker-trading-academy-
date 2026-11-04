@@ -1,0 +1,21 @@
+{
+  "slug": "liquidity-walls-l2",
+  "summary": "Marks the large resting orders that stay in the futures order book, and tags them when they are pulled or consumed.",
+  "overview": [
+    "Liquidity Walls (L2) is the futures heatmap set to show walls only. Instead of the whole book, you see the few levels with unusually large size that have stayed in place.",
+    "Each wall shows its size, and big levels that vanish can be tagged as pulled (cancelled) or filled (traded through)."
+  ],
+  "how": [
+    "It reads the same futures book as the heatmap. A level counts as a wall when its size is in the top 3 % of sizes seen and it has stayed at least 30 seconds (both settings can be changed). Trades at the level decide whether a vanished wall was filled or pulled."
+  ],
+  "use": [
+    "Use it to see the largest resting orders near price without the full heatmap.",
+    "Some traders watch whether a wall holds when price reaches it, or is pulled first.",
+    "Use the wall size label to compare levels."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "A wall is resting interest at one moment; it can be pulled at any time."
+  ],
+  "learn": "order-flow"
+}

@@ -1,0 +1,24 @@
+{
+  "slug": "visible-range-volume-profile",
+  "summary": "Volume profile for the visible chart: horizontal volume rows by price, with a point of control and a 70% value area.",
+  "overview": [
+    "The Visible Range Volume Profile shows how much volume traded at each price level for the bars on screen. It draws horizontal rows on the side of the price chart; longer rows mean more volume at that price.",
+    "Each row is split into up and down volume. The point of control (POC) marks the price with the most volume, and the value area shades the range that holds 70% of it."
+  ],
+  "how": [
+    "The visible price range is split into 24 rows by default. Each bar's volume is added to the rows it covers, split by up or down candle. The largest row fills 30% of the panel width.",
+    "The value area grows out from the POC until it holds the chosen share of volume. The profile is rebuilt every time you scroll or zoom."
+  ],
+  "use": [
+    "Some traders watch the POC as a level price may return to.",
+    "Use the value area edges as reference areas for the range.",
+    "Use thin rows (low volume) to see prices price moved through quickly.",
+    "Zoom to one session to see that session's profile."
+  ],
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "Volume is spread across each candle's range, so it is an estimate from bars, not trade-by-trade data.",
+    "The profile changes as the visible range changes."
+  ],
+  "learn": "volume-profile"
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "market-profile",
+  "summary": "Builds a TPO market profile per session, drawn as letters or blocks per 30 minutes, with initial balance, POC, value area and single prints.",
+  "overview": [
+    "Market Profile (TPO) shows how much time price spent at each level during a session. Each 30-minute period gets its own letter, and each price row shows which periods traded there. When letters do not fit, they are drawn as blocks.",
+    "The profile marks the initial balance (the first 2 periods) as a bar at the left edge, the POC in magenta, the 70% value area in grey with teal outside it, VAH and VAL lines, and single prints. A footer shows the period count and the initial balance range."
+  ],
+  "how": [
+    "Market Profile uses only the chart's candles: time at price, not volume. By default the session is RTH (09:30 to 16:00 New York) on futures and the UTC day on crypto; full uses the futures trading day from 18:00 New York.",
+    "Row size is automatic by default. The POC is the row with the most periods, and the value area grows from it until it holds 70% of the time spent."
+  ],
+  "use": [
+    "Some traders watch whether price stays inside or breaks out of the initial balance.",
+    "Use single prints to see fast moves where price spent little time.",
+    "Some traders compare the TPO POC with a volume POC.",
+    "Use the value area to see where the session spent most of its time."
+  ],
+  "notes": [
+    "Works from candles, so it works on any symbol with intraday bars.",
+    "Profile width defaults to 70% of the session; very long sessions may need zooming."
+  ],
+  "learn": "volume-profile"
+}

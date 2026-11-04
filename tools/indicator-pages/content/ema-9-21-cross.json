@@ -1,0 +1,21 @@
+{
+  "slug": "ema-9-21-cross",
+  "summary": "Plots a fast 9-period and slow 21-period EMA on the chart and marks each point where the fast line crosses the slow one.",
+  "overview": [
+    "EMA 9/21 cross is a short example Pine script. It draws two exponential moving averages on the price chart: a fast EMA in teal and a slow EMA in orange. A small teal triangle below the bar marks a cross up, and an orange triangle above the bar marks a cross down."
+  ],
+  "how": [
+    "Both lines are standard exponential moving averages of the close, with lengths 9 and 21 by default. A cross up is the bar where the fast EMA moves above the slow EMA; a cross down is the bar where it moves below. You can change both lengths."
+  ],
+  "use": [
+    "Some traders use the cross as a simple way to see a change in short-term direction.",
+    "Use the gap between the two lines to see how strong the trend is.",
+    "Some traders watch for price pulling back to the slow EMA during a trend.",
+    "Use it as a starting point to learn how Pine scripts plot lines and markers."
+  ],
+  "notes": [
+    "Moving averages lag price, so crosses appear after the move has started.",
+    "In sideways markets the lines can cross back and forth often.",
+    "The script has no alert conditions."
+  ]
+}

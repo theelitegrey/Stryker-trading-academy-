@@ -1,0 +1,21 @@
+{
+  "slug": "delta-l1",
+  "summary": "A pane with buying minus selling volume for every bar, built from the futures trade stream.",
+  "overview": [
+    "Delta (L1) shows a bar in its own pane for each candle: positive when more volume traded at the ask (buyers lifting offers), negative when more traded at the bid.",
+    "It is the per-bar delta tool fed by the futures trade stream, coloured cyan and amber so it can sit beside the standard Delta for comparison."
+  ],
+  "how": [
+    "Each recorded trade is marked as a buy or a sell by the side it hit. For each bar, the tool adds the buy volume and subtracts the sell volume. History comes from up to 48 hours of recorded trades."
+  ],
+  "use": [
+    "Use it to see whether buying or selling volume led each bar.",
+    "Some traders watch for a bar that closes up while delta is negative, or the other way round.",
+    "Compare delta on bars that test a level."
+  ],
+  "notes": [
+    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
+    "For many delta looks on the price chart, see Delta styles (L1); for a pane with divergences, see Delta pane (L1)."
+  ],
+  "learn": "order-flow"
+}

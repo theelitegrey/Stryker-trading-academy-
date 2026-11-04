@@ -1,0 +1,23 @@
+{
+  "slug": "average-true-range",
+  "summary": "Average True Range: the 14-bar Wilder average of each bar's true range, a plain measure of how much price moves.",
+  "overview": [
+    "The Average True Range (ATR) measures volatility in its own pane. A higher line means bars are moving more; a lower line means quieter trading. It does not show direction.",
+    "The line turns orange while ATR is expanding."
+  ],
+  "how": [
+    "True range = the largest of: high - low, |high - previous close|, |low - previous close|. ATR = average of true range over 14 bars, smoothed with Wilder's RMA by default.",
+    "Other smoothing types can be chosen in the settings."
+  ],
+  "use": [
+    "Some traders size stops as a multiple of ATR so they fit current volatility.",
+    "Use rising ATR to see when moves are getting larger.",
+    "Compare ATR with past readings to see if the market is calm or busy.",
+    "Use it to set position size so risk stays similar across symbols."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "ATR is in price units, so values differ across symbols."
+  ]
+}

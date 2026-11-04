@@ -1,0 +1,23 @@
+{
+  "slug": "chande-kroll-stop",
+  "summary": "Chande Kroll Stop: long and short stop lines built from ATR offsets of the recent 10-bar highs and lows.",
+  "overview": [
+    "The Chande Kroll Stop draws two stop lines on the price chart: a long stop in green and a short stop in red.",
+    "It is a trend-following stop based on volatility."
+  ],
+  "how": [
+    "First, preliminary high stop = highest high of 10 bars - 1 x ATR(10), and preliminary low stop = lowest low of 10 bars + 1 x ATR(10).",
+    "Then short stop = highest of the preliminary high stops over 9 bars, and long stop = lowest of the preliminary low stops over 9 bars."
+  ],
+  "use": [
+    "Some traders watch price above both lines as a sign of an uptrend.",
+    "Use the lines as trailing stop levels.",
+    "Watch price crossing a line as a possible trend change.",
+    "Adjust the multiplier to make stops looser or tighter."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Default settings are P = 10, X = 1 and Q = 9; the short stop sits above price and the long stop below in a steady trend."
+  ]
+}

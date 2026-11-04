@@ -1,0 +1,23 @@
+{
+  "slug": "williams-fractal",
+  "summary": "Williams Fractals: markers above swing highs and below swing lows that stand out from two bars on each side.",
+  "overview": [
+    "Williams Fractals mark local turning points on the price chart. An up fractal (red, above the bar) marks a swing high; a down fractal (green, below the bar) marks a swing low.",
+    "They were made popular by Bill Williams."
+  ],
+  "how": [
+    "With Periods = 2, an up fractal is a bar whose high is higher than the two bars before and the two bars after. A down fractal is a bar whose low is lower than the two bars on each side.",
+    "A fractal is only confirmed once the later bars have closed, so it appears two bars after the swing. Larger Periods values need more bars on each side, so fewer swings qualify."
+  ],
+  "use": [
+    "Some traders use fractals as levels for breakouts.",
+    "Use them to place stops beyond the last swing.",
+    "Pair them with the Alligator as in Williams' method.",
+    "Increase Periods for fewer, larger swings."
+  ],
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Markers appear after a delay of Periods bars.",
+    "Many fractals appear in ranges; larger periods reduce them."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "detrended-price-oscillator",
+  "summary": "Detrended Price Oscillator: price minus a shifted 21-bar average, to show short cycles without the trend.",
+  "overview": [
+    "The Detrended Price Oscillator (DPO) removes the longer trend so you can see shorter cycles. It plots in its own pane around zero, green above and red below.",
+    "With Centered on, the line is shifted back so it lines up with the prices it measures."
+  ],
+  "how": [
+    "DPO = source - SMA(source, 21) taken from 21 / 2 + 1 bars earlier. In centered mode the line is moved back by that many bars, so the newest bars show no value.",
+    "It compares price with an older value of the average, not the current one."
+  ],
+  "use": [
+    "Use peaks and troughs to estimate the length of recent cycles.",
+    "Some traders watch zero crossings to time swings inside a range.",
+    "Use the centered view to study past cycles, and the default view for the latest bars.",
+    "Compare cycle highs with price highs."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It is not built to show trend direction."
+  ]
+}

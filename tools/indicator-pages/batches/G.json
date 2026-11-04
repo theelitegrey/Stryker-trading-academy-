@@ -1,0 +1,908 @@
+[
+ {
+  "slug": "average-true-range",
+  "key": "b:average-true-range",
+  "name": "Average True Range",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"average-true-range\" or the title \"Average True Range\")",
+  "settings": [
+   "Length = 14",
+   "Smoothing = \"RMA\"",
+   "ATR Line = \"#787b86\"",
+   "Expanding = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "bollinger-bands",
+  "key": "b:bollinger-bands",
+  "name": "Bollinger Bands",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"bollinger-bands\" or the title \"Bollinger Bands\")",
+  "settings": [
+   "Length = 20",
+   "Source = \"Close\"",
+   "Multiplier = 2",
+   "Basis = \"#ff9800\"",
+   "Bands = \"#5b9cf6\"",
+   "Fill = \"#5b9cf614\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "bollinger-bands-percent-b",
+  "key": "b:percent-b",
+  "name": "Bollinger Bands %B",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"percent-b\" or the title \"Bollinger Bands %B\")",
+  "settings": [
+   "Length = 20",
+   "Source = \"Close\"",
+   "Multiplier = 2",
+   "Overbought = 1",
+   "Oversold = 0",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Gradient Fill = true",
+   "Levels Color = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "bollinger-bands-width",
+  "key": "b:bandwidth",
+  "name": "Bollinger Bands Width",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"bandwidth\" or the title \"Bollinger Bands Width\")",
+  "settings": [
+   "Length = 20",
+   "Source = \"Close\"",
+   "Multiplier = 2",
+   "Reference Lookback = 125",
+   "Show Squeeze Level = true",
+   "Show Bulge Level = true",
+   "BandWidth = \"#787b86\"",
+   "Gradient Fill = true",
+   "Squeeze Level = \"#ff9800\"",
+   "Bulge Level = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "chaikin-volatility",
+  "key": "b:chaikin-volatility",
+  "name": "Chaikin Volatility",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"chaikin-volatility\" or the title \"Chaikin Volatility\")",
+  "settings": [
+   "EMA Length = 10",
+   "ROC Length = 10",
+   "CHV Color = \"#787b86\"",
+   "Expansion = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "chandelier-exit",
+  "key": "b:chandelier-exit",
+  "name": "Chandelier Exit",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"chandelier-exit\" or the title \"Chandelier Exit\")",
+  "settings": [
+   "Length = 22",
+   "ATR Multiplier = 3",
+   "Ratchet Stops = false",
+   "Long Stop = \"#089981\"",
+   "Short Stop = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "choppiness-index",
+  "key": "b:choppiness-index",
+  "name": "Choppiness Index",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"choppiness-index\" or the title \"Choppiness Index\")",
+  "settings": [
+   "Length = 14",
+   "Upper Band = 61.8",
+   "Lower Band = 38.2",
+   "CHOP Line = \"#787b86\"",
+   "Trending = \"#089981\"",
+   "Choppy = \"#f23645\"",
+   "Band Fill = \"#787b861a\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "donchian-channels",
+  "key": "b:donchian-channels",
+  "name": "Donchian Channels",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"donchian-channels\" or the title \"Donchian Channels\")",
+  "settings": [
+   "Length = 20",
+   "Upper = \"#f23645\"",
+   "Middle = \"#787b86\"",
+   "Lower = \"#089981\"",
+   "Fill = \"#787b8614\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "historical-volatility",
+  "key": "b:historical-volatility",
+  "name": "Historical Volatility",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"historical-volatility\" or the title \"Historical Volatility\")",
+  "settings": [
+   "Length = 10",
+   "Annualize = true",
+   "Periods Per Year = 252",
+   "Volatility Line = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "keltner-channels",
+  "key": "b:keltner-channels",
+  "name": "Keltner Channels",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"keltner-channels\" or the title \"Keltner Channels\")",
+  "settings": [
+   "EMA Length = 20",
+   "ATR Length = 10",
+   "Multiplier = 2",
+   "Source = \"Close\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Basis Color = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "mass-index",
+  "key": "b:mass-index",
+  "name": "Mass Index",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"mass-index\" or the title \"Mass Index\")",
+  "settings": [
+   "Sum Length = 25",
+   "EMA Length = 9",
+   "Setup Level = 27",
+   "Trigger Level = 26.5",
+   "Mass Index = \"#787b86\"",
+   "Armed = \"#ff9800\"",
+   "Levels = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "relative-volatility-index",
+  "key": "b:relative-volatility-index",
+  "name": "Relative Volatility Index",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"relative-volatility-index\" or the title \"Relative Volatility Index\")",
+  "settings": [
+   "Stdev Length = 10",
+   "Smoothing Length = 14",
+   "Smoothing Type = \"EMA\"",
+   "Overbought Level = 80",
+   "Oversold Level = 20",
+   "RVI Line = \"#787b86\"",
+   "Overbought = \"#089981\"",
+   "Oversold = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "standard-deviation",
+  "key": "b:standard-deviation",
+  "name": "Standard Deviation",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"standard-deviation\" or the title \"Standard Deviation\")",
+  "settings": [
+   "Length = 20",
+   "Source = \"Close\"",
+   "Standard Deviation = \"#787b86\"",
+   "Expanding = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "ttm-squeeze",
+  "key": "b:ttm-squeeze",
+  "name": "TTM Squeeze",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"ttm-squeeze\" or the title \"TTM Squeeze\")",
+  "settings": [
+   "Length = 20",
+   "Source = \"Close\"",
+   "Bollinger Bands Multiplier = 2",
+   "Keltner Channels Multiplier = 1.5",
+   "Momentum Up = \"#089981\"",
+   "Momentum Down = \"#f23645\"",
+   "Squeeze On = \"#ff9800\"",
+   "Squeeze Off = \"#787b86\"",
+   "Mark Squeeze Fires = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "ulcer-index",
+  "key": "b:ulcer-index",
+  "name": "Ulcer Index",
+  "author": "TradeZoro",
+  "group": "Volatility",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"ulcer-index\" or the title \"Ulcer Index\")",
+  "settings": [
+   "Length = 14",
+   "Source = \"Close\"",
+   "Stress Threshold = 5",
+   "Ulcer Index = \"#787b86\"",
+   "Stress = \"#f23645\"",
+   "Gradient Fill = true",
+   "Drawdown % = false",
+   "Drawdown Color = \"#f2364580\"",
+   "Threshold = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "volume",
+  "key": "b:volume",
+  "name": "Volume",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"volume\" or the title \"Volume\")",
+  "settings": [
+   "Up color = \"#089981\"",
+   "Down color = \"#f23645\"",
+   "Height % = 20"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "visible-range-volume-profile",
+  "key": "b:vpvr",
+  "name": "Visible Range Volume Profile",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"vpvr\" or the title \"Visible Range Volume Profile\")",
+  "settings": [
+   "Rows = 24",
+   "Width % = 30",
+   "Up color = \"#2962ff\"",
+   "Down color = \"#f23645\"",
+   "Point of control = true",
+   "Value area % = 70"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "volume-weighted-average-price",
+  "key": "b:vwap",
+  "name": "Volume Weighted Average Price",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"vwap\" or the title \"Volume Weighted Average Price\")",
+  "settings": [
+   "Anchor Period = \"Session\"",
+   "Source = \"HLC3\"",
+   "Bands Mode = \"Standard Deviation\"",
+   "Band #1 = true",
+   "Band #1 Multiplier = 1",
+   "Band #2 = false",
+   "Band #2 Multiplier = 2",
+   "Band #3 = false",
+   "Band #3 Multiplier = 3",
+   "Hide VWAP on 1D or Above = true",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Bands = \"#787b86\"",
+   "Bands Fill = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "accumulation-distribution",
+  "key": "b:accumulation-distribution",
+  "name": "Accumulation / Distribution",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"accumulation-distribution\" or the title \"Accumulation / Distribution\")",
+  "settings": [
+   "Slope Coloring = true",
+   "A/D Line = \"#787b86\"",
+   "Rising = \"#089981\"",
+   "Falling = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "chaikin-money-flow",
+  "key": "b:chaikin-money-flow",
+  "name": "Chaikin Money Flow",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"chaikin-money-flow\" or the title \"Chaikin Money Flow\")",
+  "settings": [
+   "Length = 20",
+   "CMF Line = \"#787b86\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Zero Line = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "chaikin-oscillator",
+  "key": "b:chaikin-oscillator",
+  "name": "Chaikin Oscillator",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"chaikin-oscillator\" or the title \"Chaikin Oscillator\")",
+  "settings": [
+   "Fast Length = 3",
+   "Slow Length = 10",
+   "Oscillator = \"#787b86\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "ease-of-movement",
+  "key": "b:ease-of-movement",
+  "name": "Ease of Movement",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"ease-of-movement\" or the title \"Ease of Movement\")",
+  "settings": [
+   "Length = 14",
+   "Divisor = 10000",
+   "EOM Line = \"#787b86\"",
+   "Above Zero = \"#089981\"",
+   "Below Zero = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "force-index",
+  "key": "b:force-index",
+  "name": "Force Index",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"force-index\" or the title \"Force Index\")",
+  "settings": [
+   "Length = 13",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "intraday-intensity",
+  "key": "b:intraday-intensity",
+  "name": "Intraday Intensity",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"intraday-intensity\" or the title \"Intraday Intensity\")",
+  "settings": [
+   "Display = \"Normalized Oscillator (II%)\"",
+   "Oscillator Length = 21",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Gradient Fill = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "klinger-oscillator",
+  "key": "b:klinger-oscillator",
+  "name": "Klinger Oscillator",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"klinger-oscillator\" or the title \"Klinger Oscillator\")",
+  "settings": [
+   "Fast Length = 34",
+   "Slow Length = 55",
+   "Signal Length = 13",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Signal = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "money-flow-index",
+  "key": "b:money-flow-index",
+  "name": "Money Flow Index",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"money-flow-index\" or the title \"Money Flow Index\")",
+  "settings": [
+   "Length = 14",
+   "Overbought Level = 80",
+   "Oversold Level = 20",
+   "MFI = \"#787b86\"",
+   "Overbought = \"#f23645\"",
+   "Oversold = \"#089981\"",
+   "OB/OS Zone Fill = \"#787b860f\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "negative-volume-index",
+  "key": "b:negative-volume-index",
+  "name": "Negative Volume Index",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"negative-volume-index\" or the title \"Negative Volume Index\")",
+  "settings": [
+   "Starting Value = 1000",
+   "Signal EMA = true",
+   "Signal Length = 255",
+   "Line Coloring = \"Position vs Average\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Neutral = \"#787b86\"",
+   "Signal EMA = \"#787b86\"",
+   "Gradient Fill = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "on-balance-volume",
+  "key": "b:on-balance-volume",
+  "name": "On Balance Volume",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"on-balance-volume\" or the title \"On Balance Volume\")",
+  "settings": [
+   "Smoothing MA = false",
+   "MA Type = \"SMA\"",
+   "MA Length = 20",
+   "OBV = \"#5b9cf6\"",
+   "Smoothing MA = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "percentage-volume-oscillator",
+  "key": "b:pvo",
+  "name": "Percentage Volume Oscillator",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"pvo\" or the title \"Percentage Volume Oscillator\")",
+  "settings": [
+   "Fast Length = 12",
+   "Slow Length = 26",
+   "Signal Length = 9",
+   "Expansion Color = \"#089981\"",
+   "Contraction Color = \"#f23645\"",
+   "Signal Line = \"#ff9800\"",
+   "Zero Line = \"#787b8680\"",
+   "Show Signal Line = true",
+   "Show Histogram = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "positive-volume-index",
+  "key": "b:positive-volume-index",
+  "name": "Positive Volume Index",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"positive-volume-index\" or the title \"Positive Volume Index\")",
+  "settings": [
+   "Source = \"Close\"",
+   "Starting Value = 1000",
+   "Signal EMA = true",
+   "Signal Length = 255",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Neutral = \"#787b86\"",
+   "Signal Line = \"#787b86\"",
+   "Gradient Fill = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "price-volume-trend",
+  "key": "b:price-volume-trend",
+  "name": "Price Volume Trend",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"price-volume-trend\" or the title \"Price Volume Trend\")",
+  "settings": [
+   "Signal Line = false",
+   "Signal Type = \"SMA\"",
+   "Signal Length = 21",
+   "PVT Color = \"#787b86\"",
+   "Rising = \"#089981\"",
+   "Falling = \"#f23645\"",
+   "Signal Color = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "volume-flow-indicator",
+  "key": "b:volume-flow-indicator",
+  "name": "Volume Flow Indicator",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"volume-flow-indicator\" or the title \"Volume Flow Indicator\")",
+  "settings": [
+   "Length = 130",
+   "Cutoff Coefficient = 0.2",
+   "Volume Cap Multiplier = 2.5",
+   "Volatility Length = 30",
+   "Smooth VFI = true",
+   "Smoothing Length = 3",
+   "Signal Line = true",
+   "Signal Length = 5",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Signal Line = \"#ff9800\"",
+   "Gradient Fill = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "volume-oscillator",
+  "key": "b:volume-oscillator",
+  "name": "Volume Oscillator",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"volume-oscillator\" or the title \"Volume Oscillator\")",
+  "settings": [
+   "Fast Length = 5",
+   "Slow Length = 10",
+   "Above Zero = \"#089981\"",
+   "Below Zero = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "aroon",
+  "key": "b:aroon",
+  "name": "Aroon",
+  "author": "TradeZoro",
+  "group": "Trend",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"aroon\" or the title \"Aroon\")",
+  "settings": [
+   "Length = 14",
+   "Aroon Up = \"#089981\"",
+   "Aroon Down = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "average-directional-index",
+  "key": "b:average-directional-index",
+  "name": "Average Directional Index",
+  "author": "TradeZoro",
+  "group": "Trend",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"average-directional-index\" or the title \"Average Directional Index\")",
+  "settings": [
+   "DI Length = 14",
+   "ADX Smoothing = 14",
+   "Key Level = 25",
+   "+DI Color = \"#089981\"",
+   "−DI Color = \"#f23645\"",
+   "ADX Color = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "chande-kroll-stop",
+  "key": "b:chande-kroll-stop",
+  "name": "Chande Kroll Stop",
+  "author": "TradeZoro",
+  "group": "Trend",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"chande-kroll-stop\" or the title \"Chande Kroll Stop\")",
+  "settings": [
+   "ATR Length (P) = 10",
+   "ATR Multiplier (X) = 1",
+   "Stop Length (Q) = 9",
+   "Short Stop = \"#f23645\"",
+   "Long Stop = \"#089981\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "parabolic-sar",
+  "key": "b:parabolic-sar",
+  "name": "Parabolic SAR",
+  "author": "TradeZoro",
+  "group": "Trend",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"parabolic-sar\" or the title \"Parabolic SAR\")",
+  "settings": [
+   "Start = 0.02",
+   "Increment = 0.02",
+   "Maximum = 0.2",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "supertrend",
+  "key": "b:supertrend",
+  "name": "SuperTrend",
+  "author": "TradeZoro",
+  "group": "Trend",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"supertrend\" or the title \"SuperTrend\")",
+  "settings": [
+   "ATR Length = 10",
+   "Factor = 3",
+   "Uptrend Color = \"#089981\"",
+   "Downtrend Color = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "vortex-indicator",
+  "key": "b:vortex-indicator",
+  "name": "Vortex Indicator",
+  "author": "TradeZoro",
+  "group": "Trend",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"vortex-indicator\" or the title \"Vortex Indicator\")",
+  "settings": [
+   "Length = 14",
+   "VI+ = \"#089981\"",
+   "VI− = \"#f23645\"",
+   "Baseline = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "zigzag",
+  "key": "b:zigzag",
+  "name": "ZigZag",
+  "author": "TradeZoro",
+  "group": "Trend",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"zigzag\" or the title \"ZigZag\")",
+  "settings": [
+   "Deviation (%) = 5",
+   "Depth = 10",
+   "Up Leg = \"#089981\"",
+   "Down Leg = \"#f23645\"",
+   "Width = 2"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "52-week-high-low",
+  "key": "b:52-week-high-low",
+  "name": "52-Week High/Low",
+  "author": "TradeZoro",
+  "group": "Levels",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"52-week-high-low\" or the title \"52-Week High/Low\")",
+  "settings": [
+   "Weeks = 52",
+   "Show All-Time High/Low = false",
+   "52-Week High = \"#089981\"",
+   "52-Week Low = \"#f23645\"",
+   "All-Time High/Low = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "pivot-points-standard",
+  "key": "b:pivot-points",
+  "name": "Pivot Points Standard",
+  "author": "TradeZoro",
+  "group": "Levels",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"pivot-points\" or the title \"Pivot Points Standard\")",
+  "settings": [
+   "Type = \"Traditional\"",
+   "Pivots Timeframe = \"Auto\"",
+   "Pivot = \"#ff9800\"",
+   "Resistances = \"#f23645\"",
+   "Supports = \"#089981\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "williams-fractal",
+  "key": "b:williams-fractal",
+  "name": "Williams Fractal",
+  "author": "TradeZoro",
+  "group": "Levels",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"williams-fractal\" or the title \"Williams Fractal\")",
+  "settings": [
+   "Periods = 2",
+   "Up Fractal = \"#f23645\"",
+   "Down Fractal = \"#089981\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ }
+]

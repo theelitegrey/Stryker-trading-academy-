@@ -1,0 +1,21 @@
+{
+  "slug": "refill-detector-l2",
+  "summary": "Marks a price level that was hit by aggressive trades and got its size back within a few seconds.",
+  "overview": [
+    "Refill Detector (L2) puts an R marker on the chart when a resting level is hit by aggressive trades and then refills.",
+    "A refilled bid is drawn green and a refilled ask red."
+  ],
+  "how": [
+    "A level counts as hit when trades take at least 30 % of its size. It counts as refilled when its size returns to at least 70 % of what it was before the hit, within 3 seconds. All three settings can be changed."
+  ],
+  "use": [
+    "Use it to see levels where someone keeps showing size after being hit.",
+    "Some traders watch repeated refills at the same price.",
+    "Combine it with Absorption to compare refills with price not moving."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "A refill can come from many different orders; it is a hint, not proof of one large order."
+  ],
+  "learn": "order-flow"
+}

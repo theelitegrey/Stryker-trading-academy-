@@ -1,0 +1,21 @@
+{
+  "slug": "economic-events",
+  "summary": "Draws dashed vertical lines at high-impact economic releases such as CPI, FOMC, NFP and GDP, with a countdown chip before the next one.",
+  "overview": [
+    "TradeZoro Economic events marks scheduled releases on the chart. Each event gets a dashed vertical line and a short label (CPI, FOMC, NFP, GDP, PCE and others). When the next release is close, a warning chip appears in the chart header, for example 'CPI in 12 min'.",
+    "Hover or tap a line to see the country, the impact level, the full title, and the actual, forecast and previous values when they are available."
+  ],
+  "how": [
+    "Events come from an economic calendar feed. By default it shows high-impact US events; you can switch to high and medium impact, and to US plus EU, UK, Japan and China. The warning chip shows when an event is within 30 minutes by default.",
+    "In bar replay, events after the replay time are not drawn and actual values are never shown; the chip counts down from the replay time."
+  ],
+  "use": [
+    "Some traders use the chip as a reminder before a release.",
+    "Use the lines to see how price behaved around past CPI or FOMC releases.",
+    "Some traders avoid opening new positions just before high-impact events."
+  ],
+  "notes": [
+    "Release times and values come from the calendar feed; they can change.",
+    "It marks events; it does not judge their effect on price."
+  ]
+}

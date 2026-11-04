@@ -1,0 +1,22 @@
+{
+  "slug": "pivot-points-standard",
+  "summary": "Classic pivot points with support and resistance levels from the prior period: Traditional, Fibonacci, Camarilla or Woodie.",
+  "overview": [
+    "Pivot Points draw a central pivot (P) with resistance (R) levels above and support (S) levels below, for each period on the price chart.",
+    "The pivot is orange, resistances red and supports green."
+  ],
+  "how": [
+    "Traditional: P = (high + low + close) / 3 of the prior period. R1 = 2P - low, S1 = 2P - high, R2 = P + (high - low), S2 = P - (high - low), and so on. Fibonacci adds 38.2%, 61.8% and 100% of the prior range to P. Camarilla scales the range around the prior close. Woodie weights the close more.",
+    "Auto timeframe uses daily pivots up to 15-minute bars, weekly on other intraday bars, monthly on daily bars, and yearly above."
+  ],
+  "use": [
+    "Some traders watch P as the line between bullish and bearish bias for the period.",
+    "Use R and S levels as areas where price may react.",
+    "Compare types to see which levels match the symbol's swings.",
+    "Use weekly or monthly pivots for a wider view."
+  ],
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Levels are fixed for the period once it starts."
+  ]
+}

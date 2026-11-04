@@ -1,0 +1,23 @@
+{
+  "slug": "historical-volatility",
+  "summary": "Historical volatility: the standard deviation of 10-bar log returns, scaled to a yearly figure with 252 periods by default.",
+  "overview": [
+    "Historical Volatility shows how much price has been moving, as a percentage, in its own pane. Higher readings mean bigger day-to-day changes.",
+    "By default it is annualized so values can be read as a yearly figure."
+  ],
+  "how": [
+    "Log return = ln(close / previous close). HV = standard deviation of log returns over 10 bars x square root of periods per year x 100.",
+    "Use 252 for daily bars, 52 for weekly and 12 for monthly. Turn off Annualize to see per-bar volatility."
+  ],
+  "use": [
+    "Use it to compare how volatile a symbol is now versus before.",
+    "Some traders compare historical volatility with expected volatility from options.",
+    "Watch for very low readings, which can come before larger moves.",
+    "Use it to adjust position size."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "On intraday charts set Periods Per Year to match the bar count, or turn off annualizing."
+  ]
+}

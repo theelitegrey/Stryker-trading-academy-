@@ -1,0 +1,23 @@
+{
+  "slug": "cumulative-delta-trades",
+  "summary": "Plots the running total of buying minus selling from recorded trades as candles or a line in a lower pane, reset each session.",
+  "overview": [
+    "Cumulative Delta (trades), also called CVD, adds each bar's delta to a running total. By default it is drawn as candles in its own pane: each candle's open, high, low and close follow the running total through that bar. You can switch it to a line."
+  ],
+  "how": [
+    "Delta is the volume bought at the ask minus the volume sold at the bid, from trades tagged by aggressor side. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.",
+    "By default the total resets each session, meaning the futures trading day that starts at 18:00 New York. You can reset by calendar day or not at all. Crypto has no futures session, so it resets on the UTC day and is drawn as a line."
+  ],
+  "use": [
+    "Some traders compare the direction of CVD with the direction of price.",
+    "Use it to see whether a new high in price came with a new high in CVD.",
+    "Some traders watch the CVD slope during a session to see which side is more aggressive.",
+    "Use the session reset to compare one day's flow with the next."
+  ],
+  "notes": [
+    "Needs per-trade data; other symbols show a note.",
+    "A running total depends on its start point; changing the reset changes the shape.",
+    "For the Data feed L1 version, see Cumulative Delta (L1)."
+  ],
+  "learn": "order-flow"
+}

@@ -1,0 +1,22 @@
+{
+  "slug": "vortex-indicator",
+  "summary": "Vortex Indicator: VI+ and VI- lines from upward and downward vortex movement over 14 bars, compared with true range.",
+  "overview": [
+    "The Vortex Indicator shows two lines in its own pane: VI+ in green and VI- in red, around a baseline of 1.",
+    "When VI+ is above VI-, upward movement leads; when VI- is above, downward movement leads."
+  ],
+  "how": [
+    "VM+ = |high - previous low|. VM- = |low - previous high|. VI+ = sum of VM+ over 14 bars / sum of true range over 14 bars. VI- = sum of VM- over 14 bars / sum of true range.",
+    "Only the length can be changed. Values above 1 mean the vortex movement was larger than the true range over the window."
+  ],
+  "use": [
+    "Some traders watch VI+ crossing above VI- as the start of an uptrend.",
+    "Use a widening gap as a sign of a strong trend.",
+    "Watch the lines tangled near 1 as a range.",
+    "Pair it with ADX for strength."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "elder-ray",
+  "summary": "Elder Ray: Bull Power (high minus 13 EMA) and Bear Power (low minus 13 EMA) as two histograms.",
+  "overview": [
+    "Elder Ray, by Alexander Elder, shows the strength of buyers and sellers in its own pane. Bull Power is drawn in green and Bear Power in red, both around zero.",
+    "It compares each bar's high and low with a 13-bar exponential moving average of closes."
+  ],
+  "how": [
+    "Bull Power = high - EMA(close, 13). Bear Power = low - EMA(close, 13).",
+    "Bull Power above zero means the bar's high cleared the average; Bear Power below zero means its low went under it."
+  ],
+  "use": [
+    "Some traders use the EMA slope for the trend and Bear Power for dips in an uptrend.",
+    "Watch Bull Power shrinking while price makes new highs as a sign of weaker buying.",
+    "Watch Bear Power rising toward zero in a downtrend as easing selling.",
+    "Use both bars together to see the range of each candle around the average."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It is usually read together with the trend of the EMA itself."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "stochastic-rsi",
+  "summary": "Stochastic RSI: a stochastic of the 14-bar RSI, with smoothed %K and %D lines and levels at 80 and 20.",
+  "overview": [
+    "The Stochastic RSI applies the stochastic formula to RSI instead of price. It moves between 0 and 100 in its own pane, faster than RSI, with a blue %K, an orange %D and a zone between 80 and 20.",
+    "It shows where RSI sits in its own recent range."
+  ],
+  "how": [
+    "First RSI(close, 14). Then raw = (RSI - lowest RSI of 14 bars) / (highest RSI - lowest RSI) x 100. %K = 3-bar SMA of raw. %D = 3-bar SMA of %K.",
+    "Because it measures RSI against itself, it often reaches 0 or 100."
+  ],
+  "use": [
+    "Some traders watch moves above 80 or below 20 as short-term extremes.",
+    "Use %K crossing %D as a quick momentum signal.",
+    "Pair it with a trend filter so you read it in context.",
+    "Watch for it leaving an extreme zone."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It is very sensitive and gives many signals."
+  ]
+}

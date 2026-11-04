@@ -1,0 +1,23 @@
+{
+  "slug": "bollinger-bands-width",
+  "summary": "Bollinger BandWidth: the gap between the bands as a share of the middle line, with squeeze and bulge levels over 125 bars.",
+  "overview": [
+    "Bollinger BandWidth shows how wide the Bollinger Bands are, in its own pane. Low values mean tight bands and quiet price; high values mean wide bands.",
+    "It also draws a squeeze level (the lowest width of the last 125 bars) and a bulge level (the highest)."
+  ],
+  "how": [
+    "BandWidth = (upper band - lower band) / basis. The bands use a 20-bar SMA and 2 standard deviations by default.",
+    "When the line reaches the squeeze level it takes the squeeze color; at the bulge level it takes the bulge color."
+  ],
+  "use": [
+    "Some traders watch for a squeeze as a sign a quiet period may end with a larger move.",
+    "Use the bulge level to see volatility that is unusually high for the window.",
+    "Use it with price to choose a direction, since width shows none.",
+    "Compare widths over time to see the symbol's normal range."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "A squeeze is a condition, not a direction."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "slug": "volume-bubble-big-prints",
+  "summary": "Places bubbles on bars whose volume is at least twice the recent average, sized by how far above average they are.",
+  "overview": [
+    "Volume Bubble / Big Prints puts a circle on bars with heavy volume, so they stand out. Up candles get a green bubble at the high and down candles a red bubble at the low. Larger bubbles mean volume further above average, and a label shows the multiple, such as 3.2x."
+  ],
+  "how": [
+    "For each bar, volume is compared with the average of the previous 50 bars. Bars at or above 2 times average get a bubble. Bubble size grows with the multiple, between a minimum and maximum size you set. Up to 80 bubbles show on screen, keeping the biggest.",
+    "It uses the chart's own candle volume."
+  ],
+  "use": [
+    "Some traders use it to spot high-volume bars at a glance.",
+    "Use it to see whether a breakout or reversal bar had unusual volume.",
+    "Some traders compare bubble bars with nearby levels."
+  ],
+  "notes": [
+    "Needs bars with volume.",
+    "It marks whole bars, not single trades; for single orders see Big Trades."
+  ]
+}

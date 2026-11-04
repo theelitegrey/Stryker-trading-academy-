@@ -1,0 +1,23 @@
+{
+  "slug": "chandelier-exit",
+  "summary": "Chandelier Exit: trailing stop lines set three ATRs from the 22-bar highest high and lowest low.",
+  "overview": [
+    "The Chandelier Exit draws trailing stop levels on the price chart: a long stop below price in green and a short stop above price in red.",
+    "It hangs the stop from the recent extreme, like a chandelier from a ceiling."
+  ],
+  "how": [
+    "Long stop = highest high of 22 bars - 3 x ATR(22). Short stop = lowest low of 22 bars + 3 x ATR(22).",
+    "With Ratchet Stops on, the long stop cannot fall and the short stop cannot rise until the close crosses the stop."
+  ],
+  "use": [
+    "Some traders use the long stop as a trailing exit level in an uptrend.",
+    "Use a close through a stop as a sign the trend may be changing.",
+    "Raise or lower the multiplier to make the stop looser or tighter.",
+    "Turn on ratchet mode for stops that only move one way."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It follows volatility, so stops move further away when ATR grows."
+  ]
+}

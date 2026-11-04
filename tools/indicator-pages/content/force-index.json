@@ -1,0 +1,24 @@
+{
+  "slug": "force-index",
+  "summary": "Force Index: the bar's price change times its volume, smoothed with a 13-bar EMA, around a zero line.",
+  "overview": [
+    "The Force Index, by Alexander Elder, combines price change and volume in its own pane. Above zero buyers had the upper hand; below zero sellers did.",
+    "Colors are green above zero and red below."
+  ],
+  "how": [
+    "Raw force = (close - previous close) x volume. Force Index = EMA(raw force, 13).",
+    "Elder used 13 bars for the intermediate trend and 2 bars for short-term timing. Big moves on big volume give the largest readings."
+  ],
+  "use": [
+    "Some traders watch zero-line crosses as changes in who is in control.",
+    "Use a 2-bar setting to spot short dips inside a trend.",
+    "Look for divergence between Force Index and price.",
+    "Watch for spikes as signs of heavy, one-sided bars."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "Values depend on the symbol's volume, so they are not comparable across symbols.",
+    "A 2-bar length is much noisier than the default."
+  ]
+}

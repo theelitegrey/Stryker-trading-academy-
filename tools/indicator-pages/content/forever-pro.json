@@ -1,0 +1,27 @@
+{
+  "slug": "forever-pro",
+  "summary": "Model script with PO3 higher-timeframe candles, SMT, inversion FVGs, order-block projections, time filters and Quarterly Theory cycles.",
+  "overview": [
+    "This community script combines several ICT-style tools. On the right of the chart it draws higher-timeframe candles (PO3 candles) with optional open, high and low lines and time labels. On the chart it marks SMT divergences, fair value gaps and inversion FVGs, sweeps, order blocks and external range liquidity.",
+    "When its model conditions line up, it draws a setup with a stop level and order-block projection targets, and markers for outcomes such as stop hit, target hit, no fill or external range liquidity hit. It can also shade Quarterly Theory time cycles and show an info table."
+  ],
+  "how": [
+    "SMT compares the chart with a paired symbol, found automatically for common futures, FX, metals and crypto pairs, or set manually; a second pair is optional. The timeframe used to look for entries can follow the chart automatically or be set by you.",
+    "Stops can be placed automatically, at the order block high or low, or from the SMT swing. Targets are projected from the order block or from the breakout candle close, at the multiples you list (1 and 2 by default).",
+    "A time filter limits setups to the windows you set, and History controls how many past setups stay on the chart."
+  ],
+  "use": [
+    "Use the PO3 candles to keep the higher-timeframe candle in view while you trade a lower one.",
+    "Some traders watch for an SMT plus FVG tag as the first sign of the model.",
+    "Use the outcome markers to review how past setups played out under the script's rules.",
+    "Use the cycle shading to see where the session sits in its time cycle."
+  ],
+  "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "SMT needs data for the paired symbol.",
+    "The model, stops and targets are the script's own rules; they are not advice.",
+    "Times use the timezone you choose in the time filter.",
+    "Many modules are on by default; turn off what you do not use to keep the chart clean."
+  ],
+  "learn": "smt-divergence"
+}

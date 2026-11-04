@@ -1,0 +1,24 @@
+{
+  "slug": "footprint",
+  "summary": "Splits every candle by price and shows the volume sold at the bid and bought at the ask at each price, with imbalances and the POC.",
+  "overview": [
+    "Footprint (bid x ask) opens each candle up into price rows. Each row shows the volume that sold into the bid and the volume that bought at the ask at that price. The busiest price in the bar, its point of control, is boxed, and diagonal imbalances are highlighted.",
+    "You can switch the cells to show delta (ask minus bid) or total volume instead. The cells appear when bars are at least 44 pixels wide; zoomed out, the chart falls back to candles."
+  ],
+  "how": [
+    "Every trade is tagged by its aggressor: a buyer lifting the ask or a seller hitting the bid. Trades are added up per price row for each bar. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.",
+    "An imbalance compares the ask volume at one price with the bid volume one row below (and the bid volume with the ask volume one row above). It is flagged when one side is at least 300% of the other by default. The row size can be set as a multiple of the base step."
+  ],
+  "use": [
+    "Some traders look at which side was more aggressive at the high or low of a bar.",
+    "Use the boxed POC to see where most of a bar's volume traded.",
+    "Some traders watch stacked imbalances as areas where one side dominated.",
+    "Use delta mode to see the net buying or selling at each price."
+  ],
+  "notes": [
+    "Needs per-trade data; charts without it show a note instead.",
+    "In bar replay only data complete at the replay time is used.",
+    "Footprint cells need room; zoom in to see the numbers."
+  ],
+  "learn": "order-flow"
+}

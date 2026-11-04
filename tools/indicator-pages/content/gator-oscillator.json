@@ -1,0 +1,23 @@
+{
+  "slug": "gator-oscillator",
+  "summary": "Gator Oscillator: two histograms showing how far the Alligator's jaw, teeth and lips are spreading or converging.",
+  "overview": [
+    "The Gator Oscillator shows the Williams Alligator as two histograms around zero. The upper bars show the gap between jaw and teeth; the lower bars show the gap between teeth and lips.",
+    "Bars are green when a gap is growing and red when it is shrinking. Color shows expansion, not direction."
+  ],
+  "how": [
+    "Upper = |jaw - teeth|. Lower = -|teeth - lips|. Each line is a smoothed (Wilder) average of median price (high + low) / 2, using jaw 13 shifted 8, teeth 8 shifted 5 and lips 5 shifted 3.",
+    "The source and the average type can be changed."
+  ],
+  "use": [
+    "Some traders read green bars on both sides as the Alligator eating: a trend in progress.",
+    "Watch red bars on both sides as the lines coming together.",
+    "Use mixed colors as a sign of a phase change.",
+    "Pair it with the Alligator on price for the direction."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It does not tell you up or down; check price or the Alligator for that."
+  ]
+}

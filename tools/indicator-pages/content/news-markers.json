@@ -1,0 +1,21 @@
+{
+  "slug": "news-markers",
+  "summary": "Places small icons along the bottom of the chart at bars that had headlines for the chart's market; hover or tap to read them.",
+  "overview": [
+    "TradeZoro News markers shows when news came out for the market you are looking at. A small icon sits at each bar that had headlines. On desktop, hovering shows the headlines; a tap or click opens a short list, and each row opens the article at its source."
+  ],
+  "how": [
+    "Headlines come from a news feed, tagged by market: NQ, ES, YM, GC, SI, CL, BTC and ETH, plus the macro news that moves each. Related symbols map to these tags; for example MNQ, NDX and QQQ use NQ, and SPX and SPY use ES. Headlines are grouped into the chart's bars, newest first in each group.",
+    "In bar replay, no headline published after the replay time is shown."
+  ],
+  "use": [
+    "Some traders check whether a sharp candle lined up with a headline.",
+    "Use it to scroll back and see what news came out around a move.",
+    "Some traders open the full article from the list to read the details."
+  ],
+  "notes": [
+    "Covers the markets listed above; other symbols may show no markers.",
+    "It shows headlines and short summaries, not full articles.",
+    "It does not rate the news or its effect on price."
+  ]
+}

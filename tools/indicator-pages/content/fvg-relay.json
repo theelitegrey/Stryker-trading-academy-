@@ -1,0 +1,25 @@
+{
+  "slug": "fvg-relay",
+  "summary": "Draws higher-timeframe fair value gaps on your chart and chains each tapped and respected gap as Relay 1, 2, 3 until the chain breaks.",
+  "overview": [
+    "FVG Relay puts higher-timeframe fair value gaps on the chart you trade from. When price taps a gap and closes back in the gap's direction, that gap becomes Relay 1 and sets the trend. Each later gap that is tapped and respected adds to the chain as Relay 2, Relay 3 and so on.",
+    "Each relay draws a target line to the next resting liquidity level in its direction. A dashboard in the top right shows the timeframes, the trend, relays in the chain, open gaps, chains and the best chain, and targets reached."
+  ],
+  "how": [
+    "Gaps come from 15m by default; 5m, 1h and 4h can be added, or all at once. Where a lower-timeframe gap overlaps a higher one, only the higher one is drawn. Higher-timeframe candles are built from completed chart bars with no lookahead. Up to 8 open gaps are drawn.",
+    "By default a bounce is confirmed when a bar closes back through the gap's near edge; you can switch to a close beyond the tap candle's extreme. The chain ends when a higher-timeframe candle closes through the far side of a relay gap, and the chart starts clean. Resting liquidity is read from 5m swings (strength 2) with 12 levels kept each side."
+  ],
+  "use": [
+    "Some traders use the relay count to see how long a trend has kept respecting gaps.",
+    "Use the target lines to see the next liquidity level in the trend direction.",
+    "Some traders watch for the chain-broken event as a change in conditions.",
+    "Use the dashboard to review chains and targets reached on the visible history."
+  ],
+  "alerts": "Alerts: members can create an alert on Relay confirmed, Chain broken or Liquidity hit from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Gap timeframes must be above the chart timeframe.",
+    "Gaps older than the current chain are removed.",
+    "The dashboard counts what happened on the loaded history only."
+  ],
+  "learn": "fair-value-gap"
+}

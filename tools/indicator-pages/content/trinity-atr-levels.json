@@ -1,0 +1,25 @@
+{
+  "slug": "trinity-atr-levels",
+  "summary": "ATR levels from the previous close: trigger lines, Golden Gate 38.2% and 61.8% levels, full ATR range, extensions, signals and dashboard.",
+  "overview": [
+    "This community script plots ATR-based levels around the previous period's close. It draws the previous close, call and put triggers, the 38.2% Golden Gate level, 50%, the 61.8% gate target, 78.6% and the full plus or minus one ATR range, with optional extensions beyond it.",
+    "It can also show previous period and premarket highs and lows, a 10-minute EMA8, entry and exit labels, Golden Gate candle colors, shaded trigger and gate areas, a dashboard, an info table and a legend."
+  ],
+  "how": [
+    "The levels use ATR(14) from the period you choose (day trading by default) measured from the previous close. The trigger sits 0.236 of an ATR from the close by default.",
+    "Signals mark a confirmed close through the trigger (enter), a close back through it (exit), the gate opening at 38.2% and completing at 61.8%, pullbacks to the trigger or EMA8, and a first-hour reclaim of the previous close. Entries per direction, cooldown and buffers are adjustable.",
+    "One mode adds statistics researched on SPY/SPX on the 3-minute chart during regular hours; a universal mode keeps the same levels on any market and hides the statistics."
+  ],
+  "use": [
+    "Use the levels as a daily map of how far price has moved relative to its average range.",
+    "Some traders watch the 38.2% to 61.8% zone after price crosses a trigger.",
+    "Use the dashboard to see distance to the next level.",
+    "Switch to universal mode on other markets so the SPY-only statistics stay hidden."
+  ],
+  "alerts": "Alerts: members can create an alert on its conditions (for example \"ENTER Long (trigger)\", \"EXIT Long\", \"Gate Open Long (38.2%)\", \"PDC Reclaim Bull\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "The statistics are only shown for SPY/SPX on the 3-minute chart during regular hours.",
+    "Levels reset each period based on the session setting.",
+    "It draws many labels; Simple Mode keeps only the main levels."
+  ]
+}

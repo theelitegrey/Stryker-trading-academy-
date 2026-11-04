@@ -1,0 +1,23 @@
+{
+  "slug": "big-trades-l1",
+  "summary": "Marks the largest aggressive orders from the futures trade stream with bubbles, buyers above and sellers below.",
+  "overview": [
+    "Big Trades (L1) is the Big Trades indicator fed by the futures trade stream (Data feed L1). It marks only the orders that stand out, as outline bubbles at their average price, sized by order size.",
+    "Its default colours (cyan and amber) differ from the standard Big Trades, so you can run both on one chart and compare the two trade feeds."
+  ],
+  "how": [
+    "Fills on the same side within a short burst (150 ms gap, up to 4 ticks of price walk) are joined into one order. In Automatic mode the size threshold comes from the recorded trades for the symbol, so only unusually large orders show. Manual mode uses your own min and max size.",
+    "History comes from up to 48 hours of recorded trades; new trades arrive over the chart's shared connection. A small readout compares the two trade feeds over the last 60 minutes."
+  ],
+  "use": [
+    "Some traders watch where large orders appear near highs, lows or key levels.",
+    "Use two copies with different size bands to separate order sizes.",
+    "Hover a bubble to read its size."
+  ],
+  "notes": [
+    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
+    "Joining fills into one order is an estimate based on timing and price.",
+    "Futures only (NQ, ES, YM, RTY, CL, GC and their micros)."
+  ],
+  "learn": "order-flow"
+}

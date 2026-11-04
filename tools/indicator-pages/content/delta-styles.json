@@ -1,0 +1,24 @@
+{
+  "slug": "delta-styles",
+  "summary": "Draws delta from recorded trades on the price chart in one of 12 styles, from a session delta profile to delta bubbles and a session box.",
+  "overview": [
+    "Delta is an overlay with many looks. The Style setting picks one: H1 session delta profile (the default), H2 split bid/ask profile, H3 volume profile plus delta, H4 visible range against the last 30 minutes, H5 delta profile per time block, H6 delta ladder, V3 delta numbers, V4 delta-coloured candles with absorption, V5 footprint-lite, V6 big delta bubbles, V7 session delta box, and V8 delta heat strip plus CVD.",
+    "You can add it more than once, for example H1 and H5 together. Buyers are green and sellers purple by default."
+  ],
+  "how": [
+    "Every style is built from the same per-trade order flow as Footprint and Delta (trades): 1-minute bars where each trade is tagged buyer- or seller-initiated. Nothing is estimated from candles. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.",
+    "Profiles add up buy and sell volume per price row (auto row size by default) and plot the difference. Block styles group bars into 30-minute or 1-hour blocks. Big delta styles flag bars at 2.5 times the average absolute delta. V7 sums the last 5 minutes into a box in the top right."
+  ],
+  "use": [
+    "Some traders use the session profile to see at which prices buyers or sellers were most active.",
+    "Use the time-block profile to compare the morning with the afternoon.",
+    "Some traders watch the big delta bubbles for bars with unusual one-sided flow.",
+    "Use two copies with different styles to see price and bar views together."
+  ],
+  "notes": [
+    "Needs per-trade data; other symbols show a note.",
+    "The pane styles V1 and V2 are in Delta: pane.",
+    "For the Data feed L1 trade stream version, see the Delta (L1) overlay."
+  ],
+  "learn": "order-flow"
+}

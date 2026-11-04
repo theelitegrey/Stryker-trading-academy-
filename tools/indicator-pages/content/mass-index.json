@@ -1,0 +1,23 @@
+{
+  "slug": "mass-index",
+  "summary": "Mass Index: a 25-bar sum of the ratio of single to double 9-bar EMAs of the range, with setup 27 and trigger 26.5.",
+  "overview": [
+    "The Mass Index, by Donald Dorsey, watches for range expansion that can come before a reversal. It plots in its own pane with a setup level at 27 and a trigger at 26.5.",
+    "The line turns orange once it rises above the setup level and stays that color until it drops below the trigger. This is the reversal bulge."
+  ],
+  "how": [
+    "Single = EMA(high - low, 9). Double = EMA(single, 9). Mass Index = sum of (single / double) over 25 bars.",
+    "The pattern arms when the line goes above 27 and completes when it falls below 26.5."
+  ],
+  "use": [
+    "Some traders watch a completed bulge as a sign the current trend may turn.",
+    "Use a direction tool to decide which way the turn could go.",
+    "Use the orange color to see when the pattern is armed.",
+    "Look at how often bulges happened on past bars of the symbol."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It shows no direction by itself."
+  ]
+}

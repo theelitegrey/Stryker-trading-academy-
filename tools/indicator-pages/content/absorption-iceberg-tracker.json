@@ -1,0 +1,21 @@
+{
+  "slug": "absorption-iceberg-tracker",
+  "summary": "A pane that counts absorption, iceberg hints and stop runs over the session, buy side up and sell side down.",
+  "overview": [
+    "Absorption & Iceberg Tracker keeps a running count of three kinds of events in its own pane: absorption, iceberg hints and stop runs.",
+    "Buy-side events go up and sell-side events go down, so you can see which side has been showing more of them."
+  ],
+  "how": [
+    "Absorption is heavy aggressive volume at a price that price did not move away from. An iceberg hint is a level that keeps refilling as it trades. A stop run is a poke past a recent swing that closes back. Trades come from the trade stream and the book from the order book."
+  ],
+  "use": [
+    "Use it to see where the session's absorption and refills have been building.",
+    "Some traders compare the tracker with price at highs and lows.",
+    "Turn off any of the three events to focus on one."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "These are hints from trades and book changes; the tool cannot see hidden orders directly."
+  ],
+  "learn": "order-flow"
+}

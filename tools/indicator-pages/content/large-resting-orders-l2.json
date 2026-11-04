@@ -1,0 +1,21 @@
+{
+  "slug": "large-resting-orders-l2",
+  "summary": "Marks the largest resting orders in the book right now, with their size and how long they have been there.",
+  "overview": [
+    "Large Resting Orders (L2) draws a short line and label at the few biggest levels in the order book.",
+    "Each label shows the size and how long the order has rested."
+  ],
+  "how": [
+    "The tool keeps a histogram of every level size seen this session. Levels in the top 0.5 % of sizes are shown, up to 6 at a time by default. It waits until enough of the session has been seen before the top-percent size means anything."
+  ],
+  "use": [
+    "Use it to see the biggest resting orders near price at a glance.",
+    "Some traders watch whether price stops at, or trades through, these levels.",
+    "Use the age to tell new orders from ones that have rested a long time."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Resting orders can be pulled at any time."
+  ],
+  "learn": "order-flow"
+}

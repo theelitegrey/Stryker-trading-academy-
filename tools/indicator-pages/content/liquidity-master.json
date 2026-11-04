@@ -1,0 +1,24 @@
+{
+  "slug": "liquidity-master",
+  "summary": "Draws session, previous day, week and month highs and lows, swing and candle liquidity per timeframe, HTF fair value gaps and REQH / REQL.",
+  "overview": [
+    "Liquidity Master gathers the places liquidity can rest onto one chart. It draws fair value gaps from the chart and higher timeframes, swing highs and lows per timeframe, completed candle highs and lows, Asia, London and New York session highs and lows, and previous day and week highs and lows (previous month is optional).",
+    "Two draw-on-liquidity tables list the nearest unswept major highs above price and lows below. It can also mark relative equal highs and lows (REQH and REQL), opening price lines (09:30 and 10:00 by default) and low-resistance legs."
+  ],
+  "how": [
+    "Liquidity lines run from the bar that made them until the wick that takes them, then stop. Session and period lines also end at their natural expiry. Fair value gaps are removed when a candle closes through the far side, and where gaps overlap the highest timeframe wins. All higher-timeframe candles are built from chart bars, so each level is anchored to the bar that made it.",
+    "By default gaps show for the chart, 15m and 1h, swing liquidity for 5m, 15m and 1h, and candle liquidity for 1h and 4h, limited to the last 40 lines and to levels formed today and yesterday. The trading day starts at 18:00 New York time. Labels for levels close together are merged, for example NY Low and PDL, within 40% of ATR by default."
+  ],
+  "use": [
+    "Some traders use the tables to see the nearest untaken highs and lows at a glance.",
+    "Use the session lines to see which session's high or low has been swept.",
+    "Some traders watch equal highs or lows as places stops may rest.",
+    "Use the timeframe switches to keep only the levels you study."
+  ],
+  "notes": [
+    "It draws many objects; turning off timeframes you do not need keeps the chart readable.",
+    "Higher timeframes are built from the loaded chart bars, so a short history limits them.",
+    "The script has no alert conditions."
+  ],
+  "learn": "liquidity-sweeps"
+}

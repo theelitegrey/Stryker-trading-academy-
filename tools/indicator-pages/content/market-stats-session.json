@@ -1,0 +1,21 @@
+{
+  "slug": "market-stats-session",
+  "summary": "Draws one past session's prior-day levels, open, gap, opening range and initial balance, with a marker where the outcome happened.",
+  "overview": [
+    "TradeZoro Market Stats session is opened from the Market Stats page. It takes you to the chosen date and draws the levels for that one session: prior day high, low and close, the open, the gap band, the opening range (15 or 30 minutes) and the initial balance lines. A marker shows the minute the studied outcome happened."
+  ],
+  "how": [
+    "Nothing is fetched by the indicator: the numbers come from the Market Stats page when you open the link. The chart switches to the symbol and timeframe, loads older history until that session is on screen, and zooms to that day.",
+    "The stats use a back-adjusted continuous contract, so the levels are shifted by the open basis to line up with the chart's bars. SPX levels are drawn on the ES chart shifted the same way, and the chip says so. The only setting turns the labels on or off."
+  ],
+  "use": [
+    "Use it to see how a session from the statistics actually played out on the chart.",
+    "Some traders study where the opening range broke compared with the prior day levels.",
+    "Use the marker to find the moment the outcome happened and look at the bars around it."
+  ],
+  "notes": [
+    "It works from links on the Market Stats page; added on its own it has no session to draw.",
+    "The statistics are historical frequencies, not predictions.",
+    "On hourly charts the alignment can be about 30 minutes early."
+  ]
+}

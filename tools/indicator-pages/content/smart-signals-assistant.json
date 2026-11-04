@@ -1,0 +1,25 @@
+{
+  "slug": "smart-signals-assistant",
+  "summary": "Trend signal suite: bullish and bearish signals, fair value trail, optional trend tools, target and stop levels, and component tables.",
+  "overview": [
+    "This community script prints bullish and bearish signal labels, with stronger versions when more parts agree, plus exit signals and optimal entry markers. A fair value trail cloud follows price and changes color with the trend.",
+    "Optional parts include a trend spine, a trend bias band, cloud layers, a trend-range classifier that marks ranging candles, target and stop levels, candle coloring, a component table that shows the state of each tool, and a performance table."
+  ],
+  "how": [
+    "The signal engine has two modes: Swing, which looks at price stability and volatility for longer trends, and Scalping, a faster system that adapts its settings to market state. Signals can be trend-following or reversal. Time horizon settings set short, medium or long lengths for each tool.",
+    "An optional optimizer tests eight lengths on past bars and uses the one that scored highest under the chosen measure. Target and stop distances use volatility multiples (2.0 and 1.5 by default) or fixed percentages, with up to three targets.",
+    "A custom alert sequence lets you chain several events into one alert."
+  ],
+  "use": [
+    "Use the fair value trail to see the trend state at a glance.",
+    "Some traders wait for a signal to agree with the trend bias and classifier before paying attention to it.",
+    "Use the component table to see which parts agree right now.",
+    "Use the performance table to review how the signals behaved on past bars under its rules."
+  ],
+  "alerts": "Alerts: members can create an alert on its conditions (for example \"Smart Signals Bullish Signal\", \"Smart Signals Bearish Signal\", \"Fair Value Trail Turns Bullish\", \"Stop-Loss Hit\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Past results in the tables describe history on this chart only.",
+    "The optimizer chooses settings from past data, so its choice can change over time.",
+    "Many tools are off by default; turn them on as needed."
+  ]
+}

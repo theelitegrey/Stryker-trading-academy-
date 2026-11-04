@@ -1,0 +1,23 @@
+{
+  "slug": "rate-of-change",
+  "summary": "Rate of Change: percent change from 9 bars ago, or the raw difference in Momentum mode, around a zero line.",
+  "overview": [
+    "Rate of Change (ROC) shows how much price has moved over a set number of bars, in its own pane. Above zero price is higher than it was; below zero it is lower.",
+    "The line and gradient fill are green above zero and red below."
+  ],
+  "how": [
+    "ROC % = (source - source 9 bars ago) / source 9 bars ago x 100. In Momentum mode it shows the raw difference instead.",
+    "The length sets how far back the comparison goes."
+  ],
+  "use": [
+    "Some traders watch zero-line crosses as changes in short-term direction.",
+    "Use extreme readings to spot moves that are unusually fast for the symbol.",
+    "Look for divergence between ROC and price at swing points.",
+    "Use percent mode to compare symbols."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It can be jumpy because it compares only two points."
+  ]
+}

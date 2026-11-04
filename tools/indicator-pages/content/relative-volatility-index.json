@@ -1,0 +1,22 @@
+{
+  "slug": "relative-volatility-index",
+  "summary": "Relative Volatility Index: an RSI-style line built from 10-bar standard deviation on up and down closes, levels at 80 and 20.",
+  "overview": [
+    "The Relative Volatility Index (RVI), by Donald Dorsey, looks like RSI but uses volatility instead of price change. It plots from 0 to 100 in its own pane with levels at 80 and 20.",
+    "It shows whether volatility has been higher on up bars or on down bars."
+  ],
+  "how": [
+    "For each bar, take the 10-bar standard deviation of close. On up closes it goes into the up stream, on down closes into the down stream. Smooth each stream over 14 bars with an EMA (or Wilder RMA).",
+    "RVI = 100 x up / (up + down)."
+  ],
+  "use": [
+    "Some traders use RVI to confirm signals from other tools, as Dorsey intended.",
+    "Use readings above 50 as more volatility on up bars.",
+    "Watch moves above 80 or below 20 as one-sided volatility.",
+    "Compare with RSI to see if volatility agrees with momentum."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data."
+  ]
+}

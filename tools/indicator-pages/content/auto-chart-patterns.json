@@ -1,0 +1,22 @@
+{
+  "slug": "auto-chart-patterns",
+  "summary": "Finds classic chart patterns from swing pivots and draws them with outline lines, names and a neckline or breakout line.",
+  "overview": [
+    "Auto Chart Patterns looks for classic shapes in price and draws them on the chart. It covers double tops and bottoms, head and shoulders and inverse head and shoulders, ascending, descending and symmetrical triangles, rising and falling wedges, bull and bear flags, and channels.",
+    "Each pattern gets outline lines, a small name label and a dotted neckline or breakout line. An optional dotted line shows the measured-move target. By default the newest 6 patterns are shown."
+  ],
+  "how": [
+    "The indicator builds a zigzag of swing pivots, with a pivot length of 5 bars each side by default; a larger length finds fewer, larger patterns. Recent pivots are matched against each pattern's shape.",
+    "A pattern is shown as forming until a bar closes through its neckline or trendline; then it is complete. Only new closed bars are read, and only the last set of pivots is kept. Each pattern type can be switched on or off."
+  ],
+  "use": [
+    "Some traders use it to spot classic shapes they might miss by eye.",
+    "Use the forming patterns to see which neckline or trendline price is testing.",
+    "Some traders compare the measured-move line with nearby levels.",
+    "Use it to practise recognising patterns on past charts."
+  ],
+  "notes": [
+    "Patterns depend on the pivot length; different settings find different patterns.",
+    "It draws patterns, not signals; many patterns do not play out."
+  ]
+}

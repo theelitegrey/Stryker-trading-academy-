@@ -1,0 +1,23 @@
+{
+  "slug": "connors-rsi",
+  "summary": "Connors RSI: average of a 3-bar RSI, a streak RSI and a 100-bar percent rank of returns, with levels at 90 and 10.",
+  "overview": [
+    "Connors RSI (CRSI) is a short-term oscillator from 0 to 100 in its own pane. It blends three parts into one line. Levels sit at 90 (overbought) and 10 (oversold).",
+    "The line shifts toward red near overbought and green near oversold."
+  ],
+  "how": [
+    "CRSI = (RSI(close, 3) + RSI(streak, 2) + PercentRank(1-bar ROC, 100)) / 3.",
+    "The streak counts how many bars in a row closed up (positive) or down (negative). PercentRank shows where today's one-bar change sits among the last 100."
+  ],
+  "use": [
+    "Some traders watch readings under 10 or over 90 as short-term stretched conditions.",
+    "Use it on daily charts to spot short pullbacks within a trend.",
+    "Pair it with a longer trend filter so you read it in context.",
+    "Watch how quickly it leaves extreme zones."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It is built for short swings and moves fast."
+  ]
+}

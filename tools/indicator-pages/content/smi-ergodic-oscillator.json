@@ -1,0 +1,23 @@
+{
+  "slug": "smi-ergodic-oscillator",
+  "summary": "SMI Ergodic: double-smoothed price momentum (20 and 5 EMAs) with a 5-bar signal line, or as a histogram.",
+  "overview": [
+    "The SMI Ergodic Indicator shows smoothed momentum in its own pane, with a signal line in orange. In Oscillator display it plots the gap between the two as a histogram instead.",
+    "Histogram bars are green when growing and red when falling."
+  ],
+  "how": [
+    "Take the one-bar change of the close. Smooth it with a 20-bar EMA, then a 5-bar EMA. Do the same with the absolute change. SMI = 100 x smoothed change / smoothed absolute change.",
+    "Signal = 5-bar EMA of SMI. The oscillator = SMI - signal."
+  ],
+  "use": [
+    "Some traders watch SMI crossing its signal line.",
+    "Use zero-line crosses as changes in momentum direction.",
+    "Use the histogram view to see momentum speeding up or slowing.",
+    "Look for divergence with price."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It is closely related to the True Strength Index."
+  ]
+}

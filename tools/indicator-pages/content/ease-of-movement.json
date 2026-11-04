@@ -1,0 +1,22 @@
+{
+  "slug": "ease-of-movement",
+  "summary": "Ease of Movement: how far price moved per unit of volume, smoothed with a 14-bar SMA, around zero.",
+  "overview": [
+    "Ease of Movement (EOM), by Richard Arms, shows how easily price moves, in its own pane. High positive values mean price rose on light volume; large negative values mean it fell easily.",
+    "The line is green above zero and red below."
+  ],
+  "how": [
+    "Distance moved = (high + low) / 2 - (previous high + previous low) / 2. Box ratio = (volume / 10000) / (high - low). One-bar EMV = distance / box ratio. EOM = SMA(EMV, 14).",
+    "The divisor (10000) only scales the line."
+  ],
+  "use": [
+    "Some traders watch EOM above zero as price rising with little effort.",
+    "Use zero-line crosses as a change in direction of easy movement.",
+    "Look at values near zero as heavy volume for little movement.",
+    "Pair it with price structure to judge breakouts."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful."
+  ]
+}

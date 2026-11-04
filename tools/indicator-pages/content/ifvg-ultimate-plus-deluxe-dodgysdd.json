@@ -1,0 +1,26 @@
+{
+  "slug": "ifvg-ultimate-plus-deluxe-dodgysdd",
+  "summary": "Inversion FVG model with graded setups, sweeps, equal highs and lows, sessions, HTF FVGs, SMT, NWOGs, delta coloring and a checklist.",
+  "overview": [
+    "This community script builds setups around inversion fair value gaps (IFVGs): gaps that price closes through and that then act from the other side. Each setup gets a grade, entry markers, a stop, break-even and two targets, with an optional contract-size suggestion from a risk amount.",
+    "Around the setups it can draw liquidity sweeps, relative equal highs and lows, session highs and lows and boxes, previous day and week levels, midnight, 8:30 and 9:30 opens, higher-timeframe FVGs, SMT divergences, new week opening gaps, per-candle value area boxes, a small volume profile, delta candle colors and a checklist table."
+  ],
+  "how": [
+    "Gaps are detected in series or one by one, with an ATR filter (0.1 by default). Filters can require a liquidity sweep, delivery from a higher-timeframe PD array, a macro time window, or that break-even was not breached. Gaps of 7 to 15 candles can be allowed.",
+    "Swing size for sweeps can follow the chart timeframe or be set by you. SMT uses a correlated symbol, automatic or manual, across several timeframes.",
+    "The volume tools estimate buy and sell imbalance per candle from lower-timeframe data."
+  ],
+  "use": [
+    "Use the grade and checklist to see which filters a setup meets.",
+    "Some traders watch IFVGs that form right after a sweep of a session or daily level.",
+    "Use equal highs and lows as reference pools where stops may cluster.",
+    "Turn modules on one at a time to learn what each adds."
+  ],
+  "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Results shown on the chart follow the script's own rules; Hide Losing Setups changes what you see, not what happened.",
+    "SMT and HTF tools need extra data requests and can slow loading.",
+    "Session times follow New York time."
+  ],
+  "learn": "fair-value-gap"
+}

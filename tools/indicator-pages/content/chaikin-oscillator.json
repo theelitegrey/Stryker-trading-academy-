@@ -1,0 +1,23 @@
+{
+  "slug": "chaikin-oscillator",
+  "summary": "Chaikin Oscillator: the 3-bar EMA minus the 10-bar EMA of the Accumulation/Distribution line, around zero.",
+  "overview": [
+    "The Chaikin Oscillator shows the momentum of the Accumulation/Distribution line, in its own pane around zero.",
+    "The line and fill are green above zero (accumulation) and red below (distribution)."
+  ],
+  "how": [
+    "Chaikin Oscillator = EMA(A/D, 3) - EMA(A/D, 10). The A/D line is the running total of volume weighted by where each bar closes in its range.",
+    "Both EMA lengths can be changed. Because it uses the A/D line, it reacts to where each bar closes in its range, not only to the close-to-close change."
+  ],
+  "use": [
+    "Some traders watch zero-line crosses as changes in buying or selling pressure.",
+    "Look for divergence between the oscillator and price.",
+    "Use it with a trend filter to read crosses in context.",
+    "Compare it with MACD to see momentum from volume rather than price."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "It needs volume data; on symbols without volume it shows nothing useful.",
+    "It can move against price when closes sit low in rising bars."
+  ]
+}

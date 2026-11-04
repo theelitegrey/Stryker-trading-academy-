@@ -1,0 +1,20 @@
+{
+  "slug": "relative-volume",
+  "summary": "Shows each bar's volume as a multiple of the average volume at the same time of day, as a histogram with high bars highlighted.",
+  "overview": [
+    "Relative Volume (RVOL) draws a histogram in a lower pane. Each bar's value is its volume divided by a normal volume for that bar. A value of 1 means average, marked by a dotted line; bars at or above 2 times average are highlighted in orange by default."
+  ],
+  "how": [
+    "On intraday charts the average is the volume at the same time of day over the previous 10 days. If there is not enough same-time history, for example on a short chart, it falls back to a rolling average of the previous 10 bars.",
+    "On daily and higher charts it uses a simple average of the previous 10 bars. You can change the lookback and the highlight level."
+  ],
+  "use": [
+    "Some traders watch for bars that trade far more volume than usual for that time of day.",
+    "Use it to compare the open or a news bar with typical activity.",
+    "Some traders check whether a breakout came with above-average volume."
+  ],
+  "notes": [
+    "Needs bars with volume.",
+    "Same-time averages need several days of intraday history to be meaningful."
+  ]
+}

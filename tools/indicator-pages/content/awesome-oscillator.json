@@ -1,0 +1,23 @@
+{
+  "slug": "awesome-oscillator",
+  "summary": "Awesome Oscillator histogram: 5-bar minus 34-bar simple average of median price, green when rising and red when falling.",
+  "overview": [
+    "The Awesome Oscillator shows momentum as a histogram in its own pane, around a zero line. Bars are green when the value is higher than on the previous bar and red when lower or equal.",
+    "It was created by Bill Williams to compare recent momentum with a longer view."
+  ],
+  "how": [
+    "AO = SMA(median price, 5) - SMA(median price, 34), where median price = (high + low) / 2.",
+    "Above zero, the short-term average is above the long-term one; below zero, it is under it."
+  ],
+  "use": [
+    "Some traders watch zero-line crosses as a sign of a change in momentum.",
+    "Look at the color sequence: a run of green bars shows momentum building.",
+    "Some traders look for a saucer pattern: three bars that dip and turn on the same side of zero.",
+    "Compare two peaks on the same side of zero with price peaks to look for divergence."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "The 5 and 34 lengths are fixed in the classic formula."
+  ]
+}

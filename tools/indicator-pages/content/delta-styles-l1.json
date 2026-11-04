@@ -1,0 +1,22 @@
+{
+  "slug": "delta-styles-l1",
+  "summary": "Delta drawn on the price chart in many styles, such as a session delta profile, built from the futures trade stream.",
+  "overview": [
+    "Delta styles (L1) draws buying minus selling volume directly on the price chart. Its Style setting picks the look; the default is a session delta profile that shows net buying or selling at each price.",
+    "Other styles include time blocks, a recent window, key prices per candle and a summary box. You can add it more than once with different styles."
+  ],
+  "how": [
+    "It uses the same delta maths as the standard Delta styles tool, fed by the futures trade stream. Trades are grouped into price rows (auto size by default), and strong delta is flagged when it reaches 2.5 times the average absolute delta."
+  ],
+  "use": [
+    "Use the session profile to see at which prices buyers or sellers were most active.",
+    "Some traders watch big delta at a level that price then fails to move past.",
+    "Use the summary box for the last few minutes of net flow."
+  ],
+  "notes": [
+    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
+    "Not the same as Delta (L1), which is a simple per-bar pane.",
+    "No data means a plain note; nothing is estimated from candles."
+  ],
+  "learn": "order-flow"
+}

@@ -1,0 +1,20 @@
+{
+  "slug": "vwap-trades",
+  "summary": "Plots the volume-weighted average price from recorded trades, reset each session, with bands one and two standard deviations away.",
+  "overview": [
+    "VWAP (trades) draws the volume-weighted average price for the session, with bands at 1 and 2 standard deviations above and below by default. You can show only the first band or none."
+  ],
+  "how": [
+    "The average uses the price and size of the recorded trades rather than each candle's typical price. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.",
+    "It resets each session (the futures trading day starting at 18:00 New York) by default, or each calendar day. The bands are the volume-weighted standard deviation of price around the VWAP."
+  ],
+  "use": [
+    "Some traders use VWAP as a reference for the session's average traded price.",
+    "Use the bands to see how far price has stretched from the average.",
+    "Some traders watch how price behaves when it returns to VWAP."
+  ],
+  "notes": [
+    "Needs per-trade data; other symbols show a note.",
+    "For a candle-based VWAP from any bar, see Anchored VWAP."
+  ]
+}

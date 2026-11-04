@@ -1,0 +1,23 @@
+{
+  "slug": "stochastic",
+  "summary": "Stochastic oscillator: where the close sits in its 14-bar range, smoothed %K and %D, with levels at 80 and 20.",
+  "overview": [
+    "The Stochastic shows where the close sits within the recent high-low range, on a scale of 0 to 100 in its own pane. It has a blue %K line and an orange %D line, with a band between 80 and 20.",
+    "With smoothing 3, it is the classic slow stochastic."
+  ],
+  "how": [
+    "Raw %K = (close - lowest low of 14 bars) / (highest high - lowest low) x 100. %K = 3-bar SMA of raw %K. %D = 3-bar SMA of %K.",
+    "A %K smoothing of 1 gives the fast stochastic."
+  ],
+  "use": [
+    "Some traders watch readings above 80 or below 20 as stretched.",
+    "Use %K crossing %D as a change in short-term momentum.",
+    "Look for divergence between the stochastic and price.",
+    "In strong trends it can stay in a zone for a long time."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It moves fast and can cross often in ranges."
+  ]
+}

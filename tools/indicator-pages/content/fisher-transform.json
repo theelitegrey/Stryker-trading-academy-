@@ -1,0 +1,23 @@
+{
+  "slug": "fisher-transform",
+  "summary": "Fisher Transform: median price turned into a sharp oscillator over 9 bars, with a one-bar trigger line.",
+  "overview": [
+    "The Fisher Transform, by John Ehlers, turns price into a line with clear peaks and troughs. It plots in its own pane with a trigger line, which is the Fisher line from one bar earlier.",
+    "Colors follow direction: green while the Fisher line is above the trigger, red while below."
+  ],
+  "how": [
+    "First, median price (high + low) / 2 is placed in its 9-bar high-low range and scaled to between -1 and +1, with some smoothing. Then Fisher = 0.5 x ln((1 + x) / (1 - x)), also smoothed with its prior value.",
+    "This stretches values near the edges, so turning points stand out."
+  ],
+  "use": [
+    "Some traders watch the Fisher line crossing its trigger as a turn signal.",
+    "Use extreme readings as a sign a move is stretched.",
+    "Look at how sharp the peaks are to see how strong a swing was.",
+    "Pair it with a trend filter to avoid reading every swing."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It reacts fast and can give many turns in choppy markets."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "slug": "off-exchange-volume",
+  "summary": "Shows the daily share of a stock's volume reported off the exchanges, as a percentage line in a lower pane, from public daily off-exchange volume data.",
+  "overview": [
+    "Off-exchange Volume draws one line in a pane below the chart: the percentage of each day's volume that was reported off-exchange (dark pool / ATS and other off-exchange trades), meaning trades done away from the exchanges. A status line shows when the data was refreshed."
+  ],
+  "how": [
+    "The data comes from public daily off-exchange (dark pool / ATS) volume data, which lists the total off-exchange volume reported for each symbol each day. The indicator divides that by the chart's volume for the same day and plots the result in percent.",
+    "If the result would be above 100%, the chart's volume is not the consolidated count, so nothing is drawn for that day. The data file is refreshed once a day, in the US evening."
+  ],
+  "use": [
+    "Some traders watch for days when the off-exchange share is unusually high or low for that stock.",
+    "Use it to see how much of a stock's trading happens away from the exchanges over time.",
+    "Some traders compare the share with price moves on the same days."
+  ],
+  "notes": [
+    "Daily charts only.",
+    "Stocks and ETFs in the data file only (for example SPY, QQQ, AAPL).",
+    "It shows a share of volume, not the direction of the trades."
+  ]
+}

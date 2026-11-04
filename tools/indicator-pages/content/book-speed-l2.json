@@ -1,0 +1,21 @@
+{
+  "slug": "book-speed-l2",
+  "summary": "A pane that shows how fast the order book is changing, labelled calm, normal or fast against the session's own range.",
+  "overview": [
+    "Book Speed (L2) counts how many resting levels near price change every second and draws it in its own pane.",
+    "Each reading is coloured calm, normal or fast, compared with the rest of the same session."
+  ],
+  "how": [
+    "The tool compares each order-book snapshot with the one before, within 20 ticks of price by default, and counts the changed levels per second. Readings at or below the session's 25th percentile are calm; at or above the 75th are fast. A short smoothing (3 bars) is applied."
+  ],
+  "use": [
+    "Use it to see when the book becomes busy or quiet.",
+    "Some traders watch book speed pick up as price nears a level.",
+    "Compare fast periods with what price did."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Calm, normal and fast are relative to the current session, not fixed numbers."
+  ],
+  "learn": "order-flow"
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "percentage-price-oscillator",
+  "summary": "Percentage Price Oscillator: the gap between a 12 and 26 EMA as a percent of the slow EMA, with signal line and histogram.",
+  "overview": [
+    "The Percentage Price Oscillator (PPO) works like MACD but shows the gap as a percentage. That makes it easier to compare across symbols and price levels.",
+    "It plots in its own pane with a signal line, an optional histogram and a gradient fill."
+  ],
+  "how": [
+    "PPO = (fast MA - slow MA) / slow MA x 100, with fast 12 and slow 26 EMAs by default. Signal = 9-bar EMA of PPO. Histogram = PPO - Signal.",
+    "The average types for the lines and the signal can be changed."
+  ],
+  "use": [
+    "Some traders watch PPO crossing its signal line.",
+    "Use zero-line crosses as trend changes in the averages.",
+    "Compare PPO readings across symbols because it is in percent.",
+    "Watch for divergence between PPO and price."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It lags like any average-based tool."
+  ]
+}

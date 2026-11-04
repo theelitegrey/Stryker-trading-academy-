@@ -1,0 +1,287 @@
+[
+ {
+  "slug": "gex-levels",
+  "key": "b:stk_gex",
+  "name": "TradeZoro GEX Levels",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Pro",
+  "short": "Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH/pPOC/pVAL, ONH/ONL) from the GEX page (SPX, SPY, QQQ, ES, NQ and gold GC)",
+  "source": "assets/chart-gex-levels.js",
+  "settings": [
+   "Expiry (Pro: all) = \"0\"",
+   "Call wall = true",
+   "undefined = \"#ef4444\"",
+   "Zero gamma (flip) = true",
+   "undefined = \"#f59e0b\"",
+   "Put wall = true",
+   "undefined = \"#22c55e\"",
+   "0DTE call / put wall (today’s expiry only) = false",
+   "Gamma profile (bars by strike) = false",
+   "IV ±68% = true",
+   "undefined = \"#8b7cf6\"",
+   "Next 3 big strikes (Pro) = false",
+   "undefined = \"#94a3b8\"",
+   "Shade 68% band = false",
+   "undefined = \"#8b7cf6\"",
+   "Ranked strikes (rank, role, size) = false",
+   "Ranked strikes shown = \"5\"",
+   "Previous days’ big levels = true",
+   "Previous days (0-5) = 2",
+   "pVAH = true",
+   "undefined = \"#38bdf8\"",
+   "pPOC = true",
+   "undefined = \"#38bdf8\"",
+   "pVAL = true",
+   "undefined = \"#38bdf8\"",
+   "ONH = true",
+   "undefined = \"#64748b\"",
+   "ONL = true",
+   "undefined = \"#64748b\"",
+   "IV ±80% = false",
+   "Prior RTH high / low = false",
+   "Prior close = false",
+   "RTH open = false",
+   "RTH high / low = false",
+   "Session level colour = \"#8b7cf6\"",
+   "Level text labels = true",
+   "Label text = \"name + chart price + option level\"",
+   "Right price tags = true",
+   "Bottom updated text = true",
+   "Line style = \"as GEX page\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "gex-heatmap",
+  "key": "b:stk_gexheat",
+  "name": "TradeZoro GEX Heatmap",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Pro",
+  "short": "Net GEX at every strike through the session, drawn behind the candles (SPX, SPY, QQQ, ES, NQ and gold GC)",
+  "source": "assets/chart-gex-heatmap.js",
+  "settings": [
+   "Expiry (Pro: 1DTE) = \"0\"",
+   "Sessions shown = 3",
+   "Opacity = 0.55",
+   "Status note = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "off-exchange-levels",
+  "key": "b:stk_offex_lv",
+  "name": "Off-exchange levels (FINRA data)",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Free",
+  "short": "Price levels where weekly off-exchange volume clustered (average price of the week). FINRA data, updated weekly",
+  "source": "assets/chart-offex.js",
+  "settings": [
+   "Most active levels = 5",
+   "Colour = \"#00adb5\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "off-exchange-volume",
+  "key": "b:stk_offex",
+  "name": "Off-exchange Volume (FINRA data)",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Free",
+  "short": "Daily off-exchange share of volume in a lower pane. FINRA data, updated daily",
+  "source": "assets/chart-offex.js",
+  "settings": [
+   "Show the status line = true",
+   "Colour = \"#00adb5\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "options-flow-marks",
+  "key": "b:stk_optflow",
+  "name": "Options Flow Marks",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Pro",
+  "short": "Bubbles on the candles where call (green) or put (red) premium was large, sized by premium; hover or tap for details. Per-bar totals, not single trades (SPX, SPY, QQQ, ES, NQ)",
+  "source": "assets/chart-optflow.js",
+  "settings": [
+   "Sensitivity = \"Low\"",
+   "Calls colour = \"#22c55e\"",
+   "Puts colour = \"#ef4444\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "earnings-dates",
+  "key": "b:stk_earn",
+  "name": "TradeZoro Earnings dates",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Free",
+  "short": "An “E” on the day a US company reports earnings, with the EPS estimate on hover. Data updated daily",
+  "source": "assets/chart-news-markers.js",
+  "settings": [
+   "Marker colour = \"#ff9f0a\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "economic-events",
+  "key": "b:stk_econ",
+  "name": "TradeZoro Economic events",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Free",
+  "short": "High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip",
+  "source": "assets/chart-news-markers.js",
+  "settings": [
+   "Impact = \"High\"",
+   "Countries = \"US\"",
+   "Warn before (minutes) = 30",
+   "Warning chip in the chart header = true",
+   "Event labels = true",
+   "High-impact colour = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "expected-move",
+  "key": "b:stk_em",
+  "name": "TradeZoro Expected Move",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Pro",
+  "short": "Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly (SPX, SPY, QQQ, ES, NQ)",
+  "source": "assets/chart-expected-move.js",
+  "settings": [
+   "Expiry = \"0DTE\"",
+   "Show every expiry = false",
+   "Shade the range = true",
+   "Labels = true",
+   "Status = true",
+   "Colour (single expiry) = \"#00adb5\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "news-markers",
+  "key": "b:stk_news",
+  "name": "TradeZoro News markers",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Free",
+  "short": "Headline markers on the time axis for the chart’s market; hover or tap to read them",
+  "source": "assets/chart-news-markers.js assets/chart-news.js",
+  "settings": [
+   "Marker colour = \"#00adb5\""
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "zorotide",
+  "key": "b:stk_tide",
+  "name": "ZoroTide (options money flow: calls vs puts)",
+  "author": "TradeZoro",
+  "group": "TradeZoro",
+  "plan": "Free",
+  "short": "Options money flow: net call premium (green) vs net put premium (red) since the open, in a lower pane (SPX, SPY, QQQ, ES, NQ)",
+  "source": "assets/chart-zorotide.js",
+  "settings": [
+   "Net call premium colour = \"#22c55e\"",
+   "Net put premium colour = \"#ef4444\"",
+   "Line width = 2",
+   "Status = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "ema-9-21-cross",
+  "key": "x:ema-cross",
+  "name": "EMA 9/21 cross",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/chart-pine-scripts.js",
+  "settings": [
+   "Fast EMA = \"9\"",
+   "Slow EMA = \"21\""
+  ],
+  "alerts": {
+   "conditions": [],
+   "anyAlert": false
+  }
+ },
+ {
+  "slug": "market-stats-session",
+  "key": "b:stk_msess",
+  "name": "TradeZoro Market Stats session",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/chart-market-stats.js",
+  "settings": [
+   "Labels = true"
+  ],
+  "alerts": {
+   "plot": false
+  }
+ },
+ {
+  "slug": "session-vwap",
+  "key": "x:session-vwap",
+  "name": "Session VWAP",
+  "author": "TradeZoro",
+  "group": "Volume",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/chart-pine-scripts.js",
+  "settings": [
+   "Source = \"hlc3\""
+  ],
+  "alerts": {
+   "conditions": [],
+   "anyAlert": false
+  }
+ },
+ {
+  "slug": "previous-day-high-low",
+  "key": "x:pdhl",
+  "name": "Previous day high/low",
+  "author": "TradeZoro",
+  "group": "Levels",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/chart-pine-scripts.js",
+  "settings": [],
+  "alerts": {
+   "conditions": [],
+   "anyAlert": false
+  }
+ }
+]

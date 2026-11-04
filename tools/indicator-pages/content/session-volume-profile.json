@@ -1,0 +1,23 @@
+{
+  "slug": "session-volume-profile",
+  "summary": "Draws a volume profile for each session on the chart, with the point of control and the 70% value area high and low lines.",
+  "overview": [
+    "Session Volume Profile draws one horizontal volume profile per session, starting at the left of each session and covering 40% of its width by default. Each row shows how much volume traded at that price. The point of control (POC), the busiest row, is drawn in orange, and the value area high and low (VAH and VAL) are dashed lines."
+  ],
+  "how": [
+    "The profile is built from the chart's candles. Each bar's volume is spread evenly over the rows between its low and high. On futures, rows are 4 ticks by default; on crypto, each session is split into 40 rows.",
+    "The value area starts at the POC and grows toward the larger neighbouring row until it holds 70% of the session's volume. For futures you can choose the RTH session (09:30 to 16:00 New York), the overnight session (18:00 to 09:30), both separately, or the full 18:00 to 17:00 trading day. Crypto always uses the UTC day."
+  ],
+  "use": [
+    "Some traders watch how price reacts at the POC, VAH and VAL.",
+    "Use it to compare where volume built up in today's session with earlier sessions.",
+    "Some traders note whether a session opens inside or outside the prior value area.",
+    "Use the RTH and overnight split to see how the two sessions differ."
+  ],
+  "notes": [
+    "Intraday charts only (1 minute to 4 hours).",
+    "It is built from candle volume, so it shows where volume traded by bar range, not trade by trade.",
+    "For a profile from recorded trades, see Volume Profile (trades)."
+  ],
+  "learn": "volume-profile"
+}

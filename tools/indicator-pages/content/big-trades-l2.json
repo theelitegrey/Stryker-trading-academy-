@@ -1,0 +1,21 @@
+{
+  "slug": "big-trades-l2",
+  "summary": "Big trade bubbles tagged by what happened in the book: W hit a resting wall, C consumed the book, P the book was pulled.",
+  "overview": [
+    "Big Trades (L2) marks the largest aggressive orders, like Big Trades, and adds a letter from the order book: W when the order hit a resting wall, C when it consumed levels of the book, P when the book was pulled ahead of it.",
+    "Buyers and sellers are coloured separately."
+  ],
+  "how": [
+    "Fills on the same side within a short burst (150 ms gap, up to 4 ticks of price walk) are joined into one order. Automatic mode picks the size threshold from recorded trades; Manual uses your own band. The book state around each order decides its tag."
+  ],
+  "use": [
+    "Use it to see whether big orders met resting size or ran into an empty book.",
+    "Some traders watch W tags near walls on the heatmap.",
+    "Hover a bubble for its size."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Joining fills into one order and the tags are estimates from timing, price and book changes."
+  ],
+  "learn": "order-flow"
+}

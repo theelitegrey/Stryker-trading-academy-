@@ -1,0 +1,21 @@
+{
+  "slug": "cumulative-delta-l2",
+  "summary": "The running total of trade delta plus book delta, as candles or a line, reset each session.",
+  "overview": [
+    "Cumulative Delta (L2) adds up each bar's trade delta and book delta into one running total in its own pane, shown as candles or a line.",
+    "A dashed line can also show the trade-only total, so you can see how much the book changes add."
+  ],
+  "how": [
+    "Trade delta comes from the trade stream and book delta from the 10 order-book rows nearest price (by default). The total resets each session by default."
+  ],
+  "use": [
+    "Use it to follow the combined pressure of trades and resting orders over the session.",
+    "Some traders compare the combined line with the trade-only dashed line.",
+    "Watch the slope at key levels."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "The total depends on the reset point."
+  ],
+  "learn": "order-flow"
+}

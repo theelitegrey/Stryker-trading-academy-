@@ -1,0 +1,23 @@
+{
+  "slug": "average-directional-index",
+  "summary": "ADX with +DI and -DI: Wilder's directional movement lines and trend strength over 14 bars, key level at 25.",
+  "overview": [
+    "The Average Directional Index (ADX), by Welles Wilder, shows trend strength in its own pane. +DI (green) and -DI (red) show direction, and the ADX line (gray) shows strength.",
+    "A dashed key level sits at 25."
+  ],
+  "how": [
+    "+DM = high - previous high when that is larger than the down move, else 0. -DM = previous low - low when that is larger, else 0. +DI and -DI = 100 x RMA(DM, 14) / RMA(true range, 14). DX = 100 x |+DI - -DI| / (+DI + -DI). ADX = RMA(DX, 14).",
+    "ADX rises in strong trends of either direction."
+  ],
+  "use": [
+    "Some traders read ADX above 25 as a trending market.",
+    "Use +DI above -DI as a sign buyers lead.",
+    "Watch a falling ADX as a sign the trend is weakening.",
+    "Use low ADX to switch to range tools."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "ADX shows strength, not direction."
+  ]
+}

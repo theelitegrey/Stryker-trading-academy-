@@ -1,0 +1,24 @@
+{
+  "slug": "futures-dom-heatmap-l2",
+  "summary": "Shows the futures order book as a heatmap behind the candles, in several looks, with depth bars and sizes at each price.",
+  "overview": [
+    "Futures DOM Heatmap (L2) paints the resting orders of the futures book behind your candles. Bright bands are prices with a lot of size waiting. A band that ends means the orders there were pulled or filled.",
+    "You can pick a look (Midnight, Zoro, Classic, Split or a combined deep view), show depth bars with their sizes, and mark large walls."
+  ],
+  "how": [
+    "The chart receives the top levels of the book several times a second and the whole book grouped into buckets once a second; each second becomes a heatmap column. Up to 48 hours of recorded book history fills in the earlier part of the chart.",
+    "Walls are levels in the top 3 % of sizes that stayed at least 30 seconds by default. The deep view can tag big levels that vanished as pulled or filled, and give an iceberg hint where size kept coming back."
+  ],
+  "use": [
+    "Use it to see where large resting orders sit around price.",
+    "Some traders watch how price reacts when it reaches a bright band.",
+    "Compare walls that get pulled with walls that get traded through.",
+    "Pair it with Big Trades (L2) or Wall Events (L2) for what traded at those levels."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "The chart shows when the book was last updated (for example 'updated 2s ago').",
+    "Micro contracts show their mini contract's book."
+  ],
+  "learn": "order-flow"
+}

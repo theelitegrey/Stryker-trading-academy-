@@ -61,8 +61,15 @@ const PAGES = [
   ['/refund-policy',        '0.3', 'yearly'],
   ['/market-data-terms',    '0.3', 'yearly'],
   ['/help/desktop-bridge',  '0.5', 'monthly'],
-  ['/help/connect-your-own-data', '0.5', 'monthly']
+  ['/help/connect-your-own-data', '0.5', 'monthly'],
+  ['/compare',              '0.6', 'monthly'],
+  ['/indicators',           '0.7', 'weekly']
 ];
+// One page per ZoroCharts indicator (tools/gen-indicator-pages.js writes the catalogue).
+try {
+  JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets', 'indicators-catalog.json'), 'utf8')).items
+    .forEach((x) => PAGES.push(['/indicators/' + x.slug, '0.6', 'monthly']));
+} catch (e) { console.error('assets/indicators-catalog.json unreadable:', e.message); process.exit(1); }
 
 // Guard: every indexable page (no noindex) with a canonical URL must be
 // listed above, so a new public page can't be forgotten. Scans the root pages

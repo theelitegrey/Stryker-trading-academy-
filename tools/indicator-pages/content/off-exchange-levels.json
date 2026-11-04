@@ -1,0 +1,22 @@
+{
+  "slug": "off-exchange-levels",
+  "summary": "Draws horizontal levels at the average price of each week's off-exchange volume, from public weekly off-exchange (dark pool / ATS) volume data, thicker where more shares traded.",
+  "overview": [
+    "Off-exchange levels marks the prices where weekly off-exchange volume clustered for a stock or ETF. By default it shows the 5 most active levels. Line thickness follows the number of shares behind each level."
+  ],
+  "how": [
+    "The data comes from a public weekly off-exchange (dark pool / ATS) volume summary: for each symbol and week, the shares and dollar value traded on ATS (dark pool) venues and other OTC. These files carry no price per trade, so the level for a week is its average price: dollar value divided by shares.",
+    "Weeks whose average prices sit within 0.5% of each other are merged into one level, and the levels are ranked by shares. The file is refreshed daily, but the weekly data is published about three weeks after the week ends."
+  ],
+  "use": [
+    "Some traders watch how price reacts when it returns to a heavy off-exchange level.",
+    "Use it to see where large amounts of off-exchange volume changed hands in past weeks.",
+    "Some traders compare these levels with volume profile levels from the chart."
+  ],
+  "notes": [
+    "Stocks and ETFs in the data file only (for example SPY, QQQ, AAPL); other symbols show a note.",
+    "A level is a weekly average price, not a single trade or print.",
+    "The weekly data lags by about three weeks, so the most recent weeks are not included.",
+    "The indicator does not say what the levels mean or which side traded."
+  ]
+}

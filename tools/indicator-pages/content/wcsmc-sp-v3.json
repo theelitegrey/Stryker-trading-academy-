@@ -1,0 +1,26 @@
+{
+  "slug": "wcsmc-sp-v3",
+  "summary": "Smart-money structure: BoS and ChoCh, inducement, order blocks, FVGs, MTF structure, SMT against a paired symbol and dashboards.",
+  "overview": [
+    "This community script maps market structure with smart-money labels. It marks breaks of structure (BoS), changes of character (ChoCh), inducement (IDM), sweeps, external and inducement order blocks, and FVGs inside order blocks. It can also show multi-timeframe structure, inner structure, Fibonacci levels and trend dots, and color the background by structure.",
+    "A second part, Smart Point, adds velocity and SMC bar signals, entry labels from order blocks, target and stop boxes, a performance dashboard and an MTF trend dashboard."
+  ],
+  "how": [
+    "External structure uses a swing length of 5; the multi-timeframe and inner structures use 3 and 2. IDM can follow external inducement or the last valid pullback. Order blocks come from the extreme candle of each leg, with up to 20 kept per type.",
+    "SMT looks for Smart Money Traps against a correlated symbol: you can set one, or leave it empty for automatic pairs such as BTC/ETH, XAU/XAG, EUR/GBP, AUD/NZD and USD pairs against DXY.",
+    "Smart Point signals can be gated by order blocks and an optional liquidity sweep, with a set risk-to-reward ratio for the boxes."
+  ],
+  "use": [
+    "Use the BoS and ChoCh labels to follow the current trend leg.",
+    "Some traders watch the inducement level as the point price may sweep before an order block is reached.",
+    "Use the MTF dashboard to compare trend direction across timeframes.",
+    "Use the performance dashboard to review past Smart Point signals under its rules."
+  ],
+  "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Structure can be drawn over the whole history or from a start date.",
+    "SMT needs data for the paired symbol.",
+    "Inner structure is dense and off by default."
+  ],
+  "learn": "bos-vs-choch"
+}

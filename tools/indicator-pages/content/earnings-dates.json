@@ -1,0 +1,21 @@
+{
+  "slug": "earnings-dates",
+  "summary": "Places an orange E on the day a US company reports earnings, with the timing and EPS estimate shown on hover.",
+  "overview": [
+    "TradeZoro Earnings dates marks each earnings report on a US stock chart with a small E. Hover or tap it to see the date, whether the report comes before the open or after the close, the EPS estimate when one is available, and the fiscal quarter."
+  ],
+  "how": [
+    "The dates come from an earnings file that is updated once a day. For the chart's ticker, each report is placed on the bar of its date: reports before the open sit at the US open, others after the close.",
+    "The only setting is the marker colour."
+  ],
+  "use": [
+    "Some traders check the next report date before holding a stock overnight.",
+    "Use it to see how price moved around past earnings dates.",
+    "Some traders compare the size of gaps after each report."
+  ],
+  "notes": [
+    "US stocks only; other charts show 'US stocks only'.",
+    "It shows dates and estimates, not the reported results.",
+    "The data is updated daily, so a date that changes today may not show until the next update."
+  ]
+}

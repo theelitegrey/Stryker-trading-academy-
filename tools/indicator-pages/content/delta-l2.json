@@ -1,0 +1,20 @@
+{
+  "slug": "delta-l2",
+  "summary": "A pane with trade delta and book delta for every bar, stacked, plus a pulled versus added readout.",
+  "overview": [
+    "Delta (L2) shows two kinds of delta per bar in its own pane. Trade delta is buying minus selling volume. Book delta is how much resting size was added or removed on the bid and the ask.",
+    "Together they show what traded and how the book changed in the same bar."
+  ],
+  "how": [
+    "Trades are split into buys and sells by the side they hit. Book delta compares the resting size in the 10 rows nearest price (by default) at the start and end of each bar. It also adds a price-axis ladder when it starts."
+  ],
+  "use": [
+    "Use it to see whether size was being added or pulled while trades went through.",
+    "Some traders watch bars with strong buying but the ask side still growing.",
+    "Compare it with Delta (L1), which uses trades only."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books."
+  ],
+  "learn": "order-flow"
+}

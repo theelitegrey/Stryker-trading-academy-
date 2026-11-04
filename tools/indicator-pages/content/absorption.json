@@ -1,0 +1,22 @@
+{
+  "slug": "absorption",
+  "summary": "Flags bars where heavy aggressive volume hit one price while price did not move, and extends that level until a bar closes through it.",
+  "overview": [
+    "Absorption marks bars where a lot of aggressive volume traded but price did not travel far, and the bar closed against the aggressive side. A small marker sits at the absorbed price, and a level line extends to the right until a bar closes beyond it.",
+    "Levels where sellers were absorbed (support) are green; levels where buyers were absorbed (resistance) are purple. Broken levels stay on the chart faded, or can be hidden."
+  ],
+  "how": [
+    "A bar qualifies when its volume is at least 1.2 times the average of the previous 30 one-minute bars, its volume per tick of range is at least 1.3 times average, and its delta is at least 8% of the bar's volume in one direction while the bar closes the other way.",
+    "A level counts as broken when a bar closes beyond it by 2 ticks. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto."
+  ],
+  "use": [
+    "Some traders watch absorption levels as places where one side met resistance.",
+    "Use the faded broken levels to review which absorption levels held.",
+    "Some traders combine it with Big Trades to see large orders at the same prices."
+  ],
+  "notes": [
+    "Needs per-trade data; other symbols show a note.",
+    "It flags past bars; it does not say a level will hold."
+  ],
+  "learn": "order-flow"
+}

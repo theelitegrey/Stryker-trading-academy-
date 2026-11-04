@@ -37,6 +37,7 @@ jobs:
           python3 tools/check.py
           node tools/gen-sitemap.js
           if [ -f tools/gen-learn.js ]; then node tools/gen-learn.js --check; fi
+          if [ -f tools/gen-indicator-pages.js ]; then node tools/gen-indicator-pages.js --check; fi
       - name: Assemble the site (same rsync as the deploy)
         run: |
           mkdir -p /tmp/site

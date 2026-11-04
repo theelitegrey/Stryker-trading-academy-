@@ -1,0 +1,22 @@
+{
+  "slug": "previous-day-poc-vah-val",
+  "summary": "Draws the prior session's point of control as a solid line and its value area high and low as dashed lines on today's chart.",
+  "overview": [
+    "Previous Day POC / VAH / VAL draws three price lines from the last full session: the point of control (pPOC) as a solid line, and the value area high and low (pVAH and pVAL) as dashed lines. They use the same definition as the pPOC, pVAH and pVAL on the GEX page."
+  ],
+  "how": [
+    "On futures, the indicator takes the prior RTH session (09:30 to 16:00 New York) and builds a volume profile from 5-minute bars, rolling 1-minute bars up to 5 minutes first. Rows are 4 ticks by default. The value area starts at the POC and grows toward the larger neighbour until it holds 70% of the volume.",
+    "On crypto, the previous UTC day is used and the row size is chosen from that day's range. The levels are computed from this chart's own bars."
+  ],
+  "use": [
+    "Some traders watch how price behaves when it returns to yesterday's POC.",
+    "Use pVAH and pVAL to see whether today is trading inside or outside the prior value area.",
+    "Some traders mark these levels before the open as reference points."
+  ],
+  "notes": [
+    "Needs an intraday chart from 1 minute to 1 hour.",
+    "It needs enough history for the previous session; otherwise it shows a short note.",
+    "The levels come from candle volume, not individual trades."
+  ],
+  "learn": "volume-profile"
+}

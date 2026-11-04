@@ -1,0 +1,21 @@
+{
+  "slug": "book-imbalance-l2",
+  "summary": "A pane that shows whether the bid side or the ask side of the futures order book is heavier, at the top of book and across 10 levels.",
+  "overview": [
+    "Book Imbalance (L2) draws a line in its own pane that moves up when the bid side of the book is heavier and down when the ask side is heavier.",
+    "One line uses only the best bid and ask. An optional second line weighs the first 10 levels of each side, with nearer levels counting more."
+  ],
+  "how": [
+    "The values come from the order-book snapshots, several a second, with recorded history filling earlier bars. A smoothing setting (in seconds) can calm the line; it is off by default."
+  ],
+  "use": [
+    "Use it to see which side of the book has more size resting near price.",
+    "Some traders compare the top-of-book line with the 10-level line to see if they agree.",
+    "Watch how imbalance changes as price approaches a level."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Resting size can be pulled at any time, so imbalance can flip quickly.",
+    "It shows the book, not trades; pair it with Delta for what traded."
+  ]
+}

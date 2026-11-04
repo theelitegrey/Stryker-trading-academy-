@@ -1,0 +1,23 @@
+{
+  "slug": "schaff-trend-cycle",
+  "summary": "Schaff Trend Cycle: a MACD run through two stochastic passes, from 0 to 100, with triggers at 75 and 25.",
+  "overview": [
+    "The Schaff Trend Cycle (STC) is a fast trend oscillator from 0 to 100 in its own pane. Trigger lines sit at 75 and 25.",
+    "The line is green while bullish and red while bearish, with a gradient fill from the midline."
+  ],
+  "how": [
+    "First a MACD is built from 23 and 50 bar EMAs. Then a stochastic of that MACD is taken over 10 bars and smoothed with a factor of 0.5. A second stochastic pass with the same smoothing gives the final STC.",
+    "The two passes make it move quickly between the top and bottom of its range."
+  ],
+  "use": [
+    "Some traders watch a cross up through 25 as an early sign of an uptrend.",
+    "Watch a cross down through 75 as an early sign of a downtrend.",
+    "Use flat lines at the top or bottom as a sign the trend is steady.",
+    "Pair it with price structure to filter quick flips."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "It can sit pinned at 0 or 100 for long stretches."
+  ]
+}

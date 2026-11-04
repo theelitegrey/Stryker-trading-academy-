@@ -1,0 +1,23 @@
+{
+  "slug": "balance-of-power",
+  "summary": "Balance of Power: where each candle closed relative to its open, scaled by its range, from -1 to +1.",
+  "overview": [
+    "Balance of Power (BOP) shows who controlled each bar. Values near +1 mean buyers pushed price from open to high; values near -1 mean sellers pushed it from open to low.",
+    "It plots in its own pane around zero, green above and red below. You can turn on smoothing for a calmer line."
+  ],
+  "how": [
+    "BOP = (close - open) / (high - low). A bar with no range gives zero.",
+    "With Smoothing on, the raw value is passed through a simple moving average of the chosen length (14 by default)."
+  ],
+  "use": [
+    "Some traders watch the smoothed line crossing zero as a change in who controls the bars.",
+    "Use long runs above or below zero to see steady buying or selling.",
+    "Compare BOP with price to see if a new high is made with weaker bars.",
+    "Turn smoothing off to inspect single candles."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "The raw form is noisy; most readers use the smoothed line."
+  ]
+}

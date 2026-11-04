@@ -1,0 +1,23 @@
+{
+  "slug": "stoic-edge-compass",
+  "summary": "Structure bias with range filter, 8/21 trend ribbon, 200 EMA, context dots, support and resistance zones and a status panel.",
+  "overview": [
+    "This community script reads market structure and shows a simple state: follow the trend, wait, or stay out of the chop. It draws a fast and slow trend ribbon (8 and 21 by default), a 200 EMA, colored momentum candles and small context dots.",
+    "It also marks structure levels with labels, SBS triangles at liquidity rejections, up to three dynamic support and resistance zones, and a status panel with the current phase. An optional table shows the state on four other timeframes."
+  ],
+  "how": [
+    "Structure uses two causal swing lengths: a primary (outer) swing of 2 and a local swing of 1. A break is accepted after one close beyond the level. A pullback counts as orderly if it retraces no more than 0.618 of the leg; two local breaks against the primary trend put it on turn watch.",
+    "A range is declared after four local flips within 30 bars when the range is no wider than 3.5 ATR; two closes outside end it. Exhaustion dots use RSI(14) above 75 or below 25 and a stretch of 2 ATR from the ribbon. Support and resistance zones come from pivots of strength 15."
+  ],
+  "use": [
+    "Use the status panel to see whether structure is aligned, pulling back or turning.",
+    "Some traders stand aside while the range filter is active.",
+    "Watch the exhaustion dots when price is stretched far from the ribbon.",
+    "Use the multi-timeframe table to compare the state across timeframes."
+  ],
+  "alerts": "Alerts: members can create an alert on its conditions (for example \"Stoic Edge Compass - Green\", \"Stoic Edge Compass - Red\", \"Stoic Edge Compass - Range Established\", \"Stoic Edge Compass - SBS Bullish\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "On Heikin Ashi charts it can use standard OHLC for its logic.",
+    "The multi-timeframe table needs extra data requests and is off by default."
+  ]
+}

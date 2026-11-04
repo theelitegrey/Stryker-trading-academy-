@@ -1,0 +1,22 @@
+{
+  "slug": "session-vwap",
+  "summary": "Plots a volume-weighted average price line that restarts at the first bar of each day, using the typical price by default.",
+  "overview": [
+    "Session VWAP is a short example Pine script that draws one yellow line on the price chart: the volume-weighted average price for the current day. The line starts again at the first bar of every new day."
+  ],
+  "how": [
+    "On each bar the script adds price times volume to a running sum, and adds volume to a second sum. The line is the first sum divided by the second. Both sums reset to zero when a new day starts.",
+    "The price used is the source setting, hlc3 by default (the average of high, low and close)."
+  ],
+  "use": [
+    "Some traders use VWAP as a reference for the day's average traded price.",
+    "Use it to see whether price is trading above or below the day's average.",
+    "Some traders watch how price reacts when it returns to VWAP.",
+    "Use it as an example of how Pine scripts reset values each day."
+  ],
+  "notes": [
+    "It needs volume data; without volume the line is not drawn.",
+    "The day boundary follows the chart's daily session.",
+    "It has no standard-deviation bands and no alert conditions."
+  ]
+}

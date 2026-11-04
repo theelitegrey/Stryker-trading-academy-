@@ -36,7 +36,7 @@ def html_files():
     The features/ subfolder pages load assets by root-absolute path
     (/assets/...), so the asset patterns below accept an optional leading
     slash. Before this, features/*.html was never scanned at all."""
-    return sorted(glob.glob('*.html') + glob.glob('features/*.html'))
+    return sorted(glob.glob('*.html') + glob.glob('features/*.html') + glob.glob('indicators/*.html'))
 
 
 def fail(msg):
@@ -327,7 +327,7 @@ def check_share_images():
     table_path = os.path.join(ROOT, 'tools', 'og', 'pages.json')
     with open(table_path, encoding='utf-8') as fh:
         table = {e['page']: e for e in json.load(fh)['pages']}
-    pages = sorted(glob.glob(os.path.join(ROOT, '*.html')) + glob.glob(os.path.join(ROOT, 'features', '*.html')))
+    pages = sorted(glob.glob(os.path.join(ROOT, '*.html')) + glob.glob(os.path.join(ROOT, 'features', '*.html')) + glob.glob(os.path.join(ROOT, 'indicators', '*.html')))
     seen = {}
     public = set()
     for page in pages:

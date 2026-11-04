@@ -1,0 +1,20 @@
+{
+  "slug": "volatility-regime-l2",
+  "summary": "A strip at the bottom of the chart that labels the order book tight, normal or wide, from how spread out the size is around price.",
+  "overview": [
+    "Volatility Regime (L2) colours a thin strip under the candles and adds a legend: tight, normal or wide.",
+    "It looks at how far from price the resting size is spread, which often changes before or with price speed."
+  ],
+  "how": [
+    "For every order-book snapshot it measures how spread the resting size is within 20 ticks of price (by default). Readings at or below the session's 25th percentile are tight; at or above the 75th are wide."
+  ],
+  "use": [
+    "Use it to see when the book is thin and spread out or tightly packed.",
+    "Some traders compare the regime with the size of the candles that follow.",
+    "Use it as background context with other order-flow tools."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Tight, normal and wide are relative to the current session."
+  ]
+}

@@ -1,0 +1,775 @@
+[
+ {
+  "slug": "exponential-moving-average",
+  "key": "b:ema",
+  "name": "Exponential Moving Average",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"ema\" or the title \"Exponential Moving Average\")",
+  "settings": [
+   "Length = 20",
+   "Source = \"Close\"",
+   "Offset = 0",
+   "Color = \"#5b9cf6\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "least-squares-moving-average",
+  "key": "b:lsma",
+  "name": "Least Squares Moving Average",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"lsma\" or the title \"Least Squares Moving Average\")",
+  "settings": [
+   "Source = \"Close\"",
+   "LSMA Length = 25",
+   "Regression Offset = 0",
+   "Slope Trend Coloring = true",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Neutral = \"#787b86\"",
+   "Line Width = 2"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "moving-average",
+  "key": "b:moving-average",
+  "name": "Moving Average",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"moving-average\" or the title \"Moving Average\")",
+  "settings": [
+   "MA 1 Type = \"SMA\"",
+   "MA 1 Length = 20",
+   "MA 1 Source = \"Close\"",
+   "Show MA 2 = false",
+   "MA 2 Type = \"SMA\"",
+   "MA 2 Length = 50",
+   "MA 2 Source = \"Close\"",
+   "ALMA Offset = 0.85",
+   "ALMA Sigma = 6",
+   "LSMA Offset = 0",
+   "Offset = 0",
+   "MA 1 = \"#5b9cf6\"",
+   "MA 2 = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "moving-average-envelope",
+  "key": "b:ma-envelope",
+  "name": "Moving Average Envelope",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"ma-envelope\" or the title \"Moving Average Envelope\")",
+  "settings": [
+   "MA Type = \"SMA\"",
+   "Length = 20",
+   "Source = \"Close\"",
+   "Percent = 2.5",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Basis = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "simple-moving-average",
+  "key": "b:sma",
+  "name": "Simple Moving Average",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"sma\" or the title \"Simple Moving Average\")",
+  "settings": [
+   "Length = 20",
+   "Source = \"Close\"",
+   "Offset = 0",
+   "Color = \"#5b9cf6\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "smoothed-moving-average",
+  "key": "b:rma",
+  "name": "Smoothed Moving Average",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"rma\" or the title \"Smoothed Moving Average\")",
+  "settings": [
+   "Source = \"Close\"",
+   "RMA Length = 14",
+   "Slope Trend Coloring = true",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Neutral = \"#787b86\"",
+   "Line Width = 2"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "variable-index-dynamic-average",
+  "key": "b:vidya",
+  "name": "Variable Index Dynamic Average",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"vidya\" or the title \"Variable Index Dynamic Average\")",
+  "settings": [
+   "Source = \"Close\"",
+   "VIDYA Length = 12",
+   "Adaptive Scaler = \"Momentum (|CMO|)\"",
+   "Scaler Lookback = 9",
+   "Reference StDev Length = 30",
+   "Flat Threshold = 0.05",
+   "ATR Normalization Length = 14",
+   "Trend Regime Coloring = true",
+   "Adaptive Gradient = true",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Flat = \"#787b86\"",
+   "Neutral = \"#787b86\"",
+   "Line Width = 2"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "williams-alligator",
+  "key": "b:williams-alligator",
+  "name": "Williams Alligator",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"williams-alligator\" or the title \"Williams Alligator\")",
+  "settings": [
+   "Jaw Length = 13",
+   "Teeth Length = 8",
+   "Lips Length = 5",
+   "Jaw Offset = 8",
+   "Teeth Offset = 5",
+   "Lips Offset = 3",
+   "Jaw = \"#ab47bc\"",
+   "Teeth = \"#ff9800\"",
+   "Lips = \"#ffd700\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "zero-lag-exponential-moving-average",
+  "key": "b:zlema",
+  "name": "Zero-Lag Exponential Moving Average",
+  "author": "TradeZoro",
+  "group": "Moving averages",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"zlema\" or the title \"Zero-Lag Exponential Moving Average\")",
+  "settings": [
+   "Source = \"Close\"",
+   "ZLEMA Length = 21",
+   "Slope Trend Coloring = true",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Neutral = \"#787b86\"",
+   "Line Width = 2"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "awesome-oscillator",
+  "key": "b:awesome-oscillator",
+  "name": "Awesome Oscillator",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"awesome-oscillator\" or the title \"Awesome Oscillator\")",
+  "settings": [
+   "Rising = \"#089981\"",
+   "Falling = \"#f23645\"",
+   "Zero Line = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "balance-of-power",
+  "key": "b:balance-of-power",
+  "name": "Balance of Power",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"balance-of-power\" or the title \"Balance of Power\")",
+  "settings": [
+   "Smoothing = false",
+   "Length = 14",
+   "BOP Color = \"#787b86\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "chande-momentum-oscillator",
+  "key": "b:chande-momentum-oscillator",
+  "name": "Chande Momentum Oscillator",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"chande-momentum-oscillator\" or the title \"Chande Momentum Oscillator\")",
+  "settings": [
+   "Length = 9",
+   "Source = \"Close\"",
+   "Overbought Level = 50",
+   "Oversold Level = -50",
+   "CMO Line = \"#787b86\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Levels = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "commodity-channel-index",
+  "key": "b:commodity-channel-index",
+  "name": "Commodity Channel Index",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"commodity-channel-index\" or the title \"Commodity Channel Index\")",
+  "settings": [
+   "Length = 20",
+   "Source = \"HLC3\"",
+   "Upper Level = 100",
+   "Lower Level = -100",
+   "CCI Line = \"#787b86\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Levels = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "connors-rsi",
+  "key": "b:connors-rsi",
+  "name": "Connors RSI",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"connors-rsi\" or the title \"Connors RSI\")",
+  "settings": [
+   "RSI Length = 3",
+   "Streak RSI Length = 2",
+   "Percent Rank Length = 100",
+   "Overbought Level = 90",
+   "Oversold Level = 10",
+   "CRSI Line = \"#787b86\"",
+   "Oversold = \"#089981\"",
+   "Overbought = \"#f23645\"",
+   "Levels = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "coppock-curve",
+  "key": "b:coppock-curve",
+  "name": "Coppock Curve",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"coppock-curve\" or the title \"Coppock Curve\")",
+  "settings": [
+   "WMA Length = 10",
+   "Long ROC Length = 14",
+   "Short ROC Length = 11",
+   "Source = \"Close\"",
+   "Coppock Curve = \"#787b86\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Zero Line = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "detrended-price-oscillator",
+  "key": "b:detrended-price-oscillator",
+  "name": "Detrended Price Oscillator",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"detrended-price-oscillator\" or the title \"Detrended Price Oscillator\")",
+  "settings": [
+   "Length = 21",
+   "Source = \"Close\"",
+   "Centered = false",
+   "DPO = \"#787b86\"",
+   "Above Zero = \"#089981\"",
+   "Below Zero = \"#f23645\"",
+   "Zero Line = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "elder-ray",
+  "key": "b:elder-ray",
+  "name": "Elder Ray",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"elder-ray\" or the title \"Elder Ray\")",
+  "settings": [
+   "EMA Length = 13",
+   "Bull Power = \"#089981\"",
+   "Bear Power = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "fisher-transform",
+  "key": "b:fisher-transform",
+  "name": "Fisher Transform",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"fisher-transform\" or the title \"Fisher Transform\")",
+  "settings": [
+   "Length = 9",
+   "Fisher Line = \"#787b86\"",
+   "Trigger Line = \"#787b86\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "gator-oscillator",
+  "key": "b:gator-oscillator",
+  "name": "Gator Oscillator",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"gator-oscillator\" or the title \"Gator Oscillator\")",
+  "settings": [
+   "Source = \"HL2\"",
+   "Smoothing = \"SMMA (Wilder)\"",
+   "Jaw Length = 13",
+   "Jaw Offset = 8",
+   "Teeth Length = 8",
+   "Teeth Offset = 5",
+   "Lips Length = 5",
+   "Lips Offset = 3",
+   "Expanding = \"#089981\"",
+   "Contracting = \"#f23645\"",
+   "Zero Line = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "know-sure-thing",
+  "key": "b:know-sure-thing",
+  "name": "Know Sure Thing",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"know-sure-thing\" or the title \"Know Sure Thing\")",
+  "settings": [
+   "ROC Length #1 = 10",
+   "ROC Length #2 = 15",
+   "ROC Length #3 = 20",
+   "ROC Length #4 = 30",
+   "SMA Length #1 = 10",
+   "SMA Length #2 = 10",
+   "SMA Length #3 = 10",
+   "SMA Length #4 = 15",
+   "Signal Length = 9",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Signal = \"#ff9800\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "linear-regression-slope",
+  "key": "b:linear-regression-slope",
+  "name": "Linear Regression Slope",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"linear-regression-slope\" or the title \"Linear Regression Slope\")",
+  "settings": [
+   "Length = 100",
+   "Source = \"Close\"",
+   "Rising = \"#089981\"",
+   "Falling = \"#f23645\"",
+   "Slope Line = \"#787b86\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "macd",
+  "key": "b:macd",
+  "name": "MACD",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"macd\" or the title \"MACD\")",
+  "settings": [
+   "Fast Length = 12",
+   "Slow Length = 26",
+   "Signal Smoothing = 9",
+   "Source = \"Close\"",
+   "MACD Line = \"#5b9cf6\"",
+   "Signal Line = \"#ff9800\"",
+   "Grow Above = \"#089981\"",
+   "Fall Above = \"#08998180\"",
+   "Grow Below = \"#f2364580\"",
+   "Fall Below = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "percentage-price-oscillator",
+  "key": "b:ppo",
+  "name": "Percentage Price Oscillator",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"ppo\" or the title \"Percentage Price Oscillator\")",
+  "settings": [
+   "Source = \"Close\"",
+   "Fast Length = 12",
+   "Slow Length = 26",
+   "Average Type = \"EMA\"",
+   "Signal Smoothing = 9",
+   "Signal Type = \"EMA\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Signal Line = \"#ff9800\"",
+   "Show Histogram = true",
+   "Gradient Fill = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "rate-of-change",
+  "key": "b:rate-of-change",
+  "name": "Rate of Change",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"rate-of-change\" or the title \"Rate of Change\")",
+  "settings": [
+   "Length = 9",
+   "Source = \"Close\"",
+   "Mode = \"ROC %\"",
+   "Line = \"#787b86\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\"",
+   "Gradient Fill = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "relative-strength-index",
+  "key": "b:rsi",
+  "name": "Relative Strength Index",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"rsi\" or the title \"Relative Strength Index\")",
+  "settings": [
+   "Length = 14",
+   "Source = \"Close\"",
+   "Overbought = 70",
+   "Oversold = 30",
+   "RSI = \"#787b86\"",
+   "Oversold = \"#089981\"",
+   "Overbought = \"#f23645\"",
+   "Levels = \"#787b86\"",
+   "Band Fill = \"#787b861a\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "relative-vigor-index",
+  "key": "b:relative-vigor-index",
+  "name": "Relative Vigor Index",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"relative-vigor-index\" or the title \"Relative Vigor Index\")",
+  "settings": [
+   "Length = 10",
+   "RVGI = \"#089981\"",
+   "Signal = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "schaff-trend-cycle",
+  "key": "b:schaff-trend-cycle",
+  "name": "Schaff Trend Cycle",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"schaff-trend-cycle\" or the title \"Schaff Trend Cycle\")",
+  "settings": [
+   "Source = \"Close\"",
+   "Fast Length = 23",
+   "Slow Length = 50",
+   "Cycle Length = 10",
+   "Smoothing Factor = 0.5",
+   "Upper Trigger = 75",
+   "Lower Trigger = 25",
+   "Bullish Color = \"#089981\"",
+   "Bearish Color = \"#f23645\"",
+   "Levels Color = \"#787b86\"",
+   "Gradient Fill = true"
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "smi-ergodic-oscillator",
+  "key": "b:smi-ergodic",
+  "name": "SMI Ergodic Oscillator",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"smi-ergodic\" or the title \"SMI Ergodic Oscillator\")",
+  "settings": [
+   "Long Length = 20",
+   "Short Length = 5",
+   "Signal Length = 5",
+   "Display = \"Indicator\"",
+   "SMI = \"#787b86\"",
+   "Signal = \"#ff9800\"",
+   "Oscillator Grow = \"#089981\"",
+   "Oscillator Fall = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "stochastic",
+  "key": "b:stochastic",
+  "name": "Stochastic",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"stochastic\" or the title \"Stochastic\")",
+  "settings": [
+   "%K Length = 14",
+   "%K Smoothing = 3",
+   "%D Smoothing = 3",
+   "Overbought Level = 80",
+   "Oversold Level = 20",
+   "%K = \"#5b9cf6\"",
+   "%D = \"#ff9800\"",
+   "Band Fill = \"#5b9cf61a\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "stochastic-rsi",
+  "key": "b:stochastic-rsi",
+  "name": "Stochastic RSI",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"stochastic-rsi\" or the title \"Stochastic RSI\")",
+  "settings": [
+   "RSI Source = \"Close\"",
+   "RSI Length = 14",
+   "Stochastic Length = 14",
+   "%K Smoothing = 3",
+   "%D Smoothing = 3",
+   "Overbought Level = 80",
+   "Oversold Level = 20",
+   "%K Color = \"#5b9cf6\"",
+   "%D Color = \"#ff9800\"",
+   "Zone Fill = \"#5b9cf61a\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "trix",
+  "key": "b:trix",
+  "name": "TRIX",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"trix\" or the title \"TRIX\")",
+  "settings": [
+   "Length = 18",
+   "Signal Length = 9",
+   "TRIX Color = \"#787b86\"",
+   "Signal Color = \"#ff9800\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "true-strength-index",
+  "key": "b:true-strength-index",
+  "name": "True Strength Index",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"true-strength-index\" or the title \"True Strength Index\")",
+  "settings": [
+   "Long Length = 25",
+   "Short Length = 13",
+   "Signal Length = 13",
+   "TSI = \"#787b86\"",
+   "Signal = \"#ff9800\"",
+   "Bullish = \"#089981\"",
+   "Bearish = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "ultimate-oscillator",
+  "key": "b:ultimate-oscillator",
+  "name": "Ultimate Oscillator",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"ultimate-oscillator\" or the title \"Ultimate Oscillator\")",
+  "settings": [
+   "Fast Length = 7",
+   "Middle Length = 14",
+   "Slow Length = 28",
+   "Overbought = 70",
+   "Oversold = 30",
+   "Oscillator = \"#787b86\"",
+   "Levels = \"#787b86\"",
+   "Oversold = \"#089981\"",
+   "Overbought = \"#f23645\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ },
+ {
+  "slug": "williams-percent-r",
+  "key": "b:williams-percent-r",
+  "name": "Williams %R",
+  "author": "TradeZoro",
+  "group": "Oscillators",
+  "plan": "Free",
+  "short": "",
+  "source": "assets/vendor/vela-0.9.0-s5/chunk-XIRSR3D6.js (search: type: \"williams-percent-r\" or the title \"Williams %R\")",
+  "settings": [
+   "Length = 14",
+   "Source = \"Close\"",
+   "Overbought Level = -20",
+   "Oversold Level = -80",
+   "%R Line = \"#787b86\"",
+   "Overbought = \"#f23645\"",
+   "Oversold = \"#089981\""
+  ],
+  "alerts": {
+   "plot": true
+  }
+ }
+]

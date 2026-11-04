@@ -1,0 +1,23 @@
+{
+  "slug": "gex-heatmap",
+  "summary": "Paints net GEX at every strike, snapshot by snapshot, as a coloured heatmap under the candles for the last few sessions.",
+  "overview": [
+    "TradeZoro GEX Heatmap shows how gamma exposure was spread across strikes through the session. Each row is a strike and each column is a 2-minute snapshot. Positive net GEX uses a mint and teal ramp, negative uses red and magenta, and values near zero stay clear so the candles show through.",
+    "By default it covers the last 3 sessions at 55% opacity, and a status note shows when the data was last updated (for example 'updated 3 min ago')."
+  ],
+  "how": [
+    "The heatmap is built from the recorded GEX history for SPX, SPY and QQQ. ES and MES use SPX strikes; NQ and MNQ use QQQ strikes scaled by the NDX/QQQ ratio. For futures, the price offset is taken per snapshot from the chart's own bar at that snapshot's time, so the heat lines up with the futures candles you see.",
+    "You can choose the expiry (0DTE or 1DTE), the number of sessions (1 to 5) and the opacity. In bar replay only snapshots up to the replay time are used, so nothing from later in the day leaks into the replay."
+  ],
+  "use": [
+    "Some traders watch which strikes hold the strongest positive or negative GEX through the day.",
+    "Use it to see whether a big strike stayed in place or faded across snapshots.",
+    "Some traders compare where price paused with where the heat was strongest.",
+    "Use it next to GEX Levels to see how the current walls built up."
+  ],
+  "notes": [
+    "Works on SPX, SPY, QQQ, ES, MES, NQ and MNQ charts.",
+    "Data is recorded in 2-minute snapshots, so it cannot show changes inside a snapshot.",
+    "Before the recorded history begins, the chart reads 'No GEX history for this time'."
+  ]
+}

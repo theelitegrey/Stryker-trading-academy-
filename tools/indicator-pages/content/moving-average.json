@@ -1,0 +1,24 @@
+{
+  "slug": "moving-average",
+  "summary": "One or two moving averages in one study, with 13 types to choose from, including SMA, EMA, HMA, ALMA, KAMA and VWMA.",
+  "overview": [
+    "This study draws one moving average, or two if you turn on MA 2. Each line has its own type, length and source. By default MA 1 is a 20-bar SMA in blue and MA 2 is a 50-bar SMA in orange.",
+    "It lets you compare average types without adding a separate indicator for each one."
+  ],
+  "how": [
+    "The types are SMA, EMA, WMA, RMA (SMMA), HMA, ALMA, VWMA, DEMA, TEMA, KAMA, LSMA, McGinley and Hamming. Each is the standard formula: for example SMA is a plain average, EMA weights recent bars more, VWMA weights by volume, and HMA combines weighted averages to cut lag.",
+    "ALMA uses an offset (0.85) and sigma (6) to shape its window. LSMA has its own regression offset. A global offset shifts both lines."
+  ],
+  "use": [
+    "Some traders watch a fast and a slow line and note when they cross.",
+    "Use it to see how different average types react to the same move.",
+    "Watch price relative to the 50-bar line as a broad trend filter.",
+    "Use the slope of each line to see if the trend is speeding up or slowing."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "VWMA needs volume data.",
+    "All averages lag price to some degree."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "donchian-channels",
+  "summary": "Donchian Channels: the highest high and lowest low of the last 20 bars, with a middle line between them.",
+  "overview": [
+    "Donchian Channels draw the upper and lower edge of the recent range on the price chart, with a middle line and light fill.",
+    "The upper line is red, the lower line green and the middle gray by default."
+  ],
+  "how": [
+    "Upper = highest high of 20 bars. Lower = lowest low of 20 bars. Middle = (upper + lower) / 2.",
+    "Only the length can be changed. The lines are flat until a new high or low enters the window or an old one drops out."
+  ],
+  "use": [
+    "Some traders watch a close above the upper line or below the lower line as a range breakout.",
+    "Use the middle line to see which half of the range price is in.",
+    "Use the lower line as a trailing level in an uptrend.",
+    "Watch a narrowing channel as a sign of a tight range."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "The channel only steps when a new extreme is made or an old one leaves the window."
+  ]
+}

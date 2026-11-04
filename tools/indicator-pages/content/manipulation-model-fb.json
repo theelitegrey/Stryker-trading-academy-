@@ -1,0 +1,25 @@
+{
+  "slug": "manipulation-model-fb",
+  "summary": "Session manipulation candles and traps at key levels or HTF FVGs, with session ranges, key opens, highs and lows, and a dashboard.",
+  "overview": [
+    "This community script looks for manipulation candles: a candle that runs through a key level or a higher-timeframe fair value gap and then closes back. After a confirmation candle it can mark long, short, bulltrap or beartrap setups with stop and target lines.",
+    "It also draws session boxes and highs and lows (Asia, London, NY AM, NYSE, London Close, NY PM), daily, weekly and monthly opens, previous day, week and month highs and lows, the midnight open, higher-timeframe FVG zones from up to three timeframes, colored manipulation candles and a dashboard."
+  ],
+  "how": [
+    "Signals can come from manipulation candles, almost-manipulation candles, or both, and from key levels, HTF FVGs, or both. The confirmation candle must come within 5 candles by default, and for traps its wick-to-body ratio must be 0.5 or less.",
+    "A choppy-market filter asks that the manipulation candle range be at least 0.5 times ATR(14). A higher-timeframe EMA (length 50 on 60-minute data by default) sets the bias: only bullish setups above it, only bearish below.",
+    "Stop and target distances scale with the SL and TP multipliers. Only sessions and levels you enable are used."
+  ],
+  "use": [
+    "Use it to see where price ran a level and closed back inside.",
+    "Some traders study the trap setups to see when a breakout failed.",
+    "Use the session ranges and key opens as reference levels for the day.",
+    "Turn levels on or off to see which ones the signals depend on."
+  ],
+  "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
+  "notes": [
+    "Session times use the timezone setting.",
+    "Stops and targets follow the script's own rules and multipliers.",
+    "The nearest three HTF FVGs are shown by default; all selected timeframes are still used for signals."
+  ]
+}

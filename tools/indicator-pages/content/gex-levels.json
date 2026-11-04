@@ -1,0 +1,25 @@
+{
+  "slug": "gex-levels",
+  "summary": "Draws the call wall, put wall, zero gamma, the IV 68% range and prior-session levels from the GEX page as lines on your chart.",
+  "overview": [
+    "TradeZoro GEX Levels puts the lines from the GEX page on your chart, with the same names, colours and line styles. By default you see the call wall, the zero gamma (flip) line, the put wall, the IV +68% and -68% range, and the market levels pVAH, pPOC, pVAL, ONH and ONL.",
+    "Optional extras include the 0DTE call and put walls, a gamma profile drawn as bars by strike, a shaded 68% band, the next three biggest strikes, ranked strikes with a role tag, the IV 80% range, and RTH session levels. Labels that sit within a few pixels of each other merge into one tag, and a note at the bottom shows when the data was last updated (for example 'GEX updated 3 min ago')."
+  ],
+  "how": [
+    "The levels come from the GEX data for SPX, SPY, QQQ and GLD. On ES and MES charts the SPX levels are converted to the futures contract; NQ and MNQ use QQQ levels; GC and MGC use GLD levels. While the market is open, the futures conversion is re-anchored to the chart's own 1-minute futures bars at the time of the options data. The data is fetched every 5 minutes while the page is visible.",
+    "The main call wall, put wall and zero gamma use all expiries from 1 to 30 days. The Expiry setting picks the expiry for the IV range and the 0DTE walls. Ranked strikes are the biggest strikes by absolute GEX, tagged Support, Resistance, Magnet, Accelerant or Flip; these roles describe where dealer hedging may lean, not signals. Previous days' big levels show the two biggest strikes of each of the last recorded sessions (2 by default) as faded dotted lines."
+  ],
+  "use": [
+    "Some traders watch how price behaves as it nears the call wall or put wall.",
+    "Use the zero gamma line to see where net gamma flips from positive to negative.",
+    "Some traders compare the IV 68% range with the day's actual range.",
+    "Use the previous days' strikes to see which big levels carried over.",
+    "Some traders read the GEX lines together with pPOC, pVAH and pVAL to see where options levels and volume levels line up."
+  ],
+  "notes": [
+    "Works on SPX, SPY, QQQ, ES, MES, NQ, MNQ, GC and MGC charts; other symbols show a short note and nothing is drawn.",
+    "Futures levels are converted from the index or ETF, so they are estimates of where those strikes sit on the contract.",
+    "In bar replay the levels come from the recorded GEX history as of the replay time; before the history begins the chart says so.",
+    "Session levels (pVAH, ONH and the rest) are drawn on futures charts only."
+  ]
+}

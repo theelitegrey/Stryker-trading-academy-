@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="879">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Unicorn Model: ZoroCharts indicator guide">
+<meta property="og:description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.">
+<meta property="og:url" content="https://tradezoro.com/indicators/unicorn-model">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/indicators_unicorn-model.png?v=879">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Unicorn Model drawn on an NQ futures chart in ZoroCharts">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Unicorn Model: ZoroCharts indicator guide">
+<meta name="twitter:description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/indicators_unicorn-model.png?v=879">
+<meta name="twitter:image:alt" content="Unicorn Model drawn on an NQ futures chart in ZoroCharts">
+<meta name="theme-color" content="#050506">
+<title>Unicorn Model: indicator guide and settings | TradeZoro</title>
+<link rel="canonical" href="https://tradezoro.com/indicators/unicorn-model">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=879">
+<link rel="stylesheet" href="/assets/indicator-pages.css?v=879">
+<script src="/assets/skeleton.js?v=879"></script>
+<link rel="stylesheet" href="/assets/nav-features.css?v=879">
+<script src="/assets/sanitize.js?v=879"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=879" defer></script>
+<script src="/assets/version-check.js?v=879" defer></script>
+<script src="/assets/cookie-notice.js?v=879" defer></script>
+<script src="/assets/acquisition.js?v=879" defer></script>
+<script src="/assets/focus-mode.js?v=879" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/tradezoro-favicon-32-494.png?v=879">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=879">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/tradezoro-favicon-16-494.png?v=879">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=879">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/tradezoro-icon-192-494.png?v=879">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "name": "Unicorn Model: indicator guide and settings",
+      "description": "Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.",
+      "url": "https://tradezoro.com/indicators/unicorn-model",
+      "dateModified": "2026-11-04",
+      "inLanguage": "en",
+      "publisher": {
+        "@type": "Organization",
+        "name": "TradeZoro",
+        "url": "https://tradezoro.com/"
+      },
+      "isAccessibleForFree": true,
+      "about": {
+        "@type": "Thing",
+        "name": "Unicorn Model"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Community"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://tradezoro.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Indicators",
+          "item": "https://tradezoro.com/indicators"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Unicorn Model",
+          "item": "https://tradezoro.com/indicators/unicorn-model"
+        }
+      ]
+    }
+  ]
+}
+</script>
+<script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
+</head>
+<body data-page-key="indicator-page" class="dual-shell">
+<a class="skip-link" href="#main">Skip to content</a>
+<nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
+  <a class="appnav-dk" data-nav="charts" href="/charts"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v3M7 17v4M17 3v5M17 15v6"/><rect x="4.5" y="6" width="5" height="11" rx="1"/><rect x="14.5" y="8" width="5" height="7" rx="1"/></svg><span class="appnav-new" aria-hidden="true"></span></span><span class="appnav-dkl">ZoroCharts</span></a>
+  <a class="appnav-dk" data-nav="gex" href="/gex"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M6 12V6M10 12V4M14 12v5M18 12v7"/></svg></span><span class="appnav-dkl">GEX+</span></a>
+  <a class="appnav-dk" data-nav="journal" href="/trade-journal"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18M4 7h4M4 12h4M4 17h4M10 8h6M10 12h4"/></svg></span><span class="appnav-dkl">JournalX</span></a>
+  <a class="appnav-dk" data-nav="learn" href="/academy"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg></span><span class="appnav-dkl">ZoroAcademy</span></a>
+  <button type="button" class="appnav-dk appnav-more" data-nav="more" id="appnav-more" aria-haspopup="dialog" aria-expanded="false" aria-controls="appnav-sheet"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="appnav-dkl">More</span></button>
+</nav>
+<script src="/assets/app-nav.js?v=879"></script>
+
+<nav class="nav dual-pub" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/academy">ZoroAcademy</a>
+      <a href="/features/community">Community</a>
+      <a href="/help">Help</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<div class="mobile-topnav dual-app">
+  <div class="topnav-left"><button class="icon-btn menu-toggle-btn" id="dash-menu-toggle" aria-label="Open menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><a href="/dashboard-user" class="brand"><picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" data-fp-nopad src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture></a></div>
+  <div class="topnav-right">
+    <div class="notif-bell-wrap">
+      <button class="icon-btn" id="notif-bell-btn" aria-label="Notifications" title="Notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge"></span>
+      </button>
+      <div class="notif-panel" id="notif-panel">
+        <div class="notif-panel-head">Notifications</div>
+        <div id="notif-list"></div>
+      </div>
+    </div>
+    <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+  </div>
+</div>
+<div class="sidebar-backdrop dual-app" id="dash-sidebar-backdrop"></div>
+<div class="dash-shell dual-wrap">
+<aside class="sidebar dual-app">
+    <a href="/dashboard-user" class="brand">
+      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" data-fp-nopad src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+
+    </a>
+
+    <nav class="app-menu" id="app-menu" aria-label="App sections"></nav>
+
+    <div class="sidebar-foot">
+      <a href="/dashboard-user" class="user-chip">
+        <div class="chip-avatar"></div>
+        <div>
+          <div class="chip-name">Trader</div>
+          <div class="chip-role">—</div>
+        </div>
+      </a>
+      <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
+    </div>
+  </aside>
+<main id="main" tabindex="-1" class="dash-main">
+<div class="ixp-wrap">
+<nav class="ixp-crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><a href="/indicators">Indicators</a><span aria-hidden="true">/</span><a href="/indicators#community">Community</a></nav>
+<header class="ixp-head">
+<h1>Unicorn Model</h1>
+<div class="ixp-meta">
+<span class="ixp-author"><span class="ixp-ava" aria-hidden="true">C</span><span>Community</span></span>
+<span class="ixp-chip">Community</span><span class="ixp-chip is-free">Free</span>
+<span class="ixp-upd">Updated <time datetime="2026-11-04">Nov 4, 2026</time></span>
+</div>
+</header>
+<figure class="ixp-fig">
+<img src="/assets/images/indicators/pages/unicorn-model.webp" alt="Unicorn Model on an NQ futures chart in ZoroCharts" width="1280" height="720" fetchpriority="high" decoding="async">
+
+</figure>
+<div class="ixp-actions">
+<a class="btn btn-primary ixp-add" href="/charts?ind=x%3Aunicorn-model" data-ind-add="x:unicorn-model"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add to chart</a>
+<button type="button" class="btn btn-ghost ixp-fav" data-ind-fav="x:unicorn-model" data-ind-name="Unicorn Model" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg><span>Favourite</span></button>
+</div>
+<div class="ixp-cols">
+<article class="ixp-body">
+<p class="ixp-lede">Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.</p>
+<aside class="ixp-credit" aria-label="Credit">
+<p><strong>Community script.</strong> The script does not name its author. No licence is stated in the script. TradeZoro did not write it. ZoroCharts runs it as the author published it, and its source code is not shown here.</p>
+</aside>
+<h2 id="overview">Overview</h2>
+<p>This community script looks for the ICT Unicorn model: a breaker block that overlaps a fair value gap after liquidity is taken. It can show only Unicorn setups or breakers too, with potential setups drawn before confirmation and invalidated ones in a ghost color.</p>
+<p>Around the setups it draws higher-timeframe candles with optional open, high, low and close lines, liquidity from up to three timeframes (60, 240 and D by default), session liquidity for up to four sessions, sweep lines, standalone higher-timeframe FVGs, SMT lines, target projections, and info and stats tables with a timer.</p>
+<h2 id="how">How it works</h2>
+<p>Liquidity sources use OHLC levels plus swing points from each source timeframe, mapped automatically or set by you. A setup forms when price sweeps a level, breaks structure, and leaves a breaker overlapping an FVG.</p>
+<p>The stop sits at the manipulation extreme, and targets are drawn at the R multiples you list. Optional parts include a break-even move at 50%, a daily cap on how many setups can reach target or stop, a breaker size filter and a time filter. SMT uses a pair mapped automatically or set manually.</p>
+<h2 id="use">How to use it</h2>
+<ul><li>Use it to see where a breaker and an FVG overlap after a sweep.</li><li>Some traders keep the higher-timeframe candles on screen to stay aware of the bigger candle.</li><li>Use the liquidity lines to see which levels have been swept.</li><li>Use the stats table to review past setups under the script's rules.</li></ul>
+<p class="ixp-edu">These are ways some traders read it, for learning. They are not trade signals.</p>
+<h2 id="settings">Settings</h2>
+<div class="ixp-tablewrap scroll-x"><table class="ixp-table"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th></tr></thead><tbody>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">General Settings</th></tr>
+<tr><td><span class="ixp-set">Max History</span></td><td>50</td></tr>
+<tr><td><span class="ixp-set">Bias Mode</span><span class="ixp-opt">Options: Neutral, Bullish, Bearish, Auto</span></td><td>Neutral</td></tr>
+<tr><td><span class="ixp-set">Model Mode</span><span class="ixp-opt">Options: Breaker, Unicorn, Breaker + Unicorn</span></td><td>Unicorn</td></tr>
+<tr><td><span class="ixp-set">Show Potential Model</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Use Swing for Invalidation</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Discard Invalidated</span></td><td>Off</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">HTF Candles Settings</th></tr>
+<tr><td><span class="ixp-set">Mode</span><span class="ixp-opt">Options: Auto, Custom</span></td><td>Auto</td></tr>
+<tr><td><span class="ixp-set">Custom TF</span><span class="ixp-opt">Options: 30 minutes, 45 minutes, 90 minutes, 1 hour, 2 hours, 3 hours, 4 hours, 6 hours…</span></td><td>1 week</td></tr>
+<tr><td><span class="ixp-set">Max Displayed</span></td><td>4</td></tr>
+<tr><td><span class="ixp-set">Show Info &amp; Timer</span></td><td>On</td></tr>
+</tbody></table></div>
+<details class="ixp-more"><summary>Show all 114 settings</summary>
+<div class="ixp-tablewrap scroll-x"><table class="ixp-table"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th></tr></thead><tbody>
+<tr><td><span class="ixp-set">Size</span><span class="ixp-opt">Options: size.tiny, size.small, size.normal, size.large</span></td><td>size.normal</td></tr>
+<tr><td><span class="ixp-set">Color</span></td><td><code>color.rgb(8, 8, 8)</code></td></tr>
+<tr><td><span class="ixp-set">Show Sweep Lines</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Color</span></td><td><code>color.rgb(0, 0, 0)</code></td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">HTF Candle Appearance &amp; Projections</th></tr>
+<tr><td><span class="ixp-set">Bull Body / Border</span></td><td><code>color.new(#83b785, 0)</code></td></tr>
+<tr><td><span class="ixp-set">Bear Body / Border</span></td><td><code>color.new(#5f5f5f, 0)</code></td></tr>
+<tr><td><span class="ixp-set">Wick Bull / Bear</span></td><td><code>color.new(#5f5f5f, 0)</code></td></tr>
+<tr><td><span class="ixp-set">Padding Offset</span></td><td>10</td></tr>
+<tr><td><span class="ixp-set">Spacing</span></td><td>1</td></tr>
+<tr><td><span class="ixp-set">Width</span></td><td>1</td></tr>
+<tr><td><span class="ixp-set">Open Line</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">High/Low Lines</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Close Line</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Price Labels</span></td><td>Off</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Liquidity Sources</th></tr>
+<tr><td><span class="ixp-set">Source Mode</span><span class="ixp-opt">Options: Single, Multiple</span></td><td>Multiple</td></tr>
+<tr><td><span class="ixp-set">Mapping</span><span class="ixp-opt">Options: Automatic, Manual</span></td><td>Automatic</td></tr>
+<tr><td><span class="ixp-set">Auto Type</span><span class="ixp-opt">Options: OHLC + Swing, OHLC Only, Swing Only</span></td><td>OHLC + Swing</td></tr>
+<tr><td><span class="ixp-set">Source A</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">TF</span></td><td>60</td></tr>
+<tr><td><span class="ixp-set">Liq</span><span class="ixp-opt">Options: OHLC + Swing, OHLC Only, Swing Only</span></td><td>OHLC + Swing</td></tr>
+<tr><td><span class="ixp-set">Source B</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">TF</span></td><td>240</td></tr>
+<tr><td><span class="ixp-set">Liq</span><span class="ixp-opt">Options: OHLC + Swing, OHLC Only, Swing Only</span></td><td>OHLC + Swing</td></tr>
+<tr><td><span class="ixp-set">Source C</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">TF</span></td><td>D</td></tr>
+<tr><td><span class="ixp-set">Liq</span><span class="ixp-opt">Options: OHLC + Swing, OHLC Only, Swing Only</span></td><td>OHLC + Swing</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Session Liquidity Levels</th></tr>
+<tr><td><span class="ixp-set">Enable Session Liquidity</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Session 1</span></td><td>Asia</td></tr>
+<tr><td><span class="ixp-set">Session 2</span></td><td>London</td></tr>
+<tr><td><span class="ixp-set">Session 3</span></td><td>New York AM</td></tr>
+<tr><td><span class="ixp-set">Session 4</span></td><td>New York PM</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Target Projections &amp; R:R</th></tr>
+<tr><td><span class="ixp-set">Show Main R:R Target</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Multiplier</span></td><td>2.0</td></tr>
+<tr><td><span class="ixp-set">Calculation Anchor</span><span class="ixp-opt">Options: Breaker Range, Confirmation Close</span></td><td>Confirmation Close</td></tr>
+<tr><td><span class="ixp-set">Show Extra Targets</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Multipliers</span></td><td>1,3.5</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Break-Even Protection (50%)</th></tr>
+<tr><td><span class="ixp-set">Enable Auto Break-Even</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Show BE Trigger Line</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Width</span></td><td>1</td></tr>
+<tr><td><span class="ixp-set">Style</span><span class="ixp-opt">Options: solid, dashed, dotted</span></td><td>dotted</td></tr>
+<tr><td><span class="ixp-set">Color</span></td><td><code>color.new(#2962ff, 0)</code></td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Daily Risk Limiter</th></tr>
+<tr><td><span class="ixp-set">Enable Daily Trade Limits</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Max Wins</span></td><td>1</td></tr>
+<tr><td><span class="ixp-set">Max Losses</span></td><td>2</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Visuals &amp; Zone Styling</th></tr>
+<tr><td><span class="ixp-set">Label Size</span><span class="ixp-opt">Options: tiny, small, normal, large, huge</span></td><td>small</td></tr>
+<tr><td><span class="ixp-set">Bull Breaker / Retested</span></td><td><code>color.new(#2962ff, 89)</code></td></tr>
+<tr><td><span class="ixp-set">Bull FVG Color</span></td><td><code>color.new(#ff9800, 70)</code></td></tr>
+<tr><td><span class="ixp-set">Bear Breaker / Retested</span></td><td><code>color.new(#2962ff, 89)</code></td></tr>
+<tr><td><span class="ixp-set">Bear FVG Color</span></td><td><code>color.new(#ff9800, 70)</code></td></tr>
+<tr><td><span class="ixp-set">Invalidated Ghost Color</span></td><td><code>color.new(#b0bec5, 92)</code></td></tr>
+<tr><td><span class="ixp-set">Show CE (Bull FVG)</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Extend</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Show CE (Bear FVG)</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Extend</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Show Bull BB 50%</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Extend</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Show Bear BB 50%</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Extend</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">BB 50% Color</span></td><td><code>color.new(#000000, 30)</code></td></tr>
+<tr><td><span class="ixp-set">Sweep Line Color/Style/Width</span></td><td><code>color.new(#000000, 0)</code></td></tr>
+<tr><td><span class="ixp-set">Sweep Label Color &amp; Size</span></td><td><code>color.new(#000000, 20)</code></td></tr>
+<tr><td><span class="ixp-set">Projection Line Color/Style/Width</span></td><td><code>color.new(#000000, 0)</code></td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Breaker Size Filter</th></tr>
+<tr><td><span class="ixp-set">Filter Mode</span><span class="ixp-opt">Options: All, Small+Med+Large, Med+Large, Large, Custom</span></td><td>All</td></tr>
+<tr><td><span class="ixp-set">Custom Unit</span><span class="ixp-opt">Options: Points, Pips</span></td><td>Points</td></tr>
+<tr><td><span class="ixp-set">Min</span></td><td>0.0</td></tr>
+<tr><td><span class="ixp-set">Max</span></td><td>0.0</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Time &amp; Session Filter</th></tr>
+<tr><td><span class="ixp-set">Enable Time Filter</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Timezone</span></td><td>exchange</td></tr>
+<tr><td><span class="ixp-set">Session 1</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Name</span></td><td>London</td></tr>
+<tr><td><span class="ixp-set">Session 2</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Name</span></td><td>New York</td></tr>
+<tr><td><span class="ixp-set">Session 3</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Name</span></td><td>NY PM</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Standalone FVG Settings</th></tr>
+<tr><td><span class="ixp-set">Auto HTF Mode</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Manual HTF</span></td><td>D</td></tr>
+<tr><td><span class="ixp-set">Bullish FVGs</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Bearish FVGs</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Show Boxes</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Show Labels</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Show Midlines</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Colors (Bull / Bear)</span></td><td><code>color.new(#4a4a4a, 90)</code></td></tr>
+<tr><td><span class="ixp-set">Midline Color</span></td><td><code>color.new(color.gray, 50)</code></td></tr>
+<tr><td><span class="ixp-set">Label Color</span></td><td><code>color.gray</code></td></tr>
+<tr><td><span class="ixp-set">Max Mitigated FVGs to Keep</span></td><td>4</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">SMT Divergence Settings</th></tr>
+<tr><td><span class="ixp-set">Auto HTF Mode</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Manual HTF</span></td><td>D</td></tr>
+<tr><td><span class="ixp-set">Auto Pair Mapping</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Manual Pair</span></td><td><span class="ixp-dim">None</span></td></tr>
+<tr><td><span class="ixp-set">Keep Only Latest SMTs</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Show Labels</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Line Width</span></td><td>1</td></tr>
+<tr><td><span class="ixp-set">Colors (Bull / Bear)</span></td><td><code>color.rgb(0, 0, 0)</code></td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">Alert Notifications</th></tr>
+<tr><td><span class="ixp-set">Enable All Alerts</span></td><td>Off</td></tr>
+<tr><td><span class="ixp-set">Potential Breaker</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Activation</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Target Reached</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Invalidation Warning</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Invalidation Hit</span></td><td>On</td></tr>
+<tr class="ixp-grp"><th colspan="2" scope="colgroup">HUD Dashboard Tables</th></tr>
+<tr><td><span class="ixp-set">Show Info Table</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Mode</span><span class="ixp-opt">Options: Simple, Detailed</span></td><td>Simple</td></tr>
+<tr><td><span class="ixp-set">Position</span></td><td>Bottom Right</td></tr>
+<tr><td><span class="ixp-set">Show Stats Table</span></td><td>On</td></tr>
+<tr><td><span class="ixp-set">Position</span></td><td>Top Right</td></tr>
+</tbody></table></div>
+</details>
+<h2 id="alerts">Alerts</h2>
+<p>The script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.</p>
+<h2 id="notes">Notes and limits</h2>
+<ul><li>Up to 50 setups are kept in history by default.</li><li>Targets, stops and limits follow the script's own rules.</li><li>SMT and multi-timeframe liquidity need extra data requests.</li></ul>
+<p class="ixp-disclaimer">Education only. Not financial advice. Indicators mark what happened on the chart; they do not predict what price will do. Trading futures, forex, crypto and other markets carries a high level of risk and may not be suitable for everyone.</p>
+</article>
+<aside class="ixp-rail" aria-label="More">
+<section class="ixp-box ixp-open">
+<h2>Open ZoroCharts</h2>
+<p>Every indicator here runs in ZoroCharts, in your browser. Sign up free to open it.</p>
+<a class="btn btn-primary ixp-add" href="/charts?ind=x%3Aunicorn-model" data-ind-add="x:unicorn-model">Add Unicorn Model to a chart</a>
+<a class="ixp-link" href="/charts">Open ZoroCharts</a>
+</section>
+<section class="ixp-box"><h2>Learn the concept</h2><a class="ixp-learn" href="/learn-order-blocks"><span>Order blocks explained</span><small>Free article · ZoroAcademy</small></a></section>
+<section class="ixp-box"><h2>More in Community</h2><ul class="ixp-rel"><li><a href="/indicators/trinity-atr-levels"><img src="/assets/images/indicators/pages/trinity-atr-levels-t.webp" alt="" width="96" height="54" loading="lazy" decoding="async"><span><b>Trinity ATR Levels - The Ultimate Milkman Edition</b><small>satymahajan / EMA34TRADER · Free</small></span></a></li><li><a href="/indicators/wcsmc-sp-v3"><img src="/assets/images/indicators/pages/wcsmc-sp-v3-t.webp" alt="" width="96" height="54" loading="lazy" decoding="async"><span><b>WCSMC + SP v3.0 [WinWorld]</b><small>WinWorld · Free</small></span></a></li><li><a href="/indicators/trend-average"><img src="/assets/images/indicators/pages/trend-average-t.webp" alt="" width="96" height="54" loading="lazy" decoding="async"><span><b>Trend Average (Zeiierman)</b><small>Zeiierman · Free</small></span></a></li><li><a href="/indicators/stoic-edge-compass"><img src="/assets/images/indicators/pages/stoic-edge-compass-t.webp" alt="" width="96" height="54" loading="lazy" decoding="async"><span><b>Stoic Edge Compass</b><small>Community · Free</small></span></a></li><li><a href="/indicators/smart-signals-assistant"><img src="/assets/images/indicators/pages/smart-signals-assistant-t.webp" alt="" width="96" height="54" loading="lazy" decoding="async"><span><b>Smart Signals Assistant</b><small>AlgoAlpha · Free</small></span></a></li></ul><a class="ixp-link" href="/indicators#community">All Community indicators</a></section>
+</aside>
+</div>
+</div>
+</main>
+</div>
+<footer class="dual-pub">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="/assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>ZoroAcademy</h5>
+        <a href="/academy">ZoroAcademy home</a>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="/learn">ZoroAcademy articles</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About TradeZoro</a>
+        <a href="/help">Help Center</a>
+        <a href="/suggestions">Suggestions</a>
+        <a href="/creators">Creator Hub</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro LLC. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+      <a href="/market-data-terms">Market Data Terms</a>
+      <a href="/terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/nav-features.js?v=879" defer></script>
+<script src="/assets/main.js?v=879"></script>
+<script src="/assets/auth.js?v=879"></script>
+<script src="/assets/plan-price.js?v=879"></script>
+<script src="/assets/progress.js?v=879"></script>
+<script src="/assets/activity-log.js?v=879"></script>
+<script src="/assets/banned-check.js?v=879"></script>
+<script src="/assets/email-verify.js?v=879"></script>
+<script src="/assets/profiles-sync.js?v=879"></script>
+<script src="/assets/loading-animation.js?v=879"></script>
+<script src="/assets/site-pages.js?v=879"></script>
+<script src="/assets/site-pages-defaults.js?v=879"></script>
+<script src="/assets/site-page-render.js?v=879"></script>
+<script src="/assets/branding.js?v=879"></script>
+<script src="/assets/seo.js?v=879"></script>
+<script src="/assets/notifications.js?v=879"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+<script src="/assets/push.js?v=879"></script>
+<script src="/assets/admin-link.js?v=879"></script>
+<script src="/assets/avatars.js?v=879"></script>
+<script src="/assets/account-menu.js?v=879"></script>
+<script src="/assets/referrals.js?v=879"></script>
+<script src="/assets/roles.js?v=879"></script>
+<script src="/assets/plan-modal.js?v=879"></script>
+<script src="/assets/trial.js?v=879"></script>
+<script src="/assets/maintenance-check.js?v=879"></script>
+<script src="/assets/dash-nav.js?v=879"></script>
+<script src="/assets/theme.js?v=879"></script>
+<script src="/assets/indicator-pages.js?v=879" defer></script>
+</body>
+</html>

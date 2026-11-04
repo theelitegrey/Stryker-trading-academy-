@@ -1,0 +1,21 @@
+{
+  "slug": "footprint-l2",
+  "summary": "A footprint with traded volume per price in each candle and the resting book size at the candle close beside it.",
+  "overview": [
+    "Footprint (L2) splits each candle by price. Thin bars and numbers show buy and sell volume traded at each price, and beside them the resting bid and ask size at the bar's close.",
+    "Resting size well above average (3 times by default) is highlighted."
+  ],
+  "how": [
+    "Traded volume comes from the trade stream, grouped into rows (auto size by default). The resting size comes from the order book sample at the bar's close."
+  ],
+  "use": [
+    "Use it to see what traded at each price next to what was still waiting there.",
+    "Some traders watch candles where large resting size sat just beyond the high or low.",
+    "Zoom in for the numbers; zoomed out it shows bars only."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Resting size is a snapshot at bar close; orders inside the bar may have come and gone."
+  ],
+  "learn": "order-flow"
+}

@@ -1,0 +1,24 @@
+{
+  "slug": "standard-deviation",
+  "summary": "Standard deviation of the close over 20 bars, a simple measure of how widely price is spread around its average.",
+  "overview": [
+    "This study plots the standard deviation of price in its own pane. Higher values mean price is spread wider around its average; lower values mean it is tightly packed.",
+    "The line turns orange while it is expanding."
+  ],
+  "how": [
+    "Standard deviation = square root of the average squared distance of each value from the 20-bar mean.",
+    "It is the same measure used to build Bollinger Bands. A larger length gives a slower, smoother line; a shorter one reacts faster."
+  ],
+  "use": [
+    "Use it to see when volatility is rising or falling.",
+    "Some traders watch for very low readings as a sign of a coming expansion.",
+    "Use it to scale stops or bands to current conditions.",
+    "Compare it with ATR to see two views of volatility."
+  ],
+  "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
+  "notes": [
+    "Works on any symbol and timeframe; it only needs candle data.",
+    "Values are in price units, so they differ across symbols.",
+    "It treats moves up and down the same way."
+  ]
+}

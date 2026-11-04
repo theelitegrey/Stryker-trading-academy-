@@ -10,7 +10,7 @@ const stubSrc = new Function(stub + '; return stubSrc;')();
 const MT = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.woff2': 'font/woff2' };
 const srv = http.createServer((q, r) => {
   let u = decodeURIComponent(q.url.split('?')[0]); if (u === '/') u = '/index.html';
-  let f = path.join(ROOT, u); if (!fs.existsSync(f) && fs.existsSync(f + '.html')) f += '.html';
+  let f = path.join(ROOT, u); if ((!fs.existsSync(f) || fs.statSync(f).isDirectory()) && fs.existsSync(f + '.html')) f += '.html';   // /indicators: indicators.html beside indicators/ (as Cloudflare Pages serves it)
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end('nf'); }
   r.writeHead(200, { 'content-type': MT[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(r);
 });

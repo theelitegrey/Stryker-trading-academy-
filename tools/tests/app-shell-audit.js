@@ -73,7 +73,7 @@ const MT = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
 const srv = http.createServer((q, r) => {
   let u = decodeURIComponent(q.url.split('?')[0]);
   if (u.startsWith('/c/')) u = '/c.html'; if (u === '/') u = '/index.html';
-  let f = path.join(ROOT, u); if (!fs.existsSync(f) && fs.existsSync(f + '.html')) f += '.html';
+  let f = path.join(ROOT, u); if ((!fs.existsSync(f) || fs.statSync(f).isDirectory()) && fs.existsSync(f + '.html')) f += '.html';   // /indicators: indicators.html beside indicators/ (as Cloudflare Pages serves it)
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end('nf'); }
   r.writeHead(200, { 'content-type': MT[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(r);
 });

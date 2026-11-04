@@ -30,17 +30,17 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG } from './chart-bookmap.js?v=865';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=865';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=865';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=865';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=865';
-import * as ProGate from './chart-pro-gate.js?v=865';
-import { installBookPack } from './chart-book-pack.js?v=865';
-import { installPatterns } from './chart-patterns.js?v=865';
-import { installL2Flow } from './chart-l2-flow.js?v=865';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=865';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=865';
+import { drawBookmap, BM_BG } from './chart-bookmap.js?v=866';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=866';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=866';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=866';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=866';
+import * as ProGate from './chart-pro-gate.js?v=866';
+import { installBookPack } from './chart-book-pack.js?v=866';
+import { installPatterns } from './chart-patterns.js?v=866';
+import { installL2Flow } from './chart-l2-flow.js?v=866';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=866';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=866';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';

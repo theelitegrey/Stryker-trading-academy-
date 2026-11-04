@@ -2,8 +2,8 @@
 // Run: node tools/tests/byo-core.test.mjs
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
-import { ironbeam, bindUser, guardUrl, guardWs, guardWsMessage, makeVault, candleBuilder, alpaca, oanda, Hub, activate, route, forget, labelFor, statusOf, SOURCES } from '../../assets/byo-core.js?v=865';
-import { withByo, ByoProvider } from '../../assets/byo-provider.js?v=865';
+import { ironbeam, bindUser, guardUrl, guardWs, guardWsMessage, makeVault, candleBuilder, alpaca, oanda, Hub, activate, route, forget, labelFor, statusOf, SOURCES } from '../../assets/byo-core.js?v=866';
+import { withByo, ByoProvider } from '../../assets/byo-provider.js?v=866';
 
 const FAKE = { key: 'PKTESTFAKE', secret: 'SECRETFAKE', feed: 'iex' };
 const log = [];

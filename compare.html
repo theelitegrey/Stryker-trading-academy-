@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="870">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="TradeZoro compared: TradingView, OpenMarket, Alertsify">
+<meta property="og:description" content="A side-by-side of TradingView Ultimate, the OpenMarket and Alertsify free plans, and TradeZoro. Sources listed, checked Nov 2026.">
+<meta property="og:url" content="https://tradezoro.com/compare">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/compare.png?v=870">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="TradeZoro compared share card with the TradeZoro logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TradeZoro compared: TradingView, OpenMarket, Alertsify">
+<meta name="twitter:description" content="A side-by-side of TradingView Ultimate, the OpenMarket and Alertsify free plans, and TradeZoro. Sources listed, checked Nov 2026.">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/compare.png?v=870">
+<meta name="twitter:image:alt" content="TradeZoro compared share card with the TradeZoro logo">
+<meta name="theme-color" content="#050506">
+<title>TradeZoro compared: TradingView, OpenMarket, Alertsify</title>
+<link rel="canonical" href="https://tradezoro.com/compare">
+<meta name="description" content="A side-by-side of TradingView Ultimate, the OpenMarket and Alertsify free plans, and TradeZoro. Sources listed, checked Nov 2026.">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<!-- Speed: open the Firebase connections while the CSS loads (the SDK
+     scripts sit at the end of <body>). Hints only; nothing waits on them. -->
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.googleapis.com">
+<link rel="dns-prefetch" href="https://strykertrades-e0cd8.firebaseapp.com">
+<link rel="stylesheet" href="assets/style.css?v=870">
+<link rel="stylesheet" href="assets/compare-page.css?v=870">
+<link rel="stylesheet" href="assets/creators-page.css?v=870">
+<link rel="stylesheet" href="assets/home-a.css?v=870">
+<noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
+<script src="assets/sanitize.js?v=870"></script>
+<script src="assets/start-page.js?v=870"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=870" defer></script>
+<script src="assets/version-check.js?v=870" defer></script>
+<script src="assets/acquisition.js?v=870" defer></script>
+<script src="assets/focus-mode.js?v=870" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=870">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=870">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=870">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=870">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=870">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+</head>
+<body class="cm-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="hn" id="site-nav"><div class="hn-in">
+<a class="hn-brand" href="/" aria-label="TradeZoro home"><img src="assets/images/tradezoro-wordmark-1014-192.webp" width="192" height="45" alt="TradeZoro"><img class="mk" src="assets/images/tradezoro-tzmark-1014-144.webp" width="32" height="32" alt=""></a>
+<nav class="hn-links" id="hn-links" aria-label="Main">
+<details class="hn-prod"><summary>Products <svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></summary><div class="hn-menu"><a href="/features/charts"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><div><b>ZoroCharts</b><span>Free futures and crypto charts with Pine Script</span></div></a><a href="/features/gex"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M3 12h18M3 18h18" stroke-dasharray="3 3"/><circle cx="17" cy="12" r="2"/></svg><div><b>GEX+</b><span>Call wall, put wall and zero gamma on the chart</span></div></a><a href="/features/backtesting"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z"/></svg><div><b>Replay One</b><span>Replay any past session bar by bar</span></div></a><a href="/features/journal"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h5"/></svg><div><b>JournalX</b><span>A trade journal that shows what is working</span></div></a><a href="/features/market-stats"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><div><b>Market Stats</b><span>How often gaps, ranges and levels played out</span></div></a><a href="/features/orderflow#sx-f-liquidity"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 5h10M3 9h16M3 13h7M3 17h13"/></svg><div><b>Liquidity Map</b><span>Resting orders as a heatmap with trade bubbles</span></div></a><a href="/features/gex"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12c3-6 6-6 10 0s7 6 10 0"/></svg><div><b>ZoroTide</b><span>Net call premium against net put premium</span></div></a><a href="/learn"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div><b>Learn</b><span>Plain-English lessons and courses</span></div></a><a href="/features/creators"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div><b>Creator Hub</b><span>Run your own trading community and share indicators</span></div></a></div></details>
+<a href="/pricing">Plans</a><a href="/learn">Learn</a><a href="/features/community">Community</a><a href="/help">Help</a><a class="hn-login-m" href="/login">Log in</a></nav>
+<div class="hn-cta nav-cta"><button class="hn-ic" id="theme" aria-label="Switch light or dark theme" data-hn-theme><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><a class="btn btn-ghost btn-sm hn-login" href="/login">Log in</a><a class="btn btn-primary btn-sm" href="/signup">Start free</a>
+<button class="hn-ic hn-tog" id="hn-tog" aria-label="Menu" aria-expanded="false" aria-controls="hn-links"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+</div></header>
+<main id="main" tabindex="-1" class="cm-main-page">
+<section class="cp-hero"><div class="cm-w">
+  <h1>TradeZoro next to TradingView, OpenMarket and Alertsify</h1>
+  <p class="cp-sub">TradingView's Ultimate plan and the free plans of OpenMarket and Alertsify, next to TradeZoro. A tick means we found it on the vendor's public site. Pro marks what needs TradeZoro Pro.</p>
+</div></section>
+<section class="cp-sec-w"><div class="cm-w">
+<div class="cp-pick"><label for="cp-sel">TradeZoro vs</label><select id="cp-sel" aria-label="Choose a rival to compare"><option value="0">TradingView</option><option value="1">OpenMarket</option><option value="2">Alertsify</option></select></div>
+<table class="cp-table" id="cp-table" data-r="0">
+<thead><tr><th scope="col" class="cp-h0"><span class="cp-sr">Feature</span></th>
+<th scope="col" data-c="0"><b>TradingView</b><span>Ultimate, $239.95/mo billed monthly</span></th>
+<th scope="col" data-c="1"><b>OpenMarket</b><span>Free plan, $0</span></th>
+<th scope="col" data-c="2"><b>Alertsify</b><span>Free charts, $0</span></th>
+<th scope="col" class="cp-tz" data-c="3"><b>TradeZoro</b><span>Free · Pro for order flow</span></th></tr></thead>
+<tbody><tr class="cp-sec"><th colspan="5" scope="colgroup" class="cp-s5">On all four</th><th colspan="3" scope="colgroup" class="cp-s3" aria-hidden="true">On all four</th></tr><tr><th scope="row">16 charts on one screen</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td></tr><tr><th scope="row">Volume profile</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Pro</span></td></tr><tr class="cp-sec"><th colspan="5" scope="colgroup" class="cp-s5">Not on Alertsify</th><th colspan="3" scope="colgroup" class="cp-s3" aria-hidden="true">Not on Alertsify</th></tr><tr><th scope="row">Volume footprint</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="2"><span class="cp-no">Not found</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Pro</span></td></tr><tr class="cp-sec"><th colspan="5" scope="colgroup" class="cp-s5">Not on OpenMarket</th><th colspan="3" scope="colgroup" class="cp-s3" aria-hidden="true">Not on OpenMarket</th></tr><tr><th scope="row">Bar replay</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Replay One, and replay on the chart</span></td></tr><tr><th scope="row">Custom timeframes</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Up to 20 custom intervals</span></td></tr><tr><th scope="row">Auto chart patterns</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td></tr><tr><th scope="row">Earnings and economic calendar</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><span class="cp-t">Economic data series, no calendar found</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td></tr><tr class="cp-sec"><th colspan="5" scope="colgroup" class="cp-s5">Not on TradingView</th><th colspan="3" scope="colgroup" class="cp-s3" aria-hidden="true">Not on TradingView</th></tr><tr><th scope="row">GEX levels: call wall, put wall, gamma flip</th><td data-c="0"><span class="cp-no">Not built in</span></td><td data-c="1"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Starter indicator</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">US stocks and ETFs</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Pro. SPX, SPY, QQQ, ES, NQ, GC</span></td></tr><tr><th scope="row">Options flow marked on your candles</th><td data-c="0"><span class="cp-no">Not built in</span></td><td data-c="1"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Starter indicator</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Pro. Per-bar call and put totals for SPX, SPY, QQQ</span></td></tr><tr class="cp-sec"><th colspan="5" scope="colgroup" class="cp-s5">Not on OpenMarket or Alertsify</th><th colspan="3" scope="colgroup" class="cp-s3" aria-hidden="true">Not on OpenMarket or Alertsify</th></tr><tr><th scope="row">Charts based on custom formulas</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><span class="cp-no">Not found</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">For example ES1!-NQ1!*0.25</span></td></tr><tr><th scope="row">Chart data export</th><td data-c="0"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><span class="cp-no">Not found</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">CSV</span></td></tr><tr class="cp-sec"><th colspan="5" scope="colgroup" class="cp-s5">Not on TradingView or Alertsify</th><th colspan="3" scope="colgroup" class="cp-s3" aria-hidden="true">Not on TradingView or Alertsify</th></tr><tr><th scope="row">Order book heatmap</th><td data-c="0"><span class="cp-no">Not built in</span></td><td data-c="1"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td data-c="2"><span class="cp-no">Not found</span></td><td class="cp-tz" data-c="3"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes. </span><span class="cp-n">Pro. Midnight, Zoro, Classic and Split looks</span></td></tr><tr class="cp-sec"><th colspan="5" scope="colgroup" class="cp-s5">Not on TradeZoro</th><th colspan="3" scope="colgroup" class="cp-s3" aria-hidden="true">Not on TradeZoro</th></tr><tr><th scope="row">Dark pool levels on the chart</th><td data-c="0"><span class="cp-no">Not built in</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="cp-sr">Yes</span></td><td class="cp-tz" data-c="3"><span class="cp-no">Not built in</span></td></tr><tr class="cp-sec"><th colspan="5" scope="colgroup" class="cp-s5">Numbers compared</th><th colspan="3" scope="colgroup" class="cp-s3" aria-hidden="true">Numbers compared</th></tr><tr><th scope="row">Indicators per chart</th><td data-c="0"><span class="cp-t">50</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><span class="cp-t">Up to 16</span></td><td class="cp-tz" data-c="3"><span class="cp-t">No cap on built-in tools. Pine scripts: 8</span></td></tr><tr><th scope="row">Alerts</th><td data-c="0"><span class="cp-t">1,000 price + 1,000 technical</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><span class="cp-no">Not found</span></td><td class="cp-tz" data-c="3"><span class="cp-t">1,000</span></td></tr><tr><th scope="row">Futures data</th><td data-c="0"><span class="cp-t">Extra data fee</span></td><td data-c="1"><span class="cp-no">Not found</span></td><td data-c="2"><span class="cp-t">Included</span></td><td class="cp-tz" data-c="3"><span class="cp-t">Add-on, or connect your own Rithmic</span></td></tr></tbody></table>
+<section class="cp-more" aria-labelledby="cp-more-h"><h2 id="cp-more-h">More on TradeZoro</h2><p>Tools we did not compare row by row. Pro marks what needs TradeZoro Pro.</p><ul><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>DOM ladder and Book, DOM and Trades panel</span><em>Pro</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Liquidity Walls and Wall Events</span><em>Pro</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Book Speed</span><em>Pro. Futures order book</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Liquidity Balance</span><em>Pro. Futures order book</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Refill Detector</span><em>Pro. Futures order book</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Volatility Regime</span><em>Pro. Futures order book</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Large Resting Orders</span><em>Pro. Futures order book</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Absorption and Iceberg Tracker</span><em>Pro. Futures order book</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Big Trades and Absorption</span><em>Pro</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ZoroTide options money flow</span><em>Pro</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Replay One practice sessions</span><em>Free</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>JournalX trade journal with CSV import and broker sync</span><em>Free</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Market Stats</span><em>Free</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Smart Money desk: Congress and insider filings</span><em>Free, on its own page</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ZoroAcademy: 64 written chapters</span><em>Free</em></li><li><span><svg class="cp-ck" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Connect your own broker data: Rithmic, Alpaca, tastytrade, Dhan, OANDA, cTrader</span><em>Free. Beta bridge for NT8, MT5, IBKR</em></li></ul></section>
+<p class="cp-foot">Competitor features and prices from their public websites, checked Nov 2026. Not found means we could not find it on their public pages, so it may exist. Tell us if something changed: <a href="/contact">contact us</a>. Sources: <a href="https://www.tradingview.com/pricing/" rel="noopener">tradingview.com/pricing</a>, <a href="https://openmarket.xyz" rel="noopener">openmarket.xyz</a>, <a href="https://alertsify.com/charts" rel="noopener">alertsify.com/charts</a>. TradeZoro: Pro items need <a href="/pro">TradeZoro Pro</a>; everything else is free. Education only. Not financial advice.</p>
+<script>(function(){var t=document.getElementById('cp-table'),s=document.getElementById('cp-sel'),h=document.querySelector('.hn');function z(){document.documentElement.style.setProperty('--cp-nav',(h?h.offsetHeight:56)+'px')}z();addEventListener('resize',z);s.addEventListener('change',function(){t.setAttribute('data-r',s.value)})})();</script>
+<div class="cp-cta"><a class="btn btn-primary cm-btn" href="/signup">Start free</a><a class="btn btn-ghost cm-btn" href="/pro">See what Pro adds</a></div>
+</div></section>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+          
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Charts, data and education for futures and crypto traders.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">Learn: free articles</a>
+        <a href="indicators">Trading indicators</a>
+        <a href="compare">Compare</a>
+      </div>
+      <div>
+        <h5>Platform</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+        <a href="trade-journal">JournalX</a>
+        <a href="global-monitor">Global monitor</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About TradeZoro</a>
+        <a href="help">Help Center</a>
+        <a href="suggestions">Suggestions</a>
+        <a href="creators">Creator Hub</a>
+        <a href="support">Support</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+        <a href="market-data-terms">Market Data Terms</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro, operating as TradeZoro. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+      <a href="terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js?v=870"></script>
+<script src="assets/progress.js?v=870"></script>
+<script src="assets/activity-log.js?v=870"></script>
+<script src="assets/banned-check.js?v=870"></script>
+<script src="assets/email-verify.js?v=870"></script>
+<script src="assets/profiles-sync.js?v=870"></script>
+<script src="assets/loading-animation.js?v=870"></script>
+<script src="assets/avatars.js?v=870"></script>
+<script src="assets/referrals.js?v=870"></script>
+<script src="assets/maintenance-check.js?v=870"></script>
+<script src="assets/branding.js?v=870"></script>
+<script src="assets/seo.js?v=870"></script>
+<script src="assets/main.js?v=870"></script>
+<script src="assets/theme.js?v=870"></script>
+</body>
+</html>

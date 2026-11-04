@@ -279,6 +279,13 @@
      "title": "Creating an account",
      "items": [
       {
+       "id": "email-link-wont-open",
+       "q": "The link in my email won't open. What do I do?",
+       "a": "<p>Some phone networks block the page our verify-email and password-reset links open. Use the <a href=\"/fix-link\">link fixer</a>: long-press the button in the email, tap Copy link, paste it there and tap Continue.</p>",
+       "tags": ["email link", "verify email", "reset password", "link not opening", "connection refused", "firebaseapp"],
+       "links": [{"label": "Link fixer", "href": "/fix-link"}]
+      },
+      {
        "id": "create-account",
        "q": "How do I create an account?",
        "a": "<p>Go to the sign-up page, fill in the form or use Google. It is free and needs no card.</p>",

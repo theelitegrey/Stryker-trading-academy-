@@ -133,6 +133,7 @@
           '<button class="btn btn-ghost" id="ev-resend">Resend the email</button>' +
           '<button class="btn btn-ghost" id="ev-signout">Sign out</button>' +
         '</div>' +
+        '<p style="font-size:13px;line-height:18px;margin:16px 0 0;opacity:.72">Email link not opening? <a href="/fix-link">Fix it here</a></p>' +
       '</div>';
 
     document.body.appendChild(overlay);

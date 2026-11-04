@@ -430,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const email = prompt('Enter your account email to receive a reset link:', prefill);
       if (!email) return;
       sendResetEmailWithReturn(email.trim())
-        .then(() => showToast('success', 'Password reset email sent — check your inbox.'))
+        .then(() => showToast('success', 'Password reset email sent — check your inbox.', { action: { label: 'Email link not opening? Fix it here', onClick: () => { window.location.href = '/fix-link'; } } }))
         .catch((err) => showToast('error', friendlyAuthError(err)));
     });
   });

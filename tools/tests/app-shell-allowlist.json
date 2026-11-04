@@ -54,6 +54,7 @@
   "rithmic-review": "unlisted partner page",
   "contact": "only linked from the banned-account notice",
   "cookies": "legal text linked from the cookie notice, public (same as refund-policy)",
+  "fix-link": "email-link fallback, public, linked from the verify screen and login reset note",
   "refund-policy": "legal text linked from checkout, public",
   "market-data-terms": "legal text linked from live-data checkout and settings, public (same as refund-policy)",
   "help": "own signed-in member shell (#member-help-shell: Questions | My tickets), public FAQ signed out; covered by help-center-browser.js and member-support QA",

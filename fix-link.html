@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="876">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Email link not opening on your phone? Paste it here and we open it for you.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Email link won&#x27;t open? — TradeZoro">
+<meta property="og:description" content="Email link not opening on your phone? Paste it here and we open it for you.">
+<meta property="og:url" content="https://tradezoro.com/fix-link">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/fix-link.png?v=876">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Email link fix share card with the TradeZoro logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Email link won&#x27;t open? — TradeZoro">
+<meta name="twitter:description" content="Email link not opening on your phone? Paste it here and we open it for you.">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/fix-link.png?v=876">
+<meta name="twitter:image:alt" content="Email link fix share card with the TradeZoro logo">
+<meta name="theme-color" content="#050506">
+<title>Email link won't open? — TradeZoro</title>
+<link rel="canonical" href="https://tradezoro.com/fix-link">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=876">
+<script src="assets/skeleton.js?v=876"></script>
+<link rel="stylesheet" href="assets/nav-features.css?v=876">
+<script src="assets/sanitize.js?v=876"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=876" defer></script>
+<script src="assets/version-check.js?v=876" defer></script>
+<script src="assets/cookie-notice.js?v=876" defer></script>
+<script src="assets/acquisition.js?v=876" defer></script>
+<script src="assets/focus-mode.js?v=876" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=876">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=876">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=876">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=876">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=876">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+</head>
+<body data-page-key="fix-link">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/academy">ZoroAcademy</a>
+      <a href="/features/community">Community</a>
+      <a href="/help">Help</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<style>
+.fl{max-width:480px;margin:0 auto;padding:32px 16px 48px}
+.fl h1{font-size:28px;line-height:34px;font-weight:700;margin:0 0 12px}
+.fl p,.fl li{font-size:15px;line-height:22px;color:var(--text-2,rgba(255,255,255,.64))}
+.fl ol{margin:0 0 24px;padding-left:20px}.fl li{margin-bottom:8px}.fl li b{color:var(--text,rgba(255,255,255,.92));font-weight:600}
+.fl textarea{display:block;width:100%;min-height:96px;box-sizing:border-box;padding:12px;font:inherit;font-size:16px;line-height:22px;color:inherit;background:var(--surface,#0b0b0d);border:1px solid rgba(127,127,127,.32);border-radius:12px;resize:vertical}
+.fl textarea:focus-visible,.fl button:focus-visible{outline:2px solid #03c988;outline-offset:2px}
+.fl textarea[aria-invalid]{border-color:#e5484d}
+.fl .fl-err{font-size:13px;line-height:18px;color:#e5484d;margin:8px 0 0}
+.fl button{display:block;width:100%;height:48px;margin-top:16px;border:0;border-radius:12px;background:#03c988;color:#04120d;font:inherit;font-size:17px;font-weight:600;cursor:pointer}
+.fl a{color:#03c988;text-decoration:underline}html[data-theme="light"] .fl a{color:#087a56}
+.fl .fl-note{font-size:12px;line-height:16px;margin-top:16px}
+html[data-theme="light"] .fl textarea{background:#fff;color:#1d1d1f}
+html[data-theme="light"] .fl p,html[data-theme="light"] .fl li{color:#555}
+html[data-theme="light"] .fl li b{color:#1d1d1f}
+html[data-theme="light"] .fl .fl-err{color:#c4262b}
+</style>
+<div class="fl">
+  <h1>Email link won't open?</h1>
+  <p>Some phone networks block the page our emails open. Paste the link here and we open it another way.</p>
+  <ol>
+    <li>In our email, <b>long-press</b> the button.</li>
+    <li>Tap <b>Copy link</b>.</li>
+    <li>Paste it below and tap <b>Continue</b>.</li>
+  </ol>
+  <form id="fl-form" novalidate>
+    <label for="fl-input" class="sr-only" style="position:absolute;left:-9999px">Email link</label>
+    <textarea id="fl-input" placeholder="Paste the link here" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="fl-error"></textarea>
+    <p class="fl-err" id="fl-error" role="alert" hidden>That doesn't look like a link from our email. Copy the full link from the button in the email and try again.</p>
+    <button type="submit">Continue</button>
+  </form>
+  <p class="fl-note">The link stays in your browser and goes only to tradezoro.com. Still stuck? <a href="/support">Contact support</a>.</p>
+</div>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>ZoroAcademy</h5>
+        <a href="academy">ZoroAcademy home</a>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">ZoroAcademy articles</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About TradeZoro</a>
+        <a href="help">Help Center</a>
+        <a href="suggestions">Suggestions</a>
+        <a href="creators">Creator Hub</a>
+        <a href="support">Support</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro LLC. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+      <a href="market-data-terms">Market Data Terms</a>
+      <a href="terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/nav-features.js?v=876" defer></script>
+<script src="assets/main.js?v=876"></script>
+<script src="assets/auth.js?v=876"></script>
+<script src="assets/progress.js?v=876"></script>
+<script src="assets/activity-log.js?v=876"></script>
+<script src="assets/banned-check.js?v=876"></script>
+<script src="assets/email-verify.js?v=876"></script>
+<script src="assets/profiles-sync.js?v=876"></script>
+<script src="assets/loading-animation.js?v=876"></script>
+<script src="assets/branding.js?v=876"></script>
+<script src="assets/seo.js?v=876"></script>
+<script src="assets/theme.js?v=876"></script>
+<script src="assets/fix-link.js?v=876"></script>
+</body>
+</html>

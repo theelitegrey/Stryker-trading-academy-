@@ -2196,7 +2196,7 @@
       {
        "id": "alerts-limit",
        "q": "How many alerts can I have?",
-       "a": "<p>Up to 200 alerts. An Only once alert is deleted after it fires. Delete all is in the top row of the Alerts panel.</p>",
+       "a": "<p>Up to 1,000 alerts. An Only once alert is deleted after it fires. Delete all is in the top row of the Alerts panel.</p>",
        "tags": [
         "limit",
         "200",

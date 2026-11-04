@@ -605,7 +605,7 @@
   ]
  },
  "automod": {
-  "invite_allow": [],
+  "invite_allow": ["discord.gg/ZYuHkVcMy", "ZYuHkVcMy"],
   "scam_phrases": [
    "guaranteed profit",
    "guaranteed profits",

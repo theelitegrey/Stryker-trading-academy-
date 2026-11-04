@@ -8,16 +8,19 @@
 //    Firebase token of the person concerned (refresh token kept server-side, only for the cron), or with the
 //    creator's token when the creator presses "Check everyone now". Firestore rules decide what can be read.
 //  - Nothing here writes to Firestore.
-import { verifyIdToken, RT_PROJECT } from './rt-auth.js';
+import { verifyIdToken, RT_PROJECT, isActiveProDoc, paidPlanNames } from './rt-auth.js';
 
 const D = 'https://discord.com/api/v10';
 const FS = 'https://firestore.googleapis.com/v1/projects/' + RT_PROJECT + '/databases/(default)/documents/';
+const SITE_GUILD = '1565740274116857887';   // the official TradeZoro server (vars SITE_GUILD_ID / SITE_PRO_ROLE_ID / SITE_MEMBER_ROLE_ID override)
+const SITE_CID = '@site';                   // pending.cid marker for the site-Pro link flow
 export const BOT_PERMS = 268435457;          // Manage Roles (0x10000000) + Create Instant Invite (0x1)
 const SCOPES_USER = 'identify guilds.join';
 const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS guilds(cid TEXT PRIMARY KEY, guild_id TEXT UNIQUE, name TEXT, auto_join INTEGER DEFAULT 1, owner_uid TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS links(uid TEXT PRIMARY KEY, did TEXT, dname TEXT, access TEXT, refresh TEXT, exp INTEGER, fb_refresh TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS enroll(cid TEXT, uid TEXT, role_id TEXT, state TEXT, in_guild INTEGER DEFAULT 0, checked INTEGER DEFAULT 0, note TEXT, PRIMARY KEY(cid, uid))',
+  'CREATE TABLE IF NOT EXISTS site(uid TEXT PRIMARY KEY, state TEXT, pro INTEGER DEFAULT 0, in_guild INTEGER DEFAULT 0, checked INTEGER DEFAULT 0, note TEXT)',
   'CREATE TABLE IF NOT EXISTS pending(n TEXT PRIMARY KEY, kind TEXT, uid TEXT, cid TEXT, fb_refresh TEXT, exp INTEGER)',
 ];
 export class HttpErr extends Error { constructor(status, code, msg) { super(msg || code); this.status = status; this.code = code; } }
@@ -60,7 +63,7 @@ export class Core {
     for (const s of SCHEMA) sql.exec(s);
     this.site = this.env.SITE_URL || 'https://tradezoro.com';
     this.self = this.env.PUBLIC_URL || 'https://discord-roles.theelitegrey.workers.dev';
-    this.tokCache = new Map();
+    this.tokCache = new Map(); this.rl = new Map();
   }
   get ready() { return !!(this.env.DISCORD_BOT_TOKEN && this.env.DISCORD_CLIENT_ID && this.env.DISCORD_CLIENT_SECRET); }
   q(sql, ...a) { return [...this.sql.exec(sql, ...a)]; }
@@ -203,6 +206,77 @@ export class Core {
     return set('active', null, { role_id: ent.roleId, in_guild: 1 });
   }
 
+
+  // ---- site Pro -> official server role ------------------------------------------------------------------
+  // Same truth as the server's Pro gate (functions/api/chart/_rt.js isGexProToken): admins/{uid} exists, OR students/{uid}.demo,
+  // OR isActiveProDoc (paid plan, not cancelled/expired, paidThrough + 3 days grace). Read with the member's own token.
+  // -> { pro } or { unknown: true } when Firestore did not answer definitively (then nothing is changed: never strip on a blip).
+  async siteEntitlement(tok, uid) {
+    const h = { headers: { authorization: 'Bearer ' + tok } };
+    let a, s;
+    try { a = await this.f(FS + 'admins/' + encodeURIComponent(uid), h); s = await this.f(FS + 'students/' + encodeURIComponent(uid), h); } catch (e) { return { unknown: true }; }
+    if (a.status === 200) return { pro: true, why: 'admin' };
+    if (a.status !== 404 || (s.status !== 200 && s.status !== 404)) return { unknown: true };
+    if (s.status === 404) return { pro: false };
+    const fl = ((await s.json().catch(() => ({}))) || {}).fields || {};
+    if (fl.demo && fl.demo.booleanValue === true) return { pro: true, why: 'demo' };
+    return { pro: isActiveProDoc(fl, await paidPlanNames(this.f), this.now()) };
+  }
+  siteIds() { return { gid: this.env.SITE_GUILD_ID || SITE_GUILD, pro: this.env.SITE_PRO_ROLE_ID || null, member: this.env.SITE_MEMBER_ROLE_ID || null }; }
+  throttle(uid, max = 12) {
+    const t = this.now(), r = (this.rl.get(uid) || []).filter((x) => x > t - 60000);
+    if (r.length >= max) throw new HttpErr(429, 'slow', 'Too many tries. Wait a minute.');
+    r.push(t); this.rl.set(uid, r); if (this.rl.size > 2000) this.rl.clear();
+  }
+  // tok: {id} | {dead}. Adds / removes ONLY the Pro role (and joins the server). Other roles are never touched.
+  async applySite(uid, tok) {
+    const s = this.one('SELECT * FROM site WHERE uid=?', uid), link = this.one('SELECT * FROM links WHERE uid=?', uid);
+    if (!s) return { state: 'none' };
+    const set = (state, note, pro = s.pro, ig = s.in_guild) => { this.run('UPDATE site SET state=?, note=?, pro=?, in_guild=?, checked=? WHERE uid=?', state, note || null, pro ? 1 : 0, ig ? 1 : 0, this.now(), uid); return { state, pro: !!pro, note: note || null }; };
+    if (!link || !this.ready) return set('waiting', null);
+    const ids = this.siteIds(), reason = 'TradeZoro Pro';
+    const roles = await this.guildRoles(ids.gid);
+    if (!roles) return set('error', 'Discord did not answer. Will retry.');
+    const pr = roles.find((x) => ids.pro ? x.id === ids.pro : x.name === 'TradeZoro Pro');
+    const top = await this.botTop(ids.gid, roles);
+    const okRole = (r) => r && !r.managed && r.id !== ids.gid && r.position < top;
+    if (!okRole(pr)) return set('badrole', 'The Pro role is not available. Will retry.');
+    const mr = ids.member ? roles.find((x) => x.id === ids.member) : null;
+    const hasMember = okRole(mr);
+    let pro = !!s.pro;
+    if (tok.dead === 'gone') pro = false;
+    else { const e = await this.siteEntitlement(tok.id, uid); if (!e.unknown) pro = e.pro; else if (!s.in_guild) return set('error', 'Could not check Pro. Will retry.'); }
+    const canJudge = !tok.dead || tok.dead === 'gone';
+    const m = await this.dc('GET', '/guilds/' + ids.gid + '/members/' + link.did);
+    if (m.status === 404) {
+      const at = await this.userToken(link);
+      if (!at) return set('stale', 'Link Discord again to join the server.');
+      const want = [...(pro && canJudge ? [pr.id] : []), ...(hasMember ? [mr.id] : [])];
+      const j = await this.dc('PUT', '/guilds/' + ids.gid + '/members/' + link.did, { access_token: at, roles: want }, { reason });
+      if (j.status === 201 || j.status === 204) return set('active', null, want.includes(pr.id), 1);
+      if (j.status === 403 && j.data && j.data.code === 40007) return set('banned', 'You are banned from that Discord server.');
+      return set('error', 'Could not add you to the server. Try again later.');
+    }
+    if (!m.ok) return set('error', 'Discord did not answer. Will retry.');
+    const has = (m.data.roles || []).includes(pr.id);
+    if (!canJudge) return set('active', 'Open TradeZoro once to refresh the link.', has, 1);
+    if (pro && !has) { const a = await this.dc('PUT', '/guilds/' + ids.gid + '/members/' + link.did + '/roles/' + pr.id, null, { reason }); if (!a.ok) return set('error', 'Could not give the role. Will retry.'); }
+    if (!pro && has) { const d = await this.dc('DELETE', '/guilds/' + ids.gid + '/members/' + link.did + '/roles/' + pr.id, null, { reason: 'TradeZoro: Pro ended' }); if (!d.ok && d.status !== 404) return set('error', 'Could not remove the role. Will retry.'); }
+    if (hasMember && !(m.data.roles || []).includes(mr.id)) await this.dc('PUT', '/guilds/' + ids.gid + '/members/' + link.did + '/roles/' + mr.id, null, { reason });
+    return set('active', null, pro, 1);
+  }
+  // Card on Settings: opened / "Check again" / right after linking. Enrols the linked member and applies now.
+  async siteSync(who, body) {
+    this.throttle(who.uid);
+    if (!this.ready) return { ready: false };
+    const link = this.one('SELECT dname FROM links WHERE uid=?', who.uid);
+    if (!link) return { ready: true, linked: false };
+    if (typeof body.refreshToken === 'string' && body.refreshToken.length < 2000) { this.run('UPDATE links SET fb_refresh=? WHERE uid=?', body.refreshToken, who.uid); this.tokCache.delete(who.uid); }
+    if (!this.one('SELECT 1 x FROM site WHERE uid=?', who.uid)) this.run('INSERT INTO site(uid, state) VALUES(?,?)', who.uid, 'new');
+    const r = await this.applySite(who.uid, { id: who.token });
+    return { ready: true, linked: true, username: link.dname, state: r.state, pro: r.pro, note: r.note };
+  }
+
   // ---- auth ---------------------------------------------------------------------------------------------
   async who(req) {
     const h = req.headers.get('authorization') || '';
@@ -290,8 +364,9 @@ export class Core {
   }
   async linkStart(who, body) {
     if (!this.ready) throw new HttpErr(503, 'notready', 'Discord connection is being set up.');
-    const cid = CID_RE.test(body.cid || '') ? body.cid : '';
-    if (cid && !this.one('SELECT 1 x FROM guilds WHERE cid=?', cid)) throw new HttpErr(404, 'noserver', 'This community has no Discord server connected.');
+    this.throttle(who.uid);
+    const cid = body.site === true ? SITE_CID : CID_RE.test(body.cid || '') ? body.cid : '';
+    if (cid && cid !== SITE_CID && !this.one('SELECT 1 x FROM guilds WHERE cid=?', cid)) throw new HttpErr(404, 'noserver', 'This community has no Discord server connected.');
     const fb = typeof body.refreshToken === 'string' && body.refreshToken.length < 2000 ? body.refreshToken : null;
     return { url: this.authUrl('user', await this.state('user', who.uid, cid, fb)) };
   }
@@ -313,6 +388,11 @@ export class Core {
     for (const e of this.q('SELECT e.cid, e.role_id, g.guild_id FROM enroll e JOIN guilds g ON g.cid=e.cid WHERE e.uid=?', who.uid)) {
       if (e.role_id && link) { const r = await this.dc('DELETE', '/guilds/' + e.guild_id + '/members/' + link.did + '/roles/' + e.role_id, null, { reason: 'TradeZoro: member unlinked Discord' }); if (r.ok || r.status === 404) removed++; }
     }
+    if (link && this.one('SELECT 1 x FROM site WHERE uid=?', who.uid)) {
+      const ids = this.siteIds(), roles = await this.guildRoles(ids.gid), pr = roles && roles.find((x) => ids.pro ? x.id === ids.pro : x.name === 'TradeZoro Pro');
+      if (pr) await this.dc('DELETE', '/guilds/' + ids.gid + '/members/' + link.did + '/roles/' + pr.id, null, { reason: 'TradeZoro: member unlinked Discord' });
+    }
+    this.run('DELETE FROM site WHERE uid=?', who.uid);
     if (link && link.access) await this.dc('POST', '/oauth2/token/revoke', { client_id: this.env.DISCORD_CLIENT_ID, client_secret: this.env.DISCORD_CLIENT_SECRET, token: link.access }, { form: true }).catch(() => {});
     this.run('DELETE FROM enroll WHERE uid=?', who.uid); this.run('DELETE FROM links WHERE uid=?', who.uid);
     return { unlinked: true, removed };
@@ -326,7 +406,7 @@ export class Core {
     const peek = this.one('SELECT kind, cid FROM pending WHERE n=?', st.split('.')[0]);
     const k = peek ? peek.kind : null;
     const hubBack = (cid, s) => this.site + '/creator?c=' + cid + '&tab=discord&discord=' + s;
-    const comBack = (cid, s) => this.site + (cid ? '/c/' + cid : '/communities') + (cid ? '?' : '?') + 'discord=' + s;
+    const comBack = (cid, s) => this.site + (cid === SITE_CID ? '/settings' : cid ? '/c/' + cid : '/communities') + (cid ? '?' : '?') + 'discord=' + s;
     const p = k ? await this.takeState(st, k) : null;
     if (!p) return this.site + '/communities?discord=expired';
     if (url.searchParams.get('error') || !code) return k === 'bot' ? hubBack(p.cid, 'cancelled') : comBack(p.cid || '', 'cancelled');
@@ -348,7 +428,10 @@ export class Core {
     this.run('INSERT INTO links(uid, did, dname, access, refresh, exp, fb_refresh, created) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET did=excluded.did, dname=excluded.dname, access=excluded.access, refresh=excluded.refresh, exp=excluded.exp, fb_refresh=COALESCE(excluded.fb_refresh, fb_refresh)',
       p.uid, did, dn, tk.data.access_token, tk.data.refresh_token, this.now() + tk.data.expires_in * 1000, p.fb_refresh, this.now());
     this.tokCache.delete(p.uid);
-    if (p.cid && this.one('SELECT 1 x FROM guilds WHERE cid=?', p.cid)) {
+    if (p.cid === SITE_CID) {
+      if (!this.one('SELECT 1 x FROM site WHERE uid=?', p.uid)) this.run('INSERT INTO site(uid, state) VALUES(?,?)', p.uid, 'new');
+      await this.applySite(p.uid, await this.fbToken(p.uid));
+    } else if (p.cid && this.one('SELECT 1 x FROM guilds WHERE cid=?', p.cid)) {
       if (!this.one('SELECT 1 x FROM enroll WHERE cid=? AND uid=?', p.cid, p.uid)) this.run('INSERT INTO enroll(cid, uid, state) VALUES(?,?,?)', p.cid, p.uid, 'new');
       const t = await this.fbToken(p.uid);
       await this.apply(p.cid, p.uid, t);
@@ -368,6 +451,10 @@ export class Core {
         out.checked++; if (a.state === 'removed') out.removed++; if (a.state === 'error') out.errors++;
       } catch (e) { out.errors++; this.run('UPDATE enroll SET checked=? WHERE cid=? AND uid=?', this.now(), r.cid, r.uid); }
     }
+    for (const r of this.q('SELECT uid FROM site ORDER BY checked ASC LIMIT ?', limit)) {
+      try { const a = await this.applySite(r.uid, await this.fbToken(r.uid)); out.checked++; if (a.state === 'error') out.errors++; }
+      catch (e) { out.errors++; this.run('UPDATE site SET checked=? WHERE uid=?', this.now(), r.uid); }
+    }
     return out;
   }
 
@@ -380,7 +467,7 @@ export class Core {
     if (path === '/oauth/callback' && req.method === 'GET') return { redirect: await this.callback(url) };
     if (req.method !== 'POST') return { status: 404, body: { ok: false, error: 'unknown' } };
     const acts = { '/me': this.me, '/creator/install': this.creatorInstall, '/creator/roles': this.creatorRoles, '/creator/settings': this.creatorSettings,
-      '/creator/disconnect': this.creatorDisconnect, '/creator/resync': this.creatorResync, '/link/start': this.linkStart, '/sync': this.sync, '/unlink': this.unlink };
+      '/creator/disconnect': this.creatorDisconnect, '/creator/resync': this.creatorResync, '/link/start': this.linkStart, '/sync': this.sync, '/site/sync': this.siteSync, '/unlink': this.unlink };
     const fn = Object.prototype.hasOwnProperty.call(acts, path) ? acts[path] : null;
     if (!fn) return { status: 404, body: { ok: false, error: 'unknown' } };
     try {

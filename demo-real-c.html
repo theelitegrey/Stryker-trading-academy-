@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="862">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050506">
+<title>TradeZoro: charts, order flow and GEX levels</title>
+<meta name="description" content="Demo homepage C. Screen recordings of the TradeZoro charts.">
+<meta name="robots" content="noindex,nofollow">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=862">
+<noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
+<script src="assets/sanitize.js?v=862"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=862" defer></script>
+<script src="assets/version-check.js?v=862" defer></script>
+<script src="assets/cookie-notice.js?v=862" defer></script>
+<script src="assets/acquisition.js?v=862" defer></script>
+<script src="assets/focus-mode.js?v=862" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=862">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=862">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=862">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=862">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=862">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="assets/demo-real-c.css?v=862">
+</head>
+<body class="dc">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="dc-top"><div class="dc-in">
+<a href="/" aria-label="TradeZoro home"><img src="assets/images/tradezoro-wordmark-1014-192.webp" width="192" height="45" alt="TradeZoro"></a>
+<div class="dc-top-r"><button class="dc-ic" type="button" data-nav-theme aria-label="Switch light or dark theme"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><a class="dc-b p s" href="/signup">Start free</a></div>
+</div></header>
+<main id="main">
+<section class="dc-hero"><div class="dc-in">
+<h1>Charts that show the order book, the options levels and the replay.</h1>
+<p class="dc-lead">TradeZoro is a charting site for futures and crypto. The clips below are screen recordings of the real charts page, not mock-ups. Free futures data is delayed 10 minutes.</p>
+<div class="dc-cta"><a class="dc-b p" href="/signup">Start free</a><a class="dc-b" href="/charts">Open charts</a></div>
+</div></section>
+<section class="dc-big"><div class="dc-in"><figure class="dc-fig"><video class="dc-vid" data-dc muted loop playsinline preload="none" poster="assets/images/demo-real-c/heatmap.webp" width="1180" height="560" aria-label="Liquidity heatmap on BTCUSDT: resting orders drawn as bands behind the candles while the chart pans through time"><source data-src="assets/images/demo-real-c/heatmap.mp4" type="video/mp4"></video><figcaption class="dc-cap">Liquidity heatmap, BTCUSDT 1m. Screen recording, 4 Nov 2026.</figcaption></figure>
+<div class="dc-note"><h2>Liquidity heatmap</h2><p>Resting orders from the order book, drawn as bands behind the candles. Brighter means more size. Pan back to see where price met a band and where it was pulled.</p></div></div></section>
+<div class="dc-in">
+
+<section class="dc-row "><div class="dc-txt"><h2>Footprint</h2><p>Each candle split into bid and ask volume at every price, with the point of control boxed.</p><p>Shown here on NQ1!, 5 minute bars, free data.</p><a href="/features/orderflow">Order flow tools</a></div>
+<figure class="dc-fig"><video class="dc-vid" data-dc muted loop playsinline preload="none" poster="assets/images/demo-real-c/footprint.webp" width="1280" height="720" aria-label="Footprint on the NQ1! 5 minute chart, bid and ask volume inside each candle"><source data-src="assets/images/demo-real-c/footprint.mp4" type="video/mp4"></video><figcaption class="dc-cap">Footprint on NQ1! 5m. Screen recording, 4 Nov 2026. Futures data delayed 10 min.</figcaption></figure></section>
+
+<section class="dc-row r"><div class="dc-txt"><h2>GEX levels</h2><p>Call wall, put wall and zero gamma from SPX options, drawn as lines on the ES chart.</p><p>The recording is the 2 Oct 2026 session, so the levels are from that day.</p><a href="/features/gex">GEX+ details</a></div>
+<figure class="dc-fig"><video class="dc-vid" data-dc muted loop playsinline preload="none" poster="assets/images/demo-real-c/gex.webp" width="1200" height="720" aria-label="SPX GEX levels on the ES chart: call wall, zero gamma and put wall lines with price labels"><source data-src="assets/images/demo-real-c/gex.mp4" type="video/mp4"></video><figcaption class="dc-cap">SPX GEX levels on ES, session of Fri 2 Oct 2026. Market closed: not current levels.</figcaption></figure></section>
+
+<section class="dc-row "><div class="dc-txt"><h2>Replay</h2><p>Pick a start bar and step the chart forward one bar at a time. Later bars stay hidden until you play them.</p><p>Here on NQ1!, 15 minute bars, one bar per second.</p><a href="/features/backtesting">Replay details</a></div>
+<figure class="dc-fig"><video class="dc-vid" data-dc muted loop playsinline preload="none" poster="assets/images/demo-real-c/replay.webp" width="1280" height="720" aria-label="Bar replay on NQ1! 15m: the chart plays forward bar by bar with the replay controls at the bottom"><source data-src="assets/images/demo-real-c/replay.mp4" type="video/mp4"></video><figcaption class="dc-cap">Bar replay on NQ1! 15m. Screen recording, 4 Nov 2026. Futures data delayed 10 min.</figcaption></figure></section>
+
+</div>
+<section class="dc-end"><div class="dc-in"><h2>Open the charts and try it on your own symbols.</h2><div class="dc-cta"><a class="dc-b p" href="/signup">Start free</a><a class="dc-b" href="/charts">Open charts</a></div></div></section>
+</main>
+<footer class="dc-foot"><div class="dc-in"><p>Education only. Not financial advice. Trading involves risk.</p><p><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/help">Help</a></p></div></footer>
+<script src="assets/theme.js?v=862"></script>
+<script src="assets/demo-real-c.js?v=862"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+/* Demo C "See it move": product-forward, flat. Uses site tokens from style.css. */
+.dc{--dc-w:1120px;font-family:'Archivo',system-ui,sans-serif;background:var(--bg-1);color:var(--ink-1);line-height:1.5;font-size:16px;margin:0}
+.dc *{box-sizing:border-box}
+.dc-in{max-width:var(--dc-w);margin:0 auto;padding:0 20px}
+.dc-top{border-bottom:1px solid var(--line)}
+.dc-top .dc-in{display:flex;align-items:center;justify-content:space-between;height:56px}
+.dc-top img{height:24px;width:auto;display:block}
+.dc-top-r{display:flex;align-items:center;gap:8px}
+.dc-ic{width:40px;height:40px;border:1px solid var(--line);background:none;color:var(--ink-1);border-radius:8px;display:grid;place-items:center;cursor:pointer;padding:0}
+.dc-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.dc-ic:hover{border-color:var(--gold)}
+.dc a.dc-b{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:8px;font-weight:600;font-size:16px;text-decoration:none;border:1px solid var(--line);color:var(--ink-0);background:none}
+.dc a.dc-b:hover{border-color:var(--gold)}
+.dc a.dc-b.p{background:var(--gold);border-color:var(--gold);color:#04110c}
+:root[data-theme="light"] .dc a.dc-b.p{color:#fff}
+.dc a.dc-b.s{min-height:40px;padding:0 14px;font-size:14px}
+.dc-hero{padding:32px 0 24px}
+.dc h1{font-size:32px;line-height:1.15;font-weight:700;letter-spacing:0;margin:0 0 12px;color:var(--ink-0);max-width:18em}
+.dc-lead{font-size:16px;color:var(--ink-1);margin:0 0 20px;max-width:34em}
+.dc-cta{display:flex;gap:12px;flex-wrap:wrap}
+.dc-fig{margin:0}
+.dc-vid{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg-0)}
+.dc-cap{font-size:13px;line-height:1.4;color:var(--ink-2);margin:8px 0 0}
+.dc-big{padding-bottom:40px}.dc-hero+.dc-big{margin-top:0}
+.dc-row{display:grid;gap:16px;padding:32px 0;border-top:1px solid var(--line)}
+.dc-row h2{font-size:24px;line-height:1.2;font-weight:700;letter-spacing:0;margin:0 0 8px;color:var(--ink-0)}
+.dc-row p{margin:0 0 8px;color:var(--ink-1);max-width:30em}
+.dc-row .dc-txt a{color:var(--gold);font-weight:600;text-decoration:none;font-size:15px}
+.dc-row .dc-txt a:hover{text-decoration:underline}
+.dc-note{padding-top:16px}.dc-note h2{font-size:24px;line-height:1.2;margin:0 0 8px;color:var(--ink-0)}.dc-note p{margin:0;max-width:34em}
+.dc-end{padding:32px 0 40px;border-top:1px solid var(--line)}
+.dc-end h2{font-size:24px;line-height:1.2;margin:0 0 16px;color:var(--ink-0);font-weight:700}
+.dc-foot{border-top:1px solid var(--line);padding:20px 0 28px;font-size:13px;color:var(--ink-2)}
+.dc-foot p{margin:0 0 6px}
+.dc-foot a{color:var(--ink-2)}
+@media(min-width:900px){
+ .dc-in{padding:0 32px}
+ .dc-hero{padding:56px 0 32px}.dc-note h2{font-size:28px}
+ .dc h1{font-size:44px;max-width:16em}
+ .dc-lead{font-size:18px}
+ .dc-row{grid-template-columns:5fr 7fr;gap:48px;align-items:center;padding:56px 0}
+ .dc-row.r{grid-template-columns:7fr 5fr}
+ .dc-row.r .dc-fig{order:-1}
+ .dc-row h2,.dc-end h2{font-size:28px}
+}

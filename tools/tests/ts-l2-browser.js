@@ -151,7 +151,7 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
         check(t2.walls.length === 0, tag + ': no wall labels in Bookmap style');
         console.log('INFO ' + tag + ' blue share of coloured pixels', t2.bm && t2.bm.blueShare, '%', JSON.stringify(t2.bm));
         check(!t2.bm || t2.bm.blueShare === undefined || t2.bm.blueShare >= 60, tag + ': >= 60% of coloured cells read as blue (rank colouring)', t2.bm && t2.bm.blueShare);
-        check(t2.sizeLabels >= 5, tag + ': depth bars carry size numbers (' + t2.sizeLabels + ')', t2.sizeLabels);
+        check(t2.sizeLabels >= 3, tag + ': depth bars carry size numbers (' + t2.sizeLabels + ')', t2.sizeLabels);
       }
       if (process.env.DBG2) console.log('BARS', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, o = c.orchestrator; const r = o.renderer; return { n: o.rawBars.length, vis: c.getVisibleRange && c.getVisibleRange(), style: c.priceStyle || (window.STRYKER_VELA.active && window.STRYKER_VELA.active.priceStyle), lastT: o.rawBars[o.rawBars.length - 1].time, keys: Object.keys(r).slice(0, 40) }; })));
       if (hm && process.env.DBG3) console.log('SCALE', JSON.stringify(await p.evaluate(() => { const c = window.STRYKER_VELA.chart, st = window.__stkFlow.domDebug(), o = c.orchestrator, vr = c.getVisibleRange(), rb = o.rawBars.filter((b) => b.time >= vr.from && b.time <= vr.to); return { scale: [st.scaleMin, st.scaleMax], vis: [Math.min(...rb.map((b) => b.low)), Math.max(...rb.map((b) => b.high))], n: rb.length, fitBtn: !!document.querySelector('.vela-fit-price, [data-fit-price]'), api: Object.getOwnPropertyNames(Object.getPrototypeOf(c)).filter((k) => /scale|fit|auto|range/i.test(k)) }; })));

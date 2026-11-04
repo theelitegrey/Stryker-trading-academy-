@@ -3,6 +3,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import { Core } from './core.js';
 import { handleInteraction } from './buttons.js';
+import { runAutoban } from './autoban.js';
+const SITE_GUILD = '1565740274116857887';
 
 const ORIGINS = ['https://tradezoro.com', 'https://www.tradezoro.com'];
 const u0 = (req) => new URL(req.url).pathname;
@@ -17,6 +19,7 @@ export class DiscordHub extends DurableObject {
   async fetch(req) {
     const u = new URL(req.url);
     if (u.pathname === '/__sweep') return Response.json(await this.core.sweep());
+    if (u.pathname === '/__autoban') return Response.json(await runAutoban(this.ctx.storage.sql, (...a) => this.core.dc(...a), this.env.SITE_GUILD_ID || SITE_GUILD));
     const r = await this.core.route(req);
     if (r.redirect) return Response.redirect(r.redirect, 302);
     return new Response(r.body === null ? null : JSON.stringify(r.body), { status: r.status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
@@ -28,12 +31,12 @@ export default {
     if (u0(req) === '/discord/interactions' && req.method === 'POST') return handleInteraction(req, env);
     const stub = env.HUB.get(env.HUB.idFromName('main'));
     const u = new URL(req.url);
-    if (u.pathname === '/__sweep') return new Response('not found', { status: 404 });
+    if (u.pathname === '/__sweep' || u.pathname === '/__autoban') return new Response('not found', { status: 404 });
     const res = await stub.fetch(req);
     const h = new Headers(res.headers); for (const [k, v] of Object.entries(cors(req))) h.set(k, v);
     return new Response(res.body, { status: res.status, headers: h });
   },
   async scheduled(ev, env, ctx) {
-    ctx.waitUntil(env.HUB.get(env.HUB.idFromName('main')).fetch('https://hub/__sweep'));
+    ctx.waitUntil(env.HUB.get(env.HUB.idFromName('main')).fetch(ev.cron === '* * * * *' ? 'https://hub/__autoban' : 'https://hub/__sweep'));
   },
 };

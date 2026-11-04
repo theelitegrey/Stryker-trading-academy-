@@ -324,7 +324,8 @@ async function recorderPhase(b) {
     const sm = await dbg(m.p);
     console.log('phone', JSON.stringify(Object.assign({}, sm, { walls: (sm && sm.walls || []).map((w) => w.label) })));
     check(sm && sm.view === 'combined' && sm.columns > 10 && sm.depthBars > 5, 'phone 390: Combined draws heatmap + depth');
-    check(sm && sm.heatX0 != null && sm.heatX0 < sm.width * 0.5, 'phone 390: heatmap starts under the visible candles (x0=' + (sm && sm.heatX0) + ' of ' + (sm && sm.width) + ')');
+    check(sm && sm.heatX0 != null && sm.heatX0 < sm.width * (WAIT_MS >= 210000 ? 0.5 : 0.8),   // a shorter WAIT_MIN (CI) records less history, so it starts further right
+       'phone 390: heatmap starts under the visible candles (x0=' + (sm && sm.heatX0) + ' of ' + (sm && sm.width) + ')');
     check(HIST_RE.test(sm.since || ''), 'phone 390: "' + sm.since + '" by the first heatmap column');
     const ow = await m.p.evaluate(() => document.documentElement.scrollWidth);
     check(ow <= 390, 'phone 390: no horizontal overflow (' + ow + ')');

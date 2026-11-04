@@ -9,8 +9,9 @@ import { delayRows, onRequestGet as barsGet } from '../../functions/api/chart/ba
 import { onRequestGet as streamGet } from '../../functions/api/chart/stream/[sym].js';
 import { onRequestGet as rtGet } from '../../functions/api/chart/rt.js';
 
-// the worker copy must be the same code
+// the worker copies must be the same code
 assert.equal(readFileSync(new URL('../../functions/api/chart/_rt.js', import.meta.url), 'utf8'), readFileSync(new URL('../../workers/book-recorder/src/rt-auth.js', import.meta.url), 'utf8'), 'rt-auth.js copies differ');
+assert.equal(readFileSync(new URL('../../functions/api/chart/_rt.js', import.meta.url), 'utf8'), readFileSync(new URL('../../workers/discord-roles/src/rt-auth.js', import.meta.url), 'utf8'), 'discord-roles rt-auth.js copy differs');
 
 const kp = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
 const jwk = { ...(await crypto.subtle.exportKey('jwk', kp.publicKey)), kid: 'k1', alg: 'RS256', use: 'sig' };
@@ -22,7 +23,7 @@ async function mint(over = {}, key = kp.privateKey) {
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(h + '.' + p));
   return h + '.' + p + '.' + b64u(sig);
 }
-const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } }, 'uid-pro-nopt': { plan: { stringValue: 'Pro' } }, 'uid-pro-grace': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'grace' }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } }, 'uid-pro-lapsed': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } }, 'uid-pro-expired': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'expired' } }, 'uid-ld': { plan: { stringValue: 'Starter' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, source: { stringValue: 'stripe' } } } } }, 'uid-ld-grace': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } } } } }, 'uid-ld-pro': { plan: { stringValue: 'Pro' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-lapsed': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } } } } }, 'uid-ld-off': { liveData: { mapValue: { fields: { active: { booleanValue: false }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-str': { liveData: { stringValue: 'true' } }, 'uid-ld-manual': { liveData: { mapValue: { fields: { active: { booleanValue: true }, source: { stringValue: 'manual' } } } } }, 'uid-gf': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-found': { plan: { stringValue: 'Pro' }, foundingMember: { booleanValue: true }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-trial': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'trialing' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-cancelled': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'cancelled' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-expired': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-trialend': { plan: { stringValue: 'Free' }, subscriptionStatus: { stringValue: 'expired' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-addon': { plan: { stringValue: 'Free' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true }, liveData: { mapValue: { fields: { active: { booleanValue: true } } } } }, 'uid-gf-flagfalse': { plan: { stringValue: 'Free' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: false } }, 'uid-starter': { plan: { stringValue: 'Starter' } }, 'uid-live': { plan: { stringValue: 'Starter' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } } };
+const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } }, 'uid-pro-nopt': { plan: { stringValue: 'Pro' } }, 'uid-pro-grace': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'grace' }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } }, 'uid-pro-lapsed': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } }, 'uid-pro-expired': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'expired' } }, 'uid-ld': { plan: { stringValue: 'Starter' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, source: { stringValue: 'stripe' } } } } }, 'uid-ld-grace': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } } } } }, 'uid-ld-pro': { plan: { stringValue: 'Pro' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-lapsed': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } } } } }, 'uid-ld-off': { liveData: { mapValue: { fields: { active: { booleanValue: false }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-str': { liveData: { stringValue: 'true' } }, 'uid-ld-manual': { liveData: { mapValue: { fields: { active: { booleanValue: true }, source: { stringValue: 'manual' } } } } }, 'uid-gf': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-found': { plan: { stringValue: 'Pro' }, foundingMember: { booleanValue: true }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-trial': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'trialing' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-cancelled': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'cancelled' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-expired': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-trialend': { plan: { stringValue: 'Free' }, subscriptionStatus: { stringValue: 'expired' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-addon': { plan: { stringValue: 'Free' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true }, liveData: { mapValue: { fields: { active: { booleanValue: true } } } } }, 'uid-gf-flagfalse': { plan: { stringValue: 'Free' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: false } }, 'uid-starter': { plan: { stringValue: 'Starter' } }, 'uid-live': { plan: { stringValue: 'Starter' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } }, 'uid-free': { plan: { stringValue: 'Free' } }, 'uid-l2': { plan: { stringValue: 'Free' }, liveDataL2: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-l2-grace': { liveDataL2: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } } } } }, 'uid-l2-expired': { liveDataL2: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } } } } }, 'uid-l2-off': { liveDataL2: { mapValue: { fields: { active: { booleanValue: false } } } } }, 'uid-l2-str': { liveDataL2: { stringValue: 'true' } }, 'uid-l1l2': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } }, liveDataL2: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } } };
 let adminUids = new Set(['uid-admin']), fsDown = false, fsCalls = 0;
 globalThis.fetch = async (url, init) => {
   url = String(url);
@@ -68,8 +69,8 @@ for (const M of [A, B]) {
   // grandfathered early Pro members (Owner 2026-10-30): live only while Pro stays active
   for (const u of ['uid-gf', 'uid-gf-found', 'uid-gf-trial', 'uid-gf-addon', 'uid-gf-flagfalse']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), true, 'grandfathered live: ' + u);
   for (const u of ['uid-gf-cancelled', 'uid-gf-expired', 'uid-gf-trialend']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'grandfathered but Pro ended: ' + u);
-  // Owner 2026-10-30: Pro alone no longer includes real-time futures
-  for (const u of ['uid-pro', 'uid-pro-nopt', 'uid-pro-grace']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'Pro without add-on is delayed: ' + u);
+  // Owner 2026-11-04 (data plans): active Pro counts as L2 while its paid period lasts, and L2 includes L1 (temporary, existing payers)
+  for (const u of ['uid-pro', 'uid-pro-nopt', 'uid-pro-grace']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), true, 'active Pro keeps live (L2 includes L1): ' + u);
   for (const u of ['uid-ld', 'uid-ld-grace', 'uid-ld-pro', 'uid-ld-manual']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), true, 'active add-on gets real-time: ' + u);
   assert.equal(M.isActiveLiveDataDoc({ liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } } } } }, 1000 + 3 * 86400e3 + 1), false, 'past grace');
   assert.equal(M.isActiveLiveDataDoc({ liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } } } } }, 1000 + 3 * 86400e3 - 1), true, 'inside grace');
@@ -118,7 +119,7 @@ const rtRes = async (tok) => (await rtGet({ request: new Request('https://x/api/
 assert.deepEqual(await rtRes(''), { admin: false });
 assert.deepEqual(await rtRes(await mint()), { admin: true });
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-live' })), { admin: true }, '/rt says yes for a liveFeed member');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: false }, '/rt says no for Pro without the add-on');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: true }, '/rt says yes for active Pro (temporary, L2 includes L1)');
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-ld' })), { admin: true }, '/rt says yes for an active add-on member');
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro-expired' })), { admin: false }, '/rt says no for an expired Pro');
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false }, '/rt says no for a normal member');
@@ -159,15 +160,30 @@ redactFutures('market-brief', brief);
 assert.ok(!/95\.66|front-month/.test(JSON.stringify(brief)), JSON.stringify(brief));
 assert.ok(/EUR\/USD 1\.1247/.test(brief.bullets[0].text));
 
-// GEX+ is Pro only (Owner 2026-11-01): admin, demo and an ACTIVE paid plan pass; Starter, lapsed/expired Pro, no plan, signed out and junk do not
+// DATA PLANS (Owner 2026-11-04): tools free for members (isMemberToken), L1 live = isRealtimeToken, L2 live = isL2Token
 for (const M of [A, B]) {
   M._resetForTests();
-  for (const u of ['uid-admin', 'uid-demo', 'uid-pro']) assert.equal(await M.isGexProToken(await mint({ sub: u })), true, 'GEX allowed: ' + u);
-  for (const u of ['uid-starter', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-none', 'uid-demo-false']) assert.equal(await M.isGexProToken(await mint({ sub: u })), false, 'GEX refused: ' + u);
-  assert.equal(await M.isGexProToken(''), false, 'GEX refused signed out');
-  assert.equal(await M.isGexProToken('a.b.c'), false, 'GEX refused junk token');
+  const anon = await mint({ sub: 'uid-free', firebase: { sign_in_provider: 'anonymous' } });
+  // tools (GEX+, footprint history, book history): any signed-in member
+  for (const u of ['uid-free', 'uid-starter', 'uid-none', 'uid-pro-expired', 'uid-l2-expired', 'uid-admin']) assert.equal(await M.isMemberToken(await mint({ sub: u })), true, 'member tool access: ' + u);
+  assert.equal(await M.isMemberToken(anon), false, 'anonymous is not a member');
+  assert.equal(await M.isMemberToken(''), false, 'signed out is not a member');
+  assert.equal(await M.isMemberToken('a.b.c'), false, 'junk token');
+  assert.equal(await M.isMemberToken(await mint({ sub: 'uid-free', exp: 1 })), false, 'expired token');
+  assert.equal(await M.isMemberToken(await mint({ sub: 'uid-free' }, (await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify'])).privateKey)), false, 'forged signature');
+  // L1 live
+  for (const u of ['uid-ld', 'uid-l2', 'uid-l2-grace', 'uid-l1l2', 'uid-pro', 'uid-admin', 'uid-demo']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), true, 'L1 live: ' + u);
+  for (const u of ['uid-free', 'uid-l2-expired', 'uid-l2-off', 'uid-l2-str', 'uid-pro-expired', 'uid-pro-lapsed']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no L1 live: ' + u);
+  assert.equal(await M.isRealtimeToken(anon), false, 'anonymous: no L1');
+  // L2 live
+  for (const u of ['uid-l2', 'uid-l2-grace', 'uid-l1l2', 'uid-pro', 'uid-pro-nopt', 'uid-admin', 'uid-demo']) assert.equal(await M.isL2Token(await mint({ sub: u })), true, 'L2 live: ' + u);
+  for (const u of ['uid-free', 'uid-ld', 'uid-live', 'uid-gf-trialend', 'uid-l2-expired', 'uid-l2-off', 'uid-l2-str', 'uid-pro-expired', 'uid-pro-lapsed', 'uid-starter', 'uid-none', 'uid-demo-false']) assert.equal(await M.isL2Token(await mint({ sub: u })), false, 'no L2 live: ' + u);
+  assert.equal(await M.isL2Token(anon), false, 'anonymous: no L2');
+  assert.equal(await M.isL2Token(''), false, 'signed out: no L2');
+  assert.equal(await M.isAdminToken(await mint({ sub: 'uid-l2' })), false, 'L2 add-on is not admin');
   fsDown = true; M._resetForTests();
-  assert.equal(await M.isGexProToken(await mint({ sub: 'uid-pro' })), false, 'GEX fails closed on an outage');
+  assert.equal(await M.isL2Token(await mint({ sub: 'uid-l2' })), false, 'L2 fails closed on an outage');
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-l2' })), false, 'L1 fails closed on an outage (L2 add-on)');
   fsDown = false; M._resetForTests();
 }
 {
@@ -177,13 +193,36 @@ for (const M of [A, B]) {
   const { onRequestGet: cand } = await import('../../functions/api/gex/candles/[fut].js');
   A._resetForTests();
   const call = async (fn, path, params, tok) => fn({ request: new Request('https://x' + path, { headers: tok ? { authorization: 'Bearer ' + tok } : {} }), params, env: {} });
-  for (const [who, tok] of [['signed out', ''], ['Starter', await mint({ sub: 'uid-starter' })], ['lapsed Pro', await mint({ sub: 'uid-pro-lapsed' })]]) {
-    for (const [fn, path, params] of [[lv, '/api/gex/levels/SPX?dte=0', { name: 'SPX' }], [lad, '/api/gex/ladder?u=SPX&dte=0', {}], [flow, '/api/gex/flow/SPX', { name: 'SPX' }], [cand, '/api/gex/candles/ES?interval=5m', { fut: 'ES' }]]) {
+  const routes = [[lv, '/api/gex/levels/SPX?dte=0', { name: 'SPX' }], [lad, '/api/gex/ladder?u=SPX&dte=0', {}], [flow, '/api/gex/flow/SPX', { name: 'SPX' }], [cand, '/api/gex/candles/ES?interval=5m', { fut: 'ES' }]];
+  for (const [who, tok] of [['signed out', ''], ['anonymous', await mint({ sub: 'uid-free', firebase: { sign_in_provider: 'anonymous' } })], ['junk', 'a.b.c']]) {
+    for (const [fn, path, params] of routes) {
       const r = await call(fn, path, params, tok);
       assert.equal(r.status, 403, who + ' ' + path);
-      const j = await r.json(); assert.deepEqual(Object.keys(j).sort(), ['error', 'message'], 'no GEX data in the refusal'); assert.equal(j.error, 'pro_required');
+      const j = await r.json(); assert.deepEqual(Object.keys(j).sort(), ['error', 'message'], 'no GEX data in the refusal'); assert.equal(j.error, 'sign_in_required');
       assert.equal(r.headers.get('cache-control'), 'no-store');
     }
   }
+  // a free member passes the gate (the upstream chain fetch is not stubbed, so the handler's own answer is whatever it is, never the 403 refusal)
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => (String(url).includes('firestore') || String(url).includes('securetoken')) ? realFetch(url, init) : new Response('no', { status: 503 });
+  try {
+    for (const [fn, path, params] of routes) {
+      const r = await call(fn, path, params, await mint({ sub: 'uid-free' }));
+      let err = null; try { err = (await r.clone().json()).error; } catch (e) {}
+      assert.notEqual(err, 'sign_in_required', 'free member passes the GEX gate: ' + path);
+      assert.notEqual(r.status === 403 && err === 'pro_required', true, 'no Pro wall: ' + path);
+      assert.match(r.headers.get('vary') || '', /Authorization/, 'per-user cache key: ' + path);
+    }
+  } finally { globalThis.fetch = realFetch; }
+}
+// /api/chart/bars + stream for the data plans: L2 add-on = live L1, free = delayed, anonymous = delayed
+{
+  A._resetForTests();
+  assert.deepEqual(await rtRes(await mint({ sub: 'uid-l2' })), { admin: true }, '/rt yes for L2 add-on (includes L1)');
+  assert.deepEqual(await rtRes(await mint({ sub: 'uid-free' })), { admin: false }, '/rt no for free');
+  assert.deepEqual(await rtRes(await mint({ sub: 'uid-l2-expired' })), { admin: false }, '/rt no for expired L2');
+  assert.deepEqual(await rtRes(await mint({ sub: 'uid-free', firebase: { sign_in_provider: 'anonymous' } })), { admin: false }, '/rt no for anonymous');
+  assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-free' }) }), params: { sym: 'NQ' }, env })).status, 403, 'free: live stream 403');
+  assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-l2-expired' }) }), params: { sym: 'NQ' }, env })).status, 403, 'expired L2: live stream 403');
 }
 console.log('rt-access: all ok');

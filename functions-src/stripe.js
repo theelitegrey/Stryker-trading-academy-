@@ -61,6 +61,9 @@
  *          purchase never touches plan / paidThroughMillis. It writes students/{uid}.liveData = { active, paidThroughMillis,
  *          source:'stripe', autopay, stripeSubscriptionId }, which the chart server reads (functions/api/chart/_rt.js). No trial,
  *          no coupon, no founding lock. A member can hold Pro and the add-on at once (two subscriptions, one Stripe customer).
+ *          L2 DATA ADD-ON (Owner 2026-11-04, $20/month): plans/LiveDataL2 (addon:true) works the same way but writes
+ *          students/{uid}.liveDataL2 (marketData.addonField). L2 includes L1. Buying L2 while holding L1 is allowed (two subs);
+ *          L1 is NOT auto-cancelled.
  *
  * ENV (functions .env, never in the repo):
  *   STRIPE_SECRET_KEY       sk_test_… / rk_live_… (restricted key: see DEPLOY.md)
@@ -308,7 +311,7 @@ exports.stripeCreateCheckout = functions
     }
     const addon = plan.addon === true;
     if (addon && (wantTrial || couponCode || kind !== 'month')) {
-      throw new functions.https.HttpsError('failed-precondition', 'The Live Futures Data add-on is a plain monthly subscription (no trial or coupon).');
+      throw new functions.https.HttpsError('failed-precondition', 'The data add-on is a plain monthly subscription (no trial or coupon).');
     }
 
     // One live Stripe subscription per member (and one per add-on): a second checkout would bill twice.
@@ -316,10 +319,10 @@ exports.stripeCreateCheckout = functions
     const s = stu.exists ? stu.data() : {};
     if (addon) {
       require('./marketData').__marketData.requireAgreement(s);   // Owner 2026-11-01: terms first
-      const ld = s.liveData || {};
+      const ld = s[require('./marketData').__marketData.addonField(planId)] || {};   // one live sub per add-on; L1 and L2 are separate
       if (ld.stripeSubscriptionId && ld.autopay && (ld.paidThroughMillis || 0) > Date.now()) {
         throw new functions.https.HttpsError('already-exists',
-          'You already have Live Futures Data. Manage it from Settings > Billing.');
+          'You already have ' + require('./marketData').__marketData.addonLabel(planId) + '. Manage it from Settings > Billing.');
       }
     } else if (s.stripeSubscriptionId && s.subscriptionAutopay && (s.paidThroughMillis || 0) > Date.now()) {
       throw new functions.https.HttpsError('already-exists',
@@ -461,13 +464,15 @@ async function grantThrough(uid, planName, planId, periodEndSec, extra) {
   return patch.paidThroughMillis;
 }
 
-// Live Futures Data add-on: move students/{uid}.liveData.paidThroughMillis forward (never backwards). Never touches plan.
-async function grantLiveData(uid, periodEndSec, extra) {
+// Data add-on (L1 liveData / L2 liveDataL2, by planId): move students/{uid}.<field>.paidThroughMillis forward (never backwards). Never touches plan.
+const MD = () => require('./marketData').__marketData;
+async function grantLiveData(uid, periodEndSec, extra, planId) {
+  const field = MD().addonField(planId);
   const ref = db.collection('students').doc(uid);
   const snap = await ref.get();
-  const cur = snap.exists && snap.data().liveData ? snap.data().liveData : {};
+  const cur = snap.exists && snap.data()[field] ? snap.data()[field] : {};
   const through = Math.max(cur.paidThroughMillis || 0, periodEndSec * 1000);
-  await ref.set({ liveData: Object.assign({ active: true, paidThroughMillis: through, source: 'stripe',
+  await ref.set({ [field]: Object.assign({ active: true, paidThroughMillis: through, source: 'stripe',
     startedAt: cur.startedAt || Date.now() }, extra || {}) }, { merge: true });
   return through;
 }
@@ -572,8 +577,8 @@ async function onAddonStarted(session, rec, sub, amountPaid) {
       uid: rec.uid, subscriptionId: sub.id, kind: 'first', createdAt: admin.firestore.FieldValue.serverTimestamp()
     }).catch(() => {});
   }
-  await grantLiveData(rec.uid, subPeriodEnd(sub), { autopay: !sub.cancel_at_period_end, stripeSubscriptionId: sub.id, stripeCustomerId: rec.customerId });
-  await notify(rec.uid, 'livedata_on', 'Live Futures Data is on. Your CME futures charts are real-time now.', 'charts.html');
+  await grantLiveData(rec.uid, subPeriodEnd(sub), { autopay: !sub.cancel_at_period_end, stripeSubscriptionId: sub.id, stripeCustomerId: rec.customerId }, rec.planId);
+  await notify(rec.uid, 'livedata_on', MD().addonLabel(rec.planId) + ' is on. Your futures charts are live now.', 'charts.html');
   return 'live data add-on granted to ' + rec.uid;
 }
 
@@ -738,7 +743,7 @@ async function onAddonInvoicePaid(inv, subId, rec) {
   } catch (e) {
     if (e && (e.code === 6 || /already exists/i.test(e.message || ''))) fresh = false; else throw e;
   }
-  const through = await grantLiveData(rec.uid, periodEnd, { autopay: true, stripeSubscriptionId: subId });
+  const through = await grantLiveData(rec.uid, periodEnd, { autopay: true, stripeSubscriptionId: subId }, rec.planId);
   if (rec.ref && !rec.pending) await rec.ref.set({ currentPeriodEnd: periodEnd, lastPaidInvoice: inv.id, status: 'active', lastPaymentFailedAt: null }, { merge: true });
   if (fresh && !isFirst) {
     await db.collection('orders').add({
@@ -761,7 +766,7 @@ async function onInvoiceFailed(inv) {
     if (rec.ref && !rec.pending) await rec.ref.set({ lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp(), lastFailedInvoice: inv.id }, { merge: true });
     const mk = db.collection('stripeInvoices').doc(inv.id + '_failed_' + (inv.attempt_count || 1));
     try { await mk.create({ uid: rec.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() }); } catch (e) { return 'failure already recorded'; }
-    if ((inv.attempt_count || 1) === 1) await notify(rec.uid, 'payment_failed', 'We couldn\'t charge your card for Live Futures Data. We\'ll retry automatically. Update your card in Settings > Billing to keep real-time futures.', 'settings.html');
+    if ((inv.attempt_count || 1) === 1) await notify(rec.uid, 'payment_failed', 'We couldn\'t charge your card for ' + MD().addonLabel(rec.planId) + '. We\'ll retry automatically. Update your card in Settings > Billing to keep live data.', 'settings.html');
     return 'addon failure recorded';
   }
   if (rec.ref && !rec.pending) {
@@ -795,13 +800,13 @@ async function onSubscriptionChanged(sub, deleted) {
   if (!snap.exists) return 'no student doc (account deleted?)';   // never create a stub doc
   const cur = snap.data();
   if (rec.addon) {
-    const ld = cur.liveData || {};
+    const field = MD().addonField(rec.planId), ld = cur[field] || {};
     if (ld.stripeSubscriptionId && ld.stripeSubscriptionId !== sub.id) return 'stale subscription';
     if (ld.autopay !== autopay) {
-      await stu.set({ liveData: { autopay } }, { merge: true });
+      await stu.set({ [field]: { autopay } }, { merge: true });
       if (!autopay) {
         const until = ld.paidThroughMillis ? new Date(ld.paidThroughMillis).toISOString().slice(0, 10) : 'your paid date';
-        await notify(rec.uid, 'autopay_stopped', 'Auto-renewal for Live Futures Data is off. Real-time futures run until ' + until + '.', 'settings.html');
+        await notify(rec.uid, 'autopay_stopped', 'Auto-renewal for ' + MD().addonLabel(rec.planId) + ' is off. Live data runs until ' + until + '.', 'settings.html');
       }
     }
     return 'addon autopay ' + autopay + ' (' + (deleted ? 'deleted' : sub.status) + ')';

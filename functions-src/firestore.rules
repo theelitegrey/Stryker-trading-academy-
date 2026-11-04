@@ -51,7 +51,7 @@ service cloud.firestore {
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis',
-        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'];
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement', 'liveDataL2'];
     }
     function touchesPrivileged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -60,7 +60,7 @@ service cloud.firestore {
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis',
-        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement', 'liveDataL2'
       ]);
     }
     function createsPrivileged() {
@@ -69,7 +69,7 @@ service cloud.firestore {
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
-        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement', 'liveDataL2'
       ]);
     }
 

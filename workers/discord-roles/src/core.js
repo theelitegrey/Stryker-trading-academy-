@@ -8,7 +8,7 @@
 //    Firebase token of the person concerned (refresh token kept server-side, only for the cron), or with the
 //    creator's token when the creator presses "Check everyone now". Firestore rules decide what can be read.
 //  - Nothing here writes to Firestore.
-import { verifyIdToken, RT_PROJECT, isActiveProDoc, paidPlanNames } from './rt-auth.js';
+import { verifyIdToken, RT_PROJECT, isActiveProDoc, isActiveLiveDataL2Doc, paidPlanNames } from './rt-auth.js';
 
 const D = 'https://discord.com/api/v10';
 const FS = 'https://firestore.googleapis.com/v1/projects/' + RT_PROJECT + '/databases/(default)/documents/';
@@ -208,8 +208,9 @@ export class Core {
 
 
   // ---- site Pro -> official server role ------------------------------------------------------------------
-  // Same truth as the server's Pro gate (functions/api/chart/_rt.js isGexProToken): admins/{uid} exists, OR students/{uid}.demo,
-  // OR isActiveProDoc (paid plan, not cancelled/expired, paidThrough + 3 days grace). Read with the member's own token.
+  // Same truth as the server's L2 gate (functions/api/chart/_rt.js isL2Token, Owner 2026-11-04): admins/{uid} exists, OR students/{uid}.demo,
+  // OR an active L2 Data add-on (liveDataL2), OR isActiveProDoc (paid plan, not cancelled/expired, paidThrough + 3 days grace).
+  // The Discord role keeps the name "TradeZoro Pro" for now (CoS / Owner to rename). Read with the member's own token.
   // -> { pro } or { unknown: true } when Firestore did not answer definitively (then nothing is changed: never strip on a blip).
   async siteEntitlement(tok, uid) {
     const h = { headers: { authorization: 'Bearer ' + tok } };
@@ -220,7 +221,7 @@ export class Core {
     if (s.status === 404) return { pro: false };
     const fl = ((await s.json().catch(() => ({}))) || {}).fields || {};
     if (fl.demo && fl.demo.booleanValue === true) return { pro: true, why: 'demo' };
-    return { pro: isActiveProDoc(fl, await paidPlanNames(this.f), this.now()) };
+    return { pro: isActiveLiveDataL2Doc(fl, this.now()) || isActiveProDoc(fl, await paidPlanNames(this.f), this.now()) };
   }
   siteIds() { return { gid: this.env.SITE_GUILD_ID || SITE_GUILD, pro: this.env.SITE_PRO_ROLE_ID || null, member: this.env.SITE_MEMBER_ROLE_ID || null }; }
   throttle(uid, max = 12) {

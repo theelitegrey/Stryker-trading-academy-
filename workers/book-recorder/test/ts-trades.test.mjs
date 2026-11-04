@@ -100,12 +100,12 @@ ok('floor table matches the brief and the hub symbols');
   assert.equal(hub.tb.read('GC', NOW - 1000, NOW + 1000).trades.length, 1);
   ok('hub tick frames land in the trade book (NQ big, GC floor 5)');
 }
-// route gate: index.js lists /ts-trades with the same tsAllowed check and rate limit as /ts-book-history
+// route gate: index.js lists /ts-trades with the same tsHistoryAccess check and rate limit as /ts-book-history
 {
   const src = fs.readFileSync(new URL('../src/index.js', import.meta.url), 'utf8');
-  assert.match(src, /u\.pathname === '\/ts-aux' \|\| u\.pathname === '\/ts-trades'\) \{[\s\S]{0,900}tsAllowed\(env, bearerOf\(req\)\)[\s\S]{0,600}RL_OF\.limit/);
+  assert.match(src, /u\.pathname === '\/ts-aux' \|\| u\.pathname === '\/ts-trades'\) \{[\s\S]{0,1200}tsHistoryAccess\(env, bearerOf\(req\), u\.pathname\)[\s\S]{0,1200}RL_OF\.limit/);
   const hubSrc = fs.readFileSync(new URL('../src/ts-hub.js', import.meta.url), 'utf8');
   assert.match(hubSrc, /\/ts-trades[\s\S]{0,300}symbol not recorded/);
-  ok('/ts-trades sits behind the admin gate + rate limit like /ts-book-history');
+  ok('/ts-trades sits behind the member history gate (delayed unless live) + rate limit like /ts-book-history');
 }
 console.log(n + ' tests passed');

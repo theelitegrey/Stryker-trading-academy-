@@ -147,6 +147,7 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
   ok('accept: missing checkbox refused', await rej({ name: 'Jane Roe', answers: NO }, 'invalid-argument'));
   ok('accept: unanswered question refused', await rej({ name: 'Jane Roe', confirmed: true, answers: { regulated: false } }, 'invalid-argument'));
   ok('accept: signed-out refused', await (async () => { let e = null; try { await M.acceptMarketDataAgreement({ name: 'Jane Roe', confirmed: true, answers: NO }, {}); } catch (x) { e = x; } return !!e && e.code === 'unauthenticated'; })());
+  ok('accept: anonymous sign-in refused', await (async () => { let e = null; try { await M.acceptMarketDataAgreement({ name: 'Jane Roe', confirmed: true, answers: NO }, { auth: { uid: UID, token: { firebase: { sign_in_provider: 'anonymous' } } } }); } catch (x) { e = x; } return !!e && e.code === 'unauthenticated'; })());
   ok('accept: nothing written by the refusals', !(get('students/' + UID).marketDataAgreement || {}).acceptedAt);
   const good = await M.acceptMarketDataAgreement({ name: '  Jane   Roe ', confirmed: true, answers: NO }, { auth: ctx.auth, rawRequest: { headers: { 'user-agent': 'UA'.repeat(300) } } });
   const rec = get('students/' + UID).marketDataAgreement;
@@ -157,7 +158,7 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
 
   // rules: the field is in all three privileged lists (touches / creates / keys), so a member cannot write it (live test: tools/tests/live-feed-rules-test.py)
   const rulesSrc = require('fs').readFileSync(path.join(__dirname, '../../functions-src/firestore.rules'), 'utf8');
-  ok('rules: marketDataAgreement is privileged in all 3 lists', (rulesSrc.match(/'liveData', 'marketDataAgreement'/g) || []).length === 3);
+  ok('rules: marketDataAgreement + liveDataL2 are privileged in all 3 lists', (rulesSrc.match(/'liveData', 'marketDataAgreement', 'liveDataL2'/g) || []).length === 3);
 
   // ---------- STRIPE ----------
   const r1 = await S.stripeCreateCheckout({ planId: 'LiveData' }, ctx);
@@ -267,6 +268,65 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
   ok('razorpay CANCEL: cancel at cycle end, autopay false, access kept to paid date', c.ok && st.liveData.autopay === false && st.liveData.active === true && st.liveData.paidThroughMillis === p2 && calls.some((x) => /subscriptions\/sub_rz1\/cancel/.test(x.url) && /cancel_at_cycle_end":1/.test(x.body)));
   await send(Z.razorpayWebhook, rzEvent('subscription.halted', null, 'halted'));
   ok('razorpay HALTED: autopay false, plan untouched', get('students/' + RUID).liveData.autopay === false && get('students/' + RUID).plan === 'Starter');
+
+  // ---------- L2 DATA ADD-ON (Owner 2026-11-04, $20/month, plans/LiveDataL2 -> students.liveDataL2; L2 includes L1) ----------
+  store.set('plans/LiveDataL2', { name: 'Data feed L2', price: 20, period: 'month', interval: 'month', rank: 0, addon: true, hidden: true });
+  const U2 = 'uid-l2buyer';
+  const ctx2 = { auth: { uid: U2, token: { email: 'stryker-qa-l2@example.com', name: 'QA L2' } } };
+  store.set('students/' + U2, { name: 'QA L2', plan: 'Starter', planId: 'free' });
+  let noAg2 = null; try { await S.stripeCreateCheckout({ planId: 'LiveDataL2' }, ctx2); } catch (e) { noAg2 = e; }
+  ok('L2 stripe: refused without agreement', noAg2 && noAg2.code === 'failed-precondition' && /Accept the Market Data Terms first/.test(noAg2.message));
+  let noAg2r = null; try { await Z.razorpaySubscribe({ planId: 'LiveDataL2', currency: 'INR' }, ctx2); } catch (e) { noAg2r = e; }
+  ok('L2 razorpay: refused without agreement', noAg2r && noAg2r.code === 'failed-precondition');
+  // this member already holds an active L1 add-on: buying L2 is allowed, and L1 is left alone
+  const l1Before = { active: true, paidThroughMillis: Date.now() + 10 * 86400e3, source: 'stripe', autopay: true, stripeSubscriptionId: 'sub_l1_old' };
+  store.set('students/' + U2, Object.assign(get('students/' + U2), { marketDataAgreement: { version: 'v1', nonProfessional: true }, liveData: l1Before }));
+  const nCalls = calls.length;
+  const r2 = await S.stripeCreateCheckout({ planId: 'LiveDataL2' }, ctx2);
+  ok('L2 stripe: checkout allowed while L1 active, $20.00 monthly, no trial', r2.amountCents === 2000 && r2.renewCents === 2000 && r2.interval === 'month' && r2.trial === false, r2);
+  ok('L2 stripe: price created for 2000 cents usd monthly', calls.slice(nCalls).some((c) => c.url.endsWith('/prices') && /unit_amount=2000/.test(c.body) && /recurring%5Binterval%5D=month/.test(c.body)));
+  for (const [label, d] of [['trial', { planId: 'LiveDataL2', trial: true }], ['coupon', { planId: 'LiveDataL2', couponCode: 'SAVE' }]]) {
+    let err = null; try { await S.stripeCreateCheckout(d, ctx2); } catch (e) { err = e; }
+    ok('L2 stripe: refuses ' + label, err && err.code === 'failed-precondition');
+  }
+  const sess2 = { id: 'cs_test_1', mode: 'subscription', payment_status: 'paid', client_reference_id: U2, subscription: 'sub_l2', amount_total: 2000, customer_details: { email: 'stryker-qa-l2@example.com', name: 'QA L2' } };
+  // the mocked gateway hands every session the id cs_test_1; re-arm its record for this buyer
+  store.set('stripeSessions/cs_test_1', Object.assign(get('stripeSessions/cs_test_1'), { status: 'created' }));
+  ok('L2 stripe: session record is the L2 add-on for this buyer', get('stripeSessions/cs_test_1').planId === 'LiveDataL2' && get('stripeSessions/cs_test_1').uid === U2 && get('stripeSessions/cs_test_1').addon === true);
+  let bad2 = await send(S.stripeWebhook, signedReq(ev('checkout.session.completed', sess2), 'whsec_wrong'));
+  ok('L2 webhook: wrong signature -> 400, nothing written', bad2.code === 400 && !get('students/' + U2).liveDataL2);
+  res = await send(S.stripeWebhook, signedReq(ev('checkout.session.completed', sess2)));
+  st = get('students/' + U2);
+  ok('L2 PAY: students.liveDataL2 written (active, stripe, autopay, period end)', res.code === 200 && st.liveDataL2 && st.liveDataL2.active === true && st.liveDataL2.source === 'stripe' && st.liveDataL2.autopay === true && st.liveDataL2.paidThroughMillis === periodEnd * 1000 && st.liveDataL2.stripeSubscriptionId === 'sub_l2', { res, l2: st.liveDataL2 });
+  ok('L2 PAY: L1 add-on untouched (not cancelled, not changed)', JSON.stringify(st.liveData) === JSON.stringify(l1Before), st.liveData);
+  ok('L2 PAY: plan / paidThroughMillis NOT touched', st.plan === 'Starter' && st.planId === 'free' && st.paidThroughMillis === undefined && st.subscriptionStatus === undefined);
+  ok('L2 PAY: order recorded as addon, $20 usd', [...store.entries()].some(([k, v]) => k.startsWith('orders/') && v.kind === 'addon' && v.amountUsd === 20 && v.studentUid === U2 && v.planId === 'LiveDataL2'));
+  let dup2 = null; try { await S.stripeCreateCheckout({ planId: 'LiveDataL2' }, ctx2); } catch (e) { dup2 = e; }
+  ok('L2 PAY: second L2 purchase while active refused', dup2 && dup2.code === 'already-exists' && /Data feed L2/.test(dup2.message));
+  const l2End = periodEnd + 30 * 86400;
+  res = await send(S.stripeWebhook, signedReq(ev('invoice.paid', { id: 'in_l2_2', subscription: 'sub_l2', billing_reason: 'subscription_cycle', amount_paid: 2000, currency: 'usd', lines: { data: [{ period: { end: l2End } }] } })));
+  ok('L2 RENEW: liveDataL2 moved forward, liveData unchanged', get('students/' + U2).liveDataL2.paidThroughMillis === l2End * 1000 && JSON.stringify(get('students/' + U2).liveData) === JSON.stringify(l1Before));
+  await send(S.stripeWebhook, signedReq(ev('invoice.paid', { id: 'in_l2_3', subscription: 'sub_l2', billing_reason: 'subscription_cycle', amount_paid: 700, currency: 'usd', lines: { data: [{ period: { end: l2End + 30 * 86400 } }] } })));
+  ok('L2 RENEW: a $7 payment does not extend L2', get('students/' + U2).liveDataL2.paidThroughMillis === l2End * 1000);
+  res = await send(S.stripeWebhook, signedReq(ev('customer.subscription.updated', { id: 'sub_l2', status: 'active', cancel_at_period_end: true, current_period_end: l2End })));
+  ok('L2 CANCEL: liveDataL2.autopay false, L1 autopay still true', get('students/' + U2).liveDataL2.autopay === false && get('students/' + U2).liveData.autopay === true);
+  // razorpay L2
+  const RU2 = 'uid-rzp-l2', rctx2 = { auth: { uid: RU2, token: { email: 'in2@example.com', name: 'India L2' } } };
+  store.set('students/' + RU2, { plan: 'Starter', planId: 'free', marketDataAgreement: { version: 'v1', nonProfessional: true }, liveData: { active: true, paidThroughMillis: Date.now() + 5 * 86400e3, razorpaySubscriptionId: 'sub_rz_l1', autopay: true } });
+  store.delete('razorpaySubs/sub_rz1');
+  const sub2 = await Z.razorpaySubscribe({ planId: 'LiveDataL2', currency: 'INR' }, rctx2);
+  ok('L2 razorpay: subscribe allowed while L1 active, INR 20*rate', sub2.subscriptionId === 'sub_rz1' && sub2.amountMinor === 20 * 88 * 100, sub2);
+  const sig2 = crypto.createHmac('sha256', RZP_SECRET).update('pay_l2|sub_rz1').digest('hex');
+  await Z.razorpaySubsVerify({ subscriptionId: 'sub_rz1', paymentId: 'pay_l2', signature: sig2 }, rctx2);
+  st = get('students/' + RU2);
+  ok('L2 razorpay PAY: liveDataL2 written (razorpay, ~30 days), liveData untouched', st.liveDataL2 && st.liveDataL2.active === true && st.liveDataL2.source === 'razorpay' && st.liveDataL2.paidThroughMillis > Date.now() + 27 * 86400e3 && st.liveData.razorpaySubscriptionId === 'sub_rz_l1' && st.liveData.autopay === true, st);
+  const pl2 = st.liveDataL2.paidThroughMillis;
+  await send(Z.razorpayWebhook, rzEvent('subscription.charged', { id: 'pay_l2b', amount: 20 * 88 * 100, status: 'captured' }));
+  ok('L2 razorpay RENEW: liveDataL2 extended', get('students/' + RU2).liveDataL2.paidThroughMillis > pl2);
+  await Z.razorpaySubsCancel({ addon: true, planId: 'LiveDataL2' }, rctx2);
+  ok('L2 razorpay CANCEL: liveDataL2.autopay false, L1 untouched', get('students/' + RU2).liveDataL2.autopay === false && get('students/' + RU2).liveData.autopay === true);
+  await send(Z.razorpayWebhook, rzEvent('subscription.halted', null, 'halted'));
+  ok('L2 razorpay HALTED: only liveDataL2 flagged, plan untouched', get('students/' + RU2).liveDataL2.autopay === false && get('students/' + RU2).liveData.autopay === true && get('students/' + RU2).plan === 'Starter');
 
   // keys never leaked
   ok('no fake key/secret printed in recorded request bodies', !calls.some((x) => x.body.includes(TEST_KEY) || x.body.includes(RZP_SECRET)));

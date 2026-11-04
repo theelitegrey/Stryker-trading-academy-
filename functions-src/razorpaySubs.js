@@ -56,6 +56,8 @@
  * LIVE FUTURES DATA ADD-ON (Owner 2026-10-30, $7/month, plans/LiveData with addon:true): same functions, but the grant goes to
  * students/{uid}.liveData = { active, paidThroughMillis, source:'razorpay', autopay, razorpaySubscriptionId } and never touches
  * plan / paidThroughMillis. No trial. razorpaySubsCancel({ addon:true }) cancels it at cycle end.
+ * L2 DATA ADD-ON (Owner 2026-11-04, $20/month, plans/LiveDataL2): same, but the grant goes to students/{uid}.liveDataL2
+ * (marketData.addonField). razorpaySubsCancel({ addon:true, planId:'LiveDataL2' }) cancels the L2 one. L1 is never auto-cancelled.
  *
  * Firestore (all functions-only, covered by default-deny): razorpayPlans
  * (site-plan+amount → Razorpay plan id cache), razorpaySubs (subscription
@@ -71,12 +73,14 @@ const T = () => require('./trial').__trialInternals;
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
-// Live Futures Data add-on grant: liveData.paidThroughMillis only moves forward. Never touches plan.
-async function grantLiveData(uid, throughMillis, extra){
+// Data add-on grant (L1 liveData / L2 liveDataL2, by planId): paidThroughMillis only moves forward. Never touches plan.
+const MD = () => require('./marketData').__marketData;
+async function grantLiveData(uid, throughMillis, extra, planId){
+  const field = MD().addonField(planId);
   const ref = db.collection('students').doc(uid);
   const snap = await ref.get();
-  const cur = snap.exists && snap.data().liveData ? snap.data().liveData : {};
-  await ref.set({ liveData: Object.assign({ active: true, paidThroughMillis: Math.max(cur.paidThroughMillis || 0, throughMillis || 0),
+  const cur = snap.exists && snap.data()[field] ? snap.data()[field] : {};
+  await ref.set({ [field]: Object.assign({ active: true, paidThroughMillis: Math.max(cur.paidThroughMillis || 0, throughMillis || 0),
     source: 'razorpay', startedAt: cur.startedAt || Date.now() }, extra || {}) }, { merge: true });
 }
 
@@ -202,14 +206,14 @@ exports.razorpaySubscribe = functions
     }
     const addon = plan.addon === true;
     if (addon && (wantTrial || kind !== 'month')) {
-      throw new functions.https.HttpsError('failed-precondition', 'The Live Futures Data add-on is a plain monthly subscription (no trial).');
+      throw new functions.https.HttpsError('failed-precondition', 'The data add-on is a plain monthly subscription (no trial).');
     }
     if (addon) {
       const cur = await db.collection('students').doc(uid).get();
       require('./marketData').__marketData.requireAgreement(cur.exists ? cur.data() : {});   // Owner 2026-11-01: terms first
-      const ld = cur.exists ? (cur.data().liveData || {}) : {};
+      const ld = cur.exists ? (cur.data()[MD().addonField(planId)] || {}) : {};
       if (ld.razorpaySubscriptionId && ld.autopay && (ld.paidThroughMillis || 0) > Date.now()) {
-        throw new functions.https.HttpsError('already-exists', 'You already have Live Futures Data. Manage it from Settings > Billing.');
+        throw new functions.https.HttpsError('already-exists', 'You already have ' + MD().addonLabel(planId) + '. Manage it from Settings > Billing.');
       }
     }
 
@@ -417,7 +421,7 @@ exports.razorpaySubsVerify = functions
     });
 
     if (record.addon) {
-      await grantLiveData(uid, subs.extendPeriod(Date.now(), record.period), { autopay: true, razorpaySubscriptionId: subscriptionId });
+      await grantLiveData(uid, subs.extendPeriod(Date.now(), record.period), { autopay: true, razorpaySubscriptionId: subscriptionId }, record.planId);
       return { ok: true, planName: record.planName, addon: true };
     }
     const studentDoc = await db.collection('students').doc(uid).get().catch(() => null);
@@ -528,10 +532,10 @@ exports.razorpayWebhook = functions
         if (record.addon) {
           const sref = db.collection('students').doc(record.uid);
           const sd = await sref.get();
-          const ld = sd.exists ? (sd.data().liveData || {}) : {};
+          const ld = sd.exists ? (sd.data()[MD().addonField(record.planId)] || {}) : {};
           const covered = record.status === 'active' && payEntity.id === record.firstPaymentId;
           if (!covered) {
-            await grantLiveData(record.uid, subs.extendPeriod(Math.max(Date.now(), ld.paidThroughMillis || 0), record.period), { autopay: true, razorpaySubscriptionId: subEntity.id });
+            await grantLiveData(record.uid, subs.extendPeriod(Math.max(Date.now(), ld.paidThroughMillis || 0), record.period), { autopay: true, razorpaySubscriptionId: subEntity.id }, record.planId);
             await db.collection('orders').add({
               studentUid: record.uid, studentEmail: null, studentName: 'Auto-renewal',
               planId: record.planId, planName: record.planName, kind: 'addon', couponCode: null,
@@ -580,7 +584,7 @@ exports.razorpayWebhook = functions
         // sweep lapse the account when paidThroughMillis + grace runs out.
         await subDoc.ref.set({ status: subEntity.status || event.split('.')[1] }, { merge: true });
         if (record.addon) {
-          await db.collection('students').doc(record.uid).set({ liveData: { autopay: false } }, { merge: true });
+          await db.collection('students').doc(record.uid).set({ [MD().addonField(record.planId)]: { autopay: false } }, { merge: true });
           res.status(200).send('ok');
           return;
         }
@@ -609,7 +613,8 @@ exports.razorpaySubsCancel = functions
     const uid = requireAuth(context);
     const studentDoc = await db.collection('students').doc(uid).get();
     const wantAddon = !!(data && data.addon === true);
-    const subId = studentDoc.exists ? (wantAddon ? (studentDoc.data().liveData || {}).razorpaySubscriptionId : studentDoc.data().razorpaySubscriptionId) : null;
+    const field = MD().addonField(data && data.planId);   // 'LiveDataL2' -> liveDataL2, anything else -> liveData (old clients)
+    const subId = studentDoc.exists ? (wantAddon ? (studentDoc.data()[field] || {}).razorpaySubscriptionId : studentDoc.data().razorpaySubscriptionId) : null;
     if (!subId) throw new functions.https.HttpsError('not-found', 'No auto-renewing subscription on this account.');
 
     const subDoc = await db.collection('razorpaySubs').doc(subId).get();
@@ -622,7 +627,7 @@ exports.razorpaySubsCancel = functions
     if (wantAddon) {
       await rzp('subscriptions/' + subId + '/cancel', { cancel_at_cycle_end: 1 });
       await subDoc.ref.set({ status: 'cancel-at-cycle-end' }, { merge: true });
-      await db.collection('students').doc(uid).set({ liveData: { autopay: false } }, { merge: true });
+      await db.collection('students').doc(uid).set({ [field]: { autopay: false } }, { merge: true });
       return { ok: true };
     }
     const inTrial = subDoc.data().trial && subDoc.data().status === 'authenticated';

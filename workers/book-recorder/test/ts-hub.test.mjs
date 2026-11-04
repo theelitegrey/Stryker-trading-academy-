@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { TSHub, TS_TRADES, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
 import { bucketSnapshot, decodeSamples, encodeSamples } from '../src/bucket.js';
-import { tsAllowed, tsAccess, tsTier } from '../src/ts-access.js';
+import { tsAllowed, tsAccess, tsTier, tsHistoryAccess } from '../src/ts-access.js';
 
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -397,7 +397,9 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
     pro1: { plan: { stringValue: 'pro' } },
     addon1: { plan: { stringValue: 'free' }, liveData: { mapValue: { fields: { active: { booleanValue: true } } } } },
     expired1: { plan: { stringValue: 'free' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } } } } },
-    free1: { plan: { stringValue: 'free' } }
+    free1: { plan: { stringValue: 'free' } },
+    l2a: { plan: { stringValue: 'free' }, liveDataL2: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } },
+    l2x: { plan: { stringValue: 'free' }, liveDataL2: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } } } } }
   };
   const fetchImpl = async (url) => {
     if (/jwk/.test(url)) return Response.json({ keys: [jwk] });
@@ -409,14 +411,34 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   };
   const rt = await import('../src/rt-auth.js'); rt._resetForTests();
   const T = (env, u) => tsTier(env, u && tok(u), { fetchImpl });
-  // TS_ACCESS=admin (today): admin = book; add-on = trades; Pro without the add-on = nothing (Pro does not include live futures); free / expired / signed out = nothing
-  assert.equal(await T({}, 'adm1'), 'book'); assert.equal(await T({}, 'addon1'), 'trades'); assert.equal(await T({}, 'pro1'), null);
+  // TS_ACCESS=admin (book closed): admin = book; L1 add-on, L2 add-on and active Pro = trades (data plans 2026-11-04: L2 and Pro include L1); free / expired / signed out = nothing
+  assert.equal(await T({}, 'adm1'), 'book'); assert.equal(await T({}, 'addon1'), 'trades'); assert.equal(await T({}, 'pro1'), 'trades'); assert.equal(await T({}, 'l2a'), 'trades');
   assert.equal(await T({}, 'free1'), null); assert.equal(await T({}, 'expired1'), null); assert.equal(await T({}, null), null); assert.equal(await tsTier({}, 'a.b.c'), null);
   // TS_ACCESS=pro (the Pro release): Pro = book + trades; add-on still trades only (no book); free still nothing
   rt._resetForTests();
   const P = { TS_ACCESS: 'pro' };
   assert.equal(await T(P, 'adm1'), 'book'); assert.equal(await T(P, 'pro1'), 'book'); assert.equal(await T(P, 'addon1'), 'trades'); assert.equal(await T(P, 'free1'), null); assert.equal(await T(P, null), null);
-  ok('gate: admin = book; Pro = book (TS_ACCESS=pro); add-on = trades, refused the book; free / expired add-on / signed out = nothing');
+  assert.equal(await T(P, 'l2a'), 'book', 'L2 add-on = live book'); assert.equal(await T(P, 'l2x'), null, 'expired L2 = nothing live');
+  ok('gate: admin = book; Pro + L2 add-on = book (TS_ACCESS=pro); L1 add-on = trades, refused the book; free / expired / signed out = nothing');
+  // history routes (tools are free, Owner 2026-11-04): any member, cut to now - 11 min unless live for that data
+  rt._resetForTests();
+  const NOW = Date.now(), H = (u, path) => tsHistoryAccess(P, u && tok(u), path, { fetchImpl, nowMs: NOW });
+  const CUT = NOW - 600000 - 60000;
+  assert.deepEqual(await H('free1', '/ts-book-history'), { cutMs: CUT }, 'free: book history, delayed');
+  assert.deepEqual(await H('free1', '/ts-aux'), { cutMs: CUT }, 'free: aux, delayed');
+  assert.deepEqual(await H('free1', '/ts-trades'), { cutMs: CUT }, 'free: trades history, delayed');
+  assert.deepEqual(await H('addon1', '/ts-trades'), { cutMs: 0 }, 'L1: trades history live');
+  assert.deepEqual(await H('addon1', '/ts-book-history'), { cutMs: CUT }, 'L1: book history still delayed');
+  assert.deepEqual(await H('l2a', '/ts-book-history'), { cutMs: 0 }, 'L2: book history live');
+  assert.deepEqual(await H('l2a', '/ts-trades'), { cutMs: 0 }, 'L2: trades history live');
+  assert.deepEqual(await H('pro1', '/ts-book-history'), { cutMs: 0 }, 'Pro: book history live');
+  assert.deepEqual(await H('l2x', '/ts-book-history'), { cutMs: CUT }, 'expired L2: delayed');
+  assert.equal(await H(null, '/ts-book-history'), null, 'signed out refused');
+  assert.equal(await tsHistoryAccess(P, 'a.b.c', '/ts-aux', { fetchImpl }), null, 'junk refused');
+  const anonTok = (() => { const now = Math.floor(Date.now() / 1000); const h = b64({ alg: 'RS256', kid: 'k1', typ: 'JWT' }), p = b64({ iss: 'https://securetoken.google.com/strykertrades-e0cd8', aud: 'strykertrades-e0cd8', sub: 'free1', iat: now - 5, exp: now + 3000, firebase: { sign_in_provider: 'anonymous' } }); return h + '.' + p + '.' + createSign('RSA-SHA256').update(h + '.' + p).sign(privateKey).toString('base64url'); })();
+  assert.equal(await tsHistoryAccess(P, anonTok, '/ts-book-history', { fetchImpl }), null, 'anonymous refused');
+  assert.equal(await T(P, null), null);
+  ok('history: free members get book / aux / trades history up to now - 11 min; L1 live trades only; L2 / Pro live book; anonymous / signed out refused');
 }
 // ---- advisor findings (2026-11-03): periodic re-check, slot reserve, no-tier = trades
 {

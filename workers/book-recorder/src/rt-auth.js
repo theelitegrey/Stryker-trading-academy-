@@ -1,7 +1,13 @@
 // Real-time access gate for CME futures data (Owner order 2026-10-16: "remove real time candles
 // access for cme futures for everyone except admin"). Pure module, no Pages context.
-// Used by: functions/api/chart/stream/[sym].js, functions/api/chart/bars/[sym].js.
-// IDENTICAL COPY (kept in step by tools/tests/rt-access.test.mjs): workers/book-recorder/src/rt-auth.js.
+// Used by: functions/api/chart/stream/[sym].js, functions/api/chart/bars/[sym].js, functions/api/gex/_pro.js.
+// IDENTICAL COPY (kept in step by tools/tests/rt-access.test.mjs): workers/book-recorder/src/rt-auth.js, workers/discord-roles/src/rt-auth.js.
+//
+// DATA PLANS (Owner 2026-11-04, "make all indicators in pro free ... user have to subscribe to data anyway. L1 7$, L2 20$"):
+//   TOOLS are free for every signed-in member: isMemberToken (GEX+, options flow, tool history). Anonymous tokens are never members.
+//   L1 live (candles, trades, quotes) = isRealtimeToken: admin, demo, liveFeed, grandfathered Pro, L1 add-on (liveData),
+//     L2 add-on (liveDataL2 includes L1), active Pro (temporary, existing payers keep what they had).
+//   L2 live (the order book) = isL2Token: admin, demo, L2 add-on, active Pro (temporary).
 //
 // Who is an admin: the site's own rule, an existing document at admins/{uid} in Firestore
 // (assets/admin-guard.js, firestore.rules isAdmin()). The caller sends its Firebase ID token;
@@ -28,18 +34,20 @@ let plansMemo = null;   // { at, paid:Set(lowercased plan names/ids with rank >=
 // Live Futures Data add-on (Owner order 2026-10-30, $7/month): students/{uid}.liveData = { active, paidThroughMillis,
 // source: 'stripe'|'razorpay'|'manual' }, written only by Cloud Functions / an admin. Active = active === true and, when there is a
 // paidThroughMillis, now <= paidThrough + 3 days grace. Being on Pro does NOT count. Fails closed (missing / odd shapes = no).
-export function isActiveLiveDataDoc(f, nowMs = Date.now()) {
-  const m = f && f.liveData && f.liveData.mapValue && f.liveData.mapValue.fields;
+export function isActiveLiveDataDoc(f, nowMs = Date.now(), key = 'liveData') {
+  const m = f && f[key] && f[key].mapValue && f[key].mapValue.fields;
   if (!m || !m.active || m.active.booleanValue !== true) return false;
   const pt = m.paidThroughMillis ? Number(m.paidThroughMillis.integerValue ?? m.paidThroughMillis.doubleValue ?? m.paidThroughMillis.stringValue) : 0;
   if (pt > 0 && nowMs > pt + GRACE_MS) return false;
   return true;
 }
+// L2 Data add-on (Owner 2026-11-04, $20/month): students/{uid}.liveDataL2, same shape and rules as liveData. It includes L1.
+export const isActiveLiveDataL2Doc = (f, nowMs = Date.now()) => isActiveLiveDataDoc(f, nowMs, 'liveDataL2');
 
 // Pro (used ONLY to keep grandfathered members live while their Pro stays active, Owner 2026-10-30) = the same rule the paywall uses (assets/plan-limits.js: rankOf(students.plan) >= 1, ranks from the public plans
 // collection). Read server-side from the student's own doc. Active = status not expired/cancelled and, when the member
 // has a paidThroughMillis, now <= paidThrough + 3 days grace (the daily sweep downgrades plan itself; this closes the gap).
-async function paidPlanNames(fetchImpl) {
+export async function paidPlanNames(fetchImpl) {
   if (plansMemo && Date.now() - plansMemo.at < PLANS_TTL_MS) return plansMemo.paid;
   let paid = null;
   try {
@@ -108,6 +116,7 @@ export async function verifyIdToken(token, opts = {}) {
     const now = opts.nowSec || Math.floor(Date.now() / 1000);
     if (p.iss !== ISSUER || p.aud !== RT_PROJECT) return null;
     if (typeof p.sub !== 'string' || !p.sub || p.sub.length > 128) return null;
+    if (p.firebase && p.firebase.sign_in_provider === 'anonymous') return null;   // an anonymous sign-in is never a member
     if (!(p.exp > now) || !(p.iat <= now + 300)) return null;
     const key = await keyFor(head.kid, opts.fetchImpl || fetch);
     if (!key) return null;
@@ -164,7 +173,8 @@ export async function isDemoToken(token, opts = {}) {
       // live = demo || (liveFeed && !grandfathered: manual, unconditional) || (grandfathered && Pro still active) || add-on
       v = !!(f.demo && f.demo.booleanValue === true) || (lf && !gf);
       if (!v && lf && gf) v = isActiveProDoc(f, await paidPlanNames(opts.fetchImpl || fetch), nowMs);
-      if (!v) v = isActiveLiveDataDoc(f, nowMs);
+      if (!v) v = isActiveLiveDataDoc(f, nowMs) || isActiveLiveDataL2Doc(f, nowMs);   // L1 add-on, or L2 add-on (includes L1)
+      if (!v) v = isActiveProDoc(f, await paidPlanNames(opts.fetchImpl || fetch), nowMs);   // TEMPORARY (2026-11-04): active Pro keeps L1 + L2 until its paid period ends
     }
     else if (r.status !== 404 && r.status !== 403) ttl = 10000;
   } catch (e) { ttl = 10000; }
@@ -176,15 +186,21 @@ export async function isRealtimeToken(token, opts = {}) {
   return (await isAdminToken(token, opts)) || (await isDemoToken(token, opts));
 }
 
-// GEX / GEX+ is Pro only (Owner order 2026-11-01, "Gex+ in pro"): the GEX Pages Functions and the book-recorder GEX routes
-// (/gex-history, /gex-sessions, /tide, /opt-analytics) answer only a verified token that is an admin, the marketing demo
-// account, or an ACTIVE paid plan (isActiveProDoc, same rule as the live-feed grandfathering). The student doc is read with the
-// caller's own token, so the live rules decide. Fails CLOSED. Memoised 60 s (positive) / 10 s (negative).
-const gexMemo = new Map();
-export async function isGexProToken(token, opts = {}) {
+// TOOLS are free (Owner 2026-11-04): GEX+, options flow, recorded tool history = any verified, non-anonymous member token.
+// No Firestore read: the signature, issuer, audience, expiry and the anonymous refusal are the whole check. Fails CLOSED.
+export async function isMemberToken(token, opts = {}) {
+  return !!(await verifyIdToken(token, opts));
+}
+
+// L2 live (the order book: heatmap, DOM, Delta Ladder, book / L2 tools, Wall Events, Book Speed, Liquidity Balance) =
+// admin || demo || active L2 add-on (students/{uid}.liveDataL2) || active Pro (TEMPORARY for existing payers, isActiveProDoc).
+// The L1 add-on and liveFeed alone are NOT L2. Student doc read with the caller's own token. Fails CLOSED.
+// Memoised 60 s (positive) / 10 s (negative).
+const l2Memo = new Map();
+export async function isL2Token(token, opts = {}) {
   const uid = await verifyIdToken(token, opts);
   if (!uid) return false;
-  const hit = gexMemo.get(uid);
+  const hit = l2Memo.get(uid);
   if (hit && Date.now() - hit.at < hit.ttl) return hit.v;
   let v = false, ttl = 10000;
   try {
@@ -193,14 +209,14 @@ export async function isGexProToken(token, opts = {}) {
       const f = opts.fetchImpl || fetch;
       const r = await f('https://firestore.googleapis.com/v1/projects/' + RT_PROJECT + '/databases/(default)/documents/students/' + encodeURIComponent(uid), { headers: { authorization: 'Bearer ' + token } });
       if (r.status === 200) {
-        const fl = ((await r.json()) || {}).fields || {};
-        v = !!(fl.demo && fl.demo.booleanValue === true) || isActiveProDoc(fl, await paidPlanNames(f), opts.nowMs || Date.now());
+        const fl = ((await r.json()) || {}).fields || {}, nowMs = opts.nowMs || Date.now();
+        v = !!(fl.demo && fl.demo.booleanValue === true) || isActiveLiveDataL2Doc(fl, nowMs) || isActiveProDoc(fl, await paidPlanNames(f), nowMs);
       }
     }
     if (v) ttl = 60000;
   } catch (e) { v = false; }
-  if (gexMemo.size > 500) gexMemo.clear();
-  gexMemo.set(uid, { v, at: Date.now(), ttl });
+  if (l2Memo.size > 500) l2Memo.clear();
+  l2Memo.set(uid, { v, at: Date.now(), ttl });
   return v;
 }
 
@@ -214,4 +230,4 @@ export function wsTokenOf(request) {
   const i = list.indexOf('tz-auth');
   return i >= 0 && list[i + 1] ? list[i + 1] : '';
 }
-export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; plansMemo = null; adminMemo.clear(); demoMemo.clear(); gexMemo.clear(); };
+export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; plansMemo = null; adminMemo.clear(); demoMemo.clear(); l2Memo.clear(); };

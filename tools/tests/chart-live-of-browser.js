@@ -80,6 +80,7 @@ function sv(n, out) { uv(n < 0 ? -2 * n - 1 : 2 * n, out); }
         };
         if (!fix()) { const t = setInterval(() => { if (fix()) clearInterval(t); }, 5); }
       });
+      await ctx.addInitScript(() => { window.__stkL2Test = { base: 'http://127.0.0.1:9', trades: true }; });   // localhost test flag: /ts-live without a Firebase token
       await ctx.addInitScript((flag) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.removeItem('stryker.vela.session'); localStorage.setItem('stk_live_of', flag ? '1' : '0'); } catch (e) {} }, flag);
       await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => (/book-recorder\.theelitegrey\.workers\.dev\/orderflow/.test(r.request().url())
         ? r.fulfill({ status: 200, contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'x-of-gzip', 'x-of-gzip': '1' }, body: payload() })
@@ -91,12 +92,12 @@ function sv(n, out) { uv(n < 0 ? -2 * n - 1 : 2 * n, out); }
         r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ s: 'NQ', tf: String(tf), page: Number(u.searchParams.get('page')) || 0, bars: (tf === 1 ? candles : rows).filter((x) => x[0] * 1000 <= Date.now()), rt: true }) });
       });
       const sockLog = [], streamUrls = [], sent = new Map(), sentT = new Set();   // minute -> distinct prints sent (several sockets replay the same)
-      await ctx.routeWebSocket(/\/api\/chart\/stream\//, (ws) => {
+      await ctx.routeWebSocket(/\/ts-live/, (ws) => {
         const u = new URL(ws.url()); streamUrls.push(u.search); const sockN = streamUrls.length; sockLog.push(['open', sockN, new Date().toISOString().slice(14, 23), u.search]);
-        const of = u.searchParams.get('of') === '1';
+        const of = flag;   // since the hub (2026-11-03) the flag is the browser's own localStorage 'stk_live_of'; the hub always sends ticks, the page decides whether to build the footprint
         let k = prints.findIndex((p) => p[0] * 1000 > Date.now() - 5 * 60000);   // replay the last 5 min, then real time
         let closed = false; ws.onClose(() => { closed = true; sockLog.push(['close', sockN, new Date().toISOString().slice(14, 23)]); });
-        ws.send(JSON.stringify({ event: 'connected', s: 'NQ', tf: '1', hub: true }));
+        ws.send(JSON.stringify({ event: 'status', state: 'live' }));
         let forming = null;
         const tick = () => {
           if (closed) return;
@@ -108,16 +109,16 @@ function sv(n, out) { uv(n < 0 ? -2 * n - 1 : 2 * n, out); }
             if (!forming || bt > forming[0]) forming = [bt, p[1], p[1], p[1], p[1], 0];
             forming[2] = Math.max(forming[2], p[1]); forming[3] = Math.min(forming[3], p[1]); forming[4] = p[1]; forming[5] += p[2];
           }
-          if (batch.length && of) ws.send(JSON.stringify({ event: 'trades', s: 'NQ', tr: batch }));
-          if (forming) ws.send(JSON.stringify({ event: 'bar', s: 'NQ', tf: '1', bar: forming }));
-          ws.send(JSON.stringify({ event: 'ping', t: Date.now(), up: 100 }));
+          // the hub's own frame: {type:'ticks', t:[[price, size, +1 buy / -1 sell, ms]]}
+          if (batch.length) ws.send(JSON.stringify({ type: 'ticks', symbol: 'NQ', t: batch.map((x) => [x[1], x[2], x[3] === 1 ? 1 : -1, Math.round(x[0] * 1000)]) }));
+          ws.send(JSON.stringify({ event: 'ping', state: 'live' }));
           setTimeout(tick, 250);
         };
         tick();
       });
       const p = await ctx.newPage();
       const errors = [];
-      p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text()); });
+      p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource|451|binance/i.test(m.text())) errors.push(m.text()); });
       p.on('pageerror', (e) => errors.push(String(e)));
       await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
       await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkOrderflow, null, { timeout: 60000 });
@@ -141,12 +142,12 @@ function sv(n, out) { uv(n < 0 ? -2 * n - 1 : 2 * n, out); }
       });
       const nowM = Math.floor(Date.now() / 60000);
       const last = samp[samp.length - 1];
-      const urlOf = streamUrls.some((s) => /of=1/.test(s));
+      const urlOf = streamUrls.length > 0;
       if (!flag) {
-        check(!urlOf && streamUrls.length > 0, tag + ': stream opened without of=1', streamUrls);
+        check(urlOf, tag + ': hub socket opened, flag OFF', streamUrls);
         check(last.t < (nowM - 2) * 60000 && !last.live, tag + ': newest footprint minute is the lagging recorder one (' + new Date(last.t).toISOString().slice(11, 16) + ', now ' + new Date(nowM * 60000).toISOString().slice(11, 16) + ')', last);
       } else {
-        check(urlOf, tag + ': stream opened with of=1', streamUrls);
+        check(urlOf, tag + ': hub socket opened, flag ON', streamUrls);
         check(last.live && last.t >= (nowM - 1) * 60000, tag + ': newest footprint minute is LIVE and current (' + new Date(last.t).toISOString().slice(11, 16) + ')', last);
         const sentN = sent.get(last.t / 60000) || 0;
         check(Math.abs(sentN - last.trades) <= 40 && last.trades > 0, tag + ': forming minute holds ' + last.trades + ' prints, ' + sentN + ' sent by the stream so far', { sentN, last });

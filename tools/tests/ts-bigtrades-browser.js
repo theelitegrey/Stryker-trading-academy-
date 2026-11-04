@@ -139,7 +139,7 @@ const tables = (p) => p.evaluate(() => Object.values(window.__tsReadout || {}).m
       check((await p.evaluate(() => window.__wsOpened)) === 1, tag + ': still ONE browser socket');
       const T = await tables(p);
       console.log('INFO ' + tag + ' readouts: ' + JSON.stringify(T));
-      check(T.some((t) => /Feed compare/.test(t)) && T.some((t) => /Big trades Std \d+ · L1 \d+/.test(t)), tag + ': Feed compare readout shows big-trade counts', T);
+      check(T.some((t) => /Standard vs L1/.test(t)) && T.some((t) => /Big trades Std \d+ · L1 \d+/.test(t)), tag + ': Standard vs L1 readout shows big-trade counts', T);
       check(T.some((t) => /Buy Std \S+ · L1/.test(t)), tag + ': delta readout present (informational)');
       check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), tag + ': no horizontal overflow');
       await p.evaluate(() => { const c = window.STRYKER_VELA.chart; const rb = c.orchestrator.rawBars, n = rb.length; c.setVisibleRange({ from: rb[Math.max(0, n - 70)].time, to: rb[n - 1].time + 120000 }); });

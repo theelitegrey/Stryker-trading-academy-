@@ -1,9 +1,6 @@
-// Charts real-time gate, browser side (Owner order 2026-10-16). Against tools/tests/chart-dev-server.mjs.
+// Charts real-time gate, browser side (Owner order 2026-10-16; rewritten for the hub + Pro release, 2026-11-03). Against chart-dev-server.mjs.
 //   CHART_BASE=http://127.0.0.1:8091 node tools/tests/chart-rt-access-browser.js [shotsDir]
-// Non-admin (signed out, and a signed-in non-admin): NO stream socket is opened, the data dot is amber
-// "Delayed 10m", no page errors, candles drawn. Admin: a stream socket is opened with the
-// ("tz-auth", token) subprotocol, dot green "Real-time", bars requested with the Bearer header.
-// /api/chart/rt is faked here (the dev server has no Pages routes for it); the token is a dummy string.
+// Signed out: NO live socket, amber delayed dot. Signed in: a /ts-live socket only with ("tz-auth", token); no hub here so the dot stays amber.
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8091';
@@ -18,7 +15,7 @@ async function run(b, { who, w, h, mobile }) {
     try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {}
     window.__wsOpened = []; window.__barAuth = [];
     const W = window.WebSocket;
-    window.WebSocket = function (u, p) { if (/api\/chart\/stream/.test(u)) window.__wsOpened.push({ u, p }); return new W(u, p); };
+    window.WebSocket = function (u, p) { if (/api\/chart\/stream|\/ts-live/.test(u)) window.__wsOpened.push({ u, p }); return new W(u, p); };
     window.WebSocket.prototype = W.prototype; Object.assign(window.WebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
     const F = window.fetch;
     window.fetch = function (u, init) { if (/\/api\/chart\/bars\//.test(String(u))) window.__barAuth.push(!!(init && init.headers && (init.headers.authorization || init.headers.Authorization))); return F.apply(this, arguments); };
@@ -36,7 +33,9 @@ async function run(b, { who, w, h, mobile }) {
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_DATA_DOT, null, { timeout: 45000 });
-  await p.waitForFunction(() => { const d = document.querySelector('.stkc-dd'); return d && (d.dataset.s === 'rt' || d.dataset.s === 'delayed' || d.dataset.s === 'closed'); }, null, { timeout: 30000 }).catch(() => {});
+  // the chart now opens on BTC (Owner 2026-10-30); the futures gate is what this test is about
+  await p.evaluate(() => { window.STRYKER_VELA.active.setSymbol('futures:NQ1!'); window.STRYKER_VELA.active.setTimeframe('1'); });
+  await p.waitForFunction(() => { const d = document.querySelector('.stkc-dd'); return d && /NQ/.test(document.body.innerText) && (d.dataset.s === 'rt' || d.dataset.s === 'delayed' || d.dataset.s === 'closed'); }, null, { timeout: 30000 }).catch(() => {});
   await p.waitForTimeout(7000);
   const info = await p.evaluate(() => {
     const d = document.querySelector('.stkc-dd');
@@ -58,13 +57,14 @@ async function run(b, { who, w, h, mobile }) {
       if (info.s === 'closed') { console.log('SKIP ' + who + ' ' + w + ': Globex closed, dot is grey'); continue; }
       check(errors.length === 0, `${who} ${w}: no page errors ${errors.slice(0, 2)}`);
       check(info.canvases > 0, `${who} ${w}: chart drawn`);
-      if (who === 'admin') {
-        check(info.s === 'rt' && /Real-time/.test(info.tag) && info.color === 'rgb(8, 153, 129)', `${who} ${w}: green Real-time (${info.tag})`);
-        check(info.ws.length > 0 && info.ws[0].p && info.ws[0].p[0] === 'tz-auth' && !!info.ws[0].p[1], `${who} ${w}: stream opened with tz-auth subprotocol`);
+      // Since the hub (2026-11-03) + Pro release, live CME data comes from the book-recorder's /ts-live socket and the SERVER
+      // decides who gets it (tier in the hub_attached frame). The browser opens that socket for signed-in members only, always
+      // with the ("tz-auth", token) subprotocol; signed-out visitors open none. With no hub here, every dot stays amber.
+      check(info.s === 'delayed' && /^(Delayed 10m|10 min delayed)/.test(info.tag) && info.color === 'rgb(245, 166, 35)', `${who} ${w}: amber 10-min-delayed dot without a live hub (${info.tag})`);
+      if (who === 'signed-out') check(info.ws.length === 0, `${who} ${w}: no stream socket opened`);
+      else {
+        check(info.ws.length > 0 && info.ws.every((x) => x.p && x.p[0] === 'tz-auth' && !!x.p[1]), `${who} ${w}: live socket only with the tz-auth subprotocol + token`);
         check(info.barAuth.length > 0 && info.barAuth.every(Boolean), `${who} ${w}: bars fetched with Authorization`);
-      } else {
-        check(info.s === 'delayed' && info.tag === 'Delayed 10m' && info.color === 'rgb(245, 166, 35)', `${who} ${w}: amber "Delayed 10m" (${info.tag})`);
-        check(info.ws.length === 0, `${who} ${w}: no stream socket opened`);
       }
     }
   }

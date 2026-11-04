@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Pre-deploy validation for TradeZoro.
-Run from the repo root:  python3 tools/check.py
+Run from the repo root:  python3 tools/check.py          (everything, incl. browser suites)
+                         python3 tools/check.py --fast   (static checks only; browser suites run in CI)
 
 Why the unversioned-asset check exists
 --------------------------------------
@@ -677,7 +678,9 @@ def main():
     version = timed(check_version_consistency)
     # all checks are independent read-only scans (failures are sorted by check order below); the
     # two browser checks start first so they overlap the rest
-    order = [check_pro_features, check_app_shell_browser, check_drawer_touch, check_roadmap_log, check_roadmap_cards,
+    fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
+    browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
+    order = [check_pro_features, *browser, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

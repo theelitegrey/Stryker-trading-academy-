@@ -160,8 +160,11 @@ const probe = () => {
     await Promise.all(Array.from({ length: POOL }, worker));
     await ctx.close();
   };
-  const appPages = targets.filter((t) => !marketing.has(t));
-  const dual = Object.keys(AL.dual).filter((t) => pages.has(t));
+  // SHARD=i/n (1-based): this job takes every n-th page, so CI can split the audit across parallel runners
+  const [si, sn] = (process.env.SHARD || '1/1').split('/').map(Number);
+  const mine = (_, k) => k % sn === si - 1;
+  const appPages = targets.filter((t) => !marketing.has(t)).filter(mine);
+  const dual = Object.keys(AL.dual).filter((t) => pages.has(t)).filter(mine);
   // every width x signed-in/out pass runs at once; rows/fails are sorted below so the output does not depend on timing
   await Promise.all([...WIDTHS.map((w) => run(w, true, appPages)), ...WIDTHS.map((w) => run(w, false, dual))]);
   rows.sort(); fails.sort();

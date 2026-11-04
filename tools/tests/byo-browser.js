@@ -50,7 +50,9 @@ async function open(b, w, h, mobile, theme) {
       await p.screenshot({ path: `${OUT}/byo-form-${tag}.png` });
       await p.click('.byo-go');
       check((await p.$$eval('.byo-in[aria-invalid="true"]', (e) => e.length)) >= 1, t + 'empty form is rejected');
-      check(!reqs.some((u) => /alpaca/.test(u)), t + 'no broker request for an empty form');
+      // only the broker's own host counts (the page also fetches its own alpaca icon and the /connect/alpaca/token?probe=1 sign-in availability check)
+      const brokerReqs = reqs.filter((u) => /^https?:\/\/[^/]*alpaca\.markets/.test(u));
+      check(!brokerReqs.length, t + 'no broker request for an empty form', brokerReqs);
       const ins = await p.$$('.byo-in');
       await ins[0].fill('PKFAKEKEY123'); await ins[1].fill('FAKESECRETVALUE456');
       await p.screenshot({ path: `${OUT}/byo-form-filled-${tag}.png` });

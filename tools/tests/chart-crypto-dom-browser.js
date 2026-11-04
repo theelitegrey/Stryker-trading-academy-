@@ -55,6 +55,7 @@ async function open(b, { w, h, mobile, recorder }) {
     try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {}
   });
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance\.com|fapi\.binance\.com|data-api\.binance\.vision)/, (r) => r.abort());
+  await require('./binance-mock.js').install(ctx);   // offline Binance: CI runners are geo-blocked (HTTP 451), and the suite must not depend on a live exchange
   if (recorder) await ctx.route(/book-recorder\.[a-z0-9-]+\.workers\.dev\/book-history/, recorder);
   const p = await ctx.newPage();
   const errors = [];
@@ -136,7 +137,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
 async function recorderPhase(b) {
   const { bucketSnapshot, encodeSamples } = await import('../../workers/book-recorder/src/bucket.js');
   const sym = SYM.replace(/^.*:/, '');
-  const snap = await (await fetch('https://api.binance.com/api/v3/depth?symbol=' + sym + '&limit=5000')).json();
+  const snap = require('./binance-mock.js').snapshot();   // same book the mocked /depth serves
   const now = Date.now(), base = bucketSnapshot(snap, now);
   // 24 h of 1-min samples ending 1 min ago: the real rows with a small random walk
   const all = [];

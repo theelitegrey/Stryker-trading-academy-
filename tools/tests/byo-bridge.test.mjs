@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHmac } from 'node:crypto';
-import { SOURCES, ADAPTERS } from '../../assets/byo-core.js?v=873';
-import { C2H, H2C, guardSend, guardRecv, guardPort, pair, PORTS, proofOf } from '../../assets/byo-bridge.js?v=873';
+import { SOURCES, ADAPTERS } from '../../assets/byo-core.js?v=874';
+import { C2H, H2C, guardSend, guardRecv, guardPort, pair, PORTS, proofOf } from '../../assets/byo-bridge.js?v=874';
 const proto = JSON.parse(readFileSync(new URL('../bridge/protocol.json', import.meta.url)));
 let n = 0; const t = async (name, fn) => { await fn(); n++; console.log('ok', name); };
 const fixed = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v.filter((x) => x !== undefined)]));

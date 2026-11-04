@@ -11,7 +11,7 @@
 // Wording: "Estimated from options volume and quotes." Never live / real-time. Education only. Not financial advice.
 // Depends on: Vela plugin SDK via the legend-row Core (registerNativeIndicator, registerRendererLayer, registerStatePersistence).
 
-import { tideSource, tfMin, tideFetch, cache, money, agoText } from './chart-zorotide.js?v=873';
+import { tideSource, tfMin, tideFetch, cache, money, agoText } from './chart-zorotide.js?v=874';
 
 export const OPTFLOW_TYPE = 'stk_optflow';
 export const OPTFLOW_DESC = 'Bubbles on the candles where call (green, above) or put (red, below) premium was unusually large, sized by premium; hover or tap for premium and contracts. Per-bar totals from the options data feed, not single trades (SPX, SPY, QQQ, ES, NQ)';

@@ -9,6 +9,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=864">
+<script src="assets/skeleton.js?v=864"></script>
 <script src="assets/sanitize.js?v=864"></script>
 <script>
 // TradeZoro — device detection for forced views
@@ -220,7 +221,7 @@
         <h2 class="panel-title">Activity</h2>
         <span class="panel-count" id="log-count">—</span>
       </div>
-      <div id="log-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+      <div id="log-list"><div data-skel="lines" data-n="5"></div></div>
       <div id="log-more-wrap" style="display:none; text-align:center; padding:14px 0 4px;">
         <button class="btn btn-ghost btn-sm" id="log-more-btn">Show more</button>
       </div>

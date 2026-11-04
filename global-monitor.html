@@ -10,6 +10,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=864">
+<script src="assets/skeleton.js?v=864"></script>
 <script src="assets/sanitize.js?v=864"></script>
 <script>
 // TradeZoro — device detection for forced views
@@ -185,19 +186,19 @@
           <div class="term-block term-table-block">
             <h3>Events <span class="term-badge" id="gm-events-badge">…</span>
               <span class="term-table-count" id="gm-table-count"></span></h3>
-            <div id="gm-table-body"><p class="term-empty">Loading…</p></div>
+            <div id="gm-table-body"><div data-skel="lines" data-n="4"></div></div>
           </div>
         </div>
 
         <div class="term-map-side">
           <div class="term-block">
             <h3>Most active — 24h</h3>
-            <div id="gm-active24"><p class="term-empty">Loading…</p></div>
+            <div id="gm-active24"><div data-skel="lines" data-n="4"></div></div>
           </div>
           <div class="term-block">
             <h3>Tension index</h3>
             <p class="gm-side-note">Countries ranked by weighted conflict coverage, last 6h. Click a row to fly there.</p>
-            <div id="gm-tension"><p class="term-empty">Loading…</p></div>
+            <div id="gm-tension"><div data-skel="lines" data-n="4"></div></div>
             <p class="gm-shown-note"><span id="gm-shown-count">—</span></p>
           </div>
         </div>
@@ -214,7 +215,7 @@
           <input type="search" id="gm-wire-search" class="gm-search" placeholder="Search headlines, countries, sources…" autocomplete="off">
           <div class="term-cats" id="gm-wire-chips"></div>
         </div>
-        <div id="gm-wire-feed" class="gm-wire-feed"><p class="term-empty">Loading…</p></div>
+        <div id="gm-wire-feed" class="gm-wire-feed"><div data-skel="lines" data-n="4"></div></div>
       </div>
     </section>
 
@@ -253,7 +254,7 @@
           <h3>Financial newswire <span class="term-badge" id="gm-sev-badge">…</span></h3>
           <p class="gm-side-note">Latest first. Chips filter by severity.</p>
           <div class="term-cats" id="gm-sev-chips" style="margin-bottom:10px;"></div>
-          <div id="gm-sev-list" class="term-news-feed gm-sev-feed"><p class="term-empty">Loading…</p></div>
+          <div id="gm-sev-list" class="term-news-feed gm-sev-feed"><div data-skel="lines" data-n="4"></div></div>
         </div>
         <div class="term-block">
           <h3>Market calendar <span class="term-badge" id="gm-cal-badge">…</span></h3>
@@ -265,7 +266,7 @@
               <select id="gm-cal-country" class="gm-cal-select"><option value="">All countries</option></select>
             </div>
           </div>
-          <div id="gm-cal-list" class="gm-cal-list"><p class="term-empty">Loading…</p></div>
+          <div id="gm-cal-list" class="gm-cal-list"><div data-skel="lines" data-n="4"></div></div>
         </div>
       </div>
 
@@ -274,7 +275,7 @@
           <h3>Prediction markets — trending</h3>
           <p class="gm-side-note">Ranked by 24h volume, via Polymarket.</p>
           <input type="search" id="gm-pred-search" class="gm-search" placeholder="Search markets…" autocomplete="off" style="margin-bottom:10px;">
-          <div id="gm-predict-trend"><p class="term-empty">Loading…</p></div>
+          <div id="gm-predict-trend"><div data-skel="lines" data-n="4"></div></div>
         </div>
         <div class="term-block">
           <h3>Live quotes</h3>
@@ -294,7 +295,7 @@
       <div class="gm-two">
         <div class="term-block">
           <h3>DEFCON status</h3>
-          <div id="gm-defcon"><p class="term-empty">Loading…</p></div>
+          <div id="gm-defcon"><div data-skel="lines" data-n="4"></div></div>
         </div>
         <div class="term-block">
           <div class="gm-wire-head">
@@ -302,13 +303,13 @@
             <div class="gm-wire-stats" id="gm-outbreak-stats"></div>
           </div>
           <p class="gm-side-note">WHO Disease Outbreak News, severity-ranked.</p>
-          <div id="gm-outbreaks" class="gm-wire-feed gm-outbreak-feed"><p class="term-empty">Loading…</p></div>
+          <div id="gm-outbreaks" class="gm-wire-feed gm-outbreak-feed"><div data-skel="lines" data-n="4"></div></div>
         </div>
       </div>
       <div class="term-block" style="margin-top:14px;">
         <h3>Prediction markets <span class="term-badge" id="gm-predict-badge">…</span></h3>
         <p class="gm-side-note">Real-money odds on geopolitical outcomes, via Polymarket.</p>
-        <div id="gm-predict" class="gm-pred-grid"><p class="term-empty">Loading…</p></div>
+        <div id="gm-predict" class="gm-pred-grid"><div data-skel="lines" data-n="4"></div></div>
       </div>
     </section>
 

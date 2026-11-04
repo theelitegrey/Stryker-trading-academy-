@@ -498,9 +498,9 @@
       note.hidden = !note.textContent;
     }
     async function load() {
-      note.hidden = false; note.textContent = 'Loading\u2026'; list.innerHTML = '';
+      note.hidden = true; list.innerHTML = window.skel ? skel.html('rows', 8, 2) : ''; if (!window.skel) { note.hidden = false; note.textContent = 'Loading\u2026'; }
       try { data = await (cur === 'mine' ? listMine() : cur === 'hidden' ? listHidden() : listPublic()); }
-      catch (e) { console.warn('TradeZoro: community list', e); data = []; note.textContent = 'Could not load scripts. Check your connection.'; return; }
+      catch (e) { console.warn('TradeZoro: community list', e); data = []; list.innerHTML = ''; note.hidden = false; note.textContent = 'Could not load scripts. Check your connection.'; return; }
       render();
     }
     if (query) q.value = String(query);

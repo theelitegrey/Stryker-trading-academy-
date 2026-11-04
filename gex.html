@@ -9,6 +9,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=864">
+<script src="assets/skeleton.js?v=864"></script>
 <script src="assets/sanitize.js?v=864"></script>
 <script src="assets/motion.js?v=864"></script>
 <script>
@@ -169,7 +170,7 @@
           </div>
         </div>
         <div id="gex-closed-note" class="gex-closed-note" role="status" hidden></div>
-        <div class="gex-chart-wrap"><div id="gex-chart" aria-label="GEX futures chart"></div><div class="gex-chart-tag" id="gex-chart-tag" hidden></div><div class="gex-chart-range" id="gex-chart-range">TradingView chart loading…</div></div>
+        <div class="gex-chart-wrap"><div id="gex-chart" aria-label="GEX futures chart"></div><div id="gex-skel" class="skel-ov" aria-busy="true" role="status"><span class="skel-sr">Loading chart</span><div class="skel-chart" aria-hidden="true"></div></div><div class="gex-chart-tag" id="gex-chart-tag" hidden></div><div class="gex-chart-range" id="gex-chart-range">TradingView chart loading…</div></div>
         <div class="gex-legend">
           <span><i style="background:#ef4444"></i>Call wall</span>
           <span><i style="background:#f59e0b"></i>Zero gamma</span>

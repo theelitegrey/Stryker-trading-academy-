@@ -181,7 +181,7 @@ function renderProfile(uid, profile, isOwnProfile, postCount){
       : '') +
     '<div class="panel">' +
       '<div class="panel-head"><h2 style="font-size:15px;">Recent Trading Floor posts</h2></div>' +
-      '<div id="profile-posts-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>' +
+      '<div id="profile-posts-list">' + (window.skel ? skel.html('lines', 3) : 'Loading…') + '</div>' +
     '</div>';
 
   if (typeof setStrykerTheme === 'function' && typeof strykerTheme === 'function') {

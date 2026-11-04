@@ -351,7 +351,7 @@
   }
   function render() {
     var h = controls() + '<div id="ms-today-slot">' + (today.sym === dataSym() ? today.html : '') + '</div>';
-    if (st.loading && !st.data[st.sym]) h += '<p class="ms-empty">Loading…</p>';
+    if (st.loading && !st.data[st.sym]) h += window.skel ? skel.html('tiles', 6) + skel.html('rows', 6, 4) : '<p class="ms-empty">Loading…</p>';
     else if (st.err && !st.data[st.sym]) h += '<p class="ms-empty">' + esc(st.err) + ' <button type="button" class="ms-retry" id="ms-retry">Try again</button></p>';
     else if (st.data[st.sym]) h += results();
     var keep = window.scrollY;

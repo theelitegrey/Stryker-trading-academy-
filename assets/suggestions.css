@@ -107,9 +107,8 @@
 .sg-muted{ color:var(--ink-3); font-size:14px; margin:8px 0; }
 .sg-foot-note{ margin:32px 0 0; font-size:12px; line-height:16px; color:var(--ink-3); text-align:center; }
 @media (prefers-reduced-motion:reduce){ .sg-skel{ animation:none !important; } }
-.sg-skel{ height:104px; border-radius:var(--sg-r); background:linear-gradient(90deg, var(--bg-2), var(--bg-3), var(--bg-2)); background-size:200% 100%; animation:sg-sh 1.2s infinite linear; }
+.sg-skel{ height:104px; border-radius:var(--sg-r); }
 .sg-skel.big{ height:280px; }
-@keyframes sg-sh{ to{ background-position:-200% 0; } }
 
 /* detail */
 .sg-back{ display:inline-flex; align-items:center; gap:4px; min-height:44px; color:var(--ink-2); text-decoration:none; font-weight:600; font-size:15px; margin-bottom:8px; }

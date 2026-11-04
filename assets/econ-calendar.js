@@ -646,7 +646,7 @@
     const items = CORP[TAB];
     if (!days) return;
     if (items === undefined) {
-      days.innerHTML = '<div class="ec-empty"><b>Loading…</b></div>';
+      days.innerHTML = window.skel ? skel.html('rows', 6, 4, 54) : '<div class="ec-empty"><b>Loading…</b></div>';
       IS.fetchCal(TAB).then((j) => { CORP[TAB] = j && Array.isArray(j.items) ? j.items : null; if (j && j.updated) CORP.useps_updated = j.updated; if (TAB) paint(mount, false); });
       return;
     }

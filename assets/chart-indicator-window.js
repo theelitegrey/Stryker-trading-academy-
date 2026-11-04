@@ -328,7 +328,7 @@ export function mountIndicatorWindow(ws, opts){
     try { if (ws.trackDialog) ws.trackDialog(true); } catch (e) {}
     authorFilter = null;
     els.list.innerHTML = '';
-    els.list.appendChild(h('p', { class: 'stkiw-empty', text: 'Loading\u2026' }));
+    if (window.skel) { const w = h('div'); w.innerHTML = skel.html('rows', 8, 2); els.list.appendChild(w); } else els.list.appendChild(h('p', { class: 'stkiw-empty', text: 'Loading\u2026' }));
     if (!isPhone()) setTimeout(() => els && els.search.focus(), 0);
     paint();
     await loadData();

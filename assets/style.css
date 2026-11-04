@@ -4118,8 +4118,6 @@ a.dov-link:hover{ background:var(--bg-2); }
 /* loading skeletons */
 .dov-skel{
   height:12px; border-radius:6px; margin:10px 0;
-  background:linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%);
-  background-size:200% 100%; animation:dovShimmer 1.4s ease infinite;
 }
 @keyframes dovShimmer{ from{ background-position:200% 0; } to{ background-position:-200% 0; } }
 
@@ -8277,8 +8275,6 @@ section.ec-strip { padding: 18px 20px; }
 .ec-skel { display: grid; gap: 12px; }
 .ec-skel-hero, .ec-skel-row {
   border-radius: 14px;
-  background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 37%, var(--bg-2) 63%);
-  background-size: 400% 100%; animation: ecShimmer 1.4s ease-in-out infinite;
 }
 .ec-skel-hero { height: 148px; }
 .ec-skel-row { height: 54px; }
@@ -11143,3 +11139,45 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 /* ZoroAcademy eyebrow/breadcrumb on learning pages (same mono-caps pattern as product names) */
 .zx-crumb{ margin:0 0 6px; font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; color:var(--ink-3); }
 .zx-crumb .zx-eyebrow{ color:var(--ink-3); } .zx-crumb a.zx-eyebrow{ color:var(--gold); text-decoration:none; } .zx-crumb a.zx-eyebrow:hover{ text-decoration:underline; }
+
+.skel-ov{ position:absolute; inset:0; z-index:2; pointer-events:none; background:var(--bg-1); visibility:hidden; animation:skelShow 0s linear .15s forwards; }
+.skel-ov .skel-chart{ height:100%; }
+.gex-chart-wrap .skel-ov{ border-radius:inherit; }
+/* ==========================================================================
+   SKELETON LOADING — one shared component (assets/skeleton.js builds the markup)
+   Grey blocks shaped like the real content + a soft shimmer. Shown only if the
+   load takes >150 ms (CSS delay below), static under prefers-reduced-motion.
+   ========================================================================== */
+:root{ --skel-a:rgba(255,255,255,.06); --skel-b:rgba(255,255,255,.12); }
+:root[data-theme="light"]{ --skel-a:rgba(15,23,42,.06); --skel-b:rgba(15,23,42,.11); }
+.skel,
+.dov-skel, .ec-skel-hero, .ec-skel-row, .hc-skel i, .sg-skel, .gp-node.is-skel::before, .gp-skel-line{
+  background:linear-gradient(90deg, var(--skel-a) 25%, var(--skel-b) 50%, var(--skel-a) 75%);
+  background-size:200% 100%; animation:skelShimmer 1.4s ease-in-out infinite;
+}
+@keyframes skelShimmer{ from{ background-position:200% 0; } to{ background-position:-200% 0; } }
+@keyframes skelShow{ from{ visibility:hidden; } to{ visibility:visible; } }
+.skel-wrap{ display:block; width:100%; visibility:hidden; animation:skelShow 0s linear .15s forwards; }
+.skel-gate{ width:min(960px,calc(100vw - 32px)); margin:72px auto 0; align-self:flex-start; }
+.skel-gate .skel-title, .skel-gate .skel-wrap *{ animation:skelShimmer 1.4s ease-in-out infinite; }
+.skel-sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.skel-line{ display:block; height:12px; margin:10px 0; border-radius:6px; }
+.skel-line.w40{ width:40%; } .skel-line.w60{ width:60%; } .skel-line.w80{ width:80%; } .skel-line.w100{ width:100%; }
+.skel-title{ display:block; height:22px; width:50%; margin:0 0 16px; border-radius:6px; }
+.skel-avatar{ display:block; flex:none; width:40px; height:40px; border-radius:50%; }
+.skel-row{ display:flex; align-items:center; gap:12px; height:52px; padding:0 4px; border-bottom:1px solid var(--line-soft); box-sizing:border-box; }
+.skel-row .skel-line{ margin:0; flex:1 1 0; }
+.skel-row .skel-line:first-child{ flex:2 1 0; }
+.skel-card{ display:block; box-sizing:border-box; min-height:120px; padding:16px; margin:0 0 12px; border:1px solid var(--line-soft); border-radius:16px; background:var(--bg-2); }
+.skel-cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; }
+.skel-cards .skel-card{ margin:0; }
+.skel-tile{ display:block; box-sizing:border-box; height:88px; padding:16px; border:1px solid var(--line-soft); border-radius:16px; background:var(--bg-2); }
+.skel-tile .skel-line{ margin:0 0 12px; }
+.skel-chart{ position:relative; display:flex; align-items:flex-end; gap:6px; box-sizing:border-box; width:100%; height:100%; min-height:240px; padding:24px 16px 16px; overflow:hidden; }
+.skel-chart i{ flex:1 1 0; max-width:14px; border-radius:2px; background:var(--skel-a); }
+.skel-chart::after{ content:""; position:absolute; inset:0; background:linear-gradient(90deg, transparent 25%, var(--skel-a) 50%, transparent 75%); background-size:200% 100%; animation:skelShimmer 1.8s ease-in-out infinite; }
+.skel-err{ padding:24px 16px; text-align:center; color:var(--ink-3); font-size:13px; line-height:18px; }
+.skel-err button{ margin-left:8px; min-height:32px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--ink-1); font:inherit; cursor:pointer; }
+@media (prefers-reduced-motion:reduce){
+  .skel, .skel-wrap *, .dov-skel, .ec-skel-hero, .ec-skel-row, .hc-skel i, .sg-skel, .gp-node.is-skel::before, .gp-skel-line, .skel-chart::after{ animation:none !important; }
+}

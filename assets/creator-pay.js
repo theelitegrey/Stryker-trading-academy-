@@ -144,7 +144,7 @@
     } else if (a.status === 'active') {
       h += '<p class="cp-lead">You can sell paid plans. Stripe pays out to your bank automatically.</p>' +
         '<div class="cx-actions"><button class="btn btn-ghost" type="button" id="cp-dash">Open Stripe dashboard</button></div>' +
-        '<h3 class="cp-h3">Recent sales</h3><div id="cp-sales"><p class="cx-muted">Loading…</p></div>';
+        '<h3 class="cp-h3">Recent sales</h3><div id="cp-sales">' + (window.skel ? skel.html('rows', 4, 3) : '<p class="cx-muted">Loading…</p>') + '</div>';
     }
     h += '</div>';
     el.innerHTML = h;

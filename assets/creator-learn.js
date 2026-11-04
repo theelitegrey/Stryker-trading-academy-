@@ -124,7 +124,7 @@
 
   // ---------------------------------------------------------------- course page
   function openCourse(id, lid) {
-    stop(); root.innerHTML = '<div class="cx-empty">Loading…</div>';
+    stop(); root.innerHTML = (window.skel ? skel.html('cards', 3) : '<div class="cx-empty">Loading…</div>');
     var c = crs(id), co = courses.filter(function (x) { return x.id === id; })[0];
     return Promise.all([pubOnly(c.collection('modules')).get(), pubOnly(c.collection('lessons')).get(), C.me ? c.collection('progress').doc(C.me.uid).get().catch(function () { return null; }) : null]).then(function (r) {
       cur = co; mods = arr(r[0]); lessons = arr(r[1]);
@@ -297,7 +297,7 @@
     var box = bg.querySelector('#av-b');
     if (a.ct === 'application/pdf') pv = CHP.pdf(box, function () { return fetchFile(l.id, i); }, user, {});
     else {
-      box.innerHTML = '<div class="cx-empty">Loading…</div>';
+      box.innerHTML = (window.skel ? skel.html('cards', 3) : '<div class="cx-empty">Loading…</div>');
       fetchFile(l.id, i).then(function (buf) { url = URL.createObjectURL(new Blob([buf], { type: a.ct })); box.innerHTML = '<div class="cx-imgwrap"><img src="' + url + '" alt="' + E(a.name) + '"></div>'; CHP.watermark(box.firstChild, user); })
         .catch(function () { box.innerHTML = '<div class="cx-empty">Could not open this file.</div>'; });
     }

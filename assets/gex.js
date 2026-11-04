@@ -430,6 +430,7 @@
   // Put the full candle set into the series (load / refresh only).
   function setSeriesData(){
     tvSeries.setData(CANDLES);
+    var sk = $('gex-skel'); if (sk) sk.remove();
     renderPriceLines();
   }
 

@@ -214,8 +214,8 @@
         }).join('') + '</tbody></table></div>' : '<p class="cx-muted">Nobody has been given this indicator alone yet.</p>') + '</div>' +
       '<div class="cx-box" style="margin-top:12px"><h3>Invite codes for this indicator</h3><p class="cx-muted">Anyone with a code and a verified email gets the indicator (not the community).</p>' +
       '<form id="cd-f" class="cx-row" novalidate><input id="cd-max" class="cx-in" type="number" min="0" max="100000" value="0" aria-label="Max uses (0 = unlimited)" style="flex:1 1 110px"><input id="cd-days" class="cx-in" type="number" min="0" max="3650" value="0" aria-label="Access days (0 = no end)" style="flex:1 1 110px"><input id="cd-lbl" class="cx-in" type="text" maxlength="60" placeholder="Label (optional)" style="flex:2 1 160px"><button class="btn btn-primary" type="submit">Create code</button></form>' +
-      '<div class="hint">Max uses 0 = unlimited. Access days 0 = no end.</div><div id="cd-list" class="cx-muted">Loading…</div></div>' +
-      '<div class="cx-box" style="margin-top:12px"><h3>Version history</h3><div id="vh" class="cx-muted">Loading…</div></div>' +
+      '<div class="hint">Max uses 0 = unlimited. Access days 0 = no end.</div><div id="cd-list" class="cx-muted">' + (window.skel ? skel.html('lines', 3) : 'Loading…') + '</div></div>' +
+      '<div class="cx-box" style="margin-top:12px"><h3>Version history</h3><div id="vh" class="cx-muted">' + (window.skel ? skel.html('lines', 3) : 'Loading…') + '</div></div>' +
       '<div class="cx-box" style="margin-top:12px"><h3>Remove</h3><p class="cx-muted">Deleting removes it from every member\'s chart on their next load.</p><button class="btn btn-ghost" id="id-del" type="button">Delete indicator</button></div>';
     el.innerHTML = h;
     $('id-back').onclick = function () { sub = 'list'; open = null; draw(el); };

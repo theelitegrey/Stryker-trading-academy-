@@ -643,7 +643,7 @@ export function mountWatchlist(ws, o){
     thead.appendChild(el('span', { class: 'stkw-c0', text: 'Symbol', role: 'columnheader' }));
     C.forEach(([k, l]) => thead.appendChild(el('span', { class: 'stkw-cn stkw-' + k, text: l, role: 'columnheader', title: k === 'ext' ? 'Extended hours: change since the last regular-session close (futures, outside regular hours)' : null })));
     body.innerHTML = '';
-    if (loading) { body.appendChild(el('p', { class: 'stkw-empty', text: 'Loading…' })); return; }
+    if (loading) { if (window.skel) { const w = el('div'); w.innerHTML = skel.html('rows', 10, 3, 28); body.appendChild(w); } else body.appendChild(el('p', { class: 'stkw-empty', text: 'Loading…' })); return; }
     if (!cur) { body.appendChild(el('p', { class: 'stkw-empty', text: 'No list.' })); return; }
     if (flagFilter && !body.querySelector('.stkw-row') && cur.items.some((x) => !isSec(x))) body.appendChild(el('p', { class: 'stkw-empty', text: 'No symbols with this flag. Use the flag button to show all.' }));
     if (!cur.items.length) body.appendChild(el('p', { class: 'stkw-empty', text: viewing ? 'This list is empty.' : 'This list is empty. Use + to add a symbol.' }));

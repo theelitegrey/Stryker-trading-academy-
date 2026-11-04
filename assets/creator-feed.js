@@ -79,7 +79,7 @@
   }
   function toggleComments(id) { open[id] = !open[id]; var b = $('cf-cs-' + id); if (!open[id]) { b.hidden = true; drawFeed(); return; } drawFeed(); }
   function loadComments(id) {
-    var box = $('cf-cs-' + id); box.hidden = false; box.innerHTML = '<div class="cx-muted">Loading…</div>';
+    var box = $('cf-cs-' + id); box.hidden = false; box.innerHTML = (window.skel ? skel.html('lines', 3) : '<div class="cx-muted">Loading…</div>');
     col('comments').where('postId', '==', id).limit(100).get().then(function (s) {
       var cs = arr(s).sort(function (a, b) { return ms(a.createdAt) - ms(b.createdAt); });
       box.innerHTML = cs.map(function (k) {
@@ -180,7 +180,7 @@
 
   // ---------------------------------------------------------------- leaderboard
   function board(el) {
-    el.innerHTML = '<div class="cx-empty">Loading…</div>';
+    el.innerHTML = (window.skel ? skel.html('cards', 3) : '<div class="cx-empty">Loading…</div>');
     var since = CH.stamp(new Date(Date.now() - DAYS * 86400000));
     Promise.all([col('posts').where('createdAt', '>=', since).limit(500).get(), col('comments').where('createdAt', '>=', since).limit(1000).get()]).then(function (r) {
       var by = {};

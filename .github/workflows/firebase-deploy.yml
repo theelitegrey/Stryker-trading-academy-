@@ -38,6 +38,19 @@ jobs:
             FB_TOKEN_FILE=/tmp/fbtok python3 "$t" functions-src/firestore.rules | tee /tmp/out.txt | tail -5
             python3 -c "import re,sys;m=re.search(r'([0-9]+)/([0-9]+) passed',open('/tmp/out.txt').read());sys.exit(0 if m and m.group(1)==m.group(2) else 1)" || { echo "::error::rules test failed: $t"; exit 1; }
           done
+      - name: Resend key to Secret Manager
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          # Same route as TWITTERAPI_KEY: the function binds the secret by name (runWith secrets).
+          # Skipped when the repo secret is absent (the secret may already be set).
+          [ -n "$RESEND_API_KEY" ] || { echo "RESEND_API_KEY repo secret not set: skipping"; exit 0; }
+          mkdir -p /tmp/fbs && cd /tmp/fbs
+          printf '{}' > firebase.json
+          printf '%s' "$RESEND_API_KEY" | tr -d '[:space:]' > /tmp/resend.key
+          npx --yes firebase-tools@13 functions:secrets:set RESEND_API_KEY --project "$P" --data-file /tmp/resend.key --force --non-interactive --token "$FIREBASE_TOKEN" >/dev/null 2>&1 \
+            && echo "RESEND_API_KEY set" || echo "::warning::could not set RESEND_API_KEY (needs Secret Manager rights); deploy uses the existing secret"
+          rm -f /tmp/resend.key
       - name: Deploy rules + functions
         run: |
           set -e

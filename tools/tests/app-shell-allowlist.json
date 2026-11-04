@@ -10,7 +10,8 @@
   "features/journal": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
   "features/market-stats": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
   "features/orderflow": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
-  "features/smart-money-desk": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)"
+  "features/smart-money-desk": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
+  "licenses": "open-source license notice (legal), noindex, no nav link"
  },
  "dual": {
   "suggestions": "public ideas board; app shell when signed in",

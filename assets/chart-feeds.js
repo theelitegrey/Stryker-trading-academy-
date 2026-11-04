@@ -18,7 +18,7 @@ export const L3_SOON = "Individual-order data (L3) isn't available yet.";
 // WHY NOTES (Owner 2026-11-03): subtle reason shown every time a locked feed is on the chart, in the Unlock prompt and in the sheet. Edit the words here only.
 // Plain English: no prices, no fee amounts, no vendor names except CME / "the exchange", no "required by law".
 export const WHY = {
-  futures: { short: 'Live exchange data · Pro', long: "Live futures data comes from the exchange (CME) under a paid licence. The licence lets us show it only to paying members, so we can't include it free. It's part of Pro." },
+  futures: { short: 'Order book · Pro', long: "The futures order book (L2) comes from the exchange (CME) under a paid licence, so it's part of Pro. Live trades, candles and best bid/ask (L1) are free once you sign the market data agreement." },
   crypto: { short: 'Full order book · Pro', long: "The full order book streams thousands of price updates a second from several exchanges. That's costly to run, so it's part of Pro. Trades and candles stay free." }
 };
 export const whyFor = (mkt, L) => (L === 'L3' ? null : mkt === 'crypto' ? WHY.crypto : mkt === 'futures' ? WHY.futures : null);

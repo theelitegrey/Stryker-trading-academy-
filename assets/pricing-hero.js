@@ -105,7 +105,8 @@
     ['ZoroCharts', [
       ['ZoroCharts, every chart type, drawing and indicator', true, true],
       ['Alerts, layouts and paper trading; Replay One for backtesting and replay', true, true],
-      ['Futures data', '10 min delayed (CME rule)', '10 min delayed (CME rule)'],
+      ['Live futures L1 (with the market data agreement)', true, true],
+      ['L2 order book: heatmap, DOM ladder', false, true],
       ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', false, true],
       ['GEX on the charts: levels, heatmap, ladder, expected move', false, true]]],
     ['Market desk', [

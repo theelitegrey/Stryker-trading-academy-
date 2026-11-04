@@ -13,6 +13,6 @@
     { "name": "RLN", "namespace_id": "52402", "simple": { "limit": 60, "period": 60 } },
     { "name": "RL_OF", "namespace_id": "52403", "simple": { "limit": 60, "period": 60 } }
   ],
-  "vars": { "SYMBOLS": "BTCUSDT,ETHUSDT", "IS_MAX_LEGS": "5", "IS_MAX_SOCKETS": "1", "TS_ACCESS": "pro", "TS_MODE": "direct", "TS_KEEP_HOURS": "48" },
+  "vars": { "SYMBOLS": "BTCUSDT,ETHUSDT", "IS_MAX_LEGS": "5", "IS_MAX_SOCKETS": "1", "TS_ACCESS": "pro", "TS_MODE": "direct", "TS_KEEP_HOURS": "48", "TS_MAX_CLIENTS": "150" },
   "observability": { "enabled": true }
 }

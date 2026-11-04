@@ -6,7 +6,7 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8011', OUT = process.ar
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fail = 0; const check = (ok, m, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + m + (ok ? '' : ' ' + JSON.stringify(x).slice(0, 400))); };
-const FUT = /Live exchange data · Pro/, CRY = /Full order book · Pro/;
+const FUT = /Order book · Pro/, CRY = /Full order book · Pro/;
 async function open(b, { w, h, mobile, theme, plan, sym }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile });
   await ctx.addInitScript(stub);

@@ -15,7 +15,7 @@ async function run(b, { w, h, mobile, theme }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript((theme) => {
-    try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', theme); localStorage.setItem('theme', theme); } catch (e) {}
+    try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', theme === 'light' ? 'day' : 'night'); localStorage.setItem('theme', theme); } catch (e) {}
     window.__stkChartTestFree = true;
     const user = { uid: 'u-free', getIdToken: () => Promise.resolve('dummy.free.token') };
     firebase.apps = [{}];

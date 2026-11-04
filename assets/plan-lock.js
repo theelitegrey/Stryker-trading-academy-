@@ -138,7 +138,7 @@
       cta.href = 'checkout.html?plan=' + encodeURIComponent(pro.id);
       var name = (typeof planDisplayName === 'function') ? planDisplayName(pro) : 'Pro';
       if (cta.getAttribute('data-trial') !== '1') cta.textContent = 'Get ' + name;
-      // Paywall price: "Pro: $19 / month", live plan price in the visitor's currency (plan-price.js).
+      // Paywall price: "Pro: $20 / month", live plan price in the visitor's currency (plan-price.js).
       if (typeof planSaleInfo === 'function' && typeof planMoneyDisplay === 'function') {
         var pr = el.querySelector('.plan-lock-price');
         pr.textContent = name + ': ' + planMoneyDisplay(planSaleInfo(pro).price) + ' / ' + (pro.period || 'month');

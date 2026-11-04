@@ -23,7 +23,7 @@ const lsSet = (k, v) => { try { if (v) localStorage.setItem(k, v); else localSto
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const toast = (type, m) => { try { window.showToast(type, m); } catch (e) {} };
 
-const CSS = `
+export const CSS = `
 .rjs-back{ position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,.55); display:flex; align-items:flex-end; justify-content:center; animation:rjs-fade .2s cubic-bezier(.2,0,0,1); }
 .rjs{ --rz-font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Roboto,"Segoe UI",system-ui,sans-serif;
   --rz-pad:20px; --rz-tap:44px; --rz-field-h:52px; --rz-field-r:12px; --rz-btn-r:14px;

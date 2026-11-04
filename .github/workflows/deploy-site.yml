@@ -182,9 +182,11 @@ jobs:
           CTRADER_CLIENT_SECRET: ${{ secrets.CTRADER_CLIENT_SECRET }}
           DHAN_PARTNER_ID: ${{ secrets.DHAN_PARTNER_ID }}
           DHAN_PARTNER_SECRET: ${{ secrets.DHAN_PARTNER_SECRET }}
+          FINATIC_API_KEY: ${{ secrets.FINATIC_API_KEY }}
+          FINATIC_COMPANY_ID: ${{ secrets.FINATIC_COMPANY_ID }}
         run: |
           # Connect-your-own-data sign-in apps: each one is optional; a missing key keeps that row on "Coming soon" (probe says configured:false).
-          for n in ALPACA_CLIENT_ID ALPACA_CLIENT_SECRET TASTY_CLIENT_ID TASTY_CLIENT_SECRET UPSTOX_CLIENT_ID UPSTOX_CLIENT_SECRET FYERS_CLIENT_ID FYERS_CLIENT_SECRET CTRADER_CLIENT_ID CTRADER_CLIENT_SECRET DHAN_PARTNER_ID DHAN_PARTNER_SECRET; do
+          for n in ALPACA_CLIENT_ID ALPACA_CLIENT_SECRET TASTY_CLIENT_ID TASTY_CLIENT_SECRET UPSTOX_CLIENT_ID UPSTOX_CLIENT_SECRET FYERS_CLIENT_ID FYERS_CLIENT_SECRET CTRADER_CLIENT_ID CTRADER_CLIENT_SECRET DHAN_PARTNER_ID DHAN_PARTNER_SECRET FINATIC_API_KEY FINATIC_COMPANY_ID; do
             v="${!n}"
             if [ -n "$v" ]; then printf '%s' "$v" | npx --yes wrangler@4.138.0 pages secret put "$n" --project-name "${{ steps.proj.outputs.name }}" >/dev/null && echo "set $n"; fi
           done

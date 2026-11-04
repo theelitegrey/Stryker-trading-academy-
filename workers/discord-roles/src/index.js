@@ -2,8 +2,10 @@
 // tokens and links; the cron trigger re-checks every enrolled member every 15 minutes. Logic: src/core.js.
 import { DurableObject } from 'cloudflare:workers';
 import { Core } from './core.js';
+import { handleInteraction } from './buttons.js';
 
 const ORIGINS = ['https://tradezoro.com', 'https://www.tradezoro.com'];
+const u0 = (req) => new URL(req.url).pathname;
 const cors = (req) => {
   const o = req.headers.get('origin') || '';
   const ok = ORIGINS.includes(o) || /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(o) || /^https:\/\/[a-z0-9-]+\.[a-z0-9-]+\.pages\.dev$/.test(o);
@@ -23,6 +25,7 @@ export class DiscordHub extends DurableObject {
 
 export default {
   async fetch(req, env) {
+    if (u0(req) === '/discord/interactions' && req.method === 'POST') return handleInteraction(req, env);
     const stub = env.HUB.get(env.HUB.idFromName('main'));
     const u = new URL(req.url);
     if (u.pathname === '/__sweep') return new Response('not found', { status: 404 });

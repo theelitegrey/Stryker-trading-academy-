@@ -1,0 +1,30 @@
+// node workers/discord-roles/test/buttons.test.mjs
+import { handleInteraction, resetCache, GUILD } from '../src/buttons.js';
+let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
+const kp = await crypto.subtle.generateKey('Ed25519', true, ['sign', 'verify']);
+const toHex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
+const pub = toHex(await crypto.subtle.exportKey('raw', kp.publicKey));
+const ROLES = [['10001', 'Futures', 0], ['10002', 'Beginner', 0], ['10003', 'Intermediate', 0], ['10004', 'Advanced', 0], ['10009', 'Pro', 0], ['8', 'Futures', 8]];
+let calls = [];
+const f = async (url, o = {}) => { url = String(url); calls.push((o.method || 'GET') + ' ' + url.split('/v10')[1]);
+  if (url.endsWith('/roles')) return Response.json(ROLES.slice(0, 5).map(([id, name]) => ({ id, name, permissions: '0' })));
+  return new Response(null, { status: 204 }); };
+const send = async (obj, { bad = false } = {}) => {
+  const body = JSON.stringify(obj), ts = '123';
+  let sig = toHex(await crypto.subtle.sign('Ed25519', kp.privateKey, new TextEncoder().encode(ts + body)));
+  if (bad) sig = sig.replace(/^../, (h) => (h === 'ff' ? '00' : 'ff'));
+  const r = await handleInteraction(new Request('https://x/discord/interactions', { method: 'POST', body, headers: { 'x-signature-ed25519': sig, 'x-signature-timestamp': ts } }), { DISCORD_PUBLIC_KEY: pub, DISCORD_BOT_TOKEN: 't' }, f);
+  return { s: r.status, j: await r.json().catch(() => null) };
+};
+const click = (role, roles = [], guild = GUILD) => ({ type: 3, guild_id: guild, data: { custom_id: 'tzrole:' + role }, member: { user: { id: '77777' }, roles } });
+let r = await send({ type: 1 }, { bad: true }); ok(r.s === 401, 'bad signature -> 401');
+r = await send({ type: 1 }); ok(r.s === 200 && r.j.type === 1, 'ping -> pong');
+calls = []; r = await send(click('10001'));
+ok(r.j.data.flags === 64 && r.j.data.content === '✅ Added Futures' && calls.includes('PUT /guilds/' + GUILD + '/members/77777/roles/10001'), 'add role, ephemeral');
+calls = []; r = await send(click('10001', ['10001']));
+ok(r.j.data.content === 'Removed Futures' && calls.includes('DELETE /guilds/' + GUILD + '/members/77777/roles/10001'), 'remove role');
+calls = []; r = await send(click('10009')); ok(/cannot/.test(r.j.data.content) && !calls.some((c) => c.startsWith('PUT')), 'role off allow-list refused');
+calls = []; r = await send(click('10001', [], '42')); ok(!calls.length && r.j.data.flags === 64, 'wrong guild refused, no calls');
+calls = []; r = await send(click('10002', ['10003', '10004', '10001']));
+ok(calls.includes('PUT /guilds/' + GUILD + '/members/77777/roles/10002') && calls.some((c) => c.endsWith('/roles/10003') && c.startsWith('DELETE')) && calls.some((c) => c.endsWith('/roles/10004') && c.startsWith('DELETE')) && !calls.some((c) => c.endsWith('/roles/10001') && c.startsWith('DELETE')), 'level exclusive, markets untouched');
+console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);

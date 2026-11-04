@@ -27,7 +27,9 @@ jobs:
         with:
           node-version: 22
       - name: Tests (mock Discord + mock Firestore)
-        run: node --no-warnings workers/discord-roles/test/core.test.mjs
+        run: |
+          node --no-warnings workers/discord-roles/test/core.test.mjs
+          node --no-warnings workers/discord-roles/test/buttons.test.mjs
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -64,3 +66,15 @@ jobs:
           echo "Worker: $URL"
           curl -s -H 'Origin: https://tradezoro.com' "$URL/ready"; echo
           c=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' "$URL/sync"); echo "sync unsigned: HTTP $c"; test "$c" = 401
+      - name: Register interactions endpoint (only if different)
+        env:
+          D_BOT: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          [ -z "$D_BOT" ] && { echo "no bot token, skipping"; exit 0; }
+          echo "::add-mask::$D_BOT"
+          WANT=https://discord-roles.theelitegrey.workers.dev/discord/interactions
+          H="Authorization: Bot $D_BOT"
+          HAVE=$(curl -s -H "$H" https://discord.com/api/v10/applications/@me | jq -r '.interactions_endpoint_url // ""')
+          if [ "$HAVE" = "$WANT" ]; then echo "endpoint already set"; exit 0; fi
+          c=$(curl -s -o /tmp/patch.json -w '%{http_code}' -X PATCH -H "$H" -H 'Content-Type: application/json' -d "{\"interactions_endpoint_url\":\"$WANT\"}" https://discord.com/api/v10/applications/@me)
+          echo "PATCH endpoint: HTTP $c"; [ "$c" = 200 ] || { jq -r '.message // empty' /tmp/patch.json; exit 1; }

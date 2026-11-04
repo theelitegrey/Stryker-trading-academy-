@@ -14,6 +14,15 @@ def run(call, gid, plan, apply):
     if not g: print('ERROR cannot read guild'); return
     feats = g.get('features', []); community = 'COMMUNITY' in feats
     me = call('GET', '/users/@me') or {}
+    if not community:  # needs rules channel + level>=LOW + filter>=MEMBERS; welcome channel exists already
+        wc = next((c for c in call('GET', f'/guilds/{gid}/channels') or [] if c['name'] == plan['settings']['system_channel']), None)
+        if wc:
+            body = dict(features=sorted(set(feats) | {'COMMUNITY'}), rules_channel_id=wc['id'], public_updates_channel_id=wc['id'], preferred_locale='en-US',
+                        verification_level=plan['settings']['verification_level'], explicit_content_filter=plan['settings']['explicit_content_filter'])
+            if apply:
+                g2 = call('PATCH', f'/guilds/{gid}', body)
+                if g2: g = g2; feats = g.get('features', []); community = 'COMMUNITY' in feats
+            print(('APPLY' if apply else 'PLAN ') + ' enable Community ->', community if apply else 'would try')
     print('GUILD', g.get('name'), 'community:', community, 'features:', feats)
 
     # settings
@@ -54,6 +63,7 @@ def run(call, gid, plan, apply):
                 print(f"NOTE  {ch['name']}: no Community, falling back to text"); t = 'text'
             # existing channel: match by name regardless of type (a type cannot be changed safely)
             ex = find(ch['name'], False)
+            if ex and ex['type'] == 0 and t == 'announcement': do(f"channel type -> announcement #{ch['name']}", 'PATCH', f"/channels/{ex['id']}", dict(type=5))
             body = dict(name=ch['name'], type=TYPES[t], parent_id=cid[cat['name']])
             if t != 'voice' and ch.get('topic'): body['topic'] = ch['topic']
             if ch.get('slowmode') is not None and t in ('text', 'forum'): body['rate_limit_per_user'] = ch['slowmode']

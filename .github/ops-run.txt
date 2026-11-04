@@ -1,0 +1,1 @@
+tools/ops/verify_email.py --apply

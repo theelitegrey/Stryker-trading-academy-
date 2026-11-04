@@ -10,18 +10,18 @@
 // backfill and /ts-live frames), the trades are the L1 tools' own stores (chart-ts-trades.js tsOpen for futures; chart-footprint-crypto.js for Binance)
 // and the hub's footprint minutes (chart-futures-l2.js TickFeed). A "level" here is one book row as the recorder stores it (a few ticks wide, rule in ts-hub.js).
 // Same gate as the other L2 tools (futures: l2Visible(); crypto: Pro). No data = a plain note, never made-up numbers. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=870';
-import { isFree } from './chart-pro-gate.js?v=870';
-import { rtOnChange } from './rt-access.js?v=870';
-import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart-futures-l2.js?v=870';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=870';
-import { tsOpen } from './chart-ts-trades.js?v=870';
-import { aggregateMins } from './chart-ts-data.js?v=870';
-import { aggregate, profile as tradedProfile } from './chart-footprint-data.js?v=870';
-import * as BT from './chart-bigtrades.js?v=870';
-import { sweepEvents } from './chart-of-pro-data.js?v=870';
-import { sweepBars } from './chart-of-pro.js?v=870';
-import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=870';
+import { registerFeed } from './chart-feeds.js?v=871';
+import { isFree } from './chart-pro-gate.js?v=871';
+import { rtOnChange } from './rt-access.js?v=871';
+import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart-futures-l2.js?v=871';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=871';
+import { tsOpen } from './chart-ts-trades.js?v=871';
+import { aggregateMins } from './chart-ts-data.js?v=871';
+import { aggregate, profile as tradedProfile } from './chart-footprint-data.js?v=871';
+import * as BT from './chart-bigtrades.js?v=871';
+import { sweepEvents } from './chart-of-pro-data.js?v=871';
+import { sweepBars } from './chart-of-pro.js?v=871';
+import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=871';
 
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';

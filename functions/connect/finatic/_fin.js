@@ -34,6 +34,7 @@ export async function fin(env, deps, method, path, { headers = {}, query, body }
   if (query) for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   const h = { 'x-api-key': env.FINATIC_API_KEY, accept: 'application/json', ...headers };
   if (env.FINATIC_COMPANY_ID) h['x-company-id'] = env.FINATIC_COMPANY_ID;
+  if (env.FINATIC_ENV === 'sandbox' || env.FINATIC_ENV === 'live') h['X-Finatic-Environment'] = env.FINATIC_ENV;   // unset = whatever the key implies
   if (body !== undefined) h['content-type'] = 'application/json';
   let r;
   try {
@@ -60,4 +61,4 @@ export async function startSession(env, deps, finUserId) {
   if (!sessionId) return null;
   return { sessionId, companyId: pick(d, 'company_id', 'companyId'), csrf: pick(d, 'csrf_token', 'csrfToken'), userId: pick(d, 'user_id', 'userId'), authenticated: String(pick(d, 'status')).toLowerCase() === 'active' && !!pick(d, 'user_id', 'userId') };
 }
-export const sessionHeaders = (s) => ({ 'x-session-id': s.sessionId, ...(s.companyId ? { 'x-company-id': s.companyId } : {}), ...(s.csrf ? { 'x-csrf-token': s.csrf } : {}) });
+export const sessionHeaders = (s) => ({ 'x-session-id': s.sessionId, 'session-id': s.sessionId, ...(s.companyId ? { 'x-company-id': s.companyId } : {}), ...(s.csrf ? { 'x-csrf-token': s.csrf } : {}) });

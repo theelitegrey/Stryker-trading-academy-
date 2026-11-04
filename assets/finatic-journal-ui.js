@@ -83,7 +83,7 @@ export function openBrokerSync({ uid } = {}) {
     const b = q('#fjs-cont') || q('#fjs-have'); if (b) busy(b, 'Loading accounts');
     try {
       const a = await data('accounts');
-      S.accounts = (Array.isArray(a) ? a : []).map((x) => ({ id: x.accountId || x.id, name: x.accountName || x.name || x.nickname || x.brokerAccountId || x.accountId, broker: x.brokerName || x.brokerId || x.institutionName || '', cur: x.currency || '' })).filter((x) => x.id);
+      S.accounts = (Array.isArray(a) ? a : []).map((x) => ({ id: x.accountId || x.id, name: x.accountName || x.name || x.nickname || x.brokerAccountId || x.accountId, broker: x.brokerName || x.brokerId || x.institutionName || '', cur: x.currencyCode || x.currency || '' })).filter((x) => x.id);
       if (!S.accounts.length) { S.step = 'wait'; return drawWait('No connected accounts yet. Finish connecting in the broker tab, then tap Continue.'); }
       S.account = S.accounts[0]; S.step = 'pick'; draw();
     } catch (e) { if (e.needsConnect) { S.userId = ''; lsSet(''); S.step = 'start'; return drawStart(S.sessionId ? 'Not connected yet. Finish in the broker tab first.' : ''); } if (e.status === 503) return drawNotSetUp(); S.step = S.step === 'start' ? 'start' : 'wait'; (S.step === 'start' ? drawStart : drawWait)(e.message); }

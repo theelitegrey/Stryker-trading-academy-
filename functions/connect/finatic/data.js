@@ -30,8 +30,8 @@ export async function handle(request, env, deps = {}) {
   // Finatic user: the id the Connect portal created for this admin. Known id (kept by the admin's browser) or the session that just ran the portal.
   let finUser = typeof b.userId === 'string' && UUID.test(b.userId) ? b.userId : '';
   if (!finUser && typeof b.sessionId === 'string' && ID.test(b.sessionId)) {
-    const u = await fin(env, deps, 'GET', '/api/v1/session/' + encodeURIComponent(b.sessionId) + '/user');
-    finUser = (u.ok && u.data && (u.data.user_id || u.data.userId)) || '';
+    const u = await fin(env, deps, 'GET', '/api/v1/sessions/' + encodeURIComponent(b.sessionId) + '/user');
+    finUser = (u.ok && u.data && (u.data.userId || u.data.user_id)) || '';
   }
   if (!finUser) return json({ error: 'Not connected yet', needsConnect: true }, 409);
   const s = await startSession(env, deps, finUser);

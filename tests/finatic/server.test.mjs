@@ -22,14 +22,14 @@ const verifyFetch = async (url) => {
   if (m) return ADMINS.has(decodeURIComponent(m[1])) ? new Response('{}', { status: 200 }) : new Response('{}', { status: 404 });
   return new Response('{}', { status: 500 });
 };
-const calls = [];
+const calls = []; const envHdr = [];
 const finFetch = async (url, init) => {
-  const u = new URL(url); calls.push({ method: init.method, path: u.pathname, key: init.headers['x-api-key'] });
+  const u = new URL(url); envHdr.push(init.headers['X-Finatic-Environment']); calls.push({ method: init.method, path: u.pathname, key: init.headers['x-api-key'] });
   const ok = (data) => new Response(JSON.stringify({ data, errors: [] }), { status: 200 });
   if (u.pathname === '/api/v1/session/init') return ok({ one_time_token: 'ott' });
   if (u.pathname === '/api/v1/session/start') return ok({ session_id: 'sess1', company_id: 'c1', csrf_token: 'x', status: 'active', user_id: JSON.parse(init.body || '{}').user_id || 'u-new' });
   if (u.pathname === '/api/v1/session/portal') return ok({ portal_url: 'https://portal.finatic.dev/?t=secret' });
-  if (u.pathname.endsWith('/user')) return ok({ user_id: '0aaa1111-2222-3333-4444-555566667777' });
+  if (u.pathname.endsWith('/user')) return ok({ userId: '0aaa1111-2222-3333-4444-555566667777' });
   if (u.pathname.endsWith('/fills')) return ok([{ fillId: 'f1' }]);
   return ok([{ accountId: 'a' }]);
 };
@@ -93,4 +93,18 @@ assert.equal(await status(D.handle(req({ op: 'accounts' }, token('admin1')), env
 r = await D.handle(req({ op: 'accounts', sessionId: 'sess1' }, token('admin1')), env, deps); assert.equal(r.status, 200); assert.equal((await r.json()).userId, '0aaa1111-2222-3333-4444-555566667777');
 // GET on data refused
 assert.equal(await status(D.handle(new Request('https://tradezoro.com/connect/finatic/data'), env, deps)), 405);
+// POST/PATCH/PUT/DELETE as HTTP methods on the orders route: refused, nothing sent upstream
+const n2 = calls.length;
+for (const method of ['PATCH', 'PUT', 'DELETE', 'GET']) {
+  const rr = await D.handle(new Request('https://tradezoro.com/connect/finatic/data', { method, headers: { origin: 'https://tradezoro.com', authorization: 'Bearer ' + token('admin1') } }), env, deps);
+  assert.equal(rr.status, 405, method);
+}
+// trading verbs as ops, with order ids / bodies: 400, nothing upstream
+for (const op of ['createOrder', 'POST /orders', 'DELETE', 'PATCH', 'modifyOrder', 'orders/create']) assert.equal(await status(D.handle(req({ op, accountId: ACC, orderId: 'o1', userId: ACC, order: { side: 'BUY' } }, token('admin1')), env, deps)), 400, op);
+assert.equal(calls.length, n2);
+// FINATIC_ENV -> X-Finatic-Environment header; unset -> none; junk ignored
+envHdr.length = 0; await D.handle(req({ op: 'accounts', userId: ACC }, token('admin1')), { ...env, FINATIC_ENV: 'sandbox' }, deps);
+assert.ok(envHdr.length > 0 && envHdr.every((h) => h === 'sandbox'));
+envHdr.length = 0; await D.handle(req({ op: 'accounts', userId: ACC }, token('admin1')), { ...env, FINATIC_ENV: 'bogus' }, deps); assert.ok(envHdr.every((h) => h === undefined));
+envHdr.length = 0; await D.handle(req({ op: 'accounts', userId: ACC }, token('admin1')), env, deps); assert.ok(envHdr.every((h) => h === undefined));
 console.log('finatic server: ok');

@@ -4,7 +4,7 @@
 // account is requested, kept or shown. The token swap is our own function (functions/connect/<id>/token.js); tokens live only in the
 // encrypted, user-bound device vault. Docs: upstox.com/developer/api-documentation (v3 historical-candle, Market Data Feed V3),
 // fyers.in/api-docs/v3 (history, quotes). The Upstox feed is protobuf (assets/vendor/upstox/MarketDataFeed.proto): decoded below, last price only.
-import { ALLOW, ADAPTERS, ROUTERS, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf } from './byo-core.js?v=864';
+import { ALLOW, ADAPTERS, ROUTERS, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf } from './byo-core.js?v=865';
 
 const HARD = { redirect: 'error', credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' };
 const dep = (d) => ({ fetch: (d && d.fetch) || ((...a) => globalThis.fetch(...a)), WS: (d && d.WS) || globalThis.WebSocket, now: (d && d.now) || Date.now });

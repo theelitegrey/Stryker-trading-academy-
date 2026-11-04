@@ -1,7 +1,7 @@
 // Unit test: ring-buffer column mapping + colour ramp texture bytes (assets/chart-heatmap-gl.js). node tools/tests/heatmap-gl.test.mjs
 import assert from 'assert';
 globalThis.location = { search: '' };
-const GL = await import('../../assets/chart-heatmap-gl.js?v=872').catch(async () => import('../../assets/chart-heatmap-gl.js'));
+const GL = await import('../../assets/chart-heatmap-gl.js?v=873').catch(async () => import('../../assets/chart-heatmap-gl.js'));
 const { RING_COLS: N, ringSlot, ringRuns, rampBytes, normOf } = GL;
 assert.equal(ringSlot(0), 0); assert.equal(ringSlot(N), 0); assert.equal(ringSlot(N + 5), 5); assert.equal(ringSlot(-1), N - 1);
 assert.deepEqual(ringRuns(10, 3), [[10, 3]]);

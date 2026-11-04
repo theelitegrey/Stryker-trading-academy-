@@ -20,6 +20,7 @@
 // INDICATOR ONLY: no order buttons, no click-to-trade. It describes resting orders and prints; it predicts nothing.
 // Education only. Not financial advice.
 
+import { hfConfig, hfCut, hfSchema } from './chart-heat-filter.js?v=862';
 const RAMP = [[0, 4, 10, 24], [0.10, 5, 34, 74], [0.25, 8, 92, 150], [0.42, 60, 160, 205], [0.55, 200, 230, 240], [0.66, 250, 236, 70], [0.80, 255, 150, 25], [0.92, 238, 44, 24], [1, 255, 238, 225]];
 export const LM_RAMP = RAMP;
 export function lmColor(n) {
@@ -51,16 +52,17 @@ function lutFor(expo) {
 const Q_LEVELS = [0.70, 0.86, 0.94, 0.975, 0.99, 0.998, 0.9995];
 const Q_TARGET = [0.03, 0.20, 0.40, 0.62, 0.80, 0.93, 1];
 function lutFromQ(qs, contrast) {
-  const l = new Uint32Array(LUT_N + 1), vTop = qs[qs.length - 1], pw = 1 / Math.max(0.2, contrast);
+  const l = new Uint32Array(LUT_N + 1), nArr = new Float32Array(LUT_N + 1), vTop = qs[qs.length - 1], pw = 1 / Math.max(0.2, contrast);
   for (let i = 0; i <= LUT_N; i++) {
     const v = vTop * (i / LUT_N) * (i / LUT_N);
     let n;
     if (v <= qs[0]) n = 0;
     else { let k = 1; while (k < qs.length - 1 && v > qs[k]) k++; n = Q_TARGET[k - 1] + (Q_TARGET[k] - Q_TARGET[k - 1]) * Math.min(1, (v - qs[k - 1]) / Math.max(1e-12, qs[k] - qs[k - 1])); }
-    n = Math.pow(Math.min(1, n), pw);
+    n = Math.pow(Math.min(1, n), pw); nArr[i] = n;
     const c = lmColor(n), a = Math.round(255 * Math.min(1, n / 0.04));
     l[i] = ((a << 24) | (c[2] << 16) | (c[1] << 8) | c[0]) >>> 0;
   }
+  l.n = nArr;
   return l;
 }
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -77,7 +79,7 @@ export const LM_SCHEMA = [
     tooltip: 'Each band is size resting in the order book at a price. Blue = small, yellow and orange = large, red and white = the biggest. A band ends where the orders were pulled or traded.' },
   { key: 'contrast', title: 'Contrast', type: 'float', defval: 1, min: 0.3, max: 3, step: 0.1,
     tooltip: 'Higher = more of the map lights up. Lower = only the biggest sizes stand out. The colours are scaled to the sizes in view (the largest 1.5% are clipped), so it adapts as you scroll.' },
-  { key: 'minSize', title: 'Min size (0 = show all)', type: 'float', defval: 0, min: 0, max: 1000000, step: 0.1,
+  { group: 'Filter', key: 'minSize', title: 'Min size (coins / contracts, 0 = off)', type: 'float', defval: 0, min: 0, max: 1000000, step: 0.1,
     tooltip: 'Hide resting sizes below this. Crypto: in coins (BTC, ETH). Futures: in contracts.' },
   { key: 'historyMinutes', title: 'History (minutes)', type: 'int', defval: 120, min: 10, max: 1440, step: 10,
     tooltip: 'How far back the map reaches. Crypto uses the stored order book history plus this page. Futures builds from the moment you connect, up to 2 hours.' },
@@ -93,9 +95,11 @@ export const LM_SCHEMA = [
   { key: 'showLegend', title: 'Colour scale (blue = small, yellow = large, red = biggest)', type: 'bool', defval: true,
     tooltip: 'Draws the colour scale with the sizes it stands for at the top left.' }
 ];
+LM_SCHEMA.splice(4, 0, ...hfSchema('coins / contracts', [{ table: 'lm' }]).filter((x) => x.key !== 'hfMin'));
 export function lmConfig(i) {
   i = i || {};
   return {
+    hf: hfConfig(i, 'lm'),
     hide: i.hideCandles !== false, heat: i.showHeat !== false,
     contrast: clamp(num(i.contrast, 1), 0.3, 3), minSize: Math.max(0, num(i.minSize, 0)),
     histMin: clamp(Math.round(num(i.historyMinutes, 120)), 10, 1440),
@@ -221,13 +225,13 @@ export function makeLayer(H) {
   let tex = null, tctx = null, img = null, px32 = null, grid = null, sm = null;
   let T = null;     // { c0, B, cols, rows, iHi, S, sig, lastTs, lo, cap, expo }
   const ag = { key: '', ver: -1, at: 0, bubbles: [], bars: new Map(), tb: 0 };
-  let capAt = 0, capTs = 0;
+  let capAt = 0, capTs = 0, hfScr = null, hfCuts = new Float32Array(0);
 
   function ensureTex(cols, rows) {
     if (!tex) tex = document.createElement('canvas');
     if (tex.width !== cols || tex.height !== rows) {
       tex.width = cols; tex.height = rows; tctx = tex.getContext('2d');
-      img = tctx.createImageData(cols, rows); px32 = new Uint32Array(img.data.buffer); grid = new Float32Array(cols * rows); sm = new Float32Array(cols * rows);
+      img = tctx.createImageData(cols, rows); px32 = new Uint32Array(img.data.buffer); grid = new Float32Array(cols * rows); sm = new Float32Array(cols * rows); hfCuts = new Float32Array(cols);
     } else { grid.fill(0); sm.fill(0); px32.fill(0); }
   }
   // paint one sample's rows into columns [ca, cb] of the grid
@@ -263,13 +267,18 @@ export function makeLayer(H) {
   function colour(T, ca, cb) {
     const lut = T.lut, n = T.cols, inv = 1 / Math.max(1e-12, T.vTop);
     ca = Math.max(0, ca); cb = Math.min(n - 1, cb);
+    // display filter: hides cells only (T.lut / T.vTop come from the unfiltered data). hfIdx = first lut index at the chosen colour step
+    const hf = T.hf, hfC = hfCuts; let hfIdx = 0;
+    if (hf.p) { while (hfIdx < LUT_N && lut.n[hfIdx] < hf.p) hfIdx++; }
+    hfC.fill(0, ca, cb + 1);
+    if (hf.top) { if (!hfScr || hfScr.length < T.rows) hfScr = new Float64Array(T.rows); for (let c = ca; c <= cb; c++) hfC[c] = hfCut(hf.top, sm, T.rows * n, hfScr, n, c); }
     for (let r = 0; r < T.rows; r++) {
       const o = r * n;
       for (let c = ca; c <= cb; c++) {
         const v = sm[o + c];
-        if (v <= T.lo) { px32[o + c] = 0; continue; }
-        const x = Math.sqrt(v * inv);
-        px32[o + c] = lut[x >= 1 ? LUT_N : (x * LUT_N) | 0];
+        if (v <= T.lo || (hf.max && v > hf.max) || v < hfC[c]) { px32[o + c] = 0; continue; }
+        const x = Math.sqrt(v * inv), li = x >= 1 ? LUT_N : (x * LUT_N) | 0;
+        px32[o + c] = li < hfIdx ? 0 : lut[li];
       }
     }
   }
@@ -349,7 +358,7 @@ export function makeLayer(H) {
           const hs = histOf();
           const c0 = Math.floor((now - histMs) / B);
           ensureTex(cols, rows);
-          T = { c0, B, cols, rows, iHi, iLo, S: step, sig: sigStatic, lastTs: 0, lo: 0, cap: 1, expo: 0.75, capKey: '' };
+          T = { c0, B, cols, rows, iHi, iLo, S: step, sig: sigStatic, lastTs: 0, lo: 0, cap: 1, expo: 0.75, capKey: '', hf: cfg.hf };
           for (let k = 0; k < hs.length; k++) {
             const s = hs[k];
             const tEnd = k + 1 < hs.length ? Math.min(hs[k + 1].ts, s.ts + (s.span || 10000)) : s.ts + (s.span || 1000);
@@ -394,7 +403,7 @@ export function makeLayer(H) {
         }
         const expo = cfg.contrast, lo2 = cfg.minSize;
         const capMoved = !T.capKey || Math.abs(newCap / T.cap - 1) > 0.08;
-        const inKey = expo + '|' + lo2;
+        const inKey = expo + '|' + lo2 + '|' + cfg.hf.key; T.hf = cfg.hf;
         if (T.full || capMoved || T.capKey !== inKey) {
           T.cap = newCap; T.expo = expo; T.qs = newQ || Q_LEVELS.map((f, k) => newCap * (0.1 + k * 0.15)); T.vTop = T.qs[T.qs.length - 1]; T.lut = lutFromQ(T.qs, expo); T.lo = Math.max(lo2, T.qs[0]); T.capKey = inKey;
           colour(T, 0, T.cols - 1); putCols(0, T.cols - 1); T.full = false; T.dirty = null; stat.recoloured = true;

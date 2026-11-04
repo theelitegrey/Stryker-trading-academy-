@@ -51,6 +51,18 @@ const frame = (p, a, z) => p.evaluate(([a, z]) => window.STRYKER_VELA.chart.setV
         check(d && d.gridLines > 1, eng + ' ' + w + ': time grid (' + (d && d.gridLabels) + ')');
         await p.mouse.move(5, 5).catch(() => {}); await sleep(500);
         await p.screenshot({ path: path.join(OUT, 'lm-' + eng + '-' + w + '.png') });
+        if (w === 1440 && !process.env.LM_SLOW) {   // display filter (assets/chart-heat-filter.js): blue cells go, warm cells stay
+          const blue = () => p.evaluate(() => { let n = 0, warm = 0; for (const c of document.querySelectorAll('#vela-chart canvas')) { if (!c.width) continue; let d; try { d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; } catch (e) { continue; } for (let q = 0; q < d.length; q += 4 * 5) { if (d[q + 3] < 200) continue; if (d[q + 2] > d[q] + 60 && d[q + 2] > 90) n++; else if (d[q] > 200 && d[q + 2] < 120) warm++; } } return [n, warm]; });
+          const setF = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_liqmap'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o);
+          const b0 = await blue(); await setF({ hfStep_lm: 'Yellow and above' }); await sleep(1500); const b1 = await blue();
+          check(b0[0] > 1000 && b1[0] < b0[0] * 0.5, eng + ' lm: Yellow and above hides the blue cells', [b0, b1]);
+          await setF({ hfStep_lm: 'All', hfTop: 1 }); await sleep(1500); const b2 = await blue();
+          check(b2[0] < b0[0] * 0.5, eng + ' lm: Top 1 per column hides most cells', [b0, b2]);
+          await setF({ hfTop: 0, hfMax: 1e-9 }); await sleep(1500);
+          check((await blue())[0] < b0[0] * 0.5, eng + ' lm: Max size hides cells');
+          await setF({ hfMax: 0 }); await sleep(1500);
+          check((await blue())[0] > b0[0] * 0.8, eng + ' lm: filters off = same look');
+        }
         if (w === 1440 && !process.env.LM_SLOW) {
           // settings: contrast / min size / hide candles off
           await p.evaluate(() => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_liqmap'); h.setInputs(Object.assign({}, h.inputValues(), { hideCandles: false, contrast: 2 })); });

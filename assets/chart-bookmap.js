@@ -7,6 +7,7 @@
 // cached by view + data version, and blitted. Pan / zoom / new data change the key and rebuild it (<= 4 ms at 390 on the fixture).
 //
 // STYLES is the style table: more looks (a name, a ramp and a scale) are added there, not as new branches.
+import { hfSize, hfCutOf } from './chart-heat-filter.js?v=862';
 export const BM_BG = [5, 7, 13];
 export const HOLD_MS = 5 * 60000;
 const RAMPS = {
@@ -70,7 +71,7 @@ export function drawBookmap(g, view) {
   const w = Math.max(0, x1 - x0), h = Math.max(0, bot - top);
   g.fillStyle = 'rgb(' + S.bg.join(',') + ')'; g.fillRect(x0, top, w + (view.fullW ? view.fullW - x1 : 0), h);
   if (!w || !h) return { cells: 0, columns: 0, ms: 0, rows: 0 };
-  const key = [view.version, view.look, view.colorBy, w, h, dpr, Math.round(view.priceTop * 100), Math.round(view.priceBot * 100), Math.round(view.tsToX(view.now - 3600000) * 4), Math.round(view.tsToX(view.now) * 4), view.gamma, view.hist.length, Math.floor(view.now / 5000)].join('|');
+  const key = [view.version, view.look, view.colorBy, w, h, dpr, Math.round(view.priceTop * 100), Math.round(view.priceBot * 100), Math.round(view.tsToX(view.now - 3600000) * 4), Math.round(view.tsToX(view.now) * 4), view.gamma, view.hf ? view.hf.key : '', view.hist.length, Math.floor(view.now / 5000)].join('|');
   if (cache.key === key && cache.canvas) { g.drawImage(cache.canvas, x0, top, w, h); return Object.assign({ ms: 0, cached: true }, cache.stat); }
   // samples in view, each with its pixel span [xa, xb): carried forward to the next sample, at most `hold`, the newest to the right edge
   const hs = view.hist, cols = [];
@@ -110,6 +111,7 @@ export function drawBookmap(g, view) {
   const rowPrice = new Float64Array(H); for (let y = 0; y < H; y++) rowPrice[y] = view.priceOfY(top + (y + 0.5) / dpr);
   const tiA = new Int16Array(H), sdA = new Uint8Array(H);
   let cells = 0, blue = 0, tot = 0; const scale = 1023 / (maxSz * 1.0001);
+  const hf = view.hf && view.hf.on ? view.hf : null, hfMinTi = hf ? Math.ceil(hf.p * 255 - 1e-9) : 0;   // display filter: hides cells only, the colours above are unfiltered
   // one value of column ci at a price row index (same step), 0 when outside / empty
   const at = (ci, ri) => { if (ci < 0 || ci >= cols.length) return 0; const q = cols[ci].s; if (q.step !== cols[Math.max(0, Math.min(cols.length - 1, ci))].s.step) return 0; const k = ri - q.i0; return k >= 0 && k < q.v.length ? q.v[k] : 0; };
   for (let ci = 0; ci < cols.length; ci++) {
@@ -118,7 +120,7 @@ export function drawBookmap(g, view) {
     const xa = Math.max(0, Math.round((c.xa - x0) * dpr)), xb = Math.min(W, Math.round((c.xb - x0) * dpr));
     if (xb <= xa) continue;
     // ramp index + side per pixel row for this column (-1 = empty), then the span is filled across its x range
-    const bound = S.sided ? boundOf(s) : 0;
+    const bound = S.sided ? boundOf(s) : 0, hfCutV = hf && hf.top ? hfCutOf(hf.top, v) : 0;
     for (let y = 0; y < H; y++) {
       let k = Math.floor(rowPrice[y] / step + 1e-9) - i0, a = 0, sg = 0;
       if (y > 0 && y < H - 1) {   // rows thinner than a device pixel: the pixel shows the biggest row it covers
@@ -131,7 +133,8 @@ export function drawBookmap(g, view) {
         const ri = Math.floor(rowPrice[y] / step + 1e-9), pv = at(ci - 1, ri), nx = at(ci + 1, ri);
         if (pv !== 0 && nx !== 0 && (pv > 0) === (nx > 0)) { a = pv < 0 ? -pv : pv; sg = pv; } else { tiA[y] = -1; continue; }
       }
-      const q = a * scale; tiA[y] = tmap[q > 1023 ? 1023 : q | 0]; sdA[y] = S.sided ? sideOf(rowPrice[y], bound, sg) : 0;
+      if (hf && (!hfSize(hf, a) || a < hfCutV)) { tiA[y] = -1; continue; }
+      const q = a * scale; tiA[y] = tmap[q > 1023 ? 1023 : q | 0]; if (tiA[y] < hfMinTi) { tiA[y] = -1; continue; } sdA[y] = S.sided ? sideOf(rowPrice[y], bound, sg) : 0;
     }
     const rowPx = H > 1 ? step / Math.abs(rowPrice[1] - rowPrice[0]) : 0, lineOn = S.lineHalf && rowPx > 4;
     for (let y = 0; y < H; y++) {
@@ -152,4 +155,4 @@ export function drawBookmap(g, view) {
   cache.key = key; cache.ms = performance.now() - t0; cache.p97 = p97; cache.maxSz = maxSz; cache.stat = { blueShare: tot ? Math.round(blue / tot * 100) : 0, cells, columns: cols.length, rows: H, p97: Math.round(p97) };
   return Object.assign({ ms: Math.round(cache.ms * 10) / 10 }, cache.stat);
 }
-export { lutOf };   // for chart-heatmap-gl.js (the colour ramp texture)
+export { lutOf, hfCutOf };   // for chart-heatmap-gl.js (the colour ramp texture)

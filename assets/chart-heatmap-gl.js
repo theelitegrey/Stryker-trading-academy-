@@ -39,20 +39,20 @@ const WORKER_SRC = 'const N=' + normOf.toString() + ';const M=new Map();onmessag
   'const r=N(cols,m.anchors,m.cap,m.gamma);postMessage({req:m.req,tmap:r.tmap,maxSz:r.maxSz,p97:r.p97});};';
 
 const VS = `#version 300 es
-in vec4 iSpan; in vec2 iRow; in vec4 iPrev; in vec4 iNext;   // xa, xb (device px), ring slot, rows | i0, step | prev: slot, i0, rows, - | next: same
+in vec4 iSpan; in vec2 iRow; in vec4 iPrev; in vec4 iNext; in float iCut;   // xa, xb (device px), ring slot, rows | i0, step | prev: slot, i0, rows, - | next: same
 uniform vec2 uCanvas; uniform vec2 uY;  // canvas size, heat area y0..y1 (device px)
-flat out vec4 vSpan; flat out vec2 vRow; flat out vec4 vPrev; flat out vec4 vNext;
+flat out vec4 vSpan; flat out vec2 vRow; flat out vec4 vPrev; flat out vec4 vNext; flat out float vCut;
 void main() {
   vec2 c = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1));
   vec2 p = vec2(mix(iSpan.x, iSpan.y, c.x), mix(uY.x, uY.y, c.y));
   gl_Position = vec4(p.x / uCanvas.x * 2.0 - 1.0, 1.0 - p.y / uCanvas.y * 2.0, 0.0, 1.0);
-  vSpan = iSpan; vRow = iRow; vPrev = iPrev; vNext = iNext;
+  vSpan = iSpan; vRow = iRow; vPrev = iPrev; vNext = iNext; vCut = iCut;
 }`;
 const FS = `#version 300 es
 precision highp float; precision highp int; precision highp sampler2D;
-flat in vec4 vSpan; flat in vec2 vRow; flat in vec4 vPrev; flat in vec4 vNext;
+flat in vec4 vSpan; flat in vec2 vRow; flat in vec4 vPrev; flat in vec4 vNext; flat in float vCut;
 uniform sampler2D uBook; uniform sampler2D uRamp; uniform sampler2D uTmap;
-uniform float uH, uTy0, uHh, uTop, uDpr, uP0, uDp, uScale, uSided, uGlow, uGlowFrom, uLine;
+uniform float uH, uTy0, uHh, uTop, uDpr, uP0, uDp, uScale, uSided, uGlow, uGlowFrom, uLine, uMin, uMax, uMinTi;   // uMin/uMax/uMinTi + vCut: the display filter (uMax 0 = off)
 out vec4 o;
 float price(float r) { return uP0 + (uTop + (r + 0.5) / uDpr) * uDp; }   // priceOfY is linear in y
 float sz(float slot, float i0, float n, float ri) {   // size at absolute row index ri in a column, 0 outside
@@ -73,9 +73,11 @@ float cell(float r, out float side) {
     float pv = sz(vPrev.x, vPrev.y, vPrev.z, ri), nx = sz(vNext.x, vNext.y, vNext.z, ri);
     if (pv != 0.0 && nx != 0.0 && (pv > 0.0) == (nx > 0.0)) { a = abs(pv); sg = pv; } else return -1.0;
   }
+  if (a < uMin || (uMax > 0.0 && a > uMax) || a < vCut) return -1.0;
   side = uSided < 0.5 ? 0.0 : (vNext.w > 0.5 ? (pc > vPrev.w ? 1.0 : 0.0) : (sg < 0.0 ? 1.0 : 0.0));
   float q = min(1023.0, floor(a * uScale));
   float ti = floor(texelFetch(uTmap, ivec2(int(q), 0), 0).r * 255.0 + 0.5);
+  if (ti < uMinTi) return -1.0;
   float rowPx = step / (abs(uDp) / uDpr);
   if (uLine > 0.0 && rowPx > 4.0 && ti >= uGlowFrom) {   // a wall: crisp line in the middle of its row, dimmer body
     float fr = pc / step, d = abs(fr - floor(fr + 1e-9) - 0.5) * rowPx;
@@ -90,7 +92,7 @@ void main() {
   o = vec4(texelFetch(uRamp, ivec2(int(ti), int(sd)), 0).rgb, 1.0);
 }`;
 
-const STRIDE = 14;   // floats per column instance
+const STRIDE = 15;   // floats per column instance
 let probe = null;
 // true when a WebGL2 context can be made, chart-bookmap.js exports the ramp, and ?hm2d=1 (debug: old 2D path) is not set
 export function heatmapGLOk() {
@@ -120,9 +122,9 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-    loc = {}; for (const n of ['uCanvas', 'uY', 'uBook', 'uRamp', 'uH', 'uTmap', 'uHh', 'uTy0', 'uTop', 'uDpr', 'uP0', 'uDp', 'uScale', 'uSided', 'uGlow', 'uGlowFrom', 'uLine']) loc[n] = gl.getUniformLocation(prog, n);
+    loc = {}; for (const n of ['uCanvas', 'uY', 'uBook', 'uRamp', 'uH', 'uTmap', 'uHh', 'uTy0', 'uTop', 'uDpr', 'uP0', 'uDp', 'uScale', 'uSided', 'uGlow', 'uGlowFrom', 'uLine', 'uMin', 'uMax', 'uMinTi']) loc[n] = gl.getUniformLocation(prog, n);
     vao = gl.createVertexArray(); gl.bindVertexArray(vao); vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    for (const [n, size, off] of [['iSpan', 4, 0], ['iRow', 2, 16], ['iPrev', 4, 24], ['iNext', 4, 40]]) { const a = gl.getAttribLocation(prog, n); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, size, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(a, 1); }
+    for (const [n, size, off] of [['iSpan', 4, 0], ['iRow', 2, 16], ['iPrev', 4, 24], ['iNext', 4, 40], ['iCut', 1, 56]]) { const a = gl.getAttribLocation(prog, n); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, size, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(a, 1); }
     rampTex = gl.createTexture(); tmapTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tmapTex); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R8, 1024, 1); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); tmapDirty = true; tex = null; texH = 0; rampName = '';
     owner = new Map(); slotV = new Array(RING_COLS); seq = 0; sentKey = ''; if (worker) { worker.terminate(); worker = null; }
   }
@@ -225,13 +227,14 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     // instances: span, ring slot, rows, i0, step, and the previous / next visible column (for the one-sample hold)
     if (inst.length < cols.length * STRIDE) inst = new Float32Array(cols.length * STRIDE * 2);
     let nI = 0, cells = 0;
+    const hf = view.hf && view.hf.on ? view.hf : null, hfTop = hf ? hf.top : 0;
     const nb = (ci, s) => { const q = ci >= 0 && ci < cols.length ? cols[ci].s : null, sl = q && q.step === s.step ? owner.get(q.v) : undefined; return sl === undefined ? [-1, 0, 0] : [sl, q.i0, Math.min(q.v.length, texH)]; };
     for (let ci = 0; ci < cols.length; ci++) {
       const c = cols[ci], xa = Math.max(0, Math.round((c.xa - x0) * dpr) + tx0), xb = Math.min(fullX1, Math.round((c.xb - x0) * dpr) + tx0);
       const sl = owner.get(c.s.v); if (xb <= xa || sl === undefined) continue;
       const o = nI++ * STRIDE, s = c.s, pv = nb(ci - 1, s), nx = nb(ci + 1, s);
       inst[o] = xa; inst[o + 1] = xb; inst[o + 2] = sl; inst[o + 3] = Math.min(s.v.length, texH); inst[o + 4] = s.i0; inst[o + 5] = s.step;
-      inst[o + 6] = pv[0]; inst[o + 7] = pv[1]; inst[o + 8] = pv[2]; inst[o + 9] = S.sided ? BM.boundOf(s) : 0; inst[o + 10] = nx[0]; inst[o + 11] = nx[1]; inst[o + 12] = nx[2]; inst[o + 13] = S.sided && inst[o + 9] > 0 ? 1 : 0; cells += s.v.length;
+      inst[o + 6] = pv[0]; inst[o + 7] = pv[1]; inst[o + 8] = pv[2]; inst[o + 9] = S.sided ? BM.boundOf(s) : 0; inst[o + 10] = nx[0]; inst[o + 11] = nx[1]; inst[o + 12] = nx[2]; inst[o + 13] = S.sided && inst[o + 9] > 0 ? 1 : 0; inst[o + 14] = hfTop ? BM.hfCutOf(hfTop, s.v) : 0; cells += s.v.length;
     }
     gl.useProgram(prog); gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, inst.subarray(0, nI * STRIDE), gl.STREAM_DRAW);
@@ -245,6 +248,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     gl.uniform2f(loc.uCanvas, W, H); gl.uniform2f(loc.uY, ty0, ty1); gl.uniform1f(loc.uH, H); gl.uniform1f(loc.uTy0, ty0); gl.uniform1f(loc.uHh, ty1 - ty0); gl.uniform1f(loc.uTop, top);
     gl.uniform1f(loc.uDpr, dpr); gl.uniform1f(loc.uP0, pa); gl.uniform1f(loc.uDp, dp);
     gl.uniform1f(loc.uScale, 1023 / maxSz); gl.uniform1f(loc.uSided, S.sided ? 1 : 0); gl.uniform1f(loc.uGlow, S.glow || 0); gl.uniform1f(loc.uGlowFrom, S.glowFrom || 0); gl.uniform1f(loc.uLine, S.lineHalf || 0);
+    gl.uniform1f(loc.uMin, hf ? hf.min : 0); gl.uniform1f(loc.uMax, hf ? hf.max : 0); gl.uniform1f(loc.uMinTi, hf ? Math.ceil(hf.p * 255 - 1e-9) : 0);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, nI);
     const ms = Math.round((performance.now() - t0) * 10) / 10;
     return { cells, columns: nI, ms, rows: ty1 - ty0, p97: Math.round(p97), gl: true, uploads: stats.uploads };

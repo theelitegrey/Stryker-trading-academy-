@@ -478,6 +478,7 @@ export function installFuturesL2(Core, H, reg) {
   // 1) Futures DOM Heatmap (L2): the Crypto DOM renderer on the futures book. Default view = Deep; walls = top 3 each side.
   const schema = H.DOM_SCHEMA.map((x) => {
     if (x.key === 'bucketUsd') return Object.assign({}, x, { title: 'Price bucket (points, 0 = auto)' });
+    if (x.group === 'Filter') return null;   // crypto's filter rows; the futures set (contracts, per look) is added below
     if (x.key === 'bookRangePct') return null;   // fixed +-0.4% by the Worker's recording rule
     if (x.key === 'historyMinutes') return Object.assign({}, x, { defval: 360, max: 2880, title: 'History window (minutes, recorder keeps 48 h)', tooltip: 'Recorded server-side every 5 s; older than a page load comes from the recorder.' });
     if (x.key === 'wallMinSec') return Object.assign({}, x, { defval: 30, title: 'Wall min lifetime (seconds)' });
@@ -488,6 +489,10 @@ export function installFuturesL2(Core, H, reg) {
   schema.unshift({ key: 'look', title: 'Style', type: 'string', defval: 'Midnight', options: ['Midnight', 'Zoro', 'Classic', 'Split'] });
   schema.splice(1, 0, { key: 'colorBy', title: 'Colour by (Split)', type: 'string', defval: 'Side', options: ['Side', 'Heat'], when: { key: 'look', anyOf: ['Split'] } });
   schema.splice(1, 0, { key: 'contrast', title: 'Contrast (Bookmap / Split)', type: 'float', defval: 1, min: 0.5, max: 2.5, step: 0.1 }, { key: 'showDepthBars', title: 'Show depth bars (Bookmap)', type: 'bool', defval: true }, { key: 'showSizes', title: 'Show sizes (numbers on the depth bars)', type: 'bool', defval: true });
+  const HF = H.hfSchema('contracts', [{ table: 'midnight', when: { key: 'look', anyOf: ['Midnight'] } }, { table: 'zoro', when: { key: 'look', anyOf: ['Zoro'] } },
+    { table: 'splitSide', when: [{ key: 'look', anyOf: ['Split'] }, { key: 'colorBy', anyOf: ['Side'] }] }, { table: 'splitHeat', when: [{ key: 'look', anyOf: ['Split'] }, { key: 'colorBy', anyOf: ['Heat'] }] },
+    { table: 'deep', when: [{ key: 'look', anyOf: ['Classic'] }, { key: 'style', anyOf: [H.DOM_SCHEMA[0].options[0]] }] }]);
+  schema.push(...HF);
   schema.push({ key: 'gpuHeatmap', title: 'Graphics card (smoother)', type: 'bool', defval: true });
   schema.push({ key: 'l2Levels', title: 'Depth levels per side (ladder + bars)', type: 'string', defval: '60', options: ['20', '60', '150'] });
   schema.push({ key: 'l2Walls', title: 'Pulled / consumed tags in every view', type: 'bool', defval: true });
@@ -533,7 +538,7 @@ export function installFuturesL2(Core, H, reg) {
   Core.registerRendererLayer({ id: 'stk_fut_dom', placement: 'below-data', create: H.cryptoDomLayer });
   // 3) Liquidity Walls: the same engine, "Walls only" by default: big resting levels that persisted >= 30 s, faded when pulled; the end of
   // a wall is tagged PULLED (gone before trades reached it) or CONSUMED (traded through, from the tick feed).
-  const wallSchema = schema.filter((x) => x.key !== 'contrast' && x.key !== 'showDepthBars' && x.key !== 'showSizes' && x.key !== 'gpuHeatmap').map((x) => (x.key === 'style' ? Object.assign({}, x, { defval: x.options[4] }) : x.key === 'look' ? Object.assign({}, x, { defval: 'Classic' }) : x));
+  const wallSchema = schema.filter((x) => !String(x.key).startsWith('hfStep_') && x.key !== 'contrast' && x.key !== 'showDepthBars' && x.key !== 'showSizes' && x.key !== 'gpuHeatmap').map((x) => (x.key === 'style' ? Object.assign({}, x, { defval: x.options[4] }) : x.key === 'look' ? Object.assign({}, x, { defval: 'Classic' }) : x));
   Core.registerRendererLayer({ id: 'stk_fut_walls', placement: 'below-data', create: H.cryptoDomLayer });
   reg(Core, { type: 'stk_fut_walls', title: 'Liquidity Walls (L2)', shortTitle: 'Liquidity Walls', paneHint: 'price', overlay: true,
     inputsSchema: () => wallSchema, create: () => { const d = new Dom(); d.walls = true; return d; } });

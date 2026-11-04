@@ -32,6 +32,7 @@
 
 import { drawBookmap, BM_BG } from './chart-bookmap.js?v=862';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=862';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=862';
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=862';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=862';
 import * as ProGate from './chart-pro-gate.js?v=862';
@@ -1353,7 +1354,7 @@ const DOM_SCHEMA = [
   { key: 'showScale', title: 'Colour scale (Heatmap only)', type: 'bool', defval: true },
   { key: 'bidColor', title: 'Bid colour', type: 'color', defval: '#03c988' },
   { key: 'askColor', title: 'Ask colour', type: 'color', defval: '#e5484d' }
-];
+].concat(hfSchema('coins', [{ table: 'deep', when: { key: 'style', anyOf: [DOM_VIEWS[0]] } }]));
 // Old saved charts (before build 503) carry style 'liquidity heatmap' -> Combined, or
 // 'right ladder' -> Depth bars only. Their old keys (levels, minPct, widthPct, opacity) are
 // ignored, so an old 32% opacity / 36% ladder width does not carry over to the new look.
@@ -1369,7 +1370,11 @@ function domConfig(inputs) {
   // look: the futures L2 heatmap's style table (assets/chart-bookmap.js). 'bookmap' = heatmap only on a dark field; anything else = Classic
   let lk = String(i.look || '').toLowerCase(); if (lk === 'midnight') lk = 'bookmap';   // 'Midnight' = the display name (older saved charts say 'Bookmap')
   const bm = lk === 'bookmap' || lk === 'zoro' || lk === 'split';
+  // display filter (assets/chart-heat-filter.js): the colour step belongs to the ramp in use; Classic only has one in the Deep view
+  const colorHeat = String(i.colorBy || '').toLowerCase() === 'heat';
+  const hf = hfConfig(i, bm ? (lk === 'zoro' ? 'zoro' : lk === 'split' ? (colorHeat ? 'splitHeat' : 'splitSide') : 'midnight') : view === 'deep' ? 'deep' : null);
   if (bm) return {
+    hf,
     view: 'bookmap', bm: true, look: lk, colorBy: String(i.colorBy || '').toLowerCase() === 'heat' ? 'heat' : 'side', heat: false, walls: false, vanish: false, ice: false, twoTone: false, deep: false,
     gpu: i.gpuHeatmap !== false, depth: i.showDepthBars !== false, sizes: i.showSizes !== false, gamma: clamp(num(i.contrast, 1), 0.4, 2.5), widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
     opacity: 0.9, wallSizes: false, showBest: false, showScale: false, bid: str(i.bidColor, '#03c988'), ask: str(i.askColor, '#e5484d'), askDepth: str(i.askDepthColor, '#8b5cf6'),
@@ -1377,7 +1382,7 @@ function domConfig(inputs) {
     historyMin: clamp(Math.round(num(i.historyMinutes, 360)), 5, 2880)
   };
   return {
-    view,
+    view, hf,
     heat: view === 'heat' || (combined && i.showHeat !== false),
     depth: view === 'depth' || (combined && i.showDepth !== false), sizes: i.showSizes !== false,
     walls: view === 'walls' || (combined && i.showWalls !== false),
@@ -2198,7 +2203,7 @@ function cryptoDomLayer() {
         // the grid (backdrop canvas, drawn above this field) is dimmed while the heatmap is on, in this chart only
         try { const bd = canvas.nextElementSibling; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0') { bd.style.opacity = '0'; bd.__stkGridDim = true; } } catch (e) {}
         g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
-        const bmv = { look: cfg.look, colorBy: cfg.colorBy, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
+        const bmv = { hf: cfg.hf, look: cfg.look, colorBy: cfg.colorBy, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
           priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
         const wantGl = cfg.gpu && heatmapGLOk(); if (wantGl && !glr) glr = createHeatmapGL(canvas); else if (!wantGl && glr) { glr.destroy(); glr = null; }
         const r = (glr && glr.draw(g, bmv)) || drawBookmap(g, bmv);
@@ -2216,26 +2221,33 @@ function cryptoDomLayer() {
           g.fillStyle = r.style; g.fillRect(r.x0, y, Math.max(1, r.x1 - r.x0 + 0.5), h + 0.5); stat.cells++;
           if (i < hLo) hLo = i; if (i > hHi) hHi = i;
         };
+        const hf = cfg.hf && cfg.hf.on ? cfg.hf : null, hfStep = hf && cfg.deep && !cfg.twoTone ? hf.p : 0;   // colour step: Deep ramp only
         const styleOf = (v) => {
           if (cust) {
             if (!(Math.abs(v) > 0)) return null;
             const n = clamp(Math.log1p(Math.abs(v) / med) / lcap, 0, 1);
             if (cfg.twoTone) { const al = Math.round(cfg.opacity * (0.14 + 0.86 * n) * 40) / 40; return 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',' + al + ')'; }
-            const nq = Math.round(n * 32) / 32, c = deepColor(0.14 + 0.86 * Math.pow(nq, 1.35));
+            const nq = Math.round(n * 32) / 32;
+            if (hfStep && 0.14 + 0.86 * Math.pow(nq, 1.35) < hfStep) return null;
+            const c = deepColor(0.14 + 0.86 * Math.pow(nq, 1.35));
             return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (cfg.opacity * (0.28 + 0.72 * nq)).toFixed(2) + ')';
           }
           const n = Math.pow(Math.max(0, (Math.abs(v) - qLo) / (cap - qLo)), 0.75);
           if (n < 0.04) return null;
           if (cfg.twoTone) { const al = Math.round(cfg.opacity * Math.min(1, n * 1.3) * 20) / 20; return al > 0 ? 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',' + al + ')' : null; }
           // Deep: a steeper curve keeps ordinary size teal and saves yellow / red for the biggest resting orders
-          const nq = Math.round((cfg.deep ? Math.pow(n, 1.7) : n) * 24) / 24; const c = deepColor(nq);
+          const nq = Math.round((cfg.deep ? Math.pow(n, 1.7) : n) * 24) / 24;
+          if (hfStep && nq < hfStep) return null;
+          const c = deepColor(nq);
           return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (cfg.opacity * Math.min(1, 0.35 + nq)).toFixed(2) + ')';
         };
         for (let c = 0; c < cols.length; c++) {
           const col = cols[c], arr = colBins[c], seen = new Set();
+          const hfC = hf && hf.top ? hfCut(hf.top, arr, arr.length, null, 2, 1) : 0;
           for (let k = 0; k < arr.length; k += 2) {
             const i = arr[k], v = arr[k + 1];
             if (Math.abs(v) < qLo) continue;
+            if (hf && (!hfSize(hf, Math.abs(v)) || Math.abs(v) < hfC)) continue;
             const st = styleOf(v);
             if (!st) continue;
             seen.add(i);
@@ -2271,7 +2283,7 @@ function cryptoDomLayer() {
           const arr = colBins[c], col = cols[c];
           for (let k = 0; k < arr.length; k += 2) {
             const v = arr[k + 1];
-            if (Math.abs(v) < thr) continue;
+            if (Math.abs(v) < thr || (cfg.hf.on && !hfSize(cfg.hf, Math.abs(v)))) continue;
             const side = v > 0 ? 1 : -1, key = arr[k] * 2 + (side > 0 ? 1 : 0);
             let w = seen.get(key);
             if (!w) { w = { i: arr[k], side, t0: col.ts0, t1: col.ts1, x0: col.x0, x1: col.x1, max: 0, lastC: c, last: 0 }; seen.set(key, w); }
@@ -2591,7 +2603,7 @@ export function installOrderflow(Core) {
   reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
-  installFuturesL2(Core, { cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds }, reg);
+  installFuturesL2(Core, { hfSchema, cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds }, reg);
   installBookPack(Core, { line, message, pageIsDay }, reg);
   installPatterns(Core, {}, reg);   // Auto Chart Patterns: Free for every plan (assets/chart-patterns.js)
   installL2Flow(Core, { line, message, pageIsDay, acquireBookFeed }, reg);

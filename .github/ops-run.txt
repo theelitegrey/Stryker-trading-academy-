@@ -1,1 +1,1 @@
-tools/ops/email_action_url.py
+tools/ops/email_action_url.py --apply

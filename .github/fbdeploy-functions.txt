@@ -1,9 +1,2 @@
-acceptMarketDataAgreement
-stripeCreateCheckout
 stripeWebhook
-stripePortal
-stripeStatus
-razorpaySubscribe
-razorpaySubsVerify
-razorpayWebhook
 razorpaySubsCancel

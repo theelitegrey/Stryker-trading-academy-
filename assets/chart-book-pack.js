@@ -283,7 +283,12 @@ const TITLES = {
 
 // The chart mounts the pane from the FIRST emit and later emits only update the series it already has, so every emit
 // of Book Speed (including the 'Connecting...' one before the first frame) must carry this same series.
-const speedSeries = (points, color) => ({ id: 'bk-speed', title: 'Book changes per second', paneId: '', kind: 'histogram', points, style: { color, width: 1, lineStyle: 'solid', base: 0 } });
+const speedSeries = (points, color) => ({ id: 'bk-speed', title: 'Book speed (x usual pace)', paneId: '', kind: 'histogram', points, style: { color, width: 1, lineStyle: 'solid', base: 0 } });
+const balSeries = (bars, diff, bid, ask, I) => {
+  const series = [{ id: 'bk-diff', title: 'Bid - ask', paneId: '', kind: 'histogram', points: bars.map((x, i) => (diff[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(diff[i]), color: rgba(diff[i] >= 0 ? I.bidColor : I.askColor, 0.55) })), style: { color: I.bidColor, width: 1, lineStyle: 'solid', base: 0 } }];
+  if (I.showLines !== false) series.push(H.line('bk-bid', 'Resting bid size', bars, bid, I.bidColor, 2), H.line('bk-ask', 'Resting ask size', bars, ask, I.askColor, 2));
+  return series;
+};
 // ---------------------------------------------------------------------------------------- the indicator
 let H = null;
 class BkNative {
@@ -334,7 +339,7 @@ class BkNative {
     this.bind(g.spec);
     const s = this.h.s, I = this.inputs, ctx = this.ctx, bars = ctx.bars(), t = this.type;
     if (s.kind === 'futures' && bars.length) s.need(bars[0].time);
-    if (!s.last && !s.remote.length) { ctx.setStatus('loading'); ctx.emit({ series: t === 'stk_bk_speed' ? [speedSeries(bars.map((x) => ({ time: x.time, value: null })), I.normalColor)] : [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Connecting to the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
+    if (!s.last && !s.remote.length) { ctx.setStatus('loading'); ctx.emit({ series: t === 'stk_bk_speed' ? [speedSeries(bars.map((x) => ({ time: x.time, value: null })), I.normalColor)] : t === 'stk_bk_bal' ? balSeries(bars, bars.map(() => null), bars.map(() => null), bars.map(() => null), I) : [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Connecting to the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
     ctx.setStatus('live');
     const tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
     const kind = s.kind, ss = D.sessionStart(Date.now(), kind);
@@ -361,22 +366,25 @@ class BkNative {
   }
   drawSpeed(s, I, bars, tf, ss, since) {
     const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
-    const raw = D.perBar(v.all('speed'), bars, tf, 'mean'), sm = D.ema(raw, clamp(Math.round(num(I.smooth, 3)), 1, 30));
+    // history (recorder snapshots) and live (every update) are different measures, so each sample is divided by the median of its own segment first: one scale, bars read as "x the usual pace"
+    const all = v.all('speed'), cut = s.since || 0, med = (lo, hi) => { const sv = []; for (let i = 0; i < all.t.length; i++) if (all.t[i] >= lo && all.t[i] < hi && all.v[i] > 0) sv.push(all.v[i]); const m = sv.length >= 5 ? D.percentiles(sv, [50])[0] : null; return m > 0 ? m : null; };
+    const mh = med(0, cut || Infinity), ml = cut ? med(cut, Infinity) : null, rs = new D.Series(1e9);
+    for (let i = 0; i < all.t.length; i++) { const m = cut && all.t[i] >= cut ? ml : mh; if (m) rs.push(all.t[i], all.v[i] / m); }
+    const raw = D.perBar(rs, bars, tf, 'mean'), sm = D.ema(raw, clamp(Math.round(num(I.smooth, 3)), 1, 30));
     const b = this.bands(sm, bars, num(I.calmPct, 25), num(I.fastPct, 75)), cols = [I.calmColor, I.normalColor, I.fastColor], names = ['Calm', 'Normal', 'Fast'];
-    const pts = bars.map((x, i) => (sm[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(sm[i]), color: cols[b.band[i]] }));
+    const pts = bars.map((x, i) => (sm[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(sm[i] * 100) / 100, color: cols[b.band[i]] }));
     let li = sm.length - 1; while (li >= 0 && sm[li] == null) li--;
     const now = li >= 0 ? sm[li] : null, bi = li >= 0 ? b.band[li] : 1;
     this.ctx.emit({ series: [speedSeries(pts, I.normalColor)],
       priceLines: [{ id: 'bk-speed-0', paneId: '', price: 0, color: light() ? 'rgba(15,23,42,0.35)' : 'rgba(255,255,255,0.3)', lineStyle: 'dashed', width: 1, title: '' }],
-      tables: [this.legend(['Book Speed ' + (now == null ? '…' : now.toFixed(1) + '/s · ' + names[bi]), since || 'how nervous the book is'], cols[bi])] });
+      tables: [this.legend(['Book Speed ' + (now == null ? '…' : now.toFixed(1) + '× · ' + names[bi]), since || 'times the usual pace'], cols[bi])] });
     this.push({ off: true });
   }
   drawBal(s, I, bars, tf, ss, since) {
     const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
     const vb = v.all('bid'), va = v.all('ask'), bid = D.perBar(vb, bars, tf, 'last'), ask = D.perBar(va, bars, tf, 'last');
     const diff = bid.map((x, i) => (x == null || ask[i] == null ? null : x - ask[i]));
-    const series = [{ id: 'bk-diff', title: 'Bid - ask', paneId: '', kind: 'histogram', points: bars.map((x, i) => (diff[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(diff[i]), color: rgba(diff[i] >= 0 ? I.bidColor : I.askColor, 0.55) })), style: { color: I.bidColor, width: 1, lineStyle: 'solid', base: 0 } }];
-    if (I.showLines !== false) series.push(H.line('bk-bid', 'Resting bid size', bars, bid, I.bidColor, 2), H.line('bk-ask', 'Resting ask size', bars, ask, I.askColor, 2));
+    const series = balSeries(bars, diff, bid, ask, I);
     const j = vb.from(ss), lb = vb.last, la = va.last;
     const pct = (a, b) => (a > 0 && b != null ? (b / a - 1) * 100 : null), sg = (x) => (x == null ? 'n/a' : (x >= 0 ? '+' : '') + x.toFixed(0) + '%');
     const hasStart = j < vb.t.length && vb.t[j] - ss < 120000;

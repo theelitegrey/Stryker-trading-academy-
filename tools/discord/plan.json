@@ -108,26 +108,31 @@
      "name": "welcome-and-rules",
      "type": "text",
      "topic": "Read the rules, then pick your roles. Education only. Not financial advice.",
-     "marker": "welcome"
+     "marker": "welcome",
+     "emoji": "👋"
     },
     {
      "name": "announcements",
      "type": "announcement",
-     "topic": "TradeZoro news and server announcements."
+     "topic": "TradeZoro news and server announcements.",
+     "emoji": "📢"
     },
     {
      "name": "pick-your-roles",
      "type": "text",
      "topic": "Choose your markets and level. Use Channels & Roles at the top of the channel list, or the server guide.",
-     "marker": "roles"
+     "marker": "roles",
+     "emoji": "🎭"
     },
     {
      "name": "how-to-use-tradezoro",
      "type": "text",
      "topic": "A quick tour of TradeZoro: charts, GEX+, journal, replay and the curriculum.",
-     "marker": "howto"
+     "marker": "howto",
+     "emoji": "📘"
     }
-   ]
+   ],
+   "emoji": "📌"
   },
   {
    "name": "COMMUNITY",
@@ -158,33 +163,39 @@
      "name": "general",
      "type": "text",
      "topic": "Chat about trading and the platform. Be kind. Education only.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "💬"
     },
     {
      "name": "introductions",
      "type": "text",
      "topic": "Say hi. Tell us what you trade and what you want to learn.",
-     "slowmode": 30
+     "slowmode": 30,
+     "emoji": "🙋"
     },
     {
      "name": "wins-and-lessons",
      "type": "text",
      "topic": "Share lessons and what you learned. No P&L screenshots or profit claims; lessons only.",
-     "slowmode": 30
+     "slowmode": 30,
+     "emoji": "🏆"
     },
     {
      "name": "memes",
      "type": "text",
      "topic": "Trading memes. Keep it friendly.",
-     "slowmode": 10
+     "slowmode": 10,
+     "emoji": "😂"
     },
     {
      "name": "off-topic",
      "type": "text",
      "topic": "Anything that is not trading.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🎲"
     }
-   ]
+   ],
+   "emoji": "💬"
   },
   {
    "name": "MARKETS",
@@ -215,37 +226,43 @@
      "name": "futures-nq-es",
      "type": "text",
      "topic": "NQ, ES and other futures. Ideas and context, not signals.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "📊"
     },
     {
      "name": "stocks",
      "type": "text",
      "topic": "US stocks and ETFs.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🏦"
     },
     {
      "name": "crypto",
      "type": "text",
      "topic": "Crypto markets.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🪙"
     },
     {
      "name": "forex",
      "type": "text",
      "topic": "Forex pairs and macro.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "💱"
     },
     {
      "name": "india-markets",
      "type": "text",
      "topic": "Nifty, Bank Nifty and Indian markets.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🇮🇳"
     },
     {
      "name": "options-flow",
      "type": "text",
      "topic": "Options, gamma and flow talk.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🧾"
     },
     {
      "name": "daily-levels",
@@ -264,9 +281,11 @@
         "SEND_MESSAGES"
        ]
       }
-     }
+     },
+     "emoji": "🎯"
     }
-   ]
+   ],
+   "emoji": "📈"
   },
   {
    "name": "TRADEZORO",
@@ -310,24 +329,29 @@
         "SEND_MESSAGES"
        ]
       }
-     }
+     },
+     "emoji": "🚀"
     },
     {
      "name": "help-and-support",
      "type": "text",
-     "topic": "Stuck on something? Ask here. Never share passwords or keys."
+     "topic": "Stuck on something? Ask here. Never share passwords or keys.",
+     "emoji": "🛟"
     },
     {
      "name": "feature-requests",
      "type": "forum",
-     "topic": "Ask for a feature. One idea per post."
+     "topic": "Ask for a feature. One idea per post.",
+     "emoji": "💡"
     },
     {
      "name": "bug-reports",
      "type": "forum",
-     "topic": "Report a bug: what you did, what you expected, what happened, device and browser."
+     "topic": "Report a bug: what you did, what you expected, what happened, device and browser.",
+     "emoji": "🐞"
     }
-   ]
+   ],
+   "emoji": "⚡"
   },
   {
    "name": "LEARN",
@@ -358,21 +382,25 @@
      "name": "zoroacademy",
      "type": "text",
      "topic": "Questions on the 64-chapter ZoroAcademy curriculum, ICT and SMT concepts.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🎓"
     },
     {
      "name": "chart-reviews",
      "type": "text",
      "topic": "Post a chart and ask for feedback on structure and levels. No signals.",
-     "slowmode": 30
+     "slowmode": 30,
+     "emoji": "🔍"
     },
     {
      "name": "journal-reviews",
      "type": "text",
      "topic": "Review your journal entries and process. Lessons only; no P&L screenshots.",
-     "slowmode": 30
+     "slowmode": 30,
+     "emoji": "📓"
     }
-   ]
+   ],
+   "emoji": "🎓"
   },
   {
    "name": "PRO ORDER FLOW",
@@ -398,21 +426,25 @@
      "name": "orderflow-chat",
      "type": "text",
      "topic": "TradeZoro Pro: footprint, delta, CVD and big trades talk.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🌊"
     },
     {
      "name": "heatmap-and-l2",
      "type": "text",
      "topic": "TradeZoro Pro: order book heatmap and DOM ladder.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🔥"
     },
     {
      "name": "gex-levels",
      "type": "text",
      "topic": "TradeZoro Pro: GEX+ call wall, put wall and zero gamma. Context, not signals.",
-     "slowmode": 5
+     "slowmode": 5,
+     "emoji": "🧲"
     }
-   ]
+   ],
+   "emoji": "💎"
   },
   {
    "name": "VOICE",
@@ -440,15 +472,17 @@
    },
    "channels": [
     {
-     "name": "🔊 Trading Room",
-     "type": "voice"
+     "name": "Trading Room",
+     "type": "voice",
+     "emoji": "📈"
     },
     {
-     "name": "🔊 Hangout",
-     "type": "voice"
+     "name": "Hangout",
+     "type": "voice",
+     "emoji": "☕"
     },
     {
-     "name": "🔊 Pro Room",
+     "name": "Pro Room",
      "type": "voice",
      "ow": {
       "@everyone": {
@@ -466,9 +500,11 @@
         "VIEW_CHANNEL"
        ]
       }
-     }
+     },
+     "emoji": "💎"
     }
-   ]
+   ],
+   "emoji": "🔊"
   },
   {
    "name": "STAFF",
@@ -488,14 +524,17 @@
     {
      "name": "mod-chat",
      "type": "text",
-     "topic": "Staff chat."
+     "topic": "Staff chat.",
+     "emoji": "🛡️"
     },
     {
      "name": "mod-log",
      "type": "text",
-     "topic": "Moderation log and AutoMod alerts."
+     "topic": "Moderation log and AutoMod alerts.",
+     "emoji": "📋"
     }
-   ]
+   ],
+   "emoji": "🛡️"
   }
  ],
  "messages": {
@@ -605,7 +644,10 @@
   ]
  },
  "automod": {
-  "invite_allow": ["discord.gg/ZYuHkVcMy", "ZYuHkVcMy"],
+  "invite_allow": [
+   "discord.gg/ZYuHkVcMy",
+   "ZYuHkVcMy"
+  ],
   "scam_phrases": [
    "guaranteed profit",
    "guaranteed profits",

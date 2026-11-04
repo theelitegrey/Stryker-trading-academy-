@@ -15,7 +15,7 @@ def run(call, gid, plan, apply):
     feats = g.get('features', []); community = 'COMMUNITY' in feats
     me = call('GET', '/users/@me') or {}
     if not community:  # needs rules channel + level>=LOW + filter>=MEMBERS; welcome channel exists already
-        wc = next((c for c in call('GET', f'/guilds/{gid}/channels') or [] if c['name'] == plan['settings']['system_channel']), None)
+        wc = next((c for c in call('GET', f'/guilds/{gid}/channels') or [] if __import__('re').sub(r'^[^\w]+', '', c['name']) == plan['settings']['system_channel']), None)
         if wc:
             body = dict(features=sorted(set(feats) | {'COMMUNITY'}), rules_channel_id=wc['id'], public_updates_channel_id=wc['id'], preferred_locale='en-US',
                         verification_level=plan['settings']['verification_level'], explicit_content_filter=plan['settings']['explicit_content_filter'])
@@ -47,13 +47,23 @@ def run(call, gid, plan, apply):
         return [dict(id=rid.get(n, f'<{n}>'), type=0, allow=bits(v.get('allow', [])), deny=bits(v.get('deny', []))) for n, v in spec.items()]
 
     chans = call('GET', f'/guilds/{gid}/channels') or []
-    find = lambda name, cat: next((c for c in chans if c['name'] == name and (c['type'] == 4) == cat), None)
+    import re as _re
+    plain = lambda n: _re.sub(r'^[^\w]+', '', n or '')
+    def disp(x, cat=False):
+        e = x.get('emoji')
+        if not e: return x['name']
+        if cat: return e + ' ' + x['name']
+        return e + ' ' + x['name'] if x.get('type') == 'voice' else e + '・' + x['name']
+    find = lambda name, cat: next((c for c in chans if plain(c['name']) == plain(name) and (c['type'] == 4) == cat), None)
     cid = {}
     for cat in plan['categories']:
         ex = find(cat['name'], True); o = ow(cat['ow'])
-        if ex: print('OK    category', cat['name']); cid[cat['name']] = ex['id']
+        if ex:
+            cid[cat['name']] = ex['id']
+            if ex['name'] != disp(cat, True): do(f"category rename {ex['name']} -> {disp(cat, True)}", 'PATCH', f"/channels/{ex['id']}", dict(name=disp(cat, True)))
+            else: print('OK    category', cat['name'])
         else:
-            out = do(f"category create {cat['name']}", 'POST', f'/guilds/{gid}/channels', dict(name=cat['name'], type=4, permission_overwrites=o))
+            out = do(f"category create {disp(cat, True)}", 'POST', f'/guilds/{gid}/channels', dict(name=disp(cat, True), type=4, permission_overwrites=o))
             cid[cat['name']] = (out or {}).get('id', f"<new:{cat['name']}>")
             if ex is None and out: chans.append(out)
         if ex: do(f"category overwrites {cat['name']}", 'PATCH', f"/channels/{ex['id']}", dict(permission_overwrites=o))
@@ -64,12 +74,13 @@ def run(call, gid, plan, apply):
             # existing channel: match by name regardless of type (a type cannot be changed safely)
             ex = find(ch['name'], False)
             if ex and ex['type'] == 0 and t == 'announcement': do(f"channel type -> announcement #{ch['name']}", 'PATCH', f"/channels/{ex['id']}", dict(type=5))
-            body = dict(name=ch['name'], type=TYPES[t], parent_id=cid[cat['name']])
+            body = dict(name=disp(dict(ch, type=t)), type=TYPES[t], parent_id=cid[cat['name']])
             if t != 'voice' and ch.get('topic'): body['topic'] = ch['topic']
             if ch.get('slowmode') is not None and t in ('text', 'forum'): body['rate_limit_per_user'] = ch['slowmode']
             body['permission_overwrites'] = ow(ch.get('ow', cat['ow']))
             if ex:
                 upd = {k: v for k, v in body.items() if k not in ('type', 'name')}
+                if ex['name'] != body['name']: upd['name'] = body['name']
                 if ch.get('marker') == 'welcome': upd.pop('topic', None) if ex.get('topic') else None
                 do(f"channel update #{ch['name']} -> {cat['name']}", 'PATCH', f"/channels/{ex['id']}", upd)
                 cid[ch['name']] = ex['id']

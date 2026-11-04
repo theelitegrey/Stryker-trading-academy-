@@ -135,6 +135,14 @@ const read = (p) => p.evaluate(() => {
       check(hp.bid >= 20 && hp.ask >= 20 && hp.sd >= 20, tag + ': balance / regime panes have >= 20 history points', hp);
       check(hp.early >= 20, tag + ': history reaches back before the last hour', hp);
       check(!hp.note, tag + ': no "No book history before" note on a normal open', hp.note);
+      {   // Book Speed pane: its own pane has painted bars and a non-zero value, with history
+        const sp = await p.evaluate(() => { const a = [...window.__stkBookPackStores.values()][0].views.get(20).all('speed'); return { n: a.v.filter((x) => x > 0).length, last: a.last, mx: Math.max(...a.v.slice(-60)) }; });
+        check(sp.n >= 20 && sp.last > 0 && sp.mx > 0, tag + ': Book Speed value is non-zero, history included (' + sp.n + ' points, last ' + sp.last + ')', sp);
+        // the chart paints on WebGL, so read pixels from a real screenshot of the lower pane (bottom 30% of the plot, above the time axis)
+        const vp = p.viewportSize(), shot = await p.screenshot({ clip: { x: 60, y: Math.round(vp.height * 0.74), width: Math.round(vp.width * 0.8), height: Math.round(vp.height * 0.16) } });
+        const px = await p.evaluate(async (b64) => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0); const d = g.getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.max(d[i], d[i + 1], d[i + 2]) > 90) n++; return n; }, shot.toString('base64'));
+        check(px > 300, tag + ': Book Speed pane has painted pixels (' + px + ')', px);
+      }
       check(c.speedN >= 5, tag + ': book speed has per-second samples (' + c.speedN + ')');
       check(c.refills >= 1, tag + ': refill detector found the fixture refills (' + c.refills + ')', c);
       check(c.thr > 0 && c.live >= 1, tag + ': large resting orders threshold learned (' + c.thr + ', live ' + c.live + ')', c);

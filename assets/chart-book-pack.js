@@ -281,6 +281,9 @@ const TITLES = {
   stk_bk_track: ['Absorption & Iceberg Tracker (L1+L2)', 'Abs & Iceberg Tracker', 'new', false, 'L2']
 };
 
+// The chart mounts the pane from the FIRST emit and later emits only update the series it already has, so every emit
+// of Book Speed (including the 'Connecting...' one before the first frame) must carry this same series.
+const speedSeries = (points, color) => ({ id: 'bk-speed', title: 'Book changes per second', paneId: '', kind: 'histogram', points, style: { color, width: 1, lineStyle: 'solid', base: 0 } });
 // ---------------------------------------------------------------------------------------- the indicator
 let H = null;
 class BkNative {
@@ -331,7 +334,7 @@ class BkNative {
     this.bind(g.spec);
     const s = this.h.s, I = this.inputs, ctx = this.ctx, bars = ctx.bars(), t = this.type;
     if (s.kind === 'futures' && bars.length) s.need(bars[0].time);
-    if (!s.last && !s.remote.length) { ctx.setStatus('loading'); ctx.emit({ series: [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Connecting to the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
+    if (!s.last && !s.remote.length) { ctx.setStatus('loading'); ctx.emit({ series: t === 'stk_bk_speed' ? [speedSeries(bars.map((x) => ({ time: x.time, value: null })), I.normalColor)] : [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Connecting to the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
     ctx.setStatus('live');
     const tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
     const kind = s.kind, ss = D.sessionStart(Date.now(), kind);
@@ -358,12 +361,12 @@ class BkNative {
   }
   drawSpeed(s, I, bars, tf, ss, since) {
     const v = s.view(clamp(Math.round(num(I.ticks, 20)), 3, 20));
-    const raw = D.perBar(v.speed, bars, tf, 'mean'), sm = D.ema(raw, clamp(Math.round(num(I.smooth, 3)), 1, 30));
+    const raw = D.perBar(v.all('speed'), bars, tf, 'mean'), sm = D.ema(raw, clamp(Math.round(num(I.smooth, 3)), 1, 30));
     const b = this.bands(sm, bars, num(I.calmPct, 25), num(I.fastPct, 75)), cols = [I.calmColor, I.normalColor, I.fastColor], names = ['Calm', 'Normal', 'Fast'];
     const pts = bars.map((x, i) => (sm[i] == null ? { time: x.time, value: null } : { time: x.time, value: Math.round(sm[i]), color: cols[b.band[i]] }));
     let li = sm.length - 1; while (li >= 0 && sm[li] == null) li--;
     const now = li >= 0 ? sm[li] : null, bi = li >= 0 ? b.band[li] : 1;
-    this.ctx.emit({ series: [{ id: 'bk-speed', title: 'Book changes per second', paneId: '', kind: 'histogram', points: pts, style: { color: I.normalColor, width: 1, lineStyle: 'solid', base: 0 } }],
+    this.ctx.emit({ series: [speedSeries(pts, I.normalColor)],
       priceLines: [{ id: 'bk-speed-0', paneId: '', price: 0, color: light() ? 'rgba(15,23,42,0.35)' : 'rgba(255,255,255,0.3)', lineStyle: 'dashed', width: 1, title: '' }],
       tables: [this.legend(['Book Speed ' + (now == null ? '…' : now.toFixed(1) + '/s · ' + names[bi]), since || 'how nervous the book is'], cols[bi])] });
     this.push({ off: true });

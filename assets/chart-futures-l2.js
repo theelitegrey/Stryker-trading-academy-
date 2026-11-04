@@ -16,6 +16,7 @@ import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=866';
 import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=866';
 import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=866';
 import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=866';
+import { hfLive } from './chart-heat-filter.js?v=866';
 import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=866';
 
 export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
@@ -510,7 +511,7 @@ export function installFuturesL2(Core, H, reg) {
       this.render();
     }
     wantNow() {}
-    stop() { if (this.tierFn) { window.removeEventListener('stryker:l2tier', this.tierFn); this.tierFn = null; } super.stop(); }
+    stop() { if (this.tierFn) { window.removeEventListener('stryker:l2tier', this.tierFn); this.tierFn = null; } if (this.root && !this.walls) hfLive.delete(this.root); super.stop(); }
     detach() { if (this.badged) { badgeUse(false); this.badged = false; } super.detach(); }
     note() {
       if (this.block === NOT_YET) return ''; // the feed note (chart-feeds.js, top-left) already says this; never draw it over the legend/tables
@@ -532,7 +533,9 @@ export function installFuturesL2(Core, H, reg) {
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       this.ctx.emit({ tables: msg ? [H.message('stk_dom-msg', msg, H.pageIsDay(), 'top_right')] : [] });
       // Walls-only view with "pulled / consumed" on shows the tags too (domConfig reads l2Walls)
-      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: H.domConfig(fcfg(this.inputs, this.walls)) } : { off: true });
+      const cfg = f && !this.block ? H.domConfig(fcfg(this.inputs, this.walls)) : null;
+      if (this.root && !this.walls) { if (cfg && cfg.hf && cfg.hf.p) hfLive.set(this.root, { p: cfg.hf.p, look: cfg.bm ? cfg.look : 'classic' }); else hfLive.delete(this.root); }
+      this.ctx.pushData(cfg ? { feed: f.key, v: f.version, cfg } : { off: true });
     }
   };
   Core.registerRendererLayer({ id: 'stk_fut_dom', placement: 'below-data', create: H.cryptoDomLayer });

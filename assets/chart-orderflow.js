@@ -2195,13 +2195,15 @@ function cryptoDomLayer() {
 
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
 
-      if (!cfg.bm) { try { const bd = canvas.nextElementSibling; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} }
+      if (!cfg.bm) { try { const bd = canvas.__stkBd; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} }
       // ---- Bookmap look (futures L2): dark field, one band per price row, continuous columns, ramp on log(size) ----
       if (cfg.bm) {
         // the field is opaque, so it must sit UNDER the candles: the first canvas of the plot (background / grid and candles draw above it)
-        try { const par = canvas.parentElement; if (par && par.firstElementChild !== canvas && !canvas.__stkBmUnder) { par.insertBefore(canvas, par.firstElementChild); canvas.__stkBmUnder = true; } } catch (e) {}
+        // the renderer re-inserts canvases when another layer mounts later (e.g. Wall Events added after the heatmap), so this is re-checked every frame;
+        // the backdrop is remembered from the FIRST move, so a layer canvas that lands next to the field is never mistaken for it and hidden (found 2026-11-04)
+        try { const par = canvas.parentElement; if (par && par.firstElementChild !== canvas) { if (!canvas.__stkBd) canvas.__stkBd = par.firstElementChild; par.insertBefore(canvas, par.firstElementChild); canvas.__stkBmUnder = true; } } catch (e) {}
         // the grid (backdrop canvas, drawn above this field) is dimmed while the heatmap is on, in this chart only
-        try { const bd = canvas.nextElementSibling; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0') { bd.style.opacity = '0'; bd.__stkGridDim = true; } } catch (e) {}
+        try { const bd = canvas.__stkBd; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0') { bd.style.opacity = '0'; bd.__stkGridDim = true; } } catch (e) {}
         g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
         const bmv = { hf: cfg.hf, look: cfg.look, colorBy: cfg.colorBy, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
           priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
@@ -2502,7 +2504,7 @@ function cryptoDomLayer() {
       stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = 0;
       domLast = stat;
     },
-    destroy() { try { const bd = canvas && canvas.nextElementSibling; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} if (glr) glr.destroy(); glr = null; canvas = null; }
+    destroy() { try { const bd = canvas && canvas.__stkBd; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} if (glr) glr.destroy(); glr = null; canvas = null; }
   };
 }
 // Hiding the indicator (eye) keeps the feed open, so the page keeps recording; only removing
@@ -2568,7 +2570,7 @@ const OF_GROUP = 'Order Flow';
 const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_vwap',
   'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_fut_dom', 'stk_fut_walls', 'stk_fut_imb',
   'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane',
-  'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track',
+  'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls',
   'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad'];   // Tick-stream twins + the order-book pack (chart-book-pack.js) (chart-ts-trades.js, Pro)
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [

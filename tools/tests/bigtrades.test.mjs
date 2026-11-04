@@ -1,6 +1,6 @@
 // Big Trades v2 (assets/chart-bigtrades.js): aggregator, filter intensities, absorption, cap, migration. node tools/tests/bigtrades.test.mjs
 import assert from 'node:assert/strict';
-import { aggregate, select, cap, migrate, schema, DEFAULTS, compact, radius, lens, words, RATE } from '../../assets/chart-bigtrades.js';
+import { aggregate, clusterAtPrice, select, cap, migrate, schema, DEFAULTS, compact, radius, lens, words, RATE } from '../../assets/chart-bigtrades.js';
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };
 // split fills -> one parent
 { const p = aggregate([[1000, 100, 3, 1], [1050, 100, 4, 1], [1100, 100, 5, 1]], {}); assert.equal(p.length, 1); assert.equal(p[0].size, 12); assert.equal(p[0].n, 3); assert.equal(p[0].vwap, 100); ok('split fills -> one parent'); }
@@ -27,6 +27,16 @@ const prints = []; for (let i = 0; i < 400; i++) prints.push([i * 60000, 1000 + 
   assert.equal(flat.absorbed, true); assert.equal(up.absorbed, false); assert.equal(dn.absorbed, true); assert.ok(up.impact > flat.impact);
   const live = select(pr, { mode: 'Manual', minSize: 50 }, Object.assign({}, opt, { bars: mk(1008), now: 30000 })).list[0];
   assert.equal(live.pending, true); assert.equal(live.absorbed, false); ok('absorption flag: flat / against = yes, with = no, still forming = pending'); }
+// Very low intensity = more markers than Low
+{ const vl = select(prints, { intensity: 'Very low' }, {}).list.length, lo = select(prints, { intensity: 'Low' }, {}).list.length; assert.ok(vl > lo && RATE['Very low'] === 40, vl + ' vs ' + lo); ok('Very low intensity shows more than Low (' + vl + ' > ' + lo + ')'); }
+// one-price cluster: 60 small buys of 2 lots at one price over 30 s (each its own burst) = one 120-lot order; off (0) = unchanged
+{ const pr = []; for (let k = 0; k < 60; k++) pr.push([k * 500, 2000, 2, 1]); pr.push([1000, 2000, 3, 0], [2250, 2010, 4, 1], [40000, 2000, 2, 1]);
+  const off = aggregate(pr, {}), on = clusterAtPrice(off, 30);
+  assert.equal(clusterAtPrice(off, 0), off);
+  const big = on.find((p) => p.side === 1 && p.lo === 2000 && p.size === 120);
+  assert.ok(big && big.orders === 60 && on.some((p) => p.side === 0 && p.size === 3) && on.some((p) => p.lo === 2010) && on.some((p) => p.ms === 40000 && p.size === 2), JSON.stringify(on.map((p) => [p.ms, p.side, p.lo, p.size])));
+  const m = select(pr, { mode: 'Manual', minSize: 100, clusterSec: 30 }, {}).list; assert.equal(m.length, 1); assert.equal(select(pr, { mode: 'Manual', minSize: 100 }, {}).list.length, 0);
+  ok('fills at one price over 30 s: 60 small buys -> one 120-lot marker; sells, other prices, and later prints stay apart; 0 = off'); }
 // cap: one per N px per side, biggest wins
 { const L = [{ side: 1, impact: 0.5, x: 0 }, { side: 1, impact: 0.9, x: 10 }, { side: 0, impact: 0.4, x: 11 }, { side: 1, impact: 0.3, x: 60 }];
   const k = cap(L, 22, (p) => p.x); assert.equal(k.length, 3); assert.ok(k.includes(L[1]) && !k.includes(L[0]) && k.includes(L[2])); ok('cap keeps the biggest per side per N px'); }

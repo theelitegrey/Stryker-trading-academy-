@@ -213,6 +213,67 @@ export class LargeTracker {
   }
 }
 
+// ---------------------------------------------------------------- wall events (Wall Events (L2))
+// A WALL = a level at or above `thr` (the Large Resting Orders size, or the heatmap colour step). While it exists we sum the aggressive
+// volume printed AT its price into its side (buyers into an ask wall, sellers into a bid wall). When it ends, or price turns away:
+//   EATEN  (kind 'E') the wall shrank below `goneFrac` of its peak and traded >= eatPct of the peak at its price
+//   HELD   (kind 'H') traded >= holdPct of the peak, the wall still holds >= holdFrac of its peak (stayed or refilled), price moved
+//                     >= rejectTicks away from it: absorption / iceberg. The traded count restarts, so a wall can hold again.
+//   PULLED (kind 'P') the wall went with < pullPct of its peak traded, while the touch was within nearTicks of it (possible spoof)
+// A wall that only left the 20-level window (price moved away) is dropped with no event. Event: { t, idx, side (+1 bid wall | -1 ask wall),
+// kind, peak, traded, since }. Aggressor colour: an ask wall is hit by buyers, a bid wall by sellers.
+// Perf: walls live in one Map keyed by signed idx; a frame stamps the walls it saw, no Set or array is built per frame.
+export class WallTracker {
+  constructor({ eatPct = 50, holdPct = 50, pullPct = 10, nearTicks = 8, rejectTicks = 4, goneFrac = 0.25, holdFrac = 0.5, keep = 800 } = {}) {
+    this.eat = eatPct / 100; this.hold = holdPct / 100; this.pull = pullPct / 100; this.near = nearTicks; this.reject = rejectTicks;
+    this.gone = goneFrac; this.holdF = holdFrac; this.keep = keep; this.walls = new Map(); this.events = []; this.stamp = 0; this.cur = null; this.n = { E: 0, H: 0, P: 0 };
+  }
+  // trades: [{ idx, size, side: +1 buyer | -1 seller }]
+  onTrades(ts, list) {
+    for (let k = 0; k < list.length; k++) {
+      const x = list[k], w = this.walls.get(x.side > 0 ? -x.idx - 1 : x.idx + 1);   // buyer -> ask wall key, seller -> bid wall key
+      if (w) { w.traded += x.size; w.last = ts; }
+    }
+  }
+  add(ts, e) { this.events.push(e); this.n[e.kind]++; if (this.events.length > this.keep * 1.25) this.events.splice(0, this.events.length - this.keep); }
+  seen(q, i, side) {
+    const key = side > 0 ? i + 1 : -i - 1, w = this.walls.get(key);
+    if (!w) { if (q >= this.thr) this.walls.set(key, { side, idx: i, since: this.ts, peak: q, size: q, traded: 0, last: 0, st: this.stamp }); return; }
+    w.size = q; w.st = this.stamp; if (q > w.peak) w.peak = q;
+  }
+  onBook(ts, b, thr) {
+    this.cur = b; this.ts = ts; this.thr = thr > 0 ? thr : Infinity; const st = ++this.stamp;
+    if (!this.fb) { this.fb = (q, i) => this.seen(q, i, 1); this.fa = (q, i) => this.seen(q, i, -1); }   // made once: no closures per frame
+    b.bid.forEach(this.fb); b.ask.forEach(this.fa);
+    const lo = b.bb - 19, hi = b.ba + 19;
+    for (const [key, w] of this.walls) {
+      if (w.st !== st) w.size = 0;   // not in the book this frame
+      let dist = w.side > 0 ? b.bb - w.idx : w.idx - b.ba;   // ticks from the touch on its own side (< 0: price is through it)
+      if (w.size >= this.gone * w.peak) w.dist = dist; else if (w.dist != null) dist = w.dist;   // a wall that just went: judge it by where price was while it stood
+      if (w.size < this.gone * w.peak) {
+        if (w.idx < lo || w.idx > hi) { this.walls.delete(key); continue; }   // out of the window: unknown, no event
+        const kind = w.traded >= this.eat * w.peak ? 'E' : w.traded < this.pull * w.peak && dist <= this.near ? 'P' : '';
+        if (kind) this.add(ts, { t: ts, idx: w.idx, side: w.side, kind, peak: w.peak, traded: w.traded, since: w.since });
+        this.walls.delete(key); continue;
+      }
+      if (w.traded >= this.hold * w.peak && w.size >= this.holdF * w.peak && dist >= this.reject) {
+        this.add(ts, { t: w.last || ts, idx: w.idx, side: w.side, kind: 'H', peak: w.peak, traded: w.traded, since: w.since, left: w.size });
+        w.traded = 0;
+      }
+    }
+  }
+}
+// Heatmap colour step -> top % of sizes. anchors = the heatmap style's [rank, ramp position] table (chart-bookmap.js STYLES), p = step position.
+// shortcut: the heatmap ranks the visible rows by pixel weight; this ranks the session's level sizes. Close enough for "Yellow and above".
+export function topPctForStep(anchors, p) {
+  if (!(p > 0)) return null;
+  for (let k = 1; k < anchors.length; k++) {
+    const [r0, a0] = anchors[k - 1], [r1, a1] = anchors[k];
+    if (p <= a1) return clamp((1 - (a1 > a0 ? r0 + (r1 - r0) * (p - a0) / (a1 - a0) : r1)) * 100, 0.05, 50);
+  }
+  return 0.05;
+}
+
 export const fmtDur = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? s + 's' : s < 3600 ? Math.floor(s / 60) + 'm ' + (s % 60 ? String(s % 60).padStart(2, '0') + 's' : '') : Math.floor(s / 3600) + 'h ' + String(Math.floor(s % 3600 / 60)).padStart(2, '0') + 'm'; };
 export function fmtK(v) {
   const a = Math.abs(v);

@@ -39,7 +39,7 @@ export function isActiveLiveDataDoc(f, nowMs = Date.now()) {
 // Pro (used ONLY to keep grandfathered members live while their Pro stays active, Owner 2026-10-30) = the same rule the paywall uses (assets/plan-limits.js: rankOf(students.plan) >= 1, ranks from the public plans
 // collection). Read server-side from the student's own doc. Active = status not expired/cancelled and, when the member
 // has a paidThroughMillis, now <= paidThrough + 3 days grace (the daily sweep downgrades plan itself; this closes the gap).
-async function paidPlanNames(fetchImpl) {
+export async function paidPlanNames(fetchImpl) {
   if (plansMemo && Date.now() - plansMemo.at < PLANS_TTL_MS) return plansMemo.paid;
   let paid = null;
   try {

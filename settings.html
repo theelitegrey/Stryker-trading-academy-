@@ -69,6 +69,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=866">
 <script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<style>.ds-p{font-size:14px;line-height:1.6;color:var(--ink-2);margin:0 0 12px}.ds-p b{color:var(--ink-0)}.ds-mute{font-size:12.5px;color:var(--ink-3)}.ds-row{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 12px}.ds-msg{font-size:13px;color:var(--ink-1);background:var(--bg-3,var(--bg-1));border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0 0 12px}</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -178,6 +179,11 @@
             <select id="start-page-select" disabled><option value="dashboard">Dashboard (default)</option></select>
             <p style="font-size:12px; color:var(--ink-3); margin:7px 0 0; line-height:1.5;">The page you see after you sign in or open the app.</p>
           </div>
+        </div>
+
+        <div class="panel" id="discord-site-panel">
+          <div class="panel-head"><h2>Join the TradeZoro Discord</h2></div>
+          <div id="discord-site-body" class="ds-body"><p class="ds-p ds-mute">Loading…</p></div>
         </div>
 
         <div class="panel">
@@ -400,6 +406,7 @@
 <script src="assets/dash-nav.js?v=866"></script>
 <script src="assets/market-hours.js?v=866"></script>
 <script src="assets/settings.js?v=866"></script>
+<script src="assets/discord-site.js?v=866"></script>
 <script src="assets/passkeys-ui.js?v=866"></script>
 <script src="assets/rithmic-saved.js?v=866"></script>
 <script src="assets/tour.js?v=866"></script>

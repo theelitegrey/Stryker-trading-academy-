@@ -27,7 +27,9 @@ jobs:
         with:
           node-version: 22
       - name: Tests (mock Discord + mock Firestore)
-        run: node --no-warnings workers/discord-roles/test/core.test.mjs
+        run: |
+          node --no-warnings workers/discord-roles/test/core.test.mjs
+          node --no-warnings workers/discord-roles/test/site.test.mjs
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

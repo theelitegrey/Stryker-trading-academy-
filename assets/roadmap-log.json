@@ -1,5 +1,11 @@
 [
  {
+  "build": 879,
+  "date": "2026-11-05",
+  "title": "Remove engine vendor name from the UI",
+  "link": ""
+ },
+ {
   "build": 877,
   "date": "2026-11-05",
   "title": "Email link fallback",

@@ -1,5 +1,11 @@
 [
  {
+  "build": 880,
+  "date": "2026-11-05",
+  "title": "Indicator pages for every indicator",
+  "link": ""
+ },
+ {
   "build": 879,
   "date": "2026-11-05",
   "title": "Remove engine vendor name from the UI",

@@ -1,276 +1,31 @@
-// TradeZoro: pricing page, "Hero Pro" layout (pricing.html #pricing). The homepage shows no prices (Owner 2026-11-01).
-// Depends on: assets/progress.js (`db`), assets/plan-price.js (strykerLoadPlans,
-//             strykerFxReady, planSaleInfo, planMoneyDisplay, planDisplayName,
-//             planIsArchived, planEscape, strykerCurrencyNoteHtml),
-//             assets/trial.js (strykerTrialDecorate; no-op while
-//             settings/commerce.trialEnabled is false).
-//
-// Renders into #pricing-root:
-//   - a wide Pro spotlight (price, yearly line, CTA, six feature tiles)
-//   - a slim "Not ready? Start free" strip
-//   - a quiet "Compare Free and Pro" toggle that expands the full comparison
-//     table (built on first open), with a Free/Pro tab switch on phones
-//   - a three-question FAQ
-// Every price comes from the live plans and the live usdInr rate (the same
-// Math.round(usd x rate) checkout charges), so nothing here hard-codes money.
-// The comparison-row wording mirrors assets/plan-limits.js and assets/chart-pro-gate.js and the plan
-// feature lists; keep them in step if the Free limits change.
-// Replaces assets/plans-public.js on the homepage (build 393). If plans fail to
-// load, the static fallback cards inside #pricing-root are left in place.
+// TradeZoro: pricing page (pricing.html #pricing). DATA PLANS (Owner 2026-11-04): every tool is free; the paid part is live data.
+// Three cards are in the HTML: Free, Data feed L1 (plans/LiveData), Data feed L2 (plans/LiveDataL2). This file only fills the live
+// price from the plans docs (in the visitor's currency, plan-price.js) and hides a data card whose doc is missing or archived
+// (no dead checkout). The $7 / $20 in the HTML are the fallback. Pro is no longer sold (its docs stay for current subscribers).
+// Depends on: assets/progress.js (db), assets/plan-price.js (strykerLoadPlans, strykerFxReady, planSaleInfo, planMoneyDisplay,
+// planIsArchived, strykerCurrencyNoteHtml). Education only. Not financial advice.
 (function () {
   'use strict';
-  var esc = function (s) { return (typeof planEscape === 'function') ? planEscape(s) : String(s); };
-  var reduce = function () { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); };
-
-  var TICK = '<svg class="pv-tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
-  var DASH = '<span class="pv-dash" role="img" aria-label="Not included">–</span>';
-
-  function money(usd) { return planMoneyDisplay(usd); }
-  function priceOf(plan) { return plan ? planSaleInfo(plan).price : 0; }
-  function fullOf(plan) { var s = planSaleInfo(plan); return s.active ? s.full : 0; }
-
-  function pick(all) {
-    var byId = {};
-    all.forEach(function (p) { byId[p.id] = p; });
-    var visible = all.filter(function (p) { return !p.hidden && !planIsArchived(p); })
-      .sort(function (a, b) { return ((+a.rank || 0) - (+b.rank || 0)) || (priceOf(a) - priceOf(b)); });
-    var free = visible.find(function (p) { return !priceOf(p); }) || null;
-    var pro = visible.find(function (p) { return p.featured && priceOf(p) > 0; }) ||
-      visible.filter(function (p) { return priceOf(p) > 0; }).pop() || null;
-    var yearly = pro && pro.yearlyPlanId ? byId[pro.yearlyPlanId] : null;
-    return { free: free, pro: pro, yearly: yearly };
-  }
-
-  // Yearly line: "or $29/mo billed yearly ($349) · save 25%" from the live
-  // prices in the visitor's currency, rounded down (planYearlyDeal in
-  // plan-price.js; the same helper the upgrade modal and checkout use).
-  function yearlyLine(P) {
-    return (P.yearly && typeof planYearlyDealHtml === 'function') ? planYearlyDealHtml(P.pro, P.yearly, checkoutHref(P.yearly)) : '';
-  }
-  function checkoutHref(plan) { return 'checkout.html?plan=' + encodeURIComponent(plan.id); }
-  function ctaLabel(plan, fallback) { return esc((plan.ctaLabel || '').trim() || fallback); }
-  function per(plan) { return (typeof stkPeriodKind === 'function' && stkPeriodKind(plan.period) === 'year') ? 'year' : 'month'; }
-  function priceHtml(plan) {
-    var f = fullOf(plan);
-    return money(priceOf(plan)) + (f ? ' <s class="pv-was">' + money(f) + '</s>' : '');
-  }
-  // The Pro spotlight price row: "$39 / month" stays together, then the
-  // struck list price with the "64% OFF" pill (planPctBadgeHtml, rounded down
-  // in the visitor's own currency) as a second group that wraps as one unit.
-  function heroPriceHtml(plan) {
-    var f = fullOf(plan);
-    var badge = (typeof planPctBadgeHtml === 'function') ? planPctBadgeHtml(plan) : '';
-    return '<div class="pv-price pv-price-xl' + (f ? ' is-sale' : '') + '">' +
-      '<span class="pv-main"><span class="pv-amt">' + money(priceOf(plan)) + '</span><span class="pv-per">/ ' + per(plan) + '</span></span>' +
-      (f ? '<span class="pv-was-grp"><s class="pv-was">' + money(f) + '</s>' + badge + '</span>' : '') +
-      '</div>';
-  }
-
-  // "chapters 1–10" from the Free plan's chapterAccess ("1-10"), so the strip
-  // follows the plan record rather than a typed number.
-  function freeChaptersText(free) {
-    var m = String(free.chapterAccess || '').match(/^(\d+)\s*-\s*(\d+)$/);
-    return m ? 'chapters ' + m[1] + '–' + m[2] : 'the first chapters';
-  }
-
-  // Other homepage spots that state the free chapter range (hero stat
-  // [data-free-ch-count], curriculum bento [data-free-ch-range]) ship the
-  // current value in the HTML and are re-set here from the same plans read,
-  // so a change to the Free plan's chapterAccess shows up without an edit.
-  function syncFreeChapters(free) {
-    var m = String(free.chapterAccess || '').match(/^(\d+)\s*-\s*(\d+)$/);
-    if (!m) return;
-    var count = (+m[2]) - (+m[1]) + 1;
-    if (!(count > 0)) return;
-    Array.prototype.forEach.call(document.querySelectorAll('[data-free-ch-count]'), function (el) { el.textContent = String(count); });
-    Array.prototype.forEach.call(document.querySelectorAll('[data-free-ch-range]'), function (el) { el.textContent = (+m[1]) + '–' + (+m[2]); });
-  }
-
-  // ---------------------------------------------------------------- comparison (B)
-  var GROUPS = [
-    ['ZoroAcademy', [
-      ['Curriculum chapters', '@free-ch', 'All 64'],
-      ['Volume Profile and Prop Firm tracks', false, true],
-      ['Progress dashboard, achievements, streak', true, true]]],
-    ['GEX+', [
-      ['GEX+ symbols', 'SPX', 'Every symbol: SPX, SPY, QQQ, ES, NQ, gold (GC)'],
-      ['Expiry views', 'Same-day (0DTE)', 'Every expiry'],
-      ['Futures conversion', false, true],
-      ['Strike table', false, true]]],
-    ['JournalX', [
-      ['New trades', '20 / month', 'Unlimited'],
-      ['Manual entry', true, true],
-      ['Import and broker sync', false, true],
-      ['Analytics and AI coach', false, true]]],
-    ['ZoroCharts', [
-      ['ZoroCharts, every chart type, drawing and indicator', true, true],
-      ['Alerts, layouts and paper trading; Replay One for backtesting and replay', true, true],
-      ['Futures data', '10 min delayed (CME rule)', '10 min delayed (CME rule)'],
-      ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', false, true],
-      ['GEX on the charts: levels, heatmap, ladder, expected move', false, true]]],
-    ['Market desk', [
-      ['Global Monitor, economic calendar, pre-market brief', true, true],
-      ['Smart Money Desk, trading models', false, true],
-      ['Private indicators', false, true]]],
-    ['Community', [
-      ['Read everything', true, true],
-      ['Post and send direct messages', false, true]]]
-  ];
-  function cell(v, P) {
-    if (v === true) return TICK;
-    if (v === false) return DASH;
-    if (v === '@free-ch') {
-      var m = String(P.free.chapterAccess || '').match(/^(\d+)\s*-\s*(\d+)$/);
-      v = m ? 'Chapters ' + m[1] + '–' + m[2] : 'First chapters';
-    }
-    return '<span class="pv-lim">' + esc(v) + '</span>';
-  }
-  function compareHtml(P) {
-    var deal = (P.yearly && typeof planYearlyDeal === 'function') ? planYearlyDeal(P.pro, P.yearly) : null;
-    var rows = GROUPS.map(function (g) {
-      return '<div class="pv-grp" role="rowgroup"><div class="pv-grp-h" role="row"><span role="rowheader">' + esc(g[0]) + '</span><span class="pv-c-free" aria-hidden="true"></span><span class="pv-c-pro" aria-hidden="true"></span></div>' +
-        g[1].map(function (r) {
-          return '<div class="pv-row" role="row"><span class="pv-feat" role="rowheader">' + esc(r[0]) + '</span>' +
-            '<span class="pv-c pv-c-free" role="cell">' + cell(r[1], P) + '</span>' +
-            '<span class="pv-c pv-c-pro" role="cell">' + cell(r[2], P) + '</span></div>';
-        }).join('') + '</div>';
-    }).join('');
-    return '<div class="pv-tabs" role="tablist" aria-label="Show plan">' +
-        '<button type="button" role="tab" aria-selected="false" data-col="free">' + esc(planDisplayName(P.free)) + '</button>' +
-        '<button type="button" role="tab" aria-selected="true" data-col="pro">' + esc(planDisplayName(P.pro)) + '</button>' +
-      '</div>' +
-      '<div class="pv-table" data-col="pro" role="table" aria-label="Free and Pro compared">' +
-        '<div class="pv-thead" role="row">' +
-          '<span class="pv-feat pv-th-label" role="columnheader">' +
-            (deal ? '<span class="pv-th-note">' + esc(planDisplayName(P.pro)) + ' yearly: ' + esc(deal.perMonth) + '/mo billed yearly (' + esc(deal.total) + ')' + (deal.pct ? ' · save ' + deal.pct + '%' : '') + '</span>' : '') +
-          '</span>' +
-          '<div class="pv-c pv-c-free pv-th" role="columnheader">' +
-            '<b>' + esc(planDisplayName(P.free)) + '</b>' +
-            '<div class="pv-th-price">' + money(0) + '<small>/ month</small></div>' +
-            '<a href="signup" class="btn btn-ghost btn-sm">' + ctaLabel(P.free, 'Start free') + '</a>' +
-          '</div>' +
-          '<div class="pv-c pv-c-pro pv-th" role="columnheader">' +
-            '<b>' + esc(planDisplayName(P.pro)) + '</b>' +
-            '<div class="pv-th-price">' + priceHtml(P.pro) + '<small>/ ' + per(P.pro) + '</small></div>' +
-            '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary btn-sm" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
-          '</div>' +
-        '</div>' +
-        rows +
-        (P.yearly ? '<div class="pv-tfoot">' + yearlyLine(P) + '</div>' : '') +
-      '</div>';
-  }
-
-  function wireCompare(root, P) {
-    var btn = root.querySelector('.pv-compare-btn');
-    var panel = root.querySelector('#pv-compare');
-    var label = btn.querySelector('.pv-compare-label');
-    var built = false, timer = 0;
-    function build() {
-      if (built) return;
-      built = true;
-      panel.querySelector('.pv-compare-inner').innerHTML = compareHtml(P);
-      var tabs = panel.querySelector('.pv-tabs'), table = panel.querySelector('.pv-table');
-      tabs.addEventListener('click', function (e) {
-        var b = e.target.closest('button[data-col]');
-        if (!b) return;
-        tabs.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
-        table.dataset.col = b.dataset.col;
-      });
-      var cta = panel.querySelector('[data-pro-cta]');
-      if (cta && typeof strykerTrialDecorate === 'function') strykerTrialDecorate(cta, P.pro);
-    }
-    function settle() { panel.classList.remove('pv-anim'); panel.style.height = ''; }
-    btn.addEventListener('click', function () {
-      var open = btn.getAttribute('aria-expanded') !== 'true';
-      clearTimeout(timer);
-      btn.setAttribute('aria-expanded', String(open));
-      label.textContent = open ? 'Hide comparison' : 'Compare ' + planDisplayName(P.free) + ' and ' + planDisplayName(P.pro);
-      if (open) {
-        build();
-        panel.hidden = false;
-        if (reduce()) { panel.classList.add('pv-open'); return; }
-        var h = panel.scrollHeight;
-        panel.style.height = '0px';
-        panel.classList.add('pv-anim');
-        void panel.offsetHeight;
-        panel.classList.add('pv-open');
-        panel.style.height = h + 'px';
-        timer = setTimeout(settle, 460);
-      } else {
-        if (reduce()) { panel.classList.remove('pv-open'); panel.hidden = true; return; }
-        panel.style.height = panel.scrollHeight + 'px';
-        panel.classList.add('pv-anim');
-        void panel.offsetHeight;
-        panel.classList.remove('pv-open');
-        panel.style.height = '0px';
-        timer = setTimeout(function () { settle(); panel.hidden = true; }, 460);
-      }
-    });
-  }
-
-  // ---------------------------------------------------------------- hero (C)
-  var ICONS = {
-    learn: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/><path d="M9 7h7M9 10.5h5"/>',
-    gex: '<path d="M4 20h16"/><path d="M7 17V9M11 17V5M15 17v-6M19 17v-9"/>',
-    journal: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
-    replay: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M10 9l5 3-5 3z"/>',
-    desk: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 12l3-3 3 2 4-4"/><path d="M9 20h6M12 16v4"/>',
-    community: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 0 1 0 6M18 14.5c1.8.8 3 2.6 3 4.5"/>'
-  };
-  var ICON_ORDER = ['replay', 'gex', 'journal', 'learn', 'desk', 'community'];   // Pro feature order: order flow, GEX on charts, journal, chapters, desk, community (no real-time line since 2026-10-30)
-  function icon(k) {
-    return '<span class="pv-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICONS[k] + '</svg></span>';
-  }
-  function faq(q, a) {
-    return '<details class="pv-q"><summary><span>' + esc(q) + '</span><i aria-hidden="true"></i></summary><div class="pv-a"><p>' + esc(a) + '</p></div></details>';
-  }
-  function render(root, P) {
-    var feats = (P.pro.features || []).slice(0, 6).map(function (f, i) {
-      return '<li>' + icon(ICON_ORDER[i] || 'learn') + '<span>' + f + '</span></li>';
-    }).join('');
-    var freeName = planDisplayName(P.free), proName = planDisplayName(P.pro);
-    root.innerHTML =
-      '<div class="pv-hero">' +
-        '<div class="pv-hero-l">' +
-          '<span class="pv-pill">Order book, order flow and GEX+</span>' +
-          '<h3>' + esc(proName) + '</h3>' +
-          heroPriceHtml(P.pro) +
-          yearlyLine(P) +
-          '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary pv-cta-xl" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
-          '<a href="/pro" class="pp-see">See everything in Pro →</a>' +
-          '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime. Live CME futures data is a separate $7/month add-on.</p>' +
-        '</div>' +
-        '<ul class="pv-icons">' + feats + '</ul>' +
-      '</div>' +
-      '<div class="pv-strip">' +
-        '<p><b>' + esc(freeName) + ' is free for every member:</b> all 64 chapters, JournalX with import, broker sync and AI coach, Smart Money Desk, trading models, private indicators, ZoroCharts, Replay One and the full community. No trial, no card.</p>' +
-        '<a href="signup" class="btn btn-ghost">' + ctaLabel(P.free, 'Start free') + '</a>' +
-      '</div>' +
-      '<div class="pv-faq">' +
-        faq('Can I cancel anytime?', 'Yes. Cancel from Billing in Settings. You keep ' + proName + ' until the end of the period you have already paid for, and you are not charged again.') +
-        faq('Why can the rupee price change?', proName + ' is priced in US dollars. The rupee price is the dollar price at that day\'s exchange rate. Once you subscribe, your amount stays fixed.') +
-        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. On ' + freeName + ' only order flow tools and GEX+ are locked.') +
-        '<a class="pv-faq-all" href="help?cat=plans-billing">See all questions \u2192</a>' +
-      '</div>';
-  }
-
   document.addEventListener('DOMContentLoaded', function () {
     var root = document.getElementById('pricing-root');
-    if (!root || typeof db === 'undefined') return;
+    if (!root || typeof db === 'undefined' || typeof strykerLoadPlans !== 'function') return;
     var fx = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
     Promise.all([strykerLoadPlans(), fx]).then(function (res) {
-      var P = pick(res[0] || []);
-      if (P.free) syncFreeChapters(P.free);
-      if (!P.free || !P.pro) return; // keep the static fallback cards
-      root.classList.add('pv-live');
-      render(root, P);
-      if (typeof strykerCurrencyNoteHtml === 'function') root.insertAdjacentHTML('beforeend', strykerCurrencyNoteHtml());
-      var cta = root.querySelector('.pv-hero [data-pro-cta]');
-      if (cta && typeof strykerTrialDecorate === 'function') strykerTrialDecorate(cta, P.pro);
-      if (reduce()) root.classList.add('pv-ready');
-      else requestAnimationFrame(function () { root.classList.add('pv-ready'); });
-    }).catch(function (e) {
-      console.error('TradeZoro: pricing plans failed to load, showing static fallback', e);
-    });
+      var byId = {};
+      (res[0] || []).forEach(function (p) { byId[p.id] = p; });
+      ['LiveData', 'LiveDataL2'].forEach(function (id) {
+        var card = root.querySelector('[data-card="' + id + '"]'), p = byId[id];
+        if (!card) return;
+        if (!p || (typeof planIsArchived === 'function' ? planIsArchived(p) : p.archived === true)) {
+          var cta = card.querySelector('[data-cta]');   // not on sale yet: say so instead of a dead checkout
+          if (cta) { cta.removeAttribute('href'); cta.setAttribute('aria-disabled', 'true'); cta.classList.add('is-disabled'); cta.textContent = 'Opening soon'; }
+          return;
+        }
+        var price = typeof planSaleInfo === 'function' ? planSaleInfo(p).price : parseFloat(p.price);
+        var el = card.querySelector('[data-price]');
+        if (el && price > 0 && typeof planMoneyDisplay === 'function') el.innerHTML = planMoneyDisplay(price) + '<span>/ month</span>';
+      });
+      if (typeof strykerCurrencyNoteHtml === 'function' && !root.querySelector('.plan-currency-note')) root.insertAdjacentHTML('beforeend', strykerCurrencyNoteHtml());
+    }).catch(function (e) { console.error('TradeZoro: pricing plans failed to load, showing the fallback prices', e); });
   });
 })();

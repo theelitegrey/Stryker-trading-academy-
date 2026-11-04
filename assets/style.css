@@ -634,6 +634,9 @@ section{ padding:96px 0; }
 #pricing .price-card ul{ flex:1 0 auto; }
 #pricing .currency-note{ max-width:880px; margin-left:auto; margin-right:auto; }
 @media (max-width:700px){ #pricing .pricing-grid{ grid-template-columns:minmax(0,1fr); max-width:520px; } }
+#pricing .pricing-grid.pricing-grid-3{ grid-template-columns:repeat(3,minmax(0,1fr)); max-width:1120px; }   /* data plans 2026-11-04: Free / L1 / L2 */
+@media (max-width:900px){ #pricing .pricing-grid.pricing-grid-3{ grid-template-columns:minmax(0,1fr); max-width:520px; } }
+#pricing .price-card .btn.is-disabled{ opacity:.55; pointer-events:none; }
 .price-card{ background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-lg); padding:32px 28px; display:flex; flex-direction:column; }
 .price-card.featured{ border-color:var(--gold-dim); box-shadow:var(--shadow-glow); position:relative; }
 .price-card.featured::before{

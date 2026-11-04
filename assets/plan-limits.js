@@ -6,8 +6,10 @@
 //             switchJournalTab, reloadJournalData), replay.js (still calls
 //             strykerReplayLimitOk; it always answers yes now).
 //
-// The Free plan (rank 0) gets:
-//   GEX           NOTHING (Owner 2026-11-01): all GEX+ is Pro, enforced by the server (functions/api/gex/_pro.js)
+// DATA PLANS (Owner 2026-11-04): every tool is free for signed-in members (GEX+, order flow, book / L2 tools). Live futures
+// data is sold as L1 Data / L2 Data add-ons and enforced by the server. strykerPlanTier() therefore answers free:false for everyone.
+// Older notes, kept for history:
+//   GEX           (2026-11-01, ended 2026-11-04): all GEX+ was Pro
 //   Trade journal NO limits (Owner 2026-11-01): unlimited trades, import, broker sync, analytics, AI coach.
 //                 applyJournal() below is kept but unused.
 //   Charts        NO limits for Free (Owner 2026-10-29); the only Pro parts of the
@@ -35,10 +37,13 @@
         var s = db.collection('students').doc(user.uid).get().catch(function () { return null; });
         var r = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
         Promise.all([a, s, r]).then(function (res) {
+          // ALL TOOLS ARE FREE (Owner 2026-11-04, data plans): no plan locks a tool any more, so `free` (= "lock the Pro tools")
+          // is always false. Live DATA is the paid part and is decided by the server (rt-access.js: L1 / L2 add-ons).
+          // `pro` is informational only (an existing Pro payer, kept until their paid period ends).
           if (res[0] && res[0].exists) return resolve({ free: false, admin: true });
           var plan = (res[1] && res[1].exists) ? res[1].data().plan : null;
-          if (!plan || typeof findPlan !== 'function' || !findPlan(plan) || typeof rankOf !== 'function') return resolve({ free: false });
-          resolve({ free: rankOf(plan) < 1, plan: plan });
+          var pro = !!plan && typeof findPlan === 'function' && !!findPlan(plan) && typeof rankOf === 'function' && rankOf(plan) >= 1;
+          resolve({ free: false, plan: plan, pro: pro });
         }).catch(function () { resolve({ free: false }); });
       });
     });
@@ -77,7 +82,7 @@
       var p = document.createElement('p');
       p.id = 'gex-free-note';
       p.className = 'plan-usage-note';
-      p.innerHTML = 'Free plan: SPX, 0DTE view. <a href="#" data-open-plan-modal data-upgrade-reason="Pro unlocks GEX+ for every symbol (SPX, SPY, QQQ, ES, NQ and gold GC) and expiry, the futures conversion and the strike table.">Pro unlocks every symbol and expiry</a>.';
+      p.innerHTML = 'Free plan: SPX, 0DTE view. <a href="/login.html">Sign in for every symbol and expiry (free)</a>.';
       note.parentNode.insertBefore(p, note.nextSibling);
     }
   }

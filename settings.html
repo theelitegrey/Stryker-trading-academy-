@@ -92,7 +92,7 @@
     <div class="paywall-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <h2 id="paywall-heading">This page is part of Pro</h2>
+    <h2 id="paywall-heading">This page is not on your plan</h2>
     <p id="paywall-body">This page requires an active plan.</p>
     <div class="paywall-actions" id="paywall-actions">
       <button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button>
@@ -329,7 +329,7 @@
           <a class="btn btn-primary btn-sm btn-block" id="settings-renew-btn" style="display:none; margin-bottom:10px;" href="#">Renew now</a>
           <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-cancel-autopay" style="display:none; margin-bottom:10px; border-color:rgba(229,72,77,0.3);">Cancel auto-renewal</button>
           <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-manage-billing" style="display:none; margin-bottom:10px;">Manage billing (card, invoices, cancel)</button>
-          <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-see-pro" data-open-plan-modal data-upgrade-reason="TradeZoro is free. Pro adds order flow tools and GEX+.">See Pro (order flow + GEX+)</button>
+          <p style="margin:0; font-size:13px; color:var(--ink-2); line-height:1.5;">Every tool is free, order flow and GEX+ included. <a href="#settings-livedata-panel" style="color:var(--teal);">Live data</a> is the only paid part.</p>
         </div>
 
         <div class="panel" id="settings-connections-panel" hidden>
@@ -338,23 +338,19 @@
         </div>
 
         <div class="panel" id="settings-livedata-panel">
-          <div class="panel-head"><h2>Live futures data</h2></div>
-          <p class="stk-ld-sub" style="margin:0 0 12px; font-size:13px; color:var(--ink-2); line-height:1.55;">CME futures on ZoroCharts (NQ, ES, GC, CL and the rest) are 10 minutes behind by CME rule. Crypto is always live.</p>
+          <div class="panel-head"><h2>Live data</h2></div>
+          <p class="stk-ld-sub" style="margin:0 0 12px; font-size:13px; color:var(--ink-2); line-height:1.55;">Every tool is free. CME futures on ZoroCharts (NQ, ES, GC, CL and the rest) are 10 minutes behind by CME rule unless you add live data. L1 Data: live trades, candles and quotes. L2 Data: adds the live order book and includes L1. Crypto is always live.</p>
           <div class="mini-bar-row" style="margin-bottom:14px;">
-            <span class="label">Status</span>
-            <span class="mini-bar-val" style="width:auto; font-size:13px; color:var(--ink-1);" id="settings-ld-status">—</span>
+            <span class="label">Data</span>
+            <span class="mini-bar-val" style="width:auto; flex:1; text-align:right; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink-1);" id="settings-ld-status">—</span>
           </div>
-          <div class="mini-bar-row" style="margin-bottom:14px; display:none;" id="settings-ld-row">
-            <span class="label" id="settings-ld-row-l">Renews</span>
-            <span class="mini-bar-val" style="width:auto; font-size:13px; color:var(--ink-1);" id="settings-ld-date">—</span>
-          </div>
-          <p id="settings-ld-soon" style="display:none; margin:0 0 10px; font-size:13px; color:var(--ink-2);">Live futures data ($7/month): coming today.</p>
-          <a class="btn btn-primary btn-sm btn-block" id="settings-ld-buy" style="display:none; margin-bottom:10px;" href="checkout.html?plan=LiveData">Get live futures data: $7/month</a>
-          <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-ld-cancel" style="display:none; margin-bottom:10px; border-color:rgba(229,72,77,0.3);">Cancel live futures data</button>
-          <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-ld-manage" style="display:none; margin-bottom:10px;">Manage card and invoices</button>
+          <div id="settings-ld-addons"></div>
+          <a class="btn btn-primary btn-sm btn-block" id="settings-ld-buy-l2" style="display:none; margin-bottom:10px;" href="checkout.html?plan=LiveDataL2">Get L2 Data (live order book)</a>
+          <a class="btn btn-ghost btn-sm btn-block" id="settings-ld-buy" style="display:none; margin-bottom:10px;" href="checkout.html?plan=LiveData">Get L1 Data (live trades and quotes)</a>
+          <a id="settings-ld-compare" href="/pricing" style="display:block; margin:0 0 12px; font-size:13px; color:var(--teal);">Compare data plans</a>
           <p id="settings-ld-agree" style="margin:0 0 8px; font-size:13px; color:var(--ink-1); line-height:1.5;"></p>
           <p style="margin:0 0 8px; font-size:12px; color:var(--ink-3); line-height:1.5;">Market data is provided as is and may be delayed or inaccurate. Personal, non-commercial use only. <a href="market-data-terms" style="color:var(--teal); text-decoration:underline;">Terms</a></p>
-          <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Other ways to get real-time: connect your own Rithmic login on the chart (Connect broker), or ask us for approval.</p>
+          <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Other ways to get real-time: connect your own broker login on the chart (Connect broker), or ask us for approval.</p>
         </div>
 
         <div class="panel">

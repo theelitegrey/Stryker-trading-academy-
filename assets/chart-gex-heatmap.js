@@ -212,7 +212,7 @@ class HeatNative {
     if (!src) payload = { note: 'GEX heatmap available for SPX, SPY, QQQ, ES, NQ and gold (GC)' };
     else if (!core) payload = { note: 'GEX heatmap could not load' };
     else if (!this.tier) payload = { note: 'Loading GEX heatmap…' };
-    else if (this.locked(src)) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api === 'GLD' ? 'gold' : src.api) + ' GEX heatmap with Pro', href: PRICING };
+    else if (this.locked(src)) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api === 'GLD' ? 'gold' : src.api) + ' GEX heatmap: sign in (free)', href: '/login.html' };
     else {
       const dte = this.dte(), e = store.get(hkey(src.api, dte));
       const rp = replayNowS();

@@ -10,7 +10,7 @@
 //                  Owner 2026-11-04: "big orders show on the heatmap but Big Trades does not": Big Trades marks single aggressive bursts, a wall is
 //                  usually filled by many small orders or pulled. Its own indicator (not a Big Trades option) because it needs the BOOK: Big Trades
 //                  is trade-only and also runs without L2. Walls = the Large Resting Orders size (same session histogram) or the heatmap's colour filter.
-// Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
+// Gate (data plans 2026-11-04): futures live book with L2 Data, else recorded history only (10 min delayed); crypto books free. No data = a plain note, never made-up numbers.
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
 import { registerFeed } from './chart-feeds.js?v=875';
 import { isFree } from './chart-pro-gate.js?v=875';
@@ -29,7 +29,7 @@ export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus'];
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Live order book needs L2 Data.';   // data plans 2026-11-04 (tools free, live book = L2 Data)
 const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_GAP = 200;   // redraw at most 5 a second
 const { clamp, num } = D;
@@ -91,6 +91,7 @@ class Store {
   start() {
     const s = this.spec;
     if (this.kind === 'futures') {
+      if (s.histOnly) return;   // history only: never open the live book socket (the server would refuse it anyway)
       this.h = acquire(s.root, (m) => this.frame(m), 20);   // the hub's 20-level snapshot is enough for every pack tool (N <= 20 ticks)
     } else {
       this.stopFn = openSource(s.prov, s.pair, {
@@ -344,7 +345,8 @@ class BkNative {
   gate() {
     const spec = specOf(this.ctx);
     if (!spec) return { msg: NEED };
-    if (spec.kind === 'futures' ? !l2Badge() : isFree()) return { msg: NOT_YET };
+    // data plans (2026-11-04): a member without L2 Data still gets the RECORDED book (the Worker cuts it to now - 10 min), no live socket
+    if (spec.kind === 'futures' && !l2Badge()) return { spec: Object.assign({}, spec, { histOnly: true, key: spec.key + '|h' }) };
     return { spec };
   }
   legend(lines, color) {
@@ -374,7 +376,8 @@ class BkNative {
     const kf = s.knownFrom(), first = bars.length ? bars[0].time : 0;
     // "Loading" at most ~10 s from the first read (or from the store's birth if no read could start yet); then the honest result
     const loading = s.kind === 'futures' && !(s.hDone || s.hFailAt) && Date.now() - (s.hAt || s.born || 0) < 10000;
-    const since = loading ? 'Loading book history…' : s.kind === 'futures' && !s.remote.length && (s.hDone || s.hFailAt || s.hAt) ? 'No earlier book history' : (kf > Math.max(ss, first) + 300000 ? 'No book history before ' + hhmm(kf) : '');
+    let since = loading ? 'Loading book history…' : s.kind === 'futures' && !s.remote.length && (s.hDone || s.hFailAt || s.hAt) ? 'No earlier book history' : (kf > Math.max(ss, first) + 300000 ? 'No book history before ' + hhmm(kf) : '');
+    if (s.spec.histOnly) since = 'Recorded history · live book needs L2 Data';
     if (loading && !this.ltm) this.ltm = setTimeout(() => { this.ltm = 0; this.later(); }, 2500);   // re-check so the 10 s cap shows even with no new frames
     if (t === 'stk_bk_speed') return this.drawSpeed(s, I, bars, tf, ss, since);
     if (t === 'stk_bk_bal') return this.drawBal(s, I, bars, tf, ss, since);

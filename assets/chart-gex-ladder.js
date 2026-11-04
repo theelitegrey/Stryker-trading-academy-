@@ -100,7 +100,7 @@ let planP = null;
 function planTier() {
   if (planP) return planP;
   planP = new Promise((resolve) => {
-    try { if (typeof window.strykerPlanTier === 'function') window.strykerPlanTier().then((r) => resolve(r || { free: true }), () => resolve({ free: true })); } catch (e) { resolve({ free: true }); }
+    try { if (typeof window.strykerPlanTier === 'function') window.strykerPlanTier().then((r) => resolve(r || { free: false }), () => resolve({ free: false })); else resolve({ free: false }); } catch (e) { resolve({ free: false }); }   // GEX+ is free (2026-11-04); the server still needs a member sign-in
   });
   return planP;
 }
@@ -120,7 +120,7 @@ export function createLadder(root, opts) {
   const colEl = (api) => root.querySelector('.stkgl-col[data-api="' + api + '"]');
   const phone = () => (opts.isPhone ? opts.isPhone() : window.innerWidth <= PHONE_MAX);
   // Default to the lock: QQQ / SPY open only once Pro is CONFIRMED (a signed-out or Free visitor never waits for it).
-  const locked = () => !(tier && !tier.free);   // all GEX is Pro (Owner 2026-11-01), SPX included
+  const locked = () => !!(tier && tier.free);   // never true since 2026-11-04 (GEX+ free for members); kept for the old callers
   const dteNow = () => (opts.dte ? opts.dte() : 0);
   const dataFor = (api) => (opts.dataFor && opts.dataFor(api)) || (live[dteNow()] && live[dteNow()][api]) || gexCached(api, dteNow());
 
@@ -170,7 +170,7 @@ export function createLadder(root, opts) {
       const kind = rn ? 'note' : lock ? 'lock' : 'wait';
       if (st && st.kind === kind) return;
       cols[api] = { kind };
-      el.innerHTML = headHtml(api, label, lock) + (rn ? '<div class="stkgl-empty">' + esc(rn) + '</div>' : lock ? '<div class="stkgl-lock"><p>' + api + ' ladder is part of Pro.</p><a class="btn btn-primary btn-sm" href="/pricing">See Pro</a></div>' : '<div class="stkgl-empty">Loading…</div>');
+      el.innerHTML = headHtml(api, label, lock) + (rn ? '<div class="stkgl-empty">' + esc(rn) + '</div>' : lock ? '<div class="stkgl-lock"><p>Sign in to see the ' + api + ' ladder (free).</p><a class="btn btn-primary btn-sm" href="/login.html">Sign in</a></div>' : '<div class="stkgl-empty">Loading…</div>');
       return;
     }
     if (!st || st.kind !== 'list' || st.sig !== model.sig) {
@@ -224,7 +224,7 @@ export function createLadder(root, opts) {
     if (inflight) return;
     if (opts.replayNote && opts.replayNote()) return;
     const dte = dteNow(), my = seq;
-    let want = COLS.map((c) => c[0]).filter(() => tier && !tier.free);
+    let want = COLS.map((c) => c[0]).filter(() => !(tier && tier.free));
     if (opts.dataFor) want = want.filter((a) => !opts.dataFor(a));
     if (!want.length) return;
     inflight = true;
@@ -335,7 +335,7 @@ export function mountGexLadder(ws, opts) {
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
   // Free members: a PRO tag on the rail button + the phone button; a click opens the upgrade modal (setOpen).
   ProGate.onTier((f) => { if (!f) return; [railBtn, phoneBtn].forEach((b) => { if (!b.querySelector('.stk-protag')) b.appendChild(ProGate.proTag()); }); });
-  if (ProGate.isFree()) [railBtn, phoneBtn].forEach((b) => b.appendChild(ProGate.proTag()));
+  
   railBtn.addEventListener('click', () => setOpen(!open));
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
   closeBtn.addEventListener('click', () => setOpen(false));

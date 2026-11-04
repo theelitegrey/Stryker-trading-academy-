@@ -11,17 +11,17 @@ V_ = ['TradingView', 'OpenMarket', 'Alertsify']
 # Y = tick, ('y', note) = tick + note, ('n', note) = text, no tick, NF/NB = grey text, NC = we did not compare that vendor.
 ROWS = [
  ('16 charts on one screen', Y, Y, Y, Y),
- ('Volume profile', Y, Y, Y, ('y','Pro')),
- ('Volume footprint', Y, Y, NF, ('y','Pro')),
+ ('Volume profile', Y, Y, Y, ('y','Free')),
+ ('Volume footprint', Y, Y, NF, ('y','Free')),
  ('Bar replay', Y, NF, Y, ('y','Replay One, and replay on the chart')),
  ('Custom timeframes', Y, NF, Y, ('y','Up to 20 custom intervals')),
  ('Auto chart patterns', Y, NF, Y, Y),
  ('Charts based on custom formulas', Y, NF, NF, ('y','For example ES1!-NQ1!*0.25')),
  ('Chart data export', Y, NF, NF, ('y','CSV')),
  ('Earnings and economic calendar', Y, ('n','Economic data series, no calendar found'), Y, Y),
- ('Order book heatmap', NB, Y, NF, ('y','Pro. Midnight, Zoro, Classic and Split looks')),
- ('GEX levels: call wall, put wall, gamma flip', NB, ('y','Starter indicator'), ('y','US stocks and ETFs'), ('y','Pro. SPX, SPY, QQQ, ES, NQ, GC')),
- ('Options flow marked on your candles', NB, ('y','Starter indicator'), Y, ('y','Pro. Per-bar call and put totals for SPX, SPY, QQQ')),
+ ('Order book heatmap', NB, Y, NF, ('y','Free. Midnight, Zoro, Classic and Split looks')),
+ ('GEX levels: call wall, put wall, gamma flip', NB, ('y','Starter indicator'), ('y','US stocks and ETFs'), ('y','Free. SPX, SPY, QQQ, ES, NQ, GC')),
+ ('Options flow marked on your candles', NB, ('y','Starter indicator'), Y, ('y','Free. Per-bar call and put totals for SPX, SPY, QQQ')),
  ('Dark pool levels on the chart', NB, NF, Y, NB),
  ('Indicators per chart', '50', NF, 'Up to 16', 'No cap on built-in tools. Pine scripts: 8', 'cmp'),
  ('Alerts', '1,000 price + 1,000 technical', NF, NF, '1,000', 'cmp'),
@@ -29,16 +29,16 @@ ROWS = [
 ]
 # Features we did not compare row by row (all competitor cells NC). Listed on their own, never as "only on TradeZoro".
 MORE = [
- ('DOM ladder and Book, DOM and Trades panel', 'Pro'),
- ('Liquidity Walls and Wall Events', 'Pro'),
- ('Book Speed', 'Pro. Futures order book'),
- ('Liquidity Balance', 'Pro. Futures order book'),
- ('Refill Detector', 'Pro. Futures order book'),
- ('Volatility Regime', 'Pro. Futures order book'),
- ('Large Resting Orders', 'Pro. Futures order book'),
- ('Absorption and Iceberg Tracker', 'Pro. Futures order book'),
- ('Big Trades and Absorption', 'Pro'),
- ('ZoroTide options money flow', 'Pro'),
+ ('DOM ladder and Book, DOM and Trades panel', 'Free'),
+ ('Liquidity Walls and Wall Events', 'Free'),
+ ('Book Speed', 'Free. Futures order book'),
+ ('Liquidity Balance', 'Free. Futures order book'),
+ ('Refill Detector', 'Free. Futures order book'),
+ ('Volatility Regime', 'Free. Futures order book'),
+ ('Large Resting Orders', 'Free. Futures order book'),
+ ('Absorption and Iceberg Tracker', 'Free. Futures order book'),
+ ('Big Trades and Absorption', 'Free'),
+ ('ZoroTide options money flow', 'Free'),
  ('Replay One practice sessions', 'Free'),
  ('JournalX trade journal with CSV import and broker sync', 'Free'),
  ('Market Stats', 'Free'),
@@ -79,9 +79,9 @@ table = f"""<div class="cp-pick"><label for="cp-sel">TradeZoro vs</label><select
 <th scope="col" data-c="0"><b>TradingView</b><span>Ultimate, $239.95/mo billed monthly</span></th>
 <th scope="col" data-c="1"><b>OpenMarket</b><span>Free plan, $0</span></th>
 <th scope="col" data-c="2"><b>Alertsify</b><span>Free charts, $0</span></th>
-<th scope="col" class="cp-tz" data-c="3"><b>TradeZoro</b><span>Free · Pro for order flow</span></th></tr></thead>
+<th scope="col" class="cp-tz" data-c="3"><b>TradeZoro</b><span>Free · data add-on</span></th></tr></thead>
 <tbody>{"".join(rows)}</tbody></table>
-<section class="cp-more" aria-labelledby="cp-more-h"><h2 id="cp-more-h">More on TradeZoro</h2><p>Tools we did not compare row by row. Pro marks what needs TradeZoro Pro.</p><ul>{more}</ul></section>"""
+<section class="cp-more" aria-labelledby="cp-more-h"><h2 id="cp-more-h">More on TradeZoro</h2><p>Tools we did not compare row by row. All free for members.</p><ul>{more}</ul></section>"""
 
 head = src[:src.index('<main')]
 head = re.sub(r'<meta property="og:title"[^>]*>', '<meta property="og:title" content="TradeZoro compared: TradingView, OpenMarket, Alertsify">', head)
@@ -91,7 +91,7 @@ head = re.sub(r'(<meta (?:property="og:description"|name="twitter:description"|n
 head = re.sub(r'<meta property="og:url"[^>]*>', '<meta property="og:url" content="https://tradezoro.com/compare">', head)
 head = re.sub(r'<link rel="canonical"[^>]*>', '<link rel="canonical" href="https://tradezoro.com/compare">', head)
 head = re.sub(r'<title>[^<]*</title>', '<title>TradeZoro compared: TradingView, OpenMarket, Alertsify</title>', head)
-head = head.replace('share/pro.png','share/compare.png').replace('Everything in Pro share card','TradeZoro compared share card')
+head = head.replace('share/pro.png','share/compare.png').replace('TradeZoro tools share card','TradeZoro compared share card')
 head = head.replace('<link rel="stylesheet" href="assets/pro-page.css?v=%s">' % V, '<link rel="stylesheet" href="assets/compare-page.css?v=%s">' % V)
 head = re.sub(r'<link rel="preload" as="image"[^>]*>\n?', '', head)
 head = head.replace('og:type" content="website">', 'og:type" content="website">', 1)
@@ -99,13 +99,13 @@ SCRIPT = '''<script>(function(){var t=document.getElementById('cp-table'),s=docu
 main = f'''<main id="main" tabindex="-1" class="cm-main-page">
 <section class="cp-hero"><div class="cm-w">
   <h1>TradeZoro next to TradingView, OpenMarket and Alertsify</h1>
-  <p class="cp-sub">TradingView's Ultimate plan and the free plans of OpenMarket and Alertsify, next to TradeZoro. A tick means we found it on the vendor's public site. Pro marks what needs TradeZoro Pro.</p>
+  <p class="cp-sub">TradingView's Ultimate plan and the free plans of OpenMarket and Alertsify, next to TradeZoro. A tick means we found it on the vendor's public site. Every TradeZoro tool is free; live futures data is a separate data add-on.</p>
 </div></section>
 <section class="cp-sec-w"><div class="cm-w">
 {table}
-<p class="cp-foot">Competitor features and prices from their public websites, checked Nov 2026. Not found means we could not find it on their public pages, so it may exist. Tell us if something changed: <a href="/contact">contact us</a>. Sources: <a href="https://www.tradingview.com/pricing/" rel="noopener">tradingview.com/pricing</a>, <a href="https://openmarket.xyz" rel="noopener">openmarket.xyz</a>, <a href="https://alertsify.com/charts" rel="noopener">alertsify.com/charts</a>. TradeZoro: Pro items need <a href="/pro">TradeZoro Pro</a>; everything else is free. Education only. Not financial advice.</p>
+<p class="cp-foot">Competitor features and prices from their public websites, checked Nov 2026. Not found means we could not find it on their public pages, so it may exist. Tell us if something changed: <a href="/contact">contact us</a>. Sources: <a href="https://www.tradingview.com/pricing/" rel="noopener">tradingview.com/pricing</a>, <a href="https://openmarket.xyz" rel="noopener">openmarket.xyz</a>, <a href="https://alertsify.com/charts" rel="noopener">alertsify.com/charts</a>. TradeZoro: <a href="/pro">every tool</a> is free; CME futures data is a separate data add-on. Education only. Not financial advice.</p>
 {SCRIPT}
-<div class="cp-cta"><a class="btn btn-primary cm-btn" href="/signup">Start free</a><a class="btn btn-ghost cm-btn" href="/pro">See what Pro adds</a></div>
+<div class="cp-cta"><a class="btn btn-primary cm-btn" href="/signup">Start free</a><a class="btn btn-ghost cm-btn" href="/pro">See every tool</a></div>
 </div></section>
 </main>
 '''

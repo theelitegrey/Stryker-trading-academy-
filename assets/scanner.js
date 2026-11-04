@@ -323,7 +323,7 @@
     });
     root.querySelectorAll('[data-lock]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var why = b.getAttribute('data-lock') === 'gex' ? 'GEX levels in the screener are part of Pro.' : 'Order flow columns are part of Pro.';
+        var why = b.getAttribute('data-lock') === 'gex' ? 'Sign in to use GEX levels in the screener (free).' : 'Sign in to use the order flow columns (free).';
         if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(why);
       });
     });

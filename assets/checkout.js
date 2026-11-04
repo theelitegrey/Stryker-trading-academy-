@@ -160,7 +160,7 @@ function renderPlanSummary(plan){
       ? planPriceHtml(plan, 'sm')
       : '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">$' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>') +
     '<div id="checkout-yearly-line"></div>' +
-    (plan.addon === true ? '<p style="margin:0 0 12px; font-size:12.5px; color:var(--ink-2); line-height:1.5;">An add-on for any account, Free or Pro. Billed monthly, cancel any time in Settings &gt; Billing.</p>' : '') +
+    (plan.addon === true ? '<p style="margin:0 0 12px; font-size:12.5px; color:var(--ink-2); line-height:1.5;">A data add-on for any account. Every tool is free; this adds live futures data. Billed monthly, cancel any time in Settings.</p>' : '') +
     '<ul style="margin:0; padding:0; list-style:none;">' + featuresHtml + '</ul>';
   renderCheckoutYearlyLine(plan);
 }
@@ -439,11 +439,12 @@ function handleStripeReturn(uid){
   let unsub = () => {};
   unsub = db.collection('students').doc(uid).onSnapshot((doc) => {
     const s = doc.exists ? doc.data() : {};
-    // Live Futures Data add-on: its own entitlement (liveData), the plan is untouched.
-    const ld = s.liveData || {};
+    // Data add-ons: their own entitlement (liveData = L1, liveDataL2 = L2), the plan is untouched. Watch the field this checkout bought.
+    const isL2 = q.get('plan') === 'LiveDataL2';
+    const ld = (isL2 ? s.liveDataL2 : s.liveData) || {};
     if (!done && ld.active === true && ld.source === 'stripe' && (ld.paidThroughMillis || 0) > started - 60000 && (ld.paidThroughMillis || 0) > Date.now()) {
       done = true; setTimeout(() => unsub(), 0);
-      okEl.innerHTML = '<b>Live Futures Data is on.</b> Your CME futures charts are real-time. Taking you to ZoroCharts…';
+      okEl.innerHTML = '<b>' + (isL2 ? 'L2 Data' : 'L1 Data') + ' is on.</b> Your CME futures charts are real-time. Taking you to ZoroCharts…';
       clean();
       setTimeout(() => { window.location.href = 'charts.html'; }, 2200);
       return;
@@ -604,7 +605,7 @@ function launchRazorpaySubscription(btn, errEl){
           signature: resp.razorpay_signature
         }).then((v) => {
           if (v && v.data && v.data.addon) {
-            showToast('success', 'Live Futures Data is on. Your CME futures charts are real-time.', { title: 'Payment confirmed', duration: 2600 });
+            showToast('success', (CHECKOUT_PLAN && CHECKOUT_PLAN.id === 'LiveDataL2' ? 'L2 Data is on: live order book and live trades.' : 'L1 Data is on: live trades and quotes.') + ' Your CME futures charts are real-time.', { title: 'Payment confirmed', duration: 2600 });
             setTimeout(() => { window.location.href = 'charts.html'; }, 1800);
             return;
           }

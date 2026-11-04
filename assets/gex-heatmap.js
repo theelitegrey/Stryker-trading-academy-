@@ -99,7 +99,7 @@
       setStatus('');
       var div = document.createElement('div'); div.id = 'gex-heat-lock';
       if (window.strykerPlanLock) div.appendChild(window.strykerPlanLock.card('gex', 'gex-heatmap'));
-      else div.innerHTML = '<p class="gex-empty">Pro unlocks the GEX heatmap for every market and expiry. The Free plan covers SPX, 0DTE.</p>';
+      else div.innerHTML = '<p class="gex-empty">Sign in to see the GEX heatmap. It is free for every member.</p>';
       $('gex-heat-status').appendChild(div);
       return;
     }

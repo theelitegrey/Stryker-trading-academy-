@@ -17,7 +17,7 @@
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok && d.ok, data: d }; }); });
     }).catch(function () { return { ok: false, data: { message: 'Could not reach the Discord service. Try again.' } }; });
   }
-  var INTRO = 'Chat with other traders, ask questions and get updates. Free members can join. Pro members also get the Pro channels.';
+  var INTRO = 'Chat with other traders, ask questions and get updates. Free members can join. L2 Data members (and current Pro members) also get the Pro channels.';
   function paint(d) {
     var h = '';
     if (msg) h += '<p class="ds-msg" role="alert">' + esc(msg) + '</p>';
@@ -25,7 +25,7 @@
     else if (d.data.ready === false) h += '<p class="ds-p">' + INTRO + '</p><p class="ds-p ds-mute">Discord connection is being set up.</p><div class="ds-row"><a class="btn btn-ghost btn-sm" href="' + INVITE + '" target="_blank" rel="noopener">Open Discord</a></div>';
     else if (!d.data.linked) h += '<p class="ds-p">' + INTRO + '</p><div class="ds-row"><button class="btn btn-primary btn-sm" type="button" id="ds-connect">Connect Discord</button><a class="btn btn-ghost btn-sm" href="' + INVITE + '" target="_blank" rel="noopener">Open Discord</a></div><p class="ds-p ds-mute">TradeZoro sees only your Discord name and ID.</p>';
     else {
-      var x = d.data, st = x.state, line = x.pro && st === 'active' ? 'You have the TradeZoro Pro role.' : st === 'active' ? 'Pro members get the Pro channels.' :
+      var x = d.data, st = x.state, line = x.pro && st === 'active' ? 'You have the TradeZoro Pro role.' : st === 'active' ? 'L2 Data members get the Pro channels.' :
         st === 'banned' ? 'You are banned from that Discord server.' : st === 'stale' ? 'Connect Discord again to join the server.' : 'Checking your role. It updates on its own every 15 minutes.';
       h += '<p class="ds-p"><b>Connected as ' + esc(x.username) + '</b></p><p class="ds-p">' + esc(line) + '</p><div class="ds-row"><a class="btn btn-primary btn-sm" href="' + INVITE + '" target="_blank" rel="noopener">Open Discord</a><button class="btn btn-ghost btn-sm" type="button" id="ds-check">Check again</button><button class="btn btn-ghost btn-sm" type="button" id="ds-un">Disconnect</button></div>';
     }

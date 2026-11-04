@@ -274,81 +274,80 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// ---- Live futures data panel (settings.html #settings-livedata-panel) -----------------------------------------------
-// students/{uid}.liveData = { active, paidThroughMillis, source, autopay, stripeSubscriptionId | razorpaySubscriptionId }
-// (written only by the payment functions) and students/{uid}.liveFeed (an admin's approval). The chart SERVER decides
-// real-time from the same fields (functions/api/chart/_rt.js); this panel only shows them and offers cancel / buy.
-// The upgrade button is a paywall, so it may name the live Pro price (Owner 2026-11-01: no prices upfront elsewhere).
-function showProPrice(){
-  const btn = document.getElementById('settings-see-pro');
-  if (!btn || typeof loadPlansForRoles !== 'function' || typeof planSaleInfo !== 'function' || typeof planMoneyDisplay !== 'function') return;
-  const fx = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
-  Promise.all([loadPlansForRoles(), fx]).then(([all]) => {
-    const sold = (all || []).filter((p) => !p.hidden && p.archived !== true && planSaleInfo(p).price > 0);
-    const pro = sold.find((p) => p.featured) || sold[0];
-    if (pro) btn.textContent = 'See Pro: ' + planMoneyDisplay(planSaleInfo(pro).price) + ' / ' + (pro.period || 'month') + ' (order flow + GEX+)';
-  }).catch(() => {});
-}
-
-let LD_PRICE = '$7';   // plans/LiveData.price when it loads; $7 fallback
+// ---- Live data panel (settings.html #settings-livedata-panel). Data plans, Owner 2026-11-04: tools free, live data paid. -----
+// students/{uid}.liveData (L1 Data) and .liveDataL2 (L2 Data) = { active, paidThroughMillis, source, autopay, stripeSubscriptionId |
+// razorpaySubscriptionId }, written only by the payment functions; students/{uid}.liveFeed = an admin's approval. The chart SERVER
+// decides (functions/api/chart/_rt.js: isRealtimeToken = L1, isL2Token = L2); this panel only shows the same fields and offers
+// buy / cancel. No price on the buy buttons (prices only on checkout and /pricing); a running add-on shows its own renewal price.
+function showProPrice(){}   // Pro is no longer sold (2026-11-04); kept as a no-op for the old caller
+const LD_PRICE = { liveData: '$7', liveDataL2: '$20' };   // fallback; the plans docs win
+const LD_NAME = { liveData: 'L1 Data', liveDataL2: 'L2 Data' }, LD_PLAN = { liveData: 'LiveData', liveDataL2: 'LiveDataL2' };
+let ldPriceAsked = false;
 function renderLiveData(student){
-  try { db.collection('plans').doc('LiveData').get().then((d) => { if (d.exists && Number(d.data().price) > 0 && '$' + Number(d.data().price) !== LD_PRICE) { LD_PRICE = '$' + Number(d.data().price); renderLiveData(student); return; } if (!d.exists) { const b = document.getElementById('settings-ld-buy'); if (b) { b.style.display = 'none'; const n = document.getElementById('settings-ld-soon'); if (n) n.style.display = ''; } } }).catch(() => {}); } catch (e) {}
+  if (!ldPriceAsked) {
+    ldPriceAsked = true;
+    Object.keys(LD_PLAN).forEach((f) => { try { db.collection('plans').doc(LD_PLAN[f]).get().then((d) => {
+      if (d.exists && Number(d.data().price) > 0 && '$' + Number(d.data().price) !== LD_PRICE[f]) { LD_PRICE[f] = '$' + Number(d.data().price); renderLiveData(student); }
+      if (!d.exists || d.data().archived === true) { const b = document.getElementById(f === 'liveData' ? 'settings-ld-buy' : 'settings-ld-buy-l2'); if (b) b.dataset.off = '1', b.style.display = 'none'; }
+    }).catch(() => {}); } catch (e) {} });
+  }
   const panel = document.getElementById('settings-livedata-panel');
   if (!panel) return;
-  const st = document.getElementById('settings-ld-status'), row = document.getElementById('settings-ld-row'),
-    rowL = document.getElementById('settings-ld-row-l'), dateEl = document.getElementById('settings-ld-date'),
-    buy = document.getElementById('settings-ld-buy'), cancel = document.getElementById('settings-ld-cancel'),
-    manage = document.getElementById('settings-ld-manage');
-  const s = student || {}, ld = s.liveData || {};
-  const pt = ld.paidThroughMillis || 0, GRACE = 3 * 86400000;
-  const paid = ld.active === true && (!pt || Date.now() <= pt + GRACE);
+  const st = document.getElementById('settings-ld-status'), box = document.getElementById('settings-ld-addons'),
+    buy1 = document.getElementById('settings-ld-buy'), buy2 = document.getElementById('settings-ld-buy-l2');
+  const s = student || {}, GRACE = 3 * 86400000;
   const label = (ms) => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  buy.style.display = 'none'; cancel.style.display = 'none'; manage.style.display = 'none'; row.style.display = 'none';
-  if (paid && ld.source !== 'manual') {
-    st.textContent = 'On: real-time CME futures'; st.style.color = 'var(--bull)';
-    if (pt) {
-      row.style.display = '';
-      if (ld.autopay) { rowL.textContent = 'Renews'; dateEl.textContent = label(pt) + ' · ' + LD_PRICE + '/month'; }
-      else { rowL.textContent = 'Ends'; dateEl.textContent = label(pt) + ' (auto-renewal off)'; }
-    }
+  const on = (ld) => !!ld && ld.active === true && (!ld.paidThroughMillis || Date.now() <= ld.paidThroughMillis + GRACE);
+  const has1 = on(s.liveData), has2 = on(s.liveDataL2);
+  // Early Pro members: live data while Pro stays active (mirrors isActiveProDoc in _rt.js; since 2026-11-04 active Pro also counts as L2).
+  const proOn = !!s.plan && (typeof rankOf === 'function' ? rankOf(s.plan) >= 1 : !/^(free|starter|)$/i.test(String(s.plan))) && ['expired', 'cancelled', 'canceled'].indexOf(s.subscriptionStatus) === -1 &&
+    (s.foundingMember === true || !(Number(s.paidThroughMillis) > 0 && Date.now() > Number(s.paidThroughMillis) + GRACE));
+  const approved = s.liveFeed === true && s.liveFeedGrandfathered !== true;
+  let level = has2 || proOn ? 'L2' : (has1 || approved) ? 'L1' : '';
+  st.textContent = level === 'L2' ? 'L2 · live order book and trades' + (proOn && !has2 ? ' (with your Pro plan)' : '')
+    : level === 'L1' ? 'L1 · live trades and quotes' + (approved && !has1 ? ' (approved)' : '')
+    : 'None · futures are 10 minutes behind';
+  st.style.color = level ? 'var(--bull)' : 'var(--ink-1)';
+  buy2.style.display = level === 'L2' || buy2.dataset.off ? 'none' : '';
+  buy1.style.display = level || buy1.dataset.off ? 'none' : '';
+  box.innerHTML = '';
+  ['liveDataL2', 'liveData'].forEach((f) => {
+    const ld = s[f] || {};
+    if (!on(ld) || ld.source === 'manual') return;
+    const pt = ld.paidThroughMillis || 0, w = document.createElement('div');
+    w.style.marginBottom = '12px';
+    w.innerHTML = '<div class="mini-bar-row" style="margin-bottom:10px;"><span class="label"></span><span class="mini-bar-val" style="width:auto; font-size:13px; color:var(--ink-1);"></span></div>';
+    w.querySelector('.label').textContent = LD_NAME[f];
+    w.querySelector('.mini-bar-val').textContent = !pt ? 'On' : ld.autopay ? 'Renews ' + label(pt) + ' · ' + LD_PRICE[f] + '/month' : 'Ends ' + label(pt) + ' (auto-renewal off)';
+    const btn = (txt, cls) => { const b = document.createElement(cls === 'a' ? 'a' : 'button'); if (cls !== 'a') b.type = 'button'; b.className = 'btn btn-ghost btn-sm btn-block'; b.style.marginBottom = '8px'; b.textContent = txt; w.appendChild(b); return b; };
+    let fns = null; const F = () => { if (!fns) { try { fns = firebase.app().functions(); } catch (e) {} } return fns; };
     if (ld.autopay && ld.stripeSubscriptionId) {
-      manage.style.display = ''; manage.textContent = 'Cancel, update card or invoices';
-      manage.onclick = () => {
-        manage.disabled = true; manage.textContent = 'Opening billing…';
-        let fns = null; try { fns = firebase.app().functions(); } catch (e) {}
-        const fail = (m) => { showToast('error', m); manage.disabled = false; manage.textContent = 'Cancel, update card or invoices'; };
-        if (!fns) { fail('Billing is unavailable right now. Please try again.'); return; }
-        fns.httpsCallable('stripePortal')({}).then((res) => {
+      const m = btn('Manage ' + LD_NAME[f] + ' (cancel, card, invoices)');
+      m.onclick = () => {
+        m.disabled = true; const t = m.textContent; m.textContent = 'Opening billing…';
+        const fail = (msg) => { showToast('error', msg); m.disabled = false; m.textContent = t; };
+        if (!F()) { fail('Billing is unavailable right now. Please try again.'); return; }
+        F().httpsCallable('stripePortal')({}).then((res) => {
           const url = res && res.data && res.data.url;
           if (!url || url.indexOf('https://billing.stripe.com/') !== 0) throw new Error('Could not open billing.');
           window.location.assign(url);
         }).catch((err) => fail('Could not open billing: ' + ((err && err.message) || err)));
       };
     } else if (ld.autopay && ld.razorpaySubscriptionId) {
-      cancel.style.display = '';
-      cancel.onclick = () => {
-        if (!confirm('Cancel live futures data?\n\nReal-time stays on until ' + label(pt) + ', then your futures charts go back to 10 minutes behind.')) return;
-        cancel.disabled = true; cancel.textContent = 'Cancelling…';
-        let fns = null; try { fns = firebase.app().functions(); } catch (e) {}
-        if (!fns) { cancel.disabled = false; cancel.textContent = 'Cancel live futures data'; return; }
-        fns.httpsCallable('razorpaySubsCancel')({ addon: true }).then(() => {
-          showToast('success', 'Cancelled. Real-time runs until ' + label(pt) + '.');
-          cancel.style.display = 'none'; rowL.textContent = 'Ends'; dateEl.textContent = label(pt) + ' (auto-renewal off)';
-        }).catch((err) => { showToast('error', 'Could not cancel: ' + ((err && err.message) || err)); cancel.disabled = false; cancel.textContent = 'Cancel live futures data'; });
+      const c = btn('Cancel ' + LD_NAME[f]); c.style.borderColor = 'rgba(229,72,77,0.3)';
+      c.onclick = () => {
+        if (!confirm('Cancel ' + LD_NAME[f] + '?\n\nIt stays on until ' + label(pt) + '.')) return;
+        c.disabled = true; c.textContent = 'Cancelling…';
+        if (!F()) { c.disabled = false; c.textContent = 'Cancel ' + LD_NAME[f]; return; }
+        F().httpsCallable('razorpaySubsCancel')({ addon: true, planId: LD_PLAN[f] }).then(() => {
+          showToast('success', 'Cancelled. ' + LD_NAME[f] + ' runs until ' + label(pt) + '.');
+          c.remove(); w.querySelector('.mini-bar-val').textContent = 'Ends ' + label(pt) + ' (auto-renewal off)';
+        }).catch((err) => { showToast('error', 'Could not cancel: ' + ((err && err.message) || err)); c.disabled = false; c.textContent = 'Cancel ' + LD_NAME[f]; });
       };
-    } else if (!ld.autopay) { buy.style.display = ''; buy.textContent = 'Renew live futures data: ' + LD_PRICE + '/month'; }
-  } else if (s.liveFeed === true && s.liveFeedGrandfathered === true) {
-    // Early Pro members keep live futures while Pro stays active (mirrors isActiveProDoc in functions/api/chart/_rt.js).
-    const proOn = !!s.plan && (typeof rankOf === 'function' ? rankOf(s.plan) >= 1 : !/^(free|starter|)$/i.test(String(s.plan))) && ['expired', 'cancelled', 'canceled'].indexOf(s.subscriptionStatus) === -1 &&
-      (s.foundingMember === true || !(Number(s.paidThroughMillis) > 0 && Date.now() > Number(s.paidThroughMillis) + GRACE));
-    if (proOn) { st.textContent = 'Live futures data: included for you as an early Pro member'; st.style.color = 'var(--bull)'; }
-    else { st.textContent = 'Off: futures are 10 minutes behind'; st.style.color = 'var(--ink-1)'; buy.style.display = ''; buy.textContent = 'Get live futures data: ' + LD_PRICE + '/month'; }
-  } else if (s.liveFeed === true || (paid && ld.source === 'manual')) {
-    st.textContent = 'On: approved by TradeZoro'; st.style.color = 'var(--bull)';
-  } else {
-    st.textContent = 'Off: futures are 10 minutes behind'; st.style.color = 'var(--ink-1)';
-    buy.style.display = ''; buy.textContent = 'Get live futures data: ' + LD_PRICE + '/month';
-  }
+    } else if (!ld.autopay) { const r = btn('Renew ' + LD_NAME[f], 'a'); r.href = 'checkout.html?plan=' + LD_PLAN[f]; }
+    box.appendChild(w);
+  });
+  if (has1 && has2) { const n = document.createElement('p'); n.style.cssText = 'margin:0 0 10px; font-size:12.5px; color:var(--ink-2); line-height:1.5;'; n.textContent = 'L2 Data includes L1. You can cancel L1 Data if you like.'; box.appendChild(n); }
   const ag = document.getElementById('settings-ld-agree'), m = s.marketDataAgreement;
   if (ag) {
     const ok = !!m && m.version === 'v1' && m.nonProfessional === true, at = ok && m.acceptedAt, when = at ? label(at.toDate ? at.toDate().getTime() : (at.seconds || 0) * 1000) : '';

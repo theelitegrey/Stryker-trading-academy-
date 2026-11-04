@@ -38,13 +38,14 @@
   'use strict';
 
   var COPY = {
+    // TOOLS ARE FREE (Owner 2026-11-04): gex / options / scanner cards only ask a signed-out visitor to sign in. No plan, no price.
     gex: {
-      title: function () { return 'GEX+ is part of Pro'; },
+      title: function () { return 'Sign in to use GEX+'; },
       bullets: function () {
         return ['GEX+ levels for SPX, SPY, QQQ, ES, NQ and gold (GC) at every expiry',
                 'The strike table: net GEX, DEX and open interest by strike'];
       },
-      reason: 'Pro adds GEX+ for every market and expiry, and the strike table.'
+      reason: '', signIn: true
     },
     scanner: {
       title: function () { return 'The scanner is free'; },
@@ -52,15 +53,15 @@
         return ['Build your own scans: any column, any value, on US stocks, ETFs and crypto',
                 'Presets and custom filters are free'];
       },
-      reason: 'Pro unlocks custom scanner filters.'
+      reason: '', signIn: true
     },
     options: {
-      title: function () { return 'Options analytics are part of Pro'; },
+      title: function () { return 'Sign in to use options analytics'; },
       bullets: function () {
         return ['Expected move, IV rank, term structure and skew for SPX, QQQ (NQ) and SPY',
-                'Plus GEX+ for every market and expiry, gold (GC) included'];
+                'Free for every member, like every other tool'];
       },
-      reason: 'Pro adds options analytics for every market.'
+      reason: '', signIn: true
     },
     chapters: {
       title: function (n) { return n ? 'Chapters ' + (n + 1) + '+ need a different plan' : 'Later chapters need a different plan'; },
@@ -118,12 +119,11 @@
       '<p class="plan-lock-price" hidden></p>' +
       '<ul class="plan-lock-list">' + c.bullets(n).map(function () { return '<li>' + TICK_SVG + '<span></span></li>'; }).join('') + '</ul>' +
       '<a class="btn btn-primary plan-lock-cta" href="#" data-open-plan-modal>Get Pro</a>' +
-      '<a class="plan-lock-back" href="/pro">What\'s in Pro?</a>' +
       '<a class="plan-lock-back" href="/pricing">See all plans</a>' +
       (opts.back ? '<a class="plan-lock-back" href="#"></a>' : '') +
       '<p class="plan-lock-edu">Education only. Not financial advice.</p>';
     if (opts.back) {
-      var bk = el.querySelectorAll('.plan-lock-back')[2];
+      var bk = el.querySelectorAll('.plan-lock-back')[1];
       bk.href = opts.back.href; bk.textContent = opts.back.label;
     }
     el.querySelector('h3').textContent = title;
@@ -131,8 +131,11 @@
     c.bullets(n).forEach(function (b, i) { items[i].textContent = b; });
     var cta = el.querySelector('.plan-lock-cta');
     cta.setAttribute('data-upgrade-reason', c.reason);
-
-    proPlan().then(function (pro) {
+    if (c.signIn) {   // a free tool: just sign in (2026-11-04)
+      cta.removeAttribute('data-open-plan-modal');
+      cta.href = 'login.html?next=' + encodeURIComponent(location.pathname + location.search);
+      cta.textContent = 'Sign in';
+    } else proPlan().then(function (pro) {
       if (!pro) return;
       cta.removeAttribute('data-open-plan-modal');
       cta.href = 'checkout.html?plan=' + encodeURIComponent(pro.id);

@@ -26,7 +26,7 @@ import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=875'
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Live order book needs L2 Data.';   // data plans 2026-11-04 (tools free, live book = L2 Data)
 const NEED = 'These tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_GAP = 200;                 // redraw at most 5 a second
 const GAP_MAX = 5 * 60000;           // two book samples further apart than this are not one "change" (the recorder's archive is one sample per few minutes)

@@ -156,7 +156,7 @@ function renderTracks(container){
     container.appendChild(heading);
     const blurb = document.createElement('p');
     blurb.style.cssText = 'color:var(--ink-3); font-size:13.5px; margin:-4px 0 12px;';
-    blurb.textContent = t.blurb + (trackLocked() ? ' Included with Pro.' : '');
+    blurb.textContent = t.blurb + (trackLocked() ? ' Needs a different plan.' : '');
     if (t.link) {
       const a = document.createElement('a');
       a.href = t.link.href;

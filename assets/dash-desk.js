@@ -48,11 +48,9 @@
     (function poll() {
       var p = window.__strykerCurrentPlan;
       if (p === undefined || p === null || typeof rankOf !== 'function') { if (++tries < 40) setTimeout(poll, 250); return; }
+      // data plans (2026-11-04): every tool is free, so no Pro chip or modal on GEX+; the card points at live data (no price here)
       var pro = rankOf(p) > 0;
       var card = $('dk-pro'); if (card) card.hidden = pro;
-      var gex = $('dk-gex');
-      if (gex && !pro) gex.setAttribute('data-open-plan-modal', '');   // free: the existing paywall modal, no price
-      else if (gex) { var c = $('dk-gex-pro'); if (c) c.hidden = true; }
     })();
   }
 

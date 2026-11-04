@@ -10,7 +10,7 @@
 // the admin switched on (students/{uid}.liveFeed, assets/admin-live-feed.js). /api/chart/rt answers yes for all three,
 // so a liveFeed member gets the stream lane and the same "Real-time data" badge as an admin with no other client change.
 // Switched off: the server closes their stream (4003) and cuts their bars; failed() / rtNoteBars re-ask and drop to poll.
-const st = { ready: false, admin: false, uid: '', token: '', exp: 0, checked: false, lastBars: null, liveAt: 0 };
+const st = { ready: false, admin: false, l2: false, uid: '', token: '', exp: 0, checked: false, lastBars: null, liveAt: 0 };
 const subs = new Set();
 let readyP = null, readyRes = null, started = false, curUser = null, recheckTm = null, recheckN = 0, checking = null;
 
@@ -23,7 +23,7 @@ function expOf(token) { try { return JSON.parse(atob(token.split('.')[1].replace
 async function askServer(token) {
   try {
     const r = await fetch('/api/chart/rt', { headers: { authorization: 'Bearer ' + token }, cache: 'no-store' });
-    if (r.ok) return (await r.json()).admin === true;
+    if (r.ok) { const j = await r.json(); st.l2 = j.admin === true && j.l2 === true; return j.admin === true; }   // l2: live order book (data plans 2026-11-04)
   } catch (e) {}
   return null;
 }
@@ -54,7 +54,7 @@ async function recheck(force) {
   return checking;
 }
 async function onUser(user) {
-  if (!user) { curUser = null; st.admin = false; st.uid = ''; st.token = ''; st.exp = 0; st.checked = false; clearTimeout(recheckTm); recheckTm = null; done(); return; }
+  if (!user) { curUser = null; st.admin = false; st.l2 = false; st.uid = ''; st.token = ''; st.exp = 0; st.checked = false; clearTimeout(recheckTm); recheckTm = null; done(); return; }
   curUser = user;
   let token = '';
   try { token = await user.getIdToken(); } catch (e) {}
@@ -107,6 +107,8 @@ start();
 
 export const rtReady = () => readyP;
 export const isRealtimeAdmin = () => st.ready && st.admin;
+// The server says this member has L2 Data (live order book): admin, demo, L2 add-on, or active Pro while it lasts. UI hint only.
+export const isL2Member = () => st.ready && st.admin && st.l2;
 export const rtToken = () => st.token;
 export const rtRecheck = (force) => recheck(force);
 // The server's own word on the LAST futures bars answer (admin => real rows, else cut 10 min): null until one arrives.
@@ -115,7 +117,7 @@ export const rtNoteBars = (rt) => { if (st.lastBars !== rt) { st.lastBars = rt; 
 export const rtNoteStreamBar = () => { const was = rtConfirmed(); st.liveAt = Date.now(); if (rtConfirmed() !== was) emit(); };
 // Truthful badge input: real-time only when the server confirmed admin AND the last bars answer was not cut.
 export const rtConfirmed = () => st.ready && st.admin && (Date.now() - (st.liveAt || 0) < 30000 || (st.lastBars !== false && st.lastBars !== 'lag'));
-export const rtState = () => ({ ready: st.ready, admin: st.admin, uid: st.uid ? st.uid.slice(0, 4) + '…' : '', tokenSecsLeft: st.exp ? Math.round(st.exp - Date.now() / 1000) : null, lastBarsRt: st.lastBars });
+export const rtState = () => ({ ready: st.ready, admin: st.admin, l2: st.l2, uid: st.uid ? st.uid.slice(0, 4) + '…' : '', tokenSecsLeft: st.exp ? Math.round(st.exp - Date.now() / 1000) : null, lastBarsRt: st.lastBars });
 if (typeof window !== 'undefined') window.tzRtState = rtState;                 // '' when signed out
 export const rtHeaders = () => (st.token ? { authorization: 'Bearer ' + st.token } : {});
 export const rtOnChange = (f) => { subs.add(f); return () => subs.delete(f); };

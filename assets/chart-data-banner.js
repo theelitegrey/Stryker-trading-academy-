@@ -19,7 +19,7 @@ const SS_OPEN = 'stryker_open_connect';
 const FUT = /^(futures|cme|cme_mini|cbot|cbot_mini|comex|comex_mini|nymex|nymex_mini):/i;
 const BARE = /^[A-Z0-9]+1!$/i;
 const HELP = 'help.html#free-data-delay';
-const CHECKOUT = 'checkout.html?plan=LiveData';
+const CHECKOUT = 'checkout.html?plan=LiveData', CHECKOUT_L2 = 'checkout.html?plan=LiveDataL2';   // data plans 2026-11-04: L1 / L2 Data (this sheet is a data paywall, so it may show the price)
 const ICON_LINK = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>';
 const ICON_BOLT = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
 const CHEV = '<svg class="stkdp-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
@@ -126,10 +126,11 @@ export function installDataBanner(ws, opts = {}) {
   sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-labelledby', 'stkdp-title');
   sheet.innerHTML = '<i class="stkdp-grab" aria-hidden="true"></i>' +
     '<div class="stkdp-head"><h3 id="stkdp-title">Get live futures data</h3><button type="button" class="stkdp-x" id="stkdp-x" aria-label="Close">\u00d7</button></div>' +
-    '<p class="stkdp-lead">CME futures are 10 minutes delayed on free data.</p>' +
+    '<p class="stkdp-lead">Every tool is free. CME futures are 10 minutes delayed without a data add-on.</p>' +
     '<ul class="stkdp-list">' +
     '<li><button type="button" class="stkdp-row" id="stkdp-connect"><span class="stkdp-ic">' + ICON_LINK + '</span><span class="stkdp-tx"><b>Connect your prop firm</b><span>Use your own Rithmic login. Free.</span></span>' + CHEV + '</button></li>' +
-    '<li><a class="stkdp-row" id="stkdp-buy" href="' + CHECKOUT + '"><span class="stkdp-ic b">' + ICON_BOLT + '</span><span class="stkdp-tx"><b>Live data add-on</b><span><b id="stkdp-price" style="font-weight:inherit">$7</b> a month. Cancel anytime.</span></span>' + CHEV + '</a></li>' +
+    '<li><a class="stkdp-row" id="stkdp-buy" data-plan="LiveData" href="' + CHECKOUT + '"><span class="stkdp-ic b">' + ICON_BOLT + '</span><span class="stkdp-tx"><b>L1 Data</b><span>Live trades, candles and quotes. <b class="stkdp-price" style="font-weight:inherit">$7</b> a month. Cancel anytime.</span></span>' + CHEV + '</a></li>' +
+    '<li><a class="stkdp-row" id="stkdp-buy-l2" data-plan="LiveDataL2" href="' + CHECKOUT_L2 + '"><span class="stkdp-ic b">' + ICON_BOLT + '</span><span class="stkdp-tx"><b>L2 Data</b><span>Adds the live order book (heatmap, DOM, book tools). Includes L1. <b class="stkdp-price" style="font-weight:inherit">$20</b> a month.</span></span>' + CHEV + '</a></li>' +
     '</ul>' +
     '<p class="stkdp-lead" style="font-size:12px;margin:8px 0 0;opacity:.8">Market data is provided as is and may be delayed or inaccurate. Personal, non-commercial use only. <a href="/market-data-terms" style="text-decoration:underline">Terms</a></p>' +
     '<div class="stkdp-foot"><a href="' + HELP + '" id="stkdp-why">Why is it delayed?</a><button type="button" id="stkdp-hide">Hide for today</button></div>';
@@ -268,16 +269,19 @@ export function installDataBanner(ws, opts = {}) {
       }
     }, 0);
   });
-  // The add-on is sold only once plans/LiveData exists (the CoS writes it after a test-mode purchase works).
-  // Until then the row says so instead of leading to a dead checkout.
-  try { db.collection('plans').doc('LiveData').get().then((d) => { const p = d.exists && Number(d.data().price); const el = document.getElementById('stkdp-price'); if (p > 0 && el) el.textContent = '$' + p; }).catch(() => {}); } catch (x) {}
-  document.getElementById('stkdp-buy').addEventListener('click', (e) => {
-    e.preventDefault();
-    closeSheet();
-    const go = () => { location.href = CHECKOUT; };
-    const soon = () => { try { if (window.showToast) window.showToast('info', 'Live futures data ($7/month) opens today. For now, connect your Rithmic login or ask us for approval.'); } catch (x) {} };
-    if (!signedIn()) { try { sessionStorage.setItem('stryker_return_to', '/' + CHECKOUT); } catch (x) {} go(); return; }
-    try { db.collection('plans').doc('LiveData').get().then((d) => (d.exists && d.data().archived !== true ? go() : soon())).catch(soon); } catch (x) { soon(); }
+  // Each add-on is sold only once its plans doc exists (the CoS writes it). Until then the row says so instead of a dead checkout.
+  // Prices: read from the plans docs; $7 / $20 in the markup are the fallback only.
+  sheet.querySelectorAll('[data-plan]').forEach((a) => {
+    const id = a.dataset.plan, url = 'checkout.html?plan=' + id;
+    try { db.collection('plans').doc(id).get().then((d) => { const p = d.exists && Number(d.data().price); const el = a.querySelector('.stkdp-price'); if (p > 0 && el) el.textContent = '$' + p; }).catch(() => {}); } catch (x) {}
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeSheet();
+      const go = () => { location.href = url; };
+      const soon = () => { try { if (window.showToast) window.showToast('info', 'This data add-on opens soon. For now, connect your Rithmic login or ask us for approval.'); } catch (x) {} };
+      if (!signedIn()) { try { sessionStorage.setItem('stryker_return_to', '/' + url); } catch (x) {} go(); return; }
+      try { db.collection('plans').doc(id).get().then((d) => (d.exists && d.data().archived !== true ? go() : soon())).catch(soon); } catch (x) { soon(); }
+    });
   });
 
   // Came back from the sign-in this sheet sent them to: open the Connect sheet.

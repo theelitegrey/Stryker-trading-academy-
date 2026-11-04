@@ -12,7 +12,7 @@
 //     the 30-day ATM IV and the 30-day 25-delta skew.
 //   - ATM IV term structure and 25-delta skew per expiry (small SVG charts).
 //   - Put/call ratio by volume and by open interest (Cboe chain, expiries <= 31 days).
-// PLAN: same split as the GEX page: Free = SPX; QQQ and SPY are Pro (lock card). Client-side only.
+// PLAN: free for every signed-in member (2026-11-04). The FREE list below is unused (tier.free is never true).
 // WORDING: "updated X min ago" only; never live / real-time / delayed. Education only.
 (function () {
   'use strict';
@@ -139,7 +139,7 @@
     if (tier && tier.free && FREE.indexOf(cur) < 0) {
       body.innerHTML = '';
       if (window.strykerPlanLock) body.appendChild(window.strykerPlanLock.card('options', 'gex-options'));
-      else body.innerHTML = '<div class="gexo-empty">' + esc(cur) + ' options analytics are part of Pro. The Free plan covers SPX.</div>';
+      else body.innerHTML = '<div class="gexo-empty">' + esc(cur) + ' options analytics: sign in to see them (free for members).</div>';
       setAgo(null);
       return;
     }

@@ -6,7 +6,7 @@
 // Options: mkt 'futures' | 'crypto' (only counts on that market; default any). A panel that is not an indicator calls setPanel(id, true|false).
 // Plain names only in the UI: no vendor names. Education only. Not financial advice.
 
-import { isFree } from './chart-pro-gate.js?v=875';
+import { goDataCheckout, DATA_LABEL } from './data-plans.js?v=875';
 
 export const LEVELS = {
   L1: { name: 'L1', short: 'trades and best bid/ask', what: 'Every trade plus the best bid and ask.' },
@@ -18,8 +18,8 @@ export const L3_SOON = "Individual-order data (L3) isn't available yet.";
 // WHY NOTES (Owner 2026-11-03): subtle reason shown every time a locked feed is on the chart, in the Unlock prompt and in the sheet. Edit the words here only.
 // Plain English: no prices, no fee amounts, no vendor names except CME / "the exchange", no "required by law".
 export const WHY = {
-  futures: { short: 'Live exchange data · Pro', long: "Live futures data comes from the exchange (CME) under a paid licence. The licence lets us show it only to paying members, so we can't include it free. It's part of Pro." },
-  crypto: { short: 'Full order book · Pro', long: "The full order book streams thousands of price updates a second from several exchanges. That's costly to run, so it's part of Pro. Trades and candles stay free." }
+  futures: { short: 'Live exchange data · data add-on', long: "Every tool is free. Live futures data comes from the exchange (CME) under a paid licence, so it is a monthly data add-on: L1 Data for live trades and quotes, L2 Data for the live order book (includes L1). Without it, futures are 10 minutes delayed." },
+  crypto: { short: 'Full order book · data add-on', long: "Every tool is free. The full order book streams thousands of price updates a second, so the live book is part of L2 Data. Trades and candles stay free." }
 };
 export const whyFor = (mkt, L) => (L === 'L3' ? null : mkt === 'crypto' ? WHY.crypto : mkt === 'futures' ? WHY.futures : null);
 
@@ -33,12 +33,13 @@ export function registerFeed(type, o) {
 export const feedOf = (type) => reg.get(type) || null;
 export function setPanel(id, on, o) { if (on) panels.set(id, Object.assign({ needs: 'L2', title: id, mkt: '' }, o || {})); else panels.delete(id); poke(); }
 
-// What the plan includes, from the market kind + the existing gates (l2Visible for futures, Pro for crypto books). Never changes who gets what.
-export function haveFor({ mkt, l2, free }) {
-  return { L1: mkt === 'futures' ? (!free || !!l2) : true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto' ? !free : false, L3: false };
+// What the member's DATA covers (data plans, Owner 2026-11-04; tools are free): futures L1 live = L1 or L2 Data (l1), futures L2 live = L2 Data (l2).
+// Crypto is live for everyone (book included). The server decides; this only picks the chip / lock.
+export function haveFor({ mkt, l2, l1 }) {
+  return { L1: mkt === 'futures' ? (!!l1 || !!l2) : true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto', L3: false };
 }
 export const bestOf = (have) => (have.L2 ? 'L2' : 'L1');
-export const reasonFor = (lvl, have) => (lvl === 'L3' ? L3_SOON : 'Needs ' + lvl + ' (' + LEVELS[lvl].short + '). It is part of Pro.');
+export const reasonFor = (lvl, have) => (lvl === 'L3' ? L3_SOON : lvl === 'L2' ? 'Live order book needs L2 Data.' : 'Live trades need L1 Data.');
 
 // used: [{ id, title, needs }]  ->  { show, L1: { state, users, locked }, L2, L3 }   state = 'lit' | 'dim' | 'locked'
 export function feedState(used, have) {
@@ -84,7 +85,8 @@ const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 // SAFETY (L2 lock fix 3): an admin, or a member the plan check answered as NOT Free, is never shown a lock: while their book connects
 // they see "Connecting to the order book…" instead. Only a confirmed Free / signed-out member with no book frames sees Unlock.
-const noLock = () => { try { if (window.tzRtState && window.tzRtState().admin) return true; } catch (e) {} return window.__stkChartFree !== undefined && !isFree(); };   // __stkChartFree is set only once the plan check answered
+// data plans: "sure" = the server already said this member has the level (L1: /api/chart/rt admin, L2: its l2), so no lock while it connects
+const noLock = (L) => { try { const r = window.tzRtState && window.tzRtState(); return !!(r && (L === 'L2' ? r.l2 : r.admin)); } catch (e) { return false; } };   // __stkChartFree is set only once the plan check answered
 export const CONNECTING = 'Connecting to the order book…';
 export function mountFeedBadges(ws) {
   if (typeof document === 'undefined' || !ws || document.getElementById('stkfeeds')) return null;
@@ -104,13 +106,13 @@ export function mountFeedBadges(ws) {
     const mkt = mktOf(sym), used = [];
     types.forEach((t) => { const r = reg.get(t); if (r && (!r.mkt || r.mkt === mkt)) used.push({ id: t, title: r.title, needs: r.needs }); });
     panels.forEach((p, id) => { if (!p.mkt || p.mkt === mkt) used.push({ id, title: p.title, needs: p.needs }); });
-    const free = isFree();
+    let l1 = false; try { l1 = !!(window.tzRtState && window.tzRtState().admin); } catch (e) {}
     let l2 = false; try { l2 = !!((window.STRYKER_L2_BADGE || window.STRYKER_L2_OK)()); } catch (e) {}
     // data is proof: book frames for this root arriving now = the member has L2 (the hub sends them to book-tier sockets only)
     try { if (window.STRYKER_L2_PROVEN && window.STRYKER_L2_PROVEN(sym)) l2 = true; } catch (e) {}
-    return { sym, mkt, used, have: haveFor({ mkt, l2, free }), sure: noLock() };
+    return { sym, mkt, used, have: haveFor({ mkt, l2, l1 }), sure: { L1: noLock('L1'), L2: noLock('L2') } };
   };
-  const unlock = (reason, L) => { const w = whyFor(cur && cur.mkt, L); if (w) reason = reason + ' ' + w.long; if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(reason); };
+  const unlock = (reason, L) => goDataCheckout(L === 'L1' ? 'L1' : 'L2');   // data plans (2026-11-04): the price is shown on the checkout only
 
   // Chips sit top-left, just under the symbol legend + indicator rows (they can fold), so the pencil FAB, GEX pill, Fit price / Latest and the delayed pill never cover them.
   function place() {
@@ -125,7 +127,7 @@ export function mountFeedBadges(ws) {
   function paint() {
     cur = usedNow();
     const st = feedState(cur.used, cur.have);
-    if (cur.sure) for (const L of ['L1', 'L2']) if (st[L].state === 'locked') { st[L].state = 'lit'; st[L].locked = ''; st[L].wait = true; }
+    for (const L of ['L1', 'L2']) if (cur.sure[L] && st[L].state === 'locked') { st[L].state = 'lit'; st[L].locked = ''; st[L].wait = true; }
     last = st;
     row.hidden = !st.show;
     place();
@@ -147,7 +149,7 @@ export function mountFeedBadges(ws) {
     const lk = lv.find((L) => st[L].state === 'locked' && L !== 'L3');
     if (lk && !openL) {
       const names = st[lk].users.join(', '), w = whyFor(cur.mkt, lk);
-      note.innerHTML = '<span class="stkfeed-reason">' + esc(st[lk].locked) + '</span><em>' + esc(names) + '</em><button type="button" class="stkfeed-unlock">Unlock</button>' +
+      note.innerHTML = '<span class="stkfeed-reason">' + esc(st[lk].locked) + '</span><em>' + esc(names) + '</em><button type="button" class="stkfeed-unlock">Get ' + lk + ' Data</button>' +
         (w ? '<div class="stkfeed-why"><span class="stkfeed-why-l"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.4" d="M8 14.2A6.2 6.2 0 1 0 8 1.8a6.2 6.2 0 0 0 0 12.4ZM8 7.2v3.6"/><circle cx="8" cy="5" r=".9" fill="currentColor"/></svg>' + esc(w.short) +
         ' <button type="button" class="stkfeed-why-b" aria-expanded="' + whyOpen + '">Why?' + (whyOpen ? '' : ' →') + '</button></span>' + (whyOpen ? '<p class="stkfeed-why-t">' + esc(w.long) + '</p>' : '') + '</div>' : '');
       note.dataset.l = lk; note.hidden = false;
@@ -164,7 +166,7 @@ export function mountFeedBadges(ws) {
       '<p>' + (L === 'L3' ? esc(L3_SOON) : esc(LEVELS[L].what)) + '</p>' +
       (L === 'L3' ? '' : '<h4>Right now</h4><ul class="stkfeed-now">' + lines.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>') +
       '<h4>Used by</h4>' + who +
-      (S.state === 'locked' && L !== 'L3' ? (whyFor(cur.mkt, L) ? '<p class="stkfeed-why-t">' + esc(whyFor(cur.mkt, L).long) + '</p>' : '') + '<button type="button" class="stkfeed-unlock">Unlock</button>' : '');
+      (S.state === 'locked' && L !== 'L3' ? (whyFor(cur.mkt, L) ? '<p class="stkfeed-why-t">' + esc(whyFor(cur.mkt, L).long) + '</p>' : '') + '<button type="button" class="stkfeed-unlock">Get ' + L + ' Data</button>' : '');
     sheet.setAttribute('aria-label', L + ' data feed details'); sheet.hidden = false;
   }
   function openSheet(L) { openL = openL === L ? '' : L; row.dataset.sig = ''; if (!openL) sheet.hidden = true; paint(); }

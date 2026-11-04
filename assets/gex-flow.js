@@ -7,7 +7,7 @@
 // chain's first three) or all three together: call volume (right) vs put volume (left) for the strikes around
 // spot, the put/call volume ratio, and the busiest call / put strikes. Volume only: Cboe's chain has no buyer /
 // seller side and no traded premium, so nothing here says "bought", "sold", "bullish" or "bearish".
-// PLAN: same as the Options analytics panel: Free = SPX, QQQ / SPY = Pro. WORDING: "updated X min ago" only.
+// PLAN: free for every signed-in member (2026-11-04). WORDING: "updated X min ago" only.
 // Education only. Not financial advice.
 (function () {
   'use strict';
@@ -64,7 +64,7 @@
     if (tier && tier.free && FREE.indexOf(cur) < 0) {
       body.innerHTML = '';
       if (window.strykerPlanLock) body.appendChild(window.strykerPlanLock.card('options', 'gex-flow'));
-      else body.innerHTML = '<div class="gexo-empty">' + esc(cur) + ' options volume is part of Pro. The Free plan covers SPX.</div>';
+      else body.innerHTML = '<div class="gexo-empty">' + esc(cur) + ' options volume: sign in to see it (free for members).</div>';
       return;
     }
     var d = data[cur];

@@ -40,13 +40,13 @@
           '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
           '<path d="M18 6L6 18M6 6l12 12"/></svg>' +
         '</button>' +
-        '<h2 class="plan-modal-title">Choose your plan</h2>' +
-        '<p class="plan-modal-sub" id="plan-modal-sub">TradeZoro is free. Pro adds order flow tools and GEX+.</p>' +
+        '<h2 class="plan-modal-title">Get live data</h2>' +
+        '<p class="plan-modal-sub" id="plan-modal-sub">Every tool is free. A data plan makes CME futures live.</p>' +
         '<div class="plan-modal-grid" id="plan-modal-grid">' +
           '<div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>' +
         '</div>' +
         // Prices live only here, on paywalls and /pricing (Owner 2026-11-01: no prices upfront).
-        '<p class="plan-modal-all"><a href="/pro">What\'s in Pro?</a> · <a href="/pricing">See all plans</a></p>' +
+        '<p class="plan-modal-all"><a href="/pro">Every tool</a> · <a href="/pricing">See all plans</a></p>' +
       '</div>';
 
     document.body.appendChild(overlay);
@@ -80,16 +80,17 @@
 
     // Only plans ABOVE the current one are worth showing — offering someone
     // the tier they already hold, or a downgrade, is noise on a paywall.
-    var upgrades = plans.filter(function (p) {
-      if (p.hidden) return false;   // yearly twins are sold from their parent card
-      if (p.archived === true) return false;   // no longer sold (Elite, 2026-10-05)
-      if (myRank < 0) return true;
-      return (p.rank !== null && p.rank !== undefined ? p.rank : 0) > myRank;
-    });
+    // DATA PLANS (Owner 2026-11-04): every tool is free and Pro is no longer sold, so the only things this paywall sells are the
+    // two data add-ons, L1 Data (plans/LiveData) then L2 Data (plans/LiveDataL2). Their docs are hidden:true (not on the old
+    // plan grids), so they are picked by id. A missing / archived doc is simply not shown.
+    var DATA_IDS = ['LiveData', 'LiveDataL2'];
+    var upgrades = DATA_IDS.map(function (id) { return plans.find(function (p) { return p.id === id; }); })
+      .filter(function (p) { return p && p.archived !== true; });
+    void myRank;
 
     if (!upgrades.length) {
       grid.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; text-align:center; padding:20px;">' +
-        'You are already on the highest plan. If this page still looks locked, contact support.</p>';
+        'Every tool is free. Live data plans open soon. <a href="/pricing">See plans</a>.</p>';
       return;
     }
 
@@ -139,7 +140,7 @@
   function openModal(reasonText){
     var overlay = buildModal();
     var sub = document.getElementById('plan-modal-sub');
-    if (sub && reasonText) sub.textContent = reasonText;
+    if (sub && reasonText && !/\bPro\b/.test(reasonText)) sub.textContent = reasonText;   // old callers still pass Pro reasons; Pro is not sold
 
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';

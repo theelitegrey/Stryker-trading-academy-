@@ -1,5 +1,5 @@
 // TradeZoro — Screener: GEX level columns (call wall / zero gamma / put wall). Classic script, window.StkScanGex.
-// Pro only: the levels API itself refuses non-Pro tokens (403), and the page never fetches for a Free member.
+// Signed-in members (free since 2026-11-04): the levels API refuses anonymous / signed-out tokens (403).
 // Covers what the GEX levels cover: SPY, QQQ, GLD on the ETF tab; ES, MES, NQ, MNQ, GC, MGC on the Futures tab (levels the API
 // converted to that contract). One fetch per market per 5 minutes, shared. Education only. Not financial advice.
 (function (root) {

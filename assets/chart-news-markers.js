@@ -165,7 +165,7 @@ class NewsNative extends Base {
   refresh() {
     if (!this.ctx) return;
     if (!this.tier) return this.push({ note: 'Loading news…' });
-    if (this.tier.free) return this.push({ pill: 'Unlock News markers with Pro', href: PRICING });
+    if (this.tier.free) return this.push({ pill: 'Sign in to see News markers (free)', href: '/login.html' });
     if (!newsSymOf(this.ctx.symbol)) return this.push({ note: 'News markers: NQ, ES, YM, GC, SI, CL, BTC, ETH' });
     const rn = replayNow();
     this.push({ kind: 'news', cut: rn || 0, color: this.inputs.color || '#00adb5',
@@ -182,7 +182,7 @@ class EconNative extends Base {
   refresh() {
     if (!this.ctx) return;
     if (!this.tier) return this.push({ note: 'Loading economic events…' });
-    if (this.tier.free) return this.push({ pill: 'Unlock Economic events with Pro', href: PRICING });
+    if (this.tier.free) return this.push({ pill: 'Sign in to see Economic events (free)', href: '/login.html' });
     const rn = replayNow();
     const i = this.inputs;
     const all = pickEvents(this.rows, { level: i.level, countries: i.countries, cutMs: rn });

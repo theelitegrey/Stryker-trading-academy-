@@ -573,7 +573,7 @@ class GexNative {
     const src = resolveSrc(this.ctx);
     if (!src) return null;
     if (src.pro && (!this.tier || this.tier.free)) return null;
-    if (ProGate.isFree()) return null;   // GEX on charts is Pro (chart-pro-gate.js removes the tool for Free)
+    if (ProGate.isFree()) return null;   // always false since 2026-11-04: GEX on charts is free for members
     return { api: src.api, dte: this.dte() };
   }
   dte() {
@@ -607,7 +607,7 @@ class GexNative {
     let payload;
     if (!src) payload = { note: 'GEX levels available for SPX, SPY, QQQ, GLD, ES, NQ and gold (GC)' };
     else if (!this.tier) payload = { note: 'Loading GEX levels…' };
-    else if (src.pro && this.tier.free) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api === 'GLD' ? 'gold' : src.api) + ' GEX with Pro', href: PRICING };
+    else if (src.pro && this.tier.free) payload = { pill: 'Sign in to see ' + (src.api === 'QQQ' ? 'NQ' : src.api === 'GLD' ? 'gold' : src.api) + ' GEX', href: '/login.html' };   // unreachable since 2026-11-04 (tier.free is never true)
     else if (window.__stkReplay && window.__stkReplay.on) payload = this.replayPayload(src);
     else {
       const dte = this.dte();

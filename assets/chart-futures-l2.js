@@ -2,8 +2,9 @@
 // Depends on: assets/rt-access.js (admin check + ID token), chart-orderflow.js (hands in its helpers as H, so the Crypto
 // DOM Heatmap renderer, styles and history merge are REUSED, not copied), the book-recorder Worker's /ts-live hub.
 //
-// ACCESS (Owner 2026-11-03, released to Pro): active Pro members, admins and the marketing demo account. The Worker is the real
-// gate (TS_ACCESS=pro, same rule as GEX+); this file only shapes the UI. Free / signed-out members see the Pro lock + Unlock.
+// ACCESS (data plans, Owner 2026-11-04): the TOOLS are free; the LIVE book needs L2 Data (admin, demo, L2 add-on, active Pro while it
+// lasts) and live trades need L1 Data. The Worker is the real gate (isL2Token / isRealtimeToken); this file only shapes the UI.
+// Members without L2 see "Live order book needs L2 Data" + a button to the data checkout.
 //
 // Browser -> /ts-live (the Worker's ONE upstream socket fans out; this page never talks to Tick-stream). One browser socket
 // per symbol, shared by every indicator and the ladder on that symbol, closed after 30 s in a hidden tab.
@@ -13,8 +14,9 @@
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
 import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=875';
-import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=875';
-import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=875';
+import { onTier } from './chart-pro-gate.js?v=875';
+import { goDataCheckout } from './data-plans.js?v=875';
+import { isRealtimeAdmin, isL2Member, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=875';
 import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=875';
 import { hfLive } from './chart-heat-filter.js?v=875';
 import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=875';
@@ -36,8 +38,9 @@ const READ_MS = 6 * 3600000;
 const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname); } catch (e) { return false; } };
 const testOn0 = () => !!(window.__stkL2Test && window.__stkL2Test.retry === false);   // tests: set retry:false to see the raw tier
 const testOn = () => isLocal() && typeof window !== 'undefined' && window.__stkL2Test;
-// May this visitor see LIVE data (candles / trades / quotes)? admin / demo / switched-on / add-on (rt-access) or a signed-in member who is not confirmed Free (Pro release). The SERVER decides (/ts-live tier); this only skips a refused socket.
-export const liveVisible = () => !!(isRealtimeAdmin() || testOn() || (L2_MEMBERS && rtToken() && !isFree()));
+// May this visitor see LIVE data (candles / trades / quotes)? = the server granted L1 (admin / demo / switched-on / L1 or L2 add-on / active Pro),
+// per /api/chart/rt. The SERVER decides (/ts-live tier); this only skips a refused socket.
+export const liveVisible = () => !!(isRealtimeAdmin() || testOn());
 // May this visitor use the L2 BOOK? Only once the hub's hub_attached frame says tier 'book' (null = not told yet = hidden: fails closed). Pro = book, live add-on = trades only, Free = neither.
 let bookTier = null;
 // DATA IS PROOF (L2 lock fix 3, Owner 2026-11-04): the hub only sends book frames (snap / coarse) to a book-tier socket. A root that got a book
@@ -47,12 +50,12 @@ export const l2AnyProven = () => { let ok = false; roots.forEach((r, k) => { if 
 export const l2ProvenSym = (sym) => { const m = /^futures:(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]); return root ? l2Proven(root) : l2AnyProven(); };
 export function l2Visible() { return l2AnyProven() || (liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades))); }
 // For the badges only: bookTier null = the hub has not said yet, so a Pro / admin member is NOT shown a lock. A definite Free member is. The server stays the real gate.
-export const l2Badge = () => (l2AnyProven() || liveVisible() || (bookTier === null && !rtState().ready && !isFree()) || l2Visible());   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
+export const l2Badge = () => (l2AnyProven() || isL2Member() || (bookTier === null && !rtState().ready) || l2Visible() || !!(testOn() && !window.__stkL2Test.trades));   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
 const DIAG = { tier: '-', close: '-', closeAt: 0 };
 function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades) || l2AnyProven(); /* a late 'trades' never re-locks a member whose book frames are arriving */ if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
 // Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.
 export const l2Listed = () => L2_MEMBERS || l2Visible();
-export const l2Unlock = () => upgrade('of');
+export const l2Unlock = () => goDataCheckout('L2');
 export { onTier };
 const symOf = (ticker) => String(ticker || '').toUpperCase().replace(/\d?!$/, '').replace(/^[A-Z_]+:/, '');
 export const l2Root = (ticker) => L2_ROOTS[symOf(ticker)] || null;
@@ -230,7 +233,7 @@ export function l2Diag(sym0) {
   const sock = {}; roots.forEach((r, k) => { sock[k] = (r.conn && r.conn.ws ? ['connecting', 'open', 'closing', 'closed'][r.conn.ws.readyState] : 'none') + ' status=' + r.status + (r.err ? ' err=' + r.err : '') + ' snaps=' + (r.nSnap || 0) + ' retry=' + (r.conn ? r.conn.retryN : '-'); });
   let spec = '';
   try { const sym = sym0 || (window.ws && window.ws.active && window.ws.active.symbol) || ''; spec = sym + ' -> root ' + (l2Root(String(sym).replace(/^[a-z0-9]+:/i, '')) /* chart-book-pack also asks the chart's own resolver */ || 'none'); } catch (e) {}
-  return { build: '845+', rtState: g(rtState), isFree: g(isFree), planTier: g(() => (window.strykerPlanTier ? 'fn' : 'none') + ' free=' + window.__stkChartFree), liveVisible: g(liveVisible), l2Visible: g(l2Visible), l2Badge: g(l2Badge), l2Proven: g(l2AnyProven), bookTier, token: pfx(g(rtToken)), lastHubAttached: DIAG.tier, lastClose: DIAG.close + (DIAG.closeAt ? ' ' + Math.round((Date.now() - DIAG.closeAt) / 1000) + 's ago' : ''), base: g(() => baseUrl(HOOK) ? 'set' : 'EMPTY'), sockets: sock, spec, hidden: document.hidden };
+  return { build: '845+', rtState: g(rtState), l2Member: g(isL2Member), planTier: g(() => (window.strykerPlanTier ? 'fn' : 'none') + ' free=' + window.__stkChartFree), liveVisible: g(liveVisible), l2Visible: g(l2Visible), l2Badge: g(l2Badge), l2Proven: g(l2AnyProven), bookTier, token: pfx(g(rtToken)), lastHubAttached: DIAG.tier, lastClose: DIAG.close + (DIAG.closeAt ? ' ' + Math.round((Date.now() - DIAG.closeAt) / 1000) + 's ago' : ''), base: g(() => baseUrl(HOOK) ? 'set' : 'EMPTY'), sockets: sock, spec, hidden: document.hidden };
 }
 if (typeof window !== 'undefined') window.tzL2Diag = l2Diag;
 export function l2Probe() {
@@ -466,7 +469,7 @@ export function registerL2Feeds() {
 // ---------------------------------------------------------------------------------------- indicators
 export const L2_TYPES = ['stk_fut_dom', 'stk_fut_imb'];   // chart-ts-trades.js and chart-delta-suite.js add their L2 tools
 const NEED = 'Futures DOM works on NQ, MNQ, ES, MES, YM, RTY, CL and GC charts (MYM, M2K, MCL, MGC show their mini\'s book).';
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Live order book needs L2 Data.';
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const BOOK_WALLS = 'Walls (persist 30 s+, pulled / consumed tags)';

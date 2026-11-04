@@ -116,13 +116,14 @@ assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-a
 
 // /api/chart/rt
 const rtRes = async (tok) => (await rtGet({ request: new Request('https://x/api/chart/rt', { headers: tok ? { authorization: 'Bearer ' + tok } : {} }) })).json();
-assert.deepEqual(await rtRes(''), { admin: false });
-assert.deepEqual(await rtRes(await mint()), { admin: true });
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-live' })), { admin: true }, '/rt says yes for a liveFeed member');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: true }, '/rt says yes for active Pro (temporary, L2 includes L1)');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-ld' })), { admin: true }, '/rt says yes for an active add-on member');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro-expired' })), { admin: false }, '/rt says no for an expired Pro');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false }, '/rt says no for a normal member');
+assert.deepEqual(await rtRes(''), { admin: false, l2: false });
+assert.deepEqual(await rtRes(await mint()), { admin: true, l2: true });
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-live' })), { admin: true, l2: false }, '/rt says yes for a liveFeed member (L1 only)');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: true, l2: true }, '/rt says yes for active Pro (temporary, L2 includes L1)');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-ld' })), { admin: true, l2: false }, '/rt says yes for an active L1 add-on member, no L2');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-l2' })), { admin: true, l2: true }, '/rt: L2 add-on = L1 + L2');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro-expired' })), { admin: false, l2: false }, '/rt says no for an expired Pro');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false, l2: false }, '/rt says no for a normal member');
 
 // /api/chart/bars end to end (Yahoo stubbed): liveFeed member = real-time lane, member / signed out = cut 10 min
 {
@@ -218,10 +219,10 @@ for (const M of [A, B]) {
 // /api/chart/bars + stream for the data plans: L2 add-on = live L1, free = delayed, anonymous = delayed
 {
   A._resetForTests();
-  assert.deepEqual(await rtRes(await mint({ sub: 'uid-l2' })), { admin: true }, '/rt yes for L2 add-on (includes L1)');
-  assert.deepEqual(await rtRes(await mint({ sub: 'uid-free' })), { admin: false }, '/rt no for free');
-  assert.deepEqual(await rtRes(await mint({ sub: 'uid-l2-expired' })), { admin: false }, '/rt no for expired L2');
-  assert.deepEqual(await rtRes(await mint({ sub: 'uid-free', firebase: { sign_in_provider: 'anonymous' } })), { admin: false }, '/rt no for anonymous');
+  assert.deepEqual(await rtRes(await mint({ sub: 'uid-l2' })), { admin: true, l2: true }, '/rt yes for L2 add-on (includes L1)');
+  assert.deepEqual(await rtRes(await mint({ sub: 'uid-free' })), { admin: false, l2: false }, '/rt no for free');
+  assert.deepEqual(await rtRes(await mint({ sub: 'uid-l2-expired' })), { admin: false, l2: false }, '/rt no for expired L2');
+  assert.deepEqual(await rtRes(await mint({ sub: 'uid-free', firebase: { sign_in_provider: 'anonymous' } })), { admin: false, l2: false }, '/rt no for anonymous');
   assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-free' }) }), params: { sym: 'NQ' }, env })).status, 403, 'free: live stream 403');
   assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-l2-expired' }) }), params: { sym: 'NQ' }, env })).status, 403, 'expired L2: live stream 403');
 }

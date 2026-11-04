@@ -2,17 +2,10 @@
 // Depends on: window.strykerPlanTier (assets/plan-limits.js), window.openPlanUpgradeModal (assets/plan-modal.js).
 // Optional: the Vela workspace (window.STRYKER_VELA) for the sweep below.
 //
-// Owner order 2026-10-29: the chart is free for every plan, with no limits. Only THREE things are Pro:
-//   1. (real-time futures data is decided by the server: Rithmic, the $7 add-on, early Pro members or approval; nothing to do here),
-//   2. order flow tools: everything in the Order Flow group, the Footprint chart type, the DOM panels,
-//   3. GEX on charts: GEX levels / gamma profile, GEX heatmap, GEX ladder, Expected Move (same options chain).
-// Free members see those listed with a small "PRO" tag; a click opens the upgrade modal.
-// Admins, Pro and an unresolved plan get everything (fail open, same as plan-limits.js).
-//
-// GEX data (levels, ladder, flow, history, options analytics; SPX 0DTE too) is refused by the server for non-Pro members since
-// 2026-11-01 (functions/api/gex/_pro.js, recorder isGexProToken). Order flow data is served as before. This module is the UI side; it shapes the product, it is not a security
-// boundary. Besides the click guards, a light sweep removes a Pro tool that arrives by another road for a
-// Free member (saved chart, layout, template, community script that loads one).
+// ALL TOOLS ARE FREE (Owner 2026-11-04, data plans): "Make all indicators in pro free as well. But they need data so user have to
+// subscribe to data anyway." Nothing on the chart is Pro any more: isFree() is always false, so locked() is false, no PRO tag is
+// drawn and the sweep never removes a tool. The LIVE data lock (L1 / L2 Data) lives in chart-feeds.js / chart-futures-l2.js and
+// the server. The module and its API stay so the callers need no change (kindOf / OF_TYPES / GEX_TYPES are still used for lists).
 // Education only. Not financial advice.
 
 export const OF_TYPES = ['stk_footprint', 'stk_fp', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb',
@@ -20,7 +13,7 @@ export const OF_TYPES = ['stk_footprint', 'stk_fp', 'stk_of_delta', 'stk_of_cvd'
   'stk_fut_dom', 'stk_fut_walls', 'stk_fut_imb', 'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls',
   'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];
 export const GEX_TYPES = ['stk_gex', 'stk_gexheat', 'stk_em', 'stk_optflow'];   // ZoroTide (stk_tide) is free since 2026-11-01
-export const REASON = { of: 'Order flow tools are part of Pro.', gex: 'GEX and options flow on charts are part of Pro.' };
+export const REASON = { of: '', gex: '' };   // nothing is Pro any more (2026-11-04)
 
 export const PRO_STYLES = ['stk_fp', 'stk_tpoc', 'stk_svp'];   // Pro chart types (Volume footprint, TPO, Session volume profile)
 
@@ -43,7 +36,7 @@ export function tier() {
       window.strykerPlanTier().then((r) => { clearTimeout(t); resolve(r || { free: false }); }, () => { clearTimeout(t); resolve({ free: false }); });
     } catch (e) { clearTimeout(t); resolve({ free: false }); }
   }).then((r) => {
-    free = !!(r && r.free && !r.admin);
+    free = false;   // all tools free (2026-11-04)
     if (typeof window !== 'undefined') window.__stkChartFree = free;
     subs.forEach((f) => { try { f(free); } catch (e) {} });
     return r;
@@ -52,19 +45,14 @@ export function tier() {
 }
 tier();   // start asking as soon as the module loads
 // Sync: is the signed-in member confirmed Free? (false while unknown: fail open)
-export const isFree = () => {
-  try { const o = window.__stkChartTestFree; if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) && typeof o === 'boolean') return o; } catch (e) {}
-  return free;
-};
+export const isFree = () => false;   // all tools free (Owner 2026-11-04)
 export function onTier(fn) { subs.add(fn); return () => subs.delete(fn); }
 
 // Is this tool locked for the current member? kind = 'of' | 'gex' | null
 export const locked = (kind) => !!kind && isFree();
 
-export function upgrade(kind) {
-  const why = REASON[kind] || 'This tool is part of Pro.';
-  if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(why);
-}
+// No tool is sold any more; a stray caller lands on the data checkout (live data is the paid part).
+export function upgrade() { try { location.href = 'checkout.html?plan=LiveDataL2'; } catch (e) {} }
 
 // A small "PRO" tag node (also styled in assets/style.css: .stk-protag).
 export function proTag() {
@@ -75,7 +63,6 @@ export function proTag() {
 
 // ---- sweep ---------------------------------------------------------------------------------------
 function cellsOf(ws) { try { return (ws.context().cells || []).map((c) => ws.cell(c.id)).filter(Boolean); } catch (e) { return []; } }
-let lastToast = 0;
 export function sweep(ws, toast) {
   if (!isFree() || !ws) return 0;
   let n = 0, kind = null;
@@ -90,11 +77,7 @@ export function sweep(ws, toast) {
       });
     } catch (e) {}
   });
-  if (n) {
-    try { ws.context().stateChanged(); } catch (e) {}
-    const now = Date.now();
-    if (toast && now - lastToast > 4000) { lastToast = now; toast((kind === 'gex' ? 'GEX and options flow on charts' : 'Order flow tools') + ' are part of Pro. Removed from this chart.', 'info'); }
-  }
+  if (n) { try { ws.context().stateChanged(); } catch (e) {} }
   return n;
 }
 

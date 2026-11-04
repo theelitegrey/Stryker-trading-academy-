@@ -1,4 +1,4 @@
-// TradeZoro /pro: showcase tabs, rails, reveal, the Coming soon rail and the Free vs Pro table. Data: assets/pro-features-data.js. No prices here.
+// TradeZoro /pro: showcase tabs, rails, reveal, the Coming soon rail and the tools vs data table. Data: assets/pro-features-data.js. No prices here.
 (function () {
   var D = window.STRYKER_PRO_FEATURES, doc = document, root = doc.documentElement;
   var rm = false; try { rm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -17,22 +17,20 @@
   // Free vs Pro: [row, free, pro] true = included, false = not included, string = note
   var cmp = doc.getElementById('pp-cmp');
   if (cmp) {
+    // Data plans (Owner 2026-11-04): columns = Free (every member) / with a data plan. No prices here.
     var ROWS = [
       ['Charts, every chart type, drawings and indicators', true, true],
-      ['Replay One, alerts, layouts and paper trading', true, true],
-      ['Lessons, JournalX, Market Stats, ZoroTide, Liquidity Map overview', true, true],
-      ['Community: read everything', true, true],
-      ['Order flow: Footprint, Delta, CVD, Big Trades, Absorption, Stop Runs, Imbalance Zones', false, true],
-      ['Volume Profile, VWAP and Market Profile from trades', false, true],
-      ['Order book heatmap, DOM ladder, Book · DOM · Trades panel', false, true],
-      ['Liquidity Walls and Book Imbalance', false, true],
-      ['GEX+ levels, heatmap and Expected Move on charts', false, true],
-      ['GEX+ page: every expiry, strike table, futures levels', false, true],
-      ['Live CME futures data', 'Separate; 10 min delayed without it', 'Separate; 10 min delayed without it']
+      ['Order flow: Footprint, Delta, CVD, Big Trades, Absorption, Stop Runs, Imbalance Zones', true, true],
+      ['Order book heatmap, DOM ladder, Book · DOM · Trades panel, Liquidity Walls, Book Imbalance', true, true],
+      ['GEX+ levels, heatmap and Expected Move on charts; the GEX+ page with every expiry', true, true],
+      ['Replay One, alerts, layouts, paper trading, lessons, JournalX, community', true, true],
+      ['CME futures trades and candles', '10 min delayed (CME rule)', 'Live with L1 or L2 Data'],
+      ['The live order book (heatmap, DOM, book tools)', 'Recorded history', 'Live with L2 Data'],
+      ['Crypto', 'Live', 'Live']
     ];
     var cell = function (v) { return v === true ? '<span class="pp-y" aria-label="Included">✓</span>' : v === false ? '<span class="pp-n" aria-label="Not included">—</span>' : '<span class="pp-t">' + esc(v) + '</span>'; };
-    cmp.innerHTML = '<div class="pp-r pp-rh" role="row"><span role="columnheader">&nbsp;</span><span role="columnheader">Free</span><span role="columnheader">Pro</span></div>' +
-      ROWS.map(function (r) { return '<div class="pp-r" role="row"><span class="pp-rn" role="rowheader">' + esc(r[0]) + '</span><span class="pp-c" role="cell" data-l="Free">' + cell(r[1]) + '</span><span class="pp-c" role="cell" data-l="Pro">' + cell(r[2]) + '</span></div>'; }).join('');
+    cmp.innerHTML = '<div class="pp-r pp-rh" role="row"><span role="columnheader">&nbsp;</span><span role="columnheader">Free</span><span role="columnheader">With a data plan</span></div>' +
+      ROWS.map(function (r) { return '<div class="pp-r" role="row"><span class="pp-rn" role="rowheader">' + esc(r[0]) + '</span><span class="pp-c" role="cell" data-l="Free">' + cell(r[1]) + '</span><span class="pp-c" role="cell" data-l="With a data plan">' + cell(r[2]) + '</span></div>'; }).join('');
   }
 
   // Showcase tabs (click, touch, arrow keys)

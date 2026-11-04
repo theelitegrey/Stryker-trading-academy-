@@ -74,7 +74,7 @@ export function mountBookPanel(ws, opts) {
     const k = kindOf(), key = feedKey(k);
     if (feed && feed.key === key) { feed.k = k; return; }
     detach();
-    if (!key || (k.kind === 'fut' && !l2Visible())) { feed = k.kind === 'fut' ? { key: '', k, books: new Map(), stops: [], store: new C.TradeStore(), msg: 'The futures order book is part of Pro. Upgrade to unlock it.' } : null; if (feed) feed.k = k; schedule(); return; }
+    if (!key || (k.kind === 'fut' && !l2Visible())) { feed = k.kind === 'fut' ? { key: '', k, books: new Map(), stops: [], store: new C.TradeStore(), msg: 'Live order book needs L2 Data.' } : null; if (feed) feed.k = k; schedule(); return; }
     const f = feed = { key, k, books: new Map(), stops: [], store: new C.TradeStore(), step: 0, msg: '', dirty: true };
     if (k.kind === 'fut') {
       f.store.notional = false;
@@ -252,7 +252,7 @@ export function mountBookPanel(ws, opts) {
     let msg = '';
     if (!feed) msg = 'Open a crypto or futures chart (BTC, ETH, NQ, ES …) to see its order book.';
     else if (feed.msg) msg = feed.msg;
-    else if (fut && !feed.key) msg = 'The futures order book is part of Pro. Upgrade to unlock it.';
+    else if (fut && !feed.key) msg = 'Live order book needs L2 Data.';
     const M = msg ? null : model();
     stat.innerHTML = statusHtml(M);
     if (!M || (S.tab === 'trades' && feed && feed.key && false)) {

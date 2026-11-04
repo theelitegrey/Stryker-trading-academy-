@@ -177,7 +177,7 @@ class EmNative {
     if (replayOn()) payload = { note: 'Expected move is hidden during bar replay' };
     else if (!src) payload = { note: 'Expected move available for SPX, SPY, QQQ, ES, NQ (gold: building history)' };
     else if (!this.tier) payload = { note: 'Loading expected move…' };
-    else if (src.pro && this.tier.free) payload = { pill: 'Unlock ' + (src.u === 'QQQ' ? 'NQ / QQQ' : src.u === 'GLD' ? 'gold' : src.u) + ' expected move with Pro', href: PRICING };
+    else if (src.pro && this.tier.free) payload = { pill: 'Unlock ' + (src.u === 'QQQ' ? 'NQ / QQQ' : src.u === 'GLD' ? 'gold' : src.u) + ' expected move: sign in (free)', href: '/login.html' };
     else if (src.noData) payload = { note: 'Gold expected move: building history. GEX levels show the IV bands.' };
     else {
       const e = cache.get(src.u), data = e && e.data;

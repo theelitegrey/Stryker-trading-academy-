@@ -56,7 +56,7 @@
     const heading = document.getElementById('paywall-heading');
     const body = document.getElementById('paywall-body');
     const actions = document.getElementById('paywall-actions');
-    if (heading) heading.textContent = 'This page is part of Pro';
+    if (heading) heading.textContent = 'This page is not on your plan';
     if (body) {
       body.textContent = requiredRoleName
         ? ('This page requires the ' + requiredRoleName + ' plan.')

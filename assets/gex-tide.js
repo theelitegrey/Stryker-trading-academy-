@@ -9,7 +9,7 @@
 // METHOD (also in the help text below): every sample, new volume = volume now - volume at the previous sample per
 // contract; premium = new volume x price x 100 (last trade, else mid); side: last trade in the top 25 % of the
 // bid-ask spread = bought, bottom 25 % = sold, in between = split half and half. Net = bought - sold.
-// PLAN: same split as the rest of GEX+: SPX free, SPY and QQQ Pro (client-side, like the heatmap).
+// PLAN: free for every signed-in member (2026-11-04).
 // WORDING: "Estimated from options volume and quotes. Updated X min ago." Never live / real-time / delayed.
 // Education only. Not financial advice.
 (function () {
@@ -122,7 +122,7 @@
       setStatus(''); setEmpty('');
       var div = document.createElement('div'); div.id = 'gex-tide-lock';
       if (window.strykerPlanLock) div.appendChild(window.strykerPlanLock.card('gex', 'gex-zorotide'));
-      else div.innerHTML = '<p class="gex-empty">Pro unlocks ZoroTide for SPY and QQQ. The Free plan covers SPX.</p>';
+      else div.innerHTML = '<p class="gex-empty">Sign in to see ZoroTide. It is free for every member.</p>';
       $('gex-tide-status').appendChild(div);
       return;
     }

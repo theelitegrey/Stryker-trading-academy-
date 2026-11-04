@@ -5,15 +5,15 @@ const F = await import('../../assets/chart-feeds.js');
 let n = 0;
 const ok = (c, m, x) => { assert.ok(c, m + (x === undefined ? '' : ' ' + JSON.stringify(x))); n++; console.log('PASS ' + m); };
 const U = (needs, title) => ({ id: title, needs, title });
-const admin = F.haveFor({ mkt: 'futures', l2: true, free: false }), l1only = F.haveFor({ mkt: 'futures', l2: false, free: false });
+const admin = F.haveFor({ mkt: 'futures', l2: true, l1: true }), l1only = F.haveFor({ mkt: 'futures', l2: false, l1: true });
 ok(admin.L2 && !l1only.L2 && l1only.L1 && !admin.L3, 'haveFor: futures L2 follows l2Visible, L3 never');
-ok(F.haveFor({ mkt: 'crypto', l2: false, free: false }).L2 && !F.haveFor({ mkt: 'crypto', l2: false, free: true }).L2, 'haveFor: crypto book follows Pro');
+ok(F.haveFor({ mkt: 'crypto', l2: false }).L2 && F.haveFor({ mkt: 'futures', l2: true }).L1 && !F.haveFor({ mkt: 'futures' }).L1, 'haveFor: crypto book live for all, L2 Data includes L1, no data = no live futures');
 let s = F.feedState([], admin);
 ok(!s.show && s.L1.state === 'dim' && s.L2.state === 'dim', 'nothing registered: hidden, all dim');
 s = F.feedState([U('L2', 'Heatmap')], admin);
 ok(s.show && s.L2.state === 'lit' && s.L1.state === 'lit' && s.L3.state === 'dim', 'L2 user with L2: L2 lit, L1 lit (book feed carries trades), L3 dim');
 s = F.feedState([U('L2', 'Heatmap')], l1only);
-ok(s.L2.state === 'locked' && s.L1.state === 'dim' && /^Needs L2 \(full order book\)\. It is part of Pro\.$/.test(s.L2.locked), 'L2 user with only L1: L2 locked with reason', s.L2.locked);
+ok(s.L2.state === 'locked' && s.L1.state === 'dim' && /^Live order book needs L2 Data\.$/.test(s.L2.locked), 'L2 user with only L1: L2 locked with reason', s.L2.locked);
 s = F.feedState([U('L1', 'Big Trades')], l1only);
 ok(s.L1.state === 'lit' && s.L2.state === 'dim', 'L1 user: L1 lit, L2 dim');
 s = F.feedState([U('L3', 'Orders')], admin);
@@ -23,11 +23,12 @@ const lines = F.nowLines('L2', F.feedState([U('L2', 'x')], admin), { status: 'li
 ok(lines.join('|') === 'Symbol: NQ1!|Status: Live|Receiving: book updates (~6.2/s)', 'nowLines L2', lines);
 ok(F.nowLines('L2', F.feedState([U('L2', 'x')], admin), { status: 'wait', ageMs: 0 }, admin, 'futures', 'NQ1!')[1] === 'Status: Reconnecting…', 'nowLines reconnecting');
 ok(/Updated|updated 12 s ago/.test(F.nowLines('L1', F.feedState([U('L1', 'x')], admin), { status: 'live', ageMs: 12000 }, admin, 'futures', 'NQ1!')[1]), 'nowLines updated X s ago');
-const proNull = F.haveFor({ mkt: 'futures', l2: true, free: false });   // l2Badge(): Pro with bookTier null = have L2
+const proNull = F.haveFor({ mkt: 'futures', l2: true, l1: true });   // l2Badge(): Pro with bookTier null = have L2
 s = F.feedState([U('L1', 'Delta (L1)')], proNull);
 ok(s.L1.state === 'lit' && s.L2.state === 'dim' && !s.L2.locked, 'Pro, tier unknown: Delta (L1) lights L1, no lock');
-s = F.feedState([U('L1', 'Delta (L1)')], F.haveFor({ mkt: 'futures', l2: false, free: true }));
-ok(s.L1.state === 'locked', 'Free: L1 tool locked');
+s = F.feedState([U('L1', 'Delta (L1)')], F.haveFor({ mkt: 'futures', l2: false, l1: false }));
+ok(s.L1.state === 'locked' && s.L1.locked === 'Live trades need L1 Data.', 'no data sub: live L1 locked with the data prompt');
+ok(!/part of Pro|\$\d/.test(JSON.stringify(F.LEVELS) + F.reasonFor('L1') + F.reasonFor('L2')), 'no Pro upsell, no price in lock copy');
 F.registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
 ok(F.feedOf('stk_of_big').needs === 'L1' && window.STRYKER_FEEDS.of('stk_of_big').title === 'Big Trades', 'registry: one-line register works, exposed on window');
 assert.throws(() => F.registerFeed('x', { needs: 'L9' })); n++;

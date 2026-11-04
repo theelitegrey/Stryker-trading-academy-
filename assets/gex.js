@@ -12,7 +12,7 @@
   // Plan limit (set by assets/plan-limits.js for Free members): which markets
   // and expiry views may load, and whether the strike table shows. null = full.
   // Client-side only: /api/gex/* itself is public.
-  var LIMIT = null;   // unused since 2026-11-01: GEX is Pro only, enforced by the server (a Free member gets the Pro wall)
+  var LIMIT = null;   // unused: GEX+ is free for signed-in members (2026-11-04); the server answers only a member token (sign-in wall)
   function gexAllowed(m, d){ return !LIMIT || (LIMIT.markets.indexOf(m) >= 0 && LIMIT.dtes.indexOf(d) >= 0); }
   function gexUpgrade(why){
     if(typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(why);
@@ -146,8 +146,8 @@
     $('gex-tabs').innerHTML = MKTS.map(function(m){ return '<button class="gex-tab'+cls(m === cur)+'" data-m="'+m+'"><span>'+(TAB_NAME[m] || m)+'</span><small>'+esc((MARKET_LABELS[m] || m).split(' · ')[1] || '')+'</small></button>'; }).join('');
     $('gex-dtes').innerHTML = DTES.map(function(d){ return '<button class="gex-dte'+cls(d.v === curDte)+'" data-d="'+d.v+'">'+d.l+'</button>'; }).join('');
     $('gex-ivs').innerHTML = IVS.map(function(i){ return '<button class="gex-iv'+cls(i === curIv)+'" data-i="'+i+'">'+i+'</button>'; }).join('');
-    $('gex-tabs').addEventListener('click', function(e){ var btn=e.target.closest('[data-m]'); var m=btn && btn.dataset.m; if(!m || m===cur) return; if(LIMIT && LIMIT.markets.indexOf(m) < 0){ gexLock('gex-market', 'Pro unlocks GEX for every symbol and expiry. The Free plan covers SPX, 0DTE.'); return; } cur=m; curFut=null; resetChartData('Loading '+mlabel(m)+'…'); paintButtons(); loadLevels(); });
-    $('gex-dtes').addEventListener('click', function(e){ var btn=e.target.closest('[data-d]'); var d=btn && btn.dataset.d; if(d == null) return; if(LIMIT && LIMIT.dtes.indexOf(Number(d)) < 0){ gexLock('gex-expiry', 'Pro unlocks every expiry view. The Free plan covers SPX, 0DTE.'); return; } curDte=Number(d); resetChartData('Refreshing '+mlabel(cur)+'…'); paintButtons(); loadLevels(); });
+    $('gex-tabs').addEventListener('click', function(e){ var btn=e.target.closest('[data-m]'); var m=btn && btn.dataset.m; if(!m || m===cur) return; if(LIMIT && LIMIT.markets.indexOf(m) < 0){ gexLock('gex-market', 'Sign in to see GEX for every symbol and expiry. The Free plan covers SPX, 0DTE.'); return; } cur=m; curFut=null; resetChartData('Loading '+mlabel(m)+'…'); paintButtons(); loadLevels(); });
+    $('gex-dtes').addEventListener('click', function(e){ var btn=e.target.closest('[data-d]'); var d=btn && btn.dataset.d; if(d == null) return; if(LIMIT && LIMIT.dtes.indexOf(Number(d)) < 0){ gexLock('gex-expiry', 'Sign in to see every expiry view. The Free plan covers SPX, 0DTE.'); return; } curDte=Number(d); resetChartData('Refreshing '+mlabel(cur)+'…'); paintButtons(); loadLevels(); });
     $('gex-ivs').addEventListener('click', function(e){ var btn=e.target.closest('[data-i]'); var i=btn && btn.dataset.i; if(!i) return; curIv=i; paintButtons(); resetChartData('Loading '+curFut+' '+i+'…'); loadChart(); });
     $('gex-futs').addEventListener('click', function(e){ var btn=e.target.closest('[data-f]'); var f=btn && btn.dataset.f; if(!f || !DATA || f===curFut) return; curFut=f; resetChartData('Loading '+f+'…'); render(DATA); loadChart(); });
     $('gex-toggle-market').addEventListener('click', function(){ showMkt = !showMkt; $('gex-toggle-market').textContent = 'Market levels: ' + (showMkt ? 'ON' : 'OFF'); drawChart(); });
@@ -298,7 +298,7 @@
       // Built once: the 60 s refresh must not rebuild it (or re-count a view).
       if($('gex-ladder').querySelector('.plan-lock')) return;
       if(window.strykerPlanLock){ $('gex-ladder').innerHTML = ''; $('gex-ladder').appendChild(window.strykerPlanLock.card('gex', 'gex-strikes')); return; }
-      $('gex-ladder').innerHTML = '<div class="plan-lock-card"><b>Strike table is part of Pro</b><p>Pro shows net GEX, DEX and open interest strike by strike, for every symbol and expiry.</p><button type="button" class="btn btn-primary btn-sm" data-open-plan-modal data-upgrade-reason="Pro unlocks the full GEX+ strike table for every symbol and expiry.">See Pro</button></div>';
+      $('gex-ladder').innerHTML = '<div class="plan-lock-card"><b>Sign in to see the strike table</b><p>The strike table is free for every member.</p></div>';
       return;
     }
     var rows = d.ladder || [];

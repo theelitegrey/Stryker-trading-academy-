@@ -1,4 +1,4 @@
-/* TradeZoro: everything in Pro. ONE list for /pro (pro.html). tools/check.py fails if a Pro-gated tool id is missing here.
+/* TradeZoro: every tool (free for members since 2026-11-04). ONE list for /pro (pro.html). tools/check.py fails if a Pro-gated tool id is missing here.
    item: { group, name, feed: 'L1' | 'L2' | '—', desc (one plain line), icon, ids: [tool ids it covers], img?, soon? }
    ids = indicator types in assets/chart-pro-gate.js (OF_TYPES, GEX_TYPES), registerFeed types and setPanel ids (chart-feeds.js,
    chart-futures-l2.js). soon: true = being built, shown as "Coming soon" until its id is registered.
@@ -98,7 +98,7 @@
     { group: 'live', name: 'Crypto order flow', feed: 'L2', icon: 'live', ids: ['live_crypto'],
       desc: 'The crypto order book and trades come from live exchange feeds.' },
     { group: 'live', name: 'Live CME futures', feed: '—', icon: 'clock', ids: ['live_cme'],
-      desc: 'Live CME data needs a market-data licence, so it is separate from Pro. Without it, CME futures are 10 minutes delayed.' },
+      desc: 'Live CME data needs a market-data licence, so it is a data plan (L1 or L2 Data). Without one, CME futures are 10 minutes delayed.' },
     // ---- Order flow with the book (L2), shipped 11-03 ----
     { group: 'flow', name: 'Delta (L2)', feed: 'L2', icon: 'delta', ids: ['stk_l2f_delta'],
       desc: 'Buying minus selling per bar, plus how much resting size was added or pulled from the book over the same bar.' },

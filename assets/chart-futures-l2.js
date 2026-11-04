@@ -47,7 +47,8 @@ export const l2AnyProven = () => { let ok = false; roots.forEach((r, k) => { if 
 export const l2ProvenSym = (sym) => { const m = /^futures:(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]); return root ? l2Proven(root) : l2AnyProven(); };
 export function l2Visible() { return l2AnyProven() || (liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades))); }
 // For the badges only: bookTier null = the hub has not said yet, so a Pro / admin member is NOT shown a lock. A definite Free member is. The server stays the real gate.
-export const l2Badge = () => (l2AnyProven() || liveVisible() || (bookTier === null && !rtState().ready && !isFree()) || l2Visible());   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
+export const l2Badge = () => (l2AnyProven() || (liveVisible() && !isFree()) ||   // a Free member live by the signed agreement (L1 only, 2026-11-04) still sees the L2 lock
+   (bookTier === null && !rtState().ready && !isFree()) || l2Visible());   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
 const DIAG = { tier: '-', close: '-', closeAt: 0 };
 function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades) || l2AnyProven(); /* a late 'trades' never re-locks a member whose book frames are arriving */ if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
 // Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.

@@ -22,7 +22,7 @@ async function mint(over = {}, key = kp.privateKey) {
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(h + '.' + p));
   return h + '.' + p + '.' + b64u(sig);
 }
-const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } }, 'uid-pro-nopt': { plan: { stringValue: 'Pro' } }, 'uid-pro-grace': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'grace' }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } }, 'uid-pro-lapsed': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } }, 'uid-pro-expired': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'expired' } }, 'uid-ld': { plan: { stringValue: 'Starter' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, source: { stringValue: 'stripe' } } } } }, 'uid-ld-grace': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } } } } }, 'uid-ld-pro': { plan: { stringValue: 'Pro' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-lapsed': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } } } } }, 'uid-ld-off': { liveData: { mapValue: { fields: { active: { booleanValue: false }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-str': { liveData: { stringValue: 'true' } }, 'uid-ld-manual': { liveData: { mapValue: { fields: { active: { booleanValue: true }, source: { stringValue: 'manual' } } } } }, 'uid-gf': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-found': { plan: { stringValue: 'Pro' }, foundingMember: { booleanValue: true }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-trial': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'trialing' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-cancelled': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'cancelled' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-expired': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-trialend': { plan: { stringValue: 'Free' }, subscriptionStatus: { stringValue: 'expired' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-addon': { plan: { stringValue: 'Free' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true }, liveData: { mapValue: { fields: { active: { booleanValue: true } } } } }, 'uid-gf-flagfalse': { plan: { stringValue: 'Free' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: false } }, 'uid-starter': { plan: { stringValue: 'Starter' } }, 'uid-live': { plan: { stringValue: 'Starter' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } } };
+const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } }, 'uid-pro-nopt': { plan: { stringValue: 'Pro' } }, 'uid-pro-grace': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'grace' }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } }, 'uid-pro-lapsed': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } }, 'uid-pro-expired': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'expired' } }, 'uid-ld': { plan: { stringValue: 'Starter' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, source: { stringValue: 'stripe' } } } } }, 'uid-ld-grace': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } } } } }, 'uid-ld-pro': { plan: { stringValue: 'Pro' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-lapsed': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } } } } }, 'uid-ld-off': { liveData: { mapValue: { fields: { active: { booleanValue: false }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-str': { liveData: { stringValue: 'true' } }, 'uid-ld-manual': { liveData: { mapValue: { fields: { active: { booleanValue: true }, source: { stringValue: 'manual' } } } } }, 'uid-gf': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-found': { plan: { stringValue: 'Pro' }, foundingMember: { booleanValue: true }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-trial': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'trialing' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-cancelled': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'cancelled' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-expired': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-trialend': { plan: { stringValue: 'Free' }, subscriptionStatus: { stringValue: 'expired' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true } }, 'uid-gf-addon': { plan: { stringValue: 'Free' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: true }, liveData: { mapValue: { fields: { active: { booleanValue: true } } } } }, 'uid-gf-flagfalse': { plan: { stringValue: 'Free' }, liveFeed: { booleanValue: true }, liveFeedGrandfathered: { booleanValue: false } }, 'uid-starter': { plan: { stringValue: 'Starter' } }, 'uid-live': { plan: { stringValue: 'Starter' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } }, 'uid-mda': { plan: { stringValue: 'Free' }, marketDataAgreement: { mapValue: { fields: { version: { stringValue: A.MDA_VERSION }, nonProfessional: { booleanValue: true } } } } }, 'uid-mda-old': { plan: { stringValue: 'Free' }, marketDataAgreement: { mapValue: { fields: { version: { stringValue: 'v0' }, nonProfessional: { booleanValue: true } } } } }, 'uid-mda-pro': { marketDataAgreement: { mapValue: { fields: { version: { stringValue: A.MDA_VERSION }, nonProfessional: { booleanValue: false } } } } }, 'uid-mda-str': { marketDataAgreement: { stringValue: 'v1' } }, 'uid-free': { plan: { stringValue: 'Free' } } };
 let adminUids = new Set(['uid-admin']), fsDown = false, fsCalls = 0;
 globalThis.fetch = async (url, init) => {
   url = String(url);
@@ -94,8 +94,16 @@ for (const M of [A, B]) {
       Date.now = () => t0 + 62000; assert.equal(await M.isRealtimeToken(tok), true, 'switched back on');
     } finally { Date.now = realNow; studentDocs['uid-live'].liveFeed = { booleanValue: true }; }
   }
+  // Free live L1 with the current Market Data Agreement (Owner 2026-11-04)
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-mda' })), true, 'Free + agreement: live L1');
+  for (const u of ['uid-free', 'uid-mda-old', 'uid-mda-pro', 'uid-mda-str']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no live L1 for ' + u);
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-mda', exp: 1 })), false, 'expired token + agreement');
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-mda', firebase: { sign_in_provider: 'anonymous' } })), false, 'anonymous token refused');
+  assert.equal(await M.isGexProToken(await mint({ sub: 'uid-mda' })), false, 'agreement does not open GEX+ / the L2 book (Pro gate)');
+  assert.equal(await M.isAdminToken(await mint({ sub: 'uid-mda' })), false, 'agreement is not admin');
   fsDown = true; M._resetForTests();
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' })), false, 'outage fails closed (demo)');
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-mda' })), false, 'outage fails closed (agreement)');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-live' })), false, 'outage fails closed (liveFeed)');
   assert.equal(await M.isAdminToken(await mint()), false, 'Firestore outage fails closed');
   fsDown = false;
@@ -122,6 +130,8 @@ assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: false }, 
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-ld' })), { admin: true }, '/rt says yes for an active add-on member');
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro-expired' })), { admin: false }, '/rt says no for an expired Pro');
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false }, '/rt says no for a normal member');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-mda' })), { admin: true }, '/rt says yes for Free + agreement');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-mda-old' })), { admin: false }, '/rt says no for an old agreement version');
 
 // /api/chart/bars end to end (Yahoo stubbed): liveFeed member = real-time lane, member / signed out = cut 10 min
 {
@@ -136,6 +146,10 @@ assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false
     A._resetForTests();
     const live = await bars(await mint({ sub: 'uid-live' }));
     assert.notEqual(live.rt, '0', 'liveFeed member: real-time lane'); assert.notEqual(live.body.rt, false);
+    const mda = await bars(await mint({ sub: 'uid-mda' }));
+    assert.notEqual(mda.rt, '0', 'Free + agreement: real-time bars (L1 200)'); assert.notEqual(mda.body.rt, false);
+    assert.equal((await bars(await mint({ sub: 'uid-mda-old' }))).rt, '0', 'old agreement: delayed bars');
+    assert.equal((await bars(await mint({ sub: 'uid-free' }))).rt, '0', 'Free without agreement: delayed bars');
     for (const [who, tok] of [['normal member', await mint({ sub: 'uid-starter' })], ['signed out', '']]) {
       const d = await bars(tok);
       assert.equal(d.rt, '0', who + ': x-tz-rt 0'); assert.equal(d.body.rt, false, who + ': rt false');
@@ -186,4 +200,20 @@ for (const M of [A, B]) {
     }
   }
 }
+// /ts-live tiers: Free + agreement = 'trades' (L1) only, never 'book' (L2); Pro unchanged; no agreement = refused
+{
+  const { tsTier, tsAllowed } = await import('../../workers/book-recorder/src/ts-access.js');
+  B._resetForTests();
+  const pro = { TS_ACCESS: 'pro' };
+  assert.equal(await tsTier(pro, await mint({ sub: 'uid-mda' })), 'trades', 'Free + agreement: L1 tier');
+  assert.equal(await tsAllowed(pro, await mint({ sub: 'uid-mda' })), false, 'Free + agreement: no L2 history routes');
+  assert.equal(await tsTier(pro, await mint({ sub: 'uid-free' })), null, 'Free without agreement: refused');
+  assert.equal(await tsTier(pro, await mint({ sub: 'uid-mda-old' })), null, 'old agreement: refused');
+  assert.equal(await tsTier(pro, await mint({ sub: 'uid-pro' })), 'book', 'Pro: L2 book unchanged');
+  assert.equal(await tsTier(pro, await mint({ sub: 'uid-mda', exp: 1 })), null, 'expired token: refused');
+  assert.equal(await tsTier({}, await mint({ sub: 'uid-mda' })), 'trades', 'admin-only book mode: agreement still L1 only');
+}
+// stream + bars for Free + agreement
+assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-free' }) }), params: { sym: 'NQ' }, env })).status, 403, 'Free without agreement: stream 403');
+assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-mda-old' }) }), params: { sym: 'NQ' }, env })).status, 403, 'old agreement: stream 403');
 console.log('rt-access: all ok');

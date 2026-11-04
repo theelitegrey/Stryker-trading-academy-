@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (why.indexOf('Add-on') !== -1) return who + 'Also has the paid $7/month Live Futures Data add-on.';
     if (s.liveFeed === true && s.liveFeedGrandfathered === true) return 'Live futures: On (kept from Pro)' + (why.indexOf('Kept from Pro') === -1 ? ' \u2014 paused: Pro is no longer active, so futures are 10 min delayed.' : '. Stays on while their Pro is active; switch off to remove.');
     if (liveOn) return who + 'Real-time CME futures on ZoroCharts.';
-    return 'Off: futures on ZoroCharts are 10 min delayed (unless they connect Rithmic or buy the add-on).';
+    return 'Off: futures on ZoroCharts are 10 min delayed (unless they connect Rithmic or sign the market data agreement for free live L1).';
   }
 
   // Mirrors isActiveProDoc in _rt.js: paid plan, not expired/cancelled, inside paidThrough + 3 days (founding = always).

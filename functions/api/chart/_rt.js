@@ -11,7 +11,10 @@
 // needed and a client "isAdmin" flag is never trusted. Everything fails CLOSED (not admin).
 // Result per uid is memoised 60 s in the isolate (admins); the students/{uid} answer (demo / liveFeed) 30 s,
 // so an admin switching someone's live feed OFF takes effect within about a minute.
-export const RT_DELAY_S = 600;          // non-admins see nothing newer than now - 10 min
+export const RT_DELAY_S = 600;
+// Market Data Agreement version (Owner 2026-11-04: live futures L1 is free for every member who signed the CURRENT agreement).
+// MUST equal AGREEMENT_VERSION in functions-src/marketData.js and VERSION in assets/market-data-agreement.js (tools/tests/market-data-terms.test.js).
+export const MDA_VERSION = 'v1';          // non-admins see nothing newer than now - 10 min
 export const RT_PROJECT = 'strykertrades-e0cd8';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const ISSUER = 'https://securetoken.google.com/' + RT_PROJECT;
@@ -70,6 +73,13 @@ export function isActiveProDoc(f, paid, nowMs = Date.now()) {
   return true;
 }
 
+// Signed agreement = students/{uid}.marketDataAgreement { version: MDA_VERSION, nonProfessional: true }, written ONLY by the callable
+// acceptMarketDataAgreement (privileged in firestore.rules). Old version / missing / odd shapes = no. Fails closed.
+export function hasAgreementDoc(f) {
+  const m = f && f.marketDataAgreement && f.marketDataAgreement.mapValue && f.marketDataAgreement.mapValue.fields;
+  return !!m && !!m.version && m.version.stringValue === MDA_VERSION && !!m.nonProfessional && m.nonProfessional.booleanValue === true;
+}
+
 function b64uBytes(s) {
   s = String(s).replace(/-/g, '+').replace(/_/g, '/');
   while (s.length % 4) s += '=';
@@ -108,6 +118,7 @@ export async function verifyIdToken(token, opts = {}) {
     const now = opts.nowSec || Math.floor(Date.now() / 1000);
     if (p.iss !== ISSUER || p.aud !== RT_PROJECT) return null;
     if (typeof p.sub !== 'string' || !p.sub || p.sub.length > 128) return null;
+    if (p.firebase && p.firebase.sign_in_provider === 'anonymous') return null;   // anonymous sign-in is never a member (free L1 needs a real account)
     if (!(p.exp > now) || !(p.iat <= now + 300)) return null;
     const key = await keyFor(head.kid, opts.fetchImpl || fetch);
     if (!key) return null;
@@ -147,7 +158,8 @@ export async function isAdminToken(token, opts = {}) {
 // a token-verified uid whose OWN students/{uid} document has demo === true or liveFeed === true, OR an active Live Futures Data add-on (students/{uid}.liveData, $7/month, Owner 2026-10-30). Pro alone no longer includes real-time, EXCEPT the 46 grandfathered early Pro members (liveFeed + liveFeedGrandfathered, CoS-set): live only while isActiveProDoc stays true (Owner 2026-10-30). The doc is read
 // over the Firestore REST API with the caller's own token, so the live rules decide (a student can only read
 // their own doc), and `demo` / `liveFeed` are server-only fields (privileged in firestore.rules: only an admin
-// writes them). Fails CLOSED. Nobody else gets in.
+// writes them). Since 2026-11-04 also ANY signed-in member whose students/{uid}.marketDataAgreement is the current version
+// (hasAgreementDoc): this gate is L1 only (candles, trades, quotes); the L2 book and GEX+ use tsAllowed / isGexProToken. Fails CLOSED.
 export async function isDemoToken(token, opts = {}) {
   const uid = await verifyIdToken(token, opts);
   if (!uid) return false;
@@ -165,6 +177,7 @@ export async function isDemoToken(token, opts = {}) {
       v = !!(f.demo && f.demo.booleanValue === true) || (lf && !gf);
       if (!v && lf && gf) v = isActiveProDoc(f, await paidPlanNames(opts.fetchImpl || fetch), nowMs);
       if (!v) v = isActiveLiveDataDoc(f, nowMs);
+      if (!v) v = hasAgreementDoc(f);   // free live L1 for any member with the current agreement (Owner 2026-11-04). L2 never uses this gate (ts-access.js tsAllowed).
     }
     else if (r.status !== 404 && r.status !== 403) ttl = 10000;
   } catch (e) { ttl = 10000; }

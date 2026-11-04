@@ -728,6 +728,13 @@ document.addEventListener('DOMContentLoaded', () => {
           '<p style="color:var(--ink-3); font-size:13.5px;">That plan could not be found — <a href="/pricing" style="color:var(--teal);">choose a plan</a> and try again.</p>';
         return;
       }
+      if (plan.addon === true) {   // Owner 2026-11-04: live futures L1 is free with the market data agreement, so the add-on is no longer sold here (billing untouched)
+        document.getElementById('checkout-plan-summary').innerHTML =
+          '<p style="color:var(--ink-2); font-size:13.5px; line-height:1.55;">Live futures (L1) is free once you sign the market data agreement. <a href="/settings#settings-livedata-panel" style="color:var(--teal);">Sign it in Settings</a> or tap the amber dot on ZoroCharts.</p>';
+        const btn = document.getElementById('checkout-complete-btn');
+        if (btn) btn.disabled = true;
+        return;
+      }
       CHECKOUT_PLAN = plan;
       CHECKOUT_MDA = (studentDoc && studentDoc.exists && studentDoc.data().marketDataAgreement) || null;
       if (plan.addon === true) {   // no coupon / referral on the add-on; the heading says what it is

@@ -33,6 +33,8 @@ const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
 const OUT = process.argv[2] || '/tmp';
 const WAIT_MS = Number(process.env.WAIT_MIN || 3.5) * 60000;
+// candles shown before the recording started: 4 min at the default 3.5 min wait, scaled down with a shorter WAIT_MIN so "heatmap under the candles" keeps its meaning
+const PRE_MS = Math.round(4 * 60000 * Math.min(1, WAIT_MS / 210000));
 const SYM = process.env.SYM || 'binance:BTCUSDT';
 const BASE_ASSET = /BTC/.test(SYM) ? 'BTC' : SYM.replace(/^.*:/, '').replace(/USDT(\.P)?$/, '');
 let fail = 0;
@@ -230,7 +232,7 @@ async function recorderPhase(b) {
     check(sw.rowLo <= sw.mid * 0.99 && sw.rowHi >= sw.mid * 1.01, 'stored book rows span +-1% of the price (' + ((sw.mid - sw.rowLo) / sw.mid * 100).toFixed(2) + '% / ' + ((sw.rowHi - sw.mid) / sw.mid * 100).toFixed(2) + '%, step ' + sw.storeStep + ')');
     // show +-1.5% of the price (the Owner's zoomed-out phone view) and check what is drawn
     // (Vela's renderer: freeze the price pane to a manual scale, as dragging the price axis does)
-    await m.p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.histFrom / 60000) * 60000 - 4 * 60000; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); });
+    await m.p.evaluate((PRE_MS) => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.histFrom / 60000) * 60000 - PRE_MS; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); }, PRE_MS);
     await sleep(800);
     const widened = await m.p.evaluate((mid) => {
       const r = window.STRYKER_VELA.context().cells[0].chart.orchestrator.renderer;
@@ -251,7 +253,7 @@ async function recorderPhase(b) {
     await shot(m.p, 'D-wide-390.png');
     // ---- "recording since" in the chart's timezone, and it follows a timezone change ----
     await autoScale(m.p);
-    await m.p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.histFrom / 60000) * 60000 - 4 * 60000; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); });
+    await m.p.evaluate((PRE_MS) => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.histFrom / 60000) * 60000 - PRE_MS; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); }, PRE_MS);
     await sleep(1200);
     await tzCheck(m.p, 'Asia/Kolkata');
     await shot(m.p, 'G-since-IST-390.png');
@@ -303,7 +305,7 @@ async function recorderPhase(b) {
     await legendCtl(m.p, 'Show');
     await zoom(m.p, 30, 6); await sleep(1200);
     // a few minutes of candles before the recording started, plus room on the right for the depth bars
-    await m.p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.histFrom / 60000) * 60000 - 4 * 60000; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); });
+    await m.p.evaluate((PRE_MS) => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.histFrom / 60000) * 60000 - PRE_MS; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); }, PRE_MS);
     await sleep(1500);
 
     // default = Combined
@@ -400,7 +402,7 @@ async function recorderPhase(b) {
     check(!pr.ids.includes('binance|ZZTESTUSDT|stale') && pr.deleted >= 1, 'page load pruned the stale chunk of a symbol never reopened (deleted ' + pr.deleted + ')');
     check(pr.ids.includes('binance|ZZTESTUSDT|fresh'), 'the fresh chunk of that symbol is kept');
     check(after.from && Math.abs(after.from - before.from) <= 2000 && after.n >= before.n * 0.9, 'reload keeps history: recorded since ' + new Date(before.from).toISOString().slice(11, 19) + ' -> ' + new Date(after.from || 0).toISOString().slice(11, 19) + ', ' + before.n + ' -> ' + after.n + ' samples');
-    await m.p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.recordedFrom / 60000) * 60000 - 4 * 60000; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); });
+    await m.p.evaluate((PRE_MS) => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.recordedFrom / 60000) * 60000 - PRE_MS; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); }, PRE_MS);
     await sleep(1500);
     const sr = await dbg(m.p);
     check(sr && sr.columns > 10 && /^book history from/.test(sr.since || ''), 'after reload: heatmap drawn from the stored history (' + (sr && sr.columns) + ' columns, "' + (sr && sr.since) + '")');

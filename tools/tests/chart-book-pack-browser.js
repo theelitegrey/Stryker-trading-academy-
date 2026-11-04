@@ -143,6 +143,12 @@ const read = (p) => p.evaluate(() => {
         const px = await p.evaluate(async (b64) => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0); const d = g.getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.max(d[i], d[i + 1], d[i + 2]) > 90) n++; return n; }, shot.toString('base64'));
         check(px > 300, tag + ': Book Speed pane has painted pixels (' + px + ')', px);
       }
+      {   // history coverage: share of the VISIBLE bars that carry a value in the Book Speed and Liquidity Balance panes
+        const cv = await p.evaluate(() => { const ch = window.STRYKER_VELA.context().cells[0].chart, vr = ch.getVisibleRange(), bars = ch.orchestrator.rawBars.filter((b) => b.time >= vr.from && b.time <= vr.to);
+          const st = [...window.__stkBookPackStores.values()][0], v = st.views.get(20), D = (k) => { const a = v.all(k); let j = 0, n = 0; for (const b of bars) { while (j < a.t.length && a.t[j] < b.time) j++; if (j < a.t.length && a.t[j] < b.time + 60000 && a.v[j] > 0) n++; } return bars.length ? n / bars.length : 0; };
+          return { n: bars.length, speed: D('speed'), bid: D('bid') }; });
+        check(cv.n > 20 && cv.speed >= 0.5 && cv.bid >= 0.5, tag + ': Book Speed + Liquidity Balance data covers >= 50% of visible bars (' + JSON.stringify(cv) + ')', cv);
+      }
       check(c.speedN >= 5, tag + ': book speed has per-second samples (' + c.speedN + ')');
       check(c.refills >= 1, tag + ': refill detector found the fixture refills (' + c.refills + ')', c);
       check(c.thr > 0 && c.live >= 1, tag + ': large resting orders threshold learned (' + c.thr + ', live ' + c.live + ')', c);

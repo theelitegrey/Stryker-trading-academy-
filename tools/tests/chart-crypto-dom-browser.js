@@ -293,7 +293,7 @@ async function recorderPhase(b) {
     check(vis.visibleTick === 1, 'visible tab: the 2-min ticker fetches again (' + vis.visibleTick + ')');
     // the footer names Binance on a Binance symbol
     const cr = await credit(m.p);
-    check(/^Crypto: Binance/.test(cr) && !/delayed|Yahoo|real-time|\blive\b/i.test(cr), 'footer on BTCUSDT: "' + cr + '"');
+    check(/^Crypto: public exchange market data/.test(cr) && !/delayed|Yahoo|real-time|\blive\b/i.test(cr), 'footer on BTCUSDT: "' + cr + '"');
     // hidden indicator keeps recording
     const n0 = await samples(m.p);
     await legendCtl(m.p, 'Hide');

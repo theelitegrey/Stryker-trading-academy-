@@ -99,8 +99,9 @@
       return '<button type="button" role="tab" data-m="' + m[0] + '" aria-selected="' + (st.m === m[0]) + '">' + m[1] + '</button>';
     }).join('') + '</div>';
     h += quickHtml() + chipsHtml() + '<div class="scn-bar"><label class="scn-search"><span class="scn-sr">Search symbol or name</span><input type="search" data-search placeholder="Search symbol or name" value="' + esc(st.search) + '" autocomplete="off" autocapitalize="off" spellcheck="false"></label><div class="scn-count" id="scn-count" aria-live="polite"></div></div>' + setsHtml() + '<div class="scn-row" role="group" aria-label="Screens"><span class="scn-lab">Screens</span><button type="button" class="mv-chip" data-share>Share link</button><button type="button" class="mv-chip" data-save>Save screen</button><button type="button" class="mv-chip" data-saved>My screens</button></div>';
-    h += msg ? '<p class="scn-empty">' + esc(msg) + '</p>' : '<div class="scn-vp" id="scn-vp" tabindex="0" aria-label="Results"></div>';
+    h += msg ? (window.skel && /^Loading/.test(msg) ? skel.html('rows', 14, 6, 44) : '<p class="scn-empty">' + esc(msg) + '</p>') : '<div class="scn-vp" id="scn-vp" tabindex="0" aria-label="Results"></div>';
     root.innerHTML = h;
+    if (/^Loading/.test(msg || '')) root.setAttribute('aria-busy', 'true'); else root.removeAttribute('aria-busy');
     wire();
   }
   function render() {

@@ -8,9 +8,10 @@
 <title>Moderation — TradeZoro Admin</title>
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=870">
-<script src="assets/vendor/purify.min.js?v=870"></script>
-<script src="assets/sanitize.js?v=870"></script>
+<link rel="stylesheet" href="assets/style.css?v=864">
+<script src="assets/skeleton.js?v=864"></script>
+<script src="assets/vendor/purify.min.js?v=864"></script>
+<script src="assets/sanitize.js?v=864"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -194,7 +195,7 @@
         <h2>Pending review</h2>
         <span id="moderation-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
       </div>
-      <div id="moderation-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+      <div id="moderation-list"><div data-skel="lines" data-n="5"></div></div>
     </div>
   </main>
 </div>

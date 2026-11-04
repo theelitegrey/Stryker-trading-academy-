@@ -616,7 +616,7 @@ export function mountLib(host){
     if (S.tab === t) return;
     closeDetail();
     S.tab = t; S.keep = false; bodyEl.scrollTop = 0;
-    bodyEl.innerHTML = ''; bodyEl.appendChild(txt('p', 'lyl-hint', 'Loading…'));
+    bodyEl.innerHTML = ''; { const w = txt('div', '', ''); if (window.skel) { w.innerHTML = skel.html('cards', 4); bodyEl.appendChild(w); } else bodyEl.appendChild(txt('p', 'lyl-hint', 'Loading…')); }
     if (t === 'browse') { if (!S.items.length) await loadBrowse(); await loadFavIds(); }
     else if (t === 'mine') await loadMine();
     else await loadFavItems();

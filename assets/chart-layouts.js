@@ -565,7 +565,7 @@ export function mountLayouts(ws, o){
   async function openDialog(){
     const q = el('input', { type: 'search', class: 'stkc-in', placeholder: 'Search layouts', 'aria-label': 'Search layouts' });
     const ul = el('ul', { class: 'stkl-list', role: 'listbox', 'aria-label': 'Your layouts' });
-    const note = el('p', { class: 'stkc-empty', text: 'Loading…' });
+    const note = el('p', { class: 'stkc-empty', text: 'Loading…' }); if (window.skel) note.innerHTML = skel.html('rows', 6, 2);
     const m = modal('Open layout', el('div', { class: 'stkl-body' }, [q, note, ul]));
     let items = [];
     try { items = await list(); } catch (e) { note.textContent = 'Could not load your layouts.'; return; }

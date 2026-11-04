@@ -146,7 +146,7 @@
       el.appendChild(h('p', { class: 'plb-rules', text: 'Opt-in only. Ranked by % return on the starting demo balance of each member\'s current run (a reset starts a new run). ' + MIN_TRADES + ' closed trades in the period to rank. Bar-replay trades and trades held under 5 seconds never count. Updated every 15 minutes.' }));
       const doc = ui.docs[ui.period];
       if (ui.err) { el.appendChild(h('p', { class: 'pr-empty', text: ui.err })); return; }
-      if (doc === undefined) { el.appendChild(h('p', { class: 'pr-empty', text: 'Loading…' })); return; }
+      if (doc === undefined) { if (window.skel) { const w = h('div'); w.innerHTML = skel.html('rows', 8, 4); el.appendChild(w); } else el.appendChild(h('p', { class: 'pr-empty', text: 'Loading…' })); return; }
       const rows = (doc && Array.isArray(doc.rows)) ? doc.rows : [];
       const mine = ui.key && doc && doc.ranks ? doc.ranks[ui.key] : null;
       // your rank

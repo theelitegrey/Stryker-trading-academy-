@@ -493,7 +493,7 @@
         setOpen(a, true, { url: false });
       }
     });
-    if (els.skel) { els.skel.remove(); els.skel = null; }
+    root.removeAttribute('aria-busy'); if (els.skel) { els.skel.remove(); els.skel = null; }
     var st = $('#help-static'); if (st) st.remove();
   }
 
@@ -693,7 +693,7 @@
   }
 
   loadData().then(function (d) { return Promise.race([loadLegal(), new Promise(function (r) { setTimeout(r, 1500); })]).then(function () { return d; }); }).then(init).catch(function (err) {
-    if (els.skel) els.skel.remove();
+    root.removeAttribute('aria-busy'); if (els.skel) els.skel.remove();
     root.insertAdjacentHTML('afterbegin', '<div class="hc-empty"><h2>The Help Center could not load</h2><p>Check your connection and refresh the page. If it keeps happening, <a href="support">contact Support</a>.</p></div>');
     if (window.console) console.warn('help-data load failed', err);
   });

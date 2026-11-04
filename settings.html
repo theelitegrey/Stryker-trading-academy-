@@ -8,10 +8,11 @@
 <title>Settings — TradeZoro</title>
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=870">
-<link rel="stylesheet" href="assets/passkeys.css?v=870">
-<script src="assets/sanitize.js?v=870"></script>
-<script src="assets/start-page.js?v=870"></script>
+<link rel="stylesheet" href="assets/style.css?v=864">
+<script src="assets/skeleton.js?v=864"></script>
+<link rel="stylesheet" href="assets/passkeys.css?v=864">
+<script src="assets/sanitize.js?v=864"></script>
+<script src="assets/start-page.js?v=864"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -199,7 +200,7 @@
           <div class="auth-error" id="avatar-success" style="display:none; background:rgba(47,191,143,0.1); border-color:rgba(47,191,143,0.3); color:#7fe0c2;"></div>
           <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
             <div id="avatar-preview-wrap" style="width:72px; height:72px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--bg-2); display:flex; align-items:center; justify-content:center;">
-              <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div>
+              <div data-skel="lines" data-n="1"></div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn btn-primary btn-sm" id="avatar-upload-btn">Upload photo</button>

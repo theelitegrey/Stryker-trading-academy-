@@ -35,7 +35,7 @@
   function view(el, ctx) {
     var $ = function (id) { return el.querySelector('#' + id); };
     var fl = flashFromUrl();
-    el.innerHTML = '<div class="cx-empty">Loading…</div>';
+    el.innerHTML = (window.skel ? skel.html('cards', 3) : '<div class="cx-empty">Loading…</div>');
     Promise.all([pub(ctx.cid), CH.user().then(function (u) { return u && api('/creator/roles', { cid: ctx.cid }); })]).then(function (r) {
       var p = r[0], roles = r[1];
       if (!p) { el.innerHTML = '<div class="cx-empty">Could not reach the Discord service. Try again in a minute.</div>'; return; }

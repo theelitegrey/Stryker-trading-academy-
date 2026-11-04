@@ -249,7 +249,7 @@ export function mountNews(ws, opts) {
   function paintList() {
     list.textContent = '';
     if (!items.length) {
-      list.appendChild(el('div', { class: 'stknw-empty', text: loading ? 'Loading headlines…' : (q ? 'No headlines match "' + q + '" in the last 7 days.' : 'No headlines yet.') }));
+      if (loading && window.skel) { const w = el('div'); w.innerHTML = skel.html('lines', 6); list.appendChild(w); } else list.appendChild(el('div', { class: 'stknw-empty', text: loading ? 'Loading headlines…' : (q ? 'No headlines match "' + q + '" in the last 7 days.' : 'No headlines yet.') }));
       return;
     }
     const now = replayNow() || Date.now();

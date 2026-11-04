@@ -125,7 +125,7 @@
   }
 
   function openCourse(id) {
-    root.innerHTML = '<div class="cx-empty">Loading…</div>';
+    root.innerHTML = (window.skel ? skel.html('cards', 3) : '<div class="cx-empty">Loading…</div>');
     var c = crs(id);
     return Promise.all([c.get(), c.collection('modules').get(), c.collection('lessons').get(), c.collection('access').get().catch(function () { return { docs: [] }; })]).then(function (r) {
       if (!r[0].exists) { cur = null; return view(root, ctx); }
@@ -366,7 +366,7 @@
     var isNew = !l;
     if (isNew && !mods.length) return CH.toast('error', 'Add a module first.');
     l = l || { id: rid(16), moduleId: mid || mods[0].id, title: '', type: 'video', order: modLessons(mid || mods[0].id).length, status: 'published', preview: false, drip: { mode: 'none', days: 0, at: null }, prev: '', mins: 0, thumb: '', hasQuiz: false };
-    var s = sheet(isNew ? 'New lesson' : 'Edit lesson', '<div class="cx-empty">Loading…</div>'), body = null, removed = [];
+    var s = sheet(isNew ? 'New lesson' : 'Edit lesson', (window.skel ? skel.html('cards', 3) : '<div class="cx-empty">Loading…</div>')), body = null, removed = [];
     var bref = crs().collection('lessons').doc(l.id).collection('content').doc('body');
     (isNew ? Promise.resolve(null) : bref.get().then(function (d) { return d.exists ? d.data() : null; })).then(function (b) { body = b; paint(); }).catch(function () { s.body.innerHTML = '<div class="cx-empty">Could not load this lesson.</div>'; });
 
@@ -555,7 +555,7 @@
     return { learners: n, rows: rows, drop: drop, finished: all, finishedPct: n ? Math.round(all / n * 100) : 0 };
   }
   function learnersView(el) {
-    el.innerHTML = '<div class="cx-empty">Loading…</div>';
+    el.innerHTML = (window.skel ? skel.html('cards', 3) : '<div class="cx-empty">Loading…</div>');
     crs().collection('progress').get().then(function (s) {
       progs = arr(s);
       var seq = []; mods.slice().sort(function (a, b) { return a.order - b.order; }).forEach(function (m) { modLessons(m.id).forEach(function (l) { if (l.status === 'published') seq.push(l); }); });

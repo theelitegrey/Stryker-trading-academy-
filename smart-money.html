@@ -8,8 +8,9 @@
 <title>Smart Money — TradeZoro</title>
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=870">
-<script src="assets/sanitize.js?v=870"></script>
+<link rel="stylesheet" href="assets/style.css?v=864">
+<script src="assets/skeleton.js?v=864"></script>
+<script src="assets/sanitize.js?v=864"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -171,7 +172,7 @@
           </div>
         </div>
         <input type="text" id="sm-congress-q" class="sm-search" placeholder="Search by politician, ticker, or asset…">
-        <div id="sm-congress-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+        <div id="sm-congress-list"><div data-skel="rows" data-n="6" data-cols="4"></div></div>
       </div>
 
       <div class="panel">
@@ -184,7 +185,7 @@
           </div>
         </div>
         <input type="text" id="sm-insider-q" class="sm-search" placeholder="Search by ticker, company, or insider…">
-        <div id="sm-insider-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+        <div id="sm-insider-list"><div data-skel="rows" data-n="6" data-cols="4"></div></div>
       </div>
 
       <div class="panel sm-fineprint">

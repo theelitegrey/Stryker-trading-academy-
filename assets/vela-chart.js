@@ -1308,3 +1308,12 @@ function lateLists(provider){
   }
   mountLayoutMenu();
 })();
+
+// Owner 11-04: no vendor name visible. The engine keeps a hidden attribution <a> in the DOM; blank its text hooks.
+(function () {
+  const clean = () => document.querySelectorAll('a.vela-attribution').forEach((a) => {
+    a.removeAttribute('title'); a.removeAttribute('aria-label'); a.removeAttribute('href'); a.setAttribute('aria-hidden', 'true'); a.tabIndex = -1;
+  });
+  new MutationObserver(clean).observe(document.documentElement, { childList: true, subtree: true });
+  clean();
+})();

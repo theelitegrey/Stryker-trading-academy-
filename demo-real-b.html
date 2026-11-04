@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="862">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- DEMO HOMEPAGE "demo-real-b" (Owner order 2026-11-04): build log / changelog idea. Unlisted: noindex, not in nav, sitemap or OG list. -->
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#050506">
+<title>TradeZoro · Built in the open (demo)</title>
+<meta name="description" content="Demo homepage: what we shipped recently, and what is inside TradeZoro.">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=862">
+<link rel="stylesheet" href="assets/demo-real-b.css?v=862">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<script src="assets/version-check.js?v=862" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=862">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=862">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=862">
+</head>
+<body class="rb">
+<header class="rb-top"><div class="rb-wrap">
+<a href="/" aria-label="TradeZoro home"><img src="assets/images/tradezoro-wordmark-1014-192.webp" width="192" height="45" alt="TradeZoro"></a>
+<nav><button type="button" data-nav-theme aria-label="Switch light or dark theme">Theme</button><a href="/login">Log in</a></nav>
+</div></header>
+<main id="main" class="rb-wrap">
+<h1>Charts, order flow and GEX for futures traders, in a browser.</h1>
+<p class="rb-lede">We build this for people who trade NQ and ES and want to see the order book, the options levels and a place to practise, without installing anything. We change the site most days and write each change down below.</p>
+<div class="rb-cta"><a class="rb-btn p" href="/signup">Start free</a><a class="rb-btn s" href="/charts">Open charts</a></div>
+<figure><img src="assets/images/demo-real-b/nq-chart.webp?v=862" width="1400" height="632" loading="lazy" alt="A 15 minute candle chart of NQ1! in ZoroCharts"><figcaption>NQ1!, 15 minute bars, in ZoroCharts.</figcaption></figure>
+<section class="rb-sec" aria-labelledby="shipped"><h2 id="shipped">Recently shipped</h2>
+<p class="rb-sub">Dates are IST. Build numbers match our release log.</p>
+<ol class="rb-log">
+<li><p class="rb-meta">4 Nov · Build 862</p><div><h3>Connect your own data: Dhan</h3><p>Members can now sign in to Dhan with their own API key and plot that data on the chart. Data only: TradeZoro never places, changes or cancels trades. Alpaca, tastytrade and others use the same sign-in sheet.</p></div></li>
+<li><p class="rb-meta">4 Nov · Builds 855 to 859</p><div><h3>Desktop bridge for NinjaTrader 8, MT5 and IBKR</h3><p>A small Windows helper pairs with the site with a code and sends prices from your own terminal to your charts. It is unsigned for now, so the download page tells you what Windows will say and how to continue. Tradovate accounts work through NinjaTrader.</p><figure><img src="assets/images/demo-real-b/bridge.webp?v=862" width="640" height="873" loading="lazy" alt="The Data source sheet in ZoroCharts listing MetaTrader 5, NinjaTrader and Interactive Brokers with a Pair button each"><figcaption>The Data source sheet. Pair gives you the code box.</figcaption></figure></div></li>
+<li><p class="rb-meta">4 Nov · Build 853</p><div><h3>Delta ladder (L2) on the price axis</h3><p>Traded delta at each price level, next to the book volume added and pulled there. It sits on the price axis, with the Volume Profile (L2) to its left. A Pro tool. Search “ladder” in Indicators.</p></div></li>
+<li><p class="rb-meta">4 Nov · Build 852</p><div><h3>Options flow marks and off-exchange volume levels</h3><p>Options flow marks sit on the candles, with only the largest bars drawn. Off-exchange volume levels are free. The marks are Pro.</p></div></li>
+<li><p class="rb-meta">4 Nov · Build 851</p><div><h3>Alerts up to 1000, 16 charts, colour flags, earnings calendar</h3><p>Alerts go up to 1000 per account. The layout grid holds up to 16 charts. Watchlist rows take colour flags. The US earnings calendar has its own tab and an E marker you can switch on.</p></div></li>
+<li><p class="rb-meta">4 Nov · Build 847</p><div><h3>Formula charts</h3><p>Type a spread or ratio into the symbol search and it plots as candles. The one below is NQ1! divided by ES1!. It works in the watchlist too.</p><figure><img src="assets/images/demo-real-b/formula.webp?v=862" width="1400" height="692" loading="lazy" alt="A candle chart titled CME:NQ1!/CME:ES1! with a FORMULA tag, 15 minute bars"><figcaption>NQ1!/ES1!, 15 minute bars. The tag says FORMULA so nobody mistakes it for a contract.</figcaption></figure></div></li>
+<li><p class="rb-meta">4 Nov · Build 845</p><div><h3>Auto chart patterns</h3><p>Zigzag pivots, twelve patterns, outlines, labels and necklines, with targets as an option. Free.</p></div></li>
+<li><p class="rb-meta">3 Nov · Builds 806 to 811</p><div><h3>Order book heatmap, then the futures order book (L2)</h3><p>The heatmap, the DOM ladder and the Book, DOM and Trades panel all went in on the same day. Tools that need the book fill from saved history when you open them.</p></div></li>
+</ol></section>
+<section class="rb-sec" aria-labelledby="inside"><h2 id="inside">What is inside</h2>
+<table class="rb-table"><thead><tr><th scope="col">Tool</th><th scope="col">What it shows</th><th scope="col">Plan</th></tr></thead><tbody><tr><td>ZoroCharts</td><td>Candles on futures, stocks, forex and crypto. Drawings, templates, up to 16 charts, alerts.</td><td>Free</td></tr><tr><td>Formula charts</td><td>Spreads and ratios from the symbol search, such as NQ1!/ES1!.</td><td>Free</td></tr><tr><td>Replay</td><td>Hides the bars to the right and plays them back one at a time. Paper trades run on a separate account.</td><td>Free</td></tr><tr><td>Liquidity Map</td><td>Resting size by price over time, drawn behind the candles.</td><td>Free</td></tr><tr><td>Auto chart patterns</td><td>Twelve patterns from zigzag pivots, with outlines and necklines.</td><td>Free</td></tr><tr><td>Off-exchange volume</td><td>Price levels where off-exchange volume printed.</td><td>Free</td></tr><tr><td>JournalX</td><td>Trade journal with imports, broker sync and an AI coach.</td><td>Free</td></tr><tr><td>Order book heatmap and DOM</td><td>Book depth over time, and a ladder you read at the price axis.</td><td>Pro</td></tr><tr><td>Footprint, Delta, CVD</td><td>Volume traded at each price per bar, split by buyer and seller.</td><td>Pro</td></tr><tr><td>Delta ladder (L2)</td><td>Traded delta per price level beside book added and pulled.</td><td>Pro</td></tr><tr><td>Big Trades, Absorption</td><td>Large prints, and where size traded without moving price.</td><td>Pro</td></tr><tr><td>GEX+</td><td>Call wall, put wall, zero gamma and other option levels for SPX, SPY, QQQ, ES, NQ and gold.</td><td>Pro</td></tr><tr><td>Options flow marks</td><td>The largest options prints, marked on the candles.</td><td>Pro</td></tr></tbody></table></section>
+<section class="rb-end"><p class="rb-lede">Free to start. No card.</p><div class="rb-cta" style="margin-bottom:0"><a class="rb-btn p" href="/signup">Start free</a><a class="rb-btn s" href="/charts">Open charts</a></div></section>
+</main>
+<footer class="rb-foot"><div class="rb-wrap">
+<p>Education only. Not financial advice. TradeZoro never places trades for you.</p>
+<p><a href="/about">About</a><a href="/help">Help</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></p>
+</div></footer>
+<script src="assets/theme.js?v=862"></script>
+</body>
+</html>

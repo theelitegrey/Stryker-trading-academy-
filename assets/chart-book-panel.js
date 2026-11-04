@@ -6,10 +6,10 @@
 // through chart-paper.js (same switch, same rules as the chart's ticket). Right-click / long-press a row: draw a level or a zone.
 // Logic lives in book-panel-core.js (unit-tested), streams in book-panel-sources.js. Phones <= 700 px: bottom sheet.
 // Wording: "updated Xs ago" only; no real-time claims. Education only. Not financial advice.
-import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK } from './chart-futures-l2.js?v=876';
-import { rtReady, rtOnChange } from './rt-access.js?v=876';
-import * as C from './book-panel-core.js?v=876';
-import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=876';
+import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK } from './chart-futures-l2.js?v=877';
+import { rtReady, rtOnChange } from './rt-access.js?v=877';
+import * as C from './book-panel-core.js?v=877';
+import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=877';
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
 const FILTERS_C = [['0', 'All sizes'], ['1000', '≥ $1k'], ['10000', '≥ $10k'], ['100000', '≥ $100k']], FILTERS_F = [['0', 'All sizes'], ['5', '≥ 5'], ['25', '≥ 25'], ['100', '≥ 100']];

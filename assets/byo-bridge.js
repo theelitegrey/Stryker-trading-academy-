@@ -4,7 +4,7 @@
 // ws://127.0.0.1:<port>. All three speak ONE protocol (tools/bridge/protocol.json). Nothing goes through our servers.
 // The protocol has NO order / account / position / balance message; guardSend/guardRecv below enforce the exact list in both
 // directions and refuse everything else (tools/tests/byo-bridge.test.mjs proves it). Design + advisor review: stryker-notes/reports/workers/byo-bridge.md
-import { ALLOW, ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, normTf } from './byo-core.js?v=876';
+import { ALLOW, ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, normTf } from './byo-core.js?v=877';
 
 export const PORTS = [48715, 48716, 48717, 48718, 48719];
 const SYM = /^[A-Za-z0-9._\-/ ]{1,32}$/;

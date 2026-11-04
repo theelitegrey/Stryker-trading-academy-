@@ -84,8 +84,9 @@ assert.equal(await status(send({ ...buy, qty: 2 }, token('admin1'), sbEnv)), 200
 for (const bad of [{ side: 'hold' }, { type: 'trailing' }, { symbol: '../x' }, { type: 'limit' }, { type: 'stop' }, { timeInForce: 'forever' }, { limitPrice: -1, type: 'limit' }]) assert.equal(await status(send({ ...buy, ...bad }, token('admin1'), sbEnv)), 400, JSON.stringify(bad));
 // unit: only whitelisted keys leave cleanOrder
 const c = O.cleanOrder({ symbol: 'es', side: 'sell', qty: 1, type: 'limit', limitPrice: '5000.25', timeInForce: 'gtc', evil: 1, account: 'x', order: {} });
-assert.deepEqual(Object.keys(c.order).sort(), ['action', 'assetType', 'limitPrice', 'orderQty', 'orderType', 'symbol', 'timeInForce']);
+assert.deepEqual(Object.keys(c.order).sort(), ['action', 'assetType', 'orderQty', 'orderType', 'price', 'symbol', 'timeInForce']);
 assert.equal(O.cleanOrder({ ...buy, limitPrice: 9 }).order.limitPrice, undefined, 'market drops prices');
+assert.equal(c.order.price, 5000.25, 'limit sends price (Finatic requires it)'); assert.equal(c.order.limitPrice, undefined);
 // cancel + modify + schema, ids validated, correct methods
 const n = calls.length;
 r = await send({ op: 'cancel', accountId: ACC, userId: US, orderId: 'ord-1' }, token('admin1'), sbEnv); assert.equal(r.status, 200); assert.equal(calls.slice(n).pop().method, 'DELETE');

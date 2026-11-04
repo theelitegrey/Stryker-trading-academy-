@@ -42,6 +42,7 @@ export function cleanOrder(b, { partial } = {}) {
   if (o.orderType === 'limit' && o.limitPrice === undefined) return { error: 'limit order needs limitPrice' };
   if (o.orderType === 'stop' && o.stopPrice === undefined) return { error: 'stop order needs stopPrice' };
   if (o.orderType === 'market') { delete o.limitPrice; delete o.stopPrice; }
+  if (o.orderType === 'limit') { o.price = o.limitPrice; delete o.limitPrice; }   // Finatic/Tradovate limit orders require `price` (422 on limitPrice alone, found in sandbox)
   if (b.timeInForce !== undefined || !partial) { const t = String(b.timeInForce || 'day').toLowerCase(); if (!TIFS.includes(t)) return { error: 'timeInForce invalid' }; o.timeInForce = t; }
   return { order: o };
 }

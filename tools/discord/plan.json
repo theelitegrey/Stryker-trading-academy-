@@ -1,0 +1,628 @@
+{
+ "settings": {
+  "verification_level": 2,
+  "explicit_content_filter": 2,
+  "default_message_notifications": 1,
+  "system_channel": "welcome-and-rules"
+ },
+ "roles": [
+  {
+   "name": "Admin",
+   "color": "#9aa4b2",
+   "hoist": true,
+   "perms": [
+    "ADMINISTRATOR"
+   ]
+  },
+  {
+   "name": "Moderator",
+   "color": "#9aa4b2",
+   "hoist": true,
+   "perms": [
+    "KICK_MEMBERS",
+    "VIEW_AUDIT_LOG",
+    "MANAGE_MESSAGES",
+    "MUTE_MEMBERS",
+    "MODERATE_MEMBERS"
+   ]
+  },
+  {
+   "name": "TradeZoro Pro",
+   "color": "#03c988",
+   "hoist": true,
+   "perms": []
+  },
+  {
+   "name": "Member",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "Futures",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "Stocks",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "Crypto",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "Forex",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "India",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "Options",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "Beginner",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "Intermediate",
+   "color": "#6b7280",
+   "perms": []
+  },
+  {
+   "name": "Advanced",
+   "color": "#6b7280",
+   "perms": []
+  }
+ ],
+ "categories": [
+  {
+   "name": "START HERE",
+   "ow": {
+    "@everyone": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ],
+     "deny": [
+      "SEND_MESSAGES",
+      "CREATE_PUBLIC_THREADS",
+      "SEND_IN_THREADS"
+     ]
+    },
+    "Moderator": {
+     "allow": [
+      "SEND_MESSAGES"
+     ]
+    }
+   },
+   "channels": [
+    {
+     "name": "welcome-and-rules",
+     "type": "text",
+     "topic": "Read the rules, then pick your roles. Education only. Not financial advice.",
+     "marker": "welcome"
+    },
+    {
+     "name": "announcements",
+     "type": "announcement",
+     "topic": "TradeZoro news and server announcements."
+    },
+    {
+     "name": "pick-your-roles",
+     "type": "text",
+     "topic": "Choose your markets and level. Use Channels & Roles at the top of the channel list, or the server guide.",
+     "marker": "roles"
+    },
+    {
+     "name": "how-to-use-tradezoro",
+     "type": "text",
+     "topic": "A quick tour of TradeZoro: charts, GEX+, journal, replay and the curriculum.",
+     "marker": "howto"
+    }
+   ]
+  },
+  {
+   "name": "COMMUNITY",
+   "ow": {
+    "@everyone": {
+     "deny": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Member": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "TradeZoro Pro": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Moderator": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    }
+   },
+   "channels": [
+    {
+     "name": "general",
+     "type": "text",
+     "topic": "Chat about trading and the platform. Be kind. Education only.",
+     "slowmode": 5
+    },
+    {
+     "name": "introductions",
+     "type": "text",
+     "topic": "Say hi. Tell us what you trade and what you want to learn.",
+     "slowmode": 30
+    },
+    {
+     "name": "wins-and-lessons",
+     "type": "text",
+     "topic": "Share lessons and what you learned. No P&L screenshots or profit claims; lessons only.",
+     "slowmode": 30
+    },
+    {
+     "name": "memes",
+     "type": "text",
+     "topic": "Trading memes. Keep it friendly.",
+     "slowmode": 10
+    },
+    {
+     "name": "off-topic",
+     "type": "text",
+     "topic": "Anything that is not trading.",
+     "slowmode": 5
+    }
+   ]
+  },
+  {
+   "name": "MARKETS",
+   "ow": {
+    "@everyone": {
+     "deny": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Member": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "TradeZoro Pro": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Moderator": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    }
+   },
+   "channels": [
+    {
+     "name": "futures-nq-es",
+     "type": "text",
+     "topic": "NQ, ES and other futures. Ideas and context, not signals.",
+     "slowmode": 5
+    },
+    {
+     "name": "stocks",
+     "type": "text",
+     "topic": "US stocks and ETFs.",
+     "slowmode": 5
+    },
+    {
+     "name": "crypto",
+     "type": "text",
+     "topic": "Crypto markets.",
+     "slowmode": 5
+    },
+    {
+     "name": "forex",
+     "type": "text",
+     "topic": "Forex pairs and macro.",
+     "slowmode": 5
+    },
+    {
+     "name": "india-markets",
+     "type": "text",
+     "topic": "Nifty, Bank Nifty and Indian markets.",
+     "slowmode": 5
+    },
+    {
+     "name": "options-flow",
+     "type": "text",
+     "topic": "Options, gamma and flow talk.",
+     "slowmode": 5
+    },
+    {
+     "name": "daily-levels",
+     "type": "text",
+     "topic": "Daily levels and prep, posted by staff.",
+     "ow": {
+      "@everyone": {
+       "deny": [
+        "SEND_MESSAGES",
+        "CREATE_PUBLIC_THREADS",
+        "SEND_IN_THREADS"
+       ]
+      },
+      "Moderator": {
+       "allow": [
+        "SEND_MESSAGES"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "TRADEZORO",
+   "ow": {
+    "@everyone": {
+     "deny": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Member": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "TradeZoro Pro": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Moderator": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    }
+   },
+   "channels": [
+    {
+     "name": "feature-updates",
+     "type": "text",
+     "topic": "New TradeZoro features and releases. Read-only; auto-posts.",
+     "ow": {
+      "@everyone": {
+       "deny": [
+        "SEND_MESSAGES",
+        "CREATE_PUBLIC_THREADS",
+        "SEND_IN_THREADS"
+       ]
+      },
+      "Moderator": {
+       "allow": [
+        "SEND_MESSAGES"
+       ]
+      }
+     }
+    },
+    {
+     "name": "help-and-support",
+     "type": "text",
+     "topic": "Stuck on something? Ask here. Never share passwords or keys."
+    },
+    {
+     "name": "feature-requests",
+     "type": "forum",
+     "topic": "Ask for a feature. One idea per post."
+    },
+    {
+     "name": "bug-reports",
+     "type": "forum",
+     "topic": "Report a bug: what you did, what you expected, what happened, device and browser."
+    }
+   ]
+  },
+  {
+   "name": "LEARN",
+   "ow": {
+    "@everyone": {
+     "deny": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Member": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "TradeZoro Pro": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Moderator": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    }
+   },
+   "channels": [
+    {
+     "name": "zoroacademy",
+     "type": "text",
+     "topic": "Questions on the 64-chapter ZoroAcademy curriculum, ICT and SMT concepts.",
+     "slowmode": 5
+    },
+    {
+     "name": "chart-reviews",
+     "type": "text",
+     "topic": "Post a chart and ask for feedback on structure and levels. No signals.",
+     "slowmode": 30
+    },
+    {
+     "name": "journal-reviews",
+     "type": "text",
+     "topic": "Review your journal entries and process. Lessons only; no P&L screenshots.",
+     "slowmode": 30
+    }
+   ]
+  },
+  {
+   "name": "PRO ORDER FLOW",
+   "ow": {
+    "@everyone": {
+     "deny": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "TradeZoro Pro": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Moderator": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    }
+   },
+   "channels": [
+    {
+     "name": "orderflow-chat",
+     "type": "text",
+     "topic": "TradeZoro Pro: footprint, delta, CVD and big trades talk.",
+     "slowmode": 5
+    },
+    {
+     "name": "heatmap-and-l2",
+     "type": "text",
+     "topic": "TradeZoro Pro: order book heatmap and DOM ladder.",
+     "slowmode": 5
+    },
+    {
+     "name": "gex-levels",
+     "type": "text",
+     "topic": "TradeZoro Pro: GEX+ call wall, put wall and zero gamma. Context, not signals.",
+     "slowmode": 5
+    }
+   ]
+  },
+  {
+   "name": "VOICE",
+   "ow": {
+    "@everyone": {
+     "deny": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Member": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "TradeZoro Pro": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Moderator": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    }
+   },
+   "channels": [
+    {
+     "name": "🔊 Trading Room",
+     "type": "voice"
+    },
+    {
+     "name": "🔊 Hangout",
+     "type": "voice"
+    },
+    {
+     "name": "🔊 Pro Room",
+     "type": "voice",
+     "ow": {
+      "@everyone": {
+       "deny": [
+        "VIEW_CHANNEL"
+       ]
+      },
+      "TradeZoro Pro": {
+       "allow": [
+        "VIEW_CHANNEL"
+       ]
+      },
+      "Moderator": {
+       "allow": [
+        "VIEW_CHANNEL"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "STAFF",
+   "ow": {
+    "@everyone": {
+     "deny": [
+      "VIEW_CHANNEL"
+     ]
+    },
+    "Moderator": {
+     "allow": [
+      "VIEW_CHANNEL"
+     ]
+    }
+   },
+   "channels": [
+    {
+     "name": "mod-chat",
+     "type": "text",
+     "topic": "Staff chat."
+    },
+    {
+     "name": "mod-log",
+     "type": "text",
+     "topic": "Moderation log and AutoMod alerts."
+    }
+   ]
+  }
+ ],
+ "messages": {
+  "welcome": {
+   "channel": "welcome-and-rules",
+   "text": "**Welcome to TradeZoro** 👋\nA friendly place to learn trading together. Please read the rules, then pick your roles.\n\n**Rules**\n1. Be kind and respectful. No harassment, hate or personal attacks.\n2. No spam, self-promo or shilling. No invite links to other servers.\n3. No selling signals, paid groups or services, and no DMs to sell anything.\n4. No profit claims and no P&L screenshots. Share lessons, not results.\n5. Never share passwords, keys or personal data. Staff will never ask for them.\n6. Use the right channel and keep it on topic.\n\n**Education only. Not financial advice.** Trading involves risk of loss.\nNeed help? Ask in #help-and-support."
+  },
+  "howto": {
+   "channel": "how-to-use-tradezoro",
+   "text": "**How to use TradeZoro** → https://tradezoro.com\n• **ZoroAcademy**: 64 written chapters on ICT and SMT, plus trading models.\n• **ZoroCharts**: charts, indicators, drawings, alerts and paper trading.\n• **Replay One**: practise on past data, one bar at a time.\n• **JournalX**: log and review your trades.\n• **GEX+** and order flow tools are part of **TradeZoro Pro**.\n• Also: Market Stats, scanner, Global Monitor, economic calendar and the Trading Floor.\n\nQuestions? #help-and-support. Ideas? #feature-requests.\nEducation only. Not financial advice."
+  },
+  "roles": {
+   "channel": "pick-your-roles",
+   "text": "**Pick your roles**\nUse **Channels & Roles** at the top of the channel list to choose your markets (Futures, Stocks, Crypto, Forex, India, Options) and your level (Beginner, Intermediate, Advanced). You can change them any time."
+  }
+ },
+ "onboarding": {
+  "default_channels": [
+   "welcome-and-rules",
+   "announcements",
+   "pick-your-roles",
+   "how-to-use-tradezoro"
+  ],
+  "prompts": [
+   {
+    "title": "Welcome to TradeZoro",
+    "single_select": true,
+    "required": true,
+    "options": [
+     {
+      "title": "I have read the rules",
+      "description": "Unlocks the community channels",
+      "roles": [
+       "Member"
+      ]
+     }
+    ]
+   },
+   {
+    "title": "What do you trade?",
+    "single_select": false,
+    "required": false,
+    "options": [
+     {
+      "title": "Futures",
+      "roles": [
+       "Futures"
+      ]
+     },
+     {
+      "title": "Stocks",
+      "roles": [
+       "Stocks"
+      ]
+     },
+     {
+      "title": "Crypto",
+      "roles": [
+       "Crypto"
+      ]
+     },
+     {
+      "title": "Forex",
+      "roles": [
+       "Forex"
+      ]
+     },
+     {
+      "title": "India",
+      "roles": [
+       "India"
+      ]
+     },
+     {
+      "title": "Options",
+      "roles": [
+       "Options"
+      ]
+     }
+    ]
+   },
+   {
+    "title": "What is your level?",
+    "single_select": true,
+    "required": false,
+    "options": [
+     {
+      "title": "Beginner",
+      "roles": [
+       "Beginner"
+      ]
+     },
+     {
+      "title": "Intermediate",
+      "roles": [
+       "Intermediate"
+      ]
+     },
+     {
+      "title": "Advanced",
+      "roles": [
+       "Advanced"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "automod": {
+  "invite_allow": [],
+  "scam_phrases": [
+   "guaranteed profit",
+   "guaranteed profits",
+   "guaranteed returns",
+   "100% win rate",
+   "risk free profit",
+   "risk-free profit",
+   "double your money",
+   "dm me for signals",
+   "paid signals",
+   "join my vip"
+  ],
+  "mention_limit": 5,
+  "alert_channel": "mod-log",
+  "exempt_roles": [
+   "Moderator",
+   "Admin"
+  ]
+ }
+}

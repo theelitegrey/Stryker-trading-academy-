@@ -95,11 +95,22 @@ def run(call, gid, plan, apply):
     # onboarding (needs Community)
     ob = plan['onboarding']
     if community:
-        prompts = [dict(title=p['title'], single_select=p['single_select'], required=p['required'], in_onboarding=True, type=0,
-                        options=[dict(title=o['title'], description=o.get('description'), role_ids=[rid.get(r, '') for r in o['roles']], channel_ids=[]) for o in p['options']])
-                   for p in ob['prompts']]
-        do(f'onboarding PUT ({len(prompts)} prompts)', 'PUT', f'/guilds/{gid}/onboarding',
-           dict(prompts=prompts, default_channel_ids=[cid[n] for n in ob['default_channels']], enabled=True, mode=0))
+        old = call('GET', f'/guilds/{gid}/onboarding') or {}
+        oldp = {p['title']: p for p in old.get('prompts', [])}
+        n = [1565740000000000000]
+        def nid(): n[0] += 1; return str(n[0])
+        prompts = []
+        for p in ob['prompts']:
+            op = oldp.get(p['title'], {}); oo = {o['title']: o for o in op.get('options', [])}
+            opts = [dict(id=oo.get(o['title'], {}).get('id') or nid(), title=o['title'], description=o.get('description'),
+                         role_ids=[rid[r] for r in o['roles']], channel_ids=[]) for o in p['options']]
+            prompts.append(dict(id=op.get('id') or nid(), title=p['title'], single_select=p['single_select'], required=p['required'],
+                                in_onboarding=True, type=0, options=opts))
+        body = dict(prompts=prompts, default_channel_ids=[cid[c] for c in ob['default_channels']], enabled=True, mode=0)
+        r = do(f'onboarding PUT ({len(prompts)} prompts, enabled)', 'PUT', f'/guilds/{gid}/onboarding', body)
+        if apply and r is None:
+            body['enabled'] = False
+            do('onboarding PUT retry (saved but NOT enabled; Owner must switch it on)', 'PUT', f'/guilds/{gid}/onboarding', body)
     else: print('NOTE  no Community: onboarding skipped (Owner must enable Community, then re-run apply)')
 
     # automod

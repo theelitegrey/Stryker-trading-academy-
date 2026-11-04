@@ -1,0 +1,21 @@
+name: Discord server setup
+# Manual only. Uses the TradeZoro bot token (secret) to read or build the TradeZoro Discord server from tools/discord/plan.json.
+# mode=info prints the bot's public app id + the servers it is in. mode=apply builds channels/roles (never deletes).
+on:
+  workflow_dispatch:
+    inputs:
+      mode: { description: 'info | dry | apply', required: true, default: 'info' }
+      guild: { description: 'Server id', required: false, default: '1565740274116857887' }
+permissions: { contents: read }
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run
+        env:
+          BOT: ${{ secrets.DISCORD_BOT_TOKEN }}
+          MODE: ${{ inputs.mode }}
+          GUILD: ${{ inputs.guild }}
+        run: python3 tools/discord/setup.py

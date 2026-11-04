@@ -1,0 +1,75 @@
+# The slow part of tools/check.py, run in parallel on GitHub instead of on the server.
+# Ship flow: local `python3 tools/check.py --fast`, push to ship/<build>, tools/ci-wait.sh <sha>, fast-forward main.
+# Browser suites are sharded across the matrix; failures upload their screenshots (out/).
+
+name: site-checks
+
+on:
+  push:
+    branches: ['ship/**', 'hermes/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  STRYKER_CHROMIUM: /usr/bin/google-chrome
+
+jobs:
+  static:
+    name: static (check.py --fast + generators)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v6
+        with: { node-version: 22 }
+      - run: python3 tools/check.py --fast
+      - run: |
+          node tools/gen-sitemap.js
+          if [ -f tools/gen-learn.js ]; then node tools/gen-learn.js --check; fi
+
+  browser:
+    name: browser (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: shell 1/3, kind: shell, shard: '1/3' }
+          - { name: shell 2/3, kind: shell, shard: '2/3' }
+          - { name: shell 3/3, kind: shell, shard: '3/3' }
+          - { name: charts live, kind: suites, suites: 'chart-live-of-browser.js chart-rt-access-browser.js byo-browser.js drawer-touch-browser.js' }
+          - { name: charts trades+l2, kind: suites, suites: 'ts-bigtrades-browser.js ts-l2-browser.js' }
+          - { name: charts crypto dom, kind: suites, suites: 'chart-crypto-dom-browser.js' }
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with: { node-version: 22 }
+      - name: Browser runtime (playwright-core + the runner's Chrome)
+        run: |
+          npm install --no-save --no-package-lock playwright-core@1.56.1
+          google-chrome --version
+      - name: app-shell audit (shard)
+        if: matrix.kind == 'shell'
+        env: { SHARD: '${{ matrix.shard }}' }
+        run: node tools/tests/app-shell-audit.js
+      - name: Browser suites
+        if: matrix.kind == 'suites'
+        run: tools/ci-browser.sh ${{ matrix.suites }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots-${{ strategy.job-index }}
+          path: |
+            out/
+            out-dev-server.log
+          if-no-files-found: ignore
+          retention-days: 7

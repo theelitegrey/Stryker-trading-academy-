@@ -64,7 +64,9 @@ async function open(b, { w, h, mobile, admin = true, free = false, configured = 
     seen.push({ path: u.pathname, body });
     if (u.pathname.endsWith('/session') && r.request().method() === 'GET') return r.fulfill(j({ configured }, configured ? 200 : 503));
     if (u.pathname.endsWith('/session')) return r.fulfill(j({ portalUrl: 'http://127.0.0.1:1/portal', sessionId: 's1' }));
+    if (u.pathname.endsWith('/order')) { if (body.op === 'env') return r.fulfill(j({ env: 'sandbox', enabled: true })); if (body.op === 'place') { global.__placed = body; return r.fulfill(j({ ok: true, orderId: 'ord-9', status: 'PENDING', accepted: true })); } if (body.op === 'cancel') { global.__cancelled = body.orderId; return r.fulfill(j({ ok: true })); } return r.fulfill(j({ error: 'Not allowed' }, 400)); }
     if (body.op === 'accounts') return r.fulfill(j({ userId: '0aaa1111-2222-3333-4444-555566667777', data: [{ accountId: '123e4567-e89b-12d3-a456-426614174000', accountName: 'Sample Tradovate DEMO', brokerName: 'Tradovate', currency: 'USD' }] }));
+    if (body.op === 'orders' && ctx.sampleOpen) return r.fulfill(j({ data: [{ orderId: 'ord-open1', status: 'SUBMITTED', legs: [{ securityId: 'MESZ6' }] }, { orderId: FILLS[0].orderId, status: 'FILLED' }] }));
     if (body.op === 'orders') return r.fulfill(j({ data: FILLS.map((f) => ({ orderId: f.orderId, status: 'FILLED', orderTerminalAt: f.executedAt })).concat([{ orderId: 'zc', status: 'CANCELLED' }]) }));
     if (body.op === 'fills') return r.fulfill(j({ data: FILLS.filter((f) => body.orderIds.includes(f.orderId)) }));
     return r.fulfill(j({ error: 'Not allowed' }, 400));
@@ -121,7 +123,35 @@ async function run(b, w, h, mobile, shots) {
   st = await state(p);
   check(/Nothing new to import/.test(st.text), tag + ': re-sync adds nothing twice');
   await p.keyboard.press('Escape');
-  check(ctx.seen.every((c) => !/order$/i.test(c.body.op || '') ), tag + ': no order op ever sent');
+  check(ctx.seen.every((c) => !/\/order$/.test(c.path) && !/^(place|cancel|modify)$/.test(c.body.op || '') ), tag + ': import flow never sends an order op');
+  check(p.errors.length === 0, tag + ': no console errors ' + p.errors.slice(0, 2).join(' | '));
+  await ctx.close();
+}
+async function runOrders(b, w, h, mobile) {
+  const tag = w + '';
+  const { ctx, p } = await open(b, { w, h, mobile }); ctx.sampleOpen = true; global.__placed = null; global.__cancelled = null;
+  await p.addInitScript(() => { window.STRYKER_BROKER_SAMPLE = true; });
+  await p.goto(BASE + '/trade-journal.html', { waitUntil: 'domcontentloaded' });
+  await p.waitForSelector('#ji-open-broker', { state: 'attached' }); await p.evaluate(() => switchJournalTab('history')); await p.click('#ji-open-broker');
+  await p.evaluate(() => { window.open = () => ({ location: {}, close() {} }); });
+  await p.waitForSelector('#fjs-connect'); await p.click('#fjs-connect'); await p.waitForSelector('#fjs-cont'); await p.click('#fjs-cont'); await p.waitForSelector('#fjs-ordbtn');
+  await p.click('#fjs-ordbtn'); await p.waitForSelector('#fo-place');
+  let st = await state(p);
+  check(/SANDBOX/.test(st.text) && /Order test \(admin\)/.test(st.text), tag + ': order panel with SANDBOX badge');
+  check(/Open orders/.test(st.text) && /MESZ6/.test(st.text) && /Recent fills/.test(st.text), tag + ': open orders + recent fills lists');
+  check(!/finatic/i.test(st.text), tag + ': no vendor name');
+  await sleep(400); await p.screenshot({ path: OUT + '/orders-' + tag + '-1-panel.png' });
+  await p.fill('#fo-sym', 'mesz6'); await p.fill('#fo-qty', '3'); await p.click('#fo-place');
+  check(/Quantity must be 1 or 2/.test((await state(p)).text), tag + ': qty 3 refused in the form');
+  await p.fill('#fo-qty', '1'); await p.fill('#fo-sym', 'mesz6'); await p.click('#fo-place'); await p.waitForSelector('#fo-yes');
+  st = await state(p);
+  check(/Place BUY 1 MESZ6 market on Sample Tradovate DEMO\?/.test(st.text), tag + ': confirm step text');
+  await p.evaluate(() => document.getElementById('fo-conf').scrollIntoView({ block: 'center' })); await sleep(400); await p.screenshot({ path: OUT + '/orders-' + tag + '-2-confirm.png' });
+  await p.click('#fo-yes'); await p.waitForSelector('#fo-place', { timeout: 10000 });
+  check(global.__placed && global.__placed.qty === 1 && global.__placed.side === 'buy' && String(global.__placed.symbol).toUpperCase() === 'MESZ6', tag + ': place sent with the confirmed values');
+  await p.click('[data-cancel="ord-open1"]'); await p.waitForFunction(() => !!document.getElementById('fo-place'), null, { timeout: 8000 }); await sleep(300);
+  check(global.__cancelled === 'ord-open1', tag + ': cancel sent for the open order');
+  check((await state(p)).docW <= w + 1, tag + ': no horizontal scroll');
   check(p.errors.length === 0, tag + ': no console errors ' + p.errors.slice(0, 2).join(' | '));
   await ctx.close();
 }
@@ -129,6 +159,7 @@ async function run(b, w, h, mobile, shots) {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=600'] });
   try {
     for (const [w, h, m] of [[390, 844, true], [412, 915, true], [1440, 900, false]]) await run(b, w, h, m, true);
+    await runOrders(b, 390, 844, true); await runOrders(b, 1440, 900, false);
     { const { ctx, p } = await open(b, { w: 390, h: 844, mobile: true, configured: false });
       await p.goto(BASE + '/trade-journal.html', { waitUntil: 'domcontentloaded' });
       await p.waitForSelector('#ji-open-broker', { state: 'attached' }); await p.evaluate(() => switchJournalTab('history')); await p.click('#ji-open-broker');

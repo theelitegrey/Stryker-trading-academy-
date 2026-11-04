@@ -13,6 +13,13 @@ const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, 
 const when = (ms) => { const d = new Date(ms); return ymd(d).slice(5) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 const X_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 const EXTRA_CSS = `.fjs-tag{ display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; font:600 11px/16px var(--rz-font); background:rgba(245,197,66,.16); color:var(--rz-amber); vertical-align:middle; }
+.fjs-badge{ display:inline-block; padding:4px 12px; border-radius:999px; font:700 13px/18px var(--rz-font); letter-spacing:.08em; }
+.fjs-badge.sb{ background:rgba(245,197,66,.18); color:var(--rz-amber); border:1px solid rgba(245,197,66,.5); } .fjs-badge.lv{ background:rgba(255,107,107,.18); color:var(--rz-red); border:1px solid rgba(255,107,107,.6); }
+.fjs-seg2{ display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; margin:0 0 16px; border-radius:12px; background:var(--rz-field); border:1px solid var(--rz-line); }
+.fjs-seg2 button{ height:44px; border:0; border-radius:8px; background:transparent; color:var(--rz-ink-2); font:600 15px/20px var(--rz-font); cursor:pointer; }
+.fjs-seg2 button[aria-checked="true"].buy{ background:var(--bull,#03c988); color:#050506; } .fjs-seg2 button[aria-checked="true"].sell{ background:var(--bear,#ff6b6b); color:#050506; }
+.fjs-ord{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border:1px solid var(--rz-line); border-radius:12px; margin:0 0 8px; font:400 13px/18px var(--rz-font); } .fjs-ord button{ height:40px; padding:0 14px; border:1px solid var(--rz-line); border-radius:10px; background:transparent; color:var(--rz-ink); font:600 13px/18px var(--rz-font); cursor:pointer; }
+.fjs-confirm{ margin:0 0 16px; padding:14px; border:1px solid var(--rz-amber); border-radius:12px; font:600 16px/22px var(--rz-font); }
 .fjs-sample{ margin:0 0 12px; font:600 12px/16px var(--rz-font); color:var(--rz-amber); letter-spacing:.04em; text-transform:uppercase; }`;
 
 async function call(url, body, sample) {
@@ -34,7 +41,7 @@ export function openBrokerSync({ uid } = {}) {
   const sheet = document.createElement('div'); sheet.className = 'rjs'; sheet.id = 'fjs'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'Broker sync (beta)');
   back.appendChild(sheet); document.body.appendChild(back);
   const prevFocus = document.activeElement;
-  const S = { step: 'start', userId: lsGet(), sessionId: '', accounts: [], account: null, from: ymd(new Date(Date.now() - 30 * 864e5)), to: ymd(new Date()), trips: [], open: [], need: [], pv: {}, raw: [], plan: null, sample: !!window.STRYKER_BROKER_SAMPLE };
+  const S = { step: 'start', userId: lsGet(), sessionId: '', accounts: [], account: null, from: ymd(new Date(Date.now() - 30 * 864e5)), to: ymd(new Date()), trips: [], open: [], need: [], pv: {}, raw: [], plan: null, sample: !!window.STRYKER_BROKER_SAMPLE, ord: { side: 'buy', type: 'market', qty: 1, symbol: '', limit: '', stop: '', tif: 'day' }, envMode: '', ordersOn: false, openOrders: [], recent: [] };
   window.STRYKER_BROKER_SYNC = { get step() { return S.step; } };
   function close() { back.remove(); document.removeEventListener('keydown', onKey, true); delete window.STRYKER_BROKER_SYNC; try { prevFocus && prevFocus.focus(); } catch (e) {} }
   const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
@@ -94,11 +101,12 @@ export function openBrokerSync({ uid } = {}) {
       '<p class="rjs-sub">Account</p><div class="rjs-rows" role="radiogroup" aria-label="Account">' + S.accounts.map((a) =>
         '<button type="button" class="rjs-row" role="radio" aria-checked="' + (a.id === S.account.id) + '" data-acct="' + esc(a.id) + '"><i></i><span><b>' + esc(a.name) + '</b><small>' + esc(a.broker) + (a.cur ? ' · ' + esc(a.cur) : '') + '</small></span></button>').join('') + '</div>' +
       '<div class="rjs-two"><label class="rjs-f"><span>From</span><input class="rjs-in" type="date" id="fjs-from" value="' + esc(S.from) + '"></label><label class="rjs-f"><span>To</span><input class="rjs-in" type="date" id="fjs-to" value="' + esc(S.to) + '"></label></div>' +
-      '<button type="button" class="rjs-go" id="fjs-load">Load trades</button><button type="button" class="rjs-ghost" id="fjs-off">Disconnect</button>';
+      '<button type="button" class="rjs-go" id="fjs-load">Load trades</button><button type="button" class="rjs-ghost" id="fjs-ordbtn">Order test (admin)</button><button type="button" class="rjs-ghost" id="fjs-off">Disconnect</button>';
     wireX();
     sheet.querySelectorAll('[data-acct]').forEach((b) => b.addEventListener('click', () => { S.account = S.accounts.find((a) => a.id === b.dataset.acct); S.from = q('#fjs-from').value; S.to = q('#fjs-to').value; drawPick(); }));
     q('#fjs-load').addEventListener('click', loadTrades);
     q('#fjs-off').addEventListener('click', disconnect);
+    q('#fjs-ordbtn').addEventListener('click', () => { S.step = 'order'; draw(); });
   }
   async function loadTrades() {
     S.from = q('#fjs-from').value; S.to = q('#fjs-to').value;
@@ -162,6 +170,56 @@ export function openBrokerSync({ uid } = {}) {
       S.step = 'done'; draw();
     } catch (e) { console.error('TradeZoro: broker sync import failed', e); btn.disabled = false; btn.textContent = 'Import ' + trips.length + ' trades'; toast('error', 'Import failed: ' + (e && e.message || e)); }
   }
+
+  // ---- ORDER TEST (admin only; sandbox by default). The server enforces admin, env, qty cap, rate limit and audit; this is only the form.
+  const orderCall = (b) => call('/connect/finatic/order', Object.assign({ userId: S.userId, accountId: S.account.id }, b));
+  const badge = () => (S.envMode === 'live' ? '<span class="fjs-badge lv">LIVE</span>' : S.envMode === 'sandbox' ? '<span class="fjs-badge sb">SANDBOX</span>' : '');
+  async function refreshOrders() {
+    try {
+      const o = await data('orders', { accountId: S.account.id, limit: 100 }); const arr = Array.isArray(o) ? o : [];
+      S.openOrders = arr.filter((x) => /SUBMIT|PEND|OPEN|WORK|ACCEPT|NEW/i.test(x.status || '') && !/FILL|CANCEL|REJECT/i.test(x.status || '')).slice(0, 10);
+      const filled = arr.filter((x) => /FILL/i.test(x.status || '')).slice(0, 5).map((x) => x.orderId);
+      S.recent = filled.length ? (await data('fills', { accountId: S.account.id, orderIds: filled })).slice(0, 8) : [];
+    } catch (e) { S.openOrders = []; S.recent = []; }
+  }
+  const sym = (o) => { const l = (o.legs || [])[0] || {}; return l.brokerProvidedSymbol || l.securityId || (l.instrument && l.instrument.displaySymbol) || ''; };
+  function drawOrder(error, confirm) {
+    const O = S.ord, off = !S.ordersOn;
+    sheet.innerHTML = head('Order test (admin)') + '<p style="margin:0 0 12px">' + badge() + '</p>' + err(error) +
+      (off ? '<div class="rjs-err" role="alert">' + (S.envMode === 'live' ? 'Live orders are off.' : 'Orders are not available.') + '</div>' : '') +
+      '<p class="rjs-lead">Testing only. Orders go to a ' + (S.envMode === 'live' ? 'LIVE' : 'sandbox') + ' account, max 2 contracts, and every attempt is logged.</p>' +
+      '<p class="rjs-sub">Account</p><div class="rjs-rows" role="radiogroup" aria-label="Account">' + S.accounts.map((a) => '<button type="button" class="rjs-row" role="radio" aria-checked="' + (a.id === S.account.id) + '" data-acct="' + esc(a.id) + '"><i></i><span><b>' + esc(a.name) + '</b><small>' + esc(a.broker) + '</small></span></button>').join('') + '</div>' +
+      '<div class="fjs-seg2" role="radiogroup" aria-label="Side"><button type="button" class="buy" role="radio" aria-checked="' + (O.side === 'buy') + '" data-side="buy">Buy</button><button type="button" class="sell" role="radio" aria-checked="' + (O.side === 'sell') + '" data-side="sell">Sell</button></div>' +
+      '<div class="rjs-two"><label class="rjs-f"><span>Symbol</span><input class="rjs-in" id="fo-sym" value="' + esc(O.symbol) + '" placeholder="MESZ6" autocapitalize="characters" autocomplete="off"></label><label class="rjs-f"><span>Quantity (max 2)</span><input class="rjs-in" id="fo-qty" inputmode="numeric" value="' + esc(O.qty) + '"></label></div>' +
+      '<div class="rjs-two"><label class="rjs-f"><span>Type</span><select class="rjs-in" id="fo-type"><option value="market"' + (O.type === 'market' ? ' selected' : '') + '>Market</option><option value="limit"' + (O.type === 'limit' ? ' selected' : '') + '>Limit</option><option value="stop"' + (O.type === 'stop' ? ' selected' : '') + '>Stop</option></select></label>' +
+      '<label class="rjs-f"><span>Time in force</span><select class="rjs-in" id="fo-tif"><option value="day"' + (O.tif === 'day' ? ' selected' : '') + '>Day</option><option value="gtc"' + (O.tif === 'gtc' ? ' selected' : '') + '>GTC</option></select></label></div>' +
+      (O.type === 'limit' ? '<label class="rjs-f"><span>Limit price</span><input class="rjs-in" id="fo-lim" inputmode="decimal" value="' + esc(O.limit) + '"></label>' : '') + (O.type === 'stop' ? '<label class="rjs-f"><span>Stop price</span><input class="rjs-in" id="fo-stp" inputmode="decimal" value="' + esc(O.stop) + '"></label>' : '') +
+      (confirm ? '<div class="fjs-confirm" id="fo-conf">Place ' + O.side.toUpperCase() + ' ' + esc(O.qty) + ' ' + esc(O.symbol.toUpperCase()) + ' ' + esc(O.type) + (O.type === 'limit' ? ' @ ' + esc(O.limit) : O.type === 'stop' ? ' @ ' + esc(O.stop) : '') + ' on ' + esc(S.account.name) + '?</div><button type="button" class="rjs-go" id="fo-yes">Yes, place order</button><button type="button" class="rjs-ghost" id="fo-no">Back</button>'
+        : '<button type="button" class="rjs-go" id="fo-place"' + (off ? ' disabled' : '') + '>Review order</button>') +
+      '<p class="rjs-sub" style="margin-top:20px">Open orders</p>' + (S.openOrders.length ? S.openOrders.map((o) => '<div class="fjs-ord"><span><b>' + esc(sym(o)) + '</b> ' + esc(o.status) + '<br><small>' + esc(String(o.orderId).slice(0, 8)) + '</small></span><button type="button" data-cancel="' + esc(o.orderId) + '">Cancel</button></div>').join('') : '<p class="rjs-hint">None.</p>') +
+      '<p class="rjs-sub" style="margin-top:16px">Recent fills</p>' + (S.recent.length ? S.recent.map((f) => '<div class="fjs-ord"><span><b>' + esc(f.side) + ' ' + esc(f.quantity) + ' ' + esc((f.instrument && f.instrument.displaySymbol) || f.securityId || '') + '</b> @ ' + esc(f.price) + '</span></div>').join('') : '<p class="rjs-hint">None.</p>') +
+      '<button type="button" class="rjs-ghost" id="fo-refresh">Refresh</button><button type="button" class="rjs-ghost" id="fo-back">Back</button>';
+    wireX();
+    const rd = () => { const g = (id) => { const e = q(id); return e ? e.value : ''; }; O.symbol = g('#fo-sym'); O.qty = g('#fo-qty'); O.type = g('#fo-type') || O.type; O.tif = g('#fo-tif') || O.tif; if (q('#fo-lim')) O.limit = g('#fo-lim'); if (q('#fo-stp')) O.stop = g('#fo-stp'); };
+    sheet.querySelectorAll('[data-acct]').forEach((b) => b.addEventListener('click', async () => { rd(); S.account = S.accounts.find((a) => a.id === b.dataset.acct); await refreshOrders(); drawOrder(); }));
+    sheet.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => { rd(); O.side = b.dataset.side; drawOrder(); }));
+    q('#fo-type').addEventListener('change', () => { rd(); drawOrder(); });
+    q('#fo-back').addEventListener('click', () => { S.step = 'pick'; draw(); });
+    q('#fo-refresh').addEventListener('click', async (e) => { rd(); busy(e.currentTarget, 'Refreshing'); await refreshOrders(); drawOrder(); });
+    sheet.querySelectorAll('[data-cancel]').forEach((b) => b.addEventListener('click', async () => { busy(b, '...'); try { await orderCall({ op: 'cancel', orderId: b.dataset.cancel }); toast('success', 'Cancel sent.'); await refreshOrders(); drawOrder(); } catch (e) { drawOrder(e.message); } }));
+    const pl = q('#fo-place'); if (pl) pl.addEventListener('click', () => { rd(); const n = Number(O.qty); if (!/^[A-Za-z0-9._-]{1,20}$/.test(O.symbol)) return drawOrder('Enter a symbol.'); if (!Number.isInteger(n) || n < 1 || n > 2) return drawOrder('Quantity must be 1 or 2.'); if (O.type === 'limit' && !(Number(O.limit) > 0)) return drawOrder('Enter a limit price.'); if (O.type === 'stop' && !(Number(O.stop) > 0)) return drawOrder('Enter a stop price.'); drawOrder('', true); });
+    const no = q('#fo-no'); if (no) no.addEventListener('click', () => drawOrder());
+    const yes = q('#fo-yes'); if (yes) yes.addEventListener('click', async () => {
+      busy(yes, 'Placing');
+      try { const r = await orderCall({ op: 'place', symbol: O.symbol, side: O.side, qty: Number(O.qty), type: O.type, limitPrice: O.type === 'limit' ? O.limit : undefined, stopPrice: O.type === 'stop' ? O.stop : undefined, timeInForce: O.tif }); toast('success', 'Order accepted (' + (r.status || 'ok') + ').'); await refreshOrders(); drawOrder(); }
+      catch (e) { drawOrder(e.message || 'Order failed.'); }
+    });
+  }
+  async function openOrderStep() {
+    sheet.innerHTML = head('Order test (admin)') + '<p class="rjs-lead">Checking…</p>'; wireX();
+    try { const r = await orderCall({ op: 'env' }); S.envMode = r.env; S.ordersOn = !!r.enabled; } catch (e) { S.envMode = ''; S.ordersOn = false; }
+    await refreshOrders(); drawOrder();
+  }
   async function disconnect() {
     busy(q('#fjs-off'), 'Disconnecting');
     try {
@@ -174,7 +232,7 @@ export function openBrokerSync({ uid } = {}) {
     sheet.innerHTML = head('Done') + '<div class="rjs-done"><b>' + (S.added || 0) + ' trade' + (S.added === 1 ? '' : 's') + ' added</b><p>Tagged “Broker sync”. Syncing the same days again adds nothing twice.</p></div><button type="button" class="rjs-go" id="fjs-fin">Done</button>';
     wireX(); q('#fjs-fin').addEventListener('click', close);
   }
-  function draw() { sheet.classList.toggle('rjs-wide', S.step === 'preview'); if (S.step === 'start') drawStart(); else if (S.step === 'wait') drawWait(); else if (S.step === 'pick') drawPick(); else if (S.step === 'preview') drawPreview(); else drawDone(); sheet.scrollTop = 0; }
+  function draw() { sheet.classList.toggle('rjs-wide', S.step === 'preview'); if (S.step === 'start') drawStart(); else if (S.step === 'wait') drawWait(); else if (S.step === 'pick') drawPick(); else if (S.step === 'preview') drawPreview(); else if (S.step === 'order') openOrderStep(); else drawDone(); sheet.scrollTop = 0; }
 
   // Probe first: "Not set up yet" when the server key is missing.
   fetch('/connect/finatic/session?probe=1', { cache: 'no-store' }).then((r) => r.json().catch(() => ({}))).then((j) => { if (!(j && j.configured)) return drawNotSetUp(); draw(); if (S.userId) loadAccounts(); }).catch(() => drawNotSetUp());

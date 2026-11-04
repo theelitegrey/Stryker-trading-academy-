@@ -531,6 +531,9 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.recipientUid == request.auth.uid;
     }
 
+    // Broker order-test audit (functions/connect/finatic/_audit.js writes with the service account). Admin read only; no client write.
+    match /brokerOrderAudit/{id} { allow read: if isAdmin(); allow write: if false; }
+
     match /activityLog/{id} {
       allow read:   if isAdmin();
       // Pin the actor to the caller so the log cannot be written in someone

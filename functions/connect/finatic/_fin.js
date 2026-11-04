@@ -62,3 +62,18 @@ export async function startSession(env, deps, finUserId) {
   return { sessionId, companyId: pick(d, 'company_id', 'companyId'), csrf: pick(d, 'csrf_token', 'csrfToken'), userId: pick(d, 'user_id', 'userId'), authenticated: String(pick(d, 'status')).toLowerCase() === 'active' && !!pick(d, 'user_id', 'userId') };
 }
 export const sessionHeaders = (s) => ({ 'x-session-id': s.sessionId, 'session-id': s.sessionId, ...(s.companyId ? { 'x-company-id': s.companyId } : {}), ...(s.csrf ? { 'x-csrf-token': s.csrf } : {}) });
+
+// ---- order-test guard (Owner exception 2026-11-04: admin-only, sandbox-only testing) ----
+// 'sandbox' only when the key itself says sandbox (fntc_sandbox_) or, for an unrecognised key, FINATIC_ENV=sandbox. A live-looking key or
+// FINATIC_ENV=live is 'live'; anything unknown is treated as live (blocked).
+export function envMode(env) {
+  const k = String(env.FINATIC_API_KEY || '');
+  if (k.startsWith('fntc_live_') || env.FINATIC_ENV === 'live') return 'live';
+  if (k.startsWith('fntc_sandbox_') || env.FINATIC_ENV === 'sandbox') return 'sandbox';
+  return 'live';
+}
+// null = orders allowed, else a Response. Live needs the second, separate switch FINATIC_LIVE_ORDERS=1.
+export function ordersBlocked(env) {
+  if (envMode(env) === 'sandbox') return null;
+  return env.FINATIC_LIVE_ORDERS === '1' ? null : fail(403, 'Live orders are off');
+}

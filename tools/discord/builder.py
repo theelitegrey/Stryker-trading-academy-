@@ -5,6 +5,9 @@ TYPES = dict(text=0, voice=2, category=4, announcement=5, forum=15)
 bits = lambda names: str(sum(P[n] for n in names))
 
 
+import json
+
+
 def run(call, gid, plan, apply):
     def do(label, method, path, body=None):
         print(('APPLY ' if apply else 'PLAN  ') + label)
@@ -96,12 +99,33 @@ def run(call, gid, plan, apply):
 
     # pinned messages (post only if the bot has not already posted that text)
     for key, m in plan['messages'].items():
+        if key == 'roles': continue  # handled below: one message with buttons
         c = cid.get(m['channel'])
         if not c or c.startswith('<'): print(f'PLAN  message {key} in #{m["channel"]} (channel not created yet)'); continue
         msgs = call('GET', f'/channels/{c}/messages?limit=50') or []
         if any(x['author']['id'] == me.get('id') and x['content'][:40] == m['text'][:40] for x in msgs): print('OK    message', key); continue
         out = do(f'message post+pin {key} in #{m["channel"]}', 'POST', f'/channels/{c}/messages', dict(content=m['text']))
         if out: do(f'pin {key}', 'PUT', f'/channels/{c}/pins/{out["id"]}')
+
+    # self-role buttons: ONE bot message in the roles channel (edit the existing one, never duplicate), then pin
+    m = plan['messages']['roles']; c = cid.get(m['channel'])
+    names = [('Futures', '📊'), ('Stocks', '🏦'), ('Crypto', '🪙'), ('Forex', '💱'), ('India', '🇮🇳'), ('Options', '🧾'), ('Beginner', '🌱'), ('Intermediate', '📘'), ('Advanced', '🧠')]
+    if not c or c.startswith('<') or any(n not in roles for n, _ in names): print('PLAN  role buttons (channel or roles missing)')
+    else:
+        btn = lambda n, e: dict(type=2, style=2, label=n, emoji=dict(name=e), custom_id='tzrole:' + roles[n]['id'])
+        rows = [dict(type=1, components=[btn(n, e) for n, e in names[:5]]), dict(type=1, components=[btn(n, e) for n, e in names[5:6]]),
+                dict(type=1, components=[btn(n, e) for n, e in names[6:]])]
+        body = dict(content=m['text'], components=rows)
+        msgs = call('GET', f'/channels/{c}/messages?limit=50') or []
+        mine = next((x for x in msgs if x['author']['id'] == me.get('id') and 'Pick your roles' in x['content'][:40]), None)
+        if mine and mine['content'] == body['content'] and json.dumps([[b.get('custom_id') for b in r['components']] for r in mine.get('components', [])]) == json.dumps([[b['custom_id'] for b in r['components']] for r in rows]):
+            print('OK    role buttons message')
+        elif mine:
+            do('role buttons: edit existing message', 'PATCH', f'/channels/{c}/messages/{mine["id"]}', body)
+            if not mine.get('pinned'): do('pin role buttons', 'PUT', f'/channels/{c}/pins/{mine["id"]}')
+        else:
+            out = do('role buttons: post+pin', 'POST', f'/channels/{c}/messages', body)
+            if out: do('pin role buttons', 'PUT', f'/channels/{c}/pins/{out["id"]}')
 
     # onboarding (needs Community)
     ob = plan['onboarding']

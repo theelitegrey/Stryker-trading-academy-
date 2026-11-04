@@ -558,7 +558,7 @@
   },
   "roles": {
    "channel": "pick-your-roles",
-   "text": "**Pick your roles**\nUse **Channels & Roles** at the top of the channel list to choose your markets (Futures, Stocks, Crypto, Forex, India, Options) and your level (Beginner, Intermediate, Advanced). You can change them any time."
+   "text": "**Pick your roles**\nTap to add, tap again to remove.\n\n**Pick your markets**\n\n**Your level**"
   }
  },
  "onboarding": {

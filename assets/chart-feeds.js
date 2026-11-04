@@ -34,8 +34,9 @@ export const feedOf = (type) => reg.get(type) || null;
 export function setPanel(id, on, o) { if (on) panels.set(id, Object.assign({ needs: 'L2', title: id, mkt: '' }, o || {})); else panels.delete(id); poke(); }
 
 // What the plan includes, from the market kind + the existing gates (l2Visible for futures, Pro for crypto books). Never changes who gets what.
-export function haveFor({ mkt, l2, free }) {
-  return { L1: mkt === 'futures' ? (!free || !!l2) : true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto' ? !free : false, L3: false };
+// l1 = the server grants live L1 (signed agreement, Owner 2026-11-04)
+export function haveFor({ mkt, l2, free, l1 }) {
+  return { L1: mkt === 'futures' ? (!free || !!l2 || !!l1) : true, L2: mkt === 'futures' ? !!l2 : mkt === 'crypto' ? !free : false, L3: false };
 }
 export const bestOf = (have) => (have.L2 ? 'L2' : 'L1');
 export const reasonFor = (lvl, have) => (lvl === 'L3' ? L3_SOON : 'Needs ' + lvl + ' (' + LEVELS[lvl].short + '). It is part of Pro.');
@@ -84,7 +85,8 @@ const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 // SAFETY (L2 lock fix 3): an admin, or a member the plan check answered as NOT Free, is never shown a lock: while their book connects
 // they see "Connecting to the order book…" instead. Only a confirmed Free / signed-out member with no book frames sees Unlock.
-const noLock = () => { try { if (window.tzRtState && window.tzRtState().admin) return true; } catch (e) {} return window.__stkChartFree !== undefined && !isFree(); };   // __stkChartFree is set only once the plan check answered
+const noLock = () => { try { if (window.tzRtState && window.tzRtState().admin && !isFree()) return true; } catch (e) {}   // rt 'admin' = any live member; a Free one (signed agreement, L1 only) can still be locked out of L2
+  return window.__stkChartFree !== undefined && !isFree(); };   // __stkChartFree is set only once the plan check answered
 export const CONNECTING = 'Connecting to the order book…';
 export function mountFeedBadges(ws) {
   if (typeof document === 'undefined' || !ws || document.getElementById('stkfeeds')) return null;
@@ -108,7 +110,8 @@ export function mountFeedBadges(ws) {
     let l2 = false; try { l2 = !!((window.STRYKER_L2_BADGE || window.STRYKER_L2_OK)()); } catch (e) {}
     // data is proof: book frames for this root arriving now = the member has L2 (the hub sends them to book-tier sockets only)
     try { if (window.STRYKER_L2_PROVEN && window.STRYKER_L2_PROVEN(sym)) l2 = true; } catch (e) {}
-    return { sym, mkt, used, have: haveFor({ mkt, l2, free }), sure: noLock() };
+    let l1 = false; try { l1 = !!(window.tzRtState && window.tzRtState().admin); } catch (e) {}
+    return { sym, mkt, used, have: haveFor({ mkt, l2, free, l1 }), sure: noLock() };
   };
   const unlock = (reason, L) => { const w = whyFor(cur && cur.mkt, L); if (w) reason = reason + ' ' + w.long; if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(reason); };
 

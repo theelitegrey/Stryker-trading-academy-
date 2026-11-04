@@ -238,7 +238,7 @@
           yearlyLine(P) +
           '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary pv-cta-xl" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
           '<a href="/pro" class="pp-see">See everything in Pro →</a>' +
-          '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime. Live CME futures data is a separate $7/month add-on.</p>' +
+          '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime. Live futures (L1) is free on every plan with the market data agreement.</p>' +
         '</div>' +
         '<ul class="pv-icons">' + feats + '</ul>' +
       '</div>' +

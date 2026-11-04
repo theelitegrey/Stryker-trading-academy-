@@ -11,7 +11,7 @@
 //   Trade journal NO limits (Owner 2026-11-01): unlimited trades, import, broker sync, analytics, AI coach.
 //                 applyJournal() below is kept but unused.
 //   Charts        NO limits for Free (Owner 2026-10-29); the only Pro parts of the
-//                 chart are order flow tools and GEX on charts (real-time futures is the separate $7 add-on, not Pro)
+//                 chart are order flow tools and GEX on charts (live futures L1 is free with the market data agreement, Owner 2026-11-04; the L2 book stays Pro)
 //                 (assets/chart-pro-gate.js). Backtesting / replay sessions are
 //                 unlimited for every plan.
 //

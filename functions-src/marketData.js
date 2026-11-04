@@ -9,7 +9,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 if (!admin.apps.length) admin.initializeApp();
 
-const AGREEMENT_VERSION = 'v1';   // bump when the terms change; assets/market-data-agreement.js reads it from the server reply
+const AGREEMENT_VERSION = 'v1';   // bump when the terms change; ALSO bump MDA_VERSION in functions/api/chart/_rt.js (the live L1 gate) and VERSION in assets/market-data-agreement.js (tools/tests/market-data-terms.test.js)
 const QUESTIONS = ['regulated', 'business', 'advisor', 'redistribute'];
 
 function agreementOk(student) {
@@ -27,6 +27,8 @@ exports.acceptMarketDataAgreement = functions
   .runWith({ maxInstances: 20, timeoutSeconds: 30, memory: '256MB' })
   .https.onCall(async (data, context) => {
     if (!context.auth || !context.auth.uid) throw new functions.https.HttpsError('unauthenticated', 'Sign in first.');
+    // The agreement now unlocks free live futures L1 (Owner 2026-11-04): only a real member account may sign it.
+    if (((context.auth.token || {}).firebase || {}).sign_in_provider === 'anonymous') throw new functions.https.HttpsError('unauthenticated', 'Sign in first.');
     const name = String((data && data.name) || '').trim().replace(/\s+/g, ' ');
     if (name.length < 2 || name.length > 100) throw new functions.https.HttpsError('invalid-argument', 'Type your full name to sign.');
     const ans = data && data.answers;

@@ -2,24 +2,24 @@
 // Depends on: assets/rt-access.js (rtReady, isRealtimeAdmin, rtOnChange), the Vela workspace (ws.active,
 // ws.context().cells, cell.chart.renderer.renderer: .input.el + .coords.width for the plot/price-axis split),
 // assets/rithmic-ui.js (window.STRYKER_RITHMIC.open, set once Connect broker has loaded), assets/auth.js (auth),
-// assets/progress.js (db, for the plans/LiveData check), assets/toast.js (showToast).
+// assets/market-data-agreement.js (window.StkMDA, the sign form), assets/toast.js (showToast).
 // Owner order 2026-10-30: CME futures are 10 minutes behind by CME rule unless the member (a) connects Rithmic,
-// (b) has the $7/month Live Futures Data add-on, or (c) is approved by the Owner (all make the server / the
-// Rithmic provider real-time; this module only reflects that).
+// (b) signs the Market Data Agreement (free live L1 for every member, Owner 2026-11-04; the server checks
+// students/{uid}.marketDataAgreement), or (c) is approved by the Owner. This module only reflects that and offers the sign form.
 // Owner 2026-10-30 (second pass): the full-width strip under the toolbar was "too provoking". Now ONE small
 // translucent pill floats at the bottom-centre of the active chart pane's plot (clear of the price axis, the time
 // axis and any bottom bar), over the chart, never pushing the layout. Tap it (or the amber data dot) for a native
 // bottom sheet (phone) / small popover above the pill (desktop) with two option rows: connect a prop firm
 // (Rithmic) or the live data add-on. Long-press the pill, or "Hide for today" in the sheet, hides it until the
 // next IST day (localStorage). Multi-chart layouts get one pill for the whole layout, shown if any pane is delayed.
-import { rtReady, isRealtimeAdmin, rtOnChange } from './rt-access.js?v=874';
+import { rtReady, isRealtimeAdmin, rtOnChange, rtRecheck } from './rt-access.js?v=874';
 
 const LS_HIDE = 'stryker_data_pill_hidden_ist';   // value: IST date (YYYY-MM-DD) the member hid it on
 const SS_OPEN = 'stryker_open_connect';
+const SS_SIGN = 'stryker_open_mda';   // came back from sign-in to sign the agreement
 const FUT = /^(futures|cme|cme_mini|cbot|cbot_mini|comex|comex_mini|nymex|nymex_mini):/i;
 const BARE = /^[A-Z0-9]+1!$/i;
 const HELP = 'help.html#free-data-delay';
-const CHECKOUT = 'checkout.html?plan=LiveData';
 const ICON_LINK = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>';
 const ICON_BOLT = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
 const CHEV = '<svg class="stkdp-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
@@ -116,8 +116,8 @@ export function installDataBanner(ws, opts = {}) {
   const pill = document.createElement('button');
   pill.type = 'button'; pill.className = 'stkdp'; pill.id = 'stkdp'; pill.hidden = true;
   pill.setAttribute('aria-haspopup', 'dialog');
-  pill.setAttribute('aria-label', 'Futures data is 10 minutes delayed. Get live data');
-  pill.innerHTML = '<span class="stkdp-cap"><i class="stkdp-dot" aria-hidden="true"></i><span class="stkdp-short">Delayed 10 min</span><span class="stkdp-long">Futures delayed 10 min</span>' + CHEV + '</span>';
+  pill.setAttribute('aria-label', 'Futures data is 10 minutes delayed. Sign the market data agreement to get live futures (free)');
+  pill.innerHTML = '<span class="stkdp-cap"><i class="stkdp-dot" aria-hidden="true"></i><span class="stkdp-short">Delayed 10 min</span><span class="stkdp-long">Futures delayed 10 min · Sign for free live data</span>' + CHEV + '</span>';
   panel.appendChild(pill);
 
   const scrim = document.createElement('div'); scrim.className = 'stkdp-scrim'; scrim.hidden = true;
@@ -126,10 +126,10 @@ export function installDataBanner(ws, opts = {}) {
   sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-labelledby', 'stkdp-title');
   sheet.innerHTML = '<i class="stkdp-grab" aria-hidden="true"></i>' +
     '<div class="stkdp-head"><h3 id="stkdp-title">Get live futures data</h3><button type="button" class="stkdp-x" id="stkdp-x" aria-label="Close">\u00d7</button></div>' +
-    '<p class="stkdp-lead">CME futures are 10 minutes delayed on free data.</p>' +
+    '<p class="stkdp-lead">Live futures (L1) is free once you sign the market data agreement.</p>' +
     '<ul class="stkdp-list">' +
+    '<li><button type="button" class="stkdp-row" id="stkdp-sign"><span class="stkdp-ic b">' + ICON_BOLT + '</span><span class="stkdp-tx"><b>Sign the market data agreement</b><span>Free live futures data. Takes a minute.</span></span>' + CHEV + '</button></li>' +
     '<li><button type="button" class="stkdp-row" id="stkdp-connect"><span class="stkdp-ic">' + ICON_LINK + '</span><span class="stkdp-tx"><b>Connect your prop firm</b><span>Use your own Rithmic login. Free.</span></span>' + CHEV + '</button></li>' +
-    '<li><a class="stkdp-row" id="stkdp-buy" href="' + CHECKOUT + '"><span class="stkdp-ic b">' + ICON_BOLT + '</span><span class="stkdp-tx"><b>Live data add-on</b><span><b id="stkdp-price" style="font-weight:inherit">$7</b> a month. Cancel anytime.</span></span>' + CHEV + '</a></li>' +
     '</ul>' +
     '<p class="stkdp-lead" style="font-size:12px;margin:8px 0 0;opacity:.8">Market data is provided as is and may be delayed or inaccurate. Personal, non-commercial use only. <a href="/market-data-terms" style="text-decoration:underline">Terms</a></p>' +
     '<div class="stkdp-foot"><a href="' + HELP + '" id="stkdp-why">Why is it delayed?</a><button type="button" id="stkdp-hide">Hide for today</button></div>';
@@ -217,7 +217,7 @@ export function installDataBanner(ws, opts = {}) {
     }
     requestAnimationFrame(() => { scrim.classList.add('on'); sheet.classList.add('on'); });
     pill.setAttribute('aria-expanded', 'true');
-    try { document.getElementById('stkdp-connect').focus({ preventScroll: true }); } catch (e) {}
+    try { document.getElementById('stkdp-sign').focus({ preventScroll: true }); } catch (e) {}
   }
   function closeSheet() {
     if (sheet.hidden) return;
@@ -229,7 +229,7 @@ export function installDataBanner(ws, opts = {}) {
   function hideToday() {
     try { localStorage.setItem(LS_HIDE, istDay()); } catch (e) {}
     closeSheet(); sync();
-    try { if (window.showToast) window.showToast('info', 'Hidden until tomorrow. Tap the amber dot by the symbol to see the options.'); } catch (e) {}
+    try { if (window.showToast) window.showToast('info', 'Hidden until tomorrow. Tap the amber dot by the symbol to sign the agreement.'); } catch (e) {}
   }
 
   // Tap opens the sheet; a long-press (500 ms) hides the pill for today instead.
@@ -268,17 +268,22 @@ export function installDataBanner(ws, opts = {}) {
       }
     }, 0);
   });
-  // The add-on is sold only once plans/LiveData exists (the CoS writes it after a test-mode purchase works).
-  // Until then the row says so instead of leading to a dead checkout.
-  try { db.collection('plans').doc('LiveData').get().then((d) => { const p = d.exists && Number(d.data().price); const el = document.getElementById('stkdp-price'); if (p > 0 && el) el.textContent = '$' + p; }).catch(() => {}); } catch (x) {}
-  document.getElementById('stkdp-buy').addEventListener('click', (e) => {
-    e.preventDefault();
+  // Free live L1 (Owner 2026-11-04): sign the Market Data Agreement (assets/market-data-agreement.js), then re-ask the server.
+  // The server remembers a "no" for up to 30 s, so keep re-asking (every 4 s, about a minute) until it says yes; no reload.
+  function goLiveAfterSign() {
+    try { if (window.showToast) window.showToast('success', 'Agreement saved. Switching to live futures data…'); } catch (e) {}
+    let n = 0;
+    const tick = () => { rtRecheck(true).then(() => { sync(); if (!isRealtimeAdmin() && ++n < 16) setTimeout(tick, 4000); }).catch(() => { if (++n < 16) setTimeout(tick, 4000); }); };
+    tick();
+  }
+  function openSign() {
     closeSheet();
-    const go = () => { location.href = CHECKOUT; };
-    const soon = () => { try { if (window.showToast) window.showToast('info', 'Live futures data ($7/month) opens today. For now, connect your Rithmic login or ask us for approval.'); } catch (x) {} };
-    if (!signedIn()) { try { sessionStorage.setItem('stryker_return_to', '/' + CHECKOUT); } catch (x) {} go(); return; }
-    try { db.collection('plans').doc('LiveData').get().then((d) => (d.exists && d.data().archived !== true ? go() : soon())).catch(soon); } catch (x) { soon(); }
-  });
+    if (!signedIn()) { try { sessionStorage.setItem(SS_SIGN, '1'); sessionStorage.setItem('stryker_return_to', location.pathname + location.search); } catch (e) {} location.href = 'login.html'; return; }
+    if (window.StkMDA && typeof window.StkMDA.modal === 'function') window.StkMDA.modal(goLiveAfterSign);
+    else location.href = 'settings.html#settings-livedata-panel';
+  }
+  document.getElementById('stkdp-sign').addEventListener('click', openSign);
+  try { if (sessionStorage.getItem(SS_SIGN) === '1' && signedIn()) { sessionStorage.removeItem(SS_SIGN); setTimeout(() => { if (!isRealtimeAdmin()) openSign(); }, 1500); } } catch (e) {}
 
   // Came back from the sign-in this sheet sent them to: open the Connect sheet.
   try {
@@ -297,7 +302,7 @@ export function installDataBanner(ws, opts = {}) {
   if (typeof ResizeObserver === 'function') { try { new ResizeObserver(() => { if (!pill.hidden) place(); }).observe(panel); } catch (e) {} }
   setInterval(() => { if (!document.hidden) sync(); }, 2000);
 
-  const api = { sync, place, open: openSheet, close: closeSheet, hideToday, el: pill, sheet,
+  const api = { sync, place, open: openSheet, sign: openSign, close: closeSheet, hideToday, el: pill, sheet,
     // The amber data dot asks this: true = open this sheet instead of its plain tooltip.
     canOffer: (sym) => delayedViewer() && isCmeSymbol(sym) };
   window.STRYKER_DATA_BANNER = api;

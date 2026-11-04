@@ -339,7 +339,7 @@
 
         <div class="panel" id="settings-livedata-panel">
           <div class="panel-head"><h2>Live futures data</h2></div>
-          <p class="stk-ld-sub" style="margin:0 0 12px; font-size:13px; color:var(--ink-2); line-height:1.55;">CME futures on ZoroCharts (NQ, ES, GC, CL and the rest) are 10 minutes behind by CME rule. Crypto is always live.</p>
+          <p class="stk-ld-sub" style="margin:0 0 12px; font-size:13px; color:var(--ink-2); line-height:1.55;">Live futures (L1) is free once you sign the market data agreement: live trades, candles and best bid/ask for CME futures (NQ, ES, GC, CL and the rest) on ZoroCharts. Until then they are 10 minutes behind by CME rule. Crypto is always live.</p>
           <div class="mini-bar-row" style="margin-bottom:14px;">
             <span class="label">Status</span>
             <span class="mini-bar-val" style="width:auto; font-size:13px; color:var(--ink-1);" id="settings-ld-status">—</span>
@@ -348,13 +348,12 @@
             <span class="label" id="settings-ld-row-l">Renews</span>
             <span class="mini-bar-val" style="width:auto; font-size:13px; color:var(--ink-1);" id="settings-ld-date">—</span>
           </div>
-          <p id="settings-ld-soon" style="display:none; margin:0 0 10px; font-size:13px; color:var(--ink-2);">Live futures data ($7/month): coming today.</p>
-          <a class="btn btn-primary btn-sm btn-block" id="settings-ld-buy" style="display:none; margin-bottom:10px;" href="checkout.html?plan=LiveData">Get live futures data: $7/month</a>
+          <button type="button" class="btn btn-primary btn-sm btn-block" id="settings-ld-sign" style="display:none; margin-bottom:10px;">Sign the market data agreement</button>
           <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-ld-cancel" style="display:none; margin-bottom:10px; border-color:rgba(229,72,77,0.3);">Cancel live futures data</button>
           <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-ld-manage" style="display:none; margin-bottom:10px;">Manage card and invoices</button>
           <p id="settings-ld-agree" style="margin:0 0 8px; font-size:13px; color:var(--ink-1); line-height:1.5;"></p>
           <p style="margin:0 0 8px; font-size:12px; color:var(--ink-3); line-height:1.5;">Market data is provided as is and may be delayed or inaccurate. Personal, non-commercial use only. <a href="market-data-terms" style="color:var(--teal); text-decoration:underline;">Terms</a></p>
-          <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Other ways to get real-time: connect your own Rithmic login on the chart (Connect broker), or ask us for approval.</p>
+          <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Another way to get real-time: connect your own Rithmic login on the chart (Connect broker). The L2 order book, order flow tools and GEX+ are part of Pro.</p>
         </div>
 
         <div class="panel">
@@ -406,6 +405,7 @@
 <script src="assets/branding.js?v=874"></script>
 <script src="assets/dash-nav.js?v=874"></script>
 <script src="assets/market-hours.js?v=874"></script>
+<script src="assets/market-data-agreement.js?v=874"></script>
 <script src="assets/settings.js?v=874"></script>
 <script src="assets/discord-site.js?v=874"></script>
 <script src="assets/passkeys-ui.js?v=874"></script>

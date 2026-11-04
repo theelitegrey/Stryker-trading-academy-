@@ -122,66 +122,12 @@ const calls = (p) => p.evaluate(() => window.__calls.map((c) => c.name));
   try {
     for (const w of [390, 412, 1440]) {
       console.log('\n== width ' + w + ' ==');
-      // 1. checkout, not accepted: form shown, pay button disabled until everything is done
+      // 1. checkout?plan=LiveData: the add-on is no longer sold (Owner 2026-11-04, free L1 with the agreement): no form, no pay, a pointer to Settings
       let { p, ctx, errors } = await page(browser, 'checkout.html?plan=LiveData', { signedIn: true }, w);
-      let r = await p.evaluate(() => ({ form: !!document.querySelector('#checkout-mda .mda-btn'), pay: document.getElementById('checkout-complete-btn').disabled, note: /Terms/.test((document.querySelector('#checkout-mda .mda-note') || {}).textContent || ''), over: document.documentElement.scrollWidth > window.innerWidth }));
-      check('checkout: agreement form shown, pay disabled', [r.form, r.pay], [true, true]);
-      check('checkout: disclaimer line under the form', r.note, true);
-      check('checkout: no horizontal overflow', r.over, false);
-      for (const t of THEMES) { await theme(p, t); await p.locator('#checkout-mda').scrollIntoViewIfNeeded(); await p.screenshot({ path: path.join(OUT, 'checkout-form-' + w + '-' + t + '.png') }); }
-      // professional: any Yes blocks
-      await p.locator('input[name="mda-regulated"][value="yes"]').locator('xpath=..').click();
-      r = await p.evaluate(() => ({ pro: !document.querySelector('#checkout-mda .mda-pro').hidden, link: (document.querySelector('#checkout-mda .mda-pro a') || {}).getAttribute('href'), btn: document.querySelector('#checkout-mda .mda-btn').disabled }));
-      check('checkout: Yes shows professional block with support link', [r.pro, r.link, r.btn], [true, 'help.html#new-ticket', true]);
-      await p.locator('#checkout-mda .mda-pro').scrollIntoViewIfNeeded();
-      await p.screenshot({ path: path.join(OUT, 'checkout-pro-' + w + '.png') });
-      await p.locator('input[name="mda-regulated"][value="no"]').locator('xpath=..').click();
-      for (const q of ['business', 'advisor', 'redistribute']) await p.locator('input[name="mda-' + q + '"][value="no"]').locator('xpath=..').click();
-      r = await p.evaluate(() => document.querySelector('#checkout-mda .mda-btn').disabled);
-      check('checkout: all No but no box/name -> still disabled', r, true);
-      await p.locator('.mda-chk').click();
-      r = await p.evaluate(() => document.querySelector('#checkout-mda .mda-btn').disabled);
-      check('checkout: box ticked but no name -> still disabled', r, true);
-      await p.fill('.mda-name', 'Test Trader');
-      r = await p.evaluate(() => ({ b: document.querySelector('#checkout-mda .mda-btn').disabled, pay: document.getElementById('checkout-complete-btn').disabled }));
-      check('checkout: complete form enables Accept, pay still disabled', [r.b, r.pay], [false, true]);
-      // target sizes
-      const sizes = await p.evaluate(() => [...document.querySelectorAll('#checkout-mda .mda-yn span, #checkout-mda .mda-btn, #checkout-mda .mda-name, #checkout-mda .mda-chk')].map((e) => Math.round(e.getBoundingClientRect().height)));
-      check('checkout: all controls >= 44px tall', sizes.every((h) => h >= 44), true);
-      if (w === 390) { await p.close(); }
-      await ctx.close();
-      // touch test at 390: real taps through a touch context
-      if (w === 390) {
-        const tctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
-        const tp = await tctx.newPage(); const terr = [];
-        tp.on('pageerror', (e) => terr.push(e.message));
-        await tp.addInitScript(stub({ signedIn: true }));
-        await tp.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, (x) => x.abort());
-        await tp.goto(BASE + '/checkout.html?plan=LiveData', { waitUntil: 'load' }); await tp.waitForTimeout(1800);
-        for (const q of ['regulated', 'business', 'advisor', 'redistribute']) await tp.locator('input[name="mda-' + q + '"][value="no"]').locator('xpath=..').tap({ noWaitAfter: true });
-        await tp.locator('.mda-chk').tap({ noWaitAfter: true });
-        await tp.locator('.mda-name').tap(); await tp.keyboard.type('Test Trader');
-        r = await tp.evaluate(() => document.querySelector('#checkout-mda .mda-btn').disabled);
-        check('TOUCH 390: taps fill the form, Accept enabled', r, false);
-        await tp.locator('#checkout-mda .mda-btn').tap({ noWaitAfter: true }); await tp.waitForTimeout(600);
-        r = await tp.evaluate(() => ({ calls: window.__calls.map((c) => c.name), data: (window.__calls.find((c) => c.name === 'acceptMarketDataAgreement') || {}).data, pay: document.getElementById('checkout-complete-btn').disabled, ok: !!document.querySelector('#checkout-mda .mda-ok') }));
-        check('TOUCH 390: callable sent {name, answers all false, confirmed}', [r.calls.includes('acceptMarketDataAgreement'), r.data && r.data.name, r.data && Object.values(r.data.answers).every((v) => v === false), r.data && r.data.confirmed], [true, 'Test Trader', true, true]);
-        check('TOUCH 390: pay enabled + accepted line after saving', [r.pay, r.ok], [false, true]);
-        await tp.screenshot({ path: path.join(OUT, 'checkout-touch-accepted-390.png') });
-        check('TOUCH 390: no page errors', terr, []);
-        await tctx.close();
-      }
-      // 2. already accepted: skip straight to payment
-      ({ p, ctx, errors } = await page(browser, 'checkout.html?plan=LiveData', { signedIn: true, student: { name: 'Test Trader', plan: 'Starter', planId: 'free', marketDataAgreement: { version: 'v1', nonProfessional: true, acceptedAt: { seconds: 1793527200 } } } }, w));
-      r = await p.evaluate(() => ({ form: !!document.querySelector('#checkout-mda .mda-btn'), line: (document.querySelector('#checkout-mda .mda-ok') || {}).textContent, pay: document.getElementById('checkout-complete-btn').disabled }));
-      check('already accepted: no form, small line, pay enabled', [r.form, /Agreement accepted on .*2026/.test(r.line || ''), r.pay], [false, true, false]);
-      for (const t of THEMES) { await theme(p, t); await p.locator('#checkout-mda').scrollIntoViewIfNeeded(); await p.screenshot({ path: path.join(OUT, 'checkout-accepted-' + w + '-' + t + '.png') }); }
-      check('already accepted: no page errors', errors, []);
-      await ctx.close();
-      // old version -> asked again
-      ({ p, ctx } = await page(browser, 'checkout.html?plan=LiveData', { signedIn: true, student: { name: 'T', plan: 'Starter', marketDataAgreement: { version: 'v0', nonProfessional: true } } }, w));
-      r = await p.evaluate(() => !!document.querySelector('#checkout-mda .mda-btn'));
-      check('old version -> form again', r, true); await ctx.close();
+      let r = await p.evaluate(() => ({ form: !!document.querySelector('#checkout-mda .mda-btn'), pay: document.getElementById('checkout-complete-btn').disabled, msg: document.getElementById('checkout-plan-summary').innerText, over: document.documentElement.scrollWidth > window.innerWidth }));
+      check('checkout LiveData: not sold, points to free L1', [r.form, r.pay, /free once you sign the market data agreement/.test(r.msg), r.over], [false, true, true, false]);
+      for (const t of THEMES) { await theme(p, t); await p.screenshot({ path: path.join(OUT, 'checkout-free-' + w + '-' + t + '.png') }); }
+      check('checkout: no page errors', errors, []); await ctx.close();
       // 3. terms page
       ({ p, ctx, errors } = await page(browser, 'market-data-terms.html', { signedIn: false }, w));
       r = await p.evaluate(() => ({ h2: document.querySelectorAll('.article-body h2').length, ver: /v1 · 2026-11-01|Version v1/.test(document.body.innerText), over: document.documentElement.scrollWidth > window.innerWidth, foot: !!document.querySelector('.footer-legal-row a[href="market-data-terms"]') }));
@@ -191,9 +137,9 @@ const calls = (p) => p.evaluate(() => window.__calls.map((c) => c.name));
       // 4. settings line
       for (const [name, stu, want] of [['accepted', { name: 'T', plan: 'Starter', marketDataAgreement: { version: 'v1', nonProfessional: true, acceptedAt: { seconds: 1793527200 } } }, /accepted .*2026 · View terms/], ['none', { name: 'T', plan: 'Starter' }, /Not accepted · View terms/]]) {
         ({ p, ctx, errors } = await page(browser, 'settings.html', { signedIn: true, student: stu }, w));
-        r = await p.evaluate(() => ({ t: document.getElementById('settings-ld-agree').textContent, buy: document.getElementById('settings-ld-buy').textContent, note: /Personal, non-commercial use only\. Terms/.test(document.getElementById('settings-livedata-panel').innerText) }));
+        r = await p.evaluate(() => ({ t: document.getElementById('settings-ld-agree').textContent, buy: getComputedStyle(document.getElementById('settings-ld-sign')).display !== 'none', st: document.getElementById('settings-ld-status').textContent, nobuy: !document.getElementById('settings-ld-buy'), note: /Personal, non-commercial use only\. Terms/.test(document.getElementById('settings-livedata-panel').innerText) }));
         check('settings ' + name + ': agreement line', want.test(r.t), true);
-        check('settings ' + name + ': buy label $7 + disclaimer', [/\$7\/month/.test(r.buy), r.note], [true, true]);
+        check('settings ' + name + ': sign button only when not signed, no buy button, disclaimer (free L1, 2026-11-04)', [r.buy, r.nobuy, r.note], [name !== 'accepted', true, true]);
         for (const t of THEMES) { await theme(p, t); await p.locator('#settings-livedata-panel').scrollIntoViewIfNeeded(); await p.locator('#settings-livedata-panel').screenshot({ path: path.join(OUT, 'settings-' + name + '-' + w + '-' + t + '.png') }); }
         await ctx.close();
       }

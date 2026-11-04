@@ -126,7 +126,9 @@
     { group: 'book', name: 'Large Resting Orders', feed: 'L2', icon: 'wall', ids: ['stk_bk_large'],
       desc: 'Lists and marks the biggest orders waiting in the book.' },
     { group: 'book', name: 'Absorption & Iceberg Tracker', feed: 'L2', icon: 'ice', ids: ['stk_bk_track'],
-      desc: 'Tracks prices that keep absorbing volume and hidden-size hints.' }
+      desc: 'Tracks prices that keep absorbing volume and hidden-size hints.' },
+    { group: 'book', name: 'Wall Events', feed: 'L2', icon: 'wall', ids: ['stk_bk_walls'],
+      desc: 'Marks what happened to each big resting order on the heatmap: eaten, held, or pulled before price got there.' }
   ];
   var API = { icons: ICONS, groups: G, items: ITEMS };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;

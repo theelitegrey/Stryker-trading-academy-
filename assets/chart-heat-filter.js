@@ -33,6 +33,9 @@ export function hfConfig(i, table) {
   c.on = !!(c.p || c.min || c.max || c.top); c.key = c.on ? c.p + ':' + c.min + ':' + c.max + ':' + c.top : '';
   return c;
 }
+// The futures heatmap's colour step per book root, so Wall Events (L2) can follow it: root -> { p (ramp position), look }. Set by
+// chart-futures-l2.js FutDomNative.render, removed on stop. shortcut: one heatmap per root wins (the last drawn); per-chart once two differ.
+export const hfLive = new Map();
 export const hfSize = (c, a) => a >= c.min && !(c.max > 0 && a > c.max);
 // the size of the N-th largest level among |vals[0..n)| (scratch: a Float64Array >= n); a level below it is hidden, ties stay
 let scr = new Float64Array(2048);

@@ -5,7 +5,9 @@
 // How it works (Owner 2026-11-03: "only impactful orders, not a bubbles carpet"):
 //   1. AGGREGATE: consecutive same-side prints inside a short burst (gap <= burst ms, price walking <= N ticks from the last fill) = ONE parent
 //      order: total size, VWAP, price range swept, fills. Opposite sides never merge.
-//   2. FILTER: Automatic = a number of markers per 6.5 h of loaded data (Low 25 / Medium 15 / Strong 8: the threshold is the n-th biggest
+//   1b. CLUSTER (optional, "Also count fills at one price over (s)", 0 = off): same-side orders that each stayed at ONE price are summed with the
+//      later ones at the SAME price inside the window: a big passive wall filled by many small market orders becomes one marker.
+//   2. FILTER: Automatic = a number of markers per 6.5 h of loaded data (Very low 40 / Low 25 / Medium 15 / Strong 8: the threshold is the n-th biggest
 //      order), the same for every symbol and feed; or Manual min / max size.
 //   3. IMPACT 0..1 = size vs normal (robust z-score on log size) + levels swept + follow-through (what price did in the next 60 s, in ATR units).
 //      An order that was big but price did NOT follow (<= 0.2 ATR in its direction) is flagged ABSORPTION (hollow ring + "A").
@@ -14,12 +16,12 @@
 // Education only. Not financial advice.
 
 export const DEFAULTS = {
-  aggregate: true, burstMs: 150, walkTicks: 4,
+  aggregate: true, burstMs: 150, walkTicks: 4, clusterSec: 0,
   mode: 'Automatic', intensity: 'Medium', minSize: 0, maxSize: 0,
   shape: 'Circle', sizeScale: 1, minOpacity: 0.7, showSize: false, showFills: false, absorption: true, sweep: true, extend: 0
 };
 // markers per 6.5 h (one RTH session) of loaded data. Measured on real NQ / ES / CL days 2026-10-21 and 11-02: Medium gives 8-15 per RTH session.
-export const RATE = { Low: 25, Medium: 15, Strong: 8 };
+export const RATE = { 'Very low': 40, Low: 25, Medium: 15, Strong: 8 };
 
 // Old saved layouts (mult / minSize / labels / cluster) -> the new settings. Only when the new `mode` key is absent.
 export function migrate(inp) {
@@ -47,6 +49,18 @@ export function aggregate(prints, { burstMs = 150, walkTicks = 4, on = true } = 
   for (const o of out) o.ticks = o.hi - o.lo;
   return out;
 }
+// parents (time order) -> parents with the one-price ones summed per side + price over `sec` seconds from the first; orders = how many joined
+export function clusterAtPrice(parents, sec) {
+  if (!(sec > 0)) return parents;
+  const win = sec * 1000, open = new Map(), out = [];
+  for (const p of parents) {
+    if (p.ticks !== 0) { out.push(p); continue; }
+    const key = p.side + ':' + p.lo, c = open.get(key);
+    if (c && p.ms - c.ms <= win) { c.size += p.size; c.pv += p.pv; c.vwap = c.pv / c.size; c.n += p.n; c.last = p.last; c.orders++; continue; }
+    const n = Object.assign({}, p, { orders: 1 }); open.set(key, n); out.push(n);
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------- statistics + filter
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -69,7 +83,7 @@ export function threshold(parents, I, floor = 0) {
 // bars: chart bars [{ time, high, low, close }] (any of high|h, low|l, close|c); tf ms. Returns the parents that pass, each with z, ft, absorbed, impact.
 export function select(prints, I, { floor = 0, bars = [], tfMs = 60000, tick = 0.25, now = Date.now(), refSizes = null } = {}) {
   const P = Object.assign({}, DEFAULTS, I);
-  const parents = aggregate(prints, { burstMs: P.burstMs, walkTicks: P.walkTicks, on: P.aggregate });
+  const parents = clusterAtPrice(aggregate(prints, { burstMs: P.burstMs, walkTicks: P.walkTicks, on: P.aggregate }), P.clusterSec);
   if (!parents.length) return { list: [], thr: 0, all: 0 };
   const thr = threshold(parents, P, floor), st = logStats(refSizes || parents.map((p) => p.size));
   const hi = (b) => (b.high != null ? b.high : b.h), lo = (b) => (b.low != null ? b.low : b.l), cl = (b) => (b.close != null ? b.close : b.c);
@@ -126,8 +140,9 @@ export function schema(base) {
     { group: 'Data', key: 'aggregate', title: 'Aggregate fills into one order', type: 'bool', defval: true, tooltip: 'Consecutive same-side prints in a short burst count as ONE order.' },
     { group: 'Data', key: 'burstMs', title: 'Burst gap (ms)', type: 'int', defval: 150, min: 10, max: 2000, step: 10, tooltip: 'Largest pause between two fills of one order.' },
     { group: 'Data', key: 'walkTicks', title: 'Price walk (ticks)', type: 'int', defval: 4, min: 0, max: 40, step: 1, tooltip: 'A sweep through up to this many ticks counts as one order.' },
+    { group: 'Data', key: 'clusterSec', title: 'Also count fills at one price over (s)', type: 'int', defval: 0, min: 0, max: 600, step: 5, tooltip: 'Adds up same-side fills at the same price over this many seconds, so a big order filled by many small ones shows. 0 = off.' },
     { group: 'Filter', key: 'mode', title: 'Filter', type: 'string', defval: 'Automatic', options: ['Automatic', 'Manual'] },
-    { group: 'Filter', key: 'intensity', title: 'Intensity', type: 'string', defval: 'Medium', options: ['Low', 'Medium', 'Strong'], when: { key: 'mode', anyOf: ['Automatic'] }, tooltip: 'Automatic: the biggest 10 % / 5 % / 2 % of the orders loaded for this symbol.' },
+    { group: 'Filter', key: 'intensity', title: 'Intensity', type: 'string', defval: 'Medium', options: ['Very low', 'Low', 'Medium', 'Strong'], when: { key: 'mode', anyOf: ['Automatic'] }, tooltip: 'About 40 / 25 / 15 / 8 markers per session. Very low = more markers.' },
     { group: 'Filter', key: 'minSize', title: 'Min size (contracts)', type: 'float', defval: 0, min: 0, max: 100000, step: 1, when: { key: 'mode', anyOf: ['Manual'] } },
     { group: 'Filter', key: 'maxSize', title: 'Max size (0 = no limit)', type: 'float', defval: 0, min: 0, max: 1000000, step: 1, when: { key: 'mode', anyOf: ['Manual'] }, tooltip: 'Run two copies with different bands.' },
     { group: 'Plot', key: 'shape', title: 'Marker', type: 'string', defval: 'Circle', options: ['Circle', 'Square', 'Diamond', 'Text only'] },
@@ -147,7 +162,7 @@ export function schema(base) {
 export const compact = (v) => { const a = Math.abs(v); return a >= 1e6 ? +(v / 1e6).toFixed(1) + 'M' : a >= 1000 ? +(v / 1000).toFixed(1) + 'k' : String(Math.round(v)); };
 const istTime = (ms) => { try { return new Date(ms).toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' IST'; } catch (e) { return ''; } };
 export function tipRows(p, tick) {
-  return [(p.side ? 'Buy' : 'Sell') + ' order · ' + words(p.impact) + ' impact', 'Size ' + compact(p.size) + ' @ ' + (p.vwap * tick).toFixed(2), p.n + ' fill' + (p.n === 1 ? '' : 's') + ' · ' + (p.ticks < 1 ? 'one price level' : p.ticks + ' tick' + (p.ticks === 1 ? '' : 's') + ' swept'),
+  return [(p.side ? 'Buy' : 'Sell') + ' order · ' + words(p.impact) + ' impact', 'Size ' + compact(p.size) + ' @ ' + (p.vwap * tick).toFixed(2), p.n + ' fill' + (p.n === 1 ? '' : 's') + ' · ' + (p.orders > 1 ? p.orders + ' orders at one price over ' + Math.max(1, Math.round((p.last - p.ms) / 1000)) + 's' : p.ticks < 1 ? 'one price level' : p.ticks + ' tick' + (p.ticks === 1 ? '' : 's') + ' swept'),
     'Follow-through ' + (p.ft == null || p.pending ? 'pending' : (p.ft >= 0 ? '+' : '') + p.ft.toFixed(2) + ' ATR') + (p.absorbed ? ' · absorbed' : ''), istTime(p.ms)];
 }
 // hits[canvas] = markers drawn last frame, for the hover tooltip (installTip)

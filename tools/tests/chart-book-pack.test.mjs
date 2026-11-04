@@ -90,4 +90,42 @@ const quiet = Array.from({ length: 25 }, (_, i) => mb(i * 60000, [5, 5, 5, 5, 5]
 quiet.push(mb(25 * 60000, [10, 10], [200, 10], 12)); quiet[25].c = 14; quiet[25].o = 12;
 const ab = D.absorptionList(P.absorptionEvents, quiet);
 ok(ab.length === 1 && ab[0].d === 1 && ab[0].t === 25 * 60000, 'absorption list: sellers absorbed = +1 (buy side up)', ab);
+// ---- wall events (WallTracker) on synthetic book + trade sequences. An ask wall of 400 sits 3 ticks above the touch (thr 200).
+{
+  const bk = (bbIdx, askWall, bidWall, bidWallIdx) => { const bid = new Map(), ask = new Map(); for (let j = 0; j < 20; j++) { bid.set(bbIdx - j, 10); ask.set(bbIdx + 1 + j, 10); } if (askWall != null) ask.set(84004, askWall); if (bidWall != null) bid.set(bidWallIdx, bidWall); return { bb: bbIdx, ba: bbIdx + 1, bid, ask }; };
+  const B0 = 84000, W = B0 + 4;   // wall idx
+  // 1) EATEN: price walks up to the wall, buyers trade 380 into it in many small prints, the wall shrinks to 0, price goes through
+  let w = new D.WallTracker(), t = 1e6;
+  w.onBook(t, bk(B0, 400), 200);
+  w.onBook(t += 100, bk(B0 + 3, 400), 200);
+  for (let k = 0; k < 38; k++) { w.onTrades(t += 50, [{ idx: W, size: 10, side: 1 }]); if (k % 4 === 3) w.onBook(t, bk(B0 + 3, Math.max(0, 400 - (k + 1) * 10)), 200); }
+  w.onBook(t += 100, bk(B0 + 5, null), 200);
+  ok(w.events.length === 1 && w.events[0].kind === 'E' && w.events[0].side === -1 && w.events[0].traded >= 200 && w.events[0].idx === W, 'walls: eaten by many small buys (ask wall, >= 50 % of 400 traded at its price)', w.events);
+  // 2) HELD: sellers... no: buyers trade 300 into the ask wall, it refills to 400 (iceberg), price falls back 5 ticks -> H, then again later
+  w = new D.WallTracker(); t = 2e6;
+  w.onBook(t, bk(B0 + 3, 400), 200);
+  for (let k = 0; k < 30; k++) { w.onTrades(t += 50, [{ idx: W, size: 10, side: 1 }]); w.onBook(t, bk(B0 + 3, k % 5 === 4 ? 400 : 250), 200); }
+  ok(w.events.length === 0, 'walls: no event while price still sits at the wall');
+  w.onBook(t += 500, bk(B0 - 2, 400), 200);
+  ok(w.events.length === 1 && w.events[0].kind === 'H' && w.events[0].traded === 300 && w.events[0].left === 400, 'walls: held / refilled, price rejected 5 ticks -> H', w.events);
+  w.onBook(t += 500, bk(B0 - 3, 400), 200);
+  ok(w.events.length === 1, 'walls: a held wall is not counted twice (traded count restarts)');
+  // 3) PULLED: a bid wall 2 ticks under the touch vanishes with 5 traded (< 10 %) -> P; a far wall leaving the window gives no event
+  w = new D.WallTracker(); t = 3e6;
+  w.onBook(t, bk(B0, null, 500, B0 - 2), 200);
+  w.onTrades(t += 50, [{ idx: B0 - 2, size: 5, side: -1 }, { idx: B0 - 2, size: 50, side: 1 }]);   // the buy print does not count into a bid wall
+  w.onBook(t += 100, bk(B0, null, null), 200);
+  ok(w.events.length === 1 && w.events[0].kind === 'P' && w.events[0].side === 1 && w.events[0].traded === 5, 'walls: bid wall pulled near price with 1 % traded -> P', w.events);
+  w = new D.WallTracker(); w.onBook(t, bk(B0, null, 500, B0 - 6), 200); w.onBook(t + 100, bk(B0 + 4, null, null), 200);
+  ok(w.events.length === 1 && w.events[0].kind === 'P', 'walls: pulled in the same frame price steps away is judged by where price stood (6 ticks)', w.events);
+  w = new D.WallTracker(); w.onBook(t, bk(B0, null, 500, B0 - 15), 200); w.onBook(t + 100, bk(B0, null, null), 200);
+  ok(w.events.length === 0, 'walls: a wall 15 ticks away that vanishes is not called a spoof (nearTicks 8)');
+  w = new D.WallTracker(); w.onBook(t, bk(B0, 400), 200); w.onBook(t + 100, bk(B0 + 30, null), 200);
+  ok(w.events.length === 0, 'walls: a wall that only left the 20-level window has no event');
+  // a wall below the threshold is never tracked
+  w = new D.WallTracker(); w.onBook(t, bk(B0, 150), 200); ok(w.walls.size === 0, 'walls: levels under the threshold are ignored');
+  // heatmap colour step -> top %: Yellow (0.74) on the Midnight anchors = top 3 %
+  const anchors = [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]];
+  ok(Math.abs(D.topPctForStep(anchors, 0.74) - 3) < 1e-9 && Math.abs(D.topPctForStep(anchors, 0.93) - (1 - (0.99 + 0.01 * 0.05 / 0.12)) * 100) < 1e-9 && D.topPctForStep(anchors, 0) === null, 'walls: heatmap Yellow-and-above = top 3 % of sizes', D.topPctForStep(anchors, 0.74));
+}
 console.log('chart-book-pack: ' + n + ' checks passed');

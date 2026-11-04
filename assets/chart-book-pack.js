@@ -6,20 +6,26 @@
 //   stk_bk_regime  Volatility Regime (L2)          bottom strip + legend: Tight / Normal / Wide from how spread the resting size is around price
 //   stk_bk_large   Large Resting Orders (L2)       the single biggest levels now (top 0.5 % of the session), with size + how long they have sat there
 //   stk_bk_track   Absorption & Iceberg Tracker (L1+L2)  sub-pane: cumulative absorption / iceberg hints / stop runs, buy side up, sell side down
+//   stk_bk_walls   Wall Events (L2)                markers ON the heatmap walls: eaten (filled square), held / refilled (hollow square + H), pulled (grey x).
+//                  Owner 2026-11-04: "big orders show on the heatmap but Big Trades does not": Big Trades marks single aggressive bursts, a wall is
+//                  usually filled by many small orders or pulled. Its own indicator (not a Big Trades option) because it needs the BOOK: Big Trades
+//                  is trade-only and also runs without L2. Walls = the Large Resting Orders size (same session histogram) or the heatmap's colour filter.
 // Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=869';
-import { isFree } from './chart-pro-gate.js?v=869';
-import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory } from './chart-futures-l2.js?v=869';
-import { decodeBookHistory } from './chart-orderflow.js?v=869';
-import * as C from './book-panel-core.js?v=869';
-import { openSource } from './book-panel-sources.js?v=869';
-import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=869';
-import { sweepBars } from './chart-of-pro.js?v=869';
-import { icebergEvents } from './chart-liquidity-data.js?v=869';
-import * as D from './chart-book-pack-data.js?v=869';
+import { registerFeed } from './chart-feeds.js?v=866';
+import { isFree } from './chart-pro-gate.js?v=866';
+import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory } from './chart-futures-l2.js?v=866';
+import { decodeBookHistory } from './chart-orderflow.js?v=866';
+import * as C from './book-panel-core.js?v=866';
+import { openSource } from './book-panel-sources.js?v=866';
+import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=866';
+import { sweepBars } from './chart-of-pro.js?v=866';
+import { icebergEvents } from './chart-liquidity-data.js?v=866';
+import * as D from './chart-book-pack-data.js?v=866';
+import { hfLive } from './chart-heat-filter.js?v=866';
+import { STYLES as BM_STYLES } from './chart-bookmap.js?v=866';
 
-export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track'];
+export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus'];
@@ -75,7 +81,7 @@ class Store {
   constructor(spec) {
     this.spec = spec; this.key = spec.key; this.kind = spec.kind === 'futures' ? 'futures' : 'crypto'; this.refs = 0; this.ls = new Set();
     this.tick = spec.kind === 'futures' ? (L2_TICK[spec.root] || 0.25) : 0; this.status = 'loading'; this.note = '';
-    this.last = null; this.since = 0; this.v = 0; this.views = new Map(); this.refills = new Map(); this.larges = new Map(); this.hist = new D.LogHist(); this.sess = 0;
+    this.last = null; this.since = 0; this.v = 0; this.views = new Map(); this.refills = new Map(); this.larges = new Map(); this.walls = new Map(); this.hist = new D.LogHist(); this.sess = 0;
     this.samples = []; this.secT = 0; this.minT = 0; this.absEv = []; this.iceEv = []; this.iceFrom = 0; this.pending = []; this.tf = null; this.lastCrypto = 0; this.stopFn = null; this.h = null;
     this.remote = []; this.hFrom = Infinity; this.hBusy = false; this.hFailAt = 0; this.hDone = false; this.hv = 0; this.born = Date.now(); this.hAt = 0;
     this.onVis = () => { if (!document.hidden) this.poke(); };
@@ -98,6 +104,8 @@ class Store {
   poke() { this.ls.forEach((f) => { try { f(); } catch (e) {} }); }
   feed() { return this.kind === 'futures' ? rootState(this.spec.root).trades : this.tf; }
   refill(o) { const k = [o.refillPct, o.withinSec, o.hitPct].join('|'); let r = this.refills.get(k); if (!r) { r = new D.RefillTracker(o); this.refills.set(k, r); r.since = Date.now(); } return r; }
+  wall(o) { const k = [o.eatPct, o.holdPct, o.pullPct, o.nearTicks, o.rejectTicks].join('|'); let w = this.walls.get(k); if (!w) { w = { tr: new D.WallTracker(o), thr: null, pct: 0.5, min: 0, since: Date.now() }; this.walls.set(k, w); } return w; }
+  wallThr(w) { return w.min > 0 ? w.min : this.hist.n >= minHist() ? this.hist.top(w.pct) : null; }
   large(pct) { let l = this.larges.get(pct); if (!l) { l = { pct, tr: new D.LargeTracker(), thr: null }; this.larges.set(pct, l); } return l; }
 
   // ---- recorder backfill (futures): the SAME /ts-book-history read the heatmap uses (bookHistory shares it), 6 h a read, leftwards
@@ -147,7 +155,7 @@ class Store {
     if (m.type === 'snap') { const bk = D.bookFromLists(m.bids, m.asks, this.tick); if (bk) { this.status = 'live'; this.onBook(bk); } }
     else if (m.type === 'ticks' && m.t && m.t.length) {
       const rows = m.t.map((x) => ({ idx: Math.round(x[0] / this.tick), size: x[1], side: x[2] > 0 ? 1 : -1 }));
-      this.refills.forEach((t) => t.onTrades(Date.now(), rows));
+      this.refills.forEach((t) => t.onTrades(Date.now(), rows)); this.walls.forEach((w) => w.tr.onTrades(Date.now(), rows));
     }
   }
   // ---- crypto
@@ -165,7 +173,7 @@ class Store {
   cryptoTrades(list, back) {
     if (!this.tick) { this.pending.push({ l: list, back }); if (this.pending.length > 50) this.pending.shift(); return; }
     this.tf.add(list.map((x) => [x.p, x.s, x.side, x.t]), !!back);
-    if (!back && !document.hidden) { const rows = list.map((x) => ({ idx: x.side > 0 ? Math.ceil(x.p / this.tick - 1e-9) : Math.floor(x.p / this.tick + 1e-9), size: x.s, side: x.side > 0 ? 1 : -1 })); this.refills.forEach((t) => t.onTrades(Date.now(), rows)); }
+    if (!back && !document.hidden) { const rows = list.map((x) => ({ idx: x.side > 0 ? Math.ceil(x.p / this.tick - 1e-9) : Math.floor(x.p / this.tick + 1e-9), size: x.s, side: x.side > 0 ? 1 : -1 })); this.refills.forEach((t) => t.onTrades(Date.now(), rows)); this.walls.forEach((w) => w.tr.onTrades(Date.now(), rows)); }
   }
 
   // ---- one book update
@@ -176,6 +184,7 @@ class Store {
     this.views.forEach((v) => v.update(ts, bk));
     this.refills.forEach((t) => t.onBook(ts, bk));
     this.larges.forEach((l) => l.tr.update(ts, bk, l.thr));
+    this.walls.forEach((w) => w.tr.onBook(ts, bk, w.thr));
     const sec = Math.floor(ts / 1000);
     if (sec !== this.secT) { this.secT = sec; this.perSecond(ts, bk); }
     this.v++; this.poke();
@@ -186,6 +195,7 @@ class Store {
     for (let i = bk.bb, k = 0; k < 20; i--, k++) this.hist.add(bk.bid.get(i));
     for (let i = bk.ba, k = 0; k < 20; i++, k++) this.hist.add(bk.ask.get(i));
     this.larges.forEach((l) => { l.thr = this.hist.n >= minHist() ? this.hist.top(l.pct) : null; });
+    this.walls.forEach((w) => { w.thr = this.wallThr(w); });
     // 1 s sample for the iceberg hint (bids +, asks -): the same row shape icebergEvents reads
     let lo = bk.bb, hi = bk.ba;
     bk.bid.forEach((q, i) => { if (i < lo) lo = i; }); bk.ask.forEach((q, i) => { if (i > hi) hi = i; });
@@ -270,6 +280,22 @@ const SCHEMA = {
     { key: 'absColor', title: 'Absorption', type: 'color', defval: CYAN },
     { key: 'iceColor', title: 'Iceberg hints', type: 'color', defval: AMBER },
     { key: 'sweepColor', title: 'Stop runs', type: 'color', defval: VIOLET }
+  ],
+  stk_bk_walls: [
+    { group: 'Walls', key: 'wallFrom', title: 'A wall is', type: 'string', defval: 'Heatmap colour filter', options: ['Heatmap colour filter', 'Top % of sizes', 'Min size'], tooltip: 'Heatmap colour filter: follows the heatmap\'s "Show from colour" (All = the top % below).' },
+    { group: 'Walls', key: 'topPct', title: 'Top % of the session\'s level sizes', type: 'float', defval: 0.5, min: 0.1, max: 10, step: 0.1, when: { key: 'wallFrom', anyOf: ['Heatmap colour filter', 'Top % of sizes'] }, tooltip: 'The same rule as Large Resting Orders (L2).' },
+    { group: 'Walls', key: 'minSize', title: 'Min size (contracts / coins)', type: 'float', defval: 200, min: 1, max: 1000000, step: 1, when: { key: 'wallFrom', anyOf: ['Min size'] } },
+    { group: 'Eaten', key: 'showEaten', title: 'Wall eaten (filled square)', type: 'bool', defval: true },
+    { group: 'Eaten', key: 'eatPct', title: 'Traded at the wall at least (% of its size)', type: 'int', defval: 50, min: 10, max: 200, step: 5 },
+    { group: 'Held', key: 'showHeld', title: 'Wall held / refilled (hollow square + H)', type: 'bool', defval: true },
+    { group: 'Held', key: 'holdPct', title: 'Traded into it at least (% of its size)', type: 'int', defval: 50, min: 10, max: 500, step: 5 },
+    { group: 'Held', key: 'rejectTicks', title: 'Price turned away by (ticks)', type: 'int', defval: 4, min: 1, max: 40, step: 1 },
+    { group: 'Pulled', key: 'showPulled', title: 'Wall pulled (grey x)', type: 'bool', defval: true, tooltip: 'Gone with little trading at its price while price was near: a possible spoof.' },
+    { group: 'Pulled', key: 'pullPct', title: 'Traded less than (% of its size)', type: 'int', defval: 10, min: 0, max: 50, step: 1 },
+    { group: 'Pulled', key: 'nearTicks', title: 'While price was within (ticks)', type: 'int', defval: 8, min: 1, max: 19, step: 1 },
+    { group: 'Plot', key: 'buyColor', title: 'Buyers (ask wall)', type: 'color', defval: UP },
+    { group: 'Plot', key: 'sellColor', title: 'Sellers (bid wall)', type: 'color', defval: DN },
+    { group: 'Plot', key: 'pulledColor', title: 'Pulled', type: 'color', defval: GREY }
   ]
 };
 const TITLES = {
@@ -278,7 +304,8 @@ const TITLES = {
   stk_bk_refill: ['Refill Detector (L2)', 'Refill Detector', 'price', true, 'L2'],
   stk_bk_regime: ['Volatility Regime (L2)', 'Volatility Regime', 'price', true, 'L2'],
   stk_bk_large: ['Large Resting Orders (L2)', 'Large Resting Orders', 'price', true, 'L2'],
-  stk_bk_track: ['Absorption & Iceberg Tracker (L1+L2)', 'Abs & Iceberg Tracker', 'new', false, 'L2']
+  stk_bk_track: ['Absorption & Iceberg Tracker (L1+L2)', 'Abs & Iceberg Tracker', 'new', false, 'L2'],
+  stk_bk_walls: ['Wall Events (L2)', 'Wall Events', 'price', true, 'L2']
 };
 
 // The chart mounts the pane from the FIRST emit and later emits only update the series it already has, so every emit
@@ -300,7 +327,7 @@ class BkNative {
     this.tm = setTimeout(() => { this.tm = 0; this.render(); }, Math.max(0, MIN_GAP - (Date.now() - this.last)));
   }
   onBars() { this.later(); }
-  onViewport() { if (this.type === 'stk_bk_refill' || this.type === 'stk_bk_large') this.push(); }
+  onViewport() { if (this.type === 'stk_bk_refill' || this.type === 'stk_bk_large' || this.type === 'stk_bk_walls') this.push(); }
   setInputs(i) { this.inputs = Object.assign(defaults(SCHEMA[this.type]), i); this.memo = {}; this.render(); }
   suspend() { this.on = false; clearTimeout(this.tm); this.tm = 0; this.push(); }
   resume() { this.on = true; this.render(); }
@@ -354,6 +381,7 @@ class BkNative {
     if (t === 'stk_bk_regime') return this.drawRegime(s, I, bars, tf, since);
     if (t === 'stk_bk_refill') return this.drawRefill(s, I, since);
     if (t === 'stk_bk_large') return this.drawLarge(s, I);
+    if (t === 'stk_bk_walls') return this.drawWalls(s, I);
     return this.drawTrack(s, I, bars, kind, since);
   }
   // values per bar -> { cuts, band[] } against the bars' own session history (needs >= 8 values)
@@ -415,6 +443,28 @@ class BkNative {
     const learning = l.thr == null;
     this.ctx.emit({ tables: [this.legend([learning ? 'Learning this session\'s sizes…' : 'Large ≥ ' + D.fmtK(l.thr), 'top ' + pct + '% of levels'])] });
     this.push({ large: l, tick: s.tick, v: s.v });
+  }
+  // the futures heatmap's "Show from colour" step on this book (chart-heat-filter.js hfLive), as a top % of sizes; null = no step set
+  heatPct() {
+    const h = this.spec && this.spec.kind === 'futures' ? hfLive.get(this.spec.root) : null; if (!h) return null;
+    const S = BM_STYLES[h.look === 'midnight' ? 'bookmap' : h.look] || BM_STYLES.bookmap;   // shortcut: Classic's Deep ramp has no rank table, the Midnight one stands in
+    return D.topPctForStep(S.anchors, h.p);
+  }
+  drawWalls(s, I) {
+    const w = s.wall({ eatPct: num(I.eatPct, 50), holdPct: num(I.holdPct, 50), pullPct: num(I.pullPct, 10), nearTicks: num(I.nearTicks, 8), rejectTicks: num(I.rejectTicks, 4) });
+    const mode = I.wallFrom || 'Heatmap colour filter', hp = mode === 'Heatmap colour filter' ? this.heatPct() : null;
+    w.min = mode === 'Min size' ? Math.max(1, num(I.minSize, 200)) : 0; w.pct = hp != null ? hp : clamp(num(I.topPct, 0.5), 0.05, 10);
+    if (w.thr == null || w.min) w.thr = s.wallThr(w);
+    this.walls = w; this.store = s;
+    const n = w.tr.n, row = [];
+    if (I.showEaten !== false) row.push('Eaten ' + n.E); if (I.showHeld !== false) row.push('Held ' + n.H); if (I.showPulled !== false) row.push('Pulled ' + n.P);
+    // phones: one short line, so the box stays clear of the symbol legend on the left (seen at 390)
+    const phone = window.innerWidth < 520, sub = w.thr == null ? 'Learning this session\'s sizes…' : 'walls ≥ ' + D.fmtK(w.thr) + (hp != null ? ' (heatmap filter)' : '') + ' · since ' + hhmm(w.since);
+    const lines = phone ? [(w.thr == null ? 'Learning sizes… · ' : '') + 'E ' + n.E + ' · H ' + n.H + ' · P ' + n.P] : [row.join(' · ') || 'Nothing selected', sub];
+    window.__stkWallSub = sub;
+    window.__stkWallLegend = lines;   // test hook
+    this.ctx.emit({ tables: [this.legend(lines)] });
+    this.push({ walls: w, tick: s.tick, v: s.v });
   }
   drawTrack(s, I, bars, kind, since) {
     const series = [], row = [];
@@ -511,6 +561,68 @@ function largeLayer() {
     destroy() { canvas = null; }
   };
 }
+// Wall Events: markers at the wall's price, at the time the event was decided. Square side grows with the volume traded into the wall.
+const wallHits = new WeakMap();
+let wallTip = null, wallTipOn = false;
+const wallCanvases = new Set();
+function wallTipMove(e) {
+  let best = null, bd = 1e9;
+  for (const c of wallCanvases) {
+    const h = wallHits.get(c); if (!h || !c.isConnected) continue;
+    const r = c.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    if (x < 0 || y < 0 || x > r.width || y > r.height) continue;
+    for (const m of h) { const d = Math.max(Math.abs(m.x - x), Math.abs(m.y - y)); if (d <= m.r + 4 && d < bd) { bd = d; best = m; } }
+  }
+  if (!best) { if (wallTip) wallTip.hidden = true; return; }
+  if (!wallTip) { wallTip = document.createElement('div'); wallTip.className = 'stk-bigtip'; wallTip.setAttribute('role', 'tooltip'); wallTip.style.cssText = 'position:fixed;z-index:60;min-width:170px;max-width:250px;padding:10px 12px;border-radius:12px;font:12px/1.5 system-ui,sans-serif;pointer-events:none;background:rgba(17,17,20,.96);color:#f5f5f5;border:1px solid rgba(255,255,255,.14);box-shadow:0 6px 20px rgba(0,0,0,.4)'; document.body.appendChild(wallTip); }
+  const ev = best.e, wall = (ev.side > 0 ? 'Bid' : 'Ask') + ' wall ' + D.fmtK(ev.peak) + ' @ ' + (ev.idx * best.tick).toFixed(2);
+  const head = ev.kind === 'E' ? (ev.side > 0 ? 'Sellers ate a bid wall' : 'Buyers ate an ask wall') : ev.kind === 'H' ? (ev.side > 0 ? 'Bid wall held (sellers absorbed)' : 'Ask wall held (buyers absorbed)') : 'Wall pulled (possible spoof)';
+  const rows = [head, wall, 'Traded at the wall ' + D.fmtK(ev.traded) + ' (' + Math.round(ev.traded / Math.max(1e-9, ev.peak) * 100) + '%)' + (ev.left != null ? ' · still ' + D.fmtK(ev.left) : ''), 'Wall stood ' + D.fmtDur(ev.t - ev.since) + ' · ' + hhmm(ev.t)];
+  wallTip.replaceChildren(...rows.map((t, i) => { const d = document.createElement('div'); d.textContent = t; if (i === 0) d.style.cssText = 'font-weight:700;margin-bottom:2px;color:' + best.col; else if (i === 3) d.style.opacity = '.7'; return d; }));
+  wallTip.hidden = false; wallTip.style.left = clamp(e.clientX + 12, 4, innerWidth - 260) + 'px'; wallTip.style.top = clamp(e.clientY + 12, 4, innerHeight - 120) + 'px';
+}
+function wallLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; wallCanvases.add(c); window.__stkWallCanvas = c; if (!wallTipOn) { wallTipOn = true; document.addEventListener('pointermove', wallTipMove, true); document.addEventListener('pointerdown', wallTipMove, true); } },
+    render(a) {
+      const g = frame(canvas, a); if (!g) { if (canvas) wallHits.set(canvas, []); return; }
+      const shown = [];
+      try {
+        const o = a.data.owner, I = o.inputs, W = a.data.walls, tick = a.data.tick, co = a.coords, phone = co.width < 520;
+        if (!W || !tick) return;
+        const top = a.bounds.top, bot = top + a.bounds.height, ref = W.thr > 0 ? W.thr : 1, rMax = phone ? 9 : 12, day = light();
+        const t0 = a.bars[0].time, xOf = (t) => { if (co.timeToX && t >= t0) { const x = co.timeToX(t); if (x != null && Number.isFinite(x)) return x; } const i = D.idxOf(a.bars, t); return i < 0 ? null : co.logicalToX(i); };
+        const on = { E: I.showEaten !== false, H: I.showHeld !== false, P: I.showPulled !== false };
+        g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 ' + (phone ? 8 : 9) + 'px ' + MONO;
+        const ev = W.tr.events;
+        for (let k = ev.length - 1; k >= 0 && shown.length < 300; k--) {
+          const e = ev[k]; if (!on[e.kind]) continue;
+          const x = xOf(e.t); if (x == null || x < -20 || x > co.width + 20) continue;
+          const y = Yp(a, e.idx * tick); if (y < top - 14 || y > bot + 14) continue;
+          const col = e.kind === 'P' ? (I.pulledColor || GREY) : e.side > 0 ? (I.sellColor || DN) : (I.buyColor || UP);   // bid wall = hit by sellers
+          if (e.kind === 'P') {
+            const r = phone ? 3.5 : 4; g.strokeStyle = col; g.lineWidth = 1.75;
+            g.beginPath(); g.moveTo(x - r, y - r); g.lineTo(x + r, y + r); g.moveTo(x + r, y - r); g.lineTo(x - r, y + r); g.stroke();
+            shown.push({ x, y, r, e, col, tick }); continue;
+          }
+          const r = clamp(3 + 3 * Math.log2(1 + e.traded / ref), 3.5, rMax);
+          if (e.kind === 'E') {
+            g.fillStyle = rgba(col, 0.85); g.fillRect(x - r, y - r, 2 * r, 2 * r);
+            g.strokeStyle = day ? '#ffffff' : '#0b0b0d'; g.lineWidth = 1; g.strokeRect(x - r - 0.5, y - r - 0.5, 2 * r + 1, 2 * r + 1);
+          } else {
+            const rr = Math.max(r, phone ? 6 : 7);
+            g.fillStyle = plate(); g.fillRect(x - rr, y - rr, 2 * rr, 2 * rr);
+            g.strokeStyle = col; g.lineWidth = 1.75; g.strokeRect(x - rr, y - rr, 2 * rr, 2 * rr);
+            g.fillStyle = col; g.fillText('H', x, y + 0.5);
+          }
+          shown.push({ x, y, r: Math.max(r, 6), e, col, tick });
+        }
+      } finally { g.restore(); wallHits.set(canvas, shown); if (typeof window !== 'undefined') window.__stkWallShown = shown.map((m) => ({ x: m.x, y: m.y, kind: m.e.kind, price: m.e.idx * m.tick, t: m.e.t })); }
+    },
+    destroy() { if (canvas) wallCanvases.delete(canvas); canvas = null; }
+  };
+}
 function regimeLayer() {
   let canvas = null;
   return {
@@ -539,11 +651,12 @@ export function installBookPack(Core, hooks, reg) {
   Core.registerRendererLayer({ id: 'stk_bk_refill', placement: 'above-data', create: refillLayer });
   Core.registerRendererLayer({ id: 'stk_bk_large', placement: 'above-data', create: largeLayer });
   Core.registerRendererLayer({ id: 'stk_bk_regime', placement: 'above-data', create: regimeLayer });
+  Core.registerRendererLayer({ id: 'stk_bk_walls', placement: 'above-data', create: wallLayer });
   for (const type of BK_TYPES) {
     const [title, short, pane, overlay, needs] = TITLES[type];
     if (!L2_TYPES.includes(type)) L2_TYPES.push(type);
     registerFeed(type, { needs, title });
-    reg(Core, { type, title, shortTitle: short, paneHint: pane, overlay, reactsToViewport: type === 'stk_bk_refill' || type === 'stk_bk_large', inputsSchema: () => SCHEMA[type], create: () => new BkNative(type) });
+    reg(Core, { type, title, shortTitle: short, paneHint: pane, overlay, reactsToViewport: type === 'stk_bk_refill' || type === 'stk_bk_large' || type === 'stk_bk_walls', inputsSchema: () => SCHEMA[type], create: () => new BkNative(type) });
   }
 }
 // test hooks (read-only)

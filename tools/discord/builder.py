@@ -113,19 +113,29 @@ def run(call, gid, plan, apply):
     if not c or c.startswith('<') or any(n not in roles for n, _ in names): print('PLAN  role buttons (channel or roles missing)')
     else:
         btn = lambda n, e: dict(type=2, style=2, label=n, emoji=dict(name=e), custom_id='tzrole:' + roles[n]['id'])
-        rows = [dict(type=1, components=[btn(n, e) for n, e in names[:5]]), dict(type=1, components=[btn(n, e) for n, e in names[5:6]]),
-                dict(type=1, components=[btn(n, e) for n, e in names[6:]])]
-        body = dict(content=m['text'], components=rows)
+        row = lambda xs: dict(type=1, components=[btn(n, e) for n, e in xs])
+        txt = lambda t: dict(type=10, content=t)
+        sep = dict(type=14, divider=True, spacing=1)
+        # Components V2: headings sit right above their own buttons, inside one green-edged card
+        box = dict(type=17, accent_color=0x03C988, components=[
+            txt('## 🎭 Pick your roles\nTap a button to add a role. Tap it again to remove it.'), sep,
+            txt('### 📈 Your markets\nPick as many as you trade. You\'ll get those channels\' pings.'),
+            row(names[:3]), row(names[3:6]), sep,
+            txt('### 🎓 Your level\nPick one. Choosing a new one swaps the old one.'),
+            row(names[6:]), sep,
+            txt('-# Only you see the confirmation. Pro channels unlock with TradeZoro Pro: connect Discord in your TradeZoro settings.')])
+        body = dict(flags=1 << 15, components=[box])
+        sig = json.dumps(body, sort_keys=True, ensure_ascii=False)
         msgs = call('GET', f'/channels/{c}/messages?limit=50') or []
-        mine = next((x for x in msgs if x['author']['id'] == me.get('id') and 'Pick your roles' in x['content'][:40]), None)
-        if mine and mine['content'] == body['content'] and json.dumps([[b.get('custom_id') for b in r['components']] for r in mine.get('components', [])]) == json.dumps([[b['custom_id'] for b in r['components']] for r in rows]):
-            print('OK    role buttons message')
-        elif mine:
-            do('role buttons: edit existing message', 'PATCH', f'/channels/{c}/messages/{mine["id"]}', body)
-            if not mine.get('pinned'): do('pin role buttons', 'PUT', f'/channels/{c}/pins/{mine["id"]}')
+        old = [x for x in msgs if x['author']['id'] == me.get('id') and ('Pick your roles' in (x.get('content') or '')[:40] or 'Pick your roles' in json.dumps(x.get('components', []), ensure_ascii=False)[:400])]
+        cur = next((x for x in old if x.get('flags', 0) & (1 << 15)), None)
+        if cur and json.dumps(cur.get('components'), ensure_ascii=False).count('tzrole:') == 9 and 'Your markets' in json.dumps(cur.get('components'), ensure_ascii=False) and 'swaps the old one' in json.dumps(cur.get('components'), ensure_ascii=False):
+            print('OK    role buttons card')
         else:
-            out = do('role buttons: post+pin', 'POST', f'/channels/{c}/messages', body)
-            if out: do('pin role buttons', 'PUT', f'/channels/{c}/pins/{out["id"]}')
+            out = do('role buttons: post V2 card', 'POST', f'/channels/{c}/messages', body)
+            if out:
+                do('pin role buttons card', 'PUT', f'/channels/{c}/pins/{out["id"]}')
+                for x in old: do(f"delete old bot roles message {x['id']}", 'DELETE', f"/channels/{c}/messages/{x['id']}")
 
     # onboarding (needs Community)
     ob = plan['onboarding']

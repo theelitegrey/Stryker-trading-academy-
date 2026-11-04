@@ -627,6 +627,13 @@ def check_app_shell_browser():
         fail('app-shell-audit.js failed:\n' + '\n'.join('      ' + l for l in (r.stdout + r.stderr).strip().splitlines()[-25:]))
 
 
+def check_compare_page():
+    """/compare truth rules (no $ or banned words in the TradeZoro column): tools/tests/compare-page.test.py."""
+    r = subprocess.run([sys.executable, 'tools/tests/compare-page.test.py'], capture_output=True, text=True, cwd=ROOT)
+    if r.returncode != 0:
+        fail('compare page: ' + r.stdout.strip()[:300])
+
+
 def check_pro_features():
     """/pro never goes stale: every Pro-gated tool id (chart-pro-gate.js OF_TYPES + GEX_TYPES, registerFeed types, setPanel ids)
     must appear in the ids of an item in assets/pro-features-data.js, and /pro must show no price."""
@@ -680,7 +687,7 @@ def main():
     # two browser checks start first so they overlap the rest
     fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
     browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
-    order = [check_pro_features, *browser, check_roadmap_log, check_roadmap_cards,
+    order = [check_pro_features, check_compare_page, *browser, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

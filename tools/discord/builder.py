@@ -169,9 +169,10 @@ def run(call, gid, plan, apply):
         ('TradeZoro: spam', 3, {}),
         ('TradeZoro: mention spam', 5, dict(mention_total_limit=am['mention_limit'])),
         ('TradeZoro: profanity and slurs', 4, dict(presets=[1, 3])),
+        ('TradeZoro: scammers (auto timeout)', 1, dict(regex_patterns=am['scam_regex'])),
     ]
     for name, tt, meta in rules:
-        body = dict(name=name, event_type=1, trigger_type=tt, trigger_metadata=meta, actions=act if tt != 4 else [dict(type=1)], enabled=True, exempt_roles=exr)
+        body = dict(name=name, event_type=1, trigger_type=tt, trigger_metadata=meta, actions=(act + [dict(type=3, metadata=dict(duration_seconds=2419200))]) if 'auto timeout' in name else (act if tt != 4 else [dict(type=1)]), enabled=True, exempt_roles=exr)
         if name in ex: do(f'automod update {name}', 'PATCH', f"/guilds/{gid}/auto-moderation/rules/{ex[name]['id']}", body)
         else: do(f'automod create {name}', 'POST', f'/guilds/{gid}/auto-moderation/rules', body)
     print('DONE', 'applied' if apply else 'dry-run only, nothing changed')

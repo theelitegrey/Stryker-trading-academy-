@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """TradeZoro Discord server builder. Token comes from env BOT (GitHub secret), never printed.
 MODE=info: public app id + guilds the bot is in. MODE=dry/apply: build from tools/discord/plan.json (apply never deletes)."""
+import urllib.parse
 import json, os, sys, time, urllib.request, urllib.error
 API = 'https://discord.com/api/v10'
 TOK = os.environ.get('BOT', '')
@@ -34,6 +35,18 @@ if mode == 'verify':
     print('ONB', {k: v for k, v in (call('GET', f'/guilds/{gid}/onboarding') or {}).items() if k in ('enabled', 'mode')})
     print('AUTOMOD', [(r['name'], r['enabled']) for r in call('GET', f'/guilds/{gid}/auto-moderation/rules') or []])
     g = call('GET', f'/guilds/{gid}') or {}; print('GUILD', {k: g.get(k) for k in ('verification_level', 'explicit_content_filter', 'default_message_notifications', 'system_channel_id', 'features')})
+    sys.exit(0)
+if mode.startswith('ban:'):
+    q = mode[4:].strip()
+    roles = {r['id']: r for r in call('GET', f'/guilds/{gid}/roles') or []}
+    g = call('GET', f'/guilds/{gid}') or {}
+    hits = [m for m in (call('GET', f'/guilds/{gid}/members/search?query={urllib.parse.quote(q)}&limit=10') or []) if not m['user'].get('bot')]
+    for m in hits: print('MATCH', m['user']['id'], m['user'].get('username'), m['user'].get('global_name'), m.get('nick'), [roles.get(r, {}).get('name') for r in m.get('roles', [])])
+    safe = [m for m in hits if m['user']['id'] != g.get('owner_id') and not any(roles.get(r, {}).get('name') in ('Admin', 'Moderator') for r in m.get('roles', []))]
+    if len(safe) != 1: print('BAN SKIPPED: need exactly 1 safe match, got', len(safe)); sys.exit(0)
+    u = safe[0]['user']
+    r = call('PUT', f"/guilds/{gid}/bans/{u['id']}", dict(delete_message_seconds=604800))
+    print('BANNED' if r is not None else 'BAN FAILED', u['id'], u.get('username'), '(messages from last 7 days deleted)')
     sys.exit(0)
 plan_path = os.path.join(os.path.dirname(__file__), 'plan.json')
 if not os.path.exists(plan_path): sys.exit('plan.json missing')

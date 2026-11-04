@@ -659,22 +659,53 @@
    "ZYuHkVcMy"
   ],
   "scam_phrases": [
+   "100% win rate",
+   "account manager",
+   "claim your airdrop",
+   "cool cash",
+   "dm me for",
+   "dm me for signals",
+   "dm me to learn",
+   "double your money",
+   "free airdrop",
+   "free nitro",
    "guaranteed profit",
    "guaranteed profits",
    "guaranteed returns",
-   "100% win rate",
+   "hop in my dm",
+   "hop in my dms",
+   "inbox me",
+   "investment manager",
+   "join my vip",
+   "make money fast",
+   "paid signals",
+   "pump and dump",
+   "quick cash",
+   "recover lost funds",
+   "recover your funds",
    "risk free profit",
    "risk-free profit",
-   "double your money",
-   "dm me for signals",
-   "paid signals",
-   "join my vip"
+   "rug pull",
+   "rugpull",
+   "send me a dm",
+   "slide in my dm",
+   "whatsapp me"
   ],
   "mention_limit": 5,
   "alert_channel": "mod-log",
   "exempt_roles": [
    "Moderator",
    "Admin"
+  ],
+  "scam_regex": [
+   "(?i)\\brug ?pull(s|ed|ing)?\\b",
+   "(?i)\\b(made|making|earned|earn|profit(ed)?|cashed)\\s+(\\$|usd\\s?)?\\d[\\d,.]*\\s?k?\\b.{0,80}\\b(dm|dms|inbox|pm|message me|telegram|whatsapp)\\b",
+   "(?i)\\b(dm|dms|inbox|pm|message)\\s+me\\b.{0,40}\\b(learn|teach|signal|profit|cash|money|invest|earn|mentor|course|strategy)",
+   "(?i)\\b(hop|slide|come|get)\\s+in(to)?\\s+my\\s+(dm|dms|inbox)",
+   "(?i)\\b(earn|make)\\s+(\\$|£|€|usd\\s?)?\\d[\\d,.]*\\s?k?\\b.{0,25}\\b(daily|a day|per day|weekly|a week|per week)\\b",
+   "(?i)(t\\.me/|wa\\.me/|chat\\.whatsapp\\.com)",
+   "(?i)\\b(free\\s+nitro|nitro\\s+giveaway|claim\\s+(your\\s+)?(airdrop|reward|nitro))\\b",
+   "(?i)\\brecover(y)?\\s+(your\\s+)?(lost\\s+|stolen\\s+)?(funds|crypto|money|account)"
   ]
  }
 }

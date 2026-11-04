@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="stryker-build" content="879">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.">
+<meta name="description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, and SMT.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TradeZoro">
 <meta property="og:title" content="Unicorn Model: ZoroCharts indicator guide">
-<meta property="og:description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.">
+<meta property="og:description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, and SMT.">
 <meta property="og:url" content="https://tradezoro.com/indicators/unicorn-model">
 <meta property="og:image" content="https://tradezoro.com/assets/images/og/share/indicators_unicorn-model.png?v=879">
 <meta property="og:image:width" content="1200">
@@ -17,7 +17,7 @@
 <meta property="og:image:alt" content="Unicorn Model drawn on an NQ futures chart in ZoroCharts">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Unicorn Model: ZoroCharts indicator guide">
-<meta name="twitter:description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.">
+<meta name="twitter:description" content="Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, and SMT.">
 <meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/indicators_unicorn-model.png?v=879">
 <meta name="twitter:image:alt" content="Unicorn Model drawn on an NQ futures chart in ZoroCharts">
 <meta name="theme-color" content="#050506">
@@ -93,7 +93,7 @@
     {
       "@type": "WebPage",
       "name": "Unicorn Model: indicator guide and settings",
-      "description": "Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.",
+      "description": "Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, and SMT.",
       "url": "https://tradezoro.com/indicators/unicorn-model",
       "dateModified": "2026-11-04",
       "inLanguage": "en",
@@ -229,18 +229,17 @@
 </div>
 <div class="ixp-cols">
 <article class="ixp-body">
-<p class="ixp-lede">Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.</p>
+<p class="ixp-lede">Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, and SMT.</p>
 <aside class="ixp-credit" aria-label="Credit">
 <p><strong>Community script.</strong> The script does not name its author. No licence is stated in the script. TradeZoro did not write it. ZoroCharts runs it as the author published it, and its source code is not shown here.</p>
 </aside>
 <h2 id="overview">Overview</h2>
 <p>This community script looks for the ICT Unicorn model: a breaker block that overlaps a fair value gap after liquidity is taken. It can show only Unicorn setups or breakers too, with potential setups drawn before confirmation and invalidated ones in a ghost color.</p>
-<p>Around the setups it draws higher-timeframe candles with optional open, high, low and close lines, liquidity from up to three timeframes (60, 240 and D by default), session liquidity for up to four sessions, sweep lines, standalone higher-timeframe FVGs, SMT lines, target projections, and info and stats tables with a timer.</p>
 <h2 id="how">How it works</h2>
 <p>Liquidity sources use OHLC levels plus swing points from each source timeframe, mapped automatically or set by you. A setup forms when price sweeps a level, breaks structure, and leaves a breaker overlapping an FVG.</p>
 <p>The stop sits at the manipulation extreme, and targets are drawn at the R multiples you list. Optional parts include a break-even move at 50%, a daily cap on how many setups can reach target or stop, a breaker size filter and a time filter. SMT uses a pair mapped automatically or set manually.</p>
 <h2 id="use">How to use it</h2>
-<ul><li>Use it to see where a breaker and an FVG overlap after a sweep.</li><li>Some traders keep the higher-timeframe candles on screen to stay aware of the bigger candle.</li><li>Use the liquidity lines to see which levels have been swept.</li><li>Use the stats table to review past setups under the script's rules.</li></ul>
+<ul><li>Use it to see where a breaker and an FVG overlap after a sweep.</li><li>Some traders keep the higher-timeframe candles on screen to stay aware of the bigger candle.</li><li>Use the liquidity lines to see which levels have been swept.</li></ul>
 <p class="ixp-edu">These are ways some traders read it, for learning. They are not trade signals.</p>
 <h2 id="settings">Settings</h2>
 <div class="ixp-tablewrap scroll-x"><table class="ixp-table"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th></tr></thead><tbody>

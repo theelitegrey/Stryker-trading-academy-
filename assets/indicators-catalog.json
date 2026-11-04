@@ -21639,10 +21639,9 @@
    "plan": "Free",
    "kind": "pine",
    "short": "Community Unicorn Model script, preserved as supplied",
-   "summary": "Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, SMT and stats tables.",
+   "summary": "Unicorn and breaker model setups after sweeps, with HTF candles, multi-timeframe liquidity, session levels, FVGs, and SMT.",
    "overview": [
-    "This community script looks for the ICT Unicorn model: a breaker block that overlaps a fair value gap after liquidity is taken. It can show only Unicorn setups or breakers too, with potential setups drawn before confirmation and invalidated ones in a ghost color.",
-    "Around the setups it draws higher-timeframe candles with optional open, high, low and close lines, liquidity from up to three timeframes (60, 240 and D by default), session liquidity for up to four sessions, sweep lines, standalone higher-timeframe FVGs, SMT lines, target projections, and info and stats tables with a timer."
+    "This community script looks for the ICT Unicorn model: a breaker block that overlaps a fair value gap after liquidity is taken. It can show only Unicorn setups or breakers too, with potential setups drawn before confirmation and invalidated ones in a ghost color."
    ],
    "how": [
     "Liquidity sources use OHLC levels plus swing points from each source timeframe, mapped automatically or set by you. A setup forms when price sweeps a level, breaks structure, and leaves a breaker overlapping an FVG.",
@@ -21651,8 +21650,7 @@
    "use": [
     "Use it to see where a breaker and an FVG overlap after a sweep.",
     "Some traders keep the higher-timeframe candles on screen to stay aware of the bigger candle.",
-    "Use the liquidity lines to see which levels have been swept.",
-    "Use the stats table to review past setups under the script's rules."
+    "Use the liquidity lines to see which levels have been swept."
    ],
    "notes": [
     "Up to 50 setups are kept in history by default.",

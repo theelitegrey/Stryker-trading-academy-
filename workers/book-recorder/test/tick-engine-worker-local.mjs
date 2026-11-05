@@ -76,6 +76,18 @@ await get('/te-bars?sym=NQ&tf=1&from=' + (NOW - 7200000 + 2) + '&to=' + (NOW + 9
 assert.equal(cache.size, before, 'no new cache entries for 1 ms changes');
 ok('edge cache: delayed entries only (bodies hold nothing newer than the cut, no seq); from/to normalised so 1 ms changes hit the same entry');
 
+// N-tick bars (100T): live lane up to the newest trade, counted from the session open; delayed lane cut; paging by an exact `to`
+{
+  const L = await get('/te-bars?sym=NQ&tf=100T&limit=20', tok('adm1'));
+  assert.equal(L.r.status, 200); assert.equal(L.j.b.length, 20, '20 bars'); assert.equal(L.j.q, te.S.get('NQ').seq, 'seq');
+  assert.ok(L.j.b[19][5] <= 100 && L.j.b[0][5] === 100, 'each bar = 100 trades (size 1 each), the forming one fewer');
+  const P = await get('/te-bars?sym=NQ&tf=100T&limit=5&to=' + L.j.b[0][0], tok('adm1'));
+  assert.ok(P.j.b.length === 5 && P.j.b[4][0] < L.j.b[0][0], 'page 2 ends right before page 1');
+  const D = await get('/te-bars?sym=NQ&tf=100T&limit=20&to=' + (NOW + 7), '');
+  assert.equal(D.r.headers.get('x-te-lane'), 'delayed'); assert.ok(D.j.b.length && D.j.b.every((b) => b[0] < cut) && D.j.q == null, 'delayed tick bars cut');
+  assert.equal((await get('/te-bars?sym=NQ&tf=0T', '')).r.status, 400); assert.equal((await get('/te-bars?sym=NQ&tf=9999T', '')).r.status, 400);
+}
+ok('tick bars: /te-bars tf=100T live = 100 trades a bar with seq, pages by exact `to`; delayed = cut at now-10 min; 0T / 9999T = 400');
 assert.equal((await get('/te-bars?sym=NQ&tf=W', '')).r.status, 400);
 assert.equal((await get('/te-bars?sym=../x&tf=1', '')).r.status, 400);
 assert.equal((await get('/te-bars?sym=NQ&tf=1', '', 'https://evil.example')).r.status, 403);

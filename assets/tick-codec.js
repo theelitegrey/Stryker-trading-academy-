@@ -118,6 +118,13 @@ export function bucketOf(ms, sp) {
   const day = Math.floor((ms + shift) / 86400000) * 86400000;   // New York midnight of the trading date, in "NY local" epoch
   return day - nyOff(day - off);
 }
+// Start (ms) of the CME session holding ms: the latest 18:00 New York at or before it. N-TICK BARS are counted from here (the
+// anchor), so the same trades give the same bars on every read and every reload, and a session's first trade opens a new bar.
+export function sessionOpen(ms) {
+  const off = nyOff(ms), loc = ms + off, day = Math.floor(loc / 86400000) * 86400000, six = day + 18 * 3600000;
+  const s = (loc >= six ? six : six - 86400000) - off;
+  return s > ms ? s - 3600000 : s;   // shortcut: on a DST change day the offset at 18:00 differs from ms's by 1 h; never after ms
+}
 // fold rows ([t, o, h, l, c, v, b], ascending, finer than sp) into sp bars
 export function aggregate(rows, sp) {
   const out = []; let cur = null;

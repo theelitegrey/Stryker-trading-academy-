@@ -473,14 +473,19 @@ const stub = (env) => env.RECORDER.get(env.RECORDER.idFromName('main'));
 // -> { sym, tf, from, to } | null. /te-ticks: tf unused, span <= 15 min, from rounded down to the second.
 const TE_SPAN = { s: 6 * 3600000, m: 30 * 86400000, h: 400 * 86400000 };
 export function teQuery(u, now) {
-  const sym = String(u.searchParams.get('sym') || '').toUpperCase().slice(0, 6), tf = String(u.searchParams.get('tf') || '').toUpperCase().slice(0, 4);
+  const sym = String(u.searchParams.get('sym') || '').toUpperCase().slice(0, 6), tf = String(u.searchParams.get('tf') || '').toUpperCase().slice(0, 5);
   if (!/^[A-Z0-9]{1,5}$/.test(sym)) return null;
   let to = Number(u.searchParams.get('to')) || now, from = Number(u.searchParams.get('from'));
+  const toRaw = Math.floor(Math.min(to, now + 60000));   // N-tick pages end at an exact bar time (the next page's `to` = its oldest bar)
   to = Math.min(Math.ceil(to / 60000) * 60000, Math.ceil(now / 60000) * 60000 + 60000);
   if (u.pathname === '/te-ticks') {
     from = Math.floor((Number.isFinite(from) && from > 0 ? from : to - 900000) / 1000) * 1000;
     from = Math.max(from, to - 900000);
     return from < to && from > now - 3 * 86400000 ? { sym, from, to } : null;
+  }
+  if (/^\d+T$/.test(tf)) {   // N-tick bars: the newest `limit` bars before `to` (the DO counts them from the session open)
+    const n = Number(tf.slice(0, -1)), limit = Math.min(5000, Math.max(1, Math.floor(Number(u.searchParams.get('limit')) || 500)));
+    return n >= 1 && n <= 5000 && toRaw > now - 3 * 86400000 ? { sym, tf, to: toRaw, limit, from: toRaw - 3 * 86400000 } : null;
   }
   const kind = /^\d+S$/.test(tf) ? 's' : /^(\d+)$/.test(tf) && Number(tf) < 60 ? 'm' : /^(\d+|D)$/.test(tf) ? 'h' : null;
   if (!kind) return null;
@@ -835,6 +840,7 @@ async function route(req, env, ctx) {
       if (u.pathname === '/te-ticks' && !tier) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
       const q = teQuery(u, Date.now());
       if (!q) return new Response('bad request', { status: 400, headers: h });
+      if (!tier && /T$/.test(q.tf || '')) q.to = Math.ceil(q.to / 60000) * 60000;   // delayed N-tick reads share the edge-cache entry (no ms cache-busting)
       const du = new URL('https://do' + u.pathname);
       for (const [k, v] of Object.entries(q)) du.searchParams.set(k, String(v));
       du.searchParams.set('lane', tier ? 'live' : 'delayed');

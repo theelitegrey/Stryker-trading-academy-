@@ -5,8 +5,8 @@
 // reconnect with no duplicates and no gaps; resync for another epoch / too old; hub wiring (stream + heartbeat, key never sent).
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { packTicks, unpackTicks, secsOf, packSecs, unpackSecs, tfSpec, bucketOf, aggregate, foldTick } from '../src/tick-codec.js';
-import { TickEngine, teStore, delayCut, teOpts, TE_SYMBOLS } from '../src/tick-engine.js';
+import { packTicks, unpackTicks, secsOf, packSecs, unpackSecs, tfSpec, bucketOf, aggregate, foldTick, sessionOpen } from '../src/tick-codec.js';
+import { TickEngine, teStore, delayCut, teOpts, TE_SYMBOLS, tickN } from '../src/tick-engine.js';
 import { TSHub, TS_TRADES, TS_SYMBOLS } from '../src/ts-hub.js';
 import { aggregateHours } from '../../../functions/api/chart/_bars.js';
 
@@ -251,6 +251,96 @@ function fakeArchive(trades, o = {}) {
   assert.equal(r.rec, T + 5 * MIN, '5m: the first WHOLE bucket of the record (stitch at a bar-close boundary)');
   assert.equal(te.bars('NQ', 'D', T - 86400000 * 3, c).rec > T, true, 'D: the next session');
   ok('record start: rec = first whole minute seen live; bars report the first whole bucket (the page stitches the old source before it)');
+}
+
+// ---- ON-DEMAND HISTORY (Owner bug 2026-11-05 "on ticks and seconds, old candles not showing")
+// reference N-tick bars: trade k of a session (from 18:00 New York) opens a bar when k % n == 0; time = first trade, +1 ms if not after the last bar
+function refTickBars(trades, n) {
+  const out = []; let cur = null, idx = 0, so = -Infinity, nx = -Infinity, last = -Infinity;
+  for (const [ts, px, sz, side] of trades) {
+    if (ts >= nx) { so = sessionOpen(ts); nx = sessionOpen(so + 25 * 3600000); idx = 0; }
+    if (idx % n === 0) { const tm = Math.max(ts, last + 1); cur = [tm, px, px, px, px, 0, 0]; out.push(cur); last = tm; }
+    idx++;
+    if (px > cur[2]) cur[2] = px; if (px < cur[3]) cur[3] = px; cur[4] = px; cur[5] += sz; if (side > 0) cur[6] += sz;
+  }
+  return out;
+}
+{
+  // sessionOpen: 18:00 New York, EST and EDT, Sunday open, a DST change week
+  const iso = (ms) => new Date(sessionOpen(ms)).toISOString();
+  assert.equal(iso(Date.UTC(2026, 10, 4, 14, 0)), '2026-11-03T23:00:00.000Z', 'EST Wed 09:00 ET -> Tue 18:00 ET');
+  assert.equal(iso(Date.UTC(2026, 10, 4, 23, 0)), '2026-11-04T23:00:00.000Z', 'exactly 18:00 ET is its own open');
+  assert.equal(iso(Date.UTC(2026, 10, 4, 22, 59)), '2026-11-03T23:00:00.000Z', '17:59 ET belongs to the day before');
+  assert.equal(iso(Date.UTC(2026, 9, 29, 14, 0)), '2026-10-28T22:00:00.000Z', 'EDT');
+  assert.equal(iso(Date.UTC(2026, 10, 2, 3, 0)), '2026-11-01T23:00:00.000Z', 'Sunday open after the DST change');
+  for (let t = Date.UTC(2026, 9, 30); t < Date.UTC(2026, 10, 4); t += 7 * MIN) { const s = sessionOpen(t); assert.ok(s <= t && t - s < 25 * 3600000, 'open before ms ' + new Date(t).toISOString()); }
+  assert.equal(tickN('100T'), 100); assert.equal(tickN('100S'), 0); assert.equal(tickN('9999T'), 0);
+  ok('sessionOpen: 18:00 New York in EST / EDT / on the DST change, never after the trade; tickN parses N-tick timeframes');
+}
+{
+  // the record started at R (deploy); the archive holds every trade since the previous session. A seconds read older than R fills
+  // those minutes from the archive (stored as spans, asked once), in budgeted calls that page back (`left`), and = the reference.
+  const S0 = Date.UTC(2026, 10, 3, 20, 0), R = T + 2 * 3600000;   // Tue 15:00 ET .. live from Wed 11:00 ET
+  const tr = genTrades(S0, R + 30 * MIN);
+  const arch = tr.map((x, i) => ({ ts: x[0] * 1000 + (i % 1000), price: x[1], size: x[2], side: x[3] > 0 ? 'buy' : 'sell' }));
+  const f = fakeArchive(arch);
+  let c = R - 2000; const te = new TickEngine(sqlStore(), { SYMBOLS: ['NQ'], now: () => c, open: () => true, key: '', fetch: f, PAGE_LIMIT: 20000 });
+  te.up(R - 2000);
+  for (const x of tr) if (x[0] >= R) { c = x[0]; te.add('NQ', x[1], x[2], x[3], Math.floor(x[0] / 1000), x[0]); te.tick(c); }
+  c = R + 45 * MIN; te.tick(c); te.o.key = 'K';   // no key while live: the background filler did nothing (as right after the deploy)
+  assert.equal(te.rec.get('NQ') * MIN, R, 'record starts at R (the background filler had no budget)');
+  const r0 = te.bars('NQ', '5S', R - 3600000, c);
+  assert.ok(r0.b.every((b) => b[0] >= R), 'before: a seconds read stops at rec (the bug)');
+  // budget of 1 ms: one window a call -> `left` > 0, each call pages further back
+  te.o.ENSURE_BUDGET_MS = 1; let left = Infinity, calls = 0;
+  const lefts = [];
+  while (left > 0 && calls < 200) { const nowc = c; let tick = 0; te.clock = () => nowc + (tick++ > 2 ? 5 : 0); left = (await te.ensureFor('NQ', '5S', R - 6 * 3600000, c, 500)).left; te.clock = () => c; lefts.push(left); calls++; }
+  assert.equal(left, 0, 'finished in ' + calls + ' budgeted calls'); assert.ok(calls > 3 && lefts[0] > lefts[1], 'paged: ' + lefts.slice(0, 4).join(' > '));
+  const r1 = te.bars('NQ', '5S', R - 5 * 3600000, c), ref = refBars(tr, tfSpec('5S'));
+  assert.equal(r1.rec, R - 5 * 3600000, 'the seconds read now reaches back over the archive fill');
+  const lastClosed = Math.floor(c / MIN) * MIN - 5000;
+  assert.deepEqual(r1.b.filter((b) => b[0] < lastClosed), ref.filter((b) => b[0] >= R - 5 * 3600000 && b[0] < lastClosed), '5S over the old range + the live record = reference');
+  const req = f.calls.length; await te.ensureFor('NQ', '5S', R - 6 * 3600000, c, 500);
+  assert.equal(f.calls.length, req, 'a filled range is never asked again');
+  // the delayed lane never triggers it (ts-hub only calls ensureFor when cut === Infinity) and minutes inside the live span are never fetched
+  assert.ok(f.calls.every((q) => +new URLSearchParams(q).get('end') <= R / 1000 + 60), 'nothing inside the live record fetched');
+  ok('on-demand seconds: a read older than the record fetches those minutes from the archive in budgeted calls (paging back), stores them, = reference, asked once');
+
+  // N-tick bars on the same record: counted from the session open (Tue 18:00 ET), deterministic, paging by `to` gives the same bars
+  te.o.ENSURE_BUDGET_MS = 1e9;
+  const nowSo = sessionOpen(c), inSess = tr.filter((x) => x[0] >= nowSo && x[0] < c);
+  for (const n of [100, 500]) {
+    await te.ensureFor('NQ', n + 'T', 0, c + MIN, 300);
+    const a = te.tickBars('NQ', n, c + MIN, 300), want = refTickBars(inSess, n);
+    assert.equal(a.b.length, Math.min(300, want.length), n + 'T: ' + a.b.length + ' bars');
+    assert.deepEqual(a.b, want.slice(-a.b.length), n + 'T = reference counted from the session open');
+    assert.equal(a.c, inSess.length % n || n, n + 'T: trades in the forming bar');
+    for (let i = 1; i < a.b.length; i++) assert.ok(a.b[i][0] > a.b[i - 1][0], 'strictly ascending');
+    // page back by `to` = the oldest bar: the older page joins with no gap / overlap
+    const older = te.tickBars('NQ', n, a.b[0][0], 300);
+    const joined = older.b.concat(a.b), wj = want.slice(-joined.length);
+    assert.deepEqual(joined, wj, n + 'T: page 2 (to = oldest bar) + page 1 = reference');
+    assert.deepEqual(te.tickBars('NQ', n, c + MIN, 300).b, a.b, n + 'T: same bars on a second read');
+  }
+  // the previous session is not served (its open is older than anything we hold): never a bar counted from a wrong start
+  const all = te.tickBars('NQ', 100, c + MIN, 5000);
+  assert.ok(all.b[0][0] >= nowSo, 'no bar from a session the record does not hold from its open');
+  ok('on-demand ticks: 100T / 500T built from stored trades counted from the session open = reference, paging by `to` joins exactly, same bars on every read');
+}
+{
+  // a cold read: the record is 10 minutes old, the tick read fetches back to the session open of the bars it needs
+  const S0 = Date.UTC(2026, 10, 3, 23, 0), R = T;
+  const tr = genTrades(S0 - 30 * MIN, R + 10 * MIN);
+  const arch = tr.map((x) => ({ ts: x[0] * 1000, price: x[1], size: x[2], side: x[3] > 0 ? 'buy' : 'sell' }));
+  const f = fakeArchive(arch);
+  let c = R + 25 * MIN; const te = new TickEngine(sqlStore(), { SYMBOLS: ['NQ'], now: () => c, open: () => true, key: 'K', fetch: f, PAGE_LIMIT: 100000 });
+  const r = await te.ensureFor('NQ', '1000T', 0, c, 300);
+  assert.equal(r.left, 0);
+  const a = te.tickBars('NQ', 1000, c, 300), want = refTickBars(tr.filter((x) => Math.floor(x[0] / MIN) < Math.floor((c - te.o.FILL_LAG_MS) / MIN)), 1000);   // the archive's 30 min before S0 are the previous session's tail
+  assert.ok(a.b.length >= 150, '1000T: ' + a.b.length + ' bars from the archive alone');
+  assert.ok(a.b.some((b) => b[0] < S0) && a.b.some((b) => b[0] >= S0), 'two sessions, each counted from its own open');
+  assert.deepEqual(a.b, want.slice(-a.b.length), '1000T from the archive = reference from the session open');
+  ok('on-demand ticks, cold: with no live record the read fetches back to the session open and serves ' + a.b.length + ' 1000T bars = reference');
 }
 
 // ---- hub wiring: the engine sees every trade, tsub streams tt frames with seq, heartbeat, resync on a foreign epoch

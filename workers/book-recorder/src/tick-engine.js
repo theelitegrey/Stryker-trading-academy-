@@ -25,7 +25,7 @@
 // newest trade it includes (q); the socket sends trades with their seq; the browser keeps only seq > q. A reconnect sends
 // since=<last seq seen> and gets the missing trades from memory (the forming minute + REPLAY_MIN closed minutes). Anything
 // older, or another epoch, is answered 'resync' and the browser re-reads the bars.
-import { packTicks, unpackTicks, secsOf, packSecs, unpackSecs, tfSpec, aggregate, bucketOf } from './tick-codec.js';
+import { packTicks, unpackTicks, secsOf, packSecs, unpackSecs, tfSpec, aggregate, bucketOf, sessionOpen } from './tick-codec.js';
 
 // Owner 2026-11-03 list minus the five trades-only roots the feed sends nothing for (SIL ZB HG MHG MCL: 0 trades in the archive on
 // 2026-11-04 at 09:30, 10:30 and 14:00 ET and in the last 30 min of 2026-11-05). They stay on the old bars. Env TE_SYMBOLS overrides.
@@ -33,8 +33,14 @@ export const TE_SYMBOLS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC', 'S
 export const TE_DEF = {
   ON: true, KEEP_H: 48, SEC_DAYS: 30, M1_DAYS: 400, GRACE_MS: 3000, REPLAY_MIN: 5, FILL_LAG_MS: 10 * 60000, FILL_EVERY_MS: 30000, FILL_BUDGET_MS: 20000,
   FILL_WIN_MIN: 10, FILL_PAUSE_MS: 60000, AUTH_PAUSE_MS: 300000, PRUNE_MS: 3600000, PAGES: 12, PAGE_LIMIT: 100000,
-  REST: 'https://api.tick-stream.xyz/v1', READ_SEC_MIN: 360, READ_M1_MIN: 15000, READ_H1: 20000, DELAY_MS: 600000
+  REST: 'https://api.tick-stream.xyz/v1', READ_SEC_MIN: 360, READ_M1_MIN: 15000, READ_H1: 20000, DELAY_MS: 600000,
+  // ON-DEMAND HISTORY (Owner bug 2026-11-05 "on ticks and seconds, old candles not showing"): a live-lane read of seconds or tick bars
+  // older than the record (or over a hole) first fetches those minutes from the archive (serial, ENSURE_BUDGET_MS a request,
+  // ENSURE_WIN_MIN minutes a call, newest first) and stores them like the gap filler does; what is not done in time is answered `more`.
+  ENSURE_BUDGET_MS: 8000, ENSURE_WIN_MIN: 60, TICK_MAX_TRADES: 600000
 };
+// tick timeframe '100T' -> 100 (1..5000), else 0
+export const tickN = (tf) => { const m = /^(\d+)T$/i.exec(String(tf || '')); const n = m ? +m[1] : 0; return n >= 1 && n <= 5000 ? n : 0; };
 const MIN = 60000;
 
 export function teOpts(env) {
@@ -52,8 +58,8 @@ export class TickEngine {
     this.st = store; this.o = Object.assign({}, TE_DEF, o); this.clock = o.now || (() => Date.now());
     this.syms = new Set(this.o.SYMBOLS || TE_SYMBOLS); this.open = o.open || (() => true);
     this.epoch = this.clock(); this.S = new Map(); this.upAt = 0; this.spanId = 0; this.lastPrune = 0; this.nextFill = this.clock() + 5000;
-    this.filling = false; this.fillPause = 0; this.lastError = '';
-    this.n = { trades: 0, minutes: 0, partial: 0, filledMin: 0, filledTrades: 0, fillReq: 0, rows: 0, late: 0 };
+    this.filling = false; this.fillPause = 0; this.lastError = ''; this.ensureWaiting = 0;
+    this.n = { trades: 0, minutes: 0, partial: 0, filledMin: 0, filledTrades: 0, fillReq: 0, rows: 0, late: 0, ensureReq: 0, ensureMin: 0 };
     this.spans = []; this.rec = new Map();
     try { this.spans = store.spans(); for (const [s, r] of store.metas()) this.rec.set(s, r); } catch (e) { this.lastError = 'load failed'; }
   }
@@ -122,7 +128,7 @@ export class TickEngine {
   }
   prune(now) {
     try { this.st.prune(sym0(now, this.o.KEEP_H * 60), sym0(now, this.o.SEC_DAYS * 1440), sym0(now, this.o.M1_DAYS * 1440)); } catch (e) { this.lastError = 'prune failed'; }
-    const keep = sym0(now, this.o.KEEP_H * 60 + 120);
+    const keep = sym0(now, Math.max(this.o.KEEP_H * 60, this.o.SEC_DAYS * 1440) + 120);   // spans live as long as the seconds rows: an older fill is asked once
     this.spans = this.spans.filter((x) => x.t1 >= keep || x.id === this.spanId);
     try { this.st.pruneSpans(keep, this.spanId || 0); } catch (e) {}
     for (const [s, r] of this.rec) { const lo = sym0(now, this.o.M1_DAYS * 1440); if (r < lo) { this.rec.set(s, lo); try { this.st.setRec(s, lo); } catch (e) {} } }
@@ -131,13 +137,11 @@ export class TickEngine {
   // ---- gap fill
   // CME-hours minutes of [lo, hi) for sym in no span, newest first
   missing(sym, lo, hi) {
-    const sp = this.spans.filter((x) => (x.sym === '*' || x.sym === sym) && x.t1 > lo && x.t0 < hi).sort((a, b) => b.t1 - a.t1);
+    if (!(hi > lo)) return [];
+    const cov = new Uint8Array(hi - lo);   // one byte a minute (30 d = 43 kB), linear in spans + minutes
+    for (const x of this.spans) if ((x.sym === '*' || x.sym === sym) && x.t1 > lo && x.t0 < hi) cov.fill(1, Math.max(x.t0, lo) - lo, Math.min(x.t1, hi) - lo);
     const out = [];
-    for (let t = hi - 1; t >= lo; t--) {
-      if (!this.open(t * MIN)) continue;
-      let cov = false; for (const x of sp) if (t >= x.t0 && t < x.t1) { cov = true; break; }
-      if (!cov) out.push(t);
-    }
+    for (let t = hi - 1; t >= lo; t--) if (!cov[t - lo] && this.open(t * MIN)) out.push(t);
     return out;
   }
   async fill() {
@@ -151,7 +155,7 @@ export class TickEngine {
         // windows of contiguous minutes, at most FILL_WIN_MIN each, newest first
         let k = 0;
         while (k < miss.length) {
-          if (this.clock() - start > o.FILL_BUDGET_MS || this.clock() < this.fillPause) return { filled };
+          if (this.ensureWaiting || this.clock() - start > o.FILL_BUDGET_MS || this.clock() < this.fillPause) return { filled };   // a chart read waiting: it goes first
           const top = miss[k]; let bot = top; k++;
           while (k < miss.length && miss[k] === bot - 1 && top - miss[k] < o.FILL_WIN_MIN) { bot = miss[k]; k++; }
           const ok = await this.fillWindow(sym, bot, top + 1);
@@ -217,6 +221,115 @@ export class TickEngine {
     return true;
   }
 
+  // ---- on-demand history (live lane reads only; ts-hub.js calls it before bars())
+  // fetch the missing minutes of [lo, hi) (minute numbers) from the archive, newest first, within budgetMs.
+  // -> { left: minutes still missing } (the caller answers `more` and the chart's scroll-back asks again)
+  async ensure(sym, lo, hi, budgetMs = this.o.ENSURE_BUDGET_MS) {
+    const o = this.o, start = this.clock();
+    hi = Math.min(hi, Math.floor((start - o.FILL_LAG_MS) / MIN));   // younger minutes: live span or the archive is not there yet
+    if (!o.key || !this.syms.has(sym) || !(hi > lo)) return { left: 0 };
+    let miss = this.missing(sym, lo, hi);
+    if (!miss.length) return { left: 0 };
+    this.n.ensureReq++;
+    this.ensureWaiting++;
+    try {
+      while (this.filling) { if (this.clock() - start > budgetMs) return { left: miss.length }; await new Promise((r) => setTimeout(r, 50)); }
+      this.filling = true;
+      try {
+        let k = 0;
+        while (k < miss.length) {
+          if (this.clock() - start > budgetMs || this.clock() < this.fillPause) break;
+          const top = miss[k]; let bot = top; k++;
+          while (k < miss.length && miss[k] === bot - 1 && top - miss[k] < o.ENSURE_WIN_MIN) { bot = miss[k]; k++; }
+          if (!(await this.fillWindow(sym, bot, top + 1))) break;
+          this.n.ensureMin += top + 1 - bot;
+        }
+      } finally { this.filling = false; }
+      miss = this.missing(sym, lo, hi);
+      return { left: miss.length };
+    } finally { this.ensureWaiting--; }
+  }
+  // first minute from which [lo, recMin) has no hole (the record reaches back to it, archive fills included)
+  coveredFrom(sym, lo, recMin) {
+    if (!(lo < recMin)) return recMin;
+    const miss = this.missing(sym, lo, recMin);
+    return miss.length ? miss[0] + 1 : lo;
+  }
+  recOf(sym, now) { if (!this.rec.has(sym)) this.refreshRec(now); const r = this.rec.get(sym); return r == null ? Math.floor(now / MIN) : r; }
+  // the minutes a read of tf over [from, to) needs, for ensure(): seconds = the range (not older than SEC_DAYS), ticks = back to the
+  // session open of the oldest bar wanted (the anchor, see tickBars), not older than KEEP_H (raw trades are kept that long)
+  async ensureFor(sym, tf, from, to, limit, cut = Infinity) {
+    const now = this.clock(), nowMin = Math.floor(now / MIN), end = Math.min(to, cut, now + MIN), endMin = Math.floor((end - 1) / MIN) + 1;
+    const n = tickN(tf), budgetEnd = now + this.o.ENSURE_BUDGET_MS;
+    if (!n) {
+      const sp = tfSpec(tf); if (!sp || sp.k !== 's') return { left: 0 };
+      return this.ensure(sym, Math.max(Math.floor(from / MIN), nowMin - this.o.SEC_DAYS * 1440), endMin);
+    }
+    // ticks: grow the window back from `to` (1 h, 2 h, 4 h ..) until it holds limit+2 bars of trades, then fill back to the session
+    // open of the oldest one (the count anchor). Never fetches more than the bars need.
+    const keepLo = nowMin - this.o.KEEP_H * 60 + 1;
+    let left = 0, step = 60;
+    for (;;) {
+      const lo = Math.max(endMin - step, keepLo), budget = Math.max(0, budgetEnd - this.clock());
+      left = (await this.ensure(sym, lo, endMin, budget)).left;
+      if (left) return { left };
+      const t0 = this.tickStart(sym, n, limit, endMin, keepLo);
+      if (t0 >= lo || lo === keepLo) { const so = Math.max(Math.ceil(sessionOpen(t0 * MIN) / MIN), keepLo); if (so < lo) left = (await this.ensure(sym, so, lo, Math.max(0, budgetEnd - this.clock()))).left; break; }
+      step *= 2;
+    }
+    return { left };
+  }
+  // counts: minute -> trades, over [lo, endMin) from tkm1 + the open minute
+  counts(sym, lo, endMin) {
+    const m = new Map(); for (const r of this.st.counts(sym, lo, endMin - 1)) m.set(r.t, r.n || 0);
+    const s = this.S.get(sym); if (s && s.cur && s.cur.t >= lo && s.cur.t < endMin) m.set(s.cur.t, s.cur.ticks.length);
+    return m;
+  }
+  // the minute to start reading from so that limit+2 bars of n trades fit before endMin (stops at lo)
+  tickStart(sym, n, limit, endMin, lo, m) {
+    const c = m instanceof Map ? m : this.counts(sym, lo, endMin), want = (limit + 2) * n;
+    let sum = 0, t = endMin - 1;
+    for (; t > lo; t--) { sum += c.get(t) || 0; if (sum >= want || sum >= this.o.TICK_MAX_TRADES) break; }
+    return Math.max(t, lo);
+  }
+  // N-TICK BARS of the stored trades before `to` (ms): the newest `limit` bars. Deterministic: each bar is n trades counted from the
+  // SESSION OPEN (18:00 New York, tick-codec.js sessionOpen), so trade k of the session (k = 0, 1, ..) opens a bar when k % n == 0 and
+  // the same trades give the same bars on every read; a session's last bar may hold fewer than n. Bar time = its first trade's time,
+  // +1 ms when that would not be after the previous bar (bursts: many bars in one ms). Only sessions whose open is inside the raw
+  // window (KEEP_H) are served. ensureFor() fills holes first; a hole younger than the archive lag (~10 min, a socket drop) is filled by
+  // the gap filler later and the bars after it are re-counted on the next read. -> { b, rec, e, q, c: trades in the last bar, cut }
+  tickBars(sym, n, to, limit, cut = Infinity) {
+    if (!this.syms.has(sym) || !n) return null;
+    const now = this.clock(), nowMin = Math.floor(now / MIN), end = Math.min(to, cut, now + MIN), endMin = Math.floor((end - 1) / MIN) + 1;
+    const covFrom = nowMin - this.o.KEEP_H * 60 + 1;   // raw trades exist KEEP_H back only
+    const q = cut === Infinity ? (this.S.get(sym) ? this.S.get(sym).seq : 0) : null;
+    const none = { b: [], rec: covFrom * MIN, e: this.epoch, q, c: 0, cut: cut !== Infinity };
+    if (!(endMin > covFrom)) return none;
+    const cnt = this.counts(sym, covFrom, endMin);
+    let t0 = this.tickStart(sym, n, limit, endMin, covFrom, cnt);
+    let so = sessionOpen(t0 * MIN);
+    if (so < covFrom * MIN) {   // the session holding t0 is not in the record from its open: start at the next session
+      so = sessionOpen(sessionOpen(covFrom * MIN) + 25 * 3600000);
+      if (so >= end) return none;
+      t0 = Math.ceil(so / MIN);
+    }
+    t0 = Math.max(t0 - 1, Math.ceil(so / MIN));   // one minute early: the first bar's +1 ms rule sees the bar before it (bursts)
+    let idx = 0; for (let t = Math.ceil(so / MIN); t < t0; t++) idx += cnt.get(t) || 0;
+    const trades = [];
+    for (const r of this.st.raw(sym, t0, endMin - 1)) for (const x of unpackTicks(r.ticks, r.t * MIN)) if (x[0] < end) trades.push(x);
+    const s = this.S.get(sym);
+    if (s && s.cur && s.cur.t >= t0 && s.cur.t < endMin) for (const x of s.cur.ticks) if (x[0] < end) trades.push(x);
+    const out = []; let cur = null, k = 0, next = sessionOpen(so + 25 * 3600000), last = -Infinity;
+    for (const [ts, px, sz, side] of trades) {
+      if (ts >= next) { so = sessionOpen(ts); next = sessionOpen(so + 25 * 3600000); idx = 0; }
+      if (idx % n === 0) { const tm = Math.max(ts, last + 1); cur = [tm, px, px, px, px, 0, 0]; out.push(cur); last = tm; k = 0; }
+      idx++;
+      if (!cur) continue;   // the tail of a bar that opened before t0
+      if (px > cur[2]) cur[2] = px; if (px < cur[3]) cur[3] = px; cur[4] = px; cur[5] += sz; if (side > 0) cur[6] += sz; k++;
+    }
+    return { b: out.slice(-limit), rec: covFrom * MIN, e: this.epoch, q, c: out.length ? k : 0, cut: cut !== Infinity };
+  }
+
   // ---- reads
   // the open minute as 1 s rows, cut before `cut` (ms)
   openSecs(sym, cut) {
@@ -231,7 +344,7 @@ export class TickEngine {
     const now = this.clock(), end = Math.min(to, cut, now + MIN), q0 = this.S.get(sym) ? this.S.get(sym).seq : 0;
     if (!this.rec.has(sym)) this.refreshRec(now);
     let recMin = this.rec.get(sym); if (recMin == null) recMin = Math.floor(now / MIN);
-    if (sp.k === 's') recMin = Math.max(recMin, Math.floor(now / MIN) - this.o.SEC_DAYS * 1440);
+    if (sp.k === 's') { const lo = Math.max(Math.floor(from / MIN), Math.floor(now / MIN) - this.o.SEC_DAYS * 1440); recMin = Math.max(this.coveredFrom(sym, lo, recMin), lo); }   // seconds: archive fills older than rec count (on-demand history)
     const recMs = recMin * MIN;
     from = Math.max(from, recMs);
     let rows = [], q = q0;
@@ -330,6 +443,7 @@ export function teStore(sql) {
     raw(sym, t0, t1) { return all('SELECT t, ticks FROM tkraw WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, t0, t1); },
     secs(sym, t0, t1) { return all('SELECT t, secs FROM tksec WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, t0, t1); },
     m1(sym, t0, t1) { return all('SELECT t, o, h, l, c, v, b FROM tkm1 WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, t0, t1); },
+    counts(sym, t0, t1) { return all('SELECT t, n FROM tkm1 WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, t0, t1); },
     h1(sym, h0, h1) { return all('SELECT t, o, h, l, c, v, b FROM tkh1 WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, h0, h1); },
     spans() { return all('SELECT id, sym, t0, t1, kind FROM tkspan'); },
     addSpan(sym, t0, t1, kind) { return all('INSERT INTO tkspan (sym, t0, t1, kind) VALUES (?, ?, ?, ?) RETURNING id', sym, t0, t1, kind)[0].id; },

@@ -29,7 +29,7 @@ import { bucketSnapshot, encodeSamples, decodeSamples, nearNiceStep } from './bu
 import { TradeBook, tradeStore } from './ts-trades.js';
 import { tsTier } from './ts-access.js';
 import { wsTokenOf } from './rt-auth.js';
-import { delayCut } from './tick-engine.js';   // TICK ENGINE block (src/tick-engine.js): every trade stored, one candle source, seq replay   // TS-TRADES block: big-trade candidates + per-minute delta (src/ts-trades.js)
+import { delayCut, tickN } from './tick-engine.js';   // TICK ENGINE block (src/tick-engine.js): every trade stored, one candle source, seq replay   // TS-TRADES block: big-trade candidates + per-minute delta (src/ts-trades.js)
 
 export const TS_WS = 'wss://stream.tick-stream.xyz/v1/stream';
 // Owner 2026-11-02: all eight, each with its OWN book (MNQ / MES are separate books, not mapped to NQ / ES). One socket, unlimited symbols on realtime-l2.
@@ -554,7 +554,14 @@ export async function tsHubFetch(hub, env, u, req) {
     const to = Math.min(Number(u.searchParams.get('to')) || now + 60000, now + 60000), from = Number(u.searchParams.get('from')) || to - 6 * 3600000;
     if (!hub.te.has(sym) || !(from < to)) return new Response('bad request', { status: 400 });
     if (u.pathname === '/te-ticks') { const t = hub.te.ticks(sym, from, to, cut); return Response.json({ sym, e: hub.te.epoch, cut: cut === Infinity ? null : cut, t }); }
-    const r = hub.te.bars(sym, String(u.searchParams.get('tf') || ''), from, to, cut);
+    const tf = String(u.searchParams.get('tf') || ''), n = tickN(tf), limit = Math.min(5000, Math.max(1, Number(u.searchParams.get('limit')) || 500));
+    // ON-DEMAND HISTORY: seconds / tick reads older than the record are fetched from the archive first (live lane only: an anonymous
+    // read never spends archive calls). `more` = minutes still missing after this read's budget; the chart asks again (paging by `to`).
+    let more = 0;
+    if (cut === Infinity && (n || /^\d+S$/i.test(tf))) { try { more = (await hub.te.ensureFor(sym, tf, from, to, limit, cut)).left; } catch (e) { more = 1; } }
+    if (n) { const r = hub.te.tickBars(sym, n, to, limit, cut); return Response.json(Object.assign({ sym, tf, at: now, more }, r, { cut: cut === Infinity ? null : cut })); }
+    const r = hub.te.bars(sym, tf, from, to, cut);
+    if (r) r.more = more;
     if (!r) return new Response('bad timeframe', { status: 400 });
     return Response.json(Object.assign({ sym, tf: u.searchParams.get('tf'), at: now }, r, { cut: cut === Infinity ? null : cut }));
   }

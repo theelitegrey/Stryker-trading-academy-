@@ -457,6 +457,16 @@
       "alt": "Creator Hub share card: a demo community page with plans, with the TradeZoro logo"
     },
     {
+      "page": "sell-indicators.html",
+      "title": "Trading Indicators",
+      "og_title": "Sell your trading indicators | TradeZoro",
+      "visual": [
+        "assets/img/promo/sell-indicators-og.jpg"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Sell Your Trading Indicators: a laptop showing a candle chart and a My Indicator card, with the TradeZoro logo"
+    },
+    {
       "page": "indicators.html",
       "title": "Indicator Library",
       "og_title": "Indicator Library: every ZoroCharts indicator explained",
@@ -2087,16 +2097,6 @@
       ],
       "focus": "0.5,0.5",
       "alt": "WCSMC + SP v3.0 [WinWorld] drawn on an NQ futures chart in ZoroCharts"
-    },
-    {
-      "page": "sell-indicators.html",
-      "title": "Trading Indicators",
-      "og_title": "Sell your trading indicators | TradeZoro",
-      "visual": [
-        "assets/img/promo/sell-indicators-og.jpg"
-      ],
-      "focus": "0.5,0.5",
-      "alt": "Sell Your Trading Indicators: a laptop showing a candle chart and a My Indicator card, with the TradeZoro logo"
     }
   ]
 }

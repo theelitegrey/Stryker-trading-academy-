@@ -21,10 +21,10 @@
 // PLAN: Free = SPX column only (QQQ / SPY show a "Pro" lock and are never fetched); Pro = all three.
 // BAR REPLAY: the ladder is the current chain, so it says so and does not draw during replay.
 // WORDING: "GEX updated Xs ago" / "X min ago" only; Education only. Not financial advice.
-import { rtHeadersReady } from './rt-access.js?v=885';
-import * as ProGate from './chart-pro-gate.js?v=885';
-import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, dataTime } from './chart-gex-levels.js?v=885';
-import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText, keyLevels, rowNearest, fmtPct } from './chart-gex-ladder-core.js?v=885';
+import { rtHeadersReady } from './rt-access.js?v=886';
+import * as ProGate from './chart-pro-gate.js?v=886';
+import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, dataTime } from './chart-gex-levels.js?v=886';
+import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText, keyLevels, rowNearest, fmtPct } from './chart-gex-ladder-core.js?v=886';
 
 export const COLS = [['QQQ', 'Nasdaq 100'], ['SPY', 'S&P 500 ETF'], ['GLD', 'Gold'], ['SPX', 'S&P 500']];
 const LADDER_API = '/api/gex/ladder';

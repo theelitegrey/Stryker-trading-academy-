@@ -5,7 +5,6 @@ import test from 'node:test';
 const rules = fs.readFileSync(new URL('../../functions-src/firestore.rules', import.meta.url), 'utf8');
 const fn = fs.readFileSync(new URL('../../functions-src/supportTickets.js', import.meta.url), 'utf8');
 const contactFn = fs.readFileSync(new URL('../../functions-src/onContactMessageCreated.js', import.meta.url), 'utf8');
-const memberUi = fs.readFileSync(new URL('../../assets/support-tickets.js', import.meta.url), 'utf8');
 const adminUi = fs.readFileSync(new URL('../../assets/support-admin.js', import.meta.url), 'utf8');
 
 function block(source, start, end) {
@@ -63,13 +62,7 @@ test('notifications use existing collection, trusted recipients and exact deep l
   assert.doesNotMatch(contactFn, /pages-admin\.html#contact-/);
 });
 
-test('member and admin UIs open exact ticket hashes and expose required actions', () => {
-  assert.match(memberUi, /\^#ticket-\(\[A-Za-z0-9_-\]\+\)\$/);
-  assert.match(memberUi, /action:'create'/);
-  assert.match(memberUi, /action:'reply'/);
-  assert.match(memberUi, /action:'status'/);
-  assert.match(memberUi, /waiting_for_support: 'Waiting for support'/);
-  assert.match(memberUi, /waiting_for_member: 'Waiting for you'/);
+test('admin UI exposes the ticket actions (member UI removed, help moved to Discord)', () => {
   assert.match(adminUi, /linkedTicket\(\)/);
   assert.match(adminUi, /data-ticket-filter/);
   assert.match(adminUi, /action:'reply'/);

@@ -68,7 +68,7 @@ function build(data) {
     });
     st += '</section>\n';
   });
-  st += '<p>Turn on JavaScript to search all ' + items.length + ' questions. Need a person? <a href="support">Go to Support</a> or email <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>.</p>\n</div>\n</noscript>';
+  st += '<p>Turn on JavaScript to search all ' + items.length + ' questions. Need a person? <a href="https://discord.gg/jUJpu76rve" target="_blank" rel="noopener">ask on Discord</a> or email <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>.</p>\n</div>\n</noscript>';
   return { jsonld, st, count: items.length };
 }
 

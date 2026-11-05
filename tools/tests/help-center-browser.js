@@ -180,7 +180,7 @@ async function suite(b, vp) {
   check((await url(p)).includes('?q=cancel'), tag + ': query written to URL');
   await shot(p, `help-search-${vp.width}.png`);
   await p.fill('#hc-q', 'zzzxqv'); await sleep(80);
-  check(await p.$('.hc-empty a[href="support"]') !== null && (await p.$$('.hc-sugg li')).length >= 4, tag + ': no-results state has Support link + suggestions');
+  check(await p.$('.hc-empty a[href*="discord.gg"]') !== null && (await p.$$('.hc-sugg li')).length >= 4, tag + ': no-results state has Support link + suggestions');
   await shot(p, `help-noresults-${vp.width}.png`);
   await p.fill('#hc-q', ''); await sleep(80);
   check((await p.$$('.hc-card')).length === DATA.categories.length, tag + ': clearing search returns to the category grid');
@@ -309,7 +309,7 @@ async function suite(b, vp) {
   await p.click('.hc-item.is-open .hc-copy'); await sleep(200);
   const clip = await p.evaluate(() => navigator.clipboard.readText().catch(() => 'n/a'));
   check(clip === BASE + '/help#refund' || clip === 'n/a', tag + ': Copy link copies the deep link (' + clip + ')');
-  check(await p.$$eval('.hc-still a', (a) => a.map((x) => x.getAttribute('href')).join('|')) === (process.env.HELP_SIGNED_IN ? '#new-ticket|mailto:support@tradezoro.com' : 'support|contact|mailto:support@tradezoro.com'), tag + ': Still-need-help links');
+  check(await p.$$eval('.hc-still a', (a) => a.map((x) => x.getAttribute('href')).join('|')) === 'https://discord.gg/jUJpu76rve|mailto:support@tradezoro.com', tag + ': Still-need-help links');
 
   // ---- no-JS fallback + JSON-LD
   const html = fs.readFileSync(path.join(ROOT, 'help.html'), 'utf8');

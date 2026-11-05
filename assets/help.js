@@ -341,7 +341,7 @@
   }
   function voteMsg(v) {
     if (v === 'y') return 'Thanks. Saved on this device only.';
-    if (v === 'n') return 'Thanks. Saved on this device only. <a href="support">Ask Support</a>';
+    if (v === 'n') return 'Thanks. Saved on this device only. <a href="https://discord.gg/jUJpu76rve" target="_blank" rel="noopener">Get help on Discord</a>';
     return '';
   }
 
@@ -422,7 +422,7 @@
       '<h2>' + (q ? 'No results for “' + esc(q) + '”' : 'Nothing matches these filters') + '</h2>' +
       '<p>' + (q ? 'Check the spelling, try fewer or simpler words, or clear the filters.' : 'Try clearing the filters.') + '</p>' +
       '<div class="hc-empty-btns">' + (filtersActive() || S.cat ? '<button type="button" class="btn btn-ghost btn-sm" id="hc-clear-all">Clear filters</button>' : '') +
-      '<a class="btn btn-primary btn-sm" href="support">Ask Support</a></div>' +
+      '<a class="btn btn-primary btn-sm" href="https://discord.gg/jUJpu76rve" target="_blank" rel="noopener">Get help on Discord</a></div>' +
       '<h3 class="hc-sugg-h">Popular questions</h3>' + suggestedHTML() + '</div>';
   }
 
@@ -694,7 +694,7 @@
 
   loadData().then(function (d) { return Promise.race([loadLegal(), new Promise(function (r) { setTimeout(r, 1500); })]).then(function () { return d; }); }).then(init).catch(function (err) {
     root.removeAttribute('aria-busy'); if (els.skel) els.skel.remove();
-    root.insertAdjacentHTML('afterbegin', '<div class="hc-empty"><h2>The Help Center could not load</h2><p>Check your connection and refresh the page. If it keeps happening, <a href="support">contact Support</a>.</p></div>');
+    root.insertAdjacentHTML('afterbegin', '<div class="hc-empty"><h2>The Help Center could not load</h2><p>Check your connection and refresh the page. If it keeps happening, <a href="https://discord.gg/jUJpu76rve" target="_blank" rel="noopener">get help on Discord</a>.</p></div>');
     if (window.console) console.warn('help-data load failed', err);
   });
 })();

@@ -3835,7 +3835,7 @@
         "Turn off ad-blockers or privacy extensions for this site, or allow cdn.jsdelivr.net.",
         "Update your browser (Chrome, Safari, Edge or Firefox, recent version).",
         "Clear the site cache (see the clear cache answer).",
-        "Still failing? Contact support with your device and browser."
+        "Still failing? Ask in the #help-and-support channel on our Discord with your device and browser."
        ],
        "tags": [
         "chart not loading",
@@ -4066,7 +4066,7 @@
         "Check Spam, Junk and Promotions.",
         "Tap Resend the email (\"Sent again to &lt;email&gt;. It can take a minute - check spam too.\").",
         "Open the link, then tap I've confirmed it.",
-        "Still nothing? Contact support."
+        "Still nothing? Ask in the #help-and-support channel on our Discord."
        ],
        "tags": [
         "verification email",
@@ -4349,7 +4349,7 @@
       {
        "id": "report-bug",
        "q": "How do I report a bug or suggest a feature?",
-       "a": "<p><b>Feature ideas:</b> post them on the Suggestions board (More → Suggestions), or vote for an idea someone already posted. The team marks what is planned and what shipped.</p><p><b>Bugs:</b> use the contact form or email support@tradezoro.com. Say the page, what you tapped, what you expected, your device and browser.</p><p><img src=\"/assets/help/shots/contact-page.webp\" alt=\"The Contact page\"></p>",
+       "a": "<p><b>Feature ideas:</b> post them on the Suggestions board (More → Suggestions), or vote for an idea someone already posted. The team marks what is planned and what shipped.</p><p><b>Bugs:</b> post in the #help-and-support channel on our Discord. Say the page, what you tapped, what you expected, your device and browser.</p><p><img src=\"/assets/help/shots/contact-page.webp\" alt=\"The Contact page\"></p>",
        "tags": [
         "bug",
         "feature request",
@@ -4389,11 +4389,11 @@
       {
        "id": "delete-account",
        "q": "How do I delete my account?",
-       "a": "<p>There is no delete button in the app today. Send a deletion request through the contact form or email support@tradezoro.com from your account email. Our privacy page says you can request deletion of your account and associated data at any time, and our GDPR page says we aim to respond within 30 days.</p>",
+       "a": "<p>There is no delete button in the app today. Email your deletion request to support@tradezoro.com from your account email. Our privacy page says you can request deletion of your account and associated data at any time, and our GDPR page says we aim to respond within 30 days.</p>",
        "steps": [
-        "Open the Contact page.",
-        "Write that you want your account deleted and give your account email.",
-        "Send the message, or email support@tradezoro.com from that address.",
+        "Open an email to support@tradezoro.com from your account email.",
+        "Write that you want your account deleted.",
+        "Send it. Do not post this request in Discord.",
         "Cancel any paid plan first in Settings → Plan & membership so you are not charged again."
        ],
        "tags": [
@@ -4426,7 +4426,7 @@
       {
        "id": "data-export",
        "q": "How do I get a copy of my data?",
-       "a": "<p>There is no one-click export of everything. JournalX has Export CSV for your trades. For a full copy of your data, send a request through the contact form or support@tradezoro.com, as described on our GDPR page.</p>",
+       "a": "<p>There is no one-click export of everything. JournalX has Export CSV for your trades. For a full copy of your data, email a request to support@tradezoro.com, as described on our GDPR page.</p>",
        "tags": [
         "export data",
         "download my data",
@@ -4537,8 +4537,8 @@
       {
        "id": "contact-support",
        "q": "How do I contact support?",
-       "a": "<p>Use the contact form on the Contact page or email support@tradezoro.com. Include your account email, the page you were on, your device and browser, and what you saw. For billing questions include the payment id or Stripe receipt.</p><p><img src=\"/assets/help/shots/support-page.webp\" alt=\"The Support page\"></p>",
-       "path": "More → Support, or the Contact page",
+       "a": "<p>Ask in the #help-and-support channel on our Discord. The team and other traders answer there. Say the page you were on, your device and browser, and what you saw. For billing, refund or privacy requests, email support@tradezoro.com from your account email and do not post private details in Discord.</p><p><img src=\"/assets/help/shots/support-page.webp\" alt=\"The Support page\"></p>",
+       "path": "More → Help, or the Support page",
        "tags": [
         "contact",
         "support",
@@ -4557,8 +4557,8 @@
          "href": "/contact"
         },
         {
-         "label": "Support",
-         "href": "/support"
+         "label": "Get help on Discord",
+         "href": "https://discord.gg/jUJpu76rve"
         }
        ],
        "level": "beginner"
@@ -4578,7 +4578,7 @@
       {
        "id": "curriculum-help",
        "q": "I have a question about a lesson.",
-       "a": "<p>Ask in the Trading Floor. Account or billing issues go to support.</p>",
+       "a": "<p>Ask in the Trading Floor. Account or billing issues: ask in the #help-and-support channel on our Discord, or email support@tradezoro.com.</p>",
        "tags": [
         "lesson question",
         "ask"

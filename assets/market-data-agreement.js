@@ -49,7 +49,7 @@
         '<label><input type="radio" name="mda-' + q[0] + '" value="no"><span>No</span></label>' +
         '<label><input type="radio" name="mda-' + q[0] + '" value="yes"><span>Yes</span></label></div></div>';
     });
-    h += '<div class="mda-pro" role="alert" hidden>Professional data isn\'t sold online. <a href="help.html#new-ticket">Contact support</a> (Help, New support ticket) and we will help you.</div>' +
+    h += '<div class="mda-pro" role="alert" hidden>Professional data isn\'t sold online. <a href="https://discord.gg/jUJpu76rve" target="_blank" rel="noopener">Get help on Discord</a> (#help-and-support channel) and we will help you.</div>' +
       '<div class="mda-box"><b style="color:var(--ink-0,#eee)">In short</b><ul><li>Personal, non-commercial use only. Do not share, resell or redistribute the data, or share your login.</li>' +
       '<li>Data comes from third parties and exchanges, as is. It may be delayed, interrupted or wrong, with no uptime promise.</li>' +
       '<li>Not investment advice. Trading futures carries a risk of loss. We and our data providers are not liable for losses from data errors or outages.</li>' +

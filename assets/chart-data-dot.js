@@ -33,6 +33,7 @@ const CRYPTO = /^(binance|coinbase|hyperliquid):/i;
 const FUT = /^futures:/i;
 const FX = /^fx:/i;
 const IDX = /^idx:/i;
+const STOCKS = /^stocks:/i;   // STOCKS ENGINE (assets/chart-stocks-provider.js stockStatus)
 
 let nyFmt = null;
 function nyParts(ms) {
@@ -144,6 +145,7 @@ export function installDataDot(ws, opts = {}) {
       const m = lag.get(key);
       return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };
     }
+    if (STOCKS.test(sym)) { try { return opts.stockStatus ? opts.stockStatus(sym) : null; } catch (e) { return null; } }
     if (IDX.test(sym)) {
       const now = Date.now(), k = rootOf(sym);
       // Admin: the hub's quote frames are moving the current candle (chart-futures-l2.js sets __stkL2Live).
@@ -296,6 +298,7 @@ export function installDataDot(ws, opts = {}) {
   if (host) new MutationObserver(schedule).observe(host, { childList: true, subtree: true });
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, schedule); } catch (e) {} });
   try { rtOnChange(schedule); } catch (e) {}
+  try { if (opts.onStockMeta) opts.onStockMeta(schedule); } catch (e) {}   // a stock answer landed: re-read its line
   window.addEventListener('stryker:l2live', schedule);
   window.addEventListener('tz:byo', schedule);
   if (rith && rith.client && rith.client.on) { try { rith.client.on((ev) => { if (ev && ev.type === 'state') schedule(); }); } catch (e) {} }

@@ -204,6 +204,7 @@ export function secTickBlock(tf, provider, ticker) {
   const p = parseIv(tf);
   if (!p || (p.kind !== 'sec' && p.kind !== 'tick')) return '';
   if (provider === 'futures') return '';
+  if (provider === 'stocks') return p.kind === 'tick' ? 'Tick charts are not available for stocks. Pick a seconds or minutes interval.' : (p.n < 5 || p.n % 5 ? 'Stocks have 5, 10, 15, 30 and 45 second intervals.' : '');
   if (provider === 'binance') return (p.kind === 'tick' || isPerp(ticker || '')) && !hasTrades('binance') ? 'Live trades are not available right now.' : '';
   return (p.kind === 'sec' ? 'Seconds' : 'Tick') + ' charts need exchange trade data. Pick a crypto symbol for this interval.';
 }
@@ -459,7 +460,7 @@ function secTickSubscribe(provider, ticker, p, onBar) {
 export function wrapProvider(inner, name, pollMs) {
   const getBars = async (ticker, timeframe, range = {}) => {
     const sp = parseIv(timeframe);
-    if (sp && (sp.kind === 'sec' || sp.kind === 'tick')) return secTickBlock(timeframe, name, ticker) ? [] : secTickGetBars(name, ticker, sp, range);
+    if (sp && (sp.kind === 'sec' || sp.kind === 'tick') && name !== 'stocks') return secTickBlock(timeframe, name, ticker) ? [] : secTickGetBars(name, ticker, sp, range);   // stocks: the server serves seconds bars itself
     const plan = planFor(name, timeframe);
     if (!plan) return inner.getBars(ticker, timeframe, range);
     const lim = range.limit != null ? range.limit * plan.ratio + plan.ratio : undefined;
@@ -477,7 +478,7 @@ export function wrapProvider(inner, name, pollMs) {
     timeframe, onBar);
   const openSub = (ticker, timeframe, onBar, opts) => {
     const sp = parseIv(timeframe);
-    if (sp && (sp.kind === 'sec' || sp.kind === 'tick')) return secTickBlock(timeframe, name, ticker) ? () => {} : secTickSubscribe(name, ticker, sp, onBar);
+    if (sp && (sp.kind === 'sec' || sp.kind === 'tick') && name !== 'stocks') return secTickBlock(timeframe, name, ticker) ? () => {} : secTickSubscribe(name, ticker, sp, onBar);
     if (!planFor(name, timeframe)) return inner.subscribe ? inner.subscribe(ticker, timeframe, onBar, opts) : () => {};
     // Built interval: re-read the newest two built bars (the forming one moves), paused while hidden.
     let stopped = false, timer = null;
@@ -501,7 +502,7 @@ export function wrapProvider(inner, name, pollMs) {
     }
   });
 }
-export const wrapFactory = (factory, name, pollMs) => () => wrapProvider(factory(), name, pollMs || (name === 'futures' || name === 'fx' || name === 'idx' ? 20000 : 5000));
+export const wrapFactory = (factory, name, pollMs) => () => wrapProvider(factory(), name, pollMs || (name === 'futures' || name === 'fx' || name === 'idx' || name === 'stocks' ? 20000 : 5000));
 
 // ---------------- UI ----------------
 const CSS = `

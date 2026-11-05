@@ -499,6 +499,7 @@ function lateLists(provider){
       import('./chart-tool-icons.js?v=884'),
       import(VELA_BASE + (VELA090 ? 'chunk-YRCL3WMD.js' : 'chunk-IFJJPXSV.js')),
       import('./chart-ind-style.js?v=884'),
+      import('./chart-stocks-provider.js?v=884'),   // STOCKS ENGINE: every stock / ETF (assets/chart-stocks-provider.js)
       import('./byo-provider.js?v=884')   // last: connect-your-own-data providers (assets/byo-provider.js)
     ]);
   } catch (err) {
@@ -522,6 +523,7 @@ function lateLists(provider){
   const FxProvider = mods[4].FxProvider;
   const IdxProvider = mods[4].IdxProvider;
   const BYO = mods[mods.length - 1];   // withByo(), ByoProvider
+  const Stocks = mods[mods.length - 2];   // StocksProvider, installStockSearch, stockStatus
   const COMMODITY_ROOTS = mods[4].COMMODITY_ROOTS || [];
   let Flow, Gex, GexHeat;
   // EMPTY LAYER CANVASES OFF (speed, 2026-10-23): Vela gives every registered renderer layer
@@ -737,6 +739,9 @@ function lateLists(provider){
         fx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(FxProvider, 'fx'))(), 'fx'), 'fx'),
         // Indices & ETFs (SPX NDX VIX RUT QQQ SPY IWM DIA): same endpoint, Yahoo, delayed; admin live candle from the hub's quote frames.
         idx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(IdxProvider, 'idx'))(), 'idx'), 'idx'),
+        // STOCKS ENGINE: every stock / ETF / fund worldwide, history + forming bar from the book recorder (assets/chart-stocks-provider.js).
+        // Registered AFTER idx, so the bare SPY QQQ IWM DIA keep resolving to the index provider; stocks are always "stocks:EXCH:TICKER".
+        stocks: Replay.wrapFactory(Iv.wrapFactory(() => new Stocks.StocksProvider(), 'stocks'), 'stocks'),
         // Stocks from the member's OWN connected account (assets/byo-core.js); empty until they connect one.
         byo: Replay.wrapFactory(Iv.wrapFactory(() => new BYO.ByoProvider(), 'byo'), 'byo'),
         // Formula symbols ("ES1!-NQ1!*0.25"): candles computed from the legs' own providers (assets/chart-formula.js).
@@ -876,12 +881,13 @@ function lateLists(provider){
   }).catch((e) => console.warn('TradeZoro: own data', e));
   import('./byo-ui.js?v=884').then((m) => m.mountByo()).catch((e) => console.warn('TradeZoro: data source sheet', e));
   // Delayed-data pill at the bottom of the chart + its sheet (CME futures, viewer not real-time): assets/chart-data-banner.js.
+  try { Stocks.installStockSearch(ws); } catch (e) { console.warn('TradeZoro: stock search', e); }   // server search in every symbol picker
   import('./chart-data-banner.js?v=884')
     .then((m) => m.installDataBanner(ws, { rith: rithRef, getRith: () => rith }))
     .catch((e) => console.warn('TradeZoro: data banner', e));
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
   import('./chart-data-dot.js?v=884')
-    .then((m) => m.installDataDot(ws, { rith: rithRef, FuturesProvider, FxProvider, IdxProvider }))
+    .then((m) => m.installDataDot(ws, { rith: rithRef, FuturesProvider, FxProvider, IdxProvider, stockStatus: Stocks.stockStatus, onStockMeta: Stocks.onStockMeta }))
     .catch((e) => console.warn('TradeZoro: data dot', e));
   // Stronger weak magnet on 0.9.0 (nearest OHLC in pixels across nearby candles, 28 px): assets/chart-magnet.js.
   if (VELA090) import('./chart-magnet.js?v=884')

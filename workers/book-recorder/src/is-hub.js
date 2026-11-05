@@ -41,7 +41,11 @@ const WINDOW_MS = 3 * 3600e3;
 const DEF = {
   MAX_LEGS: 5, LEG_IDLE_MS: 180000, SEND_GAP_MS: 10000, BRAKE_AT: 60, BRAKE_GAP_MS: 60000, HARD_AT: 100,
   BACK_MIN_MS: 5000, BACK_MAX_MS: 120000, STABLE_MS: 60000, PING_MS: 5000, PENDING_MS: 8000,
-  STALE_MS: 180000, STALE_MAX_MS: 1800000, ROW_CAP: 1200, REPLAY: 600
+  STALE_MS: 180000, STALE_MAX_MS: 1800000, ROW_CAP: 1200, REPLAY: 600,
+  // STOCKS ENGINE (src/stock-engine.js): quote streams on the SAME socket. 10 quotes = 1 symbol unit (measured: 50 quotes on 5 units);
+  // series legs keep priority, quotes get the units they leave. A changed quote set is sent at most every QUOTE_GAP_MS and never once the
+  // 3 h window reaches BRAKE_AT, so the futures legs always keep their subscription budget.
+  QUOTE_GAP_MS: 300000, QUOTE_TICK_MS: 60000
 };
 const UNIT = { m: 'minute', min: 'minute', minute: 'minute', h: 'hour', hour: 'hour', s: 'second', sec: 'second', second: 'second', t: 'tick', tick: 'tick', d: 'day', day: 'day' };
 const DP = { minute: 1000, hour: 500, second: 300, tick: 1 };
@@ -68,6 +72,31 @@ export class ISHub {
     this.retryN = 0; this.nextAt = 0; this.openedAt = 0; this.lastMsgAt = 0; this.staleN = 0;
     this.timers = {}; this.log = null; this.stats0 = { throttled: 0, errors: 0, evicted: 0, refused: 0, attaches: 0 };
     this.lastError = '';
+    this.quotesFn = null; this.onQuote = null; this.quoteSent = []; this.quoteAt = 0;   // STOCKS ENGINE hooks (set by StockEngine)
+  }
+  // ---- STOCKS ENGINE: quote codes wanted now, capped to the units the series legs leave free
+  quoteWant(now = Date.now()) {
+    if (!this.quotesFn) return [];
+    let w = []; try { w = this.quotesFn(now) || []; } catch (e) { w = []; }
+    const free = Math.max(0, this.o.MAX_LEGS - this.active().length) * 10;
+    return (this.badCodes ? w.filter((c) => !this.badCodes.has(c)) : w).slice(0, free);
+  }
+  quotesChanged() {
+    const w = this.quoteWant();
+    if (!w.length && !this.quoteSent.length) return;
+    this.startQuoteTick();
+    if (!this.ws && !this.timers.retry) { this.connect(); return; }
+    const same = w.length === this.quoteSent.length && w.every((c, i) => c === this.quoteSent[i]);
+    if (same) return;
+    // a NEW code that is not streamed yet waits at most QUOTE_GAP_MS; dropping codes only happens on the gap too (no message for it alone)
+    if (Date.now() - this.quoteAt < this.o.QUOTE_GAP_MS || this.windowCount() >= this.o.BRAKE_AT) return;
+    this.dirty = true; this.trySend();
+  }
+  startQuoteTick() {
+    if (this.timers.qtick) return;
+    // one timer only: quotesChanged() sees qtick set and does not start another
+    const tick = () => { const w = this.quoteWant(); if (!w.length && !this.quoteSent.length) { this.timers.qtick = null; if (!this.clients.size && !this.legs.size) this.schedulePrune(); return; } this.timers.qtick = setTimeout(tick, this.o.QUOTE_TICK_MS); this.quotesChanged(); };
+    this.timers.qtick = setTimeout(tick, this.o.QUOTE_TICK_MS);
   }
 
   // ---- request log (connects 'c', subscription messages 'm'), persisted so an evicted DO keeps its count
@@ -110,6 +139,7 @@ export class ISHub {
       perMin, legs: [...this.legs.values()].map((l) => ({ id: legId(l.spec), clients: l.clients.size, rows: l.rows.size })),
       clients: this.clients.size, lastMsgAgoMs: this.lastMsgAt ? now - this.lastMsgAt : null,
       retryN: this.retryN, nextRetryInMs: this.timers.retry ? Math.max(0, this.nextAt - now) : 0,
+      quotes: this.quoteSent.length, quoteAgoMs: this.quoteAt ? now - this.quoteAt : null,
       maxLegs: this.o.MAX_LEGS, maxSockets: this.o.MAX_SOCKETS || 1, lastError: this.lastError, ...this.stats0
     };
   }
@@ -196,7 +226,7 @@ export class ISHub {
   }
   connect() {
     if (this.ws || !this.key || typeof this.WS !== 'function') return;
-    if (!this.clients.size) return;
+    if (!this.clients.size && !this.quoteWant().length) return;
     const bw = this.budgetWait();
     if (bw) { this.state = 'paused'; this.lastError = 'own budget: ' + this.windowCount() + '/3h'; this.broadcast({ event: 'hub_paused', ms: bw }); this.nextAt = Date.now() + bw; this.timers.retry = setTimeout(() => { this.timers.retry = null; if (this.clients.size) this.connect(); }, bw); return; }
     let ws;
@@ -212,7 +242,7 @@ export class ISHub {
       this.ws = null; this.state = 'idle'; this.pendingAt = 0;
       for (const c of this.clients) c.primed.clear();
       this.broadcast({ event: 'hub_down' });
-      if (this.clients.size) this.retryLater();
+      if (this.clients.size || this.quoteWant().length) this.retryLater();
     });
     this.startWatch();
   }
@@ -222,7 +252,7 @@ export class ISHub {
     try { if (ws) ws.close(); } catch (e) {}
     for (const c of this.clients) c.primed.clear();
     this.broadcast({ event: 'hub_down' });
-    if (this.clients.size) this.retryLater(minWait);
+    if (this.clients.size || this.quoteWant().length) this.retryLater(minWait);
   }
   backoff(minWait = 0) {
     this.retryN++;
@@ -235,14 +265,15 @@ export class ISHub {
     if (this.timers.retry) return;
     const wait = this.backoff(minWait);
     this.nextAt = Date.now() + wait;
-    this.timers.retry = setTimeout(() => { this.timers.retry = null; if (this.clients.size) this.connect(); }, wait);
+    this.timers.retry = setTimeout(() => { this.timers.retry = null; if (this.clients.size || this.quoteWant().length) this.connect(); }, wait);
   }
   trySend(initial = false) {
     if (this.timers.send) return;
     if (!this.dirty || this.state !== 'open' || !this.ws) return;
-    const act = this.active();
-    if (!act.length) { this.dirty = false; return; }
-    if (!initial && act.every(([id]) => this.lastSent.has(id))) { this.dirty = false; return; }   // dedupe: nothing new
+    const act = this.active(), qw = this.quoteWant();
+    const qSame = qw.length === this.quoteSent.length && qw.every((c, i) => c === this.quoteSent[i]);
+    if (!act.length && !qw.length) { this.dirty = false; return; }
+    if (!initial && act.every(([id]) => this.lastSent.has(id)) && qSame) { this.dirty = false; return; }   // dedupe: nothing new
     const now = Date.now();
     if (!initial && this.budgetWait()) {   // over our own budget: no new legs upstream; their clients poll REST
       for (const [id, l] of act) if (!this.lastSent.has(id)) for (const c of l.clients) { try { c.client.send(JSON.stringify({ event: 'hub_full' })); } catch (e) {} }
@@ -255,11 +286,13 @@ export class ISHub {
     this.timers.send = setTimeout(() => {
       this.timers.send = null;
       if (!this.dirty || this.state !== 'open' || !this.ws) return;
-      const a = this.active().slice(0, this.o.MAX_LEGS);
-      if (!a.length) { this.dirty = false; return; }
-      const subs = a.map(([, l]) => ({ code: l.spec.code, type: 'series', bar_type: l.spec.bar_type, bar_interval: l.spec.bar_interval, dp: DP[l.spec.bar_type], '24h': true }));
+      const a = this.active().slice(0, this.o.MAX_LEGS), q = this.quoteWant();
+      if (!a.length && !q.length) { this.dirty = false; return; }
+      const subs = a.map(([, l]) => ({ code: l.spec.code, type: 'series', bar_type: l.spec.bar_type, bar_interval: l.spec.bar_interval, dp: DP[l.spec.bar_type], '24h': true }))
+        .concat(q.map((code) => ({ code, type: 'quote' })));
       this.dirty = false; this.pendingAt = this.lastSendAt = Date.now();
       this.lastSent = new Set(a.map(([id]) => id));
+      this.quoteSent = q.slice(); this.quoteAt = Date.now();
       this.note('m');
       try { this.ws.send(JSON.stringify({ api_key: this.key, slow_consumer_policy: 'adaptive', subscriptions: subs })); } catch (e) { this.drop('send failed'); }
     }, Math.max(wait, initial ? 0 : 150));
@@ -278,6 +311,7 @@ export class ISHub {
     const now = Date.now();
     this.lastMsgAt = now; this.staleN = 0;
     if (this.openedAt && now - this.openedAt > this.o.STABLE_MS) this.retryN = 0;   // reset only after a stable window
+    if (msg && (msg.event === 'quote_update' || (msg.code && msg.last_price !== undefined && !msg.series))) { if (this.onQuote) { try { this.onQuote(msg); } catch (e) {} } return; }   // STOCKS ENGINE
     const rows = msg && (Array.isArray(msg.series) ? msg.series : Array.isArray(msg.data) ? msg.data : Array.isArray(msg.bars) ? msg.bars : null);
     if (!rows) return this.onEvent(msg || {});
     const hit = this.match(msg);
@@ -303,6 +337,7 @@ export class ISHub {
     this.stats0.errors++;
     this.lastError = (err || ev).slice(0, 60) + (action ? ' / ' + action.slice(0, 40) : '');
     if (/throttl/.test(text) || action === 'wait_and_retry') { this.stats0.throttled++; return; }   // keep the socket: it resumes itself
+    if (/invalid_symbol/.test(err) && msg.code) { this.badCodes = (this.badCodes || new Set()).add(String(msg.code)); return; }   // STOCKS ENGINE: one bad quote code, the rest of the set stays active
     this.pendingAt = 0;
     if (ev === 'connection_evicted' || /evicted/.test(text)) { this.stats0.evicted++; return this.drop('evicted', 30000); }
     if (/max_connection/.test(text)) return this.drop('max_connection_reached', 60000);
@@ -316,7 +351,7 @@ export class ISHub {
     if (this.timers.watch) return;
     const tick = () => {
       this.timers.watch = null;
-      if (!this.clients.size && !this.ws) return;
+      if (!this.clients.size && !this.ws && !this.quoteSent.length) return;
       const limit = Math.min(this.o.STALE_MAX_MS, this.o.STALE_MS * Math.pow(2, this.staleN));
       if (this.state === 'open' && Date.now() - this.lastMsgAt > limit) { this.staleN++; this.lastMsgAt = Date.now(); this.drop('stale'); }
       this.timers.watch = setTimeout(tick, 15000);
@@ -329,14 +364,15 @@ export class ISHub {
       this.timers.prune = null;
       const now = Date.now();
       for (const [id, l] of this.legs) if (!l.clients.size && now - l.idleSince >= this.o.LEG_IDLE_MS) this.legs.delete(id);
-      if (!this.legs.size && !this.clients.size) {
+      if (!this.legs.size && !this.clients.size && !this.quoteWant().length) {
+        this.quoteSent = [];
         const ws = this.ws; this.ws = null; this.state = 'idle';
         try { if (ws) ws.close(); } catch (e) {}
-        for (const k of ['watch', 'retry', 'send']) if (this.timers[k]) { clearTimeout(this.timers[k]); this.timers[k] = null; }
+        for (const k of ['watch', 'retry', 'send', 'qtick']) if (this.timers[k]) { clearTimeout(this.timers[k]); this.timers[k] = null; }
       } else if ([...this.legs.values()].some((l) => !l.clients.size)) this.schedulePrune();
     }, this.o.LEG_IDLE_MS + 1000);
   }
-  shutdown() { for (const k of Object.keys(this.timers)) if (this.timers[k]) clearTimeout(this.timers[k]); try { if (this.ws) this.ws.close(); } catch (e) {} this.ws = null; }
+  shutdown() { this.quotesFn = null; this.clients.clear(); for (const k of Object.keys(this.timers)) if (this.timers[k]) clearTimeout(this.timers[k]); try { if (this.ws) this.ws.close(); } catch (e) {} this.ws = null; }
 }
 
 // ---- request handling inside the BookRecorder Durable Object (src/index.js routes /is-live and /is-stats here).

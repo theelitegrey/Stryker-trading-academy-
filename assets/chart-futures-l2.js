@@ -213,19 +213,43 @@ class Conn {
       const last = r.imb[r.imb.length - 1], now = Date.now();
       if (!last || now - last[0] >= 1000) { r.imb.push([now, m.imb, m.imb10]); if (r.imb.length > 21600) r.imb.splice(0, r.imb.length - 21600); }
     } else if (m.type === 'coarse') r.coarse = m;
-    else if (m.type === 'ticks') {
-      r.nTick = (r.nTick || 0) + (m.t ? m.t.length : 0); r.lastTickAt = Date.now(); r.status = 'live'; if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(m.t || [], false);
-      // live order flow (assets/chart-live-of.js) from the same trades: [t s, price, size, 1 buy / 0 sell]. Times are made strictly increasing (the hub stamps ms,
-      // several prints can share one) so LiveFlow's duplicate check keeps them all.
-      if (hubLive() && liveOfOn() && liveOfRoot(r.root) && m.t && m.t.length) {
-        const rows = [];
-        for (const x of m.t) { const t = Math.max(x[3] / 1000, (r.ofT || 0) + 1e-6); r.ofT = t; rows.push([t, x[0], x[1], x[2] > 0 ? 1 : 0]); }
-        pushLiveTrades(r.root, rows);
-      }
-    }
+    else if (m.type === 'ticks') { if (TE.has(r.root)) return; applyTicks(r, m.t); }   // the tick engine feeds this root's trades (teTicks): none twice
     r.listeners.forEach((f) => { try { f(m); } catch (e) {} });
   }
   close() { this.stopped = true; clearTimeout(this.tm); clearTimeout(this.dog); clearTimeout(this.closeTm); document.removeEventListener('visibilitychange', this.onVis); if (this.ws) { try { this.ws.close(1000); } catch (e) {} this.ws = null; } }
+}
+// one batch of trades [[px, size, side +1/-1, ts_ms]..] into every tick consumer of root: the book tools' TickFeed and the live footprint
+function applyTicks(r, t) {
+  r.nTick = (r.nTick || 0) + (t ? t.length : 0); r.lastTickAt = Date.now(); r.status = 'live'; if (!r.trades) r.trades = new TickFeed(r.root); r.trades.add(t || [], false);
+  // live order flow (assets/chart-live-of.js) from the same trades: [t s, price, size, 1 buy / 0 sell]. Times are made strictly increasing (the hub stamps ms,
+  // several prints can share one) so LiveFlow's duplicate check keeps them all.
+  if (hubLive() && liveOfOn() && liveOfRoot(r.root) && t && t.length) {
+    const rows = [];
+    for (const x of t) { const s = Math.max(x[3] / 1000, (r.ofT || 0) + 1e-6); r.ofT = s; rows.push([s, x[0], x[1], x[2] > 0 ? 1 : 0]); }
+    pushLiveTrades(r.root, rows);
+  }
+}
+// TICK ENGINE (assets/chart-tick-engine.js): while a chart of root is fed by the engine's one socket per browser, THOSE trades feed every tick
+// consumer of root (live footprint, Big Trades, delta / CVD, book tools, tick bars: all listen here via acquire()); the per-root hub socket's
+// own 'ticks' for root are dropped meanwhile, so no trade counts twice. Several charts deliver the same seqs: applied once, by seq.
+// At each hand-over (engine on / off) the forming minute is marked partial and re-read from /ts-aux (liveGap + fillGap), as after a reconnect.
+const TE = new Map();   // root -> { n: charts fed, e, seq: newest seq applied }
+export function teOwn(root, on) {
+  if (L2_ROOTS[root] !== root) return;   // a micro without its own book (MYM, M2K, MGC): its consumers read the mini's hub ticks, unchanged
+  let o = TE.get(root);
+  if (on) { if (!o) { o = { n: 0, e: null, seq: 0 }; TE.set(root, o); liveGap(root); fillGap(root); } o.n++; }
+  else if (o && --o.n <= 0) { TE.delete(root); liveGap(root); fillGap(root); }
+}
+export function teTicks(root, e, q, t) {
+  const o = TE.get(root); if (!o || !t || !t.length) return;
+  if (o.e !== e) { if (o.e !== null) liveGap(root); o.e = e; o.seq = q - 1; }
+  const skip = Math.max(0, o.seq + 1 - q); if (skip >= t.length) return;
+  if (q + skip > o.seq + 1) liveGap(root);   // a hole (the chart resyncs): the minute is partial, never counted as whole
+  const x = skip ? t.slice(skip) : t;
+  o.seq = q + t.length - 1;
+  const r = rootState(root), m = { type: 'ticks', symbol: root, t: x };
+  applyTicks(r, x);
+  r.listeners.forEach((f) => { try { f(m); } catch (e) {} });
 }
 // Resolves once the hub has said which tier this account has (hub_attached), by opening NQ briefly if no socket is open yet. Never rejects.
 const pfx = (v) => (v ? String(v).slice(0, 4) + '…' : '');

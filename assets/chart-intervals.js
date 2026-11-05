@@ -412,6 +412,10 @@ export function tradeHistoryState(provider, ticker, tf) {
 }
 function secTickGetBars(provider, ticker, p, range) {
   if (provider === 'binance' && p.kind === 'sec' && !isPerp(ticker)) return binanceSeconds(ticker, p.n, range);
+  if (provider === 'futures' && p.kind === 'sec') {   // TICK ENGINE: seconds bars from the record of every trade (switch: chart-tick-engine.js)
+    const root = rootOfTicker(ticker), tf = p.n + 'S';
+    return import('./chart-tick-engine.js?v=881').then((m) => m.teWanted(root, tf).then((on) => (on ? m.teGetBars(root, tf, range, null).catch(() => futuresStreamBars(ticker, tf, range)) : futuresStreamBars(ticker, tf, range))));
+  }
   if (provider === 'futures') return futuresStreamBars(ticker, p.n + (p.kind === 'tick' ? 'T' : 'S'), range);
   const b = builderFor(provider, ticker, p.kind === 'tick' ? 'tick' : 'time', p.n);
   b.use();
@@ -437,6 +441,12 @@ function secTickSubscribe(provider, ticker, p, onBar) {
     };
     timer = setTimeout(tick, 1000);
     return () => { stopped = true; if (timer) clearTimeout(timer); };
+  }
+  if (provider === 'futures' && p.kind === 'sec') {
+    const root = rootOfTicker(ticker), tf = p.n + 'S';
+    let stop = null, dead = false;
+    import('./chart-tick-engine.js?v=881').then((m) => m.teWanted(root, tf).then((on) => { if (!dead) stop = on ? m.teSubscribe(root, tf, onBar, () => futuresStreamSubscribe(ticker, tf, onBar)) : futuresStreamSubscribe(ticker, tf, onBar); })).catch(() => { if (!dead) stop = futuresStreamSubscribe(ticker, tf, onBar); });
+    return () => { dead = true; if (stop) stop(); };
   }
   if (provider === 'futures') return futuresStreamSubscribe(ticker, p.n + (p.kind === 'tick' ? 'T' : 'S'), onBar);
   const b = builderFor(provider, ticker, p.kind === 'tick' ? 'tick' : 'time', p.n);

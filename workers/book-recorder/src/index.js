@@ -25,7 +25,8 @@ import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
 import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, wsTokenOf, RT_DELAY_S } from './rt-auth.js';
 import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
-import { TSHub, tsHubFetch, tsStore, tsOpts } from './ts-hub.js';
+import { TSHub, tsHubFetch, tsStore, tsOpts, cmeOpen } from './ts-hub.js';
+import { TickEngine, teStore, teOpts } from './tick-engine.js';
 import { tsAllowed, tsAccess, tsTier } from './ts-access.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
@@ -121,7 +122,10 @@ export class BookRecorder {
     // the site's ONE InsightSentry realtime socket (src/is-hub.js); idle (no socket) until an admin chart attaches
     this.isHub = new ISHub(ctx.storage, env.INSIGHTSENTRY_WEBSOCKET_API_KEY || '', hubOpts(env));
     // the site's ONE Tick-stream socket (futures L2, src/ts-hub.js); admin-only until the licence flag flips
-    this.tsHub = new TSHub(tsStore(this.sql), env.TICKSTREAM_API_KEY || '', tsOpts(env));
+    // TICK ENGINE (src/tick-engine.js): every trade the hub receives, stored per minute, gap-filled from the archive
+    const teo = teOpts(env);
+    this.tickEngine = teo.ON ? new TickEngine(teStore(this.sql), Object.assign(teo, { key: env.TICKSTREAM_API_KEY || '', open: cmeOpen })) : null;
+    this.tsHub = new TSHub(tsStore(this.sql), env.TICKSTREAM_API_KEY || '', Object.assign(tsOpts(env), { te: this.tickEngine }));
   }
   // QUOTA (2026-10-15 outage): the Durable Object is evicted ~10 s after its last request and the
   // feeder posts every 30 s, so every post used to start a fresh DO and reload 26 h x 6 symbols
@@ -441,7 +445,7 @@ export class BookRecorder {
       return Response.json(j);
     }
     if (u.pathname === '/is-live') return isHubFetch(this.isHub, this.env, u, req);
-    if (u.pathname.startsWith('/ts-')) return tsHubFetch(this.tsHub, this.env, u, req);
+    if (u.pathname.startsWith('/ts-') || u.pathname.startsWith('/te-')) return tsHubFetch(this.tsHub, this.env, u, req);
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/t/')) return terminalDo(this, u, req);   // terminal files (src/terminal.js)
     if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
@@ -463,6 +467,28 @@ function cors(req) {
   return h;
 }
 const stub = (env) => env.RECORDER.get(env.RECORDER.idFromName('main'));
+
+// TICK ENGINE query, normalised so callers share cache entries and nobody can make every read a miss: sym / tf checked, `from` rounded
+// down to the timeframe's read grid, `to` up to the next whole minute, the span capped per timeframe, nothing older than 400 days.
+// -> { sym, tf, from, to } | null. /te-ticks: tf unused, span <= 15 min, from rounded down to the second.
+const TE_SPAN = { s: 6 * 3600000, m: 30 * 86400000, h: 400 * 86400000 };
+export function teQuery(u, now) {
+  const sym = String(u.searchParams.get('sym') || '').toUpperCase().slice(0, 6), tf = String(u.searchParams.get('tf') || '').toUpperCase().slice(0, 4);
+  if (!/^[A-Z0-9]{1,5}$/.test(sym)) return null;
+  let to = Number(u.searchParams.get('to')) || now, from = Number(u.searchParams.get('from'));
+  to = Math.min(Math.ceil(to / 60000) * 60000, Math.ceil(now / 60000) * 60000 + 60000);
+  if (u.pathname === '/te-ticks') {
+    from = Math.floor((Number.isFinite(from) && from > 0 ? from : to - 900000) / 1000) * 1000;
+    from = Math.max(from, to - 900000);
+    return from < to && from > now - 3 * 86400000 ? { sym, from, to } : null;
+  }
+  const kind = /^\d+S$/.test(tf) ? 's' : /^(\d+)$/.test(tf) && Number(tf) < 60 ? 'm' : /^(\d+|D)$/.test(tf) ? 'h' : null;
+  if (!kind) return null;
+  const grid = kind === 's' ? 60000 : kind === 'm' ? 3600000 : 86400000;
+  if (!(Number.isFinite(from) && from > 0)) from = to - TE_SPAN[kind] / 4;
+  from = Math.max(Math.floor(from / grid) * grid, Math.floor((to - TE_SPAN[kind]) / grid) * grid, now - 400 * 86400000);
+  return from < to ? { sym, tf, from, to } : null;
+}
 
 // The range a /gex-history request is served for (epoch seconds). Default: the last 24 h. `from`
 // is rounded DOWN to the hour and `to` UP to the 2-min bucket (never past the current one), so
@@ -792,6 +818,40 @@ async function route(req, env, ctx) {
       const r = await stub(env).fetch(new Request(du.toString(), req));
       if (ws) return r;
       return new Response(r.body, { status: r.status, headers: Object.assign({ 'cache-control': 'private, no-store', 'content-type': r.headers.get('content-type') || 'application/json', 'x-ts-fill-left': r.headers.get('x-ts-fill-left') || '0', 'access-control-expose-headers': 'x-ts-fill-left' }, h) });
+    }
+    // TICK ENGINE (src/tick-engine.js). GET /te-bars?sym=&tf=&from=&to= : bars of any timeframe (1S..59S, 1..240 min, D) from the
+    // stored trades. Open to everyone; the LANE is the server's call from the verified token, never the client's: a live tier
+    // (src/ts-access.js tsTier: 'book' or 'trades') reads up to now, anyone else (signed out, bad token, no agreement) gets the SAME
+    // data cut at the whole minute 10 min ago (tick-engine.js delayCut, applied in the Durable Object). The delayed lane is shared
+    // through the edge cache (15 s); the live lane is never cached. GET /te-ticks?sym=&from=&to= : the stored trades (<= 15 min a
+    // read) for the footprint / delta tools, live tiers only. Any client-sent `lane` is dropped and replaced.
+    if (u.pathname === '/te-bars' || u.pathname === '/te-ticks') {
+      const h = cors(req), o = req.headers.get('origin');
+      if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
+      if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
+      { const rl = await env.RL_OF.limit({ key: 'te:' + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }   // before the tier check: no free Firestore reads
+      const tok = bearerOf(req);
+      let tier = null; try { tier = tok ? await tsTier(env, tok) : null; } catch (e) { tier = null; }   // any failure = the delayed lane (fails closed)
+      if (u.pathname === '/te-ticks' && !tier) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
+      const q = teQuery(u, Date.now());
+      if (!q) return new Response('bad request', { status: 400, headers: h });
+      const du = new URL('https://do' + u.pathname);
+      for (const [k, v] of Object.entries(q)) du.searchParams.set(k, String(v));
+      du.searchParams.set('lane', tier ? 'live' : 'delayed');
+      const hdr = (r, cc) => new Response(r.body, { status: r.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': cc, 'x-te-lane': tier ? 'live' : 'delayed', 'access-control-expose-headers': 'x-te-lane', vary: 'Origin, Authorization' }, h) });
+      if (tier) return hdr(await stub(env).fetch(du.toString()), 'private, no-store');
+      const ckey = new Request('https://book-recorder.cache/te-delayed/' + Math.floor(Date.now() / 15000) + du.search);
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch(du.toString());
+        r = new Response(await d.arrayBuffer(), { status: d.status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=15' } });
+        if (d.status === 200) ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return hdr(r, 'public, max-age=15');
+    }
+    if (u.pathname === '/te-health') {
+      const d = await stub(env).fetch('https://do/te-stats');
+      return new Response(d.body, { status: d.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, cors(req)) });
     }
     // GET /ts-quotes: latest SPX NDX VIX RUT QQQ SPY IWM DIA values from the hub's ticks. SAME gate as /ts-live (TS_ACCESS), checked BEFORE the
     // 2 s edge cache is read, so a cached body is never served to someone the gate refuses.

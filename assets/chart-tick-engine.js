@@ -1,0 +1,122 @@
+// TICK ENGINE on the chart (Owner order 2026-11-05). ONE candle source for futures: the bars come from the Worker's record of every trade
+// (GET /te-bars, built from the same trades the socket streams), the forming candle from those trades (assets/tick-feed.js, the one socket
+// per browser), joined by seq: the snapshot says q = seq of its newest trade, the stream delivers seq > q only. No delayed bars and live
+// ticks are ever mixed inside one candle. Older history than our record comes from the old bars source ONCE, strictly before `rec` (the
+// first whole bar of the record, a bar-close boundary), never interleaved.
+// Who gets newer than 10 min is the SERVER's call from the verified token (/te-bars x-te-lane); a delayed answer has no seq and is polled.
+// SWITCH: TICK_ENGINE below ('admins' = admin accounts only, the first rollout step; 'all'; 'off'). ?engine=0 falls back to the old path
+// on this page load, ?engine=1 turns it on for a non-admin test (the server still decides the lane).
+import { tfSpec, foldTick } from './tick-codec.js?v=881';
+import { feedConfig, feedJoin, feedTokenChanged } from './tick-feed.js?v=881';
+import { rtReady, rtToken, isRealtimeAdmin, rtHeadersReady, rtOnChange, rtNoteStreamBar } from './rt-access.js?v=881';
+
+export const TICK_ENGINE = 'admins';
+// = TE_SYMBOLS in workers/book-recorder/src/tick-engine.js (tools/tests/tick-engine-client.test.mjs keeps the two equal)
+export const TE_ROOTS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC', 'SI', 'ZN', '6E', 'MGC', 'MYM', 'M2K'];
+const TFS = ['1', '5', '15', '30', '60', '120', '240', 'D'];
+const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
+const base = () => { try { if (window.__STK_BOOK_RECORDER !== undefined && window.__STK_BOOK_RECORDER) return window.__STK_BOOK_RECORDER; } catch (e) {} return RECORDER; };
+const urlParam = () => { try { return new URLSearchParams(location.search).get('engine'); } catch (e) { return null; } };
+let configured = false;
+function config() {
+  if (configured) return; configured = true;
+  feedConfig(() => rtToken() || '', () => base().replace(/^http/i, 'ws') + '/ts-live');
+  try { rtOnChange(() => feedTokenChanged()); } catch (e) {}
+}
+// may this page use the engine for root at tf ('1S'..'59S', '1'..'240', 'D')? Async: waits for the sign-in answer.
+export async function teWanted(root, tf) {
+  if (!TE_ROOTS.includes(root) || !(TFS.includes(tf) || /^\d+S$/.test(tf)) || !tfSpec(tf)) return false;
+  const p = urlParam();
+  if (p === '0') return false;
+  if (p === '1') return true;
+  if (TICK_ENGINE === 'off') return false;
+  if (TICK_ENGINE === 'all') return true;
+  try { await rtReady(); } catch (e) {}
+  return isRealtimeAdmin();
+}
+const toBar = (b) => ({ time: b[0], open: b[1], high: b[2], low: b[3], close: b[4], volume: b[5] });
+const SPAN = (sp) => (sp.k === 's' ? 6 * 3600000 : sp.k === 'D' || sp.ms >= 3600000 ? 400 * 86400000 : 30 * 86400000);
+const HIST = new Map();   // root|tf|rec -> Promise<bars before rec> (the old source, read once per record start)
+export const teStatus = { lane: '', rec: 0, at: 0, n: 0 };
+
+// one snapshot: { bars, e, q, rec, lane }
+async function snapshot(root, tf, from, to) {
+  config();
+  const u = base() + '/te-bars?sym=' + root + '&tf=' + tf + '&from=' + Math.floor(from) + '&to=' + Math.ceil(to);
+  const r = await fetch(u, { headers: await rtHeadersReady(), cache: 'no-store' });
+  if (!r.ok) throw new Error('te-bars ' + r.status);
+  const j = await r.json();
+  const lane = r.headers.get('x-te-lane') || (j.q != null ? 'live' : 'delayed');
+  Object.assign(teStatus, { lane, rec: j.rec, at: Date.now(), n: j.b.length });
+  return { bars: j.b, e: j.e, q: j.q, rec: j.rec, lane };
+}
+// getBars for the engine: the record from rec, the old source before it (oldGetBars(range) = the provider's own getBars, no engine)
+export async function teGetBars(root, tf, range, oldGetBars) {
+  const sp = tfSpec(tf), now = Date.now();
+  const to = range.to != null ? Math.min(range.to + 1, now + 60000) : now + 60000;
+  const want = range.limit != null ? range.limit : 500;
+  let from = range.from != null ? range.from : to - Math.min(SPAN(sp), want * sp.ms * 3);
+  from = Math.max(from, to - SPAN(sp));
+  const s = await snapshot(root, tf, from, to);
+  let bars = s.bars.filter((b) => b[0] < to && (range.from == null || b[0] >= range.from)).map(toBar);
+  const need = range.from != null ? range.from < s.rec : bars.length < want;
+  if (need && oldGetBars && sp.k !== 's') {
+    const key = root + '|' + tf + '|' + s.rec;
+    let p = HIST.get(key);
+    if (!p || range.from != null) {
+      p = oldGetBars({ to: s.rec - 1, from: range.from, limit: range.from != null ? undefined : Math.max(want - bars.length, 50) }).then((x) => (x || []).filter((b) => b.time < s.rec)).catch(() => []);
+      if (range.from == null) { HIST.set(key, p); if (HIST.size > 40) HIST.delete(HIST.keys().next().value); }
+    }
+    const old = await p;
+    bars = old.concat(bars);
+  }
+  if (range.limit != null && bars.length > range.limit) bars = bars.slice(-range.limit);
+  return bars;
+}
+// subscribe: the snapshot's newest bars, then every trade after its seq folded into the forming candle. Delayed lane (no seq): re-read
+// the newest bars every 15 s. Resync (Durable Object restart / a hole): read the bars again and join again.
+// fallback(): the old live path (provider.subscribeOld). Taken when the record cannot be read on the FIRST try (the Worker without the
+// engine answers /te-bars 404, a network block): the chart then streams exactly as before instead of retrying a record that is not there.
+// The same trades also feed every tick consumer of root (chart-futures-l2.js teTicks: live footprint, Big Trades, delta, book tools).
+export function teSubscribe(root, tf, onBar, fallback) {
+  const sp = tfSpec(tf);
+  let stopped = false, leave = null, timer = null, bars = [], fails = 0, lastTT = 0, fed = false, ok = false, old = null;
+  const L2p = import('./chart-futures-l2.js?v=881').catch(() => null);
+  let L2 = null;
+  const emit = (b) => { if (!stopped) onBar(toBar(b)); };
+  // the same "this root is fed" flag the hub path sets (window.__stkL2Live): the data dot / status read it, no copy of their own here
+  const setFed = (v) => { if (v === fed) return; fed = v; if (L2) L2.teOwn(root, v); try { const L = window.__stkL2Live || (window.__stkL2Live = new Set()); if (v) L.add(root); else L.delete(root); window.dispatchEvent(new Event('stryker:l2live')); } catch (e) {} };
+  const quiet = setInterval(() => { if (fed && Date.now() - lastTT > 20000) setFed(false); }, 5000);
+  const go = async () => {
+    timer = null;
+    if (stopped) return;
+    if (leave) { leave(); leave = null; }
+    let s;
+    try { const now = Date.now(); s = await snapshot(root, tf, now - Math.max(sp.ms * 3, 120000), now + 60000); fails = 0; }
+    catch (e) {
+      if (stopped) return;
+      if (!ok && fallback) { teStatus.lane = 'fallback'; stopped = true; clearInterval(quiet); old = fallback(); return; }
+      fails++; timer = setTimeout(go, Math.min(30000, 1000 * Math.pow(2, fails))); return;
+    }
+    ok = true;
+    if (!L2) L2 = await L2p;
+    if (stopped) return;
+    bars = s.bars.slice(-3).map((b) => b.slice());
+    bars.forEach(emit);
+    if (s.q == null) { timer = setTimeout(go, 15000); return; }   // delayed lane: the server gave no seq, there is no stream to join
+    leave = feedJoin(root, s.e, s.q, (f) => {
+      if (stopped) return;
+      if (f.type === 'resync') { setFed(false); if (!timer) timer = setTimeout(go, 300); return; }
+      if (f.type !== 'tt') return;
+      lastTT = Date.now(); setFed(true);
+      if (L2) L2.teTicks(root, f.e, f.q, f.t);
+      try { rtNoteStreamBar(); } catch (e) {}   // the data dot's "stream is delivering" proof, as on the hub path
+      let touched = null;
+      for (const x of f.t) { const b = foldTick(bars, [x[3], x[0], x[1], x[2]], sp); if (b) { if (touched && touched !== b) emit(touched); touched = b; } }
+      if (bars.length > 5) bars.splice(0, bars.length - 5);
+      if (touched) emit(touched);
+    });
+  };
+  go();
+  return () => { stopped = true; clearInterval(quiet); setFed(false); if (timer) clearTimeout(timer); if (leave) leave(); if (old) { const o = old; old = null; o(); } };
+}

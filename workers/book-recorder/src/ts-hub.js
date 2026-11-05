@@ -28,7 +28,8 @@
 import { bucketSnapshot, encodeSamples, decodeSamples, nearNiceStep } from './bucket.js';
 import { TradeBook, tradeStore } from './ts-trades.js';
 import { tsTier } from './ts-access.js';
-import { wsTokenOf } from './rt-auth.js';   // TS-TRADES block: big-trade candidates + per-minute delta (src/ts-trades.js)
+import { wsTokenOf } from './rt-auth.js';
+import { delayCut } from './tick-engine.js';   // TICK ENGINE block (src/tick-engine.js): every trade stored, one candle source, seq replay   // TS-TRADES block: big-trade candidates + per-minute delta (src/ts-trades.js)
 
 export const TS_WS = 'wss://stream.tick-stream.xyz/v1/stream';
 // Owner 2026-11-02: all eight, each with its OWN book (MNQ / MES are separate books, not mapped to NQ / ES). One socket, unlimited symbols on realtime-l2.
@@ -104,6 +105,7 @@ export class TSHub {
     this.nextAt = 0; this.pauseUntil = 0; this.lastError = ''; this.minWait = 0; this.noViewerSince = 0; this.lastPrune = 0;
     this.n = { connects: 0, frames: 0, ticks: 0, snaps: 0, coarse: 0, rows: 0, drops: 0, refused: 0, throttled: 0 };
     this.lastState = '';
+    this.te = opts.te || null;   // TICK ENGINE
     this.tb = new TradeBook(store.tb || null, { KEEP_H: this.o.KEEP_H, now: this.clock, fetch: this.o.fetch, REST: this.o.REST });   // TS-TRADES
   }
 
@@ -143,7 +145,7 @@ export class TSHub {
     on('error', () => { try { ws.close(); } catch (e) {} });
     on('close', (ev) => {
       if (this.ws !== ws) return;
-      this.ws = null;
+      this.ws = null; if (this.te) this.te.down();
       const code = ev && ev.code;
       this.lastError = 'closed ' + (code || '?');
       // 4029 = over the connection cap (a dead socket holds its slot up to 45 s): wait it out. Auth codes: long pause.
@@ -155,10 +157,10 @@ export class TSHub {
     });
   }
   close(why) {
-    const ws = this.ws; this.ws = null; this.lastError = why || ''; this.setState('idle');
+    const ws = this.ws; this.ws = null; this.lastError = why || ''; this.setState('idle'); if (this.te) this.te.down();
     try { if (ws) ws.close(1000, 'bye'); } catch (e) {}
   }
-  drop(why, minWait = 0) { this.n.drops++; this.minWait = minWait; const ws = this.ws; this.ws = null; this.lastError = why; this.setState('idle'); try { if (ws) ws.close(); } catch (e) {} if (this.wantUp()) this.retryLater(minWait); }
+  drop(why, minWait = 0) { this.n.drops++; this.minWait = minWait; const ws = this.ws; this.ws = null; if (this.te) this.te.down(); this.lastError = why; this.setState('idle'); try { if (ws) ws.close(); } catch (e) {} if (this.wantUp()) this.retryLater(minWait); }
   retryLater(minWait = 0) {
     if (this.timers.retry) return;
     if (this.openedAt && this.clock() - this.openedAt > this.o.STABLE_MS) this.retryN = 0;
@@ -237,6 +239,7 @@ export class TSHub {
     const side = m.side === 'buy' ? 1 : m.side === 'sell' ? -1 : 0;
     if (!side) return;
     this.n.ticks++; this.lastDataAt = now;
+    if (this.te) { if (this.state === 'open' && !this.te.upAt) this.te.up(this.openedAt + 2000); this.te.add(m.symbol, m.price, m.size, side, m.ts, now); }   // TICK ENGINE: every trade, live span from the socket's open
     // 1-minute candles of the last BARS_MIN minutes: a viewer's chart is back-filled from these on subscribe (candles the
     // 10-minute-delayed lane has not delivered yet), then continues from the tick frames.
     const bm = Math.floor(now / 60000) * 60000, bl = this.bars1m.get(m.symbol) || []; this.bars1m.set(m.symbol, bl);
@@ -303,17 +306,18 @@ export class TSHub {
   attach(sock, sym, levels, tier, who) {
     // the last TRADES_RESERVE slots are for book-tier viewers, so a flood of trades-tier sockets cannot lock them out
     if (this.clients.size >= this.o.MAX_CLIENTS || (tier !== 'book' && this.clients.size >= this.o.MAX_CLIENTS - this.o.TRADES_RESERVE)) { this.n.refused++; return null; }
-    const c = { sock, book: tier === 'book', who: who || null, nextCheck: this.clock() + this.o.RECHECK_MS, sym: null, levels: 60, errors: 0, sentVer: -1, lastSend: 0, lastCoarse: 0, lastSeq: this.seq, lastPing: 0, bornAt: this.clock() };
+    const c = { sock, te: new Map(), book: tier === 'book', who: who || null, nextCheck: this.clock() + this.o.RECHECK_MS, sym: null, levels: 60, errors: 0, sentVer: -1, lastSend: 0, lastCoarse: 0, lastSeq: this.seq, lastPing: 0, bornAt: this.clock() };
     this.clients.add(c);
     this.setSub(c, sym, levels);
     this.startTimer();
-    this.send(c, JSON.stringify({ event: 'hub_attached', state: this.liveState(), tier: c.book ? 'book' : 'trades', symbols: this.o.SYMBOLS.concat(this.o.QUOTES), trades: this.o.TRADES }));
+    this.send(c, JSON.stringify({ event: 'hub_attached', state: this.liveState(), tier: c.book ? 'book' : 'trades', symbols: this.o.SYMBOLS.concat(this.o.QUOTES), trades: this.o.TRADES, te: this.te ? { e: this.te.epoch, syms: [...this.te.syms] } : null }));
     this.maintain();
     return {
       close: () => { this.clients.delete(c); },
       onMessage: (s) => {
         let m; try { m = JSON.parse(s); } catch (e) { return; }
         if (m && m.op === 'sub') this.setSub(c, m.symbol, m.levels);
+        else if (m && (m.op === 'tsub' || m.op === 'tunsub')) this.teSub(c, m);
       }
     };
   }
@@ -327,6 +331,43 @@ export class TSHub {
       if (!t) { try { c.sock.close(4003, 'access ended'); } catch (e) {} this.clients.delete(c); this.n.revoked = (this.n.revoked || 0) + 1; }
       else { const was = c.book; c.book = t === 'book'; if (was !== c.book) this.send(c, JSON.stringify({ event: 'hub_attached', state: this.liveState(), tier: c.book ? 'book' : 'trades', symbols: this.o.SYMBOLS.concat(this.o.QUOTES), trades: this.o.TRADES })); }   // tell the page, or its lock chip goes stale
     }).catch(() => {});
+  }
+  // TICK ENGINE: {op:'tsub', symbol, since, e} streams every trade of symbol with seq > since as {type:'tt', symbol, e, q, t:[[px, size, side, ts_ms]..]}
+  // (q = seq of t[0]; seqs are contiguous). since from another epoch or older than the replay window: {type:'resync', symbol, e}, and the
+  // stream continues from now (the page re-reads its bars, then sends tsub with the new seq). No since = from now. {op:'tunsub', symbol} stops.
+  teSub(c, m) {
+    const te = this.te, sym = String(m.symbol || '').toUpperCase();
+    if (!te || !te.has(sym)) return;
+    const now = this.clock();   // at most 60 tsub / tunsub a minute per socket (a resubscribe loop would replay over and over)
+    if (!c.teWin || now - c.teWin > 60000) { c.teWin = now; c.teOps = 0; }
+    if (++c.teOps > 60) return;
+    if (m.op === 'tunsub') { c.te.delete(sym); return; }
+    if (!c.te.has(sym) && c.te.size >= 24) return;
+    const cur = te.S.get(sym) ? te.S.get(sym).seq : 0, since = Number(m.since);
+    let seq = cur;
+    if (m.since != null && Number.isInteger(since) && since >= 0) {
+      if (Number(m.e) === te.epoch && since <= cur) seq = since;
+      else this.send(c, JSON.stringify({ type: 'resync', symbol: sym, e: te.epoch }));
+    }
+    c.te.set(sym, seq);
+  }
+  // fc = this flush's frame cache: sockets at the same seq (nearly all of them, live) share ONE encoded frame (load test: test/tick-engine-load.mjs)
+  teFlush(c, fc = new Map()) {
+    const te = this.te; let sent = false, budget = 4000;   // replay budget per socket per flush (250 ms), all symbols together
+    for (const [sym, seq] of c.te) {
+      if (budget <= 0) break;
+      const key = sym + '|' + seq + '|' + budget;
+      let f = fc.get(key);
+      if (!f) {
+        const r = te.since(sym, seq, budget);
+        f = r === 'resync' ? { resync: true, s: JSON.stringify({ type: 'resync', symbol: sym, e: te.epoch }) } : r.t.length ? { q: r.q, n: r.t.length, s: JSON.stringify({ type: 'tt', symbol: sym, e: te.epoch, q: r.q, t: r.t }) } : { n: 0 };
+        fc.set(key, f);
+      }
+      if (f.resync) { const cur = te.S.get(sym) ? te.S.get(sym).seq : 0; c.te.set(sym, cur); this.send(c, f.s); continue; }
+      if (!f.n) continue;
+      this.send(c, f.s); c.te.set(sym, f.q + f.n - 1); sent = true; budget -= f.n;
+    }
+    return sent;
   }
   setSub(c, sym, levels) {
     const s = String(sym || '').toUpperCase();
@@ -350,13 +391,16 @@ export class TSHub {
     }
     this.record(now);
     this.tb.flush(now);   // TS-TRADES
+    if (this.te) this.te.tick(now);   // TICK ENGINE: close minutes, live span, gap fill, prune
     this.announce();
+    const fc = new Map();   // TICK ENGINE: shared frames for this flush
     for (const c of [...this.clients]) {
       if (c.errors > 5) { this.clients.delete(c); continue; }
       if (c.who && now >= c.nextCheck) this.recheck(c, now);
       if (c.bornAt && now - c.bornAt >= Math.min(this.o.TOKEN_MS, c.who && c.who.exp ? c.who.exp * 1000 - c.bornAt : Infinity)) { try { c.sock.close(4401, 'token'); } catch (e) {} this.clients.delete(c); continue; }   // the browser reconnects with a fresh token
+      if (now - c.lastPing >= 5000) { c.lastPing = now; this.send(c, JSON.stringify({ event: 'ping', up: this.lastDataAt ? now - this.lastDataAt : -1, state: this.liveState(now) })); }   // every socket, the tick-engine one too (its heartbeat)
+      if (this.te && c.te.size) this.teFlush(c, fc);
       if (!c.sym) continue;
-      if (now - c.lastPing >= 5000) { c.lastPing = now; this.send(c, JSON.stringify({ event: 'ping', up: this.lastDataAt ? now - this.lastDataAt : -1, state: this.liveState(now) })); }
       if (now - c.lastSend < this.o.MIN_GAP_MS - 20) { this.n.throttled++; continue; }
       if (this.o.QUOTES.includes(c.sym)) {   // quote-only symbol: one small frame per change, <= 4/s
         const q = this.quotes.get(c.sym);
@@ -394,10 +438,10 @@ export class TSHub {
       v: 1, at: Math.floor(now / 1000), mode: this.o.MODE, configured: !!this.key || this.o.MODE === 'relay', state: this.state, live: this.liveState(now),
       cmeOpen: cmeOpen(now), recording: this.o.RECORD, clients: this.clients.size, symbols: this.o.SYMBOLS, trades: this.o.TRADES, quotes: this.o.QUOTES, bookClients: [...this.clients].filter((c) => c.book).length, upstreamSockets: this.ws ? 1 : 0,
       lastDataAgoMs: this.lastDataAt ? now - this.lastDataAt : null, retryN: this.retryN, nextRetryInMs: this.timers.retry ? Math.max(0, this.nextAt - now) : 0,
-      lastError: this.lastError, keepHours: this.o.KEEP_H, tsBig: this.tb.n.big, tsFilledMin: this.tb.n.filledMin, ...this.n
+      lastError: this.lastError, keepHours: this.o.KEEP_H, tsBig: this.tb.n.big, tsFilledMin: this.tb.n.filledMin, teClients: [...this.clients].filter((c) => c.te && c.te.size).length, ...this.n
     };
   }
-  shutdown() { for (const k of Object.keys(this.timers)) if (this.timers[k]) { clearTimeout(this.timers[k]); clearInterval(this.timers[k]); this.timers[k] = null; } try { if (this.ws) this.ws.close(); } catch (e) {} this.ws = null; }
+  shutdown() { if (this.te) this.te.down(); for (const k of Object.keys(this.timers)) if (this.timers[k]) { clearTimeout(this.timers[k]); clearInterval(this.timers[k]); this.timers[k] = null; } try { if (this.ws) this.ws.close(); } catch (e) {} this.ws = null; }
 
   // ---- history reads (the Worker has already checked access)
   // Book samples between from..to (ms), BKR1 bytes for the client's decodeBookHistory. At most 6 h.
@@ -500,6 +544,20 @@ export async function tsHubFetch(hub, env, u, req) {
   if (!hub.key && hub.o.MODE === 'direct') hub.key = env.TICKSTREAM_API_KEY || '';
   hub.poke();
   if (u.pathname === '/ts-stats') return Response.json(hub.stats());
+  // TICK ENGINE reads. lane = 'live' only when the Worker verified a live tier (index.js sets it; a client never reaches this URL).
+  // Anything else is the delayed lane: the cut is computed HERE from the clock, never taken from the request.
+  if (u.pathname === '/te-stats') return Response.json(hub.te ? hub.te.stats() : { off: true });
+  if (u.pathname === '/te-bars' || u.pathname === '/te-ticks') {
+    if (!hub.te) return new Response('engine off', { status: 404 });
+    const sym = String(u.searchParams.get('sym') || '').toUpperCase(), now = Date.now();
+    const cut = u.searchParams.get('lane') === 'live' ? Infinity : delayCut(now);
+    const to = Math.min(Number(u.searchParams.get('to')) || now + 60000, now + 60000), from = Number(u.searchParams.get('from')) || to - 6 * 3600000;
+    if (!hub.te.has(sym) || !(from < to)) return new Response('bad request', { status: 400 });
+    if (u.pathname === '/te-ticks') { const t = hub.te.ticks(sym, from, to, cut); return Response.json({ sym, e: hub.te.epoch, cut: cut === Infinity ? null : cut, t }); }
+    const r = hub.te.bars(sym, String(u.searchParams.get('tf') || ''), from, to, cut);
+    if (!r) return new Response('bad timeframe', { status: 400 });
+    return Response.json(Object.assign({ sym, tf: u.searchParams.get('tf'), at: now }, r, { cut: cut === Infinity ? null : cut }));
+  }
   if (u.pathname === '/ts-quotes') return Response.json({ q: hub.quoteMap(), live: hub.liveState() });
   if (u.pathname === '/ts-ingest') {
     if (hub.o.MODE !== 'relay') return new Response('relay mode is off', { status: 409 });

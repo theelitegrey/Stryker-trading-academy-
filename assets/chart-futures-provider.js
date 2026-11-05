@@ -18,6 +18,7 @@
 import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=881';
 import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=881';
 import { hubLive, hubCovers } from './live-source.js?v=881';
+import { teWanted, teGetBars, teSubscribe } from './chart-tick-engine.js?v=881';   // TICK ENGINE (one candle source, behind TICK_ENGINE / ?engine=0)
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -351,6 +352,9 @@ export class FuturesProvider {
     const root = this.keyOf(ticker);
     const tf = normTf(timeframe);
     if (!root || !tf) return [];
+    if (!range.noTe && this.info().name === 'futures' && await teWanted(root, tf)) {
+      try { return await teGetBars(root, tf, range, (r) => this.getBars(ticker, timeframe, Object.assign({ noTe: true, fresh: true }, r))); } catch (e) { /* the record is unreachable: the old source answers */ }
+    }
     const now = Math.floor(Date.now() / 1000);
     const toS = range.to != null ? Math.floor(range.to / 1000) : now;
     const fromS = range.from != null ? Math.floor(range.from / 1000) : null;
@@ -400,6 +404,14 @@ export class FuturesProvider {
   subscribe(ticker, timeframe, onBar) {
     const root = this.keyOf(ticker) || quoteKey(ticker);
     const tf = normTf(timeframe);
+    if (this.info().name === 'futures' && root && tf) {   // TICK ENGINE: decided once the sign-in answer is in; the old path otherwise
+      let stop = null, dead = false;
+      teWanted(root, tf).then((on) => { if (!dead) stop = on ? teSubscribe(root, tf, onBar, () => this.subscribeOld(ticker, timeframe, onBar, root, tf)) : this.subscribeOld(ticker, timeframe, onBar, root, tf); }).catch(() => { if (!dead) stop = this.subscribeOld(ticker, timeframe, onBar, root, tf); });
+      return () => { dead = true; if (stop) stop(); };
+    }
+    return this.subscribeOld(ticker, timeframe, onBar, root, tf);
+  }
+  subscribeOld(ticker, timeframe, onBar, root, tf) {
     // LIVE_SOURCE 'hub' (assets/live-source.js, default): every root the hub covers streams from the hub, never from /api/chart/stream.
     if (hubLive() && root && tf && hubCovers(root) && MIN_HUB_TFS.includes(tf) && typeof location !== 'undefined') return this.hubSubscribe(ticker, timeframe, onBar, root, tf);
     const stopL2 = this.l2Subscribe(root, timeframe, onBar);

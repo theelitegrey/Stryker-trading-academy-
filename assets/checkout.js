@@ -517,7 +517,7 @@ function launchRazorpay(btn, errEl){
       currency: o.currency,
       name: 'TradeZoro',
       description: o.planName,
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=881',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=882',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
@@ -588,7 +588,7 @@ function launchRazorpaySubscription(btn, errEl){
       subscription_id: o.subscriptionId,
       name: 'TradeZoro',
       description: o.trial ? o.planName + ' · ' + STRYKER_TRIAL_DAYS + '-day free trial, then auto-renews' : o.planName + ' · auto-renews',
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=881',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=882',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',

@@ -36,9 +36,9 @@
 // button, starred on add. TYPED INTERVALS: a digit or "," on the chart opens a small box ("5",
 // "4h", "1D", "15s", "100t") and Enter applies it; keys inside inputs are never taken.
 // No order or trade button anywhere here (Owner rule: no buying/selling on the website).
-import { liveSubscribe } from './chart-live-resume.js?v=881';
-import { rtReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=881';
-import { hubLive, hubCovers } from './live-source.js?v=881';
+import { liveSubscribe } from './chart-live-resume.js?v=882';
+import { rtReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=882';
+import { hubLive, hubCovers } from './live-source.js?v=882';
 
 const LS_FAVS = 'stryker_chart_iv_favs';
 const LS_COLLAPSED = 'stryker_chart_iv_collapsed';
@@ -261,7 +261,7 @@ const onHub = (ticker) => hubLive() && hubCovers(rootOfTicker(ticker));
 function hubSecTickSubscribe(ticker, tf, onBar) {
   const root = rootOfTicker(ticker), kind = tf.slice(-1), n = Number(tf.slice(0, -1)) || 1;
   let stopped = false, stop = null, cur = null, count = 0;
-  rtReady().then(() => { if (stopped || !isRealtimeAdmin()) return; return import('./chart-futures-l2.js?v=881'); }).then((m) => {
+  rtReady().then(() => { if (stopped || !isRealtimeAdmin()) return; return import('./chart-futures-l2.js?v=882'); }).then((m) => {
     if (!m || stopped) return;
     stop = m.acquire(root, (f) => {
       if (!f || f.type !== 'ticks' || f.symbol !== root) return;
@@ -414,7 +414,7 @@ function secTickGetBars(provider, ticker, p, range) {
   if (provider === 'binance' && p.kind === 'sec' && !isPerp(ticker)) return binanceSeconds(ticker, p.n, range);
   if (provider === 'futures' && p.kind === 'sec') {   // TICK ENGINE: seconds bars from the record of every trade (switch: chart-tick-engine.js)
     const root = rootOfTicker(ticker), tf = p.n + 'S';
-    return import('./chart-tick-engine.js?v=881').then((m) => m.teWanted(root, tf).then((on) => (on ? m.teGetBars(root, tf, range, null).catch(() => futuresStreamBars(ticker, tf, range)) : futuresStreamBars(ticker, tf, range))));
+    return import('./chart-tick-engine.js?v=882').then((m) => m.teWanted(root, tf).then((on) => (on ? m.teGetBars(root, tf, range, null).catch(() => futuresStreamBars(ticker, tf, range)) : futuresStreamBars(ticker, tf, range))));
   }
   if (provider === 'futures') return futuresStreamBars(ticker, p.n + (p.kind === 'tick' ? 'T' : 'S'), range);
   const b = builderFor(provider, ticker, p.kind === 'tick' ? 'tick' : 'time', p.n);
@@ -445,7 +445,7 @@ function secTickSubscribe(provider, ticker, p, onBar) {
   if (provider === 'futures' && p.kind === 'sec') {
     const root = rootOfTicker(ticker), tf = p.n + 'S';
     let stop = null, dead = false;
-    import('./chart-tick-engine.js?v=881').then((m) => m.teWanted(root, tf).then((on) => { if (!dead) stop = on ? m.teSubscribe(root, tf, onBar, () => futuresStreamSubscribe(ticker, tf, onBar)) : futuresStreamSubscribe(ticker, tf, onBar); })).catch(() => { if (!dead) stop = futuresStreamSubscribe(ticker, tf, onBar); });
+    import('./chart-tick-engine.js?v=882').then((m) => m.teWanted(root, tf).then((on) => { if (!dead) stop = on ? m.teSubscribe(root, tf, onBar, () => futuresStreamSubscribe(ticker, tf, onBar)) : futuresStreamSubscribe(ticker, tf, onBar); })).catch(() => { if (!dead) stop = futuresStreamSubscribe(ticker, tf, onBar); });
     return () => { dead = true; if (stop) stop(); };
   }
   if (provider === 'futures') return futuresStreamSubscribe(ticker, p.n + (p.kind === 'tick' ? 'T' : 'S'), onBar);

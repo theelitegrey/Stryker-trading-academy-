@@ -6,7 +6,7 @@
 //             When the leader tab closes, the next tab takes the lock and every tab joins again from its own last seq.
 //   'tab'     neither: this tab's own socket
 // Every mode runs the same core (assets/tick-feed-core.js). The page only decodes and draws; a hidden tab keeps receiving (it may skip drawing).
-import { TickFeedCore } from './tick-feed-core.js?v=886';
+import { TickFeedCore } from './tick-feed-core.js?v=887';
 
 const V = '881';
 let mode = '', worker = null, chan = null, core = null, me = Math.random().toString(36).slice(2), seq = 0;

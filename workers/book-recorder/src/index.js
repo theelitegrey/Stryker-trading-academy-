@@ -28,6 +28,8 @@ import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
 import { TSHub, tsHubFetch, tsStore, tsOpts, cmeOpen } from './ts-hub.js';
 import { TickEngine, teStore, teOpts } from './tick-engine.js';
 import { tsAllowed, tsAccess, tsTier } from './ts-access.js';
+import { StockEngine, skStore, skSpec, skCut, codeOk } from './stock-engine.js';   // STOCKS ENGINE
+import { verifyIdToken } from './rt-auth.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
@@ -126,6 +128,24 @@ export class BookRecorder {
     const teo = teOpts(env);
     this.tickEngine = teo.ON ? new TickEngine(teStore(this.sql), Object.assign(teo, { key: env.TICKSTREAM_API_KEY || '', open: cmeOpen })) : null;
     this.tsHub = new TSHub(tsStore(this.sql), env.TICKSTREAM_API_KEY || '', Object.assign(tsOpts(env), { te: this.tickEngine }));
+    // STOCKS ENGINE (src/stock-engine.js): every stock / ETF, history from the provider's REST (budgeted, stored), live quotes on the IS hub's socket.
+    // Its calls are added to the monthly REST counter as source 'stocks' (batched: one storage write a minute at most).
+    this.skNoteN = 0; this.skNoteAt = 0; this.skMonth = null; this.skMonthAt = 0;   // skMonth: the period total, re-read once a minute (skMonthRefresh)
+    const skN = (k, d, lo, hi) => { const x = Math.floor(Number(env[k])); return Number.isFinite(x) && x >= lo && x <= hi ? x : d; };
+    this.stocks = env.SK_ON === '0' ? null : new StockEngine(skStore(this.sql), { key: env.INSIGHTSENTRY_WEBSOCKET_API_KEY || '', hub: this.isHub, note: (n) => { this.skNoteN += n; },
+      monthUsed: () => (this.skMonth == null ? null : this.skMonth + this.skNoteN),
+      DAY_MAX: skN('SK_DAY_MAX', 1500, 0, 20000), MONTH_STOP: skN('SK_MONTH_STOP', 115000, 0, 1000000), MIN_MAX: skN('SK_MIN_MAX', 10, 1, 30) });
+  }
+  async skFlushNote(force) {
+    if (!this.skNoteN || (!force && Date.now() - this.skNoteAt < 60000)) return;
+    const n = this.skNoteN; this.skNoteN = 0; this.skNoteAt = Date.now();
+    const use = addNote((await this.ctx.storage.get('isUse')) || emptyUse(), 'stocks', n, Date.now());
+    await this.ctx.storage.put('isUse', use);
+  }
+  async skMonthRefresh() {
+    if (Date.now() - this.skMonthAt < 60000) return;
+    this.skMonthAt = Date.now();
+    try { const m = summary(await this.ctx.storage.get('isUse'), Date.now()); this.skMonth = m && Number.isFinite(m.used) ? m.used : null; } catch (e) {}
   }
   // QUOTA (2026-10-15 outage): the Durable Object is evicted ~10 s after its last request and the
   // feeder posts every 30 s, so every post used to start a fresh DO and reload 26 h x 6 symbols
@@ -345,6 +365,30 @@ export class BookRecorder {
     this.statusMemo = { at: Date.now(), out };
     return out;
   }
+  // STOCKS ENGINE reads (the Worker route below decided lane + spend from the verified token; a client never reaches this URL)
+  async skFetch(u) {
+    const E = this.stocks;
+    if (!E) return new Response('stocks off', { status: 404 });
+    if (!E.key) E.key = this.env.INSIGHTSENTRY_WEBSOCKET_API_KEY || '';
+    const spend = u.searchParams.get('spend') === '1';
+    await this.skMonthRefresh();   // the month stop (SK_MONTH_STOP) reads the shared counter
+    try {
+      if (u.pathname === '/sk-stats') return Response.json(Object.assign(E.stats(), { hub: { quotes: this.isHub.quoteSent.length, legs: this.isHub.legs.size, state: this.isHub.state } }));
+      if (u.pathname === '/sk-search') return Response.json({ r: await E.search(u.searchParams.get('q'), spend) });
+      if (u.pathname === '/sk-bars') {
+        const now = Date.now(), lane = u.searchParams.get('lane') === 'live' ? 'live' : 'delayed';
+        const r = await E.bars(u.searchParams.get('code'), u.searchParams.get('tf'), { to: Number(u.searchParams.get('to')) || 0, limit: Number(u.searchParams.get('limit')) || 500, cut: skCut(lane, now), spend });
+        if (!r) return new Response('bad request', { status: 400 });
+        if (r.refused) return new Response('not a stock', { status: 404 });
+        return Response.json(Object.assign(r, { lane, now }));
+      }
+      return new Response('not found', { status: 404 });
+    } catch (e) {
+      if (e && e.signin) return new Response('sign in', { status: 401 });
+      if (e && e.budget) return new Response('busy', { status: 429, headers: { 'retry-after': '30' } });
+      return new Response('provider unavailable', { status: 502 });
+    } finally { try { await this.skFlushNote(false); } catch (e) {} }
+  }
   async fetch(req) {
     const u = new URL(req.url);
     if (u.pathname === '/ingest') {
@@ -445,6 +489,7 @@ export class BookRecorder {
       return Response.json(j);
     }
     if (u.pathname === '/is-live') return isHubFetch(this.isHub, this.env, u, req);
+    if (u.pathname.startsWith('/sk-')) return this.skFetch(u);
     if (u.pathname.startsWith('/ts-') || u.pathname.startsWith('/te-')) return tsHubFetch(this.tsHub, this.env, u, req);
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/t/')) return terminalDo(this, u, req);   // terminal files (src/terminal.js)
@@ -854,6 +899,52 @@ async function route(req, env, ctx) {
         if (d.status === 200) ctx.waitUntil(caches.default.put(ckey, r.clone()));
       }
       return hdr(r, 'public, max-age=15');
+    }
+    // STOCKS ENGINE (src/stock-engine.js). GET /sk-bars?code=NASDAQ:AAPL&tf=1&to=&limit= : bars of any stock / ETF the provider lists.
+    // GET /sk-search?q= : stock / ETF symbols. GET /sk-health : budget + counts. The LANE (live / 10 min cut) is the server's call, the
+    // same rule as /te-bars (a live futures tier = live). SPEND (may this read cause a provider call?) = a verified signed-in account;
+    // anyone else is answered from the store only (401 when nothing is stored). Delayed answers + search are edge-cached.
+    if (u.pathname === '/sk-bars' || u.pathname === '/sk-search') {
+      const h = cors(req), o = req.headers.get('origin');
+      if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
+      if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
+      { const rl = await env.RL_OF.limit({ key: 'sk:' + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }
+      const tok = bearerOf(req);
+      let tier = null, uid = null;
+      try { uid = tok ? await verifyIdToken(tok) : null; tier = uid ? await tsTier(env, tok) : null; } catch (e) { tier = null; }
+      const du = new URL('https://do' + u.pathname);
+      let ck;
+      if (u.pathname === '/sk-search') {
+        const q = String(u.searchParams.get('q') || '').trim().toUpperCase().replace(/[^A-Z0-9 .&:_-]/g, '').slice(0, 24);
+        if (!q) return new Response('bad request', { status: 400, headers: h });
+        du.searchParams.set('q', q); ck = 'sk-search/' + encodeURIComponent(q);
+      } else {
+        const code = String(u.searchParams.get('code') || '').toUpperCase(), tf = String(u.searchParams.get('tf') || '').toUpperCase();
+        if (!codeOk(code) || !skSpec(tf)) return new Response('bad request', { status: 400, headers: h });
+        const now = Date.now(), lim = Math.min(5000, Math.max(1, Math.floor(Number(u.searchParams.get('limit')) || 500)));
+        let to = Math.floor(Number(u.searchParams.get('to')) || 0);
+        to = to > 0 && to < now - 60000 ? Math.ceil(to / 60000) * 60000 : 0;   // a past page (scroll-back) on the minute grid; else "now"
+        for (const [k, v] of Object.entries({ code, tf, limit: lim, to })) du.searchParams.set(k, String(v));
+        du.searchParams.set('lane', tier ? 'live' : 'delayed');
+        ck = 'sk-bars/' + (to ? 'p' : Math.floor(now / 15000)) + du.search;
+      }
+      du.searchParams.set('spend', uid ? '1' : '0');
+      const lane = u.pathname === '/sk-search' ? 'n/a' : tier ? 'live' : 'delayed';
+      const hdr = (r, cc) => new Response(r.body, { status: r.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': cc, 'x-sk-lane': lane, 'access-control-expose-headers': 'x-sk-lane', vary: 'Origin, Authorization' }, h) });
+      if (lane === 'live') return hdr(await stub(env).fetch(du.toString()), 'private, no-store');
+      const ttl = u.pathname === '/sk-search' ? 86400 : 15;
+      const ckey = new Request('https://book-recorder.cache/' + ck + (uid ? '' : '/anon'));
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch(du.toString());
+        r = new Response(await d.arrayBuffer(), { status: d.status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + ttl } });
+        if (d.status === 200) ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return hdr(r, u.pathname === '/sk-search' ? 'public, max-age=3600' : 'public, max-age=15');
+    }
+    if (u.pathname === '/sk-health') {
+      const d = await stub(env).fetch('https://do/sk-stats');
+      return new Response(d.body, { status: d.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, cors(req)) });
     }
     if (u.pathname === '/te-health') {
       const d = await stub(env).fetch('https://do/te-stats');

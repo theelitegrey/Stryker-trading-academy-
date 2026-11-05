@@ -55,6 +55,7 @@ jobs:
         run: |
           node workers/book-recorder/test/orderflow.test.mjs
           node workers/book-recorder/test/is-hub.test.mjs
+          node workers/book-recorder/test/stock-engine.test.mjs
           node workers/book-recorder/test/is-usage.test.mjs
           python3 workers/book-recorder/test/gex_fast_test.py
       - name: ZoroTide tests (volume-diff premium maths, bought/sold bands, baselines, ingest validation)

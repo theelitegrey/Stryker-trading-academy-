@@ -607,6 +607,29 @@ function msgTable(id, text, locked) {
     cells: [[{ text, textColor: locked ? CYAN : (day ? '#334155' : '#a3a9b6'), hAlign: 'center', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: false, italic: false }]], merges: [] };
 }
 
+// Owner 2026-11-05: futures use Big Trades (L1) only. A saved/shared/template chart that still holds the old stk_of_big on a futures
+// symbol gets it swapped for stk_ts_big with the same inputs (same schema, BT.migrate; unchanged colours = the same defaults). Crypto keeps this one.
+const swapping = new WeakSet();
+export function swapToL1(ctx) {
+  const root = rootOf(ctx);
+  if (!root || isCrypto(root)) return false;
+  const c = ctx.chart || (window.STRYKER_VELA && window.STRYKER_VELA.chart);
+  if (!c || swapping.has(c)) return false;
+  swapping.add(c);
+  setTimeout(() => {
+    try {
+      (c.indicators() || []).filter((h) => h.nativeType === 'stk_of_big').forEach((h) => {
+        const v = BT.migrate(h.inputValues());
+        h.remove();
+        c.addNativeIndicator('stk_ts_big', { inputs: v });
+      });
+      try { window.STRYKER_VELA.context().stateChanged(); } catch (e) {}
+    } catch (e) { console.warn('TradeZoro: Big Trades swap', e); }
+    swapping.delete(c);
+  }, 0);
+  return true;
+}
+
 class OfNative {
   constructor(type) { this.type = type; this.inputs = {}; this.tm = 0; this.onAny = () => this.later(); }
   start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(IND[this.type].schema), this.type === 'stk_of_big' ? BT.migrate(inputs) : inputs); users++; startRefresh(); listeners.add(this.onAny); this.render(); }
@@ -620,6 +643,7 @@ class OfNative {
   stop() { listeners.delete(this.onAny); clearTimeout(this.tm); users--; stopRefresh(); this.off = true; try { if (this.ctx) this.ctx.pushData({ owner: this, off: true }); } catch (e) {} }
   render() {
     if (!this.ctx || this.off) return;
+    if (this.type === 'stk_of_big' && swapToL1(this.ctx)) return;
     const bars = this.ctx.bars();
     const f = flowFor({ root: rootOf(this.ctx), timeframe: this.ctx.timeframe, bars, owner: this });
     const tables = f.note ? [msgTable(this.type + '-msg', f.note, f.locked)] : [];

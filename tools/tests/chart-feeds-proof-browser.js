@@ -122,7 +122,7 @@ const forceSock = (p) => p.evaluate(async () => { const src = [...document.query
       // 1) page says Free (the Owner's broken state), hub says 'trades', NO frames yet -> lock shows; then book frames arrive -> lock gone within 1 s
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: false, theme: 'dark' });
       await p.evaluate(() => { window.__stkChartTestFree = true; window.__hubTier = 'trades'; window.__noBook = true; });
-      await setSym(p, 'futures:NQ1!'); await add(p, 'stk_fut_dom'); await add(p, 'stk_bk_track'); await add(p, 'stk_of_big'); await sleep(2500);
+      await setSym(p, 'futures:NQ1!'); await add(p, 'stk_fut_dom'); await add(p, 'stk_bk_track'); await add(p, 'stk_ts_big'); await sleep(2500);
       const a = await st2(p); console.log('INFO ' + tag + ' before', JSON.stringify(a));
       check(locked(a), tag + ': no book frames + page thinks Free -> locked (control)', a);
       console.log('INFO v=' + await forceSock(p)); await sleep(1500);

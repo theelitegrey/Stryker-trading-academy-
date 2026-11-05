@@ -93,8 +93,7 @@ const tablesOf = (p, type) => p.evaluate((type) => { try { return [...window.STR
 const D21 = (h, m) => Date.UTC(2026, 9, 21, h, m);
 // [id, type, inputs, tf, frame from, frame to (phone frame is the last 40% of it)]
 const CASES = [
-  ['big', 'stk_of_big', {}, '1', D21(13, 30), D21(14, 30)],
-  ['big2x', 'stk_of_big', { mult: 2, minSize: 50 }, '1', D21(13, 30), D21(14, 30)],
+  // Big Trades (old feed) is crypto-only now: futures swap to Big Trades (L1), tested in ts-bigtrades-browser.js
   ['abs', 'stk_of_abs', {}, '1', D21(8, 50), D21(12, 50)],
   ['imb', 'stk_of_imb', {}, '5', D21(10, 0), D21(17, 0)],
   ['vp-session', 'stk_of_vp', { range: 'session' }, '5', Date.UTC(2026, 9, 19, 22, 0), D21(17, 0)],

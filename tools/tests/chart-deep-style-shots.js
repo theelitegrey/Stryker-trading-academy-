@@ -94,7 +94,7 @@ const D21 = (h, m) => Date.UTC(2026, 9, 21, h, m);
 const CASES = [
   ['theme', 'theme', {}, '5', D21(4, 0), D21(17, 0)],
   ['footprint', 'footprint', {}, '1', D21(14, 22), D21(14, 34)],
-  ['bigtrades', 'stk_of_big', {}, '1', D21(13, 30), D21(14, 30)],
+  // old Big Trades is crypto-only now; the futures one (Big Trades L1) has no recorded-data fixture here
   ['absorption', 'stk_of_abs', {}, '1', D21(8, 50), D21(12, 50)],
   ['imbalance', 'stk_of_imb', {}, '5', D21(10, 0), D21(17, 0)],
   ['volumeprofile', 'stk_of_vp', { range: 'session' }, '5', Date.UTC(2026, 9, 20, 13, 0), D21(17, 0)],

@@ -129,12 +129,14 @@ const tables = (p) => p.evaluate(() => Object.values(window.__tsReadout || {}).m
       const { ctx, p, errors, reqs } = await open(b, { w, h, mobile, admin: true });
       await setNQ(p);
       await add(p, 'stk_of_big', { labels: false });
-      await add(p, 'stk_ts_big', { labels: false });
+      // the old stk_of_big on a futures chart is swapped for Big Trades (L1) with the same inputs (Owner 2026-11-05)
       await add(p, 'stk_of_delta'); await add(p, 'stk_ts_delta');
       await add(p, 'stk_of_cvd', { style: 'line' }); await add(p, 'stk_ts_cvd', { style: 'line' });
       await sleep(6000);
       const inds = await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.indicators().map((x) => x.nativeType));
-      check(['stk_of_big', 'stk_ts_big', 'stk_of_delta', 'stk_ts_delta', 'stk_of_cvd', 'stk_ts_cvd'].every((t) => inds.includes(t)), tag + ': all six indicators on one chart', inds);
+      check(!inds.includes('stk_of_big') && inds.filter((t) => t === 'stk_ts_big').length === 1, tag + ': old Big Trades swapped to Big Trades (L1) on futures', inds);
+      check(await p.evaluate(() => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_ts_big'); return h && h.inputValues().labels === false && h.inputValues().buyColor === '#03c988'; }), tag + ': swapped one keeps inputs (labels off) and the L1 default colours');
+      check(['stk_ts_big', 'stk_of_delta', 'stk_ts_delta', 'stk_of_cvd', 'stk_ts_cvd'].every((t) => inds.includes(t)), tag + ': all indicators on one chart', inds);
       check(reqs.length >= 1 && reqs.every((u) => /ts-trades\?sym=NQ&from=\d+&to=\d+/.test(u)), tag + ': one history read per root (' + reqs.length + ' request/s)', reqs.slice(0, 3));
       check((await p.evaluate(() => window.__wsOpened)) === 1, tag + ': still ONE browser socket');
       const T = await tables(p);

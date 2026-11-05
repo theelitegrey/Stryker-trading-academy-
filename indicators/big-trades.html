@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="stryker-build" content="883">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Marks the largest aggressive orders from recorded trades with bubbles, buyers above and sellers below, with absorption and swept levels.">
+<meta name="description" content="Marks the largest aggressive orders from public crypto exchange trades with bubbles, buyers above and sellers below, with absorption and swept levels.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TradeZoro">
 <meta property="og:title" content="Big Trades: ZoroCharts indicator guide">
-<meta property="og:description" content="Marks the largest aggressive orders from recorded trades with bubbles, buyers above and sellers below, with absorption and swept levels.">
+<meta property="og:description" content="Marks the largest aggressive orders from public crypto exchange trades with bubbles, buyers above and sellers below, with absorption and swept levels.">
 <meta property="og:url" content="https://tradezoro.com/indicators/big-trades">
 <meta property="og:image" content="https://tradezoro.com/assets/images/og/share/indicators_big-trades.png?v=883">
 <meta property="og:image:width" content="1200">
@@ -17,7 +17,7 @@
 <meta property="og:image:alt" content="Big Trades drawn on an NQ futures chart in ZoroCharts">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Big Trades: ZoroCharts indicator guide">
-<meta name="twitter:description" content="Marks the largest aggressive orders from recorded trades with bubbles, buyers above and sellers below, with absorption and swept levels.">
+<meta name="twitter:description" content="Marks the largest aggressive orders from public crypto exchange trades with bubbles, buyers above and sellers below, with absorption and swept levels.">
 <meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/indicators_big-trades.png?v=883">
 <meta name="twitter:image:alt" content="Big Trades drawn on an NQ futures chart in ZoroCharts">
 <meta name="theme-color" content="#050506">
@@ -93,7 +93,7 @@
     {
       "@type": "WebPage",
       "name": "Big Trades: indicator guide and settings",
-      "description": "Marks the largest aggressive orders from recorded trades with bubbles, buyers above and sellers below, with absorption and swept levels.",
+      "description": "Marks the largest aggressive orders from public crypto exchange trades with bubbles, buyers above and sellers below, with absorption and swept levels.",
       "url": "https://tradezoro.com/indicators/big-trades",
       "dateModified": "2026-11-04",
       "inLanguage": "en",
@@ -230,14 +230,14 @@
 </div>
 <div class="ixp-cols">
 <article class="ixp-body">
-<p class="ixp-lede">Marks the largest aggressive orders from recorded trades with bubbles, buyers above and sellers below, with absorption and swept levels.</p>
+<p class="ixp-lede">Marks the largest aggressive orders from public crypto exchange trades with bubbles, buyers above and sellers below, with absorption and swept levels.</p>
 
 <h2 id="overview">Overview</h2>
 <p>Big Trades marks only the orders that stand out. Each marker is a buy (green) or sell (red) bubble placed at the order's average price. Bigger and brighter markers mean higher impact. Hover or tap a marker for its details.</p>
 <p>When a big order came and price did not follow it, the marker is a hollow ring with an A for absorption. The price range an order swept can also be shown.</p>
 <h2 id="how">How it works</h2>
 <p>Consecutive same-side fills within a short burst (150 ms gap, up to 4 ticks of price walk) are joined into one parent order with its total size and average price. Optionally, same-side orders at one price can be summed over a time window, so a big resting order filled by many small ones shows as one marker.</p>
-<p>In Automatic mode the size threshold is set so that about 15 markers show per 6.5-hour session at Medium intensity (40, 25 or 8 at Very low, Low and Strong). Manual mode uses your own min and max size. Impact combines size against normal, levels swept, and what price did in the next 60 seconds. Absorption means price moved 0.2 ATR or less in the order's direction. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.</p>
+<p>In Automatic mode the size threshold is set so that about 15 markers show per 6.5-hour session at Medium intensity (40, 25 or 8 at Very low, Low and Strong). Manual mode uses your own min and max size. Impact combines size against normal, levels swept, and what price did in the next 60 seconds. Absorption means price moved 0.2 ATR or less in the order's direction. Order flow comes from public exchange trades for crypto.</p>
 <h2 id="use">How to use it</h2>
 <ul><li>Some traders watch where large orders appeared near highs, lows or key levels.</li><li>Use the absorption marks to see big orders that price did not follow.</li><li>Some traders run two copies with different size bands to separate sizes.</li><li>Use the hover card to read each order's size and fills.</li></ul>
 <p class="ixp-edu">These are ways some traders read it, for learning. They are not trade signals.</p>
@@ -271,7 +271,7 @@
 </details>
 
 <h2 id="notes">Notes and limits</h2>
-<ul><li>Needs per-trade data; other symbols show a note.</li><li>Joining fills into one order is an estimate based on timing and price.</li><li>For the version built from the Data feed L1 trade stream, see Big Trades (L1).</li></ul>
+<ul><li>Crypto only. On futures charts use Big Trades (L1); a saved chart that still holds this one on a futures symbol is switched to Big Trades (L1) automatically.</li><li>Needs per-trade data; other symbols show a note.</li><li>Joining fills into one order is an estimate based on timing and price.</li></ul>
 <p class="ixp-disclaimer">Education only. Not financial advice. Indicators mark what happened on the chart; they do not predict what price will do. Trading futures, forex, crypto and other markets carries a high level of risk and may not be suitable for everyone.</p>
 </article>
 <aside class="ixp-rail" aria-label="More">

@@ -2246,7 +2246,7 @@
       {
        "id": "orderflow-what",
        "q": "What are the order flow tools?",
-       "a": "<p>Order flow tools show who traded at each price: Footprint, Delta, CVD, Big Trades, Absorption, Imbalance zones, Volume profile, Market Profile, Effort vs result, Stop runs and a Liquidity heatmap. They are in the Order Flow group of the Indicators window. They are part of Pro and work on futures (NQ, ES, YM, GC, SI, CL and micros) and crypto.</p>",
+       "a": "<p>Order flow tools show who traded at each price: Footprint, Delta, CVD, Big Trades (Big Trades (L1) on futures), Absorption, Imbalance zones, Volume profile, Market Profile, Effort vs result, Stop runs and a Liquidity heatmap. They are in the Order Flow group of the Indicators window. They are part of Pro and work on futures (NQ, ES, YM, GC, SI, CL and micros) and crypto.</p>",
        "path": "ZoroCharts → Indicators → Order Flow",
        "plans": "pro",
        "tags": [

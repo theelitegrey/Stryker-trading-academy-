@@ -2658,6 +2658,10 @@ export function installOrderflow(Core) {
   });
 }
 
+function futuresCell(cell) {
+  try { return marketOf({ symbol: cell.symbol, data: cell.data || (cell.chart && cell.chart.data) }).futures; } catch (e) { return false; }
+}
+
 // Put the group at the top of Vela's Indicators picker and wire the two tool rows.
 export function mountOrderflow(ws, opts) {
   const toast = (opts && opts.toast) || (() => {});
@@ -2673,6 +2677,7 @@ export function mountOrderflow(ws, opts) {
     const group = [], ofg = [], rest = [];
     base.forEach((r, i) => {
       if (r.native && L2_TYPES.indexOf(r.nativeType) >= 0 && !l2Listed()) return;   // futures L2: listed for everyone once released; Free get the Pro lock
+      if (r.native && r.nativeType === 'stk_of_big' && futuresCell(self)) return;   // futures: Big Trades (L1) only (Owner 2026-11-05); crypto keeps this one
       const hid = r.native && OF_HIDDEN.indexOf(r.nativeType) >= 0;
       const oi = r.native ? OF_GROUP_TYPES.indexOf(r.nativeType) : -1;
       const gi = r.native ? GROUP_TYPES.indexOf(r.nativeType) : -1;

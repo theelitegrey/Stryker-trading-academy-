@@ -29,7 +29,7 @@ fs.mkdirSync(OUT, { recursive: true });
       await sleep(2000);
       await p.evaluate(async (tf) => { const ws = window.STRYKER_VELA; ws.active.setSymbol('futures:NQ1!'); ws.active.setTimeframe(String(tf)); for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 250)); if (ws.chart.orchestrator.rawBars.length > 50) break; } window.STRYKER_VELA.active.setPriceStyle('candles'); }, tf);
       await sleep(1000);
-      await p.evaluate(() => window.STRYKER_VELA.chart.addNativeIndicator('stk_of_big'));
+      await p.evaluate(() => window.STRYKER_VELA.chart.addNativeIndicator('stk_ts_big'));
       await p.evaluate(([a, z]) => window.STRYKER_VELA.chart.setVisibleRange({ from: a, to: z }), [t0, t1]);
       await sleep(2500);
       const n = await p.evaluate(([a, z]) => { const O = window.__stkOrderflow; const bs = O.minuteBars('NQ', a, z); return bs.reduce((s, x) => s + (x.bigs || []).filter((y) => y[0] >= a && y[0] <= z).length, 0); }, [t0, t1]);

@@ -627,7 +627,7 @@ export function activate(id, creds, deps) {
     rec.timer = setInterval(tick, 6 * 36e5); tick();
   }
   if ((id === 'tastytrade') && creds.oauth) {   // 15-minute access token: refresh shortly before it ends; a refused refresh says Reconnect
-    const tick = () => import('./byo-oauth.js?v=887').then((m) => m.freshOauth(id, creds, deps)).catch((e) => { if (e && e.reconnect) { rec.status = 'error'; rec.msg = e.message; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); } });
+    const tick = () => import('./byo-oauth.js?v=888').then((m) => m.freshOauth(id, creds, deps)).catch((e) => { if (e && e.reconnect) { rec.status = 'error'; rec.msg = e.message; rec.reconnect = true; if (rec.hub) rec.hub.stop(); emit(id); } });
     rec.timer = setInterval(tick, 5 * 60000);
   }
   rec.hub = ad.hub(creds, (st, msg) => { rec.status = st === 'idle' ? 'ready' : st; rec.msg = msg; emit(id); }, deps);

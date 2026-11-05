@@ -10,7 +10,7 @@ let fail = 0; const check = (ok, m, x) => { if (!ok) fail++; console.log((ok ? '
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
-    const cases = [['none', [], 'pro'], ['delta', ['stk_ts_dsuite'], 'pro'], ['heat', ['stk_fut_dom'], 'pro'], ['big', ['stk_ts_big'], 'pro'], ['free', [], 'free']];
+    const cases = [['none', [], 'pro'], ['delta', ['stk_l2f_delta'], 'pro'], ['heat', ['stk_fut_dom'], 'pro'], ['big', ['stk_l2f_big'], 'pro'], ['free', [], 'free']];
     const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null, WS = process.env.WIDTHS ? process.env.WIDTHS.split(',').map(Number) : null;   // quick runs: ONLY=delta,free WIDTHS=412,1440
     for (const [w, h, mobile] of [[390, 844, true], [412, 915, true], [1440, 900, false]]) for (const theme of ['dark', 'light']) for (const [name, types, plan] of cases) {
       if ((ONLY && !ONLY.includes(name)) || (WS && !WS.includes(w))) continue;
@@ -44,7 +44,7 @@ let fail = 0; const check = (ok, m, x) => { if (!ok) fail++; console.log((ok ? '
       check(!r.canvasTxt.length, tag + ': no lock text drawn on the canvas (all plans)', r.canvasTxt);
       check(!r.hit.length, tag + ': chips/note overlap nothing', r.hit);
       if (plan === 'pro') check(!r.note && !r.chips.some((c) => /locked/.test(c)), tag + ': Pro, tier unknown: no lock', r);
-      if (name === 'delta' || name === 'big') check(r.chips.some((c) => c.startsWith('L1:is-lit')) && r.chips.some((c) => c.startsWith('L2:is-dim')), tag + ': L1 lit, L2 dim', r.chips);
+      if (name === 'delta' || name === 'big') check(r.chips.some((c) => c.startsWith('L1:is-lit')) && r.chips.some((c) => c.startsWith('L2:is-lit')), tag + ': L1 + L2 lit (futures order flow is the L2 tools)', r.chips);
       if (name === 'free') check(r.chips.some((c) => /locked/.test(c)) && /Needs L2/.test(r.noteText || '') && r.note && (r.note[3] - r.note[1] < 100 || w > 700), tag + ': Free: locked chip + short note', r);
       if (theme === 'dark' || w === 412) await p.screenshot({ path: OUT + '/place-' + tag + '.png' });
       await ctx.close();

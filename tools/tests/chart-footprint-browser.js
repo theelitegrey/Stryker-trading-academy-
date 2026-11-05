@@ -168,7 +168,7 @@ async function fpCellsDrawn(p) {
       check(cats.indexOf('Order Flow') >= 0 && cats.indexOf('Order Flow') < cats.indexOf('Volume'), '1440: "Order Flow" group sits above "Volume" in the picker', cats);
       await p.evaluate(() => window.STRYKER_VELA.active.setPriceStyle('candles'));
       await frameOn(p, T - 90 * 60000, T + 30 * 60000);
-      const types = ['stk_of_delta', 'stk_of_cvd', 'stk_of_big', 'stk_of_vp', 'stk_of_vwap'];
+      const types = ['stk_of_delta', 'stk_of_cvd', 'stk_of_vp', 'stk_of_vwap'];
       for (const t of types) await p.evaluate((t) => window.STRYKER_VELA.chart.addNativeIndicator(t), t);
       await sleep(2500);
       const T2 = await p.evaluate(() => window.STRYKER_VELA.chart.orchestrator.rawBars[10].time);   // a bar on the chart (the dev feed holds the last 500)
@@ -189,7 +189,7 @@ async function fpCellsDrawn(p) {
       check(want && ind.stk_of_delta && ind.stk_of_delta.n > 30 && ind.stk_of_delta.at === want.delta, '1440: Delta (trades) plots; the bar at ' + new Date(T2).toISOString().slice(11, 16) + ' UTC = ' + (ind.stk_of_delta && ind.stk_of_delta.at) + ' (that bar\'s trade data: ' + (want && want.delta) + '; the 14:30 bar was checked against raw ticks above)', { ind: ind.stk_of_delta, want });
       check(want && ind.stk_of_cvd && ind.stk_of_cvd.n > 30 && Array.isArray(ind.stk_of_cvd.at) && ind.stk_of_cvd.at[1] - ind.stk_of_cvd.at[0] === want.delta, '1440: CVD (trades) candles; that bar close - open = its delta', { ind: ind.stk_of_cvd, want });
       check(ind.stk_of_vwap && ind.stk_of_vwap.n > 30, '1440: VWAP (trades) plots with bands', ind.stk_of_vwap);
-      check(ind.stk_of_big && !ind.stk_of_big.tables.length && ind.stk_of_vp && !ind.stk_of_vp.tables.length, '1440: Big Trades + Volume Profile (trades) on, no error note', { big: ind.stk_of_big, vp: ind.stk_of_vp });
+      check(ind.stk_of_vp && !ind.stk_of_vp.tables.length, '1440: Volume Profile (trades) on, no error note', { vp: ind.stk_of_vp });
       await p.screenshot({ path: OUT + '/fp-1440-indicators.png' });
 
       // replay: clock at 14:32:30 -> no 14:32 bar (not complete), nothing after

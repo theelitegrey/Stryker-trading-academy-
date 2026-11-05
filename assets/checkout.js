@@ -730,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (plan.addon === true) {   // Owner 2026-11-04: live futures L1 is free with the market data agreement, so the add-on is no longer sold here (billing untouched)
         document.getElementById('checkout-plan-summary').innerHTML =
-          '<p style="color:var(--ink-2); font-size:13.5px; line-height:1.55;">Live futures (L1) is free once you sign the market data agreement. <a href="/settings#settings-livedata-panel" style="color:var(--teal);">Sign it in Settings</a> or tap the amber dot on ZoroCharts.</p>';
+          '<p style="color:var(--ink-2); font-size:13.5px; line-height:1.55;">Live futures prices and candles (L1) are free once you sign the market data agreement. Order flow tools are Pro. <a href="/settings#settings-livedata-panel" style="color:var(--teal);">Sign it in Settings</a> or tap the amber dot on ZoroCharts.</p>';
         const btn = document.getElementById('checkout-complete-btn');
         if (btn) btn.disabled = true;
         return;

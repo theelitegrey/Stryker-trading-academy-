@@ -132,7 +132,6 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       if (process.env.TIER1) await p.evaluate(() => { window.__TIER1 = 1; });
       await setNQ(p);
       for (const t of (process.env.ONLY ? process.env.ONLY.split(',') : TYPES)) await add(p, t, t === 'stk_l2f_cvd' && process.env.CVD ? JSON.parse(process.env.CVD) : t === 'stk_l2f_big' ? { mode: 'Manual', minSize: 100 } : t === 'stk_l2f_stop' ? { showAll: true, levels: 1 } : {});
-      if (process.env.L1) await add(p, 'stk_ts_cvd');
       await sleep(14000);
       if (process.env.TIER1) { const lk = await p.evaluate(() => ({ chips: [...document.querySelectorAll('.stkfeed.is-locked')].length, note: (document.querySelector('#stkfeed-note') || {}).hidden === false ? document.querySelector('#stkfeed-note').innerText : '', msg: /Needs L2/.test(document.body.innerText) })); check(lk.chips === 0 && !lk.msg, tag + ': no false lock after tier trades then book frames', lk); }
       const f = await readFlow(p); if (process.env.WARN) console.log('ERR', JSON.stringify(await p.evaluate(() => [window.__l2fErr, window.__l2fCvd])));

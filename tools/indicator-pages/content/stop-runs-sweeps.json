@@ -14,9 +14,9 @@
     "Some traders combine sweeps with absorption or delta to see what happened at the sweep."
   ],
   "notes": [
+    "On futures charts use Stop Runs (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs bars with volume.",
-    "A sweep is a past pattern, not a forecast.",
-    "For a version confirmed by the order book, see Stop Runs (L2)."
+    "A sweep is a past pattern, not a forecast."
   ],
   "learn": "liquidity-sweeps"
 }

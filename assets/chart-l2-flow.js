@@ -449,7 +449,9 @@ function fpLayer() {
       const g = frame(canvas, a); if (!g) return;
       try {
         a.data.owner.text = a.data.owner.base;
-        const d = a.data, I = d.owner.inputs, hub = d.hub, co = a.coords, phone = co.width < 520, tf = tfOf(a.bars), fa = hub.footAgg(tf), tick = fa.tick;
+        const d = a.data, I = d.owner.inputs, hub = d.hub, co = a.coords, phone = co.width < 520, tf = tfOf(a.bars);
+        if (!hub) return;   // a viewport push before the first data push carries no hub
+        const fa = hub.footAgg(tf), tick = fa.tick;
         if (!tick) return;
         const ppb = co.pxPerBar(), vr = co.visibleLogicalRange(), i0 = clamp(Math.floor(vr.from), 0, a.bars.length - 1), i1 = clamp(Math.ceil(vr.to), 0, a.bars.length - 1);
         const top = a.bounds.top, bot = top + a.bounds.height;
@@ -561,6 +563,7 @@ function vpLayer() {
       const g = frame(canvas, a); if (!g) return;
       try {
         const d = a.data, I = d.owner.inputs, hub = d.hub, co = a.coords, phone = co.width < 520, top = a.bounds.top, bot = top + a.bounds.height, W = co.width;
+        if (!hub) return;
         const rp = hub.restProfile(d.ss); if (!rp) return;
         const lad = ladders.find((x) => x.on && !x.off && x.inputs.ladder !== false);   // the delta ladder owns the right edge: the profile sits left of it, never under it
         const ladW = lad ? W * num(lad.inputs.ladWidth, 16) / 100 * (phone ? 0.8 : 1) + 4 : 0;

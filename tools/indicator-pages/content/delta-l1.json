@@ -14,8 +14,7 @@
     "Compare delta on bars that test a level."
   ],
   "notes": [
-    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
-    "For many delta looks on the price chart, see Delta styles (L1); for a pane with divergences, see Delta pane (L1)."
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Delta (L2) automatically."
   ],
   "learn": "order-flow"
 }

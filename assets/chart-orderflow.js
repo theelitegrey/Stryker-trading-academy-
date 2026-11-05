@@ -36,6 +36,8 @@ import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=887'
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=887';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=887';
 import * as ProGate from './chart-pro-gate.js?v=887';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=887';
+import * as BT from './chart-bigtrades.js?v=887';
 import { installBookPack } from './chart-book-pack.js?v=887';
 import { installPatterns } from './chart-patterns.js?v=887';
 import { installL2Flow } from './chart-l2-flow.js?v=887';
@@ -2658,6 +2660,68 @@ export function installOrderflow(Core) {
   });
 }
 
+function futuresCell(cell) {
+  try { return marketOf({ symbol: cell.symbol, data: cell.data || (cell.chart && cell.chart.data) }).futures; } catch (e) { return false; }
+}
+
+// FUTURES ORDER FLOW = THE L2 TOOLS ONLY (Owner 2026-11-06: "Remove L1 orderflow indicators, only L2 stays and comes in pro").
+// Each L1 / old trades-only tool that has an L2 twin is hidden from the picker on futures and, when a saved / shared / template chart
+// still holds it on a futures symbol, swapped for the twin (inputs copied where the key and type match, else the twin's defaults).
+// The trade-stream tools (stk_ts_*) are futures-only, so they are hidden everywhere. Crypto keeps its own tools.
+// The Footprint chart type (stk_fp) on futures becomes Footprint (L2) on candles. L1 tools without an L2 twin are left as they are.
+const TS_ONLY = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane'];
+export const l1Hidden = (type, futures) => !!L1_TO_L2[type] && (futures || TS_ONLY.includes(type));
+const KEY_ALIAS = { buyColor: 'upColor', sellColor: 'downColor', upColor: 'buyColor', downColor: 'sellColor' };
+// old inputs -> the twin's inputs: only keys the twin has with the same value type, and only values the member changed
+export function mapInputs(from, to, vals, fromSchema, toSchema) {
+  const v = from === 'stk_of_big' || from === 'stk_ts_big' ? BT.migrate(vals) : Object.assign({}, vals);
+  const def = Object.fromEntries((fromSchema || []).map((i) => [i.key, i.defval]));
+  const out = {};
+  for (const s of toSchema || []) {
+    const k = s.key in v ? s.key : KEY_ALIAS[s.key] in v ? KEY_ALIAS[s.key] : null;
+    if (k == null || v[k] === def[k] || typeof v[k] !== typeof s.defval) continue;
+    if (s.options && !s.options.includes(v[k])) continue;
+    out[s.key] = v[k];
+  }
+  return out;
+}
+function swapCell(cell) {
+  if (!futuresCell(cell)) return 0;
+  const c = cell.chart; if (!c) return 0;
+  let n = 0;
+  if (cell.priceStyle === 'stk_fp') { try { cell.setPriceStyle('candles'); c.addNativeIndicator('stk_l2f_fp'); n++; } catch (e) {} }
+  (c.indicators() || []).forEach((h) => {
+    let to = L1_TO_L2[h.nativeType];
+    if (!to) return;
+    const vals = h.inputValues() || {}, from = h.nativeType, fromSchema = h.inputs;
+    if (/^stk_(ts_)?dpane$/.test(from) && /^V2/.test(vals.style || '')) to = 'stk_l2f_cvd';
+    const had = (c.indicators() || []).some((x) => x.nativeType === to);
+    h.remove(); n++;
+    if (had) return;   // two old tools with one twin (e.g. Delta + Delta pane): one twin, not two
+    const nh = c.addNativeIndicator(to);
+    if (!nh) return;
+    const m = mapInputs(from, to, vals, fromSchema, nh.inputs);
+    if (Object.keys(m).length) nh.setInputs(m);
+  });
+  return n;
+}
+function mountL2Only(ws) {
+  let busy = false;
+  const run = () => {
+    if (busy) return; busy = true;
+    try {
+      let n = 0;
+      (ws.context().cells || []).forEach((x) => { try { const cell = ws.cell(x.id); if (cell) n += swapCell(cell); } catch (e) { console.warn('TradeZoro: L2 swap', e); } });
+      if (n) try { ws.context().stateChanged(); } catch (e) {}
+    } catch (e) {}
+    busy = false;
+  };
+  run();
+  try { ws.on('state:changed', () => setTimeout(run, 0)); } catch (e) {}
+  setInterval(run, 2000);   // cheap (a list read per cell); also catches a symbol switch to futures
+  window.__stkL2Only = { run, L1_TO_L2 };
+}
+
 // Put the group at the top of Vela's Indicators picker and wire the two tool rows.
 export function mountOrderflow(ws, opts) {
   const toast = (opts && opts.toast) || (() => {});
@@ -2666,13 +2730,15 @@ export function mountOrderflow(ws, opts) {
   const proto = Object.getPrototypeOf(cell);
   if (!proto || proto.__stkVolume || typeof proto.libraryRows !== 'function') return;
   proto.__stkVolume = true;
+  mountL2Only(ws);
   const origRows = proto.libraryRows, origAdd = proto.addFromLibrary;
   // Our order: group rows (natives present in the catalog) + pseudo rows, then the rest.
   function plan(self) {
     const base = origRows.call(self);
-    const group = [], ofg = [], rest = [];
+    const group = [], ofg = [], rest = [], fut = futuresCell(self);
     base.forEach((r, i) => {
       if (r.native && L2_TYPES.indexOf(r.nativeType) >= 0 && !l2Listed()) return;   // futures L2: listed for everyone once released; Free get the Pro lock
+      if (r.native && L1_TO_L2[r.nativeType] && l1Hidden(r.nativeType, fut)) return;   // futures: the L2 tools only (Owner 2026-11-06); crypto keeps its own
       const hid = r.native && OF_HIDDEN.indexOf(r.nativeType) >= 0;
       const oi = r.native ? OF_GROUP_TYPES.indexOf(r.nativeType) : -1;
       const gi = r.native ? GROUP_TYPES.indexOf(r.nativeType) : -1;

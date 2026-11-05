@@ -117,12 +117,12 @@ const box = (p) => p.evaluate(() => { const q = (s) => { const e = document.quer
       // 1. picker lists the L2 + L1 tools for everyone
       const listed = await p.evaluate(async () => { const c = window.STRYKER_VELA.context().cells[0]; return !!document.querySelector('#stkc-bar'); });
       // 2. add the three tools as a user would (Free: the Pro gate removes them / refuses)
-      for (const t of ['stk_fut_dom', 'stk_ts_big']) await add(p, t);
+      for (const t of ['stk_fut_dom', 'stk_l2f_big']) await add(p, t);
       await sleep(4500);
       const inds = await p.evaluate(() => { try { return window.STRYKER_VELA.context().cells[0].chart.indicators().map((h) => h.nativeType); } catch (e) { return []; } });
       console.log('INFO ' + who + ' indicators', JSON.stringify(inds));
-      if (pro) { check(inds.includes('stk_fut_dom') && inds.includes('stk_ts_big'), who + ': heatmap + Big Trades (L1) stay on the chart', inds); check(await canv(p) !== 0, who + ': chart canvas painted'); }
-      else check(!inds.includes('stk_fut_dom') && !inds.includes('stk_ts_big'), who + ': Pro tools removed for Free (lock, no blank)', inds);
+      if (pro) { check(inds.includes('stk_fut_dom') && inds.includes('stk_l2f_big'), who + ': heatmap + Big Trades (L2) stay on the chart', inds); check(await canv(p) !== 0, who + ': chart canvas painted'); }
+      else check(!inds.includes('stk_fut_dom') && !inds.includes('stk_l2f_big'), who + ': Pro tools removed for Free (lock, no blank)', inds);
       check(await p.evaluate(() => window.STRYKER_L2_OK && window.STRYKER_L2_OK()) === pro, who + ': l2Visible = ' + pro);
       check(await p.evaluate(() => window.__wsOpened) > 0 === pro, who + ': L2 socket ' + (pro ? 'opened' : 'NOT opened'));
       await p.screenshot({ path: OUT + '/pr-' + who + '-chart.png' });

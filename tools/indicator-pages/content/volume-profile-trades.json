@@ -16,6 +16,7 @@
     "Use the buy / sell mode to see which side traded more at each price."
   ],
   "notes": [
+    "On futures charts use Volume Profile (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
     "For a candle-based profile on any symbol, see Session Volume Profile."
   ],

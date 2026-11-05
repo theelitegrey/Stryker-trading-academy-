@@ -2,6 +2,7 @@
    item: { group, name, feed: 'L1' | 'L2' | '—', desc (one plain line), icon, ids: [tool ids it covers], img?, soon? }
    ids = indicator types in assets/chart-pro-gate.js (OF_TYPES, GEX_TYPES), registerFeed types and setPanel ids (chart-feeds.js,
    chart-futures-l2.js). soon: true = being built, shown as "Coming soon" until its id is registered.
+   Futures order flow is the (L2) tools only (Owner 2026-11-06); the hidden trade-stream ids (stk_ts_*) sit on their L2 twin.
    No prices, no results claims. Education only. Not financial advice. */
 (function (root) {
   var ICONS = {
@@ -52,17 +53,15 @@
       desc: 'Heat zones from volume at price, with the point of control and a trend baseline, built from the chart volume.' },
     // ---- Order flow ----
     { group: 'flow', name: 'Footprint', feed: 'L1', icon: 'foot', ids: ['stk_footprint', 'stk_fp'], img: 'footprint',
-      desc: 'Every candle split by price, with the volume bought and sold at each one. The busiest price is boxed.' },
+      desc: 'Every candle split by price, with the volume bought and sold at each one. The busiest price is boxed. Crypto charts; futures use Footprint (L2).' },
     { group: 'flow', name: 'Delta', feed: 'L1', icon: 'delta', ids: ['stk_of_delta', 'stk_dsuite', 'stk_dpane', 'stk_delta'], img: 'delta-profile',
-      desc: 'Buying minus selling per bar, with 14 looks from a session profile to delta bars and bubbles.' },
-    { group: 'flow', name: 'Delta (L1)', feed: 'L1', icon: 'delta', ids: ['stk_ts_delta', 'stk_ts_dsuite', 'stk_ts_dpane'],
-      desc: 'The same delta tools fed by the trade stream, with a second pane option.' },
-    { group: 'flow', name: 'CVD', feed: 'L1', icon: 'cvd', ids: ['stk_of_cvd', 'stk_cvd', 'stk_ts_cvd'], img: 'cvd',
-      desc: 'Cumulative volume delta from real trades: the running total of buying against selling.' },
+      desc: 'Buying minus selling per bar, with 14 looks from a session profile to delta bars and bubbles. Crypto charts; futures use Delta (L2).' },
+    { group: 'flow', name: 'CVD', feed: 'L1', icon: 'cvd', ids: ['stk_of_cvd', 'stk_cvd'], img: 'cvd',
+      desc: 'Cumulative volume delta from real trades: the running total of buying against selling. Crypto charts; futures use Cumulative Delta (L2).' },
     { group: 'flow', name: 'Estimated CVD', feed: '—', icon: 'cvd', ids: ['stk_estcvd'],
       desc: 'A delta estimate worked out from the candles, for charts that have no trade data.' },
-    { group: 'flow', name: 'Big Trades', feed: 'L1', icon: 'big', ids: ['stk_of_big', 'stk_ts_big'], img: 'bigtrades',
-      desc: 'Bubbles for the largest trades, buyers in mint and sellers in purple.' },
+    { group: 'flow', name: 'Big Trades', feed: 'L1', icon: 'big', ids: ['stk_of_big'], img: 'bigtrades',
+      desc: 'Bubbles for the largest trades, buyers in green and sellers in red. Crypto charts; futures use Big Trades (L2).' },
     { group: 'flow', name: 'Volume Bubble', feed: 'L1', icon: 'bubble', ids: ['stk_vbubble'],
       desc: 'Bubbles on high-volume bars, built from the chart volume, so heavy bars stand out.' },
     { group: 'flow', name: 'Absorption', feed: 'L1', icon: 'absorb', ids: ['stk_of_abs'], img: 'absorption',
@@ -100,13 +99,13 @@
     { group: 'live', name: 'Live CME futures', feed: '—', icon: 'clock', ids: ['live_cme'],
       desc: 'Live CME data needs a market-data licence, so it is separate from Pro. Without it, CME futures are 10 minutes delayed.' },
     // ---- Order flow with the book (L2), shipped 11-03 ----
-    { group: 'flow', name: 'Delta (L2)', feed: 'L2', icon: 'delta', ids: ['stk_l2f_delta'],
+    { group: 'flow', name: 'Delta (L2)', feed: 'L2', icon: 'delta', ids: ['stk_l2f_delta', 'stk_ts_delta', 'stk_ts_dsuite', 'stk_ts_dpane'],
       desc: 'Buying minus selling per bar, plus how much resting size was added or pulled from the book over the same bar.' },
-    { group: 'flow', name: 'Cumulative Delta (L2)', feed: 'L2', icon: 'cvd', ids: ['stk_l2f_cvd'],
+    { group: 'flow', name: 'Cumulative Delta (L2)', feed: 'L2', icon: 'cvd', ids: ['stk_l2f_cvd', 'stk_ts_cvd'],
       desc: 'The running total of trade delta and book delta, as candles or a line, with a reset each session.' },
     { group: 'flow', name: 'Footprint (L2)', feed: 'L2', icon: 'foot', ids: ['stk_l2f_fp'],
       desc: 'Traded volume at each price with the resting bid and ask size at bar close beside it. Unusually large resting size is boxed.' },
-    { group: 'flow', name: 'Big Trades (L2)', feed: 'L2', icon: 'big', ids: ['stk_l2f_big'],
+    { group: 'flow', name: 'Big Trades (L2)', feed: 'L2', icon: 'big', ids: ['stk_l2f_big', 'stk_ts_big'],
       desc: 'Big orders marked by what the book did: hit a wall that held, consumed the resting size, or found it pulled.' },
     { group: 'flow', name: 'Stop Runs (L2)', feed: 'L2', icon: 'ice', ids: ['stk_l2f_stop'],
       desc: 'Stop runs counted only when resting liquidity on that side was pulled or consumed through several levels.' },

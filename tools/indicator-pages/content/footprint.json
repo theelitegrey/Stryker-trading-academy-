@@ -16,6 +16,7 @@
     "Use delta mode to see the net buying or selling at each price."
   ],
   "notes": [
+    "On futures charts use Footprint (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; charts without it show a note instead.",
     "In bar replay only data complete at the replay time is used.",
     "Footprint cells need room; zoom in to see the numbers."

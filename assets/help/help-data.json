@@ -785,7 +785,7 @@
       {
        "id": "free-vs-pro",
        "q": "What is the difference between Free and Pro?",
-       "a": "<p>Almost everything is free. Pro adds order flow tools and GEX+ (GEX+ for every symbol and expiry, and GEX on charts). CME futures are 10 minutes delayed until you sign the market data agreement. Live futures (L1) is free once you sign the market data agreement.</p><ul><li><strong>Free</strong>: all 64 chapters, ZoroCharts (live CME futures L1 once you sign the market data agreement, crypto live), Replay One, unlimited JournalX with import, broker sync, analytics and AI coach, Smart Money Desk, trading models, private indicators, full community with posting and messages, scanner.</li><li><strong>Pro</strong>: order flow tools, GEX+ and GEX on charts, more coming.</li></ul>",
+       "a": "<p>Almost everything is free. Pro adds order flow tools and GEX+ (GEX+ for every symbol and expiry, and GEX on charts). CME futures are 10 minutes delayed until you sign the market data agreement. Live futures prices and candles (L1) are free once you sign the market data agreement.</p><ul><li><strong>Free</strong>: all 64 chapters, ZoroCharts (live CME futures prices and candles (L1) once you sign the market data agreement, crypto live), Replay One, unlimited JournalX with import, broker sync, analytics and AI coach, Smart Money Desk, trading models, private indicators, full community with posting and messages, scanner.</li><li><strong>Pro</strong>: order flow tools, GEX+ and GEX on charts, more coming.</li></ul>",
        "plans": "all",
        "tags": [
         "pro",
@@ -880,7 +880,7 @@
       {
        "id": "free-trial",
        "q": "Is there a free trial?",
-       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and GEX+ are Pro. Live futures (L1) is free once you sign the market data agreement.</p>",
+       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and GEX+ are Pro. Live futures prices and candles (L1) are free once you sign the market data agreement.</p>",
        "tags": [
         "trial",
         "free trial",
@@ -1331,7 +1331,7 @@
       {
        "id": "zorocharts-what",
        "q": "What is ZoroCharts?",
-       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Pro adds order flow tools and GEX on charts. CME futures are 10 minutes delayed (CME rule) until you sign the market data agreement. Live futures (L1) is free once you sign the market data agreement. Crypto is live for everyone.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
+       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Pro adds order flow tools and GEX on charts. CME futures are 10 minutes delayed (CME rule) until you sign the market data agreement. Live futures prices and candles (L1) are free once you sign the market data agreement. Crypto is live for everyone.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
        "path": "ZoroCharts (dock)",
        "tags": [
         "charts",
@@ -1439,7 +1439,7 @@
       {
        "id": "data-dot",
        "q": "What is the coloured dot next to the symbol?",
-       "a": "<p>It shows the data status: green with Live, amber with 10 min delayed · CME, grey with Closed. CME futures are 10 minutes behind (CME rule) until you sign the market data agreement or connect Rithmic (Live (Rithmic)). Live futures (L1) is free once you sign the market data agreement. Forex is also delayed. Crypto from the public feeds is live. Tap or hover the dot for the full line.</p>",
+       "a": "<p>It shows the data status: green with Live, amber with 10 min delayed · CME, grey with Closed. CME futures are 10 minutes behind (CME rule) until you sign the market data agreement or connect Rithmic (Live (Rithmic)). Live futures prices and candles (L1) are free once you sign the market data agreement. Order flow tools are Pro. Forex is also delayed. Crypto from the public feeds is live. Tap or hover the dot for the full line.</p>",
        "tags": [
         "dot",
         "green",
@@ -2246,7 +2246,7 @@
       {
        "id": "orderflow-what",
        "q": "What are the order flow tools?",
-       "a": "<p>Order flow tools show who traded at each price: Footprint, Delta, CVD, Big Trades, Absorption, Imbalance zones, Volume profile, Market Profile, Effort vs result, Stop runs and a Liquidity heatmap. They are in the Order Flow group of the Indicators window. They are part of Pro and work on futures (NQ, ES, YM, GC, SI, CL and micros) and crypto.</p>",
+       "a": "<p>Order flow tools show who traded at each price: Footprint, Delta, CVD, Big Trades, Absorption, Imbalance zones, Volume profile, Market Profile, Effort vs result, Stop runs and a Liquidity heatmap. They are in the Order Flow group of the Indicators window. They are part of Pro and work on futures (NQ, ES, YM, GC, SI, CL and micros) and crypto. On futures they are the (L2) tools, built from trades and the order book: Footprint (L2), Delta (L2), Cumulative Delta (L2), Big Trades (L2), Stop Runs (L2) and Volume Profile (L2).</p>",
        "path": "ZoroCharts → Indicators → Order Flow",
        "plans": "pro",
        "tags": [
@@ -3897,7 +3897,7 @@
       {
        "id": "live-futures-data",
        "q": "How do I get live futures data?",
-       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are two ways to get them live:</p><ol><li><strong>Sign the market data agreement (free)</strong>: tap the amber dot or the Delayed pill on the chart, or open Settings → Live futures data, and sign. Live futures (L1) is free once you sign the market data agreement. Live trades, candles and best bid/ask switch on straight away. The L2 order book, order flow tools and GEX+ stay Pro.</li><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
+       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are two ways to get them live:</p><ol><li><strong>Sign the market data agreement (free)</strong>: tap the amber dot or the Delayed pill on the chart, or open Settings → Live futures data, and sign. Live futures prices and candles (L1) are free once you sign the market data agreement. Live trades, candles and best bid/ask switch on straight away. The L2 order book, order flow tools and GEX+ stay Pro.</li><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
        "plans": "all",
        "tags": [
         "live futures data",
@@ -3917,7 +3917,7 @@
       {
        "id": "pro-realtime",
        "q": "I am Pro but data still shows delayed.",
-       "a": "<p>Live futures (L1) is free on every plan once you sign the market data agreement (Settings → Live futures data, or the amber dot on the chart). You can also connect your Rithmic login (Connect broker). If you already did and it still shows delayed, refresh the page and check Settings → Live futures data. If it still shows delayed, contact support with your account email.</p>",
+       "a": "<p>Live futures prices and candles (L1) are free on every plan once you sign the market data agreement (Settings → Live futures data, or the amber dot on the chart). You can also connect your Rithmic login (Connect broker). If you already did and it still shows delayed, refresh the page and check Settings → Live futures data. If it still shows delayed, contact support with your account email.</p>",
        "plans": "pro",
        "tags": [
         "pro delayed",

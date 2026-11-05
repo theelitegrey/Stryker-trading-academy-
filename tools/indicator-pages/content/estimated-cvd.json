@@ -15,6 +15,6 @@
   ],
   "notes": [
     "It is a guess from candles; it does not see individual trades.",
-    "For real order flow, see Cumulative Delta (trades) or the L1 tools."
+    "For real order flow, see Cumulative Delta (trades) on crypto or Cumulative Delta (L2) on futures."
   ]
 }

@@ -122,7 +122,7 @@ const forceSock = (p) => p.evaluate(async () => { const src = [...document.query
       // 1) page says Free (the Owner's broken state), hub says 'trades', NO frames yet -> lock shows; then book frames arrive -> lock gone within 1 s
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: false, theme: 'dark' });
       await p.evaluate(() => { window.__stkChartTestFree = true; window.__hubTier = 'trades'; window.__noBook = true; });
-      await setSym(p, 'futures:NQ1!'); await add(p, 'stk_fut_dom'); await add(p, 'stk_bk_track'); await add(p, 'stk_of_big'); await sleep(2500);
+      await setSym(p, 'futures:NQ1!'); await add(p, 'stk_fut_dom'); await add(p, 'stk_bk_track'); await add(p, 'stk_l2f_big'); await sleep(2500);
       const a = await st2(p); console.log('INFO ' + tag + ' before', JSON.stringify(a));
       check(locked(a), tag + ': no book frames + page thinks Free -> locked (control)', a);
       console.log('INFO v=' + await forceSock(p)); await sleep(1500);
@@ -131,7 +131,7 @@ const forceSock = (p) => p.evaluate(async () => { const src = [...document.query
       let ok = false; for (let i = 0; i < 20; i++) { await sleep(100); if (!locked(await st2(p))) { ok = true; break; } }
       const ms = Date.now() - t0, c = await st2(p); console.log('INFO ' + tag + ' after ' + ms + 'ms', JSON.stringify(c));
       check(ok && ms <= 1100, tag + ': lock cleared within 1 s of the first book frame (' + ms + ' ms)', c);
-      check(c.chips.some((x) => /^L2:is-lit/.test(x)) && c.chips.some((x) => /^L1:is-lit/.test(x)), tag + ': L1 + L2 chips lit (Big Trades L1 on)', c);
+      check(c.chips.some((x) => /^L2:is-lit/.test(x)) && c.chips.some((x) => /^L1:is-lit/.test(x)), tag + ': L1 + L2 chips lit (Big Trades L2 on)', c);
       const diag = await p.evaluate(() => window.tzL2Diag()); check(diag.l2Proven === true && diag.l2Badge === true, tag + ': diag l2Proven + l2Badge true', diag);
       await sleep(11000);
       const ice = await p.evaluate(() => document.body.innerText.includes('Loading book history'));

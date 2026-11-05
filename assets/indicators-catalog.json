@@ -11302,6 +11302,7 @@
     "Use delta mode to see the net buying or selling at each price."
    ],
    "notes": [
+    "On futures charts use Footprint (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; charts without it show a note instead.",
     "In bar replay only data complete at the replay time is used.",
     "Footprint cells need room; zoom in to see the numbers."
@@ -11378,9 +11379,9 @@
     "Use it next to Cumulative Delta to see both the bar and the running total."
    ],
    "notes": [
+    "On futures charts use Delta (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
-    "In bar replay only bars complete at the replay time are used.",
-    "For the version built from the Data feed L1 trade stream, see Delta (L1)."
+    "In bar replay only bars complete at the replay time are used."
    ],
    "alerts": "",
    "learn": "order-flow",
@@ -11429,9 +11430,9 @@
     "Use the session reset to compare one day's flow with the next."
    ],
    "notes": [
+    "On futures charts use Cumulative Delta (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
-    "A running total depends on its start point; changing the reset changes the shape.",
-    "For the Data feed L1 version, see Cumulative Delta (L1)."
+    "A running total depends on its start point; changing the reset changes the shape."
    ],
    "alerts": "",
    "learn": "order-flow",
@@ -11500,9 +11501,9 @@
     "Use two copies with different styles to see price and bar views together."
    ],
    "notes": [
+    "On futures charts use Delta (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
-    "The pane styles V1 and V2 are in Delta: pane.",
-    "For the Data feed L1 trade stream version, see the Delta (L1) overlay."
+    "The pane styles V1 and V2 are in Delta: pane."
    ],
    "alerts": "",
    "learn": "order-flow",
@@ -11623,9 +11624,9 @@
     "Some traders compare CVD candles with price candles through the session."
    ],
    "notes": [
+    "On futures charts use Delta (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
-    "Divergences are found between swing pivots, so they appear a few bars after the swing.",
-    "For the Data feed L1 version, see Delta pane (L1)."
+    "Divergences are found between swing pivots, so they appear a few bars after the swing."
    ],
    "alerts": "",
    "learn": "order-flow",
@@ -11688,14 +11689,14 @@
    "plan": "Pro",
    "kind": "native",
    "short": "",
-   "summary": "Marks the largest aggressive orders from recorded trades with bubbles, buyers above and sellers below, with absorption and swept levels.",
+   "summary": "Marks the largest aggressive orders from public crypto exchange trades with bubbles, buyers above and sellers below, with absorption and swept levels.",
    "overview": [
     "Big Trades marks only the orders that stand out. Each marker is a buy (green) or sell (red) bubble placed at the order's average price. Bigger and brighter markers mean higher impact. Hover or tap a marker for its details.",
     "When a big order came and price did not follow it, the marker is a hollow ring with an A for absorption. The price range an order swept can also be shown."
    ],
    "how": [
     "Consecutive same-side fills within a short burst (150 ms gap, up to 4 ticks of price walk) are joined into one parent order with its total size and average price. Optionally, same-side orders at one price can be summed over a time window, so a big resting order filled by many small ones shows as one marker.",
-    "In Automatic mode the size threshold is set so that about 15 markers show per 6.5-hour session at Medium intensity (40, 25 or 8 at Very low, Low and Strong). Manual mode uses your own min and max size. Impact combines size against normal, levels swept, and what price did in the next 60 seconds. Absorption means price moved 0.2 ATR or less in the order's direction. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto."
+    "In Automatic mode the size threshold is set so that about 15 markers show per 6.5-hour session at Medium intensity (40, 25 or 8 at Very low, Low and Strong). Manual mode uses your own min and max size. Impact combines size against normal, levels swept, and what price did in the next 60 seconds. Absorption means price moved 0.2 ATR or less in the order's direction. Order flow comes from public exchange trades for crypto."
    ],
    "use": [
     "Some traders watch where large orders appeared near highs, lows or key levels.",
@@ -11704,9 +11705,9 @@
     "Use the hover card to read each order's size and fills."
    ],
    "notes": [
+    "On futures charts use Big Trades (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
-    "Joining fills into one order is an estimate based on timing and price.",
-    "For the version built from the Data feed L1 trade stream, see Big Trades (L1)."
+    "Joining fills into one order is an estimate based on timing and price."
    ],
    "alerts": "",
    "learn": "order-flow",
@@ -12023,6 +12024,7 @@
     "Use the buy / sell mode to see which side traded more at each price."
    ],
    "notes": [
+    "On futures charts use Volume Profile (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
     "For a candle-based profile on any symbol, see Session Volume Profile."
    ],
@@ -12375,9 +12377,9 @@
     "Some traders combine sweeps with absorption or delta to see what happened at the sweep."
    ],
    "notes": [
+    "On futures charts use Stop Runs (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs bars with volume.",
-    "A sweep is a past pattern, not a forecast.",
-    "For a version confirmed by the order book, see Stop Runs (L2)."
+    "A sweep is a past pattern, not a forecast."
    ],
    "alerts": "",
    "learn": "liquidity-sweeps",
@@ -12456,7 +12458,7 @@
    ],
    "notes": [
     "It is a guess from candles; it does not see individual trades.",
-    "For real order flow, see Cumulative Delta (trades) or the L1 tools."
+    "For real order flow, see Cumulative Delta (trades) on crypto or Cumulative Delta (L2) on futures."
    ],
    "alerts": "",
    "learn": "",
@@ -13544,12 +13546,12 @@
    "short": "",
    "summary": "Marks the largest aggressive orders from the futures trade stream with bubbles, buyers above and sellers below.",
    "overview": [
-    "Big Trades (L1) is the Big Trades indicator fed by the futures trade stream (Data feed L1). It marks only the orders that stand out, as outline bubbles at their average price, sized by order size.",
-    "Its default colours (cyan and amber) differ from the standard Big Trades, so you can run both on one chart and compare the two trade feeds."
+    "Big Trades (L1) is the Big Trades indicator for futures, fed by the futures trade stream (Data feed L1). It marks only the orders that stand out, as bubbles at their average price, sized by order size.",
+    "It is the Big Trades on NQ, ES, YM, GC, SI, CL and their micros. Crypto charts use Big Trades, which reads public exchange trades."
    ],
    "how": [
     "Fills on the same side within a short burst (150 ms gap, up to 4 ticks of price walk) are joined into one order. In Automatic mode the size threshold comes from the recorded trades for the symbol, so only unusually large orders show. Manual mode uses your own min and max size.",
-    "History comes from up to 48 hours of recorded trades; new trades arrive over the chart's shared connection. A small readout compares the two trade feeds over the last 60 minutes."
+    "History comes from up to 48 hours of recorded trades; new trades arrive over the chart's shared connection."
    ],
    "use": [
     "Some traders watch where large orders appear near highs, lows or key levels.",
@@ -13557,7 +13559,7 @@
     "Hover a bubble to read its size."
    ],
    "notes": [
-    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Big Trades (L2) automatically.",
     "Joining fills into one order is an estimate based on timing and price.",
     "Futures only (NQ, ES, YM, RTY, CL, GC and their micros)."
    ],
@@ -13721,8 +13723,7 @@
     "Compare delta on bars that test a level."
    ],
    "notes": [
-    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
-    "For many delta looks on the price chart, see Delta styles (L1); for a pane with divergences, see Delta pane (L1)."
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Delta (L2) automatically."
    ],
    "alerts": "",
    "learn": "order-flow",
@@ -13770,7 +13771,7 @@
     "Watch the slope around key levels."
    ],
    "notes": [
-    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Cumulative Delta (L2) automatically.",
     "The total depends on the reset point; a different reset gives different numbers."
    ],
    "alerts": "",
@@ -13838,8 +13839,7 @@
     "Use the summary box for the last few minutes of net flow."
    ],
    "notes": [
-    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
-    "Not the same as Delta (L1), which is a simple per-bar pane.",
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Delta (L2) automatically.",
     "No data means a plain note; nothing is estimated from candles."
    ],
    "alerts": "",
@@ -13961,7 +13961,7 @@
     "Switch to the candle style to follow the session total."
    ],
    "notes": [
-    "Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.",
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Delta (L2) automatically.",
     "Divergence marks describe what already happened; they are not signals."
    ],
    "alerts": "",
@@ -14562,8 +14562,7 @@
    ],
    "use": [
     "Use it to see whether size was being added or pulled while trades went through.",
-    "Some traders watch bars with strong buying but the ask side still growing.",
-    "Compare it with Delta (L1), which uses trades only."
+    "Some traders watch bars with strong buying but the ask side still growing."
    ],
    "notes": [
     "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books."

@@ -10,8 +10,7 @@
   ],
   "use": [
     "Use it to see whether size was being added or pulled while trades went through.",
-    "Some traders watch bars with strong buying but the ask side still growing.",
-    "Compare it with Delta (L1), which uses trades only."
+    "Some traders watch bars with strong buying but the ask side still growing."
   ],
   "notes": [
     "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books."

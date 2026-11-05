@@ -103,7 +103,7 @@ const read = (p) => p.evaluate(() => {
       await setNQ(p);
       await add(p, 'stk_fut_dom', { look: 'Midnight', hfStep_midnight: 'Yellow and above', showDepthBars: false, gpuHeatmap: false });
       await add(p, 'stk_bk_walls', {});
-      await add(p, 'stk_ts_big', { intensity: 'Very low', clusterSec: 30 });
+      await add(p, 'stk_l2f_big', {});   // futures Big Trades = Big Trades (L2) since 2026-11-06
       console.log('INFO inds', await p.evaluate(() => JSON.stringify(window.STRYKER_VELA.context().cells[0].chart.indicators().map((h) => h.nativeType)) + ' stores ' + (window.__stkBookPackStores ? window.__stkBookPackStores.size : -1) + ' perf ' + JSON.stringify(window.__stkBookPack) + ' txt ' + document.body.innerText.slice(0, 600).replace(/\n/g, ' | ')));
       let c = await read(p);
       for (let k = 0; k < (process.env.QUICK ? 4 : 40) && !(c.n && c.n.E >= 1 && c.n.H >= 1 && c.n.P >= 1); k++) { await sleep(1500); c = await read(p); }

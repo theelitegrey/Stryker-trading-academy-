@@ -37,7 +37,7 @@
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
 import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=887';
-import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier } from './chart-pro-gate.js?v=887';
+import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2 } from './chart-pro-gate.js?v=887';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -426,7 +426,9 @@ export function mountIndicatorWindow(ws, opts){
     const by = new Map(all.map((x) => [x.key, x]));
     const out = [];
     Favs.map.forEach((name, key) => {
-      const it = by.get(key);
+      const tw = key.startsWith('b:') && L1_TO_L2[key.slice(2)];   // a starred L1 order-flow tool hidden on futures: show its L2 twin (Owner 2026-11-06)
+      const it = by.get(key) || (tw && by.get('b:' + tw));
+      if (it && out.includes(it)) return;
       if (it) out.push(it);
       else if (key.startsWith('c:') || key.startsWith('m:')) out.push({ key, name, author: '', kind: 'gone', gone: true });
     });

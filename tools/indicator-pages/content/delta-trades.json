@@ -15,9 +15,9 @@
     "Use it next to Cumulative Delta to see both the bar and the running total."
   ],
   "notes": [
+    "On futures charts use Delta (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
-    "In bar replay only bars complete at the replay time are used.",
-    "For the version built from the Data feed L1 trade stream, see Delta (L1)."
+    "In bar replay only bars complete at the replay time are used."
   ],
   "learn": "order-flow"
 }

@@ -127,7 +127,7 @@ export function installDataBanner(ws, opts = {}) {
   sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-labelledby', 'stkdp-title');
   sheet.innerHTML = '<i class="stkdp-grab" aria-hidden="true"></i>' +
     '<div class="stkdp-head"><h3 id="stkdp-title">Get live futures data</h3><button type="button" class="stkdp-x" id="stkdp-x" aria-label="Close">\u00d7</button></div>' +
-    '<p class="stkdp-lead">Live futures (L1) is free once you sign the market data agreement.</p>' +
+    '<p class="stkdp-lead">Live futures prices and candles (L1) are free once you sign the market data agreement. Order flow tools are Pro.</p>' +
     '<ul class="stkdp-list">' +
     '<li><button type="button" class="stkdp-row" id="stkdp-sign"><span class="stkdp-ic b">' + ICON_BOLT + '</span><span class="stkdp-tx"><b>Sign the market data agreement</b><span>Free live futures data. Takes a minute.</span></span>' + CHEV + '</button></li>' +
     '<li><button type="button" class="stkdp-row" id="stkdp-connect"><span class="stkdp-ic">' + ICON_LINK + '</span><span class="stkdp-tx"><b>Connect your prop firm</b><span>Use your own Rithmic login. Free.</span></span>' + CHEV + '</button></li>' +

@@ -128,19 +128,17 @@ const tables = (p) => p.evaluate(() => Object.values(window.__tsReadout || {}).m
     for (const [w, h, mobile, tag] of [[1440, 900, false, '1440-dark'], [390, 844, true, '390-dark']]) {
       const { ctx, p, errors, reqs } = await open(b, { w, h, mobile, admin: true });
       await setNQ(p);
+      // futures order flow = the L2 tools only (Owner 2026-11-06): the old and the L1 tools on a futures chart swap to their L2 twins, one each
       await add(p, 'stk_of_big', { labels: false });
-      await add(p, 'stk_ts_big', { labels: false });
       await add(p, 'stk_of_delta'); await add(p, 'stk_ts_delta');
       await add(p, 'stk_of_cvd', { style: 'line' }); await add(p, 'stk_ts_cvd', { style: 'line' });
       await sleep(6000);
       const inds = await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.indicators().map((x) => x.nativeType));
-      check(['stk_of_big', 'stk_ts_big', 'stk_of_delta', 'stk_ts_delta', 'stk_of_cvd', 'stk_ts_cvd'].every((t) => inds.includes(t)), tag + ': all six indicators on one chart', inds);
-      check(reqs.length >= 1 && reqs.every((u) => /ts-trades\?sym=NQ&from=\d+&to=\d+/.test(u)), tag + ': one history read per root (' + reqs.length + ' request/s)', reqs.slice(0, 3));
-      check((await p.evaluate(() => window.__wsOpened)) === 1, tag + ': still ONE browser socket');
-      const T = await tables(p);
-      console.log('INFO ' + tag + ' readouts: ' + JSON.stringify(T));
-      check(T.some((t) => /Standard vs L1/.test(t)) && T.some((t) => /Big trades Std \d+ · L1 \d+/.test(t)), tag + ': Standard vs L1 readout shows big-trade counts', T);
-      check(T.some((t) => /Buy Std \S+ · L1/.test(t)), tag + ': delta readout present (informational)');
+      check(!inds.some((t) => /^stk_ts_|^stk_of_(big|delta|cvd)$/.test(t)), tag + ': no old / L1 order-flow tool left on futures', inds);
+      check(['stk_l2f_big', 'stk_l2f_delta', 'stk_l2f_cvd'].every((t) => inds.filter((x) => x === t).length === 1), tag + ': one Big Trades (L2), Delta (L2), CVD (L2)', inds);
+      check(await p.evaluate(() => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_l2f_cvd'); return h && h.inputValues().style === 'line'; }), tag + ': swapped CVD keeps its changed style (line)');
+      check(reqs.every((u) => /ts-trades\?sym=NQ&from=\d+&to=\d+/.test(u)), tag + ': trade history reads are per root (' + reqs.length + ' request/s)', reqs.slice(0, 3));
+      check((await p.evaluate(() => window.__wsOpened)) <= 1, tag + ': at most ONE browser socket');
       check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), tag + ': no horizontal overflow');
       await p.evaluate(() => { const c = window.STRYKER_VELA.chart; const rb = c.orchestrator.rawBars, n = rb.length; c.setVisibleRange({ from: rb[Math.max(0, n - 70)].time, to: rb[n - 1].time + 120000 }); });
       await sleep(1200);

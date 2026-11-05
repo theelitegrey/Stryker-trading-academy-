@@ -66,18 +66,18 @@ const state = (p) => p.evaluate(() => {
       check(/Trades and candles stay free/.test(s.whyText), T + ' BTC Why? expanded', s);
       if (theme === 'dark' || w === 390) await p.screenshot({ path: OUT + '/why-free-btc-' + T + '.png' });
       await ctx.close();
-      // PRO MNQ: Delta (L1) + Key Levels (market stats) + GEX: chip lit => note absent, nothing overlaps
+      // PRO MNQ: Delta (L2) + Key Levels (market stats) + GEX: chip lit => note absent, nothing overlaps
       ({ ctx, p } = await open(b, { w: mobile ? 412 : w, h, mobile, theme, plan: 'pro', sym: 'futures:MNQ1!' }));
-      for (const t of ['stk_ts_dsuite', 'stk_msess', 'stk_gex', 'stk_fut_dom']) await addI(p, t).catch(() => {});
+      for (const t of ['stk_l2f_delta', 'stk_msess', 'stk_gex', 'stk_fut_dom']) await addI(p, t).catch(() => {});
       await sleep(4000); s = await state(p); console.log('INFO pro ' + T, JSON.stringify(s));
       const lit = s.chips.some((c) => /^L2:is-lit/.test(c));
       check(!(lit && s.noteVis) && !s.noteVis, T + ' Pro: chip lit => no lock note', s);
-      check(s.hit.length === 0, T + ' Pro MNQ Key Levels + GEX + Delta (L1): nothing overlapped', s.hit);
+      check(s.hit.length === 0, T + ' Pro MNQ Key Levels + GEX + Delta (L2): nothing overlapped', s.hit);
       await p.screenshot({ path: OUT + '/why-pro-mnq-' + T + '.png' });
       await ctx.close();
       // FREE MNQ with the same tools (gate may strip some): shot
       ({ ctx, p } = await open(b, { w: mobile ? 412 : w, h, mobile, theme, plan: 'free', sym: 'futures:MNQ1!' }));
-      for (const t of ['stk_ts_dsuite', 'stk_msess', 'stk_gex']) await addI(p, t).catch(() => {});
+      for (const t of ['stk_l2f_delta', 'stk_msess', 'stk_gex']) await addI(p, t).catch(() => {});
       await panel(p, true, 'futures'); await sleep(4000); s = await state(p);
       check(s.hit.length === 0, T + ' Free MNQ Key Levels + GEX + Delta: nothing overlapped', s.hit);
       await p.screenshot({ path: OUT + '/why-free-mnq-' + T + '.png' });

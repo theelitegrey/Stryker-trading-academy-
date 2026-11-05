@@ -15,9 +15,9 @@
     "Use the session reset to compare one day's flow with the next."
   ],
   "notes": [
+    "On futures charts use Cumulative Delta (L2); a saved futures chart that still holds this one is switched to it automatically. Crypto charts keep this one.",
     "Needs per-trade data; other symbols show a note.",
-    "A running total depends on its start point; changing the reset changes the shape.",
-    "For the Data feed L1 version, see Cumulative Delta (L1)."
+    "A running total depends on its start point; changing the reset changes the shape."
   ],
   "learn": "order-flow"
 }

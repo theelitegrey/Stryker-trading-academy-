@@ -38,7 +38,8 @@ const RT_FRAME_MS = 66;                               // ~15 visible updates per
 // GET ?sym=NQ&from=<sec>&to=<sec> -> {tick, m:[[minuteEpochSec, [[sec,o,h,l,c,vol],...]],...]}, real prices,
 // only seconds that traded. Book-recorder Worker, fed by the order-flow tick feeder (one tick pull for
 // both). NQ ES YM GC SI CL (+ micros mapped to the mini); about the last 6 days and growing.
-import { rtHeadersReady } from './rt-access.js?v=880';
+import { rtHeadersReady, rtOnChange } from './rt-access.js?v=880';
+import { laneOf } from './chart-futures-provider.js?v=880';
 const TICKS1S_URL = 'https://book-recorder.theelitegrey.workers.dev/ticks1s';
 const TICK_ROOTS = { NQ: 'NQ', ES: 'ES', YM: 'YM', GC: 'GC', SI: 'SI', CL: 'CL', MNQ: 'NQ', MES: 'ES', MYM: 'YM', MGC: 'GC', SIL: 'SI', MCL: 'CL' };
 const HOUR = 3600e3;
@@ -303,6 +304,18 @@ async function reloadAll() {
       await cell.chart.setMarket({ data: [] });       // forces a full reload of the same market
     } catch (e) { console.warn('TradeZoro replay: reload', e); }
     try { delete o.config.market.data; } catch (e) {}   // an empty `data` = not offline: drop the flag
+  }));
+}
+
+// Reload the futures cells only (the lane change above). The shared bar store is cleared for them, so no old-lane bar is reused.
+async function reloadFutures() {
+  const fut = cells().filter((c) => /^futures:/i.test(String(c.symbol || '')));
+  if (!fut.length) return;
+  clearCache();
+  await Promise.all(fut.map(async (cell) => {
+    const o = orch(cell); if (!o) return;
+    try { await cell.chart.setMarket({ data: [] }); } catch (e) { console.warn('TradeZoro: lane reload', e); }
+    try { delete o.config.market.data; } catch (e) {}
   }));
 }
 
@@ -1018,6 +1031,10 @@ export function mountBarReplay(ws, opts) {
   };
   try { ws.on('state:changed', () => setTimeout(onChange, 0)); } catch (e) {}
   try { ws.on('layout:changed', () => setTimeout(onChange, 0)); } catch (e) {}
+  // REFRESH FIX 2026-11-05: the futures lane (10-minute bars vs current bars) changed on this page (agreement signed, signed out,
+  // the answer came in late): reload the futures cells cleanly, so one series never mixes the two lanes (broken, wick-only candles).
+  let lane = laneOf();
+  try { rtOnChange(() => { const now = laneOf(); if (now === lane) return; lane = now; if (!S.on) reloadFutures(); }); } catch (e) {}
   // resume a saved session after reload
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) {}

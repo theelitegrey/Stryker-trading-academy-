@@ -32,6 +32,7 @@ export function kindOf(type) {
 }
 
 let free = false;           // true only once a signed-in FREE member is confirmed
+let known = false;          // the plan answer is in (free or not)
 let tierP = null;
 const subs = new Set();
 export function tier() {
@@ -43,7 +44,7 @@ export function tier() {
       window.strykerPlanTier().then((r) => { clearTimeout(t); resolve(r || { free: false }); }, () => { clearTimeout(t); resolve({ free: false }); });
     } catch (e) { clearTimeout(t); resolve({ free: false }); }
   }).then((r) => {
-    free = !!(r && r.free && !r.admin);
+    free = !!(r && r.free && !r.admin); known = !(r && r.unknown);
     if (typeof window !== 'undefined') window.__stkChartFree = free;
     subs.forEach((f) => { try { f(free); } catch (e) {} });
     return r;
@@ -56,6 +57,7 @@ export const isFree = () => {
   try { const o = window.__stkChartTestFree; if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) && typeof o === 'boolean') return o; } catch (e) {}
   return free;
 };
+export const tierKnown = () => known;
 export function onTier(fn) { subs.add(fn); return () => subs.delete(fn); }
 
 // Is this tool locked for the current member? kind = 'of' | 'gex' | null

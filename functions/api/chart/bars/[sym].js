@@ -136,7 +136,9 @@ export async function onRequestGet(ctx) {
   // x-tz-auth tells a signed-in browser its token was refused (expired / bad) so it can refresh and retry.
   const hadToken = !!bearerOf(ctx.request);
   out.headers.set('x-tz-rt', admin ? '1' : '0');
-  if (hadToken && !admin) out.headers.set('x-tz-auth', 'not-admin-or-rejected');
+  // REFRESH FIX 2026-11-05: a signed-in caller's "no" (or a blip on the check) was public, max-age=15. The browser kept it under the same
+  // token (Firebase reuses one token for an hour), so a reload inside 15 s got the 10-minute rows again. Per-user answers are never stored.
+  if (hadToken && !admin) { out.headers.set('x-tz-auth', 'not-admin-or-rejected'); out.headers.set('cache-control', 'private, no-store'); }
   if (admin) {
     out.headers.set('cache-control', 'private, max-age=10');
     try {

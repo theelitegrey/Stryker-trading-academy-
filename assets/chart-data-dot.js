@@ -22,7 +22,7 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
-import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=880';
+import { rtOnChange, isRealtimeAdmin, rtConfirmed, rtKnown } from './rt-access.js?v=880';
 import { hubCovers } from './live-source.js?v=880';
 import { labelFor } from './byo-core.js?v=880';   // member's own connected source (Connect your own data)
 
@@ -168,6 +168,7 @@ export function installDataDot(ws, opts = {}) {
     // LIVE (2026-11-03): the hub is feeding this root's candle (assets/chart-futures-l2.js), or the server confirmed real-time on the delayed lane's tail
     if (window.__stkL2Live && window.__stkL2Live.has(root)) return { s: 'rt', text: 'Live data', tag: 'Live' };
     if (insightRealtime(root) && rtConfirmed()) return { s: 'rt', text: 'Live data', tag: 'Live' };
+    if (insightRealtime(root) && !rtKnown()) return { s: 'wait', text: 'Checking your data access', tag: 'Checking' };   // REFRESH FIX 2026-11-05: unknown is not a no
     if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Reconnecting · showing delayed data until live data returns' : 'CME futures are 10 minutes delayed (CME rule). Sign the market data agreement to get live futures (free), or connect your Rithmic login.', tag: '10 min delayed · CME' };
     measure(root);
     const m = lag.get(root);

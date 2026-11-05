@@ -35,7 +35,7 @@ async function run(b, { who, w, h, mobile, sym, vela, shot, layout, syms, hidden
       ws.context().cells.forEach((c, i) => { if (syms[i]) ws.cell(c.id).setSymbol(syms[i]); });
     }, [layout, syms]);
   }
-  await p.waitForTimeout(7000);
+  await p.waitForTimeout(9000);   // signed-out stub has no Firebase app: rt-access decides "signed out" at 8 s (2026-11-05: the pill waits for a decided answer)
   const info = await geo(p);
   if (shot) await p.screenshot({ path: `${OUT}/${shot}.png` });
   return { ctx, p, info };
@@ -79,7 +79,7 @@ const sheetState = (p) => p.evaluate(() => { const s = document.getElementById('
       r = await run(b, { who: 'signed-out', w, h, mobile, vela, sym: 'futures:NQ1!', shot: vela ? null : `pill-${w}` });
       const i = r.info;
       check(!i.hidden && i.n === 1, `${tag} NQ signed out: one pill visible`);
-      check(w >= 768 ? i.text === 'Futures delayed 10 min' : i.text === 'Delayed 10 min', `${tag} pill text "${i.text}"`);
+      check(w >= 768 ? i.text === 'Futures updated 10 min ago · Sign the free data agreement for current data' : i.text === 'Updated 10 min ago', `${tag} pill text "${i.text}"`);
       check(i.capH === 32 && i.hitH >= 44, `${tag} capsule ${i.capH}px, hit target ${i.hitH}px`);
       check(i.inPlotX && i.aboveTimeAxis && i.lowerHalf, `${tag} pill in the lower plot, off the price + time axis ${JSON.stringify({ cap: i.cap, plot: i.plot })}`);
       check(!i.overLegend, `${tag} pill does not cover the legend`);

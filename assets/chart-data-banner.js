@@ -12,7 +12,7 @@
 // bottom sheet (phone) / small popover above the pill (desktop) with two option rows: connect a prop firm
 // (Rithmic) or the live data add-on. Long-press the pill, or "Hide for today" in the sheet, hides it until the
 // next IST day (localStorage). Multi-chart layouts get one pill for the whole layout, shown if any pane is delayed.
-import { rtReady, isRealtimeAdmin, rtOnChange, rtRecheck } from './rt-access.js?v=880';
+import { rtReady, rtKnown, isRealtimeAdmin, rtOnChange, rtRecheck } from './rt-access.js?v=880';
 
 const LS_HIDE = 'stryker_data_pill_hidden_ist';   // value: IST date (YYYY-MM-DD) the member hid it on
 const SS_OPEN = 'stryker_open_connect';
@@ -116,8 +116,9 @@ export function installDataBanner(ws, opts = {}) {
   const pill = document.createElement('button');
   pill.type = 'button'; pill.className = 'stkdp'; pill.id = 'stkdp'; pill.hidden = true;
   pill.setAttribute('aria-haspopup', 'dialog');
-  pill.setAttribute('aria-label', 'Futures data is 10 minutes delayed. Sign the market data agreement to get live futures (free)');
-  pill.innerHTML = '<span class="stkdp-cap"><i class="stkdp-dot" aria-hidden="true"></i><span class="stkdp-short">Delayed 10 min</span><span class="stkdp-long">Futures delayed 10 min · Sign for free live data</span>' + CHEV + '</span>';
+  // Copy rule (2026-11-05): futures copy never says delayed / behind / live / real-time. Time-ago wording + the free agreement.
+  pill.setAttribute('aria-label', 'Futures updated 10 minutes ago. Sign the free data agreement for current futures data');
+  pill.innerHTML = '<span class="stkdp-cap"><i class="stkdp-dot" aria-hidden="true"></i><span class="stkdp-short">Updated 10 min ago</span><span class="stkdp-long">Futures updated 10 min ago · Sign the free data agreement for current data</span>' + CHEV + '</span>';
   panel.appendChild(pill);
 
   const scrim = document.createElement('div'); scrim.className = 'stkdp-scrim'; scrim.hidden = true;
@@ -293,9 +294,11 @@ export function installDataBanner(ws, opts = {}) {
     }
   } catch (e) {}
 
-  Promise.resolve(rtReady()).then(() => { ready = true; sync(); }).catch(() => { ready = true; sync(); });
-  setTimeout(() => { ready = true; sync(); }, 6000);   // never wait forever on the auth answer
-  rtOnChange(sync);
+  // REFRESH FIX 2026-11-05: the pill used to show after 6 s whatever the answer was, so a slow sign-in showed it to an entitled member.
+  // Now it shows only once the answer is DECIDED (rtKnown: signed out, or the server said no). Unknown = no pill.
+  const decide = () => { ready = rtKnown(); sync(); };
+  Promise.resolve(rtReady()).then(decide).catch(decide);
+  rtOnChange(decide);
   window.addEventListener('stryker:l2live', sync);
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, () => requestAnimationFrame(sync)); } catch (e) {} });
   if (opts.rith && opts.rith.client && opts.rith.client.on) opts.rith.client.on(sync);

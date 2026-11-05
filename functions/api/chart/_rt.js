@@ -179,8 +179,8 @@ export async function isDemoToken(token, opts = {}) {
       if (!v) v = isActiveLiveDataDoc(f, nowMs);
       if (!v) v = hasAgreementDoc(f);   // free live L1 for any member with the current agreement (Owner 2026-11-04). L2 never uses this gate (ts-access.js tsAllowed).
     }
-    else if (r.status !== 404 && r.status !== 403) ttl = 10000;
-  } catch (e) { ttl = 10000; }
+    else if (r.status !== 404 && r.status !== 403) ttl = 3000;   // a read blip is not a "no": ask again soon (was 10 s: a refresh in that window got the 10-minute lane)
+  } catch (e) { ttl = 3000; }
   if (demoMemo.size > 500) demoMemo.clear();
   demoMemo.set(uid, { v, at: Date.now(), ttl });
   return v;

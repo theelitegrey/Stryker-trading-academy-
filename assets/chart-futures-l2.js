@@ -13,7 +13,7 @@
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
 import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=880';
-import { isFree, onTier, upgrade } from './chart-pro-gate.js?v=880';
+import { isFree, tierKnown, onTier, upgrade } from './chart-pro-gate.js?v=880';
 import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=880';
 import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=880';
 import { hfLive } from './chart-heat-filter.js?v=880';
@@ -195,7 +195,10 @@ class Conn {
       DIAG.tier = String(m.tier) + '/' + String(m.state);
       // A Pro member can be told 'trades' by one socket (the tier check on the Worker hit a hiccup / stale token) while the book history, gated the same way, loads fine.
       // That showed Unlock beside real data. A non-Free member told 'trades' reconnects up to 2 times with a fresh token before the lock may show. The server stays the gate.
-      if (m.tier !== 'book' && bookTier !== true && !l2Proven(this.root) && liveVisible() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
+      // REFRESH FIX 2026-11-05: only for a member whose plan is KNOWN and not Free. A Free member live by the signed agreement is rightly told
+      // 'trades'; while the plan answer was still out (isFree() false = unknown) the socket was closed twice and backed off, and the chart fell
+      // back to the 10-minute bars for seconds on some loads only ("sometimes live, sometimes not").
+      if (m.tier !== 'book' && bookTier !== true && !l2Proven(this.root) && liveVisible() && tierKnown() && !isFree() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
       if (m.tier === 'book') this.tierTry = 0;
       setTier(m.tier); r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
     if (m.event === 'ping') { const st = m.state === 'live' ? 'live' : 'reconnecting'; if (r.status !== st && r.status !== 'error') { r.status = st; tell(r); } return; }   // the hub's 5 s heartbeat carries its data state: no data for 10 s = reconnecting

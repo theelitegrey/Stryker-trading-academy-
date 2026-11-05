@@ -212,6 +212,8 @@ const PAGE_CACHE_MAX = 600;
 const SHARED_PAGES = new Map();    // `${base}|${root}|${tf}|${page}` -> { at, rows }
 const SHARED_INFLIGHT = new Map();
 const swrMsFor = (tf) => (tf === '1' ? 60000 : 300000);
+export const laneOf = () => (isRealtimeAdmin() ? 'rt' : 'd');
+export const _pagesForTests = SHARED_PAGES;
 function cachePut(key, rows) {
   SHARED_PAGES.delete(key);
   SHARED_PAGES.set(key, { at: Date.now(), rows });
@@ -299,7 +301,8 @@ export class FuturesProvider {
   pageOf(tf, t) { const p = PAGE_SECS[tf]; return p ? Math.floor(t / p) : 0; }
 
   async fetchPage(root, tf, page, current, swrMs = 0) {
-    const key = `${this.base}|${root}|${tf}|${page}`;
+    // The lane is part of the key (REFRESH FIX 2026-11-05): a page read before sign-in (10-minute lane) is never served to the real-time lane.
+    const key = `${this.base}|${root}|${tf}|${page}|${laneOf()}`;
     const hit = this.pages.get(key);
     // Closed pages never change; the current page is re-read after 10 s at most, or answered from
     // memory up to swrMs old while a refresh runs (stale-while-revalidate, see SHARED_PAGES).
@@ -329,6 +332,7 @@ export class FuturesProvider {
         // The server says which lane answered (body.rt: true real-time / false cut 10 min / 'lag' admin but the
         // live tail was missing). A signed-in caller that gets false or 'lag' for the CURRENT page is not
         // cached (the next read asks again) and the auth state is re-checked with a fresh token.
+        if (laneOf() !== key.slice(key.lastIndexOf('|') + 1)) return rows;   // the lane changed while this was in flight: do not store it under the old lane
         if (page === this.pageOf(tf, Math.floor(Date.now() / 1000)) && body.rt !== undefined && rtToken()) {
           rtNoteBars(body.rt);
           if (body.rt !== true) { setTimeout(() => { try { rtRecheck(true); } catch (e) {} }, 0); return rows; }
@@ -416,20 +420,23 @@ export class FuturesProvider {
     const hubOut = (b) => { lastHubAt = Date.now(); if (b.time > lastHub) lastHub = b.time; if (this.hubBar) this.hubBar(b); else out(b); };   // an index provider merges the level onto its own candle (hubBar)
     const sync = () => { if (stopped) return; if (fed() && Date.now() - lastHubAt < HUB_QUIET_MS) unpoll(); else poll(); };   // a root the hub has been silent on for 90 s is polled again (delayed bars older than the hub's candle are dropped)
     const onLive = () => sync();
+    // REFRESH FIX 2026-11-05: the hub was tried ONCE. If the sign-in answer was not in yet, l2Candles returned a no-op (liveVisible false)
+    // and the mode stayed 'hub' for good: that load polled the 10-minute bars until reload ("sometimes live, sometimes not").
+    // Now the mode follows liveVisible(): 'hub' only once it is true, re-checked on every auth change.
     const pick = () => {
       if (stopped) return;
-      const want = 'hub';   // always try: l2Candles stays silent unless the account may see live data (liveVisible), and the server refuses the rest; the REST poll covers meanwhile
-      if (want === mode) return;
-      if (stopHub) { try { stopHub(); } catch (e) {} stopHub = null; }
-      mode = want;
-      if (want === 'hub') {
-        import('./chart-futures-l2.js?v=880').then((m) => {
-          if (stopped || mode !== 'hub' || stopHub) return;
+      import('./chart-futures-l2.js?v=880').then((m) => {
+        if (stopped) return;
+        const want = m.liveVisible() ? 'hub' : 'poll';
+        if (want === mode) return;
+        if (stopHub) { try { stopHub(); } catch (e) {} stopHub = null; }
+        mode = want;
+        if (want === 'hub') {
           const seed = tf === '1' ? null : () => this.getBars(ticker, '1', { limit: Math.min(1000, Number(tf) * 2 + 30), fresh: true });
           stopHub = m.l2Candles(root, tf, hubOut, null, seed);
-        }).catch(() => {});
-      }
-      sync();
+        }
+        sync();
+      }).catch(() => {});
     };
     window.addEventListener('stryker:l2live', onLive);
     const watch = setInterval(sync, 5000);

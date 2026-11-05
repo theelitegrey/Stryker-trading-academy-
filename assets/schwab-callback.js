@@ -18,7 +18,7 @@
   }
   user().then(function (u) {
     if (!u) return end('Sign in first', 'Sign in to TradeZoro, then connect Schwab again.');
-    return import('./byo-core.js?v=883').then(function (c) {
+    return import('./byo-core.js?v=884').then(function (c) {
       var rec = c.takeSchwabState(state, u.uid);
       if (!rec) return end('Schwab was not connected', 'The sign-in link expired. Start again from Data source in the charts.');
       return u.getIdToken().then(function (idt) {

@@ -8,7 +8,8 @@ Signs in as the internal demo account (creds from secret OPS_ARG = "email\\npass
 Prints only counts and timings. Leaves room for real members (cap 150): N_HUB + N_TE stays <= 100.
 """
 import asyncio, json, os, sys, time, random, statistics, subprocess, urllib.request, urllib.error, re
-subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', 'websockets==12.0', 'aiohttp==3.9.5'], check=True)
+subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '--target', '/tmp/pydeps', 'websockets==12.0', 'aiohttp==3.9.5'], check=True)
+sys.path.insert(0, '/tmp/pydeps')
 import websockets, aiohttp
 
 B = 'https://book-recorder.theelitegrey.workers.dev'

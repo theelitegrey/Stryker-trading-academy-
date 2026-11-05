@@ -7,12 +7,6 @@
  },
  {
   "build": 883,
-  "date": "2026-11-06",
-  "title": "Stocks on the data engine",
-  "link": ""
- },
- {
-  "build": 883,
   "date": "2026-11-05",
   "title": "Tick engine: every trade stored, one socket per browser",
   "link": ""

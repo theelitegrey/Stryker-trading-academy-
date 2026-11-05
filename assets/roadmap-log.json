@@ -1,5 +1,11 @@
 [
  {
+  "build": 882,
+  "date": "2026-11-05",
+  "title": "Tick engine: every trade stored, one socket per browser",
+  "link": ""
+ },
+ {
   "build": 881,
   "date": "2026-11-05",
   "title": "Futures chart loads the same way every time",

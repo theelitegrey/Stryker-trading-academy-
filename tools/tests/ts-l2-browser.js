@@ -26,13 +26,18 @@ function fakeWs(admin) {
     const ws = { readyState: 0, send() {}, close() { this.readyState = 3; clearInterval(this.iv); this.onclose && this.onclose({ code: 1000 }); } };
     const T0 = Date.now(); let n = 0;
     window.__l2ws = ws;
-    setTimeout(() => {
+    // the socket opens only after setNQ pinned __L2MID to the real NQ bars: an earlier open pushes 15 fake bars at the default mid,
+    // setNQ then reads the fake close and the fixture book sits ~2000 pts off the real candles (2 size labels; CI flake 2026-11-05)
+    const opened = () => {
+      if (ws.readyState === 3) return;
+      if (!window.__L2READY) return setTimeout(opened, 50);
       ws.readyState = 1; ws.onopen && ws.onopen(); ws.onmessage && ws.onmessage({ data: JSON.stringify({ event: 'status', state: 'live' }) });
       // the hub's last 15 min of 1m candles (what the 10-min-delayed lane has not delivered yet)
       const m0 = Math.floor(Date.now() / 60000) * 60000, mid0 = window.__L2MID || 21000, b = [];
       for (let k = 15; k >= 0; k--) { const o = mid0 + Math.sin(k) * 4; b.push([m0 - k * 60000, o, o + 6, o - 5, o + 2, 300 + k]); }
       ws.onmessage({ data: JSON.stringify({ type: 'bars', symbol: 'NQ', b }) });
-    }, 50);
+    };
+    setTimeout(opened, 50);
     ws.iv = setInterval(() => {
       if (ws.readyState !== 1 || !ws.onmessage) return;
       n++;
@@ -98,6 +103,7 @@ async function setNQ(p) {
     for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 300)); const c = ws.chart; if (c.market.symbol === 'futures:NQ1!' && c.orchestrator.rawBars.length > 50) break; }
     const rb = ws.chart.orchestrator.rawBars; const last = rb[rb.length - 1], px = last && (last.close != null ? last.close : last.c);
     if (px > 20000 && Math.abs(px - 28750) < 3000) window.__L2MID = px;
+    window.__L2READY = 1;
   });
   await sleep(800);
 }

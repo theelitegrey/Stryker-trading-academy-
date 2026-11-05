@@ -1,5 +1,5 @@
 {
- "build": "876",
+ "build": "885",
  "window": {
   "tech": [
    {
@@ -925,6 +925,15 @@
     "name": "52-Week High/Low",
     "author": "Built-in",
     "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Levels"
+   },
+   {
+    "key": "b:stk_camarilla",
+    "name": "Camarilla Pivots",
+    "author": "TradeZoro",
+    "desc": "Camarilla levels R5 to S5, Y-High / Y-Close / Y-Low and the R3-RB3 / S3-SB3 zones from the prior day, week or month",
     "third": false,
     "beta": false,
     "grp": "Levels"
@@ -6839,6 +6848,167 @@
       "def": "#f23645",
       "options": [],
       "group": "Style"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Camarilla Pivots",
+   "category": "Built-in",
+   "native": true,
+   "nativeType": "stk_camarilla",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Camarilla Pivots",
+    "short": "Camarilla",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "period",
+      "type": "string",
+      "title": "Timeframe",
+      "def": "Daily",
+      "options": [
+       "Daily",
+       "Weekly",
+       "Monthly"
+      ]
+     },
+     {
+      "key": "days",
+      "type": "int",
+      "title": "Past sessions to show",
+      "def": 5,
+      "options": []
+     },
+     {
+      "key": "g5",
+      "type": "bool",
+      "title": "R5 / S5",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "g4",
+      "type": "bool",
+      "title": "R4 / S4",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "g3",
+      "type": "bool",
+      "title": "R3 / S3 (and RB3 / SB3)",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "bands",
+      "type": "bool",
+      "title": "Shade the R3-RB3 and S3-SB3 zones",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "g2",
+      "type": "bool",
+      "title": "R2 / S2",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "g1",
+      "type": "bool",
+      "title": "R1 / S1",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "yh",
+      "type": "bool",
+      "title": "Y-High",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "yc",
+      "type": "bool",
+      "title": "Y-Close",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "yl",
+      "type": "bool",
+      "title": "Y-Low",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "labels",
+      "type": "bool",
+      "title": "Labels",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "priceTags",
+      "type": "bool",
+      "title": "Price tags on the axis",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "width",
+      "type": "int",
+      "title": "Line width",
+      "def": 1,
+      "options": []
+     },
+     {
+      "key": "lineColor",
+      "type": "color",
+      "title": "R / S line colour",
+      "def": "#4a5bd4",
+      "options": []
+     },
+     {
+      "key": "yhColor",
+      "type": "color",
+      "title": "Y-High colour",
+      "def": "#1fa35a",
+      "options": []
+     },
+     {
+      "key": "ycColor",
+      "type": "color",
+      "title": "Y-Close colour",
+      "def": "#f08c1b",
+      "options": []
+     },
+     {
+      "key": "ylColor",
+      "type": "color",
+      "title": "Y-Low colour",
+      "def": "#e5484d",
+      "options": []
+     },
+     {
+      "key": "rZone",
+      "type": "color",
+      "title": "Resistance zone colour",
+      "def": "#ff7a59",
+      "options": []
+     },
+     {
+      "key": "sZone",
+      "type": "color",
+      "title": "Support zone colour",
+      "def": "#2fbf5b",
+      "options": []
      }
     ]
    }

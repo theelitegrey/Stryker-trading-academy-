@@ -1509,6 +1509,16 @@
       "alt": "52-Week High/Low drawn on an NQ futures chart in ZoroCharts"
     },
     {
+      "page": "indicators/camarilla-pivots.html",
+      "title": "Camarilla Pivots",
+      "og_title": "Camarilla Pivots: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/camarilla-pivots.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Camarilla Pivots drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
       "page": "indicators/pivot-points-standard.html",
       "title": "Pivot Points Standard",
       "og_title": "Pivot Points Standard: ZoroCharts indicator guide",

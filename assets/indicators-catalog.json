@@ -12,7 +12,7 @@
   "Levels",
   "Community"
  ],
- "count": 162,
+ "count": 163,
  "skipped": [
   {
    "key": "x:volume-bubbles-quantalgo",
@@ -10945,6 +10945,153 @@
    "capture": "chart",
    "image": "/assets/images/indicators/pages/52-week-high-low.webp",
    "thumb": "/assets/images/indicators/pages/52-week-high-low-t.webp"
+  },
+  {
+   "slug": "camarilla-pivots",
+   "key": "b:stk_camarilla",
+   "name": "Camarilla Pivots",
+   "windowName": "Camarilla Pivots",
+   "author": "TradeZoro",
+   "third": false,
+   "group": "Levels",
+   "plan": "Free",
+   "kind": "native",
+   "short": "Camarilla levels R5 to S5, Y-High / Y-Close / Y-Low and the R3-RB3 / S3-SB3 zones from the prior day, week or month",
+   "summary": "Draws the Camarilla levels R5 to S5, Y-High, Y-Close and Y-Low from the prior day, week or month, with shaded reversal zones.",
+   "overview": [
+    "Camarilla Pivots draws a ladder of price levels worked out from the previous session's high, low and close. You see R5, R4, RB3, R3, R2 and R1 above, Y-High, Y-Close and Y-Low in the middle, and S1, S2, S3, SB3, S4 and S5 below.",
+    "The R/S levels are solid lines, Y-High is dashed green, Y-Low is dashed red and Y-Close is dashed orange. The space between R3 and RB3 is shaded red and the space between S3 and SB3 is shaded green. Each day's levels run from the start of the session to its end, and today's run to the right edge. Name tags sit at the right end and price tags on the price axis."
+   ],
+   "how": [
+    "Range is the prior session's high minus its low. R4, R3, R2 and R1 are the prior close plus Range x 1.1 divided by 2, 4, 6 and 12. S1 to S4 mirror them below the close. R5 is high divided by low, times the close, and S5 is the close minus the distance from the close to R5. RB3 and SB3 are the midpoints of R3 and R4, and of S3 and S4.",
+    "On futures a session is the exchange day, 18:00 to 17:00 New York time. On stocks, crypto and forex it is the UTC day. Weekly and Monthly use the prior week or month instead. Everything is calculated from the bars on your chart, so the chart needs enough history to hold the previous session."
+   ],
+   "use": [
+    "Some traders watch how price reacts when it reaches the shaded R3 to RB3 or S3 to SB3 zones.",
+    "Use Y-High, Y-Close and Y-Low to see where price is trading against yesterday's range.",
+    "Switch on only the groups you want, such as R3/S3 and R4/S4, to keep the chart clean.",
+    "Show a few past days to see how earlier levels lined up with later price."
+   ],
+   "notes": [
+    "Made for intraday charts. On a daily or longer chart it shows only the newest set of levels.",
+    "You can set the timeframe, the number of past days, colours, line width, labels and price tags.",
+    "It marks levels, not signals. Education only. Not financial advice."
+   ],
+   "alerts": "",
+   "learn": "",
+   "updated": "2026-11-04",
+   "licence": "",
+   "originalUrl": "",
+   "settings": [
+    {
+     "title": "Timeframe",
+     "type": "string",
+     "def": "Daily",
+     "options": [
+      "Daily",
+      "Weekly",
+      "Monthly"
+     ]
+    },
+    {
+     "title": "Past sessions to show",
+     "type": "int",
+     "def": 5
+    },
+    {
+     "title": "R5 / S5",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "R4 / S4",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "R3 / S3 (and RB3 / SB3)",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Shade the R3-RB3 and S3-SB3 zones",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "R2 / S2",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "R1 / S1",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Y-High",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Y-Close",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Y-Low",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Labels",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Price tags on the axis",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Line width",
+     "type": "int",
+     "def": 1
+    },
+    {
+     "title": "R / S line colour",
+     "type": "color",
+     "def": "#4a5bd4"
+    },
+    {
+     "title": "Y-High colour",
+     "type": "color",
+     "def": "#1fa35a"
+    },
+    {
+     "title": "Y-Close colour",
+     "type": "color",
+     "def": "#f08c1b"
+    },
+    {
+     "title": "Y-Low colour",
+     "type": "color",
+     "def": "#e5484d"
+    },
+    {
+     "title": "Resistance zone colour",
+     "type": "color",
+     "def": "#ff7a59"
+    },
+    {
+     "title": "Support zone colour",
+     "type": "color",
+     "def": "#2fbf5b"
+    }
+   ],
+   "capture": "chart",
+   "image": "/assets/images/indicators/pages/camarilla-pivots.webp",
+   "thumb": "/assets/images/indicators/pages/camarilla-pivots-t.webp"
   },
   {
    "slug": "pivot-points-standard",

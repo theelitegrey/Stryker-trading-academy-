@@ -160,5 +160,6 @@
  "x:zeiierman-trend-average": "trend-average",
  "x:trinity-atr-levels": "trinity-atr-levels",
  "x:unicorn-model": "unicorn-model",
- "x:wcsmc-sp": "wcsmc-sp-v3"
+ "x:wcsmc-sp": "wcsmc-sp-v3",
+ "b:stk_camarilla": "camarilla-pivots"
 }

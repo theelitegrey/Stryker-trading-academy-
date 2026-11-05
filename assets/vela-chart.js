@@ -589,6 +589,7 @@ function lateLists(provider){
   // round trip on a phone); they are independent, so they are requested together and installed in the old order.
   const newsP = import('./chart-news-markers.js?v=886');
   const msP = import('./chart-market-stats.js?v=886');
+  const camP = import('./chart-camarilla.js?v=886');
   const tideP = import('./chart-zorotide.js?v=886');
   const flowP = import('./chart-optflow.js?v=886');
   const offexP = import('./chart-offex.js?v=886');
@@ -618,6 +619,8 @@ function lateLists(provider){
   try { (await offexP).installOffex(LCore); } catch (e) { console.warn('TradeZoro: off-exchange install', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
   try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
+  // Camarilla Pivots (assets/chart-camarilla.js, Free): level overlay from the prior session, registered before boot too.
+  try { (await camP).installCamarilla(LCore); } catch (e) { console.warn('TradeZoro: camarilla install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }

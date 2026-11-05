@@ -43,6 +43,22 @@ export function pineDepthBars(tf){
 }
 const hasPine = (chart) => { try { return chart.indicators().some((h) => typeof h.source === 'string' && !h.nativeType); } catch (e) { return false; } };
 
+// Camarilla Pivots needs the previous period complete plus the shown days: that many sessions of bars (23 h a day), capped.
+const CAM_PERIOD_DAYS = { Daily: 1, Weekly: 7, Monthly: 31 };
+export function camDepthBars(chart, tf){
+  const m = TF_S[String(tf)];
+  if (!m) return 0;
+  let need = 0;
+  try {
+    chart.indicators().forEach((h) => {
+      if (h.nativeType !== 'stk_camarilla') return;
+      const v = h.inputValues(), per = CAM_PERIOD_DAYS[v.period] || 1;
+      const days = per === 1 ? Math.max(1, Math.min(30, +v.days || 5)) + 2 : Math.round(per * 5 / 7) * 2 + 1;
+      need = Math.max(need, Math.ceil(days * 23 * 3600 / m));
+    });
+  } catch (e) {}
+  return Math.min(MAX_BARS, need);
+}
 const orchOf = (cell) => { try { return cell.chart.orchestrator; } catch (e) { return null; } };
 const replayOn = () => { try { return !!(window.__stkReplay && window.__stkReplay.on); } catch (e) { return false; } };
 
@@ -74,7 +90,7 @@ function attach(cell) {
     if (o.switchingMarket || o.historyState !== 'complete' || !o.historyCompleted) return;
     if (typeof o.feed.loadRange !== 'function') return;
     if (Date.now() - st.loadedAt < SETTLE_MS) { schedule(SETTLE_MS); return; }
-    const need = hasPine(chart) ? pineDepthBars(m.timeframe) : 0;
+    const need = Math.max(hasPine(chart) ? pineDepthBars(m.timeframe) : 0, camDepthBars(chart, m.timeframe));
     if (need > bars.length) {
       const k0 = keyOf() + '|' + bars[0].time;
       const ex0 = st.exhausted.get(k0);

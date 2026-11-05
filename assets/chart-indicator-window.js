@@ -188,6 +188,7 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_gex') { cat = GROUP_STRYKER; desc = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH/pPOC/pVAL, ONH/ONL) from the GEX page (SPX, SPY, QQQ, ES, NQ and gold GC)'; }
       if (r.native && r.nativeType === 'stk_gexheat') { cat = GROUP_STRYKER; desc = 'Net GEX at every strike through the session, drawn behind the candles (SPX, SPY, QQQ, ES, NQ and gold GC)'; }
       if (r.native && r.nativeType === 'stk_em') { cat = GROUP_STRYKER; desc = 'Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly (SPX, SPY, QQQ, ES, NQ)'; }
+      if (r.native && r.nativeType === 'stk_camarilla') { cat = 'Levels'; desc = 'Camarilla levels R5 to S5, Y-High / Y-Close / Y-Low and the R3-RB3 / S3-SB3 zones from the prior day, week or month'; }
       if (r.native && r.nativeType === 'stk_tide') { cat = GROUP_STRYKER; desc = 'Options money flow: net call premium (green) vs net put premium (red) since the open, in a lower pane (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_optflow') { cat = GROUP_STRYKER; desc = 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium; hover or tap for details. Per-bar totals, not single trades (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_offex') { cat = GROUP_STRYKER; desc = 'Daily off-exchange share of volume in a lower pane. FINRA data, updated daily'; }

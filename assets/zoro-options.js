@@ -132,7 +132,7 @@
     if (route === 'activity' && (!d.rows || (d.rows[0] && !('cp' in d.rows[0])))) {
       var raw = d.rows || d[q.kind] || [];
       d.rows = raw.map(function (r) { return { u: r.u || d.u, cp: r.cp || r.side, k: r.k, exp: r.exp || r.x, vol: r.vol != null ? r.vol : r.opt_vol, oi: r.oi, add: r.add != null ? r.add : r.dv, prem: r.prem,
-        t0: fin(r.t0) ? etTime(r.t0) : r.t0, t1: fin(r.t1) ? etTime(r.t1) : r.t1, pc: r.pc != null ? r.pc : r.pc_vol, fresh: r.fresh != null ? r.fresh : r.fresh_n }; });
+        t0: fin(r.t0) ? etTime(r.t0) : r.t0, t1: fin(r.t1) ? etTime(r.t1) : fin(r.t0) && fin(r.t) ? etTime(r.t) : r.t1, pc: r.pc != null ? r.pc : r.pc_vol, fresh: r.fresh != null ? r.fresh : r.fresh_n }; });
     }
     if (route === 'screen' && d.rows) d.rows = d.rows.map(function (r) { return { u: r.u, ivr: r.ivr, iv30: r.iv30, ivChg: r.ivChg != null ? r.ivChg : r.iv30_chg, rangePct: r.rangePct != null ? r.rangePct : r.range_w_pct, vol: r.vol != null ? r.vol : r.opt_vol, pc: r.pc != null ? r.pc : r.pc_vol, fresh: r.fresh != null ? r.fresh : r.fresh_n }; });
     if (route === 'cme' && !d.cme && d.levels) {
@@ -186,7 +186,7 @@
   }
   // tween(ms, fn(e), done): instant under reduced motion / screenshot mode.
   function tween(ms, fn, done) {
-    if (still()) { fn(1); if (done) done(); return; }
+    if (still() || !(ms > 0)) { fn(1); if (done) done(); return; }
     var t0 = performance.now();
     (function step(now) { var t = Math.min(1, (now - t0) / ms); fn(ease(t)); if (t < 1) requestAnimationFrame(step); else if (done) done(); })(t0);
   }

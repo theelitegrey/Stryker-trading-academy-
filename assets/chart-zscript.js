@@ -1,7 +1,7 @@
 // TradeZoro — Charts: Zscript glue (charts.html) — ES module
 // Depends on: assets/vela-chart.js (calls installZscript(Core, wsGetter) before the workspace is built and
-// mountZscript(ws, opts) after mountPine); assets/zs-editor/* (code editor, examples, My scripts store, preview
-// engine, fallback built-ins list); the Zscript engine worker assets/zs/worker.js (Zscript stream 1) when present.
+// mountZscript(ws, opts) after mountPine); assets/zs-editor/* (code editor, examples, My scripts store); the Zscript engine
+// assets/zs/ (Zscript stream 1: runner.js, catalog.js), loaded on first use.
 //
 // WHAT IT IS: our own indicator language, Zscript, on the chart. A Vela scripting engine for language id 'zscript'
 // (ZsEngine below), registered as a default engine so every chart cell can run Zscript indicators; a "Zscript" tab in
@@ -9,11 +9,10 @@
 // and the Zscript rows of the indicator window (assets/chart-indicator-window.js reads window.STRYKER_ZS).
 // Pine Script support (assets/chart-pine*.js) is separate and unchanged.
 //
-// SAFETY: member scripts never run on the page. The source goes to a dedicated Web Worker (assets/zs/worker.js, or the
-// preview engine assets/zs-editor/stub-worker.js while the engine is not in the repo) that returns plain data: plots,
-// shapes, levels, drawings. This file only turns that data into Vela's indicator model. A first run that takes longer
-// than RUN_LIMIT_MS terminates the cell's worker and fails the indicator; later runs (new bars) get LIVE_LIMIT_MS.
-// Worker protocol: /root/projects/stryker-notes/reports/workers/zscript/contract.md ("S2 -> S1").
+// SAFETY: member scripts never run on the page. Compile and run happen in the engine's sandboxed module worker
+// (assets/zs/runner.js -> assets/zs/worker.js, Zscript stream 1: no network, no storage, hard time and memory limits; the
+// runner kills a worker that runs too long). This file only turns the engine's plain-data output (SPEC.md 11.4) into
+// Vela's indicator model, re-validating every colour, number and size on the way.
 //
 // PERSISTENCE: cell-scope handler 'stryker.zscript' stores [{ name, source, inputs }] in the workspace state, so
 // sessions, templates and saved layouts keep Zscript indicators. A Zscript source starts with //@zscript 1; Pine's
@@ -24,15 +23,10 @@ import * as Store from './zs-editor/store.js?v=895';
 
 const LANG = 'zscript';
 const EXT_KEY = 'stryker.zscript';
-const RUN_LIMIT_MS = 20000;
-const LIVE_LIMIT_MS = 5000;
 const MAX_PER_CELL = 8;
 const SRC_MAX = 65536;
 const MAX_INPUTS = 200;
 const HEADER = /^\s*\/\/@zscript\s+1\b/;
-const ENGINE_URL = new URL('./zs/worker.js?v=895', import.meta.url);
-const STUB_URL = new URL('./zs-editor/stub-worker.js?v=895', import.meta.url);
-const BUILTINS_URL = new URL('./zs/builtins.json?v=895', import.meta.url);
 const NEW_SRC = '//@zscript 1\nindicator("My script", overlay=true)\nlen = input.int(20, "Length", minval=1)\nplot(ta.sma(close, len), "SMA", color=color.teal, linewidth=2)\n';
 
 export const isZscript = (src) => typeof src === 'string' && HEADER.test(src.replace(/^\s*\n/, ''));
@@ -41,29 +35,36 @@ export function titleOf(src){
   return (m && m[2].trim().slice(0, 80)) || 'Zscript';
 }
 
-// ---------- which worker: the real engine when it is deployed, else the preview engine ----------
-let workerUrlP = null;
-function workerUrl(){
-  if (!workerUrlP) {
-    workerUrlP = fetch(ENGINE_URL, { method: 'HEAD', cache: 'no-store' })
-      .then((r) => (r.ok && /javascript/.test(r.headers.get('content-type') || '') ? ENGINE_URL : STUB_URL))
-      .catch(() => STUB_URL);
-  }
-  return workerUrlP;
+// ---------- the engine (Zscript stream 1: assets/zs/runner.js + index.js, SPEC.md section 11) ----------
+// Loaded on first use. Every compile and run happens in a sandboxed module worker (ZsRunner), never on the page.
+let engineP = null;
+function engine(){
+  if (!engineP) engineP = import('./zs/runner.js?v=895').catch((e) => { engineP = null; throw e; });
+  return engineP;
 }
-export const usingPreview = async () => (await workerUrl()) === STUB_URL;
-async function spawn(){
-  const url = await workerUrl();
-  // The real engine is a module worker (contract); the preview engine is a classic script, which also runs as a module.
-  return new Worker(url, { type: 'module', name: url === STUB_URL ? 'zscript-preview' : 'zscript' });
+const NO_ENGINE = { code: 'E000', line: 1, col: 1, severity: 'error', message: 'The Zscript engine did not load.', hint: 'Check your connection and reload the page.' };
+let compiler = null;
+async function compileIn(source){
+  try { const { ZsRunner } = await engine(); if (!compiler) compiler = new ZsRunner(); return await compiler.compile(source); }
+  catch (e) { return { ok: false, diagnostics: [NO_ENGINE] }; }
 }
 
-// ---------- built-in names for autocomplete / hover ----------
+// ---------- built-in names for autocomplete / hover (the engine's catalog) ----------
 let builtinsP = null;
+const sigOf = (f) => f.name + '(' + (f.params || []).map((p) => p.name + (p.def ? '=' + (p.def.var || JSON.stringify(p.def.v)) : '')).join(', ') + (f.variadic ? ', …' : '') + ')' + (f.ret && f.ret !== 'void' ? ' → ' + f.ret : '');
 export function loadBuiltins(){
   if (!builtinsP) {
-    builtinsP = fetch(BUILTINS_URL).then((r) => (r.ok ? r.json() : null)).catch(() => null)
-      .then((j) => (Array.isArray(j) && j.length ? j : import('./zs-editor/builtins-fallback.js?v=895').then((m) => m.BUILTINS)));
+    builtinsP = import('./zs/catalog.js?v=895').then((m) => {
+      const c = m.catalogJSON(), out = [], seen = new Set();
+      const add = (o) => { if (!seen.has(o.name)) { seen.add(o.name); out.push(o); } };
+      c.keywords.forEach((k) => add({ name: k, kind: 'keyword', sig: k, doc: '' }));
+      c.types.forEach((k) => add({ name: k, kind: 'type', sig: k, doc: '' }));
+      c.functions.forEach((f) => add({ name: f.name, kind: 'function', sig: sigOf(f), doc: (f.doc || '') + (f.data ? ' Uses order book, order flow, GEX or options data: na when your plan or the symbol does not have it.' : '') }));
+      c.variables.forEach((v) => add({ name: v.name, kind: 'variable', sig: v.name + ': ' + v.type, doc: v.doc || '' }));
+      c.constants.forEach((v) => add({ name: v.name, kind: 'constant', sig: v.name, doc: v.doc || '' }));
+      out.slice().forEach((o) => { const p = o.name.split('.'); for (let i = 1; i < p.length; i++) add({ name: p.slice(0, i).join('.'), kind: 'namespace', sig: p.slice(0, i).join('.'), doc: '' }); });
+      return out;
+    }).catch(() => []);
   }
   return builtinsP;
 }
@@ -71,246 +72,232 @@ export function loadBuiltins(){
 // ---------- diagnostics ----------
 const diagText = (d) => (d ? 'Line ' + (d.line || 1) + ':' + (d.col || 1) + ' ' + d.message + (d.hint ? ' ' + d.hint : '') : '');
 function zsError(d){ const e = new Error(diagText(d)); e.diag = d; return e; }
+const firstError = (list) => (list || []).find((d) => d && d.severity !== 'warning');
 
-// ---------- output -> Vela indicator model ----------
-const LOC = { abovebar: 'abovebar', belowbar: 'belowbar', absolute: 'price', top: 'top', bottom: 'bottom' };
-const KIND = { line: 'line', stepline: 'step', step: 'step', histogram: 'histogram', columns: 'columns', area: 'area', circles: 'circles', cross: 'cross' };
+// ---------- engine output (SPEC 11.4) -> Vela indicator model ----------
+const KIND = { line: 'line', linebr: 'line', stepline: 'step', histogram: 'histogram', columns: 'columns', area: 'area', areabr: 'area', circles: 'circles', cross: 'cross' };
 const SHAPE = { labelup: 'label_up', labeldown: 'label_down' };
 const SIZES = new Set(['tiny', 'small', 'normal', 'large', 'huge', 'auto']);
-const okColor = (c) => (typeof c === 'string' && /^(#[0-9a-f]{3,8}|rgba?\([^)]{1,40}\))$/i.test(c.trim()) ? c.trim() : undefined);
+const STYLES = ['solid', 'dashed', 'dotted'];
+const okColor = (c) => (typeof c === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c) ? c : undefined);
 const fin = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const cap = (a, n) => (Array.isArray(a) ? a.slice(0, n) : []);
 const str = (s, n) => (s == null ? undefined : String(s).slice(0, n || 500));
+const width = (w, d) => Math.max(1, Math.min(10, fin(w) || d || 1));
 
 export function toModel(out, bars, id, prepared, inputValues){
   out = out || {};
-  const n = bars.length, T = (i) => (i >= 0 && i < n ? bars[i].time : null);
-  const step = n > 1 ? bars[n - 1].time - bars[n - 2].time : 60000;
-  const series = [], priceLines = [], fills = [], backgrounds = [], labels = [], lines = [], boxes = [], tables = [];
-  const seriesId = new Map();
-  cap(out.plots, 64).forEach((p, k) => {
-    const sid = id + ':p:' + (p.id || k);
-    seriesId.set(String(p.id), sid);
-    const vals = Array.isArray(p.values) ? p.values : [];
-    const cols = Array.isArray(p.colors) ? p.colors : null;
-    const off = Math.trunc(fin(p.offset) || 0);
-    const points = [];
+  const n = bars.time.length, T = (i) => (i >= 0 && i < n ? bars.time[i] : null);
+  const step = n > 1 ? bars.time[n - 1] - bars.time[n - 2] : 60000;
+  const series = [], priceLines = [], fills = [], backgrounds = [], labels = [], lines = [], boxes = [], tables = [], barColors = [];
+  const ref = new Map();   // 'plot:<id>' | 'hline:<id>' -> series id (fills join series)
+  const colorAt = (p, i) => okColor(p.colors ? p.colors[i] : p.color);
+  cap(out.plots, 64).forEach((p) => {
+    const vals = p.values || [], off = Math.trunc(fin(p.offset) || 0), hidden = p.display === 'none';
+    if (p.kind === 'bgcolor' || p.kind === 'barcolor') {
+      for (let i = 0; i < n; i++) {
+        const c = Number.isNaN(vals[i]) ? undefined : colorAt(p, i);
+        if (!c || hidden) continue;
+        if (p.kind === 'barcolor') { barColors.push({ time: T(i), color: c }); continue; }
+        let e = i; while (e + 1 < n && !Number.isNaN(vals[e + 1]) && colorAt(p, e + 1) === c) e++;
+        backgrounds.push({ id: id + ':bg:' + p.id + ':' + i, paneId: 'unrouted', from: T(i) + off * step, to: T(e) + (off + 1) * step, color: c });
+        i = e;
+      }
+      return;
+    }
+    if (p.kind === 'shape' || p.kind === 'char' || p.kind === 'arrow') {
+      let k = 0;
+      for (let i = 0; i < n && k < 5000; i++) {
+        if (Number.isNaN(vals[i]) || hidden) continue;
+        const up = p.kind === 'arrow' ? vals[i] > 0 : null;
+        const loc = p.kind === 'arrow' ? (up ? 'belowbar' : 'abovebar') : ({ abovebar: 'abovebar', belowbar: 'belowbar', top: 'top', bottom: 'bottom', absolute: 'price' }[p.location] || 'abovebar');
+        const style = p.kind === 'char' ? 'none' : p.kind === 'arrow' ? (up ? 'arrowup' : 'arrowdown') : (SHAPE[p.style] || p.style || 'circle');
+        const text = p.kind === 'char' ? str(p.char, 4) + (p.text ? '\n' + str(p.text, 200) : '') : str(p.text, 200);
+        labels.push({ id: id + ':s:' + p.id + ':' + (k++), paneId: 'unrouted', xloc: 'bar_time', x: T(i) + off * step, y: loc === 'price' ? vals[i] : 0, yloc: loc,
+          text, style, color: colorAt(p, i) || '#089981ff', textColor: okColor(p.textcolor) || colorAt(p, i), size: SIZES.has(p.size) ? p.size : 'small', textAlign: 'center', fontFamily: 'default' });
+      }
+      return;
+    }
+    const kind = KIND[p.kind];
+    if (!kind) return;   // shortcut: plotcandle / plotbar are not drawn yet; add when Vela gets an OHLC series kind
+    const sid = id + ':p:' + p.id;
+    ref.set('plot:' + p.id, sid);
+    const points = new Array(n);
     for (let i = 0; i < n; i++) {
-      const pt = { time: bars[i].time + off * step, value: fin(vals[i]) };
-      const c = cols && okColor(cols[i]); if (c) pt.color = c;
-      points.push(pt);
+      const v = vals[i];
+      const pt = { time: T(i) + off * step, value: Number.isFinite(v) ? v : null };
+      if (p.colors) { const c = okColor(p.colors[i]); if (c) pt.color = c; }
+      points[i] = pt;
     }
-    const style = { color: okColor(p.color) || '#089981', width: Math.max(1, Math.min(10, fin(p.linewidth) || 1)), lineStyle: ['solid', 'dashed', 'dotted'].includes(p.linestyle) ? p.linestyle : 'solid' };
-    const kind = KIND[p.style] || 'line';
+    const style = { color: okColor(p.color) || '#089981ff', width: width(p.linewidth), lineStyle: 'solid' };
     if (fin(p.histbase) != null && (kind === 'histogram' || kind === 'columns' || kind === 'area')) style.base = p.histbase;
-    series.push({ id: sid, title: str(p.title, 80) || 'Plot ' + (k + 1), paneId: 'unrouted', kind, points, style, visible: p.display !== 'none' });
+    series.push({ id: sid, title: str(p.title, 80) || 'Plot ' + (p.id + 1), paneId: 'unrouted', kind, points, style, visible: !hidden });
   });
-  const hl = new Map();
-  cap(out.hlines, 64).forEach((h, k) => {
+  cap(out.hlines, 64).forEach((h) => {
     const price = fin(h.price); if (price == null) return;
-    hl.set(String(h.id), h);
-    priceLines.push({ id: id + ':h:' + (h.id || k), paneId: 'unrouted', price, color: okColor(h.color) || '#787B86', lineStyle: ['solid', 'dashed', 'dotted'].includes(h.linestyle) ? h.linestyle : 'dashed', title: str(h.title, 80) || '', width: Math.max(1, Math.min(10, fin(h.linewidth) || 1)) });
+    priceLines.push({ id: id + ':h:' + h.id, paneId: 'unrouted', price, color: okColor(h.color) || '#787b86ff', lineStyle: STYLES.includes(h.linestyle) ? h.linestyle : 'dashed', title: str(h.title, 80) || '', width: width(h.linewidth) });
   });
-  // fill between two hlines (or a plot and an hline): Vela fills join SERIES, so an hline in a fill gets a hidden constant series
-  const ref = (key) => {
-    key = String(key);
-    if (seriesId.has(key)) return seriesId.get(key);
-    const h = hl.get(key); if (!h) return null;
-    const sid = id + ':hf:' + key;
-    if (!seriesId.has('hf:' + key)) {
-      seriesId.set('hf:' + key, sid);
-      series.push({ id: sid, title: str(h.title, 80) || '', paneId: 'unrouted', kind: 'line', points: bars.map((b) => ({ time: b.time, value: h.price })), style: { color: 'rgba(0,0,0,0)', width: 1, lineStyle: 'solid' }, visible: false });
-    }
+  const hlineSeries = (hid) => {
+    const key = 'hline:' + hid;
+    if (ref.has(key)) return ref.get(key);
+    const h = (out.hlines || []).find((x) => x.id === hid);
+    if (!h || fin(h.price) == null) return null;
+    const sid = id + ':hf:' + hid;
+    ref.set(key, sid);
+    series.push({ id: sid, title: '', paneId: 'unrouted', kind: 'line', points: bars.time.map((t) => ({ time: t, value: h.price })), style: { color: 'rgba(0,0,0,0)', width: 1, lineStyle: 'solid' }, visible: false });
     return sid;
   };
-  cap(out.fills, 32).forEach((f, k) => {
-    const a = ref(f.a), b = ref(f.b);
+  cap(out.fills, 32).forEach((f) => {
+    const a = f.between === 'hline' ? hlineSeries(f.a) : ref.get('plot:' + f.a);
+    const b = f.between === 'hline' ? hlineSeries(f.b) : ref.get('plot:' + f.b);
     if (!a || !b) return;
-    const o = { id: id + ':f:' + (f.id || k), paneId: 'unrouted', fromSeriesId: a, toSeriesId: b };
-    if (Array.isArray(f.colors)) o.colors = f.colors.slice(0, n).map((c) => okColor(c) || null); else o.color = okColor(f.color) || 'rgba(8,153,129,.12)';
+    const o = { id: id + ':f:' + f.id, paneId: 'unrouted', fromSeriesId: a, toSeriesId: b };
+    if (Array.isArray(f.colors)) o.colors = f.colors.slice(0, n).map((c) => okColor(c) || null); else o.color = okColor(f.color) || '#0899811f';
     fills.push(o);
   });
-  // bgcolor: runs of the same colour become one background span
-  const bg = (cap(out.bgcolors, 200000).filter((x) => T(x.i) != null && okColor(x.color))).sort((a, b) => a.i - b.i);
-  for (let j = 0; j < bg.length;) {
-    let e = j; while (e + 1 < bg.length && bg[e + 1].i === bg[e].i + 1 && bg[e + 1].color === bg[j].color) e++;
-    backgrounds.push({ id: id + ':bg:' + j, paneId: 'unrouted', from: T(bg[j].i), to: T(bg[e].i) + step, color: okColor(bg[j].color) });
-    j = e + 1;
-  }
-  const barColors = cap(out.barcolors, 200000).filter((x) => T(x.i) != null && okColor(x.color)).map((x) => ({ time: T(x.i), color: okColor(x.color) }));
-  cap(out.shapes, 64).forEach((s, k) => cap(s.marks, 5000).forEach((m, j) => {
-    const t = T(m.i); if (t == null) return;
-    const loc = LOC[m.location] || 'abovebar';
-    labels.push({ id: id + ':s:' + (s.id || k) + ':' + j, paneId: 'unrouted', xloc: 'bar_time', x: t, y: fin(m.y) || 0, yloc: loc,
-      text: m.char ? str(m.char, 4) + (m.text ? '\n' + str(m.text, 200) : '') : str(m.text, 200), style: m.char ? 'none' : (SHAPE[m.shape] || m.shape || 'circle'),
-      color: okColor(m.color) || '#089981', textColor: okColor(m.textcolor), size: SIZES.has(m.size) ? m.size : 'small', textAlign: 'center', fontFamily: 'default' });
-  }));
   const xl = (v) => (v === 'bar_time' ? 'bar_time' : 'bar_index');
-  cap(out.labels, 500).forEach((l, k) => {
+  cap(out.labels, 500).forEach((l) => {
     const x = fin(l.x); if (x == null) return;
-    labels.push({ id: id + ':l:' + (l.id || k), paneId: 'unrouted', xloc: xl(l.xloc), x, y: fin(l.y) || 0, yloc: l.yloc === 'abovebar' || l.yloc === 'belowbar' ? l.yloc : 'price',
-      text: str(l.text, 500), style: SHAPE[l.style] || l.style || 'label_down', color: okColor(l.color) || '#2196F3', textColor: okColor(l.textcolor) || '#FFFFFF',
-      size: SIZES.has(l.size) ? l.size : 'normal', textAlign: 'center', tooltip: str(l.tooltip, 500), fontFamily: 'default' });
+    labels.push({ id: id + ':l:' + l.id, paneId: 'unrouted', xloc: xl(l.xloc), x, y: fin(l.y) || 0, yloc: l.yloc === 'abovebar' || l.yloc === 'belowbar' ? l.yloc : 'price',
+      text: str(l.text, 500), style: l.style || 'label_down', color: okColor(l.color) || '#2196f3ff', textColor: okColor(l.textcolor) || '#ffffffff',
+      size: SIZES.has(l.size) ? l.size : 'normal', textAlign: ['left', 'right'].includes(l.textalign) ? l.textalign : 'center', tooltip: str(l.tooltip, 500), fontFamily: 'default' });
   });
-  cap(out.lines, 500).forEach((l, k) => {
+  cap(out.lines, 500).forEach((l) => {
     const v = [l.x1, l.y1, l.x2, l.y2].map(fin); if (v.some((x) => x == null)) return;
-    lines.push({ id: id + ':ln:' + (l.id || k), paneId: 'unrouted', xloc: xl(l.xloc), x1: v[0], y1: v[1], x2: v[2], y2: v[3], extend: ['left', 'right', 'both'].includes(l.extend) ? l.extend : 'none',
-      color: okColor(l.color) || '#2196F3', invisible: false, width: Math.max(1, Math.min(10, fin(l.width) || 1)), style: ['dashed', 'dotted'].includes(l.style) ? l.style : 'solid', arrowLeft: false, arrowRight: false });
+    lines.push({ id: id + ':ln:' + l.id, paneId: 'unrouted', xloc: xl(l.xloc), x1: v[0], y1: v[1], x2: v[2], y2: v[3], extend: ['left', 'right', 'both'].includes(l.extend) ? l.extend : 'none',
+      color: okColor(l.color) || '#2196f3ff', invisible: false, width: width(l.width), style: STYLES.includes(l.style) ? l.style : 'solid',
+      arrowLeft: l.style === 'arrow_left' || l.style === 'arrow_both', arrowRight: l.style === 'arrow_right' || l.style === 'arrow_both' });
   });
-  cap(out.boxes, 500).forEach((b, k) => {
+  cap(out.boxes, 500).forEach((b) => {
     const v = [b.left, b.top, b.right, b.bottom].map(fin); if (v.some((x) => x == null)) return;
-    boxes.push({ id: id + ':bx:' + (b.id || k), paneId: 'unrouted', xloc: xl(b.xloc), left: v[0], top: v[1], right: v[2], bottom: v[3], extend: 'none',
-      bgColor: okColor(b.bgcolor), borderColor: okColor(b.border_color), borderWidth: Math.max(0, Math.min(10, fin(b.border_width) ?? 1)), borderStyle: 'solid',
-      text: str(b.text, 500), textColor: okColor(b.text_color), textSize: 'auto', hAlign: 'center', vAlign: 'center', wrap: false, fontFamily: 'default', bold: false, italic: false });
+    boxes.push({ id: id + ':bx:' + b.id, paneId: 'unrouted', xloc: xl(b.xloc), left: v[0], top: v[1], right: v[2], bottom: v[3], extend: ['left', 'right', 'both'].includes(b.extend) ? b.extend : 'none',
+      bgColor: okColor(b.bgcolor), borderColor: okColor(b.border_color), borderWidth: Math.max(0, Math.min(10, fin(b.border_width) ?? 1)), borderStyle: STYLES.includes(b.border_style) ? b.border_style : 'solid',
+      text: str(b.text, 500), textColor: okColor(b.text_color), textSize: SIZES.has(b.text_size) ? b.text_size : 'auto', hAlign: 'center', vAlign: 'center', wrap: false, fontFamily: 'default', bold: false, italic: false });
   });
   const POS = ['top_left', 'top_center', 'top_right', 'middle_left', 'middle_center', 'middle_right', 'bottom_left', 'bottom_center', 'bottom_right'];
-  cap(out.tables, 20).forEach((t, k) => {
-    const rows = cap(t.cells, 100).map((r) => cap(r, 50).map((c) => (c ? { text: str(c.text, 500), textColor: okColor(c.text_color), bgColor: okColor(c.bgcolor), hAlign: 'center', vAlign: 'center', textSize: SIZES.has(c.text_size) ? c.text_size : 'normal', fontFamily: 'default', bold: false, italic: false, merged: false } : null)));
-    tables.push({ id: id + ':t:' + (t.id || k), paneId: 'unrouted', position: POS.includes(t.position) ? t.position : 'top_right', columns: Math.max(0, Math.min(50, fin(t.columns) || 0)), rows: Math.max(0, Math.min(100, fin(t.rows) || 0)),
-      bgColor: okColor(t.bgcolor), frameColor: undefined, frameWidth: 0, borderColor: okColor(t.border_color), borderWidth: Math.max(0, fin(t.border_width) || 0), cells: rows, merges: [] });
+  cap(out.tables, 20).forEach((t) => {
+    const cols = Math.max(0, Math.min(50, fin(t.columns) || 0)), rows = Math.max(0, Math.min(100, fin(t.rows) || 0));
+    const grid = Array.from({ length: rows }, () => new Array(cols).fill(null));
+    cap(t.cells, 5000).forEach((c) => {
+      if (!(c.r >= 0 && c.r < rows && c.c >= 0 && c.c < cols)) return;
+      grid[c.r][c.c] = { text: str(c.text, 500), textColor: okColor(c.text_color), bgColor: okColor(c.bgcolor), hAlign: ['left', 'right'].includes(c.text_halign) ? c.text_halign : 'center', vAlign: 'center', textSize: SIZES.has(c.text_size) ? c.text_size : 'normal', fontFamily: 'default', bold: false, italic: false, merged: false };
+    });
+    tables.push({ id: id + ':t:' + t.id, paneId: 'unrouted', position: POS.includes(t.position) ? t.position : 'top_right', columns: cols, rows,
+      bgColor: okColor(t.bgcolor), frameColor: okColor(t.frame_color), frameWidth: Math.max(0, fin(t.frame_width) || 0), borderColor: okColor(t.border_color), borderWidth: Math.max(0, fin(t.border_width) || 0), cells: grid, merges: [] });
   });
   const meta = prepared.meta;
   const model = { id, title: meta.title, overlay: meta.overlay, paneHint: meta.overlay ? 'price' : 'new', series, fills, backgrounds, priceLines, lines, boxes, labels, polylines: [], linefills: [], tables,
     barColors: barColors.length ? barColors : undefined, inputs: prepared.inputs, inputValues: Object.assign({}, defaultsOf(prepared.inputs), inputValues || {}) };
-  if (n) model.anchorTime = bars[0].time;
+  if (n) model.anchorTime = bars.time[0];
   return model;
 }
 const defaultsOf = (inputs) => { const o = {}; (inputs || []).forEach((i) => { o[i.key] = i.defval; }); return o; };
-const INPUT_TYPES = new Set(['int', 'float', 'bool', 'string', 'color', 'source', 'timeframe']);
+// engine input descriptors (SPEC 11.1) -> the chart's settings dialog inputs; key = the engine's input id
+const INPUT_TYPES = { int: 'int', float: 'float', price: 'float', bool: 'bool', string: 'string', text_area: 'string', color: 'color', source: 'source', timeframe: 'timeframe' };
 function cleanInputs(list){
-  return cap(list, MAX_INPUTS).filter((i) => i && typeof i.key === 'string' && INPUT_TYPES.has(i.type)).map((i) => {
-    const o = { key: i.key.slice(0, 64), title: str(i.title, 80) || i.key, type: i.type, defval: i.defval };
-    ['min', 'max', 'step'].forEach((k) => { if (fin(i[k]) != null) o[k] = i[k]; });
-    if (Array.isArray(i.options)) o.options = i.options.slice(0, 100).map(String);
+  return cap(list, MAX_INPUTS).filter((i) => i && Number.isInteger(i.id) && INPUT_TYPES[i.kind]).map((i) => {
+    const o = { key: String(i.id), title: str(i.title, 80) || 'Input ' + (i.id + 1), type: INPUT_TYPES[i.kind], defval: i.kind === 'color' && typeof i.defval === 'string' ? i.defval.slice(0, 7) : i.defval };
+    [['minval', 'min'], ['maxval', 'max'], ['step', 'step']].forEach(([k, to]) => { if (fin(i[k]) != null) o[to] = i[k]; });
+    if (Array.isArray(i.options) && i.options.length) o.options = i.options.slice(0, 100).map(String);
     if (i.group) o.group = str(i.group, 80);
     if (i.tooltip) o.tooltip = str(i.tooltip, 300);
     return o;
   });
 }
+const runInputs = (vals) => { const o = {}; Object.keys(vals || {}).forEach((k) => { if (/^\d+$/.test(k)) o[k] = vals[k]; }); return o; };
 
-// ---------- the Vela engine: one per chart cell, one worker per engine ----------
+// ---------- the Vela engine: one per chart cell; one sandboxed worker per indicator ----------
 const notified = new Set();   // one-time notices (per page)
 function notice(text){
   if (!text || notified.has(text)) return;
   notified.add(text);
   try { window.showToast && window.showToast('info', String(text).slice(0, 300), { duration: 6000 }); } catch (e) {}
 }
+const tfStr = (tf) => String(tf || '').replace(/^(\d+)m$/, '$1');
+const tickerOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '');
+const typeOf = (sym) => (/^futures:/i.test(sym) ? 'futures' : /^(binance|bybit|okx|kraken|bitget|hyperliquid|coinbase|crypto):/i.test(sym) ? 'crypto' : 'stock');
+function columns(all){
+  const n = all.length, b = { time: new Array(n), open: new Array(n), high: new Array(n), low: new Array(n), close: new Array(n), volume: new Array(n) };
+  for (let i = 0; i < n; i++) { const x = all[i]; b.time[i] = x.time; b.open[i] = x.open; b.high[i] = x.high; b.low[i] = x.low; b.close[i] = x.close; b.volume[i] = x.volume || 0; }
+  return b;
+}
 
 export class ZsEngine {
   constructor(){
     this.language = LANG;
     this.capabilities = { streaming: false, visibleRange: false, inputs: true, props: false };
-    this.worker = null; this.reqId = 0; this.sid = 0;
-    this.waits = new Map(); this.sessions = new Map();
-  }
-  async w(){
-    if (!this.worker) {
-      this.worker = spawn().then((w) => {
-        w.addEventListener('message', (e) => this.onMessage(e.data || {}));
-        w.addEventListener('error', (e) => { e.preventDefault && e.preventDefault(); this.crash('The Zscript engine failed to start.'); });
-        return w;
-      });
-    }
-    return this.worker;
-  }
-  async post(m){ (await this.w()).postMessage(m); }
-  crash(msg){
-    const err = zsError({ line: 1, col: 1, severity: 'error', message: msg });
-    this.waits.forEach((p) => p.reject(err)); this.waits.clear();
-    this.sessions.forEach((s) => s.fail(err));
-    this.kill();
-  }
-  kill(){ const w = this.worker; this.worker = null; if (w) w.then((x) => x.terminate()).catch(() => {}); }
-  compile(source){
-    const reqId = ++this.reqId;
-    return new Promise((resolve, reject) => { this.waits.set(reqId, { resolve, reject }); this.post({ kind: 'compile', reqId, source }).catch(reject); });
   }
   async prepare(source, instanceId){
     if (String(source).length > SRC_MAX) throw zsError({ line: 1, col: 1, message: 'This script is longer than 64 KB.' });
-    const r = await this.compile(source);
-    const errs = (r.diagnostics || []).filter((d) => d.severity !== 'warning');
-    if (!r.ok || errs.length) throw zsError(errs[0] || { line: 1, col: 1, message: 'The script did not compile.' });
-    const meta = { title: str(r.meta && r.meta.title, 80) || titleOf(source), overlay: !!(r.meta && r.meta.overlay) };
-    if (r.meta && r.meta.shorttitle) meta.shorttitle = str(r.meta.shorttitle, 40);
-    return { language: LANG, inputs: cleanInputs(r.inputs), meta, reactsToViewport: false, token: { source, instanceId, program: r.program } };
+    const r = await compileIn(source);
+    if (!r.ok || firstError(r.diagnostics)) throw zsError(firstError(r.diagnostics) || { line: 1, col: 1, message: 'The script did not compile.' });
+    const m = r.meta || {};
+    const meta = { title: str(m.title, 80) || titleOf(source), overlay: !!m.overlay };
+    if (m.shorttitle) meta.shorttitle = str(m.shorttitle, 40);
+    return { language: LANG, inputs: cleanInputs(m.inputs), meta, reactsToViewport: false, token: { source, instanceId, program: r.program, needs: m.needs || {} } };
   }
   execute(req, handlers){
-    const sessionId = ++this.sid;
-    const self = this;
-    const s = { req, handlers, inputs: Object.assign({}, req.inputs || {}), first: true, busy: false, dirty: false, timer: 0, bars: null, alertSess: { primed: false, seen: new Set() }, stopped: false,
-      fail(err){ clearTimeout(s.timer); if (!s.stopped) { s.stopped = true; self.sessions.delete(sessionId); try { handlers.onError && handlers.onError(err); } catch (e) {} } } };
-    this.sessions.set(sessionId, s);
-    const run = () => {
-      if (s.stopped) return;
-      if (s.busy) { s.dirty = true; return; }
-      s.busy = true; s.dirty = false;
-      const all = (req.getBars ? req.getBars() : req.bars) || [];
-      s.bars = all.map((b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0 }));
-      const limit = s.first ? RUN_LIMIT_MS : LIVE_LIMIT_MS;
-      s.timer = setTimeout(() => {
-        // a run over the limit: replace the worker (every script on this cell restarts on the next bar) and fail this one
-        self.kill();
-        s.fail(zsError({ line: 1, col: 1, message: 'Script stopped: it took longer than ' + limit / 1000 + ' seconds.', hint: 'Use fewer bars of history or simpler loops.' }));
-        self.sessions.forEach((o) => { o.busy = false; o.first = true; setTimeout(o.rerun, 0); });
-      }, limit);
-      const mk = req.market || {};
-      this.post({ kind: 'run', sessionId, program: req.prepared.token.program, source: req.prepared.token.source, bars: s.bars, inputs: s.inputs, market: { symbol: mk.symbol, timeframe: mk.timeframe } })
-        .catch((e) => s.fail(zsError({ line: 1, col: 1, message: 'The Zscript engine failed to start.' })));
-    };
-    s.rerun = run;
-    s.done = (output) => {
-      clearTimeout(s.timer); s.busy = false;
-      if (s.stopped) return;
-      s.first = false;
-      let model;
-      try { model = toModel(output, s.bars, req.prepared.token.instanceId, req.prepared, s.inputs); }
-      catch (e) { s.fail(zsError({ line: 1, col: 1, message: 'The script produced output the chart cannot draw.' })); return; }
-      try { handlers.onModel(model); } catch (e) { console.warn('TradeZoro: Zscript model', e); }
-      cap(output && output.notices, 5).forEach(notice);
-      routeAlerts(req, s, output);
-      if (s.dirty) setTimeout(run, 0);
+    let runner = null, stopped = false, busy = false, dirty = false, hasRun = false, last = null;
+    let inputs = Object.assign({}, req.inputs || {});
+    const tok = req.prepared.token, alertSess = { primed: false, seen: new Set() };
+    const fail = (d) => { if (stopped) return; stopped = true; if (runner) runner.dispose(); try { handlers.onError && handlers.onError(zsError(d)); } catch (e) {} };
+    const mk = () => req.market || {};
+    const run = async () => {
+      if (stopped) return;
+      if (busy) { dirty = true; return; }
+      busy = true; dirty = false;
+      try {
+        if (!runner) { const { ZsRunner } = await engine(); runner = new ZsRunner(); }
+        const bars = columns((req.getBars ? req.getBars() : req.bars) || []);
+        const n = bars.time.length;
+        let out;
+        // live tick: same history, only the forming bar changed (or one new bar) -> update() reruns the last bar
+        if (hasRun && last && n && bars.time[0] === last.first && (n === last.n || n === last.n + 1) && JSON.stringify(inputs) === last.inputs) {
+          const i = n - 1;
+          out = await runner.update({ bar: { time: bars.time[i], open: bars.open[i], high: bars.high[i], low: bars.low[i], close: bars.close[i], volume: bars.volume[i] } });
+        } else {
+          const sym = mk().symbol || '';
+          // shortcut: order book / flow / GEX / options frames are not passed yet (S3's hub frames and SPEC 11.3 differ; see contract.md),
+          // so data calls return na with the engine's one-time notice.
+          out = await runner.run({ program: tok.program, bars, symbol: { ticker: tickerOf(sym), tickerid: sym, type: typeOf(sym) }, timeframe: tfStr(mk().timeframe), inputs: runInputs(inputs), allowed: {}, data: {}, securities: {} });
+        }
+        if (stopped) return;
+        if (!out || out.ok === false) { fail((out && out.error) || { line: 1, col: 1, message: 'The script stopped with an error.' }); return; }
+        hasRun = true; last = { first: bars.time[0], n, inputs: JSON.stringify(inputs) };
+        let model;
+        try { model = toModel(out, bars, tok.instanceId, req.prepared, inputs); }
+        catch (e) { console.warn('TradeZoro: Zscript model', e); fail({ line: 1, col: 1, message: 'The script produced output the chart cannot draw.' }); return; }
+        try { handlers.onModel(model); } catch (e) { console.warn('TradeZoro: Zscript model', e); }
+        cap(out.notices, 5).forEach(notice);
+        routeAlerts(req, alertSess, out, bars);
+      } catch (e) {
+        if (!stopped) { hasRun = false; if (runner) { runner.dispose(); runner = null; } fail(e && e.message === 'disposed' ? null : { line: 1, col: 1, message: 'The Zscript engine stopped. Remove the script and add it again.' }); }
+      } finally {
+        busy = false;
+        if (dirty && !stopped) setTimeout(run, 0);
+      }
     };
     run();
     return {
       getContext: () => Promise.resolve(null),
-      stop: () => { s.stopped = true; clearTimeout(s.timer); this.sessions.delete(sessionId); this.post({ kind: 'stop', sessionId }).catch(() => {}); },
-      update: (inputs) => { s.inputs = Object.assign({}, inputs || {}); run(); },
+      stop: () => { stopped = true; if (runner) runner.dispose(); runner = null; },
+      update: (vals) => { inputs = Object.assign({}, vals || {}); hasRun = false; run(); },
       setVisibleRange: () => {},
-      notifyBars: (reason) => { if (reason !== 'backfill') run(); }
+      notifyBars: (reason) => { if (reason === 'backfill') hasRun = false; run(); }
     };
   }
-  onMessage(m){
-    if (m.kind === 'compiled') {
-      const p = this.waits.get(m.reqId); if (!p) return;
-      this.waits.delete(m.reqId); p.resolve(m);
-    } else if (m.kind === 'result') {
-      const s = this.sessions.get(m.sessionId); if (s) s.done(m.output);
-    } else if (m.kind === 'error') {
-      if (m.reqId != null && this.waits.has(m.reqId)) { const p = this.waits.get(m.reqId); this.waits.delete(m.reqId); p.reject(zsError(m.diag)); return; }
-      const s = this.sessions.get(m.sessionId); if (s) { clearTimeout(s.timer); s.fail(zsError(m.diag || { line: 1, col: 1, message: 'The script stopped with an error.' })); }
-    } else if (typeof m.kind === 'string' && m.kind.startsWith('data')) {
-      // order book / order flow / GEX / options data requests: served by the data stream's adapter (assets/zs/data)
-      const D = window.StrykerZsData;
-      const s = this.sessions.get(m.sessionId) || [...this.sessions.values()][0];
-      const mk = (s && s.req.market) || {};
-      if (D && D.handle) { try { D.handle(m, { symbol: mk.symbol, timeframe: mk.timeframe, post: (reply) => this.post(reply) }); } catch (e) { console.warn('TradeZoro: Zscript data', e); } }
-      else this.post({ kind: 'dataResult', reqId: m.reqId, sessionId: m.sessionId, error: 'unavailable' }).catch(() => {});
-    }
-  }
-  terminate(){ this.kill(); }
+  terminate(){ if (compiler) { compiler.dispose(); compiler = null; } }
 }
 
 // alertcondition()/alert() hits on the LAST bar go to the chart alerts module, which fires only alerts the member created
 // for this indicator (same path as Pine, assets/chart-alerts.js window.__stkIndAlerts).
-function routeAlerts(req, s, output){
+function routeAlerts(req, sess, out, bars){
   const R = window.__stkIndAlerts; if (!R || !R.event) return;
+  const n = bars.time.length, t = bars.time[n - 1];
   try {
-    R.event({ req, alert: null, sess: s.alertSess, kind: 'model' });
-    const last = s.bars.length - 1;
-    cap(output && output.alerts, 50).forEach((a) => {
-      if (a.i !== last) return;
-      R.event({ req, sess: s.alertSess, kind: 'alert', alert: { id: (a.kind === 'alert' ? 'alert' : 'alertcondition') + ':' + (a.id || ''), title: str(a.title, 120), message: str(a.message, 500) || '', time: s.bars[last].time } });
-    });
+    R.event({ req, alert: null, sess, kind: 'model' });
+    cap(out.alertconditions, 50).forEach((a) => { if (a.values && a.values[n - 1]) R.event({ req, sess, kind: 'alert', alert: { id: 'alertcondition:' + a.id, title: str(a.title, 120), message: str(a.message, 500) || '', time: t } }); });
+    cap(out.alerts, 500).forEach((a) => { if (a.time === t || a.bar === n - 1) R.event({ req, sess, kind: 'alert', alert: { id: 'alert:', title: 'alert()', message: str(a.message, 500) || '', time: t } }); });
   } catch (e) {}
 }
 
@@ -408,7 +395,6 @@ export function mountZscript(ws, opts){
   const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: '60', placeholder: 'Script name', 'aria-label': 'Script name' });
   const edHost = el('div', { class: 'stkc-pine-ed stkc-zs-ed' }, [el('div', { class: 'stkc-zs-loading', text: 'Loading editor…' })]);
   const errBox = el('div', { class: 'stkc-pine-err stkc-zs-err', role: 'alert', hidden: '' });
-  const previewNote = el('p', { class: 'stkc-zs-preview', hidden: '', text: 'Preview engine: plots are drawn only for simple averages and RSI until the Zscript engine is switched on.' });
   const addBtn = el('button', { type: 'button', class: 'stkc-sbtn stkc-zs-run', html: icon('<path d="M7 5l11 7-11 7z"/>', 16) + '<span>Add to chart</span>' });
   const checkBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Check' });
   const saveBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Save' });
@@ -426,7 +412,7 @@ export function mountZscript(ws, opts){
   ]);
   const hd = el('header', { class: 'stkc-pine-hd' }, [el('div', { class: 'stkc-zs-hl' }, [langSwitch('zs', (k) => switchTo(k)), target]), closeBtn]);
   panel.appendChild(hd);
-  panel.appendChild(el('div', { class: 'stkc-pine-body' }, [el('div', { class: 'stkc-saverow' }, [nameIn]), edHost, errBox, previewNote, lib]));
+  panel.appendChild(el('div', { class: 'stkc-pine-body' }, [el('div', { class: 'stkc-saverow' }, [nameIn]), edHost, errBox, lib]));
   panel.appendChild(el('div', { class: 'stkc-pine-acts' }, [addBtn, checkBtn, saveBtn, newBtn]));
   host.appendChild(panel);
   lib.open = !window.matchMedia('(max-width:700px)').matches;
@@ -437,7 +423,7 @@ export function mountZscript(ws, opts){
     if (phd) { phd.classList.add('stkc-zs-hl'); phd.insertBefore(langSwitch('pine', (k) => switchTo(k)), phd.firstChild); const h2 = phd.querySelector('h2'); if (h2) h2.classList.add("sr-only"); }
   }
 
-  let ed = null, edP = null, lintW = null, editingId = null, busy = false, draft = null;
+  let ed = null, edP = null, editingId = null, busy = false, draft = null;
   const isPhone = () => window.innerWidth <= 700;
   function activeCell(){
     const cells = (() => { try { return ws.context().cells; } catch (e) { return []; } })();
@@ -451,15 +437,9 @@ export function mountZscript(ws, opts){
     const sym = String(a.cell.symbol || '').replace(/^[a-z]+:/i, '').replace(/1!$/, '');
     target.textContent = 'Adds to ' + (a.count > 1 ? 'chart ' + (a.index + 1) + ': ' : '') + sym + ' ' + tfLabel(a.cell.timeframe);
   }
-  // a separate worker for compile-as-you-type, alive while the panel is open
-  let lintSeq = 0; const lintWaits = new Map();
-  async function lint(src){
-    if (!lintW) { lintW = spawn().then((w) => { w.addEventListener('message', (e) => { const m = e.data || {}; const r = lintWaits.get(m.reqId); if (r) { lintWaits.delete(m.reqId); r(m); } }); return w; }); }
-    const w = await lintW, reqId = ++lintSeq;
-    const m = await new Promise((resolve) => { lintWaits.set(reqId, resolve); w.postMessage({ kind: 'compile', reqId, source: src }); setTimeout(() => { if (lintWaits.delete(reqId)) resolve({ diagnostics: [] }); }, 4000); });
-    return m.kind === 'error' ? [m.diag] : (m.diagnostics || []);
-  }
-  function stopLint(){ if (lintW) lintW.then((w) => w.terminate()).catch(() => {}); lintW = null; lintWaits.forEach((r) => r({ diagnostics: [] })); lintWaits.clear(); }
+  // compile-as-you-type: the shared sandboxed compiler (diagnostics with line:col and a "did you mean" hint)
+  async function lint(src){ const r = await compileIn(src); return r.diagnostics || []; }
+  function stopLint(){ if (compiler) { compiler.dispose(); compiler = null; } }
 
   function ensureEditor(){
     if (!edP) {
@@ -562,7 +542,6 @@ export function mountZscript(ws, opts){
       addBtn.lastChild.textContent = isPhone() ? 'Run' : 'Add to chart';
       renderLists();
       ensureEditor().then((e) => { if (!isPhone()) e.focus(); }).catch(() => {});
-      usingPreview().then((p) => { previewNote.hidden = !p; });
     } else stopLint();
   }
   function switchTo(k){

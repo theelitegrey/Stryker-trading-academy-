@@ -2,7 +2,7 @@
 // Depends on: assets/zs-editor/cm6.js (vendored CodeMirror 6, MIT; rebuild with tools/zs-editor/build-cm6.sh).
 //
 // createZsEditor(parent, { doc, builtins, onChange, onRun, lint }) -> { view, get(), set(text), focus(), showDiagnostics(list), goto(line, col) }
-//   builtins  [{ name, kind, sig, doc }]  autocomplete + hover docs (engine list or builtins-fallback.js)
+//   builtins  [{ name, kind, sig, doc }]  autocomplete + hover docs (from the engine catalog, assets/zs/catalog.js)
 //   lint(src) -> Promise<[Diag]>          inline errors while typing (Diag = { line, col, endLine?, endCol?, severity, message, hint? }, 1-based)
 // Colours come from CSS variables (--zs-*) set in assets/style.css for dark and light, so the theme switch needs no rebuild.
 
@@ -115,7 +115,12 @@ function toCm(doc, d){
   if (d.endLine) { const l2 = doc.line(Math.min(Math.max(1, d.endLine), doc.lines)); to = Math.min(l2.to, l2.from + Math.max(0, (d.endCol || 1) - 1)); }
   else { const m = /^[\w.]+/.exec(doc.sliceString(from, ln.to)); to = from + (m ? m[0].length : 1); }
   if (to <= from) to = Math.min(ln.to, from + 1);
-  if (to <= from) { return { from: ln.from, to: ln.to, severity: d.severity || 'error', message: msg(d) }; }
+  // an empty line (e.g. a missing ")" reported at the end of the file): mark the last character before it, so the underline shows
+  if (to <= from) {
+    let p = ln; while (p.number > 1 && p.length === 0) p = doc.line(p.number - 1);
+    const f = Math.max(p.from, p.to - 1);
+    return { from: f, to: Math.max(f, p.to), severity: d.severity === 'warning' ? 'warning' : 'error', message: msg(d) };
+  }
   return { from, to, severity: d.severity === 'warning' ? 'warning' : 'error', message: msg(d) };
 }
 const msg = (d) => 'Line ' + d.line + ':' + (d.col || 1) + ' ' + d.message + (d.hint ? ' ' + d.hint : '');

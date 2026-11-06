@@ -6705,9 +6705,8 @@ body.charts-page .stkchart-panel{ position:relative; }
 .stkc-zs-ed > .cm-editor{ height:100%; }
 .stkc-zs-loading{ padding:12px; color:var(--ink-3); font-size:12px; }
 .stkc-zs-err{ font-family:inherit; font-size:12px; line-height:16px; }
-.stkc-zs-preview{ flex:none; margin:0; padding:6px 10px; border-radius:8px; background:rgba(245,166,35,.1); color:var(--ink-1); font-size:12px; line-height:16px; }
-.stkc-zs-preview[hidden]{ display:none; }
 .stkc-zs-run{ display:inline-flex; align-items:center; gap:6px; }
+:root[data-theme="light"] .stkc-zs .stkc-zs-run{ background:#027a54; color:#fff; }
 .stkc-zs .stkc-tname .stkc-badge{ margin-left:6px; padding:0 6px; font-size:11px; line-height:16px; }
 @media (prefers-reduced-motion: reduce){ .stkc-langseg-b{ transition:none; } }
 @media (max-width:700px){

@@ -214,7 +214,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     if (rampName !== S.id) setRamp(S);
     // normalisation: first time on this thread, then the Worker, debounced on the visible set
     const wl = cols.map((c) => ({ v: c.s.v, wt: Math.max(1, c.xb - c.xa) }));
-    if (!tmap || normKey !== view.look + '|' + view.colorBy + '|' + view.gamma) { const r = normOf(wl, S.anchors, S.cap, view.gamma); tmap = r.tmap; maxSz = r.maxSz; p97 = r.p97; tmapDirty = true; normKey = view.look + '|' + view.colorBy + '|' + view.gamma; sentKey = ''; }
+    if (!tmap || normKey !== view.look + '|' + view.colorBy + '|' + view.gamma + '|' + (view.smooth || 0)) { const r = normOf(wl, S.anchors, S.cap, view.gamma); tmap = r.tmap; maxSz = r.maxSz; p97 = r.p97; tmapDirty = true; normKey = view.look + '|' + view.colorBy + '|' + view.gamma + '|' + (view.smooth || 0); sentKey = ''; }
     wantKey = cols.length + ':' + (cols.length ? sid.get(cols[0].s.v) + ':' + sid.get(cols[cols.length - 1].s.v) : '') + ':' + Math.round(cols.reduce((a, c) => a + c.xb - c.xa, 0));
     if (wantKey !== sentKey) {
       clearTimeout(timer);

@@ -60,35 +60,74 @@ function lutOf(name) {   // 256 entries of packed ABGR (little endian) for the r
   }
   lutCache.set(name, l = u); return l;
 }
-// SMOOTH (Owner 2026-11-06 "restore the old look"): from 5 Nov 20:25 UTC the provider's book re-quotes most resting sizes every few
-// seconds (before: ~2 % of levels changed in 15 s, after: ~50 % in 3 s), so raw samples draw as speckle and broken dashes. Each sample is
-// shown as the trailing time-average of every price row over `ms` (an absent row counts 0, the sign is the newest non-zero one): steady
-// walls stay solid bands, flicker averages out. A steady book is unchanged by it. Memo per sample object (stable identity for the GPU ring).
+// SMOOTH (Owner 2026-11-07 "add a smooth setting"): from 5 Nov 20:25 UTC the provider's book re-quotes most resting sizes every few
+// seconds (before: ~2 % of levels changed in 15 s, after: ~50 % in 3 s), so raw samples draw as speckle. With Smooth on, each sample is
+// drawn as the trailing average of every price row over the last `ms` (samples in (ts - ms, ts], only PAST samples: no lookahead in replay;
+// an absent row counts 0; the sign is the newest non-zero one). Both layers are averaged: the coarse rows (step, i0, v) and the fine layer
+// (fs, fi0, fv) when the sample has one. Colours only: the ladder, walls, trades and depth bars read the raw book. ms <= 0 returns `hist`
+// itself (Off = identical pixels). Perf: a sliding sum per layer (add the new sample, drop the leaving one: O(rows) a sample), and a memo
+// per sample object keyed by ms + the window's first sample, so a live frame only works out the new samples and the GPU ring keeps its
+// uploads (stable v identity).
 const smMemo = new WeakMap();
-export function smoothHist(hist, ms) {
-  if (!(ms > 0) || hist.length < 2) return hist;
-  const out = new Array(hist.length);
-  let j = 0;
-  for (let k = 0; k < hist.length; k++) {
-    const s = hist[k];
-    while (hist[j].ts < s.ts - ms) j++;
-    const m = smMemo.get(s);
-    if (m && m.ms === ms && m.n === k - j + 1) { out[k] = m.s; continue; }   // n: a window with more members (older samples arrived) recomputes
-    if (!s.v || !s.v.length || !(s.step > 0)) { out[k] = s; continue; }
-    let lo = Infinity, hi = -Infinity, n = 0;
-    for (let q = j; q <= k; q++) { const h = hist[q]; if (h.step !== s.step || !h.v || !h.v.length) continue; if (h.i0 < lo) lo = h.i0; if (h.i0 + h.v.length > hi) hi = h.i0 + h.v.length; n++; }
-    const sum = new Float32Array(hi - lo), sg = new Int8Array(hi - lo);
-    for (let q = j; q <= k; q++) {
-      const h = hist[q]; if (h.step !== s.step || !h.v || !h.v.length) continue;
-      const v = h.v, o = h.i0 - lo;
-      for (let r = 0; r < v.length; r++) { const x = v[r]; if (x) { sum[o + r] += x < 0 ? -x : x; sg[o + r] = x < 0 ? -1 : 1; } }
+const LAYERS = [['step', 'i0', 'v'], ['fs', 'fi0', 'fv']];
+// running sum over absolute row indices for one layer [stepKey, i0Key, vKey]; q = the samples in the sum, oldest first
+function slider([kS, kI, kV]) {
+  let step = 0, base = 0, sum = null, sg = null; const q = [];
+  const fit = (lo, hi) => {   // make rows [lo, hi) addressable
+    if (sum && lo >= base && hi <= base + sum.length) return;
+    const nb = (sum ? Math.min(base, lo) : lo) - 64, ne = (sum ? Math.max(base + sum.length, hi) : hi) + 64;
+    const s2 = new Float64Array(ne - nb), g2 = new Int8Array(ne - nb);
+    if (sum) { s2.set(sum, base - nb); g2.set(sg, base - nb); }
+    sum = s2; sg = g2; base = nb;
+  };
+  const acc = (h, sign) => { const v = h[kV], off = h[kI] - base; for (let r = 0; r < v.length; r++) { const x = v[r]; if (x) { sum[off + r] += sign * (x < 0 ? -x : x); if (sign > 0) sg[off + r] = x < 0 ? -1 : 1; } } };
+  return {
+    has: (h) => h[kS] > 0 && !!h[kV] && h[kV].length > 0,
+    push(h) {   // a step change restarts the layer from this sample
+      if (h[kS] !== step) { step = h[kS]; sum = null; sg = null; q.length = 0; }
+      fit(h[kI], h[kI] + h[kV].length); acc(h, 1); q.push(h);
+    },
+    dropTo(cut) { let n = 0; while (n < q.length && q[n].ts <= cut) acc(q[n++], -1); if (n) q.splice(0, n); },
+    avg() {   // { i0, v } of the window average, trimmed to the rows that hold size
+      const n = q.length; if (!n) return null;
+      let a = 0, b = sum.length; while (a < b && !(sum[a] > 1e-9)) a++; while (b > a && !(sum[b - 1] > 1e-9)) b--;
+      const v = new Float32Array(b - a); for (let r = a; r < b; r++) v[r - a] = sum[r] > 1e-9 ? sum[r] / n * sg[r] : 0;
+      return { i0: base + a, v };
     }
-    for (let r = 0; r < sum.length; r++) sum[r] = sum[r] / n * sg[r];
-    const z = Object.assign({}, s, { i0: lo, v: sum });
-    smMemo.set(s, { ms, n: k - j + 1, s: z }); out[k] = z;
+  };
+}
+// hist sorted by ts -> its samples replaced by their window averages (new objects; hist is never mutated). pick(k) (optional) = which
+// samples to return (the rest only feed the window), so a zoomed-out view does not build one array per hidden sample.
+export function smoothHist(hist, ms, pick) {
+  if (!(ms > 0) || !hist || hist.length < 2) return hist;
+  const out = [];
+  let sl = null, at = -1, j = 0;   // sl holds the samples (hist[at].ts - ms, hist[at].ts]
+  for (let k = 0; k < hist.length; k++) {
+    if (pick && !pick(k)) continue;
+    const s = hist[k];
+    while (hist[j].ts <= s.ts - ms) j++;
+    const m = smMemo.get(s);
+    if (m && m.ms === ms && m.first === hist[j] && m.n === k - j && m.v === s.v && m.fv === s.fv) { out.push(m.s); continue; }   // n: a sample merged into the window recomputes
+    if (!(s.step > 0) || !s.v || !s.v.length) { out.push(s); continue; }
+    if (!sl || at >= k || at < j - 1) { sl = LAYERS.map(slider); at = j - 1; }   // (re)build from the window start
+    for (let q = at + 1; q <= k; q++) { const h = hist[q]; sl.forEach((x) => { if (x.has(h)) x.push(h); }); }
+    at = k; sl.forEach((x) => x.dropTo(s.ts - ms));
+    const z = Object.assign({}, s);
+    LAYERS.forEach(([, kI, kV], li) => { if (!sl[li].has(s)) return; const r = sl[li].avg(); if (r) { z[kI] = r.i0; z[kV] = r.v; } });
+    smMemo.set(s, { ms, first: hist[j], n: k - j, v: s.v, fv: s.fv, s: z }); out.push(z);
   }
   return out;
 }
+// pick for a view at msPerPx: the last sample of each time bucket (nested buckets: a coarser zoom picks a subset, so memos are reused)
+export function smoothPick(hist, msPerPx) {
+  const b = [60000, 30000, 15000, 5000, 1000].find((x) => x <= msPerPx) || 0;
+  return b ? (k) => k === hist.length - 1 || Math.floor(hist[k + 1].ts / b) !== Math.floor(hist[k].ts / b) : null;
+}
+// the "Smooth" input (Filter group): label -> window ms. Anything else (older saved charts have no key) = Off
+export const SMOOTH_OPTS = [['Off', 0], ['15 s', 15000], ['30 s', 30000], ['60 s', 60000], ['2 min', 120000]];
+export const smoothMsOf = (label) => { const o = SMOOTH_OPTS.find((x) => x[0] === label); return o ? o[1] : 0; };
+export const SMOOTH_INPUT = { group: 'Filter', key: 'heatSmooth', title: 'Smooth', type: 'string', defval: 'Off', options: SMOOTH_OPTS.map((x) => x[0]),
+  tooltip: 'Averages each price level over the last N seconds for a calmer picture. Sizes shown are averages.' };
 const cache = { key: '', canvas: null, ms: 0, p97: 0 };
 export const bmStats = () => ({ key: cache.key, ms: cache.ms, p97: cache.p97 });
 
@@ -100,7 +139,7 @@ export function drawBookmap(g, view) {
   const w = Math.max(0, x1 - x0), h = Math.max(0, bot - top);
   g.fillStyle = 'rgb(' + S.bg.join(',') + ')'; g.fillRect(x0, top, w + (view.fullW ? view.fullW - x1 : 0), h);
   if (!w || !h) return { cells: 0, columns: 0, ms: 0, rows: 0 };
-  const key = [view.version, view.look, view.colorBy, w, h, dpr, Math.round(view.priceTop * 100), Math.round(view.priceBot * 100), Math.round(view.tsToX(view.now - 3600000) * 4), Math.round(view.tsToX(view.now) * 4), view.gamma, view.hf ? view.hf.key : '', view.hist.length, Math.floor(view.now / 5000)].join('|');
+  const key = [view.version, view.look, view.colorBy, w, h, dpr, Math.round(view.priceTop * 100), Math.round(view.priceBot * 100), Math.round(view.tsToX(view.now - 3600000) * 4), Math.round(view.tsToX(view.now) * 4), view.gamma, view.hf ? view.hf.key : '', view.smooth || 0, view.hist.length, Math.floor(view.now / 5000)].join('|');
   if (cache.key === key && cache.canvas) { g.drawImage(cache.canvas, x0, top, w, h); return Object.assign({ ms: 0, cached: true }, cache.stat); }
   // samples in view, each with its pixel span [xa, xb): carried forward to the next sample, at most `hold`, the newest to the right edge
   const hs = view.hist, cols = [];

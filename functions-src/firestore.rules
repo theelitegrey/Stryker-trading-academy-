@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
 
       // Charts PAPER TRADING account (assets/chart-paper.js, 2026-10-12). Demo money only: the
       // whole simulated account (balance, positions, orders, history) is one JSON string the
@@ -233,6 +233,29 @@ service cloud.firestore {
         allow read, delete: if isSelf(uid);
         allow create: if isSelf(uid) && aid.size() <= 40 && validAlert(request.resource.data);
         allow update: if isSelf(uid) && validAlert(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt;
+      }
+
+      // ZoroOptions alerts (assets/chart-alerts.js, workers/alert-engine/zoro_alerts.py). Owner only. type is one of the 8
+      // alert types, p holds the type's few parameters (map), symbol is an underlying (or NOTE). 25 per member is enforced
+      // by the client and again by the engine (it ignores the rest). Pro is a product rule: without Pro the server has
+      // no options data to match, so a stray doc does nothing. Carved out of the wildcard above.
+      match /zoroAlerts/{aid} {
+        function validZ(d) {
+          return d.keys().hasOnly(['type', 'symbol', 'p', 'message', 'freq', 'active', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['type', 'symbol', 'p', 'freq', 'active', 'updatedAt'])
+            && d.type in ['level_touch', 'zone_change', 'level_moved', 'fresh_volume', 'volume_burst', 'iv_rank', 'pc_extreme', 'note_ready']
+            && d.symbol is string && d.symbol.size() > 0 && d.symbol.size() <= 12
+            && d.p is map && d.p.size() <= 4
+            && (!('message' in d) || (d.message is string && d.message.size() <= 140))
+            && d.freq in ['once', 'every']
+            && d.active is bool
+            && d.updatedAt is timestamp
+            && (!('createdAt' in d) || d.createdAt is timestamp);
+        }
+        allow read, delete: if isSelf(uid);
+        allow create: if isSelf(uid) && aid.size() <= 40 && validZ(request.resource.data);
+        allow update: if isSelf(uid) && validZ(request.resource.data)
           && request.resource.data.createdAt == resource.data.createdAt;
       }
 

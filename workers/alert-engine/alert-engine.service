@@ -7,6 +7,8 @@ After=network-online.target
 Type=simple
 # InsightSentry key (mode 0600, never logged). Google access = the firebase-tools refresh token already on this server.
 EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+# recorder URL + ingest secret: the engine reads /zo/summary and /zo/note with it (ZoroOptions alerts)
+EnvironmentFile=-/root/projects/book-feeder/feeder.env
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 /root/projects/alert-engine/alert_engine.py
 Restart=always

@@ -1,0 +1,10 @@
+[Unit]
+Description=Zoro Morning Note 09:40 ET and Close Note 16:20 ET, weekdays (NOT enabled until the CoS ships ZoroOptions)
+
+[Timer]
+OnCalendar=Mon..Fri 09:40 America/New_York
+OnCalendar=Mon..Fri 16:20 America/New_York
+Persistent=false
+
+[Install]
+WantedBy=timers.target

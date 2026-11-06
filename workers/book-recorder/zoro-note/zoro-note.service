@@ -1,0 +1,18 @@
+[Unit]
+Description=TradeZoro Zoro Morning / Close Note: feeder numbers -> fixed templates -> recorder Worker (one run, no language model)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# recorder URL + shared ingest secret (mode 0600, never logged). No vendor key: this job makes 0 InsightSentry calls.
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/zoro_note.py
+TimeoutStartSec=120
+MemoryMax=80M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=zoro-note

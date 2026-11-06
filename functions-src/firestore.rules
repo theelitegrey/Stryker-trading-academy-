@@ -2215,6 +2215,235 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // ZSCRIPT SCRIPT LIBRARY (2026-11-06, Roadmap: Zscript; script-library.html, assets/zs-library.js).
+    //   zsScripts/{sid}              public metadata (library cards, script page). Author writes; counters move only with
+    //                                their marker doc in the same batch (ratings, adds); admins moderate (status/modNote).
+    //   zsScripts/{sid}/versions/{v} public version history: { version, notes, createdAt }.
+    //   zsScripts/{sid}/src/{v}      plain source. Author + admins; for OPEN-SOURCE scripts also anyone who may run it
+    //                                (free, or a buyer of a paid one), CURRENT version only, so a version published while the
+    //                                script was protected never opens up if it later turns open-source.
+    //   zsScripts/{sid}/bin/{v}      protected build: compiled program SEALED to the server key (assets/creator-seal.js).
+    //                                Read only by someone who may run it, with his own token, from /api/zs/get, which
+    //                                re-seals it to that chart's Web Worker. Ciphertext: useless without the server key.
+    //   zsScripts/{sid}/buyers/{uid} paid entitlement. Written ONLY by the creatorPay Cloud Function (Stripe webhook).
+    //   zsScripts/{sid}/adds/{uid}   "added to a chart" marker (addCount +1 in the same batch). Free: needed to rate.
+    //   zsScripts/{sid}/ratings/{uid} one rating per member: 1..5 stars + short text. Never the author; paid scripts: buyers
+    //                                only; free scripts: members who added it. ratingSum/ratingCount move in the same batch.
+    //   zsReports/{sid_uid}          one report per member per script; admins read and act (moderation-admin.html).
+    // Paid needs the author's Creator Hub payout account to be active (creatorAccounts/{uid}, function-written).
+    // ---------------------------------------------------------------------
+    function zsPath(sid)          { return /databases/$(database)/documents/zsScripts/$(sid); }
+    function zsSub(sid, c, id)    { return /databases/$(database)/documents/zsScripts/$(sid)/$(c)/$(id); }
+    function zsDoc(sid)           { return get(zsPath(sid)).data; }
+    function zsIsAuthor(sid)      { return signedIn() && zsDoc(sid).authorUid == request.auth.uid; }
+    // Sub-docs written in the publish batch: the parent may not exist yet, so check it as it will be after the batch.
+    // Sound because nobody but the author can write the parent (create sets authorUid = caller; update keeps it).
+    function zsAuthorAfter(sid)   { return signedIn() && getAfter(zsPath(sid)).data.authorUid == request.auth.uid; }
+    function zsRunnable(sid)      { return zsDoc(sid).status in ['live', 'unlisted']; }
+    // Refunded / disputed purchases keep their doc (status changes) and stop counting.
+    function zsBuyer(sid)         { return signedIn() && exists(zsSub(sid, 'buyers', request.auth.uid))
+                                      && get(zsSub(sid, 'buyers', request.auth.uid)).data.status == 'active'; }
+    // May this member run it right now? (author always; others: not taken down, and free or bought)
+    function zsMayRun(sid) {
+      return zsIsAuthor(sid) || isAdmin()
+        || (signedIn() && zsRunnable(sid) && (zsDoc(sid).sale.mode == 'free' || zsBuyer(sid)));
+    }
+    function zsCats() { return ['trend', 'momentum', 'volume', 'order-flow', 'levels', 'volatility', 'options', 'oscillator', 'session', 'other']; }
+    function zsVerOk(v) { return v.matches('^v[0-9]{1,4}$'); }
+    // Shown names are the member's public profile name (or 'Member'), so nobody can publish or rate as "TradeZoro".
+    function zsNameOk(n) {
+      return n is string && n.size() >= 1 && n.size() <= 60
+        && (n == 'Member'
+            || (exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+                && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('displayName', '') == n));
+    }
+
+    match /zsScripts/{sid} {
+      function zNew() { return request.resource.data; }
+      function zKeys() {
+        return ['authorUid', 'authorName', 'name', 'desc', 'category', 'dataUsed', 'access', 'sale', 'shots', 'version', 'versionNotes',
+                'status', 'srcSize', 'ratingSum', 'ratingCount', 'addCount', 'modNote', 'createdAt', 'updatedAt', 'publishedAt'];
+      }
+      function zOnly(k) { return zNew().diff(resource.data).affectedKeys().hasOnly(k); }
+      function zShotOk(u) {
+        return u is string && u.size() <= 600
+          && u.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/strykertrades-e0cd8[.]firebasestorage[.]app/o/zsShots%2F' + request.auth.uid + '%2F' + sid + '%2F[^ ]+$');
+      }
+      function zShotsOk(s) {
+        return s is list && s.size() <= 4 && (s.size() < 1 || zShotOk(s[0])) && (s.size() < 2 || zShotOk(s[1]))
+          && (s.size() < 3 || zShotOk(s[2])) && (s.size() < 4 || zShotOk(s[3]));
+      }
+      function zDataOk(d) {
+        return d is list && d.size() <= 4 && d.hasOnly(['book', 'flow', 'gex', 'opt']);
+      }
+      // Free, or paid in USD $1..$999 (the same range Creator Hub sells), and only with an active payout account.
+      function zSaleOk(s) {
+        return s is map && s.keys().hasOnly(['mode', 'price']) && s.keys().hasAll(['mode', 'price']) && s.mode in ['free', 'paid']
+          && s.price is map && s.price.keys().hasOnly(['amount', 'currency']) && s.price.currency == 'USD'
+          && s.price.amount is number
+          && (s.mode == 'free' ? s.price.amount == 0
+              : (s.price.amount >= 1 && s.price.amount <= 999
+                 && exists(/databases/$(database)/documents/creatorAccounts/$(request.auth.uid))
+                 && get(/databases/$(database)/documents/creatorAccounts/$(request.auth.uid)).data.get('status', '') == 'active'));
+      }
+      function zOk(d, oldName) {
+        return d.keys().hasOnly(zKeys()) && d.keys().hasAll(zKeys())
+          && d.authorUid == request.auth.uid
+          && (d.authorName == oldName || zsNameOk(d.authorName))
+          && d.name is string && d.name.size() >= 3 && d.name.size() <= 60
+          && d.desc is string && d.desc.size() <= 4000
+          && d.category in zsCats() && zDataOk(d.dataUsed)
+          && d.access in ['open', 'protected'] && zSaleOk(d.sale) && zShotsOk(d.shots)
+          && d.version is int && d.version >= 1 && d.version <= 9999
+          && d.versionNotes is string && d.versionNotes.size() <= 1000
+          && d.status in ['live', 'unlisted']
+          && d.srcSize is int && d.srcSize > 0 && d.srcSize <= 131072
+          && d.updatedAt == request.time;
+      }
+      // A new version brings its src + versions entry (+ the sealed build when protected) in the same batch.
+      function zVerDocs(n) {
+        return existsAfter(zsSub(sid, 'src', 'v' + string(n))) && existsAfter(zsSub(sid, 'versions', 'v' + string(n)))
+          && (zNew().access == 'open' || existsAfter(zsSub(sid, 'bin', 'v' + string(n))));
+      }
+      function myRating() { return zsSub(sid, 'ratings', request.auth.uid); }
+
+      allow get: if resource.data.status in ['live', 'unlisted']
+                 || (signedIn() && resource.data.authorUid == request.auth.uid) || isAdmin();
+      allow list: if resource.data.status == 'live'
+                  || (signedIn() && resource.data.authorUid == request.auth.uid) || isAdmin();
+
+      allow create: if signedIn() && sid.matches('^[A-Za-z0-9]{20}$') && zOk(zNew(), '')
+                    && zNew().version == 1 && zNew().ratingSum == 0 && zNew().ratingCount == 0 && zNew().addCount == 0
+                    && zNew().modNote == '' && zNew().createdAt == request.time && zNew().publishedAt == request.time
+                    && zVerDocs(1);
+
+      allow update: if
+        // 1) author: edit metadata, or publish version +1; never un-take-down, never touch counters / modNote
+        (signedIn() && resource.data.authorUid == request.auth.uid && resource.data.status != 'removed' && zOk(zNew(), resource.data.authorName)
+          && zNew().createdAt == resource.data.createdAt && zNew().modNote == resource.data.modNote
+          && zNew().ratingSum == resource.data.ratingSum && zNew().ratingCount == resource.data.ratingCount
+          && zNew().addCount == resource.data.addCount
+          && (zNew().access == resource.data.access || zNew().version == resource.data.version + 1)
+          && (zNew().version == resource.data.version
+                ? zNew().publishedAt == resource.data.publishedAt
+                : (zNew().version == resource.data.version + 1 && zNew().publishedAt == request.time && zVerDocs(zNew().version))))
+        // 2) a member adds it to a chart: addCount +1 with his own adds/{uid} marker created in the same batch
+        || (signedIn() && zOnly(['addCount']) && zNew().addCount == resource.data.addCount + 1
+            && !exists(zsSub(sid, 'adds', request.auth.uid)) && existsAfter(zsSub(sid, 'adds', request.auth.uid)))
+        // 3) a member rates it (new or changed): the sums follow his own ratings/{uid} doc in the same batch
+        || (signedIn() && zOnly(['ratingSum', 'ratingCount']) && existsAfter(myRating())
+            && zNew().ratingCount == resource.data.ratingCount + (exists(myRating()) ? 0 : 1)
+            && zNew().ratingSum == resource.data.ratingSum + getAfter(myRating()).data.stars - (exists(myRating()) ? get(myRating()).data.stars : 0))
+        // 4) TradeZoro admins: take down / restore / unlist, with a note (and fix counters after deleting a fake rating)
+        || (isAdmin() && zOnly(['status', 'modNote', 'ratingSum', 'ratingCount'])
+            && zNew().status in ['live', 'unlisted', 'removed'] && zNew().modNote is string && zNew().modNote.size() <= 500
+            && zNew().ratingSum is int && zNew().ratingSum >= 0 && zNew().ratingCount is int && zNew().ratingCount >= 0);
+      // Buyers keep what they paid for: the author can unlist, never delete. Admins may delete (legal takedown).
+      allow delete: if isAdmin();
+
+      match /versions/{v} {
+        allow read: if zsDoc(sid).status in ['live', 'unlisted'] || zsIsAuthor(sid) || isAdmin();
+        allow create: if zsVerOk(v) && zsAuthorAfter(sid)
+                      && request.resource.data.keys().hasOnly(['version', 'notes', 'createdAt'])
+                      && request.resource.data.keys().hasAll(['version', 'notes', 'createdAt'])
+                      && 'v' + string(request.resource.data.version) == v
+                      && getAfter(zsPath(sid)).data.version == request.resource.data.version
+                      && request.resource.data.notes is string && request.resource.data.notes.size() <= 1000
+                      && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+
+      match /src/{v} {
+        allow get: if zsVerOk(v) && (zsIsAuthor(sid) || isAdmin()
+                       || (zsDoc(sid).access == 'open' && v == 'v' + string(zsDoc(sid).version) && zsMayRun(sid)));
+        allow list: if zsIsAuthor(sid) || isAdmin();
+        allow create: if zsVerOk(v) && zsAuthorAfter(sid)
+                      && request.resource.data.keys().hasOnly(['version', 'source', 'createdAt'])
+                      && request.resource.data.keys().hasAll(['version', 'source', 'createdAt'])
+                      && 'v' + string(request.resource.data.version) == v
+                      && getAfter(zsPath(sid)).data.version == request.resource.data.version
+                      && request.resource.data.source is string && request.resource.data.source.size() > 0
+                      && request.resource.data.source.size() <= 131072
+                      && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+
+      match /bin/{v} {
+        allow get: if zsVerOk(v) && v == 'v' + string(zsDoc(sid).version) && zsMayRun(sid);
+        allow list: if false;
+        allow create: if zsVerOk(v) && zsAuthorAfter(sid)
+                      && request.resource.data.keys().hasOnly(['version', 'sealed', 'createdAt'])
+                      && request.resource.data.keys().hasAll(['version', 'sealed', 'createdAt'])
+                      && 'v' + string(request.resource.data.version) == v
+                      && getAfter(zsPath(sid)).data.version == request.resource.data.version
+                      && getAfter(zsPath(sid)).data.access == 'protected'
+                      && request.resource.data.sealed is map && request.resource.data.sealed.keys().hasOnly(['alg', 'epk', 'iv', 'ct'])
+                      && request.resource.data.sealed.alg == 'p256-hkdf-a256gcm' && request.resource.data.sealed.ct is string
+                      && request.resource.data.sealed.ct.size() <= 400000
+                      && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+
+      match /buyers/{u} {
+        allow get: if isSelf(u) || zsIsAuthor(sid) || isAdmin();
+        allow list: if zsIsAuthor(sid) || isAdmin();
+        allow write: if false;
+      }
+
+      match /adds/{u} {
+        allow get: if isSelf(u) || zsIsAuthor(sid) || isAdmin();
+        allow list: if false;
+        allow create: if isSelf(u) && zsMayRun(sid)
+                      && request.resource.data.keys().hasOnly(['uid', 'createdAt']) && request.resource.data.uid == u
+                      && request.resource.data.createdAt == request.time
+                      && getAfter(zsPath(sid)).data.addCount == zsDoc(sid).addCount + 1;
+        allow update, delete: if false;
+      }
+
+      match /ratings/{u} {
+        function rNew() { return request.resource.data; }
+        function rOk() {
+          return rNew().keys().hasOnly(['uid', 'stars', 'text', 'authorName', 'createdAt', 'updatedAt'])
+            && rNew().keys().hasAll(['uid', 'stars', 'text', 'authorName', 'createdAt', 'updatedAt'])
+            && rNew().uid == u && rNew().stars is int && rNew().stars >= 1 && rNew().stars <= 5
+            && rNew().text is string && rNew().text.size() <= 500
+            && zsNameOk(rNew().authorName)
+            && rNew().updatedAt == request.time;
+        }
+        // Real users only: never the author; paid = a buyer; free = someone who added it to a chart.
+        function mayRate() {
+          return isSelf(u) && zsDoc(sid).authorUid != u && zsRunnable(sid)
+            && (zsDoc(sid).sale.mode == 'paid' ? zsBuyer(sid) : exists(zsSub(sid, 'adds', u)));
+        }
+        allow read: if zsDoc(sid).status in ['live', 'unlisted'] || zsIsAuthor(sid) || isAdmin();
+        allow create: if mayRate() && rOk() && rNew().createdAt == request.time
+                      && getAfter(zsPath(sid)).data.ratingCount == zsDoc(sid).ratingCount + 1
+                      && getAfter(zsPath(sid)).data.ratingSum == zsDoc(sid).ratingSum + rNew().stars;
+        allow update: if mayRate() && rOk() && rNew().createdAt == resource.data.createdAt
+                      && getAfter(zsPath(sid)).data.ratingCount == zsDoc(sid).ratingCount
+                      && getAfter(zsPath(sid)).data.ratingSum == zsDoc(sid).ratingSum + rNew().stars - resource.data.stars;
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /zsReports/{rid} {
+      allow create: if signedIn()
+                    && request.resource.data.keys().hasOnly(['sid', 'reporterUid', 'reason', 'note', 'status', 'createdAt'])
+                    && request.resource.data.keys().hasAll(['sid', 'reporterUid', 'reason', 'note', 'status', 'createdAt'])
+                    && request.resource.data.sid is string && request.resource.data.sid.matches('^[A-Za-z0-9]{20}$')
+                    && request.resource.data.reporterUid == request.auth.uid
+                    && rid == request.resource.data.sid + '_' + request.auth.uid
+                    && request.resource.data.reason in ['copied', 'results', 'malicious', 'broken', 'abuse', 'other']
+                    && request.resource.data.note is string && request.resource.data.note.size() <= 500
+                    && request.resource.data.status == 'open' && request.resource.data.createdAt == request.time
+                    && exists(zsPath(request.resource.data.sid));
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
     // Anything not named above is denied. New collections must be added here
     // deliberately rather than inheriting an open rule.
     // ---------------------------------------------------------------------

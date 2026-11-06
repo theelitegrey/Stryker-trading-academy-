@@ -49,6 +49,7 @@
 //     open: no phone push for them.
 // Education only. Not financial advice. Alerts are a convenience, not a trading signal.
 
+import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=891';
 const LAYER = 'stk_alerts';
 const PREFS_KEY = 'stryker_chart_alert_prefs';
 const MAX_ALERTS = 1000;
@@ -592,6 +593,106 @@ export function openAlerts(prefill){
   if (prefill) openForm(prefill);
   renderList();
 }
+// ---- ZoroOptions alerts (spec section 4). Pro. Stored in students/{uid}/zoroAlerts (the price-alert shape and rules stay
+// untouched); the server alert-engine (workers/alert-engine/zoro_alerts.py) checks them and sends the phone push.
+// Text of every push follows the options copy rules; this panel only creates, lists, pauses and deletes them.
+const ZTYPES = { level_touch: 'Level touch', zone_change: 'Gamma Zone change', level_moved: 'Level moved', fresh_volume: 'Fresh Volume', volume_burst: 'Volume Burst', iv_rank: 'IV rank cross', pc_extreme: 'Put/call extreme', note_ready: 'Morning Note ready' };
+const ZLEVELS = [['call_ceiling', 'Call Ceiling'], ['put_floor', 'Put Floor'], ['flip_line', 'Flip Line'], ['range_high', 'Zoro Range high'], ['range_low', 'Zoro Range low']];
+const ZLEVELL = Object.fromEntries(ZLEVELS);
+const ZRANGEL = { '0': '0DTE', '1': '1DTE', w: 'weekly', m: 'monthly' };
+const ZFIELDS = { level_touch: ['sym', 'level', 'range'], zone_change: ['sym'], level_moved: ['sym', 'level'], fresh_volume: ['sym', 'size'], volume_burst: ['sym', 'size'], iv_rank: ['sym', 'dir', 'value'], pc_extreme: ['sym', 'dir', 'value'], note_ready: [] };
+const ZNOTE = { level_touch: 'Index and futures symbols only (SPX, SPY, QQQ, IWM, GLD, USO, ES, NQ, RTY, GC, CL). Futures levels are mapped from the index.', zone_change: 'When net gamma changes sign at the Flip Line.', level_moved: 'When the level moves to a new strike.', fresh_volume: 'A contract trades more than its open interest, at or above your size.', volume_burst: 'Volume added between two updates is at or above your size.', iv_rank: 'IV rank moves above or below your value (0 to 100).', pc_extreme: 'Put/call by volume moves above or below your value.', note_ready: 'One push when the Zoro Morning Note is published (09:40 ET, weekdays).' };
+const MAX_ZALERTS = 25;
+let zAlerts = [], zEditing = null;
+const zcol = () => { const u = user(); return u ? fb().firestore().collection('students').doc(u.uid).collection('zoroAlerts') : null; };
+function zClean(a){
+  const t = ZTYPES[a.type] ? a.type : 'zone_change'; const p = a.p || {}; const q = {};
+  if (t === 'level_touch' || t === 'level_moved') q.level = ZLEVELL[p.level] ? p.level : 'flip_line';
+  if (t === 'level_touch') q.range = ZRANGEL[p.range] ? p.range : '0';
+  if (t === 'fresh_volume') q.min_volume = Math.max(1, Math.round(Number(p.min_volume) || 100));
+  if (t === 'volume_burst') q.min_added = Math.max(1, Math.round(Number(p.min_added) || 500));
+  if (t === 'iv_rank' || t === 'pc_extreme') { q.dir = p.dir === 'below' ? 'below' : 'above'; q.value = Number(p.value); }
+  return { type: t, symbol: t === 'note_ready' ? 'NOTE' : String(a.symbol || '').trim().toUpperCase().slice(0, 12), p: q, message: String(a.message || '').slice(0, 140), freq: a.freq === 'every' ? 'every' : 'once', active: a.active !== false };
+}
+const zValid = (a) => !!a.symbol && /^[A-Z0-9.\-]{1,12}$/.test(a.symbol) && ((a.type !== 'iv_rank' && a.type !== 'pc_extreme') || (Number.isFinite(a.p.value) && (a.type !== 'iv_rank' || (a.p.value >= 0 && a.p.value <= 100))));
+function zText(a){
+  const p = a.p || {}; const s = a.symbol;
+  switch (a.type) {
+    case 'level_touch': return s + ' crosses its ' + ZLEVELL[p.level] + (String(p.level).startsWith('range') ? ' (' + ZRANGEL[p.range] + ')' : '');
+    case 'zone_change': return s + ' Gamma Zone changes';
+    case 'level_moved': return s + ' ' + ZLEVELL[p.level] + ' moves';
+    case 'fresh_volume': return s + ' Fresh Volume, ' + p.min_volume + '+ contracts';
+    case 'volume_burst': return s + ' Volume Burst, ' + p.min_added + '+ contracts';
+    case 'iv_rank': return s + ' IV rank moves ' + p.dir + ' ' + p.value;
+    case 'pc_extreme': return s + ' put/call moves ' + p.dir + ' ' + p.value;
+    default: return 'Zoro Morning Note is ready';
+  }
+}
+async function zReload(){
+  zAlerts = [];
+  const c = zcol();
+  if (c) { try { zAlerts = (await c.get()).docs.map((d) => Object.assign({ id: d.id }, zClean(d.data()))); } catch (e) { console.warn('TradeZoro alerts: options load', e && e.code); } }
+  renderList();
+}
+function zSync(f){
+  const want = ZFIELDS[f.zt.value] || [];
+  f.querySelectorAll('[data-z]').forEach((l) => { l.hidden = !want.includes(l.dataset.z); });
+  f.zs.required = want.includes('sym');
+  f.zv.required = want.includes('value');
+  f.querySelector('.stk-al-zvl').textContent = f.zt.value === 'iv_rank' ? 'IV rank (0 to 100)' : 'Put/call value';
+  f.querySelector('.stk-al-znote').textContent = ZNOTE[f.zt.value] || '';
+}
+function zOpen(a){
+  const f = panel.querySelector('.stk-al-zform'); const p = (a && a.p) || {};
+  f.hidden = false; zEditing = a ? a.id : null;
+  f.zt.value = a ? a.type : 'level_touch'; f.zs.value = a && a.symbol !== 'NOTE' ? a.symbol : (activeCell() ? '' : 'SPX');
+  f.zl.value = p.level || 'flip_line'; f.zr.value = p.range || '0'; f.zd.value = p.dir || 'above'; f.zv.value = p.value != null ? p.value : '';
+  f.zn.value = p.min_volume || p.min_added || ''; f.zf.value = a ? a.freq : 'once'; f.zm.value = a ? a.message : '';
+  zSync(f);
+  f.querySelector('.stk-al-save').textContent = a ? 'Save' : 'Create';
+  try { f.zt.focus(); } catch (e) {}
+}
+function zWire(){
+  const f = panel.querySelector('.stk-al-zform');
+  f.zt.onchange = () => zSync(f);
+  f.querySelector('.stk-al-zcancel').onclick = () => { f.hidden = true; zEditing = null; };
+  panel.querySelector('.stk-al-znew').onclick = () => {
+    if (proLocked('gex')) { proUpgrade('gex'); return; }       // Free: Pro tag + upgrade modal, as the other options tools
+    if (!zcol()) { toastFn('Sign in to create options alerts.'); return; }
+    panel.querySelector('.stk-al-form').hidden = true; zOpen(null);
+  };
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const t = f.zt.value; const p = { level: f.zl.value, range: f.zr.value, dir: f.zd.value, value: parseFloat(f.zv.value), min_volume: parseInt(f.zn.value, 10), min_added: parseInt(f.zn.value, 10) };
+    const a = zClean({ type: t, symbol: f.zs.value, p, message: f.zm.value, freq: f.zf.value, active: true });
+    if (!zValid(a)) { toastFn('Check the symbol and the value.'); return; }
+    if (a.type === 'level_touch' && !['SPX', 'SPY', 'QQQ', 'IWM', 'GLD', 'USO', 'ES', 'NQ', 'RTY', 'GC', 'CL'].includes(a.symbol)) { toastFn('Level touch works for SPX, SPY, QQQ, IWM, GLD, USO, ES, NQ, RTY, GC and CL.'); return; }
+    const c = zcol(); if (!c) { toastFn('Sign in to create options alerts.'); return; }
+    const ts = fb().firestore.FieldValue.serverTimestamp();
+    try {
+      if (zEditing) await c.doc(zEditing).update(Object.assign({}, a, { updatedAt: ts }));
+      else {
+        if (zAlerts.length >= MAX_ZALERTS) { toastFn('You have ' + MAX_ZALERTS + ' options alerts, the most we keep. Delete one first.'); return; }
+        await c.doc().set(Object.assign({}, a, { createdAt: ts, updatedAt: ts }));
+      }
+      try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e2) {}
+      f.hidden = true; zEditing = null; await zReload();
+    } catch (err) { console.warn(err); toastFn('Could not save the alert. Check your connection and try again.'); }
+  };
+}
+function zRows(list){
+  for (const a of zAlerts) {
+    const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');
+    row.innerHTML = '<div class="stk-al-txt"><b></b><span></span></div><button type="button" data-k="pause"></button><button type="button" data-k="edit">Edit</button><button type="button" data-k="del" aria-label="Delete alert">Delete</button>';
+    row.querySelector('b').textContent = zText(a);
+    row.querySelector('span').textContent = (a.active ? '' : 'Stopped \u00b7 ') + (a.message ? a.message + ' \u00b7 ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + ' \u00b7 options alert, phone push';
+    row.querySelector('[data-k=pause]').textContent = a.active ? 'Pause' : 'Restart';
+    row.querySelector('[data-k=pause]').onclick = async () => { try { await zcol().doc(a.id).update({ active: !a.active, updatedAt: fb().firestore.FieldValue.serverTimestamp() }); a.active = !a.active; } catch (e) { toastFn('Could not update the alert.'); } renderList(); };
+    row.querySelector('[data-k=edit]').onclick = () => { panel.querySelector('.stk-al-form').hidden = true; zOpen(a); };
+    row.querySelector('[data-k=del]').onclick = async () => { try { await zcol().doc(a.id).delete(); zAlerts = zAlerts.filter((x) => x !== a); } catch (e) { toastFn('Could not delete the alert.'); } renderList(); };
+    list.appendChild(row);
+  }
+}
 function closePanel(){ if (panel) panel.hidden = true; editing = null; }
 function build(){
   panel = document.createElement('div'); panel.id = 'stk-al'; panel.hidden = true;
@@ -611,13 +712,27 @@ function build(){
       <div class="stk-al-wide stk-al-nw" hidden><span>Notify</span><label class="stk-al-chk"><input type="checkbox" name="popup" checked> Popup</label><label class="stk-al-chk"><input type="checkbox" name="sound" checked> Sound</label><em>Phone push: price alerts only</em></div>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-cancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
-    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-sounds" aria-label="Alert sounds" title="Alert sounds"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Sounds</span></button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
+    <form class="stk-al-form stk-al-zform" hidden>
+      <label class="stk-al-wide">Options alert<select name="zt">${Object.entries(ZTYPES).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+      <label data-z="sym">Symbol<input name="zs" maxlength="12" value="SPX" autocapitalize="characters" required></label>
+      <label data-z="level" hidden>Level<select name="zl">${ZLEVELS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+      <label data-z="range" hidden>Range<select name="zr"><option value="0">0DTE</option><option value="1">1DTE</option><option value="w">Weekly</option><option value="m">Monthly</option></select></label>
+      <label data-z="dir" hidden>Moves<select name="zd"><option value="above">Above</option><option value="below">Below</option></select></label>
+      <label data-z="value" hidden><span class="stk-al-zvl">Value</span><input name="zv" type="number" step="any" inputmode="decimal"></label>
+      <label data-z="size" hidden><span class="stk-al-zsl">Smallest size (contracts)</span><input name="zn" type="number" step="1" min="1" inputmode="numeric"></label>
+      <label>Trigger<select name="zf"><option value="once">Only once</option><option value="every">Every time</option></select></label>
+      <label class="stk-al-wide">Message<input name="zm" maxlength="140" placeholder="Optional"></label>
+      <p class="stk-al-wide stk-al-znote"></p>
+      <div class="stk-al-fbtn"><button type="button" class="stk-al-zcancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
+    </form>
+    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-znew">+ Options alert</button><button type="button" class="stk-al-sounds" aria-label="Alert sounds" title="Alert sounds"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Sounds</span></button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
     <div class="stk-al-confirm" hidden role="alertdialog" aria-modal="true" aria-labelledby="stk-al-ctl"><div class="stk-al-csheet"><p id="stk-al-ctl"></p><div class="stk-al-cbtn"><button type="button" class="stk-al-ccancel">Cancel</button><button type="button" class="stk-al-cok">Delete all</button></div></div></div>
     <div class="stk-al-list"></div>
   </div>`;
   document.body.appendChild(panel);
   panel.addEventListener('click', (e) => { if (e.target === panel) closePanel(); });
   panel.querySelector('.stk-al-x').onclick = closePanel;
+  zWire(); zReload();
   panel.querySelector('.stk-al-new').onclick = () => { const c = activeCell(); openForm({ symbol: c ? c.symbol : '', price: crossPrice() }); };
   panel.querySelector('.stk-al-sounds').onclick = () => openSoundPanel();
   const conf = panel.querySelector('.stk-al-confirm');
@@ -772,14 +887,15 @@ function renderList(){
   if (!panel) return;
   const list = panel.querySelector('.stk-al-list'); list.textContent = '';
   panel.querySelector('.stk-al-delall').hidden = !alerts.length;
-  panel.querySelector('.stk-al-count').textContent = alerts.length + ' of ' + MAX_ALERTS + ' alerts' + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
-  panel.querySelector('.stk-al-tools').classList.toggle('stk-al-none', !alerts.length);
-  if (!alerts.length) {
+  panel.querySelector('.stk-al-count').textContent = alerts.length + ' of ' + MAX_ALERTS + ' alerts' + (zAlerts.length ? ' \u00b7 ' + zAlerts.length + ' of ' + MAX_ZALERTS + ' options alerts' : '') + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
+  panel.querySelector('.stk-al-tools').classList.toggle('stk-al-none', !alerts.length && !zAlerts.length);
+  if (!alerts.length && !zAlerts.length) {
     const e = document.createElement('div'); e.className = 'stk-al-empty';
     e.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>No alerts yet</b><span>Get notified when price or an indicator crosses a level</span><button type="button" class="stk-al-new stk-al-new2">+ New alert</button>';
     e.querySelector('.stk-al-new2').onclick = () => panel.querySelector('.stk-al-new').click();
     list.appendChild(e); return;
   }
+  zRows(list);
   const shown = alerts.slice(0, listLimit);   // 1000 rows at once is slow: show more on request
   for (const a of shown) {
     const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');
@@ -975,6 +1091,9 @@ const CSS = `
 .stk-al-form input,.stk-al-form select{ background:#131316; color:#eeeeee; border:1px solid rgba(238,238,238,.14); border-radius:10px; padding:8px 10px; font:inherit; }
 :root[data-theme="light"] .stk-al-form input,:root[data-theme="light"] .stk-al-form select{ background:#fff; color:#131316; border-color:rgba(19,19,22,.16); }
 .stk-al-form select option,.stk-snd-row select option{ color:#131316; }
+.stk-al-zform{ margin-top:12px; }
+.stk-al-znote{ margin:0; font-size:12px; opacity:.7; }
+.stk-al-znew{ background:rgba(3,201,136,.08); }
 .stk-al-fbtn{ grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; }
 .stk-al-box button,.stk-snd-box button,.stk-snd-ui button{ border-radius:999px; padding:7px 13px; border:1px solid rgba(3,201,136,.28); background:rgba(3,201,136,.08); color:inherit; cursor:pointer; font:inherit; font-size:13px; transition:background .16s ease,border-color .16s ease,transform .16s ease; }
 .stk-al-box button:hover,.stk-snd-box button:hover,.stk-snd-ui button:hover{ background:rgba(3,201,136,.15); border-color:rgba(3,201,136,.55); transform:translateY(-1px); }

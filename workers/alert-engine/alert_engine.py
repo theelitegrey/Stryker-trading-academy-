@@ -35,6 +35,7 @@ import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import alert_core as core  # noqa: E402
+import zoro_alerts as za  # noqa: E402
 import fsrest as fs  # noqa: E402
 import wsmini  # noqa: E402
 
@@ -53,6 +54,7 @@ MICRO_OF = {'MNQ': 'NQ', 'MES': 'ES', 'MYM': 'YM', 'MGC': 'GC', 'SIL': 'SI', 'MC
 
 lock = threading.Lock()
 book = core.Book()
+zbook = core.Book()               # ZoroOptions level touches on the futures price scale (apart from book: book.sync would drop them)
 fires_q = queue.Queue()
 stat = {'fires': 0, 'fire_errors': 0, 'sync_ok': 0, 'sync_err': 0, 'last_sync': 0, 'feed': {}, 'ticks': 0}
 
@@ -71,7 +73,8 @@ def on_price(key, p):
         return
     with lock:
         stat['ticks'] += 1
-        out = book.tick(key, float(p), time.time())
+        now = time.time()
+        out = book.tick(key, float(p), now) + zbook.tick(key, float(p), now)
     for f in out:
         fires_q.put(f)
 
@@ -313,6 +316,8 @@ def sync_loop():
 
 # ---------------------------------------------------------------------------------- firing
 def fire_one(a, p, prev):
+    if a.get('zoro'):
+        return zoro_fire(a['zoro'], za.touch_text(a, p, prev), zb=a)
     path = 'students/%s/chartAlerts/%s' % (a['uid'], a['aid'])
     doc, ut = fs.get_doc(path)
     if doc is None or doc.get('active') is not True or float(doc.get('price', 0)) != a['price'] or doc.get('cond') != a['cond']:
@@ -352,6 +357,154 @@ def fire_loop():
             cursor['full'] = True                    # re-read everything next round so the alert is not lost
 
 
+# ---------------------------------------------------------------------------------- ZoroOptions alerts
+# Spec section 4. Levels/IV/put-call come from the Worker's /zo/summary (the feeder's numbers, ingest key; the engine never
+# calls a vendor). Level touches ride the futures ticks above (zbook); the other types are checked when a symbol's snapshot
+# has a new build time. Alerts: students/{uid}/zoroAlerts. Fires: one notifications doc (push), nothing else.
+ZORO_URL = os.environ.get('ZORO_API_URL', os.environ.get('BOOK_RECORDER_URL', '').rstrip('/') + '/zo')
+ZORO_KEY = os.environ.get('BOOK_INGEST_SECRET', '')
+ZORO_EVERY = 120
+ZORO_STATE = os.environ.get('ZORO_STATE', os.path.join(HERE, 'zoro-state.json'))
+zalerts = {}                       # id -> engine alert (every active ZoroOptions alert)
+zsnap = {}                         # underlying -> last snapshot seen
+zcool = za.Cooldown()
+zstat = {'fires': 0, 'loops': 0, 'last': 0, 'err': 0}
+
+
+def zget(path):
+    import urllib.request
+    req = urllib.request.Request(ZORO_URL + path, headers={'x-ingest-key': ZORO_KEY, 'User-Agent': 'tradezoro-alert-engine/1'})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.loads(r.read())
+
+
+def zoro_load():
+    res = fs.run_query({'from': [{'collectionId': 'zoroAlerts', 'allDescendants': True}],
+                        'where': {'fieldFilter': {'field': {'fieldPath': 'active'}, 'op': 'EQUAL', 'value': {'booleanValue': True}}}})
+    out = []
+    for x in res:
+        d = x.get('document')
+        if not d:
+            continue
+        parts = d['name'].split('/documents/')[1].split('/')     # students/{uid}/zoroAlerts/{aid}
+        if len(parts) != 4:
+            continue
+        a = za.parse_zoro_alert(parts[1], parts[3], fs.decode_doc(d), d.get('updateTime', ''))
+        if a:
+            out.append(a)
+    return {a['id']: a for a in za.limit_per_member(out)}
+
+
+def zoro_fire(a, text, zb=None):
+    """Claim (Once: active=false with the update-time precondition) -> notifications doc -> phone push."""
+    path = 'students/%s/zoroAlerts/%s' % (a['uid'], a['aid'])
+    doc, ut = fs.get_doc(path)
+    if doc is None or doc.get('active') is not True or doc.get('type') != a['type']:
+        with lock:
+            zalerts.pop(a['id'], None)
+            if zb:
+                zbook.remove(zb['id'])
+        return 'stale'
+    if a['freq'] == 'once':
+        try:
+            fs.patch_doc(path, {'active': False, 'updatedAt': fs.now_ts()}, ut)
+        except fs.HttpErr as e:
+            if e.status in (400, 404, 409):
+                return 'claimed-elsewhere'
+            raise
+        with lock:
+            zalerts.pop(a['id'], None)
+    sym = '' if a['type'] == 'note_ready' else '?symbol=' + urllib.parse.quote(a['symbol'])
+    fs.create_doc('notifications', {'recipientUid': a['uid'], 'type': 'zoro_alert', 'message': text,
+                                    'link': 'zoro-options.html' + sym, 'read': False, 'createdAt': fs.now_ts()})
+    zstat['fires'] += 1
+    log('ZFIRE %s %s %s' % (a['aid'][:6], a['type'], a['symbol']))   # no uid in logs
+    return 'fired'
+
+
+def zoro_round(now):
+    fresh = zoro_load()
+    with lock:
+        zalerts.clear()
+        zalerts.update(fresh)
+    touch = {}
+    for sym in sorted({a['symbol'] for a in fresh.values() if a['type'] != 'note_ready'}):
+        try:
+            snap = zget('/summary?u=' + urllib.parse.quote(sym))
+        except Exception as e:
+            zstat['err'] += 1
+            log('zoro summary %s failed: %s' % (sym, type(e).__name__))
+            continue
+        prev = zsnap.get(sym)
+        zsnap[sym] = snap
+        for a in fresh.values():
+            if a['symbol'] != sym:
+                continue
+            if a['type'] == 'level_touch':
+                pa = za.to_price_alert(a, snap)
+                if pa:
+                    touch[pa['id']] = pa
+                continue
+            text = za.evaluate(a, snap, prev)
+            if text and zcool.ok(a, now):
+                try:
+                    zoro_fire(a, text)
+                except Exception as e:
+                    zstat['err'] += 1
+                    log('zoro fire failed: %s %s' % (type(e).__name__, str(e)[:100]))
+    with lock:
+        zbook.sync(touch)
+
+
+def zoro_note_check(now):
+    """Morning Note ready: once per weekday after 09:40 ET, when the Worker has today's note, tell every active note_ready alert."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    et = datetime.fromtimestamp(now, ZoneInfo('America/New_York'))
+    day = et.strftime('%Y-%m-%d')
+    if et.weekday() > 4 or (et.hour, et.minute) < (9, 40):
+        return
+    try:
+        done = json.load(open(ZORO_STATE)).get('note_day')
+    except Exception:
+        done = None
+    if done == day:
+        return
+    try:
+        n = zget('/note?day=%s&kind=morning' % day)
+    except Exception:
+        return                                   # not published yet (the page then says "Note not available today")
+    if not n or n.get('day') != day or not n.get('ok'):
+        return
+    with open(ZORO_STATE + '.tmp', 'w') as f:
+        json.dump({'note_day': day}, f)          # mark first: a crash must not fire twice
+    os.replace(ZORO_STATE + '.tmp', ZORO_STATE)
+    for a in list(zalerts.values()):
+        if a['type'] == 'note_ready':
+            try:
+                zoro_fire(dict(a, freq='every'), za._wrap('The Zoro Morning Note is ready.', a))
+            except Exception as e:
+                zstat['err'] += 1
+                log('zoro note fire failed: %s' % type(e).__name__)
+
+
+def zoro_loop():
+    if not ZORO_KEY or not ZORO_URL.startswith('http'):
+        log('no recorder URL / ingest key: ZoroOptions alerts are off')
+        return
+    while True:
+        now = time.time()
+        try:
+            zoro_round(now)
+            zoro_note_check(now)
+            zstat['loops'] += 1
+            zstat['last'] = int(now)
+        except Exception as e:
+            zstat['err'] += 1
+            log('zoro round failed: %s %s' % (type(e).__name__, str(e)[:120]))
+        time.sleep(ZORO_EVERY)
+
+
 # ---------------------------------------------------------------------------------- health
 def health_loop():
     last_hb = 0
@@ -363,7 +516,8 @@ def health_loop():
         h = {'ok': (now - stat['last_sync'] < 180) if stat['last_sync'] else False, 'at': int(now), 'alerts': n, 'keys': keys,
              'fires': stat['fires'], 'fire_errors': stat['fire_errors'], 'sync_err': stat['sync_err'],
              'last_sync': int(stat['last_sync']), 'ticks': stat['ticks'],
-             'feeds': {k: int(v) for k, v in stat['feed'].items()}}
+             'feeds': {k: int(v) for k, v in stat['feed'].items()},
+             'zoro': dict(zstat, alerts=len(zalerts), touch=len(zbook.alerts))}
         try:
             tmp = HEALTH + '.tmp'
             with open(tmp, 'w') as f:
@@ -383,7 +537,7 @@ def health_loop():
 def main():
     key = os.environ.get('INSIGHTSENTRY_WEBSOCKET_API_KEY', '')
     roots = list(IS_ROOTS)
-    threads = [sync_loop, fire_loop, health_loop, binance_reader, coinbase_reader]
+    threads = [sync_loop, fire_loop, health_loop, binance_reader, coinbase_reader, zoro_loop]
     if key:
         threads += [lambda: is_reader(roots[:4], key), lambda: is_reader(roots[4:], key)]
     else:

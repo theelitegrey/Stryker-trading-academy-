@@ -10,7 +10,7 @@ import { tfSpec, foldTick, sessionOpen } from './tick-codec.js?v=899';
 import { feedConfig, feedJoin, feedTokenChanged } from './tick-feed.js?v=899';
 import { rtReady, rtToken, isRealtimeAdmin, rtHeadersReady, rtOnChange, rtNoteStreamBar } from './rt-access.js?v=899';
 
-export const TICK_ENGINE = 'admins';
+export const TICK_ENGINE = 'all';
 // = TE_SYMBOLS in workers/book-recorder/src/tick-engine.js (tools/tests/tick-engine-client.test.mjs keeps the two equal)
 export const TE_ROOTS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC', 'SI', 'ZN', '6E', 'MGC', 'MYM', 'M2K'];
 const TFS = ['1', '5', '15', '30', '60', '120', '240', 'D'];

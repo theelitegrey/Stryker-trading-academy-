@@ -30,20 +30,20 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG } from './chart-bookmap.js?v=896';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=896';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=896';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=896';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=896';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=896';
-import * as ProGate from './chart-pro-gate.js?v=896';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=896';
-import * as BT from './chart-bigtrades.js?v=896';
-import { installBookPack } from './chart-book-pack.js?v=896';
-import { installPatterns } from './chart-patterns.js?v=896';
-import { installL2Flow } from './chart-l2-flow.js?v=896';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=896';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=896';
+import { drawBookmap, BM_BG } from './chart-bookmap.js?v=897';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=897';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=897';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=897';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=897';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=897';
+import * as ProGate from './chart-pro-gate.js?v=897';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=897';
+import * as BT from './chart-bigtrades.js?v=897';
+import { installBookPack } from './chart-book-pack.js?v=897';
+import { installPatterns } from './chart-patterns.js?v=897';
+import { installL2Flow } from './chart-l2-flow.js?v=897';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=897';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=897';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';

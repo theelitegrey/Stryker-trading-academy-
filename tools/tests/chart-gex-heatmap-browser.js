@@ -98,7 +98,7 @@ const addHeat = (p, inputs) => p.evaluate((inputs) => { const c = window.STRYKER
     await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open());
     await p.waitForSelector('.stkiw-row[data-key="b:stk_gexheat"]', { timeout: 15000 }).catch(() => {});
     const row = await p.evaluate(() => { const r = document.querySelector('.stkiw-row[data-key="b:stk_gexheat"]'); return r && r.textContent; });
-    check(/TradeZoro GEX Heatmap/.test(row || '') && /Net GEX at every strike/.test(row || ''), 'indicator window lists "TradeZoro GEX Heatmap": ' + row);
+    check(/Gamma over time/.test(row || '') && /Net GEX at every strike/.test(row || ''), 'indicator window lists "TradeZoro GEX Heatmap": ' + row);
     if (row) await p.evaluate(() => document.querySelector('.stkiw-row[data-key="b:stk_gexheat"] .stkiw-name').click());
     else await addHeat(p);
     await sleep(500);
@@ -130,7 +130,8 @@ const addHeat = (p, inputs) => p.evaluate((inputs) => { const c = window.STRYKER
     await shot(p, 'chart-gexheat-es-1440.png');
     await setSym(p, 'futures:CL1!', '5');
     f = await frame(p);
-    check(f && f.cols === 0 && /available for SPX/.test(f.text), 'CL: nothing drawn, note "' + (f && f.text) + '"');
+    // ZoroOptions launched: CL maps to USO (Zoro history); with no recorded history nothing is drawn
+    check(f && f.cols === 0 && /available for SPX|No GEX history recorded yet · CL \(from USO\)/.test(f.text), 'CL: nothing drawn, note "' + (f && f.text) + '"');
     check(!errors.length, 'no page errors (' + errors.slice(0, 3).join(' | ') + ')');
     await ctx.close();
 

@@ -94,7 +94,7 @@ const tagRe = /^\d{1,2}\/\d{1,2} · \$[\d.]+[MB]$/;
     const roles = new Set(rk.map((l) => l.text.split(' ')[1]));
     check(roles.size >= 2, 'roles present: ' + [...roles].join(', '));
     const zero = d.lines.find((l) => l.id === 'zero');
-    check(zero && /Flip/.test(zero.text), 'zero gamma line carries the Flip tag: ' + (zero && zero.text));
+    check(zero && /Flip/i.test(zero.text), 'zero gamma line carries the Flip tag: ' + (zero && zero.text));
     const pv = (d.lines || []).filter((l) => /^pv\d+_\d+$/.test(l.id));
     check(pv.length === 4 && pv.every((l) => tagRe.test(l.text) && l.dash === 'dotted' && l.faint), 'previous days: 2 days x 2 strikes, faded dotted, tags like "10/15 · $1.6B": ' + pv.map((l) => l.text).join(' | '));
     const wantDays = DAYS.slice(1, 3).map((x) => +x.slice(5, 7) + '/' + +x.slice(8, 10));

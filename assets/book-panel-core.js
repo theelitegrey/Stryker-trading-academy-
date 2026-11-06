@@ -20,6 +20,7 @@ export function pairOf(ticker) {
   let t = String(ticker || '').toUpperCase().replace(/^[A-Z_]+:/, ''), perp = false;
   if (/\.P$/.test(t)) { perp = true; t = t.slice(0, -2); }
   if (/-PERP$/.test(t)) { perp = true; t = t.slice(0, -5); }
+  if (/-SWAP$/.test(t)) { perp = true; t = t.slice(0, -5); }
   let m = /^([A-Z0-9]+)[-/_]([A-Z]+)$/.exec(t);
   if (m) return { base: m[1], quote: m[2], perp };
   m = /^(.+?)(USDT|USDC|BUSD|USD)$/.exec(t);

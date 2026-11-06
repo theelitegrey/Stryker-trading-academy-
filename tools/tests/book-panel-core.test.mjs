@@ -44,3 +44,5 @@ assert.equal(C.autoStep(85000), 1); assert.equal(C.autoStep(3500), 0.05); ok('au
 assert.deepEqual(C.zoneDrawing(10, 20, 1, 2).opts.anchors, [{ time: 1, price: 20 }, { time: 2, price: 10 }]); assert.equal(C.levelDrawing(5, 9).type, 'hline'); ok('level / zone anchors (zone corners ordered high, low)');
 assert.equal(C.fmtPrice(85000.5, 0.5), '85,000.5'); assert.equal(C.fmtSize(12345), '12.3k'); assert.equal(C.fmtDelta(-3), '−3.00'); ok('formatting');
 console.log(n + ' checks passed');
+
+assert.deepEqual(C.pairOf('OKX:BTC-USDT-SWAP'), { base: 'BTC', quote: 'USDT', perp: true }); assert.deepEqual(C.pairOf('okx:ETH-USDT'), { base: 'ETH', quote: 'USDT', perp: false }); console.log('PASS OKX swap ticker -> perp pair');

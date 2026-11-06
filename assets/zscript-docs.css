@@ -49,3 +49,13 @@ figcaption{ font-size:13px; line-height:18px; color:var(--ink-2); margin-top:8px
   .zd-menu:not([open]) nav{ display:none; }
   .zd-prose{ font-size:15px; }
 }
+/* course quiz */
+.lx-quiz{ background:var(--bg-2); border:1px solid var(--line); border-radius:16px; padding:16px; margin:0 0 16px; }
+.lx-quiz p{ margin:0 0 12px; color:var(--ink-0); }
+.lx-quiz-opts{ display:flex; flex-direction:column; gap:8px; }
+.lx-quiz-opts button{ min-height:48px; text-align:left; padding:8px 16px; border-radius:12px; border:1px solid var(--line); background:transparent; color:var(--ink-1); font:inherit; font-size:15px; cursor:pointer; }
+.lx-quiz-opts button:hover:not(:disabled){ border-color:var(--gold-dim); }
+.lx-quiz-opts button:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.lx-quiz-opts button.is-right{ border-color:var(--bull); color:var(--ink-0); }
+.lx-quiz-opts button.is-wrong{ border-color:var(--bear); }
+.lx-quiz-a{ margin:12px 0 0 !important; font-size:14px; color:var(--ink-2) !important; }

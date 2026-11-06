@@ -40,7 +40,7 @@ figcaption { font-size: 8pt; color: #555; margin-top: 1mm; }
 .legal { font-size: 8pt; color: #555; }
 '''
 
-def build(root, src, out, manual, cook, refs, hl, do_pdf, ctx):
+def build(root, src, out, manual, cook, refs, hl, do_pdf, ctx, course=None):
     os.makedirs(out, exist_ok=True)
     parts = []   # (part title, [(id, title, html)])
     parts.append(('Part 1. The language', [('m-' + m['slug'], m['title'], m['html']) for m in manual]))

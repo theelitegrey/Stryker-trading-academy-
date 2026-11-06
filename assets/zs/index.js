@@ -22,7 +22,9 @@ export class Session {
   update(bar) { return this.exec.update(bar); }
 }
 
+// run(program, opts) or run({ program, bars, ... }) (both forms are used by the other streams)
 export function run(program, opts) {
+  if (opts === undefined && program && typeof program === 'object' && program.program && program.bars) { opts = program; program = opts.program; }
   const o = opts || {};
   return new Session(program, o).run(o.bars);
 }

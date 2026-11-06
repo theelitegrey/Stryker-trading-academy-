@@ -42,7 +42,7 @@ s ta.rma(source:num, length:int) -> float ~ Wilder's moving average (alpha 1/len
 s ta.wma(source:num, length:int) -> float ~ Linearly weighted moving average.
 s ta.vwma(source:num, length:int) -> float ~ Volume-weighted moving average.
 s ta.hma(source:num, length:int) -> float ~ Hull moving average.
-s ta.alma(source:num, length:int, offset:float=0.85, sigma:float=6) -> float ~ Arnaud Legoux moving average.
+s ta.alma(source:num, length:int, offset:float=0.85, sigma:float=6) -> float ~ Gaussian-weighted moving average (offset moves the peak, sigma sets the width).
 s ta.swma(source:num) -> float ~ Symmetric 4-bar weighted moving average.
 s ta.rsi(source:num, length:int) -> float ~ Relative strength index, 0 to 100.
 s ta.macd(source:num, fastlen:int=12, slowlen:int=26, siglen:int=9) -> [float,float,float] ~ MACD line, signal line and histogram.
@@ -296,7 +296,7 @@ d:flow flow.footprint(price:num, side:string="both") -> float ~ Volume traded at
 d:gex gex.level(n:int=0) -> float ~ The n-th strongest GEX level (0 = strongest).
 # our data: ZoroOptions
 d:opt opt.node(n:int=0) -> float ~ Price of the n-th gamma node (0 = strongest).
-d:opt opt.range(kind:string="day") -> [float,float] ~ Low and high of an options range ("day", "week", "expected").
+d:opt opt.range(kind:string="day") -> [float,float] ~ Low and high of an options range ("day", "1dte", "week", "month").
 `;
 
 // name:type ~ doc   (built-in variables; d:<ns> = our data)

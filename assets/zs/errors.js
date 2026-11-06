@@ -1,5 +1,5 @@
 // Zscript diagnostics: codes -> plain-English messages (SPEC.md section 10).
-export const MESSAGES = {
+export const MESSAGES = { __proto__: null,
   E101: 'Unexpected character `{c}`.',
   E102: 'Unterminated string (the closing quote is missing).',
   E103: 'Bad color `{text}`. Use #RRGGBB or #RRGGBBAA.',
@@ -57,7 +57,7 @@ export const MESSAGES = {
   W103: 'Variable `{x}` is never used.',
   E401: 'The script took longer than 20 seconds.',
   E402: 'History `[{n}]` goes back further than max_bars_back ({m}).',
-  E403: 'Too many operations on one bar (limit 1,000,000).',
+  E403: 'Too many operations on one bar (limit 5,000,000).',
   E404: 'A loop ran more than 100,000 times on one bar.',
   E405: 'Array too large (limit {lim} items).',
   E406: 'Map too large (limit 50,000 keys).',
@@ -73,7 +73,7 @@ export const MESSAGES = {
   E499: 'Internal engine error: {why}',
 };
 
-const HINTS = {
+const HINTS = { __proto__: null,
   E201: 'Put `//@zscript 1` on the first line.',
   E202: 'Use `//@zscript 1`.',
   E209: 'Use `==` to compare, or `:=` to change a variable.',

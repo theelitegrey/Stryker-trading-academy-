@@ -13,14 +13,14 @@ export const LIMITS = Object.freeze({
   plots: 64, securities: 16, code: 2000000, maxBarsBack: 5000, labels: 500, lines: 500, boxes: 500, tables: 20,
 });
 // Built-in variables that are really stateful functions (no parens in source).
-const VAR_FUNCS = { 'ta.obv': ['__obv', []], 'ta.tr': ['ta.tr', [false]], 'ta.vwap': ['ta.vwap', ['hlc3', 'D']], 'ta.accdist': ['__accdist', []] };
+const VAR_FUNCS = { __proto__: null, 'ta.obv': ['__obv', []], 'ta.tr': ['ta.tr', [false]], 'ta.vwap': ['ta.vwap', ['hlc3', 'D']], 'ta.accdist': ['__accdist', []] };
 // Bar fields readable n bars back without a hidden slot.
 const BAR_HIST = new Set(['open', 'high', 'low', 'close', 'volume', 'hl2', 'hlc3', 'ohlc4', 'hlcc4', 'time', 'time_close', 'bar_index']);
 const SOURCES = ['open', 'high', 'low', 'close', 'volume', 'hl2', 'hlc3', 'ohlc4', 'hlcc4'];
 const RESERVED_ROOTS = new Set([...NAMESPACES].filter((n) => !n.includes('.')));
-const INPUT_KIND = { 'input.int': 'int', 'input.float': 'float', 'input.bool': 'bool', 'input.string': 'string', 'input.color': 'color',
+const INPUT_KIND = { __proto__: null, 'input.int': 'int', 'input.float': 'float', 'input.bool': 'bool', 'input.string': 'string', 'input.color': 'color',
   'input.source': 'source', 'input.timeframe': 'timeframe', 'input.price': 'price', 'input.text_area': 'text_area', 'input.symbol': 'symbol', input: null };
-const PLOT_KIND = { plot: 'plot', plotshape: 'shape', plotchar: 'char', plotarrow: 'arrow', plotcandle: 'candle', plotbar: 'bar', bgcolor: 'bgcolor', barcolor: 'barcolor' };
+const PLOT_KIND = { __proto__: null, plot: 'plot', plotshape: 'shape', plotchar: 'char', plotarrow: 'arrow', plotcandle: 'candle', plotbar: 'bar', bgcolor: 'bgcolor', barcolor: 'barcolor' };
 
 class Unit {
   constructor() { this.code = []; this.pos = []; this.nSlots = 0; this.hist = new Set(); this.vars = []; this.varip = []; this.nStates = 0; this.lastPos = null; }
@@ -651,7 +651,8 @@ class Compiler {
     // method call: obj.name(args) where obj is a value
     if (callee.k === 'Member') {
       const d = dotted(callee);
-      const rootLocal = d === null || this.scope.lookup(d.split('.')[0]);
+      const root = d === null ? null : d.split('.').slice(0, -1).join('.');
+      const rootLocal = d === null || this.scope.lookup(d.split('.')[0]) || (VARIABLES.has(root) && !FUNCTIONS.has(d));
       if (rootLocal) return this.methodCall(e);
       return this.builtinCall(d, e.args, e, callee.typeArgs);
     }
@@ -694,6 +695,11 @@ class Compiler {
   bindArgs(f, args, node, preType) {
     const out = f.params.map((p) => ({ p, arg: null, rest: p.rest ? [] : null }));
     let pos = preType !== undefined ? 1 : 0, sawNamed = false;
+    // ta.highest(5) / ta.pivothigh(3, 3): a leading param with a default is skipped when the
+    // positional args only cover the required params after it.
+    const npos = args.filter((x) => !x.name).length;
+    const req = (k) => f.params.slice(k).filter((p) => p.def === undefined && !p.rest).length;
+    while (pos < f.params.length - 1 && f.params[pos].def !== undefined && req(pos + 1) > 0 && npos <= req(pos + 1) && !f.variadic) pos++;
     for (const a of args) {
       if (a.name) {
         sawNamed = true;
@@ -900,7 +906,7 @@ class Compiler {
     if (!this.top) this.err('E330', node);
     const want = { int: 'int', float: 'float', price: 'float', bool: 'bool', string: 'string', text_area: 'string', color: 'color', timeframe: 'string', symbol: 'string' }[kind];
     if (want && desc.defval !== null) {
-      const t = typeof desc.defval === 'number' ? (Number.isInteger(desc.defval) ? 'int' : 'float') : typeof desc.defval === 'boolean' ? 'bool' : (first && first.value.k === 'Color' ? 'color' : 'string');
+      const t = typeof desc.defval === 'number' ? (Number.isInteger(desc.defval) ? 'int' : 'float') : typeof desc.defval === 'boolean' ? 'bool' : (kind === 'color' && /^#[0-9a-f]{8}$/.test(desc.defval) ? 'color' : 'string');
       if (!assignable(want === 'int' ? 'float' : want, t)) this.err('E309', first, { p: 'defval', f: name, want, got: t });
     }
     if (Array.isArray(desc.options)) desc.options = desc.options.slice(0, 200);
@@ -1048,6 +1054,9 @@ function dotted(e) {
 }
 function calleeName(e) { return e && e.k === 'Call' ? dotted(e.callee) || 'this call' : 'this'; }
 function isNumLike(t) { return t === 'int' || t === 'float' || t === 'na' || t === 'any'; }
-function countArgs(f) { return f.params.filter((p) => p.def === undefined && !p.rest).length + (f.params.some((p) => p.def !== undefined) ? '+' : ''); }
+function countArgs(f) {
+  const req = f.params.filter((p) => p.def === undefined && !p.rest).length;
+  return f.variadic || req !== f.params.length ? req + ' to ' + (f.variadic ? 'any number of' : f.params.length) : String(req);
+}
 function suggest(name, pool) { const n = closest(name, pool); return n ? 'Did you mean `' + n + '`? Or declare it first with `=`.' : null; }
 export { DRAWING };

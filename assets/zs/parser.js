@@ -450,7 +450,12 @@ class Parser {
       case 'id': this.next(); return { k: 'Ident', name: t.v, l: t.l, c: t.c, e: t.e };
       case 'kw':
         if (t.v === 'true' || t.v === 'false') { this.next(); return { k: 'Bool', v: t.v === 'true', l: t.l, c: t.c }; }
-        if (t.v === 'na') { this.next(); return { k: 'Na', l: t.l, c: t.c }; }
+        if (t.v === 'na') {
+          this.next();
+          // `na(x)` is the built-in test; bare `na` is the value.
+          if (this.peek(0).t === 'op' && this.peek(0).v === '(') return { k: 'Ident', name: 'na', l: t.l, c: t.c, e: t.e };
+          return { k: 'Na', l: t.l, c: t.c };
+        }
         break;
       case 'op':
         if (t.v === '(') {

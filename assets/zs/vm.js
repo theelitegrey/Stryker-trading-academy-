@@ -8,7 +8,7 @@ import { VARIABLES, FUNCTIONS } from './catalog.js?v=895';
 import { ZsRuntimeError, diag, MESSAGES, fmt } from './errors.js?v=895';
 
 export const RUN_LIMITS = Object.freeze({
-  bars: 50000, opsPerBar: 1000000, loopIters: 100000, firstRunMs: 20000, updateMs: 5000, maxBarsBack: 5000,
+  bars: 50000, opsPerBar: 5000000, loopIters: 100000, firstRunMs: 20000, updateMs: 5000, maxBarsBack: 5000,
 });
 const NA = NaN;
 const fin = (x) => typeof x === 'number' && x === x && x !== Infinity && x !== -Infinity;
@@ -101,7 +101,7 @@ function prepBars(bars, tf) {
   for (const f of ['time', 'open', 'high', 'low', 'close', 'volume']) {
     const src = bars[f];
     const a = new Array(n);
-    for (let i = 0; i < n; i++) { const v = src ? +src[i] : NaN; a[i] = v === v ? v : NaN; }
+    for (let i = 0; i < n; i++) { const v = src ? src[i] : NaN; a[i] = typeof v === 'number' ? v : NaN; }   // data only: never call valueOf on member input
     B[f] = a;
   }
   const ms = tfToMs(tf);
@@ -114,8 +114,9 @@ function prepBars(bars, tf) {
   return B;
 }
 function pushBar(B, bar) {
-  for (const f of ['time', 'open', 'high', 'low', 'close', 'volume']) B[f].push(+bar[f]);
-  B.time_close.push(fin(+bar.time_close) ? +bar.time_close : B.time[B.n] + (fin(B.tfMs) ? B.tfMs : 0));
+  const num = (v) => (typeof v === 'number' ? v : NaN);
+  for (const f of ['time', 'open', 'high', 'low', 'close', 'volume']) B[f].push(num(bar[f]));
+  B.time_close.push(fin(bar.time_close) ? bar.time_close : B.time[B.n] + (fin(B.tfMs) ? B.tfMs : 0));
   B.n++;
 }
 function setBar(B, i, bar) {
@@ -182,10 +183,10 @@ function makeGetter(name) {
     case 'gex.callwall': case 'gex.putwall': case 'gex.flip': case 'gex.zero_upper': case 'gex.zero_lower': case 'gex.net': {
       const k = name.slice(4); return (c) => { const f = c.frame('gex'); return f && fin(f[k]) ? f[k] : NA; };
     }
-    case 'gex.updated': return (c) => { const f = c.frame('gex'); return f && fin(f.t) ? f.t : NA; };
+    case 'gex.updated': return (c) => { const f = c.frame('gex'); return f ? (fin(f.updated) ? f.updated : fin(f.t) ? f.t : NA) : NA; };
     case 'opt.ivrank': case 'opt.pc': case 'opt.maxpain': { const k = name.slice(4); return (c) => { const f = c.frame('opt'); return f && fin(f[k]) ? f[k] : NA; }; }
     case 'opt.zone': return (c) => { const f = c.frame('opt'); return f && typeof f.zone === 'string' ? f.zone.slice(0, 200) : NA; };
-    case 'opt.updated': return (c) => { const f = c.frame('opt'); return f && fin(f.t) ? f.t : NA; };
+    case 'opt.updated': return (c) => { const f = c.frame('opt'); return f ? (fin(f.updated) ? f.updated : fin(f.t) ? f.t : NA) : NA; };
     default: void B; return () => NA;
   }
 }
@@ -280,7 +281,9 @@ class Ctx {
     return c[this.bar];
   }
   flowVA() {
-    const d = this.flowOk(); if (!d || !d.footprint) return [NA, NA, NA];
+    const d = this.flowOk(); if (!d) return [NA, NA, NA];
+    if (d.poc && fin(+d.poc[this.bar])) { const g = (k) => (d[k] && fin(+d[k][this.bar]) ? +d[k][this.bar] : NA); return [g('poc'), g('vah'), g('val')]; }   // hub-computed
+    if (!d.footprint) return [NA, NA, NA];
     return valueAreaOf(d.footprint[this.bar]);
   }
 }
@@ -311,7 +314,7 @@ function runBar(ctx, deadline) {
   // plain (non-var) slots start each bar as na
   const keep = ctx.inited;
   for (let i = 0; i < slots.length; i++) if (!exec.isVarSlot[u.idx][i]) slots[i] = NA;
-  const maxOps = RUN_LIMITS.opsPerBar;
+  const maxOps = exec.lim.opsPerBar, maxLoop = exec.lim.loopIters;
   try {
     while (pc < end) {
       if (++ops > maxOps) throw new ZsRuntimeError('E403');
@@ -340,6 +343,7 @@ function runBar(ctx, deadline) {
           const n = stack[sp - 1];
           let v = NA;
           if (fin(n) && n >= 0) {
+            if (Math.trunc(n) > ctx.cap - 1) throw new ZsRuntimeError('E402', { n: Math.trunc(n), m: ctx.cap - 1 });
             const k = ctx.bar - Math.trunc(n);
             if (k >= 0) v = bhistValue(bvars[code[pc + 1]], ctx, k);
           }
@@ -385,7 +389,7 @@ function runBar(ctx, deadline) {
           for (let k = 0; k < n; k++) stack[sp++] = Array.isArray(t) && k < t.length ? t[k] : NA;
           pc += 2; break;
         }
-        case OP.LOOP: { const id = code[pc + 1]; if (++ctx.loops[id] > RUN_LIMITS.loopIters) throw new ZsRuntimeError('E404'); pc += 2; break; }
+        case OP.LOOP: { const id = code[pc + 1]; if (++ctx.loops[id] > maxLoop) throw new ZsRuntimeError('E404'); pc += 2; break; }
         case OP.LOOPRESET: ctx.loops[code[pc + 1]] = 0; pc += 2; break;
         case OP.SEC: { const v = exec.secValue(code[pc + 1], ctx); stack[sp++] = v; pc += 3; break; }
         default: throw new ZsRuntimeError('E499', { why: 'bad opcode ' + op });
@@ -422,10 +426,14 @@ export class Exec {
   constructor(program, opts) {
     this.p = validateProgram(program);
     const o = opts || {};
+    // limitsOverride can only make limits stricter (tests, slow devices), never looser
+    this.lim = Object.assign({}, RUN_LIMITS);
+    if (o.limitsOverride && typeof o.limitsOverride === 'object') for (const k of ['opsPerBar', 'loopIters', 'firstRunMs', 'updateMs']) { const v = o.limitsOverride[k]; if (fin(v) && v > 0 && v < this.lim[k]) this.lim[k] = v; }
     this.sym = Object.assign({ ticker: '', tickerid: '', type: '', currency: '', mintick: 0.01, pointvalue: 1 }, sanitizeSym(o.symbol));
     this.tfStr = typeof o.timeframe === 'string' ? o.timeframe.slice(0, 8) : '';
     this.tf = parseTf(this.tfStr);
-    this.allowed = { book: !!(o.allowed && o.allowed.book), flow: !!(o.allowed && o.allowed.flow), gex: !!(o.allowed && o.allowed.gex), opt: !!(o.allowed && o.allowed.opt) };
+    const al = o.allowed || {};
+    this.allowed = { book: al.book === true, flow: al.flow === true, gex: al.gex === true, opt: al.opt === true };
     this.data = o.data && typeof o.data === 'object' ? o.data : {};
     this.lastClosed = !!o.lastBarClosed;
     this.fnTable = this.p.fns.map((f) => BUILTINS[f]);
@@ -465,7 +473,7 @@ export class Exec {
   // Full run over all bars. Returns the output object (SPEC 11.4).
   run(bars) {
     const t0 = Date.now();
-    const deadline = t0 + RUN_LIMITS.firstRunMs;
+    const deadline = t0 + this.lim.firstRunMs;
     try {
       this.B = prepBars(bars, this.tfStr);
       this.realtimeFrom = this.B.n;      // bars added later by update() are live
@@ -484,10 +492,10 @@ export class Exec {
   // Live update: same time = the last bar changed; newer time = a new bar.
   update(bar) {
     const t0 = Date.now();
-    const deadline = t0 + RUN_LIMITS.updateMs;
+    const deadline = t0 + this.lim.updateMs;
     try {
       if (!this.main || !bar) throw new ZsRuntimeError('E499', { why: 'update before run' });
-      const B = this.B, last = B.n - 1, t = +bar.time;
+      const B = this.B, last = B.n - 1, t = typeof bar.time === 'number' ? bar.time : NaN;
       if (last >= 0 && t === B.time[last]) {
         setBar(B, last, bar);
         this.restore();
@@ -515,7 +523,7 @@ export class Exec {
     for (const ns of ['book', 'gex', 'opt']) if (d[ns] !== undefined) { if (!Array.isArray(this.data[ns])) this.data[ns] = []; this.data[ns][i] = d[ns]; }
     if (d.flow && typeof d.flow === 'object') {
       if (!this.data.flow) this.data.flow = {};
-      for (const k of ['buyvol', 'sellvol', 'trades', 'delta', 'cvd', 'bigtrades', 'footprint']) if (d.flow[k] !== undefined) { if (!this.data.flow[k]) this.data.flow[k] = []; this.data.flow[k][i] = d.flow[k]; }
+      for (const k of ['buyvol', 'sellvol', 'trades', 'delta', 'cvd', 'poc', 'vah', 'val', 'bigtrades', 'footprint']) if (d.flow[k] !== undefined) { if (!this.data.flow[k]) this.data.flow[k] = []; this.data.flow[k][i] = d.flow[k]; }
       this.main.cvd.length = Math.min(this.main.cvd.length, i);
     }
   }

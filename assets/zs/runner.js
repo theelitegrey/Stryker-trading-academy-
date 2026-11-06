@@ -4,6 +4,8 @@
 //   const out = await r.run({ program, bars, symbol, timeframe, inputs, allowed, data, securities });
 //   const out2 = await r.update({ bar, data });
 //   r.dispose();
+//   options: new ZsRunner({ onLive(out), onNotice({ns, state, upgrade, text}) })
+//   protected: const pub = await r.session(); ...get sealed from the API...; await r.run({ sealed, bars, ... })
 const WORKER_URL = new URL('./worker.js?v=895', import.meta.url);
 export const KILL_MS = { run: 25000, update: 8000, compile: 10000 };
 
@@ -22,6 +24,8 @@ export class ZsRunner {
     const w = new Worker(this.opts.workerUrl || WORKER_URL, { type: 'module', name: 'zscript' });
     w.onmessage = (ev) => {
       const m = ev.data;
+      if (m && m.type === 'live') { if (this.opts.onLive) this.opts.onLive(m.out); return; }
+      if (m && m.type === 'notice') { if (this.opts.onNotice) this.opts.onNotice(m); return; }
       if (!m || !Number.isInteger(m.id)) return;
       const p = this.pending.get(m.id);
       if (!p) return;
@@ -54,9 +58,13 @@ export class ZsRunner {
     });
   }
   compile(source) { return this.send('compile', { source }, KILL_MS.compile); }
+  // Protected scripts: the worker makes a key pair and returns the public half for the delivery API.
+  async session() { const out = await this.send('session', {}, KILL_MS.compile); return out && out.pub; }
+  // Data hub (S3) messages go to the worker untouched: hub.open({ post: (m) => runner.post(m) }).
+  post(msg) { if (msg && typeof msg === 'object') this.spawn().postMessage(msg); }
   async run(o) {
     const out = await this.send('run', {
-      program: o.program, bars: o.bars, symbol: o.symbol, timeframe: o.timeframe, inputs: o.inputs || {},
+      program: o.program, sealed: o.sealed, bars: o.bars, symbol: o.symbol, timeframe: o.timeframe, inputs: o.inputs || {},
       allowed: o.allowed || {}, data: o.data || {}, securities: o.securities || {}, lastBarClosed: !!o.lastBarClosed,
     }, KILL_MS.run);
     this.hasRun = !!(out && out.bars);

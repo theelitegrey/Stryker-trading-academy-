@@ -92,13 +92,17 @@ def check_module_import_versions():
     except Exception as e:
         fail(f'assets/version.json unreadable: {e}')
         return
-    spec = re.compile(r"""(?:\bimport\s*\(\s*|\bfrom\s*|\bimport\s+)['"](\./[\w./-]+\.m?js)(?:\?v=(\d+))?['"]""")
+    spec = re.compile(r"""(?:\bimport\s*\(\s*|\bfrom\s*|\bimport\s+)['"](\.\.?/[\w./-]+\.m?js)(?:\?v=(\d+))?['"]""")
     seen = {}
-    for path in sorted(glob.glob(os.path.join(ROOT, 'assets', '*.js'))):
+    # assets/zs/ (Zscript engine) is a module tree: its files import each other and ../creator-seal.js
+    zs = sorted(glob.glob(os.path.join(ROOT, 'assets', 'zs', '**', '*.js'), recursive=True))
+    for path in sorted(glob.glob(os.path.join(ROOT, 'assets', '*.js'))) + zs:
         rel = os.path.relpath(path, ROOT)
         for n, line in enumerate(open(path, encoding='utf-8'), 1):
             for m in spec.finditer(line):
                 mod, v = m.group(1), m.group(2)
+                # one key per real file, so ./x.js from assets/ and ../x.js from assets/zs/ compare
+                mod = os.path.relpath(os.path.normpath(os.path.join(os.path.dirname(path), mod)), ROOT)
                 if v is None:
                     fail(f'{rel}:{n}: import of {mod} has no ?v= (it can never cache-bust)')
                 elif v != build:
@@ -134,7 +138,7 @@ def check_versioned_sources():
 
 def check_js_syntax():
     from concurrent.futures import ThreadPoolExecutor
-    paths = sorted(glob.glob('assets/*.js'))
+    paths = sorted(glob.glob('assets/*.js')) + sorted(glob.glob('assets/zs/**/*.js', recursive=True))
     with ThreadPoolExecutor(8) as ex:
         results = list(ex.map(lambda p: subprocess.run(['node', '--check', p], capture_output=True, text=True), paths))
     for path, result in zip(paths, results):
@@ -634,6 +638,23 @@ def check_compare_page():
         fail('compare page: ' + r.stdout.strip()[:300])
 
 
+def check_zscript_engine():
+    """Zscript engine (assets/zs/): language, ta.* golden values, VM, limits, security and data-frame
+    tests (tools/tests/zs-*.test.mjs). Fuzz, bench and the browser sandbox test run by hand
+    (tools/tests/README-zscript.md). Only runs when assets/zs/ exists."""
+    if not os.path.isdir(os.path.join(ROOT, 'assets', 'zs')):
+        return
+    from concurrent.futures import ThreadPoolExecutor
+    suites = ['lang', 'ta', 'vm', 'limits', 'security', 'frames']
+    def one(n):
+        return n, subprocess.run(['node', f'tools/tests/zs-{n}.test.mjs'], capture_output=True, text=True, cwd=ROOT, timeout=300)
+    with ThreadPoolExecutor(3) as ex:
+        for n, r in ex.map(one, suites):
+            if r.returncode != 0:
+                bad = [l for l in r.stdout.splitlines() if l.startswith('FAIL')][:5]
+                fail(f'Zscript zs-{n} tests failed: ' + ('; '.join(bad) or (r.stdout + r.stderr)[-300:]))
+
+
 def check_pro_features():
     """/pro never goes stale: every Pro-gated tool id (chart-pro-gate.js OF_TYPES + GEX_TYPES, registerFeed types, setPanel ids)
     must appear in the ids of an item in assets/pro-features-data.js, and /pro must show no price."""
@@ -687,7 +708,7 @@ def main():
     # two browser checks start first so they overlap the rest
     fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
     browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
-    order = [check_pro_features, check_compare_page, *browser, check_roadmap_log, check_roadmap_cards,
+    order = [check_pro_features, check_compare_page, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

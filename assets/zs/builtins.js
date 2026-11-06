@@ -20,7 +20,13 @@ function len(x, name) {
   return Math.floor(x);
 }
 function state(vm, st, init) { let s = vm.st[st]; if (s === undefined) { s = init(); vm.st[st] = s; } return s; }
-function alloc(vm, n) { vm.allocated += n; if (vm.allocated > MAX_ALLOC_PER_BAR) throw new ZsRuntimeError('E405', { lim: '1,000,000 new' }); }
+export const MAX_ALLOC_TOTAL = 20000000;
+// memory cap: items created per bar, and in total over one run (bounds what var arrays can hold)
+function alloc(vm, n) {
+  vm.allocated += n; vm.allocTotal = (vm.allocTotal || 0) + n;
+  if (vm.allocated > MAX_ALLOC_PER_BAR) throw new ZsRuntimeError('E405', { lim: '1,000,000 new' });
+  if (vm.allocTotal > MAX_ALLOC_TOTAL) throw new ZsRuntimeError('E405', { lim: '20,000,000 in one run' });
+}
 function arrOf(a, what) { if (!Array.isArray(a)) throw new ZsRuntimeError('E411', { what }); return a; }
 function mapOf(m, what) { if (!(m instanceof Map)) throw new ZsRuntimeError('E411', { what }); return m; }
 function growCheck(a, extra) { if (a.length + extra > MAX_ARR) throw new ZsRuntimeError('E405', { lim: '100,000' }); }
@@ -99,13 +105,15 @@ const rgba = (r, g, b, a) => '#' + hex2(r) + hex2(g) + hex2(b) + hex2(a);
 const transpToA = (t) => (100 - Math.max(0, Math.min(100, t))) / 100 * 255;
 
 // ---------- number formatting ----------
+// decimals of the tick size: 0.25 -> 2, 0.01 -> 2, 1 -> 0, 1e-8 -> 8
+function tickDecimals(mt) { for (let d = 0; d <= 10; d++) if (Math.abs(Math.round(mt * 10 ** d) - mt * 10 ** d) < 1e-9) return d; return 10; }
 export function formatNum(v, fmt, vm) {
   if (isNa(v)) return 'NaN';
   if (typeof v === 'boolean') return v ? 'true' : 'false';
   if (typeof v === 'string') return v;
   if (typeof v !== 'number') return String(v);
   if (fmt === 'percent') return formatNum(v, '#.##', vm) + '%';
-  if (fmt === 'price' && vm) { const mt = vm.sym.mintick; const d = mt > 0 ? Math.max(0, Math.min(10, Math.round(-Math.log10(mt)))) : 2; return v.toFixed(d); }
+  if (fmt === 'price' && vm) { const mt = vm.sym.mintick; const d = mt > 0 ? tickDecimals(mt) : 2; return v.toFixed(d); }
   if (fmt === 'volume') {
     const a = Math.abs(v);
     if (a >= 1e9) return +(v / 1e9).toFixed(3) + 'B';
@@ -127,7 +135,7 @@ export function formatNum(v, fmt, vm) {
 }
 
 // ---------- drawings ----------
-const KINDS = { label: 'labels', line: 'lines', box: 'boxes', table: 'tables' };
+const KINDS = { __proto__: null, label: 'labels', line: 'lines', box: 'boxes', table: 'tables' };
 function newDrawing(vm, kind, obj) {
   const d = vm.draw[kind];
   const id = ++vm.drawSeq;
@@ -205,7 +213,7 @@ const cmpAsc = (x, y) => (isNa(x) ? 1 : isNa(y) ? -1 : x < y ? -1 : x > y ? 1 : 
 const nums = (a) => a.filter(fin);
 
 // ---------- the table ----------
-export const BUILTINS = {
+export const BUILTINS = { __proto__: null,
   // general
   na: (vm, a) => isNa(a[0]),
   nz: (vm, a) => (isNa(a[0]) ? a[1] : a[0]),
@@ -686,17 +694,19 @@ export const BUILTINS = {
   'book.ask': (vm, a) => { const f = frame(vm, 'book'); const l = f && levelOf(f.asks, a[0]); return l ? l[0] : NA; },
   'book.bidsize': (vm, a) => { const f = frame(vm, 'book'); const l = f && levelOf(f.bids, a[0]); return l ? l[1] : NA; },
   'book.asksize': (vm, a) => { const f = frame(vm, 'book'); const l = f && levelOf(f.asks, a[0]); return l ? l[1] : NA; },
-  'book.depth': (vm, a) => { const f = frame(vm, 'book'); if (!f) return NA; return depth(a[0] === 'ask' ? f.asks : f.bids, a[1]); },
+  'book.depth': (vm, a) => { const f = frame(vm, 'book'); if (!f) return NA; return depth(isAsk(a[0]) ? f.asks : f.bids, a[1]); },
   'book.imbalance': (vm, a) => { const f = frame(vm, 'book'); if (!f) return NA; const b = depth(f.bids, a[0]), s = depth(f.asks, a[0]); return fin(b) && fin(s) && b + s > 0 ? (b - s) / (b + s) : NA; },
   'book.wall': (vm, a) => {
     const f = frame(vm, 'book'); if (!f) return NA;
-    const side = a[0] === 'ask' ? f.asks : f.bids;
+    const side = isAsk(a[0]) ? f.asks : f.bids;
     if (!Array.isArray(side)) return NA;
     for (const l of side) if (Array.isArray(l) && l[1] >= a[1]) return l[0];
     return NA;
   },
   'book.heat': (vm, a) => {
     const f = frame(vm, 'book'); if (!f || !fin(a[0])) return NA;
+    const h = f.heat;   // heat grid from the data hub: resting size per price row
+    if (h && fin(h.step) && h.step > 0 && fin(h.i0) && Array.isArray(h.v)) { const k = Math.floor(a[0] / h.step + 1e-9) - h.i0; return k >= 0 && k < h.v.length && fin(h.v[k]) ? Math.abs(h.v[k]) : NA; }
     let best = null, bd = Infinity;
     for (const side of [f.bids, f.asks]) if (Array.isArray(side)) for (const l of side) { if (!Array.isArray(l)) continue; const d = Math.abs(l[0] - a[0]); if (d < bd) { bd = d; best = l; } }
     const tick = vm.sym.mintick > 0 ? vm.sym.mintick : 0;
@@ -718,6 +728,7 @@ export const BUILTINS = {
   'opt.range': (vm, a) => { const f = frame(vm, 'opt'); const r = f && f.ranges && f.ranges[a[0]]; return Array.isArray(r) ? [fin(r[0]) ? r[0] : NA, fin(r[1]) ? r[1] : NA] : [NA, NA]; },
 };
 
+const isAsk = (s) => s === 'ask' || s === 'sell';
 function bigTrades(vm) {
   if (!vm.allowed.flow) { vm.notice('flow', 'locked'); return null; }
   const d = vm.data.flow;

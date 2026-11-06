@@ -1,5 +1,11 @@
 [
  {
+  "build": 894,
+  "date": "2026-11-07",
+  "title": "ZoroOptions module",
+  "link": ""
+ },
+ {
   "build": 893,
   "date": "2026-11-06",
   "title": "Server-side alerts",
@@ -9,12 +15,6 @@
   "build": 892,
   "date": "2026-11-06",
   "title": "GEX+ daily-close levels option",
-  "link": ""
- },
- {
-  "build": 892,
-  "date": "2026-11-06",
-  "title": "ZoroOptions module",
   "link": ""
  },
  {

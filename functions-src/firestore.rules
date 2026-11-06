@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'zscripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
 
       // Charts PAPER TRADING account (assets/chart-paper.js, 2026-10-12). Demo money only: the
       // whole simulated account (balance, positions, orders, history) is one JSON string the
@@ -388,6 +388,21 @@ service cloud.firestore {
         }
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid) && validPine(request.resource.data);
+      }
+
+      // Charts page saved Zscript scripts (assets/zs-editor/store.js, 2026-11-06). Same shape and limits as
+      // pineScripts: owner only, name 1-60 chars, source 1-65536 chars, server timestamps. 50 cap client-side.
+      match /zscripts/{sid} {
+        function validZs(d) {
+          return d.keys().hasOnly(['name', 'source', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['name', 'source', 'updatedAt'])
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+            && d.source is string && d.source.size() > 0 && d.source.size() <= 65536
+            && (!('createdAt' in d) || d.createdAt is timestamp)
+            && d.updatedAt is timestamp;
+        }
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validZs(request.resource.data);
       }
     }
 

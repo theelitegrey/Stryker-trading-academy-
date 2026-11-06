@@ -472,6 +472,8 @@ function lateLists(provider){
   const pm = (n) => { try { performance.mark(n); } catch (e) {} };
   pm('stk:boot-start');
   let mods;
+  // Zscript (assets/chart-zscript.js): our own indicator language. Loaded beside the boot modules; optional.
+  const zsP = import('./chart-zscript.js?v=895').catch((e) => { console.warn('TradeZoro: Zscript module', e); return null; });
   try {
     mods = await Promise.all([
       import(VELA_BASE + 'workspace.js'),
@@ -569,6 +571,8 @@ function lateLists(provider){
   // Pine Script (assets/chart-pine.js): its persistence handler must be registered
   // before the workspace restores a saved session. The engine itself loads lazily.
   try { Pine.installPine(Core, () => ws); } catch (e) { console.warn('TradeZoro: Pine install', e); }
+  const Zs = await zsP;
+  if (Zs) try { Zs.installZscript(Core, () => ws); } catch (e) { console.warn('TradeZoro: Zscript install', e); }
   // Indicator Settings → Style / Visibility tabs (assets/chart-ind-style.js): its persistence handler too.
   const IndStyle = mods[24];
   try { IndStyle.installIndStyle(Core); } catch (e) { console.warn('TradeZoro: indicator style install', e); }
@@ -875,6 +879,7 @@ function lateLists(provider){
   barL.appendChild(layWrap);
   barL.appendChild(tplWrap);
   try { Pine.mountPine(ws, barL, { toast, tfLabel }); } catch (e) { console.warn('TradeZoro: Pine editor', e); }
+  if (Zs) try { Zs.mountZscript(ws, { toast, tfLabel }); } catch (e) { console.warn('TradeZoro: Zscript editor', e); }
   // the tab strip is its own slim row between the toolbar and the chart (never in the crowded phone toolbar)
   { const panel = document.querySelector('.stkchart-panel'); if (panel && panel.parentNode) panel.parentNode.insertBefore(cellSw, panel); else barL.appendChild(cellSw); }
   // Real Rithmic module: after the first candles are on screen (see the look() loop above), at idle.

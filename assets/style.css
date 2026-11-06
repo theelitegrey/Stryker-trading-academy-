@@ -6681,6 +6681,40 @@ body.charts-page .stkchart-panel{ position:relative; }
 }
 :root[data-theme="light"] .stkc-pine{ box-shadow:-18px 0 40px -24px rgba(0,0,0,.25); }
 :root[data-theme="light"] .stkc-pine-gutter span.bad{ color:#fff; }
+/* Zscript editor (assets/chart-zscript.js): reuses the .stkc-pine panel; header gets the language switch. */
+.stkc-zs{
+  --zs-comment:rgba(255,255,255,.44); --zs-string:#7ee0b5; --zs-number:#f5b56b; --zs-keyword:#c49bff; --zs-type:#6cc8ff;
+  --zs-ns:#00c2cb; --zs-fn:#8ab4ff; --zs-op:rgba(255,255,255,.64); --zs-active:rgba(255,255,255,.04); --zs-sel:rgba(3,201,136,.22); --zs-err:#f23645;
+}
+:root[data-theme="light"] .stkc-zs{
+  --zs-comment:#6e6e73; --zs-string:#0a7a52; --zs-number:#a05a00; --zs-keyword:#7b3fc4; --zs-type:#0066a6;
+  --zs-ns:#00727a; --zs-fn:#2c5ccf; --zs-op:#48484d; --zs-active:rgba(0,0,0,.035); --zs-sel:rgba(3,168,114,.18); --zs-err:#d70015;
+}
+.stkc-zs-hl{ display:flex; flex-direction:column; align-items:flex-start; gap:4px; min-width:0; }
+.stkc-langseg{ display:inline-flex; padding:2px; gap:2px; border-radius:8px; background:var(--bg-2); border:1px solid var(--line-soft); }
+.stkc-langseg-b{
+  height:28px; padding:0 12px; border:0; border-radius:6px; background:transparent; color:var(--ink-2);
+  font:600 13px/1 inherit; font-family:inherit; cursor:pointer; white-space:nowrap; transition:background-color .15s cubic-bezier(.2,0,0,1), color .15s cubic-bezier(.2,0,0,1);
+}
+.stkc-langseg-b:hover{ color:var(--ink-0); }
+.stkc-langseg-b.on{ background:var(--bg-0); color:var(--ink-0); box-shadow:0 1px 2px rgba(0,0,0,.3); }
+.stkc-langseg-b:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+:root[data-theme="light"] .stkc-langseg{ background:#eceef2; }
+:root[data-theme="light"] .stkc-langseg-b.on{ background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.12); }
+.stkc-zs-ed{ position:relative; display:block; }
+.stkc-zs-ed > .cm-editor{ height:100%; }
+.stkc-zs-loading{ padding:12px; color:var(--ink-3); font-size:12px; }
+.stkc-zs-err{ font-family:inherit; font-size:12px; line-height:16px; }
+.stkc-zs-run{ display:inline-flex; align-items:center; gap:6px; }
+:root[data-theme="light"] .stkc-zs .stkc-zs-run{ background:#027a54; color:#fff; }
+.stkc-zs .stkc-tname .stkc-badge{ margin-left:6px; padding:0 6px; font-size:11px; line-height:16px; }
+@media (prefers-reduced-motion: reduce){ .stkc-langseg-b{ transition:none; } }
+@media (max-width:700px){
+  .stkc-langseg-b{ height:32px; padding:0 14px; }
+  .stkc-zs .cm-editor{ font-size:16px; }
+  .stkc-zs .cm-scroller{ line-height:22px; }
+  .stkc-zs-x{ width:40px; height:40px; }
+}
 
 /* ==========================================================================
    PUBLIC FEATURE PAGES (features*.html, build 277)

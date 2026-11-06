@@ -89,10 +89,13 @@ async function open(b, { w, h, mobile, admin, theme }) {
     for (let i = 0; i < 90; i++) { t.push(now - (90 - i) * 120); day.push('2026-11-06'); x.push(''); s.push(700); cw.push(720); pw.push(680); zg.push(698 + (i % 5)); n.push(1); em.push([700, 6]); g.push([1, -2, -1, 1, 3, 0.5]); }
     r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ t, day, x, s, cw, pw, zg, n, em, k: [680, 690, 700, 710, 720, 730], g, fa: null }) });
   });
-  await ctx.route(/\/api\/gex\/QQQ/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ call_wall: 720, put_wall: 680, zero_gamma: 699, spot: 700, fetched_at: Math.floor(Date.now() / 1000), max_pain: 705, market: { state: 'closed' },
+  await ctx.route(/\/api\/gex\/levels\/QQQ/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ call_wall: 720, put_wall: 680, zero_gamma: 699, spot: 700, fetched_at: Math.floor(Date.now() / 1000), max_pain: 705, market: { state: 'closed' },
     ladder: [{ strike: 680, gex: -2e6 }, { strike: 690, gex: -1e6 }, { strike: 700, gex: 1e6 }, { strike: 710, gex: 3e6 }, { strike: 720, gex: 5e5 }], futures: { NQ: { ratio: 41, basis: 0, levels: { spot: 28750, call_wall: 29520, put_wall: 27880, zero_gamma: 28650 } } } }) }));
   await ctx.route(/\/api\/zo\/summary/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ u: 'QQQ', built: Math.floor(Date.now() / 1000), spot: 700, zone: 'cushion', levels: { call: 720, put: 680, flip: 699, pin: 705 },
     nodes: [{ k: 710, g: 3 }, { k: 680, g: -2 }], ranges: [{ k: '0DTE', lo: 694, hi: 706 }, { k: 'Weekly', lo: 688, hi: 712 }], iv: { rank: 37, pct: 40, iv30: 22 }, pc: { volume: 0.83, oi: 0.9 } }) }));
+  await require('./binance-mock.js').install(ctx);   // offline Binance for the BTC case (CI is geo-blocked)
+  // the mock's backfill ids (now - i) are higher than its live ids (1, 2, ...), so the chart drops every live trade: give the backfill low ids
+  await ctx.route(/api\.binance\.com\/api\/v3\/aggTrades|fapi\.binance\.com\/fapi\/v1\/aggTrades/, (r) => { const now = Date.now(); r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(Array.from({ length: 200 }, (_, i) => ({ a: i - 1000, p: '77000.00', q: '0.05', f: i - 1000, l: i - 1000, T: now - (200 - i) * 150, m: i % 2 === 0 }))) }); });
   const p = await ctx.newPage();
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|451|\/api\/chart\/stream|Failed to load resource|Ping received after close|status of 451|Unexpected response code: 451/.test(m.text())) errors.push(m.text()); });
@@ -144,7 +147,7 @@ async function session([sym, tf, uses, wait, CALLS]) {
   const init = msgs.find((m) => m.kind === 'zs.data.init'), cnt = (ns) => [...frames.values()].filter((f) => f && f[ns]).length;
   const bad = [...frames.entries()].filter(([t, f]) => t !== lastT && f && ((f.book && f.book.ts > t + init.tfMs) || (f.gex && f.gex.ts * 1000 > t + init.tfMs))).length;
   const res = { n: raw.length, tfMs: init && init.tfMs, status: init && init.status, notices: msgs.filter((m) => m.kind === 'zs.data.notice').map((m) => m.text), frames: frames.size,
-    withBook: cnt('book'), withFlow: cnt('flow'), withGex: cnt('gex'), withOpt: cnt('opt'), live: !!live, out, lookahead: bad, sockets: window.__wsOpened };
+    withBook: cnt('book'), withFlow: cnt('flow'), withGex: cnt('gex'), withOpt: cnt('opt'), live: !!live, lastHasOpt: !!(frames.get(lastT) && frames.get(lastT).opt), out, lookahead: bad, sockets: window.__wsOpened };
   s.close();
   return res;
 }
@@ -154,7 +157,7 @@ async function session([sym, tf, uses, wait, CALLS]) {
     for (const [w, h, mobile, tf, tag] of [[1440, 900, false, '1', 'NQ-1440'], [390, 844, true, '5', 'NQ-390']]) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme: 'dark' });
       await setNQ(p);
-      const r = await p.evaluate(session, ['futures:NQ1!', tf, ['book', 'flow', 'gex', 'opt'], 9000, CALLS]);
+      const r = await p.evaluate(session, ['futures:NQ1!', tf, ['book', 'flow', 'gex', 'opt'], 14000, CALLS]);
       console.log(tag, JSON.stringify(r).slice(0, 2200));
       check(r.status && r.status.book === 'ok' && r.status.flow === 'ok', tag + ': book + flow allowed on NQ (Pro/admin)', r.status);
       check(r.withBook >= 1 && r.out['book.bid(1)'] > 20000 && r.out['book.ask(1)'] > r.out['book.bid(1)'], tag + ': book.bid/ask real levels', [r.withBook, r.out['book.bid(1)'], r.out['book.ask(1)']]);
@@ -179,13 +182,13 @@ async function session([sym, tf, uses, wait, CALLS]) {
       check(r.out['opt.ivrank'] === 37 && r.out['opt.pc'] === 0.83 && r.out['opt.zone'] === 'cushion', 'opt.ivrank / pc / zone from the summary', [r.out['opt.ivrank'], r.out['opt.pc'], r.out['opt.zone']]);
       check(Array.isArray(r.out['opt.range("0dte")']) && r.out['opt.range("0dte")'][0] > 20000 && r.out['opt.node(1)'] > 20000, 'opt.range / node on NQ prices', [r.out['opt.range("0dte")'], r.out['opt.node(1)']]);
       check(r.out['opt.maxpain'] > 20000, 'opt.maxpain mapped to NQ', r.out['opt.maxpain']);
-      check(r.live, 'the forming bar got a live frame');
+      check(r.lastHasOpt, 'the forming bar carries an opt frame');
       await ctx.close();
     }
     {
       const { ctx, p } = await open(b, { w: 1440, h: 900, admin: true, theme: 'dark' });
       await p.evaluate(async () => { const ws = window.STRYKER_VELA; ws.active.setSymbol('binance:BTCUSDT'); ws.active.setTimeframe('1'); for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 300)); const c = ws.chart; if (c.market.symbol === 'binance:BTCUSDT' && c.orchestrator.rawBars.length > 50) break; } });
-      const r = await p.evaluate(session, ['binance:BTCUSDT', '1', ['book', 'flow', 'gex', 'opt'], 9000, CALLS]);
+      const r = await p.evaluate(session, ['binance:BTCUSDT', '1', ['book', 'flow', 'gex', 'opt'], 80000, CALLS]);   // the mock's 30 s trade backfill covers a bar only after the next minute starts
       console.log('BTC', JSON.stringify(r).slice(0, 1500));
       check(r.status.book === 'ok' && r.out['book.bid(1)'] > 1000 && r.out['book.ask(1)'] > r.out['book.bid(1)'], 'BTC: book.bid/ask', [r.status, r.out['book.bid(1)']]);
       check(r.status.flow === 'ok' && r.out['flow.trades'] > 0 && r.out['flow.buyvol'] + r.out['flow.sellvol'] > 0, 'BTC: flow from the trade feed', [r.status.flow, r.out['flow.trades']]);

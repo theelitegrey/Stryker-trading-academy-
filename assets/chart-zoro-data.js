@@ -2,8 +2,8 @@
 // Shared by the Zoro chart indicators: chart-gex-levels.js (Zoro Levels), chart-gex-heatmap.js (Gamma over time),
 // chart-zoro-range.js (Zoro Range + Gamma Zone), chart-optflow.js (Fresh Volume / Volume Burst marks), chart-iv-rank.js.
 //
-// PAGE FLAG: everything new is OFF until the whole ZoroOptions release ships. zoroOn() is true only with
-//   localStorage.stk_zoro_options === '1', ?zoro=1 in the URL, or window.STRYKER_ZORO === true.
+// PAGE FLAG: launched (Owner 2026-11-07), ON for everyone. Opt out with localStorage.stk_zoro_options === '0'
+//   (or window.STRYKER_ZORO === false). Free members still get no data: ProGate blocks every /api/zo call.
 // With the flag off, no new symbol maps, no new indicator is registered and no /api/zo call is made.
 //
 // DATA: GET /api/zo/<route> (Pages functions -> Worker, Pro gated server side; spec section 6). The browser never calls a vendor.
@@ -26,10 +26,10 @@ const str = (v, d) => (typeof v === 'string' && v !== '' ? v : d);
 export function zoroOn() {
   try {
     if (typeof window === 'undefined') return false;
-    if (window.STRYKER_ZORO === true) return true;
+    if (typeof window.STRYKER_ZORO === 'boolean') return window.STRYKER_ZORO;
     if (/[?&]zoro=1(&|$)/.test(location.search)) return true;
-    return localStorage.getItem('stk_zoro_options') === '1';
-  } catch (e) { return false; }
+    return localStorage.getItem('stk_zoro_options') !== '0';
+  } catch (e) { return true; }
 }
 export const replayOn = () => !!(window.__stkReplay && window.__stkReplay.on);
 export const replayNowS = () => (replayOn() ? Math.floor(window.__stkReplay.E / 1000) : null);
@@ -147,7 +147,8 @@ export function zsum(j) {
   const ranges = rangeList(j.ranges).filter((r) => r && isNum(r.lo) && isNum(r.hi) && r.hi > r.lo).map((r) => ({ k: String(r.k), x: r.x || '', lo: r.lo, hi: r.hi, em: isNum(r.em) ? r.em : (r.hi - r.lo) / 2 }));
   const iv = j.iv || {};
   return {
-    u: j.u, t: isNum(j.built) ? j.built : (isNum(j.t) ? j.t : null), spot: isNum(j.spot) ? j.spot : null, zone: j.zone === 'swing' || j.zone === 'cushion' ? j.zone : null,
+    // t = chain time (spot is from then; futures map at that bar); built (feeder run, can be 15+ min later) only as fallback
+    u: j.u, t: isNum(j.t) ? j.t : (isNum(j.built) ? j.built : null), spot: isNum(j.spot) ? j.spot : null, zone: j.zone === 'swing' || j.zone === 'cushion' ? j.zone : null,
     call: pick('call', 'call_ceiling'), put: pick('put', 'put_floor'), flip: pick('flip', 'flip_line', 'zero_gamma'), pin: pick('pin', 'pin_strike'),
     nodes, ranges, closeLabel: j.close && typeof j.close.label === 'string' ? j.close.label : '',
     iv: { rank: isNum(iv.rank) ? iv.rank : null, pct: isNum(iv.pct) ? iv.pct : null, iv30: isNum(iv.iv30) ? iv.iv30 : null,

@@ -1,0 +1,20 @@
+{
+ "_fixture": "Sample. Computed by zoro_feeder.py from saved Cboe chains of 2026-11-06 (and one InsightSentry ES chain). Not for display.",
+ "v": 1,
+ "day": "2026-11-06",
+ "kind": "morning",
+ "t": 1793982564,
+ "ok": true,
+ "footer": "Education only. Not financial advice.",
+ "sections": [
+  {
+   "u": "SPX",
+   "lines": [
+    "SPX: Call Ceiling 7450, Put Floor 7400, Flip Line 7514.65 (spot is below it: Swing zone).",
+    "0DTE Zoro Range 7355.87-7453.07.",
+    "Put/call by volume 0.962.",
+    "Pin Strike 7560 for 2026-11-06."
+   ]
+  }
+ ]
+}

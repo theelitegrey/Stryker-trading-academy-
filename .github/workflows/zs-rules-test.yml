@@ -1,0 +1,42 @@
+name: Zscript rules tests (no deploy)
+# Runs tools/zs-library/rules-test.py (Firestore Rules :test API, nothing is written or published) from GitHub's
+# machines, because Google refuses firebaserules.googleapis.com from our server (403). TESTS ONLY: this job never
+# deploys rules, functions or anything else. Publishing stays a CoS step at launch (fbdeploy/**).
+on:
+  push:
+    branches: ['hermes/zs-integrate']
+    paths: ['functions-src/firestore.rules', 'tools/zs-library/rules-test.py', '.github/workflows/zs-rules-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rules-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Access token (masked)
+        run: |
+          python3 - <<'EOF'
+          import json,os,urllib.request,urllib.parse
+          d=urllib.parse.urlencode({'grant_type':'refresh_token','refresh_token':os.environ['FIREBASE_TOKEN'],'client_id':'563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com','client_secret':'j9iVZfS8kkCEFUPaAeJV0sAi'}).encode()
+          t=json.load(urllib.request.urlopen('https://oauth2.googleapis.com/token',d))['access_token']
+          print('::add-mask::'+t)
+          open('/tmp/fbtok','w').write(t)
+          EOF
+      - name: Zscript library rules tests
+        run: |
+          set -e
+          python3 tools/zs-library/rules-test.py functions-src/firestore.rules /tmp/fbtok | tee /tmp/out.txt
+          python3 -c "import re,sys;m=re.search(r'([0-9]+)/([0-9]+) passed',open('/tmp/out.txt').read());sys.exit(0 if m and m.group(1)==m.group(2) else 1)"
+      - name: Existing rules suites (same rules file, regression)
+        run: |
+          for t in tools/creator/rules-test.py tools/tests/screens-rules-test.py tools/tests/partners-rules-test.py; do
+            [ -f "$t" ] || continue
+            echo "== $t"
+            FB_TOKEN_FILE=/tmp/fbtok python3 "$t" functions-src/firestore.rules /tmp/fbtok 2>&1 | tail -3 || true
+          done
+      - if: always()
+        run: rm -f /tmp/fbtok

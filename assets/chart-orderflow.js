@@ -30,20 +30,20 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=898';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=898';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=898';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=898';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=898';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=898';
-import * as ProGate from './chart-pro-gate.js?v=898';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=898';
-import * as BT from './chart-bigtrades.js?v=898';
-import { installBookPack } from './chart-book-pack.js?v=898';
-import { installPatterns } from './chart-patterns.js?v=898';
-import { installL2Flow } from './chart-l2-flow.js?v=898';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=898';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=898';
+import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=899';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=899';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=899';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=899';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=899';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=899';
+import * as ProGate from './chart-pro-gate.js?v=899';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=899';
+import * as BT from './chart-bigtrades.js?v=899';
+import { installBookPack } from './chart-book-pack.js?v=899';
+import { installPatterns } from './chart-patterns.js?v=899';
+import { installL2Flow } from './chart-l2-flow.js?v=899';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=899';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=899';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -2166,8 +2166,10 @@ function cryptoDomLayer() {
       const visFrom = a.bars[lo] ? a.bars[lo].time : now;
       if (cfg.heat || cfg.walls || cfg.bm) f.needRemote(cfg.bm ? visFrom : Math.max(visFrom, now - cfg.historyMin * 60000));
       const all = f.allHistory();
-      const hist = cfg.bm ? all.filter(h => h.ts >= visFrom - 5 * 60000) : all.filter(h => now - h.ts <= cfg.historyMin * 60000);
-      stat.samples = hist.length; stat.histFrom = hist.length ? hist[0].ts : 0; stat.recordedFrom = f.history.length ? f.history[0].ts : 0;
+      // bar replay: book samples after the replay clock are never drawn (no lookahead; Smooth then averages only what is left)
+      const rp = window.__stkReplay, cutT = rp && rp.on ? rp.now() : Infinity;
+      const hist = cfg.bm ? all.filter(h => h.ts >= visFrom - 5 * 60000 && h.ts <= cutT) : all.filter(h => now - h.ts <= cfg.historyMin * 60000 && h.ts <= cutT);
+      stat.samples = hist.length; stat.histFrom = hist.length ? hist[0].ts : 0; stat.histTo = hist.length ? hist[hist.length - 1].ts : 0; stat.replayCut = Number.isFinite(cutT) ? cutT : null; stat.recordedFrom = f.history.length ? f.history[0].ts : 0;
       stat.remoteSamples = f.remote.length; stat.remoteFrom = f.remote.length ? f.remote[0].ts : 0; stat.remoteState = f.remoteState; stat.visFrom = visFrom;
       const newest = f.history[f.history.length - 1];
       if (newest) { stat.rowLo = newest.i0 * newest.step; stat.rowHi = (newest.i0 + newest.v.length) * newest.step; stat.mid = newest.mid; stat.rows = newest.v.length; }

@@ -136,6 +136,10 @@ def reference_pages():
                 parts.append('<pre class="zs-code" data-lang="Zscript"><code>%s</code></pre>' % hl(f['example']))
             parts.append('</section>')
         pages.append({'slug': g['id'], 'title': g['title'], 'dek': g.get('desc', ''), 'html': ''.join(parts), 'count': len(fns)})
+    if data.get('constantsText'):
+        rows = ''.join('<tr><td><code>%s</code></td><td>%s</td></tr>' % (esc(l.split(':')[0]), ' '.join('<code>%s</code>' % esc(x.strip()) for x in l.split(':', 1)[1].split(','))) for l in data['constantsText'].splitlines())
+        pages.append({'slug': 'constants', 'title': 'Named constants', 'dek': 'Ready-made names for colors, styles, shapes, sizes and positions.',
+                      'html': '<table><thead><tr><th>Group</th><th>Names</th></tr></thead><tbody>%s</tbody></table><p>Keywords: %s.</p><p>Types: %s.</p>' % (rows, ', '.join('<code>%s</code>' % esc(k) for k in data['keywords']), ', '.join('<code>%s</code>' % esc(k) for k in data['types'])), 'count': 0})
     return pages
 
 # ---------------------------------------------------------------- site shell
@@ -159,15 +163,20 @@ HEAD_ASSETS = re.sub(r'(href|src)="(?!/|https?:|data:|#)', r'\1="/', HEAD_ASSETS
 HEAD_ASSETS = HEAD_ASSETS.replace('</head>', '')
 SCRIPTS = ver(about[about.index('</footer>') + 9:about.index('</body>')].strip())
 SCRIPTS = re.sub(r'(src)="(?!/|https?:|data:|#)', r'\1="/', SCRIPTS)
-NAV = re.sub(r'href="(?!/|https?:|#|mailto:)', 'href="/', NAV)
-FOOTER = re.sub(r'href="(?!/|https?:|#|mailto:)', 'href="/', FOOTER)
+NAV = re.sub(r'(href|src|srcset)="(?!/|https?:|#|mailto:|data:)', r'\1="/', NAV)
+FOOTER = re.sub(r'(href|src|srcset)="(?!/|https?:|#|mailto:|data:)', r'\1="/', FOOTER)
 
 GATE = ('<script src="/assets/zs-config.js?v=%s"></script>\n'
         '<script>if(!window.ZS_LIVE&&!/[?&]preview=1/.test(location.search))document.documentElement.classList.add("zs-hidden")</script>' % BUILD)
 
 def site_page(slug, title, dek, body_html, nav_items, cur, kind='Manual'):
     url = 'https://tradezoro.com/zscript/' + slug if slug else 'https://tradezoro.com/zscript/'
-    side = ''.join('<a href="/zscript/%s"%s>%s</a>' % (s, ' aria-current="page"' if s == cur else '', esc(t)) for s, t in nav_items)
+    side = ''
+    for s_, t_ in nav_items:
+        if s_.startswith('~'):
+            side += '<span class="zd-grp">%s</span>' % esc(t_)
+        else:
+            side += '<a href="/zscript/%s"%s>%s</a>' % (s_, ' aria-current="page"' if s_ == cur else '', esc(t_))
     head = f'''<!doctype html>
 <html lang="en">
 <head>
@@ -184,13 +193,14 @@ def site_page(slug, title, dek, body_html, nav_items, cur, kind='Manual'):
 {GATE}
 </head>'''
     main = f'''<div class="zd-wrap">
-<aside class="zd-side" aria-label="Zscript manual"><details class="zd-menu" open><summary>Zscript manual</summary><nav>{side}</nav></details></aside>
+<aside class="zd-side" aria-label="Zscript manual"><details class="zd-menu" id="zd-menu"><summary>Zscript manual<span class="zd-here">{esc(title)}</span></summary><nav>{side}</nav></details></aside>
 <article class="zd-body">
 <nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="/zscript/">Zscript</a> / <span aria-current="page">{esc(title)}</span></nav>
 <header class="zd-head"><p class="zd-kind">{kind}</p><h1>{esc(title)}</h1><p class="zd-dek">{esc(dek)}</p></header>
 <div class="zd-prose">{body_html}</div>
 <p class="zd-disc">Education only. Not financial advice. Examples are teaching samples, not trading results.</p>
 </article>
+<script>if(window.innerWidth>860)document.getElementById('zd-menu').open=true</script>
 <div class="zd-soon" role="status"><h1>Zscript is coming soon</h1><p>The manual opens when Zscript launches.</p><a class="btn btn-primary" href="/">Back to home</a></div>
 </div>'''
     return f'''{head}
@@ -218,9 +228,9 @@ def main():
     for c in cook:
         c['html'] = render_md(c['body'], ctx)
 
-    nav = [('', 'Start here')] + [(m['slug'], m['title']) for m in manual]
-    nav += [('reference/' + r['slug'], 'Reference: ' + r['title']) for r in refs]
-    nav += [('cookbook/', 'Cookbook (%d recipes)' % len(cook)), ('course/', 'Course (12 lessons)')]
+    nav = [('', 'Start here'), ('~', 'Learn')] + [(m['slug'], m['title']) for m in manual]
+    nav += [('~', 'Reference')] + [('reference/' + r['slug'], r['title']) for r in refs]
+    nav += [('~', 'Practice'), ('cookbook/', 'Cookbook (%d recipes)' % len(cook)), ('course/', 'Course (12 lessons)')]
     nav = [(s, t) for s, t in nav]
     pages = {}
     # index

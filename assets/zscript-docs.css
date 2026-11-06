@@ -59,3 +59,11 @@ figcaption{ font-size:13px; line-height:18px; color:var(--ink-2); margin-top:8px
 .lx-quiz-opts button.is-right{ border-color:var(--bull); color:var(--ink-0); }
 .lx-quiz-opts button.is-wrong{ border-color:var(--bear); }
 .lx-quiz-a{ margin:12px 0 0 !important; font-size:14px; color:var(--ink-2) !important; }
+.zd-grp{ font:600 11px/16px var(--font-mono); color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em; padding:16px 12px 4px; }
+.zd-here{ display:none; margin-left:auto; font:500 13px/18px var(--font-sans, inherit); color:var(--ink-1); text-transform:none; letter-spacing:0; }
+@media (max-width:860px){
+  .zd-menu{ background:var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:0 16px; }
+  .zd-menu summary{ justify-content:space-between; }
+  .zd-here{ display:inline; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
+  .zd-menu[open]{ padding-bottom:8px; }
+}

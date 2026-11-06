@@ -48,6 +48,16 @@ def build(root, src, out, manual, cook, refs, hl, do_pdf, ctx, course=None):
         parts.append(('Part 2. Reference', [('r-' + r['slug'], r['title'], '<p>%s</p>' % esc(r['dek']) + r['html']) for r in refs]))
     parts.append(('Part 3. Cookbook', [('c-' + c['slug'], c['title'], '<p><em>%s</em></p>' % esc(c.get('dek', '')) + c['html']) for c in cook]))
 
+    if course:
+        import re as _re
+        def cbody(c):
+            b = _re.sub(r'<pre class="zs-code"[^>]*><code>(.*?)</code></pre>', lambda m: '<pre class="zs-code"><code>%s</code></pre>' % hl(html.unescape(m.group(1))), c['bodyHtml'], flags=_re.S)
+            b = _re.sub(r'<h3>Quick quiz</h3>.*', '', b, flags=_re.S)
+            ex = ''.join('<li><strong>%s.</strong> %s</li>' % (esc(l['title']), esc(l['desc'])) for l in c['lessons'])
+            qz = ''
+            for q in _re.findall(r'<div class="lx-quiz">(.*?)</div></div>|<div class="lx-quiz">(.*?)</p></div>', c['bodyHtml'], flags=_re.S): pass
+            return b + '<h2>Exercises</h2><ol>%s</ol>' % ex
+        parts.append(('Part 4. The course', [('l-' + c['num'].lower(), 'Lesson %d. %s' % (i + 1, c['title']), cbody(c)) for i, c in enumerate(course)]))
     toc = ['<section class="toc"><h1>Contents</h1><ol>']
     body = []
     for pt, chs in parts:

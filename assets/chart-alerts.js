@@ -13,7 +13,7 @@
 //     this page does NOT fire those alerts itself (no double alert): it listens to alertFires and
 //     shows the toast + sound. If the heartbeat is stale, this page falls back to firing them here.
 //   - Everything else is checked IN THIS BROWSER while the ZoroCharts page is open: indicator alerts,
-//     forex / Hyperliquid price alerts, and alerts saved in this browser (signed out), for symbols
+//     forex / Hyperliquid / Bitget / Kraken price alerts, and alerts saved in this browser (signed out), for symbols
 //     that are on a chart here. No notification arrives for those when the page is closed.
 //   - Firing in the browser: toast (auto-hide optional), a short beep at the chosen volume, and a
 //     browser notification if the member allowed them.
@@ -81,7 +81,7 @@ let firesUnsub = null, firesUid = null;
 const pageStart = Date.now();
 
 // Same mapping as workers/alert-engine/alert_core.py symbol_key(): does the server have a real-time feed for
-// this chart symbol? Futures roots, Binance and Coinbase only (forex, Hyperliquid and OKX stay in the browser).
+// this chart symbol? Futures roots, Binance and Coinbase only (forex, Hyperliquid, Bybit, OKX, Bitget and Kraken stay in the browser).
 const SRV_FUT = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
 export function serverCovers(sym){
   const m = /^([A-Za-z_]+):(.+)$/.exec(String(sym || '').trim());

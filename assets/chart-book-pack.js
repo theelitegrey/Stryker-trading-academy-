@@ -28,7 +28,7 @@ import { STYLES as BM_STYLES } from './chart-bookmap.js?v=889';
 export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
-const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus', 'bybit', 'okx'];
+const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus', 'bybit', 'okx', 'bitget', 'kraken'];
 const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
 const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_GAP = 200;   // redraw at most 5 a second

@@ -1355,7 +1355,7 @@
       {
        "id": "chart-markets",
        "q": "Which markets can I chart?",
-       "a": "<p>Futures (NQ, ES, YM, RTY, GC, SI, CL and micros such as MNQ, MES), spot forex, and crypto from public Binance, Coinbase, Hyperliquid, Bybit and OKX feeds. There is no stock price feed. Futures show as continuous front-month, for example NQ1!.</p>",
+       "a": "<p>Futures (NQ, ES, YM, RTY, GC, SI, CL and micros such as MNQ, MES), spot forex, and crypto from public Binance, Coinbase, Hyperliquid, Bybit, OKX, Bitget and Kraken feeds. There is no stock price feed. Futures show as continuous front-month, for example NQ1!.</p>",
        "tags": [
         "markets",
         "symbols",
@@ -2186,7 +2186,7 @@
       {
        "id": "alerts-closed",
        "q": "Will an alert reach me if the page is closed?",
-       "a": "<p>Price alerts on futures and Binance/Coinbase crypto are checked on our server, so they arrive as a bell notification and a phone push even when ZoroCharts is closed (turn push on first).</p><p>Indicator alerts, forex and Hyperliquid alerts, and alerts saved while signed out are only checked in your open browser.</p>",
+       "a": "<p>Price alerts on futures and Binance/Coinbase crypto are checked on our server, so they arrive as a bell notification and a phone push even when ZoroCharts is closed (turn push on first).</p><p>Indicator alerts, forex, Hyperliquid, Bitget and Kraken alerts, and alerts saved while signed out are only checked in your open browser.</p>",
        "tags": [
         "alert closed",
         "background",

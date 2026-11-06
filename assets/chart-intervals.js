@@ -22,7 +22,7 @@
 //     already aggregate their own missing minute intervals.
 //   - SECONDS (stage 2): Binance spot from its native 1-second candles (5-45 s aggregated from 1 s,
 //     forming bar polled every second). Binance perps, and futures while the member's Rithmic
-//     connection is up, build seconds from the live trade stream. Coinbase / Hyperliquid: not offered.
+//     connection is up, build seconds from the live trade stream. Coinbase / Hyperliquid / Bitget / Kraken: not offered.
 //   - TICKS (stage 2): N trades per bar, from the trade stream the order-flow tools already use
 //     (assets/chart-orderflow.js openTradeSource). Binance has a short backfill of recent trades;
 //     a Rithmic connection has none, so its tick bars build from now (a note says so).

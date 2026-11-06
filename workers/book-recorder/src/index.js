@@ -1121,8 +1121,12 @@ async function route(req, env, ctx) {
     if (u.pathname.startsWith('/zo/')) {
       const h = cors(req);
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
-      const deps = { isPro: isGexProToken, bearer: bearerOf, stub, now: () => Date.now(), service: (r) => authorized(r, env) };
-      return u.pathname === '/zo/levels-export' ? zoExportRoute(req, u, env, ctx, h, deps) : zoGetRoute(req, u, env, ctx, h, deps);
+      // ZoroOptions page data is FREE for every signed-in member (Owner 07 Nov): any verified, non-anonymous account passes.
+      // ZO_SIGNED_IN_FREE = false restores the Pro gate. The GEX levels download (/zo/levels-export) stays Pro.
+      const ZO_SIGNED_IN_FREE = true;
+      const signedIn = async (t) => !!(await verifyIdToken(t));
+      const deps = { isPro: ZO_SIGNED_IN_FREE ? signedIn : isGexProToken, bearer: bearerOf, stub, now: () => Date.now(), service: (r) => authorized(r, env) };
+      return u.pathname === '/zo/levels-export' ? zoExportRoute(req, u, env, ctx, h, Object.assign({}, deps, { isPro: isGexProToken })) : zoGetRoute(req, u, env, ctx, h, deps);
     }
     // GEX+ data is Pro only (Owner order 2026-11-01): the history, sessions and options-analytics reads need a verified admin / demo / active-Pro token.
     // (/tide is ZoroTide, free.) Checked before the cache, and the 403 is never cached.

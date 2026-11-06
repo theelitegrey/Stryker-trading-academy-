@@ -14,6 +14,7 @@
   'use strict';
   var Q = new URLSearchParams(location.search);
   var FIXTURE = Q.has('fixture');
+  var ZO_ALL_FREE = true;   // Owner 07 Nov: ZoroOptions free for every signed-in member (server: ZO_SIGNED_IN_FREE in book-recorder index.js)
   var SHOT = Q.has('shot');
   var RM = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   function still() { return RM.matches || SHOT; }
@@ -886,7 +887,7 @@
     if (!live) { $('zo-app').hidden = true; $('zo-soon').hidden = false; return; }
     paintBasis(); paintSyms(); wire(); playLabel();
     tier().then(function (t) {
-      st.free = !!(t && t.free);
+      st.free = ZO_ALL_FREE ? false : !!(t && t.free);   // Owner 07 Nov: every signed-in member gets every panel
       if (st.free) { st.u = 'SPX'; st.x = '0'; paintSyms(); applyFree(); }
       load(); loadActivity();
     });

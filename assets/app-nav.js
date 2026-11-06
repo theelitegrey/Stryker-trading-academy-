@@ -62,7 +62,7 @@
   // logic). [sectionId, title, [item...]]; item = [file, label, one-line description, svg paths, extra files
   // that count as this item]. Only real pages. Pro items are in PRO. Owner order 2026-11-01 (menu restructure).
   var HOME = ['dashboard-user', 'Home', 'Your dashboard and progress', '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>', ['index']];
-  var PRO = { gex: 1, 'zoro-options': 1 };
+  var PRO = { gex: 1 };   // ZoroOptions is free for signed-in members (07 Nov)
   // ZoroOptions launch flag (Owner 2026-11-06: ships all at once). false = hidden from the menu and the page shows
   // "coming soon", except for a tester who sets localStorage zo_preview=1. The CoS flips this to true at ship.
   var ZO_LIVE = true;

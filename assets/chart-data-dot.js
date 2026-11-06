@@ -7,7 +7,7 @@
 //
 // Owner order 2026-10-05: "Add small yellow/green dot like tradingview to indicator live data
 // or delayed data". One 10 px dot (2 px ring) after the venue/interval in every chart cell's legend:
-//   green  #089981  real-time: crypto (Binance / Coinbase / Hyperliquid public streams), and
+//   green  #089981  real-time: crypto (Binance / Coinbase / Hyperliquid / OKX public streams), and
 //                   futures while the member's own Rithmic connection is up (flag-gated).
 //   amber  #F5A623  delayed: futures from our Yahoo-based /api/chart/bars. The lag is MEASURED
 //                   (now minus the close of the newest 1-minute bar), never hard-coded.
@@ -29,7 +29,7 @@ import { labelFor } from './byo-core.js?v=889';   // member's own connected sour
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
 const TICK_MS = 30000;           // re-check open/closed and lag
-const CRYPTO = /^(binance|coinbase|hyperliquid|bybit):/i;
+const CRYPTO = /^(binance|coinbase|hyperliquid|bybit|okx):/i;
 const FUT = /^futures:/i;
 const FX = /^fx:/i;
 const IDX = /^idx:/i;
@@ -265,11 +265,11 @@ export function installDataDot(ws, opts = {}) {
   // futures "Yahoo Finance, delayed" line showed on BTCUSDT). Crypto symbols get their own venue
   // line; anything else gets the standard line, or the Rithmic line while connected
   // (assets/rithmic-ui.js writes that one to dataset.fut and leaves the text alone on crypto).
-  const VENUE = { binance: 'Binance', coinbase: 'Coinbase', hyperliquid: 'Hyperliquid', bybit: 'Bybit' };
+  const VENUE = { binance: 'Binance', coinbase: 'Coinbase', hyperliquid: 'Hyperliquid', bybit: 'Bybit', okx: 'OKX' };
   function creditFor(sym) {
     const own = labelFor(sym);
     if (own) return 'Data feed: your ' + own.name + ' · market data goes straight from your account to your browser · Education only. Not financial advice.';
-    const m = /^(binance|coinbase|hyperliquid|bybit):/i.exec(String(sym || ''));
+    const m = /^(binance|coinbase|hyperliquid|bybit|okx):/i.exec(String(sym || ''));
     if (!m) return '';
     const v = VENUE[m[1].toLowerCase()];
     return 'Crypto: public exchange market data (candles, trades' + (v === 'Binance' ? ', order book' : '') + ') · Education only. Not financial advice.';

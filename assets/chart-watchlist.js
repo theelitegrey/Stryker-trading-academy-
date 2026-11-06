@@ -182,7 +182,7 @@ export function normalizeSymbol(raw, feed){
     if (IDX_SYMS.includes(i)) return 'idx:' + i;
     if (pre === 'idx') return null;
   }
-  const venues = ['binance', 'coinbase', 'hyperliquid', 'bybit'];
+  const venues = ['binance', 'coinbase', 'hyperliquid', 'bybit', 'okx'];
   if (pre && !venues.includes(pre)) pre = '';
   // Membership is checked against the providers' own symbol lists (a prefixed resolve
   // would accept any ticker for a registered venue).
@@ -994,7 +994,7 @@ export function mountWatchlist(ws, o){
     if (!snap || !snap.exists) { toast('This shared watchlist is no longer available.', 'error'); dropParam(); return; }
     const x = snap.data() || {};
     if (x.ownerUid === user().uid) { dropParam(); return openList(id); }
-    const items = (Array.isArray(x.items) ? x.items : []).filter((s) => typeof s === 'string' && (isSec(s) || /^(futures|fx|binance|coinbase|hyperliquid|bybit):[A-Za-z0-9!._\-/]{1,30}$/.test(s))).slice(0, MAX_ITEMS);
+    const items = (Array.isArray(x.items) ? x.items : []).filter((s) => typeof s === 'string' && (isSec(s) || /^(futures|fx|binance|coinbase|hyperliquid|bybit|okx):[A-Za-z0-9!._\-/]{1,30}$/.test(s))).slice(0, MAX_ITEMS);
     stash = cur;
     viewing = { id, name: String(x.name || 'Shared list').slice(0, NAME_MAX), ownerUid: x.ownerUid };
     cur = { id, name: viewing.name, items, collapsed: [], view: Object.assign({}, stash ? stash.view : VIEW_DEF), shared: false };

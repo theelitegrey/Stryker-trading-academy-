@@ -252,5 +252,31 @@ class Note(unittest.TestCase):
         self.assertEqual(json.loads(buf.getvalue())['title'], 'Zoro Morning Note')
 
 
+class FeederFixture(unittest.TestCase):
+    """The S1 fixture (tools/fixtures/zoro) is the contract: alerts and the note must read it as it is."""
+    FX = os.path.join(ROOT, 'tools', 'fixtures', 'zoro')
+
+    def load(self, f):
+        with open(os.path.join(self.FX, f)) as fh:
+            return json.load(fh)
+
+    def test_alerts_read_feeder_rows(self):
+        s = self.load('summary.json')
+        prev = dict(s, built=s['built'] - 120, fresh_top=[], burst_top=[])
+        txt = za.evaluate(al('fresh_volume', {'min_volume': 1}), s, prev)
+        self.assertIsNotNone(txt)
+        self.assertRegex(txt, r'Fresh Volume on the [\d,.]+ (call|put) 2026-')
+        txt = za.evaluate(al('volume_burst', {'min_added': 1}), s, prev)
+        self.assertRegex(txt, r'Volume Burst on the [\d,.]+ (call|put) 2026-\d\d-\d\d: [\d,]+ contracts added')
+        self.assertFalse(zn.banned_words(txt.replace(za.FOOTER, '')))
+
+    def test_note_reads_feeder_summary_and_all_fresh(self):
+        s = self.load('summary.json')
+        rows = [dict(r, u=u) for u, r in (('AAPL', {'k': 230, 'side': 'C', 'x': '2026-11-07', 'vol': 5000, 'oi': 100}),)]
+        note = zn.build_note('morning', s['day'], {'SPX': s}, rows, {})
+        self.assertTrue(note['ok'], note.get('reason'))
+        self.assertIn('AAPL: 230 call 2026-11-07, 5,000 contracts against 100 open interest.', note['stocks']['lines'])
+        self.assertTrue(any(x['sym'] == 'ES' for x in note['sections']))
+
 if __name__ == '__main__':
     unittest.main()

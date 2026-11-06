@@ -99,10 +99,10 @@ def index_lines(sym, s, prev):
     for k, name in RANGE_NAME:
         r = rng(s, k)
         if r:
-            out.append('%s Zoro Range %s to %s.' % (name, num(r[0]), num(r[1])))
+            out.append('%s Zoro Range %s to %s.' % (name[0].upper() + name[1:], num(r[0]), num(r[1])))
     iv = s.get('iv') or {}
     if f['iv_rank'] is not None:
-        t = 'IV rank %s' % num(f['iv_rank'])
+        t = 'IV rank %s' % num(f['iv_rank'], 0)
         if ok_num(iv.get('iv30')):
             t += ' (30-day IV %s%%)' % num(iv['iv30'], 1)
         out.append(t + '.')

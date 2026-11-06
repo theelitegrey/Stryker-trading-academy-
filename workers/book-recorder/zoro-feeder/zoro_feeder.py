@@ -860,7 +860,8 @@ def main(force=False):
         nbad = sum(1 for r in res if not r.startswith('200'))
         bad += nbad
         latest[u] = {'row': screen_row(out['summary']), 'fut': out['summary'].get('fut'), 't': out['t'],
-                     'fresh': [dict(r, u=u) for r in out['activity']['fresh'][:5]]}
+                     'fresh': [dict(r, u=u) for r in out['activity']['fresh'][:5]],
+                     'burst': [dict(r, u=u) for r in out['activity']['burst'][:10]]}
         log('%s t=%s wire=%d B %.1fs fresh=%d burst=%d -> %d posts, %d failed%s' % (
             u, out['t'], wire, time.monotonic() - t0, out['summary']['fresh_n'], out['summary']['burst_n'], len(res), nbad,
             (' (' + res[[not r.startswith('200') for r in res].index(True)] + ')') if nbad else ''))
@@ -878,6 +879,13 @@ def main(force=False):
         res3 = post(url, key, 'activity', {'u': 'ALL', 'kind': 'fresh'}, {'u': 'ALL', 'kind': 'fresh', 't': int(time.time()), 'rows': fr,
                                                                           'label': FRESH_LABEL})
         bad += 0 if res3.startswith('200') else 1
+        # market-wide Volume Bursts tape (page 4.5): newest bursts of the last 30 min across every symbol
+        cut = time.time() - 1800
+        bu = sorted((r for v in latest.values() for r in v.get('burst') or [] if (r.get('t') or 0) >= cut),
+                    key=lambda r: (-(r.get('t') or 0), -(r.get('add') or 0)))[:MAX_ROWS]
+        res4 = post(url, key, 'activity', {'u': 'ALL', 'kind': 'burst'}, {'u': 'ALL', 'kind': 'burst', 't': int(time.time()), 'rows': bu,
+                                                                          'label': BURST_LABEL})
+        bad += 0 if res4.startswith('200') else 1
         log('screen %d rows -> %s | active -> %s | download %d B (unzipped %d B)' % (len(rows), res, res2, wire_tot, raw_tot))
     try:
         run_cme(url, key, iskey, time.time(), {u: {'fut': v.get('fut'), 't': v.get('t')} for u, v in latest.items()})

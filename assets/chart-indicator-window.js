@@ -46,7 +46,7 @@ const GROUP_OF = 'Order Flow';   // the ORDER FLOW section: every order-flow too
 const GROUP_STRYKER = 'TradeZoro';
 const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GROUP_OF, GROUP_FLOW, 'Trend', 'Levels'];
 const SECTIONS = [
-  ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart']]],
+  ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart'], ['zscript', 'Zscript']]],
   ['BUILT-IN', [['orderflow', 'Order Flow'], ['tech', 'Technicals'], ['stryker', 'TradeZoro']]],
   ['COMMUNITY', [['mycomm', 'From your communities'], ['picks', "Editors' picks"], ['top', 'Top'], ['trending', 'Trending']]]
 ];
@@ -228,11 +228,21 @@ export function mountIndicatorWindow(ws, opts){
     return (cinds || []).map((x) => ({ key: 'ci:' + x.cid + '/' + x.iid, name: x.name, author: x.cname, kind: 'cind', ci: x, logo: x.logo, accent: x.accent,
       locked: !x.usable, desc: x.usable ? '' : 'You are in ' + x.cname + ', but your plan does not include this one.' }));
   }
-  function allItems(){ return builtins().concat(mineItems(), commItems(), cindItems()); }
+  // Zscript (assets/chart-zscript.js, window.STRYKER_ZS): New Zscript, the Examples, the member's saved Zscripts.
+  const Z = () => window.STRYKER_ZS;
+  let zsMine = null;
+  function zsItems(){
+    if (!Z()) return [];
+    return [{ key: 'zn:new', name: 'New Zscript', author: 'Opens the editor', kind: 'zsnew', desc: 'Write your own indicator in Zscript' }]
+      .concat(Z().examples.map((x) => ({ key: 'zx:' + x.id.replace(/^zs-example:/, ''), name: x.name, author: 'TradeZoro', kind: 'zsex', source: x.source, badge: 'Example' })))
+      .concat((zsMine || []).map((t) => ({ key: 'zm:' + t.id, name: t.name, author: 'You', kind: 'zsmine', source: t.source, badge: 'Zscript' })));
+  }
+  function allItems(){ return builtins().concat(mineItems(), commItems(), cindItems(), zsItems()); }
 
   async function loadData(){
     const tasks = [Favs.load()];
     if (S()) tasks.push(S().list().then((r) => { mine = r.items || []; }).catch(() => { mine = []; }));
+    if (Z()) tasks.push(Z().store.list().then((r) => { zsMine = r.items || []; }).catch(() => { zsMine = []; }));
     if (L() && fbUser()) {
       tasks.push(L().listPublic().then((a) => { community = a; communityErr = false; }).catch((e) => { console.warn('TradeZoro: community list', e); community = []; communityErr = true; }));
       tasks.push(L().isAdmin().then((a) => { isAdmin = a; }));
@@ -269,6 +279,11 @@ export function mountIndicatorWindow(ws, opts){
         }
         const r = await P().addSource(it.name, src, opts);
         if (!r.ok && !r.heavy) toast(r.msg || 'Could not add the script.', 'error');
+      } else if (it.kind === 'zsnew') {
+        close(); Z().openNew(); return;
+      } else if (it.kind === 'zsex' || it.kind === 'zsmine') {
+        const r = await Z().addSource(it.name, it.source);
+        if (!r.ok) { close(); Z().open(it.source, it.name); toast(r.msg || 'Could not add the script.', 'error'); return; }
       } else if (it.kind === 'cind') {
         if (it.locked) { close(); location.href = '/c/' + encodeURIComponent(it.ci.cid) + '?tab=indicators'; return; }
         const r = await CI().add(it.ci);
@@ -382,6 +397,7 @@ export function mountIndicatorWindow(ws, opts){
       it.kind === 'cind' && !it.locked ? h('span', { class: 'stkiw-pick', text: 'protected' }) : null,
       it.s && it.s.picked ? h('span', { class: 'stkiw-pick', text: "Editors' pick" }) : null,
       it.beta ? h('span', { class: 'stkiw-pick', text: 'beta' }) : null,
+      it.badge ? h('span', { class: 'stkiw-pick', text: it.badge }) : null,
       (it.kind === 'builtin' && it.key.startsWith('b:') && proLocked(proKind(it.key.slice(2)))) ? proTag() : null,
       it.third ? h('span', { class: 'stkiw-pick is-third', text: 'Community \u00b7 third-party' }) : null,
       it.gone ? h('span', { class: 'stkiw-pick is-warn', text: 'No longer published' }) : null,
@@ -423,6 +439,7 @@ export function mountIndicatorWindow(ws, opts){
         out.push({ key: 'zp:' + i, name: z ? z.name : lib ? lib.name : pine.titleOf(hd), author: z ? 'From your communities' : lib ? 'Community' : 'Pine script', kind: 'onchart', handle: hd, locked: !!(z || (lib && !lib.openSource)) });
       });
     }
+    if (a.cell && Z()) Z().handles(a.cell.chart).forEach((hd, i) => out.push({ key: 'zz:' + i, name: Z().titleOf(hd.source), author: 'Zscript', kind: 'onchart', handle: hd }));
     return out;
   }
 
@@ -460,6 +477,7 @@ export function mountIndicatorWindow(ws, opts){
       case 'fav': return { title: 'Favorites', items: favItems(all), empty: 'Star any indicator or script to keep it here.' };
       case 'mine': return { title: 'My scripts', items: all.filter((x) => x.kind === 'mine'), empty: S() && S().signedIn() ? 'No saved scripts yet. Write one in the Pine editor and press Save.' : 'Sign in to keep scripts on your account.' };
       case 'onchart': return { title: 'On this chart', items: onChartItems(), empty: 'Nothing on this chart yet.' };
+      case 'zscript': return { title: 'Zscript', note: 'our own indicator language', items: all.filter((x) => x.kind === 'zsnew' || x.kind === 'zsex' || x.kind === 'zsmine') };
       case 'orderflow': return { title: 'Order Flow', note: 'every order-flow tool', items: all.filter((x) => x.cat === GROUP_OF && !x.hidden), empty: 'No order-flow tools on this chart.' };
       case 'stryker': return { title: 'TradeZoro', note: 'every TradeZoro indicator', items: strykerItems(all), empty: 'No TradeZoro indicators yet.' };
       case 'mycomm': return { title: 'From your communities', note: 'indicators from communities you are in', items: all.filter((x) => x.kind === 'cind'),
@@ -491,7 +509,7 @@ export function mountIndicatorWindow(ws, opts){
     let view;
     if (q) {
       const hit = (x) => x.name.toLowerCase().includes(q) || (SEARCH_ALIAS[x.key] || '').includes(q) || String(x.author || '').toLowerCase().includes(q) || (x.s && (x.s.tags || []).some((t) => t.includes(q)));
-      const parts = [['My scripts', all.filter((x) => x.kind === 'mine' && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third && !x.hidden && hit(x))],
+      const parts = [['My scripts', all.filter((x) => (x.kind === 'mine' || x.kind === 'zsmine') && hit(x))], ['Zscript', all.filter((x) => (x.kind === 'zsnew' || x.kind === 'zsex') && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third && !x.hidden && hit(x))],
         ['Community \u00b7 third-party', all.filter((x) => x.third && hit(x))],
         ['Community', all.filter((x) => x.kind === 'community' && hit(x)).sort((a, b) => b.boosts - a.boosts)],
         ['From your communities', all.filter((x) => x.kind === 'cind' && hit(x))]];

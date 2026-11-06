@@ -32,6 +32,8 @@
  *   cancel     { cid, resume? }         cancel (at period end) / resume my subscription
  *   suspend    { cid, suspend, reason } ADMIN: suspend/unsuspend a community; suspension stops renewals at period end
  *   adminList  {}                       ADMIN: every creator's payout status
+ *   zsCheckout { sid }                  a one-time Checkout Session for a PAID Zscript library script, on its author's account;
+ *                                       returns { url }. Paid -> zsScripts/{sid}/buyers/{uid} (the rules let buyers run it).
  * HTTPS     creatorConnectWebhook   Connect endpoint (events FROM connected accounts), own secret
  *           STRIPE_CONNECT_WEBHOOK_SECRET. No secret = every event refused (500, Stripe retries). Bad signature = 400.
  *
@@ -40,6 +42,7 @@
  *   creatorSales/{id}       one doc per paid invoice / one-time payment (creator + admins read)
  *   creatorSubs/{subId}, creatorSessions/{id}, creatorCustomers/{id}, creatorPrices/{id}, creatorEvents/{id}: functions only
  *   communities/{cid}.sellerReady / sellerStatus, communities/{cid}/members/{uid} (source 'paid', pay.{...}).
+ *   zsScripts/{sid}/buyers/{uid}  Zscript entitlement { uid, status: 'active'|'refunded'|'disputed', ... }; sale docs carry sid.
  *
  * ENV: STRIPE_SECRET_KEY (existing, unchanged), STRIPE_CONNECT_WEBHOOK_SECRET (live Connect endpoint secret), STRIPE_CONNECT_WEBHOOK_SECRET_TEST (optional, test endpoint), SITE_ORIGIN (optional).
  * LEGAL NAME: settings/commerce.creatorPlatformLegalName (default 'Gaurav Singh LLC'); one Firestore edit changes every creator-payments text.
@@ -416,6 +419,51 @@ actions.checkout = async (uid, data, context) => {
   return { url: session.url, sessionId: session.id };
 };
 
+// ---- Zscript library: one-time purchase of a paid script (same Connect direct-charge path as community plans) ----
+const ZS_SID = /^[A-Za-z0-9]{20}$/;
+const zsBuyerRef = (sid, uid) => db.collection('zsScripts').doc(sid).collection('buyers').doc(uid);
+actions.zsCheckout = async (uid, data, context) => {
+  const sid = String(data.sid || '');
+  if (!ZS_SID.test(sid)) throw fail('invalid-argument', 'Bad request.');
+  const snap = await db.collection('zsScripts').doc(sid).get();
+  if (!snap.exists) throw fail('not-found', 'Script not found.');
+  const sc = snap.data();
+  if (['live', 'unlisted'].indexOf(sc.status) < 0) throw fail('failed-precondition', 'This script is not available.');
+  if (sc.authorUid === uid) throw fail('failed-precondition', 'This is your own script.');
+  if (!sc.sale || sc.sale.mode !== 'paid') throw fail('failed-precondition', 'This script is free. Add it from its page.');
+  const shape = priceShape({ price: { interval: 'lifetime', currency: (sc.sale.price || {}).currency, amount: (sc.sale.price || {}).amount } });
+  const b = await zsBuyerRef(sid, uid).get();
+  if (b.exists && b.data().status === 'active') throw fail('already-exists', 'You already own this script.');
+  const seller = await myAccount(sc.authorUid);
+  if (!seller || seller.status !== 'active') throw fail('failed-precondition', 'This author can\'t take payments yet.');
+  const acct = seller.acct;
+  const com = await commerce();
+  const feePct = feePctOf(com);
+  const name = String(sc.name || 'Script').slice(0, 60);
+  const priceId = await ensurePrice(acct, 'zscript', sid, { name }, shape, 'Zscript');
+  const customer = await ensureCustomer(acct, uid, context.auth.token);
+  const back = siteOrigin() + '/script-library?s=' + sid;
+  const meta = { buyerUid: uid, sid, creatorUid: sc.authorUid, kind: 'zs', platform: 'tradezoro' };
+  const params = {
+    mode: 'payment', customer, client_reference_id: uid,
+    line_items: [{ price: priceId, quantity: 1 }],
+    payment_method_types: ['card'], billing_address_collection: 'auto', adaptive_pricing: { enabled: 'false' },
+    metadata: meta, payment_intent_data: { metadata: meta },
+    custom_text: { submit: { message: ('Sold by ' + String(sc.authorName || 'the author').slice(0, 60) + ', an independent creator. ' + platformLine(legalNameOf(com)) +
+      ' One-time purchase of a chart script for education. Refunds: ask the author first.').slice(0, 1200) } },
+    success_url: back + '&paid=1', cancel_url: back + '&paid=0'
+  };
+  const fee = Math.round(shape.cents * feePct / 100);
+  if (fee > 0) params.payment_intent_data.application_fee_amount = fee;
+  const session = await stripe('POST', 'checkout/sessions', params, { acct });
+  await db.collection('creatorSessions').doc(session.id).set({
+    buyerUid: uid, sid, planName: name, creatorUid: sc.authorUid, acct, customer, priceId,
+    kind: 'zs', interval: 'lifetime', cents: shape.cents, trialDays: 0, feePct,
+    status: 'created', live: isLive(), createdAt: FV.serverTimestamp()
+  });
+  return { url: session.url, sessionId: session.id };
+};
+
 async function mySubFor(uid, cid) {
   const m = await memRef(cid, uid).get();
   const pay = m.exists && m.data().pay;
@@ -587,6 +635,16 @@ async function onCheckoutCompleted(session, acct) {
   const name = (session.customer_details && session.customer_details.name) || 'Member';
   const email = (session.customer_details && session.customer_details.email) || null;
 
+  if (rec.kind === 'zs') {
+    const pi = idOf(session.payment_intent);
+    await zsBuyerRef(rec.sid, rec.buyerUid).set({ uid: rec.buyerUid, status: 'active', paymentIntent: pi, sessionId: session.id, acct,
+      cents: Number(session.amount_total || rec.cents), live: isLive(), createdAt: FV.serverTimestamp() });
+    await saleCreate('pi_' + safeId(pi || session.id), { creatorUid: rec.creatorUid, buyerUid: rec.buyerUid, buyerEmail: email, cid: 'zscript', sid: rec.sid,
+      planId: rec.sid, planName: rec.planName, acct, kind: 'one_time', amountCents: Number(session.amount_total || rec.cents), currency: 'usd', feePct: rec.feePct,
+      status: 'paid', paymentIntent: pi, sessionId: session.id });
+    await notify(rec.buyerUid, 'zs_bought', 'You bought the script ' + rec.planName + '. ' + platformLine(legalNameOf(await commerce())), '/script-library?s=' + rec.sid);
+    return 'zscript access granted to ' + rec.buyerUid;
+  }
   if (rec.kind === 'one_time') {
     const pi = idOf(session.payment_intent);
     await grantMember({ cid: rec.cid, buyerUid: rec.buyerUid, planId: rec.planId, expiresAtMs: null, displayName: name,
@@ -688,6 +746,10 @@ async function onChargeRefunded(ch, acct) {
   if (sale.acct !== acct) return 'refused: acct';
   const full = ch.refunded === true || Number(ch.amount_refunded || 0) >= Number(ch.amount || 0);
   await s.ref.set({ status: full ? 'refunded' : 'partially_refunded', refundedCents: Number(ch.amount_refunded || 0), refundedAt: FV.serverTimestamp() }, { merge: true });
+  if (full && sale.sid) {
+    await zsBuyerRef(sale.sid, sale.buyerUid).set({ status: 'refunded', endedAt: FV.serverTimestamp() }, { merge: true });
+    return 'refunded, script access ended';
+  }
   // A full refund of a one-time purchase ends that access. Subscriptions: the refund is the creator's call (goodwill
   // refunds happen); access follows the subscription itself (cancel it in Stripe and the deleted event ends access).
   if (full && sale.kind === 'one_time') {
@@ -704,6 +766,11 @@ async function onDispute(dp, acct) {
   const sale = s.data();
   if (sale.acct !== acct) return 'refused: acct';
   await s.ref.set({ status: 'disputed', disputeId: dp.id, disputeReason: dp.reason || null, disputedAt: FV.serverTimestamp() }, { merge: true });
+  if (sale.sid) {
+    await zsBuyerRef(sale.sid, sale.buyerUid).set({ status: 'disputed', endedAt: FV.serverTimestamp() }, { merge: true });
+    await notify(sale.creatorUid, 'creator_dispute', 'A buyer disputed a payment for your script ' + (sale.planName || '') + '. Respond in your Stripe Dashboard before the deadline.', '/script-library?s=' + sale.sid);
+    return 'disputed, script access ended';
+  }
   // A buyer who disputes the charge loses access now, and a subscription stops (no more charges to a disputing card).
   await setMemberPay(sale.cid, sale.buyerUid, { status: 'disputed' }, { status: 'expired', expiresAt: admin.firestore.Timestamp.fromMillis(now()) });
   if (sale.subId) {

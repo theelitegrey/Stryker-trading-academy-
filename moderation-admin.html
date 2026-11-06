@@ -62,6 +62,7 @@
 <script src="assets/acquisition.js?v=899" defer></script>
 <script src="assets/focus-mode.js?v=899" defer></script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<style>.zm-reps{margin:8px 0;padding-left:18px;font-size:13.5px;line-height:20px;color:var(--ink-1)}.zm-acts{display:flex;gap:8px;flex-wrap:wrap}.zm-empty{color:var(--ink-3);font-size:13.5px;padding:16px}.zm-h{font-size:15px;margin:16px 0 8px}.zm-note{font-size:13px;color:var(--ink-2);margin:8px 0}#zs-mod .record-card{margin-bottom:8px}</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -186,7 +187,7 @@
     <div class="dash-topbar">
       <div>
         <h1>Moderation</h1>
-        <p>Posts flagged by moderators, waiting on a final call — restore or remove permanently.</p>
+        <p>Posts flagged by moderators, and Script Library reports, waiting on a final call.</p>
       </div>
     </div>
 
@@ -196,6 +197,15 @@
         <span id="moderation-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
       </div>
       <div id="moderation-list"><div data-skel="lines" data-n="5"></div></div>
+    </div>
+
+    <div class="panel" id="zs-mod">
+      <div class="panel-head">
+        <h2>Script Library reports</h2>
+        <span id="zs-mod-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+      </div>
+      <p style="margin:0 0 12px; color:var(--ink-2); font-size:14px;">Zscript scripts members reported. Take down stops the script loading on every chart except its author's.</p>
+      <div id="zs-mod-list"><div data-skel="lines" data-n="3"></div></div>
     </div>
   </main>
 </div>
@@ -229,6 +239,7 @@
 <script src="assets/admin-notify.js?v=899"></script>
 <script src="assets/pager.js?v=899"></script>
 <script src="assets/moderation-admin.js?v=899"></script>
+<script src="assets/zs-moderation.js?v=899"></script>
 <script src="assets/notes-admin.js?v=899"></script>
 <script src="assets/theme.js?v=899"></script>
 </body>

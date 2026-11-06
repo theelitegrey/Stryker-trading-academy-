@@ -93,10 +93,11 @@
       d.levels = { ceiling: lv.call_ceiling, floor: lv.put_floor, flip: lv.flip_line, pin: lv.pin,
         nodes: (d.nodes || []).map(function (n) { return { k: n.k, gex: M6(n.g), share: n.share * 100 }; }) };
       var R = {}, RI = d.range_info || {}, RS = (F && F.ranges) || d.ranges || {};
+      if (RS['0dte'] && !RS['0']) RS = { '0': RS['0dte'], w: RS.weekly };   // teaser key names
       Object.keys(RS).forEach(function (k) { var r = RS[k]; if (Array.isArray(r)) R[k] = { lo: r[0], hi: r[1], pct: (RI[k] || {}).pct }; });
       d.range = R;
       var iv = d.iv || {};
-      d.iv = { iv30: iv.iv30, chg: iv.iv30_chg, rank: iv.rank, pctl: iv.pct, rankSrc: iv.rank_src, rv20: iv.rv20, year: iv.v || [] };
+      d.iv = { iv30: iv.iv30, chg: iv.iv30_chg, rank: iv.rank, pctl: iv.pct, rankSrc: iv.rank_src, rv20: iv.rv20, year: iv.v || (iv.spark || []).map(function (r) { return Array.isArray(r) ? r[1] : r; }) };
       if (Array.isArray(d.term)) {
         d.term0 = d.term;
         d.term = { dte: d.term.map(function (r) { return Math.round(r[1]); }), atm: d.term.map(function (r) { return r[2] * 100; }),
@@ -112,6 +113,10 @@
       Object.assign(d, { x: d.x || d.mode, k: c.k, gex: c.gex.map(M6), dex: c.dex.map(M6), vanna: c.vanna.map(M6), charm: c.charm.map(M6), cv: c.cvol, pv: c.pvol, coi: c.coi, poi: c.poi,
         dcoi: d.oi_chg ? c.k.map(function (k) { return oc[k] ? oc[k][1] : 0; }) : null, dpoi: d.oi_chg ? c.k.map(function (k) { return oc[k] ? oc[k][2] : 0; }) : null });
       d.tot = {}; ['gex', 'dex', 'vanna', 'charm'].forEach(function (g) { d.tot[g] = d[g].reduce(function (a, v) { return a + (v || 0); }, 0); });
+    }
+    if (route === 'profile' && d.teaser && !d.rows && d.k && d.gex) {
+      // Free teaser slice (S2 zoTeaser): k, gex $M, vol (total). No split by side: volume panel shows it as calls only.
+      d.gex = d.gex.map(M6); d.cv = d.vol || d.k.map(function () { return 0; }); d.pv = d.k.map(function () { return 0; });
     }
     if (route === 'history' && d.snaps && !d.frames) {
       var K = (d.snaps[0] || {}).k || [];

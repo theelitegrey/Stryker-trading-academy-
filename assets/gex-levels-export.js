@@ -6,6 +6,8 @@
   'use strict';
   var btn = document.getElementById('gex-dl-btn'), dlg = document.getElementById('gex-dl');
   if (!btn || !dlg) return;
+  // ships with ZoroOptions: hidden until the launch flag (app-nav.js strykerZoLive) is on
+  if (!(window.strykerZoLive && window.strykerZoLive())) { btn.hidden = true; return; }
   var FIXTURE = new URLSearchParams(location.search).has('fixture');
   var $ = function (id) { return document.getElementById(id); };
   var form = $('gex-dl-form'), msg = $('gex-dl-msg'), go = $('gex-dl-go');

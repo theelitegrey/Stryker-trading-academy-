@@ -30,19 +30,19 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG } from './chart-bookmap.js?v=888';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=888';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=888';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=888';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=888';
-import * as ProGate from './chart-pro-gate.js?v=888';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=888';
-import * as BT from './chart-bigtrades.js?v=888';
-import { installBookPack } from './chart-book-pack.js?v=888';
-import { installPatterns } from './chart-patterns.js?v=888';
-import { installL2Flow } from './chart-l2-flow.js?v=888';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=888';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=888';
+import { drawBookmap, BM_BG } from './chart-bookmap.js?v=889';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=889';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=889';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=889';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=889';
+import * as ProGate from './chart-pro-gate.js?v=889';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=889';
+import * as BT from './chart-bigtrades.js?v=889';
+import { installBookPack } from './chart-book-pack.js?v=889';
+import { installPatterns } from './chart-patterns.js?v=889';
+import { installL2Flow } from './chart-l2-flow.js?v=889';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=889';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=889';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';

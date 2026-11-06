@@ -108,7 +108,7 @@ async function pro(b, tag, o) {
     if (!ONLY || ONLY === 'flag') {
       const { ctx, p } = await open(b, { w: 1440, flag: false, wait: 2000 });
       const r = await p.evaluate(() => ({ soon: !document.getElementById('zo-soon').hidden, app: !document.getElementById('zo-app').hidden, menu: !!document.querySelector('[data-menu="zoro-options"]') }));
-      check(r.soon && !r.app && !r.menu, 'flag off: coming soon, app hidden, no menu item ' + JSON.stringify(r));
+      check(!r.soon && r.app && r.menu, 'launched: page open and menu item present without any preview flag ' + JSON.stringify(r));
       await ctx.close();
       const t = await open(b, { w: 1440, wait: 2000 });
       check(await t.p.evaluate(() => !!document.querySelector('[data-menu="zoro-options"]')), 'flag on (zo_preview): menu item present');

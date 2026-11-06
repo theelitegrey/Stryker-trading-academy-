@@ -65,7 +65,7 @@
   var PRO = { gex: 1, 'zoro-options': 1 };
   // ZoroOptions launch flag (Owner 2026-11-06: ships all at once). false = hidden from the menu and the page shows
   // "coming soon", except for a tester who sets localStorage zo_preview=1. The CoS flips this to true at ship.
-  var ZO_LIVE = false;
+  var ZO_LIVE = true;
   window.strykerZoLive = function(){ try { return ZO_LIVE || localStorage.getItem('zo_preview') === '1'; } catch(e) { return ZO_LIVE; } };
   var LEARN_ARTICLES = ['learn-bos-vs-choch', 'learn-fair-value-gap', 'learn-how-prop-firms-work', 'learn-liquidity-sweeps', 'learn-order-blocks', 'learn-order-flow', 'learn-prop-firm-challenge-rules', 'learn-smt-divergence', 'learn-volume-profile'];
   var MORE = [

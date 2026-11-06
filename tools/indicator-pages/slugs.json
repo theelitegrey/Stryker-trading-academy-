@@ -161,5 +161,10 @@
  "x:trinity-atr-levels": "trinity-atr-levels",
  "x:unicorn-model": "unicorn-model",
  "x:wcsmc-sp": "wcsmc-sp-v3",
- "b:stk_camarilla": "camarilla-pivots"
+ "b:stk_camarilla": "camarilla-pivots",
+ "b:stk_depth_heat": "depth-heatmap-l2",
+ "b:stk_zvol": "fresh-volume-volume-burst",
+ "b:stk_zzone": "gamma-zone",
+ "b:stk_ivrank": "iv-rank",
+ "b:stk_zrange": "zoro-range"
 }

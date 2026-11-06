@@ -169,6 +169,7 @@
   "indicators/crypto-dom-heatmap": "indicator page (SEO, generated)",
   "indicators/liquidity-map": "indicator page (SEO, generated)",
   "indicators/futures-dom-heatmap-l2": "indicator page (SEO, generated)",
+  "indicators/depth-heatmap-l2": "indicator page (SEO, generated)",
   "indicators/liquidity-walls-l2": "indicator page (SEO, generated)",
   "indicators/book-imbalance-l2": "indicator page (SEO, generated)",
   "indicators/big-trades-l1": "indicator page (SEO, generated)",

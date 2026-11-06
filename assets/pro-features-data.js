@@ -41,6 +41,8 @@
       desc: 'Resting orders at every price as a heatmap behind the candles, in four looks: Midnight, Zoro, Classic and Split.' },
     { group: 'book', name: 'Liquidity Map', feed: 'L2', icon: 'heat', ids: ['stk_liqmap'],
       desc: 'The order book heatmap with trade bubbles on top, so you see what rested and what traded.' },
+    { group: 'book', name: 'Depth Heatmap', feed: 'L2', icon: 'heat', ids: ['stk_depth_heat'],
+      desc: 'Resting orders from soft blue to red walls, each level a steady bar, with trade balls, the book at the right edge and volume bars.' },
     { group: 'book', name: 'DOM ladder', feed: 'L2', icon: 'ladder', ids: ['dom_ladder'],
       desc: 'A price ladder beside the chart: bids, asks and the volume bought and sold at each price.' },
     { group: 'book', name: 'Book · DOM · Trades panel', feed: 'L2', icon: 'panel', ids: ['book_panel'],

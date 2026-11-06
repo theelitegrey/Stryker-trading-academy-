@@ -12,12 +12,12 @@
 //   ticks  trades since the last frame                                               -> walls pulled / consumed, ladder volume
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
-import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=899';
-import { isFree, tierKnown, onTier, upgrade } from './chart-pro-gate.js?v=899';
-import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=899';
-import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=899';
-import { hfLive } from './chart-heat-filter.js?v=899';
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=899';
+import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=900';
+import { isFree, tierKnown, onTier, upgrade } from './chart-pro-gate.js?v=900';
+import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=900';
+import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=900';
+import { hfLive } from './chart-heat-filter.js?v=900';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=900';
 
 export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
@@ -483,6 +483,7 @@ function feedStats(sym, now) {
 }
 export function registerL2Feeds() {
   registerFeed('stk_fut_dom', { needs: 'L2', title: 'Order book heatmap (L2)', mkt: 'futures' });
+  registerFeed('stk_depth_heat', { needs: 'L2', title: 'Depth Heatmap (L2)' });
   registerFeed('stk_fut_walls', { needs: 'L2', title: 'Liquidity Walls (L2)', mkt: 'futures' });
   registerFeed('stk_fut_imb', { needs: 'L2', title: 'Book Imbalance (L2)', mkt: 'futures' });
   registerFeed('stk_crypto_dom', { needs: 'L2', title: 'Order book heatmap (L2)', mkt: 'crypto' });

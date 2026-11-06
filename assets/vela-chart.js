@@ -520,6 +520,7 @@ function lateLists(provider){
   const CoinbaseProvider = mods[2].CoinbaseProvider;
   let HyperliquidProvider = mods[3].HyperliquidProvider;
   try { HyperliquidProvider = mods[18].boostVenue(HyperliquidProvider, 'hyperliquid'); } catch (e) { console.warn('TradeZoro: tick boost', e); }
+  let BybitProvider = null; try { BybitProvider = (await import(VELA_BASE + 'providers/bybit.js')).BybitProvider; } catch (e) { console.warn('TradeZoro: bybit provider', e); }
   const FuturesProvider = mods[4].FuturesProvider;
   const FxProvider = mods[4].FxProvider;
   const IdxProvider = mods[4].IdxProvider;
@@ -739,6 +740,7 @@ function lateLists(provider){
         binance: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new BinanceProvider()), 'binance'), 'binance'),
         coinbase: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new CoinbaseProvider()), 'coinbase'), 'coinbase'),
         hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new HyperliquidProvider()), 'hyperliquid'), 'hyperliquid'),
+        ...(BybitProvider ? { bybit: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new BybitProvider()), 'bybit'), 'bybit') } : {}),
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
         fx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(FxProvider, 'fx'))(), 'fx'), 'fx'),
         // Indices & ETFs (SPX NDX VIX RUT QQQ SPY IWM DIA): same endpoint, Yahoo, delayed; admin live candle from the hub's quote frames.

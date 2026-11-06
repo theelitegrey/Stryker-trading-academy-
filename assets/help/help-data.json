@@ -1355,7 +1355,7 @@
       {
        "id": "chart-markets",
        "q": "Which markets can I chart?",
-       "a": "<p>Futures (NQ, ES, YM, RTY, GC, SI, CL and micros such as MNQ, MES), spot forex, and crypto from public Binance, Coinbase and Hyperliquid feeds. There is no stock price feed. Futures show as continuous front-month, for example NQ1!.</p>",
+       "a": "<p>Futures (NQ, ES, YM, RTY, GC, SI, CL and micros such as MNQ, MES), spot forex, and crypto from public Binance, Coinbase, Hyperliquid and Bybit feeds. There is no stock price feed. Futures show as continuous front-month, for example NQ1!.</p>",
        "tags": [
         "markets",
         "symbols",

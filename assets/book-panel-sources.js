@@ -8,7 +8,8 @@ export const SOURCES = [
   { id: 'binance', name: 'Binance', perp: true },
   { id: 'binanceus', name: 'Binance US', perp: false },
   { id: 'coinbase', name: 'Coinbase', perp: false },
-  { id: 'hyperliquid', name: 'Hyperliquid', perp: true }
+  { id: 'hyperliquid', name: 'Hyperliquid', perp: true },
+  { id: 'bybit', name: 'Bybit', perp: true }
 ];
 export const sourceName = (id) => (SOURCES.find((s) => s.id === id) || { name: id }).name;
 const MAX_LEVELS = 1500;
@@ -150,5 +151,28 @@ function hyperliquid(pair, cb) {
   return () => { stopped = true; stopWs(); };
 }
 
-const OPEN = { binance, binanceus, coinbase, hyperliquid };
+// ---- Bybit v5 (spot + USDT linear perps): orderbook.200 snapshot/delta + publicTrade (S = taker side) ------------------
+export function bybitBook(book, m) {   // snapshot replaces the book, delta patches it (size 0 deletes a level)
+  const d = m.data; if (!d) return false;
+  if (m.type === 'snapshot') { book.bids.clear(); book.asks.clear(); }
+  applyRows(book.bids, d.b, true); applyRows(book.asks, d.a, false);
+  return true;
+}
+export const bybitTrade = (x) => ({ t: +x.T, p: +x.p, s: +x.v, side: x.S === 'Buy' ? 1 : -1, ex: 'bybit' });
+function bybit(pair, cb) {
+  const sym = pair.base + pair.quote, book = { bids: new Map(), asks: new Map() };
+  const stopWs = socket('wss://stream.bybit.com/v5/public/' + (pair.perp ? 'linear' : 'spot'), {
+    onOpen: (ws) => { ws.send(JSON.stringify({ op: 'subscribe', args: ['orderbook.200.' + sym, 'publicTrade.' + sym] })); },
+    onMsg: (d, ws) => {
+      if (d.op === 'subscribe' && d.success === false) { cb.status('unlisted', 'Not listed on Bybit'); return; }
+      if (d.topic === 'orderbook.200.' + sym) { if (bybitBook(book, d)) { cb.book(book); cb.status('live'); } }
+      else if (d.topic === 'publicTrade.' + sym && Array.isArray(d.data)) cb.trades(d.data.map(bybitTrade), false);
+    },
+    onState: (s) => cb.status(s)
+  });
+  cb.status('loading');
+  return () => stopWs();
+}
+
+const OPEN = { binance, binanceus, coinbase, hyperliquid, bybit };
 export function openSource(id, pair, cb) { const f = OPEN[id]; return f ? f(pair, cb) : (cb.status('error', 'Unknown source'), () => {}); }

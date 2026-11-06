@@ -12,58 +12,78 @@ When something is wrong, Zscript tells you the **line and column**, says what ha
 
 ## Common errors
 
-### Unknown name
+Messages below are written the way the engine words them. Your names and numbers fill the gaps. Every code is listed in [Error and warning codes](/zscript/error-codes).
+
+### E303 Unknown name
 
 ```text
-3:11  I don't know "ta.smaa".
-      Did you mean ta.sma?
+3:11  E303  Unknown name `smaa`.
+            Did you mean `ta.sma`?
 ```
-A typo. Names are case sensitive, and every built-in has its namespace in front (`ta.`, `math.`, `str.`).
+A typo. Names are case sensitive, and every built-in lives behind its namespace (`ta.`, `math.`, `str.`).
 
-### Wrong type
+### E309 Wrong type for an argument
 
 ```text
-5:8   plot() needs a number, but "label" is text.
+5:8   E309  Argument `title` of `plot` must be string, got float.
 ```
-You passed text where a number goes. Check the order of the arguments.
+You passed a number where text goes. Check the order of the arguments, or name them: `plot(x, title="Mine")`.
 
-### Missing header or declaration
+### E201 Missing header
 
 ```text
-1:1   The first line must be //@zscript 1.
+1:1   E201  Missing header.
+            Put `//@zscript 1` on the first line.
 ```
-Add the header line. Then make sure there is exactly one `indicator(...)`.
+Add the header line. Then make sure there is exactly one `indicator(...)` (E301 means it is missing, E302 means there are two).
 
-### Indentation
+### E105 and E205 Indentation
 
 ```text
-6:1   This line is indented, but nothing above it opens a block.
+6:1   E105  Indentation does not match any outer block.
 ```
-Indent only under `if`, `for`, `while`, `switch` and function bodies.
+Indent only under `if`, `for`, `while`, `switch` and function bodies, and line up the lines of one block exactly.
 
-### Using a value before it exists
+### E305 Already declared
 
 ```text
-4:5   "average" is used here, before the line that creates it.
+7:5   E305  `greens` is already declared in this scope.
+            Use `:=` to change it.
 ```
-Move the line that creates it up.
+A single `=` makes a new value; `:=` changes one that exists. E306 is the reverse: using `:=` before the value was ever made.
 
-### Changing with = instead of :=
+### E209 One equals sign in a condition
 
 ```text
-7:5   "greens" already exists. To change it, write greens := ...
+4:8   E209  `=` used in a condition.
+            Use `==` to compare, `:=` to reassign.
 ```
+
+### E340 Plot inside a block
+
+```text
+9:5   E340  `plot` must be called at top level (not inside if/for/functions).
+```
+Plots and their friends sit at the top of the script. To plot only sometimes, make the value `na` when you do not want it: `plot(cond ? x : na)`.
+
+### W101 A `ta` function that skips bars
+
+```text
+12:9  W101  `ta.ema` is called only on some bars (inside `if`), so its state skips the other bars.
+            Compute it at top level and use the result inside the `if`.
+```
+A warning, not an error. The script runs, but the numbers can be wrong. Do what the hint says.
+
+### Runtime errors (E4xx)
+
+```text
+12:5  E404  Loop ran more than 100,000 times on one bar.
+```
+Shorten the loop, or use a built-in. See [Limits](/zscript/limits). `E402` on a history look-back means you looked further back than `max_bars_back` allows; raise it in `indicator()`.
 
 ### No value (na)
 
-An `na` result is not an error. It means "nothing to show on this bar". See [Bars and series](/zscript/bars-and-series).
-
-### Limit errors
-
-```text
-12:5  This loop ran more than the limit allows.
-```
-Shorten the loop, or use a built-in. See [Limits](/zscript/limits).
+An `na` result is not an error. It means "nothing to show on this bar". See [Bars and series](/zscript/bars-and-series). Division by zero gives `na`, not an error.
 
 ## If you are stuck
 

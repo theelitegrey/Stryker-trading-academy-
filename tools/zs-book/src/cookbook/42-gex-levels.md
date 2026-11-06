@@ -11,6 +11,8 @@ plot(gex.putwall, "Put wall", color=color.red, style=plot.style_stepline)
 plot(gex.flip, "Flip", color=color.yellow, style=plot.style_stepline)
 ```
 
+@chart cb-gex-levels
+
 ## How it works
 
 The levels come from the latest GEX+ update, not an instant feed. For ES and NQ they follow the GEX+ page mapping.

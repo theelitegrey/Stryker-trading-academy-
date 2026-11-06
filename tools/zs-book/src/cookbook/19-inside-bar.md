@@ -10,6 +10,8 @@ inside = high <= high[1] and low >= low[1]
 barcolor(inside ? color.yellow : na)
 ```
 
+@chart cb-inside-bar
+
 ## How it works
 
 Returning `na` for a color leaves the candle alone.

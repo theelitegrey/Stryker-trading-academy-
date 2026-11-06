@@ -14,6 +14,8 @@ if bearGap
     box.new(bar_index - 2, low[2], bar_index + 10, high, border_color=color.red, bgcolor=color.new(color.red, 88))
 ```
 
+@chart cb-fair-value-gap
+
 ## How it works
 
 A gap exists when the wicks of candles one and three do not overlap. We draw a box from the gap forward ten bars.

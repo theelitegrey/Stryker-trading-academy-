@@ -10,6 +10,8 @@ len = input.int(20, "Length", minval=1)
 plot(ta.sma(close, len), "SMA", color=#03c988, linewidth=2)
 ```
 
+@chart cb-simple-moving-average
+
 ## How it works
 
 The average of the last `len` closes. Longer length, smoother and slower line.

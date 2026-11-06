@@ -1,0 +1,266 @@
+[
+ {
+  "num": "Z01",
+  "title": "Meet Zscript",
+  "level": "foundation",
+  "dur": "25 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Add your first script",
+    "desc": "Paste the script above into the editor and add it to a chart. Then change 20 to 5 and to 100. Write one sentence about how the line changes.",
+    "descHtml": "<p>Paste the script above into the editor and add it to a chart. Then change 20 to 5 and to 100. Write one sentence about how the line changes.</p>"
+   },
+   {
+    "title": "Rename and recolor",
+    "desc": "Change the title to your own name and add color=color.orange to the plot call. Add it again.",
+    "descHtml": "<p>Change the title to your own name and add color=color.orange to the plot call. Add it again.</p>"
+   }
+  ],
+  "bodyHtml": "<p>Zscript is the small language you use to build your own chart indicators on TradeZoro. You write a few lines, add them to the chart, and your idea is drawn on the candles. It is free for every member.</p>\n<p>In this lesson you add your first script and learn what its four parts do.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"My first line\", overlay=true)\naverage = ta.sma(close, 20)\nplot(average, title=\"20-bar average\")</code></pre>\n<h3>The four parts</h3>\n<ul><li><b>Header:</b> <code>//@zscript 1</code> says this is Zscript, version 1.</li><li><b>Declaration:</b> <code>indicator(...)</code> names the script. <code>overlay=true</code> puts it on the price chart.</li><li><b>Logic:</b> <code>average = ta.sma(close, 20)</code> makes a value from the closing prices.</li><li><b>Drawing:</b> <code>plot(...)</code> shows it.</li></ul>\n<p>Press <b>Add to chart</b> and a line follows price. Change 20 to 50 and add it again: the line gets smoother. Changing a number and looking is how you learn.</p>\n<p>Education only. Not financial advice. A line on a chart describes the past; it does not promise anything.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>What does overlay=true do?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">Draws the script on top of the price candles</button><button type=\"button\" data-correct=\"0\">Makes the script run faster</button><button type=\"button\" data-correct=\"0\">Hides the script</button></div><p class=\"lx-quiz-a\">overlay=true draws on the price chart. Without it the script gets its own pane below.</p></div>\n<div class=\"lx-quiz\"><p><strong>What must be the first line of every Zscript file?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">indicator(...)</button><button type=\"button\" data-correct=\"1\">//@zscript 1</button><button type=\"button\" data-correct=\"0\">plot(close)</button></div><p class=\"lx-quiz-a\">The header line tells the editor which language and version this is.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z02",
+  "title": "Bars and series",
+  "level": "foundation",
+  "dur": "30 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Two-bar change",
+    "desc": "Plot close minus close[2] as a histogram. Which bars are missing at the left edge, and why?",
+    "descHtml": "<p>Plot close minus close[2] as a histogram. Which bars are missing at the left edge, and why?</p>"
+   },
+   {
+    "title": "Safe change",
+    "desc": "Use nz() so the first bar shows 0 instead of nothing.",
+    "descHtml": "<p>Use nz() so the first bar shows 0 instead of nothing.</p>"
+   }
+  ],
+  "bodyHtml": "<p>A chart is a row of bars. Zscript runs your script once for every bar, oldest to newest. On each run, <code>close</code> means the close of the bar being worked on.</p>\n<p>A value that has one number per bar is a <b>series</b>. To see an older value, use square brackets: <code>close[1]</code> is the close one bar ago.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Bar change\")\nchange1 = close - close[1]\nplot(change1, \"Change\", style=plot.style_histogram)</code></pre>\n<p>On the first bar there is nothing before it, so <code>close[1]</code> is <b>na</b>: not available. Math with na gives na, and plots skip it. Use <code>nz(x)</code> to swap na for zero, or <code>na(x)</code> to test for it.</p>\n<p>You can only look back. Zscript has no way to read a bar that has not happened yet.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>What is close[3]?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">The close three bars ago</button><button type=\"button\" data-correct=\"0\">The close three bars from now</button><button type=\"button\" data-correct=\"0\">Three times the close</button></div><p class=\"lx-quiz-a\">Square brackets look back by that many bars.</p></div>\n<div class=\"lx-quiz\"><p><strong>What does na mean?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">Zero</button><button type=\"button\" data-correct=\"1\">No value is available</button><button type=\"button\" data-correct=\"0\">A negative number</button></div><p class=\"lx-quiz-a\">na means not available. Plots skip it.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z03",
+  "title": "Values, types and colors",
+  "level": "foundation",
+  "dur": "30 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Three colors",
+    "desc": "Color volume green on up bars, red on down bars, and gray when close equals open.",
+    "descHtml": "<p>Color volume green on up bars, red on down bars, and gray when close equals open.</p>"
+   },
+   {
+    "title": "Soft color",
+    "desc": "Use color.new(...) to make the green 60 percent transparent.",
+    "descHtml": "<p>Use color.new(...) to make the green 60 percent transparent.</p>"
+   }
+  ],
+  "bodyHtml": "<p>Every value has a type: <code>int</code> (whole numbers), <code>float</code> (decimals), <code>bool</code> (true or false), <code>string</code> (text) and <code>color</code>. Zscript usually works the type out for you.</p>\n<p><code>=</code> creates a value. <code>:=</code> changes one that already exists. <code>x ? a : b</code> picks <code>a</code> when x is true, else <code>b</code>.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Up or down volume\")\nup = close >= open\nplot(volume, \"Volume\", color=up ? color.green : color.red, style=plot.style_columns)</code></pre>\n<p>Colors: <code>#03c988</code>, <code>color.red</code>, or <code>color.new(base, transparency)</code> where 0 is solid and 100 invisible.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>Which creates a brand new value?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">x = 5</button><button type=\"button\" data-correct=\"0\">x := 5 (when x does not exist yet)</button><button type=\"button\" data-correct=\"0\">Both do the same thing</button></div><p class=\"lx-quiz-a\">A single = creates. := only changes something that exists.</p></div>\n<div class=\"lx-quiz\"><p><strong>What does color.new(color.red, 100) look like?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">Solid red</button><button type=\"button\" data-correct=\"1\">Invisible</button><button type=\"button\" data-correct=\"0\">Half red</button></div><p class=\"lx-quiz-a\">Transparency 100 is fully see-through.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z04",
+  "title": "Moving averages and indicators",
+  "level": "foundation",
+  "dur": "35 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Add RSI",
+    "desc": "Build an indicator in its own pane: RSI(14) with hline(30) and hline(70).",
+    "descHtml": "<p>Build an indicator in its own pane: RSI(14) with hline(30) and hline(70).</p>"
+   },
+   {
+    "title": "Bands",
+    "desc": "Plot Bollinger Bands with ta.bb and shade between the outer lines using fill().",
+    "descHtml": "<p>Plot Bollinger Bands with ta.bb and shade between the outer lines using fill().</p>"
+   }
+  ],
+  "bodyHtml": "<p>Most indicators are one function call. The <code>ta</code> namespace holds them: <code>ta.sma</code>, <code>ta.ema</code>, <code>ta.rsi</code>, <code>ta.atr</code>, <code>ta.macd</code> and many more.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Two averages\", overlay=true)\nfast = ta.ema(close, 9)\nslow = ta.ema(close, 21)\nplot(fast, color=color.green)\nplot(slow, color=color.red)</code></pre>\n<p>Some functions give back several values. Take them apart with square brackets: <code>[mid, up, lo] = ta.bb(close, 20, 2.0)</code>.</p>\n<p>Call <code>ta</code> functions on every bar, not inside an <code>if</code>. They keep a running memory, and skipping bars gives wrong answers.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>Which is a fast, reactive average?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">ta.ema</button><button type=\"button\" data-correct=\"0\">ta.highest</button><button type=\"button\" data-correct=\"0\">ta.crossover</button></div><p class=\"lx-quiz-a\">EMA weights recent bars more.</p></div>\n<div class=\"lx-quiz\"><p><strong>Where should ta functions be called?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">On every bar</button><button type=\"button\" data-correct=\"0\">Only inside an if</button><button type=\"button\" data-correct=\"0\">Only once</button></div><p class=\"lx-quiz-a\">They keep a running history that needs every bar.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z05",
+  "title": "Decisions and signals",
+  "level": "foundation",
+  "dur": "35 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Add a filter",
+    "desc": "Only mark an up cross when close is also above a 100-bar SMA.",
+    "descHtml": "<p>Only mark an up cross when close is also above a 100-bar SMA.</p>"
+   },
+   {
+    "title": "Color the pane",
+    "desc": "Use bgcolor to tint the background green while fast is above slow.",
+    "descHtml": "<p>Use bgcolor to tint the background green while fast is above slow.</p>"
+   }
+  ],
+  "bodyHtml": "<p>A <b>condition</b> is a true or false value for each bar. <code>ta.crossover(a, b)</code> is true on the bar where a moves above b.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Cross marks\", overlay=true)\nfast = ta.ema(close, 9)\nslow = ta.ema(close, 21)\nplotshape(ta.crossover(fast, slow), \"Up\", shape.triangleup, location.belowbar, color.green)\nplotshape(ta.crossunder(fast, slow), \"Down\", shape.triangledown, location.abovebar, color.red)</code></pre>\n<p>Use <code>if</code> / <code>else</code> to choose, and <code>and</code>, <code>or</code>, <code>not</code> to combine conditions. This lesson shows a rule on a chart. It is a teaching sample, not a trading system.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>When is ta.crossover(a, b) true?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">On every bar where a is above b</button><button type=\"button\" data-correct=\"1\">On the one bar where a moves from below b to above it</button><button type=\"button\" data-correct=\"0\">When a equals b</button></div><p class=\"lx-quiz-a\">A cross is an event on a single bar.</p></div>\n<div class=\"lx-quiz\"><p><strong>What joins two conditions so both must be true?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">or</button><button type=\"button\" data-correct=\"1\">and</button><button type=\"button\" data-correct=\"0\">not</button></div><p class=\"lx-quiz-a\">and needs both.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z06",
+  "title": "Remembering with var",
+  "level": "foundation",
+  "dur": "30 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Reset each day",
+    "desc": "Make the counter go back to 0 at the start of every day (hint: dayofmonth != dayofmonth[1]).",
+    "descHtml": "<p>Make the counter go back to 0 at the start of every day (hint: dayofmonth != dayofmonth[1]).</p>"
+   },
+   {
+    "title": "Track the highest close",
+    "desc": "Keep the highest close so far in a var float and plot it.",
+    "descHtml": "<p>Keep the highest close so far in a var float and plot it.</p>"
+   }
+  ],
+  "bodyHtml": "<p>Normal values start fresh on every bar. A <code>var</code> value is set once and keeps what you give it.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Count green bars\")\nvar int greens = 0\nif close > open\n    greens := greens + 1\nplot(greens)</code></pre>\n<p>Use <code>var</code> for running totals, the last signal price, or a drawing you update. <code>varip</code> also keeps values between ticks of the newest bar; most scripts never need it.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>Which keyword keeps a value from bar to bar?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">var</button><button type=\"button\" data-correct=\"0\">val</button><button type=\"button\" data-correct=\"0\">bar</button></div><p class=\"lx-quiz-a\">var is set once and then kept.</p></div>\n<div class=\"lx-quiz\"><p><strong>How do you change an existing value?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">x = 1</button><button type=\"button\" data-correct=\"1\">x := 1</button><button type=\"button\" data-correct=\"0\">x == 1</button></div><p class=\"lx-quiz-a\">:= changes; = creates; == compares.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z07",
+  "title": "Inputs",
+  "level": "intermediate",
+  "dur": "25 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Three inputs",
+    "desc": "Add a length, a color and a show-labels switch to one of your scripts.",
+    "descHtml": "<p>Add a length, a color and a show-labels switch to one of your scripts.</p>"
+   },
+   {
+    "title": "Pick list",
+    "desc": "Use input.string with options to let the user choose between SMA and EMA, then switch on it.",
+    "descHtml": "<p>Use input.string with options to let the user choose between SMA and EMA, then switch on it.</p>"
+   }
+  ],
+  "bodyHtml": "<p>Make your script tunable with <code>input.*</code>. Each call adds a control to the settings dialog.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Tunable average\", overlay=true)\nlen = input.int(20, \"Length\", minval=2, maxval=500)\nsrc = input.source(close, \"Source\")\nplot(ta.sma(src, len))</code></pre>\n<p>Give each input a plain title and a sensible default, set a min and max so nobody can type 0 as a length, and use <code>group=</code> to keep long lists tidy.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>Why set minval?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">It makes the script faster</button><button type=\"button\" data-correct=\"1\">It stops silly values like a length of 0</button><button type=\"button\" data-correct=\"0\">It changes the color</button></div><p class=\"lx-quiz-a\">Limits keep the settings sensible.</p></div>\n<div class=\"lx-quiz\"><p><strong>Which input gives a color picker?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">input.color</button><button type=\"button\" data-correct=\"0\">input.string</button><button type=\"button\" data-correct=\"0\">input.source</button></div><p class=\"lx-quiz-a\">input.color.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z08",
+  "title": "Loops, arrays and functions",
+  "level": "intermediate",
+  "dur": "40 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Write a function",
+    "desc": "Write range(h, l) that returns high minus low as a percent of close, and plot it.",
+    "descHtml": "<p>Write range(h, l) that returns high minus low as a percent of close, and plot it.</p>"
+   },
+   {
+    "title": "Count in a loop",
+    "desc": "Use for to count how many of the last 10 closes were above their open.",
+    "descHtml": "<p>Use for to count how many of the last 10 closes were above their open.</p>"
+   }
+  ],
+  "bodyHtml": "<p>A <code>for</code> loop repeats. An <b>array</b> is a list. A <b>function</b> names a piece of logic.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Last 5 closes average\")\nvar prices = array.new&lt;float&gt;()\narray.push(prices, close)\nif array.size(prices) > 5\n    array.shift(prices)\nplot(array.avg(prices))</code></pre>\n<pre class=\"zs-code\"><code>mid(h, l) => (h + l) / 2</code></pre>\n<p>Loops run on every bar, so keep them short. A built-in such as <code>ta.highest</code> is almost always faster than the same loop. Zscript stops runaway loops with a clear error.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>Why keep loops short?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">They run on every bar</button><button type=\"button\" data-correct=\"0\">Loops are not allowed</button><button type=\"button\" data-correct=\"0\">They change the color</button></div><p class=\"lx-quiz-a\">Cost multiplies by thousands of bars.</p></div>\n<div class=\"lx-quiz\"><p><strong>What does array.push do?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">Adds an item to the end</button><button type=\"button\" data-correct=\"0\">Deletes the array</button><button type=\"button\" data-correct=\"0\">Sorts it</button></div><p class=\"lx-quiz-a\">push appends.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z09",
+  "title": "Drawing: labels, lines, boxes and tables",
+  "level": "intermediate",
+  "dur": "35 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Pivot lows",
+    "desc": "Add green labels at pivot lows.",
+    "descHtml": "<p>Add green labels at pivot lows.</p>"
+   },
+   {
+    "title": "Last-bar table",
+    "desc": "Show ATR and RSI in a table written only on barstate.islast.",
+    "descHtml": "<p>Show ATR and RSI in a table written only on barstate.islast.</p>"
+   }
+  ],
+  "bodyHtml": "<p>Plots are one value per bar. <b>Drawings</b> are objects you create and change: <code>label.new</code>, <code>line.new</code>, <code>box.new</code>, <code>table.new</code>.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Pivots\", overlay=true)\nph = ta.pivothigh(high, 5, 5)\nif not na(ph)\n    label.new(bar_index - 5, ph, \"H\", style=label.style_label_down)</code></pre>\n<p>A pivot needs bars on both sides to be confirmed, so it is known five bars late. Placing the label at <code>bar_index - 5</code> puts it where the pivot really was, and never reads a future bar.</p>\n<p>Each kind has a maximum on screen. The oldest are removed when you exceed it, so delete what you no longer need.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>Why is a pivot known late?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">It needs bars on both sides to confirm</button><button type=\"button\" data-correct=\"0\">The chart is slow</button><button type=\"button\" data-correct=\"0\">Labels are delayed</button></div><p class=\"lx-quiz-a\">You cannot confirm a peak until later bars fall away.</p></div>\n<div class=\"lx-quiz\"><p><strong>Which is a drawing?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">label.new</button><button type=\"button\" data-correct=\"0\">ta.sma</button><button type=\"button\" data-correct=\"0\">plot</button></div><p class=\"lx-quiz-a\">label.new creates a drawing object.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z10",
+  "title": "Our data: order book, order flow, GEX and options",
+  "level": "intermediate",
+  "dur": "40 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Delta bars",
+    "desc": "Plot flow.delta as columns, green above zero and red below.",
+    "descHtml": "<p>Plot flow.delta as columns, green above zero and red below.</p>"
+   },
+   {
+    "title": "Two kinds",
+    "desc": "Plot gex.callwall and opt.range(\"expected\") on one chart. What shows if one is missing for your plan?",
+    "descHtml": "<p>Plot gex.callwall and opt.range(\"expected\") on one chart. What shows if one is missing for your plan?</p>"
+   }
+  ],
+  "bodyHtml": "<p>Zscript can read the extra data TradeZoro charts show. <code>book.*</code> is the order book, <code>flow.*</code> is order flow, <code>gex.*</code> is GEX levels and <code>opt.*</code> is ZoroOptions numbers.</p>\n<pre class=\"zs-code\"><code>//@zscript 1\nindicator(\"Delta and walls\", overlay=false)\nplot(flow.delta, \"Delta\", style=plot.style_columns)\nplot(gex.callwall, \"Call wall\")</code></pre>\n<p>These follow your plan like the charts do. If your plan does not include a kind of data, the call returns <b>na</b> and you see one short notice. Always protect your math with <code>nz()</code>.</p>\n<p>Every value is the one known at that bar: no peeking ahead. GEX and options numbers are updates stored a few minutes at a time, not an instant feed.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>What does a data call return if your plan lacks it?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">An error that stops the script</button><button type=\"button\" data-correct=\"1\">na</button><button type=\"button\" data-correct=\"0\">Zero</button></div><p class=\"lx-quiz-a\">The script keeps running with na.</p></div>\n<div class=\"lx-quiz\"><p><strong>Can a script read future order book data?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">Yes</button><button type=\"button\" data-correct=\"1\">No, only values known at that bar</button></div><p class=\"lx-quiz-a\">Data is always as of the bar.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z11",
+  "title": "Alerts and request.security",
+  "level": "advanced",
+  "dur": "30 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Daily levels",
+    "desc": "Plot the previous day's high and low on an intraday chart.",
+    "descHtml": "<p>Plot the previous day's high and low on an intraday chart.</p>"
+   },
+   {
+    "title": "Closed-bar alert",
+    "desc": "Fire alert() only when barstate.isconfirmed is true.",
+    "descHtml": "<p>Fire alert() only when barstate.isconfirmed is true.</p>"
+   }
+  ],
+  "bodyHtml": "<p><code>alertcondition(condition, title, message)</code> declares a rule that shows in the chart's alert dialog.</p>\n<pre class=\"zs-code\"><code>alertcondition(ta.crossover(close, ta.sma(close, 50)), \"Above 50\", \"Close crossed above the 50 SMA\")</code></pre>\n<p><code>request.security(symbol, timeframe, expression)</code> reads a value from another timeframe or symbol. Add <code>[1]</code> to use the last <i>finished</i> higher-timeframe bar, so the value never changes under your feet.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>Why add [1] after a higher-timeframe value?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">To use the last finished bar and avoid look-ahead</button><button type=\"button\" data-correct=\"0\">To make it faster</button><button type=\"button\" data-correct=\"0\">To make it larger</button></div><p class=\"lx-quiz-a\">The current higher-timeframe bar is still changing.</p></div>\n<div class=\"lx-quiz\"><p><strong>What does barstate.isconfirmed tell you?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">The bar has closed</button><button type=\"button\" data-correct=\"0\">The script is saved</button><button type=\"button\" data-correct=\"0\">The market is open</button></div><p class=\"lx-quiz-a\">It is true once the bar closed.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ },
+ {
+  "num": "Z12",
+  "title": "Limits, errors and publishing",
+  "level": "advanced",
+  "dur": "35 min",
+  "video": "",
+  "lessons": [
+   {
+    "title": "Break it on purpose",
+    "desc": "Misspell ta.sma as ta.smaa and read the message. Fix it using the hint.",
+    "descHtml": "<p>Misspell ta.sma as ta.smaa and read the message. Fix it using the hint.</p>"
+   },
+   {
+    "title": "Describe your script",
+    "desc": "Write a 3-sentence description for the script you are proudest of, with no claims about results.",
+    "descHtml": "<p>Write a 3-sentence description for the script you are proudest of, with no claims about results.</p>"
+   }
+  ],
+  "bodyHtml": "<p>Scripts from other members run in your browser, inside a locked room with no network, no storage and no access to the page. They also have work limits: the first run must finish in 20 seconds, loops have a turn cap, and arrays and drawings have size caps.</p>\n<p>Errors show a line and column, say what is wrong in plain English, and often suggest a fix (\"Did you mean ta.sma?\").</p>\n<p>When your script is ready, <b>Publish</b> it to the Script Library. Choose open source (people can read it) or protected (people can use it but not read it), and free or paid. Publishing is free. Say honestly what the script does and never claim results.</p>\n<p>Education only. Not financial advice.</p>\n<h3>Quick quiz</h3>\n<div class=\"lx-quiz\"><p><strong>What is a protected script?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"1\">People can use it but not read the source</button><button type=\"button\" data-correct=\"0\">It cannot be added to a chart</button><button type=\"button\" data-correct=\"0\">It is always paid</button></div><p class=\"lx-quiz-a\">Protected means the source stays hidden.</p></div>\n<div class=\"lx-quiz\"><p><strong>Can a script open a web connection?</strong></p><div class=\"lx-quiz-opts\"><button type=\"button\" data-correct=\"0\">Yes</button><button type=\"button\" data-correct=\"1\">No, never</button></div><p class=\"lx-quiz-a\">The sandbox has no network.</p></div>",
+  "paragraphs": [],
+  "track": "zscript"
+ }
+]

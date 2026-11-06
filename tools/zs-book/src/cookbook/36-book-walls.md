@@ -7,9 +7,11 @@ level: Advanced
 //@zscript 1
 indicator("Book walls", overlay=true)
 minSize = input.int(500, "Minimum size", minval=1)
-plot(book.wall("bid", minSize), "Bid wall", color=color.green, style=plot.style_stepline)
-plot(book.wall("ask", minSize), "Ask wall", color=color.red, style=plot.style_stepline)
+plot(book.wall(book.side_bid, minSize), "Bid wall", color=color.green, style=plot.style_stepline)
+plot(book.wall(book.side_ask, minSize), "Ask wall", color=color.red, style=plot.style_stepline)
 ```
+
+@chart cb-book-walls
 
 ## How it works
 

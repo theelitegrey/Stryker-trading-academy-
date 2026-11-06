@@ -11,6 +11,8 @@ hline(1)
 plot(rv, "Relative volume", style=plot.style_columns, color=rv > 1 ? #03c988 : color.gray)
 ```
 
+@chart cb-relative-volume
+
 ## How it works
 
 1.0 is normal. 2.0 means twice the 30-bar average.

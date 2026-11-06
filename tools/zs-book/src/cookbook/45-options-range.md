@@ -6,9 +6,12 @@ level: Beginner
 ```zscript
 //@zscript 1
 indicator("Option range", overlay=true)
-plot(opt.range("upper"), "Upper", color=color.gray, style=plot.style_stepline)
-plot(opt.range("lower"), "Lower", color=color.gray, style=plot.style_stepline)
+[lo, hi] = opt.range("expected")
+plot(hi, "Upper", color=color.gray, style=plot.style_stepline)
+plot(lo, "Lower", color=color.gray, style=plot.style_stepline)
 ```
+
+@chart cb-options-range
 
 ## How it works
 

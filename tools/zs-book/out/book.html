@@ -1,0 +1,1684 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>The Zscript Book</title><style>
+@page { size: A5; margin: 18mm 14mm 20mm 14mm;
+  @bottom-center { content: counter(page); font: 8pt -apple-system, "Helvetica Neue", Arial, sans-serif; color: #666; }
+  @top-center { content: string(chap); font: 8pt -apple-system, "Helvetica Neue", Arial, sans-serif; color: #888; } }
+@page cover { margin: 0; @bottom-center { content: none } @top-center { content: none } }
+@page blank { @bottom-center { content: none } @top-center { content: none } }
+html { font: 10pt/1.5 "Helvetica Neue", Arial, "DejaVu Sans", sans-serif; color: #1d1d1f; }
+h1 { string-set: chap content(); font-size: 22pt; line-height: 1.15; margin: 0 0 4mm; break-before: page; color: #07140f; }
+h2 { font-size: 14pt; margin: 8mm 0 2mm; break-after: avoid; color: #07140f; }
+h3 { font-size: 11pt; margin: 6mm 0 1.5mm; break-after: avoid; }
+p, li { orphans: 3; widows: 3; }
+a { color: #02805a; text-decoration: none; }
+code { font: 8.4pt "DejaVu Sans Mono", Menlo, monospace; background: #f1f3f2; padding: 0 1mm; border-radius: 1mm; }
+pre.zs-code { font: 7.6pt/1.45 "DejaVu Sans Mono", Menlo, monospace; background: #0b0b0d; color: #e8ece9; padding: 3mm 3.5mm;
+  border-radius: 2.5mm; white-space: pre-wrap; word-break: break-word; break-inside: avoid; margin: 3mm 0 4mm; }
+pre.zs-code code { background: none; padding: 0; font: inherit; }
+.k { color: #6fd6ff } .t { color: #c9a7ff } .n { color: #4fe3ac } .f { color: #ffd479 } .b { color: #ff9eb1 } .c { color: #7d877f } .s { color: #ffb86b } .m { color: #9ee493 }
+table { border-collapse: collapse; width: 100%; font-size: 8.4pt; margin: 3mm 0; break-inside: avoid; }
+th, td { border-bottom: 0.3mm solid #d6dad8; padding: 1.2mm 1.5mm; text-align: left; vertical-align: top; }
+th { background: #eef2f0; }
+figure.zs-fig { margin: 4mm 0; break-inside: avoid; } figure.zs-fig svg { width: 100%; height: auto; }
+figcaption { font-size: 8pt; color: #555; margin-top: 1mm; }
+.zs-ref { break-inside: avoid-page; border-top: 0.3mm solid #d6dad8; margin-top: 3mm; }
+.part { break-before: page; page: blank; display: flex; }
+.part h1 { break-before: auto; margin-top: 60mm; font-size: 30pt; color: #02805a; }
+.cover { page: cover; break-after: page; height: 210mm; width: 148mm; background: #050506; color: #fff; position: relative; }
+.cover .tag { position: absolute; left: 14mm; top: 20mm; font: 700 10pt "DejaVu Sans Mono", monospace; color: #03c988; letter-spacing: .2em; }
+.cover h1 { position: absolute; left: 14mm; top: 70mm; width: 118mm; font-size: 40pt; line-height: 1.05; color: #fff; break-before: auto; string-set: none; }
+.cover .sub { position: absolute; left: 14mm; top: 128mm; width: 110mm; font-size: 12pt; color: rgba(255,255,255,.7); }
+.cover .bar { position: absolute; left: 14mm; top: 120mm; width: 22mm; height: 1.2mm; background: #03c988; }
+.cover .foot { position: absolute; left: 14mm; bottom: 14mm; font-size: 8pt; color: rgba(255,255,255,.5); }
+.toc { page: blank; break-after: page; } .toc h1 { string-set: none; }
+.toc ol { list-style: none; padding: 0; margin: 0; } .toc li { margin: 1mm 0; } .toc li.p { font-weight: 700; margin-top: 4mm; }
+.toc a::after { content: leader('.') target-counter(attr(href), page); color: #666; } .toc a { color: #1d1d1f; display: block; }
+.legal { font-size: 8pt; color: #555; }
+</style></head><body><section class="cover"><div class="tag">ZSCRIPT</div><h1>The Zscript Book</h1><div class="bar"></div><div class="sub">Write your own chart indicators, from your first plot to order book and options data.</div><div class="foot">TradeZoro &middot; Education only. Not financial advice.</div></section><section class="legal" style="page:blank;break-after:page"><p>The Zscript Book. &copy; TradeZoro. All rights reserved.</p><p>Education only. Not financial advice. Every script in this book is a teaching sample, not a trading result, and none of it promises profit. Data features depend on your plan.</p><p>If you know other chart scripting languages, Zscript will feel familiar.</p></section><section class="toc"><h1>Contents</h1><ol><li class="p">Part 1. The language</li><li><a href="#m-getting-started">Getting started</a></li><li><a href="#m-anatomy-of-a-script">Anatomy of a script</a></li><li><a href="#m-bars-and-series">Bars and series</a></li><li><a href="#m-types-and-values">Types and values</a></li><li><a href="#m-control-flow">Decisions and loops</a></li><li><a href="#m-functions">Functions</a></li><li><a href="#m-inputs">Inputs</a></li><li><a href="#m-plots-and-drawings">Plots and drawings</a></li><li><a href="#m-alerts">Alerts</a></li><li><a href="#m-our-data">Our data</a></li><li><a href="#m-publishing-and-selling">Publishing and selling</a></li><li><a href="#m-limits">Limits</a></li><li><a href="#m-errors-explained">Errors explained</a></li><li><a href="#m-error-codes">Error and warning codes</a></li><li><a href="#m-patterns">Patterns every scripter uses</a></li><li><a href="#m-projects">Build four indicators step by step</a></li><li><a href="#m-glossary">Glossary</a></li><li class="p">Part 3. Cookbook</li><li><a href="#c-simple-moving-average">Simple moving average</a></li><li><a href="#c-ema-ribbon">EMA ribbon</a></li><li><a href="#c-cross-signals">Average cross marks</a></li><li><a href="#c-rsi-zones">RSI with zones</a></li><li><a href="#c-macd-histogram">MACD with colored histogram</a></li><li><a href="#c-bollinger-bands">Bollinger Bands with shading</a></li><li><a href="#c-keltner-channel">Keltner channel</a></li><li><a href="#c-atr-stop-line">ATR trailing line</a></li><li><a href="#c-supertrend-line">Supertrend</a></li><li><a href="#c-vwap-line">Session VWAP</a></li><li><a href="#c-stochastic">Stochastic</a></li><li><a href="#c-cci">CCI</a></li><li><a href="#c-obv">On-balance volume</a></li><li><a href="#c-mfi">Money flow index</a></li><li><a href="#c-donchian">Donchian channel</a></li><li><a href="#c-pivot-labels">Swing high and low labels</a></li><li><a href="#c-prior-day-levels">Previous day high and low</a></li><li><a href="#c-htf-trend">Higher timeframe trend</a></li><li><a href="#c-inside-bar">Inside bars</a></li><li><a href="#c-engulfing">Engulfing candles</a></li><li><a href="#c-fair-value-gap">Fair value gaps</a></li><li><a href="#c-range-box">Opening range box</a></li><li><a href="#c-session-background">Session background</a></li><li><a href="#c-volume-spike">Volume spike marks</a></li><li><a href="#c-relative-volume">Relative volume</a></li><li><a href="#c-range-percent">Bar range as percent</a></li><li><a href="#c-gap-marks">Opening gap marks</a></li><li><a href="#c-highest-lowest-label">Label the day&#x27;s high</a></li><li><a href="#c-info-table">Info table</a></li><li><a href="#c-gradient-columns">Gradient volume</a></li><li><a href="#c-trend-filter">Trend filter background</a></li><li><a href="#c-bars-since">Bars since last cross</a></li><li><a href="#c-correlation-pair">Correlation with another symbol</a></li><li><a href="#c-linear-regression">Regression line and bands</a></li><li><a href="#c-book-imbalance">Order book imbalance</a></li><li><a href="#c-book-walls">Nearest book walls</a></li><li><a href="#c-delta-bars">Delta columns</a></li><li><a href="#c-cvd-line">Cumulative delta</a></li><li><a href="#c-delta-divergence">Delta against price</a></li><li><a href="#c-big-trades">Big trade count</a></li><li><a href="#c-poc-lines">POC and value area</a></li><li><a href="#c-gex-levels">GEX levels</a></li><li><a href="#c-gex-zone-bg">Above or below the flip</a></li><li><a href="#c-gex-distance">Distance to the call wall</a></li><li><a href="#c-options-range">Option range edges</a></li><li><a href="#c-iv-rank-table">IV rank readout</a></li><li><a href="#c-nodes-and-walls">Gamma nodes with GEX walls</a></li><li><a href="#c-alert-cross">Cross alert</a></li><li><a href="#c-alert-level">Level alert with a message</a></li></ol></section><section class="part"><h1>Part 1. The language</h1></section><section id="m-getting-started"><h1>Getting started</h1><p>Zscript is the small language you use on TradeZoro to build your own chart indicators. You write a few lines, press <strong>Add to chart</strong>, and your idea is drawn on the chart. It is free for everyone: writing, saving and publishing scripts.</p>
+<p>If you know other chart scripting languages, Zscript will feel familiar. If you have never written a line of code, that is fine too. This manual starts at zero.</p>
+<h2 id="what-you-can-build">What you can build</h2>
+<ul>
+<li>Lines and histograms from price, such as moving averages and momentum.</li>
+<li>Marks on the chart, such as arrows when two lines cross.</li>
+<li>Colored backgrounds, boxes, lines and labels.</li>
+<li>Tables with numbers you care about.</li>
+<li>Alerts that fire when your rule is true.</li>
+<li>Indicators that use data most scripting languages do not have: the order book, order flow, GEX levels and ZoroOptions numbers. See <a href="/zscript/our-data">Our data</a>.</li>
+</ul>
+<h2 id="your-first-script">Your first script</h2>
+<p>Open ZoroCharts, open the script editor panel, and choose <strong>Zscript</strong> as the language. Paste this:</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"My first line"</span>, overlay=<span class="k">true</span>)
+
+average = <span class="n">ta</span>.sma(<span class="b">close</span>, <span class="m">20</span>)
+<span class="f">plot</span>(average, title=<span class="s">"20-bar average"</span>, <span class="t">color</span>=<span class="t">color</span>.new(<span class="m">#03c988</span>, <span class="m">0</span>), linewidth=<span class="m">2</span>)</code></pre>
+<p>Press <strong>Add to chart</strong>. A green line appears on the price chart. It is the average of the last 20 closing prices, recalculated on every bar.</p>
+<p>Here is what each line does:</p>
+<ol>
+<li><code>//@zscript 1</code> tells the editor this is a Zscript file, version 1. Always the first line.</li>
+<li><code>indicator(...)</code> names your script. <code>overlay=true</code> draws it on top of the price candles. Leave it out (or use <code>false</code>) to get a separate pane under the chart.</li>
+<li><code>average = ta.sma(close, 20)</code> makes a value called <code>average</code>. <code>ta.sma</code> is a built-in function: the simple moving average. <code>close</code> is the closing price of each bar.</li>
+<li><code>plot(...)</code> draws the value as a line.</li>
+</ol>
+<h2 id="change-something">Change something</h2>
+<p>Edit the number <code>20</code> to <code>50</code> and press <strong>Add to chart</strong> again. The line gets smoother and slower. That is the whole loop: change, run, look.</p>
+<h2 id="where-scripts-live">Where scripts live</h2>
+<p>Your scripts are saved in your account, next to your chart layout. You can keep as many as you like. Publishing one to the Script Library is optional and free; see <a href="/zscript/publishing-and-selling">Publishing and selling</a>.</p>
+<h2 id="what-to-read-next">What to read next</h2>
+<ul>
+<li><a href="/zscript/anatomy-of-a-script">Your first script, line by line</a> explains the shape of every script.</li>
+<li><a href="/zscript/bars-and-series">Bars and series</a> explains the one idea that makes everything else easy.</li>
+<li>The <a href="/zscript/cookbook/">Cookbook</a> has working scripts you can copy and change.</li>
+</ul></section><section id="m-anatomy-of-a-script"><h1>Anatomy of a script</h1><p>Every script has the same four parts, always in this order.</p>
+<ol>
+<li>The <strong>header</strong>: <code>//@zscript 1</code>.</li>
+<li>The <strong>declaration</strong>: one <code>indicator(...)</code> call.</li>
+<li>The <strong>inputs</strong>: settings the person using your script can change.</li>
+<li>The <strong>logic and drawing</strong>: calculations, then <code>plot</code> and friends.</li>
+</ol>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Anatomy demo"</span>, overlay=<span class="k">false</span>)
+
+length = <span class="n">input</span>.<span class="t">int</span>(<span class="m">14</span>, <span class="s">"Length"</span>, minval=<span class="m">2</span>)
+momentum = <span class="n">ta</span>.rsi(<span class="b">close</span>, length)
+
+<span class="f">plot</span>(momentum, <span class="s">"RSI"</span>)
+<span class="f">hline</span>(<span class="m">70</span>)
+<span class="f">hline</span>(<span class="m">30</span>)</code></pre>
+<h2 id="comments">Comments</h2>
+<p>Anything after <code>//</code> on a line is a comment. The computer ignores it. Use comments to remind yourself why, not what.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">// this line is ignored</span>
+x = <span class="b">close</span> <span class="c">// so is this part</span></code></pre>
+<h2 id="names">Names</h2>
+<p>Names of values may use letters, digits and <code>_</code>, and cannot start with a digit. Names are case sensitive: <code>Length</code> and <code>length</code> are two different things. Pick names a stranger could read: <code>fastLength</code> beats <code>a1</code>.</p>
+<h2 id="lines-and-blocks">Lines and blocks</h2>
+<p>One statement per line. Code that belongs together is indented under its header, with two or four spaces. The indent is how Zscript knows where a block ends.</p>
+<pre class="zs-code" data-lang="Zscript"><code>up = <span class="b">close</span> &gt; <span class="b">open</span>
+<span class="f">bgcolor</span>(up ? <span class="t">color</span>.new(<span class="m">#03c988</span>, <span class="m">85</span>) : <span class="k">na</span>)</code></pre>
+<p>A long line can break after an operator or a comma. Indent the continuation by at least one more level than the line it continues.</p>
+<h2 id="running-order">Running order</h2>
+<p>Your script is not run once. It is run <strong>once for every bar</strong> on the chart, from the oldest bar to the newest, and again on every tick of the newest bar. Every line sees the world as it was at that bar. The next chapter shows why this matters.</p>
+<h2 id="the-declaration">The declaration</h2>
+<p><code>indicator()</code> takes a title and a few optional settings.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>title</code></td>
+<td>The name shown on the chart and in the list.</td>
+</tr>
+<tr>
+<td><code>overlay</code></td>
+<td><code>true</code> draws on the price chart. <code>false</code> (default) uses its own pane.</td>
+</tr>
+<tr>
+<td><code>max_bars_back</code></td>
+<td>How far back your script may look. Leave it alone unless you see an error asking for it.</td>
+</tr>
+</tbody>
+</table>
+<p>A script has exactly one <code>indicator()</code> call, and it must come before any drawing.</p></section><section id="m-bars-and-series"><h1>Bars and series</h1><h2 id="one-run-per-bar">One run per bar</h2>
+<p>A chart is a row of bars. Zscript runs your whole script for each bar. When it is working on bar number 500, <code>close</code> means "the close of bar 500". When it moves on to bar 501, <code>close</code> now means that bar's close.</p>
+<p>A value that changes bar by bar is called a <strong>series</strong>. <code>open</code>, <code>high</code>, <code>low</code>, <code>close</code>, <code>volume</code> and <code>time</code> are series that exist in every script. Anything you calculate from a series is a series too.</p>
+<h2 id="looking-back">Looking back</h2>
+<p>To see an older value of a series, put a number in square brackets after it. <code>close[1]</code> is the close one bar ago, <code>close[2]</code> is two bars ago, and so on.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Bar change"</span>)
+
+change1 = <span class="b">close</span> - <span class="b">close</span>[<span class="m">1</span>]
+<span class="f">plot</span>(change1, <span class="s">"Change since last bar"</span>, style=plot.style_histogram)</code></pre>
+<p>On the very first bar there is no bar before it, so <code>close[1]</code> has no value. Zscript calls "no value" <strong>na</strong> (not available). Any math with <code>na</code> gives <code>na</code>, and a plot skips <code>na</code> bars. That is by design: no value means no line, not a wrong line.</p>
+<p>You can test for it and fix it:</p>
+<pre class="zs-code" data-lang="Zscript"><code>prev = <span class="f">nz</span>(<span class="b">close</span>[<span class="m">1</span>], <span class="b">close</span>)   <span class="c">// use close itself when there is no older bar</span>
+isMissing = <span class="k">na</span>(<span class="b">close</span>[<span class="m">1</span>])</code></pre>
+<p><code>nz(x, replacement)</code> swaps <code>na</code> for the replacement (or 0 if you leave it out). <code>na(x)</code> is <code>true</code> when x is missing.</p>
+<h2 id="remembering-across-bars-with-var">Remembering across bars with var</h2>
+<p>An ordinary value is recalculated from scratch on each bar. To keep a number alive from bar to bar, declare it with <code>var</code>. A <code>var</code> is set once, on the first bar, and keeps whatever you assign to it after that.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Count green bars"</span>)
+
+<span class="k">var</span> <span class="t">int</span> greens = <span class="m">0</span>
+<span class="k">if</span> <span class="b">close</span> &gt; <span class="b">open</span>
+    greens := greens + <span class="m">1</span>
+
+<span class="f">plot</span>(greens, <span class="s">"Green bars so far"</span>)</code></pre>
+<p>Two things to notice. First, <code>:=</code> changes an existing value; a single <code>=</code> creates a new one. Second, <code>greens</code> never resets, so the plot only goes up.</p>
+<h2 id="realtime-bars-var-and-varip">Realtime bars: var and varip</h2>
+<p>On historical bars each bar runs once. The newest bar runs again on every tick. A plain <code>var</code> is rolled back to its value from the end of the last finished bar before each tick, so history and live look the same. Use <code>varip</code> only when you truly need a value to survive between ticks of the same bar, for example to count ticks.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Ticks on this bar"</span>)
+
+<span class="k">varip</span> <span class="t">int</span> ticks = <span class="m">0</span>
+<span class="k">if</span> <span class="n">barstate</span>.isnew
+    ticks := <span class="m">0</span>
+ticks := ticks + <span class="m">1</span>
+<span class="f">plot</span>(ticks)</code></pre>
+<p>On finished history bars this plots 1, because each bar runs once. On the live bar it counts up.</p>
+<h2 id="series-are-not-arrays">Series are not arrays</h2>
+<p>A series is "one value per bar". An <strong>array</strong> is a list you fill and read yourself, on a single bar. Both exist; see <a href="/zscript/types-and-values">Types and values</a>.</p>
+<h2 id="rules-of-thumb">Rules of thumb</h2>
+<ul>
+<li>Think in terms of "what is true on this bar".</li>
+<li>Use <code>[n]</code> to look at the past, never the future. Zscript has no way to read a bar that has not happened yet. That is on purpose, and the same rule holds for order book, order flow, GEX and options numbers: you only see what was known at that bar.</li>
+<li>Use <code>var</code> when something must be remembered.</li>
+</ul></section><section id="m-types-and-values"><h1>Types and values</h1><p>Every value has a type. Zscript works out the type for you most of the time, and you can write it when you want to be clear.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Holds</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>int</code></td>
+<td>whole numbers</td>
+<td><code>14</code></td>
+</tr>
+<tr>
+<td><code>float</code></td>
+<td>numbers with a decimal part</td>
+<td><code>0.5</code></td>
+</tr>
+<tr>
+<td><code>bool</code></td>
+<td><code>true</code> or <code>false</code></td>
+<td><code>close &gt; open</code></td>
+</tr>
+<tr>
+<td><code>string</code></td>
+<td>text</td>
+<td><code>"Buy zone"</code></td>
+</tr>
+<tr>
+<td><code>color</code></td>
+<td>a color</td>
+<td><code>#03c988</code>, <code>color.red</code></td>
+</tr>
+<tr>
+<td><code>series&lt;T&gt;</code></td>
+<td>one value of type T per bar</td>
+<td><code>close</code></td>
+</tr>
+<tr>
+<td><code>array&lt;T&gt;</code></td>
+<td>a list of values of type T</td>
+<td><code>array.new&lt;float&gt;()</code></td>
+</tr>
+<tr>
+<td><code>map&lt;K,V&gt;</code></td>
+<td>a lookup table</td>
+<td><code>map.new&lt;string, float&gt;()</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="making-and-changing-values">Making and changing values</h2>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Values"</span>)
+
+<span class="t">float</span> range1 = <span class="b">high</span> - <span class="b">low</span>        <span class="c">// type written out</span>
+mid = (<span class="b">high</span> + <span class="b">low</span>) / <span class="m">2</span>           <span class="c">// type worked out</span>
+<span class="t">bool</span> bigBar = range1 &gt; <span class="n">ta</span>.sma(range1, <span class="m">20</span>) * <span class="m">1.5</span>
+
+<span class="k">var</span> <span class="t">float</span> biggest = <span class="m">0.0</span>
+<span class="k">if</span> range1 &gt; biggest
+    biggest := range1
+
+<span class="f">plot</span>(mid, <span class="s">"Mid"</span>)
+<span class="f">plotshape</span>(bigBar, <span class="s">"Big bar"</span>, shape.circle, location.abovebar)</code></pre>
+<ul>
+<li><code>=</code> creates a value. <code>:=</code> changes one that already exists.</li>
+<li>Math: <code>+ - * / %</code>. Compare with <code>== != &lt; &lt;= &gt; &gt;=</code>. Combine tests with <code>and</code>, <code>or</code>, <code>not</code>.</li>
+<li>Text joins with <code>+</code>: <code>"Range " + str.tostring(range1)</code>.</li>
+<li><code>x ? a : b</code> gives <code>a</code> when <code>x</code> is true, else <code>b</code>.</li>
+</ul>
+<h2 id="colors">Colors</h2>
+<p>Write a color as <code>#rrggbb</code>, use a named one such as <code>color.green</code>, or build one with <code>color.new(base, transparency)</code> where transparency is 0 (solid) to 100 (invisible). <code>color.rgb(r, g, b)</code> builds one from numbers.</p>
+<h2 id="arrays">Arrays</h2>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Array demo"</span>)
+
+<span class="k">var</span> prices = <span class="t">array</span>.new&lt;<span class="t">float</span>&gt;()
+<span class="t">array</span>.push(prices, <span class="b">close</span>)
+<span class="k">if</span> <span class="t">array</span>.size(prices) &gt; <span class="m">5</span>
+    <span class="t">array</span>.shift(prices)
+
+<span class="f">plot</span>(<span class="t">array</span>.avg(prices), <span class="s">"Average of the last 5 closes"</span>)</code></pre>
+<h2 id="maps">Maps</h2>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Map demo"</span>)
+
+<span class="k">var</span> counts = <span class="t">map</span>.new&lt;<span class="t">string</span>, <span class="t">int</span>&gt;()
+key = <span class="b">close</span> &gt; <span class="b">open</span> ? <span class="s">"up"</span> : <span class="s">"down"</span>
+<span class="t">map</span>.put(counts, key, <span class="f">nz</span>(<span class="t">map</span>.get(counts, key)) + <span class="m">1</span>)
+<span class="f">plot</span>(<span class="f">nz</span>(<span class="t">map</span>.get(counts, <span class="s">"up"</span>)), <span class="s">"Up bars"</span>)</code></pre>
+<h2 id="tuples">Tuples</h2>
+<p>A function can return several values at once. Take them apart with square brackets.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Tuple demo"</span>, overlay=<span class="k">true</span>)
+
+[middle, upper, lower] = <span class="n">ta</span>.bb(<span class="b">close</span>, <span class="m">20</span>, <span class="m">2.0</span>)
+<span class="f">plot</span>(middle)
+<span class="f">plot</span>(upper)
+<span class="f">plot</span>(lower)</code></pre>
+<h2 id="limits-to-know">Limits to know</h2>
+<p>Arrays, maps, series and drawings each have a size cap so a script cannot use all your memory. See <a href="/zscript/limits">Limits</a>.</p></section><section id="m-control-flow"><h1>Decisions and loops</h1><h2 id="if-else">if / else</h2>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Trend color"</span>, overlay=<span class="k">true</span>)
+
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+
+lineColor = <span class="t">color</span>.gray
+<span class="k">if</span> fast &gt; slow
+    lineColor := <span class="t">color</span>.green
+<span class="k">else</span> <span class="k">if</span> fast &lt; slow
+    lineColor := <span class="t">color</span>.red
+
+<span class="f">plot</span>(fast, <span class="t">color</span>=lineColor, linewidth=<span class="m">2</span>)</code></pre>
+<p><code>if</code> can also give back a value:</p>
+<pre class="zs-code" data-lang="Zscript"><code>label1 = <span class="k">if</span> <span class="b">close</span> &gt; <span class="b">open</span>
+    <span class="s">"up"</span>
+<span class="k">else</span>
+    <span class="s">"down"</span></code></pre>
+<h2 id="switch">switch</h2>
+<p>Pick one branch out of several by value:</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Pick an average"</span>, overlay=<span class="k">true</span>)
+
+kind = <span class="n">input</span>.<span class="t">string</span>(<span class="s">"EMA"</span>, <span class="s">"Type"</span>, options=[<span class="s">"SMA"</span>, <span class="s">"EMA"</span>, <span class="s">"WMA"</span>])
+len = <span class="n">input</span>.<span class="t">int</span>(<span class="m">20</span>, <span class="s">"Length"</span>)
+
+smaLine = <span class="n">ta</span>.sma(<span class="b">close</span>, len)
+wmaLine = <span class="n">ta</span>.wma(<span class="b">close</span>, len)
+emaLine = <span class="n">ta</span>.ema(<span class="b">close</span>, len)
+
+line1 = <span class="k">switch</span> kind
+    <span class="s">"SMA"</span> =&gt; smaLine
+    <span class="s">"WMA"</span> =&gt; wmaLine
+    =&gt; emaLine
+
+<span class="f">plot</span>(line1)</code></pre>
+<p>The lone <code>=&gt;</code> is the default branch. We work out all three averages first, on every bar, and let the <code>switch</code> only choose. Calling <code>ta</code> functions inside a branch would leave their memory with gaps.</p>
+<h2 id="for-loops">for loops</h2>
+<p><code>for</code> counts from one number to another. Use it to look at the last few bars one by one.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Count higher closes"</span>)
+
+n = <span class="n">input</span>.<span class="t">int</span>(<span class="m">10</span>, <span class="s">"Look at last"</span>, minval=<span class="m">1</span>, maxval=<span class="m">50</span>)
+higher = <span class="m">0</span>
+<span class="k">for</span> i = <span class="m">0</span> <span class="k">to</span> n - <span class="m">1</span>
+    <span class="k">if</span> <span class="b">close</span>[i] &gt; <span class="b">close</span>[i + <span class="m">1</span>]
+        higher += <span class="m">1</span>
+
+<span class="f">plot</span>(higher, style=plot.style_columns)</code></pre>
+<p><code>for x in myArray</code> walks the items of an array.</p>
+<h2 id="while">while</h2>
+<pre class="zs-code" data-lang="Zscript"><code>n = <span class="m">0</span>
+<span class="k">while</span> n &lt; <span class="m">10</span> <span class="k">and</span> <span class="b">close</span>[n] &gt; <span class="b">open</span>[n]
+    n += <span class="m">1</span></code></pre>
+<h2 id="keep-loops-short">Keep loops short</h2>
+<p>Zscript runs your script on every bar, so a loop that runs 500 times does 500 times the work on every one of thousands of bars. Two safeguards protect you and everyone else:</p>
+<ul>
+<li>A loop has a maximum number of turns per bar, and your script has a maximum amount of work per bar. Hit either and the script stops with a clear message on the line that went too far.</li>
+<li>The first run must finish in 20 seconds.</li>
+</ul>
+<p>When you can, use the built-in functions such as <code>ta.highest</code> or <code>ta.sma</code>: they are faster than the same logic in a loop. More in <a href="/zscript/limits">Limits</a>.</p>
+<p><code>break</code> leaves a loop early. <code>continue</code> skips to the next turn.</p></section><section id="m-functions"><h1>Functions</h1><h2 id="one-line-functions">One-line functions</h2>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Typical price band"</span>, overlay=<span class="k">true</span>)
+
+typical(h, l, c) =&gt; (h + l + c) / <span class="m">3</span>
+band(x, pct) =&gt; x * (<span class="m">1</span> + pct / <span class="m">100</span>)
+
+tp = typical(<span class="b">high</span>, <span class="b">low</span>, <span class="b">close</span>)
+<span class="f">plot</span>(tp)
+<span class="f">plot</span>(band(tp, <span class="m">1.0</span>))
+<span class="f">plot</span>(band(tp, -<span class="m">1.0</span>))</code></pre>
+<h2 id="functions-with-several-lines">Functions with several lines</h2>
+<p>The last line is the value the function gives back.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Smoothed range"</span>, overlay=<span class="k">false</span>)
+
+smoothRange(len) =&gt;
+    r = <span class="b">high</span> - <span class="b">low</span>
+    avg = <span class="n">ta</span>.sma(r, len)
+    avg * <span class="m">100</span> / <span class="b">close</span>
+
+<span class="f">plot</span>(smoothRange(<span class="m">14</span>), <span class="s">"Range as % of price"</span>)</code></pre>
+<h2 id="returning-more-than-one-value">Returning more than one value</h2>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Two bands"</span>, overlay=<span class="k">true</span>)
+
+channel(len) =&gt;
+    top = <span class="n">ta</span>.highest(<span class="b">high</span>, len)
+    bottom = <span class="n">ta</span>.lowest(<span class="b">low</span>, len)
+    [top, bottom]
+
+[t, b] = channel(<span class="m">20</span>)
+<span class="f">plot</span>(t)
+<span class="f">plot</span>(b)</code></pre>
+<h2 id="things-to-know">Things to know</h2>
+<ul>
+<li>A function must be defined before the line that uses it.</li>
+<li>Functions see the series history of what you pass in: inside <code>f(x)</code>, <code>x[1]</code> is the previous bar's value of whatever you passed.</li>
+<li>A function that calls <code>ta.*</code> functions should be called on every bar, not only inside an <code>if</code>. The <code>ta</code> functions keep a running history, and skipping bars gives wrong answers. Zscript warns you when it spots this.</li>
+<li>Functions cannot call themselves.</li>
+</ul></section><section id="m-inputs"><h1>Inputs</h1><p>Anything you want to be changeable goes in an <code>input.*</code> call. Each one adds a control to your script's settings dialog.</p>
+<table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Control</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>input.int</code></td>
+<td>whole number box</td>
+<td><code>input.int(14, "Length", minval=1)</code></td>
+</tr>
+<tr>
+<td><code>input.float</code></td>
+<td>decimal box</td>
+<td><code>input.float(2.0, "Multiplier", step=0.1)</code></td>
+</tr>
+<tr>
+<td><code>input.bool</code></td>
+<td>switch</td>
+<td><code>input.bool(true, "Show labels")</code></td>
+</tr>
+<tr>
+<td><code>input.string</code></td>
+<td>text or a pick list</td>
+<td><code>input.string("EMA", "Type", options=["SMA","EMA"])</code></td>
+</tr>
+<tr>
+<td><code>input.color</code></td>
+<td>color picker</td>
+<td><code>input.color(#03c988, "Line color")</code></td>
+</tr>
+<tr>
+<td><code>input.source</code></td>
+<td>pick a price (close, hl2...)</td>
+<td><code>input.source(close, "Source")</code></td>
+</tr>
+<tr>
+<td><code>input.timeframe</code></td>
+<td>timeframe picker</td>
+<td><code>input.timeframe("60", "Higher timeframe")</code></td>
+</tr>
+</tbody>
+</table>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Tunable bands"</span>, overlay=<span class="k">true</span>)
+
+src    = <span class="n">input</span>.source(<span class="b">close</span>, <span class="s">"Source"</span>)
+len    = <span class="n">input</span>.<span class="t">int</span>(<span class="m">20</span>, <span class="s">"Length"</span>, minval=<span class="m">2</span>, maxval=<span class="m">500</span>, group=<span class="s">"Average"</span>)
+mult   = <span class="n">input</span>.<span class="t">float</span>(<span class="m">2.0</span>, <span class="s">"Width"</span>, minval=<span class="m">0.1</span>, step=<span class="m">0.1</span>, group=<span class="s">"Average"</span>)
+shade  = <span class="n">input</span>.<span class="t">bool</span>(<span class="k">true</span>, <span class="s">"Shade between bands"</span>, group=<span class="s">"Look"</span>)
+tint   = <span class="n">input</span>.<span class="t">color</span>(<span class="m">#00adb5</span>, <span class="s">"Tint"</span>, group=<span class="s">"Look"</span>)
+
+[mid, up, lo] = <span class="n">ta</span>.bb(src, len, mult)
+p1 = <span class="f">plot</span>(up, <span class="t">color</span>=tint)
+p2 = <span class="f">plot</span>(lo, <span class="t">color</span>=tint)
+<span class="f">plot</span>(mid, <span class="t">color</span>=<span class="t">color</span>.gray)
+<span class="f">fill</span>(p1, p2, <span class="t">color</span>=shade ? <span class="t">color</span>.new(tint, <span class="m">90</span>) : <span class="k">na</span>)</code></pre>
+<h2 id="good-habits">Good habits</h2>
+<ul>
+<li>Give every input a short, plain title and a sensible default. The default is what everyone sees first.</li>
+<li>Set <code>minval</code> and <code>maxval</code> so nobody can type 0 into a length.</li>
+<li>Use <code>group="..."</code> to keep long lists tidy.</li>
+<li>Add <code>tooltip="..."</code> to explain anything a newcomer would ask about.</li>
+<li>Inputs are read once per run. You cannot change an input while the script is running.</li>
+</ul></section><section id="m-plots-and-drawings"><h1>Plots and drawings</h1><h2 id="plot">plot</h2>
+<p><code>plot(series, title, color, linewidth, style)</code> draws one value per bar.</p>
+<p>Styles: <code>plot.style_line</code> (default), <code>plot.style_histogram</code>, <code>plot.style_columns</code>, <code>plot.style_area</code>, <code>plot.style_circles</code>, <code>plot.style_stepline</code>, <code>plot.style_cross</code>.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Volume with color"</span>)
+
+up = <span class="b">close</span> &gt;= <span class="b">open</span>
+<span class="f">plot</span>(<span class="b">volume</span>, <span class="s">"Volume"</span>, <span class="t">color</span>=up ? <span class="t">color</span>.green : <span class="t">color</span>.red, style=plot.style_columns)</code></pre>
+<p>A color can differ bar by bar, as above.</p>
+<h2 id="hline-and-fill">hline and fill</h2>
+<p><code>hline(price)</code> draws a flat line across the pane. <code>fill(a, b, color)</code> shades between two plots or two hlines.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"RSI zone"</span>)
+
+r = <span class="n">ta</span>.rsi(<span class="b">close</span>, <span class="m">14</span>)
+top = <span class="f">hline</span>(<span class="m">70</span>)
+bot = <span class="f">hline</span>(<span class="m">30</span>)
+<span class="f">fill</span>(top, bot, <span class="t">color</span>.new(<span class="t">color</span>.gray, <span class="m">90</span>))
+<span class="f">plot</span>(r, <span class="s">"RSI"</span>)</code></pre>
+<h2 id="marks-on-bars">Marks on bars</h2>
+<p><code>plotshape(condition, title, shape, location)</code> puts a small shape on every bar where the condition is true. <code>plotchar</code> does the same with a letter or symbol. <code>plotarrow</code> draws an arrow whose length follows a number.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Cross marks"</span>, overlay=<span class="k">true</span>)
+
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+<span class="f">plot</span>(fast)
+<span class="f">plot</span>(slow)
+<span class="f">plotshape</span>(<span class="n">ta</span>.crossover(fast, slow), <span class="s">"Cross up"</span>, shape.triangleup, location.belowbar, <span class="t">color</span>.green)
+<span class="f">plotshape</span>(<span class="n">ta</span>.crossunder(fast, slow), <span class="s">"Cross down"</span>, shape.triangledown, location.abovebar, <span class="t">color</span>.red)</code></pre>
+<h2 id="coloring-the-chart-itself">Coloring the chart itself</h2>
+<p><code>bgcolor(color)</code> tints the pane background on a bar. <code>barcolor(color)</code> recolors the candle. <code>plotcandle(o, h, l, c)</code> draws your own candles.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Inside bars"</span>, overlay=<span class="k">true</span>)
+
+inside = <span class="b">high</span> &lt; <span class="b">high</span>[<span class="m">1</span>] <span class="k">and</span> <span class="b">low</span> &gt; <span class="b">low</span>[<span class="m">1</span>]
+<span class="f">barcolor</span>(inside ? <span class="t">color</span>.yellow : <span class="k">na</span>)
+<span class="f">bgcolor</span>(inside ? <span class="t">color</span>.new(<span class="t">color</span>.yellow, <span class="m">90</span>) : <span class="k">na</span>)</code></pre>
+<h2 id="labels-lines-boxes-and-tables">Labels, lines, boxes and tables</h2>
+<p>These are <strong>drawings</strong>. Unlike a plot, they are objects you create, move and delete. Each has a <code>.new</code> call and <code>set_</code> calls to change it.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Swing labels"</span>, overlay=<span class="k">true</span>)
+
+ph = <span class="n">ta</span>.pivothigh(<span class="b">high</span>, <span class="m">5</span>, <span class="m">5</span>)
+pl = <span class="n">ta</span>.pivotlow(<span class="b">low</span>, <span class="m">5</span>, <span class="m">5</span>)
+<span class="k">if</span> <span class="k">not</span> <span class="k">na</span>(ph)
+    <span class="n">label</span>.new(<span class="b">bar_index</span> - <span class="m">5</span>, ph, <span class="s">"H"</span>, style=<span class="n">label</span>.style_label_down, <span class="t">color</span>=<span class="t">color</span>.red, textcolor=<span class="t">color</span>.white)
+<span class="k">if</span> <span class="k">not</span> <span class="k">na</span>(pl)
+    <span class="n">label</span>.new(<span class="b">bar_index</span> - <span class="m">5</span>, pl, <span class="s">"L"</span>, style=<span class="n">label</span>.style_label_up, <span class="t">color</span>=<span class="t">color</span>.green, textcolor=<span class="t">color</span>.white)</code></pre>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Today's range box"</span>, overlay=<span class="k">true</span>)
+
+<span class="k">var</span> box rangeBox = <span class="k">na</span>
+<span class="k">if</span> dayofmonth != dayofmonth[<span class="m">1</span>]
+    rangeBox := <span class="n">box</span>.new(<span class="b">bar_index</span>, <span class="b">high</span>, <span class="b">bar_index</span>, <span class="b">low</span>, border_color=<span class="t">color</span>.gray, bgcolor=<span class="t">color</span>.new(<span class="t">color</span>.gray, <span class="m">90</span>))
+<span class="k">else</span>
+    <span class="n">box</span>.set_right(rangeBox, <span class="b">bar_index</span>)
+    <span class="n">box</span>.set_top(rangeBox, <span class="n">math</span>.max(<span class="n">box</span>.get_top(rangeBox), <span class="b">high</span>))
+    <span class="n">box</span>.set_bottom(rangeBox, <span class="n">math</span>.min(<span class="n">box</span>.get_bottom(rangeBox), <span class="b">low</span>))</code></pre>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Info table"</span>, overlay=<span class="k">true</span>)
+
+<span class="k">var</span> t = <span class="n">table</span>.new(position.top_right, <span class="m">2</span>, <span class="m">2</span>)
+<span class="k">if</span> <span class="n">barstate</span>.islast
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">0</span>, <span class="s">"Close"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">0</span>, <span class="n">str</span>.tostring(<span class="b">close</span>, <span class="s">"#.##"</span>))
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">1</span>, <span class="s">"Volume"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">1</span>, <span class="n">str</span>.tostring(<span class="b">volume</span>, <span class="s">"#"</span>))</code></pre>
+<p><code>line.new(x1, y1, x2, y2)</code> draws a segment. <code>line.delete(id)</code> removes it. Each kind has <code>get_</code> and <code>set_</code> calls, and a <code>*.delete</code> call. The reference lists them all.</p>
+<h2 id="drawing-limits">Drawing limits</h2>
+<p>Each kind of drawing has a maximum count on screen (labels, lines, boxes, tables). When you go over, the oldest ones are removed first. If you create drawings in a loop, delete the ones you no longer need. See <a href="/zscript/limits">Limits</a>.</p></section><section id="m-alerts"><h1>Alerts</h1><p>An alert is a rule that is true or false on each bar. When it turns true, TradeZoro can tell you.</p>
+<h2 id="alertcondition">alertcondition</h2>
+<p>Declare the rule once. It then shows up in the alert dialog on the chart, where you choose how to be told.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Cross alerts"</span>, overlay=<span class="k">true</span>)
+
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+<span class="f">plot</span>(fast)
+<span class="f">plot</span>(slow)
+
+<span class="f">alertcondition</span>(<span class="n">ta</span>.crossover(fast, slow), <span class="s">"Fast crossed above slow"</span>, <span class="s">"9 EMA is above 21 EMA"</span>)
+<span class="f">alertcondition</span>(<span class="n">ta</span>.crossunder(fast, slow), <span class="s">"Fast crossed below slow"</span>, <span class="s">"9 EMA is below 21 EMA"</span>)</code></pre>
+<h2 id="alert">alert()</h2>
+<p><code>alert(message)</code> fires from inside your code, which lets you build the message from values.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Big bar alert"</span>, overlay=<span class="k">true</span>)
+
+big = (<span class="b">high</span> - <span class="b">low</span>) &gt; <span class="n">ta</span>.atr(<span class="m">14</span>) * <span class="m">2</span>
+<span class="k">if</span> big <span class="k">and</span> <span class="n">barstate</span>.isconfirmed
+    alert(<span class="s">"Big bar: range "</span> + <span class="n">str</span>.tostring(<span class="b">high</span> - <span class="b">low</span>, <span class="s">"#.##"</span>))</code></pre>
+<p><code>barstate.isconfirmed</code> is true once the bar has closed. Alerting only on closed bars avoids alerts that appear and vanish within a bar.</p>
+<h2 id="good-to-know">Good to know</h2>
+<ul>
+<li>Alerts run while the chart is open in your browser, using the same data as the chart.</li>
+<li>A message is plain text. Keep it short.</li>
+<li>An alert on data from the order book, order flow, GEX or options follows the same plan rules as showing that data on a chart.</li>
+</ul></section><section id="m-our-data"><h1>Our data</h1><p>Most scripting languages stop at price and volume. Zscript can also read the extra data TradeZoro already shows on its charts. Each kind lives in its own namespace.</p>
+<table>
+<thead>
+<tr>
+<th>Namespace</th>
+<th>What it is</th>
+<th>Plan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>book.*</code></td>
+<td>Order book (level 2): resting orders above and below price</td>
+<td>Pro</td>
+</tr>
+<tr>
+<td><code>flow.*</code></td>
+<td>Order flow: trades, delta, big trades, footprint, volume profile</td>
+<td>Pro</td>
+</tr>
+<tr>
+<td><code>gex.*</code></td>
+<td>GEX+ levels: call wall, put wall, flip, zero gamma</td>
+<td>GEX+</td>
+</tr>
+<tr>
+<td><code>opt.*</code></td>
+<td>ZoroOptions summary: gamma nodes, ranges, IV rank, max pain</td>
+<td>Pro</td>
+</tr>
+</tbody>
+</table>
+<p>Your script gets the data your plan gives you on the chart, no more. When your plan does not include a data kind, the call returns <code>na</code> and you see one short notice on the chart, once. The script keeps running; the rest of your lines still draw.</p>
+<h2 id="no-peeking">No peeking</h2>
+<p>Every value is the value known <strong>at that bar</strong>. There is no way to read a future bar, so a script that uses this data looks the same live and in Replay. Order book, GEX and options numbers are snapshots: a snapshot is stored at some time and used for the bars that follow it, until the next one arrives. For GEX and ZoroOptions numbers, treat them as "updated a few minutes ago", never as an instant live feed.</p>
+<h2 id="order-book-book">Order book: book</h2>
+<pre class="zs-code zs-plain"><code>book.bid(level)        price of the bid at depth `level` (0 = best)
+book.ask(level)        price of the ask at depth `level`
+book.bidsize(level)    size resting there
+book.asksize(level)    size resting there
+book.depth(side, n)    total size in the best n levels of a side (book.side_bid or book.side_ask)
+book.imbalance(n)      (bid depth - ask depth) / (bid depth + ask depth) in the best n levels, -1 to 1
+book.wall(side, minSize)  price of the nearest level with at least minSize resting (side is book.side_bid or book.side_ask)
+book.heat(price)       size resting at that price (nearest level within one tick)</code></pre>
+<p>Available where we have a depth feed: the futures hub and the supported crypto venues. On other symbols you get <code>na</code> and a notice.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Book imbalance"</span>, overlay=<span class="k">false</span>)
+
+imb = <span class="n">book</span>.imbalance(<span class="m">10</span>)
+<span class="f">plot</span>(imb, <span class="s">"Imbalance (10 levels)"</span>, style=plot.style_columns, <span class="t">color</span>=imb &gt;= <span class="m">0</span> ? <span class="t">color</span>.green : <span class="t">color</span>.red)
+<span class="f">hline</span>(<span class="m">0</span>)</code></pre>
+<h2 id="order-flow-flow">Order flow: flow</h2>
+<pre class="zs-code zs-plain"><code>flow.buyvol, flow.sellvol    volume that traded at the ask / at the bid, per bar
+flow.delta                   buyvol - sellvol for the bar
+flow.cvd                     running total of delta
+flow.trades                  number of trades in the bar
+flow.bigtrades(minSize)      count of single trades of at least minSize
+flow.footprint(price)        volume traded at one price level inside the bar
+flow.bigtrades_vol(minSize)  total size of those big trades
+flow.poc, flow.vah, flow.val point of control, value area high and low of the bar</code></pre>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Delta and CVD"</span>)
+
+<span class="f">plot</span>(<span class="n">flow</span>.delta, <span class="s">"Delta"</span>, style=plot.style_columns, <span class="t">color</span>=<span class="n">flow</span>.delta &gt;= <span class="m">0</span> ? <span class="t">color</span>.green : <span class="t">color</span>.red)
+<span class="f">plot</span>(<span class="n">flow</span>.cvd, <span class="s">"CVD"</span>, <span class="t">color</span>=<span class="t">color</span>.white)</code></pre>
+<h2 id="gex-levels-gex">GEX levels: gex</h2>
+<pre class="zs-code zs-plain"><code>gex.callwall   strike with the largest call gamma
+gex.putwall    strike with the largest put gamma
+gex.flip       gamma flip level
+gex.zero_upper, gex.zero_lower   the two zero-gamma levels around price
+gex.net        net gamma number
+gex.level(n)   the nth strongest level (0 = strongest)
+gex.updated    when the levels were computed (ms)</code></pre>
+<p>ES and NQ use the same mapping as the GEX+ page.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"GEX walls"</span>, overlay=<span class="k">true</span>)
+
+<span class="f">plot</span>(<span class="n">gex</span>.callwall, <span class="s">"Call wall"</span>, <span class="t">color</span>=<span class="t">color</span>.green, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">gex</span>.putwall, <span class="s">"Put wall"</span>, <span class="t">color</span>=<span class="t">color</span>.red, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">gex</span>.flip, <span class="s">"Flip"</span>, <span class="t">color</span>=<span class="t">color</span>.yellow, style=plot.style_stepline)</code></pre>
+<h2 id="zorooptions-opt">ZoroOptions: opt</h2>
+<pre class="zs-code zs-plain"><code>opt.node(n)      price of the nth gamma node
+opt.range(kind)  a pair [low, high] for kind "day", "week" or "expected"
+opt.ivrank       IV rank, 0 to 100
+opt.pc           put/call ratio
+opt.maxpain      max pain strike
+opt.zone         the current zone label
+opt.updated      when the data was computed (ms): show it as "updated X min ago"</code></pre>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Option ranges"</span>, overlay=<span class="k">true</span>)
+
+[lo, hi] = <span class="n">opt</span>.range(<span class="s">"expected"</span>)
+<span class="f">plot</span>(hi, <span class="s">"Range high"</span>, <span class="t">color</span>=<span class="t">color</span>.gray, style=plot.style_stepline)
+<span class="f">plot</span>(lo, <span class="s">"Range low"</span>, <span class="t">color</span>=<span class="t">color</span>.gray, style=plot.style_stepline)</code></pre>
+<h2 id="handling-no-data">Handling "no data"</h2>
+<p>Because these calls return <code>na</code> when data is missing, protect your math with <code>nz</code> or <code>na()</code>:</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Safe delta"</span>, overlay=<span class="k">false</span>)
+
+d = <span class="f">nz</span>(<span class="n">flow</span>.delta, <span class="m">0</span>)
+<span class="f">plot</span>(d, <span class="s">"Delta (0 when no data)"</span>, style=plot.style_columns)</code></pre>
+<p>Education only. Data samples in this manual are labelled "Sample" and are not results.</p></section><section id="m-publishing-and-selling"><h1>Publishing and selling</h1><p>Publishing is free for everyone. You can share a script openly, or sell it through Creator Hub.</p>
+<h2 id="publish-a-script">Publish a script</h2>
+<ol>
+<li>Open your script in the editor and press <strong>Publish</strong>.</li>
+<li>Give it a name and a short description. Pick a category.</li>
+<li>Choose how people get it:
+   - <strong>Open source</strong>: anyone who adds it can read the code.
+   - <strong>Protected</strong>: people can use it but not read it.</li>
+<li>Choose <strong>free</strong> or <strong>paid</strong>.</li>
+<li>Add a short note about what changed in this version.</li>
+</ol>
+<p>The script then appears in the Script Library. Each time you publish again, you add a new version. People who already use your script can update when they choose.</p>
+<h2 id="protected-scripts">Protected scripts</h2>
+<p>When you publish a protected script, the source never leaves your account. We compile it, seal the compiled program on our server, and only send it to people who are allowed to use it. Paid and protected scripts run only for people who have it. Nobody else is sent the code.</p>
+<p>A protected script runs in the same sandbox as every other script. It cannot reach the network, your storage or the page.</p>
+<h2 id="selling">Selling</h2>
+<p>A paid script is listed in Creator Hub like other creator products. Payouts work the same way as the rest of Creator Hub; see the Creator Hub rules for the payout terms. We do not publish prices in this manual: you set yours in the publish dialog.</p>
+<h2 id="rules-for-listings">Rules for listings</h2>
+<ul>
+<li>Describe honestly what the script does.</li>
+<li>Do not claim profit, win rates or results. Education only. Not financial advice.</li>
+<li>Sample screenshots must say "Sample".</li>
+<li>A script that tries to break the sandbox, hide what it does, or harm the viewer is removed.</li>
+</ul>
+<h2 id="data-in-published-scripts">Data in published scripts</h2>
+<p>If your script uses book, flow, GEX or options data, people who run it see that data only if their plan includes it, exactly as on a chart. Say so in your description so nobody is surprised.</p></section><section id="m-limits"><h1>Limits</h1><p>Scripts from other members run in your browser. To make that safe, every script runs inside a locked room: it can do math and draw on the chart, and nothing else. It cannot open web connections, read your cookies or storage, or touch the page.</p>
+<h2 id="what-a-script-can-never-do">What a script can never do</h2>
+<ul>
+<li>Reach the network.</li>
+<li>Read or write your browser storage or cookies.</li>
+<li>Change the page, other than through the plots and drawings it declares.</li>
+<li>Run text as code. Zscript has no <code>eval</code>.</li>
+</ul>
+<h2 id="the-numbers">The numbers</h2>
+<p>These are the limits the engine enforces today.</p>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Script size</td>
+<td>256 KB, 20,000 lines</td>
+</tr>
+<tr>
+<td>Nesting depth</td>
+<td>128</td>
+</tr>
+<tr>
+<td>Bars in one run</td>
+<td>50,000</td>
+</tr>
+<tr>
+<td>First full run</td>
+<td>20 seconds</td>
+</tr>
+<tr>
+<td>Work per bar</td>
+<td>1,000,000 operations</td>
+</tr>
+<tr>
+<td>Turns of one loop, per bar</td>
+<td>100,000</td>
+</tr>
+<tr>
+<td>Function calls inside each other</td>
+<td>64 (a function cannot call itself)</td>
+</tr>
+<tr>
+<td>Items in one array</td>
+<td>100,000 (1,000,000 across all arrays)</td>
+</tr>
+<tr>
+<td>Keys in one map</td>
+<td>50,000</td>
+</tr>
+<tr>
+<td>Length of one string</td>
+<td>4,096 characters</td>
+</tr>
+<tr>
+<td>Plots, marks, fills, hlines, bgcolor and barcolor calls</td>
+<td>64 together</td>
+</tr>
+<tr>
+<td>Labels, lines, boxes</td>
+<td>50 each by default, up to 500 with <code>max_labels_count</code> and friends</td>
+</tr>
+<tr>
+<td>Tables</td>
+<td>up to 20; 1,000 cells each</td>
+</tr>
+<tr>
+<td>Alerts kept per run</td>
+<td>500</td>
+</tr>
+<tr>
+<td><code>request.security</code> calls</td>
+<td>16</td>
+</tr>
+<tr>
+<td>Look-back with <code>[n]</code></td>
+<td>500 bars by default, up to 5,000 with <code>max_bars_back</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-happens-when-you-hit-one">What happens when you hit one</h2>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>What you see</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Run takes longer than 20 seconds</td>
+<td>The run stops (E401).</td>
+</tr>
+<tr>
+<td>Too much work on one bar</td>
+<td>The script stops on that bar and shows the line (E403).</td>
+</tr>
+<tr>
+<td>A loop turns too many times</td>
+<td>The loop stops with an error on its line (E404).</td>
+</tr>
+<tr>
+<td>Too many items in an array or map</td>
+<td>Error on the line that added the extra item (E405, E406).</td>
+</tr>
+<tr>
+<td>Too many plots</td>
+<td>Error when the script is added (E341).</td>
+</tr>
+<tr>
+<td>Too many labels, lines or boxes</td>
+<td>The oldest are removed first. This is not an error.</td>
+</tr>
+<tr>
+<td>Too many tables</td>
+<td>Error (E408).</td>
+</tr>
+</tbody>
+</table>
+<p>Every code is explained in <a href="/zscript/error-codes">Error and warning codes</a>.</p>
+<h2 id="staying-under-the-limits">Staying under the limits</h2>
+<ul>
+<li>Prefer built-ins (<code>ta.highest</code>, <code>ta.sma</code>) over loops.</li>
+<li>Keep loops short and fixed in length.</li>
+<li>Delete drawings you no longer need.</li>
+<li>Do heavy work only on <code>barstate.islast</code> when you only need the result on the newest bar.</li>
+</ul></section><section id="m-errors-explained"><h1>Errors explained</h1><p>When something is wrong, Zscript tells you the <strong>line and column</strong>, says what happened in plain English, and when it can, suggests a fix ("Did you mean ...?").</p>
+<h2 id="the-three-kinds">The three kinds</h2>
+<ul>
+<li><strong>Errors</strong> stop the script from running. The editor underlines the spot in red.</li>
+<li><strong>Warnings</strong> let it run but point at something risky. Underlined in amber.</li>
+<li><strong>Notices</strong> are short one-time notes on the chart, such as "Order book data needs Pro".</li>
+</ul>
+<h2 id="common-errors">Common errors</h2>
+<p>Messages below are written the way the engine words them. Your names and numbers fill the gaps. Every code is listed in <a href="/zscript/error-codes">Error and warning codes</a>.</p>
+<h3 id="e303-unknown-name">E303 Unknown name</h3>
+<pre class="zs-code zs-plain"><code>3:11  E303  Unknown name `smaa`.
+            Did you mean `ta.sma`?</code></pre>
+<p>A typo. Names are case sensitive, and every built-in lives behind its namespace (<code>ta.</code>, <code>math.</code>, <code>str.</code>).</p>
+<h3 id="e309-wrong-type-for-an-argument">E309 Wrong type for an argument</h3>
+<pre class="zs-code zs-plain"><code>5:8   E309  Argument `title` of `plot` must be string, got float.</code></pre>
+<p>You passed a number where text goes. Check the order of the arguments, or name them: <code>plot(x, title="Mine")</code>.</p>
+<h3 id="e201-missing-header">E201 Missing header</h3>
+<pre class="zs-code zs-plain"><code>1:1   E201  Missing header.
+            Put `//@zscript 1` on the first line.</code></pre>
+<p>Add the header line. Then make sure there is exactly one <code>indicator(...)</code> (E301 means it is missing, E302 means there are two).</p>
+<h3 id="e105-and-e205-indentation">E105 and E205 Indentation</h3>
+<pre class="zs-code zs-plain"><code>6:1   E105  Indentation does not match any outer block.</code></pre>
+<p>Indent only under <code>if</code>, <code>for</code>, <code>while</code>, <code>switch</code> and function bodies, and line up the lines of one block exactly.</p>
+<h3 id="e305-already-declared">E305 Already declared</h3>
+<pre class="zs-code zs-plain"><code>7:5   E305  `greens` is already declared in this scope.
+            Use `:=` to change it.</code></pre>
+<p>A single <code>=</code> makes a new value; <code>:=</code> changes one that exists. E306 is the reverse: using <code>:=</code> before the value was ever made.</p>
+<h3 id="e209-one-equals-sign-in-a-condition">E209 One equals sign in a condition</h3>
+<pre class="zs-code zs-plain"><code>4:8   E209  `=` used in a condition.
+            Use `==` to compare, `:=` to reassign.</code></pre>
+<h3 id="e340-plot-inside-a-block">E340 Plot inside a block</h3>
+<pre class="zs-code zs-plain"><code>9:5   E340  `plot` must be called at top level (not inside if/for/functions).</code></pre>
+<p>Plots and their friends sit at the top of the script. To plot only sometimes, make the value <code>na</code> when you do not want it: <code>plot(cond ? x : na)</code>.</p>
+<h3 id="w101-a-ta-function-that-skips-bars">W101 A <code>ta</code> function that skips bars</h3>
+<pre class="zs-code zs-plain"><code>12:9  W101  `ta.ema` is called only on some bars (inside `if`), so its state skips the other bars.
+            Compute it at top level and use the result inside the `if`.</code></pre>
+<p>A warning, not an error. The script runs, but the numbers can be wrong. Do what the hint says.</p>
+<h3 id="runtime-errors-e4xx">Runtime errors (E4xx)</h3>
+<pre class="zs-code zs-plain"><code>12:5  E404  Loop ran more than 100,000 times on one bar.</code></pre>
+<p>Shorten the loop, or use a built-in. See <a href="/zscript/limits">Limits</a>. <code>E402</code> on a history look-back means you looked further back than <code>max_bars_back</code> allows; raise it in <code>indicator()</code>.</p>
+<h3 id="no-value-na">No value (na)</h3>
+<p>An <code>na</code> result is not an error. It means "nothing to show on this bar". See <a href="/zscript/bars-and-series">Bars and series</a>. Division by zero gives <code>na</code>, not an error.</p>
+<h2 id="if-you-are-stuck">If you are stuck</h2>
+<p>Cut the script down to the smallest piece that still shows the problem. Add lines back one at a time until the error returns. The line it returns on is the cause.</p></section><section id="m-error-codes"><h1>Error and warning codes</h1><p>Each message has a code, a line and column, and often a hint. Words in {braces} are filled in with your own names and numbers.</p>
+<h2 id="lexer-header">Lexer / header</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E101</td>
+<td>Unexpected character <code>{c}</code>.</td>
+</tr>
+<tr>
+<td>E102</td>
+<td>Unterminated string (closing quote missing).</td>
+</tr>
+<tr>
+<td>E103</td>
+<td>Bad color literal <code>{text}</code> (use #RRGGBB or #RRGGBBAA).</td>
+</tr>
+<tr>
+<td>E104</td>
+<td>Bad number <code>{text}</code>.</td>
+</tr>
+<tr>
+<td>E105</td>
+<td>Indentation does not match any outer block.</td>
+</tr>
+<tr>
+<td>E106</td>
+<td>Source is too large (limit 256 KB).</td>
+</tr>
+<tr>
+<td>E201</td>
+<td>Missing header. Hint: put <code>//@zscript 1</code> on the first line.</td>
+</tr>
+<tr>
+<td>E202</td>
+<td>Unsupported version <code>{n}</code>. Hint: use <code>//@zscript 1</code>.</td>
+</tr>
+<tr>
+<td>E203</td>
+<td>Unexpected <code>{token}</code>, expected {what}.</td>
+</tr>
+<tr>
+<td>E204</td>
+<td>Missing closing <code>)</code> / <code>]</code>.</td>
+</tr>
+<tr>
+<td>E205</td>
+<td>Expected an indented block after <code>{kw}</code>.</td>
+</tr>
+<tr>
+<td>E206</td>
+<td><code>=&gt;</code> default case must be last in switch.</td>
+</tr>
+<tr>
+<td>E207</td>
+<td>Nesting too deep (limit 128).</td>
+</tr>
+<tr>
+<td>E208</td>
+<td><code>break</code>/<code>continue</code> outside a loop.</td>
+</tr>
+<tr>
+<td>E209</td>
+<td><code>=</code> used in a condition. Hint: use <code>==</code> to compare, <code>:=</code> to reassign.</td>
+</tr>
+<tr>
+<td>E210</td>
+<td>Reserved word <code>{w}</code> cannot be used here.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="checker">Checker</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E301</td>
+<td>Missing <code>indicator(...)</code> declaration. Hint: add <code>indicator("My script")</code> after the header.</td>
+</tr>
+<tr>
+<td>E302</td>
+<td><code>indicator()</code> declared twice.</td>
+</tr>
+<tr>
+<td>E303</td>
+<td>Unknown name <code>{x}</code>. Hint: Did you mean <code>{y}</code>?</td>
+</tr>
+<tr>
+<td>E304</td>
+<td>Unknown function <code>{f}</code>. Hint: Did you mean <code>{g}</code>?</td>
+</tr>
+<tr>
+<td>E305</td>
+<td><code>{x}</code> is already declared in this scope. Hint: use <code>:=</code> to change it.</td>
+</tr>
+<tr>
+<td>E306</td>
+<td>Cannot reassign <code>{x}</code> with <code>:=</code> before it is declared. Hint: declare it with <code>=</code> first.</td>
+</tr>
+<tr>
+<td>E307</td>
+<td><code>{f}</code> expects {n} arguments, got {m}.</td>
+</tr>
+<tr>
+<td>E308</td>
+<td><code>{f}</code> has no parameter named <code>{p}</code>. Hint: Did you mean <code>{q}</code>?</td>
+</tr>
+<tr>
+<td>E309</td>
+<td>Argument <code>{p}</code> of <code>{f}</code> must be {type}, got {type2}.</td>
+</tr>
+<tr>
+<td>E310</td>
+<td>Cannot assign {type} to <code>{x}</code> declared as {type2}.</td>
+</tr>
+<tr>
+<td>E311</td>
+<td><code>{x}</code> is {type}; cannot assign {type2}.</td>
+</tr>
+<tr>
+<td>E312</td>
+<td>Operator <code>{op}</code> cannot be used with {type} and {type2}.</td>
+</tr>
+<tr>
+<td>E313</td>
+<td>Condition must be bool or number, got {type}.</td>
+</tr>
+<tr>
+<td>E314</td>
+<td>Tuple has {n} values but {m} names.</td>
+</tr>
+<tr>
+<td>E315</td>
+<td><code>{x}</code> is not a function.</td>
+</tr>
+<tr>
+<td>E316</td>
+<td>History <code>[]</code> needs a number of bars, got {type}.</td>
+</tr>
+<tr>
+<td>E317</td>
+<td>Built-in <code>{x}</code> cannot be reassigned.</td>
+</tr>
+<tr>
+<td>E318</td>
+<td>Function <code>{f}</code> calls itself (recursion is not allowed).</td>
+</tr>
+<tr>
+<td>E319</td>
+<td>Functions must be defined at top level.</td>
+</tr>
+<tr>
+<td>E320</td>
+<td>Method <code>{m}</code> does not exist for {type}. Hint: Did you mean <code>{n}</code>?</td>
+</tr>
+<tr>
+<td>E321</td>
+<td>Positional argument after a named one.</td>
+</tr>
+<tr>
+<td>E322</td>
+<td>Function <code>{f}</code> declared twice.</td>
+</tr>
+<tr>
+<td>E330</td>
+<td>Inputs must be called at top level with a literal default.</td>
+</tr>
+<tr>
+<td>E340</td>
+<td><code>{f}</code> must be called at top level (not inside if/for/functions).</td>
+</tr>
+<tr>
+<td>E341</td>
+<td>Too many plots (limit 64).</td>
+</tr>
+<tr>
+<td>E350</td>
+<td>request.security expression uses the script variable <code>{x}</code>. Hint: compute it inside the expression, or move it into a function.</td>
+</tr>
+<tr>
+<td>E351</td>
+<td>lookahead is not allowed.</td>
+</tr>
+<tr>
+<td>E352</td>
+<td>Timeframe <code>{tf}</code> is lower than the chart timeframe.</td>
+</tr>
+<tr>
+<td>E353</td>
+<td>Too many request.security calls (limit 16).</td>
+</tr>
+<tr>
+<td>W101</td>
+<td><code>{f}</code> is called only on some bars (inside <code>if</code>), so its state skips the other bars. Hint: compute it at top level and use the result inside the <code>if</code>.</td>
+</tr>
+<tr>
+<td>W102</td>
+<td><code>{f}</code> inside a loop shares one state for every iteration.</td>
+</tr>
+<tr>
+<td>W103</td>
+<td>Variable <code>{x}</code> is never used.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="runtime">Runtime</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E401</td>
+<td>Script took longer than 20 s.</td>
+</tr>
+<tr>
+<td>E402</td>
+<td>History <code>[{n}]</code> is beyond max_bars_back ({m}). Hint: raise max_bars_back in indicator().</td>
+</tr>
+<tr>
+<td>E403</td>
+<td>Too many operations on one bar (limit 1,000,000). Hint: a loop may be too large.</td>
+</tr>
+<tr>
+<td>E404</td>
+<td>Loop ran more than 100,000 times on one bar.</td>
+</tr>
+<tr>
+<td>E405</td>
+<td>Array too large (limit 100,000 items) / too many items in all arrays (1,000,000).</td>
+</tr>
+<tr>
+<td>E406</td>
+<td>Map too large (limit 50,000 keys).</td>
+</tr>
+<tr>
+<td>E407</td>
+<td>String too long (limit 4,096).</td>
+</tr>
+<tr>
+<td>E408</td>
+<td>Too many {kind} drawings is not an error: oldest is removed. (Tables over 20 -&gt; E408.)</td>
+</tr>
+<tr>
+<td>E409</td>
+<td>Division by zero is NOT an error: result is na.</td>
+</tr>
+<tr>
+<td>E410</td>
+<td>Index {i} out of range for array of size {n}.</td>
+</tr>
+<tr>
+<td>E411</td>
+<td>Called a method on na (<code>{what}</code>).</td>
+</tr>
+<tr>
+<td>E412</td>
+<td><code>{f}</code> length must be a positive number, got {v}.</td>
+</tr>
+<tr>
+<td>E413</td>
+<td>Too many bars (limit 50,000).</td>
+</tr>
+<tr>
+<td>E414</td>
+<td>Function calls nested too deep (limit 64).</td>
+</tr>
+<tr>
+<td>E415</td>
+<td>request.security data for {sym} {tf} is not available (warning-level notice, value na).</td>
+</tr>
+<tr>
+<td>E499</td>
+<td>Internal engine error (report this script to support).</td>
+</tr>
+</tbody>
+</table></section><section id="m-patterns"><h1>Patterns every scripter uses</h1><p>Once you know the pieces, a few patterns turn up again and again. Learn these and most scripts write themselves.</p>
+<h2 id="1-compute-first-decide-after">1. Compute first, decide after</h2>
+<p>Work out every indicator at the top of the script, on every bar. Then use the finished numbers inside <code>if</code> and <code>switch</code>. This keeps each <code>ta</code> function's memory complete.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Compute first"</span>, overlay=<span class="k">true</span>)
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+trendUp = fast &gt; slow
+
+<span class="f">plot</span>(trendUp ? fast : slow, <span class="s">"Active line"</span>, <span class="t">color</span>=trendUp ? <span class="t">color</span>.green : <span class="t">color</span>.red)</code></pre>
+<h2 id="2-use-na-to-mean-draw-nothing">2. Use <code>na</code> to mean "draw nothing"</h2>
+<p>A plot cannot sit inside an <code>if</code>. Instead make the value <code>na</code> on the bars where you want nothing.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Only when quiet"</span>, overlay=<span class="k">false</span>)
+r = (<span class="b">high</span> - <span class="b">low</span>) / <span class="b">close</span> * <span class="m">100</span>
+quiet = r &lt; <span class="n">ta</span>.sma(r, <span class="m">20</span>) * <span class="m">0.7</span>
+<span class="f">plot</span>(quiet ? r : <span class="k">na</span>, <span class="s">"Quiet bars"</span>, style=plot.style_columns, <span class="t">color</span>=<span class="t">color</span>.gray)</code></pre>
+<h2 id="3-a-flag-that-flips">3. A flag that flips</h2>
+<p>Remember the last state with <code>var</code> and change it only when something happens.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Last cross direction"</span>, overlay=<span class="k">true</span>)
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+<span class="k">var</span> <span class="t">int</span> dir = <span class="m">0</span>
+<span class="k">if</span> <span class="n">ta</span>.crossover(fast, slow)
+    dir := <span class="m">1</span>
+<span class="k">if</span> <span class="n">ta</span>.crossunder(fast, slow)
+    dir := -<span class="m">1</span>
+<span class="f">bgcolor</span>(dir == <span class="m">1</span> ? <span class="t">color</span>.new(<span class="t">color</span>.green, <span class="m">94</span>) : dir == -<span class="m">1</span> ? <span class="t">color</span>.new(<span class="t">color</span>.red, <span class="m">94</span>) : <span class="k">na</span>)</code></pre>
+<h2 id="4-remember-a-price-at-the-signal">4. Remember a price at the signal</h2>
+<p><code>ta.valuewhen</code> hands you the value a series had when a condition was last true.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Price at last cross"</span>, overlay=<span class="k">true</span>)
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+lastCrossPrice = <span class="n">ta</span>.valuewhen(<span class="n">ta</span>.cross(fast, slow), <span class="b">close</span>, <span class="m">0</span>)
+<span class="f">plot</span>(lastCrossPrice, <span class="s">"Close at last cross"</span>, <span class="t">color</span>=<span class="t">color</span>.yellow, style=plot.style_stepline)</code></pre>
+<h2 id="5-normalize-so-scripts-work-on-any-symbol">5. Normalize so scripts work on any symbol</h2>
+<p>Divide by price or by ATR so your numbers mean the same on every market.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Move in ATRs"</span>)
+move = (<span class="b">close</span> - <span class="b">close</span>[<span class="m">10</span>]) / <span class="n">ta</span>.atr(<span class="m">14</span>)
+<span class="f">hline</span>(<span class="m">0</span>)
+<span class="f">plot</span>(move, <span class="s">"10-bar move in ATRs"</span>, style=plot.style_histogram, <span class="t">color</span>=move &gt;= <span class="m">0</span> ? <span class="t">color</span>.green : <span class="t">color</span>.red)</code></pre>
+<h2 id="6-smooth-a-noisy-value">6. Smooth a noisy value</h2>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Smoothed volume"</span>)
+<span class="f">plot</span>(<span class="b">volume</span>, <span class="s">"Volume"</span>, style=plot.style_columns, <span class="t">color</span>=<span class="t">color</span>.new(<span class="t">color</span>.gray, <span class="m">60</span>))
+<span class="f">plot</span>(<span class="n">ta</span>.ema(<span class="b">volume</span>, <span class="m">10</span>), <span class="s">"Smoothed"</span>, <span class="t">color</span>=<span class="t">color</span>.orange)</code></pre>
+<h2 id="7-limit-how-many-drawings-you-make">7. Limit how many drawings you make</h2>
+<p>Create a drawing only when it is new, and delete old ones.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"One line for the latest high"</span>, overlay=<span class="k">true</span>)
+<span class="k">var</span> line hiLine = <span class="k">na</span>
+ph = <span class="n">ta</span>.pivothigh(<span class="b">high</span>, <span class="m">5</span>, <span class="m">5</span>)
+<span class="k">if</span> <span class="k">not</span> <span class="k">na</span>(ph)
+    <span class="n">line</span>.delete(hiLine)
+    hiLine := <span class="n">line</span>.new(<span class="b">bar_index</span> - <span class="m">5</span>, ph, <span class="b">bar_index</span>, ph, extend=extend.right, <span class="t">color</span>=<span class="t">color</span>.red)</code></pre>
+<h2 id="8-draw-the-summary-only-on-the-last-bar">8. Draw the summary only on the last bar</h2>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Last bar summary"</span>, overlay=<span class="k">true</span>)
+upBars = <span class="n">ta</span>.sma(<span class="b">close</span> &gt; <span class="b">open</span> ? <span class="m">1.0</span> : <span class="m">0.0</span>, <span class="m">50</span>) * <span class="m">100</span>
+<span class="k">if</span> <span class="n">barstate</span>.islast
+    <span class="n">label</span>.new(<span class="b">bar_index</span>, <span class="b">high</span>, <span class="s">"Up bars: "</span> + <span class="n">str</span>.tostring(upBars, <span class="s">"#"</span>) + <span class="s">"%"</span>, style=<span class="n">label</span>.style_label_down)</code></pre>
+<h2 id="9-reuse-with-a-function">9. Reuse with a function</h2>
+<p>If you write the same three lines twice, make a function.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Two stochastics"</span>)
+stoch1(len) =&gt; <span class="n">ta</span>.stoch(<span class="b">close</span>, <span class="b">high</span>, <span class="b">low</span>, len)
+<span class="f">plot</span>(stoch1(<span class="m">14</span>), <span class="s">"Slow"</span>, <span class="t">color</span>=<span class="t">color</span>.blue)
+<span class="f">plot</span>(stoch1(<span class="m">5</span>), <span class="s">"Fast"</span>, <span class="t">color</span>=<span class="t">color</span>.orange)</code></pre>
+<h2 id="10-guard-data-calls">10. Guard data calls</h2>
+<p>Every call into <code>book</code>, <code>flow</code>, <code>gex</code> and <code>opt</code> can return <code>na</code>. Use <code>nz</code> when a missing value should count as zero, and <code>na()</code> when it should mean "skip".</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Guarded delta"</span>)
+d = <span class="n">flow</span>.delta
+<span class="f">plot</span>(<span class="k">na</span>(d) ? <span class="k">na</span> : d, <span class="s">"Delta"</span>, style=plot.style_columns, <span class="t">color</span>=<span class="f">nz</span>(d) &gt;= <span class="m">0</span> ? <span class="t">color</span>.green : <span class="t">color</span>.red)</code></pre></section><section id="m-projects"><h1>Build four indicators step by step</h1><p>The best way to learn is to build. Here are four indicators, from small to bigger. Type each step in and watch it grow.</p>
+<h2 id="project-1-a-trend-ribbon">Project 1. A trend ribbon</h2>
+<p>Goal: a line that is green in an up-trend and red in a down-trend.</p>
+<p><strong>Step 1.</strong> Draw the average.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Ribbon, step 1"</span>, overlay=<span class="k">true</span>)
+mid = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+<span class="f">plot</span>(mid)</code></pre>
+<p><strong>Step 2.</strong> Decide the trend: price above the average means up.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Ribbon, step 2"</span>, overlay=<span class="k">true</span>)
+mid = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+up = <span class="b">close</span> &gt; mid
+<span class="f">plot</span>(mid, <span class="t">color</span>=up ? <span class="t">color</span>.green : <span class="t">color</span>.red, linewidth=<span class="m">2</span>)</code></pre>
+<p><strong>Step 3.</strong> Make the length a setting and add a soft band using ATR.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Trend ribbon"</span>, overlay=<span class="k">true</span>)
+len = <span class="n">input</span>.<span class="t">int</span>(<span class="m">21</span>, <span class="s">"Length"</span>, minval=<span class="m">2</span>)
+width = <span class="n">input</span>.<span class="t">float</span>(<span class="m">1.0</span>, <span class="s">"Band width in ATRs"</span>, minval=<span class="m">0.1</span>, step=<span class="m">0.1</span>)
+mid = <span class="n">ta</span>.ema(<span class="b">close</span>, len)
+rng = <span class="n">ta</span>.atr(<span class="m">14</span>) * width
+up = <span class="b">close</span> &gt; mid
+tone = up ? <span class="t">color</span>.green : <span class="t">color</span>.red
+p1 = <span class="f">plot</span>(mid + rng, <span class="s">"Upper"</span>, <span class="t">color</span>=<span class="t">color</span>.new(tone, <span class="m">80</span>))
+p2 = <span class="f">plot</span>(mid - rng, <span class="s">"Lower"</span>, <span class="t">color</span>=<span class="t">color</span>.new(tone, <span class="m">80</span>))
+<span class="f">plot</span>(mid, <span class="s">"Middle"</span>, <span class="t">color</span>=tone, linewidth=<span class="m">2</span>)
+<span class="f">fill</span>(p1, p2, <span class="t">color</span>.new(tone, <span class="m">92</span>))</code></pre>
+<p>You just used inputs, a condition, a color choice and a fill. That is most of the language.</p>
+<h2 id="project-2-previous-day-levels">Project 2. Previous day levels</h2>
+<p>Goal: draw yesterday's high, low and close as flat lines on a small chart.</p>
+<p><strong>Step 1.</strong> Ask for the daily values. <code>[1]</code> means the last finished day.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Prior day, step 1"</span>, overlay=<span class="k">true</span>)
+pdh = <span class="n">request</span>.security(<span class="n">syminfo</span>.tickerid, <span class="s">"D"</span>, <span class="b">high</span>[<span class="m">1</span>])
+<span class="f">plot</span>(pdh, <span class="s">"Prior day high"</span>, <span class="t">color</span>=<span class="t">color</span>.green, style=plot.style_stepline)</code></pre>
+<p><strong>Step 2.</strong> Add the low and the close, and label the newest bar.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Prior day levels"</span>, overlay=<span class="k">true</span>)
+pdh = <span class="n">request</span>.security(<span class="n">syminfo</span>.tickerid, <span class="s">"D"</span>, <span class="b">high</span>[<span class="m">1</span>])
+pdl = <span class="n">request</span>.security(<span class="n">syminfo</span>.tickerid, <span class="s">"D"</span>, <span class="b">low</span>[<span class="m">1</span>])
+pdc = <span class="n">request</span>.security(<span class="n">syminfo</span>.tickerid, <span class="s">"D"</span>, <span class="b">close</span>[<span class="m">1</span>])
+<span class="f">plot</span>(pdh, <span class="s">"Prior day high"</span>, <span class="t">color</span>=<span class="t">color</span>.green, style=plot.style_stepline)
+<span class="f">plot</span>(pdl, <span class="s">"Prior day low"</span>, <span class="t">color</span>=<span class="t">color</span>.red, style=plot.style_stepline)
+<span class="f">plot</span>(pdc, <span class="s">"Prior day close"</span>, <span class="t">color</span>=<span class="t">color</span>.gray, style=plot.style_stepline)
+
+<span class="k">if</span> <span class="n">barstate</span>.islast
+    <span class="n">label</span>.new(<span class="b">bar_index</span>, pdh, <span class="s">"PDH"</span>, style=<span class="n">label</span>.style_label_left, <span class="t">color</span>=<span class="t">color</span>.green, textcolor=<span class="t">color</span>.white)
+    <span class="n">label</span>.new(<span class="b">bar_index</span>, pdl, <span class="s">"PDL"</span>, style=<span class="n">label</span>.style_label_left, <span class="t">color</span>=<span class="t">color</span>.red, textcolor=<span class="t">color</span>.white)</code></pre>
+<h2 id="project-3-a-volume-pressure-panel">Project 3. A volume pressure panel</h2>
+<p>Goal: a pane that shows how much of each bar's volume was at the ask, with a smoothed line. Needs order flow data, which follows your plan.</p>
+<p><strong>Step 1.</strong> The share of buying volume, per bar.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Buy share, step 1"</span>)
+share = <span class="n">flow</span>.buyvol / (<span class="n">flow</span>.buyvol + <span class="n">flow</span>.sellvol) * <span class="m">100</span>
+<span class="f">hline</span>(<span class="m">50</span>)
+<span class="f">plot</span>(share, <span class="s">"Buy share %"</span>, style=plot.style_columns, <span class="t">color</span>=<span class="t">color</span>.gray)</code></pre>
+<p><strong>Step 2.</strong> Color by side and add a smooth line.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Buy share"</span>)
+share = <span class="n">flow</span>.buyvol / (<span class="n">flow</span>.buyvol + <span class="n">flow</span>.sellvol) * <span class="m">100</span>
+<span class="f">hline</span>(<span class="m">50</span>)
+<span class="f">plot</span>(share, <span class="s">"Buy share %"</span>, style=plot.style_columns, <span class="t">color</span>=share &gt;= <span class="m">50</span> ? <span class="t">color</span>.new(<span class="t">color</span>.green, <span class="m">40</span>) : <span class="t">color</span>.new(<span class="t">color</span>.red, <span class="m">40</span>))
+<span class="f">plot</span>(<span class="n">ta</span>.ema(share, <span class="m">10</span>), <span class="s">"Smoothed"</span>, <span class="t">color</span>=<span class="t">color</span>.white, linewidth=<span class="m">2</span>)</code></pre>
+<p>When the plan lacks order flow data, <code>share</code> is <code>na</code>, nothing draws, and you see a short notice. The script itself is fine.</p>
+<h2 id="project-4-a-level-board-with-alerts">Project 4. A level board with alerts</h2>
+<p>Goal: show GEX levels as lines, a small table with the distance to each, and an alert when price crosses the flip level.</p>
+<pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Level board"</span>, overlay=<span class="k">true</span>)
+
+<span class="f">plot</span>(<span class="n">gex</span>.callwall, <span class="s">"Call wall"</span>, <span class="t">color</span>=<span class="t">color</span>.green, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">gex</span>.putwall, <span class="s">"Put wall"</span>, <span class="t">color</span>=<span class="t">color</span>.red, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">gex</span>.flip, <span class="s">"Flip"</span>, <span class="t">color</span>=<span class="t">color</span>.yellow, style=plot.style_stepline)
+
+<span class="k">var</span> t = <span class="n">table</span>.new(position.top_right, <span class="m">2</span>, <span class="m">3</span>)
+<span class="k">if</span> <span class="n">barstate</span>.islast
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">0</span>, <span class="s">"To call wall"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">0</span>, <span class="n">str</span>.tostring(<span class="n">gex</span>.callwall - <span class="b">close</span>, <span class="s">"#.##"</span>))
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">1</span>, <span class="s">"To put wall"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">1</span>, <span class="n">str</span>.tostring(<span class="b">close</span> - <span class="n">gex</span>.putwall, <span class="s">"#.##"</span>))
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">2</span>, <span class="s">"To flip"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">2</span>, <span class="n">str</span>.tostring(<span class="b">close</span> - <span class="n">gex</span>.flip, <span class="s">"#.##"</span>))
+
+<span class="f">alertcondition</span>(<span class="n">ta</span>.crossover(<span class="b">close</span>, <span class="n">gex</span>.flip), <span class="s">"Crossed above flip"</span>, <span class="s">"Price crossed above the flip level"</span>)
+<span class="f">alertcondition</span>(<span class="n">ta</span>.crossunder(<span class="b">close</span>, <span class="n">gex</span>.flip), <span class="s">"Crossed below flip"</span>, <span class="s">"Price crossed below the flip level"</span>)</code></pre>
+<p>GEX levels are updated a few minutes at a time, so this board shows the latest update, not an instant feed. Education only. Not financial advice.</p>
+<h2 id="where-to-go-from-here">Where to go from here</h2>
+<p>Open the <a href="/zscript/cookbook/">Cookbook</a> and change a recipe. Then try your own idea. When it works, think about <a href="/zscript/publishing-and-selling">publishing</a> it.</p></section><section id="m-glossary"><h1>Glossary</h1><p><strong>Alert.</strong> A rule that tells you when it becomes true.</p>
+<p><strong>Array.</strong> A list of values you fill and read yourself.</p>
+<p><strong>ATR.</strong> Average true range: the typical size of a bar.</p>
+<p><strong>Bar.</strong> One candle: its open, high, low, close and volume.</p>
+<p><strong>Bar index.</strong> The number of a bar, counting from 0 at the oldest.</p>
+<p><strong>Bool.</strong> A value that is <code>true</code> or <code>false</code>.</p>
+<p><strong>Built-in.</strong> A function or value that comes with Zscript, such as <code>ta.sma</code> or <code>close</code>.</p>
+<p><strong>CVD.</strong> Cumulative volume delta: the running total of delta.</p>
+<p><strong>Declaration.</strong> The <code>indicator(...)</code> line that names the script.</p>
+<p><strong>Delta.</strong> Volume traded at the ask minus volume traded at the bid.</p>
+<p><strong>Drawing.</strong> A label, line, box or table that you create and can change or delete.</p>
+<p><strong>Footprint.</strong> Volume traded at each price level inside a bar.</p>
+<p><strong>Function.</strong> A named piece of logic, such as <code>ta.sma</code> or one you write yourself.</p>
+<p><strong>GEX.</strong> Gamma exposure: a way of summarising option positions into price levels.</p>
+<p><strong>Header.</strong> The first line, <code>//@zscript 1</code>.</p>
+<p><strong>History.</strong> Older values of a series, read with <code>[n]</code>.</p>
+<p><strong>Input.</strong> A setting the person using the script can change.</p>
+<p><strong>Level two (L2).</strong> The order book: resting buy and sell orders at each price.</p>
+<p><strong>na.</strong> "Not available": no value on this bar.</p>
+<p><strong>Namespace.</strong> A group of built-ins sharing a prefix, such as <code>ta.</code> or <code>book.</code>.</p>
+<p><strong>Overlay.</strong> Drawing on the price chart instead of in a separate pane.</p>
+<p><strong>Pane.</strong> A chart area. Price is one pane; an indicator with <code>overlay=false</code> gets its own.</p>
+<p><strong>Pivot.</strong> A swing high or low, confirmed by bars on both sides.</p>
+<p><strong>Plot.</strong> A line, histogram or other shape with one value per bar.</p>
+<p><strong>Plan.</strong> Your TradeZoro plan, which decides which data kinds your scripts can read.</p>
+<p><strong>Protected script.</strong> A published script that people can use but not read.</p>
+<p><strong>Series.</strong> A value that has one number per bar and keeps its history.</p>
+<p><strong>Tuple.</strong> Several values returned together, taken apart with <code>[a, b] = f()</code>.</p>
+<p><strong>var.</strong> A keyword that makes a value remember itself from bar to bar.</p>
+<p><strong>ZoroOptions.</strong> TradeZoro's options summary: gamma nodes, ranges, IV rank and more.</p></section><section class="part"><h1>Part 3. Cookbook</h1></section><section id="c-simple-moving-average"><h1>Simple moving average</h1><p><em>The classic smooth line.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"SMA"</span>, overlay=<span class="k">true</span>)
+len = <span class="n">input</span>.<span class="t">int</span>(<span class="m">20</span>, <span class="s">"Length"</span>, minval=<span class="m">1</span>)
+<span class="f">plot</span>(<span class="n">ta</span>.sma(<span class="b">close</span>, len), <span class="s">"SMA"</span>, <span class="t">color</span>=<span class="m">#03c988</span>, linewidth=<span class="m">2</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The average of the last <code>len</code> closes. Longer length, smoother and slower line.
+Try: switch <code>close</code> for <code>hl2</code> to average the middle of each bar instead.</p></section><section id="c-ema-ribbon"><h1>EMA ribbon</h1><p><em>Four averages that fan out in a trend.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"EMA ribbon"</span>, overlay=<span class="k">true</span>)
+<span class="f">plot</span>(<span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">8</span>), <span class="s">"8"</span>, <span class="t">color</span>=<span class="t">color</span>.new(<span class="m">#03c988</span>, <span class="m">0</span>))
+<span class="f">plot</span>(<span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">13</span>), <span class="s">"13"</span>, <span class="t">color</span>=<span class="t">color</span>.new(<span class="m">#03c988</span>, <span class="m">25</span>))
+<span class="f">plot</span>(<span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>), <span class="s">"21"</span>, <span class="t">color</span>=<span class="t">color</span>.new(<span class="m">#03c988</span>, <span class="m">50</span>))
+<span class="f">plot</span>(<span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">34</span>), <span class="s">"34"</span>, <span class="t">color</span>=<span class="t">color</span>.new(<span class="m">#03c988</span>, <span class="m">70</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Each line is an exponential average. When they spread apart, price has been moving one way for a while. When they tangle, it has not. The fading color helps you tell the lines apart.</p></section><section id="c-cross-signals"><h1>Average cross marks</h1><p><em>Arrows when a fast line crosses a slow one.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Cross marks"</span>, overlay=<span class="k">true</span>)
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+<span class="f">plot</span>(fast, <span class="s">"Fast"</span>, <span class="t">color</span>=<span class="t">color</span>.green)
+<span class="f">plot</span>(slow, <span class="s">"Slow"</span>, <span class="t">color</span>=<span class="t">color</span>.red)
+<span class="f">plotshape</span>(<span class="n">ta</span>.crossover(fast, slow), <span class="s">"Up"</span>, shape.triangleup, location.belowbar, <span class="t">color</span>.green)
+<span class="f">plotshape</span>(<span class="n">ta</span>.crossunder(fast, slow), <span class="s">"Down"</span>, shape.triangledown, location.abovebar, <span class="t">color</span>.red)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p><code>ta.crossover(a, b)</code> is true on the bar where <code>a</code> moves from below <code>b</code> to above it. This is a teaching sample of a rule, not a trading system.</p></section><section id="c-rsi-zones"><h1>RSI with zones</h1><p><em>RSI with shaded 30 and 70 lines.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"RSI zones"</span>)
+len = <span class="n">input</span>.<span class="t">int</span>(<span class="m">14</span>, <span class="s">"Length"</span>, minval=<span class="m">2</span>)
+r = <span class="n">ta</span>.rsi(<span class="b">close</span>, len)
+top = <span class="f">hline</span>(<span class="m">70</span>)
+bot = <span class="f">hline</span>(<span class="m">30</span>)
+<span class="f">fill</span>(top, bot, <span class="t">color</span>.new(<span class="t">color</span>.gray, <span class="m">92</span>))
+<span class="f">plot</span>(r, <span class="s">"RSI"</span>, <span class="t">color</span>=<span class="m">#00adb5</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>RSI measures how strong recent up moves are compared with down moves, on a 0 to 100 scale. 70 and 30 are common reference lines, not signals on their own.</p></section><section id="c-macd-histogram"><h1>MACD with colored histogram</h1><p><em>Momentum from two averages.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"MACD"</span>)
+[macdLine, signal, hist] = <span class="n">ta</span>.macd(<span class="b">close</span>, <span class="m">12</span>, <span class="m">26</span>, <span class="m">9</span>)
+<span class="f">plot</span>(hist, <span class="s">"Histogram"</span>, style=plot.style_columns, <span class="t">color</span>=hist &gt;= <span class="m">0</span> ? <span class="t">color</span>.green : <span class="t">color</span>.red)
+<span class="f">plot</span>(macdLine, <span class="s">"MACD"</span>, <span class="t">color</span>=<span class="t">color</span>.white)
+<span class="f">plot</span>(signal, <span class="s">"Signal"</span>, <span class="t">color</span>=<span class="t">color</span>.yellow)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The histogram is the gap between the MACD line and its signal line. Green above zero, red below.</p></section><section id="c-bollinger-bands"><h1>Bollinger Bands with shading</h1><p><em>An average and a band of standard deviations.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Bands"</span>, overlay=<span class="k">true</span>)
+len = <span class="n">input</span>.<span class="t">int</span>(<span class="m">20</span>, <span class="s">"Length"</span>)
+mult = <span class="n">input</span>.<span class="t">float</span>(<span class="m">2.0</span>, <span class="s">"Width"</span>, step=<span class="m">0.1</span>)
+[mid, up, lo] = <span class="n">ta</span>.bb(<span class="b">close</span>, len, mult)
+p1 = <span class="f">plot</span>(up, <span class="s">"Upper"</span>, <span class="t">color</span>=<span class="m">#00adb5</span>)
+p2 = <span class="f">plot</span>(lo, <span class="s">"Lower"</span>, <span class="t">color</span>=<span class="m">#00adb5</span>)
+<span class="f">plot</span>(mid, <span class="s">"Middle"</span>, <span class="t">color</span>=<span class="t">color</span>.gray)
+<span class="f">fill</span>(p1, p2, <span class="t">color</span>.new(<span class="m">#00adb5</span>, <span class="m">92</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p><code>ta.bb</code> returns three values at once, so we take them apart with square brackets.</p></section><section id="c-keltner-channel"><h1>Keltner channel</h1><p><em>An average with bands from average true range.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Keltner"</span>, overlay=<span class="k">true</span>)
+[mid, up, lo] = <span class="n">ta</span>.kc(<span class="b">close</span>, <span class="m">20</span>, <span class="m">1.5</span>)
+p1 = <span class="f">plot</span>(up, <span class="s">"Upper"</span>, <span class="t">color</span>=<span class="t">color</span>.orange)
+p2 = <span class="f">plot</span>(lo, <span class="s">"Lower"</span>, <span class="t">color</span>=<span class="t">color</span>.orange)
+<span class="f">plot</span>(mid, <span class="s">"Middle"</span>, <span class="t">color</span>=<span class="t">color</span>.gray)
+<span class="f">fill</span>(p1, p2, <span class="t">color</span>.new(<span class="t">color</span>.orange, <span class="m">93</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Same idea as Bollinger Bands, but the width follows the typical bar size (ATR) rather than standard deviation.</p></section><section id="c-atr-stop-line"><h1>ATR trailing line</h1><p><em>A line that keeps its distance from price.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"ATR trail"</span>, overlay=<span class="k">true</span>)
+mult = <span class="n">input</span>.<span class="t">float</span>(<span class="m">3.0</span>, <span class="s">"ATR multiple"</span>, step=<span class="m">0.5</span>)
+atr1 = <span class="n">ta</span>.atr(<span class="m">14</span>)
+<span class="k">var</span> <span class="t">float</span> trail = <span class="k">na</span>
+raw = <span class="b">close</span> - atr1 * mult
+trail := <span class="k">na</span>(trail) ? raw : <span class="n">math</span>.max(trail, raw)
+<span class="f">plot</span>(trail, <span class="s">"Trail"</span>, <span class="t">color</span>=<span class="t">color</span>.orange, style=plot.style_stepline)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The line only moves up, never down, so it traces a path that stays a set number of bar-sizes below the close. A teaching example of <code>var</code>.</p></section><section id="c-supertrend-line"><h1>Supertrend</h1><p><em>A built-in trend line that flips color.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Supertrend"</span>, overlay=<span class="k">true</span>)
+[st, dir] = <span class="n">ta</span>.supertrend(<span class="m">3.0</span>, <span class="m">10</span>)
+<span class="f">plot</span>(st, <span class="s">"Supertrend"</span>, <span class="t">color</span>=dir &lt; <span class="m">0</span> ? <span class="t">color</span>.green : <span class="t">color</span>.red, linewidth=<span class="m">2</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p><code>dir</code> is -1 in an up-trend and 1 in a down-trend. We use it to choose the color.</p></section><section id="c-vwap-line"><h1>Session VWAP</h1><p><em>Average price weighted by volume.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"VWAP"</span>, overlay=<span class="k">true</span>)
+<span class="f">plot</span>(<span class="n">ta</span>.vwap(<span class="b">hlc3</span>), <span class="s">"VWAP"</span>, <span class="t">color</span>=<span class="m">#03c988</span>, linewidth=<span class="m">2</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p><code>ta.vwap</code> weights each bar's typical price by its volume and starts again each day (UTC). Pass <code>anchor="W"</code> or <code>"M"</code> for a weekly or monthly start.</p></section><section id="c-stochastic"><h1>Stochastic</h1><p><em>Where the close sits inside the recent range.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Stochastic"</span>)
+k = <span class="n">ta</span>.stoch(<span class="b">close</span>, <span class="b">high</span>, <span class="b">low</span>, <span class="m">14</span>)
+d = <span class="n">ta</span>.sma(k, <span class="m">3</span>)
+<span class="f">hline</span>(<span class="m">80</span>)
+<span class="f">hline</span>(<span class="m">20</span>)
+<span class="f">plot</span>(k, <span class="s">"%K"</span>, <span class="t">color</span>=<span class="t">color</span>.blue)
+<span class="f">plot</span>(d, <span class="s">"%D"</span>, <span class="t">color</span>=<span class="t">color</span>.orange)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>100 means the close is at the top of the last 14 bars' range, 0 the bottom.</p></section><section id="c-cci"><h1>CCI</h1><p><em>How far typical price strays from its average.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"CCI"</span>)
+c = <span class="n">ta</span>.cci(<span class="b">hlc3</span>, <span class="m">20</span>)
+<span class="f">hline</span>(<span class="m">100</span>)
+<span class="f">hline</span>(-<span class="m">100</span>)
+<span class="f">hline</span>(<span class="m">0</span>)
+<span class="f">plot</span>(c, <span class="s">"CCI"</span>, <span class="t">color</span>=<span class="m">#00adb5</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Bigger than 100 or smaller than -100 means an unusually big move compared with recent bars.</p></section><section id="c-obv"><h1>On-balance volume</h1><p><em>A running volume total that follows direction.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"OBV"</span>)
+<span class="f">plot</span>(<span class="n">ta</span>.obv, <span class="s">"OBV"</span>, <span class="t">color</span>=<span class="m">#03c988</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Volume is added on up closes and subtracted on down closes. Look at the shape, not the number.</p></section><section id="c-mfi"><h1>Money flow index</h1><p><em>RSI that includes volume.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"MFI"</span>)
+<span class="f">hline</span>(<span class="m">80</span>)
+<span class="f">hline</span>(<span class="m">20</span>)
+<span class="f">plot</span>(<span class="n">ta</span>.mfi(<span class="b">hlc3</span>, <span class="m">14</span>), <span class="s">"MFI"</span>, <span class="t">color</span>=<span class="t">color</span>.purple)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Like RSI, but each bar counts more when volume was high.</p></section><section id="c-donchian"><h1>Donchian channel</h1><p><em>Highest high and lowest low of N bars.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Donchian"</span>, overlay=<span class="k">true</span>)
+n = <span class="n">input</span>.<span class="t">int</span>(<span class="m">20</span>, <span class="s">"Length"</span>, minval=<span class="m">2</span>)
+hi = <span class="n">ta</span>.highest(<span class="b">high</span>, n)
+lo = <span class="n">ta</span>.lowest(<span class="b">low</span>, n)
+p1 = <span class="f">plot</span>(hi, <span class="s">"High"</span>, <span class="t">color</span>=<span class="t">color</span>.green)
+p2 = <span class="f">plot</span>(lo, <span class="s">"Low"</span>, <span class="t">color</span>=<span class="t">color</span>.red)
+<span class="f">fill</span>(p1, p2, <span class="t">color</span>.new(<span class="t">color</span>.gray, <span class="m">94</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>A breakout channel: a close above the top line is a new N-bar high.</p></section><section id="c-pivot-labels"><h1>Swing high and low labels</h1><p><em>Mark pivots after they are confirmed.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Pivots"</span>, overlay=<span class="k">true</span>)
+n = <span class="n">input</span>.<span class="t">int</span>(<span class="m">5</span>, <span class="s">"Bars each side"</span>, minval=<span class="m">1</span>, maxval=<span class="m">20</span>)
+ph = <span class="n">ta</span>.pivothigh(<span class="b">high</span>, n, n)
+pl = <span class="n">ta</span>.pivotlow(<span class="b">low</span>, n, n)
+<span class="k">if</span> <span class="k">not</span> <span class="k">na</span>(ph)
+    <span class="n">label</span>.new(<span class="b">bar_index</span> - n, ph, <span class="s">"H"</span>, style=<span class="n">label</span>.style_label_down, <span class="t">color</span>=<span class="t">color</span>.red, textcolor=<span class="t">color</span>.white)
+<span class="k">if</span> <span class="k">not</span> <span class="k">na</span>(pl)
+    <span class="n">label</span>.new(<span class="b">bar_index</span> - n, pl, <span class="s">"L"</span>, style=<span class="n">label</span>.style_label_up, <span class="t">color</span>=<span class="t">color</span>.green, textcolor=<span class="t">color</span>.white)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>A pivot needs <code>n</code> bars on each side to be sure, so it is only known <code>n</code> bars later. That is why the label is placed at <code>bar_index - n</code>: it goes back to where the pivot really was, without ever using a future bar.</p></section><section id="c-prior-day-levels"><h1>Previous day high and low</h1><p><em>Lines from yesterday&#x27;s range.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Prior day"</span>, overlay=<span class="k">true</span>)
+pdh = <span class="n">request</span>.security(<span class="n">syminfo</span>.tickerid, <span class="s">"D"</span>, <span class="b">high</span>[<span class="m">1</span>])
+pdl = <span class="n">request</span>.security(<span class="n">syminfo</span>.tickerid, <span class="s">"D"</span>, <span class="b">low</span>[<span class="m">1</span>])
+<span class="f">plot</span>(pdh, <span class="s">"Prior high"</span>, <span class="t">color</span>=<span class="t">color</span>.green, style=plot.style_stepline)
+<span class="f">plot</span>(pdl, <span class="s">"Prior low"</span>, <span class="t">color</span>=<span class="t">color</span>.red, style=plot.style_stepline)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p><code>request.security</code> asks for a value from another timeframe. <code>[1]</code> on the daily series means "the last finished day", which keeps it free of look-ahead.</p></section><section id="c-htf-trend"><h1>Higher timeframe trend</h1><p><em>Show the 1-hour trend on a small chart.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"HTF trend"</span>, overlay=<span class="k">true</span>)
+tf = <span class="n">input</span>.timeframe(<span class="s">"60"</span>, <span class="s">"Higher timeframe"</span>)
+htf = <span class="n">request</span>.security(<span class="n">syminfo</span>.tickerid, tf, <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">50</span>)[<span class="m">1</span>])
+<span class="f">plot</span>(htf, <span class="s">"HTF EMA"</span>, <span class="t">color</span>=<span class="t">color</span>.yellow, style=plot.style_stepline)
+<span class="f">bgcolor</span>(<span class="b">close</span> &gt; htf ? <span class="t">color</span>.new(<span class="t">color</span>.green, <span class="m">94</span>) : <span class="t">color</span>.new(<span class="t">color</span>.red, <span class="m">94</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The background turns green when price is above the higher timeframe average.</p></section><section id="c-inside-bar"><h1>Inside bars</h1><p><em>Highlight bars within the previous bar&#x27;s range.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Inside bar"</span>, overlay=<span class="k">true</span>)
+inside = <span class="b">high</span> &lt;= <span class="b">high</span>[<span class="m">1</span>] <span class="k">and</span> <span class="b">low</span> &gt;= <span class="b">low</span>[<span class="m">1</span>]
+<span class="f">barcolor</span>(inside ? <span class="t">color</span>.yellow : <span class="k">na</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Returning <code>na</code> for a color leaves the candle alone.</p></section><section id="c-engulfing"><h1>Engulfing candles</h1><p><em>Mark bars that wrap the previous body.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Engulfing"</span>, overlay=<span class="k">true</span>)
+bull = <span class="b">close</span> &gt; <span class="b">open</span> <span class="k">and</span> <span class="b">close</span>[<span class="m">1</span>] &lt; <span class="b">open</span>[<span class="m">1</span>] <span class="k">and</span> <span class="b">close</span> &gt;= <span class="b">open</span>[<span class="m">1</span>] <span class="k">and</span> <span class="b">open</span> &lt;= <span class="b">close</span>[<span class="m">1</span>]
+bear = <span class="b">close</span> &lt; <span class="b">open</span> <span class="k">and</span> <span class="b">close</span>[<span class="m">1</span>] &gt; <span class="b">open</span>[<span class="m">1</span>] <span class="k">and</span> <span class="b">close</span> &lt;= <span class="b">open</span>[<span class="m">1</span>] <span class="k">and</span> <span class="b">open</span> &gt;= <span class="b">close</span>[<span class="m">1</span>]
+<span class="f">plotshape</span>(bull, <span class="s">"Bullish"</span>, shape.arrowup, location.belowbar, <span class="t">color</span>.green)
+<span class="f">plotshape</span>(bear, <span class="s">"Bearish"</span>, shape.arrowdown, location.abovebar, <span class="t">color</span>.red)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>A pattern finder in four lines. A pattern is a shape, not a prediction.</p></section><section id="c-fair-value-gap"><h1>Fair value gaps</h1><p><em>Box the gap between candle 1 and candle 3.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"FVG"</span>, overlay=<span class="k">true</span>, max_bars_back=<span class="m">5</span>)
+bullGap = <span class="b">low</span> &gt; <span class="b">high</span>[<span class="m">2</span>]
+bearGap = <span class="b">high</span> &lt; <span class="b">low</span>[<span class="m">2</span>]
+<span class="k">if</span> bullGap
+    <span class="n">box</span>.new(<span class="b">bar_index</span> - <span class="m">2</span>, <span class="b">low</span>, <span class="b">bar_index</span> + <span class="m">10</span>, <span class="b">high</span>[<span class="m">2</span>], border_color=<span class="t">color</span>.green, bgcolor=<span class="t">color</span>.new(<span class="t">color</span>.green, <span class="m">88</span>))
+<span class="k">if</span> bearGap
+    <span class="n">box</span>.new(<span class="b">bar_index</span> - <span class="m">2</span>, <span class="b">low</span>[<span class="m">2</span>], <span class="b">bar_index</span> + <span class="m">10</span>, <span class="b">high</span>, border_color=<span class="t">color</span>.red, bgcolor=<span class="t">color</span>.new(<span class="t">color</span>.red, <span class="m">88</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>A gap exists when the wicks of candles one and three do not overlap. We draw a box from the gap forward ten bars.</p></section><section id="c-range-box"><h1>Opening range box</h1><p><em>Box the first bars of the session.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Opening range"</span>, overlay=<span class="k">true</span>)
+bars = <span class="n">input</span>.<span class="t">int</span>(<span class="m">6</span>, <span class="s">"Bars in range"</span>, minval=<span class="m">1</span>)
+newDay = dayofmonth != dayofmonth[<span class="m">1</span>]
+<span class="k">var</span> <span class="t">int</span> count = <span class="m">0</span>
+<span class="k">var</span> <span class="t">float</span> hi = <span class="k">na</span>
+<span class="k">var</span> <span class="t">float</span> lo = <span class="k">na</span>
+<span class="k">var</span> box b = <span class="k">na</span>
+<span class="k">if</span> newDay
+    count := <span class="m">1</span>
+    hi := <span class="b">high</span>
+    lo := <span class="b">low</span>
+    b := <span class="n">box</span>.new(<span class="b">bar_index</span>, <span class="b">high</span>, <span class="b">bar_index</span>, <span class="b">low</span>, border_color=<span class="t">color</span>.gray, bgcolor=<span class="t">color</span>.new(<span class="t">color</span>.gray, <span class="m">90</span>))
+<span class="k">else</span> <span class="k">if</span> count &lt; bars
+    count += <span class="m">1</span>
+    hi := <span class="n">math</span>.max(hi, <span class="b">high</span>)
+    lo := <span class="n">math</span>.min(lo, <span class="b">low</span>)
+    <span class="n">box</span>.set_right(b, <span class="b">bar_index</span>)
+    <span class="n">box</span>.set_top(b, hi)
+    <span class="n">box</span>.set_bottom(b, lo)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Each new day starts a fresh box. For the first <code>bars</code> bars it grows to include every high and low.</p></section><section id="c-session-background"><h1>Session background</h1><p><em>Tint the background by time of day (UTC).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Session tint"</span>, overlay=<span class="k">true</span>)
+minuteOfDay = hour * <span class="m">60</span> + minute
+inSession = minuteOfDay &gt;= <span class="m">13</span> * <span class="m">60</span> + <span class="m">30</span> <span class="k">and</span> minuteOfDay &lt; <span class="m">20</span> * <span class="m">60</span>
+<span class="f">bgcolor</span>(inSession ? <span class="t">color</span>.new(<span class="t">color</span>.blue, <span class="m">94</span>) : <span class="k">na</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p><code>hour</code> and <code>minute</code> are in UTC in Zscript v1, so the window above (13:30 to 20:00 UTC) is the New York cash session in summer. Move the two numbers for other markets or for winter time.</p></section><section id="c-volume-spike"><h1>Volume spike marks</h1><p><em>Mark bars with unusually high volume.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Volume spikes"</span>)
+mult = <span class="n">input</span>.<span class="t">float</span>(<span class="m">2.0</span>, <span class="s">"Times the average"</span>, step=<span class="m">0.1</span>)
+avg = <span class="n">ta</span>.sma(<span class="b">volume</span>, <span class="m">20</span>)
+spike = <span class="b">volume</span> &gt; avg * mult
+<span class="f">plot</span>(<span class="b">volume</span>, <span class="s">"Volume"</span>, style=plot.style_columns, <span class="t">color</span>=spike ? <span class="t">color</span>.orange : <span class="t">color</span>.gray)
+<span class="f">plot</span>(avg, <span class="s">"Average"</span>, <span class="t">color</span>=<span class="t">color</span>.white)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Orange columns are bars where volume was more than <code>mult</code> times its 20-bar average.</p></section><section id="c-relative-volume"><h1>Relative volume</h1><p><em>Volume as a multiple of normal.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Relative volume"</span>)
+rv = <span class="b">volume</span> / <span class="n">ta</span>.sma(<span class="b">volume</span>, <span class="m">30</span>)
+<span class="f">hline</span>(<span class="m">1</span>)
+<span class="f">plot</span>(rv, <span class="s">"Relative volume"</span>, style=plot.style_columns, <span class="t">color</span>=rv &gt; <span class="m">1</span> ? <span class="m">#03c988</span> : <span class="t">color</span>.gray)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>1.0 is normal. 2.0 means twice the 30-bar average.</p></section><section id="c-range-percent"><h1>Bar range as percent</h1><p><em>How big is each bar, relative to price?</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Range %"</span>)
+pct = (<span class="b">high</span> - <span class="b">low</span>) / <span class="b">close</span> * <span class="m">100</span>
+<span class="f">plot</span>(pct, <span class="s">"Range %"</span>, style=plot.style_columns, <span class="t">color</span>=<span class="m">#00adb5</span>)
+<span class="f">plot</span>(<span class="n">ta</span>.sma(pct, <span class="m">20</span>), <span class="s">"Average"</span>, <span class="t">color</span>=<span class="t">color</span>.white)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Useful for comparing quiet and busy markets on the same scale.</p></section><section id="c-gap-marks"><h1>Opening gap marks</h1><p><em>Mark days that open away from the prior close.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Gap marks"</span>, overlay=<span class="k">true</span>)
+minGap = <span class="n">input</span>.<span class="t">float</span>(<span class="m">0.3</span>, <span class="s">"Minimum gap %"</span>, step=<span class="m">0.1</span>)
+newDay = dayofmonth != dayofmonth[<span class="m">1</span>]
+gapPct = (<span class="b">open</span> - <span class="b">close</span>[<span class="m">1</span>]) / <span class="b">close</span>[<span class="m">1</span>] * <span class="m">100</span>
+<span class="f">plotshape</span>(newDay <span class="k">and</span> gapPct &gt; minGap, <span class="s">"Gap up"</span>, shape.triangleup, location.belowbar, <span class="t">color</span>.green)
+<span class="f">plotshape</span>(newDay <span class="k">and</span> gapPct &lt; -minGap, <span class="s">"Gap down"</span>, shape.triangledown, location.abovebar, <span class="t">color</span>.red)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Compares each day's first open with the last close before it.</p></section><section id="c-highest-lowest-label"><h1>Label the day&#x27;s high</h1><p><em>Write the high of the day on the newest bar.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Day high label"</span>, overlay=<span class="k">true</span>)
+<span class="k">var</span> <span class="t">float</span> dayHigh = <span class="k">na</span>
+<span class="k">if</span> dayofmonth != dayofmonth[<span class="m">1</span>]
+    dayHigh := <span class="b">high</span>
+<span class="k">else</span>
+    dayHigh := <span class="n">math</span>.max(dayHigh, <span class="b">high</span>)
+<span class="k">if</span> <span class="n">barstate</span>.islast
+    <span class="n">label</span>.new(<span class="b">bar_index</span>, dayHigh, <span class="s">"Day high "</span> + <span class="n">str</span>.tostring(dayHigh, <span class="s">"#.##"</span>), style=<span class="n">label</span>.style_label_left)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Drawing only on <code>barstate.islast</code> keeps the script light: one label, not thousands.</p></section><section id="c-info-table"><h1>Info table</h1><p><em>A small table with key numbers.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Info table"</span>, overlay=<span class="k">true</span>)
+<span class="k">var</span> t = <span class="n">table</span>.new(position.top_right, <span class="m">2</span>, <span class="m">3</span>)
+<span class="k">if</span> <span class="n">barstate</span>.islast
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">0</span>, <span class="s">"ATR(14)"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">0</span>, <span class="n">str</span>.tostring(<span class="n">ta</span>.atr(<span class="m">14</span>), <span class="s">"#.##"</span>))
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">1</span>, <span class="s">"RSI(14)"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">1</span>, <span class="n">str</span>.tostring(<span class="n">ta</span>.rsi(<span class="b">close</span>, <span class="m">14</span>), <span class="s">"#.#"</span>))
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">2</span>, <span class="s">"Volume"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">2</span>, <span class="n">str</span>.tostring(<span class="b">volume</span>, <span class="s">"#"</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The indicator functions are called on every bar (as they must be) and the table is only written on the last bar.</p></section><section id="c-gradient-columns"><h1>Gradient volume</h1><p><em>Color by how big a value is.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Gradient"</span>)
+r = <span class="n">ta</span>.rsi(<span class="b">close</span>, <span class="m">14</span>)
+c = <span class="t">color</span>.from_gradient(r, <span class="m">30</span>, <span class="m">70</span>, <span class="t">color</span>.red, <span class="t">color</span>.green)
+<span class="f">plot</span>(r, <span class="s">"RSI"</span>, style=plot.style_columns, <span class="t">color</span>=c)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p><code>color.from_gradient(value, low, high, colorLow, colorHigh)</code> blends between two colors.</p></section><section id="c-trend-filter"><h1>Trend filter background</h1><p><em>Green when above a long average, red when below.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Trend filter"</span>, overlay=<span class="k">true</span>)
+len = <span class="n">input</span>.<span class="t">int</span>(<span class="m">100</span>, <span class="s">"Length"</span>)
+a = <span class="n">ta</span>.sma(<span class="b">close</span>, len)
+<span class="f">plot</span>(a, <span class="s">"Average"</span>, <span class="t">color</span>=<span class="t">color</span>.gray)
+<span class="f">bgcolor</span>(<span class="b">close</span> &gt; a ? <span class="t">color</span>.new(<span class="t">color</span>.green, <span class="m">94</span>) : <span class="t">color</span>.new(<span class="t">color</span>.red, <span class="m">94</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The simplest possible regime filter.</p></section><section id="c-bars-since"><h1>Bars since last cross</h1><p><em>Count bars since a signal.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Bars since cross"</span>)
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+n = <span class="n">ta</span>.barssince(<span class="n">ta</span>.cross(fast, slow))
+<span class="f">plot</span>(n, <span class="s">"Bars since last cross"</span>, style=plot.style_columns, <span class="t">color</span>=<span class="m">#00adb5</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p><code>ta.barssince(condition)</code> counts bars since the condition was last true.</p></section><section id="c-correlation-pair"><h1>Correlation with another symbol</h1><p><em>How closely two markets move together.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Correlation"</span>)
+other = <span class="n">input</span>.<span class="t">string</span>(<span class="s">"NQ1!"</span>, <span class="s">"Other symbol"</span>)
+o = <span class="n">request</span>.security(other, <span class="n">timeframe</span>.period, <span class="b">close</span>)
+c = <span class="n">ta</span>.correlation(<span class="b">close</span>, o, <span class="m">50</span>)
+<span class="f">hline</span>(<span class="m">0</span>)
+<span class="f">plot</span>(c, <span class="s">"Correlation (50 bars)"</span>, <span class="t">color</span>=<span class="m">#00adb5</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Near 1 they move together, near -1 they move opposite, near 0 they do not relate.</p></section><section id="c-linear-regression"><h1>Regression line and bands</h1><p><em>A fitted line through recent closes.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Regression"</span>, overlay=<span class="k">true</span>)
+len = <span class="n">input</span>.<span class="t">int</span>(<span class="m">50</span>, <span class="s">"Length"</span>)
+lr = <span class="n">ta</span>.linreg(<span class="b">close</span>, len, <span class="m">0</span>)
+sd = <span class="n">ta</span>.stdev(<span class="b">close</span>, len)
+p1 = <span class="f">plot</span>(lr + <span class="m">2</span> * sd, <span class="s">"Upper"</span>, <span class="t">color</span>=<span class="t">color</span>.gray)
+p2 = <span class="f">plot</span>(lr - <span class="m">2</span> * sd, <span class="s">"Lower"</span>, <span class="t">color</span>=<span class="t">color</span>.gray)
+<span class="f">plot</span>(lr, <span class="s">"Line"</span>, <span class="t">color</span>=<span class="m">#03c988</span>)
+<span class="f">fill</span>(p1, p2, <span class="t">color</span>.new(<span class="t">color</span>.gray, <span class="m">94</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The fitted line and a band two standard deviations away.</p></section><section id="c-book-imbalance"><h1>Order book imbalance</h1><p><em>Which side has more resting size (Pro data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Book imbalance"</span>)
+n = <span class="n">input</span>.<span class="t">int</span>(<span class="m">10</span>, <span class="s">"Levels"</span>, minval=<span class="m">1</span>, maxval=<span class="m">40</span>)
+imb = <span class="n">book</span>.imbalance(n)
+<span class="f">hline</span>(<span class="m">0</span>)
+<span class="f">plot</span>(imb, <span class="s">"Imbalance"</span>, style=plot.style_columns, <span class="t">color</span>=imb &gt;= <span class="m">0</span> ? <span class="t">color</span>.green : <span class="t">color</span>.red)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Above zero means more size resting on the bid side. Without a plan that includes the data, or on a symbol with no depth feed, this shows nothing and a one-time notice explains why.</p></section><section id="c-book-walls"><h1>Nearest book walls</h1><p><em>Draw the nearest big resting levels (Pro data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Book walls"</span>, overlay=<span class="k">true</span>)
+minSize = <span class="n">input</span>.<span class="t">int</span>(<span class="m">500</span>, <span class="s">"Minimum size"</span>, minval=<span class="m">1</span>)
+<span class="f">plot</span>(<span class="n">book</span>.wall(<span class="n">book</span>.side_bid, minSize), <span class="s">"Bid wall"</span>, <span class="t">color</span>=<span class="t">color</span>.green, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">book</span>.wall(<span class="n">book</span>.side_ask, minSize), <span class="s">"Ask wall"</span>, <span class="t">color</span>=<span class="t">color</span>.red, style=plot.style_stepline)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>A wall is a single price level with at least <code>minSize</code> resting. Walls can be pulled at any time, so treat them as information, not a promise.</p></section><section id="c-delta-bars"><h1>Delta columns</h1><p><em>Buyers minus sellers per bar (Pro data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Delta"</span>)
+<span class="f">hline</span>(<span class="m">0</span>)
+<span class="f">plot</span>(<span class="n">flow</span>.delta, <span class="s">"Delta"</span>, style=plot.style_columns, <span class="t">color</span>=<span class="n">flow</span>.delta &gt;= <span class="m">0</span> ? <span class="t">color</span>.green : <span class="t">color</span>.red)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Positive when more volume traded at the ask than at the bid.</p></section><section id="c-cvd-line"><h1>Cumulative delta</h1><p><em>Running total of delta (Pro data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"CVD"</span>)
+<span class="f">plot</span>(<span class="n">flow</span>.cvd, <span class="s">"CVD"</span>, <span class="t">color</span>=<span class="m">#00adb5</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Compare its slope with price to see whether buying or selling is driving the move.</p></section><section id="c-delta-divergence"><h1>Delta against price</h1><p><em>Mark bars where price and delta disagree (Pro data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Delta divergence"</span>, overlay=<span class="k">true</span>)
+newHigh = <span class="b">high</span> &gt;= <span class="n">ta</span>.highest(<span class="b">high</span>, <span class="m">20</span>)
+weak = <span class="n">flow</span>.delta &lt; <span class="m">0</span>
+<span class="f">plotshape</span>(newHigh <span class="k">and</span> weak, <span class="s">"High on negative delta"</span>, shape.xcross, location.abovebar, <span class="t">color</span>.orange)
+newLow = <span class="b">low</span> &lt;= <span class="n">ta</span>.lowest(<span class="b">low</span>, <span class="m">20</span>)
+strong = <span class="n">flow</span>.delta &gt; <span class="m">0</span>
+<span class="f">plotshape</span>(newLow <span class="k">and</span> strong, <span class="s">"Low on positive delta"</span>, shape.xcross, location.belowbar, <span class="t">color</span>.orange)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>A new 20-bar high that traded with negative delta (or a low with positive delta) is flagged. It is a thing to look at, not a signal.</p></section><section id="c-big-trades"><h1>Big trade count</h1><p><em>How many large single trades hit the bar (Pro data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Big trades"</span>)
+minSize = <span class="n">input</span>.<span class="t">int</span>(<span class="m">50</span>, <span class="s">"Minimum trade size"</span>, minval=<span class="m">1</span>)
+n = <span class="n">flow</span>.bigtrades(minSize)
+<span class="f">plot</span>(n, <span class="s">"Big trades"</span>, style=plot.style_columns, <span class="t">color</span>=n &gt; <span class="m">0</span> ? <span class="t">color</span>.orange : <span class="t">color</span>.gray)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Counts single trades of at least <code>minSize</code> contracts or units.</p></section><section id="c-poc-lines"><h1>POC and value area</h1><p><em>Point of control with value area edges (Pro data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"POC and value area"</span>, overlay=<span class="k">true</span>)
+<span class="f">plot</span>(<span class="n">flow</span>.poc, <span class="s">"POC"</span>, <span class="t">color</span>=<span class="t">color</span>.yellow, style=plot.style_stepline)
+p1 = <span class="f">plot</span>(<span class="n">flow</span>.vah, <span class="s">"VAH"</span>, <span class="t">color</span>=<span class="t">color</span>.gray, style=plot.style_stepline)
+p2 = <span class="f">plot</span>(<span class="n">flow</span>.val, <span class="s">"VAL"</span>, <span class="t">color</span>=<span class="t">color</span>.gray, style=plot.style_stepline)
+<span class="f">fill</span>(p1, p2, <span class="t">color</span>.new(<span class="t">color</span>.gray, <span class="m">94</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The price with the most volume in the bar, and the range holding most of the volume.</p></section><section id="c-gex-levels"><h1>GEX levels</h1><p><em>Call wall, put wall and flip as lines (GEX+ data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"GEX levels"</span>, overlay=<span class="k">true</span>)
+<span class="f">plot</span>(<span class="n">gex</span>.callwall, <span class="s">"Call wall"</span>, <span class="t">color</span>=<span class="t">color</span>.green, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">gex</span>.putwall, <span class="s">"Put wall"</span>, <span class="t">color</span>=<span class="t">color</span>.red, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">gex</span>.flip, <span class="s">"Flip"</span>, <span class="t">color</span>=<span class="t">color</span>.yellow, style=plot.style_stepline)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The levels come from the latest GEX+ update, not an instant feed. For ES and NQ they follow the GEX+ page mapping.</p></section><section id="c-gex-zone-bg"><h1>Above or below the flip</h1><p><em>Tint the background by gamma regime (GEX+ data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Flip regime"</span>, overlay=<span class="k">true</span>)
+f = <span class="n">gex</span>.flip
+<span class="f">bgcolor</span>(<span class="k">na</span>(f) ? <span class="k">na</span> : <span class="b">close</span> &gt; f ? <span class="t">color</span>.new(<span class="t">color</span>.green, <span class="m">94</span>) : <span class="t">color</span>.new(<span class="t">color</span>.red, <span class="m">94</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Green above the flip level, red below. No tint when there is no data.</p></section><section id="c-gex-distance"><h1>Distance to the call wall</h1><p><em>How far price is from a level, in percent (GEX+ data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Distance to call wall"</span>)
+d = (<span class="n">gex</span>.callwall - <span class="b">close</span>) / <span class="b">close</span> * <span class="m">100</span>
+<span class="f">hline</span>(<span class="m">0</span>)
+<span class="f">plot</span>(d, <span class="s">"% to call wall"</span>, <span class="t">color</span>=<span class="m">#00adb5</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Positive when price is below the wall.</p></section><section id="c-options-range"><h1>Option range edges</h1><p><em>The expected range as two lines (ZoroOptions data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Option range"</span>, overlay=<span class="k">true</span>)
+[lo, hi] = <span class="n">opt</span>.range(<span class="s">"expected"</span>)
+<span class="f">plot</span>(hi, <span class="s">"Upper"</span>, <span class="t">color</span>=<span class="t">color</span>.gray, style=plot.style_stepline)
+<span class="f">plot</span>(lo, <span class="s">"Lower"</span>, <span class="t">color</span>=<span class="t">color</span>.gray, style=plot.style_stepline)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Range numbers are updated a few minutes at a time, not tick by tick.</p></section><section id="c-iv-rank-table"><h1>IV rank readout</h1><p><em>A table with IV rank and put/call ratio (ZoroOptions data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Options readout"</span>, overlay=<span class="k">true</span>)
+<span class="k">var</span> t = <span class="n">table</span>.new(position.top_right, <span class="m">2</span>, <span class="m">2</span>)
+<span class="k">if</span> <span class="n">barstate</span>.islast
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">0</span>, <span class="s">"IV rank"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">0</span>, <span class="n">str</span>.tostring(<span class="n">opt</span>.ivrank, <span class="s">"#.#"</span>))
+    <span class="n">table</span>.cell(t, <span class="m">0</span>, <span class="m">1</span>, <span class="s">"Put/call"</span>)
+    <span class="n">table</span>.cell(t, <span class="m">1</span>, <span class="m">1</span>, <span class="n">str</span>.tostring(<span class="n">opt</span>.pc, <span class="s">"#.##"</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Shows "NaN" style blanks when your plan lacks the data; the script still runs.</p></section><section id="c-nodes-and-walls"><h1>Gamma nodes with GEX walls</h1><p><em>Combine two data kinds in one script (GEX+ and ZoroOptions data).</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Nodes and walls"</span>, overlay=<span class="k">true</span>)
+<span class="f">plot</span>(<span class="n">opt</span>.node(<span class="m">1</span>), <span class="s">"Node 1"</span>, <span class="t">color</span>=<span class="t">color</span>.purple, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">opt</span>.node(<span class="m">2</span>), <span class="s">"Node 2"</span>, <span class="t">color</span>=<span class="t">color</span>.purple, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">gex</span>.callwall, <span class="s">"Call wall"</span>, <span class="t">color</span>=<span class="t">color</span>.green, style=plot.style_stepline)
+<span class="f">plot</span>(<span class="n">gex</span>.putwall, <span class="s">"Put wall"</span>, <span class="t">color</span>=<span class="t">color</span>.red, style=plot.style_stepline)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>Each data kind follows your plan on its own. If one is missing, only its lines go blank.</p></section><section id="c-alert-cross"><h1>Cross alert</h1><p><em>An alert you can set from the chart.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Cross alert"</span>, overlay=<span class="k">true</span>)
+fast = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">9</span>)
+slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="m">21</span>)
+<span class="f">plot</span>(fast)
+<span class="f">plot</span>(slow)
+<span class="f">alertcondition</span>(<span class="n">ta</span>.crossover(fast, slow), <span class="s">"Up cross"</span>, <span class="s">"Fast EMA crossed above slow EMA"</span>)
+<span class="f">alertcondition</span>(<span class="n">ta</span>.crossunder(fast, slow), <span class="s">"Down cross"</span>, <span class="s">"Fast EMA crossed below slow EMA"</span>)</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>After you add the script, the alert dialog lists both rules.</p></section><section id="c-alert-level"><h1>Level alert with a message</h1><p><em>Build the message from live values.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<span class="f">indicator</span>(<span class="s">"Level alert"</span>, overlay=<span class="k">true</span>)
+level = <span class="n">input</span>.<span class="t">float</span>(<span class="m">100.0</span>, <span class="s">"Level"</span>)
+<span class="f">hline</span>(level)
+<span class="k">if</span> <span class="n">ta</span>.crossover(<span class="b">close</span>, level) <span class="k">and</span> <span class="n">barstate</span>.isconfirmed
+    alert(<span class="s">"Close above "</span> + <span class="n">str</span>.tostring(level, <span class="s">"#.##"</span>))</code></pre>
+<h2 id="how-it-works">How it works</h2>
+<p>The message is built from the number you chose in the settings.</p></section></body></html>

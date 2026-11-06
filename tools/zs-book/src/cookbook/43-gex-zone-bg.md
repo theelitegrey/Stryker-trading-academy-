@@ -10,6 +10,8 @@ f = gex.flip
 bgcolor(na(f) ? na : close > f ? color.new(color.green, 94) : color.new(color.red, 94))
 ```
 
+@chart cb-gex-zone-bg
+
 ## How it works
 
 Green above the flip level, red below. No tint when there is no data.

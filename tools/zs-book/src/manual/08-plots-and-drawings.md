@@ -83,7 +83,7 @@ if not na(pl)
 indicator("Today's range box", overlay=true)
 
 var box rangeBox = na
-if ta.change(time("D")) != 0
+if dayofmonth != dayofmonth[1]
     rangeBox := box.new(bar_index, high, bar_index, low, border_color=color.gray, bgcolor=color.new(color.gray, 90))
 else
     box.set_right(rangeBox, bar_index)

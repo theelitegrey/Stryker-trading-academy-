@@ -12,6 +12,8 @@ plot(a, "Average", color=color.gray)
 bgcolor(close > a ? color.new(color.green, 94) : color.new(color.red, 94))
 ```
 
+@chart cb-trend-filter
+
 ## How it works
 
 The simplest possible regime filter.

@@ -14,6 +14,8 @@ p2 = plot(lo, "Low", color=color.red)
 fill(p1, p2, color.new(color.gray, 94))
 ```
 
+@chart cb-donchian
+
 ## How it works
 
 A breakout channel: a close above the top line is a new N-bar high.

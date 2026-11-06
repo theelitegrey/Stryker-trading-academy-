@@ -85,7 +85,7 @@ def render_md(text, ctx):
         p = os.path.join(SRC, '..', 'charts', name + '.svg')
         if not os.path.exists(p):
             ctx.setdefault('missing_charts', []).append(name)
-            return '<p class="zs-missing">[chart %s not rendered yet]</p>' % esc(name)
+            return ''
         cap = ''
         mj = os.path.join(SRC, '..', 'charts', name + '.json')
         if os.path.exists(mj):

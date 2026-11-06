@@ -12,6 +12,8 @@ n = ta.barssince(ta.cross(fast, slow))
 plot(n, "Bars since last cross", style=plot.style_columns, color=#00adb5)
 ```
 
+@chart cb-bars-since
+
 ## How it works
 
 `ta.barssince(condition)` counts bars since the condition was last true.

@@ -14,6 +14,8 @@ fill(top, bot, color.new(color.gray, 92))
 plot(r, "RSI", color=#00adb5)
 ```
 
+@chart cb-rsi-zones
+
 ## How it works
 
 RSI measures how strong recent up moves are compared with down moves, on a 0 to 100 scale. 70 and 30 are common reference lines, not signals on their own.

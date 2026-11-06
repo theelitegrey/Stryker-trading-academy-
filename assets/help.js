@@ -93,7 +93,22 @@
 
   function loadData() {
     return fetch('/assets/help/help-data.json?v=' + encodeURIComponent(VER), { credentials: 'omit' })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(addZscriptHelp);
+  }
+  // Zscript help entries ship in their own file and appear only once the launch switch ZS_LIVE is true.
+  function addZscriptHelp(data) {
+    if (!window.ZS_LIVE) return data;
+    return fetch('/assets/help/zscript-help.json?v=' + encodeURIComponent(VER), { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (z) {
+        if (!z) return data;
+        data.categories.forEach(function (c) {
+          if (c.id !== z.category) return;
+          c.subs.forEach(function (s) { if (s.id === z.sub) s.items = s.items.concat(z.items); });
+        });
+        return data;
+      }, function () { return data; });
   }
 
   // ---------- search index ----------

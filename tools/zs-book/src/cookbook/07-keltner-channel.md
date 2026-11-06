@@ -13,6 +13,8 @@ plot(mid, "Middle", color=color.gray)
 fill(p1, p2, color.new(color.orange, 93))
 ```
 
+@chart cb-keltner-channel
+
 ## How it works
 
 Same idea as Bollinger Bands, but the width follows the typical bar size (ATR) rather than standard deviation.

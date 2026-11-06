@@ -11,6 +11,8 @@ n = flow.bigtrades(minSize)
 plot(n, "Big trades", style=plot.style_columns, color=n > 0 ? color.orange : color.gray)
 ```
 
+@chart cb-big-trades
+
 ## How it works
 
 Counts single trades of at least `minSize` contracts or units.

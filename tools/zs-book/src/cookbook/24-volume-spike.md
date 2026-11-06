@@ -13,6 +13,8 @@ plot(volume, "Volume", style=plot.style_columns, color=spike ? color.orange : co
 plot(avg, "Average", color=color.white)
 ```
 
+@chart cb-volume-spike
+
 ## How it works
 
 Orange columns are bars where volume was more than `mult` times its 20-bar average.

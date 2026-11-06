@@ -14,6 +14,8 @@ plotshape(ta.crossover(fast, slow), "Up", shape.triangleup, location.belowbar, c
 plotshape(ta.crossunder(fast, slow), "Down", shape.triangledown, location.abovebar, color.red)
 ```
 
+@chart cb-cross-signals
+
 ## How it works
 
 `ta.crossover(a, b)` is true on the bar where `a` moves from below `b` to above it. This is a teaching sample of a rule, not a trading system.

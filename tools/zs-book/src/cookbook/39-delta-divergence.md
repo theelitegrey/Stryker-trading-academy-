@@ -14,6 +14,8 @@ strong = flow.delta > 0
 plotshape(newLow and strong, "Low on positive delta", shape.xcross, location.belowbar, color.orange)
 ```
 
+@chart cb-delta-divergence
+
 ## How it works
 
 A new 20-bar high that traded with negative delta (or a low with positive delta) is flagged. It is a thing to look at, not a signal.

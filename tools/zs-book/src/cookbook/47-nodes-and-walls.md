@@ -12,6 +12,8 @@ plot(gex.callwall, "Call wall", color=color.green, style=plot.style_stepline)
 plot(gex.putwall, "Put wall", color=color.red, style=plot.style_stepline)
 ```
 
+@chart cb-nodes-and-walls
+
 ## How it works
 
 Each data kind follows your plan on its own. If one is missing, only its lines go blank.

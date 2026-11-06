@@ -12,6 +12,8 @@ plot(macdLine, "MACD", color=color.white)
 plot(signal, "Signal", color=color.yellow)
 ```
 
+@chart cb-macd-histogram
+
 ## How it works
 
 The histogram is the gap between the MACD line and its signal line. Green above zero, red below.

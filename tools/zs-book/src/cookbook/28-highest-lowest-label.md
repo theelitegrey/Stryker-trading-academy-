@@ -7,13 +7,15 @@ level: Intermediate
 //@zscript 1
 indicator("Day high label", overlay=true)
 var float dayHigh = na
-if ta.change(time("D")) != 0
+if dayofmonth != dayofmonth[1]
     dayHigh := high
 else
     dayHigh := math.max(dayHigh, high)
 if barstate.islast
     label.new(bar_index, dayHigh, "Day high " + str.tostring(dayHigh, "#.##"), style=label.style_label_left)
 ```
+
+@chart cb-highest-lowest-label
 
 ## How it works
 

@@ -39,8 +39,8 @@ Names of values may use letters, digits and `_`, and cannot start with a digit. 
 One statement per line. Code that belongs together is indented under its header, with two or four spaces. The indent is how Zscript knows where a block ends.
 
 ```zs-snippet
-if close > open
-    bgcolor(color.new(#03c988, 85))
+up = close > open
+bgcolor(up ? color.new(#03c988, 85) : na)
 ```
 
 A long line can break after an operator or a comma. Indent the continuation by at least one more level than the line it continues.

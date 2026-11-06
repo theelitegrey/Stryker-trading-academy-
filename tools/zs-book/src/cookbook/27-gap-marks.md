@@ -7,11 +7,13 @@ level: Intermediate
 //@zscript 1
 indicator("Gap marks", overlay=true)
 minGap = input.float(0.3, "Minimum gap %", step=0.1)
-newDay = ta.change(time("D")) != 0
+newDay = dayofmonth != dayofmonth[1]
 gapPct = (open - close[1]) / close[1] * 100
 plotshape(newDay and gapPct > minGap, "Gap up", shape.triangleup, location.belowbar, color.green)
 plotshape(newDay and gapPct < -minGap, "Gap down", shape.triangledown, location.abovebar, color.red)
 ```
+
+@chart cb-gap-marks
 
 ## How it works
 

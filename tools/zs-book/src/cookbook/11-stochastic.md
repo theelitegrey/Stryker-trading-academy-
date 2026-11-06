@@ -14,6 +14,8 @@ plot(k, "%K", color=color.blue)
 plot(d, "%D", color=color.orange)
 ```
 
+@chart cb-stochastic
+
 ## How it works
 
 100 means the close is at the top of the last 14 bars' range, 0 the bottom.

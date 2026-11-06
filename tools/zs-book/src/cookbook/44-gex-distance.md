@@ -11,6 +11,8 @@ hline(0)
 plot(d, "% to call wall", color=#00adb5)
 ```
 
+@chart cb-gex-distance
+
 ## How it works
 
 Positive when price is below the wall.

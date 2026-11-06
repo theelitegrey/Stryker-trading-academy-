@@ -14,6 +14,8 @@ trail := na(trail) ? raw : math.max(trail, raw)
 plot(trail, "Trail", color=color.orange, style=plot.style_stepline)
 ```
 
+@chart cb-atr-stop-line
+
 ## How it works
 
 The line only moves up, never down, so it traces a path that stays a set number of bar-sizes below the close. A teaching example of `var`.

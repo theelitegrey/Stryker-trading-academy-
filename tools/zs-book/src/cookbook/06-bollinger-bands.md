@@ -15,6 +15,8 @@ plot(mid, "Middle", color=color.gray)
 fill(p1, p2, color.new(#00adb5, 92))
 ```
 
+@chart cb-bollinger-bands
+
 ## How it works
 
 `ta.bb` returns three values at once, so we take them apart with square brackets.

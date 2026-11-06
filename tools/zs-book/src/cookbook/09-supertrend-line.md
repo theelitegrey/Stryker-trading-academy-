@@ -10,6 +10,8 @@ indicator("Supertrend", overlay=true)
 plot(st, "Supertrend", color=dir < 0 ? color.green : color.red, linewidth=2)
 ```
 
+@chart cb-supertrend-line
+
 ## How it works
 
 `dir` is -1 in an up-trend and 1 in a down-trend. We use it to choose the color.

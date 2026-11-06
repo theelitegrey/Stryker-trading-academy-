@@ -11,6 +11,8 @@ c = color.from_gradient(r, 30, 70, color.red, color.green)
 plot(r, "RSI", style=plot.style_columns, color=c)
 ```
 
+@chart cb-gradient-columns
+
 ## How it works
 
 `color.from_gradient(value, low, high, colorLow, colorHigh)` blends between two colors.

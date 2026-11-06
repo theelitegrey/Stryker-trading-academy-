@@ -12,6 +12,8 @@ p2 = plot(flow.val, "VAL", color=color.gray, style=plot.style_stepline)
 fill(p1, p2, color.new(color.gray, 94))
 ```
 
+@chart cb-poc-lines
+
 ## How it works
 
 The price with the most volume in the bar, and the range holding most of the volume.

@@ -14,6 +14,8 @@ if barstate.islast
     table.cell(t, 1, 1, str.tostring(opt.pc, "#.##"))
 ```
 
+@chart cb-iv-rank-table
+
 ## How it works
 
 Shows "NaN" style blanks when your plan lacks the data; the script still runs.

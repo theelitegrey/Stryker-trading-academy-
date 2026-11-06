@@ -12,6 +12,8 @@ hline(0)
 plot(imb, "Imbalance", style=plot.style_columns, color=imb >= 0 ? color.green : color.red)
 ```
 
+@chart cb-book-imbalance
+
 ## How it works
 
 Above zero means more size resting on the bid side. Without a plan that includes the data, or on a symbol with no depth feed, this shows nothing and a one-time notice explains why.

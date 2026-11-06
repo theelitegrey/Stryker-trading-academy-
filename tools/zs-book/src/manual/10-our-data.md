@@ -20,14 +20,14 @@ Every value is the value known **at that bar**. There is no way to read a future
 ## Order book: book
 
 ```text
-book.bid(level)        price of the bid at depth `level` (1 = best)
+book.bid(level)        price of the bid at depth `level` (0 = best)
 book.ask(level)        price of the ask at depth `level`
 book.bidsize(level)    size resting there
 book.asksize(level)    size resting there
-book.depth(side, n)    total size in the best n levels of a side
+book.depth(side, n)    total size in the best n levels of a side (book.side_bid or book.side_ask)
 book.imbalance(n)      (bid depth - ask depth) / (bid depth + ask depth) in the best n levels, -1 to 1
-book.wall(side, minSize)  price of the nearest level with at least minSize resting
-book.heat(price)       how much was resting at a price level, on average over the bar
+book.wall(side, minSize)  price of the nearest level with at least minSize resting (side is book.side_bid or book.side_ask)
+book.heat(price)       size resting at that price (nearest level within one tick)
 ```
 
 Available where we have a depth feed: the futures hub and the supported crypto venues. On other symbols you get `na` and a notice.
@@ -50,6 +50,7 @@ flow.cvd                     running total of delta
 flow.trades                  number of trades in the bar
 flow.bigtrades(minSize)      count of single trades of at least minSize
 flow.footprint(price)        volume traded at one price level inside the bar
+flow.bigtrades_vol(minSize)  total size of those big trades
 flow.poc, flow.vah, flow.val point of control, value area high and low of the bar
 ```
 
@@ -69,7 +70,8 @@ gex.putwall    strike with the largest put gamma
 gex.flip       gamma flip level
 gex.zero_upper, gex.zero_lower   the two zero-gamma levels around price
 gex.net        net gamma number
-gex.level(n)   the nth ranked level
+gex.level(n)   the nth strongest level (0 = strongest)
+gex.updated    when the levels were computed (ms)
 ```
 
 ES and NQ use the same mapping as the GEX+ page.
@@ -87,19 +89,21 @@ plot(gex.flip, "Flip", color=color.yellow, style=plot.style_stepline)
 
 ```text
 opt.node(n)      price of the nth gamma node
-opt.range(kind)  expected range edge ("upper" or "lower")
+opt.range(kind)  a pair [low, high] for kind "day", "week" or "expected"
 opt.ivrank       IV rank, 0 to 100
 opt.pc           put/call ratio
 opt.maxpain      max pain strike
 opt.zone         the current zone label
+opt.updated      when the data was computed (ms): show it as "updated X min ago"
 ```
 
 ```zscript
 //@zscript 1
 indicator("Option ranges", overlay=true)
 
-plot(opt.range("upper"), "Range upper", color=color.gray, style=plot.style_stepline)
-plot(opt.range("lower"), "Range lower", color=color.gray, style=plot.style_stepline)
+[lo, hi] = opt.range("expected")
+plot(hi, "Range high", color=color.gray, style=plot.style_stepline)
+plot(lo, "Range low", color=color.gray, style=plot.style_stepline)
 ```
 
 ## Handling "no data"

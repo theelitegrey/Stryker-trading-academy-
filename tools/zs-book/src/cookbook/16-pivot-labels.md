@@ -15,6 +15,8 @@ if not na(pl)
     label.new(bar_index - n, pl, "L", style=label.style_label_up, color=color.green, textcolor=color.white)
 ```
 
+@chart cb-pivot-labels
+
 ## How it works
 
 A pivot needs `n` bars on each side to be sure, so it is only known `n` bars later. That is why the label is placed at `bar_index - n`: it goes back to where the pivot really was, without ever using a future bar.

@@ -16,6 +16,8 @@ if barstate.islast
     table.cell(t, 1, 2, str.tostring(volume, "#"))
 ```
 
+@chart cb-info-table
+
 ## How it works
 
 The indicator functions are called on every bar (as they must be) and the table is only written on the last bar.

@@ -15,6 +15,8 @@ plot(lr, "Line", color=#03c988)
 fill(p1, p2, color.new(color.gray, 94))
 ```
 
+@chart cb-linear-regression
+
 ## How it works
 
 The fitted line and a band two standard deviations away.

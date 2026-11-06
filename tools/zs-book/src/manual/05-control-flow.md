@@ -40,15 +40,19 @@ indicator("Pick an average", overlay=true)
 kind = input.string("EMA", "Type", options=["SMA", "EMA", "WMA"])
 len = input.int(20, "Length")
 
+smaLine = ta.sma(close, len)
+wmaLine = ta.wma(close, len)
+emaLine = ta.ema(close, len)
+
 line1 = switch kind
-    "SMA" => ta.sma(close, len)
-    "WMA" => ta.wma(close, len)
-    => ta.ema(close, len)
+    "SMA" => smaLine
+    "WMA" => wmaLine
+    => emaLine
 
 plot(line1)
 ```
 
-The lone `=>` is the default branch.
+The lone `=>` is the default branch. We work out all three averages first, on every bar, and let the `switch` only choose. Calling `ta` functions inside a branch would leave their memory with gaps.
 
 ## for loops
 

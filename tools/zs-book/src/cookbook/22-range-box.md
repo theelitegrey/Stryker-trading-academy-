@@ -7,7 +7,7 @@ level: Advanced
 //@zscript 1
 indicator("Opening range", overlay=true)
 bars = input.int(6, "Bars in range", minval=1)
-newDay = ta.change(time("D")) != 0
+newDay = dayofmonth != dayofmonth[1]
 var int count = 0
 var float hi = na
 var float lo = na
@@ -25,6 +25,8 @@ else if count < bars
     box.set_top(b, hi)
     box.set_bottom(b, lo)
 ```
+
+@chart cb-range-box
 
 ## How it works
 

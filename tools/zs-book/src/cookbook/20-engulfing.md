@@ -12,6 +12,8 @@ plotshape(bull, "Bullish", shape.arrowup, location.belowbar, color.green)
 plotshape(bear, "Bearish", shape.arrowdown, location.abovebar, color.red)
 ```
 
+@chart cb-engulfing
+
 ## How it works
 
 A pattern finder in four lines. A pattern is a shape, not a prediction.

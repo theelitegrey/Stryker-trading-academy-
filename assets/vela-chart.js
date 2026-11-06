@@ -519,6 +519,8 @@ function lateLists(provider){
   try { BinanceProvider = mods[18].boostBinance(BinanceProvider); } catch (e) { console.warn('TradeZoro: tick boost', e); }
   const CoinbaseProvider = mods[2].CoinbaseProvider;
   const HyperliquidProvider = mods[3].HyperliquidProvider;
+  let BitgetProvider = null, KrakenProvider = null;   // more crypto venues (providers/bitget.js, kraken.js); a failed load just leaves them out
+  try { const [bg, kr] = await Promise.all([import(VELA_BASE + 'providers/bitget.js'), import(VELA_BASE + 'providers/kraken.js')]); BitgetProvider = bg.BitgetProvider; KrakenProvider = kr.KrakenProvider; } catch (e) { console.warn('TradeZoro: Bitget/Kraken providers', e); }
   const FuturesProvider = mods[4].FuturesProvider;
   const FxProvider = mods[4].FxProvider;
   const IdxProvider = mods[4].IdxProvider;
@@ -738,6 +740,8 @@ function lateLists(provider){
         binance: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new BinanceProvider()), 'binance'), 'binance'),
         coinbase: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new CoinbaseProvider()), 'coinbase'), 'coinbase'),
         hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new HyperliquidProvider()), 'hyperliquid'), 'hyperliquid'),
+        ...(BitgetProvider ? { bitget: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new BitgetProvider()), 'bitget'), 'bitget') } : {}),
+        ...(KrakenProvider ? { kraken: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new KrakenProvider()), 'kraken'), 'kraken') } : {}),
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
         fx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(FxProvider, 'fx'))(), 'fx'), 'fx'),
         // Indices & ETFs (SPX NDX VIX RUT QQQ SPY IWM DIA): same endpoint, Yahoo, delayed; admin live candle from the hub's quote frames.

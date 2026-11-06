@@ -8,7 +8,9 @@ export const SOURCES = [
   { id: 'binance', name: 'Binance', perp: true },
   { id: 'binanceus', name: 'Binance US', perp: false },
   { id: 'coinbase', name: 'Coinbase', perp: false },
-  { id: 'hyperliquid', name: 'Hyperliquid', perp: true }
+  { id: 'hyperliquid', name: 'Hyperliquid', perp: true },
+  { id: 'bitget', name: 'Bitget', perp: true },
+  { id: 'kraken', name: 'Kraken', perp: true }
 ];
 export const sourceName = (id) => (SOURCES.find((s) => s.id === id) || { name: id }).name;
 const MAX_LEVELS = 1500;
@@ -150,5 +152,84 @@ function hyperliquid(pair, cb) {
   return () => { stopped = true; stopWs(); };
 }
 
-const OPEN = { binance, binanceus, coinbase, hyperliquid };
+// ---- Bitget (spot + USDT perpetuals; public v2 WebSocket; "books" = snapshot then incremental, size 0 deletes) ----------------
+const bgTradeRow = (x) => ({ t: +x.ts, p: +x.price, s: +x.size, side: x.side === 'sell' ? -1 : 1, ex: 'bitget' });   // side = the taker (aggressor)
+function bitget(pair, cb) {
+  const sym = pair.base + (pair.quote === 'USD' || pair.quote === 'USDC' ? 'USDT' : pair.quote), perp = pair.perp, inst = perp ? 'USDT-FUTURES' : 'SPOT';
+  const book = { bids: new Map(), asks: new Map() };
+  let stopped = false, stopWs = () => {}, listedFail = false;
+  cb.status('loading');
+  const rest = 'https://api.bitget.com/api/v2/' + (perp ? 'mix' : 'spot') + '/market/fills?symbol=' + sym + (perp ? '&productType=USDT-FUTURES' : '') + '&limit=100';
+  getJson(rest).then((j) => { if (!stopped && j.data) cb.trades(j.data.map(bgTradeRow), true); }).catch(() => {});
+  stopWs = socket('wss://ws.bitget.com/v2/ws/public', {
+    onOpen: (ws) => {
+      ws.send(JSON.stringify({ op: 'subscribe', args: [{ instType: inst, channel: 'books', instId: sym }, { instType: inst, channel: 'trade', instId: sym }] }));
+      const iv = setInterval(() => { try { ws.send('ping'); } catch (e) {} }, 25000);
+      ws.addEventListener('close', () => clearInterval(iv));
+    },
+    onMsg: (d) => {
+      if (d.event === 'error') { listedFail = true; cb.status('unlisted', 'Not listed on Bitget'); return; }
+      const ch = d.arg && d.arg.channel;
+      if (ch === 'books' && Array.isArray(d.data) && d.data[0]) {
+        if (d.action === 'snapshot') { book.bids.clear(); book.asks.clear(); }
+        applyRows(book.bids, d.data[0].bids, true); applyRows(book.asks, d.data[0].asks, false);
+        cb.book(book); cb.status('live');
+      } else if (ch === 'trade' && Array.isArray(d.data)) cb.trades(d.data.map(bgTradeRow), d.action === 'snapshot');
+    },
+    onState: (s) => { if (!listedFail) cb.status(s); }
+  });
+  return () => { stopped = true; stopWs(); };
+}
+
+// ---- Kraken (spot: WebSocket v2 book + trade; perpetuals "PF_XBTUSD": futures.kraken.com feeds) -------------------------
+let krPairs = null;
+const krBase = (b) => (b === 'BTC' ? 'XBT' : b);
+function kraken(pair, cb) {
+  const book = { bids: new Map(), asks: new Map() };
+  let stopped = false, stopWs = () => {};
+  cb.status('loading');
+  if (pair.perp) {
+    const id = 'PF_' + krBase(pair.base) + 'USD';   // BTC and XBT both map to PF_XBTUSD
+    let listedFail = false;
+    stopWs = socket('wss://futures.kraken.com/ws/v1', {
+      onOpen: (ws) => { ws.send(JSON.stringify({ event: 'subscribe', feed: 'book', product_ids: [id] })); ws.send(JSON.stringify({ event: 'subscribe', feed: 'trade', product_ids: [id] })); },
+      onMsg: (d) => {
+        if (d.event === 'error' || d.event === 'alert') { if (!d.feed) { listedFail = true; cb.status('unlisted', 'Not listed on Kraken'); } return; }
+        if (d.product_id && d.product_id !== id) return;
+        if (d.feed === 'book_snapshot') { book.bids.clear(); book.asks.clear(); applyRows(book.bids, (d.bids || []).map((x) => [x.price, x.qty]), true); applyRows(book.asks, (d.asks || []).map((x) => [x.price, x.qty]), false); cb.book(book); cb.status('live'); }
+        else if (d.feed === 'book') { applyRows(d.side === 'buy' ? book.bids : book.asks, [[d.price, d.qty]], d.side === 'buy'); cb.book(book); }
+        else if (d.feed === 'trade_snapshot') cb.trades((d.trades || []).map(krfTrade), true);
+        else if (d.feed === 'trade') cb.trades([krfTrade(d)], false);
+      },
+      onState: (s) => { if (!listedFail) cb.status(s); }
+    });
+    return () => { stopped = true; stopWs(); };
+  }
+  (async () => {
+    if (!krPairs) krPairs = getJson('https://api.kraken.com/0/public/AssetPairs').then((j) => new Set(Object.values(j.result).map((p) => p.wsname && p.wsname.replace(/^XBT\//, 'BTC/')).filter(Boolean))).catch(() => { krPairs = null; return null; });
+    const names = await krPairs;
+    if (stopped) return;
+    const bs = pair.base === 'XBT' ? 'BTC' : pair.base, cands = [bs + '/' + pair.quote, bs + '/USD', bs + '/USDT'];
+    const symbol = names ? cands.find((c) => names.has(c)) : cands[0];
+    if (!symbol) { cb.status('unlisted', 'Not listed on Kraken'); return; }
+    const rp = krBase(bs) + symbol.split('/')[1];
+    getJson('https://api.kraken.com/0/public/Trades?pair=' + rp + '&count=500').then((j) => { const k = Object.keys(j.result).find((x) => x !== 'last'); if (!stopped && k) cb.trades(j.result[k].map((x) => ({ t: Math.round(x[2] * 1000), p: +x[0], s: +x[1], side: x[3] === 'b' ? 1 : -1, ex: 'kraken' })), true); }).catch(() => {});
+    stopWs = socket('wss://ws.kraken.com/v2', {
+      onOpen: (ws) => { ws.send(JSON.stringify({ method: 'subscribe', params: { channel: 'book', symbol: [symbol], depth: 500 } })); ws.send(JSON.stringify({ method: 'subscribe', params: { channel: 'trade', symbol: [symbol] } })); },
+      onMsg: (d) => {
+        if (d.channel === 'book' && Array.isArray(d.data) && d.data[0]) {
+          const x = d.data[0];
+          if (d.type === 'snapshot') { book.bids.clear(); book.asks.clear(); }
+          applyRows(book.bids, (x.bids || []).map((r) => [r.price, r.qty]), true); applyRows(book.asks, (x.asks || []).map((r) => [r.price, r.qty]), false);
+          cb.book(book); cb.status('live');
+        } else if (d.channel === 'trade' && Array.isArray(d.data)) cb.trades(d.data.map((x) => ({ t: Date.parse(x.timestamp) || Date.now(), p: +x.price, s: +x.qty, side: x.side === 'sell' ? -1 : 1, ex: 'kraken' })), d.type === 'snapshot');
+      },
+      onState: (s) => cb.status(s)
+    });
+  })();
+  return () => { stopped = true; stopWs(); };
+}
+const krfTrade = (x) => ({ t: +x.time, p: +x.price, s: +x.qty, side: x.side === 'sell' ? -1 : 1, ex: 'kraken' });   // side = the taker (aggressor)
+
+const OPEN = { binance, binanceus, coinbase, hyperliquid, bitget, kraken };
 export function openSource(id, pair, cb) { const f = OPEN[id]; return f ? f(pair, cb) : (cb.status('error', 'Unknown source'), () => {}); }

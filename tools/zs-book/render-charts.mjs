@@ -5,7 +5,7 @@
 // Sample bars only (a seeded random walk): every image is captioned "Sample bars, not market data."
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, sampleBars, sampleData, loadEngine } from './lib.mjs';
+import { ROOT, sampleBars, sampleData, loadEngine, sampleSecurities } from './lib.mjs';
 
 const SRC = path.join(ROOT, 'tools/zs-book/src');
 const OUT = path.join(ROOT, 'tools/zs-book/charts');
@@ -164,7 +164,7 @@ for (const f of files) {
     if (!r.ok) { console.log('compile failed for chart', m[3]); process.exitCode = 1; continue; }
     const run = mod.runSync || mod.run;
     const out = await run({ program: r.program, bars, symbol: { ticker: 'SAMPLE', tickerid: 'SAMPLE', type: 'futures', currency: 'USD', mintick: 0.25, pointvalue: 1 },
-      timeframe: '5', inputs: {}, allowed: { book: true, flow: true, gex: true, opt: true }, data, securities: {} });
+      timeframe: '5', inputs: {}, allowed: { book: true, flow: true, gex: true, opt: true }, data, securities: sampleSecurities(r.meta, bars) });
     if (out.ok === false) { console.log('run failed for chart', m[3], JSON.stringify(out.error)); process.exitCode = 1; continue; }
     const overlay = !!(r.meta && r.meta.overlay);
     const cap = 'Sample bars, not market data. ' + (r.meta && r.meta.title ? r.meta.title + '.' : '');

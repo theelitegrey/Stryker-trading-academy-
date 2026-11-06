@@ -76,3 +76,21 @@ export async function loadEngine() {
   for (const p of cands) if (fs.existsSync(p)) return { mod: await import(pathToFileURL(p).href), path: p };
   return null;
 }
+
+const TFMS = { '1': 6e4, '5': 3e5, '15': 9e5, '60': 36e5, '240': 144e5, D: 864e5, W: 6048e5 };
+// Higher-timeframe sample bars built from the 5-minute sample bars (for request.security recipes).
+export function aggregate(bars, tf, mul = 1) {
+  const ms = TFMS[tf] || 3e5, out = { time: [], open: [], high: [], low: [], close: [], volume: [] };
+  let cur = -1;
+  for (let i = 0; i < bars.time.length; i++) {
+    const k = Math.floor(bars.time[i] / ms);
+    if (k !== cur) { cur = k; out.time.push(k * ms); out.open.push(bars.open[i] * mul); out.high.push(bars.high[i] * mul); out.low.push(bars.low[i] * mul); out.close.push(bars.close[i] * mul); out.volume.push(bars.volume[i]); }
+    else { const j = out.time.length - 1; out.high[j] = Math.max(out.high[j], bars.high[i] * mul); out.low[j] = Math.min(out.low[j], bars.low[i] * mul); out.close[j] = bars.close[i] * mul; out.volume[j] += bars.volume[i]; }
+  }
+  return out;
+}
+export function sampleSecurities(meta, bars) {
+  const o = {};
+  for (const sc of (meta && meta.securities) || []) o[sc.id] = { bars: aggregate(bars, sc.timeframe, /NQ/.test(sc.symbol) ? 3 : 1) };
+  return o;
+}

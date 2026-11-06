@@ -44,7 +44,7 @@ figure.zs-fig{ margin:0 0 24px; } figure.zs-fig svg{ width:100%; height:auto; bo
 figcaption{ font-size:13px; line-height:18px; color:var(--ink-2); margin-top:8px; }
 .zd-disc{ font-size:13px; line-height:18px; color:var(--ink-3); border-top:1px solid var(--line-soft); padding-top:16px; margin-top:40px; }
 @media (max-width:860px){
-  .zd-wrap{ grid-template-columns:1fr; gap:0; }
+  .zd-wrap{ grid-template-columns:minmax(0,1fr); gap:0; }
   .zd-side{ position:static; max-height:none; padding-top:16px; }
   .zd-menu:not([open]) nav{ display:none; }
   .zd-prose{ font-size:15px; }
@@ -68,3 +68,6 @@ figcaption{ font-size:13px; line-height:18px; color:var(--ink-2); margin-top:8px
   .zd-menu[open]{ padding-bottom:8px; }
 }
 .zd-prose ul{ list-style:disc; } .zd-prose ol{ list-style:decimal; } .zd-prose ul.lx-list{ list-style:none; padding-left:0; }
+.zd-prose table{ max-width:100%; }
+.zs-ref{ margin-top:16px; }
+.zd-prose table{ min-width:0 !important; width:100% !important; }

@@ -1,6 +1,6 @@
 // Every ```zscript / ```zs-snippet block in the manual, cookbook and course must compile with no errors
 // and run on sample bars without a runtime error. Skips (exit 0, loud) until S1's engine exists.
-import { samples, sampleBars, sampleData, loadEngine } from '../zs-book/lib.mjs';
+import { samples, sampleBars, sampleData, loadEngine, sampleSecurities } from '../zs-book/lib.mjs';
 
 const eng = await loadEngine();
 const all = samples();
@@ -18,8 +18,11 @@ for (const s of all) {
   try {
     const run = mod.runSync || mod.run;
     const out = await run({ program: r.program, bars, symbol: { ticker: 'ES1!', tickerid: 'ES1!', type: 'futures', currency: 'USD', mintick: 0.25, pointvalue: 50 },
-      timeframe: '5', inputs: {}, allowed: { book: true, flow: true, gex: true, opt: true }, data, securities: {} });
+      timeframe: '5', inputs: {}, allowed: { book: true, flow: true, gex: true, opt: true }, data, securities: sampleSecurities(r.meta, bars) });
     if (out && out.ok === false) { fail++; console.log(`FAIL run ${s.id}: ` + JSON.stringify(out.error || out.diagnostics)); continue; }
+    const empty = !['plots','hlines','labels','lines','boxes','tables','alertconditions','alerts'].some((k) => out[k] && out[k].length);
+    if (empty && !s.src.includes('indicator("Snippet"') && !/\balert\(/.test(s.src)) { fail++; console.log(`FAIL empty ${s.id}: produced no output`); continue; }
+    if (process.env.ZS_VERBOSE) console.log(s.id, (out.notices||[]).join(';'), (out.diagnostics||[]).map((d)=>d.code).join(','));
     ran++;
   } catch (e) { fail++; console.log(`FAIL run ${s.id}: ${e.message}`); }
 }

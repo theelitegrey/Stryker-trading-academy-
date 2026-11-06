@@ -1088,6 +1088,7 @@ class TradeFeed {
       let l = b.levels.get(row);
       if (!l) { l = [0, 0]; b.levels.set(row, l); }
       if (t.side === 'buy') { l[1] += t.size; b.buy += t.size; } else { l[0] += t.size; b.sell += t.size; }
+      b.n = (b.n || 0) + 1; { const tp = b.top || (b.top = []); tp.push(t.size); if (tp.length > 60) { tp.sort((x, y) => y - x); tp.length = 20; } }   // Zscript flow.bigtrades: the largest prints of the bar
     }
     if (backfill && this.order.length) {
       // the first bar is only partly covered: start the coverage at the next one
@@ -1101,6 +1102,8 @@ class TradeFeed {
   bump() { this.version++; this.listeners.forEach((fn) => { try { fn(); } catch (e) {} }); }
   bar(t) { return t >= this.coverFrom ? this.bars.get(t) : undefined; }
 }
+// Zscript data hub (assets/zs/data/hub.js) shares the chart's own feeds: it never opens a socket of its own.
+export { acquireFeed as acquireTradeFeed, acquireBookFeed };
 function acquireFeed(provider, ticker, tfMs, fn, step) {
   const key = provider + '|' + ticker + '|' + tfMs;
   let f = feeds.get(key);

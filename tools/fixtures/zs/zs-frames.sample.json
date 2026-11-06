@@ -1,0 +1,12 @@
+{
+  "_note": "Sample frames for the Zscript worker tests (made-up round numbers, not market data). Shape: assets/zs/data/ops.js.",
+  "tfMs": 60000,
+  "status": { "book": "ok", "flow": "ok", "gex": "ok", "opt": "ok" },
+  "frames": [
+    [0, null],
+    [60000, { "book": { "ts": 119000, "mid": 100.125, "bb": [[100, 5], [99.75, 7]], "ba": [[100.25, 4], [100.5, 20]], "heat": null },
+      "flow": { "buy": 30, "sell": 10, "n": 12, "cvd": 20, "top": [9, 5, 2], "fp": [[100, 4, 6], [100.25, 1, 9]], "poc": 100.25, "vah": 100.25, "val": 100 },
+      "gex": { "call": 110, "put": 90, "flip": 100, "zu": 105, "zl": 95, "net": -3.5, "lv": [100, 110], "ts": 100 },
+      "opt": { "nodes": [100, 110], "ranges": { "0DTE": [98, 102], "Weekly": [95, 105] }, "ivrank": 42, "pc": 0.9, "maxpain": 100, "zone": "cushion", "ts": 100 } }]
+  ]
+}

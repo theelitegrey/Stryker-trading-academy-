@@ -80,6 +80,13 @@
   ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate
 
+# Zscript sandbox worker (assets/zs/worker.js). Member scripts written by OTHER members run
+# in it, so it gets its own ENFORCED policy (not report-only): it may load only the engine's
+# own files from this origin and may not connect anywhere. The worker also removes fetch,
+# importScripts, WebSocket and the rest at start-up; this header is the second lock.
+/assets/zs/worker.js
+  Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff

@@ -208,10 +208,94 @@ const runInputs = (vals) => { const o = {}; Object.keys(vals || {}).forEach((k) 
 
 // ---------- the Vela engine: one per chart cell; one sandboxed worker per indicator ----------
 const notified = new Set();   // one-time notices (per page)
-function notice(text){
+function notice(text, upgrade){
   if (!text || notified.has(text)) return;
   notified.add(text);
-  try { window.showToast && window.showToast('info', String(text).slice(0, 300), { duration: 6000 }); } catch (e) {}
+  const action = upgrade === 'of' || upgrade === 'gex' ? { label: 'See plans', onClick: () => { import('./chart-pro-gate.js?v=895').then((m) => m.upgrade(upgrade)).catch(() => {}); } } : undefined;
+  try { window.showToast && window.showToast('info', String(text).slice(0, 300), { duration: 6000, action }); } catch (e) {}
+}
+
+// ---------- data hub (Zscript stream 3, assets/zs/data/hub.js) ----------
+// One hub session per running script: it reads what the chart already holds (book, trades, GEX, options) and posts per-bar
+// frames to the script's worker; request.security goes through the same session (the chart's own fetchSeries + series cache).
+let secSeq = 0;
+async function openHub(req, runner, uses, onFrames){
+  const { getHub } = await import('./zs/data/hub.js?v=895');
+  const mk = req.market || {}, waits = new Map();
+  let ready = null, again = 0; const readyP = new Promise((r) => { ready = r; setTimeout(r, 6000); });
+  const sess = getHub().open({
+    sessionId: 'zs' + (++secSeq), symbol: mk.symbol || '', timeframe: mk.timeframe || '', uses,
+    fetchSeries: req.fetchSeries ? (sym, tf, range) => req.fetchSeries(sym, tf, range) : undefined,
+    post: (m) => {
+      if (!m || typeof m !== 'object') return;
+      if (m.kind === 'zs.sec.res') { const w = waits.get(m.reqId); waits.delete(m.reqId); if (w) w(m); return; }
+      runner.post(m);
+      if (m.kind === 'zs.data.init') ready();
+      else if (m.kind === 'zs.data.frames' && !m.reset && Array.isArray(m.frames)) {
+        // history grew after the first run (book history landed, GEX rows arrived): run again, at most every 2 s.
+        // The forming bar alone does not count: its frame changes all the time and reaches the worker as zs.data.live.
+        const b = sess.bars, lastT = b && b.length ? b[b.length - 1].time : null;
+        if (m.frames.some((r) => r && r[0] !== lastT) && !again) again = setTimeout(() => { again = 0; onFrames(); }, 2000);
+      }
+    },
+  });
+  const security = (q) => new Promise((res) => { const reqId = ++secSeq; waits.set(reqId, res); sess.security(Object.assign({ reqId }, q)); });
+  return { sess, ready: readyP, security };
+}
+// meta.securities [{id, symbol:{v}|{input}, timeframe}] -> { [id]: { bars: [[t,o,h,l,c,v]...] } } for run()
+async function loadSecurities(hub, tok, inputs, chartSym, chartTf, bars){
+  const out = {}, n = bars.time.length;
+  if (!n) return out;
+  const fixed = (v) => (!v ? '' : typeof v.v === 'string' ? v.v : Number.isInteger(v.input) && typeof inputs[String(v.input)] === 'string' ? inputs[String(v.input)] : '');
+  const prefix = (/^([a-z_]+):/i.exec(chartSym) || [])[1];
+  await Promise.all((tok.securities || []).map(async (s) => {
+    let sym = fixed(s.symbol); const tf = fixed(s.timeframe) || tfStr(chartTf);
+    if (!sym || sym === chartSym || sym === tickerOf(chartSym)) { if (tf === tfStr(chartTf)) return; sym = chartSym; }
+    else if (prefix && !/^[a-z_]+:/i.test(sym)) sym = prefix + ':' + sym;
+    const r = await hub.security({ sym, tf, from: bars.time[0], to: bars.time[n - 1] + 1 });
+    if (r && Array.isArray(r.bars) && r.bars.length) out[s.id] = { bars: r.bars };
+    else if (r && r.error) notice(r.error);
+  }));
+  return out;
+}
+
+// ---------- library scripts (Zscript stream 4, assets/zs-library.js ZSLib.get) ----------
+// A protected script is added as a stub source "//@zscript 1 / //@lib <sid>": the program comes sealed to the worker's own key, is opened
+// and kept INSIDE the worker (runner.open), and never reaches the page. Access is checked by the server on every load.
+const LIB_RE = /^\s*\/\/@zscript 1\s*\n\/\/@lib ([A-Za-z0-9]{20})\b/;
+const libOf = (src) => { const m = LIB_RE.exec(String(src || '')); return m ? m[1] : null; };
+export const libStub = (sid, name) => '//@zscript 1\n//@lib ' + sid + '\nindicator("' + String(name || 'Library script').replace(/["\\\n\r]/g, '').slice(0, 60) + '")\n';
+// The library script and what its Publish sheet needs (Creator Hub config + payments switch + styles), loaded on first use.
+const addScript = (src) => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+const addCss = (href) => { if (document.querySelector('link[href="' + href + '"]')) return; const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l); };
+let libP = null;
+function zsLib(){
+  if (window.ZSLib) return Promise.resolve(window.ZSLib);
+  if (!libP) {
+    addCss('/assets/creator.css?v=895'); addCss('/assets/zs-library.css?v=895');
+    libP = (window.CREATOR_CONFIG ? Promise.resolve() : addScript('/assets/creator-config.js?v=895'))
+      .then(() => (window.CP ? null : addScript('/assets/creator-pay.js?v=895')))
+      .then(() => addScript('/assets/zs-library.js?v=895'))
+      .then(() => { if (!window.ZSLib) throw new Error('library'); return window.ZSLib; })
+      .catch((e) => { libP = null; throw e; });
+  }
+  return libP;
+}
+async function openLib(runner, sid){
+  const pub = await runner.session();
+  let d;
+  try { d = await (await zsLib()).get(sid, pub); }
+  catch (e) { throw Object.assign(new Error(String((e && e.message) || 'You cannot run this script.').slice(0, 200)), { zsUser: true }); }
+  if (!d || !d.sealed) throw Object.assign(new Error('This script could not be opened.'), { zsUser: true });
+  const o = await runner.open(d.sealed);
+  if (!o || !o.ok) throw Object.assign(new Error('This script could not be opened.'), { zsUser: true });
+  return o.meta || {};
+}
+async function libMeta(sid){
+  const { ZsRunner } = await engine(); const r = new ZsRunner();
+  try { return { ok: true, diagnostics: [], program: null, meta: await openLib(r, sid) }; }
+  catch (e) { return { ok: false, diagnostics: [{ line: 1, col: 1, severity: 'error', message: (e && e.zsUser && e.message) || 'This script could not be opened.' }] }; }
+  finally { r.dispose(); }
 }
 const tfStr = (tf) => String(tf || '').replace(/^(\d+)m$/, '$1');
 const tickerOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '');
@@ -229,26 +313,48 @@ export class ZsEngine {
   }
   async prepare(source, instanceId){
     if (String(source).length > SRC_MAX) throw zsError({ line: 1, col: 1, message: 'This script is longer than 64 KB.' });
-    const r = await compileIn(source);
+    const lib = libOf(source);
+    const r = lib ? await libMeta(lib) : await compileIn(source);
     if (!r.ok || firstError(r.diagnostics)) throw zsError(firstError(r.diagnostics) || { line: 1, col: 1, message: 'The script did not compile.' });
     const m = r.meta || {};
     const meta = { title: str(m.title, 80) || titleOf(source), overlay: !!m.overlay };
     if (m.shorttitle) meta.shorttitle = str(m.shorttitle, 40);
-    return { language: LANG, inputs: cleanInputs(m.inputs), meta, reactsToViewport: false, token: { source, instanceId, program: r.program, needs: m.needs || {} } };
+    return { language: LANG, inputs: cleanInputs(m.inputs), meta, reactsToViewport: false, token: { source, instanceId, program: r.program, lib, needs: m.needs || {}, securities: cap(m.securities, 16) } };
   }
   execute(req, handlers){
     let runner = null, stopped = false, busy = false, dirty = false, hasRun = false, last = null;
     let inputs = Object.assign({}, req.inputs || {});
     const tok = req.prepared.token, alertSess = { primed: false, seen: new Set() };
-    const fail = (d) => { if (stopped) return; stopped = true; if (runner) runner.dispose(); try { handlers.onError && handlers.onError(zsError(d)); } catch (e) {} };
+    const fail = (d) => { if (stopped) return; stopped = true; if (hub) { hub.sess.close(); hub = null; } if (runner) runner.dispose(); try { handlers.onError && handlers.onError(zsError(d)); } catch (e) {} };
     const mk = () => req.market || {};
+    const uses = Object.keys(tok.needs || {}).filter((k) => tok.needs[k]);
+    let hub = null;   // S3 data hub session: frames go straight to the worker (assets/zs/frames.js turns them into SPEC 11.3 arrays)
+    const emit = (out, bars) => {
+      let model;
+      try { model = toModel(out, bars, tok.instanceId, req.prepared, inputs); }
+      catch (e) { console.warn('TradeZoro: Zscript model', e); fail({ line: 1, col: 1, message: 'The script produced output the chart cannot draw.' }); return false; }
+      try { handlers.onModel(model); } catch (e) { console.warn('TradeZoro: Zscript model', e); }
+      cap(out.notices, 5).forEach(notice);
+      return true;
+    };
     const run = async () => {
       if (stopped) return;
       if (busy) { dirty = true; return; }
       busy = true; dirty = false;
       try {
-        if (!runner) { const { ZsRunner } = await engine(); runner = new ZsRunner(); }
-        const bars = columns((req.getBars ? req.getBars() : req.bars) || []);
+        if (!runner) {
+          const { ZsRunner } = await engine();
+          runner = new ZsRunner({
+            onNotice: (m) => notice(m.text, m.upgrade),
+            onLive: (out) => { if (!stopped && out && out.ok !== false && last) emit(out, columns((req.getBars ? req.getBars() : req.bars) || [])); },
+          });
+          if (tok.lib) await openLib(runner, tok.lib);
+        }
+        if (!hub && (uses.length || (tok.securities || []).length)) hub = await openHub(req, runner, uses, () => { if (!stopped) { hasRun = false; run(); } });
+        const all = (req.getBars ? req.getBars() : req.bars) || [];
+        if (hub) hub.sess.setBars(all);
+        if (hub && uses.length) await hub.ready;
+        const bars = columns(all);
         const n = bars.time.length;
         let out;
         // live tick: same history, only the forming bar changed (or one new bar) -> update() reruns the last bar
@@ -257,21 +363,18 @@ export class ZsEngine {
           out = await runner.update({ bar: { time: bars.time[i], open: bars.open[i], high: bars.high[i], low: bars.low[i], close: bars.close[i], volume: bars.volume[i] } });
         } else {
           const sym = mk().symbol || '';
-          // shortcut: order book / flow / GEX / options frames are not passed yet (S3's hub frames and SPEC 11.3 differ; see contract.md),
-          // so data calls return na with the engine's one-time notice.
-          out = await runner.run({ program: tok.program, bars, symbol: { ticker: tickerOf(sym), tickerid: sym, type: typeOf(sym) }, timeframe: tfStr(mk().timeframe), inputs: runInputs(inputs), allowed: {}, data: {}, securities: {} });
+          // data / allowed left empty: the worker fills them from the hub's frames (frames.js framesToData, SPEC 11.3 arrays)
+          const securities = hub ? await loadSecurities(hub, tok, inputs, sym, mk().timeframe, bars) : {};
+          if (stopped) return;
+          out = await runner.run({ program: tok.lib ? undefined : tok.program, held: !!tok.lib, bars, symbol: { ticker: tickerOf(sym), tickerid: sym, type: typeOf(sym) }, timeframe: tfStr(mk().timeframe), inputs: runInputs(inputs), allowed: {}, data: {}, securities });
         }
         if (stopped) return;
         if (!out || out.ok === false) { fail((out && out.error) || { line: 1, col: 1, message: 'The script stopped with an error.' }); return; }
         hasRun = true; last = { first: bars.time[0], n, inputs: JSON.stringify(inputs) };
-        let model;
-        try { model = toModel(out, bars, tok.instanceId, req.prepared, inputs); }
-        catch (e) { console.warn('TradeZoro: Zscript model', e); fail({ line: 1, col: 1, message: 'The script produced output the chart cannot draw.' }); return; }
-        try { handlers.onModel(model); } catch (e) { console.warn('TradeZoro: Zscript model', e); }
-        cap(out.notices, 5).forEach(notice);
+        if (!emit(out, bars)) return;
         routeAlerts(req, alertSess, out, bars);
       } catch (e) {
-        if (!stopped) { hasRun = false; if (runner) { runner.dispose(); runner = null; } fail(e && e.message === 'disposed' ? null : { line: 1, col: 1, message: 'The Zscript engine stopped. Remove the script and add it again.' }); }
+        if (!stopped) { hasRun = false; if (runner) { runner.dispose(); runner = null; } fail(e && e.message === 'disposed' ? null : e && e.zsUser ? { line: 1, col: 1, message: e.message } : { line: 1, col: 1, message: 'The Zscript engine stopped. Remove the script and add it again.' }); }
       } finally {
         busy = false;
         if (dirty && !stopped) setTimeout(run, 0);
@@ -280,7 +383,7 @@ export class ZsEngine {
     run();
     return {
       getContext: () => Promise.resolve(null),
-      stop: () => { stopped = true; if (runner) runner.dispose(); runner = null; },
+      stop: () => { stopped = true; if (hub) hub.sess.close(); hub = null; if (runner) runner.dispose(); runner = null; },
       update: (vals) => { inputs = Object.assign({}, vals || {}); hasRun = false; run(); },
       setVisibleRange: () => {},
       notifyBars: (reason) => { if (reason === 'backfill') hasRun = false; run(); }
@@ -399,6 +502,7 @@ export function mountZscript(ws, opts){
   const checkBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Check' });
   const saveBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Save' });
   const newBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'New' });
+  const pubBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Publish' });
   const onChart = el('ul', { class: 'stkc-tlist' });
   const mine = el('ul', { class: 'stkc-tlist' });
   const examples = el('ul', { class: 'stkc-tlist' });
@@ -413,7 +517,7 @@ export function mountZscript(ws, opts){
   const hd = el('header', { class: 'stkc-pine-hd' }, [el('div', { class: 'stkc-zs-hl' }, [langSwitch('zs', (k) => switchTo(k)), target]), closeBtn]);
   panel.appendChild(hd);
   panel.appendChild(el('div', { class: 'stkc-pine-body' }, [el('div', { class: 'stkc-saverow' }, [nameIn]), edHost, errBox, lib]));
-  panel.appendChild(el('div', { class: 'stkc-pine-acts' }, [addBtn, checkBtn, saveBtn, newBtn]));
+  panel.appendChild(el('div', { class: 'stkc-pine-acts' }, [addBtn, checkBtn, saveBtn, newBtn, pubBtn]));
   host.appendChild(panel);
   lib.open = !window.matchMedia('(max-width:700px)').matches;
 
@@ -502,6 +606,20 @@ export function mountZscript(ws, opts){
     renderLists();
   });
   nameIn.addEventListener('keydown', (e) => e.stopPropagation());
+  // Publish to the Script Library (assets/zs-library.js): compiles here first so a broken script never goes out.
+  pubBtn.addEventListener('click', async () => {
+    const e = await ensureEditor(), src = e.get();
+    if (libOf(src)) { showErr(null, 'This is a library script. Publish new versions from its library page.'); return; }
+    pubBtn.disabled = true;
+    try {
+      const r = await compileIn(src), d = firstError(r.diagnostics);
+      if (!r.ok || d) { showErr(d || null, d ? null : 'The script did not compile.'); return; }
+      showErr(null);
+      const L = await zsLib();
+      await L.openPublish({ source: src, program: r.program, title: nameIn.value.trim() || titleOf(src), onDone: (sid) => toast('Published. Open it in the Script Library: /script-library?s=' + sid) });
+    } catch (err) { console.warn('TradeZoro: Zscript publish', err); showErr(null, 'The publish form did not open. Reload the page and try again.'); }
+    finally { pubBtn.disabled = false; }
+  });
 
   const ib = (label, svg, fn, cls) => el('button', { type: 'button', class: 'stkc-ib' + (cls ? ' ' + cls : ''), title: label, 'aria-label': label, html: icon(svg, 16), onclick: fn });
   const ICON_DEL = '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>', ICON_REN = '<path d="M4 20h4L19 9l-4-4L4 16z"/>', ICON_ADD = '<path d="M12 5v14M5 12h14"/>';
@@ -567,10 +685,24 @@ export function mountZscript(ws, opts){
     if (r.ok) { toast('Added ' + (name || titleOf(source)) + ' to the chart'); if (!panel.hidden) renderLists(); }
     return r;
   }
+  // /charts?zs=<sid> (Script Library "Add to chart"): load the script through the library and add it to the active chart.
+  const qsid = (() => { try { const v = new URLSearchParams(location.search).get('zs'); return /^[A-Za-z0-9]{20}$/.test(v || '') ? v : null; } catch (e) { return null; } })();
+  async function addLibrary(sid){
+    let L; try { L = await zsLib(); } catch (e) { return { ok: false, msg: 'The Script Library did not load.' }; }
+    let meta;
+    try { meta = await L.get(sid, (await (async () => { const { ZsRunner } = await engine(); const r = new ZsRunner(); try { return await r.session(); } finally { r.dispose(); } })())); }
+    catch (e) { const msg = String((e && e.message) || 'You cannot run this script.'); toast(msg); return { ok: false, msg }; }
+    // open-source: the real source goes on the chart (readable, as the author chose); protected: the stub, opened in the worker
+    const src = meta.access === 'open' && typeof meta.source === 'string' ? meta.source : libStub(sid, meta.name);
+    const r = await addSource(meta.name, src);
+    if (!r.ok) toast(r.msg || 'The script did not run.');
+    return r;
+  }
+  if (qsid) setTimeout(() => { addLibrary(qsid).finally(() => { try { const u = new URL(location.href); u.searchParams.delete('zs'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); } catch (e) {} }); }, 0);
   window.STRYKER_ZS = {
     open: (src, name) => { setPref(true); if (P()) P().close(); setOpen(true); if (src != null) load(name || '', src, null); },
     openNew: () => { setPref(true); if (P()) P().close(); setOpen(true); load('', NEW_SRC, null); },
-    close: () => setOpen(false), load, addToChart, addSource, runOnChart, handles: zsHandles, titleOf, isZscript, examples: ZS_EXAMPLES, store: Store, toModel
+    close: () => setOpen(false), load, addToChart, addSource, addLibrary, libStub, runOnChart, handles: zsHandles, titleOf, isZscript, examples: ZS_EXAMPLES, store: Store, toModel
   };
   return { setOpen };
 }

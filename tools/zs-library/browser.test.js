@@ -8,6 +8,7 @@ const SHOTS = process.argv[2] || path.join(__dirname, 'shots');
 fs.mkdirSync(SHOTS, { recursive: true });
 
 const stub = '(' + function () {
+  try { sessionStorage.setItem('stk_zs_preview', '1'); } catch (e) {}   // Zscript is hidden until launch (assets/zs-config.js): preview on
   const NOW = Date.now(), D = 864e5;
   const who = new URLSearchParams(location.search).get('who') || sessionStorage.getItem('who') || 'bu';
   try { sessionStorage.setItem('who', who); } catch (e) {}
@@ -77,7 +78,8 @@ const stub = '(' + function () {
 let fails = 0;
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 const A = 'A'.repeat(20), B = 'B'.repeat(20);
-(async () => {
+module.exports = { stub };   // tools/tests/zs-e2e-browser.js reuses the Firebase stub
+if (require.main === module) (async () => {
   const browser = await launch({ args: ['--js-flags=--max-old-space-size=600'] });
   const runs = (process.env.ZS_RUNS ? JSON.parse(process.env.ZS_RUNS) : [['dark', 390, 844], ['dark', 412, 915], ['dark', 1440, 1000], ['light', 1440, 1000]]);
   for (const [theme, w, h] of runs) {

@@ -45,7 +45,7 @@ function fakeWs(admin) {
   };
   window.WebSocket.OPEN = 1; window.WebSocket.CONNECTING = 0;
 }
-async function open(b, { w, h, mobile, admin, theme }) {
+async function open(b, { w, h, mobile, admin, theme, extra }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript(fakeWs, !!admin);
@@ -96,11 +96,12 @@ async function open(b, { w, h, mobile, admin, theme }) {
   await require('./binance-mock.js').install(ctx);   // offline Binance for the BTC case (CI is geo-blocked)
   // the mock's backfill ids (now - i) are higher than its live ids (1, 2, ...), so the chart drops every live trade: give the backfill low ids
   await ctx.route(/api\.binance\.com\/api\/v3\/aggTrades|fapi\.binance\.com\/fapi\/v1\/aggTrades/, (r) => { const now = Date.now(); r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(Array.from({ length: 200 }, (_, i) => ({ a: i - 1000, p: '77000.00', q: '0.05', f: i - 1000, l: i - 1000, T: now - (200 - i) * 150, m: i % 2 === 0 }))) }); });
+  if (extra) await extra(ctx);   // more init scripts / routes (tools/tests/zs-e2e-browser.js)
   const p = await ctx.newPage();
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|451|\/api\/chart\/stream|Failed to load resource|Ping received after close|status of 451|Unexpected response code: 451/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e))); p.on('console', (m) => { if (process.env.WARN && m.type() === 'warning' && /TradeZoro/.test(m.text())) console.log('WARN', m.text().slice(0, 300)); });
-  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + '/charts.html?zs=1', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
   await sleep(2000);
   return { ctx, p, errors };
@@ -151,7 +152,8 @@ async function session([sym, tf, uses, wait, CALLS]) {
   s.close();
   return res;
 }
-(async () => {
+module.exports = { open, setNQ, launch };
+if (require.main === module) (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
     for (const [w, h, mobile, tf, tag] of [[1440, 900, false, '1', 'NQ-1440'], [390, 844, true, '5', 'NQ-390']]) {

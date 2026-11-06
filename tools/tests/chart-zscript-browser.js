@@ -17,7 +17,7 @@ async function open(b, { w, h, mobile, light }) {
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/WebSocket connection|ERR_FAILED|\[vela\] indicator "ind-\d+" failed|404|Failed to load resource/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
-  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + '/charts.html?zs=1', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE && window.STRYKER_ZS, null, { timeout: 60000 });
   // Futures bars come through the dev server's /api/chart/bars (crypto venues may be blocked from the test box)
   await p.evaluate(() => { const ws = window.STRYKER_VELA; const c = ws.cell(ws.context().cells[0].id); c.setSymbol('futures:ES1!'); c.setTimeframe('15'); });

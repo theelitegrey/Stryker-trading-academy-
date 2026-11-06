@@ -251,6 +251,14 @@
   };
 
   // ---- the page (script-library.html) -------------------------------------------------------------------------------------
+  // Hidden until launch (assets/zs-config.js ZS_LAUNCHED; ?zs=1 opens a preview for this tab).
+  function gated() {
+    var root = document.getElementById('zl-root'); if (!root) return;
+    import('/assets/zs-config.js?v=895').then(function (c) { return c.zsEnabled(); }, function () { return false; }).then(function (on) {
+      if (on) return page();
+      root.innerHTML = '<div class="cx-empty"><h1>Script Library</h1><p class="cx-muted">The Script Library is not open yet.</p><a class="btn btn-primary" href="/charts">Open charts</a></div>';
+    });
+  }
   function page() {
     var root = document.getElementById('zl-root'); if (!root) return;
     var me = null, all = [], loaded = false, f = { q: '', cat: '', data: '', sale: 'all', sort: 'new' }, pager = null;
@@ -448,5 +456,5 @@
     user().then(function (u) { me = u; reload(); route(); });
   }
   g.ZSLib = ZSLib;
-  if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', page); else page(); }
+  if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', gated); else gated(); }
 })(typeof window !== 'undefined' ? window : globalThis);

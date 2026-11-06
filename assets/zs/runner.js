@@ -60,11 +60,13 @@ export class ZsRunner {
   compile(source) { return this.send('compile', { source }, KILL_MS.compile); }
   // Protected scripts: the worker makes a key pair and returns the public half for the delivery API.
   async session() { const out = await this.send('session', {}, KILL_MS.compile); return out && out.pub; }
+  // Protected library script: the worker opens the sealed program and keeps it; only titles/inputs/overlay come back.
+  open(sealed) { return this.send('open', { sealed }, KILL_MS.compile); }
   // Data hub (S3) messages go to the worker untouched: hub.open({ post: (m) => runner.post(m) }).
   post(msg) { if (msg && typeof msg === 'object') this.spawn().postMessage(msg); }
   async run(o) {
     const out = await this.send('run', {
-      program: o.program, sealed: o.sealed, bars: o.bars, symbol: o.symbol, timeframe: o.timeframe, inputs: o.inputs || {},
+      program: o.program, sealed: o.sealed, held: !!o.held, bars: o.bars, symbol: o.symbol, timeframe: o.timeframe, inputs: o.inputs || {},
       allowed: o.allowed || {}, data: o.data || {}, securities: o.securities || {}, lastBarClosed: !!o.lastBarClosed,
     }, KILL_MS.run);
     this.hasRun = !!(out && out.bars);

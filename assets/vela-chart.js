@@ -473,7 +473,8 @@ function lateLists(provider){
   pm('stk:boot-start');
   let mods;
   // Zscript (assets/chart-zscript.js): our own indicator language. Loaded beside the boot modules; optional.
-  const zsP = import('./chart-zscript.js?v=895').catch((e) => { console.warn('TradeZoro: Zscript module', e); return null; });
+  // HIDDEN until launch (assets/zs-config.js ZS_LAUNCHED); ?zs=1 opens a preview for this tab.
+  const zsP = import('./zs-config.js?v=895').then((c) => (c.zsEnabled() ? import('./chart-zscript.js?v=895') : null)).catch((e) => { console.warn('TradeZoro: Zscript module', e); return null; });
   try {
     mods = await Promise.all([
       import(VELA_BASE + 'workspace.js'),

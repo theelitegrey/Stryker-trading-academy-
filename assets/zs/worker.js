@@ -11,6 +11,9 @@
 //                   {type:'update', id, bar}            (needs an earlier run in this worker)
 //                   {type:'session', id}                 -> out {ok, pub}: key for a protected (sealed) script
 //                   {type:'run', id, sealed, ...}         protected run: program opened here, never sent back
+//                   {type:'open', id, sealed}             protected library script: opened + validated here and HELD; -> out {ok, meta}
+//                                                         (meta = titles/inputs/overlay only, same as compile() meta; never the program)
+//                   {type:'run', id, held:true, ...}      run the held program
 //                   {kind:'zs.data.init'|'zs.data.frames'|'zs.data.live'|'zs.data.notice', ...}   data hub (S3)
 //                   {type:'dispose', id}
 //   worker -> page  {type:'ready'}
@@ -19,7 +22,7 @@
 //                   {type:'result', id, out}            (compile: {ok, diagnostics, program, meta})
 //                   {type:'error', id, message}
 import { compile } from './compiler.js?v=895';
-import { Exec } from './vm.js?v=895';
+import { Exec, validateProgram } from './vm.js?v=895';
 import { framesToData, liveData, rowsToBars } from './frames.js?v=895';
 import { session, openSession } from '../creator-seal.js?v=895';
 
@@ -95,6 +98,8 @@ function lastBar() {
 
 // ---- protected scripts (S4): the program arrives sealed to a key that lives only here ----
 let sessionKey = null;
+let held = null;   // an opened protected program (type 'open'); lives only in this worker
+const META_KEYS = ['title', 'shorttitle', 'overlay', 'precision', 'inputs', 'needs', 'securities', 'plots', 'alertconditions'];
 async function openSealed(sealed) {
   if (!sessionKey) throw Object.assign(new Error('no session key'), { code: 'E499' });
   const text = await openSession(sessionKey, sealed);
@@ -117,8 +122,16 @@ async function handle(m, id) {
       post({ type: 'result', id, out: { ok: true, pub: s.pub } });
       return;
     }
+    case 'open': {
+      const p = validateProgram(await openSealed(m.sealed));
+      held = p;
+      const meta = {}; for (const k of META_KEYS) if (p.meta && p.meta[k] !== undefined) meta[k] = p.meta[k];
+      post({ type: 'result', id, out: { ok: true, meta: JSON.parse(JSON.stringify(meta)) } });
+      return;
+    }
     case 'run': {
-      const program = m.sealed ? await openSealed(m.sealed) : m.program;
+      if (m.held && !held) { post({ type: 'error', id, message: 'The protected script is not open.' }); return; }
+      const program = m.held ? held : m.sealed ? await openSealed(m.sealed) : m.program;
       const times = m.bars && Array.isArray(m.bars.time) ? m.bars.time : null;
       const data = m.data && Object.keys(m.data).length ? m.data : (hubData(times) || {});
       const allowed = m.allowed && Object.keys(m.allowed).length ? m.allowed : hubAllowed();
@@ -150,7 +163,7 @@ async function handle(m, id) {
       return;
     }
     case 'zs.data.notice': if (typeof m.text === 'string') post({ type: 'notice', ns: String(m.ns || ''), state: String(m.state || ''), upgrade: m.upgrade || null, text: m.text.slice(0, 300) }); return;
-    case 'dispose': exec = null; sessionKey = null; hub.frames.clear(); hub.status = null; post({ type: 'result', id, out: { ok: true } }); return;
+    case 'dispose': exec = null; sessionKey = null; held = null; hub.frames.clear(); hub.status = null; post({ type: 'result', id, out: { ok: true } }); return;
     default: post({ type: 'error', id, message: 'unknown message' });
   }
 }

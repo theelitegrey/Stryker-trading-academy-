@@ -5,15 +5,17 @@ Roadmap: ZoroOptions module (spec: stryker-notes/reports/workers/zoro-options-sp
 The browser never calls a vendor: this server pulls, computes, and POSTs small gzip JSON to <Worker>/zo-ingest.
 
 Schedule (one oneshot run a minute from zoro-feeder.timer; the script only works weekdays 09:30-16:15 ET
-plus one run 16:30-16:33 ET; --force runs at any time):
+plus the after-close runs 16:30-16:44 ET; --force runs tier A once at any time):
   tier A  SPX, SPY, QQQ, IWM, GLD, USO       every even minute (every 2 min)
   tier B  the 100 stocks (STOCKS below)       stocks[minute % 15 :: 15], so each one is pulled every 15 min
           and a minute holds ~7 of them (staggered, never in parallel)
   CME     ES, NQ, RTY, GC, CL from InsightSentry at 09:35, 12:30 and 15:45 ET (front 2 expiries, OI on the
           strikes nearest price) + one whole-chain pull at 09:35 for the expiry list
-  vol     VIX, VXN, RVX, GVZ, OVX one year of daily closes from InsightSentry, once a day (IV rank)
-  IS budget: CME 30 + whole chain 5 + vol 5 = ~40 a weekday, hard stop ZORO_IS_DAY_MAX (55). Every IS call is
-  counted and posted to /is-note as src "zoro".
+  vol     VIX, VXN, RVX, GVZ, OVX (+ VXAPL, VXAZN, VXGOG, VXGS): daily closes from Cboe's free history file once a
+          day, the current value from Cboe's quote file each tier-A run (IV rank). Underlying daily closes (realised
+          vol) from the same Cboe history file. No InsightSentry call for either.
+  IS budget: CME 3 x 10 + whole chain 5 = 35 a weekday, hard stop ZORO_IS_DAY_MAX (55). Every IS call is counted
+  and posted to /is-note as src "zoro".
 
 Per symbol and pull (all from ONE Cboe chain, gzip download):
   levels      Call Ceiling / Put Floor / Flip Line / net gamma (Gamma Zone) per expiry mode 0 / 1 / w / m / all
@@ -65,30 +67,40 @@ OBJ = re.compile(rb'\{[^{}\[\]]*\}')
 TIER_A = ['_SPX', 'SPY', 'QQQ', 'IWM', 'GLD', 'USO']
 # shortcut: a fixed list of 100 US stocks with the busiest option markets (spec open decision 4: the Owner may pick a
 # weekly refreshed top-100 instead); override with env ZORO_STOCKS=AAPL,MSFT,...
-STOCKS = ('AAPL NVDA TSLA AMZN MSFT META GOOGL GOOG AMD NFLX AVGO PLTR MSTR COIN SMCI INTC MU BABA UBER BA '
+STOCKS = ('AAPL NVDA TSLA AMZN MSFT META GOOGL AMD NFLX AVGO PLTR MSTR COIN SMCI INTC MU BABA UBER BA '
           'JPM BAC C WFC GS MS XOM CVX DIS NKE SBUX MCD WMT TGT COST HD LOW PFE MRK JNJ LLY ABBV UNH CVS '
-          'T VZ KO PEP CSCO ORCL CRM ADBE QCOM TXN SHOP SQ PYPL SOFI HOOD RIVN LCID NIO F GM DAL AAL UAL CCL '
+          'T VZ KO PEP CSCO ORCL CRM ADBE QCOM TXN SHOP XYZ PYPL SOFI HOOD RIVN LCID NIO F GM DAL AAL UAL CCL '
           'RCL MARA RIOT ARM SNOW CRWD PANW NET DDOG ZS ROKU SNAP PINS RBLX DKNG ABNB DASH LYFT CHWY GME AMC '
-          'TSM ASML MRVL ON WBD PARA CMCSA X CLF FCX NEM GOLD SLB OXY').split()
+          'TSM ASML MRVL ON APP CMCSA CLF FCX NEM B SLB OXY').split()
 FUT_OF = {'SPX': ('ES', 'ES=F'), 'QQQ': ('NQ', 'NQ=F'), 'IWM': ('RTY', 'RTY=F'), 'GLD': ('GC', 'GC=F'), 'USO': ('CL', 'CL=F')}
-VOL_INDEX = {'SPX': 'VIX', 'SPY': 'VIX', 'QQQ': 'VXN', 'IWM': 'RVX', 'GLD': 'GVZ', 'USO': 'OVX'}
+# 30-day vol index per symbol (Cboe, free): IV rank today = the index now vs its last 252 closes. Other stocks get a rank
+# from our own daily iv30 record once it holds 60 days (never invented before that).
+VOL_INDEX = {'SPX': 'VIX', 'SPY': 'VIX', 'QQQ': 'VXN', 'IWM': 'RVX', 'GLD': 'GVZ', 'USO': 'OVX',
+             'AAPL': 'VXAPL', 'AMZN': 'VXAZN', 'GOOGL': 'VXGOG', 'GOOG': 'VXGOG', 'GS': 'VXGS'}
+CBOE_HIST = 'https://cdn.cboe.com/api/global/delayed_quotes/charts/historical/'
+CBOE_QUOTE = 'https://cdn.cboe.com/api/global/delayed_quotes/quotes/'
 CME = {'ES': ('CME_MINI:ES1!', 50, 'SPX'), 'NQ': ('CME_MINI:NQ1!', 20, 'QQQ'), 'RTY': ('CME_MINI:RTY1!', 50, 'IWM'),
        'GC': ('COMEX:GC1!', 100, 'GLD'), 'CL': ('NYMEX:CL1!', 1000, 'USO')}
 CME_SLOTS = ((9, 35), (12, 30), (15, 45))          # ET; a slot runs on the first run within 20 min after it
 IS_DAY_MAX = int(os.environ.get('ZORO_IS_DAY_MAX', '55'))
+# Cboe rate-limits by IP and gex_feeder.py (GEX+, ZoroTide) shares this server's IP: on 2026-11-06 ~160 pulls in ~2 min
+# drew HTTP 429 for about a minute and gex_feeder lost one run. So: at most 13 pulls a minute here, PULL_GAP s apart, and
+# the run stops at the first 429 (the rest wait for the next minute).
+PULL_GAP = float(os.environ.get('ZORO_PULL_GAP', '2.5'))
 
 KEEP_DAYS = 90            # contracts kept from the chain: expiries <= 90 days (surfaces), strikes +-15 %
 KEEP_BAND = 0.15
 TERM_DAYS = 31            # 'all' mode, put/call and fresh volume: expiries <= 31 days (as the GEX term part)
 PROFILE_BAND = 0.06
-LEVEL_BAND = 0.10         # contracts used for levels / flip search
+LEVEL_BAND = 0.12         # contracts used for levels / flip search (= gex_feeder NEAR_BAND, so 0DTE levels match GEX+)
 MODES = ('0', '1', 'w', 'm', 'all')
 FRESH_MIN_VOL, FRESH_MIN_PREM = 500, 50_000
 BURST_MIN_VOL, BURST_MIN_PREM = 1000, 250_000
 MAX_ROWS = 40
 SURF_K = 41               # gamma surface strike bins across +-6 %
 SURF_M = [round(0.85 + 0.025 * i, 3) for i in range(13)]   # IV surface moneyness 0.85 .. 1.15
-MAX_BODY = 400 * 1024
+MAX_GZ = {'summary': 32 * 1024, 'profile': 128 * 1024, 'surface': 256 * 1024, 'activity': 96 * 1024, 'screen': 128 * 1024,
+          'cme': 128 * 1024}     # = S2 ZO_MAX_GZ
 FETCH_TIMEOUT, POST_TIMEOUT = 40, 20
 STATE = os.environ.get('STATE_DIRECTORY', '/var/lib/zoro-feeder')
 R, Q = 0.045, 0.0
@@ -117,7 +129,7 @@ def k_out(k):
 
 
 # ------------------------------------------------------------------ parsing
-def parse_chain(raw, now_epoch):
+def parse_chain(raw, now_epoch, max_days=KEEP_DAYS):
     """Cboe JSON bytes -> (head dict, contracts). One root per expiry (SPXW over SPX, as gex_feeder.compact).
     Contracts: expiries 0..KEEP_DAYS days, strikes within KEEP_BAND of spot."""
     if raw[:2] == b'\x1f\x8b':
@@ -142,7 +154,7 @@ def parse_chain(raw, now_epoch):
             continue
         exp = '20%s-%s-%s' % (mm.group(2), mm.group(3), mm.group(4))
         days = (date.fromisoformat(exp) - today).days
-        if days < 0 or days > KEEP_DAYS:
+        if days < 0 or days > max_days:
             continue
         k = int(mm.group(6)) / 1000
         if abs(k - spot) / spot > KEEP_BAND:
@@ -185,7 +197,7 @@ def bs_greeks(S, K, T, sigma):
 def enrich(spot, cs, now_epoch):
     for c in cs:
         c['T'] = gx.years_to_close(c['x'], now_epoch)
-        c['strike'] = c['k']
+        c['strike'], c['exp'] = c['k'], c['x']
         g, va, ch = bs_greeks(spot, c['k'], c['T'], c['iv']) if c['iv'] > 0 else (0.0, 0.0, 0.0)
         c['gamma'], c['vanna'], c['charm'] = g, va, ch
     return cs
@@ -209,8 +221,8 @@ def expiry_sets(cs, now_epoch):
 
 def levels_for(spot, cs):
     """Levels from one expiry set: Call Ceiling, Put Floor, Flip Line, net GEX ($M), Gamma Nodes, Pin Strike."""
-    use = [c for c in cs if abs(c['k'] - spot) / spot <= LEVEL_BAND and c['oi'] > 0]
-    if len(use) < 10:
+    use = [c for c in cs if abs(c['k'] - spot) / spot <= LEVEL_BAND]      # same rows as the GEX+ near part
+    if len(use) < 20:
         return None
     gex, cw, pw, zg, net = gx.snap_levels(spot, use)
     tot = sum(abs(v) for v in gex.values()) or 1.0
@@ -385,9 +397,19 @@ def analyse(raw, u, now_epoch, st=None, fut=None, surfaces=True):
     """Everything for one Cboe chain. st: state dict for this symbol (mutated: bursts, oi, daily records) or None.
     fut: (root, futures price) for mapped levels. Returns the /zo-ingest payload (kind 'sym')."""
     st = st if st is not None else {}
-    head, cs = parse_chain(raw, now_epoch)
+    tier = 'A' if ('_' + u in TIER_A or u in TIER_A) else 'B'
+    head, cs = parse_chain(raw, now_epoch, max_days=100000 if tier == 'A' else KEEP_DAYS)
     spot, t = head['spot'], head['t']
     day = datetime.fromtimestamp(t, ET).strftime('%Y-%m-%d')
+    if tier == 'A':
+        # every expiry (LEAPS included), once a day with the day's OI: the "all expiries" levels. Same chain file, 0 extra MB.
+        if (st.get('full') or {}).get('day') != day:
+            enrich(spot, cs, t)
+            lf = levels_for(spot, cs)
+            if lf:
+                st['full'] = dict(lf, day=day, t=t, x_n=len({c['x'] for c in cs}), x_last=max(c['x'] for c in cs))
+        cut = (datetime.fromtimestamp(now_epoch, ET).date() + timedelta(days=KEEP_DAYS)).isoformat()
+        cs = [c for c in cs if c['x'] <= cut]
     enrich(spot, cs, t)
     sets = expiry_sets(cs, t)
     term_cs = [c for c in cs if c['x'] in set(sets.get('all', []))]
@@ -428,62 +450,128 @@ def analyse(raw, u, now_epoch, st=None, fut=None, surfaces=True):
         del rec[d]
     hist = sorted(rec.items())
     ivx = VOL_INDEX.get(u)
-    rank = None
-    if ivx and st.get('volidx'):
-        closes = [c for _, c in st['volidx']]
-        rank = of.iv_rank(closes, closes[-1] if closes else None)
+    vi = st.get('volidx') or {}           # {'closes': [[day, close]], 'now': float} from Cboe (index symbols only)
+    own = [[d, r['iv30']] for d, r in hist if r.get('iv30')]
+    rank, spark = None, own[-252:]
+    if ivx and vi.get('closes'):
+        closes = [c for d, c in vi['closes'] if d < day]
+        rank = of.iv_rank(closes, vi.get('now') or closes[-1])
         if rank:
-            rank['src'] = ivx
-    elif len([1 for _, r in hist if r.get('iv30')]) >= 60:
-        own = [r['iv30'] for _, r in hist if r.get('iv30')]
-        rank = of.iv_rank(own, head['iv30'])
+            rank['src'], rank['now'] = ivx, rnd(vi.get('now') or closes[-1], 2)
+        if len(own) < 60:
+            spark = (vi['closes'] + ([[day, vi['now']]] if vi.get('now') else []))[-252:]
+    elif len(own) >= 60:
+        rank = of.iv_rank([c for d, c in own if d < day] or [c for _, c in own], head['iv30'])
         if rank:
-            rank['src'] = 'own'
+            rank['src'], rank['now'] = 'iv30', rnd(head['iv30'], 2)
     d5 = [r for d, r in hist if d < day][-5:]
     rv = realised_vol(st.get('closes') or [])
-    em = a['em']
+    lv0 = levels['0'] if tier == 'A' else (levels['all'] or levels['0'])
+    lv_names = lambda lv: None if not lv else {'call_ceiling': lv['cw'], 'put_floor': lv['pw'], 'flip_line': lv['zg'],
+                                                 'pin': lv['mp'], 'net': lv['net'], 'zone': lv['zone'], 'x': lv.get('x')}
+    em = {r['k']: r for r in a['em']}
+    rkey = {'0DTE': '0', '1DTE': '1', 'Weekly': 'w', 'Monthly': 'm'}
+    # iv30 series for the IV rank pane: daily closes (vol index or our record) + today's value now; epoch s at 16:00 ET
+    series = [[int(datetime.strptime(d, '%Y-%m-%d').replace(hour=16, tzinfo=ET).timestamp()), rnd(v, 2)] for d, v in spark if d < day]
+    now_v = (rank or {}).get('now') or (vi.get('now') if ivx and vi.get('closes') and len(own) < 60 else head['iv30'])
+    if now_v:
+        series.append([int(t), rnd(now_v, 2)])
     summary = {
-        'u': u, 'tier': 'A' if ('_' + u in TIER_A or u in TIER_A) else 'B', 't': t, 'day': day,
+        'v': 1, 'u': u, 'tier': tier, 'built': int(now_epoch), 't': int(t), 'day': day, 'src': 'cboe',
         'spot': rnd(spot, 2), 'chg_pct': rnd(head['chg_pct'], 2),
-        'zone': (levels['all'] or levels['0'] or {}).get('zone'),
-        'levels': {'0': levels['0'], 'all': levels['all']},
-        'range': em,
-        'iv': {'iv30': rnd(head['iv30'], 2), 'iv30_chg': rnd(head['iv30_chg'], 2), 'atm30': a['atm30'], 'skew30': a['skew30'],
-               'rank': rank, 'rv20': rnd(rv * 100, 2) if rv else None, 'term': a['term'],
-               'term5': d5[0]['term'] if len(d5) >= 5 else None,
-               'spark': [[d, r['iv30']] for d, r in hist if r.get('iv30')][-252:]},
-        'pc': dict(pc, hist=[[d, r['pcv'], r['pco']] for d, r in hist][-20:]),
-        'pin': pins[0] if pins else None, 'pins': pins,
+        'zone': (lv0 or {}).get('zone'),
+        'levels': lv_names(lv0), 'levels_all': lv_names(levels['all']),
+        'levels_full': dict(lv_names(st['full']), t=st['full']['t'], x_n=st['full']['x_n'], x_last=st['full']['x_last'],
+                            nodes=[{'k': k, 'g': g, 'share': sh} for k, g, sh in st['full']['nodes']])
+        if tier == 'A' and (st.get('full') or {}).get('day') == day and 'cw' in st['full'] else None,
+        'nodes': [{'k': k, 'g': g, 'share': sh} for k, g, sh in (lv0 or {}).get('nodes', [])],
+        'ranges': {rkey[k]: [r['lo'], r['hi']] for k, r in em.items()},
+        'range_info': {rkey[k]: {'x': r['x'], 'days': r['days'], 'em': r['em'], 'pct': r['pct'], 'iv': r['iv']} for k, r in em.items()},
+        'iv': {'rank': (rank or {}).get('rank'), 'pct': (rank or {}).get('pct'), 'rank_src': (rank or {}).get('src'),
+               'rank_n': (rank or {}).get('n'), 'idx': ivx if ivx and vi.get('closes') else None, 'idx_now': rnd(vi.get('now'), 2) if ivx else None,
+               'iv30': rnd(head['iv30'], 2), 'iv30_chg': rnd(head['iv30_chg'], 2), 'atm30': a['atm30'], 'skew30': a['skew30'],
+               'rv20': rnd(rv * 100, 2) if rv else None, 'own_days': len(own),
+               't': [x[0] for x in series], 'v': [x[1] for x in series]},
+        'term': a['term'], 'term5': d5[0].get('term') if len(d5) >= 5 else None,
+        'pc': {'volume': pc['vol'], 'oi': pc['oi'], 'volume_0': pc['vol_0'], 'oi_0': pc['oi_0'], 'cvol': pc['cvol'], 'pvol': pc['pvol'],
+               'scope': pc['scope'], 'hist': [[d, r.get('pcv'), r.get('pco')] for d, r in hist if r.get('pcv') is not None][-20:]},
+        'pin': pins,
         'fresh_n': len(fresh), 'burst_n': len(brows), 'opt_vol': pc['cvol'] + pc['pvol'],
+        'fresh_top': [act_row(r, t) for r in fresh[:5]], 'burst_top': [act_row(r, t) for r in brows[:5]],
+        'notice': 'Education only. Not financial advice.',
     }
     if fut and a.get('fut'):
         r = a['fut']['ratio']
-        lv = levels['0'] or {}
+        lv = summary['levels'] or {}
         mp = lambda v: rnd(v * r, 2) if v is not None else None
-        summary['fut'] = {'root': fut[0], 'ratio': r, 'from': u, 'label': 'mapped from ' + u,
-                          'cw': mp(lv.get('cw')), 'pw': mp(lv.get('pw')), 'zg': mp(lv.get('zg')), 'mp': mp(lv.get('mp'))}
-    snap_lv = levels['0'] if summary['tier'] == 'A' else levels['all']
-    pr = profile['0'] if summary['tier'] == 'A' else profile['all']
-    out = {'v': 1, 'kind': 'sym', 'u': u, 't': t, 'fa': int(now_epoch), 'summary': summary,
-           'profile': {md: {'x': sets.get(md, []), 'rows': profile[md]} for md in MODES},
-           'profile_cols': ['k', 'gex', 'dex', 'vanna', 'charm', 'cvol', 'pvol', 'coi', 'poi'],
-           'activity': {'fresh': fresh[:MAX_ROWS], 'burst': brows},
-           'oi_chg': oi_chg,
-           'snap': {'t': t, 's': rnd(spot, 2), 'd': '0' if summary['tier'] == 'A' else 'all',
-                    'cw': (snap_lv or {}).get('cw'), 'pw': (snap_lv or {}).get('pw'), 'zg': (snap_lv or {}).get('zg'),
-                    'n': (snap_lv or {}).get('net'), 'k': [r[0] for r in pr], 'g': [r[1] for r in pr]}}
+        summary['fut'] = {'root': fut[0], 'ratio': r, 'price': rnd(fut[1], 2), 'from': u, 'label': 'mapped from ' + u,
+                          'call_ceiling': mp(lv.get('call_ceiling')), 'put_floor': mp(lv.get('put_floor')),
+                          'flip_line': mp(lv.get('flip_line')), 'pin': mp(lv.get('pin')),
+                          'ranges': {k: [mp(v[0]), mp(v[1])] for k, v in summary['ranges'].items()}}
+    # tier A: the 0DTE expiry (as GEX+ history); tier B: every expiry <= 31 days, range from the weekly expiry
+    snap_xs = set(sets.get('0') or []) if tier == 'A' else set(sets.get('all') or [])
+    snap_x = (sets.get('0') or [None])[0] if tier == 'A' else (em.get('Weekly') or {}).get('x')
+    sr = gx.straddle_range(spot, [c for c in cs if c['x'] == snap_x and abs(c['k'] - spot) / spot <= LEVEL_BAND], t) if snap_x else None
+    sg = {}
+    for c in cs:
+        if c['x'] in snap_xs and abs(c['k'] - spot) / spot <= LEVEL_BAND:
+            sg[c['k']] = sg.get(c['k'], 0.0) + (1 if c['cp'] == 'C' else -1) * c['gamma'] * c['oi'] * 100 * spot * spot * 0.01
+    sk = sorted(k for k in sg if abs(k - spot) / spot <= gx.SNAP_BAND)
+    # history row: the packed /gex-history shape (gex-heat-core.js unpack): t, fa, day, x, s, cw, pw, zg, n, em, k, g
+    snap = {'u': u, 'd': 0 if tier == 'A' else 'all', 'day': day, 't': int(t), 'fa': int(now_epoch),
+            'x': snap_x,
+            's': rnd(spot, 2), 'cw': (lv0 or {}).get('cw'), 'pw': (lv0 or {}).get('pw'), 'zg': (lv0 or {}).get('zg'),
+            'n': (lv0 or {}).get('net'), 'em': [rnd(sr[0], 2), rnd(sr[1], 3)] if sr else None,
+            'k': [k_out(k) for k in sk], 'g': [rnd(sg[k] / 1e6, 2) for k in sk]}
+    summary['snap'] = snap
+    out = {'u': u, 't': int(t), 'built': int(now_epoch), 'tier': tier, 'summary': summary,
+           'profile': {md: {'v': 1, 'u': u, 'x': md, 'built': int(now_epoch), 't': int(t), 'spot': rnd(spot, 2), 'expiry': sets.get(md, []),
+                            'cols': PROFILE_COLS, 'rows': profile[md],
+                            'cw': (levels[md] or {}).get('cw'), 'pw': (levels[md] or {}).get('pw'), 'zg': (levels[md] or {}).get('zg'),
+                            'k': [r[0] for r in profile[md]], 'gex': [r[1] for r in profile[md]], 'vol': [r[5] + r[6] for r in profile[md]],
+                            'oi_chg': oi_chg if md == 'all' else None} for md in MODES},
+           'activity': {'fresh': [act_row(r, t) for r in fresh[:MAX_ROWS]], 'burst': [act_row(r, t) for r in brows]}}
     if surfaces:
         out['surface'] = {'gamma': gamma_surface(spot, cs), 'iv': iv_surface(spot, cs, t)}
     return out
 
 
-def screen_row(summary):
-    s = summary
-    wk = next((r for r in s.get('range') or [] if r['k'] == 'Weekly'), None)
-    rk = (s['iv'].get('rank') or {})
-    return {'u': s['u'], 'tier': s['tier'], 't': s['t'], 'ivr': rk.get('rank'), 'ivp': rk.get('pct'),
-            'iv30': s['iv']['iv30'], 'iv30_chg': s['iv']['iv30_chg'], 'range_w_pct': wk['pct'] if wk else None,
-            'opt_vol': s['opt_vol'], 'fresh_n': s['fresh_n'], 'pc_vol': s['pc']['vol'], 'zone': s['zone']}
+PROFILE_COLS = ['k', 'gex', 'dex', 'vanna', 'charm', 'cvol', 'pvol', 'coi', 'poi']
+
+
+def act_row(r, t):
+    """One Fresh Volume / Volume Burst row in the shared shape (S4 marks, S5 note, page tape)."""
+    o = {'t': int(r.get('t1', t)), 'side': r['cp'], 'k': r['k'], 'x': r['x'], 'vol': r.get('vol'), 'oi': r.get('oi'),
+         'add': r.get('dv'), 'mid': r['mid'], 'prem': r['prem']}
+    if 't0' in r:
+        o['t0'] = r['t0']
+    if 'ratio' in r:
+        o['ratio'] = r['ratio']
+    return o
+
+
+def envelopes(out):
+    """analyse() output -> [(route, query dict, payload)] for POST /zo-ingest?route=... (S2 src/zoro.js)."""
+    u, t, b = out['u'], out['t'], out['built']
+    env = [('summary', {'u': u}, out['summary'])]
+    env += [('profile', {'u': u, 'x': md}, p) for md, p in out['profile'].items()]
+    for kind in ('fresh', 'burst'):
+        env.append(('activity', {'u': u, 'kind': kind}, {'v': 1, 'u': u, 'built': b, 't': t, 'kind': kind, 'rows': out['activity'][kind],
+                                                          'label': BURST_LABEL if kind == 'burst' else FRESH_LABEL}))
+    for kind, sf in (out.get('surface') or {}).items():
+        env.append(('surface', {'u': u, 'kind': kind}, dict(sf, v=1, u=u, built=b, t=t)))
+    return env
+
+
+FRESH_LABEL = 'Contracts where today\'s volume is above open interest.'
+BURST_LABEL = 'Volume added between two updates. Not single trades; no buyer or seller side.'
+
+
+def screen_row(s):
+    rw = (s.get('range_info') or {}).get('w')
+    return {'u': s['u'], 'tier': s['tier'], 't': s['t'], 'ivr': s['iv']['rank'], 'ivp': s['iv']['pct'],
+            'iv30': s['iv']['iv30'], 'iv30_chg': s['iv']['iv30_chg'], 'range_w_pct': rw['pct'] if rw else None,
+            'opt_vol': s['opt_vol'], 'fresh_n': s['fresh_n'], 'pc_vol': s['pc']['volume'], 'zone': s['zone']}
 
 
 # ------------------------------------------------------------------ CME (InsightSentry)
@@ -506,17 +594,26 @@ def cme_levels(root, rows, now_epoch, mapped=None):
 
 
 def cme_summary(root, cs, und_price, t, mapped=None):
+    base = {'v': 1, 'u': root, 'root': root, 'built': int(time.time()), 't': int(t), 'src': 'CME options', 'mapped': mapped,
+            'note': 'Open interest is only sent for the strikes nearest the price.'}
     if not und_price or len(cs) < 6:
-        return {'root': root, 't': int(t), 'ok': False, 'reason': 'not enough contracts with open interest', 'mapped': mapped}
+        return dict(base, ok=False, reason='not enough contracts with open interest')
     gex, cw, pw, zg, net = gx.snap_levels(und_price, cs)
     mult = CME[root][1]
     tot = sum(abs(v) for v in gex.values()) or 1.0
     nodes = sorted(gex, key=lambda k: -abs(gex[k]))[:10]
-    return {'root': root, 't': int(t), 'ok': True, 'src': 'CME options', 'x': sorted({c['x'] for c in cs}),
-            'oi_rows': len(cs), 'cw': k_out(cw) if cw is not None else None, 'pw': k_out(pw) if pw is not None else None,
-            'zg': rnd(zg, 2), 'net': rnd(net / 100 * mult / 1e6, 2), 'zone': 'cushion' if net >= 0 else 'swing',
-            'mp': max_pain(cs, und_price), 'nodes': [[k_out(k), rnd(abs(gex[k]) / tot, 4)] for k in nodes],
-            'note': 'Open interest is only sent for the strikes nearest the price.', 'mapped': mapped}
+    # IV / skew / term from the same rows (CoS 06 Nov: CME chains are good for IV; OI is thin, so the gamma levels here are a
+    # check next to the mapped ones, never a replacement)
+    term = []
+    for x in sorted({c['x'] for c in cs}):
+        atm = sorted((c for c in cs if c['x'] == x and c['iv'] > 0), key=lambda c: abs(c['k'] - und_price))[:2]
+        if atm:
+            term.append([x, rnd(sum(c['iv'] for c in atm) / len(atm), 4)])
+    return dict(base, ok=True, price=rnd(und_price, 2), x=sorted({c['x'] for c in cs}), oi_rows=len(cs),
+                levels={'call_ceiling': k_out(cw) if cw is not None else None, 'put_floor': k_out(pw) if pw is not None else None,
+                        'flip_line': rnd(zg, 2), 'pin': max_pain(cs, und_price)},
+                net=rnd(net / 100 * mult / 1e6, 2), zone='cushion' if net >= 0 else 'swing',
+                nodes=[{'k': k_out(k), 'share': rnd(abs(gex[k]) / tot, 4)} for k in nodes], term=term)
 
 
 # ------------------------------------------------------------------ I/O
@@ -559,17 +656,19 @@ def note_is():
         log('is-note failed (%d calls not counted)' % n)
 
 
-def post(url, key, kind, payload):
+def post(url, key, route, q, payload):
+    """POST /zo-ingest?route=<route>&<q> with the gzip JSON payload (S2 src/zoro.js: {v: 1, built, ...})."""
+    payload = dict(payload, v=1, built=int(payload.get('built') or time.time()))
     body = gzip.compress(json.dumps(payload, separators=(',', ':')).encode(), 6)
-    if len(body) > MAX_BODY:
+    if len(body) > MAX_GZ.get(route, 32 * 1024):
         return 'too big %d B' % len(body)
-    req = urllib.request.Request('%s/zo-ingest?kind=%s' % (url, kind), data=body, method='POST',
+    req = urllib.request.Request('%s/zo-ingest?%s' % (url, urllib.parse.urlencode(dict(q, route=route))), data=body, method='POST',
                                  headers={'content-type': 'application/octet-stream', 'x-ingest-key': key, 'User-Agent': UA})
     try:
         with urllib.request.urlopen(req, timeout=POST_TIMEOUT) as r:
-            return '%s %s (%d B)' % (r.status, r.read(120).decode('utf-8', 'replace'), len(body))
+            return '%s %s' % (r.status, r.read(80).decode('utf-8', 'replace'))
     except urllib.error.HTTPError as e:
-        return '%s %s' % (e.code, e.read(120).decode('utf-8', 'replace'))
+        return '%s %s' % (e.code, e.read(80).decode('utf-8', 'replace'))
     except Exception as e:
         return 'failed ' + type(e).__name__
 
@@ -611,26 +710,26 @@ def fut_prices():
         return {}
 
 
-def daily_closes_yahoo(u):
-    sym = {'SPX': '^SPX'}.get(u, u.replace('.', '-'))
-    raw, _ = http_get(YAHOO + '/v8/finance/chart/%s?range=3mo&interval=1d' % urllib.parse.quote(sym), timeout=15)
-    r = json.loads(raw)['chart']['result'][0]
-    return [c for c in (r['indicators']['quote'][0].get('close') or []) if c]
+def cboe_closes(sym, n=300):
+    """Daily closes [[day, close]] from Cboe's free history file (indices: _SPX, _VIX; stocks/ETFs: AAPL)."""
+    raw, _ = http_get(CBOE_HIST + sym + '.json', timeout=20)
+    rows = json.loads(raw).get('data') or []
+    return [[r['date'], num(r.get('close'))] for r in rows[-n:] if num(r.get('close')) > 0]
 
 
-def vol_index_closes(key, today):
-    """One year of daily closes for VIX/VXN/RVX/GVZ/OVX from InsightSentry, once a day (5 IS calls)."""
+def vol_indices(today, need):
+    """{index: {'closes': [[day, close]] (once a day), 'now': current value}} for the vol indices in `need`."""
     st = load('volidx')
-    if st.get('day') == today or not key:
-        return st
-    for ix in sorted(set(VOL_INDEX.values())):
+    for ix in need:
+        e = st.get(ix) or {}
         try:
-            j = is_get('/symbols/CBOE:%s/series' % ix, key, {'bar_type': 'day', 'dp': 300})
-            st[ix] = [[datetime.fromtimestamp(int(b['time']), ET).strftime('%Y-%m-%d'), b['close']]
-                      for b in j.get('series') or [] if num(b.get('close')) > 0]
-        except Exception as e:
-            log('vol index %s failed: %s %s' % (ix, type(e).__name__, str(e)[:60]))
-    st['day'] = today
+            if e.get('day') != today:
+                e = {'day': today, 'closes': cboe_closes('_' + ix)}
+            raw, _ = http_get(CBOE_QUOTE + '_' + ix + '.json', timeout=15)
+            e['now'] = num(json.loads(raw)['data'].get('current_price')) or None
+        except Exception as ex:
+            log('vol index %s failed: %s' % (ix, type(ex).__name__))
+        st[ix] = e
     save('volidx', st)
     return st
 
@@ -665,14 +764,14 @@ def run_cme(url, key, iskey, now_epoch, summaries):
             rows, und = [], None
             for e in exps[:2]:
                 ed = '%s-%s-%s' % (e[:4], e[4:6], e[6:])
-                j = is_get('/options/quotes', iskey, {'code': code, 'from': ed, 'to': ed})
+                j = is_get('/options/quotes', iskey, {'code': code, 'from': ed, 'to': ed, 'range': 5})
                 rows.extend(j.get('data') or [])
                 und = num(j.get('last_price')) or und
             ms = (summaries.get(src) or {})
             fl = ms.get('fut') if ms.get('fut', {}).get('root') == root else None
             mapped = dict(fl, t=ms.get('t')) if fl else None
             res = cme_summary(root, cme_levels(root, rows, now_epoch), und, now_epoch, mapped)
-            log('cme %s %s -> %s' % (root, res.get('oi_rows'), post(url, key, 'cme', {'v': 1, 'kind': 'cme', 'cme': res})))
+            log('cme %s %s -> %s' % (root, res.get('oi_rows'), post(url, key, 'cme', {'root': root}, res)))
         except Exception as e:
             log('cme %s failed: %s %s' % (root, type(e).__name__, str(e)[:80]))
     st['done'] = (st.get('done') or [])[-8:] + [tag]
@@ -684,7 +783,7 @@ def in_window(now):
     if t.weekday() >= 5:
         return False
     m = t.hour * 60 + t.minute
-    return 9 * 60 + 30 <= m <= 16 * 60 + 15 or 16 * 60 + 30 <= m <= 16 * 60 + 33
+    return 9 * 60 + 30 <= m <= 16 * 60 + 15 or 16 * 60 + 30 <= m <= 16 * 60 + 44
 
 
 def stock_list():
@@ -693,11 +792,14 @@ def stock_list():
 
 
 def due_symbols(now, force=False):
-    """Tier A every even minute, tier B stocks[minute % 15 :: 15]; the after-close run takes everyone once."""
+    """Tier A every even minute, tier B stocks[minute % 15 :: 15]. After the close (16:30-16:44 ET): tier A once at
+    16:30 and every stock once over the 15 minutes (the closing values). force (manual run): tier A only."""
     t = now.astimezone(ET)
     m = t.hour * 60 + t.minute
-    if force or m >= 16 * 60 + 30:
-        return TIER_A + (stock_list() if force or m == 16 * 60 + 30 else [])
+    if force:
+        return list(TIER_A)
+    if m >= 16 * 60 + 30:
+        return (TIER_A if m == 16 * 60 + 30 else []) + stock_list()[t.minute % 15::15]
     return (TIER_A if t.minute % 2 == 0 else []) + stock_list()[t.minute % 15::15]
 
 
@@ -714,12 +816,14 @@ def main(force=False):
     today = now.astimezone(ET).strftime('%Y-%m-%d')
     syms = due_symbols(now, force)
     futs = fut_prices() if any(s.lstrip('_') in FUT_OF for s in syms) else {}
-    volidx = vol_index_closes(iskey, today) if any(s.lstrip('_') in VOL_INDEX for s in syms) else {}
+    volidx = vol_indices(today, sorted({VOL_INDEX[s.lstrip('_')] for s in syms if s.lstrip('_') in VOL_INDEX}))
     latest = load('latest')            # u -> screen row + fut mapping (for the screen and the CME compare)
     bad = 0
     wire_tot = raw_tot = 0
-    for sym in syms:
+    for n, sym in enumerate(syms):
         u = sym.lstrip('_')
+        if n:
+            time.sleep(PULL_GAP)
         t0 = time.monotonic()
         st = load('sym-' + u)
         try:
@@ -727,7 +831,7 @@ def main(force=False):
             wire_tot += wire; raw_tot += len(raw)
             if st.get('closes_day') != today:
                 try:
-                    st['closes'], st['closes_day'] = daily_closes_yahoo(u), today
+                    st['closes'], st['closes_day'] = [c for _, c in cboe_closes(sym, 60)], today
                 except Exception:
                     pass
             ix = VOL_INDEX.get(u)
@@ -741,21 +845,40 @@ def main(force=False):
             del raw
             st.pop('volidx', None)
             save('sym-' + u, st)
+        except urllib.error.HTTPError as e:
+            log('%s failed: HTTP %s' % (sym, e.code))
+            bad += 1
+            if e.code == 429:
+                log('Cboe 429: run stopped, %d symbols left for the next run' % (len(syms) - n - 1))
+                break
+            continue
         except Exception as e:
             log('%s failed: %s %s' % (sym, type(e).__name__, str(e)[:80]))
             bad += 1
             continue
-        res = post(url, key, 'sym', out)
-        bad += 0 if res.startswith('200') else 1
-        latest[u] = {'row': screen_row(out['summary']), 'fut': out['summary'].get('fut'), 't': out['t']}
-        log('%s t=%s wire=%d B %.1fs fresh=%d burst=%d -> %s' % (u, out['t'], wire, time.monotonic() - t0,
-                                                               out['summary']['fresh_n'], out['summary']['burst_n'], res))
+        res = [post(url, key, route, q, p) for route, q, p in envelopes(out)]
+        nbad = sum(1 for r in res if not r.startswith('200'))
+        bad += nbad
+        latest[u] = {'row': screen_row(out['summary']), 'fut': out['summary'].get('fut'), 't': out['t'],
+                     'fresh': [dict(r, u=u) for r in out['activity']['fresh'][:5]]}
+        log('%s t=%s wire=%d B %.1fs fresh=%d burst=%d -> %d posts, %d failed%s' % (
+            u, out['t'], wire, time.monotonic() - t0, out['summary']['fresh_n'], out['summary']['burst_n'], len(res), nbad,
+            (' (' + res[[not r.startswith('200') for r in res].index(True)] + ')') if nbad else ''))
     save('latest', latest)
     if syms:
         rows = sorted((v['row'] for v in latest.values() if v.get('row')), key=lambda r: r['u'])
-        res = post(url, key, 'screen', {'v': 1, 'kind': 'screen', 't': int(time.time()), 'rows': rows})
+        res = post(url, key, 'screen', {}, {'t': int(time.time()), 'rows': rows})
         bad += 0 if res.startswith('200') else 1
-        log('screen %d rows -> %s | download %d B (unzipped %d B)' % (len(rows), res, wire_tot, raw_tot))
+        act = sorted(rows, key=lambda r: -(r['opt_vol'] or 0))[:20]
+        res2 = post(url, key, 'activity', {'u': 'ALL', 'kind': 'active'}, {'u': 'ALL', 'kind': 'active', 't': int(time.time()), 'rows': act})
+        bad += 0 if res2.startswith('200') else 1
+        day = now.astimezone(ET).strftime('%Y-%m-%d')
+        fr = sorted((r for v in latest.values() if datetime.fromtimestamp(v.get('t') or 0, ET).strftime('%Y-%m-%d') == day
+                     for r in v.get('fresh') or []), key=lambda r: -r['vol'])[:MAX_ROWS]
+        res3 = post(url, key, 'activity', {'u': 'ALL', 'kind': 'fresh'}, {'u': 'ALL', 'kind': 'fresh', 't': int(time.time()), 'rows': fr,
+                                                                          'label': FRESH_LABEL})
+        bad += 0 if res3.startswith('200') else 1
+        log('screen %d rows -> %s | active -> %s | download %d B (unzipped %d B)' % (len(rows), res, res2, wire_tot, raw_tot))
     try:
         run_cme(url, key, iskey, time.time(), {u: {'fut': v.get('fut'), 't': v.get('t')} for u, v in latest.items()})
     finally:

@@ -20,7 +20,7 @@ export const PERIOD_DAY = 9;                    // the billing period starts on 
 export const ALERT_PCT = 0.9;
 // Planned spend after the 2026-10-25 cuts, used for the projection until real full days have been counted.
 export const PLAN_RATE = { wk: 2300, we: 350 };   // feeders ~2,150 + Pages GEX margin; weekend ~320
-export const SOURCES = ['gexfast', 'opt', 'scan', 'news', 'newscal', 'brief', 'info', 'of', 'pages', 'stocks', 'other'];   // stocks: src/stock-engine.js
+export const SOURCES = ['gexfast', 'opt', 'scan', 'news', 'newscal', 'brief', 'info', 'of', 'pages', 'stocks', 'zoro', 'other'];   // stocks: src/stock-engine.js; zoro: zoro-feeder (ZoroOptions)
 const KEEP_DAYS = 45;
 const DAY = 86400000;
 

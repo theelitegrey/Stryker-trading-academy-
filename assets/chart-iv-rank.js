@@ -99,7 +99,7 @@ class IvNative {
     const rank = until == null && isNum(zs.iv.rank) ? Math.round(zs.iv.rank) : rk.rank;
     const pct = until == null && isNum(zs.iv.pct) ? Math.round(zs.iv.pct) : rk.pct;
     const when = until == null ? ZD.agoText(zs.t || t[t.length - 1]) : 'as of replay time';
-    const status = 'IV rank ' + rank + ' · percentile ' + pct + ' · 30-day IV ' + rk.iv.toFixed(1) + '% · ' + src.root + (src.fut ? ' (from ' + src.u + ')' : '') + ' · ' + when;
+    const status = 'IV rank ' + rank + ' · pct ' + pct + ' · IV30 ' + rk.iv.toFixed(1) + '% · ' + src.u + ' · ' + when.replace('updated ', '');
     const sig = ['d', src.u, bars.length, bars.length ? bars[0].time + '|' + bars[bars.length - 1].time : '', last, status, JSON.stringify(I)].join('|');
     if (sig === this.sig) return;
     this.sig = sig;

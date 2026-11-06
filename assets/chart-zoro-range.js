@@ -130,6 +130,8 @@ function chipLayer(draw, below) {
         canvas.parentElement.appendChild(chip);
       }
       if (!chip) return;
+      // phone: the legend row already says it; only notes and the upgrade pill get a chip
+      if (d && d.status && !d.note && !d.pill && window.innerWidth < 520) d = Object.assign({}, d, { status: '' });
       const k = d ? JSON.stringify([d.note, d.pill, d.showStatus === false ? '' : d.status, bottomPx]) : '';
       if (k === last) return;
       last = k;

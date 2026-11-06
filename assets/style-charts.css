@@ -3256,6 +3256,9 @@ html.stk-chart-fs body.charts-page .stkcps-handle,
 html.stk-chart-fs body.charts-page .appnav-pills{ display:none !important; }
 html.stk-chart-fs body.charts-page .dash-shell{ grid-template-columns:minmax(0,1fr); }
 html.stk-chart-fs body.charts-page{ padding:0 !important; }
+.btn-secondary{ background:var(--bg-3); color:var(--ink-0); border:1px solid var(--line); box-shadow:none; }
+.btn-secondary:hover{ border-color:var(--ink-3); background:var(--bg-2); }
+.btn-secondary:disabled{ opacity:.5; cursor:default; }
 :root{
   --tz-h:44px; --tz-r:10px; --tz-surface:#131316; --tz-line:var(--line); --tz-ink:#fff;
   --tz-ph:var(--ink-3); --tz-ring:0 0 0 3px rgba(3,201,136,.22); --tz-focus:var(--gold);

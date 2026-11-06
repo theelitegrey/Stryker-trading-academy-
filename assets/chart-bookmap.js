@@ -60,6 +60,35 @@ function lutOf(name) {   // 256 entries of packed ABGR (little endian) for the r
   }
   lutCache.set(name, l = u); return l;
 }
+// SMOOTH (Owner 2026-11-06 "restore the old look"): from 5 Nov 20:25 UTC the provider's book re-quotes most resting sizes every few
+// seconds (before: ~2 % of levels changed in 15 s, after: ~50 % in 3 s), so raw samples draw as speckle and broken dashes. Each sample is
+// shown as the trailing time-average of every price row over `ms` (an absent row counts 0, the sign is the newest non-zero one): steady
+// walls stay solid bands, flicker averages out. A steady book is unchanged by it. Memo per sample object (stable identity for the GPU ring).
+const smMemo = new WeakMap();
+export function smoothHist(hist, ms) {
+  if (!(ms > 0) || hist.length < 2) return hist;
+  const out = new Array(hist.length);
+  let j = 0;
+  for (let k = 0; k < hist.length; k++) {
+    const s = hist[k];
+    while (hist[j].ts < s.ts - ms) j++;
+    const m = smMemo.get(s);
+    if (m && m.ms === ms && m.n === k - j + 1) { out[k] = m.s; continue; }   // n: a window with more members (older samples arrived) recomputes
+    if (!s.v || !s.v.length || !(s.step > 0)) { out[k] = s; continue; }
+    let lo = Infinity, hi = -Infinity, n = 0;
+    for (let q = j; q <= k; q++) { const h = hist[q]; if (h.step !== s.step || !h.v || !h.v.length) continue; if (h.i0 < lo) lo = h.i0; if (h.i0 + h.v.length > hi) hi = h.i0 + h.v.length; n++; }
+    const sum = new Float32Array(hi - lo), sg = new Int8Array(hi - lo);
+    for (let q = j; q <= k; q++) {
+      const h = hist[q]; if (h.step !== s.step || !h.v || !h.v.length) continue;
+      const v = h.v, o = h.i0 - lo;
+      for (let r = 0; r < v.length; r++) { const x = v[r]; if (x) { sum[o + r] += x < 0 ? -x : x; sg[o + r] = x < 0 ? -1 : 1; } }
+    }
+    for (let r = 0; r < sum.length; r++) sum[r] = sum[r] / n * sg[r];
+    const z = Object.assign({}, s, { i0: lo, v: sum });
+    smMemo.set(s, { ms, n: k - j + 1, s: z }); out[k] = z;
+  }
+  return out;
+}
 const cache = { key: '', canvas: null, ms: 0, p97: 0 };
 export const bmStats = () => ({ key: cache.key, ms: cache.ms, p97: cache.p97 });
 

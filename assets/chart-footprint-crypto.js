@@ -16,8 +16,11 @@ const MAX_PAGES = 100;                // x 1000 trades: hard cap on the backfill
 const CONC = 10;                      // parallel page requests
 const IDLE_MS = 60000;                // no chart asked for this feed for a minute: close it
 const PREFIX = 'binance:';
+import { getVenue } from './orderflow-venues.js?v=889';
+// Other crypto venues (assets/orderflow-venues.js adapters): one import line per venue.
 
-export const isCrypto = (root) => typeof root === 'string' && root.startsWith(PREFIX);
+const venueOf = (root) => { const m = /^([a-z0-9]+):/i.exec(root || ''); return m && m[1].toLowerCase() !== 'binance' ? getVenue(m[1]) : null; };
+export const isCrypto = (root) => typeof root === 'string' && (root.startsWith(PREFIX) || !!venueOf(root));
 
 function niceStep(raw) {
   if (!(raw > 0)) return 1;
@@ -36,7 +39,7 @@ function sweep() {
 // The feed for one symbol (root 'binance:BTCUSDT' or 'binance:BTCUSDT.P'); starts it on first use.
 export function cryptoFeed(root, onChange) {
   let f = feeds.get(root);
-  if (!f) { f = new CryptoFeed(root, onChange); feeds.set(root, f); f.start(); }
+  if (!f) { const v = venueOf(root); f = v ? new VenueFeed(root, onChange, v) : new CryptoFeed(root, onChange); feeds.set(root, f); f.start(); }
   f.onChange = onChange || f.onChange;
   f.touched = Date.now();
   if (!sweepTm) sweepTm = setInterval(sweep, 15000);
@@ -192,6 +195,36 @@ class CryptoFeed {
     }
     this.sorted = out; this.sortedV = this.v;
     return out;
+  }
+}
+
+// A non-Binance venue: the adapter's tradeStream (its short recent-trades batch, then the stream)
+// folded into the same minutes. No paged history, so coverage starts at the first trade seen.
+class VenueFeed extends CryptoFeed {
+  constructor(root, onChange, venue) {
+    super(root, onChange);
+    this.venue = venue;
+    this.pair = root.slice(root.indexOf(':') + 1);
+    this.seq = 0;
+  }
+  stop() { this.stopped = true; clearTimeout(this.bumpTm); try { if (this.stopStream) this.stopStream(); } catch (e) {} }
+  start() {
+    this.stopStream = this.venue.tradeStream(this.pair, {
+      trade: (x) => {
+        if (this.stopped) return;
+        this.add([{ a: ++this.seq, p: x.p, q: x.s, T: x.t, m: x.side === 'sell' }]);
+        if (!this.tick && x.p > 0 && this.venue.tick) this.tick = this.venue.tick(this.pair, x.p) || this.tick;
+        if (x.t < this.coverFrom - 60000 || this.coverFrom === Infinity) this.coverFrom = Math.ceil(x.t / 60000) * 60000;
+        if (this.backfilled) { if (this.seq % 500 === 0) { this.trim(); if (!this.bigThr) this.setBigThr(); } this.bump(); }
+      },
+      status: (st, err) => {
+        if (this.stopped) return;
+        if (st === 'live') { this.backfilled = true; this.setBigThr(); }
+        this.status = st === 'loading' && this.backfilled ? 'live' : st;
+        this.err = st === 'error' ? (err || 'Crypto trade data is temporarily unavailable. Retrying…') : '';
+        this.bump();
+      },
+    });
   }
 }
 

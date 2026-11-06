@@ -14,7 +14,7 @@ import { registerFeed } from './chart-feeds.js?v=889';
 import { isFree } from './chart-pro-gate.js?v=889';
 import { rtOnChange } from './rt-access.js?v=889';
 import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart-futures-l2.js?v=889';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=889';
+import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=889';
 import { tsOpen } from './chart-ts-trades.js?v=889';
 import { aggregateMins } from './chart-ts-data.js?v=889';
 import { aggregate, profile as tradedProfile } from './chart-footprint-data.js?v=889';
@@ -85,8 +85,8 @@ class Hub {
       this.book = H.acquireBookFeed('tsl2', spec.root, poke, l2Source(spec.root));   // the heatmap's own feed object (same key): history + live, one fetch
       this.ts = tsOpen(spec.root, firstT, poke);                                       // the L1 tools' 48 h trade store
     } else {
-      this.book = H.acquireBookFeed('binance', spec.ticker, poke);
-      this.cfRoot = 'binance:' + spec.ticker;
+      this.book = H.acquireBookFeed(spec.venue || 'binance', spec.ticker, poke);
+      this.cfRoot = (spec.venue || 'binance') + ':' + spec.ticker;
     }
     this.feed = this.book.feed;
   }
@@ -174,6 +174,7 @@ function specOf(ctx) {
   let p2 = prov, t2 = tk; try { const r = ctx.data.resolve(ctx.symbol); if (r && r.provider) { p2 = String(r.provider).toLowerCase(); t2 = r.ticker || tk; } } catch (e) {}
   if (p2 === 'futures' || (p2 !== 'binance' && /1!$/.test(t2))) { const root = l2Root(t2); return root ? { kind: 'futures', root, key: 'f|' + root, tick: L2_TICK[root] || 0.25 } : null; }
   if (prov === 'binance') { const t = tk.toUpperCase().replace(/\.P$/, ''); return { kind: 'crypto', ticker: t, key: 'c|' + t }; }
+  if (prov && isCrypto(prov + ':' + tk)) { const t = tk.toUpperCase(); return { kind: 'crypto', venue: prov, ticker: t, key: 'c|' + prov + '|' + t }; }   // other venues (orderflow-venues.js)
   return null;
 }
 

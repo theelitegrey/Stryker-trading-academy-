@@ -35,6 +35,7 @@ import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=889';
 import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=889';
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=889';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=889';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=889';
 import * as ProGate from './chart-pro-gate.js?v=889';
 import { L1_TO_L2 } from './chart-pro-gate.js?v=889';
 import * as BT from './chart-bigtrades.js?v=889';
@@ -1032,6 +1033,18 @@ function binanceSource(ticker, onTrade, onStatus) {
   return () => { stopped = true; clearTimeout(tm); try { if (ws) ws.close(); } catch (e) {} };
 }
 tradeSources.set('binance', binanceSource);
+// Other crypto venues (assets/orderflow-venue-<venue>.js, loaded by chart-footprint-crypto.js): their adapter's trade stream.
+// Binance in the venue registry too (same native code as above, for callers that use the interface).
+registerVenue('binance', {
+  bookStream(pair, cb) {
+    return binanceBookSource(pair, (b) => cb.snapshot([...b.bids], [...b.asks]), (st, err) => cb.status(st, err));
+  },
+  tradeStream(pair, cb) {
+    return binanceSource(pair, (ts) => ts.forEach((t) => cb.trade({ t: t.time, p: t.price, s: t.size, side: t.side })), (st, err) => cb.status(st, err));
+  },
+  tick(pair, price) { return autoTick(price); },
+});
+venueIds().forEach((id) => { if (id !== 'binance' && !tradeSources.has(id)) tradeSources.set(id, venueTradeSource(getVenue(id))); });
 // Other sources (the Rithmic connection, assets/rithmic-ui.js) arrive by event.
 if (typeof window !== 'undefined') {
   const pending = window.__stkTradeSources || {};
@@ -1844,6 +1857,7 @@ class BookFeed {
     this.flushTm = setInterval(() => domSave(this), DOM_FLUSH_MS);
     const onStatus = (st, err) => { this.status = st; this.err = err || ''; this.bump(); };
     this.stop = opts ? opts.open((book) => { this.book = book; this.bump(); }, onStatus, (c) => this.pushCoarse(c))
+      : provider !== 'binance' && getVenue(provider) ? venueBookSource(getVenue(provider), ticker, (book) => { this.book = book; this.sample(); this.bump(); }, onStatus)
       : binanceBookSource(ticker, (book) => { this.book = book; this.sample(); this.bump(); }, onStatus);
   }
   // custom source: one already bucketed column (the hub's rule == the recorder's rule), stamped with this page's clock
@@ -1892,7 +1906,7 @@ class BookFeed {
   // request in flight; only the part older than what is held; a failure waits 5 min.
   needRemote(fromMs) {
     if (this.custom) return this.needRemoteCustom(fromMs);
-    if (/\.P$/i.test(this.ticker) || this.remoteBusy) return;
+    if (/\.P$/i.test(this.ticker) || this.remoteBusy || this.provider !== 'binance') return;   // the recorder holds Binance spot only
     const base = recorderUrl();
     if (!base) return;
     const now = Date.now();
@@ -2090,7 +2104,7 @@ function hhmm(ms, tz) {
 }
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 // the trade feed behind the pulled / filled tags and the iceberg hint: Binance aggTrades, or the futures L2 tick feed
-const feedTrades = (f) => (f.custom && f.custom.trades ? f.custom.trades() : cryptoFeed('binance:' + f.ticker.toUpperCase()));
+const feedTrades = (f) => (f.custom && f.custom.trades ? f.custom.trades() : cryptoFeed((f.provider !== 'binance' && getVenue(f.provider) ? f.provider : 'binance') + ':' + f.ticker.toUpperCase()));
 function cryptoDomLayer() {
   let canvas = null, glr = null;   // glr: the graphics-card heatmap (chart-heatmap-gl.js), Bookmap look only
   return {
@@ -2517,11 +2531,12 @@ class CryptoDomNative {
   attach() {
     if (!this.ctx) return;
     const mk = marketOf(this.ctx);
-    const want = mk.provider === 'binance' ? bookKey('binance', mk.ticker) : '';
+    const pv = mk.provider === 'binance' || getVenue(mk.provider) ? mk.provider : '';   // Binance, or a venue adapter (orderflow-venues.js)
+    const want = pv ? bookKey(pv, mk.ticker) : '';
     if (this.h && this.h.feed.key === want) { this.wantNow(); this.render(); return; }
     this.detach();
     this.block = want ? '' : BOOK_NEEDS_BINANCE;
-    if (!this.block) { this.h = acquireBookFeed('binance', mk.ticker, () => this.later()); this.wantNow(); }
+    if (!this.block) { this.h = acquireBookFeed(pv, mk.ticker, () => this.later()); this.wantNow(); }
     this.render();
   }
   wantNow() { if (this.h) { const c = domConfig(this.inputs); this.h.want({ bucket: c.bucket, range: c.range }); } }

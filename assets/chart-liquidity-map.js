@@ -21,6 +21,7 @@
 // Education only. Not financial advice.
 
 import { hfConfig, hfCut, hfSchema } from './chart-heat-filter.js?v=889';
+import { getVenue } from './orderflow-venues.js?v=889';   // crypto venues besides Binance (adapters register there)
 const RAMP = [[0, 4, 10, 24], [0.10, 5, 34, 74], [0.25, 8, 92, 150], [0.42, 60, 160, 205], [0.55, 200, 230, 240], [0.66, 250, 236, 70], [0.80, 255, 150, 25], [0.92, 238, 44, 24], [1, 255, 238, 225]];
 export const LM_RAMP = RAMP;
 export function lmColor(n) {
@@ -724,7 +725,8 @@ export function makeNative(H) {
       if (!this.ctx) return;
       const mk = H.marketOf(this.ctx);
       let kind = '', key = '';
-      if (mk.provider === 'binance') { kind = 'crypto'; key = H.bookKey('binance', mk.ticker); }
+      const cv = mk.provider === 'binance' || getVenue(mk.provider) ? mk.provider : '';
+      if (cv) { kind = 'crypto'; key = H.bookKey(cv, mk.ticker); }
       else if (mk.futures && mk.tick) {
         kind = 'fut'; key = 'futures|' + mk.ticker;
         // the futures order book is visible only to members whose Rithmic connection offers it (admins until depthForAll)
@@ -737,9 +739,9 @@ export function makeNative(H) {
       if (kind) {
         this.kind = kind; this.key = key; this.mk = mk;
         const fn = () => this.later();
-        this.h = kind === 'crypto' ? H.acquireBookFeed('binance', mk.ticker, fn) : acquireFut(H, mk.ticker, mk.tick, fn);
-        this.tkey = (kind === 'crypto' ? 'binance' : 'futures') + '|' + mk.ticker;
-        this.tr = acquireTrades(H, kind === 'crypto' ? 'binance' : 'futures', mk.ticker, fn);
+        this.h = kind === 'crypto' ? H.acquireBookFeed(cv, mk.ticker, fn) : acquireFut(H, mk.ticker, mk.tick, fn);
+        this.tkey = (kind === 'crypto' ? cv : 'futures') + '|' + mk.ticker;
+        this.tr = acquireTrades(H, kind === 'crypto' ? cv : 'futures', mk.ticker, fn);
         if (kind === 'crypto') this.h.want({ bucket: 0, range: 0.02 });
       }
       this.render();

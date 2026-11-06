@@ -387,7 +387,7 @@ function tpoLayer() {
         const tf = tfMin(inst.ctx.timeframe), periodMin = clamp(Math.round(num(I.period, 30)), 5, 120);
         if (tf == null || tf > periodMin) return;
         const root = H.rootOf(inst.ctx);
-        const futures = !!root && !/^binance:/.test(root);
+        const futures = !!root && !/^[a-z0-9]+:/.test(root);   // crypto roots are venue:TICKER, futures roots are bare (NQ)
         const f = root ? inst.flow(a.bars) : {};
         const lastPx = a.bars[a.bars.length - 1].close;
         const tick = f.tick || niceTick(lastPx);

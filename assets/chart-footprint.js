@@ -99,6 +99,7 @@ function rootOf(ctx) {
   try { const r = ctx.data.resolve(ctx.symbol); if (r) { provider = r.provider; ticker = r.ticker; } } catch (e) {}
   if (!provider) { const m = /^([a-z]+):(.+)$/i.exec(ticker); if (m) { provider = m[1].toLowerCase(); ticker = m[2]; } }
   if (provider === 'binance') return 'binance:' + ticker.toUpperCase();   // crypto: Binance aggTrades (chart-footprint-crypto.js)
+  if (isCrypto(provider + ':' + ticker)) return provider + ':' + ticker.toUpperCase();   // other venues: their adapter (orderflow-venues.js)
   if (provider !== 'futures') return null;
   const root = ticker.toUpperCase().replace(/[0-9]*!$/, '').replace(/[FGHJKMNQUVXZ]\d{2,4}$/, '');
   return ROOTS[root] || null;

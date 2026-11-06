@@ -17,6 +17,8 @@ const DAY = 86400;
 const SPOT = { IWM: 2000, USO: 80, SPX: 6800 };
 const FIX = (n) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'zoro', n), 'utf8'));
 const F0 = FIX('summary.json');
+const NBANDS = new Set(Object.values(F0.ranges).map((r) => r.join(','))).size;   // same expiry twice (weekly = 0DTE on a Friday) is one band
+const GEX_SPX = fs.readFileSync(path.join(__dirname, 'fixtures', 'gex', 'SPX-0.json'), 'utf8');   // ES/SPX still use /api/gex/levels
 function summary(u) {
   // the real feeder fixture, scaled to this symbol's spot and moved so its chain time is 2 min ago
   const f = FIX('summary.json'), k = (SPOT[u] || 100) / f.spot, dt = NOW - 120 - f.t;
@@ -46,7 +48,8 @@ async function open(b, { w, h, mobile, flag }) {
     const body = name === 'summary' ? summary(sym) : name === 'activity' ? activity(sym, u.searchParams.get('kind')) : { error: 'n/a' };
     r.fulfill({ status: body.error ? 404 : 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
-  await ctx.route(/\/api\/gex\//, (r) => r.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"x"}' }));
+  await ctx.route(/\/api\/gex\//, (r) => (/\/api\/gex\/levels\/SPX\b/i.test(r.request().url()) ? r.fulfill({ status: 200, contentType: 'application/json', body: GEX_SPX })
+    : r.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"x"}' })));
   const p = await ctx.newPage();
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|WebSocket|wss?:\/\//.test(m.text())) errors.push(m.text()); });
@@ -115,7 +118,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
       const nt = await natives(p);
       for (const t of ['stk_zrange', 'stk_zzone', 'stk_ivrank', 'stk_zvol']) check(nt.includes(t), tag + ': ' + t + ' added');
       const zr = await dataOf(p, 'stk_zrange'), zz = await dataOf(p, 'stk_zzone'), zv = await dataOf(p, 'stk_zvol');
-      check(zr && zr.bands && zr.bands.length === 4 && /updated/.test(zr.status), tag + ': Zoro Range 4 bands, "' + (zr && zr.status) + '"');
+      check(zr && zr.bands && zr.bands.length === NBANDS && /updated/.test(zr.status), tag + ': Zoro Range ' + NBANDS + ' bands, "' + (zr && zr.status) + '"');
       check(zz && zz.zone === F0.zone && /Swing/.test(zz.status), tag + ': Gamma Zone ' + (zz && zz.zone));
       check(zv && (zv.agg || zv.note), tag + ': Volume Burst marks ' + (zv && (zv.note || (zv.agg && zv.agg.filter(Boolean).length + ' bars'))));
       const iv = await p.evaluate(() => window.__stkIvRank || null);

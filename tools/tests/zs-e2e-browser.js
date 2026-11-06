@@ -167,8 +167,14 @@ const clearZs = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context(
       await p.evaluate(async () => { const ws = window.STRYKER_VELA; ws.active.setSymbol('idx:SPX'); ws.active.setTimeframe('15'); for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 300)); const c = ws.chart; if (c.market.symbol === 'idx:SPX' && c.orchestrator.rawBars.length > 50) break; } });
       await sleep(1000);
       r = await runRead(p, '//@zscript 1\nindicator("SPX levels", overlay=true)\nplot(gex.callwall, "Call wall")\nplot(gex.putwall, "Put wall")\nplot(opt.ivrank, "IV rank")\n', 'SPX levels', 9000);
+      // the live summary is fetched after the first run; under load it can take longer than 9 s, so wait for it (max 20 s more)
+      for (let i = 0; i < 20 && !(r.vals['IV rank'] && r.vals['IV rank'].n); i++) {
+        await sleep(1000);
+        r.vals = await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart, v = {}; const rec = c.orchestrator.registry.all().find((x) => x.model && x.model.title === 'SPX levels');
+          if (rec) for (const s of rec.model.series || []) { const pts = (s.points || []).filter((q) => q && Number.isFinite(q.value)); v[s.title] = { n: pts.length, last: pts.length ? pts[pts.length - 1].value : null }; } return v; });
+      }
       check(r.ok && r.vals['Call wall'] && [7800, 720].includes(r.vals['Call wall'].last) && r.vals['Put wall'] && [7770, 680].includes(r.vals['Put wall'].last), 'SPX: gex.callwall / putwall (archived SPX fixture live, recorder history before)', r.vals);
-      check(r.vals['IV rank'] && r.vals['IV rank'].last === 37, 'SPX: opt.ivrank from the ZoroOptions summary', r.vals['IV rank']);
+      check(r.vals['IV rank'] && r.vals['IV rank'].last === 37, 'SPX: opt.ivrank from the ZoroOptions summary', [r.vals['IV rank'], r.toasts]);
       await p.screenshot({ path: OUT + '/E2E-1440-spx-gex.png' });
       await clearZs(p);
       // paid protected script: buyer runs it, page never sees the program

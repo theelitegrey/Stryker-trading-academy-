@@ -87,6 +87,9 @@ if (require.main === module) (async () => {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mob ? 2 : 1, isMobile: mob, hasTouch: mob });
     await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, (r) => r.abort());
     await ctx.route(/\/api\/zs\/get/, (r) => r.fulfill({ status: 404, contentType: 'text/html', body: 'no functions' }));
+    // the library page alone, without the engine (after integration the engine is on the site; protected publish WITH it is
+    // covered by tools/tests/zs-e2e-browser.js)
+    await ctx.route(/\/assets\/zs\/index\.js/, (r) => r.fulfill({ status: 404, body: '' }));
     await ctx.addInitScript(stub);
     await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); } catch (e) {} }, theme);
     await ctx.addInitScript(() => { const st = document.createElement('style'); st.textContent = '.tzc{display:none!important}'; document.addEventListener('DOMContentLoaded', () => document.head.appendChild(st)); });

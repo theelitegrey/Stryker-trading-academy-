@@ -129,7 +129,7 @@ const CALLS = ['book.bid(1)', 'book.ask(1)', 'book.bidsize(1)', 'book.asksize(1)
   'gex.callwall', 'gex.putwall', 'gex.flip', 'gex.zero_upper', 'gex.zero_lower', 'gex.net', 'gex.level(1)',
   'opt.node(1)', 'opt.range("0dte")', 'opt.ivrank', 'opt.pc', 'opt.maxpain', 'opt.zone'];
 async function session([sym, tf, uses, wait, CALLS]) {
-  const hub = await import('/assets/zs/data/hub.js?v=895'), ops = await import('/assets/zs/data/ops.js?v=895');
+  const hub = await import('/assets/zs/data/hub.js?v=901'), ops = await import('/assets/zs/data/ops.js?v=901');
   hub.resetHubForTests();
   const ws = window.STRYKER_VELA, ch = ws.chart;
   const raw = ch.orchestrator.rawBars.map((b) => ({ time: b.time != null ? b.time : b.t, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume }));
@@ -158,6 +158,9 @@ if (require.main === module) (async () => {
   try {
     for (const [w, h, mobile, tf, tag] of [[1440, 900, false, '1', 'NQ-1440'], [390, 844, true, '5', 'NQ-390']]) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme: 'dark' });
+      // ZoroOptions is ON for everyone since build 898; this case checks the opted-out path (stk_zoro_options = '0')
+      await p.evaluate(() => localStorage.setItem('stk_zoro_options', '0')); await p.reload({ waitUntil: 'domcontentloaded' });
+      await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.active, null, { timeout: 60000 });
       await setNQ(p);
       const r = await p.evaluate(session, ['futures:NQ1!', tf, ['book', 'flow', 'gex', 'opt'], 14000, CALLS]);
       console.log(tag, JSON.stringify(r).slice(0, 2200));

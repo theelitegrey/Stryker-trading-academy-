@@ -108,7 +108,8 @@
       if (F) { d.mapped = { root: F.root, from: F.from || d.u, ratio: F.ratio }; d.spot = F.price || sp * F.ratio; d.u = q.u; }
     }
     if (route === 'profile' && d.rows && d.cols) {
-      var c = cols(d), oc = {};
+      var c = cols(d), oc = {}, zero = c.k.map(function () { return 0; });
+      ['gex', 'dex', 'vanna', 'charm', 'cvol', 'pvol', 'coi', 'poi'].forEach(function (g) { if (!c[g]) c[g] = zero; });   // Free teaser rows: k, gex, cvol, pvol only
       (d.oi_chg || []).forEach(function (r) { oc[r[0]] = r; });
       Object.assign(d, { x: d.x || d.mode, k: c.k, gex: c.gex.map(M6), dex: c.dex.map(M6), vanna: c.vanna.map(M6), charm: c.charm.map(M6), cv: c.cvol, pv: c.pvol, coi: c.coi, poi: c.poi,
         dcoi: d.oi_chg ? c.k.map(function (k) { return oc[k] ? oc[k][1] : 0; }) : null, dpoi: d.oi_chg ? c.k.map(function (k) { return oc[k] ? oc[k][2] : 0; }) : null });

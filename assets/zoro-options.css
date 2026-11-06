@@ -293,3 +293,13 @@
 
 /* copy rule: no prices anywhere on ZoroOptions; the shared lock card can print the plan price, hide it here */
 .zo-lockcard .plan-lock-price{ display:none !important; }
+
+/* Pre-beta notice (07 Nov) */
+.zo-beta{ display:flex; align-items:center; gap:10px; margin:0 0 12px; padding:8px 10px 8px 12px; border:1px solid var(--zo-hair2); border-radius:10px; background:color-mix(in srgb, var(--zo-amber) 7%, var(--zo-s2)); color:var(--zo-t2); font-size:12px; line-height:17px; }
+.zo-beta[hidden]{ display:none; }
+.zo-beta-tag{ flex:none; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.02em; color:var(--zo-amber); border:1px solid color-mix(in srgb, var(--zo-amber) 45%, transparent); }
+.zo-beta-txt{ flex:1; min-width:0; }
+.zo-beta-txt a{ color:var(--zo-t1); text-decoration:underline; text-underline-offset:2px; }
+.zo-beta-x{ flex:none; width:32px; height:32px; margin:-6px -4px -6px 0; border:0; background:none; color:var(--zo-t3); font-size:18px; line-height:1; cursor:pointer; border-radius:8px; }
+.zo-beta-x:hover{ color:var(--zo-t1); background:var(--zo-s3); }
+@media (max-width:600px){ .zo-beta{ align-items:flex-start; font-size:11.5px; } }

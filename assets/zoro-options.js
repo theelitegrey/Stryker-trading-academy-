@@ -886,3 +886,12 @@
   window.strykerZoro = { state: st, scrubTo: scrubTo, play: play, stop: stopPlay, pick: pickSym, histFrame: histFrame };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+// Pre-beta notice: hide for 7 days once dismissed (07 Nov)
+(function(){
+  var b = document.getElementById('zo-beta'); if (!b) return;
+  var K = 'zo_beta_hidden_until';
+  try { if (Number(localStorage.getItem(K) || 0) > Date.now()) b.hidden = true; } catch (e) {}
+  var x = b.querySelector('[data-beta-x]');
+  if (x) x.addEventListener('click', function(){ b.hidden = true; try { localStorage.setItem(K, String(Date.now() + 7 * 864e5)); } catch (e) {} });
+})();

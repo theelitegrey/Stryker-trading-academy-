@@ -121,7 +121,7 @@ def reference_pages():
         fns = sorted(groups.get(g['id'], []), key=lambda f: f['name'])
         if not fns:
             continue
-        parts = ['<p>%s</p>' % esc(g.get('desc', ''))]
+        parts = []
         if g.get('plan'):
             parts.append('<p class="zs-note"><strong>Plan:</strong> %s</p>' % esc(g['plan']))
         for f in fns:
@@ -130,8 +130,9 @@ def reference_pages():
             if f.get('returns'):
                 parts.append('<p><strong>Returns:</strong> %s</p>' % esc(f['returns']))
             if f.get('params'):
-                parts.append('<table><thead><tr><th>Parameter</th><th>Type</th><th>Meaning</th></tr></thead><tbody>%s</tbody></table>' % ''.join(
-                    '<tr><td><code>%s</code></td><td>%s</td><td>%s</td></tr>' % (esc(q['name']), esc(q.get('type', '')), esc(q.get('desc', ''))) for q in f['params']))
+                hasd = any(q.get('desc') for q in f['params'])
+                parts.append('<table><thead><tr><th>Parameter</th><th>Type</th>%s</tr></thead><tbody>%s</tbody></table>' % ('<th>Notes</th>' if hasd else '', ''.join(
+                    '<tr><td><code>%s</code></td><td>%s</td>%s</tr>' % (esc(q['name']), esc(q.get('type', '')), ('<td>%s</td>' % esc(q.get('desc', ''))) if hasd else '') for q in f['params'])))
             if f.get('example'):
                 parts.append('<pre class="zs-code" data-lang="Zscript"><code>%s</code></pre>' % hl(f['example']))
             parts.append('</section>')

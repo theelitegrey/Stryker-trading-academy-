@@ -67,3 +67,4 @@ figcaption{ font-size:13px; line-height:18px; color:var(--ink-2); margin-top:8px
   .zd-here{ display:inline; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
   .zd-menu[open]{ padding-bottom:8px; }
 }
+.zd-prose ul{ list-style:disc; } .zd-prose ol{ list-style:decimal; } .zd-prose ul.lx-list{ list-style:none; padding-left:0; }

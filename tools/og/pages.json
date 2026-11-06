@@ -1739,6 +1739,16 @@
       "alt": "Futures DOM Heatmap (L2) preview card"
     },
     {
+      "page": "indicators/depth-heatmap-l2.html",
+      "title": "Depth Heatmap (L2)",
+      "og_title": "Depth Heatmap (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/depth-heatmap-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Depth Heatmap (L2) preview card"
+    },
+    {
       "page": "indicators/liquidity-walls-l2.html",
       "title": "Liquidity Walls (L2)",
       "og_title": "Liquidity Walls (L2): ZoroCharts indicator guide",

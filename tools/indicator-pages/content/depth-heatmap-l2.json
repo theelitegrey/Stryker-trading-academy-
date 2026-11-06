@@ -1,0 +1,24 @@
+{
+  "slug": "depth-heatmap-l2",
+  "summary": "The order book as a heatmap on its own dark field: thin size in soft blue, the biggest walls in yellow, orange and red, with trade balls and the book.",
+  "overview": [
+    "Depth Heatmap (L2) paints the size resting at every price over time. Thin size is a soft blue texture, more size turns light blue and white, and the biggest resting orders turn yellow, orange and red. Most of the book stays blue, so the few big walls stand out.",
+    "A level is drawn as one steady bar from when it appears until its size really changes or it is removed. On top you see the price line, balls for traded volume, the current book at the right edge and buy and sell volume bars along the bottom."
+  ],
+  "how": [
+    "It reads the full order book (Data feed L2 for futures, the exchange's public book for crypto) plus recorded book history. Each price level is averaged over the last Smooth seconds, using only past data, and a level keeps its drawn size until it moves by more than about a fifth, flips side or is gone.",
+    "Colours follow the rank of each size among the sizes in view. Trade balls are sized by the volume traded in a short time and split green and red by the share of aggressive buying and selling. The right-hand columns show the size per price now and the running total from the best price outward."
+  ],
+  "use": [
+    "Use it to see where large resting orders sit around price and how long they stay.",
+    "Some traders watch whether price trades into a red wall or turns before it.",
+    "Compare a wall that ends while price is far away with one that ends as price trades through it.",
+    "Raise Lower cutoff to hide the thinnest levels when the picture is busy."
+  ],
+  "notes": [
+    "Needs the full order book (Data feed L2). Works on NQ, ES, YM, RTY, CL and GC futures and on crypto order books.",
+    "It describes resting orders and prints. It does not predict anything and has no order buttons.",
+    "Smooth, Contrast and Lower cutoff change only how the map looks, not the data. In replay it draws nothing after the replay time."
+  ],
+  "learn": "order-flow"
+}

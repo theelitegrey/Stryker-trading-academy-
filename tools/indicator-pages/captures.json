@@ -161,5 +161,6 @@
  "trinity-atr-levels": "ok",
  "unicorn-model": "ok",
  "wcsmc-sp-v3": "ok",
- "camarilla-pivots": "ok"
+ "camarilla-pivots": "ok",
+ "depth-heatmap-l2": "fallback: Connecting to the order book…"
 }

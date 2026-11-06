@@ -2353,7 +2353,8 @@
         "no-order-book"
        ],
        "level": "advanced"
-      }
+      },
+      {"id": "depth-heatmap", "q": "What is the Depth Heatmap (L2)?", "a": "<p>A Pro indicator in the Order Flow group. It paints the resting orders at every price on its own dark background: thin size is a soft blue, bigger size turns light blue and white, and the biggest resting orders turn yellow, orange and red. A level is drawn as one bar until its size really changes or it is removed.</p><p>On top it shows the traded volume as balls on the price path (green part = buying, red part = selling), the price line, the current book at the right edge (red above the price, green below, with sizes and a running total) and buy and sell volume bars at the bottom.</p><p>Settings: Smooth (averages each level over the last 15 s to 2 min, default 30 s), Contrast (auto or manual), Lower cutoff (hide the thinnest levels), and switches for the balls, the book bars, the total column and the volume bars. It works on NQ, ES, YM, RTY, CL and GC futures (Data feed L2) and on crypto order books, also in replay. Education only. Not financial advice.</p>", "plans": "pro", "tags": ["depth heatmap", "heatmap", "order book", "resting orders", "L2", "volume bubbles"], "related": ["liquidity-map", "orderflow-what"], "level": "advanced"}
      ]
     }
    ]

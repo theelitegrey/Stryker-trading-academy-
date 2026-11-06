@@ -20,8 +20,8 @@
 // INDICATOR ONLY: no order buttons, no click-to-trade. It describes resting orders and prints; it predicts nothing.
 // Education only. Not financial advice.
 
-import { hfConfig, hfCut, hfSchema } from './chart-heat-filter.js?v=899';
-import { getVenue } from './orderflow-venues.js?v=899';   // crypto venues besides Binance (adapters register there)
+import { hfConfig, hfCut, hfSchema } from './chart-heat-filter.js?v=900';
+import { getVenue } from './orderflow-venues.js?v=900';   // crypto venues besides Binance (adapters register there)
 const RAMP = [[0, 4, 10, 24], [0.10, 5, 34, 74], [0.25, 8, 92, 150], [0.42, 60, 160, 205], [0.55, 200, 230, 240], [0.66, 250, 236, 70], [0.80, 255, 150, 25], [0.92, 238, 44, 24], [1, 255, 238, 225]];
 export const LM_RAMP = RAMP;
 export function lmColor(n) {
@@ -621,7 +621,7 @@ function tzOffsetMs(tz, t) {
 }
 
 // A shaded sphere split green / red by the buy share (buy on top).
-function sphere(g, x, y, r, buyShare) {
+export function sphere(g, x, y, r, buyShare) {
   g.save();
   g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.clip();
   const sp = y - r + 2 * r * clamp(buyShare, 0, 1);
@@ -637,9 +637,9 @@ function sphere(g, x, y, r, buyShare) {
   g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 0.6; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke();
 }
 
-function drawLadder(g, a, src, o) {
+export function drawLadder(g, a, src, o) {
   const { lx, labW, c1W, c2W, top, bot, phone, font, yOf, stat } = o;
-  const book = src.book;
+  const book = src.book, Q = src.whole ? (v) => (v >= 1000 ? fmtQty(v) : String(Math.round(v))) : fmtQty;   // whole: contract counts (futures)
   const ladW = labW + c1W + c2W, W = o.W;
   g.save();
   g.fillStyle = 'rgba(8,14,26,.94)'; g.fillRect(lx, top, ladW, bot - top);
@@ -683,12 +683,12 @@ function drawLadder(g, a, src, o) {
     const best = i === bidTop || i === bidTop + 1 && ba > 0 && i === Math.floor(ba / step + 1e-9);
     if (best) { g.fillStyle = 'rgba(255,255,255,.13)'; g.fillRect(lx + 1, y0, ladW - 1, Math.max(1, h)); }
     if (v > 0 && maxS > 0) { g.fillStyle = 'rgba(' + col + ',.72)'; g.fillRect(x1 + 1, y0 + 0.5, Math.max(1, (c1W - 2) * v / maxS), Math.max(1, h - 1)); }
-    if (cu > 0 && maxC > 0) { g.fillStyle = 'rgba(' + col + ',.55)'; g.fillRect(x2 + 1, y0 + 0.5, Math.max(1, (c2W - 2) * cu / maxC), Math.max(1, h - 1)); }
+    if (cu > 0 && maxC > 0 && c2W > 0) { g.fillStyle = 'rgba(' + col + ',.55)'; g.fillRect(x2 + 1, y0 + 0.5, Math.max(1, (c2W - 2) * cu / maxC), Math.max(1, h - 1)); }
     if (h >= 9) {
       g.textAlign = 'left'; g.fillStyle = best ? '#fff' : 'rgba(176,192,214,.95)';
       g.fillText((i * step).toFixed(dec), lx + 3, cy + 0.5);
-      if (v > 0) { g.fillStyle = '#fff'; g.fillText(fmtQty(v), x1 + 3, cy + 0.5); }
-      if (cu > 0 && c2W >= 36) { g.fillStyle = 'rgba(255,255,255,.92)'; g.fillText(fmtQty(cu), x2 + 3, cy + 0.5); }
+      if (v > 0) { g.fillStyle = '#fff'; g.fillText(Q(v), x1 + 3, cy + 0.5); }
+      if (cu > 0 && c2W >= 36) { g.fillStyle = 'rgba(255,255,255,.92)'; g.fillText(Q(cu), x2 + 3, cy + 0.5); }
     }
     rowsDrawn++;
   }
@@ -697,7 +697,7 @@ function drawLadder(g, a, src, o) {
   g.save();
   g.fillStyle = 'rgba(8,14,26,1)'; g.fillRect(lx + 1, top, ladW - 1, 14);
   g.font = '8.5px ' + MONO; g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillStyle = 'rgba(190,205,228,.95)';
-  g.fillText('COB', x1 + c1W / 2, top + 7); g.fillText('TOTAL', x2 + c2W / 2, top + 7);
+  g.fillText('COB', x1 + c1W / 2, top + 7); if (c2W > 0) g.fillText('TOTAL', x2 + c2W / 2, top + 7);
   g.restore();
   // best bid / ask sizes at the price, joined to the ladder by a dashed line
   const bidQ = bb > 0 ? (book.bids.get(bb) || 0) : 0, askQ = ba > 0 ? (book.asks.get(ba) || 0) : 0;
@@ -705,7 +705,7 @@ function drawLadder(g, a, src, o) {
   if (yMid > top + 14 && yMid < bot) {
     g.save();
     g.setLineDash([4, 3]); g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.beginPath(); g.moveTo(Math.max(0, lx - 90), Math.round(yMid) + 0.5); g.lineTo(lx, Math.round(yMid) + 0.5); g.stroke(); g.setLineDash([]);
-    const txt = fmtQty(bidQ) + ' | ' + fmtQty(askQ);
+    const txt = Q(bidQ) + ' | ' + Q(askQ);
     g.font = 'bold ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
     const tw = g.measureText(txt).width;
     g.fillStyle = 'rgba(4,10,22,.88)'; g.fillRect(lx - tw - 10, yMid - 8, tw + 8, 16);

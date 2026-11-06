@@ -6,7 +6,7 @@
 // the pan / zoom are uniforms and per-column x spans (a few floats per visible column). Nothing is re-uploaded on pan / zoom.
 // The p97 normalisation runs in a Web Worker (debounced); the first frame computes it once on the main thread.
 // The GL canvas sits right before the chart's 2D layer canvas, so it is part of the same 'below-data' layer (no copy, no drawImage).
-import * as BM from './chart-bookmap.js?v=899';
+import * as BM from './chart-bookmap.js?v=900';
 
 export const RING_COLS = 8192;
 export const ringSlot = (seq, cap = RING_COLS) => ((seq % cap) + cap) % cap;
@@ -210,6 +210,9 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
       if (!(xb > xa) || xb < x0 || xa > x1) continue;
       cols.push({ s, xa: Math.max(x0, Math.floor(xa)), xb: Math.min(x1, Math.ceil(xb)) });
     }
+    // nothing visible yet (book history still loading): no size table. One built from zero columns has maxSz 1, so every real size
+    // would map to the top of the ramp, and nothing rebuilt it while the view stayed put (frozen replay, quiet book).
+    if (!cols.length) return { cells: 0, columns: 0, ms: 0, rows: 0, gl: true };
     upload(cols.map((c) => c.s), gl);
     if (rampName !== S.id) setRamp(S);
     // normalisation: first time on this thread, then the Worker, debounced on the visible set

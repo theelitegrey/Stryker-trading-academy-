@@ -7,7 +7,7 @@
 // cached by view + data version, and blitted. Pan / zoom / new data change the key and rebuild it (<= 4 ms at 390 on the fixture).
 //
 // STYLES is the style table: more looks (a name, a ramp and a scale) are added there, not as new branches.
-import { hfSize, hfCutOf } from './chart-heat-filter.js?v=899';
+import { hfSize, hfCutOf } from './chart-heat-filter.js?v=900';
 export const BM_BG = [5, 7, 13];
 export const HOLD_MS = 5 * 60000;
 const RAMPS = {
@@ -20,7 +20,10 @@ const RAMPS = {
   splitAsk: [[0, [5, 7, 13]], [0.12, [30, 12, 45]], [0.45, [120, 40, 190]], [0.7, [165, 64, 235]], [0.85, [192, 77, 255]], [0.95, [222, 150, 255]], [1, [230, 200, 255]]],
   splitBid: [[0, [5, 7, 13]], [0.12, [9, 30, 17]], [0.45, [22, 125, 54]], [0.7, [34, 190, 80]], [0.85, [57, 255, 106]], [0.95, [150, 255, 175]], [1, [201, 255, 214]]],
   // Split / Heat: one ramp for size, thin -> heavy: black, dark blue, blue, white, yellow, orange, red
-  splitHeat: [[0, [5, 7, 13]], [0.2, [10, 24, 92]], [0.4, [30, 80, 232]], [0.6, [255, 255, 255]], [0.75, [255, 228, 40]], [0.88, [255, 140, 20]], [1, [236, 30, 30]]]
+  splitHeat: [[0, [5, 7, 13]], [0.2, [10, 24, 92]], [0.4, [30, 80, 232]], [0.6, [255, 255, 255]], [0.75, [255, 228, 40]], [0.88, [255, 140, 20]], [1, [236, 30, 30]]],
+  // Depth Heatmap (L2): deep navy -> blue -> light blue / cyan (thin book, a visible soft texture) -> white -> yellow -> orange -> red (walls)
+  depth: [[0, [6, 16, 34]], [0.14, [10, 40, 78]], [0.3, [18, 78, 128]], [0.44, [34, 126, 182]], [0.56, [82, 186, 228]], [0.64, [190, 232, 250]],
+    [0.7, [255, 255, 255]], [0.77, [255, 232, 64]], [0.87, [255, 146, 26]], [1, [232, 36, 22]]]
 };
 // rank -> ramp position for Split: the thin book stays near the field, only real walls light up
 // thinnest 30% near the field, median ~45% brightness, p90 and up full neon
@@ -29,6 +32,9 @@ export const STYLES = {
   bookmap: { ramp: 'bookmap', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 },
   zoro: { ramp: 'zoro', bg: BM_BG, anchors: [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]], hold: HOLD_MS, cap: 0.97 },
   // sided: the ramp is picked by the row's side (bid 0 / ask 1); walls: a row at ramp index >= glowFrom draws as a lineHalf*2 px full-neon line across the middle of its row, a 1.2 px halo (glow x) and a dimmer body (also glow x); liveHold: the newest column goes dark after 10 s without a sample
+  // Depth Heatmap (L2): rank -> ramp. The thinnest rows still sit on a dim blue texture (0.1), the median is dark blue, p92 mid blue,
+  // p96 light blue, p97.5 white, the top ~2 % yellow / orange / red: most of the book reads blue, a few walls burn.
+  depth: { ramp: 'depth', bg: [7, 16, 32], anchors: [[0, 0.06], [0.5, 0.16], [0.8, 0.28], [0.92, 0.42], [0.96, 0.56], [0.975, 0.68], [0.988, 0.8], [0.996, 0.92], [1, 1]], hold: HOLD_MS, cap: 0.97 },
   split: { id: 'split', ramps: ['splitBid', 'splitAsk'], sided: true, glow: 0.55, glowFrom: 215, lineHalf: 1.5, liveHold: 10000, bg: BM_BG, anchors: SPLIT_ANCHORS, hold: HOLD_MS, cap: 0.97,
     heat: { id: 'splitHeat', ramps: ['splitHeat'], sided: false } }
 };

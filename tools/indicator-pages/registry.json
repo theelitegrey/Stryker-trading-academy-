@@ -1139,6 +1139,15 @@
     "grp": "Order Flow"
    },
    {
+    "key": "b:stk_depth_heat",
+    "name": "Depth Heatmap (L2)",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
     "key": "b:stk_fut_walls",
     "name": "Liquidity Walls (L2)",
     "author": "TradeZoro",
@@ -1727,6 +1736,110 @@
       "type": "color",
       "title": "Sell colour",
       "def": "#f23645",
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Depth Heatmap (L2)",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_depth_heat",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Depth Heatmap (L2)",
+    "short": "Depth Heatmap",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "heatSmooth",
+      "type": "string",
+      "title": "Smooth",
+      "tooltip": "Averages each price level over the last N seconds (past only), so a choppy book reads as calm bands. Sizes in the heatmap are averages.",
+      "def": "30 s",
+      "options": [
+       "Off",
+       "15 s",
+       "30 s",
+       "60 s",
+       "2 min"
+      ]
+     },
+     {
+      "key": "contrastMode",
+      "type": "string",
+      "title": "Contrast",
+      "tooltip": "Auto: colours follow the sizes in view, so most of the book is blue and only the biggest walls turn yellow, orange and red.",
+      "def": "Auto",
+      "options": [
+       "Auto",
+       "Manual"
+      ]
+     },
+     {
+      "key": "contrast",
+      "type": "float",
+      "title": "Manual contrast",
+      "tooltip": "Higher = more of the book lights up. Lower = only the biggest walls stand out.",
+      "def": 1,
+      "options": []
+     },
+     {
+      "key": "cutoffPct",
+      "type": "int",
+      "title": "Lower cutoff (hide below %)",
+      "tooltip": "Hide the thinnest levels: the smallest N % of the sizes in view. 0 shows everything.",
+      "def": 0,
+      "options": []
+     },
+     {
+      "key": "showBubbles",
+      "type": "bool",
+      "title": "Volume bubbles",
+      "tooltip": "Each ball is the volume traded in a short time. Size = volume. Green part = aggressive buying, red part = aggressive selling.",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "bubbleScale",
+      "type": "int",
+      "title": "Bubble size %",
+      "def": 100,
+      "options": []
+     },
+     {
+      "key": "showBook",
+      "type": "bool",
+      "title": "Book bars (right side)",
+      "tooltip": "The size resting at each price now: red above the price (asks), green below (bids).",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "showCum",
+      "type": "bool",
+      "title": "Cumulative column",
+      "tooltip": "The running total of resting size from the best price outward.",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "showVolume",
+      "type": "bool",
+      "title": "Volume bars",
+      "tooltip": "Traded volume per bar along the bottom, green = buying, red = selling.",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "gpuHeatmap",
+      "type": "bool",
+      "title": "Graphics card (smoother)",
+      "def": true,
       "options": []
      }
     ]

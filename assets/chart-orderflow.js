@@ -2202,7 +2202,8 @@ function cryptoDomLayer() {
       // Smooth (heat colours only): the heat cells read each column's window average; walls, tags and the depth bars keep the raw book
       let heatBins = colBins, hVals = vals;
       if (cfg.smooth && cfg.heat && cols.length) {
-        const want = new Set(cols.map((c) => c.s)), sm = smoothHist(hist, cfg.smooth, (k) => want.has(hist[k]));
+        const want = new Set(cols.map((c) => c.s)), sm0 = smoothHist(hist, cfg.smooth, (k) => want.has(hist[k]));
+        const sm = sm0 !== hist && sm0.length === cols.length ? sm0 : cols.map((c) => c.s);   // one sample (nothing to average) = raw
         hVals = [];
         heatBins = sm.map((z) => { const out = sampleRows(z, step, iLo, iHi, []); for (let k = 1; k < out.length; k += 2) hVals.push(Math.abs(out[k])); return out; });
       }

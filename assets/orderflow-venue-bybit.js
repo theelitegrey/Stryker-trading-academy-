@@ -1,16 +1,19 @@
 // TradeZoro: Bybit v5 order-flow adapter (public streams, no keys). Registers itself as "bybit".
 // orderbook.200 (spot 200 levels / linear 200 levels): first message = snapshot, then deltas; size 0 deletes a level.
 // publicTrade: S is the taker side ("Buy" = buyer-aggressor).
-import { registerVenue } from './orderflow-venues.js?v=889';
+import { registerVenue } from './orderflow-venues.js?v=890';
 
 const WS = 'wss://stream.bybit.com/v5/public/';
+// pair = chart ticker ("BTCUSDT", "BTCUSDT.P") or { base, quote, perp }
+const toPair = (p) => { if (p && typeof p === 'object') return p; const t = String(p || '').toUpperCase().replace(/^[A-Z_]+:/, ''); const m = /^(.+?)(USDT|USDC|USD)?(\.P)?$/.exec(t); return { base: m[1], quote: m[2] || '', perp: !!m[3] }; };
 const sym = (pair) => pair.base + pair.quote;
 const rows = (a) => (a || []).map((r) => [+r[0], +r[1]]).filter((r) => Number.isFinite(r[0]) && Number.isFinite(r[1]));
 export function parseBook(m) { return m && m.data ? { type: m.type, bids: rows(m.data.b), asks: rows(m.data.a) } : null; }
 export function parseTrades(m) { return (m && Array.isArray(m.data) ? m.data : []).map((x) => ({ t: +x.T, p: +x.p, s: +x.v, side: x.S === 'Buy' ? 1 : -1 })); }
 
 // One socket per call, reconnects with backoff (a new socket gets a fresh snapshot, so the book resets itself).
-function stream(pair, topic, on, status) {
+function stream(p, topic, on, status) {
+  const pair = toPair(p);
   let ws = null, stopped = false, retry = 0, tm = 0, ping = 0;
   const open = () => {
     if (stopped) return;
@@ -28,13 +31,14 @@ function stream(pair, topic, on, status) {
 
 const tickCache = new Map();
 registerVenue('bybit', {
-  bookStream: (pair, cb) => stream(pair, 'orderbook.200.' + sym(pair), (d) => {
+  bookStream: (pair, cb) => stream(pair, 'orderbook.200.' + sym(toPair(pair)), (d) => {
     const b = parseBook(d); if (!b) return;
     (b.type === 'snapshot' ? cb.snapshot : cb.diff)(b.bids, b.asks);
   }, cb.status),
-  tradeStream: (pair, cb) => stream(pair, 'publicTrade.' + sym(pair), (d) => { for (const t of parseTrades(d)) cb.trade(t); }, cb.status),
+  tradeStream: (pair, cb) => stream(pair, 'publicTrade.' + sym(toPair(pair)), (d) => { for (const t of parseTrades(d)) cb.trade(t); }, cb.status),
   // price tick from instruments-info; 0.01 until it is known
-  tick: (pair) => {
+  tick: (p) => {
+    const pair = toPair(p);
     const k = sym(pair) + (pair.perp ? '.P' : '');
     if (!tickCache.has(k)) {
       tickCache.set(k, 0.01);

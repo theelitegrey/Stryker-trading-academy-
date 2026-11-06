@@ -22,9 +22,9 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
-import { rtOnChange, isRealtimeAdmin, rtConfirmed, rtKnown } from './rt-access.js?v=889';
-import { hubCovers } from './live-source.js?v=889';
-import { labelFor } from './byo-core.js?v=889';   // member's own connected source (Connect your own data)
+import { rtOnChange, isRealtimeAdmin, rtConfirmed, rtKnown } from './rt-access.js?v=890';
+import { hubCovers } from './live-source.js?v=890';
+import { labelFor } from './byo-core.js?v=890';   // member's own connected source (Connect your own data)
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
@@ -33,6 +33,9 @@ const CRYPTO = /^(binance|coinbase|hyperliquid|bybit|okx|bitget|kraken):/i;
 const FUT = /^futures:/i;
 const FX = /^fx:/i;
 const IDX = /^idx:/i;
+// Bybit blocks some countries (providers/bybit.js sets window.__stkVenueBlocked.bybit on a 403 / refused request).
+const BYBIT_BLOCKED = "Bybit isn't available in your region. Pick another exchange in symbol search.";
+const blockedVenue = (v) => !!(window.__stkVenueBlocked && window.__stkVenueBlocked[v]);
 const STOCKS = /^stocks:/i;   // STOCKS ENGINE (assets/chart-stocks-provider.js stockStatus)
 
 let nyFmt = null;
@@ -129,6 +132,7 @@ export function installDataDot(ws, opts = {}) {
   function statusOf(sym) {
     sym = String(sym || '');
     if (window.__stkReplay && window.__stkReplay.on) return { s: 'replay', text: 'Bar replay: historical bars, not live data', tag: 'Replay' };
+    if (/^bybit:/i.test(sym) && blockedVenue('bybit')) return { s: 'closed', text: BYBIT_BLOCKED, tag: 'Not available' };
     if (CRYPTO.test(sym)) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
     // Own source (assets/byo-core.js): the one place a source name shows on the chart. Green only while its stream is live.
     const own = labelFor(sym);
@@ -230,6 +234,11 @@ export function installDataDot(ws, opts = {}) {
       const market = sl && sl.querySelector('.vela-sl-market');
       let dot = sl && sl.querySelector('.stkc-dd');
       const st = meta ? statusOf(bySym[cell.getAttribute('data-cell-id')]) : null;
+      // A blocked venue: say so on the chart itself, not just in the dot (no candles would come).
+      let note = cell.querySelector(':scope > .stkc-venue-note');
+      const blk = /^bybit:/i.test(String(bySym[cell.getAttribute('data-cell-id')] || '')) && blockedVenue('bybit');
+      if (blk && !note) { note = document.createElement('div'); note.className = 'stkc-venue-note'; note.setAttribute('role', 'status'); note.textContent = BYBIT_BLOCKED; cell.appendChild(note); }
+      else if (!blk && note) note.remove();
       if (!st) {
         if (dot) dot.remove();
         if (sl) sl.classList.remove('stkc-has-dd');
@@ -297,6 +306,7 @@ export function installDataDot(ws, opts = {}) {
   // Vela rebuilds statusline pieces on symbol / layout changes: re-attach on any DOM change.
   if (host) new MutationObserver(schedule).observe(host, { childList: true, subtree: true });
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, schedule); } catch (e) {} });
+  window.addEventListener('stk:venue-blocked', schedule);
   try { rtOnChange(schedule); } catch (e) {}
   try { if (opts.onStockMeta) opts.onStockMeta(schedule); } catch (e) {}   // a stock answer landed: re-read its line
   window.addEventListener('stryker:l2live', schedule);

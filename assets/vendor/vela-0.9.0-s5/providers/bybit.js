@@ -62,6 +62,11 @@ function parseInstruments(list, category) {
   return (list ?? []).filter((s) => s.status === "Trading" && (!perp || s.contractType === "LinearPerpetual" && s.quoteCoin === "USDT")).map((s) => ({ ticker: perp ? s.symbol + ".P" : s.symbol, description: `${s.baseCoin} / ${s.quoteCoin}${perp ? " Perpetual" : ""}`, type: perp ? "futures" : "crypto" }));
 }
 
+function blocked() {
+  try { if (!globalThis.__stkVenueBlocked) globalThis.__stkVenueBlocked = {}; if (!globalThis.__stkVenueBlocked.bybit) { globalThis.__stkVenueBlocked.bybit = true; globalThis.dispatchEvent(new Event('stk:venue-blocked')); } } catch (e) {}
+}
+var ok = () => { try { if (globalThis.__stkVenueBlocked && globalThis.__stkVenueBlocked.bybit) { globalThis.__stkVenueBlocked.bybit = false; globalThis.dispatchEvent(new Event('stk:venue-blocked')); } } catch (e) {} };
+
 // One socket per category (spot / linear) per page, shared by every kline subscription. Re-subscribes on reconnect.
 var hubs = {};
 function hub(category) {
@@ -262,7 +267,11 @@ var BybitProvider = class {
     var wait = this.rateUntil - Date.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     for (var attempt = 0; attempt < 2; attempt++) {
-      var res = await fetch(url);
+      // Bybit geo-blocks some countries (CloudFront 403, no CORS header, so the browser often sees a network error):
+      // flag it so assets/chart-data-dot.js shows "Bybit isn't available in your region" instead of a blank chart.
+      var res;
+      try { res = await fetch(url); } catch (e) { if (globalThis.navigator && navigator.onLine !== false) blocked(); throw e; }   // shortcut: any network error while online counts as blocked; cleared by the next good answer
+      if (res.status === 403 || res.status === 451) { blocked(); throw new Error(`Bybit HTTP ${res.status}`); }
       if (res.status === 429) {
         this.rateUntil = Date.now() + 1500 * (attempt + 1);
         await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
@@ -270,6 +279,7 @@ var BybitProvider = class {
       }
       if (!res.ok) throw new Error(`Bybit HTTP ${res.status}`);
       var j = await res.json();
+      ok();
       if (j.retCode === 10006) {
         this.rateUntil = Date.now() + 1500;
         await new Promise((r) => setTimeout(r, 1500));

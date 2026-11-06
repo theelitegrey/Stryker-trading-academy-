@@ -14,7 +14,18 @@
 // Education only. Not financial advice.
 
 const venues = new Map();
-export function registerVenue(id, v) { venues.set(String(id).toLowerCase(), v); }
+// Adapters written to the short form (side 1 / -1, tick = the exchange price step) are brought to this
+// interface here: side -> 'buy' | 'sell', and the footprint row is never finer than the shared autoTick rule.
+export function registerVenue(id, v) {
+  const k = String(id).toLowerCase();
+  if (k === 'binance' || k === 'hyperliquid') { venues.set(k, v); return; }
+  venues.set(k, Object.assign({}, v, {
+    tradeStream: (pair, cb) => v.tradeStream(pair, Object.assign({}, cb, {
+      trade: (x) => cb.trade(typeof x.side === 'number' ? Object.assign({}, x, { side: x.side < 0 ? 'sell' : 'buy' }) : x),
+    })),
+    tick: (pair, price) => { const t = v.tick ? Number(v.tick(pair, price)) || 0 : 0; return price > 0 ? Math.max(t, autoTick(price)) : t; },
+  }));
+}
 export function getVenue(id) { return venues.get(String(id || '').toLowerCase()) || null; }
 export const venueIds = () => [...venues.keys()];
 

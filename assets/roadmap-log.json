@@ -1,8 +1,14 @@
 [
  {
-  "build": 891,
+  "build": 892,
   "date": "2026-11-06",
   "title": "GEX+ daily-close levels option",
+  "link": ""
+ },
+ {
+  "build": 892,
+  "date": "2026-11-06",
+  "title": "ZoroOptions module",
   "link": ""
  },
  {

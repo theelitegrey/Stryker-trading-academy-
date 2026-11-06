@@ -1,0 +1,8 @@
+{
+ "kline": {"retCode":0,"retMsg":"OK","result":{"category":"linear","symbol":"BTCUSDT","list":[["1730000900000","68100.5","68200","68050","68150.1","12.345","840000"],["1730000000000","68000","68110","67990","68100.5","20.5","1400000"]]}},
+ "wsKline": {"topic":"kline.15.BTCUSDT","type":"snapshot","ts":1730000950000,"data":[{"start":1730000900000,"end":1730001799999,"interval":"15","open":"68100.5","close":"68160","high":"68200","low":"68050","volume":"13.1","turnover":"890000","confirm":false,"timestamp":1730000950000}]},
+ "instruments": {"retCode":0,"result":{"category":"linear","list":[{"symbol":"BTCUSDT","contractType":"LinearPerpetual","status":"Trading","baseCoin":"BTC","quoteCoin":"USDT","priceFilter":{"tickSize":"0.10"}},{"symbol":"BTC-27DEC24","contractType":"LinearFutures","status":"Trading","baseCoin":"BTC","quoteCoin":"USDT"},{"symbol":"BTCPERP","contractType":"LinearPerpetual","status":"Trading","baseCoin":"BTC","quoteCoin":"USDC"},{"symbol":"OLDUSDT","contractType":"LinearPerpetual","status":"Closed","baseCoin":"OLD","quoteCoin":"USDT"}],"nextPageCursor":""}},
+ "bookSnapshot": {"topic":"orderbook.200.BTCUSDT","type":"snapshot","ts":1,"data":{"s":"BTCUSDT","b":[["68000","1.5"],["67999.9","2"]],"a":[["68000.1","0.5"],["68000.2","3"]],"u":1,"seq":1}},
+ "bookDelta": {"topic":"orderbook.200.BTCUSDT","type":"delta","ts":2,"data":{"s":"BTCUSDT","b":[["68000","0"],["67999.8","4"]],"a":[["68000.1","0.7"]],"u":2,"seq":2}},
+ "trades": {"topic":"publicTrade.BTCUSDT","type":"snapshot","ts":3,"data":[{"T":1730000951000,"s":"BTCUSDT","S":"Buy","v":"0.01","p":"68000.1","i":"a1"},{"T":1730000951500,"s":"BTCUSDT","S":"Sell","v":"0.2","p":"68000","i":"a2"}]}
+}

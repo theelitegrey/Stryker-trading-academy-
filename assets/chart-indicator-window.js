@@ -320,7 +320,8 @@ export function mountIndicatorWindow(ws, opts){
     ]);
     SECTIONS.forEach(([label, items]) => {
       side.appendChild(h('p', { class: 'stkiw-side-h', text: label }));
-      items.forEach(([k, name]) => side.appendChild(h('button', { type: 'button', class: 'stkiw-tab', 'data-k': k, role: 'tab', text: name, onclick: () => { section = k; authorFilter = null; search.value = ''; render(); } })));
+      // Zscript tab only when Zscript is on (assets/zs-config.js: hidden until launch, ?zs=1 preview)
+      items.filter(([k]) => k !== 'zscript' || Z()).forEach(([k, name]) => side.appendChild(h('button', { type: 'button', class: 'stkiw-tab', 'data-k': k, role: 'tab', text: name, onclick: () => { section = k; authorFilter = null; search.value = ''; render(); } })));
     });
     const card = h('div', { class: 'stkiw-card', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Indicators, metrics, and strategies' }, [
       h('div', { class: 'stkiw-hd' }, [

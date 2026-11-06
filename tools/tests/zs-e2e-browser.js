@@ -76,6 +76,44 @@ const clearZs = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context(
     });
   };
 
+  // ---- paid checkout, server side, mocks only: the real creatorPay zsCheckout with firebase-admin mocked and Stripe's API answered
+  // by a fake fetch (test-mode key 'sk_test_offline'; nothing leaves this process) ----
+  {
+    const Module = require('module'), orig = Module._load;
+    const DB = { 'settings/commerce': { creatorFeePct: 0 }, 'creatorAccounts/au': { acct: 'acct_T', status: 'active', live: false },
+      ['zsScripts/' + SID]: { authorUid: 'au', authorName: 'Ana', name: 'Paid band', status: 'live', access: 'protected', sale: { mode: 'paid', price: { amount: 19, currency: 'USD' } } } };
+    let auto = 0;
+    const ref = (p2) => ({ path: p2, id: p2.split('/').pop(), get: async () => ({ id: p2.split('/').pop(), exists: p2 in DB, data: () => DB[p2] }),
+      set: async (v) => { DB[p2] = v; }, update: async (v) => { DB[p2] = Object.assign({}, DB[p2], v); }, collection: (c) => col(p2 + '/' + c) });
+    const col = (c) => ({ doc: (id) => ref(c + '/' + (id || 'auto' + (++auto))), where: () => col(c), limit: () => col(c), get: async () => ({ empty: true, size: 0, docs: [] }) });
+    const fdb = { collection: col, runTransaction: async (fn) => fn({ get: (r) => r.get(), set: (r, v) => r.set(v), update: (r, v) => r.update(v) }) };
+    const admin = { apps: [1], initializeApp() {}, firestore: Object.assign(() => fdb, { FieldValue: { serverTimestamp: () => 1, increment: (x) => x, delete: () => null }, Timestamp: { fromMillis: (x) => x, now: () => 1 } }) };
+    const fx = { https: { onCall: (f) => f, onRequest: (f) => f, HttpsError: class extends Error { constructor(c, m) { super(c + ': ' + m); this.code = c; } } }, runWith() { return this; } };
+    Module._load = function (r, ...a) { if (r === 'firebase-admin') return admin; if (r === 'firebase-functions') return fx; return orig.call(this, r, ...a); };
+    const keep = { key: process.env.STRIPE_SECRET_KEY, fetch: globalThis.fetch };
+    process.env.STRIPE_SECRET_KEY = 'sk_test_' + 'offline';
+    const sent = [];
+    globalThis.fetch = async (url, o) => {
+      if (!String(url).startsWith('https://api.stripe.com/v1/')) throw new Error('unexpected network call ' + url);
+      const p2 = String(url).replace('https://api.stripe.com/v1/', '').split('?')[0];
+      sent.push({ path: p2, body: decodeURIComponent(o.body || ''), acct: o.headers['Stripe-Account'], auth: /Bearer sk_test_/.test(o.headers.Authorization || o.headers.authorization || '') });
+      const body = p2 === 'products' ? { id: 'prod_1' } : p2 === 'prices' ? { id: 'price_1' } : p2 === 'customers' ? { id: 'cus_1' } : p2 === 'checkout/sessions' ? { id: 'cs_test_1', url: 'https://checkout.stripe.com/c/pay/cs_test_1' } : {};
+      return { ok: true, status: 200, json: async () => body };
+    };
+    try {
+      const CP = require(path.join(ROOT, 'functions-src/creatorPay.js')).__creatorPayInternals;
+      const ctxOf = (uid) => ({ auth: { uid, token: { email: uid + '@x.com' } } });
+      const out = await CP.actions.zsCheckout('buyer', { sid: SID }, ctxOf('buyer'));
+      const cs = sent.find((x) => x.path === 'checkout/sessions'), pr = sent.find((x) => x.path === 'prices');
+      check(out && /^https:\/\/checkout\.stripe\.com\//.test(out.url) && /^cs_test_/.test(out.sessionId), 'checkout: zsCheckout returns a Stripe test-mode Checkout URL', out);
+      check(cs && cs.auth && cs.acct === 'acct_T' && /mode=payment/.test(cs.body) && /client_reference_id=buyer/.test(cs.body) && /metadata\[kind\]=zs/.test(cs.body), 'checkout: test key, author account, one-time payment, buyer + kind=zs metadata');
+      check(pr && /unit_amount=1900/.test(pr.body) && /currency=usd/i.test(pr.body), 'checkout: price comes from the script doc on the server (1900 cents)');
+      check(!DB['zsScripts/' + SID + '/buyers/buyer'], 'checkout: no access granted before Stripe confirms (webhook only)');
+      let refused = false; try { await CP.gate('buyer', ctxOf('buyer')); } catch (e) { refused = true; }
+      check(refused, 'checkout: on a test key a normal member is gated (no charge path from tests)');
+    } finally { Module._load = orig; globalThis.fetch = keep.fetch; if (keep.key === undefined) delete process.env.STRIPE_SECRET_KEY; else process.env.STRIPE_SECRET_KEY = keep.key; }
+  }
+
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
     // ---------- 1. hidden by default ----------
@@ -163,7 +201,7 @@ const clearZs = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context(
         await p.click('#zp-go'); await sleep(2500);
         const bt = await p.evaluate(() => window.__batches);
         const flat = (bt[0] || []).map((x) => x.join(' ')).join('\n');
-        check(bt.length === 1 && /bin/.test(flat) === false ? false : bt.length === 1 && /"sealed":\{"alg"/.test(flat) && /"source":"\/\/@zscript 1/.test(flat), 'publish protected: one batch with sealed bin + author-only src', flat.slice(0, 200));
+        check(bt.length === 1 && /"sealed":\{/.test(flat) && /"source":"\/\/@zscript 1/.test(flat), 'publish protected: one batch with sealed bin + author-only src', flat.slice(0, 200));
         check(!/"units"/.test(flat), 'publish protected: no readable program in any write');
       }
       await ctx.close();
@@ -203,6 +241,15 @@ const clearZs = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context(
       await p.waitForSelector('.zl-card', { timeout: 8000 }).catch(() => null);
       const names = await p.evaluate(() => [...document.querySelectorAll('.zl-card')].map((c) => c.innerText.split('\n')[0]));
       check(names.some((n) => /Range Line/.test(n)), 'publish: listed in the library', names);
+      // paid script page as a member: Buy sends only {action, sid} to the creatorPay callable (captured by the stub, never sent)
+      await p.goto(BASE + '/script-library.html?who=bu&s=' + 'B'.repeat(20), { waitUntil: 'load' });
+      await p.waitForSelector('#zs-buy', { timeout: 10000 }).catch(() => null);
+      const code = await p.evaluate(() => ({ add: !!document.getElementById('zs-add'), src: !!document.getElementById('zs-src') }));
+      check(!code.add && !code.src, 'non-buyer: script page has no Add and no View code', code);
+      await p.evaluate(() => sessionStorage.removeItem('__c'));
+      await p.click('#zs-buy').catch(() => null); await sleep(800);
+      const calls = await p.evaluate(() => JSON.parse(sessionStorage.getItem('__c') || '[]'));
+      check(calls.length === 1 && calls[0].name === 'creatorPay' && calls[0].data.action === 'zsCheckout' && Object.keys(calls[0].data).join() === 'action,sid', 'Buy: page calls creatorPay zsCheckout {sid} only', calls);
       check(errs.length === 0, 'library: no page errors', errs.slice(0, 2));
       await ctx.close();
     }

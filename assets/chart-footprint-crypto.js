@@ -18,6 +18,7 @@ const IDLE_MS = 60000;                // no chart asked for this feed for a minu
 const PREFIX = 'binance:';
 import { getVenue } from './orderflow-venues.js?v=889';
 // Other crypto venues (assets/orderflow-venues.js adapters): one import line per venue.
+import './orderflow-venue-hyperliquid.js?v=889';
 
 const venueOf = (root) => { const m = /^([a-z0-9]+):/i.exec(root || ''); return m && m[1].toLowerCase() !== 'binance' ? getVenue(m[1]) : null; };
 export const isCrypto = (root) => typeof root === 'string' && (root.startsWith(PREFIX) || !!venueOf(root));

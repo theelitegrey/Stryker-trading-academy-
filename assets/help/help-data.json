@@ -2339,7 +2339,7 @@
       {
        "id": "liquidity-map",
        "q": "What is the Liquidity Map?",
-       "a": "<p>A Pro indicator in the Order Flow group that draws resting orders as a heatmap with trade bubbles. On crypto it uses Binance public depth. Futures order-book depth is not available to members yet.</p>",
+       "a": "<p>A Pro indicator in the Order Flow group that draws resting orders as a heatmap with trade bubbles. On crypto it uses the exchange's public depth (Binance, Hyperliquid). Futures order-book depth is not available to members yet.</p>",
        "plans": "pro",
        "tags": [
         "liquidity map",
@@ -3602,7 +3602,7 @@
       {
        "id": "no-order-book",
        "q": "Why is there no order book / depth for futures?",
-       "a": "<p>Futures order-book depth is not available to members yet. Crypto depth (Liquidity Map) uses Binance public data. Connect broker supplies price and trades only.</p>",
+       "a": "<p>Futures order-book depth is not available to members yet. Crypto depth (Liquidity Map) uses public exchange data (Binance, Hyperliquid). Connect broker supplies price and trades only.</p>",
        "tags": [
         "order book",
         "depth",

@@ -519,6 +519,7 @@ function lateLists(provider){
   try { BinanceProvider = mods[18].boostBinance(BinanceProvider); } catch (e) { console.warn('TradeZoro: tick boost', e); }
   const CoinbaseProvider = mods[2].CoinbaseProvider;
   let HyperliquidProvider = mods[3].HyperliquidProvider;
+  try { HyperliquidProvider = mods[18].boostVenue(HyperliquidProvider, 'hyperliquid'); } catch (e) { console.warn('TradeZoro: tick boost', e); }
   const FuturesProvider = mods[4].FuturesProvider;
   const FxProvider = mods[4].FxProvider;
   const IdxProvider = mods[4].IdxProvider;

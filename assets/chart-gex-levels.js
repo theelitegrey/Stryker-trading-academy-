@@ -64,9 +64,9 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { rtHeadersReady } from './rt-access.js?v=890';
-import * as ProGate from './chart-pro-gate.js?v=890';
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=890';
+import { rtHeadersReady } from './rt-access.js?v=891';
+import * as ProGate from './chart-pro-gate.js?v=891';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=891';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -118,7 +118,10 @@ export const LEVEL_DEFS = [
 const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days';
 const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', defval, group, inline });
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
+export const BASIS_DAY = 'Updated through the day', BASIS_CLOSE = 'Daily close';
 const SCHEMA = [
+  { key: 'basis', title: 'Levels from', type: 'string', defval: BASIS_DAY, options: [BASIS_DAY, BASIS_CLOSE],
+    tooltip: 'Updated through the day: levels refresh every few minutes. Daily close: levels from the last regular-session close (16:00 ET), fixed for the whole next session.' },
   { key: 'dte', title: 'Expiry (Pro: all)', type: 'string', defval: '0', options: ['0', '1', '7', '30'],
     tooltip: 'Sets the expiry for the IV range and the 0DTE walls. The main call / put wall and zero gamma always use all expiries from 1 to 30 days. The Free plan covers 0DTE.' },
   tog('showCall', 'Call wall', true, G1, 'call'), col('callColor', GEX_COLORS.call, G1, 'call'),
@@ -332,15 +335,16 @@ export function agoText(tsSec, nowMs) {
 // ---- shared fetch cache (one per API market + expiry) ------------------------------------
 const cache = new Map();      // key -> { data, at, p }
 const subs = new Set();       // natives to nudge when data lands
-function key(api, dte) { return api + ':' + dte; }
-export function gexFetch(api, dte, force) {
+// basis 'close' = the "Daily close" levels (API ?basis=close): one fixed set per session, its own cache entry
+function key(api, dte, basis) { return api + ':' + dte + (basis === 'close' ? ':close' : ''); }
+export function gexFetch(api, dte, force, basis) {
   if (window.__stkReplay && window.__stkReplay.on) return Promise.resolve(null);   // bar replay: no live GEX
-  const k = key(api, dte);
+  const k = key(api, dte, basis);
   const e = cache.get(k) || {};
   if (e.p) return e.p;
   if (!force && e.data && Date.now() - e.at < REFRESH_MS - 5000) return Promise.resolve(e.data);
   // Free members never reach the network: wait for the plan, then skip the GEX call entirely.
-  const p = ProGate.tier().then(() => (ProGate.isFree() ? Promise.reject(new Error('gex-pro')) : rtHeadersReady())).then((hd) => fetch(API + api + '?dte=' + dte, { headers: Object.assign({ accept: 'application/json' }, hd) }))
+  const p = ProGate.tier().then(() => (ProGate.isFree() ? Promise.reject(new Error('gex-pro')) : rtHeadersReady())).then((hd) => fetch(API + api + '?dte=' + dte + (basis === 'close' ? '&basis=close' : ''), { headers: Object.assign({ accept: 'application/json' }, hd) }))
     .then((r) => r.json().then((j) => (r.ok ? j : { error: (j && j.error) || ('HTTP ' + r.status) })))
     .catch((err) => ({ error: String(err && err.message || err) }))
     .then((j) => {
@@ -352,17 +356,17 @@ export function gexFetch(api, dte, force) {
   cache.set(k, Object.assign({}, e, { p }));
   return p;
 }
-export function gexCached(api, dte) { if (window.__stkReplay && window.__stkReplay.on) return null; const e = cache.get(key(api, dte)); return e ? e.data : null; }
+export function gexCached(api, dte, basis) { if (window.__stkReplay && window.__stkReplay.on) return null; const e = cache.get(key(api, dte, basis)); return e ? e.data : null; }
 
 let timer = 0;
 function wantedKeys() {
   const ks = new Map();
-  subs.forEach((n) => { const w = n.want(); if (w) ks.set(key(w.api, w.dte), w); });
+  subs.forEach((n) => { const w = n.want(); if (w) ks.set(key(w.api, w.dte, w.basis), w); });
   return [...ks.values()];
 }
 function tick() {
   if (document.visibilityState === 'hidden') return;
-  wantedKeys().forEach((w) => gexFetch(w.api, w.dte).then(() => subs.forEach((n) => n.refresh())));
+  wantedKeys().forEach((w) => gexFetch(w.api, w.dte, false, w.basis).then(() => subs.forEach((n) => n.refresh())));
   subs.forEach((n) => n.statusTick());
 }
 function startTimer() {
@@ -574,8 +578,9 @@ class GexNative {
     if (!src) return null;
     if (src.pro && (!this.tier || this.tier.free)) return null;
     if (ProGate.isFree()) return null;   // GEX on charts is Pro (chart-pro-gate.js removes the tool for Free)
-    return { api: src.api, dte: this.dte() };
+    return { api: src.api, dte: this.dte(), basis: this.basis() };
   }
+  basis() { return str(this.inputs.basis, BASIS_DAY) === BASIS_CLOSE ? 'close' : ''; }
   dte() {
     const d = parseInt(str(this.inputs.dte, '0'), 10);
     if (this.tier && this.tier.free) return 0;
@@ -584,7 +589,7 @@ class GexNative {
   load() {
     const w = this.want();
     this.refresh();
-    if (w && document.visibilityState !== 'hidden') gexFetch(w.api, w.dte).then(() => this.refresh());
+    if (w && document.visibilityState !== 'hidden') gexFetch(w.api, w.dte, false, w.basis).then(() => this.refresh());
   }
   onBars() {
     const s = String(this.ctx && this.ctx.symbol); if (s !== this.lastSym) { this.lastSym = s; this.load(); return; }
@@ -611,8 +616,10 @@ class GexNative {
     else if (window.__stkReplay && window.__stkReplay.on) payload = this.replayPayload(src);
     else {
       const dte = this.dte();
-      const data = gexCached(src.api, dte);
+      const basis = this.basis();
+      const data = gexCached(src.api, dte, basis);
       if (!data) payload = { note: 'Loading GEX levels…' };
+      else if (basis === 'close' && data.error) payload = { note: 'Daily close GEX levels are not available yet' };
       else {
         const opts = Object.assign({}, i);
         if (this.tier && this.tier.free) opts.showStrikes = false;
@@ -630,8 +637,8 @@ class GexNative {
             priceTags: i.priceTags !== false,
             showStatus: i.showStatus !== false,
             shift: lv.shift || 0,
-            statusShort: statusShortForms(dataTime(data), data, src, opts),
-            status: agoText(dataTime(data)) + ' · ' + statusWhat(data, src, dte, opts) + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ/GC charts' : '')
+            statusShort: data.close ? closeShortForms(data, src) : statusShortForms(dataTime(data), data, src, opts),
+            status: (data.close ? closeText(data) : agoText(dataTime(data))) + ' · ' + statusWhat(data, src, dte, opts) + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ/GC charts' : '')
           };
         }
       }
@@ -709,6 +716,12 @@ export function shortAgo(tsSec, nowMs) {
 }
 export function statusShort(tsSec, data, src, opts, nowMs) {
   return statusShortForms(tsSec, data, src, opts, nowMs)[0];
+}
+// "Daily close" status: "Levels from Thu 5 Nov close" (the levels never move, so no "updated X ago").
+export function closeText(data) { return 'Levels from ' + ((data && data.close && data.close.label) || 'the last') + ' close'; }
+export function closeShortForms(data, src) {
+  const l = (data && data.close && data.close.label) || 'last';
+  return ['Levels from ' + l + ' close · ' + src.api, l + ' close · ' + src.api, l + ' close'];
 }
 // Pure: the phone forms, longest first; the chip uses the first one that fits before the Fit price row.
 // "GEX 1m ago · QQQ · 1-30d · 0DTE" -> "GEX 1m ago · QQQ 1-30d · 0DTE" -> "GEX 1m · QQQ 1-30d · 0DTE" -> "1m · QQQ 1-30d · 0DTE"

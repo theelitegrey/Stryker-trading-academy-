@@ -2561,6 +2561,7 @@
         "gex-missing-symbol"
        ]
       },
+      {"id": "gex-levels-basis", "q": "What do “Updated through the day” and “Daily close” mean for GEX levels?", "a": "<p>You can choose which levels GEX+ and the GEX Levels chart indicator show.</p><p><b>Updated through the day</b> (the default): the levels are rebuilt every few minutes while the options market is open, so they can move during the session.</p><p><b>Daily close</b>: the levels come from the last regular-session close (the 16:00 ET options chain and price) and stay fixed for the whole next session. A small note shows the day they come from, for example “Levels from Thu 5 Nov close”. Futures levels use the futures price at that close.</p><p>On the GEX+ page pick it with the <b>Levels</b> switch; on a chart open the indicator’s settings and change <b>Levels from</b>. Education only. Not financial advice.</p>", "tags": ["daily close", "close", "through the day", "levels from", "fixed levels", "gex settings", "basis"], "related": ["gex-update", "gex-levels-meaning", "gex-overnight"]},
       {
        "id": "gex-overnight",
        "q": "What are VAH, POC, VAL and ON high / low?",

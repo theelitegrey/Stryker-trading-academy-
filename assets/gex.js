@@ -9,6 +9,10 @@
   var cur = 'SPX', curDte = 1, curIv = '5m', curFut = null, DATA = null, CANDLES = [];
   var viewFrom = 0, viewTo = 0;
   var showMkt = true;
+  // Levels basis (Owner 2026-11-06): '' = updated through the day (default), 'close' = the last regular-session close,
+  // fixed for the session (API ?basis=close). Remembered per browser.
+  var BASIS_KEY = 'stryker_gex_basis';
+  var curBasis = (function(){ try{ return localStorage.getItem(BASIS_KEY) === 'close' ? 'close' : ''; }catch(e){ return ''; } })();
   // Plan limit (set by assets/plan-limits.js for Free members): which markets
   // and expiry views may load, and whether the strike table shows. null = full.
   // Client-side only: /api/gex/* itself is public.
@@ -88,6 +92,10 @@
     if(!m || !m.state) return null;
     var futAge = m.futures_age_min != null ? ageLabel(m.futures_age_min * 60000) : null;
     var optAge = m.options_age_min != null ? ageLabel(m.options_age_min * 60000) : null;
+    if(m.state === 'close'){
+      var lbl = (d.close && d.close.label) || 'the last';
+      return {state:'close', title:'Daily close', reason:'Levels from '+lbl+' close · fixed for the session.', tag:'Levels from '+lbl+' close'};
+    }
     if(m.state === 'open') return {state:'fresh', title:'Market session active', reason:'Options chain updated '+agoText(optAge)+'.'};
     if(m.state === 'stale') return {state:'stale', title:'Waiting for the next update', reason:'Options chain updated '+agoText(optAge)+' · futures '+agoText(futAge)+'.'};
     if(m.state === 'opening'){
@@ -122,7 +130,7 @@
     var status = document.querySelector('.gex-status');
     if(status){
       status.classList.remove('is-fresh','is-stale');
-      status.classList.add(f.state === 'fresh' ? 'is-fresh' : 'is-stale');
+      if(f.state !== 'close') status.classList.add(f.state === 'fresh' ? 'is-fresh' : 'is-stale');
       status.setAttribute('data-freshness', f.state);
       status.setAttribute('data-market', (d && d.market && d.market.state) || 'unknown');
     }
@@ -150,6 +158,8 @@
     $('gex-dtes').addEventListener('click', function(e){ var btn=e.target.closest('[data-d]'); var d=btn && btn.dataset.d; if(d == null) return; if(LIMIT && LIMIT.dtes.indexOf(Number(d)) < 0){ gexLock('gex-expiry', 'Pro unlocks every expiry view. The Free plan covers SPX, 0DTE.'); return; } curDte=Number(d); resetChartData('Refreshing '+mlabel(cur)+'…'); paintButtons(); loadLevels(); });
     $('gex-ivs').addEventListener('click', function(e){ var btn=e.target.closest('[data-i]'); var i=btn && btn.dataset.i; if(!i) return; curIv=i; paintButtons(); resetChartData('Loading '+curFut+' '+i+'…'); loadChart(); });
     $('gex-futs').addEventListener('click', function(e){ var btn=e.target.closest('[data-f]'); var f=btn && btn.dataset.f; if(!f || !DATA || f===curFut) return; curFut=f; resetChartData('Loading '+f+'…'); render(DATA); loadChart(); });
+    var bs = $('gex-basis');
+    if(bs) bs.addEventListener('click', function(e){ var btn=e.target.closest('[data-b]'); if(!btn) return; var b=btn.dataset.b === 'close' ? 'close' : ''; if(b === curBasis) return; curBasis=b; try{ localStorage.setItem(BASIS_KEY, b); }catch(err){} paintButtons(); resetChartData('Loading levels…'); loadLevels(); });
     $('gex-toggle-market').addEventListener('click', function(){ showMkt = !showMkt; $('gex-toggle-market').textContent = 'Market levels: ' + (showMkt ? 'ON' : 'OFF'); drawChart(); });
     function bindZoom(id, fn){ var b=$(id); if(b){ b.onclick = fn; } }
     bindZoom('gex-zoom-in', function(e){ if(e) e.preventDefault(); tvZoom(0.72); });
@@ -164,6 +174,7 @@
     document.querySelectorAll('.gex-tab').forEach(function(b){ b.classList.toggle('is-on', b.dataset.m === cur); b.classList.toggle('is-locked', !!LIMIT && LIMIT.markets.indexOf(b.dataset.m) < 0); });
     document.querySelectorAll('.gex-dte').forEach(function(b){ b.classList.toggle('is-on', Number(b.dataset.d) === curDte); b.classList.toggle('is-locked', !!LIMIT && LIMIT.dtes.indexOf(Number(b.dataset.d)) < 0); });
     document.querySelectorAll('.gex-iv').forEach(function(b){ b.classList.toggle('is-on', b.dataset.i === curIv); });
+    document.querySelectorAll('#gex-basis [data-b]').forEach(function(b){ var on = b.dataset.b === curBasis; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   }
 
   async function getJson(url){
@@ -179,7 +190,7 @@
   }
 
   // The heatmap tab (assets/gex-heatmap.js) follows the market/expiry picked here.
-  window.strykerGexState = function(){ return { u: cur, dte: curDte, limit: LIMIT }; };
+  window.strykerGexState = function(){ return { u: cur, dte: curDte, limit: LIMIT, basis: curBasis }; };
   var lastSel = '';
   function announceSelection(){
     var k = cur + '|' + curDte + '|' + (LIMIT ? 'free' : 'full');
@@ -193,7 +204,9 @@
     $('gex-status-text').innerHTML = '<b>Loading '+esc(mlabel(cur))+'…</b><span> Building gamma walls, futures conversion and market-generated levels on tradezoro.com.</span>';
     var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh','is-stale'); }
     try{
-      var d = await getJson('/api/gex/levels/' + encodeURIComponent(cur) + '?dte=' + curDte + '&t=' + Date.now());
+      var want = cur + '|' + curDte + '|' + curBasis;
+      var d = await getJson('/api/gex/levels/' + encodeURIComponent(cur) + '?dte=' + curDte + (curBasis === 'close' ? '&basis=close' : '') + '&t=' + Date.now());
+      if(want !== cur + '|' + curDte + '|' + curBasis) return;   // the member switched while this was loading
       DATA = d;
       var futs = Object.keys(d.futures || {}).filter(function(k){ return !(d.futures[k] || {}).error; });
       if(!curFut || futs.indexOf(curFut) === -1) curFut = futs[0] || null;
@@ -210,7 +223,7 @@
 
   function render(d){
     // the Ladder tab (assets/chart-gex-ladder.js) shows the SAME response, so there is one "Net" number on the page
-    window.strykerGexData = { u: cur, dte: curDte, data: d };
+    window.strykerGexData = { u: cur, dte: curDte, basis: curBasis, data: d };
     try{ window.dispatchEvent(new CustomEvent('stryker:gex-data')); }catch(e){}
     var pos = d.regime === 'POSITIVE';
     var dteLabel = (DTES.find(function(x){return x.v===curDte;}) || {}).l || (curDte + 'DTE');
@@ -677,5 +690,5 @@
     if(reload) loadLevels(); else { announceSelection(); if(DATA) render(DATA); }
   };
 
-  document.addEventListener('DOMContentLoaded', function(){ wireTabs(); loadLevels(); setInterval(loadLevels, 60000); setInterval(loadChart, 60000); });
+  document.addEventListener('DOMContentLoaded', function(){ wireTabs(); paintButtons(); loadLevels(); setInterval(loadLevels, 60000); setInterval(loadChart, 60000); });
 })();

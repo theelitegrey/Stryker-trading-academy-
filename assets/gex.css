@@ -207,3 +207,11 @@
   .gex-tide-head .gex-heat-day{width:100%;}
   .gex-tide-head .gex-heat-day select{flex:1;min-width:0;}
 }
+
+/* Levels basis: "Updated through the day" / "Daily close" (tz-seg from style.css) */
+.gex-basis{display:flex;align-items:center;gap:8px;}
+.gex-basis-lbl{font:500 13px/18px var(--font-body);color:var(--ink-2);}
+.gex-basis .tz-seg{height:40px;}
+.gex-basis .tz-seg > button{padding:0 12px;white-space:nowrap;min-height:34px;}
+.gex-basis .tz-seg > button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+@media(max-width:700px){.gex-basis{width:100%;}.gex-basis .tz-seg{flex:1;height:44px;}.gex-basis .tz-seg > button{padding:0 8px;font-size:13px;}}

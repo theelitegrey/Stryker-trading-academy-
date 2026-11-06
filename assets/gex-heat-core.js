@@ -142,7 +142,7 @@
       if (r.t > until) break;
       var c0 = Math.floor((r.t - x0) / SLOT);
       var next = i + 1 < rows.length ? rows[i + 1].t : r.t + SLOT;
-      var c1 = Math.min(Math.floor((Math.min(next, until + SLOT) - x0) / SLOT), c0 + MAX_FILL, cols);
+      var c1 = Math.min(Math.floor((Math.min(next, until + SLOT) - x0) / SLOT), c0 + (opts.fill || MAX_FILL), cols);
       if (c1 <= c0) c1 = c0 + 1;
       if (c0 >= cols || c1 <= 0) continue;
       c0 = Math.max(0, c0); c1 = Math.min(cols, c1);

@@ -622,6 +622,11 @@ function lateLists(provider){
   try { (await tideP).installZoroTide(LCore); } catch (e) { console.warn('TradeZoro: ZoroTide install', e); }
   // Options Flow Marks (Pro) and Off-exchange Volume (Free): natives with a price-pane layer, registered before boot like the others.
   try { (await flowP).installOptFlow(LCore); } catch (e) { console.warn('TradeZoro: options flow install', e); }
+  // ZoroOptions indicators (Zoro Range, Gamma Zone, IV Rank): loaded and registered only with the page flag on (assets/chart-zoro-data.js).
+  try {
+    const zd = await import('./chart-zoro-data.js?v=891');
+    if (zd.zoroOn()) { (await import('./chart-zoro-range.js?v=891')).installZoroRange(LCore); (await import('./chart-iv-rank.js?v=891')).installIvRank(LCore); }
+  } catch (e) { console.warn('TradeZoro: Zoro indicators install', e); }
   try { (await offexP).installOffex(LCore); } catch (e) { console.warn('TradeZoro: off-exchange install', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
   try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }

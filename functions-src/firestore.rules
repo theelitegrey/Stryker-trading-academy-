@@ -2380,8 +2380,11 @@ service cloud.firestore {
                       && getAfter(zsPath(sid)).data.version == request.resource.data.version
                       && getAfter(zsPath(sid)).data.access == 'protected'
                       && request.resource.data.sealed is map && request.resource.data.sealed.keys().hasOnly(['alg', 'epk', 'iv', 'ct'])
+                      && request.resource.data.sealed.keys().hasAll(['alg', 'epk', 'iv', 'ct'])
                       && request.resource.data.sealed.alg == 'p256-hkdf-a256gcm' && request.resource.data.sealed.ct is string
                       && request.resource.data.sealed.ct.size() <= 400000
+                      && request.resource.data.sealed.epk is string && request.resource.data.sealed.epk.size() <= 120
+                      && request.resource.data.sealed.iv is string && request.resource.data.sealed.iv.size() <= 24
                       && request.resource.data.createdAt == request.time;
         allow update: if false;
         allow delete: if isAdmin();
@@ -2396,7 +2399,7 @@ service cloud.firestore {
       match /adds/{u} {
         allow get: if isSelf(u) || zsIsAuthor(sid) || isAdmin();
         allow list: if false;
-        allow create: if isSelf(u) && zsMayRun(sid)
+        allow create: if isSelf(u) && zsMayRun(sid) && request.auth.token.email_verified == true
                       && request.resource.data.keys().hasOnly(['uid', 'createdAt']) && request.resource.data.uid == u
                       && request.resource.data.createdAt == request.time
                       && getAfter(zsPath(sid)).data.addCount == zsDoc(sid).addCount + 1;
@@ -2415,7 +2418,7 @@ service cloud.firestore {
         }
         // Real users only: never the author; paid = a buyer; free = someone who added it to a chart.
         function mayRate() {
-          return isSelf(u) && zsDoc(sid).authorUid != u && zsRunnable(sid)
+          return isSelf(u) && request.auth.token.email_verified == true && zsDoc(sid).authorUid != u && zsRunnable(sid)
             && (zsDoc(sid).sale.mode == 'paid' ? zsBuyer(sid) : exists(zsSub(sid, 'adds', u)));
         }
         allow read: if zsDoc(sid).status in ['live', 'unlisted'] || zsIsAuthor(sid) || isAdmin();

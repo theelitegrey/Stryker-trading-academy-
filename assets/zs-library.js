@@ -99,16 +99,22 @@
     return db.collection('creatorAccounts').doc(u.uid).get().then(function (s) { return s.exists && s.data().status === 'active'; }).catch(function () { return false; });
   };
   var sealMod = null;
-  function sealProgram(program) {
+  // The sealed build names its script, author and version; the server refuses it anywhere else (no copying a bin into another script).
+  function sealProgram(program, bind) {
     if (!CFG.SEAL_PUB) return Promise.reject(new Error('Protected publishing is not set up on this page.'));
     if (!sealMod) sealMod = import('/assets/creator-seal.js?v=895');
-    return sealMod.then(function (m) { return m.seal(CFG.SEAL_PUB, JSON.stringify({ kind: 'zsbin', program: program })); });
+    return sealMod.then(function (m) { return m.seal(CFG.SEAL_PUB, JSON.stringify({ kind: 'zsbin', sid: bind.sid, authorUid: bind.authorUid, v: bind.v, program: program })); });
   }
   // The engine's compile-to-program (S1). Protected publishing needs it; open-source publishing does not.
+  // SPEC 11.1: import { compile } from '/assets/zs/index.js' -> { ok, diagnostics, program, meta }. Pure, no side effects.
+  var engine = null;
   function compile(source) {
-    var Z = g.ZS;
-    if (!Z || typeof Z.compileToBytecode !== 'function') return Promise.reject(new Error('Protected publishing needs the Zscript engine on this page. Publish from the editor, or choose open-source.'));
-    return Promise.resolve(Z.compileToBytecode(source)).then(function (r) {
+    if (!engine) engine = g.ZS && typeof g.ZS.compile === 'function' ? Promise.resolve(g.ZS)
+      : import('/assets/zs/index.js?v=895').catch(function () { engine = null; return null; });
+    return engine.then(function (Z) {
+      if (!Z || typeof Z.compile !== 'function') throw new Error('Protected publishing needs the Zscript engine. Publish from the editor, or choose open-source.');
+      return Z.compile(source);
+    }).then(function (r) {
       if (!r || !r.ok) { var d = r && r.diagnostics && r.diagnostics[0]; throw new Error(d ? 'Line ' + d.line + ':' + d.col + ': ' + d.message : 'The script does not compile.'); }
       var text = JSON.stringify(r.program);
       if (text.length > MAX_PROG) throw new Error('The compiled script is too big to publish protected (over 300 KB).');
@@ -190,7 +196,7 @@
         busy(go, 'Publishing…');
         var sid = ex ? ex.sid : db.collection('zsScripts').doc().id;
         var n = ex ? ex.version + 1 : 1;
-        var sealedP = v.access === 'protected' ? (opts.program ? Promise.resolve(opts.program) : compile(v.source)).then(sealProgram) : Promise.resolve(null);
+        var sealedP = v.access === 'protected' ? (opts.program ? Promise.resolve(opts.program) : compile(v.source)).then(function (pg) { return sealProgram(pg, { sid: sid, authorUid: u.uid, v: n }); }) : Promise.resolve(null);
         Promise.all([sealedP, uploadShots(u, sid, files)]).then(function (r) {
           var shots = r[1] || (ex ? ex.shots || [] : []);
           var doc = { authorUid: u.uid, authorName: pname, name: v.name, desc: v.desc, category: v.category, dataUsed: v.dataUsed, access: v.access, sale: v.sale,
@@ -279,7 +285,7 @@
         '<div class="zl-shot' + (shot ? '' : ' none') + '">' + (shot ? '<img src="' + E(shot) + '" alt="" loading="lazy">' : svg('code', 28)) + '</div>' +
         '<div class="zl-cb"><h3>' + E(s.name) + '</h3><p class="zl-by">by ' + E(s.authorName) + '</p>' +
         '<p class="zl-desc">' + E((s.desc || '').slice(0, 200)) + '</p>' +
-        '<div class="zl-tags"><span class="cx-chip">' + E(label(CATS, s.category)) + '</span>' + (s.dataUsed || []).map(function (d) { return '<span class="cx-chip zl-data">' + E(label(DATA, d)) + '</span>'; }).join('') + '</div>' +
+        '<div class="zl-tags"><span class="cx-chip">' + E(label(CATS, s.category)) + '</span>' + (s.dataUsed || []).map(function (d) { return '<span class="cx-chip zl-data">' + E(label(DATA, d)) + ' data</span>'; }).join('') + '</div>' +
         '<div class="zl-meta"><span class="zl-badge ' + (s.sale && s.sale.mode === 'paid' ? 'paid' : 'free') + '">' + (s.sale && s.sale.mode === 'paid' ? 'Paid' : 'Free') + '</span>' +
         (s.access === 'protected' ? '<span class="zl-lock">' + svg('lock', 14) + 'Protected</span>' : '<span class="zl-lock">' + svg('code', 14) + 'Open-source</span>') +
         '<span class="zl-r">' + (r ? svg('star', 14) + r.toFixed(1) + ' (' + s.ratingCount + ')' : 'No ratings yet') + '</span></div></div></a>';
@@ -324,7 +330,7 @@
         root.innerHTML = back() +
           '<article class="zs-page"><div class="zs-main">' + shots +
           '<h1>' + E(s.name) + '</h1><p class="zl-by">by ' + E(s.authorName) + ' · v' + s.version + ' · updated ' + E(day(s.updatedAt)) + (s.status === 'unlisted' ? ' · <span class="cp-amber">Unlisted</span>' : '') + '</p>' +
-          '<div class="zl-tags"><span class="cx-chip">' + E(label(CATS, s.category)) + '</span>' + (s.dataUsed || []).map(function (d) { return '<span class="cx-chip zl-data">' + E(label(DATA, d)) + '</span>'; }).join('') + '</div>' +
+          '<div class="zl-tags"><span class="cx-chip">' + E(label(CATS, s.category)) + '</span>' + (s.dataUsed || []).map(function (d) { return '<span class="cx-chip zl-data">' + E(label(DATA, d)) + ' data</span>'; }).join('') + '</div>' +
           '<div class="zs-desc">' + (s.desc ? E(s.desc).split(/\n{2,}/).map(function (p2) { return '<p>' + p2.replace(/\n/g, '<br>') + '</p>'; }).join('') : '<p class="cx-muted">No description.</p>') + '</div>' +
           ((s.dataUsed || []).length ? '<p class="hint zs-note">Uses ' + s.dataUsed.map(function (d) { return label(DATA, d); }).join(', ') + ' data. It shows only the data your plan includes, the same as your charts.</p>' : '') +
           '<section class="zs-sec"><h2>Version history</h2><ol class="zs-vers" id="zs-vers"><li class="cx-muted">Loading…</li></ol></section>' +
@@ -428,6 +434,7 @@
         REASONS.map(function (r) { return '<label class="cx-ropt"><input type="radio" name="zrr" value="' + r[0] + '">' + r[1] + '</label>'; }).join('') + '</fieldset>' +
         '<div><label for="zrr-n">Details (optional)</label><textarea id="zrr-n" maxlength="500"></textarea></div><p class="cx-bad" id="zrr-err" role="alert"></p>' +
         '<div class="cx-actions"><button type="submit" class="btn btn-primary" id="zrr-go">Send report</button></div><p class="hint">TradeZoro reviews every report. The author is not told who reported.</p></form>');
+      sh.el.querySelector('fieldset').onchange = function () { sh.$('zrr-err').textContent = ''; };
       sh.el.querySelector('form').onsubmit = function (e) {
         e.preventDefault();
         var r = sh.el.querySelector('input[name=zrr]:checked'); if (!r) { sh.$('zrr-err').textContent = 'Pick a reason.'; return; }

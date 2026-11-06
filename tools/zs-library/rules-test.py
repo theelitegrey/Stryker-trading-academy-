@@ -13,7 +13,9 @@ OLD = '2026-11-01T10:00:00Z'
 SID = 'A' * 20
 Z = lambda *a: '/zsScripts/' + '/'.join((SID,) + a)
 SHOT = 'https://firebasestorage.googleapis.com/v0/b/strykertrades-e0cd8.firebasestorage.app/o/zsShots%2Fau%2F' + SID + '%2Fs0.png?alt=media'
-def auth(u): return None if u is None else {'uid': u, 'token': {'email': u + '@x.com', 'email_verified': True}}
+def auth(u):
+    if u is None: return None
+    return {'uid': u.split('!')[0], 'token': {'email': u.split('!')[0] + '@x.com', 'email_verified': not u.endswith('!')}}   # 'bu!' = unverified email
 def sc(**k):
     d = {'authorUid': 'au', 'authorName': 'Ana', 'name': 'Delta Bands', 'desc': 'Draws bands.', 'category': 'order-flow', 'dataUsed': ['flow'],
          'access': 'open', 'sale': {'mode': 'free', 'price': {'amount': 0, 'currency': 'USD'}}, 'shots': [], 'version': 1, 'versionNotes': '',
@@ -80,6 +82,8 @@ case(A, 'publish paid protected (payouts active)', 'au', 'create', Z(), PNEW, af
 case(A, 'publish: sealed bin in the batch', 'au', 'create', Z('bin', 'v1'), BIN(), after=ppub)
 case(DN, 'publish protected without bin', 'au', 'create', Z(), PNEW, after={Z(): PNEW, Z('src', 'v1'): SRC(), Z('versions', 'v1'): VER()})
 case(DN, 'bin on an open-source script', 'au', 'create', Z('bin', 'v1'), BIN(), after=pub_after)
+case(DN, 'bin with oversized epk', 'au', 'create', Z('bin', 'v1'), {**BIN(), 'sealed': {**BIN()['sealed'], 'epk': 'e' * 500}}, after=ppub)
+case(DN, 'bin missing iv', 'au', 'create', Z('bin', 'v1'), {**BIN(), 'sealed': {'alg': 'p256-hkdf-a256gcm', 'epk': 'e', 'ct': 'c'}}, after=ppub)
 case(DN, 'bin with plain text field', 'au', 'create', Z('bin', 'v1'), {**BIN(), 'source': 'x'}, after=ppub)
 case(DN, 'paid without active payouts', 'au', 'create', Z(), PNEW, after=ppub, before={'/creatorAccounts/au': {'status': 'restricted'}})
 case(DN, 'paid over $999', 'au', 'create', Z(), sc(sale={'mode': 'paid', 'price': {'amount': 1000, 'currency': 'USD'}}), after=ppub)
@@ -130,6 +134,7 @@ case(A, 'member adds free script (marker)', 'bu', 'create', Z('adds', 'bu'), ADD
 case(A, 'member adds free script (count +1)', 'bu', 'update', Z(), {**LIVE, 'addCount': 1}, before={Z(): LIVE}, after=add_after)
 case(DN, 'count +5', 'bu', 'update', Z(), {**LIVE, 'addCount': 5}, before={Z(): LIVE}, after={**add_after, Z(): {**LIVE, 'addCount': 5}})
 case(DN, 'count +1 twice (marker exists)', 'bu', 'update', Z(), {**LIVE, 'addCount': 1}, before={Z(): LIVE, Z('adds', 'bu'): ADD}, after=add_after)
+case(DN, 'unverified email adds (fake-account inflation)', 'bu!', 'create', Z('adds', 'bu'), ADD, before={Z(): LIVE}, after=add_after)
 case(DN, 'non-buyer adds paid script', 'bu', 'create', Z('adds', 'bu'), ADD, before={Z(): PAID}, after={Z(): {**PAID, 'addCount': 1}, Z('adds', 'bu'): ADD})
 
 # ---------- ratings ----------
@@ -139,6 +144,7 @@ rafter = {Z(): {**LIVE, 'ratingSum': 4, 'ratingCount': 1}, Z('ratings', 'bu'): R
 case(A, 'member who added rates (rating doc)', 'bu', 'create', Z('ratings', 'bu'), RT, before=rbefore, after=rafter)
 case(A, 'member who added rates (sums)', 'bu', 'update', Z(), {**LIVE, 'ratingSum': 4, 'ratingCount': 1}, before=rbefore, after=rafter)
 case(DN, 'rating sums inflated', 'bu', 'update', Z(), {**LIVE, 'ratingSum': 5, 'ratingCount': 1}, before=rbefore, after={**rafter, Z(): {**LIVE, 'ratingSum': 5, 'ratingCount': 1}})
+case(DN, 'unverified email rates', 'bu!', 'create', Z('ratings', 'bu'), RT, before=rbefore, after=rafter)
 case(DN, 'rate without adding it', 'bu', 'create', Z('ratings', 'bu'), RT, before={Z(): LIVE}, after=rafter)
 case(DN, 'author rates own script', 'au', 'create', Z('ratings', 'au'), {**RT, 'uid': 'au', 'authorName': 'Ana'}, before={Z(): LIVE, Z('adds', 'au'): ADD}, after=rafter)
 case(DN, 'rate for someone else', 'cu', 'create', Z('ratings', 'bu'), RT, before=rbefore, after=rafter)

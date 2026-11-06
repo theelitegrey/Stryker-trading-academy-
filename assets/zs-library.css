@@ -42,7 +42,7 @@
 .zs-desc{ margin:16px 0 0; font-size:15px; line-height:22px; color:var(--ink-1); overflow-wrap:anywhere; }
 .zs-desc p{ margin:0 0 12px; }
 .zs-note{ font-size:12px; line-height:16px; color:var(--ink-3); }
-.zs-sec{ margin-top:32px; padding-top:24px; border-top:1px solid var(--line); }
+.zs-sec{ margin-top:32px; padding:24px 0 0; border-top:1px solid var(--line); }
 .zs-sec h2{ font-size:17px; line-height:22px; font-weight:600; margin:0 0 12px; }
 .zs-vers, .zs-rates{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px; }
 .zs-vers li{ display:grid; grid-template-columns:auto 1fr; gap:4px 12px; align-items:baseline; }
@@ -76,3 +76,4 @@
 @media (min-width:768px){ .zl-wrap{ padding:32px 24px 96px; } }
 @media (min-width:1200px){ .zl-wrap{ padding:32px 32px 96px; } }
 @media (prefers-reduced-motion:reduce){ .zl-card{ transition:none; } }
+.cx-f .cx-ropt{ display:flex; gap:12px; align-items:center; font-size:15px; line-height:20px; color:var(--ink-0); }

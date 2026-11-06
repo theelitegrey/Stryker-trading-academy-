@@ -43,7 +43,8 @@ export async function deliver(who, body, keyText, f = fetch) {
   let build;
   try { build = JSON.parse(await open(await importServerKey(keyText), bin.sealed)); }
   catch (e) { throw new ApiError(500, 'seal', 'This script could not be opened. The author should publish it again.'); }
-  if (!build || build.kind !== 'zsbin' || !build.program) throw new ApiError(500, 'seal', 'This script could not be opened. The author should publish it again.');
+  // The build must name THIS script, its author and the current version (a bin copied from another script is refused).
+  if (!build || build.kind !== 'zsbin' || !build.program || build.sid !== sid || build.authorUid !== meta.authorUid || build.v !== meta.version) throw new ApiError(500, 'seal', 'This script could not be opened. The author should publish it again.');
   return { ...base, sealed: await sealTo(pub, JSON.stringify({ v: meta.version, sid, program: build.program })) };
 }
 

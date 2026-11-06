@@ -58,7 +58,11 @@ const k = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' },
 const keyText = JSON.stringify(await crypto.subtle.exportKey('jwk', k.privateKey));
 const kj = JSON.parse(keyText), PUB = { kty: kj.kty, crv: kj.crv, x: kj.x, y: kj.y };
 const PROG = { ops: [[1, 2, 3]], consts: ['secretName'] };
-const sealed = await Seal.seal(PUB, JSON.stringify({ kind: 'zsbin', program: PROG }));
+const SID_P0 = 'B'.repeat(20);
+const sealed = await Seal.seal(PUB, JSON.stringify({ kind: 'zsbin', sid: SID_P0, authorUid: 'au', v: 1, program: PROG }));
+const sealedOther = await Seal.seal(PUB, JSON.stringify({ kind: 'zsbin', sid: 'X'.repeat(20), authorUid: 'au', v: 1, program: PROG }));
+const sealedOldV = await Seal.seal(PUB, JSON.stringify({ kind: 'zsbin', sid: SID_P0, authorUid: 'au', v: 0, program: PROG }));
+const sealedNoBind = await Seal.seal(PUB, JSON.stringify({ kind: 'zsbin', program: PROG }));
 ok(!JSON.stringify(sealed).includes('secretName'), 'stored bin is ciphertext (no program text)');
 const enc = (v2) => (typeof v2 === 'string' ? { stringValue: v2 } : typeof v2 === 'number' ? { integerValue: String(v2) } : typeof v2 === 'boolean' ? { booleanValue: v2 }
   : v2 && typeof v2 === 'object' ? { mapValue: { fields: Object.fromEntries(Object.entries(v2).map(([a, b]) => [a, enc(b)])) } } : { nullValue: null });
@@ -105,6 +109,11 @@ const tampered = { ...sealed, ct: sealed.ct.slice(0, -4) + 'AAAA' };
 const fsBad = async (url, o) => (url.endsWith('/bin/v1') ? new Response(JSON.stringify(doc({ version: 1, sealed: tampered }))) : fsMock(true)(url, o));
 e = await err(API.deliver(who('u1'), { sid: SID_P, pub: w.pub }, keyText, fsBad));
 ok(e && e.status === 500 && e.code === 'seal', 'tampered bin: refused');
+for (const [blob, what] of [[sealedOther, 'bin copied from another script'], [sealedOldV, 'bin for another version'], [sealedNoBind, 'bin without script binding']]) {
+  const fsX = async (url, o) => (url.endsWith('/bin/v1') ? new Response(JSON.stringify(doc({ version: 1, sealed: blob }))) : fsMock(true)(url, o));
+  e = await err(API.deliver(who('u1'), { sid: SID_P, pub: w.pub }, keyText, fsX));
+  ok(e && e.status === 500 && e.code === 'seal', what + ': refused');
+}
 
 // ---------------------------------------------------------------- 3) creatorPay zsCheckout + webhook
 const require = createRequire(import.meta.url);

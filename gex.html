@@ -155,6 +155,7 @@
         <div class="gex-actions" id="gex-tabs" aria-label="Market selector"></div>
         <div class="gex-actions" id="gex-dtes" aria-label="Expiry selector"></div>
         <div class="gex-basis" role="group" aria-labelledby="gex-basis-lbl"><span class="gex-basis-lbl" id="gex-basis-lbl">Levels</span><div class="tz-seg" id="gex-basis"><button type="button" data-b="" aria-pressed="true">Updated through the day</button><button type="button" data-b="close" aria-pressed="false">Daily close</button></div></div>
+        <button type="button" class="gex-dl-btn" id="gex-dl-btn" aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>Download levels<span class="gex-dl-pro">Pro</span></button>
       </div>
 
       <div class="gex-status"><span class="gex-status-dot"></span><div id="gex-status-text"><b>Starting GEX+…</b><span> Loading permanent site-hosted data.</span></div><div class="gex-freshness" id="gex-freshness-text"><b>Checking data</b><span>Reading Cboe timestamp…</span></div></div>
@@ -214,6 +215,22 @@
       <section class="gex-card gexo-card gexf-card" id="gex-flow" aria-label="Options volume by strike"></section>
     </section>
   </main>
+<dialog class="gex-dl" id="gex-dl" aria-labelledby="gex-dl-h">
+  <form id="gex-dl-form" novalidate>
+    <div class="gex-dl-hd"><h2 id="gex-dl-h">Download levels</h2><button type="button" class="gex-dl-x" id="gex-dl-x" aria-label="Close">&times;</button></div>
+    <p class="gex-dl-sub">Past Call Ceiling, Put Floor, Flip Line and 0DTE Zoro Range, one row per step. Up to 90 days.</p>
+    <div class="gex-dl-grid">
+      <label class="tz-field">Symbol<select class="tz-select" id="gex-dl-u"><option>SPX</option><option>SPY</option><option>QQQ</option><option value="ES">ES (mapped from SPX)</option><option value="NQ">NQ (mapped from QQQ)</option></select></label>
+      <label class="tz-field">Step<select class="tz-select" id="gex-dl-step"><option value="5m">5 minutes</option><option value="15m" selected>15 minutes</option><option value="1h">1 hour</option><option value="close">Daily close</option></select></label>
+      <label class="tz-field">From (ET)<input class="tz-date" type="date" id="gex-dl-from" required></label>
+      <label class="tz-field">To (ET)<input class="tz-date" type="date" id="gex-dl-to" required></label>
+      <label class="tz-field">Format<select class="tz-select" id="gex-dl-fmt"><option value="csv">CSV (spreadsheets)</option><option value="json">JSON</option></select></label>
+    </div>
+    <p class="gex-dl-msg" id="gex-dl-msg" role="status" aria-live="polite"></p>
+    <div class="gex-dl-ft"><span>Education only. Not financial advice.</span><button type="submit" class="btn btn-primary" id="gex-dl-go">Download</button></div>
+  </form>
+</dialog>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -257,6 +274,7 @@
 <script src="assets/gex-tide.js?v=891"></script>
 <script src="assets/gex-options.js?v=891"></script>
 <script src="assets/gex-flow.js?v=891"></script>
+<script src="assets/gex-levels-export.js?v=891" defer></script>
 <script type="module" src="assets/gex-ladder-page.js?v=891"></script>
 
 <script src="assets/theme.js?v=891"></script>

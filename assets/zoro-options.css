@@ -47,6 +47,8 @@
 .zo-search svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
 .zo-search input{ width:72px; border:0; background:transparent; color:var(--zo-t1); font:500 12px/16px var(--zo-mono); text-transform:uppercase; outline:none; }
 .zo-search input::placeholder{ text-transform:none; color:var(--zo-t3); font-family:var(--zo-font); }
+.zo-search input::-webkit-calendar-picker-indicator, .zo-search input::-webkit-list-button{ display:none !important; }
+.zo-search input::-webkit-search-cancel-button{ -webkit-appearance:none; }
 .zo-search:focus-within{ border-color:var(--zo-mint); }
 .zo-zone{ display:inline-flex; align-items:center; height:24px; padding:0 10px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap;
   transition:background-color .25s var(--zo-ease), color .25s var(--zo-ease); background:var(--zo-s3); color:var(--zo-t2); }
@@ -241,7 +243,7 @@
   .zo-syms button{ height:36px; }
   .zo-search{ order:2; margin-left:auto; height:40px; }
   .zo-zone{ order:6; margin-left:auto; }
-  .zo-search input{ width:56px; font-size:16px; }
+  .zo-search input{ width:64px; font-size:16px; }
   .zo-brand{ display:flex; }
   .zo-bar > .zo-seg{ order:4; width:100%; }
   .zo-bar > .zo-seg button{ flex:1; height:40px; font-size:13px; }
@@ -288,3 +290,6 @@
 }
 /* screenshot mode (?shot): freeze looping motion */
 .zo-shot .zo *{ animation:none !important; }
+
+/* copy rule: no prices anywhere on ZoroOptions; the shared lock card can print the plan price, hide it here */
+.zo-lockcard .plan-lock-price{ display:none !important; }

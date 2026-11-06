@@ -174,6 +174,7 @@ async function pro(b, tag, o) {
       check(r.locks === r.pro && r.teaser === 0, tag + ': every Pro panel locked, teasers open ' + JSON.stringify(r));
       check(r.notes === 3, tag + ': note teaser shows 3 lines (' + r.notes + ')');
       check(r.syms === 10, tag + ': 10 non-SPX symbols marked locked');
+      await p.evaluate(() => { const e = document.querySelector('.zo-lockcard .plan-lock-price'); if (e) { e.hidden = false; e.textContent = 'Pro: $20 / month'; } });
       const price = await p.evaluate(() => /[$₹€£]\s?\d/.test(document.querySelector('.zo').innerText));
       check(!price, tag + ': no price shown on the page');
       check(!errors.length, tag + ': no page errors ' + errors.slice(0, 3).join(' / '));

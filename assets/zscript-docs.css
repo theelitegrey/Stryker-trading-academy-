@@ -1,0 +1,51 @@
+/* zscript-docs.css — /zscript/ manual pages (built by tools/zs-book/build.py). Site tokens only. */
+html.zs-hidden .zd-side, html.zs-hidden .zd-body{ display:none; }
+.zd-soon{ display:none; max-width:520px; margin:96px auto; padding:0 20px; text-align:center; }
+html.zs-hidden .zd-soon{ display:block; }
+.zd-soon h1{ font-size:22px; line-height:28px; color:var(--ink-0); margin:0 0 8px; }
+.zd-soon p{ color:var(--ink-2); margin:0 0 24px; }
+.zd-wrap{ display:grid; grid-template-columns:240px minmax(0,1fr); gap:32px; max-width:1100px; margin:0 auto; padding:0 16px 72px; }
+.zd-side{ position:sticky; top:72px; align-self:start; max-height:calc(100vh - 88px); overflow:auto; padding-top:40px; }
+.zd-menu summary{ font:600 13px/18px var(--font-mono); color:var(--ink-2); text-transform:uppercase; letter-spacing:.08em; cursor:pointer; min-height:44px; display:flex; align-items:center; }
+.zd-menu nav{ display:flex; flex-direction:column; }
+.zd-menu a{ display:flex; align-items:center; min-height:40px; padding:0 12px; border-radius:8px; color:var(--ink-1); font-size:14px; line-height:20px; text-decoration:none; }
+.zd-menu a:hover{ background:var(--bg-2); }
+.zd-menu a[aria-current="page"]{ background:var(--bg-2); color:var(--ink-0); box-shadow:inset 3px 0 0 var(--gold); }
+.zd-body{ min-width:0; }
+.zd-head{ padding:14px 0 24px; border-bottom:1px solid var(--line-soft); margin-bottom:24px; }
+.zd-kind{ font:600 12px/16px var(--font-mono); color:var(--gold); text-transform:uppercase; letter-spacing:.08em; margin:0 0 8px; }
+.zd-head h1{ font-size:clamp(28px,4.4vw,40px); line-height:1.15; color:var(--ink-0); margin:0 0 12px; }
+.zd-dek{ font-size:17px; line-height:26px; color:var(--ink-1); margin:0; }
+.zd-prose{ font-size:16px; line-height:1.75; color:var(--ink-1); }
+.zd-prose h2{ font-size:24px; line-height:30px; color:var(--ink-0); margin:40px 0 12px; }
+.zd-prose h3{ font-size:18px; line-height:24px; color:var(--ink-0); margin:28px 0 8px; }
+.zd-prose p{ margin:0 0 16px; }
+.zd-prose ul, .zd-prose ol{ margin:0 0 20px; padding-left:22px; }
+.zd-prose li{ margin:0 0 8px; }
+.zd-prose a{ color:var(--gold); }
+.zd-prose code{ font-family:var(--font-mono); font-size:.9em; background:var(--bg-2); padding:1px 5px; border-radius:4px; }
+.zd-prose table{ width:100%; border-collapse:collapse; font-size:14px; margin:0 0 20px; display:block; overflow-x:auto; }
+.zd-prose th, .zd-prose td{ text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+.zd-prose th{ color:var(--ink-0); font-weight:600; }
+pre.zs-code{ position:relative; margin:0 0 20px; padding:16px; background:#0b0b0d; color:#e8ece9; border:1px solid var(--line); border-radius:12px;
+  overflow-x:auto; font:13px/1.6 var(--font-mono); tab-size:2; }
+pre.zs-code code{ background:none; padding:0; font:inherit; color:inherit; }
+pre.zs-code::before{ content:attr(data-lang); position:absolute; top:6px; right:12px; font:600 11px/13px var(--font-mono); color:rgba(255,255,255,.44); }
+pre.zs-code .k{ color:#6fd6ff } pre.zs-code .t{ color:#c9a7ff } pre.zs-code .n{ color:#4fe3ac } pre.zs-code .f{ color:#ffd479 }
+pre.zs-code .b{ color:#ff9eb1 } pre.zs-code .c{ color:#8a948d } pre.zs-code .s{ color:#ffb86b } pre.zs-code .m{ color:#9ee493 }
+.zd-prose pre, .zs-code{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.2) transparent; }
+.zd-prose pre::-webkit-scrollbar, .zd-prose table::-webkit-scrollbar, .zd-side::-webkit-scrollbar{ height:6px; width:6px; }
+.zd-prose pre::-webkit-scrollbar-thumb, .zd-prose table::-webkit-scrollbar-thumb, .zd-side::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.2); border-radius:3px; }
+.zd-prose pre::-webkit-scrollbar-thumb:hover, .zd-side::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,.4); }
+.zs-note{ background:var(--bg-2); border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:12px; padding:12px 16px; }
+.zs-ref{ border-top:1px solid var(--line-soft); padding-top:8px; }
+.zs-ref h3 code{ font-size:.95em; white-space:normal; word-break:break-word; }
+figure.zs-fig{ margin:0 0 24px; } figure.zs-fig svg{ width:100%; height:auto; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); }
+figcaption{ font-size:13px; line-height:18px; color:var(--ink-2); margin-top:8px; }
+.zd-disc{ font-size:13px; line-height:18px; color:var(--ink-3); border-top:1px solid var(--line-soft); padding-top:16px; margin-top:40px; }
+@media (max-width:860px){
+  .zd-wrap{ grid-template-columns:1fr; gap:0; }
+  .zd-side{ position:static; max-height:none; padding-top:16px; }
+  .zd-menu:not([open]) nav{ display:none; }
+  .zd-prose{ font-size:15px; }
+}

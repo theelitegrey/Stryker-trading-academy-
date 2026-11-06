@@ -13,7 +13,7 @@ async function gunzipJson(buf) {
   return JSON.parse(text);
 }
 
-// Returns { fetched_at } when valid, else { error }.
+// Returns { fetched_at, chain_time } when valid, else { error }.
 export async function validateGexChain(sym, part, buf, nowMs) {
   if (!GEX_SYMBOLS.includes(sym)) return { error: 'symbol not served' };
   if (!GEX_PARTS.includes(part)) return { error: 'bad part' };
@@ -32,7 +32,7 @@ export async function validateGexChain(sym, part, buf, nowMs) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(e) || !Array.isArray(rows) || rows.length > 3000) return { error: 'bad expiry ' + e };
     for (const r of rows) if (!Array.isArray(r) || r.length !== 8 || !(r[0] > 0) || (r[1] !== 'C' && r[1] !== 'P')) return { error: 'bad row in ' + e };
   }
-  return { fetched_at: d.fetched_at };
+  return { fetched_at: d.fetched_at, chain_time: typeof d.chain_time === 'string' ? d.chain_time.slice(0, 32) : '' };
 }
 
 // Fast GEX blob (gex_fast.py): { v:1, built, spots:{U:{p,t}}, u:{ SPX:{ built, '0':blk, '1':blk }, ... } }, blk = { x, s0, T, k[], c[], p[], ci[], pi[] }.

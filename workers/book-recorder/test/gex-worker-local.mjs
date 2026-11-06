@@ -40,6 +40,24 @@ r = await W('/gex-chain?sym=QQQ&part=near', { headers: { origin: 'https://evil.e
 assert.equal(r.status, 403); console.log('PASS browser origin -> 403');
 r = await W('/gex-chain?sym=SPX&part=near', { headers: { 'x-ingest-key': SECRET } });
 assert.equal(r.status, 404); console.log('PASS missing chain -> 404');
+// ---- GEX daily close (src/gex-close.js): frozen on ingest, read back by /gex-close ----
+{
+  const { lastSessionDay, etAt } = await import('../src/gex-close.js');
+  const D = lastSessionDay(Date.now() / 1000), ct = etAt(D, 16 * 60 + 2);
+  const put = (ctS, tsS, tag) => doObj.fetch(new Request('https://do/gex-ingest?sym=SPX&part=near&ts=' + tsS + '&ct=' + ctS, { method: 'POST', body: gzipSync(JSON.stringify({ tag })) }));
+  await put(ct + 600, ct + 700, 'far');
+  await put(ct, ct + 120, 'near16');
+  await put(ct + 300, ct + 400, 'later');
+  r = await W('/gex-close?sym=SPX&part=near');
+  assert.equal(r.status, 403); console.log('PASS /gex-close without key / Pro token -> 403');
+  r = await W('/gex-close?sym=SPX&part=near', { headers: { 'x-ingest-key': SECRET } });
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('x-gex-close-day'), D);
+  const j = JSON.parse((await import('node:zlib')).gunzipSync(Buffer.from(await r.arrayBuffer())).toString());
+  assert.equal(j.tag, 'near16'); console.log('PASS /gex-close serves the chain nearest 16:00 ET of', D);
+  r = await W('/gex-close?sym=QQQ&part=near', { headers: { 'x-ingest-key': SECRET } });
+  assert.equal(r.status, 404); console.log('PASS /gex-close nothing frozen -> 404');
+}
 r = await W('/status');
 const st = await r.json(); assert.ok(st.gex['QQQ:near'].bytes === body.length); console.log('PASS /status shows gex', JSON.stringify(st.gex));
 

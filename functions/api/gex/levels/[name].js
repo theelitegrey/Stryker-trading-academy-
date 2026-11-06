@@ -1,4 +1,5 @@
 import { gexPro } from '../_pro.js';
+import { buildCloseLevels } from '../_close.js';
 import { buildLevels, json, MARKETS, cashScheduleOpen, secsToCashOpen } from '../_engine.js';
 
 const inflight = new Map();
@@ -75,6 +76,8 @@ export async function handle({ request, params, env }) {
   const url = new URL(request.url);
   const dte = Number(url.searchParams.get('dte') || 1);
   const safeDte = [0, 1, 7, 30].includes(dte) ? dte : 1;
+  // ?basis=close: levels from the last regular-session close (functions/api/gex/_close.js), stored data only
+  if (url.searchParams.get('basis') === 'close') return closeHandle(request, name, safeDte, env);
   try {
     const cached = await readCached(request, name, safeDte, 'fresh');
     if (cached) return cached;
@@ -96,3 +99,21 @@ export async function handle({ request, params, env }) {
 }
 
 export const onRequestGet = gexPro(handle);
+
+// "Daily close" levels: one build per market + expiry per 10 minutes per location (the data changes once a day).
+async function closeHandle(request, name, dte, env) {
+  const kind = 'close';
+  try {
+    const cached = await readCached(request, name, dte, kind);
+    if (cached) return cached;
+    const key = `${name}:${dte}:close`;
+    let p = inflight.get(key);
+    if (!p) { p = buildCloseLevels(name, dte, env || {}).finally(() => inflight.delete(key)); inflight.set(key, p); }
+    const data = await p;
+    const hd = cacheHeaders({ edge: 600, swr: 60 });
+    if (cacheAvailable()) await caches.default.put(cacheKey(request, name, dte, kind), json(data, { headers: hd, cache: hd['cache-control'] }));
+    return json(data, { headers: hd, cache: hd['cache-control'] });
+  } catch (error) {
+    return json({ error: error.message || String(error), basis: 'close' }, { status: error && error.message === 'pro_required' ? 403 : 503, cache: 'no-store' });
+  }
+}

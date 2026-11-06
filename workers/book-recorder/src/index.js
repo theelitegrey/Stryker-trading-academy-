@@ -18,6 +18,7 @@
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, validateGexFast, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TIDE_MAX_DAYS } from './tide.js';
+import { closeCandidate, pickClose, etEpoch as closeEtEpoch, CLOSE_KEEP_DAYS } from './gex-close.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
@@ -102,6 +103,8 @@ export class BookRecorder {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT) WITHOUT ROWID`);
     // GEX compact chains (gex-feeder): one gzip blob per symbol + part, replaced on every ingest
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gex (sym TEXT NOT NULL, part TEXT NOT NULL, ts INTEGER NOT NULL, body BLOB, PRIMARY KEY (sym, part)) WITHOUT ROWID`);
+    // GEX daily close (src/gex-close.js): the chain nearest 16:00 ET per symbol + part + ET day, 10 days
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS gexclose (sym TEXT NOT NULL, part TEXT NOT NULL, day TEXT NOT NULL, ct INTEGER NOT NULL, ts INTEGER NOT NULL, win INTEGER NOT NULL, body BLOB, PRIMARY KEY (sym, part, day)) WITHOUT ROWID`);
     // GEX history (src/gex-history.js): one row per underlying + 0/1DTE + Cboe chain time, 90 days.
     // j = the snapshot's other fields as JSON (day, x, s, cw, pw, zg, n, em, k, g).
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexsnap (u TEXT NOT NULL, d INTEGER NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, d, t)) WITHOUT ROWID`);
@@ -258,6 +261,21 @@ export class BookRecorder {
     out.hist = this.sql.exec('SELECT j FROM optday WHERE u = ? ORDER BY day DESC LIMIT 400', u).toArray().map((x) => JSON.parse(x.j)).reverse();
     return out;
   }
+  // Freeze the close chain of the day (src/gex-close.js closeCandidate); trims rows older than CLOSE_KEEP_DAYS.
+  closeIngest(sym, part, ts, ct, body) {
+    try {
+      if (!(ct > 0)) return;
+      const inc = { ct, ts };
+      const c = closeCandidate(null, inc);   // which ET day (null = not a close candidate at all)
+      if (!c) return;
+      const same = this.sql.exec('SELECT ct, win FROM gexclose WHERE sym = ? AND part = ? AND day = ?', sym, part, c.day).toArray()[0] || null;
+      const pick = closeCandidate(same ? { ct: same.ct, win: !!same.win } : null, inc);
+      if (!pick) return;
+      this.sql.exec('INSERT OR REPLACE INTO gexclose (sym, part, day, ct, ts, win, body) VALUES (?, ?, ?, ?, ?, ?, ?)', sym, part, pick.day, ct, ts, pick.win ? 1 : 0, body);
+      const cut = new Date((ts - CLOSE_KEEP_DAYS * 86400) * 1000).toISOString().slice(0, 10);
+      this.sql.exec('DELETE FROM gexclose WHERE sym = ? AND part = ? AND day < ?', sym, part, cut);
+    } catch (e) {}
+  }
   snapIngest(snaps) {
     let added = 0;
     for (const s of snaps) {
@@ -402,8 +420,19 @@ export class BookRecorder {
     }
     if (u.pathname === '/gex-ingest') {
       const sym = u.searchParams.get('sym'), part = u.searchParams.get('part'), ts = Number(u.searchParams.get('ts'));
-      this.sql.exec('INSERT OR REPLACE INTO gex (sym, part, ts, body) VALUES (?, ?, ?, ?)', sym, part, Math.round(ts), new Uint8Array(await req.arrayBuffer()));
+      const body = new Uint8Array(await req.arrayBuffer());
+      this.sql.exec('INSERT OR REPLACE INTO gex (sym, part, ts, body) VALUES (?, ?, ?, ?)', sym, part, Math.round(ts), body);
+      if (part === 'near' || part === 'term') this.closeIngest(sym, part, Math.round(ts), Math.round(Number(u.searchParams.get('ct')) || 0), body);
       return new Response('stored ' + sym + ' ' + part);
+    }
+    if (u.pathname === '/gex-close') {
+      const sym = u.searchParams.get('sym'), part = u.searchParams.get('part');
+      const rows = this.sql.exec('SELECT day, ct, ts, win FROM gexclose WHERE sym = ? AND part = ? ORDER BY day DESC LIMIT 12', sym, part).toArray();
+      const pk = pickClose(rows, Number(u.searchParams.get('now')) || Date.now() / 1000);
+      if (!pk) return new Response('no close', { status: 404 });
+      const r = this.sql.exec('SELECT body FROM gexclose WHERE sym = ? AND part = ? AND day = ?', sym, part, pk.row.day).toArray()[0];
+      return new Response(r.body instanceof ArrayBuffer ? r.body : new Uint8Array(r.body), { headers: { 'content-type': 'application/octet-stream',
+        'x-gex-close-day': pk.row.day, 'x-gex-close-expected': pk.expected, 'x-gex-close-fallback': pk.fallback ? '1' : '0', 'x-gex-close-win': pk.row.win ? '1' : '0', 'x-gex-fetched-at': String(pk.row.ts) } });
     }
     if (u.pathname === '/gex-chain') {
       const r = this.sql.exec('SELECT ts, body FROM gex WHERE sym = ? AND part = ?', u.searchParams.get('sym'), u.searchParams.get('part')).toArray()[0];
@@ -725,7 +754,7 @@ async function route(req, env, ctx) {
       const sym = String(u.searchParams.get('sym') || '').toUpperCase(), part = String(u.searchParams.get('part') || '');
       const v = await validateGexChain(sym, part, buf, Date.now());
       if (v.error) return new Response(v.error, { status: 400 });
-      return stub(env).fetch('https://do/gex-ingest?sym=' + sym + '&part=' + part + '&ts=' + v.fetched_at, { method: 'POST', body: buf });
+      return stub(env).fetch('https://do/gex-ingest?sym=' + sym + '&part=' + part + '&ts=' + v.fetched_at + '&ct=' + Math.round(closeEtEpoch(v.chain_time) || 0), { method: 'POST', body: buf });
     }
     if (u.pathname === '/is-note') {
       // InsightSentry monthly REST counter (src/is-usage.js). Server feeders: the ingest secret, any source, n <= 100000,
@@ -821,6 +850,26 @@ async function route(req, env, ctx) {
       const buf = await req.arrayBuffer();
       if (buf.byteLength > OF_MAX_BODY) return new Response('too large', { status: 413 });
       return stub(env).fetch('https://do/of-ingest?sym=' + sym, { method: 'POST', body: buf });
+    }
+    if (u.pathname === '/gex-close') {
+      // "Daily close" GEX (src/gex-close.js): the frozen 16:00 ET chain of the last completed session. Same callers and gate
+      // as /gex-chain. Edge-cached 5 min (it changes once a day). x-gex-close-day = the ET session day actually served.
+      const sym = String(u.searchParams.get('sym') || '').toUpperCase(), part = String(u.searchParams.get('part') || 'near');
+      if (req.method !== 'GET') return new Response('GET only', { status: 405 });
+      if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
+      if (!/^[A-Z]{1,6}$/.test(sym) || !GEX_PARTS.includes(part)) return new Response('bad request', { status: 400 });
+      if (!(await gexChainOk(req, env))) return new Response('pro_required', { status: 403, headers: { 'cache-control': 'no-store' } });
+      const ckey = new Request('https://book-recorder.cache/gexclose/' + sym + '/' + part + '/' + Math.floor(Date.now() / 300000));
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch('https://do/gex-close?sym=' + sym + '&part=' + part);
+        if (d.status !== 200) return new Response('no close', { status: 404, headers: { 'cache-control': 'no-store' } });
+        const hd = { 'content-type': 'application/octet-stream', 'cache-control': 'public, max-age=300' };
+        for (const k of ['x-gex-close-day', 'x-gex-close-expected', 'x-gex-close-fallback', 'x-gex-close-win', 'x-gex-fetched-at']) hd[k] = d.headers.get(k) || '';
+        r = new Response(await d.arrayBuffer(), { headers: hd });
+        ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return r;
     }
     if (u.pathname === '/gex-chain') {
       // Read by the site's /api/gex/levels Function (server to server, no Origin). Edge-cached

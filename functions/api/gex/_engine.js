@@ -627,31 +627,46 @@ async function quoteLastRange(symbol, interval, range) {
   throw new Error(`no data for ${symbol}`);
 }
 
-async function kFor(name, spot) {
+// Price of `symbol` at epoch `at` (the close of the last 5-minute bar that ended by then), for the
+// "Daily close" levels: the futures basis is taken at the 16:00 ET close, not now. No vendor call (Yahoo).
+async function quoteAt(symbol, at) {
+  const data = await fetchJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5d&interval=5m`);
+  const r = data.chart?.result?.[0], ts = r?.timestamp || [], close = r?.indicators?.quote?.[0]?.close || [];
+  for (let i = ts.length - 1; i >= 0; i--) {
+    if (ts[i] + 300 <= at && close[i] != null) {
+      if (at - (ts[i] + 300) > 3 * 3600) break;   // no bar near that time (data gap): refuse rather than mix days
+      return { price: Number(close[i]), age: Math.max(0, Date.now() / 1000 - (ts[i] + 300)), ts: ts[i] + 300 };
+    }
+  }
+  throw new Error(`no ${symbol} price at the close`);
+}
+const quoteFor = (symbol, at) => (at ? quoteAt(symbol, at) : quoteLast(symbol, '5m', '1d'));
+
+async function kFor(name, spot, at) {
   const m = MAPPING[name];
   if (m.kFixed != null) return [m.kFixed, 'fixed'];
   if (m.kIndex) {
     try {
-      const q = await quoteLast(m.kIndex, '5m', '1d');
+      const q = await quoteFor(m.kIndex, at);
       return [q.price / spot, 'measured'];
     } catch (_) {}
   }
   return [null, 'unavailable'];
 }
 
-async function convertLevels(name, spot, rawLevels) {
+async function convertLevels(name, spot, rawLevels, at) {
   const m = MAPPING[name];
-  const [k, kSource] = await kFor(name, spot);
+  const [k, kSource] = await kFor(name, spot, at);
   const res = {};
   for (const fut of m.futs) {
     const [yh, pointValue, tick, tickValue] = FUTURES[fut];
     try {
-      const q = await quoteLast(yh, '5m', '1d');
+      const q = await quoteFor(yh, at);
       let ratio, basis, basisSource, mode;
       if (k != null && m.index) {
         basis = q.price - spot * k;
         ratio = k;
-        basisSource = 'live-futures-anchor';
+        basisSource = at ? 'close-futures-anchor' : 'live-futures-anchor';
         mode = 'k+live_basis';
       } else {
         ratio = q.price / spot;
@@ -902,12 +917,13 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   try {
     const d = opts.compact !== undefined ? (typeof opts.compact === 'function' ? await opts.compact(name, dteMax) : opts.compact) : await fetchCompact(name, dteMax, env);
     if (!d) throw new Error('compact chain missing');
-    if (!compactFresh(d, nowSec)) throw new Error('compact chain stale (' + Math.round((nowSec - d.fetched_at) / 60) + ' min)');
+    if (!opts.frozen && !compactFresh(d, nowSec)) throw new Error('compact chain stale (' + Math.round((nowSec - d.fetched_at) / 60) + ' min)');
     parsed = compactToContracts(d, dteMax, nowSec);
     if (parsed.contracts.length < 20) throw new Error('compact chain thin');
     if (d.part === 'term') termData = d;
     optData = { current_price: d.spot, iv30: d.iv30, last_trade_time: d.chain_time, chain_fetched_at: d.fetched_at };
   } catch (e) {
+    if (opts.frozen) throw e;   // "Daily close": stored chains only, never the paid vendor
     compactNote = String(e && e.message || e).slice(0, 120);
     isCalls += 2;   // quotes + contracts
     optData = await fetchInsightOptions(name, dteMax, env);
@@ -956,7 +972,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
       let td = termData;
       if (!td) {
         td = opts.compactTerm !== undefined ? (typeof opts.compactTerm === 'function' ? await opts.compactTerm(name) : opts.compactTerm) : await termChain(name, env);
-        if (!td || !compactFresh(td, nowSec)) throw new Error('term chain missing or stale');
+        if (!td || (!opts.frozen && !compactFresh(td, nowSec))) throw new Error('term chain missing or stale');
       }
       termContracts = ownGamma(compactToContracts(td, 30, nowSec).contracts, spot, nowSec);
       st = structureLevels(spot, termContracts, nowSec, `${name}|${td.fetched_at}`);
@@ -1009,7 +1025,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
     ladder: [...p.gex.keys()].filter(k => Math.abs(k - spot) / spot < 0.04).sort((a, b) => b - a).map(k => ({ strike: k, gex: p.gex.get(k), dex: p.dex.get(k) || 0, oi: p.oi.get(k) || 0 }))
   };
   const raw = { call_wall: data.call_wall, zero_gamma: data.zero_gamma, wall0_call: zdte ? zdte.call : null, wall0_put: zdte ? zdte.put : null, spot: data.spot, put_wall: data.put_wall, iv68_lo: data.expected['68%'][0], iv68_hi: data.expected['68%'][1], iv80_lo: data.expected['80%'][0], iv80_hi: data.expected['80%'][1] };
-  data.futures = await convertLevels(name, spot, raw);
+  data.futures = await convertLevels(name, spot, raw, opts.futAt || null);
   data.session = {};
   for (const fut of Object.keys(data.futures)) {
     if (data.futures[fut].error) continue;
@@ -1028,4 +1044,5 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
 export { dedupeRoots, fetchInsightQuotes, insightQuoteMap, mergeHybrid, ownGamma, saneIv, bsGamma, compactToContracts, compactFresh, fetchCompact };
 export { structureLevels, zeroDteWalls, WALL_MAX_DAYS };
 export { atmIv, walls, gammaWalls, activityWalls, levels, ivRange, profile, gammaFlip, parseOptions, straddleRange, bands, snapshotAllowed, yearsToClose, netGexAt };
+export { convertLevels };
 export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING, marketStatus, etEpoch, futuresScheduleOpen, cashScheduleOpen, secsToCashOpen };

@@ -72,7 +72,7 @@ export function sampleData(bars) {
 }
 
 export async function loadEngine() {
-  const cands = [process.env.ZS_ENGINE, path.join(ROOT, 'assets/zs/index.js'), '/root/projects/wt/web-temp-1/assets/zs/index.js'].filter(Boolean);
+  const cands = [process.env.ZS_ENGINE, path.join(ROOT, 'assets/zs/index.js'), path.join(ROOT, 'assets/zs/compiler.js'), '/root/projects/wt/web-temp-1/assets/zs/index.js', '/root/projects/wt/web-temp-1/assets/zs/compiler.js'].filter(Boolean);
   for (const p of cands) if (fs.existsSync(p)) return { mod: await import(pathToFileURL(p).href), path: p };
   return null;
 }

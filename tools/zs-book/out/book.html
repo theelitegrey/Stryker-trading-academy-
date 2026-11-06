@@ -568,7 +568,7 @@ big = (<span class="b">high</span> - <span class="b">low</span>) &gt; <span clas
 </table>
 <p>Your script gets the data your plan gives you on the chart, no more. When your plan does not include a data kind, the call returns <code>na</code> and you see one short notice on the chart, once. The script keeps running; the rest of your lines still draw.</p>
 <h2 id="no-peeking">No peeking</h2>
-<p>Every value is the value known <strong>at that bar</strong>. There is no way to read a future bar, so a script that uses this data looks the same live and in Replay. Order book, GEX and options numbers are snapshots: a snapshot is stored at some time and used for the bars that follow it, until the next one arrives. For GEX and ZoroOptions numbers, treat them as "updated a few minutes ago", never as an instant live feed.</p>
+<p>Every value is the value known <strong>at that bar</strong>. There is no way to read a future bar, so a script that uses this data looks the same on a chart and in Replay. Order book, GEX and options numbers are snapshots: a snapshot is stored at some time and used for the bars that follow it, until the next one arrives. For GEX and ZoroOptions numbers, treat them as "updated a few minutes ago", not as a tick-by-tick feed.</p>
 <h2 id="order-book-book">Order book: book</h2>
 <pre class="zs-code zs-plain"><code>book.bid(level)        price of the bid at depth `level` (0 = best)
 book.ask(level)        price of the ask at depth `level`
@@ -802,7 +802,7 @@ d = <span class="f">nz</span>(<span class="n">flow</span>.delta, <span class="m"
 <h3 id="e303-unknown-name">E303 Unknown name</h3>
 <pre class="zs-code zs-plain"><code>3:11  E303  Unknown name `smaa`.
             Did you mean `ta.sma`?</code></pre>
-<p>A typo. Names are case sensitive, and every built-in lives behind its namespace (<code>ta.</code>, <code>math.</code>, <code>str.</code>).</p>
+<p>A typo. Names are case sensitive, and every built-in sits inside a namespace (<code>ta.</code>, <code>math.</code>, <code>str.</code>).</p>
 <h3 id="e309-wrong-type-for-an-argument">E309 Wrong type for an argument</h3>
 <pre class="zs-code zs-plain"><code>5:8   E309  Argument `title` of `plot` must be string, got float.</code></pre>
 <p>You passed a number where text goes. Check the order of the arguments, or name them: <code>plot(x, title="Mine")</code>.</p>
@@ -1718,7 +1718,7 @@ slow = <span class="n">ta</span>.ema(<span class="b">close</span>, <span class="
 <span class="f">alertcondition</span>(<span class="n">ta</span>.crossover(fast, slow), <span class="s">"Up cross"</span>, <span class="s">"Fast EMA crossed above slow EMA"</span>)
 <span class="f">alertcondition</span>(<span class="n">ta</span>.crossunder(fast, slow), <span class="s">"Down cross"</span>, <span class="s">"Fast EMA crossed below slow EMA"</span>)</code></pre>
 <h2 id="how-it-works">How it works</h2>
-<p>After you add the script, the alert dialog lists both rules.</p></section><section id="c-alert-level"><h1>Level alert with a message</h1><p><em>Build the message from live values.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
+<p>After you add the script, the alert dialog lists both rules.</p></section><section id="c-alert-level"><h1>Level alert with a message</h1><p><em>Build the message from your own settings.</em></p><pre class="zs-code" data-lang="Zscript"><code><span class="c">//@zscript 1</span>
 <span class="f">indicator</span>(<span class="s">"Level alert"</span>, overlay=<span class="k">true</span>)
 level = <span class="n">input</span>.<span class="t">float</span>(<span class="m">100.0</span>, <span class="s">"Level"</span>)
 <span class="f">hline</span>(level)

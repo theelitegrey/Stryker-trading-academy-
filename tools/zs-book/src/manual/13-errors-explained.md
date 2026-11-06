@@ -20,7 +20,7 @@ Messages below are written the way the engine words them. Your names and numbers
 3:11  E303  Unknown name `smaa`.
             Did you mean `ta.sma`?
 ```
-A typo. Names are case sensitive, and every built-in lives behind its namespace (`ta.`, `math.`, `str.`).
+A typo. Names are case sensitive, and every built-in sits inside a namespace (`ta.`, `math.`, `str.`).
 
 ### E309 Wrong type for an argument
 

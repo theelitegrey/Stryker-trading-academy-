@@ -162,7 +162,7 @@
 <h3 id="e303-unknown-name">E303 Unknown name</h3>
 <pre class="zs-code zs-plain"><code>3:11  E303  Unknown name `smaa`.
             Did you mean `ta.sma`?</code></pre>
-<p>A typo. Names are case sensitive, and every built-in lives behind its namespace (<code>ta.</code>, <code>math.</code>, <code>str.</code>).</p>
+<p>A typo. Names are case sensitive, and every built-in sits inside a namespace (<code>ta.</code>, <code>math.</code>, <code>str.</code>).</p>
 <h3 id="e309-wrong-type-for-an-argument">E309 Wrong type for an argument</h3>
 <pre class="zs-code zs-plain"><code>5:8   E309  Argument `title` of `plot` must be string, got float.</code></pre>
 <p>You passed a number where text goes. Check the order of the arguments, or name them: <code>plot(x, title="Mine")</code>.</p>

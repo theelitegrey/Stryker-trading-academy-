@@ -1,6 +1,6 @@
 ---
 title: Level alert with a message
-dek: Build the message from live values.
+dek: Build the message from your own settings.
 level: Intermediate
 ---
 ```zscript

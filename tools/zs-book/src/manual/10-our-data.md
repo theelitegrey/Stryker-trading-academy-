@@ -15,7 +15,7 @@ Your script gets the data your plan gives you on the chart, no more. When your p
 
 ## No peeking
 
-Every value is the value known **at that bar**. There is no way to read a future bar, so a script that uses this data looks the same live and in Replay. Order book, GEX and options numbers are snapshots: a snapshot is stored at some time and used for the bars that follow it, until the next one arrives. For GEX and ZoroOptions numbers, treat them as "updated a few minutes ago", never as an instant live feed.
+Every value is the value known **at that bar**. There is no way to read a future bar, so a script that uses this data looks the same on a chart and in Replay. Order book, GEX and options numbers are snapshots: a snapshot is stored at some time and used for the bars that follow it, until the next one arrives. For GEX and ZoroOptions numbers, treat them as "updated a few minutes ago", not as a tick-by-tick feed.
 
 ## Order book: book
 

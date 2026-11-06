@@ -184,7 +184,7 @@
 </table>
 <p>Your script gets the data your plan gives you on the chart, no more. When your plan does not include a data kind, the call returns <code>na</code> and you see one short notice on the chart, once. The script keeps running; the rest of your lines still draw.</p>
 <h2 id="no-peeking">No peeking</h2>
-<p>Every value is the value known <strong>at that bar</strong>. There is no way to read a future bar, so a script that uses this data looks the same live and in Replay. Order book, GEX and options numbers are snapshots: a snapshot is stored at some time and used for the bars that follow it, until the next one arrives. For GEX and ZoroOptions numbers, treat them as "updated a few minutes ago", never as an instant live feed.</p>
+<p>Every value is the value known <strong>at that bar</strong>. There is no way to read a future bar, so a script that uses this data looks the same on a chart and in Replay. Order book, GEX and options numbers are snapshots: a snapshot is stored at some time and used for the bars that follow it, until the next one arrives. For GEX and ZoroOptions numbers, treat them as "updated a few minutes ago", not as a tick-by-tick feed.</p>
 <h2 id="order-book-book">Order book: book</h2>
 <pre class="zs-code zs-plain"><code>book.bid(level)        price of the bid at depth `level` (0 = best)
 book.ask(level)        price of the ask at depth `level`

@@ -36,6 +36,8 @@ jobs:
         run: node workers/book-recorder/test/gex.test.mjs
       - name: GEX history tests (feeder vs engine parity, validation, no-lookahead lookup)
         run: node workers/book-recorder/test/gex-history.test.mjs
+      - name: GEX daily close tests (close-chain picker, weekend / holiday / evening session, close build)
+        run: node tools/tests/gex-close.test.mjs
       - name: Options analytics tests (feeder maths, ingest validation)
         run: |
           python3 workers/book-recorder/test/opt_feeder_test.py

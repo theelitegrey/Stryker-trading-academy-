@@ -5828,6 +5828,8 @@ html.stk-pine-busy .role-tag::after, html.stk-pine-busy .brand-plan::after{ anim
 /* The chart legend's "computing" dot (Vela, inline animation vela-ind-pulse) pulses for the
    whole run and forced a full-page frame 60x a second; while busy it stays lit instead. */
 html.stk-pine-busy .vela-cell [style*="vela-ind-pulse"]{ animation:none !important; opacity:.75; }
+/* GEX Levels "Levels from" (assets/chart-gex-levels.js): Vela sizes selects 100px; this one holds "Updated through the day" */
+.vela-field-cell > div:has(> .vela-select > [id$="-levelsFrom"]){ width:200px !important; max-width:52vw; }
 
 @media (prefers-reduced-motion: reduce){
   .role-tag, .brand-plan{ animation:none !important;

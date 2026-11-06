@@ -137,7 +137,7 @@ async function chart(b, vp) {
   let L = await callLine(p);
   const live0 = L && L.price;
   check(L && Math.abs(L.price - SPX.futures.ES.levels.call_wall) < 0.02 + 5 * 3 && /^GEX updated/.test(L.status), tag + ': saved chart without the input = Updated through the day', L);
-  const inp = await p.evaluate(() => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_gex'); return h.inputValues().basis; });
+  const inp = await p.evaluate(() => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_gex'); return h.inputValues().levelsFrom; });
   check(inp === undefined || inp === 'Updated through the day', tag + ': default input value', inp);
   // the "Levels from" input in the settings dialog
   await p.evaluate(() => { const ch = window.STRYKER_VELA.context().cells[0].chart; const n = ch.renderer.inputsUI ? ch.renderer : ch.renderer.renderer; const id = ch.indicators().find((x) => x.nativeType === 'stk_gex').id; const r = n.inputsUI.rows.get(id); const cog = r && [...r.el.querySelectorAll('button')].find((x) => x.getAttribute('aria-label') === 'Settings'); if (cog) cog.click(); });
@@ -148,7 +148,7 @@ async function chart(b, vp) {
   await p.evaluate(() => { const b = [...document.querySelectorAll('.vela-ind-dialog button')].find((x) => /^cancel$/i.test(x.textContent.trim())); if (b) b.click(); });
   await sleep(500);
   // switch to Daily close
-  await setInputs(p, { basis: 'Daily close' });
+  await setInputs(p, { levelsFrom: 'Daily close' });
   await sleep(1500);
   L = await callLine(p);
   check(L && Math.abs(L.price - CLOSE.futures.ES.levels.call_wall) < 0.02, tag + ': Daily close -> ES call wall = close value ' + CLOSE.futures.ES.levels.call_wall, L);
@@ -161,7 +161,7 @@ async function chart(b, vp) {
   check(L && Math.abs(L.price - CLOSE.futures.ES.levels.call_wall) < 0.02, tag + ': new intraday update arrived, close lines unchanged', L);
   if (vp.shotChart) { await shot(p, 'chart-close-' + vp.w + '-dark.png'); }
   // and back
-  await setInputs(p, { basis: 'Updated through the day' });
+  await setInputs(p, { levelsFrom: 'Updated through the day' });
   await sleep(1500);
   L = await callLine(p);
   check(L && Math.abs(L.price - CLOSE.futures.ES.levels.call_wall) > 1 && /^GEX updated/.test(L.status), tag + ': back to Updated through the day', [L, live0]);
@@ -172,7 +172,7 @@ async function chart(b, vp) {
 (async () => {
   const b = await launch();
   try {
-    for (const vp of [{ w: 1440, h: 900, before: true }, { w: 1440, h: 900, light: true, before: true }, { w: 390, h: 844, before: true }, { w: 412, h: 915, before: true }]) await gexPage(b, vp);
+    if (!process.env.SKIP_PAGE) for (const vp of [{ w: 1440, h: 900, before: true }, { w: 1440, h: 900, light: true, before: true }, { w: 390, h: 844, before: true }, { w: 412, h: 915, before: true }]) await gexPage(b, vp);
     if (!process.env.SKIP_CHART) for (const vp of [{ w: 1440, h: 900, shotChart: true }, { w: 1440, h: 900, light: true, basis: undefined }, { w: 390, h: 844 }, { w: 412, h: 915 }]) await chart(b, vp);
   } finally { await b.close(); }
   console.log(fail ? fail + ' FAILED' : 'ALL PASS');

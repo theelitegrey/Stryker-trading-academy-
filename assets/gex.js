@@ -129,8 +129,8 @@
     var f = marketInfo(d) || dataFreshnessLegacy(d && d.asof);
     var status = document.querySelector('.gex-status');
     if(status){
-      status.classList.remove('is-fresh','is-stale');
-      if(f.state !== 'close') status.classList.add(f.state === 'fresh' ? 'is-fresh' : 'is-stale');
+      status.classList.remove('is-fresh','is-stale','is-close');
+      status.classList.add(f.state === 'close' ? 'is-close' : f.state === 'fresh' ? 'is-fresh' : 'is-stale');
       status.setAttribute('data-freshness', f.state);
       status.setAttribute('data-market', (d && d.market && d.market.state) || 'unknown');
     }
@@ -145,6 +145,7 @@
     }
     var tag = $('gex-chart-tag');
     if(tag){
+      tag.classList.toggle('is-close', f.state === 'close');
       if(f.tag){ tag.hidden = false; tag.textContent = f.tag; }
       else { tag.hidden = true; tag.textContent = ''; }
     }
@@ -202,7 +203,7 @@
   async function loadLevels(){
     announceSelection();
     $('gex-status-text').innerHTML = '<b>Loading '+esc(mlabel(cur))+'…</b><span> Building gamma walls, futures conversion and market-generated levels on tradezoro.com.</span>';
-    var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh','is-stale'); }
+    var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh','is-stale','is-close'); }
     try{
       var want = cur + '|' + curDte + '|' + curBasis;
       var d = await getJson('/api/gex/levels/' + encodeURIComponent(cur) + '?dte=' + curDte + (curBasis === 'close' ? '&basis=close' : '') + '&t=' + Date.now());

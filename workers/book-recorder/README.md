@@ -315,3 +315,14 @@ read 1-minute bars built from InsightSentry tick trades (every print carries its
   90 days: Workers Free.
 - Install / update on the server: `sh workers/book-recorder/of-feeder/install.sh [--backfill]`.
   Logs: `journalctl -u of-feeder`. Tests: `node test/orderflow.test.mjs` (CI), `node test/orderflow-worker-local.mjs`.
+
+## GEX daily close (added 2026-11-06, "Daily close" levels option)
+
+`src/gex-close.js`. On every `/gex-ingest` (the feeder's compact chains, near + term) the DO keeps, per symbol + part +
+ET day, the chain whose Cboe time is nearest 16:00 ET inside 16:00-16:15 ET (table `gexclose`, 10 days). A day with
+no chain in that window keeps the first one fetched at/after 16:05 ET as a stand-in. No new vendor call, no cron.
+`GET /gex-close?sym=SPX&part=near` (server to server, same gate as `/gex-chain`) returns the frozen gzip chain of the
+last completed session (weekend -> Friday, holiday/missing -> latest earlier day) with `x-gex-close-day`. Read by the
+site's `/api/gex/levels/:name?basis=close` (`functions/api/gex/_close.js`), which falls back to the `/gex-history`
+snapshot nearest 16:00 ET while `gexclose` is still empty. Tests: `tools/tests/gex-close.test.mjs`,
+`test/gex-worker-local.mjs`.

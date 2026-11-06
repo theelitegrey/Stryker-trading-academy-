@@ -120,7 +120,7 @@ const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', 
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 export const BASIS_DAY = 'Updated through the day', BASIS_CLOSE = 'Daily close';
 const SCHEMA = [
-  { key: 'basis', title: 'Levels from', type: 'string', defval: BASIS_DAY, options: [BASIS_DAY, BASIS_CLOSE],
+  { key: 'levelsFrom', title: 'Levels from', type: 'string', defval: BASIS_DAY, options: [BASIS_DAY, BASIS_CLOSE],
     tooltip: 'Updated through the day: levels refresh every few minutes. Daily close: levels from the last regular-session close (16:00 ET), fixed for the whole next session.' },
   { key: 'dte', title: 'Expiry (Pro: all)', type: 'string', defval: '0', options: ['0', '1', '7', '30'],
     tooltip: 'Sets the expiry for the IV range and the 0DTE walls. The main call / put wall and zero gamma always use all expiries from 1 to 30 days. The Free plan covers 0DTE.' },
@@ -580,7 +580,7 @@ class GexNative {
     if (ProGate.isFree()) return null;   // GEX on charts is Pro (chart-pro-gate.js removes the tool for Free)
     return { api: src.api, dte: this.dte(), basis: this.basis() };
   }
-  basis() { return str(this.inputs.basis, BASIS_DAY) === BASIS_CLOSE ? 'close' : ''; }
+  basis() { return str(this.inputs.levelsFrom, BASIS_DAY) === BASIS_CLOSE ? 'close' : ''; }
   dte() {
     const d = parseInt(str(this.inputs.dte, '0'), 10);
     if (this.tier && this.tier.free) return 0;

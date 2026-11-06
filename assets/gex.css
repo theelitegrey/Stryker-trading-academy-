@@ -215,3 +215,8 @@
 .gex-basis .tz-seg > button{padding:0 12px;white-space:nowrap;min-height:34px;}
 .gex-basis .tz-seg > button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 @media(max-width:700px){.gex-basis{width:100%;}.gex-basis .tz-seg{flex:1;height:44px;}.gex-basis .tz-seg > button{padding:0 8px;font-size:13px;}}
+.gex-status.is-close .gex-status-dot{background:var(--teal);box-shadow:0 0 0 5px rgba(0,173,181,.10);animation:none;}
+.gex-status.is-close .gex-freshness{background:rgba(0,173,181,.08);border-color:rgba(0,173,181,.30);}
+.gex-status.is-close .gex-freshness b{color:var(--teal);}
+.gex-status.is-close .gex-freshness span{color:var(--ink-2);}
+.gex-chart-tag.is-close{color:var(--teal);border-color:rgba(0,173,181,.45);}

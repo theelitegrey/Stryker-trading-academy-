@@ -579,6 +579,14 @@
     u.textContent = s ? ago(s.built) : 'Not available';
     u.parentNode.classList.toggle('is-old', !!(s && nowS() - s.built > 30 * 60));
     qa('[data-sample]').forEach(function (e) { e.hidden = !st.sample; });
+    // Auto-updating strip (07 Nov): pulses green while fresh data keeps arriving (< 10 min old); grey when the market is closed / data is old
+    var au = $('zo-auto'), at = $('zo-auto-t'), as = $('zo-auto-s');
+    if (au && at && as) {
+      var fresh = !!(s && !st.sample && nowS() - s.built < 10 * 60);
+      au.classList.toggle('is-on', fresh);
+      at.textContent = fresh ? 'Auto-updating' : (s ? 'Paused' : 'Waiting for data');
+      as.textContent = s ? (fresh ? ' · refreshes every 2 min · ' : ' · market closed · ') + ago(s.built).toLowerCase() : '';
+    }
   }
 
   // ---------- panels ----------

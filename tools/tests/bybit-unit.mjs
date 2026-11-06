@@ -29,3 +29,11 @@ if (O) {
   assert.equal(O.parseTrades(F.trades)[0].p, 68000.1);
 }
 console.log('bybit-unit ok');
+// Book panel source: snapshot replaces, delta patches, size 0 deletes; trade side
+const S = await import('../../assets/book-panel-sources.js');
+const bk = { bids: new Map(), asks: new Map() };
+S.bybitBook(bk, F.bookSnapshot); S.bybitBook(bk, F.bookDelta);
+assert.deepEqual([...bk.bids], [[67999.9, 2], [67999.8, 4]]);
+assert.equal(bk.asks.get(68000.1), 0.7);
+assert.deepEqual(F.trades.data.map((x) => S.bybitTrade(x).side), [1, -1]);
+console.log('bybit book-panel ok');

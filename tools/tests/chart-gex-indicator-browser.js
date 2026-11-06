@@ -95,7 +95,7 @@ async function addFromWindow(p) {
     await setSym(p, 'futures:ES1!', '5');
     const info = await addFromWindow(p);
     check(info.grps[0] === 'TradeZoro' && info.first === 'b:stk_gex', 'window: "TradeZoro" group first, GEX Levels first row (' + info.grps.join(' | ') + ')');
-    check(/TradeZoro GEX Levels/.test(info.text || '') && /Call wall, put wall, zero gamma, IV ±68% and market levels/.test(info.text || ''), 'window row has name + short description: ' + info.text);
+    check(/Zoro Levels/.test(info.text || '') && /Call wall, put wall, zero gamma, IV ±68% and market levels/.test(info.text || ''), 'window row has name + short description: ' + info.text);
     check(!info.vela, 'window: no Vela/LuxAlgo text');
     await shot(p, 'gex-window-1440.png');
     await p.keyboard.press('Escape'); await sleep(2500);
@@ -104,8 +104,8 @@ async function addFromWindow(p) {
     const ses = SPX.session.ES;
     // Every line the GEX page chart draws for ES (gex.js collectLines), same name/colour/style.
     const want = [
-      ['call', 'CALL WALL', es.call_wall, '#ef4444', 'solid', 2], ['zero', 'ZERO GAMMA', es.zero_gamma, '#f59e0b', 'dashed', 2],
-      ['put', 'PUT WALL', es.put_wall, '#22c55e', 'solid', 2], ['ivhi', 'IV +68%', es.iv68_hi, '#8b7cf6', 'dashed', 1],
+      ['call', 'CALL CEILING', es.call_wall, '#ef4444', 'solid', 2], ['zero', 'FLIP LINE', es.zero_gamma, '#f59e0b', 'dashed', 2],
+      ['put', 'PUT FLOOR', es.put_wall, '#22c55e', 'solid', 2], ['ivhi', 'IV +68%', es.iv68_hi, '#8b7cf6', 'dashed', 1],
       ['ivlo', 'IV -68%', es.iv68_lo, '#8b7cf6', 'dashed', 1], ['vah', 'pVAH', ses.prior_vah, '#38bdf8', 'dashed', 1],
       ['poc', 'pPOC', ses.prior_poc, '#38bdf8', 'solid', 1], ['val', 'pVAL', ses.prior_val, '#38bdf8', 'dashed', 1],
       ['onh', 'ONH', ses.overnight_high, '#64748b', 'dashed', 1], ['onl', 'ONL', ses.overnight_low, '#64748b', 'dashed', 1]];

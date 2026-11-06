@@ -14,7 +14,7 @@ const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const NOW = Math.floor(Date.now() / 1000);
 const DAY = 86400;
-const SPOT = { IWM: 2000, USO: 80, SPX: 6800 };
+const SPOT = { IWM: 2000, USO: 80, SPX: 7404.47 };   // SPX = the fixture's own spot (ES charts sit near it)
 const FIX = (n) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'zoro', n), 'utf8'));
 const F0 = FIX('summary.json');
 const NBANDS = new Set(Object.values(F0.ranges).map((r) => r.join(','))).size;   // same expiry twice (weekly = 0DTE on a Friday) is one band

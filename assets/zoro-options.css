@@ -83,7 +83,7 @@
 .zo-tape.is-empty{ display:none; }
 
 /* ---- 1.2 key levels -------------------------------------------------------------------------------- */
-.zo-lvls{ display:grid; grid-template-columns:repeat(5, 1fr); border-bottom:1px solid var(--zo-hair); background:var(--zo-s1); }
+.zo-lvls{ padding:0; display:grid; grid-template-columns:repeat(5, 1fr); border-bottom:1px solid var(--zo-hair); background:var(--zo-s1); }
 .zo-lv{ padding:8px 12px; border-right:1px solid var(--zo-hair); display:flex; flex-direction:column; justify-content:center; gap:2px; min-width:0; min-height:56px; }
 .zo-lv:last-child{ border-right:0; }
 .zo-lv-h{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
@@ -113,7 +113,8 @@
 .zo-key-d{ background:none; border-top:2px dashed rgba(255,255,255,.5); height:0; }
 :root[data-theme="light"] .page-zo .zo-key-d{ border-color:rgba(14,22,33,.45); }
 .zo-pb{ position:relative; background:#000; border-radius:8px; overflow:hidden; }
-.zo-pb canvas{ display:block; width:100%; height:100%; }
+/* canvases are absolutely placed: a canvas sized 100% of an auto-height box feeds its own height back and grows */
+.zo-pb canvas{ position:absolute; inset:0; display:block; width:100%; height:100%; }
 .zo-prof{ height:440px; touch-action:pan-y; }
 .zo-surf{ height:440px; cursor:grab; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
 .zo-surf:active{ cursor:grabbing; }
@@ -151,15 +152,16 @@
 .zo-gk{ display:flex; flex-direction:column; min-width:0; }
 .zo-gkh{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:6px; font-size:12px; color:var(--zo-t2); }
 .zo-gkh b{ font-size:12px; font-weight:500; color:var(--zo-t1); }
-.zo-gk .zo-pb{ height:160px; }
+.zo-gk .zo-pb{ flex:1; min-height:160px; }
 
 /* tables */
 .zo-scroll{ overflow:auto; min-height:0; }
 .zo-list{ max-height:300px; }
 .zo-screen{ max-height:420px; }
-.zo-tbl{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-.zo-tbl th{ position:sticky; top:0; z-index:1; background:var(--zo-s1); text-align:left; font:500 11px/13px var(--zo-font); color:var(--zo-t3); height:28px; padding:0 8px; border-bottom:1px solid var(--zo-hair); white-space:nowrap; }
-.zo-tbl td{ height:32px; padding:0 8px; border-bottom:1px solid var(--zo-hair); font-size:12px; color:var(--zo-t2); white-space:nowrap; }
+.zo-tbl{ width:100%; min-width:0; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+.zo-tbl tbody tr:hover{ background:transparent; }
+.zo-tbl thead th{ position:sticky; text-transform:none; letter-spacing:0; font-weight:500; top:0; z-index:1; background:var(--zo-s1); text-align:left; font:500 11px/13px var(--zo-font); color:var(--zo-t3); height:28px; padding:0 8px; border-bottom:1px solid var(--zo-hair); white-space:nowrap; }
+.zo-tbl tbody td{ height:32px; padding:0 8px; border-bottom:1px solid var(--zo-hair); font-size:12px; color:var(--zo-t2); white-space:nowrap; }
 .zo-tbl td.tk{ color:var(--zo-t1); font-weight:600; }
 .zo-tbl td.c{ color:var(--zo-mint); } .zo-tbl td.p{ color:var(--zo-red); }
 .zo-tbl .n{ text-align:right; }
@@ -172,7 +174,8 @@
 .zo-futcol[hidden]{ display:none; }
 
 /* range tiles */
-.zo-ranges{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.zo-ranges{ flex:1; display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:8px; }
+.zo-rg{ display:flex; flex-direction:column; justify-content:center; }
 .zo-rg{ padding:8px 10px; border-radius:8px; background:#000; min-width:0; }
 .zo-rg-h{ display:flex; justify-content:space-between; font-size:11px; line-height:13px; color:rgba(255,255,255,.56); }
 .zo-rg-v{ margin-top:4px; font:600 15px/20px var(--zo-mono); color:#eeeeee; white-space:nowrap; }
@@ -183,8 +186,8 @@
 .zo-rg.is-locked{ display:grid; place-items:center; color:rgba(255,255,255,.56); font-size:11px; text-align:center; min-height:72px; }
 
 /* iv rank */
-.zo-ivr{ display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:8px; }
-.zo-ivr > .zo-pb{ height:120px; }
+.zo-ivr{ flex:1; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:8px; }
+.zo-ivr > .zo-pb{ min-height:132px; }
 .zo-ivr-side{ display:flex; flex-direction:column; gap:6px; min-width:0; }
 .zo-stat{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
 .zo-stat span{ color:var(--zo-t3); font-size:11px; }
@@ -230,19 +233,19 @@
 
 /* ---- phone ----------------------------------------------------------------------------------------- */
 @media (max-width:760px){
-  .page-zo .dash-main.zo{ padding:76px 0 104px; }
+  .page-zo .dash-main.zo{ padding:0 0 104px; }
   .zo-app{ border:0; border-radius:0; background:transparent; overflow:visible; }
   .zo-bar{ top:var(--topbar-h); flex-wrap:wrap; height:auto; padding:8px 16px; row-gap:8px; }
   .zo-bar .zo-sp{ display:none; }
   .zo-syms{ order:3; width:100%; }
   .zo-syms button{ height:36px; }
-  .zo-search{ order:2; margin-left:auto; height:36px; }
-  .zo-search input{ width:64px; font-size:16px; }
+  .zo-search{ order:2; margin-left:auto; height:40px; }
+  .zo-zone{ order:6; margin-left:auto; }
+  .zo-search input{ width:56px; font-size:16px; }
   .zo-brand{ display:flex; }
   .zo-bar > .zo-seg{ order:4; width:100%; }
   .zo-bar > .zo-seg button{ flex:1; height:40px; font-size:13px; }
-  .zo-upd{ order:5; width:100%; justify-content:flex-start; }
-  .zo-zone{ order:1; }
+  .zo-upd{ order:5; }
   .zo-lvls{ grid-template-columns:1fr 1fr; }
   .zo-lv{ border-bottom:1px solid var(--zo-hair); }
   .zo-lv:nth-child(2n){ border-right:0; }
@@ -264,14 +267,18 @@
   .zo-greek-seg button{ flex:1; }
   .zo-gk3{ grid-template-columns:1fr; }
   .zo-gk3[data-show="dex"] .zo-gk:not([data-g="dex"]), .zo-gk3[data-show="vanna"] .zo-gk:not([data-g="vanna"]), .zo-gk3[data-show="charm"] .zo-gk:not([data-g="charm"]){ display:none; }
-  .zo-gk .zo-pb{ height:200px; }
-  .zo-tbl td{ height:48px; }
+  .zo-gk .zo-pb{ min-height:200px; }
+  .zo-tbl tbody td{ height:48px; }
   .zo-hide-s{ display:none; }
   .zo-list{ max-height:400px; }
   .zo-note #zo-note{ grid-template-columns:1fr; }
   .zo-edu{ border:0; padding:16px; }
   .zo-lockcard{ border-radius:16px; border:1px solid var(--zo-hair); }
-  .zo-tape-pause{ width:44px; }
+  .zo-tape{ height:44px; }
+  .zo-tape-track{ height:44px; }
+  .zo-tape-pause{ width:44px; height:44px; }
+  .zo-sel{ height:40px; }
+  .zo-upd{ height:20px; }
 }
 @media (max-width:380px){ .zo-ivr{ grid-template-columns:1fr; } }
 

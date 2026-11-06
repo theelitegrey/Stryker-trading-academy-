@@ -300,7 +300,7 @@
   // ---------- small charts ----------
   function gauge(c, v, o) {
     var g = cv(c), x = g.x, w = g.w, h = g.h, min = o.min || 0, max = o.max == null ? 100 : o.max;
-    var r = Math.min(w / 2 - 14, h - 26), cx = w / 2, cy = r + 10, sw = o.sw || 10;
+    var r = Math.min(w / 2 - 14, h - 36), cx = w / 2, cy = r + 12, sw = o.sw || 10;
     x.lineCap = 'round'; x.lineWidth = sw;
     x.strokeStyle = 'rgba(255,255,255,.1)'; x.beginPath(); x.arc(cx, cy, r, Math.PI, 2 * Math.PI); x.stroke();
     var f = Math.max(.001, Math.min(1, (v - min) / (max - min)) * (o.grow == null ? 1 : o.grow));
@@ -683,6 +683,7 @@
   }
   function loadActivity() {
     // the tape and the burst / fresh lists follow the market-wide feed; the Most active table is index-view data
+    get('note', {}).then(function (d) { paintNote(d && !d.locked ? d : null); });
     get('activity', { u: 'all', kind: 'burst' }).then(function (d) { if (d && !d.locked) { paintTape(d); if (!st.free) paintBursts(d); } else paintTape(null); });
     if (st.free) return;
     get('activity', { u: 'all', kind: 'fresh' }).then(function (d) { if (d && !d.locked) paintFresh(d); });

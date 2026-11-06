@@ -90,7 +90,7 @@ def summary(u, mapped=None):
         skew.append({'exp': e, 'dte': d, 'pc25': rnd(3.4 - .25 * math.log(d + 1)),
                      'smile': {'m': m, 'iv': [rnd(base + (-0.55 if mm < 0 else -0.12) * mm * (1.2 - .05 * math.log(d + 1)) + .02 * mm * mm) for mm in m]}})
     tdte = [0, 1, 3, 7, 14, 21, 30, 45, 60, 90, 120]
-    atm = [rnd(iv30 * (1.18 - .22 * math.log(d + 2) / math.log(122) + (.3 if d == 0 else 0))) for d in tdte]
+    atm = [rnd(iv30 * (1.18 - .22 * math.log(d + 2) / math.log(122) + (.06 if d == 0 else 0))) for d in tdte]
     atm5 = [rnd(a - .9 + .006 * d) for a, d in zip(atm, tdte)]
     iv30h = year[-60:]
     rv20 = [rnd(v * .8 + R.uniform(-1.4, 1.4)) for v in iv30h]
@@ -189,8 +189,7 @@ def activity(kind, u='all'):
     return {'v': 1, 'u': u, 'kind': kind, 'built': BUILT, 'rows': rows}
 
 
-def note():
-    s = summary('SPX')
+def note(s):
     L = s['levels']
     return {'v': 1, 'day': DAY, 'kind': 'close', 'built': BUILT, 'ok': True, 'sections': [
         {'u': 'SPX', 'lines': [
@@ -224,5 +223,5 @@ w('screen', screen())
 w('cme-ES', {'v': 1, 'root': 'ES', 'built': BUILT,
              'cme': {'ceiling': 6950, 'floor': 6800, 'flip': 6866, 'built': BUILT - 3 * 3600},
              'mapped': {'ceiling': 6925, 'floor': 6775, 'flip': 6851, 'built': BUILT, 'from': 'SPX'}})
-w('note', note())
+w('note', note(json.load(open(os.path.join(OUT, 'summary-SPX.json')))))
 print('wrote', len(os.listdir(OUT)), 'files to', OUT)

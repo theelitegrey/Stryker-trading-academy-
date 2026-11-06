@@ -1,0 +1,23 @@
+[Unit]
+Description=TradeZoro ZoroOptions feeder: Cboe option chains (+ InsightSentry CME 3x a day) -> /zo-ingest on the book recorder Worker (one run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# recorder URL + shared ingest secret, and the InsightSentry key (both files mode 0600; never logged)
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/zoro_feeder.py
+# <= 13 Cboe pulls a run, 2.5 s apart (~45 s), + 15 IS calls at the 3 CME slots. A run still going when the timer fires
+# again simply skips that tick (oneshot), so pulls never overlap.
+TimeoutStartSec=170
+MemoryMax=200M
+CPUQuota=60%
+Nice=10
+StateDirectory=zoro-feeder
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=zoro-feeder

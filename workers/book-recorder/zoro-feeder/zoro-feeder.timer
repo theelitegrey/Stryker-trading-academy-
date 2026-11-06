@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the TradeZoro ZoroOptions feeder every minute (the script itself only works weekdays 09:30-16:15 ET + 16:30-16:44 ET)
+
+[Timer]
+OnBootSec=120s
+# second 25: after gex-feeder (:05, ~5 s) so the two never pull Cboe at the same moment
+OnCalendar=*:*:25
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

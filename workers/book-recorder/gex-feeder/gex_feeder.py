@@ -362,9 +362,13 @@ def snapshot(near, dte, u, now_epoch):
 
 
 def fetch(sym):
-    req = urllib.request.Request(CBOE + sym + '.json', headers={'User-Agent': UA, 'Accept': 'application/json'})
+    # gzip on the wire (2026-11-06): SPX 13.9 MB -> 1.8 MB, AAPL 1.55 MB -> 0.22 MB per pull
+    req = urllib.request.Request(CBOE + sym + '.json', headers={'User-Agent': UA, 'Accept': 'application/json', 'Accept-Encoding': 'gzip'})
     with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as r:
-        return r.read()
+        raw = r.read()
+        if r.headers.get('Content-Encoding') == 'gzip' or raw[:2] == b'\x1f\x8b':
+            raw = gzip.decompress(raw)
+        return raw
 
 
 def post(url, key, sym, part, body):

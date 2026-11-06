@@ -62,6 +62,8 @@ jobs:
           python3 workers/book-recorder/test/gex_fast_test.py
       - name: ZoroTide tests (volume-diff premium maths, bought/sold bands, baselines, ingest validation)
         run: python3 workers/book-recorder/test/tide_test.py
+      - name: ZoroOptions feeder tests (levels parity with GEX+, vanna / charm, bursts, fresh volume, OI change, schedule)
+        run: python3 workers/book-recorder/test/zoro_feeder_test.py
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -1,0 +1,64 @@
+{
+ "_fixture": "Sample. Computed by zoro_feeder.py from saved Cboe chains of 2026-11-06 (and one InsightSentry ES chain). Not for display.",
+ "v": 1,
+ "t": 1793981964,
+ "built": 1793981994,
+ "rows": [
+  {
+   "u": "AAPL",
+   "tier": "B",
+   "t": 1793981960,
+   "ivr": 66.4,
+   "ivp": 71.8,
+   "iv30": 25.89,
+   "iv30_chg": -0.78,
+   "range_w_pct": 0.873,
+   "opt_vol": 670462,
+   "fresh_n": 38,
+   "pc_vol": 0.791,
+   "zone": "cushion"
+  },
+  {
+   "u": "IWM",
+   "tier": "A",
+   "t": 1793981174,
+   "ivr": 41.4,
+   "ivp": 75.4,
+   "iv30": 21.44,
+   "iv30_chg": -3.42,
+   "range_w_pct": 0.721,
+   "opt_vol": 666955,
+   "fresh_n": 44,
+   "pc_vol": 1.267,
+   "zone": "swing"
+  },
+  {
+   "u": "SPX",
+   "tier": "A",
+   "t": 1793981964,
+   "ivr": 60.0,
+   "ivp": 91.3,
+   "iv30": 18.61,
+   "iv30_chg": -2.66,
+   "range_w_pct": 0.656,
+   "opt_vol": 1447027,
+   "fresh_n": 179,
+   "pc_vol": 0.962,
+   "zone": "swing"
+  },
+  {
+   "u": "USO",
+   "tier": "A",
+   "t": 1793981150,
+   "ivr": 32.9,
+   "ivp": 63.1,
+   "iv30": 53.79,
+   "iv30_chg": -1.46,
+   "range_w_pct": 1.091,
+   "opt_vol": 37751,
+   "fresh_n": 8,
+   "pc_vol": 0.666,
+   "zone": "cushion"
+  }
+ ]
+}

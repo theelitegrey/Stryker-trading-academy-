@@ -43,6 +43,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 HEALTH = os.environ.get('ALERT_HEALTH', os.path.join(HERE, 'health.json'))
 OF_STATE = os.environ.get('OF_STATE', '/root/projects/book-feeder/of-state.json')
 IS_WS = 'wss://realtime.insightsentry.com/live'
+# stream.binance.com answers HTTP 451 (region block) here; Binance's official public market-data-only stream serves the
+# same spot @trade messages.
+BINANCE_WS = os.environ.get('BINANCE_WS', 'wss://data-stream.binance.vision/ws')
 SYNC_EVERY = 30
 FULL_EVERY = 1800
 HEARTBEAT_EVERY = 60
@@ -157,7 +160,7 @@ def binance_reader():
     while True:
         ws = None
         try:
-            ws = wsmini.WS('wss://stream.binance.com:9443/ws', timeout=30)
+            ws = wsmini.WS(BINANCE_WS, timeout=30)
             have = set()
             ws.s.settimeout(5)
             opened = time.time()
@@ -379,8 +382,9 @@ def zget(path):
 
 
 def zoro_load():
-    res = fs.run_query({'from': [{'collectionId': 'zoroAlerts', 'allDescendants': True}],
-                        'where': {'fieldFilter': {'field': {'fieldPath': 'active'}, 'op': 'EQUAL', 'value': {'booleanValue': True}}}})
+    # shortcut: no where-clause (an active==true collection-group filter on zoroAlerts needs a single-field index exemption
+    # that does not exist: HTTP 400). parse_zoro_alert drops inactive docs; add the exemption once zoroAlerts grows large.
+    res = fs.run_query({'from': [{'collectionId': 'zoroAlerts', 'allDescendants': True}]})
     out = []
     for x in res:
         d = x.get('document')

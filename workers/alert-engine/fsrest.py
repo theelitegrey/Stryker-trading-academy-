@@ -5,7 +5,10 @@ import json, os, time, urllib.request, urllib.error, urllib.parse
 
 PROJECT = 'strykertrades-e0cd8'
 DB = 'projects/%s/databases/(default)/documents' % PROJECT
-FS = 'https://firestore.googleapis.com/v1/' + DB
+# The global host (firestore.googleapis.com) answers 403 HTML to this server's IP since the Nov 2026 host move; Google's
+# official regional endpoint for the nam5/us multi-region serves the same database and accepts our token.
+HOST = os.environ.get('FIRESTORE_HOST', 'firestore.us.rep.googleapis.com')
+FS = 'https://%s/v1/' % HOST + DB
 CLIENT_ID = '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com'
 CLIENT_SECRET = 'j9iVZfS8kkCEFUPaAeJV0sAi'
 CFG = os.environ.get('FIREBASE_TOOLS_CONFIG', '/root/.config/configstore/firebase-tools.json')

@@ -67,9 +67,82 @@
     return route;
   }
   function apiUrl(route, q) {
+    // ?fixture=s1 reads the feeder's own sample (stream 1, tools/fixtures/zoro, SPX only)
+    if (FIXTURE && Q.get('fixture') === 's1') return '/tools/fixtures/zoro/' + route + (route === 'profile' && q.x === 'all' ? '-all' : route === 'surface' && q.kind === 'iv' ? '-iv' : route === 'activity' && q.kind !== 'burst' ? '-' + q.kind : route === 'summary' && q.u === 'AAPL' ? '-AAPL' : '') + '.json';
     if (FIXTURE) return '/tools/tests/fixtures/zoro/' + fixName(route, q) + '.json';
-    var p = new URLSearchParams(); Object.keys(q || {}).forEach(function (k) { if (q[k] != null && q[k] !== '') p.set(k, q[k]); });
+    var p = new URLSearchParams(); Object.keys(q || {}).forEach(function (k) { if (k !== 'as' && q[k] != null && q[k] !== '') p.set(k, q[k]); });
     return '/api/zo/' + route + (p.toString() ? '?' + p : '');
+  }
+
+  // ---------- norm(route, q, d): one shape for the page ----------
+  // Accepts the feeder contract (stream 1, tools/fixtures/zoro: levels[mode].cw/pw/zg, $M units, row arrays) and the page
+  // shape (levels.ceiling/floor/flip, $ units). Missing parts stay missing; panels then say "Not available".
+  function cols(d) { var o = {}; (d.cols || []).forEach(function (c, i) { o[c] = d.rows.map(function (r) { return r[i]; }); }); return o; }
+  var M6 = function (v) { return fin(v) ? v * 1e6 : v; };
+  function dteOf(day, exp) { var a = Date.parse(day + 'T12:00:00Z'), b = Date.parse(exp + 'T12:00:00Z'); return isNaN(a) || isNaN(b) ? null : Math.max(0, Math.round((b - a) / 864e5)); }
+  function fillNull(z) { return z.map(function (r) { var last = null; var o = r.map(function (v) { if (fin(v)) last = v; return fin(v) ? v : last; }); var nx = null; for (var i = o.length - 1; i >= 0; i--) { if (fin(o[i])) nx = o[i]; else o[i] = nx; } return o; }); }
+  function norm(route, q, d) {
+    if (!d || d.locked || typeof d !== 'object') return d;
+    if (d.t && !d.built) d.built = d.t;
+    if (route === 'summary' && d.levels && 'call_ceiling' in d.levels) {
+      // feeder contract: levels.{call_ceiling,put_floor,flip_line,pin,net $M}, nodes [{k,g $M,share 0-1}], ranges {key:[lo,hi]}
+      if (q.as) q = { u: q.as };
+      var L = d.levels, day = d.day || '', F = FUT_FROM[q.u] && d.fut && d.u !== q.u ? d.fut : null, sp = d.spot;
+      var lv = F || L;
+      d.netGex = M6(L.net); d.chgPct = d.chg_pct;
+      d.levels = { ceiling: lv.call_ceiling, floor: lv.put_floor, flip: lv.flip_line, pin: lv.pin,
+        nodes: (d.nodes || []).map(function (n) { return { k: n.k, gex: M6(n.g), share: n.share * 100 }; }) };
+      var R = {}, RI = d.range_info || {}, RS = (F && F.ranges) || d.ranges || {};
+      Object.keys(RS).forEach(function (k) { var r = RS[k]; if (Array.isArray(r)) R[k] = { lo: r[0], hi: r[1], pct: (RI[k] || {}).pct }; });
+      d.range = R;
+      var iv = d.iv || {};
+      d.iv = { iv30: iv.iv30, chg: iv.iv30_chg, rank: iv.rank, pctl: iv.pct, rankSrc: iv.rank_src, rv20: iv.rv20, year: iv.v || [] };
+      if (Array.isArray(d.term)) {
+        d.term0 = d.term;
+        d.term = { dte: d.term.map(function (r) { return Math.round(r[1]); }), atm: d.term.map(function (r) { return r[2] * 100; }),
+          atm5: Array.isArray(d.term5) && d.term5.length === d.term0.length ? d.term5.map(function (r) { return r[2] * 100; }) : null };
+      }
+      if (d.pc) d.pc = { vol: d.pc.volume, oi: d.pc.oi, vol0: d.pc.volume_0, oi0: d.pc.oi_0, hist: (d.pc.hist || []).map(function (r) { return r[1]; }) };
+      if (Array.isArray(d.pin)) d.pins = d.pin.map(function (r) { return { exp: r[0], k: F ? r[1] * F.ratio : r[1], dte: dteOf(day, r[0]) }; });
+      if (F) { d.mapped = { root: F.root, from: F.from || d.u, ratio: F.ratio }; d.spot = F.price || sp * F.ratio; d.u = q.u; }
+    }
+    if (route === 'profile' && d.rows && d.cols) {
+      var c = cols(d), oc = {};
+      (d.oi_chg || []).forEach(function (r) { oc[r[0]] = r; });
+      Object.assign(d, { x: d.x || d.mode, k: c.k, gex: c.gex.map(M6), dex: c.dex.map(M6), vanna: c.vanna.map(M6), charm: c.charm.map(M6), cv: c.cvol, pv: c.pvol, coi: c.coi, poi: c.poi,
+        dcoi: d.oi_chg ? c.k.map(function (k) { return oc[k] ? oc[k][1] : 0; }) : null, dpoi: d.oi_chg ? c.k.map(function (k) { return oc[k] ? oc[k][2] : 0; }) : null });
+      d.tot = {}; ['gex', 'dex', 'vanna', 'charm'].forEach(function (g) { d.tot[g] = d[g].reduce(function (a, v) { return a + (v || 0); }, 0); });
+    }
+    if (route === 'history' && d.snaps && !d.frames) {
+      var K = (d.snaps[0] || {}).k || [];
+      d.k = K; d.step = d.step_s || 120;
+      d.frames = d.snaps.map(function (f) { var m = {}; (f.k || []).forEach(function (k, i) { m[k] = f.g[i]; }); return { t: f.t, spot: f.s, ceiling: f.cw, floor: f.pw, flip: f.zg, gex: K.map(function (k) { return M6(m[k] || 0); }) }; });
+    }
+    if (route === 'surface') {
+      if (d.gamma || d.iv) { var one = d[q.kind]; if (!one) return null; one.built = d.built; one.u = d.u; d = one; }
+      if (d.kind === 'gamma' && d.k) d = { kind: 'gamma', built: d.built, x: d.k, y: d.x.map(function (e) { return dteOf(d.x[0], e); }), z: fillNull(d.z) };
+      else if (d.kind === 'iv' && d.m) d = { kind: 'iv', built: d.built, x: d.m.map(function (m) { return Math.round((m - 1) * 1000) / 10; }), y: d.days, exp: d.x, z: fillNull(d.z).map(function (r) { return r.map(function (v) { return fin(v) ? v * 100 : v; }); }) };
+    }
+    if (route === 'activity' && (!d.rows || (d.rows[0] && !('cp' in d.rows[0])))) {
+      var raw = d.rows || d[q.kind] || [];
+      d.rows = raw.map(function (r) { return { u: r.u || d.u, cp: r.cp || r.side, k: r.k, exp: r.exp || r.x, vol: r.vol != null ? r.vol : r.opt_vol, oi: r.oi, add: r.add != null ? r.add : r.dv, prem: r.prem,
+        t0: fin(r.t0) ? etTime(r.t0) : r.t0, t1: fin(r.t1) ? etTime(r.t1) : r.t1, pc: r.pc != null ? r.pc : r.pc_vol, fresh: r.fresh != null ? r.fresh : r.fresh_n }; });
+    }
+    if (route === 'screen' && d.rows) d.rows = d.rows.map(function (r) { return { u: r.u, ivr: r.ivr, iv30: r.iv30, ivChg: r.ivChg != null ? r.ivChg : r.iv30_chg, rangePct: r.rangePct != null ? r.rangePct : r.range_w_pct, vol: r.vol != null ? r.vol : r.opt_vol, pc: r.pc != null ? r.pc : r.pc_vol, fresh: r.fresh != null ? r.fresh : r.fresh_n }; });
+    if (route === 'cme' && !d.cme && d.levels) {
+      if (d.ok === false) return null;
+      var mp = d.mapped || {};
+      d = { root: d.root, built: d.t, cme: { ceiling: d.levels.call_ceiling, floor: d.levels.put_floor, flip: d.levels.flip_line, built: d.t },
+        mapped: { ceiling: mp.call_ceiling, floor: mp.put_floor, flip: mp.flip_line, built: mp.t, from: mp.from } };
+    }
+    if (route === 'note' && !d.sections) {
+      d.sections = d.items || (d.teaser ? [{ u: 'SPX', lines: d.teaser }] : null);
+    }
+    if (route === 'note' && d.sections) {
+      d.sections = d.sections.map(function (s) { return { u: s.u || s.sym || s.title, lines: s.lines || [] }; });
+      if (d.stocks && d.stocks.lines) d.sections.push({ u: d.stocks.title || 'Stocks', lines: d.stocks.lines });
+    }
+    return d;
   }
   // get(route, q) -> data | {locked:true} | null (failed). Fixture mode falls back to the SPX / NVDA sample file.
   function get(route, q) {
@@ -83,7 +156,7 @@
         return get(route, alt).then(function (d) { if (d && !d.locked) { d = JSON.parse(JSON.stringify(d)); d.u = q.u; } return d; });
       }
       if (!r.ok) return null;
-      return r.json();
+      return r.json().then(function (d) { return norm(route, q, d); });
     }).then(function (d) { if (d && !d.locked) st.cache[key] = { at: Date.now(), d: d }; return d; }).catch(function () { return null; });
   }
 
@@ -520,23 +593,28 @@
   }
   function paintIV(first) {
     var iv = st.sum && st.sum.iv; if (!iv) return;
-    $('zo-iv30').textContent = '30-day IV ' + num(iv.iv30, 1);
+    $('zo-iv30').textContent = '30-day IV ' + num(iv.iv30, 1) + (iv.rankSrc && iv.rankSrc !== st.u ? ' · rank from ' + iv.rankSrc : '');
+    if (!fin(iv.rank)) { emptyCanvas('zo-ivr', 'Rank after 60 days of history'); $('zo-pctl').textContent = '–'; if (iv.year && iv.year.length) spark($('zo-ivspark'), iv.year, C.teal, 1); return paintIVRV(iv); }
     tween(first ? 250 : 0, function (e) {
       gauge($('zo-ivr'), iv.rank, { color: C.teal, fmt: function (v) { return Math.round(v); }, lo: 'Low', hi: 'High', grow: e });
       $('zo-pctl').textContent = Math.round(iv.pctl * e);
       if (iv.year) spark($('zo-ivspark'), iv.year, C.teal, e);
     });
+    paintIVRV(iv);
+  }
+  function paintIVRV(iv) {
+    if (!st.free && fin(iv.rv20) && fin(iv.iv30)) { var c = $('zo-ivrv'), g = cv(c), d = iv.iv30 - iv.rv20; txt(g.x, 'IV ' + num(iv.iv30, 1) + '  vs  realised ' + num(iv.rv20, 1) + ' (20 days)', g.w / 2, g.h / 2 - 10, C.ink, 'center', '13px ' + MONO); txt(g.x, 'gap ' + (d > 0 ? '+' : '') + num(d, 1) + ' points', g.w / 2, g.h / 2 + 12, d > 0 ? C.flip : C.teal, 'center', '12px ' + MONO); return; }
     if (!st.free && iv.iv30h && iv.rv20) lines($('zo-ivrv'), iv.iv30h.map(function (_, i) { return i - iv.iv30h.length + 1; }), [{ ys: iv.iv30h, color: C.teal }, { ys: iv.rv20, color: C.flip }], { fill: true, xfmt: function (v) { return v === 0 ? 'today' : v + 'd'; } });
   }
   var skewShown = null;
   function paintSkew(animate) {
     var sk = st.sum && st.sum.skew; if (!sk || !sk.length || st.free) return;
     var sel = $('zo-skew-exp');
-    if (sel.options.length !== sk.length || sel.dataset.u !== st.u) { sel.innerHTML = sk.map(function (e, i) { return '<option value="' + i + '">' + esc(shortDate(e.exp)) + ' · ' + e.dte + 'd</option>'; }).join(''); sel.dataset.u = st.u; st.skewI = Math.min(st.skewI, sk.length - 1); sel.value = st.skewI; }
+    if (sel.options.length !== sk.length || sel.dataset.u !== st.u) { sel.innerHTML = sk.map(function (e, i) { return '<option value="' + i + '">' + esc(shortDate(e.exp)) + ' · ' + e.dte + 'd</option>'; }).join(''); sel.dataset.u = st.u; st.skewI = sk.reduce(function (b, e, i) { return Math.abs(e.dte - 30) < Math.abs(sk[b].dte - 30) ? i : b; }, 0); sel.value = st.skewI; }
     var e = sk[st.skewI], to = e.smile.iv, from = animate && skewShown && skewShown.length === to.length ? skewShown : to;
     tween(animate ? 200 : 0, function (t) { lines($('zo-skew'), e.smile.m, [{ ys: to.map(function (v, i) { return lerp(from[i], v, t); }), color: C.teal, area: true, dots: true }], { zeroX: 0, xfmt: function (v) { return (v > 0 ? '+' : '') + v + '%'; } }); });
     skewShown = to;
-    $('zo-rr').textContent = '25-delta put minus call IV: ' + (e.pc25 >= 0 ? '+' : '') + num(e.pc25, 1) + ' points (' + shortDate(e.exp) + ').';
+    $('zo-rr').textContent = fin(e.pc25) ? '25-delta put minus call IV: ' + (e.pc25 >= 0 ? '+' : '') + num(e.pc25, 1) + ' points (' + shortDate(e.exp) + ').' : '';
   }
   function paintTerm() {
     var t = st.sum && st.sum.term; if (!t || st.free) return;
@@ -653,12 +731,19 @@
   function load() {
     var seq = ++st.seq, u = st.u, first = st.first; st.first = false;
     qa('.zo-u').forEach(function (e) { e.textContent = '· ' + u; });
-    get('summary', { u: u, basis: st.basis }).then(function (s) {
+    get('summary', { u: u, basis: st.basis }).then(function (s) { return s || !FUT_FROM[u] ? s : get('summary', { u: FUT_FROM[u], basis: st.basis, as: u }); }).then(function (s) {
       if (seq !== st.seq) return;
       if (!s || s.locked) { st.sum = null; paintUpd(); if (s && s.locked && !st.free) { st.free = true; applyFree(); } emptyCanvas('zo-prof', s && s.locked ? 'Part of Pro' : 'No data for ' + u + ' yet.'); return; }
       st.sum = s; st.sample = st.sample || !!s.sample;
       paintUpd(); paintLevels(first); paintRanges(); paintIV(first); paintPC(first); paintPin();
       if (!st.free) { paintSkew(false); paintTerm(); paintNodes(); }
+      if (!st.free && !s.skew) get('surface', { u: u, kind: 'iv' }).then(function (d) {
+        if (seq !== st.seq || !d || d.locked || !d.z) return;
+        var T = s.term0 || [];
+        s.skew = d.z.map(function (row, j) { var e = (d.exp || [])[j], tr = T.filter(function (r) { return r[0] === e; })[0];
+          return { exp: e, dte: d.y[j], pc25: tr && fin(tr[3]) && fin(tr[4]) ? (tr[3] - tr[4]) * 100 : null, smile: { m: d.x, iv: row } }; }).filter(function (e) { return e.exp && e.smile.iv.every(fin); }).slice(0, 12);
+        paintSkew(false);
+      });
       var fut = FUT_FROM[u] ? u : null;
       if (fut && !st.free) get('cme', { root: fut }).then(function (d) { if (seq === st.seq) paintCME(d && !d.locked ? d : null); }); else paintCME(null);
       loadProfile(first);

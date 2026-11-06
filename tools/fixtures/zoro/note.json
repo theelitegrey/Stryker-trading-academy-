@@ -1,0 +1,22 @@
+{
+ "_fixture": "Sample. Computed by zoro_feeder.py from saved Cboe chains of 2026-11-06 (and one InsightSentry ES chain). Not for display.",
+ "v": 1,
+ "day": "2026-11-06",
+ "kind": "morning",
+ "ok": true,
+ "built": 1793982594,
+ "title": "Zoro Morning Note",
+ "footer": "Education only. Not financial advice.",
+ "_note": "shape only; stream 5 owns the note (S5 contract)",
+ "sections": [
+  {
+   "sym": "SPX",
+   "title": "SPX",
+   "lines": [
+    "SPX: Call Ceiling 7450, Put Floor 7400, Flip Line 7514.56 (Swing zone).",
+    "0DTE Zoro Range 7355.87-7453.07.",
+    "Put/call by volume 0.962."
+   ]
+  }
+ ]
+}

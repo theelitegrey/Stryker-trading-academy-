@@ -38,7 +38,7 @@ async function open(b, o) {
   const errors = [];
   p.on('pageerror', (e) => errors.push(String(e)));
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|Failed to load resource/.test(m.text())) errors.push(m.text()); });
-  await p.goto(BASE + '/zoro-options.html?fixture=1' + (o.shot ? '&shot' : ''), { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + '/zoro-options.html?fixture=' + (o.s1 ? 's1' : '1') + (o.shot ? '&shot' : ''), { waitUntil: 'domcontentloaded' });
   await sleep(o.wait || 3000);
   return { ctx, p, errors, ext };
 }
@@ -146,6 +146,25 @@ async function pro(b, tag, o) {
       const anim = await rm.p.evaluate(() => getComputedStyle(document.getElementById('zo-tape-track')).animationName);
       check(anim === 'none', 'reduced motion: tape does not scroll (' + anim + ')');
       await rm.ctx.close();
+    }
+    if (!ONLY || ONLY === 's1') {
+      // the feeder's own sample (stream 1 contract, tools/fixtures/zoro): every panel must read it through norm()
+      const S1 = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'zoro', 'summary.json')));
+      const { ctx, p, errors } = await open(b, { w: 1440, h: 1000, s1: true, shot: true, wait: 4000 });
+      const lv = await p.evaluate(() => [...document.querySelectorAll('#zo-lvls .zo-lv b')].map((e) => e.textContent));
+      check(lv[0] === S1.levels.call_ceiling.toLocaleString('en-US') && lv[1] === S1.levels.put_floor.toLocaleString('en-US') && lv[4] === S1.levels.pin.toLocaleString('en-US'), 's1: levels from the feeder sample ' + lv.join(' | '));
+      for (const id of ['zo-prof', 'zo-ivr', 'zo-term', 'zo-pc', 'zo-volk', 'zo-ivspark']) { const n = await painted(p, id); check(n > 20, 's1: ' + id + ' painted (' + n + ')'); }
+      await p.waitForFunction(() => document.querySelectorAll('#zo-skew-exp option').length > 0, null, { timeout: 8000 }).catch(() => {});
+      check(await painted(p, 'zo-skew') > 20, 's1: skew from the IV surface');
+      const rows = await p.evaluate(() => ({ nodes: document.querySelectorAll('#zo-nodes tr').length, burst: document.querySelectorAll('#zo-burst tr').length, screen: document.querySelectorAll('#zo-screen tr').length, note: document.querySelectorAll('#zo-note h4').length, replay: !document.getElementById('zo-replay').hidden }));
+      check(rows.nodes === 10 && rows.burst >= 1 && rows.screen === 4 && rows.note >= 1 && rows.replay, 's1: rows ' + JSON.stringify(rows));
+      await p.evaluate(() => document.getElementById('zo-gsurf').scrollIntoView({ block: 'center' }));
+      await p.waitForFunction(() => document.getElementById('zo-gsurf').dataset.ready === '1' || document.getElementById('zo-gsurf').classList.contains('is-heat'), null, { timeout: 15000 }).catch(() => {});
+      check(await p.evaluate(() => document.getElementById('zo-gsurf').dataset.ready === '1' || document.getElementById('zo-gsurf').classList.contains('is-heat')), 's1: gamma surface drawn');
+      check(!errors.length, 's1: no page errors ' + errors.slice(0, 3).join(' / '));
+      await p.evaluate(() => window.scrollTo(0, 0));
+      await shot(p, 'S3-s1-1440-full.png', true);
+      await ctx.close();
     }
     for (const [tag, o] of [['1440-free', { w: 1440, h: 1000, free: true }], ['390-free', { w: 390, h: 844, mobile: true, free: true }]]) {
       if (ONLY && ONLY !== tag) continue;

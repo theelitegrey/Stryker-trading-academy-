@@ -18,7 +18,18 @@ export const ZO_CME_ROOTS = ['ES', 'NQ', 'RTY', 'GC', 'CL'];
 // size caps (gzip body bytes) per route; unpacked cap is ZO_MAX_RAW
 export const ZO_MAX_GZ = { summary: 32 * 1024, profile: 128 * 1024, surface: 256 * 1024, activity: 96 * 1024, screen: 128 * 1024, cme: 128 * 1024, note: 32 * 1024 };
 export const ZO_MAX_RAW = 3 * 1024 * 1024;
-const HIST_ROW_MAX = 8 * 1024;       // a summary bigger than this is stored as "latest" only, not appended to history
+const HIST_ROW_MAX = 8 * 1024;       // a slimmed summary bigger than this is stored as "latest" only, not appended to history
+// fields left out of the history copy (daily or latest-only data; S1 request 3): keeps SPX at ~4 KB instead of ~12 KB
+const HIST_DROP = ['fresh_top', 'burst_top', 'term', 'term5', 'levels_full', 'range_info', '_fixture'];
+export function zoSlim(d) {
+  const o = {};
+  for (const k of Object.keys(d)) if (!HIST_DROP.includes(k)) o[k] = d[k];
+  if (d.iv && typeof d.iv === 'object') { o.iv = Object.assign({}, d.iv); delete o.iv.t; delete o.iv.v; }
+  return o;
+}
+export const ZO_NOTE_KINDS = ['morning', 'close'];
+export const ZO_ACT_KEEP_S = 8 * 86400;   // activity marks: 5 sessions (+ weekend)
+export const ZO_HIST_MAX_SPAN = 31 * 86400;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const STOCK_RE = /^[A-Z]{1,5}(\.[A-Z])?$/;
 
@@ -38,7 +49,11 @@ export function zoIngestKey(route, q) {
   const g = (k) => String(q.get ? q.get(k) || '' : q[k] || '');
   if (!ZO_INGEST_ROUTES.includes(route)) return { error: 'bad route' };
   if (route === 'screen') return { route, u: '*', sub: '' };
-  if (route === 'note') { const day = g('day'); return DAY_RE.test(day) ? { route, u: '*', sub: day } : { error: 'bad day' }; }
+  if (route === 'note') {
+    const day = g('day'), kind = g('kind') || 'morning';
+    if (!ZO_NOTE_KINDS.includes(kind)) return { error: 'bad kind' };
+    return DAY_RE.test(day) ? { route, u: '*', sub: day + ':' + kind } : { error: 'bad day' };
+  }
   if (route === 'cme') { const r = g('root').toUpperCase(); return ZO_CME_ROOTS.includes(r) ? { route, u: r, sub: '' } : { error: 'bad root' }; }
   const u = g('u').toUpperCase();
   if (route === 'activity') {
@@ -86,25 +101,36 @@ export function teaserEligible(route, q) {
 const pick = (o, keys) => { const r = {}; for (const k of keys) if (o[k] !== undefined) r[k] = o[k]; return r; };
 // Allow-lists (fail closed: a field the lists do not name is NOT shown to Free, so a new Pro field never leaks by default).
 // Names follow the feeder contract (tools/fixtures/zoro/*.json); adjust here if the fixture differs.
-const TEASER_SUMMARY = ['v', 'u', 'built', 't', 'tier', 'spot', 'chg', 'chg_pct', 'zone', 'levels', 'iv', 'pc', 'src'];
-const TEASER_RANGES = ['0dte', 'weekly'];          // panel 3.1 teaser: 0DTE + weekly
+const TEASER_SUMMARY = ['v', 'u', 'built', 't', 'day', 'tier', 'spot', 'chg', 'chg_pct', 'zone', 'levels', 'pc', 'src', 'close'];
+const TEASER_RANGES = ['0', 'w'];                  // panel 3.1 teaser: 0DTE + weekly (feeder keys '0','1','w','m')
+const TEASER_IV = ['rank', 'pct', 'rank_src', 'iv30', 'iv30_chg', 't', 'v'];   // 3.2: rank, percentile, IV30, 1-year sparkline
 const TEASER_PROFILE = ['v', 'u', 'x', 'built', 't', 'spot', 'expiry', 'k', 'gex', 'vol', 'cw', 'pw', 'zg'];   // 2.1 + 4.1; no dex / vanna / charm / oi / nodes
+const TEASER_PROFILE_COLS = ['k', 'gex', 'cvol', 'pvol'];   // per-strike columns Free may see (4.1 needs calls and puts apart)
 export function zoTeaser(route, d) {
   if (!d || typeof d !== 'object') return null;
   if (route === 'summary') {
     const o = pick(d, TEASER_SUMMARY);
     if (d.ranges && typeof d.ranges === 'object') o.ranges = pick(d.ranges, TEASER_RANGES);
+    if (d.range_info && typeof d.range_info === 'object') o.range_info = pick(d.range_info, TEASER_RANGES);
     if (d.pin !== undefined) o.pin = Array.isArray(d.pin) ? d.pin.slice(0, 1) : d.pin && d.pin.next ? { next: d.pin.next } : undefined;   // 4.7: next expiry only
-    if (d.iv && typeof d.iv === 'object') o.iv = pick(d.iv, ['rank', 'pct', 'iv30', 'spark']);
+    if (d.iv && typeof d.iv === 'object') o.iv = pick(d.iv, TEASER_IV);
     o.teaser = true;
     return o;
   }
-  if (route === 'profile') return Object.assign(pick(d, TEASER_PROFILE), { teaser: true });
+  if (route === 'profile') {
+    const o = Object.assign(pick(d, TEASER_PROFILE), { teaser: true });
+    if (Array.isArray(d.cols) && Array.isArray(d.rows)) {
+      const ix = TEASER_PROFILE_COLS.map((c) => d.cols.indexOf(c));
+      if (ix.every((i) => i >= 0)) { o.cols = TEASER_PROFILE_COLS.slice(); o.rows = d.rows.map((r) => ix.map((i) => r[i])); }
+    }
+    return o;
+  }
   if (route === 'note') {
-    // 5.1: the first 3 SPX lines. Accepts {items:[{u,lines}]} or {spx:[lines]}; anything else shows no lines.
+    // 5.1: S5 note {day, kind, ok, title, teaser:[3 SPX lines], footer, sections...}; Free gets only the head + teaser lines.
+    const sec = Array.isArray(d.sections) ? d.sections.find((i) => i && (i.sym || i.u) === 'SPX') : null;
     const it = Array.isArray(d.items) ? d.items.find((i) => i && i.u === 'SPX') : null;
-    const lines = it && Array.isArray(it.lines) ? it.lines : Array.isArray(d.spx) ? d.spx : [];
-    return { v: d.v, day: d.day, built: d.built, teaser: true, items: [{ u: 'SPX', lines: lines.slice(0, 3).map(String) }] };
+    const lines = Array.isArray(d.teaser) ? d.teaser : sec && Array.isArray(sec.lines) ? sec.lines : it && Array.isArray(it.lines) ? it.lines : [];
+    return { v: d.v, day: d.day, kind: d.kind, ok: d.ok, built: d.built, title: d.title, footer: d.footer, teaser: lines.slice(0, 3).map(String) };
   }
   return null;
 }
@@ -174,13 +200,22 @@ export function zoInit(sql) {
   sql.exec(`CREATE TABLE IF NOT EXISTS zo (route TEXT NOT NULL, u TEXT NOT NULL, sub TEXT NOT NULL, t INTEGER NOT NULL, gz BLOB NOT NULL, PRIMARY KEY (route, u, sub)) WITHOUT ROWID`);
   // summary history: tier A 90 days, tier B 30 days
   sql.exec(`CREATE TABLE IF NOT EXISTS zohist (u TEXT NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, t)) WITHOUT ROWID`);
+  // activity marks for the charts (S4): fresh rows keep the first time a contract showed up that day, bursts keep every sample; 8 days
+  sql.exec(`CREATE TABLE IF NOT EXISTS zoact (u TEXT NOT NULL, kind TEXT NOT NULL, k TEXT NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, kind, k)) WITHOUT ROWID`);
 }
 export function zoPut(sql, key, t, buf, json, nowSec) {
   sql.exec('INSERT OR REPLACE INTO zo (route, u, sub, t, gz) VALUES (?, ?, ?, ?, ?)', key.route, key.u, key.sub, t, new Uint8Array(buf));
   let hist = false;
   if (key.route === 'summary') {
-    const j = JSON.stringify(json);
+    const j = JSON.stringify(zoSlim(json));
     if (j.length <= HIST_ROW_MAX) { sql.exec('INSERT OR REPLACE INTO zohist (u, t, j) VALUES (?, ?, ?)', key.u, t, j); hist = true; }
+  }
+  if (key.route === 'activity' && key.u !== 'ALL' && (key.sub === 'fresh' || key.sub === 'burst') && Array.isArray(json.rows)) {
+    for (const r of json.rows.slice(0, 200)) {
+      if (!r || !Number.isInteger(r.t)) continue;
+      const id = (key.sub === 'fresh' ? etParts(r.t).day : r.t) + ':' + r.side + ':' + r.k + ':' + r.x;
+      sql.exec('INSERT OR IGNORE INTO zoact (u, kind, k, t, j) VALUES (?, ?, ?, ?, ?)', key.u, key.sub, id, r.t, JSON.stringify(r));
+    }
   }
   return { hist };
 }
@@ -192,20 +227,47 @@ export function zoTrim(sql, nowSec) {
     else sql.exec(`DELETE FROM zohist WHERE t < ? AND u NOT IN (${ZO_TIER_A.map(() => '?').join(',')})`, cut, ...ZO_TIER_A);
   }
   sql.exec("DELETE FROM zo WHERE route = 'note' AND sub < ?", dayAdd(etParts(nowSec).day, -ZO_NOTE_KEEP_DAYS));
+  sql.exec('DELETE FROM zoact WHERE t < ?', nowSec - ZO_ACT_KEEP_S);
+}
+// activity marks of one symbol, oldest first (last 5 sessions)
+export function zoActItems(sql, u, kind, nowSec) {
+  return sql.exec('SELECT j FROM zoact WHERE u = ? AND kind = ? AND t >= ? ORDER BY t DESC LIMIT 3000', u, kind, nowSec - ZO_ACT_KEEP_S).toArray().map((r) => JSON.parse(r.j)).reverse();
 }
 export function zoGet(sql, route, u, sub) {
   const r = sql.exec('SELECT t, gz FROM zo WHERE route = ? AND u = ? AND sub = ?', route, u, sub).toArray()[0];
   return r ? { t: r.t, gz: r.gz instanceof ArrayBuffer ? r.gz : new Uint8Array(r.gz) } : null;
 }
-// the newest note day <= asked (or newest overall)
-export function zoNoteDay(sql, day) {
-  const r = day ? sql.exec("SELECT sub FROM zo WHERE route = 'note' AND sub = ?", day).toArray()[0] : sql.exec("SELECT sub FROM zo WHERE route = 'note' ORDER BY sub DESC LIMIT 1").toArray()[0];
+// stored note key 'YYYY-MM-DD:kind'. kind given -> that note; no kind -> the newest built note of that day; no day -> newest day.
+export function zoNoteKey(sql, day, kind) {
+  let r;
+  if (day && kind) r = sql.exec("SELECT sub FROM zo WHERE route = 'note' AND sub = ?", day + ':' + kind).toArray()[0];
+  else if (day) r = sql.exec("SELECT sub FROM zo WHERE route = 'note' AND substr(sub, 1, 10) = ? ORDER BY t DESC LIMIT 1", day).toArray()[0];
+  else r = sql.exec("SELECT sub FROM zo WHERE route = 'note'" + (kind ? ' AND sub LIKE ?' : '') + ' ORDER BY substr(sub, 1, 10) DESC, t DESC LIMIT 1', ...(kind ? ['%:' + kind] : [])).toArray()[0];
   return r ? r.sub : null;
 }
-// summaries of one symbol in one ET day: {v:1, u, day, t:[], s:[summary...]}
+// one ET day of one symbol, the fixture shape (tools/fixtures/zoro/history.json): {v, u, tier, day, step_s, t:[], snaps:[packed /gex-history rows]}
 export function zoHistDay(sql, u, day) {
-  const rows = sql.exec('SELECT t, j FROM zohist WHERE u = ? AND t >= ? AND t <= ? ORDER BY t', u, etAt(day, 0), etAt(dayAdd(day, 1), 0) - 1).toArray();
-  return { v: 1, u, tier: zoTier(u), day, t: rows.map((r) => r.t), s: rows.map((r) => JSON.parse(r.j)) };
+  const rows = sql.exec("SELECT t, json_extract(j, '$.snap') AS s FROM zohist WHERE u = ? AND t >= ? AND t <= ? ORDER BY t", u, etAt(day, 0), etAt(dayAdd(day, 1), 0) - 1).toArray().filter((r) => r.s);
+  return { v: 1, u, tier: zoTier(u), day, step_s: zoTier(u) === 'A' ? 120 : 900, t: rows.map((r) => r.t), snaps: rows.map((r) => JSON.parse(r.s)) };
+}
+// snapshots between from and to (epoch s) as raw rows for packHistory (gex-history shape; S4 Gamma over time)
+export function zoHistRange(sql, u, from, to) {
+  return sql.exec("SELECT t, json_extract(j, '$.snap') AS s FROM zohist WHERE u = ? AND t >= ? AND t <= ? ORDER BY t", u, from, to).toArray()
+    .filter((r) => r.s).map((r) => Object.assign(JSON.parse(r.s), { t: r.t })).filter((r) => Array.isArray(r.k) && Array.isArray(r.g));
+}
+// /gex-sessions shape: [{u, d, day, n, t0, t1}] newest first
+export function zoHistSessions(sql, u) {
+  return sql.exec("SELECT json_extract(j, '$.snap.day') AS day, json_extract(j, '$.snap.d') AS d, COUNT(*) AS n, MIN(t) AS t0, MAX(t) AS t1 FROM zohist WHERE u = ? AND json_extract(j, '$.snap') IS NOT NULL GROUP BY day ORDER BY day DESC", u)
+    .toArray().map((r) => ({ u, d: r.d, day: r.day, n: r.n, t0: r.t0, t1: r.t1 }));
+}
+// basis=close: the last stored summary of the last finished session (before 16:00 ET: yesterday's; after: today's last)
+export function zoCloseRow(sql, u, nowSec) {
+  const p = etParts(nowSec), cut = p.h >= 16 ? nowSec : etAt(p.day, 0) - 1;
+  const r = sql.exec('SELECT t, j FROM zohist WHERE u = ? AND t <= ? ORDER BY t DESC LIMIT 1', u, cut).toArray()[0];
+  if (!r) return null;
+  const d = JSON.parse(r.j), day = etParts(r.t).day, dt = new Date(day + 'T12:00:00Z');
+  d.close = { day, label: dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', '') };
+  return d;
 }
 export function zoLastHistDay(sql, u) {
   const r = sql.exec('SELECT MAX(t) AS t FROM zohist WHERE u = ?', u).toArray()[0];
@@ -233,14 +295,20 @@ export function zoGetKey(route, q) {
   const g = (k) => String(q.get(k) || '');
   const u = g('u').toUpperCase();
   switch (route) {
-    case 'summary': return zoSymbolOk(u) ? { route, u, sub: '' } : { error: 'bad u' };
+    case 'summary': { const b = g('basis'); return zoSymbolOk(u) && (!b || b === 'close') ? { route, u, sub: '', basis: b } : { error: 'bad u' }; }
     case 'profile': { const x = g('x') || '0'; return zoSymbolOk(u) && ZO_PROFILE_X.includes(x) ? { route, u, sub: x } : { error: 'bad u or x' }; }
     case 'surface': { const k = g('kind') || 'gamma'; return zoSymbolOk(u) && ZO_SURFACE_KIND.includes(k) ? { route, u, sub: k } : { error: 'bad u or kind' }; }
-    case 'history': { const day = g('day'); return zoSymbolOk(u) && (!day || DAY_RE.test(day)) ? { route, u, sub: day } : { error: 'bad u or day' }; }
+    case 'history': {
+      const day = g('day'), from = Number(g('from')), to = Number(g('to')) || null, dte = g('dte');
+      if (!zoSymbolOk(u) || (day && !DAY_RE.test(day)) || (dte && dte !== '0' && dte !== '1')) return { error: 'bad u, day or dte' };
+      if (g('sessions')) return { route, u, sub: day, sessions: true, dte };
+      if (g('from')) { if (!(from > 0) || (to && !(to > from)) || ((to || from) - from) > ZO_HIST_MAX_SPAN) return { error: 'bad from/to (max 31 days)' }; return { route, u, sub: day, from, to, dte }; }
+      return { route, u, sub: day };
+    }
     case 'activity': { const k = g('kind') || 'fresh', a = u || 'ALL'; return ZO_ACT_KIND.includes(k) && (a === 'ALL' || zoSymbolOk(a)) ? { route, u: a, sub: k } : { error: 'bad u or kind' }; }
     case 'screen': return { route, u: '*', sub: '' };
     case 'cme': { const r = g('root').toUpperCase() || u; return ZO_CME_ROOTS.includes(r) ? { route, u: r, sub: '' } : { error: 'bad root' }; }
-    case 'note': { const day = g('day'); return !day || DAY_RE.test(day) ? { route, u: '*', sub: day } : { error: 'bad day' }; }
+    case 'note': { const day = g('day'), kind = g('kind'); return (!day || DAY_RE.test(day)) && (!kind || ZO_NOTE_KINDS.includes(kind)) ? { route, u: '*', sub: day, kind } : { error: 'bad day or kind' }; }
   }
   return { error: 'not found' };
 }
@@ -248,6 +316,7 @@ export function zoGetKey(route, q) {
 // POST /zo-ingest?route=summary&u=SPX... (server to server; the caller already checked the ingest secret)
 export async function zoIngestRoute(req, u, env, stub) {
   if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+  if (!u.searchParams.get('route') && u.searchParams.get('name')) u.searchParams.set('route', u.searchParams.get('name'));   // S5 contract spelling
   const route = u.searchParams.get('route') || '';
   if (!ZO_MAX_GZ[route]) return new Response('bad route', { status: 400 });
   if (Number(req.headers.get('content-length') || 0) > ZO_MAX_GZ[route]) return new Response('too large', { status: 413 });
@@ -259,7 +328,7 @@ export async function zoIngestRoute(req, u, env, stub) {
   return stub(env).fetch('https://do/zo-ingest?' + u.searchParams.toString(), { method: 'POST', body: buf });
 }
 
-// GET /zo/<route>. deps = { isPro(token) -> bool, bearer(req) -> token, stub(env), now() }
+// GET /zo/<route>. deps = { isPro(token) -> bool, bearer(req) -> token, stub(env), now(), service?(req) -> bool (feeder ingest key: note job + alert engine) }
 export async function zoGetRoute(req, u, env, ctx, h, deps) {
   if (req.method !== 'GET') return new Response('GET only', { status: 405, headers: h });
   const name = u.pathname.slice(4);
@@ -268,7 +337,7 @@ export async function zoGetRoute(req, u, env, ctx, h, deps) {
   if (key.error) return deny(400, key.error, h);
   // GATE (fail closed; before any cache or storage read): Pro token, else the SPX teaser slice, else 403.
   let pro = false;
-  try { pro = !!(await deps.isPro(deps.bearer(req))); } catch (e) { pro = false; }
+  try { pro = !!(deps.service && (await deps.service(req))) || !!(await deps.isPro(deps.bearer(req))); } catch (e) { pro = false; }
   const teaser = !pro && teaserEligible(name, u.searchParams);
   if (!pro && !teaser) return deny(403, 'pro_required', h);
   if (env.RL) { try { const { success } = await env.RL.limit({ key: req.headers.get('cf-connecting-ip') || 'anon' }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }
@@ -277,17 +346,33 @@ export async function zoGetRoute(req, u, env, ctx, h, deps) {
   const st = deps.stub(env);
   let body;   // object
   if (name === 'history') {
-    // from the stored summaries (tier A 90 d, tier B 30 d); default = the newest day on record
-    const r = await st.fetch('https://do/zo-history?u=' + key.u + (key.sub ? '&day=' + key.sub : ''));
+    // from the stored summaries' packed snapshot (tier A 90 d, tier B 30 d). ?day= (or none = newest day): the fixture shape;
+    // ?from=&to=: the /gex-history packed shape; ?sessions=1: the /gex-sessions list
+    const qs = new URLSearchParams({ u: key.u });
+    if (key.sub) qs.set('day', key.sub);
+    if (key.sessions) qs.set('sessions', '1');
+    if (key.from) { qs.set('from', String(key.from)); qs.set('to', String(key.to || nowSec)); qs.set('dte', key.dte || '0'); }
+    const r = await st.fetch('https://do/zo-history?' + qs);
+    if (r.status !== 200) return deny(404, 'no data', h);
+    body = await r.json();
+    if (Array.isArray(body)) return new Response(JSON.stringify(body), { status: 200, headers: Object.assign({}, JSON_H, h, { 'cache-control': 'private, max-age=15', vary: 'Authorization, Origin' }) });
+  } else if (name === 'summary' && key.basis === 'close') {
+    const r = await st.fetch('https://do/zo-close?u=' + key.u);
     if (r.status !== 200) return deny(404, 'no data', h);
     body = await r.json();
   } else {
-    if (name === 'note' && !sub) { const d = await (await st.fetch('https://do/zo-note-day')).json(); sub = d.day || ''; }
-    if (name === 'note' && sub) { const d = await (await st.fetch('https://do/zo-note-day?day=' + sub)).json(); if (!d.day) return deny(404, 'no data', h); }
-    if (name === 'note' && !sub) return deny(404, 'no data', h);
+    if (name === 'note') {
+      const d = await (await st.fetch('https://do/zo-note-day?day=' + (sub || '') + '&kind=' + (key.kind || ''))).json();
+      if (!d.sub) return deny(404, 'no data', h);
+      sub = d.sub;
+    }
     const r = await st.fetch('https://do/zo-get?route=' + name + '&u=' + encodeURIComponent(ukey) + '&sub=' + encodeURIComponent(sub));
     if (r.status !== 200) return deny(404, 'no data', h);
     try { body = await gunzipJson(await r.arrayBuffer()); } catch (e) { return deny(502, 'bad stored data', h); }
+    if (name === 'activity' && ukey !== 'ALL' && (sub === 'fresh' || sub === 'burst')) {
+      const a = await st.fetch('https://do/zo-act?u=' + encodeURIComponent(ukey) + '&kind=' + sub);
+      if (a.status === 200) body.items = await a.json();   // last 5 sessions of marks (S4); rows = the latest pull
+    }
   }
   if (teaser) { body = zoTeaser(name, body); if (!body) return deny(403, 'pro_required', h); }
   // Pro answers are private (a shared cache must never keep them); the teaser slice is public SPX data but still vary-safe.

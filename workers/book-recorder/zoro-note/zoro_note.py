@@ -7,7 +7,7 @@ templates below: no language model, no per-member cost, no invented numbers, no 
 Before publishing, the whole note body is checked for banned words (live, real-time, delayed, bullish, bearish, bought,
 sold, buy, sell, will, advice ...). A failing note is NOT published; the page then shows "Note not available today".
 
-Publishing: POST {recorder}/zo-ingest?name=note&day=YYYY-MM-DD&kind=morning|close (header x-ingest-key). Worker route
+Publishing: POST {recorder}/zo-ingest?route=note&day=YYYY-MM-DD&kind=morning|close (header x-ingest-key, gzip JSON). Worker route
 GET /zo/note?day=&kind= is S2's; the JSON shape is documented in contract-requests.md.
 
 Env: BOOK_RECORDER_URL, BOOK_INGEST_SECRET (/root/projects/book-feeder/feeder.env). Never printed.
@@ -120,11 +120,26 @@ def index_lines(sym, s, prev):
             ch.append('the Gamma Zone changed from %s to %s' % (ZONE[prev['zone']], ZONE[f['zone']]))
         if ch:
             out.append('Since yesterday: %s.' % '; '.join(ch))
-    fresh = [c for c in (s.get('fresh_top') or []) if ok_num(c.get('volume')) and ok_num(c.get('oi')) and c['volume'] > c['oi']]
+    fresh = [c for c in map(crow, s.get('fresh_top') or []) if ok_num(c.get('volume')) and ok_num(c.get('oi')) and c['volume'] > c['oi']]
     if fresh:
         c = max(fresh, key=lambda c: c['volume'])
         out.append('Fresh Volume: %s %s %s, %s contracts against %s open interest.' % (num(c['strike']), c.get('side', ''), c.get('exp', ''), num(c['volume']), num(c['oi'])))
     return out[:10]
+
+
+
+def crow(c):
+    """One activity row in the S5 form {strike, side 'call'|'put', exp, volume, oi, added} from the feeder form
+    {k, side 'C'|'P', x, vol, oi, add} (tools/fixtures/zoro); rows already in the S5 form pass through. Nulls -> 0."""
+    side = c.get('side')
+    o = dict(c, side={'C': 'call', 'P': 'put'}.get(side, side))
+    for a, b in (('strike', 'k'), ('exp', 'x'), ('volume', 'vol'), ('added', 'add')):
+        if o.get(a) is None and c.get(b) is not None:
+            o[a] = c[b]
+    for a in ('volume', 'oi', 'added'):
+        if o.get(a) is None:
+            o[a] = 0
+    return o
 
 
 def mapped_lines(root, src, s):
@@ -151,7 +166,7 @@ def mapped_lines(root, src, s):
 def stock_lines(rows):
     """Top 5 stocks by Fresh Volume, one line each (rows from /zo/activity?kind=fresh, volume above open interest)."""
     best = {}
-    for r in rows or []:
+    for r in map(crow, rows or []):
         if not (ok_num(r.get('volume')) and ok_num(r.get('oi')) and r['volume'] > r['oi'] and r.get('u')):
             continue
         if r['u'] in INDEXES or r['u'] == 'SPY':
@@ -201,6 +216,16 @@ def http(method, url, key, body=None):
     with urllib.request.urlopen(req, timeout=30) as r:
         t = r.read()
         return json.loads(t) if t else {}
+
+
+def post_note(rec, key, day, kind, note):
+    """POST /zo-ingest?route=note&day=&kind= (S2 src/zoro.js): gzip JSON {v: 1, built, ...}."""
+    import gzip
+    body = gzip.compress(json.dumps(dict(note, v=1, built=int(note.get('built') or datetime.now().timestamp())), separators=(',', ':')).encode())
+    req = urllib.request.Request('%s/zo-ingest?%s' % (rec, urllib.parse.urlencode({'route': 'note', 'day': day, 'kind': kind})), data=body, method='POST',
+                                 headers={'x-ingest-key': key, 'content-type': 'application/octet-stream', 'User-Agent': 'tradezoro-zoro-note/1'})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read().decode('utf-8', 'replace')
 
 
 def prev_weekday(day):
@@ -269,7 +294,7 @@ def main(argv):
     if a.get('dry'):
         print(json.dumps(note, indent=1))
         return 0
-    http('POST', '%s/zo-ingest?name=note&day=%s&kind=%s' % (rec, day, kind), key, note)
+    post_note(rec, key, day, kind, note)
     print('published %s %s (%d sections)' % (kind, day, len(note['sections'])))
     return 0
 

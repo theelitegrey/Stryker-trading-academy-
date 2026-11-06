@@ -148,6 +148,21 @@ def _wrap(text, a=None):
     return (text + ' ' + FOOTER)[:480]
 
 
+
+def crow(c):
+    """One activity row in the S5 form {strike, side 'call'|'put', exp, volume, oi, added} from the feeder form
+    {k, side 'C'|'P', x, vol, oi, add} (tools/fixtures/zoro); rows already in the S5 form pass through. Nulls -> 0."""
+    side = c.get('side')
+    o = dict(c, side={'C': 'call', 'P': 'put'}.get(side, side))
+    for a, b in (('strike', 'k'), ('exp', 'x'), ('volume', 'vol'), ('added', 'add')):
+        if o.get(a) is None and c.get(b) is not None:
+            o[a] = c[b]
+    for a in ('volume', 'oi', 'added'):
+        if o.get(a) is None:
+            o[a] = 0
+    return o
+
+
 def _contract(c):
     return '%s %s %s' % (fmt_n(c['strike'], 2 if float(c['strike']) % 1 else 0), c['side'], c.get('exp', ''))
 
@@ -180,7 +195,7 @@ def evaluate(a, snap, prev):
             return _wrap('%s %s moved from %s to %s.' % (sym, LEVEL_NAME[p['level']], fmt_n(o), fmt_n(n)), a)
     elif t == 'fresh_volume':
         def ok(s):
-            return {_ckey(c): c for c in (s.get('fresh_top') or []) if c.get('volume', 0) > c.get('oi', 0) and c.get('volume', 0) >= p['min_volume']}
+            return {_ckey(c): c for c in map(crow, s.get('fresh_top') or []) if c.get('volume', 0) > c.get('oi', 0) and c.get('volume', 0) >= p['min_volume']}
         new = ok(snap)
         old = ok(prev)
         add = [c for k, c in new.items() if k not in old]
@@ -188,7 +203,7 @@ def evaluate(a, snap, prev):
             c = max(add, key=lambda c: c['volume'])
             return _wrap('%s: Fresh Volume on the %s: %s contracts against %s open interest.' % (sym, _contract(c), fmt_n(c['volume']), fmt_n(c.get('oi', 0))), a)
     elif t == 'volume_burst':
-        hot = [c for c in (snap.get('burst_top') or []) if c.get('added', 0) >= p['min_added']]
+        hot = [c for c in map(crow, snap.get('burst_top') or []) if c.get('added', 0) >= p['min_added']]
         if hot:
             c = max(hot, key=lambda c: c['added'])
             return _wrap('%s: Volume Burst on the %s: %s contracts added since the last update.' % (sym, _contract(c), fmt_n(c['added'])), a)

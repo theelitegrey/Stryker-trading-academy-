@@ -21,7 +21,7 @@ import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TI
 import { closeCandidate, pickClose, etEpoch as closeEtEpoch, CLOSE_KEEP_DAYS } from './gex-close.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
-import { validateZoIngest, zoInit, zoPut, zoTrim, zoGet, zoNoteDay, zoHistDay, zoLastHistDay, zoGunzip, zoIngestRoute, zoGetRoute, zoExportRoute, exportSnaps, futuresRatio, exportParams, exportRows, exportCsv, teaserEligible, zoTeaser, ZO_ROUTES, ZO_PROFILE_X, ZO_SURFACE_KIND, ZO_ACT_KIND, ZO_CME_ROOTS, ZO_MAX_GZ, zoSymbolOk, zoTier, NOTICE } from './zoro.js';
+import { validateZoIngest, zoInit, zoPut, zoTrim, zoGet, zoNoteKey, zoHistDay, zoHistRange, zoHistSessions, zoCloseRow, zoActItems, zoLastHistDay, zoGunzip, zoIngestRoute, zoGetRoute, zoExportRoute, exportSnaps, futuresRatio, exportParams, exportRows, exportCsv, teaserEligible, zoTeaser, ZO_ROUTES, ZO_PROFILE_X, ZO_SURFACE_KIND, ZO_ACT_KIND, ZO_CME_ROOTS, ZO_MAX_GZ, zoSymbolOk, zoTier, NOTICE } from './zoro.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
@@ -475,9 +475,22 @@ export class BookRecorder {
       if (!r) return new Response('no data', { status: 404 });
       return new Response(r.gz, { headers: { 'content-type': 'application/octet-stream', 'x-zo-t': String(r.t) } });
     }
-    if (u.pathname === '/zo-note-day') return Response.json({ day: zoNoteDay(this.sql, u.searchParams.get('day') || '') });
+    if (u.pathname === '/zo-note-day') return Response.json({ sub: zoNoteKey(this.sql, u.searchParams.get('day') || '', u.searchParams.get('kind') || '') });
+    if (u.pathname === '/zo-act') return Response.json(zoActItems(this.sql, u.searchParams.get('u'), u.searchParams.get('kind'), Math.floor(Date.now() / 1000)));
+    if (u.pathname === '/zo-close') {
+      const d = zoCloseRow(this.sql, u.searchParams.get('u'), Math.floor(Date.now() / 1000));
+      return d ? Response.json(d) : new Response('no data', { status: 404 });
+    }
     if (u.pathname === '/zo-history') {
-      const uu = u.searchParams.get('u'), day = u.searchParams.get('day') || zoLastHistDay(this.sql, uu);
+      const uu = u.searchParams.get('u');
+      if (u.searchParams.get('sessions')) return Response.json(zoHistSessions(this.sql, uu));
+      if (u.searchParams.get('from')) {
+        // tier A snapshots are 0DTE (d=0); tier B are all expiries <= 31 d ('all'). dte=1 on tier A has no rows (not recorded).
+        const rows = zoHistRange(this.sql, uu, Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
+        const dte = u.searchParams.get('dte') === '1' ? 1 : 0;
+        return Response.json(packHistory(uu, zoTier(uu) === 'A' ? dte : 'all', zoTier(uu) === 'A' && dte === 1 ? [] : rows));
+      }
+      const day = u.searchParams.get('day') || zoLastHistDay(this.sql, uu);
       if (!day) return new Response('no data', { status: 404 });
       return Response.json(zoHistDay(this.sql, uu, day));
     }
@@ -1108,7 +1121,7 @@ async function route(req, env, ctx) {
     if (u.pathname.startsWith('/zo/')) {
       const h = cors(req);
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
-      const deps = { isPro: isGexProToken, bearer: bearerOf, stub, now: () => Date.now() };
+      const deps = { isPro: isGexProToken, bearer: bearerOf, stub, now: () => Date.now(), service: (r) => authorized(r, env) };
       return u.pathname === '/zo/levels-export' ? zoExportRoute(req, u, env, ctx, h, deps) : zoGetRoute(req, u, env, ctx, h, deps);
     }
     // GEX+ data is Pro only (Owner order 2026-11-01): the history, sessions and options-analytics reads need a verified admin / demo / active-Pro token.

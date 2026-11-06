@@ -1,4 +1,5 @@
 // Discord interactions: tap-to-toggle self-role buttons (custom_id "tzrole:<roleId>"). Stateless; caches live per isolate.
+import { handleTicket } from './tickets.js';
 const D = 'https://discord.com/api/v10';
 export const GUILD = '1565740274116857887';
 export const MARKETS = ['Futures', 'Stocks', 'Crypto', 'Forex', 'India', 'Options'];
@@ -34,11 +35,12 @@ async function allowed(env, f) {
   roleCache = m; return m;
 }
 
-export async function handleInteraction(req, env, f = (...a) => fetch(...a)) {
+export async function handleInteraction(req, env, f = (...a) => fetch(...a), ctx) {
   const raw = await req.text();
   if (!(await verified(req, raw, env, f))) return new Response('bad signature', { status: 401 });
   let i; try { i = JSON.parse(raw); } catch (e) { return new Response('bad', { status: 400 }); }
   if (i.type === 1) return Response.json({ type: 1 });
+  if (i.type === 3 && /^tzticket:(open|close)$/.test((i.data && i.data.custom_id) || '')) return handleTicket(i, env, f, ctx);
   const id = i.type === 3 && i.data && /^tzrole:(\d{5,25})$/.exec(i.data.custom_id || '');
   if (!id) return reply('Unknown action.');
   if (i.guild_id !== GUILD) return reply('Not available here.');

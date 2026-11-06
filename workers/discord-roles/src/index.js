@@ -20,6 +20,15 @@ export class DiscordHub extends DurableObject {
     const u = new URL(req.url);
     if (u.pathname === '/__sweep') return Response.json(await this.core.sweep());
     if (u.pathname === '/__autoban') return Response.json(await runAutoban(this.ctx.storage.sql, (...a) => this.core.dc(...a), this.env.SITE_GUILD_ID || SITE_GUILD));
+    if (u.pathname === '/__ticket') { // 3 tickets per member per UTC day
+      const sql = this.ctx.storage.sql, uid = u.searchParams.get('uid') || '', day = new Date().toISOString().slice(0, 10);
+      sql.exec('CREATE TABLE IF NOT EXISTS ticket_rate (uid TEXT, day TEXT, n INTEGER, PRIMARY KEY (uid, day))');
+      sql.exec('DELETE FROM ticket_rate WHERE day < ?', day);
+      const n = [...sql.exec('SELECT n FROM ticket_rate WHERE uid = ? AND day = ?', uid, day)][0]?.n || 0;
+      if (n >= 3) return new Response('limit', { status: 429 });
+      sql.exec('INSERT OR REPLACE INTO ticket_rate VALUES (?, ?, ?)', uid, day, n + 1);
+      return new Response('ok');
+    }
     const r = await this.core.route(req);
     if (r.redirect) return Response.redirect(r.redirect, 302);
     return new Response(r.body === null ? null : JSON.stringify(r.body), { status: r.status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
@@ -27,11 +36,11 @@ export class DiscordHub extends DurableObject {
 }
 
 export default {
-  async fetch(req, env) {
-    if (u0(req) === '/discord/interactions' && req.method === 'POST') return handleInteraction(req, env);
+  async fetch(req, env, ctx) {
+    if (u0(req) === '/discord/interactions' && req.method === 'POST') return handleInteraction(req, env, undefined, ctx);
     const stub = env.HUB.get(env.HUB.idFromName('main'));
     const u = new URL(req.url);
-    if (u.pathname === '/__sweep' || u.pathname === '/__autoban') return new Response('not found', { status: 404 });
+    if (u.pathname === '/__sweep' || u.pathname === '/__autoban' || u.pathname === '/__ticket') return new Response('not found', { status: 404 });
     const res = await stub.fetch(req);
     const h = new Headers(res.headers); for (const [k, v] of Object.entries(cors(req))) h.set(k, v);
     return new Response(res.body, { status: res.status, headers: h });

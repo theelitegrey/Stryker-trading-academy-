@@ -73,7 +73,7 @@
     CL: [0.01, 1000], MCL: [0.01, 100], NG: [0.001, 10000], HG: [0.0005, 25000], MHG: [0.0005, 2500],
     ZN: [0.015625, 1000], ZB: [0.03125, 1000], '6E': [0.00005, 125000]
   };
-  const CRYPTO_PROVIDERS = ['binance', 'coinbase', 'hyperliquid'];
+  const CRYPTO_PROVIDERS = ['binance', 'coinbase', 'hyperliquid', 'okx'];
   const FUTURES_PREFIXES = ['futures', 'rithmic', 'cme', 'cme_mini', 'cbot', 'cbot_mini', 'comex', 'comex_mini', 'nymex', 'nymex_mini'];
 
   function round2(n) { return Math.round(n * 100) / 100; }

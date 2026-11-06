@@ -7,7 +7,7 @@
 // global script bundle carries only the headless core), so this imports
 // dist/workspace.js and the three data providers from jsDelivr, pinned to an
 // exact version. Vela's providers stream free public crypto data from
-// Binance, Coinbase and Hyperliquid — no API keys. CME-group futures (NQ, ES,
+// Binance, Coinbase, Hyperliquid and OKX — no API keys. CME-group futures (NQ, ES,
 // CL, GC ...) come from our own provider, assets/chart-futures-provider.js,
 // backed by /api/chart/bars (continuous front-month bars from Yahoo Finance,
 // edge-cached; polled, not streamed — never describe it as live/real-time; the
@@ -519,6 +519,7 @@ function lateLists(provider){
   try { BinanceProvider = mods[18].boostBinance(BinanceProvider); } catch (e) { console.warn('TradeZoro: tick boost', e); }
   const CoinbaseProvider = mods[2].CoinbaseProvider;
   const HyperliquidProvider = mods[3].HyperliquidProvider;
+  let OkxProvider = null; try { OkxProvider = (await import(VELA_BASE + 'providers/okx.js')).OkxProvider; } catch (e) { console.warn('TradeZoro: OKX provider', e); }
   const FuturesProvider = mods[4].FuturesProvider;
   const FxProvider = mods[4].FxProvider;
   const IdxProvider = mods[4].IdxProvider;
@@ -738,6 +739,7 @@ function lateLists(provider){
         binance: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new BinanceProvider()), 'binance'), 'binance'),
         coinbase: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new CoinbaseProvider()), 'coinbase'), 'coinbase'),
         hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new HyperliquidProvider()), 'hyperliquid'), 'hyperliquid'),
+        ...(OkxProvider ? { okx: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new OkxProvider()), 'okx'), 'okx') } : {}),
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
         fx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(FxProvider, 'fx'))(), 'fx'), 'fx'),
         // Indices & ETFs (SPX NDX VIX RUT QQQ SPY IWM DIA): same endpoint, Yahoo, delayed; admin live candle from the hub's quote frames.

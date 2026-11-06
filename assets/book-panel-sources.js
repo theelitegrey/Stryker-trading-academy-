@@ -4,11 +4,13 @@
 //   trade = { t, p, s, side: 1 buyer-aggressor | -1 seller-aggressor, ex }
 //   status: 'loading' | 'live' | 'reconnecting' | 'unlisted' | 'error'
 // Wording: no "real-time" claims; the panel shows "updated Xs ago" only. Education only. Not financial advice.
+import { OkxBook, OKX_WS_PUBLIC, numRows, tradeOf, fetchInst } from './okx-core.js?v=889';
 export const SOURCES = [
   { id: 'binance', name: 'Binance', perp: true },
   { id: 'binanceus', name: 'Binance US', perp: false },
   { id: 'coinbase', name: 'Coinbase', perp: false },
-  { id: 'hyperliquid', name: 'Hyperliquid', perp: true }
+  { id: 'hyperliquid', name: 'Hyperliquid', perp: true },
+  { id: 'okx', name: 'OKX', perp: true }
 ];
 export const sourceName = (id) => (SOURCES.find((s) => s.id === id) || { name: id }).name;
 const MAX_LEVELS = 1500;
@@ -150,5 +152,33 @@ function hyperliquid(pair, cb) {
   return () => { stopped = true; stopWs(); };
 }
 
-const OPEN = { binance, binanceus, coinbase, hyperliquid };
+// ---- OKX (spot + USDT swaps; swap sizes converted from contracts to the base coin) ------------------------------------
+function okx(pair, cb) {
+  const book = new OkxBook();
+  let stopped = false, stopWs = () => {}, resub = () => {};
+  cb.status('loading');
+  (async () => {
+    const inst = await fetchInst(pair);
+    if (stopped) return;
+    if (!inst) { cb.status('unlisted', 'Not listed on OKX'); return; }
+    const side = (rows) => numRows(rows, inst.ct);
+    stopWs = socket(OKX_WS_PUBLIC, {
+      onOpen: (ws) => { resub = () => { ws.send(JSON.stringify({ op: 'unsubscribe', args: [{ channel: 'books', instId: inst.instId }] })); ws.send(JSON.stringify({ op: 'subscribe', args: [{ channel: 'books', instId: inst.instId }] })); }; ws.send(JSON.stringify({ op: 'subscribe', args: [{ channel: 'books', instId: inst.instId }, { channel: 'trades', instId: inst.instId }] })); },
+      onMsg: (d) => {
+        if (!d.arg || d.arg.instId !== inst.instId || !d.data) return;
+        if (d.arg.channel === 'books') {
+          const r = book.handle(d);
+          if (!r) return;
+          if (!r.ok) { book.clear(); resub(); return; }
+          const out = { bids: new Map(side([...book.bids.entries()])), asks: new Map(side([...book.asks.entries()])) };
+          cb.book(out); if (r.snapshot) cb.status('live');
+        } else if (d.arg.channel === 'trades') cb.trades(d.data.map((x) => ({ ...tradeOf(x, inst.ct), ex: 'okx' })), false);
+      },
+      onState: (s) => cb.status(s)
+    });
+  })();
+  return () => { stopped = true; stopWs(); };
+}
+
+const OPEN = { binance, binanceus, coinbase, hyperliquid, okx };
 export function openSource(id, pair, cb) { const f = OPEN[id]; return f ? f(pair, cb) : (cb.status('error', 'Unknown source'), () => {}); }

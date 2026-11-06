@@ -15,7 +15,7 @@
 import { parseFormula, combineBars, canonicalSymbol, bodyOf, isFormulaSymbol, PREFIX, MAX_CHARS } from './chart-formula-core.js?v=889';
 
 const POLL_MS = 20000, TAIL = 4;
-const STREAM_PROVIDERS = ['binance', 'coinbase', 'hyperliquid', 'byo'];
+const STREAM_PROVIDERS = ['binance', 'coinbase', 'hyperliquid', 'okx', 'byo'];
 const STREAM_FUT_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];   // = INSIGHTSENTRY_ROOTS in chart-futures-provider.js
 export const streams = (r) => STREAM_PROVIDERS.includes(r.provider) || (r.provider === 'futures' && STREAM_FUT_ROOTS.includes(String(r.ticker).toUpperCase().replace(/1!$/, '')));
 

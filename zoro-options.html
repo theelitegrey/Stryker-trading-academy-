@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="891">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZoroOptions · Options gamma, volatility and volume | TradeZoro</title>
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=891">
+<script src="assets/skeleton.js?v=891"></script>
+<script src="assets/sanitize.js?v=891"></script>
+<script src="assets/motion.js?v=891"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=891" defer></script>
+<script src="assets/version-check.js?v=891" defer></script>
+<script src="assets/cookie-notice.js?v=891" defer></script>
+<script src="assets/acquisition.js?v=891" defer></script>
+<script src="assets/focus-mode.js?v=891" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=891">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=891">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=891">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=891">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=891">
+<script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+
+<link rel="stylesheet" href="assets/zoro-options.css?v=891">
+</head>
+<body class="page-zo" data-page-access="zoro-options">
+<a class="skip-link" href="#main">Skip to content</a>
+<nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
+  <a class="appnav-dk" data-nav="charts" href="charts"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v3M7 17v4M17 3v5M17 15v6"/><rect x="4.5" y="6" width="5" height="11" rx="1"/><rect x="14.5" y="8" width="5" height="7" rx="1"/></svg><span class="appnav-new" aria-hidden="true"></span></span><span class="appnav-dkl">ZoroCharts</span></a>
+  <a class="appnav-dk" data-nav="gex" href="gex"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M6 12V6M10 12V4M14 12v5M18 12v7"/></svg></span><span class="appnav-dkl">GEX+</span></a>
+  <a class="appnav-dk" data-nav="journal" href="trade-journal"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18M4 7h4M4 12h4M4 17h4M10 8h6M10 12h4"/></svg></span><span class="appnav-dkl">JournalX</span></a>
+  <a class="appnav-dk" data-nav="learn" href="academy"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg></span><span class="appnav-dkl">ZoroAcademy</span></a>
+  <button type="button" class="appnav-dk appnav-more" data-nav="more" id="appnav-more" aria-haspopup="dialog" aria-expanded="false" aria-controls="appnav-sheet"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="appnav-dkl">More</span></button>
+</nav>
+<script src="assets/app-nav.js?v=891"></script>
+
+<div class="access-gate-overlay" id="access-gate-overlay">
+  <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
+</div>
+
+<div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
+  <div class="paywall-card">
+    <div class="paywall-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2 id="paywall-heading">This page is part of Pro</h2>
+    <p id="paywall-body">This page requires an active plan.</p>
+    <div class="paywall-actions" id="paywall-actions">
+      <button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-topnav">
+  <div class="topnav-left"><button class="icon-btn menu-toggle-btn" id="dash-menu-toggle" aria-label="Open menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><a href="dashboard-user" class="brand"><picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture></a></div>
+  <div class="topnav-right">
+    <div class="notif-bell-wrap">
+      <button class="icon-btn" id="notif-bell-btn" aria-label="Notifications" title="Notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge"></span>
+      </button>
+      <div class="notif-panel" id="notif-panel">
+        <div class="notif-panel-head">Notifications</div>
+        <div id="notif-list"></div>
+      </div>
+    </div>
+    <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+  </div>
+</div>
+<div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
+
+<div class="dash-shell gate-pending">
+
+  <aside class="sidebar">
+    <a href="dashboard-user" class="brand">
+      <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+
+    </a>
+
+    <nav class="app-menu" id="app-menu" aria-label="App sections"></nav>
+
+    <div class="sidebar-foot">
+      <a href="dashboard-user" class="user-chip">
+        <div class="chip-avatar"></div>
+        <div>
+          <div class="chip-name">Trader</div>
+          <div class="chip-role">—</div>
+        </div>
+      </a>
+      <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
+    </div>
+  </aside>
+  
+
+
+
+  <main class="dash-main zo" id="main" tabindex="-1">
+    <h1 class="zo-sr">ZoroOptions</h1>
+    <div class="zo-soon" id="zo-soon" hidden>
+      <h2>ZoroOptions is coming soon</h2>
+      <p>Options gamma, volatility and volume in one place. We will let you know when it opens.</p>
+    </div>
+    <div class="zo-app" id="zo-app">
+      <!-- S1.1 symbol bar (sticky) -->
+      <header class="zo-bar" id="zo-bar">
+        <div class="zo-brand"><i aria-hidden="true"></i>ZoroOptions</div>
+        <div class="zo-syms" role="group" aria-label="Symbol" id="zo-syms"></div>
+        <label class="zo-search"><span class="zo-sr">Find a stock</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="zo-find" type="search" list="zo-list" placeholder="Find" autocomplete="off" spellcheck="false" enterkeyhint="go"><datalist id="zo-list"></datalist></label>
+        <span class="zo-zone" id="zo-zone" title="Gamma Zone"></span>
+        <div class="zo-sp"></div>
+        <div class="zo-seg" role="group" aria-label="Levels basis" id="zo-basis">
+          <button type="button" data-b="" aria-pressed="true">Through the day</button>
+          <button type="button" data-b="close" aria-pressed="false">Daily close</button>
+        </div>
+        <div class="zo-upd"><i class="zo-dot" aria-hidden="true"></i><span id="zo-upd">Loading</span><span class="zo-sample" data-sample hidden>Sample</span></div>
+      </header>
+
+      <!-- 4.5 Volume Bursts tape -->
+      <div class="zo-tape" id="zo-tape" aria-label="Volume Bursts">
+        <div class="zo-tape-lbl">Volume Bursts</div>
+        <div class="zo-tape-view"><div class="zo-tape-track" id="zo-tape-track"></div></div>
+        <button type="button" class="zo-tape-pause" id="zo-tape-pause" aria-pressed="false" aria-label="Pause the tape"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg></button>
+      </div>
+
+      <!-- S1.2 key levels row -->
+      <section class="zo-lvls" id="zo-lvls" aria-label="Key levels"></section>
+
+      <nav class="zo-secnav" aria-label="Sections"><div class="zo-seg" id="zo-secnav">
+        <button type="button" data-go="zo-s-gamma" aria-pressed="true">Gamma</button>
+        <button type="button" data-go="zo-s-vol" aria-pressed="false">Vol</button>
+        <button type="button" data-go="zo-s-flow" aria-pressed="false">Flow</button>
+        <button type="button" data-go="zo-s-note" aria-pressed="false">Note</button>
+      </div></nav>
+
+      <div class="zo-term">
+        <!-- S2 Gamma and Greeks -->
+        <h2 class="zo-sec" id="zo-s-gamma">Gamma and Greeks</h2>
+        <section class="zo-p zo-g7" data-panel="profile" data-teaser>
+          <div class="zo-ph"><h3>Gamma profile <span class="zo-u"></span></h3><div class="zo-seg zo-seg-s" id="zo-exp" role="group" aria-label="Expiry">
+            <button type="button" data-x="0" aria-pressed="true">0DTE</button><button type="button" data-x="1" aria-pressed="false">1DTE</button><button type="button" data-x="w" aria-pressed="false">Week</button><button type="button" data-x="m" aria-pressed="false">Month</button><button type="button" data-x="all" aria-pressed="false">All</button>
+          </div></div>
+          <div class="zo-pb zo-prof"><canvas id="zo-prof" role="img" aria-label="Net gamma by strike"></canvas><div class="zo-tip" id="zo-prof-tip" hidden></div></div>
+          <div class="zo-replay" data-pro-inline id="zo-replay">
+            <button type="button" class="zo-play" id="zo-play" aria-label="Replay the day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Replay day</span></button>
+            <input type="range" id="zo-scrub" min="0" max="195" step="0.01" value="195" aria-label="Time of day">
+            <span class="zo-clock" id="zo-clock">16:00 ET</span>
+          </div>
+          <p class="zo-foot" id="zo-replay-note">Replay: 1 second = 10 minutes of the session. Tap play; it never starts on its own.</p>
+        </section>
+        <section class="zo-p zo-g5" data-panel="gsurf" data-pro>
+          <div class="zo-ph"><h3>Gamma surface <span class="zo-hint">strike × days to expiry</span></h3><div class="zo-seg zo-seg-s" role="group" aria-label="View"><button type="button" data-v="3d" aria-pressed="true">3D</button><button type="button" data-v="heat" aria-pressed="false">Heat</button></div></div>
+          <div class="zo-pb zo-surf" id="zo-gsurf"><div class="zo-axis">drag to rotate</div></div>
+        </section>
+
+        <section class="zo-p zo-g7 zo-greeks" data-panel="greeks" data-pro>
+          <div class="zo-ph"><h3>Delta Lean, vanna and charm</h3><div class="zo-seg zo-seg-s zo-greek-seg" role="group" aria-label="Greek" id="zo-greek-seg"><button type="button" data-g="dex" aria-pressed="true">Delta</button><button type="button" data-g="vanna" aria-pressed="false">Vanna</button><button type="button" data-g="charm" aria-pressed="false">Charm</button></div></div>
+          <div class="zo-gk3" id="zo-gk3" data-show="dex">
+            <div class="zo-gk" data-g="dex"><div class="zo-gkh"><span>Delta Lean</span><b class="zo-mono" data-tot="dex"></b></div><div class="zo-pb"><canvas data-bars="dex" role="img" aria-label="Net delta by strike"></canvas></div></div>
+            <div class="zo-gk" data-g="vanna"><div class="zo-gkh"><span>Vanna</span><b class="zo-mono" data-tot="vanna"></b></div><div class="zo-pb"><canvas data-bars="vanna" role="img" aria-label="Vanna by strike"></canvas></div></div>
+            <div class="zo-gk" data-g="charm"><div class="zo-gkh"><span>Charm</span><b class="zo-mono" data-tot="charm"></b></div><div class="zo-pb"><canvas data-bars="charm" role="img" aria-label="Charm by strike"></canvas></div></div>
+          </div>
+        </section>
+        <section class="zo-p zo-g5" data-panel="nodes" data-pro>
+          <div class="zo-ph"><h3>Gamma Nodes</h3><span class="zo-hint">top 10 strikes by size</span></div>
+          <div class="zo-scroll"><table class="zo-tbl"><thead><tr><th>#</th><th class="n">Strike</th><th class="n zo-futcol">Futures</th><th class="n">Net GEX</th><th class="n">Share</th></tr></thead><tbody id="zo-nodes"></tbody></table></div>
+        </section>
+        <section class="zo-p zo-g12" data-panel="cme" data-pro hidden>
+          <div class="zo-ph"><h3>CME options check</h3><span class="zo-hint" id="zo-cme-root"></span></div>
+          <div class="zo-scroll"><table class="zo-tbl"><thead><tr><th>Level</th><th class="n">CME options</th><th class="n">Mapped</th></tr></thead><tbody id="zo-cme"></tbody></table></div>
+          <p class="zo-foot" id="zo-cme-foot"></p>
+        </section>
+
+        <!-- S3 Volatility -->
+        <h2 class="zo-sec" id="zo-s-vol">Volatility</h2>
+        <section class="zo-p zo-g4" data-panel="range" data-teaser>
+          <div class="zo-ph"><h3>Zoro Range</h3><span class="zo-hint" id="zo-earn"></span></div>
+          <div class="zo-ranges" id="zo-ranges"></div>
+        </section>
+        <section class="zo-p zo-g4" data-panel="ivr" data-teaser>
+          <div class="zo-ph"><h3>IV rank</h3><span class="zo-hint zo-mono" id="zo-iv30"></span></div>
+          <div class="zo-ivr"><div class="zo-pb"><canvas id="zo-ivr" role="img" aria-label="IV rank gauge"></canvas></div>
+            <div class="zo-ivr-side"><div class="zo-stat"><span>Percentile</span><b id="zo-pctl"></b></div><div class="zo-pb zo-spark"><canvas id="zo-ivspark" role="img" aria-label="30-day IV over the last year"></canvas></div><span class="zo-hint">30-day IV, 1 year</span></div></div>
+        </section>
+        <section class="zo-p zo-g4" data-panel="skew" data-pro>
+          <div class="zo-ph"><h3>Skew</h3><select class="zo-sel" id="zo-skew-exp" aria-label="Expiry"></select></div>
+          <div class="zo-pb zo-line"><canvas id="zo-skew" role="img" aria-label="IV smile by moneyness"></canvas></div>
+          <p class="zo-foot" id="zo-rr"></p>
+        </section>
+        <section class="zo-p zo-g4" data-panel="term" data-pro>
+          <div class="zo-ph"><h3>Term structure</h3><span class="zo-hint"><i class="zo-key" style="--c:var(--zo-teal)"></i>today <i class="zo-key zo-key-d"></i>5 days ago</span></div>
+          <div class="zo-pb zo-line"><canvas id="zo-term" role="img" aria-label="At-the-money IV by days to expiry"></canvas></div>
+        </section>
+        <section class="zo-p zo-g4" data-panel="ivrv" data-pro>
+          <div class="zo-ph"><h3>IV vs realised</h3><span class="zo-hint"><i class="zo-key" style="--c:var(--zo-teal)"></i>30-day IV <i class="zo-key" style="--c:var(--zo-amber)"></i>20-day realised</span></div>
+          <div class="zo-pb zo-line"><canvas id="zo-ivrv" role="img" aria-label="Implied versus realised volatility"></canvas></div>
+        </section>
+        <section class="zo-p zo-g4" data-panel="isurf" data-pro>
+          <div class="zo-ph"><h3>IV surface <span class="zo-hint">moneyness × days</span></h3><div class="zo-seg zo-seg-s" role="group" aria-label="View"><button type="button" data-v="3d" aria-pressed="true">3D</button><button type="button" data-v="heat" aria-pressed="false">Heat</button></div></div>
+          <div class="zo-pb zo-surf zo-surf-s" id="zo-isurf"><div class="zo-axis">drag to rotate</div></div>
+        </section>
+        <section class="zo-p zo-g12" data-panel="screen" data-pro>
+          <div class="zo-ph"><h3>IV screen <span class="zo-hint" id="zo-screen-n"></span></h3><div class="zo-seg zo-seg-s" role="group" aria-label="Sort" id="zo-screen-sort"><button type="button" data-s="ivr" aria-pressed="true">IV rank</button><button type="button" data-s="ivChg" aria-pressed="false">IV change</button><button type="button" data-s="rangePct" aria-pressed="false">Range %</button></div></div>
+          <div class="zo-scroll zo-screen"><table class="zo-tbl zo-tap"><thead><tr><th>Symbol</th><th class="n">IV rank</th><th class="n">30-day IV</th><th class="n">IV change</th><th class="n">Range %</th><th class="n zo-hide-s">Put/call</th><th class="n zo-hide-s">Fresh Volume</th></tr></thead><tbody id="zo-screen"></tbody></table></div>
+        </section>
+
+        <!-- S4 Flow and activity -->
+        <h2 class="zo-sec" id="zo-s-flow">Flow and activity</h2>
+        <section class="zo-p zo-g6" data-panel="vol" data-teaser>
+          <div class="zo-ph"><h3>Volume by strike</h3><span class="zo-hint"><i class="zo-key" style="--c:var(--zo-red)"></i>puts <i class="zo-key" style="--c:var(--zo-pos)"></i>calls</span></div>
+          <div class="zo-pb zo-volk"><canvas id="zo-volk" role="img" aria-label="Call and put volume by strike"></canvas></div>
+        </section>
+        <section class="zo-p zo-g3" data-panel="pc" data-teaser>
+          <div class="zo-ph"><h3>Put/call</h3><span class="zo-hint">volume</span></div>
+          <div class="zo-pb zo-gauge"><canvas id="zo-pc" role="img" aria-label="Put/call ratio gauge"></canvas></div>
+          <div class="zo-kvs" id="zo-pc-kv"></div>
+          <div class="zo-pb zo-spark"><canvas id="zo-pcspark" role="img" aria-label="Put/call, last 20 days"></canvas></div>
+        </section>
+        <section class="zo-p zo-g3" data-panel="pin" data-teaser>
+          <div class="zo-ph"><h3>Pin Strike</h3><span class="zo-hint" id="zo-pin-exp"></span></div>
+          <div class="zo-big"><b class="zo-mono" id="zo-pin"></b><span id="zo-pin-d"></span></div>
+          <div class="zo-pb zo-ruler"><canvas id="zo-pinr" role="img" aria-label="Pin Strike against spot"></canvas></div>
+          <div class="zo-scroll"><table class="zo-tbl"><tbody id="zo-pins"></tbody></table></div>
+        </section>
+        <section class="zo-p zo-g6" data-panel="fresh" data-pro>
+          <div class="zo-ph"><h3>Fresh Volume</h3><span class="zo-hint">volume above open interest</span></div>
+          <div class="zo-scroll zo-list"><table class="zo-tbl"><thead><tr><th>Contract</th><th class="n">Volume</th><th class="n">OI</th><th class="n">Vol/OI</th><th class="n zo-hide-s">Premium at mid</th></tr></thead><tbody id="zo-fresh"></tbody></table></div>
+        </section>
+        <section class="zo-p zo-g6" data-panel="burst" data-pro>
+          <div class="zo-ph"><h3>Volume Bursts</h3><span class="zo-hint">between two updates</span></div>
+          <div class="zo-scroll zo-list"><table class="zo-tbl"><thead><tr><th>Between</th><th>Contract</th><th class="n">Added</th><th class="n zo-hide-s">Premium at mid</th></tr></thead><tbody id="zo-burst"></tbody></table></div>
+          <p class="zo-foot">Volume added between two updates. Not single trades; no buyer or seller side.</p>
+        </section>
+        <section class="zo-p zo-g6" data-panel="oi" data-pro>
+          <div class="zo-ph"><h3>OI change by strike</h3><span class="zo-hint"><i class="zo-key" style="--c:var(--zo-pos)"></i>calls <i class="zo-key" style="--c:var(--zo-red)"></i>puts, since yesterday</span></div>
+          <div class="zo-pb zo-oi"><canvas id="zo-oi" role="img" aria-label="Open interest change by strike"></canvas></div>
+        </section>
+        <section class="zo-p zo-g3" data-panel="active" data-pro>
+          <div class="zo-ph"><h3>Most active</h3><span class="zo-hint">option volume</span></div>
+          <div class="zo-scroll zo-list"><table class="zo-tbl zo-tap"><thead><tr><th>Symbol</th><th class="n">Volume</th><th class="n">P/C</th></tr></thead><tbody id="zo-active"></tbody></table></div>
+        </section>
+        <section class="zo-p zo-g3 zo-tidep" data-panel="tide" data-pro>
+          <div class="zo-ph"><h3>ZoroTide</h3></div>
+          <p class="zo-body">Net call and net put premium since 09:30 ET for SPX, SPY and QQQ. Estimated from options volume and quotes.</p>
+          <a class="zo-btn" href="/gex">Open ZoroTide</a>
+        </section>
+
+        <!-- S5 Daily note -->
+        <h2 class="zo-sec" id="zo-s-note">Daily note</h2>
+        <section class="zo-p zo-g12 zo-note" data-panel="note" data-teaser>
+          <div class="zo-ph"><h3 id="zo-note-t">Zoro Close Note</h3><span class="zo-hint" id="zo-note-day"></span></div>
+          <div id="zo-note"></div>
+          <button type="button" class="zo-btn zo-more" id="zo-note-more" aria-expanded="false" hidden>Read more</button>
+        </section>
+      </div>
+      <p class="zo-edu">Education only. Not financial advice. Levels are worked out from options open interest and volume; they are context, not signals.</p>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js?v=891"></script>
+<script src="assets/gate-timeout.js?v=891"></script>
+<script src="assets/progress.js?v=891"></script>
+<script src="assets/presence.js?v=891"></script>
+<script src="assets/messages.js?v=891"></script>
+<script src="assets/messages-badge.js?v=891"></script>
+<script src="assets/gm-badge.js?v=891"></script>
+<script src="assets/activity-log.js?v=891"></script>
+<script src="assets/banned-check.js?v=891"></script>
+<script src="assets/email-verify.js?v=891"></script>
+<script src="assets/notifications.js?v=891"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+<script src="assets/push.js?v=891"></script>
+<script src="assets/admin-link.js?v=891"></script>
+<script src="assets/profiles-sync.js?v=891"></script>
+<script src="assets/loading-animation.js?v=891"></script>
+<script src="assets/avatars.js?v=891"></script>
+<script src="assets/account-menu.js?v=891"></script>
+<script src="assets/referrals.js?v=891"></script>
+<script src="assets/roles.js?v=891"></script>
+<script src="assets/plan-price.js?v=891"></script>
+<script src="assets/plan-modal.js?v=891"></script>
+<script src="assets/trial.js?v=891"></script>
+<script src="assets/plan-lock.js?v=891"></script>
+<script src="assets/plan-guard.js?v=891"></script>
+<script src="assets/plan-limits.js?v=891"></script>
+<script src="assets/maintenance-check.js?v=891"></script>
+<script src="assets/branding.js?v=891"></script>
+<script src="assets/dash-nav.js?v=891"></script>
+<script src="assets/market-hours.js?v=891"></script>
+<script src="assets/gex-auth.js?v=891"></script>
+<script src="assets/zoro-options.js?v=891"></script>
+
+<script src="assets/theme.js?v=891"></script>
+</body>
+</html>

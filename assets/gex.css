@@ -220,3 +220,30 @@
 .gex-status.is-close .gex-freshness b{color:var(--teal);}
 .gex-status.is-close .gex-freshness span{color:var(--ink-2);}
 .gex-chart-tag.is-close{color:var(--teal);border-color:rgba(0,173,181,.45);}
+
+/* Download levels (ZoroOptions S3): Pro button in the GEX+ head + a native <dialog> (bottom sheet on phones) */
+.gex-dl-btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink-0);font:500 14px/20px var(--font-body);cursor:pointer;white-space:nowrap;}
+.gex-dl-btn:hover{border-color:var(--ink-3);background:var(--bg-2);}
+.gex-dl-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+.gex-dl-pro{padding:1px 6px;border-radius:6px;background:rgba(245,197,66,.14);color:var(--gold);font:600 11px/16px var(--font-body);letter-spacing:.02em;}
+.gex-dl{width:min(520px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:0;border:1px solid var(--line);border-radius:16px;background:var(--bg-1);color:var(--ink-1);box-shadow:0 24px 70px rgba(0,0,0,.55);}
+.gex-dl::backdrop{background:rgba(0,0,0,.55);}
+.gex-dl form{display:flex;flex-direction:column;gap:12px;padding:20px;}
+.gex-dl-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.gex-dl-hd h2{margin:0;font:600 18px/24px var(--font-display);color:var(--ink-0);}
+.gex-dl-x{width:40px;height:40px;margin:-8px -8px -8px 0;border:0;border-radius:10px;background:transparent;color:var(--ink-2);font-size:24px;line-height:1;cursor:pointer;}
+.gex-dl-x:hover{background:var(--bg-2);color:var(--ink-0);}
+.gex-dl-sub{margin:0;font-size:14px;line-height:20px;color:var(--ink-2);}
+.gex-dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.gex-dl-grid .tz-field:last-child{grid-column:1/-1;}
+.gex-dl-msg{min-height:20px;margin:0;font-size:13px;line-height:20px;color:var(--ink-2);}
+.gex-dl-msg.is-bad{color:#e5484d;}
+.gex-dl-ft{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid var(--line-soft, var(--line));}
+.gex-dl-ft span{font-size:12px;line-height:16px;color:var(--ink-3);}
+.gex-dl-ft .btn{min-height:44px;}
+@media(max-width:700px){
+  .gex-dl-btn{width:100%;justify-content:center;height:44px;}
+  .gex-dl{width:100%;max-width:none;margin:auto 0 0;border-radius:16px 16px 0 0;max-height:92dvh;}
+  .gex-dl-grid{grid-template-columns:1fr;}
+}
+.gex-dl-btn[hidden]{display:none;}

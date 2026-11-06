@@ -62,7 +62,11 @@
   // logic). [sectionId, title, [item...]]; item = [file, label, one-line description, svg paths, extra files
   // that count as this item]. Only real pages. Pro items are in PRO. Owner order 2026-11-01 (menu restructure).
   var HOME = ['dashboard-user', 'Home', 'Your dashboard and progress', '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>', ['index']];
-  var PRO = { gex: 1 };
+  var PRO = { gex: 1, 'zoro-options': 1 };
+  // ZoroOptions launch flag (Owner 2026-11-06: ships all at once). false = hidden from the menu and the page shows
+  // "coming soon", except for a tester who sets localStorage zo_preview=1. The CoS flips this to true at ship.
+  var ZO_LIVE = false;
+  window.strykerZoLive = function(){ try { return ZO_LIVE || localStorage.getItem('zo_preview') === '1'; } catch(e) { return ZO_LIVE; } };
   var LEARN_ARTICLES = ['learn-bos-vs-choch', 'learn-fair-value-gap', 'learn-how-prop-firms-work', 'learn-liquidity-sweeps', 'learn-order-blocks', 'learn-order-flow', 'learn-prop-firm-challenge-rules', 'learn-smt-divergence', 'learn-volume-profile'];
   var MORE = [
     ['trade', 'Trade', [
@@ -74,6 +78,7 @@
     ]],
     ['markets', 'Markets', [
       ['gex', 'GEX+', 'Gamma levels as context on the chart', '<path d="M3 18h18"/><path d="M6 15l3.5-4 3 2.5L18 6"/><path d="M18 6h-4M18 6v4"/>'],
+      ['zoro-options', 'ZoroOptions', 'Options gamma, volatility and volume', '<path d="M3 20h18"/><path d="M6 20v-6M10 20V8M14 20v-9M18 20V5"/>'],
       ['market-brief', 'Market brief', 'Daily notes on key levels', '<path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 12h8M8 16h6"/>'],
       ['market-map', 'Market map', 'Markets at a glance', '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'],
       ['scanner', 'Market scanner', 'Movers, gaps, 52-week highs', '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/><path d="M8 12.5l2-2.5 2 1.5 2-3"/>'],
@@ -108,6 +113,8 @@
       ['roadmap', 'Roadmap', 'What we are building next', '<path d="M4 21V4M4 4h12l-2 4 2 4H4"/>']
     ]]
   ];
+
+  if (!window.strykerZoLive()) MORE[1][2] = MORE[1][2].filter(function(it){ return it[0] !== 'zoro-options'; });
 
   var CREATOR_FILES = ['communities', 'c', 'creator', 'creator-new', 'creator-admin', 'creators'];
   function moreKey(f){

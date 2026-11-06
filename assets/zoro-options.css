@@ -1,0 +1,295 @@
+/* TradeZoro: ZoroOptions page (zoro-options.html), design variant B "trading terminal" (Owner pick 2026-11-06).
+   Dense 12-column panel grid on desktop, one column of cards on phones. Plot areas are black in both themes
+   (Owner rule from the mockups), so plot ink is drawn in fixed light colours by assets/zoro-options.js.
+   Tokens follow docs/DESIGN-STANDARD.md; site colours come from assets/style.css (--gold = mint, --teal, --amber).
+   Scrollbars: the shared thin style in assets/style.css covers every overflow area here (no per-component rules). */
+.page-zo{
+  --zo-font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Roboto, "Segoe UI", system-ui, sans-serif;
+  --zo-mono:'JetBrains Mono', ui-monospace, monospace;
+  --zo-s1:#0b0b0d; --zo-s2:#131316; --zo-s3:#1e1e22;
+  --zo-hair:rgba(255,255,255,.08); --zo-hair2:rgba(255,255,255,.14);
+  --zo-t1:rgba(255,255,255,.92); --zo-t2:rgba(255,255,255,.64); --zo-t3:rgba(255,255,255,.44);
+  --zo-mint:#03c988; --zo-pos:#03c988; --zo-red:#e5484d; --zo-teal:#00adb5; --zo-amber:#f5c542;
+  --zo-ease:cubic-bezier(.2,0,0,1);
+}
+:root[data-theme="light"] .page-zo{
+  --zo-s1:#ffffff; --zo-s2:#ffffff; --zo-s3:#eef1f6;
+  --zo-hair:rgba(14,22,33,.10); --zo-hair2:rgba(14,22,33,.16);
+  --zo-t1:#1d1d1f; --zo-t2:#57626f; --zo-t3:#5f6874;
+  --zo-mint:#07996a; --zo-teal:#0b8a95; --zo-amber:#94690f;
+}
+.page-zo .dash-main.zo{ max-width:none; padding:16px 32px 48px; font-family:var(--zo-font); color:var(--zo-t1); font-size:13px; line-height:18px; }
+.zo-sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.zo-mono, .zo-tbl td, .zo-tape, .zo-lv b, .zo-clock{ font-family:var(--zo-mono); font-variant-numeric:tabular-nums; }
+.zo button{ font:inherit; color:inherit; cursor:pointer; }
+.zo button:focus-visible, .zo input:focus-visible, .zo select:focus-visible, .zo a:focus-visible, .zo [tabindex]:focus-visible{ outline:2px solid var(--zo-mint); outline-offset:2px; }
+
+.zo-soon{ max-width:560px; margin:64px auto; padding:24px; border:1px solid var(--zo-hair); border-radius:16px; background:var(--zo-s1); text-align:center; }
+.zo-soon h2{ font-size:22px; line-height:28px; margin:0 0 8px; color:var(--zo-t1); }
+.zo-soon p{ font-size:15px; line-height:22px; color:var(--zo-t2); margin:0; }
+
+.zo-app{ border:1px solid var(--zo-hair); border-radius:16px; overflow:clip; background:var(--zo-s1); }
+
+/* ---- 1.1 symbol bar ------------------------------------------------------------------------------- */
+.zo-bar{ position:sticky; top:var(--topbar-h); z-index:20; display:flex; align-items:center; gap:12px; height:56px; padding:0 12px;
+  border-bottom:1px solid var(--zo-hair); background:var(--zo-s1); }
+.zo-brand{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:15px; white-space:nowrap; }
+.zo-brand i{ width:20px; height:20px; border-radius:6px; background:var(--zo-mint); }
+.zo-syms{ display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; min-width:0; }
+.zo-syms::-webkit-scrollbar{ display:none; }
+.zo-syms button, .zo-seg button{ height:32px; padding:0 10px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--zo-t2);
+  font-family:var(--zo-mono); font-size:12px; white-space:nowrap; transition:color .15s var(--zo-ease), background-color .15s var(--zo-ease), border-color .15s var(--zo-ease); }
+.zo-syms button:hover, .zo-seg button:hover{ color:var(--zo-t1); }
+.zo-syms button[aria-pressed="true"]{ color:var(--zo-mint); border-color:color-mix(in srgb, var(--zo-mint) 50%, transparent); background:color-mix(in srgb, var(--zo-mint) 10%, transparent); }
+.zo-syms button.is-locked{ color:var(--zo-t3); }
+.zo-syms button.is-locked::after{ content:''; display:inline-block; width:8px; height:8px; margin-left:4px; vertical-align:-1px; border:1.5px solid currentColor; border-radius:2px 2px 3px 3px; }
+.zo-search{ display:flex; align-items:center; gap:6px; height:32px; padding:0 8px; border:1px solid var(--zo-hair2); border-radius:8px; color:var(--zo-t3); flex:none; }
+.zo-search svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
+.zo-search input{ width:72px; border:0; background:transparent; color:var(--zo-t1); font:500 12px/16px var(--zo-mono); text-transform:uppercase; outline:none; }
+.zo-search input::placeholder{ text-transform:none; color:var(--zo-t3); font-family:var(--zo-font); }
+.zo-search input::-webkit-calendar-picker-indicator, .zo-search input::-webkit-list-button{ display:none !important; }
+.zo-search input::-webkit-search-cancel-button{ -webkit-appearance:none; }
+.zo-search:focus-within{ border-color:var(--zo-mint); }
+.zo-zone{ display:inline-flex; align-items:center; height:24px; padding:0 10px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap;
+  transition:background-color .25s var(--zo-ease), color .25s var(--zo-ease); background:var(--zo-s3); color:var(--zo-t2); }
+.zo-zone.cushion{ background:color-mix(in srgb, var(--zo-mint) 16%, transparent); color:var(--zo-mint); }
+.zo-zone.swing{ background:color-mix(in srgb, var(--zo-amber) 16%, transparent); color:var(--zo-amber); }
+.zo-zone:empty{ display:none; }
+.zo-sp{ flex:1; }
+.zo-seg{ display:flex; padding:2px; border:1px solid var(--zo-hair2); border-radius:10px; flex:none; }
+.zo-seg button{ font-family:var(--zo-font); font-weight:500; }
+.zo-seg button[aria-pressed="true"]{ background:var(--zo-s3); color:var(--zo-t1); }
+.zo-seg-s button{ height:28px; padding:0 8px; font-size:12px; }
+.zo-upd{ color:var(--zo-t3); font-size:12px; white-space:nowrap; display:flex; gap:8px; align-items:center; }
+.zo-dot{ width:6px; height:6px; border-radius:50%; background:var(--zo-mint); }
+.zo-upd.is-old .zo-dot{ background:var(--zo-amber); }
+.zo-sample{ display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:999px; font-size:11px; line-height:13px; font-weight:500;
+  color:var(--zo-amber); border:1px solid color-mix(in srgb, var(--zo-amber) 45%, transparent); white-space:nowrap; }
+
+/* ---- 4.5 tape ------------------------------------------------------------------------------------- */
+.zo-tape{ position:relative; display:flex; height:32px; border-bottom:1px solid var(--zo-hair); background:#000; font-size:12px; }
+.zo-tape-lbl{ flex:none; display:flex; align-items:center; padding:0 12px; color:var(--zo-amber); border-right:1px solid rgba(255,255,255,.12);
+  font-family:var(--zo-font); font-size:11px; font-weight:500; white-space:nowrap; }
+:root[data-theme="light"] .page-zo .zo-tape-lbl{ color:#f5c542; }
+.zo-tape-view{ flex:1; min-width:0; overflow:hidden; position:relative; }
+.zo-tape-track{ position:absolute; left:0; top:0; height:32px; display:flex; align-items:center; gap:32px; padding-left:16px; white-space:nowrap; will-change:transform;
+  animation:zo-tape var(--zo-tape-s, 60s) linear infinite; }
+.zo-tape:hover .zo-tape-track, .zo-tape.is-paused .zo-tape-track{ animation-play-state:paused; }
+.zo-tape-track span{ color:rgba(255,255,255,.64); }
+.zo-tape-track b{ color:#eeeeee; font-weight:600; margin-right:6px; }
+.zo-tape-track .c{ color:#03c988; } .zo-tape-track .p{ color:#ff6b70; }
+@keyframes zo-tape{ to{ transform:translateX(-50%); } }
+.zo-tape-pause{ flex:none; width:32px; height:32px; display:grid; place-items:center; border:0; border-left:1px solid rgba(255,255,255,.12); background:#000; color:rgba(255,255,255,.64); }
+.zo-tape-pause svg{ width:14px; height:14px; fill:currentColor; }
+.zo-tape.is-paused .zo-tape-pause{ color:#03c988; }
+.zo-tape.is-empty{ display:none; }
+
+/* ---- 1.2 key levels -------------------------------------------------------------------------------- */
+.zo-lvls{ padding:0; display:grid; grid-template-columns:repeat(5, 1fr); border-bottom:1px solid var(--zo-hair); background:var(--zo-s1); }
+.zo-lv{ padding:8px 12px; border-right:1px solid var(--zo-hair); display:flex; flex-direction:column; justify-content:center; gap:2px; min-width:0; min-height:56px; }
+.zo-lv:last-child{ border-right:0; }
+.zo-lv-h{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.zo-lv span{ color:var(--zo-t2); font-size:12px; line-height:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.zo-lv b{ font-size:17px; line-height:22px; font-weight:600; white-space:nowrap; transition:opacity .2s var(--zo-ease); }
+.zo-lv b.is-tick{ opacity:.35; transition:none; }
+.zo-lv small{ font-size:11px; line-height:13px; color:var(--zo-t3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.zo-lv small em{ font-style:normal; font-family:var(--zo-mono); color:var(--zo-t2); }
+.zo-lv.c b{ color:var(--zo-mint); } .zo-lv.f b{ color:var(--zo-red); } .zo-lv.x b{ color:var(--zo-amber); } .zo-lv.r b{ color:var(--zo-teal); } .zo-lv.n b{ color:var(--zo-t1); }
+.zo-lv.pulse b{ animation:zo-pulse 2.4s var(--zo-ease) infinite; }
+@keyframes zo-pulse{ 50%{ opacity:.6; } }
+
+.zo-secnav{ display:none; }
+
+/* ---- terminal grid ---------------------------------------------------------------------------------- */
+.zo-term{ display:grid; gap:1px; background:var(--zo-hair); grid-template-columns:repeat(12, minmax(0, 1fr)); }
+.zo-sec{ display:none; }
+.zo-p{ position:relative; background:var(--zo-s1); padding:8px 12px 12px; min-width:0; display:flex; flex-direction:column; }
+.zo-p[hidden]{ display:none; }
+.zo-g3{ grid-column:span 3; } .zo-g4{ grid-column:span 4; } .zo-g5{ grid-column:span 5; } .zo-g6{ grid-column:span 6; } .zo-g7{ grid-column:span 7; } .zo-g12{ grid-column:span 12; }
+.zo-ph{ display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:32px; margin-bottom:8px; }
+.zo-ph h3{ margin:0; font-size:13px; line-height:18px; font-weight:600; color:var(--zo-t2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.zo-ph h3 .zo-u{ color:var(--zo-t1); font-family:var(--zo-mono); }
+.zo-hint{ color:var(--zo-t3); font-size:11px; line-height:13px; font-weight:400; white-space:nowrap; }
+.zo-ph h3 .zo-hint{ margin-left:6px; }
+.zo-key{ display:inline-block; width:10px; height:3px; border-radius:2px; background:var(--c); vertical-align:middle; margin:0 4px 0 8px; }
+.zo-key-d{ background:none; border-top:2px dashed rgba(255,255,255,.5); height:0; }
+:root[data-theme="light"] .page-zo .zo-key-d{ border-color:rgba(14,22,33,.45); }
+.zo-pb{ position:relative; background:#000; border-radius:8px; overflow:hidden; }
+/* canvases are absolutely placed: a canvas sized 100% of an auto-height box feeds its own height back and grows */
+.zo-pb canvas{ position:absolute; inset:0; display:block; width:100%; height:100%; }
+.zo-prof{ height:440px; touch-action:pan-y; }
+.zo-surf{ height:440px; cursor:grab; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
+.zo-surf:active{ cursor:grabbing; }
+.zo-surf-s{ height:240px; }
+.zo-surf canvas{ position:absolute; inset:0; }
+.zo-axis{ position:absolute; left:8px; bottom:8px; z-index:2; font-size:11px; line-height:13px; color:rgba(255,255,255,.56); font-family:var(--zo-mono); pointer-events:none; }
+.zo-surf.is-heat{ cursor:default; }
+.zo-line{ height:200px; }
+.zo-volk{ height:360px; }
+.zo-oi{ height:200px; }
+.zo-gauge{ height:112px; }
+.zo-spark{ height:48px; }
+.zo-ruler{ height:56px; margin-top:8px; }
+.zo-foot{ margin:8px 0 0; font-size:11px; line-height:13px; color:var(--zo-t3); }
+.zo-body{ margin:0 0 12px; font-size:13px; line-height:18px; color:var(--zo-t2); }
+.zo-tip{ position:absolute; z-index:3; pointer-events:none; padding:6px 8px; border-radius:8px; background:rgba(19,19,22,.96); border:1px solid rgba(255,255,255,.14);
+  color:#eeeeee; font:500 11px/15px var(--zo-mono); white-space:nowrap; }
+
+/* replay */
+.zo-replay{ display:flex; align-items:center; gap:12px; padding-top:8px; }
+.zo-play{ height:32px; padding:0 12px; border-radius:8px; border:1px solid color-mix(in srgb, var(--zo-mint) 55%, transparent); background:color-mix(in srgb, var(--zo-mint) 12%, transparent);
+  color:var(--zo-mint); display:flex; gap:6px; align-items:center; font-size:12px; font-weight:600; flex:none; }
+.zo-play svg{ width:14px; height:14px; fill:currentColor; }
+.zo-replay input[type=range]{ flex:1; min-width:0; height:32px; margin:0; background:transparent; -webkit-appearance:none; appearance:none; accent-color:var(--zo-mint); }
+.zo-replay input[type=range]::-webkit-slider-runnable-track{ height:4px; border-radius:2px; background:linear-gradient(to right, var(--zo-mint) var(--p, 100%), var(--zo-s3) var(--p, 100%)); }
+.zo-replay input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; margin-top:-6px; border-radius:50%; background:var(--zo-mint); border:2px solid var(--zo-s1); }
+.zo-replay input[type=range]::-moz-range-track{ height:4px; border-radius:2px; background:var(--zo-s3); }
+.zo-replay input[type=range]::-moz-range-progress{ height:4px; border-radius:2px; background:var(--zo-mint); }
+.zo-replay input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%; background:var(--zo-mint); border:2px solid var(--zo-s1); }
+.zo-clock{ font-size:12px; color:var(--zo-t2); flex:none; min-width:64px; text-align:right; }
+
+/* greeks: three small charts on desktop, one at a time (segmented) on phones */
+.zo-greek-seg{ display:none; }
+.zo-gk3{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; flex:1; }
+.zo-gk{ display:flex; flex-direction:column; min-width:0; }
+.zo-gkh{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:6px; font-size:12px; color:var(--zo-t2); }
+.zo-gkh b{ font-size:12px; font-weight:500; color:var(--zo-t1); }
+.zo-gk .zo-pb{ flex:1; min-height:160px; }
+
+/* tables */
+.zo-scroll{ overflow:auto; min-height:0; }
+.zo-list{ max-height:300px; }
+.zo-screen{ max-height:420px; }
+.zo-tbl{ width:100%; min-width:0; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+.zo-tbl tbody tr:hover{ background:transparent; }
+.zo-tbl thead th{ position:sticky; text-transform:none; letter-spacing:0; font-weight:500; top:0; z-index:1; background:var(--zo-s1); text-align:left; font:500 11px/13px var(--zo-font); color:var(--zo-t3); height:28px; padding:0 8px; border-bottom:1px solid var(--zo-hair); white-space:nowrap; }
+.zo-tbl tbody td{ height:32px; padding:0 8px; border-bottom:1px solid var(--zo-hair); font-size:12px; color:var(--zo-t2); white-space:nowrap; }
+.zo-tbl td.tk{ color:var(--zo-t1); font-weight:600; }
+.zo-tbl td.c{ color:var(--zo-mint); } .zo-tbl td.p{ color:var(--zo-red); }
+.zo-tbl .n{ text-align:right; }
+.zo-tbl tbody tr.is-new{ animation:zo-row .2s var(--zo-ease) both; }
+@keyframes zo-row{ from{ opacity:0; transform:translateY(-4px); } }
+.zo-tap tbody tr{ cursor:pointer; }
+.zo-tap tbody tr:hover td{ background:var(--zo-s3); }
+.zo-tap tbody tr:focus-visible{ outline:2px solid var(--zo-mint); outline-offset:-2px; }
+.zo-bar-cell{ display:inline-block; height:6px; border-radius:3px; background:var(--zo-mint); vertical-align:middle; margin-left:6px; opacity:.7; }
+.zo-futcol[hidden]{ display:none; }
+
+/* range tiles */
+.zo-ranges{ flex:1; display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:8px; }
+.zo-rg{ display:flex; flex-direction:column; justify-content:center; }
+.zo-rg{ padding:8px 10px; border-radius:8px; background:#000; min-width:0; }
+.zo-rg-h{ display:flex; justify-content:space-between; font-size:11px; line-height:13px; color:rgba(255,255,255,.56); }
+.zo-rg-v{ margin-top:4px; font:600 15px/20px var(--zo-mono); color:#eeeeee; white-space:nowrap; }
+.zo-rg-f{ font:400 11px/13px var(--zo-mono); color:rgba(255,255,255,.56); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.zo-rg-bar{ position:relative; height:4px; margin-top:8px; border-radius:2px; background:rgba(255,255,255,.1); }
+.zo-rg-bar i{ position:absolute; top:0; bottom:0; border-radius:2px; background:#00adb5; transition:left .25s var(--zo-ease), width .25s var(--zo-ease); }
+.zo-rg-bar u{ position:absolute; top:-3px; width:2px; height:10px; border-radius:1px; background:#eeeeee; }
+.zo-rg.is-locked{ display:grid; place-items:center; color:rgba(255,255,255,.56); font-size:11px; text-align:center; min-height:72px; }
+
+/* iv rank */
+.zo-ivr{ flex:1; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:8px; }
+.zo-ivr > .zo-pb{ min-height:132px; }
+.zo-ivr-side{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.zo-stat{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.zo-stat span{ color:var(--zo-t3); font-size:11px; }
+.zo-stat b{ font:600 17px/22px var(--zo-mono); }
+.zo-kvs{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:4px 12px; margin:8px 0; }
+.zo-sel{ height:28px; padding:0 8px; border:1px solid var(--zo-hair2); border-radius:8px; background:var(--zo-s1); color:var(--zo-t1); font:500 12px/16px var(--zo-mono); }
+.zo-big{ display:flex; align-items:baseline; gap:8px; }
+.zo-big b{ font-size:28px; line-height:34px; font-weight:700; color:var(--zo-amber); }
+.zo-big span{ color:var(--zo-t2); font-size:12px; }
+.zo-btn{ display:inline-flex; align-items:center; justify-content:center; height:40px; padding:0 16px; border-radius:12px; border:1px solid var(--zo-hair2);
+  background:transparent; color:var(--zo-t1); font-size:13px; font-weight:600; text-decoration:none; align-self:flex-start; }
+.zo-btn:hover{ border-color:var(--zo-mint); color:var(--zo-mint); }
+
+/* note */
+.zo-note #zo-note{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:16px; }
+.zo-note h4{ margin:0 0 4px; font:600 12px/16px var(--zo-mono); color:var(--zo-t1); }
+.zo-note p{ margin:0 0 4px; font-size:13px; line-height:18px; color:var(--zo-t1); }
+.zo-note.is-clamped #zo-note > :not(:first-child){ display:none; }
+.zo-note.is-clamped #zo-note{ grid-template-columns:1fr; }
+.zo-more{ margin-top:8px; }
+.zo-empty{ display:grid; place-items:center; min-height:96px; padding:12px; color:var(--zo-t3); font-size:12px; text-align:center; }
+.zo-edu{ margin:0; padding:12px; border-top:1px solid var(--zo-hair); font-size:12px; line-height:16px; color:var(--zo-t2); }
+
+/* ---- Pro lock (Free members) ------------------------------------------------------------------------------ */
+.zo-lock{ position:absolute; inset:0; z-index:4; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; text-align:center;
+  background:color-mix(in srgb, var(--zo-s1) 70%, transparent); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+.zo-lock svg{ width:24px; height:24px; fill:none; stroke:var(--zo-t1); stroke-width:1.75; stroke-linecap:round; }
+.zo-lock b{ font-size:15px; line-height:20px; font-weight:600; color:var(--zo-t1); }
+.zo-lock span{ font-size:13px; line-height:18px; color:var(--zo-t2); max-width:280px; }
+.zo-lock .zo-btn{ align-self:center; height:40px; background:var(--zo-mint); border-color:var(--zo-mint); color:#04110d; }
+.zo-p.is-locked{ min-height:200px; }
+.zo-p.is-locked > :not(.zo-lock):not(.zo-ph){ visibility:hidden; }
+.zo-lockcard{ grid-column:1 / -1; background:var(--zo-s1); padding:16px; }
+.zo-lockcard .plan-lock{ margin:0 auto; }
+.page-zo .plan-lock-price{ display:none !important; }   /* no prices on this page (Owner, 2026-11-06) */
+
+/* ---- tablet ---------------------------------------------------------------------------------------- */
+@media (max-width:1180px){
+  .page-zo .dash-main.zo{ padding:16px 24px 48px; }
+  .zo-g7, .zo-g5, .zo-g12{ grid-column:span 12; } .zo-g3{ grid-column:span 6; } .zo-g4{ grid-column:span 6; } .zo-g6{ grid-column:span 12; }
+  .zo-brand{ display:none; }
+}
+
+/* ---- phone ----------------------------------------------------------------------------------------- */
+@media (max-width:760px){
+  .page-zo .dash-main.zo{ padding:0 0 104px; }
+  .zo-app{ border:0; border-radius:0; background:transparent; overflow:visible; }
+  .zo-bar{ top:var(--topbar-h); flex-wrap:wrap; height:auto; padding:8px 16px; row-gap:8px; }
+  .zo-bar .zo-sp{ display:none; }
+  .zo-syms{ order:3; width:100%; }
+  .zo-syms button{ height:36px; }
+  .zo-search{ order:2; margin-left:auto; height:40px; }
+  .zo-zone{ order:6; margin-left:auto; }
+  .zo-search input{ width:64px; font-size:16px; }
+  .zo-brand{ display:flex; }
+  .zo-bar > .zo-seg{ order:4; width:100%; }
+  .zo-bar > .zo-seg button{ flex:1; height:40px; font-size:13px; }
+  .zo-upd{ order:5; }
+  .zo-lvls{ grid-template-columns:1fr 1fr; }
+  .zo-lv{ border-bottom:1px solid var(--zo-hair); }
+  .zo-lv:nth-child(2n){ border-right:0; }
+  .zo-lv:last-child{ grid-column:1 / -1; border-bottom:0; }
+  .zo-secnav{ display:block; position:sticky; top:calc(var(--topbar-h) + var(--zo-bar-h, 0px)); z-index:19; padding:8px 16px; background:var(--zo-s1); border-bottom:1px solid var(--zo-hair); }
+  .zo-secnav .zo-seg button{ flex:1; height:40px; font-size:13px; }
+  .zo-term{ display:flex; flex-direction:column; gap:12px; padding:12px 16px 0; background:transparent; }
+  .zo-sec{ display:block; margin:12px 0 0; font-size:17px; line-height:22px; font-weight:600; color:var(--zo-t1); scroll-margin-top:calc(var(--topbar-h) + var(--zo-bar-h, 0px) + 64px); }
+  .zo-sec:first-child{ margin-top:0; }
+  .zo-p{ border:1px solid var(--zo-hair); border-radius:16px; padding:12px; }
+  .zo-ph{ flex-wrap:wrap; }
+  .zo-prof{ height:420px; }
+  .zo-surf{ height:300px; }
+  .zo-surf-s{ height:260px; }
+  .zo-seg-s button{ height:36px; padding:0 10px; }
+  .zo-replay input[type=range]{ height:48px; }
+  .zo-play{ height:44px; }
+  .zo-greek-seg{ display:flex; width:100%; }
+  .zo-greek-seg button{ flex:1; }
+  .zo-gk3{ grid-template-columns:1fr; }
+  .zo-gk3[data-show="dex"] .zo-gk:not([data-g="dex"]), .zo-gk3[data-show="vanna"] .zo-gk:not([data-g="vanna"]), .zo-gk3[data-show="charm"] .zo-gk:not([data-g="charm"]){ display:none; }
+  .zo-gk .zo-pb{ min-height:200px; }
+  .zo-tbl tbody td{ height:48px; }
+  .zo-hide-s{ display:none; }
+  .zo-list{ max-height:400px; }
+  .zo-note #zo-note{ grid-template-columns:1fr; }
+  .zo-edu{ border:0; padding:16px; }
+  .zo-lockcard{ border-radius:16px; border:1px solid var(--zo-hair); }
+  .zo-tape{ height:44px; }
+  .zo-tape-track{ height:44px; }
+  .zo-tape-pause{ width:44px; height:44px; }
+  .zo-sel{ height:40px; }
+  .zo-upd{ height:20px; }
+}
+@media (max-width:380px){ .zo-ivr{ grid-template-columns:1fr; } }
+
+@media (prefers-reduced-motion:reduce){
+  .page-zo .zo *, .page-zo .zo *::before, .page-zo .zo *::after{ animation:none !important; transition:none !important; }
+  .zo-tape-view{ overflow-x:auto; }
+}
+/* screenshot mode (?shot): freeze looping motion */
+.zo-shot .zo *{ animation:none !important; }
+
+/* copy rule: no prices anywhere on ZoroOptions; the shared lock card can print the plan price, hide it here */
+.zo-lockcard .plan-lock-price{ display:none !important; }

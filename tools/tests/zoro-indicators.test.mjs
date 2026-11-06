@@ -18,7 +18,17 @@ const zs = ZD.zsum({ u: 'SPX', built: 1000000, spot: 6800, zone: 'cushion', leve
   nodes: Array.from({ length: 12 }, (_, i) => ({ k: 6600 + i * 25, g: (i % 2 ? -1 : 1) * (100 - i * 5) })),
   ranges: { '0': [6770, 6830], w: [6700, 6900], m: [6600, 7000] }, iv: { rank: 34, pct: 41, iv30: 17.8, t: [1, 2], v: [15, 17.8] } });
 
-t('flag off: no Zoro source', () => { assert.equal(ZD.zoroSource('RTY1!', 'futures', false), null); assert.equal(ZD.zoroOn(), false); });
+t('launched: on by default, stk_zoro_options=0 opts out', () => {
+  assert.equal(ZD.zoroOn(), true);
+  const g = localStorage.getItem; localStorage.getItem = (k) => (k === 'stk_zoro_options' ? '0' : null);
+  try { assert.equal(ZD.zoroOn(), false); assert.equal(ZD.zoroSource('RTY1!', 'futures'), null); } finally { localStorage.getItem = g; }
+  assert.equal(ZD.zoroSource('RTY1!', 'futures', false), null);
+});
+t('real summary (S1 fixture): chain time t, not built; 10 nodes, 4 ranges, IV series', () => {
+  const f = ZD.zsum(JSON.parse(fs.readFileSync(new URL('../fixtures/zoro/summary.json', import.meta.url))));
+  assert.equal(f.t, 1793981964); assert.equal(f.nodes.length, 10); assert.equal(f.ranges.length, 4);
+  assert.equal(f.flip, 7514.56); assert.equal(f.call, 7450); assert.equal(f.pin, 7560); assert.ok(f.iv.t.length > 200 && f.iv.t.length === f.iv.v.length);
+});
 t('mapping RTY->IWM CL->USO ES->SPX NQ->QQQ GC->GLD', () => {
   const m = (s, p) => ZD.zoroSource(s, p, true);
   assert.deepEqual([m('RTY1!', 'futures').u, m('CL1!', 'futures').u, m('MES', 'futures').u, m('NQ1!', 'futures').u, m('GC1!', 'futures').u], ['IWM', 'USO', 'SPX', 'QQQ', 'GLD']);

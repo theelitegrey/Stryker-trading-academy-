@@ -1,8 +1,11 @@
 // ZoroOptions chart indicators: browser test (stream 4).
 //   node tools/tests/chart-dev-server.mjs 8071 &   (site + /api/chart/bars, binds 127.0.0.1)
 //   flock /tmp/stryker-chrome.lock env CHART_BASE=http://127.0.0.1:8071 node tools/tests/zoro-indicators-browser.js [shotsDir]
-// /api/zo/* is answered here from a synthetic summary / activity (spec section 6 shapes, same as the S1 fixture), Pro member (richstub).
+// /api/zo/* is answered here from the real S1 fixtures (tools/fixtures/zoro/summary.json, activity*.json), prices scaled to
+// the symbol and times shifted to now, Pro member (richstub). Launched: on by default, stk_zoro_options='0' opts out.
 const { launch } = require('./lib.js');
+const fs = require('fs');
+const path = require('path');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8071';
 const OUT = process.argv[2] || '/tmp';
@@ -12,22 +15,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const NOW = Math.floor(Date.now() / 1000);
 const DAY = 86400;
 const SPOT = { IWM: 2000, USO: 80, SPX: 6800 };
+const FIX = (n) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'zoro', n), 'utf8'));
+const F0 = FIX('summary.json');
 function summary(u) {
-  const s = SPOT[u] || 100, T = [], V = [];
-  for (let i = 0; i < 300; i++) { T.push(NOW - (300 - i) * DAY); V.push(15 + 8 * Math.sin(i / 20)); }
-  return { u, built: NOW - 120, spot: s, zone: 'cushion', levels: { call_ceiling: s * 1.02, put_floor: s * 0.98, flip_line: s * 0.995, pin: s * 1.005 },
-    nodes: Array.from({ length: 10 }, (_, i) => ({ k: Math.round(s * (0.97 + i * 0.006)), g: (i % 3 ? 1 : -1) * (100 - i * 7) })),
-    ranges: { '0': [s * 0.99, s * 1.01], '1': [s * 0.985, s * 1.015], w: [s * 0.97, s * 1.03], m: [s * 0.94, s * 1.06] },
-    iv: { rank: 34, pct: 41, iv30: V[V.length - 1], t: T, v: V } };
+  // the real feeder fixture, scaled to this symbol's spot and moved so its chain time is 2 min ago
+  const f = FIX('summary.json'), k = (SPOT[u] || 100) / f.spot, dt = NOW - 120 - f.t;
+  const px = (v) => (typeof v === 'number' ? v * k : v);
+  const L = f.levels, iv = f.iv;
+  return Object.assign({}, f, { u, t: f.t + dt, built: f.built + dt, spot: px(f.spot),
+    levels: Object.assign({}, L, { call_ceiling: px(L.call_ceiling), put_floor: px(L.put_floor), flip_line: px(L.flip_line), pin: px(L.pin) }),
+    nodes: f.nodes.map((n) => Object.assign({}, n, { k: px(n.k) })),
+    ranges: Object.fromEntries(Object.entries(f.ranges).map(([key, r]) => [key, r.map(px)])),
+    iv: Object.assign({}, iv, { t: iv.t.map((x) => x + dt) }) });
 }
 function activity(u, kind) {
-  const s = SPOT[u] || 100;
-  return { u, t: NOW - 60, items: Array.from({ length: 12 }, (_, i) => ({ t: NOW - 3600 + i * 240, side: i % 2 ? 'P' : 'C', k: Math.round(s * (0.99 + i * 0.002)), x: '2026-11-13', vol: 4000 + i * 100, oi: 900, add: kind === 'burst' ? 1500 + i * 10 : null, prem: 100000 + i * 20000 })) };
+  const f = FIX(kind === 'burst' ? 'activity.json' : 'activity-fresh.json'), k = (SPOT[u] || 100) / FIX('summary.json').spot, dt = NOW - 120 - f.t;
+  return Object.assign({}, f, { u, t: f.t + dt, built: f.built + dt, rows: f.rows.map((r) => Object.assign({}, r, { t: r.t + dt, k: r.k * k })) });
 }
+
 async function open(b, { w, h, mobile, flag }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
-  await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
+  await ctx.addInitScript((off) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); if (off) localStorage.setItem('stk_zoro_options', '0'); } catch (e) {} }, !flag);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   const zoHits = [];
   await ctx.route(/\/api\/zo\//, (r) => {
@@ -42,7 +51,7 @@ async function open(b, { w, h, mobile, flag }) {
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|WebSocket|wss?:\/\//.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
-  await p.goto(BASE + '/charts.html' + (flag ? '?zoro=1' : ''), { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });   // no ?zoro=1: launched = on by default
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
   await p.evaluate(async () => { for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 300)); try { if (window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars.length > 0) return; } catch (e) {} } });
   return { ctx, p, errors, zoHits };
@@ -62,7 +71,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
 (async () => {
   const b = await launch();
   try {
-    // ---- flag OFF: nothing new, no /api/zo call ----
+    // ---- opted out (stk_zoro_options='0'): nothing new, no /api/zo call ----
     {
       const { ctx, p, errors, zoHits } = await open(b, { w: 1440, h: 900, flag: false });
       await setSym(p, 'futures:ES1!', '5');
@@ -74,7 +83,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
       check(errors.length === 0, 'flag off: no console errors ' + errors.slice(0, 2).join(' | '));
       await ctx.close();
     }
-    // ---- flag ON, desktop, Russell future ----
+    // ---- default (launched), desktop + phones, Russell future ----
     for (const [w, h, mobile, tag] of [[1440, 900, false, '1440'], [412, 915, true, '412'], [390, 844, true, '390']]) {
       const { ctx, p, errors, zoHits } = await open(b, { w, h, mobile, flag: true });
       await setSym(p, 'futures:RTY1!', '5');
@@ -95,10 +104,10 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
       const call = d && d.lines && d.lines.find((l) => l.id === 'call');
       check(call && /^CALL CEILING/.test(call.text), tag + ': glossary name "' + (call && call.text) + '"');
       check(d && /updated (just now|\d+ min ago)/.test(d.status || '') && !/\blive\b|real-time|delayed|behind/i.test(d.status || ''), tag + ': status "' + (d && d.status) + '"');
-      // ratio check: IWM spot 2000 -> RTY chart price near bar close
+      // ratio check: IWM spot 2000 -> RTY chart price near bar close; flip/spot as in the fixture
       const c = await lastClose(p);
       const flip = d && d.lines && d.lines.find((l) => l.id === 'zero');
-      check(flip && c && Math.abs(flip.price / c - 0.995) < 0.02, tag + ': Flip Line mapped to RTY scale (' + (flip && flip.price) + ' vs close ' + c + ')');
+      check(flip && c && Math.abs(flip.price / c - F0.levels.flip_line / F0.spot) < 0.02, tag + ': Flip Line mapped to RTY scale (' + (flip && flip.price) + ' vs close ' + c + ')');
       check(zoHits.some((x) => /summary\?u=IWM/.test(x)), tag + ': asked /api/zo/summary?u=IWM');
       // other indicators
       for (const t of ['stk_zrange', 'stk_zzone', 'stk_ivrank', 'stk_zvol']) await add(p, t);
@@ -107,7 +116,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
       for (const t of ['stk_zrange', 'stk_zzone', 'stk_ivrank', 'stk_zvol']) check(nt.includes(t), tag + ': ' + t + ' added');
       const zr = await dataOf(p, 'stk_zrange'), zz = await dataOf(p, 'stk_zzone'), zv = await dataOf(p, 'stk_zvol');
       check(zr && zr.bands && zr.bands.length === 4 && /updated/.test(zr.status), tag + ': Zoro Range 4 bands, "' + (zr && zr.status) + '"');
-      check(zz && zz.zone === 'cushion' && /Cushion/.test(zz.status), tag + ': Gamma Zone ' + (zz && zz.zone));
+      check(zz && zz.zone === F0.zone && /Swing/.test(zz.status), tag + ': Gamma Zone ' + (zz && zz.zone));
       check(zv && (zv.agg || zv.note), tag + ': Volume Burst marks ' + (zv && (zv.note || (zv.agg && zv.agg.filter(Boolean).length + ' bars'))));
       const iv = await p.evaluate(() => window.__stkIvRank || null);
       check(iv && iv.u === 'IWM' && iv.rank >= 0 && iv.rank <= 100 && iv.n > 100, tag + ': IV Rank ' + JSON.stringify(iv));
@@ -126,6 +135,12 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
       // CL -> USO
       await setSym(p, 'futures:CL1!', '5'); await sleep(2500);
       check(zoHits.some((x) => /summary\?u=USO/.test(x)), tag + ': CL asks USO');
+      // ES -> SPX: Zoro Levels nodes on the S&P future
+      await setSym(p, 'futures:ES1!', '5'); await sleep(2500);
+      const de = await dataOf(p, 'stk_gex');
+      check(zoHits.some((x) => /summary\?u=SPX/.test(x)) && de && de.lines && de.lines.filter((l) => /^zn/.test(l.id)).length === 10, tag + ': ES asks SPX, 10 Gamma Nodes');
+      await shot(p, 'zo-es-' + tag + '-dark.png');
+      if (tag === '1440') { await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'light')); await sleep(1200); await shot(p, 'zo-es-1440-light.png'); await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark')); await sleep(500); }
       const all = await p.evaluate(() => document.body.innerText);
       check(!/Call Resistance|Put Support|\bHVL\b|Q-Score|Market Tide|\bHIRO\b|Periscope|Gamma Wall|bullish|bearish/i.test(all), tag + ': no rival terms');
       check(errors.length === 0, tag + ': no console errors ' + errors.slice(0, 2).join(' | '));

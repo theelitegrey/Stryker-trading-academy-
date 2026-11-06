@@ -21,6 +21,7 @@ import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TI
 import { closeCandidate, pickClose, etEpoch as closeEtEpoch, CLOSE_KEEP_DAYS } from './gex-close.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
+import { validateZoIngest, zoInit, zoPut, zoTrim, zoGet, zoNoteDay, zoHistDay, zoLastHistDay, zoGunzip, zoIngestRoute, zoGetRoute, zoExportRoute, exportSnaps, futuresRatio, exportParams, exportRows, exportCsv, teaserEligible, zoTeaser, ZO_ROUTES, ZO_PROFILE_X, ZO_SURFACE_KIND, ZO_ACT_KIND, ZO_CME_ROOTS, ZO_MAX_GZ, zoSymbolOk, zoTier, NOTICE } from './zoro.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
@@ -110,6 +111,7 @@ export class BookRecorder {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexsnap (u TEXT NOT NULL, d INTEGER NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, d, t)) WITHOUT ROWID`);
     // ZoroTide samples (src/tide.js): one row per symbol per Cboe chain time, 30 days
     this.sql.exec(`CREATE TABLE IF NOT EXISTS tide (u TEXT NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, t)) WITHOUT ROWID`);
+    zoInit(this.sql);   // ZoroOptions (src/zoro.js)
     // per-day summary so /gex-sessions never scans the snapshots
     storeInit(this.sql);   // news + economic calendar (src/news.js)
     terminalInit(this.sql);   // brief / market map / econ calendar files (src/terminal.js)
@@ -456,6 +458,35 @@ export class BookRecorder {
       const uu = u.searchParams.get('u');
       return Response.json(this.snapSessions(uu, Number(u.searchParams.get('d'))));
     }
+    if (u.pathname === '/zo-ingest') {
+      // validated here (gunzip + parse is past the Worker's 10 ms CPU); route + variant come in the query
+      const route = u.searchParams.get('route') || '';
+      const buf = await req.arrayBuffer();
+      const v = await validateZoIngest(route, u.searchParams, buf, Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      const now = Math.floor(Date.now() / 1000);
+      const r = zoPut(this.sql, v.key, v.t, buf, v.json, now);
+      if (now - Number(this.meta('zoTrim') || 0) > 3600) { zoTrim(this.sql, now); this.meta('zoTrim', now); }
+      return new Response('stored ' + route + ' ' + v.key.u + (r.hist ? ' +hist' : ''));
+    }
+    if (u.pathname === '/zo-get') {
+      const route = u.searchParams.get('route'), uu = u.searchParams.get('u') || '*', sub = u.searchParams.get('sub') || '';
+      const r = zoGet(this.sql, route, uu, sub);
+      if (!r) return new Response('no data', { status: 404 });
+      return new Response(r.gz, { headers: { 'content-type': 'application/octet-stream', 'x-zo-t': String(r.t) } });
+    }
+    if (u.pathname === '/zo-note-day') return Response.json({ day: zoNoteDay(this.sql, u.searchParams.get('day') || '') });
+    if (u.pathname === '/zo-history') {
+      const uu = u.searchParams.get('u'), day = u.searchParams.get('day') || zoLastHistDay(this.sql, uu);
+      if (!day) return new Response('no data', { status: 404 });
+      return Response.json(zoHistDay(this.sql, uu, day));
+    }
+    if (u.pathname === '/zo-export') {
+      const p = JSON.parse(u.searchParams.get('p'));
+      let snaps = exportSnaps(this.sql, p);
+      const rows = exportRows(snaps, p.u, p.fut ? futuresRatio(this.sql, p.fut) : null);
+      return Response.json({ rows });
+    }
     if (u.pathname === '/opt-ingest') {
       const { items } = await req.json();
       return new Response('stored ' + this.optIngest(items));
@@ -755,6 +786,12 @@ async function route(req, env, ctx) {
       const v = await validateGexChain(sym, part, buf, Date.now());
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/gex-ingest?sym=' + sym + '&part=' + part + '&ts=' + v.fetched_at + '&ct=' + Math.round(closeEtEpoch(v.chain_time) || 0), { method: 'POST', body: buf });
+    }
+    if (u.pathname === '/zo-ingest') {
+      // ZoroOptions feeder (server -> Worker): same shared secret, gzip JSON, per-route size caps (src/zoro.js)
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      return zoIngestRoute(req, u, env, stub);
     }
     if (u.pathname === '/is-note') {
       // InsightSentry monthly REST counter (src/is-usage.js). Server feeders: the ingest secret, any source, n <= 100000,
@@ -1066,6 +1103,13 @@ async function route(req, env, ctx) {
         ctx.waitUntil(caches.default.put(ckey, r.clone()));
       }
       return new Response(r.body, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'private, no-store' } });
+    }
+    // ZoroOptions API (src/zoro.js): the gate runs inside, before any cache or storage read. /zo/levels-export is the GEX levels download.
+    if (u.pathname.startsWith('/zo/')) {
+      const h = cors(req);
+      if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
+      const deps = { isPro: isGexProToken, bearer: bearerOf, stub, now: () => Date.now() };
+      return u.pathname === '/zo/levels-export' ? zoExportRoute(req, u, env, ctx, h, deps) : zoGetRoute(req, u, env, ctx, h, deps);
     }
     // GEX+ data is Pro only (Owner order 2026-11-01): the history, sessions and options-analytics reads need a verified admin / demo / active-Pro token.
     // (/tide is ZoroTide, free.) Checked before the cache, and the 403 is never cached.

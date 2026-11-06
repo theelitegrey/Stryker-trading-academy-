@@ -36,6 +36,10 @@ jobs:
         run: node workers/book-recorder/test/gex.test.mjs
       - name: GEX history tests (feeder vs engine parity, validation, no-lookahead lookup)
         run: node workers/book-recorder/test/gex-history.test.mjs
+      - name: ZoroOptions API tests (ingest validation, Pro gate fails closed, teaser, trims, levels download)
+        run: |
+          node workers/book-recorder/test/zoro-worker-local.mjs
+          node workers/book-recorder/test/zoro-pages.test.mjs
       - name: GEX daily close tests (close-chain picker, weekend / holiday / evening session, close build)
         run: node tools/tests/gex-close.test.mjs
       - name: Options analytics tests (feeder maths, ingest validation)

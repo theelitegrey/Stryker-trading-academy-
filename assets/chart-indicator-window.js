@@ -190,6 +190,10 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_em') { cat = GROUP_STRYKER; desc = 'Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_camarilla') { cat = 'Levels'; desc = 'Camarilla levels R5 to S5, Y-High / Y-Close / Y-Low and the R3-RB3 / S3-SB3 zones from the prior day, week or month'; }
       if (r.native && r.nativeType === 'stk_tide') { cat = GROUP_STRYKER; desc = 'Options money flow: net call premium (green) vs net put premium (red) since the open, in a lower pane (SPX, SPY, QQQ, ES, NQ)'; }
+      if (r.native && r.nativeType === 'stk_zrange') { cat = GROUP_STRYKER; desc = 'Shaded Zoro Range bands (0DTE, 1DTE, weekly, monthly) from the ATM straddle'; }
+      if (r.native && r.nativeType === 'stk_zzone') { cat = GROUP_STRYKER; desc = 'A faint tint above the Flip Line (Cushion) and below it (Swing)'; }
+      if (r.native && r.nativeType === 'stk_ivrank') { cat = GROUP_STRYKER; desc = '30-day implied volatility with its 1-year low and high, IV rank and percentile'; }
+      if (r.native && r.nativeType === 'stk_zvol') { cat = GROUP_STRYKER; desc = 'Marks where a contract had Fresh Volume (volume above open interest) or a Volume Burst. Volume only, no buyer or seller side'; }
       if (r.native && r.nativeType === 'stk_optflow') { cat = GROUP_STRYKER; desc = 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium; hover or tap for details. Per-bar totals, not single trades (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_offex') { cat = GROUP_STRYKER; desc = 'Daily off-exchange share of volume in a lower pane. FINRA data, updated daily'; }
       if (r.native && r.nativeType === 'stk_offex_lv') { cat = GROUP_STRYKER; desc = 'Price levels where weekly off-exchange volume clustered (average price of the week). FINRA data, updated weekly'; }

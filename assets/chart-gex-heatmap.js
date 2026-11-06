@@ -39,6 +39,7 @@
 // Wording: "updated X min ago" only. Education only. Not financial advice.
 import './gex-heat-core.js?v=891';
 import { gexSource, gexTier, gexFetch } from './chart-gex-levels.js?v=891';
+import * as ZD from './chart-zoro-data.js?v=891';
 
 const TYPE = 'stk_gexheat';
 const PRICING = '/pricing';
@@ -130,7 +131,7 @@ function ensure(api, dte, days, toSec) {
   // upTo() below), so stepping does not hit the network every bar.
   if (!live && e.to && toSec <= e.to && toSec >= e.from) return Promise.resolve(e);
   const to = live ? nowS : Math.min(nowS, Math.ceil((toSec + 4 * 3600) / 7200) * 7200);
-  const core = H();
+  const core = ZD.histApi(api, H());
   const ses = (!e.sessions || Date.now() - e.sesAt > 10 * 60000) ? core.sessions(api, dte).catch(() => []) : Promise.resolve(e.sessions);
   e.p = ses.then((list) => {
     e.sessions = Array.isArray(list) ? list : []; e.sesAt = Date.now();
@@ -186,7 +187,7 @@ class HeatNative {
     this.build();
     if (!src || !this.tier || this.locked(src) || document.visibilityState === 'hidden' || !H()) return;
     const dte = this.dte(), rp = replayNowS();
-    if (src.fut && src.api !== 'SPX' && !rp) gexFetch(src.api, 0).then((d) => { const k = futRatio(src, d); if (k) { this.ratio = k; saveK(src.fut, k); this.build(); } }).catch(() => {});
+    if (src.fut && src.api !== 'SPX' && !src.zoro && !rp) gexFetch(src.api, 0).then((d) => { const k = futRatio(src, d); if (k) { this.ratio = k; saveK(src.fut, k); this.build(); } }).catch(() => {});
     ensure(src.api, dte, this.days(), rp).then(() => this.build());
   }
   poll() { this.load(); }
@@ -209,7 +210,7 @@ class HeatNative {
     const src = resolveSrc(this.ctx);
     let payload;
     const core = H();
-    if (!src) payload = { note: 'GEX heatmap available for SPX, SPY, QQQ, ES, NQ and gold (GC)' };
+    if (!src) payload = { note: ZD.zoroOn() ? 'Gamma over time: SPX, SPY, QQQ, IWM, GLD, USO, ES, NQ, RTY, GC, CL and top stocks' : 'GEX heatmap available for SPX, SPY, QQQ, ES, NQ and gold (GC)' };
     else if (!core) payload = { note: 'GEX heatmap could not load' };
     else if (!this.tier) payload = { note: 'Loading GEX heatmap…' };
     else if (this.locked(src)) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api === 'GLD' ? 'gold' : src.api) + ' GEX heatmap with Pro', href: PRICING };
@@ -226,8 +227,8 @@ class HeatNative {
         const k = src.fut ? (this.ratio || (src.api === 'SPX' ? 1 : loadK()[src.fut]) || null) : null;
         const conv = conversions(rows, src, k, bars, tfSeconds(this.ctx.timeframe));
         const op = Math.max(0.1, Math.min(1, Number(this.opt('opacity')) || 0.55));
-        const ver = [src.api, dte, e.ver, rows.length, rows[rows.length - 1].t].join('|');
-        if (!this.heat || this.heat.ver !== ver) this.heat = { ver, imgs: buildDays(rows, rp) };
+        const ver = [src.api, dte, e.ver, src.tierB ? 'B' : 'A', rows.length, rows[rows.length - 1].t].join('|');
+        if (!this.heat || this.heat.ver !== ver) this.heat = { ver, imgs: buildDays(rows, rp, ZD.fillSlots(src)) };
         const convSig = conv.map((c) => (c ? c.mul.toFixed(4) + ',' + c.add.toFixed(2) : '-')).join(';');
         const last = rows[rows.length - 1];
         payload = {
@@ -248,7 +249,7 @@ class HeatNative {
 // id -> { imgs: [{ heat, rows }], rows, conv } read by the layer (no copies through pushData)
 const heats = new Map();
 // one base image per ET session, colour scale shared by all shown days
-function buildDays(rows, until) {
+function buildDays(rows, until, fill) {
   const core = H();
   const byDay = new Map();
   rows.forEach((r) => { const d = r.day || core.etDay(r.t); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(r); });
@@ -259,7 +260,7 @@ function buildDays(rows, until) {
   const out = [];
   byDay.forEach((rs, day) => {
     const w = core.sessionWindow(day);
-    const heat = core.build(rs, { x0: Math.min(w.x0, Math.floor(rs[0].t / core.SLOT) * core.SLOT), x1: Math.max(w.x1, rs[rs.length - 1].t + core.SLOT), overlay: true, vmax, until: until == null ? undefined : until });
+    const heat = core.build(rs, { x0: Math.min(w.x0, Math.floor(rs[0].t / core.SLOT) * core.SLOT), x1: Math.max(w.x1, rs[rs.length - 1].t + core.SLOT), overlay: true, vmax, fill, until: until == null ? undefined : until });
     if (heat) out.push({ heat, rows: rs });
   });
   return out;
@@ -339,7 +340,7 @@ export function installGexHeatmap(Core) {
   installed = true;
   Core.registerRendererLayer({ id: TYPE, placement: 'below-data', create: heatLayer });
   Core.registerNativeIndicator({
-    type: TYPE, title: 'TradeZoro GEX Heatmap', shortTitle: 'GEX Heatmap', paneHint: 'price', overlay: true,
+    type: TYPE, title: ZD.zoroOn() ? 'Gamma over time' : 'TradeZoro GEX Heatmap', shortTitle: ZD.zoroOn() ? 'Gamma over time' : 'GEX Heatmap', paneHint: 'price', overlay: true,
     inputsSchema: () => SCHEMA, defaultInputs: () => Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])),
     create: () => new HeatNative(),
     legendNote: (d) => (!d ? '' : d.pill || d.note || String(d.status || '').replace(/^GEX heatmap · /, ''))

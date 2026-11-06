@@ -11,6 +11,8 @@
 // Wording: "Estimated from options volume and quotes." Never live / real-time. Education only. Not financial advice.
 // Depends on: Vela plugin SDK via the legend-row Core (registerNativeIndicator, registerRendererLayer, registerStatePersistence).
 
+import * as ZD from './chart-zoro-data.js?v=891';
+import * as ProGate from './chart-pro-gate.js?v=891';
 import { tideSource, tfMin, tideFetch, cache, money, agoText } from './chart-zorotide.js?v=891';
 
 export const OPTFLOW_TYPE = 'stk_optflow';
@@ -67,6 +69,7 @@ export function pickMarks(agg, I = {}, from = 0, to = agg.length - 1, rMax = 7) 
   return marks;
 }
 export function tipRows(m) {
+  if (m.b.zv) return zvTipRows(m);
   const calls = m.side === 'C', net = calls ? m.b.cn : m.b.pn;
   return {
     title: (calls ? 'Calls' : 'Puts') + ' · large premium',
@@ -80,6 +83,87 @@ export function tipRows(m) {
   };
 }
 
+// ---- Fresh Volume / Volume Burst marks (ZoroOptions, behind the page flag) -------------------------------
+// Data: /api/zo/activity?u=SYM&kind=fresh|burst -> items [{ t (epoch s of the sample), side 'C'|'P', k (strike), x (expiry), vol, oi, add (contracts added
+// since the previous pull), prem ($ at mid) }]. Volume only: no buyer or seller side, no direction words. Same renderer as Options Flow Marks:
+// a mark on the price pane at the sample time, calls above the candle, puts below. Bar replay: only items with t <= the replay clock are used.
+export const ZVOL_TYPE = 'stk_zvol';
+export const ZVOL_DESC = 'Marks on the candles where an option contract had Fresh Volume (volume above open interest) or a Volume Burst (volume added between two updates). Volume only, no buyer or seller side. SPX, SPY, QQQ, IWM, GLD, USO, ES, NQ, RTY, GC, CL and top stocks.';
+const ZSCHEMA = [
+  { key: 'kind', title: 'Show', type: 'string', defval: 'Volume Burst', options: ['Volume Burst', 'Fresh Volume'] },
+  { key: 'sensitivity', title: 'Sensitivity', type: 'string', defval: 'Medium', options: ['Low', 'Medium', 'High'] },
+  { key: 'callColor', title: 'Calls colour', type: 'color', defval: '#22c55e' },
+  { key: 'putColor', title: 'Puts colour', type: 'color', defval: '#ef4444' }
+];
+// Pure: items -> per-bar aggregate aligned with bars: null or { cp, pp, zv: { items, c, p } }. Items after `until` (epoch s) are dropped.
+export function zvPerBar(items, bars, ms, until) {
+  const out = new Array(bars.length).fill(null);
+  if (!(ms > 0) || !bars.length) return out;
+  const t0 = bars[0].time, tN = bars[bars.length - 1].time + ms;
+  for (const it of items || []) {
+    if (!it || !isNum(it.t) || (until != null && it.t > until)) continue;
+    const t = it.t * 1000;
+    if (t < t0 || t >= tN) continue;
+    let lo = 0, hi = bars.length - 1, i = -1;
+    while (lo <= hi) { const m = (lo + hi) >> 1; if (bars[m].time <= t) { i = m; lo = m + 1; } else hi = m - 1; }
+    if (i < 0 || t >= bars[i].time + ms) continue;
+    const o = out[i] || (out[i] = { cp: 0, pp: 0, zv: { items: [], c: 0, p: 0 } });
+    const prem = isNum(it.prem) ? it.prem : 0;
+    if (it.side === 'P') { o.pp += prem; o.zv.p++; } else { o.cp += prem; o.zv.c++; }
+    o.zv.items.push(it);
+  }
+  return out;
+}
+const kM = (v) => (!isNum(v) ? '—' : v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? '$' + Math.round(v / 1e3) + 'K' : '$' + Math.round(v));
+export function zvTipRows(m) {
+  const calls = m.side === 'C', its = m.b.zv.items.filter((x) => (x.side === 'P') === !calls).sort((a, b) => (b.prem || 0) - (a.prem || 0));
+  const top = its[0] || {}, burst = m.kind === 'burst';
+  return {
+    title: (calls ? 'Calls' : 'Puts') + (burst ? ' · Volume Burst' : ' · Fresh Volume'),
+    rows: [
+      ['Contracts', its.length + (its.length === 1 ? ' contract' : ' contracts')],
+      ['Biggest', (isNum(top.k) ? top.k.toLocaleString('en-US') : '—') + (top.x ? ' · ' + top.x : '')],
+      [burst ? 'Added' : 'Volume / OI', burst ? String(top.add != null ? top.add : '—') : (isNum(top.vol) && isNum(top.oi) && top.oi > 0 ? (top.vol / top.oi).toFixed(1) + 'x' : '—')],
+      ['Premium at mid', kM(m.prem)]
+    ],
+    note: 'Volume added between updates. Not a single trade; no buyer or seller side.'
+  };
+}
+class ZvolNative {
+  constructor() { this.ctx = null; this.inputs = {}; this.sig = ''; this.tier = null; }
+  defaults() { return Object.fromEntries(ZSCHEMA.map((x) => [x.key, x.defval])); }
+  start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(this.defaults(), inputs); ZD.zoWatch(this); ProGate.tier().then(() => this.load()); this.load(); }
+  kindKey() { return this.inputs.kind === 'Fresh Volume' ? 'fresh' : 'burst'; }
+  wants() {
+    if (!this.ctx || ProGate.isFree()) return [];
+    const s = ZD.srcOfCtx(this.ctx);
+    return s ? [{ kind: 'activity', u: s.u, x: this.kindKey() }] : [];
+  }
+  load() { this.refresh(); ZD.zoLoad(this); }
+  onBars() { const s = String(this.ctx && this.ctx.symbol) + '|' + (ZD.replayNowS() || ''); if (s !== this.lastSym) { this.lastSym = s; this.load(); } else this.refresh(); }
+  onViewport() {}
+  setInputs(i) { this.inputs = Object.assign(this.defaults(), i); this.sig = ''; this.load(); }
+  suspend() {}
+  resume() { this.sig = ''; this.load(); }
+  stop() { ZD.zoUnwatch(this); try { this.ctx.pushData(null); } catch (e) {} }
+  push(p) { const sig = JSON.stringify(p && p.agg ? { n: p.agg.length, last: p.last, I: p.I, b: p.bars, c: p.agg.reduce((t, x) => t + (x ? x.zv.items.length : 0), 0), u: p.until } : p); if (sig === this.sig) return; this.sig = sig; try { this.ctx.pushData(p); } catch (e) {} }
+  refresh() {
+    if (!this.ctx) return;
+    const src = ZD.srcOfCtx(this.ctx);
+    if (!ZD.zoroOn() || !src) return this.push({ note: 'Fresh Volume / Volume Burst: SPX, SPY, QQQ, IWM, GLD, USO, ES, NQ, RTY, GC, CL and top stocks' });
+    if (ProGate.isFree()) return this.push({ note: 'Fresh Volume / Volume Burst marks are part of Pro' });
+    const ms = (tfMin(this.ctx.timeframe) || 0) * 60000;
+    if (!ms || ms >= 86400000) return this.push({ note: 'Fresh Volume / Volume Burst: intraday charts only' });
+    const j = ZD.zoCached('activity', src.u, this.kindKey());
+    if (!j) return this.push({ note: 'Loading Fresh Volume / Volume Burst…' });
+    if (j.error) return this.push({ note: 'Fresh Volume / Volume Burst is not available right now' });
+    const until = ZD.replayNowS(), bars = this.ctx.bars() || [];
+    const items = ZD.zitems(j);
+    const agg = zvPerBar(items, bars, ms, until);
+    const last = items.reduce((t, x) => (x && isNum(x.t) && (until == null || x.t <= until) && x.t > t ? x.t : t), 0);
+    this.push({ agg, bars: bars.length ? bars[0].time + '|' + bars[bars.length - 1].time : '', last, I: this.inputs, until, kind: this.kindKey(), label: src.root + (src.fut ? ' (from ' + src.u + ')' : ''), ago: until == null ? ZD.agoText(j.t || last) : 'as of replay time' });
+  }
+}
 // ---- native + layer ------------------------------------------------------------------------------
 const replayOn = () => !!(window.__stkReplay && window.__stkReplay.on);
 const hits = new WeakMap();   // canvas -> [{ x, y, r, m }]
@@ -140,7 +224,8 @@ function layer() {
       let v0 = 0, v1 = bars.length - 1;
       try { const vr = co.visibleLogicalRange(); v0 = Math.max(0, Math.floor(vr.from)); v1 = Math.min(bars.length - 1, Math.ceil(vr.to)); } catch (e) {}
       const marks = pickMarks(d.agg, I, v0, v1, W < 520 ? 7 : 8);
-      setChip(marks.length ? d.label + ': per-bar options premium totals, estimated. ' + d.ago : 'No large options premium in view', canvas.parentElement);
+      if (d.kind) marks.forEach((m) => { m.kind = d.kind; });
+      setChip(d.kind ? (marks.length ? d.label + ': ' + (d.kind === 'burst' ? 'Volume Bursts' : 'Fresh Volume') + ', volume added between updates. ' + d.ago : 'No ' + (d.kind === 'burst' ? 'Volume Bursts' : 'Fresh Volume') + ' in view') : marks.length ? d.label + ': per-bar options premium totals, estimated. ' + d.ago : 'No large options premium in view', canvas.parentElement);
       const top = a.bounds.top, bot = top + a.bounds.height;
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
       for (const m of marks) {
@@ -223,6 +308,15 @@ export function installOptFlow(Core) {
   if (installed) return;
   installed = true;
   Core.registerRendererLayer({ id: OPTFLOW_TYPE, placement: 'above-data', create: layer });
+  if (ZD.zoroOn()) {
+    Core.registerRendererLayer({ id: ZVOL_TYPE, placement: 'above-data', create: layer });
+    Core.registerNativeIndicator({
+      type: ZVOL_TYPE, title: 'Fresh Volume / Volume Burst', shortTitle: 'Fresh Volume', paneHint: 'price', overlay: true,
+      inputsSchema: () => ZSCHEMA, defaultInputs: () => Object.fromEntries(ZSCHEMA.map((x) => [x.key, x.defval])),
+      create: () => new ZvolNative(), legendNote: (d) => (!d ? '' : d.note || '')
+    });
+    ZD.persist(Core, 'stryker.zvol', ZVOL_TYPE, ZSCHEMA, 2);
+  }
   Core.registerNativeIndicator({
     type: OPTFLOW_TYPE, title: 'Options Flow Marks', shortTitle: 'Options flow', paneHint: 'price', overlay: true,
     inputsSchema: () => SCHEMA, defaultInputs: () => Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])),

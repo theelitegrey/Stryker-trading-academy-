@@ -66,6 +66,7 @@
 
 import { rtHeadersReady } from './rt-access.js?v=891';
 import * as ProGate from './chart-pro-gate.js?v=891';
+import * as ZD from './chart-zoro-data.js?v=891';
 import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=891';
 
 const TYPE = 'stk_gex';
@@ -115,7 +116,9 @@ export const LEVEL_DEFS = [
   { id: 'rth_lo', on: 'showRth', col: 'rthColor', label: 'RTH LOW', f: 'rth_low', src: 'ses', dash: 'dotted', w: 1 }
 ];
 
-const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days';
+// glossary names (spec section 1) used when the ZoroOptions flag is on
+const ZORO_NAMES = { call: 'CALL CEILING', zero: 'FLIP LINE', put: 'PUT FLOOR', w0c: '0DTE CALL CEILING', w0p: '0DTE PUT FLOOR' };
+const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days', G6 = 'Zoro Levels';
 const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', defval, group, inline });
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 export const BASIS_DAY = 'Updated through the day', BASIS_CLOSE = 'Daily close';
@@ -136,6 +139,12 @@ const SCHEMA = [
   { key: 'rankedCount', title: 'Ranked strikes shown', type: 'string', defval: '5', options: ['5', '10'], group: G5 },
   tog('showPrev', 'Previous days\u2019 big levels', true, G5),
   { key: 'prevDays', title: 'Previous days (0-5)', type: 'int', defval: 2, min: 0, max: 5, step: 1, group: G5 },
+  // ZoroOptions (page flag): Gamma Nodes 1-10, Zoro Range for every expiry, Pin Strike. Off by default.
+  tog('showNodes', 'Gamma Nodes 1-10', false, G6),
+  { key: 'nodeCount', title: 'Gamma Nodes shown', type: 'int', defval: 10, min: 1, max: 10, step: 1, group: G6 },
+  tog('showRanges', 'Zoro Range (0DTE, 1DTE, weekly, monthly)', false, G6),
+  { key: 'rangeKeys', title: 'Zoro Range expiry', type: 'string', defval: 'All', options: ['All', '0DTE', '1DTE', 'Weekly', 'Monthly'], group: G6 },
+  tog('showPin', 'Pin Strike', false, G6),
   tog('showVah', 'pVAH', true, G2, 'vah'), col('vahColor', GEX_COLORS.va, G2, 'vah'),
   tog('showPoc', 'pPOC', true, G2, 'poc'), col('pocColor', GEX_COLORS.va, G2, 'poc'),
   tog('showVal', 'pVAL', true, G2, 'val'), col('valColor', GEX_COLORS.va, G2, 'val'),
@@ -169,6 +178,11 @@ export function gexSource(symbol, provider) {
   if (root === 'ES' || root === 'MES') return { api: 'SPX', fut: root, label: root + ' (from SPX)', pro: false };
   if (root === 'NQ' || root === 'MNQ') return { api: 'QQQ', fut: root, label: root + ' (from QQQ)', pro: true };
   if (root === 'GC' || root === 'MGC') return { api: 'GLD', fut: root, label: root + ' (from GLD)', pro: true };   // gold: GLD options -> GC / MGC (Owner 2026-10-29)
+  // ZoroOptions (behind the page flag): RTY -> IWM, CL -> USO, IWM, USO and the top stocks, served by /api/zo.
+  if (!['SPX', 'SPXW', 'SPY', 'QQQ', 'GLD'].includes(root)) {
+    const z = ZD.zoroSource(symbol, prov);
+    if (z) return { api: z.u, fut: z.fut, label: z.label, pro: true, zoro: true, tierB: z.tierB };
+  }
   if (prov === 'futures') return null;
   if (root === 'SPX' || root === 'SPXW') return { api: 'SPX', fut: null, label: 'SPX', pro: false };
   if (root === 'SPY') return { api: 'SPY', fut: null, label: 'SPY', pro: true };
@@ -225,7 +239,8 @@ export function buildLevels(data, src, opts, shift, extra) {
     const v = d.src === 'ses' ? S[d.f] : L[d.f];
     if (!isNum(v)) continue;
     const note = (d.id === 'call' || d.id === 'zero' || d.id === 'put') ? srcNote(data[d.f]) : (d.id === 'w0c' || d.id === 'w0p') ? srcNote((data.walls_0dte || {})[d.id === 'w0c' ? 'call' : 'put']) : '';
-    out.lines.push({ id: d.id, label: d.id === 'zero' && on('showRanked') ? 'ZERO GAMMA \u00b7 Flip' : d.label, price: r(v), note, col: d.col, dash: d.dash, w: d.w });
+    const zl = opts.zoroNames ? ZORO_NAMES[d.id] : null;
+    out.lines.push({ id: d.id, label: zl || (d.id === 'zero' && on('showRanked') ? 'ZERO GAMMA \u00b7 Flip' : d.label), price: r(v), note, col: d.col, dash: d.dash, w: d.w });
   }
   // Top 10 ranked strikes (ladder already in the response) and previous days' big levels (history).
   const rawSpot = isNum(data.spot) ? data.spot : (isNum(extra && extra.spot) ? extra.spot : null);
@@ -242,6 +257,11 @@ export function buildLevels(data, src, opts, shift, extra) {
       const p = conv(x.strike);
       if (isNum(p)) out.lines.push({ id: 'pv' + di + '_' + i, label: dayTag(d.day, x.g), price: r(p), note: '', col: null, rgb: x.g < 0 ? RANK_COL.neg : RANK_COL.pos, dash: 'dotted', w: 1, alpha: 0.5, faint: true });
     }));
+  }
+  if (extra && extra.zoro) ZD.zoroLines(extra.zoro, conv, opts, on).forEach((l) => out.lines.push(l));
+  else if (on('showNodes') && Array.isArray(data.ladder) && !out.lines.some((l) => l.id === 'zn1')) {
+    // no Zoro summary (flag off, or replay): rank the ladder the response already has
+    ZD.zoroLines({ nodes: ZD.zsum({ nodes: data.ladder.filter((x) => x && isNum(x.strike) && isNum(x.gex)).map((x) => ({ k: x.strike, g: x.gex })) }).nodes, ranges: [], pin: null }, conv, opts, on).forEach((l) => out.lines.push(l));
   }
   if (on('showEm') && isNum(L.iv68_lo) && isNum(L.iv68_hi)) out.band = { lo: r(L.iv68_lo), hi: r(L.iv68_hi) };
   if (on('showStrikes') && Array.isArray(data.ladder)) {
@@ -421,8 +441,9 @@ export function snapData(snap, src, ratio, close) {
   return d;
 }
 function replayRows(api, dte, E, onLoad) {
-  const core = window.StrykerGexHeat;
-  if (!core) return { err: true };
+  const core0 = window.StrykerGexHeat;
+  if (!core0) return { err: true };
+  const core = ZD.histApi(api, core0);
   const end = Math.min(Math.ceil(E / HIST_BLOCK_S) * HIST_BLOCK_S, Math.floor(Date.now() / 1000));
   const k = api + ':' + dte + ':' + end;
   let e = hist.get(k);
@@ -454,9 +475,10 @@ export function etDayOf(sec) { const c = window.StrykerGexHeat; return c ? c.etD
 // Sync read: { days: [{ day, top }], pending } for the last `count` sessions before `nowSec`'s ET day.
 // Kicks the loads it needs; onLoad() fires when something landed.
 export function prevState(api, dte, nowSec, count, onLoad) {
-  const core = window.StrykerGexHeat;
+  const core0 = window.StrykerGexHeat;
   const n = Math.max(0, Math.min(5, Math.floor(count || 0)));
-  if (!core || !n || dte > 1) return { days: [], pending: false };
+  if (!core0 || !n || dte > 1) return { days: [], pending: false };
+  const core = Object.assign({}, core0, ZD.histApi(api, core0));
   const hd = dte === 1 ? 1 : 0, sk = api + ':' + hd;
   let se = sessCache.get(sk);
   if (!se || (!se.p && Date.now() - se.at > PREV_REFRESH_MS)) {
@@ -568,14 +590,22 @@ class GexNative {
   constructor() { this.inputs = {}; this.ctx = null; this.tier = null; this.sig = ''; this.status = ''; }
   start(ctx, inputs) {
     this.ctx = ctx; this.inputs = inputs || {};
-    subs.add(this); startTimer();
+    subs.add(this); startTimer(); ZD.zoWatch(this);
     gexTier().then((t) => { this.tier = t; this.load(); });
     this.load();
+  }
+  // Zoro summary requests (ZD timer + load): new sources always, old sources only when a Zoro extra is on.
+  wants() {
+    if (!this.ctx || !this.tier || !ZD.zoroOn() || ProGate.isFree() || ZD.replayOn()) return [];
+    const src = resolveSrc(this.ctx);
+    if (!src || (this.tier.free && src.pro)) return [];
+    const i = this.inputs, x = this.basis() ? 'close' : '';
+    return (src.zoro || i.showNodes === true || i.showRanges === true || i.showPin === true) ? [{ kind: 'summary', u: src.api, x }] : [];
   }
   want() {
     if (!this.ctx || !this.tier) return null;   // the plan decides which expiry may load
     const src = resolveSrc(this.ctx);
-    if (!src) return null;
+    if (!src || src.zoro) return null;   // Zoro sources load through wants()
     if (src.pro && (!this.tier || this.tier.free)) return null;
     if (ProGate.isFree()) return null;   // GEX on charts is Pro (chart-pro-gate.js removes the tool for Free)
     return { api: src.api, dte: this.dte(), basis: this.basis() };
@@ -590,6 +620,7 @@ class GexNative {
     const w = this.want();
     this.refresh();
     if (w && document.visibilityState !== 'hidden') gexFetch(w.api, w.dte, false, w.basis).then(() => this.refresh());
+    ZD.zoLoad(this);
   }
   onBars() {
     const s = String(this.ctx && this.ctx.symbol); if (s !== this.lastSym) { this.lastSym = s; this.load(); return; }
@@ -602,7 +633,7 @@ class GexNative {
   setInputs(i) { this.inputs = i || {}; this.sig = ''; this.load(); }
   suspend() {}
   resume() { this.sig = ''; this.load(); }
-  stop() { subs.delete(this); if (!subs.size) stopTimer(); try { this.ctx.pushData(null); this.ctx.emit({ priceLines: [], tables: [] }); } catch (e) {} }
+  stop() { subs.delete(this); ZD.zoUnwatch(this); if (!subs.size) stopTimer(); try { this.ctx.pushData(null); this.ctx.emit({ priceLines: [], tables: [] }); } catch (e) {} }
   statusTick() { this.refresh(); }
   // Build the payload for the layer; push only when it changed (no repaint otherwise).
   refresh() {
@@ -617,14 +648,23 @@ class GexNative {
     else {
       const dte = this.dte();
       const basis = this.basis();
-      const data = gexCached(src.api, dte, basis);
-      if (!data) payload = { note: 'Loading GEX levels…' };
+      const zs = ZD.zoroOn() ? ZD.zsum(ZD.zoCached('summary', src.api, basis ? 'close' : '')) : null;
+      let data;
+      if (src.zoro) {
+        let bars = [];
+        try { bars = this.ctx.bars() || []; } catch (err) {}
+        data = zs ? ZD.adaptSummary(zs, src, src.fut ? ZD.closeAt(bars, zs.t, 1800) : null) : null;
+        if (data && basis && !data.error) data.close = { label: zs.closeLabel || 'the last' };
+        if (data && data.error) { payload = { note: data.error }; data = null; }
+      } else data = gexCached(src.api, dte, basis);
+      if (payload) { /* note set above */ }
+      else if (!data) payload = { note: 'Loading GEX levels…' };
       else if (basis === 'close' && data.error) payload = { note: 'Daily close GEX levels are not available yet' };
       else {
-        const opts = Object.assign({}, i);
+        const opts = Object.assign({}, i, { zoroNames: ZD.zoroOn() });
         if (this.tier && this.tier.free) opts.showStrikes = false;
-        const shift = src.fut ? gexAnchor(src.fut, data) : null;
-        const lv = buildLevels(data, src, opts, shift, { prev: this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts) });
+        const shift = src.fut && !src.zoro ? gexAnchor(src.fut, data) : null;
+        const lv = buildLevels(data, src, opts, shift, { prev: src.zoro ? [] : this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts), zoro: zs });
         if (lv.err) payload = { note: lv.err };
         else {
           const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
@@ -1030,7 +1070,7 @@ export function installGexLevels(Core) {
   Core.registerRendererLayer({ id: TYPE, placement: 'above-data', create: gexLayer });
   Core.registerRendererLayer({ id: FLASH, placement: 'above-data', create: flashLayer });
   Core.registerNativeIndicator({
-    type: TYPE, title: 'TradeZoro GEX Levels', shortTitle: 'GEX Levels', paneHint: 'price', overlay: true,
+    type: TYPE, title: ZD.zoroOn() ? 'Zoro Levels' : 'TradeZoro GEX Levels', shortTitle: ZD.zoroOn() ? 'Zoro Levels' : 'GEX Levels', paneHint: 'price', overlay: true,
     inputsSchema: () => SCHEMA, defaultInputs: () => Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])),
     create: () => new GexNative(),
     // Short text after "GEX Levels" in the chart legend (assets/chart-legend-rows.js).

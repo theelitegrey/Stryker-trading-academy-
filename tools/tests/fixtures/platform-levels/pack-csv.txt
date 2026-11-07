@@ -1,0 +1,18 @@
+symbol,type,label,price,value,day,updated
+SPX,call_ceiling,Call Ceiling,7450,,2026-11-06,2026-11-06T16:19:54Z
+SPX,flip_line,Flip Line,7514.56,,2026-11-06,2026-11-06T16:19:54Z
+SPX,put_floor,Put Floor,7400,,2026-11-06,2026-11-06T16:19:54Z
+SPX,pin_strike,Pin Strike,7560,,2026-11-06,2026-11-06T16:19:54Z
+SPX,range_0dte_high,Zoro Range 0DTE high,7453.07,,2026-11-06,2026-11-06T16:19:54Z
+SPX,range_0dte_low,Zoro Range 0DTE low,7355.87,,2026-11-06,2026-11-06T16:19:54Z
+SPX,range_weekly_high,Zoro Range weekly high,7453.07,,2026-11-06,2026-11-06T16:19:54Z
+SPX,range_weekly_low,Zoro Range weekly low,7355.87,,2026-11-06,2026-11-06T16:19:54Z
+SPX,zoro_level,Zoro Level 1,7400,10.26,2026-11-06,2026-11-06T16:19:54Z
+SPX,zoro_level,Zoro Level 2,7350,5.69,2026-11-06,2026-11-06T16:19:54Z
+SPX,zoro_level,Zoro Level 3,7450,5.24,2026-11-06,2026-11-06T16:19:54Z
+SPX,zoro_level,Zoro Level 4,7345,4.9,2026-11-06,2026-11-06T16:19:54Z
+SPX,zoro_level,Zoro Level 5,7445,4.13,2026-11-06,2026-11-06T16:19:54Z
+SPX,dark_pool,Dark pool $30M,7419.48,30,2026-11-06,2026-11-06T16:19:54Z
+SPX,dark_pool,Dark pool $74M,7384.46,74,2026-11-06,2026-11-06T16:19:54Z
+# Education only. Not financial advice.
+# Dark pool prints are in SPY and moved to the SPX price scale.

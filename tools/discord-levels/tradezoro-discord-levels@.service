@@ -1,0 +1,20 @@
+[Unit]
+Description=TradeZoro Discord levels bot (%i)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# DISCORD_LEVELS_CHANNEL_ID=<number> and DISCORD_ENV_FILE=<path of the file that holds DISCORD_BOT_TOKEN> go in this file (mode 0600). The token itself is never in a unit.
+EnvironmentFile=/etc/tradezoro/discord-levels.env
+Environment=TZ_LEVELS_STATE=/var/lib/tradezoro-discord-levels
+StateDirectory=tradezoro-discord-levels
+ExecStart=/usr/bin/python3 /opt/tradezoro/discord-levels/post.py %i
+TimeoutStartSec=300
+MemoryMax=100M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=tz-discord-levels

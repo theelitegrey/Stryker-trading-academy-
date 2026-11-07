@@ -22,10 +22,11 @@ import { closeCandidate, pickClose, etEpoch as closeEtEpoch, CLOSE_KEEP_DAYS } f
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 import { validateZoIngest, zoInit, zoPut, zoTrim, zoGet, zoNoteKey, zoHistDay, zoHistRange, zoHistSessions, zoCloseRow, zoActItems, zoLastHistDay, zoGunzip, zoIngestRoute, zoGetRoute, zoExportRoute, exportSnaps, futuresRatio, exportParams, exportRows, exportCsv, teaserEligible, zoTeaser, ZO_ROUTES, ZO_PROFILE_X, ZO_SURFACE_KIND, ZO_ACT_KIND, ZO_CME_ROOTS, ZO_MAX_GZ, zoSymbolOk, zoTier, NOTICE } from './zoro.js';
+import { lvRoute, lvInit, lvSnapshot, lvProUntil, lvTokPut, lvTokGet, lvTokInfo, lvTokDel, lvTokTouch, lvTokUsed, lvTokTrim } from './levels-feed.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
-import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, wsTokenOf, RT_DELAY_S } from './rt-auth.js';
+import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, wsTokenOf, RT_DELAY_S, isActiveProDoc, paidPlanNames, RT_PROJECT } from './rt-auth.js';
 import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
 import { TSHub, tsHubFetch, tsStore, tsOpts, cmeOpen } from './ts-hub.js';
 import { TickEngine, teStore, teOpts } from './tick-engine.js';
@@ -113,6 +114,7 @@ export class BookRecorder {
     // ZoroTide samples (src/tide.js): one row per symbol per Cboe chain time, 30 days
     this.sql.exec(`CREATE TABLE IF NOT EXISTS tide (u TEXT NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, t)) WITHOUT ROWID`);
     zoInit(this.sql);   // ZoroOptions (src/zoro.js)
+    lvInit(this.sql);   // member levels links (src/levels-feed.js)
     // per-day summary so /gex-sessions never scans the snapshots
     storeInit(this.sql);   // news + economic calendar (src/news.js)
     terminalInit(this.sql);   // brief / market map / econ calendar files (src/terminal.js)
@@ -495,6 +497,13 @@ export class BookRecorder {
       if (!day) return new Response('no data', { status: 404 });
       return Response.json(zoHistDay(this.sql, uu, day));
     }
+    if (u.pathname === '/lv-snap') return Response.json(await lvSnapshot(this.sql, Date.now()));
+    if (u.pathname === '/lv-tok-get') { const r = lvTokGet(this.sql, u.searchParams.get('h') || ''); return Response.json(r); }
+    if (u.pathname === '/lv-tok-used') { lvTokUsed(this.sql, u.searchParams.get('h') || '', Date.now()); return new Response('ok'); }
+    if (u.pathname === '/lv-tok-info') return Response.json(lvTokInfo(this.sql, u.searchParams.get('uid') || ''));
+    if (u.pathname === '/lv-tok-touch') { lvTokTouch(this.sql, u.searchParams.get('uid') || '', Number(u.searchParams.get('exp'))); return new Response('ok'); }
+    if (u.pathname === '/lv-tok-del') { lvTokDel(this.sql, u.searchParams.get('uid') || ''); return new Response('ok'); }
+    if (u.pathname === '/lv-tok-put') { lvTokTrim(this.sql, Date.now()); lvTokPut(this.sql, u.searchParams.get('h') || '', u.searchParams.get('uid') || '', Number(u.searchParams.get('exp')), Date.now()); return new Response('ok'); }
     if (u.pathname === '/zo-export') {
       const p = JSON.parse(u.searchParams.get('p'));
       let snaps = exportSnaps(this.sql, p);
@@ -1128,6 +1137,11 @@ async function route(req, env, ctx) {
       const signedIn = async (t) => !!(await verifyIdToken(t));
       const deps = { isPro: ZO_SIGNED_IN_FREE ? signedIn : isGexProToken, bearer: bearerOf, stub, now: () => Date.now(), service: (r) => authorized(r, env) };
       return u.pathname === '/zo/levels-export' ? zoExportRoute(req, u, env, ctx, h, Object.assign({}, deps, { isPro: isGexProToken })) : zoGetRoute(req, u, env, ctx, h, deps);
+    }
+    // Levels for other platforms + the member's secret link (src/levels-feed.js). The feed path is gated by the secret, the rest by a Pro sign-in token.
+    if (u.pathname.startsWith('/lv/')) {
+      const h = cors(req);
+      return lvRoute(req, u, env, ctx, h, { stub, bearer: bearerOf, now: () => Date.now(), proUntil: (t) => lvProUntil(t, { verifyIdToken, isAdminToken, isActiveProDoc, paidPlanNames, RT_PROJECT }) });
     }
     // GEX+ data is Pro only (Owner order 2026-11-01): the history, sessions and options-analytics reads need a verified admin / demo / active-Pro token.
     // (/tide is ZoroTide, free.) Checked before the cache, and the 403 is never cached.

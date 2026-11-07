@@ -1,0 +1,12 @@
+[Unit]
+Description=TradeZoro Discord: today's free levels, before the US open
+
+[Timer]
+# 08:45 New York = 19:15 IST in winter (US standard time) and 18:15 IST in summer (US daylight time). Weekdays only; the script also
+# skips a day with no fresh levels (market holidays).
+OnCalendar=Mon..Fri *-*-* 08:45:00 America/New_York
+Persistent=false
+Unit=tradezoro-discord-levels@morning.service
+
+[Install]
+WantedBy=timers.target

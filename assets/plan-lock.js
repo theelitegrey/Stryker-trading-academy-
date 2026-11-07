@@ -46,6 +46,14 @@
       },
       reason: 'Pro adds GEX+ for every market and expiry, and the strike table.'
     },
+    levels: {
+      title: function () { return 'Levels for your platform are part of Pro'; },
+      bullets: function () {
+        return ['Today\'s GEX levels, Zoro Levels and dark pool levels as files for the platforms you use',
+                'A private link that keeps NinjaTrader, cTrader and Quantower up to date'];
+      },
+      reason: 'Pro adds levels for your trading platform.'
+    },
     scanner: {
       title: function () { return 'The scanner is free'; },
       bullets: function () {

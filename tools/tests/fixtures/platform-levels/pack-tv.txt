@@ -1,0 +1,1 @@
+ZL1|SPX|2026-11-06|1793981994;Call Ceiling=7450;Flip Line=7514.56;Put Floor=7400;Pin Strike=7560;Zoro Range 0DTE high=7453.07;Zoro Range 0DTE low=7355.87;Zoro Range weekly high=7453.07;Zoro Range weekly low=7355.87;Zoro Level 1=7400;Zoro Level 2=7350;Zoro Level 3=7450;Zoro Level 4=7345;Zoro Level 5=7445;Dark pool $30M=7419.48;Dark pool $74M=7384.46

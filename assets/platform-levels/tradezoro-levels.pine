@@ -1,0 +1,38 @@
+//@version=5
+// TradeZoro levels for TradingView. Education only. Not financial advice.
+// How: on the TradeZoro "Use our levels in your platform" page press "Copy levels", then paste into the box below.
+// The levels are a snapshot. Paste a fresh copy when you want the newest levels.
+indicator("TradeZoro levels", overlay = true, max_lines_count = 100, max_labels_count = 100)
+
+txt     = input.text_area("", "Pasted levels", tooltip = "The text copied from TradeZoro (starts with ZL1|).")
+showLbl = input.bool(true, "Show names")
+extend  = input.string("Right", "Line length", options = ["Right", "Both"])
+
+var line[]  lns = array.new<line>()
+var label[] lbs = array.new<label>()
+
+if barstate.islast
+    for l in lns
+        line.delete(l)
+    for b in lbs
+        label.delete(b)
+    array.clear(lns)
+    array.clear(lbs)
+    parts = str.split(str.trim(txt), ";")
+    if array.size(parts) > 1 and str.startswith(array.get(parts, 0), "ZL1|")
+        head = str.split(array.get(parts, 0), "|")
+        sym  = array.size(head) > 1 ? array.get(head, 1) : ""
+        day  = array.size(head) > 2 ? array.get(head, 2) : ""
+        for i = 1 to math.min(array.size(parts) - 1, 60)
+            kv = str.split(array.get(parts, i), "=")
+            if array.size(kv) == 2
+                nm = str.trim(array.get(kv, 0))
+                px = str.tonumber(array.get(kv, 1))
+                if not na(px)
+                    col = str.contains(nm, "Call") ? color.new(#ef4444, 0) : str.contains(nm, "Put") ? color.new(#22c55e, 0) : str.contains(nm, "Flip") ? color.new(#f59e0b, 0) : str.contains(nm, "Range") ? color.new(#8b7cf6, 0) : str.contains(nm, "Dark") ? color.new(#00adb5, 0) : str.contains(nm, "Zoro Level") ? color.new(#38bdf8, 0) : color.new(#94a3b8, 0)
+                    sty = str.contains(nm, "Range") or str.contains(nm, "Dark") ? line.style_dotted : str.contains(nm, "Flip") ? line.style_dashed : line.style_solid
+                    array.push(lns, line.new(bar_index - 20, px, bar_index, px, extend = extend == "Both" ? extend.both : extend.right, color = col, style = sty, width = 1))
+                    if showLbl
+                        array.push(lbs, label.new(bar_index, px, nm + " " + str.tostring(px, format.mintick), style = label.style_label_left, color = color.new(col, 85), textcolor = col, size = size.small))
+        if array.size(lns) > 0
+            array.push(lbs, label.new(bar_index, na, "TradeZoro levels " + sym + " " + day, yloc = yloc.abovebar, style = label.style_none, textcolor = color.gray, size = size.small))

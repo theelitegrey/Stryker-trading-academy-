@@ -14,7 +14,7 @@ retried after Retry-After (capped MAX_WAIT_S) up to RETRY_PASSES times in the ru
 failed day never stops the symbol's other days or its POST. Each retry is one call and counts against DAILY_CAP.
 Env: INSIGHTSENTRY_WEBSOCKET_API_KEY, BOOK_RECORDER_URL, BOOK_INGEST_SECRET (never printed). --dry: no POST.
 """
-import atexit, gzip, json, os, sys, time, urllib.error, urllib.parse, urllib.request, zlib
+import atexit, collections, gzip, json, os, sys, time, urllib.error, urllib.parse, urllib.request, zlib
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -121,18 +121,115 @@ def keep_row(o, min_usd=MIN_USD):
     return [t_ms, round(float(p), 4), int(s), conds, rid]
 
 
-def filter_stream(chunks, min_usd=MIN_USD, meta=None):
-    """Streamed reply text chunks -> (kept rows, trades seen). Only rows naming the venue are json-parsed."""
-    out, n = [], 0
+# ---- likely side (DP-DETAIL, 2026-11-07) -------------------------------------------------------------
+# Off-exchange prints carry no side and no order type. ESTIMATE only: compare the print price with the exchange (lit) trades of the
+# SIDE_N seconds before it, from the same /trades reply (no extra call). At/above the lit high AND more than SIDE_X ticks above the lit
+# VWAP -> 'b' (likely buy); at/below the lit low AND more than SIDE_X ticks below -> 's'; else 'u' (unclear). Late reports (Z/U: the reply
+# has the report time only, not the original trade time) -> 'l'. Prints not at the market price of that moment (average price,
+# derivatively priced, contingent, prior reference, cash) -> 'u'. N/x chosen on the real 2026-11-06 SPY/AAPL/TSLA days: reports/workers/dp-detail.md.
+SIDE_N = 5
+SIDE_X = 1
+LIT_OK = set('@FITE')            # regular, ISO, odd lot, extended hours: at the market price; auctions/late/average etc. are skipped
+NOT_MARKET = set('4BW7VPC')
+LATE = set('ZU')
+
+
+def lit_ok(ex, conds):
+    """An exchange trade that is a fair market price of its moment (lit context for the side estimate)."""
+    return ex != OFFEX and len(ex) > 1 and set(conds) <= LIT_OK
+
+
+def is_late(c):
+    return bool(LATE & set(c or ''))
+
+
+def late_or_off(c):
+    return bool((LATE | NOT_MARKET) & set(c or ''))
+
+
+class SideEstimator:
+    """Feed lit trades in time order with lit(t_ms, price, size); side(t_ms, price, conds) -> 'b' | 's' | 'u' | 'l'."""
+    def __init__(self, n_s=SIDE_N, x_ticks=SIDE_X):
+        self.n, self.x, self.q = n_s * 1000, x_ticks, collections.deque()
+
+    def lit(self, t, p, s):
+        q = self.q
+        q.append((t, p, s))
+        while q[0][0] <= t - self.n:   # keep only the window (a quiet hour must not pile up trades in memory)
+            q.popleft()
+
+    def side(self, t, p, c=''):
+        if is_late(c):
+            return 'l'
+        if NOT_MARKET & set(c or ''):
+            return 'u'
+        q = self.q
+        while q and q[0][0] <= t - self.n:
+            q.popleft()
+        win = [x for x in q if x[0] <= t]
+        if not win:
+            return 'u'
+        v = sum(x[2] for x in win)
+        vwap = sum(x[1] * x[2] for x in win) / v
+        hi, lo = max(x[1] for x in win), min(x[1] for x in win)
+        tick = 0.01 if p >= 1 else 0.0001
+        if p >= hi - 1e-9 and p - vwap > self.x * tick - 1e-9 and p > vwap + 1e-9:
+            return 'b'
+        if p <= lo + 1e-9 and vwap - p > self.x * tick - 1e-9 and p < vwap - 1e-9:
+            return 's'
+        return 'u'
+
+
+# Day totals for the card ("% of the day's volume", "vs the day's VWAP"). Volume: every trade of the 04:00-20:00 reply except the
+# official open/close summary reports (M, Q, 9: not trades). VWAP: regular-session (09:30-16:00 ET) exchange trades at the market price.
+NOT_VOLUME = set('MQ9')
+VWAP_OK = set('@FI')
+
+
+def rth(t_ms):
+    d = datetime.fromtimestamp(t_ms / 1000, NY)
+    return 570 <= d.hour * 60 + d.minute < 960
+
+
+def add_day(stats, t_us, p, s, c, ex):
+    """stats: {date: [volume, regular-session $ for VWAP, regular-session shares, last trade time in us]}. Trades at or before the
+    stored last time are already counted (the 3 h window overlaps the previous run): skipped."""
+    t_ms = t_us // 1000
+    e = stats.setdefault(ny_date(t_ms), [0, 0.0, 0, 0])
+    if t_us <= e[3] or NOT_VOLUME & set(c):
+        return
+    e[3] = t_us
+    e[0] += s
+    if ex != OFFEX and set(c) <= VWAP_OK and rth(t_ms):
+        e[1] += p * s
+        e[2] += s
+
+
+def filter_stream(chunks, min_usd=MIN_USD, meta=None, stats=None):
+    """Streamed reply text chunks -> (kept rows, trades seen). Kept rows get the estimated side appended: [t, p, s, c, id, side].
+    Trades arrive in time order (checked on real days); every row is parsed (lit trades feed the side estimate).
+    stats (optional dict) collects the day totals (add_day)."""
+    out, n, est = [], 0, SideEstimator()
     for txt in iter_objects(chunks, meta):
         n += 1
-        if OFFEX not in txt:
-            continue
         try:
-            r = keep_row(json.loads(txt), min_usd)
+            o = json.loads(txt)
         except ValueError:
             continue
+        ex = o.get('trade_exchange')
+        p, s, t = o.get('close'), o.get('volume'), o.get('us')
+        if not (isinstance(ex, str) and isinstance(p, (int, float)) and isinstance(s, (int, float)) and s > 0 and isinstance(t, (int, float))):
+            continue
+        c = ''.join(x for x in (o.get('trade_conditions') or []) if isinstance(x, str) and x.strip())
+        if stats is not None:
+            add_day(stats, int(t), p, s, c, ex)
+        if ex != OFFEX:
+            if lit_ok(ex, c):
+                est.lit(t / 1000, p, s)
+            continue
+        r = keep_row(o, min_usd)
         if r:
+            r.append(est.side(t / 1000, r[1], r[3]))
             out.append(r)
     return out, n
 
@@ -147,8 +244,10 @@ def merge(st, rows, keep_dates):
     added = 0
     for r in rows:
         if r[4] not in have:
-            have[r[4]] = r[:4]
             added += 1
+        elif len(have[r[4]]) > 4 or len(r) < 6:
+            continue
+        have[r[4]] = r[:4] + r[5:6]   # [t, p, s, c] (+ side when the feeder estimated it; rows stored before DP-DETAIL have none)
     for k in [k for k, r in have.items() if ny_date(r[0]) not in keep_dates]:
         del have[k]
     return added
@@ -156,8 +255,13 @@ def merge(st, rows, keep_dates):
 
 def part_body(sym, code, st, now_s):
     rows = sorted(st.get('rows', {}).values(), key=lambda r: r[0])[-MAX_ROWS:]
-    d = {'v': 1, 't': int(now_s), 'sym': sym, 'code': code, 'min': MIN_USD, 'days': sorted(st.get('done', []))[-KEEP_DAYS:],
-         'cols': ['t', 'p', 's', 'c'], 'rows': rows}
+    days = sorted(st.get('done', []))[-KEEP_DAYS:]
+    # v2 (DP-DETAIL): 5th column = estimated side ('b' likely buy, 's' likely sell, 'u' unclear, 'l' late report, '' not estimated);
+    # dv = {date: [day volume, regular-session VWAP]} for the days read by this feeder version. Old (v1) parts still render.
+    dv = {d: [int(e[0]), round(e[1] / e[2], 4) if e[2] else 0] for d, e in (st.get('dv') or {}).items()}
+    rows = [r[:4] + [r[4] if len(r) > 4 else ''] for r in rows]
+    d = {'v': 2, 't': int(now_s), 'sym': sym, 'code': code, 'min': MIN_USD, 'days': days,
+         'cols': ['t', 'p', 's', 'c', 'd'], 'rows': rows, 'dv': dv}
     return gzip.compress(json.dumps(d, separators=(',', ':')).encode(), 9)
 
 
@@ -172,7 +276,7 @@ def session_dates(now_ny, n=KEEP_DAYS):
 
 
 # ---- io -----------------------------------------------------------------------------------------
-def fetch_rows(code, key, params):
+def fetch_rows(code, key, params, stats=None):
     IS_CALLS[0] += 1
     url = IS + '/symbols/' + urllib.parse.quote(code, safe=':!') + '/trades?' + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + key, 'Accept-Encoding': 'gzip', 'User-Agent': 'tradezoro-dp-feeder/1'})
@@ -197,7 +301,7 @@ def fetch_rows(code, key, params):
                     break
                 yield (dz.decompress(c) if dz else c).decode('utf-8', 'replace')
         meta = {}
-        rows, n = filter_stream(chunks(), meta=meta)
+        rows, n = filter_stream(chunks(), meta=meta, stats=stats)
         return rows, n, bool(meta.get('partial'))
 
 
@@ -244,7 +348,12 @@ def main():
         recent = is_today and (now - st.get('last', 0)) < 2.5 * 3600 and st.get('lastDay') == today
         budget()
         try:
-            rows, n, partial = fetch_rows(code, key, {'window': '3h'} if recent else {'date': d})
+            dv = st.setdefault('dv', {})
+            if not recent:
+                dv.pop(d, None)   # a whole day read again: count it from zero
+            rows, n, partial = fetch_rows(code, key, {'window': '3h'} if recent else {'date': d}, dv)
+            for k in [k for k in dv if k not in dates]:
+                del dv[k]
         except Pending as e:
             pending.setdefault(sym, {})[d] = e.after
             log('%s %s: data pending at the supplier, retry in %ds' % (sym, d, e.after))

@@ -15,7 +15,8 @@
 // chart-watchlist.js (.stkw-rail, .stkchart-panel.stkw-host), style.css tokens (--ink-*, --line-soft, --bg-2).
 
 
-import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=912';
+import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=913';
+import { contextOf, detailRows, levels, printType, sideText, SIDE_NOTE } from './chart-darkpool-detail.js?v=913';
 
 export const DP_TYPE = 'stk_darkpool';
 export const DP_DESC = 'Large off-exchange stock trades (dark pool prints) drawn at their exact price and time, sized by $ value; $10M+ highlighted. Size filter $1M to $25M. 29 US stocks and ETFs, updated every 2 hours. On ES, NQ, YM and RTY charts: the SPY, QQQ, DIA and IWM prints at the futures price';
@@ -23,11 +24,15 @@ export const DP_SYMS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA',
   'BAC', 'DIS', 'COST', 'INTC', 'PLTR', 'BA', 'COIN', 'MSTR', 'SPY', 'QQQ', 'IWM', 'DIA', 'GLD', 'TQQQ'];
 export const SIZES = ['$1M', '$5M', '$10M', '$25M'];
 export const BIG = 10e6;
+export const LEVEL_SIZES = ['$10M', '$25M', '$50M', '$100M'];
 const SCHEMA = [
   { key: 'minSize', title: 'Minimum print size', type: 'string', defval: '$1M', options: SIZES },
   { key: 'labels', title: 'Show $ labels', type: 'bool', defval: true },
   { key: 'futEtf', title: 'On futures (ES, NQ, YM, RTY): show the matching ETF prints', type: 'bool', defval: true },
   { key: 'offPrice', title: 'Show average-price / contingent prints', type: 'bool', defval: false },
+  // DP-DETAIL: repeated prints at one price that day adding up to the size below -> a dashed line labelled with the total
+  { key: 'levels', title: 'Show levels (repeated prints at one price)', type: 'bool', defval: true },
+  { key: 'levelMin', title: 'Level minimum total', type: 'string', defval: '$25M', options: LEVEL_SIZES, when: { key: 'levels', equals: true } },
   { key: 'color', title: 'Prints colour', type: 'color', defval: '#00adb5' },
   { key: 'bigColor', title: '$10M+ colour', type: 'color', defval: '#03c988' },
   // Alerts (server-side, assets/chart-dp-alerts.js): students/{uid}/dpAlerts doc 'ind-<SYM>', checked by the alert engine with the chart closed
@@ -63,17 +68,17 @@ export function usd(v) {
   if (v >= 1e6) return '$' + (v >= 1e7 ? Math.round(v / 1e6) : (v / 1e6).toFixed(1).replace(/\.0$/, '')) + 'M';
   return '$' + Math.round(v / 1e3) + 'K';
 }
-// part -> prints [{ t, p, s, v, c, big }] at or above minUsd, time order
+// part -> prints [{ t, p, s, v, c, big, d (estimated side, '' on old parts), k (day context, chart-darkpool-detail.js) }] at or above minUsd, time order
 // marketOnly: drop prints whose price is not the market price of that moment (average-price, contingent, derivative, prior reference,
 // late): e.g. on SPY 2026-11-06 one contingent trade was reported 24 times at 733.13, far from the market, which would draw a false level.
 export function prints(part, minUsd, marketOnly) {
   const rows = part && Array.isArray(part.rows) ? part.rows : [];
-  const out = [];
-  for (const r of rows) {
-    if (!Array.isArray(r) || !isNum(r[0]) || !isNum(r[1]) || !isNum(r[2])) continue;
+  const out = [], ctx = contextOf(part);
+  rows.forEach((r, i) => {
+    if (!Array.isArray(r) || !isNum(r[0]) || !isNum(r[1]) || !isNum(r[2])) return;
     const v = r[1] * r[2], c = String(r[3] || '');
-    if (v >= (minUsd || 0) && !(marketOnly && condNote(c).off.length)) out.push({ t: r[0], p: r[1], s: r[2], v, c, big: v >= BIG });
-  }
+    if (v >= (minUsd || 0) && !(marketOnly && condNote(c).off.length)) out.push({ t: r[0], p: r[1], s: r[2], v, c, big: v >= BIG, d: typeof r[4] === 'string' ? r[4] : '', k: ctx[i] });
+  });
   return out.sort((a, b) => a.t - b.t);
 }
 // bar length in ms from the bars themselves (smallest gap among the first 60)
@@ -102,7 +107,7 @@ export function groupByBar(list, bars, ms, from = 0, to = bars.length - 1) {
 // dot radius: sqrt of value against the biggest in view, 3..rMax
 export const radius = (v, max, rMax = 9) => 3 + (rMax - 3) * Math.sqrt(Math.max(0, v) / Math.max(1, max));
 // conditions that mean the price is not the market price of that moment
-const OFF_PRICE = { B: 'average price', W: 'average price', 4: 'derivatively priced', 7: 'contingent trade', V: 'contingent trade', P: 'prior reference price', Z: 'reported out of sequence', U: 'reported out of sequence' };
+const OFF_PRICE = { B: 'average price', W: 'average price', 4: 'derivatively priced', 7: 'contingent trade', V: 'contingent trade', P: 'prior reference price', Z: 'reported out of sequence', U: 'reported out of sequence', C: 'cash trade' };
 export function condNote(c) {
   const out = [];
   for (const k of String(c || '')) if (OFF_PRICE[k] && !out.includes(OFF_PRICE[k])) out.push(OFF_PRICE[k]);
@@ -123,10 +128,13 @@ export function tipRows(x) {
   const n = condNote(x.c);
   const f2 = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const px = x.fut ? ['', x.etf + ' ' + f2(x.ep) + ' · at ' + x.fut + ' ≈ ' + f2(x.p)] : ['Price', x.p.toLocaleString('en-US', { maximumFractionDigits: 4 })];
-  const rows = [['Time', fmtDay(x.t) + ', ' + fmtTime(x.t)], px, ['Shares', x.s.toLocaleString('en-US')], ['Value', usd(x.v)]];
-  if (n.ext) rows.push(['Session', 'extended hours']);
-  if (n.off.length) rows.push(['Price type', n.off.join(', ')]);
-  return { title: (x.fut ? x.etf + ' ' : '') + (x.big ? (x.fut ? 'block print' : 'Block print') : (x.fut ? 'dark pool print' : 'Dark pool print')) + ' · ' + usd(x.v), rows, note: 'One trade reported off the exchanges.' + (x.fut ? ' Shown at the ' + x.fut + ' price of that minute.' : '') + (n.off.length ? ' Its price may differ from the market price at that time.' : '') };
+  const rows = [['Time', fmtDay(x.t) + ', ' + fmtTime(x.t)], px, ['Shares', x.s.toLocaleString('en-US')]];
+  // DP-DETAIL: estimated side + type of print up top (value is in the title); day context below. Old parts: no side line.
+  const side = sideText(x.d);
+  return { title: (x.fut ? x.etf + ' ' : '') + (x.big ? (x.fut ? 'block print' : 'Block print') : (x.fut ? 'dark pool print' : 'Dark pool print')) + ' · ' + usd(x.v), rows,
+    side, sideKey: x.d || '', type: printType(x.c, x.t, x.big), more: detailRows(x),
+    note: 'One trade reported off the exchanges.' + (x.fut ? ' Shown at the ' + x.fut + ' price of that minute.' : '') + (n.off.length ? ' Its price may differ from the market price at that time.' : ''),
+    sideNote: side ? SIDE_NOTE : '' };
 }
 
 // ---- data ---------------------------------------------------------------------------------------
@@ -174,7 +182,7 @@ const light = () => { try { return document.documentElement.getAttribute('data-t
 const hits = new WeakMap();
 // ---- alerts glue (the module loads on demand: assets/chart-dp-alerts.js) ----
 let WSREF = null, alertsP = null;
-const alertsMod = () => alertsP || (alertsP = import('./chart-dp-alerts.js?v=912').catch((e) => { console.warn('TradeZoro: dark pool alerts', e); return new Promise(() => {}); }));
+const alertsMod = () => alertsP || (alertsP = import('./chart-dp-alerts.js?v=913').catch((e) => { console.warn('TradeZoro: dark pool alerts', e); return new Promise(() => {}); }));
 const chartKeys = new WeakMap(); let chartN = 0;
 const chartKey = (c) => { if (!chartKeys.has(c)) chartKeys.set(c, ++chartN); return chartKeys.get(c); };
 const stopped = new Set();   // instances stopped in the last seconds: Vela stops an instance BEFORE it fires 'indicator:removed'
@@ -262,7 +270,8 @@ class DpNative {
     const all = fut ? mappedFor(fut, e.part).list.filter((x) => x.v >= sizeUsd(this.inputs.minSize)) : prints(e.part, sizeUsd(this.inputs.minSize));
     const list = this.inputs.offPrice ? all : all.filter((x) => !condNote(x.c).off.length || x.t === focusT);
     try { window.__stkDarkpool = { sym, fut, skipped: fut ? (mappedFor(fut, e.part) || {}).skipped : 0, n: all.length, big: all.filter((x) => x.big).length, drawn: list.length, min: sizeUsd(this.inputs.minSize) }; } catch (x) {}
-    this.push({ list, sym, fut, t: e.part.t, I: this.inputs, bars: bars.length ? bars[0].time + '|' + bars[bars.length - 1].time + '|' + bars.length : '', ago: agoText(e.part.t), focus: focusT });
+    const lv = this.inputs.levels !== false ? levels(list, sizeUsd(this.inputs.levelMin || '$25M')) : [];
+    this.push({ list, lv, sym, fut, t: e.part.t, I: this.inputs, bars: bars.length ? bars[0].time + '|' + bars[bars.length - 1].time + '|' + bars.length : '', ago: agoText(e.part.t), focus: focusT });
   }
 }
 
@@ -292,6 +301,22 @@ function layer() {
       setChip(vis.length ? d.sym + ': ' + vis.length + ' dark pool print' + (vis.length === 1 ? '' : 's') + ' ≥ ' + I.minSize + (d.fut ? ', shown at ' + d.fut + ' price' : '') + ' · ' + d.ago : 'No dark pool prints ≥ ' + I.minSize + ' in view · ' + d.ago, canvas.parentElement);
       const top = a.bounds.top, bot = top + a.bounds.height, max = vis.reduce((m, o) => Math.max(m, o.x.v), 1), rMax = W < 520 ? 7 : 9;
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
+      // levels (repeated prints at one price): dashed line from the first print to the right edge, total at the right; under the dots
+      const lvBoxes = [];   // level labels: dot labels keep clear of them
+      if (d.lv && d.lv.length && vis.length) {
+        const tA = bars[v0].time, tB = bars[v1].time + ms, lt = [];
+        g.font = '500 11px -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif'; g.textBaseline = 'middle';
+        for (const L of d.lv) {
+          if (L.t0 >= tB || lt.length >= (W < 520 ? 4 : 8)) continue;
+          const y = co.priceToY(L.p, a.scale, a.bounds); if (!Number.isFinite(y) || y < top || y > bot) continue;
+          const i0 = L.t0 < tA ? -1 : barIndex(bars, L.t0, ms), x0 = i0 < 0 ? 0 : Math.max(0, co.timeToX(bars[i0].time));
+          const txt = usd(L.v) + ' · ' + L.n + ' prints', w = g.measureText(txt).width + 8, lx = W - w - 4;
+          g.globalAlpha = 0.7; g.setLineDash([4, 4]); g.lineWidth = 1; g.strokeStyle = I.bigColor;
+          g.beginPath(); g.moveTo(x0, Math.round(y) + 0.5); g.lineTo(W, Math.round(y) + 0.5); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+          if (lt.some((b) => Math.abs(b - y) < 16)) continue;
+          lt.push(y); lvBoxes.push({ x: lx, y: y - 8, w, h: 16, txt });
+        }
+      }
       // small first so big prints sit on top
       vis.sort((p, q) => p.x.v - q.x.v);
       const placed = [];
@@ -308,14 +333,14 @@ function layer() {
       }
       if (I.labels !== false) {
         g.font = '600 11px -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif'; g.textBaseline = 'middle';
-        const taken = [];
+        const taken = lvBoxes.slice(), nLv = taken.length;
         placed.sort((p, q) => q.o.x.v - p.o.x.v);
         for (const pl of placed) {
           const txt = (d.fut ? d.sym + ' ' : '') + usd(pl.o.x.v), w = g.measureText(txt).width + 8, h = 16, lx = pl.x + pl.r + 4, ly = pl.y - h / 2;
           if (lx + w > W - 2) continue;
           if (taken.some((b) => lx < b.x + b.w && lx + w > b.x && ly < b.y + b.h && ly + h > b.y)) continue;
           // labels: every $10M+ that fits; smaller ones only while there is room (fewer on a phone)
-          if (!pl.o.x.big && taken.length >= (W < 520 ? 6 : 24)) continue;
+          if (!pl.o.x.big && taken.length - nLv >= (W < 520 ? 6 : 24)) continue;
           taken.push({ x: lx, y: ly, w, h });
           g.globalAlpha = 0.92; g.fillStyle = day ? '#ffffff' : '#131316'; g.beginPath();
           if (g.roundRect) g.roundRect(lx, ly, w, h, 4); else g.rect(lx, ly, w, h);
@@ -324,6 +349,14 @@ function layer() {
           g.fillStyle = pl.o.x.big ? (day ? '#047857' : I.bigColor) : (day ? '#1d1d1f' : 'rgba(255,255,255,.92)');
           g.fillText(txt, lx + 4, pl.y + 0.5);
         }
+      }
+      // level labels last, on top of the dots
+      g.font = '500 11px -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif'; g.textBaseline = 'middle';
+      for (const b of lvBoxes) {
+        g.globalAlpha = 0.96; g.fillStyle = day ? '#ffffff' : '#131316'; g.beginPath();
+        if (g.roundRect) g.roundRect(b.x, b.y, b.w, b.h, 4); else g.rect(b.x, b.y, b.w, b.h);
+        g.fill(); g.globalAlpha = 1; g.lineWidth = 1; g.strokeStyle = I.bigColor; g.stroke();
+        g.fillStyle = day ? '#047857' : I.bigColor; g.fillText(b.txt, b.x + 4, b.y + 8.5);
       }
       g.restore();
     },
@@ -351,16 +384,35 @@ function show(h) {
   const head = document.createElement('div'); head.className = 'stk-dp-h';
   const dot = document.createElement('i'); dot.className = h.b.p.big ? 'big' : '';
   head.append(dot, t.title); tip.appendChild(head);
-  t.rows.forEach(([k, v]) => { const r = document.createElement('div'); r.className = 'stk-dp-r' + (k ? '' : ' full'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v; if (k) r.append(a, b); else r.append(b); tip.appendChild(r); });
+  tip.appendChild(sideLine(t));
+  const addRows = (list) => list.forEach(([k, v]) => { const r = document.createElement('div'); r.className = 'stk-dp-r' + (k ? '' : ' full'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v; if (k) r.append(a, b); else r.append(b); tip.appendChild(r); });
+  addRows(t.rows);
+  if (t.more.length) { const hr = document.createElement('div'); hr.className = 'stk-dp-hr'; tip.appendChild(hr); addRows(t.more); }
   const n = document.createElement('div'); n.className = 'stk-dp-n'; n.textContent = t.note; tip.appendChild(n);
+  if (t.sideNote) { const sn = document.createElement('div'); sn.className = 'stk-dp-n stk-dp-sn'; sn.innerHTML = IC_INFO; sn.append(t.sideNote); tip.appendChild(sn); }
   tip.hidden = false;
   const left = Math.min(window.innerWidth - tip.offsetWidth - 8, Math.max(8, h.r.left + h.b.x - tip.offsetWidth / 2));
   let tp = h.r.top + h.b.y - tip.offsetHeight - h.b.r - 8; if (tp < 8) tp = h.r.top + h.b.y + h.b.r + 8;
   tip.style.left = left + 'px'; tip.style.top = tp + 'px';
 }
+const IC_INFO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>';
+// "Likely buy (i) · Regular block": the estimated side (a word, colour only as a second cue) and the type of print
+function sideLine(t) {
+  const l = document.createElement('div'); l.className = 'stk-dp-side';
+  if (t.side) { const b = document.createElement('b'); b.className = 'stk-dp-sd ' + (t.sideKey === 'b' || t.sideKey === 's' ? t.sideKey : 'u'); b.textContent = t.side; b.title = SIDE_NOTE; const i = document.createElement('i'); i.className = 'stk-dp-i'; i.innerHTML = IC_INFO; b.appendChild(i); l.appendChild(b); }
+  const ty = document.createElement('span'); ty.textContent = (t.side ? ' · ' : '') + t.type; l.appendChild(ty);
+  return l;
+}
 function onMove(e) { if (e.pointerType === 'touch' || pinned) return; const h = find(e); if (!h) { if (tip) tip.hidden = true; return; } show(h); }
 function onDown(e) { const h = find(e); if (!h) { pinned = false; if (tip) tip.hidden = true; return; } pinned = e.pointerType === 'touch'; show(h); }
 
+// list row second line: { side, cls, text } e.g. 'Likely buy' · 'Regular block · 3.2× typical · level $81M'
+export function listLine(x) {
+  const side = sideText(x.d), k = x.k || {}, bits = [printType(x.c, x.t, x.big).replace(/ \([^)]*\)/g, '')];   // the card spells out the brackets
+  if (k.typ >= 2) bits.push((k.typ < 10 ? k.typ.toFixed(1) : Math.round(k.typ)) + '× typical');
+  if (k.lvl) bits.push('level ' + usd(k.lvl.v));
+  return { side, cls: x.d === 'b' || x.d === 's' ? x.d : 'u', text: bits.join(' · ') };
+}
 // ---- "Dark pool" list panel (right icon bar; phones: a sheet) ----------------------------------------
 const IC = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="15" r="3"/><circle cx="16" cy="8" r="4"/><circle cx="18" cy="18" r="2"/></svg>';
 const IC_X = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -369,7 +421,7 @@ const LS_PANEL = 'stkdkp.v1';
 export function mountDarkPoolPanel(ws) {
   if (!ws || document.getElementById('stkdkp')) return null;
   WSREF = ws; hookRemovals(ws);
-  import('./chart-dp-alerts.js?v=912').then((m) => { i0 = m; m.installDialogNote(ws); m.onChange(() => { try { render(); } catch (e) {} }); }).catch(() => {});
+  import('./chart-dp-alerts.js?v=913').then((m) => { i0 = m; m.installDialogNote(ws); m.onChange(() => { try { render(); } catch (e) {} }); }).catch(() => {});
   const host = document.querySelector('.stkchart-panel.stkw-host') || document.querySelector('.stkchart-panel');
   if (!host) return null;
   const isPhone = () => window.innerWidth <= 700;
@@ -439,6 +491,8 @@ export function mountDarkPoolPanel(ws) {
       row.setAttribute('aria-label', fmtTime(x.t) + ', ' + (x.fut ? x.etf + ' ' : '') + usd(x.v) + ' at ' + x.p + ', ' + x.s + ' shares. Show on chart');
       const n = condNote(x.c);
       [fmtTime(x.t).replace(' ET', ''), x.p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), x.s.toLocaleString('en-US'), usd(x.v) + (n.off.length ? '*' : '')].forEach((v) => { const s = el('span'); s.textContent = v; row.appendChild(s); });
+      // DP-DETAIL second line: estimated side · type of print · size vs typical · level
+      const sub2 = listLine(x); if (sub2.text) { const s = el('span', 'stkdkp-l2'); if (sub2.side) { const b = el('b', 'stk-dp-sd ' + sub2.cls); b.textContent = sub2.side; s.appendChild(b); } s.append((sub2.side ? ' · ' : '') + sub2.text); row.appendChild(s); row.setAttribute('aria-label', row.getAttribute('aria-label').replace('. Show on chart', '. ' + (sub2.side ? sub2.side + ' (estimate), ' : '') + sub2.text + '. Show on chart')); }
       if (x.fut) row.title = x.etf + ' ' + x.ep.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' · at ' + x.fut + ' ≈ ' + x.p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       if (n.off.length) row.title = (row.title ? row.title + '. ' : '') + 'Price type: ' + n.off.join(', ');
       row.addEventListener('click', () => jump(x));
@@ -446,6 +500,7 @@ export function mountDarkPoolPanel(ws) {
     }
     list.appendChild(frag);
     if (all.some((x) => condNote(x.c).off.length)) { const f = el('p', 'stkdkp-key'); f.textContent = '* average-price, contingent or late-reported trade: its price may differ from the market price at that time. Times are New York time.'; list.appendChild(f); }
+    if (all.some((x) => x.d)) { const f = el('p', 'stkdkp-key'); f.textContent = 'Likely buy / sell: ' + SIDE_NOTE; list.appendChild(f); }
   }
   function closeOthers() {
     if (host.classList.contains('stkw-open')) { const b = document.querySelector('.stkw .stkw-close'); if (b) b.click(); }
@@ -472,7 +527,7 @@ export function mountDarkPoolPanel(ws) {
     lab.textContent = a ? 'Alert on · ≥ ' + usd(a.min) : 'Set alert';
     b.setAttribute('aria-label', a ? sym + ' dark pool alert is on, at ' + usd(a.min) + ' or more. Open the alert settings' : 'Set a dark pool print alert on ' + sym + ' in the indicator settings');
   }
-  $('.stkdkp-alert').addEventListener('click', () => { import('./chart-dp-alerts.js?v=912').then((m) => { if (m.openIndicatorAlerts(ws, true) && isPhone()) setOpen(false); }).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
+  $('.stkdkp-alert').addEventListener('click', () => { import('./chart-dp-alerts.js?v=913').then((m) => { if (m.openIndicatorAlerts(ws, true) && isPhone()) setOpen(false); }).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
   seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); if (!b) return; minSize = b.dataset.m; try { localStorage.setItem(LS_PANEL, JSON.stringify({ min: minSize })); } catch (x) {} render(); });
   document.addEventListener('click', (e) => {
     if (!open || !e.target.closest) return;
@@ -502,8 +557,17 @@ const CSS = `
 .stk-dp-r.full{ justify-content:flex-start; }
 .stk-dp-r span{ color:rgba(255,255,255,.64); }
 .stk-dp-n{ margin-top:8px; font-size:12px; line-height:16px; color:rgba(255,255,255,.64); }
+.stk-dp-side{ margin:-4px 0 8px; font-size:12px; line-height:16px; color:rgba(255,255,255,.64); }
+.stk-dp-sd{ display:inline-flex; align-items:center; gap:4px; font-weight:600; color:rgba(255,255,255,.92); }
+.stk-dp-sd.b{ color:#03c988; } .stk-dp-sd.s{ color:#ff6b6b; }
+.stk-dp-i{ display:inline-flex; opacity:.64; }
+.stk-dp-hr{ height:1px; margin:8px 0; background:rgba(255,255,255,.08); }
+.stk-dp-sn{ display:flex; gap:4px; align-items:flex-start; margin-top:4px; }
+.stk-dp-sn svg{ flex:none; margin-top:2px; }
 :root[data-theme="light"] .stk-dp-tip, :root[data-theme="light"] .stk-dp-chip{ background:#fff; color:#1d1d1f; border-color:rgba(0,0,0,.12); }
-:root[data-theme="light"] .stk-dp-r span, :root[data-theme="light"] .stk-dp-n, :root[data-theme="light"] .stk-dp-chip{ color:#515154; }
+:root[data-theme="light"] .stk-dp-r span, :root[data-theme="light"] .stk-dp-n, :root[data-theme="light"] .stk-dp-chip, :root[data-theme="light"] .stk-dp-side{ color:#515154; }
+:root[data-theme="light"] .stk-dp-sd{ color:#1d1d1f; } :root[data-theme="light"] .stk-dp-sd.b{ color:#047857; } :root[data-theme="light"] .stk-dp-sd.s{ color:#c62828; }
+:root[data-theme="light"] .stk-dp-hr{ background:rgba(0,0,0,.08); }
 .stkchart-panel.stkw-host.stkdkp-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stkw-w)); }
 .stkdkp{ position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stkw-w, 340px); z-index:29; display:flex; flex-direction:column; min-width:0; background:var(--bg-0);
   border-left:1px solid var(--line-soft); font:400 13px/18px -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif; color:var(--ink-0); }
@@ -523,13 +587,18 @@ const CSS = `
 .stkdkp-cols, .stkdkp-row{ display:grid; grid-template-columns:1.15fr 1fr 1fr .9fr; gap:4px; padding:0 12px; font-variant-numeric:tabular-nums; }
 .stkdkp-cols{ flex:none; padding-bottom:4px; font-size:11px; line-height:13px; color:var(--ink-2); border-bottom:1px solid var(--line-soft); }
 .stkdkp-cols[hidden]{ display:none; }
-.stkdkp-cols span:nth-child(n+2), .stkdkp-row span:nth-child(n+2){ text-align:right; }
+.stkdkp-cols span:nth-child(n+2), .stkdkp-row span:nth-child(n+2):not(.stkdkp-l2){ text-align:right; }
 .stkdkp-list{ flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
 .stkdkp-day{ position:sticky; top:0; z-index:1; padding:8px 12px 4px; font-size:11px; line-height:13px; font-weight:600; color:var(--ink-2); background:var(--bg-0); }
 .stkdkp-row{ width:100%; min-height:32px; align-items:center; border:0; border-bottom:1px solid var(--line-soft); background:none; color:var(--ink-0); font:400 12px/16px inherit; font-family:inherit; cursor:pointer; text-align:left; }
 .stkdkp-row:hover{ background:var(--bg-2); }
-.stkdkp-row.big span:last-child{ color:#03c988; font-weight:600; }
-:root[data-theme="light"] .stkdkp-row.big span:last-child{ color:#047857; }
+.stkdkp-row{ padding-top:4px; padding-bottom:4px; }
+.stkdkp-l2{ grid-column:1 / -1; text-align:left !important; font-size:11px; line-height:13px; color:var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stkdkp-l2 .stk-dp-sd{ font-weight:600; }
+.stkdkp .stk-dp-sd{ color:var(--ink-0); } .stkdkp .stk-dp-sd.b{ color:#03c988; } .stkdkp .stk-dp-sd.s{ color:#ff6b6b; }
+:root[data-theme="light"] .stkdkp .stk-dp-sd.b{ color:#047857; } :root[data-theme="light"] .stkdkp .stk-dp-sd.s{ color:#c62828; }
+.stkdkp-row.big span:nth-child(4){ color:#03c988; font-weight:600; }
+:root[data-theme="light"] .stkdkp-row.big span:nth-child(4){ color:#047857; }
 .stkdkp-note{ margin:0; padding:16px 12px; color:var(--ink-2); font-size:12px; line-height:16px; }
 .stkdkp-key{ margin:0; padding:8px 12px; font-size:11px; line-height:13px; color:var(--ink-2); }
 .stkdkp-foot{ flex:none; margin:0; padding:8px 12px; border-top:1px solid var(--line-soft); font-size:11px; line-height:13px; color:var(--ink-2); }

@@ -3,7 +3,7 @@
 //   node workers/book-recorder/test/scan.test.mjs
 import { gzipSync, gunzipSync } from 'node:zlib';
 import assert from 'node:assert/strict';
-import { validateScan, validateScanPart, SCAN_COLS, SCAN_COLS_V2, MS_COLS, DP_COLS, SCAN_PARTS } from '../src/scan.js';
+import { validateScan, validateScanPart, SCAN_COLS, SCAN_COLS_V2, MS_COLS, DP_COLS, DP_COLS2, SCAN_PARTS } from '../src/scan.js';
 
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS ' + m); };
@@ -39,6 +39,11 @@ ok(validateScanPart('dp_spy', dp({ rows: [[1793966400219, -1, 5, '']] }), now) =
 ok(validateScanPart('dp_spy', dp({ rows: [[1793966400219, 1, 5, 'x'.repeat(9)]] }), now) === 'bad row', 'dark pool long condition string rejected');
 ok(validateScanPart('dp_spy', dp({ cols: ['t'] }), now) === 'bad cols', 'dark pool wrong columns rejected');
 ok(validateScanPart('dp_spy', dp({ t: now - 3000 }), now) === '', 'dark pool part stays fresh for an hour');
+const dp2 = (o) => dp(Object.assign({ v: 2, cols: DP_COLS2, rows: [[1793966400219, 735.52, 27817, 'T', 'b'], [1793972383905, 733, 23200, 'TB', '']], dv: { '2026-11-06': [77312345, 734.12] } }, o || {}));
+ok(validateScanPart('dp_spy', dp2(), now) === '', 'dark pool v2 part (side + day stats) valid');
+ok(validateScanPart('dp_spy', dp2({ rows: [[1793966400219, 735.52, 27817, 'T', 'x']] }), now) === 'bad row', 'dark pool v2 unknown side rejected');
+ok(validateScanPart('dp_spy', dp2({ rows: [[1793966400219, 735.52, 27817, 'T']] }), now) === 'bad row', 'dark pool v2 row without side rejected');
+ok(validateScanPart('dp_spy', dp2({ dv: { x: [1, 2] } }), now) === 'bad dv' && validateScanPart('dp_spy', dp2({ dv: null }), now) === 'bad dv', 'dark pool v2 bad day stats rejected');
 ok(validateScanPart('stock', table(), now) === '', 'table valid');
 ok(validateScanPart('bonds', table(), now) === 'bad part', 'unknown part');
 ok(validateScanPart('stock', table({ t: now - 3600 }), now) === 'stale or future t', 'stale rejected');

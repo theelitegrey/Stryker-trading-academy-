@@ -46,7 +46,7 @@ ok(Math.abs(M.radius(5, 10) - (3 + 6 * Math.sqrt(0.5))) < 1e-9 && M.radius(10, 1
 ok(M.condNote('TB').ext && M.condNote('TB').off[0] === 'average price', 'extended + average price');
 ok(!M.condNote('').ext && !M.condNote('').off.length && M.condNote('7V').off.length === 1, 'regular / contingent');
 const tr = M.tipRows({ t: top.t, p: top.p, s: top.s, v: top.v, c: 'TB', big: true });
-ok(/Block print · \$1.1B/.test(tr.title) && tr.rows.some((r) => r[0] === 'Price type') && /may differ/.test(tr.note), 'card text for an average-price block');
+ok(/Block print · \$1.1B/.test(tr.title) && tr.type === 'Average-price trade · after hours' && /may differ/.test(tr.note), 'card text for an average-price block (type of print: DP-DETAIL)');
 ok(!/live|real-time|delayed/i.test(JSON.stringify(tr)) && !/finra_adf|insight/i.test(JSON.stringify(tr)), 'no live / vendor words in the card');
 ok(M.agoText(1000, 1000e3 + 30e3) === 'Updated just now' && M.agoText(1000, 1000e3 + 7 * 60e3) === 'Updated 7 min ago' && M.agoText(1000, 1000e3 + 3 * 3600e3) === 'Updated 3 h ago', 'updated X ago');
 console.log(n + ' passed');

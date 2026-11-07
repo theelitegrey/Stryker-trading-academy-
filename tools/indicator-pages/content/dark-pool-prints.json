@@ -3,11 +3,13 @@
   "summary": "Draws large off-exchange stock trades (dark pool prints) at the exact price and time they printed, sized by dollar value, with $10M+ blocks highlighted.",
   "overview": [
     "Dark Pool Prints puts each large trade that was reported off the exchanges on your stock chart, at the price and time it happened. Each print is a dot sized by its dollar value, with a label such as \"$40M\". Prints of $10M or more are filled in mint so the big blocks stand out.",
-    "Open the Dark pool list from the chart's right-hand bar (on a phone, the Dark pool button) to see the prints as a table: time, price, shares and value. Tap a row and the chart moves to that print and rings it."
+    "Open the Dark pool list from the chart's right-hand bar (on a phone, the Dark pool button) to see the prints as a table: time, price, shares and value, with a second line for the estimated side and the type of print. Tap a row and the chart moves to that print and rings it."
   ],
   "how": [
     "US trades done away from the exchanges are reported to a regulator-run trade reporting facility, and each report carries that venue. TradeZoro reads the trade reports for the session, keeps the ones from those facilities worth $1M or more (price times shares), and stores the last five sessions. Each dot is one trade, not a total.",
-    "Some reports are not at the market price of that moment: average-price trades, contingent trades, derivatively priced trades and late reports. They are kept in the list with a star, and hidden from the chart unless you turn on \"Show average-price / contingent prints\". The size setting filters prints at $1M, $5M, $10M or $25M."
+    "Some reports are not at the market price of that moment: average-price trades, contingent trades, derivatively priced trades and late reports. They are kept in the list with a star, and hidden from the chart unless you turn on \"Show average-price / contingent prints\". The size setting filters prints at $1M, $5M, $10M or $25M.",
+    "Hover or tap a print for more detail: an estimated side (Likely buy, Likely sell or Unclear), the type of print spelled out from its sale conditions (regular block, average-price, derivatively priced, late report, after hours and so on), its share of the day's volume, its size against a typical print of that stock, its rank that day, and how far it was from the day's VWAP. Off-exchange reports do not say who bought or sold, or what order type was used, so the side is only an estimate: a print at or above the exchange high of the 5 seconds before it, and above their average price, is a likely buy; at or below the low, a likely sell; anything else is unclear.",
+    "Levels: when several big prints trade at the same price on the same day and add up to $25M or more (you can pick $10M to $100M), a dashed line is drawn at that price, labelled with the total and the number of prints."
   ],
   "use": [
     "Some traders watch where big blocks traded relative to the day's range.",
@@ -18,7 +20,7 @@
   "notes": [
     "US stocks and ETFs only, on a set list of 29 symbols including SPY, QQQ, IWM, DIA, AAPL, NVDA, MSFT and TSLA. Futures, crypto and forex show a short note instead.",
     "Updated every 2 hours on US trading days; the chart shows when it was last updated (for example \"updated 12 min ago\").",
-    "A dark pool print shows that a trade happened at that price. It does not say who bought or sold, or why.",
+    "A dark pool print shows that a trade happened at that price. The report does not say who bought or sold, or why; the Likely buy / Likely sell label is an estimate and most prints stay Unclear.",
     "Nothing is drawn in bar replay."
   ]
 }

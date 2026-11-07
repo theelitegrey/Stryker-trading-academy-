@@ -1,0 +1,27 @@
+[Unit]
+Description=TradeZoro Hyperliquid wallet intel: public HL trades + tracked wallets -> book recorder Worker (long-running)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+# BOOK_RECORDER_URL + BOOK_INGEST_SECRET (file mode 0600, never logged). Hyperliquid needs no key.
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+Environment=PYTHONUNBUFFERED=1
+Environment=HL_STATE_FILE=/root/projects/book-feeder/hl-state.json
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/hl-feeder/hl_feeder.py
+Restart=always
+RestartSec=15
+# measured in a 380 s dry run: ~120 MB steady RSS, 241 MB peak while the hourly leaderboard (39 MB) + vault list (14 MB) load; ~4 % of one CPU
+MemoryMax=400M
+CPUQuota=25%
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/root/projects/book-feeder
+SyslogIdentifier=hl-feeder
+
+[Install]
+WantedBy=multi-user.target

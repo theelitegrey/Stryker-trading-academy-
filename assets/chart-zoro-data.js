@@ -12,8 +12,8 @@
 //   activity?u=SYM&kind=fresh|burst -> { u, t, items:[{ t, side:'C'|'P', k, x, vol, oi, add, prem }] }
 // Field names follow the day-1 fixture (tools/fixtures/zoro/*.json); zsum() below accepts the spec names and the short ones.
 // Wording: "updated X min ago" only. Never live / real-time / delayed. Education only. Not financial advice.
-import { rtHeadersReady } from './rt-access.js?v=907';
-import * as ProGate from './chart-pro-gate.js?v=907';
+import { rtHeadersReady } from './rt-access.js?v=908';
+import * as ProGate from './chart-pro-gate.js?v=908';
 
 const API = '/api/zo/';
 export const TIER_A = ['SPX', 'SPY', 'QQQ', 'IWM', 'GLD', 'USO'];

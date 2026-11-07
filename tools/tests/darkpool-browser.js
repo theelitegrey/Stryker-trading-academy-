@@ -53,7 +53,7 @@ const view = (p, from, to) => p.evaluate(([f, t]) => window.STRYKER_VELA.context
 const chip = (p) => p.evaluate(() => [...document.querySelectorAll('.stk-dp-chip')].filter((x) => !x.hidden).map((x) => x.textContent).join(' | '));
 const SHOOT = /darkpool-(1440-dark|1440-light|412-dark|390-dark|390-signedout)(-|\.)/;
 async function shot(p, name) { if (!SHOOT.test(name)) return; await p.mouse.move(2, 2).catch(() => {}); await sleep(700); const f = path.join(OUT, name); await p.screenshot({ path: f }); console.log('SHOT ' + f); }
-const openPanel = (p, phone) => p.evaluate((ph) => { const b = document.querySelector(ph ? '.stkdp-phonebtn' : '.stkdp-railbtn'); if (b) b.click(); return !!b; }, phone);
+const openPanel = (p, phone) => p.evaluate((ph) => { const b = document.querySelector(ph ? '.stkdkp-phonebtn' : '.stkdkp-railbtn'); if (b) b.click(); return !!b; }, phone);
 
 async function run(b, tag, o) {
   const { ctx, p, errors } = await open(b, o);
@@ -70,7 +70,7 @@ async function run(b, tag, o) {
   fetched = 0;
   await add(p, 'stk_darkpool'); await sleep(2500);
   check(fetched > 0, tag + ': prints fetched (' + fetched + ')');
-  check(!(await p.evaluate(() => document.querySelector('#stkdp .stkdp-lock, .stk-pro-modal, .stkpg-modal'))), tag + ': no lock card / upgrade modal');
+  check(!(await p.evaluate(() => document.querySelector('#stkdkp .stkdkp-lock, .stk-pro-modal, .stkpg-modal'))), tag + ': no lock card / upgrade modal');
   await view(p, DAY0 - 600000, DAY1 + 300000); await sleep(1500);
   check((await count(p, 'stk_darkpool')) === 1, tag + ': Dark Pool Prints added');
   const st = await p.evaluate(() => window.__stkDarkpool || null);
@@ -100,26 +100,26 @@ async function run(b, tag, o) {
   await shot(p, 'darkpool-' + tag + '.png');
   // the Dark pool list
   check(await openPanel(p, phone), tag + ': panel button present'); await sleep(1500);
-  const rows = await p.evaluate(() => document.querySelectorAll('#stkdp .stkdp-row').length);
+  const rows = await p.evaluate(() => document.querySelectorAll('#stkdkp .stkdkp-row').length);
   check(rows === 600, tag + ': list shows the newest 600 of 982 prints (' + rows + ')');
-  const stat = await p.evaluate(() => document.querySelector('#stkdp .stkdp-stat').textContent);
+  const stat = await p.evaluate(() => document.querySelector('#stkdkp .stkdkp-stat').textContent);
   check(/982 prints ≥ \$1M, last session · Updated/.test(stat), tag + ': list status "' + stat + '"');
-  const hdr = await p.evaluate(() => [...document.querySelectorAll('#stkdp .stkdp-cols span')].map((x) => x.textContent).join(','));
+  const hdr = await p.evaluate(() => [...document.querySelectorAll('#stkdkp .stkdkp-cols span')].map((x) => x.textContent).join(','));
   check(hdr === 'Time,Price,Shares,Value', tag + ': columns ' + hdr);
-  const ov = await p.evaluate(() => { const l = document.querySelector('#stkdp .stkdp-list'); const pn = document.getElementById('stkdp'); return { sx: l.scrollWidth - l.clientWidth, pw: pn.getBoundingClientRect().right <= window.innerWidth + 1 }; });
+  const ov = await p.evaluate(() => { const l = document.querySelector('#stkdkp .stkdkp-list'); const pn = document.getElementById('stkdkp'); return { sx: l.scrollWidth - l.clientWidth, pw: pn.getBoundingClientRect().right <= window.innerWidth + 1 }; });
   check(ov.sx <= 1 && ov.pw, tag + ': no horizontal overflow in the list ' + JSON.stringify(ov));
   await shot(p, 'darkpool-' + tag + '-panel.png');
-  await p.evaluate(() => [...document.querySelectorAll('#stkdp .stkdp-seg button')].find((b) => b.dataset.m === '$10M').click()); await sleep(500);
-  const rows10 = await p.evaluate(() => document.querySelectorAll('#stkdp .stkdp-row').length);
+  await p.evaluate(() => [...document.querySelectorAll('#stkdkp .stkdkp-seg button')].find((b) => b.dataset.m === '$10M').click()); await sleep(500);
+  const rows10 = await p.evaluate(() => document.querySelectorAll('#stkdkp .stkdkp-row').length);
   check(rows10 === 80, tag + ': list $10M+ -> 80 rows');
   // tap a row -> the chart jumps to it and rings the print
-  const want = await p.evaluate(() => { const r = document.querySelectorAll('#stkdp .stkdp-row')[40]; const t = r.getAttribute('aria-label'); r.click(); return t; }); await sleep(1500);
+  const want = await p.evaluate(() => { const r = document.querySelectorAll('#stkdkp .stkdkp-row')[40]; const t = r.getAttribute('aria-label'); r.click(); return t; }); await sleep(1500);
   const vr = await p.evaluate(() => { const r = window.STRYKER_VELA.context().cells[0].chart.getVisibleRange(); return r && { from: r.from, to: r.to }; });
   check(vr && vr.from > DAY0 - 86400000 && vr.to < DAY1 + 86400000 && vr.to > vr.from, tag + ': row "' + String(want).slice(0, 60) + '" moved the chart to 2026-11-06 ' + JSON.stringify(vr));
-  if (!phone) await p.evaluate(() => document.querySelector('#stkdp .stkdp-x').click());
+  if (!phone) await p.evaluate(() => document.querySelector('#stkdkp .stkdkp-x').click());
   await sleep(500);
   // wording
-  const words = await p.evaluate(() => [...document.querySelectorAll('.stk-dp-tip,.stk-dp-chip,#stkdp')].map((x) => x.textContent).join(' '));
+  const words = await p.evaluate(() => [...document.querySelectorAll('.stk-dp-tip,.stk-dp-chip,#stkdkp')].map((x) => x.textContent).join(' '));
   check(!/\blive\b|real-time|realtime|delayed/i.test(words), tag + ': no live / real-time / delayed wording');
   check(!/insight|finra_adf|tradingview|unusual whales|databento|polygon/i.test(words), tag + ': no vendor or rival names');
   // other markets

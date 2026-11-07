@@ -282,9 +282,9 @@ function onDown(e) { const h = find(e); if (!h) { pinned = false; if (tip) tip.h
 // ---- "Dark pool" list panel (right icon bar; phones: a sheet) ----------------------------------------
 const IC = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="15" r="3"/><circle cx="16" cy="8" r="4"/><circle cx="18" cy="18" r="2"/></svg>';
 const IC_X = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-const LS_PANEL = 'stkdp.v1';
+const LS_PANEL = 'stkdkp.v1';
 export function mountDarkPoolPanel(ws) {
-  if (!ws || document.getElementById('stkdp')) return null;
+  if (!ws || document.getElementById('stkdkp')) return null;
   const host = document.querySelector('.stkchart-panel.stkw-host') || document.querySelector('.stkchart-panel');
   if (!host) return null;
   const isPhone = () => window.innerWidth <= 700;
@@ -292,15 +292,15 @@ export function mountDarkPoolPanel(ws) {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(LS_PANEL)) || {}; } catch (e) {}
   let open = false, minSize = SIZES.includes(saved.min) ? saved.min : '$1M';
   const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
-  const railBtn = el('button', 'stkw-railbtn stkdp-railbtn', IC); railBtn.type = 'button'; railBtn.title = 'Dark pool prints'; railBtn.setAttribute('aria-label', 'Dark pool prints'); railBtn.setAttribute('aria-pressed', 'false');
-  const phoneBtn = el('button', 'stkc-btn stkdp-phonebtn', IC.replace(/18/g, '16') + '<span class="stkc-btn-l">Dark pool</span>'); phoneBtn.type = 'button'; phoneBtn.setAttribute('aria-label', 'Dark pool prints');
-  const panel = el('aside', 'stkdp'); panel.id = 'stkdp'; panel.hidden = true; panel.setAttribute('aria-label', 'Dark pool prints');
-  panel.innerHTML = '<div class="stkdp-grab" aria-hidden="true"></div><div class="stkdp-hd"><span class="stkdp-title">Dark pool</span><span class="stkdp-sp"></span><button type="button" class="stkw-ib stkdp-x" aria-label="Close dark pool prints">' + IC_X + '</button></div>' +
-    '<div class="stkdp-seg" role="group" aria-label="Minimum print size">' + SIZES.map((s) => '<button type="button" data-m="' + s + '" aria-pressed="false">' + s + '+</button>').join('') + '</div>' +
-    '<div class="stkdp-stat" aria-live="polite"></div><div class="stkdp-cols" role="row"><span>Time</span><span>Price</span><span>Shares</span><span>Value</span></div><div class="stkdp-list" role="table" aria-label="Dark pool prints"></div>' +
-    '<p class="stkdp-foot">Large trades reported off the exchanges, one row per trade. Education only. Not financial advice.</p>';
+  const railBtn = el('button', 'stkw-railbtn stkdkp-railbtn', IC); railBtn.type = 'button'; railBtn.title = 'Dark pool prints'; railBtn.setAttribute('aria-label', 'Dark pool prints'); railBtn.setAttribute('aria-pressed', 'false');
+  const phoneBtn = el('button', 'stkc-btn stkdkp-phonebtn', IC.replace(/18/g, '16') + '<span class="stkc-btn-l">Dark pool</span>'); phoneBtn.type = 'button'; phoneBtn.setAttribute('aria-label', 'Dark pool prints');
+  const panel = el('aside', 'stkdkp'); panel.id = 'stkdkp'; panel.hidden = true; panel.setAttribute('aria-label', 'Dark pool prints');
+  panel.innerHTML = '<div class="stkdkp-grab" aria-hidden="true"></div><div class="stkdkp-hd"><span class="stkdkp-title">Dark pool</span><span class="stkdkp-sp"></span><button type="button" class="stkw-ib stkdkp-x" aria-label="Close dark pool prints">' + IC_X + '</button></div>' +
+    '<div class="stkdkp-seg" role="group" aria-label="Minimum print size">' + SIZES.map((s) => '<button type="button" data-m="' + s + '" aria-pressed="false">' + s + '+</button>').join('') + '</div>' +
+    '<div class="stkdkp-stat" aria-live="polite"></div><div class="stkdkp-cols" role="row"><span>Time</span><span>Price</span><span>Shares</span><span>Value</span></div><div class="stkdkp-list" role="table" aria-label="Dark pool prints"></div>' +
+    '<p class="stkdkp-foot">Large trades reported off the exchanges, one row per trade. Education only. Not financial advice.</p>';
   host.appendChild(panel);
-  const $ = (s) => panel.querySelector(s), list = $('.stkdp-list'), stat = $('.stkdp-stat'), cols = $('.stkdp-cols'), seg = $('.stkdp-seg');
+  const $ = (s) => panel.querySelector(s), list = $('.stkdkp-list'), stat = $('.stkdkp-stat'), cols = $('.stkdkp-cols'), seg = $('.stkdkp-seg');
   const barR = document.querySelector('#stkc-bar .stkc-bar-r');
   if (barR) { const nb = barR.querySelector('.stkin-phonebtn') || barR.querySelector('.stknw-phonebtn') || barR.querySelector('.stkw-phonebtn'); barR.insertBefore(phoneBtn, nb ? nb.nextSibling : barR.firstChild); }
   function placeRail() {
@@ -309,7 +309,7 @@ export function mountDarkPoolPanel(ws) {
     return true;
   }
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
-  const note = (text) => { list.textContent = ''; cols.hidden = true; const p = el('p', 'stkdp-note'); p.textContent = text; list.appendChild(p); };
+  const note = (text) => { list.textContent = ''; cols.hidden = true; const p = el('p', 'stkdkp-note'); p.textContent = text; list.appendChild(p); };
   function jump(x) {
     try {
       const chart = ws.active.chart, r = chart.getVisibleRange();
@@ -324,7 +324,7 @@ export function mountDarkPoolPanel(ws) {
   function render() {
     seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === minSize)));
     const raw = activeSym(), sym = tickerOf(raw);
-    $('.stkdp-title').textContent = 'Dark pool' + (sym ? ' · ' + sym : '');
+    $('.stkdkp-title').textContent = 'Dark pool' + (sym ? ' · ' + sym : '');
     stat.textContent = '';
     seg.hidden = !sym;
     if (!sym) return note(looksStock(raw) ? 'Dark pool prints are not covered for this symbol yet. Covered: ' + DP_SYMS.join(', ') + '.' : 'Dark pool prints are for US stocks and ETFs. Open SPY, QQQ, AAPL or another covered stock to see them.');
@@ -340,8 +340,8 @@ export function mountDarkPoolPanel(ws) {
     const frag = document.createDocumentFragment();
     for (const x of all.slice(0, 600)) {
       const dd = fmtDay(x.t);
-      if (dd !== lastDay) { lastDay = dd; const h = el('div', 'stkdp-day'); h.textContent = dd; frag.appendChild(h); }
-      const row = el('button', 'stkdp-row' + (x.big ? ' big' : '')); row.type = 'button'; row.setAttribute('role', 'row');
+      if (dd !== lastDay) { lastDay = dd; const h = el('div', 'stkdkp-day'); h.textContent = dd; frag.appendChild(h); }
+      const row = el('button', 'stkdkp-row' + (x.big ? ' big' : '')); row.type = 'button'; row.setAttribute('role', 'row');
       row.setAttribute('aria-label', fmtTime(x.t) + ', ' + usd(x.v) + ' at ' + x.p + ', ' + x.s + ' shares. Show on chart');
       const n = condNote(x.c);
       [fmtTime(x.t).replace(' ET', ''), x.p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), x.s.toLocaleString('en-US'), usd(x.v) + (n.off.length ? '*' : '')].forEach((v) => { const s = el('span'); s.textContent = v; row.appendChild(s); });
@@ -350,7 +350,7 @@ export function mountDarkPoolPanel(ws) {
       frag.appendChild(row);
     }
     list.appendChild(frag);
-    if (all.some((x) => condNote(x.c).off.length)) { const f = el('p', 'stkdp-key'); f.textContent = '* average-price, contingent or late-reported trade: its price may differ from the market price at that time. Times are New York time.'; list.appendChild(f); }
+    if (all.some((x) => condNote(x.c).off.length)) { const f = el('p', 'stkdkp-key'); f.textContent = '* average-price, contingent or late-reported trade: its price may differ from the market price at that time. Times are New York time.'; list.appendChild(f); }
   }
   function closeOthers() {
     if (host.classList.contains('stkw-open')) { const b = document.querySelector('.stkw .stkw-close'); if (b) b.click(); }
@@ -361,22 +361,22 @@ export function mountDarkPoolPanel(ws) {
     open = !!v;
     if (open) { closeOthers(); if (tip) { tip.hidden = true; pinned = false; } }
     panel.hidden = !open;
-    host.classList.toggle('stkdp-open', open);
-    document.documentElement.classList.toggle('stkdp-sheet', open && isPhone());
+    host.classList.toggle('stkdkp-open', open);
+    document.documentElement.classList.toggle('stkdkp-sheet', open && isPhone());
     railBtn.setAttribute('aria-pressed', String(open)); railBtn.classList.toggle('on', open); phoneBtn.classList.toggle('on', open);
     if (open) render();
     requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} });
   }
   railBtn.addEventListener('click', () => setOpen(!open));
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
-  $('.stkdp-x').addEventListener('click', () => setOpen(false));
+  $('.stkdkp-x').addEventListener('click', () => setOpen(false));
   seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); if (!b) return; minSize = b.dataset.m; try { localStorage.setItem(LS_PANEL, JSON.stringify({ min: minSize })); } catch (x) {} render(); });
   document.addEventListener('click', (e) => {
     if (!open || !e.target.closest) return;
-    if (e.target.closest('.stkw-railbtn:not(.stkdp-railbtn), .stkw-phonebtn, .stknw-phonebtn, .stkin-phonebtn')) setTimeout(() => { if (host.classList.contains('stkw-open') || host.classList.contains('stknw-open') || host.classList.contains('stkin-open')) setOpen(false); }, 0);
+    if (e.target.closest('.stkw-railbtn:not(.stkdkp-railbtn), .stkw-phonebtn, .stknw-phonebtn, .stkin-phonebtn')) setTimeout(() => { if (host.classList.contains('stkw-open') || host.classList.contains('stknw-open') || host.classList.contains('stkin-open')) setOpen(false); }, 0);
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone()) setOpen(false); });
-  window.addEventListener('resize', () => document.documentElement.classList.toggle('stkdp-sheet', open && isPhone()), { passive: true });
+  window.addEventListener('resize', () => document.documentElement.classList.toggle('stkdkp-sheet', open && isPhone()), { passive: true });
   onData((s) => { if (open && s === tickerOf(activeSym())) render(); });
   try { ws.on('state:changed', () => { if (open) render(); }); } catch (e) {}
   setInterval(() => { if (open && !document.hidden) { const s = tickerOf(activeSym()); if (s) load(s); } }, 60000);
@@ -400,44 +400,44 @@ const CSS = `
 .stk-dp-n{ margin-top:8px; font-size:12px; line-height:16px; color:rgba(255,255,255,.64); }
 :root[data-theme="light"] .stk-dp-tip, :root[data-theme="light"] .stk-dp-chip{ background:#fff; color:#1d1d1f; border-color:rgba(0,0,0,.12); }
 :root[data-theme="light"] .stk-dp-r span, :root[data-theme="light"] .stk-dp-n, :root[data-theme="light"] .stk-dp-chip{ color:#515154; }
-.stkchart-panel.stkw-host.stkdp-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stkw-w)); }
-.stkdp{ position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stkw-w, 340px); z-index:29; display:flex; flex-direction:column; min-width:0; background:var(--bg-0);
+.stkchart-panel.stkw-host.stkdkp-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stkw-w)); }
+.stkdkp{ position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stkw-w, 340px); z-index:29; display:flex; flex-direction:column; min-width:0; background:var(--bg-0);
   border-left:1px solid var(--line-soft); font:400 13px/18px -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif; color:var(--ink-0); }
-.stkdp[hidden]{ display:none; }
-.stkdp-grab{ display:none; }
-.stkdp-hd{ flex:none; display:flex; align-items:center; gap:8px; padding:8px 8px 8px 12px; border-bottom:1px solid var(--line-soft); }
-.stkdp-title{ font-weight:600; font-size:13px; }
-.stkdp-sp{ flex:1; }
-.stkdp-seg[hidden]{ display:none; }
-.stkdp-seg{ flex:none; display:flex; margin:8px 12px 4px; padding:2px; border-radius:8px; background:var(--bg-2); }
-.stkdp-seg button{ flex:1; min-width:0; padding:0 4px; white-space:nowrap; min-height:28px; border:0; border-radius:6px; background:none; color:var(--ink-2); font:500 12px/16px inherit; font-family:inherit; cursor:pointer; font-variant-numeric:tabular-nums; }
-.stkdp-seg button[aria-pressed="true"]{ background:var(--bg-0, #050506); color:var(--ink-0); box-shadow:0 0 0 1px var(--line-soft); }
-.stkdp-seg button:focus-visible, .stkdp-row:focus-visible{ outline:2px solid #03c988; outline-offset:2px; }
-.stkdp-stat{ flex:none; padding:4px 12px 8px; font-size:12px; line-height:16px; color:var(--ink-2); }
-.stkdp-cols, .stkdp-row{ display:grid; grid-template-columns:1.15fr 1fr 1fr .9fr; gap:4px; padding:0 12px; font-variant-numeric:tabular-nums; }
-.stkdp-cols{ flex:none; padding-bottom:4px; font-size:11px; line-height:13px; color:var(--ink-2); border-bottom:1px solid var(--line-soft); }
-.stkdp-cols[hidden]{ display:none; }
-.stkdp-cols span:nth-child(n+2), .stkdp-row span:nth-child(n+2){ text-align:right; }
-.stkdp-list{ flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
-.stkdp-day{ position:sticky; top:0; z-index:1; padding:8px 12px 4px; font-size:11px; line-height:13px; font-weight:600; color:var(--ink-2); background:var(--bg-0); }
-.stkdp-row{ width:100%; min-height:32px; align-items:center; border:0; border-bottom:1px solid var(--line-soft); background:none; color:var(--ink-0); font:400 12px/16px inherit; font-family:inherit; cursor:pointer; text-align:left; }
-.stkdp-row:hover{ background:var(--bg-2); }
-.stkdp-row.big span:last-child{ color:#03c988; font-weight:600; }
-:root[data-theme="light"] .stkdp-row.big span:last-child{ color:#047857; }
-.stkdp-note{ margin:0; padding:16px 12px; color:var(--ink-2); font-size:12px; line-height:16px; }
-.stkdp-key{ margin:0; padding:8px 12px; font-size:11px; line-height:13px; color:var(--ink-2); }
-.stkdp-foot{ flex:none; margin:0; padding:8px 12px; border-top:1px solid var(--line-soft); font-size:11px; line-height:13px; color:var(--ink-2); }
-.stkdp-phonebtn{ display:none; }
-.stkdp-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }
+.stkdkp[hidden]{ display:none; }
+.stkdkp-grab{ display:none; }
+.stkdkp-hd{ flex:none; display:flex; align-items:center; gap:8px; padding:8px 8px 8px 12px; border-bottom:1px solid var(--line-soft); }
+.stkdkp-title{ font-weight:600; font-size:13px; }
+.stkdkp-sp{ flex:1; }
+.stkdkp-seg[hidden]{ display:none; }
+.stkdkp-seg{ flex:none; display:flex; margin:8px 12px 4px; padding:2px; border-radius:8px; background:var(--bg-2); }
+.stkdkp-seg button{ flex:1; min-width:0; padding:0 4px; white-space:nowrap; min-height:28px; border:0; border-radius:6px; background:none; color:var(--ink-2); font:500 12px/16px inherit; font-family:inherit; cursor:pointer; font-variant-numeric:tabular-nums; }
+.stkdkp-seg button[aria-pressed="true"]{ background:var(--bg-0, #050506); color:var(--ink-0); box-shadow:0 0 0 1px var(--line-soft); }
+.stkdkp-seg button:focus-visible, .stkdkp-row:focus-visible{ outline:2px solid #03c988; outline-offset:2px; }
+.stkdkp-stat{ flex:none; padding:4px 12px 8px; font-size:12px; line-height:16px; color:var(--ink-2); }
+.stkdkp-cols, .stkdkp-row{ display:grid; grid-template-columns:1.15fr 1fr 1fr .9fr; gap:4px; padding:0 12px; font-variant-numeric:tabular-nums; }
+.stkdkp-cols{ flex:none; padding-bottom:4px; font-size:11px; line-height:13px; color:var(--ink-2); border-bottom:1px solid var(--line-soft); }
+.stkdkp-cols[hidden]{ display:none; }
+.stkdkp-cols span:nth-child(n+2), .stkdkp-row span:nth-child(n+2){ text-align:right; }
+.stkdkp-list{ flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
+.stkdkp-day{ position:sticky; top:0; z-index:1; padding:8px 12px 4px; font-size:11px; line-height:13px; font-weight:600; color:var(--ink-2); background:var(--bg-0); }
+.stkdkp-row{ width:100%; min-height:32px; align-items:center; border:0; border-bottom:1px solid var(--line-soft); background:none; color:var(--ink-0); font:400 12px/16px inherit; font-family:inherit; cursor:pointer; text-align:left; }
+.stkdkp-row:hover{ background:var(--bg-2); }
+.stkdkp-row.big span:last-child{ color:#03c988; font-weight:600; }
+:root[data-theme="light"] .stkdkp-row.big span:last-child{ color:#047857; }
+.stkdkp-note{ margin:0; padding:16px 12px; color:var(--ink-2); font-size:12px; line-height:16px; }
+.stkdkp-key{ margin:0; padding:8px 12px; font-size:11px; line-height:13px; color:var(--ink-2); }
+.stkdkp-foot{ flex:none; margin:0; padding:8px 12px; border-top:1px solid var(--line-soft); font-size:11px; line-height:13px; color:var(--ink-2); }
+.stkdkp-phonebtn{ display:none; }
+.stkdkp-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }
 @media (max-width:700px){
-  .stkchart-panel.stkw-host.stkdp-open #vela-chart{ right:0; }
-  .stkdp-phonebtn{ display:inline-flex; padding:0 8px; flex:none; }
-  .stkdp{ position:fixed; left:0; right:0; top:auto; bottom:var(--stkc-dock, 0px); width:auto; height:min(62vh, 520px); z-index:8000; border-left:0; border-top:1px solid var(--line-soft); border-radius:20px 20px 0 0; font-size:14px; box-shadow:0 -8px 24px rgba(0,0,0,.35); }
-  .stkdp-grab{ display:block; width:36px; height:4px; border-radius:2px; margin:8px auto 0; background:var(--line, rgba(255,255,255,.2)); }
-  .stkdp-x{ width:44px; height:44px; border-radius:50%; background:var(--bg-2); }
-  .stkdp-seg button{ min-height:36px; font-size:13px; }
-  .stkdp-row{ min-height:44px; font-size:13px; }
-  .stkdp-foot{ padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
+  .stkchart-panel.stkw-host.stkdkp-open #vela-chart{ right:0; }
+  .stkdkp-phonebtn{ display:inline-flex; padding:0 8px; flex:none; }
+  .stkdkp{ position:fixed; left:0; right:0; top:auto; bottom:var(--stkc-dock, 0px); width:auto; height:min(62vh, 520px); z-index:8000; border-left:0; border-top:1px solid var(--line-soft); border-radius:20px 20px 0 0; font-size:14px; box-shadow:0 -8px 24px rgba(0,0,0,.35); }
+  .stkdkp-grab{ display:block; width:36px; height:4px; border-radius:2px; margin:8px auto 0; background:var(--line, rgba(255,255,255,.2)); }
+  .stkdkp-x{ width:44px; height:44px; border-radius:50%; background:var(--bg-2); }
+  .stkdkp-seg button{ min-height:36px; font-size:13px; }
+  .stkdkp-row{ min-height:44px; font-size:13px; }
+  .stkdkp-foot{ padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
 }
 `;
 

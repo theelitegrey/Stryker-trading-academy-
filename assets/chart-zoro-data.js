@@ -12,8 +12,8 @@
 //   activity?u=SYM&kind=fresh|burst -> { u, t, items:[{ t, side:'C'|'P', k, x, vol, oi, add, prem }] }
 // Field names follow the day-1 fixture (tools/fixtures/zoro/*.json); zsum() below accepts the spec names and the short ones.
 // Wording: "updated X min ago" only. Never live / real-time / delayed. Education only. Not financial advice.
-import { rtHeadersReady } from './rt-access.js?v=912';
-import * as ProGate from './chart-pro-gate.js?v=912';
+import { rtHeadersReady } from './rt-access.js?v=913';
+import * as ProGate from './chart-pro-gate.js?v=913';
 
 const API = '/api/zo/';
 export const TIER_A = ['SPX', 'SPY', 'QQQ', 'IWM', 'GLD', 'USO'];
@@ -57,7 +57,7 @@ const OLD_HISTORY = ['SPX', 'SPY', 'QQQ', 'GLD'];
 const cache = new Map();           // key -> { data, at, p, err }
 const watchers = new Set();        // natives: { wants():[{kind,u,x}], refresh() }
 function ckey(kind, u, x) { return kind + ':' + u + ':' + (x || ''); }
-function ttl(kind, u) { return (kind === 'summary' || kind === 'activity' || kind === 'iv') ? (TIER_A.includes(u) ? 110000 : 290000) : 600000; }
+function ttl(kind, u) { return (kind === 'summary' || kind === 'activity' || kind === 'iv' || kind === 'profile') ? (TIER_A.includes(u) ? 110000 : 290000) : 600000; }
 export function zoCached(kind, u, x) { const e = cache.get(ckey(kind, u, x)); return e ? e.data : null; }
 export function zoFetch(kind, u, x, force) {
   // Replay: only record-type data may load ('iv' = the summary's IV series, 'activity' = dated items); callers drop everything after the replay clock.
@@ -65,7 +65,7 @@ export function zoFetch(kind, u, x, force) {
   const k = ckey(kind, u, x), e = cache.get(k) || {};
   if (e.p) return e.p;
   if (!force && e.data && Date.now() - e.at < ttl(kind, u)) return Promise.resolve(e.data);
-  const qs = new URLSearchParams(Object.assign({ u }, kind === 'summary' && x === 'close' ? { basis: 'close' } : {}, kind === 'activity' ? { kind: x || 'fresh' } : {}));
+  const qs = new URLSearchParams(Object.assign({ u }, kind === 'summary' && x === 'close' ? { basis: 'close' } : {}, kind === 'activity' ? { kind: x || 'fresh' } : {}, kind === 'profile' ? { x: x || 'all' } : {}));
   const p = ProGate.tier().then(() => (ProGate.isFree() ? Promise.reject(new Error('zoro-pro')) : rtHeadersReady()))
     .then((hd) => fetch(API + (kind === 'iv' ? 'summary' : kind) + '?' + qs, { headers: Object.assign({ accept: 'application/json' }, hd) }))
     .then((r) => r.json().then((j) => (r.ok ? j : { error: (j && j.error) || ('HTTP ' + r.status) })))

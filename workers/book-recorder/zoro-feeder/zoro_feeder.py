@@ -194,11 +194,57 @@ def bs_greeks(S, K, T, sigma):
     return gamma, vanna, charm
 
 
+def ncdf(x):
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def bs_delta(cp, S, K, T, sigma):
+    """Black-Scholes delta (q = 0): call N(d1), put N(d1) - 1. 0 for bad inputs."""
+    if S <= 0 or K <= 0 or T <= 0 or sigma <= 0:
+        return 0.0
+    d1 = (math.log(S / K) + (R - Q + 0.5 * sigma * sigma) * T) / (sigma * math.sqrt(T))
+    return ncdf(d1) - (0.0 if cp == 'C' else 1.0)
+
+
+def bs_price(cp, S, K, T, sigma):
+    v = sigma * math.sqrt(T)
+    d1 = (math.log(S / K) + (R - Q + 0.5 * sigma * sigma) * T) / v
+    d2 = d1 - v
+    df = math.exp(-R * T)
+    return S * ncdf(d1) - K * df * ncdf(d2) if cp == 'C' else K * df * ncdf(-d2) - S * ncdf(-d1)
+
+
+def implied_vol(cp, S, K, T, price, lo=0.01, hi=5.0):
+    """IV from an option price by bisection (price is monotonic in vol). 0.0 when the price is outside the
+    no-arbitrage range for [lo, hi] (e.g. a mid below intrinsic), so a bad quote never becomes an IV."""
+    if S <= 0 or K <= 0 or T <= 0 or not price > 0:
+        return 0.0
+    if not bs_price(cp, S, K, T, lo) <= price <= bs_price(cp, S, K, T, hi):
+        return 0.0
+    for _ in range(60):
+        m = 0.5 * (lo + hi)
+        if bs_price(cp, S, K, T, m) < price:
+            lo = m
+        else:
+            hi = m
+    return 0.5 * (lo + hi)
+
+
 def enrich(spot, cs, now_epoch):
+    """Our own Black-Scholes greeks per contract. Gamma uses Cboe's IV only (unchanged, = the GEX+ engine).
+    Delta / vanna / charm use Cboe's IV, or when it is 0 (Cboe leaves it blank on most in-the-money strikes) the IV solved
+    from the two-sided mid; with neither, delta falls back to Cboe's delta and vanna / charm are 0."""
     for c in cs:
         c['T'] = gx.years_to_close(c['x'], now_epoch)
         c['strike'], c['exp'] = c['k'], c['x']
         g, va, ch = bs_greeks(spot, c['k'], c['T'], c['iv']) if c['iv'] > 0 else (0.0, 0.0, 0.0)
+        ivx = c['iv']
+        if not ivx > 0 and c.get('bid', 0) > 0 and c.get('ask', 0) >= c['bid']:
+            ivx = implied_vol(c['cp'], spot, c['k'], c['T'], (c['bid'] + c['ask']) / 2)
+            if ivx > 0:
+                _, va, ch = bs_greeks(spot, c['k'], c['T'], ivx)
+        c['ivx'] = ivx if ivx > 0 else 0.0
+        c['bsd'] = bs_delta(c['cp'], spot, c['k'], c['T'], ivx) if ivx > 0 else c.get('delta', 0.0)
         c['gamma'], c['vanna'], c['charm'] = g, va, ch
     return cs
 
@@ -252,21 +298,38 @@ def max_pain(rows, spot):
 
 
 def profile_rows(spot, cs):
-    """Per strike within +-6 %: [k, gex $M, dex $M, vanna $M per vol point, charm $M per day, call vol, put vol, call OI, put OI]."""
+    """Per strike within +-6 %: [k, gex $M, dex $M, vanna $M per vol point, charm $M per day, call vol, put vol, call OI, put OI,
+    gexv $M]. Sign convention as GEX: calls +, puts - (DEX carries it in the delta itself). gexv = GEX from today's volume
+    (gamma x volume instead of x open interest)."""
     acc = {}
     for c in cs:
         if abs(c['k'] - spot) / spot > PROFILE_BAND:
             continue
-        a = acc.setdefault(c['k'], [0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0])
+        a = acc.setdefault(c['k'], [0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0.0])
         sign = 1 if c['cp'] == 'C' else -1
         oi100 = c['oi'] * 100
         a[0] += sign * c['gamma'] * oi100 * spot * spot * 0.01
-        a[1] += c['delta'] * oi100 * spot
+        a[1] += c.get('bsd', c['delta']) * oi100 * spot
         a[2] += sign * c['vanna'] * oi100 * spot * 0.01
         a[3] += sign * c['charm'] * oi100 * spot
         a[4 if c['cp'] == 'C' else 5] += c['vol']
         a[6 if c['cp'] == 'C' else 7] += c['oi']
-    return [[k_out(k)] + [rnd(v / 1e6, 3) for v in a[:4]] + a[4:] for k, a in sorted(acc.items())]
+        a[8] += sign * c['gamma'] * c['vol'] * 100 * spot * spot * 0.01
+    return [[k_out(k)] + [rnd(v / 1e6, 3) for v in a[:4]] + a[4:8] + [rnd(a[8] / 1e6, 3)] for k, a in sorted(acc.items())]
+
+
+def exposure_totals(spot, cs):
+    """Totals ($M) over every contract of an expiry set (no strike band): the same five sums as profile_rows."""
+    t = [0.0] * 5
+    for c in cs:
+        sign = 1 if c['cp'] == 'C' else -1
+        oi100 = c['oi'] * 100
+        t[0] += sign * c['gamma'] * oi100 * spot * spot * 0.01
+        t[1] += c.get('bsd', c['delta']) * oi100 * spot
+        t[2] += sign * c['vanna'] * oi100 * spot * 0.01
+        t[3] += sign * c['charm'] * oi100 * spot
+        t[4] += sign * c['gamma'] * c['vol'] * 100 * spot * spot * 0.01
+    return dict(zip(('gex', 'dex', 'vanna', 'charm', 'gexv'), (rnd(v / 1e6, 3) for v in t)))
 
 
 def mid(c):
@@ -413,13 +476,14 @@ def analyse(raw, u, now_epoch, st=None, fut=None, surfaces=True):
     enrich(spot, cs, t)
     sets = expiry_sets(cs, t)
     term_cs = [c for c in cs if c['x'] in set(sets.get('all', []))]
-    levels, profile = {}, {}
+    levels, profile, totals = {}, {}, {}
     for md in MODES:
         sub = [c for c in cs if c['x'] in set(sets.get(md, []))]
         levels[md] = levels_for(spot, sub)
         if levels[md]:
             levels[md]['x'] = sets[md]
         profile[md] = profile_rows(spot, sub)
+        totals[md] = exposure_totals(spot, sub)
     # vol: opt_feeder.analyse wants {expiry: [{'k','cp','root','bid','ask','iv','delta'}]}
     chains = {}
     for c in cs:
@@ -526,7 +590,7 @@ def analyse(raw, u, now_epoch, st=None, fut=None, surfaces=True):
     summary['snap'] = snap
     out = {'u': u, 't': int(t), 'built': int(now_epoch), 'tier': tier, 'summary': summary,
            'profile': {md: {'v': 1, 'u': u, 'x': md, 'built': int(now_epoch), 't': int(t), 'spot': rnd(spot, 2), 'expiry': sets.get(md, []),
-                            'cols': PROFILE_COLS, 'rows': profile[md],
+                            'cols': PROFILE_COLS, 'rows': profile[md], 'tot': totals[md],
                             'cw': (levels[md] or {}).get('cw'), 'pw': (levels[md] or {}).get('pw'), 'zg': (levels[md] or {}).get('zg'),
                             'k': [r[0] for r in profile[md]], 'gex': [r[1] for r in profile[md]], 'vol': [r[5] + r[6] for r in profile[md]],
                             'oi_chg': oi_chg if md == 'all' else None} for md in MODES},
@@ -536,7 +600,7 @@ def analyse(raw, u, now_epoch, st=None, fut=None, surfaces=True):
     return out
 
 
-PROFILE_COLS = ['k', 'gex', 'dex', 'vanna', 'charm', 'cvol', 'pvol', 'coi', 'poi']
+PROFILE_COLS = ['k', 'gex', 'dex', 'vanna', 'charm', 'cvol', 'pvol', 'coi', 'poi', 'gexv']
 
 
 def act_row(r, t):

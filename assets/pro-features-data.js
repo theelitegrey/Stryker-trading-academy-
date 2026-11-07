@@ -87,6 +87,8 @@
       desc: 'Gamma exposure by strike as a heatmap on the chart.' },
     { group: 'gex', name: 'Expected Move', feed: '—', icon: 'expiry', ids: ['stk_em', 'stk_zrange', 'stk_zzone', 'stk_ivrank'],
       desc: 'The range the options market implies, from the same options chain.' },
+    { group: 'gex', name: 'Delta, Vanna and Charm Exposure', feed: '—', icon: 'gex', ids: ['stk_dex', 'stk_vex', 'stk_cex'],
+      desc: 'Dealer delta, vanna and charm exposure by strike on the price axis, with the 3 largest strikes as lines. All expiries, 0DTE or the next expiry.' },
     { group: 'gex', name: 'Options Flow Marks', feed: '—', icon: 'bubble', ids: ['stk_optflow', 'stk_zvol'],
       desc: 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium. Per-bar totals from the options data feed, not single trades.' },
     { group: 'gex', name: 'Every expiry', feed: '—', icon: 'expiry', ids: ['gex_expiry'],

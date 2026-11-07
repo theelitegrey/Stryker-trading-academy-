@@ -1402,6 +1402,33 @@
     "grp": "TradeZoro"
    },
    {
+    "key": "b:stk_dex",
+    "name": "Delta Exposure",
+    "author": "TradeZoro",
+    "desc": "Dealer delta exposure by strike on the price axis, with the 3 largest strikes as lines. All expiries, 0DTE or next expiry",
+    "third": false,
+    "beta": false,
+    "grp": "TradeZoro"
+   },
+   {
+    "key": "b:stk_vex",
+    "name": "Vanna Exposure",
+    "author": "TradeZoro",
+    "desc": "Dealer vanna exposure by strike on the price axis, with the 3 largest strikes as lines. All expiries, 0DTE or next expiry",
+    "third": false,
+    "beta": false,
+    "grp": "TradeZoro"
+   },
+   {
+    "key": "b:stk_cex",
+    "name": "Charm Exposure",
+    "author": "TradeZoro",
+    "desc": "Dealer charm exposure by strike on the price axis, with the 3 largest strikes as lines. All expiries, 0DTE or next expiry",
+    "third": false,
+    "beta": false,
+    "grp": "TradeZoro"
+   },
+   {
     "key": "b:stk_offex",
     "name": "Off-exchange Volume (FINRA data)",
     "author": "TradeZoro",
@@ -11728,6 +11755,18 @@
       "group": "GEX levels"
      },
      {
+      "key": "profileExp",
+      "type": "string",
+      "title": "Gamma profile expiries",
+      "tooltip": "Same as walls: the 1-30 day expiries the main walls use. 0DTE: today’s first expiry only (the 0DTE strike ladder).",
+      "def": "Same as walls",
+      "options": [
+       "Same as walls",
+       "0DTE"
+      ],
+      "group": "GEX levels"
+     },
+     {
       "key": "showIv",
       "type": "bool",
       "title": "IV ±68%",
@@ -13355,6 +13394,198 @@
       "type": "color",
       "title": "$10M+ colour",
       "def": "#03c988",
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Delta Exposure",
+   "category": "Built-in",
+   "native": true,
+   "nativeType": "stk_dex",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Delta Exposure",
+    "short": "Delta Exposure",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "expiry",
+      "type": "string",
+      "title": "Expiry",
+      "tooltip": "All expiries: every expiry up to 31 days. 0DTE: today’s expiry only. Next expiry: the first expiry after today.",
+      "def": "All expiries",
+      "options": [
+       "All expiries",
+       "0DTE",
+       "Next expiry"
+      ]
+     },
+     {
+      "key": "bars",
+      "type": "bool",
+      "title": "Bars by strike",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "lines",
+      "type": "bool",
+      "title": "Top 3 strikes as lines",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "posColor",
+      "type": "color",
+      "title": "Positive colour",
+      "def": "#03c988",
+      "options": []
+     },
+     {
+      "key": "negColor",
+      "type": "color",
+      "title": "Negative colour",
+      "def": "#ee4276",
+      "options": []
+     },
+     {
+      "key": "showStatus",
+      "type": "bool",
+      "title": "Status",
+      "def": true,
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Vanna Exposure",
+   "category": "Built-in",
+   "native": true,
+   "nativeType": "stk_vex",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Vanna Exposure",
+    "short": "Vanna Exposure",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "expiry",
+      "type": "string",
+      "title": "Expiry",
+      "tooltip": "All expiries: every expiry up to 31 days. 0DTE: today’s expiry only. Next expiry: the first expiry after today.",
+      "def": "All expiries",
+      "options": [
+       "All expiries",
+       "0DTE",
+       "Next expiry"
+      ]
+     },
+     {
+      "key": "bars",
+      "type": "bool",
+      "title": "Bars by strike",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "lines",
+      "type": "bool",
+      "title": "Top 3 strikes as lines",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "posColor",
+      "type": "color",
+      "title": "Positive colour",
+      "def": "#03c988",
+      "options": []
+     },
+     {
+      "key": "negColor",
+      "type": "color",
+      "title": "Negative colour",
+      "def": "#ee4276",
+      "options": []
+     },
+     {
+      "key": "showStatus",
+      "type": "bool",
+      "title": "Status",
+      "def": true,
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Charm Exposure",
+   "category": "Built-in",
+   "native": true,
+   "nativeType": "stk_cex",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Charm Exposure",
+    "short": "Charm Exposure",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "expiry",
+      "type": "string",
+      "title": "Expiry",
+      "tooltip": "All expiries: every expiry up to 31 days. 0DTE: today’s expiry only. Next expiry: the first expiry after today.",
+      "def": "All expiries",
+      "options": [
+       "All expiries",
+       "0DTE",
+       "Next expiry"
+      ]
+     },
+     {
+      "key": "bars",
+      "type": "bool",
+      "title": "Bars by strike",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "lines",
+      "type": "bool",
+      "title": "Top 3 strikes as lines",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "posColor",
+      "type": "color",
+      "title": "Positive colour",
+      "def": "#03c988",
+      "options": []
+     },
+     {
+      "key": "negColor",
+      "type": "color",
+      "title": "Negative colour",
+      "def": "#ee4276",
+      "options": []
+     },
+     {
+      "key": "showStatus",
+      "type": "bool",
+      "title": "Status",
+      "def": true,
       "options": []
      }
     ]

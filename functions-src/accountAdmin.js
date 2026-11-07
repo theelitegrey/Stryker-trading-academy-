@@ -20,6 +20,7 @@
 const functions = require('firebase-functions/v1');
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
+const pushRules = require('./pushRules');
 
 if (!admin.apps.length) admin.initializeApp();
 
@@ -258,61 +259,57 @@ exports.onNotificationCreated = onDocumentCreated({
     if (!snap) return null;
     const n = snap.data() || {};
     if (!n.recipientUid) return null;
+    // Delivery is written back on the notification doc so a missed phone alert can be traced:
+    // pushResult = { status: sent | failed | no-device | rate-limited | refused, sent, tokens, pruned, at }.
+    const result = (r) => snap.ref.update({ pushResult: Object.assign({ at: admin.firestore.FieldValue.serverTimestamp() }, r) })
+      .catch((e) => console.warn('pushResult write failed', e && e.code));
+
+    // "Send test notification" (Settings / Alerts): the client writes a type 'test' doc to itself. Anyone can
+    // raise a notification for anyone (likes, replies), so a test must be self-addressed and is capped at 3/hour.
+    if (n.type === 'test') {
+      if (!n.senderUid || n.senderUid !== n.recipientUid) { await result({ status: 'refused', sent: 0, tokens: 0 }); return null; }
+      const ref = db.collection('pushTestLimits').doc(n.recipientUid);
+      const ok = await db.runTransaction(async (tx) => {
+        const cur = await tx.get(ref);
+        const r = pushRules.testAllowed(cur.exists ? cur.data() : null, Date.now());
+        if (r.ok) tx.set(ref, r.state);
+        return r.ok;
+      });
+      if (!ok) { await result({ status: 'rate-limited', sent: 0, tokens: 0 }); return null; }
+    }
 
     const tokensSnap = await db.collection('pushTokens')
       .where('uid', '==', n.recipientUid).get();
-    if (tokensSnap.empty) return null;   // recipient has no device registered
-
     const tokens = tokensSnap.docs.map((d) => d.id);
+    if (!tokens.length) {   // recipient has no device registered: the bell is all they get
+      console.log('push: no device for ' + n.recipientUid.slice(0, 6) + ' (' + (n.type || '?') + ')');
+      await result({ status: 'no-device', sent: 0, tokens: 0 });
+      return null;
+    }
 
     // DATA-ONLY, no `notification` block. With a notification payload the
     // browser renders its own popup AND fires onBackgroundMessage, so the user
     // sees the same thing twice. Data-only leaves the service worker solely in
-    // charge of what is shown.
-    const message = {
-      data: {
-        title: 'TradeZoro',
-        body: String(n.message || 'You have a new notification').slice(0, 240),
-        link: '/' + String(n.link || 'dashboard-user.html'),
-        type: String(n.type || 'stryker')
-      },
-      webpush: {
-        headers: { Urgency: 'high', TTL: '86400' },
-        fcmOptions: { link: 'https://tradezoro.com/' + String(n.link || 'dashboard-user.html') }
-      }
-    };
+    // charge of what is shown (firebase-messaging-sw.js). Urgency high is what
+    // gets a web push through Android Doze; see functions-src/pushRules.js.
+    const message = pushRules.buildMessage(n, event.params.notificationId);
 
     const results = await Promise.allSettled(
       tokens.map((t) => admin.messaging().send(Object.assign({ token: t }, message)))
     );
 
-    // Tokens die routinely — cleared site data, uninstalled PWA, a browser
-    // rotating its registration. Left in place they are retried forever and
-    // every send slowly gets more expensive, so prune the ones FCM rejects as
-    // permanently invalid. Transient failures are NOT pruned; a network blip
-    // must not cost someone their registration.
-    const dead = [];
-    results.forEach((r, i) => {
-      if (r.status !== 'rejected') return;
-      const code = r.reason && r.reason.errorInfo && r.reason.errorInfo.code;
-      if (code === 'messaging/registration-token-not-registered' ||
-          code === 'messaging/invalid-registration-token' ||
-          code === 'messaging/invalid-argument') {
-        dead.push(tokens[i]);
-      } else {
-        console.warn('push send failed (kept)', code || r.reason);
-      }
-    });
-
-    if (dead.length) {
+    // Tokens die routinely (cleared site data, uninstalled PWA, a rotated
+    // registration). Only the codes that mean "this token is dead" prune it;
+    // anything else (invalid-argument = our payload, quota, network) is kept.
+    const s = pushRules.summarize(tokens, results);
+    if (s.pruned.length) {
       const batch = db.batch();
-      dead.forEach((t) => batch.delete(db.collection('pushTokens').doc(t)));
+      s.pruned.forEach((t) => batch.delete(db.collection('pushTokens').doc(t)));
       await batch.commit();
-      console.log('pruned ' + dead.length + ' dead push token(s)');
     }
-
-    const sent = results.filter((r) => r.status === 'fulfilled').length;
-    console.log('push: ' + sent + '/' + tokens.length + ' delivered for ' + n.recipientUid);
+    if (s.failed.length) console.warn('push send failed (kept): ' + s.failed.join(','));
+    console.log('push: ' + s.sent + '/' + tokens.length + ' sent, ' + s.pruned.length + ' pruned for ' +
+      n.recipientUid.slice(0, 6) + ' (' + (n.type || '?') + ') [' + s.log.join(' ') + ']');
+    await result({ status: s.status, sent: s.sent, tokens: tokens.length, pruned: s.pruned.length });
     return null;
   });
-

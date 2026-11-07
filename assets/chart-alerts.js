@@ -49,8 +49,8 @@
 //     open: no phone push for them.
 // Education only. Not financial advice. Alerts are a convenience, not a trading signal.
 
-import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=909';
-import * as DPA from './chart-dp-alerts.js?v=909';   // dark pool print alerts (server-side, students/{uid}/dpAlerts)
+import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=910';
+import * as DPA from './chart-dp-alerts.js?v=910';   // dark pool print alerts (server-side, students/{uid}/dpAlerts)
 const LAYER = 'stk_alerts';
 const PREFS_KEY = 'stryker_chart_alert_prefs';
 const MAX_ALERTS = 1000;
@@ -149,6 +149,15 @@ function savePrefs(){ try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs
 // ---------------------------------------------------------------------------------------
 const fb = () => window.firebase;
 function user(){ try { return fb() && fb().auth().currentUser; } catch (e) { return null; } }
+// Phone-notification prompt / status (assets/push.js, window.StrykerPush). Owner bug 2026-11-07: alerts reached
+// only the bell because the device had never been registered for push, so every alert form now offers it.
+const SP = () => window.StrykerPush;
+function mountPush(el, mode){ try { if (el && SP() && user()) SP().mountPrompt(el, mode); else if (el) el.hidden = true; } catch (e) {} }
+// System notification from the page: through the service worker (Android Chrome throws on new Notification()).
+function sysNotify(title, body, tag){
+  try { if (SP()) { SP().notify(title, body, tag); return; } } catch (e) {}
+  try { if (window.Notification && Notification.permission === 'granted') new Notification(title, { body, tag }); } catch (e) {}
+}
 function clean(a){
   return {
     symbol: String(a.symbol || '').slice(0, 40),
@@ -341,7 +350,7 @@ function fire(a, p){
   const text = a.message || describe(a);
   showToast('Alert: ' + text, (a.src ? 'Value ' : 'Price ') + p + ' · ' + new Date().toLocaleTimeString());
   playAlertSound(a.src ? 'indicator' : 'price');
-  try { if (window.Notification && Notification.permission === 'granted') new Notification('TradeZoro chart alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
+  sysNotify('TradeZoro chart alert', text, 'stk-alert-' + a.id);
   try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, price: p } })); } catch (e) {}
   if (a.freq === 'once') removeFired(a);
 }
@@ -455,7 +464,7 @@ function fireCond(a, msg){
   window.__stkIndAlertFires++;
   if (a.popup) {
     showToast('Alert: ' + a.src.title + (a.src.any ? '' : ' \u2192 ' + a.src.cond), text + ' \u00b7 ' + a.symbol + ' \u00b7 ' + new Date().toLocaleTimeString());
-    try { if (window.Notification && Notification.permission === 'granted') new Notification('TradeZoro indicator alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
+    sysNotify('TradeZoro indicator alert', text, 'stk-alert-' + a.id);
   }
   if (a.sound) { let ev = 'indicator'; try { ev = window.StrykerChartSounds.classify(text); } catch (e) {} playAlertSound(ev); }
   try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, indicator: a.src.title, condition: a.src.any ? 'alert()' : a.src.cond, message: text } })); } catch (e) {}
@@ -591,6 +600,7 @@ function fmt(n){ return Number.isFinite(n) ? String(+n.toFixed(6)) : ''; }
 export function openAlerts(prefill){
   if (!panel) build();
   panel.hidden = false;
+  mountPush(panel.querySelector('.stk-al-pstat'), 'status');
   if (prefill) openForm(prefill);
   renderList();
 }
@@ -650,6 +660,7 @@ function zOpen(a){
   f.zl.value = p.level || 'flip_line'; f.zr.value = p.range || '0'; f.zd.value = p.dir || 'above'; f.zv.value = p.value != null ? p.value : '';
   f.zn.value = p.min_volume || p.min_added || ''; f.zf.value = a ? a.freq : 'once'; f.zm.value = a ? a.message : '';
   zSync(f);
+  mountPush(f.querySelector('.stk-al-push'), 'prompt');
   f.querySelector('.stk-al-save').textContent = a ? 'Save' : 'Create';
   try { f.zt.focus(); } catch (e) {}
 }
@@ -676,7 +687,6 @@ function zWire(){
         if (zAlerts.length >= MAX_ZALERTS) { toastFn('You have ' + MAX_ZALERTS + ' options alerts, the most we keep. Delete one first.'); return; }
         await c.doc().set(Object.assign({}, a, { createdAt: ts, updatedAt: ts }));
       }
-      try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e2) {}
       f.hidden = true; zEditing = null; await zReload();
     } catch (err) { console.warn(err); toastFn('Could not save the alert. Check your connection and try again.'); }
   };
@@ -711,6 +721,7 @@ function build(){
       <label>Trigger<select name="freq"></select></label>
       <label class="stk-al-xw" hidden>Expiration<select name="expires"><option value="0">Open-ended</option><option value="3600000">In 1 hour</option><option value="86400000">In 1 day</option><option value="604800000">In 1 week</option><option value="2592000000">In 30 days</option></select></label>
       <div class="stk-al-wide stk-al-nw" hidden><span>Notify</span><label class="stk-al-chk"><input type="checkbox" name="popup" checked> Popup</label><label class="stk-al-chk"><input type="checkbox" name="sound" checked> Sound</label><em>Phone push: price alerts only</em></div>
+      <div class="stk-al-wide stk-al-push" hidden></div>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-cancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
     <form class="stk-al-form stk-al-zform" hidden>
@@ -724,10 +735,12 @@ function build(){
       <label>Trigger<select name="zf"><option value="once">Only once</option><option value="every">Every time</option></select></label>
       <label class="stk-al-wide">Message<input name="zm" maxlength="140" placeholder="Optional"></label>
       <p class="stk-al-wide stk-al-znote"></p>
+      <div class="stk-al-wide stk-al-push" hidden></div>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-zcancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
     <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-znew">+ Options alert</button><button type="button" class="stk-al-sounds" aria-label="Alert sounds" title="Alert sounds"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Sounds</span></button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
     <div class="stk-al-confirm" hidden role="alertdialog" aria-modal="true" aria-labelledby="stk-al-ctl"><div class="stk-al-csheet"><p id="stk-al-ctl"></p><div class="stk-al-cbtn"><button type="button" class="stk-al-ccancel">Cancel</button><button type="button" class="stk-al-cok">Delete all</button></div></div></div>
+    <div class="stk-al-pstat" hidden></div>
     <div class="stk-al-list"></div>
   </div>`;
   document.body.appendChild(panel);
@@ -778,19 +791,13 @@ function build(){
         if (old) { await storeOf(old).remove(old.id); alerts = alerts.filter((x) => x !== old); }
         const id = await storeOf(a).add(a); alerts.push(Object.assign({ id }, a));
       }
-      try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e2) {}
-      try {
-        if (!a.src && backend && backend.kind === 'cloud' && serverCovers(a.symbol) && !sessionStorage.getItem('stk_al_pushhint') && !(window.Notification && Notification.permission === 'granted')) {
-          sessionStorage.setItem('stk_al_pushhint', '1');
-          toastFn('To get this on your phone, turn on push notifications in Settings.');
-        }
-      } catch (e3) {}
       f.hidden = true; editing = null; pushLines(); renderList();
     } catch (err) { console.warn(err); toastFn('Could not save the alert. Check your connection and try again.'); }
   };
   document.addEventListener('keydown', (e) => { if (e.key !== 'Escape' || !panel || panel.hidden) return; const cf = panel.querySelector('.stk-al-confirm'), pp = panel.querySelector('.stk-al-pop'); if (cf && !cf.hidden) { cf.hidden = true; return; } if (pp && !pp.hidden) { pp.hidden = true; panel.querySelector('.stk-al-info').setAttribute('aria-expanded', 'false'); return; } closePanel(); });
   const f = panel.querySelector('.stk-al-form');
-  f.src.onchange = () => syncSrc(f);
+  f.src.onchange = () => { syncSrc(f); syncPush(f); };
+  f.symbol.addEventListener('change', () => syncPush(f));
   f.vs.onchange = () => syncSrc(f);
   f.message.oninput = () => { f.dataset.prefill = ''; };
 }
@@ -850,6 +857,15 @@ function setFreqs(f, cond, val){
   }
   if (val && list.some((x) => x[0] === val)) f.freq.value = val;
 }
+// The price-alert form offers phone notifications only when the server will send one: a signed-in member's
+// price alert on a futures / Binance / Coinbase symbol (other alerts are checked in this browser only).
+function syncPush(f){
+  const el = f.querySelector('.stk-al-push'); if (!el) return;
+  const srv = !f.src.value && serverCovers(f.symbol.value) && backend && backend.kind === 'cloud';
+  if (!srv) { el.hidden = true; el.dataset.on = ''; return; }
+  if (el.dataset.on === '1' && !el.hidden) return;
+  el.dataset.on = '1'; mountPush(el, 'prompt');
+}
 function syncSrc(f, a){
   const so = f.src.value ? srcOpts[Number(f.src.value)] : null;
   const cond = !!(so && so.kind === 'cond');
@@ -881,6 +897,7 @@ function openForm(a){
   fillSrc(f, a);
   if (a.src && a.src.vs === 'close') f.price.value = '';
   editing = a.id || null;
+  syncPush(f);
   f.querySelector('.stk-al-save').textContent = editing ? 'Save' : 'Create';
   try { (f.price.required ? f.price : f.src).focus(); } catch (e) {}
 }
@@ -1099,6 +1116,9 @@ const CSS = `
 .stk-al-znote{ margin:0; font-size:12px; opacity:.7; }
 .stk-al-znew{ background:rgba(3,201,136,.08); }
 .stk-al-fbtn{ grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; }
+.stk-al-push[hidden],.stk-al-pstat[hidden]{ display:none !important; }
+.stk-al-pstat{ margin-bottom:12px; }
+#stk-al:has(.stk-al-form:not([hidden]) .stk-al-push:not([hidden])) .stk-al-pstat{ display:none; }   /* one Turn on at a time: the form's prompt wins */
 .stk-al-box button,.stk-snd-box button,.stk-snd-ui button{ border-radius:999px; padding:7px 13px; border:1px solid rgba(3,201,136,.28); background:rgba(3,201,136,.08); color:inherit; cursor:pointer; font:inherit; font-size:13px; transition:background .16s ease,border-color .16s ease,transform .16s ease; }
 .stk-al-box button:hover,.stk-snd-box button:hover,.stk-snd-ui button:hover{ background:rgba(3,201,136,.15); border-color:rgba(3,201,136,.55); transform:translateY(-1px); }
 .stk-al-box .stk-al-save,.stk-al-box .stk-al-new,.stk-snd-pill{ background:#03c988; border-color:#03c988; color:#07110d; font-weight:700; }

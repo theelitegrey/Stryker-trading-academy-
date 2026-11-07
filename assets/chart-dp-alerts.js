@@ -8,7 +8,7 @@
 // One doc per symbol, id 'ind-<SYM>' (shortcut: two Dark Pool Prints on the same symbol share it, last edit wins).
 // Wording: "Dark pool print" alerts, never live / real-time; no vendor names. Education only. Not financial advice.
 // Depends on: firebase compat (auth + firestore), assets/chart-darkpool.js (DP_SYMS, SIZES, usd), toast.js (showToast).
-import { DP_SYMS, SIZES, usd, sizeUsd } from './chart-darkpool.js?v=909';
+import { DP_SYMS, SIZES, usd, sizeUsd } from './chart-darkpool.js?v=910';
 
 export const MAX_DP_ALERTS = 20;
 // Truth: dp-feeder.timer runs every 2 hours on weekdays. One line to change if the feeder schedule changes (workers/alert-engine/dp_alerts.py UPDATE_NOTE too).
@@ -206,6 +206,11 @@ export function installDialogNote(ws) {
       if (l === 'signin') { const a = document.createElement('a'); a.href = 'login.html?next=' + encodeURIComponent('/charts.html'); a.textContent = 'Sign in to get alerts'; p.appendChild(a); } else p.textContent = l;
       box.appendChild(p);
     }
+    // phone notification prompt (assets/push.js; Owner bug 2026-11-07): hidden when this device already gets them
+    if (user() && inst.inputs.alertOn && window.StrykerPush) {
+      const pp = document.createElement('div'); pp.className = 'stkdpa-push'; box.appendChild(pp);
+      try { window.StrykerPush.mountPrompt(pp, 'prompt'); } catch (e) { pp.hidden = true; }
+    }
   };
   const go = () => { if (!timer && document.querySelector('.vela-ind-dialog')) timer = setInterval(paint, 400); paint(); };
   new MutationObserver(go).observe(document.body, { childList: true, subtree: true });
@@ -213,6 +218,8 @@ export function installDialogNote(ws) {
 }
 const NOTE_CSS = `.stkdpa-inote{ grid-column:1 / -1; padding:12px 0 4px; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif; }
 .stkdpa-inote p{ margin:0; }
+.stkdpa-inote .stkdpa-push{ margin-top:12px; }
+.stkdpa-inote .stkdpa-push[hidden]{ display:none; }
 .stkdpa-ih{ font-size:14px; line-height:20px; font-weight:600; color:var(--vela-fg-bright, #f2f2f4); }
 .stkdpa-il{ font-size:12px; line-height:16px; color:var(--vela-fg-muted, #9a9aa3); padding-top:4px; }
 .stkdpa-il a{ color:#03c988; font-weight:600; font-size:13px; line-height:20px; text-decoration:underline; }

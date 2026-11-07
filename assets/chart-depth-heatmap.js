@@ -13,11 +13,11 @@
 //   - right side: the current book per price row (red asks above, green bids below, sizes) and an optional cumulative column;
 //   - bottom: buy / sell volume bars per bar; a last-price line and the best bid / ask sizes at the right edge.
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
-import { drawBookmap, STYLES, SMOOTH_OPTS } from './chart-bookmap.js?v=909';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=909';
-import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote } from './chart-futures-l2.js?v=909';
-import { sphere, drawLadder } from './chart-liquidity-map.js?v=909';
-import { getVenue } from './orderflow-venues.js?v=909';
+import { drawBookmap, STYLES, SMOOTH_OPTS } from './chart-bookmap.js?v=910';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=910';
+import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote } from './chart-futures-l2.js?v=910';
+import { sphere, drawLadder } from './chart-liquidity-map.js?v=910';
+import { getVenue } from './orderflow-venues.js?v=910';
 
 export const DH_TYPE = 'stk_depth_heat';
 export const DH_TITLE = 'Depth Heatmap (L2)';
@@ -296,7 +296,7 @@ export function installDepthHeatmap(Core, H, reg) {
     start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.attach(); }
     attach() {
       if (!this.ctx) return;
-      const mk = H.marketOf(this.ctx), root = mk.futures ? l2Root(mk.ticker) : null;
+      const mk = H.btBook(H.marketOf(this.ctx)), root = mk.futures ? l2Root(mk.ticker) : null;   // Replay One: the session's real market
       const pv = !mk.futures && (mk.provider === 'binance' || getVenue(mk.provider)) ? mk.provider : '';
       if (root && !this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }
       if (root && !l2Badge()) { this.detach(); this.block = NOT_YET; this.render(); return; }
@@ -320,6 +320,7 @@ export function installDepthHeatmap(Core, H, reg) {
       if (this.block === NOT_YET) return '';   // the feed note (chart-feeds.js) says this
       if (this.block) return this.block;
       const f = this.h && this.h.feed;
+      if (f && replayNow() && H.replayNote) return H.replayNote(f);   // bar replay: the recorded book, not the live feed state
       if (!f || f.status === 'loading') return 'Loading the order book…';
       if (f.status === 'error') return f.err || 'Order book unavailable.';
       if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? closedNote() : 'Reconnecting to the order book…';

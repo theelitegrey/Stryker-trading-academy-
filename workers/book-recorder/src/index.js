@@ -36,7 +36,8 @@ import { verifyIdToken } from './rt-auth.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
-const KEEP_MS = 24 * 60 * 60 * 1000;
+const KEEP_MS = 30 * 24 * 60 * 60 * 1000;   // Binance spot book samples kept 30 d (BOOK-REPLAY 2026-11-07; was 24 h), ~1 MB/day for 2 pairs
+const READ_SPAN_MS = 24 * 60 * 60 * 1000;   // one /book-history read covers at most 24 h (the client reads older days in chunks)
 const MAX_BODY = 64 * 1024;      // one ingest = one sample per symbol, ~0.4 KB each
 const MAX_ROWS = 1000;           // +-2% at ~0.05% rows is <= ~82 rows; anything far bigger is wrong
 const FRESH_MS = 3 * 60000;      // a sample must be stamped within 3 min of the Worker's clock
@@ -74,9 +75,9 @@ export function validateIngest(syms, list, allowed, now) {
 // entries and DO reads; `to` is whole minutes, never past the current minute.
 export function alignRange(fromQ, toQ, now) {
   const M = 60000;
-  let to = Number(toQ) || now, from = Number(fromQ) || now - KEEP_MS;
+  let to = Number(toQ) || now, from = Number(fromQ) || now - READ_SPAN_MS;
   to = Math.min(Math.ceil(Math.min(to, now) / M) * M, Math.ceil(now / M) * M);
-  from = Math.max(Math.floor(from / ALIGN_MS) * ALIGN_MS, Math.floor((now - KEEP_MS) / M) * M);
+  from = Math.max(Math.floor(from / ALIGN_MS) * ALIGN_MS, Math.floor((now - KEEP_MS) / M) * M, Math.floor((to - READ_SPAN_MS) / M) * M);
   return { from, to };
 }
 
@@ -373,7 +374,7 @@ export class BookRecorder {
     if (m && Date.now() - m.at < STATUS_MEMO_MS) return m.out;
     const gex = {};
     for (const r of this.sql.exec('SELECT sym, part, ts, LENGTH(body) AS b FROM gex').toArray()) gex[r.sym + ':' + r.part] = { fetched_at: r.ts, bytes: r.b };
-    const out = { gex, symbols: {}, keepHours: 24, source: 'server feeder (Binance spot depth, limit=5000), 1 sample/min', last: JSON.parse(this.meta('last') || 'null') };
+    const out = { gex, symbols: {}, keepHours: KEEP_MS / 3600000, source: 'server feeder (Binance spot depth, limit=5000), 1 sample/min', last: JSON.parse(this.meta('last') || 'null') };
     for (const s of symbolsOf(this.env)) {
       const c = this.sql.exec('SELECT COUNT(*) AS n, MIN(ts) AS t0, MAX(ts) AS t1, SUM(LENGTH(v)) AS b FROM samples WHERE sym = ?', s).toArray()[0];
       out.symbols[s] = { samples: c.n, from: c.t0, to: c.t1, rowBytes: c.b, avgRowBytes: c.n ? Math.round(c.b / c.n) : 0 };

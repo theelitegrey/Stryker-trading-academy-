@@ -2,8 +2,8 @@
 // Replaces the plain dropdown of the chart-style button. Long-press (touch) or right-click / star (mouse) a type = favourite;
 // favourites sit as small icon buttons next to the style button. Pro types (Volume footprint, TPO, Session volume
 // profile) show a PRO tag and open the plan modal for Free members (assets/chart-pro-gate.js).
-import * as Gate from './chart-pro-gate.js?v=909';
-import { CT_ICONS, CT_LABELS } from './chart-types.js?v=909';
+import * as Gate from './chart-pro-gate.js?v=910';
+import { CT_ICONS, CT_LABELS } from './chart-types.js?v=910';
 
 const LS = 'stryker_ctype_favs';
 const ICON = {   // our own line icons for the built-in types (28 px grid)

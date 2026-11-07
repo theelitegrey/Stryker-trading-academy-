@@ -7,10 +7,11 @@
 // Hyperliquid charts: tap a Book row (DOM: the price cell) or pick "Wallets at this price" -> tracked wallets with orders there (chart-wallet-intel.js).
 // Logic lives in book-panel-core.js (unit-tested), streams in book-panel-sources.js. Phones <= 700 px: bottom sheet.
 // Wording: "updated Xs ago" only; no real-time claims. Education only. Not financial advice.
-import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK } from './chart-futures-l2.js?v=909';
-import { rtReady, rtOnChange } from './rt-access.js?v=909';
-import * as C from './book-panel-core.js?v=909';
-import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=909';
+import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source } from './chart-futures-l2.js?v=910';
+import { replayClock, btBook } from './book-replay.js?v=910';
+import { rtReady, rtOnChange } from './rt-access.js?v=910';
+import * as C from './book-panel-core.js?v=910';
+import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=910';
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
 const FILTERS_C = [['0', 'All sizes'], ['1000', '≥ $1k'], ['10000', '≥ $10k'], ['100000', '≥ $100k']], FILTERS_F = [['0', 'All sizes'], ['5', '≥ 5'], ['25', '≥ 25'], ['100', '≥ 100']];
@@ -60,12 +61,14 @@ export function mountBookPanel(ws, opts) {
   // ------------------------------------------------------------------------------------------------ what is on the chart
   const kindOf = () => {
     let sym = ''; try { sym = ws.active.symbol || ''; } catch (e) {}
-    let m = /^([a-z0-9]+):(.+)$/i.exec(sym); const prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
+    let m = /^([a-z0-9]+):(.+)$/i.exec(sym); let prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
+    if (prov === 'bt') { const r = btBook({ provider: 'bt', ticker: tk }); prov = r.provider; tk = r.ticker; }   // Replay One: the session's real market
     if (prov === 'futures') { const root = l2Root(tk); return { kind: 'fut', sym, root, tick: root ? L2_TICK[root] || 0.25 : 0 }; }
     if (CRYPTO.includes(prov)) return { kind: 'crypto', sym, pair: C.pairOf(tk), prov };
     return { kind: 'none', sym };
   };
-  const feedKey = (k) => (k.kind === 'fut' ? 'f|' + k.root : k.kind === 'crypto' ? 'c|' + k.pair.base + k.pair.quote + k.pair.perp + '|' + S.src : '');
+  // bar replay: a separate feed (key + '|rp') that holds the RECORDED book at the replay clock (book-replay.js), never the live one
+  const feedKey = (k) => (k.kind === 'fut' ? 'f|' + k.root : k.kind === 'crypto' ? 'c|' + k.pair.base + k.pair.quote + k.pair.perp + '|' + S.src : '') + (k.kind !== 'none' && replayClock() ? '|rp' : '');
   function detach() {
     if (!feed) return;
     for (const s of feed.stops) { try { s(); } catch (e) {} }
@@ -77,6 +80,7 @@ export function mountBookPanel(ws, opts) {
     detach();
     if (!key || (k.kind === 'fut' && !l2Visible())) { feed = k.kind === 'fut' ? { key: '', k, books: new Map(), stops: [], store: new C.TradeStore(), msg: 'The futures order book is part of Pro. Upgrade to unlock it.' } : null; if (feed) feed.k = k; schedule(); return; }
     const f = feed = { key, k, books: new Map(), stops: [], store: new C.TradeStore(), step: 0, msg: '', dirty: true };
+    if (replayClock()) { attachReplay(f, k); schedule(); return; }
     if (k.kind === 'fut') {
       f.store.notional = false;
       const h = acquire(k.root, (m) => { if (m && m.type === 'ticks') f.store.add((m.t || []).map((x) => ({ t: x[3], p: x[0], s: x[1], side: x[2] > 0 ? 1 : -1, ex: 'cme' }))); schedule(); }, 150);
@@ -99,6 +103,33 @@ export function mountBookPanel(ws, opts) {
     schedule();
   }
 
+  // Replay feed: the chart's own book feed (chart-orderflow.js BookFeed: recorder history in lazy 1 h chunks around the clock).
+  // Futures = the L2 hub history (Pro, same l2Visible gate as live); crypto = Binance spot, the only pair the recorder keeps
+  // (perps and other exchanges: a plain message, nothing invented). Trades are not replayed here (the store stays empty).
+  function attachReplay(f, k) {
+    f.rp = true; f.store.notional = k.kind !== 'fut';
+    if (k.kind === 'crypto' && (k.pair.perp || k.prov !== 'binance')) { f.msg = 'No recorded order book for this market in replay.'; return; }   // the recorder keeps Binance spot only
+    if (k.kind === 'fut') f.step = k.tick;
+    let alive = true; f.stops.push(() => { alive = false; });
+    import('./chart-orderflow.js?v=910').then((Flow) => {
+      if (!alive) return;
+      const h = k.kind === 'fut' ? Flow.acquireBookFeed('tsl2', k.root, schedule, l2Source(k.root)) : Flow.acquireBookFeed('binance', k.pair.base + k.pair.quote, schedule);
+      f.bf = h.feed; f.stops.push(() => h.release());
+      schedule();
+    }).catch(() => { f.msg = 'Recorded order book unavailable.'; schedule(); });
+  }
+  function replayBook(f) {
+    const bf = f.bf; if (!bf) return null;
+    const E = replayClock(); bf.needRemote(E - 30 * 60000, E);
+    const b = bf.bookNow();
+    return b && b.bids.size && b.asks.size ? b : null;
+  }
+  function replayMsg(f) {
+    const bf = f.bf;
+    if (!bf || (bf.remote.length < 2 && bf.remoteState !== 'failed')) return 'Loading the recorded order book…';
+    return bf.remoteState === 'failed' && bf.remote.length < 2 ? 'No recorded order book for this market in replay.' : 'No recorded order book at the replay time.';
+  }
+
   // ------------------------------------------------------------------------------------------------ model
   let cacheKey = '', cached = null;
   function futBook(r) {
@@ -108,7 +139,8 @@ export function mountBookPanel(ws, opts) {
   function model() {
     const f = feed; if (!f || !f.key) return null;
     let books = [];
-    if (f.k.kind === 'fut') { const b = futBook(rootState(f.futRoot)); if (b) books = [b]; }
+    if (f.rp) { const b = replayBook(f); if (b) books = [b]; }
+    else if (f.k.kind === 'fut') { const b = futBook(rootState(f.futRoot)); if (b) books = [b]; }
     else f.books.forEach((e) => { if (e.book && (e.status === 'live' || e.status === 'reconnecting')) books.push(e.book); });
     if (!books.length) return null;
     if (!f.step) {
@@ -255,8 +287,10 @@ export function mountBookPanel(ws, opts) {
     else if (feed.msg) msg = feed.msg;
     else if (fut && !feed.key) msg = 'The futures order book is part of Pro. Upgrade to unlock it.';
     const M = msg ? null : model();
+    if (!msg && !M && feed && feed.rp) msg = replayMsg(feed);
+    if (!msg && feed && feed.rp && S.tab === 'trades') msg = 'Trades are not replayed here. Book and DOM show the recorded book at the replay time.';
     stat.innerHTML = statusHtml(M);
-    if (!M || (S.tab === 'trades' && feed && feed.key && false)) {
+    if (!M || msg) {
       if (S.tab === 'trades' && feed && feed.key && !msg) { paintTrades(); }
       else { poolTab = ''; list.replaceChildren(); list.dataset.t = ''; const e = el('div', 'stkbp-empty'); e.textContent = msg || (feed && feed.k.kind === 'crypto' && [...feed.books.values()].every((b) => b.status === 'unlisted' || b.status === 'error') ? unlistedMsg() : 'Waiting for the order book…'); list.appendChild(e); bar.hidden = S.tab !== 'trades' || !feed || !feed.key; if (!bar.hidden) paintTradesBar(); }
     } else if (S.tab === 'book') { bar.hidden = true; paintBook(M); }
@@ -270,6 +304,7 @@ export function mountBookPanel(ws, opts) {
   const unlistedMsg = () => { const n = [...feed.books.values()].map((b) => b.note).filter(Boolean); return n.length ? n[0] + '. Try another source.' : 'No exchange answered for this pair.'; };
   function statusHtml(M) {
     if (!feed || !feed.key) return '';
+    if (feed.rp) { const b = feed.bf && feed.bf.bookNow(); return '<i class="stkbp-dot is-wait"></i><span>Replay</span><em>' + (b && b.ts ? 'book at ' + C.fmtTime(b.ts) : '') + '</em>'; }
     if (feed.k.kind === 'fut') { const r = rootState(feed.futRoot), age = r.lastFrame ? Date.now() - r.lastFrame : -1, live = r.status === 'live'; return '<i class="stkbp-dot ' + (live ? 'is-live' : 'is-wait') + '"></i><span>' + (live ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (live && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em>'; }
     let h = '', any = false;
     feed.books.forEach((e) => { const live = e.status === 'live'; any = any || live; const cls = live ? 'is-live' : e.status === 'unlisted' || e.status === 'error' ? 'is-off' : 'is-wait'; h += '<span class="stkbp-ex ' + cls + '" title="' + (e.note || e.status) + '"><i class="stkbp-dot ' + cls + '"></i>' + sourceName(e.id) + (e.status === 'unlisted' ? ' · none' : '') + '</span>'; });
@@ -424,7 +459,7 @@ export function mountBookPanel(ws, opts) {
     g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up);
   });
 
-  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _state: () => ({ S, free, feed: !!feed }), setLevelsCompat: () => {} };
+  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
   window.__stkBookPanel = api; if (!window.__stkL2Ladder) window.__stkL2Ladder = api;
   return api;
 }

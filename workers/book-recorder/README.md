@@ -326,3 +326,24 @@ last completed session (weekend -> Friday, holiday/missing -> latest earlier day
 site's `/api/gex/levels/:name?basis=close` (`functions/api/gex/_close.js`), which falls back to the `/gex-history`
 snapshot nearest 16:00 ET while `gexclose` is still empty. Tests: `tools/tests/gex-close.test.mjs`,
 `test/gex-worker-local.mjs`.
+
+## Hyperliquid wallet intel (added 2026-11-07, Owner order: free for everyone)
+
+"Who moved the market" on Hyperliquid charts. Code: `src/hl.js` (Worker + DO), `hl-feeder/` (server),
+tests `test/hl.test.mjs` + `test/hl_feeder_test.py`. Findings and limits: stryker-notes
+`reports/workers/hl-intel/DATA.md`; API shapes: `reports/workers/hl-intel/contract.md`.
+
+    this server (hl-feeder.service, long-running)                     Cloudflare
+    hl_feeder.py -- WS trades (all perps + top spot, users=[buyer,seller]) --+
+                 -- info API: tracked wallets' positions / orders (<= 700 weight/min of HL's 1200)
+                 -- leaderboard + vault list (hourly, labels)
+          +--- POST /hl-ingest?kind=min|state|labels (x-ingest-key, gzip JSON <= 1 MB) --> DO tables hlmin / hlhour / hlblob
+    Charts -- GET /hl-candle /hl-clusters /hl-level /hl-wallet /hl-meta (CORS our sites, RL_HL 60/min/IP, edge 30-60 s)
+
+- Candle wallets cover every wallet (public fills name both sides). Clusters, book levels and profiles
+  cover TRACKED wallets only (~13-16 % of open interest, measured); every reply carries the coverage.
+- Kept 7 days. Minutes are rolled up into per-coin hour rows when the hour completes.
+- Labels: public leaderboard display names (e-mail / URL names dropped), vault names, our tags
+  whale (>= $1M) / top100vol / vault. Nothing guessed.
+- Install (after the Worker with /hl-ingest is deployed): `sh workers/book-recorder/hl-feeder/install.sh`.
+  Dry run without posting: `sh install.sh --dry 120`. Local dev stack: `sh hl-feeder/dev.sh`.

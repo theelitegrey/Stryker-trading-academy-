@@ -23,6 +23,7 @@ import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } fr
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 import { validateZoIngest, zoInit, zoPut, zoTrim, zoGet, zoNoteKey, zoHistDay, zoHistRange, zoHistSessions, zoCloseRow, zoActItems, zoLastHistDay, zoGunzip, zoIngestRoute, zoGetRoute, zoExportRoute, exportSnaps, futuresRatio, exportParams, exportRows, exportCsv, teaserEligible, zoTeaser, ZO_ROUTES, ZO_PROFILE_X, ZO_SURFACE_KIND, ZO_ACT_KIND, ZO_CME_ROOTS, ZO_MAX_GZ, zoSymbolOk, zoTier, NOTICE } from './zoro.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
+import { hlInit, hlDo, hlIngestRoute, hlRoute, HL_ROUTES } from './hl.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
 import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, wsTokenOf, RT_DELAY_S } from './rt-auth.js';
@@ -115,6 +116,7 @@ export class BookRecorder {
     // per-day summary so /gex-sessions never scans the snapshots
     storeInit(this.sql);   // news + economic calendar (src/news.js)
     terminalInit(this.sql);   // brief / market map / econ calendar files (src/terminal.js)
+    hlInit(this.sql);   // Hyperliquid wallet intel (src/hl.js)
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexday (u TEXT NOT NULL, d INTEGER NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, t0 INTEGER NOT NULL, t1 INTEGER NOT NULL, PRIMARY KEY (u, d, day)) WITHOUT ROWID`);
     // Options analytics (src/options.js): latest blob per underlying + one summary row per NY day.
     this.sql.exec(`CREATE TABLE IF NOT EXISTS opt (u TEXT PRIMARY KEY, t INTEGER NOT NULL, j TEXT NOT NULL) WITHOUT ROWID`);
@@ -566,6 +568,7 @@ export class BookRecorder {
     if (u.pathname.startsWith('/ts-') || u.pathname.startsWith('/te-')) return tsHubFetch(this.tsHub, this.env, u, req);
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/t/')) return terminalDo(this, u, req);   // terminal files (src/terminal.js)
+    if (u.pathname.startsWith('/hl/')) return hlDo(this, u, req);   // Hyperliquid wallet intel (src/hl.js)
     if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
     if (u.pathname === '/history') {
       const sym = u.searchParams.get('symbol');
@@ -887,6 +890,7 @@ async function route(req, env, ctx) {
       if (buf.byteLength > SCAN_MAX_BODY) return new Response('too large', { status: 413 });
       return stub(env).fetch('https://do/scan-ingest?part=' + part, { method: 'POST', body: buf });
     }
+    if (u.pathname === '/hl-ingest') return hlIngestRoute(req, env, u, authorized, stub);   // Hyperliquid wallet intel feeder
     if (u.pathname === '/news-ingest') return newsIngestRoute(req, env, authorized, stub);
     if (u.pathname === '/cal-ingest') return calIngestRoute(req, env, u, authorized, stub);
     if (u.pathname === '/terminal-ingest') return terminalIngestRoute(req, env, u, authorized, stub);
@@ -1096,6 +1100,8 @@ async function route(req, env, ctx) {
     // news + calendar reads: their own per-IP limit (search typing), edge-cached (src/news-routes.js)
     // brief / market map / econ calendar (src/terminal.js): edge-cached 60 s, no per-IP limit needed
     if (u.pathname.startsWith('/terminal/')) return terminalRoute(u, env, ctx, h, stub, /^\/terminal\/market-(map|brief)/.test(u.pathname) && bearerOf(req) ? await isAdminToken(bearerOf(req)) : false);
+    // Hyperliquid wallet intel (src/hl.js): free, signed-out allowed, own per-IP limit (RL_HL 60/min), edge-cached
+    if (HL_ROUTES.has(u.pathname)) return hlRoute(req, u, env, ctx, h, stub);
     if (u.pathname === '/news' || u.pathname === '/cal') return (u.pathname === '/news' ? newsRoute : calRoute)(req, u, env, ctx, h, stub);
     // GET /bars-tail?sym=NQ: the newest ~8 h of 1-minute OHLCV rows (incl. the forming minute), for the site's
     // /api/chart/bars Function (server to server; it forwards the caller's ID token). ADMIN ONLY: the token is

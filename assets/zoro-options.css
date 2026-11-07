@@ -316,3 +316,6 @@
 @media (prefers-reduced-motion: reduce){ .zo-auto.is-on .zo-pulse::after{ animation:none; } }
 .zo-auto b{ white-space:nowrap; }
 @media (max-width:600px){ .zo-auto{ margin-left:12px; } .zo-auto #zo-auto-s{ display:none; } }
+
+.zo-tools a{ color:var(--zo-mint); text-decoration:none; display:inline-block; padding:8px 0; }
+.zo-tools a:hover{ text-decoration:underline; }

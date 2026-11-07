@@ -751,6 +751,7 @@
       if (!s || s.locked) { st.sum = null; paintUpd(); if (s && s.locked && !st.free) { st.free = true; applyFree(); } emptyCanvas('zo-prof', s && s.locked ? 'Part of Pro' : 'No data for ' + u + ' yet.'); return; }
       st.sum = s; st.sample = st.sample || !!s.sample;
       paintUpd(); paintLevels(first); paintRanges(); paintIV(first); paintPC(first); paintPin();
+      (function () { var q = '?u=' + encodeURIComponent(FUT_FROM[u] || u); var a = $('zo-tool-calc'), b = $('zo-tool-skew'); if (a) a.href = '/options-calculator' + q; if (b) b.href = '/iv-skew' + q; })();
       if (!st.free) { paintSkew(false); paintTerm(); paintNodes(); }
       if (!st.free && !s.skew) get('surface', { u: u, kind: 'iv' }).then(function (d) {
         if (seq !== st.seq || !d || d.locked || !d.z) return;

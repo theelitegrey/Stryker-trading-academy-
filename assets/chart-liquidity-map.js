@@ -20,8 +20,8 @@
 // INDICATOR ONLY: no order buttons, no click-to-trade. It describes resting orders and prints; it predicts nothing.
 // Education only. Not financial advice.
 
-import { hfConfig, hfCut, hfSchema } from './chart-heat-filter.js?v=902';
-import { getVenue } from './orderflow-venues.js?v=902';   // crypto venues besides Binance (adapters register there)
+import { hfConfig, hfCut, hfSchema } from './chart-heat-filter.js?v=903';
+import { getVenue } from './orderflow-venues.js?v=903';   // crypto venues besides Binance (adapters register there)
 const RAMP = [[0, 4, 10, 24], [0.10, 5, 34, 74], [0.25, 8, 92, 150], [0.42, 60, 160, 205], [0.55, 200, 230, 240], [0.66, 250, 236, 70], [0.80, 255, 150, 25], [0.92, 238, 44, 24], [1, 255, 238, 225]];
 export const LM_RAMP = RAMP;
 export function lmColor(n) {

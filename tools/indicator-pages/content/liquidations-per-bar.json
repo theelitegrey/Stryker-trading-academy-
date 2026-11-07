@@ -1,0 +1,22 @@
+{
+  "slug": "liquidations-per-bar",
+  "summary": "Shows the USD of crypto longs and shorts liquidated in each bar in a lower pane, shorts above zero and longs below, collected while your chart is open.",
+  "overview": [
+    "Liquidations per bar adds a lower pane with two sets of bars: the USD of short positions liquidated in each bar above zero (green), and the USD of long positions liquidated below zero (red).",
+    "It reads the same liquidation prints as the Liquidations indicator, so the two can be used together: bubbles on the price, totals underneath."
+  ],
+  "how": [
+    "Your browser listens to the public liquidation streams of three major crypto exchanges for the coin on the chart (pick the exchanges in Settings) and adds up the USD of each print into the bar it fell in.",
+    "Totals are only shown for the time your browser was collecting. Bars before that are left empty rather than shown as zero, and the prints are kept on your device for 24 hours."
+  ],
+  "use": [
+    "Some traders look for bars where long or short liquidations spiked well above the bars around them.",
+    "Use it to see whether a fast move came with forced closing on one side.",
+    "Some traders read it next to open interest: a large drop in open interest in the same bar often comes with liquidations."
+  ],
+  "notes": [
+    "The exchanges send only part of their liquidations (one of them at most one per coin per second), so the totals are a lower bound.",
+    "Crypto perpetuals only. History builds up from the moment you open the chart with this indicator on.",
+    "An exchange that does not serve your region is shown as not available."
+  ]
+}

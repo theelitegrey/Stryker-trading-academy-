@@ -27,6 +27,11 @@ http.createServer(async (req, res) => {
     console.log(`API ${r.status} ${url.pathname}${url.search} ${body.length}B ${Date.now() - t0}ms`);
     res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(body); return;
   }
+  if (url.pathname === '/api/chart/okx-stat') {   // functions/api/chart/okx-stat.js (crypto OI / long-short history)
+    const { onRequestGet: okxStat } = await import('../../functions/api/chart/okx-stat.js');
+    const r = await okxStat({ request: new Request(url.href) });
+    res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer())); return;
+  }
   if (url.pathname === '/__api_count') { res.end(String(apiCount)); return; }
   let p = path.join(ROOT, decodeURIComponent(url.pathname));
   if (!p.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }

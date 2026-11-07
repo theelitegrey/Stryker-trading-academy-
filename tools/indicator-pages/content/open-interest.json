@@ -1,0 +1,22 @@
+{
+  "slug": "open-interest",
+  "summary": "Shows crypto open interest summed over the exchanges you pick, as a line plus the change per bar coloured against the bar's price move.",
+  "overview": [
+    "Open Interest adds a lower pane for crypto perpetuals. The line is the total USD value of open contracts across the exchanges you pick. The bars are the change in open interest from one bar to the next.",
+    "Each change bar is coloured by what price did in the same bar: open interest up with price up, up with price down, down with price up, or down with price down. The four colours can be changed in Settings."
+  ],
+  "how": [
+    "Your browser asks each exchange for its open interest history: every 5 minutes or longer, using the finest step that is not longer than your bar. Each bar takes the last reading at or before its close.",
+    "The values are added up across the exchanges you picked. A bar where one of them has no reading is left empty, so a missing exchange never looks like a drop. Where an exchange gives open interest in coins, it is turned into USD with the bar's close."
+  ],
+  "use": [
+    "Some traders watch whether a move comes with new positions (open interest rising) or with positions closing (open interest falling).",
+    "Use the colours to see at a glance whether open interest rose into an up bar or a down bar.",
+    "Some traders compare sharp open interest drops with the Liquidations indicator."
+  ],
+  "notes": [
+    "Crypto perpetuals only. On charts shorter than 5 minutes the line steps every 5 minutes, as that is the finest history the exchanges publish.",
+    "An exchange that does not serve your region is listed in the pane as not available and left out of the sum.",
+    "Only exchanges that publish an open interest history are offered."
+  ]
+}

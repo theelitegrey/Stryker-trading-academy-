@@ -1139,6 +1139,51 @@
     "grp": "Order Flow"
    },
    {
+    "key": "b:stk_liq",
+    "name": "Liquidations",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
+    "key": "b:stk_liq_bars",
+    "name": "Liquidations per bar (longs vs shorts)",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
+    "key": "b:stk_oi",
+    "name": "Open Interest (crypto, multi-exchange)",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
+    "key": "b:stk_funding",
+    "name": "Funding Rate (crypto perpetuals)",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
+    "key": "b:stk_lsr",
+    "name": "Long/Short Ratio (crypto)",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
     "key": "b:stk_fut_dom",
     "name": "Futures DOM Heatmap (L2)",
     "author": "TradeZoro",
@@ -3431,6 +3476,291 @@
       "title": "Colour scale (blue = small, yellow = large, red = biggest)",
       "tooltip": "Draws the colour scale with the sizes it stands for at the top left.",
       "def": true,
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Liquidations",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_liq",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Liquidations",
+    "short": "Liquidations",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "binance",
+      "type": "bool",
+      "title": "Binance",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "bybit",
+      "type": "bool",
+      "title": "Bybit",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "okx",
+      "type": "bool",
+      "title": "OKX",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "minUsd",
+      "type": "int",
+      "title": "Smallest liquidation shown (USD)",
+      "def": 10000,
+      "options": []
+     },
+     {
+      "key": "labels",
+      "type": "bool",
+      "title": "Show $ labels on big ones",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "longColor",
+      "type": "color",
+      "title": "Long liquidations",
+      "def": "#f23645",
+      "options": []
+     },
+     {
+      "key": "shortColor",
+      "type": "color",
+      "title": "Short liquidations",
+      "def": "#03c988",
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Liquidations per bar (longs vs shorts)",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_liq_bars",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Liquidations per bar (longs vs shorts)",
+    "short": "Liquidations per bar",
+    "overlay": false,
+    "pane": "new",
+    "inputs": [
+     {
+      "key": "binance",
+      "type": "bool",
+      "title": "Binance",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "bybit",
+      "type": "bool",
+      "title": "Bybit",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "okx",
+      "type": "bool",
+      "title": "OKX",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "longColor",
+      "type": "color",
+      "title": "Long liquidations",
+      "def": "#f23645",
+      "options": []
+     },
+     {
+      "key": "shortColor",
+      "type": "color",
+      "title": "Short liquidations",
+      "def": "#03c988",
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Open Interest (crypto, multi-exchange)",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_oi",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Open Interest (crypto, multi-exchange)",
+    "short": "Open Interest",
+    "overlay": false,
+    "pane": "new",
+    "inputs": [
+     {
+      "key": "binance",
+      "type": "bool",
+      "title": "Binance",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "bybit",
+      "type": "bool",
+      "title": "Bybit",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "okx",
+      "type": "bool",
+      "title": "OKX",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "line",
+      "type": "bool",
+      "title": "Show the open interest line",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "upUp",
+      "type": "color",
+      "title": "OI up, price up",
+      "def": "#03c988",
+      "options": []
+     },
+     {
+      "key": "upDown",
+      "type": "color",
+      "title": "OI up, price down",
+      "def": "#f23645",
+      "options": []
+     },
+     {
+      "key": "downUp",
+      "type": "color",
+      "title": "OI down, price up",
+      "def": "#7fd8b8",
+      "options": []
+     },
+     {
+      "key": "downDown",
+      "type": "color",
+      "title": "OI down, price down",
+      "def": "#f59aa3",
+      "options": []
+     },
+     {
+      "key": "lineColor",
+      "type": "color",
+      "title": "OI line",
+      "def": "#00adb5",
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Funding Rate (crypto perpetuals)",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_funding",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Funding Rate (crypto perpetuals)",
+    "short": "Funding Rate",
+    "overlay": false,
+    "pane": "new",
+    "inputs": [
+     {
+      "key": "source",
+      "type": "string",
+      "title": "Rate history from",
+      "def": "Binance",
+      "options": [
+       "Binance",
+       "Bybit",
+       "OKX",
+       "Hyperliquid"
+      ]
+     },
+     {
+      "key": "table",
+      "type": "bool",
+      "title": "Show the rates table",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "posColor",
+      "type": "color",
+      "title": "Positive (longs pay shorts)",
+      "def": "#03c988",
+      "options": []
+     },
+     {
+      "key": "negColor",
+      "type": "color",
+      "title": "Negative (shorts pay longs)",
+      "def": "#f23645",
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Long/Short Ratio (crypto)",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_lsr",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Long/Short Ratio (crypto)",
+    "short": "Long/Short Ratio",
+    "overlay": false,
+    "pane": "new",
+    "inputs": [
+     {
+      "key": "source",
+      "type": "string",
+      "title": "Source",
+      "def": "Binance: all accounts",
+      "options": [
+       "Binance: all accounts",
+       "Binance: top traders (accounts)",
+       "Binance: top traders (positions)",
+       "Bybit: all accounts",
+       "OKX: all accounts"
+      ]
+     },
+     {
+      "key": "color",
+      "type": "color",
+      "title": "Ratio line",
+      "def": "#00adb5",
       "options": []
      }
     ]

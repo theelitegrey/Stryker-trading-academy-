@@ -167,5 +167,10 @@
  "b:stk_zzone": "gamma-zone",
  "b:stk_ivrank": "iv-rank",
  "b:stk_zrange": "zoro-range",
- "b:stk_darkpool": "dark-pool-prints"
+ "b:stk_darkpool": "dark-pool-prints",
+ "b:stk_liq": "liquidations",
+ "b:stk_liq_bars": "liquidations-per-bar",
+ "b:stk_oi": "open-interest",
+ "b:stk_funding": "funding-rate",
+ "b:stk_lsr": "long-short-ratio"
 }

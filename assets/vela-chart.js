@@ -605,6 +605,7 @@ function lateLists(provider){
   const flowP = import('./chart-optflow.js?v=907');
   const offexP = import('./chart-offex.js?v=907');
   const dpP = import('./chart-darkpool.js?v=907');
+  const cdP = import('./chart-crypto-deriv.js?v=907');
   let MSess = null;
   if (heavyNeeded) installHeavy();
   else {
@@ -636,6 +637,8 @@ function lateLists(provider){
   try { (await offexP).installOffex(LCore); } catch (e) { console.warn('TradeZoro: off-exchange install', e); }
   // Dark Pool Prints (assets/chart-darkpool.js, free for everyone): off-exchange block prints at their price and time, registered before boot too.
   try { (await dpP).installDarkPool(LCore); } catch (e) { console.warn('TradeZoro: dark pool install', e); }
+  // Crypto derivatives (assets/chart-crypto-deriv.js, Pro): liquidations, open interest, funding, long/short ratio.
+  try { (await cdP).installCryptoDeriv(LCore); } catch (e) { console.warn('TradeZoro: crypto derivatives install', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
   try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
   // Camarilla Pivots (assets/chart-camarilla.js, Free): level overlay from the prior session, registered before boot too.

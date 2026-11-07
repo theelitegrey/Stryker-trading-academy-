@@ -1,5 +1,17 @@
 [
  {
+  "build": 907,
+  "date": "2026-11-07",
+  "title": "Dark pool alerts shipped (906)",
+  "link": ""
+ },
+ {
+  "build": 907,
+  "date": "2026-11-07",
+  "title": "Zscript, ZoroOptions, Depth Heatmap, Dark Pool Prints shipped; Dark pool alerts + Wallet Intel in progress; 7-day Pro trial",
+  "link": ""
+ },
+ {
   "build": 906,
   "date": "2026-11-07",
   "title": "Dark pool prints",

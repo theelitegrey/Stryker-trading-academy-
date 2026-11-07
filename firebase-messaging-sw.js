@@ -38,16 +38,16 @@ self.addEventListener('install', function () { self.skipWaiting(); });
 self.addEventListener('activate', function (event) { event.waitUntil(self.clients.claim()); });
 
 // Alerts the member set (price, options, dark pool, test): they must be seen, so they stay on screen and buzz.
-const ALERT_TYPES = { chart_alert: 1, zoro_alert: 1, dp_alert: 1, test: 1 };
+const ALERT_TYPES = { chart_alert: 1, zoro_alert: 1, dp_alert: 1, metric_alert: 1, test: 1 };
 
 // Shared with assets/push.js (the open-but-hidden page shows the same notification through this worker).
 function notifOptions(data) {
   const isAlert = !!ALERT_TYPES[data.type];
   return {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=912',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=913',
     // Android draws the badge as a white mask of the alpha channel: the transparent TZ mark gives a clean glyph.
-    badge: '/assets/images/tradezoro-icon-192-494.png?v=912',
+    badge: '/assets/images/tradezoro-icon-192-494.png?v=913',
     // One tag per alert notification (two alerts must both show); other types collapse by type (five likes = one).
     tag: isAlert ? 'alert-' + data.type + '-' + (data.nid || Date.now()) : (data.type || 'stryker'),
     renotify: true,

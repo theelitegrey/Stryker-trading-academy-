@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'zscripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'dpAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'zscripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'dpAlerts', 'metricAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
 
       // Charts PAPER TRADING account (assets/chart-paper.js, 2026-10-12). Demo money only: the
       // whole simulated account (balance, positions, orders, history) is one JSON string the
@@ -280,6 +280,30 @@ service cloud.firestore {
         allow read, delete: if isSelf(uid);
         allow create: if isSelf(uid) && aid.size() <= 40 && validDp(request.resource.data);
         allow update: if isSelf(uid) && validDp(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt;
+      }
+
+      // Metric alerts (assets/chart-metric-alerts.js, workers/alert-engine/metric_alerts.py + metric_loop.py, 2026-11-07). Owner
+      // only. metric = gex_cross (Pro: the engine checks the plan) | funding | oi_change (free). p = the metric's few parameters
+      // (level/dir/range, or venue/dir/value/mins), symbol = an underlying or a coin. updatedAt is server time: the engine arms the
+      // alert from it. 20 per member is enforced by the client and again by the engine. Carved out of the wildcard above.
+      match /metricAlerts/{aid} {
+        function validM(d) {
+          return d.keys().hasOnly(['metric', 'symbol', 'p', 'message', 'freq', 'active', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['metric', 'symbol', 'p', 'freq', 'active', 'updatedAt'])
+            && d.metric in ['gex_cross', 'funding', 'oi_change']
+            && d.symbol is string && d.symbol.size() > 0 && d.symbol.size() <= 15
+            && d.p is map && d.p.size() <= 4
+            && d.p.keys().hasOnly(['level', 'dir', 'range', 'venue', 'value', 'mins'])
+            && (!('message' in d) || (d.message is string && d.message.size() <= 140))
+            && d.freq in ['once', 'every']
+            && d.active is bool
+            && d.updatedAt == request.time
+            && (!('createdAt' in d) || d.createdAt is timestamp);
+        }
+        allow read, delete: if isSelf(uid);
+        allow create: if isSelf(uid) && aid.size() <= 40 && validM(request.resource.data);
+        allow update: if isSelf(uid) && validM(request.resource.data)
           && request.resource.data.createdAt == resource.data.createdAt;
       }
 

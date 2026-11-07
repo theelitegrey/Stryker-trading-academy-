@@ -10,7 +10,7 @@ const DEAD_CODES = new Set([
   'messaging/registration-token-not-registered',
   'messaging/invalid-registration-token'
 ]);
-const ALERT_TYPES = new Set(['chart_alert', 'zoro_alert', 'dp_alert', 'test']);
+const ALERT_TYPES = new Set(['chart_alert', 'zoro_alert', 'dp_alert', 'metric_alert', 'test']);
 const TEST_MAX_PER_HOUR = 3;
 
 function errCode(reason) {

@@ -191,7 +191,7 @@ function renderNotifList(docs){
   list.innerHTML = docs.map((doc) => {
     const n = doc.data();
     const when = n.createdAt && n.createdAt.toDate ? timeAgoShort(n.createdAt.toDate()) : '';
-    const icon = NOTIF_ICONS[n.type] || NOTIF_ICONS.achievement;
+    const icon = NOTIF_ICONS[n.type] || (n.type === 'metric_alert' ? NOTIF_ICONS.dp_alert : NOTIF_ICONS.achievement);
     const href = escapeNotifText(stkUrl(n.link) || '#');
     // Message is escaped rather than trusted as HTML: moderation reasons
     // are free text typed by a moderator or admin, so an unescaped render

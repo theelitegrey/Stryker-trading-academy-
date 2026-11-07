@@ -64,10 +64,10 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { rtHeadersReady } from './rt-access.js?v=912';
-import * as ProGate from './chart-pro-gate.js?v=912';
-import * as ZD from './chart-zoro-data.js?v=912';
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=912';
+import { rtHeadersReady } from './rt-access.js?v=913';
+import * as ProGate from './chart-pro-gate.js?v=913';
+import * as ZD from './chart-zoro-data.js?v=913';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=913';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -122,6 +122,9 @@ const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 
 const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', defval, group, inline });
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 export const BASIS_DAY = 'Updated through the day', BASIS_CLOSE = 'Daily close';
+const ALERT_LEVELS = ['Call Ceiling (call wall)', 'Put Floor (put wall)', 'Flip Line (zero gamma)', 'Pin Strike', 'Expected move high', 'Expected move low', 'Any Gamma Node'];
+const ALERT_LEVEL_ID = { 'Call Ceiling (call wall)': 'call_wall', 'Put Floor (put wall)': 'put_wall', 'Flip Line (zero gamma)': 'gamma_flip', 'Pin Strike': 'pin', 'Expected move high': 'em_high', 'Expected move low': 'em_low', 'Any Gamma Node': 'any_node' };
+let metricMod = null;   // assets/chart-metric-alerts.js, loaded only when an alert toggle is on
 const SCHEMA = [
   { key: 'levelsFrom', title: 'Levels from', type: 'string', defval: BASIS_DAY, options: [BASIS_DAY, BASIS_CLOSE],
     tooltip: 'Updated through the day: levels refresh every few minutes. Daily close: levels from the last regular-session close (16:00 ET), fixed for the whole next session.' },
@@ -161,7 +164,13 @@ const SCHEMA = [
   { key: 'priceTags', title: 'Right price tags', type: 'bool', defval: true, group: G4 },
   { key: 'showStatus', title: 'Bottom updated text', type: 'bool', defval: true, group: G4 },
   { key: 'lineStyle', title: 'Line style', type: 'string', defval: 'as GEX page', options: ['as GEX page', 'solid', 'dashed', 'dotted'], group: G4 },
-  { key: 'width', title: 'Line width (0 = as GEX page)', type: 'int', defval: 0, min: 0, max: 4, step: 1, group: G4 }
+  { key: 'width', title: 'Line width (0 = as GEX page)', type: 'int', defval: 0, min: 0, max: 4, step: 1, group: G4 },
+  // Alerts (server-side, assets/chart-metric-alerts.js): checked by the alert engine with the chart closed, one doc per symbol
+  { key: 'alertCross', title: 'Alert when price crosses a level', type: 'bool', defval: false, group: 'Alerts' },
+  { key: 'alertLevel', title: 'Level', type: 'string', defval: ALERT_LEVELS[2], options: ALERT_LEVELS, group: 'Alerts', when: { key: 'alertCross', equals: true } },
+  { key: 'alertDir', title: 'Direction', type: 'string', defval: 'Either way', options: ['Either way', 'Crossing up', 'Crossing down'], group: 'Alerts', when: { key: 'alertCross', equals: true } },
+  { key: 'alertOnce', title: 'Only once, then turn the alert off', type: 'bool', defval: false, group: 'Alerts', when: { key: 'alertCross', equals: true } },
+  { key: 'alertRegime', title: 'Alert when the gamma regime flips (net GEX + / -)', type: 'bool', defval: false, group: 'Alerts' }
 ];
 
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -591,7 +600,7 @@ class GexNative {
   start(ctx, inputs) {
     this.ctx = ctx; this.inputs = inputs || {};
     subs.add(this); startTimer(); ZD.zoWatch(this);
-    gexTier().then((t) => { this.tier = t; this.load(); });
+    gexTier().then((t) => { this.tier = t; this.load(); this.syncAlert(true); });
     this.load();
   }
   // Zoro summary requests (ZD timer + load): new sources always, old sources only when a Zoro extra is on.
@@ -630,7 +639,24 @@ class GexNative {
     this.wasReplay = !!(window.__stkReplay && window.__stkReplay.on);
   }
   onViewport() {}
-  setInputs(i) { this.inputs = i || {}; this.sig = ''; this.load(); }
+  setInputs(i) { const was = this.alertSig(); this.inputs = i || {}; this.sig = ''; this.load(); if (this.alertSig() !== was) this.syncAlert(false); }
+  // ---- alerts (Alerts group): one metricAlerts doc 'ind-gex-<SYM>' + one zoroAlerts doc 'ind-zone-<SYM>' per underlying.
+  // shortcut: removing the indicator or switching symbol keeps the alert (it lives on, server-side); delete it in the Alerts window.
+  alertSpec() {
+    const i = this.inputs || {}, src = this.ctx ? resolveSrc(this.ctx) : null;
+    return { symbol: src ? src.api : '', cross: { on: i.alertCross === true, level: ALERT_LEVEL_ID[i.alertLevel] || 'gamma_flip',
+      dir: i.alertDir === 'Crossing up' ? 'up' : i.alertDir === 'Crossing down' ? 'down' : 'any', once: i.alertOnce === true }, regime: { on: i.alertRegime === true } };
+  }
+  alertSig() { return JSON.stringify(this.alertSpec()); }
+  syncAlert(first) {
+    const s = this.alertSpec();
+    if (first && !s.cross.on && !s.regime.on) return;     // loading a chart with the alerts off writes nothing
+    if (!s.symbol || ProGate.isFree()) return;
+    clearTimeout(this.alT);
+    this.alT = setTimeout(() => {
+      (metricMod || (metricMod = import('./chart-metric-alerts.js?v=913'))).then((m) => m.syncIndicator(s)).catch((e) => console.warn('TradeZoro GEX alerts', e));
+    }, first ? 0 : 700);
+  }
   suspend() {}
   resume() { this.sig = ''; this.load(); }
   stop() { subs.delete(this); ZD.zoUnwatch(this); if (!subs.size) stopTimer(); try { this.ctx.pushData(null); this.ctx.emit({ priceLines: [], tables: [] }); } catch (e) {} }

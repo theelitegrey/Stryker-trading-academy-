@@ -19,6 +19,7 @@ import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=908';
 import { hfLive } from './chart-heat-filter.js?v=908';
 import { cmeOpenNow } from './chart-futures-provider.js?v=908';
 import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=908';
+import { replayClock } from './book-replay.js?v=908';
 
 export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
@@ -32,7 +33,7 @@ export const L2_TICK = { NQ: 0.25, MNQ: 0.25, ES: 0.25, MES: 0.25, YM: 1, RTY: 0
 const TICK = 0.25;
 const tickOf = (root) => L2_TICK[root] || TICK;
 const LEVELS = [20, 60, 150];
-const KEEP_MS = 48 * 3600000;
+const KEEP_MS = 48 * 3600000;   // what the live heatmap reads back (bar replay reads the Worker's 30 d: chart-orderflow.js needReplay)
 const READ_MS = 6 * 3600000;
 const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname); } catch (e) { return false; } };
 const testOn0 = () => !!(window.__stkL2Test && window.__stkL2Test.retry === false);   // tests: set retry:false to see the raw tier
@@ -538,7 +539,7 @@ export function installFuturesL2(Core, H, reg) {
   const Dom = class FutDomNative extends H.CryptoDomNative {
     attach() {
       if (!this.ctx) return;
-      const mk = H.marketOf(this.ctx), root = mk.futures ? l2Root(mk.ticker) : null;
+      const mk = H.btBook(H.marketOf(this.ctx)), root = mk.futures ? l2Root(mk.ticker) : null;   // Replay One: the session's real market
       if (!this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }   // tier unknown -> connect, then re-decide when the hub says
       if (!l2Badge()) { this.detach(); this.block = NOT_YET; this.render(); return; }
       const want = root ? 'tsl2|' + root : '';
@@ -558,6 +559,7 @@ export function installFuturesL2(Core, H, reg) {
       const st = rootState(this.root);
       if (!f || f.status === 'loading') return 'Connecting to the futures order book…';
       if (f.status === 'error') return st.err === 'busy' ? 'Order book is busy. Retrying…' : 'Order book unavailable.';
+      if (replayClock() && H.replayNote) return H.replayNote(f);   // bar replay: the recorded book, the live state does not matter
       if (st.status !== 'live') return l2Closed(this.root) ? closedNote() : 'Reconnecting to the order book…';
       const cfg = H.domConfig(fcfg(this.inputs, this.walls));
       if ((cfg.heat || cfg.walls || cfg.bm) && f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';

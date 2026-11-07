@@ -4,7 +4,7 @@
 // 'pro' flag only opens it to a verified Pro/demo token); 4029 / silent / auth closes back off; bucketed history uses
 // the crypto bucketer (parity) and survives a round trip; imbalance + footprint recorded; hours rule.
 import assert from 'node:assert/strict';
-import { TSHub, TS_TRADES, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
+import { TSHub, thinSamples, TS_TRADES, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
 import { bucketSnapshot, decodeSamples, encodeSamples } from '../src/bucket.js';
 import { tsAllowed, tsAccess, tsTier } from '../src/ts-access.js';
 
@@ -230,6 +230,27 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   // ES: 0.5 rows
   assert.equal(coarseRule(7640).step, 0.5);
   hub.shutdown(); ok('recorded samples == bucket.js output (NQ 2.5 pt rows, ES 0.5), BKR1 round trip, imbalance pair, 1-min footprint, prune');
+}
+// ---- book history retention (BOOK-REPLAY): 30 d kept, full 5 s detail for 48 h, then 1 sample / 15 s; trades keep 48 h
+{
+  const o = tsOpts({}); assert.equal(o.BOOK_KEEP_H, 720); assert.equal(o.BOOK_FULL_H, 48); assert.equal(o.KEEP_H, 48);
+  assert.equal(tsOpts({ TS_BOOK_KEEP_HOURS: '168' }).BOOK_KEEP_H, 168); assert.equal(tsOpts({ TS_BOOK_KEEP_HOURS: '99999' }).BOOK_KEEP_H, 720, 'out of range -> default');
+  const L = Array.from({ length: 12 }, (_, k) => ({ ts: 60000 * 7 + k * 5000 }));
+  assert.deepEqual(thinSamples(L, 15000).map((s) => s.ts), [420000, 435000, 450000, 465000]); ok('thinSamples: first sample of each 15 s bucket');
+  const st = memStore(); st.rewrite = (sym, t, b) => { st.rows.get(sym + '|' + t).book = b; };
+  st.fat = (t0, t, max, lim) => [...st.rows.values()].filter((r) => r.t >= t0 && r.t < t && r.book && new DataView(r.book).getUint32(4, true) > max).slice(0, lim);   // the SQL version is checked against sqlite in the report
+  const DAY = 1440, now = Date.UTC(2026, 10, 2, 15, 0), nowM = Math.floor(now / 60000);
+  const mkRow = (m) => encodeSamples(Array.from({ length: 12 }, (_, k) => ({ ts: m * 60000 + k * 5000, mid: 100, bb: 99, ba: 101, step: 1, i0: 98, v: Float32Array.from([1, -1]) })));
+  for (const m of [nowM - 31 * DAY, nowM - 49 * 60, nowM - 50 * 60, nowM - 60]) st.putMin('NQ', m, mkRow(m), null, null);
+  const hub = new TSHub(st, '', { WebSocket: FakeWS, now: () => now, SYMBOLS: ['NQ'] });
+  hub.bookMaintain(now);
+  assert.equal(st.rows.has('NQ|' + (nowM - 31 * DAY)), false, '31 d old row pruned');
+  const cnt = (m) => decodeSamples(st.rows.get('NQ|' + m).book).length;
+  assert.equal(cnt(nowM - 49 * 60), 4); assert.equal(cnt(nowM - 50 * 60), 4); assert.equal(cnt(nowM - 60), 12, 'newest 48 h untouched');
+  const before = st.rows.get('NQ|' + (nowM - 49 * 60)).book; hub.thinTo = null; hub.bookMaintain(now);
+  assert.equal(cnt(nowM - 49 * 60), 4); assert.equal(st.rows.get('NQ|' + (nowM - 49 * 60)).book, before, 'already thin: not rewritten');
+  const h = decodeSamples(hub.bookHistory('NQ', (nowM - 50 * 60) * 60000, (nowM - 49 * 60 + 1) * 60000));
+  assert.equal(h.length, 8); ok('book retention: 30 d prune, rows past 48 h thinned to 15 s (idempotent), newest 48 h full, history reads both');
 }
 // bucket.js default rule unchanged (the crypto parity test covers the rest)
 {

@@ -467,6 +467,22 @@
       "alt": "Sell Your Trading Indicators: a laptop showing a candle chart and a My Indicator card, with the TradeZoro logo"
     },
     {
+      "page": "options-calculator.html",
+      "title": "Options P&L Calculator",
+      "og_title": null,
+      "visual": "brand",
+      "focus": "0.5,0.5",
+      "alt": "Options P&L Calculator share card with the TradeZoro logo"
+    },
+    {
+      "page": "iv-skew.html",
+      "title": "IV Skew",
+      "og_title": null,
+      "visual": "brand",
+      "focus": "0.5,0.5",
+      "alt": "IV Skew and term structure share card with the TradeZoro logo"
+    },
+    {
       "page": "indicators.html",
       "title": "Indicator Library",
       "og_title": "Indicator Library: every ZoroCharts indicator explained",

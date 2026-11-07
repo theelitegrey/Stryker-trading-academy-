@@ -124,7 +124,11 @@ check(m3.length === 2, 'local sample 30 s before does not replace it');
   check(r.from % Q === 0 && r.from === Date.parse('2026-10-13T06:00:00Z'), 'Worker: from aligned DOWN to 15 min');
   check(r.to === Date.parse('2026-10-13T12:08:00Z'), 'Worker: to = the current minute, rounded up');
   const old = alignRange(now - 3 * 86400000, null, now);
-  check(old.from === Math.floor((now - 86400000) / 60000) * 60000, 'Worker: from older than 24 h clamped to the keep window');
+  check(old.from === Math.ceil(now / 60000) * 60000 - 86400000, 'Worker: one read spans at most 24 h (from clamped to to - 24 h)');
+  const past = alignRange(now - 10 * 86400000, now - 10 * 86400000 + 3600000, now);
+  check(past.from === now - 10 * 86400000 - ((now - 10 * 86400000) % Q) && past.to - past.from <= 3600000 + Q, 'Worker: a 1 h chunk 10 days back is served (30 d kept)');
+  const tooOld = alignRange(now - 40 * 86400000, now - 40 * 86400000 + 3600000, now);
+  check(!(tooOld.to > tooOld.from), 'Worker: a chunk older than 30 d is an empty range (400 bad range)');
   check(alignRange(null, null, now).to > alignRange(null, null, now).from, 'Worker: no query -> a valid 24 h range');
   // the client asks with the same 15-min grid, so the Worker leaves a client from unchanged
   const cf = Math.floor(Date.parse('2026-10-13T09:41:00Z') / Q) * Q;

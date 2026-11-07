@@ -30,22 +30,23 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=910';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=910';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=910';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=910';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=910';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=910';
-import * as ProGate from './chart-pro-gate.js?v=910';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=910';
-import * as BT from './chart-bigtrades.js?v=910';
-import { installBookPack } from './chart-book-pack.js?v=910';
-import { installPatterns } from './chart-patterns.js?v=910';
-import { installL2Flow } from './chart-l2-flow.js?v=910';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=910';
-import { installDepthHeatmap } from './chart-depth-heatmap.js?v=910';
-export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=910';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=910';
+import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=911';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=911';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=911';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=911';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=911';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=911';
+import * as ProGate from './chart-pro-gate.js?v=911';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=911';
+import * as BT from './chart-bigtrades.js?v=911';
+import { installBookPack } from './chart-book-pack.js?v=911';
+import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=911';
+import { installPatterns } from './chart-patterns.js?v=911';
+import { installL2Flow } from './chart-l2-flow.js?v=911';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=911';
+import { installDepthHeatmap } from './chart-depth-heatmap.js?v=911';
+export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=911';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=911';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -1791,6 +1792,8 @@ const BOOK_REMOTE_KEEP_MS = 24 * 60 * 60 * 1000;
 const BOOK_REMOTE_SPAN_MS = 60000;      // one recorder sample stands for the minute after it
 const BOOK_REMOTE_ALIGN_MS = 15 * 60000; // 'from' rounded down to 15 min: viewers share the edge cache
 const BOOK_REMOTE_RETRY_MS = 5 * 60000;
+const BOOK_RECORDER_KEEP_MS = 30 * 24 * 3600000;   // what the recorders hold (Binance spot + futures L2); live charts still read 24 h / 48 h
+const REPLAY_CHUNK_MS = 3600000, REPLAY_BACK_MS = 12 * 3600000;
 function recorderUrl() {
   try { if (typeof window !== 'undefined' && window.__STK_BOOK_RECORDER !== undefined) return window.__STK_BOOK_RECORDER; } catch (e) {}
   return BOOK_RECORDER_URL;
@@ -1911,6 +1914,7 @@ class BookFeed {
   // Ask the recorder for history back to `fromMs` (the left edge of the visible chart). One
   // request in flight; only the part older than what is held; a failure waits 5 min.
   needRemote(fromMs, toMs) {
+    if (replayClock()) return this.needReplay(fromMs, toMs);   // bar replay: the recorded book around the replay clock (lazy chunks)
     if (this.custom) return this.needRemoteCustom(fromMs, toMs);
     if (/\.P$/i.test(this.ticker) || this.remoteBusy || this.provider !== 'binance') return;   // the recorder holds Binance spot only
     const base = recorderUrl();
@@ -1963,6 +1967,39 @@ class BookFeed {
       })
       .catch(() => { this.remoteFailAt = Date.now(); this.fillTries = 0; this.remoteBusy = false; if (this.remoteState === 'none') this.remoteState = 'failed'; });
   }
+  // BOOK-REPLAY: while bar replay is on, read the recorder in aligned 1 h chunks (shared edge cache, small reads on phones), newest
+  // first, only the chunks between the left edge of the chart (at most 12 h before the clock) and the replay clock. Futures: the hub
+  // (30 d, book tier only, chart-futures-l2.js bookHistory); crypto: Binance spot (/book-history). One read at a time; a failure waits.
+  needReplay(fromMs, toMs) {
+    const E = replayClock();
+    if (!E || this.remoteBusy) return;
+    if (!this.custom && (/\.P$/i.test(this.ticker) || this.provider !== 'binance' || !recorderUrl())) return;
+    const now = Date.now();
+    if (this.remoteFailAt && now - this.remoteFailAt < 30000) return;
+    const keep = BOOK_RECORDER_KEEP_MS;   // both recorders keep 30 d (ts-hub.js BOOK_KEEP_H, index.js KEEP_MS)
+    const lo = Math.max(now - keep + 60000, E - REPLAY_BACK_MS, Math.min(fromMs, E - 5 * 60000));
+    const done = this.rpDone || (this.rpDone = new Set());
+    const c = lo < E ? nextChunk(done, lo, Math.min(E + 60000, now), REPLAY_CHUNK_MS) : null;
+    if (c == null) { if (!this.rpCovered) { this.rpCovered = true; this.bump(); } return; }
+    this.rpCovered = false;
+    this.remoteBusy = true;
+    const sym = this.ticker.replace(/^[A-Z]+:/i, '').toUpperCase();
+    const read = this.custom ? this.custom.remote(c, c + REPLAY_CHUNK_MS)
+      : fetch(recorderUrl() + '/book-history?symbol=' + encodeURIComponent(sym) + '&from=' + c + '&to=' + (c + REPLAY_CHUNK_MS), { credentials: 'omit' })
+        .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); }).then((buf) => ({ buf, left: 0 }));
+    read.then((r) => {
+      const got = decodeBookHistory(r.buf);
+      if (!got) throw new Error('bad body');
+      // a column stands until the next sample (5 s live, 15 s past 48 h, 1 min crypto), at most 5 min (a gap stays a gap)
+      for (let k = 0; k < got.length; k++) got[k].span = k + 1 < got.length ? Math.max(5000, Math.min(5 * 60000, got[k + 1].ts - got[k].ts)) : BOOK_REMOTE_SPAN_MS;
+      const seen = new Set(this.remote.map((x) => x.ts));
+      this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).sort((x, y) => x.ts - y.ts);
+      // done unless the hub is still filling from the archive, or the chunk reaches the last 2 min (still being recorded)
+      if ((!(r.left > 0) || (this.fillTries = (this.fillTries || 0) + 1) >= 20) && c + REPLAY_CHUNK_MS < Date.now() - 120000) { done.add(c); this.fillTries = 0; }
+      this.remoteFailAt = 0; this.remoteState = 'ok'; this.remoteBusy = false;
+      this.bump();
+    }).catch(() => { this.remoteFailAt = Date.now(); this.remoteBusy = false; if (this.remoteState === 'none') this.remoteState = 'failed'; this.bump(); });
+  }
   // recorder + local history, merged once per change (not per frame)
   allHistory() {
     const h = this.history, r = this.remote;
@@ -1970,8 +2007,24 @@ class BookFeed {
     if (key !== this.mergedKey) { this.mergedKey = key; this.merged = mergeBookHistory(r, h); }
     return this.merged;
   }
+  // The book to draw now: during bar replay the recorded sample at or before the replay clock (none within 10 min = an empty
+  // book, never the current one), else the live book. Cached per history version + clock.
+  bookNow() {
+    const E = replayClock();
+    if (!E) return this.book;
+    const k = this.version + ':' + E;
+    if (this.rpBookKey !== k) { this.rpBookKey = k; this.rpBook = sampleBook(sampleAt(this.allHistory(), E, 10 * 60000)); }
+    return this.rpBook;
+  }
   bump() { this.version++; this.listeners.forEach(fn => { try { fn(); } catch (e) {} }); }
   close() { try { this.stop(); } catch (e) {} clearInterval(this.flushTm); domSave(this); }
+}
+// bar replay: what the heatmap says instead of the live feed state (only Binance spot and futures L2 are recorded)
+export function replayNote(f) {
+  const g = replayGap(f, replayClock(), Date.now());
+  if (g != null) return g;
+  const b = f.bookNow();
+  return b.bids.size + b.asks.size ? '' : 'No recorded order book at this time.';
 }
 function acquireBookFeed(provider, ticker, fn, opts) {
   const key = bookKey(provider, ticker);
@@ -2122,6 +2175,7 @@ function cryptoDomLayer() {
       if (!g || !a.data || a.data.off || !a.bars.length) return;
       const f = bookFeeds.get(a.data.feed);
       if (!f || !f.book) return;
+      const bk = f.bookNow();   // bar replay: the recorded book at the replay clock, else the current one
       const tStart = performance.now();
       const cfg = a.data.cfg, co = a.coords, top = a.bounds.top, bot = top + a.bounds.height;
       const font = (a.theme && a.theme.fontFamily) || 'sans-serif';
@@ -2142,7 +2196,7 @@ function cryptoDomLayer() {
       }
       // Frame step: a whole multiple of the stored rows (coarse, or the fine layer when the frame
       // is finer than the coarse rows), so stored rows sum exactly.
-      const mid0 = bookMid(f.book.bestBid, f.book.bestAsk);
+      const mid0 = bookMid(bk.bestBid, bk.bestAsk);
       const fst = mid0 > 0 ? f.fineStep(mid0) : 0;
       const unit = sst > 0 && step < sst * 0.999 && fst > 0 && fst < sst / 1.5 ? fst : sst;
       if (unit > 0) step = step <= unit * 1.0001 ? unit : unit * Math.max(1, Math.round(step / unit));
@@ -2152,11 +2206,11 @@ function cryptoDomLayer() {
       // has one (so they never sit on the newest candles), else against the price scale.
       // The heatmap and walls end where the depth bars start.
       // no book right now (market closed, before the first frame): no depth-bar strip, the heatmap runs to the price scale
-      const hasBook = f.book.bids.size + f.book.asks.size > 0;
+      const hasBook = bk.bids.size + bk.asks.size > 0;
       let depthW = cfg.depth && hasBook ? Math.max(36, Math.round(W * cfg.widthPct)) : 0;
       let depthX = W - depthW;
       if (cfg.depth && hasBook) {
-        const xNow = co.timeToX(Date.now()) + Math.max(3, co.pxPerBar ? co.pxPerBar() / 2 : 3) + 4;
+        const xNow = co.timeToX(replayClock() || Date.now()) + Math.max(3, co.pxPerBar ? co.pxPerBar() / 2 : 3) + 4;
         if (Number.isFinite(xNow) && xNow > depthX && xNow < W - 36) { depthX = xNow; depthW = W - xNow; }
       }
       const right = depthW ? depthX - 2 : W;
@@ -2167,7 +2221,7 @@ function cryptoDomLayer() {
         scaleMin: a.scale.min, scaleMax: a.scale.max };
 
       // ---- history -> pixel columns (>= 2 px wide), x from the chart's own time axis ----
-      const now = Date.now();
+      const now = replayClock() || Date.now();
       // left edge of the visible chart (first bar at x >= 0): the recorder is asked back to it
       let lo = 0, hi = a.bars.length - 1;
       while (lo < hi) { const m = (lo + hi) >> 1; if (co.timeToX(a.bars[m].time) < 0) lo = m + 1; else hi = m; }
@@ -2205,7 +2259,7 @@ function cryptoDomLayer() {
       // visible values (all columns + the current book) -> percentiles
       const range = cfg.range;
       keepMidRow = !!f.custom;
-      const curS = bucketBook(f.book, step, range);
+      const curS = bucketBook(bk, step, range);
       const curFlat = curS ? rowsAt(curS, step, iLo, iHi, []) : [];
       const vals = [];
       let rLo = Infinity, rHi = -Infinity;
@@ -2469,7 +2523,7 @@ function cryptoDomLayer() {
           g.save(); g.beginPath(); g.rect(x0, top, depthW, a.bounds.height); g.clip(); g.textBaseline = 'middle';
           // placement: biggest first, one number per minGap px (14 at 390), and when the strip is tight only the top 30% by size compete;
           // nothing is drawn within 9 px of the last-price line (the price label sits there)
-          const minGap = W < 520 ? 14 : need + 1, lastPx = f.book && f.book.bestBid ? yOf((f.book.bestBid + f.book.bestAsk) / 2) : -1e9;
+          const minGap = W < 520 ? 14 : need + 1, lastPx = bk && bk.bestBid ? yOf((bk.bestBid + bk.bestAsk) / 2) : -1e9;
           const cand = chunks.filter((c) => Math.abs((c.y0 + c.y1) / 2 - lastPx) >= 9).sort((a, b) => b.sum - a.sum);
           const tight = cand.length * minGap > a.bounds.height * 0.9;
           const pool = tight ? cand.slice(0, Math.max(3, Math.ceil(cand.length * 0.3))) : cand;
@@ -2497,8 +2551,8 @@ function cryptoDomLayer() {
       }
 
       // ---- Split: dotted last-price line across the heat area (the axis keeps the one price tag) ----
-      if (split && f.book && f.book.bestBid > 0 && f.book.bestAsk > 0) {
-        const lp = (f.book.bestBid + f.book.bestAsk) / 2, ly = Math.round(yOf(lp)) + 0.5;
+      if (split && bk && bk.bestBid > 0 && bk.bestAsk > 0) {
+        const lp = (bk.bestBid + bk.bestAsk) / 2, ly = Math.round(yOf(lp)) + 0.5;
         if (ly > top && ly < bot) {
           g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
           g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(0, ly); g.lineTo(W, ly); g.stroke(); g.setLineDash([]);
@@ -2540,8 +2594,8 @@ function cryptoDomLayer() {
           g.strokeStyle = col; g.lineWidth = 1; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(0, y); g.lineTo(right, y); g.stroke();
           g.setLineDash([]); g.fillStyle = col; g.font = 'bold 10px ' + font; g.textAlign = 'left'; g.fillText(label, 8, y - 4);
         };
-        lineAt(f.book.bestBid, cfg.bid, 'best bid');
-        lineAt(f.book.bestAsk, cfg.ask, 'best ask');
+        lineAt(bk.bestBid, cfg.bid, 'best bid');
+        lineAt(bk.bestAsk, cfg.ask, 'best ask');
       }
       g.restore();
       // timing of the frame where the bucket step changed (zoom / pan re-bins every drawn column)
@@ -2560,7 +2614,7 @@ class CryptoDomNative {
   start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; window.addEventListener('stryker:theme', this.onTheme); this.attach(); }
   attach() {
     if (!this.ctx) return;
-    const mk = marketOf(this.ctx);
+    const mk = btBook(marketOf(this.ctx));   // Replay One: the session's real market
     const pv = mk.provider === 'binance' || getVenue(mk.provider) ? mk.provider : '';   // Binance, or a venue adapter (orderflow-venues.js)
     const want = pv ? bookKey(pv, mk.ticker) : '';
     if (this.h && this.h.feed.key === want) { this.wantNow(); this.render(); return; }
@@ -2581,6 +2635,7 @@ class CryptoDomNative {
   note() {
     if (this.block) return this.block;
     const f = this.h && this.h.feed;
+    if (f && replayClock()) return replayNote(f);
     if (!f || f.status === 'loading') return 'Loading order book…';
     if (f.status === 'error') return f.err || 'Order book unavailable.';
     if (f.status === 'reconnecting') return 'Reconnecting to order book…';
@@ -2652,8 +2707,8 @@ export function installOrderflow(Core) {
   reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
-  installFuturesL2(Core, { hfSchema, SMOOTH_INPUT, cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds }, reg);
-  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, marketOf, message, pageIsDay, feedTrades }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
+  installFuturesL2(Core, { hfSchema, SMOOTH_INPUT, cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds, replayNote, btBook }, reg);
+  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, marketOf, message, pageIsDay, feedTrades, replayNote, btBook }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
   installBookPack(Core, { line, message, pageIsDay }, reg);
   installPatterns(Core, {}, reg);   // Auto Chart Patterns: Free for every plan (assets/chart-patterns.js)
   installL2Flow(Core, { line, message, pageIsDay, acquireBookFeed }, reg);

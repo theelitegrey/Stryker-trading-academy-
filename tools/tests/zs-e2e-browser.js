@@ -116,8 +116,21 @@ const clearZs = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context(
 
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
-    // ---------- 1. hidden by default ----------
-    {
+    // ---------- 1. launched (Owner 07 Nov): Zscript shows with no ?zs flag ----------
+    const LAUNCHED = /ZS_LAUNCHED\s*=\s*true/.test(require('fs').readFileSync(require('path').join(__dirname, '../../assets/zs-config.js'), 'utf8'));
+    if (LAUNCHED) {
+      const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+      await ctx.addInitScript(richstub);
+      await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost|cdn\.jsdelivr\.net)/, (r) => r.abort());
+      const p = await ctx.newPage();
+      await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+      await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_ZS, null, { timeout: 60000 });
+      check(true, 'launched: Zscript loads on /charts with no ?zs flag');
+      await p.goto(BASE + '/script-library.html', { waitUntil: 'load' }); await sleep(1500);
+      const lib = await p.evaluate(() => document.getElementById('zl-root').innerText);
+      check(!/not open yet/.test(lib), 'launched: /script-library is open', lib.slice(0, 80));
+      await ctx.close();
+    } else {
       const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
       await ctx.addInitScript(richstub);
       await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost|cdn\.jsdelivr\.net)/, (r) => r.abort());

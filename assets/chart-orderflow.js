@@ -30,22 +30,22 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=903';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=903';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=903';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=903';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=903';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=903';
-import * as ProGate from './chart-pro-gate.js?v=903';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=903';
-import * as BT from './chart-bigtrades.js?v=903';
-import { installBookPack } from './chart-book-pack.js?v=903';
-import { installPatterns } from './chart-patterns.js?v=903';
-import { installL2Flow } from './chart-l2-flow.js?v=903';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=903';
-import { installDepthHeatmap } from './chart-depth-heatmap.js?v=903';
-export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=903';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=903';
+import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=904';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=904';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=904';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=904';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=904';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=904';
+import * as ProGate from './chart-pro-gate.js?v=904';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=904';
+import * as BT from './chart-bigtrades.js?v=904';
+import { installBookPack } from './chart-book-pack.js?v=904';
+import { installPatterns } from './chart-patterns.js?v=904';
+import { installL2Flow } from './chart-l2-flow.js?v=904';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=904';
+import { installDepthHeatmap } from './chart-depth-heatmap.js?v=904';
+export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=904';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=904';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -1910,8 +1910,8 @@ class BookFeed {
   }
   // Ask the recorder for history back to `fromMs` (the left edge of the visible chart). One
   // request in flight; only the part older than what is held; a failure waits 5 min.
-  needRemote(fromMs) {
-    if (this.custom) return this.needRemoteCustom(fromMs);
+  needRemote(fromMs, toMs) {
+    if (this.custom) return this.needRemoteCustom(fromMs, toMs);
     if (/\.P$/i.test(this.ticker) || this.remoteBusy || this.provider !== 'binance') return;   // the recorder holds Binance spot only
     const base = recorderUrl();
     if (!base) return;
@@ -1936,14 +1936,15 @@ class BookFeed {
       .then(() => { this.remoteBusy = false; });
   }
   // futures L2: the same bookkeeping against the custom source's own history call (ts-hub /ts-book-history, 48 h kept, 6 h per read)
-  needRemoteCustom(fromMs) {
+  // toMs: the end of the data (last bar); the first read starts there instead of at the clock only while the hub says the market is closed
+  needRemoteCustom(fromMs, toMs) {
     if (this.remoteBusy || !this.custom.remote) return;
     const now = Date.now();
     if (this.remoteFailAt && now - this.remoteFailAt < BOOK_REMOTE_RETRY_MS) return;
     const keep = this.keepMs || BOOK_REMOTE_KEEP_MS;
     const target = Math.max(Math.floor((now - keep) / 60000) * 60000 + 60000, Math.floor(fromMs / BOOK_REMOTE_ALIGN_MS) * BOOK_REMOTE_ALIGN_MS);
     if (!(target < this.remoteFrom - 60000)) return;
-    const to = Number.isFinite(this.remoteFrom) ? this.remoteFrom : now;
+    const to = Number.isFinite(this.remoteFrom) ? this.remoteFrom : toMs < now && this.custom.closed && this.custom.closed() ? toMs : now;
     const from = Math.max(target, to - 6 * 3600000);   // the Worker answers at most 6 h a read; the next read continues leftwards
     this.remoteBusy = true;
     this.custom.remote(from, Math.ceil(to / 60000) * 60000)
@@ -1956,7 +1957,7 @@ class BookFeed {
         this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).filter((x) => x.ts >= cut).sort((x, y) => x.ts - y.ts);
         this.remoteFailAt = 0; this.remoteState = 'ok';
         // the Worker fills its gaps from the archive a slice at a time: ask the SAME range again until nothing is left (the screen fills as it goes)
-        if (r.left > 0 && (this.fillTries = (this.fillTries || 0) + 1) < 60) setTimeout(() => { this.remoteBusy = false; this.needRemoteCustom(fromMs); }, 1100);   // <= ~55 reads a minute (Worker limit 60)
+        if (r.left > 0 && (this.fillTries = (this.fillTries || 0) + 1) < 60) setTimeout(() => { this.remoteBusy = false; this.needRemoteCustom(fromMs, toMs); }, 1100);   // <= ~55 reads a minute (Worker limit 60)
         else { this.remoteFrom = from; this.fillTries = 0; this.remoteBusy = false; }
         this.bump();
       })
@@ -2150,13 +2151,15 @@ function cryptoDomLayer() {
       // Depth bars: ~widthPct of the chart, in the empty space right of "now" when the chart
       // has one (so they never sit on the newest candles), else against the price scale.
       // The heatmap and walls end where the depth bars start.
-      let depthW = cfg.depth ? Math.max(36, Math.round(W * cfg.widthPct)) : 0;
+      // no book right now (market closed, before the first frame): no depth-bar strip, the heatmap runs to the price scale
+      const hasBook = f.book.bids.size + f.book.asks.size > 0;
+      let depthW = cfg.depth && hasBook ? Math.max(36, Math.round(W * cfg.widthPct)) : 0;
       let depthX = W - depthW;
-      if (cfg.depth) {
+      if (cfg.depth && hasBook) {
         const xNow = co.timeToX(Date.now()) + Math.max(3, co.pxPerBar ? co.pxPerBar() / 2 : 3) + 4;
         if (Number.isFinite(xNow) && xNow > depthX && xNow < W - 36) { depthX = xNow; depthW = W - xNow; }
       }
-      const right = cfg.depth ? depthX - 2 : W;
+      const right = depthW ? depthX - 2 : W;
       const split = cfg.bm && cfg.look === 'split', splitSide = split && cfg.colorBy !== 'heat';
       // Split (side colours): neon green bids, neon violet asks on the depth bars and the size numbers
       const bidRgb = splitSide ? '57,255,106' : rgbOf(cfg.bid).join(','), askRgb = splitSide ? '192,77,255' : rgbOf(cfg.ask).join(',');
@@ -2169,11 +2172,17 @@ function cryptoDomLayer() {
       let lo = 0, hi = a.bars.length - 1;
       while (lo < hi) { const m = (lo + hi) >> 1; if (co.timeToX(a.bars[m].time) < 0) lo = m + 1; else hi = m; }
       const visFrom = a.bars[lo] ? a.bars[lo].time : now;
-      if (cfg.heat || cfg.walls || cfg.bm) f.needRemote(cfg.bm ? visFrom : Math.max(visFrom, now - cfg.historyMin * 60000));
+      // the history window ends at the END OF THE DATA when the feed is not live (weekend, daily halt, holiday): anchored at the clock,
+      // a 6 h window on a Saturday held nothing of Friday's session and the heatmap stayed empty (Owner 2026-11-07)
+      const nb = a.bars.length, tf = nb > 1 ? Math.max(1000, a.bars[nb - 1].time - a.bars[nb - 2].time) : 60000;
+      const lastLocal = f.history.length ? f.history[f.history.length - 1].ts : 0;
+      const ref = f.status === 'live' || now - lastLocal < 120000 ? now : Math.min(now, Math.max(a.bars[nb - 1].time + tf, lastLocal));
+      if (cfg.heat || cfg.walls || cfg.bm) f.needRemote(cfg.bm ? visFrom : Math.max(visFrom, ref - cfg.historyMin * 60000), ref);
       const all = f.allHistory();
       // bar replay: book samples after the replay clock are never drawn (no lookahead; Smooth then averages only what is left)
       const rp = window.__stkReplay, cutT = rp && rp.on ? rp.now() : Infinity;
-      const hist = cfg.bm ? all.filter(h => h.ts >= visFrom - 5 * 60000 && h.ts <= cutT) : all.filter(h => now - h.ts <= cfg.historyMin * 60000 && h.ts <= cutT);
+      const hist = cfg.bm ? all.filter(h => h.ts >= visFrom - 5 * 60000 && h.ts <= cutT) : all.filter(h => ref - h.ts <= cfg.historyMin * 60000 && h.ts <= cutT);
+      stat.histRef = ref;
       stat.samples = hist.length; stat.histFrom = hist.length ? hist[0].ts : 0; stat.histTo = hist.length ? hist[hist.length - 1].ts : 0; stat.replayCut = Number.isFinite(cutT) ? cutT : null; stat.recordedFrom = f.history.length ? f.history[0].ts : 0;
       stat.remoteSamples = f.remote.length; stat.remoteFrom = f.remote.length ? f.remote[0].ts : 0; stat.remoteState = f.remoteState; stat.visFrom = visFrom;
       const newest = f.history[f.history.length - 1];

@@ -12,18 +12,18 @@
 //                  is trade-only and also runs without L2. Walls = the Large Resting Orders size (same session histogram) or the heatmap's colour filter.
 // Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=903';
-import { isFree } from './chart-pro-gate.js?v=903';
-import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory } from './chart-futures-l2.js?v=903';
-import { decodeBookHistory } from './chart-orderflow.js?v=903';
-import * as C from './book-panel-core.js?v=903';
-import { openSource } from './book-panel-sources.js?v=903';
-import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=903';
-import { sweepBars } from './chart-of-pro.js?v=903';
-import { icebergEvents } from './chart-liquidity-data.js?v=903';
-import * as D from './chart-book-pack-data.js?v=903';
-import { hfLive } from './chart-heat-filter.js?v=903';
-import { STYLES as BM_STYLES } from './chart-bookmap.js?v=903';
+import { registerFeed } from './chart-feeds.js?v=904';
+import { isFree } from './chart-pro-gate.js?v=904';
+import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory, l2Closed } from './chart-futures-l2.js?v=904';
+import { decodeBookHistory } from './chart-orderflow.js?v=904';
+import * as C from './book-panel-core.js?v=904';
+import { openSource } from './book-panel-sources.js?v=904';
+import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=904';
+import { sweepBars } from './chart-of-pro.js?v=904';
+import { icebergEvents } from './chart-liquidity-data.js?v=904';
+import * as D from './chart-book-pack-data.js?v=904';
+import { hfLive } from './chart-heat-filter.js?v=904';
+import { STYLES as BM_STYLES } from './chart-bookmap.js?v=904';
 
 export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
@@ -109,13 +109,15 @@ class Store {
   large(pct) { let l = this.larges.get(pct); if (!l) { l = { pct, tr: new D.LargeTracker(), thr: null }; this.larges.set(pct, l); } return l; }
 
   // ---- recorder backfill (futures): the SAME /ts-book-history read the heatmap uses (bookHistory shares it), 6 h a read, leftwards
-  need(fromMs) {
+  // toMs: the end of the data (last bar); while the hub says the market is closed the 24 h window ends there, not at the clock
+  need(fromMs, toMs) {
     if (this.kind !== 'futures' || this.hBusy || this.hDone) return;
     const now = Date.now();
     if (this.hFailAt && now - this.hFailAt < 60000) return;
-    const target = Math.floor(Math.max(fromMs, now - 24 * 3600000) / 60000) * 60000;
+    const end = toMs < now && l2Closed(this.spec.root) ? toMs : now;
+    const target = Math.floor(Math.max(fromMs, end - 24 * 3600000) / 60000) * 60000;
     if (!(target < this.hFrom - 60000)) { this.hDone = true; return; }
-    const to = Number.isFinite(this.hFrom) ? this.hFrom : Math.ceil(now / 60000) * 60000, from = Math.max(target, to - 6 * 3600000);
+    const to = Number.isFinite(this.hFrom) ? this.hFrom : Math.ceil(end / 60000) * 60000, from = Math.max(target, to - 6 * 3600000);
     this.hBusy = true; if (!this.hAt) this.hAt = now;
     // never hang: a read that has not answered in 12 s counts as failed (retried after 60 s); the note never sits on "Loading"
     Promise.race([bookHistory(this.spec.root, from, to), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))]).then((r) => {
@@ -123,7 +125,7 @@ class Store {
       const seen = new Set(this.remote.map((x) => x.ts));
       this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).sort((a, b) => a.ts - b.ts);
       this.hFailAt = 0; this.rebuildHist();
-      if (r.left > 0 && (this.tries = (this.tries || 0) + 1) < 60) setTimeout(() => { this.hBusy = false; this.need(fromMs); }, 1100);
+      if (r.left > 0 && (this.tries = (this.tries || 0) + 1) < 60) setTimeout(() => { this.hBusy = false; this.need(fromMs, toMs); }, 1100);
       else { this.hFrom = from; this.tries = 0; this.hBusy = false; if (from <= target) this.hDone = true; this.poke(); }
     }).catch(() => { this.hFailAt = Date.now(); this.tries = 0; this.hBusy = false; });
   }
@@ -365,7 +367,7 @@ class BkNative {
     if (g.msg) { this.unbind(); return this.say(g.msg); }
     this.bind(g.spec);
     const s = this.h.s, I = this.inputs, ctx = this.ctx, bars = ctx.bars(), t = this.type;
-    if (s.kind === 'futures' && bars.length) s.need(bars[0].time);
+    if (s.kind === 'futures' && bars.length) s.need(bars[0].time, bars[bars.length - 1].time + 60000);
     if (!s.last && !s.remote.length) { ctx.setStatus('loading'); ctx.emit({ series: t === 'stk_bk_speed' ? [speedSeries(bars.map((x) => ({ time: x.time, value: null })), I.normalColor)] : t === 'stk_bk_bal' ? balSeries(bars, bars.map(() => null), bars.map(() => null), bars.map(() => null), I) : [], tables: [H.message(t + '-msg', s.status === 'unlisted' || s.status === 'error' ? (s.note || 'Order book unavailable.') : 'Connecting to the order book…', H.pageIsDay(), 'top_right')] }); this.push({ off: true }); return; }
     ctx.setStatus('live');
     const tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;

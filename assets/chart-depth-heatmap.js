@@ -13,11 +13,11 @@
 //   - right side: the current book per price row (red asks above, green bids below, sizes) and an optional cumulative column;
 //   - bottom: buy / sell volume bars per bar; a last-price line and the best bid / ask sizes at the right edge.
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
-import { drawBookmap, STYLES, SMOOTH_OPTS } from './chart-bookmap.js?v=903';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=903';
-import { l2Root, l2Source, l2Badge, rootState, L2_TYPES } from './chart-futures-l2.js?v=903';
-import { sphere, drawLadder } from './chart-liquidity-map.js?v=903';
-import { getVenue } from './orderflow-venues.js?v=903';
+import { drawBookmap, STYLES, SMOOTH_OPTS } from './chart-bookmap.js?v=904';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=904';
+import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote } from './chart-futures-l2.js?v=904';
+import { sphere, drawLadder } from './chart-liquidity-map.js?v=904';
+import { getVenue } from './orderflow-venues.js?v=904';
 
 export const DH_TYPE = 'stk_depth_heat';
 export const DH_TITLE = 'Depth Heatmap (L2)';
@@ -210,7 +210,7 @@ export function dhLayer(H) {
       let lo = 0, hi = nb - 1;
       while (lo < hi) { const m = (lo + hi) >> 1; if (co.timeToX(bars[m].time) < 0) lo = m + 1; else hi = m; }
       const visFrom = bars[lo] ? bars[lo].time : now;
-      f.needRemote(visFrom - cfg.smooth);
+      f.needRemote(visFrom - cfg.smooth, nb ? bars[nb - 1].time + (nb > 1 ? Math.max(1000, bars[nb - 1].time - bars[nb - 2].time) : 60000) : now);   // market closed: the first read starts at the last bar
       const from = visFrom - 5 * 60000 - cfg.smooth;
       const raw = f.allHistory().filter((h) => h.ts >= from && h.ts <= now);
       let s0 = st.get(f.key); if (!s0) st.set(f.key, s0 = {});
@@ -322,13 +322,14 @@ export function installDepthHeatmap(Core, H, reg) {
       const f = this.h && this.h.feed;
       if (!f || f.status === 'loading') return 'Loading the order book…';
       if (f.status === 'error') return f.err || 'Order book unavailable.';
-      if (f.status === 'reconnecting') return 'Reconnecting to the order book…';
+      if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? closedNote() : 'Reconnecting to the order book…';
       if (f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
       return '';
     }
     render() {
       if (!this.ctx || this.hidden) return;
       const msg = this.note(), f = this.h && this.h.feed;
+      window.__stkDhNote = msg;   // test hook (tools/tests/heatmap-closed-browser.js)
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       this.ctx.emit({ tables: msg ? [H.message('stk_dh-msg', msg, H.pageIsDay(), 'top_right')] : [] });
       this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: dhConfig(this.inputs) } : { off: true });

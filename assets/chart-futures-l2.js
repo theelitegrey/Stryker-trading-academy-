@@ -12,12 +12,13 @@
 //   ticks  trades since the last frame                                               -> walls pulled / consumed, ladder volume
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
-import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=903';
-import { isFree, tierKnown, onTier, upgrade } from './chart-pro-gate.js?v=903';
-import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=903';
-import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=903';
-import { hfLive } from './chart-heat-filter.js?v=903';
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=903';
+import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=904';
+import { isFree, tierKnown, onTier, upgrade } from './chart-pro-gate.js?v=904';
+import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=904';
+import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=904';
+import { hfLive } from './chart-heat-filter.js?v=904';
+import { cmeOpenNow } from './chart-futures-provider.js?v=904';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=904';
 
 export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
@@ -71,6 +72,11 @@ export function rootState(root) {
   return r;
 }
 const tell = (r) => r.listeners.forEach((f) => { try { f(); } catch (e) {} });
+// market closed, not a broken feed: the hub says 'idle' (its upstream is open, CME is not: ts-hub.js liveState), or the CME session clock
+// says closed (weekend / daily halt) while the hub's upstream is itself down
+export const l2Closed = (root) => { const r = roots.get(root); return !!(r && r.status !== 'live' && r.status !== 'error' && (r.closed || !cmeOpenNow())); };
+// phone: the short form, the long one runs into the chart legend at 390 px
+export const closedNote = () => (document.documentElement.getAttribute('data-device') === 'mobile' ? 'Market closed · last session' : 'Market closed · showing the last session\'s order book');
 
 // ---------------------------------------------------------------------------------------- tick feed (footprint minutes)
 // Same minute-bar shape as chart-footprint-crypto.js bars(): { t, lo, hi, buy[], sell[] } in tick-index rows, so
@@ -190,7 +196,7 @@ class Conn {
   later(ms) { clearTimeout(this.tm); const w = ms || Math.min(30000, 1500 * Math.pow(2, Math.min(this.retryN++, 5))) * (0.8 + Math.random() * 0.4); this.tm = setTimeout(() => this.connect(), w); }
   frame(m) {
     const r = rootState(this.root);
-    if (m.event === 'status') { r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
+    if (m.event === 'status') { r.closed = m.state === 'idle'; r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
     if (m.event === 'hub_attached') {
       DIAG.tier = String(m.tier) + '/' + String(m.state);
       // A Pro member can be told 'trades' by one socket (the tier check on the Worker hit a hiccup / stale token) while the book history, gated the same way, loads fine.
@@ -200,12 +206,12 @@ class Conn {
       // back to the 10-minute bars for seconds on some loads only ("sometimes live, sometimes not").
       if (m.tier !== 'book' && bookTier !== true && !l2Proven(this.root) && liveVisible() && tierKnown() && !isFree() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
       if (m.tier === 'book') this.tierTry = 0;
-      setTier(m.tier); r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
-    if (m.event === 'ping') { const st = m.state === 'live' ? 'live' : 'reconnecting'; if (r.status !== st && r.status !== 'error') { r.status = st; tell(r); } return; }   // the hub's 5 s heartbeat carries its data state: no data for 10 s = reconnecting
+      setTier(m.tier); r.closed = m.state === 'idle'; r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
+    if (m.event === 'ping') { const st = m.state === 'live' ? 'live' : 'reconnecting', cl = m.state === 'idle'; if ((r.status !== st && r.status !== 'error') || r.closed !== cl) { r.closed = cl; if (r.status !== 'error') r.status = st; tell(r); } return; }   // the hub's 5 s heartbeat carries its data state: no data for 10 s = reconnecting
     if (m.event === 'hub_full') { r.status = 'error'; r.err = 'busy'; tell(r); return; }
     if (m.event) return;
     const wasProven = m.type === 'snap' && l2Proven(this.root);
-    r.lastFrame = Date.now();
+    r.lastFrame = Date.now(); r.closed = false;
     if ((m.type === 'snap' || m.type === 'coarse') && bookTier !== true) { if (m.type === 'snap') r.nSnap = (r.nSnap || 0) + 1, r.snapCounted = true; setTier('book'); }   // the server only sends book frames to a book-tier socket: the data is proof, whatever the earlier hub_attached said
     if (m.type === 'snap') {
       if (r.snapCounted) r.snapCounted = false; else r.nSnap = (r.nSnap || 0) + 1; r.snap = m; r.status = 'live';
@@ -434,6 +440,7 @@ export function l2Source(root) {
     base: 'contracts', keepMs: KEEP_MS, rule,
     trades: () => rootState(root).trades || (rootState(root).trades = new TickFeed(root)),
     remote: (from, to) => bookHistory(root, from, to),
+    closed: () => l2Closed(root),
     open(onBook, onStatus, onCoarse) {
       const book = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null, ts: 0 };
       let lastCoarseAt = 0;
@@ -454,6 +461,7 @@ export function l2Source(root) {
         }
       };
       const h = acquire(root, fn, 60);
+      fn();   // the socket may already be up (candles share it): take its current state now, the hub repeats 'status' only on a change
       return Object.assign(() => h.release(), { tick() {}, age() {} });
     }
   };
@@ -550,7 +558,7 @@ export function installFuturesL2(Core, H, reg) {
       const st = rootState(this.root);
       if (!f || f.status === 'loading') return 'Connecting to the futures order book…';
       if (f.status === 'error') return st.err === 'busy' ? 'Order book is busy. Retrying…' : 'Order book unavailable.';
-      if (st.status !== 'live') return 'Reconnecting to the order book…';
+      if (st.status !== 'live') return l2Closed(this.root) ? closedNote() : 'Reconnecting to the order book…';
       const cfg = H.domConfig(fcfg(this.inputs, this.walls));
       if ((cfg.heat || cfg.walls || cfg.bm) && f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
       try { return l2Note(H.marketOf(this.ctx).ticker); } catch (e) { return ''; }
@@ -559,6 +567,7 @@ export function installFuturesL2(Core, H, reg) {
     render() {
       if (!this.ctx || this.hidden) return;
       const msg = this.block === NOT_YET ? '' : this.note();   // the lock reason lives in the feed note (chart-feeds.js), never drawn over the legend
+      window.__stkL2Note = msg;   // test hook (tools/tests/heatmap-closed-browser.js)
       const f = this.h && this.h.feed;
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       this.ctx.emit({ tables: msg ? [H.message('stk_dom-msg', msg, H.pageIsDay(), 'top_right')] : [] });

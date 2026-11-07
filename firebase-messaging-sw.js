@@ -45,9 +45,9 @@ function notifOptions(data) {
   const isAlert = !!ALERT_TYPES[data.type];
   return {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=910',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=911',
     // Android draws the badge as a white mask of the alpha channel: the transparent TZ mark gives a clean glyph.
-    badge: '/assets/images/tradezoro-icon-192-494.png?v=910',
+    badge: '/assets/images/tradezoro-icon-192-494.png?v=911',
     // One tag per alert notification (two alerts must both show); other types collapse by type (five likes = one).
     tag: isAlert ? 'alert-' + data.type + '-' + (data.nid || Date.now()) : (data.type || 'stryker'),
     renotify: true,

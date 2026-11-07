@@ -19,17 +19,17 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=907';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=908';
 
-import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=907';
-import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=907';
-import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=907';
-import { installChartTypes } from './chart-types.js?v=907';
-import { rtHeadersReady } from './rt-access.js?v=907';
-import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=907';
-import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=907';
-import * as BT from './chart-bigtrades.js?v=907';
-import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=907';
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=908';
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=908';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=908';
+import { installChartTypes } from './chart-types.js?v=908';
+import { rtHeadersReady } from './rt-access.js?v=908';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=908';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=908';
+import * as BT from './chart-bigtrades.js?v=908';
+import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=908';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';

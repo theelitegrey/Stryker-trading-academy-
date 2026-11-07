@@ -7,7 +7,7 @@
 // Opened from the Dark pool list ("Alert me") and from the Alerts window ("+ Dark pool alert"); rows also listed there (dpRows).
 // Wording: "Dark pool print" alerts, never live / real-time; no vendor names. Education only. Not financial advice.
 // Depends on: firebase compat (auth + firestore), assets/chart-darkpool.js (DP_SYMS, SIZES, usd), toast.js (showToast).
-import { DP_SYMS, SIZES, usd, targetOf } from './chart-darkpool.js?v=907';
+import { DP_SYMS, SIZES, usd, targetOf } from './chart-darkpool.js?v=908';
 
 export const MAX_DP_ALERTS = 20;
 // Truth: dp-feeder.timer runs every 2 hours on weekdays. One line to change if the feeder schedule changes (workers/alert-engine/dp_alerts.py UPDATE_NOTE too).

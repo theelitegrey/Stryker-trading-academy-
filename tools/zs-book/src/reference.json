@@ -1,0 +1,6537 @@
+{
+ "generated": "../web-temp-1/assets/zs/catalog.js",
+ "counts": {
+  "functions": 264,
+  "variables": 66,
+  "constants": 146
+ },
+ "groups": [
+  {
+   "id": "general",
+   "title": "General",
+   "desc": "Core helpers: testing for missing values and changing types.",
+   "plan": ""
+  },
+  {
+   "id": "declaration",
+   "title": "Declaration and inputs",
+   "desc": "The indicator() line and every input.* setting.",
+   "plan": ""
+  },
+  {
+   "id": "ta",
+   "title": "Indicators (ta)",
+   "desc": "Moving averages, oscillators, volatility and pattern helpers. Each call keeps its own running memory, so call them on every bar.",
+   "plan": ""
+  },
+  {
+   "id": "math",
+   "title": "Math",
+   "desc": "Numbers and arithmetic.",
+   "plan": ""
+  },
+  {
+   "id": "str",
+   "title": "Text (str)",
+   "desc": "Building and reading text.",
+   "plan": ""
+  },
+  {
+   "id": "color",
+   "title": "Colors",
+   "desc": "Named colors and ways to make your own.",
+   "plan": ""
+  },
+  {
+   "id": "array",
+   "title": "Arrays",
+   "desc": "Lists of values. Method style works too: prices.push(close).",
+   "plan": ""
+  },
+  {
+   "id": "map",
+   "title": "Maps",
+   "desc": "Lookup tables from a key to a value.",
+   "plan": ""
+  },
+  {
+   "id": "plots",
+   "title": "Plots and chart colors",
+   "desc": "Everything that draws one value per bar. Call these at the top level of your script.",
+   "plan": ""
+  },
+  {
+   "id": "labels",
+   "title": "Labels",
+   "desc": "Text notes at a price and bar.",
+   "plan": ""
+  },
+  {
+   "id": "lines",
+   "title": "Lines",
+   "desc": "Line segments between two points.",
+   "plan": ""
+  },
+  {
+   "id": "boxes",
+   "title": "Boxes",
+   "desc": "Rectangles between two corners.",
+   "plan": ""
+  },
+  {
+   "id": "tables",
+   "title": "Tables",
+   "desc": "A grid of text pinned to a corner of the pane.",
+   "plan": ""
+  },
+  {
+   "id": "alerts",
+   "title": "Alerts",
+   "desc": "Rules and messages that notify you.",
+   "plan": ""
+  },
+  {
+   "id": "request",
+   "title": "Other symbols and timeframes",
+   "desc": "Read values from another timeframe or symbol. Never looks ahead.",
+   "plan": ""
+  },
+  {
+   "id": "book",
+   "title": "Order book (book)",
+   "desc": "Level 2 data: resting orders. Follows your plan like the charts do. Where there is no depth feed you get na and one notice.",
+   "plan": "Pro data. Returns na (plus one notice) when your plan does not include it."
+  },
+  {
+   "id": "flow",
+   "title": "Order flow (flow)",
+   "desc": "Trades, delta, big trades, footprint and value area, per bar.",
+   "plan": "Pro data. Returns na (plus one notice) when your plan does not include it."
+  },
+  {
+   "id": "gex",
+   "title": "GEX levels (gex)",
+   "desc": "Option gamma levels from GEX+. Updated a few minutes at a time, not an instant feed.",
+   "plan": "GEX+ data. Returns na (plus one notice) when your plan does not include it."
+  },
+  {
+   "id": "opt",
+   "title": "ZoroOptions (opt)",
+   "desc": "Gamma nodes, ranges, IV rank and more. Updated a few minutes at a time, not an instant feed.",
+   "plan": "Pro data. Returns na (plus one notice) when your plan does not include it."
+  },
+  {
+   "id": "builtin-vars",
+   "title": "Built-in variables",
+   "desc": "Values that exist in every script, such as close, bar_index and barstate.islast.",
+   "plan": ""
+  }
+ ],
+ "functions": [
+  {
+   "group": "general",
+   "name": "na",
+   "signature": "na(x)",
+   "desc": "True if x is na (missing).",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "x",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "general",
+   "name": "nz",
+   "signature": "nz(x, replacement=0)",
+   "desc": "x, or replacement when x is na.",
+   "returns": "the same type as the first argument",
+   "params": [
+    {
+     "name": "x",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "replacement",
+     "type": "any",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "general",
+   "name": "fixnan",
+   "signature": "fixnan(x)",
+   "desc": "The last non-na value of x. Call on every bar: it keeps its own running memory.",
+   "returns": "the same type as the first argument",
+   "params": [
+    {
+     "name": "x",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "general",
+   "name": "int",
+   "signature": "int(x)",
+   "desc": "Converts to a whole number (truncates toward zero).",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "x",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "general",
+   "name": "float",
+   "signature": "float(x)",
+   "desc": "Converts to a float.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "general",
+   "name": "bool",
+   "signature": "bool(x)",
+   "desc": "Converts to bool (na and 0 are false).",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "x",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "general",
+   "name": "string",
+   "signature": "string(x)",
+   "desc": "Converts to text.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "x",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "general",
+   "name": "color",
+   "signature": "color(x)",
+   "desc": "Casts to color.",
+   "returns": "a color",
+   "params": [
+    {
+     "name": "x",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "indicator",
+   "signature": "indicator(title, shorttitle=\"\", overlay=false, format=\"price\", precision=na, max_bars_back=500, max_labels_count=50, max_lines_count=50, max_boxes_count=50, max_tables_count=10, scale=\"right\", timeframe=\"\", explicit_plot_zorder=false)",
+   "desc": "Declares the script: its title and where it draws. Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "title",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "shorttitle",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "overlay",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "format",
+     "type": "string",
+     "desc": "Default \"price\""
+    },
+    {
+     "name": "precision",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "max_bars_back",
+     "type": "int",
+     "desc": "Default 500"
+    },
+    {
+     "name": "max_labels_count",
+     "type": "int",
+     "desc": "Default 50"
+    },
+    {
+     "name": "max_lines_count",
+     "type": "int",
+     "desc": "Default 50"
+    },
+    {
+     "name": "max_boxes_count",
+     "type": "int",
+     "desc": "Default 50"
+    },
+    {
+     "name": "max_tables_count",
+     "type": "int",
+     "desc": "Default 10"
+    },
+    {
+     "name": "scale",
+     "type": "string",
+     "desc": "Default \"right\""
+    },
+    {
+     "name": "timeframe",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "explicit_plot_zorder",
+     "type": "bool",
+     "desc": "Default false"
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input",
+   "signature": "input(defval, title=\"\", tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A setting; its type comes from the default value. Call at the top level of the script.",
+   "returns": "the same type as the first argument",
+   "params": [
+    {
+     "name": "defval",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.int",
+   "signature": "input.int(defval, title=\"\", minval=na, maxval=na, step=1, options=na, tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A whole-number setting. Call at the top level of the script.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "defval",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "minval",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "maxval",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "step",
+     "type": "int",
+     "desc": "Default 1"
+    },
+    {
+     "name": "options",
+     "type": "array",
+     "desc": "Default na"
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.float",
+   "signature": "input.float(defval, title=\"\", minval=na, maxval=na, step=na, options=na, tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A decimal-number setting. Call at the top level of the script.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "defval",
+     "type": "float",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "minval",
+     "type": "float",
+     "desc": "Default na"
+    },
+    {
+     "name": "maxval",
+     "type": "float",
+     "desc": "Default na"
+    },
+    {
+     "name": "step",
+     "type": "float",
+     "desc": "Default na"
+    },
+    {
+     "name": "options",
+     "type": "array",
+     "desc": "Default na"
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.bool",
+   "signature": "input.bool(defval, title=\"\", tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "An on/off setting. Call at the top level of the script.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "defval",
+     "type": "bool",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.string",
+   "signature": "input.string(defval, title=\"\", options=na, tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A text setting (or a dropdown with options). Call at the top level of the script.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "defval",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "options",
+     "type": "array",
+     "desc": "Default na"
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.color",
+   "signature": "input.color(defval, title=\"\", tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A color setting. Call at the top level of the script.",
+   "returns": "a color",
+   "params": [
+    {
+     "name": "defval",
+     "type": "color",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.source",
+   "signature": "input.source(defval=close, title=\"\", tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A price source setting (open, high, low, close, volume, hl2, hlc3, ohlc4, hlcc4). Call at the top level of the script.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "defval",
+     "type": "float",
+     "desc": "Default close"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.timeframe",
+   "signature": "input.timeframe(defval=\"\", title=\"\", options=na, tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A timeframe setting (\"\" = chart timeframe). Call at the top level of the script.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "defval",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "options",
+     "type": "array",
+     "desc": "Default na"
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.price",
+   "signature": "input.price(defval, title=\"\", tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A price-level setting. Call at the top level of the script.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "defval",
+     "type": "float",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.text_area",
+   "signature": "input.text_area(defval, title=\"\", tooltip=\"\", group=\"\", confirm=false, display=\"all\")",
+   "desc": "A multi-line text setting. Call at the top level of the script.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "defval",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "declaration",
+   "name": "input.symbol",
+   "signature": "input.symbol(defval=\"\", title=\"\", tooltip=\"\", group=\"\", inline=\"\", confirm=false, display=\"all\")",
+   "desc": "A symbol setting (\"\" = chart symbol). Call at the top level of the script.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "defval",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "group",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "inline",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "confirm",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.sma",
+   "signature": "ta.sma(source, length)",
+   "desc": "Simple moving average of the last length values. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.ema",
+   "signature": "ta.ema(source, length)",
+   "desc": "Exponential moving average (alpha 2/(length+1), starts from an SMA). Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.rma",
+   "signature": "ta.rma(source, length)",
+   "desc": "Wilder's moving average (alpha 1/length, starts from an SMA). Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.wma",
+   "signature": "ta.wma(source, length)",
+   "desc": "Linearly weighted moving average. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.vwma",
+   "signature": "ta.vwma(source, length)",
+   "desc": "Volume-weighted moving average. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.hma",
+   "signature": "ta.hma(source, length)",
+   "desc": "Hull moving average. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.alma",
+   "signature": "ta.alma(source, length, offset=0.85, sigma=6)",
+   "desc": "Arnaud Legoux moving average. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "offset",
+     "type": "float",
+     "desc": "Default 0.85"
+    },
+    {
+     "name": "sigma",
+     "type": "float",
+     "desc": "Default 6"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.swma",
+   "signature": "ta.swma(source)",
+   "desc": "Symmetric 4-bar weighted moving average. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.rsi",
+   "signature": "ta.rsi(source, length)",
+   "desc": "Relative strength index, 0 to 100. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.macd",
+   "signature": "ta.macd(source, fastlen=12, slowlen=26, siglen=9)",
+   "desc": "MACD line, signal line and histogram. Call on every bar: it keeps its own running memory.",
+   "returns": "several values: [float,float,float]",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "fastlen",
+     "type": "int",
+     "desc": "Default 12"
+    },
+    {
+     "name": "slowlen",
+     "type": "int",
+     "desc": "Default 26"
+    },
+    {
+     "name": "siglen",
+     "type": "int",
+     "desc": "Default 9"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.stoch",
+   "signature": "ta.stoch(source, high, low, length)",
+   "desc": "Stochastic: where source sits in the high-low range of length bars, 0 to 100. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "high",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "low",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.atr",
+   "signature": "ta.atr(length)",
+   "desc": "Average true range (RMA of the true range). Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.tr",
+   "signature": "ta.tr(handle_na=false)",
+   "desc": "True range of this bar. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "handle_na",
+     "type": "bool",
+     "desc": "Default false"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.bb",
+   "signature": "ta.bb(source, length, mult)",
+   "desc": "Bollinger Bands: middle, upper, lower. Call on every bar: it keeps its own running memory.",
+   "returns": "several values: [float,float,float]",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "mult",
+     "type": "float",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.bbw",
+   "signature": "ta.bbw(source, length, mult)",
+   "desc": "Bollinger Band width as a percent of the middle band. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "mult",
+     "type": "float",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.kc",
+   "signature": "ta.kc(source, length, mult, useTrueRange=true)",
+   "desc": "Keltner Channels: middle (EMA), upper, lower. Call on every bar: it keeps its own running memory.",
+   "returns": "several values: [float,float,float]",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "mult",
+     "type": "float",
+     "desc": ""
+    },
+    {
+     "name": "useTrueRange",
+     "type": "bool",
+     "desc": "Default true"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.kcw",
+   "signature": "ta.kcw(source, length, mult, useTrueRange=true)",
+   "desc": "Keltner Channel width. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "mult",
+     "type": "float",
+     "desc": ""
+    },
+    {
+     "name": "useTrueRange",
+     "type": "bool",
+     "desc": "Default true"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.cci",
+   "signature": "ta.cci(source, length)",
+   "desc": "Commodity channel index. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.mfi",
+   "signature": "ta.mfi(source, length)",
+   "desc": "Money flow index, 0 to 100. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.vwap",
+   "signature": "ta.vwap(source=hlc3, anchor=\"D\")",
+   "desc": "Volume-weighted average price, restarting each day (\"D\"), week (\"W\") or month (\"M\"). Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": "Default hlc3"
+    },
+    {
+     "name": "anchor",
+     "type": "string",
+     "desc": "Default \"D\""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.cum",
+   "signature": "ta.cum(source)",
+   "desc": "Running total of source since the first bar. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.change",
+   "signature": "ta.change(source, length=1)",
+   "desc": "source minus its value length bars ago (for bool: true if it changed). Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": "Default 1"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.mom",
+   "signature": "ta.mom(source, length)",
+   "desc": "Momentum: source minus source length bars ago. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.roc",
+   "signature": "ta.roc(source, length)",
+   "desc": "Rate of change in percent. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.crossover",
+   "signature": "ta.crossover(a, b)",
+   "desc": "True on the bar where a crosses above b. Call on every bar: it keeps its own running memory.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "a",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "b",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.crossunder",
+   "signature": "ta.crossunder(a, b)",
+   "desc": "True on the bar where a crosses below b. Call on every bar: it keeps its own running memory.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "a",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "b",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.cross",
+   "signature": "ta.cross(a, b)",
+   "desc": "True on the bar where a and b cross either way. Call on every bar: it keeps its own running memory.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "a",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "b",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.highest",
+   "signature": "ta.highest(source=high, length)",
+   "desc": "Highest value of the last length bars. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": "Default high"
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.lowest",
+   "signature": "ta.lowest(source=low, length)",
+   "desc": "Lowest value of the last length bars. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": "Default low"
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.highestbars",
+   "signature": "ta.highestbars(source=high, length)",
+   "desc": "Offset (0 or negative) to the highest bar of the last length bars. Call on every bar: it keeps its own running memory.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": "Default high"
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.lowestbars",
+   "signature": "ta.lowestbars(source=low, length)",
+   "desc": "Offset (0 or negative) to the lowest bar of the last length bars. Call on every bar: it keeps its own running memory.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": "Default low"
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.pivothigh",
+   "signature": "ta.pivothigh(source=high, leftbars, rightbars)",
+   "desc": "Pivot high price, known rightbars bars after the pivot (na otherwise). Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": "Default high"
+    },
+    {
+     "name": "leftbars",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "rightbars",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.pivotlow",
+   "signature": "ta.pivotlow(source=low, leftbars, rightbars)",
+   "desc": "Pivot low price, known rightbars bars after the pivot (na otherwise). Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": "Default low"
+    },
+    {
+     "name": "leftbars",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "rightbars",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.valuewhen",
+   "signature": "ta.valuewhen(condition, source, occurrence=0)",
+   "desc": "Value of source on the bar where condition was true (occurrence 0 = most recent). Call on every bar: it keeps its own running memory.",
+   "returns": "arg1",
+   "params": [
+    {
+     "name": "condition",
+     "type": "bool",
+     "desc": ""
+    },
+    {
+     "name": "source",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "occurrence",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.barssince",
+   "signature": "ta.barssince(condition)",
+   "desc": "Bars since condition was last true (na if never). Call on every bar: it keeps its own running memory.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "condition",
+     "type": "bool",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.stdev",
+   "signature": "ta.stdev(source, length, biased=true)",
+   "desc": "Standard deviation. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "biased",
+     "type": "bool",
+     "desc": "Default true"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.variance",
+   "signature": "ta.variance(source, length, biased=true)",
+   "desc": "Variance. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "biased",
+     "type": "bool",
+     "desc": "Default true"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.dev",
+   "signature": "ta.dev(source, length)",
+   "desc": "Mean absolute deviation from the SMA. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.correlation",
+   "signature": "ta.correlation(source1, source2, length)",
+   "desc": "Correlation coefficient, -1 to 1. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source1",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "source2",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.linreg",
+   "signature": "ta.linreg(source, length, offset=0)",
+   "desc": "Linear regression value (least squares line) at offset bars back. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "offset",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.supertrend",
+   "signature": "ta.supertrend(factor, atrPeriod)",
+   "desc": "SuperTrend line and direction (-1 up trend, 1 down trend). Call on every bar: it keeps its own running memory.",
+   "returns": "several values: [float,int]",
+   "params": [
+    {
+     "name": "factor",
+     "type": "float",
+     "desc": ""
+    },
+    {
+     "name": "atrPeriod",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.percentrank",
+   "signature": "ta.percentrank(source, length)",
+   "desc": "Percent of the previous length values that are at or below the current one. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.median",
+   "signature": "ta.median(source, length)",
+   "desc": "Median of the last length values. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.range",
+   "signature": "ta.range(source, length)",
+   "desc": "Highest minus lowest of the last length values. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.rising",
+   "signature": "ta.rising(source, length)",
+   "desc": "True if source rose on each of the last length bars. Call on every bar: it keeps its own running memory.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.falling",
+   "signature": "ta.falling(source, length)",
+   "desc": "True if source fell on each of the last length bars. Call on every bar: it keeps its own running memory.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.dmi",
+   "signature": "ta.dmi(diLength, adxSmoothing)",
+   "desc": "Directional movement: +DI, -DI and ADX. Call on every bar: it keeps its own running memory.",
+   "returns": "several values: [float,float,float]",
+   "params": [
+    {
+     "name": "diLength",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "adxSmoothing",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.wpr",
+   "signature": "ta.wpr(length)",
+   "desc": "Williams %R, -100 to 0. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.cmo",
+   "signature": "ta.cmo(source, length)",
+   "desc": "Chande momentum oscillator. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.tsi",
+   "signature": "ta.tsi(source, short_length, long_length)",
+   "desc": "True strength index, -1 to 1. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "short_length",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "long_length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.sar",
+   "signature": "ta.sar(start, inc, max)",
+   "desc": "Parabolic SAR. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "start",
+     "type": "float",
+     "desc": ""
+    },
+    {
+     "name": "inc",
+     "type": "float",
+     "desc": ""
+    },
+    {
+     "name": "max",
+     "type": "float",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "ta",
+   "name": "ta.mode",
+   "signature": "ta.mode(source, length)",
+   "desc": "Most frequent value of the last length values. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.abs",
+   "signature": "math.abs(x)",
+   "desc": "Absolute value.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.sign",
+   "signature": "math.sign(x)",
+   "desc": "-1, 0 or 1.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.sqrt",
+   "signature": "math.sqrt(x)",
+   "desc": "Square root.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.exp",
+   "signature": "math.exp(x)",
+   "desc": "e to the power x.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.log",
+   "signature": "math.log(x)",
+   "desc": "Natural logarithm.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.log10",
+   "signature": "math.log10(x)",
+   "desc": "Base-10 logarithm.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.pow",
+   "signature": "math.pow(base, exponent)",
+   "desc": "base to the power exponent.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "base",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "exponent",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.round",
+   "signature": "math.round(x, precision=na)",
+   "desc": "Rounds to the nearest whole number, or to precision decimals.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "precision",
+     "type": "int",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.floor",
+   "signature": "math.floor(x)",
+   "desc": "Rounds down.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.ceil",
+   "signature": "math.ceil(x)",
+   "desc": "Rounds up.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.min",
+   "signature": "math.min(...values)",
+   "desc": "Smallest of the values.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "values",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.max",
+   "signature": "math.max(...values)",
+   "desc": "Largest of the values.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "values",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.avg",
+   "signature": "math.avg(...values)",
+   "desc": "Average of the values.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "values",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.sum",
+   "signature": "math.sum(source, length)",
+   "desc": "Sum of the last length values. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "source",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.sin",
+   "signature": "math.sin(x)",
+   "desc": "Sine (radians).",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.cos",
+   "signature": "math.cos(x)",
+   "desc": "Cosine (radians).",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.tan",
+   "signature": "math.tan(x)",
+   "desc": "Tangent (radians).",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.asin",
+   "signature": "math.asin(x)",
+   "desc": "Arc sine.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.acos",
+   "signature": "math.acos(x)",
+   "desc": "Arc cosine.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.atan",
+   "signature": "math.atan(x)",
+   "desc": "Arc tangent.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.todegrees",
+   "signature": "math.todegrees(x)",
+   "desc": "Radians to degrees.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.toradians",
+   "signature": "math.toradians(x)",
+   "desc": "Degrees to radians.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.random",
+   "signature": "math.random(min=0, max=1, seed=na)",
+   "desc": "A repeatable pseudo-random number between min and max. Call on every bar: it keeps its own running memory.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "min",
+     "type": "num",
+     "desc": "Default 0"
+    },
+    {
+     "name": "max",
+     "type": "num",
+     "desc": "Default 1"
+    },
+    {
+     "name": "seed",
+     "type": "int",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "math",
+   "name": "math.round_to_mintick",
+   "signature": "math.round_to_mintick(x)",
+   "desc": "Rounds to the symbol's tick size.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.tostring",
+   "signature": "str.tostring(value, format=\"\")",
+   "desc": "Formats a value as text (\"#.##\", \"0.00\", \"percent\", \"price\", \"volume\").",
+   "returns": "text",
+   "params": [
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "format",
+     "type": "string",
+     "desc": "Default \"\""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.tonumber",
+   "signature": "str.tonumber(s)",
+   "desc": "Parses text as a number (na if it is not one).",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.length",
+   "signature": "str.length(s)",
+   "desc": "Number of characters.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.contains",
+   "signature": "str.contains(s, sub)",
+   "desc": "True if s contains sub.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "sub",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.startswith",
+   "signature": "str.startswith(s, prefix)",
+   "desc": "True if s starts with prefix.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "prefix",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.endswith",
+   "signature": "str.endswith(s, suffix)",
+   "desc": "True if s ends with suffix.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "suffix",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.pos",
+   "signature": "str.pos(s, sub)",
+   "desc": "Position of sub in s (na if absent).",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "sub",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.substring",
+   "signature": "str.substring(s, begin, end=na)",
+   "desc": "Part of s from begin up to (not including) end.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "begin",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "end",
+     "type": "int",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.replace",
+   "signature": "str.replace(s, target, replacement, occurrence=0)",
+   "desc": "Replaces one occurrence of target.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "target",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "replacement",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "occurrence",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.replace_all",
+   "signature": "str.replace_all(s, target, replacement)",
+   "desc": "Replaces every occurrence of target.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "target",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "replacement",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.lower",
+   "signature": "str.lower(s)",
+   "desc": "Lower case.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.upper",
+   "signature": "str.upper(s)",
+   "desc": "Upper case.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.trim",
+   "signature": "str.trim(s)",
+   "desc": "Removes spaces at both ends.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.split",
+   "signature": "str.split(s, separator)",
+   "desc": "Splits text into an array.",
+   "returns": "an array of string",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "separator",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.format",
+   "signature": "str.format(formatString, ...args)",
+   "desc": "Fills {0}, {1}, ... placeholders.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "formatString",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "args",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "str",
+   "name": "str.repeat",
+   "signature": "str.repeat(s, repeat, separator=\"\")",
+   "desc": "s repeated n times.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "s",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "repeat",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "separator",
+     "type": "string",
+     "desc": "Default \"\""
+    }
+   ]
+  },
+  {
+   "group": "color",
+   "name": "color.new",
+   "signature": "color.new(c, transp=0)",
+   "desc": "The same color with transparency 0 (solid) to 100 (invisible).",
+   "returns": "a color",
+   "params": [
+    {
+     "name": "c",
+     "type": "color",
+     "desc": ""
+    },
+    {
+     "name": "transp",
+     "type": "num",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "color",
+   "name": "color.rgb",
+   "signature": "color.rgb(red, green, blue, transp=0)",
+   "desc": "A color from red, green, blue (0-255).",
+   "returns": "a color",
+   "params": [
+    {
+     "name": "red",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "green",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "blue",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "transp",
+     "type": "num",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "color",
+   "name": "color.from_gradient",
+   "signature": "color.from_gradient(value, bottom_value, top_value, bottom_color, top_color)",
+   "desc": "A color between two colors, by where value sits between two values.",
+   "returns": "a color",
+   "params": [
+    {
+     "name": "value",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "bottom_value",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "top_value",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "bottom_color",
+     "type": "color",
+     "desc": ""
+    },
+    {
+     "name": "top_color",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "color",
+   "name": "color.r",
+   "signature": "color.r(c)",
+   "desc": "Red part, 0-255.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "c",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "color",
+   "name": "color.g",
+   "signature": "color.g(c)",
+   "desc": "Green part, 0-255.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "c",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "color",
+   "name": "color.b",
+   "signature": "color.b(c)",
+   "desc": "Blue part, 0-255.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "c",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "color",
+   "name": "color.t",
+   "signature": "color.t(c)",
+   "desc": "Transparency, 0-100.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "c",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new",
+   "signature": "array.new(size=0, initial_value=na)",
+   "desc": "A new array (write the type: array.new<float>(...)).",
+   "returns": "newarr",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "any",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new_float",
+   "signature": "array.new_float(size=0, initial_value=na)",
+   "desc": "A new array of floats.",
+   "returns": "an array of float",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "float",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new_int",
+   "signature": "array.new_int(size=0, initial_value=na)",
+   "desc": "A new array of ints.",
+   "returns": "an array of int",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "int",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new_bool",
+   "signature": "array.new_bool(size=0, initial_value=false)",
+   "desc": "A new array of bools.",
+   "returns": "an array of bool",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "bool",
+     "desc": "Default false"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new_string",
+   "signature": "array.new_string(size=0, initial_value=na)",
+   "desc": "A new array of strings.",
+   "returns": "an array of string",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "string",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new_color",
+   "signature": "array.new_color(size=0, initial_value=na)",
+   "desc": "A new array of colors.",
+   "returns": "an array of color",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "color",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new_label",
+   "signature": "array.new_label(size=0, initial_value=na)",
+   "desc": "A new array of labels.",
+   "returns": "an array of label",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "label",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new_line",
+   "signature": "array.new_line(size=0, initial_value=na)",
+   "desc": "A new array of lines.",
+   "returns": "an array of line",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "line",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.new_box",
+   "signature": "array.new_box(size=0, initial_value=na)",
+   "desc": "A new array of boxes.",
+   "returns": "an array of box",
+   "params": [
+    {
+     "name": "size",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "initial_value",
+     "type": "box",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.from",
+   "signature": "array.from(...values)",
+   "desc": "A new array holding the given values.",
+   "returns": "fromarr",
+   "params": [
+    {
+     "name": "values",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.copy",
+   "signature": "array.copy(id)",
+   "desc": "A copy of the array.",
+   "returns": "the same type as the first argument",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.size",
+   "signature": "array.size(id)",
+   "desc": "Number of items.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.get",
+   "signature": "array.get(id, index)",
+   "desc": "The item at index (-1 = last).",
+   "returns": "elem0",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "index",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.set",
+   "signature": "array.set(id, index, value)",
+   "desc": "Replaces the item at index.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "index",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.push",
+   "signature": "array.push(id, value)",
+   "desc": "Adds an item at the end.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.pop",
+   "signature": "array.pop(id)",
+   "desc": "Removes and returns the last item.",
+   "returns": "elem0",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.unshift",
+   "signature": "array.unshift(id, value)",
+   "desc": "Adds an item at the start.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.shift",
+   "signature": "array.shift(id)",
+   "desc": "Removes and returns the first item.",
+   "returns": "elem0",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.insert",
+   "signature": "array.insert(id, index, value)",
+   "desc": "Inserts an item at index.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "index",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.remove",
+   "signature": "array.remove(id, index)",
+   "desc": "Removes and returns the item at index.",
+   "returns": "elem0",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "index",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.clear",
+   "signature": "array.clear(id)",
+   "desc": "Removes every item.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.concat",
+   "signature": "array.concat(id1, id2)",
+   "desc": "Appends the second array to the first.",
+   "returns": "the same type as the first argument",
+   "params": [
+    {
+     "name": "id1",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "id2",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.slice",
+   "signature": "array.slice(id, index_from, index_to=na)",
+   "desc": "A copy of part of the array.",
+   "returns": "the same type as the first argument",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "index_from",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "index_to",
+     "type": "int",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.reverse",
+   "signature": "array.reverse(id)",
+   "desc": "Reverses the order in place.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.sort",
+   "signature": "array.sort(id, order=\"ascending\")",
+   "desc": "Sorts in place (order.ascending or order.descending).",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "order",
+     "type": "string",
+     "desc": "Default \"ascending\""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.sort_indices",
+   "signature": "array.sort_indices(id, order=\"ascending\")",
+   "desc": "Indices that would sort the array.",
+   "returns": "an array of int",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "order",
+     "type": "string",
+     "desc": "Default \"ascending\""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.includes",
+   "signature": "array.includes(id, value)",
+   "desc": "True if the value is in the array.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.indexof",
+   "signature": "array.indexof(id, value)",
+   "desc": "First index of value (-1 if absent).",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.lastindexof",
+   "signature": "array.lastindexof(id, value)",
+   "desc": "Last index of value (-1 if absent).",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.first",
+   "signature": "array.first(id)",
+   "desc": "First item.",
+   "returns": "elem0",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.last",
+   "signature": "array.last(id)",
+   "desc": "Last item.",
+   "returns": "elem0",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.fill",
+   "signature": "array.fill(id, value, index_from=0, index_to=na)",
+   "desc": "Sets items in a range to value.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "index_from",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "index_to",
+     "type": "int",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.sum",
+   "signature": "array.sum(id)",
+   "desc": "Sum of the items.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.avg",
+   "signature": "array.avg(id)",
+   "desc": "Average of the items.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.min",
+   "signature": "array.min(id)",
+   "desc": "Smallest item.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.max",
+   "signature": "array.max(id)",
+   "desc": "Largest item.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.median",
+   "signature": "array.median(id)",
+   "desc": "Median of the items.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.stdev",
+   "signature": "array.stdev(id, biased=true)",
+   "desc": "Standard deviation of the items.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "biased",
+     "type": "bool",
+     "desc": "Default true"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.variance",
+   "signature": "array.variance(id, biased=true)",
+   "desc": "Variance of the items.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "biased",
+     "type": "bool",
+     "desc": "Default true"
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.range",
+   "signature": "array.range(id)",
+   "desc": "Largest minus smallest item.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.abs",
+   "signature": "array.abs(id)",
+   "desc": "A new array with absolute values.",
+   "returns": "the same type as the first argument",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "array",
+   "name": "array.join",
+   "signature": "array.join(id, separator=\"\")",
+   "desc": "The items joined as text.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "id",
+     "type": "array",
+     "desc": ""
+    },
+    {
+     "name": "separator",
+     "type": "string",
+     "desc": "Default \"\""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.new",
+   "signature": "map.new()",
+   "desc": "A new map (write the types: map.new<string, float>()).",
+   "returns": "newmap",
+   "params": []
+  },
+  {
+   "group": "map",
+   "name": "map.put",
+   "signature": "map.put(id, key, value)",
+   "desc": "Sets the value for key.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    },
+    {
+     "name": "key",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "value",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.get",
+   "signature": "map.get(id, key)",
+   "desc": "The value for key (na if absent).",
+   "returns": "vals0",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    },
+    {
+     "name": "key",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.contains",
+   "signature": "map.contains(id, key)",
+   "desc": "True if the key is present.",
+   "returns": "true or false",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    },
+    {
+     "name": "key",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.remove",
+   "signature": "map.remove(id, key)",
+   "desc": "Removes the key and returns its value.",
+   "returns": "vals0",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    },
+    {
+     "name": "key",
+     "type": "any",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.size",
+   "signature": "map.size(id)",
+   "desc": "Number of keys.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.keys",
+   "signature": "map.keys(id)",
+   "desc": "An array of the keys, in insertion order.",
+   "returns": "keys0",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.values",
+   "signature": "map.values(id)",
+   "desc": "An array of the values, in insertion order.",
+   "returns": "valarr0",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.clear",
+   "signature": "map.clear(id)",
+   "desc": "Removes every key.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.copy",
+   "signature": "map.copy(id)",
+   "desc": "A copy of the map.",
+   "returns": "the same type as the first argument",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "map",
+   "name": "map.put_all",
+   "signature": "map.put_all(id, id2)",
+   "desc": "Copies every key of id2 into id.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "map",
+     "desc": ""
+    },
+    {
+     "name": "id2",
+     "type": "map",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "plot",
+   "signature": "plot(series, title=\"\", color=na, linewidth=1, style=\"line\", trackprice=false, histbase=0, offset=0, join=false, editable=true, show_last=na, display=\"all\", format=\"\", precision=na)",
+   "desc": "Draws a series as a line (or histogram, columns, circles, area...). Call at the top level of the script.",
+   "returns": "plotid",
+   "params": [
+    {
+     "name": "series",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "linewidth",
+     "type": "int",
+     "desc": "Default 1"
+    },
+    {
+     "name": "style",
+     "type": "string",
+     "desc": "Default \"line\""
+    },
+    {
+     "name": "trackprice",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "histbase",
+     "type": "float",
+     "desc": "Default 0"
+    },
+    {
+     "name": "offset",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "join",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    },
+    {
+     "name": "format",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "precision",
+     "type": "int",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "plotshape",
+   "signature": "plotshape(series, title=\"\", style=\"circle\", location=\"abovebar\", color=na, offset=0, text=\"\", textcolor=na, editable=true, size=\"auto\", show_last=na, display=\"all\")",
+   "desc": "Draws a shape on bars where series is true (or not na). Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "series",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "style",
+     "type": "string",
+     "desc": "Default \"circle\""
+    },
+    {
+     "name": "location",
+     "type": "string",
+     "desc": "Default \"abovebar\""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "offset",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "text",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "textcolor",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "size",
+     "type": "string",
+     "desc": "Default \"auto\""
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "plotchar",
+   "signature": "plotchar(series, title=\"\", char=\"•\", location=\"abovebar\", color=na, offset=0, text=\"\", textcolor=na, editable=true, size=\"auto\", show_last=na, display=\"all\")",
+   "desc": "Draws a character on bars where series is true (or not na). Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "series",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "char",
+     "type": "string",
+     "desc": "Default \"•\""
+    },
+    {
+     "name": "location",
+     "type": "string",
+     "desc": "Default \"abovebar\""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "offset",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "text",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "textcolor",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "size",
+     "type": "string",
+     "desc": "Default \"auto\""
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "plotarrow",
+   "signature": "plotarrow(series, title=\"\", colorup=#089981, colordown=#f23645, offset=0, minheight=5, maxheight=100, editable=true, show_last=na, display=\"all\")",
+   "desc": "Draws up arrows for positive values and down arrows for negative values. Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "series",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "colorup",
+     "type": "color",
+     "desc": "Default #089981"
+    },
+    {
+     "name": "colordown",
+     "type": "color",
+     "desc": "Default #f23645"
+    },
+    {
+     "name": "offset",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "minheight",
+     "type": "int",
+     "desc": "Default 5"
+    },
+    {
+     "name": "maxheight",
+     "type": "int",
+     "desc": "Default 100"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "plotcandle",
+   "signature": "plotcandle(open, high, low, close, title=\"\", color=na, wickcolor=na, editable=true, show_last=na, bordercolor=na, display=\"all\")",
+   "desc": "Draws candles. Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "open",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "high",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "low",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "close",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "wickcolor",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "bordercolor",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "plotbar",
+   "signature": "plotbar(open, high, low, close, title=\"\", color=na, editable=true, show_last=na, display=\"all\")",
+   "desc": "Draws OHLC bars. Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "open",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "high",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "low",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "close",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "hline",
+   "signature": "hline(price, title=\"\", color=#787b86, linestyle=\"dashed\", linewidth=1, editable=true, display=\"all\")",
+   "desc": "Draws a horizontal line at a fixed price. Call at the top level of the script.",
+   "returns": "hlineid",
+   "params": [
+    {
+     "name": "price",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default #787b86"
+    },
+    {
+     "name": "linestyle",
+     "type": "string",
+     "desc": "Default \"dashed\""
+    },
+    {
+     "name": "linewidth",
+     "type": "int",
+     "desc": "Default 1"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "fill",
+   "signature": "fill(plot1, plot2, color=na, title=\"\", editable=true, show_last=na, fillgaps=false, display=\"all\")",
+   "desc": "Fills the space between two plots or two hlines. Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "plot1",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "plot2",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "fillgaps",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "bgcolor",
+   "signature": "bgcolor(color, offset=0, editable=true, show_last=na, title=\"\", display=\"all\")",
+   "desc": "Colors the chart background of each bar. Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "color",
+     "type": "color",
+     "desc": ""
+    },
+    {
+     "name": "offset",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "plots",
+   "name": "barcolor",
+   "signature": "barcolor(color, offset=0, editable=true, show_last=na, title=\"\", display=\"all\")",
+   "desc": "Colors the candles. Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "color",
+     "type": "color",
+     "desc": ""
+    },
+    {
+     "name": "offset",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "editable",
+     "type": "bool",
+     "desc": "Default true"
+    },
+    {
+     "name": "show_last",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "display",
+     "type": "string",
+     "desc": "Default \"all\""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.new",
+   "signature": "label.new(x, y, text=\"\", xloc=\"bar_index\", yloc=\"price\", color=na, style=\"label_down\", textcolor=na, size=\"normal\", textalign=\"center\", tooltip=\"\", text_font_family=\"default\")",
+   "desc": "Creates a label and returns its id.",
+   "returns": "label",
+   "params": [
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "y",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "text",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "xloc",
+     "type": "string",
+     "desc": "Default \"bar_index\""
+    },
+    {
+     "name": "yloc",
+     "type": "string",
+     "desc": "Default \"price\""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "style",
+     "type": "string",
+     "desc": "Default \"label_down\""
+    },
+    {
+     "name": "textcolor",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "size",
+     "type": "string",
+     "desc": "Default \"normal\""
+    },
+    {
+     "name": "textalign",
+     "type": "string",
+     "desc": "Default \"center\""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "text_font_family",
+     "type": "string",
+     "desc": "Default \"default\""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_x",
+   "signature": "label.set_x(id, x)",
+   "desc": "Moves the label horizontally.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_y",
+   "signature": "label.set_y(id, y)",
+   "desc": "Moves the label vertically.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "y",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_xy",
+   "signature": "label.set_xy(id, x, y)",
+   "desc": "Moves the label.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "y",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_text",
+   "signature": "label.set_text(id, text)",
+   "desc": "Changes the text.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "text",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_color",
+   "signature": "label.set_color(id, color)",
+   "desc": "Changes the background color.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_textcolor",
+   "signature": "label.set_textcolor(id, textcolor)",
+   "desc": "Changes the text color.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "textcolor",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_style",
+   "signature": "label.set_style(id, style)",
+   "desc": "Changes the style.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "style",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_size",
+   "signature": "label.set_size(id, size)",
+   "desc": "Changes the size.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "size",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_tooltip",
+   "signature": "label.set_tooltip(id, tooltip)",
+   "desc": "Changes the tooltip.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_textalign",
+   "signature": "label.set_textalign(id, textalign)",
+   "desc": "Changes the text alignment.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "textalign",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_xloc",
+   "signature": "label.set_xloc(id, x, xloc)",
+   "desc": "Changes x and how it is read.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "xloc",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.set_yloc",
+   "signature": "label.set_yloc(id, yloc)",
+   "desc": "Changes how y is read.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    },
+    {
+     "name": "yloc",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.get_x",
+   "signature": "label.get_x(id)",
+   "desc": "The label's x.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.get_y",
+   "signature": "label.get_y(id)",
+   "desc": "The label's y.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.get_text",
+   "signature": "label.get_text(id)",
+   "desc": "The label's text.",
+   "returns": "text",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.delete",
+   "signature": "label.delete(id)",
+   "desc": "Removes the label.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "labels",
+   "name": "label.copy",
+   "signature": "label.copy(id)",
+   "desc": "A copy of the label.",
+   "returns": "label",
+   "params": [
+    {
+     "name": "id",
+     "type": "label",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.new",
+   "signature": "line.new(x1, y1, x2, y2, xloc=\"bar_index\", extend=\"none\", color=na, style=\"solid\", width=1)",
+   "desc": "Creates a line and returns its id.",
+   "returns": "line",
+   "params": [
+    {
+     "name": "x1",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "y1",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "x2",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "y2",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "xloc",
+     "type": "string",
+     "desc": "Default \"bar_index\""
+    },
+    {
+     "name": "extend",
+     "type": "string",
+     "desc": "Default \"none\""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "style",
+     "type": "string",
+     "desc": "Default \"solid\""
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "desc": "Default 1"
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_x1",
+   "signature": "line.set_x1(id, x)",
+   "desc": "Moves the first point horizontally.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_y1",
+   "signature": "line.set_y1(id, y)",
+   "desc": "Moves the first point vertically.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "y",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_x2",
+   "signature": "line.set_x2(id, x)",
+   "desc": "Moves the second point horizontally.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_y2",
+   "signature": "line.set_y2(id, y)",
+   "desc": "Moves the second point vertically.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "y",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_xy1",
+   "signature": "line.set_xy1(id, x, y)",
+   "desc": "Moves the first point.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "y",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_xy2",
+   "signature": "line.set_xy2(id, x, y)",
+   "desc": "Moves the second point.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "y",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_color",
+   "signature": "line.set_color(id, color)",
+   "desc": "Changes the color.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_width",
+   "signature": "line.set_width(id, width)",
+   "desc": "Changes the width.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_style",
+   "signature": "line.set_style(id, style)",
+   "desc": "Changes the style.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "style",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_extend",
+   "signature": "line.set_extend(id, extend)",
+   "desc": "Extends the line left, right, both or none.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "extend",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.set_xloc",
+   "signature": "line.set_xloc(id, x1, x2, xloc)",
+   "desc": "Changes x1, x2 and how they are read.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "x1",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "x2",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "xloc",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.get_x1",
+   "signature": "line.get_x1(id)",
+   "desc": "First point x.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.get_y1",
+   "signature": "line.get_y1(id)",
+   "desc": "First point y.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.get_x2",
+   "signature": "line.get_x2(id)",
+   "desc": "Second point x.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.get_y2",
+   "signature": "line.get_y2(id)",
+   "desc": "Second point y.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.get_price",
+   "signature": "line.get_price(id, x)",
+   "desc": "The line's price at bar x.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    },
+    {
+     "name": "x",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.delete",
+   "signature": "line.delete(id)",
+   "desc": "Removes the line.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "lines",
+   "name": "line.copy",
+   "signature": "line.copy(id)",
+   "desc": "A copy of the line.",
+   "returns": "line",
+   "params": [
+    {
+     "name": "id",
+     "type": "line",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.new",
+   "signature": "box.new(left, top, right, bottom, border_color=na, border_width=1, border_style=\"solid\", extend=\"none\", xloc=\"bar_index\", bgcolor=na, text=\"\", text_size=\"auto\", text_color=na, text_halign=\"center\", text_valign=\"center\")",
+   "desc": "Creates a box and returns its id.",
+   "returns": "box",
+   "params": [
+    {
+     "name": "left",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "top",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "right",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "bottom",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "border_color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "border_width",
+     "type": "int",
+     "desc": "Default 1"
+    },
+    {
+     "name": "border_style",
+     "type": "string",
+     "desc": "Default \"solid\""
+    },
+    {
+     "name": "extend",
+     "type": "string",
+     "desc": "Default \"none\""
+    },
+    {
+     "name": "xloc",
+     "type": "string",
+     "desc": "Default \"bar_index\""
+    },
+    {
+     "name": "bgcolor",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "text",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "text_size",
+     "type": "string",
+     "desc": "Default \"auto\""
+    },
+    {
+     "name": "text_color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "text_halign",
+     "type": "string",
+     "desc": "Default \"center\""
+    },
+    {
+     "name": "text_valign",
+     "type": "string",
+     "desc": "Default \"center\""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_left",
+   "signature": "box.set_left(id, left)",
+   "desc": "Moves the left edge.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "left",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_top",
+   "signature": "box.set_top(id, top)",
+   "desc": "Moves the top edge.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "top",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_right",
+   "signature": "box.set_right(id, right)",
+   "desc": "Moves the right edge.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "right",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_bottom",
+   "signature": "box.set_bottom(id, bottom)",
+   "desc": "Moves the bottom edge.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "bottom",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_lefttop",
+   "signature": "box.set_lefttop(id, left, top)",
+   "desc": "Moves the top-left corner.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "left",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "top",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_rightbottom",
+   "signature": "box.set_rightbottom(id, right, bottom)",
+   "desc": "Moves the bottom-right corner.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "right",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "bottom",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_bgcolor",
+   "signature": "box.set_bgcolor(id, color)",
+   "desc": "Changes the fill color.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_border_color",
+   "signature": "box.set_border_color(id, color)",
+   "desc": "Changes the border color.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_border_width",
+   "signature": "box.set_border_width(id, width)",
+   "desc": "Changes the border width.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_border_style",
+   "signature": "box.set_border_style(id, style)",
+   "desc": "Changes the border style.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "style",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_extend",
+   "signature": "box.set_extend(id, extend)",
+   "desc": "Extends the box left, right, both or none.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "extend",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_text",
+   "signature": "box.set_text(id, text)",
+   "desc": "Changes the text.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "text",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.set_text_color",
+   "signature": "box.set_text_color(id, text_color)",
+   "desc": "Changes the text color.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    },
+    {
+     "name": "text_color",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.get_left",
+   "signature": "box.get_left(id)",
+   "desc": "Left edge.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.get_top",
+   "signature": "box.get_top(id)",
+   "desc": "Top edge.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.get_right",
+   "signature": "box.get_right(id)",
+   "desc": "Right edge.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.get_bottom",
+   "signature": "box.get_bottom(id)",
+   "desc": "Bottom edge.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.delete",
+   "signature": "box.delete(id)",
+   "desc": "Removes the box.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "boxes",
+   "name": "box.copy",
+   "signature": "box.copy(id)",
+   "desc": "A copy of the box.",
+   "returns": "box",
+   "params": [
+    {
+     "name": "id",
+     "type": "box",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "tables",
+   "name": "table.new",
+   "signature": "table.new(position, columns, rows, bgcolor=na, frame_color=na, frame_width=0, border_color=na, border_width=0)",
+   "desc": "Creates a table fixed to a corner of the chart.",
+   "returns": "table",
+   "params": [
+    {
+     "name": "position",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "columns",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "rows",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "bgcolor",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "frame_color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "frame_width",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "border_color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "border_width",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "tables",
+   "name": "table.cell",
+   "signature": "table.cell(table_id, column, row, text=\"\", width=0, height=0, text_color=na, text_halign=\"center\", text_valign=\"center\", text_size=\"normal\", bgcolor=na, tooltip=\"\")",
+   "desc": "Sets a cell's text and colors.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "table_id",
+     "type": "table",
+     "desc": ""
+    },
+    {
+     "name": "column",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "row",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "text",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "width",
+     "type": "num",
+     "desc": "Default 0"
+    },
+    {
+     "name": "height",
+     "type": "num",
+     "desc": "Default 0"
+    },
+    {
+     "name": "text_color",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "text_halign",
+     "type": "string",
+     "desc": "Default \"center\""
+    },
+    {
+     "name": "text_valign",
+     "type": "string",
+     "desc": "Default \"center\""
+    },
+    {
+     "name": "text_size",
+     "type": "string",
+     "desc": "Default \"normal\""
+    },
+    {
+     "name": "bgcolor",
+     "type": "color",
+     "desc": "Default na"
+    },
+    {
+     "name": "tooltip",
+     "type": "string",
+     "desc": "Default \"\""
+    }
+   ]
+  },
+  {
+   "group": "tables",
+   "name": "table.cell_set_text",
+   "signature": "table.cell_set_text(table_id, column, row, text)",
+   "desc": "Changes a cell's text.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "table_id",
+     "type": "table",
+     "desc": ""
+    },
+    {
+     "name": "column",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "row",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "text",
+     "type": "string",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "tables",
+   "name": "table.cell_set_bgcolor",
+   "signature": "table.cell_set_bgcolor(table_id, column, row, bgcolor)",
+   "desc": "Changes a cell's background.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "table_id",
+     "type": "table",
+     "desc": ""
+    },
+    {
+     "name": "column",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "row",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "bgcolor",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "tables",
+   "name": "table.cell_set_text_color",
+   "signature": "table.cell_set_text_color(table_id, column, row, text_color)",
+   "desc": "Changes a cell's text color.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "table_id",
+     "type": "table",
+     "desc": ""
+    },
+    {
+     "name": "column",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "row",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "text_color",
+     "type": "color",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "tables",
+   "name": "table.clear",
+   "signature": "table.clear(table_id, start_column, start_row, end_column=na, end_row=na)",
+   "desc": "Clears a range of cells.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "table_id",
+     "type": "table",
+     "desc": ""
+    },
+    {
+     "name": "start_column",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "start_row",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "end_column",
+     "type": "int",
+     "desc": "Default na"
+    },
+    {
+     "name": "end_row",
+     "type": "int",
+     "desc": "Default na"
+    }
+   ]
+  },
+  {
+   "group": "tables",
+   "name": "table.delete",
+   "signature": "table.delete(table_id)",
+   "desc": "Removes the table.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "table_id",
+     "type": "table",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "alerts",
+   "name": "alertcondition",
+   "signature": "alertcondition(condition, title=\"\", message=\"\")",
+   "desc": "An alert the member can pick in the alert dialog. Call at the top level of the script.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "condition",
+     "type": "bool",
+     "desc": ""
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "desc": "Default \"\""
+    },
+    {
+     "name": "message",
+     "type": "string",
+     "desc": "Default \"\""
+    }
+   ]
+  },
+  {
+   "group": "alerts",
+   "name": "alert",
+   "signature": "alert(message, freq=\"once_per_bar\")",
+   "desc": "Fires an alert from code.",
+   "returns": "nothing",
+   "params": [
+    {
+     "name": "message",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "freq",
+     "type": "string",
+     "desc": "Default \"once_per_bar\""
+    }
+   ]
+  },
+  {
+   "group": "request",
+   "name": "request.security",
+   "signature": "request.security(symbol, timeframe, expression, gaps=false, lookahead=false)",
+   "desc": "The value of an expression on another symbol or a higher timeframe (only closed bars, never future data). Call at the top level of the script.",
+   "returns": "arg2",
+   "params": [
+    {
+     "name": "symbol",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "timeframe",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "expression",
+     "type": "any",
+     "desc": ""
+    },
+    {
+     "name": "gaps",
+     "type": "bool",
+     "desc": "Default false"
+    },
+    {
+     "name": "lookahead",
+     "type": "bool",
+     "desc": "Default false"
+    }
+   ]
+  },
+  {
+   "group": "general",
+   "name": "timestamp",
+   "signature": "timestamp(year, month, day, hour=0, minute=0, second=0)",
+   "desc": "Time in ms (UTC) for a date.",
+   "returns": "a whole number",
+   "params": [
+    {
+     "name": "year",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "month",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "day",
+     "type": "int",
+     "desc": ""
+    },
+    {
+     "name": "hour",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "minute",
+     "type": "int",
+     "desc": "Default 0"
+    },
+    {
+     "name": "second",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "book",
+   "name": "book.bid",
+   "signature": "book.bid(level=0)",
+   "desc": "Bid price at a book level (0 = best bid). Needs book data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "level",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "book",
+   "name": "book.ask",
+   "signature": "book.ask(level=0)",
+   "desc": "Ask price at a book level (0 = best ask). Needs book data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "level",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "book",
+   "name": "book.bidsize",
+   "signature": "book.bidsize(level=0)",
+   "desc": "Size resting at a bid level. Needs book data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "level",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "book",
+   "name": "book.asksize",
+   "signature": "book.asksize(level=0)",
+   "desc": "Size resting at an ask level. Needs book data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "level",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "book",
+   "name": "book.depth",
+   "signature": "book.depth(side, n=10)",
+   "desc": "Total size of the first n levels of one side (book.side_bid or book.side_ask). Needs book data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "side",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "n",
+     "type": "int",
+     "desc": "Default 10"
+    }
+   ]
+  },
+  {
+   "group": "book",
+   "name": "book.imbalance",
+   "signature": "book.imbalance(n=10)",
+   "desc": "(bid depth - ask depth) / (bid depth + ask depth) over n levels, -1 to 1. Needs book data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "n",
+     "type": "int",
+     "desc": "Default 10"
+    }
+   ]
+  },
+  {
+   "group": "book",
+   "name": "book.wall",
+   "signature": "book.wall(side, minSize)",
+   "desc": "Price of the nearest level on one side with at least minSize resting (na if none). Needs book data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "side",
+     "type": "string",
+     "desc": ""
+    },
+    {
+     "name": "minSize",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "book",
+   "name": "book.heat",
+   "signature": "book.heat(price)",
+   "desc": "Size resting at a price (the nearest book level). Needs book data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "price",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "flow",
+   "name": "flow.bigtrades",
+   "signature": "flow.bigtrades(minSize)",
+   "desc": "Number of trades in this bar of at least minSize. Needs flow data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "minSize",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "flow",
+   "name": "flow.bigtrades_vol",
+   "signature": "flow.bigtrades_vol(minSize)",
+   "desc": "Total size of the trades in this bar of at least minSize. Needs flow data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "minSize",
+     "type": "num",
+     "desc": ""
+    }
+   ]
+  },
+  {
+   "group": "flow",
+   "name": "flow.footprint",
+   "signature": "flow.footprint(price, side=\"both\")",
+   "desc": "Volume traded at a price in this bar (flow.side_buy, flow.side_sell or both). Needs flow data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "price",
+     "type": "num",
+     "desc": ""
+    },
+    {
+     "name": "side",
+     "type": "string",
+     "desc": "Default \"both\""
+    }
+   ]
+  },
+  {
+   "group": "gex",
+   "name": "gex.level",
+   "signature": "gex.level(n=0)",
+   "desc": "The n-th strongest GEX level (0 = strongest). Needs gex data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "n",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "opt",
+   "name": "opt.node",
+   "signature": "opt.node(n=0)",
+   "desc": "Price of the n-th gamma node (0 = strongest). Needs opt data on your plan.",
+   "returns": "a number",
+   "params": [
+    {
+     "name": "n",
+     "type": "int",
+     "desc": "Default 0"
+    }
+   ]
+  },
+  {
+   "group": "opt",
+   "name": "opt.range",
+   "signature": "opt.range(kind=\"day\")",
+   "desc": "Low and high of an options range (\"day\", \"week\", \"expected\"). Needs opt data on your plan.",
+   "returns": "several values: [float,float]",
+   "params": [
+    {
+     "name": "kind",
+     "type": "string",
+     "desc": "Default \"day\""
+    }
+   ]
+  },
+  {
+   "group": "builtin-vars",
+   "name": "open",
+   "signature": "open",
+   "desc": "Open price of the bar.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "high",
+   "signature": "high",
+   "desc": "High price of the bar.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "low",
+   "signature": "low",
+   "desc": "Low price of the bar.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "close",
+   "signature": "close",
+   "desc": "Close price of the bar (the latest price on the live bar).",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "volume",
+   "signature": "volume",
+   "desc": "Volume of the bar.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "hl2",
+   "signature": "hl2",
+   "desc": "(high + low) / 2.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "hlc3",
+   "signature": "hlc3",
+   "desc": "(high + low + close) / 3.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "ohlc4",
+   "signature": "ohlc4",
+   "desc": "(open + high + low + close) / 4.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "hlcc4",
+   "signature": "hlcc4",
+   "desc": "(high + low + close + close) / 4.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "time",
+   "signature": "time",
+   "desc": "Bar open time, ms since 1970 (UTC).",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "time_close",
+   "signature": "time_close",
+   "desc": "Bar close time, ms since 1970 (UTC).",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "bar_index",
+   "signature": "bar_index",
+   "desc": "Bar number, 0 for the first bar.",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "last_bar_index",
+   "signature": "last_bar_index",
+   "desc": "Bar number of the last loaded bar.",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "year",
+   "signature": "year",
+   "desc": "Year of the bar (UTC).",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "month",
+   "signature": "month",
+   "desc": "Month of the bar, 1-12 (UTC).",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "dayofmonth",
+   "signature": "dayofmonth",
+   "desc": "Day of the month (UTC).",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "dayofweek",
+   "signature": "dayofweek",
+   "desc": "Day of the week, 1 = Sunday ... 7 = Saturday (UTC).",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "hour",
+   "signature": "hour",
+   "desc": "Hour (UTC).",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "minute",
+   "signature": "minute",
+   "desc": "Minute.",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "second",
+   "signature": "second",
+   "desc": "Second.",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "weekofyear",
+   "signature": "weekofyear",
+   "desc": "Week number of the year (ISO).",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "barstate.isfirst",
+   "signature": "barstate.isfirst",
+   "desc": "True on the first bar.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "barstate.islast",
+   "signature": "barstate.islast",
+   "desc": "True on the last bar.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "barstate.isnew",
+   "signature": "barstate.isnew",
+   "desc": "True on the first update of a bar.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "barstate.isrealtime",
+   "signature": "barstate.isrealtime",
+   "desc": "True on live bars.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "barstate.ishistory",
+   "signature": "barstate.ishistory",
+   "desc": "True on history bars.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "barstate.isconfirmed",
+   "signature": "barstate.isconfirmed",
+   "desc": "True when the bar is closed.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "barstate.islastconfirmedhistory",
+   "signature": "barstate.islastconfirmedhistory",
+   "desc": "True on the last closed history bar.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "syminfo.ticker",
+   "signature": "syminfo.ticker",
+   "desc": "Symbol without exchange, e.g. \"NQ\".",
+   "returns": "text",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "syminfo.tickerid",
+   "signature": "syminfo.tickerid",
+   "desc": "Full symbol id.",
+   "returns": "text",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "syminfo.type",
+   "signature": "syminfo.type",
+   "desc": "Market type: \"futures\", \"crypto\", \"stock\", \"forex\", \"index\".",
+   "returns": "text",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "syminfo.currency",
+   "signature": "syminfo.currency",
+   "desc": "Quote currency.",
+   "returns": "text",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "syminfo.mintick",
+   "signature": "syminfo.mintick",
+   "desc": "Tick size.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "syminfo.pointvalue",
+   "signature": "syminfo.pointvalue",
+   "desc": "Value of one point move for one contract.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "timeframe.period",
+   "signature": "timeframe.period",
+   "desc": "Chart timeframe, e.g. \"5\", \"60\", \"D\".",
+   "returns": "text",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "timeframe.multiplier",
+   "signature": "timeframe.multiplier",
+   "desc": "Number part of the timeframe.",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "timeframe.isintraday",
+   "signature": "timeframe.isintraday",
+   "desc": "True for minute and second timeframes.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "timeframe.isdaily",
+   "signature": "timeframe.isdaily",
+   "desc": "True on daily charts.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "timeframe.isweekly",
+   "signature": "timeframe.isweekly",
+   "desc": "True on weekly charts.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "timeframe.ismonthly",
+   "signature": "timeframe.ismonthly",
+   "desc": "True on monthly charts.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "timeframe.isminutes",
+   "signature": "timeframe.isminutes",
+   "desc": "True for minute timeframes.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "builtin-vars",
+   "name": "timeframe.isseconds",
+   "signature": "timeframe.isseconds",
+   "desc": "True for second timeframes.",
+   "returns": "true or false",
+   "params": []
+  },
+  {
+   "group": "ta",
+   "name": "ta.obv",
+   "signature": "ta.obv",
+   "desc": "On-balance volume.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "ta",
+   "name": "ta.tr",
+   "signature": "ta.tr",
+   "desc": "True range of this bar (na on the first bar).",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "ta",
+   "name": "ta.vwap",
+   "signature": "ta.vwap",
+   "desc": "Daily volume-weighted average price of hlc3.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "ta",
+   "name": "ta.accdist",
+   "signature": "ta.accdist",
+   "desc": "Accumulation/distribution.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "flow",
+   "name": "flow.buyvol",
+   "signature": "flow.buyvol",
+   "desc": "Volume bought at the ask in this bar. Needs flow data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "flow",
+   "name": "flow.sellvol",
+   "signature": "flow.sellvol",
+   "desc": "Volume sold at the bid in this bar. Needs flow data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "flow",
+   "name": "flow.delta",
+   "signature": "flow.delta",
+   "desc": "Buy volume minus sell volume in this bar. Needs flow data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "flow",
+   "name": "flow.cvd",
+   "signature": "flow.cvd",
+   "desc": "Running total of delta (cumulative volume delta). Needs flow data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "flow",
+   "name": "flow.trades",
+   "signature": "flow.trades",
+   "desc": "Number of trades in this bar. Needs flow data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "flow",
+   "name": "flow.poc",
+   "signature": "flow.poc",
+   "desc": "This bar's point of control (price with the most volume). Needs flow data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "flow",
+   "name": "flow.vah",
+   "signature": "flow.vah",
+   "desc": "This bar's value area high (70% of volume). Needs flow data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "flow",
+   "name": "flow.val",
+   "signature": "flow.val",
+   "desc": "This bar's value area low (70% of volume). Needs flow data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "gex",
+   "name": "gex.callwall",
+   "signature": "gex.callwall",
+   "desc": "Call wall level. Needs gex data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "gex",
+   "name": "gex.putwall",
+   "signature": "gex.putwall",
+   "desc": "Put wall level. Needs gex data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "gex",
+   "name": "gex.flip",
+   "signature": "gex.flip",
+   "desc": "Gamma flip level. Needs gex data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "gex",
+   "name": "gex.zero_upper",
+   "signature": "gex.zero_upper",
+   "desc": "Upper zero-gamma level. Needs gex data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "gex",
+   "name": "gex.zero_lower",
+   "signature": "gex.zero_lower",
+   "desc": "Lower zero-gamma level. Needs gex data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "gex",
+   "name": "gex.net",
+   "signature": "gex.net",
+   "desc": "Net gamma exposure. Needs gex data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "gex",
+   "name": "gex.updated",
+   "signature": "gex.updated",
+   "desc": "Time the GEX levels were computed (ms). Needs gex data on your plan.",
+   "returns": "a whole number",
+   "params": []
+  },
+  {
+   "group": "opt",
+   "name": "opt.ivrank",
+   "signature": "opt.ivrank",
+   "desc": "IV rank, 0 to 100. Needs opt data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "opt",
+   "name": "opt.pc",
+   "signature": "opt.pc",
+   "desc": "Put/call ratio. Needs opt data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "opt",
+   "name": "opt.maxpain",
+   "signature": "opt.maxpain",
+   "desc": "Max pain strike. Needs opt data on your plan.",
+   "returns": "a number",
+   "params": []
+  },
+  {
+   "group": "opt",
+   "name": "opt.zone",
+   "signature": "opt.zone",
+   "desc": "Current options zone name. Needs opt data on your plan.",
+   "returns": "text",
+   "params": []
+  },
+  {
+   "group": "opt",
+   "name": "opt.updated",
+   "signature": "opt.updated",
+   "desc": "Time of the options data (ms); show it as \"updated X min ago\". Needs opt data on your plan.",
+   "returns": "a whole number",
+   "params": []
+  }
+ ],
+ "constantsText": "color: color.aqua, color.black, color.blue, color.fuchsia, color.gray, color.green, color.lime, color.maroon, color.navy, color.olive, color.orange, color.purple, color.red, color.silver, color.teal, color.white, color.yellow, color.bull, color.bear, color.neutral, color.accent\nplot: plot.style_line, plot.style_stepline, plot.style_histogram, plot.style_columns, plot.style_circles, plot.style_cross, plot.style_area, plot.style_areabr, plot.style_linebr, plot.style_stepline_diamond\nshape: shape.xcross, shape.cross, shape.circle, shape.triangleup, shape.triangledown, shape.flag, shape.arrowup, shape.arrowdown, shape.labelup, shape.labeldown, shape.square, shape.diamond\nlocation: location.abovebar, location.belowbar, location.top, location.bottom, location.absolute\nsize: size.auto, size.tiny, size.small, size.normal, size.large, size.huge\nhline: hline.style_solid, hline.style_dotted, hline.style_dashed\nline: line.style_solid, line.style_dotted, line.style_dashed, line.style_arrow_left, line.style_arrow_right, line.style_arrow_both\nlabel: label.style_none, label.style_label_up, label.style_label_down, label.style_label_left, label.style_label_right, label.style_label_center, label.style_label_upper_left, label.style_label_upper_right, label.style_label_lower_left, label.style_label_lower_right, label.style_circle, label.style_square, label.style_diamond, label.style_arrowup, label.style_arrowdown, label.style_triangleup, label.style_triangledown, label.style_xcross, label.style_cross, label.style_flag, label.style_text_outline\nxloc: xloc.bar_index, xloc.bar_time\nyloc: yloc.price, yloc.abovebar, yloc.belowbar\nextend: extend.none, extend.left, extend.right, extend.both\ntext: text.align_left, text.align_center, text.align_right, text.align_top, text.align_bottom\nposition: position.top_left, position.top_center, position.top_right, position.middle_left, position.middle_center, position.middle_right, position.bottom_left, position.bottom_center, position.bottom_right\ndisplay: display.all, display.none, display.pane, display.data_window, display.price_scale, display.status_line\nformat: format.price, format.volume, format.percent, format.inherit\norder: order.ascending, order.descending\nalert: alert.freq_all, alert.freq_once_per_bar, alert.freq_once_per_bar_close\nscale: scale.right, scale.left, scale.none\nbook: book.side_bid, book.side_ask\nflow: flow.side_buy, flow.side_sell, flow.side_both\nfont: font.family_default, font.family_monospace\nbarmerge: barmerge.gaps_on, barmerge.gaps_off, barmerge.lookahead_on, barmerge.lookahead_off\ndayofweek: dayofweek.sunday, dayofweek.monday, dayofweek.tuesday, dayofweek.wednesday, dayofweek.thursday, dayofweek.friday, dayofweek.saturday",
+ "keywords": [
+  "and",
+  "or",
+  "not",
+  "if",
+  "else",
+  "for",
+  "to",
+  "by",
+  "in",
+  "while",
+  "switch",
+  "var",
+  "varip",
+  "true",
+  "false",
+  "na",
+  "break",
+  "continue"
+ ],
+ "types": [
+  "int",
+  "float",
+  "bool",
+  "string",
+  "color",
+  "label",
+  "line",
+  "box",
+  "table",
+  "array",
+  "map",
+  "series",
+  "simple",
+  "const"
+ ]
+}

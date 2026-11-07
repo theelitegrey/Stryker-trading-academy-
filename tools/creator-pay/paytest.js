@@ -427,7 +427,7 @@ const QA2 = 'stryker-qa-creator@example.com';
     await throws(() => call('pat', { action: 'checkout', cid: 'alpha-desk', planId: 'p1' }, 'pat@gmail.com'), 'failed-precondition', 'live gate: key permission missing -> refused', /being switched on/);
     await throws(() => call('ana', { action: 'onboard', cid: 'alpha-desk', country: 'US', agree: true }, 'ana@gmail.com'), 'failed-precondition', 'live gate: onboarding also waits', /being switched on/);
     const stSw = await call('ana', { action: 'status' }, 'ana@gmail.com');
-    ok(stSw.switchingOn === true && stSw.legalName === 'Gaurav Singh LLC', 'status tells the UI payouts are being switched on + legal name', stSw);
+    ok(stSw.switchingOn === true && stSw.legalName === 'TradeZoro LLC', 'status tells the UI payouts are being switched on + legal name', stSw);
     const pr = await LC.probe('rk_live_offline_mock', probeFetch);
     ok(!pr.ok && pr.results.filter((x) => !x.pass).map((x) => x.id).join() === 'disputes', 'probe: exactly the denied permission fails', pr.results.filter((x) => !x.pass));
     ok(!JSON.stringify(pr).includes('rk_live'), 'probe output carries no key');
@@ -470,7 +470,7 @@ const QA2 = 'stryker-qa-creator@example.com';
     global.fetch = realFetch;
 
     // legal name is one setting
-    ok(I.legalNameOf({}) === 'Gaurav Singh LLC' && I.legalNameOf({ creatorPlatformLegalName: '  Tradezoro   LLC ' }) === 'Tradezoro LLC' && I.legalNameOf({ creatorPlatformLegalName: 'x'.repeat(200) }) === 'Gaurav Singh LLC', 'legal name: default, trimmed, length-capped');
+    ok(I.legalNameOf({}) === 'TradeZoro LLC' && I.legalNameOf({ creatorPlatformLegalName: '  Tradezoro   LLC ' }) === 'Tradezoro LLC' && I.legalNameOf({ creatorPlatformLegalName: 'x'.repeat(200) }) === 'TradeZoro LLC', 'legal name: default, trimmed, length-capped');
     ok(/operated by Tradezoro LLC\.$/.test(I.platformLine(I.legalNameOf({ creatorPlatformLegalName: 'Tradezoro LLC' }))), 'platform line uses the setting');
   }
 

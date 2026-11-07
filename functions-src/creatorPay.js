@@ -45,7 +45,7 @@
  *   zsScripts/{sid}/buyers/{uid}  Zscript entitlement { uid, status: 'active'|'refunded'|'disputed', ... }; sale docs carry sid.
  *
  * ENV: STRIPE_SECRET_KEY (existing, unchanged), STRIPE_CONNECT_WEBHOOK_SECRET (live Connect endpoint secret), STRIPE_CONNECT_WEBHOOK_SECRET_TEST (optional, test endpoint), SITE_ORIGIN (optional).
- * LEGAL NAME: settings/commerce.creatorPlatformLegalName (default 'Gaurav Singh LLC'); one Firestore edit changes every creator-payments text.
+ * LEGAL NAME: settings/commerce.creatorPlatformLegalName (default 'TradeZoro LLC'); one Firestore edit changes every creator-payments text.
  * LIVE GATE: live key + creatorPayments=true still refuse paid actions until creatorLive.liveReady() passes (key permissions) and a webhook secret is set.
  * DEPLOY: firebase deploy --only functions:creatorPay,functions:creatorConnectWebhook
  * TESTS: node tools/creator-pay/paytest.js (offline); node tools/creator-pay/live-check.js (live key permissions, read-only).
@@ -148,7 +148,7 @@ function feePctOf(com) {
   return Number.isFinite(p) && p > 0 && p <= 30 ? p : 0;
 }
 // The platform's legal name for creator payments: settings/commerce.creatorPlatformLegalName (one Firestore edit, no deploy).
-const DEFAULT_LEGAL_NAME = 'Gaurav Singh LLC';
+const DEFAULT_LEGAL_NAME = 'TradeZoro LLC';
 function legalNameOf(com) {
   const n = String((com && com.creatorPlatformLegalName) || '').replace(/\s+/g, ' ').trim();
   return n && n.length <= 120 ? n : DEFAULT_LEGAL_NAME;

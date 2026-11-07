@@ -267,7 +267,7 @@ payments = f'''
 <div class="cm-card cm-pad cm-fee cm-rv"><span class="cm-chip">Founding Creators</span><div class="cm-reel" data-reel aria-label="0 percent"><span class="cm-digits" aria-hidden="true"><span class="cm-col"><i>9</i><i>8</i><i>7</i><i>6</i><i>5</i><i>4</i><i>3</i><i>2</i><i>1</i><i>0</i></span></span><span class="cm-pct" aria-hidden="true">%</span></div><h3>TradeZoro platform fee, during launch</h3><p>0% platform fee for Founding Creators during launch; Stripe's standard fees apply. They come out of your sales. <a href="https://stripe.com/pricing" target="_blank" rel="noopener">See Stripe pricing</a>.</p></div>
 <div class="cm-card cm-pad cm-rv" style="--d:100ms"><span class="cm-chip">Richard NQ's plan card</span><div class="cm-planshot">{img('plan', 429, 555, 'Richard NQ plan card: Free plan with Join free button')}</div><p class="cm-note">Start with a free plan and add paid plans later. Stripe is only available in some countries; the setup screen shows whether yours is covered.</p></div>
 </div>
-<p class="cm-legal cm-rv">Payments by Stripe. TradeZoro is operated by <span data-legal-name>Gaurav Singh LLC</span>.</p>
+<p class="cm-legal cm-rv">Payments by Stripe. TradeZoro is operated by <span data-legal-name>TradeZoro LLC</span>.</p>
 </div>
 </section>
 '''

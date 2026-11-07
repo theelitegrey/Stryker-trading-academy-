@@ -26,7 +26,7 @@ function stub(own, admin, acct) {
   let s = 'window.__OWN=' + own + ';window.__ACCT=' + JSON.stringify(ACCT[acct] || ACCT.none) + ';' + stubSrc(true)
     .replace(/window\.db = \{/, "S['admins/u1'] = " + (admin ? '{x:1}' : 'undefined') + "; if(!S['admins/u1']) delete S['admins/u1']; window.db = {")
     .replace("email: 'demo@example.com'", "email: 'stryker-qa-shell@example.com'")
-    .replace("httpsCallable: () => () => Promise.resolve({ data: {} })", "httpsCallable: () => (d) => window.__ACCT === 'hang' ? new Promise(() => {}) : Promise.resolve({ data: d && d.action === 'status' ? { account: window.__ACCT, legalName: 'Gaurav Singh LLC' } : (d && d.action === 'adminList' ? { creators: [], mode: 'test' } : {}) })");
+    .replace("httpsCallable: () => () => Promise.resolve({ data: {} })", "httpsCallable: () => (d) => window.__ACCT === 'hang' ? new Promise(() => {}) : Promise.resolve({ data: d && d.action === 'status' ? { account: window.__ACCT, legalName: 'TradeZoro LLC' } : (d && d.action === 'adminList' ? { creators: [], mode: 'test' } : {}) })");
   return s;
 }
 (async () => {

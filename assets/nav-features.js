@@ -121,3 +121,21 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
+/* Zscript nav link: only when the launch switch ZS_LIVE is true (assets/zs-live.js). Hidden until then. */
+(function () {
+  'use strict';
+  function add() {
+    if (!window.ZS_LIVE) return;
+    var links = document.querySelector('.nav-links');
+    if (!links || links.querySelector('a[href="/zscript/"]')) return;
+    var a = document.createElement('a'); a.href = '/zscript/'; a.textContent = 'Zscript';
+    var ac = [].filter.call(links.querySelectorAll('a'), function (x) { return /academy/.test(x.getAttribute('href') || ''); })[0];
+    if (ac && ac.parentNode === links) links.insertBefore(a, ac.nextSibling); else links.appendChild(a);
+  }
+  function go() {
+    if (typeof window.ZS_LIVE !== 'undefined') return add();
+    var s = document.createElement('script'); s.src = '/assets/zs-live.js'; s.onload = add; document.head.appendChild(s);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+})();

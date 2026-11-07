@@ -1,0 +1,70 @@
+{
+ "category": "indicators",
+ "sub": "ind-use",
+ "items": [
+  {
+   "id": "zscript-what",
+   "q": "What is Zscript?",
+   "a": "<p>Zscript is TradeZoro's own language for building chart indicators. You write a few lines, add them to the chart, and your idea is drawn on the candles. Writing, saving and publishing scripts is free.</p><p>Zscript can also read order book, order flow, GEX and ZoroOptions data. That data follows your plan, exactly like the charts do. Education only. Not financial advice.</p>",
+   "tags": [
+    "zscript",
+    "script",
+    "code",
+    "indicator language",
+    "custom indicator",
+    "editor"
+   ],
+   "links": [
+    {
+     "label": "Open the Zscript manual",
+     "href": "/zscript/"
+    }
+   ]
+  },
+  {
+   "id": "zscript-start",
+   "q": "How do I write my first Zscript?",
+   "a": "<p>Open ZoroCharts, open the script editor and choose Zscript. Paste a script that starts with <code>//@zscript 1</code>, then press Add to chart.</p>",
+   "steps": [
+    "Open ZoroCharts.",
+    "Open the script editor panel and choose Zscript.",
+    "Paste your script. The first line must be //@zscript 1.",
+    "Press Add to chart. Errors show the line and a suggested fix."
+   ],
+   "tags": [
+    "zscript",
+    "first script",
+    "editor",
+    "add to chart"
+   ],
+   "links": [
+    {
+     "label": "Getting started",
+     "href": "/zscript/getting-started"
+    },
+    {
+     "label": "Cookbook",
+     "href": "/zscript/cookbook/"
+    }
+   ]
+  },
+  {
+   "id": "zscript-publish",
+   "q": "Can I share or sell a Zscript?",
+   "a": "<p>Yes. Publishing to the Script Library is free. Choose open source or protected (people can use it but not read it), and free or paid. Paid scripts are sold through Creator Hub.</p>",
+   "tags": [
+    "zscript",
+    "publish",
+    "sell",
+    "library",
+    "creator hub"
+   ],
+   "links": [
+    {
+     "label": "Publishing and selling",
+     "href": "/zscript/publishing-and-selling"
+    }
+   ]
+  }
+ ]
+}

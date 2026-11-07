@@ -15,7 +15,7 @@
 
   // The platform's legal name for creator payments: ONE setting, settings/commerce.creatorPlatformLegalName (public read).
   // Changing it in Firestore changes every text below on the next page load; no deploy. DEFAULT is only the fallback.
-  CP.LEGAL_DEFAULT = 'Gaurav Singh LLC';
+  CP.LEGAL_DEFAULT = 'TradeZoro LLC';
   CP.legal = CP.LEGAL_DEFAULT;
   CP.legalReady = Promise.resolve().then(function () {
     return db.collection('settings').doc('commerce').get().then(function (s) {

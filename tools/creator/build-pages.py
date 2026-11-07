@@ -146,7 +146,7 @@ def inline(t):
     t = html.escape(t, quote=False)
     t = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', t)
     t = re.sub(r'\[([^\]]+)\]\((/[^)]*)\)', r'<a href="\2">\1</a>', t)
-    t = t.replace('{{legal}}', '<span data-legal-name>Gaurav Singh LLC</span>')   # live value: assets/creator-legal.js
+    t = t.replace('{{legal}}', '<span data-legal-name>TradeZoro LLC</span>')   # live value: assets/creator-legal.js
     return t
 out, ul = [], False
 for line in md.splitlines():

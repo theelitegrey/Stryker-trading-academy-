@@ -1,7 +1,7 @@
 // TradeZoro — online presence
 // Depends on: assets/auth.js (auth), assets/progress.js (db)
 //
-// presence/{uid}: { lastSeen, name }
+// presence/{uid}: { lastSeen, name, page }   page = location.pathname only (no query/hash), for the admin Live panel
 //
 // HIDDEN MEANS NO DOCUMENT, NOT A FLAG.
 // The obvious design is presence/{uid}.visible = false and readers skipping
@@ -39,7 +39,8 @@ function writePresence(){
   var u = auth.currentUser;
   return db.collection('presence').doc(u.uid).set({
     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-    name: u.displayName || (u.email ? u.email.split('@')[0] : 'Trader')
+    name: u.displayName || (u.email ? u.email.split('@')[0] : 'Trader'),
+    page: String(location.pathname || '/').slice(0, 120)
   }).catch(function (err) {
     console.warn('TradeZoro: presence write failed', err);
   });

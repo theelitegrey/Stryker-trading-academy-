@@ -16,13 +16,13 @@ const MAX_PAGES = 100;                // x 1000 trades: hard cap on the backfill
 const CONC = 10;                      // parallel page requests
 const IDLE_MS = 60000;                // no chart asked for this feed for a minute: close it
 const PREFIX = 'binance:';
-import { getVenue } from './orderflow-venues.js?v=908';
+import { getVenue } from './orderflow-venues.js?v=909';
 // Other crypto venues (assets/orderflow-venues.js adapters): one import line per venue.
-import './orderflow-venue-hyperliquid.js?v=908';
-import './orderflow-venue-bybit.js?v=908';
-import './orderflow-venue-okx.js?v=908';
-import './orderflow-venue-bitget.js?v=908';
-import './orderflow-venue-kraken.js?v=908';
+import './orderflow-venue-hyperliquid.js?v=909';
+import './orderflow-venue-bybit.js?v=909';
+import './orderflow-venue-okx.js?v=909';
+import './orderflow-venue-bitget.js?v=909';
+import './orderflow-venue-kraken.js?v=909';
 
 const venueOf = (root) => { const m = /^([a-z0-9]+):/i.exec(root || ''); return m && m[1].toLowerCase() !== 'binance' ? getVenue(m[1]) : null; };
 export const isCrypto = (root) => typeof root === 'string' && (root.startsWith(PREFIX) || !!venueOf(root));

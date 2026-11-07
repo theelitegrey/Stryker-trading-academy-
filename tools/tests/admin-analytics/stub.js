@@ -66,12 +66,45 @@ function build(mode) {
 
     var DAILY_DOCS = {};
     if (MODE === 'loaded') {
-      // 3 days of history so the trend note shows "N days of history stored."
-      for (var d = 0; d < 3; d++) {
+      // 41 days of synthetic history (fixture only), one missing day (gap),
+      // engagement fields only on today (they start recording today).
+      ADMIN_STATS_CURRENT.seriesStart = (function () { var k = new Date(NOW - 40 * 864e5); return k.toISOString().slice(0, 10); })();
+      Object.assign(ADMIN_STATS_CURRENT, { onlineNow: 10, onlinePeak: 14, chartAlertsTotal: 120, alertFiresTotal: 40, pushDevices: 60,
+        supportOpen: 5, supportWaitingSupport: 3, supportWaitingMember: 2,
+        suggestionsByStatus: { new: 8, review: 4, planned: 6, progress: 2, shipped: 12, declined: 3 } });
+      for (var d = 0; d <= 40; d++) {
+        if (d === 12) continue;
         var key = new Date(NOW - d * 864e5);
         var dayId = key.getUTCFullYear() + '-' + String(key.getUTCMonth() + 1).padStart(2, '0') + '-' + String(key.getUTCDate()).padStart(2, '0');
-        DAILY_DOCS['daily-' + dayId] = Object.assign({}, ADMIN_STATS_CURRENT);
+        var age = 40 - d, tot = 600 + age * 10;
+        var doc = Object.assign({}, ADMIN_STATS_CURRENT, {
+          generatedAt: ts(d, 1), totalUsers: tot, new1: 5 + (age * 7) % 11, active1: 40 + (age * 13) % 30,
+          active7: 150 + age * 3, active30: 300 + age * 5, payingMembers: 120 + age * 2, paid: 120 + age * 2, mrr: 600 + age * 10
+        });
+        if (d > 0) ['onlineNow', 'onlinePeak', 'chartAlertsTotal', 'alertFiresTotal', 'pushDevices'].forEach(function (k) { delete doc[k]; });
+        DAILY_DOCS['daily-' + dayId] = doc;
       }
+    }
+
+    var PRESENCE_ROWS = [];
+    if (MODE === 'loaded') {
+      ['Student A', 'Student B', 'Student C'].forEach(function (n, i) {
+        PRESENCE_ROWS.push({ id: 'p' + i, name: n, page: ['/charts.html', '/dashboard-user', '/chapter.html'][i], lastSeen: ts(0, 0) });
+      });
+    }
+    // Orders for the REST runQuery (fixture, money fields only).
+    var ORDER_DOCS = [];
+    if (MODE === 'loaded') {
+      for (var o = 0; o < 60; o++) {
+        var dd = (o * 7) % 85, trial = o % 5 === 0;
+        ORDER_DOCS.push({ fields: {
+          finalAmount: { integerValue: trial ? '0' : '19' }, currency: { stringValue: 'USD' }, amountUsd: { integerValue: trial ? '0' : '19' },
+          createdAt: { timestampValue: new Date(NOW - dd * 864e5 - 3600e3).toISOString() },
+          kind: trial ? { stringValue: 'trial' } : { nullValue: null }, status: { stringValue: 'completed' },
+          gateway: { stringValue: 'stripe' }, studentUid: { stringValue: 'u' + (o % 20) } } });
+      }
+      ORDER_DOCS.push({ fields: { finalAmount: { integerValue: '19' }, currency: { stringValue: 'USD' }, amountUsd: { integerValue: '19' },
+        createdAt: { timestampValue: new Date(NOW - 60e3).toISOString() }, status: { stringValue: 'completed' }, gateway: { stringValue: 'stripe' }, studentUid: { stringValue: 'u3' } } });
     }
 
     var TRAFFIC_DOCS = {};
@@ -228,6 +261,15 @@ function build(mode) {
       };
     }
 
+    function presenceColRef() {
+      var q = {
+        where: function () { return q; }, orderBy: function () { return q; }, limit: function () { return q; },
+        doc: genericDocRef,
+        get: function () { return MODE === 'failed' ? fail() : Promise.resolve(listSnap(PRESENCE_ROWS)); }
+      };
+      return q;
+    }
+
     function colRef(name) {
       if (name === 'students') return studentsColRef();
       if (name === 'activityLog') return activityLogColRef();
@@ -235,6 +277,7 @@ function build(mode) {
       if (name === 'traffic') return trafficColRef();
       if (name === 'liveSessions') return liveSessionsColRef();
       if (name === 'admins') return adminsColRef();
+      if (name === 'presence') return presenceColRef();
       return genericColRef();
     }
 
@@ -268,15 +311,24 @@ function build(mode) {
     // a real value to render in the 'loaded' fixture.
     var REAL_FETCH = window.fetch;
     window.fetch = function (url, opts) {
+      var json = function (v) { return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve(v); } }); };
+      if (typeof url === 'string' && url.indexOf('/ts-health') !== -1) {
+        if (MODE !== 'loaded') return Promise.resolve({ ok: false, status: 503 });
+        return json({ clients: 6, bookClients: 3, cmeOpen: false });
+      }
+      var reqBody = {};
+      try { reqBody = JSON.parse((opts && opts.body) || '{}'); } catch (e) {}
       if (typeof url === 'string' && url.indexOf('runAggregationQuery') !== -1) {
         if (MODE === 'failed') return Promise.resolve({ ok: false, status: 500 });
-        var n = MODE === 'loaded' ? 10 : 0;
-        return Promise.resolve({
-          ok: true,
-          json: function () {
-            return Promise.resolve([{ result: { aggregateFields: { n: { integerValue: String(n) } } }, readTime: new Date().toISOString() }]);
-          }
-        });
+        var from = reqBody.structuredAggregationQuery.structuredQuery.from[0].collectionId;
+        var n = MODE === 'loaded' ? (from === 'students' ? 4 : 10) : 0;
+        return json([{ result: { aggregateFields: { n: { integerValue: String(n) } } }, readTime: new Date().toISOString() }]);
+      }
+      if (typeof url === 'string' && url.indexOf(':runQuery') !== -1) {
+        if (MODE === 'failed') return Promise.resolve({ ok: false, status: 500 });
+        var since = Date.parse(reqBody.structuredQuery.where.fieldFilter.value.timestampValue);
+        return json(ORDER_DOCS.filter(function (d) { return Date.parse(d.fields.createdAt.timestampValue) >= since; })
+          .map(function (d) { return { document: d }; }).concat([{ readTime: new Date().toISOString() }]));
       }
       return Promise.reject(new Error('stub: blocked unexpected fetch to ' + url));
     };

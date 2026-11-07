@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="908">
+<meta name="stryker-build" content="909">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard — TradeZoro</title>
 <meta name="description" content="TradeZoro admin dashboard.">
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=908">
-<script src="assets/skeleton.js?v=908"></script>
-<link rel="stylesheet" href="assets/admin-analytics.css?v=908">
-<script src="assets/sanitize.js?v=908"></script>
+<link rel="stylesheet" href="assets/style.css?v=909">
+<script src="assets/skeleton.js?v=909"></script>
+<link rel="stylesheet" href="assets/admin-analytics.css?v=909">
+<script src="assets/sanitize.js?v=909"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -57,17 +57,17 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="assets/toast.js?v=908" defer></script>
-<script src="assets/version-check.js?v=908" defer></script>
-<script src="assets/cookie-notice.js?v=908" defer></script>
-<script src="assets/acquisition.js?v=908" defer></script>
-<script src="assets/focus-mode.js?v=908" defer></script>
+<script src="assets/toast.js?v=909" defer></script>
+<script src="assets/version-check.js?v=909" defer></script>
+<script src="assets/cookie-notice.js?v=909" defer></script>
+<script src="assets/acquisition.js?v=909" defer></script>
+<script src="assets/focus-mode.js?v=909" defer></script>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=908">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=908">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=908">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=908">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=908">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=909">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=909">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=909">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=909">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=909">
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
 <body>
@@ -221,15 +221,36 @@
         </div>
       </div>
 
+      <div class="aac-live" id="aac-live" aria-labelledby="aac-live-h">
+        <div class="aac-live-head">
+          <h3 id="aac-live-h"><span class="aa-online-dot" id="aa-online-dot"></span>Live</h3>
+          <span class="aac-ago" id="aac-live-ago" aria-live="off">…</span>
+        </div>
+        <div class="aac-live-grid">
+          <div class="aac-live-main">
+            <div class="aac-big"><span id="aa-online-now">…</span></div>
+            <div class="aac-l">Online now</div>
+            <div class="aac-spark" id="aac-online-spark"></div>
+            <div class="aac-note" id="aac-spark-note">Last 60 min, sampled every 30 s while this page is open.</div>
+          </div>
+          <div class="aac-kpis">
+            <div class="aac-kpi"><div class="aac-kv" id="aac-hub">…</div><div class="aac-l">Futures hub viewers</div><div class="aac-note" id="aac-hub-sub"></div></div>
+            <div class="aac-kpi"><div class="aac-kv" id="aac-signups-today">…</div><div class="aac-l">Signups today</div></div>
+            <div class="aac-kpi"><div class="aac-kv" id="aac-payments-today">…</div><div class="aac-l">Payments today</div><div class="aac-note" id="aac-payments-sub"></div></div>
+            <div class="aac-kpi"><div class="aac-kv" id="aac-trials-today">…</div><div class="aac-l">Trials started today</div></div>
+          </div>
+          <div class="aac-who">
+            <div class="aac-l">Who is online</div>
+            <ul class="aac-who-list scroll-y" id="aac-online-list"><li class="aac-empty">…</li></ul>
+          </div>
+        </div>
+        <div class="aac-note">Online = a visible tab beat within 2½ min. "Today" = since 00:00 IST.</div>
+      </div>
+
       <div class="aa-bento-grid">
         <div class="aa-card">
           <div class="v" id="aa-total-users">…</div>
           <div class="l">Total users</div>
-        </div>
-        <div class="aa-card">
-          <div class="v"><span class="aa-online-dot" id="aa-online-dot"></span><span id="aa-online-now">…</span></div>
-          <div class="l">Online now</div>
-          <div class="sub">Visible tab heartbeat within the last 2½ minutes.</div>
         </div>
         <div class="aa-card">
           <div class="v" id="aa-new-range">…</div>
@@ -260,6 +281,37 @@
         </div>
       </div>
       <div class="aa-trend-note" id="aa-trend-note"></div>
+
+      <div class="aac-trends" id="aac-trends">
+        <div class="aac-trends-head">
+          <h3>Trends</h3>
+          <div class="aa-range-seg" id="aac-range-seg" role="group" aria-label="Chart range">
+            <button type="button" data-range="7d">7d</button>
+            <button type="button" data-range="30d" class="active" aria-pressed="true">30d</button>
+            <button type="button" data-range="90d">90d</button>
+            <button type="button" data-range="all">All</button>
+          </div>
+        </div>
+        <p class="aac-note">Daily points are the last hourly snapshot of each UTC day; payments and trials are grouped by IST day. Times in IST.</p>
+        <h4 class="aac-group">Users</h4>
+        <div class="aac-grid">
+          <div id="aac-c-total" data-title="Total users"></div><div id="aac-c-new" data-title="New signups per day"></div>
+          <div id="aac-c-active" data-title="Active users"></div><div id="aac-c-freepaid" data-title="Free vs paying"></div>
+          <div id="aac-c-conv" data-title="Paid conversion"></div><div id="aac-c-peak" data-title="Online peak per day"></div>
+        </div>
+        <h4 class="aac-group">Money</h4>
+        <div class="aac-grid">
+          <div id="aac-c-mrr" data-title="MRR (USD)"></div><div id="aac-c-usd" data-title="Collected per day (USD)"></div>
+          <div id="aac-c-payments" data-title="Payments per day"></div><div id="aac-c-trials" data-title="Trials started vs converted"></div>
+          <div id="aac-c-planmix" data-title="Plan mix"></div>
+        </div>
+        <h4 class="aac-group">Engagement</h4>
+        <div class="aac-grid">
+          <div id="aac-c-funnel" data-title="Chapter completion"></div><div id="aac-c-alerts" data-title="Chart alerts"></div>
+          <div id="aac-c-push" data-title="Push-enabled devices"></div><div id="aac-c-support" data-title="Support tickets open"></div>
+          <div id="aac-c-sugg" data-title="Suggestions by status"></div>
+        </div>
+      </div>
 
       <div class="aa-two-col">
         <div class="panel" style="margin-bottom:0;">
@@ -360,38 +412,39 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="assets/auth.js?v=908"></script>
-<script src="assets/progress.js?v=908"></script>
-<script src="assets/presence.js?v=908"></script>
-<script src="assets/messages.js?v=908"></script>
-<script src="assets/messages-badge.js?v=908"></script>
-<script src="assets/gm-badge.js?v=908"></script>
-<script src="assets/account-menu.js?v=908"></script>
-<script src="assets/activity-log.js?v=908"></script>
-<script src="assets/banned-check.js?v=908"></script>
-<script src="assets/email-verify.js?v=908"></script>
-<script src="assets/profiles-sync.js?v=908"></script>
-<script src="assets/loading-animation.js?v=908"></script>
-<script src="assets/avatars.js?v=908"></script>
-<script src="assets/referrals.js?v=908"></script>
-<script src="assets/roles.js?v=908"></script>
-<script src="assets/branding.js?v=908"></script>
-<script src="assets/admin-guard.js?v=908"></script>
-<script src="assets/admin-analytics.js?v=908"></script>
-<script src="assets/dash-nav.js?v=908"></script>
-<script src="assets/market-hours.js?v=908"></script>
-<script src="assets/admin-nav.js?v=908"></script>
-<script src="assets/notifications.js?v=908"></script>
+<script src="assets/auth.js?v=909"></script>
+<script src="assets/progress.js?v=909"></script>
+<script src="assets/presence.js?v=909"></script>
+<script src="assets/messages.js?v=909"></script>
+<script src="assets/messages-badge.js?v=909"></script>
+<script src="assets/gm-badge.js?v=909"></script>
+<script src="assets/account-menu.js?v=909"></script>
+<script src="assets/activity-log.js?v=909"></script>
+<script src="assets/banned-check.js?v=909"></script>
+<script src="assets/email-verify.js?v=909"></script>
+<script src="assets/profiles-sync.js?v=909"></script>
+<script src="assets/loading-animation.js?v=909"></script>
+<script src="assets/avatars.js?v=909"></script>
+<script src="assets/referrals.js?v=909"></script>
+<script src="assets/roles.js?v=909"></script>
+<script src="assets/branding.js?v=909"></script>
+<script src="assets/admin-guard.js?v=909"></script>
+<script src="assets/admin-charts.js?v=909"></script>
+<script src="assets/admin-analytics.js?v=909"></script>
+<script src="assets/dash-nav.js?v=909"></script>
+<script src="assets/market-hours.js?v=909"></script>
+<script src="assets/admin-nav.js?v=909"></script>
+<script src="assets/notifications.js?v=909"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=908"></script>
-<script src="assets/push-prompt.js?v=908"></script>
-<script src="assets/admin-tasks.js?v=908"></script>
-<script src="assets/admin-notify.js?v=908"></script>
-<script src="assets/admin-overview.js?v=908"></script>
-<script src="assets/admin-live-feed.js?v=908"></script>
-<script src="assets/admin-todo.js?v=908"></script>
-<script src="assets/notes-admin.js?v=908"></script>
-<script src="assets/admin-ai.js?v=908"></script>
-<script src="assets/theme.js?v=908"></script>
+<script src="assets/push.js?v=909"></script>
+<script src="assets/push-prompt.js?v=909"></script>
+<script src="assets/admin-tasks.js?v=909"></script>
+<script src="assets/admin-notify.js?v=909"></script>
+<script src="assets/admin-overview.js?v=909"></script>
+<script src="assets/admin-live-feed.js?v=909"></script>
+<script src="assets/admin-todo.js?v=909"></script>
+<script src="assets/notes-admin.js?v=909"></script>
+<script src="assets/admin-ai.js?v=909"></script>
+<script src="assets/theme.js?v=909"></script>
 </body>
 </html>

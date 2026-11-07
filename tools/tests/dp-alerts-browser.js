@@ -93,7 +93,7 @@ async function run(b, tag, o) {
   await H(p, '(x, c, h, ws) => {  }');
   if (phone) await p.evaluate(() => document.querySelector('#stkdkp .stkdkp-x').click());
   await sleep(300);
-  const opened = await p.evaluate(async () => { const m = await import('/assets/chart-dp-alerts.js?v=910'); return m.openIndicatorAlerts(window.STRYKER_VELA, false); });
+  const opened = await p.evaluate(async () => { const m = await import('/assets/chart-dp-alerts.js?v=911'); return m.openIndicatorAlerts(window.STRYKER_VELA, false); });
   await sleep(1200);
   let ds = await dlgState(p);
   check(opened && ds && ds.hasHd && /Alert me on new prints/.test(ds.text), tag + ': indicator settings open with an Alerts section ' + (ds ? ds.text.slice(0, 40) : ''));
@@ -175,7 +175,7 @@ async function run(b, tag, o) {
   await p.evaluate(() => { const ws = window.STRYKER_VELA; ws.cell(ws.context().cells[0].id).setSymbol('futures:ES1!'); }); await sleep(3500);
   const fk = await p.evaluate(() => [...window.__dpStore.keys()].join());
   check(fk === 'ind-SPY', tag + ': ES chart -> the alert is on SPY (' + fk + ')');
-  await p.evaluate(async () => { const m = await import('/assets/chart-dp-alerts.js?v=910'); m.openIndicatorAlerts(window.STRYKER_VELA, false); }); await sleep(1200);
+  await p.evaluate(async () => { const m = await import('/assets/chart-dp-alerts.js?v=911'); m.openIndicatorAlerts(window.STRYKER_VELA, false); }); await sleep(1200);
   ds = await dlgState(p);
   check(/Alerts for SPY prints \(ES chart\)/.test(ds.note || ''), tag + ': settings say "Alerts for SPY prints (ES chart)" ' + JSON.stringify(ds.note));
   await H(p, '(x, c) => { (c.chart.renderer.inputsUI ? c.chart.renderer : c.chart.renderer.renderer).inputsUI.inputsDialog.close(); }');
@@ -184,7 +184,7 @@ async function run(b, tag, o) {
   const nc = await p.evaluate(() => [...window.__dpStore.keys()].join('|'));
   check(nc === '' || nc === 'ind-SPY' || nc === 'ind-QQQ' || true, tag + ': non-covered symbol handled');
   // cap 20: the 21st symbol is refused by the store
-  const cap = await p.evaluate(async () => { const m = await import('/assets/chart-dp-alerts.js?v=910'); const syms = ['AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','AVGO','NFLX','AMD','JPM','V','WMT','XOM','LLY','BAC','DIS','COST','INTC','PLTR','BA']; let r = 'none'; for (const s of syms) { r = await m.syncAlert({ key: 'k' + s, symbol: s, on: true, min: 1e6, freq: 'every' }); if (r === 'full') return [s, r]; } return ['-', r]; });
+  const cap = await p.evaluate(async () => { const m = await import('/assets/chart-dp-alerts.js?v=911'); const syms = ['AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','AVGO','NFLX','AMD','JPM','V','WMT','XOM','LLY','BAC','DIS','COST','INTC','PLTR','BA']; let r = 'none'; for (const s of syms) { r = await m.syncAlert({ key: 'k' + s, symbol: s, on: true, min: 1e6, freq: 'every' }); if (r === 'full') return [s, r]; } return ['-', r]; });
   check(cap[1] === 'full' && cap[0] === 'PLTR' || cap[1] === 'full', tag + ': the 21st dark pool alert is refused ' + JSON.stringify(cap));
   const words = await p.evaluate(() => document.querySelector('#stkdkp').textContent + ' ' + (document.querySelector('.stkdpa-inote') || {}).textContent);
   check(!/\blive\b|real-time|realtime|delayed/i.test(words) && !/insight|finra|unusual whales|polygon/i.test(words), tag + ': no live / real-time / vendor wording');

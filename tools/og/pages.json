@@ -2127,6 +2127,22 @@
       ],
       "focus": "0.5,0.5",
       "alt": "WCSMC + SP v3.0 [WinWorld] drawn on an NQ futures chart in ZoroCharts"
+    },
+    {
+      "page": "options-calculator.html",
+      "title": "Options P&L Calculator",
+      "og_title": null,
+      "visual": "brand",
+      "focus": "0.5,0.5",
+      "alt": "Options P&L Calculator share card with the TradeZoro logo"
+    },
+    {
+      "page": "iv-skew.html",
+      "title": "IV Skew",
+      "og_title": null,
+      "visual": "brand",
+      "focus": "0.5,0.5",
+      "alt": "IV Skew and term structure share card with the TradeZoro logo"
     }
   ]
 }

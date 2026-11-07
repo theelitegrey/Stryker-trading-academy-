@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'zscripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'zscripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'dpAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
 
       // Charts PAPER TRADING account (assets/chart-paper.js, 2026-10-12). Demo money only: the
       // whole simulated account (balance, positions, orders, history) is one JSON string the
@@ -256,6 +256,30 @@ service cloud.firestore {
         allow read, delete: if isSelf(uid);
         allow create: if isSelf(uid) && aid.size() <= 40 && validZ(request.resource.data);
         allow update: if isSelf(uid) && validZ(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt;
+      }
+
+      // Dark pool print alerts (assets/chart-dp-alerts.js, workers/alert-engine/dp_alerts.py, 2026-11-07). Owner only. Free for
+      // everyone. symbol = one of the 29 covered tickers, min = smallest print in USD (>= $1M), optional price zone lo..hi (both
+      // or neither), Once / Every time. updatedAt is server time: the engine arms the alert from it. 20 per member is enforced
+      // by the client and again by the engine (it ignores the rest). Carved out of the wildcard above.
+      match /dpAlerts/{aid} {
+        function validDp(d) {
+          return d.keys().hasOnly(['symbol', 'min', 'lo', 'hi', 'freq', 'active', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['symbol', 'min', 'freq', 'active', 'updatedAt'])
+            && d.symbol in ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'AVGO', 'NFLX', 'AMD', 'JPM', 'V', 'WMT', 'XOM', 'LLY',
+                            'BAC', 'DIS', 'COST', 'INTC', 'PLTR', 'BA', 'COIN', 'MSTR', 'SPY', 'QQQ', 'IWM', 'DIA', 'GLD', 'TQQQ']
+            && (d.min is int || d.min is float) && d.min >= 1000000 && d.min <= 100000000000
+            && (('lo' in d) == ('hi' in d))
+            && (!('lo' in d) || ((d.lo is int || d.lo is float) && (d.hi is int || d.hi is float) && d.lo > 0 && d.lo <= d.hi))
+            && d.freq in ['once', 'every']
+            && d.active is bool
+            && d.updatedAt == request.time
+            && (!('createdAt' in d) || d.createdAt is timestamp);
+        }
+        allow read, delete: if isSelf(uid);
+        allow create: if isSelf(uid) && aid.size() <= 40 && validDp(request.resource.data);
+        allow update: if isSelf(uid) && validDp(request.resource.data)
           && request.resource.data.createdAt == resource.data.createdAt;
       }
 

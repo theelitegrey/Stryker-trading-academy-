@@ -36,6 +36,7 @@ import urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import alert_core as core  # noqa: E402
 import zoro_alerts as za  # noqa: E402
+import dp_alerts as dpa  # noqa: E402
 import fsrest as fs  # noqa: E402
 import wsmini  # noqa: E402
 
@@ -509,6 +510,157 @@ def zoro_loop():
         time.sleep(ZORO_EVERY)
 
 
+# ---------------------------------------------------------------------------------- dark pool print alerts
+# Owner order 2026-11-07. Alerts: students/{uid}/dpAlerts (dp_alerts.py has the shape and the matching). Prints: the public
+# book-recorder GET /scan?part=dp_<sym> (dp-feeder writes it about every 2 hours on weekdays). Every DP_EVERY s: load the alerts,
+# read the part of each symbol that has one; x-scan-t unchanged -> nothing new, skip. A fire = one notifications doc
+# (bell + phone push through onNotificationCreated), Once alerts claimed (active=false) first. State (part times + the print
+# keys each alert already matched) survives restarts in DP_STATE, so a restart never re-sends or floods.
+DP_URL = os.environ.get('BOOK_RECORDER_URL', 'https://book-recorder.theelitegrey.workers.dev').rstrip('/')
+DP_EVERY = int(os.environ.get('DP_EVERY', '120'))
+DP_STATE = os.environ.get('DP_STATE', os.path.join(HERE, 'dp-state.json'))
+dstat = {'fires': 0, 'loops': 0, 'last': 0, 'err': 0, 'alerts': 0, 'syms': 0}
+
+
+def dp_load():
+    # shortcut: no where-clause (same reason as zoro_load: no single-field exemption for a collection-group filter).
+    res = fs.run_query({'from': [{'collectionId': 'dpAlerts', 'allDescendants': True}]})
+    out = []
+    for x in res:
+        d = x.get('document')
+        if not d:
+            continue
+        parts = d['name'].split('/documents/')[1].split('/')     # students/{uid}/dpAlerts/{aid}
+        if len(parts) != 4:
+            continue
+        a = dpa.parse_dp_alert(parts[1], parts[3], fs.decode_doc(d), d.get('updateTime', ''))
+        if a:
+            out.append(a)
+    return {a['id']: a for a in dpa.limit_per_member(out)}
+
+
+def dp_part(sym, known_t=None):
+    """-> (t, part) from the recorder. part None on 404 (nothing stored yet) or when x-scan-t == known_t (same feeder
+    update as last time: the body is not parsed)."""
+    import gzip
+    import urllib.request
+    import urllib.error
+    req = urllib.request.Request(DP_URL + '/scan?part=dp_' + sym.lower(), headers={'User-Agent': 'tradezoro-alert-engine/1'})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            ht = r.headers.get('x-scan-t') or ''
+            if known_t and ht.isdigit() and int(ht) == known_t:
+                return known_t, None
+            body = r.read()
+            gz = r.headers.get('x-scan-gzip') == '1' or body[:2] == b'\x1f\x8b'
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None, None
+        raise
+    part = json.loads(gzip.decompress(body) if gz else body)
+    return int(part.get('t') or 0), part
+
+
+def dp_state_load():
+    try:
+        st = json.load(open(DP_STATE))
+        if isinstance(st.get('parts'), dict) and isinstance(st.get('alerts'), dict):
+            return st
+    except Exception:
+        pass
+    return {'parts': {}, 'alerts': {}}
+
+
+def dp_state_save(st):
+    with open(DP_STATE + '.tmp', 'w') as f:
+        json.dump(st, f, separators=(',', ':'))
+    os.replace(DP_STATE + '.tmp', DP_STATE)
+
+
+def dp_fire(a, text_list, dry=False):
+    """Claim (Once: active=false with the update-time precondition) -> one notifications doc per text."""
+    if dry:
+        return 'dry'
+    path = 'students/%s/dpAlerts/%s' % (a['uid'], a['aid'])
+    doc, ut = fs.get_doc(path)
+    if doc is None or doc.get('active') is not True or str(doc.get('symbol', '')).upper() != a['symbol']:
+        return 'stale'
+    if a['freq'] == 'once':
+        try:
+            fs.patch_doc(path, {'active': False, 'updatedAt': fs.now_ts()}, ut)
+        except fs.HttpErr as e:
+            if e.status in (400, 404, 409):
+                return 'claimed-elsewhere'
+            raise
+    for text in text_list:
+        fs.create_doc('notifications', {'recipientUid': a['uid'], 'type': 'dp_alert', 'message': text[:480],
+                                        'link': dpa.link(a['symbol']), 'read': False, 'createdAt': fs.now_ts()})
+    dstat['fires'] += len(text_list)
+    log('DFIRE %s %s x%d' % (a['aid'][:6], a['symbol'], len(text_list)))   # no uid in logs
+    return 'fired'
+
+
+def dp_round(now, st, alerts, get_part=None, fire=None):
+    """One pass. alerts: {id: alert}. st: the state dict (changed in place). Returns [(alert, texts, result)]."""
+    get_part = get_part or dp_part
+    fire = fire or dp_fire
+    out = []
+    dpa.prune(st['alerts'], set(alerts), int(now * 1000))
+    syms = sorted({a['symbol'] for a in alerts.values()})
+    dstat['syms'] = len(syms)
+    for sym in syms:
+        mine = [a for a in alerts.values() if a['symbol'] == sym]
+        seen = st['parts'].get(sym) or {}     # {'t': last version seen, 'prev': the one before it}
+        fresh = all((st['alerts'].get(a['id']) or {}).get('v') == a['armed'] for a in mine)
+        try:
+            t, part = get_part(sym, seen.get('t') if fresh else None)
+        except Exception as e:
+            dstat['err'] += 1
+            log('dp part %s failed: %s' % (sym, type(e).__name__))
+            continue
+        if not part or (fresh and seen.get('t') == t):
+            continue                          # nothing stored, or the same update and every alert already checked on it
+        prev_t = seen.get('prev') if seen.get('t') == t else seen.get('t')
+        plist = dpa.prints(part)
+        failed = False
+        for a in mine:
+            found, entry = dpa.check(a, plist, t, prev_t, st['alerts'].get(a['id']))
+            st['alerts'][a['id']] = entry
+            tx = dpa.texts(a, found)
+            if not tx:
+                continue
+            try:
+                r = fire(a, tx)
+            except Exception as e:
+                dstat['err'] += 1
+                r = 'error'
+                failed = True
+                log('dp fire failed: %s %s' % (type(e).__name__, str(e)[:100]))
+                for x in found:               # not sent: try again on the next round
+                    entry['sent'].pop(x['k'], None)
+            out.append((a, tx, r))
+        if not failed:                        # a failed send keeps the old version time, so the next round looks again
+            st['parts'][sym] = {'t': t, 'prev': prev_t}
+    return out
+
+
+def dp_loop():
+    st = dp_state_load()
+    while True:
+        now = time.time()
+        try:
+            alerts = dp_load()
+            dstat['alerts'] = len(alerts)
+            dp_round(now, st, alerts)
+            dp_state_save(st)
+            dstat['loops'] += 1
+            dstat['last'] = int(now)
+        except Exception as e:
+            dstat['err'] += 1
+            log('dp round failed: %s %s' % (type(e).__name__, str(e)[:120]))
+        time.sleep(DP_EVERY)
+
+
 # ---------------------------------------------------------------------------------- health
 def health_loop():
     last_hb = 0
@@ -521,7 +673,7 @@ def health_loop():
              'fires': stat['fires'], 'fire_errors': stat['fire_errors'], 'sync_err': stat['sync_err'],
              'last_sync': int(stat['last_sync']), 'ticks': stat['ticks'],
              'feeds': {k: int(v) for k, v in stat['feed'].items()},
-             'zoro': dict(zstat, alerts=len(zalerts), touch=len(zbook.alerts))}
+             'zoro': dict(zstat, alerts=len(zalerts), touch=len(zbook.alerts)), 'dp': dict(dstat)}
         try:
             tmp = HEALTH + '.tmp'
             with open(tmp, 'w') as f:
@@ -541,7 +693,7 @@ def health_loop():
 def main():
     key = os.environ.get('INSIGHTSENTRY_WEBSOCKET_API_KEY', '')
     roots = list(IS_ROOTS)
-    threads = [sync_loop, fire_loop, health_loop, binance_reader, coinbase_reader, zoro_loop]
+    threads = [sync_loop, fire_loop, health_loop, binance_reader, coinbase_reader, zoro_loop, dp_loop]
     if key:
         threads += [lambda: is_reader(roots[:4], key), lambda: is_reader(roots[4:], key)]
     else:

@@ -37,8 +37,8 @@ messaging.onBackgroundMessage(function (payload) {
 
   self.registration.showNotification(title, {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=906',
-    badge: '/assets/images/tradezoro-favicon-32-494.png?v=906',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=907',
+    badge: '/assets/images/tradezoro-favicon-32-494.png?v=907',
     // Tagging by type collapses repeats: five likes replace one another
     // instead of stacking five separate entries in the tray.
     // Chart alerts and dark pool print alerts get their own tag (two different alerts must both show); other types collapse by type.

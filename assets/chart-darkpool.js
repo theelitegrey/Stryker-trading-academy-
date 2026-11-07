@@ -15,7 +15,7 @@
 // chart-watchlist.js (.stkw-rail, .stkchart-panel.stkw-host), style.css tokens (--ink-*, --line-soft, --bg-2).
 
 
-import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=906';
+import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=907';
 
 export const DP_TYPE = 'stk_darkpool';
 export const DP_DESC = 'Large off-exchange stock trades (dark pool prints) drawn at their exact price and time, sized by $ value; $10M+ highlighted. Size filter $1M to $25M. 29 US stocks and ETFs, updated every 2 hours. On ES, NQ, YM and RTY charts: the SPY, QQQ, DIA and IWM prints at the futures price';
@@ -411,7 +411,7 @@ export function mountDarkPoolPanel(ws) {
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
   $('.stkdkp-x').addEventListener('click', () => setOpen(false));
   // "Alert me": a server-side dark pool print alert for this symbol (assets/chart-dp-alerts.js), prefilled with the list's size
-  $('.stkdkp-alert').addEventListener('click', () => { const sym = targetOf(activeSym()); import('./chart-dp-alerts.js?v=906').then((m) => m.openDpAlert({ symbol: sym, min: sizeUsd(minSize) })).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
+  $('.stkdkp-alert').addEventListener('click', () => { const sym = targetOf(activeSym()); import('./chart-dp-alerts.js?v=907').then((m) => m.openDpAlert({ symbol: sym, min: sizeUsd(minSize) })).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
   seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); if (!b) return; minSize = b.dataset.m; try { localStorage.setItem(LS_PANEL, JSON.stringify({ min: minSize })); } catch (x) {} render(); });
   document.addEventListener('click', (e) => {
     if (!open || !e.target.closest) return;

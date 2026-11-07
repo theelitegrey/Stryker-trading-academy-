@@ -1,2 +1,2 @@
-partnerAdmin
-partnerLeave
+adminStatsScheduled
+adminStatsRefresh

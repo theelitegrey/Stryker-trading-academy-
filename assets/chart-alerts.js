@@ -49,7 +49,8 @@
 //     open: no phone push for them.
 // Education only. Not financial advice. Alerts are a convenience, not a trading signal.
 
-import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=905';
+import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=906';
+import * as DPA from './chart-dp-alerts.js?v=906';   // dark pool print alerts (server-side, students/{uid}/dpAlerts)
 const LAYER = 'stk_alerts';
 const PREFS_KEY = 'stryker_chart_alert_prefs';
 const MAX_ALERTS = 1000;
@@ -699,7 +700,7 @@ function build(){
   panel.innerHTML = `
   <div class="stk-al-box" role="dialog" aria-modal="true" aria-labelledby="stk-al-h">
     <div class="stk-al-head"><div class="stk-al-ttl"><h2 id="stk-al-h">Alerts</h2><button type="button" class="stk-al-info" aria-label="How alerts work" aria-expanded="false" aria-controls="stk-al-pop">i</button></div><button type="button" class="stk-al-x" aria-label="Close">×</button>
-      <div class="stk-al-pop" id="stk-al-pop" role="note" hidden><button type="button" class="stk-al-popx" aria-label="Close info">×</button><ul><li><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when ZoroCharts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first).</li><li><b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while ZoroCharts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals.</li></ul><p>Education only. Not financial advice.</p></div></div>
+      <div class="stk-al-pop" id="stk-al-pop" role="note" hidden><button type="button" class="stk-al-popx" aria-label="Close info">×</button><ul><li><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when ZoroCharts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first).</li><li><b>Dark pool print alerts</b> on 29 US stocks and ETFs are checked on our server after every dark pool update (about every 2 hours on weekdays) and sent to your phone, with no chart open.</li><li><b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while ZoroCharts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals.</li></ul><p>Education only. Not financial advice.</p></div></div>
     <form class="stk-al-form" hidden>
       <label>Symbol<input name="symbol" maxlength="40" required></label>
       <label class="stk-al-wide">Condition<select name="src"></select></label>
@@ -725,7 +726,7 @@ function build(){
       <p class="stk-al-wide stk-al-znote"></p>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-zcancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
-    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-znew">+ Options alert</button><button type="button" class="stk-al-sounds" aria-label="Alert sounds" title="Alert sounds"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Sounds</span></button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
+    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-znew">+ Options alert</button><button type="button" class="stk-al-znew stk-al-dpnew">+ Dark pool alert</button><button type="button" class="stk-al-sounds" aria-label="Alert sounds" title="Alert sounds"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Sounds</span></button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
     <div class="stk-al-confirm" hidden role="alertdialog" aria-modal="true" aria-labelledby="stk-al-ctl"><div class="stk-al-csheet"><p id="stk-al-ctl"></p><div class="stk-al-cbtn"><button type="button" class="stk-al-ccancel">Cancel</button><button type="button" class="stk-al-cok">Delete all</button></div></div></div>
     <div class="stk-al-list"></div>
   </div>`;
@@ -733,6 +734,8 @@ function build(){
   panel.addEventListener('click', (e) => { if (e.target === panel) closePanel(); });
   panel.querySelector('.stk-al-x').onclick = closePanel;
   zWire(); zReload();
+  panel.querySelector('.stk-al-dpnew').onclick = () => { const c = activeCell(); DPA.openDpAlert({ symbol: c ? c.symbol : '' }); };
+  DPA.onChange(() => { if (panel && !panel.hidden) renderList(); }); DPA.reload();
   panel.querySelector('.stk-al-new').onclick = () => { const c = activeCell(); openForm({ symbol: c ? c.symbol : '', price: crossPrice() }); };
   panel.querySelector('.stk-al-sounds').onclick = () => openSoundPanel();
   const conf = panel.querySelector('.stk-al-confirm');
@@ -887,15 +890,17 @@ function renderList(){
   if (!panel) return;
   const list = panel.querySelector('.stk-al-list'); list.textContent = '';
   panel.querySelector('.stk-al-delall').hidden = !alerts.length;
-  panel.querySelector('.stk-al-count').textContent = alerts.length + ' of ' + MAX_ALERTS + ' alerts' + (zAlerts.length ? ' \u00b7 ' + zAlerts.length + ' of ' + MAX_ZALERTS + ' options alerts' : '') + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
-  panel.querySelector('.stk-al-tools').classList.toggle('stk-al-none', !alerts.length && !zAlerts.length);
-  if (!alerts.length && !zAlerts.length) {
+  const dpN = DPA.dpAlerts().length;
+  panel.querySelector('.stk-al-count').textContent = alerts.length + ' of ' + MAX_ALERTS + ' alerts' + (zAlerts.length ? ' \u00b7 ' + zAlerts.length + ' of ' + MAX_ZALERTS + ' options alerts' : '') + (dpN ? ' \u00b7 ' + dpN + ' of ' + DPA.MAX_DP_ALERTS + ' dark pool alerts' : '') + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
+  panel.querySelector('.stk-al-tools').classList.toggle('stk-al-none', !alerts.length && !zAlerts.length && !dpN);
+  if (!alerts.length && !zAlerts.length && !dpN) {
     const e = document.createElement('div'); e.className = 'stk-al-empty';
     e.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>No alerts yet</b><span>Get notified when price or an indicator crosses a level</span><button type="button" class="stk-al-new stk-al-new2">+ New alert</button>';
     e.querySelector('.stk-al-new2').onclick = () => panel.querySelector('.stk-al-new').click();
     list.appendChild(e); return;
   }
   zRows(list);
+  DPA.dpRows(list, { rowClass: 'stk-al-row', after: renderList });
   const shown = alerts.slice(0, listLimit);   // 1000 rows at once is slow: show more on request
   for (const a of shown) {
     const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');

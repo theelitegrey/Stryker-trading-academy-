@@ -15,7 +15,7 @@
 // chart-watchlist.js (.stkw-rail, .stkchart-panel.stkw-host), style.css tokens (--ink-*, --line-soft, --bg-2).
 
 
-import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=905';
+import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=906';
 
 export const DP_TYPE = 'stk_darkpool';
 export const DP_DESC = 'Large off-exchange stock trades (dark pool prints) drawn at their exact price and time, sized by $ value; $10M+ highlighted. Size filter $1M to $25M. 29 US stocks and ETFs, updated every 2 hours. On ES, NQ, YM and RTY charts: the SPY, QQQ, DIA and IWM prints at the futures price';
@@ -310,6 +310,7 @@ function onDown(e) { const h = find(e); if (!h) { pinned = false; if (tip) tip.h
 // ---- "Dark pool" list panel (right icon bar; phones: a sheet) ----------------------------------------
 const IC = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="15" r="3"/><circle cx="16" cy="8" r="4"/><circle cx="18" cy="18" r="2"/></svg>';
 const IC_X = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const IC_BELL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 const LS_PANEL = 'stkdkp.v1';
 export function mountDarkPoolPanel(ws) {
   if (!ws || document.getElementById('stkdkp')) return null;
@@ -323,7 +324,7 @@ export function mountDarkPoolPanel(ws) {
   const railBtn = el('button', 'stkw-railbtn stkdkp-railbtn', IC); railBtn.type = 'button'; railBtn.title = 'Dark pool prints'; railBtn.setAttribute('aria-label', 'Dark pool prints'); railBtn.setAttribute('aria-pressed', 'false');
   const phoneBtn = el('button', 'stkc-btn stkdkp-phonebtn', IC.replace(/18/g, '16') + '<span class="stkc-btn-l">Dark pool</span>'); phoneBtn.type = 'button'; phoneBtn.setAttribute('aria-label', 'Dark pool prints');
   const panel = el('aside', 'stkdkp'); panel.id = 'stkdkp'; panel.hidden = true; panel.setAttribute('aria-label', 'Dark pool prints');
-  panel.innerHTML = '<div class="stkdkp-grab" aria-hidden="true"></div><div class="stkdkp-hd"><span class="stkdkp-title">Dark pool</span><span class="stkdkp-sp"></span><button type="button" class="stkw-ib stkdkp-x" aria-label="Close dark pool prints">' + IC_X + '</button></div>' +
+  panel.innerHTML = '<div class="stkdkp-grab" aria-hidden="true"></div><div class="stkdkp-hd"><span class="stkdkp-title">Dark pool</span><span class="stkdkp-sp"></span><button type="button" class="stkdkp-alert" hidden>' + IC_BELL + '<span>Alert me</span></button><button type="button" class="stkw-ib stkdkp-x" aria-label="Close dark pool prints">' + IC_X + '</button></div>' +
     '<div class="stkdkp-seg" role="group" aria-label="Minimum print size">' + SIZES.map((s) => '<button type="button" data-m="' + s + '" aria-pressed="false">' + s + '+</button>').join('') + '</div>' +
     '<div class="stkdkp-sub" hidden></div><div class="stkdkp-stat" aria-live="polite"></div><div class="stkdkp-cols" role="row"><span>Time</span><span>Price</span><span>Shares</span><span>Value</span></div><div class="stkdkp-list" role="table" aria-label="Dark pool prints"></div>' +
     '<p class="stkdkp-foot">Large trades reported off the exchanges, one row per trade. Education only. Not financial advice.</p>';
@@ -357,6 +358,8 @@ export function mountDarkPoolPanel(ws) {
     $('.stkdkp-title').textContent = 'Dark pool' + (sym ? ' · ' + sym : '');
     stat.textContent = '';
     seg.hidden = !sym;
+    $('.stkdkp-alert').hidden = !sym;
+    if (sym) $('.stkdkp-alert').setAttribute('aria-label', 'Alert me on ' + sym + ' dark pool prints');
     if (!sym) return note(looksStock(raw) ? 'Dark pool prints are not covered for this symbol yet. Covered: ' + DP_SYMS.join(', ') + '.' : 'Dark pool prints are for US stocks and ETFs. Open SPY, QQQ, AAPL or another covered stock to see them.');
     const e = cached(sym);
     if (!e || (!e.part && !e.err)) { load(sym); return note('Loading…'); }
@@ -407,6 +410,8 @@ export function mountDarkPoolPanel(ws) {
   railBtn.addEventListener('click', () => setOpen(!open));
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
   $('.stkdkp-x').addEventListener('click', () => setOpen(false));
+  // "Alert me": a server-side dark pool print alert for this symbol (assets/chart-dp-alerts.js), prefilled with the list's size
+  $('.stkdkp-alert').addEventListener('click', () => { const sym = targetOf(activeSym()); import('./chart-dp-alerts.js?v=906').then((m) => m.openDpAlert({ symbol: sym, min: sizeUsd(minSize) })).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
   seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); if (!b) return; minSize = b.dataset.m; try { localStorage.setItem(LS_PANEL, JSON.stringify({ min: minSize })); } catch (x) {} render(); });
   document.addEventListener('click', (e) => {
     if (!open || !e.target.closest) return;
@@ -467,6 +472,10 @@ const CSS = `
 .stkdkp-note{ margin:0; padding:16px 12px; color:var(--ink-2); font-size:12px; line-height:16px; }
 .stkdkp-key{ margin:0; padding:8px 12px; font-size:11px; line-height:13px; color:var(--ink-2); }
 .stkdkp-foot{ flex:none; margin:0; padding:8px 12px; border-top:1px solid var(--line-soft); font-size:11px; line-height:13px; color:var(--ink-2); }
+.stkdkp-alert{ flex:none; display:inline-flex; align-items:center; gap:4px; min-height:32px; padding:0 12px 0 8px; border:1px solid var(--line-soft); border-radius:999px; background:none; color:var(--ink-0); font:500 13px/18px inherit; font-family:inherit; cursor:pointer; }
+.stkdkp-alert[hidden]{ display:none; }
+.stkdkp-alert:hover{ background:var(--bg-2); }
+.stkdkp-alert:focus-visible{ outline:2px solid #03c988; outline-offset:2px; }
 .stkdkp-phonebtn{ display:none; }
 .stkdkp-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }
 @media (max-width:700px){
@@ -475,6 +484,7 @@ const CSS = `
   .stkdkp{ position:fixed; left:0; right:0; top:auto; bottom:var(--stkc-dock, 0px); width:auto; height:min(62vh, 520px); z-index:8000; border-left:0; border-top:1px solid var(--line-soft); border-radius:20px 20px 0 0; font-size:14px; box-shadow:0 -8px 24px rgba(0,0,0,.35); }
   .stkdkp-grab{ display:block; width:36px; height:4px; border-radius:2px; margin:8px auto 0; background:var(--line, rgba(255,255,255,.2)); }
   .stkdkp-x{ width:44px; height:44px; border-radius:50%; background:var(--bg-2); }
+  .stkdkp-alert{ min-height:44px; padding:0 16px 0 12px; font-size:14px; }
   .stkdkp-seg button{ min-height:36px; font-size:13px; }
   .stkdkp-row{ min-height:44px; font-size:13px; }
   .stkdkp-foot{ padding-bottom:calc(8px + env(safe-area-inset-bottom)); }

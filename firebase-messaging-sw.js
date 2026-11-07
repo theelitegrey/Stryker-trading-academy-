@@ -37,12 +37,12 @@ messaging.onBackgroundMessage(function (payload) {
 
   self.registration.showNotification(title, {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=905',
-    badge: '/assets/images/tradezoro-favicon-32-494.png?v=905',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=906',
+    badge: '/assets/images/tradezoro-favicon-32-494.png?v=906',
     // Tagging by type collapses repeats: five likes replace one another
     // instead of stacking five separate entries in the tray.
-    // Chart alerts get their own tag (two different alerts must both show); other types collapse by type.
-    tag: data.type === 'chart_alert' ? 'chart-alert-' + Date.now() : (data.type || 'stryker'),
+    // Chart alerts and dark pool print alerts get their own tag (two different alerts must both show); other types collapse by type.
+    tag: data.type === 'chart_alert' || data.type === 'dp_alert' ? 'chart-alert-' + Date.now() : (data.type || 'stryker'),
     renotify: true,
     data: { link: data.link || '/dashboard-user.html' }
   });

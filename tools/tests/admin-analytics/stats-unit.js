@@ -64,6 +64,7 @@ function makeDb(data) {
   }
   const db = {
     collection: (c) => query(c, [], null),
+    collectionGroup: (c) => query(c, [], null),
     batch: () => {
       const ops = [];
       return {
@@ -541,6 +542,21 @@ function check(name, fn) {
     });
     assert.strictEqual(mixed.payingMembers, 1);
     assert.strictEqual(mixed.mrr, 49, 'a free grant on top of a paid plan does not erase the revenue');
+  });
+
+  // ---- chart series (2026-11-07)
+  await check('snapshot carries engagement counts + onlinePeak on the daily doc', async () => {
+    const cur = currentDb._store.adminStats.current;
+    ['chartAlertsTotal', 'alertFiresTotal', 'pushDevices', 'supportOpen', 'onlineNow', 'suggestionsByStatus'].forEach((k) => assert.ok(k in cur, k));
+    const day = Object.keys(currentDb._store.adminStats).find((k) => k.indexOf('daily-') === 0);
+    assert.ok('onlinePeak' in currentDb._store.adminStats[day]);
+  });
+  await check('engagement count failure fails soft to null', async () => {
+    const bad = { collection: () => { throw new Error('no index'); }, collectionGroup: () => { throw new Error('x'); } };
+    const e = await T.engagementCounts(bad, new Date());
+    assert.strictEqual(e.pushDevices, null);
+    assert.strictEqual(e.supportOpen, null);
+    assert.deepStrictEqual(e.suggestionsByStatus, {});
   });
 
   console.log(pass + '/' + (pass + fail) + ' passed');

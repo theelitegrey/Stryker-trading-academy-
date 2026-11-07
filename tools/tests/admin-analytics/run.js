@@ -228,11 +228,13 @@ async function runMode(browser, mode) {
             if (!hit) return null;
             return hit.closest('.aa-card').getBoundingClientRect().bottom;
           }
-          return { totalUsers: bottomOf('Total users'), onlineNow: bottomOf('Online now') };
+          // Online now lives in the Live panel at the top (2026-11-07 charts build).
+          const on = document.getElementById('aa-online-now');
+          return { totalUsers: bottomOf('Total users'), onlineNow: on ? on.getBoundingClientRect().bottom : null };
         });
         results.checks.push({
-          name: mode + '-' + c.tag + ' Total users + Online now bottom < 844',
-          pass: (bottoms.totalUsers === null || bottoms.totalUsers < 844) && (bottoms.onlineNow === null || bottoms.onlineNow < 844),
+          name: mode + '-' + c.tag + ' Live Online now above the fold (< 844) and Total users tile present',
+          pass: bottoms.onlineNow !== null && bottoms.onlineNow < 844 && bottoms.totalUsers !== null,
           detail: bottoms
         });
         const layout = await p.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));

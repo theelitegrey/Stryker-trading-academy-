@@ -61,7 +61,7 @@ export const coarseRule = (mid, sym) => {
 };
 
 const DEF = {
-  SYMBOLS: TS_SYMBOLS, TRADES: TS_TRADES, QUOTES: TS_QUOTES, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
+  SYMBOLS: TS_SYMBOLS, TRADES: TS_TRADES, QUOTES: TS_QUOTES, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, BOOK_KEEP_H: 720, BOOK_FULL_H: 48, THIN_MS: 15000, THIN_MAX: 3000, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
   SAMPLE_MS: 5000, BACK_MIN_MS: 2000, BACK_MAX_MS: 60000, STABLE_MS: 30000, DEAD_SLOT_MS: 50000, AUTH_PAUSE_MS: 300000,
   SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, FILL_MAX_MIN: 60, FILL_BUDGET_MS: 25000, FILL_SPAN_H: 6, FILL_STEP: 5, FILL_LAG_MS: 2 * 60000, FILL_PAUSE_MS: 60000, REST: 'https://api.tick-stream.xyz/v1', TICKS_PER_FRAME: 200, PRUNE_MS: 3600000, RECHECK_MS: 60000, TRADES_RESERVE: 5
 };
@@ -70,7 +70,10 @@ export function tsOpts(env) {
   const syms = String((env && env.TS_SYMBOLS) || '').split(',').map((s) => s.trim().toUpperCase()).filter((s) => TICK_SIZE[s]);
   return {
     SYMBOLS: syms.length ? syms : TS_SYMBOLS, RECORD: !env || env.TS_RECORD !== '0', MODE: env && env.TS_MODE === 'relay' ? 'relay' : 'direct',
-    KEEP_H: n(env && env.TS_KEEP_HOURS, 48, 24, 72), MAX_CLIENTS: n(env && env.TS_MAX_CLIENTS, 40, 1, 200)
+    KEEP_H: n(env && env.TS_KEEP_HOURS, 48, 24, 72), MAX_CLIENTS: n(env && env.TS_MAX_CLIENTS, 40, 1, 200),
+    // BOOK HISTORY (BOOK-REPLAY 2026-11-07): book rows (tsmin) are kept BOOK_KEEP_H (default 30 d), full 5 s detail for the newest
+    // BOOK_FULL_H, then thinned to one sample per THIN_MS (15 s). Trades / backfill keep KEEP_H (48 h).
+    BOOK_KEEP_H: n(env && env.TS_BOOK_KEEP_HOURS, 720, 48, 1440), BOOK_FULL_H: n(env && env.TS_BOOK_FULL_HOURS, 48, 6, 720)
   };
 }
 
@@ -94,6 +97,13 @@ export function imbalance10(bids, asks) {
   return b + a > 0 ? Math.round(((b - a) / (b + a)) * 1000) / 1000 : 0;
 }
 const goodLevels = (x) => Array.isArray(x) && x.length <= 2000 && x.every((r) => Array.isArray(r) && Number.isFinite(r[0]) && Number.isFinite(r[1]));
+
+// One sample per `ms` bucket (the first of each), for book rows older than BOOK_FULL_H. Input sorted by ts.
+export function thinSamples(list, ms) {
+  const out = []; let last = -Infinity;
+  for (const s of list) { const b = Math.floor(s.ts / ms); if (b !== last) { out.push(s); last = b; } }
+  return out;
+}
 
 export class TSHub {
   // store = { putMin(sym, t, book: ArrayBuffer, imbJson, fpJson), prune(minuteIdx), range(sym, t0, t1) -> [{ t, book, imb, fp }] }
@@ -286,7 +296,30 @@ export class TSHub {
       if (s && s.v.length) a.samples.push(s);
       a.imb.push([Math.floor(now / 1000), L.imb, this.imb10Of(L)]);
     }
-    if (now - this.lastPrune > this.o.PRUNE_MS) { this.lastPrune = now; try { this.store.prune(Math.floor((now - this.o.KEEP_H * 3600000) / 60000)); } catch (e) {} this.tb.prune(now); }
+    if (now - this.lastPrune > this.o.PRUNE_MS) { this.lastPrune = now; this.bookMaintain(now); this.tb.prune(now); }
+  }
+  // Hourly: drop book rows older than BOOK_KEEP_H; thin rows older than BOOK_FULL_H that still hold more than one sample per
+  // THIN_MS (the store finds them from the BKR1 sample count, only in the minutes that crossed the cut since the last run, so the
+  // hourly run reads ~1 h of rows; at most THIN_MAX rows a run, the next run continues); refresh the storage numbers shown in /ts-health.
+  bookMaintain(now) {
+    const o = this.o, keep = Math.max(o.BOOK_KEEP_H, o.KEEP_H), cut = Math.floor((now - o.BOOK_FULL_H * 3600000) / 60000);
+    try { this.store.prune(Math.floor((now - keep * 3600000) / 60000)); } catch (e) { this.lastError = 'prune failed'; }
+    if (o.BOOK_FULL_H < keep && this.store.fat) {
+      let n = 0;
+      try {
+        // incremental: only the minutes that crossed the cut since the last run (+1 h overlap); after a restart the 2 days before it
+        const from = this.thinTo != null ? this.thinTo - 60 : cut - 2 * 1440, rows = this.store.fat(from, cut, Math.ceil(60000 / o.THIN_MS), o.THIN_MAX);
+        for (const r of rows) {
+          const list = decodeSamples(r.book instanceof ArrayBuffer ? r.book : new Uint8Array(r.book).buffer);
+          const thin = list && thinSamples(list, o.THIN_MS);
+          if (thin && thin.length < list.length) { this.store.rewrite(r.sym, r.t, encodeSamples(thin)); n++; }
+        }
+        this.n.thinned = (this.n.thinned || 0) + n;
+        if (rows.length < o.THIN_MAX) this.thinTo = cut;   // a full batch: the next run continues from the same place
+      } catch (e) { this.lastError = 'thin failed'; }
+    }
+    // measured storage: the last full-detail day and the newest thinned day (all symbols), and the oldest row held
+    try { if (this.store.dayBytes) { const m = Math.floor(now / 60000); this.bookStats = { at: now, fullDay: this.store.dayBytes(m - 1440), thinDay: this.store.dayBytes(cut - 1440), oldest: this.store.oldest() }; } } catch (e) {}
   }
   imb10Of(L) { if (L.imb10 == null) L.imb10 = imbalance10(L.bids, L.asks); return L.imb10; }
   coarseOf(sym, now) {
@@ -438,7 +471,7 @@ export class TSHub {
       v: 1, at: Math.floor(now / 1000), mode: this.o.MODE, configured: !!this.key || this.o.MODE === 'relay', state: this.state, live: this.liveState(now),
       cmeOpen: cmeOpen(now), recording: this.o.RECORD, clients: this.clients.size, symbols: this.o.SYMBOLS, trades: this.o.TRADES, quotes: this.o.QUOTES, bookClients: [...this.clients].filter((c) => c.book).length, upstreamSockets: this.ws ? 1 : 0,
       lastDataAgoMs: this.lastDataAt ? now - this.lastDataAt : null, retryN: this.retryN, nextRetryInMs: this.timers.retry ? Math.max(0, this.nextAt - now) : 0,
-      lastError: this.lastError, keepHours: this.o.KEEP_H, tsBig: this.tb.n.big, tsFilledMin: this.tb.n.filledMin, teClients: [...this.clients].filter((c) => c.te && c.te.size).length, ...this.n
+      lastError: this.lastError, keepHours: this.o.KEEP_H, bookKeepHours: Math.max(this.o.BOOK_KEEP_H, this.o.KEEP_H), bookFullHours: this.o.BOOK_FULL_H, bookStore: this.bookStats || null, tsBig: this.tb.n.big, tsFilledMin: this.tb.n.filledMin, teClients: [...this.clients].filter((c) => c.te && c.te.size).length, ...this.n
     };
   }
   shutdown() { if (this.te) this.te.down(); for (const k of Object.keys(this.timers)) if (this.timers[k]) { clearTimeout(this.timers[k]); clearInterval(this.timers[k]); this.timers[k] = null; } try { if (this.ws) this.ws.close(); } catch (e) {} this.ws = null; }
@@ -534,6 +567,14 @@ export function tsStore(sql) {
     tb: tradeStore(sql),   // TS-TRADES
     putMin(sym, t, book, imb, fp) { sql.exec('INSERT OR REPLACE INTO tsmin (sym, t, book, imb, fp) VALUES (?, ?, ?, ?, ?)', sym, t, book, imb, fp); },
     prune(t) { sql.exec('DELETE FROM tsmin WHERE t < ?', t); },
+    rewrite(sym, t, book) { sql.exec('UPDATE tsmin SET book = ? WHERE sym = ? AND t = ?', book, sym, t); },
+    // rows in minutes [t0, t) whose BKR1 sample count (byte 5, little-endian u32, < 256 here) is above max: not thinned yet
+    fat(t0, t, max, limit) { return sql.exec("SELECT sym, t, book FROM tsmin WHERE t >= ? AND t < ? AND book IS NOT NULL AND (instr('0123456789ABCDEF', substr(hex(substr(book, 5, 1)), 1, 1)) * 16 + instr('0123456789ABCDEF', substr(hex(substr(book, 5, 1)), 2, 1)) - 17) > ? LIMIT ?", t0, t, max, limit).toArray(); },
+    // storage numbers for /ts-health: rows, book bytes, oldest minute, per symbol
+    // bytes of one day (minutes t0..t0+1439, all symbols): book blobs + imbalance/footprint JSON. Two days are measured, not the whole
+    // table (a full scan would read every blob each hour).
+    dayBytes(t0) { const r = sql.exec('SELECT COUNT(*) AS rows, SUM(LENGTH(book)) AS book, SUM(LENGTH(imb)) AS imb, SUM(LENGTH(fp)) AS fp FROM tsmin WHERE t >= ? AND t < ?', t0, t0 + 1440).toArray()[0] || {}; return { rows: r.rows || 0, book: r.book || 0, aux: (r.imb || 0) + (r.fp || 0) }; },
+    oldest() { const r = sql.exec('SELECT MIN(t) AS t FROM tsmin').toArray()[0]; return r && r.t ? r.t * 60000 : 0; },
     range(sym, t0, t1) { return sql.exec('SELECT t, book, imb, fp FROM tsmin WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, t0, t1).toArray(); }
   };
 }
@@ -586,7 +627,7 @@ export async function tsHubFetch(hub, env, u, req) {
   if (u.pathname === '/ts-book-history' || u.pathname === '/ts-aux') {
     const sym = String(u.searchParams.get('symbol') || '').toUpperCase();
     if (!hub.o.SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 404 });
-    const now = Date.now(), to = Math.min(now + 60000, Number(u.searchParams.get('to')) || now), from = Math.max(to - hub.o.KEEP_H * 3600000, Number(u.searchParams.get('from')) || to - 3600000);
+    const now = Date.now(), to = Math.min(now + 60000, Number(u.searchParams.get('to')) || now), from = Math.max(now - Math.max(hub.o.BOOK_KEEP_H, hub.o.KEEP_H) * 3600000, to - 6 * 3600000, Number(u.searchParams.get('from')) || to - 3600000);
     if (u.pathname === '/ts-aux') return Response.json(hub.aux(sym, from, to));
     if (!hub.key && hub.o.MODE === 'direct') hub.key = env.TICKSTREAM_API_KEY || '';
     // fill the recorder's gaps from the archive first (bounded per call); the client repeats while x-ts-fill-left > 0

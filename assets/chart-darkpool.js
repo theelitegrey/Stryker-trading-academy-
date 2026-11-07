@@ -15,7 +15,7 @@
 // chart-watchlist.js (.stkw-rail, .stkchart-panel.stkw-host), style.css tokens (--ink-*, --line-soft, --bg-2).
 
 
-import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=907';
+import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=910';
 
 export const DP_TYPE = 'stk_darkpool';
 export const DP_DESC = 'Large off-exchange stock trades (dark pool prints) drawn at their exact price and time, sized by $ value; $10M+ highlighted. Size filter $1M to $25M. 29 US stocks and ETFs, updated every 2 hours. On ES, NQ, YM and RTY charts: the SPY, QQQ, DIA and IWM prints at the futures price';
@@ -29,7 +29,15 @@ const SCHEMA = [
   { key: 'futEtf', title: 'On futures (ES, NQ, YM, RTY): show the matching ETF prints', type: 'bool', defval: true },
   { key: 'offPrice', title: 'Show average-price / contingent prints', type: 'bool', defval: false },
   { key: 'color', title: 'Prints colour', type: 'color', defval: '#00adb5' },
-  { key: 'bigColor', title: '$10M+ colour', type: 'color', defval: '#03c988' }
+  { key: 'bigColor', title: '$10M+ colour', type: 'color', defval: '#03c988' },
+  // Alerts (server-side, assets/chart-dp-alerts.js): students/{uid}/dpAlerts doc 'ind-<SYM>', checked by the alert engine with the chart closed
+  { key: 'alertOn', title: 'Alert me on new prints', type: 'bool', defval: false, group: 'Alerts' },
+  { key: 'alertMin', title: 'Alert minimum (Filter = size above)', type: 'string', defval: 'Filter', options: ['Filter'].concat(SIZES, ['Custom']), group: 'Alerts', when: { key: 'alertOn', equals: true } },
+  { key: 'alertCustom', title: 'Custom size, $ millions', type: 'float', defval: 50, min: 1, max: 100000, step: 1, group: 'Alerts', when: [{ key: 'alertOn', equals: true }, { key: 'alertMin', equals: 'Custom' }] },
+  { key: 'alertZone', title: 'Only prints inside a price zone', type: 'bool', defval: false, group: 'Alerts', when: { key: 'alertOn', equals: true } },
+  { key: 'alertLo', title: 'Zone from', type: 'float', defval: 0, min: 0, max: 1000000, step: 0.01, group: 'Alerts', inline: 'zone', when: [{ key: 'alertOn', equals: true }, { key: 'alertZone', equals: true }] },
+  { key: 'alertHi', title: 'to', type: 'float', defval: 0, min: 0, max: 1000000, step: 0.01, group: 'Alerts', inline: 'zone', when: [{ key: 'alertOn', equals: true }, { key: 'alertZone', equals: true }] },
+  { key: 'alertOnce', title: 'Only once, then turn the alert off', type: 'bool', defval: false, group: 'Alerts', when: { key: 'alertOn', equals: true } }
 ];
 const RECORDER = () => (typeof window !== 'undefined' && window.__STK_BOOK_RECORDER) || 'https://book-recorder.theelitegrey.workers.dev';
 const MAX_AGE_MS = 5 * 60 * 1000;
@@ -164,14 +172,41 @@ const onData = (f) => { subs.add(f); return () => subs.delete(f); };
 const replayOn = () => !!(window.__stkReplay && window.__stkReplay.on);
 const light = () => { try { return document.documentElement.getAttribute('data-theme') === 'light'; } catch (e) { return false; } };
 const hits = new WeakMap();
+// ---- alerts glue (the module loads on demand: assets/chart-dp-alerts.js) ----
+let WSREF = null, alertsP = null;
+const alertsMod = () => alertsP || (alertsP = import('./chart-dp-alerts.js?v=910').catch((e) => { console.warn('TradeZoro: dark pool alerts', e); return new Promise(() => {}); }));
+const chartKeys = new WeakMap(); let chartN = 0;
+const chartKey = (c) => { if (!chartKeys.has(c)) chartKeys.set(c, ++chartN); return chartKeys.get(c); };
+const stopped = new Set();   // instances stopped in the last seconds: Vela stops an instance BEFORE it fires 'indicator:removed'
+// which chart (cell) owns this instance: the one whose indicator list has our id
+function chartOf(inst) {
+  if (inst.chart) return inst.chart;
+  try { for (const c of WSREF.context().cells || []) { const ch = WSREF.cell(c.id).chart; if (ch.indicators().some((h) => h.nativeType === DP_TYPE && h.id === inst.id)) return (inst.chart = ch); } } catch (e) {}
+  return null;
+}
+const hooked = new WeakSet();
+function hookRemovals(ws) {
+  const apply = () => (ws.context().cells || []).forEach((c) => {
+    let ch = null; try { ch = ws.cell(c.id).chart; } catch (e) {}
+    if (!ch || hooked.has(ch)) return; hooked.add(ch);
+    ch.on('indicator:removed', (e) => {
+      const id = e && e.id;
+      for (const i of [...stopped, ...(i0 ? [...i0.instances] : [])]) if (i.id === id && i.chart === ch) { if (i0) i0.dropForIndicator(i.key, i.sym()); stopped.delete(i); }
+    });
+  });
+  apply();
+  try { ws.on('layout:changed', () => setTimeout(apply, 0)); ws.on('state:changed', apply); } catch (e) {}
+}
+let i0 = null;
 let focusT = 0;   // a print picked in the list: ringed on the chart for a few seconds
 
 class DpNative {
   constructor() { this.ctx = null; this.inputs = {}; this.sig = ''; this.timer = 0; this.off = null; }
   defaults() { return Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])); }
   start(ctx, inputs) {
-    this.ctx = ctx; this.inputs = Object.assign(this.defaults(), inputs);
+    this.ctx = ctx; this.inputs = Object.assign(this.defaults(), inputs); this.id = ctx.id; this.chart = null;
     this.off = onData(() => this.refresh());
+    alertsMod().then((m) => { if (this.dead) return; i0 = m; this.A = m; this.chart = chartOf(this); this.key = this.id + '@' + (this.chart ? chartKey(this.chart) : '?'); m.instances.add(this); this.syncAlert(true); });
     this.load();
     this.timer = setInterval(() => { if (!document.hidden) this.load(); }, 60000);
   }
@@ -180,10 +215,29 @@ class DpNative {
   load() { const s = this.sym(); if (s && !replayOn()) load(s); this.refresh(); }
   onBars() { const s = String(this.ctx && this.ctx.symbol); if (s !== this.lastSym) { this.lastSym = s; this.load(); } else this.refresh(); }
   onViewport() {}
-  setInputs(i) { this.inputs = Object.assign(this.defaults(), i); this.sig = ''; this.refresh(); }
+  setInputs(i) { const was = this.alertSig(); this.inputs = Object.assign(this.defaults(), i); this.sig = ''; this.refresh(); if (this.alertSig() !== was) this.syncAlert(); }
+  // ---- alert (one doc per indicator instance, id 'ind-<SYM>') ----
+  alertSpec() {
+    const I = this.inputs, A = this.A;
+    return { key: this.key, symbol: this.sym(), on: !!I.alertOn, min: A ? A.effMin(sizeUsd(I.minSize), I.alertMin, I.alertCustom) : 1e6, freq: I.alertOnce === true ? 'once' : 'every',
+      zone: I.alertZone === true, lo: Number(I.alertLo) || NaN, hi: Number(I.alertHi) || NaN };
+  }
+  alertSig() { const s = this.alertSpec(); return JSON.stringify([s.symbol, s.on, s.min, s.freq, s.zone, s.lo, s.hi]); }
+  syncAlert(first) {
+    if (!this.A) return; clearTimeout(this.at);
+    const s = this.alertSpec();
+    if (first && !s.on) return;   // loading a chart with the alert off writes nothing
+    if (s.on && s.zone && !(s.lo > 0 && s.hi > 0)) return;   // half-filled zone: wait
+    this.at = setTimeout(() => { this.A.syncAlert(s).then((r) => { if (r === 'signin' && s.on) { /* the note in the settings shows Sign in */ } }); }, first ? 0 : 700);
+  }
   suspend() {}
   resume() { this.sig = ''; this.load(); }
-  stop() { clearInterval(this.timer); if (this.off) this.off(); try { this.ctx.pushData(null); } catch (e) {} }
+  stop() {
+    clearInterval(this.timer); clearTimeout(this.at); if (this.off) this.off(); try { this.ctx.pushData(null); } catch (e) {}
+    this.dead = true;
+    // removing the indicator removes its alert (the 'indicator:removed' hook, hookRemovals); a symbol switch or layout rebuild stops instances too and keeps it
+    if (this.A) { this.A.instances.delete(this); stopped.add(this); setTimeout(() => stopped.delete(this), 5000); }
+  }
   push(p) {
     const sig = JSON.stringify(p && p.list ? { n: p.list.length, f: p.fut, b: p.bars, I: p.I, t: p.t, f: p.focus } : p);
     if (sig === this.sig) return; this.sig = sig;
@@ -314,6 +368,8 @@ const IC_BELL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
 const LS_PANEL = 'stkdkp.v1';
 export function mountDarkPoolPanel(ws) {
   if (!ws || document.getElementById('stkdkp')) return null;
+  WSREF = ws; hookRemovals(ws);
+  import('./chart-dp-alerts.js?v=910').then((m) => { i0 = m; m.installDialogNote(ws); m.onChange(() => { try { render(); } catch (e) {} }); }).catch(() => {});
   const host = document.querySelector('.stkchart-panel.stkw-host') || document.querySelector('.stkchart-panel');
   if (!host) return null;
   const isPhone = () => window.innerWidth <= 700;
@@ -358,8 +414,7 @@ export function mountDarkPoolPanel(ws) {
     $('.stkdkp-title').textContent = 'Dark pool' + (sym ? ' · ' + sym : '');
     stat.textContent = '';
     seg.hidden = !sym;
-    $('.stkdkp-alert').hidden = !sym;
-    if (sym) $('.stkdkp-alert').setAttribute('aria-label', 'Alert me on ' + sym + ' dark pool prints');
+    alertState(sym);
     if (!sym) return note(looksStock(raw) ? 'Dark pool prints are not covered for this symbol yet. Covered: ' + DP_SYMS.join(', ') + '.' : 'Dark pool prints are for US stocks and ETFs. Open SPY, QQQ, AAPL or another covered stock to see them.');
     const e = cached(sym);
     if (!e || (!e.part && !e.err)) { load(sym); return note('Loading…'); }
@@ -410,8 +465,14 @@ export function mountDarkPoolPanel(ws) {
   railBtn.addEventListener('click', () => setOpen(!open));
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
   $('.stkdkp-x').addEventListener('click', () => setOpen(false));
-  // "Alert me": a server-side dark pool print alert for this symbol (assets/chart-dp-alerts.js), prefilled with the list's size
-  $('.stkdkp-alert').addEventListener('click', () => { const sym = targetOf(activeSym()); import('./chart-dp-alerts.js?v=907').then((m) => m.openDpAlert({ symbol: sym, min: sizeUsd(minSize) })).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
+  // Alerts live in the Dark Pool Prints indicator settings. The header shows their state; it opens that Alerts section (adds the indicator first if the chart has none).
+  function alertState(sym) {
+    const b = $('.stkdkp-alert'), lab = b.querySelector('span'), A = i0, a = A && sym ? A.forSymbol(sym) : null;
+    b.hidden = !sym; b.classList.toggle('on', !!a);
+    lab.textContent = a ? 'Alert on · ≥ ' + usd(a.min) : 'Set alert';
+    b.setAttribute('aria-label', a ? sym + ' dark pool alert is on, at ' + usd(a.min) + ' or more. Open the alert settings' : 'Set a dark pool print alert on ' + sym + ' in the indicator settings');
+  }
+  $('.stkdkp-alert').addEventListener('click', () => { import('./chart-dp-alerts.js?v=910').then((m) => { if (m.openIndicatorAlerts(ws, true) && isPhone()) setOpen(false); }).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
   seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); if (!b) return; minSize = b.dataset.m; try { localStorage.setItem(LS_PANEL, JSON.stringify({ min: minSize })); } catch (x) {} render(); });
   document.addEventListener('click', (e) => {
     if (!open || !e.target.closest) return;
@@ -472,9 +533,12 @@ const CSS = `
 .stkdkp-note{ margin:0; padding:16px 12px; color:var(--ink-2); font-size:12px; line-height:16px; }
 .stkdkp-key{ margin:0; padding:8px 12px; font-size:11px; line-height:13px; color:var(--ink-2); }
 .stkdkp-foot{ flex:none; margin:0; padding:8px 12px; border-top:1px solid var(--line-soft); font-size:11px; line-height:13px; color:var(--ink-2); }
-.stkdkp-alert{ flex:none; display:inline-flex; align-items:center; gap:4px; min-height:32px; padding:0 12px 0 8px; border:1px solid var(--line-soft); border-radius:999px; background:none; color:var(--ink-0); font:500 13px/18px inherit; font-family:inherit; cursor:pointer; }
+.stkdkp-title{ white-space:nowrap; }
+.stkdkp-alert{ flex:none; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; min-height:32px; padding:0 10px 0 6px; border:1px solid var(--line-soft); border-radius:999px; background:none; color:var(--ink-0); font:500 13px/18px inherit; font-family:inherit; cursor:pointer; }
 .stkdkp-alert[hidden]{ display:none; }
 .stkdkp-alert:hover{ background:var(--bg-2); }
+.stkdkp-alert.on{ color:#03c988; border-color:rgba(3,201,136,.45); }
+:root[data-theme="light"] .stkdkp-alert.on{ color:#047857; border-color:rgba(4,120,87,.5); }
 .stkdkp-alert:focus-visible{ outline:2px solid #03c988; outline-offset:2px; }
 .stkdkp-phonebtn{ display:none; }
 .stkdkp-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }

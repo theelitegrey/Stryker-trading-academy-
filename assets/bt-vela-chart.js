@@ -15,7 +15,7 @@
  */
 (function (root) {
   'use strict';
-  const V = '?v=907';
+  const V = '?v=910';
   const SCRIPTS = ['chart-templates.js', 'paper-engine.js', 'bar-replay-core.js', 'chart-pine-scripts.js', 'chart-pine-guard.js', 'chart-pine-library.js'];
   let loading = null;
 
@@ -73,6 +73,8 @@
       root.__stkVela090 = velaEngine();
       root.__stkBt = {
         feed: this.feed, tf: velaTf(feedCtx.tf ? feedCtx.tf() : '5m'),
+        // order book replay (book-replay.js): the session's market and the close of the bar at the cursor
+        spec: feedCtx.spec, clock: () => { const s = feedCtx.series, b = s && s.base[feedCtx.getCursor()]; return b ? b.t + (s.baseTfMs || 60000) : 0; },
         install: async (Core) => { const m = await import('/assets/chart-bt-orders.js' + V); this.orders = m.installBtOrders(Core, { bands: () => this._bands(), fmt: (p) => this.fmt(p), tick: () => this.opts.tick, onDrag: (l, p) => this.onLineDrag && this.onLineDrag(l, p), onAction: (l, a) => this.onLineAction && this.onLineAction(l, a) }); },
         onReady: (ws, api) => this._ready(ws, api)
       };

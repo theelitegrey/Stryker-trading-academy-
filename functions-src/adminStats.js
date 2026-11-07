@@ -360,6 +360,38 @@ function summarise(rows, plans, chapters, payment) {
   };
 }
 
+// ---- Engagement counters for the admin charts (2026-11-07)
+//
+// Totals only, recorded on every snapshot so the daily docs build a history
+// going forward (the charts start from the first day this runs). Payments and
+// trials per day are NOT here: the dashboard reads them straight from orders
+// with one bounded 90-day query, so they have full history already.
+const SUGGESTION_STATUSES = ['new', 'review', 'planned', 'progress', 'shipped', 'declined'];
+
+// Engagement counters: count() aggregations only, never a document load. Each
+// one fails soft to null, so a missing index can never stop the snapshot.
+async function engagementCounts(db, now) {
+  const safe = (fn) => Promise.resolve().then(fn).then((n) => n, (e) => { console.warn('adminStats count failed', e.message); return null; });
+  const ts = admin.firestore.Timestamp.fromDate(new Date(now.getTime() - 150000)); // presence.js PRESENCE_ONLINE_MS
+  const [onlineNow, chartAlertsTotal, alertFiresTotal, pushDevices, supWait, supMember, ...sug] = await Promise.all([
+    safe(() => countOf(db.collection('presence').where('lastSeen', '>', ts))),
+    safe(() => countOf(db.collectionGroup('chartAlerts'))),
+    safe(() => countOf(db.collectionGroup('alertFires'))),
+    safe(() => countOf(db.collection('pushTokens'))),
+    safe(() => countOf(db.collection('supportTickets').where('status', '==', 'waiting_for_support'))),
+    safe(() => countOf(db.collection('supportTickets').where('status', '==', 'waiting_for_member'))),
+    ...SUGGESTION_STATUSES.map((s) => safe(() => countOf(db.collection('suggestions').where('status', '==', s))))
+  ]);
+  const suggestionsByStatus = {};
+  SUGGESTION_STATUSES.forEach((s, i) => { if (sug[i] !== null) suggestionsByStatus[s] = sug[i]; });
+  return {
+    onlineNow, chartAlertsTotal, alertFiresTotal, pushDevices,
+    supportWaitingSupport: supWait, supportWaitingMember: supMember,
+    supportOpen: supWait === null || supMember === null ? null : supWait + supMember,
+    suggestionsByStatus
+  };
+}
+
 // ---- Firestore work
 
 async function countOf(query) {
@@ -444,11 +476,12 @@ async function buildStats(db, now) {
     subsByUid: subsByUid,
     nowMs: now.getTime()
   });
+  const engagement = await engagementCounts(db, now);
   return Object.assign({
     upcomingSessions,
     tz: 'UTC',
     day: utcDateStr(now)
-  }, windows, sum);   // summarise() sets mrrCurrency: 'USD'
+  }, windows, sum, engagement);   // summarise() sets mrrCurrency: 'USD'
 }
 
 async function writeSnapshot(db, trigger) {
@@ -460,17 +493,22 @@ async function writeSnapshot(db, trigger) {
   // seriesStart = the first day any daily doc was written. Kept on the
   // current doc so the dashboard can say "Trend starts <date>" without
   // scanning the collection.
-  const prev = await currentRef.get();
+  const dailyRef = col.doc('daily-' + stats.day);
+  const [prev, prevDay] = await Promise.all([currentRef.get(), dailyRef.get()]);
   const seriesStart = (prev.exists && prev.data().seriesStart) || stats.day;
+  // Highest hourly online-now sample of this UTC day (hourly samples, not a true peak).
+  const prevPeak = prevDay.exists && typeof prevDay.data().onlinePeak === 'number' ? prevDay.data().onlinePeak : null;
+  const onlinePeak = stats.onlineNow === null ? prevPeak : Math.max(prevPeak || 0, stats.onlineNow);
 
   const doc = Object.assign({}, stats, {
+    onlinePeak: onlinePeak,
     seriesStart: seriesStart,
     trigger: trigger,
     generatedAt: admin.firestore.FieldValue.serverTimestamp()
   });
   const batch = db.batch();
   batch.set(currentRef, doc);
-  batch.set(col.doc('daily-' + stats.day), doc);
+  batch.set(dailyRef, doc);
   await batch.commit();
   return { day: stats.day, totalUsers: stats.totalUsers };
 }
@@ -510,4 +548,4 @@ exports.adminStatsRefresh = functions
   });
 
 // Exported for the unit test only.
-exports._test = { summarise, planPriceMap, windowStartStr, windowStartDate, utcDateStr, isBotUid, isDemoRow, countWindows, buildStats, classifyPayment, orderProvesPayment, collectedUsd, isFreeCoupon };
+exports._test = { engagementCounts, summarise, planPriceMap, windowStartStr, windowStartDate, utcDateStr, isBotUid, isDemoRow, countWindows, buildStats, classifyPayment, orderProvesPayment, collectedUsd, isFreeCoupon };

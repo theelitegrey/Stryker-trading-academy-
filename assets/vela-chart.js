@@ -605,6 +605,7 @@ function lateLists(provider){
   const flowP = import('./chart-optflow.js?v=909');
   const offexP = import('./chart-offex.js?v=909');
   const dpP = import('./chart-darkpool.js?v=909');
+  const wiP = import('./chart-wallet-intel.js?v=909');
   let MSess = null;
   if (heavyNeeded) installHeavy();
   else {
@@ -636,6 +637,8 @@ function lateLists(provider){
   try { (await offexP).installOffex(LCore); } catch (e) { console.warn('TradeZoro: off-exchange install', e); }
   // Dark Pool Prints (assets/chart-darkpool.js, free for everyone): off-exchange block prints at their price and time, registered before boot too.
   try { (await dpP).installDarkPool(LCore); } catch (e) { console.warn('TradeZoro: dark pool install', e); }
+  // Wallet Intel (assets/chart-wallet-intel.js, free for everyone): Hyperliquid candle wallets, liquidation + stop clusters, registered before boot too.
+  try { (await wiP).installWalletIntel(LCore); } catch (e) { console.warn('TradeZoro: wallet intel install', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
   try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
   // Camarilla Pivots (assets/chart-camarilla.js, Free): level overlay from the prior session, registered before boot too.
@@ -968,6 +971,8 @@ function lateLists(provider){
   import('./chart-symbol-info.js?v=909').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
   // "Dark pool" prints list beside the chart (right icon bar, phones: a sheet): assets/chart-darkpool.js.
   import('./chart-darkpool.js?v=909').then((m) => m.mountDarkPoolPanel(ws)).catch((e) => console.warn('TradeZoro: dark pool panel', e));
+  // Wallet Intel panel (candle / cluster / book-level wallets and the wallet profile; phones: a sheet): assets/chart-wallet-intel.js.
+  import('./chart-wallet-intel.js?v=909').then((m) => m.mountWalletIntel(ws)).catch((e) => console.warn('TradeZoro: wallet intel panel', e));
   try { IndStyle.mountIndStyle(ws); } catch (e) { console.warn('TradeZoro: indicator style', e); }
   // Indicator Settings → Inputs: every input.symbol opens the same symbol search
   // (assets/chart-symbol-input.js).

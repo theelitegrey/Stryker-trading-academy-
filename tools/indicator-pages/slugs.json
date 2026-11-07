@@ -167,5 +167,6 @@
  "b:stk_zzone": "gamma-zone",
  "b:stk_ivrank": "iv-rank",
  "b:stk_zrange": "zoro-range",
- "b:stk_darkpool": "dark-pool-prints"
+ "b:stk_darkpool": "dark-pool-prints",
+ "b:stk_hlintel": "wallet-intel"
 }

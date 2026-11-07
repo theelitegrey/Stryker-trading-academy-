@@ -1,0 +1,31 @@
+{
+ "v": 1,
+ "coin": "BTC",
+ "t": 1794074343799,
+ "lo": 75532,
+ "hi": 75532,
+ "levels": [
+  {
+   "px": 75532,
+   "side": "bid",
+   "w": [
+    {
+     "a": "0x7b7f72a28fe109fa703eeed7984f2a8a68fedee2",
+     "l": "0x7b7f…e2",
+     "tags": [
+      "whale",
+      "top100vol"
+     ],
+     "sz": 0.97188,
+     "ntl": 73408.04
+    }
+   ]
+  }
+ ],
+ "totSz": 0.97188,
+ "totNtl": 73408.04,
+ "coverage": {
+  "bookPct": 43.4,
+  "wallets": 281
+ }
+}

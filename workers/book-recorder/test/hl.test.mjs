@@ -6,7 +6,7 @@
 import { gzipSync } from 'node:zlib';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
-import { validateMinute, validateState, validateLabels, mergeCoin, packCoin, candleQuery, hlPlan, shortId, levelBody } from '../src/hl.js';
+import { validateMinute, validateState, validateLabels, mergeCoin, packCoin, candleQuery, hlPlan, shortId, levelBody, hlKeepFor, hlGuard, HL_KEEP_MS, HL_KEEP_SHORT_MS } from '../src/hl.js';
 
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS ' + m); };
@@ -124,7 +124,7 @@ if (!sqlite) { console.log('SKIP DO round trip (no node:sqlite)'); } else {
   ok(wr.r.status === 200 && wr.j.tracked === true && Array.isArray(wr.j.pos), 'wallet profile');
   ok((await get('/hl-wallet?a=' + named)).j.l === LABELS.labels[named].name, 'named wallet shows its public name');
   const meta = await get('/hl-meta');
-  ok(meta.j.coins.includes('BTC') && meta.j.updated === MINS[2].t, 'meta');
+  ok(meta.j.coins.includes('BTC') && meta.j.updated === MINS[2].t && meta.j.keepDays === 7, 'meta (keepDays 7)');
   ok((await get('/hl-candle?coin=BTC&from=1&to=2', 'https://evil.example')).r.status === 403, 'other origins refused');
   ok((await get('/hl-candle?coin=BTC')).r.status === 400, 'missing range -> 400');
 
@@ -137,6 +137,25 @@ if (!sqlite) { console.log('SKIP DO round trip (no node:sqlite)'); } else {
     ok(/rolled/.test(await r.text()), 'next hour triggers the roll-up');
     const hr = await get('/hl-candle?coin=BTC&from=' + h0 + '&to=' + (h0 + 3600000));
     ok(hr.j.tot.trades === sumTr, 'hourly read = sum of that hour\'s minutes');
+  }
+
+  // storage guard: past 1 GB keep 3 days (and trim at once), back to 7 days once 7 days would fit under 0.8 GB
+  ok(hlKeepFor(350e6, HL_KEEP_MS) === HL_KEEP_MS && hlKeepFor(1.2e9, HL_KEEP_MS) === HL_KEEP_SHORT_MS, 'guard: 350 MB keeps 7 days, 1.2 GB drops to 3');
+  ok(hlKeepFor(0.9e9, HL_KEEP_SHORT_MS) === HL_KEEP_SHORT_MS && hlKeepFor(0.3e9, HL_KEEP_SHORT_MS) === HL_KEEP_MS, 'guard: stays at 3 days until 7 days fit under 0.8 GB');
+  {
+    const g = hlGuard(doObj, Date.now());
+    ok(g.bytes > 0 && g.keep === HL_KEEP_MS && doObj.meta('hlKeepMs') === null, 'guard: measures the hl tables (' + g.bytes + ' B), 7 days kept');
+    // a minute 4 days old survives 7-day keep, is trimmed when the guard drops to 3 days
+    const old = Date.now() - 4 * 86400000 - (Date.now() % 60000);
+    doObj.sql.exec('INSERT OR REPLACE INTO hlmin (t, gz) VALUES (?, ?)', old, new Uint8Array(gzipSync('{}')));
+    const warn = console.warn; let logged = ''; console.warn = (m) => { logged = m; };
+    const realQ = doObj.sql.exec.bind(doObj.sql);
+    doObj.sql = { exec: (q, ...a) => (/^SELECT SUM\(length\(gz\)\) AS b FROM hlmin/.test(q) ? { toArray: () => [{ b: 1.5e9 }] } : realQ(q, ...a)) };
+    const g2 = hlGuard(doObj, Date.now());
+    doObj.sql = sql; console.warn = warn;
+    ok(g2.keep === HL_KEEP_SHORT_MS && doObj.meta('hlKeepMs') === String(HL_KEEP_SHORT_MS) && /storage guard: \d+ MB, keep 7 -> 3 days/.test(logged), 'guard: over 1 GB -> 3 days, logged "' + logged + '"');
+    ok(sql.exec('SELECT COUNT(*) AS n FROM hlmin WHERE t = ?', old).toArray()[0].n === 0, 'guard: data older than 3 days trimmed');
+    doObj.meta('hlKeepMs', String(HL_KEEP_MS));
   }
 
   if (process.argv.includes('--write-fixtures')) {

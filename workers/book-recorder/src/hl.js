@@ -4,7 +4,7 @@
 //   hlmin   one row per finished minute, ALL coins (gzip JSON as it came: per coin the top 100 wallets + "others")
 //   hlhour  one row per coin per hour, rolled up here from the minutes when the hour is complete (top 300 + others)
 //   hlblob  the latest 'state' (tracked wallets: clusters, book levels, profiles) and 'labels' (gzip JSON)
-// Kept 7 days. Writes stay small for the free plan: ~1,440 minute rows + ~4,300 hour rows + 288 state rows a day,
+// Kept 7 days (3 if the store passes 1 GB: hlGuard). Writes stay small for the free plan: ~1,440 minute rows + ~4,300 hour rows + 288 state rows a day,
 // and the same again as trims.
 // Public reads (GET, our origins, per-IP limit RL_HL 60/min, edge-cached):
 //   /hl-candle?coin=&from=&to=[&n=]   /hl-clusters?coin=   /hl-level?coin=&lo=&hi=[&side=]   /hl-wallet?a=   /hl-meta
@@ -13,6 +13,33 @@
 
 export const HL_MAX_BODY = 1024 * 1024;
 export const HL_KEEP_MS = 7 * 86400000;
+// Storage guard: the wallet-intel tables (~350 MB at 7 days) share the DO's storage with the book recorder. Measured every
+// 6 h; past 1 GB the store keeps 3 days instead of 7, and goes back to 7 once 7 days would fit under 0.8 GB again.
+export const HL_GUARD_BYTES = 1e9, HL_KEEP_SHORT_MS = 3 * 86400000;
+export function hlKeepFor(bytes, cur) {
+  if (bytes > HL_GUARD_BYTES) return HL_KEEP_SHORT_MS;
+  if (cur === HL_KEEP_SHORT_MS && bytes * (HL_KEEP_MS / HL_KEEP_SHORT_MS) < 0.8 * HL_GUARD_BYTES) return HL_KEEP_MS;
+  return cur === HL_KEEP_SHORT_MS ? cur : HL_KEEP_MS;
+}
+const keepOf = (self) => Number(self.meta('hlKeepMs')) || HL_KEEP_MS;
+// bytes held by the hl tables (length() of a BLOB/TEXT reads the row header, not the payload). ~40k rows read.
+export function hlBytes(sql) {
+  const q = (t) => Number((sql.exec(t).toArray()[0] || {}).b) || 0;
+  return q('SELECT SUM(length(gz)) AS b FROM hlmin') + q('SELECT SUM(length(j)) AS b FROM hlhour') + q('SELECT SUM(length(gz)) AS b FROM hlblob');
+}
+export function hlGuard(self, now) {
+  const bytes = hlBytes(self.sql), was = keepOf(self), keep = hlKeepFor(bytes, was);
+  self.meta('hlBytes', String(bytes)); self.meta('hlGuardT', String(now));
+  if (keep !== was) {
+    self.meta('hlKeepMs', String(keep));
+    console.warn('hl-intel storage guard: ' + Math.round(bytes / 1e6) + ' MB, keep ' + (was / 86400000) + ' -> ' + (keep / 86400000) + ' days');
+    if (keep < was) {
+      self.sql.exec('DELETE FROM hlmin WHERE t < ?', now - keep);
+      self.sql.exec('DELETE FROM hlhour WHERE t < ?', Math.floor((now - keep) / HOUR) * HOUR);
+    }
+  }
+  return { bytes, keep };
+}
 const MIN = 60000, HOUR = 3600000;
 const MIN_TOP = 100, HOUR_TOP = 300;
 const ADDR = /^0x[0-9a-f]{40}$/;
@@ -267,10 +294,11 @@ export async function hlDo(self, u, req) {
       if (first < cur) {
         self.meta('hlHourDone', String(cur - HOUR));
         // trim once a day: hlhour's key starts with coin, so this reads the whole table (~30k rows)
-        if ((cur / HOUR) % 24 === 0) self.sql.exec('DELETE FROM hlhour WHERE t < ?', Math.floor((now - HL_KEEP_MS) / HOUR) * HOUR);
+        if ((cur / HOUR) % 24 === 0) self.sql.exec('DELETE FROM hlhour WHERE t < ?', Math.floor((now - keepOf(self)) / HOUR) * HOUR);
+        if ((cur / HOUR) % 6 === 0 || !self.meta('hlGuardT')) hlGuard(self, now);
       }
     }
-    self.sql.exec('DELETE FROM hlmin WHERE t < ?', now - HL_KEEP_MS);
+    self.sql.exec('DELETE FROM hlmin WHERE t < ?', now - keepOf(self));
     return new Response('stored min ' + d.t + (rolled ? ' rolled ' + rolled : ''));
   }
   if (p === '/hl/candle') {
@@ -302,7 +330,7 @@ export async function hlDo(self, u, req) {
     const st = await blob(self, 'state'), sp = span(self);
     const lr = self.sql.exec("SELECT t FROM hlblob WHERE k = 'labels'").toArray()[0];
     return json({ v: 1, t: st ? st.t : null, updated: sp.updated, held: sp.held, tracked: st ? st.meta.tracked : 0, polled: st ? st.meta.polled : 0,
-      oiPct: st ? st.meta.oiPct : null, spot: (await blob(self, 'spot')) || {}, coins: st ? Object.keys(st.coins).sort() : [], labelsT: lr ? lr.t : null });
+      oiPct: st ? st.meta.oiPct : null, keepDays: keepOf(self) / 86400000, bytes: Number(self.meta('hlBytes')) || null, spot: (await blob(self, 'spot')) || {}, coins: st ? Object.keys(st.coins).sort() : [], labelsT: lr ? lr.t : null });
   }
   return new Response('not found', { status: 404 });
 }

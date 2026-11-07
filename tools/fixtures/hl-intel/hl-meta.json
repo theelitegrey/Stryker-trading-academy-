@@ -1,0 +1,16 @@
+{
+ "v": 1,
+ "t": 1794074343799,
+ "updated": 1794074220000,
+ "held": 1794074100000,
+ "tracked": 282,
+ "polled": 281,
+ "oiPct": 13.3,
+ "keepDays": 7,
+ "bytes": null,
+ "spot": {},
+ "coins": [
+  "BTC"
+ ],
+ "labelsT": 1794074343799
+}

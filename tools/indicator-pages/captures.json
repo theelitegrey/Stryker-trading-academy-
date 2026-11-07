@@ -163,5 +163,6 @@
  "wcsmc-sp-v3": "ok",
  "camarilla-pivots": "ok",
  "depth-heatmap-l2": "fallback: Connecting to the order book…",
- "dark-pool-prints": "fallback: needs options / news data the test chart does not have"
+ "dark-pool-prints": "fallback: needs options / news data the test chart does not have",
+ "wallet-intel": "fallback: needs Hyperliquid wallet data the test chart does not have"
 }

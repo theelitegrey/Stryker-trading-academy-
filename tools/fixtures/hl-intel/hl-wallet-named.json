@@ -1,0 +1,368 @@
+{
+ "v": 1,
+ "a": "0x7fdafde5cfb5465924316eced2d3715494c517d1",
+ "l": "BobbyBigSize",
+ "tags": [
+  "whale",
+  "top100vol"
+ ],
+ "tracked": true,
+ "av": 36857075.686615,
+ "vol30": 2440383805.54,
+ "t": 1794074284953,
+ "pos": [
+  {
+   "coin": "BTC",
+   "side": "short",
+   "sz": 406.07352,
+   "ntl": 30794179.31568,
+   "entryPx": 76290.4,
+   "liqPx": 152474.9440065951,
+   "lev": 30,
+   "mode": "cross"
+  },
+  {
+   "coin": "ETH",
+   "side": "short",
+   "sz": 5243.6385,
+   "ntl": 11721629.5029,
+   "entryPx": 2267.9,
+   "liqPx": 8126.9237422211,
+   "lev": 25,
+   "mode": "cross"
+  },
+  {
+   "coin": "SOL",
+   "side": "short",
+   "sz": 13337.43,
+   "ntl": 1196860.95591,
+   "entryPx": 94.8813,
+   "liqPx": 2394.7030284127,
+   "lev": 20,
+   "mode": "cross"
+  },
+  {
+   "coin": "AVAX",
+   "side": "short",
+   "sz": 42647.94,
+   "ntl": 351397.70163,
+   "entryPx": 13.2086,
+   "liqPx": 700.8725758651,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "BNB",
+   "side": "short",
+   "sz": 469.711,
+   "ntl": 326557.17853,
+   "entryPx": 758.429,
+   "liqPx": 61940.9229973285,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "LTC",
+   "side": "short",
+   "sz": 103.62,
+   "ntl": 5412.90156,
+   "entryPx": 56.9012,
+   "liqPx": 285278.0674087136,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "DOGE",
+   "side": "long",
+   "sz": 1532507,
+   "ntl": 110087.640345,
+   "entryPx": 0.072488,
+   "liqPx": null,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "INJ",
+   "side": "short",
+   "sz": 28671.1,
+   "ntl": 232167.09936,
+   "entryPx": 6.18932,
+   "liqPx": 1007.2310680295,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "kPEPE",
+   "side": "short",
+   "sz": 237896403,
+   "ntl": 1161886.032252,
+   "entryPx": 0.004382,
+   "liqPx": 0.1288982058,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "XRP",
+   "side": "long",
+   "sz": 2594968,
+   "ntl": 3016131.3064,
+   "entryPx": 1.167513,
+   "liqPx": null,
+   "lev": 20,
+   "mode": "cross"
+  },
+  {
+   "coin": "WLD",
+   "side": "short",
+   "sz": 2470879.1,
+   "ntl": 828115.130365,
+   "entryPx": 0.4036,
+   "liqPx": 12.2813860127,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "UNI",
+   "side": "short",
+   "sz": 10440,
+   "ntl": 74198.2284,
+   "entryPx": 4.63034,
+   "liqPx": 2837.7559450158,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "ZRO",
+   "side": "short",
+   "sz": 89716.2,
+   "ntl": 146300.20734,
+   "entryPx": 1.1688,
+   "liqPx": 320.9292834801,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "ADA",
+   "side": "short",
+   "sz": 26179,
+   "ntl": 4761.43652,
+   "entryPx": 0.549523,
+   "liqPx": 1129.145173303,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "NEAR",
+   "side": "long",
+   "sz": 93550.6,
+   "ntl": 342226.80492,
+   "entryPx": 3.90096,
+   "liqPx": null,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "WIF",
+   "side": "short",
+   "sz": 1226,
+   "ntl": 198.45262,
+   "entryPx": 0.784313,
+   "liqPx": 24107.2886756585,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "ONDO",
+   "side": "short",
+   "sz": 2745756,
+   "ntl": 1001047.72248,
+   "entryPx": 0.537361,
+   "liqPx": 10.8305926546,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "TAO",
+   "side": "long",
+   "sz": 2.19,
+   "ntl": 490.1001,
+   "entryPx": 310.142,
+   "liqPx": null,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "ENA",
+   "side": "short",
+   "sz": 1810,
+   "ntl": 286.704,
+   "entryPx": 0.15785,
+   "liqPx": 16329.071909564,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "POPCAT",
+   "side": "short",
+   "sz": 4674,
+   "ntl": 172.325706,
+   "entryPx": 0.215958,
+   "liqPx": 6323.3870297454,
+   "lev": 3,
+   "mode": "cross"
+  },
+  {
+   "coin": "GOAT",
+   "side": "short",
+   "sz": 327719,
+   "ntl": 4357.351824,
+   "entryPx": 0.478596,
+   "liqPx": 87.424326716,
+   "lev": 3,
+   "mode": "cross"
+  },
+  {
+   "coin": "HYPE",
+   "side": "short",
+   "sz": 413692.96,
+   "ntl": 32067409.7944,
+   "entryPx": 85.3156,
+   "liqPx": 146.7602092374,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "PENGU",
+   "side": "long",
+   "sz": 129017,
+   "ntl": 830.224395,
+   "entryPx": 0.028211,
+   "liqPx": null,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "FARTCOIN",
+   "side": "short",
+   "sz": 3717815.9,
+   "ntl": 435616.489003,
+   "entryPx": 0.13473,
+   "liqPx": 8.0614971343,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "VVV",
+   "side": "short",
+   "sz": 11305.23,
+   "ntl": 230728.43907,
+   "entryPx": 23.8125,
+   "liqPx": 2409.5091496836,
+   "lev": 3,
+   "mode": "cross"
+  },
+  {
+   "coin": "PUMP",
+   "side": "short",
+   "sz": 463927744,
+   "ntl": 1714213.01408,
+   "entryPx": 0.004609,
+   "liqPx": 0.0672338336,
+   "lev": 10,
+   "mode": "cross"
+  },
+  {
+   "coin": "XPL",
+   "side": "short",
+   "sz": 26775420,
+   "ntl": 1543040.67918,
+   "entryPx": 0.084205,
+   "liqPx": 1.1299737475,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "LINEA",
+   "side": "short",
+   "sz": 126660,
+   "ntl": 278.39868,
+   "entryPx": 0.027679,
+   "liqPx": 213.2449477648,
+   "lev": 3,
+   "mode": "cross"
+  },
+  {
+   "coin": "ASTER",
+   "side": "short",
+   "sz": 830322,
+   "ntl": 565241.7015,
+   "entryPx": 0.77843,
+   "liqPx": 35.1809265282,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "ZEC",
+   "side": "short",
+   "sz": 14514.1,
+   "ntl": 18355982.27,
+   "entryPx": 1265.9376,
+   "liqPx": 3243.5332486242,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "MON",
+   "side": "short",
+   "sz": 13176347,
+   "ntl": 218187.129973,
+   "entryPx": 0.02721,
+   "liqPx": 2.1906255736,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "LIT",
+   "side": "short",
+   "sz": 967315,
+   "ntl": 3145514.917,
+   "entryPx": 3.469165,
+   "liqPx": 32.865995557,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "XMR",
+   "side": "short",
+   "sz": 7836.906,
+   "ntl": 4787330.76822,
+   "entryPx": 616.67,
+   "liqPx": 4266.1716681864,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "GRAM",
+   "side": "short",
+   "sz": 1412906,
+   "ntl": 1530177.198,
+   "entryPx": 1.295044,
+   "liqPx": 21.3577072878,
+   "lev": 5,
+   "mode": "cross"
+  },
+  {
+   "coin": "PONS",
+   "side": "long",
+   "sz": 14517,
+   "ntl": 2688.5484,
+   "entryPx": 0.587417,
+   "liqPx": null,
+   "lev": 3,
+   "mode": "cross"
+  }
+ ],
+ "trig": [],
+ "nLim": 7,
+ "fills": []
+}

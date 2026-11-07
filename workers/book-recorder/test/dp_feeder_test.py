@@ -68,7 +68,7 @@ class T(unittest.TestCase):
         d = tempfile.mkdtemp()
         calls = []
         with m.patch.object(f, 'STATE', os.path.join(d, 's.json')), m.patch.object(f, 'DAILY_CAP', 7), \
-             m.patch.object(f, 'fetch_rows', lambda code, key, params: (calls.append(params) or ([], 0))), \
+             m.patch.object(f, 'fetch_rows', lambda code, key, params: (calls.append(params) or ([], 0, False))), \
              m.patch.dict(os.environ, {'INSIGHTSENTRY_WEBSOCKET_API_KEY': 'x', 'BOOK_RECORDER_URL': '', 'BOOK_INGEST_SECRET': ''}), \
              m.patch.object(sys, 'argv', ['dp_feeder.py', '--dry']), m.patch.object(f, 'log', lambda *a: None):
             f.main()
@@ -77,6 +77,74 @@ class T(unittest.TestCase):
             self.assertEqual(len(calls), 7)            # same New York day: no more calls
             st = json.load(open(os.path.join(d, 's.json')))
             self.assertEqual(st['_calls']['n'], 7)
+
+    def run_main(self, fetch, cap=320, argv=('dp_feeder.py', '--dry')):
+        """main() on a temp state, Saturday 2026-11-07 12:00 NY (5 past sessions to backfill). Returns (log lines, posts, state)."""
+        import tempfile, unittest.mock as m
+        from datetime import datetime
+        d = tempfile.mkdtemp()
+        logs, posts = [], []
+        sat = datetime(2026, 11, 7, 12, tzinfo=f.NY).timestamp()
+        with m.patch.object(f, 'STATE', os.path.join(d, 's.json')), m.patch.object(f, 'DAILY_CAP', cap), \
+             m.patch.object(f, 'fetch_rows', fetch), m.patch.object(f, 'SLEEP', lambda s: logs.append('sleep %d' % s)), \
+             m.patch.object(f, 'post', lambda url, sec, part, body: (posts.append((part, json.loads(gzip.decompress(body)))) or (200, 'stored'))), \
+             m.patch.object(f.time, 'time', lambda: sat), \
+             m.patch.dict(os.environ, {'INSIGHTSENTRY_WEBSOCKET_API_KEY': 'x', 'BOOK_RECORDER_URL': 'https://w', 'BOOK_INGEST_SECRET': 's'}), \
+             m.patch.object(sys, 'argv', list(argv)), m.patch.object(f, 'log', logs.append):
+            f.main()
+            return logs, posts, json.load(open(os.path.join(d, 's.json')))
+
+    def test_pending_day_retried_and_symbol_still_posted(self):
+        # 2026-11-07: SPY 11-06 came back, 11-05 answered 503 data_pending -> the whole symbol failed and was never posted
+        row = [1794000000000, 700.0, 10000, '', 'id1']         # 2026-11-06
+        tries = {}
+
+        def fetch(code, key, params):
+            k = (code, params['date']); tries[k] = tries.get(k, 0) + 1
+            if params['date'] == '2026-11-05' and tries[k] == 1:
+                raise f.Pending(45)
+            return ([row] if params['date'] == '2026-11-06' else []), 10, False
+        logs, posts, st = self.run_main(fetch, argv=('dp_feeder.py', 'SPY'))
+        self.assertEqual(sum(tries.values()), 6)               # 5 days + 1 retry
+        self.assertIn('sleep 45', logs)
+        self.assertEqual(st['SPY']['done'], ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'])
+        self.assertEqual(posts[0][0], 'dp_spy')                 # posted after the first pass (4 days), again after the retry
+        self.assertEqual(len(posts[-1][1]['rows']), 1)
+        self.assertEqual(len(posts[-1][1]['days']), 5)
+        self.assertEqual(st['_calls']['n'], 6)
+
+    def test_pending_gives_up_after_passes_within_cap(self):
+        def fetch(code, key, params):
+            raise f.Pending(9999)
+        logs, posts, st = self.run_main(fetch, argv=('dp_feeder.py', 'NVDA'))
+        self.assertEqual(st['_calls']['n'], 5 * (1 + f.RETRY_PASSES))   # each pending day: first try + RETRY_PASSES
+        self.assertIn('sleep %d' % f.MAX_WAIT_S, logs)                 # Retry-After capped
+        self.assertEqual(st['NVDA']['done'], [])
+        self.assertEqual([p[0] for p in posts], ['dp_nvda'] * (1 + f.RETRY_PASSES))
+        self.assertTrue(any('still pending' in l for l in logs))
+        logs, posts, st = self.run_main(fetch, cap=7, argv=('dp_feeder.py', 'NVDA'))
+        self.assertEqual(st['_calls']['n'], 7)                          # the hard cap still wins
+
+    def test_incomplete_day_not_marked_done(self):
+        logs, posts, st = self.run_main(lambda code, key, params: ([], 5, params['date'] == '2026-11-04'), argv=('dp_feeder.py', 'IWM'))
+        self.assertNotIn('2026-11-04', st['IWM']['done'])
+        self.assertEqual(len(st['IWM']['done']), 4)
+
+    def test_incomplete_message_detected_in_stream(self):
+        for n in (3, 50, 10 ** 6):
+            meta = {}
+            raw = RAW[:-1] + ',"message":"Data may be incomplete"}'
+            rows, cnt = f.filter_stream(chunks(raw, n), meta=meta)
+            self.assertTrue(meta.get('partial'), n)
+            self.assertEqual(cnt, len(json.loads(RAW)['series']))
+        meta = {}
+        f.filter_stream(chunks(RAW, 64), meta=meta)
+        self.assertFalse(meta.get('partial'))
+
+    def test_post_time_is_fresh(self):
+        logs, posts, st = self.run_main(lambda c, k, p: ([], 1, False), argv=('dp_feeder.py', 'DIA'))
+        from datetime import datetime
+        self.assertEqual(posts[0][1]['t'], int(datetime(2026, 11, 7, 12, tzinfo=f.NY).timestamp()))
 
 
 if __name__ == '__main__':

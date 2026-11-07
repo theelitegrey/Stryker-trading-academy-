@@ -15,8 +15,10 @@
 // chart-watchlist.js (.stkw-rail, .stkchart-panel.stkw-host), style.css tokens (--ink-*, --line-soft, --bg-2).
 
 
+import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=905';
+
 export const DP_TYPE = 'stk_darkpool';
-export const DP_DESC = 'Large off-exchange stock trades (dark pool prints) drawn at their exact price and time, sized by $ value; $10M+ highlighted. Size filter $1M to $25M. 29 US stocks and ETFs, updated every 2 hours';
+export const DP_DESC = 'Large off-exchange stock trades (dark pool prints) drawn at their exact price and time, sized by $ value; $10M+ highlighted. Size filter $1M to $25M. 29 US stocks and ETFs, updated every 2 hours. On ES, NQ, YM and RTY charts: the SPY, QQQ, DIA and IWM prints at the futures price';
 export const DP_SYMS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'AVGO', 'NFLX', 'AMD', 'JPM', 'V', 'WMT', 'XOM', 'LLY',
   'BAC', 'DIS', 'COST', 'INTC', 'PLTR', 'BA', 'COIN', 'MSTR', 'SPY', 'QQQ', 'IWM', 'DIA', 'GLD', 'TQQQ'];
 export const SIZES = ['$1M', '$5M', '$10M', '$25M'];
@@ -24,6 +26,7 @@ export const BIG = 10e6;
 const SCHEMA = [
   { key: 'minSize', title: 'Minimum print size', type: 'string', defval: '$1M', options: SIZES },
   { key: 'labels', title: 'Show $ labels', type: 'bool', defval: true },
+  { key: 'futEtf', title: 'On futures (ES, NQ, YM, RTY): show the matching ETF prints', type: 'bool', defval: true },
   { key: 'offPrice', title: 'Show average-price / contingent prints', type: 'bool', defval: false },
   { key: 'color', title: 'Prints colour', type: 'color', defval: '#00adb5' },
   { key: 'bigColor', title: '$10M+ colour', type: 'color', defval: '#03c988' }
@@ -110,10 +113,12 @@ export function agoText(tsSec, nowMs) {
 }
 export function tipRows(x) {
   const n = condNote(x.c);
-  const rows = [['Time', fmtDay(x.t) + ', ' + fmtTime(x.t)], ['Price', x.p.toLocaleString('en-US', { maximumFractionDigits: 4 })], ['Shares', x.s.toLocaleString('en-US')], ['Value', usd(x.v)]];
+  const f2 = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const px = x.fut ? ['', x.etf + ' ' + f2(x.ep) + ' · at ' + x.fut + ' ≈ ' + f2(x.p)] : ['Price', x.p.toLocaleString('en-US', { maximumFractionDigits: 4 })];
+  const rows = [['Time', fmtDay(x.t) + ', ' + fmtTime(x.t)], px, ['Shares', x.s.toLocaleString('en-US')], ['Value', usd(x.v)]];
   if (n.ext) rows.push(['Session', 'extended hours']);
   if (n.off.length) rows.push(['Price type', n.off.join(', ')]);
-  return { title: (x.big ? 'Block print' : 'Dark pool print') + ' · ' + usd(x.v), rows, note: 'One trade reported off the exchanges.' + (n.off.length ? ' Its price may differ from the market price at that time.' : '') };
+  return { title: (x.fut ? x.etf + ' ' : '') + (x.big ? (x.fut ? 'block print' : 'Block print') : (x.fut ? 'dark pool print' : 'Dark pool print')) + ' · ' + usd(x.v), rows, note: 'One trade reported off the exchanges.' + (x.fut ? ' Shown at the ' + x.fut + ' price of that minute.' : '') + (n.off.length ? ' Its price may differ from the market price at that time.' : '') };
 }
 
 // ---- data ---------------------------------------------------------------------------------------
@@ -138,6 +143,21 @@ export function load(sym) {
 }
 export const cached = (sym) => cache.get(sym) || null;
 export const _setPart = (sym, j) => { cache.set(sym, { at: Date.now() + 1e12, part: j, err: '', p: null }); subs.forEach((f) => { try { f(sym); } catch (x) {} }); };   // test hook
+// FUTURES: ES/MES -> SPY prints, NQ/MNQ -> QQQ, YM/MYM -> DIA, RTY/M2K -> IWM, each moved onto the futures price (assets/chart-darkpool-map.js).
+// Returns { list, skipped } once the 1-minute bars are in, else null (and notifies the ETF's subscribers when done).
+const mapped = new Map();   // root|part time|rows -> { res, p }
+export function mappedFor(root, part) {
+  const etf = FUT_ETF[root], k = root + '|' + (part.t || 0) + '|' + (part.rows || []).length;
+  let m = mapped.get(k);
+  if (!m) {
+    m = { res: null }; if (mapped.size > 8) mapped.clear(); mapped.set(k, m);
+    const done = (r) => { m.res = r; subs.forEach((f) => { try { f(etf); } catch (x) {} }); };
+    loadMapped(root, prints(part, 0)).then((r) => done({ skipped: r.skipped, list: r.list.map((x) => Object.assign(x, { fut: root, etf })) }), () => done({ list: [], skipped: 0, err: true }));
+  }
+  return m.res;
+}
+// chart symbol -> the ETF whose prints it shows ('' = none): a covered stock / ETF itself, or the ETF matching a futures root
+export const targetOf = (raw) => tickerOf(raw) || FUT_ETF[futRoot(raw)] || '';
 const onData = (f) => { subs.add(f); return () => subs.delete(f); };
 
 // ---- native + layer ------------------------------------------------------------------------------
@@ -155,7 +175,8 @@ class DpNative {
     this.load();
     this.timer = setInterval(() => { if (!document.hidden) this.load(); }, 60000);
   }
-  sym() { return this.ctx ? tickerOf(this.ctx.symbol) : ''; }
+  fut() { const r = this.ctx ? futRoot(this.ctx.symbol) : ''; return r && !tickerOf(this.ctx.symbol) && this.inputs.futEtf !== false ? r : ''; }
+  sym() { return this.ctx ? (tickerOf(this.ctx.symbol) || FUT_ETF[this.fut()] || '') : ''; }
   load() { const s = this.sym(); if (s && !replayOn()) load(s); this.refresh(); }
   onBars() { const s = String(this.ctx && this.ctx.symbol); if (s !== this.lastSym) { this.lastSym = s; this.load(); } else this.refresh(); }
   onViewport() {}
@@ -164,23 +185,30 @@ class DpNative {
   resume() { this.sig = ''; this.load(); }
   stop() { clearInterval(this.timer); if (this.off) this.off(); try { this.ctx.pushData(null); } catch (e) {} }
   push(p) {
-    const sig = JSON.stringify(p && p.list ? { n: p.list.length, b: p.bars, I: p.I, t: p.t, f: p.focus } : p);
+    const sig = JSON.stringify(p && p.list ? { n: p.list.length, f: p.fut, b: p.bars, I: p.I, t: p.t, f: p.focus } : p);
     if (sig === this.sig) return; this.sig = sig;
     try { this.ctx.pushData(p); } catch (e) {}
   }
   refresh() {
     if (!this.ctx) return;
     const sym = this.sym(), raw = this.ctx.symbol;
+    if (!sym && futRoot(raw) && !tickerOf(raw)) return this.push({ note: 'Dark pool prints: futures option is off (Settings)' });
     if (!sym) return this.push({ note: looksStock(raw) ? 'Dark pool prints: not covered for this symbol yet (SPY, QQQ, IWM, AAPL, NVDA and 24 more)' : 'Dark pool prints: US stocks and ETFs only' });
     if (replayOn()) return this.push({ note: 'Dark pool prints: hidden in replay' });
     const e = cached(sym);
     if (!e || (!e.part && !e.err)) return this.push({ note: 'Loading dark pool prints…' });
     if (!e.part) return this.push({ note: 'Dark pool prints are not available right now' });
     const bars = this.ctx.bars() || [];
-    const all = prints(e.part, sizeUsd(this.inputs.minSize));
+    const fut = this.fut();
+    if (fut) {
+      const m = mappedFor(fut, e.part);
+      if (!m) return this.push({ note: 'Loading dark pool prints…' });
+      if (m.err || (!m.list.length && m.skipped)) return this.push({ note: 'Dark pool prints: no ' + fut + ' prices to place them on right now' });
+    }
+    const all = fut ? mappedFor(fut, e.part).list.filter((x) => x.v >= sizeUsd(this.inputs.minSize)) : prints(e.part, sizeUsd(this.inputs.minSize));
     const list = this.inputs.offPrice ? all : all.filter((x) => !condNote(x.c).off.length || x.t === focusT);
-    try { window.__stkDarkpool = { sym, n: all.length, big: all.filter((x) => x.big).length, drawn: list.length, min: sizeUsd(this.inputs.minSize) }; } catch (x) {}
-    this.push({ list, sym, t: e.part.t, I: this.inputs, bars: bars.length ? bars[0].time + '|' + bars[bars.length - 1].time + '|' + bars.length : '', ago: agoText(e.part.t), focus: focusT });
+    try { window.__stkDarkpool = { sym, fut, skipped: fut ? (mappedFor(fut, e.part) || {}).skipped : 0, n: all.length, big: all.filter((x) => x.big).length, drawn: list.length, min: sizeUsd(this.inputs.minSize) }; } catch (x) {}
+    this.push({ list, sym, fut, t: e.part.t, I: this.inputs, bars: bars.length ? bars[0].time + '|' + bars[bars.length - 1].time + '|' + bars.length : '', ago: agoText(e.part.t), focus: focusT });
   }
 }
 
@@ -207,7 +235,7 @@ function layer() {
       try { const vr = co.visibleLogicalRange(); v0 = Math.max(0, Math.floor(vr.from)); v1 = Math.min(bars.length - 1, Math.ceil(vr.to)); } catch (e) {}
       const groups = groupByBar(d.list, bars, ms, v0, v1);
       const vis = []; groups.forEach((gr) => gr.list.forEach((x) => vis.push({ x, i: gr.i })));
-      setChip(vis.length ? d.sym + ': ' + vis.length + ' dark pool print' + (vis.length === 1 ? '' : 's') + ' ≥ ' + I.minSize + ' · ' + d.ago : 'No dark pool prints ≥ ' + I.minSize + ' in view · ' + d.ago, canvas.parentElement);
+      setChip(vis.length ? d.sym + ': ' + vis.length + ' dark pool print' + (vis.length === 1 ? '' : 's') + ' ≥ ' + I.minSize + (d.fut ? ', shown at ' + d.fut + ' price' : '') + ' · ' + d.ago : 'No dark pool prints ≥ ' + I.minSize + ' in view · ' + d.ago, canvas.parentElement);
       const top = a.bounds.top, bot = top + a.bounds.height, max = vis.reduce((m, o) => Math.max(m, o.x.v), 1), rMax = W < 520 ? 7 : 9;
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
       // small first so big prints sit on top
@@ -229,7 +257,7 @@ function layer() {
         const taken = [];
         placed.sort((p, q) => q.o.x.v - p.o.x.v);
         for (const pl of placed) {
-          const txt = usd(pl.o.x.v), w = g.measureText(txt).width + 8, h = 16, lx = pl.x + pl.r + 4, ly = pl.y - h / 2;
+          const txt = (d.fut ? d.sym + ' ' : '') + usd(pl.o.x.v), w = g.measureText(txt).width + 8, h = 16, lx = pl.x + pl.r + 4, ly = pl.y - h / 2;
           if (lx + w > W - 2) continue;
           if (taken.some((b) => lx < b.x + b.w && lx + w > b.x && ly < b.y + b.h && ly + h > b.y)) continue;
           // labels: every $10M+ that fits; smaller ones only while there is room (fewer on a phone)
@@ -269,7 +297,7 @@ function show(h) {
   const head = document.createElement('div'); head.className = 'stk-dp-h';
   const dot = document.createElement('i'); dot.className = h.b.p.big ? 'big' : '';
   head.append(dot, t.title); tip.appendChild(head);
-  t.rows.forEach(([k, v]) => { const r = document.createElement('div'); r.className = 'stk-dp-r'; const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v; r.append(a, b); tip.appendChild(r); });
+  t.rows.forEach(([k, v]) => { const r = document.createElement('div'); r.className = 'stk-dp-r' + (k ? '' : ' full'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v; if (k) r.append(a, b); else r.append(b); tip.appendChild(r); });
   const n = document.createElement('div'); n.className = 'stk-dp-n'; n.textContent = t.note; tip.appendChild(n);
   tip.hidden = false;
   const left = Math.min(window.innerWidth - tip.offsetWidth - 8, Math.max(8, h.r.left + h.b.x - tip.offsetWidth / 2));
@@ -297,10 +325,10 @@ export function mountDarkPoolPanel(ws) {
   const panel = el('aside', 'stkdkp'); panel.id = 'stkdkp'; panel.hidden = true; panel.setAttribute('aria-label', 'Dark pool prints');
   panel.innerHTML = '<div class="stkdkp-grab" aria-hidden="true"></div><div class="stkdkp-hd"><span class="stkdkp-title">Dark pool</span><span class="stkdkp-sp"></span><button type="button" class="stkw-ib stkdkp-x" aria-label="Close dark pool prints">' + IC_X + '</button></div>' +
     '<div class="stkdkp-seg" role="group" aria-label="Minimum print size">' + SIZES.map((s) => '<button type="button" data-m="' + s + '" aria-pressed="false">' + s + '+</button>').join('') + '</div>' +
-    '<div class="stkdkp-stat" aria-live="polite"></div><div class="stkdkp-cols" role="row"><span>Time</span><span>Price</span><span>Shares</span><span>Value</span></div><div class="stkdkp-list" role="table" aria-label="Dark pool prints"></div>' +
+    '<div class="stkdkp-sub" hidden></div><div class="stkdkp-stat" aria-live="polite"></div><div class="stkdkp-cols" role="row"><span>Time</span><span>Price</span><span>Shares</span><span>Value</span></div><div class="stkdkp-list" role="table" aria-label="Dark pool prints"></div>' +
     '<p class="stkdkp-foot">Large trades reported off the exchanges, one row per trade. Education only. Not financial advice.</p>';
   host.appendChild(panel);
-  const $ = (s) => panel.querySelector(s), list = $('.stkdkp-list'), stat = $('.stkdkp-stat'), cols = $('.stkdkp-cols'), seg = $('.stkdkp-seg');
+  const $ = (s) => panel.querySelector(s), list = $('.stkdkp-list'), stat = $('.stkdkp-stat'), sub = $('.stkdkp-sub'), cols = $('.stkdkp-cols'), seg = $('.stkdkp-seg');
   const barR = document.querySelector('#stkc-bar .stkc-bar-r');
   if (barR) { const nb = barR.querySelector('.stkin-phonebtn') || barR.querySelector('.stknw-phonebtn') || barR.querySelector('.stkw-phonebtn'); barR.insertBefore(phoneBtn, nb ? nb.nextSibling : barR.firstChild); }
   function placeRail() {
@@ -323,7 +351,9 @@ export function mountDarkPoolPanel(ws) {
   }
   function render() {
     seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === minSize)));
-    const raw = activeSym(), sym = tickerOf(raw);
+    const raw = activeSym(), sym = targetOf(raw), fu = tickerOf(raw) ? '' : futRoot(raw);
+    sub.hidden = !fu; sub.textContent = fu ? sym + ' prints, shown at ' + fu + ' price' : '';
+    cols.children[1].textContent = fu ? fu + ' price' : 'Price';
     $('.stkdkp-title').textContent = 'Dark pool' + (sym ? ' · ' + sym : '');
     stat.textContent = '';
     seg.hidden = !sym;
@@ -331,9 +361,15 @@ export function mountDarkPoolPanel(ws) {
     const e = cached(sym);
     if (!e || (!e.part && !e.err)) { load(sym); return note('Loading…'); }
     if (!e.part) return note('Dark pool prints are temporarily unavailable. Try again in a minute.');
-    const all = prints(e.part, sizeUsd(minSize)).reverse();
+    let all = prints(e.part, sizeUsd(minSize)).reverse(), notPlaced = 0;
+    if (fu) {
+      const m = mappedFor(fu, e.part);
+      if (!m) return note('Loading…');
+      if (m.err || (!m.list.length && m.skipped)) return note('No ' + fu + ' prices to place the prints on right now. Try again in a minute.');
+      const placed = m.list.filter((x) => x.v >= sizeUsd(minSize)).reverse(); notPlaced = all.length - placed.length; all = placed;
+    }
     const nd = (e.part.days || []).length;
-    stat.textContent = all.length + ' print' + (all.length === 1 ? '' : 's') + ' ≥ ' + minSize + ', ' + (nd > 1 ? 'last ' + nd + ' sessions' : 'last session') + ' · ' + agoText(e.part.t);
+    stat.textContent = all.length + ' print' + (all.length === 1 ? '' : 's') + ' ≥ ' + minSize + ', ' + (nd > 1 ? 'last ' + nd + ' sessions' : 'last session') + ' · ' + agoText(e.part.t) + (notPlaced ? ' · ' + notPlaced + ' not placed (no ' + fu + ' price within 5 min)' : '');
     if (!all.length) return note('No dark pool prints of ' + minSize + ' or more in the stored sessions.');
     cols.hidden = false; list.textContent = '';
     let lastDay = '';
@@ -342,10 +378,11 @@ export function mountDarkPoolPanel(ws) {
       const dd = fmtDay(x.t);
       if (dd !== lastDay) { lastDay = dd; const h = el('div', 'stkdkp-day'); h.textContent = dd; frag.appendChild(h); }
       const row = el('button', 'stkdkp-row' + (x.big ? ' big' : '')); row.type = 'button'; row.setAttribute('role', 'row');
-      row.setAttribute('aria-label', fmtTime(x.t) + ', ' + usd(x.v) + ' at ' + x.p + ', ' + x.s + ' shares. Show on chart');
+      row.setAttribute('aria-label', fmtTime(x.t) + ', ' + (x.fut ? x.etf + ' ' : '') + usd(x.v) + ' at ' + x.p + ', ' + x.s + ' shares. Show on chart');
       const n = condNote(x.c);
       [fmtTime(x.t).replace(' ET', ''), x.p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), x.s.toLocaleString('en-US'), usd(x.v) + (n.off.length ? '*' : '')].forEach((v) => { const s = el('span'); s.textContent = v; row.appendChild(s); });
-      if (n.off.length) row.title = 'Price type: ' + n.off.join(', ');
+      if (x.fut) row.title = x.etf + ' ' + x.ep.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' · at ' + x.fut + ' ≈ ' + x.p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (n.off.length) row.title = (row.title ? row.title + '. ' : '') + 'Price type: ' + n.off.join(', ');
       row.addEventListener('click', () => jump(x));
       frag.appendChild(row);
     }
@@ -377,9 +414,9 @@ export function mountDarkPoolPanel(ws) {
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone()) setOpen(false); });
   window.addEventListener('resize', () => document.documentElement.classList.toggle('stkdkp-sheet', open && isPhone()), { passive: true });
-  onData((s) => { if (open && s === tickerOf(activeSym())) render(); });
+  onData((s) => { if (open && s === targetOf(activeSym())) render(); });
   try { ws.on('state:changed', () => { if (open) render(); }); } catch (e) {}
-  setInterval(() => { if (open && !document.hidden) { const s = tickerOf(activeSym()); if (s) load(s); } }, 60000);
+  setInterval(() => { if (open && !document.hidden) { const s = targetOf(activeSym()); if (s) load(s); } }, 60000);
   const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; } };
   window.__stkDarkPool = api;
   return api;
@@ -396,6 +433,7 @@ const CSS = `
 .stk-dp-h i{ width:8px; height:8px; border-radius:50%; flex:none; background:#00adb5; }
 .stk-dp-h i.big{ background:#03c988; }
 .stk-dp-r{ display:flex; justify-content:space-between; gap:12px; }
+.stk-dp-r.full{ justify-content:flex-start; }
 .stk-dp-r span{ color:rgba(255,255,255,.64); }
 .stk-dp-n{ margin-top:8px; font-size:12px; line-height:16px; color:rgba(255,255,255,.64); }
 :root[data-theme="light"] .stk-dp-tip, :root[data-theme="light"] .stk-dp-chip{ background:#fff; color:#1d1d1f; border-color:rgba(0,0,0,.12); }
@@ -413,6 +451,8 @@ const CSS = `
 .stkdkp-seg button{ flex:1; min-width:0; padding:0 4px; white-space:nowrap; min-height:28px; border:0; border-radius:6px; background:none; color:var(--ink-2); font:500 12px/16px inherit; font-family:inherit; cursor:pointer; font-variant-numeric:tabular-nums; }
 .stkdkp-seg button[aria-pressed="true"]{ background:var(--bg-0, #050506); color:var(--ink-0); box-shadow:0 0 0 1px var(--line-soft); }
 .stkdkp-seg button:focus-visible, .stkdkp-row:focus-visible{ outline:2px solid #03c988; outline-offset:2px; }
+.stkdkp-sub{ flex:none; padding:4px 12px 0; font-size:12px; line-height:16px; font-weight:600; color:var(--ink-0); }
+.stkdkp-sub[hidden]{ display:none; }
 .stkdkp-stat{ flex:none; padding:4px 12px 8px; font-size:12px; line-height:16px; color:var(--ink-2); }
 .stkdkp-cols, .stkdkp-row{ display:grid; grid-template-columns:1.15fr 1fr 1fr .9fr; gap:4px; padding:0 12px; font-variant-numeric:tabular-nums; }
 .stkdkp-cols{ flex:none; padding-bottom:4px; font-size:11px; line-height:13px; color:var(--ink-2); border-bottom:1px solid var(--line-soft); }

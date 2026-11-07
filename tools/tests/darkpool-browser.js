@@ -123,8 +123,8 @@ async function run(b, tag, o) {
   check(!/\blive\b|real-time|realtime|delayed/i.test(words), tag + ': no live / real-time / delayed wording');
   check(!/insight|finra_adf|tradingview|unusual whales|databento|polygon/i.test(words), tag + ': no vendor or rival names');
   // other markets
-  await setSym(p, 'futures:ES1!', '5'); await sleep(1000);
-  check(/US stocks and ETFs only/.test(await chip(p)), tag + ': futures get the short note');
+  await setSym(p, 'futures:CL1!', '5'); await sleep(1000);
+  check(/US stocks and ETFs only/.test(await chip(p)), tag + ': futures with no ETF match (CL) keep the short note');
   await setSym(p, 'IDX:AAPL', '5'); await view(p, DAY0 - 600000, DAY1 + 300000); await sleep(1500);
   const st3 = await p.evaluate(() => window.__stkDarkpool || null);
   check(st3 && st3.sym === 'AAPL' && st3.n === 268 && st3.big === 33, tag + ': real AAPL part read: ' + JSON.stringify(st3));

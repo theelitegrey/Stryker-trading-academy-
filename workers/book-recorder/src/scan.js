@@ -8,7 +8,12 @@
 // gzip bytes as they came; GET /scan?part= serves them as-is (x-scan-gzip: 1; the page un-gzips with
 // DecompressionStream, as /orderflow does), edge-cached 60 s, so InsightSentry is never called per
 // visitor. Plan gating (custom filters = Pro) is the site's.
-export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'fut', 'syminfo', 'ms_nq', 'ms_es', 'ms_spx', 'ms_ym', 'ms_rty', 'ms_gc', 'ms_cl'];
+// Dark pool prints (dp-feeder/dp_feeder.py, 2026-11-07): one part per stock / ETF, dp_<ticker lower>. Same list as the feeder's STOCKS.
+export const DP_SYMS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'AVGO', 'NFLX', 'AMD', 'JPM', 'V', 'WMT', 'XOM', 'LLY',
+  'BAC', 'DIS', 'COST', 'INTC', 'PLTR', 'BA', 'COIN', 'MSTR', 'SPY', 'QQQ', 'IWM', 'DIA', 'GLD', 'TQQQ'];
+export const DP_COLS = ['t', 'p', 's', 'c'];
+const DP_MAX_ROWS = 20000;
+export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'fut', 'syminfo', 'ms_nq', 'ms_es', 'ms_spx', 'ms_ym', 'ms_rty', 'ms_gc', 'ms_cl'].concat(DP_SYMS.map((s) => 'dp_' + s.toLowerCase()));
 export const SCAN_MAX_BODY = 900 * 1024;   // screener v2: more columns per market table (was 512 KB)
 export const SCAN_COLS = ['s', 'n', 'c', 'chg', 'vol', 'rvol', 'gap', 'rsi', 'hi52', 'lo52', 'cap', 'pe', 'sec', 'perfW', 'perfYtd'];   // presets + v1 tables
 // Screener v2 (2026-11-03): the market tables carry the slow fields too (industry, beta, dividend yield, next earnings, ATR,
@@ -49,6 +54,21 @@ export function validateMarketStats(part, d) {
   return '';
 }
 
+// Dark pool part: { v, t, sym, code, min, days:[YYYY-MM-DD], cols: DP_COLS, rows: [[t ms, price, shares, conditions]] } sorted by t. Pure.
+export function validateDarkPool(part, d) {
+  if ('dp_' + String(d.sym || '').toLowerCase() !== part) return 'bad sym';
+  if (!Array.isArray(d.cols) || d.cols.join() !== DP_COLS.join()) return 'bad cols';
+  if (!fin(d.min) || d.min < 1e5 || !Array.isArray(d.days) || d.days.length > 10 || !d.days.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x))) return 'bad header';
+  if (!Array.isArray(d.rows) || d.rows.length > DP_MAX_ROWS) return 'bad rows';
+  let last = 0;
+  for (const r of d.rows) {
+    if (!Array.isArray(r) || r.length !== 4 || !fin(r[0]) || !fin(r[1]) || !fin(r[2]) || r[1] <= 0 || r[2] <= 0 || typeof r[3] !== 'string' || r[3].length > 8) return 'bad row';
+    if (r[0] < last || r[0] < 1.5e12 || r[0] > 4.1e12) return 'bad time';
+    last = r[0];
+  }
+  return '';
+}
+
 // Symbol info part (info-feeder): { v, t, syms: { KEY: { kind: 'fut'|'stock', code, ... } } }. Pure.
 export function validateSymInfo(d) {
   const ks = Object.keys(d.syms || {});
@@ -65,8 +85,9 @@ export function validateSymInfo(d) {
 export function validateScanPart(part, d, nowSec) {
   if (!SCAN_PARTS.includes(part)) return 'bad part';
   if (!d || typeof d !== 'object' || (d.v !== 1 && !(d.v === 2 && part !== 'presets'))) return 'bad header';
-  if (!fin(d.t) || d.t > nowSec + 60 || nowSec - d.t > (part === 'syminfo' || part.startsWith('ms_') ? 3600 : FRESH_S)) return 'stale or future t';
+  if (!fin(d.t) || d.t > nowSec + 60 || nowSec - d.t > (part === 'syminfo' || part.startsWith('ms_') || part.startsWith('dp_') ? 3600 : FRESH_S)) return 'stale or future t';
   if (part === 'syminfo') return validateSymInfo(d);
+  if (part.startsWith('dp_')) return validateDarkPool(part, d);
   if (part.startsWith('ms_')) return validateMarketStats(part, d);
   const cols = part !== 'presets' && d.v === 2 ? SCAN_COLS_V2 : SCAN_COLS;
   if (!Array.isArray(d.cols) || d.cols.join() !== cols.join()) return 'bad cols';

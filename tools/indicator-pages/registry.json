@@ -21,6 +21,15 @@
     "grp": "TradeZoro"
    },
    {
+    "key": "b:stk_darkpool",
+    "name": "Dark Pool Prints",
+    "author": "TradeZoro",
+    "desc": "Large off-exchange stock trades drawn at their exact price and time, sized by $ value; $10M+ highlighted. US stocks and ETFs, updated every 2 hours",
+    "third": false,
+    "beta": false,
+    "grp": "TradeZoro"
+   },
+   {
     "key": "b:stk_offex_lv",
     "name": "Off-exchange levels (FINRA data)",
     "author": "TradeZoro",
@@ -1406,6 +1415,15 @@
     "name": "Off-exchange levels (FINRA data)",
     "author": "TradeZoro",
     "desc": "Price levels where weekly off-exchange volume clustered (average price of the week). FINRA data, updated weekly",
+    "third": false,
+    "beta": false,
+    "grp": "TradeZoro"
+   },
+   {
+    "key": "b:stk_darkpool",
+    "name": "Dark Pool Prints",
+    "author": "TradeZoro",
+    "desc": "Large off-exchange stock trades drawn at their exact price and time, sized by $ value; $10M+ highlighted. US stocks and ETFs, updated every 2 hours",
     "third": false,
     "beta": false,
     "grp": "TradeZoro"
@@ -13280,6 +13298,63 @@
       "type": "bool",
       "title": "Status",
       "def": true,
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Dark Pool Prints",
+   "category": "Built-in",
+   "native": true,
+   "nativeType": "stk_darkpool",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Dark Pool Prints",
+    "short": "Dark pool",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "minSize",
+      "type": "string",
+      "title": "Minimum print size",
+      "def": "$1M",
+      "options": [
+       "$1M",
+       "$5M",
+       "$10M",
+       "$25M"
+      ]
+     },
+     {
+      "key": "labels",
+      "type": "bool",
+      "title": "Show $ labels",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "offPrice",
+      "type": "bool",
+      "title": "Show average-price / contingent prints",
+      "def": false,
+      "options": []
+     },
+     {
+      "key": "color",
+      "type": "color",
+      "title": "Prints colour",
+      "def": "#00adb5",
+      "options": []
+     },
+     {
+      "key": "bigColor",
+      "type": "color",
+      "title": "$10M+ colour",
+      "def": "#03c988",
       "options": []
      }
     ]

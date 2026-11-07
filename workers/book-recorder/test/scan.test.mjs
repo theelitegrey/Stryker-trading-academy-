@@ -3,7 +3,7 @@
 //   node workers/book-recorder/test/scan.test.mjs
 import { gzipSync, gunzipSync } from 'node:zlib';
 import assert from 'node:assert/strict';
-import { validateScan, validateScanPart, SCAN_COLS, SCAN_COLS_V2, MS_COLS } from '../src/scan.js';
+import { validateScan, validateScanPart, SCAN_COLS, SCAN_COLS_V2, MS_COLS, DP_COLS, SCAN_PARTS } from '../src/scan.js';
 
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS ' + m); };
@@ -28,6 +28,17 @@ ok(validateScanPart('ms_nq', ms({ rows: [msRow('x')] }), now) === 'bad row', 'ma
 ok(validateScanPart('ms_nq', ms({ t: now - 3000 }), now) === '', 'market stats stays fresh for an hour');
 ok(validateScanPart('ms_nq', ms({ t: now - 4000 }), now) === 'stale or future t', 'market stats older than an hour rejected');
 ok(validateScanPart('presets', presets(), now) === '', 'presets valid');
+// Dark pool parts (dp-feeder): real-shaped rows (SPY 2026-11-06)
+const dp = (o) => Object.assign({ v: 1, t: now - 30, sym: 'SPY', code: 'AMEX:SPY', min: 1e6, days: ['2026-11-06'], cols: DP_COLS,
+  rows: [[1793966400219, 735.52, 27817, 'T'], [1793972383905, 733, 23200, 'TB']] }, o || {});
+ok(SCAN_PARTS.includes('dp_spy') && SCAN_PARTS.includes('dp_aapl') && !SCAN_PARTS.includes('dp_xyz'), 'dark pool parts listed for the fixed symbols only');
+ok(validateScanPart('dp_spy', dp(), now) === '', 'dark pool part valid');
+ok(validateScanPart('dp_aapl', dp(), now) === 'bad sym', 'dark pool symbol must match the part');
+ok(validateScanPart('dp_spy', dp({ rows: [[1793972383905, 733, 23200, ''], [1793966400219, 735.52, 27817, '']] }), now) === 'bad time', 'dark pool rows must be in time order');
+ok(validateScanPart('dp_spy', dp({ rows: [[1793966400219, -1, 5, '']] }), now) === 'bad row', 'dark pool negative price rejected');
+ok(validateScanPart('dp_spy', dp({ rows: [[1793966400219, 1, 5, 'x'.repeat(9)]] }), now) === 'bad row', 'dark pool long condition string rejected');
+ok(validateScanPart('dp_spy', dp({ cols: ['t'] }), now) === 'bad cols', 'dark pool wrong columns rejected');
+ok(validateScanPart('dp_spy', dp({ t: now - 3000 }), now) === '', 'dark pool part stays fresh for an hour');
 ok(validateScanPart('stock', table(), now) === '', 'table valid');
 ok(validateScanPart('bonds', table(), now) === 'bad part', 'unknown part');
 ok(validateScanPart('stock', table({ t: now - 3600 }), now) === 'stale or future t', 'stale rejected');
@@ -88,5 +99,9 @@ if (sqlite) {
   ok(r.status === 400, 'bad syminfo key -> 400');
   r = await W('/scan?part=syminfo', { headers: { origin: 'https://strykertrading.com' } });
   ok(r.status === 200 && JSON.parse(gunzipSync(Buffer.from(await r.arrayBuffer())).toString()).syms.NQ.kind === 'fut', 'read syminfo');
+  r = await W('/scan-ingest?part=dp_spy', { method: 'POST', body: gz(dp({ t: Math.floor(Date.now() / 1000) })), headers: { 'x-ingest-key': SECRET } });
+  ok(r.status === 200, 'dark pool part stored: ' + await r.text());
+  r = await W('/scan?part=dp_spy', { headers: { origin: 'https://tradezoro.com' } });
+  ok(r.status === 200 && JSON.parse(gunzipSync(Buffer.from(await r.arrayBuffer())).toString()).rows[0][2] === 27817, 'read dark pool part');
 } else console.log('SKIP routes (no node:sqlite)');
 console.log(n + ' passed');

@@ -1,0 +1,24 @@
+{
+  "slug": "dark-pool-prints",
+  "summary": "Draws large off-exchange stock trades (dark pool prints) at the exact price and time they printed, sized by dollar value, with $10M+ blocks highlighted.",
+  "overview": [
+    "Dark Pool Prints puts each large trade that was reported off the exchanges on your stock chart, at the price and time it happened. Each print is a dot sized by its dollar value, with a label such as \"$40M\". Prints of $10M or more are filled in mint so the big blocks stand out.",
+    "Open the Dark pool list from the chart's right-hand bar (on a phone, the Dark pool button) to see the prints as a table: time, price, shares and value. Tap a row and the chart moves to that print and rings it."
+  ],
+  "how": [
+    "US trades done away from the exchanges are reported to a regulator-run trade reporting facility, and each report carries that venue. TradeZoro reads the trade reports for the session, keeps the ones from those facilities worth $1M or more (price times shares), and stores the last five sessions. Each dot is one trade, not a total.",
+    "Some reports are not at the market price of that moment: average-price trades, contingent trades, derivatively priced trades and late reports. They are kept in the list with a star, and hidden from the chart unless you turn on \"Show average-price / contingent prints\". The size setting filters prints at $1M, $5M, $10M or $25M."
+  ],
+  "use": [
+    "Some traders watch where big blocks traded relative to the day's range.",
+    "Use it to see whether large prints clustered near a level that price later came back to.",
+    "Some traders compare the prints with volume or VWAP on the same chart.",
+    "Use the $10M or $25M filter to keep only the largest blocks in view."
+  ],
+  "notes": [
+    "US stocks and ETFs only, on a set list of 29 symbols including SPY, QQQ, IWM, DIA, AAPL, NVDA, MSFT and TSLA. Futures, crypto and forex show a short note instead.",
+    "Updated every 2 hours on US trading days; the chart shows when it was last updated (for example \"updated 12 min ago\").",
+    "A dark pool print shows that a trade happened at that price. It does not say who bought or sold, or why.",
+    "Nothing is drawn in bar replay."
+  ]
+}

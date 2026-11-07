@@ -196,6 +196,7 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_zvol') { cat = GROUP_STRYKER; desc = 'Marks where a contract had Fresh Volume (volume above open interest) or a Volume Burst. Volume only, no buyer or seller side'; }
       if (r.native && r.nativeType === 'stk_optflow') { cat = GROUP_STRYKER; desc = 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium; hover or tap for details. Per-bar totals, not single trades (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_offex') { cat = GROUP_STRYKER; desc = 'Daily off-exchange share of volume in a lower pane. FINRA data, updated daily'; }
+      if (r.native && r.nativeType === 'stk_darkpool') { cat = GROUP_STRYKER; desc = 'Large off-exchange stock trades drawn at their exact price and time, sized by $ value; $10M+ highlighted. US stocks and ETFs, updated every 2 hours'; }
       if (r.native && r.nativeType === 'stk_offex_lv') { cat = GROUP_STRYKER; desc = 'Price levels where weekly off-exchange volume clustered (average price of the week). FINRA data, updated weekly'; }
       if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them'; }
       if (r.native && r.nativeType === 'stk_earn') { cat = GROUP_STRYKER; desc = 'An “E” on the day a US company reports earnings, with the EPS estimate on hover. Data updated daily'; }

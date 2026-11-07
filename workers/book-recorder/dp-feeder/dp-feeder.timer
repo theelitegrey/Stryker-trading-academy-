@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the TradeZoro dark pool prints feeder every 2 hours on US weekdays (04:10 - 20:10 New York, plus 21:10 after the close)
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 04,06,08,10,12,14,16,18,20,21:10:00 America/New_York
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

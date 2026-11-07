@@ -604,6 +604,7 @@ function lateLists(provider){
   const tideP = import('./chart-zorotide.js?v=902');
   const flowP = import('./chart-optflow.js?v=902');
   const offexP = import('./chart-offex.js?v=902');
+  const dpP = import('./chart-darkpool.js?v=902');
   let MSess = null;
   if (heavyNeeded) installHeavy();
   else {
@@ -633,6 +634,8 @@ function lateLists(provider){
     if (zd.zoroOn()) { (await import('./chart-zoro-range.js?v=902')).installZoroRange(LCore); (await import('./chart-iv-rank.js?v=902')).installIvRank(LCore); }
   } catch (e) { console.warn('TradeZoro: Zoro indicators install', e); }
   try { (await offexP).installOffex(LCore); } catch (e) { console.warn('TradeZoro: off-exchange install', e); }
+  // Dark Pool Prints (assets/chart-darkpool.js, free for everyone): off-exchange block prints at their price and time, registered before boot too.
+  try { (await dpP).installDarkPool(LCore); } catch (e) { console.warn('TradeZoro: dark pool install', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
   try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
   // Camarilla Pivots (assets/chart-camarilla.js, Free): level overlay from the prior session, registered before boot too.
@@ -963,6 +966,8 @@ function lateLists(provider){
   import('./chart-feeds.js?v=902').then((m) => m.mountFeedBadges(ws)).catch((e) => console.warn('TradeZoro: feed badges', e));
   // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
   import('./chart-symbol-info.js?v=902').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
+  // "Dark pool" prints list beside the chart (right icon bar, phones: a sheet): assets/chart-darkpool.js.
+  import('./chart-darkpool.js?v=902').then((m) => m.mountDarkPoolPanel(ws)).catch((e) => console.warn('TradeZoro: dark pool panel', e));
   try { IndStyle.mountIndStyle(ws); } catch (e) { console.warn('TradeZoro: indicator style', e); }
   // Indicator Settings → Inputs: every input.symbol opens the same symbol search
   // (assets/chart-symbol-input.js).

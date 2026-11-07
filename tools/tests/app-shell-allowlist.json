@@ -45,6 +45,7 @@
   "indicators": "indicator library hub (SEO); app shell when signed in",
   "indicators/gex-levels": "indicator page (SEO, generated)",
   "indicators/gex-heatmap": "indicator page (SEO, generated)",
+  "indicators/dark-pool-prints": "indicator page (SEO, generated)",
   "indicators/off-exchange-levels": "indicator page (SEO, generated)",
   "indicators/off-exchange-volume": "indicator page (SEO, generated)",
   "indicators/options-flow-marks": "indicator page (SEO, generated)",

@@ -499,6 +499,16 @@
       "alt": "TradeZoro GEX Heatmap preview card"
     },
     {
+      "page": "indicators/dark-pool-prints.html",
+      "title": "Dark Pool Prints",
+      "og_title": "Dark Pool Prints: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/dark-pool-prints.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Dark Pool Prints preview card"
+    },
+    {
       "page": "indicators/off-exchange-levels.html",
       "title": "Off-exchange levels",
       "og_title": "Off-exchange levels: ZoroCharts indicator guide",

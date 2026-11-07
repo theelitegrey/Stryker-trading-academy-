@@ -1,0 +1,21 @@
+[Unit]
+Description=TradeZoro dark pool prints feeder: InsightSentry SIP trades -> off-exchange prints >= $1M -> book recorder Worker (one run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# recorder URL + shared ingest secret, and the InsightSentry key (both files mode 0600; never logged)
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/dp_feeder.py
+StateDirectory=dp-feeder
+# 29 symbols, one ~100 KB call each; the first run of a day backfills whole sessions (tens of MB each, streamed)
+TimeoutStartSec=3000
+MemoryMax=200M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=dp-feeder

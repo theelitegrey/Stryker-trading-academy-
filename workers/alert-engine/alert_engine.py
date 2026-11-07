@@ -27,6 +27,7 @@ import json
 import os
 import queue
 import random
+import secrets
 import socket
 import sys
 import threading
@@ -60,7 +61,86 @@ lock = threading.Lock()
 book = core.Book()
 zbook = core.Book()               # ZoroOptions level touches on the futures price scale (apart from book: book.sync would drop them)
 fires_q = queue.Queue()
-stat = {'fires': 0, 'fire_errors': 0, 'sync_ok': 0, 'sync_err': 0, 'last_sync': 0, 'feed': {}, 'ticks': 0}
+stat = {'fires': 0, 'fire_errors': 0, 'sync_ok': 0, 'sync_err': 0, 'last_sync': 0, 'feed': {}, 'ticks': 0,
+        'retried': 0, 'dropped': 0, 'hb_at': 0}
+err_times = []                    # time of every fire write that failed (the last hour goes to health.json)
+
+# ---------------------------------------------------------------------------------- delivery outbox
+# A fire's writes (alertFires doc, notifications doc) used to be tried once: if Firestore failed (the 403s of
+# 3-5 Nov 2026), the fire was lost, because a Once alert is claimed (active=false) BEFORE those writes and the
+# next try saw it as stale. Now the writes that did not land are queued and retried with backoff for 10 min.
+# Every write is a PATCH on a fixed path (the notification id is made here), so a retry after a timeout that
+# actually landed overwrites the same doc instead of making a second one (and onNotificationCreated only
+# fires on create, so no second push).
+RETRY_FOR = 600
+outbox = []                       # [{'ops': [(path, data), ...], 'what', 'tries', 'first', 'next'}]
+
+
+def new_notif_path():
+    return 'notifications/' + secrets.token_hex(10)
+
+
+def _run_ops(ops):
+    """Write ops in order; drop each one that lands. Raises on the first failure (ops then holds the rest)."""
+    while ops:
+        path, data = ops[0]
+        fs.set_doc(path, data)
+        ops.pop(0)
+
+
+def _note_err(now=None):
+    now = now or time.time()
+    stat['fire_errors'] += 1
+    err_times.append(now)
+    del err_times[:-500]
+
+
+def write_ops(ops, what):
+    """True when every write landed now; False when the rest went to the outbox (it is not dropped)."""
+    ops = list(ops)
+    try:
+        _run_ops(ops)
+        return True
+    except Exception as e:
+        _note_err()
+        now = time.time()
+        with lock:
+            outbox.append({'ops': ops, 'what': what, 'tries': 1, 'first': now, 'next': now + 5})
+        log('fire write failed, queued for retry (%s): %s %s' % (what, type(e).__name__, str(e)[:100]))
+        return False
+
+
+def retry_due(now=None):
+    """One pass over the outbox. Backoff 5 s, 10 s, 20 s ... capped at 2 min; given up after RETRY_FOR."""
+    now = now or time.time()
+    with lock:
+        due = [j for j in outbox if j['next'] <= now]
+    for j in due:
+        try:
+            _run_ops(j['ops'])
+            stat['retried'] += 1
+            log('retry ok (%s) after %d tries' % (j['what'], j['tries']))
+            with lock:
+                outbox.remove(j)
+        except Exception as e:
+            _note_err(now)
+            j['tries'] += 1
+            if now - j['first'] >= RETRY_FOR:
+                stat['dropped'] += 1
+                log('retry gave up after %d s (%s): %s' % (RETRY_FOR, j['what'], type(e).__name__))
+                with lock:
+                    outbox.remove(j)
+            else:
+                j['next'] = now + min(5 * 2 ** (j['tries'] - 1), 120)
+
+
+def retry_loop():
+    while True:
+        try:
+            retry_due()
+        except Exception as e:
+            log('retry loop: %s' % type(e).__name__)
+        time.sleep(2)
 
 
 def log(m):
@@ -337,12 +417,13 @@ def fire_one(a, p, prev):
                 return 'claimed-elsewhere'
             raise
     text = core.push_text(a, p, prev)
-    fs.set_doc('students/%s/alertFires/%s' % (a['uid'], a['aid']),
-               {'firedAt': ts, 'price': p, 'text': text, 'symbol': a['symbol'], 'freq': a['freq'], 'stopped': a['freq'] == 'once'})
     sym = urllib.parse.quote(a['symbol'], safe=':!')
-    fs.create_doc('notifications', {'recipientUid': a['uid'], 'type': 'chart_alert', 'message': text,
-                                    'link': 'charts.html?symbol=' + sym, 'read': False, 'createdAt': ts})
-    return 'fired'
+    ok = write_ops([
+        ('students/%s/alertFires/%s' % (a['uid'], a['aid']),
+         {'firedAt': ts, 'price': p, 'text': text, 'symbol': a['symbol'], 'freq': a['freq'], 'stopped': a['freq'] == 'once'}),
+        (new_notif_path(), {'recipientUid': a['uid'], 'type': 'chart_alert', 'message': text,
+                            'link': 'charts.html?symbol=' + sym, 'read': False, 'createdAt': ts})], 'price ' + a['aid'][:6])
+    return 'fired' if ok else 'queued'
 
 
 def fire_loop():
@@ -350,13 +431,13 @@ def fire_loop():
         a, p, prev = fires_q.get()
         try:
             r = fire_one(a, p, prev)
-            if r == 'fired':
+            if r in ('fired', 'queued'):
                 stat['fires'] += 1
                 log('FIRE %s %s %s @ %s' % (a['aid'][:6], a['symbol'], a['cond'], p))   # no uid in logs
             else:
                 log('skip %s: %s' % (a['aid'][:6], r))
         except Exception as e:
-            stat['fire_errors'] += 1
+            _note_err()                              # nothing was written (the claim failed): the alert is still active
             log('fire failed: %s %s' % (type(e).__name__, str(e)[:120]))
             cursor['full'] = True                    # re-read everything next round so the alert is not lost
 
@@ -420,8 +501,8 @@ def zoro_fire(a, text, zb=None):
         with lock:
             zalerts.pop(a['id'], None)
     sym = '' if a['type'] == 'note_ready' else '?symbol=' + urllib.parse.quote(a['symbol'])
-    fs.create_doc('notifications', {'recipientUid': a['uid'], 'type': 'zoro_alert', 'message': text,
-                                    'link': 'zoro-options.html' + sym, 'read': False, 'createdAt': fs.now_ts()})
+    write_ops([(new_notif_path(), {'recipientUid': a['uid'], 'type': 'zoro_alert', 'message': text,
+                                   'link': 'zoro-options.html' + sym, 'read': False, 'createdAt': fs.now_ts()})], 'zoro ' + a['aid'][:6])
     zstat['fires'] += 1
     log('ZFIRE %s %s %s' % (a['aid'][:6], a['type'], a['symbol']))   # no uid in logs
     return 'fired'
@@ -592,9 +673,9 @@ def dp_fire(a, text_list, dry=False):
             if e.status in (400, 404, 409):
                 return 'claimed-elsewhere'
             raise
-    for text in text_list:
-        fs.create_doc('notifications', {'recipientUid': a['uid'], 'type': 'dp_alert', 'message': text[:480],
-                                        'link': dpa.link(a['symbol']), 'read': False, 'createdAt': fs.now_ts()})
+    write_ops([(new_notif_path(), {'recipientUid': a['uid'], 'type': 'dp_alert', 'message': text[:480],
+                                   'link': dpa.link(a['symbol']), 'read': False, 'createdAt': fs.now_ts()}) for text in text_list],
+              'dp ' + a['aid'][:6])
     dstat['fires'] += len(text_list)
     log('DFIRE %s %s x%d' % (a['aid'][:6], a['symbol'], len(text_list)))   # no uid in logs
     return 'fired'
@@ -671,6 +752,8 @@ def health_loop():
             keys = len(book.keys())
         h = {'ok': (now - stat['last_sync'] < 180) if stat['last_sync'] else False, 'at': int(now), 'alerts': n, 'keys': keys,
              'fires': stat['fires'], 'fire_errors': stat['fire_errors'], 'sync_err': stat['sync_err'],
+             'fire_errors_1h': sum(1 for t in err_times if now - t < 3600), 'outbox': len(outbox),
+             'retried': stat['retried'], 'dropped': stat['dropped'], 'hb_at': int(stat['hb_at']),
              'last_sync': int(stat['last_sync']), 'ticks': stat['ticks'],
              'feeds': {k: int(v) for k, v in stat['feed'].items()},
              'zoro': dict(zstat, alerts=len(zalerts), touch=len(zbook.alerts)), 'dp': dict(dstat)}
@@ -685,6 +768,7 @@ def health_loop():
             try:
                 fs.set_doc('settings/alertEngine', {'at': fs.now_ts(), 'alerts': n})
                 last_hb = now
+                stat['hb_at'] = now
             except Exception as e:
                 log('heartbeat failed: %s' % type(e).__name__)
         time.sleep(10)
@@ -693,7 +777,7 @@ def health_loop():
 def main():
     key = os.environ.get('INSIGHTSENTRY_WEBSOCKET_API_KEY', '')
     roots = list(IS_ROOTS)
-    threads = [sync_loop, fire_loop, health_loop, binance_reader, coinbase_reader, zoro_loop, dp_loop]
+    threads = [sync_loop, fire_loop, retry_loop, health_loop, binance_reader, coinbase_reader, zoro_loop, dp_loop]
     if key:
         threads += [lambda: is_reader(roots[:4], key), lambda: is_reader(roots[4:], key)]
     else:

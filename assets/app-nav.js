@@ -79,6 +79,8 @@
     ['markets', 'Markets', [
       ['gex', 'GEX+', 'Gamma levels as context on the chart', '<path d="M3 18h18"/><path d="M6 15l3.5-4 3 2.5L18 6"/><path d="M18 6h-4M18 6v4"/>'],
       ['zoro-options', 'ZoroOptions', 'Options gamma, volatility and volume', '<path d="M3 20h18"/><path d="M6 20v-6M10 20V8M14 20v-9M18 20V5"/>'],
+      ['options-calculator', 'Options P&L calculator', 'Payoff, break-evens and greeks', '<path d="M4 20 10 8l4 6 6-10"/><path d="M3 12h18" stroke-dasharray="2 3"/>'],
+      ['iv-skew', 'IV skew', 'Implied volatility by strike and expiry', '<path d="M3 6c4 10 14 10 18 0"/><path d="M3 20h18"/>'],
       ['market-brief', 'Market brief', 'Daily notes on key levels', '<path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 12h8M8 16h6"/>'],
       ['market-map', 'Market map', 'Markets at a glance', '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'],
       ['scanner', 'Market scanner', 'Movers, gaps, 52-week highs', '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/><path d="M8 12.5l2-2.5 2 1.5 2-3"/>'],

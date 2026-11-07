@@ -6,9 +6,10 @@
 // cache-busted with ?v= — the browser versions service workers by byte
 // comparison, and a query string would register a second, competing worker.
 //
-// Handles messages that arrive while no tab is focused. Foreground messages
-// are handled in assets/push.js instead, because the browser suppresses
-// notifications for a page the user is already looking at.
+// Handles messages that arrive while no TradeZoro window is visible. When a
+// window IS visible the SDK hands the message to that page instead
+// (assets/push.js onMessage: a toast, or a system notification through this
+// worker's registration when that tab itself is hidden).
 
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
@@ -31,21 +32,38 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// A new worker takes over at once instead of waiting for every tab to close, so a fixed worker reaches the
+// installed app on the next open (and clients.claim() lets notification clicks navigate the open app).
+self.addEventListener('install', function () { self.skipWaiting(); });
+self.addEventListener('activate', function (event) { event.waitUntil(self.clients.claim()); });
+
+// Alerts the member set (price, options, dark pool, test): they must be seen, so they stay on screen and buzz.
+const ALERT_TYPES = { chart_alert: 1, zoro_alert: 1, dp_alert: 1, test: 1 };
+
+// Shared with assets/push.js (the open-but-hidden page shows the same notification through this worker).
+function notifOptions(data) {
+  const isAlert = !!ALERT_TYPES[data.type];
+  return {
+    body: data.body || '',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=912',
+    // Android draws the badge as a white mask of the alpha channel: the transparent TZ mark gives a clean glyph.
+    badge: '/assets/images/tradezoro-icon-192-494.png?v=912',
+    // One tag per alert notification (two alerts must both show); other types collapse by type (five likes = one).
+    tag: isAlert ? 'alert-' + data.type + '-' + (data.nid || Date.now()) : (data.type || 'stryker'),
+    renotify: true,
+    requireInteraction: isAlert,
+    vibrate: isAlert ? [200, 100, 200] : undefined,
+    timestamp: Number(data.ts) || Date.now(),
+    data: { link: data.link || '/dashboard-user.html' }
+  };
+}
+
+// Data-only messages (the function sends no `notification` block), so this worker alone decides what shows.
+// The SDK calls this whenever no TradeZoro window is visible: app closed, in the background, phone locked.
+// The promise is RETURNED so the push event stays alive until the notification is on screen.
 messaging.onBackgroundMessage(function (payload) {
   const data = payload.data || {};
-  const title = data.title || 'TradeZoro';
-
-  self.registration.showNotification(title, {
-    body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=911',
-    badge: '/assets/images/tradezoro-favicon-32-494.png?v=911',
-    // Tagging by type collapses repeats: five likes replace one another
-    // instead of stacking five separate entries in the tray.
-    // Chart alerts and dark pool print alerts get their own tag (two different alerts must both show); other types collapse by type.
-    tag: data.type === 'chart_alert' || data.type === 'dp_alert' ? 'chart-alert-' + Date.now() : (data.type || 'stryker'),
-    renotify: true,
-    data: { link: data.link || '/dashboard-user.html' }
-  });
+  return self.registration.showNotification(data.title || 'TradeZoro', notifOptions(data));
 });
 
 // A notification's link arrives in the push payload. Only ever navigate to a
@@ -73,8 +91,9 @@ self.addEventListener('notificationclick', function (event) {
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
       for (const client of list) {
         if (client.url.indexOf(self.location.origin) === 0 && 'focus' in client) {
-          client.navigate(link);
-          return client.focus();
+          // navigate() only works on a page this worker controls; fall back to a new window if it refuses.
+          return client.focus().then(function (c) { return (c || client).navigate(link); })
+            .catch(function () { return clients.openWindow ? clients.openWindow(link) : null; });
         }
       }
       if (clients.openWindow) return clients.openWindow(link);

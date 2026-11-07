@@ -296,7 +296,7 @@ export function installDepthHeatmap(Core, H, reg) {
     start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.attach(); }
     attach() {
       if (!this.ctx) return;
-      const mk = H.btBook(H.marketOf(this.ctx)), root = mk.futures ? l2Root(mk.ticker) : null;   // Replay One: the session's real market
+      const mk = H.marketOf(this.ctx), root = mk.futures ? l2Root(mk.ticker) : null;
       const pv = !mk.futures && (mk.provider === 'binance' || getVenue(mk.provider)) ? mk.provider : '';
       if (root && !this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }
       if (root && !l2Badge()) { this.detach(); this.block = NOT_YET; this.render(); return; }
@@ -320,7 +320,6 @@ export function installDepthHeatmap(Core, H, reg) {
       if (this.block === NOT_YET) return '';   // the feed note (chart-feeds.js) says this
       if (this.block) return this.block;
       const f = this.h && this.h.feed;
-      if (f && replayNow() && H.replayNote) return H.replayNote(f);   // bar replay: the recorded book, not the live feed state
       if (!f || f.status === 'loading') return 'Loading the order book…';
       if (f.status === 'error') return f.err || 'Order book unavailable.';
       if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? closedNote() : 'Reconnecting to the order book…';

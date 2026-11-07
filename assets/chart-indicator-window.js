@@ -305,6 +305,11 @@ export function mountIndicatorWindow(ws, opts){
   }
 
   // ---- open / close ----
+  let explainMap = null, explainP = null;
+  function loadExplain(){
+    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=910').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
+    return explainP;
+  }
   function build(){
     const search = h('input', { type: 'search', class: 'stkiw-search', placeholder: 'Search', 'aria-label': 'Search indicators, metrics and strategies', autocomplete: 'off', spellcheck: 'false' });
     const side = h('nav', { class: 'stkiw-side stkc-scroll', 'aria-label': 'Indicator groups' });
@@ -418,6 +423,25 @@ export function mountIndicatorWindow(ws, opts){
     if (it.kind === 'cind' && it.locked) extra.appendChild(h('a', { class: 'stkiw-get', href: '/c/' + encodeURIComponent(it.ci.cid) + '?tab=indicators', text: 'Get access', onclick: (e) => e.stopPropagation() }));
     if (it.kind === 'community' && it.s) extra.appendChild(h('button', { type: 'button', class: 'stkiw-ib', 'aria-label': 'Details for ' + it.name, title: 'Details, code, report',
       html: SVG(I_INFO, 15), onclick: (e) => { e.stopPropagation(); close(); L().openCommunity('all', it.name); } }));
+    // plain-English explainer (assets/indicator-explain.json, built from tools/indicator-pages/explain.json)
+    if (it.kind === 'builtin' && it.key.startsWith('b:')) {
+      const hasEx = () => explainMap && explainMap[it.key];
+      const eb = h('button', { type: 'button', class: 'stkiw-ib stkiw-explain', 'aria-label': 'What ' + it.name + ' shows', 'aria-expanded': 'false', title: 'What it shows, how traders use it, what it does not tell you', html: SVG(I_INFO, 15), hidden: '' });
+      eb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = li.querySelector('.stkiw-ex');
+        if (open) { open.remove(); eb.setAttribute('aria-expanded', 'false'); return; }
+        const x = explainMap[it.key];
+        const box = h('div', { class: 'stkiw-ex', role: 'region', 'aria-label': 'About ' + it.name });
+        [['What it shows', x.shows], ['How traders use it', x.use], ['What it does not tell you', x.limits]].forEach(([t, a]) => {
+          box.appendChild(h('h4', { text: t }));
+          const ul = h('ul'); a.forEach((l) => ul.appendChild(h('li', { text: l }))); box.appendChild(ul);
+        });
+        li.appendChild(box); eb.setAttribute('aria-expanded', 'true');
+      });
+      extra.appendChild(eb);
+      loadExplain().then(() => { if (hasEx()) eb.hidden = false; });
+    }
     if (it.kind === 'onchart') {
       extra.appendChild(h('button', { type: 'button', class: 'stkiw-ib stkc-del', 'aria-label': 'Remove ' + it.name + ' from the chart', title: 'Remove from the chart', html: SVG(I_TRASH, 15),
         onclick: (e) => { e.stopPropagation(); try { if (it.handle) it.handle.remove(); else ws.active.removeFromChart(it.index); } catch (err) {} try { ws.context().stateChanged(); } catch (err) {} render(); } }));

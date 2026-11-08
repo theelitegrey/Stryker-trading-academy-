@@ -350,11 +350,13 @@ export function formatLabel(l, mode) {
   return l.label + ' ' + fmtLevel(l.price) + (l.note || '');
 }
 
-// Data time in epoch seconds: the market block's newest data stamp, else fetched_at.
+// Data time in epoch seconds: the options inputs' time (market.options_ts), else the market block's newest stamp, else
+// fetched_at. GEX-FAST2 (2026-11-08): data_ts is the FUTURES quote time first (a 5-min bar ~10 min old), so members saw
+// "GEX updated 10 min ago" on levels built from option data a minute old; the GEX label now ages the GEX inputs.
 export function dataTime(data) {
   if (!data) return null;
   const m = data.market || {};
-  return num(m.data_ts, null) || num(data.fetched_at, null);
+  return num(m.options_ts, null) || num(m.data_ts, null) || num(data.fetched_at, null);
 }
 export function agoText(tsSec, nowMs) {
   if (!isNum(tsSec)) return 'GEX updated time unknown';

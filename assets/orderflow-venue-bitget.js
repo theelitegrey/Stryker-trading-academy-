@@ -1,6 +1,6 @@
 // TradeZoro — order-flow venue adapter: Bitget (spot + USDT perpetuals). Public v2 WebSocket, no key.
 // pair = chart ticker ("BTCUSDT", "BTCUSDT.P") or { base, quote, perp }. Education only. Not financial advice.
-import { registerVenue } from './orderflow-venues.js?v=914';
+import { registerVenue } from './orderflow-venues.js?v=915';
 
 const WS = 'wss://ws.bitget.com/v2/ws/public';
 const rows = (a) => (a || []).map((r) => [+r[0], +r[1]]).filter((r) => Number.isFinite(r[0]) && Number.isFinite(r[1]));

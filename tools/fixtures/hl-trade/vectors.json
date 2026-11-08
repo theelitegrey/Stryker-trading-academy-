@@ -1,0 +1,188 @@
+{
+ "addr": "0x19E7E376E7C213B7E7e7e46cc70A5dD086DAff2A",
+ "cases": [
+  {
+   "action": {
+    "type": "order",
+    "orders": [
+     {
+      "a": 0,
+      "b": true,
+      "p": "75000",
+      "s": "0.001",
+      "r": false,
+      "t": {
+       "limit": {
+        "tif": "Gtc"
+       }
+      }
+     }
+    ],
+    "grouping": "na"
+   },
+   "nonce": 1700000000000,
+   "mainnet": false,
+   "hash": "62bf5a442bdc9b09656df411df074252ae6eace07e9431572e305acb1e23cbb5",
+   "sig": {
+    "r": "0x7d5b1283f0de924587fa8f8f9e01b9108e15daf52e21cec9112fafa2003dfd09",
+    "s": "0x618f2d50a3ecf45205a85b9700dbfc8f1b371fde6213d1f182ebf921dcb639e6",
+    "v": 27
+   }
+  },
+  {
+   "action": {
+    "type": "order",
+    "orders": [
+     {
+      "a": 3,
+      "b": false,
+      "p": "2245.8",
+      "s": "0.0067",
+      "r": true,
+      "t": {
+       "trigger": {
+        "isMarket": true,
+        "triggerPx": "2300",
+        "tpsl": "sl"
+       }
+      }
+     }
+    ],
+    "grouping": "positionTpsl",
+    "builder": {
+     "b": "0xabababababababababababababababababababab",
+     "f": 10
+    }
+   },
+   "nonce": 1794126205627,
+   "mainnet": false,
+   "hash": "d4a9248f8ef55524a04350dd77347ac138015a6334b05a073e66594a9b52336f",
+   "sig": {
+    "r": "0x5e5e6bc836197c62a083c4ffaef8e859b0cd93042e6626e5dff1b74d59ea191f",
+    "s": "0x687df2676bb76520a680a9c1d9bd2f4fb6c06d67290420c648855face06ade78",
+    "v": 27
+   }
+  },
+  {
+   "action": {
+    "type": "cancel",
+    "cancels": [
+     {
+      "a": 0,
+      "o": 64814289034
+     }
+    ]
+   },
+   "nonce": 1794126205628,
+   "mainnet": true,
+   "hash": "04db4e46fbeef481c9d5b76c1896dac4b4aaf5083eb89c8223fccf22a68b818e",
+   "sig": {
+    "r": "0x145568e05a7028b35f362d22bb9d349eabeceaddc07eab39f1fa7917e9e82bf6",
+    "s": "0x38486517aa8870d19fa7354fae2dfaca75d49197f5cd2c7103095726f3efe7f8",
+    "v": 27
+   }
+  },
+  {
+   "action": {
+    "type": "batchModify",
+    "modifies": [
+     {
+      "oid": 64814289034,
+      "order": {
+       "a": 5,
+       "b": true,
+       "p": "0.0012345",
+       "s": "1000",
+       "r": false,
+       "t": {
+        "limit": {
+         "tif": "Alo"
+        }
+       }
+      }
+     }
+    ]
+   },
+   "nonce": 1794126205629,
+   "mainnet": false,
+   "hash": "b0f02e3916a0bf5099baded9506a7665b8d073cbb0ca169e04e0ea04fcfb3e87",
+   "sig": {
+    "r": "0x48eab90dd29157cf894e176f54622e2374b2d660073e8efa91c7782652899919",
+    "s": "0x70e31d07ce439b930e89623acde144365daa16306f8103688dde89e0531d52c6",
+    "v": 28
+   }
+  },
+  {
+   "action": {
+    "type": "updateLeverage",
+    "asset": 1,
+    "isCross": false,
+    "leverage": 7
+   },
+   "nonce": 1794126205630,
+   "mainnet": true,
+   "hash": "531c2350e6175ce7761db89e0822b73ada8da7d77e1f1bbfe94381859cb20455",
+   "sig": {
+    "r": "0xa5a6aee1ecd695a5477a32f97a8055cc20e2d1ded52fbf5d6518f9a9f58fbc1c",
+    "s": "0xcf2abbee4bb2e844d2d640ee17fc7ab69229354d683ca8cdaac6bd2432158b6",
+    "v": 28
+   }
+  }
+ ],
+ "agent": {
+  "action": {
+   "type": "approveAgent",
+   "agentAddress": "0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+   "agentName": "TradeZoro",
+   "nonce": 1794126205631,
+   "signatureChainId": "0x66eee",
+   "hyperliquidChain": "Testnet"
+  },
+  "sig": {
+   "r": "0xbf8a6161cac690900b2bd206c7ee41703623ee9d9b8eef11d4bfabb93ce91471",
+   "s": "0x7eaa11801cd51f6a78c728c11f55763b2deb5013ab9992d4f382fbf8b33bbcb5",
+   "v": 27
+  }
+ },
+ "builder": {
+  "action": {
+   "maxFeeRate": "0.01%",
+   "builder": "0xabababababababababababababababababababab",
+   "nonce": 1794126205632,
+   "type": "approveBuilderFee",
+   "signatureChainId": "0x66eee",
+   "hyperliquidChain": "Mainnet"
+  },
+  "sig": {
+   "r": "0xcb10aed96ed46bab84729a504316308a2082bc6c31b11d76a4f61ac1351936c5",
+   "s": "0x1fd2141f7066c2072943105b2aca4106a762742761dea779799aeca117b65423",
+   "v": 28
+  }
+ },
+ "wire": [
+  [
+   75000.0,
+   "75000"
+  ],
+  [
+   0.0012345,
+   "0.0012345"
+  ],
+  [
+   1.1,
+   "1.1"
+  ],
+  [
+   100.0,
+   "100"
+  ],
+  [
+   1e-08,
+   "0.00000001"
+  ],
+  [
+   2245.8,
+   "2245.8"
+  ]
+ ]
+}

@@ -26,7 +26,7 @@ const state = (p) => p.evaluate(() => ({ v090: window.__stkVela090, map: documen
     p.on('framenavigated', (f) => { if (f === p.mainFrame()) navs++; });
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' }); await ready(p);
     let s = await state(p);
-    check(s.v090 === true && s.map === 'vela-0.9.0-s5', `${w}: member gets 0.9.0 by default`, s);
+    check(s.v090 === true && s.map === 'vela-0.9.0-s6', `${w}: member gets 0.9.0 by default`, s);
     navs = 0; await p.waitForTimeout(8000);
     check(navs === 0 && (await state(p)).v090 === true, `${w}: no admin refusal reload for members`, { navs });
     await p.screenshot({ path: `${OUT}/vela-default-member-${w}.png` });
@@ -50,7 +50,7 @@ const state = (p) => p.evaluate(() => ({ v090: window.__stkVela090, map: documen
     await p.screenshot({ path: `${OUT}/vela-default-drawing-${w}.png` });
     await p.goto(BASE + '/charts.html?vela=0.6', { waitUntil: 'domcontentloaded' }); await ready(p);
     s = await state(p);
-    check(s.v090 === false && s.map === 'vela-0.6.17-s3' && s.key === 'vela-workspace', `${w}: ?vela=0.6 loads 0.6.17`, s);
+    check(s.v090 === false && s.map === 'vela-0.6.17-s4' && s.key === 'vela-workspace', `${w}: ?vela=0.6 loads 0.6.17`, s);
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' }); await ready(p);
     check((await state(p)).v090 === false, `${w}: the 0.6 choice sticks for this browser`);
     await p.goto(BASE + '/charts.html?vela=0.9', { waitUntil: 'domcontentloaded' }); await ready(p);

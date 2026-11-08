@@ -45,4 +45,11 @@ assert.equal(buildUrl(['klines'], '?symbol=BTC-PERP&interval=1h').url, 'https://
 assert.equal(buildUrl(['account'], '').status, 404);
 assert.equal(buildUrl(['klines'], '?symbol=../x').status, 400);
 assert.equal(buildUrl(['klines'], '?apiKey=1').status, 400);
+// aliases: usual futures roots find the index perps; symbols keep their Vest names
+const { withAliases } = await import('../../assets/vest-provider.js');
+const al = withAliases(syms), hit = (q) => al.filter((s) => (s.ticker + ' ' + s.description).toUpperCase().includes(q)).map((s) => s.ticker);
+assert.ok(hit('NQ').includes('NDX-USD-PERP'));
+assert.ok(hit('NASDAQ').includes('NDX-USD-PERP'));
+assert.equal(al.find((s) => s.ticker === 'NDX-USD-PERP').ticker, 'NDX-USD-PERP');
+assert.equal(withAliases(withAliases(syms)).find((s) => s.ticker === 'NDX-USD-PERP').description, al.find((s) => s.ticker === 'NDX-USD-PERP').description);
 console.log('vest-core ok');

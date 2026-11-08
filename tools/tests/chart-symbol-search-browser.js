@@ -34,21 +34,24 @@ const BIN_FUT = { symbols: [{ symbol: 'BTCUSDT', status: 'TRADING', contractType
         if (/coinbase/.test(u) && /products$/.test(u)) return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 'BTC-USD', base_currency: 'BTC', quote_currency: 'USD', status: 'online', trading_disabled: false, quote_increment: '0.01' }]) });
         return r.abort();
       });
+      // Vest's list comes from our own /api/vest pass-through: answer it from the captured fixture
+      await ctx.route(/\/api\/vest\/exchangeInfo/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: fs.readFileSync(__dirname + '/fixtures/vest/exchangeInfo.json', 'utf8') }));
       const p = await ctx.newPage();
       const errors = [];
       p.on('pageerror', (e) => errors.push(String(e).slice(0, 160)));
       await p.goto(BASE + '/charts.html?vela=' + eng, { waitUntil: 'domcontentloaded' });
-      await p.waitForFunction(() => window.__stkFirstCandles && window.__stkOneBar, null, { timeout: 60000 });
+      // the default chart is now BTC (Binance is blocked here), so wait for the symbol button, not for first candles
+      await p.waitForFunction(() => document.querySelector('.vela-widget-symbol, .vela-mb-symbol'), null, { timeout: 60000 });
       await sleep(2500);
       // the symbol button: a visible button whose own text is the chart symbol (NQ1!)
       const bb = await p.evaluate(() => {
-        const c = [...document.querySelectorAll('button, [role=button]')].filter((e) => e.getClientRects().length && /^\s*NQ1!/.test(e.textContent) && e.textContent.length < 40);
+        const c = [...document.querySelectorAll('button, [role=button]')].filter((e) => e.getClientRects().length && /^\s*(NQ1!|BTCUSDT)/.test(e.textContent) && e.textContent.length < 40);
         c.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
         const e = c[0]; if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, t: e.textContent.trim().slice(0, 20) };
       });
       check(!!bb, tag + ': symbol button found', bb);
       if (!bb) { await ctx.close(); continue; }
-      for (const q of ['BTC', 'NQ']) {
+      for (const q of ['BTC', 'NQ', 'NASDAQ']) {
         if (mobile) await p.touchscreen.tap(bb.x, bb.y); else await p.mouse.click(bb.x, bb.y);
         await sleep(900);
         const inp = await p.evaluate(() => { const i = [...document.querySelectorAll('input')].find((x) => x.getClientRects().length && /search|symbol/i.test((x.placeholder || '') + (x.getAttribute('aria-label') || '') + (x.className || ''))); return !!i; });
@@ -58,9 +61,14 @@ const BIN_FUT = { symbols: [{ symbol: 'BTCUSDT', status: 'TRADING', contractType
         for (let i = 0; i < 20; i++) {
           await sleep(300);
           rows = await p.evaluate(() => [...document.querySelectorAll('.vela-sp-row')].filter((e) => e.getClientRects().length).map((e) => ((e.querySelector('.vela-sp-ticker') || e).textContent || '').trim().slice(0, 24)));
-          if (rows.some((t) => t.toUpperCase().includes(q))) break;
+          if (rows.some((t) => t.toUpperCase().includes(q) || (q === 'NASDAQ' && /NDX/.test(t)))) break;
         }
-        check(rows.some((t) => t.toUpperCase().includes(q)), tag + ': search "' + q + '" lists matching rows', rows.slice(0, 6));
+        check(rows.some((t) => t.toUpperCase().includes(q) || (q === 'NASDAQ' && /NDX/.test(t))), tag + ': search "' + q + '" lists matching rows', rows.slice(0, 6));
+        // every row carries a venue mark (image or letter chip) beside its text tag, same size, no layout shift
+        const vl = await p.evaluate(() => [...document.querySelectorAll('.vela-sp-row')].filter((e) => e.getClientRects().length).map((e) => { const b = e.querySelector('.vela-sp-badge'), c = b && b.querySelector('.vlogo'), r = c && c.getBoundingClientRect(); return { tag: b && b.textContent.trim(), w: r && Math.round(r.width), h: r && Math.round(r.height), img: !!(c && c.querySelector('img')) }; }));
+        check(vl.length > 0 && vl.every((x) => x.tag && x.w === 18 && x.h === 18), tag + ': \"' + q + '\" rows show a venue logo chip + the text tag', vl.slice(0, 4));
+        if (q === 'NQ' || q === 'NASDAQ') check(rows.some((t) => /NDX-USD-PERP/.test(t)), tag + ': \"' + q + '\" finds the Vest NDX-USD-PERP', rows);
+        if (q === 'NQ') check(vl.some((x) => /CME/.test(x.tag) && !x.img), tag + ': CME row shows the letter chip (no genuine mark file)', vl.slice(0, 4));
         if (OUT) await p.screenshot({ path: OUT + '/' + tag + '-' + q + '.png' });
         await p.keyboard.press('Escape'); await sleep(500);
         await p.evaluate(() => { const i = document.activeElement; if (i && i.blur) i.blur(); });

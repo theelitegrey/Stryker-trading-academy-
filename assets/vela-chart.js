@@ -975,6 +975,7 @@ function lateLists(provider){
   // Book · DOM · Trades panel (crypto + futures; replaces the futures-only ladder): assets/chart-book-panel.js
   import('./chart-book-panel.js?v=916').then((m) => m.mountBookPanel(ws, { toast })).catch((e) => console.warn('TradeZoro: book panel', e));
   import('./chart-feeds.js?v=916').then((m) => m.mountFeedBadges(ws)).catch((e) => console.warn('TradeZoro: feed badges', e));
+  import('./venue-logos.js?v=916').then((m) => m.mountVenueLogos(ws)).catch((e) => console.warn('TradeZoro: venue logos', e));   // exchange / broker marks beside the text tags
   // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
   import('./chart-symbol-info.js?v=916').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
   // "Dark pool" prints list beside the chart (right icon bar, phones: a sheet): assets/chart-darkpool.js.

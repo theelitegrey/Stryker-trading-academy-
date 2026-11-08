@@ -15,6 +15,12 @@ const NATIVE_MIN = Object.keys(NATIVE).filter((k) => /^\d+$/.test(k)).map(Number
 const POLL_MS = 3000;
 const clean = (t) => String(t || '').replace(/^[a-z]+:/i, '');
 
+// Usual names for the index / commodity perps, added to the search text only (the symbols keep their Vest names):
+// typing NQ or "nasdaq" finds NDX-USD-PERP, ES or "s&p" finds SPX-USD-PERP, and so on.
+// (names such as "nasdaq", "s&p", "gold" already match the symbol's own description; the root is what is missing).
+export const ALIASES = { 'NDX-USD-PERP': 'NQ', 'SPX-USD-PERP': 'ES', 'RTY-USD-PERP': 'RTY', 'GC-PERP': 'GC', 'CL-PERP': 'CL', 'SI-PERP': 'SI', 'HG-PERP': 'HG', 'NG-PERP': 'NG', 'PL-PERP': 'PL', 'BZ-PERP': 'BZ' };
+export const withAliases = (list) => list.map((s) => (ALIASES[s.ticker] && !s.description.includes(' \u00b7 ' + ALIASES[s.ticker]) ? { ...s, description: s.description + ' \u00b7 ' + ALIASES[s.ticker] } : s));
+
 export class VestProvider {
   info() { return { name: 'vest', displayName: 'Vest', requiresApiKey: false, supportedTimeframes: SUPPORTED, capabilities: { enumerate: true, stream: true, symbolInfo: true } }; }
 
@@ -23,7 +29,7 @@ export class VestProvider {
     const list = await loadSymbols();
     return list.find((s) => s.ticker.toUpperCase() === want) || null;
   }
-  async listSymbols() { return loadSymbols(); }
+  async listSymbols() { return withAliases(await loadSymbols()); }
   async getSymbolInfo(ticker) {
     const s = await this.sym(ticker).catch(() => null);
     if (!s) return undefined;

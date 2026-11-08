@@ -56,7 +56,7 @@ function addButton(bar) {
 }
 async function loadCore() {
   if (C) return C;
-  C = await import('./hl-trade-core.js?v=917');
+  C = await import('./hl-trade-core.js?v=918');
   limiter = C.makeLimiter();
   return C;
 }

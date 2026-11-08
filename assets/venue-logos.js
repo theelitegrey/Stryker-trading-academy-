@@ -4,11 +4,10 @@
 // white tile so each one reads on dark and light), loaded lazily; no venue file = a neutral letter chip.
 // Data vendors are NOT venues and never get a logo. Education only. Not financial advice.
 const DIR = '/assets/venue-logos/';
-// lower-case venue / exchange code -> file stem. CBOT, NYMEX, COMEX are CME Group exchanges (the CME Group mark);
-// AMEX is NYSE American (the NYSE mark). Anything not listed (FX, IDX, XETR, BSE ...) gets the letter chip.
+// lower-case venue / exchange code -> file stem. CME Group (CME, CBOT, NYMEX, COMEX) and NYSE (NYSE, AMEX, ARCA)
+// have no genuine mark file, so they get the letter chip like FX, IDX, XETR, BSE ... Never a wrong picture.
 const FILE = {
-  cme: 'cme', cme_mini: 'cme', cbot: 'cme', cbot_mini: 'cme', nymex: 'cme', comex: 'cme', comex_mini: 'cme',
-  nasdaq: 'nasdaq', nyse: 'nyse', amex: 'nyse', arca: 'nyse', cboe: 'cboe', nse: 'nse',
+  nasdaq: 'nasdaq', cboe: 'cboe', nse: 'nse',
   binance: 'binance', binanceus: 'binance', coinbase: 'coinbase', hyperliquid: 'hyperliquid', bybit: 'bybit', okx: 'okx',
   bitget: 'bitget', kraken: 'kraken', vest: 'vest',
   alpaca: 'alpaca', oanda: 'oanda', ironbeam: 'ironbeam', tastytrade: 'tastytrade', dhan: 'dhan', ctrader: 'ctrader',

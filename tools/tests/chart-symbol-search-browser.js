@@ -68,7 +68,7 @@ const BIN_FUT = { symbols: [{ symbol: 'BTCUSDT', status: 'TRADING', contractType
         const vl = await p.evaluate(() => [...document.querySelectorAll('.vela-sp-row')].filter((e) => e.getClientRects().length).map((e) => { const b = e.querySelector('.vela-sp-badge'), c = b && b.querySelector('.vlogo'), r = c && c.getBoundingClientRect(); return { tag: b && b.textContent.trim(), w: r && Math.round(r.width), h: r && Math.round(r.height), img: !!(c && c.querySelector('img')) }; }));
         check(vl.length > 0 && vl.every((x) => x.tag && x.w === 18 && x.h === 18), tag + ': \"' + q + '\" rows show a venue logo chip + the text tag', vl.slice(0, 4));
         if (q === 'NQ' || q === 'NASDAQ') check(rows.some((t) => /NDX-USD-PERP/.test(t)), tag + ': \"' + q + '\" finds the Vest NDX-USD-PERP', rows);
-        if (q === 'NQ') check(vl.some((x) => x.tag === 'CME' && x.img), tag + ': CME row has the CME logo image', vl.slice(0, 4));
+        if (q === 'NQ') check(vl.some((x) => /CME/.test(x.tag) && !x.img), tag + ': CME row shows the letter chip (no genuine mark file)', vl.slice(0, 4));
         if (OUT) await p.screenshot({ path: OUT + '/' + tag + '-' + q + '.png' });
         await p.keyboard.press('Escape'); await sleep(500);
         await p.evaluate(() => { const i = document.activeElement; if (i && i.blur) i.blur(); });

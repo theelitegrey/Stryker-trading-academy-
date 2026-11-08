@@ -17,7 +17,7 @@ import { gexAtSpot, netNear, ladderNear, flipAt, wallsAt } from '../../../assets
 // gex_fast.py re-pulls each underlying's 0DTE chain every 120 s and its 1DTE chain every 600 s (was both every 15 s,
 // ~9,700 REST calls a weekday). The ladder still moves every second: gamma is recomputed at the live spot below.
 // Each block carries its own build time `b` (older feeders: the entry's `built`); the status shows that real age.
-const FAST_MAX_AGE_S = { 0: 200, 1: 720 };
+const FAST_MAX_AGE_S = { 0: 200, 1: 420 };   // GEX-FAST2: 0DTE also re-priced from streamed option quotes every ~2 s; 1DTE pulled every 300 s
 const FAST_SPOT_MAX_AGE_S = 20;
 async function fetchFast(env) {
   const base = (env && env.GEX_CHAIN_URL) || 'https://book-recorder.theelitegrey.workers.dev/gex-chain';
@@ -53,7 +53,8 @@ function trim(d) {
   if (!d || d.error) return { error: (d && d.error) || 'no data' };
   const m = d.market || {};
   return {
-    underlying: d.underlying, spot: d.spot, net_gex: d.net_gex, fetched_at: d.fetched_at, built: d.fetched_at, asof: d.asof, expiry: d.expiry,
+    // built = the options inputs' time, not when the Function ran (GEX-FAST2: the label must age the data, not the request)
+    underlying: d.underlying, spot: d.spot, net_gex: d.net_gex, fetched_at: d.fetched_at, built: (m.options_ts > 0 ? m.options_ts : d.fetched_at), asof: d.asof, expiry: d.expiry,
     max_pain: d.max_pain, zero_gamma: d.zero_gamma, call_wall: d.call_wall, put_wall: d.put_wall, wall_method: d.wall_method,
     stale: d.stale ? true : undefined, market: { state: m.state, data_ts: m.data_ts, options_ts: m.options_ts },
     ladder: Array.isArray(d.ladder) ? d.ladder.map((r) => ({ strike: r.strike, gex: r.gex })) : []

@@ -20,13 +20,17 @@ tape = []  # [ts_ms, px, size, side], seq = index + 1
 rnd = random.Random(5)
 p = 28400 / 0.25
 # 8 h of history, ~6 trades/s (enough for 300 x 500-tick bars)
-t = (EPOCH - 8 * 3600000) // MIN * MIN
-REC = t
-LIVE = (EPOCH - 3600000) // MIN * MIN
+# DAYS mode (history-gap2 test): argv[2] = record days, argv[3] = hours of quiet before now (a weekend), one trade every 20 s
+REC_DAYS = float(sys.argv[2]) if len(sys.argv) > 2 else 0
+QUIET_H = float(sys.argv[3]) if len(sys.argv) > 3 else 0
+t = (EPOCH - (REC_DAYS * 86400000 if REC_DAYS else 8 * 3600000)) // MIN * MIN
+REC = int(t)
+LIVE = (EPOCH - 3600000) // MIN * MIN if not REC_DAYS else REC
 asked = set()
-while t < EPOCH:
-    t += rnd.randint(0, 330); p += rnd.randint(-2, 2)
-    tape.append([t, p * 0.25, rnd.randint(1, 4), 1 if rnd.random() < 0.5 else -1])
+END = EPOCH - QUIET_H * 3600000
+while t < END:
+    t += rnd.randint(19000, 21000) if REC_DAYS else rnd.randint(0, 330); p += rnd.randint(-2, 2)
+    tape.append([int(t), p * 0.25, rnd.randint(1, 4), 1 if rnd.random() < 0.5 else -1])
 socks = set(); opened = 0; protos = []  # per socket opened: [subprotocol list sent, token present]
 
 def spec(tf):
@@ -110,11 +114,11 @@ async def client(ws):
         async for m in ws:
             try: m = json.loads(m)
             except Exception: continue
-            if m.get('op') == 'tsub' and m.get('symbol') == 'NQ':
-                s = m.get('since')
-                if s is not None and m.get('e') == EPOCH and 0 <= s <= len(tape): subs['NQ'] = s
-                elif s is not None: await ws.send(json.dumps({'type': 'resync', 'symbol': 'NQ', 'e': EPOCH})); subs['NQ'] = len(tape)
-                else: subs['NQ'] = len(tape)
+            if m.get('op') == 'tsub' and (m.get('symbol') == 'NQ' or REC_DAYS):   # DAYS mode: every symbol gets the same tape
+                sy = m.get('symbol'); s = m.get('since')
+                if s is not None and m.get('e') == EPOCH and 0 <= s <= len(tape): subs[sy] = s
+                elif s is not None: await ws.send(json.dumps({'type': 'resync', 'symbol': sy, 'e': EPOCH})); subs[sy] = len(tape)
+                else: subs[sy] = len(tape)
             elif m.get('op') == 'tunsub': subs.pop(m.get('symbol'), None)
         task.cancel()
     finally:
@@ -123,7 +127,8 @@ async def client(ws):
 async def trades():
     global p
     while True:
-        await asyncio.sleep(rnd.uniform(0.01, 0.12))
+        await asyncio.sleep(rnd.uniform(0.01, 0.12) if not REC_DAYS else 1)
+        if QUIET_H: continue   # weekend: no trades
         p += rnd.randint(-1, 1)
         tape.append([int(time.time() * 1000), p * 0.25, rnd.randint(1, 5), 1 if rnd.random() < 0.5 else -1])
 

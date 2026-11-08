@@ -6,7 +6,7 @@
 // the pan / zoom are uniforms and per-column x spans (a few floats per visible column). Nothing is re-uploaded on pan / zoom.
 // The p97 normalisation runs in a Web Worker (debounced); the first frame computes it once on the main thread.
 // The GL canvas sits right before the chart's 2D layer canvas, so it is part of the same 'below-data' layer (no copy, no drawImage).
-import * as BM from './chart-bookmap.js?v=925';
+import * as BM from './chart-bookmap.js?v=926';
 
 export const RING_COLS = 8192;
 export const ringSlot = (seq, cap = RING_COLS) => ((seq % cap) + cap) % cap;

@@ -62,7 +62,7 @@ async function open(b, page, { w, h, mobile, perm, token, ua }) {
 async function openDp(p) {
   await p.evaluate(() => { const x = document.querySelector('#stk-al'); if (x) x.hidden = true; const ws = window.STRYKER_VELA; ws.cell(ws.context().cells[0].id).setSymbol('IDX:SPY'); });
   await sleep(2500);
-  await p.evaluate(async () => { const m = await import('/assets/chart-dp-alerts.js?v=913'); const ws = window.STRYKER_VELA; ws.context().cells[0].chart.addNativeIndicator('stk_darkpool', { inputs: { alertOn: true } }); ws.context().stateChanged(); await new Promise((r) => setTimeout(r, 2000)); m.openIndicatorAlerts(ws, false); });
+  await p.evaluate(async () => { const m = await import('/assets/chart-dp-alerts.js?v=914'); const ws = window.STRYKER_VELA; ws.context().cells[0].chart.addNativeIndicator('stk_darkpool', { inputs: { alertOn: true } }); ws.context().stateChanged(); await new Promise((r) => setTimeout(r, 2000)); m.openIndicatorAlerts(ws, false); });
   await sleep(2000);
   await p.evaluate(() => { const e = document.querySelector('.stkdpa-inote'); if (e) e.scrollIntoView({ block: 'center' }); });
   await sleep(600);

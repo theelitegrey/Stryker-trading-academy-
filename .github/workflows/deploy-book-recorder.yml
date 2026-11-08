@@ -41,7 +41,9 @@ jobs:
           node workers/book-recorder/test/zoro-worker-local.mjs
           node workers/book-recorder/test/zoro-pages.test.mjs
       - name: GEX daily close tests (close-chain picker, weekend / holiday / evening session, close build)
-        run: node tools/tests/gex-close.test.mjs
+        run: |
+          node tools/tests/gex-close.test.mjs
+          node tools/tests/gex-age.test.mjs
       - name: Options analytics tests (feeder maths, ingest validation)
         run: |
           python3 workers/book-recorder/test/opt_feeder_test.py
@@ -68,6 +70,7 @@ jobs:
           node workers/book-recorder/test/stock-engine.test.mjs
           node workers/book-recorder/test/is-usage.test.mjs
           python3 workers/book-recorder/test/gex_fast_test.py
+          python3 workers/book-recorder/test/gex_fast2_test.py
       - name: ZoroTide tests (volume-diff premium maths, bought/sold bands, baselines, ingest validation)
         run: python3 workers/book-recorder/test/tide_test.py
       - name: ZoroOptions feeder tests (levels parity with GEX+, vanna / charm, bursts, fresh volume, OI change, schedule)

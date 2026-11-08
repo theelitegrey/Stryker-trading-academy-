@@ -137,9 +137,9 @@ async function run(b, tag, o) {
   await p.evaluate(() => { const r = [...document.querySelectorAll('#stk-al .stk-al-row')].find((x) => /ETH open/.test(x.innerText)); r.querySelector('[data-k=del]').click(); }); await sleep(700);
   check((await p.evaluate(() => window.__mStore.size)) === 1, tag + ': Delete removes it');
   // 20 cap
-  const cap = await p.evaluate(async () => { const m = await import('/assets/chart-metric-alerts.js?v=913'); let e = null; for (let i = 0; i < 20 && !e; i++) { try { await m.save(m.buildMetric({ metric: 'funding', symbol: 'C' + i, venue: 'okx', dir: 'above', value: 0.1 }), null); } catch (x) { e = x; } } return [m.metricAlerts().length, e && e.full]; });
+  const cap = await p.evaluate(async () => { const m = await import('/assets/chart-metric-alerts.js?v=914'); let e = null; for (let i = 0; i < 20 && !e; i++) { try { await m.save(m.buildMetric({ metric: 'funding', symbol: 'C' + i, venue: 'okx', dir: 'above', value: 0.1 }), null); } catch (x) { e = x; } } return [m.metricAlerts().length, e && e.full]; });
   check(cap[0] === 20 && cap[1] === 20, tag + ': the 21st metric alert is refused ' + JSON.stringify(cap));
-  await p.evaluate(async () => { const m = await import('/assets/chart-metric-alerts.js?v=913'); for (const a of m.metricAlerts().filter((x) => /^C\d/.test(x.symbol))) await m.remove(a); });
+  await p.evaluate(async () => { const m = await import('/assets/chart-metric-alerts.js?v=914'); for (const a of m.metricAlerts().filter((x) => /^C\d/.test(x.symbol))) await m.remove(a); });
   await p.evaluate(() => window.__stkAlerts.close && window.__stkAlerts.close());
   await p.keyboard.press('Escape').catch(() => {});
   // GEX Levels settings group

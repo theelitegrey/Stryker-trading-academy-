@@ -64,10 +64,10 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { rtHeadersReady } from './rt-access.js?v=913';
-import * as ProGate from './chart-pro-gate.js?v=913';
-import * as ZD from './chart-zoro-data.js?v=913';
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=913';
+import { rtHeadersReady } from './rt-access.js?v=914';
+import * as ProGate from './chart-pro-gate.js?v=914';
+import * as ZD from './chart-zoro-data.js?v=914';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=914';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -350,11 +350,13 @@ export function formatLabel(l, mode) {
   return l.label + ' ' + fmtLevel(l.price) + (l.note || '');
 }
 
-// Data time in epoch seconds: the market block's newest data stamp, else fetched_at.
+// Data time in epoch seconds: the options inputs' time (market.options_ts), else the market block's newest stamp, else
+// fetched_at. GEX-FAST2 (2026-11-08): data_ts is the FUTURES quote time first (a 5-min bar ~10 min old), so members saw
+// "GEX updated 10 min ago" on levels built from option data a minute old; the GEX label now ages the GEX inputs.
 export function dataTime(data) {
   if (!data) return null;
   const m = data.market || {};
-  return num(m.data_ts, null) || num(data.fetched_at, null);
+  return num(m.options_ts, null) || num(m.data_ts, null) || num(data.fetched_at, null);
 }
 export function agoText(tsSec, nowMs) {
   if (!isNum(tsSec)) return 'GEX updated time unknown';
@@ -666,7 +668,7 @@ class GexNative {
     if (!s.symbol || ProGate.isFree()) return;
     clearTimeout(this.alT);
     this.alT = setTimeout(() => {
-      (metricMod || (metricMod = import('./chart-metric-alerts.js?v=913'))).then((m) => m.syncIndicator(s)).catch((e) => console.warn('TradeZoro GEX alerts', e));
+      (metricMod || (metricMod = import('./chart-metric-alerts.js?v=914'))).then((m) => m.syncIndicator(s)).catch((e) => console.warn('TradeZoro GEX alerts', e));
     }, first ? 0 : 700);
   }
   suspend() {}

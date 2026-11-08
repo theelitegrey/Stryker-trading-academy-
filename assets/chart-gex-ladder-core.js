@@ -150,6 +150,7 @@ export function cellColor(g, s) {
 export function updatedText(tsSec, nowMs) {
   if (!isNum(tsSec)) return 'GEX updated time unknown';
   const sec = Math.max(0, Math.floor((nowMs == null ? Date.now() : nowMs) / 1000 - tsSec));
+  if (sec < 60) return 'GEX live';
   if (sec < 90) return 'GEX updated ' + sec + 's ago';
   const min = Math.floor(sec / 60);
   if (min < 120) return 'GEX updated ' + min + ' min ago';

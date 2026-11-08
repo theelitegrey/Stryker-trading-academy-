@@ -106,7 +106,7 @@ function tfSeconds(tf) {
 function agoText(sec) {
   if (!isNum(sec)) return '';
   const min = Math.max(0, Math.floor((Date.now() / 1000 - sec) / 60));
-  if (min < 1) return 'updated just now';
+  if (min < 1) return 'live';
   if (min < 120) return 'updated ' + min + ' min ago';
   const h = Math.floor(min / 60);
   return h < 48 ? 'updated ' + h + ' h ago' : 'updated ' + Math.floor(h / 24) + ' days ago';

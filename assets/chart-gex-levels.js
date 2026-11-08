@@ -361,7 +361,7 @@ export function dataTime(data) {
 export function agoText(tsSec, nowMs) {
   if (!isNum(tsSec)) return 'GEX updated time unknown';
   const min = Math.max(0, Math.floor(((nowMs || Date.now()) / 1000 - tsSec) / 60));
-  if (min < 1) return 'GEX updated just now';
+  if (min < 1) return 'GEX live';
   if (min < 120) return 'GEX updated ' + min + ' min ago';
   const h = Math.floor(min / 60);
   if (h < 48) return 'GEX updated ' + h + ' h ago';
@@ -790,7 +790,7 @@ export function statusWhat(data, src, dte, opts) {
 export function shortAgo(tsSec, nowMs) {
   if (!isNum(tsSec)) return 'GEX time unknown';
   const min = Math.max(0, Math.floor(((nowMs || Date.now()) / 1000 - tsSec) / 60));
-  if (min < 1) return 'GEX just now';
+  if (min < 1) return 'GEX live';
   if (min < 120) return 'GEX ' + min + 'm ago';
   const h = Math.floor(min / 60);
   return h < 48 ? 'GEX ' + h + 'h ago' : 'GEX ' + Math.floor(h / 24) + 'd ago';

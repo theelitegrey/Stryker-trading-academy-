@@ -217,6 +217,7 @@ export const laneOf = () => (isRealtimeAdmin() ? 'rt' : 'd');
 export const _pagesForTests = SHARED_PAGES;
 function cachePut(key, rows) {
   SHARED_PAGES.delete(key);
+  if (!rows.length) return;   // an empty page may be a hiccup upstream: ask again next time (in-flight reads are still shared)
   SHARED_PAGES.set(key, { at: Date.now(), rows });
   if (SHARED_PAGES.size > PAGE_CACHE_MAX) {
     let drop = SHARED_PAGES.size - PAGE_CACHE_MAX + 50;
@@ -323,9 +324,21 @@ export class FuturesProvider {
         // body.rt === 'lag': a verified admin got rows ~10 min old because the live tail failed on the server
         // (not cached there). Ask again (up to 2 more times, 2.5 s apart) before settling for the lagging rows.
         for (let attempt = 0; attempt < 3; attempt++) {
-          res = await fetch(`${this.base}${encodeURIComponent(root)}?tf=${tf}&page=${page}`, { headers: Object.assign({ accept: 'application/json' }, await rtHeadersReady()) });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          body = await res.json();
+          // HISTORY GAP FIX 2026-11-08: one bad answer (a 5xx, a hung request) must not drop a whole scroll-back chunk. 25 s cap per try,
+          // and a failed CLOSED page is asked once more before the error goes up (the current page is polled anyway).
+          for (let tries = 0; ; tries++) {
+            const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+            const timer = ctl ? setTimeout(() => ctl.abort(), 25000) : 0;
+            try {
+              res = await fetch(`${this.base}${encodeURIComponent(root)}?tf=${tf}&page=${page}`, { headers: Object.assign({ accept: 'application/json' }, await rtHeadersReady()), signal: ctl ? ctl.signal : undefined });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              body = await res.json();
+              break;
+            } catch (e) {
+              if (tries >= 1 || page === this.pageOf(tf, Math.floor(Date.now() / 1000))) throw e;
+              await new Promise((r) => setTimeout(r, 800));
+            } finally { if (timer) clearTimeout(timer); }
+          }
           if (body.rt !== 'lag' || page !== this.pageOf(tf, Math.floor(Date.now() / 1000))) break;
           await new Promise((r) => setTimeout(r, 2500));
         }
@@ -369,8 +382,10 @@ export class FuturesProvider {
       const floor = now - DEPTH_SECS[tf];
       let page = Math.min(this.pageOf(tf, toS), current);
       const stopPage = this.pageOf(tf, Math.max(fromS != null ? fromS : floor, floor));
-      // Give up after ~4 days of consecutive empty pages (weekends/holidays are shorter).
-      const maxEmpty = Math.max(2, Math.ceil(4 * D / PAGE_SECS[tf]));
+      // Give up after ~7 days of consecutive empty pages. (Was 4 days = only 2 pages on 5m: a long weekend plus one empty answer ended
+      // the walk as "genesis" and the chart stopped loading older candles with 50 days of data behind it. Pages older than the
+      // source depth are not walked at all: stopPage.)
+      const maxEmpty = Math.max(3, Math.ceil(7 * D / PAGE_SECS[tf]));
       let empty = 0;
       const chunks = [];
       let have = 0;

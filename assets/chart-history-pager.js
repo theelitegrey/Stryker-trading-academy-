@@ -25,6 +25,7 @@ const CHUNK_VIEWS = 4;           // or 4 screens of bars when zoomed far out
 const CHUNK_MAX = 5000;
 const MAX_BARS = 30000;          // memory ceiling per chart
 const EXHAUSTED_MS = 120000;     // nothing older: do not ask that source again for 2 min
+const SOON_MS = 20000;           // 'genesis' while the source should still have older data (see DEPTH_DAYS): ask again after 20 s, not 2 min
 const SETTLE_MS = 600;           // let a fresh load paint first
 // Pine scripts need history behind the view, like TradingView loads it: session levels (Asia /
 // London / NY highs and lows), PDH/PDL and other "previous period" drawings only appear once a
@@ -41,6 +42,9 @@ export function pineDepthBars(tf){
   const s = TF_S[String(tf)];
   return s ? Math.min(PINE_MAX_BARS, Math.ceil(PINE_SPAN_S / s)) : 0;
 }
+// Source depth (mirrors DEPTH_SECS in chart-futures-provider.js). Older than this is a real end; newer is a gap or an upstream hiccup.
+const DEPTH_DAYS = { '1': 29, '3': 29, '5': 59, '15': 59, '30': 59 };
+const depthDays = (tf) => DEPTH_DAYS[String(tf)] || 700;
 const hasPine = (chart) => { try { return chart.indicators().some((h) => typeof h.source === 'string' && !h.nativeType); } catch (e) { return false; } };
 
 // Camarilla Pivots needs the previous period complete plus the shown days: that many sessions of bars (23 h a day), capped.
@@ -76,14 +80,16 @@ function attach(cell) {
   if (!chart || chart.__stkPager) return;
   const o = orchOf(cell);
   if (!o || typeof o.backfillHistory !== 'function' || typeof o.resetHistoryTracking !== 'function') return;
-  const st = { busy: false, gen: -1, loadedAt: 0, exhausted: new Map(), raf: 0, last: null };
+  const st = { busy: false, gen: -1, loadedAt: 0, exhausted: new Map(), raf: 0, last: null, fails: 0, reason: '' };
   chart.__stkPager = st;
 
   const keyOf = () => { const m = o.config && o.config.market || {}; return (m.symbol || '') + '|' + (m.timeframe || '') + '|' + (m.session || ''); };
 
   function check() {
     st.raf = 0;
-    const r = st.last; if (st.busy || replayOn()) return;
+    if (st.busy || replayOn()) return;
+    // No viewport event since the last market change: read the view now, so a first view with an empty left side loads at once (no scroll needed).
+    let r = st.last; if (!r) { try { r = chart.getVisibleRange(); } catch (e) {} }
     const m = o.config && o.config.market;
     const bars = o.rawBars;
     if (!m || (m.data && m.data.length) || !bars || bars.length < 2 || bars.length >= MAX_BARS) return;
@@ -94,7 +100,7 @@ function attach(cell) {
     if (need > bars.length) {
       const k0 = keyOf() + '|' + bars[0].time;
       const ex0 = st.exhausted.get(k0);
-      if (!(ex0 && Date.now() - ex0 < EXHAUSTED_MS)) { load(need - bars.length, k0); return; }
+      if (!(ex0 && Date.now() < ex0)) { load(need - bars.length, k0); return; }
     }
     if (!r) return;
     const left = lowerBound(bars, r.from);
@@ -103,7 +109,7 @@ function attach(cell) {
     if (left > Math.max(MIN_LEAD_BARS, vis * PREFETCH_VIEWS)) return;
     const k = keyOf() + '|' + bars[0].time;
     const ex = st.exhausted.get(k);
-    if (ex && Date.now() - ex < EXHAUSTED_MS) return;
+    if (ex && Date.now() < ex) return;
     load(Math.min(CHUNK_MAX, Math.max(CHUNK_MIN, vis * CHUNK_VIEWS)), k);
   }
 
@@ -112,6 +118,7 @@ function attach(cell) {
     const gen = o.generation;
     const before = o.rawBars.length;
     const oldest = o.rawBars[0].time;
+    st.reason = '';
     const target = Math.min(MAX_BARS, before + chunk);
     stats.requests++;
     try {
@@ -131,7 +138,17 @@ function attach(cell) {
     const got = o.rawBars.length - before;
     stats.loaded += Math.max(0, got);
     stats.last = { key: k, before, after: o.rawBars.length, oldest: o.rawBars[0] && o.rawBars[0].time, at: Date.now() };
-    if (!(o.rawBars[0] && o.rawBars[0].time < oldest)) { st.exhausted.set(k, Date.now()); stats.genesis++; return; }
+    if (!(o.rawBars[0] && o.rawBars[0].time < oldest)) {
+      // Nothing older came back. A fetch ERROR ('aborted') is not the end of history: retry with a growing pause (2 s .. 30 s).
+      // 'genesis' near the present (source depth not reached) is retried after SOON_MS; at the real depth it stays quiet for EXHAUSTED_MS.
+      let wait;
+      if (st.reason === 'aborted') { wait = Math.min(30000, 2000 * Math.pow(2, st.fails++)); stats.errors = (stats.errors || 0) + 1; }
+      else { wait = (Date.now() - oldest) / 864e5 < depthDays(o.config.market.timeframe) - 3 ? SOON_MS : EXHAUSTED_MS; stats.genesis++; }
+      st.exhausted.set(k, Date.now() + wait);
+      schedule(wait + 50);
+      return;
+    }
+    st.fails = 0;
     stats.pine = hasPine(chart) ? (stats.pine || 0) + 1 : stats.pine;
     // Still close to the edge (fast drag, far zoom-out): keep going.
     schedule(0);
@@ -146,7 +163,8 @@ function attach(cell) {
   try {
     chart.on('viewport:changed', (r) => { st.last = r; if (!st.busy) schedule(0); });
     chart.on('load:end', () => { st.loadedAt = Date.now(); schedule(SETTLE_MS + 50); });
-    chart.on('market:changed', () => { st.loadedAt = Date.now(); st.last = null; });
+    chart.on('market:changed', () => { st.loadedAt = Date.now(); st.last = null; st.fails = 0; });
+    chart.on('history:complete', (e) => { st.reason = (e && e.reason) || ''; });
   } catch (e) { console.warn('TradeZoro: history pager hook', e); }
 }
 

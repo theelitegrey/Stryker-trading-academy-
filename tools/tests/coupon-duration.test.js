@@ -106,3 +106,22 @@ assert.match(server, /paidThroughMillis: currentGrant\.paidThroughMillis/);
 assert.doesNotMatch(client, /httpsCallable\('redeemFreeCheckout'\)\(\{[\s\S]{0,250}accessMonths/);
 
 console.log('PASS coupon duration: calendar grants, bounds, legacy, founding, extension, duplicate and plan mismatch');
+
+// New-members-only coupons (Owner 2026-11-08): a member with Pro / a trial / founding access can't redeem.
+{
+  const now = ms('2026-11-08T12:00:00.000Z');
+  const c = free(1, { newMembersOnly: true, appliesToPlan: 'all' });
+  const ok = (student) => A.validateCouponRedemption({ coupon: c, student, price: 20, planId: 'pro', nowMillis: now });
+  const blocked = (student) => assert.throws(() => ok(student), (e) => e instanceof A.CouponAccessError && e.code === 'has-paid-access');
+  ok({});
+  ok({ plan: 'Starter' });
+  ok({ paidThroughMillis: now - 5 * 864e5 });                       // lapsed past the 3-day grace
+  ok({ paidThroughMillis: now + 864e5, subscriptionStatus: 'expired' });
+  blocked({ paidThroughMillis: now + 10 * 864e5, subscriptionStatus: 'active' });
+  blocked({ paidThroughMillis: now + 3 * 864e5, subscriptionStatus: 'trialing' });
+  blocked({ paidThroughMillis: now - 864e5, subscriptionStatus: 'grace' });   // inside grace
+  blocked({ foundingMember: true });
+  // old coupons (no flag) unchanged
+  A.validateCouponRedemption({ coupon: free(1, { appliesToPlan: 'all' }), student: { foundingMember: true }, price: 20, planId: 'pro', nowMillis: now });
+  console.log('new-members-only coupon checks passed');
+}

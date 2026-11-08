@@ -1,0 +1,21 @@
+{
+  "slug": "long-short-ratio",
+  "summary": "Shows the ratio of crypto accounts holding longs to accounts holding shorts, from the exchange's own published figures, in a lower pane.",
+  "overview": [
+    "Long/Short Ratio adds a lower pane with one line: the number of accounts long divided by the number short, as published by the exchange. A dashed line marks 1, where the two are equal.",
+    "In Settings you can pick the source: all accounts on one of three exchanges, or, where an exchange publishes them, its top traders by accounts or by positions."
+  ],
+  "how": [
+    "Your browser reads the exchange's public long/short ratio history for the coin on the chart, every 5 minutes or longer, using the finest step that is not longer than your bar. Each bar takes the last reading at or before its close.",
+    "The exchange decides who counts as a top trader; the ratio is shown as the exchange gives it."
+  ],
+  "use": [
+    "Some traders watch for a ratio far above or below 1 as a sign of crowding on one side.",
+    "Use it next to the funding rate to see whether both point to the same side.",
+    "Some traders compare all accounts with top traders to see whether they lean the same way."
+  ],
+  "notes": [
+    "It counts accounts (or, for one top-trader source, positions), not the size of each position.",
+    "Crypto perpetuals only. An exchange that does not serve your region is shown as not available; pick another source in Settings."
+  ]
+}

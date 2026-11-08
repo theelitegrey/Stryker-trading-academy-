@@ -115,6 +115,13 @@
       desc: 'The session profile of traded volume next to the average resting size at each price.' },
     { group: 'flow', name: 'Delta Ladder (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_lad'],
       desc: 'Delta at each price on the price axis: traded buy and sell, plus a thin bar for book size added or pulled. Added with Delta (L2).' },
+    // ---- Crypto derivatives (assets/chart-crypto-deriv.js), 11-07 ----
+    { group: 'flow', name: 'Liquidations', feed: '—', icon: 'bubble', ids: ['stk_liq', 'stk_liq_bars'],
+      desc: 'Forced closes on crypto perpetuals as bubbles at their price and time, longs and shorts in two colours, plus a per-bar total. Exchanges send only part of them, so totals are a lower bound.' },
+    { group: 'flow', name: 'Open Interest (crypto)', feed: '—', icon: 'cvd', ids: ['stk_oi'],
+      desc: 'Open interest summed across the exchanges you pick, with the change per bar coloured against price.' },
+    { group: 'flow', name: 'Funding and long/short ratio', feed: '—', icon: 'balance', ids: ['stk_funding', 'stk_lsr'],
+      desc: 'Funding rate per bar with the rate now and the countdown on each exchange, and the exchange-published long/short account ratio.' },
     // ---- Order-book pack (L2), shipped 11-03 ----
     { group: 'book', name: 'Book Speed', feed: 'L2', icon: 'speed', ids: ['stk_bk_speed'],
       desc: 'How fast the book is changing, shown as a pane under the chart.' },

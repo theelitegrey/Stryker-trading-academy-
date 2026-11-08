@@ -1755,6 +1755,56 @@
       "alt": "Liquidity Map (order book heatmap) preview card"
     },
     {
+      "page": "indicators/liquidations.html",
+      "title": "Liquidations",
+      "og_title": "Liquidations: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/liquidations.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Liquidations preview card"
+    },
+    {
+      "page": "indicators/liquidations-per-bar.html",
+      "title": "Liquidations per bar",
+      "og_title": "Liquidations per bar: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/liquidations-per-bar.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Liquidations per bar (longs vs shorts) preview card"
+    },
+    {
+      "page": "indicators/open-interest.html",
+      "title": "Open Interest",
+      "og_title": "Open Interest: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/open-interest.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Open Interest (crypto, multi-exchange) preview card"
+    },
+    {
+      "page": "indicators/funding-rate.html",
+      "title": "Funding Rate",
+      "og_title": "Funding Rate: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/funding-rate.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Funding Rate (crypto perpetuals) preview card"
+    },
+    {
+      "page": "indicators/long-short-ratio.html",
+      "title": "Long/Short Ratio",
+      "og_title": "Long/Short Ratio: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/long-short-ratio.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Long/Short Ratio (crypto) preview card"
+    },
+    {
       "page": "indicators/futures-dom-heatmap-l2.html",
       "title": "Futures DOM Heatmap (L2)",
       "og_title": "Futures DOM Heatmap (L2): ZoroCharts indicator guide",

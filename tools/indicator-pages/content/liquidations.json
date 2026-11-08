@@ -1,0 +1,24 @@
+{
+  "slug": "liquidations",
+  "summary": "Draws forced closes on crypto perpetuals as bubbles at their price and time, sized by USD, with long and short liquidations in different colours.",
+  "overview": [
+    "Liquidations puts each forced close on a crypto perpetual chart, at the price and time it happened. A bubble is sized by its USD value: long liquidations (a forced sell) are red, short liquidations (a forced buy) are green. The biggest ones carry a small $ label.",
+    "Hover a bubble, or tap it on a phone, to see the exchange, the side, the price, the size in coins and the time. A small pill under the chart adds up the longs and shorts liquidated in the bars you can see."
+  ],
+  "how": [
+    "Your browser listens to the exchanges' public liquidation streams for the coin on the chart: the USDT perpetuals of three major crypto exchanges. You pick which exchanges in Settings. USD value is the fill price times the size; where an exchange counts in contracts, the size is turned into coins with the contract size the exchange publishes.",
+    "Prints are kept on your device for 24 hours, so the chart still has them after a reload. One of the exchanges also returns its recent liquidations on request, so its bubbles appear for the hours before you opened the chart."
+  ],
+  "use": [
+    "Some traders watch for clusters of long liquidations into a sharp drop, or short liquidations into a sharp rise.",
+    "Use it to see where forced selling or buying happened relative to a level you are watching.",
+    "Some traders compare the bubbles with volume and open interest on the same chart.",
+    "Raise the smallest size in Settings to keep only the large ones in view."
+  ],
+  "notes": [
+    "The exchanges send only part of their liquidations (one of them at most one per coin per second), so what you see is a lower bound, not every liquidation.",
+    "Crypto perpetuals only (BTC, ETH, SOL and the other listed coins). Other markets show a short note.",
+    "An exchange that does not serve your region is shown as not available; the other exchanges still work.",
+    "Nothing is drawn in bar replay."
+  ]
+}

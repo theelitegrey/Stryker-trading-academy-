@@ -1,0 +1,21 @@
+{
+  "slug": "funding-rate",
+  "summary": "Shows the funding rate of a crypto perpetual per bar, plus the rate now and the countdown to the next settlement on each of the major crypto exchanges we connect to.",
+  "overview": [
+    "Funding Rate adds a lower pane with the funding rate that applied in each bar, in basis points (1 bp = 0.01%) per funding interval. Positive bars mean longs pay shorts; negative bars mean shorts pay longs.",
+    "A small line at the top of the pane shows, for each exchange, the current rate, the time left to the next settlement and how often it settles. Where the exchange publishes the next rate in advance, it is shown after an arrow."
+  ],
+  "how": [
+    "Your browser reads each exchange's public funding data for the coin on the chart: the perpetuals of four major crypto exchanges. The history in the pane comes from the exchange you pick in Settings.",
+    "Each bar shows the rate settled at the end of the funding period it falls in. Bars in the period that has not settled yet show the exchange's current rate."
+  ],
+  "use": [
+    "Some traders watch for funding that stays strongly positive or negative, as a sign that one side is crowded.",
+    "Use the table to compare the same coin's funding across exchanges.",
+    "Some traders read it next to open interest and the long/short ratio."
+  ],
+  "notes": [
+    "Exchanges settle at different intervals (for example every 8 hours or every hour), so compare rates with the interval in mind.",
+    "Crypto perpetuals only. An exchange that does not serve your region, or does not list the coin, is shown as such."
+  ]
+}

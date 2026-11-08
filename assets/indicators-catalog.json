@@ -12,7 +12,7 @@
   "Levels",
   "Community"
  ],
- "count": 165,
+ "count": 170,
  "skipped": [
   {
    "key": "x:volume-bubbles-quantalgo",
@@ -13526,6 +13526,359 @@
    "capture": "preview",
    "image": "/assets/images/indicators/pages/liquidity-map.webp",
    "thumb": "/assets/images/indicators/pages/liquidity-map-t.webp"
+  },
+  {
+   "slug": "liquidations",
+   "key": "b:stk_liq",
+   "name": "Liquidations",
+   "windowName": "Liquidations",
+   "author": "TradeZoro",
+   "third": false,
+   "group": "Order flow",
+   "plan": "Pro",
+   "kind": "native",
+   "short": "",
+   "summary": "Draws forced closes on crypto perpetuals as bubbles at their price and time, sized by USD, with long and short liquidations in different colours.",
+   "overview": [
+    "Liquidations puts each forced close on a crypto perpetual chart, at the price and time it happened. A bubble is sized by its USD value: long liquidations (a forced sell) are red, short liquidations (a forced buy) are green. The biggest ones carry a small $ label.",
+    "Hover a bubble, or tap it on a phone, to see the exchange, the side, the price, the size in coins and the time. A small pill under the chart adds up the longs and shorts liquidated in the bars you can see."
+   ],
+   "how": [
+    "Your browser listens to the exchanges' public liquidation streams for the coin on the chart: the USDT perpetuals of three major crypto exchanges. You pick which exchanges in Settings. USD value is the fill price times the size; where an exchange counts in contracts, the size is turned into coins with the contract size the exchange publishes.",
+    "Prints are kept on your device for 24 hours, so the chart still has them after a reload. One of the exchanges also returns its recent liquidations on request, so its bubbles appear for the hours before you opened the chart."
+   ],
+   "use": [
+    "Some traders watch for clusters of long liquidations into a sharp drop, or short liquidations into a sharp rise.",
+    "Use it to see where forced selling or buying happened relative to a level you are watching.",
+    "Some traders compare the bubbles with volume and open interest on the same chart.",
+    "Raise the smallest size in Settings to keep only the large ones in view."
+   ],
+   "notes": [
+    "The exchanges send only part of their liquidations (one of them at most one per coin per second), so what you see is a lower bound, not every liquidation.",
+    "Crypto perpetuals only (BTC, ETH, SOL and the other listed coins). Other markets show a short note.",
+    "An exchange that does not serve your region is shown as not available; the other exchanges still work.",
+    "Nothing is drawn in bar replay."
+   ],
+   "alerts": "",
+   "learn": "",
+   "updated": "2026-11-04",
+   "licence": "",
+   "originalUrl": "",
+   "settings": [
+    {
+     "title": "Binance",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Bybit",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "OKX",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Smallest liquidation shown (USD)",
+     "type": "int",
+     "def": 10000
+    },
+    {
+     "title": "Show $ labels on big ones",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Long liquidations",
+     "type": "color",
+     "def": "#f23645"
+    },
+    {
+     "title": "Short liquidations",
+     "type": "color",
+     "def": "#03c988"
+    }
+   ],
+   "capture": "preview",
+   "image": "/assets/images/indicators/pages/liquidations.webp",
+   "thumb": "/assets/images/indicators/pages/liquidations-t.webp"
+  },
+  {
+   "slug": "liquidations-per-bar",
+   "key": "b:stk_liq_bars",
+   "name": "Liquidations per bar (longs vs shorts)",
+   "windowName": "Liquidations per bar (longs vs shorts)",
+   "author": "TradeZoro",
+   "third": false,
+   "group": "Order flow",
+   "plan": "Pro",
+   "kind": "native",
+   "short": "",
+   "summary": "Shows the USD of crypto longs and shorts liquidated in each bar in a lower pane, shorts above zero and longs below, collected while your chart is open.",
+   "overview": [
+    "Liquidations per bar adds a lower pane with two sets of bars: the USD of short positions liquidated in each bar above zero (green), and the USD of long positions liquidated below zero (red).",
+    "It reads the same liquidation prints as the Liquidations indicator, so the two can be used together: bubbles on the price, totals underneath."
+   ],
+   "how": [
+    "Your browser listens to the public liquidation streams of three major crypto exchanges for the coin on the chart (pick the exchanges in Settings) and adds up the USD of each print into the bar it fell in.",
+    "Totals are only shown for the time your browser was collecting. Bars before that are left empty rather than shown as zero, and the prints are kept on your device for 24 hours."
+   ],
+   "use": [
+    "Some traders look for bars where long or short liquidations spiked well above the bars around them.",
+    "Use it to see whether a fast move came with forced closing on one side.",
+    "Some traders read it next to open interest: a large drop in open interest in the same bar often comes with liquidations."
+   ],
+   "notes": [
+    "The exchanges send only part of their liquidations (one of them at most one per coin per second), so the totals are a lower bound.",
+    "Crypto perpetuals only. History builds up from the moment you open the chart with this indicator on.",
+    "An exchange that does not serve your region is shown as not available."
+   ],
+   "alerts": "",
+   "learn": "",
+   "updated": "2026-11-04",
+   "licence": "",
+   "originalUrl": "",
+   "settings": [
+    {
+     "title": "Binance",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Bybit",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "OKX",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Long liquidations",
+     "type": "color",
+     "def": "#f23645"
+    },
+    {
+     "title": "Short liquidations",
+     "type": "color",
+     "def": "#03c988"
+    }
+   ],
+   "capture": "preview",
+   "image": "/assets/images/indicators/pages/liquidations-per-bar.webp",
+   "thumb": "/assets/images/indicators/pages/liquidations-per-bar-t.webp"
+  },
+  {
+   "slug": "open-interest",
+   "key": "b:stk_oi",
+   "name": "Open Interest (crypto, multi-exchange)",
+   "windowName": "Open Interest (crypto, multi-exchange)",
+   "author": "TradeZoro",
+   "third": false,
+   "group": "Order flow",
+   "plan": "Pro",
+   "kind": "native",
+   "short": "",
+   "summary": "Shows crypto open interest summed over the exchanges you pick, as a line plus the change per bar coloured against the bar's price move.",
+   "overview": [
+    "Open Interest adds a lower pane for crypto perpetuals. The line is the total USD value of open contracts across the exchanges you pick. The bars are the change in open interest from one bar to the next.",
+    "Each change bar is coloured by what price did in the same bar: open interest up with price up, up with price down, down with price up, or down with price down. The four colours can be changed in Settings."
+   ],
+   "how": [
+    "Your browser asks each exchange for its open interest history: every 5 minutes or longer, using the finest step that is not longer than your bar. Each bar takes the last reading at or before its close.",
+    "The values are added up across the exchanges you picked. A bar where one of them has no reading is left empty, so a missing exchange never looks like a drop. Where an exchange gives open interest in coins, it is turned into USD with the bar's close."
+   ],
+   "use": [
+    "Some traders watch whether a move comes with new positions (open interest rising) or with positions closing (open interest falling).",
+    "Use the colours to see at a glance whether open interest rose into an up bar or a down bar.",
+    "Some traders compare sharp open interest drops with the Liquidations indicator."
+   ],
+   "notes": [
+    "Crypto perpetuals only. On charts shorter than 5 minutes the line steps every 5 minutes, as that is the finest history the exchanges publish.",
+    "An exchange that does not serve your region is listed in the pane as not available and left out of the sum.",
+    "Only exchanges that publish an open interest history are offered."
+   ],
+   "alerts": "",
+   "learn": "",
+   "updated": "2026-11-04",
+   "licence": "",
+   "originalUrl": "",
+   "settings": [
+    {
+     "title": "Binance",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Bybit",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "OKX",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Show the open interest line",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "OI up, price up",
+     "type": "color",
+     "def": "#03c988"
+    },
+    {
+     "title": "OI up, price down",
+     "type": "color",
+     "def": "#f23645"
+    },
+    {
+     "title": "OI down, price up",
+     "type": "color",
+     "def": "#7fd8b8"
+    },
+    {
+     "title": "OI down, price down",
+     "type": "color",
+     "def": "#f59aa3"
+    },
+    {
+     "title": "OI line",
+     "type": "color",
+     "def": "#00adb5"
+    }
+   ],
+   "capture": "preview",
+   "image": "/assets/images/indicators/pages/open-interest.webp",
+   "thumb": "/assets/images/indicators/pages/open-interest-t.webp"
+  },
+  {
+   "slug": "funding-rate",
+   "key": "b:stk_funding",
+   "name": "Funding Rate (crypto perpetuals)",
+   "windowName": "Funding Rate (crypto perpetuals)",
+   "author": "TradeZoro",
+   "third": false,
+   "group": "Order flow",
+   "plan": "Pro",
+   "kind": "native",
+   "short": "",
+   "summary": "Shows the funding rate of a crypto perpetual per bar, plus the rate now and the countdown to the next settlement on each of the major crypto exchanges we connect to.",
+   "overview": [
+    "Funding Rate adds a lower pane with the funding rate that applied in each bar, in basis points (1 bp = 0.01%) per funding interval. Positive bars mean longs pay shorts; negative bars mean shorts pay longs.",
+    "A small line at the top of the pane shows, for each exchange, the current rate, the time left to the next settlement and how often it settles. Where the exchange publishes the next rate in advance, it is shown after an arrow."
+   ],
+   "how": [
+    "Your browser reads each exchange's public funding data for the coin on the chart: the perpetuals of four major crypto exchanges. The history in the pane comes from the exchange you pick in Settings.",
+    "Each bar shows the rate settled at the end of the funding period it falls in. Bars in the period that has not settled yet show the exchange's current rate."
+   ],
+   "use": [
+    "Some traders watch for funding that stays strongly positive or negative, as a sign that one side is crowded.",
+    "Use the table to compare the same coin's funding across exchanges.",
+    "Some traders read it next to open interest and the long/short ratio."
+   ],
+   "notes": [
+    "Exchanges settle at different intervals (for example every 8 hours or every hour), so compare rates with the interval in mind.",
+    "Crypto perpetuals only. An exchange that does not serve your region, or does not list the coin, is shown as such."
+   ],
+   "alerts": "",
+   "learn": "",
+   "updated": "2026-11-04",
+   "licence": "",
+   "originalUrl": "",
+   "settings": [
+    {
+     "title": "Rate history from",
+     "type": "string",
+     "def": "Binance",
+     "options": [
+      "Binance",
+      "Bybit",
+      "OKX",
+      "Hyperliquid"
+     ]
+    },
+    {
+     "title": "Show the rates table",
+     "type": "bool",
+     "def": true
+    },
+    {
+     "title": "Positive (longs pay shorts)",
+     "type": "color",
+     "def": "#03c988"
+    },
+    {
+     "title": "Negative (shorts pay longs)",
+     "type": "color",
+     "def": "#f23645"
+    }
+   ],
+   "capture": "preview",
+   "image": "/assets/images/indicators/pages/funding-rate.webp",
+   "thumb": "/assets/images/indicators/pages/funding-rate-t.webp"
+  },
+  {
+   "slug": "long-short-ratio",
+   "key": "b:stk_lsr",
+   "name": "Long/Short Ratio (crypto)",
+   "windowName": "Long/Short Ratio (crypto)",
+   "author": "TradeZoro",
+   "third": false,
+   "group": "Order flow",
+   "plan": "Pro",
+   "kind": "native",
+   "short": "",
+   "summary": "Shows the ratio of crypto accounts holding longs to accounts holding shorts, from the exchange's own published figures, in a lower pane.",
+   "overview": [
+    "Long/Short Ratio adds a lower pane with one line: the number of accounts long divided by the number short, as published by the exchange. A dashed line marks 1, where the two are equal.",
+    "In Settings you can pick the source: all accounts on one of three exchanges, or, where an exchange publishes them, its top traders by accounts or by positions."
+   ],
+   "how": [
+    "Your browser reads the exchange's public long/short ratio history for the coin on the chart, every 5 minutes or longer, using the finest step that is not longer than your bar. Each bar takes the last reading at or before its close.",
+    "The exchange decides who counts as a top trader; the ratio is shown as the exchange gives it."
+   ],
+   "use": [
+    "Some traders watch for a ratio far above or below 1 as a sign of crowding on one side.",
+    "Use it next to the funding rate to see whether both point to the same side.",
+    "Some traders compare all accounts with top traders to see whether they lean the same way."
+   ],
+   "notes": [
+    "It counts accounts (or, for one top-trader source, positions), not the size of each position.",
+    "Crypto perpetuals only. An exchange that does not serve your region is shown as not available; pick another source in Settings."
+   ],
+   "alerts": "",
+   "learn": "",
+   "updated": "2026-11-04",
+   "licence": "",
+   "originalUrl": "",
+   "settings": [
+    {
+     "title": "Source",
+     "type": "string",
+     "def": "Binance: all accounts",
+     "options": [
+      "Binance: all accounts",
+      "Binance: top traders (accounts)",
+      "Binance: top traders (positions)",
+      "Bybit: all accounts",
+      "OKX: all accounts"
+     ]
+    },
+    {
+     "title": "Ratio line",
+     "type": "color",
+     "def": "#00adb5"
+    }
+   ],
+   "capture": "preview",
+   "image": "/assets/images/indicators/pages/long-short-ratio.webp",
+   "thumb": "/assets/images/indicators/pages/long-short-ratio-t.webp"
   },
   {
    "slug": "futures-dom-heatmap-l2",

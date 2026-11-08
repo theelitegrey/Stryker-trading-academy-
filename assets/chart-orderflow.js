@@ -30,23 +30,23 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=912';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=912';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=912';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=912';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=912';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=912';
-import * as ProGate from './chart-pro-gate.js?v=912';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=912';
-import * as BT from './chart-bigtrades.js?v=912';
-import { installBookPack } from './chart-book-pack.js?v=912';
-import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=912';
-import { installPatterns } from './chart-patterns.js?v=912';
-import { installL2Flow } from './chart-l2-flow.js?v=912';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=912';
-import { installDepthHeatmap } from './chart-depth-heatmap.js?v=912';
-export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=912';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=912';
+import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=911';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=911';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=911';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=911';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=911';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=911';
+import * as ProGate from './chart-pro-gate.js?v=911';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=911';
+import * as BT from './chart-bigtrades.js?v=911';
+import { installBookPack } from './chart-book-pack.js?v=911';
+import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=911';
+import { installPatterns } from './chart-patterns.js?v=911';
+import { installL2Flow } from './chart-l2-flow.js?v=911';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=911';
+import { installDepthHeatmap } from './chart-depth-heatmap.js?v=911';
+export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=911';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=911';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -2673,7 +2673,8 @@ const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsui
   'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_fut_dom', 'stk_depth_heat', 'stk_fut_walls', 'stk_fut_imb',
   'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane',
   'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls',
-  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad'];   // Tick-stream twins + the order-book pack (chart-book-pack.js) (chart-ts-trades.js, Pro)
+  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad',
+  'stk_liq', 'stk_liq_bars', 'stk_oi', 'stk_funding', 'stk_lsr'];   // crypto derivatives (chart-crypto-deriv.js). Tick-stream twins + the order-book pack (chart-book-pack.js) (chart-ts-trades.js, Pro)
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },

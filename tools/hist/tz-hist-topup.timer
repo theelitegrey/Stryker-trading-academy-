@@ -1,0 +1,9 @@
+[Unit]
+Description=TradeZoro deep history: daily top-up at 22:30 UTC (after the CME settle, before the Globex reopen)
+
+[Timer]
+OnCalendar=*-*-* 22:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

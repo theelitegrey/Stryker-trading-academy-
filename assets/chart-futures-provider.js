@@ -99,6 +99,13 @@ const H = 3600, D = 86400;
 
 const PAGE_SECS = { '1': 8 * H, '5': 2 * D, '15': 5 * D, '30': 10 * D, '60': 20 * D, '120': 40 * D, '240': 60 * D, D: 730 * D, W: 0, M: 0 };
 const DEPTH_SECS = { '1': 29 * D, '5': 59 * D, '15': 59 * D, '30': 59 * D, '60': 729 * D, '120': 729 * D, '240': 729 * D, D: 40 * 365 * D, W: 0, M: 0 };
+// DEEP HISTORY (history-gap2, 2026-11-08): = DEEP_HISTORY / DEEP_SYMS / DEEP_DEPTH_S in functions/api/chart/_bars.js (the server's switch
+// decides what is served; this only lets the page walk that far). ?deep=1 turns it on for one page load (tests).
+export const DEEP_HISTORY = false;
+export const DEEP_ROOTS = ['NQ', 'ES'];
+export const DEEP_DEPTH_DAYS = 366;
+export const deepOn = (root, tf) => { let on = DEEP_HISTORY; try { const q = new URLSearchParams(location.search).get('deep'); if (q === '1') on = true; else if (q === '0') on = false; } catch (e) {} return on && DEEP_ROOTS.includes(root) && ['1', '5', '15', '30'].includes(String(tf)); };
+const depthOf = (root, tf) => (deepOn(root, tf) ? DEEP_DEPTH_DAYS * D : DEPTH_SECS[tf]);
 const TF_NORMALIZE = { '1m': '1', '5m': '5', '15m': '15', '30m': '30', '1h': '60', '60m': '60', '2h': '120', '4h': '240', '4H': '240',
   '1d': 'D', '1D': 'D', d: 'D', '1w': 'W', '1W': 'W', w: 'W', '1M': 'M', '1mo': 'M' };
 const SUPPORTED = ['1', '5', '15', '30', '60', '120', '240', 'D', 'W', 'M'];
@@ -379,7 +386,7 @@ export class FuturesProvider {
     if (!PAGE_SECS[tf]) {
       rows = await this.fetchPage(root, tf, 0, 0, swrMs);
     } else {
-      const floor = now - DEPTH_SECS[tf];
+      const floor = now - depthOf(root, tf);
       let page = Math.min(this.pageOf(tf, toS), current);
       const stopPage = this.pageOf(tf, Math.max(fromS != null ? fromS : floor, floor));
       // Give up after ~7 days of consecutive empty pages. (Was 4 days = only 2 pages on 5m: a long weekend plus one empty answer ended

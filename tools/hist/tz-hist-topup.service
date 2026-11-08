@@ -1,0 +1,10 @@
+[Unit]
+Description=TradeZoro deep history: daily 1-minute futures top-up (tools/hist/backfill_m1.py)
+After=network-online.target
+
+[Service]
+Type=oneshot
+Nice=15
+Environment=TICKSTREAM_ENV=/root/.hermes/profiles/chief-of-staff/scripts/tickstream.env
+Environment=FEEDER_ENV=/root/projects/book-feeder/feeder.env
+ExecStart=/usr/bin/python3 /opt/tz-hist/backfill_m1.py --symbols NQ,ES --days 4 --redo-days 3 --out /var/lib/tz-hist --post

@@ -45,7 +45,7 @@
 // Pine indicators (name, source, inputs) into the workspace document. That puts them in
 // the persist:true session AND in saved templates, and restores them on load.
 
-import { builtinSource, builtinIdOf, builtinIdByName } from './chart-pine-builtins.js?v=913';
+import { builtinSource, builtinIdOf, builtinIdByName } from './chart-pine-builtins.js?v=914';
 
 const PINE_PKG = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
 const RUN_LIMIT_MS = 20000;
@@ -81,14 +81,14 @@ const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a
 const onNext = new WeakSet();      // handles running on the next engine
 let NextMod = null;
 function loadNext(){
-  if (!NextMod) NextMod = import('./chart-pine-next.js?v=913').catch((e) => { NextMod = null; throw e; });
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=914').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
 // TradingView-style painting of Pine drawings (assets/chart-pine-tv-style.js); once per chart.
 let TvStyle = null;
 async function tvStyle(chart){
   try {
-    if (!TvStyle) TvStyle = import('./chart-pine-tv-style.js?v=913');
+    if (!TvStyle) TvStyle = import('./chart-pine-tv-style.js?v=914');
     (await TvStyle).installTvStyle(chart);
   } catch (e) { TvStyle = null; }
 }

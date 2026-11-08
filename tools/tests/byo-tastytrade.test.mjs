@@ -1,7 +1,7 @@
 // Fixture tests for assets/byo-tastytrade.js. No real keys, no network. Run: node tools/tests/byo-tastytrade.test.mjs
 import assert from 'node:assert/strict';
-import { guardUrl, guardWs, SOURCES, Hub } from '../../assets/byo-core.js?v=921';
-import { tastytrade as T, symbolOf, guardDx, accessToken } from '../../assets/byo-tastytrade.js?v=921';
+import { guardUrl, guardWs, SOURCES, Hub } from '../../assets/byo-core.js?v=922';
+import { tastytrade as T, symbolOf, guardDx, accessToken } from '../../assets/byo-tastytrade.js?v=922';
 let n = 0; const t = async (name, fn) => { await fn(); n++; console.log('ok', name); };
 const C = () => ({ clientId: 'CID', clientSecret: 'SECRETFAKE', refreshToken: 'REFRESHFAKE' });
 const jwt = (scope) => 'h.' + Buffer.from(JSON.stringify({ scope })).toString('base64url') + '.s';

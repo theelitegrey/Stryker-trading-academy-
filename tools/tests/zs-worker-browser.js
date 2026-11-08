@@ -64,7 +64,7 @@ const ok = (c, name, extra) => { if (c) { pass++; console.log('ok  ', name); } e
 
     // ---- 2. runner end to end ----
     const e2e = await page.evaluate(async () => {
-      const { ZsRunner } = await import('/assets/zs/runner.js?v=901');
+      const { ZsRunner } = await import('/assets/zs/runner.js?v=913');
       const r = new ZsRunner();
       const n = 300, bars = { time: [], open: [], high: [], low: [], close: [], volume: [] };
       let p = 100; for (let i = 0; i < n; i++) { const o = p; p += Math.sin(i / 7) * 1.3; bars.time.push(1767571200000 + i * 60000); bars.open.push(o); bars.close.push(p); bars.high.push(Math.max(o, p) + 0.5); bars.low.push(Math.min(o, p) - 0.5); bars.volume.push(100 + i); }
@@ -86,9 +86,9 @@ const ok = (c, name, extra) => { if (c) { pass++; console.log('ok  ', name); } e
 
     // ---- 2b. protected script: sealed to the worker's key, program never comes back ----
     const prot = await page.evaluate(async () => {
-      const { ZsRunner } = await import('/assets/zs/runner.js?v=901');
-      const { compile } = await import('/assets/zs/index.js?v=901');
-      const { sealTo } = await import('/assets/creator-seal.js?v=901');
+      const { ZsRunner } = await import('/assets/zs/runner.js?v=913');
+      const { compile } = await import('/assets/zs/index.js?v=913');
+      const { sealTo } = await import('/assets/creator-seal.js?v=913');
       const seen = [];
       const r = new ZsRunner();
       const pub = await r.session();
@@ -110,8 +110,8 @@ const ok = (c, name, extra) => { if (c) { pass++; console.log('ok  ', name); } e
 
     // ---- 2c. data hub messages (S3 protocol) feed book/flow/gex/opt ----
     const hubRes = await page.evaluate(async () => {
-      const { ZsRunner } = await import('/assets/zs/runner.js?v=901');
-      const { compile } = await import('/assets/zs/index.js?v=901');
+      const { ZsRunner } = await import('/assets/zs/runner.js?v=913');
+      const { compile } = await import('/assets/zs/index.js?v=913');
       const lives = [], notices = [];
       const r = new ZsRunner({ onLive: (o) => lives.push(o), onNotice: (n) => notices.push(n) });
       const F = { book: { bb: [[100, 5]], ba: [[100.25, 4]] }, flow: { buy: 30, sell: 10, n: 3, cvd: 20, fp: [], poc: 100, vah: 100, val: 100 }, gex: { call: 110, put: 90, flip: 100, zu: 105, zl: 95, net: 1, lv: [100], ts: 1 } };
@@ -134,7 +134,7 @@ const ok = (c, name, extra) => { if (c) { pass++; console.log('ok  ', name); } e
 
     // ---- 3. runaway loop is stopped, page stays alive ----
     const loop = await page.evaluate(async () => {
-      const { ZsRunner } = await import('/assets/zs/runner.js?v=901');
+      const { ZsRunner } = await import('/assets/zs/runner.js?v=913');
       const r = new ZsRunner();
       const c = await r.compile('//@zscript 1\nindicator("x")\ni = 0\nwhile true\n    i += 1\nplot(i)');
       const t0 = performance.now();
@@ -148,7 +148,7 @@ const ok = (c, name, extra) => { if (c) { pass++; console.log('ok  ', name); } e
 
     // ---- 4. wall-clock kill ----
     const kill = await page.evaluate(async () => {
-      const { ZsRunner, KILL_MS } = await import('/assets/zs/runner.js?v=901');
+      const { ZsRunner, KILL_MS } = await import('/assets/zs/runner.js?v=913');
       KILL_MS.compile = 300;
       // a worker that never answers stands in for a hung engine
       const blob = URL.createObjectURL(new Blob(['self.onmessage = () => { for (;;) {} }'], { type: 'text/javascript' }));

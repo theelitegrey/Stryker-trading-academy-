@@ -606,7 +606,7 @@ function lateLists(provider){
   const flowP = import('./chart-optflow.js?v=913');
   const offexP = import('./chart-offex.js?v=913');
   const dpP = import('./chart-darkpool.js?v=913');
-  const cdP = import('./chart-crypto-deriv.js?v=912');
+  const cdP = import('./chart-crypto-deriv.js?v=913');
   const wiP = import('./chart-wallet-intel.js?v=913');
   let MSess = null;
   if (heavyNeeded) installHeavy();
@@ -1274,7 +1274,7 @@ function lateLists(provider){
     nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(false); });
     tplPop.appendChild(el('button', { type: 'button', class: 'stkc-tname stkt-browse', 'aria-label': 'Browse ready-made templates', onclick: () => {
       setTpl(false);
-      import('./chart-tpl-gallery.js?v=910').then((m) => m.openGallery({ ws, Pine, afterStructural, setLayout, toast })).catch((e) => { console.warn('TradeZoro: template gallery', e); toast('Could not open the templates.', 'error'); });
+      import('./chart-tpl-gallery.js?v=913').then((m) => m.openGallery({ ws, Pine, afterStructural, setLayout, toast })).catch((e) => { console.warn('TradeZoro: template gallery', e); toast('Could not open the templates.', 'error'); });
     } }, [el('span', { class: 'stkc-mi-t' }, [el('span', { class: 'stkc-mi-l', text: 'Ready-made templates' }), el('small', { class: 'stkc-mi-s', text: 'Order flow, GEX, dark pool, swing and more. Free to apply.' })]), el('span', { class: 'stkc-tapply', 'aria-hidden': 'true', text: 'Browse' })]));
     tplPop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Save current chart' }));
     tplPop.appendChild(el('div', { class: 'stkc-saverow' }, [nameIn, saveBtn]));

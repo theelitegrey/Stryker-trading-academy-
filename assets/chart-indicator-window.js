@@ -309,7 +309,7 @@ export function mountIndicatorWindow(ws, opts){
   // ---- open / close ----
   let explainMap = null, explainP = null;
   function loadExplain(){
-    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=910').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
+    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=913').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
     return explainP;
   }
   function build(){

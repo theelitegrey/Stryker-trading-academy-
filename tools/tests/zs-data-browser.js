@@ -129,7 +129,7 @@ const CALLS = ['book.bid(1)', 'book.ask(1)', 'book.bidsize(1)', 'book.asksize(1)
   'gex.callwall', 'gex.putwall', 'gex.flip', 'gex.zero_upper', 'gex.zero_lower', 'gex.net', 'gex.level(1)',
   'opt.node(1)', 'opt.range("0dte")', 'opt.ivrank', 'opt.pc', 'opt.maxpain', 'opt.zone'];
 async function session([sym, tf, uses, wait, CALLS]) {
-  const hub = await import('/assets/zs/data/hub.js?v=901'), ops = await import('/assets/zs/data/ops.js?v=901');
+  const hub = await import('/assets/zs/data/hub.js?v=913'), ops = await import('/assets/zs/data/ops.js?v=913');
   hub.resetHubForTests();
   const ws = window.STRYKER_VELA, ch = ws.chart;
   const raw = ch.orchestrator.rawBars.map((b) => ({ time: b.time != null ? b.time : b.t, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume }));

@@ -51,14 +51,14 @@ const cellInfo = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const
     await p.screenshot({ path: OUT + '/gallery-1440-dark.png' });
     const expect = await p.evaluate(() => null);
     await p.keyboard.press('Escape'); await sleep(300);
-    const want0 = await p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=910'); const o = {}; m.TEMPLATES.forEach((x) => { o[x.id] = { sym: x.symbol || null }; }); return o; });
+    const want0 = await p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=913'); const o = {}; m.TEMPLATES.forEach((x) => { o[x.id] = { sym: x.symbol || null }; }); return o; });
     for (const id of (ONLY_GALLERY ? [] : cards)) {
-      await p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=910'); m.openGallery({ ws: window.STRYKER_VELA, Pine: { clearAllPine() {} }, toast() {} }); });
+      await p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=913'); m.openGallery({ ws: window.STRYKER_VELA, Pine: { clearAllPine() {} }, toast() {} }); });
       await sleep(400);
       if (THUMBS && !want0[id].sym) await p.evaluate(() => { const ws = window.STRYKER_VELA; ws.cell(ws.context().cells[0].id).setSymbol('futures:NQ1!'); }).then(() => sleep(2500));
       await p.click('.stkt-card[data-tpl="' + id + '"] .stkc-sbtn'); await sleep(id === 'swing-stocks' ? 3500 : 2500);
       const ty = await types(p), ci = await cellInfo(p);
-      const want = await p.evaluate(async (id) => { const m = await import('/assets/chart-tpl-gallery.js?v=910'); const T = m.TEMPLATES.find((x) => x.id === id); return { ind: T.ind.map((x) => x[0]), tf: T.tf, sym: T.symbol || null }; }, id);
+      const want = await p.evaluate(async (id) => { const m = await import('/assets/chart-tpl-gallery.js?v=913'); const T = m.TEMPLATES.find((x) => x.id === id); return { ind: T.ind.map((x) => x[0]), tf: T.tf, sym: T.symbol || null }; }, id);
       t(id + ': indicators applied', JSON.stringify(ty.slice().sort()) === JSON.stringify(want.ind.slice().sort()), { got: ty, want: want.ind });
       t(id + ': timeframe/symbol', String(ci.tf) === want.tf && (!want.sym || ci.sym === want.sym), { ci, want });
       if (THUMBS) {
@@ -76,10 +76,10 @@ const cellInfo = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const
     const F = await session(b, { w: 390, h: 844, mobile: true, free: true });
     const fp = await openPage(F, BASE, true);
     await fp.p.evaluate(() => { window.__upg = 0; window.openPlanUpgradeModal = () => { window.__upg++; }; });
-    await fp.p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=910'); const T = m.TEMPLATES.find((x) => x.id === 'scalp-nq'); const C = window.STRYKER_VELA; m.applyTemplate(T, { ws: C, Pine: { clearAllPine() {} }, toast() {} }); });
+    await fp.p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=913'); const T = m.TEMPLATES.find((x) => x.id === 'scalp-nq'); const C = window.STRYKER_VELA; m.applyTemplate(T, { ws: C, Pine: { clearAllPine() {} }, toast() {} }); });
     await sleep(1500);
     t('Free: order-flow tools not added, upgrade prompt shown', (await types(fp.p)).length === 0 && (await fp.p.evaluate(() => window.__upg)) >= 1, await types(fp.p));
-    await fp.p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=910'); m.openGallery({ ws: window.STRYKER_VELA, Pine: { clearAllPine() {} }, toast() {} }); }); await sleep(800);
+    await fp.p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=913'); m.openGallery({ ws: window.STRYKER_VELA, Pine: { clearAllPine() {} }, toast() {} }); }); await sleep(800);
     await fp.p.screenshot({ path: OUT + '/gallery-390-dark.png' });
     t('390: no horizontal scroll', (await fp.p.evaluate(() => document.documentElement.scrollWidth - innerWidth)) <= 0);
     await F.close();
@@ -87,7 +87,7 @@ const cellInfo = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const
     // ---- 1440 light
     const L = await session(b, { w: 1440, h: 900, theme: 'light' });
     const lp = await openPage(L, BASE, true);
-    await lp.p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=910'); m.openGallery({ ws: window.STRYKER_VELA, Pine: { clearAllPine() {} }, toast() {} }); }); await sleep(800);
+    await lp.p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js?v=913'); m.openGallery({ ws: window.STRYKER_VELA, Pine: { clearAllPine() {} }, toast() {} }); }); await sleep(800);
     await lp.p.screenshot({ path: OUT + '/gallery-1440-light.png' });
     await L.close();
   } finally { await b.close(); }

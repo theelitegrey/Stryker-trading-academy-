@@ -50,7 +50,7 @@ function notifOptions(data) {
     badge: '/assets/images/tradezoro-icon-192-494.png?v=913',
     // One tag per alert notification (two alerts must both show); other types collapse by type (five likes = one).
     tag: isAlert ? 'alert-' + data.type + '-' + (data.nid || Date.now()) : (data.type || 'stryker'),
-    badge: '/assets/images/tradezoro-favicon-32-494.png?v=911',
+    badge: '/assets/images/tradezoro-favicon-32-494.png?v=913',
     // Tagging by type collapses repeats: five likes replace one another
     // instead of stacking five separate entries in the tray.
     // Chart alerts and dark pool print alerts get their own tag (two different alerts must both show); other types collapse by type.

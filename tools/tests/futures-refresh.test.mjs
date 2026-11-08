@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const RT = await import('../../assets/rt-access.js?v=926');   // the same instance the provider imports
+const RT = await import('../../assets/rt-access.js?v=927');   // the same instance the provider imports
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const user = (uid) => ({ uid, getIdToken: async () => 'tok-' + uid });
 const realFetch = globalThis.fetch;

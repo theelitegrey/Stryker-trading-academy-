@@ -232,6 +232,15 @@
 <article class="ixp-body">
 <p class="ixp-lede">Paints net GEX at every strike, snapshot by snapshot, as a coloured heatmap under the candles for the last few sessions.</p>
 
+<section class="ixp-plain" id="plain" aria-label="In plain English">
+<h2>In plain English</h2>
+<h3>What it shows</h3>
+<ul><li>Net gamma exposure at every strike, snapshot by snapshot, painted under the candles. Mint is positive, red is negative, and clear means close to zero.</li><li>A status note shows how many minutes ago the data was updated.</li></ul>
+<h3>How traders use it</h3>
+<ul><li>Look at where the strongest bands sit and how they moved during the session.</li><li>Compare the bands with where price spent its time, to learn how the two relate.</li></ul>
+<h3>What it does not tell you</h3>
+<ul><li>It shows an estimate of exposure, not orders or trades.</li><li>It cannot show changes inside one snapshot, and it only covers the period that was recorded.</li></ul>
+</section>
 <h2 id="overview">Overview</h2>
 <p>TradeZoro GEX Heatmap shows how gamma exposure was spread across strikes through the session. Each row is a strike and each column is a 2-minute snapshot. Positive net GEX uses a mint and teal ramp, negative uses red and magenta, and values near zero stay clear so the candles show through.</p>
 <p>By default it covers the last 3 sessions at 55% opacity, and a status note shows when the data was last updated (for example 'updated 3 min ago').</p>

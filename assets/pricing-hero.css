@@ -183,3 +183,27 @@
 
 .pp-see{ display:flex; align-items:center; justify-content:center; min-height:44px; margin-top:8px; font-size:14px; font-weight:500; color:var(--gold); }
 .pp-see:hover{ text-decoration:underline; }
+
+/* Free vs Pro: features only, no prices (pricing.html .pf) */
+.pf{ margin:48px 0 32px; }
+.pf h2{ margin:0 0 4px; font-weight:700; font-size:22px; line-height:28px; font-family:inherit; color:var(--ink-0); }
+.pf-sub{ margin:0 0 16px; font-size:14px; line-height:20px; color:var(--ink-3); }
+.pf-wrap{ border:1px solid var(--line); border-radius:16px; overflow-x:auto; background:var(--bg-1,#0b0b0d); }
+.pf-table{ width:100%; border-collapse:collapse; font-size:14px; line-height:20px; }
+.pf-cap{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+.pf-table thead th{ padding:12px 16px; font-size:13px; font-weight:600; color:var(--ink-3); text-align:center; border-bottom:1px solid var(--line); }
+.pf-table thead th:first-child{ text-align:left; }
+.pf-table tbody th[scope="row"]{ padding:12px 16px; font-weight:400; text-align:left; color:var(--ink-1); border-top:1px solid var(--line-soft,var(--line)); }
+.pf-table td{ width:96px; padding:12px 8px; text-align:center; border-top:1px solid var(--line-soft,var(--line)); }
+.pf-table .pf-grp th{ padding:16px 16px 8px; text-align:left; font-size:13px; font-weight:600; color:var(--ink-0); background:var(--bg-2); }
+.pf-tick{ color:var(--mint,#03c988); vertical-align:middle; }
+.pf-dash, .pf-txt{ color:var(--ink-3); font-size:13px; }
+.pf-txt{ color:var(--ink-1); }
+:root[data-theme="light"] .pf-tick{ color:#058a5e; }
+@media (max-width:600px){ .pf{ margin:32px 0 24px; } .pf-table td{ width:64px; padding:12px 4px; } }
+.pf-table{ table-layout:fixed; }
+.pf-table tbody th[scope="row"]{ white-space:normal; overflow-wrap:anywhere; }
+.pf-table thead th:not(:first-child){ width:96px; }
+@media (max-width:600px){ .pf-table thead th:not(:first-child){ width:64px; } .pf-table tbody th[scope="row"]{ padding:12px; font-size:14px; } }
+.pf-table tbody th[scope="row"]{ white-space:normal !important; word-break:normal; overflow-wrap:break-word; }
+.pf-table{ min-width:0 !important; }

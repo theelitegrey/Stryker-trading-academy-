@@ -142,3 +142,10 @@ html.nav-authed body.dual-shell .ixh-tools{ top:0; }
 :root[data-theme="light"] .ixh-chipb[aria-pressed="true"]{ color:#fff; }
 :root[data-theme="light"] .ixh-chipb[aria-pressed="true"] span{ color:rgba(255,255,255,.8); }
 :root[data-theme="light"] .ixp-fav[aria-pressed="true"]{ color:#a5761a; }
+
+/* "In plain English" block (tools/gen-indicator-pages.js) */
+.ixp-plain{ margin:24px 0; padding:16px; border:1px solid var(--line); border-radius:16px; background:var(--bg-1,#0b0b0d); }
+.ixp-plain h2{ margin:0 0 8px; font-size:17px; line-height:22px; font-weight:600; }
+.ixp-plain h3{ margin:16px 0 4px; font-size:13px; line-height:18px; font-weight:600; color:var(--ink-3); }
+.ixp-plain ul{ margin:0; padding-left:20px; list-style:disc; font-size:15px; line-height:22px; }
+.ixp-plain li + li{ margin-top:4px; }

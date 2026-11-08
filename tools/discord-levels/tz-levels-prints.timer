@@ -1,0 +1,12 @@
+[Unit]
+Description=TradeZoro Discord: new dark pool prints of $25M or more
+
+[Timer]
+# Every 30 minutes, 04:10 to 20:40 New York on weekdays (the print data itself refreshes every 2 hours).
+# IST: 14:40 to 06:10 next day in winter, 13:40 to 05:10 in summer.
+OnCalendar=Mon..Fri *-*-* 04..20:10,40:00 America/New_York
+Persistent=false
+Unit=tradezoro-discord-levels@prints.service
+
+[Install]
+WantedBy=timers.target

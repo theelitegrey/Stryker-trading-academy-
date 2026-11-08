@@ -4,7 +4,7 @@
 //   trade = { t, p, s, side: 1 buyer-aggressor | -1 seller-aggressor, ex }
 //   status: 'loading' | 'live' | 'reconnecting' | 'unlisted' | 'error'
 // Wording: no "real-time" claims; the panel shows "updated Xs ago" only. Education only. Not financial advice.
-import { OkxBook, OKX_WS_PUBLIC, numRows, tradeOf, fetchInst } from './okx-core.js?v=913';
+import { OkxBook, OKX_WS_PUBLIC, numRows, tradeOf, fetchInst } from './okx-core.js?v=911';
 export const SOURCES = [
   { id: 'binance', name: 'Binance', perp: true },
   { id: 'binanceus', name: 'Binance US', perp: false },

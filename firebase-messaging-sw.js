@@ -45,11 +45,16 @@ function notifOptions(data) {
   const isAlert = !!ALERT_TYPES[data.type];
   return {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=913',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=911',
     // Android draws the badge as a white mask of the alpha channel: the transparent TZ mark gives a clean glyph.
     badge: '/assets/images/tradezoro-icon-192-494.png?v=913',
     // One tag per alert notification (two alerts must both show); other types collapse by type (five likes = one).
     tag: isAlert ? 'alert-' + data.type + '-' + (data.nid || Date.now()) : (data.type || 'stryker'),
+    badge: '/assets/images/tradezoro-favicon-32-494.png?v=911',
+    // Tagging by type collapses repeats: five likes replace one another
+    // instead of stacking five separate entries in the tray.
+    // Chart alerts and dark pool print alerts get their own tag (two different alerts must both show); other types collapse by type.
+    tag: data.type === 'chart_alert' || data.type === 'dp_alert' ? 'chart-alert-' + Date.now() : (data.type || 'stryker'),
     renotify: true,
     requireInteraction: isAlert,
     vibrate: isAlert ? [200, 100, 200] : undefined,

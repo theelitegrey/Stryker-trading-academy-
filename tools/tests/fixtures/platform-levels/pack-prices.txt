@@ -1,0 +1,17 @@
+price,label,color
+7450,Call Ceiling,#ef4444
+7514.56,Flip Line,#f59e0b
+7400,Put Floor,#22c55e
+7560,Pin Strike,#94a3b8
+7453.07,Zoro Range 0DTE high,#8b7cf6
+7355.87,Zoro Range 0DTE low,#8b7cf6
+7453.07,Zoro Range weekly high,#8b7cf6
+7355.87,Zoro Range weekly low,#8b7cf6
+7400,Zoro Level 1,#38bdf8
+7350,Zoro Level 2,#38bdf8
+7450,Zoro Level 3,#38bdf8
+7345,Zoro Level 4,#38bdf8
+7445,Zoro Level 5,#38bdf8
+7419.48,Dark pool $30M,#00adb5
+7384.46,Dark pool $74M,#00adb5
+# Education only. Not financial advice.

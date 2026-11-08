@@ -247,3 +247,4 @@
   .gex-dl-grid{grid-template-columns:1fr;}
 }
 .gex-dl-btn[hidden]{display:none;}
+a.gex-dl-btn{text-decoration:none;}

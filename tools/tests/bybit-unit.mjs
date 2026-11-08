@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 const F = JSON.parse(readFileSync(new URL('./fixtures/bybit/samples.json', import.meta.url)));
 globalThis.WebSocket = class {};
-const P = await import('../../assets/vendor/vela-0.6.17-s3/providers/bybit.js');
+const P = await import('../../assets/vendor/vela-0.6.17-s4/providers/bybit.js');
 const O = await import('../../assets/orderflow-venue-bybit.js');
 
 // klines: REST rows are newest first; rowToBar keeps numbers

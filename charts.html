@@ -86,7 +86,7 @@
      loads (one module instance = one set of Vela registries). pinets is AGPL-3.0 and is
      loaded unmodified, only when the Pine editor or a Pine indicator is used. -->
 <!-- VELA 0.9.0 FOR EVERYONE (Owner "push test version live", 2026-10-22): the 0.9.0 engine
-     (vendor/vela-0.9.0-s5) is the default for every visitor. Rollback switches:
+     (vendor/vela-0.9.0-s6) is the default for every visitor. Rollback switches:
        - one user:  open /charts?vela=0.6 (kept in localStorage 'stryker_vela06'); ?vela=0.9 undoes it.
        - everyone:  set VELA090_DEFAULT = false below (and bump the build); ?vela=0.9 then still
                     opts one browser in ('stryker_vela090').
@@ -104,7 +104,7 @@
     sessionStorage.removeItem('stryker_vela090_no');
   } catch (e) {}
   window.__stkVela090 = on;
-  var V = on ? '/assets/vendor/vela-0.9.0-s5/' : '/assets/vendor/vela-0.6.17-s3/';
+  var V = on ? '/assets/vendor/vela-0.9.0-s6/' : '/assets/vendor/vela-0.6.17-s4/';
   var map = {imports:{
     '@zag-js/vanilla':'/assets/vendor/zag-1.42.0/vanilla.js',
     '@zag-js/menu':'/assets/vendor/zag-1.42.0/menu.js',
@@ -151,8 +151,8 @@
 <link rel="modulepreload" href="/assets/chart-news.js?v=923">
 <script>
 (function(){
-  var V = window.__stkVela090 ? ['/assets/vendor/vela-0.9.0-s5/', ['workspace.js', 'chunk-4WAHYL7Y.js', 'chunk-XIRSR3D6.js', 'chunk-YRCL3WMD.js', 'chunk-O6L27KRB.js', 'chunk-PZN4RS4T.js', 'chunk-WHPQQYH7.js', 'chunk-W4EJWLEO.js', 'index.js', 'chunk-3EYCX2L4.js', 'providers/binance.js', 'providers/coinbase.js', 'providers/hyperliquid.js']]
-    : ['/assets/vendor/vela-0.6.17-s3/', ['workspace.js', 'chunk-OSZDSH7F.js', 'chunk-YCD72KGK.js', 'chunk-IFJJPXSV.js', 'chunk-CAFCLMPF.js', 'chunk-T5Z5YUCF.js', 'chunk-XCBJU674.js', 'chunk-W4EJWLEO.js', 'index.js', 'chunk-FE6V2YAQ.js', 'providers/binance.js', 'providers/coinbase.js', 'providers/hyperliquid.js']];
+  var V = window.__stkVela090 ? ['/assets/vendor/vela-0.9.0-s6/', ['workspace.js', 'chunk-4WAHYL7Y.js', 'chunk-XIRSR3D6.js', 'chunk-YRCL3WMD.js', 'chunk-O6L27KRB.js', 'chunk-PZN4RS4T.js', 'chunk-WHPQQYH7.js', 'chunk-W4EJWLEO.js', 'index.js', 'chunk-3EYCX2L4.js', 'providers/binance.js', 'providers/coinbase.js', 'providers/hyperliquid.js']]
+    : ['/assets/vendor/vela-0.6.17-s4/', ['workspace.js', 'chunk-OSZDSH7F.js', 'chunk-YCD72KGK.js', 'chunk-IFJJPXSV.js', 'chunk-CAFCLMPF.js', 'chunk-T5Z5YUCF.js', 'chunk-XCBJU674.js', 'chunk-W4EJWLEO.js', 'index.js', 'chunk-FE6V2YAQ.js', 'providers/binance.js', 'providers/coinbase.js', 'providers/hyperliquid.js']];
   var Z = ['vanilla.js', 'menu.js', 'dialog.js', 'tooltip.js', 'zag-HYDRZ225.js', 'zag-OT4NHXNG.js', 'zag-QHTIFZZA.js', 'zag-TP66ESZT.js', 'zag-TQKRQI4C.js'];
   var urls = V[1].map(function (f) { return V[0] + f; }).concat(Z.map(function (f) { return '/assets/vendor/zag-1.42.0/' + f; }));
   for (var i = 0; i < urls.length; i++) { var l = document.createElement('link'); l.rel = 'modulepreload'; l.href = urls[i]; document.head.appendChild(l); }

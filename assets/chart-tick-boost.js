@@ -1,5 +1,5 @@
 // TradeZoro — Charts: tick-speed candles for Binance spot (ES module)
-// Depends on: Vela's BinanceProvider (assets/vendor/vela-0.6.17-s3/providers/binance.js, unmodified).
+// Depends on: Vela's BinanceProvider (assets/vendor/vela-0.6.17-s4/providers/binance.js, unmodified).
 // Imported by assets/vela-chart.js, which registers boostBinance(BinanceProvider) as the "binance" provider.
 //
 // Owner 2026-10-14: "if we are getting tick data, why are the candles not moving fast?". Binance's

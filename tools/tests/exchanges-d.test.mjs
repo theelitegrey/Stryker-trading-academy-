@@ -2,8 +2,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const fx = (n) => JSON.parse(fs.readFileSync(new URL('./fixtures/' + n + '.json', import.meta.url)));
-const BG = await import('../../assets/vendor/vela-0.6.17-s3/providers/bitget.js');
-const KR = await import('../../assets/vendor/vela-0.6.17-s3/providers/kraken.js');
+const BG = await import('../../assets/vendor/vela-0.6.17-s4/providers/bitget.js');
+const KR = await import('../../assets/vendor/vela-0.6.17-s4/providers/kraken.js');
 globalThis.window = {};
 const OFB = await import('../../assets/orderflow-venue-bitget.js');
 const OFK = await import('../../assets/orderflow-venue-kraken.js');

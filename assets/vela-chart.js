@@ -55,7 +55,7 @@
 // top of the Indicators picker; their settings ride the document under ext 'stryker.volume'.
 
 // CANDLE LOOK (Owner order 2026-10-05: "same aesthetics as TradingView"):
-// Vela is self-hosted from assets/vendor/vela-0.6.17-s3/ — the unmodified
+// Vela is self-hosted from assets/vendor/vela-0.6.17-s4/ — the unmodified
 // 0.6.17 ESM build (Apache-2.0, LICENSE + NOTICE in that folder) with ONE
 // patched file, chunk-YCD72KGK.js, marked "TradeZoro patch": 1-device-px wicks
 // (Vela drew 1.5 px) and TradingView's body-width curve (~80% of the bar
@@ -70,7 +70,7 @@
 // VELA 0.9.0 (CoS order 2026-10-22; DEFAULT FOR EVERYONE since build 625, Owner "push test
 // version live"; rollback: ?vela=0.6 per browser, or VELA090_DEFAULT in charts.html for all).
 // Was an admin trial: the upgraded engine in
-// assets/vendor/vela-0.9.0-s5/ (tools/vela-090-patch.py: our s1-s3 patches re-applied plus the
+// assets/vendor/vela-0.9.0-s6/ (tools/vela-090-patch.py: our s1-s3 patches re-applied plus the
 // TradingView-feel fixes). The inline script in charts.html picks the
 // folder BEFORE any module loads (the import map must match) and sets window.__stkVela090; the
 // 0.9.0 engine keeps its own saved workspace (vela-workspace-090) so switching back is safe.
@@ -257,7 +257,7 @@ function lateLayers(R){
 // panels (watchlist, news, GEX ladder, paper account, Charts bar replay, alerts). Charts page: BT is null, nothing changes.
 const BT = window.__stkBt || null;
 const VELA090 = window.__stkVela090 === true;
-const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s5/' : './vendor/vela-0.6.17-s3/';
+const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s6/' : './vendor/vela-0.6.17-s4/';
 // One-time migration for members whose saved workspace still carries the old
 // Vela theme defaults (see migrateTvLook below).
 const TV_LOOK_KEY = 'stryker_chart_tv_look';

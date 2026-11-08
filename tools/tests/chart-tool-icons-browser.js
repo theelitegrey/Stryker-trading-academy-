@@ -53,7 +53,7 @@ const barInfo = (p) => p.evaluate(() => {
 });
 async function starViaFlyout(p, type) {
   return p.evaluate(async (type) => {
-    const m = await import('./assets/vendor/vela-0.6.17-s3/index.js');
+    const m = await import('./assets/vendor/vela-0.6.17-s4/index.js');
     const label = m.getDrawingType(type).label;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const tb = document.querySelector('.vela-dtb');
@@ -77,7 +77,7 @@ async function starViaFlyout(p, type) {
 
     // ---- registry: every tool on the shared icon ----
     const reg = await p.evaluate(async () => {
-      const m = await import('./assets/vendor/vela-0.6.17-s3/index.js');
+      const m = await import('./assets/vendor/vela-0.6.17-s4/index.js');
       const I = await import('./assets/chart-tool-icons.js?v=544');
       const types = m.drawingTypes().map((d) => ({ type: d.type, label: d.label, same: d.icon === I.TOOL_ICONS[d.type], has: !!I.TOOL_ICONS[d.type] }));
       // drawn content: render each icon offscreen and measure the painted bbox
@@ -102,7 +102,7 @@ async function starViaFlyout(p, type) {
 
     // ---- column + flyouts show the same markup ----
     const col = await p.evaluate(async () => {
-      const m = await import('./assets/vendor/vela-0.6.17-s3/index.js');
+      const m = await import('./assets/vendor/vela-0.6.17-s4/index.js');
       const byLabel = Object.fromEntries(m.drawingTypes().map((d) => [d.label, d]));
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       const tb = document.querySelector('.vela-dtb');
@@ -138,7 +138,7 @@ async function starViaFlyout(p, type) {
     check(!bi.hidden && bi.types.join() === FAV.join(), 'bar shows the starred tools in order', bi.types);
     check(!bi.vert, 'horizontal by default');
     const same = await p.evaluate(async () => {
-      const m = await import('./assets/vendor/vela-0.6.17-s3/index.js');
+      const m = await import('./assets/vendor/vela-0.6.17-s4/index.js');
       return [...document.querySelectorAll('.stk-fb-b')].filter((b) => { const s = b.querySelector('svg'); const ref = m.getDrawingType(b.dataset.type).icon; const d = document.createElement('div'); d.innerHTML = ref; return !s || s.innerHTML !== d.firstElementChild.innerHTML; }).map((b) => b.dataset.type);
     });
     check(same.length === 0, 'favourites bar icons == registry icons', same);
@@ -224,7 +224,7 @@ async function starViaFlyout(p, type) {
 
     // ---- contact sheet (same page so the module resolves) ----
     await p.evaluate(async () => {
-      const m = await import('./assets/vendor/vela-0.6.17-s3/index.js');
+      const m = await import('./assets/vendor/vela-0.6.17-s4/index.js');
       const I = await import('./assets/chart-tool-icons.js?v=544');
       const sheet = document.createElement('div');
       sheet.id = 'stk-sheet';
@@ -295,7 +295,7 @@ async function starViaFlyout(p, type) {
     await p.evaluate(() => window.STRYKER_VELA.active.chart.drawings.setTool(null));
     // phone drawings sheet uses the same icons
     const sheetSame = await p.evaluate(async () => {
-      const m = await import('./assets/vendor/vela-0.6.17-s3/index.js');
+      const m = await import('./assets/vendor/vela-0.6.17-s4/index.js');
       try { window.STRYKER_VELA.openDrawingsDrawer(); } catch (e) { return 'no drawer'; }
       await new Promise((r) => setTimeout(r, 300));
       const byLabel = Object.fromEntries(m.drawingTypes().map((d) => [d.label, d]));

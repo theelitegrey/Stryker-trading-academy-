@@ -45,7 +45,7 @@ const last = (p) => p.evaluate(() => { const rb = window.STRYKER_VELA.chart.orch
         await setSym(p, sym, '15'); await sleep(600);
         await p.screenshot({ path: OUT + '/C-' + sym.replace(/[^A-Za-z0-9]/g, '') + '-' + tag + '.png' });
       }
-      const found = await p.evaluate(async () => { const m = await import('/assets/vendor/vela-0.6.17-s3/providers/okx.js'); const l = await new m.OkxProvider().listSymbols(); return { n: l.length, spot: l.some((x) => x.ticker === 'BTC-USDT'), swap: l.some((x) => x.ticker === 'BTC-USDT-SWAP') }; });
+      const found = await p.evaluate(async () => { const m = await import('/assets/vendor/vela-0.6.17-s4/providers/okx.js'); const l = await new m.OkxProvider().listSymbols(); return { n: l.length, spot: l.some((x) => x.ticker === 'BTC-USDT'), swap: l.some((x) => x.ticker === 'BTC-USDT-SWAP') }; });
       check(found.spot && found.swap && found.n > 200, tag + ': OKX symbol list has spot + perpetuals (' + found.n + ')', found);
       const credit = await p.evaluate(() => (document.querySelector('.stkchart-credit') || {}).textContent || '');
       check(/public exchange market data/i.test(credit) && !/real-time/i.test(credit), tag + ': credit line names crypto data, no real-time claim', credit);

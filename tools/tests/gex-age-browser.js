@@ -50,7 +50,7 @@ async function open(b, { w, h, mobile, theme }) {
   try {
     for (const v of [{ w: 390, h: 844, mobile: true, theme: 'dark', n: '390-dark' }, { w: 1440, h: 900, theme: 'dark', n: '1440-dark' }, { w: 1440, h: 900, theme: 'light', n: '1440-light' }]) {
       const s = await open(b, v);
-      check(/GEX (updated )?just now/.test(s.chip), v.n + ': chip "' + s.chip + '" (options 40 s old, futures 10 min old)');
+      check(/GEX live/.test(s.chip), v.n + ': chip "' + s.chip + '" (options 40 s old, futures 10 min old)');
       check(!/10 ?m(in)? ago/.test(s.chip), v.n + ': chip no longer shows the futures age');
       check(!/live|real-time|delayed|behind/i.test(s.chip), v.n + ': wording');
       check(!s.errors.length, v.n + ': no page errors ' + s.errors.slice(0, 2).join(' | '));

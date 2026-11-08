@@ -25,7 +25,7 @@
   function ago(t) {
     if (!fin(t)) return '';
     var m = Math.max(0, Math.floor((Date.now() / 1000 - t) / 60));
-    if (m < 1) return 'Updated just now';
+    if (m < 1) return 'Live';
     if (m < 120) return 'Updated ' + m + ' min ago';
     var h = Math.floor(m / 60);
     return h < 48 ? 'Updated ' + h + ' h ago' : 'Updated ' + Math.floor(h / 24) + ' days ago';

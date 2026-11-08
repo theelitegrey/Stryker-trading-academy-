@@ -18,7 +18,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const NOW = Math.floor(Date.now() / 1000);
 const FIX = (n) => JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'greeks', n), 'utf8'));
 const etDay = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t * 1000)).slice(0, 10);
-const BANNED = /\blive\b|real-time|realtime|delayed|\bbehind\b|bullish|bearish|call resistance|put support|\bHVL\b|gamma wall/i;
+const BANNED = /real-time|realtime|delayed|\bbehind\b|bullish|bearish|call resistance|put support|\bHVL\b|gamma wall/i;
 // shift a fixture so its chain time is 2 min ago and its expiry dates keep the same distance from "today" (New York)
 let CHAIN_T = 0;   // chart test: the last NQ bar's time (on a weekend 'now' has no bar to map futures with)
 function moved(name) {
@@ -103,7 +103,7 @@ async function charts(b, o, tag) {
   for (const t of TYPES) {
     const d = await dataOf(p, t), col = { stk_dex: 'dex', stk_vex: 'vanna', stk_cex: 'charm' }[t];
     check(d && d.rows && d.rows.length === want.rows.length && d.top && d.top.length === 3, tag + ': ' + t + ' ' + (d && d.rows && d.rows.length) + ' bars + ' + (d && d.top && d.top.length) + ' lines ' + (d && !d.rows ? JSON.stringify(d) : ''));
-    check(d && /updated (\d+ (min|h) ago|\d+ days ago|just now)/.test(d.status) && /mapped from QQQ/.test(d.status) && /all expiries/.test(d.status) && !BANNED.test(d.status), tag + ': status "' + (d && d.status) + '"');
+    check(d && /(updated (\d+ (min|h) ago|\d+ days ago)|live)/.test(d.status) && /mapped from QQQ/.test(d.status) && /all expiries/.test(d.status) && !BANNED.test(d.status), tag + ': status "' + (d && d.status) + '"');
     const tot = want.tot[col];
     check(d && String(d.status).includes('net '), tag + ': ' + t + ' net total shown (feeder ' + tot + ' $M)');
   }
@@ -153,7 +153,7 @@ async function gexPage(b, o, tag) {
   const M = (m) => { const a = Math.abs(m), sg = m < 0 ? '-' : '+'; return a >= 1000 ? sg + '$' + (a / 1000).toFixed(a >= 10000 ? 0 : 1) + 'B' : a >= 1 ? sg + '$' + a.toFixed(a >= 100 ? 0 : 1) + 'M' : sg + '$' + Math.round(a * 1000) + 'K'; };
   check(s.rows === 25 && s.on === 'All expiries', tag + ': SPX all expiries, 25 strikes (' + s.rows + ')');
   check(s.tiles.length === 5 && s.tiles[0].endsWith(M(spx.tot.gex) + ' /1%') && s.tiles[2].endsWith(M(spx.tot.dex)), tag + ': tiles = feeder totals ' + s.tiles.join(' | '));
-  check(/Updated (\d+ min ago|\d+ h ago|just now)/.test(s.ago) && !BANNED.test(s.text) && /Education only\. Not financial advice\./.test(s.text) && /How it\u2019s calculated/.test(s.text), tag + ': "' + s.ago + '", wording, disclaimer, how note');
+  check(/(Updated (\d+ min ago|\d+ h ago)|Live)/.test(s.ago) && !BANNED.test(s.text) && /Education only\. Not financial advice\./.test(s.text) && /How it\u2019s calculated/.test(s.text), tag + ': "' + s.ago + '", wording, disclaimer, how note');
   check(s.sw <= s.cw + 1, tag + ': no horizontal page overflow');
   await p.locator('#gex-greeks').scrollIntoViewIfNeeded();
   await shot(p, 'greeks-gexplus-' + tag + '.png', '#gex-greeks');

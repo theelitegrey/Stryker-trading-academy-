@@ -15,7 +15,7 @@ for (const f of ['SPX-0', 'QQQ-0']) {
 }
 const now = 1794000000;
 const d = { fetched_at: now, market: { state: 'open', data_ts: now - 600, options_ts: now - 30 } };
-ok(agoText(dataTime(d), now * 1000) === 'GEX updated just now', 'options 30 s old + futures 10 min old -> "GEX updated just now" (was "10 min ago")');
+ok(agoText(dataTime(d), now * 1000) === 'GEX live', 'options 30 s old + futures 10 min old -> "GEX updated just now" (was "10 min ago")');
 ok(dataTime({ fetched_at: now, market: { data_ts: now - 60 } }) === now - 60, 'no options_ts -> data_ts');
 ok(dataTime({ fetched_at: now }) === now, 'no market block -> fetched_at');
 ok(!/live|real-time|delayed|behind/i.test(agoText(now - 300, now * 1000)), 'wording: ' + agoText(now - 300, now * 1000));

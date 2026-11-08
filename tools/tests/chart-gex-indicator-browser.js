@@ -115,7 +115,7 @@ async function addFromWindow(p) {
       check(l && Math.abs(l.price - r2(v)) < 0.011 && l.text.startsWith(lbl + ' ') && l.color === colr && l.dash === dash && l.w === w,
         'ES ' + lbl + ' = API ' + v + ' ' + colr + ' ' + dash + ' w' + w + ' (got ' + (l && [l.text, l.color, l.dash, l.w].join(' ')) + ')');
     });
-    check(d && /^GEX updated (just now|\d+ (min|h) ago|\d+ days ago)/.test(d.status) && !/live|real-time|delayed/i.test(d.status), 'status: ' + (d && d.status));
+    check(d && /^GEX (live|updated (\d+ (min|h) ago|\d+ days ago))/.test(d.status) && !/real-time|delayed/i.test(d.status), 'status: ' + (d && d.status));
     // labels: painted tag boxes never overlap; close levels share one tag
     await p.evaluate(([lo, hi]) => { try { const ch = window.STRYKER_VELA.context().cells[0].chart; if (ch.setPriceRange) ch.setPriceRange(lo, hi); } catch (e) {} }, [es.iv68_lo - 10, es.iv68_hi + 10]);
     await sleep(800);

@@ -408,7 +408,7 @@ function routeAlerts(req, sess, out, bars){
 let getWs = () => null;
 const zsHandles = (chart) => { try { return chart.indicators().filter((h) => isZscript(h.source) && !h.nativeType); } catch (e) { return []; } };
 function changed(){ try { const ws = getWs(); if (ws) ws.context().stateChanged(); } catch (e) {} }
-function snapshot(h){ let inputs = {}; try { inputs = h.inputValues() || {}; } catch (e) {} return { name: titleOf(h.source), source: h.source, inputs }; }
+function snapshot(h){ let inputs = {}; try { inputs = h.inputValues() || {}; } catch (e) {} const o = { name: titleOf(h.source), source: h.source, inputs }; if (h.visible === false) o.hidden = true; return o; }
 function cleanEntry(x){
   if (!x || typeof x !== 'object' || !isZscript(x.source) || x.source.length > SRC_MAX) return null;
   const inputs = {};
@@ -416,7 +416,9 @@ function cleanEntry(x){
     const v = x.inputs[k];
     if (typeof v === 'boolean' || (typeof v === 'number' && Number.isFinite(v)) || (typeof v === 'string' && v.length <= 4096)) inputs[k] = v;
   });
-  return { name: typeof x.name === 'string' ? x.name.slice(0, 80) : 'Zscript', source: x.source, inputs };
+  const o = { name: typeof x.name === 'string' ? x.name.slice(0, 80) : 'Zscript', source: x.source, inputs };
+  if (x.hidden === true) o.hidden = true;   // hidden with the legend eye: comes back hidden
+  return o;
 }
 
 // Called by vela-chart.js BEFORE the workspace is constructed.
@@ -433,7 +435,7 @@ export function installZscript(core, wsGetter){
         zsHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} });   // a template over a cell: replace, never stack
         if (!Array.isArray(payload)) return;
         payload.map(cleanEntry).filter(Boolean).slice(0, MAX_PER_CELL).forEach((x) => {
-          try { chart.addIndicator(x.source, { language: LANG, inputs: x.inputs }); } catch (e) { console.warn('TradeZoro: Zscript restore', e); }
+          try { const h = chart.addIndicator(x.source, { language: LANG, inputs: x.inputs }); if (h && x.hidden) h.setVisible(false); } catch (e) { console.warn('TradeZoro: Zscript restore', e); }
         });
       }
     });

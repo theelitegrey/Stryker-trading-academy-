@@ -161,7 +161,7 @@ async function ensureEngine(chart){
 
 // Add a restored/kept script on the engine it ran on before.
 function addOn(chart, x){
-  if (x.sealed) { addSealedOn(chart, x.sealed, x.inputs || {}, true).then((r) => { if (!r.ok) toast2(r.msg); }); return null; }
+  if (x.sealed) { addSealedOn(chart, x.sealed, x.inputs || {}, true).then((r) => { if (!r.ok) toast2(r.msg); else if (x.hidden) hide(r.handle); }); return null; }
   if (x.lib && !guardOk(x.source)) { console.warn('TradeZoro: shared Pine script failed the safety check, not restored'); return null; }
   const main = x.engine === 'main' && !x.lib;
   const next = x.engine === 'next' && !x.lib && nextEngines.has(chart);
@@ -170,8 +170,12 @@ function addOn(chart, x){
   if (next && h) onNext.add(h);
   if (x.lib && h) libOf.set(h, x.lib);
   if (h && x.rightOffset) trackRightOffset(chart, h, x.rightOffset); // saved layouts keep the HTF space
+  if (h && x.hidden) hide(h);
   return h;
 }
+// HIDDEN STAYS HIDDEN (member report 2026-11-08): a script hidden with the legend eye is saved with hidden: true
+// and comes back hidden (reload, saved layout, template). Older states have no flag and load visible.
+function hide(h){ try { h.setVisible(false); } catch (e) {} }
 
 // Pine indicators on a chart = script handles (natives carry nativeType, no source).
 function pineHandles(chart){
@@ -192,6 +196,7 @@ function snapshot(h){
   if (libOf.has(h)) o.lib = libOf.get(h);
   if (offsetHandles.has(h)) o.rightOffset = offsetHandles.get(h);
   if (sealOf.has(h)) { const z = sealOf.get(h); o.sealed = { cid: z.cid, iid: z.iid, name: z.name, logo: z.logo || '' }; delete o.engine; }
+  if (h.visible === false) o.hidden = true;
   return o;
 }
 // SAVED SETTINGS MUST COME BACK IN FULL (Owner 2026-10-26: "in Liquidity Master, watermark and equal
@@ -249,6 +254,7 @@ function cleanEntry(x){
   } else if (x.engine === 'main' || x.engine === 'next') o.engine = x.engine;
   const ro = requestedRightOffset(x);
   if (ro) o.rightOffset = ro;
+  if (x.hidden === true) o.hidden = true;
   const Z = x.sealed;
   if (Z && typeof Z === 'object' && /^[a-z0-9-]{3,30}$/.test(String(Z.cid || '')) && /^[A-Za-z0-9]{12,24}$/.test(String(Z.iid || ''))) {
     o.sealed = { cid: Z.cid, iid: Z.iid, name: String(Z.name || '').slice(0, 60), logo: /^https:\/\//.test(Z.logo || '') ? String(Z.logo).slice(0, 600) : '' };

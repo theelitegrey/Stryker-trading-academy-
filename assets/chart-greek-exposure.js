@@ -8,8 +8,8 @@
 //   lines with a tag. Futures are mapped (ES/NQ/RTY/GC/CL) with ratio = chart price / underlying spot at the chain time.
 // Expiry: All expiries (<= 31 days) / 0DTE (today's expiry only; says so when there is none today) / Next expiry.
 // Bar replay: nothing is drawn. Wording: "updated X min ago" only. Education only. Not financial advice.
-import * as ZD from './chart-zoro-data.js?v=924';
-import * as ProGate from './chart-pro-gate.js?v=924';
+import * as ZD from './chart-zoro-data.js?v=925';
+import * as ProGate from './chart-pro-gate.js?v=925';
 
 export const DEX_TYPE = 'stk_dex', VEX_TYPE = 'stk_vex', CEX_TYPE = 'stk_cex';
 const PRICING = '/pricing';

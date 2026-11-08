@@ -1,7 +1,7 @@
 // Schwab connect tests: guard, symbol map, OAuth state, token function, adapter on fixtures. No real keys, no network.
 // Run: node tools/tests/schwab.test.mjs
 import assert from 'node:assert/strict';
-import { guardUrl, guardWs, guardWsMessage, schwab, schwabAuthUrl, takeSchwabState, streamerInfoOf, schwabCreds, SCHWAB, SOURCES, Hub } from '../../assets/byo-core.js?v=924';
+import { guardUrl, guardWs, guardWsMessage, schwab, schwabAuthUrl, takeSchwabState, streamerInfoOf, schwabCreds, SCHWAB, SOURCES, Hub } from '../../assets/byo-core.js?v=925';
 import { handle } from '../../functions/connect/schwab/token.js';
 let n = 0; const t = async (name, fn) => { await fn(); n++; console.log('ok', name); };
 const mem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }; };

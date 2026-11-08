@@ -28,7 +28,7 @@
   function fail(e) { CH.toast('error', e && e.code === 'permission-denied' ? 'Not allowed. Check the values and try again.' : (e && e.message) || 'Something went wrong. Try again.'); }
   function arr(s) { return s.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }); }
   function planName(id) { var p = ctx.plans.filter(function (x) { return x.id === id; })[0]; return p ? p.name : '(deleted plan)'; }
-  function mod() { if (!mods2) mods2 = import('/assets/creator-seal.js?v=924'); return mods2; }
+  function mod() { if (!mods2) mods2 = import('/assets/creator-seal.js?v=925'); return mods2; }
   function planChecks(sel, name) {
     return ctx.plans.map(function (p) { return '<label><input type="checkbox" name="' + name + '" value="' + E(p.id) + '"' + ((sel || []).indexOf(p.id) >= 0 ? ' checked' : '') + '> ' + E(p.name) + ' <span class="cx-muted">' + E(CH.money(p)) + '</span></label>'; }).join('');
   }

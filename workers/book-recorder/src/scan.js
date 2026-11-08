@@ -12,6 +12,7 @@
 export const DP_SYMS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'AVGO', 'NFLX', 'AMD', 'JPM', 'V', 'WMT', 'XOM', 'LLY',
   'BAC', 'DIS', 'COST', 'INTC', 'PLTR', 'BA', 'COIN', 'MSTR', 'SPY', 'QQQ', 'IWM', 'DIA', 'GLD', 'TQQQ'];
 export const DP_COLS = ['t', 'p', 's', 'c'];
+export const DP_COLS2 = ['t', 'p', 's', 'c', 'd'];
 const DP_MAX_ROWS = 20000;
 export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'fut', 'syminfo', 'ms_nq', 'ms_es', 'ms_spx', 'ms_ym', 'ms_rty', 'ms_gc', 'ms_cl'].concat(DP_SYMS.map((s) => 'dp_' + s.toLowerCase()));
 export const SCAN_MAX_BODY = 900 * 1024;   // screener v2: more columns per market table (was 512 KB)
@@ -54,15 +55,21 @@ export function validateMarketStats(part, d) {
   return '';
 }
 
-// Dark pool part: { v, t, sym, code, min, days:[YYYY-MM-DD], cols: DP_COLS, rows: [[t ms, price, shares, conditions]] } sorted by t. Pure.
+// Dark pool part: { v, t, sym, code, min, days:[YYYY-MM-DD], cols: DP_COLS, rows: [[t ms, price, shares, conditions]] } sorted by t,
+// or v2 { ..., cols: DP_COLS2, rows: [[t, p, s, c, side]], dv: {date: [volume, vwap]} }. Pure.
 export function validateDarkPool(part, d) {
   if ('dp_' + String(d.sym || '').toLowerCase() !== part) return 'bad sym';
-  if (!Array.isArray(d.cols) || d.cols.join() !== DP_COLS.join()) return 'bad cols';
+  // v1 [t,p,s,c]; v2 (DP-DETAIL) adds d = estimated side ('b'/'s'/'u'/'l'/'') and dv = {date: [day volume, day VWAP]}
+  const v2 = Array.isArray(d.cols) && d.cols.join() === DP_COLS2.join();
+  if (!v2 && (!Array.isArray(d.cols) || d.cols.join() !== DP_COLS.join())) return 'bad cols';
+  if (v2 && (d.dv == null || typeof d.dv !== 'object' || Array.isArray(d.dv) || Object.keys(d.dv).length > 10
+    || !Object.entries(d.dv).every(([k, e]) => /^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray(e) && e.length === 2 && fin(e[0]) && fin(e[1]) && e[0] >= 0 && e[1] >= 0))) return 'bad dv';
   if (!fin(d.min) || d.min < 1e5 || !Array.isArray(d.days) || d.days.length > 10 || !d.days.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x))) return 'bad header';
   if (!Array.isArray(d.rows) || d.rows.length > DP_MAX_ROWS) return 'bad rows';
   let last = 0;
   for (const r of d.rows) {
-    if (!Array.isArray(r) || r.length !== 4 || !fin(r[0]) || !fin(r[1]) || !fin(r[2]) || r[1] <= 0 || r[2] <= 0 || typeof r[3] !== 'string' || r[3].length > 8) return 'bad row';
+    if (!Array.isArray(r) || r.length !== (v2 ? 5 : 4) || !fin(r[0]) || !fin(r[1]) || !fin(r[2]) || r[1] <= 0 || r[2] <= 0 || typeof r[3] !== 'string' || r[3].length > 8) return 'bad row';
+    if (v2 && !['b', 's', 'u', 'l', ''].includes(r[4])) return 'bad row';
     if (r[0] < last || r[0] < 1.5e12 || r[0] > 4.1e12) return 'bad time';
     last = r[0];
   }

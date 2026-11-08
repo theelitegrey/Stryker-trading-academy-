@@ -52,10 +52,48 @@ class T(unittest.TestCase):
         st = {'done': ['2026-11-06']}
         f.merge(st, rows, {'2026-11-06'})
         d = json.loads(gzip.decompress(f.part_body('SPY', 'AMEX:SPY', st, 1794050000)))
-        self.assertEqual(d['cols'], ['t', 'p', 's', 'c'])
+        self.assertEqual(d['cols'], ['t', 'p', 's', 'c', 'd'])
+        self.assertEqual(d['v'], 2)
         self.assertEqual(d['sym'], 'SPY')
         self.assertEqual([r[0] for r in d['rows']], sorted(r[0] for r in d['rows']))
-        self.assertTrue(all(len(r) == 4 for r in d['rows']))
+        self.assertTrue(all(len(r) == 5 and r[4] in ('b', 's', 'u', 'l') for r in d['rows']))
+        # rows stored before DP-DETAIL (4 columns) still go out, with an empty side
+        st['rows']['old'] = [1793966400000, 735.0, 2000, '']
+        d = json.loads(gzip.decompress(f.part_body('SPY', 'AMEX:SPY', st, 1794050000)))
+        self.assertIn([1793966400000, 735.0, 2000, '', ''], d['rows'])
+
+    def test_side_estimate(self):
+        e = f.SideEstimator(5, 1)
+        for i, p in enumerate((100.00, 100.02, 100.04, 100.02)):
+            e.lit(1000 + i * 1000, p, 100)          # lit 100.00..100.04, VWAP 100.02
+        self.assertEqual(e.side(4500, 100.04), 'b')   # at the lit high, 2 ticks over VWAP
+        self.assertEqual(e.side(4500, 100.05), 'b')
+        self.assertEqual(e.side(4500, 100.00), 's')   # at the lit low
+        self.assertEqual(e.side(4500, 100.02), 'u')   # in the middle
+        self.assertEqual(e.side(4500, 100.04, 'Z'), 'l')   # late report: time is the report time
+        self.assertEqual(e.side(4500, 100.04, 'TB'), 'u')  # average price: not a market price
+        self.assertEqual(e.side(20000, 100.04), 'u')  # no lit trade in the last 5 s
+        e2 = f.SideEstimator(5, 1)
+        e2.lit(1000, 50.0, 10); e2.lit(1100, 50.0, 10)
+        self.assertEqual(e2.side(1200, 50.0), 'u')    # flat tape: at the high AND the low, never a side
+        self.assertTrue(f.lit_ok('NYSE_ARCA', 'FI') and not f.lit_ok('NYSE_ARCA', 'M') and not f.lit_ok('F', '') and not f.lit_ok('FINRA_ADF', ''))
+
+    def test_rows_carry_side_and_day_stats(self):
+        stats = {}
+        rows, n = f.filter_stream(chunks(RAW, 500), stats=stats)
+        self.assertTrue(all(len(r) == 6 and r[5] in 'bsul' for r in rows))
+        whole = json.loads(RAW)['series']
+        vol = sum(o['volume'] for o in whole if not set(''.join(o['trade_conditions'])) & set('MQ9'))
+        self.assertEqual(sum(e[0] for e in stats.values()), vol)
+        f.filter_stream(chunks(RAW, 500), stats=stats)   # same trades again (overlapping window): not counted twice
+        self.assertEqual(sum(e[0] for e in stats.values()), vol)
+
+    def test_merge_upgrades_old_rows_only_once(self):
+        st = {'rows': {'a': [1793966400219, 735.52, 27817, 'T']}}           # stored before DP-DETAIL
+        self.assertEqual(f.merge(st, [[1793966400219, 735.52, 27817, 'T', 'a', 'b']], {'2026-11-06'}), 0)
+        self.assertEqual(st['rows']['a'], [1793966400219, 735.52, 27817, 'T', 'b'])
+        f.merge(st, [[1793966400219, 735.52, 27817, 'T', 'a', 's']], {'2026-11-06'})
+        self.assertEqual(st['rows']['a'][4], 'b')                          # first estimate kept (full-day context)
 
     def test_session_dates_weekdays(self):
         from datetime import datetime
@@ -68,7 +106,7 @@ class T(unittest.TestCase):
         d = tempfile.mkdtemp()
         calls = []
         with m.patch.object(f, 'STATE', os.path.join(d, 's.json')), m.patch.object(f, 'DAILY_CAP', 7), \
-             m.patch.object(f, 'fetch_rows', lambda code, key, params: (calls.append(params) or ([], 0, False))), \
+             m.patch.object(f, 'fetch_rows', lambda code, key, params, stats=None: (calls.append(params) or ([], 0, False))), \
              m.patch.dict(os.environ, {'INSIGHTSENTRY_WEBSOCKET_API_KEY': 'x', 'BOOK_RECORDER_URL': '', 'BOOK_INGEST_SECRET': ''}), \
              m.patch.object(sys, 'argv', ['dp_feeder.py', '--dry']), m.patch.object(f, 'log', lambda *a: None):
             f.main()
@@ -99,7 +137,7 @@ class T(unittest.TestCase):
         row = [1794000000000, 700.0, 10000, '', 'id1']         # 2026-11-06
         tries = {}
 
-        def fetch(code, key, params):
+        def fetch(code, key, params, stats=None):
             k = (code, params['date']); tries[k] = tries.get(k, 0) + 1
             if params['date'] == '2026-11-05' and tries[k] == 1:
                 raise f.Pending(45)
@@ -114,7 +152,7 @@ class T(unittest.TestCase):
         self.assertEqual(st['_calls']['n'], 6)
 
     def test_pending_gives_up_after_passes_within_cap(self):
-        def fetch(code, key, params):
+        def fetch(code, key, params, stats=None):
             raise f.Pending(9999)
         logs, posts, st = self.run_main(fetch, argv=('dp_feeder.py', 'NVDA'))
         self.assertEqual(st['_calls']['n'], 5 * (1 + f.RETRY_PASSES))   # each pending day: first try + RETRY_PASSES
@@ -126,7 +164,7 @@ class T(unittest.TestCase):
         self.assertEqual(st['_calls']['n'], 7)                          # the hard cap still wins
 
     def test_incomplete_day_not_marked_done(self):
-        logs, posts, st = self.run_main(lambda code, key, params: ([], 5, params['date'] == '2026-11-04'), argv=('dp_feeder.py', 'IWM'))
+        logs, posts, st = self.run_main(lambda code, key, params, stats=None: ([], 5, params['date'] == '2026-11-04'), argv=('dp_feeder.py', 'IWM'))
         self.assertNotIn('2026-11-04', st['IWM']['done'])
         self.assertEqual(len(st['IWM']['done']), 4)
 
@@ -142,7 +180,7 @@ class T(unittest.TestCase):
         self.assertFalse(meta.get('partial'))
 
     def test_post_time_is_fresh(self):
-        logs, posts, st = self.run_main(lambda c, k, p: ([], 1, False), argv=('dp_feeder.py', 'DIA'))
+        logs, posts, st = self.run_main(lambda c, k, p, stats=None: ([], 1, False), argv=('dp_feeder.py', 'DIA'))
         from datetime import datetime
         self.assertEqual(posts[0][1]['t'], int(datetime(2026, 11, 7, 12, tzinfo=f.NY).timestamp()))
 

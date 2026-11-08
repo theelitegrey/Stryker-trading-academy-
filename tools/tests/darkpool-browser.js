@@ -13,7 +13,8 @@ const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8197';
 const OUT = process.argv[2] || '/tmp';
 const FX = (s) => zlib.gzipSync(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'darkpool-' + s + '-2026-11-06.json')));
-const PART = { spy: FX('spy'), aapl: FX('aapl') };
+// SPY: the v2 part (DP-DETAIL: estimated side + day volume / VWAP); AAPL: the old v1 part (backward compatible: no side line)
+const PART = { spy: FX('v2-spy'), aapl: FX('aapl') };
 const DAY0 = Date.UTC(2026, 10, 6, 14, 30), DAY1 = Date.UTC(2026, 10, 6, 21, 0);   // 2026-11-06 regular session in UTC
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
@@ -52,7 +53,7 @@ const count = (p, type) => p.evaluate((t) => window.STRYKER_VELA.context().cells
 const view = (p, from, to) => p.evaluate(([f, t]) => window.STRYKER_VELA.context().cells[0].chart.setVisibleRange({ from: f, to: t }), [from, to]);
 const chip = (p) => p.evaluate(() => [...document.querySelectorAll('.stk-dp-chip')].filter((x) => !x.hidden).map((x) => x.textContent).join(' | '));
 const SHOOT = /darkpool-(1440-dark|1440-light|412-dark|390-dark|390-signedout)(-|\.)/;
-async function shot(p, name) { if (!SHOOT.test(name)) return; await p.mouse.move(2, 2).catch(() => {}); await sleep(700); const f = path.join(OUT, name); await p.screenshot({ path: f }); console.log('SHOT ' + f); }
+async function shot(p, name, keep) { if (!SHOOT.test(name)) return; if (!keep) await p.mouse.move(2, 2).catch(() => {}); await sleep(700); const f = path.join(OUT, name); await p.screenshot({ path: f }); console.log('SHOT ' + f); }
 const openPanel = (p, phone) => p.evaluate((ph) => { const b = document.querySelector(ph ? '.stkdkp-phonebtn' : '.stkdkp-railbtn'); if (b) b.click(); return !!b; }, phone);
 
 async function run(b, tag, o) {
@@ -89,9 +90,16 @@ async function run(b, tag, o) {
       t = await p.evaluate(() => { const t = document.querySelector('.stk-dp-tip'); return t && !t.hidden ? t.innerText : null; });
     }
     check(!!t && /(Block|Dark pool) print · \$/.test(t) && /Price/.test(t) && /Shares/.test(t) && /off the exchanges/.test(t), tag + ': card "' + String(t).replace(/\n/g, ' | ') + '"');
-    if (t && !phone) await shot(p, 'darkpool-' + tag + '-tip.png');
+    // DP-DETAIL: side + type of print up top, the day context below, the estimate note; no wider than before (268 px)
+    check(!!t && /(Likely buy|Likely sell|Unclear)/.test(t) && /(Regular block|Regular trade|Average-price|Contingent|Derivatively|Late report|Prior reference)/.test(t) && /Rank/.test(t) && /typical print/.test(t) && /% of shares/.test(t) && /estimate/.test(t), tag + ': card has side, type and detail rows');
+    const tw = await p.evaluate(() => { const t = document.querySelector('.stk-dp-tip'); const r = t.getBoundingClientRect(); return { w: Math.round(r.width), in: r.left >= 0 && r.right <= window.innerWidth && r.top >= 0 && r.bottom <= window.innerHeight }; });
+    check(tw.w <= 268 && tw.in, tag + ': card width ' + tw.w + ' px, inside the screen ' + tw.in);
+    if (t) await shot(p, 'darkpool-' + tag + '-tip.png', true);
     await p.keyboard.press('Escape');
   } else check(false, tag + ': no $10M+ dot found');
+  // levels (default on, $25M): SPY 2026-11-06 has 3 (738.36 $162M, 737.00 $39M, 740.49 $36M)
+  const lv = await p.evaluate(() => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_darkpool'); return h.inputValues(); });
+  check(lv.levels === true && lv.levelMin === '$25M', tag + ': levels on by default at $25M');
   // size filter $10M
   await p.evaluate(() => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_darkpool'); h.setInputs(Object.assign(h.inputValues(), { minSize: '$10M' })); }); await sleep(1200);
   const st2 = await p.evaluate(() => window.__stkDarkpool || null);
@@ -106,6 +114,8 @@ async function run(b, tag, o) {
   check(/982 prints ≥ \$1M, last session · Updated/.test(stat), tag + ': list status "' + stat + '"');
   const hdr = await p.evaluate(() => [...document.querySelectorAll('#stkdkp .stkdkp-cols span')].map((x) => x.textContent).join(','));
   check(hdr === 'Time,Price,Shares,Value', tag + ': columns ' + hdr);
+  const l2 = await p.evaluate(() => [...document.querySelectorAll('#stkdkp .stkdkp-l2')].slice(0, 600).map((x) => x.textContent));
+  check(l2.length === 600 && l2.some((x) => /^Likely buy · /.test(x)) && l2.some((x) => /^Likely sell · /.test(x)) && l2.every((x) => /^(Likely buy|Likely sell|Unclear|Unclear \(late report\)) · /.test(x)), tag + ': every row has the side + type line (e.g. "' + l2.find((x) => /level/.test(x)) + '")');
   const ov = await p.evaluate(() => { const l = document.querySelector('#stkdkp .stkdkp-list'); const pn = document.getElementById('stkdkp'); return { sx: l.scrollWidth - l.clientWidth, pw: pn.getBoundingClientRect().right <= window.innerWidth + 1 }; });
   check(ov.sx <= 1 && ov.pw, tag + ': no horizontal overflow in the list ' + JSON.stringify(ov));
   await shot(p, 'darkpool-' + tag + '-panel.png');
@@ -128,6 +138,11 @@ async function run(b, tag, o) {
   await setSym(p, 'IDX:AAPL', '5'); await view(p, DAY0 - 600000, DAY1 + 300000); await sleep(1500);
   const st3 = await p.evaluate(() => window.__stkDarkpool || null);
   check(st3 && st3.sym === 'AAPL' && st3.n === 268 && st3.big === 33, tag + ': real AAPL part read: ' + JSON.stringify(st3));
+  // old (v1) part: the list still renders, with the type of print and no side
+  await openPanel(p, phone); await sleep(1200);
+  const o2 = await p.evaluate(() => [...document.querySelectorAll('#stkdkp .stkdkp-l2')].map((x) => x.textContent));
+  check(o2.length === 33 && o2.every((x) => !/Likely|Unclear/.test(x)) && o2.some((x) => /Regular block/.test(x)), tag + ': v1 part (no side) renders at $10M+: ' + o2.length + ' rows, no side');
+  await openPanel(p, phone); await sleep(400);
   check(!errors.length, tag + ': no page errors ' + errors.join(' | ').slice(0, 300));
   await ctx.close();
 }

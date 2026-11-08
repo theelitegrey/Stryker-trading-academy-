@@ -13,11 +13,11 @@
 //   - right side: the current book per price row (red asks above, green bids below, sizes) and an optional cumulative column;
 //   - bottom: buy / sell volume bars per bar; a last-price line and the best bid / ask sizes at the right edge.
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
-import { drawBookmap, STYLES, SMOOTH_OPTS } from './chart-bookmap.js?v=918';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=918';
-import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote } from './chart-futures-l2.js?v=918';
-import { sphere, drawLadder } from './chart-liquidity-map.js?v=918';
-import { getVenue } from './orderflow-venues.js?v=918';
+import { drawBookmap, STYLES, SMOOTH_OPTS } from './chart-bookmap.js?v=919';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=919';
+import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote } from './chart-futures-l2.js?v=919';
+import { sphere, drawLadder } from './chart-liquidity-map.js?v=919';
+import { getVenue } from './orderflow-venues.js?v=919';
 
 export const DH_TYPE = 'stk_depth_heat';
 export const DH_TITLE = 'Depth Heatmap (L2)';

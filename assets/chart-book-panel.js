@@ -7,11 +7,11 @@
 // Hyperliquid charts: tap a Book row (DOM: the price cell) or pick "Wallets at this price" -> tracked wallets with orders there (chart-wallet-intel.js).
 // Logic lives in book-panel-core.js (unit-tested), streams in book-panel-sources.js. Phones <= 700 px: bottom sheet.
 // Wording: "updated Xs ago" only; no real-time claims. Education only. Not financial advice.
-import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source } from './chart-futures-l2.js?v=918';
-import { replayClock, btBook } from './book-replay.js?v=918';
-import { rtReady, rtOnChange } from './rt-access.js?v=918';
-import * as C from './book-panel-core.js?v=918';
-import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=918';
+import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source } from './chart-futures-l2.js?v=919';
+import { replayClock, btBook } from './book-replay.js?v=919';
+import { rtReady, rtOnChange } from './rt-access.js?v=919';
+import * as C from './book-panel-core.js?v=919';
+import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=919';
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
 const FILTERS_C = [['0', 'All sizes'], ['1000', '≥ $1k'], ['10000', '≥ $10k'], ['100000', '≥ $100k']], FILTERS_F = [['0', 'All sizes'], ['5', '≥ 5'], ['25', '≥ 25'], ['100', '≥ 100']];
@@ -111,7 +111,7 @@ export function mountBookPanel(ws, opts) {
     if (k.kind === 'crypto' && (k.pair.perp || k.prov !== 'binance')) { f.msg = 'No recorded order book for this market in replay.'; return; }   // the recorder keeps Binance spot only
     if (k.kind === 'fut') f.step = k.tick;
     let alive = true; f.stops.push(() => { alive = false; });
-    import('./chart-orderflow.js?v=918').then((Flow) => {
+    import('./chart-orderflow.js?v=919').then((Flow) => {
       if (!alive) return;
       const h = k.kind === 'fut' ? Flow.acquireBookFeed('tsl2', k.root, schedule, l2Source(k.root)) : Flow.acquireBookFeed('binance', k.pair.base + k.pair.quote, schedule);
       f.bf = h.feed; f.stops.push(() => h.release());

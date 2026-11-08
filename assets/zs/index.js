@@ -2,11 +2,11 @@
 //   compile(source) -> { ok, diagnostics, program, meta }
 //   run(program, opts) -> output            (synchronous; use runner.js for the sandboxed worker)
 //   new Session(program, opts): .run(bars) .update(bar)
-export { compile, LIMITS } from './compiler.js?v=918';
-export { validateProgram, RUN_LIMITS, resolveInput } from './vm.js?v=918';
-export { catalogJSON, FUNCTIONS, VARIABLES, CONSTANTS } from './catalog.js?v=918';
-export { MESSAGES } from './errors.js?v=918';
-import { Exec } from './vm.js?v=918';
+export { compile, LIMITS } from './compiler.js?v=919';
+export { validateProgram, RUN_LIMITS, resolveInput } from './vm.js?v=919';
+export { catalogJSON, FUNCTIONS, VARIABLES, CONSTANTS } from './catalog.js?v=919';
+export { MESSAGES } from './errors.js?v=919';
+import { Exec } from './vm.js?v=919';
 
 export const VERSION = 1;
 

@@ -7,7 +7,7 @@ const KR = await import('../../assets/vendor/vela-0.6.17-s3/providers/kraken.js'
 globalThis.window = {};
 const OFB = await import('../../assets/orderflow-venue-bitget.js');
 const OFK = await import('../../assets/orderflow-venue-kraken.js');
-const V = await import('../../assets/orderflow-venues.js?v=918');
+const V = await import('../../assets/orderflow-venues.js?v=919');
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };
 
 // ---- Bitget

@@ -72,9 +72,11 @@ function realSource(src){
 }
 const ready = (async () => {
   // O(n) ta.pivothigh/pivotlow (assets/chart-pine-next-patches.js) on pinets' Context.
+  // LAYOUT-PERF (2026-11-08): the three downloads run side by side (the vela-pinets fetch used to wait for pinets).
+  const resP = fetch(VELA_PINETS);
   const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=914')]);
   try { patches.install(pinets.Context, pinets, self); rewrite = patches.rewriteSource; } catch (e) { console.warn('TradeZoro: pine-next patches', e); }
-  const res = await fetch(VELA_PINETS);
+  const res = await resP;
   if (!res.ok) throw new Error('Pine engine download failed (' + res.status + ')');
   const text = (await res.text())
     .replace(/from\s*(['"])pinets\1/g, "from '" + PINETS + "'")

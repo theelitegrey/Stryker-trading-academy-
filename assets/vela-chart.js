@@ -1004,7 +1004,10 @@ function lateLists(provider){
       };
       tick();
     });
-    firstPaint().then(() => new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 2500 }) : setTimeout(r, 300))))
+    // LAYOUT-PERF (2026-11-08): shorter idle wait (was 2.5 s), and opening the Indicators window (window.__stkHeavyNow)
+    // starts the load at once, so an order-flow / GEX tool picked early doesn't wait for the page to go idle.
+    let now = null; const kick = new Promise((r) => { now = r; }); window.__stkHeavyNow = () => now();
+    Promise.race([kick, firstPaint().then(() => new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 800 }) : setTimeout(r, 300))))])
       .then(loadHeavy).then((h) => { mods[7] = h[0]; mods[14] = h[1]; mods[19] = h[2]; mods[20] = h[3]; mods[21] = h[4]; installHeavy(); mountHeavy(); refreshStyleMenu();
         // Each cell caches the native-indicator catalog the Indicators window lists; it was built before the
         // late volume tools registered, so on a fresh browser they were missing until a symbol change.

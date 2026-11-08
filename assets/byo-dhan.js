@@ -4,9 +4,9 @@
 //  - live prices: Dhan's own feed socket (wss://api-feed.dhan.co), subscribe-to-quotes messages only; packets decoded by assets/dhan-feed.js;
 //  - price history + the symbol list: our pass-through functions (/connect/dhan/data, /connect/dhan/master). Dhan's REST host refuses browser requests (CORS), see the report.
 // Nothing about the account (orders, funds, positions, profile) is requested, kept or shown. Dhan's market data needs the Data plan on the member's own Dhan account.
-import { ADAPTERS, ROUTERS, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf, srcById } from './byo-core.js?v=923';
-import { symbolOf as inSym, parts as inParts, info as inInfo, monthSyms } from './byo-india.js?v=923';
-import { decodeFrame, SEG_CODE } from './dhan-feed.js?v=923';
+import { ADAPTERS, ROUTERS, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf, srcById } from './byo-core.js?v=924';
+import { symbolOf as inSym, parts as inParts, info as inInfo, monthSyms } from './byo-india.js?v=924';
+import { decodeFrame, SEG_CODE } from './dhan-feed.js?v=924';
 
 const HARD = { redirect: 'error', credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' };
 const dep = (d) => ({ fetch: (d && d.fetch) || ((...a) => globalThis.fetch(...a)), WS: (d && d.WS) || globalThis.WebSocket, now: (d && d.now) || Date.now });

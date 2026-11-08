@@ -184,6 +184,8 @@ export function load(path, ttl = TTL) {
   return n.p;
 }
 export const cached = (path) => cache.get(path) || null;
+export const redraw = () => natives.forEach((n) => { n.sig = ''; n.refresh(); });   // ladders: row size or bands changed
+const LH = () => (typeof window !== 'undefined' && window.__stkLadders) || null;   // chart-hl-ladders.js: panel + bands hook
 export const _set = (path, j) => { cache.set(path, { at: Date.now() + 1e12, j, err: '', p: null }); subs.forEach((f) => { try { f(path); } catch (x) {} }); };   // test hook
 const onData = (f) => { subs.add(f); return () => subs.delete(f); };
 const enc = encodeURIComponent;
@@ -257,11 +259,12 @@ function layer() {
       const g = canvas.getContext('2d'), co = a.coords, dpr = co.dpr || 1, d = a.data;
       g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, canvas.width, canvas.height); g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const boxes = []; hits.set(canvas, { boxes, a, coin: d && d.coin });
-      if (!d) return setChip('', canvas.parentElement);
-      if (d.note) return setChip(d.note, canvas.parentElement);
+      if (!d) { if (LH()) LH().sync(null); return setChip('', canvas.parentElement); }
+      if (d.note) { if (LH()) LH().sync(null); return setChip(d.note, canvas.parentElement); }
       const W = co.width, top = a.bounds.top, H = a.bounds.height, bot = top + H, day = light(), I = d.I;
       const cov = d.cl && d.cl.coverage && isNum(d.cl.coverage.oiPct) ? ' · tracked ≈ ' + Math.round(d.cl.coverage.oiPct) + '% of OI' : '';
       g.save(); g.beginPath(); g.rect(0, top, W, H); g.clip();
+      if (LH()) LH().sync(canvas.parentElement, a, d, g);
       // selected candle: an outline around its high-low
       if (d.sel && a.bars && a.bars.length) {
         const i = barAt(a.bars, d.sel, barMs(a.bars));
@@ -329,6 +332,7 @@ export function _xy(t, price) {
 function hitAt(e) {
   for (const cv of document.querySelectorAll('canvas[data-stk-wi]')) {
     const h = hits.get(cv); if (!h || !h.a) continue;
+    if (e.target && e.target.closest && e.target.closest('.stkhll-fab')) return null;
     const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if (x < 0 || y < 0 || x > r.width || y > r.height) continue;
     let best = null;
@@ -338,6 +342,7 @@ function hitAt(e) {
   return null;
 }
 function clusterTitle(c) {
+  if (c.title) return c.title + ' ' + fmtPx(c.lo) + '–' + fmtPx(c.hi);   // ladder rows (chart-hl-ladders.js)
   return (c.kind === 'liq' ? (c.side > 0 ? 'Long liquidations ' : 'Short liquidations ') : (c.side > 0 ? 'Buy triggers ' : 'Sell triggers ')) + fmtPx(c.lo) + '–' + fmtPx(c.hi);
 }
 function showTip(hit) {
@@ -475,7 +480,7 @@ export function mountWalletIntel(ws) {
       list.appendChild(walletRow(w, l2, usd(w.ntl), c.ntl > 0 && isNum(w.ntl) ? Math.round(w.ntl / c.ntl * 100) + '% of cluster' : '', w.side > 0 ? 'up' : 'dn'));
     }
     body.appendChild(list);
-    if (c.cut) body.appendChild(el('p', 'stkwi-sum', 'Showing the 20 biggest of ' + c.n + '.'));
+    if (c.cut) body.appendChild(el('p', 'stkwi-sum', 'Showing the ' + Math.min(50, c.wallets.length) + ' biggest of ' + c.n + '.'));
     body.appendChild(el('p', 'stkwi-key', c.kind === 'liq' ? 'Liquidation prices of tracked wallets\' open positions, grouped by price. They move as prices, margin and positions change.' : 'Stop-loss and take-profit trigger orders of tracked wallets, grouped by price. A trigger turns into an order when the price reaches it.'));
   }
   function renderLevel(v) {
@@ -563,13 +568,15 @@ export function mountWalletIntel(ws) {
     if (open !== was) requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} });
   }
   // the book panel sits where this panel sits: when the book is open we float over it instead of pushing the chart again
-  const bookOpen = () => { const b = document.getElementById('stkbp'); return !!(b && !b.hidden && !isPhone()); };
+  const bookOpen = () => { const b = document.getElementById('stkbp'), l = document.getElementById('stkhll'); return !!((b && !b.hidden || l && !l.hidden) && !isPhone()); };
   function go(v, replace) {
     if (view && !replace) stack.push(view);
     if (replace) stack = [];
     view = v; filter = v.kind === 'candle' ? filter : filter;
     setOpen(true); body.scrollTop = 0; render();
-    panel.classList.toggle('over-book', bookOpen());
+    const L = document.getElementById('stkhll'), b2 = document.getElementById('stkbp');
+    panel.classList.toggle('over-hll', !!(L && !L.hidden && !isPhone()));
+    panel.classList.toggle('over-book', !!(b2 && !b2.hidden && !isPhone()) && !panel.classList.contains('over-hll'));
   }
   back.addEventListener('click', () => { if (!stack.length) return; view = stack.pop(); body.scrollTop = 0; render(); });
   $('.stkwi-x').addEventListener('click', () => setOpen(false));
@@ -590,6 +597,7 @@ export function mountWalletIntel(ws) {
     get isOpen() { return open; }, get view() { return view; }, _xy
   };
   window.__stkWalletIntel = api;
+  import('./chart-hl-ladders.js?v=914').then((m) => m.mountLadders(ws, host)).catch((e) => console.warn('TradeZoro: ladders', e));
   return api;
 }
 
@@ -610,6 +618,7 @@ const CSS = `
 :root[data-theme="light"] .stkwi{ --wi-up:#047857; --wi-dn:#c81e2e; }
 .stkwi[hidden]{ display:none; }
 .stkwi.over-book{ right:calc(var(--stkw-rail, 44px) + var(--stkbp-w, 400px)); box-shadow:-8px 0 24px rgba(0,0,0,.35); }
+.stkwi.over-hll{ right:calc(var(--stkw-rail, 44px) + var(--stkhll-w, 372px)); box-shadow:-8px 0 24px rgba(0,0,0,.35); }
 .stkwi-grab{ display:none; }
 .stkwi-hd{ flex:none; display:flex; align-items:center; gap:4px; min-height:56px; padding:4px 4px 4px 12px; border-bottom:1px solid var(--line-soft); }
 .stkwi-back:not([hidden]) + .stkwi-ttl{ margin-left:-4px; }
@@ -680,6 +689,7 @@ let installed = false;
 export function installWalletIntel(Core) {
   if (installed) return;
   installed = true;
+  if (typeof window !== 'undefined') window.__stkRedrawWi = redraw;
   Core.registerRendererLayer({ id: WI_TYPE, placement: 'above-data', create: layer });
   Core.registerNativeIndicator({
     type: WI_TYPE, title: 'Wallet Intel', shortTitle: 'Wallet Intel', paneHint: 'price', overlay: true,

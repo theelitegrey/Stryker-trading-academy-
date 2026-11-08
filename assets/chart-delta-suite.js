@@ -8,10 +8,10 @@
 // with the same plan + delay rules and the same refresh timers (no polling of its own). Nothing is
 // estimated from candles: a symbol without trade data shows a note instead.
 // Depends on: assets/chart-delta-suite-data.js (maths), hooks handed over by installFootprint().
-import { registerFeed } from './chart-feeds.js?v=913';
-import { liveVisible as l1Visible, l2Root, L2_TYPES, acquire, rootState, fillGap } from './chart-futures-l2.js?v=913';
-import { aggregate, clipTo } from './chart-footprint-data.js?v=913';
-import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=913';
+import { registerFeed } from './chart-feeds.js?v=914';
+import { liveVisible as l1Visible, l2Root, L2_TYPES, acquire, rootState, fillGap } from './chart-futures-l2.js?v=914';
+import { aggregate, clipTo } from './chart-footprint-data.js?v=914';
+import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=914';
 
 export const DS_TYPE = 'stk_dsuite';
 export const DP_TYPE = 'stk_dpane';

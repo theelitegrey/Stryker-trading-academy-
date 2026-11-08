@@ -634,7 +634,6 @@ function lateLists(provider){
   // ZoroOptions indicators (Zoro Range, Gamma Zone, IV Rank): loaded and registered only with the page flag on (assets/chart-zoro-data.js).
   try {
     const zd = await import('./chart-zoro-data.js?v=913');
-    if (zd.zoroOn()) { (await import('./chart-zoro-range.js?v=913')).installZoroRange(LCore); (await import('./chart-iv-rank.js?v=913')).installIvRank(LCore); }
     if (zd.zoroOn()) { (await import('./chart-zoro-range.js?v=913')).installZoroRange(LCore); (await import('./chart-iv-rank.js?v=913')).installIvRank(LCore); (await import('./chart-greek-exposure.js?v=913')).installGreekExposure(LCore); }
   } catch (e) { console.warn('TradeZoro: Zoro indicators install', e); }
   try { (await offexP).installOffex(LCore); } catch (e) { console.warn('TradeZoro: off-exchange install', e); }

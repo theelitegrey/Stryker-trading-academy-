@@ -136,6 +136,7 @@ exports.redeemFreeCheckout = functions
           const now = Date.now();
           const decision = couponAccess.validateCouponRedemption({
             coupon: c,
+            student: studentDoc.exists ? studentDoc.data() : {},
             redemptionExists: rDoc.exists,
             price,
             planId,

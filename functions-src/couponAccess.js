@@ -5,6 +5,17 @@
 // to exercise without touching production data.
 
 const MAX_ACCESS_MONTHS = 60;
+const PAID_GRACE_MS = 3 * 24 * 3600 * 1000;   // = GRACE_MS in subscriptions.js: access runs 3 days past paidThroughMillis
+
+// Does this member have paid access right now (Pro/Elite, a running trial, founding access)?
+// Used by "new members only" coupons (coupon.newMembersOnly === true, Owner 2026-11-08).
+function hasPaidAccess(student, nowMillis){
+  const s = student || {};
+  if (s.foundingMember === true) return true;
+  if (s.subscriptionStatus === 'expired') return false;
+  const pt = Number(s.paidThroughMillis) || 0;
+  return pt > 0 && nowMillis <= pt + PAID_GRACE_MS;
+}
 
 class CouponAccessError extends Error {
   constructor(code, message){
@@ -73,6 +84,9 @@ function validateCouponRedemption(options){
   if (coupon.maxRedemptions && used >= coupon.maxRedemptions) {
     throw new CouponAccessError('exhausted', 'That coupon has reached its redemption limit.');
   }
+  if (coupon.newMembersOnly === true && hasPaidAccess(o.student, o.nowMillis)) {
+    throw new CouponAccessError('has-paid-access', 'This code is only for members who don\'t have Pro yet.');
+  }
   if (coupon.appliesToPlan !== 'all' && coupon.appliesToPlan !== o.planId) {
     throw new CouponAccessError('plan-mismatch', 'That coupon doesn\'t apply to this plan.');
   }
@@ -113,6 +127,7 @@ function computeCouponGrant(options){
 module.exports = {
   MAX_ACCESS_MONTHS,
   CouponAccessError,
+  hasPaidAccess,
   validateAccessMonths,
   addCalendarMonths,
   periodKind,

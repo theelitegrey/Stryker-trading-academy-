@@ -173,5 +173,8 @@
  "b:stk_oi": "open-interest",
  "b:stk_funding": "funding-rate",
  "b:stk_lsr": "long-short-ratio",
- "b:stk_hlintel": "wallet-intel"
+ "b:stk_hlintel": "wallet-intel",
+ "b:stk_dex": "delta-exposure",
+ "b:stk_vex": "vanna-exposure",
+ "b:stk_cex": "charm-exposure"
 }

@@ -64,10 +64,10 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { rtHeadersReady } from './rt-access.js?v=911';
-import * as ProGate from './chart-pro-gate.js?v=911';
-import * as ZD from './chart-zoro-data.js?v=911';
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=911';
+import { rtHeadersReady } from './rt-access.js?v=913';
+import * as ProGate from './chart-pro-gate.js?v=913';
+import * as ZD from './chart-zoro-data.js?v=913';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=913';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -132,6 +132,8 @@ const SCHEMA = [
   tog('showPut', 'Put wall', true, G1, 'put'), col('putColor', GEX_COLORS.put, G1, 'put'),
   tog('show0dte', '0DTE call / put wall (today\u2019s expiry only)', false, G1),
   tog('showProfile', 'Gamma profile (bars by strike)', false, G1),
+  { key: 'profileExp', title: 'Gamma profile expiries', type: 'string', defval: 'Same as walls', options: ['Same as walls', '0DTE'], group: G1,
+    tooltip: 'Same as walls: the 1-30 day expiries the main walls use. 0DTE: today\u2019s first expiry only (the 0DTE strike ladder).' },
   tog('showIv', 'IV ±68%', true, G1, 'iv'), col('ivColor', GEX_COLORS.iv, G1, 'iv'),
   tog('showStrikes', 'Next 3 big strikes (Pro)', false, G1, 'strk'), col('strikeColor', GEX_COLORS.strike, G1, 'strk'),
   tog('showEm', 'Shade 68% band', false, G1, 'em'), col('emColor', GEX_COLORS.em, G1, 'em'),
@@ -274,10 +276,13 @@ export function buildLevels(data, src, opts, shift, extra) {
       });
   }
   // Gamma profile: net GEX per strike (the wall set's own profile, $M per 1%), mapped to chart prices.
-  if (on('showProfile') && data.profile && Array.isArray(data.profile.k) && data.profile.k.length > 2) {
+  // profileExp '0DTE': the 0DTE response's strike ladder instead (extra.ladder0, $ -> $M), same futures conversion.
+  const l0 = opts.profileExp === '0DTE' && extra && Array.isArray(extra.ladder0) ? extra.ladder0.filter((x) => x && isNum(x.strike) && isNum(x.gex)) : null;
+  const prof = l0 ? { k: l0.map((x) => x.strike), g: l0.map((x) => x.gex / 1e6) } : data.profile;
+  if (on('showProfile') && prof && Array.isArray(prof.k) && prof.k.length > 2) {
     const pr = [];
-    data.profile.k.forEach((k, i) => {
-      const p = conv(k), g = data.profile.g[i];
+    prof.k.forEach((k, i) => {
+      const p = conv(k), g = prof.g[i];
       if (isNum(p) && isNum(g)) pr.push({ price: r(p), g, wall: k === data.call_wall ? 'c' : (k === data.put_wall ? 'p' : '') });
     });
     if (pr.length > 2) out.profile = pr;
@@ -381,7 +386,7 @@ export function gexCached(api, dte, basis) { if (window.__stkReplay && window.__
 let timer = 0;
 function wantedKeys() {
   const ks = new Map();
-  subs.forEach((n) => { const w = n.want(); if (w) ks.set(key(w.api, w.dte, w.basis), w); });
+  subs.forEach((n) => { [n.want(), n.want0()].forEach((w) => { if (w) ks.set(key(w.api, w.dte, w.basis), w); }); });
   return [...ks.values()];
 }
 function tick() {
@@ -610,6 +615,11 @@ class GexNative {
     if (ProGate.isFree()) return null;   // GEX on charts is Pro (chart-pro-gate.js removes the tool for Free)
     return { api: src.api, dte: this.dte(), basis: this.basis() };
   }
+  // the 0DTE response, when the gamma profile is switched to 0DTE and the levels use another expiry
+  want0() {
+    const w = this.want(), i = this.inputs;
+    return w && w.dte !== 0 && i.showProfile === true && i.profileExp === '0DTE' ? { api: w.api, dte: 0, basis: w.basis } : null;
+  }
   basis() { return str(this.inputs.levelsFrom, BASIS_DAY) === BASIS_CLOSE ? 'close' : ''; }
   dte() {
     const d = parseInt(str(this.inputs.dte, '0'), 10);
@@ -620,6 +630,8 @@ class GexNative {
     const w = this.want();
     this.refresh();
     if (w && document.visibilityState !== 'hidden') gexFetch(w.api, w.dte, false, w.basis).then(() => this.refresh());
+    const w0 = this.want0();
+    if (w0 && document.visibilityState !== 'hidden') gexFetch(w0.api, 0, false, w0.basis).then(() => this.refresh());
     ZD.zoLoad(this);
   }
   onBars() {
@@ -664,7 +676,8 @@ class GexNative {
         const opts = Object.assign({}, i, { zoroNames: ZD.zoroOn() });
         if (this.tier && this.tier.free) opts.showStrikes = false;
         const shift = src.fut && !src.zoro ? gexAnchor(src.fut, data) : null;
-        const lv = buildLevels(data, src, opts, shift, { prev: src.zoro ? [] : this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts), zoro: zs });
+        const d0 = opts.profileExp === '0DTE' && !src.zoro ? (dte === 0 ? data : gexCached(src.api, 0, basis)) : null;
+        const lv = buildLevels(data, src, opts, shift, { prev: src.zoro ? [] : this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts), zoro: zs, ladder0: d0 && !d0.error ? d0.ladder : null });
         if (lv.err) payload = { note: lv.err };
         else {
           const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));

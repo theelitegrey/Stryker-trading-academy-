@@ -66,6 +66,36 @@ dd = (bs_delta(S, K, T - h, s) - bs_delta(S, K, T + h, s)) / (2 * h) / 365
 ok(close(ch, dd, 1e-6), 'greeks: charm = -dDelta/dT per day (%.6f vs %.6f)' % (ch, dd))
 ok(z.bs_greeks(S, K, 0, s) == (0.0, 0.0, 0.0) and z.bs_greeks(S, K, T, 0) == (0.0, 0.0, 0.0), 'greeks: zero T / IV -> zeros')
 
+# --- greeks against textbook values (Hull, Options Futures and Other Derivatives: S=42 K=40 r=10% sigma=20% T=0.5:
+#     call 4.76, put 0.81; S=49 K=50 r=5% sigma=20% T=20/52: call delta 0.522). The module rate is swapped for the test.
+_R = z.R
+z.R = 0.10
+ok(close(z.bs_price('C', 42, 40, 0.5, 0.2), 4.76, 0.005) and close(z.bs_price('P', 42, 40, 0.5, 0.2), 0.81, 0.005), 'BS price: Hull call 4.76 / put 0.81')
+ok(close(z.implied_vol('C', 42, 40, 0.5, z.bs_price('C', 42, 40, 0.5, 0.2)), 0.2, 1e-6), 'implied vol: recovers 20% from the call price')
+ok(close(z.implied_vol('P', 42, 40, 0.5, z.bs_price('P', 42, 40, 0.5, 0.35)), 0.35, 1e-6), 'implied vol: recovers 35% from the put price')
+ok(z.implied_vol('C', 42, 40, 0.5, 1.0) == 0.0, 'implied vol: a price below intrinsic gives no IV (0)')
+z.R = 0.05
+ok(close(z.bs_delta('C', 49, 50, 20 / 52, 0.2), 0.522, 0.0005) and close(z.bs_delta('P', 49, 50, 20 / 52, 0.2), 0.522 - 1, 0.0005), 'BS delta: Hull 0.522 (put = call - 1)')
+z.R = _R
+ok(close(z.bs_delta('C', S, K, T, s) - z.bs_delta('P', S, K, T, s), 1.0, 1e-12), 'BS delta: put-call delta parity')
+# missing IV -> solved from the mid; delta / vanna / charm then come from it (gamma stays Cboe-IV only, = GEX+)
+mid_px = z.bs_price('P', 100, 110, 30 / 365, 0.3)
+cs_ = z.enrich(100, [{'k': 110, 'x': '2026-12-18', 'cp': 'P', 'iv': 0.0, 'bid': mid_px - 0.05, 'ask': mid_px + 0.05, 'delta': -0.9, 'oi': 10, 'vol': 1}], gx.et_epoch('2026-11-18T16:00:00'))
+c_ = cs_[0]
+ok(close(c_['ivx'], 0.3, 0.01) and c_['gamma'] == 0.0 and c_['vanna'] != 0.0 and close(c_['bsd'], z.bs_delta('P', 100, 110, c_['T'], c_['ivx']), 1e-12),
+   'enrich: no IV -> IV from the mid (%.3f), delta / vanna / charm from it, gamma unchanged' % c_['ivx'])
+c2 = z.enrich(100, [{'k': 110, 'x': '2026-12-18', 'cp': 'P', 'iv': 0.0, 'bid': 0.0, 'ask': 0.0, 'delta': -0.9, 'oi': 10, 'vol': 1}], gx.et_epoch('2026-11-18T16:00:00'))[0]
+ok(c2['ivx'] == 0.0 and c2['bsd'] == -0.9 and c2['vanna'] == 0.0, 'enrich: no IV and no quote -> chain delta kept, vanna / charm 0')
+# exposures: signs and units on a two-contract chain
+two = z.enrich(100, [{'k': 100, 'x': '2026-12-18', 'cp': cp, 'iv': 0.2, 'bid': 1, 'ask': 1.1, 'delta': 0, 'oi': 1000, 'vol': 500} for cp in 'CP'], gx.et_epoch('2026-11-18T16:00:00'))
+tt = z.exposure_totals(100, two)
+ok(close(tt['gex'], 0.0, 1e-9) and close(tt['vanna'], 0.0, 1e-9) and close(tt['charm'], 0.0, 1e-9), 'exposures: a call and a put alike cancel for GEX / vanna / charm (calls +, puts -)')
+ok(close(tt['dex'], (two[0]['bsd'] + two[1]['bsd']) * 1000 * 100 * 100 / 1e6, 1e-3) and two[1]['bsd'] < 0 < two[0]['bsd'], 'exposures: DEX = (call delta + put delta) x OI x 100 x spot, put delta negative')
+pr2 = z.profile_rows(100, two)
+ok(z.PROFILE_COLS[-1] == 'gexv' and len(pr2[0]) == len(z.PROFILE_COLS) and close(pr2[0][9], 0.0, 1e-9), 'profile: gexv column (GEX from volume) last, same sign rule')
+one = [dict(two[0])]
+ok(close(z.exposure_totals(100, one)['gexv'] / z.exposure_totals(100, one)['gex'], 0.5, 1e-2), 'exposures: GEX from volume = GEX x volume / OI for one contract')
+
 # --- max pain (Pin Strike)
 rows = [{'strike': 90, 'cp': 'P', 'oi': 100}, {'strike': 100, 'cp': 'C', 'oi': 10}, {'strike': 100, 'cp': 'P', 'oi': 10},
         {'strike': 110, 'cp': 'C', 'oi': 100}]

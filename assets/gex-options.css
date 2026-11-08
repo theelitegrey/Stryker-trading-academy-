@@ -80,3 +80,23 @@
 @media(max-width:900px){.gexf-wrap{grid-template-columns:1fr}.gexf-main{max-width:none}.gexf-tops{grid-template-columns:1fr 1fr;padding-top:0}}
 @media(max-width:700px){.gexf-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.gexf-stats .gexo-stat small{display:none}.gexf-stats .gexo-stat b{font-size:15px}
   .gexf-head,.gexf-row{grid-template-columns:38px minmax(0,1fr) 52px minmax(0,1fr) 38px;gap:4px}.gexf-head{grid-template-columns:1fr 52px 1fr}.gexf-row{font-size:9.5px}}
+
+/* Delta, vanna and charm exposure (assets/gex-greeks.js) */
+.gexg-card{margin-top:16px}
+.gexg-scope{margin:0 0 10px;font:600 11.5px/1.3 var(--font-mono);color:var(--ink-3)}
+.gexg-stats{grid-template-columns:repeat(5,minmax(0,1fr));margin-top:0}
+.gexg-stat b{font-size:18px}
+.gexg-stat b i{font-style:normal;font-size:11px;font-weight:600;color:var(--ink-3);margin-left:3px}
+.gexg-pos{color:#03c988!important}.gexg-neg{color:#f23645!important}
+.gexg-tablewrap{max-height:420px;overflow:auto}
+.gexg-table th,.gexg-table td{text-align:right}
+.gexg-table thead th{position:sticky;top:0;background:#0d0f11;z-index:1}
+.gexg-table tbody th{color:var(--ink-0);font-weight:700}
+.gexg-scope,.gexg-card .gexo-ago{color:var(--ink-2)}
+.gexg-table tr.gexg-spot th,.gexg-table tr.gexg-spot td{border-top:2px dashed rgba(0,173,181,.6)}
+.gexg-how{margin-top:10px;color:var(--ink-3);font-size:12px;line-height:1.55}
+.gexg-how summary{cursor:pointer;color:var(--ink-1);font-weight:700;min-height:44px;display:flex;align-items:center}
+.gexg-how p{margin:6px 0 0}
+/* GEX cards stay dark in day theme (gex.css): keep the dark-theme ink inside this panel */
+:root[data-theme="light"] .gexg-card{--ink-0:#eeeeee;--ink-1:#c9cdd3;--ink-2:#8b93a0;--ink-3:#8b93a0;--line-soft:rgba(255,255,255,.08)}
+@media(max-width:900px){.gexg-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}

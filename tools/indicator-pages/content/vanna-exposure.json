@@ -1,0 +1,24 @@
+{
+  "slug": "vanna-exposure",
+  "summary": "Draws dealer vanna exposure (VEX) by strike as bars on the price axis, with the 3 largest strikes as lines. All expiries, 0DTE or the next expiry.",
+  "overview": [
+    "Vanna Exposure shows, strike by strike, how much the options' delta exposure would change if implied volatility moved by one point. Bars grow from the right edge at each strike's price, green for positive and red for negative.",
+    "The 3 strikes with the largest vanna exposure are drawn as lines with a tag such as \"VEX 1 · 650 · +$40M\". The status line shows the net total in dollars of delta per volatility point and when the data was last updated."
+  ],
+  "how": [
+    "Vanna is the change in an option's delta for a change in implied volatility, from the Black-Scholes model at the chain's spot and the time left to the 16:00 ET close of each expiry. Each option's implied volatility is used, or where the chain has none, the volatility that prices it at its bid/ask mid.",
+    "Vanna exposure = vanna × open interest × 100 × spot × 0.01 (per 1 point of volatility). Same sign convention as our GEX: dealers are assumed long the calls and short the puts, so calls count plus and puts minus. Each bar is the sum of every expiry in the chosen set, per strike within 6% of spot, in millions of dollars. These are model estimates from open interest, not real dealer positions."
+  ],
+  "use": [
+    "Some traders look at vanna next to implied volatility (IV Rank) to see where a change in volatility would move delta the most.",
+    "Use the Next expiry setting to look at one expiry at a time.",
+    "Some traders compare the largest vanna strikes with the GEX walls.",
+    "Turn off the bars and keep only the 3 lines for a cleaner chart."
+  ],
+  "notes": [
+    "SPX, SPY, QQQ, IWM, GLD and USO, futures mapped from them (ES, NQ, RTY, GC, CL), and the top US stocks with options. Crypto and forex show a short note instead.",
+    "Index and ETF data is updated every 2 minutes during US cash hours, stocks every 15 minutes; the status line says when (for example \"updated 3 min ago\").",
+    "0DTE shows a note on days when the symbol has no expiry today. Nothing is drawn in bar replay.",
+    "Part of Pro, like GEX+. Education only. Not financial advice."
+  ]
+}

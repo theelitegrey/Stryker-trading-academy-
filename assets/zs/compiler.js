@@ -2,12 +2,12 @@
 // same walk that emits code. User functions are expanded (inlined) at each call site, so
 // every call site has its own variables and its own ta.* state, and recursion is refused.
 // Output program format: SPEC.md section 11.1. No member identifiers survive into it.
-import { parse } from './parser.js?v=911';
-import { diag, closest } from './errors.js?v=911';
-import { OP, PROGRAM_VERSION } from './ops.js?v=911';
-import { FUNCTIONS, VARIABLES, CONSTANTS, NAMESPACES, KEYWORD_LIST } from './catalog.js?v=911';
+import { parse } from './parser.js?v=913';
+import { diag, closest } from './errors.js?v=913';
+import { OP, PROGRAM_VERSION } from './ops.js?v=913';
+import { FUNCTIONS, VARIABLES, CONSTANTS, NAMESPACES, KEYWORD_LIST } from './catalog.js?v=913';
 import { Scope, unify, assignable, fitsParam, typeFromSpec, describeType, isArr, isMap, isTup, elemOf, mapKV,
-  tupItems, methodNs, NUM, DRAWING } from './checker.js?v=911';
+  tupItems, methodNs, NUM, DRAWING } from './checker.js?v=913';
 
 export const LIMITS = Object.freeze({
   plots: 64, securities: 16, code: 2000000, maxBarsBack: 5000, labels: 500, lines: 500, boxes: 500, tables: 20,

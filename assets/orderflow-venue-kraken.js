@@ -1,6 +1,6 @@
 // TradeZoro — order-flow venue adapter: Kraken (spot via WebSocket v2, perpetuals PF_*USD via futures.kraken.com).
 // pair = chart ticker ("XBTUSD", "XBTUSD.P", "ETHUSD") or { base, quote, perp }. Education only. Not financial advice.
-import { registerVenue } from './orderflow-venues.js?v=911';
+import { registerVenue } from './orderflow-venues.js?v=913';
 
 const rows = (a) => (a || []).map((r) => [+r.price, +r.qty]).filter((r) => Number.isFinite(r[0]) && Number.isFinite(r[1]));
 const BASE = (b) => (b === 'BTC' ? 'XBT' : b);

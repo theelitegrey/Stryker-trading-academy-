@@ -36,8 +36,8 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=911';
-import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2 } from './chart-pro-gate.js?v=911';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=913';
+import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2 } from './chart-pro-gate.js?v=913';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -193,6 +193,7 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_zrange') { cat = GROUP_STRYKER; desc = 'Shaded Zoro Range bands (0DTE, 1DTE, weekly, monthly) from the ATM straddle'; }
       if (r.native && r.nativeType === 'stk_zzone') { cat = GROUP_STRYKER; desc = 'A faint tint above the Flip Line (Cushion) and below it (Swing)'; }
       if (r.native && r.nativeType === 'stk_ivrank') { cat = GROUP_STRYKER; desc = '30-day implied volatility with its 1-year low and high, IV rank and percentile'; }
+      if (r.native && /^stk_(dex|vex|cex)$/.test(r.nativeType)) { cat = GROUP_STRYKER; desc = { stk_dex: 'Dealer delta exposure', stk_vex: 'Dealer vanna exposure', stk_cex: 'Dealer charm exposure' }[r.nativeType] + ' by strike on the price axis, with the 3 largest strikes as lines. All expiries, 0DTE or next expiry'; }
       if (r.native && r.nativeType === 'stk_zvol') { cat = GROUP_STRYKER; desc = 'Marks where a contract had Fresh Volume (volume above open interest) or a Volume Burst. Volume only, no buyer or seller side'; }
       if (r.native && r.nativeType === 'stk_optflow') { cat = GROUP_STRYKER; desc = 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium; hover or tap for details. Per-bar totals, not single trades (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_offex') { cat = GROUP_STRYKER; desc = 'Daily off-exchange share of volume in a lower pane. FINRA data, updated daily'; }

@@ -17,7 +17,7 @@ const FIX = path.join(ROOT, 'tools/tests/fixtures');
 const DAYS = ['2026-10-20', '2026-10-21'];
 // zoomed in (footprint-style tools only draw when bars are wide); never captured (options / news data not in the fixtures)
 const ZOOM = /footprint|stk_fp|stk_l2f_fp|stk_of_tpo|stk_l2f_lad/;
-const NO_SHOT = /^b:stk_(gex|gexheat|em|tide|optflow|news|earn|econ|offex|offex_lv|darkpool)$/;
+const NO_SHOT = /^b:stk_(gex|gexheat|em|tide|optflow|news|earn|econ|offex|offex_lv|darkpool|dex|vex|cex)$/;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 fs.mkdirSync(OUT, { recursive: true });
 

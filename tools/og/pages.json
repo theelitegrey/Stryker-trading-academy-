@@ -2055,6 +2055,36 @@
       "alt": "Dynamic Liquidity HeatMap Profile [BigBeluga] drawn on an NQ futures chart in ZoroCharts"
     },
     {
+      "page": "indicators/delta-exposure.html",
+      "title": "Delta Exposure",
+      "og_title": "Delta Exposure: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-exposure.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta Exposure preview card"
+    },
+    {
+      "page": "indicators/vanna-exposure.html",
+      "title": "Vanna Exposure",
+      "og_title": "Vanna Exposure: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/vanna-exposure.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Vanna Exposure preview card"
+    },
+    {
+      "page": "indicators/charm-exposure.html",
+      "title": "Charm Exposure",
+      "og_title": "Charm Exposure: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/charm-exposure.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Charm Exposure preview card"
+    },
+    {
       "page": "indicators/2022-model-pro-plus-ictkesik.html",
       "title": "2022 Model Pro",
       "og_title": "2022 Model Pro: ZoroCharts indicator guide",

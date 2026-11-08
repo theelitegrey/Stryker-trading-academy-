@@ -110,11 +110,12 @@
     }
     if (route === 'profile' && d.rows && d.cols) {
       var c = cols(d), oc = {}, zero = c.k.map(function () { return 0; });
-      ['gex', 'dex', 'vanna', 'charm', 'cvol', 'pvol', 'coi', 'poi'].forEach(function (g) { if (!c[g]) c[g] = zero; });   // Free teaser rows: k, gex, cvol, pvol only
+      ['gex', 'dex', 'vanna', 'charm', 'cvol', 'pvol', 'coi', 'poi', 'gexv'].forEach(function (g) { if (!c[g]) c[g] = zero; });   // Free teaser rows: k, gex, cvol, pvol only
       (d.oi_chg || []).forEach(function (r) { oc[r[0]] = r; });
-      Object.assign(d, { x: d.x || d.mode, k: c.k, gex: c.gex.map(M6), dex: c.dex.map(M6), vanna: c.vanna.map(M6), charm: c.charm.map(M6), cv: c.cvol, pv: c.pvol, coi: c.coi, poi: c.poi,
+      Object.assign(d, { x: d.x || d.mode, k: c.k, gex: c.gex.map(M6), dex: c.dex.map(M6), vanna: c.vanna.map(M6), charm: c.charm.map(M6), gexv: c.gexv.map(M6), cv: c.cvol, pv: c.pvol, coi: c.coi, poi: c.poi,
         dcoi: d.oi_chg ? c.k.map(function (k) { return oc[k] ? oc[k][1] : 0; }) : null, dpoi: d.oi_chg ? c.k.map(function (k) { return oc[k] ? oc[k][2] : 0; }) : null });
-      d.tot = {}; ['gex', 'dex', 'vanna', 'charm'].forEach(function (g) { d.tot[g] = d[g].reduce(function (a, v) { return a + (v || 0); }, 0); });
+      var FT = d.tot && typeof d.tot === 'object' ? d.tot : {}; d.tot = {};   // feeder totals ($M, every strike) when sent, else the band's sum
+      ['gex', 'dex', 'vanna', 'charm', 'gexv'].forEach(function (g) { d.tot[g] = fin(FT[g]) ? FT[g] * 1e6 : d[g].reduce(function (a, v) { return a + (v || 0); }, 0); });
     }
     if (route === 'profile' && d.teaser && !d.rows && d.k && d.gex) {
       // Free teaser slice (S2 zoTeaser): k, gex $M, vol (total). No split by side: volume panel shows it as calls only.

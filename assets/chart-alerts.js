@@ -51,6 +51,7 @@
 
 import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=913';
 import * as DPA from './chart-dp-alerts.js?v=913';   // dark pool print alerts (server-side, students/{uid}/dpAlerts)
+import * as MA from './chart-metric-alerts.js?v=913';   // metric alerts (GEX levels, funding, OI change; server-side, students/{uid}/metricAlerts)
 const LAYER = 'stk_alerts';
 const PREFS_KEY = 'stryker_chart_alert_prefs';
 const MAX_ALERTS = 1000;
@@ -671,7 +672,7 @@ function zWire(){
   panel.querySelector('.stk-al-znew').onclick = () => {
     if (proLocked('gex')) { proUpgrade('gex'); return; }       // Free: Pro tag + upgrade modal, as the other options tools
     if (!zcol()) { toastFn('Sign in to create options alerts.'); return; }
-    panel.querySelector('.stk-al-form').hidden = true; zOpen(null);
+    panel.querySelector('.stk-al-form').hidden = true; panel.querySelector('.stk-al-mform').hidden = true; zOpen(null);
   };
   f.onsubmit = async (e) => {
     e.preventDefault();
@@ -710,7 +711,7 @@ function build(){
   panel.innerHTML = `
   <div class="stk-al-box" role="dialog" aria-modal="true" aria-labelledby="stk-al-h">
     <div class="stk-al-head"><div class="stk-al-ttl"><h2 id="stk-al-h">Alerts</h2><button type="button" class="stk-al-info" aria-label="How alerts work" aria-expanded="false" aria-controls="stk-al-pop">i</button></div><button type="button" class="stk-al-x" aria-label="Close">×</button>
-      <div class="stk-al-pop" id="stk-al-pop" role="note" hidden><button type="button" class="stk-al-popx" aria-label="Close info">×</button><ul><li><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when ZoroCharts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first).</li><li><b>Dark pool print alerts</b> are set in the Dark Pool Prints indicator settings (Alerts section), for 29 US stocks and ETFs. They are checked on our server after every dark pool update (about every 2 hours on weekdays) and sent to your phone, with no chart open.</li><li><b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while ZoroCharts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals.</li></ul><p>Education only. Not financial advice.</p></div></div>
+      <div class="stk-al-pop" id="stk-al-pop" role="note" hidden><button type="button" class="stk-al-popx" aria-label="Close info">×</button><ul><li><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when ZoroCharts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first).</li><li><b>Dark pool print alerts</b> are set in the Dark Pool Prints indicator settings (Alerts section), for 29 US stocks and ETFs. They are checked on our server after every dark pool update (about every 2 hours on weekdays) and sent to your phone, with no chart open.</li><li><b>Metric alerts</b> (+ Metric alert, or the Alerts group in the GEX Levels settings) watch a GEX level cross, a gamma regime flip, IV rank, put/call, crypto funding or open interest change. They are checked on our server and sent to your phone with no chart open. GEX and options metrics are part of Pro; crypto metrics are free.</li><li><b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while ZoroCharts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals.</li></ul><p>Education only. Not financial advice.</p></div></div>
     <form class="stk-al-form" hidden>
       <label>Symbol<input name="symbol" maxlength="40" required></label>
       <label class="stk-al-wide">Condition<select name="src"></select></label>
@@ -738,7 +739,8 @@ function build(){
       <div class="stk-al-wide stk-al-push" hidden></div>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-zcancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
-    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-znew">+ Options alert</button><button type="button" class="stk-al-sounds" aria-label="Alert sounds" title="Alert sounds"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Sounds</span></button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
+    ${MA.formHtml()}
+    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-znew">+ Options alert</button><button type="button" class="stk-al-mnew">+ Metric alert</button><button type="button" class="stk-al-sounds" aria-label="Alert sounds" title="Alert sounds"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Sounds</span></button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
     <div class="stk-al-confirm" hidden role="alertdialog" aria-modal="true" aria-labelledby="stk-al-ctl"><div class="stk-al-csheet"><p id="stk-al-ctl"></p><div class="stk-al-cbtn"><button type="button" class="stk-al-ccancel">Cancel</button><button type="button" class="stk-al-cok">Delete all</button></div></div></div>
     <div class="stk-al-pstat" hidden></div>
     <div class="stk-al-list"></div>
@@ -747,6 +749,9 @@ function build(){
   panel.addEventListener('click', (e) => { if (e.target === panel) closePanel(); });
   panel.querySelector('.stk-al-x').onclick = closePanel;
   zWire(); zReload();
+  MA.wireForm(panel, (m) => toastFn(m));
+  panel.querySelector('.stk-al-mnew').onclick = () => { if (!user()) { toastFn('Sign in to create metric alerts.'); return; } MA.openForm(panel, null); };
+  MA.onChange((z) => { if (z) zReload(); else if (panel && !panel.hidden) renderList(); }); MA.reload();
     DPA.onChange(() => { if (panel && !panel.hidden) renderList(); }); DPA.reload();
   panel.querySelector('.stk-al-new').onclick = () => { const c = activeCell(); openForm({ symbol: c ? c.symbol : '', price: crossPrice() }); };
   panel.querySelector('.stk-al-sounds').onclick = () => openSoundPanel();
@@ -886,6 +891,7 @@ function syncSrc(f, a){
 }
 function openForm(a){
   const f = panel.querySelector('.stk-al-form'); f.hidden = false;
+  panel.querySelectorAll('.stk-al-zform,.stk-al-mform').forEach((x) => { x.hidden = true; });
   f.symbol.value = a.symbol || ''; f.cond.value = a.cond || 'crossing'; f.price.value = fmt(Number(a.price));
   f.message.value = a.message || '';
   const cond = isCond(a) || (a.src && a.src.kind === 'cond');
@@ -906,16 +912,17 @@ function renderList(){
   if (!panel) return;
   const list = panel.querySelector('.stk-al-list'); list.textContent = '';
   panel.querySelector('.stk-al-delall').hidden = !alerts.length;
-  const dpN = DPA.dpAlerts().length;
-  panel.querySelector('.stk-al-count').textContent = alerts.length + ' of ' + MAX_ALERTS + ' alerts' + (zAlerts.length ? ' \u00b7 ' + zAlerts.length + ' of ' + MAX_ZALERTS + ' options alerts' : '') + (dpN ? ' \u00b7 ' + dpN + ' of ' + DPA.MAX_DP_ALERTS + ' dark pool alerts' : '') + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
-  panel.querySelector('.stk-al-tools').classList.toggle('stk-al-none', !alerts.length && !zAlerts.length && !dpN);
-  if (!alerts.length && !zAlerts.length && !dpN) {
+  const dpN = DPA.dpAlerts().length, mN = MA.metricAlerts().length;
+  panel.querySelector('.stk-al-count').textContent = alerts.length + ' of ' + MAX_ALERTS + ' alerts' + (zAlerts.length ? ' \u00b7 ' + zAlerts.length + ' of ' + MAX_ZALERTS + ' options alerts' : '') + (dpN ? ' \u00b7 ' + dpN + ' of ' + DPA.MAX_DP_ALERTS + ' dark pool alerts' : '') + (mN ? ' \u00b7 ' + mN + ' of ' + MA.MAX_METRIC + ' metric alerts' : '') + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
+  panel.querySelector('.stk-al-tools').classList.toggle('stk-al-none', !alerts.length && !zAlerts.length && !dpN && !mN);
+  if (!alerts.length && !zAlerts.length && !dpN && !mN) {
     const e = document.createElement('div'); e.className = 'stk-al-empty';
     e.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>No alerts yet</b><span>Get notified when price or an indicator crosses a level</span><button type="button" class="stk-al-new stk-al-new2">+ New alert</button>';
     e.querySelector('.stk-al-new2').onclick = () => panel.querySelector('.stk-al-new').click();
     list.appendChild(e); return;
   }
   zRows(list);
+  MA.rows(list, { after: renderList, toast: toastFn, edit: (a) => MA.openForm(panel, a) });
   DPA.dpRows(list, { rowClass: 'stk-al-row', after: renderList, edit: (a, probe) => { const ok = DPA.editInIndicator(WS, a, probe); if (ok && !probe) closePanel(); return ok; } });
   const shown = alerts.slice(0, listLimit);   // 1000 rows at once is slow: show more on request
   for (const a of shown) {
@@ -1114,7 +1121,10 @@ const CSS = `
 .stk-al-form select option,.stk-snd-row select option{ color:#131316; }
 .stk-al-zform{ margin-top:12px; }
 .stk-al-znote{ margin:0; font-size:12px; opacity:.7; }
-.stk-al-znew{ background:rgba(3,201,136,.08); }
+.stk-al-znew,.stk-al-mnew{ background:rgba(3,201,136,.08); }
+.stk-al-mform{ margin-top:12px; }
+@media (pointer:coarse){ .stk-al-form input,.stk-al-form select,.stk-al-fbtn button{ min-height:44px; } }
+.stk-al-mform select:disabled{ opacity:.6; }
 .stk-al-fbtn{ grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; }
 .stk-al-push[hidden],.stk-al-pstat[hidden]{ display:none !important; }
 .stk-al-pstat{ margin-bottom:12px; }

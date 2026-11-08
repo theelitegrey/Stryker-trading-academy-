@@ -38,6 +38,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import alert_core as core  # noqa: E402
 import zoro_alerts as za  # noqa: E402
 import dp_alerts as dpa  # noqa: E402
+try:                               # metric alerts (GEX / options / crypto): isolated, an import error must not stop price alerts
+    import metric_loop as mloop  # noqa: E402
+except Exception as _e:            # pragma: no cover
+    mloop = None
+    print('metric alerts off: %s' % type(_e).__name__, flush=True)
 import fsrest as fs  # noqa: E402
 import wsmini  # noqa: E402
 
@@ -742,6 +747,21 @@ def dp_loop():
         time.sleep(DP_EVERY)
 
 
+# ---------------------------------------------------------------------------------- metric alerts
+# Owner order 2026-11-07 ("alerts on any metric"): students/{uid}/metricAlerts, GEX level crosses (Pro, from /zo/summary)
+# and crypto funding / OI change (free, OKX + Hyperliquid public REST). Regime / IV rank / put-call stay in zoro_alerts. All of it lives in
+# metric_loop.py + metric_alerts.py; this thread only starts it, and a crash there never reaches the loops above.
+def metric_thread():
+    if not ZORO_KEY or not ZORO_URL.startswith('http'):
+        log('no recorder URL / ingest key: GEX / options metric alerts get no data (crypto metrics still run)')
+    while True:
+        try:
+            mloop.run(fs, zget, log, notify=lambda d, what: write_ops([(new_notif_path(), d)], what))
+        except Exception as e:     # run() loops forever; reaching here is a bug: log, wait, restart the loop
+            log('metric thread crashed: %s %s' % (type(e).__name__, str(e)[:120]))
+            time.sleep(60)
+
+
 # ---------------------------------------------------------------------------------- health
 def health_loop():
     last_hb = 0
@@ -756,7 +776,8 @@ def health_loop():
              'retried': stat['retried'], 'dropped': stat['dropped'], 'hb_at': int(stat['hb_at']),
              'last_sync': int(stat['last_sync']), 'ticks': stat['ticks'],
              'feeds': {k: int(v) for k, v in stat['feed'].items()},
-             'zoro': dict(zstat, alerts=len(zalerts), touch=len(zbook.alerts)), 'dp': dict(dstat)}
+             'zoro': dict(zstat, alerts=len(zalerts), touch=len(zbook.alerts)), 'dp': dict(dstat),
+             'metric': dict(mloop.stat) if mloop else None}
         try:
             tmp = HEALTH + '.tmp'
             with open(tmp, 'w') as f:
@@ -782,6 +803,8 @@ def main():
         threads += [lambda: is_reader(roots[:4], key), lambda: is_reader(roots[4:], key)]
     else:
         log('no InsightSentry key: futures alerts are not watched')
+    if mloop:
+        threads.append(metric_thread)
     for fn in threads:
         threading.Thread(target=fn, daemon=True).start()
     log('alert-engine started')

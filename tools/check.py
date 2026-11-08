@@ -645,6 +645,15 @@ def check_push_rules():
         fail('push rules: ' + (r.stdout + r.stderr).strip()[-300:])
 
 
+def check_metric_alerts():
+    """Metric alerts (Owner 2026-11-07): client logic + engine/rules parity (tools/tests/metric-alerts.test.mjs) and the engine rules
+    (tools/tests/metric-alerts-test.py, pure + one fake round; no network)."""
+    for cmd in (['node', 'tools/tests/metric-alerts.test.mjs'], [sys.executable, 'tools/tests/metric-alerts-test.py']):
+        r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, timeout=120)
+        if r.returncode != 0:
+            fail('metric alerts ' + cmd[-1] + ': ' + (r.stdout + r.stderr).strip()[-300:])
+
+
 def check_zscript_engine():
     """Zscript engine (assets/zs/): language, ta.* golden values, VM, limits, security and data-frame
     tests (tools/tests/zs-*.test.mjs). Fuzz, bench and the browser sandbox test run by hand
@@ -715,7 +724,7 @@ def main():
     # two browser checks start first so they overlap the rest
     fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
     browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
-    order = [check_pro_features, check_compare_page, check_push_rules, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
+    order = [check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

@@ -38,7 +38,7 @@ self.addEventListener('install', function () { self.skipWaiting(); });
 self.addEventListener('activate', function (event) { event.waitUntil(self.clients.claim()); });
 
 // Alerts the member set (price, options, dark pool, test): they must be seen, so they stay on screen and buzz.
-const ALERT_TYPES = { chart_alert: 1, zoro_alert: 1, dp_alert: 1, test: 1 };
+const ALERT_TYPES = { chart_alert: 1, zoro_alert: 1, dp_alert: 1, metric_alert: 1, test: 1 };
 
 // Shared with assets/push.js (the open-but-hidden page shows the same notification through this worker).
 function notifOptions(data) {

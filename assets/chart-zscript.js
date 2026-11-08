@@ -299,7 +299,7 @@ async function libMeta(sid){
 }
 const tfStr = (tf) => String(tf || '').replace(/^(\d+)m$/, '$1');
 const tickerOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '');
-const typeOf = (sym) => (/^futures:/i.test(sym) ? 'futures' : /^(binance|bybit|okx|kraken|bitget|hyperliquid|coinbase|crypto):/i.test(sym) ? 'crypto' : 'stock');
+const typeOf = (sym) => (/^futures:/i.test(sym) ? 'futures' : /^(binance|bybit|okx|kraken|bitget|hyperliquid|coinbase|vest|crypto):/i.test(sym) ? 'crypto' : 'stock');
 function columns(all){
   const n = all.length, b = { time: new Array(n), open: new Array(n), high: new Array(n), low: new Array(n), close: new Array(n), volume: new Array(n) };
   for (let i = 0; i < n; i++) { const x = all[i]; b.time[i] = x.time; b.open[i] = x.open; b.high[i] = x.high; b.low[i] = x.low; b.close[i] = x.close; b.volume[i] = x.volume || 0; }

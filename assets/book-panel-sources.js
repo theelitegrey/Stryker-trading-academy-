@@ -13,7 +13,8 @@ export const SOURCES = [
   { id: 'bybit', name: 'Bybit', perp: true },
   { id: 'okx', name: 'OKX', perp: true },
   { id: 'bitget', name: 'Bitget', perp: true },
-  { id: 'kraken', name: 'Kraken', perp: true }
+  { id: 'kraken', name: 'Kraken', perp: true },
+  { id: 'vest', name: 'Vest', perp: true, solo: true }   // its own markets (stocks, indexes, crypto perps): never added into Combined
 ];
 export const sourceName = (id) => (SOURCES.find((s) => s.id === id) || { name: id }).name;
 const MAX_LEVELS = 1500;
@@ -285,5 +286,11 @@ function kraken(pair, cb) {
 }
 const krfTrade = (x) => ({ t: +x.time, p: +x.price, s: +x.qty, side: x.side === 'sell' ? -1 : 1, ex: 'kraken' });   // side = the taker (aggressor)
 
-const OPEN = { binance, binanceus, coinbase, hyperliquid, bybit, okx, bitget, kraken };
+// Vest: its adapter is loaded on first use (it also registers the order-flow venue)
+function vest(pair, cb) {
+  let stop = () => {}, dead = false;
+  import('./orderflow-venue-vest.js?v=913').then((m) => { if (!dead) stop = m.openPanelSource(pair, cb); }).catch(() => cb.status('error', 'Vest data is temporarily unavailable. Retrying…'));
+  return () => { dead = true; stop(); };
+}
+const OPEN = { binance, binanceus, coinbase, hyperliquid, bybit, okx, bitget, kraken, vest };
 export function openSource(id, pair, cb) { const f = OPEN[id]; return f ? f(pair, cb) : (cb.status('error', 'Unknown source'), () => {}); }

@@ -5,9 +5,9 @@
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
 import { isRealtimeToken, bearerOf, RT_DELAY_S } from '../_rt.js';
-import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isNonCme, normSym, normTf, pageOf, fetchPage, mergeTail, ttlFor, OutOfRange, fetchRecorderTail, TAIL_SYMS, bucketTail } from '../_bars.js';
+import { DEEP_HISTORY, globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isNonCme, normSym, normTf, pageOf, fetchPage, mergeTail, ttlFor, OutOfRange, fetchRecorderTail, TAIL_SYMS, bucketTail } from '../_bars.js';
 
-const VERSION = 1;
+const VERSION = 1;   // the cache key adds 'deep' while DEEP_HISTORY is on: old pages cached empty for a day by the old source are not reused
 const inflight = new Map();
 
 function reply(data, status, ttl, state) {
@@ -26,7 +26,7 @@ function edge() { return typeof caches !== 'undefined' && caches.default ? cache
 function keyFor(request, sym, tf, page, kind) {
   const u = new URL(request.url);
   u.pathname = `/api/chart/bars/${sym}`;
-  u.search = `tf=${tf}&page=${page}&k=${kind}&v=${VERSION}`;
+  u.search = `tf=${tf}&page=${page}&k=${kind}&v=${VERSION}${DEEP_HISTORY ? 'deep' : ''}`;
   return new Request(u.toString(), { method: 'GET' });
 }
 

@@ -4,7 +4,7 @@
 // Our function /connect/ctrader/token swaps the code (it holds the client secret). Prices come over our relay
 // /connect/ctrader/ws (it adds the secret and lets only market-data messages through). Nothing is stored on our side;
 // the member's tokens stay in the encrypted, user-bound device vault. Docs: help.ctrader.com/open-api.
-import { ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, normTf, saveSource, srcById } from './byo-core.js?v=922';
+import { ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, normTf, saveSource, srcById } from './byo-core.js?v=923';
 
 const MIN = 60000;
 export const CT = {

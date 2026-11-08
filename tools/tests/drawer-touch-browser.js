@@ -146,7 +146,7 @@ function ok(c, m) { if (!c) { fails++; console.log('  FAIL ' + m); } else consol
   await (await pg.$(hdr)).scrollIntoViewIfNeeded(); await pg.tap(hdr); await pg.waitForTimeout(250);
   ok(await sheetOpen(), 'tap section header: sheet stays open');
   ok(await mOpen(), 'tap section header: section expands');
-  ok(await pg.$$eval('#appnav-sheet .appnav-msec[data-sec="markets"] a', (n) => n.filter((a) => a.offsetParent).length) === 11, 'Markets shows 11 links (ZoroOptions + options calculator + IV skew)');
+  ok(await pg.$$eval('#appnav-sheet .appnav-msec[data-sec="markets"] a', (n) => n.filter((a) => a.offsetParent).length) === 12, 'Markets shows 12 links (ZoroOptions + options calculator + IV skew + platform levels)');
   ok(await pg.$eval('#appnav-sheet a[data-more="gex"] .pro-chip', (n) => n.textContent) === 'Pro', 'GEX+ has the Pro chip');
   await pg.tap(hdr); await pg.waitForTimeout(250);
   ok(await sheetOpen() && !(await mOpen()), 'second tap collapses it, sheet still open');

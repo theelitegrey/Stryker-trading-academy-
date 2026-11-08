@@ -115,7 +115,7 @@ export function mountLib(host){
     try {
       const d = await pub().doc(x.id).collection('data').doc('s').get();
       if (!d.exists) { toast('This layout is no longer available.', 'error'); return false; }
-      let doc; try { doc = JSON.parse(d.data().state); } catch (e) { doc = null; }
+      const doc = await host.decodeState(d.data().state);
       if (!doc) { toast('This layout could not be read.', 'error'); return false; }
       // the card's kind decides: a setup card always merges (keeps the member's symbol, interval, drawings)
       if (isSetup(x)) doc.setup = true;
@@ -276,7 +276,7 @@ export function mountLib(host){
   async function doPublish(id, x, o){
     const mine = host.col().doc(id);
     const cd = (await mine.get()).data();
-    let state = cd.state, doc = null; try { doc = JSON.parse(state); } catch (e) {}
+    const state = cd.state, doc = await host.decodeState(state);
     const k = host.countOf(doc);
     const extra = { name: o.name, desc: o.desc, tags: o.tags, vis: o.vis, cid: o.cid, panes: k.panes, indicators: k.indicators };
     const wasShared = !!cd.shared;
@@ -289,7 +289,8 @@ export function mountLib(host){
       const kind = o.kind || (ex.exists && ex.data().kind) || 'chart';
       const setup = kind === 'setup';
       // a setup never uploads symbol, interval or drawings (the rules refuse drawings in a setup's state)
-      const pubState = setup && doc ? JSON.stringify(host.setupOf(doc)) : state;
+      // (a setup stays plain JSON so the rules can check it; host.encodeState refuses one past the cap)
+      const pubState = setup && doc ? await host.encodeState(JSON.stringify(host.setupOf(doc)), true) : state;
       const card = { kind, authorName: author, name: o.name, desc: o.desc, tags: o.tags, visibility: o.vis, communityId: o.cid, symbol: setup ? '' : cd.symbol || '', interval: setup ? '' : cd.interval || '', thumb: cd.thumb || '', panes: k.panes, indicators: k.indicators };
       // the layout doc first (rules need it to exist), then card + state in one batch
       await mine.set(Object.assign({ name: cd.name, state, symbol: cd.symbol || '', interval: cd.interval || '', shared: wasShared, updatedAt: host.ts(), thumb: cd.thumb || '' }, extra, { name: o.name }), { merge: true });
@@ -364,7 +365,7 @@ export function mountLib(host){
     let r = null;
     try {
       const d = await pub().doc(x.id).collection('data').doc('s').get();
-      if (d.exists) r = indList(JSON.parse(d.data().state));
+      if (d.exists) r = indList(await host.decodeState(d.data().state));
     } catch (e) { r = null; }
     S.ind[x.id] = r; return r;
   }
@@ -544,7 +545,7 @@ export function mountLib(host){
     const T = window.StrykerChartTemplates;
     try {
       const d = await pub().doc(x.id).collection('data').doc('s').get();
-      const s = d.exists && host.sanitizeShared(JSON.parse(d.data().state));
+      const s = d.exists && host.sanitizeShared(await host.decodeState(d.data().state));
       if (!s || !T) throw new Error('read');
       s.doc.setup = true;
       await T.save(String(x.name).slice(0, 60), s.doc);

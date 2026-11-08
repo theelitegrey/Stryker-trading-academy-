@@ -83,7 +83,10 @@ case("ALLOW","community owner reads state","alice","get",SP,old=ST,mocks=ccm+[m(
 case("DENY","list state docs","bob","list",f"{PL}/data/x",old=ST,mocks=cpub)
 case("ALLOW","A write state with the card","alice","create",SP,new=ST,mocks=[m("getAfter",PL,doc(CARD))])
 case("DENY","B write state of A's card","bob","update",SP,new=ST,old=ST,mocks=[m("getAfter",PL,doc(CARD))])
-case("DENY","state 200001","alice","create",SP,new=dict(ST,state="x"*200001),mocks=[m("getAfter",PL,doc(CARD))])
+case("ALLOW","state 900000 (LAYOUT-PERF cap)","alice","create",SP,new=dict(ST,state="x"*900000),mocks=[m("getAfter",PL,doc(CARD))])
+case("DENY","state 900001","alice","create",SP,new=dict(ST,state="x"*900001),mocks=[m("getAfter",PL,doc(CARD))])
+case("ALLOW","whole-chart state compressed (tz1)","alice","create",SP,new=dict(ST,state="tz1:H4sIAAAA"),mocks=[m("getAfter",PL,doc(CARD))])
+case("DENY","setup state compressed (tz1) cannot be checked","alice","create",SP,new=dict(ST,state="tz1:H4sIAAAA"),mocks=[m("getAfter",PL,doc(SETUP))])
 DRW={"state":'{"version":1,"charts":[{"id":"A","drawings":{"version":1,"drawings":[]}}]}',"updatedAt":TS}
 case("ALLOW","setup state without drawings","alice","create",SP,new={"state":'{"version":1,"setup":true,"charts":[{"id":"A","indicators":{}}]}',"updatedAt":TS},mocks=[m("getAfter",PL,doc(SETUP))])
 case("DENY","setup state WITH drawings","alice","create",SP,new=DRW,mocks=[m("getAfter",PL,doc(SETUP))])

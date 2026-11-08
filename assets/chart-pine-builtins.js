@@ -82,6 +82,11 @@ export const STRYKER_PICKS = ['b:stk_gex', 'b:stk_gexheat', 'b:stk_em', 'b:stk_t
 export const BUILTIN_PINE = PICKER_SCRIPTS.map((b) => Object.assign({ url: b.source }, b));
 
 const cache = new Map();
+// LAYOUT-PERF (2026-11-08): source text -> id of every built-in fetched so far. Saved chart states
+// store an unchanged built-in as { builtin: id } instead of its 20-120 KB source (chart-pine.js).
+const byText = new Map();
+export const builtinIdOf = (src) => byText.get(src) || null;
+export const builtinIdByName = (name) => { const b = PICKER_SCRIPTS.find((x) => x.name === name); return b ? b.id : null; };
 // Source text of a built-in (fetched once per page load).
 export function builtinSource(id){
   const b = PICKER_SCRIPTS.find((x) => x.id === id);
@@ -90,7 +95,7 @@ export function builtinSource(id){
     cache.set(id, fetch(new URL(b.source, import.meta.url)).then((r) => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.text();
-    }).catch((e) => { cache.delete(id); throw e; }));
+    }).then((t) => { byText.set(t, id); return t; }).catch((e) => { cache.delete(id); throw e; }));
   }
   return cache.get(id);
 }

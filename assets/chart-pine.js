@@ -45,6 +45,8 @@
 // Pine indicators (name, source, inputs) into the workspace document. That puts them in
 // the persist:true session AND in saved templates, and restores them on load.
 
+import { builtinSource, builtinIdOf, builtinIdByName } from './chart-pine-builtins.js?v=914';
+
 const PINE_PKG = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
 const RUN_LIMIT_MS = 20000;
 // Time limit = the script's OWN compute time (not its wait in the worker queue, not the ms other scripts' runs
@@ -200,6 +202,34 @@ function snapshot(h){
 // The same filter also dropped built-ins whose source is over 64 KB (CISD Model+, Forever Pro, Unicorn
 // Model, Trinity ATR Levels) from a reload altogether, although they are added with the 128 KB
 // built-in limit. Limits now: MAX_INPUTS keys, BUILTIN_SRC_MAX source characters.
+// LAYOUT-PERF (2026-11-08): an UNCHANGED built-in (byte-identical to assets/pine/<id>.pine) is saved as
+// { builtin: id } without its source: 3 ICT built-ins were ~150 KB of a member's saved layout. Edited copies,
+// Community and sealed scripts keep their source as before. Older states with inline source still load.
+const BUILTIN_ID_RE = /^[a-z0-9-]{2,80}$/;
+function byRef(o){
+  if (o.lib || o.sealed) return o;
+  const id = builtinIdOf(o.source);
+  if (!id) return o;
+  const r = Object.assign({}, o, { builtin: id });
+  delete r.source;
+  return r;
+}
+// chart -> built-in refs whose file could not be loaded (offline). serialize keeps them, so the next autosave
+// does not drop the member's indicator from the saved layout.
+const unresolved = new WeakMap();
+function withSource(x, chart){
+  if (x && typeof x.source !== 'string' && typeof x.builtin === 'string' && BUILTIN_ID_RE.test(x.builtin)) {
+    return builtinSource(x.builtin).then((source) => Object.assign({}, x, { source })).catch(() => {
+      if (!unresolved.has(chart)) unresolved.set(chart, []);
+      unresolved.get(chart).push(x);
+      return null;
+    });
+  }
+  // an older state with a built-in's source inline: load the file once so the next save stores a ref
+  const id = x && typeof x.source === 'string' && builtinIdByName(x.name);
+  if (id) builtinSource(id).catch(() => {});
+  return Promise.resolve(x);
+}
 const MAX_INPUTS = 400;
 const INPUT_STR_MAX = 4096;
 function cleanEntry(x){
@@ -520,19 +550,26 @@ export function installPine(core, wsGetter){
       key: EXT_KEY,
       scope: 'cell',
       serialize(ctx){
-        const list = pineHandles(ctx.chart).map(snapshot);
+        const list = pineHandles(ctx.chart).map(snapshot).map(byRef).concat(unresolved.get(ctx.chart) || []);
         return list.length ? list : undefined;
       },
       restore(payload, ctx){
         if (!Array.isArray(payload)) return;
-        const list = payload.map(cleanEntry).filter(Boolean).slice(0, MAX_PER_CELL);
         const chart = ctx.chart;
         // A template applied over a cell that already runs Pine: replace, never stack.
         pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} }); applyRightOffset(chart);
-        if (!list.length) return;
-        const needNext = list.some((x) => x.engine === 'next' && !x.lib);
-        ensureEngine(chart).then(() => (needNext ? ensureNext(chart).catch(() => {}) : null)).then(() => {
-          list.forEach((x) => { try { addOn(chart, x); } catch (e) { console.warn('TradeZoro: Pine restore', e); } });
+        unresolved.delete(chart);
+        const raw = payload.slice(0, MAX_PER_CELL);
+        if (!raw.length) return;
+        // Built-in refs ({ builtin: id }) fetch their source (cached; in parallel); the engine loads meanwhile.
+        const eng = ensureEngine(chart);
+        Promise.all(raw.map((x) => withSource(x, chart))).then((xs) => {
+          const list = xs.map(cleanEntry).filter(Boolean);
+          if (!list.length) return null;
+          const needNext = list.some((x) => x.engine === 'next' && !x.lib);
+          return eng.then(() => (needNext ? ensureNext(chart).catch(() => {}) : null)).then(() => {
+            list.forEach((x) => { try { addOn(chart, x); } catch (e) { console.warn('TradeZoro: Pine restore', e); } });
+          });
         }).catch((e) => { console.warn('TradeZoro: Pine engine failed to load', e); });
       }
     });

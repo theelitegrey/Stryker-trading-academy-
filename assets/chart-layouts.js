@@ -13,7 +13,8 @@
 // same document templates save). TEMPLATES stay reusable style/indicator presets.
 //
 // Storage (rules: functions-src/firestore.rules, chartLayouts + chartShared blocks):
-//   students/{uid}/chartLayouts/{id}  { name 1-60, state JSON string <= 200000, symbol,
+//   students/{uid}/chartLayouts/{id}  { name 1-60, state <= 900000 chars: JSON, or 'tz1:'+base64(gzip(JSON)) when
+//                                       the JSON is over 200000 (assets/chart-state-codec.js), symbol,
 //                                       interval, shared bool, updatedAt }   owner only
 //   chartShared/{id}                  { ownerUid, name, state, updatedAt }
 //     id = the layout's own random 20-char Firestore id. Any signed-in member may GET it by
@@ -30,7 +31,7 @@
 // "For personal use."
 
 const NAME_MAX = 60;
-const STATE_MAX = 200000;
+const STATE_MAX = 900000;   // chars of the STORED string (rules cap). Big states are gzip-compressed first (assets/chart-state-codec.js).
 const MAX_COUNT = 50;
 const AUTOSAVE_MS = 2000;
 const RECENT_MAX = 5;
@@ -44,6 +45,20 @@ const ts = () => firebase.firestore.FieldValue.serverTimestamp();
 const tsMs = (v) => (v && v.toMillis ? v.toMillis() : (typeof v === 'number' ? v : 0));
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const codec = () => window.StrykerStateCodec;
+// stored state string (plain JSON or compressed) -> object, null when unreadable
+export async function decodeState(s){
+  if (codec()) return codec().decode(s);
+  try { return JSON.parse(s); } catch (e) { return null; }
+}
+// JSON string -> stored string. Throws err.userMessage past STATE_MAX.
+async function encodeState(json, setup){
+  // a published SETUP stays plain JSON: the rules read it to refuse drawings in a setup
+  if (codec() && !setup) return codec().encode(json);
+  if (json.length > STATE_MAX) { const e = new Error('big'); e.big = true; e.userMessage = 'This layout is very large (' + Math.round(json.length / 1024) + ' KB) and could not be saved to your account. A copy is kept on this device.'; throw e; }
+  return json;
+}
+export { encodeState };
 
 function el(tag, attrs, kids){
   const n = document.createElement(tag);
@@ -106,6 +121,8 @@ export function sanitizeShared(doc){
   (Array.isArray(doc.charts) ? doc.charts : []).forEach((c) => {
     if (!c || !c.ext || !Array.isArray(c.ext['stryker.pine'])) return;
     c.ext['stryker.pine'] = c.ext['stryker.pine'].filter((x) => {
+      // a built-in by reference ({ builtin: id }, no source): the script is our own file, loaded from this site
+      if (x && typeof x.source !== 'string' && typeof x.builtin === 'string' && /^[a-z0-9-]{2,80}$/.test(x.builtin)) return true;
       if (!x || typeof x.source !== 'string' || !ok(x.source)) { dropped++; return false; }
       delete x.engine;          // never the in-page engine
       return true;
@@ -277,16 +294,22 @@ export function mountLayouts(ws, o){
   }
 
   // ---- data ----
-  function pack(){
+  async function pack(){
     const st = ws.getState();
     const from = grid && grid.capFrom && grid.capFrom();
     if (from) st.layout = from;   // device-capped view: keep the member's own grid
-    const s = JSON.stringify(st);
-    const bytes = new Blob([s]).size;
-    if (bytes > STATE_MAX) { const e = new Error('big'); e.userMessage = 'This layout is too big to save (' + Math.round(bytes / 1024) + ' KB, limit ' + Math.round(STATE_MAX / 1024) + ' KB). Remove some drawings and try again.'; throw e; }
+    const json = JSON.stringify(st);
+    let s;
+    try { s = await encodeState(json); }
+    catch (e) { keepLocal(json); throw e; }
     let a = null; try { a = ws.active; } catch (e) {}
     const k = countOf(st);
-    return { state: s, symbol: String((a && a.symbol) || '').slice(0, 80), interval: String((a && a.timeframe) || '').slice(0, 10), panes: k.panes, indicators: k.indicators, thumb: a ? thumbOf(a) : '' };
+    return { state: s, json, symbol: String((a && a.symbol) || '').slice(0, 80), interval: String((a && a.timeframe) || '').slice(0, 10), panes: k.panes, indicators: k.indicators, thumb: a ? thumbOf(a) : '' };
+  }
+  // A save that fails (size, offline, rules) keeps the chart on this device so nothing is lost.
+  function keepLocal(json){
+    if (!codec()) return;
+    codec().backup('layout:' + uid() + ':' + (cur ? cur.id : 'unsaved'), cur ? cur.name : 'Unsaved layout', json);
   }
   const subOf = (d) => [symLabel(d.symbol), tfLabel(d.interval)].filter(Boolean).join(' · ');
 
@@ -321,7 +344,7 @@ export function mountLayouts(ws, o){
     if (saving) { await saving.catch(() => {}); }
     clearTimeout(autoTimer);
     let p;
-    try { p = pack(); } catch (e) { toast(e.userMessage || 'Could not save the layout.', 'error'); return; }
+    try { p = await pack(); } catch (e) { toast(e.userMessage || 'Could not save the layout.', 'error'); return; }
     const id = cur.id, name = cur.name, shared = cur.shared;
     saving = (async () => {
       await col().doc(id).set(Object.assign({ name, state: p.state, symbol: p.symbol, interval: p.interval, shared, updatedAt: ts(), panes: p.panes, indicators: p.indicators }, p.thumb ? { thumb: p.thumb } : {}), { merge: true });
@@ -333,14 +356,15 @@ export function mountLayouts(ws, o){
       if (manual) toast('Layout saved');
     } catch (e) {
       console.warn('TradeZoro: layout save', e);
-      toast('Could not save the layout. Check your connection.', 'error');
+      keepLocal(p.json);
+      toast('Could not save the layout to your account. Check your connection; a copy is kept on this device.', 'error');
     } finally { saving = null; }
   }
 
   async function saveAsNew(name){
     if (!user()) return;
     let p;
-    try { p = pack(); } catch (e) { toast(e.userMessage || 'Could not save.', 'error'); return; }
+    try { p = await pack(); } catch (e) { toast(e.userMessage || 'Could not save.', 'error'); return; }
     try {
       const all = cache || await list();
       if (all.length >= MAX_COUNT) { toast('You have ' + MAX_COUNT + ' layouts. Delete one to save another.', 'error'); return; }
@@ -350,7 +374,7 @@ export function mountLayouts(ws, o){
       if (viewing) endViewing();
       setCur({ id: ref.id, name, shared: false, symbol: p.symbol, interval: p.interval });
       toast('Saved as "' + name + '"');
-    } catch (e) { console.warn('TradeZoro: layout save as', e); toast('Could not save the layout.', 'error'); }
+    } catch (e) { console.warn('TradeZoro: layout save as', e); keepLocal(p.json); toast('Could not save the layout to your account. A copy is kept on this device.', 'error'); }
   }
 
   async function renameId(id, name){
@@ -420,7 +444,7 @@ export function mountLayouts(ws, o){
       const d = await col().doc(id).get();
       if (!d.exists) { toast('That layout no longer exists.', 'error'); dropRecent(id); return; }
       const x = d.data();
-      let doc; try { doc = JSON.parse(x.state); } catch (e) { doc = null; }
+      const doc = await decodeState(x.state);
       if (!doc) { toast('That layout could not be read.', 'error'); return; }
       apply(doc);
       setCur({ id, name: x.name, shared: !!x.shared, symbol: x.symbol, interval: x.interval, updatedAt: tsMs(x.updatedAt) });
@@ -447,7 +471,7 @@ export function mountLayouts(ws, o){
     try {
       if (on) {
         if (dirty) await saveNow(false);
-        const p = pack();
+        const p = await pack();
         await writeShared(cur.id, cur.name, p.state);
         await col().doc(cur.id).update({ shared: true, updatedAt: ts() });
       } else {
@@ -485,7 +509,7 @@ export function mountLayouts(ws, o){
     if (x.ownerUid === user().uid) {   // your own link: open your own copy
       return openById(id);
     }
-    let doc; try { doc = JSON.parse(x.state); } catch (e) { doc = null; }
+    const doc = await decodeState(x.state);
     const s = sanitizeShared(doc);
     if (!s) { toast('This shared layout could not be read.', 'error'); return; }
     if (cur && dirty && auto()) await saveNow(false);
@@ -654,7 +678,7 @@ export function mountLayouts(ws, o){
 
   // ---- library sheet (assets/chart-layouts-lib.js), loaded on first use ----
   let lib = null, mounted = null;
-  const host = { user, db, col, saveAsNew, sharedDoc, writeShared, ts, tsMs, toast, list, pack, askName, modal, el, openById, remove, renameId, duplicate, applyForeign, linkOf,
+  const host = { decodeState, encodeState, user, db, col, saveAsNew, sharedDoc, writeShared, ts, tsMs, toast, list, pack, askName, modal, el, openById, remove, renameId, duplicate, applyForeign, linkOf,
     saveNow, createNew, sanitizeShared, countOf, setupOf: (st) => ui.setupOf(st), symLabel, tfLabel, ago, copyLink: async (id) => { try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); } catch (e) { window.prompt('Copy this link', linkOf(id)); } },
     get cur(){ return cur; }, get dirty(){ return dirty; }, refresh(id, patch){ cache = null; if (cur && cur.id === id && patch) { Object.assign(cur, patch); setCur(Object.assign({}, cur)); } } };
   const libApi = { open: (tab) => import('./chart-layouts-lib.js?v=914').then((m) => { if (!mounted) mounted = m.mountLib(host); return mounted.open(tab); }).catch((e) => { console.warn('TradeZoro: layouts library', e); toast('Could not open the layouts library.', 'error'); }) };

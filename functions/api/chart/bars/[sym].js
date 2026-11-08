@@ -84,7 +84,7 @@ async function serve(ctx, admin) {
       inflight.set(k, p);
     }
     let bars = await p;
-    const ttl = ttlFor(tf, page, now, sym);
+    const ttl = bars.length ? ttlFor(tf, page, now, sym) : Math.min(ttlFor(tf, page, now, sym), 600);   // an empty answer may be an upstream hiccup: never keep it a day
     const body = { s: sym, tf, page, bars };
     if (cache) {
       const writes = [cache.put(freshKey, reply(body, 200, ttl))];

@@ -6,7 +6,7 @@
 // that many and no more; nothing is invented to fill the rest. Intervals Vest does not serve (45m, 3h, 1M ...) are built
 // from a smaller one it does serve. Live candle: the feed is re-read every 3 s; trades make it move on every print.
 // Data only: no orders, no account. Education only. Not financial advice.
-import { getJson, loadSymbols, parseKlines, NATIVE, tfMs, aggregate, monthOf } from './vest-core.js?v=914';
+import { getJson, loadSymbols, parseKlines, NATIVE, tfMs, aggregate, monthOf } from './vest-core.js?v=915';
 
 const SUPPORTED = ['1', '3', '5', '15', '30', '45', '60', '120', '180', '240', '360', '480', '720', 'D', 'W', 'M'];
 const NORM = { '1m': '1', '3m': '3', '5m': '5', '15m': '15', '30m': '30', '45m': '45', '1h': '60', '2h': '120', '3h': '180', '4h': '240', '6h': '360', '8h': '480', '12h': '720', '1d': 'D', '1w': 'W', '1mo': 'M', '1D': 'D', '1W': 'W', D: 'D', W: 'W', M: 'M' };
@@ -14,6 +14,12 @@ const normTf = (tf) => NORM[tf] || NORM[String(tf).toLowerCase()] || String(tf);
 const NATIVE_MIN = Object.keys(NATIVE).filter((k) => /^\d+$/.test(k)).map(Number).sort((a, b) => b - a);
 const POLL_MS = 3000;
 const clean = (t) => String(t || '').replace(/^[a-z]+:/i, '');
+
+// Usual names for the index / commodity perps, added to the search text only (the symbols keep their Vest names):
+// typing NQ or "nasdaq" finds NDX-USD-PERP, ES or "s&p" finds SPX-USD-PERP, and so on.
+// (names such as "nasdaq", "s&p", "gold" already match the symbol's own description; the root is what is missing).
+export const ALIASES = { 'NDX-USD-PERP': 'NQ', 'SPX-USD-PERP': 'ES', 'RTY-USD-PERP': 'RTY', 'GC-PERP': 'GC', 'CL-PERP': 'CL', 'SI-PERP': 'SI', 'HG-PERP': 'HG', 'NG-PERP': 'NG', 'PL-PERP': 'PL', 'BZ-PERP': 'BZ' };
+export const withAliases = (list) => list.map((s) => (ALIASES[s.ticker] && !s.description.includes(' \u00b7 ' + ALIASES[s.ticker]) ? { ...s, description: s.description + ' \u00b7 ' + ALIASES[s.ticker] } : s));
 
 export class VestProvider {
   info() { return { name: 'vest', displayName: 'Vest', requiresApiKey: false, supportedTimeframes: SUPPORTED, capabilities: { enumerate: true, stream: true, symbolInfo: true } }; }
@@ -23,7 +29,7 @@ export class VestProvider {
     const list = await loadSymbols();
     return list.find((s) => s.ticker.toUpperCase() === want) || null;
   }
-  async listSymbols() { return loadSymbols(); }
+  async listSymbols() { return withAliases(await loadSymbols()); }
   async getSymbolInfo(ticker) {
     const s = await this.sym(ticker).catch(() => null);
     if (!s) return undefined;

@@ -14,7 +14,7 @@ import { SOURCES, sourceName, openSource as realOpen } from './book-panel-source
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
 const FILTERS_C = [['0', 'All sizes'], ['1000', '≥ $1k'], ['10000', '≥ $10k'], ['100000', '≥ $100k']], FILTERS_F = [['0', 'All sizes'], ['5', '≥ 5'], ['25', '≥ 25'], ['100', '≥ 100']];
-const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus', 'bybit', 'okx', 'bitget', 'kraken'];
+const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus', 'bybit', 'okx', 'bitget', 'kraken', 'vest'];
 const isLocal = () => /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
 const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
 const svg = (d, s) => '<svg width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
@@ -89,7 +89,7 @@ export function mountBookPanel(ws, opts) {
       f.futRoot = k.root;
     } else {
       f.store.notional = true;
-      const ids = S.src === 'combined' ? SOURCES.map((s) => s.id) : [S.src];
+      const ids = k.prov === 'vest' ? ['vest'] : S.src === 'combined' ? SOURCES.filter((s) => !s.solo).map((s) => s.id) : [S.src];
       for (const id of ids) {
         const e = { id, status: 'loading', note: '', book: null, at: 0 }; f.books.set(id, e);
         f.stops.push(openSource(id, k.pair, {

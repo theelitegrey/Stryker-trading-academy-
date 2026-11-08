@@ -528,6 +528,7 @@ function lateLists(provider){
   let OkxProvider = null; try { OkxProvider = boostV((await import(VELA_BASE + 'providers/okx.js')).OkxProvider, 'okx'); } catch (e) { console.warn('TradeZoro: OKX provider', e); }
   let BitgetProvider = null, KrakenProvider = null;   // more crypto venues (providers/bitget.js, kraken.js); a failed load just leaves them out
   try { const [bg, kr] = await Promise.all([import(VELA_BASE + 'providers/bitget.js'), import(VELA_BASE + 'providers/kraken.js')]); BitgetProvider = boostV(bg.BitgetProvider, 'bitget'); KrakenProvider = boostV(kr.KrakenProvider, 'kraken'); } catch (e) { console.warn('TradeZoro: Bitget/Kraken providers', e); }
+  let VestProvider = null; try { VestProvider = boostV((await import('./vest-provider.js?v=912')).VestProvider, 'vest'); } catch (e) { console.warn('TradeZoro: Vest provider', e); }   // Vest perps (assets/vest-provider.js)
   const FuturesProvider = mods[4].FuturesProvider;
   const FxProvider = mods[4].FxProvider;
   const IdxProvider = mods[4].IdxProvider;
@@ -761,6 +762,7 @@ function lateLists(provider){
         ...(OkxProvider ? { okx: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new OkxProvider()), 'okx'), 'okx') } : {}),
         ...(BitgetProvider ? { bitget: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new BitgetProvider()), 'bitget'), 'bitget') } : {}),
         ...(KrakenProvider ? { kraken: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new KrakenProvider()), 'kraken'), 'kraken') } : {}),
+        ...(VestProvider ? { vest: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new VestProvider()), 'vest'), 'vest') } : {}),
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
         fx: Replay.wrapFactory(Iv.wrapFactory(() => new (BYO.withByo(FxProvider, 'fx'))(), 'fx'), 'fx'),
         // Indices & ETFs (SPX NDX VIX RUT QQQ SPY IWM DIA): same endpoint, Yahoo, delayed; admin live candle from the hub's quote frames.

@@ -18,6 +18,7 @@ import './orderflow-venue-bybit.js?v=912';
 import './orderflow-venue-okx.js?v=912';
 import './orderflow-venue-bitget.js?v=912';
 import './orderflow-venue-kraken.js?v=912';
+import './orderflow-venue-vest.js?v=912';
 
 const WS = 'wss://stream.binance.com:9443/ws/';
 const STEP = { '1': 60e3, '3': 180e3, '5': 300e3, '15': 900e3, '30': 1800e3, '60': 3600e3, '120': 7200e3, '240': 14400e3,

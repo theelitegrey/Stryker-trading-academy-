@@ -29,7 +29,7 @@ import { labelFor } from './byo-core.js?v=912';   // member's own connected sour
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
 const TICK_MS = 30000;           // re-check open/closed and lag
-const CRYPTO = /^(binance|coinbase|hyperliquid|bybit|okx|bitget|kraken):/i;
+const CRYPTO = /^(binance|coinbase|hyperliquid|bybit|okx|bitget|kraken|vest):/i;
 const FUT = /^futures:/i;
 const FX = /^fx:/i;
 const IDX = /^idx:/i;
@@ -274,11 +274,11 @@ export function installDataDot(ws, opts = {}) {
   // futures "Yahoo Finance, delayed" line showed on BTCUSDT). Crypto symbols get their own venue
   // line; anything else gets the standard line, or the Rithmic line while connected
   // (assets/rithmic-ui.js writes that one to dataset.fut and leaves the text alone on crypto).
-  const VENUE = { binance: 'Binance', coinbase: 'Coinbase', hyperliquid: 'Hyperliquid', bybit: 'Bybit', okx: 'OKX', bitget: 'Bitget', kraken: 'Kraken' };
+  const VENUE = { binance: 'Binance', coinbase: 'Coinbase', hyperliquid: 'Hyperliquid', bybit: 'Bybit', okx: 'OKX', bitget: 'Bitget', kraken: 'Kraken', vest: 'Vest' };
   function creditFor(sym) {
     const own = labelFor(sym);
     if (own) return 'Data feed: your ' + own.name + ' · market data goes straight from your account to your browser · Education only. Not financial advice.';
-    const m = /^(binance|coinbase|hyperliquid|bybit|okx|bitget|kraken):/i.exec(String(sym || ''));
+    const m = /^(binance|coinbase|hyperliquid|bybit|okx|bitget|kraken|vest):/i.exec(String(sym || ''));
     if (!m) return '';
     const v = VENUE[m[1].toLowerCase()];
     return 'Crypto: public exchange market data (candles, trades' + (v === 'Binance' ? ', order book' : '') + ') · Education only. Not financial advice.';

@@ -23,6 +23,7 @@ import './orderflow-venue-bybit.js?v=912';
 import './orderflow-venue-okx.js?v=912';
 import './orderflow-venue-bitget.js?v=912';
 import './orderflow-venue-kraken.js?v=912';
+import './orderflow-venue-vest.js?v=912';
 
 const venueOf = (root) => { const m = /^([a-z0-9]+):/i.exec(root || ''); return m && m[1].toLowerCase() !== 'binance' ? getVenue(m[1]) : null; };
 export const isCrypto = (root) => typeof root === 'string' && (root.startsWith(PREFIX) || !!venueOf(root));

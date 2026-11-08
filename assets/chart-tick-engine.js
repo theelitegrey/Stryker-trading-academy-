@@ -87,12 +87,23 @@ export async function teGetBars(root, tf, range, oldGetBars) {
     bars = s1.bars.filter((b) => b[0] < t1).map(toBar).concat(bars);
     from = f1; s = Object.assign({}, s, { rec: Math.min(s.rec, s1.rec) });
   }
-  const need = range.from != null ? range.from < s.rec : bars.length < want;
+  // minutes / hours: a short window (a weekend, overnight) steps back to the record start before the old source is asked, so the old
+  // source never fills in front of record bars that were simply outside the first window (HISTORY GAP 2, 2026-11-08)
+  if (sp.k !== 's' && range.from == null && bars.length < want && from > s.rec && to > s.rec) {
+    const f1 = Math.max(s.rec, to - SPAN(sp));
+    if (f1 < from) { s = await snapshot(root, tf, f1, to); bars = s.bars.filter((b) => b[0] < to).map(toBar); from = f1; }
+  }
+  // the old source only covers what lies before the record AND before this read's `to`, and only once the window reached the record start
+  const end = Math.min(s.rec, to);
+  const need = range.from != null ? range.from < end : bars.length < want && from <= s.rec;
   if (need && oldGetBars) {
-    const key = root + '|' + tf + '|' + s.rec;
+    // HISTORY GAP 2 (2026-11-08): the memo was keyed by rec alone, so every scroll-back read older than the record got the FIRST
+    // load's chunk again (nothing older than the oldest bar -> 'genesis' -> the chart stopped at the record start). Keyed by end now.
+    const lim = range.from != null ? undefined : Math.max(want - bars.length, 50);
+    const key = root + '|' + tf + '|' + end + '|' + lim;
     let p = HIST.get(key);
     if (!p || range.from != null) {
-      p = oldGetBars({ to: s.rec - 1, from: range.from, limit: range.from != null ? undefined : Math.max(want - bars.length, 50) }).then((x) => (x || []).filter((b) => b.time < s.rec)).catch(() => []);
+      p = oldGetBars({ to: end - 1, from: range.from, limit: lim }).then((x) => (x || []).filter((b) => b.time < end)).catch(() => []);
       if (range.from == null) { HIST.set(key, p); if (HIST.size > 40) HIST.delete(HIST.keys().next().value); }
     }
     const old = await p;

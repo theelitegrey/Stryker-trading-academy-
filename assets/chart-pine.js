@@ -99,6 +99,7 @@ async function ensureNext(chart){
     const e = wrapAlerts(new m.PineNextEngine({ props: 'strategy' }));
     chart.registerEngine(LANG_NEXT, e);
     nextEngines.set(chart, e);
+    try { e.w(); } catch (x) {}   // LAYOUT-PERF: start the worker (it downloads the engine) now, not at the first run
   }
   return nextEngines.get(chart);
 }
@@ -468,7 +469,10 @@ async function runOnChart(chart, source, inputs, shared, opts){
   finally { pageBusy(false); }
 }
 async function runOnChartInner(chart, source, inputs, shared, opts){
-  await ensureEngine(chart);
+  // LAYOUT-PERF (2026-11-08): the next engine (and its worker) loads alongside the classic one, not after it.
+  // A next-engine add no longer waits for the classic engine (parsed on the main thread); that loads only for the fallback.
+  const nextFirst = !!(opts && (opts.sealed || (opts.engine === 'next' && !shared)));
+  if (nextFirst) ensureNext(chart).catch(() => {}); else await ensureEngine(chart);
   if (pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
   const keep = pineHandles(chart).map(snapshot);
   let timer;
@@ -497,6 +501,7 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   const held = [];
   let release = () => {};
   if (!res) {
+    if (nextFirst) await ensureEngine(chart);
     release = holdVelaErrors(held);
     try { res = await Promise.race([chart.runIndicator(source, { language: LANG, inputs: inputs || {} }), timeout]); engine = 'worker'; }
     finally { release(); }
@@ -542,9 +547,26 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
 }
 
 // Called by vela-chart.js BEFORE the workspace is constructed.
+// LAYOUT-PERF (2026-11-08): once the chart has painted and the page is idle, the Pine engine files are fetched into
+// the HTTP cache (no parsing, no worker), so the first built-in a member adds doesn't wait ~2 s for ~370 KB of engine
+// downloads in a chain. Skipped with Data Saver on. Same URLs (and CORS mode) the worker/imports use.
+function prefetchEngine(){
+  try { if (navigator.connection && navigator.connection.saveData) return; } catch (e) {}
+  const pinets = 'https://cdn.jsdelivr.net/npm/pinets@0.11.0/dist/pinets.min.browser.es.js';   // = PINETS in chart-pine-next-worker.js
+  [PINE_PKG, pinets].forEach((href) => { const l = document.createElement('link'); l.rel = 'prefetch'; l.as = 'script'; l.crossOrigin = 'anonymous'; l.href = href; document.head.appendChild(l); });
+  ['./chart-pine-next.js?v=919', './chart-pine-series-cache.js?v=919', './chart-pine-tv-style.js?v=919'].forEach((u) => {
+    const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = new URL(u, import.meta.url).href; document.head.appendChild(l);
+  });
+}
+function prefetchWhenIdle(){
+  const go = () => setTimeout(() => (window.requestIdleCallback ? requestIdleCallback(prefetchEngine, { timeout: 4000 }) : prefetchEngine()), 1500);
+  if (window.__stkFirstCandles) go(); else window.addEventListener('stk:first-candles', go, { once: true });
+}
+
 export function installPine(core, wsGetter){
   Core = core;
   getWs = wsGetter;
+  try { prefetchWhenIdle(); } catch (e) {}
   try {
     core.registerStatePersistence({
       key: EXT_KEY,
@@ -562,12 +584,15 @@ export function installPine(core, wsGetter){
         const raw = payload.slice(0, MAX_PER_CELL);
         if (!raw.length) return;
         // Built-in refs ({ builtin: id }) fetch their source (cached; in parallel); the engine loads meanwhile.
-        const eng = ensureEngine(chart);
+        // LAYOUT-PERF (2026-11-08): only the engines the saved scripts use load, both at once, in parallel with
+        // the source fetches (the classic engine used to load first even for a layout of next-engine scripts).
+        const isNext = (x) => x && x.engine === 'next' && !x.lib && !x.sealed;
+        const nextP = raw.some(isNext) ? ensureNext(chart).catch(() => {}) : null;
+        const eng = raw.every(isNext) ? Promise.resolve() : ensureEngine(chart);
         Promise.all(raw.map((x) => withSource(x, chart))).then((xs) => {
           const list = xs.map(cleanEntry).filter(Boolean);
           if (!list.length) return null;
-          const needNext = list.some((x) => x.engine === 'next' && !x.lib);
-          return eng.then(() => (needNext ? ensureNext(chart).catch(() => {}) : null)).then(() => {
+          return Promise.all([eng, nextP]).then(() => {
             list.forEach((x) => { try { addOn(chart, x); } catch (e) { console.warn('TradeZoro: Pine restore', e); } });
           });
         }).catch((e) => { console.warn('TradeZoro: Pine engine failed to load', e); });
@@ -908,6 +933,9 @@ export function mountPine(ws, barL, opts){
       return r;
     } finally { pageBusy(false); }
   }
-  window.STRYKER_PINE = { addSealed, sealOf, ensureRoom, open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, addSource, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
+  // LAYOUT-PERF (2026-11-08): warm both engines (modules + worker download) when the Indicators window opens,
+  // so the first built-in added draws without waiting for ~350 KB of engine in a chain.
+  const warm = () => { const a = activeCell(); if (a.cell) ensureEngine(a.cell.chart).then(() => ensureNext(a.cell.chart)).catch(() => {}); };
+  window.STRYKER_PINE = { warm, addSealed, sealOf, ensureRoom, open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, addSource, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
   return { setOpen };
 }

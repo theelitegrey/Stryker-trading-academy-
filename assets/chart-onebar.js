@@ -382,6 +382,7 @@ export function mountOneBar(ws){
   function fit(){
     if (fitting) return;
     fitting = true;
+    lastFit = performance.now();
     try {
       const wasOpen = !morePop.hidden, st = morePop.scrollTop;
       restoreMoved();
@@ -407,6 +408,10 @@ export function mountOneBar(ws){
   // open a mutation-driven refit waits until it closes; resize still refits (scroll position is kept).
   let late = false;
   const queue = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; fit(); }); };
+  // LAYOUT-PERF (2026-11-08): at load ~20 modules each add a button in their own task, so the bar was refitted
+  // once per module. Mutation refits now run at most once per 150 ms (resize still refits on the next frame).
+  let lastFit = 0, later = 0;
+  const queueSoon = () => { if (later || raf) return; const wait = lastFit + 150 - performance.now(); if (wait <= 0) return queue(); later = setTimeout(() => { later = 0; queue(); }, wait); };
   // While the phone sheet is open, NOTHING rebuilds it: on Android the address bar shows/hides as the finger scrolls
   // inside the sheet, which fires resize; a refit then reset the scroll mid-fling ("scroll up -> jumps back down").
   // An open sheet only gets its height re-measured; the full refit runs when it closes.
@@ -420,7 +425,20 @@ export function mountOneBar(ws){
     }
     queue();
   };
-  const mo = new MutationObserver(() => { if (fitting) return; if (!merged && !morePop.hidden) { late = true; return; } queue(); });
+  // LAYOUT-PERF (2026-11-08): the session clock's text ticks every second inside the bar. A refit forces several
+  // layouts (on a phone ~1.7 s of main thread at load, ~5.7 s while an indicator loaded), so a text-only change
+  // refits only when it changed the width of the item that holds it (one measure instead of a full refit).
+  const textOnly = (r) => r.type === 'characterData' || (r.type === 'childList' && [...r.addedNodes, ...r.removedNodes].every((n) => n.nodeType === 3));
+  const itemW = new WeakMap();
+  const itemOf = (n) => { let e = n.nodeType === 1 ? n : n.parentElement; while (e && e.parentElement && e.parentElement !== bar && e.parentElement !== barL && e.parentElement !== barR && e.parentElement !== morePop) e = e.parentElement; return e; };
+  const sameWidth = (rs) => {
+    if (!rs.every(textOnly)) return false;
+    const items = new Set(rs.map((r) => itemOf(r.target)).filter(Boolean));
+    let same = true;
+    items.forEach((e) => { const w = e.offsetWidth; if (itemW.get(e) !== w) same = false; itemW.set(e, w); });
+    return same;
+  };
+  const mo = new MutationObserver((rs) => { if (fitting) return; if (sameWidth(rs)) return; if (!merged && !morePop.hidden) { late = true; return; } queueSoon(); });
   mo.observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
   new ResizeObserver(onResize).observe(bar);
 

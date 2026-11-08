@@ -360,6 +360,7 @@ export function mountIndicatorWindow(ws, opts){
     if (window.skel) { const w = h('div'); w.innerHTML = skel.html('rows', 8, 2); els.list.appendChild(w); } else els.list.appendChild(h('p', { class: 'stkiw-empty', text: 'Loading\u2026' }));
     if (!isPhone()) setTimeout(() => els && els.search.focus(), 0);
     paint();
+    try { window.STRYKER_PINE && window.STRYKER_PINE.warm(); window.__stkHeavyNow && window.__stkHeavyNow(); } catch (e) {}   // LAYOUT-PERF: engines load while the member picks
     await loadData();
     if (!Favs.map.size && section === 'fav') section = 'tech';
     render();

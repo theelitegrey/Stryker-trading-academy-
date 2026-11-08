@@ -1,0 +1,140 @@
+/* Zoro for Vest panel. Lives in a closed shadow root so Vest's styles and ours never mix. TradeZoro tokens (docs/DESIGN-STANDARD.md). */
+:host { all: initial; }
+.zv {
+  --bg: #0b0b0d; --raised: #131316; --raised2: #1b1b20; --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14);
+  --t1: rgba(255,255,255,.92); --t2: rgba(255,255,255,.64); --t3: rgba(255,255,255,.44);
+  --mint: #03c988; --mint-h: #4fe3ac; --on-mint: #04130d; --teal: #00adb5; --amber: #f5a524; --red: #f0616d;
+  --shadow: 0 12px 32px rgba(0,0,0,.45);
+  font: 400 13px/18px -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Roboto, "Segoe UI", system-ui, sans-serif;
+  color: var(--t1); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums;
+  position: fixed; z-index: 2147483000; left: 72px; bottom: 48px; width: 320px;
+}
+.zv.light {
+  --bg: #ffffff; --raised: #f5f5f7; --raised2: #ececf0; --line: rgba(0,0,0,.09); --line2: rgba(0,0,0,.16);
+  --t1: #1d1d1f; --t2: rgba(29,29,31,.68); --t3: rgba(29,29,31,.5); --mint: #03c988; --on-mint: #04130d; --amber: #b26a00; --red: #c8343f;
+  --shadow: 0 12px 32px rgba(0,0,0,.14);
+}
+.zv *, .zv *::before, .zv *::after { box-sizing: border-box; }
+.zv button, .zv input, .zv select { font: inherit; color: inherit; }
+.zv :focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+
+/* collapsed pill */
+.pill { display: none; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 8px; border-radius: 999px; border: 1px solid var(--line2);
+  background: var(--bg); box-shadow: var(--shadow); cursor: pointer; }
+.zv.min .pill { display: inline-flex; }
+.zv.min .card { display: none; }
+.pill .lbl { font-weight: 600; }
+
+.card { background: var(--bg); border: 1px solid var(--line2); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden;
+  display: flex; flex-direction: column; max-height: min(640px, calc(100vh - 96px)); }
+.hd { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 8px 0 12px; border-bottom: 1px solid var(--line); cursor: grab; user-select: none; flex: none; }
+.logo { width: 24px; height: 24px; border-radius: 6px; flex: none; display: block; }
+.ttl { font-weight: 600; font-size: 15px; line-height: 20px; white-space: nowrap; }
+.ttl small { font-weight: 400; font-size: 12px; color: var(--t3); margin-left: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t3); flex: none; }
+.dot.ok { background: var(--mint); } .dot.off { background: var(--red); } .dot.copy { background: var(--teal); }
+.sp { flex: 1; }
+.icon { width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: var(--t2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon:hover { background: var(--raised); color: var(--t1); }
+.icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+.status { padding: 8px 12px; font-size: 12px; line-height: 16px; color: var(--t2); border-bottom: 1px solid var(--line); flex: none; }
+.status.off { color: var(--red); }
+.status b { font-weight: 600; color: var(--t1); }
+
+.tabs { display: flex; gap: 4px; padding: 8px 12px 0; flex: none; }
+.seg { display: flex; padding: 2px; border-radius: 10px; background: var(--raised); gap: 2px; }
+.seg button { flex: 1; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--t2); cursor: pointer; font-size: 12px; font-weight: 500; white-space: nowrap; padding: 0 8px; }
+.seg button[aria-pressed="true"] { background: var(--raised2); color: var(--t1); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.tabs .seg { width: 100%; }
+
+.body { overflow-y: auto; overflow-x: hidden; padding: 12px; display: flex; flex-direction: column; gap: 12px; overscroll-behavior: contain; }
+.body::-webkit-scrollbar { width: 10px; }
+.body::-webkit-scrollbar-track { background: transparent; }
+.body::-webkit-scrollbar-button { display: none; }
+.body::-webkit-scrollbar-thumb { background: rgba(160,174,200,.26); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+.body::-webkit-scrollbar-thumb:hover { background-color: rgba(3,201,136,.62); }
+.light .body::-webkit-scrollbar-thumb { background-color: rgba(20,30,50,.22); }
+.log::-webkit-scrollbar { width: 10px; } .log::-webkit-scrollbar-button { display: none; }
+.log::-webkit-scrollbar-thumb { background: rgba(160,174,200,.26); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+
+.row { display: flex; gap: 8px; align-items: flex-end; }
+.row > * { flex: 1; min-width: 0; }
+.fld { display: flex; flex-direction: column; gap: 4px; }
+.fld > span { font-size: 12px; line-height: 16px; color: var(--t2); font-weight: 500; }
+.in { height: 36px; width: 100%; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line2); background: var(--raised); color: var(--t1); outline: none; }
+.in:focus { border-color: var(--mint); }
+.in::placeholder { color: var(--t3); }
+select.in { appearance: none; -webkit-appearance: none; padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) 16px, calc(100% - 10px) 16px; background-size: 5px 5px; background-repeat: no-repeat; }
+.hint { font-size: 12px; line-height: 16px; color: var(--t3); margin: 0; }
+.hint.warn { color: var(--amber); } .hint.err { color: var(--red); }
+
+.btn { height: 40px; border-radius: 12px; border: 1px solid var(--line2); background: var(--raised); color: var(--t1); font-weight: 600; cursor: pointer; padding: 0 12px; white-space: nowrap; }
+.btn:hover { background: var(--raised2); }
+.btn.pri { background: var(--mint); border-color: var(--mint); color: var(--on-mint); }
+.btn.pri:hover { background: var(--mint-h); }
+.btn.sm { height: 32px; border-radius: 8px; font-size: 12px; font-weight: 500; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn.sell { color: var(--t1); }
+.btns { display: flex; gap: 8px; } .btns > * { flex: 1; }
+
+.list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.li { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 12px; border-top: 1px solid var(--line); }
+.li:first-child { border-top: 0; }
+.li .t { flex: 1; min-width: 0; }
+.li .t b { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li .t i { display: block; font-style: normal; font-size: 12px; line-height: 16px; color: var(--t3); }
+.li .t i.err { color: var(--red); }
+.sw { position: relative; width: 40px; height: 24px; flex: none; }
+.sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.sw span { position: absolute; inset: 0; border-radius: 999px; background: var(--raised2); border: 1px solid var(--line2); transition: background .2s cubic-bezier(.2,0,0,1); pointer-events: none; }
+.sw span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--t2); transition: transform .2s cubic-bezier(.2,0,0,1); }
+.sw input:checked + span { background: var(--mint); border-color: var(--mint); }
+.sw input:checked + span::after { transform: translateX(16px); background: #fff; }
+.sw input:focus-visible + span { outline: 2px solid var(--mint); outline-offset: 2px; }
+
+.kill { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--line2); background: var(--raised); }
+.kill.on { border-color: var(--teal); }
+.kill .t { flex: 1; } .kill .t b { display: block; font-weight: 600; } .kill .t i { font-style: normal; font-size: 12px; color: var(--t3); }
+
+.log { max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: 12px; }
+.lg { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 12px; line-height: 16px; }
+.lg:first-child { border-top: 0; }
+.lg .m { color: var(--t3); } .lg.error .x { color: var(--red); } .lg.warn .x { color: var(--amber); }
+.empty { color: var(--t3); font-size: 12px; text-align: center; padding: 16px; }
+
+.banner { padding: 8px 12px; border-radius: 8px; font-size: 12px; line-height: 16px; background: var(--raised); border: 1px solid var(--line); }
+.banner.warn { color: var(--amber); }
+
+/* confirm + terms sheet over the panel */
+.sheet { position: absolute; inset: 0; background: var(--bg); border-radius: 16px; display: flex; flex-direction: column; z-index: 2; }
+.sheet .body { flex: 1; }
+.sheet h3 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; }
+.sheet p, .sheet li { margin: 0; color: var(--t2); }
+.sheet ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.sheet .foot { padding: 12px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; flex: none; }
+.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; line-height: 16px; color: var(--t2); cursor: pointer; }
+.chk input { margin: 1px 0 0; width: 16px; height: 16px; accent-color: var(--mint); flex: none; }
+.sum { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.sum dt { color: var(--t3); } .sum dd { margin: 0; text-align: right; }
+.a { color: var(--mint); text-decoration: none; font-weight: 500; }
+.a:hover { text-decoration: underline; }
+[hidden] { display: none !important; }
+
+/* phone: a bottom sheet with a grabber, controls at 44 */
+@media (max-width: 600px) {
+  .zv { left: 12px; right: 12px; bottom: 76px; width: auto; }
+  .zv.min { right: auto; }
+  .card { max-height: 70vh; border-radius: 20px 20px 16px 16px; }
+  .hd { cursor: default; }
+  .hd::before { content: ""; position: absolute; left: 50%; margin-left: -18px; top: 6px; width: 36px; height: 4px; border-radius: 2px; background: var(--line2); }
+  .card { position: relative; }
+}
+@media (pointer: coarse) {
+  .in { height: 44px; font-size: 16px; }
+  .btn { height: 44px; } .btn.sm { height: 40px; }
+  .seg button { height: 36px; }
+  .icon { width: 44px; height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .sw span, .sw span::after { transition: none; } }

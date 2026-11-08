@@ -1,0 +1,52 @@
+{
+ "tickers": [
+  {
+   "symbol": "BTC-PERP",
+   "markPrice": "75929.2",
+   "marginMarkPrice": "75929.2",
+   "indexPrice": "75928.9",
+   "oneHrFundingRate": "-0.00000596",
+   "status": "TRADING"
+  },
+  {
+   "symbol": "ETH-PERP",
+   "markPrice": "2239.7",
+   "marginMarkPrice": "2239.7",
+   "indexPrice": "2238.42",
+   "oneHrFundingRate": "0.00001250",
+   "status": "TRADING"
+  },
+  {
+   "symbol": "NDX-USD-PERP",
+   "markPrice": "27105.500000000",
+   "marginMarkPrice": "26815.25",
+   "indexPrice": "27107.250000000",
+   "oneHrFundingRate": "0.00000006",
+   "status": "TRADING"
+  },
+  {
+   "symbol": "QQQ-USD-PERP",
+   "markPrice": "657.91",
+   "marginMarkPrice": "657.91",
+   "indexPrice": "657.54",
+   "oneHrFundingRate": "0.00000571",
+   "status": "TRADING"
+  },
+  {
+   "symbol": "SPX-USD-PERP",
+   "markPrice": "7404.000000000",
+   "marginMarkPrice": "7337.25",
+   "indexPrice": "7403.880000000",
+   "oneHrFundingRate": "0.00000089",
+   "status": "TRADING"
+  },
+  {
+   "symbol": "SPY-USD-PERP",
+   "markPrice": "736.42",
+   "marginMarkPrice": "736.42",
+   "indexPrice": "736.42",
+   "oneHrFundingRate": "0.00000571",
+   "status": "TRADING"
+  }
+ ]
+}

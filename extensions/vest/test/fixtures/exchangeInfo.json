@@ -1,0 +1,208 @@
+{
+ "symbols": [
+  {
+   "assetId": 0,
+   "symbol": "BTC-PERP",
+   "displayName": "Bitcoin",
+   "displaySymbol": "BTC-PERP",
+   "base": "BTC",
+   "quote": "USDC",
+   "sizeDecimals": 4,
+   "priceDecimals": 1,
+   "fundedInitMarginRatio": "0.04000000",
+   "capitalInitMarginRatio": "0.04000000",
+   "capitalPlans": [],
+   "initMarginRatio": "0.02000000",
+   "maintMarginRatio": "0.01000000",
+   "takerFee": "0.00010000",
+   "makerFee": "0.00000000",
+   "isolated": false,
+   "asset": "crypto",
+   "tradingStatus": "TRADING",
+   "capitalTradingStatus": "TRADING",
+   "tickSizes": [
+    "0.1",
+    "1",
+    "10",
+    "100"
+   ],
+   "defaultTickSize": "0.1",
+   "minTickSize": "0.1",
+   "imageUrl": "https://s3-symbol-logo.tradingview.com/crypto/XTVCBTC--big.svg",
+   "categories": [],
+   "listedAt": 1775654421576
+  },
+  {
+   "assetId": 1,
+   "symbol": "ETH-PERP",
+   "displayName": "Ethereum",
+   "displaySymbol": "ETH-PERP",
+   "base": "ETH",
+   "quote": "USDC",
+   "sizeDecimals": 3,
+   "priceDecimals": 2,
+   "fundedInitMarginRatio": "0.06666600",
+   "capitalInitMarginRatio": "0.06666600",
+   "capitalPlans": [],
+   "initMarginRatio": "0.02000000",
+   "maintMarginRatio": "0.01000000",
+   "takerFee": "0.00010000",
+   "makerFee": "0.00000000",
+   "isolated": false,
+   "asset": "crypto",
+   "tradingStatus": "TRADING",
+   "capitalTradingStatus": "TRADING",
+   "tickSizes": [
+    "0.01",
+    "0.1",
+    "1",
+    "10"
+   ],
+   "defaultTickSize": "0.01",
+   "minTickSize": "0.01",
+   "imageUrl": "https://s3-symbol-logo.tradingview.com/crypto/XTVCETH--big.svg",
+   "categories": [],
+   "listedAt": 1775654421576
+  },
+  {
+   "assetId": 103,
+   "symbol": "NDX-USD-PERP",
+   "displayName": "NASDAQ 100 E-mini Futures",
+   "displaySymbol": "NQ-PERP",
+   "base": "NDX-USD",
+   "quote": "USDC",
+   "sizeDecimals": 4,
+   "priceDecimals": 2,
+   "fundedInitMarginRatio": "0.02000000",
+   "capitalInitMarginRatio": "0.02000000",
+   "capitalPlans": [],
+   "initMarginRatio": "0.02000000",
+   "maintMarginRatio": "0.01000000",
+   "takerFee": "0.00002500",
+   "makerFee": "0.00000000",
+   "isolated": false,
+   "asset": "stock",
+   "tradingStatus": "TRADING",
+   "capitalTradingStatus": "TRADING",
+   "tickSizes": [
+    "0.25",
+    "2.5",
+    "25"
+   ],
+   "defaultTickSize": "0.25",
+   "minTickSize": "0.25",
+   "imageUrl": "https://s3-symbol-logo.tradingview.com/indices/nasdaq-100--big.svg",
+   "categories": [
+    "index"
+   ],
+   "listedAt": 1775654421576
+  },
+  {
+   "assetId": 526,
+   "symbol": "QQQ-USD-PERP",
+   "displayName": "Invesco QQQ Trust Series I",
+   "displaySymbol": "QQQ-USD-PERP",
+   "base": "QQQ-USD",
+   "quote": "USDC",
+   "sizeDecimals": 4,
+   "priceDecimals": 2,
+   "fundedInitMarginRatio": "0.20000000",
+   "capitalInitMarginRatio": "0.20000000",
+   "capitalPlans": [],
+   "initMarginRatio": "0.02000000",
+   "maintMarginRatio": "0.01000000",
+   "takerFee": "0.00010000",
+   "makerFee": "0.00000000",
+   "isolated": false,
+   "asset": "stock",
+   "tradingStatus": "TRADING",
+   "capitalTradingStatus": "TRADING",
+   "tickSizes": [
+    "0.01",
+    "0.1",
+    "1"
+   ],
+   "defaultTickSize": "0.01",
+   "minTickSize": "0.01",
+   "imageUrl": "https://s3-symbol-logo.tradingview.com/invesco--big.svg",
+   "categories": [
+    "etf"
+   ],
+   "listedAt": 1775654421576
+  },
+  {
+   "assetId": 102,
+   "symbol": "SPX-USD-PERP",
+   "displayName": "S&P 500 E-mini Futures",
+   "displaySymbol": "ES-PERP",
+   "base": "SPX-USD",
+   "quote": "USDC",
+   "sizeDecimals": 4,
+   "priceDecimals": 2,
+   "fundedInitMarginRatio": "0.01333300",
+   "capitalInitMarginRatio": "0.01333300",
+   "capitalPlans": [],
+   "initMarginRatio": "0.01333300",
+   "maintMarginRatio": "0.00666600",
+   "takerFee": "0.00002500",
+   "makerFee": "0.00000000",
+   "isolated": false,
+   "asset": "stock",
+   "tradingStatus": "TRADING",
+   "capitalTradingStatus": "TRADING",
+   "tickSizes": [
+    "0.25",
+    "2.5",
+    "25"
+   ],
+   "defaultTickSize": "0.25",
+   "minTickSize": "0.25",
+   "imageUrl": "https://s3-symbol-logo.tradingview.com/indices/s-and-p-500--big.svg",
+   "categories": [
+    "index"
+   ],
+   "listedAt": 1775654421576
+  },
+  {
+   "assetId": 525,
+   "symbol": "SPY-USD-PERP",
+   "displayName": "SPDR S&P 500 ETF Trust",
+   "displaySymbol": "SPY-USD-PERP",
+   "base": "SPY-USD",
+   "quote": "USDC",
+   "sizeDecimals": 4,
+   "priceDecimals": 2,
+   "fundedInitMarginRatio": "0.20000000",
+   "capitalInitMarginRatio": "0.20000000",
+   "capitalPlans": [],
+   "initMarginRatio": "0.02000000",
+   "maintMarginRatio": "0.01000000",
+   "takerFee": "0.00010000",
+   "makerFee": "0.00000000",
+   "isolated": false,
+   "asset": "stock",
+   "tradingStatus": "TRADING",
+   "capitalTradingStatus": "TRADING",
+   "tickSizes": [
+    "0.01",
+    "0.1",
+    "1"
+   ],
+   "defaultTickSize": "0.01",
+   "minTickSize": "0.01",
+   "imageUrl": "https://s3-symbol-logo.tradingview.com/spdr-sandp500-etf-tr--big.svg",
+   "categories": [
+    "etf"
+   ],
+   "listedAt": 1775654421576
+  }
+ ],
+ "exchange": {
+  "lp": "0",
+  "insurance": "0",
+  "collateralDecimals": 6
+ },
+ "system": {
+  "tradingGlobalStatus": "TRADING"
+ }
+}

@@ -93,6 +93,15 @@
     "grp": "TradeZoro"
    },
    {
+    "key": "b:stk_hlintel",
+    "name": "Wallet Intel",
+    "author": "TradeZoro",
+    "desc": "Hyperliquid charts: tap a candle to see the wallets that traded it, plus liquidation and stop-order clusters of tracked wallets. Updated every few minutes",
+    "third": false,
+    "beta": false,
+    "grp": "TradeZoro"
+   },
+   {
     "key": "b:stk_tide",
     "name": "ZoroTide (options money flow: calls vs puts)",
     "author": "TradeZoro",
@@ -1469,6 +1478,15 @@
     "name": "Dark Pool Prints",
     "author": "TradeZoro",
     "desc": "Large off-exchange stock trades drawn at their exact price and time, sized by $ value; $10M+ highlighted. US stocks and ETFs, updated every 2 hours",
+    "third": false,
+    "beta": false,
+    "grp": "TradeZoro"
+   },
+   {
+    "key": "b:stk_hlintel",
+    "name": "Wallet Intel",
+    "author": "TradeZoro",
+    "desc": "Hyperliquid charts: tap a candle to see the wallets that traded it, plus liquidation and stop-order clusters of tracked wallets. Updated every few minutes",
     "third": false,
     "beta": false,
     "grp": "TradeZoro"
@@ -13206,6 +13224,76 @@
       "def": "#787b86",
       "options": [],
       "group": "Style"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Wallet Intel",
+   "category": "Built-in",
+   "native": true,
+   "nativeType": "stk_hlintel",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Wallet Intel",
+    "short": "Wallet Intel",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "liq",
+      "type": "bool",
+      "title": "Liquidation clusters",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "stops",
+      "type": "bool",
+      "title": "Stop clusters",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "minSize",
+      "type": "string",
+      "title": "Minimum cluster size",
+      "def": "$100K",
+      "options": [
+       "$10K",
+       "$100K",
+       "$1M"
+      ]
+     },
+     {
+      "key": "labels",
+      "type": "bool",
+      "title": "Show wallet labels",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "longColor",
+      "type": "color",
+      "title": "Long liquidations colour",
+      "def": "#f23645",
+      "options": []
+     },
+     {
+      "key": "shortColor",
+      "type": "color",
+      "title": "Short liquidations colour",
+      "def": "#03c988",
+      "options": []
+     },
+     {
+      "key": "stopColor",
+      "type": "color",
+      "title": "Stop orders colour",
+      "def": "#00adb5",
+      "options": []
      }
     ]
    }

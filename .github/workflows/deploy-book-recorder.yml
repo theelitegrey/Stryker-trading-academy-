@@ -51,6 +51,10 @@ jobs:
           python3 workers/book-recorder/test/scan_feeder_test.py
           node workers/book-recorder/test/scan.test.mjs
           python3 workers/book-recorder/test/info_feeder_test.py
+      - name: Hyperliquid wallet intel tests (feeder maths, labels, clusters, validation, local round trip)
+        run: |
+          python3 workers/book-recorder/test/hl_feeder_test.py
+          node workers/book-recorder/test/hl.test.mjs
       - name: News + calendar tests (tagging, dedupe, replay cut-off, validation, local round trip)
         run: node workers/book-recorder/test/news.test.mjs
       - name: Terminal files tests (brief / market map / calendar, validation, health, feeder maths)

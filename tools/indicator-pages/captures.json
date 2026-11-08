@@ -168,5 +168,6 @@
  "liquidations-per-bar": "fallback: needs live crypto exchange data the test chart does not have",
  "open-interest": "fallback: needs live crypto exchange data the test chart does not have",
  "funding-rate": "fallback: needs live crypto exchange data the test chart does not have",
- "long-short-ratio": "fallback: needs live crypto exchange data the test chart does not have"
+ "long-short-ratio": "fallback: needs live crypto exchange data the test chart does not have",
+ "wallet-intel": "fallback: needs Hyperliquid wallet data the test chart does not have"
 }

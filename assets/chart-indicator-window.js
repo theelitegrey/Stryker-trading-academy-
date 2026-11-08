@@ -36,8 +36,8 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=911';
-import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2 } from './chart-pro-gate.js?v=911';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=913';
+import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2 } from './chart-pro-gate.js?v=913';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -196,6 +196,7 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_zvol') { cat = GROUP_STRYKER; desc = 'Marks where a contract had Fresh Volume (volume above open interest) or a Volume Burst. Volume only, no buyer or seller side'; }
       if (r.native && r.nativeType === 'stk_optflow') { cat = GROUP_STRYKER; desc = 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium; hover or tap for details. Per-bar totals, not single trades (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_offex') { cat = GROUP_STRYKER; desc = 'Daily off-exchange share of volume in a lower pane. FINRA data, updated daily'; }
+      if (r.native && r.nativeType === 'stk_hlintel') { cat = GROUP_STRYKER; desc = 'Hyperliquid charts: tap a candle to see the wallets that traded it, plus liquidation and stop-order clusters of tracked wallets. Updated every few minutes'; }
       if (r.native && r.nativeType === 'stk_darkpool') { cat = GROUP_STRYKER; desc = 'Large off-exchange stock trades drawn at their exact price and time, sized by $ value; $10M+ highlighted. US stocks and ETFs, updated every 2 hours'; }
       if (r.native && r.nativeType === 'stk_offex_lv') { cat = GROUP_STRYKER; desc = 'Price levels where weekly off-exchange volume clustered (average price of the week). FINRA data, updated weekly'; }
       if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them'; }

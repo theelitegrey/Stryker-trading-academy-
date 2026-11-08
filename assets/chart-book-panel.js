@@ -4,13 +4,14 @@
 // one exchange or Combined (sizes added up per price). Futures: the L2 hub in chart-futures-l2.js (same admin gate, l2Visible()).
 // Paper trading from the DOM: bid cell = paper BUY, ask cell = paper SELL (limit; market at / through the touch), simulated only,
 // through chart-paper.js (same switch, same rules as the chart's ticket). Right-click / long-press a row: draw a level or a zone.
+// Hyperliquid charts: tap a Book row (DOM: the price cell) or pick "Wallets at this price" -> tracked wallets with orders there (chart-wallet-intel.js).
 // Logic lives in book-panel-core.js (unit-tested), streams in book-panel-sources.js. Phones <= 700 px: bottom sheet.
 // Wording: "updated Xs ago" only; no real-time claims. Education only. Not financial advice.
-import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source } from './chart-futures-l2.js?v=911';
-import { replayClock, btBook } from './book-replay.js?v=911';
-import { rtReady, rtOnChange } from './rt-access.js?v=911';
-import * as C from './book-panel-core.js?v=911';
-import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=911';
+import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source } from './chart-futures-l2.js?v=913';
+import { replayClock, btBook } from './book-replay.js?v=913';
+import { rtReady, rtOnChange } from './rt-access.js?v=913';
+import * as C from './book-panel-core.js?v=913';
+import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=913';
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
 const FILTERS_C = [['0', 'All sizes'], ['1000', '≥ $1k'], ['10000', '≥ $10k'], ['100000', '≥ $100k']], FILTERS_F = [['0', 'All sizes'], ['5', '≥ 5'], ['25', '≥ 25'], ['100', '≥ 100']];
@@ -110,7 +111,7 @@ export function mountBookPanel(ws, opts) {
     if (k.kind === 'crypto' && (k.pair.perp || k.prov !== 'binance')) { f.msg = 'No recorded order book for this market in replay.'; return; }   // the recorder keeps Binance spot only
     if (k.kind === 'fut') f.step = k.tick;
     let alive = true; f.stops.push(() => { alive = false; });
-    import('./chart-orderflow.js?v=911').then((Flow) => {
+    import('./chart-orderflow.js?v=913').then((Flow) => {
       if (!alive) return;
       const h = k.kind === 'fut' ? Flow.acquireBookFeed('tsl2', k.root, schedule, l2Source(k.root)) : Flow.acquireBookFeed('binance', k.pair.base + k.pair.quote, schedule);
       f.bf = h.feed; f.stops.push(() => h.release());
@@ -198,7 +199,7 @@ export function mountBookPanel(ws, opts) {
     const A = Math.max(3, Math.floor((rowsN - 1) / 2)), bm = C.bookModel(M.m, A), step = M.step;
     pool(A * 2 + 1);
     const asks = bm.asks.slice(-A), kids = list.children;
-    const fill = (r, x, cls) => { r.className = 'stkbp-r ' + cls; r.dataset.p = x ? x.p : ''; txt(r.children[0], x ? C.fmtPrice(x.p, step) : ''); txt(r.children[1], x ? C.fmtSize(x.q) : ''); txt(r.children[2].lastChild, x ? C.fmtSize(x.t) : ''); setBar(r.children[2].firstChild, x ? x.t / bm.maxT : 0); };
+    const fill = (r, x, cls) => { r.className = 'stkbp-r ' + cls; r.dataset.p = x ? x.p : ''; r.dataset.q = x ? x.q : ''; txt(r.children[0], x ? C.fmtPrice(x.p, step) : ''); txt(r.children[1], x ? C.fmtSize(x.q) : ''); txt(r.children[2].lastChild, x ? C.fmtSize(x.t) : ''); setBar(r.children[2].firstChild, x ? x.t / bm.maxT : 0); };
     for (let i = 0; i < A; i++) fill(kids[i], asks[i - (A - asks.length)], 'is-ask');
     const mid = kids[A]; mid.className = 'stkbp-r is-mid'; mid.dataset.p = ''; txt(mid.lastChild, 'Spread ' + C.fmtPrice(bm.spread, step) + ' · ' + bm.bps.toFixed(2) + ' bps');
     for (let i = 0; i < A; i++) fill(kids[A + 1 + i], bm.bids[i], 'is-bid');
@@ -371,7 +372,7 @@ export function mountBookPanel(ws, opts) {
   list.addEventListener('wheel', (e) => { if (S.tab !== 'dom') return; e.preventDefault(); free = true; if (!topKey) { const r = list.firstChild; topKey = r ? +r.dataset.k : 0; } topKey -= Math.sign(e.deltaY) * Math.max(1, Math.round(Math.abs(e.deltaY) / rh)); schedule(); }, { passive: false });
   list.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.chip')) return;
-    down = { x: e.clientX, y: e.clientY, row: rowOf(e.target), cell: e.target.closest('[data-c]'), t: e.pointerType, moved: false, carry: 0, id: e.pointerId };
+    down = { x: e.clientX, y: e.clientY, row: rowOf(e.target), cell: e.target.closest('[data-c]'), price: !!e.target.closest('.p'), t: e.pointerType, moved: false, carry: 0, id: e.pointerId };
     clearTimeout(lp); if (down.row && e.pointerType !== 'mouse') lp = setTimeout(() => { if (down && !down.moved) { down.long = true; openMenu(down.row, e.clientX, e.clientY); } }, 520);
   });
   list.addEventListener('pointermove', (e) => {
@@ -386,7 +387,9 @@ export function mountBookPanel(ws, opts) {
     const r = d.row; if (!r || !r.dataset.p) return;
     const price = +r.dataset.p;
     if (zoneFrom != null) { finishZone(price); return; }
-    if (S.tab === 'dom' && d.cell) { const M = model(); if (M) trade(d.cell.dataset.c, price, M); }
+    if (S.tab === 'dom' && d.cell) { const M = model(); if (M) trade(d.cell.dataset.c, price, M); return; }
+    // Hyperliquid chart: tapping a Book row (or the DOM's price column) shows the tracked wallets with orders there (chart-wallet-intel.js)
+    if (hlCoin() && (S.tab === 'book' || (S.tab === 'dom' && d.price))) walletsAt(r);
   };
   list.addEventListener('pointerup', endDown);
   list.addEventListener('pointercancel', () => { clearTimeout(lp); down = null; });
@@ -408,15 +411,24 @@ export function mountBookPanel(ws, opts) {
   });
 
   // ------------------------------------------------------------------------------------------------ draw a level / a zone
+  let menuRow = null;
+  const hlCoin = () => (feed && feed.k && feed.k.kind === 'crypto' && feed.k.prov === 'hyperliquid' ? String(feed.k.sym).replace(/^hyperliquid:/i, '').replace(/\.P$/i, '') : '');
+  // book size at the row only when the panel shows the Hyperliquid book alone (Combined adds other exchanges' sizes)
+  function walletsAt(row) {
+    const wi = window.__stkWalletIntel, price = +row.dataset.p; if (!wi || !(price > 0)) return;
+    const step = Math.round((feed.step || 0) * MULT[S.g] * 1e8) / 1e8;
+    wi.openLevel(hlCoin(), price, step, S.src === 'hyperliquid' && S.tab === 'book' ? +row.dataset.q || 0 : 0);
+  }
   function openMenu(row, x, y) {
     const price = +row.dataset.p; if (!(price > 0)) return; const step = feed && feed.step || 0.01;
-    menu.innerHTML = '<button type="button" role="menuitem" data-a="level">Draw level at ' + C.fmtPrice(price, step) + '</button><button type="button" role="menuitem" data-a="zone">Draw zone from here</button>';
-    menu.hidden = false; menu.dataset.p = price;
+    menu.innerHTML = '<button type="button" role="menuitem" data-a="level">Draw level at ' + C.fmtPrice(price, step) + '</button><button type="button" role="menuitem" data-a="zone">Draw zone from here</button>' + (hlCoin() ? '<button type="button" role="menuitem" data-a="wallets">Wallets at this price</button>' : '');
+    menu.hidden = false; menu.dataset.p = price; menuRow = row;
     const pr = panel.getBoundingClientRect(), w = menu.offsetWidth || 200, h = menu.offsetHeight || 96;
     menu.style.left = clamp(x - pr.left, 8, Math.max(8, pr.width - w - 8)) + 'px'; menu.style.top = clamp(y - pr.top - h - 8, 8, Math.max(8, pr.height - h - 8)) + 'px';
   }
   menu.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-a]'); if (!b) return; const price = +menu.dataset.p; closeMenu();
+    if (b.dataset.a === 'wallets') { if (menuRow) walletsAt(menuRow); return; }
     if (b.dataset.a === 'level') drawLevel(price); else { zoneFrom = price; if (opts.toast) opts.toast('Tap a second price to finish the zone (Esc cancels).', 'info'); schedule(); }
   });
   document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !menu.contains(e.target)) closeMenu(); }, true);

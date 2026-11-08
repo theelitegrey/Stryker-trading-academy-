@@ -595,6 +595,16 @@
       "alt": "TradeZoro News markers preview card"
     },
     {
+      "page": "indicators/wallet-intel.html",
+      "title": "Wallet Intel",
+      "og_title": "Wallet Intel: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/wallet-intel.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Wallet Intel preview card"
+    },
+    {
       "page": "indicators/zorotide.html",
       "title": "ZoroTide",
       "og_title": "ZoroTide: ZoroCharts indicator guide",

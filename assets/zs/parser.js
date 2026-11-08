@@ -1,7 +1,7 @@
 // Zscript parser: tokens -> AST, with error recovery (keeps going after an error,
 // resyncing at the next line). Grammar: SPEC.md section 3.
-import { lex } from './lexer.js?v=911';
-import { diag } from './errors.js?v=911';
+import { lex } from './lexer.js?v=913';
+import { diag } from './errors.js?v=913';
 
 export const TYPE_WORDS = new Set(['int', 'float', 'bool', 'string', 'color', 'label', 'line', 'box', 'table', 'array', 'map']);
 const QUALIFIERS = new Set(['series', 'simple', 'const']);

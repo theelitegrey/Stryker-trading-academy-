@@ -12,7 +12,7 @@
   "Levels",
   "Community"
  ],
- "count": 168,
+ "count": 174,
  "skipped": [
   {
    "key": "x:volume-bubbles-quantalgo",
@@ -1030,6 +1030,7 @@
     "Liquidation prices move as prices, margin and positions change. A cluster shows where tracked positions would be liquidated now, not that they will be.",
     "Nothing is drawn in bar replay."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13655,6 +13656,7 @@
     "An exchange that does not serve your region is shown as not available; the other exchanges still work.",
     "Nothing is drawn in bar replay."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13731,6 +13733,7 @@
     "Crypto perpetuals only. History builds up from the moment you open the chart with this indicator on.",
     "An exchange that does not serve your region is shown as not available."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13797,6 +13800,7 @@
     "An exchange that does not serve your region is listed in the pane as not available and left out of the sum.",
     "Only exchanges that publish an open interest history are offered."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13882,6 +13886,7 @@
     "Exchanges settle at different intervals (for example every 8 hours or every hour), so compare rates with the interval in mind.",
     "Crypto perpetuals only. An exchange that does not serve your region, or does not list the coin, is shown as such."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13948,6 +13953,7 @@
     "It counts accounts (or, for one top-trader source, positions), not the size of each position.",
     "Crypto perpetuals only. An exchange that does not serve your region is shown as not available; pick another source in Settings."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -16532,6 +16538,7 @@
     "0DTE shows a note on days when the symbol has no expiry today. Nothing is drawn in bar replay.",
     "Part of Pro, like GEX+. Education only. Not financial advice."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -16610,6 +16617,7 @@
     "0DTE shows a note on days when the symbol has no expiry today. Nothing is drawn in bar replay.",
     "Part of Pro, like GEX+. Education only. Not financial advice."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -16688,6 +16696,7 @@
     "0DTE shows a note on days when the symbol has no expiry today. Nothing is drawn in bar replay.",
     "Part of Pro, like GEX+. Education only. Not financial advice."
    ],
+   "explain": null,
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",

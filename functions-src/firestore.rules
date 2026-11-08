@@ -352,14 +352,15 @@ service cloud.firestore {
       }
 
       // Charts page saved templates (assets/chart-templates.js, 2026-10-05).
-      // Owner only. name 1-60 chars, state = Vela workspace JSON <= 200000
-      // chars, isDefault bool, server timestamps. 20-per-member cap is client-side.
+      // Owner only. name 1-60 chars, state = Vela workspace JSON, or 'tz1:'+base64(gzip(JSON)) for big ones
+      // (assets/chart-state-codec.js, LAYOUT-PERF 2026-11-08), <= 900000 chars, isDefault bool, server
+      // timestamps. 20-per-member cap is client-side.
       match /chartTemplates/{tid} {
         function validTpl(d) {
           return d.keys().hasOnly(['name', 'state', 'isDefault', 'createdAt', 'updatedAt'])
             && d.keys().hasAll(['name', 'state', 'updatedAt'])
             && d.name is string && d.name.size() > 0 && d.name.size() <= 60
-            && d.state is string && d.state.size() <= 200000
+            && d.state is string && d.state.size() <= 900000
             && (!('isDefault' in d) || d.isDefault is bool)
             && (!('createdAt' in d) || d.createdAt is timestamp)
             && d.updatedAt is timestamp;
@@ -369,7 +370,8 @@ service cloud.firestore {
       }
 
       // Charts page saved LAYOUTS (assets/chart-layouts.js, 2026-10-06): whole saved
-      // charts. Owner only. name 1-60, state = Vela workspace JSON <= 200000 chars,
+      // charts. Owner only. name 1-60, state = Vela workspace JSON or 'tz1:'+gzip/base64 <= 900000 chars
+      // (LAYOUT-PERF 2026-11-08; doc stays < 1 MiB with the 60000-char thumb),
       // symbol <= 80, interval <= 10, shared bool, updatedAt = server time.
       // 50-per-member cap is client-side. Carved out of the wildcard above.
       match /chartLayouts/{lid} {
@@ -386,7 +388,7 @@ service cloud.firestore {
             && (!('tags' in d) || (d.tags is list && d.tags.size() <= 5))
             && (!('cid' in d) || (d.cid is string && d.cid.size() <= 40))
             && d.name is string && d.name.size() > 0 && d.name.size() <= 60
-            && d.state is string && d.state.size() <= 200000
+            && d.state is string && d.state.size() <= 900000
             && (!('symbol' in d) || (d.symbol is string && d.symbol.size() <= 80))
             && (!('interval' in d) || (d.interval is string && d.interval.size() <= 10))
             && d.shared is bool
@@ -908,7 +910,7 @@ service cloud.firestore {
           && d.keys().hasAll(['ownerUid', 'name', 'state', 'updatedAt'])
           && d.ownerUid == request.auth.uid
           && d.name is string && d.name.size() > 0 && d.name.size() <= 60
-          && d.state is string && d.state.size() <= 200000
+          && d.state is string && d.state.size() <= 900000
           && d.updatedAt == request.time;
       }
       allow get: if signedIn();
@@ -1025,13 +1027,14 @@ service cloud.firestore {
         allow list: if false;
         allow create, update: if k == 's' && signedIn()
           && request.resource.data.keys().hasOnly(['state', 'updatedAt']) && request.resource.data.keys().hasAll(['state', 'updatedAt'])
-          && request.resource.data.state is string && request.resource.data.state.size() <= 200000
+          && request.resource.data.state is string && request.resource.data.state.size() <= 900000
           && request.resource.data.updatedAt == request.time
           && getAfter(lyPath(id)).data.ownerUid == request.auth.uid
           // a setup carries no drawings (the client strips them; this refuses a hand-made upload). [\s\S] not '.':
           // '.' stops at a newline, so a pretty-printed upload slipped past. Not airtight (a \u-escaped key still
           // parses); the real guarantee is the client: a setup card's state always goes through mergeSetup.
-          && (getAfter(lyPath(id)).data.get('kind', 'chart') != 'setup' || !request.resource.data.state.matches('[\\s\\S]*"drawings"\\s*:[\\s\\S]*'));
+          // a setup is never stored compressed ('tz1:' prefix, assets/chart-state-codec.js), so this check can read it
+          && (getAfter(lyPath(id)).data.get('kind', 'chart') != 'setup' || (!request.resource.data.state.matches('[\\s\\S]*"drawings"\\s*:[\\s\\S]*') && !request.resource.data.state.matches('^tz1:[\\s\\S]*')));
         allow delete: if signedIn() && (get(lyPath(id)).data.ownerUid == request.auth.uid || isAdmin());
       }
       match /likes/{u} {

@@ -4,7 +4,7 @@
 //
 // A template is a Vela workspace state document (VelaWorkspace.getState())
 // with a name. Signed-in members: Firestore students/{uid}/chartTemplates/{id}
-//   { name: string 1-60, state: JSON string <= 200 KB, isDefault: bool,
+//   { name: string 1-60, state: JSON string or 'tz1:'+gzip/base64 (assets/chart-state-codec.js) <= 900 000 chars, isDefault: bool,
 //     createdAt, updatedAt: server timestamps }
 // Rules (firestore.rules, chartTemplates block): only the owner reads/writes,
 // fields and sizes validated. The 20-template cap is enforced here.
@@ -18,7 +18,7 @@
 (function () {
   'use strict';
   var NAME_MAX = 60;
-  var STATE_MAX = 200000;   // bytes of the JSON string (Firestore doc cap is 1 MB)
+  var STATE_MAX = 900000;   // chars of the stored string (rules cap; Firestore doc cap is 1 MiB)
   var MAX_COUNT = 20;
 
   function fb() { return (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) ? firebase : null; }
@@ -51,11 +51,19 @@
     if (!n) throw err('Give the template a name.');
     return n;
   }
+  // LAYOUT-PERF (2026-11-08): big states are stored gzip-compressed (assets/chart-state-codec.js), cap
+  // STORE_MAX of stored text (~900 KB, several MB of chart). Plain JSON when the codec is missing.
+  var C = function () { return window.StrykerStateCodec; };
   function packState(state) {
     var s = typeof state === 'string' ? state : JSON.stringify(state);
-    var bytes = new Blob([s]).size;
-    if (bytes > STATE_MAX) throw err('This layout is too big to save (' + Math.round(bytes / 1024) + ' KB, limit ' + Math.round(STATE_MAX / 1024) + ' KB). Remove some drawings and try again.');
-    return s;
+    if (C()) return C().encode(s).catch(function (e) { if (C()) C().backup('template:' + who() + ':' + Date.now(), 'Template', s); throw err(e.userMessage || 'This template could not be saved.'); });
+    if (s.length > STATE_MAX) return Promise.reject(err('This template is too large to save (' + Math.round(s.length / 1024) + ' KB).'));
+    return Promise.resolve(s);
+  }
+  // stored string -> object (old plain JSON or compressed); the string itself when the codec is missing
+  function unpack(items) {
+    if (!C()) return Promise.resolve(items);
+    return Promise.all(items.map(function (t) { return C().decode(t.state).then(function (d) { if (d) t.state = d; return t; }); }));
   }
 
   // ---- localStorage backend ----
@@ -80,7 +88,7 @@
       var local = lsAll();
       var d = lsDefault();
       local.forEach(function (t) { if (t.id === d) t.isDefault = true; });
-      return { items: sortItems(local), defaultId: d, where: 'local' };
+      return { items: sortItems(await unpack(local)), defaultId: d, where: 'local' };
     }
     try {
       var snap = await col().get();
@@ -92,18 +100,18 @@
         if (x.isDefault) def = doc.id;
       });
       lastRemote = items;
-      return { items: sortItems(items), defaultId: def || lsDefault(), where: 'cloud' };
+      return { items: sortItems(await unpack(items)), defaultId: def || lsDefault(), where: 'cloud' };
     } catch (e) {
       console.warn('TradeZoro: chart templates read failed, using this browser', e);
       var l2 = lsAll();
-      return { items: sortItems(l2), defaultId: lsDefault(), where: 'local', note: "Couldn't reach your account; showing templates saved in this browser." };
+      return { items: sortItems(await unpack(l2)), defaultId: lsDefault(), where: 'local', note: "Couldn't reach your account; showing templates saved in this browser." };
     }
   }
 
   async function save(name, state) {
     await authReady;
     name = cleanName(name);
-    var s = packState(state);
+    var s = await packState(state);
     if (signedIn()) {
       var r = await list();
       if (r.where === 'cloud') {

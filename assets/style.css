@@ -11390,3 +11390,4 @@ html.geo-gate-open, html.geo-gate-open body{ overflow:hidden; }
   .geo-gate{ align-items:flex-end; padding:0; }
   .geo-gate-card{ max-width:none; border-radius:20px 20px 0 0; border-bottom:0; padding:24px 16px max(24px, env(safe-area-inset-bottom)); }
 }
+#geo-gate .btn:disabled{ opacity:.45; cursor:not-allowed; box-shadow:none; filter:saturate(.6); }

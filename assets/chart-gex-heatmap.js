@@ -37,9 +37,9 @@
 // "No GEX history for this time".
 //
 // Wording: "updated X min ago" only. Education only. Not financial advice.
-import './gex-heat-core.js?v=936';
-import { gexSource, gexTier, gexFetch } from './chart-gex-levels.js?v=936';
-import * as ZD from './chart-zoro-data.js?v=936';
+import './gex-heat-core.js?v=937';
+import { gexSource, gexTier, gexFetch } from './chart-gex-levels.js?v=937';
+import * as ZD from './chart-zoro-data.js?v=937';
 
 const TYPE = 'stk_gexheat';
 const PRICING = '/pricing';

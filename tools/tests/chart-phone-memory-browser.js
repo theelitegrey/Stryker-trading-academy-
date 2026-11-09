@@ -33,7 +33,7 @@ const idle = (p) => p.waitForFunction(() => !document.documentElement.classList.
 const state = (p) => p.evaluate(() => {
   const c = window.STRYKER_VELA.chart;
   let pine = 0; try { pine = window.STRYKER_PINE.pineHandles(c).length; } catch (e) {}
-  const nat = []; try { for (const m of c.scene.indicators.values()) if (m && m.native && m.native.type && m.native.type !== 'volume') nat.push(m.native.type); } catch (e) {}
+  let nat = ['?']; try { nat = window.STRYKER_VELA.active.nativeHandles().map((h) => h.nativeType).filter((t) => t !== 'volume'); } catch (e) {}
   const b = document.getElementById('stks-banner');
   return { pine, nat: nat.sort(), banner: b ? b.innerText : null, safe: !!(window.__stkSafe && window.__stkSafe.active), mark: localStorage.getItem('stryker_chart_loading') };
 });
@@ -69,7 +69,10 @@ async function guard(b) {
   const mark = await a.p.evaluate(() => localStorage.getItem('stryker_chart_loading'));
   check(!!mark, 'a phone load sets the "chart loading" mark');
   const saved = await a.p.evaluate((k) => localStorage.getItem(k), KEY);
-  await a.cdp.send('Page.crash').catch(() => {});
+  // Page.crash never answers (the renderer is gone), so do not await it
+  a.cdp.send('Page.crash').catch(() => {});
+  await a.p.waitForEvent('crash', { timeout: 15000 }).catch(() => {});
+  console.log('  crashed the first load');
   await a.p.waitForTimeout(500);
   // 2) the next load (same storage): safe mode
   const p = await a.ctx.newPage();

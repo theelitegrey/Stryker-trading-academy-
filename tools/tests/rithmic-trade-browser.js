@@ -13,7 +13,7 @@ const MOCK = process.env.RITHMIC_MOCK || 'ws://127.0.0.1:8765';
 const CTL = MOCK.replace(/^ws/, 'http') + '/__trade/';
 const OUT = process.argv[2] || '/tmp';
 let fail = 0;
-const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg + (x !== undefined && !ok ? ' ' + JSON.stringify(x).slice(0, 400) : '')); };
+const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg + (x !== undefined && !ok ? ' ' + JSON.stringify(x).slice(0, 1500) : '')); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ctl = async (c) => (await fetch(CTL + c)).json();
 
@@ -153,9 +153,10 @@ async function run(b, tag, o) {
   r = await place(p, { side: 'buy', type: 'stop', f: { trigger: String(ask + 10) } });
   check(r.open && /Stop price/.test(r.sheet) && await waitFor(p, () => window.__stkRtTest.sess.working('PAPER-1').some((o) => o.type === 'stop')), tag + ': stop order working');
   // bracket: sell 1 market with TP 40 / SL 40 (wide: the mock price wanders ~12 ticks, a tight stop would fill at once)
+  if (!o.mobile) await sleep(10500);  // desktop adds the drag modify: wait out the 5-actions-per-10 s guard (tested in the unit tests)
   r = await place(p, { side: 'sell', type: 'market', f: { tp: '40', sl: '40' } });
   check(r.open && /Take profit\s*40 ticks/.test(r.sheet) && /Stop loss\s*40 ticks/.test(r.sheet), tag + ': bracket confirm sheet shows TP / SL', r.sheet);
-  check(await waitFor(p, () => window.__stkRtTest.sess.working('PAPER-1').filter((o) => o.parent).length === 2), tag + ': bracket children (TP + SL) working');
+  check(await waitFor(p, () => window.__stkRtTest.sess.working('PAPER-1').filter((o) => o.parent).length === 2), tag + ': bracket children (TP + SL) working', await p.evaluate(() => JSON.stringify([...window.__stkRtTest.sess.orders.values()].slice(-4).map((o) => [o.kind, o.type, o.side, o.price, o.trigger, o.parent, o.status, o.reason]))) + ' ' + JSON.stringify(await ctl('state')).slice(0, 600));
   check(await waitFor(p, () => document.querySelectorAll('.stkrt-chip').length >= 3), tag + ': TP / SL / stop lines on the chart');
   if (o.shots) await shot(p, 'rt-' + tag + '-bracket.png');
   // DOM ladder click: hook only acts with Chart trading on; bid cell -> buy limit confirm

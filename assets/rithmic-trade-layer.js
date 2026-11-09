@@ -30,10 +30,24 @@ function layer() {
         g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
       }
       g.setLineDash([]);
-      if (overlay) for (const chip of overlay.querySelectorAll('[data-rt]')) {
-        const y = ys[chip.dataset.rt];
-        if (y == null || y < top || y > bot) { chip.style.visibility = 'hidden'; continue; }
-        chip.style.visibility = ''; chip.style.transform = 'translate3d(0,' + Math.round(y - 11) + 'px,0)';  // left edge of the plot: the trading panel covers the right side on desktop
+      if (overlay) {
+        // chips sit at the left edge of the plot (the trading panel covers the right side on desktop). Lines closer than a chip
+        // height are stacked downwards, and no chip goes up into the legend rows at the top-left.
+        let floor = top; const orect = overlay.getBoundingClientRect();
+        const cell = overlay.closest('.vela-cell');
+        if (cell) for (const l of cell.querySelectorAll('.vela-statusline, .vela-legend')) { const r = l.getBoundingClientRect(); if (r.height) floor = Math.max(floor, r.bottom - orect.top + 2); }
+        const vis = [];
+        for (const chip of overlay.querySelectorAll('[data-rt]')) {
+          const y = ys[chip.dataset.rt];
+          if (y == null || y < top || y > bot) { chip.style.visibility = 'hidden'; continue; }
+          chip.style.visibility = ''; vis.push([y, chip]);
+        }
+        vis.sort((m, n) => m[0] - n[0]);
+        let prev = -1e9;
+        for (const [y, chip] of vis) {
+          const t = Math.max(Math.round(y - 11), floor, prev + 24); prev = t;
+          chip.style.transform = 'translate3d(0,' + t + 'px,0)';
+        }
       }
     },
     destroy() { if (overlay) overlay.remove(); canvas = null; overlay = null; }

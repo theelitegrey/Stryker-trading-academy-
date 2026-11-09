@@ -47,7 +47,7 @@ export function mountRithmicTrade(ws, opts) {
   liveTradingAllowed({ constFlag: S.opts.liveConst, readServerFlag: async () => { const d = window.db || firebase.firestore(); const s = await d.collection('config').doc('rithmicTrading').get(); return s.exists && s.data().live; } })
     .then((v) => { S.live = v; });
   window.__stkRithmicTrade = { domClick };   // DOM ladder hook (chart-book-panel.js); only exists for admins
-  if (window.__stkChartTestFree && /^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__stkRtTest = { S, openPanel, render, pushLines, get sess() { return S.sess; } };
+  if (window.__stkChartTestFree && /^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__stkRtTest = { S, openPanel, render, pushLines, inject(lines) { const c = cells()[0], R = inner(c), inst = layerInst(R); chips(c, inst, lines); R.setNativeData(RT_LAYER, { lines }); return inst; }, get sess() { return S.sess; } };
   setInterval(() => { pushLines(); renderLive(); }, 1000);
 }
 
@@ -244,7 +244,7 @@ function render() {
     seg('type', [['market', 'Market'], ['limit', 'Limit'], ['stop', 'Stop']]) +
     (t.type === 'limit' ? fld('Limit price', 'price', q && q.bid != null ? pxs(q.bid) : '') : t.type === 'stop' ? fld('Stop price', 'trigger', '') : '') +
     '<div class="stkrt-f"><span class="stkrt-lbl">Quantity (max ' + S.prefs.maxQty + ')</span><div class="stkrt-step"><button type="button" class="stkrt-btn" data-a="qty" data-v="-1" aria-label="Fewer">−</button><output aria-live="polite">' + (+t.qty || 1) + '</output><button type="button" class="stkrt-btn" data-a="qty" data-v="1" aria-label="More">+</button></div></div>' +
-    '<div class="stkrt-f"><span class="stkrt-lbl">Bracket, in ticks (optional)</span><div class="stkrt-row2"><input data-f="tp" inputmode="numeric" aria-label="Take profit ticks" placeholder="Take profit" value="' + esc(t.tp) + '"><input data-f="sl" inputmode="numeric" aria-label="Stop loss ticks" placeholder="Stop loss" value="' + esc(t.sl) + '"></div></div>' +
+    '<div class="stkrt-f"><span class="stkrt-lbl">Bracket (optional)</span><div class="stkrt-row2"><div class="stkrt-f"><label for="stkrt-tp">Take profit (ticks)</label><input id="stkrt-tp" data-f="tp" inputmode="numeric" autocomplete="off" placeholder="e.g. 20" value="' + esc(t.tp) + '"></div><div class="stkrt-f"><label for="stkrt-sl">Stop loss (ticks)</label><input id="stkrt-sl" data-f="sl" inputmode="numeric" autocomplete="off" placeholder="e.g. 20" value="' + esc(t.sl) + '"></div></div></div>' +
     msg + '<button type="button" class="stkrt-btn stkrt-go ' + t.side + '" data-a="review"' + (fresh ? '' : ' disabled') + '>' + (fresh ? 'Review ' + t.side : 'Waiting for fresh prices') + '</button></div>';
   body.innerHTML = whoHtml() + acctHtml() + killHtml() + ticket + posHtml() + ordHtml() + fillsHtml() + settingsHtml() + logHtml();
   keep(body, y, fid);

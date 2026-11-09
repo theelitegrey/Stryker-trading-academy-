@@ -158,7 +158,27 @@ async function run(b, tag, o) {
   check(r.open && /Take profit\s*40 ticks/.test(r.sheet) && /Stop loss\s*40 ticks/.test(r.sheet), tag + ': bracket confirm sheet shows TP / SL', r.sheet);
   check(await waitFor(p, () => window.__stkRtTest.sess.working('PAPER-1').filter((o) => o.parent).length === 2), tag + ': bracket children (TP + SL) working', await p.evaluate(() => JSON.stringify([...window.__stkRtTest.sess.orders.values()].slice(-4).map((o) => [o.kind, o.type, o.side, o.price, o.trigger, o.parent, o.status, o.reason]))) + ' ' + JSON.stringify(await ctl('state')).slice(0, 600));
   check(await waitFor(p, () => document.querySelectorAll('.stkrt-chip').length >= 3), tag + ': TP / SL / stop lines on the chart');
+  // a working limit one tick from the bracket's take-profit line: the chips must stack, not overlap each other or the legend
   if (o.shots) await shot(p, 'rt-' + tag + '-bracket.png');
+  // synthetic lines (test hook, no orders): three lines 6 px apart in mid-chart + one at the very top edge of the plot
+  const ov0 = await p.evaluate(async () => {
+    const T = window.__stkRtTest; const c0 = T.inject([]); const a = c0.args; if (!a) return null;
+    const co = a.coords, y0 = a.bounds.top + a.bounds.height / 2, p1 = co.priceToY(7420, a.scale, a.bounds), p2 = co.priceToY(7421, a.scale, a.bounds);
+    const at = (y) => 7420 + (y - p1) / (p2 - p1);
+    const mk = (id, y, ex) => Object.assign({ id, price: at(y), color: '#0ea5e9', solid: false, a: id.toUpperCase(), b: String(Math.round(at(y))), drag: false }, ex || {});
+    const lines = [mk('o1', y0), mk('o2', y0 + 6, { basket: 'x' }), mk('o3', y0 + 14), mk('o4', a.bounds.top + 1)];
+    T.inject(lines); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const chips = [...document.querySelectorAll('.stkrt-chip')].filter((c) => c.style.visibility !== 'hidden').map((c) => c.getBoundingClientRect());
+        const cell = document.querySelector('.stkrt-chip').closest('.vela-cell');
+        const leg = cell ? [...cell.querySelectorAll('.vela-statusline, .vela-legend')].map((l) => l.getBoundingClientRect()).filter((r) => r.height) : [];
+        const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+        let cc = 0, cl = 0; chips.forEach((a, i) => { chips.slice(i + 1).forEach((b) => { if (hit(a, b)) cc++; }); leg.forEach((l) => { if (hit(a, l)) cl++; }); });
+        return { n: chips.length, leg: leg.length, cc, cl };
+  });
+  const ov = ov0 || {}; check(!!ov0 && ov.n >= 4 && ov.cc === 0, tag + ': chips never overlap each other', JSON.stringify(ov));
+  check(ov.cl === 0, tag + ': chips stay clear of the legend rows', JSON.stringify(ov));
+  check(await p.evaluate(() => ['tp', 'sl'].every((k) => { const i = document.querySelector('#stkrt [data-f="' + k + '"]'); const l = i && document.querySelector('label[for="' + i.id + '"]'); return l && /\(ticks\)$/.test(l.textContent) && i.offsetHeight >= 44; })), tag + ': TP / SL have visible labels and 44 px inputs');
+  if (o.shots) await shot(p, 'rt-' + tag + '-stacked.png');
   // DOM ladder click: hook only acts with Chart trading on; bid cell -> buy limit confirm
   await p.evaluate(() => { window.__stkRtTest.S.prefs.chart = false; });
   check(await p.evaluate(() => window.__stkRithmicTrade.domClick('bid', 3300, 3330, 3330.25, 'ES1!') === false), tag + ': DOM click ignored while Chart trading is off');

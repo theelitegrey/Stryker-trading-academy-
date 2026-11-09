@@ -3,7 +3,8 @@
 // next engine, absorption + big trades + GEX levels; signed-in tick-engine lane (fixture hub), 390x844 at 3x, iPhone UA.
 //
 // MEMORY: after the chart and indicators are up, then every minute for MINUTES (default 5) of live ticks:
-//   - canvas pixels the page really uses (touched canvases, 4 B/px)  <= CANVAS_MB (200)
+//   - canvas pixel memory: every canvas that has a 2D/GL context, 4 B/px <= CANVAS_MB (200). WebKit backs a canvas
+//     with its full width x height as soon as it has a context, drawn on or not (origin/main 09 Nov: 856 MB, s7: 169 MB)
 //   - JS heap, page + every worker                                   <= HEAP_MB   (300)
 //   - growth over the ticks (last - first sample, page + workers)    <= GROW_MB   (40)
 //   - DOM nodes growth                                                <= GROW_NODES (400)
@@ -48,11 +49,11 @@ async function memory(b) {
     if (i) await p.waitForTimeout(60000);
     const m = await measure(b, p, cdp, process.pid);
     m.t = i; s.push(m);
-    console.log(`t=${i}m page ${m.pageHeapMB} MB, workers ${m.workerHeapMB} MB, canvas touched ${m.census && m.census.touchedMB} MB, nodes ${m.dom.nodes}, bars ${m.bars}, pine ${m.pine}`);
+    console.log(`t=${i}m page ${m.pageHeapMB} MB, workers ${m.workerHeapMB} MB, canvas ${m.census && m.census.ctxMB} MB (drawn on ${m.census && m.census.touchedMB}), nodes ${m.dom.nodes}, bars ${m.bars}, pine ${m.pine}`);
   }
   if (process.env.OUT) fs.writeFileSync(process.env.OUT, JSON.stringify({ budget: BUDGET, samples: s }, null, 1));
   const first = s[0], last = s[s.length - 1];
-  const maxHeap = Math.max(...s.map((x) => x.totalHeapMB)), maxCanvas = Math.max(...s.map((x) => (x.census && x.census.touchedMB) || 0));
+  const maxHeap = Math.max(...s.map((x) => x.totalHeapMB)), maxCanvas = Math.max(...s.map((x) => (x.census && x.census.ctxMB) || 0));
   check(first.pine === 2, 'both Pine scripts run (' + first.pine + ')');
   check(maxCanvas <= BUDGET.canvasMB, `canvas pixels ${maxCanvas} MB <= ${BUDGET.canvasMB} MB`);
   check(maxHeap <= BUDGET.heapMB, `JS heap page + workers ${maxHeap} MB <= ${BUDGET.heapMB} MB`);

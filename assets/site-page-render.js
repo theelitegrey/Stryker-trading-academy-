@@ -29,6 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ? page.bodyHtml
         : '<p style="color:var(--ink-3);">This page hasn\'t been published yet. Please check back soon.</p>';
     }
+    // Sanctions geo-block (Owner order 09 Nov 2026): the Terms always carry the Restricted regions section,
+    // even when an older admin-saved copy of the page is served from Firestore.
+    if (key === 'terms' && bodyEl && page && page.bodyHtml && typeof SITE_TERMS_RESTRICTED !== 'undefined' && !bodyEl.querySelector('#restricted-regions')) {
+      bodyEl.insertAdjacentHTML('beforeend', SITE_TERMS_RESTRICTED.html);
+      if (updatedEl) updatedEl.textContent = 'Last updated ' + SITE_TERMS_RESTRICTED.updated;
+    }
+    if (key === 'terms' && location.hash === '#restricted-regions') {
+      const rr = document.getElementById('restricted-regions');
+      if (rr) window.scrollTo(0, rr.getBoundingClientRect().top + window.pageYOffset - 80);
+    }
   }).catch((err) => {
     console.error('TradeZoro: failed to load site page', key, err);
     const bodyEl = document.getElementById('site-page-body');

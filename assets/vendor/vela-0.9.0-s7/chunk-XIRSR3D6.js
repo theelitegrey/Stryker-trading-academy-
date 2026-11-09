@@ -5038,6 +5038,11 @@ var InputsUI = class {
     const row2 = this.rows.get(id);
     if (!row2) return;
     const el = row2.statusEl;
+    // TradeZoro patch (mem): update in place; same status again = nothing to do, old dot animations are cancelled.
+    const stkKey = status + "|" + this.theme.upColor;
+    if (row2.stkStatus === stkKey) return;
+    row2.stkStatus = stkKey;
+    for (const d of el.children) d.getAnimations?.().forEach((a) => a.cancel());
     el.replaceChildren();
     if (status === "idle") {
       el.style.cssText = "display:none;box-sizing:border-box;flex:none;";

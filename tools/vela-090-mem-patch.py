@@ -81,6 +81,21 @@ edit(C, '''    for (const l of this.extLayers) {
       if (!l.def.repaintOnCursor) continue;
       this.stkLayerFit(l);''')
 
+# Legend status: the host re-sends the same status on every model/tick ('live' / 'loading'). Each call rebuilt
+# the dots (3 new spans, 3 new infinite Web Animations); the old animations kept running on the detached spans,
+# so nodes and animations grew for as long as the chart was open (4k -> 6.9k nodes in 5 min on a phone).
+# Now the same status (and colour) again is a no-op, and a real change cancels the old dots' animations before removing them.
+edit(C, '''    const el = row2.statusEl;
+    el.replaceChildren();
+    if (status === "idle") {''', '''    const el = row2.statusEl;
+    // TradeZoro patch (mem): update in place; same status again = nothing to do, old dot animations are cancelled.
+    const stkKey = status + "|" + this.theme.upColor;
+    if (row2.stkStatus === stkKey) return;
+    row2.stkStatus = stkKey;
+    for (const d of el.children) d.getAnimations?.().forEach((a) => a.cancel());
+    el.replaceChildren();
+    if (status === "idle") {''')
+
 for f, txt in BUF.items():
     open(os.path.join(D, f), 'w', encoding='utf-8').write(txt)
 print(f'{n_edits} edits OK')

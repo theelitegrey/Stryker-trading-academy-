@@ -735,6 +735,9 @@ function lateLists(provider){
     });
   };
 
+  // Crash-loop guard (assets/chart-safe-mode.js): phones only; a load that never finished opens the next one in safe mode.
+  let Safe = { phone: false, active: false };
+  if (!BT) { try { Safe = (await import('./chart-safe-mode.js?v=927')).createSafeMode(PERSIST_KEY); } catch (e) { console.warn('TradeZoro: safe mode', e); } }
   let FormulaMod = null, FormulaNorm = null;
   try { [FormulaMod, { normalizeSymbol: FormulaNorm }] = await Promise.all([import('./chart-formula.js?v=927'), import('./chart-watchlist.js?v=927')]); } catch (e) { console.warn('TradeZoro: formula', e); }
   try {
@@ -783,7 +786,8 @@ function lateLists(provider){
         // Formula symbols ("ES1!-NQ1!*0.25"): candles computed from the legs' own providers (assets/chart-formula.js).
         ...(FormulaMod ? { formula: () => FormulaMod.createFormulaProvider(() => window.STRYKER_VELA && window.STRYKER_VELA.feed, FormulaNorm) } : {}),
       },
-      persist: PERSIST_KEY
+      persist: PERSIST_KEY,
+      ...(Safe.storage ? { storage: Safe.storage } : {})
     });
   } catch (err) {
     console.error('TradeZoro: Vela failed to start', err);
@@ -1241,6 +1245,12 @@ function lateLists(provider){
   function applyAny(t){ if (t.starter) applyStarter(t); else applySaved(t); }
 
   window.STRYKER_CHART_UI = { applyStarter, applySaved, setupOf, mergeSetup, STARTERS, setLayout, refreshLayoutUi, grid };
+  if (Safe.phone) {
+    import('./chart-safe-mode.js?v=927').then((m) => m.mountSafeBanner(Safe, ws, applySaved)).catch((e) => console.warn('TradeZoro: safe mode banner', e));
+    // stable = the indicators are loaded; the guard clears its mark 20 s later
+    const go = () => { Safe.started(); if (Safe.onChange) Safe.onChange(); };
+    if (window.__stkHeavyReady) go(); else window.addEventListener('stk:heavy-ready', go, { once: true });
+  }
 
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.

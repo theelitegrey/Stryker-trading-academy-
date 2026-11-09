@@ -338,8 +338,11 @@ export function mountLayouts(ws, o){
     await sharedDoc(id).set({ ownerUid: user().uid, name, state, updatedAt: ts() });
   }
 
+  // safe mode (assets/chart-safe-mode.js): the chart opened with its indicators paused; never save over the layout
+  const safe = () => !!(window.__stkSafe && window.__stkSafe.active);
   async function saveNow(manual){
     if (viewing || !user()) return;
+    if (safe()) { if (manual) toast('Turn the indicators back on first, so the layout is saved with them.', 'error'); return; }
     if (!cur) { askName('Save layout', 'My layout', saveAsNew); return; }
     if (saving) { await saving.catch(() => {}); }
     clearTimeout(autoTimer);
@@ -363,6 +366,7 @@ export function mountLayouts(ws, o){
 
   async function saveAsNew(name){
     if (!user()) return;
+    if (safe()) { toast('Turn the indicators back on first, so the layout is saved with them.', 'error'); return; }
     let p;
     try { p = await pack(); } catch (e) { toast(e.userMessage || 'Could not save.', 'error'); return; }
     try {
@@ -434,6 +438,7 @@ export function mountLayouts(ws, o){
   function apply(doc){
     suppress = Date.now() + 1500;
     try { grid && grid.setDateRange && grid.setDateRange(false); } catch (e) {}
+    if (safe()) doc = window.__stkSafe.strip(doc);
     ui.applySaved({ state: doc });
   }
 
@@ -643,7 +648,7 @@ export function mountLayouts(ws, o){
   // ---- autosave + shortcut ----
   function schedule(){
     clearTimeout(autoTimer);
-    if (!cur || viewing || !auto() || !user()) return;
+    if (!cur || viewing || !auto() || !user() || safe()) return;
     autoTimer = setTimeout(() => saveNow(false), AUTOSAVE_MS);
   }
   try {

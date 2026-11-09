@@ -9,4 +9,4 @@ Then tools/vela-090-ctypes-patch.py (s5: a chart type transform with derive:true
 
 Then tools/vela-090-scale-patch.py (s6: "Scale price chart only" - candles-only price auto-scale, saved as priceScale.scalePriceOnly).
 
-Then tools/vela-090-mem-patch.py (s7: renderer-layer canvases hold pixels only while the layer has an owner or data; phone memory).
+Then tools/vela-090-mem-patch.py (s7: renderer-layer canvases hold pixels only while the layer has an owner or data; legend status dots update in place; phone memory).

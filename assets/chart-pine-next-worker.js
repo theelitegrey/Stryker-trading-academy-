@@ -229,7 +229,6 @@ function restartLanded(s){
   s.restarting = 0;
   runFinished(s);
   if (s.liveInputs || s.liveProps) applyLive(s);
-  else if (s.completeHeld) { s.completeHeld = false; clearTimeout(s.heldTimer); liveBars(s, 'complete'); }
 }
 function landed(s){
   busyOff(s);
@@ -265,7 +264,6 @@ function tick(s){
 // 'complete' signals are coalesced (LIVE_COMPLETE_MS) and the stream restarts once, only when
 // the bar set really changed (first bar time / count).
 const LIVE_COMPLETE_MS = 400;
-const COMPLETE_GUARD_MS = 60000;
 const barsKey = (b) => b && b.length ? b.length + '|' + b[0].time : '0';
 function liveBars(s, reason){
   // First-run priority also covers live sessions: their bar notifications wait (coalesced to the latest) while a
@@ -278,21 +276,8 @@ function liveBars(s, reason){
     if (s.stopped) return;
     const k = barsKey(s.bars);
     if (k === s.liveKey) return;          // same bars the stream already runs on
-    // PHONE MEMORY (09 Nov): a restart is still computing (scroll-back loads a chunk every ~1.5 s, a full run on
-    // 15k+ 1m bars takes longer). A stopped stream keeps running to its end, so restarting now stacked full runs
-    // side by side (each its own copy of every series): the worker went past 480 MB and the phone tab died.
-    // Wait for the run in flight to draw, then restart ONCE on the latest bars (same end result, fewer runs).
-    // (A run that never draws can hold it back COMPLETE_GUARD_MS at most; the timer re-checks then.)
-    const age = Date.now() - s.restarting;
-    if (s.restarting && age < COMPLETE_GUARD_MS) {
-      s.completeHeld = true;
-      clearTimeout(s.heldTimer);
-      s.heldTimer = setTimeout(() => { if (s.completeHeld && !s.stopped) { s.completeHeld = false; s.restarting = 0; liveBars(s, 'complete'); } }, COMPLETE_GUARD_MS - age + 50);
-      return;
-    }
     s.liveKey = k;
-    s.restarting = Date.now();
-    runStarted(s);
+    busyOn(s);
     s.handle.notifyBars('complete');
   }, LIVE_COMPLETE_MS);
 }

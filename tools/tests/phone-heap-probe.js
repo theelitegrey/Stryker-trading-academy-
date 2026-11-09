@@ -78,6 +78,16 @@ async function snap(send, on, off) {
   try {
     const { p, cdp } = await openPhone(b, { base: process.env.CHART_BASE || 'http://127.0.0.1:8460', hub: process.env.HUB || 'http://127.0.0.1:8461', seed: process.env.SEED !== '0' });
     await p.waitForFunction(() => window.__stkFirstCandles && window.__stkHeavyReady, null, { timeout: 120000 });
+    // SCROLL=n: scroll back until n bars are loaded and the scripts are idle again
+    if (+process.env.SCROLL) {
+      for (let i = 0; i < 80; i++) {
+        const n = await p.evaluate(() => { const c = window.STRYKER_VELA.chart, b = c.orchestrator.rawBars, v = c.getVisibleRange(); c.setVisibleRange({ from: b[0].time, to: b[0].time + (v.to - v.from) }); return b.length; });
+        if (n >= +process.env.SCROLL) break;
+        await p.waitForTimeout(1500);
+      }
+      await p.waitForTimeout(1500);
+      await p.waitForFunction(() => !document.documentElement.classList.contains('stk-pine-busy'), null, { timeout: 240000, polling: 500 }).catch(() => {});
+    }
     await p.waitForTimeout(WAIT * 1000);
     if (WHICH !== 'worker') summarise(await snap((m, a) => cdp.send(m, a), (e, f) => cdp.on(e, f), (e, f) => cdp.off(e, f)), 'page');
     if (WHICH !== 'page') {

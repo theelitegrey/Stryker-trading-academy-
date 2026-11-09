@@ -54,6 +54,7 @@ function fakeWs(admin) {
       const bid = Math.floor(mid * 4) / 4, ask = bid + 0.25, bids = [], asks = [];
       for (let j = 0; j < 150; j++) { bids.push([bid - j * 0.25, Math.round(5 + 40 * Math.abs(Math.sin(j / 3 + n / 20)) + (j === 40 ? 500 : 0))]); asks.push([ask + j * 0.25, Math.round(5 + 40 * Math.abs(Math.cos(j / 3 + n / 25)) + (j === 52 ? 450 : 0))]); }
       const send = (o) => ws.onmessage({ data: JSON.stringify(o) });
+      if (window.__HUBF) { for (const fr of window.__HUBF) send(Object.assign({}, fr, { ts: now })); return; }   // frames the REAL hub code built (crossed-book section)
       if (window.__REAL) { const L = window.__REAL.live; send({ type: 'snap', symbol: 'NQ', ts: now, bids: L.bids.filter((x) => x[0] < L.mid), asks: L.asks.filter((x) => x[0] > L.mid), imb: 0, imb10: 0 }); let lv = L.v, li0 = L.i0;
         if (window.__FAR) { const lo = Math.floor(L.mid * 0.98 / L.step), hi = Math.ceil(L.mid * 1.02 / L.step), nv = new Array(hi - lo + 1).fill(0); for (let k = 0; k < L.v.length; k++) nv[L.i0 + k - lo] = L.v[k]; for (let k = 0; k < nv.length; k += 7) if (!nv[k]) nv[k] = (lo + k + 0.5) * L.step < L.mid ? 1 : -1; lv = nv; li0 = lo; }
         send({ type: 'coarse', symbol: 'NQ', ts: now, mid: L.mid, bb: L.bb, ba: L.ba, step: L.step, i0: li0, v: lv }); const b0 = L.bb, a0 = L.ba; send({ type: 'ticks', symbol: 'NQ', t: [[b0, 1 + (n % 7), -1, now], [a0, 2 + (n % 5), 1, now], [a0 + 0.5, 3, 1, now]] }); return; }
@@ -111,9 +112,52 @@ const add = (p, type, inputs) => p.evaluate(([t, i]) => { const c = window.STRYK
 const pickerHas = (p) => p.evaluate(() => { const t = document.body.innerText; return /Futures DOM Heatmap \(L2\)|Liquidity Walls \(L2\)|Book Imbalance \(L2\)/.test(t); });
 const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.querySelectorAll('#vela-chart canvas')) { if (!c.width) continue; const g = c.getContext('2d'); if (!g) continue; let d; try { d = g.getImageData(0, 0, c.width, c.height).data; } catch (e) { continue; } let n = 0; for (let i = 3; i < d.length; i += 64) if (d[i] > 0) n++; best = Math.max(best, n); } return best; });
 
+// Crossed-book frames through the REAL hub (workers/book-recorder/src/ts-hub.js): both sides full (400 a side) plus ONE stray ask far below
+// the bids. Before the fix the hub's mid moved down with it and the coarse column / depth bars kept no bid below the price (Owner 2026-11-09).
+async function hubFrames(mid) {
+  const { TSHub } = await import(process.env.OLD_HUB || '../../workers/book-recorder/src/ts-hub.js')   // OLD_HUB=<abs path to an older ts-hub.js>: red-check the test;
+  class W { constructor() { this.l = {}; W.s = this; setTimeout(() => this.emit('open'), 1); } addEventListener(e, f) { (this.l[e] = this.l[e] || []).push(f); } emit(e, ev) { for (const f of this.l[e] || []) f(ev); } send() {} close() {} }
+  const hub = new TSHub({ putMin() {}, prune() {}, range() { return []; } }, 'K', { WebSocket: W, RECORD: false, FLUSH_MS: 10, MIN_GAP_MS: 20, COARSE_MS: 20 });
+  const got = [], c = { send(s) { got.push(JSON.parse(s)); }, close() {} };
+  hub.attach(c, 'NQ', 150, 'book'); hub.poke(); await sleep(20);
+  const t = Math.round(mid * 4) / 4, bids = [], asks = [];
+  for (let i = 0; i < 400; i++) { bids.push([t - 0.25 - i * 0.25, 4 + (i % 9) * 3 + (i % 37 === 0 ? 200 : 0)]); asks.push([t + 0.25 + i * 0.25, 4 + (i % 7) * 3 + (i % 41 === 0 ? 180 : 0)]); }
+  asks.unshift([t - 400, 1]);   // the stray level, below all 400 bids (100 pts): the old mid sat ~200 pts low, every bid row was dropped
+  W.s.emit('message', { data: JSON.stringify({ type: 'book', symbol: 'NQ', bids, asks, imbalance: 0, ts: 1 }) });
+  await sleep(80); hub.shutdown();
+  return [got.filter((m) => m.type === 'snap').at(-1), got.filter((m) => m.type === 'coarse').at(-1)];
+}
+async function crossedBook(b) {
+  for (const [w, h, mobile, tag] of [[1440, 900, false, '1440-dark'], [390, 844, true, '390-dark']]) {
+    const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme: 'dark' });
+    await setNQ(p);
+    const mid = await p.evaluate(() => window.__L2MID);
+    await p.evaluate((f) => { window.__HUBF = f; }, await hubFrames(mid));
+    await add(p, 'stk_fut_dom', { look: 'Zoro' });
+    await add(p, 'stk_depth_heat');
+    await sleep(6000);
+    const d = await p.evaluate((mid) => {
+      const x = window.__stkFlow.domDebug(), y = window.__stkFlow.dhDebug(), h = window.__stkFlow.acquireBookFeed('tsl2', 'NQ', () => {}), f = h.feed;
+      const s = f.history[f.history.length - 1]; let bidRows = 0; for (let k = 0; s && k < s.v.length; k++) if (s.v[k] > 0 && (s.i0 + k + 1) * s.step <= mid) bidRows++;
+      let bookBids = 0; f.book.bids.forEach((q, px) => { if (q > 0 && px < mid) bookBids++; }); h.release();
+      return { mid: x.mid, bidRows, bookBids, rowLo: x.rowLo, depthLo: x.depthLo, depthBars: x.depthBars, bb: y && y.bestBidSize, lad: y && y.ladderRows };
+    }, mid);
+    console.log('INFO ' + tag + ' crossed book', JSON.stringify(d));
+    check(Math.abs(d.mid - mid) < 2, tag + ': crossed book: the live column mid stays at the real touch', { mid: d.mid, want: mid });
+    check(d.bidRows >= 20, tag + ': crossed book: the live heatmap column has bid rows below the price (' + d.bidRows + ')', d);
+    check(d.bookBids >= 20 && d.depthLo < mid - 5, tag + ': crossed book: bid depth bars drawn below the price (' + d.bookBids + ' bid rows)', d);
+    check(d.bb > 0, tag + ': crossed book: Depth Heatmap best bid size shown', d.bb);
+    check(errors.length === 0, tag + ': crossed book: no console errors', errors);
+    await p.screenshot({ path: OUT + '/l2-crossed-' + tag + '.png' });
+    await ctx.close();
+  }
+}
+
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
+    await crossedBook(b);
+    if (!process.env.ONLY_CROSSED) {
     // ---- NON-admin: nothing new, nothing opened
     {
       const { ctx, p, errors } = await open(b, { w: 1440, h: 900, admin: false });
@@ -212,6 +256,7 @@ const canv = (p) => p.evaluate(() => { let best = 0; for (const c of document.qu
       }
       check(errors.length === 0, tag + ': no console errors', errors);
       await ctx.close();
+    }
     }
   } finally { await b.close(); }
   console.log(fail ? 'FAILED ' + fail : 'ALL PASSED');

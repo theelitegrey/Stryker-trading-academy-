@@ -67,6 +67,9 @@ const STEPS = [
   ['more', () => [q('.stkgl-phonebtn')]],
   ['more', () => [q('.stkl2-phonebtn')]],
   ['more', () => [q('.stkw-phonebtn')]],
+  ['more', () => [q('.stkdkp-phonebtn')]],
+  ['more', () => [q('.stkin-phonebtn')]],
+  ['more', () => [menuOf('byo-btn')]],
   ['more', () => [byId('stkc-alerts-btn')]],
   ['more', () => [q('.stkr-menu'), q('.stkr-badge')]],
   ['more', () => [q('.vela-widget-undo'), q('.vela-widget-redo')]],
@@ -133,6 +136,9 @@ const ROWS = [
   [(n) => n.classList.contains('stkw-phonebtn') && n, 'panels', 22, () => 'Watchlist', 'list'],
   [(n) => n.classList.contains('stkgl-phonebtn') && n, 'panels', 23, () => 'GEX Ladder', 'ladder'],
   [(n) => n.classList.contains('stkl2-phonebtn') && n, 'panels', 23, () => 'Book · DOM · Trades', 'ladder'],
+  [(n) => n.classList.contains('stkdkp-phonebtn') && n, 'panels', 24, () => 'Dark pool prints', 'ladder'],
+  [(n) => n.classList.contains('stkin-phonebtn') && n, 'panels', 25, () => 'Symbol info', 'info'],
+  [(n) => n.querySelector && n.querySelector(':scope > #byo-btn'), 'tools', 19, () => 'Data source', 'link'],
   [(n) => n.id === 'stkc-credits-btn' && n, 'panels', 24, () => 'Data source & credits', 'info']
 ];
 const GROUP_ORDER = { chart: 0, tools: 10, panels: 20 };
@@ -356,8 +362,15 @@ export function mountOneBar(ws){
       const edge = flexItems(bar, []).reduce((m, c) => Math.max(m, c.getBoundingClientRect().right), 0);
       return need(bar) > room + 0.5 || edge > right + 1;
     }
-    // phone row: neither half (nor the bar) may overflow its box
-    return [bar, barL, barR].some((b) => b.scrollWidth > b.clientWidth + 1);
+    // phone row: neither half (nor the bar, nor Vela's mobile bar) may overflow its box (that is how the pencil
+    // landed on the data-source icon), the symbol keeps its room, and no two buttons may touch.
+    if ([bar, barL, barR, mb].some((b) => b && b.scrollWidth > b.clientWidth + 1)) return true;
+    const sym = mb && mb.querySelector('.vela-mb-symbol');
+    if (sym && sym.scrollWidth > sym.clientWidth + 1 && sym.clientWidth < 90) return true;
+    const rs = flexItems(barL, []).concat(flexItems(barR, []), mb ? flexItems(mb, []) : [])
+      .filter((c) => c !== mb && c !== spacer).map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0)
+      .sort((a, b) => a.left - b.left);
+    return rs.some((r, i) => i && r.left < rs[i - 1].right - 0.5);
   }
 
   // A divider shows only between two visible items (never first, last, twice, or by the spacer).
@@ -388,7 +401,10 @@ export function mountOneBar(ws){
       restoreMoved();
       CLASSES.forEach((c) => bar.classList.remove(c));
       more.hidden = true;
+      const clk = byId('mclock'); if (clk) clk.classList.remove('mclock-dotonly');
       document.dispatchEvent(new CustomEvent('stkc:onebar-fit'));
+      // phone: the session clock gives up its text (dot only) before any button leaves the bar
+      if (clk && !merged && overflows()) clk.classList.add('mclock-dotonly');
       for (const [kind, arg] of STEPS) {
         if (!overflows()) break;
         if (kind === 'cls') { bar.classList.add(arg); document.dispatchEvent(new CustomEvent('stkc:onebar-fit')); }
@@ -435,7 +451,7 @@ export function mountOneBar(ws){
     if (!rs.every(textOnly)) return false;
     const items = new Set(rs.map((r) => itemOf(r.target)).filter(Boolean));
     let same = true;
-    items.forEach((e) => { const w = e.offsetWidth; if (itemW.get(e) !== w) same = false; itemW.set(e, w); });
+    items.forEach((e) => { const w = Math.max(e.offsetWidth, e.scrollWidth); if (itemW.get(e) !== w) same = false; itemW.set(e, w); });
     return same;
   };
   const mo = new MutationObserver((rs) => { if (fitting) return; if (sameWidth(rs)) return; if (!merged && !morePop.hidden) { late = true; return; } queueSoon(); });

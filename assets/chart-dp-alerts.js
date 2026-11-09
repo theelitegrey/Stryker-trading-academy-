@@ -8,7 +8,7 @@
 // One doc per symbol, id 'ind-<SYM>' (shortcut: two Dark Pool Prints on the same symbol share it, last edit wins).
 // Wording: "Dark pool print" alerts, never live / real-time; no vendor names. Education only. Not financial advice.
 // Depends on: firebase compat (auth + firestore), assets/chart-darkpool.js (DP_SYMS, SIZES, usd), toast.js (showToast).
-import { DP_SYMS, SIZES, usd, sizeUsd } from './chart-darkpool.js?v=930';
+import { DP_SYMS, SIZES, usd, sizeUsd } from './chart-darkpool.js?v=931';
 
 export const MAX_DP_ALERTS = 20;
 // Truth: dp-feeder.timer runs every 2 hours on weekdays. One line to change if the feeder schedule changes (workers/alert-engine/dp_alerts.py UPDATE_NOTE too).

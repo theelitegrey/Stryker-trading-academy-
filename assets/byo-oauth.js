@@ -2,7 +2,7 @@
 // Same pattern as byo-ctrader.js: the member signs in on the broker's own page; our function /connect/<id>/token swaps the code
 // (it holds the client secret); tokens stay in the encrypted, user-bound device vault (byo-core.js). After sign-in market data
 // goes browser -> broker DIRECT with the bearer token. No relay. The paste-a-key path stays as "Use an API key instead".
-import { saveSource, srcById } from './byo-core.js?v=930';
+import { saveSource, srcById } from './byo-core.js?v=931';
 
 // scope is the ONLY permission asked for. Tests fail if a trading / account-write scope word appears in this file.
 export const OA = {

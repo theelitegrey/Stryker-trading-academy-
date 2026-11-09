@@ -11,6 +11,7 @@ import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2S
 import { replayClock, btBook } from './book-replay.js?v=929';
 import { rtReady, rtOnChange } from './rt-access.js?v=929';
 import * as C from './book-panel-core.js?v=929';
+import { SignalEngine, TAGS, WINDOWS, FADES } from './dom-signals-core.js?v=929';
 import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=929';
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
@@ -31,7 +32,7 @@ export function mountBookPanel(ws, opts) {
   const openSource = (isLocal() && window.__stkBookTest && window.__stkBookTest.openSource) || realOpen;   // localhost fixtures only
   const isPhone = () => window.innerWidth <= 700;
   const saved = load();
-  const S = { tab: ['book', 'dom', 'trades'].includes(saved.tab) ? saved.tab : 'book', src: saved.src || 'combined', g: clamp(+saved.g || 0, 0, MULT.length - 1), win: saved.win || 'session', lv: LEVELS.includes(saved.lv) ? saved.lv : 60, filter: saved.filter || '0', w: clamp(+saved.w || 400, 320, 640) };
+  const S = { tab: ['book', 'dom', 'trades'].includes(saved.tab) ? saved.tab : 'book', src: saved.src || 'combined', g: clamp(+saved.g || 0, 0, MULT.length - 1), win: saved.win || 'session', lv: LEVELS.includes(saved.lv) ? saved.lv : 60, filter: saved.filter || '0', w: clamp(+saved.w || 400, 320, 640), sg: saved.sg !== false, zs: saved.zs !== false, sw: WINDOWS.includes(saved.sw) ? saved.sw : 30000, sf: FADES.includes(saved.sf) ? saved.sf : 20000 };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
   let open = false, feed = null, raf = 0, tm = 0, lastPaint = 0, rh = 22, rowsN = 12, free = false, topKey = 0, paused = 0, zoneFrom = null, qty = 0, qtyKey = '', poolTab = '', drag = null, hint = false;
 
@@ -48,11 +49,11 @@ export function mountBookPanel(ws, opts) {
     '<button type="button" class="stkbp-btn stkbp-rec" data-for="dom" hidden>Recentre</button>' +
     '<select class="stkbp-sel stkbp-flt" data-for="trades" aria-label="Minimum size"></select><button type="button" class="stkbp-btn stkbp-pause" data-for="trades" aria-pressed="false">Pause</button></div>' +
     '<div class="stkbp-paper" hidden><span class="stkbp-pl">Paper</span><span class="stkbp-qty"><button type="button" data-q="-1" aria-label="Less">−</button><input type="text" inputmode="decimal" aria-label="Paper quantity"><button type="button" data-q="1" aria-label="More">+</button></span><span class="stkbp-pos"></span></div>' +
-    '<div class="stkbp-stat"></div><div class="stkbp-cols"></div><div class="stkbp-list" role="table"></div><div class="stkbp-bar" hidden></div>' +
-    '<p class="stkbp-foot"></p><div class="stkbp-menu" role="menu" hidden></div>';
+    '<div class="stkbp-stat"></div><div class="stkbp-cols"></div><div class="stkbp-list" role="table"></div><div class="stkbp-bar" hidden></div><div class="stkbp-sum" hidden></div>' +
+    '<p class="stkbp-foot"></p><div class="stkbp-leg" role="dialog" aria-label="Signals" hidden></div><div class="stkbp-menu" role="menu" hidden></div>';
   host.appendChild(panel);
   const $ = (s) => panel.querySelector(s);
-  const list = $('.stkbp-list'), cols = $('.stkbp-cols'), stat = $('.stkbp-stat'), foot = $('.stkbp-foot'), bar = $('.stkbp-bar'), menu = $('.stkbp-menu'), paperBar = $('.stkbp-paper'), qtyIn = $('.stkbp-qty input');
+  const list = $('.stkbp-list'), cols = $('.stkbp-cols'), stat = $('.stkbp-stat'), foot = $('.stkbp-foot'), bar = $('.stkbp-bar'), sumEl = $('.stkbp-sum'), leg = $('.stkbp-leg'), menu = $('.stkbp-menu'), paperBar = $('.stkbp-paper'), qtyIn = $('.stkbp-qty input');
   const barR = document.querySelector('#stkc-bar .stkc-bar-r'); if (barR) barR.insertBefore(phoneBtn, barR.firstChild);
   $('.stkbp-grp').innerHTML = MULT.map((m, i) => '<option value="' + i + '"></option>').join('');
   $('.stkbp-seg[aria-label=Window]').innerHTML = WINS.map((w) => '<button type="button" data-w="' + w[0] + '">' + w[1] + '</button>').join('');
@@ -182,12 +183,12 @@ export function mountBookPanel(ws, opts) {
   // ------------------------------------------------------------------------------------------------ rows
   const ROWS = {
     book: () => '<span class="p"></span><span class="s"></span><span class="t"><i></i><b></b></span><span class="m"></span>',
-    dom: () => '<span class="c" data-c="bid"><i></i><b></b><u class="chip" hidden></u></span><span class="p"></span><span class="c" data-c="ask"><i></i><b></b><u class="chip" hidden></u></span><span class="bt"></span><span class="sl"></span><span class="dl"></span>',
+    dom: () => '<span class="c" data-c="bid"><i></i><b></b><u class="chip" hidden></u></span><span class="p"></span><span class="c" data-c="ask"><i></i><b></b><u class="chip" hidden></u></span><span class="bt"></span><span class="sl"></span><span class="dl"></span><span class="sg"></span><span class="zs"></span>',
     trades: () => '<span class="p"></span><span class="s"></span><span class="t"></span>'
   };
-  const COLS = { book: ['Price', 'Size', 'Total'], dom: ['Bid', 'Price', 'Ask', 'Bought', 'Sold', 'Delta'], trades: ['Price', 'Size', 'Time'] };
+  const COLS = { book: ['Price', 'Size', 'Total'], dom: ['Bid', 'Price', 'Ask', 'Bought', 'Sold', 'Delta', 'Signals', '± Size'], trades: ['Price', 'Size', 'Time'] };
   function pool(n) {
-    if (poolTab !== S.tab) { list.replaceChildren(); poolTab = S.tab; list.dataset.t = S.tab; cols.innerHTML = COLS[S.tab].map((c, i) => '<span>' + c + '</span>').join(''); cols.dataset.t = S.tab; }
+    if (poolTab !== S.tab) { list.replaceChildren(); poolTab = S.tab; list.dataset.t = S.tab; cols.innerHTML = COLS[S.tab].map((c) => S.tab === 'dom' && (c === 'Signals' || c === '± Size') ? '<button type="button" class="h-' + (c === 'Signals' ? 'sg' : 'zs') + '" data-leg="1" aria-haspopup="dialog">' + c + '</button>' : '<span>' + c + '</span>').join(''); cols.dataset.t = S.tab; }
     while (list.children.length < n) { const r = el('div', 'stkbp-r', ROWS[S.tab]()); r.setAttribute('role', 'row'); list.appendChild(r); }
     while (list.children.length > n) list.lastChild.remove();
   }
@@ -213,12 +214,53 @@ export function mountBookPanel(ws, opts) {
     if (tradeCache.k !== k || tradeCache.f !== f) tradeCache = { k, f, map: f.store.atPrice(w[2], step) };
     return tradeCache.map;
   }
+  // ---- DOM Signals (dom-signals-core.js): one batch every >= 250 ms, only while the DOM tab shows a live book (not in replay: no trades there)
+  let eng = null, engKey = '', legMode = '';
+  function signals(M) {
+    const f = feed; if (!f || f.rp) { sumEl.hidden = true; return null; }
+    const key = f.key + '|' + M.step; if (!eng || engKey !== key) { eng = new SignalEngine(); engKey = key; }
+    eng.fadeMs = S.sf; eng.winMs = S.sw; eng.update(Date.now(), M.m, M.step, f.store.ring);
+    paintSum(); return eng;
+  }
+  const lab = (ms) => (ms >= 60000 ? ms / 60000 + ' min' : ms / 1000 + ' s');
+  const sgn = (v) => (v >= 0 ? '+' : '−') + C.fmtSize(Math.abs(v)).replace(/^$/, '0');
+  function paintSum() {
+    const s = eng && eng.sum; sumEl.hidden = !s;
+    if (!s) return;
+    const one = (r, name) => !r.ready ? '<span class="sm"><em>' + name + '</em> Collecting…</span>' : '<span class="sm"><em>' + (r.partial ? 'Last ' + Math.max(5, Math.round(r.span / 1000)) + ' s' : name) + '</em> Bids ' + sgn(r.bids) + ' · Offers ' + sgn(r.offers) + ' → <b class="v' + (r.text[0] === 'S' ? ' up' : r.text[0] === 'R' ? ' dn' : '') + '">' + r.text + '</b></span>';
+    const h = one(s.s30, '30 s') + (s.s30.partial && s.s300.partial ? '' : one(s.s300, '5 min')) + '<button type="button" class="stkbp-i" data-leg="sum" aria-label="What does this mean?" aria-haspopup="dialog"><i aria-hidden="true">i</i></button>';
+    if (sumEl.dataset.h !== h) { sumEl.dataset.h = h; sumEl.innerHTML = h; }
+  }
+  function showLeg(mode) {
+    if (legMode === mode) { hideLeg(); return; }
+    legMode = mode; closeMenu();
+    const chip = (k) => '<li><span class="sg" data-k="' + k + '"><em>' + TAGS[k][0] + '</em><b>' + k + '</b></span><p><strong>' + TAGS[k][0] + '.</strong> ' + TAGS[k][1] + '</p></li>';
+    const seg = (name, key, arr) => '<div class="row"><span>' + name + '</span><span class="stkbp-seg" role="group" aria-label="' + name + '">' + arr.map((v) => '<button type="button" data-set="' + key + '" data-v="' + v + '" class="' + (S[key] === v ? 'on' : '') + '">' + lab(v) + '</button>').join('') + '</span></div>';
+    const tog = (name, key) => '<div class="row"><span>' + name + '</span><button type="button" class="stkbp-sw" role="switch" data-tog="' + key + '" aria-checked="' + S[key] + '" aria-label="' + name + '"><i></i></button></div>';
+    leg.innerHTML = '<div class="hd"><b>' + (mode === 'sum' ? 'Support and resistance summary' : 'Signals and ± Size') + '</b><button type="button" class="stkbp-x" data-close="1" aria-label="Close">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 16) + '</button></div>' +
+      (mode === 'sum' ? '<p class="txt">“Support building” means more resting size was added below the price than above it. “Resistance building” means more was added above. “Balanced” means about the same. This only describes the order book. It is not a signal to trade.</p>'
+        : '<ul>' + Object.keys(TAGS).map(chip).join('') + '</ul><p class="txt"><strong>± Size.</strong> Resting size added (+) or pulled (−) at each price over the chosen window. Tags fade after the fade time; the newest tag wins. Education only. Not financial advice.</p>' +
+          tog('Signals column', 'sg') + tog('± Size column', 'zs') + seg('Window', 'sw', WINDOWS) + seg('Tag fade', 'sf', FADES) +
+          (panel.clientWidth < 560 ? '<p class="txt dim">Bought and Sold show when the panel is wider.</p>' : ''));
+    leg.hidden = false;
+  }
+  function hideLeg() { legMode = ''; leg.hidden = true; }
+  cols.addEventListener('click', (e) => { if (e.target.closest('[data-leg]')) showLeg('sig'); });
+  sumEl.addEventListener('click', (e) => { if (e.target.closest('[data-leg]')) showLeg('sum'); });
+  leg.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) { hideLeg(); return; }
+    const t = e.target.closest('[data-tog]'), b = e.target.closest('[data-set]');
+    if (t) S[t.dataset.tog] = !S[t.dataset.tog]; else if (b) S[b.dataset.set] = +b.dataset.v; else return;
+    save(); const m = legMode; legMode = ''; showLeg(m); schedule();
+  });
   function paintDom(M) {
     const lm = C.ladderModel(M.m, tradeMap(M.step), M.step, S.lv); if (!lm) return null;
     const N = lm.rows.length, R = Math.min(rowsN, N), hiKey = lm.rows[0].key;
     let start = free ? hiKey - topKey : Math.round(lm.touchIndex - R / 2);
     start = clamp(start, 0, Math.max(0, N - R)); if (free) topKey = hiKey - start;
     pool(R);
+    const sgo = signals(M), now = Date.now(), zsOn = sgo && S.zs, sgOn = sgo && S.sg;
+    panel.dataset.sg = sgOn ? '1' : '0'; panel.dataset.zs = zsOn ? '1' : '0';
     const ps = paperState(), ord = new Map();
     if (ps) for (const o of ps.orders) { const key = Math.round(o.price / M.step); (ord.get(key) || ord.set(key, []).get(key)).push(o); }
     const posKey = ps && ps.pos ? Math.round(ps.pos.avg / M.step) : null, kids = list.children, step = M.step;
@@ -233,6 +275,13 @@ export function mountBookPanel(ws, opts) {
       txt(r.children[3], C.fmtSize(x.buy)); txt(r.children[4], C.fmtSize(x.sell));
       const dl = r.children[5]; txt(dl, C.fmtDelta(x.delta)); dl.className = 'dl' + (x.delta > 0 ? ' up' : x.delta < 0 ? ' dn' : '');
       r.children[3].style.setProperty('--w', x.buy / lm.maxT); r.children[4].style.setProperty('--w', x.sell / lm.maxT);
+      if (sgo) {
+        const sc = r.children[6], t = sgOn ? sgo.tagAt(x.key, now) : null, zc = r.children[7], zv = zsOn ? sgo.added.get(x.key) || 0 : 0;
+        const tk = t ? t.tag : '';
+        if (sc.dataset.k !== tk) { sc.dataset.k = tk; sc.textContent = ''; if (tk) sc.innerHTML = '<em>' + TAGS[tk][0] + '</em><b>' + tk + '</b>'; sc.title = tk ? TAGS[tk][0] : ''; }
+        if (t) sc.style.opacity = (0.35 + 0.65 * t.a).toFixed(2); else if (sc.style.opacity) sc.style.opacity = '';
+        txt(zc, Math.abs(zv) < 1e-9 ? '' : C.fmtDelta(zv)); const zk = zv > 1e-9 ? 'zs up' : zv < -1e-9 ? 'zs dn' : 'zs'; if (zc.className !== zk) zc.className = zk;
+      }
       const os = ord.get(x.key) || [];
       for (const [cell, side] of [[bc, 'buy'], [ac, 'sell']]) {
         const chip = cell.lastChild, o = os.find((z) => z.side === side);
@@ -264,7 +313,8 @@ export function mountBookPanel(ws, opts) {
     attach();
     const k = feed ? feed.k : kindOf();
     $('.stkbp-sym').textContent = k.kind === 'fut' ? k.root || '' : k.kind === 'crypto' ? k.pair.base + (k.pair.perp ? ' perp' : '') : '';
-    panel.dataset.tab = S.tab;
+    panel.dataset.tab = S.tab; panel.classList.toggle('stkbp-badge', isPhone()); panel.dataset.bs = panel.clientWidth >= 560 ? '1' : '0';
+    if (S.tab !== 'dom') { sumEl.hidden = true; if (legMode) hideLeg(); }
     for (const b of panel.querySelectorAll('.stkbp-tabs button')) { const on = b.dataset.t === S.tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }
     for (const n of panel.querySelectorAll('[data-for]')) n.classList.toggle('stkbp-off', !n.dataset.for.split(' ').includes(S.tab));
     const fut = k.kind === 'fut';
@@ -292,7 +342,7 @@ export function mountBookPanel(ws, opts) {
     stat.innerHTML = statusHtml(M);
     if (!M || msg) {
       if (S.tab === 'trades' && feed && feed.key && !msg) { paintTrades(); }
-      else { poolTab = ''; list.replaceChildren(); list.dataset.t = ''; const e = el('div', 'stkbp-empty'); e.textContent = msg || (feed && feed.k.kind === 'crypto' && [...feed.books.values()].every((b) => b.status === 'unlisted' || b.status === 'error') ? unlistedMsg() : 'Waiting for the order book…'); list.appendChild(e); bar.hidden = S.tab !== 'trades' || !feed || !feed.key; if (!bar.hidden) paintTradesBar(); }
+      else { sumEl.hidden = true; poolTab = ''; list.replaceChildren(); list.dataset.t = ''; const e = el('div', 'stkbp-empty'); e.textContent = msg || (feed && feed.k.kind === 'crypto' && [...feed.books.values()].every((b) => b.status === 'unlisted' || b.status === 'error') ? unlistedMsg() : 'Waiting for the order book…'); list.appendChild(e); bar.hidden = S.tab !== 'trades' || !feed || !feed.key; if (!bar.hidden) paintTradesBar(); }
     } else if (S.tab === 'book') { bar.hidden = true; paintBook(M); }
     else if (S.tab === 'dom') { bar.hidden = true; paintDom(M); }
     else paintTrades();
@@ -327,7 +377,7 @@ export function mountBookPanel(ws, opts) {
       try { if (host.classList.contains('stkw-open')) { const b = document.querySelector('.stkw .stkw-close'); if (b) b.click(); } } catch (e) {}
       try { const o = window.__stkL2Ladder; if (o && o !== api && o.isOpen) o.close(); } catch (e) {}
       attach(); requestAnimationFrame(paint);
-    } else { clearTimeout(tm); tm = 0; detach(); closeMenu(); }
+    } else { clearTimeout(tm); tm = 0; detach(); closeMenu(); hideLeg(); eng = null; }
     requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} });
   }
   function showBtns() {
@@ -345,13 +395,13 @@ export function mountBookPanel(ws, opts) {
   railBtn.addEventListener('click', () => { if (kindOf().kind === 'fut' && !l2Visible()) { l2Unlock(); return; } setOpen(!open); });
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); if (kindOf().kind === 'fut' && !l2Visible()) { l2Unlock(); return; } setOpen(!open); });
   $('.stkbp-x').addEventListener('click', () => setOpen(false));
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) { if (zoneFrom != null || !menu.hidden) { zoneFrom = null; closeMenu(); schedule(); } else if (isPhone()) setOpen(false); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) { if (legMode) { hideLeg(); return; } if (zoneFrom != null || !menu.hidden) { zoneFrom = null; closeMenu(); schedule(); } else if (isPhone()) setOpen(false); } });
   window.addEventListener('resize', () => { document.documentElement.classList.toggle('stkbp-sheet', open && isPhone()); if (open) schedule(); }, { passive: true });
   try { ws.on('state:changed', () => { showBtns(); if (open) schedule(); }); } catch (e) {}
   const tick = setInterval(() => { if (open) schedule(); }, 1000); window.addEventListener('pagehide', () => clearInterval(tick));
 
   // ------------------------------------------------------------------------------------------------ controls
-  panel.querySelector('.stkbp-tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; S.tab = b.dataset.t; save(); closeMenu(); schedule(); });
+  panel.querySelector('.stkbp-tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; S.tab = b.dataset.t; save(); closeMenu(); hideLeg(); schedule(); });
   $('.stkbp-src').addEventListener('change', (e) => { S.src = e.target.value; save(); detach(); schedule(); });
   $('.stkbp-grp').addEventListener('change', (e) => { S.g = +e.target.value; free = false; save(); schedule(); });
   $('.stkbp-flt').addEventListener('change', (e) => { S.filter = e.target.value; save(); schedule(); });
@@ -431,6 +481,7 @@ export function mountBookPanel(ws, opts) {
     if (b.dataset.a === 'wallets') { if (menuRow) walletsAt(menuRow); return; }
     if (b.dataset.a === 'level') drawLevel(price); else { zoneFrom = price; if (opts.toast) opts.toast('Tap a second price to finish the zone (Esc cancels).', 'info'); schedule(); }
   });
+  document.addEventListener('pointerdown', (e) => { if (legMode && !leg.contains(e.target) && !e.target.closest('[data-leg]')) hideLeg(); }, true);
   document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !menu.contains(e.target)) closeMenu(); }, true);
   function chartTimes() {
     const o = ws.chart && ws.chart.orchestrator, rb = o && o.rawBars; if (!rb || !rb.length) return null;
@@ -459,7 +510,7 @@ export function mountBookPanel(ws, opts) {
     g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up);
   });
 
-  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
+  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _signals: () => eng /* test hook */, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
   window.__stkBookPanel = api; if (!window.__stkL2Ladder) window.__stkL2Ladder = api;
   return api;
 }

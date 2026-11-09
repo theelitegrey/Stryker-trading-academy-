@@ -47,6 +47,7 @@ const db = admin.firestore();
 
 const rzp = require('./razorpay').__internals;
 const couponAccess = require('./couponAccess');
+const GEO = require('./geoBlock');
 
 function couponHttpsError(err){
   if (err instanceof couponAccess.CouponAccessError) {
@@ -105,6 +106,9 @@ exports.redeemFreeCheckout = functions
     if (!planDoc.exists) throw new functions.https.HttpsError('not-found', 'That plan could not be found.');
     const plan = planDoc.data();
     if (plan.addon === true) throw new functions.https.HttpsError('failed-precondition', 'Live Futures Data is a monthly subscription; it cannot be bought as a one-time payment or a plan change.');
+    // Sanctions geo-block (Owner order 09 Nov 2026): no purchase for a blocked or unconfirmed residence (functions-src/geoBlock.js).
+    const geoStu = await db.collection('students').doc(uid).get();
+    GEO.assertCanBuy(functions, geoStu.exists ? geoStu.data() : {}, billing && billing.country);
 
     // Price and discount are computed here, from stored data, using the same
     // helpers the paid path uses.
@@ -134,6 +138,7 @@ exports.redeemFreeCheckout = functions
           ]);
           const c = cDoc.exists ? cDoc.data() : null;
           const now = Date.now();
+          GEO.assertCanBuy(functions, studentDoc.exists ? studentDoc.data() : {}, billing && billing.country);
           const decision = couponAccess.validateCouponRedemption({
             coupon: c,
             student: studentDoc.exists ? studentDoc.data() : {},

@@ -11354,3 +11354,40 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 .stkt-chip, .stkt-tf{ display:inline-flex; align-items:center; height:24px; padding:0 8px; border:1px solid var(--line); border-radius:8px; font-size:12px; line-height:16px; color:var(--ink-1); background:var(--bg-2); }
 .stkt-tf{ color:var(--mint,#03c988); border-color:currentColor; font-weight:600; }
 :root[data-theme="light"] .stkt-tf{ color:#058a5e; }
+
+/* ==========================================================================
+   SANCTIONS ATTESTATION (Owner order 09 Nov 2026; assets/geo-attest.js)
+   Sign-up country picker + attestation, and the one-time member dialog.
+   ========================================================================== */
+.geo-signup{ margin:0 0 16px; }
+.geo-signup .geo-field, .geo-gate .geo-field{ margin-bottom:12px; }
+.geo-field select{ height:48px; padding:0 40px 0 14px; font-size:16px; border-radius:12px; -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b93a0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center; }
+.geo-field select:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.geo-field select[aria-invalid="true"]{ border-color:var(--bear); }
+.geo-region-msg{ margin:0 0 12px; padding:12px; border-radius:12px; font-size:14px; line-height:20px; color:var(--ink-0);
+  background:color-mix(in srgb, var(--bear) 10%, transparent); border:1px solid color-mix(in srgb, var(--bear) 35%, transparent); }
+.geo-region-msg[hidden], .geo-hint[hidden], .geo-gate-err[hidden]{ display:none; }
+.geo-attest{ display:flex; align-items:flex-start; gap:12px; min-height:44px; padding:4px 0; font-size:13px; line-height:18px; color:var(--ink-1); cursor:pointer; }
+.geo-attest input{ flex:0 0 auto; width:20px; height:20px; margin:0; accent-color:var(--gold); cursor:pointer; }
+.geo-attest input:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.geo-hint{ margin:0 0 16px; font-size:12px; line-height:16px; color:var(--ink-2); }
+.auth-box .social-btn:disabled, #signup-form button[type="submit"]:disabled{ opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
+html.geo-gate-open, html.geo-gate-open body{ overflow:hidden; }
+.geo-gate{ position:fixed; inset:0; z-index:2147483000; display:flex; align-items:center; justify-content:center;
+  padding:max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); background:rgba(5,5,6,.72); overflow-y:auto; }
+.geo-gate-card{ width:100%; max-width:440px; background:var(--bg-2); border:1px solid var(--line); border-radius:16px; padding:24px; color:var(--ink-1); }
+.geo-gate-card h2{ margin:0 0 8px; font-size:22px; line-height:28px; font-weight:700; color:var(--ink-0); }
+.geo-gate-sub{ margin:0 0 20px; font-size:14px; line-height:20px; color:var(--ink-2); }
+.geo-gate-card .geo-attest{ margin-bottom:20px; }
+.geo-gate-card .btn{ min-height:48px; }
+.geo-gate-err{ margin:0 0 12px; font-size:13px; line-height:18px; color:var(--bear); }
+.geo-gate-legal{ margin:12px 0 0; font-size:12px; line-height:16px; color:var(--ink-2); text-align:center; }
+.geo-gate-legal a{ color:var(--ink-1); text-decoration:underline; text-underline-offset:2px; }
+:root[data-theme="light"] .geo-gate{ background:rgba(14,22,33,.45); }
+@media (max-width:767px){
+  .geo-gate{ align-items:flex-end; padding:0; }
+  .geo-gate-card{ max-width:none; border-radius:20px 20px 0 0; border-bottom:0; padding:24px 16px max(24px, env(safe-area-inset-bottom)); }
+}
+#geo-gate .btn:disabled{ opacity:.45; cursor:not-allowed; box-shadow:none; filter:saturate(.6); }

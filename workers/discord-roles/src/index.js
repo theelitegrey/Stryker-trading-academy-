@@ -4,6 +4,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { Core } from './core.js';
 import { handleInteraction } from './buttons.js';
 import { runAutoban } from './autoban.js';
+import { isBlockedRequest, blockedJson } from './geo-block.js';
 const SITE_GUILD = '1565740274116857887';
 
 const ORIGINS = ['https://tradezoro.com', 'https://www.tradezoro.com'];
@@ -37,6 +38,8 @@ export class DiscordHub extends DurableObject {
 
 export default {
   async fetch(req, env, ctx) {
+    // Sanctions geo-block (Owner order 09 Nov 2026, list in ./geo-block.js). Discord's own servers are not in a blocked place.
+    if (isBlockedRequest(req)) return blockedJson(cors(req));
     if (u0(req) === '/discord/interactions' && req.method === 'POST') return handleInteraction(req, env, undefined, ctx);
     const stub = env.HUB.get(env.HUB.idFromName('main'));
     const u = new URL(req.url);

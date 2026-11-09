@@ -43,38 +43,41 @@ const SITE_PAGES_DEFAULTS = {
   },
 
   'terms': {
-    updated: '3 November 2026',
+    updated: '9 November 2026',
     title: 'Terms & Risk Disclosure',
     bodyHtml:
       '<h2>1. Acceptance of these terms</h2>' +
       '<p>TradeZoro is operated by TradeZoro LLC, a Wyoming limited liability company ("TradeZoro", "we", "us"). By creating an account or using the platform, you agree to these Terms &amp; Risk Disclosure. If you do not agree, please do not use the platform.</p>' +
       '<h2>2. Eligibility</h2>' +
       '<p>You must be at least 18 years old to create an account. TradeZoro does not offer accounts to anyone under 18, given the financial risk involved in the subject matter taught here.</p>' +
-      '<h2>3. Risk disclosure</h2>' +
+      '<h2 id="restricted-regions">3. Restricted regions</h2>' +
+      '<p>TradeZoro LLC is a US company and follows US sanctions law. Our service is not offered to anyone located in, ordinarily resident in, or a citizen of Cuba, Iran, North Korea, Syria, Russia or Belarus, or the Crimea, Donetsk or Luhansk regions of Ukraine (including Sevastopol). This applies to free and paid accounts alike.</p>' +
+      '<p>When you create an account you confirm your country of residence and that none of the above applies to you. You may not use a VPN, proxy or any other method to hide your location or get around these restrictions. If we find that an account breaks this section, we will close it. Any payments on that account may be refunded at our discretion, or handled as the law requires.</p>' +
+      '<h2>4. Risk disclosure</h2>' +
       '<p><strong>Trading foreign exchange, indices, commodities, and other financial instruments carries a high level of risk and may not be suitable for everyone.</strong> You could lose some or all of your invested capital, and you should not trade with money you cannot afford to lose.</p>' +
       '<p>TradeZoro is an <strong>educational service only</strong>. We do not provide personalized financial, investment, or trading advice, and we do not manage funds on behalf of any student. Nothing in our curriculum, trading models, or community content constitutes a recommendation to buy, sell, or hold any specific financial instrument.</p>' +
       '<p>Past performance shown in course materials, including any illustrative charts or worked examples, is not indicative of future results. Any hypothetical or simulated performance results have inherent limitations and do not represent actual trading.</p>' +
-      '<h2>4. Your account</h2>' +
+      '<h2>5. Your account</h2>' +
       '<p>You\'re responsible for keeping your login credentials secure and for all activity under your account. Let us know immediately if you believe your account has been compromised.</p>' +
-      '<h2>5. Plans, payment, and coupons</h2>' +
+      '<h2>6. Plans, payment, and coupons</h2>' +
       '<p>Access to certain curriculum, trading models and community features may require an active plan. Paid plans are subscriptions billed monthly or yearly. Payments in Indian rupees are processed by Razorpay (one-time or UPI AutoPay). All other payments are processed by Stripe and renew automatically each billing period at the price shown at checkout until you cancel. You can cancel online at any time from Settings; access continues until the end of the period you\'ve paid for. If a renewal payment fails, we\'ll retry it and let you know; if it can\'t be collected, your plan returns to the free plan after a short grace period. Coupons apply to the first payment only unless stated otherwise.</p>' +
       '<p>See our <a href="refund-policy.html">Refund Policy</a> for details on refund eligibility.</p>' +
       '<p>Live futures data is also covered by the separate <a href="market-data-terms">Market Data Terms</a>.</p>' +
-      '<h2>6. Referral program</h2>' +
+      '<h2>7. Referral program</h2>' +
       '<p>Our referral program awards points for successful invites, shown on the leaderboard for recognition. Points do not currently have a cash or credit redemption value. We reserve the right to adjust, withhold, or reverse points awarded through fraudulent activity, self-referral, or abuse of the program.</p>' +
-      '<h2>7. Community conduct</h2>' +
+      '<h2>8. Community conduct</h2>' +
       '<p>The Trading Floor community is for genuine discussion of trading ideas and setups. We don\'t allow harassment, spam, impersonation, or posting content that violates applicable law. We may remove content or restrict access for violations of this policy.</p>' +
-      '<h2>8. Intellectual property</h2>' +
+      '<h2>9. Intellectual property</h2>' +
       '<p>All curriculum content, trading models, diagrams, and materials are the property of TradeZoro LLC (or its licensors) and are provided for your personal educational use only. Redistributing, reselling, or publicly republishing course content without permission is not allowed.</p>' +
-      '<h2>9. Termination</h2>' +
+      '<h2>10. Termination</h2>' +
       '<p>We may suspend or terminate accounts that violate these terms. You may stop using the platform and close your account at any time via Settings or by contacting us.</p>' +
-      '<h2>10. Limitation of liability</h2>' +
+      '<h2>11. Limitation of liability</h2>' +
       '<p>To the fullest extent permitted by law, TradeZoro LLC is not liable for any trading losses, indirect damages, or losses arising from your use of the platform or reliance on educational content.</p>' +
-      '<h2>11. Governing law</h2>' +
+      '<h2>12. Governing law</h2>' +
       '<p>These terms are governed by the laws of the State of Wyoming, USA, without regard to its conflict-of-law rules. Any dispute will be handled in the state or federal courts located in Wyoming, unless the law where you live gives you the right to bring a claim locally.</p>' +
-      '<h2>12. Changes to these terms</h2>' +
+      '<h2>13. Changes to these terms</h2>' +
       '<p>We may update these terms from time to time. Continued use of the platform after changes take effect means you accept the updated terms.</p>' +
-      '<h2>13. Contact</h2>' +
+      '<h2>14. Contact</h2>' +
       '<p>Questions about these terms? <a href="contact.html">Contact us</a> or email <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>.</p>'
   },
 
@@ -179,3 +182,9 @@ const SITE_PAGES_DEFAULTS = {
   }
 
 };
+
+// Restricted regions (sanctions geo-block, Owner order 09 Nov 2026). Also used by site-page-render.js to add the
+// section when an admin-saved sitePages/terms doc (written before this date) doesn't have it yet.
+const SITE_TERMS_RESTRICTED = { updated: '9 November 2026', html: '<h2 id="restricted-regions">Restricted regions</h2>' +
+      '<p>TradeZoro LLC is a US company and follows US sanctions law. Our service is not offered to anyone located in, ordinarily resident in, or a citizen of Cuba, Iran, North Korea, Syria, Russia or Belarus, or the Crimea, Donetsk or Luhansk regions of Ukraine (including Sevastopol). This applies to free and paid accounts alike.</p>' +
+      '<p>When you create an account you confirm your country of residence and that none of the above applies to you. You may not use a VPN, proxy or any other method to hide your location or get around these restrictions. If we find that an account breaks this section, we will close it. Any payments on that account may be refunded at our discretion, or handled as the law requires.</p>' };

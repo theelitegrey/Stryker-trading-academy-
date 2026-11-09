@@ -54,6 +54,7 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const GEO = require('./geoBlock');
 
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
@@ -389,7 +390,7 @@ actions.checkout = async (uid, data, context) => {
     customer, client_reference_id: uid,
     line_items: [{ price: priceId, quantity: 1 }],
     payment_method_types: ['card'],        // Apple Pay / Google Pay ride on card in Checkout
-    billing_address_collection: 'auto',
+    billing_address_collection: 'required',   // sanctions geo-block (Owner 09 Nov 2026)
     adaptive_pricing: { enabled: 'false' },
     metadata: meta,
     custom_text: { submit: { message: ('Sold by ' + (cm.ownerName || 'the creator') + ', an independent creator. ' + platformLine(legalNameOf(await commerce())) + ' Refunds: ask the creator first; their refund rule: ' + refundRule).slice(0, 1200) } },
@@ -447,7 +448,7 @@ actions.zsCheckout = async (uid, data, context) => {
   const params = {
     mode: 'payment', customer, client_reference_id: uid,
     line_items: [{ price: priceId, quantity: 1 }],
-    payment_method_types: ['card'], billing_address_collection: 'auto', adaptive_pricing: { enabled: 'false' },
+    payment_method_types: ['card'], billing_address_collection: 'required', adaptive_pricing: { enabled: 'false' },
     metadata: meta, payment_intent_data: { metadata: meta },
     custom_text: { submit: { message: ('Sold by ' + String(sc.authorName || 'the author').slice(0, 60) + ', an independent creator. ' + platformLine(legalNameOf(com)) +
       ' One-time purchase of a chart script for education. Refunds: ask the author first.').slice(0, 1200) } },
@@ -534,7 +535,8 @@ actions.adminList = async (uid) => {
     mode: isLive() ? 'live' : 'test' };
 };
 
-const OPEN_ACTIONS = { status: 1, adminList: 1, suspend: 1 };   // no payments gate (they move no money)
+const OPEN_ACTIONS = { status: 1, adminList: 1, suspend: 1 };
+const GEO_OPEN = { cancel: 1, portal: 1 };   // stopping a payment is never refused   // no payments gate (they move no money)
 
 exports.creatorPay = functions
   .runWith({ maxInstances: 20, timeoutSeconds: 60, memory: '256MB' })
@@ -547,6 +549,12 @@ exports.creatorPay = functions
     stripeKey();
     // Checkout, portal and cancel serve buyers; onboarding and dashboard serve creators. All of them wait for the switch.
     if (!OPEN_ACTIONS[action]) await gate(uid, context);
+    // Sanctions geo-block (Owner order 09 Nov 2026): buyers AND creators (onboarding, payouts) with a blocked or
+    // unconfirmed residence are refused. Cancel / portal / status stay open so a member can always stop paying.
+    if (!OPEN_ACTIONS[action] && !GEO_OPEN[action]) {
+      const geoStu = await db.collection('students').doc(uid).get();
+      GEO.assertCanBuy(functions, geoStu.exists ? geoStu.data() : {});
+    }
     return fn(uid, data, context);
   });
 

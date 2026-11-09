@@ -87,6 +87,7 @@ globalThis.fetch = async (url, init = {}) => {
     if (p === 'prices') return json({ id: 'price_t1' });
     if (p === 'customers') return json({ id: 'cus_t1' });
     if (p === 'checkout/sessions') return json({ id: 'cs_test_1', url: 'https://checkout.stripe.com/c/pay/cs_test_1' });
+    if (p.startsWith('invoices/')) return json({ id: p.split('/')[1], charge: { id: 'ch_1', payment_method_details: { card: { country: 'US' } }, billing_details: { address: { country: 'US' } } } });
     if (p.startsWith('subscriptions/')) return json({ id: p.split('/')[1], status: 'active', cancel_at_period_end: false, current_period_end: periodEnd, latest_invoice: 'in_1', items: { data: [] } });
   }
   if (url.startsWith('https://api.razorpay.com/v1/')) {
@@ -123,7 +124,7 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
   // plan docs + member (Free member, also has an old Pro doc elsewhere is not needed)
   store.set('plans/LiveData', { name: 'Live Futures Data', price: 7, period: 'month', interval: 'month', rank: 0, addon: true, hidden: true });
   store.set('plans/pro', { name: 'Pro', price: 19, period: 'month', rank: 1 });
-  store.set('students/' + UID, { name: 'QA Buyer', plan: 'Starter', planId: 'free' });
+  store.set('students/' + UID, { name: 'QA Buyer', plan: 'Starter', planId: 'free', residenceCountry: 'US', sanctionsAttest: true });   // geo-block 09 Nov: residence confirmed
   store.set('settings/commerce', { stripeCheckout: true, usdInr: 88 });
 
   // ---------- MARKET DATA AGREEMENT (Owner 2026-11-01): no add-on checkout without it ----------
@@ -230,7 +231,7 @@ const ev = (type, object) => ({ id: 'evt_' + (++evn), type, livemode: false, dat
 
   // ---------- RAZORPAY ----------
   const RUID = 'uid-rzp';
-  store.set('students/' + RUID, { name: 'India Buyer', plan: 'Starter', planId: 'free', marketDataAgreement: { version: 'v1', nonProfessional: true } });
+  store.set('students/' + RUID, { name: 'India Buyer', plan: 'Starter', planId: 'free', residenceCountry: 'IN', sanctionsAttest: true, marketDataAgreement: { version: 'v1', nonProfessional: true } });
   const rctx = { auth: { uid: RUID, token: { email: 'in@example.com', name: 'India Buyer' } } };
   const sub = await Z.razorpaySubscribe({ planId: 'LiveData', currency: 'INR' }, rctx);
   ok('razorpay: subscribe returns subscription, INR monthly', sub.subscriptionId === 'sub_rz1' && sub.currency === 'INR' && sub.trial === false && sub.amountMinor === 7 * 88 * 100, sub);

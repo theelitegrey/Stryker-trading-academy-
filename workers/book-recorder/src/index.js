@@ -15,6 +15,7 @@
 // encodeSamples). GET /status -> JSON health. CORS: tradezoro.com + strykertrading.com only.
 // Edge-cached 30 s, rate-limited per IP (20/min for /book-history and /status; /status is also
 // memoised 30 s in the DO). Public market data only: no user data.
+import { isBlockedRequest, blockedJson } from './geo-block.js';
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, validateGexFast, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TIDE_MAX_DAYS } from './tide.js';
@@ -779,6 +780,8 @@ export default {
   // A Durable Object failure (free-tier quota, overload) must be a clean 503, not a bare 1101 page
   // with no CORS headers: the site treats 503 as "no recorded data" and draws its charts without it.
   async fetch(req, env, ctx) {
+    // Sanctions geo-block (Owner order 09 Nov 2026, list in ./geo-block.js): first, before any route or websocket upgrade.
+    if (isBlockedRequest(req)) return blockedJson(cors(req));
     try { return await route(req, env, ctx); } catch (e) {
       return new Response('recorder unavailable', { status: 503, headers: Object.assign({ 'cache-control': 'no-store', 'retry-after': '60' }, cors(req)) });
     }

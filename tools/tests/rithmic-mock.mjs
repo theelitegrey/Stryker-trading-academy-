@@ -8,8 +8,10 @@
 // Zero dependencies: a minimal RFC 6455 server (binary frames, ping/close) is hand-rolled.
 import http from 'node:http';
 import crypto from 'node:crypto';
-import { T, encode, decode } from '../../assets/rithmic-proto.js';
+import { T, encode, decode, SCHEMA } from '../../assets/rithmic-proto.js';
+import { TRADE_SCHEMA, tEncode, tDecode } from '../../assets/rithmic-trade-core.js';
 import { ACCOUNTS, DATES, SETS, PNL_TODAY } from './rithmic-orders-fixtures.mjs';
+import { createTradePlant } from './rithmic-mock-trade.mjs';
 
 const PORT = Number(process.argv[2] || process.env.RITHMIC_MOCK_PORT || 8765);
 const SYSTEMS = ['Rithmic Test', 'Rithmic Paper Trading', 'TradeSea', 'Apex'];
@@ -20,6 +22,9 @@ const stats = { forbidden: [], orderReqs: {}, connections: 0, logins: 0, loginsB
 const sockets = new Set();
 
 // Deterministic synthetic price: a smooth function of time (seconds), so history and live agree.
+// /__trade/base?sym=ESZ6&px=7400 moves one symbol's base (screenshot runs: put order lines on the chart's visible range). Reset restores.
+const BASE0 = { ...BASE };
+export function setBase(sym, v) { if (sym in BASE) BASE[sym] = v > 0 ? v : BASE0[sym]; }
 function px(sym, t) {
   const b = BASE[sym] || 100;
   const v = Math.sin(t / 3700) * 0.004 + Math.sin(t / 611) * 0.0015 + Math.sin(t / 97) * 0.0004;
@@ -38,7 +43,8 @@ function frame(buf, op = 2) {
 function makeConn(sock) {
   let acc = Buffer.alloc(0);
   const conn = { sock, plant: null, subs: new Set(), timer: null, hb: null, open: true,
-    send(msg) { if (conn.open) sock.write(frame(Buffer.from(encode(msg)))); },
+    // order-entry sessions (user demo-trade) speak the order-entry codec (assets/rithmic-trade-core.js)
+    send(msg) { if (conn.open) sock.write(frame(Buffer.from((conn.trade || !SCHEMA[msg.template_id]) && TRADE_SCHEMA[msg.template_id] ? tEncode(msg) : encode(msg)))); },
     close() { if (!conn.open) return; conn.open = false; try { sock.write(frame(Buffer.from([0x03, 0xe8]), 8)); } catch (e) {} sock.end(); cleanup(); } };
   const cleanup = () => { conn.open = false; clearInterval(conn.timer); sockets.delete(conn); };
   sock.on('data', (d) => {
@@ -55,7 +61,7 @@ function makeConn(sock) {
       acc = acc.subarray(off + (masked ? 4 : 0) + len);
       if (op === 8) { conn.close(); return; }
       if (op === 9) { sock.write(frame(payload, 10)); continue; }
-      if (op === 2) { try { onMessage(conn, decode(payload)); } catch (e) { console.error('mock: bad frame', e.message); } }
+      if (op === 2) { try { let m = decode(payload); if (TRADE_SCHEMA[m.template_id] && (conn.trade || !SCHEMA[m.template_id])) m = tDecode(payload); onMessage(conn, m); } catch (e) { console.error('mock: bad frame', e.message); } }
     }
   });
   sock.on('close', cleanup);
@@ -131,8 +137,10 @@ function onOrderPlant(c, m) {
   return false;
 }
 
+const trade = createTradePlant({ stats, px, sockets: () => sockets, setBase, resetBase: () => Object.assign(BASE, BASE0) });
 function onMessage(c, m) {
   const um = m.user_msg;
+  if (c.trade && m.template_id !== T.HEARTBEAT && m.template_id !== T.LOGOUT && trade.onMessage(c, m)) return;
   if (c.plant === 2 || c.plant === 4) { if (m.template_id !== T.HEARTBEAT && m.template_id !== T.LOGOUT && onOrderPlant(c, m)) return; }
   switch (m.template_id) {
     case T.SYSTEM_INFO:
@@ -144,12 +152,12 @@ function onMessage(c, m) {
       const ERR = { 'err-perm': ['13', 'permission denied'], 'err-pass': ['11', 'invalid user id or password'], 'err-md': ['13', 'no market data subscription for this user'],
         'err-forced': ['77', 'forced logout'], 'err-elsewhere': ['5', 'user already logged in elsewhere'], 'err-odd': ['99', 'something unexpected happened'] };
       if (ERR[m.user]) { stats.badLogins++; c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ERR[m.user] }); break; }
-      const ok = (m.user === 'demo' || m.user === 'demo-nohist' || m.user === 'demo-one') && m.password === 'demo-pass' && SYSTEMS.includes(m.system_name) && !!m.app_name;
+      const ok = (m.user === 'demo' || m.user === 'demo-nohist' || m.user === 'demo-one' || m.user === 'demo-trade') && m.password === 'demo-pass' && SYSTEMS.includes(m.system_name) && !!m.app_name;
       if (!ok) { stats.badLogins++; c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ['13', 'permission denied'] }); break; }
       stats.logins++;
       stats.loginsByInfra[m.infra_type] = (stats.loginsByInfra[m.infra_type] || 0) + 1;
       stats.lastApp = { app_name: m.app_name, app_version: m.app_version, template_version: m.template_version, system_name: m.system_name };
-      c.plant = m.infra_type; c.system = m.system_name; c.noHistory = m.user === 'demo-nohist'; c.oneAccount = m.user === 'demo-one';
+      c.plant = m.infra_type; c.system = m.system_name; c.noHistory = m.user === 'demo-nohist'; c.oneAccount = m.user === 'demo-one'; c.trade = m.user === 'demo-trade';
       c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ['0'], template_version: '3.9', fcm_id: 'MOCK', ib_id: 'MOCK', unique_user_id: 'mock-user', heartbeat_interval: 5 });
       break;
     }
@@ -179,6 +187,7 @@ function onMessage(c, m) {
       if (!c.timer) c.timer = setInterval(() => {
         const now = Date.now();
         const s = Math.floor(now / 1000), us = (now % 1000) * 1000;
+        if (trade.frozen) return;   // /__trade/freeze: prices stop (stale-price test)
         for (const k of c.subs) {
           const [symbol, exchange] = k.split('|');
           const p = px(symbol, now / 1000) + (Math.random() < 0.5 ? -0.25 : 0.25);
@@ -223,6 +232,7 @@ function onMessage(c, m) {
 const server = http.createServer((req, res) => {
   res.setHeader('access-control-allow-origin', '*');
   if (req.url === '/__stats') { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ ...stats, open: sockets.size })); return; }
+  if (req.url.startsWith('/__trade')) { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(trade.control(new URL(req.url, 'http://x')))); return; }
   if (req.url === '/__drop') { stats.drops++; for (const c of [...sockets]) { c.open = false; c.sock.destroy(); sockets.delete(c); clearInterval(c.timer); } res.end('dropped'); return; }
   res.writeHead(404); res.end();
 });

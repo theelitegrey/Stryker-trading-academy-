@@ -171,6 +171,8 @@ export function mountBookPanel(ws, opts) {
     qtyIn.value = String(qty);
   }
   function trade(cell, price, mdl) {
+    // admin Rithmic paper/test trading with Chart trading on takes the click (assets/rithmic-trade.js; absent for members)
+    try { const rt = window.__stkRithmicTrade; if (rt && feed && feed.k.kind === 'fut' && rt.domClick(cell, price, mdl.m.bids[0][0], mdl.m.asks[0][0], feed.k.sym)) return; } catch (e) {}
     const ps = paperState();
     if (!ps) { if (!hint && opts.toast) { hint = true; opts.toast('Turn on Paper trading in Chart settings to trade from the ladder (simulated, demo money).', 'info'); } return; }
     const q = parseFloat(qtyIn.value); if (!(q > 0)) return;

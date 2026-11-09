@@ -17,7 +17,8 @@
 //   3. Add member uids to RITHMIC_FLAG.allowUids (or approve rithmicBeta) as before.
 //      wss://*.rithmic.com is already in connect-src (_headers).
 // DATA ONLY: this feature never places, modifies or cancels orders (no order templates exist
-// in rithmic-proto.js); it reads prices and bars.
+// in rithmic-proto.js); it reads prices and bars. Order entry is a separate ADMIN-ONLY module, paper/test
+// gateways only: see mountRithmicTradingIfAdmin at the end of this file.
 
 // The ONE place the application name lives. Rithmic registered it for us: "ZoroCharts".
 export const APP_NAME = 'ZoroCharts';
@@ -185,4 +186,28 @@ export function journalRithmicConfig(uid) {
   if (!gateways.length) return null;
   return { ...RITHMIC_CONFIG, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
     gateways, gateway: gateways[0].uri, systemFirst: SYSTEM_FIRST, nearest: nearestGatewayId(), dev: !!dev };
+}
+
+// ---- Order entry: ADMIN-ONLY, Rithmic Test / Paper Trading only (CoS 2026-11-09) ----------------------------------
+// Live (real-money) trading switch. false = no live trading. Even if flipped, assets/rithmic-trade-core.js needs the
+// admin-only server flag config/rithmicTrading.live === true as well (not set; no Firestore rule exists, so the read
+// is denied), and its target guard still has no live path. Flip only after Rithmic confirms in writing AND the Owner says go.
+export const RITHMIC_LIVE_TRADING = false;
+
+// Mounts the trading panel for admins (admins/{uid} exists, same check as the Hyperliquid admin beta). Everyone else:
+// nothing is imported; assets/rithmic-trade.js and assets/rithmic-trade-core.js are never downloaded.
+export function mountRithmicTradingIfAdmin(ws, opts) {
+  const go = (u) => {
+    // eslint-disable-next-line no-undef
+    const d = (typeof db !== 'undefined' && db) || (window.firebase && firebase.firestore && firebase.firestore());
+    if (!u || !d) return;
+    d.collection('admins').doc(u.uid).get().then((a) => {
+      if (!a.exists) return;
+      const dev = devOverride();
+      return import('./rithmic-trade.js?v=929').then((m) => m.mountRithmicTrade(ws, { ...opts, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
+        templateVersion: RITHMIC_CONFIG.templateVersion, liveConst: RITHMIC_LIVE_TRADING, devGateway: dev ? dev.gateway : null,
+        prodPaperGateway: (GATEWAYS.find((g) => g.id === 'chicago') || {}).uri || null }));
+    }).catch((e) => console.warn('TradeZoro: Rithmic trading', e));
+  };
+  try { let once = false; firebase.auth().onAuthStateChanged((u) => { if (u && !once) { once = true; go(u); } }); } catch (e) {}
 }

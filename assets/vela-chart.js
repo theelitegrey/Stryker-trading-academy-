@@ -609,6 +609,7 @@ function lateLists(provider){
   const cdP = import('./chart-crypto-deriv.js?v=929');
   const wiP = import('./chart-wallet-intel.js?v=929');
   const hlP = BT ? null : import('./hl-trade.js?v=929');   // Hyperliquid trading from the member's own wallet (admin beta, dark)
+  const rtLayerP = BT ? null : import('./rithmic-trade-layer.js?v=929');   // inert line layer; the Rithmic trading panel itself loads for admins only
   let MSess = null;
   if (heavyNeeded) installHeavy();
   else {
@@ -645,6 +646,7 @@ function lateLists(provider){
   // Wallet Intel (assets/chart-wallet-intel.js, free for everyone): Hyperliquid candle wallets, liquidation + stop clusters, registered before boot too.
   try { (await wiP).installWalletIntel(LCore); } catch (e) { console.warn('TradeZoro: wallet intel install', e); }
   if (hlP) try { (await hlP).installHlTrade(Core); } catch (e) { console.warn('TradeZoro: HL trade install', e); }
+  if (rtLayerP) try { (await rtLayerP).installRithmicTradeLayer(Core); } catch (e) { console.warn('TradeZoro: Rithmic trade layer', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
   try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
   // Camarilla Pivots (assets/chart-camarilla.js, Free): level overlay from the prior session, registered before boot too.
@@ -965,6 +967,8 @@ function lateLists(provider){
   // order ticket, on-chart lines, one-click Buy/Sell, bottom panel: assets/chart-paper.js.
   if (!BT) try { Paper.mountPaper(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: paper trading', e); }
   if (hlP) hlP.then((m) => m.mountHlTrade(ws, { bar: document.querySelector('#stkc-bar .stkc-bar-r') })).catch((e) => console.warn('TradeZoro: HL trade', e));
+  // Rithmic order entry (admins only, paper / test gateways only): the panel module is imported by rithmic-config.js only after the admin check.
+  if (!BT) import('./rithmic-config.js?v=929').then((m) => m.mountRithmicTradingIfAdmin(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') })).catch((e) => console.warn('TradeZoro: Rithmic trading', e));
   if (!BT) try { Replay.mountBarReplay(ws, { toast, Paper, store: mods[9].sharedBarStore }); } catch (e) { console.warn('TradeZoro: bar replay', e); }
   // Right-side Watchlist panel + icon rail (phones: a full-screen sheet): assets/chart-watchlist.js.
   // SymbolPicker comes from Vela's widget build (same chunk the workspace already loaded).

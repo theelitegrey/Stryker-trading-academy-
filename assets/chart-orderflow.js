@@ -2770,7 +2770,7 @@ function futuresCell(cell) {
 // Each L1 / old trades-only tool that has an L2 twin is hidden from the picker on futures and, when a saved / shared / template chart
 // still holds it on a futures symbol, swapped for the twin (inputs copied where the key and type match, else the twin's defaults).
 // The trade-stream tools (stk_ts_*) are futures-only, so they are hidden everywhere. Crypto keeps its own tools.
-// The Footprint chart type (stk_fp) on futures becomes Footprint (L2) on candles. L1 tools without an L2 twin are left as they are.
+// The Footprint chart type (stk_fp) is NOT swapped any more (Owner 2026-11-09): it has its own Data source setting, L2 or L1 (trades). L1 tools without an L2 twin are left as they are.
 const TS_ONLY = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane'];
 export const l1Hidden = (type, futures) => !!L1_TO_L2[type] && (futures || TS_ONLY.includes(type));
 const KEY_ALIAS = { buyColor: 'upColor', sellColor: 'downColor', upColor: 'buyColor', downColor: 'sellColor' };
@@ -2791,7 +2791,6 @@ function swapCell(cell) {
   if (!futuresCell(cell)) return 0;
   const c = cell.chart; if (!c) return 0;
   let n = 0;
-  if (cell.priceStyle === 'stk_fp') { try { cell.setPriceStyle('candles'); c.addNativeIndicator('stk_l2f_fp'); n++; } catch (e) {} }
   (c.indicators() || []).forEach((h) => {
     let to = L1_TO_L2[h.nativeType];
     if (!to) return;

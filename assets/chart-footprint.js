@@ -299,11 +299,12 @@ function cryptoFlow(ctxLike, root, tf) {
 }
 
 // ---------------------------------------------------------------- footprint chart type
-const FP_DEF = { fpMode: 'bidask', fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true };
+const FP_DEF = { fpSrc: 'l2', fpMode: 'bidask', fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true };
 const fpSettings = new Map();      // chart engine -> settings
 function fpConfig(v) {
   v = v || {};
   return {
+    src: v.fpSrc === 'l1' ? 'l1' : 'l2',   // futures data: L2 (order book feed's trades, default) or L1 (trades; the classic recorder data). Crypto ignores it.
     mode: ['bidask', 'delta', 'volume', 'ladder'].includes(v.fpMode) ? v.fpMode : 'bidask',
     scale: v.fpScale === 'bar' ? 'bar' : 'range',
     // build 689 saved fpMode 'ladder' with no fpLadShow: that chart showed delta, keep it so
@@ -318,11 +319,27 @@ function fpConfig(v) {
   };
 }
 class FootprintEngine {
-  constructor() { this.cfg = fpConfig(FP_DEF); this.on = false; this.onAny = () => this.push(); }
+  constructor() { this.cfg = fpConfig(FP_DEF); this.on = false; this.onAny = () => this.push(); this.l2own = {}; this.l2m = undefined; this.l2v = -1; this.l2tm = 0; this.onL2 = () => this.l2Tick(); }
   start(ctx) { this.ctx = ctx; this.on = true; this.fitted = false; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
+  // L2 data: chart-l2-flow.js loads once; its hub fires on every book frame, the footprint only needs the trade minutes (<= 5 redraws a second)
+  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=935').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
+  l2Tick() {
+    if (this.l2tm || !this.on) return;
+    this.l2tm = setTimeout(() => { this.l2tm = 0; const v = this.l2m ? this.l2m.fpVersion(this.l2own) : 0; if (v !== this.l2v) this.push(); }, 200);
+  }
+  // the flow for the layer: null = use the trades feed (L1 setting, crypto, or the module is missing)
+  l2Flow(bars, tfm) {
+    if (this.cfg.src === 'l1') { this.dropL2(); return null; }
+    if (this.l2m === undefined) { this.loadL2(); return { map: new Map(), note: 'Loading order flow…' }; }
+    if (!this.l2m) return null;
+    const r = this.l2m.fpFlow(this.l2own, this.ctx, bars, tfm * 60000, replayE(), this.onL2);
+    this.l2v = this.l2m.fpVersion(this.l2own);
+    return r;
+  }
+  dropL2() { if (this.l2m) this.l2m.fpDrop(this.l2own); this.l2v = -1; }
   onSettings(v) { this.cfg = fpConfig(v); this.push(); }
   onViewport() { this.push(); }
-  suspend() { if (!this.on) return; this.on = false; users--; stopRefresh(); listeners.delete(this.onAny); }
+  suspend() { if (!this.on) return; this.on = false; this.dropL2(); clearTimeout(this.l2tm); this.l2tm = 0; users--; stopRefresh(); listeners.delete(this.onAny); }
   resume() { if (this.on) return; this.on = true; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
   stop() { this.suspend(); }
   push() {
@@ -356,7 +373,7 @@ function footprintLayer() {
       const co = a.coords, dpr = co.dpr || 1;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const d = a.data, cfg = d.cfg;
-      const f = flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.eng });
+      const tfm = tfMin(d.timeframe), f = (d.eng && tfm >= 1 && tfm <= MAX_TF_MIN && d.eng.l2Flow(a.bars, tfm)) || flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.eng });
       const top = a.bounds.top, bot = top + a.bounds.height, day = light();
       const ink = day ? '#1f2937' : '#d7dbe2', dim = day ? '#64748b' : '#8a90a0';
       g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
@@ -833,6 +850,7 @@ export function installFootprint(Core, flowMod) {
     settings: {
       title: 'Volume footprint',
       rows: [
+        { kind: 'select', key: 'fpSrc', label: 'Data source (futures)', defval: FP_DEF.fpSrc, options: [['l2', 'L2 (order book feed)'], ['l1', 'L1 (trades)']] },
         { kind: 'select', key: 'fpMode', label: 'Cells show', defval: FP_DEF.fpMode, options: [['bidask', 'Bid x Ask (sell x buy)'], ['delta', 'Delta'], ['volume', 'Volume'], ['ladder', 'Ladder (candle + level bars)']] },
         { kind: 'select', key: 'fpScale', label: 'Ladder bar scale', defval: FP_DEF.fpScale, options: [['range', 'Visible range'], ['bar', 'Per bar']] },
         { kind: 'select', key: 'fpLadShow', label: 'Ladder shows', defval: FP_DEF.fpLadShow, options: [['volume', 'Volume'], ['delta', 'Delta']] },

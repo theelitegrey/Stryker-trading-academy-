@@ -17,7 +17,7 @@ import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart
 import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=935';
 import { tsOpen } from './chart-ts-trades.js?v=935';
 import { aggregateMins } from './chart-ts-data.js?v=935';
-import { aggregate, profile as tradedProfile } from './chart-footprint-data.js?v=935';
+import { aggregate, clipTo, profile as tradedProfile } from './chart-footprint-data.js?v=935';
 import * as BT from './chart-bigtrades.js?v=935';
 import { sweepEvents } from './chart-of-pro-data.js?v=935';
 import { sweepBars } from './chart-of-pro.js?v=935';
@@ -662,6 +662,26 @@ function ladderLayer() {
 }
 
 // ---------------------------------------------------------------------------------------- install
+// The Volume footprint chart style (chart-footprint.js) with Data = L2: the hub's per-price trade minutes (TickFeed, 3 h) in the same
+// shape flowFor() returns, so the classic stk_fp drawing runs on them unchanged. `own` is the engine's holder { u, spec, k, out }.
+export function fpDrop(own) { if (own.u) { own.u.release(); own.u = null; own.spec = null; own.k = ''; } }
+export function fpFlow(own, ctx, bars, tfMs, E, onChange) {
+  const spec = specOf(ctx);
+  if (!spec || spec.kind !== 'futures') { fpDrop(own); return null; }   // crypto: the caller keeps the trades feed
+  if (!l2Badge()) { fpDrop(own); return { map: new Map(), tick: 0, note: NOT_YET, locked: true }; }
+  if (!bars.length) return { map: new Map(), tick: spec.tick, note: '' };
+  if (!own.u || own.spec.key !== spec.key) { fpDrop(own); own.u = acquireHub(spec, bars[0].time, onChange); own.spec = spec; }
+  const hub = own.u.h, fb = hub.footBars(), key = hub.fver() + '|' + tfMs + '|' + (E == null ? '' : Math.floor(E / 60000));
+  if (own.k !== key) {
+    const clipped = clipTo(fb.bars, E), agg = aggregate(clipped, tfMs);
+    own.k = key;
+    own.out = { map: new Map(agg.map((b) => [b.t, b])), list: agg, mins: clipped, tick: fb.tick || spec.tick, thr: 0, free: false,
+      note: !agg.length ? 'Loading order flow…' : fb.from && fb.from > bars[0].time ? 'Footprint (L2) from ' + hhmm(fb.from) : '' };
+  }
+  return own.out;
+}
+export const fpVersion = (own) => (own.u ? own.u.h.fver() : 0);
+
 export function installL2Flow(Core, hooks, reg) {
   if (H) return;
   H = hooks;

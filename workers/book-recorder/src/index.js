@@ -1099,10 +1099,13 @@ async function route(req, env, ctx) {
       if (!r) {
         const d = await stub(env).fetch('https://do' + u.pathname + u.search);
         if (d.status !== 200) return new Response(d.body, { status: d.status, headers: Object.assign({ 'cache-control': 'no-store' }, cors(req)) });
-        r = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=60, s-maxage=3600' } });
+        // closed history (ends 4+ days back, past the daily top-up's 2-day re-fetch) never changes: cache it for a year, immutable.
+        // Cloudflare gzips the JSON on the way out.
+        const final = u.pathname === '/hist-bars' && Number(u.searchParams.get('to')) <= Date.now() / 1000 - 4 * 86400;
+        r = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': final ? 'public, max-age=31536000, s-maxage=31536000, immutable' : 'public, max-age=60, s-maxage=3600' } });
         if (u.pathname === '/hist-bars') ctx.waitUntil(caches.default.put(ckey, r.clone()));
       }
-      return new Response(r.body, { headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=60' }, cors(req)) });
+      return new Response(r.body, { headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': (r.headers.get('cache-control') || '').includes('immutable') ? 'public, max-age=31536000, immutable' : 'public, max-age=60' }, cors(req)) });
     }
     // Plan B relay (server -> Worker, /root/projects/book-feeder/ts_relay.py): same shared secret as /ingest
     if (u.pathname === '/ts-ingest') {

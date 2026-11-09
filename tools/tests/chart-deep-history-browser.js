@@ -15,7 +15,7 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
 
 (async () => {
   const b = await launch();
-  for (const tf of (process.env.TFS || '5,1').split(',')) {
+  for (const [SYM, tf] of (process.env.SYMS || 'NQ,ES,MNQ,YM').split(',').flatMap((y) => (process.env.TFS || '5,1').split(',').map((t) => [y, t]))) {
     const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
     await ctx.addInitScript(stub);
     await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', 'night'); } catch (e) {} });
@@ -26,9 +26,9 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
     await p.goto(BASE + '/charts.html?deep=1', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkHistoryPager, null, { timeout: 60000 });
     const t0 = Date.now();
-    const r = await p.evaluate(async ([tf, goalDays]) => {
+    const r = await p.evaluate(async ([tf, goalDays, SYM]) => {
       const ws = window.STRYKER_VELA, c = ws.cell(ws.context().cells[0].id), ch = c.chart, o = ch.orchestrator;
-      c.setSymbol('futures:NQ1!'); c.setTimeframe(tf);
+      c.setSymbol('futures:' + SYM + '1!'); c.setTimeframe(tf);
       for (let i = 0; i < 150; i++) { await new Promise((r) => setTimeout(r, 200)); if (String(o.config.market.timeframe) === tf && o.rawBars.length > 50 && o.historyCompleted) break; }
       const goal = Date.now() - goalDays * 864e5, start = Date.now(); let last = 0, still = 0;
       // keep the view on the oldest bar (the viewport event the pager listens to) until a year is loaded or nothing moves for 60 s
@@ -44,17 +44,17 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
       let hole = 0; for (let i = 1; i < b.length; i++) hole = Math.max(hole, b[i].time - b[i - 1].time);
       ch.setVisibleRange({ from: b[0].time, to: b[0].time + 300 * +tf * 60000 });
       return { n: b.length, oldest: b[0].time, ordered, dup, holeDays: hole / 864e5, stats: window.__stkHistoryPager.stats() };
-    }, [tf, GOAL_DAYS]);
+    }, [tf, GOAL_DAYS, SYM]);
     await p.waitForTimeout(1500);
-    await p.screenshot({ path: `${OUT}/deep-NQ1-${tf}m-oldest.png` });
+    await p.screenshot({ path: `${OUT}/deep-${SYM}1-${tf}m-oldest.png` });
     const days = (Date.now() - r.oldest) / DAY;
-    console.log(tf + 'm', { n: r.n, oldest: new Date(r.oldest).toISOString(), days: days.toFixed(1), holeDays: r.holeDays.toFixed(2), secs: Math.round((Date.now() - t0) / 1000), stats: r.stats });
-    check(days >= GOAL_DAYS, `NQ1! ${tf}m scrolls back ${GOAL_DAYS}+ days`, { days: days.toFixed(1) });
-    check(r.ordered && r.dup === 0, `NQ1! ${tf}m bars strictly ascending, no duplicates`);
-    check(r.holeDays < 4.5, `NQ1! ${tf}m no gap longer than a long weekend`, { holeDays: r.holeDays.toFixed(2) });
+    console.log(SYM + ' ' + tf + 'm', { n: r.n, oldest: new Date(r.oldest).toISOString(), days: days.toFixed(1), holeDays: r.holeDays.toFixed(2), secs: Math.round((Date.now() - t0) / 1000), stats: r.stats });
+    check(days >= GOAL_DAYS, `${SYM}1! ${tf}m scrolls back ${GOAL_DAYS}+ days`, { days: days.toFixed(1) });
+    check(r.ordered && r.dup === 0, `${SYM}1! ${tf}m bars strictly ascending, no duplicates`);
+    check(r.holeDays < 4.5, `${SYM}1! ${tf}m no gap longer than a long weekend`, { holeDays: r.holeDays.toFixed(2) });
     const reads = Number(await (await p.request.get(BASE + '/__hist_reads')).text());
-    check(reads > 0, `NQ1! ${tf}m old pages came from our store`, { reads });
-    check(errors.length === 0, `NQ1! ${tf}m no page errors`, errors);
+    check(reads > 0, `${SYM}1! ${tf}m old pages came from our store`, { reads });
+    check(errors.length === 0, `${SYM}1! ${tf}m no page errors`, errors);
     await ctx.close();
   }
   await b.close();

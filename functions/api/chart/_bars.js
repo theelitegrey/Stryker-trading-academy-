@@ -286,7 +286,7 @@ export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 100
 // and assets/chart-history-pager.js must match (tools/tests/hist-store.test.mjs).
 export let DEEP_HISTORY = false;   // the switch (production: change here + bump). Tests: _setDeepForTests(true)
 export const _setDeepForTests = (on) => { DEEP_HISTORY = !!on; };
-export const DEEP_SYMS = ['NQ', 'ES'];          // grows as the store is backfilled (MNQ/MES/YM/RTY: our store only from Aug 2026)
+export const DEEP_SYMS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY'];   // NQ/ES from the tick archive (backfill_m1.py), the other four from the REST vendor's 1m bars (backfill_is_m1.py)
 export const DEEP_DEPTH_S = 366 * D;
 const DEEP_FROM_S = 2 * D;                       // the newest 2 days stay on the old source + live tail
 export const deepFor = (sym, tf) => DEEP_HISTORY && DEEP_SYMS.includes(sym) && ['1', '5', '15', '30'].includes(String(tf));

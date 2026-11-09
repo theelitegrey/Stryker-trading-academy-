@@ -61,7 +61,7 @@ const B = await import(ROOT + '/functions/api/chart/_bars.js');
   // a young page (inside 2 days) never asks the store; a symbol not in DEEP_SYMS never asks the store
   const before = calls.length;
   await B.fetchPage('NQ', '1', pageAt('1', 3600), now, fake);
-  await assert.rejects(B.fetchPage('YM', '1', pageAt('1', 100 * 86400), now, fake), B.OutOfRange);
+  await assert.rejects(B.fetchPage('CL', '1', pageAt('1', 100 * 86400), now, fake), B.OutOfRange);
   assert.equal(calls.slice(before).filter((c) => c.includes('/hist-bars')).length, 0);
   B._setDeepForTests(false);
   ok('bars source: flag off untouched; on = old pages from our store (decimals), young pages + other symbols untouched, 366 d end');

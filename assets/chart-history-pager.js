@@ -18,12 +18,18 @@
 // provider / Rithmic provider memo every page they fetch.
 // Not used during Bar Replay (it keeps its own buffers) or on offline/data-only charts.
 
+import { deepOn, DEEP_DEPTH_DAYS } from './chart-futures-provider.js?v=932';
+
 const PREFETCH_VIEWS = 1.5;     // start loading when fewer than 1.5 screens of bars remain on the left
 const MIN_LEAD_BARS = 150;
 const CHUNK_MIN = 1500;          // bars per request (15m: ~16 trading days)
 const CHUNK_VIEWS = 4;           // or 4 screens of bars when zoomed far out
 const CHUNK_MAX = 5000;
 const MAX_BARS = 30000;          // memory ceiling per chart
+const MAX_BARS_DEEP = 400000;    // DEEP HISTORY on (chart-futures-provider.js deepOn): a year of 1m bars (~350k) on one chart
+const mktRoot = (m) => String(m && m.symbol || '').replace(/^[a-z_]+:/i, '').replace(/1!$/, '').toUpperCase();
+const deepMkt = (m) => !!m && /^futures:/i.test(m.symbol || '') && deepOn(mktRoot(m), m.timeframe);
+const maxBars = (m) => (deepMkt(m) ? MAX_BARS_DEEP : MAX_BARS);
 const EXHAUSTED_MS = 120000;     // nothing older: do not ask that source again for 2 min
 const SOON_MS = 20000;           // 'genesis' while the source should still have older data (see DEPTH_DAYS): ask again after 20 s, not 2 min
 const SETTLE_MS = 600;           // let a fresh load paint first
@@ -44,7 +50,7 @@ export function pineDepthBars(tf){
 }
 // Source depth (mirrors DEPTH_SECS in chart-futures-provider.js). Older than this is a real end; newer is a gap or an upstream hiccup.
 const DEPTH_DAYS = { '1': 29, '3': 29, '5': 59, '15': 59, '30': 59 };
-const depthDays = (tf) => DEPTH_DAYS[String(tf)] || 700;
+const depthDays = (tf, m) => (deepMkt(m) ? DEEP_DEPTH_DAYS : DEPTH_DAYS[String(tf)] || 700);
 const hasPine = (chart) => { try { return chart.indicators().some((h) => typeof h.source === 'string' && !h.nativeType); } catch (e) { return false; } };
 
 // Camarilla Pivots needs the previous period complete plus the shown days: that many sessions of bars (23 h a day), capped.
@@ -92,7 +98,7 @@ function attach(cell) {
     let r = st.last; if (!r) { try { r = chart.getVisibleRange(); } catch (e) {} }
     const m = o.config && o.config.market;
     const bars = o.rawBars;
-    if (!m || (m.data && m.data.length) || !bars || bars.length < 2 || bars.length >= MAX_BARS) return;
+    if (!m || (m.data && m.data.length) || !bars || bars.length < 2 || bars.length >= maxBars(m)) return;
     if (o.switchingMarket || o.historyState !== 'complete' || !o.historyCompleted) return;
     if (typeof o.feed.loadRange !== 'function') return;
     if (Date.now() - st.loadedAt < SETTLE_MS) { schedule(SETTLE_MS); return; }
@@ -119,7 +125,7 @@ function attach(cell) {
     const before = o.rawBars.length;
     const oldest = o.rawBars[0].time;
     st.reason = '';
-    const target = Math.min(MAX_BARS, before + chunk);
+    const target = Math.min(maxBars(o.config.market), before + chunk);
     stats.requests++;
     try {
       // Re-arm the per-load tracking: completeHistory() runs once per cycle, so without this the
@@ -143,7 +149,7 @@ function attach(cell) {
       // 'genesis' near the present (source depth not reached) is retried after SOON_MS; at the real depth it stays quiet for EXHAUSTED_MS.
       let wait;
       if (st.reason === 'aborted') { wait = Math.min(30000, 2000 * Math.pow(2, st.fails++)); stats.errors = (stats.errors || 0) + 1; }
-      else { wait = (Date.now() - oldest) / 864e5 < depthDays(o.config.market.timeframe) - 3 ? SOON_MS : EXHAUSTED_MS; stats.genesis++; }
+      else { wait = (Date.now() - oldest) / 864e5 < depthDays(o.config.market.timeframe, o.config.market) - 3 ? SOON_MS : EXHAUSTED_MS; stats.genesis++; }
       st.exhausted.set(k, Date.now() + wait);
       schedule(wait + 50);
       return;

@@ -1,0 +1,9 @@
+[Unit]
+Description=TradeZoro deep history: daily top-up at 22:15 UTC (after the CME close)
+
+[Timer]
+OnCalendar=*-*-* 22:15:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

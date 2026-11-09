@@ -268,7 +268,38 @@ export class OutOfRange extends Error {}
 // any other error for an upstream failure (caller falls back to last-good). Yahoo only: history pages (incl. the
 // scroll-back pager) never touch InsightSentry; the admin live tail is laid over by bars/[sym].js (withTail).
 export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 1000), fetchImpl = fetch, env = {}) {
+  if (deepFor(sym, tf)) {
+    const [p1, p2] = pageBounds(tf, page);
+    // pages the old source still has are read there (unchanged behaviour); older pages come from our own store, never the vendor
+    if (p2 < now - DEEP_FROM_S && p2 >= now - DEEP_DEPTH_S) {
+      const rows = await fetchDeepPage(sym, tf, p1, p2, fetchImpl);
+      if (rows && rows.length) return rows;
+    }
+    if (p2 < now - TIMEFRAMES[tf].depth) { if (p2 < now - DEEP_DEPTH_S) throw new OutOfRange('older than our store'); return []; }
+  }
   return fetchYahooPage(sym, tf, page, now, fetchImpl);
+}
+
+// DEEP HISTORY (history-gap2, 2026-11-08). Flag OFF: nothing changes. ON: 1m-30m futures pages older than DEEP_FROM_S come from
+// the book-recorder's own 1-minute store (/hist-bars, filled server-side from the data vendor's archive by tools/hist/backfill_m1.py),
+// back DEEP_DEPTH_S. A page the store does not hold falls back to the old source. DEEP_DEPTH_DAYS in assets/chart-futures-provider.js
+// and assets/chart-history-pager.js must match (tools/tests/hist-store.test.mjs).
+export let DEEP_HISTORY = false;   // the switch (production: change here + bump). Tests: _setDeepForTests(true)
+export const _setDeepForTests = (on) => { DEEP_HISTORY = !!on; };
+export const DEEP_SYMS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY'];   // NQ/ES from the tick archive (backfill_m1.py), the other four from the REST vendor's 1m bars (backfill_is_m1.py)
+export const DEEP_DEPTH_S = 366 * D;
+const DEEP_FROM_S = 2 * D;                       // the newest 2 days stay on the old source + live tail
+export const deepFor = (sym, tf) => DEEP_HISTORY && DEEP_SYMS.includes(sym) && ['1', '5', '15', '30'].includes(String(tf));
+export async function fetchDeepPage(sym, tf, p1, p2, fetchImpl = fetch) {
+  const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort('timeout'), FETCH_TIMEOUT_MS);
+  try {
+    const r = await fetchImpl(RECORDER_URL + '/hist-bars?sym=' + sym + '&tf=' + tf + '&from=' + p1 + '&to=' + p2, { signal: ctrl.signal });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!j || !Array.isArray(j.bars)) return null;
+    const dec = decimalsOf(SYMBOLS[sym][4]);
+    return j.bars.filter((b) => b[0] >= p1 && b[0] < p2).map((b) => [b[0], +b[1].toFixed(dec), +b[2].toFixed(dec), +b[3].toFixed(dec), +b[4].toFixed(dec), b[5]]);
+  } catch (e) { return null; } finally { clearTimeout(timer); }
 }
 
 async function fetchYahooPage(sym, tf, page, now, fetchImpl) {

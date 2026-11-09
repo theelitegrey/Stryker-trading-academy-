@@ -32,6 +32,7 @@ import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, wsTokenOf, RT_D
 import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
 import { TSHub, tsHubFetch, tsStore, tsOpts, cmeOpen } from './ts-hub.js';
 import { TickEngine, teStore, teOpts } from './tick-engine.js';
+import { histSql, histFetch } from './hist-store.js';   // DEEP HISTORY (1-minute bars a year+ back, src/hist-store.js)
 import { tsAllowed, tsAccess, tsTier } from './ts-access.js';
 import { StockEngine, skStore, skSpec, skCut, codeOk } from './stock-engine.js';   // STOCKS ENGINE
 import { verifyIdToken } from './rt-auth.js';
@@ -576,6 +577,7 @@ export class BookRecorder {
     if (u.pathname === '/is-live') return isHubFetch(this.isHub, this.env, u, req);
     if (u.pathname.startsWith('/sk-')) return this.skFetch(u);
     if (u.pathname.startsWith('/ts-') || u.pathname.startsWith('/te-')) return tsHubFetch(this.tsHub, this.env, u, req);
+    if (u.pathname.startsWith('/hist-')) { if (!this.hist) this.hist = histSql(this.sql); return histFetch(this.hist, u, req, () => true); }   // the Worker front checked the ingest key
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/t/')) return terminalDo(this, u, req);   // terminal files (src/terminal.js)
     if (u.pathname.startsWith('/hl/')) return hlDo(this, u, req);   // Hyperliquid wallet intel (src/hl.js)
@@ -1085,6 +1087,28 @@ async function route(req, env, ctx) {
     if (u.pathname === '/ts-health') {
       const d = await stub(env).fetch('https://do/ts-stats');
       return new Response(d.body, { status: d.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, cors(req)) });
+    }
+    // DEEP HISTORY (src/hist-store.js): the backfill script uploads days (ingest secret); /hist-bars is the delayed lane (nothing newer
+    // than 10 min), closed history, edge-cached 1 h. Off unless HIST_ON = '1' (wrangler vars), so this deploys dark.
+    if (u.pathname === '/hist-ingest' || u.pathname === '/hist-bars' || u.pathname === '/hist-stats') {
+      if (env.HIST_ON !== '1') return new Response('off', { status: 404, headers: { 'cache-control': 'no-store' } });
+      if (u.pathname === '/hist-ingest') {
+        if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+        return stub(env).fetch(new Request('https://do/hist-ingest', { method: 'POST', body: await req.arrayBuffer(), headers: { 'content-encoding': req.headers.get('content-encoding') || '' } }));
+      }
+      if (req.method !== 'GET') return new Response('GET only', { status: 405 });
+      const ckey = new Request('https://book-recorder.cache' + u.pathname + u.search);
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch('https://do' + u.pathname + u.search);
+        if (d.status !== 200) return new Response(d.body, { status: d.status, headers: Object.assign({ 'cache-control': 'no-store' }, cors(req)) });
+        // closed history (ends 4+ days back, past the daily top-up's 2-day re-fetch) never changes: cache it for a year, immutable.
+        // Cloudflare gzips the JSON on the way out.
+        const final = u.pathname === '/hist-bars' && Number(u.searchParams.get('to')) <= Date.now() / 1000 - 4 * 86400;
+        r = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': final ? 'public, max-age=31536000, s-maxage=31536000, immutable' : 'public, max-age=60, s-maxage=3600' } });
+        if (u.pathname === '/hist-bars') ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return new Response(r.body, { headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': (r.headers.get('cache-control') || '').includes('immutable') ? 'public, max-age=31536000, immutable' : 'public, max-age=60' }, cors(req)) });
     }
     // Plan B relay (server -> Worker, /root/projects/book-feeder/ts_relay.py): same shared secret as /ingest
     if (u.pathname === '/ts-ingest') {

@@ -54,7 +54,7 @@ async function open(b, w, h, mobile, theme) {
       await p.waitForSelector('#byo-forget', { timeout: 15000 });
       check(true, t + 'paired with the helper (manage view)');
       const r = await p.evaluate(async () => {
-        const core = await import('/assets/byo-core.js?v=933'); const br = await import('/assets/byo-bridge.js?v=933');
+        const core = await import('/assets/byo-core.js?v=934'); const br = await import('/assets/byo-bridge.js?v=934');
         const rec = core.statusRec('mt5'); const ad = core.ADAPTERS.mt5; const out = {};
         const bars = await ad.getBars(rec.creds, 'byo:EURUSD', '1', { limit: 20 }); out.n = bars.length; out.ok = bars.every((x) => x.time > 1e12 && x.high >= x.low);
         const got = []; const off = ad.subscribe(rec.hub, 'byo:EURUSD', '1', bars[bars.length - 1], (c) => got.push(c));

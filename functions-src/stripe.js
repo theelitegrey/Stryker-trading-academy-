@@ -84,6 +84,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const GEO = require('./geoBlock');
 
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
@@ -314,6 +315,8 @@ exports.stripeCreateCheckout = functions
     // One live Stripe subscription per member (and one per add-on): a second checkout would bill twice.
     const stu = await db.collection('students').doc(uid).get();
     const s = stu.exists ? stu.data() : {};
+    // Sanctions geo-block (Owner order 09 Nov 2026): no purchase for a blocked or unconfirmed residence (functions-src/geoBlock.js).
+    GEO.assertCanBuy(functions, s);
     if (addon) {
       require('./marketData').__marketData.requireAgreement(s);   // Owner 2026-11-01: terms first
       const ld = s.liveData || {};
@@ -386,7 +389,8 @@ exports.stripeCreateCheckout = functions
       discounts,
       // Card + wallets (Apple Pay / Google Pay ride on 'card' in Checkout).
       payment_method_types: ['card'],
-      billing_address_collection: 'auto',
+      // Required (sanctions geo-block): the webhook checks the billing country as well as the card country.
+      billing_address_collection: 'required',
       // USD only: Adaptive Pricing would show local currency with a ~4% FX fee
       // (India → Razorpay handles INR instead).
       adaptive_pricing: { enabled: 'false' },
@@ -450,6 +454,7 @@ async function grantThrough(uid, planName, planId, periodEndSec, extra) {
   const ref = db.collection('students').doc(uid);
   const snap = await ref.get();
   const banked = snap.exists ? (snap.data().paidThroughMillis || 0) : 0;
+  if (snap.exists && snap.data().sanctionsLocked === true) { console.warn('grantThrough: account locked (sanctions), no grant', uid); return banked; }
   const patch = Object.assign({
     plan: planName, planId,
     paidThroughMillis: Math.max(banked, periodEndSec * 1000),
@@ -466,16 +471,109 @@ async function grantLiveData(uid, periodEndSec, extra) {
   const ref = db.collection('students').doc(uid);
   const snap = await ref.get();
   const cur = snap.exists && snap.data().liveData ? snap.data().liveData : {};
+  if (snap.exists && snap.data().sanctionsLocked === true) { console.warn('grantLiveData: account locked (sanctions), no grant', uid); return cur.paidThroughMillis || 0; }
   const through = Math.max(cur.paidThroughMillis || 0, periodEndSec * 1000);
   await ref.set({ liveData: Object.assign({ active: true, paidThroughMillis: through, source: 'stripe',
     startedAt: cur.startedAt || Date.now() }, extra || {}) }, { merge: true });
   return through;
 }
 
+// ---- sanctions geo-block in the webhook (Owner order 09 Nov 2026; list: ./geoBlock.js) ----------------------
+// Payer signals come from Stripe, never from the client: the card's issuing country and the billing address
+// (billing_address_collection is 'required'), plus the member's stored residenceCountry / sanctionsLocked.
+// A blocked payer is handled LOCK FIRST, then every step is safe to re-run on a webhook retry:
+//   1. students/{uid}: sanctionsLocked true (+ At, Reason), subscriptionAutopay false (grants below then refuse);
+//   2. the Firebase Auth user is disabled (an admin can re-enable it);
+//   3. DELETE the subscription now (no proration, no final invoice; already gone = fine);
+//   4. refund the charge once: geoRefunds/{chargeId} guard + a fresh read of the charge (already refunded = skip);
+//   5. sanctionsLog/{subId or chargeId}: what was seen (codes only), what was done.
+// The check runs BEFORE the double-grant guards, so a crash half way is finished by Stripe's retry.
+const idOf = (x) => (x && typeof x === 'object' ? x.id : x) || null;
+function addrOf(x) { return (x && x.address) || null; }
+
+// Everything Stripe knows about who is paying for this subscription (expanded in one call).
+async function geoSignalsForSub(subId) {
+  const sub = await stripe('GET', 'subscriptions/' + subId, { expand: ['default_payment_method', 'latest_invoice.charge',
+    'pending_setup_intent.payment_method', 'customer.invoice_settings.default_payment_method'] });
+  const pms = [sub.default_payment_method, sub.pending_setup_intent && sub.pending_setup_intent.payment_method,
+    sub.customer && sub.customer.invoice_settings && sub.customer.invoice_settings.default_payment_method].filter((x) => x && typeof x === 'object');
+  const charge = sub.latest_invoice && typeof sub.latest_invoice === 'object' && typeof sub.latest_invoice.charge === 'object' ? sub.latest_invoice.charge : null;
+  const cardCountries = pms.map((pm) => pm.card && pm.card.country);
+  const addresses = pms.map((pm) => addrOf(pm.billing_details));
+  if (charge) {
+    cardCountries.push(charge.payment_method_details && charge.payment_method_details.card && charge.payment_method_details.card.country);
+    addresses.push(addrOf(charge.billing_details));
+  }
+  if (sub.customer && typeof sub.customer === 'object') addresses.push(sub.customer.address);
+  return { cardCountries, addresses, chargeId: charge ? charge.id : null };
+}
+
+async function geoVerdict(uid, signals, extraAddresses) {
+  const snap = uid ? await db.collection('students').doc(uid).get() : null;
+  const st = snap && snap.exists ? snap.data() : {};
+  return GEO.paymentVerdict({ locked: st.sanctionsLocked === true, residence: st.residenceCountry,
+    cardCountries: signals.cardCountries, addresses: (signals.addresses || []).concat(extraAddresses || []) });
+}
+
+async function geoRefuse({ uid, subId, chargeId, verdict, source, sessionId }) {
+  const reason = verdict.reason === 'locked' ? 'locked' : verdict.reason;
+  if (uid) {
+    await db.collection('students').doc(uid).set({ sanctionsLocked: true, sanctionsLockedAt: admin.firestore.FieldValue.serverTimestamp(),
+      sanctionsLockReason: reason, subscriptionAutopay: false }, { merge: true });
+    await admin.auth().updateUser(uid, { disabled: true }).catch((e) => console.error('geo: auth disable failed', uid, e.message));
+  }
+  if (sessionId) await db.collection('stripeSessions').doc(sessionId).set({ status: 'geo_refused' }, { merge: true });
+  if (subId) {
+    await stripe('DELETE', 'subscriptions/' + subId, { prorate: 'false', invoice_now: 'false' }).catch((e) => {
+      if (e.stripeStatus === 404 || e.stripeCode === 'resource_missing') return;   // already gone
+      throw e;
+    });
+  }
+  let refund = 'none';
+  if (chargeId) refund = await geoRefundOnce(uid, chargeId, subId);
+  await db.collection('sanctionsLog').doc(String(subId || chargeId || sessionId || uid)).set({
+    uid: uid || null, source, reason, country: verdict.country || null, subscriptionId: subId || null, chargeId: chargeId || null,
+    sessionId: sessionId || null, refund, action: 'locked, auth disabled, subscription cancelled',
+    at: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  console.warn('stripeWebhook geo refused', source, reason, verdict.country || '', 'sub', subId || '-', 'refund', refund);
+  return 'geo refused (' + reason + ', refund ' + refund + ')';
+}
+
+async function geoRefundOnce(uid, chargeId, subId) {
+  const ref = db.collection('geoRefunds').doc(String(chargeId));
+  const cur = await ref.get();
+  if (cur.exists && cur.data().status === 'refunded') return 'already refunded';
+  await ref.set({ uid: uid || null, subscriptionId: subId || null, status: 'pending', at: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  const ch = await stripe('GET', 'charges/' + chargeId);
+  if (ch.refunded || Number(ch.amount_refunded || 0) >= Number(ch.amount || 0)) {
+    await ref.set({ status: 'refunded', refundId: null }, { merge: true });
+    return 'already refunded';
+  }
+  let r;
+  try {
+    // 'requested_by_customer', not 'fraudulent' (that would feed Radar's fraud lists).
+    r = await stripe('POST', 'refunds', { charge: chargeId, reason: 'requested_by_customer', metadata: { reason: 'sanctions_region' } }, 'geo_refund_' + chargeId);
+  } catch (e) {
+    if (e.stripeCode === 'charge_already_refunded') { await ref.set({ status: 'refunded' }, { merge: true }); return 'already refunded'; }
+    throw e;
+  }
+  await ref.set({ status: 'refunded', refundId: r.id || null }, { merge: true });
+  return 'refunded';
+}
+
 async function onCheckoutCompleted(session) {
   if (session.mode !== 'subscription') return 'ignored: mode ' + session.mode;
   if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
     return 'ignored: payment_status ' + session.payment_status;
+  }
+  // Sanctions geo-block: before the paid flip, so a retry after a crash still refunds.
+  {
+    const gUid = session.client_reference_id || (session.metadata && session.metadata.uid) || null;
+    const sig = session.subscription ? await geoSignalsForSub(idOf(session.subscription)) : { cardCountries: [], addresses: [] };
+    const v = await geoVerdict(gUid, sig, [addrOf(session.customer_details)]);
+    if (v.blocked) return geoRefuse({ uid: gUid, subId: idOf(session.subscription), chargeId: sig.chargeId, verdict: v, source: 'checkout', sessionId: session.id });
+    if (v.unknown) console.warn('stripeWebhook geo: no card or billing country on session', session.id);
   }
   const sRef = db.collection('stripeSessions').doc(session.id);
   // Double-grant guard: created -> paid exactly once.
@@ -673,6 +771,22 @@ async function onInvoicePaid(inv) {
   // granted (after the abuse checks) by checkout.session.completed.
   if (Number(inv.amount_paid) === 0 && (rec.trial || invSubMeta(inv).trial === '1')) return 'trial invoice: nothing to grant';
 
+  // Sanctions geo-block on every paid invoice (first one included: it can arrive before checkout.session.completed).
+  // The charge is read through our pinned API version, so newer webhook payload shapes don't matter.
+  if (Number(inv.amount_paid) > 0) {
+    const full = await stripe('GET', 'invoices/' + inv.id, { expand: ['charge', 'charge.payment_method'] });
+    const ch = full && typeof full.charge === 'object' ? full.charge : null;
+    const sig = { cardCountries: [], addresses: [inv.customer_address, full && full.customer_address] };
+    if (ch) {
+      sig.cardCountries.push(ch.payment_method_details && ch.payment_method_details.card && ch.payment_method_details.card.country);
+      sig.addresses.push(addrOf(ch.billing_details));
+      if (ch.payment_method && typeof ch.payment_method === 'object') sig.cardCountries.push(ch.payment_method.card && ch.payment_method.card.country);
+    }
+    const v = await geoVerdict(rec.uid, sig);
+    if (v.blocked) return geoRefuse({ uid: rec.uid, subId, chargeId: ch ? ch.id : null, verdict: v, source: 'invoice' });
+    if (v.unknown) console.warn('stripeWebhook geo: no card or billing country on invoice', inv.id);
+  }
+
   if (rec.addon) return onAddonInvoicePaid(inv, subId, rec);
 
   // Latest service period on the invoice (the subscription line; prorations end earlier).
@@ -794,6 +908,7 @@ async function onSubscriptionChanged(sub, deleted) {
   const snap = await stu.get();
   if (!snap.exists) return 'no student doc (account deleted?)';   // never create a stub doc
   const cur = snap.data();
+  if (cur.sanctionsLocked === true) return 'account locked (sanctions): no change';
   if (rec.addon) {
     const ld = cur.liveData || {};
     if (ld.stripeSubscriptionId && ld.stripeSubscriptionId !== sub.id) return 'stale subscription';
@@ -915,4 +1030,4 @@ exports.stripeStatus = functions
   });
 
 // Not a function (the loader ignores it): for the offline tests.
-exports.__stripeInternals = { formEncode, verifySignature, handleEvent, baseUsdFor, STRIPE_VERSION, grantLiveData };
+exports.__stripeInternals = { formEncode, verifySignature, handleEvent, baseUsdFor, STRIPE_VERSION, grantLiveData, geoRefuse, geoSignalsForSub };

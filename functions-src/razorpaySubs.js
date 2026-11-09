@@ -64,6 +64,7 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const GEO = require('./geoBlock');
 const crypto = require('crypto');
 const subs = require('./subscriptions').__internals;
 const T = () => require('./trial').__trialInternals;
@@ -188,6 +189,9 @@ exports.razorpaySubscribe = functions
     const planId = String((data && data.planId) || '');
     const currency = String((data && data.currency) || '').toUpperCase();
     const wantTrial = !!(data && data.trial === true);
+    // Sanctions geo-block (Owner order 09 Nov 2026): no purchase for a blocked or unconfirmed residence (functions-src/geoBlock.js).
+    const geoStu = await db.collection('students').doc(uid).get();
+    GEO.assertCanBuy(functions, geoStu.exists ? geoStu.data() : {});
     if (currency !== 'INR') {
       throw new functions.https.HttpsError('failed-precondition',
         'Auto-debit mandates are available for INR only — use the one-time payment instead.');

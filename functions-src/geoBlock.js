@@ -8,7 +8,10 @@
 // (students/{uid}.residenceCountry) and on what Stripe tells us (billing address country, card country).
 const BLOCKED_COUNTRIES = ['CU', 'IR', 'KP', 'SY', 'RU', 'BY'];
 const BLOCKED_UA_REGIONS = ['43', '40', '14', '09'];
-const UA_REGION_NAMES = /crimea|krym|sevastopol|donetsk|luhansk|lugansk/i;
+const UA_REGION_NAMES = /crimea|krym|sevastopol|donetsk|luhansk|lugansk|крим|крым|севастопол|донецьк|донецк|луганськ|луганск/i;
+// Ukrainian postal codes (first two digits): Donetsk oblast 83-87, Luhansk oblast 91-94, Crimea 95-98, Sevastopol 99.
+// Whole oblasts, on purpose (Owner: "no chances").
+const UA_BLOCKED_POSTAL = /^(8[3-7]|9[1-9])\d{3}$/;
 const REGION_MESSAGE = "TradeZoro isn't available in your region. Due to US regulations, we can't offer our services in this location.";
 
 function normRegion(code) {
@@ -40,11 +43,41 @@ function isBlockedAddress(addr) {
   if (BLOCKED_COUNTRIES.includes(c)) return true;
   if (c !== 'UA') return false;
   const text = [addr.state, addr.city, addr.line1, addr.line2].filter(Boolean).join(' ');
-  return isBlockedPlace('UA', addr.state, text);
+  if (isBlockedPlace('UA', addr.state, text)) return true;
+  return UA_BLOCKED_POSTAL.test(String(addr.postal_code || addr.postalCode || '').replace(/\s/g, ''));
+}
+
+// Payment signals -> verdict. signals: { residence, cardCountries: [], addresses: [] } (Stripe address objects).
+// blocked: any signal points to a blocked place. unknown: no card country AND no billing country at all.
+function paymentVerdict(signals) {
+  const s = signals || {};
+  const cards = (s.cardCountries || []).filter(Boolean).map((c) => String(c).toUpperCase());
+  const addrs = (s.addresses || []).filter((a) => a && a.country);
+  if (s.locked === true) return { blocked: true, reason: 'locked' };
+  if (isBlockedResidence(s.residence)) return { blocked: true, reason: 'residence', country: String(s.residence).toUpperCase() };
+  const card = cards.find((c) => BLOCKED_COUNTRIES.includes(c));
+  if (card) return { blocked: true, reason: 'card', country: card };
+  const addr = addrs.find(isBlockedAddress);
+  if (addr) return { blocked: true, reason: 'billing', country: String(addr.country).toUpperCase() };
+  return { blocked: false, unknown: !cards.length && !addrs.length };
 }
 // Student doc -> blocked? (locked flag set by the server, or a blocked residence)
 function isBlockedStudent(s) {
   return !!(s && (s.sanctionsLocked === true || isBlockedResidence(s.residenceCountry)));
 }
 
-module.exports = { BLOCKED_COUNTRIES, BLOCKED_UA_REGIONS, REGION_MESSAGE, normRegion, isBlockedPlace, isBlockedResidence, isBlockedAddress, isBlockedStudent };
+// Callable gate for every purchase path (Stripe, free checkout, coupons, Razorpay, creator checkout). Throws an
+// HttpsError (failed-precondition) built with the caller's own functions module. billingCountry: optional client value.
+function assertCanBuy(functions, student, billingCountry) {
+  const s = student || {};
+  if (isBlockedStudent(s) || (billingCountry && isBlockedResidence(billingCountry))) {
+    throw new functions.https.HttpsError('failed-precondition', REGION_MESSAGE, { code: 'unavailable_region' });
+  }
+  if (!s.residenceCountry || s.sanctionsAttest !== true) {
+    throw new functions.https.HttpsError('failed-precondition',
+      'Please confirm your country of residence first: reload this page and answer the short question.', { code: 'residence_required' });
+  }
+}
+
+module.exports = { BLOCKED_COUNTRIES, BLOCKED_UA_REGIONS, REGION_MESSAGE, normRegion, isBlockedPlace, isBlockedResidence, isBlockedAddress,
+  isBlockedStudent, paymentVerdict, assertCanBuy };

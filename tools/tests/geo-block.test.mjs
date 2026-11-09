@@ -69,6 +69,11 @@ await t('Stripe address check: country, and UA oblast in state/city', () => {
   assert.ok(!C.isBlockedAddress({ country: 'UA', state: 'Kyiv', city: 'Kyiv' }));
   assert.ok(!C.isBlockedAddress({ country: 'US', state: 'NY' }));
   assert.ok(!C.isBlockedAddress(null));
+  assert.ok(C.isBlockedAddress({ country: 'UA', city: 'Крим' })); assert.ok(C.isBlockedAddress({ country: 'UA', city: 'Луганськ' }));
+  for (const pc of ['95000', '99011', '83001', '91000', '87500']) assert.ok(C.isBlockedAddress({ country: 'UA', postal_code: pc }), pc);
+  for (const pc of ['01001', '61000', '79000']) assert.ok(!C.isBlockedAddress({ country: 'UA', postal_code: pc }), pc);
+  assert.ok(C.paymentVerdict({ cardCountries: ['RU'] }).blocked); assert.ok(C.paymentVerdict({ cardCountries: [], addresses: [] }).unknown);
+  assert.ok(!C.paymentVerdict({ cardCountries: ['US'], addresses: [{ country: 'US' }] }).blocked);
   assert.ok(C.isBlockedStudent({ residenceCountry: 'IR' })); assert.ok(C.isBlockedStudent({ sanctionsLocked: true }));
   assert.ok(!C.isBlockedStudent({ residenceCountry: 'IN' })); assert.ok(!C.isBlockedStudent({}));
 });

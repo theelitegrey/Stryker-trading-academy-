@@ -43,6 +43,7 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const GEO = require('./geoBlock');
 const crypto = require('crypto');
 
 if (!admin.apps.length) admin.initializeApp();
@@ -140,6 +141,9 @@ exports.razorpayCreateOrder = functions
     const planId = String((data && data.planId) || '');
     const couponCode = String((data && data.couponCode) || '').trim().toUpperCase() || null;
     const reqCurrency = String((data && data.currency) || '').toUpperCase();
+    // Sanctions geo-block (Owner order 09 Nov 2026): no purchase for a blocked or unconfirmed residence (functions-src/geoBlock.js).
+    const geoStu = await db.collection('students').doc(uid).get();
+    GEO.assertCanBuy(functions, geoStu.exists ? geoStu.data() : {});
 
     const planDoc = await db.collection('plans').doc(planId).get();
     if (!planDoc.exists) throw new functions.https.HttpsError('not-found', 'That plan could not be found.');

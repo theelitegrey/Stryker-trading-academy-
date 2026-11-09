@@ -4,6 +4,7 @@
 //   CHART_BASE=http://127.0.0.1:8031 node tools/tests/chart-orderflow-browser.js [shotsDir]
 // STAGE=volume (default) | crypto | rithmic | perf | all
 const { launch } = require('./lib.js');
+const openRithmic = require('./_rithmic-open.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
 const MOCK = process.env.RITHMIC_MOCK || 'ws://127.0.0.1:8765';
@@ -196,7 +197,7 @@ async function openPicker(p) {
       await sleep(1500);
       let ins = JSON.stringify(await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /real trades/.test(x.title)).map((x) => x.tables)));
       check(ins === '[1,1,1]', 'Rithmic not connected: tools show the Connect Rithmic message ' + ins);
-      await p.click('#stkrb-btn');
+      await openRithmic(p);
       await p.waitForFunction(() => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length > 0, null, { timeout: 15000 });
       await p.selectOption('#stkrb-sys', 'Rithmic Test');
       await p.fill('#stkrb-user', 'demo'); await p.fill('#stkrb-pass', 'demo-pass');
@@ -213,7 +214,7 @@ async function openPicker(p) {
       check(ins !== '[1,1,1]' || true, 'after connect: message tables ' + ins);
       await p.click('body', { position: { x: 5, y: 5 } }).catch(() => {});
       await shot(p, 'of-rithmic-1440.png');
-      await p.click('#stkrb-btn'); await p.click('#stkrb-off');
+      await openRithmic(p); await p.click('#stkrb-off');
       await p.waitForFunction(() => window.STRYKER_RITHMIC.state === 'idle', null, { timeout: 15000 }).catch(() => {});
       await sleep(2500);
       ins = JSON.stringify(await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /real trades/.test(x.title)).map((x) => x.tables)));

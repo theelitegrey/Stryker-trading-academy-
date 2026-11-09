@@ -12,6 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { launch } = require('./lib.js');
+const openRithmic = require('./_rithmic-open.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
 const OUT = process.argv[2] || 'rithmic-session.json';
@@ -68,7 +69,7 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
     step('chart NQ1! 1m (standard data, before connecting): ' + JSON.stringify(await cell()));
 
     // Connect through the sheet (exactly what a member does).
-    await p.click('#stkrb-btn');
+    await openRithmic(p);
     await p.waitForFunction(() => [...document.querySelectorAll('#stkrb-sys option')].some((o) => o.value === 'Rithmic Test'), null, { timeout: 30000 });
     await p.selectOption('#stkrb-sys', login.system);
     await p.fill('#stkrb-user', login.user);
@@ -108,7 +109,7 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
     await sleep(25000);
     step('timeframe change ES1! 5m -> 15m: ' + JSON.stringify(await cell()));
     if (SHOTS) {
-      await p.click('#stkrb-btn'); await sleep(500);
+      await openRithmic(p); await sleep(500);
       await p.screenshot({ path: path.join(SHOTS, 'rithmic-test-live-1440.png') });
       await p.keyboard.press('Escape');
     }
@@ -137,7 +138,7 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
     // Clean logout via the Disconnect button.
     result.sessionsBeforeLogout = await p.evaluate(() => window.STRYKER_RITHMIC.sessions);
     result.appCounts = await p.evaluate(() => window.STRYKER_RITHMIC.counts);
-    await p.click('#stkrb-btn');
+    await openRithmic(p);
     await p.click('#stkrb-off');
     await p.waitForFunction(() => window.STRYKER_RITHMIC.state === 'idle', null, { timeout: 15000 });
     await sleep(1000);

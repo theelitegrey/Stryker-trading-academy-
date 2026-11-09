@@ -50,7 +50,7 @@ const CSS = `
 .stkrb-pop, .stkrb-card, .stkrb-syslist{ font-family:var(--rz-font); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
 .stkrb-pop button, .stkrb-pop input, .stkrb-pop select, .stkrb-card button, .stkrb-syslist button, .stkrb-syslist input{ font-family:var(--rz-font); }
 .stkrb-chip{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:999px;
-  border:1px solid rgba(3,201,136,.45); color:var(--gold); font-family:inherit; font-weight:600; font-size:11.5px; line-height:1; white-space:nowrap; flex:none; }
+  border:1px solid rgba(3,201,136,.45); color:var(--gold); font-family:inherit; font-weight:600; font-size:11.5px; line-height:1; white-space:nowrap; flex:none; background:transparent; cursor:pointer; }
 @media (max-width:480px){ .stkrb-chip{ padding:0 7px; font-size:11px; gap:5px; } }
 .stkrb-chip[hidden]{ display:none; }
 .stkrb-chip i{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 3px rgba(3,201,136,.18); }
@@ -298,20 +298,18 @@ export function createRithmic(cfg) {
     const barR = document.querySelector('.stkc-bar-r');
     if (!barR) return;
 
-    const chip = el('span', { class: 'stkrb-chip', id: 'stkrb-chip', role: 'status', hidden: true });
-    const btn = el('button', { type: 'button', class: 'stkc-btn', id: 'stkrb-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Connect broker',
-      html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg><span class="stkc-btn-l">Connect broker</span>' });
+    const chip = el('button', { type: 'button', class: 'stkrb-chip', id: 'stkrb-chip', 'aria-haspopup': 'dialog', title: 'Rithmic connection', hidden: true });
     const pop = el('div', { class: 'stkc-pop stkrb-pop', id: 'stkrb-pop', role: 'dialog', 'aria-label': 'Connect broker', hidden: true });
     const phone = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
-    const wrap = el('div', { class: 'stkc-menu' }, phone ? [btn] : [btn, pop]);
     if (phone) {
       pop.classList.add('stkrb-full');
       pop.appendChild(el('div', { class: 'stkrb-grab-s', 'aria-hidden': 'true' }));
       pop.appendChild(el('button', { type: 'button', class: 'stkrb-xbtn stkrb-fullx', 'aria-label': 'Close', html: X_ICON, onclick: () => setOpen(false) }));
       document.body.appendChild(pop);
     }
-    barR.insertBefore(wrap, barR.firstChild);
-    barR.insertBefore(chip, wrap);
+    // No toolbar button: Rithmic opens from Data source (assets/byo-ui.js) or by tapping the status chip.
+    if (!phone) barR.insertBefore(pop, barR.firstChild);
+    barR.insertBefore(chip, barR.firstChild);
 
     // ---- attribution strip: under the chart, only while a Rithmic connection is active ----
     const legalPop = el('div', { class: 'stkrb-legal-pop', id: 'stkrb-legal-pop', role: 'dialog', 'aria-label': 'Rithmic and OMNE notices', hidden: true }, [noticeList()]);
@@ -566,18 +564,12 @@ export function createRithmic(cfg) {
     // popover open/close (same behaviour as the other toolbar menus)
     function setOpen(open) {
       pop.hidden = !open;
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (open) { render(); if (!client.connected) { loadSystems(); if (!touch) setTimeout(() => (user.value ? pass : user).focus(), 30); }
       else if (!sysList.hidden) sysList.hidden = true; }
     }
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const open = pop.hidden;
-      document.querySelectorAll('.stkc-pop').forEach((p) => { if (p !== pop && !p.hidden) p.hidden = true; });
-      setOpen(open);
-    });
+    chip.addEventListener('click', (e) => { e.stopPropagation(); api.open(); });
     pop.addEventListener('click', (e) => e.stopPropagation());
-    // The one entry point other modules use (the delayed-data banner, assets/chart-data-banner.js): opens the Connect broker sheet.
+    // The one entry point other modules use (Data source row, status chip, delayed-data banner): opens the Rithmic sheet.
     api.open = () => { document.querySelectorAll('.stkc-pop').forEach((p) => { if (p !== pop && !p.hidden) p.hidden = true; }); setOpen(true) };
     document.addEventListener('click', (e) => { if (!pop.hidden && !(phone && pop.contains(document.activeElement)) && !(e.target && e.target.closest && e.target.closest('.stkrb-syslist'))) setOpen(false); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) setOpen(false); });
@@ -609,8 +601,7 @@ export function createRithmic(cfg) {
       chip.innerHTML = '';
       chip.appendChild(el('i', { 'aria-hidden': 'true' }));
       chip.appendChild(document.createTextNode(st === 'connected' ? 'Rithmic · connected' : 'Rithmic · reconnecting'));
-      btn.querySelector('.stkc-btn-l').textContent = on ? 'Broker' : 'Connect broker';
-      btn.title = on ? 'Broker connection' : 'Connect broker';
+      try { window.dispatchEvent(new CustomEvent('stryker-rithmic-state')); } catch (e) { /* old browser */ }
       // The source line under the chart names the data source: keep it truthful.
       const credit = document.querySelector('.stkchart-credit');
       if (credit) {

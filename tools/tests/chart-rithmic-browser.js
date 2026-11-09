@@ -5,6 +5,7 @@
 // Needs network for jsDelivr (Vela) and Yahoo (the normal futures data, fetched by the dev server).
 // Uses only the fake login demo / demo-pass that the mock accepts.
 const { launch } = require('./lib.js');
+const openRithmic = require('./_rithmic-open.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
 const MOCK = process.env.RITHMIC_MOCK || 'ws://127.0.0.1:8765';
@@ -92,8 +93,9 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     let { ctx, p, reqs, errors, frames } = await open(b, { w: 1440, h: 900, dev: MOCK });
     const normal = await lastBar(p);
     check(normal && !isMock(normal), 'flag on, not connected: chart uses the normal data (close ' + (normal && normal.close) + ')');
-    check(await p.evaluate(() => !!document.getElementById('stkrb-btn') && document.getElementById('stkrb-chip').hidden), 'flag on: Connect broker button shown, chip hidden while disconnected');
-    await p.click('#stkrb-btn');
+    check(await p.evaluate(() => !document.getElementById('stkrb-btn') && document.getElementById('stkrb-chip').hidden), 'flag on: no separate Rithmic button, chip hidden while disconnected');
+    check(await p.evaluate(() => { const bar = document.getElementById('stkc-bar'); const t = [...bar.querySelectorAll('button')].map((b) => (b.textContent + ' ' + (b.title || '') + ' ' + (b.getAttribute('aria-label') || '')).trim()); return document.querySelectorAll('#byo-btn').length === 1 && !t.some((x) => /connect (broker|data)|rithmic/i.test(x)); }), 'flag on: exactly ONE data entry (Data source) in the toolbar, no Rithmic button');
+    await openRithmic(p);
     check(await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length === 4), 'sheet lists the systems from RequestRithmicSystemInfo');
     const sheet = await p.evaluate(() => ({
       systems: [...document.querySelectorAll('#stkrb-sys option')].map((o) => o.textContent),
@@ -174,7 +176,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(s2.logins >= s1.logins + 2, 'reconnect logged both plants in again');
 
     // disconnect: falls back to the normal data
-    await p.click('#stkrb-btn');
+    await openRithmic(p);
     const sid = await p.evaluate(() => [...document.querySelectorAll('#stkrb-ids span')].map((x) => x.textContent));
     check(sid.length === 2 && sid[0] === 'Session ID (ticker): mock-user' && sid[1] === 'Session ID (history): mock-user', 'connected sheet shows the unique_user_id per plant: ' + sid.join(' / '));
     const cnt = await p.evaluate(() => window.STRYKER_RITHMIC.counts);
@@ -203,7 +205,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
 
     // ---------- 3. phone 390 ----------
     ({ ctx, p, errors } = await open(b, { w: 390, h: 844, mobile: true, dev: MOCK }));
-    await p.click('#stkrb-btn');
+    await openRithmic(p);
     await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length === 3);
     const g = await p.evaluate(() => {
       const r = document.getElementById('stkrb-pop').getBoundingClientRect();
@@ -229,7 +231,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(lp3.l >= 0 && lp3.r <= lp3.vw && lp3.t >= 0, '390: notice fits the screen ' + JSON.stringify(lp3));
     await p.screenshot({ path: OUT + '/rithmic-390-notice.png' });
     await p.keyboard.press('Escape');
-    await p.click('#stkrb-btn');
+    await openRithmic(p);
     const ids3 = await p.evaluate(() => { const e = document.getElementById('stkrb-ids'); const r = e.getBoundingClientRect(); return { n: e.querySelectorAll('span').length, r: Math.round(r.right), vw: innerWidth }; });
     check(ids3.n === 2 && ids3.r <= ids3.vw, '390: session IDs shown inside the sheet ' + JSON.stringify(ids3));
     await p.screenshot({ path: OUT + '/rithmic-390-connected-sheet.png' });
@@ -241,7 +243,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
 
     // ---------- 4. tablet 768: connected sheet ----------
     ({ ctx, p, errors } = await open(b, { w: 768, h: 1024, mobile: true, dev: MOCK }));
-    await p.click('#stkrb-btn');
+    await openRithmic(p);
     await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length === 3);
     await p.selectOption('#stkrb-sys', 'Rithmic Test');
     await p.fill('#stkrb-user', 'demo');
@@ -249,7 +251,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     await p.click('#stkrb-go');
     check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'connected'), '768: connects');
     await sleep(1500);
-    await p.click('#stkrb-btn');
+    await openRithmic(p);
     check(await p.evaluate(() => document.querySelectorAll('#stkrb-ids span').length === 2 && document.documentElement.scrollWidth <= innerWidth), '768: session IDs shown, no sideways scroll');
     await p.screenshot({ path: OUT + '/rithmic-768-connected-sheet.png' });
     await p.evaluate(() => window.STRYKER_RITHMIC.disconnect());

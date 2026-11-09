@@ -92,7 +92,8 @@ export function mountPhoneSpace() {
     if (t.textContent !== s) t.textContent = s;
     // still too tight (long symbol, many buttons): the dot alone, the text stays in the popover
     w.classList.remove('mclock-dotonly');
-    const over = () => [bar, barL, barR].some((b) => b.scrollWidth > b.clientWidth + 1);
+    const sym = bar.querySelector('.vela-mb-symbol');
+    const over = () => [bar, barL, barR].some((b) => b.scrollWidth > b.clientWidth + 1) || !!(sym && sym.scrollWidth > sym.clientWidth + 1);
     if (over()) w.classList.add('mclock-dotonly');
   }
   setInterval(() => { if (on && !document.hidden) paintTiny(); }, 15000);

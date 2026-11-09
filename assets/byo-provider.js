@@ -5,7 +5,7 @@
 //  - withByo(Base, kind): wraps the delayed forex ("fx") / index+ETF ("idx") provider. While a connected source covers
 //    the symbol, history and the live candle come from the member's own account; otherwise the base provider answers.
 //  - ByoProvider: provider "byo" for stocks the member's own account serves (prefix "byo:", e.g. byo:AAPL).
-import { route } from './byo-core.js?v=927';
+import { route } from './byo-core.js?v=928';
 
 const POPULAR = [['AAPL', 'Apple'], ['MSFT', 'Microsoft'], ['NVDA', 'NVIDIA'], ['TSLA', 'Tesla'], ['AMZN', 'Amazon'], ['GOOGL', 'Alphabet'], ['META', 'Meta Platforms'], ['AMD', 'Advanced Micro Devices'],
   ['NFLX', 'Netflix'], ['SPY', 'SPDR S&P 500 ETF'], ['QQQ', 'Invesco QQQ'], ['IWM', 'iShares Russell 2000 ETF'], ['DIA', 'SPDR Dow Jones ETF']];

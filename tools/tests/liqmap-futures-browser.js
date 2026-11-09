@@ -5,6 +5,7 @@
 //   node tools/tests/liqmap-futures-browser.js [shotsDir]
 const path = require('path');
 const { launch } = require('./lib.js');
+const openRithmic = require('./_rithmic-open.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8073', MOCK = 'ws://127.0.0.1:8765', OUT = process.argv[2] || '.';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -24,7 +25,7 @@ async function run(b, { w, h, mobile, system, tag }) {
   await p.evaluate(async () => { for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 300)); try { if (window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0) return; } catch (e) {} } });
   await sleep(1500);
   check(await p.evaluate(() => window.STRYKER_RITHMIC.depthEnabled === true), tag + ': depth enabled under the dev override');
-  await p.click('#stkrb-btn');
+  await openRithmic(p);
 
   await p.waitForFunction(() => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length >= 3, null, { timeout: 15000 });
   await p.selectOption('#stkrb-sys', system); await p.fill('#stkrb-user', 'demo'); await p.fill('#stkrb-pass', 'demo-pass'); await p.click('#stkrb-go');

@@ -3484,7 +3484,7 @@
      "items": [
       {
        "id": "rithmic-what",
-       "q": "What does Connect broker do?",
+       "q": "What does connecting Rithmic do?",
        "a": "<p>It lets you use your own Rithmic market data, for example through a prop firm account, on futures charts. It is data only. You cannot place orders. Your login goes straight from your browser to Rithmic; TradeZoro never sees or stores your password.</p>",
        "tags": [
         "rithmic",
@@ -3504,9 +3504,9 @@
       {
        "id": "rithmic-connect",
        "q": "How do I connect Rithmic?",
-       "a": "<p>Open the \"Connect your prop firm\" sheet (tap Connect data source on the chart strip, or Connect broker in the toolbar). Follow the three steps: server, prop firm, login. Then tap Connect.</p><p>Use the Rithmic login from your prop firm or broker, not your login for their website.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
+       "a": "<p>Open Data source on the chart toolbar, then Rithmic, then Connect. Follow the three steps: server, prop firm, login. Then tap Connect.</p><p>Use the Rithmic login from your prop firm or broker, not your login for their website.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
        "steps": [
-        "Open ZoroCharts (desktop: Connect broker in the top bar; phone: ... More → Connect data (Rithmic)).",
+        "Open ZoroCharts and tap Data source (on a phone it is in the ... More menu), then Rithmic → Connect.",
         "Not sure what login to use? Tap \"Where’s my Rithmic login?\" for the checklist.",
         "Step 1, Server location: pick the closest one. Chicago suits most people.",
         "Step 2, Prop firm: pick the same system name R | Trader Pro shows at sign-in.",
@@ -3514,7 +3514,7 @@
         "Optionally tick Save username on this device (username and system only, never the password).",
         "Tap Connect. You see \"Connected to Rithmic\"."
        ],
-       "path": "ZoroCharts → Connect broker",
+       "path": "ZoroCharts → Data source → Rithmic",
        "tags": [
         "connect",
         "rithmic login",

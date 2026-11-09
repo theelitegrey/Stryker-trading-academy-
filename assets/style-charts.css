@@ -1495,7 +1495,7 @@ body.charts-page .stkchart-credit{
 #stkc-bar.stkc-onebar .vela-widget-screenshot{ order:28; }
 :where(#stkc-bar.stkc-onebar .vela-topbar-right) > *{ order:28; }
 #stkc-bar.stkc-onebar #stkc-paper-btn{ order:30; }
-#stkc-bar.stkc-onebar #stkrb-chip, #stkc-bar.stkc-onebar .stkc-bar-r > .stkc-menu:has(#stkrb-btn){ order:31; }
+#stkc-bar.stkc-onebar #stkrb-chip{ order:31; }
 #stkc-bar.stkc-onebar #stkc-credits-btn, #stkc-bar.stkc-onebar #stkc-credits{ order:33; }
 #stkc-bar.stkc-onebar .stkc-ob-more{ order:40; }
 #stkc-bar.stkc-onebar > .stkc-bar-l > .stkl-menu > .stkc-pop,

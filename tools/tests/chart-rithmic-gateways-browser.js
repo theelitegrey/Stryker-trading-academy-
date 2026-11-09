@@ -6,6 +6,7 @@
 // A login is NEVER attempted. Also checks: default Chicago, saved choice, systems filtered to the two
 // offered ones, admin-only Test gateway, app name.
 const { launch } = require('./lib.js');
+const openRithmic = require('./_rithmic-open.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
 const OUT = process.argv[2] || '/tmp';
@@ -35,7 +36,7 @@ async function open(b, { w, h, mobile, admin, tz, ls }) {
   try {
     // 1. member view (u1 treated as an ordinary rithmicBeta member would be: here via allowUids, so gateway list has Test too).
     let { ctx, p, errors, sockets } = await open(b, { w: 1440, h: 900, admin: true, tz: 'Asia/Kolkata' });
-    await p.click('#stkrb-btn');
+    await openRithmic(p);
     check(await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length > 0), 'system list loaded from the real Chicago gateway');
     const d = await p.evaluate(() => ({
       gw: [...document.querySelectorAll('#stkrb-gw option')].map((o) => o.textContent),
@@ -78,8 +79,8 @@ async function open(b, { w, h, mobile, admin, tz, ls }) {
     // On a phone the Connect button lives in the toolbar's ⋯ overflow menu.
     await p.click('.stkc-ob-more-btn');
     await p.waitForTimeout(400);
-    check(await p.evaluate(() => { const r = document.getElementById('stkrb-btn').getBoundingClientRect(); return r.width > 0 && r.height > 0; }), '390: Connect button reachable in the ⋯ menu');
-    await p.click('#stkrb-btn');
+    check(await p.evaluate(() => { const m = [...document.querySelectorAll('.stkc-ob-list *')].filter((n) => n.children.length === 0).map((n) => n.textContent.trim()); return m.filter((x) => /^data source$/i.test(x)).length === 1 && !m.some((x) => /connect data|connect broker|rithmic/i.test(x)); }), '390: exactly ONE data entry (Data source) in the ⋯ menu, no Rithmic entry');
+    await openRithmic(p);
     await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length > 0);
     check(await p.evaluate(() => document.getElementById('stkrb-gw').selectedOptions[0].textContent) === 'Singapore', 'saved choice restored on a new visit (Singapore)');
     const g = await p.evaluate(() => { const r = document.getElementById('stkrb-pop').getBoundingClientRect(); return { l: r.left, r: r.right, vw: innerWidth, docW: document.documentElement.scrollWidth }; });

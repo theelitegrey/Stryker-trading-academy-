@@ -196,7 +196,9 @@ export function mountByo(opts = {}) {
   function rowFor(s) {
     const connected = connectedIds().includes(s.id);
     let b;
-    if (s.state === 'rithmic') b = el('button', { type: 'button', class: 'byo-row-b', text: 'Connect', 'aria-label': 'Connect Rithmic', onclick: () => { setOpen(false); try { window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.open && window.STRYKER_RITHMIC.open(); } catch (e) { /* not loaded yet */ } } });
+    const R = window.STRYKER_RITHMIC, rOn = !!R && (R.state === 'connected' || R.state === 'reconnecting');
+    if (s.state === 'rithmic' && rOn) b = el('button', { type: 'button', class: 'byo-row-b on', text: 'Disconnect', 'aria-label': 'Disconnect Rithmic', onclick: () => { try { R.disconnect(); } catch (e) { /* ignore */ } } });
+    else if (s.state === 'rithmic') b = el('button', { type: 'button', class: 'byo-row-b', text: 'Connect', 'aria-label': 'Connect Rithmic', onclick: (e) => { e.stopPropagation(); setOpen(false); try { window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.open && window.STRYKER_RITHMIC.open(); } catch (err) { /* not loaded yet */ } } });
     else if (s.state === 'ready' && s.bridge) b = el('button', { type: 'button', class: 'byo-row-b' + (connected ? ' on' : ''), text: connected ? 'Connected' : 'Pair', 'aria-label': (connected ? 'Manage ' : 'Pair ') + s.name, onclick: () => go(connected ? 'manage' : 'pair', s) });
     else if (s.state === 'ready' && s.oauth) {
       const re = connected && /^Reconnect /.test((statusOf(s.id) || {}).msg || '');
@@ -208,7 +210,7 @@ export function mountByo(opts = {}) {
     else b = el('button', { type: 'button', class: 'byo-row-b soon', text: 'Coming soon', 'aria-label': s.name + ', coming soon, see steps', onclick: () => go('soon', s) });
     return el('li', { class: 'byo-row', 'data-src': s.id }, [
       logoTile(s),
-      el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.covers }), s.relay && s.state === 'ready' ? el('span', { class: 'byo-cv', text: s.noteText }) : null,
+      el('span', { class: 'byo-tx' }, [el('span', { class: 'byo-nm', text: s.name + (s.beta ? ' · Beta' : '') }), el('span', { class: 'byo-cv', text: s.state === 'rithmic' && rOn ? 'Connected to ' + (R.system || 'Rithmic') : s.covers }), s.relay && s.state === 'ready' ? el('span', { class: 'byo-cv', text: s.noteText }) : null,
         el('span', { class: 'byo-tag' + (s.fee === 'free' ? ' free' : ''), text: s.fee === 'free' ? 'Free with your account' : 'Your data fees apply' })]),
       b]);
   }
@@ -285,7 +287,7 @@ export function mountByo(opts = {}) {
     body.appendChild(el('p', { class: 'byo-lead', text: 'Plot market data from your own broker or data account.' }));
     body.appendChild(el('div', { class: 'byo-chips', role: 'group', 'aria-label': 'Filter by market' }, CHIPS.map(([k, l]) =>
       el('button', { type: 'button', class: 'byo-chip', text: l, 'aria-pressed': filter === k ? 'true' : 'false', 'data-f': k, onclick: () => { filter = k; renderList(); } }))));
-    const list = [...SOURCES, RITHMIC].filter((s) => filter === 'all' || s.cls.includes(filter));
+    const list = [RITHMIC, ...SOURCES].filter((s) => filter === 'all' || s.cls.includes(filter));
     body.appendChild(list.length ? el('ul', { class: 'byo-list' }, list.map(rowFor)) : el('div', { class: 'byo-empty', text: 'Nothing here yet. Request a source below.' }));
     body.appendChild(el('div', { class: 'byo-foot' }, [
       el('a', { class: 'byo-link', id: 'byo-request', href: '/suggestions?new=' + encodeURIComponent('Data source: '), text: 'Request a source' })]));
@@ -431,6 +433,7 @@ export function mountByo(opts = {}) {
       if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
     }
   });
+  window.addEventListener('stryker-rithmic-state', () => { if (open && view === 'list') renderList(); });
   onByoChange(() => { if (open && view === 'manage') render(); else if (open && view === 'list') renderList(); });
 
   if (/[?&]byoPreview\b/.test(location.search)) { const a = srcById('alpaca'); if (a) Object.assign(a, { oauth: true, clientId: 'PREVIEW', cta: 'Sign in with Alpaca', keyAlt: true, signinNote: '' }); }   // preview only: shows the sign-in step while the flag is off

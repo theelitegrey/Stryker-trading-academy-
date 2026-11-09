@@ -731,7 +731,7 @@ export function makeNative(H) {
         kind = 'fut'; key = 'futures|' + mk.ticker;
         // the futures order book is visible only to members whose Rithmic connection offers it (admins until depthForAll)
         const has = window.__stkBookSources && window.__stkBookSources.futures;
-        if (!has) { this.detach(); this.block = H.rithmicDepthOn() ? 'Connect your Rithmic account (Connect broker) to see the futures order book.' : 'The futures order book is not available yet.'; this.kind = 'fut'; this.render(); return; }
+        if (!has) { this.detach(); this.block = H.rithmicDepthOn() ? 'Connect your Rithmic account (Data source → Rithmic) to see the futures order book.' : 'The futures order book is not available yet.'; this.kind = 'fut'; this.render(); return; }
       }
       if (this.h && this.key === key) { this.render(); return; }
       this.detach();

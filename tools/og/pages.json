@@ -2045,6 +2045,16 @@
       "alt": "Delta Ladder (L2) preview card"
     },
     {
+      "page": "indicators/delta-profile-l2.html",
+      "title": "Delta Profile (L2)",
+      "og_title": "Delta Profile (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/delta-profile-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Delta Profile (L2) preview card"
+    },
+    {
       "page": "indicators/dynamic-liquidity-heatmap-profile.html",
       "title": "Dynamic Liquidity HeatMap",
       "og_title": "Dynamic Liquidity HeatMap: ZoroCharts indicator guide",

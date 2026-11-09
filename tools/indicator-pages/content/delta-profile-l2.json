@@ -1,0 +1,23 @@
+{
+  "slug": "delta-profile-l2",
+  "summary": "Delta at each price over the last few minutes, a range you pick, or the session: buying to the right, selling to the left.",
+  "overview": [
+    "Delta Profile (L2) draws a horizontal profile on the right of the price chart. Each row is a price. Buying minus selling at that price is a bar: green to the right of a centre line when buyers were more aggressive, red to the left when sellers were.",
+    "A small label shows the net delta of the window, and the price with the most buying and the most selling. You can show total volume in grey behind the bars."
+  ],
+  "how": [
+    "It reads the traded prints from the futures order-flow feed and counts each one as buying (hit the ask) or selling (hit the bid). Range has three modes: Rolling time (the last 5, 15, 30 or 60 minutes, or a custom number, updating as trades arrive), Fixed range (a start and end bar you pick) and Session (since the futures trading day opened at 18:00 New York time).",
+    "Rows are grouped so there are never more than 70 on screen. Trades are counted by the minute, so a window starts and ends on a minute."
+  ],
+  "use": [
+    "Use it to see at which prices buyers or sellers were more aggressive in a recent window.",
+    "Some traders compare a short window with a longer one to see whether the pressure moved.",
+    "Use Fixed range to look at one move, from its first bar to its last."
+  ],
+  "notes": [
+    "Futures only (NQ, ES, YM, RTY, CL, GC and their micros). Needs the full order book data feed (L2), which is part of Pro.",
+    "To set a fixed range, pick \"Delta Profile (L2): click two bars for a fixed range\" in the Indicators list, then click the first and the last bar. Volume Profile (L2) also has a Delta view.",
+    "It shows what traded. It does not predict what price will do."
+  ],
+  "learn": "order-flow"
+}

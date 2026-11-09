@@ -2673,12 +2673,13 @@ const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsui
   'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_fut_dom', 'stk_depth_heat', 'stk_fut_walls', 'stk_fut_imb',
   'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane',
   'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls',
-  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad',
+  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp',
   'stk_liq', 'stk_liq_bars', 'stk_oi', 'stk_funding', 'stk_lsr'];   // crypto derivatives (chart-crypto-deriv.js). Tick-stream twins + the order-book pack (chart-book-pack.js) (chart-ts-trades.js, Pro)
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
-  { id: 'frvp', name: 'Fixed Range Volume Profile (drag a range)' }
+  { id: 'frvp', name: 'Fixed Range Volume Profile (drag a range)' },
+  { id: 'dprange', name: 'Delta Profile (L2): click two bars for a fixed range' }
 ];
 const PERSIST_KEY = 'stryker.volume';
 
@@ -2886,6 +2887,26 @@ export function mountOrderflow(ws, opts) {
     if (id === 'frvp') {
       try { chart.drawings.setTool('fixedrangevp'); toast('Drag across the bars you want to profile.', 'info'); }
       catch (e) { toast('The range tool is not available here.', 'error'); }
+      return;
+    }
+    if (id === 'dprange') {   // two clicks on bars = start and end of a Fixed range Delta Profile (L2) (Vela's own range drawing cannot host it)
+      if (ProGate.locked(ProGate.kindOf('stk_l2f_dp'))) { ProGate.upgrade(ProGate.kindOf('stk_l2f_dp')); return; }
+      const picks = []; let t = null;
+      const off2 = chart.renderer.onCrosshairMove((e) => { if (e && e.time != null) t = e.time; });
+      const host2 = c.host || document.getElementById('vela-chart');
+      toast('Click the first bar of the range.', 'info');
+      const done2 = () => { host2.removeEventListener('pointerup', onUp2, true); document.removeEventListener('keydown', onKey2, true); try { off2(); } catch (e) {} };
+      const onKey2 = (e) => { if (e.key === 'Escape') done2(); };
+      const onUp2 = () => setTimeout(() => {
+        if (t == null) return;
+        picks.push(t);
+        if (picks.length < 2) { toast('Now click the last bar of the range.', 'info'); return; }
+        done2();
+        try { chart.addNativeIndicator('stk_l2f_dp', { inputs: { range: 'Fixed range', rangeStart: Math.min(picks[0], picks[1]), rangeEnd: Math.max(picks[0], picks[1]) } }); } catch (e) { console.warn('TradeZoro: delta profile range', e); }
+        try { c.refreshNativeCatalog(); } catch (e) {}
+        try { ws.context().stateChanged(); } catch (e) {}
+      }, 30);
+      setTimeout(() => { host2.addEventListener('pointerup', onUp2, true); document.addEventListener('keydown', onKey2, true); }, 50);
       return;
     }
     // Anchored VWAP: the next click/tap on this chart sets the anchor bar.

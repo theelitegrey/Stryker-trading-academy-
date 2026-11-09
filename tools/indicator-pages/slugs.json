@@ -176,5 +176,6 @@
  "b:stk_hlintel": "wallet-intel",
  "b:stk_dex": "delta-exposure",
  "b:stk_vex": "vanna-exposure",
- "b:stk_cex": "charm-exposure"
+ "b:stk_cex": "charm-exposure",
+ "b:stk_l2f_dp": "delta-profile-l2"
 }

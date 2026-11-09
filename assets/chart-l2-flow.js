@@ -4,7 +4,8 @@
 //   stk_l2f_fp     Footprint (L2)        overlay: traded volume per price (thin bars) + the resting size at bar close beside it
 //   stk_l2f_big    Big Trades (L2)       overlay: big orders tagged W (hit a resting wall) / C (consumed) / P (book pulled)
 //   stk_l2f_stop   Stop Runs (L2)        overlay: a sweep counts only if resting liquidity on that side was pulled / consumed through >= N levels
-//   stk_l2f_vp     Volume Profile (L2)   overlay: session average resting size per price next to the traded profile
+//   stk_l2f_vp     Volume Profile (L2)   overlay: session average resting size per price next to the traded profile (view: Volume / Delta / Both)
+//   stk_l2f_dp     Delta Profile (L2)    overlay: delta per price over the last N minutes, a picked range, or the session (maths: chart-delta-profile-data.js)
 // Imbalance Zones = Book Imbalance (L2), Absorption = Absorption & Iceberg Tracker (L2): not repeated here.
 // DATA, nothing fetched twice: the book is the heatmap's own BookFeed (chart-orderflow.js acquireBookFeed 'tsl2|ROOT' / Binance; its /ts-book-history
 // backfill and /ts-live frames), the trades are the L1 tools' own stores (chart-ts-trades.js tsOpen for futures; chart-footprint-crypto.js for Binance)
@@ -22,12 +23,14 @@ import * as BT from './chart-bigtrades.js?v=936';
 import { sweepEvents } from './chart-of-pro-data.js?v=936';
 import { sweepBars } from './chart-of-pro.js?v=936';
 import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=936';
+import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=936';
 
-export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad'];
+export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
 const NEED = 'These tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
+const MIN_COVER = 90000;             // Delta Profile: a window whose first trade minute is later than this after its start says so
 const MIN_GAP = 200;                 // redraw at most 5 a second
 const GAP_MAX = 5 * 60000;           // two book samples further apart than this are not one "change" (the recorder's archive is one sample per few minutes)
 const ROW_STEPS = [1, 2, 4, 5, 8, 10, 16, 20, 25, 40, 50, 80, 100, 200, 400];
@@ -210,7 +213,17 @@ const SCHEMA = {
     { key: 'showAll', title: 'Also show sweeps the book did not confirm (hollow)', type: 'bool', defval: false },
     { key: 'upColor', title: 'Lows swept (bullish)', type: 'color', defval: UP }, { key: 'downColor', title: 'Highs swept (bearish)', type: 'color', defval: DN }],
   stk_l2f_lad: LAD_SCHEMA.slice(1),
+  stk_l2f_dp: [
+    { key: 'range', title: 'Range', type: 'string', defval: 'Rolling time', options: ['Rolling time', 'Fixed range', 'Session'], tooltip: 'Rolling time = the last N minutes, updating as trades arrive. Fixed range = from the start bar to the end bar you pick (picker row "Delta Profile (L2): click two bars"). Session = since the CME day opened (18:00 New York).' },
+    { key: 'minutes', title: 'Rolling minutes', type: 'string', defval: '15', options: ['5', '15', '30', '60', 'Custom'] },
+    { key: 'customMins', title: 'Custom minutes', type: 'int', defval: 20, min: 1, max: 360, step: 1 },
+    { key: 'rangeStart', title: 'Fixed range: start (bar time)', type: 'time', defval: 0 },
+    { key: 'rangeEnd', title: 'Fixed range: end (bar time, empty = now)', type: 'time', defval: 0 },
+    { key: 'widthPct', title: 'Width (% of the chart)', type: 'int', defval: 18, min: 8, max: 40, step: 1 },
+    { key: 'showVol', title: 'Show volume behind the bars (grey)', type: 'bool', defval: false },
+    { key: 'posColor', title: 'Buying (right of zero)', type: 'color', defval: UP }, { key: 'negColor', title: 'Selling (left of zero)', type: 'color', defval: DN }],
   stk_l2f_vp: [
+    { key: 'view', title: 'View', type: 'string', defval: 'Volume', options: ['Volume', 'Delta', 'Both'], tooltip: 'Delta = traded buy minus sell at each price (green right of the centre line, red left).' },
     { key: 'widthPct', title: 'Width of each profile (% of the chart)', type: 'int', defval: 14, min: 5, max: 30, step: 1 },
     { key: 'tradedColor', title: 'Traded', type: 'color', defval: CYAN },
     { key: 'bidColor', title: 'Resting bids', type: 'color', defval: UP }, { key: 'askColor', title: 'Resting asks', type: 'color', defval: DN }]
@@ -222,9 +235,10 @@ const TITLES = {
   stk_l2f_big: ['Big Trades (L2)', 'Big Trades L2', 'price', true],
   stk_l2f_stop: ['Stop Runs (L2)', 'Stop Runs L2', 'price', true],
   stk_l2f_vp: ['Volume Profile (L2)', 'Volume Profile L2', 'price', true],
-  stk_l2f_lad: ['Delta Ladder (L2)', 'Delta Ladder L2', 'price', true]
+  stk_l2f_lad: ['Delta Ladder (L2)', 'Delta Ladder L2', 'price', true],
+  stk_l2f_dp: ['Delta Profile (L2)', 'Delta Profile L2', 'price', true]
 };
-const LAYERS = ['stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp'];
+const LAYERS = ['stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_dp'];
 
 // ---------------------------------------------------------------------------------------- the indicator
 // Overlay tools state themselves in a one-line plate drawn by their own layer, stacked down the top right (a chart table would pile up on top of the others).
@@ -240,7 +254,7 @@ function plateLine(g, a, owner, W) {
 }
 class L2Flow {
   constructor(type) { this.type = type; this.inputs = defaults(SCHEMA[type]); this.tm = 0; this.last = 0; this.u = null; this.spec = null; this.on = false; this.off = false; this.memo = {}; this.onAny = () => this.later(); this.onTier = () => { this.memo = {}; this.later(); }; }
-  start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); if (LADDER.includes(this.type)) ladders.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); window.addEventListener('stryker:l2tier', this.onTier); this.offRt = rtOnChange(this.onTier); this.render(); }
+  start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); if (LADDER.includes(this.type)) ladders.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); window.addEventListener('stryker:l2tier', this.onTier); this.offRt = rtOnChange(this.onTier); if (this.type === 'stk_l2f_dp') this.clock = setInterval(() => this.later(), 15000); this.render(); }
   later() { if (this.tm || this.off || document.hidden) return; this.tm = setTimeout(() => { this.tm = 0; this.render(); }, Math.max(0, MIN_GAP - (Date.now() - this.last))); }
   onBars() { this.later(); }
   onViewport() { if (LAYERS.includes(this.type)) this.push(); else if (LADDER.includes(this.type)) this.pushLadder(); }
@@ -253,7 +267,7 @@ class L2Flow {
   setInputs(i) { this.inputs = Object.assign(defaults(SCHEMA[this.type]), i); this.memo = {}; this.render(); }
   suspend() { this.on = false; clearTimeout(this.tm); this.tm = 0; this.push(); }
   resume() { this.on = true; this.render(); }
-  stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); const kl = ladders.indexOf(this); if (kl >= 0) ladders.splice(kl, 1); this.off = true; this.on = false; clearTimeout(this.tm); document.removeEventListener('visibilitychange', this.onVis); window.removeEventListener('stryker:l2tier', this.onTier); if (this.offRt) this.offRt(); this.unbind(); this.push(); }
+  stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); const kl = ladders.indexOf(this); if (kl >= 0) ladders.splice(kl, 1); this.off = true; this.on = false; clearTimeout(this.tm); clearInterval(this.clock); document.removeEventListener('visibilitychange', this.onVis); window.removeEventListener('stryker:l2tier', this.onTier); if (this.offRt) this.offRt(); this.unbind(); this.push(); }
   unbind() { this.hub = null; if (this.u) { this.u.release(); this.u = null; this.spec = null; } }
   push(extra) { try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
   ov(...lines) { this.text = this.base = lines.filter(Boolean).join(' · '); this.ctx.emit({ tables: [] }); }
@@ -288,6 +302,7 @@ class L2Flow {
     const t = this.type;
     ctx.setStatus(samples.length ? 'live' : 'loading');
     if (t === 'stk_l2f_lad') { this.hub = hub; this.ov('Delta Ladder (L2)'); return this.pushLadder(); }
+    if (t === 'stk_l2f_dp') return this.drawDp(hub, bars, tf);
     if (t === 'stk_l2f_delta') return this.drawDelta(hub, bars, tf, since);
     if (t === 'stk_l2f_cvd') return this.drawCvd(hub, bars, tf, since);
     if (t === 'stk_l2f_fp') return this.drawFp(hub, bars, tf, since);
@@ -375,6 +390,20 @@ class L2Flow {
     this.stat(bars, (i) => ev.some((e) => e.i === i));
     window.__stkL2Flow.stk_l2f_stop.sweeps = ev.length; window.__stkL2Flow.stk_l2f_stop.confirmed = ok;
     this.push({ ev });
+  }
+  // Delta Profile (L2): the window's per-tick table is kept by a DeltaAcc (incremental); the layer groups it into rows at draw time.
+  drawDp(hub, bars, tf) {
+    const I = this.inputs, mode = I.range === 'Fixed range' ? 'fixed' : I.range === 'Session' ? 'session' : 'rolling', now = Date.now();
+    const mins = I.minutes === 'Custom' ? clamp(Math.round(num(I.customMins, 20)), 1, 360) : (Number(I.minutes) || 15);
+    const label = mode === 'fixed' ? 'range' : mode === 'session' ? 'session' : mins + 'm';
+    if (mode === 'fixed' && !(num(I.rangeStart, 0) > 0)) { this.ov('Delta Profile (L2): no range yet'); this.push({ off: true }); return this.say('Pick a range: Indicators > "Delta Profile (L2): click two bars", or set start and end in the settings.'); }
+    const w = windowOf(mode, { now, mins, start: num(I.rangeStart, 0), end: num(I.rangeEnd, 0), sessionStart: sessionStart(bars[bars.length - 1].time, hub.kind) });
+    const acc = this.acc || (this.acc = new DeltaAcc()), fb = hub.footBars();
+    acc.update(fb.bars, w.from, w.to);
+    const from = acc.first(), part = acc.cur.size && from > w.from + MIN_COVER ? ' (trades from ' + hhmm(from) + ')' : '';
+    this.ov('Delta Profile ' + label, acc.cur.size ? part.trim() : 'waiting for trades…');
+    this.stat(bars, () => false); const st = window.__stkL2Flow.stk_l2f_dp; st.net = acc.net; st.ticks = acc.tab.size; st.minutes = acc.cur.size; st.touched = acc.touched; st.mode = mode; st.from = w.from; st.to = w.to;
+    this.push({ hub, acc, v: hub.v + ':' + hub.fver() + ':' + acc.net + ':' + acc.cur.size });
   }
   drawVp(hub, bars, tf, since) {
     const ss = sessionStart(bars[bars.length - 1].time, hub.kind), rp = hub.restProfile(ss);
@@ -582,7 +611,14 @@ function vpLayer() {
           const b = rp.bid.get(r) || 0, k = rp.ask.get(r) || 0, q = Math.max(b, k), w = Math.max(1, maxW * q / rmax);
           g.fillStyle = rgba(b >= k ? I.bidColor : I.askColor, 0.55); g.fillRect(xR - w, y, w, h);
         }
-        if (tp) for (let k = 0; k < tp.n; k++) {
+        const view = I.view === 'Delta' || I.view === 'Both' ? I.view : 'Volume';
+        if (tp && view !== 'Volume') {   // Delta / Both: the traded column becomes delta rows (Both keeps the volume in grey behind)
+          const P = fromProfile(tp), half = maxW / 2;
+          deltaRows(g, a, P, { x0: xT - half, half, pos: UP, neg: DN, showVol: view === 'Both', tick, phone });
+          let net = 0; for (let k = 0; k < tp.n; k++) net += tp.buy[k] - tp.sell[k];
+          deltaChips(g, a, P, net, { pos: UP, neg: DN, tick, phone }, xT, top + 10 + ovLive.filter((x) => x.on).length * 17 + 8);
+        }
+        if (tp && view === 'Volume') for (let k = 0; k < tp.n; k++) {
           const v = tp.buy[k] + tp.sell[k]; if (!v) continue;
           const r = tp.r0 + k, [y, h] = rowH(r); if (y > bot || y + h < top) continue;
           const w = Math.max(1, maxW * v / tmax), isP = r === tp.poc;
@@ -592,6 +628,66 @@ function vpLayer() {
         let up = 0; const lab = (txt, xr) => { const tw = g.measureText(txt).width + 8; g.fillStyle = plate(); g.fillRect(xr - tw, bot - 22 - up, tw, 14); g.fillStyle = ink(); g.fillText(txt, xr - 4, bot - 15 - up); };
         if (tp) { lab('Traded', xT); const need = g.measureText('Traded').width + 8 + g.measureText('Resting').width + 12; if (xT - xR >= need) lab('Resting', xR); else { up = 16; lab('Resting', xR); } } else lab('Resting', xR);   // too close side by side: Resting goes one line up   // Traded sits at xT, Resting at xR: labels short enough not to meet
         window.__stkL2Flow.stk_l2f_vp.traded = tp ? tp.n : 0;
+      } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+
+// Delta rows: zero line at x0, buying to the right, selling to the left, `half` px at the largest |delta|. Optional grey volume behind (from the zero line, both sides).
+function deltaRows(g, a, P, o) {
+  const top = a.bounds.top, bot = top + a.bounds.height, tick = o.tick, mt = P.m * tick, scale = P.absMax || 1;
+  const rowPx = Math.abs(Yp(a, mt) - Yp(a, 0));
+  if (o.showVol && P.volMax) {
+    g.fillStyle = light() ? 'rgba(100,116,139,0.22)' : 'rgba(148,163,184,0.2)';
+    for (let k = 0; k < P.n; k++) { if (!P.vol[k]) continue; const yT = Yp(a, (P.r0 + k + 1) * mt), yB = Yp(a, (P.r0 + k) * mt), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0)); if (y > bot || y + h < top) continue; const w = o.half * P.vol[k] / P.volMax; g.fillRect(o.x0 - w, y, 2 * w, h); }
+  }
+  for (let k = 0; k < P.n; k++) {
+    const d = P.delta[k]; if (!d) continue;
+    const yT = Yp(a, (P.r0 + k + 1) * mt), yB = Yp(a, (P.r0 + k) * mt), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0));
+    if (y > bot || y + h < top) continue;
+    const w = Math.max(1, o.half * Math.abs(d) / scale);
+    g.fillStyle = rgba(d > 0 ? o.pos : o.neg, 0.78); if (d > 0) g.fillRect(o.x0, y, w, h); else g.fillRect(o.x0 - w, y, w, h);
+  }
+  g.strokeStyle = light() ? 'rgba(15,23,42,0.45)' : 'rgba(255,255,255,0.4)'; g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(o.x0) + 0.5, top); g.lineTo(Math.round(o.x0) + 0.5, bot); g.stroke();
+  // the two largest rows get an outline; the chips below say which price and how much
+  for (const [m, c] of [[P.maxPos, o.pos], [P.maxNeg, o.neg]]) {
+    if (!m) continue; const yT = Yp(a, (P.r0 + m.k + 1) * mt), yB = Yp(a, (P.r0 + m.k) * mt), y = Math.min(yT, yB), h = Math.max(2, Math.abs(yB - yT)), w = Math.max(1, o.half * Math.abs(m.v) / scale);
+    g.strokeStyle = c; g.lineWidth = 1.5; g.strokeRect((m.v > 0 ? o.x0 : o.x0 - w) + 0.5, y + 0.5, w, h - 1);
+  }
+}
+const pFmt = (p) => String(+p.toFixed(2));
+// chips (right edge xr, first line y) : net, max buying row, max selling row. Right aligned at the profile edge: never over the price scale or the legend plates.
+function deltaChips(g, a, P, net, o, xr, y0) {
+  const mt = P.m * o.tick, rows = [['Net ' + sgn(net), net >= 0 ? o.pos : o.neg]];
+  if (P.maxPos) rows.push(['Max buy ' + sgn(P.maxPos.v) + ' @ ' + pFmt((P.r0 + P.maxPos.k) * mt), o.pos]);
+  if (P.maxNeg) rows.push(['Max sell ' + sgn(P.maxNeg.v) + ' @ ' + pFmt((P.r0 + P.maxNeg.k) * mt), o.neg]);
+  g.font = '700 ' + (o.phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
+  rows.forEach(([t, c], i) => {
+    const tw = g.measureText(t).width + 12, y = y0 + i * 16, x = Math.max(tw + 4, xr);
+    g.fillStyle = plate(); g.fillRect(x - tw, y - 7, tw, 14); g.fillStyle = c; g.fillRect(x - tw, y - 7, 2, 14); g.fillStyle = ink(); g.fillText(t, x - 4, y);
+  });
+}
+function dpLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a); if (!g) return;
+      try {
+        const d = a.data, I = d.owner.inputs, hub = d.hub, acc = d.acc, co = a.coords, phone = co.width < 520, W = co.width;
+        if (!hub || !acc) return;
+        const tick = hub.tick(); if (!tick || !acc.tab.size) return;
+        const lad = ladders.find((x) => x.on && !x.off && x.inputs.ladder !== false), ladW = lad ? W * num(lad.inputs.ladWidth, 16) / 100 * (phone ? 0.8 : 1) + 4 : 0;
+        const total = Math.max(60, W * num(I.widthPct, 18) / 100 * (phone ? 1.5 : 1)), half = total / 2, xr = W - 2 - ladW, x0 = xr - half;
+        let lo = Infinity, hi = -Infinity; for (const k of acc.tab.keys()) { if (k < lo) lo = k; if (k > hi) hi = k; }
+        const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), m = rowTicks(hi - lo + 1, tickPx, phone ? 8 : 7, phone ? 40 : 70, ROW_STEPS);   // capped: at most 40 / 70 rows
+        const P = rebucket(acc.tab, m); if (!P) return;
+        const o = { x0, half, pos: I.posColor, neg: I.negColor, showVol: I.showVol === true, tick, phone };
+        deltaRows(g, a, P, o);
+        const slot = ovLive.filter((x) => x.on).length;
+        deltaChips(g, a, P, acc.net, o, xr, a.bounds.top + 10 + slot * 17 + 8);
+        Object.assign(window.__stkL2Flow.stk_l2f_dp, { rows: P.n, m, draws: (window.__stkL2Flow.stk_l2f_dp.draws || 0) + 1, maxPos: P.maxPos && P.maxPos.v, maxNeg: P.maxNeg && P.maxNeg.v });
       } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
     },
     destroy() { canvas = null; }
@@ -690,6 +786,7 @@ export function installL2Flow(Core, hooks, reg) {
   Core.registerRendererLayer({ id: 'stk_l2f_big', placement: 'above-data', create: bigLayer });
   Core.registerRendererLayer({ id: 'stk_l2f_stop', placement: 'above-data', create: stopLayer });
   Core.registerRendererLayer({ id: 'stk_l2f_vp', placement: 'above-data', create: vpLayer });
+  Core.registerRendererLayer({ id: 'stk_l2f_dp', placement: 'above-data', create: dpLayer });
   for (const id of LADDER) Core.registerRendererLayer({ id, placement: 'above-data', create: ladderLayer });
   for (const type of L2F_TYPES) {
     const [title, short, pane, overlay] = TITLES[type];

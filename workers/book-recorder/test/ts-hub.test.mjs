@@ -4,7 +4,7 @@
 // 'pro' flag only opens it to a verified Pro/demo token); 4029 / silent / auth closes back off; bucketed history uses
 // the crypto bucketer (parity) and survives a round trip; imbalance + footprint recorded; hours rule.
 import assert from 'node:assert/strict';
-import { TSHub, TS_TRADES, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS } from '../src/ts-hub.js';
+import { TSHub, TS_TRADES, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS, cleanBook } from '../src/ts-hub.js';
 import { bucketSnapshot, decodeSamples, encodeSamples } from '../src/bucket.js';
 import { tsAllowed, tsAccess, tsTier } from '../src/ts-access.js';
 
@@ -431,5 +431,25 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   answers[0] = null; await sleep(120);
   assert.equal(a.closed, 4003, 'access ended: socket closed with 4003'); assert.ok(hub.stats().revoked >= 1);
   hub.shutdown(); ok('hub: access re-checked while a socket is open (downgrade / revoke), trades slots capped, no tier = trades');
+}
+// ---- crossed / mis-sorted book (Owner 2026-11-09: heatmap had nothing below the price). Both sides full (400 a side); one stray ask far
+// below the bids moved the mid and the coarse column, the recording and the depth bars lost the WHOLE bid side.
+{
+  const full = book(28000), bidRows = (v) => v.filter((x) => x > 0).length, askRows = (v) => v.filter((x) => x < 0).length;
+  const stray = Object.assign({}, full, { asks: [[27850, 1]].concat(full.asks) });
+  const strayBid = Object.assign({}, full, { bids: [[28150, 2]].concat(full.bids) });
+  const reversed = Object.assign({}, full, { bids: full.bids.slice().reverse() });
+  const c0 = cleanBook(full.bids, full.asks); assert.equal(c0.cut, 0); assert.equal(c0.bids, full.bids, 'clean book: same arrays, no copy');
+  const locked = cleanBook([[100, 1]], [[100, 2]]); assert.equal(locked.cut, 0, 'locked book kept');
+  for (const [name, f] of [['stray ask', stray], ['stray bid', strayBid], ['bids ascending', reversed]]) {
+    socks = []; const { hub } = mk({ RECORD: false, COARSE_MS: 20 }); const c = client(); hub.attach(c, 'NQ', 150, 'book');
+    await sleep(20); socks[0].msg(f); await sleep(80);
+    const cs = c.got.filter((m) => m.type === 'coarse').at(-1), sn = c.got.filter((m) => m.type === 'snap').at(-1);
+    assert.ok(cs && bidRows(cs.v) > 20 && askRows(cs.v) > 20, name + ': coarse column keeps both sides ' + (cs && bidRows(cs.v) + '/' + askRows(cs.v)));
+    assert.ok(Math.abs(cs.mid - 28000) < 1, name + ': mid stays at the real touch');
+    assert.ok(sn.bids[0][0] < sn.asks[0][0] && sn.bids[0][0] === 27999.75 && sn.asks[0][0] === 28000.25, name + ': snap best first, not crossed');
+    hub.shutdown();
+  }
+  ok('hub: a stray crossing level or a mis-sorted side never drops the other side of the book');
 }
 console.log(n + ' checks passed'); process.exit(0);

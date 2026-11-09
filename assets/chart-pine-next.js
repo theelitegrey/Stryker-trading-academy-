@@ -59,6 +59,15 @@ function setBusy(eng, on){
   if (any) busyGuard = setTimeout(() => { busyEngines.clear(); document.documentElement.classList.remove('stk-pine-busy'); }, 90000);
 }
 
+// The bars the worker already has (s.sent) plus at most 2 new or changed bars at the end -> { from, tail }; anything else -> null (send all).
+export function tailOf(s, b, reason){
+  const k = s && s.sent;
+  if (!k || reason || !b || b.length < k.n || b.length - k.n > 2 || !b.length || b[0].time !== k.first) return null;
+  const i = k.n - 1;
+  if (!b[i] || b[i].time !== k.last) return null;
+  return { from: i, tail: b.slice(i) };
+}
+
 export class PineNextEngine {
   constructor(opts = {}){
     this.language = 'pine-next';
@@ -121,6 +130,7 @@ export class PineNextEngine {
     this.sessions.set(sessionId, s);
     const bars = barsOf();
     s.lastTime = bars.length ? bars[bars.length - 1].time : 0;
+    s.sent = bars.length ? { n: bars.length, first: bars[0].time, last: bars[bars.length - 1].time } : null;
     const plain = {
       prepared: req.prepared, market: req.market, bars, inputs: Object.assign({}, req.inputs || {}),
       props: req.props ? Object.assign({}, req.props) : undefined, visibleRange: req.visibleRange,
@@ -145,7 +155,12 @@ export class PineNextEngine {
       setVisibleRange: (range) => this.post({ kind: 'setVisibleRange', sessionId, range }),
       notifyBars: (reason) => {
         if (reason === 'backfill') return;
-        this.post({ kind: 'notifyBars', sessionId, reason, bars: barsOf() });
+        const b = barsOf(), t = tailOf(s, b, reason);
+        // A live tick only changes the last bar or adds one: send just those, not a copy of the whole history
+        // (a 1m chart sent ~6k bar objects a second to the worker; at 17k bars after a scroll-back it ran out of memory on phones).
+        if (t) this.post({ kind: 'notifyBars', sessionId, reason, tail: t.tail, from: t.from });
+        else this.post({ kind: 'notifyBars', sessionId, reason, bars: b });
+        s.sent = b.length ? { n: b.length, first: b[0].time, last: b[b.length - 1].time } : null;
       }
     };
   }

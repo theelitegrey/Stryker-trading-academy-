@@ -31,7 +31,7 @@
 const PINETS = 'https://cdn.jsdelivr.net/npm/pinets@0.11.0/dist/pinets.min.browser.es.js';
 const VELA_PINETS = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
 // The page passes &vela=090 while the admin 0.9.0 trial is on (same folder as its import map).
-const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s6/plugin.js' : '/assets/vendor/vela-0.6.17-s4/plugin.js', self.location.href).href;
+const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s7/plugin.js' : '/assets/vendor/vela-0.6.17-s4/plugin.js', self.location.href).href;
 
 const post = (m) => self.postMessage(m);
 // BUSY signal: tells the page when a script is computing here ({kind:'busy', on}), so the page
@@ -229,6 +229,7 @@ function restartLanded(s){
   s.restarting = 0;
   runFinished(s);
   if (s.liveInputs || s.liveProps) applyLive(s);
+  else if (s.completeHeld) { s.completeHeld = false; clearTimeout(s.heldTimer); liveBars(s, 'complete'); }
 }
 function landed(s){
   busyOff(s);
@@ -264,6 +265,7 @@ function tick(s){
 // 'complete' signals are coalesced (LIVE_COMPLETE_MS) and the stream restarts once, only when
 // the bar set really changed (first bar time / count).
 const LIVE_COMPLETE_MS = 400;
+const COMPLETE_GUARD_MS = 60000;
 const barsKey = (b) => b && b.length ? b.length + '|' + b[0].time : '0';
 function liveBars(s, reason){
   // First-run priority also covers live sessions: their bar notifications wait (coalesced to the latest) while a
@@ -276,8 +278,21 @@ function liveBars(s, reason){
     if (s.stopped) return;
     const k = barsKey(s.bars);
     if (k === s.liveKey) return;          // same bars the stream already runs on
+    // PHONE MEMORY (09 Nov): a restart is still computing (scroll-back loads a chunk every ~1.5 s, a full run on
+    // 15k+ 1m bars takes longer). A stopped stream keeps running to its end, so restarting now stacked full runs
+    // side by side (each its own copy of every series): the worker went past 480 MB and the phone tab died.
+    // Wait for the run in flight to draw, then restart ONCE on the latest bars (same end result, fewer runs).
+    // (A run that never draws can hold it back COMPLETE_GUARD_MS at most; the timer re-checks then.)
+    const age = Date.now() - s.restarting;
+    if (s.restarting && age < COMPLETE_GUARD_MS) {
+      s.completeHeld = true;
+      clearTimeout(s.heldTimer);
+      s.heldTimer = setTimeout(() => { if (s.completeHeld && !s.stopped) { s.completeHeld = false; s.restarting = 0; liveBars(s, 'complete'); } }, COMPLETE_GUARD_MS - age + 50);
+      return;
+    }
     s.liveKey = k;
-    busyOn(s);
+    s.restarting = Date.now();
+    runStarted(s);
     s.handle.notifyBars('complete');
   }, LIVE_COMPLETE_MS);
 }
@@ -371,6 +386,8 @@ self.addEventListener('message', async (ev) => {
     case 'notifyBars': {
       const s = sessions.get(msg.sessionId); if (!s || !s.handle) return;
       if (Array.isArray(msg.bars)) s.bars = msg.bars;
+      // tick delta (chart-pine-next.js tailOf): keep the bars we have, replace from msg.from on. A new array, so a run in progress keeps its own.
+      else if (Array.isArray(msg.tail) && msg.from >= 0 && msg.from <= s.bars.length) s.bars = s.bars.slice(0, msg.from).concat(msg.tail);
       if (msg.reason === 'backfill') return;
       if (s.live) { liveBars(s, msg.reason); return; }
       const reason = msg.reason;

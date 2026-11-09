@@ -6595,7 +6595,6 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
 .stks-chip:hover{ color:rgba(255,255,255,.92); border-color:rgba(255,255,255,.24); }
 .stks-on:focus-visible, .stks-chip:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
 :root[data-theme="light"] .stks-banner{ background:#fff; color:#1d1d1f; border-color:rgba(165,118,26,.45); box-shadow:0 8px 24px -12px rgba(0,0,0,.25); }
-:root[data-theme="light"] .stks-on{ background:var(--gold); color:#fff; }
 :root[data-theme="light"] .stks-chip{ color:rgba(29,29,31,.72); border-color:rgba(0,0,0,.14); }
 :root[data-theme="light"] .stks-chip:hover{ color:#1d1d1f; border-color:rgba(0,0,0,.28); }
 .stkl-link{ background:none; border:0; color:var(--ink-2); font:inherit; cursor:pointer; text-decoration:underline; padding:4px; }

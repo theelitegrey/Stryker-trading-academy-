@@ -234,6 +234,7 @@
   "cookies": "legal text linked from the cookie notice, public (same as refund-policy)",
   "fix-link": "email-link fallback, public, linked from the verify screen and login reset note",
   "refund-policy": "legal text linked from checkout, public",
+  "terms": "legal text linked from the region prompt and sign-up, public (same as refund-policy)",
   "market-data-terms": "legal text linked from live-data checkout and settings, public (same as refund-policy)",
   "help": "public Help Center for everyone (tickets removed, help moves to Discord); covered by help-center-browser.js",
   "features": "marketing features index, only linked from the marketing flyout (nav-features.js, hidden when signed in). Carries the dual shell like the other feature pages, but the local http.server serves /features as the features/ folder, so the audit cannot load it."

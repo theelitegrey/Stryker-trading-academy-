@@ -42,6 +42,7 @@
       this.chartEl = this.el.querySelector('.rp-lwc'); this.ov = this.el.querySelector('.rp-overlay'); this.legendEl = this.el.querySelector('.rp-legend'); this.stripEl = this.el.querySelector('.rp-strip'); this.indLegendEl = this.el.querySelector('.rp-indlegend'); this.chipsEl = this.el.querySelector('.rp-chips');
       const T = THEMES[this.opts.theme] || THEMES.dark; this.T = T;
       this.chart = LW.createChart(this.chartEl, this._chartOptions(T));
+      if (root.TzBrand) this.brand = root.TzBrand.mount(this.el, () => this.el.clientHeight - this.chart.paneSize(0).height);   // corner mark, always on
       this.candles = this.chart.addSeries(LW.CandlestickSeries, { upColor: T.up, downColor: T.down, borderVisible: false, wickUpColor: T.up, wickDownColor: T.down, priceFormat: { type: 'price', precision: this.opts.decimals, minMove: this.opts.tick || Math.pow(10, -this.opts.decimals) }, priceLineVisible: true, lastValueVisible: true });
       this.volume = this.chart.addSeries(LW.HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'vol', lastValueVisible: false, priceLineVisible: false });
       this.chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.9, bottom: 0 } });   // a thin band under the candles
@@ -116,7 +117,7 @@
       if (tzChanged && this.view) { this._offCache = null; this.lastTf = null; this.setView(this.view); }
       this.request();
     }
-    resize() { const w = this.el.clientWidth, h = this.el.clientHeight; if (!w || !h) return; this.chart.resize(w, h); const d = root.devicePixelRatio || 1; this.ov.width = Math.round(w * d); this.ov.height = Math.round(h * d); this.ov.style.width = w + 'px'; this.ov.style.height = h + 'px'; this.request(); }
+    resize() { const w = this.el.clientWidth, h = this.el.clientHeight; if (!w || !h) return; this.chart.resize(w, h); const d = root.devicePixelRatio || 1; this.ov.width = Math.round(w * d); this.ov.height = Math.round(h * d); this.ov.style.width = w + 'px'; this.ov.style.height = h + 'px'; if (this.brand) this.brand.update(); this.request(); }
 
     // ---- order lines --------------------------------------------------------------------
     setLines(lines) {
@@ -266,7 +267,7 @@
     // ---- screenshot ------------------------------------------------------------------------
     screenshot(width) {
       const c = this.chart.takeScreenshot(); const w = width || 640; const scale = w / c.width; const out = document.createElement('canvas'); out.width = w; out.height = Math.round(c.height * scale);
-      const ctx = out.getContext('2d'); ctx.drawImage(c, 0, 0, out.width, out.height); ctx.drawImage(this.ov, 0, 0, out.width, out.height); return out.toDataURL('image/jpeg', 0.62);
+      const ctx = out.getContext('2d'); ctx.drawImage(c, 0, 0, out.width, out.height); ctx.drawImage(this.ov, 0, 0, out.width, out.height); if (root.TzBrand) { const k = out.width / this.el.clientWidth, R = this.paneRect(); root.TzBrand.draw(ctx, 10 * k, (R.h - 10 - root.TzBrand.size()) * k, null, k); } return out.toDataURL('image/jpeg', 0.62);
     }
 
     // ---- input ---------------------------------------------------------------------------

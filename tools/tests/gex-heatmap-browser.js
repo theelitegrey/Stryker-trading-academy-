@@ -116,6 +116,13 @@ const pixelAt = (p, t, price) => p.evaluate(([t, price]) => {
       const tip = await p.evaluate(() => { const t = document.getElementById('gex-heat-tip'); return t.hidden ? '' : t.innerText; });
       const clock = new Date(s.t * 1000).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
       check(tip.includes(s.k[iPos].toLocaleString('en-US')) && tip.includes(clock) && /Net GEX \+\$/.test(tip) && tip.includes(String(Math.round(s.g[iPos]))), w + ': ' + (mob ? 'tap' : 'hover') + ' tooltip "' + tip.replace(/\s+/g, ' ') + '"');
+      await p.evaluate(() => document.querySelectorAll('.tzc').forEach((e) => { e.style.display = 'none'; }));
+      // corner mark (assets/chart-brand.js): drawn once on the canvas, bottom-left of the plot, above the time axis
+      const bm = await p.evaluate(() => { const cv = document.getElementById('gex-heat-canvas'), k = cv.width / cv.clientWidth, ph = cv.clientHeight - 22, B = window.TzBrand, G = window.strykerGexHeatmap, box = [Math.round(8 * k), Math.round((ph - 40) * k), Math.round(40 * k), Math.round(32 * k)];
+        const grab = () => Array.from(cv.getContext('2d').getImageData(...box).data); G.paint(); const a = grab(); window.TzBrand = null; G.paint(); const z = grab(); window.TzBrand = B; G.paint();
+        let d = 0, n = 0; for (let i = 0; i < a.length; i += 4) { const e = Math.abs(a[i] - z[i]) + Math.abs(a[i + 1] - z[i + 1]) + Math.abs(a[i + 2] - z[i + 2]); d += e; if (e > 12) n++; }
+        return { n, d }; });
+      check(bm.n > 40, w + ': TZ mark drawn bottom-left of the heatmap plot', bm);
       const shotPath = path.join(OUT, 'gex-heatmap-' + w + '.png');
       await p.screenshot({ path: shotPath });
       console.log('shot', shotPath);

@@ -219,13 +219,15 @@
     return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
   }
 
+  // TradeZoro corner mark, bottom-left of the plot, always on (assets/chart-brand.js). Drawn once per paint.
+  function brand(ctx, g) { var B = window.TzBrand; if (B) B.draw(ctx, 10, g.ph - 10 - B.size(), paint); }
   function paint() {
     var cv = $('gex-heat-canvas');
     if (!cv || $('gex-heat-card').hidden) return;
     var g = geom(), ctx = cv.getContext('2d');
     ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
     ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, g.w, g.h);
-    if (!st.heat || !(st.pHi > st.pLo)) { cv.dataset.cells = '0'; return; }
+    if (!st.heat || !(st.pHi > st.pLo)) { cv.dataset.cells = '0'; brand(ctx, g); return; }
     var t0 = performance.now();
     ctx.save(); ctx.beginPath(); ctx.rect(0, 0, g.pw, g.ph); ctx.clip();
     H.draw(ctx, st.heat, g.xOf, g.yOf, { linearX: true });
@@ -260,6 +262,7 @@
     ctx.fillStyle = COL.axis; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     var every = g.pw < 420 ? 2 : 1;
     hours.forEach(function (tx, i) { if (i % every) return; var x = g.xOf(tx); if (x > 14 && x < g.pw - 14) ctx.fillText(H.etClock(tx).replace(':00', '').replace(' ', ''), x, g.ph + 5); });
+    brand(ctx, g);
     cv.dataset.ms = (performance.now() - t0).toFixed(2);
     cv.dataset.cells = String(st.heat.cols * st.heat.rowsN);
   }

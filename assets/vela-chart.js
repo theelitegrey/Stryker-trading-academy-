@@ -934,6 +934,10 @@ function lateLists(provider){
   if (VELA090) import('./chart-magnet.js?v=937')
     .then((m) => m.installMagnet(ws))
     .catch((e) => console.warn('TradeZoro: magnet', e));
+  // TradeZoro corner mark on every cell's main pane, always on (assets/chart-brand.js).
+  import('./chart-brand.js?v=937')
+    .then(() => window.TzBrand && window.TzBrand.installVela(ws))
+    .catch((e) => console.warn('TradeZoro: corner mark', e));
   // Price-axis countdown to bar close: current wall-clock bar, hidden while CME is closed,
   // timers paused on hidden tabs: assets/chart-countdown.js.
   import('./chart-countdown.js?v=937')

@@ -346,6 +346,7 @@
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: false },
       localization: { locale: 'en-US' }
     });
+    if(window.TzBrand && host.parentNode){ var bw = host.parentNode; window.TzBrand.mount(bw, function(){ return tvChart.timeScale().height(); }); }   // corner mark, always on
     tvSeries = tvChart.addCandlestickSeries({
       upColor: '#03c988', downColor: '#e5484d', borderUpColor: '#03c988', borderDownColor: '#e5484d', wickUpColor: '#03c988', wickDownColor: '#e5484d',
       // The built-in last-value label follows the last VISIBLE bar. Off, and

@@ -101,7 +101,7 @@ const PAGE_SECS = { '1': 8 * H, '5': 2 * D, '15': 5 * D, '30': 10 * D, '60': 20 
 const DEPTH_SECS = { '1': 29 * D, '5': 59 * D, '15': 59 * D, '30': 59 * D, '60': 729 * D, '120': 729 * D, '240': 729 * D, D: 40 * 365 * D, W: 0, M: 0 };
 // DEEP HISTORY (history-gap2, 2026-11-08): = DEEP_HISTORY / DEEP_SYMS / DEEP_DEPTH_S in functions/api/chart/_bars.js (the server's switch
 // decides what is served; this only lets the page walk that far). ?deep=1 turns it on for one page load (tests).
-export const DEEP_HISTORY = false;
+export const DEEP_HISTORY = true;
 export const DEEP_ROOTS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY'];
 export const DEEP_DEPTH_DAYS = 366;
 export const deepOn = (root, tf) => { let on = DEEP_HISTORY; try { const q = new URLSearchParams(location.search).get('deep'); if (q === '1') on = true; else if (q === '0') on = false; } catch (e) {} return on && DEEP_ROOTS.includes(root) && ['1', '5', '15', '30'].includes(String(tf)); };

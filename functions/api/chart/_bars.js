@@ -284,7 +284,7 @@ export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 100
 // the book-recorder's own 1-minute store (/hist-bars, filled server-side from the data vendor's archive by tools/hist/backfill_m1.py),
 // back DEEP_DEPTH_S. A page the store does not hold falls back to the old source. DEEP_DEPTH_DAYS in assets/chart-futures-provider.js
 // and assets/chart-history-pager.js must match (tools/tests/hist-store.test.mjs).
-export let DEEP_HISTORY = false;   // the switch (production: change here + bump). Tests: _setDeepForTests(true)
+export let DEEP_HISTORY = true;   // the switch (production: change here + bump). Tests: _setDeepForTests(true)
 export const _setDeepForTests = (on) => { DEEP_HISTORY = !!on; };
 export const DEEP_SYMS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY'];   // NQ/ES from the tick archive (backfill_m1.py), the other four from the REST vendor's 1m bars (backfill_is_m1.py)
 export const DEEP_DEPTH_S = 366 * D;

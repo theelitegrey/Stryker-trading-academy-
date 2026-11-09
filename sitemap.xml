@@ -1231,6 +1231,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://tradezoro.com/indicators/delta-profile-l2</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://tradezoro.com/indicators/dynamic-liquidity-heatmap-profile</loc>
     <lastmod>2026-11-09</lastmod>
     <changefreq>monthly</changefreq>

@@ -12,7 +12,7 @@
   "Levels",
   "Community"
  ],
- "count": 174,
+ "count": 175,
  "skipped": [
   {
    "key": "x:volume-bubbles-quantalgo",
@@ -16342,6 +16342,16 @@
    "originalUrl": "",
    "settings": [
     {
+     "title": "View",
+     "type": "string",
+     "def": "Volume",
+     "options": [
+      "Volume",
+      "Delta",
+      "Both"
+     ]
+    },
+    {
      "title": "Width of each profile (% of the chart)",
      "type": "int",
      "def": 14
@@ -16430,6 +16440,105 @@
    "capture": "preview",
    "image": "/assets/images/indicators/pages/delta-ladder-l2.webp",
    "thumb": "/assets/images/indicators/pages/delta-ladder-l2-t.webp"
+  },
+  {
+   "slug": "delta-profile-l2",
+   "key": "b:stk_l2f_dp",
+   "name": "Delta Profile (L2)",
+   "windowName": "Delta Profile (L2)",
+   "author": "TradeZoro",
+   "third": false,
+   "group": "Order flow",
+   "plan": "Pro",
+   "kind": "native",
+   "short": "",
+   "summary": "Delta at each price over the last few minutes, a range you pick, or the session: buying to the right, selling to the left.",
+   "overview": [
+    "Delta Profile (L2) draws a horizontal profile on the right of the price chart. Each row is a price. Buying minus selling at that price is a bar: green to the right of a centre line when buyers were more aggressive, red to the left when sellers were.",
+    "A small label shows the net delta of the window, and the price with the most buying and the most selling. You can show total volume in grey behind the bars."
+   ],
+   "how": [
+    "It reads the traded prints from the futures order-flow feed and counts each one as buying (hit the ask) or selling (hit the bid). Range has three modes: Rolling time (the last 5, 15, 30 or 60 minutes, or a custom number, updating as trades arrive), Fixed range (a start and end bar you pick) and Session (since the futures trading day opened at 18:00 New York time).",
+    "Rows are grouped so there are never more than 70 on screen. Trades are counted by the minute, so a window starts and ends on a minute."
+   ],
+   "use": [
+    "Use it to see at which prices buyers or sellers were more aggressive in a recent window.",
+    "Some traders compare a short window with a longer one to see whether the pressure moved.",
+    "Use Fixed range to look at one move, from its first bar to its last."
+   ],
+   "notes": [
+    "Futures only (NQ, ES, YM, RTY, CL, GC and their micros). Needs the full order book data feed (L2), which is part of Pro.",
+    "To set a fixed range, pick \"Delta Profile (L2): click two bars for a fixed range\" in the Indicators list, then click the first and the last bar. Volume Profile (L2) also has a Delta view.",
+    "It shows what traded. It does not predict what price will do."
+   ],
+   "explain": null,
+   "alerts": "",
+   "learn": "order-flow",
+   "updated": "2026-11-04",
+   "licence": "",
+   "originalUrl": "",
+   "settings": [
+    {
+     "title": "Range",
+     "type": "string",
+     "def": "Rolling time",
+     "options": [
+      "Rolling time",
+      "Fixed range",
+      "Session"
+     ]
+    },
+    {
+     "title": "Rolling minutes",
+     "type": "string",
+     "def": "15",
+     "options": [
+      "5",
+      "15",
+      "30",
+      "60",
+      "Custom"
+     ]
+    },
+    {
+     "title": "Custom minutes",
+     "type": "int",
+     "def": 20
+    },
+    {
+     "title": "Fixed range: start (bar time)",
+     "type": "time",
+     "def": 0
+    },
+    {
+     "title": "Fixed range: end (bar time, empty = now)",
+     "type": "time",
+     "def": 0
+    },
+    {
+     "title": "Width (% of the chart)",
+     "type": "int",
+     "def": 18
+    },
+    {
+     "title": "Show volume behind the bars (grey)",
+     "type": "bool",
+     "def": false
+    },
+    {
+     "title": "Buying (right of zero)",
+     "type": "color",
+     "def": "#03c988"
+    },
+    {
+     "title": "Selling (left of zero)",
+     "type": "color",
+     "def": "#f23645"
+    }
+   ],
+   "capture": "preview",
+   "image": "/assets/images/indicators/pages/delta-profile-l2.webp",
+   "thumb": "/assets/images/indicators/pages/delta-profile-l2-t.webp"
   },
   {
    "slug": "dynamic-liquidity-heatmap-profile",

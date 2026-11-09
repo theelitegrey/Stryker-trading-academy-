@@ -1400,6 +1400,15 @@
     "grp": "Order Flow"
    },
    {
+    "key": "b:stk_l2f_dp",
+    "name": "Delta Profile (L2)",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
     "key": "x:dynamic-liquidity-heatmap-profile-bigbeluga",
     "name": "Dynamic Liquidity HeatMap Profile [BigBeluga]",
     "author": "BigBeluga",
@@ -5763,6 +5772,18 @@
     "pane": "price",
     "inputs": [
      {
+      "key": "view",
+      "type": "string",
+      "title": "View",
+      "tooltip": "Delta = traded buy minus sell at each price (green right of the centre line, red left).",
+      "def": "Volume",
+      "options": [
+       "Volume",
+       "Delta",
+       "Both"
+      ]
+     },
+     {
       "key": "widthPct",
       "type": "int",
       "title": "Width of each profile (% of the chart)",
@@ -5823,6 +5844,97 @@
        "visible",
        "session"
       ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "Delta Profile (L2)",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_l2f_dp",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Delta Profile (L2)",
+    "short": "Delta Profile L2",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "range",
+      "type": "string",
+      "title": "Range",
+      "tooltip": "Rolling time = the last N minutes, updating as trades arrive. Fixed range = from the start bar to the end bar you pick (picker row \"Delta Profile (L2): click two bars\"). Session = since the CME day opened (18:00 New York).",
+      "def": "Rolling time",
+      "options": [
+       "Rolling time",
+       "Fixed range",
+       "Session"
+      ]
+     },
+     {
+      "key": "minutes",
+      "type": "string",
+      "title": "Rolling minutes",
+      "def": "15",
+      "options": [
+       "5",
+       "15",
+       "30",
+       "60",
+       "Custom"
+      ]
+     },
+     {
+      "key": "customMins",
+      "type": "int",
+      "title": "Custom minutes",
+      "def": 20,
+      "options": []
+     },
+     {
+      "key": "rangeStart",
+      "type": "time",
+      "title": "Fixed range: start (bar time)",
+      "def": 0,
+      "options": []
+     },
+     {
+      "key": "rangeEnd",
+      "type": "time",
+      "title": "Fixed range: end (bar time, empty = now)",
+      "def": 0,
+      "options": []
+     },
+     {
+      "key": "widthPct",
+      "type": "int",
+      "title": "Width (% of the chart)",
+      "def": 18,
+      "options": []
+     },
+     {
+      "key": "showVol",
+      "type": "bool",
+      "title": "Show volume behind the bars (grey)",
+      "def": false,
+      "options": []
+     },
+     {
+      "key": "posColor",
+      "type": "color",
+      "title": "Buying (right of zero)",
+      "def": "#03c988",
+      "options": []
+     },
+     {
+      "key": "negColor",
+      "type": "color",
+      "title": "Selling (left of zero)",
+      "def": "#f23645",
+      "options": []
      }
     ]
    }

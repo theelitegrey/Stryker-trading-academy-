@@ -21,10 +21,10 @@
 //                   {type:'notice', ns, state, upgrade, text}
 //                   {type:'result', id, out}            (compile: {ok, diagnostics, program, meta})
 //                   {type:'error', id, message}
-import { compile } from './compiler.js?v=931';
-import { Exec, validateProgram } from './vm.js?v=931';
-import { framesToData, liveData, rowsToBars } from './frames.js?v=931';
-import { session, openSession } from '../creator-seal.js?v=931';
+import { compile } from './compiler.js?v=932';
+import { Exec, validateProgram } from './vm.js?v=932';
+import { framesToData, liveData, rowsToBars } from './frames.js?v=932';
+import { session, openSession } from '../creator-seal.js?v=932';
 
 const post = self.postMessage.bind(self);
 const MAX_OUT = 32 * 1024 * 1024;

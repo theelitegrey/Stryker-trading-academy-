@@ -4,7 +4,7 @@
 //   trade = { t, p, s, side: 1 buyer-aggressor | -1 seller-aggressor, ex }
 //   status: 'loading' | 'live' | 'reconnecting' | 'unlisted' | 'error'
 // Wording: no "real-time" claims; the panel shows "updated Xs ago" only. Education only. Not financial advice.
-import { OkxBook, OKX_WS_PUBLIC, numRows, tradeOf, fetchInst } from './okx-core.js?v=931';
+import { OkxBook, OKX_WS_PUBLIC, numRows, tradeOf, fetchInst } from './okx-core.js?v=932';
 export const SOURCES = [
   { id: 'binance', name: 'Binance', perp: true },
   { id: 'binanceus', name: 'Binance US', perp: false },
@@ -289,7 +289,7 @@ const krfTrade = (x) => ({ t: +x.time, p: +x.price, s: +x.qty, side: x.side === 
 // Vest: its adapter is loaded on first use (it also registers the order-flow venue)
 function vest(pair, cb) {
   let stop = () => {}, dead = false;
-  import('./orderflow-venue-vest.js?v=931').then((m) => { if (!dead) stop = m.openPanelSource(pair, cb); }).catch(() => cb.status('error', 'Vest data is temporarily unavailable. Retrying…'));
+  import('./orderflow-venue-vest.js?v=932').then((m) => { if (!dead) stop = m.openPanelSource(pair, cb); }).catch(() => cb.status('error', 'Vest data is temporarily unavailable. Retrying…'));
   return () => { dead = true; stop(); };
 }
 const OPEN = { binance, binanceus, coinbase, hyperliquid, bybit, okx, bitget, kraken, vest };

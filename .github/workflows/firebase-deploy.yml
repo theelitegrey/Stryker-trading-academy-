@@ -32,7 +32,7 @@ jobs:
       - name: Rules tests
         run: |
           set -e
-          for t in tools/tests/screens-rules-test.py tools/tests/partners-rules-test.py tools/zs-library/rules-test.py; do
+          for t in tools/tests/screens-rules-test.py tools/tests/partners-rules-test.py tools/zs-library/rules-test.py tools/tests/geo-attest-rules-test.py; do
             [ -f "$t" ] || continue
             echo "== $t"
             FB_TOKEN_FILE=/tmp/fbtok python3 "$t" functions-src/firestore.rules | tee /tmp/out.txt | tail -5

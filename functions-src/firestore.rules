@@ -51,7 +51,7 @@ service cloud.firestore {
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis',
-        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'];
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement', 'sanctionsLocked', 'sanctionsLockedAt', 'sanctionsLockReason'];
     }
     function touchesPrivileged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -60,7 +60,7 @@ service cloud.firestore {
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis',
-        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement', 'sanctionsLocked', 'sanctionsLockedAt', 'sanctionsLockReason'
       ]);
     }
     function createsPrivileged() {
@@ -69,8 +69,26 @@ service cloud.firestore {
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
-        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement'
+        'partner', 'planSource', 'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta', 'demo', 'liveFeed', 'liveFeedBy', 'liveFeedAt', 'liveFeedGrandfathered', 'liveFeedNote', 'liveData', 'marketDataAgreement', 'sanctionsLocked', 'sanctionsLockedAt', 'sanctionsLockReason'
       ]);
+    }
+    // SANCTIONS ATTESTATION (Owner order 09 Nov 2026, assets/geo-attest.js). The member sets residenceCountry
+    // (ISO2, or "UA-43"-style for the occupied regions), sanctionsAttest (true only) and sanctionsAttestAt (server
+    // time) ONCE: allowed only while the doc has no residenceCountry yet, never changed or removed afterwards (admins
+    // and Cloud Functions can). A blocked answer may be stored alone (no attest), which locks purchases server-side.
+    function geoKeys() { return ['residenceCountry', 'sanctionsAttest', 'sanctionsAttestAt']; }
+    function geoShapeOk(d) {
+      return d.residenceCountry is string && d.residenceCountry.matches('^[A-Z]{2}(-[0-9]{2})?$')
+        && (!('sanctionsAttest' in d) || (d.sanctionsAttest == true && d.sanctionsAttestAt == request.time))
+        && (!('sanctionsAttestAt' in d) || 'sanctionsAttest' in d);
+    }
+    function geoCreateOk() {
+      return !request.resource.data.keys().hasAny(geoKeys()) || geoShapeOk(request.resource.data);
+    }
+    function geoUpdateOk() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(geoKeys())
+        || (resource.data.get('residenceCountry', null) == null && resource.data.get('sanctionsAttest', null) == null
+            && geoShapeOk(request.resource.data));
     }
 
     // ---------------------------------------------------------------------
@@ -146,11 +164,11 @@ service cloud.firestore {
       // Allow EXACTLY that (plan absent -> 'Starter'); every other privileged
       // key stays function/admin-only. Without it, sign-ups since 2026-09-09
       // got no plan and sat on "took too long to confirm your access".
-      allow create: if isSelf(uid) && (!createsPrivileged() || (
+      allow create: if isSelf(uid) && geoCreateOk() && (!createsPrivileged() || (
                       request.resource.data.plan == 'Starter'
                       && !request.resource.data.keys().toSet().difference(['plan'].toSet())
                             .hasAny(privilegedKeys())));
-      allow update: if isAdmin() || (isSelf(uid) && (!touchesPrivileged() || (
+      allow update: if isAdmin() || (isSelf(uid) && geoUpdateOk() && (!touchesPrivileged() || (
                       resource.data.get('plan', null) in [null, '']
                       && request.resource.data.plan == 'Starter'
                       && !request.resource.data.diff(resource.data).affectedKeys()

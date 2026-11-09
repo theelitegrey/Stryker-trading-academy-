@@ -4,8 +4,8 @@ name: Dark pool alert rules tests (no deploy)
 # deploys rules, functions or anything else. Publishing stays a CoS step at launch (fbdeploy/**).
 on:
   push:
-    branches: ['hermes/w2-dp-alerts', 'hermes/w4-metric-alerts', 'main']
-    paths: ['functions-src/firestore.rules', 'tools/tests/dp-alerts-rules-test.py', 'tools/tests/metric-alerts-rules-test.py', '.github/workflows/dp-rules-test.yml']
+    branches: ['hermes/w2-dp-alerts', 'hermes/w4-metric-alerts', 'hermes/w2-geo-block', 'main']
+    paths: ['functions-src/firestore.rules', 'tools/tests/dp-alerts-rules-test.py', 'tools/tests/metric-alerts-rules-test.py', 'tools/tests/geo-attest-rules-test.py', '.github/workflows/dp-rules-test.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,9 +30,11 @@ jobs:
         run: FB_TOKEN_FILE=/tmp/fbtok python3 tools/tests/dp-alerts-rules-test.py functions-src/firestore.rules
       - name: Metric alert rules tests
         run: FB_TOKEN_FILE=/tmp/fbtok python3 tools/tests/metric-alerts-rules-test.py functions-src/firestore.rules
+      - name: Sanctions attestation rules tests
+        run: FB_TOKEN_FILE=/tmp/fbtok python3 tools/tests/geo-attest-rules-test.py functions-src/firestore.rules
       - name: Existing rules suites (same rules file, regression)
         run: |
-          for t in tools/creator/rules-test.py tools/tests/screens-rules-test.py tools/tests/partners-rules-test.py; do
+          for t in tools/creator/rules-test.py tools/tests/screens-rules-test.py tools/tests/partners-rules-test.py tools/tests/live-feed-rules-test.py; do
             [ -f "$t" ] || continue
             echo "== $t"
             FB_TOKEN_FILE=/tmp/fbtok python3 "$t" functions-src/firestore.rules /tmp/fbtok 2>&1 | tail -3 || true

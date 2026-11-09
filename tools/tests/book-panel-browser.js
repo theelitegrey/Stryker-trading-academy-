@@ -109,7 +109,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth <=
       // DOM
       await tab(p, 'dom', mobile);
       await sleep(1500);
-      check(await p.evaluate(() => document.querySelectorAll('.stkbp-list[data-t=dom] .stkbp-r').length >= 9 && document.querySelector('.stkbp-cols').innerText.replace(/\s+/g, ' ').trim() === 'Bid Price Ask Bought Sold Delta'), tag + ': DOM tab columns Bid | Price | Ask | Bought | Sold | Delta');
+      check(await p.evaluate(() => document.querySelectorAll('.stkbp-list[data-t=dom] .stkbp-r').length >= 9 && document.querySelector('.stkbp-cols').textContent.replace(/\s+/g, ' ').trim() === 'BidPriceAskBoughtSoldDeltaSignals± Size'), tag + ': DOM tab columns Bid | Price | Ask | Bought | Sold | Delta');
       check(await p.evaluate(() => [...document.querySelectorAll('.stkbp-list[data-t=dom] .stkbp-r .bt')].some((n) => n.textContent.trim()) && [...document.querySelectorAll('.stkbp-r .dl')].some((n) => n.textContent.trim())), tag + ': bought / delta filled from the trade stream');
       check(await p.evaluate(() => { const r = [...document.querySelectorAll('.stkbp-r')]; const i = r.findIndex((x) => x.classList.contains('is-ask')), j = r.findIndex((x) => x.classList.contains('is-bid')); return i >= 0 && j > i && j - i <= 3 && Math.abs((i + j) / 2 - r.length / 2) <= 3; }), tag + ': DOM auto-centred on the touch');
       check(await overflow(p), tag + ': no overflow (DOM)');

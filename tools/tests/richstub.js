@@ -20,7 +20,7 @@ function build() {
       students: {
         [UID]: {
           uid: UID, name: 'Test Trader', displayName: 'Test Trader', username: 'testtrader',
-          email: 'trader@strykertrading.com', plan: 'Elite', role: 'elite',
+          email: 'trader@strykertrading.com', plan: 'Elite', role: 'elite', residenceCountry: 'US', sanctionsAttest: true,   // geo-block 09 Nov: already answered
           emailVerified: true, createdAt: ts(210), lastSeen: ts(0),
           completedLessons: DONE_LESSONS, completedChapters: ['01', '02', '03', '04'],
           streak: 23, longestStreak: 41, xp: 8420, level: 7,

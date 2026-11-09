@@ -737,7 +737,7 @@ function lateLists(provider){
 
   // Crash-loop guard (assets/chart-safe-mode.js): phones only; a load that never finished opens the next one in safe mode.
   let Safe = { phone: false, active: false };
-  if (!BT) { try { Safe = (await import('./chart-safe-mode.js?v=927')).createSafeMode(PERSIST_KEY); } catch (e) { console.warn('TradeZoro: safe mode', e); } }
+  if (!BT) { try { Safe = (await import('./chart-safe-mode.js?v=928')).createSafeMode(PERSIST_KEY); } catch (e) { console.warn('TradeZoro: safe mode', e); } }
   let FormulaMod = null, FormulaNorm = null;
   try { [FormulaMod, { normalizeSymbol: FormulaNorm }] = await Promise.all([import('./chart-formula.js?v=928'), import('./chart-watchlist.js?v=928')]); } catch (e) { console.warn('TradeZoro: formula', e); }
   try {
@@ -1246,7 +1246,7 @@ function lateLists(provider){
 
   window.STRYKER_CHART_UI = { applyStarter, applySaved, setupOf, mergeSetup, STARTERS, setLayout, refreshLayoutUi, grid };
   if (Safe.phone) {
-    import('./chart-safe-mode.js?v=927').then((m) => m.mountSafeBanner(Safe, ws, applySaved)).catch((e) => console.warn('TradeZoro: safe mode banner', e));
+    import('./chart-safe-mode.js?v=928').then((m) => m.mountSafeBanner(Safe, ws, applySaved)).catch((e) => console.warn('TradeZoro: safe mode banner', e));
     // stable = the indicators are loaded; the guard clears its mark 20 s later
     const go = () => { Safe.started(); if (Safe.onChange) Safe.onChange(); };
     if (window.__stkHeavyReady) go(); else window.addEventListener('stk:heavy-ready', go, { once: true });

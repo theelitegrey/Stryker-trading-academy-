@@ -7,9 +7,9 @@
 //     20 levels at the finest step cover almost nothing, so three of the market's own price steps are subscribed
 //     (finest, middle, coarsest) and merged, finest wins near the price (same merge as the Hyperliquid adapter).
 // Education only. Not financial advice.
-import { registerVenue } from './orderflow-venues.js?v=935';
-import { mergeBooks } from './orderflow-venue-hyperliquid.js?v=935';
-import { WS_URL, parseWsTrades, parseTrades, parseDepth, pickTicks, getJson, loadSymbols, symbolFor } from './vest-core.js?v=935';
+import { registerVenue } from './orderflow-venues.js?v=936';
+import { mergeBooks } from './orderflow-venue-hyperliquid.js?v=936';
+import { WS_URL, parseWsTrades, parseTrades, parseDepth, pickTicks, getJson, loadSymbols, symbolFor } from './vest-core.js?v=936';
 
 // --- the shared socket: channel -> Set of { fn, status }
 const subs = new Map();

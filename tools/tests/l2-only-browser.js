@@ -98,9 +98,9 @@ const onlyL2 = (rows) => rows.filter((r) => OF_RX.test(r.n) && !/^Estimated CVD/
         await oldLayout(p);
         await sleep(5000);
         const t = await types(p), style = await p.evaluate(() => window.STRYKER_VELA.active.priceStyle);
-        check(!t.some((x) => /^stk_ts_|^stk_of_(big|delta|cvd)$/.test(x)) && style !== 'stk_fp', tag + ': no L1 / old order-flow tool and no L1 footprint left on NQ', { t, style });
+        check(!t.some((x) => /^stk_ts_|^stk_of_(big|delta|cvd)$/.test(x)) && (free ? style !== 'stk_fp' : style === 'stk_fp'), tag + ': no L1 / old order-flow tool left on NQ; the Volume footprint style stays for Pro (09 Nov), Free gets the Pro gate', { t, style });
         if (!free) {
-          check(t.includes('stk_l2f_big') && t.includes('stk_l2f_delta') && t.includes('stk_l2f_fp'), tag + ': swapped to Big Trades (L2) + Delta (L2) + Footprint (L2)', t);
+          check(t.includes('stk_l2f_big') && t.includes('stk_l2f_delta') && !t.includes('stk_l2f_fp'), tag + ': swapped to Big Trades (L2) + Delta (L2); the footprint style is not swapped to Footprint (L2)', t);
           const v = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_l2f_big').inputValues());
           check(v.buyColor === '#ff00ff' && v.showSize === false, tag + ': changed Big Trades inputs carried over', v);
         } else {

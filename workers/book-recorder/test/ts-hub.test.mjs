@@ -150,6 +150,21 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   // the closed market (empty answer) is stored as an empty row, asked once
   mode = 'ok'; const s4 = memStore(); const emptyFetch = async (u) => { calls.push(u); return { status: 200, json: async () => ({ book: [] }) }; };
   const h4 = mk({ RECORD: false, fetch: emptyFetch }, s4).hub; h4.clock = () => Date.now(); await h4.backfill('NQ', from, from + 20 * 60000); const c1 = calls.length; await h4.backfill('NQ', from, from + 20 * 60000); assert.equal(calls.length, c1, 'empty minutes are not asked twice');
+  // lost minutes (the live book was crossed, so only trades were recorded: fp, no book) are filled from the archive, at the minute's last trade
+  {
+    const bad = JSON.parse(fs.readFileSync(new URL('./fixtures/nq-stale-asks.json', import.meta.url))).books[1];
+    const rows = (t0) => bad.bids.map((x, i) => ({ ts: t0 * 1e6, side: 'bid', level: i + 1, price: x[0], size: x[1], flag: 0 })).concat(bad.asks.map((x, i) => ({ ts: t0 * 1e6, side: 'ask', level: i + 1, price: x[0], size: x[1], flag: 0 })));
+    const s5 = memStore(), f5 = []; const h5 = mk({ RECORD: false, fetch: async (u) => { f5.push(u); return { status: 200, json: async () => ({ book: rows(Number(/start=(\d+)/.exec(u)[1])) }) }; } }, s5).hub; h5.clock = () => Date.now();
+    const m0 = Math.floor(from / 60000), fp = JSON.stringify({ o: bad.P, h: bad.P, l: bad.P, c: bad.P, lv: [[bad.P, 3, 2]] });
+    for (let m = m0; m < m0 + 10; m++) s5.putMin('NQ', m, null, '[[1,0,0]]', fp);
+    await h5.backfill('NQ', from, from + 9 * 60000);
+    const got = s5.range('NQ', m0, m0 + 9);
+    assert.ok(got.every((r) => r.fp === fp && r.imb === '[[1,0,0]]'), 'lost minutes keep their footprint + imbalance');
+    const smp = got.filter((r) => r.book).map((r) => decodeSamples(new Uint8Array(r.book).buffer)).flat();
+    assert.ok(smp.length >= 2 && smp.every((x) => Math.abs(x.mid - bad.P) < 5 && x.v.some((y) => y > 0)), 'filled at the traded price with the real bids');
+    const nf = f5.length; await h5.backfill('NQ', from, from + 9 * 60000); assert.equal(f5.length, nf, 'lost minutes asked once only');
+    h5.shutdown();
+  }
   hub.shutdown(); h2.shutdown(); h3.shutdown(); h4.shutdown();
   ok('archive backfill: gaps only, once, serial, same bucketing, capped, 429 pause, closed-market rows');
 }

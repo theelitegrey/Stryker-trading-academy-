@@ -505,8 +505,9 @@ export class TSHub {
     // minutes stored by the archive backfill BEFORE the +-2% range (build <= 790) hold a +-0.4% ribbon: drop them from `have` so they are
     // fetched once more at the wide range (an archive row has no imb / fp, so nothing else is lost). Recorder rows (imb / fp / 12 samples a minute)
     // are never replaced; they age out with KEEP_H.
-    const have = new Set();
-    for (const r of this.store.range(sym, t0, t1)) { if (r.book && !r.imb && !r.fp && narrowBook(r.book)) continue; have.add(r.t); }
+    // a minute with trades but no book (the live book was unusable, e.g. 10 Nov from 09:31 ET: crossed, no mid) is filled too; its imb / fp are kept
+    const have = new Set(), lost = new Map();
+    for (const r of this.store.range(sym, t0, t1)) { if (r.book && !r.imb && !r.fp && narrowBook(r.book)) continue; if (!r.book && r.fp) { lost.set(r.t, r); continue; } have.add(r.t); }
     const a = this.acc.get(sym); if (a) have.add(a.t);
     const missing = []; for (let t = t1; t >= t0; t--) if (!have.has(t)) missing.push(t);
     if (!missing.length) return { filled: 0, left: 0 };
@@ -536,12 +537,14 @@ export class TSHub {
         }
         let book = null;
         if (bids.length && asks.length) {
-          const k = cleanBook(bids, asks);   // sorted, uncrossed
-          const mid = k.bids.length && k.asks.length ? (k.bids[0][0] + k.asks[0][0]) / 2 : 0;
+          let px = 0; for (const m of mins) { const L = lost.get(m); if (L) { try { px = JSON.parse(L.fp).c || 0; } catch (e) {} break; } }
+          const k = cleanBook(bids, asks, px, 8 * (TICK_SIZE[sym] || 0.25));   // sorted, uncrossed (at the minute's last trade when it has one)
+          const mid = bookMidOf(k.bids, k.asks);
           const smp = mid > 0 ? bucketSnapshot({ bids: k.bids, asks: k.asks }, Math.floor(first / 1000), coarseRule(mid, sym)) : null;
           if (smp && smp.v.length) book = encodeSamples([smp]);
         }
-        try { for (const m of mins) this.store.putMin(sym, m, m === t ? book : null, null, null); } catch (e) { this.lastError = 'store failed'; break; }
+        // a lost minute keeps its imb / fp and gets an EMPTY book (not null) when it has no snapshot of its own, so it is asked once only
+        try { for (const m of mins) { const L = lost.get(m); this.store.putMin(sym, m, m === t && book ? book : L ? encodeSamples([]) : null, L ? L.imb : null, L ? L.fp : null); } } catch (e) { this.lastError = 'store failed'; break; }
         filled += mins.length; if (book) this.n.filled = (this.n.filled || 0) + 1;
       }
     } finally { this.filling = false; }

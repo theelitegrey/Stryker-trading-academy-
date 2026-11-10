@@ -232,6 +232,33 @@ function lateLayers(R){
     } catch (e) { console.warn('TradeZoro: late layer mount', e); }
     return mountIndicator.apply(this, arguments);
   };
+  // HIDDEN INDICATOR = NO LAYER PIXELS (bug 2026-11-10, "hid Volume Bubble, bubbles stay"). Hiding drops the
+  // indicator's scene model but its layer canvas keeps the last picture, and the layer keeps drawing its pushed
+  // data. Now a layer whose indicator is hidden is cleared and skipped (data keeps updating, so show is current).
+  // Hidden ids -> type are tracked here; a type with a visible model on the scene is never treated as hidden.
+  if (typeof proto.layerHiddenWithCandles === 'function' && typeof proto.setIndicatorVisible === 'function') {
+    const setVis = proto.setIndicatorVisible, hiddenWithCandles = proto.layerHiddenWithCandles;
+    proto.setIndicatorVisible = function (handle, visible) {
+      try {
+        if (!this.stkHid) this.stkHid = new Map();
+        const t = this.scene.indicators.get(handle.id)?.native?.type;
+        if (visible) this.stkHid.delete(handle.id); else if (t) this.stkHid.set(handle.id, t);
+      } catch (e) {}
+      return setVis.apply(this, arguments);
+    };
+    proto.layerHiddenWithCandles = function (l) {
+      if (hiddenWithCandles.apply(this, arguments)) return true;
+      const hid = this.stkHid;
+      if (!hid || !hid.size) return false;
+      if (l.owner !== null) return hid.has(l.owner) && !this.scene.indicators.has(l.owner);
+      for (const [id, t] of hid) {
+        if (t !== l.def.id || this.scene.indicators.has(id)) continue;
+        for (const m of this.scene.indicators.values()) if (m.native && m.native.type === t) return false;
+        return true;
+      }
+      return false;
+    };
+  }
   proto.removeIndicator = function (handle) {
     const r = removeIndicator.apply(this, arguments);
     try {

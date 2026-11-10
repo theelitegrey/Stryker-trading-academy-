@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   var box = document.getElementById('discord-site-body'); if (!box) return;
-  var INVITE = 'https://discord.gg/ZYuHkVcMy';
+  var INVITE = 'https://discord.gg/M4d4gTr5c3';
   var base = 'https://discord-roles.theelitegrey.workers.dev';
   try { if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) base = localStorage.getItem('cx_discord_api') || base; } catch (e) {}
   var NOTICE = { cancelled: 'Cancelled. Nothing changed.', failed: 'Discord said no. Try again.', used: 'That Discord account is already linked to another TradeZoro account.', expired: 'That link expired. Start again.', notready: 'Discord connection is being set up.' };

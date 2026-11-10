@@ -309,7 +309,7 @@ async function suite(b, vp) {
   await p.click('.hc-item.is-open .hc-copy'); await sleep(200);
   const clip = await p.evaluate(() => navigator.clipboard.readText().catch(() => 'n/a'));
   check(clip === BASE + '/help#refund' || clip === 'n/a', tag + ': Copy link copies the deep link (' + clip + ')');
-  check(await p.$$eval('.hc-still a', (a) => a.map((x) => x.getAttribute('href')).join('|')) === 'https://discord.gg/jUJpu76rve|mailto:support@tradezoro.com', tag + ': Still-need-help links');
+  check(await p.$$eval('.hc-still a', (a) => a.map((x) => x.getAttribute('href')).join('|')) === 'https://discord.gg/M4d4gTr5c3|mailto:support@tradezoro.com', tag + ': Still-need-help links');
 
   // ---- no-JS fallback + JSON-LD
   const html = fs.readFileSync(path.join(ROOT, 'help.html'), 'utf8');

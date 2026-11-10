@@ -314,7 +314,7 @@ class L2Flow {
     const hub = this.u.h, tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
     if (tf < 60000 || tf > 4 * 3600000) return this.say('Works on 1-minute to 4-hour charts.');
     hub.feed.needRemote(bars[0].time);          // book history back to the left edge of the chart (the heatmap's own loader, one request in flight)
-    if (hub.ts) hub.ts.need(bars[0].time);       // trade history back to the left edge
+    if (hub.ts) hub.ts.need(Math.min(bars[0].time, Date.now() - BT.REF_MS));   // trade history back to the left edge, and at least Big Trades' 24 h reference
     const samples = hub.samples(), first = samples.length ? samples[0].ts : 0;
     const since = first && first > bars[0].time + 120000 ? 'Book history from ' + hhmm(first) : '';
     const t = this.type;

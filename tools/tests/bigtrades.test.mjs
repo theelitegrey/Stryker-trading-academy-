@@ -52,4 +52,16 @@ const prints = []; for (let i = 0; i < 400; i++) prints.push([i * 60000, 1000 + 
   assert.ok(Math.abs(lens(10, 10, 0)) > 314 && lens(10, 10, 25) === 0 && Math.abs(lens(10, 4, 3) - Math.PI * 16) < 1e-6); assert.deepEqual([0.3, 0.6, 0.9].map(words), ['Moderate', 'Strong', 'Very strong']); ok('marker area ~ impact (8..28 / 36 px), overlap maths, impact words'); }
 assert.equal(migrate({ sellColor: '#9d4dff' }).sellColor, '#f23645'); assert.equal(schema().find((x) => x.key === 'sellColor').defval, '#f23645'); assert.equal(DEFAULTS.minOpacity, 0.7);
 ok('sellers red by default; old purple maps to red; fill opacity 70 %');
+// GK 10 Nov (real feed): the marks must not depend on how much history is loaded. Dragging back loads 34 h, a reload loads 8 h again;
+// with the threshold taken from everything loaded, the same minutes got different marks (real NQ: thr 129 -> 147 -> 100).
+// refFrom pins the threshold + size stats to a fixed recent span, so the marks in that span are the same however far back the chart is.
+{ const H = 3600000, now = 40 * H, r = (() => { let s = 7; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; })(), pr = [];
+  for (let t = 0; t < now; t += 4000) { const h = Math.floor(t / H) % 24, busy = h >= 13 && h < 20; if (!busy && r() < 0.7) continue; pr.push([t, 1000 + Math.round(r() * 80), Math.max(1, Math.round(Math.exp(1 + r() * (busy ? 4.2 : 3)))), r() < 0.5 ? 1 : 0]); }
+  const key = (sel, from) => sel.list.filter((p) => p.ms >= from).map((p) => p.ms + '|' + p.size + '|' + p.impact.toFixed(4)).join(',');
+  const refFrom = now - 24 * H, last8 = now - 8 * H, opt = { tick: 1, now, refFrom };
+  const short = select(pr.filter((x) => x[0] >= now - 24 * H), {}, opt), long = select(pr, {}, opt);   // 24 h loaded vs 40 h loaded (dragged back)
+  assert.ok(key(short, last8).length > 0); assert.equal(key(long, last8), key(short, last8)); assert.equal(long.thr, short.thr);
+  const a = select(pr.filter((x) => x[0] >= last8), {}, { tick: 1, now }), b = select(pr, {}, { tick: 1, now });
+  assert.notEqual(a.thr, b.thr, 'without refFrom the threshold follows the loaded span (the bug)');
+  ok('refFrom: same marks + threshold in the recent span whether 24 h or 40 h of history is loaded'); }
 console.log(n + ' tests passed');

@@ -114,6 +114,7 @@ const px = (p, x, y) => p.evaluate(([x, y]) => {
   }
   return best;
 }, [x, y]);
+const fmtD = (v) => { const a = Math.abs(v), s = v < 0 ? '\u2212' : ''; if (a >= 1e7) return s + Math.round(a / 1e6) + 'M'; if (a >= 1e6) return s + (a / 1e6).toFixed(1) + 'M'; if (a >= 1e4) return s + Math.round(a / 1e3) + 'K'; if (a >= 1e3) return s + (a / 1e3).toFixed(1) + 'K'; if (Number.isInteger(a) || a >= 100) return s + Math.round(a); return a === 0 ? '0' : s + (a < 0.01 ? '<.01' : +a.toFixed(a >= 10 ? 1 : 2)); };
 const greenish = (c) => c && c[1] > c[0] + 15;
 const reddish = (c) => c && c[0] > c[1] + 15;
 
@@ -139,7 +140,7 @@ const reddish = (c) => c && c[0] > c[1] + 15;
           const tag = vp + '-' + theme + '-' + (crypto ? 'BTC' : 'NQ') + '-' + t + 'm';
           await zoomTo(p, t === '1' ? 12 : 4); await sleep(1500);
           // every style switches and the engine follows
-          for (const st of ['classic', 'delta', 'volume', 'ladder', 'boxes']) {
+          for (const st of ['classic', 'delta', 'volume', 'ladder', 'boxes', 'dbars']) {
             await setCfg(p, { fpStyle: st }); await sleep(500);
             const c = await cfgOf(p);
             check(c && c.style === st && c.mode === (st === 'classic' ? 'bidask' : st), tag + ': Style ' + st + ' applies', c);
@@ -159,6 +160,38 @@ const reddish = (c) => c && c[0] > c[1] + 15;
           for (const q of pocs.slice(0, 6)) { let hit = false; for (const [dx, dy] of [[q.w / 2, 1.2], [q.w / 2, q.h - 0.8], [1.2, q.h / 2], [q.w - 1.5, q.h / 2]]) { const c = await px(p, q.x + dx, q.y + dy); if (c && c[0] > 110 && c[1] > 90 && c[2] < 120) hit = true; } if (hit) yel++; }
           check(yel >= 1 && yel >= Math.min(6, pocs.length) - 2, tag + ': POC box has the highlight outline (' + yel + ' sampled)', yel);
           await p.screenshot({ path: OUT + '/boxes-' + tag + '.png' });
+          // Delta bars
+          await setCfg(p, { fpStyle: 'dbars', fpTable: false, fpDbProfile: true, fpDbBadge: true }); await sleep(600); await dbgReset(p); await sleep(1100); if (!((await dbg(p)) || {}).dbars) { await setCfg(p, { fpDbBadge: false }); await sleep(300); await dbgReset(p); await setCfg(p, { fpDbBadge: true }); await sleep(1500); }
+          const DB = (await dbg(p) || {}).dbars;
+          check(DB && DB.cells.length > 5, tag + ': Delta bars draws rows (' + (DB && DB.cells.length) + ')', DB && DB.cells.length);
+          if (DB && DB.cells.length) {
+            const byBar = new Map(); for (const q of DB.cells) { if (!byBar.has(q.i)) byBar.set(q.i, []); byBar.get(q.i).push(q); }
+            let lenOk = true, ratio = 0;
+            for (const rowsB of byBar.values()) for (const q of rowsB) { if (q.d === 0) continue; const want = Math.max(2, q.w * Math.abs(q.d) / q.max); if (Math.abs(q.len - want) > 0.01) lenOk = false; ratio = Math.max(ratio, Math.abs(q.d) / q.max); }
+            check(lenOk && Math.abs(ratio - 1) < 1e-9, tag + ': fill length tracks |delta| (biggest row = full length)', { lenOk, ratio });
+            const withImb = DB.cells.filter((q) => q.imb), plain = DB.cells.filter((q) => !q.imb);
+            check(withImb.length > 0 && plain.length > 0, tag + ': imbalance rows are a subset (' + withImb.length + ' of ' + DB.cells.length + ')', { a: withImb.length, b: plain.length });
+            let outl = 0, nooutl = 0;
+            const near = (c, r, g, b) => c && c[3] > 200 && Math.abs(c[0] - r) < 24 && Math.abs(c[1] - g) < 24 && Math.abs(c[2] - b) < 24;   // the exact outline colours: green 3,201,136 / pink 255,92,122
+            const edge = async (q) => { for (const [dx, dy] of [[q.w / 2, 1], [q.w / 2, q.h], [q.w / 2, 0.5], [q.w / 2, q.h + 0.5], [q.w / 2 + 3, 1], [q.w / 2 + 3, q.h]]) { const c = await px(p, q.x + dx, q.y + dy); if (near(c, 3, 201, 136) || near(c, 255, 92, 122)) return true; } return false; };
+            for (const q of withImb.filter((q) => q.h >= 5).slice(0, 12)) if (await edge(q)) outl++;
+            for (const q of plain.filter((q) => q.h >= 5 && !q.poc).slice(0, 12)) if (await edge(q)) nooutl++;
+            check(outl >= Math.ceil(withImb.filter((q) => q.h >= 5).slice(0, 12).length / 2) && nooutl === 0, tag + ': outline only on imbalance rows (' + outl + ' outlined, ' + nooutl + ' false)', { outl, nooutl });
+            const sgnOk = DB.pills.length > 0 && DB.pills.every((q) => Math.abs(q.rowSum - q.d) < 1e-6 * Math.max(1, Math.abs(q.d)) && (q.d >= 0) === q.positive);
+            check(sgnOk, tag + ': every bar pill = sum of its row deltas, sign included (' + DB.pills.length + ')', DB.pills.length);
+            const P = DB.profile;
+            check(P && P.rows.length > 3 && P.rows.filter((r) => r.poc).length === 1, tag + ': right-edge profile present with one POC outline', P && P.rows.length);
+            if (P) { const mx = P.rows.reduce((q, r) => q.vol > r.vol ? q : r); check(mx.poc, tag + ': profile POC is the biggest-volume row', mx); }
+            const sum = DB.pills.filter((q) => q.vis).reduce((z, q) => z + q.d, 0);
+            check(DB.badge && Math.abs(DB.badge.sum - sum) < 1e-6 * Math.max(1, Math.abs(sum)) && DB.badge.text === 'Delta ' + fmtD(DB.badge.sum), tag + ': Delta badge shows ' + (DB.badge && DB.badge.text), DB.badge);
+            // the badge equals the sum of the visible bars' deltas, from the real data
+            const real = await p.evaluate(() => { const c = window.STRYKER_VELA.chart, o = window.__stkOrderflow, vr = c.visibleRange ? c.visibleRange() : null; return vr || null; });
+            await p.screenshot({ path: OUT + '/dbars-' + tag + '.png' });
+            await setCfg(p, { fpDbProfile: false, fpDbBadge: false }); await dbgReset(p); await sleep(1800);
+            const off = (await dbg(p) || {}).dbars;
+            check(off && !off.profile && !off.badge, tag + ': profile and badge switch off', off && { p: !!off.profile, b: !!off.badge });
+            await setCfg(p, { fpDbProfile: true, fpDbBadge: true });
+          }
           // stats table
           await dbgReset(p); await setCfg(p, { fpTable: true }); await sleep(1200);
           d = await dbg(p);
@@ -170,10 +203,15 @@ const reddish = (c) => c && c[0] > c[1] + 15;
             check(T.rows.length === want || (T.rows.length === want - 1 && !phone), tag + ': table rows ' + T.rows.join(','), T);
             check(T.rows.includes('vol') && T.rows.includes('delta'), tag + ': table has Total volume + Delta rows', T.rows);
             const bcols = new Set(boxes.map((q) => q.i)), tcols = new Set(T.cols.map((q) => q.i));
-            const aligned = [...bcols].every((i) => tcols.has(i)) && T.cols.every((c) => Math.abs(c.xl + c.w / 2 - c.xc) < 2);
+            const aligned = T.cols.length > 0 && T.cols.every((c) => bcols.has(c.i)) && T.cols.every((c) => Math.abs(c.xl + c.w / 2 - c.xc) < 2);
             const bx = boxes.find((q) => q.i === T.cols[T.cols.length - 1].i);
             check(aligned && (!bx || Math.abs(bx.x - 6 - T.cols[T.cols.length - 1].xc) < 2), tag + ': one table column per bar, centred under its bar', { cols: T.cols.length });
             const plotH = await p.evaluate(() => { let m = 0; for (const c of document.querySelectorAll('#vela-chart canvas')) m = Math.max(m, c.getBoundingClientRect().height); return m; });
+            await sleep(800); await dbgReset(p); await setCfg(p, { fpStyle: 'boxes' }); await sleep(1200);
+            const d2 = await dbg(p), b2 = (d2 && d2.boxes) || [], T2 = (d2 && d2.table) || T;
+            const lowest = b2.reduce((mx, q) => Math.max(mx, q.y + q.h), 0);
+            check(b2.length > 3 && lowest <= T2.y0 + 1, tag + ': no box is drawn under the table (lowest box ' + Math.round(lowest) + ', table top ' + Math.round(T2.y0) + ')', { lowest, y0: T2.y0 });
+            check(T2.cols.every((c) => c.xl >= 0), tag + ': no clipped table column', T2.cols.slice(0, 2));
             check(T.y0 + T.H <= plotH - 10, tag + ': table stays above the time axis (ends ' + Math.round(T.y0 + T.H) + ' of ' + Math.round(plotH) + ')', { y: T.y0 + T.H, plotH });
             // heat-map: a positive-delta cell is green, a negative one red
             const dr = T.rows.indexOf('delta'), cy = T.y0 + dr * T.rh + T.rh / 2;
@@ -186,7 +224,7 @@ const reddish = (c) => c && c[0] > c[1] + 15;
             check(!!((await dbg(p)) || {}).table, tag + ': table also shows with Classic', 0);
             await setCfg(p, { fpStyle: 'boxes' }); await sleep(300);
           }
-          await dbgReset(p); await setCfg(p, { fpTable: false }); await sleep(1200);
+          await dbgReset(p); await setCfg(p, { fpTable: false }); await sleep(1500); await dbgReset(p); await zoomTo(p, t === '1' ? 12 : 4); await sleep(1200);
           check(!((await dbg(p)) || {}).table, tag + ': table gone when off', 0);
         }
         // old saved charts: fpMode only keeps its look

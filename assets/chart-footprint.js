@@ -299,8 +299,8 @@ function cryptoFlow(ctxLike, root, tf) {
 }
 
 // ---------------------------------------------------------------- footprint chart type
-const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true };
-const STYLES = ['classic', 'delta', 'volume', 'ladder', 'boxes'];
+const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true };
+const STYLES = ['classic', 'delta', 'volume', 'ladder', 'boxes', 'dbars'];
 const fpSettings = new Map();      // chart engine -> settings
 function fpConfig(v) {
   v = v || {};
@@ -308,7 +308,7 @@ function fpConfig(v) {
   const style = STYLES.includes(v.fpStyle) ? v.fpStyle : ['delta', 'volume', 'ladder'].includes(v.fpMode) ? v.fpMode : 'classic';
   const mode = style === 'classic' ? 'bidask' : style;
   return {
-    style, boxProfile: v.fpBoxProfile !== false, table: v.fpTable === true,
+    style, boxProfile: v.fpBoxProfile !== false, dbProfile: v.fpDbProfile !== false, dbBadge: v.fpDbBadge !== false, table: v.fpTable === true,
     src: v.fpSrc === 'l1' ? 'l1' : 'l2',   // futures data: L2 (order book feed's trades, default) or L1 (trades; the classic recorder data). Crypto ignores it.
     mode,
     scale: v.fpScale === 'bar' ? 'bar' : 'range',
@@ -343,7 +343,7 @@ class FootprintEngine {
   }
   dropL2() { if (this.l2m) this.l2m.fpDrop(this.l2own); this.l2v = -1; }
   onSettings(v) {
-    this.cfg = fpConfig(v); this.push();
+    this.raw = v || {}; this.cfg = fpConfig(v); this.push();
     // an old chart (fpMode, no fpStyle): write the Style once so the settings panel shows the look the chart really has
     if (v && !STYLES.includes(v.fpStyle) && this.cfg.style !== 'classic' && !this.migrating) {
       this.migrating = true;
@@ -351,7 +351,22 @@ class FootprintEngine {
     }
   }
   onViewport() { this.push(); }
-  suspend() { if (!this.on) return; this.on = false; this.dropL2(); clearTimeout(this.l2tm); this.l2tm = 0; users--; stopRefresh(); listeners.delete(this.onAny); }
+  // Bar stats table ON: keep its height free at the bottom of the price pane (Vela's bottom margin, % of the pane), so no bar or
+  // volume bar is drawn under it. The member's own margin is saved in fpMarginPrev and put back when the table goes off.
+  reserve(H, ph) {
+    if (this.resTm) return;
+    const ws = window.STRYKER_VELA, r0 = ws && ws.chart && ws.chart.renderer, R = r0 && (r0.applyConfig ? r0 : r0.renderer);
+    if (!R || !R.applyConfig || !R.getConfig) return;
+    let cur; try { cur = R.getConfig().margins.bottom; } catch (e) { return; }
+    const need = H > 0 && ph > 0 ? Math.min(40, Math.ceil((H + 18) / ph * 100)) : 0;
+    const prev = this.raw && typeof this.raw.fpMarginPrev === 'number' ? this.raw.fpMarginPrev : null;
+    let patch = null;
+    if (need > 0 && (cur < need - 0.5 || (prev != null && Math.abs(cur - need) > 1 && cur > need))) patch = { margins: { bottom: need }, chartTypes: { stk_fp: prev == null ? { fpMarginPrev: cur } : {} } };
+    else if (need === 0 && prev != null) patch = { margins: { bottom: prev }, chartTypes: { stk_fp: { fpMarginPrev: null } } };
+    if (!patch) return;
+    this.resTm = setTimeout(() => { this.resTm = 0; try { R.applyConfig(patch); } catch (e) {} }, 0);
+  }
+  suspend() { if (!this.on) return; this.on = false; clearTimeout(this.resTm); this.resTm = 0; this.dropL2(); clearTimeout(this.l2tm); this.l2tm = 0; users--; stopRefresh(); listeners.delete(this.onAny); }
   resume() { if (this.on) return; this.on = true; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
   stop() { this.suspend(); }
   push() {
@@ -453,6 +468,113 @@ function drawBoxes(X) {
   }
   return anyText;
 }
+// ---------------------------------------------------------------- Delta bars (Owner 10 Nov, second look)
+const TEAL = '#1fb5b0', ORNG = '#f0883a', PINK = '#ff5c7a';
+function drawDbars(X) {
+  const { g, co, a, f, cfg, i0, i1, m, tick, bw, rowPx, compact, top, bot, day, plotR } = X;
+  const dpr = co.dpr || 1, base = () => g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const D = window.__stkFpDebug ? (window.__stkFpDebug.dbars = { cells: [], pills: [], profile: null, badge: null }) : null;
+  // one gradient per kind, defined on x 0..1 and stretched to each cell's length with a transform (no gradient per cell)
+  const grad = (c, a1) => { const q = g.createLinearGradient(0, 0, 1, 0); q.addColorStop(0, alpha(c, 0.03)); q.addColorStop(1, alpha(c, a1)); return q; };
+  const GR = { pos: grad(TEAL, 0.5), neg: grad(ORNG, 0.55), posI: grad(TEAL, 0.72), negI: grad(ORNG, 0.75) };
+  const cw = Math.max(8, bw * (compact ? 0.88 : 0.92) - 8);
+  const fs = clamp(Math.floor(rowPx - 3), 8, 12), pillH = compact ? 14 : 18;
+  const vr = co.visibleLogicalRange(), v0 = Math.max(0, Math.ceil(vr.from)), v1 = Math.min(a.bars.length - 1, Math.floor(vr.to));
+  let badge = 0, anyText = false;
+  const prof = new Map();
+  g.textBaseline = 'middle';
+  for (let i = i0; i <= i1; i++) {
+    const bar = a.bars[i], fb = f.map.get(bar.time);
+    if (!fb) continue;
+    const { rs, poc: pk, dm } = rowsOf(fb, m);
+    if (!rs.length) continue;
+    const inVis = i >= v0 && i <= v1;
+    if (inVis) { badge += fb.delta; if (cfg.dbProfile) for (const r of rs) { let e = prof.get(r.p); if (!e) { e = { p: r.p, buy: 0, sell: 0 }; prof.set(r.p, e); } e.buy += r.buy; e.sell += r.sell; } }
+    const x = co.logicalToX(i), x0 = x + 5;
+    const yH = co.priceToY(bar.high, a.scale, a.bounds), yL = co.priceToY(bar.low, a.scale, a.bounds);
+    const yO = co.priceToY(bar.open, a.scale, a.bounds), yC = co.priceToY(bar.close, a.scale, a.bounds);
+    const cc = bar.close >= bar.open ? TEAL : ORNG, bwid = bw >= 30 ? 3 : 2;
+    g.fillStyle = cc; g.fillRect(Math.round(x), Math.min(yH, yL), 1, Math.max(1, Math.abs(yL - yH)));
+    g.fillRect(Math.round(x - bwid / 2 + 0.5), Math.min(yO, yC), bwid, Math.max(1.5, Math.abs(yC - yO)));
+    g.fillStyle = ORNG; g.fillRect(Math.round(x - 3), Math.round(yH), 7, 1.5); g.fillRect(Math.round(x - 3), Math.round(yL) - 1, 7, 1.5);   // high / low ticks
+    const imb = imbalances(rs, cfg.imb), st = stacked(imb, cfg.stack), inStack = new Uint8Array(rs.length);
+    for (const sx of st) for (let k = sx.k0; k <= sx.k1; k++) inStack[k] = 1;
+    let ch = 1;
+    if (rowPx >= 10) for (const r of rs) { const n = fmtD(r.buy - r.sell).length; if (n > ch) ch = n; }
+    const text = rowPx >= 10 && fs * 0.6 * ch <= cw - 4;
+    if (text) { anyText = true; g.font = fs + 'px ' + MONO; g.textAlign = 'left'; }
+    let lowY = 0;
+    for (let k = 0; k < rs.length; k++) {
+      const r = rs[k], d = r.buy - r.sell;
+      const yT = co.priceToY((r.p + m) * tick, a.scale, a.bounds), yB = co.priceToY(r.p * tick, a.scale, a.bounds);
+      const y = Math.min(yT, yB), h = Math.abs(yB - yT), bh = Math.max(1, h - 1);
+      if (y + h > lowY) lowY = y + h;
+      if (y > bot || y + h < top) continue;
+      const ib = imb.buy[k] ? 1 : 0, is = imb.sell[k] ? 1 : 0, len = d === 0 ? 0 : Math.max(2, cw * Math.abs(d) / dm);
+      if (len > 0) {
+        g.setTransform(dpr * len, 0, 0, dpr, dpr * x0, 0);
+        g.fillStyle = d > 0 ? (ib ? GR.posI : GR.pos) : (is ? GR.negI : GR.neg);
+        g.fillRect(0, y + 0.5, 1, bh); base();
+      }
+      const isPoc = cfg.poc && k === pk;
+      if (isPoc) { g.fillStyle = day ? 'rgba(15,23,42,0.07)' : 'rgba(255,255,255,0.07)'; g.fillRect(x0, y + 0.5, cw, bh); }
+      if ((ib || is) && h >= 4) {
+        const pick = ib && is ? (d >= 0 ? 1 : 0) : ib;
+        g.strokeStyle = pick ? UP : PINK; g.lineWidth = inStack[k] ? 1.6 : 1;
+        g.beginPath(); if (g.roundRect) g.roundRect(x0 + 0.5, y + 1, cw - 1, Math.max(1, bh - 1), 2); else g.rect(x0 + 0.5, y + 1, cw - 1, Math.max(1, bh - 1)); g.stroke();
+      } else if (isPoc && h >= 4) {
+        g.strokeStyle = day ? 'rgba(15,23,42,0.45)' : 'rgba(255,255,255,0.45)'; g.lineWidth = 1;
+        g.strokeRect(x0 + 0.5, y + 1, cw - 1, Math.max(1, bh - 1));
+      }
+      if (D) D.cells.push({ i, x: x0, y, w: cw, h: bh, d, len, max: dm, imb: ib ? 1 : is ? 2 : 0, poc: !!isPoc });
+      if (text) { g.fillStyle = day ? '#1f2937' : '#eceef2'; g.fillText(fmtD(d), x0 + 3, y + h / 2 + 0.5); }
+    }
+    // pill with the bar's total delta, under the bar
+    const txt = fmtD(fb.delta), pf = compact ? 9 : 11;
+    g.font = '600 ' + pf + 'px ' + MONO;
+    const pw = Math.min(Math.round(g.measureText(txt).width + 12), Math.max(10, Math.round(bw - 2)));
+    let py = Math.round(lowY + 5); if (py + pillH > bot - 1) py = Math.round(bot - pillH - 1);
+    const pxl = Math.round(x0 + cw / 2 - pw / 2);
+    g.fillStyle = day ? '#ffffff' : '#101114'; g.strokeStyle = day ? 'rgba(15,23,42,0.14)' : 'rgba(255,255,255,0.1)'; g.lineWidth = 1;
+    g.beginPath(); if (g.roundRect) g.roundRect(pxl + .5, py + .5, pw, pillH, pillH / 2); else g.rect(pxl + .5, py + .5, pw, pillH); g.fill(); g.stroke();
+    if (g.measureText(txt).width + 6 <= pw) { g.textAlign = 'center'; g.fillStyle = fb.delta >= 0 ? (day ? '#047857' : UP2) : (day ? '#b91c1c' : '#ff6b78'); g.fillText(txt, pxl + pw / 2 + .5, py + pillH / 2 + 1); }
+    else { g.fillStyle = fb.delta >= 0 ? UP : DN; g.fillRect(pxl + pw / 2 - 2, py + pillH / 2 - 1, 4, 2); }
+    if (D) D.pills.push({ i, d: fb.delta, vis: inVis, rowSum: rs.reduce((z, r) => z + r.buy - r.sell, 0), positive: fb.delta >= 0 });
+  }
+  // volume profile of the visible range at the right edge: bar length = volume, colour = that price's net delta
+  if (cfg.dbProfile && prof.size) {
+    const list = [...prof.values()].sort((p, q) => p.p - q.p);
+    let vmax = 1, pk = 0; list.forEach((e, k) => { const v = e.buy + e.sell; if (v > vmax) { vmax = v; pk = k; } });
+    const Wp = compact ? 40 : clamp(plotR * 0.12, 52, 128), xr = plotR - 2;
+    g.font = (compact ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right';
+    const out = [];
+    list.forEach((e, k) => {
+      const v = e.buy + e.sell, d = e.buy - e.sell;
+      const yT = co.priceToY((e.p + m) * tick, a.scale, a.bounds), yB = co.priceToY(e.p * tick, a.scale, a.bounds);
+      const y = Math.min(yT, yB), h = Math.abs(yB - yT), bh = Math.max(1, h - 1);
+      if (y > bot || y + h < top) return;
+      const w = Math.max(2, Wp * v / vmax), c = d >= 0 ? TEAL : ORNG;
+      g.fillStyle = alpha(c, 0.25 + 0.55 * Math.min(1, Math.abs(d) / Math.max(1, v) * 2.2)); g.fillRect(xr - w, y + 0.5, w, bh);
+      if (k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.3; g.strokeRect(xr - w + 0.5, y + 1, w - 1, Math.max(1, bh - 1)); }
+      if (rowPx >= 10) { g.fillStyle = day ? '#1f2937' : '#eceef2'; g.fillText(fmtD(d), xr - 3, y + h / 2 + 0.5); }
+      out.push({ p: e.p, vol: v, d, poc: k === pk });
+    });
+    if (D) D.profile = { rows: out, x0: xr - Wp, x1: xr };
+  }
+  // net delta of the visible bars
+  if (cfg.dbBadge) {
+    const txt = 'Delta ' + fmtD(badge);
+    g.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const tw = g.measureText('Delta ').width, vw = g.measureText(fmtD(badge)).width, bwid = Math.round(tw + vw + 20), bx = Math.round(plotR - bwid - 8), by = top + (compact ? 64 : 34);   // below the Fit price / Latest buttons
+    g.fillStyle = day ? 'rgba(255,255,255,0.94)' : 'rgba(19,19,22,0.92)'; g.strokeStyle = day ? 'rgba(15,23,42,0.14)' : 'rgba(255,255,255,0.1)'; g.lineWidth = 1;
+    g.beginPath(); if (g.roundRect) g.roundRect(bx + .5, by + .5, bwid, 22, 8); else g.rect(bx + .5, by + .5, bwid, 22); g.fill(); g.stroke();
+    g.textAlign = 'left'; g.fillStyle = day ? '#475569' : '#a3a9b6'; g.fillText('Delta ', bx + 10, by + 11.5);
+    g.fillStyle = badge >= 0 ? (day ? '#047857' : UP2) : (day ? '#b91c1c' : '#ff6b78'); g.fillText(fmtD(badge), bx + 10 + tw, by + 11.5);
+    if (D) D.badge = { sum: badge, text: txt, bars: v1 - v0 + 1 };
+  }
+  return anyText;
+}
+
 const TABLE_ROWS = [['vol', 'Total volume'], ['delta', 'Delta'], ['dpct', 'Delta %'], ['buy', 'Buy volume'], ['sell', 'Sell volume'], ['trd', 'Trades']];
 // rows this chart can really show: from the footprint's own volume, delta and (when the feed has them) trade counts
 export function tableRowsFor(fbs, phone) {
@@ -488,6 +610,7 @@ function drawTable(X) {
     const fb = f.map.get(a.bars[i].time);
     if (!fb) continue;
     const xl = co.logicalToX(i) - bw / 2 + 0.5, w = bw - 1;
+    if (xl < 0) continue;   // a bar cut by the left edge gets no half column; on the right the label area clips cleanly
     if (window.__stkFpDebug) window.__stkFpDebug.table.cols.push({ i, xc: co.logicalToX(i), xl, w });
     rows.forEach(([k], ri) => {
       const v = tableVal(fb, k), t = Math.abs(v) / mx[k], y = y0 + ri * rh;
@@ -495,7 +618,7 @@ function drawTable(X) {
       g.fillStyle = alpha(base, 0.14 + 0.72 * Math.sqrt(t));
       g.fillRect(xl, y + 0.5, w, rh - 1);
       const txt = k === 'dpct' ? (v < 0 ? '\u2212' : '') + Math.round(Math.abs(v) * 100) + '%' : k === 'delta' ? fmtD(v) : fmtD(Math.abs(v));
-      if (txt.length * 6 + 4 <= w) { g.fillStyle = t > 0.6 ? (k === 'sell' || (k !== 'buy' && v < 0) ? '#ffffff' : '#04140d') : (day ? '#1f2937' : '#e5e7eb'); g.fillText(txt, xl + w / 2, y + rh / 2 + 0.5); }
+      if (txt.length * 6 + 4 <= w && xl + w <= cellR) { g.fillStyle = t > 0.6 ? (k === 'sell' || (k !== 'buy' && v < 0) ? '#ffffff' : '#04140d') : (day ? '#1f2937' : '#e5e7eb'); g.fillText(txt, xl + w / 2, y + rh / 2 + 0.5); }
     });
   }
   g.restore();
@@ -566,10 +689,11 @@ function footprintLayer() {
       const rowPx = tickPx * m;
       const cells = bw >= 6 && rowPx >= (compact ? 3.5 : 9);
       const plotR = co.width - 56, X = { g, co, a, f, cfg, i0, i1, m, tick, bw, rowPx, compact, top, bot, day, plotR };
-      const tblH = cfg.table && i1 >= i0 ? drawTable(X) : 0;   // drawn first: the bars and stats sit above it
+      const tblH = cfg.table && i1 >= i0 ? drawTable(X) : 0;
+      if (d.eng && d.eng.reserve) d.eng.reserve(tblH, a.bounds.height);   // drawn first: the bars and stats sit above it
       bot -= tblH; X.bot = bot;
       try { document.body.classList.toggle('stk-fp-stats', tblH > 0); } catch (e) {}
-      const statsH = cfg.stats && cells && !compact && cfg.mode !== 'boxes' ? 30 : 0;
+      const statsH = cfg.stats && cells && !compact && cfg.mode !== 'boxes' && cfg.mode !== 'dbars' ? 30 : 0;
       const pill = (txt) => {
         g.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
         const pw = Math.round(g.measureText(txt).width + 20), px = Math.round((co.width - 56 - pw) / 2), py = Math.round(bot - 66);
@@ -593,6 +717,11 @@ function footprintLayer() {
       }
       on = true;
       try { document.body.classList.toggle('stk-fp-stats', true); } catch (e) {}
+      if (cfg.mode === 'dbars') {
+        const txt = drawDbars(X);
+        if (!txt && !f.note) pill('Zoom in to see the numbers');
+        g.restore(); lastMs = performance.now() - t0; if (window.__stkFpStats) window.__stkFpStats.push(lastMs); return;
+      }
       if (cfg.mode === 'boxes') {
         const txt = drawBoxes(X);
         if (!txt && !f.note) pill('Zoom in to see the numbers');
@@ -742,7 +871,7 @@ function footprintLayer() {
       lastMs = performance.now() - t0;
       if (window.__stkFpStats) window.__stkFpStats.push(lastMs);
     },
-    modulateBase(a) { return on && a && a.priceStyle === FP_TYPE ? (a.data && a.data.cfg && (a.data.cfg.mode === 'ladder' || a.data.cfg.mode === 'boxes') ? { candleBodyScale: 0.1, candleBodyAlpha: 0 } : { candleBodyScale: 0.1, candleBodyAlpha: 0.7 }) : null; },
+    modulateBase(a) { return on && a && a.priceStyle === FP_TYPE ? (a.data && a.data.cfg && (a.data.cfg.mode === 'ladder' || a.data.cfg.mode === 'boxes' || a.data.cfg.mode === 'dbars') ? { candleBodyScale: 0.1, candleBodyAlpha: 0 } : { candleBodyScale: 0.1, candleBodyAlpha: 0.7 }) : null; },
     destroy() { canvas = null; }
   };
 }
@@ -1009,17 +1138,19 @@ export function installFootprint(Core, flowMod) {
     settings: {
       title: 'Volume footprint',
       rows: [
-        { kind: 'select', key: 'fpStyle', label: 'Style', defval: FP_DEF.fpStyle, options: [['classic', 'Classic (Bid x Ask)'], ['delta', 'Delta'], ['volume', 'Volume'], ['ladder', 'Ladder (candle + level bars)'], ['boxes', 'Delta boxes']] },
+        { kind: 'select', key: 'fpStyle', label: 'Style', defval: FP_DEF.fpStyle, options: [['classic', 'Classic (Bid x Ask)'], ['delta', 'Delta'], ['volume', 'Volume'], ['ladder', 'Ladder (candle + level bars)'], ['boxes', 'Delta boxes'], ['dbars', 'Delta bars']] },
         { kind: 'select', key: 'fpSrc', label: 'Data source (futures)', defval: FP_DEF.fpSrc, options: [['l2', 'L2 (order book feed)'], ['l1', 'L1 (trades)']] },
         { kind: 'select', key: 'fpScale', label: 'Ladder bar scale', defval: FP_DEF.fpScale, options: [['range', 'Visible range'], ['bar', 'Per bar']], when: { key: 'fpStyle', anyOf: ['ladder'] } },
         { kind: 'select', key: 'fpLadShow', label: 'Ladder shows', defval: FP_DEF.fpLadShow, options: [['volume', 'Volume'], ['delta', 'Delta']], when: { key: 'fpStyle', anyOf: ['ladder'] } },
         { kind: 'toggle', key: 'fpBoxProfile', label: 'Delta boxes: volume profile of the latest bar', defval: true, when: { key: 'fpStyle', anyOf: ['boxes'] } },
+        { kind: 'toggle', key: 'fpDbProfile', label: 'Delta bars: volume profile at the right edge', defval: true, when: { key: 'fpStyle', anyOf: ['dbars'] } },
+        { kind: 'toggle', key: 'fpDbBadge', label: 'Delta bars: net Delta badge', defval: true, when: { key: 'fpStyle', anyOf: ['dbars'] } },
         { kind: 'toggle', key: 'fpTable', label: 'Bar stats table', defval: false },
-        { kind: 'number', key: 'fpImb', label: 'Imbalance ratio %', defval: FP_DEF.fpImb, min: 110, max: 2000, step: 10, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder'] } },
-        { kind: 'number', key: 'fpStack', label: 'Stacked imbalance rows', defval: FP_DEF.fpStack, min: 2, max: 10, step: 1, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder'] } },
+        { kind: 'number', key: 'fpImb', label: 'Imbalance ratio %', defval: FP_DEF.fpImb, min: 110, max: 2000, step: 10, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder', 'dbars'] } },
+        { kind: 'number', key: 'fpStack', label: 'Stacked imbalance rows', defval: FP_DEF.fpStack, min: 2, max: 10, step: 1, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder', 'dbars'] } },
         { kind: 'number', key: 'fpRows', label: 'Row size in ticks (0 = auto by zoom)', defval: FP_DEF.fpRows, min: 0, max: 400, step: 1 },
         { kind: 'toggle', key: 'fpStats', label: 'Delta + volume under each bar', defval: true, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume'] } },
-        { kind: 'toggle', key: 'fpPoc', label: 'Highlight the POC', defval: true, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'boxes'] } },
+        { kind: 'toggle', key: 'fpPoc', label: 'Highlight the POC', defval: true, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'boxes', 'dbars'] } },
         { kind: 'toggle', key: 'fpUnfinished', label: 'Unfinished-auction marks', defval: true, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume'] } },
         { kind: 'toggle', key: 'fpLadPoc', label: 'Ladder: highlight the POC', defval: false, when: { key: 'fpStyle', anyOf: ['ladder'] } },
         { kind: 'toggle', key: 'fpLadUnf', label: 'Ladder: unfinished-auction marks', defval: false, when: { key: 'fpStyle', anyOf: ['ladder'] } }

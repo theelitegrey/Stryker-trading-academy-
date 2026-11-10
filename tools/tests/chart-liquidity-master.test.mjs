@@ -1,7 +1,7 @@
 // Liquidity Master [TradeZoro] (Owner 2026-10-12 "add this indicator").
 //   PINETS=/path/to/node_modules/pinets node tools/tests/chart-liquidity-master.test.mjs
 // 1. The shipped .pine differs from the Owner's original ONLY on the 4 brand lines (3, 4, 25,
-//    1175): "[Stryker]" -> "[TradeZoro]" and the header credit. CRLF kept. Every other byte equal.
+//    1175) and the BUG-ASIA fix in f_session: "[Stryker]" -> "[TradeZoro]" and the header credit. CRLF kept. Every other byte equal.
 // 2. One PICKER_SCRIPTS entry, Editors' picks, author TradeZoro.
 // 3. Engine (with PINETS): the language features the script uses, then the session-anchored
 //    periods fix (chart-pine-next-patches.js): on a futures symbol (session 1800-1700 ET)
@@ -26,12 +26,13 @@ check(!/stryker/i.test(buf.toString('utf8')), 'no "Stryker" left in the shipped 
 if (fs.existsSync(ORIG)) {
   const o = fs.readFileSync(ORIG);
   check(crypto.createHash('md5').update(o).digest('hex').startsWith('bd29b7c11b6b'), 'original is the Owner file (md5 bd29b7c11b6b...)');
-  const a = o.toString('utf8').split('\r\n'), b = buf.toString('utf8').split('\r\n');
-  const diff = [];
-  for (let i = 0; i < Math.max(a.length, b.length); i++) if (a[i] !== b[i]) diff.push(i + 1);
-  check(a.length === b.length && JSON.stringify(diff) === '[3,4,25,1175]', 'only lines 3, 4, 25, 1175 differ: ' + JSON.stringify(diff));
+  // The shipped script = the original + the 4 brand lines + the BUG-ASIA fix (assets/pine/liquidity-master-tradezoro.pine,
+  // f_session: a session that starts on the first loaded bar is partial and is not drawn; test chart-asia-levels.test.mjs).
   const rebrand = (s) => s.split('[Stryker]').join('[TradeZoro]').split('© Stryker Trading  ·  strykertrading.com').join('© TradeZoro  ·  tradezoro.com');
-  check(diff.every((n) => rebrand(a[n - 1]) === b[n - 1]), 'those lines are exactly the rebrand');
+  const fix = (s) => s
+    .replace('    var int slt = na\r\n    if inS\r\n        if not inS[1] or na(sh)\r\n            sh := high', '    var int slt = na\r\n    var bool part = false\r\n    if inS\r\n        if not inS[1] or na(sh)\r\n            part := bar_index == 0   // data starts inside the session: its high/low is partial, so it is not drawn\r\n            sh := high')
+    .replace('        int exp = f_nextDayStart(time)\r\n        f_addLvl(sh, sht, 1, 2, 0, name + " High", exp, hiC, sty, wid, lbl, lblC, lblS, lblX, lblY)\r\n        f_addLvl(sl, slt, -1, 2, 0, name + " Low", exp, loC, sty, wid, lbl, lblC, lblS, lblX, lblY)\r\n        sh := na', '        int exp = f_nextDayStart(time)\r\n        if not part\r\n            f_addLvl(sh, sht, 1, 2, 0, name + " High", exp, hiC, sty, wid, lbl, lblC, lblS, lblX, lblY)\r\n            f_addLvl(sl, slt, -1, 2, 0, name + " Low", exp, loC, sty, wid, lbl, lblC, lblS, lblX, lblY)\r\n        part := false\r\n        sh := na');
+  check(fix(rebrand(o.toString('utf8'))) === buf.toString('utf8'), 'shipped = original + brand lines + the Asia partial-session fix, nothing else');
 } else console.log('SKIP original not on this machine');
 
 const { PICKER_SCRIPTS } = await import(pathToFileURL(path.join(root, 'assets', 'chart-pine-builtins.js')).href);

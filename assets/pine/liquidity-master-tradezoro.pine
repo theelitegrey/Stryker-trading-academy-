@@ -694,8 +694,10 @@ f_session(on, sess, name, hiC, loC, sty, wid, lbl, lblC, lblS, lblX, lblY) =>
     var float sl = na
     var int sht = na
     var int slt = na
+    var bool part = false
     if inS
         if not inS[1] or na(sh)
+            part := bar_index == 0   // data starts inside the session: its high/low is partial, so it is not drawn
             sh := high
             sl := low
             sht := time
@@ -709,8 +711,10 @@ f_session(on, sess, name, hiC, loC, sty, wid, lbl, lblC, lblS, lblX, lblY) =>
                 slt := time
     if not inS and inS[1] and not na(sh)
         int exp = f_nextDayStart(time)
-        f_addLvl(sh, sht, 1, 2, 0, name + " High", exp, hiC, sty, wid, lbl, lblC, lblS, lblX, lblY)
-        f_addLvl(sl, slt, -1, 2, 0, name + " Low", exp, loC, sty, wid, lbl, lblC, lblS, lblX, lblY)
+        if not part
+            f_addLvl(sh, sht, 1, 2, 0, name + " High", exp, hiC, sty, wid, lbl, lblC, lblS, lblX, lblY)
+            f_addLvl(sl, slt, -1, 2, 0, name + " Low", exp, loC, sty, wid, lbl, lblC, lblS, lblX, lblY)
+        part := false
         sh := na
         sl := na
 

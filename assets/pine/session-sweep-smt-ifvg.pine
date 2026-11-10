@@ -100,6 +100,7 @@ type Trk
     int    loB    = na
     float  xhi    = na
     float  xlo    = na
+    bool   part   = false   // first bar of the data was already inside the session: partial, not drawn
 
 type Lvl
     string name
@@ -197,7 +198,7 @@ f_killEvt(Evt e) =>
 
 // a finished session (or day) becomes two levels
 f_emit(Trk t, int idx) =>
-    if t.active and not na(t.hi) and time >= winOpen - dayMs
+    if t.active and not t.part and not na(t.hi) and time >= winOpen - dayMs
         for k = 0 to 1
             bool isH = k == 0
             Lvl v = Lvl.new()
@@ -224,6 +225,7 @@ f_emit(Trk t, int idx) =>
                 f_killLvl(o)
                 array.remove(lvls, i)
     t.active := false
+    t.part := false
     t.hi := na
     t.lo := na
 
@@ -237,6 +239,7 @@ f_feed(Trk t, int idx, bool inS, int key) =>
     if live
         if not t.active
             t.active := true
+            t.part := bar_index == 0
             t.key := key
             t.hi := high
             t.lo := low

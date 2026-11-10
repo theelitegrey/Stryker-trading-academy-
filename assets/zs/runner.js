@@ -6,7 +6,7 @@
 //   r.dispose();
 //   options: new ZsRunner({ onLive(out), onNotice({ns, state, upgrade, text}) })
 //   protected: const pub = await r.session(); ...get sealed from the API...; await r.run({ sealed, bars, ... })
-const WORKER_URL = new URL('./worker.js?v=943', import.meta.url);
+const WORKER_URL = new URL('./worker.js?v=944', import.meta.url);
 export const KILL_MS = { run: 25000, update: 8000, compile: 10000 };
 
 function killed(ms) {

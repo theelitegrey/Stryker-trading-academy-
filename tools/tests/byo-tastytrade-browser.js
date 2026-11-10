@@ -76,7 +76,7 @@ const idbKeys = (p) => p.evaluate(() => new Promise((res) => { const r = indexed
     await p.screenshot({ path: `${OUT}/tt-manage-${tag}.png` });
     if (tag === 'd1440') {
       const live = await p.evaluate(async () => {
-        const c = await import('/assets/byo-core.js?v=943');
+        const c = await import('/assets/byo-core.js?v=944');
         const got = []; const r = c.route('byo', 'AAPL');
         const stop = r.ad.subscribe(r.rec.hub, 'AAPL', '1', { time: Math.floor(Date.now() / 60000) * 60000, open: 1, high: 1, low: 1, close: 1, volume: 0 }, (x) => got.push(x));
         await new Promise((res) => setTimeout(res, 1200));

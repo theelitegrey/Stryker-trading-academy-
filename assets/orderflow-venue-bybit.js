@@ -1,7 +1,7 @@
 // TradeZoro: Bybit v5 order-flow adapter (public streams, no keys). Registers itself as "bybit".
 // orderbook.200 (spot 200 levels / linear 200 levels): first message = snapshot, then deltas; size 0 deletes a level.
 // publicTrade: S is the taker side ("Buy" = buyer-aggressor).
-import { registerVenue } from './orderflow-venues.js?v=939';
+import { registerVenue } from './orderflow-venues.js?v=940';
 
 const WS = 'wss://stream.bybit.com/v5/public/';
 // pair = chart ticker ("BTCUSDT", "BTCUSDT.P") or { base, quote, perp }

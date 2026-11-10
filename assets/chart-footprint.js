@@ -351,6 +351,18 @@ class FootprintEngine {
     }
   }
   onViewport() { this.push(); }
+  // Delta bars profile at the right edge: if the newest bar's cells would run under it, scroll the view left by exactly the
+  // overlap (rightOffset, in bars). Runs from the layer; converges in one step, so no loop.
+  room(over, bw) {
+    if (!(over > 1) || this.roomTm) return;
+    this.roomTm = setTimeout(() => {
+      this.roomTm = 0;
+      try {
+        const ws = window.STRYKER_VELA, rr = ws && ws.chart && ws.chart.renderer, ctl = rr && (rr.applyViewport ? rr : rr.renderer), v = this.lastCo && this.lastCo.getViewport();
+        if (ctl && ctl.applyViewport && v) ctl.applyViewport({ barSpacing: v.barSpacing, rightOffset: v.rightOffset + Math.ceil(over / bw) });
+      } catch (e) {}
+    }, 0);
+  }
   // Bar stats table ON: keep its height free at the bottom of the price pane (Vela's bottom margin, % of the pane), so no bar or
   // volume bar is drawn under it. The member's own margin is saved in fpMarginPrev and put back when the table goes off.
   reserve(H, ph) {
@@ -366,7 +378,7 @@ class FootprintEngine {
     if (!patch) return;
     this.resTm = setTimeout(() => { this.resTm = 0; try { R.applyConfig(patch); } catch (e) {} }, 0);
   }
-  suspend() { if (!this.on) return; this.on = false; clearTimeout(this.resTm); this.resTm = 0; this.dropL2(); clearTimeout(this.l2tm); this.l2tm = 0; users--; stopRefresh(); listeners.delete(this.onAny); }
+  suspend() { if (!this.on) return; this.on = false; clearTimeout(this.resTm); this.resTm = 0; clearTimeout(this.roomTm); this.roomTm = 0; this.dropL2(); clearTimeout(this.l2tm); this.l2tm = 0; users--; stopRefresh(); listeners.delete(this.onAny); }
   resume() { if (this.on) return; this.on = true; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
   stop() { this.suspend(); }
   push() {
@@ -388,6 +400,7 @@ const ROW_STEPS = [1, 2, 4, 5, 8, 10, 16, 20, 25, 40, 50, 80, 100, 200, 400];
 // short number: 340, 2.1K, 15K, 1.5M (crypto volumes keep their decimals via fmt)
 function fmtD(v) {
   const a = Math.abs(v), s = v < 0 ? '\u2212' : '';
+  if (a < 0.005) return '0';   // never "<.01"
   if (a >= 1e7) return s + Math.round(a / 1e6) + 'M';
   if (a >= 1e6) return s + (a / 1e6).toFixed(1) + 'M';
   if (a >= 1e4) return s + Math.round(a / 1e3) + 'K';
@@ -473,6 +486,15 @@ const TEAL = '#1fb5b0', ORNG = '#f0883a', PINK = '#ff5c7a';
 function drawDbars(X) {
   const { g, co, a, f, cfg, i0, i1, m, tick, bw, rowPx, compact, top, bot, day, plotR } = X;
   const dpr = co.dpr || 1, base = () => g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // the profile's width is fixed up front so the bars can stop short of it (clip) and the view leaves room for it
+  const Wp = compact ? 40 : clamp(plotR * 0.12, 52, 128), xr = plotR - 2, pL = cfg.dbProfile ? xr - Wp - 6 : plotR;
+  if (X.eng) {
+    X.eng.lastCo = co;
+    let li = a.bars.length - 1;
+    while (li > a.bars.length - 4 && li > 0 && !f.map.get(a.bars[li].time)) li--;   // the newest bar that has trades
+    const xe = co.logicalToX(li) + 5 + Math.max(8, bw * (compact ? 0.88 : 0.92) - 8);
+    if (cfg.dbProfile && li <= i1 && f.map.get(a.bars[li].time)) X.eng.room(xe - pL + 4, bw);
+  }
   const D = window.__stkFpDebug ? (window.__stkFpDebug.dbars = { cells: [], pills: [], profile: null, badge: null }) : null;
   // one gradient per kind, defined on x 0..1 and stretched to each cell's length with a transform (no gradient per cell)
   const grad = (c, a1) => { const q = g.createLinearGradient(0, 0, 1, 0); q.addColorStop(0, alpha(c, 0.03)); q.addColorStop(1, alpha(c, a1)); return q; };
@@ -483,6 +505,7 @@ function drawDbars(X) {
   let badge = 0, anyText = false;
   const prof = new Map();
   g.textBaseline = 'middle';
+  g.save(); g.beginPath(); g.rect(0, top, pL, bot - top); g.clip();
   for (let i = i0; i <= i1; i++) {
     const bar = a.bars[i], fb = f.map.get(bar.time);
     if (!fb) continue;
@@ -526,7 +549,7 @@ function drawDbars(X) {
         g.strokeStyle = day ? 'rgba(15,23,42,0.45)' : 'rgba(255,255,255,0.45)'; g.lineWidth = 1;
         g.strokeRect(x0 + 0.5, y + 1, cw - 1, Math.max(1, bh - 1));
       }
-      if (D) D.cells.push({ i, x: x0, y, w: cw, h: bh, d, len, max: dm, imb: ib ? 1 : is ? 2 : 0, poc: !!isPoc });
+      if (D && x0 < pL) D.cells.push({ i, x: x0, y, w: Math.min(cw, pL - x0), cw, h: bh, d, len, max: dm, imb: ib ? 1 : is ? 2 : 0, poc: !!isPoc });
       if (text) { g.fillStyle = day ? '#1f2937' : '#eceef2'; g.fillText(fmtD(d), x0 + 3, y + h / 2 + 0.5); }
     }
     // pill with the bar's total delta, under the bar
@@ -541,11 +564,11 @@ function drawDbars(X) {
     else { g.fillStyle = fb.delta >= 0 ? UP : DN; g.fillRect(pxl + pw / 2 - 2, py + pillH / 2 - 1, 4, 2); }
     if (D) D.pills.push({ i, d: fb.delta, vis: inVis, rowSum: rs.reduce((z, r) => z + r.buy - r.sell, 0), positive: fb.delta >= 0 });
   }
+  g.restore();
   // volume profile of the visible range at the right edge: bar length = volume, colour = that price's net delta
   if (cfg.dbProfile && prof.size) {
     const list = [...prof.values()].sort((p, q) => p.p - q.p);
     let vmax = 1, pk = 0; list.forEach((e, k) => { const v = e.buy + e.sell; if (v > vmax) { vmax = v; pk = k; } });
-    const Wp = compact ? 40 : clamp(plotR * 0.12, 52, 128), xr = plotR - 2;
     g.font = (compact ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right';
     const out = [];
     list.forEach((e, k) => {
@@ -688,9 +711,9 @@ function footprintLayer() {
       if (!cfg.rows) for (const s of ROW_STEPS) { m = s; if (tickPx * s >= (compact ? 7 : 13)) break; }
       const rowPx = tickPx * m;
       const cells = bw >= 6 && rowPx >= (compact ? 3.5 : 9);
-      const plotR = co.width - 56, X = { g, co, a, f, cfg, i0, i1, m, tick, bw, rowPx, compact, top, bot, day, plotR };
+      const plotR = co.width - 56, X = { eng: d.eng, g, co, a, f, cfg, i0, i1, m, tick, bw, rowPx, compact, top, bot, day, plotR };
       const tblH = cfg.table && i1 >= i0 ? drawTable(X) : 0;
-      if (d.eng && d.eng.reserve) d.eng.reserve(tblH, a.bounds.height);   // drawn first: the bars and stats sit above it
+      if (d.eng && d.eng.reserve) d.eng.reserve(Math.max(tblH, cfg.mode === 'boxes' || cfg.mode === 'dbars' ? a.bounds.height * 0.17 : 0), a.bounds.height);   // the volume histogram stays below the cells   // drawn first: the bars and stats sit above it
       bot -= tblH; X.bot = bot;
       try { document.body.classList.toggle('stk-fp-stats', tblH > 0); } catch (e) {}
       const statsH = cfg.stats && cells && !compact && cfg.mode !== 'boxes' && cfg.mode !== 'dbars' ? 30 : 0;

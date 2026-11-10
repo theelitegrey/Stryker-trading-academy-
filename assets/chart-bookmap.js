@@ -38,6 +38,35 @@ export const STYLES = {
   split: { id: 'split', ramps: ['splitBid', 'splitAsk'], sided: true, glow: 0.55, glowFrom: 215, lineHalf: 1.5, liveHold: 10000, bg: BM_BG, anchors: SPLIT_ANCHORS, hold: HOLD_MS, cap: 0.97,
     heat: { id: 'splitHeat', ramps: ['splitHeat'], sided: false } }
 };
+// Heatmap panel themes (assets/chart-heatmap-panel.js): the same rank colouring as the Depth Heatmap, other ramps, one black field.
+// 'classic' is the Depth Heatmap's own ramp (style 'depth'); the others are 'hm_<name>'.
+export const HM_THEMES = ['classic', 'green', 'gold', 'fire', 'mono'];
+const HM_BG = [0, 0, 0];
+Object.assign(RAMPS, {
+  hm_green: [[0, [0, 6, 2]], [0.2, [4, 40, 18]], [0.42, [12, 110, 48]], [0.62, [40, 190, 90]], [0.8, [140, 240, 120]], [1, [235, 255, 210]]],
+  hm_gold: [[0, [8, 5, 0]], [0.2, [60, 38, 4]], [0.42, [140, 96, 10]], [0.62, [222, 166, 30]], [0.8, [255, 214, 90]], [1, [255, 246, 210]]],
+  hm_fire: [[0, [8, 0, 0]], [0.2, [70, 8, 8]], [0.4, [170, 24, 14]], [0.6, [240, 90, 16]], [0.8, [255, 190, 40]], [1, [255, 250, 200]]],
+  hm_mono: [[0, [0, 0, 0]], [0.2, [34, 34, 34]], [0.45, [96, 96, 96]], [0.7, [170, 170, 170]], [0.9, [230, 230, 230]], [1, [255, 255, 255]]]
+});
+for (const t of HM_THEMES.slice(1)) STYLES['hm_' + t] = Object.assign({}, STYLES.depth, { ramp: 'hm_' + t, bg: HM_BG });
+export const hmLook = (t) => (HM_THEMES.indexOf(t) > 0 ? 'hm_' + t : 'depth');
+// ramp stops [[pos, [r,g,b]], ...] of a theme (swatches, the liquidation cells)
+export const hmStops = (t) => RAMPS[HM_THEMES.indexOf(t) > 0 ? 'hm_' + t : 'depth'];
+export function hmColor(t, n) {
+  const st = hmStops(t); n = Math.min(1, Math.max(0, n)); let j = 0; while (j < st.length - 2 && n > st[j + 1][0]) j++;
+  const a = st[j], b = st[j + 1], f = Math.min(1, Math.max(0, (n - a[0]) / (b[0] - a[0])));
+  return [0, 1, 2].map((i) => Math.round(a[1][i] + (b[1][i] - a[1][i]) * f));
+}
+// A layer that must sit UNDER the candles (opaque field first in the plot, the grid canvas hidden), as the futures DOM heatmap does.
+export function sitUnder(canvas, on) {
+  try {
+    const par = canvas.parentElement;
+    if (on) {
+      if (par && par.firstElementChild !== canvas) { if (!canvas.__stkBd) canvas.__stkBd = par.firstElementChild; par.insertBefore(canvas, par.firstElementChild); }
+      const bd = canvas.__stkBd; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0') { bd.style.opacity = '0'; bd.__stkGridDim = true; }
+    } else { const bd = canvas.__stkBd; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } }
+  } catch (e) {}
+}
 // the table row for a view: Split + colorBy 'heat' swaps the two side ramps for the single size ramp
 export function styleFor(view) {
   const S = STYLES[view.look] || STYLES.bookmap;

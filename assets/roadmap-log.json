@@ -1,5 +1,11 @@
 [
  {
+  "build": 944,
+  "date": "2026-11-10",
+  "title": "ZoroCharts",
+  "link": ""
+ },
+ {
   "build": 943,
   "date": "2026-11-10",
   "title": "HTF PO3 Lens",
@@ -27,12 +33,6 @@
   "build": 939,
   "date": "2026-11-10",
   "title": "Swing VWAP + Profile card (build 939)",
-  "link": ""
- },
- {
-  "build": 938,
-  "date": "2026-11-09",
-  "title": "ZoroCharts",
   "link": ""
  },
  {

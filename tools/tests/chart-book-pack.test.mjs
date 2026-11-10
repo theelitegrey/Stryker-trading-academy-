@@ -16,7 +16,7 @@ const flat = (q) => () => q;
 const A = snap(21000, flat(10)), bA = D.bookFromLists(A.bids, A.asks, TICK);
 ok(bA && bA.ba === bA.bb + 1, 'book from lists: best bid / ask one tick apart');
 ok(D.bookFromLists([[10, 5]], [[9, 5]], 1) === null, 'a crossed book is rejected');
-ok(D.bookFromLists([], [[9, 5]], 1) === null, 'an empty side is rejected');
+ok(D.bookFromLists([], [[9, 5]], 1).miss === 1, 'an empty bid side gives a one-sided book (miss +1)');
 // balance
 const bal = D.balance(bA, 20);
 ok(bal.bid === 200 && bal.ask === 200, 'balance: 20 ticks x 10 each side', bal);
@@ -127,5 +127,24 @@ ok(ab.length === 1 && ab[0].d === 1 && ab[0].t === 25 * 60000, 'absorption list:
   // heatmap colour step -> top %: Yellow (0.74) on the Midnight anchors = top 3 %
   const anchors = [[0, 0.13], [0.5, 0.2], [0.75, 0.32], [0.9, 0.5], [0.97, 0.74], [0.99, 0.88], [1, 1]];
   ok(Math.abs(D.topPctForStep(anchors, 0.74) - 3) < 1e-9 && Math.abs(D.topPctForStep(anchors, 0.93) - (1 - (0.99 + 0.01 * 0.05 / 0.12)) * 100) < 1e-9 && D.topPctForStep(anchors, 0) === null, 'walls: heatmap Yellow-and-above = top 3 % of sizes', D.topPctForStep(anchors, 0.74));
+}
+// ---- one-sided book (Owner 2026-11-10 "wall events not working"): the REAL live MNQ frame of 17:29 UTC, run through the hub's own
+// cleanBook. The vendor's bid side sat frozen 90+ points above the price, the hub dropped it, and bookFromLists returned null for every
+// frame: WallTracker never ran, no events all session. The real ask side must still be tracked; the missing bid side never decides events.
+{
+  const fs = await import('node:fs');
+  const { cleanBook } = await import('../../workers/book-recorder/src/ts-hub.js');
+  const F = JSON.parse(fs.readFileSync(new URL('../../workers/book-recorder/test/fixtures/mnq-frozen-bids.json', import.meta.url))).live;
+  const k = cleanBook(F.bids, F.asks, F.px, 2);
+  const one = D.bookFromLists(k.bids.slice(0, 150), k.asks.slice(0, 150), TICK);
+  ok(k.bids.length === 0 && one && one.miss === 1 && one.ba === Math.round(k.asks[0][0] / TICK) && one.bb === one.ba - 1, 'one-sided real MNQ book (bids frozen above the price) still gives a book, marked miss +1', one && { miss: one.miss, bb: one.bb, ba: one.ba });
+  ok(D.bookFromLists([], [], 1) === null, 'a book with no side at all is still rejected');
+  const big = Math.max(...k.asks.slice(0, 150).map((r) => r[1]));
+  const w = new D.WallTracker(); w.onBook(1e6, one, big);
+  ok(w.walls.size >= 1 && [...w.walls.values()].every((x) => x.side === -1), 'walls: the real ask wall of a one-sided book is tracked', w.walls.size);
+  // a bid wall that was tracked before its side went missing: dropped, no event (unknown, not pulled)
+  const bk2 = D.bookFromLists([[F.px - 1, 10], [F.px - 2, 900]], [[F.px + 1, 10]], TICK), w2 = new D.WallTracker();
+  w2.onBook(1e6, bk2, 500); w2.onBook(1e6 + 100, one, 500);
+  ok(w2.events.length === 0 && ![...w2.walls.values()].some((x) => x.side === 1), 'walls: a bid wall whose side went missing is dropped with no event', w2.events);
 }
 console.log('chart-book-pack: ' + n + ' checks passed');

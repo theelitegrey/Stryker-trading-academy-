@@ -426,6 +426,14 @@ export function mountLayouts(ws, o){
     return true;
   }
 
+  // A whole template / starter is about to replace the chart: save the open layout's own edits first, then
+  // stop tracking it, so autosave can never write the template's symbol over that layout (BUG-TEMPLATES).
+  async function detach(){
+    if (viewing || !cur) return;
+    if (dirty && auto()) await saveNow(false);
+    clearTimeout(autoTimer); cur = null; lsSet(K.cur(), null); dirty = false; paintBtn();
+  }
+
   async function createNew(name){
     // A fresh single chart, saved straight away under the new name.
     if (cur && dirty && auto()) await saveNow(false);
@@ -689,7 +697,7 @@ export function mountLayouts(ws, o){
   const libApi = { open: (tab) => import('./chart-layouts-lib.js?v=938').then((m) => { if (!mounted) mounted = m.mountLib(host); return mounted.open(tab); }).catch((e) => { console.warn('TradeZoro: layouts library', e); toast('Could not open the layouts library.', 'error'); }) };
   lib = libApi;
 
-  const api = { saveNow, saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
+  const api = { detach, saveNow, saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
     get current(){ return cur; }, get viewing(){ return viewing; }, get dirty(){ return dirty; }, linkOf };
   window.STRYKER_LAYOUTS = api;
   return api;

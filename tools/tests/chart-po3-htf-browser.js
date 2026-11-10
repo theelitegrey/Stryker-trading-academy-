@@ -1,5 +1,5 @@
 // Browser test: HTF PO3 Lens candles == direct OHLC aggregation of the chart's own bars (bug-po3, 2026-11-10).
-//   CHART_BASE=http://127.0.0.1:8641 SYMS=5,1 [OUT=dir] node tools/tests/chart-po3-htf-browser.js
+//   CHART_BASE=http://127.0.0.1:8641 SYMS=5,1 MODES=idle,live [OUT=dir] node tools/tests/chart-po3-htf-browser.js
 // Run under `flock /tmp/stryker-chrome.lock` with tools/tests/chart-dev-server.mjs. NQ1! futures bars.
 // For every stack (15m, 1H, 4H, D) each drawn candle (wick line + body box) must equal the OHLC of the
 // bars in its trading-session period (periods anchored to 18:00 New York); the live candle's close is the last close.
@@ -8,7 +8,8 @@ const stub = require('./richstub.js');
 const fs = require('fs'), path = require('path');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8641';
 const OUT = process.env.OUT || '/tmp/po3-shots'; fs.mkdirSync(OUT, { recursive: true });
-const TICKS = !!process.env.TICKS;   // TICKS=1: also feed live ticks across a period boundary
+// live: after the first draw, feed 4 updates of one new bar that opens a new 15m/1H/4H/D period (TICKS=1 = MODES=live)
+const MODES = (process.env.MODES || (process.env.TICKS ? 'live' : 'idle,live')).split(',');
 const SYMS = (process.env.SYMS || '5').split(',');
 const TFS = [['15', 15], ['60', 60], ['240', 240], ['D', 1440]];
 let fails = 0;
@@ -81,26 +82,34 @@ function drawn(r) {
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
-    for (const tf of SYMS) for (const w of [1440, 390]) {
-      const r = await run(b, w, tf, `po3-${tf}m-${w}${TICKS ? '-live' : ''}.png`, TICKS);
+    for (const tf of SYMS) for (const mode of MODES) for (const w of [1440, 390]) {
+      const tag = `${tf}m ${mode} @${w}`;
+      const r = await run(b, w, tf, `po3-${tf}m-${mode}-${w}.png`, mode === 'live');
       const cs = drawn(r);
-      console.log(`# NQ1! ${tf}m @${w}: ${r.bars.length} bars, ${cs.length} drawn candles`);
-      check(cs.length >= 8, `${tf}m: candles drawn (${cs.length})`);
-      // stacks are ordered 15m, 1H, 4H, D; each shows 4 candles (live last)
+      console.log(`# NQ1! ${tag}: ${r.bars.length} bars, ${cs.length} drawn candles`);
+      // stacks are ordered 15m, 1H, 4H, D; each shows up to 4 candles (live last)
       const groups = []; cs.forEach((d, i) => { if (i === 0 || d.x - cs[i - 1].x > 6) groups.push([]); groups[groups.length - 1].push(d); });
-      check(groups.length === TFS.length, `${tf}m: ${groups.length} stacks drawn`);
+      check(groups.length === TFS.length, `${tag}: ${groups.length} stacks drawn`);
       TFS.forEach(([name, mins], si) => {
         const agg = aggregate(r.bars, mins), mine = groups[si] || [];
         if (mins <= +tf) return;
-        check(mine.length === Math.min(4, agg.length), `${tf}m chart, ${name}: ${mine.length} candles (real complete+live: ${agg.length}, max 4)`);
+        check(mine.length === Math.min(4, agg.length), `${tag}, ${name}: ${mine.length} candles (real complete+live: ${agg.length}, max 4)`);
         const exp = agg.slice(-mine.length);
         mine.forEach((d, i) => {
           const e = exp[i]; if (!e) return;
-          const live = i === mine.length - 1, hasC = !live;
+          const live = i === mine.length - 1;
           const bt = Math.max(e.o, e.c), bb = Math.min(e.o, e.c);
           const ok = Math.abs(d.h - e.h) < 1e-6 && Math.abs(d.l - e.l) < 1e-6 && (Math.abs(d.bt - bt) < 1e-6 || bt === bb) && (Math.abs(d.bb - bb) < 1e-6 || bt === bb);
-          check(ok, `${tf}m chart, ${name}: candle ${i}${live ? ' (live)' : ''} drawn H${d.h} L${d.l} body ${d.bb}-${d.bt} | real H${e.h} L${e.l} body ${bb}-${bt} (${e.n} bars)`);
+          check(ok, `${tag}, ${name}: candle ${i}${live ? ' (live)' : ''} drawn H${d.h} L${d.l} body ${d.bb}-${d.bt} | real H${e.h} L${e.l} body ${bb}-${bt} (${e.n} bars)`);
+          // the flat-dash picture: the wick (high-low) must equal the real range, and be > 0 whenever the bars have a range
+          const dr = d.h - d.l, er = e.h - e.l;
+          check(Math.abs(dr - er) < 1e-6 && (er === 0 || dr > 0), `${tag}, ${name}: candle ${i} range ${dr.toFixed(2)} == real ${er.toFixed(2)} and > 0`);
         });
+        if (name === 'D' && mine.length) { // live daily candle spans at least every loaded bar of the current trading day
+          const k = periodOf(r.bars[r.bars.length - 1].time, 1440), today = r.bars.filter((x) => periodOf(x.time, 1440) === k);
+          const tr = Math.max(...today.map((x) => x.high)) - Math.min(...today.map((x) => x.low)), d = mine[mine.length - 1];
+          check(d.h - d.l >= tr - 1e-6, `${tag}, D: live candle range ${(d.h - d.l).toFixed(2)} >= today's loaded range ${tr.toFixed(2)} (${today.length} bars)`);
+        }
       });
     }
   } finally { await b.close(); }

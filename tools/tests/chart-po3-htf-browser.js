@@ -50,6 +50,7 @@ async function run(b, w, tf, shot, ticks) {
     for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 500)); try { if (chart.market.timeframe === tf && chart.orchestrator.rawBars.length > 50 && chart.orchestrator.historyState !== 'backfill') break; } catch (e) {} }
     const m = await import('/assets/chart-pine-builtins.js?v=' + document.querySelector('meta[name=stryker-build]').content);
     let src = await m.builtinSource('htf-po3-lens-stryker');
+    src = src.replace(/(cUpWick|cDnWick) = input\.color\(#[0-9A-Fa-f]+/g, '$1 = input.color(#000000');
     src = src.replace('on4 = input.bool(false', 'on4 = input.bool(true').replace('nCdl = input.int(2,', 'nCdl = input.int(4,');
     await P.addSource(chart, src, { title: 'po3' });
     let rec, last = -1, stable = 0;
@@ -71,12 +72,14 @@ async function run(b, w, tf, shot, ticks) {
   await ctx.close();
   return res;
 }
-// drawn candles = vertical 1px wick lines paired with the body box centred on the same x
+// drawn candles = body box + the vertical 1px wick segments on the same x (top part and/or bottom part)
 function drawn(r) {
-  const c = [];
-  for (const l of r.lines) { if (l.x1 !== l.x2) continue;
-    const bx = r.boxes.find((b) => (b.left + b.right) / 2 === l.x1 && b.bottom >= Math.min(l.y1, l.y2) - 1e-6 && b.top <= Math.max(l.y1, l.y2) + 1e-6);
-    if (bx) c.push({ x: l.x1, h: Math.max(l.y1, l.y2), l: Math.min(l.y1, l.y2), bt: bx.top, bb: bx.bottom, up: l.color.startsWith('#26A69A') }); }
+  const c = [], vl = r.lines.filter((l) => l.x1 === l.x2);
+  for (const bx of r.boxes) {
+    const x = (bx.left + bx.right) / 2, segs = vl.filter((l) => l.x1 === x); if (!segs.length) continue;
+    const ys = segs.flatMap((l) => [l.y1, l.y2]);
+    c.push({ x, h: Math.max(bx.top, ...ys), l: Math.min(bx.bottom, ...ys), bt: bx.top, bb: bx.bottom, segs: segs.map((l) => [Math.min(l.y1, l.y2), Math.max(l.y1, l.y2)]), black: segs.every((l) => /^#000000/i.test(l.color)) });
+  }
   return c.sort((a, b) => a.x - b.x);
 }
 (async () => {
@@ -101,6 +104,9 @@ function drawn(r) {
           const bt = Math.max(e.o, e.c), bb = Math.min(e.o, e.c);
           const ok = Math.abs(d.h - e.h) < 1e-6 && Math.abs(d.l - e.l) < 1e-6 && (Math.abs(d.bt - bt) < 1e-6 || bt === bb) && (Math.abs(d.bb - bb) < 1e-6 || bt === bb);
           check(ok, `${tag}, ${name}: candle ${i}${live ? ' (live)' : ''} drawn H${d.h} L${d.l} body ${d.bb}-${d.bt} | real H${e.h} L${e.l} body ${bb}-${bt} (${e.n} bars)`);
+          // wick behind body: no wick segment may enter the body's vertical range (draw order then does not matter)
+          const eps = 1e-6, inside = d.segs.filter(([lo, hi]) => hi > d.bb + eps && lo < d.bt - eps);
+          check(inside.length === 0 && d.black, `${tag}, ${name}: candle ${i} no wick segment inside body ${d.bb}-${d.bt} (${d.segs.length} segs, black wick)`);
           // the flat-dash picture: the wick (high-low) must equal the real range, and be > 0 whenever the bars have a range
           const dr = d.h - d.l, er = e.h - e.l;
           check(Math.abs(dr - er) < 1e-6 && (er === 0 || dr > 0), `${tag}, ${name}: candle ${i} range ${dr.toFixed(2)} == real ${er.toFixed(2)} and > 0`);

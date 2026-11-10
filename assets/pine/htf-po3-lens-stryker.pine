@@ -212,12 +212,16 @@ f_clear() =>
 
 f_candle(x, o, h, l, c) =>
     bool up = c >= o
-    array.push(dL, line.new(x, h, x, l, color = up ? cUpWick : cDnWick, width = 1))
     float bt = math.max(o, c)
     float bb = math.min(o, c)
     if bt == bb
         bt += syminfo.mintick / 2
         bb -= syminfo.mintick / 2
+    // wick in two parts (high to body top, body bottom to low) so it never crosses the body, whatever the draw order
+    if h > bt
+        array.push(dL, line.new(x, h, x, bt, color = up ? cUpWick : cDnWick, width = 1))
+    if l < bb
+        array.push(dL, line.new(x, bb, x, l, color = up ? cUpWick : cDnWick, width = 1))
     array.push(dB, box.new(x - cdlW, bt, x + cdlW, bb, border_color = bdW == 0 ? color.new(up ? cUpBdr : cDnBdr, 100) : (up ? cUpBdr : cDnBdr), border_width = math.max(bdW, 1), bgcolor = up ? cUpBody : cDnBody))
 
 // draw one timeframe stack starting at x0; returns the x after the stack

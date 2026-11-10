@@ -919,7 +919,7 @@ export function mountPine(ws, barL, opts){
     try {
       const r = await runOnChart(a.cell.chart, source, undefined, false, opts);
       if (!r.ok) return { ok: false, heavy: r.heavy, msg: (r.line ? 'Line ' + r.line + ': ' : '') + r.msg };
-      toast('Added ' + (name || titleOf(r.handle)) + ' to the chart');
+      toast('Added ' + ((typeof name === 'string' && name) || (name && typeof name.name === 'string' && name.name) || titleOf(r.handle)) + ' to the chart');
       if (!panel.hidden) renderLists();
       return { ok: true };
     } catch (e) {

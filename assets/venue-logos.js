@@ -24,7 +24,7 @@ export function venueFile(venue, ticker, byoId) {
   return FILE[v] || '';
 }
 let byoLabel = null;   // byo-core labelFor: which connected own source (Alpaca, tastytrade ...) serves a symbol
-import('./byo-core.js?v=945').then((m) => { byoLabel = m.labelFor; }).catch(() => {});
+import('./byo-core.js?v=946').then((m) => { byoLabel = m.labelFor; }).catch(() => {});
 export function venueLabel(venue, ticker) {   // letter for the fallback chip
   const v = String(venue || '').trim();
   const m = /^(?:stocks:)?([A-Za-z_]+):/.exec(String(ticker || ''));

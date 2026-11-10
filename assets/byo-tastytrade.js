@@ -5,8 +5,8 @@
 // market data over DXLink. Allowed requests: POST /oauth/token, GET /api-quote-tokens, GET /instruments/futures. Nothing
 // else (no /accounts, /orders, /positions). Docs: developer.tastytrade.com/oauth, /streaming-market-data.
 // Unverified until a real account tries it: the browser User-Agent rule, DXLink Origin policy, candle snapshot end flag.
-import { freshOauth } from './byo-oauth.js?v=946';
-import { ALLOW, ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf } from './byo-core.js?v=946';
+import { freshOauth } from './byo-oauth.js?v=947';
+import { ALLOW, ADAPTERS, ROUTERS, SOURCES, Hub, candleBuilder, guardUrl, guardWs, guardWsMessage, normTf } from './byo-core.js?v=947';
 
 const API = 'https://api.tastyworks.com';
 const HARD = { redirect: 'error', credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' };

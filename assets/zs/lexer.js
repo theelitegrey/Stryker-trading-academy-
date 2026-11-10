@@ -1,6 +1,6 @@
 // Zscript lexer: source text -> tokens, with NEWLINE / INDENT / DEDENT for blocks.
 // Pure function, no globals. See SPEC.md section 2.
-import { diag } from './errors.js?v=946';
+import { diag } from './errors.js?v=947';
 
 export const KEYWORDS = new Set(['and', 'or', 'not', 'if', 'else', 'for', 'to', 'by', 'in', 'while', 'switch',
   'var', 'varip', 'true', 'false', 'na', 'break', 'continue', 'import', 'export', 'type', 'method']);

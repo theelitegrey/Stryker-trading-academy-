@@ -127,6 +127,44 @@ async function hubFrames(mid) {
   await sleep(80); hub.shutdown();
   return [got.filter((m) => m.type === 'snap').at(-1), got.filter((m) => m.type === 'coarse').at(-1)];
 }
+// REAL stale-ask book (Owner 2026-11-10 21:25 IST: heatmap stopped at the 09:31 ET open, DOM still live). The vendor's NQ book at 15:57 UTC
+// (workers/book-recorder/test/fixtures/nq-stale-asks.json): asks frozen below the traded price, stale bids above it. Shifted onto the chart's
+// price, a trade at the traded price, then through the REAL hub. Old hub: snaps but NO coarse frame = no live heatmap column at all.
+async function staleFrames(mid) {
+  const { TSHub } = await import(process.env.OLD_HUB || '../../workers/book-recorder/src/ts-hub.js');
+  const bad = JSON.parse(fs.readFileSync(__dirname + '/../../workers/book-recorder/test/fixtures/nq-stale-asks.json', 'utf8')).books[1];
+  const d = Math.round((mid - bad.P) * 4) / 4, sh = (l) => l.map((x) => [x[0] + d, x[1]]);
+  class W { constructor() { this.l = {}; W.s = this; setTimeout(() => this.emit('open'), 1); } addEventListener(e, f) { (this.l[e] = this.l[e] || []).push(f); } emit(e, ev) { for (const f of this.l[e] || []) f(ev); } send() {} close() {} }
+  const hub = new TSHub({ putMin() {}, prune() {}, range() { return []; } }, 'K', { WebSocket: W, RECORD: false, FLUSH_MS: 10, MIN_GAP_MS: 20, COARSE_MS: 20 });
+  const got = [], c = { send(s) { got.push(JSON.parse(s)); }, close() {} };
+  hub.attach(c, 'NQ', 150, 'book'); hub.poke(); await sleep(20);
+  W.s.emit('message', { data: JSON.stringify({ type: 'tick', symbol: 'NQ', price: bad.P + d, size: 1, side: 'buy', ts: 1 }) });
+  W.s.emit('message', { data: JSON.stringify({ type: 'book', symbol: 'NQ', bids: sh(bad.bids), asks: sh(bad.asks), imbalance: 0, ts: 1 }) });
+  await sleep(120); hub.shutdown();
+  return [got.filter((m) => m.type === 'snap').at(-1), got.filter((m) => m.type === 'coarse').at(-1)].filter(Boolean);
+}
+async function staleBook(b) {
+  for (const [w, h, mobile, tag] of [[1440, 900, false, '1440-dark'], [390, 844, true, '390-dark']]) {
+    const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme: 'dark' });
+    await setNQ(p);
+    const mid = await p.evaluate(() => window.__L2MID);
+    const fr = await staleFrames(mid);
+    console.log('INFO ' + tag + ' stale-ask hub frames: ' + fr.map((x) => x.type).join(','));
+    await p.evaluate((f) => { window.__HUBF = f; }, fr);
+    await add(p, 'stk_depth_heat');
+    await sleep(9000);
+    const d = await p.evaluate(() => {
+      const h = window.__stkFlow.acquireBookFeed('tsl2', 'NQ', () => {}), f = h.feed, now = Date.now();
+      const live = f.history.filter((s) => now - s.ts < 8000), y = window.__stkFlow.dhDebug(); h.release();
+      return { live: live.length, history: f.history.length, newestAgo: f.history.length ? now - f.history[f.history.length - 1].ts : null, heatCols: y && y.heat && y.heat.columns };
+    });
+    console.log('INFO ' + tag + ' stale-ask book', JSON.stringify(d));
+    check(d.live >= 5 && d.newestAgo < 3000, tag + ': stale-ask book: live heatmap columns keep being written (' + d.live + ' in the last 8 s)', d);
+    check(errors.length === 0, tag + ': stale-ask book: no console errors', errors);
+    await p.screenshot({ path: OUT + '/l2-stale-' + tag + '.png' });
+    await ctx.close();
+  }
+}
 async function crossedBook(b) {
   for (const [w, h, mobile, tag] of [[1440, 900, false, '1440-dark'], [390, 844, true, '390-dark']]) {
     const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme: 'dark' });
@@ -156,8 +194,9 @@ async function crossedBook(b) {
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
-    await crossedBook(b);
-    if (!process.env.ONLY_CROSSED) {
+    await staleBook(b);
+    if (!process.env.ONLY_STALE) await crossedBook(b);
+    if (!process.env.ONLY_CROSSED && !process.env.ONLY_STALE) {
     // ---- NON-admin: nothing new, nothing opened
     {
       const { ctx, p, errors } = await open(b, { w: 1440, h: 900, admin: false });

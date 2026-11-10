@@ -2,8 +2,8 @@
 // READ ONLY: lists accounts and fills through /connect/finatic/data (server allow-list); no order buttons, no order code path.
 // Flow: start session -> broker portal in a new tab (the member logs in there) -> Continue -> pick account + dates -> preview -> import.
 // Depends on the journal page globals: auth, db, firebase, JOURNAL_UID, JOURNAL_TRADES, journalCollectionRef, reloadJournalData, showToast.
-import { CSS } from './rithmic-journal-ui.js?v=950';
-import { tripsFromBroker, tripToTrade, tripId, ordersToFetch, planImport } from './finatic-fills.js?v=950';
+import { CSS } from './rithmic-journal-ui.js?v=951';
+import { tripsFromBroker, tripToTrade, tripId, ordersToFetch, planImport } from './finatic-fills.js?v=951';
 
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const toast = (t, m) => { try { window.showToast(t, m); } catch (e) {} };

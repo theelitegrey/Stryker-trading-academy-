@@ -7,7 +7,7 @@
 // cached by view + data version, and blitted. Pan / zoom / new data change the key and rebuild it (<= 4 ms at 390 on the fixture).
 //
 // STYLES is the style table: more looks (a name, a ramp and a scale) are added there, not as new branches.
-import { hfSize, hfCutOf } from './chart-heat-filter.js?v=947';
+import { hfSize, hfCutOf } from './chart-heat-filter.js?v=948';
 export const BM_BG = [5, 7, 13];
 export const HOLD_MS = 5 * 60000;
 const RAMPS = {

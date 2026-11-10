@@ -9,9 +9,9 @@
 // With the switch OFF nothing is subscribed: ON adds the layer, OFF removes it.
 // Pro: the same gate as the existing tools (chart-pro-gate.js kindOf): a Free member sees the usual upgrade modal.
 // Education only. Not financial advice.
-import { kindOf, isFree, upgrade } from './chart-pro-gate.js?v=951';
-import { l2Root } from './chart-futures-l2.js?v=951';
-import { getVenue } from './orderflow-venues.js?v=951';
+import { kindOf, isFree, upgrade } from './chart-pro-gate.js?v=952';
+import { l2Root } from './chart-futures-l2.js?v=952';
+import { getVenue } from './orderflow-venues.js?v=952';
 
 const EXT_KEY = 'stryker.heatmap', TPL_KEY = 'stk_heatmap_templates', MAG_KEY = 'stk_heatmap_magnifier';
 export const SRC = { book: { type: 'stk_depth_heat', label: 'Order book' }, liq: { type: 'stk_liq', label: 'Liquidations' }, opt: { type: 'stk_gexheat', label: 'Options' } };
@@ -231,7 +231,7 @@ async function refreshSupport() {
   try {
     const c = cell(); const list = await c.chart.availableNativeIndicators();
     supported = new Set(list.filter((x) => x.supported).map((x) => x.type));
-    const { gexSource } = await import('./chart-gex-levels.js?v=951');
+    const { gexSource } = await import('./chart-gex-levels.js?v=952');
     optSym = !!gexSource(c.symbol || WS.active.symbol, '');
   } catch (e) { supported = new Set(); optSym = false; }
 }

@@ -4,6 +4,7 @@
 // 'pro' flag only opens it to a verified Pro/demo token); 4029 / silent / auth closes back off; bucketed history uses
 // the crypto bucketer (parity) and survives a round trip; imbalance + footprint recorded; hours rule.
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { TSHub, TS_TRADES, TS_QUOTES, tsOpts, cmeOpen, imbalance10, coarseRule, LEVELS, TICK_SIZE, TS_SYMBOLS, cleanBook } from '../src/ts-hub.js';
 import { bucketSnapshot, decodeSamples, encodeSamples } from '../src/bucket.js';
 import { tsAllowed, tsAccess, tsTier } from '../src/ts-access.js';
@@ -149,6 +150,21 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   // the closed market (empty answer) is stored as an empty row, asked once
   mode = 'ok'; const s4 = memStore(); const emptyFetch = async (u) => { calls.push(u); return { status: 200, json: async () => ({ book: [] }) }; };
   const h4 = mk({ RECORD: false, fetch: emptyFetch }, s4).hub; h4.clock = () => Date.now(); await h4.backfill('NQ', from, from + 20 * 60000); const c1 = calls.length; await h4.backfill('NQ', from, from + 20 * 60000); assert.equal(calls.length, c1, 'empty minutes are not asked twice');
+  // lost minutes (the live book was crossed, so only trades were recorded: fp, no book) are filled from the archive, at the minute's last trade
+  {
+    const bad = JSON.parse(fs.readFileSync(new URL('./fixtures/nq-stale-asks.json', import.meta.url))).books[1];
+    const rows = (t0) => bad.bids.map((x, i) => ({ ts: t0 * 1e6, side: 'bid', level: i + 1, price: x[0], size: x[1], flag: 0 })).concat(bad.asks.map((x, i) => ({ ts: t0 * 1e6, side: 'ask', level: i + 1, price: x[0], size: x[1], flag: 0 })));
+    const s5 = memStore(), f5 = []; const h5 = mk({ RECORD: false, fetch: async (u) => { f5.push(u); return { status: 200, json: async () => ({ book: rows(Number(/start=(\d+)/.exec(u)[1])) }) }; } }, s5).hub; h5.clock = () => Date.now();
+    const m0 = Math.floor(from / 60000), fp = JSON.stringify({ o: bad.P, h: bad.P, l: bad.P, c: bad.P, lv: [[bad.P, 3, 2]] });
+    for (let m = m0; m < m0 + 10; m++) s5.putMin('NQ', m, null, '[[1,0,0]]', fp);
+    await h5.backfill('NQ', from, from + 9 * 60000);
+    const got = s5.range('NQ', m0, m0 + 9);
+    assert.ok(got.every((r) => r.fp === fp && r.imb === '[[1,0,0]]'), 'lost minutes keep their footprint + imbalance');
+    const smp = got.filter((r) => r.book).map((r) => decodeSamples(new Uint8Array(r.book).buffer)).flat();
+    assert.ok(smp.length >= 2 && smp.every((x) => Math.abs(x.mid - bad.P) < 5 && x.v.some((y) => y > 0)), 'filled at the traded price with the real bids');
+    const nf = f5.length; await h5.backfill('NQ', from, from + 9 * 60000); assert.equal(f5.length, nf, 'lost minutes asked once only');
+    h5.shutdown();
+  }
   hub.shutdown(); h2.shutdown(); h3.shutdown(); h4.shutdown();
   ok('archive backfill: gaps only, once, serial, same bucketing, capped, 429 pause, closed-market rows');
 }
@@ -451,5 +467,37 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
     hub.shutdown();
   }
   ok('hub: a stray crossing level or a mis-sorted side never drops the other side of the book');
+}
+// ---- REAL frames (Owner 2026-11-10 21:25 IST: "why not heatmap working?"). From the 09:31 ET open the vendor's NQ ask side froze BELOW the
+// traded price (and stale bids sat above it), on every root. The count rule then removed the whole ask side, the book had no mid, so the hub
+// sent NO heatmap column and recorded nothing for the rest of the session. With the last trade price the stale levels go and the column stays.
+// Includes a mid-run upstream reconnect (closed 1006): the trade reference and the columns continue on the new socket.
+{
+  const fx = JSON.parse(fs.readFileSync(new URL('./fixtures/nq-stale-asks.json', import.meta.url))).books, [good, bad] = fx;
+  assert.ok(bad.bids[0][0] > bad.asks[0][0], 'fixture: the real 15:57 UTC book is crossed');
+  const old = cleanBook(bad.bids, bad.asks); assert.equal(old.asks.length, 0, 'without a trade price the count rule drops every ask (the bug)');
+  const k = cleanBook(bad.bids, bad.asks, bad.P, 2);
+  assert.ok(k.bids.length > 50 && k.bids[0][0] <= bad.P + 2 && k.asks.length === 0, 'stale bids above the price and the frozen asks are cut');
+  assert.equal(cleanBook(good.bids, good.asks, good.P, 2).cut, 0, 'a clean real book is untouched');
+  socks = []; const { hub, store } = mk({ COARSE_MS: 20, SAMPLE_MS: 20 }); const c = client(); hub.attach(c, 'NQ', 150, 'book');
+  await sleep(20);
+  const frame = (b) => ({ type: 'book', symbol: 'NQ', bids: b.bids, asks: b.asks, imbalance: 0, ts: 1 });
+  const trade = (p) => ({ type: 'tick', symbol: 'NQ', price: p, size: 1, side: 'buy', ts: 1 });
+  socks[0].msg(frame(good)); await sleep(60);
+  const n0 = c.got.filter((m) => m.type === 'coarse').length; assert.ok(n0 > 0, 'clean book: columns');
+  socks[0].msg(trade(bad.P)); socks[0].msg(frame(bad)); await sleep(350);
+  let cs = c.got.filter((m) => m.type === 'coarse');
+  assert.ok(cs.length > n0 + 1, 'stale-ask book: columns keep coming (' + (cs.length - n0) + ')');
+  let last = cs.at(-1); assert.ok(Math.abs(last.mid - bad.P) < 5 && last.v.some((x) => x > 0), 'column sits at the traded price with the real bids');
+  // upstream drops (1006) and comes back: the same book again after the reconnect
+  socks[0].die(1006); await sleep(400);
+  assert.ok(socks.length >= 2, 'upstream reconnected'); const s2 = socks.at(-1);
+  const n1 = c.got.filter((m) => m.type === 'coarse').length;
+  s2.msg(trade(bad.P)); s2.msg(frame(bad)); await sleep(350);
+  cs = c.got.filter((m) => m.type === 'coarse'); last = cs.at(-1);
+  assert.ok(cs.length > n1 + 1 && Math.abs(last.mid - bad.P) < 5, 'after the reconnect: columns continue');
+  const a = hub.acc.get('NQ'); assert.ok(a && a.samples.some((x) => Math.abs(x.mid - bad.P) < 5), 'the recorder keeps sampling the stale-ask book (history gets no hole)');
+  assert.ok(hub.stats().uncrossed > 0 && hub.stats().oneSided > 0, 'diagnostics counted'); hub.shutdown(); void store;
+  ok('hub: REAL stale-ask book (10 Nov) keeps heatmap columns at the traded price, also after an upstream reconnect');
 }
 console.log(n + ' checks passed'); process.exit(0);

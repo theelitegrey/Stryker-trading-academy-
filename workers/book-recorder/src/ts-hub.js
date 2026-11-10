@@ -99,12 +99,17 @@ const goodLevels = (x) => Array.isArray(x) && x.length <= 2000 && x.every((r) =>
 // bids, or a bid far above the asks) moved the mid and dropped the WHOLE other side from the heatmap column, the recording and the
 // depth bars (Owner 2026-11-09: no liquidity below the price). A crossing level is removed from the side where it crosses fewer levels
 // of the other side (the stray one). A locked book (best bid == best ask) is kept. Returns the input arrays untouched when already clean.
-export function cleanBook(bids, asks) {
+// px (the last trade, optional) + tol: a crossed book is first cut at the traded price, bids above px + tol and asks below px - tol are
+// stale (Owner 2026-11-10: from the 09:31 ET open the vendor's ask side froze below the price on every root; without px the count rule
+// dropped the WHOLE ask side, the book had no mid and the heatmap got no column for the rest of the session).
+export function cleanBook(bids, asks, px, tol) {
   let sorted = true, maxB = -Infinity, minA = Infinity;
   for (let i = 0; i < bids.length; i++) { if (i && bids[i][0] >= bids[i - 1][0]) sorted = false; if (bids[i][0] > maxB) maxB = bids[i][0]; }
   for (let i = 0; i < asks.length; i++) { if (i && asks[i][0] <= asks[i - 1][0]) sorted = false; if (asks[i][0] < minA) minA = asks[i][0]; }
   if (sorted && !(maxB > minA)) return { bids, asks, cut: 0 };
-  const B = bids.slice().sort((x, y) => y[0] - x[0]), A = asks.slice().sort((x, y) => x[0] - y[0]);
+  let B = bids.slice().sort((x, y) => y[0] - x[0]), A = asks.slice().sort((x, y) => x[0] - y[0]);
+  let pre = 0;
+  if (px > 0 && maxB > minA) { const n = B.length + A.length; B = B.filter((r) => r[0] <= px + (tol || 0)); A = A.filter((r) => r[0] >= px - (tol || 0)); pre = n - B.length - A.length; }
   let b = 0, a = 0;
   while (b < B.length && a < A.length && B[b][0] > A[a][0]) {
     let na = 0, nb = 0;
@@ -112,8 +117,10 @@ export function cleanBook(bids, asks) {
     for (let k = b; k < B.length && B[k][0] > A[a][0]; k++) nb++;
     if (na <= nb) a++; else b++;
   }
-  return { bids: b ? B.slice(b) : B, asks: a ? A.slice(a) : A, cut: a + b };
+  return { bids: b ? B.slice(b) : B, asks: a ? A.slice(a) : A, cut: pre + a + b };
 }
+// the touch of a cleaned book: the mid of both sides, or the best price of the only side left (a side the vendor sent stale and cleanBook removed)
+export const bookMidOf = (bids, asks) => (bids.length && asks.length ? (bids[0][0] + asks[0][0]) / 2 : bids.length ? bids[0][0] : asks.length ? asks[0][0] : 0);
 
 export class TSHub {
   // store = { putMin(sym, t, book: ArrayBuffer, imbJson, fpJson), prune(minuteIdx), range(sym, t0, t1) -> [{ t, book, imb, fp }] }
@@ -121,7 +128,7 @@ export class TSHub {
     this.store = store; this.key = key; this.o = Object.assign({}, DEF, opts);
     this.WS = opts.WebSocket || globalThis.WebSocket; this.clock = opts.now || (() => Date.now());
     this.ws = null; this.state = 'idle'; this.clients = new Set(); this.latest = new Map(); this.quotes = new Map(); this.rings = new Map(); this.bars1m = new Map(); this.seq = 0;
-    this.acc = new Map(); this.nextSample = new Map(); this.timers = {}; this.retryN = 0; this.openedAt = 0; this.lastMsgAt = 0; this.lastDataAt = 0;
+    this.lastPx = new Map(); this.acc = new Map(); this.nextSample = new Map(); this.timers = {}; this.retryN = 0; this.openedAt = 0; this.lastMsgAt = 0; this.lastDataAt = 0;
     this.nextAt = 0; this.pauseUntil = 0; this.lastError = ''; this.minWait = 0; this.noViewerSince = 0; this.lastPrune = 0;
     this.n = { connects: 0, frames: 0, ticks: 0, snaps: 0, coarse: 0, rows: 0, drops: 0, refused: 0, throttled: 0, uncrossed: 0, thin: 0 };
     this.lastState = '';
@@ -236,8 +243,9 @@ export class TSHub {
   onBook(m, now) {
     if (!goodLevels(m.bids) || !goodLevels(m.asks)) return;
     this.n.frames++; this.lastDataAt = now;
-    const k = cleanBook(m.bids, m.asks);
+    const lp = this.lastPx.get(m.symbol), k = cleanBook(m.bids, m.asks, lp && now - lp[1] < 30000 ? lp[0] : 0, 8 * (TICK_SIZE[m.symbol] || 0.25));
     if (k.cut) this.n.uncrossed++;
+    if (!k.bids.length || !k.asks.length) this.n.oneSided = (this.n.oneSided || 0) + 1;   // diagnostic: a side was all stale
     if (Math.min(k.bids.length, k.asks.length) < 20) this.n.thin++;   // diagnostic only (/ts-health): a side with < 20 levels; NQ/ES send 400 a side
     const prev = this.latest.get(m.symbol);
     this.latest.set(m.symbol, { bids: k.bids, asks: k.asks, imb: Number.isFinite(m.imbalance) ? m.imbalance : 0, ts: m.ts, at: now, ver: (prev ? prev.ver : 0) + 1, imb10: null, coarse: null, coarseAt: 0 });
@@ -262,6 +270,7 @@ export class TSHub {
     const side = m.side === 'buy' ? 1 : m.side === 'sell' ? -1 : 0;
     if (!side) return;
     this.n.ticks++; this.lastDataAt = now;
+    if (!light) this.lastPx.set(m.symbol, [m.price, now]);   // cleanBook's reference for a crossed book
     if (this.te) { if (this.state === 'open' && !this.te.upAt) this.te.up(this.openedAt + 2000); this.te.add(m.symbol, m.price, m.size, side, m.ts, now); }   // TICK ENGINE: every trade, live span from the socket's open
     // 1-minute candles of the last BARS_MIN minutes: a viewer's chart is back-filled from these on subscribe (candles the
     // 10-minute-delayed lane has not delivered yet), then continues from the tick frames.
@@ -302,7 +311,7 @@ export class TSHub {
       if (!L || now - L.at > 10000) continue;
       if (now < (this.nextSample.get(sym) || 0)) continue;
       this.nextSample.set(sym, Math.floor(now / this.o.SAMPLE_MS) * this.o.SAMPLE_MS + this.o.SAMPLE_MS);
-      const mid = L.bids.length && L.asks.length ? (L.bids[0][0] + L.asks[0][0]) / 2 : 0;
+      const mid = bookMidOf(L.bids, L.asks);
       if (!(mid > 0)) continue;
       const s = bucketSnapshot({ bids: L.bids, asks: L.asks }, Math.floor(now / 1000) * 1000, coarseRule(mid, sym));
       const a = this.accFor(sym, now);
@@ -316,7 +325,7 @@ export class TSHub {
     const L = this.latest.get(sym);
     if (!L) return null;
     if (L.coarse && now - L.coarseAt < this.o.COARSE_MS - 50) return L.coarse;
-    const mid = L.bids.length && L.asks.length ? (L.bids[0][0] + L.asks[0][0]) / 2 : 0;
+    const mid = bookMidOf(L.bids, L.asks);
     const s = mid > 0 ? bucketSnapshot({ bids: L.bids, asks: L.asks }, now, coarseRule(mid, sym)) : null;
     L.coarse = s ? { type: 'coarse', symbol: sym, ts: now, mid: s.mid, bb: s.bb, ba: s.ba, step: s.step, i0: s.i0, v: Array.from(s.v) } : null;
     L.coarseAt = now;
@@ -496,8 +505,9 @@ export class TSHub {
     // minutes stored by the archive backfill BEFORE the +-2% range (build <= 790) hold a +-0.4% ribbon: drop them from `have` so they are
     // fetched once more at the wide range (an archive row has no imb / fp, so nothing else is lost). Recorder rows (imb / fp / 12 samples a minute)
     // are never replaced; they age out with KEEP_H.
-    const have = new Set();
-    for (const r of this.store.range(sym, t0, t1)) { if (r.book && !r.imb && !r.fp && narrowBook(r.book)) continue; have.add(r.t); }
+    // a minute with trades but no book (the live book was unusable, e.g. 10 Nov from 09:31 ET: crossed, no mid) is filled too; its imb / fp are kept
+    const have = new Set(), lost = new Map();
+    for (const r of this.store.range(sym, t0, t1)) { if (r.book && !r.imb && !r.fp && narrowBook(r.book)) continue; if (!r.book && r.fp) { lost.set(r.t, r); continue; } have.add(r.t); }
     const a = this.acc.get(sym); if (a) have.add(a.t);
     const missing = []; for (let t = t1; t >= t0; t--) if (!have.has(t)) missing.push(t);
     if (!missing.length) return { filled: 0, left: 0 };
@@ -527,12 +537,14 @@ export class TSHub {
         }
         let book = null;
         if (bids.length && asks.length) {
-          const k = cleanBook(bids, asks);   // sorted, uncrossed
-          const mid = k.bids.length && k.asks.length ? (k.bids[0][0] + k.asks[0][0]) / 2 : 0;
+          let px = 0; for (const m of mins) { const L = lost.get(m); if (L) { try { px = JSON.parse(L.fp).c || 0; } catch (e) {} break; } }
+          const k = cleanBook(bids, asks, px, 8 * (TICK_SIZE[sym] || 0.25));   // sorted, uncrossed (at the minute's last trade when it has one)
+          const mid = bookMidOf(k.bids, k.asks);
           const smp = mid > 0 ? bucketSnapshot({ bids: k.bids, asks: k.asks }, Math.floor(first / 1000), coarseRule(mid, sym)) : null;
           if (smp && smp.v.length) book = encodeSamples([smp]);
         }
-        try { for (const m of mins) this.store.putMin(sym, m, m === t ? book : null, null, null); } catch (e) { this.lastError = 'store failed'; break; }
+        // a lost minute keeps its imb / fp and gets an EMPTY book (not null) when it has no snapshot of its own, so it is asked once only
+        try { for (const m of mins) { const L = lost.get(m); this.store.putMin(sym, m, m === t && book ? book : L ? encodeSamples([]) : null, L ? L.imb : null, L ? L.fp : null); } } catch (e) { this.lastError = 'store failed'; break; }
         filled += mins.length; if (book) this.n.filled = (this.n.filled || 0) + 1;
       }
     } finally { this.filling = false; }

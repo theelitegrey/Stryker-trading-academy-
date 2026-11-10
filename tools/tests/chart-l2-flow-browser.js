@@ -154,6 +154,15 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       const fz = await readFlow(p);
       check(fz.stk_l2f_fp && fz.stk_l2f_fp.hot >= 0 && fz.stk_l2f_vp.traded > 0, tag + ': zoomed footprint drawn (highlighted rows ' + (fz.stk_l2f_fp && fz.stk_l2f_fp.hot) + ')', fz.stk_l2f_fp);
       await p.screenshot({ path: OUT + '/l2f-' + tag + '-zoom.png' });
+      // REGRESSION (2026-11-10): hiding an indicator must clear its layer; showing must bring it back
+      const layerInk = (t) => p.evaluate((t) => { const ch = window.STRYKER_VELA.context().cells[0].chart; const r = ch.renderer.extLayers ? ch.renderer : ch.renderer.renderer; let best = 0; for (const l of r.extLayers) { if (l.channel !== t || !l.canvas.width) continue; const d = l.canvas.getContext('2d').getImageData(0, 0, l.canvas.width, l.canvas.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; best = Math.max(best, n); } return best; }, t);
+      const vis = (t, v) => p.evaluate(([t, v]) => { const h = (window.STRYKER_VELA.context().cells[0].chart.indicators() || []).find((x) => x.nativeType === t); h.setVisible(v); }, [t, v]);
+      for (const t of ['stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad']) {
+        const on = await layerInk(t); if (!on) { console.log('SKIP ' + tag + ' ' + t + ': nothing drawn in this fixture'); continue; }
+        await vis(t, false); await sleep(1500); const off = await layerInk(t);
+        await vis(t, true); await sleep(2000); const back = await layerInk(t);
+        check(off === 0 && back > 0, tag + ': ' + t + ' hide clears (' + on + ' -> ' + off + '), show redraws (' + back + ')', [on, off, back]);
+      }
       await ctx.close();
     }
   } finally { await b.close(); }

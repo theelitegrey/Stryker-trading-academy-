@@ -535,6 +535,7 @@ function bigLayer() {
       try {
         const d = a.data, I = Object.assign({}, BT.DEFAULTS, d.owner.inputs), sel = d.sel, tick = d.tick, co = a.coords, phone = co.width < 520;
         if (!sel || !tick) return;
+        const dr = window.__stkL2Flow.bigDraws || (window.__stkL2Flow.bigDraws = {}); dr[d.owner.ctx.timeframe] = (dr[d.owner.ctx.timeframe] || 0) + 1;   // test probe: paints per chart timeframe
         const top = a.bounds.top, bot = top + a.bounds.height, vr = co.visibleLogicalRange(), t0 = a.bars[Math.max(0, Math.floor(vr.from))].time, t1 = a.bars[Math.min(a.bars.length - 1, Math.ceil(vr.to))].time + 86400000;
         const pos = new Map(), vis = sel.list.filter((p) => p.ms >= t0 && p.ms <= t1);
         const kept = BT.cap(vis, phone ? 10 : 14, (p) => { const i = idxOf(a.bars, p.ms); if (i < 0) return null; pos.set(p, i); return co.logicalToX(i); });

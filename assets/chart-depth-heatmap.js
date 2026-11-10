@@ -13,7 +13,7 @@
 //   - right side: the current book per price row (red asks above, green bids below, sizes) and an optional cumulative column;
 //   - bottom: buy / sell volume bars per bar; a last-price line and the best bid / ask sizes at the right edge.
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
-import { drawBookmap, STYLES, SMOOTH_OPTS } from './chart-bookmap.js?v=951';
+import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=951';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=951';
 import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote, staleNote } from './chart-futures-l2.js?v=951';
 import { sphere, drawLadder } from './chart-liquidity-map.js?v=951';
@@ -38,7 +38,16 @@ export const DH_SCHEMA = [
   { key: 'showBook', title: 'Book bars (right side)', type: 'bool', defval: true, tooltip: 'The size resting at each price now: red above the price (asks), green below (bids).' },
   { key: 'showCum', title: 'Cumulative column', type: 'bool', defval: true, tooltip: 'The running total of resting size from the best price outward.' },
   { key: 'showVolume', title: 'Volume bars', type: 'bool', defval: true, tooltip: 'Traded volume per bar along the bottom, green = buying, red = selling.' },
-  { key: 'gpuHeatmap', title: 'Graphics card (smoother)', type: 'bool', defval: true }
+  { key: 'gpuHeatmap', title: 'Graphics card (smoother)', type: 'bool', defval: true },
+  // Set by the chart's Heatmap panel (assets/chart-heatmap-panel.js). Defaults = the look above, so a saved chart is unchanged.
+  { group: 'Heatmap panel', key: 'hmOwned', title: 'Made by the Heatmap panel', type: 'bool', defval: false },
+  { group: 'Heatmap panel', key: 'hmTheme', title: 'Colours', type: 'string', defval: 'Classic', options: HM_THEMES.map((t) => t[0].toUpperCase() + t.slice(1)) },
+  { group: 'Heatmap panel', key: 'hmStyle', title: 'Style', type: 'string', defval: 'Classic', options: ['Classic', 'Volumetric'] },
+  { group: 'Heatmap panel', key: 'hmShow', title: 'Display', type: 'string', defval: 'Heatmap', options: ['Heatmap', 'Profile', 'Both'] },
+  { group: 'Heatmap panel', key: 'hmMin', title: 'Threshold (hide sizes below, 0 = off)', type: 'float', defval: 0, min: 0, max: 1e9, step: 1 },
+  { group: 'Heatmap panel', key: 'hmMax', title: 'Ceiling (hide sizes above, 0 = off)', type: 'float', defval: 0, min: 0, max: 1e9, step: 1 },
+  { group: 'Heatmap panel', key: 'hmUsd', title: 'Sizes in USD (crypto)', type: 'bool', defval: false },
+  { group: 'Heatmap panel', key: 'hmValues', title: 'Size numbers on the strongest cells', type: 'bool', defval: false }
 ];
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -52,7 +61,9 @@ export function dhConfig(i) {
     smooth: smoothMsOf(i.heatSmooth), gamma: i.contrastMode === 'Manual' ? clamp(num(i.contrast, 1), 0.5, 2.5) : 1,
     hf: { p, min: 0, max: 0, top: 0, on: p > 0, key: p > 0 ? String(p) : '' }, cut,
     bubbles: i.showBubbles !== false, bubbleScale: clamp(num(i.bubbleScale, 100), 40, 200) / 100,
-    book: i.showBook !== false, cum: i.showCum !== false, volume: i.showVolume !== false, gpu: i.gpuHeatmap !== false
+    book: i.showBook !== false, cum: i.showCum !== false, volume: i.showVolume !== false, gpu: i.gpuHeatmap !== false,
+    hm: !!i.hmOwned, look: hmLook(String(i.hmTheme || 'Classic').toLowerCase()), vol: i.hmStyle === 'Volumetric', show: i.hmShow || 'Heatmap',
+    hmMin: num(i.hmMin, 0), hmMax: num(i.hmMax, 0), usd: !!i.hmUsd, values: !!i.hmValues
   };
 }
 
@@ -193,7 +204,8 @@ export function dhLayer(H) {
       const W = co.width, top = a.bounds.top, H0 = a.bounds.height, bot = top + H0, phone = W < 520;
       const font = (a.theme && a.theme.fontFamily) || 'sans-serif';
       const yOf = (p) => co.priceToY(p, a.scale, a.bounds);
-      const labW = phone ? 34 : 54, c1W = phone ? 32 : 54, c2W = cfg.cum ? (phone ? 32 : 54) : 0, ladW = cfg.book ? labW + c1W + c2W : 0, plotR = W - ladW;
+      const showBook = cfg.hm ? cfg.show !== 'Heatmap' : cfg.book;   // panel: Profile / Both = the side depth profile
+      const labW = phone ? 34 : 54, c1W = phone ? 32 : 54, c2W = cfg.cum ? (phone ? 32 : 54) : 0, ladW = showBook ? labW + c1W + c2W : 0, plotR = W - ladW;
       const stat = { feed: f.key, width: W, phone, bubbles: 0, ladderRows: 0, replay: !!rp };
       // first paint (live, not replay): room right of the newest bar for the book column, so "now" is not under it (once; later zoom /
       // scroll is the member's). The same fit as the Liquidity Map.
@@ -221,9 +233,42 @@ export function dhLayer(H) {
       const bmv = { hf: cfg.hf, look: 'depth', colorBy: '', x0: 0, x1: Math.max(0, plotR), fullW: plotR, top, bot, dpr: co.dpr || 1, hist, now,
         version: f.version + ':' + hist.length + ':' + cfg.smooth, gamma: cfg.gamma, priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t),
         priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
+      if (cfg.hm) {   // the Heatmap panel's view: sizes may be set in USD; Profile hides the cells, Heatmap hides the side column
+        const px = cfg.usd && a.bars.length ? a.bars[a.bars.length - 1].close || 1 : 1, mn = cfg.hmMin / px, mx = cfg.hmMax / px;
+        bmv.hf = { p: cfg.hf.p, min: mn, max: mx, top: 0, on: cfg.hf.p > 0 || mn > 0 || mx > 0, key: cfg.hf.p + ':' + mn + ':' + mx };
+        bmv.look = cfg.look;
+        sitUnder(canvas, true);
+      }
       const wantGl = cfg.gpu && heatmapGLOk(); if (wantGl && !glr) glr = createHeatmapGL(canvas); else if (!wantGl && glr) { glr.destroy(); glr = null; }
-      const r = (glr && glr.draw(g, bmv)) || drawBookmap(g, bmv);
+      const noCells = cfg.hm && cfg.show === 'Profile';
+      const r = noCells ? { cells: 0, columns: 0 } : (glr && glr.draw(g, bmv)) || drawBookmap(g, bmv);
+      if (glr) glr.canvas.style.filter = cfg.hm && cfg.vol ? 'blur(2.5px) saturate(1.25) brightness(1.1)' : '';   // Volumetric = a soft glow
+      if (noCells && glr) glr.canvas.style.display = 'none';
       stat.heat = { cells: r.cells, columns: r.columns, gl: !!r.gl, p97: r.p97, blueShare: r.blueShare };
+      // ---- spread of the sizes now (the panel's Sensitivity histogram) + size numbers on the strongest cells (panel View: Values) ----
+      if (cfg.hm && hist.length) {
+        const last = hist[hist.length - 1], v = last && last.v, bins = new Array(12).fill(0);
+        if (v) {
+          let mx = 0; for (let k = 0; k < v.length; k++) { const x = Math.abs(v[k]); if (x > mx) mx = x; }
+          if (mx > 0) for (let k = 0; k < v.length; k++) { const x = Math.abs(v[k]); if (x > 0) bins[Math.min(11, Math.floor(11 * Math.log1p(x) / Math.log1p(mx)))]++; }
+          stat.spread = bins; stat.maxSize = mx;
+        }
+        if (cfg.values && r.cells) {
+          const gap = phone ? 54 : 64; let lastX = -1e9; const fs = phone ? 9 : 10, px = cfg.usd && nb ? bars[nb - 1].close || 1 : 1;
+          g.save(); g.beginPath(); g.rect(0, top, plotR, H0); g.clip(); g.font = '600 ' + fs + 'px ' + font; g.textAlign = 'center'; g.textBaseline = 'middle'; stat.values = 0;
+          for (let k = hist.length - 1; k >= 0; k--) {
+            const sm = hist[k], x = co.timeToX(sm.ts); if (!sm.v || x > plotR || x < 0 || Math.abs(x - lastX) < gap) continue; lastX = x;
+            const top3 = []; for (let j = 0; j < sm.v.length; j++) { const q = Math.abs(sm.v[j]); if (q > 0) top3.push([q, j]); }
+            top3.sort((m, n) => n[0] - m[0]);
+            for (const [q, j] of top3.slice(0, 3)) {
+              const y = yOf((sm.i0 + j + 0.5) * sm.step); if (y < top + 6 || y > bot - 6) continue;
+              const val = q * px, txt = val >= 1e9 ? (val / 1e9).toFixed(1) + 'B' : val >= 1e6 ? (val / 1e6).toFixed(1) + 'M' : val >= 1e3 ? (val / 1e3).toFixed(1) + 'K' : String(Math.round(val));
+              g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(x - 17, y - 7, 34, 14); g.fillStyle = '#fff'; g.fillText(txt, x, y + 0.5); stat.values++;
+            }
+          }
+          g.restore();
+        }
+      }
       // ---- trades: price trace, bubbles, volume ----
       const pxPerMs = Math.abs(co.timeToX(now) - co.timeToX(now - 60000)) / 60000, msPerPx = pxPerMs > 0 ? 1 / pxPerMs : 1000;
       const tLeft = visFrom - 60000, tr = tradesIn(f, H, tLeft, now);
@@ -275,7 +320,7 @@ export function dhLayer(H) {
       const ly = Math.round(yOf(lastP)) + 0.5;
       if (lastP > 0 && ly > top && ly < bot) { g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(0, ly); g.lineTo(plotR, ly); g.stroke(); g.setLineDash([]); stat.lastPrice = lastP; }
       // ---- book bars + cumulative column + best bid / ask (the Liquidity Map ladder) ----
-      if (cfg.book) {
+      if (showBook) {
         const book = bookAt(f, now, !!rp, raw);
         const tick = f.custom ? (f.custom.trades && f.custom.trades().tick) || 0.25 : 0;
         if (book) drawLadder(g, a, { book, tick, whole: !!f.custom }, { lx: plotR, labW, c1W, c2W, top, bot, H0, phone, font, yOf, stat, W });

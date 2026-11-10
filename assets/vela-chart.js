@@ -680,6 +680,8 @@ function lateLists(provider){
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }
   try { Settings.installChartSettings(Core, mods[9]); } catch (e) { console.warn('TradeZoro: settings install', e); }
+  // Heatmap panel (assets/chart-heatmap-panel.js): a chart setting, not an indicator. Persistence is registered before boot; the button mounts with the settings gear.
+  const hmP = import('./chart-heatmap-panel.js?v=951').then((m) => { m.installHeatmapPanel(Core); return m; }).catch((e) => { console.warn('TradeZoro: heatmap panel', e); return null; });
   // ONE icon set for every drawing tool (Owner order 2026-10-14, TradingView look): the column,
   // its flyouts, the phone sheet, the object tree and the favourites bar all read these; plus
   // separate Long / Short Position tools (assets/chart-tool-icons.js). Before the workspace is built.
@@ -991,6 +993,7 @@ function lateLists(provider){
   import('./chart-pro-gate.js?v=951').then((m) => m.mountProGate(ws, { toast })).catch((e) => console.warn('TradeZoro: pro gate', e));
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('TradeZoro: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: settings window', e); }
+  hmP.then((m) => { if (m && !BT) m.mountHeatmapPanel(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); });
   if (!BT) try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: alerts', e); }
   // PAPER TRADING (Owner order 2026-10-12): demo money, simulated fills, no broker. Trade button,
   // order ticket, on-chart lines, one-click Buy/Sell, bottom panel: assets/chart-paper.js.

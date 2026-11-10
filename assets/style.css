@@ -6260,6 +6260,7 @@ body.charts-page .stkchart-credit{
 #stkc-bar.stkc-onebar > .stkc-bar-l > .stkl-menu{ order:22; }
 #stkc-bar.stkc-onebar > .stkc-bar-l > .stkc-menu:has(#stkc-layout-btn){ order:24; }
 :where(#stkc-bar.stkc-onebar > .stkc-bar-r) > *{ order:26; }
+#stkc-bar.stkc-onebar #stkc-heatmap-btn{ order:25; }
 #stkc-bar.stkc-onebar #stkc-settings-btn{ order:26; }
 #stkc-bar.stkc-onebar #stkc-fs-btn{ order:27; }
 #stkc-bar.stkc-onebar .vela-widget-screenshot{ order:28; }

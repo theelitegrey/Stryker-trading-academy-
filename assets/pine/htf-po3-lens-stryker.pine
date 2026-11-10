@@ -114,6 +114,13 @@ type HTF
     float lh = na
     float ll = na
     bool  ok = false
+    int   ci = -1
+    float slo = na
+    float slh = na
+    float sll = na
+    bool  pushed = false
+    bool  part = false
+    bool  spart = false
 
 var array<HTF> stacks = array.new<HTF>()
 if barstate.isfirst
@@ -136,21 +143,45 @@ f_run(k, isOn, tf, t) =>
     HTF s = array.get(stacks, k)
     s.ok := isOn and timeframe.in_seconds(tf) > chartSec
     if s.ok
+        // Live ticks re-run the same bar and this runtime keeps var state between runs, so a period
+        // change used to push a stub candle on every tick. Roll this bar's changes back before re-running it.
+        if s.ci == bar_index
+            if s.pushed
+                array.pop(s.o)
+                array.pop(s.h)
+                array.pop(s.l)
+                array.pop(s.c)
+            s.lo := s.slo
+            s.lh := s.slh
+            s.ll := s.sll
+            s.part := s.spart
+        else
+            s.ci := bar_index
+            s.slo := s.lo
+            s.slh := s.lh
+            s.sll := s.ll
+            s.spart := s.part
+        s.pushed := false
         bool isNew = not na(t[1]) and t != t[1]
         if na(s.lo)
             s.lo := open
             s.lh := high
             s.ll := low
+            // the first loaded period is partial when the data starts inside it: never show it as complete
+            s.part := time != t
         if isNew
-            array.push(s.o, s.lo)
-            array.push(s.h, s.lh)
-            array.push(s.l, s.ll)
-            array.push(s.c, close[1])
-            while array.size(s.o) > nCdl + 2
-                array.shift(s.o)
-                array.shift(s.h)
-                array.shift(s.l)
-                array.shift(s.c)
+            if not s.part
+                while array.size(s.o) >= nCdl + 2
+                    array.shift(s.o)
+                    array.shift(s.h)
+                    array.shift(s.l)
+                    array.shift(s.c)
+                array.push(s.o, s.lo)
+                array.push(s.h, s.lh)
+                array.push(s.l, s.ll)
+                array.push(s.c, close[1])
+                s.pushed := true
+            s.part := false
             s.lo := open
             s.lh := high
             s.ll := low

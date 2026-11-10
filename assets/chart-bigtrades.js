@@ -22,6 +22,7 @@ export const DEFAULTS = {
 };
 // markers per 6.5 h (one RTH session) of loaded data. Measured on real NQ / ES / CL days 2026-10-21 and 11-02: Medium gives 8-15 per RTH session.
 export const RATE = { 'Very low': 40, Low: 25, Medium: 15, Strong: 8 };
+export const REF_MS = 24 * 3600000;   // the auto threshold's reference span (callers load at least this much history)
 
 // Old saved layouts (mult / minSize / labels / cluster) -> the new settings. Only when the new `mode` key is absent.
 export function migrate(inp) {
@@ -81,11 +82,14 @@ export function threshold(parents, I, floor = 0) {
 }
 
 // bars: chart bars [{ time, high, low, close }] (any of high|h, low|l, close|c); tf ms. Returns the parents that pass, each with z, ft, absorbed, impact.
-export function select(prints, I, { floor = 0, bars = [], tfMs = 60000, tick = 0.25, now = Date.now(), refSizes = null } = {}) {
+// refFrom: threshold + size stats come from the orders since refFrom only (default the last 24 h), so the marks do not change with how much
+// history the chart happens to have loaded (GK 10 Nov: marks appeared after a drag loaded older trades, gone again after a reload).
+export function select(prints, I, { floor = 0, bars = [], tfMs = 60000, tick = 0.25, now = Date.now(), refSizes = null, refFrom = now - REF_MS } = {}) {
   const P = Object.assign({}, DEFAULTS, I);
   const parents = clusterAtPrice(aggregate(prints, { burstMs: P.burstMs, walkTicks: P.walkTicks, on: P.aggregate }), P.clusterSec);
   if (!parents.length) return { list: [], thr: 0, all: 0 };
-  const thr = threshold(parents, P, floor), st = logStats(refSizes || parents.map((p) => p.size));
+  const ref = parents.filter((p) => p.ms >= refFrom), base = ref.length ? ref : parents;
+  const thr = threshold(base, P, floor), st = logStats(refSizes || base.map((p) => p.size));
   const hi = (b) => (b.high != null ? b.high : b.h), lo = (b) => (b.low != null ? b.low : b.l), cl = (b) => (b.close != null ? b.close : b.c);
   let atr = 0, an = 0; for (const b of bars) { const r = (hi(b) - lo(b)) / tick; if (r >= 0) { atr += r; an++; } }
   atr = an ? Math.max(1, atr / an) : 8;

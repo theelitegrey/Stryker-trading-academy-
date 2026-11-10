@@ -184,7 +184,7 @@ class TsNative {
     if (tf == null || tf < 1 || tf > 240) return note('L1 trades work on 1-minute to 4-hour charts.');
     this.bind(root);
     const s = this.h.s;
-    if (bars.length) s.need = Math.min(s.need || Infinity, bars[0].time);
+    if (bars.length) s.need = Math.min(s.need || Infinity, bars[0].time, Date.now() - BT.REF_MS);   // at least Big Trades' 24 h reference (same marks after a reload)
     if (s.started && s.need < s.loadedFrom) pump(s);
     const E = H.replayE();
     let mins = minutes(s);

@@ -5,6 +5,7 @@
 //   stk_l2f_big    Big Trades (L2)       overlay: big orders tagged W (hit a resting wall) / C (consumed) / P (book pulled)
 //   stk_l2f_stop   Stop Runs (L2)        overlay: a sweep counts only if resting liquidity on that side was pulled / consumed through >= N levels
 //   stk_l2f_vp     Volume Profile (L2)   overlay: session average resting size per price next to the traded profile (view: Volume / Delta / Both)
+//   stk_l2f_sw     Swing VWAP + Profile (L2) overlay: per swing leg an anchored VWAP + volume profile with POC / VAH / VAL (assets/chart-swing-vwap*.js)
 //   stk_l2f_dp     Delta Profile (L2)    overlay: delta per price over the last N minutes, a picked range, or the session (maths: chart-delta-profile-data.js)
 // Imbalance Zones = Book Imbalance (L2), Absorption = Absorption & Iceberg Tracker (L2): not repeated here.
 // DATA, nothing fetched twice: the book is the heatmap's own BookFeed (chart-orderflow.js acquireBookFeed 'tsl2|ROOT' / Binance; its /ts-book-history
@@ -23,9 +24,10 @@ import * as BT from './chart-bigtrades.js?v=938';
 import { sweepEvents } from './chart-of-pro-data.js?v=938';
 import { sweepBars } from './chart-of-pro.js?v=938';
 import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=938';
+import { swingModel, swingLayer } from './chart-swing-vwap.js?v=938';
 import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=938';
 
-export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp'];
+export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
@@ -222,6 +224,21 @@ const SCHEMA = {
     { key: 'widthPct', title: 'Width (% of the chart)', type: 'int', defval: 18, min: 8, max: 40, step: 1 },
     { key: 'showVol', title: 'Show volume behind the bars (grey)', type: 'bool', defval: false },
     { key: 'posColor', title: 'Buying (right of zero)', type: 'color', defval: UP }, { key: 'negColor', title: 'Selling (left of zero)', type: 'color', defval: DN }],
+  stk_l2f_sw: [
+    { key: 'len', title: 'Swing length (bars each side)', type: 'int', defval: 10, min: 2, max: 50, step: 1, tooltip: 'A swing high / low is confirmed only when this many bars on each side are lower / higher, so a drawn leg never repaints.' },
+    { key: 'legs', title: 'Legs to show (newest first)', type: 'int', defval: 6, min: 1, max: 30, step: 1 },
+    { key: 'vwap', title: 'Anchored VWAP', type: 'bool', defval: true },
+    { key: 'bands', title: 'VWAP bands (±1 / ±2 SD)', type: 'bool', defval: false },
+    { key: 'profile', title: 'Volume profile', type: 'bool', defval: true },
+    { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
+    { key: 'widthPct', title: 'Profile width (% of the leg)', type: 'int', defval: 40, min: 10, max: 100, step: 5 },
+    { key: 'anchor', title: 'Profile edge', type: 'string', defval: 'Left', options: ['Left', 'Right'] },
+    { key: 'va', title: 'Value area (%)', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
+    { key: 'delta', title: 'Delta colouring (buy / sell per row)', type: 'bool', defval: false },
+    { key: 'extend', title: 'Extend POC until touched', type: 'bool', defval: false },
+    { key: 'labels', title: 'Show POC / VAH / VAL prices', type: 'bool', defval: true },
+    { key: 'buyColor', title: 'Buy / up leg', type: 'color', defval: UP }, { key: 'sellColor', title: 'Sell / down leg', type: 'color', defval: DN },
+    { key: 'pocColor', title: 'POC', type: 'color', defval: AMBER }, { key: 'vaColor', title: 'VAH / VAL', type: 'color', defval: CYAN }, { key: 'vwapColor', title: 'VWAP', type: 'color', defval: VIOLET }],
   stk_l2f_vp: [
     { key: 'view', title: 'View', type: 'string', defval: 'Volume', options: ['Volume', 'Delta', 'Both'], tooltip: 'Delta = traded buy minus sell at each price (green right of the centre line, red left).' },
     { key: 'widthPct', title: 'Width of each profile (% of the chart)', type: 'int', defval: 14, min: 5, max: 30, step: 1 },
@@ -236,9 +253,10 @@ const TITLES = {
   stk_l2f_stop: ['Stop Runs (L2)', 'Stop Runs L2', 'price', true],
   stk_l2f_vp: ['Volume Profile (L2)', 'Volume Profile L2', 'price', true],
   stk_l2f_lad: ['Delta Ladder (L2)', 'Delta Ladder L2', 'price', true],
-  stk_l2f_dp: ['Delta Profile (L2)', 'Delta Profile L2', 'price', true]
+  stk_l2f_dp: ['Delta Profile (L2)', 'Delta Profile L2', 'price', true],
+  stk_l2f_sw: ['Swing VWAP + Profile (L2)', 'Swing VWAP L2', 'price', true]
 };
-const LAYERS = ['stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_dp'];
+const LAYERS = ['stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_dp', 'stk_l2f_sw'];
 
 // ---------------------------------------------------------------------------------------- the indicator
 // Overlay tools state themselves in a one-line plate drawn by their own layer, stacked down the top right (a chart table would pile up on top of the others).
@@ -303,6 +321,7 @@ class L2Flow {
     ctx.setStatus(samples.length ? 'live' : 'loading');
     if (t === 'stk_l2f_lad') { this.hub = hub; this.ov('Delta Ladder (L2)'); return this.pushLadder(); }
     if (t === 'stk_l2f_dp') return this.drawDp(hub, bars, tf);
+    if (t === 'stk_l2f_sw') return this.drawSw(hub, bars, tf);
     if (t === 'stk_l2f_delta') return this.drawDelta(hub, bars, tf, since);
     if (t === 'stk_l2f_cvd') return this.drawCvd(hub, bars, tf, since);
     if (t === 'stk_l2f_fp') return this.drawFp(hub, bars, tf, since);
@@ -404,6 +423,15 @@ class L2Flow {
     this.ov('Delta Profile ' + label, acc.cur.size ? part.trim() : 'waiting for trades…');
     this.stat(bars, () => false); const st = window.__stkL2Flow.stk_l2f_dp; st.net = acc.net; st.ticks = acc.tab.size; st.minutes = acc.cur.size; st.touched = acc.touched; st.mode = mode; st.from = w.from; st.to = w.to;
     this.push({ hub, acc, v: hub.v + ':' + hub.fver() + ':' + acc.net + ':' + acc.cur.size });
+  }
+  // Swing VWAP + Profile (L2): frozen legs are cached; only the legs touching the newest pivot / bar are recomputed.
+  drawSw(hub, bars, tf) {
+    const I = this.inputs, fb = hub.footBars(), tick = hub.tick() || 0.25, cache = this.swCache || (this.swCache = new Map());
+    const M = swingModel(bars, tf, I, fb, tick, cache), open = M.legs[M.legs.length - 1], ap = M.legs.filter((l) => l.approx).length;
+    this.ov('Swing VWAP + Profile (L2) ' + M.legs.length + ' legs' + (ap ? ' · ' + ap + ' approx' : ''), !fb.bars.length ? 'waiting for trades…' : fb.from && fb.from > bars[0].time ? 'trades from ' + hhmm(fb.from) : '');
+    this.stat(bars, () => false);
+    Object.assign(window.__stkL2Flow.stk_l2f_sw, { legs: M.legs.length, pivots: M.pivots, computed: M.computed, approxLegs: ap, openDir: open ? open.dir : 0, openPoc: open && open.poc, openVah: open && open.vah, openVal: open && open.val, openVwap: open && open.vwap[open.vwap.length - 1], openA: open && open.a, openB: open && open.b });
+    this.push({ model: M, v: hub.v + ':' + hub.fver() + ':' + bars.length + ':' + bars[bars.length - 1].close + ':' + bars[bars.length - 1].high + ':' + bars[bars.length - 1].low });
   }
   drawVp(hub, bars, tf, since) {
     const ss = sessionStart(bars[bars.length - 1].time, hub.kind), rp = hub.restProfile(ss);
@@ -787,6 +815,7 @@ export function installL2Flow(Core, hooks, reg) {
   Core.registerRendererLayer({ id: 'stk_l2f_stop', placement: 'above-data', create: stopLayer });
   Core.registerRendererLayer({ id: 'stk_l2f_vp', placement: 'above-data', create: vpLayer });
   Core.registerRendererLayer({ id: 'stk_l2f_dp', placement: 'above-data', create: dpLayer });
+  Core.registerRendererLayer({ id: 'stk_l2f_sw', placement: 'above-data', create: () => swingLayer({ frame, Yp, plate, ink, light, rgba, MONO, plateLine, ovCount: () => ovLive.filter((x) => x.on).length, fmtP: pFmt }) });
   for (const id of LADDER) Core.registerRendererLayer({ id, placement: 'above-data', create: ladderLayer });
   for (const type of L2F_TYPES) {
     const [title, short, pane, overlay] = TITLES[type];

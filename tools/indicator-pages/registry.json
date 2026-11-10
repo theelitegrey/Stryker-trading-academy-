@@ -1409,6 +1409,15 @@
     "grp": "Order Flow"
    },
    {
+    "key": "b:stk_l2f_sw",
+    "name": "Swing VWAP + Profile (L2)",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
     "key": "x:dynamic-liquidity-heatmap-profile-bigbeluga",
     "name": "Dynamic Liquidity HeatMap Profile [BigBeluga]",
     "author": "BigBeluga",
@@ -5934,6 +5943,146 @@
       "type": "color",
       "title": "Selling (left of zero)",
       "def": "#f23645",
+      "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Swing VWAP + Profile (L2)",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_l2f_sw",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Swing VWAP + Profile (L2)",
+    "short": "Swing VWAP L2",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "len",
+      "type": "int",
+      "title": "Swing length (bars each side)",
+      "tooltip": "A swing high / low is confirmed only when this many bars on each side are lower / higher, so a drawn leg never repaints.",
+      "def": 10,
+      "options": []
+     },
+     {
+      "key": "legs",
+      "type": "int",
+      "title": "Legs to show (newest first)",
+      "def": 6,
+      "options": []
+     },
+     {
+      "key": "vwap",
+      "type": "bool",
+      "title": "Anchored VWAP",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "bands",
+      "type": "bool",
+      "title": "VWAP bands (±1 / ±2 SD)",
+      "def": false,
+      "options": []
+     },
+     {
+      "key": "profile",
+      "type": "bool",
+      "title": "Volume profile",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "rowTicks",
+      "type": "int",
+      "title": "Row size (ticks, 0 = auto)",
+      "def": 0,
+      "options": []
+     },
+     {
+      "key": "widthPct",
+      "type": "int",
+      "title": "Profile width (% of the leg)",
+      "def": 40,
+      "options": []
+     },
+     {
+      "key": "anchor",
+      "type": "string",
+      "title": "Profile edge",
+      "def": "Left",
+      "options": [
+       "Left",
+       "Right"
+      ]
+     },
+     {
+      "key": "va",
+      "type": "int",
+      "title": "Value area (%)",
+      "def": 70,
+      "options": []
+     },
+     {
+      "key": "delta",
+      "type": "bool",
+      "title": "Delta colouring (buy / sell per row)",
+      "def": false,
+      "options": []
+     },
+     {
+      "key": "extend",
+      "type": "bool",
+      "title": "Extend POC until touched",
+      "def": false,
+      "options": []
+     },
+     {
+      "key": "labels",
+      "type": "bool",
+      "title": "Show POC / VAH / VAL prices",
+      "def": true,
+      "options": []
+     },
+     {
+      "key": "buyColor",
+      "type": "color",
+      "title": "Buy / up leg",
+      "def": "#03c988",
+      "options": []
+     },
+     {
+      "key": "sellColor",
+      "type": "color",
+      "title": "Sell / down leg",
+      "def": "#f23645",
+      "options": []
+     },
+     {
+      "key": "pocColor",
+      "type": "color",
+      "title": "POC",
+      "def": "#f5b301",
+      "options": []
+     },
+     {
+      "key": "vaColor",
+      "type": "color",
+      "title": "VAH / VAL",
+      "def": "#00adb5",
+      "options": []
+     },
+     {
+      "key": "vwapColor",
+      "type": "color",
+      "title": "VWAP",
+      "def": "#9b7bff",
       "options": []
      }
     ]

@@ -1,5 +1,11 @@
 [
  {
+  "build": 940,
+  "date": "2026-11-10",
+  "title": "Help Center",
+  "link": ""
+ },
+ {
   "build": 939,
   "date": "2026-11-10",
   "title": "Swing VWAP + Profile card (build 939)",
@@ -585,12 +591,6 @@
   "build": 730,
   "date": "2026-10-30",
   "title": "Connect broker: clearer login help and errors",
-  "link": ""
- },
- {
-  "build": 729,
-  "date": "2026-10-30",
-  "title": "Help Center",
   "link": ""
  },
  {

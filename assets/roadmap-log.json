@@ -1,5 +1,11 @@
 [
  {
+  "build": 953,
+  "date": "2026-11-11",
+  "title": "ZoroCharts",
+  "link": ""
+ },
+ {
   "build": 952,
   "date": "2026-11-11",
   "title": "Depth Heatmap",
@@ -15,12 +21,6 @@
   "build": 949,
   "date": "2026-11-10",
   "title": "Big Trades",
-  "link": ""
- },
- {
-  "build": 947,
-  "date": "2026-11-10",
-  "title": "ZoroCharts",
   "link": ""
  },
  {

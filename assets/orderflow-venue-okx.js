@@ -5,8 +5,8 @@
 //   tick(pair) -> price tick (number)
 // bids / asks = [[price, size in base coin], ...]; size 0 in a diff removes the level. side: 1 buyer-aggressor, -1 seller-aggressor.
 // pair = { base, quote, perp } or a chart ticker ("BTC-USDT", "BTC-USDT-SWAP"). Swap sizes are converted from contracts to base coin.
-import { OKX_REST, OKX_WS_PUBLIC, OkxBook, numRows, tradeOf, fetchInst } from './okx-core.js?v=940';
-import { registerVenue } from './orderflow-venues.js?v=940';
+import { OKX_REST, OKX_WS_PUBLIC, OkxBook, numRows, tradeOf, fetchInst } from './okx-core.js?v=941';
+import { registerVenue } from './orderflow-venues.js?v=941';
 
 const ticks = new Map();
 const pairKey = (p) => p.base + '-' + p.quote + (p.perp ? '-SWAP' : '');

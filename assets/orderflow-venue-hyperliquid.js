@@ -9,7 +9,7 @@
 //     nSigFigs 4 and 3: ~$1 / $10 / $100 rows on BTC) and merged, finest wins near the price:
 //     every message is a full snapshot (no diffs to lose), so a reconnect cannot leave a stale book.
 // Education only. Not financial advice.
-import { registerVenue, autoTick } from './orderflow-venues.js?v=940';
+import { registerVenue, autoTick } from './orderflow-venues.js?v=941';
 
 const WS_URL = 'wss://api.hyperliquid.xyz/ws';
 const SIGS = [0, 4, 3];   // 0 = full precision

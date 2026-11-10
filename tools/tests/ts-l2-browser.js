@@ -165,6 +165,48 @@ async function staleBook(b) {
     await ctx.close();
   }
 }
+// REAL frozen bid side (Owner 2026-11-10 22:56 IST: "why heatmap lower portion not showing?"). MNQ 16:59-17:02 UTC
+// (workers/book-recorder/test/fixtures/mnq-frozen-bids.json): the vendor re-sent the same 400 bids, all above the price. Run through the REAL
+// hub on a fake clock until it marks the side stale, shifted onto the chart's price. Then the clean 13:00 UTC book: the note must go.
+async function frozenFrames(mid, which) {
+  const { TSHub } = await import('../../workers/book-recorder/src/ts-hub.js');
+  const FX = JSON.parse(fs.readFileSync(__dirname + '/../../workers/book-recorder/test/fixtures/mnq-frozen-bids.json', 'utf8'));
+  const px0 = FX.frozen.at(-1).ticks.at(-1)[0], d = Math.round((mid - px0) * 4) / 4, sh = (l) => l.map((x) => [x[0] + d, x[1]]);
+  let T = FX.frozen[0].t; const hub = new TSHub({ putMin() {}, prune() {}, range() { return []; } }, 'K', { now: () => T, RECORD: false, SYMBOLS: ['NQ'] });
+  const feed = (f) => { T = f.t; for (const x of f.ticks) hub.feed([{ type: 'tick', symbol: 'NQ', price: x[0] + d, size: x[1], side: x[2] > 0 ? 'buy' : 'sell' }]); hub.feed([{ type: 'book', symbol: 'NQ', bids: sh(f.bids), asks: sh(f.asks) }]); };
+  for (const f of FX.frozen) feed(f);
+  if (which === 'clean') { const c = FX.clean[0], dc = Math.round((mid - c.ticks.at(-1)[0]) * 4) / 4; T += 5000; hub.feed([{ type: 'book', symbol: 'NQ', bids: c.bids.map((x) => [x[0] + dc, x[1]]), asks: c.asks.map((x) => [x[0] + dc, x[1]]) }]); }
+  const got = [], c = { send(s) { got.push(JSON.parse(s)); }, close() {} };
+  hub.attach(c, 'NQ', 150, 'book'); hub.tick(); hub.shutdown();
+  return [got.find((m) => m.type === 'snap'), got.find((m) => m.type === 'coarse')].filter(Boolean);
+}
+async function frozenSide(b) {
+  for (const [w, h, mobile, tag] of [[1440, 900, false, '1440-dark'], [390, 844, true, '390-dark']]) {
+    const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme: 'dark' });
+    await setNQ(p);
+    const mid = await p.evaluate(() => window.__L2MID);
+    const fr = await frozenFrames(mid, 'frozen'), clean = await frozenFrames(mid, 'clean');
+    check(fr.length === 2 && fr.every((m) => m.stale === 'bid') && fr[0].bids.length === 0, tag + ': frozen side: the real hub marks the frames stale:bid', fr.map((m) => [m.type, m.stale]));
+    check(clean.length === 2 && clean.every((m) => !m.stale), tag + ': frozen side: the clean book clears stale', clean.map((m) => [m.type, m.stale]));
+    await p.evaluate((f) => { window.__HUBF = f; }, fr);
+    await add(p, 'stk_depth_heat'); await add(p, 'stk_bk_walls', {});
+    if (!mobile) await p.evaluate(() => window.__stkBookPanel.open());
+    await sleep(4000);
+    const st = () => p.evaluate(() => ({ dh: window.__stkDhNote || '', drawn: (window.__stkFlow.dhDebug() || {}).staleNote || '', dom: (document.querySelector('.stkbp-stat .stkbp-stale') || {}).textContent || '', wall: (window.__stkWallLegend || []).join(' / ') }));
+    const a = await st();
+    console.log('INFO ' + tag + ' frozen', JSON.stringify(a));
+    check(a.dh === 'Bid side unavailable from the data feed' && a.drawn === a.dh, tag + ': heatmap note shows (drawn on the heatmap) on a stale bid side', a);
+    if (!mobile) check(a.dom === 'Bid side unavailable from the data feed', tag + ': DOM panel note shows on a stale bid side', a);
+    check(!/NaN|undefined/.test(a.wall), tag + ': Wall Events legend keeps working on the one-sided book', a.wall);
+    await p.screenshot({ path: OUT + '/l2-frozen-' + tag + '.png' });
+    await p.evaluate((f) => { window.__HUBF = f; }, clean); await sleep(2500);
+    const z = await st();
+    check(z.dh === '' && z.drawn === '' && z.dom === '', tag + ': both notes gone once the side returns', z);
+    check(errors.length === 0, tag + ': frozen side: no console errors', errors);
+    await p.screenshot({ path: OUT + '/l2-frozen-back-' + tag + '.png' });
+    await ctx.close();
+  }
+}
 async function crossedBook(b) {
   for (const [w, h, mobile, tag] of [[1440, 900, false, '1440-dark'], [390, 844, true, '390-dark']]) {
     const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme: 'dark' });
@@ -194,9 +236,10 @@ async function crossedBook(b) {
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
-    await staleBook(b);
-    if (!process.env.ONLY_STALE) await crossedBook(b);
-    if (!process.env.ONLY_CROSSED && !process.env.ONLY_STALE) {
+    if (!process.env.ONLY_FROZEN) await staleBook(b);
+    if (!process.env.ONLY_STALE) await frozenSide(b);
+    if (!process.env.ONLY_STALE && !process.env.ONLY_FROZEN) await crossedBook(b);
+    if (!process.env.ONLY_CROSSED && !process.env.ONLY_STALE && !process.env.ONLY_FROZEN) {
     // ---- NON-admin: nothing new, nothing opened
     {
       const { ctx, p, errors } = await open(b, { w: 1440, h: 900, admin: false });

@@ -15,7 +15,7 @@
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
 import { drawBookmap, STYLES, SMOOTH_OPTS } from './chart-bookmap.js?v=949';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=949';
-import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote } from './chart-futures-l2.js?v=949';
+import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote, staleNote } from './chart-futures-l2.js?v=949';
 import { sphere, drawLadder } from './chart-liquidity-map.js?v=949';
 import { getVenue } from './orderflow-venues.js?v=949';
 
@@ -280,6 +280,11 @@ export function dhLayer(H) {
         const tick = f.custom ? (f.custom.trades && f.custom.trades().tick) || 0.25 : 0;
         if (book) drawLadder(g, a, { book, tick, whole: !!f.custom }, { lx: plotR, labW, c1W, c2W, top, bot, H0, phone, font, yOf, stat, W });
       }
+      if (a.data.stale && !rp) {   // calm pill, top centre of the heat area (phones: under the legend chips)
+        g.font = '500 12px ' + font; const tw = g.measureText(a.data.stale).width, pw = tw + 24, ph = 28, px = Math.max(8, (plotR - pw) / 2), py = top + (phone ? 120 : 160);   // below the legend and the L1 / L2 chips
+        g.fillStyle = 'rgba(15,15,15,.85)'; g.beginPath(); g.roundRect ? g.roundRect(px, py, pw, ph, 8) : g.rect(px, py, pw, ph); g.fill();
+        g.fillStyle = '#cbd5e1'; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillText(a.data.stale, px + 12, py + ph / 2); stat.staleNote = a.data.stale;
+      }
       g.restore();
       stat.ms = Math.round((performance.now() - t0) * 10) / 10;
       dhLast = stat;
@@ -325,15 +330,17 @@ export function installDepthHeatmap(Core, H, reg) {
       if (f.status === 'error') return f.err || 'Order book unavailable.';
       if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? closedNote() : 'Reconnecting to the order book…';
       if (f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
-      return '';
+      return f.custom ? staleNote(f.ticker) : '';
     }
     render() {
       if (!this.ctx || this.hidden) return;
       const msg = this.note(), f = this.h && this.h.feed;
       window.__stkDhNote = msg;   // test hook (tools/tests/heatmap-closed-browser.js)
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
-      this.ctx.emit({ tables: msg ? [H.message('stk_dh-msg', msg, H.pageIsDay(), 'top_right')] : [] });
-      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: dhConfig(this.inputs) } : { off: true });
+      // a stale book side (the hub dropped a frozen vendor side) is drawn by the layer itself: a table note sits under the heatmap
+      const stale = /unavailable from the data feed/.test(msg) ? msg : '';
+      this.ctx.emit({ tables: msg && !stale ? [H.message('stk_dh-msg', msg, H.pageIsDay(), 'top_right')] : [] });
+      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: dhConfig(this.inputs), stale } : { off: true });
     }
   }
   Core.registerRendererLayer({ id: DH_TYPE, placement: 'above-data', create: () => dhLayer(H) });

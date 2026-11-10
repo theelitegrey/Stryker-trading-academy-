@@ -7,7 +7,7 @@
 // Hyperliquid charts: tap a Book row (DOM: the price cell) or pick "Wallets at this price" -> tracked wallets with orders there (chart-wallet-intel.js).
 // Logic lives in book-panel-core.js (unit-tested), streams in book-panel-sources.js. Phones <= 700 px: bottom sheet.
 // Wording: "updated Xs ago" only; no real-time claims. Education only. Not financial advice.
-import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source } from './chart-futures-l2.js?v=949';
+import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source, staleNote } from './chart-futures-l2.js?v=949';
 import { replayClock, btBook } from './book-replay.js?v=949';
 import { rtReady, rtOnChange } from './rt-access.js?v=949';
 import * as C from './book-panel-core.js?v=949';
@@ -355,7 +355,7 @@ export function mountBookPanel(ws, opts) {
   function statusHtml(M) {
     if (!feed || !feed.key) return '';
     if (feed.rp) { const b = feed.bf && feed.bf.bookNow(); return '<i class="stkbp-dot is-wait"></i><span>Replay</span><em>' + (b && b.ts ? 'book at ' + C.fmtTime(b.ts) : '') + '</em>'; }
-    if (feed.k.kind === 'fut') { const r = rootState(feed.futRoot), age = r.lastFrame ? Date.now() - r.lastFrame : -1, live = r.status === 'live'; return '<i class="stkbp-dot ' + (live ? 'is-live' : 'is-wait') + '"></i><span>' + (live ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (live && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em>'; }
+    if (feed.k.kind === 'fut') { const r = rootState(feed.futRoot), age = r.lastFrame ? Date.now() - r.lastFrame : -1, live = r.status === 'live'; return '<i class="stkbp-dot ' + (live ? 'is-live' : 'is-wait') + '"></i><span>' + (live ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (live && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em>' + (live && staleNote(feed.futRoot) ? '<em class="stkbp-stale" role="status">' + staleNote(feed.futRoot) + '</em>' : ''); }
     let h = '', any = false;
     feed.books.forEach((e) => { const live = e.status === 'live'; any = any || live; const cls = live ? 'is-live' : e.status === 'unlisted' || e.status === 'error' ? 'is-off' : 'is-wait'; h += '<span class="stkbp-ex ' + cls + '" title="' + (e.note || e.status) + '"><i class="stkbp-dot ' + cls + '"></i>' + sourceName(e.id) + (e.status === 'unlisted' ? ' · none' : '') + '</span>'; });
     return h;

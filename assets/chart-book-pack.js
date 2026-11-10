@@ -183,7 +183,7 @@ class Store {
     const ts = Date.now();
     if (!this.since) this.since = ts;
     this.last = bk; this.lastTs = ts;
-    this.views.forEach((v) => v.update(ts, bk));
+    if (!bk.miss) this.views.forEach((v) => v.update(ts, bk));   // balance / speed / regime need both sides: they pause on a one-sided book
     this.refills.forEach((t) => t.onBook(ts, bk));
     this.larges.forEach((l) => l.tr.update(ts, bk, l.thr));
     this.walls.forEach((w) => w.tr.onBook(ts, bk, w.thr));

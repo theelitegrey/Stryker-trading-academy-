@@ -14,7 +14,12 @@ export function bookFromLists(bids, asks, tick) {
   let bb = -Infinity, ba = Infinity;
   for (const [p, q] of bids || []) { if (!(q > 0)) continue; const i = Math.round(p / tick); bid.set(i, (bid.get(i) || 0) + q); if (i > bb) bb = i; }
   for (const [p, q] of asks || []) { if (!(q > 0)) continue; const i = Math.round(p / tick); ask.set(i, (ask.get(i) || 0) + q); if (i < ba) ba = i; }
-  return bb > -Infinity && ba < Infinity && bb < ba ? { bb, ba, bid, ask } : null;
+  // One side empty (the hub dropped a stale vendor side): keep the real side, put the missing touch one tick past it and mark it in
+  // `miss` (+1 no bids, -1 no asks) so per-side tools keep working and two-sided measures pause (Owner 2026-11-10: Wall Events silent).
+  if (bb === -Infinity && ba === Infinity) return null;
+  if (bb === -Infinity) return { bb: ba - 1, ba, bid, ask, miss: 1 };
+  if (ba === Infinity) return { bb, ba: bb + 1, bid, ask, miss: -1 };
+  return bb < ba ? { bb, ba, bid, ask } : null;
 }
 // Crypto: Maps of price -> size, bucketed to `tick` (bids floor, asks ceil: a bid never crosses an ask), at most `range` ticks each side.
 export function bookFromMaps(bids, asks, tick, range = 150) {
@@ -247,6 +252,7 @@ export class WallTracker {
     b.bid.forEach(this.fb); b.ask.forEach(this.fa);
     const lo = b.bb - 19, hi = b.ba + 19;
     for (const [key, w] of this.walls) {
+      if (b.miss === w.side) { this.walls.delete(key); continue; }   // its side is not in the feed: unknown, never an event
       if (w.st !== st) w.size = 0;   // not in the book this frame
       let dist = w.side > 0 ? b.bb - w.idx : w.idx - b.ba;   // ticks from the touch on its own side (< 0: price is through it)
       if (w.size >= this.gone * w.peak) w.dist = dist; else if (w.dist != null) dist = w.dist;   // a wall that just went: judge it by where price was while it stood

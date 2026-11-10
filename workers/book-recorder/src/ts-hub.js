@@ -62,7 +62,7 @@ export const coarseRule = (mid, sym) => {
 
 const DEF = {
   SYMBOLS: TS_SYMBOLS, TRADES: TS_TRADES, QUOTES: TS_QUOTES, RECORD: true, MODE: 'direct', MAX_CLIENTS: 40, KEEP_H: 48, MIN_GAP_MS: 250, FLUSH_MS: 250, COARSE_MS: 1000,
-  SAMPLE_MS: 5000, BACK_MIN_MS: 2000, BACK_MAX_MS: 60000, STABLE_MS: 30000, DEAD_SLOT_MS: 50000, AUTH_PAUSE_MS: 300000,
+  SAMPLE_MS: 5000, FROZEN_MS: 60000, FAR_TICKS: 40, BACK_MIN_MS: 2000, BACK_MAX_MS: 60000, STABLE_MS: 30000, DEAD_SLOT_MS: 50000, AUTH_PAUSE_MS: 300000,
   SILENT_MS: 50000, NODATA_MS: 120000, IDLE_MS: 60000, TOKEN_MS: 55 * 60000, RING: 3000, BARS_MIN: 20, FILL_MAX_MIN: 60, FILL_BUDGET_MS: 25000, FILL_SPAN_H: 6, FILL_STEP: 5, FILL_LAG_MS: 2 * 60000, FILL_PAUSE_MS: 60000, REST: 'https://api.tick-stream.xyz/v1', TICKS_PER_FRAME: 200, PRUNE_MS: 3600000, RECHECK_MS: 60000, TRADES_RESERVE: 5
 };
 export function tsOpts(env) {
@@ -122,15 +122,37 @@ export function cleanBook(bids, asks, px, tol) {
 // the touch of a cleaned book: the mid of both sides, or the best price of the only side left (a side the vendor sent stale and cleanBook removed)
 export const bookMidOf = (bids, asks) => (bids.length && asks.length ? (bids[0][0] + asks[0][0]) / 2 : bids.length ? bids[0][0] : asks.length ? asks[0][0] : 0);
 
+// FROZEN SIDE (Owner 2026-11-10): from the 09:31 ET open the vendor re-sent one side of the book unchanged (all 400 levels, same prices and
+// sizes) for 40+ minutes while the price traded 90+ points away. A real side never repeats whole: on clean books at most ~74% of the levels
+// are unchanged after 5 minutes. So a side identical for FROZEN_MS while trades print is STALE: dropped, and the frames say so (stale).
+// It clears the moment the side changes. While a side is stale, the other side's levels further than FAR_TICKS from the price that still
+// hold exactly the size they had when the freeze was found are hidden too (the vendor re-sent old copies of those rows: flat bright bands).
+export const sideHash = (a) => { let h = a.length; for (let i = 0; i < a.length; i++) h = (Math.imul(h, 31) + Math.round(a[i][0] * 100)) ^ Math.imul(Math.round(a[i][1] * 1000) | 0, 2654435761); return h | 0; };
+export function staleStep(st, bids, asks, now, lastTradeAt, o) {
+  for (const [side, a] of [['bid', bids], ['ask', asks]]) {
+    const h = sideHash(a), x = st[side];
+    if (!x || x.h !== h || !a.length) { st[side] = { h, at: now, stale: false, ref: null }; continue; }
+    if (!x.stale && now - x.at >= o.FROZEN_MS && lastTradeAt > x.at && now - lastTradeAt < 30000) x.stale = true;
+  }
+  const sb = st.bid && st.bid.stale, sa = st.ask && st.ask.stale;
+  return sb && sa ? 'both' : sb ? 'bid' : sa ? 'ask' : '';
+}
+// the other side's far levels unchanged since the freeze was found (ref = their sizes then, taken once)
+export function hideFrozenFar(x, other, px, far) {
+  if (!x.ref) x.ref = new Map(other.map((r) => [r[0], r[1]]));
+  if (!(px > 0)) return other;
+  return other.filter((r) => Math.abs(r[0] - px) <= far || x.ref.get(r[0]) !== r[1]);
+}
+
 export class TSHub {
   // store = { putMin(sym, t, book: ArrayBuffer, imbJson, fpJson), prune(minuteIdx), range(sym, t0, t1) -> [{ t, book, imb, fp }] }
   constructor(store, key, opts = {}) {
     this.store = store; this.key = key; this.o = Object.assign({}, DEF, opts);
     this.WS = opts.WebSocket || globalThis.WebSocket; this.clock = opts.now || (() => Date.now());
     this.ws = null; this.state = 'idle'; this.clients = new Set(); this.latest = new Map(); this.quotes = new Map(); this.rings = new Map(); this.bars1m = new Map(); this.seq = 0;
-    this.lastPx = new Map(); this.acc = new Map(); this.nextSample = new Map(); this.timers = {}; this.retryN = 0; this.openedAt = 0; this.lastMsgAt = 0; this.lastDataAt = 0;
+    this.lastPx = new Map(); this.frz = new Map(); this.acc = new Map(); this.nextSample = new Map(); this.timers = {}; this.retryN = 0; this.openedAt = 0; this.lastMsgAt = 0; this.lastDataAt = 0;
     this.nextAt = 0; this.pauseUntil = 0; this.lastError = ''; this.minWait = 0; this.noViewerSince = 0; this.lastPrune = 0;
-    this.n = { connects: 0, frames: 0, ticks: 0, snaps: 0, coarse: 0, rows: 0, drops: 0, refused: 0, throttled: 0, uncrossed: 0, thin: 0 };
+    this.n = { connects: 0, frames: 0, ticks: 0, snaps: 0, coarse: 0, rows: 0, drops: 0, refused: 0, throttled: 0, uncrossed: 0, thin: 0, staleBid: 0, staleAsk: 0 };
     this.lastState = '';
     this.te = opts.te || null;   // TICK ENGINE
     this.tb = new TradeBook(store.tb || null, { KEEP_H: this.o.KEEP_H, now: this.clock, fetch: this.o.fetch, REST: this.o.REST });   // TS-TRADES
@@ -243,12 +265,20 @@ export class TSHub {
   onBook(m, now) {
     if (!goodLevels(m.bids) || !goodLevels(m.asks)) return;
     this.n.frames++; this.lastDataAt = now;
-    const lp = this.lastPx.get(m.symbol), k = cleanBook(m.bids, m.asks, lp && now - lp[1] < 30000 ? lp[0] : 0, 8 * (TICK_SIZE[m.symbol] || 0.25));
+    const lp = this.lastPx.get(m.symbol), tk = TICK_SIZE[m.symbol] || 0.25, px = lp && now - lp[1] < 30000 ? lp[0] : 0;
+    let st = this.frz.get(m.symbol); if (!st) { st = {}; this.frz.set(m.symbol, st); }
+    const stale = staleStep(st, m.bids, m.asks, now, lp ? lp[1] : 0, this.o);
+    let bids = m.bids, asks = m.asks;
+    if (stale === 'bid' || stale === 'both') { bids = []; this.n.staleBid++; }
+    if (stale === 'ask' || stale === 'both') { asks = []; this.n.staleAsk++; }
+    if (stale === 'bid') asks = hideFrozenFar(st.bid, asks, px, this.o.FAR_TICKS * tk);
+    else if (stale === 'ask') bids = hideFrozenFar(st.ask, bids, px, this.o.FAR_TICKS * tk);
+    const k = cleanBook(bids, asks, px, 8 * tk);
     if (k.cut) this.n.uncrossed++;
     if (!k.bids.length || !k.asks.length) this.n.oneSided = (this.n.oneSided || 0) + 1;   // diagnostic: a side was all stale
     if (Math.min(k.bids.length, k.asks.length) < 20) this.n.thin++;   // diagnostic only (/ts-health): a side with < 20 levels; NQ/ES send 400 a side
     const prev = this.latest.get(m.symbol);
-    this.latest.set(m.symbol, { bids: k.bids, asks: k.asks, imb: Number.isFinite(m.imbalance) ? m.imbalance : 0, ts: m.ts, at: now, ver: (prev ? prev.ver : 0) + 1, imb10: null, coarse: null, coarseAt: 0 });
+    this.latest.set(m.symbol, { bids: k.bids, asks: k.asks, imb: Number.isFinite(m.imbalance) ? m.imbalance : 0, ts: m.ts, at: now, ver: (prev ? prev.ver : 0) + 1, imb10: null, coarse: null, coarseAt: 0, stale });
     this.announce();
   }
   // Quote-only: keep the latest value and a 1-minute OHLC (volume stays 0: index ticks have size 0). No ring, no recording.
@@ -327,7 +357,7 @@ export class TSHub {
     if (L.coarse && now - L.coarseAt < this.o.COARSE_MS - 50) return L.coarse;
     const mid = bookMidOf(L.bids, L.asks);
     const s = mid > 0 ? bucketSnapshot({ bids: L.bids, asks: L.asks }, now, coarseRule(mid, sym)) : null;
-    L.coarse = s ? { type: 'coarse', symbol: sym, ts: now, mid: s.mid, bb: s.bb, ba: s.ba, step: s.step, i0: s.i0, v: Array.from(s.v) } : null;
+    L.coarse = s ? { type: 'coarse', symbol: sym, ts: now, mid: s.mid, bb: s.bb, ba: s.ba, step: s.step, i0: s.i0, v: Array.from(s.v), ...(L.stale ? { stale: L.stale } : {}) } : null;
     L.coarseAt = now;
     return L.coarse;
   }
@@ -443,7 +473,7 @@ export class TSHub {
       let sent = false;
       if (L && L.ver !== c.sentVer) {
         const k = c.levels;
-        this.send(c, JSON.stringify({ type: 'snap', symbol: c.sym, ts: now, bids: L.bids.slice(0, k), asks: L.asks.slice(0, k), imb: L.imb, imb10: this.imb10Of(L), seq: L.ver }));
+        this.send(c, JSON.stringify({ type: 'snap', symbol: c.sym, ts: now, bids: L.bids.slice(0, k), asks: L.asks.slice(0, k), imb: L.imb, imb10: this.imb10Of(L), seq: L.ver, ...(L.stale ? { stale: L.stale } : {}) }));
         c.sentVer = L.ver; this.n.snaps++; sent = true;
       }
       if (L && now - c.lastCoarse >= this.o.COARSE_MS) {
@@ -470,7 +500,7 @@ export class TSHub {
       v: 1, at: Math.floor(now / 1000), mode: this.o.MODE, configured: !!this.key || this.o.MODE === 'relay', state: this.state, live: this.liveState(now),
       cmeOpen: cmeOpen(now), recording: this.o.RECORD, clients: this.clients.size, symbols: this.o.SYMBOLS, trades: this.o.TRADES, quotes: this.o.QUOTES, bookClients: [...this.clients].filter((c) => c.book).length, upstreamSockets: this.ws ? 1 : 0,
       lastDataAgoMs: this.lastDataAt ? now - this.lastDataAt : null, retryN: this.retryN, nextRetryInMs: this.timers.retry ? Math.max(0, this.nextAt - now) : 0,
-      lastError: this.lastError, keepHours: this.o.KEEP_H, tsBig: this.tb.n.big, tsFilledMin: this.tb.n.filledMin, teClients: [...this.clients].filter((c) => c.te && c.te.size).length, ...this.n
+      lastError: this.lastError, keepHours: this.o.KEEP_H, tsBig: this.tb.n.big, tsFilledMin: this.tb.n.filledMin, teClients: [...this.clients].filter((c) => c.te && c.te.size).length, staleNow: Object.fromEntries([...this.latest].filter(([, L]) => L.stale).map(([k, L]) => [k, L.stale])), ...this.n
     };
   }
   shutdown() { if (this.te) this.te.down(); for (const k of Object.keys(this.timers)) if (this.timers[k]) { clearTimeout(this.timers[k]); clearInterval(this.timers[k]); this.timers[k] = null; } try { if (this.ws) this.ws.close(); } catch (e) {} this.ws = null; }

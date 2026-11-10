@@ -113,6 +113,8 @@
       desc: 'Big orders marked by what the book did: hit a wall that held, consumed the resting size, or found it pulled.' },
     { group: 'flow', name: 'Stop Runs (L2)', feed: 'L2', icon: 'ice', ids: ['stk_l2f_stop'],
       desc: 'Stop runs counted only when resting liquidity on that side was pulled or consumed through several levels.' },
+    { group: 'flow', name: 'Footprint Patterns', feed: 'L2', icon: 'foot', ids: ['stk_fpat', 'stk_fpat_l2'],
+      desc: 'Marks six footprint patterns on any chart style: absorption, exhaustion, stacked imbalances, unfinished auctions, delta divergence and trapped traders.' },
     { group: 'flow', name: 'Volume Profile (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_vp'],
       desc: 'The session profile of traded volume next to the average resting size at each price.' },
     { group: 'flow', name: 'Delta Ladder (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_lad'],

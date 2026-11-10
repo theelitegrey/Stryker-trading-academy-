@@ -2065,6 +2065,26 @@
       "alt": "Swing VWAP + Profile (L2) preview card"
     },
     {
+      "page": "indicators/footprint-patterns-l2.html",
+      "title": "Footprint Patterns (L2)",
+      "og_title": "Footprint Patterns (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/footprint-patterns-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Footprint Patterns (L2) preview card"
+    },
+    {
+      "page": "indicators/footprint-patterns.html",
+      "title": "Footprint Patterns",
+      "og_title": "Footprint Patterns: ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/footprint-patterns.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Footprint Patterns preview card"
+    },
+    {
       "page": "indicators/dynamic-liquidity-heatmap-profile.html",
       "title": "Dynamic Liquidity HeatMap",
       "og_title": "Dynamic Liquidity HeatMap: ZoroCharts indicator guide",

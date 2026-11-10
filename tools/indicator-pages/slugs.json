@@ -179,5 +179,7 @@
  "b:stk_cex": "charm-exposure",
  "b:stk_l2f_dp": "delta-profile-l2",
  "b:stk_l2f_sw": "swing-vwap-profile-l2",
- "p:dprange": "delta-profile-l2-click-two-bars-for-a-fixed-range"
+ "p:dprange": "delta-profile-l2-click-two-bars-for-a-fixed-range",
+ "b:stk_fpat": "footprint-patterns",
+ "b:stk_fpat_l2": "footprint-patterns-l2"
 }

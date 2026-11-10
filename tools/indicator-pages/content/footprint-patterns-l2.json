@@ -1,0 +1,25 @@
+{
+  "slug": "footprint-patterns-l2",
+  "summary": "Marks six footprint patterns on any chart style: absorption, exhaustion, stacked imbalances, unfinished auctions, delta divergence and trapped traders.",
+  "overview": [
+    "Footprint Patterns reads the buy and sell volume at every price inside each bar and marks the patterns it finds. Each mark is a small numbered circle, green or red by side, placed at the price where the pattern sits. It is an overlay, so it works on normal candles too, not only on the footprint chart style.",
+    "Some patterns draw more than a number: stacked imbalances draw a zone that stays until price trades through it, an unfinished auction draws a thin line that stays until price returns, delta divergence connects the two bars, and trapped traders boxes the zone. The newest bar is marked as forming until it closes."
+  ],
+  "how": [
+    "It uses the same per-bar, per-price volume as the Footprint chart, with the same diagonal imbalance rule (300% by default, three rows in a row). On futures this version reads the Footprint (L2) feed.",
+    "1 Absorption: the bar's extreme rows hold at least 2 times the bar's average row of aggressive volume, and the bar closes back off that extreme. 2 Exhaustion: aggressive volume shrinks row by row toward the extreme and the last row is at most 25% of the row three levels in. 3 Stacked imbalances: three or more diagonal imbalances in a row on one side. 4 Unfinished auction: both bid and ask traded at the bar's high or low. 5 Delta divergence: a new swing high with at least 25% less bar delta than the previous swing high, or the mirror at lows. 6 Trapped traders: heavy aggressive volume at a high or low, then a later bar within five bars closes beyond that whole zone.",
+    "Finished bars are cached; only the forming bar is recalculated as trades arrive. Every threshold and every pattern can be changed or switched off in the settings."
+  ],
+  "use": [
+    "Some traders use the numbered marks to scan a chart quickly for places where the footprint looked unusual.",
+    "Turn on Text labels to see names next to the numbers while you learn what each one means.",
+    "Hover or tap a mark for a one-line description of the pattern.",
+    "Switch off the patterns you do not use to keep the chart clean; older marks fade."
+  ],
+  "notes": [
+    "Needs futures order-flow data (NQ, ES, YM, GC, SI, CL and their micros) on a 1-minute to 4-hour chart. Crypto uses Footprint Patterns instead.",
+    "It describes what happened on past bars. A mark is not a signal and does not say what price will do.",
+    "Looks back 300 bars by default; the setting can be changed."
+  ],
+  "learn": "order-flow"
+}

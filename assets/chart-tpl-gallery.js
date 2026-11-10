@@ -6,7 +6,7 @@
 // Thumbnails: assets/images/chart-templates/<id>.webp (real renders, tools/tests/chart-tpl-shots.js).
 // Education only. Not financial advice. A template is a way to set up a chart, not a signal.
 
-import { kindOf, locked, upgrade, proTag } from './chart-pro-gate.js?v=952';
+import { kindOf, locked, upgrade, proTag } from './chart-pro-gate.js?v=953';
 
 // thumb: true = a real render of the template is in assets/images/chart-templates (only where the recorded test bars can draw its tools;
 // tools that need a live feed show their names as chips instead, never a made-up picture).
@@ -104,7 +104,7 @@ export function openGallery(deps) {
   TEMPLATES.forEach((t) => {
     const kinds = proKinds(t);
     const thumb = t.thumb
-      ? el('img', { src: 'assets/images/chart-templates/' + t.id + '.webp?v=952', alt: 'Preview of the ' + t.name + ' template', width: '640', height: '400', loading: 'lazy' })
+      ? el('img', { src: 'assets/images/chart-templates/' + t.id + '.webp?v=953', alt: 'Preview of the ' + t.name + ' template', width: '640', height: '400', loading: 'lazy' })
       : el('div', { class: 'stkt-chips', 'aria-label': 'Tools in this template' }, [el('span', { class: 'stkt-tf', text: t.tf === 'D' ? '1D' : (Number(t.tf) >= 60 ? (Number(t.tf) / 60) + 'h' : t.tf + 'm') }),
           ...toolNames(t).map((n) => el('span', { class: 'stkt-chip', text: n }))]);
     const apply = el('button', { type: 'button', class: 'stkc-sbtn', text: 'Apply', 'aria-label': 'Apply ' + t.name });

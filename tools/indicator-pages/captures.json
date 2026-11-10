@@ -172,5 +172,6 @@
  "wallet-intel": "fallback: needs Hyperliquid wallet data the test chart does not have",
  "delta-exposure": "fallback: needs options / news data the test chart does not have",
  "vanna-exposure": "fallback: needs options / news data the test chart does not have",
- "charm-exposure": "fallback: needs options / news data the test chart does not have"
+ "charm-exposure": "fallback: needs options / news data the test chart does not have",
+ "swing-vwap-profile-l2": "fallback: Connecting to the order book…"
 }

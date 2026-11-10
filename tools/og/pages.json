@@ -2055,6 +2055,16 @@
       "alt": "Delta Profile (L2) preview card"
     },
     {
+      "page": "indicators/swing-vwap-profile-l2.html",
+      "title": "Swing VWAP + Profile (L2)",
+      "og_title": "Swing VWAP + Profile (L2): ZoroCharts indicator guide",
+      "visual": [
+        "assets/images/indicators/pages/swing-vwap-profile-l2.webp"
+      ],
+      "focus": "0.5,0.5",
+      "alt": "Swing VWAP + Profile (L2) preview card"
+    },
+    {
       "page": "indicators/dynamic-liquidity-heatmap-profile.html",
       "title": "Dynamic Liquidity HeatMap",
       "og_title": "Dynamic Liquidity HeatMap: ZoroCharts indicator guide",

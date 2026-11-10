@@ -119,6 +119,8 @@
       desc: 'Delta at each price on the price axis: traded buy and sell, plus a thin bar for book size added or pulled. Added with Delta (L2).' },
     { group: 'flow', name: 'Delta Profile (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_dp'],
       desc: 'Delta at each price over the last 5 to 60 minutes, a range you pick, or the session: buying to the right, selling to the left.' },
+    { group: 'flow', name: 'Swing VWAP + Profile (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_sw'],
+      desc: 'For every swing leg, high to low and low to high: an anchored VWAP and a volume profile with POC, VAH and VAL. New swings are picked up on their own.' },
     // ---- Crypto derivatives (assets/chart-crypto-deriv.js), 11-07 ----
     { group: 'flow', name: 'Liquidations', feed: '—', icon: 'bubble', ids: ['stk_liq', 'stk_liq_bars'],
       desc: 'Forced closes on crypto perpetuals as bubbles at their price and time, longs and shorts in two colours, plus a per-bar total. Exchanges send only part of them, so totals are a lower bound.' },

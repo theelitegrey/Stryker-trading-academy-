@@ -177,5 +177,7 @@
  "b:stk_dex": "delta-exposure",
  "b:stk_vex": "vanna-exposure",
  "b:stk_cex": "charm-exposure",
- "b:stk_l2f_dp": "delta-profile-l2"
+ "b:stk_l2f_dp": "delta-profile-l2",
+ "b:stk_l2f_sw": "swing-vwap-profile-l2",
+ "p:dprange": "delta-profile-l2-click-two-bars-for-a-fixed-range"
 }

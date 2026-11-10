@@ -1,0 +1,24 @@
+{
+  "slug": "swing-vwap-profile-l2",
+  "summary": "For every swing leg, high to low and low to high: an anchored VWAP and a volume profile with POC, VAH and VAL. New swings are picked up on their own.",
+  "overview": [
+    "Swing VWAP + Profile (L2) splits the chart into legs. A leg runs from one confirmed swing high or low to the next. For each leg it draws an anchored VWAP line and a horizontal volume profile inside that leg's own time span.",
+    "On every profile the POC (the price with the most volume) is a thick line, and the value area high (VAH) and low (VAL) are thin dashed lines. Small labels show their prices. The last leg is still open: it runs to the current bar and updates as new data arrives. When a new swing is confirmed, the old leg is frozen and a new one starts."
+  ],
+  "how": [
+    "Swings come from the Swing length setting: a high or low counts only when that many bars on each side are lower or higher. A swing is drawn only after it is confirmed, so a finished leg does not move when new bars arrive.",
+    "On futures the profile is built from the futures order-flow feed (Data feed L2): each trade is counted as buying or selling at its price. Where that feed has no trades for older history, the leg uses the bar volume spread over each bar's range instead, and the legend says approx for that leg. The VWAP uses each bar's typical price (high, low and close averaged) weighted by volume. The value area is the share of volume set by Value area %, grown out from the POC.",
+    "At most Legs to show legs are drawn, newest first. Finished legs are calculated once and reused."
+  ],
+  "use": [
+    "Use the legs to see where volume traded during each push up or down.",
+    "Some traders watch whether price comes back to a leg's POC, VAH or VAL, or to its VWAP.",
+    "Turn on Delta colouring to see which rows had more buying or more selling.",
+    "Turn on Extend POC until touched to carry a leg's POC forward until a later bar trades through it."
+  ],
+  "notes": [
+    "Futures only (NQ, ES, YM, RTY, CL, GC and their micros). Needs the full order book data feed (L2), which is part of Pro.",
+    "It shows what traded. It does not predict what price will do."
+  ],
+  "learn": "volume-profile"
+}

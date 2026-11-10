@@ -1418,6 +1418,24 @@
     "grp": "Order Flow"
    },
    {
+    "key": "b:stk_fpat_l2",
+    "name": "Footprint Patterns (L2)",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
+    "key": "b:stk_fpat",
+    "name": "Footprint Patterns",
+    "author": "TradeZoro",
+    "desc": "",
+    "third": false,
+    "beta": false,
+    "grp": "Order Flow"
+   },
+   {
     "key": "x:dynamic-liquidity-heatmap-profile-bigbeluga",
     "name": "Dynamic Liquidity HeatMap Profile [BigBeluga]",
     "author": "BigBeluga",
@@ -14266,6 +14284,426 @@
       "title": "Status",
       "def": true,
       "options": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "Footprint Patterns",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_fpat",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Footprint Patterns",
+    "short": "Footprint Patterns",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "showAbs",
+      "type": "bool",
+      "title": "1 Absorption",
+      "tooltip": "Absorption: heavy aggressive volume hit the bar's extreme but price did not progress and closed back off it. A passive side took the other side of that flow.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showExh",
+      "type": "bool",
+      "title": "2 Exhaustion",
+      "tooltip": "Exhaustion: aggressive volume shrank row by row toward the bar's extreme and was tiny at the last row. Nobody was pushing price any further.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showStk",
+      "type": "bool",
+      "title": "3 Stacked imbalances",
+      "tooltip": "Stacked imbalances: several diagonal imbalances in a row on one side. The zone stays marked until price trades through it.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showUnf",
+      "type": "bool",
+      "title": "4 Unfinished auction",
+      "tooltip": "Unfinished auction: both bid and ask traded at the bar's extreme, so the auction did not end there. The line stays until price returns to it.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showDiv",
+      "type": "bool",
+      "title": "5 Delta divergence",
+      "tooltip": "Delta divergence: a new swing extreme with less bar delta than the previous swing extreme. Price moved further with less aggressive volume behind it.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showTrap",
+      "type": "bool",
+      "title": "6 Trapped traders",
+      "tooltip": "Trapped traders: heavy aggressive volume at the extreme, then a later bar closed beyond the whole zone, leaving those traders on the wrong side.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "labels",
+      "type": "bool",
+      "title": "Text labels",
+      "tooltip": "Add a short name next to each number.",
+      "def": false,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "maxBars",
+      "type": "int",
+      "title": "Look back (bars)",
+      "def": 300,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "rowTicks",
+      "type": "int",
+      "title": "Row size (ticks)",
+      "tooltip": "Price rows are this many ticks tall, like the Footprint chart's Rows setting.",
+      "def": 1,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "absMult",
+      "type": "float",
+      "title": "Absorption: extreme rows at least (x the bar's average row)",
+      "def": 2,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "absRows",
+      "type": "int",
+      "title": "Absorption: extreme rows counted",
+      "def": 2,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "exhRows",
+      "type": "int",
+      "title": "Exhaustion: rows looked at",
+      "def": 4,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "exhPct",
+      "type": "int",
+      "title": "Exhaustion: last row at most (% of the first row in)",
+      "def": 25,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "ratio",
+      "type": "int",
+      "title": "Imbalance ratio %",
+      "tooltip": "Diagonal: buys at a price vs sells one row lower (and sells vs buys one row higher). Same rule as the Footprint chart.",
+      "def": 300,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "stack",
+      "type": "int",
+      "title": "Stacked imbalance rows (at least)",
+      "def": 3,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "divLen",
+      "type": "int",
+      "title": "Divergence: swing strength (bars each side)",
+      "def": 3,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "divDrop",
+      "type": "int",
+      "title": "Divergence: delta lower by at least (%)",
+      "def": 25,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "divGap",
+      "type": "int",
+      "title": "Divergence: swings at most this many bars apart",
+      "def": 60,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "trapMult",
+      "type": "float",
+      "title": "Trapped: top rows at least (x the bar's average row)",
+      "def": 1.5,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "trapRows",
+      "type": "int",
+      "title": "Trapped: rows in the zone",
+      "def": 3,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "trapBars",
+      "type": "int",
+      "title": "Trapped: a close beyond within (bars)",
+      "def": 5,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "buyColor",
+      "type": "color",
+      "title": "Green side (buyers in control)",
+      "def": "#03c988",
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "sellColor",
+      "type": "color",
+      "title": "Red side (sellers in control)",
+      "def": "#f23645",
+      "options": [],
+      "group": null
+     }
+    ]
+   }
+  },
+  {
+   "name": "Footprint Patterns (L2)",
+   "category": "Order Flow",
+   "native": true,
+   "nativeType": "stk_fpat_l2",
+   "pseudo": null,
+   "beta": false,
+   "hidden": false,
+   "schema": {
+    "title": "Footprint Patterns (L2)",
+    "short": "Footprint Patterns L2",
+    "overlay": true,
+    "pane": "price",
+    "inputs": [
+     {
+      "key": "showAbs",
+      "type": "bool",
+      "title": "1 Absorption",
+      "tooltip": "Absorption: heavy aggressive volume hit the bar's extreme but price did not progress and closed back off it. A passive side took the other side of that flow.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showExh",
+      "type": "bool",
+      "title": "2 Exhaustion",
+      "tooltip": "Exhaustion: aggressive volume shrank row by row toward the bar's extreme and was tiny at the last row. Nobody was pushing price any further.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showStk",
+      "type": "bool",
+      "title": "3 Stacked imbalances",
+      "tooltip": "Stacked imbalances: several diagonal imbalances in a row on one side. The zone stays marked until price trades through it.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showUnf",
+      "type": "bool",
+      "title": "4 Unfinished auction",
+      "tooltip": "Unfinished auction: both bid and ask traded at the bar's extreme, so the auction did not end there. The line stays until price returns to it.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showDiv",
+      "type": "bool",
+      "title": "5 Delta divergence",
+      "tooltip": "Delta divergence: a new swing extreme with less bar delta than the previous swing extreme. Price moved further with less aggressive volume behind it.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "showTrap",
+      "type": "bool",
+      "title": "6 Trapped traders",
+      "tooltip": "Trapped traders: heavy aggressive volume at the extreme, then a later bar closed beyond the whole zone, leaving those traders on the wrong side.",
+      "def": true,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "labels",
+      "type": "bool",
+      "title": "Text labels",
+      "tooltip": "Add a short name next to each number.",
+      "def": false,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "maxBars",
+      "type": "int",
+      "title": "Look back (bars)",
+      "def": 300,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "rowTicks",
+      "type": "int",
+      "title": "Row size (ticks)",
+      "tooltip": "Price rows are this many ticks tall, like the Footprint chart's Rows setting.",
+      "def": 1,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "absMult",
+      "type": "float",
+      "title": "Absorption: extreme rows at least (x the bar's average row)",
+      "def": 2,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "absRows",
+      "type": "int",
+      "title": "Absorption: extreme rows counted",
+      "def": 2,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "exhRows",
+      "type": "int",
+      "title": "Exhaustion: rows looked at",
+      "def": 4,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "exhPct",
+      "type": "int",
+      "title": "Exhaustion: last row at most (% of the first row in)",
+      "def": 25,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "ratio",
+      "type": "int",
+      "title": "Imbalance ratio %",
+      "tooltip": "Diagonal: buys at a price vs sells one row lower (and sells vs buys one row higher). Same rule as the Footprint chart.",
+      "def": 300,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "stack",
+      "type": "int",
+      "title": "Stacked imbalance rows (at least)",
+      "def": 3,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "divLen",
+      "type": "int",
+      "title": "Divergence: swing strength (bars each side)",
+      "def": 3,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "divDrop",
+      "type": "int",
+      "title": "Divergence: delta lower by at least (%)",
+      "def": 25,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "divGap",
+      "type": "int",
+      "title": "Divergence: swings at most this many bars apart",
+      "def": 60,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "trapMult",
+      "type": "float",
+      "title": "Trapped: top rows at least (x the bar's average row)",
+      "def": 1.5,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "trapRows",
+      "type": "int",
+      "title": "Trapped: rows in the zone",
+      "def": 3,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "trapBars",
+      "type": "int",
+      "title": "Trapped: a close beyond within (bars)",
+      "def": 5,
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "buyColor",
+      "type": "color",
+      "title": "Green side (buyers in control)",
+      "def": "#03c988",
+      "options": [],
+      "group": null
+     },
+     {
+      "key": "sellColor",
+      "type": "color",
+      "title": "Red side (sellers in control)",
+      "def": "#f23645",
+      "options": [],
+      "group": null
      }
     ]
    }

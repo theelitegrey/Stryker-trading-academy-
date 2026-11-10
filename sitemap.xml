@@ -1243,6 +1243,18 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://tradezoro.com/indicators/footprint-patterns-l2</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://tradezoro.com/indicators/footprint-patterns</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://tradezoro.com/indicators/dynamic-liquidity-heatmap-profile</loc>
     <lastmod>2026-11-10</lastmod>
     <changefreq>monthly</changefreq>

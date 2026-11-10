@@ -2312,6 +2312,34 @@
        ]
       },
       {
+       "id": "footprint-patterns",
+       "q": "What is the Footprint Patterns indicator?",
+       "a": "<p>Footprint Patterns reads the footprint (the buy and sell volume at every price) and marks six patterns on your chart, on any chart style, candles included. Each mark is a small numbered circle, green or red by side. Hover or tap a mark for a one-line explanation. Turn on Text labels in its settings to see names next to the numbers.</p><ol><li><b>Absorption</b>: heavy aggressive volume at the bar's extreme, but price did not progress and closed back off it.</li><li><b>Exhaustion</b>: aggressive volume shrinks row by row toward the extreme.</li><li><b>Stacked imbalances</b>: three or more diagonal imbalances in a row. A zone stays on the chart until price trades through it.</li><li><b>Unfinished auction</b>: both bid and ask traded at the bar's high or low. A thin line stays until price returns to it.</li><li><b>Delta divergence</b>: a new swing high with less delta than the one before (or the mirror at lows).</li><li><b>Trapped traders</b>: heavy buying at a high (or selling at a low), then a close beyond the whole zone.</li></ol><p>Each pattern has an on/off switch and its own thresholds. The newest bar is marked as forming until it closes. On futures use Footprint Patterns (L2); on crypto use Footprint Patterns. It is part of Pro. It describes what happened on the chart, not what price will do. Education only. Not financial advice.</p><p><strong>Where to find it:</strong> ZoroCharts → Indicators → Order Flow</p>",
+       "path": "ZoroCharts → Indicators → Order Flow",
+       "plans": "pro",
+       "tags": [
+        "footprint",
+        "patterns",
+        "absorption",
+        "exhaustion",
+        "stacked imbalances",
+        "unfinished auction",
+        "delta divergence",
+        "trapped traders",
+        "L2"
+       ],
+       "related": [
+        "footprint-what",
+        "orderbook-pack"
+       ],
+       "links": [
+        {
+         "label": "Order flow features",
+         "href": "/features/orderflow"
+        }
+       ]
+      },
+      {
        "id": "footprint-what",
        "q": "How do I turn on the footprint chart?",
        "a": "<p>Choose Footprint from the chart style menu. Each row shows sellers x buyers at that price. A yellow box marks the busiest price. Zoom out and it turns back into candles coloured by delta.</p>",

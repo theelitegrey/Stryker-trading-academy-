@@ -24,6 +24,7 @@ import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, 
 import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=950';
 import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=950';
 import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=950';
+import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=950';
 import { installChartTypes } from './chart-types.js?v=950';
 import { rtHeadersReady } from './rt-access.js?v=950';
 import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=950';
@@ -884,6 +885,10 @@ export function installFootprint(Core, flowMod) {
     subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
     use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); }
   });
+  // Footprint Patterns (assets/chart-fp-patterns.js): six patterns marked on any chart style, from the same flow
+  installFpPatterns(Core, { flowFor, rootOf, tfMin, replayE, version: () => version,
+    subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
+    use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); } });
   // Tick-stream twins of Big Trades / Delta / CVD (assets/chart-ts-trades.js): admin only, for the feed comparison
   installTsTrades(Core, { flowFor, rootOf, sessionOf, tfMin, frame, idxOf, alpha, fmt, sgn, light, replayE, clamp, num, MONO,
     use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); },
@@ -894,7 +899,7 @@ export function installFootprint(Core, flowMod) {
 // loads lazily, so this is called again once it is here.
 function linkFlow(flowMod) {
   if (!flowMod || !Array.isArray(flowMod.OUR_TYPES)) return;
-  for (const type of OF_TYPES.concat(DS_TYPES, PRO_TYPES, TS_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
+  for (const type of OF_TYPES.concat(DS_TYPES, PRO_TYPES, TS_TYPES, FPAT_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
 }
 export const FP_DISCLAIMER = DISCLAIMER;
 // Read-only handle for the browser suite (tools/tests/chart-footprint-browser.js) and debugging.

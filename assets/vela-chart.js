@@ -1246,7 +1246,11 @@ function lateLists(provider){
     ws.applyState(doc);
     afterStructural();
   }
-  function applyAny(t){ if (t.starter) applyStarter(t); else applySaved(t); }
+  // A whole template or starter replaces the chart, so the open saved layout is detached first (else autosave writes the template over it).
+  async function applyAny(t){
+    if (!(t.state && (typeof t.state === 'object' ? t.state.setup : /"setup":true/.test(t.state.slice(0, 400))))) { try { await (window.STRYKER_LAYOUTS && window.STRYKER_LAYOUTS.detach && window.STRYKER_LAYOUTS.detach()); } catch (e) {} }
+    if (t.starter) applyStarter(t); else applySaved(t);
+  }
 
   window.STRYKER_CHART_UI = { applyStarter, applySaved, setupOf, mergeSetup, STARTERS, setLayout, refreshLayoutUi, grid };
   if (Safe.phone) {

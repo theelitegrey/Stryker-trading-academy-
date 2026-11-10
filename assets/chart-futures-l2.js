@@ -78,6 +78,8 @@ const tell = (r) => r.listeners.forEach((f) => { try { f(); } catch (e) {} });
 export const l2Closed = (root) => { const r = roots.get(root); return !!(r && r.status !== 'live' && r.status !== 'error' && (r.closed || !cmeOpenNow())); };
 // phone: the short form, the long one runs into the chart legend at 390 px
 export const closedNote = () => (document.documentElement.getAttribute('data-device') === 'mobile' ? 'Market closed · last session' : 'Market closed · showing the last session\'s order book');
+// the hub marks a book side it found frozen (ts-hub.js staleStep) and drops it: say so, gone with the next snap that has it again
+export const staleNote = (root) => { const r = roots.get(root), st = r && r.status === 'live' && r.snap && r.snap.stale; return st === 'bid' ? 'Bid side unavailable from the data feed' : st === 'ask' ? 'Ask side unavailable from the data feed' : st === 'both' ? 'Order book unavailable from the data feed' : ''; };
 
 // ---------------------------------------------------------------------------------------- tick feed (footprint minutes)
 // Same minute-bar shape as chart-footprint-crypto.js bars(): { t, lo, hi, buy[], sell[] } in tick-index rows, so

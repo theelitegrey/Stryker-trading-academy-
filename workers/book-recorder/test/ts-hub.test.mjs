@@ -500,4 +500,43 @@ ok('imbalance10 is depth-weighted in [-1, 1]');
   assert.ok(hub.stats().uncrossed > 0 && hub.stats().oneSided > 0, 'diagnostics counted'); hub.shutdown(); void store;
   ok('hub: REAL stale-ask book (10 Nov) keeps heatmap columns at the traded price, also after an upstream reconnect');
 }
+// ---- FROZEN SIDE, REAL frames (Owner 2026-11-10 22:56 IST: "why heatmap lower portion not showing?"). MNQ 16:59-17:02 UTC: the vendor
+// re-sent the same 400 bids (27727.5-27827.25, all ABOVE the price) every frame while trades printed. Clean 13:00 UTC frames must never fire.
+{
+  const FX = JSON.parse(fs.readFileSync(new URL('./fixtures/mnq-frozen-bids.json', import.meta.url)));
+  const run = (frames, after) => {
+    let T = FX.frozen[0].t; const hub = new TSHub(memStore(), 'K', { now: () => T, SYMBOLS: ['MNQ'] }), out = [];
+    const step = (f) => { T = f.t; for (const x of f.ticks) hub.feed([{ type: 'tick', symbol: 'MNQ', price: x[0], size: x[1], side: x[2] > 0 ? 'buy' : 'sell', ts: T }]); hub.feed([{ type: 'book', symbol: 'MNQ', bids: f.bids, asks: f.asks, ts: T }]); out.push({ t: T, L: hub.latest.get('MNQ'), px: (hub.lastPx.get('MNQ') || [0])[0] }); };
+    for (const f of frames) step(f);
+    if (after) for (const f of after) step(Object.assign({}, f, { t: T + 5000 }));
+    hub.shutdown(); return { hub, out };
+  };
+  const t0 = FX.frozen[0].t;
+  assert.ok(FX.frozen.every((f) => JSON.stringify(f.bids) === JSON.stringify(FX.frozen[0].bids)), 'fixture: the real bid side is identical in every frame');
+  let { hub, out } = run(FX.frozen, [FX.clean[0]]);
+  const first = out.find((o) => o.L.stale === 'bid');
+  assert.ok(first && first.t - t0 >= 60000 && first.t - t0 <= 80000, 'frozen bids marked stale within 60-80 s (' + (first && (first.t - t0)) + ' ms)');
+  assert.ok(out.filter((o) => o.t - t0 < 60000).every((o) => !o.L.stale), 'never stale before 60 s');
+  const s = out.find((o) => o.L.stale === 'bid' && o !== out.at(-1));
+  assert.ok(s.L.bids.length === 0 && s.L.asks.length > 0, 'stale bid side dropped, the asks kept');
+  const raw = FX.frozen[out.indexOf(s)].asks, far = (a) => a.filter((r) => Math.abs(r[0] - s.px) > 10).length;
+  assert.ok(s.L.asks.every((r) => r[0] >= s.px - 2) && s.L.asks.filter((r) => Math.abs(r[0] - s.px) <= 10).length > 0, 'the fresh asks near the price stay');
+  assert.ok(far(s.L.asks) < far(raw), 'frozen far asks (re-sent old rows) are hidden: ' + far(raw) + ' -> ' + far(s.L.asks));
+  assert.ok(hub.stats().staleBid > 0 && hub.stats().staleAsk === 0, 'health counters staleBid / staleAsk');
+  assert.ok(!out.at(-1).L.stale && out.at(-1).L.bids.length > 50, 'recovers the moment the bid side changes (clean frame)');
+  // healthy: the clean 13:00 UTC session book never fires, also slowed down to 3 min between frames
+  ({ hub, out } = run(FX.clean.map((f, i) => Object.assign({}, f, { t: t0 + i * 180000 }))));
+  assert.ok(out.every((o) => !o.L.stale) && hub.stats().staleBid === 0 && hub.stats().staleAsk === 0, 'clean real book: never stale');
+  // a quiet market (no trades) with a still book is not stale: the rule needs trades printing
+  ({ hub, out } = run(FX.frozen.map((f) => Object.assign({}, f, { ticks: [] }))));
+  assert.ok(out.every((o) => !o.L.stale), 'no trades: never stale');
+  // the client frames carry the flag
+  socks = []; const m2 = mk({ SYMBOLS: ['MNQ'], FROZEN_MS: 100 }); const c = client(); m2.hub.attach(c, 'MNQ', 150, 'book'); await sleep(20);
+  const f0 = FX.frozen[0], tr = () => socks[0].msg({ type: 'tick', symbol: 'MNQ', price: f0.ticks.at(-1)[0], size: 1, side: 'buy', ts: 1 });
+  for (let i = 0; i < 6; i++) { tr(); socks[0].msg({ type: 'book', symbol: 'MNQ', bids: f0.bids, asks: FX.frozen[i].asks, ts: 1 }); await sleep(60); }
+  assert.ok(c.got.some((m) => m.type === 'snap' && m.stale === 'bid') && c.got.some((m) => m.type === 'coarse' && m.stale === 'bid'), 'snap + coarse frames say stale:bid');
+  socks[0].msg({ type: 'book', symbol: 'MNQ', bids: FX.clean[0].bids, asks: FX.clean[0].asks, ts: 1 }); await sleep(150);
+  assert.ok(!c.got.filter((m) => m.type === 'snap').at(-1).stale, 'flag gone once the side moves'); m2.hub.shutdown();
+  ok('hub: REAL frozen bid side (10 Nov) goes stale within 60 s, hides re-sent far asks, never fires on a clean book, recovers');
+}
 console.log(n + ' checks passed'); process.exit(0);

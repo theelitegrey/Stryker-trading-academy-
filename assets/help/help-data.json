@@ -282,8 +282,20 @@
        "id": "email-link-wont-open",
        "q": "The link in my email won't open. What do I do?",
        "a": "<p>Some phone networks block the page our verify-email and password-reset links open. Use the <a href=\"/fix-link\">link fixer</a>: long-press the button in the email, tap Copy link, paste it there and tap Continue.</p>",
-       "tags": ["email link", "verify email", "reset password", "link not opening", "connection refused", "firebaseapp"],
-       "links": [{"label": "Link fixer", "href": "/fix-link"}]
+       "tags": [
+        "email link",
+        "verify email",
+        "reset password",
+        "link not opening",
+        "connection refused",
+        "firebaseapp"
+       ],
+       "links": [
+        {
+         "label": "Link fixer",
+         "href": "/fix-link"
+        }
+       ]
       },
       {
        "id": "create-account",
@@ -805,7 +817,7 @@
        "id": "pro-price",
        "q": "How much does Pro cost?",
        "a": "<p>TradeZoro is free. Some advanced tools (order flow, GEX+) are part of Pro. Open one of them, or Settings → Plan, and the Pro prompt shows the current price, read live from the plan, in your currency.</p>",
-       "plans": "pro",
+       "plans": "all",
        "tags": [
         "price",
         "cost",
@@ -1298,7 +1310,7 @@
        "q": "What are the Trading models?",
        "a": "<p>Trading models are named setups, each with full criteria and a written walkthrough. They follow a five-step process: prep, apply the rules, confirm, size from your stop, journal. They are free for every signed-in member.</p>",
        "path": "More → Models",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "models",
         "setups",
@@ -2057,7 +2069,7 @@
       {
        "id": "indicator-pro-tag",
        "q": "Why does an indicator show PRO?",
-       "a": "<p>Order flow tools and GEX-based tools are Pro: Footprint, Delta, CVD, big trades, absorption, imbalance zones, volume profile (trades), VWAP (trades), Market Profile, effort vs result, stop runs, GEX Levels, GEX Heatmap, Expected Move and ZoroTide. Every other indicator is free.</p><p>If you tap one on Free, the upgrade window says \"Order flow tools are part of Pro.\" or \"GEX and options flow on charts are part of Pro.\"</p>",
+       "a": "<p>Order flow tools and GEX-based tools are Pro: Footprint, Delta, CVD, big trades, absorption, imbalance zones, volume profile (trades), VWAP (trades), Market Profile, effort vs result, stop runs, GEX Levels, GEX Heatmap and Expected Move. Every other indicator is free.</p><p>If you tap one on Free, the upgrade window says \"Order flow tools are part of Pro.\" or \"GEX and options flow on charts are part of Pro.\"</p>",
        "plans": "free",
        "tags": [
         "pro",
@@ -2096,7 +2108,7 @@
       {
        "id": "tz-indicators",
        "q": "What TradeZoro indicators are there?",
-       "a": "<p>In the Indicators window → TradeZoro tab: GEX Levels, GEX Heatmap, Expected Move, ZoroTide (Pro), Economic events, News markers, EMA 9/21 cross, Session VWAP, Previous day high/low, SMT Divergence Pro, IFVG Pro+, HTF PO3 Lens, FVG Relay, TZ Fractal Model, Liquidity Master, Session Sweep SMT + IFVG and the Market Stats session overlay.</p>",
+       "a": "<p>In the Indicators window → TradeZoro tab: GEX Levels, GEX Heatmap, Expected Move, ZoroTide, Economic events, News markers, EMA 9/21 cross, Session VWAP, Previous day high/low, SMT Divergence Pro, IFVG Pro+, HTF PO3 Lens, FVG Relay, TZ Fractal Model, Liquidity Master, Session Sweep SMT + IFVG and the Market Stats session overlay.</p>",
        "tags": [
         "smt",
         "ifvg",
@@ -2354,7 +2366,25 @@
        ],
        "level": "advanced"
       },
-      {"id": "depth-heatmap", "q": "What is the Depth Heatmap (L2)?", "a": "<p>A Pro indicator in the Order Flow group. It paints the resting orders at every price on its own dark background: thin size is a soft blue, bigger size turns light blue and white, and the biggest resting orders turn yellow, orange and red. A level is drawn as one bar until its size really changes or it is removed.</p><p>On top it shows the traded volume as balls on the price path (green part = buying, red part = selling), the price line, the current book at the right edge (red above the price, green below, with sizes and a running total) and buy and sell volume bars at the bottom.</p><p>Settings: Smooth (averages each level over the last 15 s to 2 min, default 30 s), Contrast (auto or manual), Lower cutoff (hide the thinnest levels), and switches for the balls, the book bars, the total column and the volume bars. It works on NQ, ES, YM, RTY, CL and GC futures (Data feed L2) and on crypto order books, also in replay. Education only. Not financial advice.</p>", "plans": "pro", "tags": ["depth heatmap", "heatmap", "order book", "resting orders", "L2", "volume bubbles"], "related": ["liquidity-map", "orderflow-what"], "level": "advanced"}
+      {
+       "id": "depth-heatmap",
+       "q": "What is the Depth Heatmap (L2)?",
+       "a": "<p>A Pro indicator in the Order Flow group. It paints the resting orders at every price on its own dark background: thin size is a soft blue, bigger size turns light blue and white, and the biggest resting orders turn yellow, orange and red. A level is drawn as one bar until its size really changes or it is removed.</p><p>On top it shows the traded volume as balls on the price path (green part = buying, red part = selling), the price line, the current book at the right edge (red above the price, green below, with sizes and a running total) and buy and sell volume bars at the bottom.</p><p>Settings: Smooth (averages each level over the last 15 s to 2 min, default 30 s), Contrast (auto or manual), Lower cutoff (hide the thinnest levels), and switches for the balls, the book bars, the total column and the volume bars. It works on NQ, ES, YM, RTY, CL and GC futures (Data feed L2) and on crypto order books, also in replay. Education only. Not financial advice.</p>",
+       "plans": "pro",
+       "tags": [
+        "depth heatmap",
+        "heatmap",
+        "order book",
+        "resting orders",
+        "L2",
+        "volume bubbles"
+       ],
+       "related": [
+        "liquidity-map",
+        "orderflow-what"
+       ],
+       "level": "advanced"
+      }
      ]
     }
    ]
@@ -2435,7 +2465,7 @@
       {
        "id": "gex-free",
        "q": "Is any GEX+ free?",
-       "a": "<p>No. GEX+ is part of Pro, for every symbol and expiry. On Free, GEX+ and GEX on charts show the Pro prompt.</p>",
+       "a": "<p>Yes, a part of it. On Free you get GEX+ for SPX with the 0DTE (same-day) expiry. Pro unlocks every symbol and expiry, the ladder, and GEX on charts.</p>",
        "plans": "free",
        "tags": [
         "free gex",
@@ -2451,7 +2481,7 @@
       {
        "id": "gex-pro",
        "q": "What does Pro add on GEX+?",
-       "a": "<p>Every symbol (SPX, SPY, QQQ, Gold) and every expiry (0DTE, 1DTE, 1W, 1M), the strike profile table (NET GEX, DEX, OI), the Heatmap and Ladder views, ZoroTide for SPY and QQQ, and GEX tools on charts.</p>",
+       "a": "<p>Every symbol (SPX, SPY, QQQ, Gold) and every expiry (0DTE, 1DTE, 1W, 1M), the strike profile table (NET GEX, DEX, OI), the Heatmap and Ladder views, ZoroTide on the GEX+ page for SPY and QQQ, and GEX tools on charts.</p>",
        "plans": "pro",
        "tags": [
         "pro",
@@ -2562,7 +2592,25 @@
         "gex-missing-symbol"
        ]
       },
-      {"id": "gex-levels-basis", "q": "What do “Updated through the day” and “Daily close” mean for GEX levels?", "a": "<p>You can choose which levels GEX+ and the GEX Levels chart indicator show.</p><p><b>Updated through the day</b> (the default): the levels are rebuilt every few minutes while the options market is open, so they can move during the session.</p><p><b>Daily close</b>: the levels come from the last regular-session close (the 16:00 ET options chain and price) and stay fixed for the whole next session. A small note shows the day they come from, for example “Levels from Thu 5 Nov close”. Futures levels use the futures price at that close.</p><p>On the GEX+ page pick it with the <b>Levels</b> switch; on a chart open the indicator’s settings and change <b>Levels from</b>. Education only. Not financial advice.</p>", "tags": ["daily close", "close", "through the day", "levels from", "fixed levels", "gex settings", "basis"], "related": ["gex-update", "gex-levels-meaning", "gex-overnight"]},
+      {
+       "id": "gex-levels-basis",
+       "q": "What do “Updated through the day” and “Daily close” mean for GEX levels?",
+       "a": "<p>You can choose which levels GEX+ and the GEX Levels chart indicator show.</p><p><b>Updated through the day</b> (the default): the levels are rebuilt every few minutes while the options market is open, so they can move during the session.</p><p><b>Daily close</b>: the levels come from the last regular-session close (the 16:00 ET options chain and price) and stay fixed for the whole next session. A small note shows the day they come from, for example “Levels from Thu 5 Nov close”. Futures levels use the futures price at that close.</p><p>On the GEX+ page pick it with the <b>Levels</b> switch; on a chart open the indicator’s settings and change <b>Levels from</b>. Education only. Not financial advice.</p>",
+       "tags": [
+        "daily close",
+        "close",
+        "through the day",
+        "levels from",
+        "fixed levels",
+        "gex settings",
+        "basis"
+       ],
+       "related": [
+        "gex-update",
+        "gex-levels-meaning",
+        "gex-overnight"
+       ]
+      },
       {
        "id": "gex-overnight",
        "q": "What are VAH, POC, VAL and ON high / low?",
@@ -2589,8 +2637,8 @@
       {
        "id": "zorotide-what",
        "q": "What is ZoroTide?",
-       "a": "<p>ZoroTide shows options money flow: net call premium against net put premium since the 9:30 ET open. It is estimated from options volume and quotes. It is on the GEX+ ZoroTide tab and as a chart indicator.</p>",
-       "plans": "pro",
+       "a": "<p>ZoroTide shows options money flow: net call premium against net put premium since the 9:30 ET open. It is estimated from options volume and quotes. It is a chart indicator, free for every plan, and it is on the GEX+ ZoroTide tab. On the GEX+ page, Free covers SPX and SPY and QQQ need Pro.</p>",
+       "plans": "free",
        "tags": [
         "zorotide",
         "money flow",
@@ -2611,13 +2659,40 @@
       {
        "id": "zorotide-free",
        "q": "Is ZoroTide free?",
-       "a": "<p>ZoroTide on the GEX+ page and the chart indicator are part of Pro.</p>",
+       "a": "<p>Yes. The ZoroTide chart indicator is free on every plan, for SPX, SPY, QQQ, ES and NQ. On the GEX+ page, the ZoroTide tab follows the GEX+ plan: Free covers SPX, and SPY and QQQ need Pro.</p>",
+       "plans": "free",
        "tags": [
         "zorotide free",
         "spx"
        ],
        "related": [
         "zorotide-what"
+       ]
+      },
+      {
+       "id": "zorooptions-free",
+       "q": "Is ZoroOptions free?",
+       "a": "<p>Yes. ZoroOptions is free for every signed-in member, with every panel and every symbol. If you are signed out, the page asks you to sign in or create a free account. Only the GEX levels download is part of Pro.</p><p>Education only. Not financial advice.</p>",
+       "path": "More → ZoroOptions",
+       "plans": "free",
+       "tags": [
+        "zorooptions",
+        "zoro options",
+        "options",
+        "free",
+        "sign in",
+        "locked",
+        "pro"
+       ],
+       "related": [
+        "zorotide-what",
+        "gex-what-is"
+       ],
+       "links": [
+        {
+         "label": "ZoroOptions",
+         "href": "/zoro-options"
+        }
        ]
       }
      ]
@@ -3175,7 +3250,7 @@
         "Confirm the import."
        ],
        "path": "JournalX → History → Import & export",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "import",
         "csv",
@@ -3199,7 +3274,7 @@
        "id": "journal-import-errors",
        "q": "My import failed. What do the messages mean?",
        "a": "<ul><li>\"That file has no data rows.\": the file is empty or only headers.</li><li>\"Could not find the essentials - check the mapping below.\": map the Date, Instrument and P&L columns.</li><li>\"Could not read that file.\": save it as plain CSV.</li><li>\"No importable rows - check the column mapping.\"</li><li>\"All N rows already exist in your journal.\": nothing new.</li><li>\"Need Firm, Date and Amount columns - check the file headers.\" for payouts and expenses.</li><li>\"A combined file needs a Type column (trade / payout / expense).\"</li></ul>",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "import error",
         "csv error",
@@ -3215,7 +3290,7 @@
        "id": "journal-export",
        "q": "How do I export my journal?",
        "a": "<p>Use Export CSV in History → Import & export. If you see \"Nothing to export yet.\" the journal is empty.</p>",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "export",
         "download",
@@ -3232,7 +3307,7 @@
        "q": "What is in Analytics?",
        "a": "<p>Deeper statistics from your trades. Analytics is free for every signed-in member.</p>",
        "path": "JournalX → Analytics",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "analytics",
         "statistics",
@@ -3247,7 +3322,7 @@
        "q": "What is the AI Coach?",
        "a": "<p>A rule-based coach that reads your journal and points out patterns such as overtrading or revenge trades. It runs on your own device from your own entries and is not a chatbot. It is free.</p>",
        "path": "JournalX → AI Coach",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "coach",
         "ai",
@@ -3271,7 +3346,7 @@
         "Tap Sync now whenever you want."
        ],
        "path": "JournalX → History → Broker sync",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "broker sync",
         "auto import",
@@ -3288,7 +3363,7 @@
        "id": "broker-sync-errors",
        "q": "Broker sync shows an error.",
        "a": "<ul><li>\"Choose a broker first.\"</li><li>\"Fill in every credential field.\"</li><li>\"The broker rejected the connection.\": re-check the key and that it is read-only.</li><li>\"Sync failed.\": try Sync now later.</li><li>\"Broker sync isn't switched on for this site yet.\": the feature is not active for the site; use CSV import instead.</li></ul>",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "sync failed",
         "rejected",
@@ -3451,7 +3526,7 @@
        "q": "What is the Smart Money desk?",
        "a": "<p>A desk that shows Congress and insider filings. It is free for every signed-in member.</p>",
        "path": "More → Smart money",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "smart money",
         "congress",
@@ -3691,7 +3766,7 @@
        "q": "How do direct messages work?",
        "a": "<p>More → Messages lets members send direct messages. Messaging is free for every signed-in member.</p>",
        "path": "More → Messages",
-       "plans": "pro",
+       "plans": "free",
        "tags": [
         "dm",
         "messages",

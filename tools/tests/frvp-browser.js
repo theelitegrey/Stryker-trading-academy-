@@ -246,6 +246,26 @@ async function desktop(b, theme) {
     check(gd.vwap && gd.vwap.length === 5 && gd.vwap.every((n) => n > 20), tag + ': anchored VWAP + 1 SD + 2 SD bands drawn', gd.vwap);
     await p.mouse.move(gd.cr.x + 5, gd.cr.y + gd.cr.h - 60); await sleep(400);
     await shot(p, tag + '-delta-vwap');
+    // colours (member request 11 Nov): the delta bars and the VWAP follow their pickers; unset = today's colours
+    const near = (p2, rgb, box) => p2.evaluate(([rgb, box]) => {
+      const R = window.STRYKER_VELA.chart.renderer.renderer, U = R.userDrawings, top = R.drawingsCanvas, k = top.width / top.getBoundingClientRect().width;
+      let best = 0;
+      for (const c of [top, ...(U.sliceCache ? U.sliceCache.values() : [])]) {
+        const d = c.getContext('2d').getImageData(Math.round(box[0] * k), Math.round(box[1] * k), Math.round(box[2] * k), Math.round(box[3] * k)).data; let n = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 120 && Math.abs(d[i] - rgb[0]) < 40 && Math.abs(d[i + 1] - rgb[1]) < 40 && Math.abs(d[i + 2] - rgb[2]) < 40) n++;
+        best = Math.max(best, n);
+      }
+      return best;
+    }, [rgb, box]);
+    const yMin = Math.min(gd.yEdges[0], gd.yEdges[gd.yEdges.length - 1]), yMax = Math.max(gd.yEdges[0], gd.yEdges[gd.yEdges.length - 1]);
+    const dBox = [Math.max(0, gd.anchorX - gd.maxW), yMin, gd.maxW, yMax - yMin], wBox = [0, 0, Math.round(gd.width), Math.round(gd.cr.h)];
+    const dflt = [await near(p, [8, 153, 129], dBox), await near(p, [242, 54, 69], dBox), await near(p, [91, 156, 246], wBox)];
+    check(dflt[0] > 20 && dflt[1] > 20 && dflt[2] > 50, tag + ': default delta (green / red) and VWAP (blue) colours unchanged', dflt);
+    await setProps(p, { deltaUpColor: '#3b82f6', deltaDownColor: '#f59e0b', vwapColor: '#ff00ff' }); await sleep(900);
+    const pick = [await near(p, [59, 130, 246], dBox), await near(p, [245, 158, 11], dBox), await near(p, [255, 0, 255], wBox), await near(p, [8, 153, 129], dBox)];
+    check(pick[0] > 20 && pick[1] > 20 && pick[2] > 50 && pick[3] === 0, tag + ': picked delta + VWAP colours are drawn, the old delta colour is gone', pick);
+    await shot(p, tag + '-colours');
+    await setProps(p, { deltaUpColor: undefined, deltaDownColor: undefined, vwapColor: undefined }); await sleep(600);
     // settings window lists the new options
     await p.mouse.click(gd.cr.x + (gd.x0 + gd.x1) / 2 + gd.maxW / 2, gd.cr.y + gd.pocY); await sleep(600);
     await p.evaluate(() => { const U = window.STRYKER_VELA.chart.renderer.renderer.userDrawings, d = U.drawings.find((x) => x.type === 'fixedrangevp'); U.openSettingsById(d.id, 0, 0); U.popup.openPanel(); });
@@ -255,7 +275,7 @@ async function desktop(b, theme) {
     await p.evaluate(() => { const el = [...document.querySelectorAll('.vela-dsp-scroll')].pop(); if (el) el.scrollTop = el.scrollHeight; });
     await sleep(300);
     const txt = await p.evaluate(() => [...document.querySelectorAll('*')].filter((e) => !e.children.length && /\S/.test(e.textContent) && e.getBoundingClientRect().width > 0).map((e) => e.textContent.trim()).join(' | '));
-    for (const w of ['Extend right', 'Thin rows', 'Delta bars', 'VWAP', '\u00b11 SD bands', '\u00b12 SD bands']) check(txt.includes(w), tag + ': settings show "' + w + '"', txt.slice(0, 200));
+    for (const w of ['Extend right', 'Thin rows', 'Delta bars', 'Delta buy', 'Delta sell', 'VWAP colour', 'Band colour', 'VWAP', '\u00b11 SD bands', '\u00b12 SD bands']) check(txt.includes(w), tag + ': settings show "' + w + '"', txt.slice(0, 200));
     await shot(p, tag + '-settings');
     // the settings live in the saved chart: a reload keeps them
     await p.keyboard.press('Escape'); await sleep(300);

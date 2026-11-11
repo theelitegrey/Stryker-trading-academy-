@@ -206,6 +206,7 @@ const SCHEMA = {
     { key: 'restShow', title: 'Resting book shown', type: 'string', defval: 'Near the candle', options: ['Near the candle', 'Off', 'Full depth'], tooltip: 'Near the candle = resting size only beside the candle (its low to high plus the rows below). Full depth = every row of the book, in a tall ladder.' },
     { key: 'restRows', title: 'Rows beyond the candle', type: 'int', defval: 2, min: 0, max: 20, step: 1 },
     { key: 'numbers', title: 'Show traded numbers', type: 'bool', defval: true },
+    { key: 'textSize', title: 'Text size', type: 'string', defval: 'Normal', options: ['Small', 'Normal', 'Large', 'Extra large'] },
     { key: 'buyColor', title: 'Buyers', type: 'color', defval: UP }, { key: 'sellColor', title: 'Sellers', type: 'color', defval: DN },
     { key: 'bidColor', title: 'Resting bids', type: 'color', defval: CYAN }, { key: 'askColor', title: 'Resting asks', type: 'color', defval: AMBER }],
   stk_l2f_big: BT.schema().filter((x) => !['absorption', 'sweep', 'extend'].includes(x.key)).concat([
@@ -532,7 +533,7 @@ function fpLayer() {
         const R = m * tick, mult = num(I.mult, 3), now = Date.now();
         const rs = I.restShow === 'Off' || I.restShow === 'Full depth' ? I.restShow : 'Near the candle', N = clamp(Math.round(num(I.restRows, 2)), 0, 20);
         let drawn = 0, maxOut = 0;
-        const colW = Math.min(ppb * 0.92, 150), restW = colW * 0.3, trW = colW - restW - 2, fs = phone ? 9 : 10;
+        const colW = Math.min(ppb * 0.92, 150), restW = colW * 0.3, trW = colW - restW - 2, fs = (phone ? 9 : 10) + ({ Small: -1, Large: 2, 'Extra large': 4 }[I.textSize] || 0);
         g.font = '600 ' + fs + 'px ' + MONO; g.textBaseline = 'middle';
         let hot = 0;
         for (let i = i0; i <= i1; i++) {
@@ -558,7 +559,7 @@ function fpLayer() {
               const tot = t.buy + t.sell, w = Math.max(1, trW * tot / mx), x0 = left + restW + 2, wb = w * t.buy / tot;
               g.fillStyle = rgba(I.sellColor, 0.8); g.fillRect(x0, y, w - wb, h);
               g.fillStyle = rgba(I.buyColor, 0.8); g.fillRect(x0 + w - wb, y, wb, h);
-              if (I.numbers !== false && h >= 11 && trW >= 40) { g.fillStyle = ink(); g.textAlign = 'left'; g.fillText(Math.round(t.sell) + 'x' + Math.round(t.buy), x0 + 2, y + h / 2); }
+              if (I.numbers !== false && h >= fs + 1 && trW >= 40) { g.fillStyle = ink(); g.textAlign = 'left'; g.fillText(Math.round(t.sell) + 'x' + Math.round(t.buy), x0 + 2, y + h / 2); }
             }
           }
         }

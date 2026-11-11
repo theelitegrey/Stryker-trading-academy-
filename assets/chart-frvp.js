@@ -21,6 +21,9 @@ import { deltaRows, anchoredVwap } from './chart-frvp-data.js?v=958';
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';
 const MAX_TF_MIN = 240;
+// member-picked colours for the delta bars and the VWAP lines (frvp.deltaUpColor ... saved with the drawing); unset = the colours above
+const CK = { deltaUpColor: UP, deltaDownColor: DN, vwapColor: VW, vwapBandColor: BAND };
+const hex6 = (c, d) => (/^#[0-9a-f]{6}$/i.test(String(c || '')) ? c : d);
 const hhmm = (ms) => { try { return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return ''; } };
 function clear(c) {
   const s = String(c || '').trim().toLowerCase();
@@ -161,9 +164,9 @@ function paintFrvp(ctx, d, proj, theme) {
   if (needVwap && !avail.vwap && bars.length) {
     const vw = anchoredVwap(s.extendRight === true && proj.barsInRange ? proj.barsInRange(bars[0].time, Infinity) : bars) || [];
     const line = (k) => vw.map((p) => [proj.xOf(p.time), proj.yOf(p.vwap + k * p.sd, d.paneId)]).filter((q) => q[1] != null);
-    const polys = [[line(0), VW, 1.5, 'solid']];
-    if (s.vwapSd1 === true) polys.push([line(1), BAND, 1, 'solid'], [line(-1), BAND, 1, 'solid']);
-    if (s.vwapSd2 === true) polys.push([line(2), BAND, 1, 'dashed'], [line(-2), BAND, 1, 'dashed']);
+    const vwC = hex6(s.vwapColor, VW), bdC = hex6(s.vwapBandColor, BAND), polys = [[line(0), vwC, 1.5, 'solid']];
+    if (s.vwapSd1 === true) polys.push([line(1), bdC, 1, 'solid'], [line(-1), bdC, 1, 'solid']);
+    if (s.vwapSd2 === true) polys.push([line(2), bdC, 1, 'dashed'], [line(-2), bdC, 1, 'dashed']);
     for (const [pl, c, w, st] of polys) this.strokePolyline(ctx, pl, { lineColor: c, lineWidth: w, lineStyle: st });
     d.__stkVwap = polys.map((p) => p[0]);
   }
@@ -184,7 +187,7 @@ function paintFrvp(ctx, d, proj, theme) {
     const v = D.d[k]; if (!v) continue;
     const yA = L.yEdges[k], yB = L.yEdges[k + 1], w = Math.max(1, Math.abs(v) / mx * maxDW), h2 = Math.max(1, Math.abs(yB - yA) - 1);
     const x = side < 0 ? L.anchorX - gap - w : L.anchorX + gap;
-    ctx.fillStyle = (v > 0 ? UP : DN) + 'BF'; ctx.fillRect(x, Math.min(yA, yB), w, h2);
+    ctx.fillStyle = (v > 0 ? hex6(s.deltaUpColor, UP) : hex6(s.deltaDownColor, DN)) + 'BF'; ctx.fillRect(x, Math.min(yA, yB), w, h2);
     rects.push([x, Math.min(yA, yB), w, h2]);
   }
   d.__stkDelta = rects;
@@ -232,11 +235,13 @@ function extraFields(d) {
   f.push({ path: 'frvpx.thinRows', label: 'Thin rows', kind: 'boolean' });
   f.push(a.delta ? { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: d.frvp.deltaBars || 'off', label: a.delta }] }
     : { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: 'off', label: 'Off' }, { value: 'left', label: 'Left side' }] });
+  if (!a.delta) f.push({ path: 'frvpx.deltaUpColor', label: 'Delta buy', kind: 'color', when: { path: 'frvpx.deltaBars', in: ['left'] } }, { path: 'frvpx.deltaDownColor', label: 'Delta sell', kind: 'color', when: { path: 'frvpx.deltaBars', in: ['left'] } });
   if (a.vwap) f.push({ path: 'frvpx.vwap', label: 'VWAP', kind: 'select', options: [{ value: String(d.frvp.vwap === true), label: a.vwap }] });
   else {
     f.push({ path: 'frvpx.vwap', label: 'VWAP', kind: 'boolean' });
     f.push({ path: 'frvpx.vwapSd1', label: '\u00b11 SD bands', kind: 'boolean', when: { path: 'frvpx.vwap', in: [true] } });
     f.push({ path: 'frvpx.vwapSd2', label: '\u00b12 SD bands', kind: 'boolean', when: { path: 'frvpx.vwap', in: [true] } });
+    f.push({ path: 'frvpx.vwapColor', label: 'VWAP colour', kind: 'color', when: { path: 'frvpx.vwap', in: [true] } }, { path: 'frvpx.vwapBandColor', label: 'Band colour', kind: 'color', when: { path: 'frvpx.vwap', in: [true] } });
   }
   return f;
 }
@@ -249,7 +254,8 @@ export function installFrvpClass(FRVP) {
   Object.defineProperty(P, 'frvpx', { configurable: true, get() { return this.frvp; } });
   P.hitTest = hitFrvp;
   const schema = P.schema;
-  P.schema = function () { const s = schema.call(this); s.fields = s.fields.concat(extraFields(this)); return s; };
+  P.schema = function () { for (const k in CK) if (this.frvp[k] === undefined) this.frvp[k] = CK[k];   // the colour pickers show today's colours
+    const s = schema.call(this); s.fields = s.fields.concat(extraFields(this)); return s; };
   const onPlaced = P.onPlaced;
   P.onPlaced = function (proj) {   // a NEW drawing: the new defaults (saved drawings never pass here)
     if (onPlaced) onPlaced.call(this, proj);

@@ -127,7 +127,7 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       check((await p.evaluate(() => window.__wsOpened)) === 0, 'non-admin: no socket opened');
       await ctx.close();
     }
-    for (const [w, h, mobile, theme, tag] of (process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [412, 915, true, 'dark', '412-dark'], [390, 844, true, 'light', '390-light'], [390, 844, true, 'light', '390-light']])) {
+    for (const [w, h, mobile, theme, tag] of (process.env.SHOTS ? [[1440, 900, false, 'dark', '1440-dark'], [1440, 900, false, 'light', '1440-light'], [390, 844, true, 'dark', '390-dark']] : process.env.ONE ? [[1440, 900, false, 'dark', '1440-dark']] : [[1440, 900, false, 'dark', '1440-dark'], [412, 915, true, 'dark', '412-dark'], [390, 844, true, 'light', '390-light'], [390, 844, true, 'light', '390-light']])) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
       if (process.env.TIER1) await p.evaluate(() => { window.__TIER1 = 1; });
       await setNQ(p);
@@ -154,6 +154,17 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
       const fz = await readFlow(p);
       check(fz.stk_l2f_fp && fz.stk_l2f_fp.hot >= 0 && fz.stk_l2f_vp.traded > 0, tag + ': zoomed footprint drawn (highlighted rows ' + (fz.stk_l2f_fp && fz.stk_l2f_fp.hot) + ')', fz.stk_l2f_fp);
       await p.screenshot({ path: OUT + '/l2f-' + tag + '-zoom.png' });
+      // resting book setting (2026-11-11): default = near the candle only, Off = none, Full depth = whole ladder
+      const setRest = async (v) => { await p.evaluate((v) => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_l2f_fp'); h.setInputs(Object.assign({}, h.inputValues(), { restShow: v })); }, v); await sleep(2000); return (await readFlow(p)).stk_l2f_fp; };
+      const fpN = fz.stk_l2f_fp;
+      await p.screenshot({ path: OUT + '/l2f-' + tag + '-zoom-near.png' });
+      check(fpN.mode === 'Near the candle' && fpN.drawn > 0 && fpN.maxOut <= 2, tag + ': default resting bars stay within 2 rows of the candle (drawn ' + fpN.drawn + ', furthest ' + fpN.maxOut + ')', fpN);
+      const fpF = await setRest('Full depth');
+      check(fpF.mode === 'Full depth' && fpF.drawn > fpN.drawn && fpF.maxOut > 3, tag + ': full depth draws more (' + fpF.drawn + ' vs ' + fpN.drawn + ', furthest ' + fpF.maxOut + ')', fpF);
+      await p.screenshot({ path: OUT + '/l2f-' + tag + '-zoom-full.png' });
+      const fpO = await setRest('Off');
+      check(fpO.mode === 'Off' && fpO.drawn === 0, tag + ': Off draws no resting bars', fpO);
+      await setRest('Near the candle');
       // REGRESSION (2026-11-10): hiding an indicator must clear its layer; showing must bring it back
       const layerInk = (t) => p.evaluate((t) => { const ch = window.STRYKER_VELA.context().cells[0].chart; const r = ch.renderer.extLayers ? ch.renderer : ch.renderer.renderer; let best = 0; for (const l of r.extLayers) { if (l.channel !== t || !l.canvas.width) continue; const d = l.canvas.getContext('2d').getImageData(0, 0, l.canvas.width, l.canvas.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; best = Math.max(best, n); } return best; }, t);
       const vis = (t, v) => p.evaluate(([t, v]) => { const h = (window.STRYKER_VELA.context().cells[0].chart.indicators() || []).find((x) => x.nativeType === t); h.setVisible(v); }, [t, v]);

@@ -686,6 +686,9 @@ function lateLists(provider){
   // its flyouts, the phone sheet, the object tree and the favourites bar all read these; plus
   // separate Long / Short Position tools (assets/chart-tool-icons.js). Before the workspace is built.
   const ToolIcons = mods[22];
+  // Fixed Range Volume Profile fixes + extras (assets/chart-frvp.js): the drawing class, before any drawing is restored.
+  let Frvp = null;
+  if (VELA090) { try { Frvp = await import('./chart-frvp.js?v=953'); Frvp.installFrvpClass(mods[23].FixedRangeVolumeProfile); } catch (e) { console.warn('TradeZoro: FRVP', e); } }
   try {
     const miss = ToolIcons.installToolIcons(Core, mods[23].PositionTool);
     if (miss.length) console.warn('TradeZoro: drawing tools without an icon', miss);
@@ -847,6 +850,7 @@ function lateLists(provider){
   // charts?symbol=NQ&date=2026-10-28 (from /market-stats): open that session on the chart.
   if (MSess && !BT) { try { MSess.openSessionFromLink(ws); } catch (e) { console.warn('TradeZoro: market stats link', e); } }
 
+  if (Frvp) Frvp.installFrvpPainter(ws);   // the FRVP painter (shared by every cell)
   try { ToolIcons.addShortToToolbar(ws, Core); } catch (e) { console.warn('TradeZoro: short position tool', e); }
 
   // Symbol search "Commodities" tab: Vela files a row there only when its type is "commodity",

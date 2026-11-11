@@ -15,6 +15,10 @@ export function windowOf(mode, o) {
   }
   if (mode === 'session') return { from: Math.floor(o.sessionStart / MIN) * MIN, to: cur + MIN };
   const n = Math.max(1, Math.round(o.mins || 15));
+  if (mode === 'block') {                                  // reset every n minutes, on clock boundaries of the exchange zone (o.offset ms from UTC)
+    const B = n * MIN, off = o.offset || 0, a = Math.floor((cur + off) / B) * B - off;
+    return { from: a, to: cur + MIN, prevFrom: a - B, prevTo: a };
+  }
   return { from: cur - (n - 1) * MIN, to: cur + MIN };
 }
 

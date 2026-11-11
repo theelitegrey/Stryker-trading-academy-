@@ -23,7 +23,7 @@ import { aggregate, clipTo, profile as tradedProfile } from './chart-footprint-d
 import * as BT from './chart-bigtrades.js?v=953';
 import { sweepEvents } from './chart-of-pro-data.js?v=953';
 import { sweepBars } from './chart-of-pro.js?v=953';
-import { sessionStart, fmtK, clamp, num } from './chart-book-pack-data.js?v=953';
+import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-data.js?v=953';
 import { swingModel, swingLayer } from './chart-swing-vwap.js?v=953';
 import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=953';
 
@@ -217,7 +217,9 @@ const SCHEMA = {
   stk_l2f_lad: LAD_SCHEMA.slice(1),
   stk_l2f_dp: [
     { key: 'range', title: 'Range', type: 'string', defval: 'Rolling time', options: ['Rolling time', 'Fixed range', 'Session'], tooltip: 'Rolling time = the last N minutes, updating as trades arrive. Fixed range = from the start bar to the end bar you pick (picker row "Delta Profile (L2): click two bars"). Session = since the CME day opened (18:00 New York).' },
-    { key: 'minutes', title: 'Rolling minutes', type: 'string', defval: '15', options: ['5', '15', '30', '60', 'Custom'] },
+    { key: 'minutes', title: 'Minutes (window / reset interval)', type: 'string', defval: '15', options: ['5', '15', '30', '60', 'Custom'] },
+    { key: 'windowMode', title: 'Window mode (Rolling time only)', type: 'string', defval: 'Rolling', options: ['Rolling', 'Reset every interval'], tooltip: 'Rolling = always the last N minutes. Reset every interval = the profile fills from the start of each N-minute block (clock boundaries in the exchange time zone: New York for futures, UTC for crypto), then clears and starts fresh at the next block.' },
+    { key: 'prevPoc', title: 'Reset mode: keep the previous block\'s POC as a faint line', type: 'bool', defval: false },
     { key: 'customMins', title: 'Custom minutes', type: 'int', defval: 20, min: 1, max: 360, step: 1 },
     { key: 'rangeStart', title: 'Fixed range: start (bar time)', type: 'time', defval: 0 },
     { key: 'rangeEnd', title: 'Fixed range: end (bar time, empty = now)', type: 'time', defval: 0 },
@@ -412,17 +414,22 @@ class L2Flow {
   }
   // Delta Profile (L2): the window's per-tick table is kept by a DeltaAcc (incremental); the layer groups it into rows at draw time.
   drawDp(hub, bars, tf) {
-    const I = this.inputs, mode = I.range === 'Fixed range' ? 'fixed' : I.range === 'Session' ? 'session' : 'rolling', now = Date.now();
+    const I = this.inputs, mode = I.range === 'Fixed range' ? 'fixed' : I.range === 'Session' ? 'session' : I.windowMode === 'Reset every interval' ? 'block' : 'rolling', now = Date.now();
     const mins = I.minutes === 'Custom' ? clamp(Math.round(num(I.customMins, 20)), 1, 360) : (Number(I.minutes) || 15);
-    const label = mode === 'fixed' ? 'range' : mode === 'session' ? 'session' : mins + 'm';
+    const label = mode === 'fixed' ? 'range' : mode === 'session' ? 'session' : mode === 'block' ? mins + 'm block' : mins + 'm';
     if (mode === 'fixed' && !(num(I.rangeStart, 0) > 0)) { this.ov('Delta Profile (L2): no range yet'); this.push({ off: true }); return this.say('Pick a range: Indicators > "Delta Profile (L2): click two bars", or set start and end in the settings.'); }
-    const w = windowOf(mode, { now, mins, start: num(I.rangeStart, 0), end: num(I.rangeEnd, 0), sessionStart: sessionStart(bars[bars.length - 1].time, hub.kind) });
+    const w = windowOf(mode, { now, mins, start: num(I.rangeStart, 0), end: num(I.rangeEnd, 0), sessionStart: sessionStart(bars[bars.length - 1].time, hub.kind), offset: hub.kind === 'crypto' ? 0 : nyOffsetMs(now) });
     const acc = this.acc || (this.acc = new DeltaAcc()), fb = hub.footBars();
     acc.update(fb.bars, w.from, w.to);
+    let prevPoc = null;
+    if (mode === 'block' && I.prevPoc === true) {   // POC (most traded tick) of the block that just ended, from its own table
+      const pa = this.pacc || (this.pacc = new DeltaAcc()); pa.update(fb.bars, w.prevFrom, w.prevTo);
+      let bv = 0; for (const [k, e] of pa.tab) if (e[0] + e[1] > bv) { bv = e[0] + e[1]; prevPoc = k; }
+    }
     const from = acc.first(), part = acc.cur.size && from > w.from + MIN_COVER ? ' (trades from ' + hhmm(from) + ')' : '';
     this.ov('Delta Profile ' + label, acc.cur.size ? part.trim() : 'waiting for trades…');
-    this.stat(bars, () => false); const st = window.__stkL2Flow.stk_l2f_dp; st.net = acc.net; st.ticks = acc.tab.size; st.minutes = acc.cur.size; st.touched = acc.touched; st.mode = mode; st.from = w.from; st.to = w.to;
-    this.push({ hub, acc, v: hub.v + ':' + hub.fver() + ':' + acc.net + ':' + acc.cur.size });
+    this.stat(bars, () => false); const st = window.__stkL2Flow.stk_l2f_dp; st.net = acc.net; st.ticks = acc.tab.size; st.minutes = acc.cur.size; st.touched = acc.touched; st.mode = mode; st.from = w.from; st.to = w.to; st.prevPoc = prevPoc;
+    this.push({ hub, acc, prevPoc, v: hub.v + ':' + hub.fver() + ':' + acc.net + ':' + acc.cur.size + ':' + w.from + ':' + prevPoc });
   }
   // Swing VWAP + Profile (L2): frozen legs are cached; only the legs touching the newest pivot / bar are recomputed.
   drawSw(hub, bars, tf) {
@@ -712,6 +719,11 @@ function dpLayer() {
         const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), m = rowTicks(hi - lo + 1, tickPx, phone ? 8 : 7, phone ? 40 : 70, ROW_STEPS);   // capped: at most 40 / 70 rows
         const P = rebucket(acc.tab, m); if (!P) return;
         const o = { x0, half, pos: I.posColor, neg: I.negColor, showVol: I.showVol === true, tick, phone };
+        if (d.prevPoc != null) {   // previous block's POC: faint line across the chart at its price
+          const y = Math.round(Yp(a, (d.prevPoc + 0.5) * tick)) + 0.5;
+          g.save(); g.strokeStyle = rgba(AMBER, 0.45); g.lineWidth = 1; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); g.restore();
+          g.font = '600 10px ' + MONO; g.textAlign = 'right'; g.fillStyle = rgba(AMBER, 0.85); g.fillText('Prev POC ' + pFmt(d.prevPoc * tick), x0 - half - 8, y - 3);
+        }
         deltaRows(g, a, P, o);
         const slot = ovLive.filter((x) => x.on).length;
         deltaChips(g, a, P, acc.net, o, xr, a.bounds.top + 10 + slot * 17 + 8);

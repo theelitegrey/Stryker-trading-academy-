@@ -46,15 +46,21 @@ export function legTab(bars, a, b, tf, fb, tick) {
   const slot = (k) => { let e = tab.get(k); if (!e) { e = [0, 0, 0]; tab.set(k, e); } return e; };
   for (let i = a; i <= b; i++) {
     const x = bars[i], t0 = x.time, t1 = t0 + tf;
+    let ok = false;
     if (t0 >= from) {
-      exactBars++;
-      let lo = 0, hi = fbars.length;
+      // the trade minutes must agree with the bar: if over 10% of their volume is outside the bar's range (+-2 ticks) the feeds disagree
+      // (other contract, stale / test data) and this bar falls back to approx, so POC / VAH / VAL always sit inside the leg
+      let lo = 0, hi = fbars.length, inV = 0, outV = 0; const kLo = Math.round(x.low / tick) - 2, kHi = Math.round(x.high / tick) + 2, rows = [];
       while (lo < hi) { const m = (lo + hi) >> 1; if (fbars[m].t < t0) lo = m + 1; else hi = m; }
       for (let j = lo; j < fbars.length && fbars[j].t < t1; j++) {
         const m = fbars[j];
-        for (let q = 0; q < m.buy.length; q++) { if (!m.buy[q] && !m.sell[q]) continue; const e = slot(m.lo + q); e[0] += m.buy[q]; e[1] += m.sell[q]; }
+        for (let q = 0; q < m.buy.length; q++) { const v = m.buy[q] + m.sell[q]; if (!v) continue; const k = m.lo + q; if (k < kLo || k > kHi) outV += v; else inV += v; rows.push([k, m.buy[q], m.sell[q]]); }
       }
-    } else if (x.volume > 0 && tick > 0) {
+      ok = !(tick > 0) || outV <= 0.1 * (inV + outV);
+      if (ok) { exactBars++; for (const [k, bq, sq] of rows) { const e = slot(k); e[0] += bq; e[1] += sq; } }
+    }
+    if (ok) continue;
+    if (x.volume > 0 && tick > 0) {
       approxBars++;
       const k0 = Math.round(x.low / tick), k1 = Math.max(k0, Math.round(x.high / tick)), per = x.volume / (k1 - k0 + 1);
       for (let k = k0; k <= k1; k++) slot(k)[2] += per;

@@ -65,7 +65,14 @@ async function open(b, { w, h, mobile, admin, theme }) {
     }
     r.fulfill({ status: 200, contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*', 'x-ts-fill-left': '0', 'access-control-expose-headers': 'x-ts-fill-left' }, body: Buffer.from(encodeSamples(out)) });
   });
-  await ctx.route(/127\.0\.0\.1:9\/ts-aux/, (r) => {
+  await ctx.route(/127\.0\.0\.1:9\/ts-aux/, async (r) => {
+    // trade minutes that match the chart's own NQ bars (the shared fixture prints at a fixed 28,750, far from the chart): the last 40 bars,
+    // volume spread over low..high, buyers heavier on up bars. Falls back to the shared fixture before the chart has NQ bars.
+    let rb = []; try { rb = await ctx.pages()[0].evaluate(() => { const c = window.STRYKER_VELA.chart; return c.market.symbol === 'futures:NQ1!' ? c.orchestrator.rawBars.slice(-40).map((x) => [x.time, x.open, x.high, x.low, x.close]) : []; }); } catch (e) {}
+    if (rb.length) {
+      const fp = rb.map(([t, o, hi, lo, c]) => { const lv = []; for (let q = Math.round(lo * 4); q <= Math.round(hi * 4); q++) { const w = 5 + Math.round(30 * Math.abs(Math.sin(q * 0.37))); lv.push([q / 4, c >= o ? w * 2 : w, c >= o ? w : w * 2]); } return { t: Math.floor(t / 60000), lv }; });
+      return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ fp, imb: [] }) });
+    }
     // 30 quiet footprint minutes, then one heavy narrow minute with net selling that closes up: one absorption event (sellers absorbed = buy side up)
     const m0 = Math.floor(Date.now() / 60000) - 40, fp = [], P = window_mid();
     for (let k = 0; k < 30; k++) fp.push({ t: m0 + k, lv: Array.from({ length: 160 }, (_, j) => [P + (j - 80) * 0.25 + Math.sin(k) * 2, 5 + Math.round(40 * Math.abs(Math.sin(j * 0.7 + k))), 5 + Math.round(40 * Math.abs(Math.cos(j * 0.45 + k * 0.3)))]) });   // many traded price rows, buy/sell mixed
@@ -117,16 +124,18 @@ const setTf = async (p, tf) => { await p.evaluate(async (t) => { const ws = wind
   const crypto = require('crypto'), md5 = (f) => crypto.createHash('md5').update(fs.readFileSync(f)).digest('hex');
   try {
     for (const [w, h, mobile, theme, tag, both] of [[1440, 900, false, 'dark', '1440-dark', 1], [1440, 900, false, 'light', '1440-light', 1], [390, 844, true, 'dark', '390-dark', 0]]) {
+      if (process.env.TAGS && !process.env.TAGS.split(',').includes(tag)) continue;
       const { ctx, p, errors } = await open(b, { w, h, mobile, admin: true, theme });
       await setNQ(p); await add(p, 'stk_l2f_sw', {}); await sleep(6000);
       let f = await sw(p);
       check(f.legs >= 2, tag + ': legs drawn', f);
+      check(f.legBad === 0, tag + ': every POC / VAH / VAL sits inside its leg high-low and VAL <= POC <= VAH', f);
       const autoRows = f.openRows; await p.screenshot({ path: OUT + '/before-' + tag + '.png' });
       await setInputs(p, { pshow: 'Volume + Delta' }); await sleep(1500);
-      const f2 = await sw(p); check(f2.openRows === autoRows, tag + ': delta mode keeps the auto rows', [autoRows, f2.openRows]);
+      const f2 = await sw(p); check(f2.deltaDone >= 1, tag + ': finished swings with exact trades show delta (' + f2.deltaDone + ')', f2); check(f2.openRows === autoRows, tag + ': delta mode keeps the auto rows', [autoRows, f2.openRows]);
       await p.screenshot({ path: OUT + '/after-' + tag + '.png' });
       check(md5(OUT + '/before-' + tag + '.png') !== md5(OUT + '/after-' + tag + '.png'), tag + ': before / after screenshots differ');
-      for (const n of [10, 50, 200]) { await setInputs(p, { rows: n }); await sleep(1200); f = await sw(p); check(f.openRows > 0 && f.openRows <= n + 1, tag + ': rows=' + n + ' gives ' + f.openRows + ' rows (m=' + f.openM + ')', f); check(f.openVah >= f.openVal && f.openPoc >= f.openVal && f.openPoc <= f.openVah, tag + ': POC inside VAH/VAL on rows=' + n); }
+      for (const n of [10, 50, 200]) { await setInputs(p, { rows: n }); await sleep(1200); f = await sw(p); check(f.openRows > 0 && f.openRows <= n + 1, tag + ': rows=' + n + ' gives ' + f.openRows + ' rows (m=' + f.openM + ')', f); check(f.legBad === 0, tag + ': rows=' + n + ' every label inside its leg, VAL <= POC <= VAH', f); }
       await setInputs(p, { rows: 12 }); await sleep(1200);
       await p.screenshot({ path: OUT + '/after-rows12-' + tag + '.png' });
       const c0 = (await sw(p)).computed; await sleep(4500); f = await sw(p);

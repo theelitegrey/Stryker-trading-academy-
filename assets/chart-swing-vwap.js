@@ -62,24 +62,31 @@ export function swingLayer(E) {
         const co = a.coords, W = co.width, phone = W < 520, top = a.bounds.top, bot = top + a.bounds.height, tick = M.tick, ppb = co.pxPerBar();
         const wPct = clamp(num(I.widthPct, 40), 10, 100) / 100, right = I.anchor === 'Right', fs = phone ? 9 : 10, day = light();
         const nLast = a.bars.length - 1; let drawn = 0, labels = 0;
+        const grey = (al) => (day ? 'rgba(100,116,139,' + al * 0.7 + ')' : 'rgba(148,163,184,' + al * 0.7 + ')');
         g.font = '600 ' + fs + 'px ' + MONO; g.textBaseline = 'middle';
-        for (const L of M.legs) {
-          const x0 = co.logicalToX(L.a), x1 = co.logicalToX(L.b);
+        for (let li = 0; li < M.legs.length; li++) {
+          const L = M.legs[li], x0 = co.logicalToX(L.a), x1 = co.logicalToX(L.b);
           if (x1 < -4 || x0 > W + 4) continue;
           drawn++;
           const span = Math.max(1, x1 - x0), pw = Math.min(span * wPct, span), P = L.P;
           // ---- profile rows
           const both = I.pshow === 'Volume + Delta';   // delta bars left of the anchor line, volume bars right of it
+          let outCap = pw;   // the side that leaves the leg: at most the profile width and at most the free part of the neighbour leg
+          if (both) { const nb = M.legs[li + (right ? 1 : -1)]; if (nb) { const ns = Math.abs(co.logicalToX(nb.b) - co.logicalToX(nb.a)); outCap = Math.max(1, Math.min(pw, ns * (1 - wPct) * 0.9)); } }
           if (I.profile !== false && P && span > 6) {
             const rowPx = Math.abs(Yp(a, P.m * tick) - Yp(a, 0)), base = right ? x1 : x0, sgn = right ? -1 : 1;
             for (let k = 0; k < P.n; k++) {
               if (!P.vol[k]) continue;
               const yT = Yp(a, ((P.r0 + k + 1) * P.m - 0.5) * tick), yB = Yp(a, ((P.r0 + k) * P.m - 0.5) * tick), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0));
               if (y > bot || y + h < top) continue;
-              if (both) {
-                const al2 = k >= P.vaLo && k <= P.vaHi ? 0.62 : 0.3, ax = right ? x1 : x0, dl = P.buy[k] - P.sell[k], wv = Math.max(1, pw * P.vol[k] / P.maxVol);
-                g.fillStyle = !P.buy[k] && !P.sell[k] ? (day ? 'rgba(100,116,139,' + al2 * 0.7 + ')' : 'rgba(148,163,184,' + al2 * 0.7 + ')') : rgba(L.dir > 0 ? I.buyColor : I.sellColor, al2); g.fillRect(ax, y, wv, h);
-                if (dl && P.maxAbsDelta > 0) { const wd = Math.max(1, pw * Math.abs(dl) / P.maxAbsDelta); g.fillStyle = rgba(dl > 0 ? I.buyColor : I.sellColor, Math.min(0.95, al2 + 0.2)); g.fillRect(ax - wd, y, wd, h); }
+              if (both) {   // grey volume on the anchor's inner side, delta (green / red, ~40%) on its outer side; candles stay visible
+                const inVA = k >= P.vaLo && k <= P.vaHi, wv = Math.max(1, (right ? outCap : pw) * P.vol[k] / P.maxVol), dl = P.buy[k] - P.sell[k], hh = h > 2 ? Math.min(h, Math.abs(yB - yT) - 1) : h;
+                g.fillStyle = grey(inVA ? 0.62 : 0.3);
+                if (right) g.fillRect(x1, y, wv, hh); else g.fillRect(x0, y, wv, hh);
+                if (dl && P.maxAbsDelta > 0) {
+                  const wd = Math.max(1, (right ? pw : outCap) * Math.abs(dl) / P.maxAbsDelta);
+                  g.fillStyle = rgba(dl > 0 ? I.buyColor : I.sellColor, inVA ? 0.45 : 0.32); g.fillRect((right ? x1 : x0) - wd, y, wd, hh);
+                }
                 continue;
               }
               const w = Math.max(1, pw * P.vol[k] / P.maxVol), inVA = k >= P.vaLo && k <= P.vaHi, al = inVA ? 0.62 : 0.3, xs = right ? base - w : base;
@@ -93,7 +100,7 @@ export function swingLayer(E) {
               }
             }
           }
-          if (both && I.profile !== false && P && span > 6) { g.strokeStyle = rgba(ink(), 0.35); g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(right ? x1 : x0) + 0.5, top); g.lineTo(Math.round(right ? x1 : x0) + 0.5, bot); g.stroke(); }
+          if (both && I.profile !== false && P && span > 6) { const ax = Math.round(right ? x1 : x0) + 0.5, ya = clamp(Yp(a, ((P.r0 + P.n) * P.m - 0.5) * tick), top, bot), yb = clamp(Yp(a, (P.r0 * P.m - 0.5) * tick), top, bot); g.strokeStyle = day ? 'rgba(15,23,42,0.35)' : 'rgba(226,232,240,0.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(ax, ya); g.lineTo(ax, yb); g.stroke(); }
           // ---- VWAP + bands
           if (I.vwap !== false) {
             const line = (f, col, wd, al, dashed) => {

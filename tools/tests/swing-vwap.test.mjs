@@ -62,6 +62,7 @@ const full = mk(path.length), hl = (b) => [b.map((x) => x.high), b.map((x) => x.
   ok(T.tab.get(400)[0] === 3 && T.tab.get(401)[0] === 5 && T.tab.get(402)[0] === 1 && T.tab.get(401)[1] === 2, 'exact buy / sell per price from the trade minutes');
   ok(Math.abs(T.tab.get(404)[2] - 2 * 90 / 9) < 1e-9 && T.tab.get(404)[0] === 0, 'approx: bar volume spread evenly over the bar range, no side');
   const E = D.legTab(bars, 2, 2, tf, fb, 0.25); ok(!E.approx, 'a leg fully inside the feed is not approx');
+  const X = D.legTab(bars, 2, 2, tf, { from: 2 * tf, bars: [{ t: 2 * tf, lo: 2000, buy: [9], sell: [9] }] }, 0.25); ok(X.approx && X.exactBars === 0 && !X.tab.has(2000), 'trade minutes far outside the bar range are ignored (bar falls back to approx)');
   const N = D.legTab(bars, 0, 2, tf, null, 0.25); ok(N.approxBars === 3 && N.exactBars === 0, 'no feed at all = all approx'); }
 
 // 6. swingModel: caching, newest-first limit, open leg moves, frozen legs are the same objects of work

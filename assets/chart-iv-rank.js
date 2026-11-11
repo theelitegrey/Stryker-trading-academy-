@@ -7,8 +7,8 @@
 // BAR REPLAY / NO LOOKAHEAD: a bar only ever sees values with t <= the bar's own time, and in replay the rank, percentile and the
 //   1-year band are recomputed from the values up to the replay clock (never the current rank). ivAt() / rankFrom() are pure.
 // Wording: "updated X min ago" only. Education only. Not financial advice.
-import * as ZD from './chart-zoro-data.js?v=956';
-import * as ProGate from './chart-pro-gate.js?v=956';
+import * as ZD from './chart-zoro-data.js?v=957';
+import * as ProGate from './chart-pro-gate.js?v=957';
 
 export const IVRANK_TYPE = 'stk_ivrank';
 export const IVRANK_DESC = '30-day implied volatility in a lower pane with its 1-year low and high, plus IV rank and percentile. SPX, SPY, QQQ, IWM, GLD, USO and ES, NQ, RTY, GC, CL (from the underlying).';

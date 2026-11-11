@@ -7,9 +7,9 @@
 // Marks (number 1-6 chip + optional short name, green / red by side): 1 Absorption, 2 Exhaustion, 3 Stacked imbalances (zone),
 // 4 Unfinished auction (line), 5 Delta divergence (connector), 6 Trapped traders (box). Pro (order flow), like the footprint.
 // Describes what a pattern is. Never a trade instruction. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=956';
-import { L2_TYPES } from './chart-futures-l2.js?v=956';
-import { analyze, DEFAULTS, KINDS, NUM, NAMES, TIPS, titleOf } from './chart-fp-patterns-data.js?v=956';
+import { registerFeed } from './chart-feeds.js?v=957';
+import { L2_TYPES } from './chart-futures-l2.js?v=957';
+import { analyze, DEFAULTS, KINDS, NUM, NAMES, TIPS, titleOf } from './chart-fp-patterns-data.js?v=957';
 
 export const FPAT_TYPE = 'stk_fpat', FPAT_L2 = 'stk_fpat_l2';
 export const FPAT_TYPES = [FPAT_TYPE, FPAT_L2];
@@ -98,7 +98,7 @@ class FpNative {
       if (tf == null || tf < 1 || tf > 240) return { note: 'Order flow works on 1-minute to 4-hour charts.' };
       if (this.l2m === undefined) {
         this.l2m = null;
-        import('./chart-l2-flow.js?v=956').then((m) => { this.l2m = m; this.later(); }, () => { this.l2m = false; this.later(); });
+        import('./chart-l2-flow.js?v=957').then((m) => { this.l2m = m; this.later(); }, () => { this.l2m = false; this.later(); });
       }
       if (this.l2m === null) return { note: 'Loading order flow…', loading: true };
       if (!this.l2m) return H.flowFor({ root, timeframe: ctx.timeframe, bars, owner: this });

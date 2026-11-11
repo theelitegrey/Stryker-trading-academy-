@@ -1,5 +1,11 @@
 [
  {
+  "build": 954,
+  "date": "2026-11-11",
+  "title": "Delta Profile",
+  "link": ""
+ },
+ {
   "build": 953,
   "date": "2026-11-11",
   "title": "ZoroCharts",
@@ -51,12 +57,6 @@
   "build": 939,
   "date": "2026-11-10",
   "title": "Swing VWAP + Profile card (build 939)",
-  "link": ""
- },
- {
-  "build": 937,
-  "date": "2026-11-09",
-  "title": "Delta profile",
   "link": ""
  },
  {

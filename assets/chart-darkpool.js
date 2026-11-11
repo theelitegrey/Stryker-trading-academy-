@@ -15,8 +15,8 @@
 // chart-watchlist.js (.stkw-rail, .stkchart-panel.stkw-host), style.css tokens (--ink-*, --line-soft, --bg-2).
 
 
-import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=954';
-import { contextOf, detailRows, levels, printType, sideText, SIDE_NOTE } from './chart-darkpool-detail.js?v=954';
+import { FUT_ETF, futRoot, loadMapped } from './chart-darkpool-map.js?v=955';
+import { contextOf, detailRows, levels, printType, sideText, SIDE_NOTE } from './chart-darkpool-detail.js?v=955';
 
 export const DP_TYPE = 'stk_darkpool';
 export const DP_DESC = 'Large off-exchange stock trades (dark pool prints) drawn at their exact price and time, sized by $ value; $10M+ highlighted. Size filter $1M to $25M. 29 US stocks and ETFs, updated every 2 hours. On ES, NQ, YM and RTY charts: the SPY, QQQ, DIA and IWM prints at the futures price';
@@ -182,7 +182,7 @@ const light = () => { try { return document.documentElement.getAttribute('data-t
 const hits = new WeakMap();
 // ---- alerts glue (the module loads on demand: assets/chart-dp-alerts.js) ----
 let WSREF = null, alertsP = null;
-const alertsMod = () => alertsP || (alertsP = import('./chart-dp-alerts.js?v=954').catch((e) => { console.warn('TradeZoro: dark pool alerts', e); return new Promise(() => {}); }));
+const alertsMod = () => alertsP || (alertsP = import('./chart-dp-alerts.js?v=955').catch((e) => { console.warn('TradeZoro: dark pool alerts', e); return new Promise(() => {}); }));
 const chartKeys = new WeakMap(); let chartN = 0;
 const chartKey = (c) => { if (!chartKeys.has(c)) chartKeys.set(c, ++chartN); return chartKeys.get(c); };
 const stopped = new Set();   // instances stopped in the last seconds: Vela stops an instance BEFORE it fires 'indicator:removed'
@@ -421,7 +421,7 @@ const LS_PANEL = 'stkdkp.v1';
 export function mountDarkPoolPanel(ws) {
   if (!ws || document.getElementById('stkdkp')) return null;
   WSREF = ws; hookRemovals(ws);
-  import('./chart-dp-alerts.js?v=954').then((m) => { i0 = m; m.installDialogNote(ws); m.onChange(() => { try { render(); } catch (e) {} }); }).catch(() => {});
+  import('./chart-dp-alerts.js?v=955').then((m) => { i0 = m; m.installDialogNote(ws); m.onChange(() => { try { render(); } catch (e) {} }); }).catch(() => {});
   const host = document.querySelector('.stkchart-panel.stkw-host') || document.querySelector('.stkchart-panel');
   if (!host) return null;
   const isPhone = () => window.innerWidth <= 700;
@@ -527,7 +527,7 @@ export function mountDarkPoolPanel(ws) {
     lab.textContent = a ? 'Alert on · ≥ ' + usd(a.min) : 'Set alert';
     b.setAttribute('aria-label', a ? sym + ' dark pool alert is on, at ' + usd(a.min) + ' or more. Open the alert settings' : 'Set a dark pool print alert on ' + sym + ' in the indicator settings');
   }
-  $('.stkdkp-alert').addEventListener('click', () => { import('./chart-dp-alerts.js?v=954').then((m) => { if (m.openIndicatorAlerts(ws, true) && isPhone()) setOpen(false); }).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
+  $('.stkdkp-alert').addEventListener('click', () => { import('./chart-dp-alerts.js?v=955').then((m) => { if (m.openIndicatorAlerts(ws, true) && isPhone()) setOpen(false); }).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
   seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); if (!b) return; minSize = b.dataset.m; try { localStorage.setItem(LS_PANEL, JSON.stringify({ min: minSize })); } catch (x) {} render(); });
   document.addEventListener('click', (e) => {
     if (!open || !e.target.closest) return;

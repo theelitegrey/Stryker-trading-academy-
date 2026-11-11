@@ -22,9 +22,11 @@ const SW = { Classic: ['#0a1a4a', '#1f6fe0', '#9fd8ff', '#ffe14a', '#ff7a1a', '#
 // ---- pure helpers (tools/tests/heatmap-panel.test.mjs) ----
 export const stepOf = (max) => { if (!(max > 0)) return 1; const raw = max / 20, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
 export const stepVal = (v, dir, max) => { const s = stepOf(max), n = Math.round((v + dir * s) / s) * s; return Math.max(0, Math.min(max > 0 ? max : Infinity, +n.toFixed(6))); };
-export function sourcesFor(symbol, supported, isOptionsSymbol) {
-  // symbol like 'futures:NQ1!' / 'binance:BTCUSDT'; supported = Set of native types this chart accepts
-  const m = /^([a-z0-9_-]+):(.+)$/i.exec(String(symbol || '')), prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : String(symbol || '');
+export function sourcesFor(symbol, supported, isOptionsSymbol, resolved) {
+  // resolved = the chart's own data.resolve(symbol) { provider, ticker }, as marketOf() in chart-orderflow.js / the Depth Heatmap use it:
+  // the live NQ symbol is 'NQ1!' or 'CME:NQ1!' (both resolve to provider 'futures'); without a resolver the text prefix is used.
+  const m = /^([a-z0-9_-]+):(.+)$/i.exec(String(symbol || ''));
+  const prov = String((resolved && resolved.provider) || (m ? m[1] : '')).toLowerCase(), tk = String((resolved && resolved.ticker) || (m ? m[2] : symbol || ''));
   const crypto = !!prov && prov !== 'futures' && prov !== 'stocks' && !!(prov === 'binance' || getVenue(prov));
   const fut = prov === 'futures';
   const out = {};
@@ -33,6 +35,17 @@ export function sourcesFor(symbol, supported, isOptionsSymbol) {
   out.opt = isOptionsSymbol && supported.has('stk_gexheat') ? { ok: true } : { ok: false, why: 'Options data exists for index, ETF and stock symbols that have options (and their futures).' };
   return { crypto, fut, src: out };
 }
+// the chart's resolver for a cell (null when it cannot place the symbol)
+const resolveOf = (c, sym) => { try { const r = (c.data || c.chart.data).resolve(sym); return r && r.provider ? { provider: r.provider, ticker: r.ticker } : null; } catch (e) { return null; } };
+// Options layer state from its own frame hook (chart-gex-heatmap.js canvas.__stkGexHeat): columns in view + the status text.
+// GEX history covers the US session only, so overnight the latest columns sit left of the view: say so instead of an empty chart.
+export function optNote(f) {
+  if (!f || f.cols > 0) return '';
+  const ago = /(?:^|· )(live|updated .+ ago)$/.exec(String(f.text || ''));
+  if (!ago) return '';
+  return 'Options data updates during US market hours; last update ' + (ago[1] === 'live' ? 'GEX live' : ago[1].replace(/^updated /, '')) + '. Scroll back to that session to see the heatmap.';
+}
+const optFrame = () => { for (const cv of document.querySelectorAll('canvas')) if (cv.__stkGexHeat) return cv.__stkGexHeat; return null; };
 
 // ---- state ----
 const store = new Map();   // cellId -> { src: 'book'|'liq'|'opt', types: [native types this panel added] }
@@ -107,6 +120,8 @@ const CSS = `
 .stkhm-seg button[aria-pressed="true"]{background:var(--bg-3);color:var(--ink-0);box-shadow:inset 0 0 0 1px var(--gold)}
 .stkhm-seg button:disabled{opacity:.4;cursor:not-allowed}
 .stkhm-note{font-size:12px;line-height:16px;color:var(--ink-3);margin:6px 0 0}
+.stkhm-note:empty{display:none}
+.stkhm-optnote{color:var(--ink-1)}
 .stkhm-sws{display:flex;gap:8px;flex-wrap:wrap}
 .stkhm-sws button{width:56px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--bg-1);color:var(--ink-2);font-size:12px;line-height:16px;cursor:pointer}
 .stkhm-sws button i{display:block;height:16px;border-radius:5px;margin-bottom:4px;border:1px solid rgba(255,255,255,.08)}
@@ -149,7 +164,7 @@ function render() {
   const s = st(), c = cell(), on = isOn(), body = panel.querySelector('.stkhm-b'), sw = panel.querySelector('.stkhm-sw');
   sw.setAttribute('aria-checked', String(on));
   const sym = c && c.symbol || (WS.active && WS.active.symbol) || '';
-  info = sourcesFor(sym, supported, optSym);
+  info = sourcesFor(sym, supported, optSym, c && resolveOf(c, sym));
   const first = ['book', 'liq', 'opt'].find((k) => info.src[k].ok);
   if (!info.src[s.src].ok && first) s.src = first;
   const src = s.src, v = (on && getIn(src)) || {};
@@ -190,7 +205,8 @@ function render() {
   }
   if (on && src === 'opt') {
     kids.push(sec('Intensity', [stepper('Opacity %', Math.round(Number(v.opacity || 0.55) * 100), 100, (n) => { setIn('opt', { opacity: Math.max(0.1, n / 100) }); render(); }),
-      h('p', { class: 'stkhm-note', text: 'Net gamma by strike over time, behind the candles. Colours follow the sign of the exposure.' })]));
+      h('p', { class: 'stkhm-note', text: 'Net gamma by strike over time, behind the candles. Colours follow the sign of the exposure.' }),
+      h('p', { class: 'stkhm-note stkhm-optnote', text: optNote(optFrame()) })]));
   }
   if (on) {
     const t = tplAll(), names = Object.keys(t).slice(0, 12), inp = h('input', { class: 'stkhm-in', placeholder: 'Template name', maxlength: '24', 'aria-label': 'Template name' });
@@ -249,7 +265,11 @@ function open() {
     document.body.appendChild(panel);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) close(); });
     document.addEventListener('pointerdown', (e) => { if (!panel.hidden && !panel.contains(e.target) && !(btn && btn.contains(e.target)) && innerWidth <= 600 && !e.target.closest('.stkhm-lens')) close(); });
-    setInterval(() => { if (!panel.hidden && isOn() && st().src === 'book') { const b = panel.querySelector('.stkhm-hist'); if (b) renderHist(b); } }, 2000);
+    setInterval(() => {
+      if (panel.hidden || !isOn()) return;
+      if (st().src === 'book') { const b = panel.querySelector('.stkhm-hist'); if (b) renderHist(b); }
+      if (st().src === 'opt') { const n = panel.querySelector('.stkhm-optnote'); if (n) n.textContent = optNote(optFrame()); }
+    }, 2000);
     try { WS.on('state:changed', () => setTimeout(render, 0)); } catch (e) {}
   }
   panel.hidden = false; btn && btn.setAttribute('aria-expanded', 'true');
@@ -269,5 +289,5 @@ export function mountHeatmapPanel(ws, opts) {
     if (gear && gear.parentNode === bar) bar.insertBefore(btn, gear); else bar.insertBefore(btn, bar.firstChild);
   }
   wireMag();
-  window.__stkHeatmapPanel = { open, close, isOn, state: () => ({ on: isOn(), src: st().src, types: st().types.slice() }), sourcesFor };   // test hook
+  window.__stkHeatmapPanel = { open, close, isOn, state: () => ({ on: isOn(), src: st().src, types: st().types.slice() }), sourcesFor, optNote };   // test hook
 }

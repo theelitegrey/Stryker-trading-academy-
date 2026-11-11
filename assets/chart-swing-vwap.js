@@ -16,15 +16,15 @@ export function swingModel(bars, tf, I, fb, tick, cache) {
   const len = clamp(Math.round(num(I.len, 10)), 2, 50), maxLegs = clamp(Math.round(num(I.legs, 6)), 1, 30), va = clamp(num(I.va, 70), 10, 100);
   const n = bars.length, highs = new Array(n), lows = new Array(n);
   for (let i = 0; i < n; i++) { highs[i] = bars[i].high; lows[i] = bars[i].low; }
-  const L = buildLegs(highs, lows, len), pick = L.legs.slice(-maxLegs), rowFix = Math.round(num(I.rowTicks, 0)), from = fb && fb.from > 0 ? fb.from : 0;
+  const L = buildLegs(highs, lows, len), pick = L.legs.slice(-maxLegs), rowFix = Math.round(num(I.rowTicks, 0)), rowsN = I.rows > 0 ? clamp(Math.round(num(I.rows, 0)), 10, 200) : 0, from = fb && fb.from > 0 ? fb.from : 0;
   const out = [], live = new Set(); let computed = 0;
   for (const g of pick) {
-    const key = [g.a, g.b, bars[g.a].time, tf, len, rowFix, va, from, tick].join('|');
+    const key = [g.a, g.b, bars[g.a].time, tf, len, rowFix, rowsN, va, from, tick].join('|');
     live.add(key);
     let c = g.final ? cache.get(key) : null;
     if (!c) {
       const tb = legTab(bars, g.a, g.b, tf, fb, tick), span = tb.tab.size ? Math.max(...tb.tab.keys()) - Math.min(...tb.tab.keys()) + 1 : 0;
-      const m = rowFix > 0 ? rowFix : autoRowTicks(span, 1, 0, MAX_ROWS, STEPS), P = buildProfile(tb.tab, m, va), V = legVwap(bars, g.a, g.b);
+      const m = rowsN > 0 ? Math.max(1, Math.ceil(span / rowsN)) : rowFix > 0 ? rowFix : autoRowTicks(span, 1, 0, MAX_ROWS, STEPS), P = buildProfile(tb.tab, m, va), V = legVwap(bars, g.a, g.b);
       c = { P, m, vwap: V.vwap, sd: V.sd, approx: tb.approx, exact: tb.exactBars, approxBars: tb.approxBars, touch: -1, scanned: g.b };
       if (P) { c.poc = rowPrice(P, P.poc, tick); c.vah = rowPrice(P, P.vaHi, tick); c.val = rowPrice(P, P.vaLo, tick); }
       if (g.final) cache.set(key, c);
@@ -62,19 +62,33 @@ export function swingLayer(E) {
         const co = a.coords, W = co.width, phone = W < 520, top = a.bounds.top, bot = top + a.bounds.height, tick = M.tick, ppb = co.pxPerBar();
         const wPct = clamp(num(I.widthPct, 40), 10, 100) / 100, right = I.anchor === 'Right', fs = phone ? 9 : 10, day = light();
         const nLast = a.bars.length - 1; let drawn = 0, labels = 0;
+        const grey = (al) => (day ? 'rgba(100,116,139,' + al * 0.7 + ')' : 'rgba(148,163,184,' + al * 0.7 + ')');
         g.font = '600 ' + fs + 'px ' + MONO; g.textBaseline = 'middle';
-        for (const L of M.legs) {
-          const x0 = co.logicalToX(L.a), x1 = co.logicalToX(L.b);
+        for (let li = 0; li < M.legs.length; li++) {
+          const L = M.legs[li], x0 = co.logicalToX(L.a), x1 = co.logicalToX(L.b);
           if (x1 < -4 || x0 > W + 4) continue;
           drawn++;
           const span = Math.max(1, x1 - x0), pw = Math.min(span * wPct, span), P = L.P;
           // ---- profile rows
+          const both = I.pshow === 'Volume + Delta';   // delta bars left of the anchor line, volume bars right of it
+          let outCap = pw;   // the side that leaves the leg: at most the profile width and at most the free part of the neighbour leg
+          if (both) { const nb = M.legs[li + (right ? 1 : -1)]; if (nb) { const ns = Math.abs(co.logicalToX(nb.b) - co.logicalToX(nb.a)); outCap = Math.max(1, Math.min(pw, ns * (1 - wPct) * 0.9)); } }
           if (I.profile !== false && P && span > 6) {
             const rowPx = Math.abs(Yp(a, P.m * tick) - Yp(a, 0)), base = right ? x1 : x0, sgn = right ? -1 : 1;
             for (let k = 0; k < P.n; k++) {
               if (!P.vol[k]) continue;
               const yT = Yp(a, ((P.r0 + k + 1) * P.m - 0.5) * tick), yB = Yp(a, ((P.r0 + k) * P.m - 0.5) * tick), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0));
               if (y > bot || y + h < top) continue;
+              if (both) {   // grey volume on the anchor's inner side, delta (green / red, ~40%) on its outer side; candles stay visible
+                const inVA = k >= P.vaLo && k <= P.vaHi, wv = Math.max(1, (right ? outCap : pw) * P.vol[k] / P.maxVol), dl = P.buy[k] - P.sell[k], hh = h > 2 ? Math.min(h, Math.abs(yB - yT) - 1) : h;
+                g.fillStyle = grey(inVA ? 0.62 : 0.3);
+                if (right) g.fillRect(x1, y, wv, hh); else g.fillRect(x0, y, wv, hh);
+                if (dl && P.maxAbsDelta > 0) {
+                  const wd = Math.max(1, (right ? pw : outCap) * Math.abs(dl) / P.maxAbsDelta);
+                  g.fillStyle = rgba(dl > 0 ? I.buyColor : I.sellColor, inVA ? 0.45 : 0.32); g.fillRect((right ? x1 : x0) - wd, y, wd, hh);
+                }
+                continue;
+              }
               const w = Math.max(1, pw * P.vol[k] / P.maxVol), inVA = k >= P.vaLo && k <= P.vaHi, al = inVA ? 0.62 : 0.3, xs = right ? base - w : base;
               if (I.delta === true && (P.buy[k] || P.sell[k])) {   // buy part next to the edge, sell part after it; approx volume (no side) is grey
                 const tot = P.vol[k], wb = w * P.buy[k] / tot, ws = w * P.sell[k] / tot, wa = w - wb - ws; let xx = base;
@@ -86,6 +100,7 @@ export function swingLayer(E) {
               }
             }
           }
+          if (both && I.profile !== false && P && span > 6) { const ax = Math.round(right ? x1 : x0) + 0.5, ya = clamp(Yp(a, ((P.r0 + P.n) * P.m - 0.5) * tick), top, bot), yb = clamp(Yp(a, (P.r0 * P.m - 0.5) * tick), top, bot); g.strokeStyle = day ? 'rgba(15,23,42,0.35)' : 'rgba(226,232,240,0.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(ax, ya); g.lineTo(ax, yb); g.stroke(); }
           // ---- VWAP + bands
           if (I.vwap !== false) {
             const line = (f, col, wd, al, dashed) => {

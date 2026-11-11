@@ -232,6 +232,8 @@ const SCHEMA = {
     { key: 'vwap', title: 'Anchored VWAP', type: 'bool', defval: true },
     { key: 'bands', title: 'VWAP bands (±1 / ±2 SD)', type: 'bool', defval: false },
     { key: 'profile', title: 'Volume profile', type: 'bool', defval: true },
+    { key: 'pshow', title: 'Profile shows', type: 'string', defval: 'Volume', options: ['Volume', 'Volume + Delta'], tooltip: 'Volume + Delta: delta bars (green buying, red selling) on the left of the swing\'s anchor line, volume bars on the right. Older swings without exact trade data show volume only.' },
+    { key: 'rows', title: 'Rows (0 = auto, else 10 to 200)', type: 'int', defval: 0, min: 0, max: 200, step: 1, tooltip: 'Fixed number of price rows in each swing\'s profile. POC, VAH and VAL follow the rows. Overrides the row size below.' },
     { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
     { key: 'widthPct', title: 'Profile width (% of the leg)', type: 'int', defval: 40, min: 10, max: 100, step: 5 },
     { key: 'anchor', title: 'Profile edge', type: 'string', defval: 'Left', options: ['Left', 'Right'] },
@@ -437,7 +439,7 @@ class L2Flow {
     const M = swingModel(bars, tf, I, fb, tick, cache), open = M.legs[M.legs.length - 1], ap = M.legs.filter((l) => l.approx).length;
     this.ov('Swing VWAP + Profile (L2) ' + M.legs.length + ' legs' + (ap ? ' · ' + ap + ' approx' : ''), !fb.bars.length ? 'waiting for trades…' : fb.from && fb.from > bars[0].time ? 'trades from ' + hhmm(fb.from) : '');
     this.stat(bars, () => false);
-    Object.assign(window.__stkL2Flow.stk_l2f_sw, { legs: M.legs.length, pivots: M.pivots, computed: M.computed, approxLegs: ap, openDir: open ? open.dir : 0, openPoc: open && open.poc, openVah: open && open.vah, openVal: open && open.val, openVwap: open && open.vwap[open.vwap.length - 1], openA: open && open.a, openB: open && open.b });
+    Object.assign(window.__stkL2Flow.stk_l2f_sw, { legs: M.legs.length, pivots: M.pivots, computed: M.computed, approxLegs: ap, deltaDone: M.legs.filter((l) => !l.open && l.P && l.P.maxAbsDelta > 0).length, legBad: M.legs.filter((l) => { if (!l.P) return false; let hi = -Infinity, lo = Infinity; for (let i = l.a; i <= l.b; i++) { hi = Math.max(hi, bars[i].high); lo = Math.min(lo, bars[i].low); } const sl = l.m * tick; return [l.poc, l.vah, l.val].some((v) => v > hi + sl || v < lo - sl) || l.val > l.poc || l.poc > l.vah; }).length, openRows: open && open.P ? open.P.n : 0, openM: open && open.m, openDelta: open && open.P ? open.P.maxAbsDelta : 0, openDir: open ? open.dir : 0, openPoc: open && open.poc, openVah: open && open.vah, openVal: open && open.val, openVwap: open && open.vwap[open.vwap.length - 1], openA: open && open.a, openB: open && open.b });
     this.push({ model: M, v: hub.v + ':' + hub.fver() + ':' + bars.length + ':' + bars[bars.length - 1].close + ':' + bars[bars.length - 1].high + ':' + bars[bars.length - 1].low });
   }
   drawVp(hub, bars, tf, since) {

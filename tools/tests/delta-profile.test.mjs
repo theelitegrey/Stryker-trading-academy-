@@ -23,6 +23,13 @@ const same = (acc, from, to, msg) => {
   const a = new DeltaAcc().update(f.bars(), T0, T0 + MIN), P = rebucket(a.tab, 1);
   ok(a.net === 0 && P.delta.length === 2 && P.delta[0] === 2 && P.delta[1] === -2, 'side: buy 5 - sell 3 = +2 at 100, sell 2 = -2 at 100.25', Array.from(P.delta));
   ok(P.maxPos.v === 2 && P.maxNeg.v === -2 && P.absMax === 2, 'max positive / max negative rows'); }
+// block mode: aligned to clock boundaries in the zone, resets at the boundary
+{ const H = 3600000, off = -5 * H, t = Date.UTC(2026, 10, 11, 14, 22, 30);   // 09:22 New York
+  const b = windowOf('block', { now: t, mins: 15, offset: off });
+  ok((b.from + off) % (15 * MIN) === 0 && b.from <= t && t - b.from < 15 * MIN && b.to === Math.floor(t / MIN) * MIN + MIN, 'block starts on a :00/:15/:30/:45 boundary', b);
+  ok(b.prevTo === b.from && b.from - b.prevFrom === 15 * MIN, 'previous block is the 15 min before', b);
+  const e = windowOf('block', { now: b.from + 15 * MIN, mins: 15, offset: off }); ok(e.from === b.from + 15 * MIN && e.to === e.from + MIN, 'at the next boundary the block is just one minute (fresh)', e);
+  const h = windowOf('block', { now: t, mins: 60, offset: off }); ok((h.from + off) % H === 0, '60 min block on the hour', h); }
 // rolling: windowOf bounds and eviction
 const now = T0 + 88 * MIN, w15 = windowOf('rolling', { now, mins: 15 });
 ok(w15.to - w15.from === 15 * MIN && w15.to === Math.floor(now / MIN) * MIN + MIN, 'rolling 15: last 15 minutes incl. the one in progress');

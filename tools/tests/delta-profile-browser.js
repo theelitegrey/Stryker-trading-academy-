@@ -150,6 +150,15 @@ const setInputs = (p, inputs) => p.evaluate((i) => { const c = window.STRYKER_VE
       const nf = ff.net; await sleep(2500); const ff2 = await dp(p); check(ff2.net === nf, tag + ': a closed fixed range does not move as ticks arrive', [nf, ff2.net]);
       await setInputs(p, { range: 'Session' }); await sleep(2000); const fs2 = await dp(p); check(fs2.mode === 'session' && fs2.ticks > 0, tag + ': session renders', fs2);
       await setInputs(p, { range: 'Rolling time' });
+      await setInputs(p, { minutes: '15', windowMode: 'Reset every interval', prevPoc: false }); await sleep(2000);
+      const fb0 = await dp(p), B = 15 * 60000, offN = await p.evaluate(() => { const d = new Date(), f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }).format(d); const m = /GMT([+-]\d+)/.exec(f); return Number(m[1]) * 3600000; });
+      check(fb0.mode === 'block' && (fb0.from + offN) % B === 0 && fb0.to - fb0.from <= B && fb0.to > fb0.from && fb0.ticks > 0 && fb0.prevPoc == null, tag + ': reset mode starts on a 15 min clock boundary (NY)', fb0);
+      await p.screenshot({ path: OUT + '/dp-' + tag + '-reset.png' });
+      await setInputs(p, { prevPoc: true }); await sleep(2000);
+      const fb1 = await dp(p); check(fb1.prevPoc > 0 && fb1.ticks > 0, tag + ': previous block POC found', fb1);
+      await p.screenshot({ path: OUT + '/dp-' + tag + '-reset-prevpoc.png' });
+      await setInputs(p, { minutes: '5' }); await sleep(1500); const fb5 = await dp(p); check(fb5.to - fb5.from <= 5 * 60000 && (fb5.from + offN) % (5 * 60000) === 0, tag + ': reset 5m block', fb5);
+      await setInputs(p, { windowMode: 'Rolling', minutes: '15', prevPoc: false }); await sleep(1500); const fr = await dp(p); check(fr.mode === 'rolling' && fr.to - fr.from === 15 * 60000, tag + ': back to rolling', fr);
       await add(p, 'stk_l2f_vp', { view: 'Delta' }); await sleep(3000);
       await p.screenshot({ path: OUT + '/dp-' + tag + '-vp-delta.png' });
       check(errors.length === 0, tag + ': no console errors', errors);

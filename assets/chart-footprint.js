@@ -95,7 +95,7 @@ export function sessionOf(ms) {
 const replayE = () => (window.__stkReplay && window.__stkReplay.on ? window.__stkReplay.E : null);
 
 // The chart's futures root mapped to our recorded mini (MNQ -> NQ), or null.
-function rootOf(ctx) {
+export function rootOf(ctx) {
   let provider = '', ticker = String(ctx.symbol || '');
   try { const r = ctx.data.resolve(ctx.symbol); if (r) { provider = r.provider; ticker = r.ticker; } } catch (e) {}
   if (!provider) { const m = /^([a-z]+):(.+)$/i.exec(ticker); if (m) { provider = m[1].toLowerCase(); ticker = m[2]; } }

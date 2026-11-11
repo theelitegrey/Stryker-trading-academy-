@@ -1,0 +1,22 @@
+// node tools/tests/frvp-data.test.mjs — assets/chart-frvp-data.js (FRVP delta rows + anchored VWAP).
+import assert from 'node:assert/strict';
+import { deltaRows, anchoredVwap } from '../../assets/chart-frvp-data.js';
+
+// 2 rows of 1.0 from 100, tick 0.25: prices 100..100.75 -> row 0, 101..101.75 -> row 1
+const mins = [
+  { t: 0, lo: 400, buy: [5, 0, 0, 0, 2], sell: [1, 0, 0, 0, 7] },   // 100.00 (+4), 101.00 (-5)
+  { t: 60000, lo: 403, buy: [3], sell: [0] },                       // 100.75 (+3)
+  { t: 120000, lo: 400, buy: [9], sell: [0] },                      // outside [from, to): ignored
+  { t: 60000, lo: 300, buy: [9], sell: [0] }                        // 75.00: far below the profile, ignored
+];
+const r = deltaRows(mins, 0.25, 100, 1, 2, 0, 120000);
+assert.deepEqual([...r.d], [7, -5]);
+assert.equal(r.used, 2);
+assert.equal(r.first, 0); assert.equal(r.last, 60000);
+assert.equal(deltaRows([], 0.25, 100, 1, 2, 0, 1).used, 0);
+
+const v = anchoredVwap([{ time: 1, high: 11, low: 9, close: 10, volume: 1 }, { time: 2, high: 21, low: 19, close: 20, volume: 1 }]);
+assert.equal(v[0].vwap, 10); assert.equal(v[0].sd, 0);
+assert.equal(v[1].vwap, 15); assert.equal(v[1].sd, 5);
+assert.equal(anchoredVwap([{ time: 1, high: 1, low: 1, close: 1, volume: 0 }]), null);
+console.log('frvp-data: all passed');

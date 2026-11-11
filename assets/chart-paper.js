@@ -627,11 +627,11 @@ function chipText(sym, l){
   const name = (l.side === 'buy' ? 'BUY' : 'SELL');
   if (l.kind === 'pos') {
     const p = acct.position(sym); if (!p) return ['', ''];
-    return [(p.side === 'buy' ? 'LONG ' : 'SHORT ') + p.qty, money(acct.openPnl(p), true)];
+    return [(p.side === 'buy' ? 'LONG ' : 'SHORT ') + p.qty + ' @ ' + fmtP(sym, p.avg), money(acct.openPnl(p), true)];
   }
   if (l.kind === 'ord') return [name + ' ' + (l.type === 'limit' ? 'LMT' : 'STP') + ' ' + l.qty, fmtP(sym, l.price)];
   const v = acct.bracketValue(sym, l.side, l.qty, l.ref, l.price);
-  return [(l.kind === 'tp' || l.kind === 'otp') ? 'TP' : 'SL', money(v, true)];
+  return [((l.kind === 'tp' || l.kind === 'otp') ? 'TP ' : 'SL ') + fmtP(sym, l.price), money(v, true)];
 }
 function layerFactory(){
   let canvas = null, overlay = null, last = null, lastYs = {};

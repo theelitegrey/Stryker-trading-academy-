@@ -338,6 +338,9 @@ async function boot(p, BASE) {
       });
     });
     check(['pos', 'ptp', 'psl'].every((k) => chips.some((c) => c.id === k && c.ok)) && chips.some((c) => c.id === 'pos' && c.inside && /^LONG 2/.test(c.txt)), 'position, TP and SL lines on the chart with qty + P&L: ' + chips.map((c) => c.id + ':' + c.txt + (c.inside ? '' : ' (off-screen, chip pinned to the pane edge)')).join(' | '));
+    const pxTxt = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('.stkpt-chip')].map((c) => [c.dataset.id, c.querySelector('.stkpt-chip-a').textContent])));
+    const num = (t) => Number(t.replace(/^.*?(?:@ |TP |SL )/, '').replace(/,/g, ''));
+    check(num(pxTxt.pos) === pos1.avg && num(pxTxt.ptp) === pos1.tp && num(pxTxt.psl) === pos1.sl, 'chips show the prices: ' + JSON.stringify(pxTxt));
     const oneClick = await p.evaluate(() => { const o = document.querySelector('.stkpt-1c'); if (!o) return null; const r = o.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, q: o.querySelector('input').value, t: o.textContent }; });
     check(oneClick && oneClick.w > 100 && oneClick.x < 120 && /SELL/.test(oneClick.t) && /BUY/.test(oneClick.t), 'one-click SELL | qty | BUY top-left of the chart ' + JSON.stringify(oneClick));
     await linesOnPricePane(p, 'NQ1! 1m');

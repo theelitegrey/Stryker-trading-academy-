@@ -310,8 +310,11 @@ function profileDraw(kind) {
   const memo = new Map();
   return (f, a) => {
     const { g, co, X, Y } = f, bars = a.bars, tf = bars.length > 2 ? bars[2].time - bars[1].time : 60000;
-    const settings = a.settings || {}, va = NUM(+settings.va, 70), periodMin = NUM(+settings.block, 30);
-    if (kind === 'tpo' && tf > periodMin * 60000) { notePill(f, 'Time price opportunity needs a chart timeframe of ' + periodMin + ' min or less'); return; }
+    const settings = a.settings || {}, va = NUM(+settings.va, 70);
+    let periodMin = NUM(+settings.block, 30);
+    // 1h chart + a 30 min letter block: one letter per bar instead of a notice (a bar can't be split into smaller blocks)
+    if (kind === 'tpo' && tf > periodMin * 60000 && tf <= 60 * 60000) periodMin = Math.round(tf / 60000);
+    if (kind === 'tpo' && tf > periodMin * 60000) { notePill(f, 'Time price opportunity needs a chart timeframe of 60 min or less'); return; }
     const fut = isFut(), tick = guessTick(bars), phone = co.width < 520, ink = lightPage() ? '#0f172a' : '#e8ecf1';
     const vr = co.visibleLogicalRange(), i0 = Math.max(0, Math.floor(vr.from)), i1 = Math.min(bars.length - 1, Math.ceil(vr.to));
     const key = bars.length + '|' + bars[0].time + '|' + fut; let ss = memo.get('s'); if (!ss || ss.key !== key) { ss = { key, list: sessionsOf(bars, fut) }; memo.set('s', ss); }

@@ -77,121 +77,153 @@
 
 // See "EMPTY LAYER CANVASES OFF" in the boot code.
 const DRAW_OPS = ['fill', 'stroke', 'fillRect', 'strokeRect', 'fillText', 'strokeText', 'drawImage', 'putImageData'];
+// PHONE SPEED (2026-10-26). Vela gives every registered layer a full-size canvas (25 of them,
+// ~1024 x 2071 px each at a phone's 2.6x pixel ratio) and every layer render starts with
+// clearRect + setTransform, drawn on or not. The first of those calls makes the browser allocate
+// the canvas's pixel memory: ~8 MB per layer and 1.8 s of main thread before the first candle on a
+// throttled phone (tools/tests/chart-phone-speed-canvas.js). Now, until a canvas has drawn
+// something, its state calls (transform, save/restore, path, clip, dash) are only RECORDED and
+// its clears are skipped (a blank canvas cleared stays blank); the first real draw replays the
+// recorded calls in order and draws, so what reaches the canvas is exactly what it was before.
+// After that the canvas works directly, as before (ink = it has been drawn on since it was last
+// blank; only a resize, which wipes pixels and state, makes it blank again: a full clearRect
+// is not trusted for that because a clip may limit it). A resize also drops the record.
+// RAM (2026-11-11, member GK: "one chart tab ~4 GB"): st.frame(fn) runs one render; a render that
+// cleared and drew nothing hides the canvas AND gives its pixel memory back (width reset = blank
+// canvas, no buffer; the browser keeps ~4x the bitmap per drawn on-screen canvas across renderer +
+// GPU, ~30 MB for a 1350x1463 plot). The next render that draws gets a fresh buffer, as on the
+// first draw. Returns null when the canvas has no 2d context. One controller per canvas.
+function quietCanvas(canvas){
+  if (!canvas || !canvas.getContext) return null;
+  if (canvas.__stkQuietSt) return canvas.__stkQuietSt;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  const st = { drew: false, cleared: false, ink: false };
+  let inkW = 0, inkH = 0;
+  // Own-property wrappers that call whatever the prototype holds at call time (so other
+  // code that wraps CanvasRenderingContext2D.prototype keeps seeing these calls).
+  const proto = Object.getPrototypeOf(ctx);
+  // q: recorded state calls; depth: saves recorded and not yet restored; pinned: a recorded call
+  // that can not be dropped (a clip / restore reaching outside the record); pathOpen: path
+  // calls recorded since the last beginPath.
+  let q = [], qW = canvas.width, qH = canvas.height, depth = 0, pinned = false, pathOpen = false, live = false;
+  const PATH = /^(closePath|moveTo|lineTo|rect|roundRect|arc|arcTo|ellipse|bezierCurveTo|quadraticCurveTo)$/;
+  // Style properties (fillStyle, font, ...) set while a recorded save() is open must also be
+  // recorded, or the replayed restore() would not undo them: shadow = their pending values
+  // (what the getters answer), stack = the shadow at each recorded save().
+  let shadow = new Map(), stack = [];
+  const reset = () => { q = []; depth = 0; pinned = false; pathOpen = false; qW = canvas.width; qH = canvas.height; shadow = new Map(); stack = []; };
+  const sized = () => { if (canvas.width !== qW || canvas.height !== qH) reset(); };   // a resize wipes all canvas state
+  const flush = () => {
+    if (live) return;
+    sized();
+    live = true;
+    const list = q; q = []; shadow = new Map(); stack = [];
+    for (const [k, args] of list) {
+      try { if (k === '=') PDESC[args[0]].set.call(ctx, args[1]); else proto[k].apply(ctx, args); } catch (e) {}
+    }
+  };
+  const PROPS = ['fillStyle', 'strokeStyle', 'lineWidth', 'lineCap', 'lineJoin', 'miterLimit', 'lineDashOffset', 'font', 'textAlign', 'textBaseline', 'direction', 'letterSpacing', 'wordSpacing', 'fontKerning', 'fontStretch', 'fontVariantCaps', 'textRendering', 'globalAlpha', 'globalCompositeOperation', 'imageSmoothingEnabled', 'imageSmoothingQuality', 'shadowBlur', 'shadowColor', 'shadowOffsetX', 'shadowOffsetY', 'filter'];
+  const PDESC = {};
+  for (const pr of PROPS) {
+    let d = null; for (let o = proto; o && !d; o = Object.getPrototypeOf(o)) d = Object.getOwnPropertyDescriptor(o, pr);
+    if (!d || !d.set || !d.get) continue;
+    PDESC[pr] = d;
+    Object.defineProperty(ctx, pr, {
+      configurable: true,
+      get() { return !live && shadow.has(pr) ? shadow.get(pr) : d.get.call(this); },
+      set(v) {
+        if (live || depth === 0) { d.set.call(this, v); return; }
+        shadow.set(pr, v); q.push(['=', [pr, v]]);
+      }
+    });
+  }
+  const DEFER = ['setTransform', 'resetTransform', 'transform', 'translate', 'scale', 'rotate', 'save', 'restore', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'rect', 'roundRect', 'arc', 'arcTo', 'ellipse', 'bezierCurveTo', 'quadraticCurveTo', 'clip', 'setLineDash'];
+  for (const k of DEFER) {
+    if (typeof proto[k] !== 'function') continue;
+    ctx[k] = function () {
+      if (live) return proto[k].apply(this, arguments);
+      sized();
+      if (k === 'save') { depth++; stack.push(new Map(shadow)); }
+      else if (k === 'restore') { if (depth > 0) { depth--; shadow = stack.pop() || new Map(); } else pinned = true; }
+      else if (k === 'clip' && depth === 0) pinned = true;
+      else if (k === 'beginPath') pathOpen = false;
+      else if (PATH.test(k)) pathOpen = true;
+      // An absolute transform with nothing saved, no clip and no open path in the record makes
+      // every recorded call before it irrelevant, except the line dash: keep the last one.
+      if ((k === 'setTransform' || k === 'resetTransform') && depth === 0 && !pinned && !pathOpen) {
+        let dash = null; for (const e of q) if (e[0] === 'setLineDash') dash = e;
+        q = dash ? [dash] : [];
+      }
+      q.push([k, Array.prototype.slice.call(arguments)]);
+      if (q.length > 4000) flush();   // never grow without bound: stop deferring
+      return undefined;
+    };
+  }
+  // calls whose answer depends on the recorded state: replay first
+  for (const k of ['getTransform', 'isPointInPath', 'isPointInStroke', 'getImageData', 'getLineDash']) {
+    if (typeof proto[k] === 'function') ctx[k] = function () { flush(); return proto[k].apply(this, arguments); };
+  }
+  // measureText reads the font: replay first only when a recorded save() holds a pending font
+  if (typeof proto.measureText === 'function') ctx.measureText = function () { if (!live && shadow.size) flush(); return proto.measureText.apply(this, arguments); };
+  for (const k of DRAW_OPS) if (typeof proto[k] === 'function') ctx[k] = function () { st.drew = true; if (!live) flush(); if (!st.ink) { st.ink = true; inkW = canvas.width; inkH = canvas.height; } return proto[k].apply(this, arguments); };
+  ctx.clearRect = function (x, y, w, h) {
+    st.cleared = true;
+    if (st.ink && (canvas.width !== inkW || canvas.height !== inkH)) st.ink = false;   // resized = wiped
+    if (!st.ink) return undefined;
+    const res = proto.clearRect.apply(this, arguments);
+    return res;
+  };
+  st.frame = function (fn, self, args) {
+    st.drew = false; st.cleared = false;
+    try { return fn.apply(self, args); }
+    finally {
+      if (st.drew) { if (canvas.style.visibility) canvas.style.visibility = ''; }
+      else if (st.cleared) {
+        if (canvas.style.visibility !== 'hidden') canvas.style.visibility = 'hidden';
+        if (live) { const w = canvas.width; canvas.width = 0; canvas.width = w; live = false; st.ink = false; reset(); }
+      }
+    }
+  };
+  canvas.__stkQuietSt = st;
+  return st;
+}
 function quietLayer(def){
   if (!def || typeof def.create !== 'function' || def.__stkQuiet) return def;
   const create = def.create;
   return Object.assign({}, def, { __stkQuiet: true, create: (...a) => {
     const inst = create(...a);
     if (!inst || typeof inst.mount !== 'function' || typeof inst.render !== 'function') return inst;
-    // PHONE SPEED (2026-10-26). Vela gives every registered layer a full-size canvas (25 of them,
-    // ~1024 x 2071 px each at a phone's 2.6x pixel ratio) and every layer render starts with
-    // clearRect + setTransform, drawn on or not. The first of those calls makes the browser allocate
-    // the canvas's pixel memory: ~8 MB per layer and 1.8 s of main thread before the first candle on a
-    // throttled phone (tools/tests/chart-phone-speed-canvas.js). Now, until a layer has drawn
-    // something, its state calls (transform, save/restore, path, clip, dash) are only RECORDED and
-    // its clears are skipped (a blank canvas cleared stays blank); the first real draw replays the
-    // recorded calls in order and draws, so what reaches the canvas is exactly what it was before.
-    // After that the canvas works directly, as before (ink = it has been drawn on since it was last
-    // blank; only a resize, which wipes pixels and state, makes it blank again: a full clearRect
-    // is not trusted for that because a clip may limit it). A resize also drops the record.
-    let cv = null, drew = false, cleared = false, ink = false, inkW = 0, inkH = 0;
+    let st = null;
     const mount = inst.mount;
     inst.mount = function (canvas) {
       const r = mount.apply(this, arguments);
-      try {
-        const ctx = canvas && canvas.getContext && canvas.getContext('2d');
-        if (ctx) {
-          cv = canvas;
-          // Own-property wrappers that call whatever the prototype holds at call time (so other
-          // code that wraps CanvasRenderingContext2D.prototype keeps seeing these calls).
-          const proto = Object.getPrototypeOf(ctx);
-          // q: recorded state calls; depth: saves recorded and not yet restored; pinned: a recorded call
-          // that can not be dropped (a clip / restore reaching outside the record); pathOpen: path
-          // calls recorded since the last beginPath.
-          let q = [], qW = canvas.width, qH = canvas.height, depth = 0, pinned = false, pathOpen = false, live = false;
-          const PATH = /^(closePath|moveTo|lineTo|rect|roundRect|arc|arcTo|ellipse|bezierCurveTo|quadraticCurveTo)$/;
-          // Style properties (fillStyle, font, ...) set while a recorded save() is open must also be
-          // recorded, or the replayed restore() would not undo them: shadow = their pending values
-          // (what the getters answer), stack = the shadow at each recorded save().
-          let shadow = new Map(), stack = [];
-          const reset = () => { q = []; depth = 0; pinned = false; pathOpen = false; qW = canvas.width; qH = canvas.height; shadow = new Map(); stack = []; };
-          const sized = () => { if (canvas.width !== qW || canvas.height !== qH) reset(); };   // a resize wipes all canvas state
-          const flush = () => {
-            if (live) return;
-            sized();
-            live = true;
-            const list = q; q = []; shadow = new Map(); stack = [];
-            for (const [k, args] of list) {
-              try { if (k === '=') PDESC[args[0]].set.call(ctx, args[1]); else proto[k].apply(ctx, args); } catch (e) {}
-            }
-          };
-          const PROPS = ['fillStyle', 'strokeStyle', 'lineWidth', 'lineCap', 'lineJoin', 'miterLimit', 'lineDashOffset', 'font', 'textAlign', 'textBaseline', 'direction', 'letterSpacing', 'wordSpacing', 'fontKerning', 'fontStretch', 'fontVariantCaps', 'textRendering', 'globalAlpha', 'globalCompositeOperation', 'imageSmoothingEnabled', 'imageSmoothingQuality', 'shadowBlur', 'shadowColor', 'shadowOffsetX', 'shadowOffsetY', 'filter'];
-          const PDESC = {};
-          for (const pr of PROPS) {
-            let d = null; for (let o = proto; o && !d; o = Object.getPrototypeOf(o)) d = Object.getOwnPropertyDescriptor(o, pr);
-            if (!d || !d.set || !d.get) continue;
-            PDESC[pr] = d;
-            Object.defineProperty(ctx, pr, {
-              configurable: true,
-              get() { return !live && shadow.has(pr) ? shadow.get(pr) : d.get.call(this); },
-              set(v) {
-                if (live || depth === 0) { d.set.call(this, v); return; }
-                shadow.set(pr, v); q.push(['=', [pr, v]]);
-              }
-            });
-          }
-          const DEFER = ['setTransform', 'resetTransform', 'transform', 'translate', 'scale', 'rotate', 'save', 'restore', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'rect', 'roundRect', 'arc', 'arcTo', 'ellipse', 'bezierCurveTo', 'quadraticCurveTo', 'clip', 'setLineDash'];
-          for (const k of DEFER) {
-            if (typeof proto[k] !== 'function') continue;
-            ctx[k] = function () {
-              if (live) return proto[k].apply(this, arguments);
-              sized();
-              if (k === 'save') { depth++; stack.push(new Map(shadow)); }
-              else if (k === 'restore') { if (depth > 0) { depth--; shadow = stack.pop() || new Map(); } else pinned = true; }
-              else if (k === 'clip' && depth === 0) pinned = true;
-              else if (k === 'beginPath') pathOpen = false;
-              else if (PATH.test(k)) pathOpen = true;
-              // An absolute transform with nothing saved, no clip and no open path in the record makes
-              // every recorded call before it irrelevant, except the line dash: keep the last one.
-              if ((k === 'setTransform' || k === 'resetTransform') && depth === 0 && !pinned && !pathOpen) {
-                let dash = null; for (const e of q) if (e[0] === 'setLineDash') dash = e;
-                q = dash ? [dash] : [];
-              }
-              q.push([k, Array.prototype.slice.call(arguments)]);
-              if (q.length > 4000) flush();   // never grow without bound: stop deferring
-              return undefined;
-            };
-          }
-          // calls whose answer depends on the recorded state: replay first
-          for (const k of ['getTransform', 'isPointInPath', 'isPointInStroke', 'getImageData', 'getLineDash']) {
-            if (typeof proto[k] === 'function') ctx[k] = function () { flush(); return proto[k].apply(this, arguments); };
-          }
-          // measureText reads the font: replay first only when a recorded save() holds a pending font
-          if (typeof proto.measureText === 'function') ctx.measureText = function () { if (!live && shadow.size) flush(); return proto.measureText.apply(this, arguments); };
-          for (const k of DRAW_OPS) if (typeof proto[k] === 'function') ctx[k] = function () { drew = true; if (!live) flush(); if (!ink) { ink = true; inkW = canvas.width; inkH = canvas.height; } return proto[k].apply(this, arguments); };
-          ctx.clearRect = function (x, y, w, h) {
-            cleared = true;
-            if (ink && (canvas.width !== inkW || canvas.height !== inkH)) ink = false;   // resized = wiped
-            if (!ink) return undefined;
-            const res = proto.clearRect.apply(this, arguments);
-            return res;
-          };
-        }
-      } catch (e) { cv = null; }
+      try { st = quietCanvas(canvas); } catch (e) { st = null; }
       return r;
     };
     const render = inst.render;
-    inst.render = function () {
-      if (!cv) return render.apply(this, arguments);
-      drew = false; cleared = false;
-      try { return render.apply(this, arguments); }
-      finally {
-        if (drew) { if (cv.style.visibility) cv.style.visibility = ''; }
-        else if (cleared && cv.style.visibility !== 'hidden') cv.style.visibility = 'hidden';
-      }
-    };
+    inst.render = function () { return st ? st.frame(render, this, arguments) : render.apply(this, arguments); };
     return inst;
   } });
+}
+// RAM (2026-11-11): the engine's own overlay canvases get the same treatment as the layers: the
+// volume-profile (VPVR), user-drawings and crosshair canvases are full plot size and cleared on every
+// frame, but blank most of the time (no VPVR, no drawing, pointer off the chart). Their renderer's
+// render() runs through quietCanvas, so a blank one holds no pixels. Same pictures when they draw.
+function quietEngine(R){
+  if (!R || !R.plot) return;
+  const wrap = (obj, canvas) => {
+    if (!obj || obj.__stkQuiet || typeof obj.render !== 'function' || !canvas) return;
+    obj.__stkQuiet = true;
+    const st = quietCanvas(canvas); if (!st) return;
+    const render = obj.render;
+    obj.render = function () { return st.frame(render, this, arguments); };
+  };
+  try {
+    wrap(R.vpvrRenderer, R.vpvrCanvas);
+    wrap(R.crosshairLayer, R.cursorCanvas);
+    wrap(R.userDrawings, R.drawingsCanvas);
+  } catch (e) { console.warn('TradeZoro: quiet canvases', e); }
 }
 
 // LATE LAYERS (fix 2026-10-24): Vela's renderer builds one canvas per registered renderer layer
@@ -210,6 +242,12 @@ function lateLayers(R){
   proto.__stkLateLayers = true;
   const v09 = typeof proto.ensureInstanceLayer === 'function';
   const mountIndicator = proto.mountIndicator, removeIndicator = proto.removeIndicator;
+  // RAM: the engine's overlay canvases (quietEngine) are wrapped on the first data frame of each mount
+  // (a remount builds new renderers and canvases; wrapping is per object, so those get wrapped too).
+  if (typeof proto.paintData === 'function') {
+    const paintData = proto.paintData;
+    proto.paintData = function () { if (!this.userDrawings || !this.userDrawings.__stkQuiet) quietEngine(this); return paintData.apply(this, arguments); };
+  }
   proto.mountIndicator = function (model) {
     // Repaint hook for chart-layer labels that settle over two frames (right-edge collision
     // handling in chart-gex-levels.js / chart-of-pro.js): plot.__stkInv() asks for one more frame.

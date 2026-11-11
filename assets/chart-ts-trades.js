@@ -84,6 +84,15 @@ function fold(s, x) {
   else s.open = { ts, last: ts, px, side, size: sz, row: null };
   const q = s.open;
   if (!q.row && q.size >= s.floor) { q.row = [q.ts, px, q.size, side]; s.trades.push(q.row); }
+  // RAM (2026-11-11): live prints were appended forever on an open tab; keep the same 48 h window a fresh load reads (+10 min slack)
+  const cut = ts - KEEP;
+  if (s.trades.length && s.trades[0][0] < cut - 600000) {
+    let i = 0; while (i < s.trades.length && s.trades[i][0] < cut) i++;
+    s.trades.splice(0, i);
+    for (const k of s.hist.keys()) if (k < cut) s.hist.delete(k);
+    for (const k of s.live.keys()) if (k < cut) s.live.delete(k);
+    s.mm = null; if (s.loadedFrom < cut) s.loadedFrom = cut;
+  }
 }
 function onFrame(s, m) {
   const r = rootState(s.root);

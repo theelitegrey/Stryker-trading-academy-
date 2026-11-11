@@ -27,6 +27,8 @@ t = (EPOCH - (REC_DAYS * 86400000 if REC_DAYS else 8 * 3600000)) // MIN * MIN
 REC = int(t)
 LIVE = (EPOCH - 3600000) // MIN * MIN if not REC_DAYS else REC
 asked = set()
+import os
+ALLSYM = os.environ.get('TE_ALLSYM') == '1'   # chart-memory-browser.js: both chart cells get live trades
 END = EPOCH - QUIET_H * 3600000
 while t < END:
     t += rnd.randint(19000, 21000) if REC_DAYS else rnd.randint(0, 330); p += rnd.randint(-2, 2)
@@ -114,7 +116,7 @@ async def client(ws):
         async for m in ws:
             try: m = json.loads(m)
             except Exception: continue
-            if m.get('op') == 'tsub' and (m.get('symbol') == 'NQ' or REC_DAYS):   # DAYS mode: every symbol gets the same tape
+            if m.get('op') == 'tsub' and (m.get('symbol') == 'NQ' or REC_DAYS or ALLSYM):   # DAYS mode / TE_ALLSYM=1: every symbol gets the same tape
                 sy = m.get('symbol'); s = m.get('since')
                 if s is not None and m.get('e') == EPOCH and 0 <= s <= len(tape): subs[sy] = s
                 elif s is not None: await ws.send(json.dumps({'type': 'resync', 'symbol': sy, 'e': EPOCH})); subs[sy] = len(tape)

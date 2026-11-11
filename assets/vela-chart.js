@@ -70,11 +70,17 @@
 // VELA 0.9.0 (CoS order 2026-10-22; DEFAULT FOR EVERYONE since build 625, Owner "push test
 // version live"; rollback: ?vela=0.6 per browser, or VELA090_DEFAULT in charts.html for all).
 // Was an admin trial: the upgraded engine in
-// assets/vendor/vela-0.9.0-s7/ (tools/vela-090-patch.py: our s1-s3 patches re-applied plus the
+// assets/vendor/vela-0.9.0-s8/ (tools/vela-090-patch.py: our s1-s3 patches re-applied plus the
 // TradingView-feel fixes). The inline script in charts.html picks the
 // folder BEFORE any module loads (the import map must match) and sets window.__stkVela090; the
 // 0.9.0 engine keeps its own saved workspace (vela-workspace-090) so switching back is safe.
 
+// RAM round 2 (2026-11-12): layers that ink a small part of the plot draw through an off-screen copy and show
+// only the inked box (assets/chart-box-canvas.js). Allow-list: layers checked to draw only through their 2d context
+// and to not move or restyle their own canvas. Off with ?boxcanvas=0 (or localStorage stk_box_canvas = '0').
+import { boxCanvas } from './chart-box-canvas.js?v=959';
+const BOX_ON = (() => { try { return !/[?&]boxcanvas=0\b/.test(location.search) && localStorage.getItem('stk_box_canvas') !== '0'; } catch (e) { return true; } })();
+const BOX_LAYER = (id) => BOX_ON && (/^stk_l2f_/.test(id) || ['stk_svp', 'stk_of_big', 'stk_of_vp', 'stk_ts_big', 'stk_sess'].includes(id));
 // See "EMPTY LAYER CANVASES OFF" in the boot code.
 const DRAW_OPS = ['fill', 'stroke', 'fillRect', 'strokeRect', 'fillText', 'strokeText', 'drawImage', 'putImageData'];
 // PHONE SPEED (2026-10-26). Vela gives every registered layer a full-size canvas (25 of them,
@@ -194,15 +200,17 @@ function quietLayer(def){
   return Object.assign({}, def, { __stkQuiet: true, create: (...a) => {
     const inst = create(...a);
     if (!inst || typeof inst.mount !== 'function' || typeof inst.render !== 'function') return inst;
-    let st = null;
+    let st = null, box = null;
     const mount = inst.mount;
     inst.mount = function (canvas) {
       const r = mount.apply(this, arguments);
+      try { if (BOX_LAYER(def.id)) box = boxCanvas(canvas); } catch (e) { box = null; }
       try { st = quietCanvas(canvas); } catch (e) { st = null; }
       return r;
     };
     const render = inst.render;
-    inst.render = function () { return st ? st.frame(render, this, arguments) : render.apply(this, arguments); };
+    const quiet = function () { return st ? st.frame(render, this, arguments) : render.apply(this, arguments); };
+    inst.render = function () { return box ? box.run(quiet, this, arguments) : quiet.apply(this, arguments); };
     return inst;
   } });
 }
@@ -220,6 +228,11 @@ function quietEngine(R){
     obj.render = function () { return st.frame(render, this, arguments); };
   };
   try {
+    if (BOX_ON && R.volumeRenderer && !R.volumeRenderer.__stkQuiet) {   // volume overlay: the bottom ~12 % of the plot
+      const box = boxCanvas(R.volumeCanvas);
+      if (box) { const vr = R.volumeRenderer, render = vr.render; vr.render = function () { return box.run(render, this, arguments); }; }
+      wrap(R.volumeRenderer, R.volumeCanvas);
+    }
     wrap(R.vpvrRenderer, R.vpvrCanvas);
     wrap(R.crosshairLayer, R.cursorCanvas);
     wrap(R.userDrawings, R.drawingsCanvas);
@@ -244,6 +257,16 @@ function lateLayers(R){
   const mountIndicator = proto.mountIndicator, removeIndicator = proto.removeIndicator;
   // RAM: the engine's overlay canvases (quietEngine) are wrapped on the first data frame of each mount
   // (a remount builds new renderers and canvases; wrapping is per object, so those get wrapped too).
+  if (typeof proto.screenshotCanvas === 'function' && !proto.__stkBoxShot) {
+    // export draws every pile canvas at 0,0: a box canvas hands over its full-size copy for that
+    proto.__stkBoxShot = true;
+    const shot = proto.screenshotCanvas;
+    proto.screenshotCanvas = function () {
+      const D = CanvasRenderingContext2D.prototype, di = D.drawImage;
+      D.drawImage = function (img) { if (img && img.__stkBoxSrc && arguments.length === 3) return di.call(this, img.__stkBoxSrc, arguments[1], arguments[2]); return di.apply(this, arguments); };
+      try { return shot.apply(this, arguments); } finally { D.drawImage = di; }
+    };
+  }
   if (typeof proto.paintData === 'function') {
     const paintData = proto.paintData;
     proto.paintData = function () { if (!this.userDrawings || !this.userDrawings.__stkQuiet) quietEngine(this); return paintData.apply(this, arguments); };
@@ -322,7 +345,7 @@ function lateLayers(R){
 // panels (watchlist, news, GEX ladder, paper account, Charts bar replay, alerts). Charts page: BT is null, nothing changes.
 const BT = window.__stkBt || null;
 const VELA090 = window.__stkVela090 === true;
-const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s7/' : './vendor/vela-0.6.17-s4/';
+const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s8/' : './vendor/vela-0.6.17-s4/';
 // One-time migration for members whose saved workspace still carries the old
 // Vela theme defaults (see migrateTvLook below).
 const TV_LOOK_KEY = 'stryker_chart_tv_look';

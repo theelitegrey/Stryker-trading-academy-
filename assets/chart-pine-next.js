@@ -5,7 +5,7 @@
 // PineNextEngine implements the same engine interface Vela calls on vela-pinets'
 // PineWorkerEngine (language, capabilities, prepare, execute -> handle with getContext,
 // stop, update, setVisibleRange, notifyBars). It is registered per chart under the
-// language id 'pine-next'. One module worker per chart cell.
+// language id 'pine-next'. One module worker for the whole page (see ONE WORKER below).
 //
 // Bars: Vela hands execute() a getBars() function; a worker can't call it, so every
 // non-backfill bar notification ships a fresh snapshot (same as vela-pinets' own worker).
@@ -68,14 +68,47 @@ export function tailOf(s, b, reason){
   return { from: i, tail: b.slice(i) };
 }
 
+// ONE WORKER FOR ALL CHART CELLS (RAM round 2, member GK 11 Nov: "one chart tab ~4 GB"). Each worker holds
+// its own copy of pinets + vela-pinets (~57 MB of JS heap before any script runs), and a 2-chart layout had
+// two. Now every cell's engine talks to one shared worker. The worker already keeps scripts apart by
+// session (and its scheduler shares the thread fairly), so routing is by id: request and session ids
+// are unique across the page (one counter here) and every reply goes to the engine that owns that id.
+// A script's error reaches only its own session. The worker is dropped once no engine has a script
+// left (as before for one cell). A cell reset after a runaway run (terminate) restarts the worker only
+// when no other cell has scripts on it; otherwise only that cell's scripts are stopped.
+const hub = { worker: null, engines: new Set(), owner: new Map(), seq: 0, sealed: false };
+function hubWorker(){
+  if (!hub.worker) {
+    const w = hub.worker = new Worker(WORKER_URL, { type: 'module', name: 'stryker-pine-next' });
+    w.addEventListener('message', (e) => hubMessage(e.data || {}));
+    w.addEventListener('error', (e) => {
+      const msg = (e && e.message) || 'Pine engine failed to start';
+      hub.engines.forEach((eng) => eng.workerFailed(msg));
+    });
+  }
+  return hub.worker;
+}
+function hubMessage(m){
+  switch (m.kind) {
+    case 'busy': setBusy(hub, !!m.on); return;
+    case 'started': case 'own': { try { const f = typeof window !== 'undefined' && window.__stkPineClockHook; if (f) f(m); } catch (e) {} return; }
+    case 'loadError': hub.engines.forEach((eng) => eng.onMessage(m)); return;
+  }
+  const eng = (m.sessionId != null && hub.owner.get('s' + m.sessionId)) || (m.reqId != null && hub.owner.get('r' + m.reqId));
+  if (eng) eng.onMessage(m);
+}
+function hubKill(){
+  const w = hub.worker; if (!w) return;
+  hub.worker = null; hub.owner.clear(); hub.sealed = false; setBusy(hub, false);
+  try { w.terminate(); } catch (e) {}
+}
+export function sharedWorkerState(){ return { worker: !!hub.worker, engines: hub.engines.size, sessions: [...hub.engines].reduce((n, e) => n + e.sessions.size, 0) }; }   // tests
+
 export class PineNextEngine {
   constructor(opts = {}){
     this.language = 'pine-next';
     this.capabilities = { streaming: true, visibleRange: true, inputs: true, props: true };
     this.opts = opts;
-    this.worker = null;
-    this.reqId = 0;
-    this.sessionId = 0;
     this.prepares = new Map();
     this.sessions = new Map();
     this.ctxWaits = new Map();
@@ -83,31 +116,33 @@ export class PineNextEngine {
     const phone = typeof window !== 'undefined' && (window.innerWidth < 700 || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches));
     this.seriesCache = new SeriesCache({ maxBars: phone ? 150000 : 500000, maxInflight: phone ? 4 : 6 });
   }
-  w(){
-    if (!this.worker) {
-      this.worker = new Worker(WORKER_URL, { type: 'module', name: 'stryker-pine-next' });
-      this.worker.addEventListener('message', (e) => this.onMessage(e.data || {}));
-      this.worker.addEventListener('error', (e) => {
-        const msg = (e && e.message) || 'Pine engine failed to start';
-        this.prepares.forEach((p) => p.reject(new Error(msg))); this.prepares.clear();
-        this.sessions.forEach((s) => { try { s.handlers.onError && s.handlers.onError(new Error(msg)); } catch (x) {} });
-      });
-    }
-    return this.worker;
-  }
+  get worker(){ return hub.engines.has(this) ? hub.worker : null; }
+  get reqId(){ return hub.seq; }
+  get hasSealed(){ return hub.sealed; }
+  set hasSealed(v){ if (v) hub.sealed = true; }
+  nextId(kind){ const id = ++hub.seq; hub.owner.set(kind + id, this); return id; }
+  w(){ hub.engines.add(this); return hubWorker(); }
   post(m){ this.w().postMessage(m); }
+  workerFailed(msg){
+    this.prepares.forEach((p) => p.reject(new Error(msg))); this.prepares.clear();
+    this.sessions.forEach((s) => { try { s.handlers.onError && s.handlers.onError(new Error(msg)); } catch (x) {} });
+  }
+  busyElsewhere(){ for (const e of hub.engines) if (e !== this && (e.sessions.size || e.prepares.size)) return true; return false; }
+  forget(){
+    for (const [k, e] of hub.owner) if (e === this) hub.owner.delete(k);
+    this.ctxWaits.forEach((r) => r(null)); this.ctxWaits.clear();
+    hub.engines.delete(this);
+  }
   retire(){
-    setBusy(this, false);
     // A worker holding decrypted community indicators stays up: retiring it would lose them (and the session key),
     // and the chart's stub sources would then fail to run until re-added.
     if (this.hasSealed) return;
-    const w = this.worker; if (!w) return;
-    this.worker = null;
-    this.ctxWaits.forEach((r) => r(null)); this.ctxWaits.clear();
-    try { w.terminate(); } catch (e) {}
+    if (!hub.engines.has(this)) return;
+    this.forget();
+    if (!this.busyElsewhere() && ![...hub.engines].some((e) => e.sessions.size || e.prepares.size)) hubKill();
   }
   prepare(source, instanceId){
-    const reqId = ++this.reqId;
+    const reqId = this.nextId('r');
     return new Promise((resolve, reject) => {
       this.prepares.set(reqId, { resolve, reject });
       this.post({ kind: 'prepare', reqId, source, instanceId, defaultProps: this.opts.defaultProps, propsVisibility: this.opts.props || 'strategy' });
@@ -115,7 +150,7 @@ export class PineNextEngine {
   }
   // Sealed community indicators (see the worker's SEALED block): the page only ever sees ciphertext.
   ask(kind, extra){
-    const reqId = ++this.reqId;
+    const reqId = this.nextId('r');
     return new Promise((resolve, reject) => {
       this.prepares.set(reqId, { resolve, reject });
       this.post(Object.assign({ kind, reqId }, extra || {}));
@@ -124,7 +159,7 @@ export class PineNextEngine {
   sealKey(){ this.hasSealed = true; return this.ask('sealKey'); }
   unseal(ref, sealedMsg){ return this.ask('unseal', { ref, sealed: sealedMsg }).then((v) => { this.hasSealed = true; return v; }); }
   execute(req, handlers){
-    const sessionId = ++this.sessionId;
+    const sessionId = this.nextId('s');
     const barsOf = () => (req.getBars ? req.getBars() : req.bars) || [];
     const s = { req, handlers, barsOf, live: req.mode === 'live', lastTime: 0 };
     this.sessions.set(sessionId, s);
@@ -139,12 +174,12 @@ export class PineNextEngine {
     this.post({ kind: 'execute', sessionId, req: plain, sentAt: Date.now() });
     return {
       getContext: (select) => new Promise((resolve) => {
-        const reqId = ++this.reqId;
+        const reqId = this.nextId('r');
         this.ctxWaits.set(reqId, resolve);
         this.post({ kind: 'getContext', sessionId, reqId, select });
       }),
       stop: () => {
-        this.post({ kind: 'stop', sessionId }); this.sessions.delete(sessionId);
+        this.post({ kind: 'stop', sessionId }); this.sessions.delete(sessionId); hub.owner.delete('s' + sessionId);
         // A run already in progress cannot be interrupted inside the worker; it would finish
         // in the background and delay the next script on this chart (a 5k-bar WCSMC run left
         // behind pushed the next add past the time limit). With no scripts left, drop the
@@ -164,12 +199,18 @@ export class PineNextEngine {
       }
     };
   }
-  terminate(){ setBusy(this, false); try { if (this.worker) this.worker.terminate(); } catch (e) {} this.worker = null; }
+  // Cell reset (chart-pine.js resetCell, after a run went over the time limit): its scripts were removed just before.
+  // Restart the worker only if no other cell has scripts on it; a run still in progress then finishes in the background.
+  terminate(){
+    const others = this.busyElsewhere();
+    this.forget();
+    if (!others) hubKill();
+  }
   onMessage(m){
     switch (m.kind) {
       case 'prepared': {
         const p = this.prepares.get(m.reqId); if (!p) return;
-        this.prepares.delete(m.reqId);
+        this.prepares.delete(m.reqId); hub.owner.delete('r' + m.reqId);
         if (m.error) p.reject(new Error(m.error)); else p.resolve(m.prepared);
         return;
       }
@@ -191,10 +232,8 @@ export class PineNextEngine {
       case 'error': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onError) s.handlers.onError(new Error(m.message)); return; }
       // own-compute clock for the page's time limit (chart-pine.js runOnChartInner): 'started' = the worker
       // picked the run up (queue wait ends), 'own' = ms other scripts' runs overlapped it.
-      case 'started': case 'own': { try { const f = typeof window !== 'undefined' && window.__stkPineClockHook; if (f) f(m); } catch (e) {} return; }
-      case 'busy': setBusy(this, !!m.on); return;
       case 'done': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onDone) s.handlers.onDone(); return; }
-      case 'contextResult': { const w = this.ctxWaits.get(m.reqId); this.ctxWaits.delete(m.reqId); if (w) w(m.snapshot); return; }
+      case 'contextResult': { const w = this.ctxWaits.get(m.reqId); this.ctxWaits.delete(m.reqId); hub.owner.delete('r' + m.reqId); if (w) w(m.snapshot); return; }
       case 'fetchSeries': this.serveFetch(m); return;
     }
   }
@@ -206,7 +245,7 @@ export class PineNextEngine {
     return this.seriesCache.get(m.symbol, m.timeframe, range, (sy, tf, r) => s.req.fetchSeries(sy, tf, r), base);
   }
   async serveFetch(m){
-    const s = [...this.sessions.values()].find((x) => x.req.fetchSeries);
+    const own = this.sessions.get(m.sessionId), s = own && own.req.fetchSeries ? own : [...this.sessions.values()].find((x) => x.req.fetchSeries);
     if (!s) { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, bars: [] }); return; }
     try { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, bars: await this.cachedFetch(s, m) }); }
     catch (e) { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, error: String((e && e.message) || e) }); }

@@ -255,7 +255,7 @@ async function desktop(b, theme) {
     await p.evaluate(() => { const el = [...document.querySelectorAll('.vela-dsp-scroll')].pop(); if (el) el.scrollTop = el.scrollHeight; });
     await sleep(300);
     const txt = await p.evaluate(() => [...document.querySelectorAll('*')].filter((e) => !e.children.length && /\S/.test(e.textContent) && e.getBoundingClientRect().width > 0).map((e) => e.textContent.trim()).join(' | '));
-    for (const w of ['Extend lines right', 'Show thin rows', 'Delta bars', 'Anchored VWAP']) check(txt.includes(w), tag + ': settings show "' + w + '"', txt.slice(0, 200));
+    for (const w of ['Extend right', 'Thin rows', 'Delta bars', 'VWAP', '\u00b11 SD bands', '\u00b12 SD bands']) check(txt.includes(w), tag + ': settings show "' + w + '"', txt.slice(0, 200));
     await shot(p, tag + '-settings');
     // the settings live in the saved chart: a reload keeps them
     await p.keyboard.press('Escape'); await sleep(300);

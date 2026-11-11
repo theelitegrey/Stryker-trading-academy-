@@ -223,19 +223,20 @@ function seg(px, py, a, b) {
 }
 
 // ---------------------------------------------------------------- settings rows (Vela's settings panel lists extra schema fields itself)
+// Labels stay short: the panel's generic label column is 96 px and cuts longer text (the full text is in each row's tooltip).
 // Paths go through `frvpx`, an alias of the drawing's own `frvp` object: the panel's own Profile block only handles "frvp.*", so these
 // land in its generic block, and the values are saved with the drawing's other profile settings.
 function extraFields(d) {
   const a = d.__stkAvail || {}, f = [];
-  f.push({ path: 'frvpx.extendRight', label: 'Extend lines right (POC / VAH / VAL)', kind: 'boolean' });
-  f.push({ path: 'frvpx.thinRows', label: 'Show thin rows', kind: 'boolean' });
+  f.push({ path: 'frvpx.extendRight', label: 'Extend right', kind: 'boolean' });
+  f.push({ path: 'frvpx.thinRows', label: 'Thin rows', kind: 'boolean' });
   f.push(a.delta ? { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: d.frvp.deltaBars || 'off', label: a.delta }] }
     : { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: 'off', label: 'Off' }, { value: 'left', label: 'Left side' }] });
-  if (a.vwap) f.push({ path: 'frvpx.vwap', label: 'Anchored VWAP', kind: 'select', options: [{ value: String(d.frvp.vwap === true), label: a.vwap }] });
+  if (a.vwap) f.push({ path: 'frvpx.vwap', label: 'VWAP', kind: 'select', options: [{ value: String(d.frvp.vwap === true), label: a.vwap }] });
   else {
-    f.push({ path: 'frvpx.vwap', label: 'Anchored VWAP', kind: 'boolean' });
-    f.push({ path: 'frvpx.vwapSd1', label: 'VWAP \u00b11 SD bands', kind: 'boolean', when: { path: 'frvpx.vwap', in: [true] } });
-    f.push({ path: 'frvpx.vwapSd2', label: 'VWAP \u00b12 SD bands', kind: 'boolean', when: { path: 'frvpx.vwap', in: [true] } });
+    f.push({ path: 'frvpx.vwap', label: 'VWAP', kind: 'boolean' });
+    f.push({ path: 'frvpx.vwapSd1', label: '\u00b11 SD bands', kind: 'boolean', when: { path: 'frvpx.vwap', in: [true] } });
+    f.push({ path: 'frvpx.vwapSd2', label: '\u00b12 SD bands', kind: 'boolean', when: { path: 'frvpx.vwap', in: [true] } });
   }
   return f;
 }

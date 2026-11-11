@@ -203,6 +203,8 @@ const SCHEMA = {
   stk_l2f_fp: [
     { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
     { key: 'mult', title: 'Highlight resting size above (x average)', type: 'float', defval: 3, min: 1.5, max: 20, step: 0.5 },
+    { key: 'restShow', title: 'Resting book shown', type: 'string', defval: 'Near the candle', options: ['Near the candle', 'Off', 'Full depth'], tooltip: 'Near the candle = resting size only beside the candle (its low to high plus the rows below). Full depth = every row of the book, in a tall ladder.' },
+    { key: 'restRows', title: 'Rows beyond the candle', type: 'int', defval: 2, min: 0, max: 20, step: 1 },
     { key: 'numbers', title: 'Show traded numbers', type: 'bool', defval: true },
     { key: 'buyColor', title: 'Buyers', type: 'color', defval: UP }, { key: 'sellColor', title: 'Sellers', type: 'color', defval: DN },
     { key: 'bidColor', title: 'Resting bids', type: 'color', defval: CYAN }, { key: 'askColor', title: 'Resting asks', type: 'color', defval: AMBER }],
@@ -381,7 +383,7 @@ class L2Flow {
   stat(bars, has) { let n = 0; for (let i = 0; i < bars.length; i++) if (has(i)) n++; (window.__stkL2Flow || (window.__stkL2Flow = {}))[this.type] = Object.assign((window.__stkL2Flow || {})[this.type] || {}, { n, bars: bars.length }); }
   drawFp(hub, bars, tf, since) {
     const fa = hub.footAgg(tf);
-    this.ov('Footprint (L2): traded | resting at close', fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '');
+    this.ov('Footprint (L2): ' + (this.inputs.restShow === 'Off' ? 'traded' : 'traded | resting at close'), fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '');
     this.stat(bars, (i) => fa.map.has(bars[i].time));
     this.push({ hub, v: hub.v + ':' + hub.fver() });
   }
@@ -526,12 +528,14 @@ function fpLayer() {
         let m = I.rowTicks > 0 ? I.rowTicks : ROW_STEPS.find((s) => tickPx * s >= minPx) || 400;
         m = Math.max(m, Math.round(S / tick));               // a row is never finer than the book's own rows
         const R = m * tick, mult = num(I.mult, 3), now = Date.now();
+        const rs = I.restShow === 'Off' || I.restShow === 'Full depth' ? I.restShow : 'Near the candle', N = clamp(Math.round(num(I.restRows, 2)), 0, 20);
+        let drawn = 0, maxOut = 0;
         const colW = Math.min(ppb * 0.92, 150), restW = colW * 0.3, trW = colW - restW - 2, fs = phone ? 9 : 10;
         g.font = '600 ' + fs + 'px ' + MONO; g.textBaseline = 'middle';
         let hot = 0;
         for (let i = i0; i <= i1; i++) {
           const b = a.bars[i], bar = fa.map.get(b.time), x = co.logicalToX(i), left = x - colW / 2;
-          const s = hub.sampleAt(Math.min(b.time + tf, now) - 1, 6 * 60000), rest = s && s.ts >= b.time - 6 * 60000 ? rowsOfSample(s, R) : null, avg = s ? avgSize(s) : 0;
+          const s = hub.sampleAt(Math.min(b.time + tf, now) - 1, 6 * 60000), rest = rs !== 'Off' && s && s.ts >= b.time - 6 * 60000 ? rowsOfSample(s, R) : null, avg = s ? avgSize(s) : 0;
           const tr = new Map();
           if (bar) for (let j = 0; j < bar.buy.length; j++) { const r = Math.floor((bar.lo + j) * tick / R + 1e-9), e = tr.get(r) || { buy: 0, sell: 0 }; e.buy += bar.buy[j]; e.sell += bar.sell[j]; tr.set(r, e); }
           let mx = 1; tr.forEach((e) => { mx = Math.max(mx, e.buy + e.sell); });
@@ -539,11 +543,12 @@ function fpLayer() {
           for (const r of keys) {
             const yT = Yp(a, (r + 1) * R), yB = Yp(a, r * R), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (Math.abs(yB - yT) > 4 ? 1 : 0));
             if (y > bot || y + h < top) continue;
-            const e = rest && rest.get(r);
-            if (e) {   // resting size at bar close, thin bar growing from the left edge of the candle column
+            const e = rest && rest.get(r), out = Math.max(Math.floor(b.low / R + 1e-9) - r, r - Math.floor(b.high / R + 1e-9), 0);
+            if (e && (rs === 'Full depth' || out <= N)) {
+              drawn++; maxOut = Math.max(maxOut, out);   // resting size at bar close, thin bar growing from the left edge of the candle column
               const q = Math.max(e.bid, e.ask), isBid = e.bid >= e.ask, big = avg > 0 && q >= mult * avg, col = isBid ? I.bidColor : I.askColor;
               const len = Math.max(1, Math.min(1, q / (avg * mult * 1.5 || 1)) * restW);
-              g.fillStyle = rgba(col, big ? 0.95 : 0.5); g.fillRect(left, y, len, h);
+              g.fillStyle = rgba(col, big ? 0.95 : 0.35); g.fillRect(left, y, len, h);
               if (big) { g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(left + 0.5, y + 0.5, Math.max(restW - 1, len - 1), h - 1); hot++; }
             }
             const t = tr.get(r);
@@ -555,7 +560,7 @@ function fpLayer() {
             }
           }
         }
-        window.__stkL2Flow.stk_l2f_fp.hot = hot;
+        Object.assign(window.__stkL2Flow.stk_l2f_fp, { hot, drawn, maxOut, mode: rs });
       } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
     },
     destroy() { canvas = null; }

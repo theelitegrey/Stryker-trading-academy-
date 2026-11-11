@@ -275,7 +275,7 @@ function computeSessions(bars, cfg, cache) {
   const lastSig = last.time + ':' + last.high + ':' + last.low + ':' + last.volume;
   if (sameSet && cache.lastSig === lastSig) return cache.sessions;
   let sessions;
-  if (sameSet || (cache.sig === sig && cache.first === first && cache.n === n - 1 && cache.sessions.length)) {
+  if ((sameSet || (cache.sig === sig && cache.first === first && cache.n === n - 1)) && cache.sessions && cache.sessions.length) {   // empty cache: rebuild (was a TypeError on .i0)
     // only the newest session can change
     sessions = cache.sessions.slice(0, -1);
     const prevLast = cache.sessions[cache.sessions.length - 1];

@@ -16,15 +16,15 @@ export function swingModel(bars, tf, I, fb, tick, cache) {
   const len = clamp(Math.round(num(I.len, 10)), 2, 50), maxLegs = clamp(Math.round(num(I.legs, 6)), 1, 30), va = clamp(num(I.va, 70), 10, 100);
   const n = bars.length, highs = new Array(n), lows = new Array(n);
   for (let i = 0; i < n; i++) { highs[i] = bars[i].high; lows[i] = bars[i].low; }
-  const L = buildLegs(highs, lows, len), pick = L.legs.slice(-maxLegs), rowFix = Math.round(num(I.rowTicks, 0)), from = fb && fb.from > 0 ? fb.from : 0;
+  const L = buildLegs(highs, lows, len), pick = L.legs.slice(-maxLegs), rowFix = Math.round(num(I.rowTicks, 0)), rowsN = I.rows > 0 ? clamp(Math.round(num(I.rows, 0)), 10, 200) : 0, from = fb && fb.from > 0 ? fb.from : 0;
   const out = [], live = new Set(); let computed = 0;
   for (const g of pick) {
-    const key = [g.a, g.b, bars[g.a].time, tf, len, rowFix, va, from, tick].join('|');
+    const key = [g.a, g.b, bars[g.a].time, tf, len, rowFix, rowsN, va, from, tick].join('|');
     live.add(key);
     let c = g.final ? cache.get(key) : null;
     if (!c) {
       const tb = legTab(bars, g.a, g.b, tf, fb, tick), span = tb.tab.size ? Math.max(...tb.tab.keys()) - Math.min(...tb.tab.keys()) + 1 : 0;
-      const m = rowFix > 0 ? rowFix : autoRowTicks(span, 1, 0, MAX_ROWS, STEPS), P = buildProfile(tb.tab, m, va), V = legVwap(bars, g.a, g.b);
+      const m = rowsN > 0 ? Math.max(1, Math.ceil(span / rowsN)) : rowFix > 0 ? rowFix : autoRowTicks(span, 1, 0, MAX_ROWS, STEPS), P = buildProfile(tb.tab, m, va), V = legVwap(bars, g.a, g.b);
       c = { P, m, vwap: V.vwap, sd: V.sd, approx: tb.approx, exact: tb.exactBars, approxBars: tb.approxBars, touch: -1, scanned: g.b };
       if (P) { c.poc = rowPrice(P, P.poc, tick); c.vah = rowPrice(P, P.vaHi, tick); c.val = rowPrice(P, P.vaLo, tick); }
       if (g.final) cache.set(key, c);
@@ -69,12 +69,19 @@ export function swingLayer(E) {
           drawn++;
           const span = Math.max(1, x1 - x0), pw = Math.min(span * wPct, span), P = L.P;
           // ---- profile rows
+          const both = I.pshow === 'Volume + Delta';   // delta bars left of the anchor line, volume bars right of it
           if (I.profile !== false && P && span > 6) {
             const rowPx = Math.abs(Yp(a, P.m * tick) - Yp(a, 0)), base = right ? x1 : x0, sgn = right ? -1 : 1;
             for (let k = 0; k < P.n; k++) {
               if (!P.vol[k]) continue;
               const yT = Yp(a, ((P.r0 + k + 1) * P.m - 0.5) * tick), yB = Yp(a, ((P.r0 + k) * P.m - 0.5) * tick), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0));
               if (y > bot || y + h < top) continue;
+              if (both) {
+                const al2 = k >= P.vaLo && k <= P.vaHi ? 0.62 : 0.3, ax = right ? x1 : x0, dl = P.buy[k] - P.sell[k], wv = Math.max(1, pw * P.vol[k] / P.maxVol);
+                g.fillStyle = !P.buy[k] && !P.sell[k] ? (day ? 'rgba(100,116,139,' + al2 * 0.7 + ')' : 'rgba(148,163,184,' + al2 * 0.7 + ')') : rgba(L.dir > 0 ? I.buyColor : I.sellColor, al2); g.fillRect(ax, y, wv, h);
+                if (dl && P.maxAbsDelta > 0) { const wd = Math.max(1, pw * Math.abs(dl) / P.maxAbsDelta); g.fillStyle = rgba(dl > 0 ? I.buyColor : I.sellColor, Math.min(0.95, al2 + 0.2)); g.fillRect(ax - wd, y, wd, h); }
+                continue;
+              }
               const w = Math.max(1, pw * P.vol[k] / P.maxVol), inVA = k >= P.vaLo && k <= P.vaHi, al = inVA ? 0.62 : 0.3, xs = right ? base - w : base;
               if (I.delta === true && (P.buy[k] || P.sell[k])) {   // buy part next to the edge, sell part after it; approx volume (no side) is grey
                 const tot = P.vol[k], wb = w * P.buy[k] / tot, ws = w * P.sell[k] / tot, wa = w - wb - ws; let xx = base;
@@ -86,6 +93,7 @@ export function swingLayer(E) {
               }
             }
           }
+          if (both && I.profile !== false && P && span > 6) { g.strokeStyle = rgba(ink(), 0.35); g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(right ? x1 : x0) + 0.5, top); g.lineTo(Math.round(right ? x1 : x0) + 0.5, bot); g.stroke(); }
           // ---- VWAP + bands
           if (I.vwap !== false) {
             const line = (f, col, wd, al, dashed) => {

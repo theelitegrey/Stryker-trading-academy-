@@ -24,7 +24,7 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8047';
       const ws = window.STRYKER_VELA;
       const rows = ws.active.libraryRows();
       const build = document.querySelector('meta[name=stryker-build]').content;
-      const reg = await import('/assets/vendor/vela-0.9.0-s7/chunk-YRCL3WMD.js');
+      const reg = await import('/assets/vendor/vela-0.9.0-s8/chunk-YRCL3WMD.js');
       const txt = (v) => (v && typeof v === 'object' ? (v.fallback || v.defaultMessage || v.text || v.message || JSON.stringify(v)) : v);
       const schemaOf = (type) => {
         const d = reg.nativeIndicatorEntry(type);

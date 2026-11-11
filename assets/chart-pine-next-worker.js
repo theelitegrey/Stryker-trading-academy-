@@ -22,7 +22,8 @@
 //                   fetchSeriesResult{reqId,bars|error}
 //   worker -> main: ready | loadError{message} | prepared{reqId,prepared|error}
 //                   model/alert/warning/error/done{sessionId,...}
-//                   contextResult{reqId,snapshot}  fetchSeries{reqId,symbol,timeframe,range}
+//                   contextResult{reqId,snapshot}  fetchSeries{reqId,sessionId,symbol,timeframe,range}
+// One worker serves every chart cell of the page (chart-pine-next.js hub): session and request ids are page-unique.
 //
 // Static-mode runs are COALESCED per session: while a run is in flight, further bar
 // notifications only mark the session dirty, and one re-run happens when it lands (a heavy
@@ -31,7 +32,7 @@
 const PINETS = 'https://cdn.jsdelivr.net/npm/pinets@0.11.0/dist/pinets.min.browser.es.js';
 const VELA_PINETS = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
 // The page passes &vela=090 while the admin 0.9.0 trial is on (same folder as its import map).
-const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s7/plugin.js' : '/assets/vendor/vela-0.6.17-s4/plugin.js', self.location.href).href;
+const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s8/plugin.js' : '/assets/vendor/vela-0.6.17-s4/plugin.js', self.location.href).href;
 
 const post = (m) => self.postMessage(m);
 // BUSY signal: tells the page when a script is computing here ({kind:'busy', on}), so the page
@@ -94,11 +95,12 @@ function engineFor(msg){
   });
 }
 
-function fetchSeries(symbol, timeframe, range){
+// sessionId: the page routes the request to that session's chart (one worker serves every chart cell)
+function fetchSeries(sessionId, symbol, timeframe, range){
   return new Promise((resolve, reject) => {
-    const reqId = ++fetchId;
+    const reqId = 'w' + (++fetchId);
     fetchWaits.set(reqId, { resolve, reject });
-    post({ kind: 'fetchSeries', reqId, symbol, timeframe, range });
+    post({ kind: 'fetchSeries', reqId, sessionId, symbol, timeframe, range });
   });
 }
 
@@ -326,7 +328,7 @@ self.addEventListener('message', async (ev) => {
       let eng;
       try { eng = await engineFor(msg); } catch (e) { post({ kind: 'error', sessionId: id, message: String(e && e.message || e) }); return; }
       if (s.stopped) return;
-      const req = Object.assign({}, msg.req, { getBars: () => s.bars, fetchSeries });
+      const req = Object.assign({}, msg.req, { getBars: () => s.bars, fetchSeries: (sy, tf, r) => fetchSeries(id, sy, tf, r) });
       try {
         const tk = req.prepared && req.prepared.token, rs = tk ? realSource(tk.source) : { ref: null };
         if (rs.ref) req.prepared = Object.assign({}, req.prepared, { token: Object.assign({}, tk, { source: rewrite(rs.src) }) });

@@ -6,9 +6,9 @@
 // Who gets newer than 10 min is the SERVER's call from the verified token (/te-bars x-te-lane); a delayed answer has no seq and is polled.
 // SWITCH: TICK_ENGINE below ('admins' = admin accounts only, the first rollout step; 'all'; 'off'). ?engine=0 falls back to the old path
 // on this page load, ?engine=1 turns it on for a non-admin test (the server still decides the lane).
-import { tfSpec, foldTick, sessionOpen } from './tick-codec.js?v=953';
-import { feedConfig, feedJoin, feedTokenChanged } from './tick-feed.js?v=953';
-import { rtReady, rtToken, isRealtimeAdmin, rtHeadersReady, rtOnChange, rtNoteStreamBar } from './rt-access.js?v=953';
+import { tfSpec, foldTick, sessionOpen } from './tick-codec.js?v=954';
+import { feedConfig, feedJoin, feedTokenChanged } from './tick-feed.js?v=954';
+import { rtReady, rtToken, isRealtimeAdmin, rtHeadersReady, rtOnChange, rtNoteStreamBar } from './rt-access.js?v=954';
 
 export const TICK_ENGINE = 'admins';
 // = TE_SYMBOLS in workers/book-recorder/src/tick-engine.js (tools/tests/tick-engine-client.test.mjs keeps the two equal)
@@ -129,7 +129,7 @@ export function teSubscribe(root, tf, onBar, fallback) {
     return b;
   };
   let stopped = false, leave = null, timer = null, bars = [], fails = 0, lastTT = 0, fed = false, ok = false, old = null;
-  const L2p = import('./chart-futures-l2.js?v=953').catch(() => null);
+  const L2p = import('./chart-futures-l2.js?v=954').catch(() => null);
   let L2 = null;
   const emit = (b) => { if (!stopped) onBar(toBar(b)); };
   // the same "this root is fed" flag the hub path sets (window.__stkL2Live): the data dot / status read it, no copy of their own here

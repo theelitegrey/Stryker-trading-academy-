@@ -245,8 +245,8 @@ function pushUnblockHelp(){
 // System notification through the service worker (Android Chrome forbids new Notification() in a page).
 function pushLocalNotify(title, body, tag, link){
   if (!('Notification' in window) || Notification.permission !== 'granted') return Promise.resolve(false);
-  var opts = { body: body || '', icon: '/assets/images/tradezoro-icon-192-494.png?v=953',
-               badge: '/assets/images/tradezoro-icon-192-494.png?v=953', tag: tag || 'tz-local',
+  var opts = { body: body || '', icon: '/assets/images/tradezoro-icon-192-494.png?v=954',
+               badge: '/assets/images/tradezoro-icon-192-494.png?v=954', tag: tag || 'tz-local',
                renotify: true, requireInteraction: true, vibrate: [200, 100, 200],
                data: { link: link || location.pathname + location.search } };
   var viaSw = ('serviceWorker' in navigator && navigator.serviceWorker.getRegistration)

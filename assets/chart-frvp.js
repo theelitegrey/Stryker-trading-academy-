@@ -11,16 +11,12 @@
 //   4. "Delta bars": buy minus sell per row, mirrored on the other side of the profile's anchor (left of A for the default
 //      left anchor). Data = the footprint's own order flow (chart-footprint.js flowFor = the recorded trades with their
 //      aggressor side; or an already-open L2 hub's trades when the footprint's Data source is L2): never estimated from candles. "Anchored VWAP" from A with optional +-1 / +-2 SD bands.
-//   5. Same value area at any row count: the profile maths is ours (chart-frvp-data.js buildProfile). Vela put a candle's whole volume
-//      on 4 rows (O/H/L/C) and grew the value area one row at a time, so 300 rows gave spikes and a VAH/VAL far from the 24-row ones.
-//   6. Corner handles: a selected profile shows four handles on the corners of its range box (start/end time; the price edges follow
-//      the candles in the range, so only time is stored). Clicks inside the box still pass through to the chart.
 // SAVED DRAWINGS keep their look: a drawing saved before this has none of the new keys, and a missing key means the old
 // behaviour (lines to B, no thin rows, no delta, no VWAP). New drawings get extendRight:false and thinRows:true when placed.
 // Education only. Not financial advice.
 import { flowFor, rootOf } from './chart-footprint.js?v=960';
 import { isFree } from './chart-pro-gate.js?v=960';
-import { deltaRows, anchoredVwap, buildProfile } from './chart-frvp-data.js?v=960';
+import { deltaRows, anchoredVwap } from './chart-frvp-data.js?v=960';
 
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';
@@ -252,45 +248,6 @@ export function installFrvpClass(FRVP) {
   P.__stkFrvp = true;
   Object.defineProperty(P, 'frvpx', { configurable: true, get() { return this.frvp; } });
   P.hitTest = hitFrvp;
-  // 5. profile maths
-  P.compute = function (proj) {
-    const bars = this.barsInSpan(proj);
-    if (!bars) return null;
-    const s = this.frvp, r = buildProfile(bars, s.rows, s.valueAreaPct / 100, !!(s.showDevelopingPoc || s.showDevelopingVa));
-    if (r) this.cachedRange = { min: r.profile.min, max: r.profile.min + r.profile.rowH * r.profile.rows.length };
-    return r;
-  };
-  // 6. corner handles. 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right (box = range x0..x1, profile top..bottom), 4/5 = POC line ends (as before).
-  const grab = () => { try { return window.matchMedia('(pointer: coarse)').matches ? 18 : 11; } catch (e) { return 11; } };   // hit radius px: finger vs cursor
-  P.handlePoints = function (proj) {
-    const L = this.layout(proj);
-    this.__stkBox = !!L;
-    if (!L) {
-      const pts = [];
-      for (const a of this.anchors) { const y = proj.yOf(a.price, this.paneId); if (y == null) return []; pts.push([proj.xOf(a.time), y]); }
-      return pts;
-    }
-    const e = L.yEdges, top = Math.min(e[0], e[e.length - 1]), bot = Math.max(e[0], e[e.length - 1]);
-    const pts = [[L.x0, top, 'sq'], [L.x1, top, 'sq'], [L.x0, bot, 'sq'], [L.x1, bot, 'sq']];
-    if (L.pocY != null) pts.push([L.x0, L.pocY], [L.x1, L.pocY]);
-    return pts;
-  };
-  P.hitHandle = function (px, py, proj, tol) {
-    const pts = this.handlePoints(proj), rad = Math.max(grab(), tol + 3);
-    let best = -1, bd = Infinity;
-    for (let i = 0; i < pts.length; i++) { const d = Math.hypot(px - pts[i][0], py - pts[i][1]); if (d <= rad && d < bd) { bd = d; best = i; } }
-    return best;
-  };
-  P.stkDragHandle = function (i, pt, orig) {
-    const a = this.anchors[0], b = this.anchors[1];
-    if (!a || !b || !orig || orig.length < 2) return;
-    a.time = orig[0].time; b.time = orig[1].time;
-    if (!this.__stkBox) { const t = i === 0 ? a : b; t.time = pt.time; t.price = pt.price; return; }
-    const left = orig[0].time <= orig[1].time ? a : b, right = left === a ? b : a;
-    const isLeft = i === 0 || i === 2 || i === 4;
-    (isLeft ? left : right).time = pt.time;
-  };
-  P.stkHandleCursor = function (i) { return i >= 4 ? 'ew-resize' : (i === 0 || i === 3) ? 'nwse-resize' : 'nesw-resize'; };
   const schema = P.schema;
   P.schema = function () { const s = schema.call(this); s.fields = s.fields.concat(extraFields(this)); return s; };
   const onPlaced = P.onPlaced;

@@ -8,7 +8,7 @@ import { t, done, vals, makeBars, nearArr, near, assert } from './zs-helpers.mjs
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 // Pull the indicator math section out of the vendored chart library (reference only; tests are not shipped).
-const lib = fs.readFileSync(path.join(ROOT, 'assets/vendor/vela-0.9.0-s8/chunk-XIRSR3D6.js'), 'utf8');
+const lib = fs.readFileSync(path.join(ROOT, 'assets/vendor/vela-0.9.0-s9/chunk-XIRSR3D6.js'), 'utf8');
 const a = lib.indexOf('// src/core/native-indicators/classics/math.ts'), b = lib.indexOf('// src/core/native-indicators/classics/shared.ts');
 assert.ok(a > 0 && b > a, 'reference section found');
 const scratch = path.join(process.env.TMPDIR || '/tmp', 'zs-ref-math.mjs');

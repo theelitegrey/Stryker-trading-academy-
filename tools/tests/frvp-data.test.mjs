@@ -11,6 +11,8 @@ const mins = [
 ];
 const r = deltaRows(mins, 0.25, 100, 1, 2, 0, 120000);
 assert.deepEqual([...r.d], [7, -5]);
+assert.deepEqual([...r.has], [1, 1]);
+assert.deepEqual([...deltaRows([mins[1]], 0.25, 100, 1, 2, 0, 120000).has], [1, 0]);   // row with no flow stays 0 (no data, not zero delta)
 assert.equal(r.used, 2);
 assert.equal(r.first, 0); assert.equal(r.last, 60000);
 assert.equal(deltaRows([], 0.25, 100, 1, 2, 0, 1).used, 0);

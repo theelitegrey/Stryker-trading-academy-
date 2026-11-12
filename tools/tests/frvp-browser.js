@@ -59,7 +59,7 @@ async function context(b, { w, h, mobile, theme, crypto }) {
   await ctx.route(/127\.0\.0\.1:\d+\/api\/chart\/stream/, (r) => r.abort());
   await ctx.route(/book-recorder\.theelitegrey\.workers\.dev\/.*/, (r) => {
     const u = new URL(r.request().url()); const hdr = { 'access-control-allow-origin': '*' };
-    const body = u.pathname === '/orderflow' && u.searchParams.get('sym') === 'NQ' && BODY[u.searchParams.get('day')];
+    const body = u.pathname === '/orderflow' && u.searchParams.get('sym') === 'NQ' && !(process.env.FR_GAP && u.searchParams.get('day') === '2026-10-20') && BODY[u.searchParams.get('day')];
     return body ? r.fulfill({ status: 200, contentType: 'application/octet-stream', headers: hdr, body }) : r.fulfill({ status: 404, headers: hdr, body: '' });
   });
   const p = await ctx.newPage();
@@ -119,7 +119,7 @@ const setProps = (p, patch) => p.evaluate((patch) => {
 }, patch);
 const shot = async (p, name) => { const f = path.join(OUT, MODE + '-' + name + '.png'); await p.screenshot({ path: f }); console.log('SHOT ' + f); };
 // a candle point inside the histogram zone that is NOT on a drawn row, a line or a handle
-function emptyCandlePoint(g, wholeBox) {
+function emptyCandlePoint(g, wholeBox, free) {
   const lo = wholeBox ? g.x0 : Math.min(g.anchorX, g.anchorX + g.grow * g.maxW), hi = wholeBox ? g.x1 : Math.max(g.anchorX, g.anchorX + g.grow * g.maxW);
   const rowW = (y) => { for (let k = 0; k < g.rows.length; k++) { const a = g.yEdges[k], b = g.yEdges[k + 1]; if (y >= Math.min(a, b) - 2 && y <= Math.max(a, b) + 2) return g.rows[k] / g.maxTotal * g.maxW; } return -1; };
   for (const b of g.bars.slice().reverse()) {
@@ -128,7 +128,8 @@ function emptyCandlePoint(g, wholeBox) {
     const w = rowW(y), w2 = Math.max(rowW(y - 3), rowW(y + 3));
     if (w < 0 || Math.abs(b.x - g.anchorX) < Math.max(w, w2) + 6) continue;
     if ([g.pocY, g.vahY, g.valY].some((ly) => ly != null && Math.abs(ly - y) < 12)) continue;
-    if (g.handles.some((hp) => Math.hypot(hp[0] - b.x, hp[1] - y) < 14)) continue;
+    if (g.handles.some((hp) => Math.hypot(hp[0] - b.x, hp[1] - y) < 22)) continue;   // 22 = finger-size corner handle reach (18) + margin
+    if (free && !free(b.x, y)) continue;
     return { x: b.x, y };
   }
   return null;
@@ -161,6 +162,7 @@ async function desktop(b, theme) {
   check(inside > 0, tag + ': POC line drawn inside the range', inside);
   if (AFTER) check(out0 === 0, tag + ': POC line stops at B by default (no ink right of B)', out0); else note(tag + ' (old code) ink on the POC line right of B', out0);
   await shot(p, tag + '-created');
+  { const r0 = g.frvp.rows; await setProps(p, { rows: 300 }); await sleep(600); await shot(p, tag + '-rows300-compare'); await setProps(p, { rows: r0 }); await sleep(400); }   // same range at 300 rows: before/after comparison shot
   // GK's case: B dropped in the empty space right of the newest candle. Lines must stop at the newest candle, not run on to B.
   {
     const g0 = await probe(p);
@@ -221,22 +223,63 @@ async function desktop(b, theme) {
   const gU = await probe(p);
   check(gU.anchors[1].time === b0, tag + ': undo puts B back', [b0, gU.anchors[1].time]);
   if (AFTER) {
+    // corner handles: 4 square handles on the range box; dragging one changes start / end time; the middle of the box still clicks through
+    g = await probe(p);
+    await p.evaluate((id) => window.STRYKER_VELA.chart.drawings.select([id]), g.id); await sleep(400);
+    g = await probe(p);
+    const top = Math.min(g.yEdges[0], g.yEdges[g.yEdges.length - 1]), bot = Math.max(g.yEdges[0], g.yEdges[g.yEdges.length - 1]);
+    const want = [[g.x0, top], [g.x1, top], [g.x0, bot], [g.x1, bot]];
+    check(want.every(([x, y], i) => g.handles[i] && Math.hypot(g.handles[i][0] - x, g.handles[i][1] - y) < 1), tag + ': handles 0-3 sit on the four corners of the range box', g.handles.slice(0, 4));
+    await shot(p, tag + '-corners');
+    const t0 = g.anchors.map((a) => a.time), left0 = Math.min(...t0), right0 = Math.max(...t0);
+    const drag = async (h, dx) => { await p.mouse.move(g.cr.x + h[0], g.cr.y + h[1]); await p.mouse.down(); await p.mouse.move(g.cr.x + h[0] + dx, g.cr.y + h[1] + 5, { steps: 8 }); await p.mouse.up(); await sleep(600); return probe(p); };
+    let gc = await drag(g.handles[2], 50);   // bottom-left corner moves the start in
+    check(Math.min(...gc.anchors.map((a) => a.time)) > left0 && Math.max(...gc.anchors.map((a) => a.time)) === right0, tag + ': dragging the bottom-left corner moves the start only', gc.anchors.map((a) => a.time));
+    await p.evaluate(() => window.STRYKER_VELA.chart.drawings.undo()); await sleep(400);
+    g = await probe(p); gc = await drag(g.handles[1], -50);   // top-right corner moves the end in
+    check(Math.max(...gc.anchors.map((a) => a.time)) < right0 && Math.min(...gc.anchors.map((a) => a.time)) === left0, tag + ': dragging the top-right corner moves the end only', gc.anchors.map((a) => a.time));
+    await p.evaluate(() => window.STRYKER_VELA.chart.drawings.undo()); await sleep(400);
+    g = await probe(p); gc = await drag(g.handles[0], 40);   // a corner never drags the profile: size changes, anchors move one at a time
+    check(Math.max(...gc.anchors.map((a) => a.time)) === right0, tag + ': top-left corner leaves the end alone', gc.anchors.map((a) => a.time));
+    await p.evaluate(() => window.STRYKER_VELA.chart.drawings.undo()); await sleep(400);
+    g = await probe(p);
+    const mid = emptyCandlePoint(g, true);
+    if (mid) { const hit = await p.evaluate(([x, y]) => !!window.STRYKER_VELA.chart.renderer.renderer.userDrawings.interaction.hitAt(x, y), [mid.x, mid.y]); check(!hit, tag + ': inside the box (not on a bar, line or corner) clicks through', hit); }
+    await p.evaluate(() => window.STRYKER_VELA.chart.drawings.select([])); await sleep(300);
+    // rows 24 / 100 / 300 on the live range: VAH / VAL stay close
+    const lv = [];
+    for (const n of [24, 100, 300]) { await setProps(p, { rows: n }); await sleep(600); const q = await p.evaluate(() => { const R = window.STRYKER_VELA.chart.renderer.renderer, d = R.userDrawings.drawings.find((x) => x.type === 'fixedrangevp'), L = d.layout(R.drawingProjector()), P = L.profile; return { vah: P.rows[P.vaTo].price + P.rowH, val: P.rows[P.vaFrom].price, min: P.min, max: P.min + P.rowH * P.rows.length }; }); lv.push(q); if (n === 300) await shot(p, tag + '-rows300'); if (n === 24) await shot(p, tag + '-rows24'); }
+    const rng = lv[0].max - lv[0].min, mv = Math.max(...lv.slice(1).map((q) => Math.max(Math.abs(q.vah - lv[0].vah), Math.abs(q.val - lv[0].val)))) / rng;
+    check(mv < 0.12, tag + ': rows 24 / 100 / 300: VAH and VAL stay within 12% of the range', [mv, lv]);
+    await setProps(p, { rows: 24 }); await sleep(400);
+    g = await probe(p);
+  }
+  if (AFTER) {
     // a click on a drawn histogram bar still selects (the profile body = its bars)
     g = await probe(p);
     const k = g.rows.indexOf(g.maxTotal), yk = (g.yEdges[k] + g.yEdges[k + 1]) / 2;
     const onBar = await p.evaluate(([x, y]) => !!window.STRYKER_VELA.chart.renderer.renderer.userDrawings.interaction.hitAt(x, y), [g.anchorX + g.grow * g.maxW * 0.5, yk]);
     check(onBar, tag + ': hit-test on its biggest histogram bar = the profile', [g.anchorX, yk]);
     // 3. thin rows: more rows -> some rows under 2 % of the biggest; their 1 px line is drawn
-    await setProps(p, { rows: 160 }); await sleep(700); g = await probe(p);
-    const thinK = g.rows.map((v, i) => [v, i]).filter(([v]) => v < 0.02 * g.maxTotal).map(([, i]) => i);
-    check(thinK.length > 0, tag + ': 160 rows give thin rows (' + thinK.length + ')', thinK.length);
+    // the profile now spreads each candle over every row it spans, so thin/empty rows only appear where candles leave gaps: take a short, gappy range
+    const a1 = g.anchors.map((q) => ({ ...q })), rawT = await p.evaluate(() => window.STRYKER_VELA.chart.orchestrator.rawBars.slice(-60).map((q) => q.time));
+    let gapT = null;
+    for (let w = 2; w <= 6 && !gapT; w++) for (let i = 0; i + w < rawT.length && !gapT; i++) {
+      await p.evaluate(([t0, t1, id]) => { const ch = window.STRYKER_VELA.chart, d = ch.drawings.all().find((x) => x.type === 'fixedrangevp'); ch.drawings.update(d.id, { anchors: [{ time: t0, price: d.anchors[0].price }, { time: t1, price: d.anchors[1].price }] }); }, [rawT[i], rawT[i + w]]);
+      await setProps(p, { rows: 500 }); await sleep(250); g = await probe(p);
+      if (g.rows.filter((v) => v < 0.02 * g.maxTotal).length > 5) gapT = [rawT[i], rawT[i + w]];
+    }
+    note('thin-row test range', gapT);
+    note('min row share of biggest', Math.min(...g.rows.filter((v) => v > 0)) / g.maxTotal); const thinK = g.rows.map((v, i) => [v, i]).filter(([v]) => v < 0.02 * g.maxTotal).map(([, i]) => i);
+    check(thinK.length > 0, tag + ': 500 rows give thin rows (' + thinK.length + ')', thinK.length);
     let thinInk = 0; for (const i of thinK.slice(0, 12)) thinInk += (await ink(p, g.anchorX + g.grow * 1, (g.yEdges[i] + g.yEdges[i + 1]) / 2, 1, 1.5)) > 0 ? 1 : 0;
     check(thinInk >= Math.min(thinK.length, 12) * 0.8, tag + ': thin rows drawn as a line (' + thinInk + ' of ' + Math.min(thinK.length, 12) + ')', thinInk);
     await shot(p, tag + '-thin');
     await setProps(p, { thinRows: false }); await sleep(500);
-    let off = 0; for (const i of thinK.filter((i) => !g.rows[i] && !g.rows[i - 1] && !g.rows[i + 1]).slice(0, 12)) off += (await ink(p, g.anchorX + g.grow * 1, (g.yEdges[i] + g.yEdges[i + 1]) / 2, 1, 1)) > 0 ? 1 : 0;
-    check(off === 0, tag + ': thin rows off: empty rows are gaps again', [off, thinK.filter((i) => !g.rows[i] && !g.rows[i - 1] && !g.rows[i + 1]).length]);
-    await setProps(p, { thinRows: true, rows: 60 }); await sleep(400);
+    const gapRows = thinK.filter((i) => [-3, -2, -1, 0, 1, 2, 3].every((o) => !g.rows[i + o]) && [g.pocY, g.vahY, g.valY].every((ly) => ly == null || Math.abs(ly - (g.yEdges[i] + g.yEdges[i + 1]) / 2) > 4));   // not on the POC / VAH / VAL lines
+    let off = 0; for (const i of gapRows.slice(0, 12)) off += (await ink(p, g.anchorX + g.grow * 1, (g.yEdges[i] + g.yEdges[i + 1]) / 2, 1, 0.4)) > 0 ? 1 : 0;
+    check(off === 0, tag + ': thin rows off: empty rows are gaps again', [off, gapRows.length]);
+    await setProps(p, { thinRows: true, rows: 60 }); await p.evaluate((a) => { const ch = window.STRYKER_VELA.chart, d = ch.drawings.all().find((x) => x.type === 'fixedrangevp'); ch.drawings.update(d.id, { anchors: a }); }, a1); await sleep(400);
     // 4. delta bars (order flow) + anchored VWAP with bands
     await setProps(p, { deltaBars: 'left', vwap: true, vwapSd1: true, vwapSd2: true });
     let gd = null; for (let i = 0; i < 30; i++) { await sleep(700); gd = await probe(p); if (gd.delta > 0) break; }
@@ -272,6 +315,28 @@ async function desktop(b, theme) {
   await ctx.close();
 }
 
+// Delta bars where order flow only covers the later part of the range (FR_GAP=1 drops 20 Oct): the uncovered rows get a dim dash + a note, not a bare grey bar.
+async function gap(b, theme, w, h) {
+  const tag = 'gap-' + w + '-' + theme;
+  const { ctx, p, errors } = await context(b, { w, h, mobile: w < 500, theme });
+  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await ready(p);
+  await setMarket(p, 'futures:NQ1!', '15'); await sleep(800);
+  await p.evaluate(() => {
+    const ch = window.STRYKER_VELA.chart, raw = ch.orchestrator.rawBars, a = raw[raw.length - 90], bb = raw[raw.length - 1];
+    ch.drawings.add('fixedrangevp', { paneId: 'price', anchors: [{ time: a.time, price: a.close }, { time: bb.time, price: bb.close }], props: { extendRight: false, thinRows: false, deltaBars: 'left' } });
+    const R = ch.renderer.renderer, n = raw.length; ch.setVisibleRange({ from: raw[n - 96].time, to: raw[n - 1].time + 4 * (raw[n - 1].time - raw[n - 2].time) });
+  });
+  let g = null; for (let i = 0; i < 25; i++) { await sleep(700); g = await probe(p); if (g.delta > 0) break; }
+  await sleep(500);
+  const st = await p.evaluate(() => { const d = window.STRYKER_VELA.chart.renderer.renderer.userDrawings.drawings.find((x) => x.type === 'fixedrangevp'); return { delta: d.__stkDelta ? d.__stkDelta.length : 0 }; });
+  note(tag + ' delta rows drawn', st.delta);
+  if (AFTER) { const q = await p.evaluate(() => document.querySelector('canvas') && true); check(!!q, tag + ': rendered'); }
+  await shot(p, tag);
+  check(!errors.length, tag + ': no console errors', errors.slice(0, 3));
+  await ctx.close();
+}
+
 async function phone(b) {
   const tag = '390-dark';
   const { ctx, p, errors } = await context(b, { w: 390, h: 844, mobile: true, theme: 'dark' });
@@ -292,7 +357,10 @@ async function phone(b) {
     check(out === 0 || g.x1 + 25 > g.width, tag + ': POC stops at B', out);
     check(g.delta > 0 && g.vwap && g.vwap.length === 5, tag + ': delta bars + VWAP drawn', [g.delta, g.vwap]);
   }
-  const pt = emptyCandlePoint(g) || emptyCandlePoint(g, true);
+  const freeAt = async (cands) => { for (const c of cands) if (!(await p.evaluate(([x, y]) => !!window.STRYKER_VELA.chart.renderer.renderer.userDrawings.interaction.hitAt(x, y), [c.x, c.y]))) return c; return null; };
+  // a candle point the profile does not draw on (bars, lines, VWAP, corner handles): the profile no longer owns it
+  const cands = g.bars.map((b) => ({ x: b.x, y: (b.o + b.c) / 2 })).filter((c) => c.x > g.x0 + 4 && c.x < g.x1 - 2 && !g.handles.some((h) => Math.hypot(h[0] - c.x, h[1] - c.y) < 22));
+  const pt = await freeAt(cands.reverse());
   check(!!pt, tag + ': found a candle inside the range, off the profile', pt);
   if (pt) {
     const a0 = JSON.stringify(g.anchors);
@@ -340,6 +408,7 @@ async function crypto(b) {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=700'] });
   try {
     const only = process.env.FR_ONLY ? process.env.FR_ONLY.split(',') : ['dark', 'light', 'phone', 'btc'];
+    if (only.includes('gap')) { await gap(b, 'dark', 1440, 900); await gap(b, 'light', 1440, 900); await gap(b, 'dark', 390, 844); }
     if (only.includes('dark')) await desktop(b, 'dark');
     if (only.includes('light')) await desktop(b, 'light');
     if (only.includes('phone')) await phone(b);

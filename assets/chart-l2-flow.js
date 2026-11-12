@@ -319,7 +319,9 @@ class L2Flow {
     if (!this.spec || this.spec.key !== spec.key) { this.unbind(); this.u = acquireHub(spec, bars[0].time, this.onAny); this.spec = spec; }
     const hub = this.u.h, tf = bars.length > 1 ? bars[bars.length - 1].time - bars[bars.length - 2].time : 60000;
     if (tf < 60000 || tf > 4 * 3600000) return this.say('Works on 1-minute to 4-hour charts.');
-    hub.feed.needRemote(bars[0].time);          // book history back to the left edge of the chart (the heatmap's own loader, one request in flight)
+    // book history back to the left edge of the chart (the heatmap's own loader, one request in flight); Big Trades also reaches back to its 24 h reference,
+    // the same span as its trades, or every order older than the book gets no W / C / P tag until the member drags the chart back (GK 12 Nov)
+    hub.feed.needRemote(this.type === 'stk_l2f_big' ? Math.min(bars[0].time, Date.now() - BT.REF_MS) : bars[0].time);
     if (hub.ts) hub.ts.need(Math.min(bars[0].time, Date.now() - BT.REF_MS));   // trade history back to the left edge, and at least Big Trades' 24 h reference
     const samples = hub.samples(), first = samples.length ? samples[0].ts : 0;
     const since = first && first > bars[0].time + 120000 ? 'Book history from ' + hhmm(first) : '';

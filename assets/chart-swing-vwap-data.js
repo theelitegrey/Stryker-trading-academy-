@@ -10,7 +10,7 @@
 // PROFILE. A leg's table is tick -> [buy, sell, approx]. Minutes that the trade feed covers (1-minute footprint bars, aggressor side per price)
 // are exact: buy / sell. Chart bars before the feed's first minute fall back to the bar volume spread evenly over the bar's low..high
 // ticks (approx, no side). `approx` > 0 anywhere marks the leg "approx". Nothing is made up: no feed and no volume = no profile.
-import { swingPivots } from './chart-of-pro-data.js?v=960';
+import { swingPivots } from './chart-of-pro-data.js?v=961';
 
 const EPS = 1e-9;
 

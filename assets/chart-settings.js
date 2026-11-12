@@ -687,7 +687,7 @@ const CSS = `
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar-thumb, .vela-dialog--settings .vela-sd-rail::-webkit-scrollbar-thumb{ background:rgba(128,128,128,.35); border-radius:6px; }
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar-thumb:hover{ background:rgba(128,128,128,.6); }
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar-track{ background:transparent; }
-.stkc-fl{ position:absolute; right:118px; bottom:36px; z-index:6; display:flex; gap:4px; opacity:.55; transition:opacity .15s; }
+.stkc-fl{ position:absolute; right:118px; bottom:36px; z-index:6; display:flex; gap:4px; opacity:.55; transition:opacity .15s; will-change:opacity; contain:layout style; }   /* own layer: the chart canvases repaint every tick, the pills must not be re-blended with them each frame */
 .stk-fp-stats .stkc-fl{ bottom:auto; top:8px; }   /* footprint: the bottom edge holds the delta/volume row and the last bar's cells */
 .vela-cell:hover .stkc-fl, .stkc-fl:focus-within{ opacity:1; }
 .stkc-fl button{ height:22px; padding:0 8px; border:1px solid rgba(255,255,255,.12); border-radius:6px; background:rgba(14,16,22,.78); color:#cfd6e4; font:600 11px/1 'Space Grotesk','Inter',system-ui,sans-serif; letter-spacing:.02em; cursor:pointer; }

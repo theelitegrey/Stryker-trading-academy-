@@ -7,6 +7,7 @@
 import { renko, range, lineBreak, kagi, pnf, sizeOf, guessTick } from './chart-types-math.js?v=975';
 import { tpoProfile, tpoLetter, autoRow, rthKey } from './chart-of-pro-data.js?v=975';
 import { drawTpoExtras, drawLabels, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=975';
+import { drawTpoExtras, drawLabels, steadyW, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=975';
 
 export const CT_TIME = ['stk_hollow', 'stk_volcandle', 'stk_linemark', 'stk_step', 'stk_hlcarea', 'stk_columns', 'stk_highlow'];
 export const CT_PRICE = ['stk_renko', 'stk_range', 'stk_linebreak', 'stk_kagi', 'stk_pnf'];
@@ -338,10 +339,10 @@ function profileDraw(kind) {
         const mk = s.k + '|' + row + '|' + sb.length + '|' + sb[sb.length - 1].close + '|' + periodMin + '|' + va + '|' + ibMs;
         let p = memo.get('p|' + s.k);
         if (!p || p.mk !== mk) { p = tpoProfile(sb, { periodMs: periodMin * 60000, row, va, ibPeriods: 2, ibMs }); if (!p) continue; p.mk = mk; memo.set('p|' + s.k, p); }
-        const xo = { I: settings, bars, s, p, periodMs: periodMin * 60000, va, tick, X, Y, x0, x1, W: co.width, pitch: f.pitch, last, top: f.top, bot: f.bot, phone, day, memo, mk, labels };
+        const xo = { I: settings, bars, s, p, periodMs: periodMin * 60000, va, tick, X, Y, x0, x1, W: co.width, pitch: f.pitch, last, top: f.top, bot: f.bot, phone, day, labels };
         if (x1 < 0) { drawTpoExtras(g, xo); continue; }
         const maxC = Math.max(...p.counts);
-        const cellW = settings.fixedWidth ? Math.min(span, phone ? 72 : 110) / Math.max(1, maxC) : Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
+        const cellW = settings.fixedWidth ? steadyW(ss.list, s, X, x0, co.width, phone) / Math.max(1, maxC) : Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
         const rowPx = Math.abs(Y(row) - Y(0)), letters = rowPx >= (phone ? 9 : 11) && cellW >= (phone ? 6 : 7);
         const fs = Math.max(7, Math.min(phone ? 9 : 11, Math.floor(Math.min(rowPx * .85, cellW * 1.2))));
         g.font = '600 ' + fs + 'px "JetBrains Mono", ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';

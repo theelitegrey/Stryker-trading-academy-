@@ -143,6 +143,9 @@ ok(P.tpoLetter(0) === 'A' && P.tpoLetter(12) === 'M' && P.tpoLetter(26) === 'a',
   ok(p.r0 === 100 && p.n === 9 && p.counts.join() === '2,2,2,1,1,1,3,3,2', 'TPO extras: hand profile counts', p.counts);
   ok(p.poc === 6 && p.periods === 5, 'TPO extras: POC = row 106 (3 TPOs, nearest the middle of the tie 106/107)', p.poc);
   const runs = P.tpoSingleRuns(p);
+  // a tail: rows 100..103 one TPO each at the bottom (reaching the low) is not a single print
+  const tail = P.tpoSingleRuns({ r0: 100, row: 1, n: 8, counts: [1, 1, 1, 1, 2, 1, 3, 1] });
+  ok(tail.length === 1 && tail[0].a === 5 && tail[0].z === 5, 'TPO extras: runs touching the session high / low are tails, not single prints', tail);
   ok(runs.length === 1 && runs[0].a === 3 && runs[0].z === 5 && runs[0].lo === 103 && runs[0].hi === 106, 'TPO extras: single prints 103-105 grouped into one run 103..106', runs);
   // poor extremes on exact prices: high 108 made in C and D (2 periods) = poor high; low 100 made in A and B = poor low
   const pe = P.tpoPoorExtremes(S, { periodMs: 30 * M, tick: 0.25 });
@@ -177,7 +180,7 @@ ok(P.tpoLetter(0) === 'A' && P.tpoLetter(12) === 'M' && P.tpoLetter(26) === 'a',
   const mid = P.tpoProfile(R.slice(0, 40), { row, periodMs: 1800000 });
   ok(dv.poc[39] === (mid.r0 + mid.poc + 0.5) * row, '21 Oct: developing POC at bar 40 = the profile of the first 40 bars ' + dv.poc[39]);
   const runs = P.tpoSingleRuns(T);
-  ok(runs.reduce((x, r) => x + r.z - r.a + 1, 0) === T.singles.length && runs.every((r) => T.counts.slice(r.a, r.z + 1).every((c) => c === 1)), '21 Oct: ' + runs.length + ' single-print runs cover all ' + T.singles.length + ' single rows');
+  ok(runs.every((r) => r.a > 0 && r.z < T.n - 1 && T.counts[r.a - 1] > 1 && T.counts[r.z + 1] > 1 && T.counts.slice(r.a, r.z + 1).every((c) => c === 1)), '21 Oct: ' + runs.length + ' single-print runs, each bounded by fuller rows on both sides');
   const pe = P.tpoPoorExtremes(R, { periodMs: 1800000, tick: 0.25 });
   const hiP = new Set(R.filter((b) => b.high === T.hi).map((b) => Math.floor((b.time - R[0].time) / 1800000)));
   const loP = new Set(R.filter((b) => b.low === T.lo).map((b) => Math.floor((b.time - R[0].time) / 1800000)));

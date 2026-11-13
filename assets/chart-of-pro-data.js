@@ -220,13 +220,16 @@ export function tpoDeveloping(bars, { periodMs = 1800000, row, va = 70 } = {}) {
   }
   return out;
 }
-// Single-print rows of a profile (p.singles) grouped into runs of touching rows: [{ a, z, lo, hi }]
+// Single prints: runs of touching rows with exactly one TPO inside the profile. A run that reaches the
+// session high or low is a tail (an extreme), not a single print, so it is left out. [{ a, z, lo, hi }]
 // (a..z row indexes, lo..hi the price span they cover).
 export function tpoSingleRuns(p) {
   const out = [];
-  for (const k of p.singles) {
-    const r = out[out.length - 1];
-    if (r && r.z === k - 1) { r.z = k; r.hi = (p.r0 + k + 1) * p.row; } else out.push({ a: k, z: k, lo: (p.r0 + k) * p.row, hi: (p.r0 + k + 1) * p.row });
+  let a = -1;
+  for (let k = 0; k <= p.n; k++) {
+    if (k < p.n && p.counts[k] === 1) { if (a < 0) a = k; continue; }
+    if (a > 0 && k < p.n) out.push({ a, z: k - 1, lo: (p.r0 + a) * p.row, hi: (p.r0 + k) * p.row });
+    a = -1;
   }
   return out;
 }

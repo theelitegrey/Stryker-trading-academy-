@@ -32,7 +32,7 @@
 const PINETS = 'https://cdn.jsdelivr.net/npm/pinets@0.11.0/dist/pinets.min.browser.es.js';
 const VELA_PINETS = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
 // The page passes &vela=090 while the admin 0.9.0 trial is on (same folder as its import map).
-const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s8/plugin.js' : '/assets/vendor/vela-0.6.17-s4/plugin.js', self.location.href).href;
+const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s9/plugin.js' : '/assets/vendor/vela-0.6.17-s4/plugin.js', self.location.href).href;
 
 const post = (m) => self.postMessage(m);
 // BUSY signal: tells the page when a script is computing here ({kind:'busy', on}), so the page

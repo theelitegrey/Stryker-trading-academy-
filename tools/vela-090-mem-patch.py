@@ -53,7 +53,7 @@ edit(C, '''  /** Blank one SDK layer canvas (a collapsed host pane suppresses th
   stkLayerFit(l) {
     const d = this.stkDev, c = l.canvas;
     if (!d || !c) return;
-    const live = l.owner !== null || this.scene.nativeData.get(l.channel) != null || !!this.layerOwner(l);
+    const live = l.owner !== null || this.scene.nativeData.get(l.channel) != null || !!this.layerOwner(l) || (l.owner === null && l.def.id === this.scene.priceStyle);   // TradeZoro: the layer that paints the ACTIVE chart type (TPO, Session volume profile, Hollow, ...) has no owner indicator and no data, but it is live
     const w = live ? d.bw : 0, h = live ? d.bh : 0;
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
     if (live) { c.style.width = `${d.pw}px`; c.style.height = `${d.ph}px`; }

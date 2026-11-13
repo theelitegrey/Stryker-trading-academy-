@@ -129,7 +129,8 @@ function sessionKey(ms, mode, futures) {
   const ethDay = p.min >= ETH_OPEN ? nextDay(p.day) : p.day;
   const inEth = p.min >= ETH_OPEN || p.min < RTH_OPEN;
   if (mode === 'eth') return inEth ? ethDay + 'E' : null;
-  if (mode === 'both') return rth ? p.day + 'R' : (inEth ? ethDay + 'E' : null);
+  // both: the 16:00-18:00 gap joins the overnight profile, so the newest bar always belongs to a session
+  if (mode === 'both') return rth ? p.day + 'R' : (p.min >= RTH_CLOSE ? nextDay(p.day) : p.day) + 'E';
   return ethDay + 'D';
 }
 
@@ -215,11 +216,11 @@ const line = (id, title, bars, values, color, width, style) => ({
 // ---------------------------------------------------------------------------------------
 // Session Volume Profile (native indicator + renderer layer 'stk_svp')
 // ---------------------------------------------------------------------------------------
-const SVP_DEF = { session: 'rth', rowTicks: 4, rows: 40, valueAreaPct: 70, widthPct: 40, showVa: true, showPoc: true,
+const SVP_DEF = { session: 'both', rowTicks: 4, rows: 40, valueAreaPct: 70, widthPct: 40, showVa: true, showPoc: true,
   color: '#5b9cf6', vaColor: '#5b9cf6', pocColor: '#ff9800' };
 const SVP_SCHEMA = [
   { key: 'session', title: 'Sessions (futures)', type: 'string', defval: SVP_DEF.session, options: ['rth', 'eth', 'both', 'day'],
-    tooltip: 'rth = 09:30-16:00 New York; eth = overnight 18:00-09:30; both = RTH and overnight separately; day = the full 18:00-17:00 trading day. Crypto always uses the UTC day.' },
+    tooltip: 'rth = 09:30-16:00 New York (nothing outside those hours); eth = overnight 18:00-09:30; both = RTH and overnight separately (default, always shows the current session); day = the full 18:00-17:00 trading day. Crypto always uses the UTC day.' },
   { key: 'rowTicks', title: 'Row size (ticks, futures)', type: 'int', defval: SVP_DEF.rowTicks, min: 1, max: 400, step: 1 },
   { key: 'rows', title: 'Rows per session (crypto)', type: 'int', defval: SVP_DEF.rows, min: 6, max: 200, step: 1 },
   { key: 'valueAreaPct', title: 'Value area %', type: 'int', defval: SVP_DEF.valueAreaPct, min: 10, max: 100, step: 1 },
@@ -231,7 +232,7 @@ const SVP_SCHEMA = [
   { key: 'pocColor', title: 'POC colour', type: 'color', defval: SVP_DEF.pocColor }
 ];
 const svpConfig = (inputs, mk) => ({
-  session: ['rth', 'eth', 'both', 'day'].includes(inputs.session) ? inputs.session : 'rth',
+  session: ['rth', 'eth', 'both', 'day'].includes(inputs.session) ? inputs.session : SVP_DEF.session,
   rowTicks: clamp(Math.round(num(inputs.rowTicks, 4)), 1, 400),
   rows: clamp(Math.round(num(inputs.rows, 40)), 6, 200),
   va: clamp(num(inputs.valueAreaPct, 70), 10, 100) / 100,
@@ -331,8 +332,10 @@ function svpLayer() {
       g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
       const light = themeIsLight(a.theme);
       for (const s of sessions) {
-        const x0 = co.timeToX(s.t0) - half, x1 = co.timeToX(s.t1) + half;
-        if (x1 < 0 || x0 > W) continue;
+        const sx0 = co.timeToX(s.t0) - half, x1 = co.timeToX(s.t1) + half;
+        if (x1 < 0 || sx0 > W) continue;
+        // a long session (overnight is ~15 h) starts off-screen: anchor the profile at the visible left edge so the current session is always seen
+        const x0 = Math.max(sx0, 0);
         const p = s.prof;
         const maxW = Math.max(4, (x1 - x0) * cfg.widthFrac);
         for (const price of p.prices) {

@@ -904,9 +904,43 @@ function lateLists(provider){
     };
     look();
   }
-  // LATE LAYERS (see lateLayers): patch the renderer prototype once (shared by every cell, so grid
+  // VISUAL ORDER (member ask 2026-11-12: "bring the Zoro levels to the front, above the Delta"). Vela's legend menu
+// only offers one-step "Bring in front of X". The four steps members know replace it: Bring to front, Bring
+// forward, Send backward, Send to back. They run on Vela's own stack (stackApi), so the order is the scene z keys:
+// saved with the chart, the layout and the workspace like any other chart setting; old charts keep their keys.
+// Same stack for Pine and native indicators and for every canvas layer an indicator owns (levels, delta, order flow).
+// Study-pane rows have no stack, so no items there.
+const ZORDER_ITEMS = [['front', 'Bring to front'], ['forward', 'Bring forward'], ['backward', 'Send backward'], ['back', 'Send to back']];
+function zorderRun(api, id, how) {
+  if (!api) return false;
+  const up = how === 'front' || how === 'forward', one = how === 'forward' || how === 'backward';
+  for (let i = 0; i < 64; i++) {
+    if ((up ? api.above(id) : api.below(id)) === null) break;
+    (up ? api.raise : api.lower)(id);
+    if (one) break;
+  }
+  return true;
+}
+function zorderCan(api, id, how) { return !!api && ((how === 'front' || how === 'forward') ? api.above(id) : api.below(id)) !== null; }
+window.__stkZOrder = { items: ZORDER_ITEMS, run: zorderRun, can: zorderCan };
+function visualOrder(R) {
+  const proto = R && R.inputsUI && Object.getPrototypeOf(R.inputsUI);
+  if (!proto || proto.__stkZOrder || typeof proto.stackItems !== 'function') return;
+  proto.__stkZOrder = true;
+  const runStackItem = proto.runStackItem;
+  proto.stackItems = function (id) {
+    const api = this.stackApi;
+    if (!api || (api.above(id) === null && api.below(id) === null)) return [];
+    return ZORDER_ITEMS.map(([how, label]) => ({ id: 'stk-z:' + how, label, disabled: !zorderCan(api, id, how) }));
+  };
+  proto.runStackItem = function (itemId, rowId) {
+    if (typeof itemId === 'string' && itemId.startsWith('stk-z:')) return zorderRun(this.stackApi, rowId, itemId.slice(6));
+    return runStackItem.apply(this, arguments);
+  };
+}
+// LATE LAYERS (see lateLayers): patch the renderer prototype once (shared by every cell, so grid
   // cells added later are covered too).
-  try { for (const c of ws.context().cells) { const r = c.chart.renderer; lateLayers(r && r.extLayers ? r : r && r.renderer); } } catch (e) { console.warn('TradeZoro: late layers', e); }
+  try { for (const c of ws.context().cells) { const r = c.chart.renderer; const R = r && r.extLayers ? r : r && r.renderer; lateLayers(R); visualOrder(R); } } catch (e) { console.warn('TradeZoro: late layers', e); }
 
   // charts?symbol=NQ&date=2026-10-28 (from /market-stats): open that session on the chart.
   if (MSess && !BT) { try { MSess.openSessionFromLink(ws); } catch (e) { console.warn('TradeZoro: market stats link', e); } }

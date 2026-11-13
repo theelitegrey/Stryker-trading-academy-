@@ -118,7 +118,7 @@ export const LEVEL_DEFS = [
 
 // glossary names (spec section 1) used when the ZoroOptions flag is on
 const ZORO_NAMES = { call: 'CALL CEILING', zero: 'FLIP LINE', put: 'PUT FLOOR', w0c: '0DTE CALL CEILING', w0p: '0DTE PUT FLOOR' };
-const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days', G6 = 'Zoro Levels', G7 = 'Live levels (futures charts)';
+const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days', G6 = 'Zoro Levels', G7 = 'Live levels (futures charts)', G8 = 'Levels to show', G9 = 'Gamma regime';
 const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', defval, group, inline });
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 export const BASIS_DAY = 'Updated through the day', BASIS_CLOSE = 'Daily close';
@@ -144,6 +144,15 @@ const SCHEMA = [
   { key: 'rankedCount', title: 'Ranked strikes shown', type: 'string', defval: '5', options: ['5', '10'], group: G5 },
   tog('showPrev', 'Previous days\u2019 big levels', true, G5),
   { key: 'prevDays', title: 'Previous days (0-5)', type: 'int', defval: 2, min: 0, max: 5, step: 1, group: G5 },
+  // Levels to show (Owner-queue FR 2026-11-13): cut clutter. All off by default = the chart looks as before.
+  { key: 'onlyGamma', title: 'Only gamma levels (hide market, IV and previous-day lines)', type: 'bool', defval: false, group: G8,
+    tooltip: 'Off: every level you switched on is drawn. On: only the gamma levels stay (call wall, zero gamma, put wall, 0DTE walls, ranked and big strikes, open-interest strikes, gamma profile). Market levels (pVAH, pPOC, pVAL, ONH, ONL, HOD, LOD, session highs and lows), IV ranges and previous days are hidden. Their own switches are not changed.' },
+  tog('showOi', 'Top strikes by open interest', false, G8),
+  { key: 'oiCount', title: 'Top N by open interest (1-10)', type: 'int', defval: 5, min: 1, max: 10, step: 1, group: G8,
+    tooltip: 'How many strikes with the most open contracts to draw, tagged \"OI #1\", \"OI #2\" and so on. Top N by GEX is \"Ranked strikes shown\" under Ranked + previous days.' },
+  // Gamma regime badge (Owner-queue FR 2026-11-13): total net GEX and the regime, from the same data as the GEX page.
+  { key: 'showRegime', title: 'Net GEX and gamma regime badge', type: 'bool', defval: false, group: G9,
+    tooltip: 'Shows the total net gamma exposure and the regime above the updated text. Positive gamma: dealers are estimated to be long gamma, so their hedging tends to lean against price moves (pinning). Negative gamma: dealers are estimated to be short gamma, so their hedging tends to move with price (bigger swings). A model estimate, not a signal. Education only. Not financial advice.' },
   // ZoroOptions (page flag): Gamma Nodes 1-10, Zoro Range for every expiry, Pin Strike. Off by default.
   tog('showNodes', 'Gamma Nodes 1-10', false, G6),
   { key: 'nodeCount', title: 'Gamma Nodes shown', type: 'int', defval: 10, min: 1, max: 10, step: 1, group: G6 },
@@ -285,8 +294,10 @@ export function buildLevels(data, src, opts, shift, extra) {
   const r = (v) => (isNum(v) ? Math.round(v * 100) / 100 : null);
   const out = { lines: [], band: null, noSession: false };
   const srcNote = (raw) => (src.fut && isNum(raw) ? ' (' + src.api + ' ' + fmtLevel(Math.round(raw * 100) / 100) + ')' : '');
+  const only = on('onlyGamma');
+  const GAMMA_IDS = ['call', 'zero', 'put', 'w0c', 'w0p'];
   for (const d of LEVEL_DEFS) {
-    if (!on(d.on)) continue;
+    if (!on(d.on) || (only && !GAMMA_IDS.includes(d.id))) continue;
     const live = src.fut && opts.liveOvernight === true && extra && extra.run && extra.run.on && (d.id === 'onh' || d.id === 'onl') ? extra.run.on : null;
     if (d.src === 'ses' && !S && !live) { out.noSession = true; continue; }
     const v = live ? (d.id === 'onh' ? live.hi : live.lo) : d.src === 'ses' ? S[d.f] : L[d.f];
@@ -296,7 +307,7 @@ export function buildLevels(data, src, opts, shift, extra) {
     out.lines.push({ id: d.id, label: zl || (live ? d.label + ' (live)' : d.id === 'zero' && on('showRanked') ? 'ZERO GAMMA \u00b7 Flip' : d.label), price: r(v), note, col: d.col, dash: d.dash, w: d.w });
   }
   const day = src.fut && extra && extra.run && extra.run.day;
-  if (day) [['hod', 'showHod', 'hodColor', 'HOD', day.hi], ['lod', 'showLod', 'lodColor', 'LOD', day.lo]].forEach(([id, k, c, label, v]) => {
+  if (day && !only) [['hod', 'showHod', 'hodColor', 'HOD', day.hi], ['lod', 'showLod', 'lodColor', 'LOD', day.lo]].forEach(([id, k, c, label, v]) => {
     if (on(k) && isNum(v)) out.lines.push({ id, label, price: r(v), note: '', col: c, dash: 'solid', w: 1 });
   });
   // Top 10 ranked strikes (ladder already in the response) and previous days' big levels (history).
@@ -309,18 +320,26 @@ export function buildLevels(data, src, opts, shift, extra) {
       if (isNum(p)) out.lines.push({ id: 'rk' + x.rank, label: '#' + x.rank + ' ' + x.role, price: r(p), note: '', col: null, rgb: x.g < 0 ? RANK_COL.neg : (x.role === 'Magnet' ? RANK_COL.mag : RANK_COL.pos), dash: 'dotted', w: x.role === 'Magnet' ? 2 : 1, rank: x.rank, share: x.share, alpha: 0.35 + 0.55 * x.share, ranked: true });
     });
   }
-  if (on('showPrev') && extra && Array.isArray(extra.prev)) {
+  if (!only && on('showPrev') && extra && Array.isArray(extra.prev)) {
     extra.prev.forEach((d, di) => d.top.forEach((x, i) => {
       const p = conv(x.strike);
       if (isNum(p)) out.lines.push({ id: 'pv' + di + '_' + i, label: dayTag(d.day, x.g), price: r(p), note: '', col: null, rgb: x.g < 0 ? RANK_COL.neg : RANK_COL.pos, dash: 'dotted', w: 1, alpha: 0.5, faint: true });
     }));
+  }
+  if (on('showOi') && Array.isArray(data.ladder)) {
+    const n = Math.max(1, Math.min(10, Math.round(num(opts.oiCount, 5))));
+    data.ladder.filter((x) => x && isNum(x.strike) && isNum(x.oi) && x.oi > 0).sort((a, b) => b.oi - a.oi || a.strike - b.strike).slice(0, n)
+      .forEach((x, i) => {
+        const p = conv(x.strike);
+        if (isNum(p)) out.lines.push({ id: 'oi' + (i + 1), label: 'OI #' + (i + 1), price: r(p), note: '', col: null, rgb: GEX_COLORS.strike, dash: 'dotted', w: 1, alpha: 0.9 });
+      });
   }
   if (extra && extra.zoro) ZD.zoroLines(extra.zoro, conv, opts, on).forEach((l) => out.lines.push(l));
   else if (on('showNodes') && Array.isArray(data.ladder) && !out.lines.some((l) => l.id === 'zn1')) {
     // no Zoro summary (flag off, or replay): rank the ladder the response already has
     ZD.zoroLines({ nodes: ZD.zsum({ nodes: data.ladder.filter((x) => x && isNum(x.strike) && isNum(x.gex)).map((x) => ({ k: x.strike, g: x.gex })) }).nodes, ranges: [], pin: null }, conv, opts, on).forEach((l) => out.lines.push(l));
   }
-  if (on('showEm') && isNum(L.iv68_lo) && isNum(L.iv68_hi)) out.band = { lo: r(L.iv68_lo), hi: r(L.iv68_hi) };
+  if (!only && on('showEm') && isNum(L.iv68_lo) && isNum(L.iv68_hi)) out.band = { lo: r(L.iv68_lo), hi: r(L.iv68_hi) };
   if (on('showStrikes') && Array.isArray(data.ladder)) {
     const skip = new Set([data.call_wall, data.put_wall].filter(isNum));
     data.ladder.filter((x) => x && isNum(x.strike) && isNum(x.gex) && x.gex !== 0 && !skip.has(x.strike))
@@ -412,6 +431,19 @@ export function agoText(tsSec, nowMs) {
   const h = Math.floor(min / 60);
   if (h < 48) return 'GEX updated ' + h + ' h ago';
   return 'GEX updated ' + Math.floor(h / 24) + ' days ago';
+}
+
+// Pure: the regime badge text from one API response, same numbers as the GEX page (net_gex, regime).
+// \"Net GEX +2.10B · Positive gamma · GEX live\"; null when the response has no net GEX. Never \"delayed\".
+export function regimeBadge(data, nowMs) {
+  if (!data || !isNum(data.net_gex)) return null;
+  const v = data.net_gex, a = Math.abs(v);
+  const pos = data.regime ? data.regime === 'POSITIVE' : v > 0;
+  const amt = (v < 0 ? '-' : '+') + (a >= 1e9 ? (a / 1e9).toFixed(2) + 'B' : (a / 1e6).toFixed(0) + 'M');
+  const ago = agoText(dataTime(data), nowMs).replace(/^GEX /, '');
+  const base = 'Net GEX ' + amt + ' \u00b7 ' + (pos ? 'Positive' : 'Negative') + ' gamma';
+  const short = 'Net GEX ' + amt + ' \u00b7 ' + (pos ? 'Positive' : 'Negative');
+  return { pos, text: base + ' \u00b7 ' + (ago === 'live' ? 'GEX live' : ago), short };
 }
 
 // ---- shared fetch cache (one per API market + expiry) ------------------------------------
@@ -766,6 +798,7 @@ class GexNative {
             priceTags: i.priceTags !== false,
             showStatus: i.showStatus !== false,
             shift: lv.shift || 0,
+            regime: i.showRegime === true && !data.close ? regimeBadge(data) : null,
             statusShort: data.close ? closeShortForms(data, src) : statusShortForms(dataTime(data), data, src, opts),
             status: (data.close ? closeText(data) : agoText(dataTime(data))) + ' · ' + statusWhat(data, src, dte, opts) + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ/GC charts' : '')
           };
@@ -987,7 +1020,7 @@ export function layoutTags(groups, top, bot) {
   return groups;
 }
 function gexLayer() {
-  let canvas = null, chip = null, last = '', lastTags = [];
+  let canvas = null, chip = null, reg = null, regLast = '', last = '', lastTags = [];
   function ensureChip() {
     if (chip || !canvas || !canvas.parentElement) return chip;
     chip = document.createElement('div');
@@ -1005,6 +1038,24 @@ function gexLayer() {
       if (fl) { const r = fl.getBoundingClientRect(), pr = c.parentElement.getBoundingClientRect(); return r.width > 0 ? r.left - pr.left : null; }
     }
     return null;
+  }
+  // Net GEX / regime badge: a second small chip just above the updated-text chip (bottom-left).
+  function paintRegime(d, bottomPx, plotW) {
+    if (!reg && canvas && canvas.parentElement) { reg = document.createElement('div'); reg.className = 'stk-gex-chip stk-gex-regime'; reg.hidden = true; canvas.parentElement.appendChild(reg); }
+    if (!reg) return;
+    const r = d && !d.note && !d.pill ? d.regime : null;
+    const narrow = plotW > 0 && plotW < 520;
+    const k = r ? JSON.stringify([r.text, narrow, bottomPx, d.showStatus !== false]) : '';
+    if (k === regLast) return;
+    regLast = k;
+    if (!r) { reg.hidden = true; return; }
+    reg.hidden = false; reg.style.left = '8px'; reg.style.right = 'auto';
+    reg.style.bottom = (bottomPx + (d.showStatus !== false && d.status ? 24 : 0)) + 'px';
+    reg.style.maxWidth = narrow ? Math.floor(plotW - 16) + 'px' : '';
+    reg.textContent = '';
+    const dot = document.createElement('span'); dot.className = 'stk-gex-dot ' + (r.pos ? 'is-pos' : 'is-neg'); reg.appendChild(dot);
+    reg.appendChild(document.createTextNode(narrow ? r.short : r.text));
+    reg.title = r.text;
   }
   function paintChip(d, rightPx, bottomPx, plotW) {
     const c = ensureChip();
@@ -1056,6 +1107,7 @@ function gexLayer() {
       const W = a.coords.width;
       const fullW = canvas.width / dpr, fullH = canvas.height / dpr;
       paintChip(d, Math.max(0, fullW - W) + 8, Math.max(0, fullH - (a.bounds.top + a.bounds.height)) + 8, W);
+      paintRegime(d, Math.max(0, fullH - (a.bounds.top + a.bounds.height)) + 8, W);
       if (!d || !d.lines) { const ph = profHosts.get(canvas.parentElement); if (ph) ph.set(null); return; }
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const top = a.bounds.top, bot = top + a.bounds.height;
@@ -1151,7 +1203,7 @@ function gexLayer() {
         g.restore();
       }
     },
-    destroy() { if (chip) chip.remove(); chip = null; canvas = null; },
+    destroy() { if (chip) chip.remove(); chip = null; if (reg) reg.remove(); reg = null; regLast = ""; canvas = null; },
     // Test hook: the label boxes painted last frame.
     tags() { return lastTags; }
   };

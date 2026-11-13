@@ -1,0 +1,31 @@
+// GEX Levels: "Levels to show" (only gamma / top-N open interest) + regime badge. Pure node:  node tools/tests/chart-gex-fr.test.mjs
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { buildLevels, regimeBadge, gexSource } from '../../assets/chart-gex-levels.js';
+let n = 0;
+const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS', m); };
+const d = JSON.parse(fs.readFileSync(new URL('./fixtures/gex/SPX-0.json', import.meta.url)));
+const src = gexSource('SPX');
+const ids = (o, extra) => buildLevels(d, src, o, null, extra).lines.map((l) => l.id);
+const base = ids({});
+ok(!base.some((x) => /^oi/.test(x)), 'default: no open-interest lines (saved charts unchanged)');
+ok(JSON.stringify(ids({ onlyGamma: false, showOi: false })) === JSON.stringify(base), 'new options off = identical lines');
+const oi = buildLevels(d, src, { showOi: true, oiCount: 3 }).lines.filter((l) => /^oi/.test(l.id));
+const top = d.ladder.filter((x) => x.oi > 0).sort((a, b) => b.oi - a.oi || a.strike - b.strike).slice(0, 3).map((x) => x.strike);
+ok(oi.length === 3 && oi.map((l) => l.price).join() === top.join(), 'top 3 by open interest = the 3 biggest OI strikes, in order');
+ok(buildLevels(d, src, { showOi: true, oiCount: 99 }).lines.filter((l) => /^oi/.test(l.id)).length === 10, 'Top N is capped at 10');
+const g = ids({ onlyGamma: true, showStrikes: true, showEm: true, showRanked: false }, { prev: [{ day: '2026-11-12', top: [{ strike: d.call_wall, g: 1 }] }] });
+ok(g.every((x) => ['call', 'zero', 'put'].includes(x) || /^strike/.test(x)), 'only gamma: market, IV and previous-day lines hidden: ' + g.join(','));
+ok(g.includes('call') && g.includes('zero') && g.includes('put'), 'only gamma keeps call wall, zero gamma, put wall');
+ok(buildLevels(d, src, { onlyGamma: true, showEm: true }).band === null, 'only gamma hides the 68% band');
+// regime badge
+const T = d.market.options_ts;
+let r = regimeBadge({ net_gex: 2.1e9, regime: 'POSITIVE', market: { options_ts: T } }, T * 1000 + 10000);
+ok(r.pos && r.text === 'Net GEX +2.10B \u00b7 Positive gamma \u00b7 GEX live', 'under 1 min: "GEX live": ' + r.text);
+r = regimeBadge(d, (T + 300) * 1000);
+ok(!r.pos && r.text === 'Net GEX -5.68B \u00b7 Negative gamma \u00b7 updated 5 min ago', 'negative + "updated X min ago": ' + r.text);
+ok(!/delayed/i.test(r.text), 'never says delayed');
+ok(r.short === 'Net GEX -5.68B \u00b7 Negative', 'phone form is short: ' + r.short);
+ok(regimeBadge({}, 0) === null && regimeBadge(null, 0) === null, 'no net GEX = no badge');
+ok(regimeBadge({ net_gex: 4e8, regime: 'POSITIVE', market: { options_ts: T } }, T * 1000).text.startsWith('Net GEX +400M'), 'under 1B shows millions');
+console.log(n + ' tests passed');

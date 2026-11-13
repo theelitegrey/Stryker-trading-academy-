@@ -1,8 +1,9 @@
 // Charts phase 3 smoke test: Pine Script editor + engine, against
-// tools/tests/chart-dev-server.mjs. Needs network (jsDelivr + Yahoo).
+// tools/tests/chart-dev-server.mjs. Needs network for jsDelivr only (Binance is mocked offline).
 //   CHART_BASE=http://localhost:8041 node tools/tests/chart-pine-browser.js [shotsDir]
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
+const binanceMock = require('./binance-mock.js');
 const fs = require('fs');
 const path = require('path');
 const BASE = process.env.CHART_BASE || 'http://localhost:8031';
@@ -17,11 +18,16 @@ async function open(b, { w, h, mobile, keepStorage, ctx: reuse }) {
     await ctx.addInitScript(stub);
     await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
     await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
+    // The default chart is binance:BTCUSDT. With the network cut (and Binance 451 from the US) it never gets bars,
+    // and Pine then waits on data until the 20 s limit. Serve the offline fixture (later route wins over the abort above).
+    await binanceMock.install(ctx);
   }
   const p = await ctx.newPage();
   const errors = [];
   // Vela logs every failed script run itself ("[vela] indicator ... failed"): expected for the broken fixtures.
-  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|\[vela\] indicator "ind-\d+" failed/.test(m.text())) errors.push(m.text()); });
+  // 404s: the static dev server has no Pages Functions (/connect/*/token probes, /api/vest), so those probes 404 here only.
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|status of 404|\[vela\] indicator "ind-\d+" failed/.test(m.text())) errors.push(m.text()); });
+  if (process.env.SHOW404) p.on('response', (r) => { if (r.status() === 404) console.log('404 ' + r.url()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 40000 });
@@ -51,8 +57,8 @@ const fitCheck = async (p, tag) => {
   const g = await p.evaluate(() => {
     const pn = document.getElementById('stkc-pine').getBoundingClientRect();
     const host = document.querySelector('.stkchart-panel').getBoundingClientRect();
-    const acts = document.querySelector('.stkc-pine-acts').getBoundingClientRect();
-    const btns = [...document.querySelectorAll('.stkc-pine-acts button')].map((b) => b.getBoundingClientRect());
+    const acts = document.querySelector('#stkc-pine .stkc-pine-acts').getBoundingClientRect();
+    const btns = [...document.querySelectorAll('#stkc-pine .stkc-pine-acts button')].map((b) => b.getBoundingClientRect());
     const ed = document.querySelector('.stkc-pine-ed').getBoundingClientRect();
     const hd = document.querySelector('.stkc-pine-hd').getBoundingClientRect();
     return { pt: Math.round(pn.top), pb: Math.round(pn.bottom), ht: Math.round(host.top), ab: Math.round(acts.bottom), bb: Math.round(Math.max(...btns.map((b) => b.bottom))), bh: Math.round(Math.min(...btns.map((b) => b.height))), edh: Math.round(ed.height), hdt: Math.round(hd.top), vh: innerHeight, docH: document.documentElement.scrollHeight };

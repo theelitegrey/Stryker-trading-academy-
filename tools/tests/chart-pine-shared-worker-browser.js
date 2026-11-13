@@ -5,6 +5,8 @@ const { launch } = require('./lib.js');
 const { openPhone } = require('./phone-mem-lib.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8190', HUB = process.env.HUB || 'http://127.0.0.1:8191';
 let fails = 0; const check = (ok, m) => { console.log((ok ? 'PASS ' : 'FAIL ') + m); if (!ok) fails++; };
+// The page imports the hub as ?v=<build>; a different ?v= here would load a second, empty copy of the module.
+const BUILD = require('../../assets/version.json').build;
 const SRC = (n) => `//@version=5\nindicator("shared ${n}", overlay=true)\nplot(ta.sma(close, ${n}))`;
 (async () => {
   const b = await launch();
@@ -13,7 +15,7 @@ const SRC = (n) => `//@version=5\nindicator("shared ${n}", overlay=true)\nplot(t
     await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 180000, polling: 250 });
     await p.evaluate(() => window.STRYKER_CHART_UI.setLayout('2h')); await p.waitForTimeout(4000);
     const run = (i, src) => p.evaluate(async ([i, src]) => { const c = window.STRYKER_VELA.context().cells[i].chart; let r; try { r = await window.STRYKER_PINE.runOnChart(c, src, undefined, false, { engine: 'next', builtin: true }); } catch (e) { return 'threw ' + (e && e.message); } return r && r.ok ? 'ok' : JSON.stringify(r); }, [i, src]);
-    const hub = () => p.evaluate(async () => (await import('/assets/chart-pine-next.js?v=959')).sharedWorkerState());
+    const hub = () => p.evaluate(async (v) => (await import('/assets/chart-pine-next.js?v=' + v)).sharedWorkerState(), BUILD);
     const workers = () => p.evaluate(() => performance.getEntriesByType('resource').filter((e) => /chart-pine-next-worker\.js/.test(e.name)).length);
     const plots = (i) => p.evaluate((i) => { const c = window.STRYKER_VELA.context().cells[i].chart; return window.STRYKER_PINE.pineHandles(c).length; }, i);
     for (const [i, sym] of [[0, 'NQ1!'], [1, 'ES1!']]) await p.evaluate(async ([i, sym]) => {

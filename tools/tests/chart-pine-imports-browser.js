@@ -41,6 +41,7 @@ async function page(b, w, h, extra){
   await ctx.addInitScript(() => { try { localStorage.setItem('stryker_community_disclaimer_ack_v1', JSON.stringify({ _anon: 1, u1: 1 })); } catch (e) {} });
   if (extra) await ctx.addInitScript(extra);
   await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance|data-api\.binance|fapi\.binance|stream\.binance|data-stream\.binance)/, (r) => r.abort());
+  await require('./binance-mock.js').install(ctx);   // Binance answers 451 / no CORS from this server and from CI: serve the offline fixture
   const p = await ctx.newPage();
   const errs = [];
   p.on('console', (m) => { if (/pine|worker|TradeZoro/i.test(m.text())) console.log('CONSOLE', m.type(), m.text().slice(0, 200)); if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });

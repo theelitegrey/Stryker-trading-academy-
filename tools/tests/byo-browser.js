@@ -64,7 +64,7 @@ async function open(b, w, h, mobile, theme) {
       check(await p.$('#byo-forget') !== null, t + 'connects (manage view with Forget)');
       await p.screenshot({ path: `${OUT}/byo-manage-${tag}.png` });
       const live = await p.evaluate(async () => {
-        const c = await import('/assets/byo-core.js?v=966');
+        const c = await import('/assets/byo-core.js?v=967');
         const got = [];
         const hub = c.statusOf('alpaca') && c.route('byo', 'AAPL');
         const stop = hub.ad.subscribe(hub.rec.hub, 'AAPL', '1', { time: Math.floor(Date.now() / 60000) * 60000, open: 1, high: 1, low: 1, close: 1, volume: 0 }, (b2) => got.push(b2));
@@ -78,7 +78,7 @@ async function open(b, w, h, mobile, theme) {
       const dot = await p.evaluate(() => { const c = document.querySelector('.stkc-dd'); return c ? c.getAttribute('title') || c.textContent : ''; });
       await p.click('#byo-forget');
       await p.waitForSelector('.byo-row', { timeout: 5000 });
-      const left = await p.evaluate(async () => { const c = await import('/assets/byo-core.js?v=966'); return c.connectedIds().length; });
+      const left = await p.evaluate(async () => { const c = await import('/assets/byo-core.js?v=967'); return c.connectedIds().length; });
       const idb = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open('tz-byo'); r.onsuccess = () => { const q = r.result.transaction('kv').objectStore('kv').getAllKeys(); q.onsuccess = () => res(q.result.filter((k) => String(k).startsWith('c:')).length); }; r.onerror = () => res(-1); }));
       check(left === 0 && idb === 0, t + 'Forget removes the connection and the stored record', { left, idb });
       check(!logs.join('\n').includes('FAKESECRETVALUE456'), t + 'secret not in console');

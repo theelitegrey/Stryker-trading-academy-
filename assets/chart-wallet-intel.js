@@ -597,7 +597,7 @@ export function mountWalletIntel(ws) {
     get isOpen() { return open; }, get view() { return view; }, _xy
   };
   window.__stkWalletIntel = api;
-  import('./chart-hl-ladders.js?v=966').then((m) => m.mountLadders(ws, host)).catch((e) => console.warn('TradeZoro: ladders', e));
+  import('./chart-hl-ladders.js?v=967').then((m) => m.mountLadders(ws, host)).catch((e) => console.warn('TradeZoro: ladders', e));
   return api;
 }
 

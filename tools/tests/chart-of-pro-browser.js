@@ -36,14 +36,14 @@ const NOW = Date.UTC(2026, 9, 21, 17, 0);
 async function open(b, { w, h, mobile, v09 }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
-  await ctx.addInitScript(([now]) => {
-    try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_community_disclaimer_ack_v1', '1');
+  await ctx.addInitScript(([now, theme]) => {
+    try { if (theme) localStorage.setItem('stryker_theme', theme); localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_community_disclaimer_ack_v1', '1');
       localStorage.removeItem('stryker.vela.session'); localStorage.removeItem('vela-workspace'); localStorage.removeItem('vela-workspace-090'); } catch (e) {}
     const RealDate = Date, off = now - RealDate.now();
     class FakeDate extends RealDate { constructor(...a) { if (a.length) super(...a); else super(RealDate.now() + off); } static now() { return RealDate.now() + off; } }
     window.Date = FakeDate;
     window.__stkOfTestTier = { free: false, plan: 'Pro', admin: true };
-  }, [NOW]);
+  }, [NOW, process.env.OFP_THEME || '']);
   await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   await ctx.route(/127\.0\.0\.1:\d+\/api\/chart\/bars\//, async (r) => {
     const u = new URL(r.request().url());
@@ -60,7 +60,7 @@ async function open(b, { w, h, mobile, v09 }) {
   });
   const p = await ctx.newPage();
   const errors = [];
-  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource|\/api\/chart\/stream|firebase|firestore|CORS/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/stream\.binance\.com.*451|ERR_FAILED|Failed to load resource|\/api\/chart\/stream|firebase|firestore|CORS/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
   p.on('pageerror', (e) => { if (!/docChanges/.test(String(e))) errors.push(String(e).slice(0, 200)); });
   await p.goto(BASE + '/charts.html?vela=' + (v09 ? '0.9' : '0.6'), { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkOrderflow, null, { timeout: 60000 });
@@ -100,6 +100,9 @@ const CASES = [
   ['vp-swing', 'stk_of_vp', { range: 'swing', swingLen: 10 }, '5', D21(4, 0), D21(17, 0)],
   ['tpo', 'stk_of_tpo', {}, '5', Date.UTC(2026, 9, 20, 13, 0), D21(17, 0)],
   ['tpo-zoom', 'stk_of_tpo', {}, '5', D21(13, 25), D21(17, 0)],
+  // TPO extras (member request 13 Nov): every option on; checked against the default look below
+  ['tpo-extras', 'stk_of_tpo', {}, '5', Date.UTC(2026, 9, 20, 12, 0), D21(17, 0)],
+  ['tpo-extras30', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 19, 12, 0), D21(17, 0)],
   ['evr', 'stk_of_evr', {}, '5', D21(4, 0), D21(17, 0)],
   ['sweep', 'stk_of_sweep', {}, '1', D21(12, 30), D21(16, 30)],
   ['sweep5', 'stk_of_sweep', {}, '5', D21(4, 0), D21(17, 0)]
@@ -154,13 +157,62 @@ const CASES = [
             check(n2 < n, eng + ' ' + w + ' ' + id + ': a 10x volume spike setting leaves fewer marks (' + n + ' -> ' + n2 + ' px)');
             await p.evaluate(() => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_sweep'); h.setInputs(Object.assign({}, h.inputValues(), { volMult: 1.5 })); });
             await sleep(1500);
+          } else if (id.startsWith('tpo-extras')) {
+            const ALL = { singles: true, poor: true, nakedPoc: true, devPoc: true, ibLines: true, ibExt: '1.5, 2, 3' };
+            const setI = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o).then(() => sleep(1500));
+            const n0 = await ink(p);
+            check(n0 > base + 25, eng + ' ' + w + ' ' + id + ': default profile draws (' + base + ' -> ' + n0 + ' px)');
+            const defs = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo').inputValues());
+            check(['singles', 'poor', 'nakedPoc', 'devPoc', 'ibLines', 'fixedWidth'].every((k) => defs[k] === false), eng + ' ' + w + ' ' + id + ': every new option is off by default (saved charts unchanged)', defs);
+            await setI(ALL);
+            const n1 = await ink(p);
+            check(n1 > n0 + 100, eng + ' ' + w + ' ' + id + ': the options add lines and marks (' + n0 + ' -> ' + n1 + ' px)');
+            for (const k of ['singles', 'devPoc', 'ibLines']) {   // poor / naked POC depend on the day: checked on their maths below   // each toggle on its own changes the drawing
+              await setI({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false, [k]: true });
+              const nk = await ink(p);
+              check(nk !== n0, eng + ' ' + w + ' ' + id + ': "' + k + '" alone changes the chart (' + n0 + ' -> ' + nk + ' px)');
+            }
+            // poor high / low + naked POC: draw exactly when the maths says the session has one
+            await setI({ singles: false, poor: true, nakedPoc: true, devPoc: false, ibLines: false });
+            const pn = await ink(p);
+            const want = await p.evaluate(() => window.__stkTpoDrawn || null);
+            check(want && (want.poor + want.naked > 0 ? pn >= n0 : pn === n0), eng + ' ' + w + ' ' + id + ': poor + naked POC drawn only where the maths finds them (' + JSON.stringify(want) + ', ' + n0 + ' -> ' + pn + ' px)');
+            if (id === 'tpo-extras30') {
+              // steady width: the developing profile keeps its pixel width across a zoom-out; without it the width moves
+              // the 20 Oct RTH session, zoomed in on it vs zoomed out over both days
+              const widthAt = async (from, to) => { await p.evaluate(() => { window.__stkTpoW = {}; }); await frameOn(p, from, to); await sleep(900); return p.evaluate(() => { const o = window.__stkTpoW || {}, k = Object.keys(o).filter((x) => /2026-10-20|^20381$/.test(x) || x.indexOf('10-20') >= 0); return k.length ? o[k[0]] : JSON.stringify(o); }); };
+              const IN = [Date.UTC(2026, 9, 20, 13, 0), Date.UTC(2026, 9, 20, 22, 0)], OUTR = [Date.UTC(2026, 9, 19, 22, 0), D21(17, 0)];
+              await setI({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false, fixedWidth: true });
+              const fa = await widthAt(...IN), fb = await widthAt(...OUTR);
+              check(fa > 0 && Math.abs(fa - fb) < 0.5, eng + ' ' + w + ' ' + id + ': steady width on: 20 Oct profile ' + fa + ' px zoomed in, ' + fb + ' px zoomed out');
+              await setI({ fixedWidth: false });
+              const ua = await widthAt(...IN), ub = await widthAt(...OUTR);
+              console.log('INFO ' + eng + ' ' + w + ' steady width off: 20 Oct profile ' + ua + ' px zoomed in, ' + ub + ' px zoomed out');
+              await frameOn(p, w < 500 ? D21(17, 0) - (D21(17, 0) - a) * 0.4 : a, z);
+            }
+            await setI(ALL);
           } else {
             const n = await ink(p);
             check(n > base + base * 0.003 + 25, eng + ' ' + w + ' ' + id + ': draws (' + base + ' -> ' + n + ' px)');
           }
           const tb = await tablesOf(p, type);
           check(JSON.stringify(tb).indexOf('Needs order-flow') < 0 && JSON.stringify(tb).indexOf('unavailable') < 0, eng + ' ' + w + ' ' + id + ': no error note', tb);
-          await p.screenshot({ path: path.join(OUT, 'ofp-' + eng + '-' + w + '-' + id + '.png') });
+          await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-' + id + '.png') });
+        }
+        if (ONLY.includes('ct-tpo')) {
+          // the "Time price opportunity" chart type: same extras through its chart-type settings
+          await clearInd(p); await setMarket(p, 'futures:NQ1!', '5'); await frameOn(p, w < 500 ? D21(12, 0) : Date.UTC(2026, 9, 20, 12, 0), D21(17, 0));
+          await p.evaluate(() => window.STRYKER_VELA.active.setPriceStyle('stk_tpoc')); await sleep(2000);
+          const setCT = (o) => p.evaluate((o) => { const r = window.STRYKER_VELA.chart.renderer, R = r.applyConfig ? r : r.renderer; R.applyConfig({ chartTypes: { stk_tpoc: o } }); }, o).then(() => sleep(1500));
+          const c0 = await ink(p);
+          await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-ct-tpo.png') });
+          await setCT({ singles: true, poor: true, nakedPoc: true, devPoc: true, ibLines: true, ibMin: '60', ibExt: '1.5, 2, 3' });
+          const c1 = await ink(p);
+          await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-ct-tpo-extras.png') });
+          await setCT({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false });
+          const c2 = await ink(p);
+          check(c1 > c0 + 50 && Math.abs(c2 - c0) <= Math.max(10, c0 * 0.002), eng + ' ' + w + ' TPO chart type: extras add lines (' + c0 + ' -> ' + c1 + ' px), all off = the default look again (' + c2 + ' px)');
+          await p.evaluate(() => window.STRYKER_VELA.active.setPriceStyle('candles')); await sleep(800);
         }
         if (w === 1440 && !ONLY.length) {
           await clearInd(p);

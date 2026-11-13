@@ -19,18 +19,18 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=972';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=973';
 
-import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=972';
-import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=972';
-import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=972';
-import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=972';
-import { installChartTypes } from './chart-types.js?v=972';
-import { rtHeadersReady } from './rt-access.js?v=972';
-import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=972';
-import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=972';
-import * as BT from './chart-bigtrades.js?v=972';
-import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=972';
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=973';
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=973';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=973';
+import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=973';
+import { installChartTypes } from './chart-types.js?v=973';
+import { rtHeadersReady } from './rt-access.js?v=973';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=973';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=973';
+import * as BT from './chart-bigtrades.js?v=973';
+import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=973';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -343,7 +343,7 @@ class FootprintEngine {
   constructor() { this.cfg = fpConfig(FP_DEF); this.on = false; this.onAny = () => this.push(); this.l2own = {}; this.l2m = undefined; this.l2v = -1; this.l2tm = 0; this.onL2 = () => this.l2Tick(); }
   start(ctx) { this.ctx = ctx; this.on = true; this.fitted = false; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
   // L2 data: chart-l2-flow.js loads once; its hub fires on every book frame, the footprint only needs the trade minutes (<= 5 redraws a second)
-  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=972').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
+  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=973').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
   l2Tick() {
     if (this.l2tm || !this.on) return;
     this.l2tm = setTimeout(() => { this.l2tm = 0; const v = this.l2m ? this.l2m.fpVersion(this.l2own) : 0; if (v !== this.l2v) this.push(); }, 200);

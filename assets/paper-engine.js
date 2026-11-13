@@ -118,10 +118,17 @@
     return { ok: false, reason: 'Paper trading covers futures and USD-quoted crypto. ' + (ticker || parts.raw) + ' is not supported.' };
   }
 
+  // Member hotkeys (action id -> combo text, e.g. "Shift+B"); the page validates, this only keeps the shape sane.
+  function cleanKeys(o) {
+    const r = {};
+    if (o && typeof o === 'object') for (const k of Object.keys(o).slice(0, 40)) { const v = o[k]; if (typeof v === 'string' && v && v.length <= 40) r[String(k).slice(0, 40)] = v; }
+    return r;
+  }
+
   function defaultSettings() {
     // enabled: the member's "Enable paper trading" switch (Charts settings). OFF by default, also for
     // accounts saved before the switch existed (Owner order 2026-10-14): they must switch it on.
-    return { enabled: false, commission: 0, slippage: 0, oneClick: true, lines: true, sounds: true, askJournal: true, qty: {} };
+    return { enabled: false, commission: 0, slippage: 0, oneClick: true, lines: true, sounds: true, askJournal: true, qty: {}, hotkeys: {} };
   }
 
   function freshState(balance, settings, now) {
@@ -148,7 +155,7 @@
       commission: Math.max(0, Math.min(100, num(rs.commission) || 0)),
       slippage: Math.max(0, Math.min(50, Math.round(num(rs.slippage) || 0))),
       oneClick: rs.oneClick !== false, lines: rs.lines !== false, sounds: rs.sounds !== false, askJournal: rs.askJournal !== false,
-      qty: {}
+      qty: {}, hotkeys: cleanKeys(rs.hotkeys)
     };
     if (rs.qty && typeof rs.qty === 'object') for (const k of Object.keys(rs.qty).slice(0, 100)) { const q = num(rs.qty[k]); if (q > 0) st.settings.qty[String(k).slice(0, 60)] = q; }
     const side = (v) => (v === 'sell' ? 'sell' : 'buy');
@@ -353,6 +360,7 @@
       if (ch.commission != null) s.commission = Math.max(0, Math.min(100, Number(ch.commission) || 0));
       if (ch.slippage != null) s.slippage = Math.max(0, Math.min(50, Math.round(Number(ch.slippage) || 0)));
       for (const k of ['enabled', 'oneClick', 'lines', 'sounds', 'askJournal']) if (k in ch) s[k] = !!ch[k];
+      if ('hotkeys' in ch) s.hotkeys = cleanKeys(ch.hotkeys);
       return s;
     }
     setQty(symbol, qty) { const spec = this.spec(symbol); if (!spec.ok) return; try { this.state.settings.qty[spec.symbol] = this._qty(spec, qty); } catch (e) {} }

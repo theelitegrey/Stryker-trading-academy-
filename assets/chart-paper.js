@@ -1425,6 +1425,7 @@ function renderSettingsPane(host){
     ]),
     note
   ]));
+  if (PK) host.appendChild(hotkeysCard());
   host.appendChild(h('p', { class: 'stkpt-set-fine', text: 'No broker, no real orders. Bar replay uses its own Replay account and follows this switch. ' + DISCLAIMER }));
 }
 function wireSettingsDialog(dlg){
@@ -1448,6 +1449,100 @@ function watchSettings(){
   const scan = () => document.querySelectorAll('.vela-dialog--settings').forEach(wireSettingsDialog);
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
   scan();
+}
+
+
+// ------------------------------------------------------------------ member hotkeys (paper only)
+// Keys live in the paper account's settings.hotkeys (saved in this browser, and in the member's
+// account when signed in, like every other paper setting). Empty by default: nothing changes until set.
+const PK = window.PaperHotkeys;
+let hkRecording = false;
+function hkMap(){ const a = liveOf(); return a && a.settings.hotkeys ? PK.clean(a.settings.hotkeys) : {}; }
+function hkSave(map){ withLive(() => { syncFromLocal(); acct.setSettings({ hotkeys: PK.clean(map) }); save(); }); }
+function hkSym(){ const c = activeCell(); return c ? c.symbol : ''; }
+function hkQtyStep(sym, dir){
+  const sp = specOf(sym); if (!sp.ok) return;
+  const cur = acct.qtyFor(sym), st = sp.kind === 'futures' ? 1 : (cur >= 1 ? 1 : 0.01);
+  hkQty(sym, Math.max(sp.minQty, +(cur + st * dir).toFixed(4)));
+}
+function hkQty(sym, q){
+  syncFromLocal(); acct.setQty(sym, q); save();
+  const v = acct.qtyFor(sym);
+  for (const i of document.querySelectorAll('.stkpt-1c')) if (i.dataset.sym === sym) i.querySelector('input').value = v;
+  toast('Quantity ' + v + ' for ' + showSym(sym), 'info');
+}
+function hkPart(sym, frac){
+  const p = acct.state.positions[canonSym(sym)];
+  if (!p) { toast('No open paper position on this chart.', 'info'); return; }
+  const q = PK.partQty(p.qty, frac, specOf(sym).kind === 'futures');
+  if (!(q > 0)) { toast('The position is too small to close ' + (frac === 0.5 ? 'half' : 'a quarter') + ' of it.', 'info'); return; }
+  act(() => acct.closePosition(sym, q), 'Closed ' + q + ' of ' + p.qty + ' ' + showSym(sym));
+}
+export function runHotkey(id){
+  if (!acct || !paperOn() || !PK) return false;
+  const sym = hkSym(), side = /^buy/.test(id) ? 'buy' : 'sell';
+  if (/^(buy|sell)Market$/.test(id)) { if (sym) placeOrder({ symbol: sym, side, type: 'market', qty: acct.qtyFor(sym) }); }
+  else if (/^(buy|sell)Limit$/.test(id)) openTicket({ side, type: 'limit' });
+  else if (id === 'ticket') openTicket();
+  else if (id === 'cancelAll') { const n = acct.state.orders.length; if (!n) toast('No working paper orders.', 'info'); else act(() => { acct.cancelAll(); return []; }, 'Cancelled ' + n + ' paper order' + (n === 1 ? '' : 's')); }
+  else if (id === 'closePos') { if (sym && acct.state.positions[canonSym(sym)]) closePos(sym); else toast('No open paper position on this chart.', 'info'); }
+  else if (id === 'closeHalf') hkPart(sym, 0.5);
+  else if (id === 'closeQuarter') hkPart(sym, 0.25);
+  else if (id === 'reversePos') { if (sym && acct.state.positions[canonSym(sym)]) reversePos(sym); else toast('No open paper position on this chart.', 'info'); }
+  else if (id === 'flattenAll') flattenAll();
+  else if (id === 'qtyUp') { if (sym) hkQtyStep(sym, 1); }
+  else if (id === 'qtyDown') { if (sym) hkQtyStep(sym, -1); }
+  else if (/^qty\d+$/.test(id)) { if (sym) hkQty(sym, Number(id.slice(3))); }
+  else if (id === 'panel') togglePanel();
+  else return false;
+  return true;
+}
+function onHotkey(e){
+  if (hkRecording || !PK || !acct || !paperOn()) return;
+  const t = e.target; if (t && t.closest && t.closest('[role=dialog], .vela-dialog, #stkpt-tk')) return;
+  const id = PK.match(hkMap(), e); if (!id) return;
+  e.preventDefault(); e.stopPropagation();
+  runHotkey(id);
+}
+function hotkeysCard(){
+  const card = h('div', { class: 'stkpt-set-card stkpt-hk' });
+  const draw = (msg) => {
+    const map = hkMap(); card.textContent = '';
+    card.appendChild(h('div', { class: 'stkpt-set-txt' }, [h('strong', { text: 'Hotkeys' }), h('em', { text: 'Give each paper-trading action your own key. Nothing is set until you choose. Keys are ignored while you type in a box.' })]));
+    let grp = '';
+    for (const a of PK.ACTIONS) {
+      if (a.group !== grp) { grp = a.group; card.appendChild(h('h4', { class: 'stkpt-hk-g', text: grp })); }
+      const btn = h('button', { type: 'button', class: 'stkpt-hk-k' + (map[a.id] ? '' : ' empty'), 'aria-label': a.label + ': ' + (map[a.id] ? PK.label(map[a.id]) : 'not set') + '. Press to change.', text: map[a.id] ? PK.label(map[a.id]) : 'Not set' });
+      btn.onclick = () => record(a, btn);
+      const row = h('div', { class: 'stkpt-hk-r', 'data-id': a.id }, [h('span', { class: 'stkpt-hk-n', text: a.label }), btn]);
+      if (map[a.id]) row.appendChild(h('button', { type: 'button', class: 'stkpt-hk-x', 'aria-label': 'Clear key for ' + a.label, text: '×', onclick: () => { const m = hkMap(); delete m[a.id]; hkSave(m); draw(); } }));
+      card.appendChild(row);
+    }
+    const foot = h('div', { class: 'stkpt-hk-foot' }, [
+      h('p', { class: 'stkpt-hk-msg', role: 'status', text: msg || '' }),
+      h('button', { type: 'button', class: 'stkpt-hk-reset', text: 'Reset to defaults', onclick: () => { hkSave({}); draw('All hotkeys cleared. Nothing is assigned.'); } })
+    ]);
+    card.appendChild(foot);
+  };
+  const record = (a, btn) => {
+    hkRecording = true; btn.textContent = 'Press a key…'; btn.classList.add('rec');
+    const msgEl = card.querySelector('.stkpt-hk-msg');
+    const done = (m) => { hkRecording = false; window.removeEventListener('keydown', kd, true); btn.removeEventListener('blur', bl); draw(m); };
+    const bl = () => done('');
+    const kd = (e) => {
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      if (e.key === 'Escape') return done('');
+      if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && (e.key === 'Backspace' || e.key === 'Delete')) { const m = hkMap(); delete m[a.id]; hkSave(m); return done('Key cleared.'); }
+      const c = PK.comboFromEvent(e); if (!c) return;
+      const bad = PK.reserved(c); if (bad) { msgEl.textContent = bad; msgEl.classList.add('warn'); return; }
+      const m = hkMap(), other = PK.conflict(m, c, a.id);
+      if (other) { delete m[other]; }
+      m[a.id] = c; hkSave(m);
+      done(other ? PK.label(c) + ' moved here from “' + PK.nameOf(other) + '”, which now has no key.' : PK.label(c) + ' saved.');
+    };
+    window.addEventListener('keydown', kd, true); btn.addEventListener('blur', bl); btn.focus();
+  };
+  draw(); return card;
 }
 
 // ------------------------------------------------------------------ toolbar button
@@ -1656,6 +1751,31 @@ html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on) .stkpt-chip,html:not(.stkpt-on
 :root[data-theme="light"] .stkpt-switch-t{ background:rgba(19,19,22,.12); border-color:rgba(19,19,22,.16); }
 :root[data-theme="light"] .stkpt-switch-t::after{ background:#fff; }
 :root[data-theme="light"] .stkpt-switch input:checked + .stkpt-switch-t::after{ background:#fff; }
+.stkpt-hk{ gap:4px; }
+.stkpt-hk-g{ margin:12px 0 0; font:600 13px/18px var(--font-body, Archivo, system-ui, sans-serif); color:rgba(238,238,238,.64); }
+:root[data-theme="light"] .stkpt-hk-g{ color:rgba(19,19,22,.64); }
+.stkpt-hk-r{ display:flex; align-items:center; gap:8px; min-height:44px; border-top:1px solid rgba(238,238,238,.08); }
+:root[data-theme="light"] .stkpt-hk-r{ border-top-color:rgba(19,19,22,.08); }
+.stkpt-hk-n{ flex:1; min-width:0; font-size:14px; line-height:20px; }
+.stkpt-hk-k{ flex:none; min-width:96px; max-width:50%; min-height:36px; padding:0 12px; border-radius:8px; border:1px solid rgba(238,238,238,.16); background:rgba(238,238,238,.06); color:inherit; font:500 13px/18px var(--font-body, Archivo, system-ui, sans-serif); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stkpt-hk-k.empty{ color:rgba(238,238,238,.55); font-weight:400; }
+.stkpt-hk-k.rec{ border-color:#03c988; color:#03c988; }
+.stkpt-hk-k:hover{ background:rgba(238,238,238,.1); }
+.stkpt-hk-k:focus-visible,.stkpt-hk-x:focus-visible,.stkpt-hk-reset:focus-visible{ outline:2px solid #03c988; outline-offset:2px; }
+:root[data-theme="light"] .stkpt-hk-k{ border-color:rgba(19,19,22,.18); background:rgba(19,19,22,.05); }
+:root[data-theme="light"] .stkpt-hk-k.empty{ color:rgba(19,19,22,.62); }
+:root[data-theme="light"] .stkpt-hk-k.rec{ color:#047a56; border-color:#047a56; }
+.stkpt-hk-x{ flex:none; width:36px; height:36px; border:0; border-radius:8px; background:none; color:inherit; opacity:.64; font-size:18px; cursor:pointer; }
+.stkpt-hk-x:hover{ opacity:1; background:rgba(238,238,238,.08); }
+.stkpt-hk-foot{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(238,238,238,.08); }
+:root[data-theme="light"] .stkpt-hk-foot{ border-top-color:rgba(19,19,22,.08); }
+.stkpt-hk-msg{ margin:0; flex:1; min-width:0; font-size:12px; line-height:16px; color:rgba(238,238,238,.72); }
+.stkpt-hk-msg.warn{ color:#f5a524; }
+:root[data-theme="light"] .stkpt-hk-msg{ color:rgba(19,19,22,.72); }
+:root[data-theme="light"] .stkpt-hk-msg.warn{ color:#8a5a00; }
+.stkpt-hk-reset{ flex:none; min-height:40px; padding:0 16px; border-radius:12px; border:1px solid rgba(238,238,238,.16); background:none; color:inherit; font:500 13px/18px var(--font-body, Archivo, system-ui, sans-serif); cursor:pointer; }
+:root[data-theme="light"] .stkpt-hk-reset{ border-color:rgba(19,19,22,.18); }
+@media (max-width:600px){ .stkpt-hk-r{ min-height:48px; } .stkpt-hk-k{ min-height:40px; } .stkpt-hk-x{ width:40px; height:40px; } .stkpt-hk-foot{ flex-direction:column; align-items:stretch; } .stkpt-hk-reset{ min-height:44px; } }
 @media (prefers-reduced-motion:reduce){ .stkpt-toggle svg{ transition:none; } .stkpt-switch-t,.stkpt-switch-t::after{ transition:none; } }
 `;
 
@@ -1676,6 +1796,7 @@ export function mountPaper(ws, opts){
   applyEnabled();                             // hidden until the account says the switch is on
   try { watchSettings(); } catch (e) { console.warn('TradeZoro paper: settings tab', e); }
   window.addEventListener('contextmenu', captureContext, true);
+  window.addEventListener('keydown', onHotkey, true);
   window.addEventListener('resize', () => renderPanel(), { passive: true });
   leaderTick();
   setInterval(leaderTick, LEADER_MS);
@@ -1691,6 +1812,6 @@ export function mountPaper(ws, opts){
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
+    ctxAt, ctxOrder, commitDrag, runHotkey, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

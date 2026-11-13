@@ -139,7 +139,9 @@ const layer = (p) => p.evaluate(() => {
       await add(p, 'stk_l2f_big', process.env.AUTO ? {} : { mode: 'Manual', minSize: +(process.env.MINSZ || 100) });
       await sleep(10000);
       check(await hook(p), tag + ': Big Trades (L2) layer found');
-      const before = await layer(p);
+      // wait (max 60 s) until markers are drawn in the last render and the count has held for 3 samples, so a slow trade load can't race the check
+      let before = await layer(p), held = 0;
+      for (let i = 0; i < 120 && held < 3; i++) { await sleep(500); const q = await layer(p); held = q.lastArcs > 0 && q.lastArcs === before.lastArcs ? held + 1 : 0; before = q; }
       check(before.lastArcs > 0, tag + ': markers drawn before the switch', before.lastArcs);
       await p.screenshot({ path: OUT + '/bttab-' + tag + '-before.png' });
       globalThis.__SLOW = true; const reqs = []; p.on('request', (r) => { if (/ts-trades|ts-book-history|api\/chart/.test(r.url())) { reqs.push(Date.now()); if (process.env.REQS) console.log('REQ', r.url().replace(/^.*?\/(ts-|api)/, '$1').slice(0, 110), new Date(Date.now() - 0).toISOString().slice(17, 23)); } });

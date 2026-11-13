@@ -6,6 +6,7 @@
 // Education only. Not financial advice.
 import { renko, range, lineBreak, kagi, pnf, sizeOf, guessTick } from './chart-types-math.js?v=972';
 import { tpoProfile, tpoLetter, autoRow, rthKey } from './chart-of-pro-data.js?v=972';
+import { drawTpoExtras, drawLabels, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=972';
 
 export const CT_TIME = ['stk_hollow', 'stk_volcandle', 'stk_linemark', 'stk_step', 'stk_hlcarea', 'stk_columns', 'stk_highlow'];
 export const CT_PRICE = ['stk_renko', 'stk_range', 'stk_linebreak', 'stk_kagi', 'stk_pnf'];
@@ -323,18 +324,24 @@ function profileDraw(kind) {
     g.strokeStyle = lightPage() ? 'rgba(15,23,42,.35)' : 'rgba(209,212,220,.35)'; g.lineWidth = 1; g.beginPath();
     for (let i = Math.max(0, i0 - 1); i <= Math.min(bars.length - 1, i1 + 1); i++) { const x = X(i), y = Y(bars[i].close); if (i === Math.max(0, i0 - 1)) g.moveTo(x, y); else g.lineTo(x, y); }
     g.stroke();
+    const ext = kind === 'tpo' && extendsRight(settings), labels = [], ibMs = kind === 'tpo' ? ibMsOf(settings) : 0, day = lightPage();
     for (const s of ss.list) {
-      if (s.i1 < i0 || s.i0 > i1) continue;
+      if (s.i0 > i1 || (s.i1 < i0 && !ext)) continue;
       const sb = bars.slice(s.i0, s.i1 + 1); let hi = -Infinity, lo = Infinity;
       for (const b of sb) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
       let row = autoRow(hi - lo, tick, 40);
       for (let guard = 0; guard < 12 && (row / tick) * tickPx < (kind === 'tpo' ? (phone ? 9 : 11) : 4); guard++) row *= 2;
       const x0 = Math.max(X(s.i0) - f.pitch / 2, 8), x1 = X(s.i1) + f.pitch / 2;
-      if (x1 < 0 || x0 > co.width) continue;
+      if ((x1 < 0 && !ext) || x0 > co.width) continue;
       const last = s.i1 >= bars.length - 1, span = Math.max(30, (x1 - x0) * 0.9);
       if (kind === 'tpo') {
-        const p = tpoProfile(sb, { periodMs: periodMin * 60000, row, va, ibPeriods: 2 }); if (!p) continue;
-        const maxC = Math.max(...p.counts), cellW = Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
+        const mk = s.k + '|' + row + '|' + sb.length + '|' + sb[sb.length - 1].close + '|' + periodMin + '|' + va + '|' + ibMs;
+        let p = memo.get('p|' + s.k);
+        if (!p || p.mk !== mk) { p = tpoProfile(sb, { periodMs: periodMin * 60000, row, va, ibPeriods: 2, ibMs }); if (!p) continue; p.mk = mk; memo.set('p|' + s.k, p); }
+        const xo = { I: settings, bars, s, p, periodMs: periodMin * 60000, va, tick, X, Y, x0, x1, W: co.width, pitch: f.pitch, last, top: f.top, bot: f.bot, phone, day, memo, mk, labels };
+        if (x1 < 0) { drawTpoExtras(g, xo); continue; }
+        const maxC = Math.max(...p.counts);
+        const cellW = settings.fixedWidth ? Math.min(span, phone ? 72 : 110) / Math.max(1, maxC) : Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
         const rowPx = Math.abs(Y(row) - Y(0)), letters = rowPx >= (phone ? 9 : 11) && cellW >= (phone ? 6 : 7);
         const fs = Math.max(7, Math.min(phone ? 9 : 11, Math.floor(Math.min(rowPx * .85, cellW * 1.2))));
         g.font = '600 ' + fs + 'px "JetBrains Mono", ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -349,6 +356,7 @@ function profileDraw(kind) {
         }
         const ln = (k, c, w, d) => { const y = Y((p.r0 + k + .5) * row); g.setLineDash(d); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y); g.lineTo(last ? co.width : x1, y); g.stroke(); g.setLineDash([]); };
         ln(p.poc, alpha(MAGENTA, .9), 1.5, []); ln(p.vah, alpha(VAL_LN, .7), 1, [4, 3]); ln(p.val, alpha(VAL_LN, .7), 1, [4, 3]);
+        drawTpoExtras(g, xo);
       } else {
         const p = volProfile(sb, row, va); if (!(p.max > 0)) continue;
         const wMax = Math.min(span, (x1 - x0) * 0.9);
@@ -362,11 +370,12 @@ function profileDraw(kind) {
         ln(p.poc, alpha(MAGENTA, .9), 1.5, []); ln(p.vah, alpha(VAL_LN, .7), 1, [4, 3]); ln(p.val, alpha(VAL_LN, .7), 1, [4, 3]);
       }
     }
+    drawLabels(g, labels, { W: co.width, top: f.top, bot: f.bot, phone, day });
   };
 }
 DRAW.stk_tpoc = profileDraw('tpo');
 DRAW.stk_svp = profileDraw('svp');
-SETTINGS.stk_tpoc = { title: 'Time price opportunity', rows: [{ kind: 'select', key: 'block', label: 'Letter block (minutes)', defval: 30, options: [[5, '5'], [10, '10'], [15, '15'], [30, '30'], [60, '60']] }, { kind: 'number', key: 'va', label: 'Value area %', defval: 70, min: 10, max: 100, step: 1 }] };
+SETTINGS.stk_tpoc = { title: 'Time price opportunity', rows: [{ kind: 'select', key: 'block', label: 'Letter block (minutes)', defval: 30, options: [[5, '5'], [10, '10'], [15, '15'], [30, '30'], [60, '60']] }, { kind: 'number', key: 'va', label: 'Value area %', defval: 70, min: 10, max: 100, step: 1 }].concat(TPO_EXTRA_ROWS) };
 SETTINGS.stk_svp = { title: 'Session volume profile', rows: [{ kind: 'number', key: 'va', label: 'Value area %', defval: 70, min: 10, max: 100, step: 1 }] };
 
 // ---------------------------------------------------------------- install

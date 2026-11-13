@@ -130,6 +130,60 @@ const ib = R.filter((b) => b.time < R[0].time + 3600000);
 ok(T.ibHi === Math.max(...ib.map((b) => b.high)) && T.ibLo === Math.min(...ib.map((b) => b.low)), 'TPO: IB = the first hour range ' + T.ibLo + '-' + T.ibHi);
 ok(P.tpoLetter(0) === 'A' && P.tpoLetter(12) === 'M' && P.tpoLetter(26) === 'a', 'TPO letters A..Z then a..z');
 
+// ---- 5b. TPO extras (member request 13 Nov): single prints, poor high / low, naked POC, developing
+// POC / VA, initial balance + extensions. Hand-made session first (every number worked out by hand).
+{
+  const T0 = Date.UTC(2026, 9, 21, 13, 30), M = 60000;
+  const bar = (min, low, high) => ({ time: T0 + min * M, open: low, high, low, close: high });
+  // 30 min periods, row 1. A: 100-104, B: 100-102 (both 30 min), C: 104-109 (single prints 105-109
+  // above A/B), D: 106-109 (fills 106-109 again, so only row 105 stays single) ... built per period:
+  const S = [bar(0, 100, 104), bar(15, 101, 103), bar(30, 100, 102), bar(45, 101, 102), bar(60, 105, 108), bar(90, 106, 108), bar(120, 106, 107)];
+  const p = P.tpoProfile(S, { row: 1, periodMs: 30 * M });
+  // rows 100..108 (r0 100, n 9). counts: 100:A B =2, 101:A B =2, 102:A B =2, 103:A=1, 104:A=1, 105:C=1, 106:C D E=3, 107:C D E=3, 108:C D=2
+  ok(p.r0 === 100 && p.n === 9 && p.counts.join() === '2,2,2,1,1,1,3,3,2', 'TPO extras: hand profile counts', p.counts);
+  ok(p.poc === 6 && p.periods === 5, 'TPO extras: POC = row 106 (3 TPOs, nearest the middle of the tie 106/107)', p.poc);
+  const runs = P.tpoSingleRuns(p);
+  ok(runs.length === 1 && runs[0].a === 3 && runs[0].z === 5 && runs[0].lo === 103 && runs[0].hi === 106, 'TPO extras: single prints 103-105 grouped into one run 103..106', runs);
+  // poor extremes on exact prices: high 108 made in C and D (2 periods) = poor high; low 100 made in A and B = poor low
+  const pe = P.tpoPoorExtremes(S, { periodMs: 30 * M, tick: 0.25 });
+  ok(pe.high === 108 && pe.highN === 2 && pe.low === 100 && pe.lowN === 2, 'TPO extras: poor high 108 (2 periods) and poor low 100 (2 periods)', pe);
+  // E only reaches 107: change D's high to 107.5 -> high 108 in C only -> not poor
+  const S2 = S.map((b, i) => (i === 5 ? Object.assign({}, b, { high: 107.5 }) : b));
+  const pe2 = P.tpoPoorExtremes(S2, { periodMs: 30 * M, tick: 0.25 });
+  ok(pe2.high === null && pe2.highN === 1 && pe2.low === 100, 'TPO extras: a single-period high is a clean high (not poor)', pe2);
+  ok(P.tpoPoorExtremes(S, { periodMs: 30 * M, tick: 0.25, min: 3 }).high === null, 'TPO extras: min 3 periods turns the 2-period high off');
+  // developing values: after bar 0 only rows 100-104 exist (1 TPO each): POC = the middle row 102 -> 102.5
+  const dv = P.tpoDeveloping(S, { row: 1, periodMs: 30 * M });
+  ok(dv.poc.length === S.length && dv.poc[0] === 102.5, 'TPO extras: developing POC after the first bar = 102.5', dv.poc);
+  for (let i = 0; i < S.length; i++) {
+    const q = P.tpoProfile(S.slice(0, i + 1), { row: 1, periodMs: 30 * M });
+    assert.equal(dv.poc[i], (q.r0 + q.poc + 0.5)); assert.equal(dv.vah[i], (q.r0 + q.vah + 0.5)); assert.equal(dv.val[i], (q.r0 + q.val + 0.5));
+  }
+  ok(dv.poc[S.length - 1] === 106.5, 'TPO extras: developing POC/VAH/VAL after every bar = the full profile on the bars so far; ends at 106.5', dv.poc);
+  // IB: first 60 min = bars at 0, 15, 30, 45 -> 100..104; 30 min -> bars 0, 15 -> 100..104 too; ibMs overrides periods
+  ok(p.ibHi === 104 && p.ibLo === 100, 'TPO extras: IB (2 periods) = 100-104');
+  const p30 = P.tpoProfile(S.map((b, i) => (i === 2 ? Object.assign({}, b, { low: 99 }) : b)), { row: 1, periodMs: 30 * M, ibMs: 30 * M });
+  ok(p30.ibLo === 100 && p30.ibHi === 104, 'TPO extras: 30 min IB ignores the 99 low printed at minute 30', p30.ibLo);
+  const ext = P.ibExtensions(104, 100, [1.5, 2, 3, 0]);
+  ok(ext.length === 3 && ext[0].up === 110 && ext[0].dn === 94 && ext[1].up === 112 && ext[2].dn === 88, 'TPO extras: IB extensions 1.5x/2x/3x of a 4-point IB = 110/112/116 and 94/92/88', ext);
+  // first touch after the session: a level at 105.5 (the single-print middle) is first touched by the bar whose range holds it
+  const after = S.concat([bar(400, 109, 111), bar(430, 106, 110), bar(460, 104, 106)]);
+  ok(P.firstTouch(after, S.length, 103, 106) === S.length + 1 && P.firstTouch(after, S.length, 106.5, 106.5) === S.length + 1 && P.firstTouch(after, S.length, 90, 95) === -1, 'TPO extras: first touch finds the filling bar, -1 while still open');
+}
+// The same extras on the REAL 21 Oct RTH session (5 min bars)
+{
+  const dv = P.tpoDeveloping(R, { row, periodMs: 1800000 });
+  ok(dv.poc[R.length - 1] === (T.r0 + T.poc + 0.5) * row && dv.vah[R.length - 1] === (T.r0 + T.vah + 0.5) * row && dv.val[R.length - 1] === (T.r0 + T.val + 0.5) * row, '21 Oct: developing POC/VAH/VAL end on the session POC/VAH/VAL ' + dv.poc[R.length - 1]);
+  const mid = P.tpoProfile(R.slice(0, 40), { row, periodMs: 1800000 });
+  ok(dv.poc[39] === (mid.r0 + mid.poc + 0.5) * row, '21 Oct: developing POC at bar 40 = the profile of the first 40 bars ' + dv.poc[39]);
+  const runs = P.tpoSingleRuns(T);
+  ok(runs.reduce((x, r) => x + r.z - r.a + 1, 0) === T.singles.length && runs.every((r) => T.counts.slice(r.a, r.z + 1).every((c) => c === 1)), '21 Oct: ' + runs.length + ' single-print runs cover all ' + T.singles.length + ' single rows');
+  const pe = P.tpoPoorExtremes(R, { periodMs: 1800000, tick: 0.25 });
+  const hiP = new Set(R.filter((b) => b.high === T.hi).map((b) => Math.floor((b.time - R[0].time) / 1800000)));
+  const loP = new Set(R.filter((b) => b.low === T.lo).map((b) => Math.floor((b.time - R[0].time) / 1800000)));
+  ok(pe.highN === hiP.size && pe.lowN === loP.size && (pe.high === null) === (hiP.size < 2) && (pe.low === null) === (loP.size < 2), '21 Oct: high ' + T.hi + ' in ' + hiP.size + ' period(s), low ' + T.lo + ' in ' + loP.size + ' -> poor high ' + pe.high + ', poor low ' + pe.low);
+}
+
 // ---- 6. Effort vs Result
 for (const tf of [1, 5]) {
   const bars = D.aggregate(MB, tf * 60000);

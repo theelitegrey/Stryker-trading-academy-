@@ -166,7 +166,7 @@ export const tpoLetter = (k) => LETTERS[k % LETTERS.length];
 // any bar of that period traded through it. POC = the row with the most TPOs (ties: nearest the
 // middle); value area = va % of all TPOs grown from the POC toward the larger neighbour; IB = the
 // range of the first `ibPeriods` periods. Returns null for no bars.
-export function tpoProfile(bars, { periodMs = 1800000, row, va = 70, ibPeriods = 2 } = {}) {
+export function tpoProfile(bars, { periodMs = 1800000, row, va = 70, ibPeriods = 2, ibMs = 0 } = {}) {
   if (!bars.length || !(row > 0)) return null;
   const t0 = bars[0].time, eps = 1e-9;
   let lo = Infinity, hi = -Infinity;
@@ -177,13 +177,21 @@ export function tpoProfile(bars, { periodMs = 1800000, row, va = 70, ibPeriods =
   for (const b of bars) {
     const p = Math.floor((b.time - t0) / periodMs);
     periods = Math.max(periods, p + 1);
-    if (p < ibPeriods) { ibHi = Math.max(ibHi, b.high); ibLo = Math.min(ibLo, b.low); }
+    if (ibMs > 0 ? b.time - t0 < ibMs : p < ibPeriods) { ibHi = Math.max(ibHi, b.high); ibLo = Math.min(ibLo, b.low); }
     const a = Math.floor(b.low / row + eps) - r0, z = Math.floor(b.high / row + eps) - r0;
     for (let k = a; k <= z; k++) { const c = cols[k]; if (c[c.length - 1] !== p) c.push(p); }
   }
   const counts = cols.map((c) => c.length);
+  const { total, poc, val, vah } = pocVa(counts, va);
+  const singles = [];
+  for (let k = 0; k < n; k++) if (counts[k] === 1 && k > 0 && k < n - 1) singles.push(k);
+  return { r0, n, row, cols, counts, total, periods, poc, val, vah, ibHi, ibLo, singles, hi, lo, open: bars[0].open, close: bars[bars.length - 1].close };
+}
+// POC = the row with the most TPOs (ties: nearest the middle); value area = va % of all TPOs grown
+// from the POC toward the larger neighbour (ties: up).
+function pocVa(counts, va) {
+  const n = counts.length, mid = (n - 1) / 2;
   let total = 0, pk = 0;
-  const mid = (n - 1) / 2;
   for (let k = 0; k < n; k++) { total += counts[k]; if (counts[k] > counts[pk] || (counts[k] === counts[pk] && Math.abs(k - mid) < Math.abs(pk - mid))) pk = k; }
   let a = pk, z = pk, acc = counts[pk];
   const need = total * va / 100;
@@ -191,9 +199,63 @@ export function tpoProfile(bars, { periodMs = 1800000, row, va = 70, ibPeriods =
     const up = z < n - 1 ? counts[z + 1] : -1, dn = a > 0 ? counts[a - 1] : -1;
     if (up >= dn) { z++; acc += up; } else { a--; acc += dn; }
   }
-  const singles = [];
-  for (let k = 0; k < n; k++) if (counts[k] === 1 && k > 0 && k < n - 1) singles.push(k);
-  return { r0, n, row, cols, counts, total, periods, poc: pk, val: a, vah: z, ibHi, ibLo, singles, open: bars[0].open, close: bars[bars.length - 1].close };
+  return { total, poc: pk, val: a, vah: z };
+}
+// Developing POC / VAH / VAL: after each bar, the values the profile had with only the bars so far
+// (same maths as tpoProfile on bars.slice(0, i + 1)). Prices are row middles. Incremental: O(bars x rows).
+export function tpoDeveloping(bars, { periodMs = 1800000, row, va = 70 } = {}) {
+  const out = { poc: [], vah: [], val: [] };
+  if (!bars.length || !(row > 0)) return out;
+  const t0 = bars[0].time, eps = 1e-9, cnt = new Map(), last = new Map();
+  let rLo = Infinity, rHi = -Infinity;
+  for (const b of bars) {
+    const p = Math.floor((b.time - t0) / periodMs);
+    const a = Math.floor(b.low / row + eps), z = Math.floor(b.high / row + eps);
+    for (let k = a; k <= z; k++) if (last.get(k) !== p) { last.set(k, p); cnt.set(k, (cnt.get(k) || 0) + 1); }
+    rLo = Math.min(rLo, a); rHi = Math.max(rHi, z);
+    const counts = [];
+    for (let k = rLo; k <= rHi; k++) counts.push(cnt.get(k) || 0);
+    const r = pocVa(counts, va);
+    out.poc.push((rLo + r.poc + 0.5) * row); out.vah.push((rLo + r.vah + 0.5) * row); out.val.push((rLo + r.val + 0.5) * row);
+  }
+  return out;
+}
+// Single-print rows of a profile (p.singles) grouped into runs of touching rows: [{ a, z, lo, hi }]
+// (a..z row indexes, lo..hi the price span they cover).
+export function tpoSingleRuns(p) {
+  const out = [];
+  for (const k of p.singles) {
+    const r = out[out.length - 1];
+    if (r && r.z === k - 1) { r.z = k; r.hi = (p.r0 + k + 1) * p.row; } else out.push({ a: k, z: k, lo: (p.r0 + k) * p.row, hi: (p.r0 + k + 1) * p.row });
+  }
+  return out;
+}
+// Poor high / low: the session's extreme price was reached in `min` (2) or more TPO periods, i.e. the
+// auction stopped there flat instead of leaving a tail. Measured on the exact price (half-tick
+// tolerance), not the drawn row, so zooming never changes it. Returns { high, highN, low, lowN } with
+// high / low = null when not poor.
+export function tpoPoorExtremes(bars, { periodMs = 1800000, tick = 0.25, min = 2 } = {}) {
+  if (!bars.length) return { high: null, highN: 0, low: null, lowN: 0 };
+  const t0 = bars[0].time, tol = tick / 2;
+  let hi = -Infinity, lo = Infinity;
+  for (const b of bars) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
+  const ph = new Set(), pl = new Set();
+  for (const b of bars) {
+    const p = Math.floor((b.time - t0) / periodMs);
+    if (b.high >= hi - tol) ph.add(p);
+    if (b.low <= lo + tol) pl.add(p);
+  }
+  return { high: ph.size >= min ? hi : null, highN: ph.size, low: pl.size >= min ? lo : null, lowN: pl.size };
+}
+// First bar from index `from` that trades into the price span lo..hi (a level: lo = hi). -1 = not yet.
+export function firstTouch(bars, from, lo, hi) {
+  for (let j = Math.max(0, from); j < bars.length; j++) if (bars[j].low <= hi && bars[j].high >= lo) return j;
+  return -1;
+}
+// Initial balance extension prices: IB high + k x range above, IB low - k x range below, per k > 0.
+export function ibExtensions(ibHi, ibLo, mults) {
+  const r = ibHi - ibLo;
+  return mults.filter((k) => k > 0).map((k) => ({ k, up: ibHi + k * r, dn: ibLo - k * r }));
 }
 // A row size for a session: a "nice" multiple of the tick giving about `target` rows over its range.
 const NICE = [1, 2, 2.5, 4, 5, 10, 20, 25, 40, 50, 100, 200, 250, 400, 500, 1000, 2000, 2500, 5000, 10000];

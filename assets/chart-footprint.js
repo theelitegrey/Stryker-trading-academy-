@@ -681,14 +681,19 @@ function drawTable(X) {
 }
 
 function footprintLayer() {
-  let canvas = null, on = false, lastMs = 0;
+  let canvas = null, on = false, lastMs = 0, stats = false;
+  // The flag that moves the Fit price / Latest pills to the top lives on THIS pane's cell and is written once per frame,
+  // only when it changes (it used to be removed + re-added on <body> every frame, so the pills jumped between panes / frames).
+  // Only this layer's own ON is ever undone by it, so a second layer in the same cell cannot flip the pills back.
+  let owns = false;
+  const applyStats = () => { const h = canvas && canvas.closest && canvas.closest('.vela-cell'); if (!h) return; if (stats && !owns) { h.classList.add('stk-fp-stats'); owns = true; } else if (!stats && owns) { h.classList.remove('stk-fp-stats'); owns = false; } };
   return {
     mount(c) { canvas = c; },
-    render(a) {
+    render(a) { stats = false; try { return this.paint(a); } finally { applyStats(); } },
+    paint(a) {
       const t0 = performance.now();
       const g = canvas && canvas.getContext('2d');
       on = false;
-      try { document.body.classList.remove('stk-fp-stats'); } catch (e) {}
       if (!g) return;
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, canvas.width, canvas.height);
@@ -755,7 +760,7 @@ function footprintLayer() {
       if (window.__stkFpDebug) window.__stkFpDebug.strip = statsH ? { y0: stY, h: statsH } : null;
       if (d.eng && d.eng.reserve) d.eng.reserve(Math.max(botUsed, cfg.mode === 'boxes' || cfg.mode === 'dbars' ? a.bounds.height * 0.17 : 0), a.bounds.height, topUsed);   // the volume histogram stays below the cells   // drawn first: the bars and stats sit above it
       bot -= botUsed; X.bot = bot; top += topUsed; X.top = top; X.topUsed = topUsed;
-      try { document.body.classList.toggle('stk-fp-stats', tblH > 0 || statsH > 0); } catch (e) {}
+      stats = tblH > 0 || statsH > 0;
       const pill = (txt) => {
         g.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
         const pw = Math.round(g.measureText(txt).width + 20), px = Math.round((co.width - 56 - pw) / 2), py = Math.round(bot - 66);
@@ -778,7 +783,7 @@ function footprintLayer() {
         g.restore(); lastMs = performance.now() - t0; if (window.__stkFpStats) window.__stkFpStats.push(lastMs); return;
       }
       on = true;
-      try { document.body.classList.toggle('stk-fp-stats', true); } catch (e) {}
+      stats = true;
       if (cfg.mode === 'dbars') {
         const txt = drawDbars(X);
         if (!txt && !f.note) pill('Zoom in to see the numbers');

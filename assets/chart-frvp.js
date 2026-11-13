@@ -20,7 +20,7 @@
 // Education only. Not financial advice.
 import { flowFor, rootOf } from './chart-footprint.js?v=966';
 import { isFree } from './chart-pro-gate.js?v=966';
-import { deltaRows, anchoredVwap, buildProfile } from './chart-frvp-data.js?v=966';
+import { deltaRows, anchoredVwap, buildProfile, fineSpanBars } from './chart-frvp-data.js?v=966';
 
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';
@@ -123,6 +123,29 @@ function flowOf(d, host, bars) {
   const f = flowFor({ root, timeframe: host.chart.market.timeframe, bars, owner: h.own });
   if (!f.map) return { why: f.note || 'No order flow for this symbol.' };
   return { mins: f.mins || [], tick: f.tick, loading: !!f.loading || (!f.list.length && /Loading|Waiting/.test(f.note || '')), src: 'L1' };
+}
+// Same profile at every timeframe: build it from the 1-minute bars of the range, not from the chart's own candles (see fineSpanBars).
+// Async: until the minutes arrive (or when they cannot: not 1m-capable symbol, range over ~14 days) the chart's candles are used.
+const FINE_MAX_MIN = 20000, fine = new Map();   // `${symbol}|${from}|${to}` -> bars[] | 'wait' | 'none'
+function fineBars(d, bars) {
+  const a = d.anchors[0], b = d.anchors[1], host = hostOf(d);
+  if (!a || !b || !host) return null;
+  const tf = tfMin(host.chart.market.timeframe), from = Math.floor(Math.min(a.time, b.time) / 60000) * 60000, to = Math.max(a.time, b.time);
+  if (tf == null || tf <= 1 || (to - from) / 60000 > FINE_MAX_MIN) return null;
+  const sym = host.chart.market.symbol, key = sym + '|' + from + '|' + to, hit = fine.get(key);
+  if (Array.isArray(hit)) return hit;
+  if (hit) return null;
+  fine.set(key, 'wait');
+  let r = null; try { r = host.chart.data.resolve(sym); } catch (e) {}
+  if (!r || !r.provider || !r.provider.getBars) { fine.set(key, 'none'); return null; }
+  Promise.resolve(r.provider.getBars(r.ticker, '1', { from, to: to + 59999 })).then((m) => {
+    const f = fineSpanBars(m, from, to);
+    // only trust it when it reaches the first candle (a half-loaded minute series would skew the profile)
+    fine.set(key, f && f[0].time <= bars[0].time + 60000 ? f : 'none');
+    if (fine.size > 40) fine.delete(fine.keys().next().value);
+    try { host.R.scheduler.invalidate(4); } catch (e) {}
+  }, () => fine.set(key, 'none'));
+  return null;
 }
 let repaintTm = 0;
 function repaintSoon(host) {
@@ -272,8 +295,9 @@ export function installFrvpClass(FRVP) {
   P.hitTest = hitFrvp;
   // 5. profile maths
   P.compute = function (proj) {
-    const bars = this.barsInSpan(proj);
+    let bars = this.barsInSpan(proj);
     if (!bars) return null;
+    bars = fineBars(this, bars) || bars;
     const s = this.frvp, r = buildProfile(bars, s.rows, s.valueAreaPct / 100, !!(s.showDevelopingPoc || s.showDevelopingVa));
     if (r) this.cachedRange = { min: r.profile.min, max: r.profile.min + r.profile.rowH * r.profile.rows.length };
     return r;

@@ -1,5 +1,5 @@
 // Indicator versions (assets/indicator-versions.js): manifest rules, version maths, the descriptor wrapper and migrations.
-//   node tools/tests/indicator-versions.test.mjs        (check.py runs it)
+//   node tools/tests/indicator-versions.test.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as IV from '../../assets/indicator-versions.js?v=972';   // same URL the chart modules use = same module instance (setManifest reaches them)

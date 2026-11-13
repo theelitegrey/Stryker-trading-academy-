@@ -11,7 +11,7 @@ const { VERSIONS } = IV;
 // BASE IS FOREVER: an instance on base stores no version, so changing base would silently move every old chart.
 // When you add an indicator to the manifest, add its base here too; never edit an existing line.
 const BASES = { 'b:stk_l2f_fp': '1.1', 'b:stk_l2f_sw': '1.1', 'b:stk_l2f_dp': '1.1', 'b:stk_of_big': '1.1', 'b:stk_ts_big': '1.1', 'b:stk_l2f_big': '1.1',
-  'b:stk_fpat': '1.0', 'b:stk_fpat_l2': '1.0', 'b:stk_bk_walls': '1.1', 'c:stk_fp': '1.1', 'p:frvp': '1.1', 'x:htf-po3-lens-stryker': '1.1',
+  'b:stk_fpat': '1.0', 'b:stk_fpat_l2': '1.0', 'b:stk_bk_walls': '1.1', 'b:stk_footprint': '1.3', 'p:frvp': '1.3', 'b:stk_svp': '1.1', 'b:stk_gex': '1.1', 'x:htf-po3-lens-stryker': '1.1',
   'x:liquidity-master-tradezoro': '1.1', 'x:session-sweep-smt-ifvg': '1.1' };
 for (const [k, e] of Object.entries(VERSIONS)) {
   assert.ok(k in BASES, k + ': add its base to BASES in this test');

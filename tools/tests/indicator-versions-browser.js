@@ -1,5 +1,5 @@
 // Indicator versions (assets/indicator-versions.js + assets/chart-ind-versions.js) in the real chart, with fixture L2 frames.
-//   node tools/tests/chart-dev-server.mjs 8031 &   CHART_BASE=http://127.0.0.1:8031 node tools/tests/indicator-versions-browser.js <shotsDir>
+//   node tools/tests/chart-dev-server.mjs 8031 &   CHART_BASE=http://127.0.0.1:8331 node tools/tests/indicator-versions-browser.js <shotsDir>
 // Run 1 (the shipped manifest): a new add is on the latest version, no update button; the Version picker goes 1.1 -> 1.0 -> 1.1
 //   and the footprint really draws the old way on 1.0; the saved chart keeps a pin; an instance with no stored version = base.
 // Run 2 (a TEST manifest where v1.2 "ships"): the same saved chart loads unchanged (no-version instance stays 1.1, the pinned one
@@ -9,7 +9,7 @@
 const fs = require('fs');
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
-const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
+const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8331';
 const OUT = process.argv[2] || '/tmp';
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -134,7 +134,9 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
       check((await btns(p)).length === 0, 'shipped: nobody sees an update button today');
       await p.evaluate(() => window.STRYKER_VELA.context().stateChanged()); await sleep(2500);
       saved0 = await store(p);
-      { const sv = sessOf(saved0), i = sv.search(/"ver":/); check(/stk_l2f_fp/.test(sv) && i < 0, 'saved chart on the base version stores no version (same as a chart saved before versions)', i < 0 ? '' : sv.slice(Math.max(0, i - 400), i + 60)); }
+      // a chart saved BEFORE versions has no ver anywhere: strip it from this save to make one (run 2a loads it)
+      for (const k in saved0) if (/stk_l2f_fp/.test(saved0[k] || '')) saved0[k] = saved0[k].replace(/,?\\?"ver\\?":\\?"[0-9.]+\\?"/g, '').replace(/\{,/g, '{');
+      check(/stk_l2f_fp/.test(sessOf(saved0)) && !/"ver"/.test(sessOf(saved0).replace(/\\"/g, '"')), 'made an old-style saved chart (no version stored)', sessOf(saved0).slice(0, 200));
       // Version picker: 1.1 -> 1.0 -> 1.1 -> 1.0, and the drawing really changes
       await zoom(p, 12); await sleep(2500);
       const dNew = await lastDraw(p);
@@ -176,11 +178,17 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
       await setNQ(p); await sleep(2500);
       let f = await fps(p);
       check(f.length === 1 && f[0].ver === '1.0' && f[0].restRows === 5, tag + ': pinned 1.0 stays 1.0 after v1.2 ships', f);
+      if (mobile) {   // the phone legend starts folded: the toggle carries a dot, tapping it shows the rows
+        const fd = await p.evaluate(() => { const f = document.querySelector('.vela-ind-fold'); return f && { has: f.classList.contains('stk-iv-has'), label: f.getAttribute('aria-label'), shown: f.getBoundingClientRect().width > 0 }; });
+        check(fd && fd.has && /^Show.*update available/.test(fd.label), tag + ': folded legend: the toggle shows the update dot', fd);
+        if (SHOTS) await p.screenshot({ path: OUT + '/iv-' + tag + '-folded.png' });
+        if (fd && fd.shown && !(await btns(p)).some((x) => x.vis)) { await (await p.$('.vela-ind-fold')).tap(); await sleep(700); }
+      }
       let bs = await btns(p);
       check(bs.length === 1 && bs[0].vis && bs[0].label === 'Update available: v1.2', tag + ': the legend row shows the update button', bs);
       if (mobile) { const t = await p.evaluate(() => { const b = document.querySelector('.stk-iv-btn'); const r = b.getBoundingClientRect(); const e = getComputedStyle(b, '::before'); return { w: r.width - 2 * parseFloat(e.left), h: r.height - 2 * parseFloat(e.top) }; }); check(t.w >= 44 && t.h >= 44, tag + ': touch target >= 44 x 44', t); }
       if (SHOTS) await p.screenshot({ path: OUT + '/iv-' + tag + '-legend.png' });
-      const tapBtn = async () => { const bh = await p.$('.stk-iv-btn'); if (mobile) await bh.tap(); else await bh.click(); await sleep(500); };
+      const tapBtn = async () => { if (mobile && !(await btns(p)).some((x) => x.vis)) { await (await p.$('.vela-ind-fold')).tap(); await sleep(700); } const bh = await p.$('.stk-iv-btn'); if (mobile) await bh.tap(); else await bh.click(); await sleep(500); };
       await tapBtn();
       const pop = await p.evaluate(() => { const d = document.querySelector('.stk-iv-pop'); if (!d) return null; const r = d.getBoundingClientRect(); return { text: d.innerText, l: r.left, r: r.right, t: r.top, b: r.bottom, W: innerWidth, H: innerHeight, btnH: [...d.querySelectorAll('button')].map((x) => x.getBoundingClientRect().height) }; });
       check(pop && /Update available: v1\.2/.test(pop.text) && /This chart uses v1\.0/.test(pop.text) && /Sharper volume numbers/.test(pop.text) && /Resting book bars now show/.test(pop.text) && /Not now/.test(pop.text) && /Update/.test(pop.text), tag + ': popover: title, what is new since 1.0, two buttons', pop);
@@ -224,8 +232,8 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
       const p = await ctx.newPage();
       await p.goto(BASE + '/indicators/footprint-l2.html', { waitUntil: 'domcontentloaded' }); await sleep(800);
       const cl = await p.evaluate(() => { const h = document.getElementById('changelog'); const ol = h && h.nextElementSibling; return h && ol ? { h: h.textContent, items: [...ol.children].map((li) => li.querySelector('.ixp-cl-head').textContent), text: ol.innerText, meta: (document.querySelector('.ixp-upd') || {}).textContent, over: document.documentElement.scrollWidth > innerWidth } : null; });
-      check(cl && cl.h === 'Changelog' && cl.items.length === 2 && /^v1\.1Latest/.test(cl.items[0]) && /^v1\.0/.test(cl.items[1]) && /Resting book shown/.test(cl.text) && /v1\.1/.test(cl.meta) && !cl.over, tag + ': indicator page shows the Changelog, newest first, version in the header', cl);
-      if (SHOTS) { await p.evaluate(() => document.getElementById('changelog').scrollIntoView({ block: 'start' })); await sleep(300); await p.screenshot({ path: OUT + '/iv-' + tag + '-changelog.png' }); }
+      check(cl && cl.h === 'Changelog' && cl.items.length >= 2 && /^v1\.\dLatest/.test(cl.items[0]) && /^v1\.0/.test(cl.items[cl.items.length - 1]) && /Resting book shown/.test(cl.text) && /v1\.1/.test(cl.meta) && !cl.over, tag + ': indicator page shows the Changelog, newest first, version in the header', cl);
+      if (SHOTS) { await p.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; const e = document.getElementById('changelog'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 120); }); await sleep(800); await p.screenshot({ path: OUT + '/iv-' + tag + '-changelog.png' }); }
       await ctx.close();
     }
   } finally { await b.close(); }

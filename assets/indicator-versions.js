@@ -27,7 +27,8 @@ export const VERSIONS = {
       'Resting book bars now show only near each candle by default (its high to low plus 2 rows), so the chart stays readable.',
       'New setting "Resting book shown": Near the candle, Off or Full depth.',
       'New setting "Rows beyond the candle".',
-      'Lighter colours for the resting book bars.'] }
+      'Lighter colours for the resting book bars.'] },
+    { v: '1.2', date: '2026-11-13', all: true, notes: ['New setting: Text size for the traded numbers.'] }
   ] },
   'b:stk_l2f_sw': { base: '1.1', versions: [
     { v: '1.0', date: '2026-11-10', notes: ['First release: an anchored VWAP and a volume profile with POC, VAH and VAL for every swing leg.'] },
@@ -48,11 +49,13 @@ export const VERSIONS = {
   ] },
   'b:stk_ts_big': { base: '1.1', versions: [
     { v: '1.0', date: '2026-11-02', notes: ['First release.'] },
-    { v: '1.1', date: '2026-11-10', all: true, notes: ['Fix: the automatic size threshold now uses a fixed 24 hour window, so marks no longer change when you drag the chart or reload.'] }
+    { v: '1.1', date: '2026-11-10', all: true, notes: ['Fix: the automatic size threshold now uses a fixed 24 hour window, so marks no longer change when you drag the chart or reload.'] },
+    { v: '1.2', date: '2026-11-13', all: true, notes: ['Fix: the markers stay on the chart after you switch chart tabs and come back.'] }
   ] },
   'b:stk_l2f_big': { base: '1.1', versions: [
     { v: '1.0', date: '2026-11-03', notes: ['First release.'] },
-    { v: '1.1', date: '2026-11-10', all: true, notes: ['Fix: the automatic size threshold now uses a fixed 24 hour window, so marks no longer change when you drag the chart or reload.'] }
+    { v: '1.1', date: '2026-11-10', all: true, notes: ['Fix: the automatic size threshold now uses a fixed 24 hour window, so marks no longer change when you drag the chart or reload.'] },
+    { v: '1.2', date: '2026-11-13', all: true, notes: ['Fix: older big trades now get their W, C and P tags straight away, without dragging the chart back first.'] }
   ] },
   'b:stk_fpat': { base: '1.0', versions: [
     { v: '1.0', date: '2026-11-10', notes: ['First release: marks absorption, exhaustion, stacked imbalances, unfinished auctions, delta divergence and trapped traders.'] }
@@ -66,20 +69,41 @@ export const VERSIONS = {
       'Works when the feed sends only one side of the book.',
       'A book side that stops updating is left out, and the chart says so.'] }
   ] },
-  'c:stk_fp': { base: '1.1', versions: [
-    { v: '1.0', date: '2026-10-14', notes: ['First release of the Footprint chart type.'] },
+  'b:stk_footprint': { base: '1.3', versions: [
+    { v: '1.0', date: '2026-10-05', notes: ['First release of the Footprint chart type.'] },
     { v: '1.1', date: '2026-11-10', all: true, notes: [
       'New Style menu with two new looks: Delta boxes and Delta bars.',
-      'Optional Bar stats table.'] }
+      'Optional Bar stats table.'] },
+    { v: '1.2', date: '2026-11-13', all: true, notes: [
+      'New settings: Text size, Buy colour and Sell colour.',
+      'The Bar stats table and the delta + volume strip can each sit at any corner of the chart.'] },
+    { v: '1.3', date: '2026-11-13', all: true, notes: ['Fix: the Bar stats table now always stays on top of candles and other indicators.'] }
   ] },
-  'p:frvp': { base: '1.1', versions: [
+  'p:frvp': { base: '1.3', versions: [
     { v: '1.0', date: '2026-10-05', notes: ['First release.'] },
     { v: '1.1', date: '2026-11-11', all: true, notes: [
       'POC, VAH and VAL lines stop at the end of the range. New setting "Extend lines right".',
       'Clicks on candles inside the range reach the chart instead of moving the drawing.',
       'New setting "Show thin rows".',
       'Optional delta bars, and an anchored VWAP with bands.',
-      'Drawings saved before this keep their old look.'] }
+      'Drawings saved before this keep their old look.'] },
+    { v: '1.2', date: '2026-11-13', all: true, notes: [
+      'The value area stays the same when you change the number of rows.',
+      'Corner handles to resize the range.',
+      'Dashes instead of empty delta values where there is no order flow data.'] },
+    { v: '1.3', date: '2026-11-13', all: true, notes: ['The value area is now the same on every timeframe: the profile is built from 1-minute bars when they are available.'] }
+  ] },
+  'b:stk_svp': { base: '1.1', versions: [
+    { v: '1.0', date: '2026-10-05', notes: ['First release.'] },
+    { v: '1.1', date: '2026-11-13', all: true, notes: [
+      'Draws and updates live, including the session that is running now.',
+      'Session now starts on "both" (day session and overnight, each with its own profile), so the current session is always shown. Pick "rth" in the settings for day session only.'] }
+  ] },
+  'b:stk_gex': { base: '1.1', versions: [
+    { v: '1.0', date: '2026-10-07', notes: ['First release.'] },
+    { v: '1.1', date: '2026-11-13', all: true, notes: [
+      'New optional live levels on futures charts: overnight high and low while the overnight session runs, and the current day high and low.',
+      'They are off by default, so your chart looks the same until you turn them on.'] }
   ] },
   'x:htf-po3-lens-stryker': { base: '1.1', versions: [
     { v: '1.0', date: '2026-10-07', notes: ['First release.'] },

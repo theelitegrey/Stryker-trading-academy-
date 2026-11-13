@@ -66,6 +66,7 @@ function lutFromQ(qs, contrast) {
   l.n = nArr;
   return l;
 }
+export const BUBBLE_DEF = { buy: '#35c878', sell: '#e0484f' };
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -89,6 +90,7 @@ export const LM_SCHEMA = [
   { key: 'minBubble', title: 'Min bubble size (0 = biggest on screen)', type: 'float', defval: 0, min: 0, max: 1000000, step: 0.1,
     tooltip: 'Hide bubbles with less volume than this (coins for crypto, contracts for futures). 0 keeps the biggest ones that fit.' },
   { key: 'bubbleScale', title: 'Bubble size %', type: 'int', defval: 100, min: 40, max: 200, step: 10 },
+  ...bubbleSchema(),
   { key: 'showLadder', title: 'Order book ladder (right side)', type: 'bool', defval: true,
     tooltip: 'Left column: the size resting at each price now (red above the price = asks, green below = bids). Right column: the running total from the best price outward. Display only.' },
   { key: 'showVolume', title: 'Volume bars', type: 'bool', defval: true, tooltip: 'Traded volume per time bucket along the bottom, green = buying, red = selling.' },
@@ -104,7 +106,7 @@ export function lmConfig(i) {
     hide: i.hideCandles !== false, heat: i.showHeat !== false,
     contrast: clamp(num(i.contrast, 1), 0.3, 3), minSize: Math.max(0, num(i.minSize, 0)),
     histMin: clamp(Math.round(num(i.historyMinutes, 120)), 10, 1440),
-    bubbles: i.showBubbles !== false, minBubble: Math.max(0, num(i.minBubble, 0)), bubbleScale: clamp(num(i.bubbleScale, 100), 40, 200) / 100,
+    bubbles: i.showBubbles !== false, minBubble: Math.max(0, num(i.minBubble, 0)), bubbleScale: clamp(num(i.bubbleScale, 100), 40, 200) / 100, bubDom: bubbleOpts(i),
     ladder: i.showLadder !== false, volume: i.showVolume !== false, grid: i.showGrid !== false, legend: i.showLegend !== false
   };
 }
@@ -524,7 +526,7 @@ export function makeLayer(H) {
           const x = co.timeToX(b.t), y = yOf(b.p);
           if (x < -rMax || x > plotR + rMax || y < top - rMax || y > bot + rMax) continue;
           const r = clamp(rMin + (rMax - rMin) * Math.sqrt(b.v / Math.max(1e-12, vmax)), rMin, rMax);
-          sphere(g, x, y, r, b.v > 0 ? b.b / b.v : 0.5);
+          sphere(g, x, y, r, b.v > 0 ? b.b / b.v : 0.5, cfg.bubDom);
           stat.bubbles++;
         }
         stat.bubbleCandidates = vis.length; stat.vmax = vmax; stat.bubSample = vis.slice(-2).map((b) => [Math.round(co.timeToX(b.t)), Math.round(yOf(b.p)), b.p, b.v]); stat.plotR = plotR; stat.scale = [a.scale.min, a.scale.max];
@@ -620,13 +622,32 @@ function tzOffsetMs(tz, t) {
   } catch (e) { return 0; }
 }
 
-// A shaded sphere split green / red by the buy share (buy on top).
-export function sphere(g, x, y, r, buyShare) {
+// Dominant-side colour: the whole bubble takes the colour of the side that traded more; the more one-sided it was, the stronger it is
+// (an even split reads as neutral grey). Used when the "Colour by the dominant side" setting is on.
+export function domColor(buyShare, buy, sell) {
+  const m = (h) => { const n = parseInt(String(h).replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const imb = Math.abs(2 * clamp(buyShare, 0, 1) - 1), c = m(buyShare >= 0.5 ? buy : sell), g = m('#8a90a0'), t = 0.2 + 0.8 * imb;
+  return '#' + c.map((v, i) => Math.round(g[i] + (v - g[i]) * t).toString(16).padStart(2, '0')).join('');
+}
+export function bubbleSchema() { return [
+  { key: 'bubbleDom', title: 'Colour bubbles by the dominant side', type: 'bool', defval: false,
+    tooltip: 'Off: each ball is split green / red by the share of buying and selling. On: the whole ball takes the colour of the side that traded more, stronger the more one-sided it was.' },
+  { key: 'bubbleBuyColor', title: 'Buyers dominate colour', type: 'color', defval: BUBBLE_DEF.buy, when: { key: 'bubbleDom', equals: true } },
+  { key: 'bubbleSellColor', title: 'Sellers dominate colour', type: 'color', defval: BUBBLE_DEF.sell, when: { key: 'bubbleDom', equals: true } }
+]; }
+export function bubbleOpts(i) { return (i.bubbleDom === true
+  ? { dom: true, buy: /^#[0-9a-f]{6}$/i.test(i.bubbleBuyColor) ? i.bubbleBuyColor : BUBBLE_DEF.buy, sell: /^#[0-9a-f]{6}$/i.test(i.bubbleSellColor) ? i.bubbleSellColor : BUBBLE_DEF.sell } : null); }
+
+// A shaded sphere split green / red by the buy share (buy on top), or one colour by the dominant side (opt from bubbleOpts).
+export function sphere(g, x, y, r, buyShare, opt) {
   g.save();
   g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.clip();
   const sp = y - r + 2 * r * clamp(buyShare, 0, 1);
-  g.fillStyle = '#e0484f'; g.fillRect(x - r, y - r, 2 * r, 2 * r);
-  if (buyShare > 0) { g.fillStyle = '#35c878'; g.fillRect(x - r, y - r, 2 * r, sp - (y - r)); }
+  if (opt && opt.dom) { g.fillStyle = domColor(buyShare, opt.buy, opt.sell); g.fillRect(x - r, y - r, 2 * r, 2 * r); }
+  else {
+    g.fillStyle = '#e0484f'; g.fillRect(x - r, y - r, 2 * r, 2 * r);
+    if (buyShare > 0) { g.fillStyle = '#35c878'; g.fillRect(x - r, y - r, 2 * r, sp - (y - r)); }
+  }
   if (r >= 5) {
     const gr = g.createRadialGradient(x - r * 0.38, y - r * 0.42, r * 0.05, x, y, r * 1.02);
     gr.addColorStop(0, 'rgba(255,255,255,.78)'); gr.addColorStop(0.3, 'rgba(255,255,255,.12)');

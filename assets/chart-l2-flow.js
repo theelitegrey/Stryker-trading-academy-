@@ -15,7 +15,7 @@
 import { registerFeed } from './chart-feeds.js?v=980';
 import { isFree } from './chart-pro-gate.js?v=980';
 import { rtOnChange } from './rt-access.js?v=980';
-import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart-futures-l2.js?v=980';
+import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState, fpNeed, fpState } from './chart-futures-l2.js?v=980';
 import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=980';
 import { tsOpen } from './chart-ts-trades.js?v=980';
 import { aggregateMins } from './chart-ts-data.js?v=980';
@@ -389,7 +389,8 @@ class L2Flow {
   stat(bars, has) { let n = 0; for (let i = 0; i < bars.length; i++) if (has(i)) n++; (window.__stkL2Flow || (window.__stkL2Flow = {}))[this.type] = Object.assign((window.__stkL2Flow || {})[this.type] || {}, { n, bars: bars.length }); }
   drawFp(hub, bars, tf, since) {
     const fa = hub.footAgg(tf);
-    this.ov('Footprint (L2): ' + (this.inputs.restShow === 'Off' && !below(this.inputs, '1.1') ? 'traded' : 'traded | resting at close'), fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '');
+    const nt = hub.kind === 'futures' ? fpNote(hub.spec.root, this.fpLeft || bars[0].time, tf) : fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '';
+    this.ov('Footprint (L2): ' + (this.inputs.restShow === 'Off' && !below(this.inputs, '1.1') ? 'traded' : 'traded | resting at close'), nt);
     this.stat(bars, (i) => fa.map.has(bars[i].time));
     this.push({ hub, v: hub.v + ':' + hub.fver() });
   }
@@ -528,6 +529,7 @@ function fpLayer() {
         if (!tick) return;
         const ppb = co.pxPerBar(), vr = co.visibleLogicalRange(), i0 = clamp(Math.floor(vr.from), 0, a.bars.length - 1), i1 = clamp(Math.ceil(vr.to), 0, a.bars.length - 1);
         const top = a.bounds.top, bot = top + a.bounds.height;
+        if (hub.kind === 'futures' && a.bars[i0]) { fpNeed(hub.spec.root, a.bars[i0].time - 2 * 3600000); d.owner.fpLeft = a.bars[i0].time; }
         if (ppb < (phone ? 28 : 34)) { g.font = '600 11px ' + MONO; g.textAlign = 'center'; d.owner.text = 'Footprint (L2): zoom in to see it'; return; }
         const newest = hub.samples()[hub.samples().length - 1], S = newest ? newest.step : tick;
         const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), minPx = phone ? 16 : 12;
@@ -813,7 +815,7 @@ function ladderLayer() {
 // The Volume footprint chart style (chart-footprint.js) with Data = L2: the hub's per-price trade minutes (TickFeed, 3 h) in the same
 // shape flowFor() returns, so the classic stk_fp drawing runs on them unchanged. `own` is the engine's holder { u, spec, k, out }.
 export function fpDrop(own) { if (own.u) { own.u.release(); own.u = null; own.spec = null; own.k = ''; } }
-export function fpFlow(own, ctx, bars, tfMs, E, onChange) {
+export function fpFlow(own, ctx, bars, tfMs, E, onChange, left) {
   const spec = specOf(ctx);
   if (!spec || spec.kind !== 'futures') { fpDrop(own); return null; }   // crypto: the caller keeps the trades feed
   if (!l2Badge()) { fpDrop(own); return { map: new Map(), tick: 0, note: NOT_YET, locked: true }; }
@@ -823,10 +825,21 @@ export function fpFlow(own, ctx, bars, tfMs, E, onChange) {
   if (own.k !== key) {
     const clipped = clipTo(fb.bars, E), agg = aggregate(clipped, tfMs);
     own.k = key;
-    own.out = { map: new Map(agg.map((b) => [b.t, b])), list: agg, mins: clipped, tick: fb.tick || spec.tick, thr: 0, free: false,
-      note: !agg.length ? 'Loading order flow…' : fb.from && fb.from > bars[0].time ? 'Footprint (L2) from ' + hhmm(fb.from) : '' };
+    own.out = { map: new Map(agg.map((b) => [b.t, b])), list: agg, mins: clipped, tick: fb.tick || spec.tick, thr: 0, free: false, note: '' };
   }
+  // left = the oldest bar on screen (the chart style passes it): page older footprint minutes in, 2 h ahead of the scroll
+  if (left != null && E == null) fpNeed(spec.root, left - 2 * 3600000);
+  own.out.note = !own.out.list.length ? 'Loading order flow…' : fpNote(spec.root, left != null ? left : bars[0].time, tfMs);
   return own.out;
+}
+// the left edge of the footprint, said in plain words: '' when every bar from `left` on has its minutes
+export function fpNote(root, left, tfMs) {
+  const s = fpState(root);
+  if (!(s.from > left + tfMs)) return '';
+  if (s.busy) return 'Loading footprint history…';
+  if (s.failed) return 'Footprint history did not load, retrying · from ' + hhmm(s.from);
+  if (left < s.floor) return 'Footprint history covers the last 48 h · from ' + hhmm(s.from);
+  return 'No footprint recorded before ' + hhmm(s.from);
 }
 export const fpVersion = (own) => (own.u ? own.u.h.fver() : 0);
 

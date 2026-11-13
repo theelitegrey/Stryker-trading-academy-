@@ -426,7 +426,7 @@ function tpoLayer() {
           // steady width: the widest row is always the same number of pixels (zooming changes the row
           // size, which changes how many letters the widest row holds)
           const cellW = I.fixedWidth ? steadyW(ss.list, s, (i) => co.logicalToX(i), x0, co.width, phone) / Math.max(1, maxC) : Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
-          if (xo.last) try { window.__stkTpoW = cellW * maxC; } catch (e) {}   // read by tools/tests/chart-tpo-extras-browser.js
+          try { (window.__stkTpoW = window.__stkTpoW || {})[s.k] = cellW * maxC; } catch (e) {}   // widest-row px per session, read by chart-of-pro-browser.js
           const letters = letters0 && rowPx >= minRowPx && cellW >= (phone ? 6 : 7);
           const col = I.color || TPO_IN, outC = I.outColor || TPO_OUT, pocC = I.pocColor || MAG, vaL = I.vaLineColor || VA_LN;
           const last = s.i1 >= a.bars.length - 1;   // the developing session: lines run to the right edge

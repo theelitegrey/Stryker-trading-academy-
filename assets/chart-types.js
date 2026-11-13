@@ -6,7 +6,6 @@
 // Education only. Not financial advice.
 import { renko, range, lineBreak, kagi, pnf, sizeOf, guessTick } from './chart-types-math.js?v=975';
 import { tpoProfile, tpoLetter, autoRow, rthKey } from './chart-of-pro-data.js?v=975';
-import { drawTpoExtras, drawLabels, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=975';
 import { drawTpoExtras, drawLabels, steadyW, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=975';
 
 export const CT_TIME = ['stk_hollow', 'stk_volcandle', 'stk_linemark', 'stk_step', 'stk_hlcarea', 'stk_columns', 'stk_highlow'];

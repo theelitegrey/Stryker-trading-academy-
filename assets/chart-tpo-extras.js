@@ -49,7 +49,7 @@ function rgba(hex, a) {
 
 // o = { I, bars (all chart bars), s: { i0, i1 } (session bar range), p (its tpoProfile), periodMs,
 // tick, X(i) -> x, Y(price) -> y, x0, x1 (session left / right px), W (plot width), last (developing
-// session), top, bot, phone, day, memo (Map), mk (memo key for this session's profile), labels (array,
+// session), top, bot, phone, day, labels (array,
 // shared by the frame: right-edge labels collected here and drawn by drawLabels) }
 export function drawTpoExtras(g, o) {
   const { I, bars, s, p, X, Y, W, top, bot, day } = o;
@@ -62,7 +62,8 @@ export function drawTpoExtras(g, o) {
     const k = firstTouch(bars, from, lo, hi);
     return k < 0 ? { x: W, open: true } : { x: X(k), open: false };
   };
-  const hline = (y, xa, xb, c, w, dash) => { if (y < top - 2 || y > bot + 2 || xb < 0 || xa > W) return; g.setLineDash(dash || []); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(xa, Math.round(y) + 0.5); g.lineTo(xb, Math.round(y) + 0.5); g.stroke(); g.setLineDash([]); };
+  const L = o.labels;
+  const hline = (y, xa, xb, c, w, dash) => { if (y < top - 2 || y > bot + 2 || xb < 0 || xa > W) return false; g.setLineDash(dash || []); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(xa, Math.round(y) + 0.5); g.lineTo(xb, Math.round(y) + 0.5); g.stroke(); g.setLineDash([]); return true; };
   const lab = (y, txt, c) => o.labels && o.labels.push({ y, txt, c });
 
   if (I.singles) {
@@ -80,7 +81,7 @@ export function drawTpoExtras(g, o) {
     for (const [px, txt] of [[pe.high, 'Poor high'], [pe.low, 'Poor low']]) {
       if (px == null) continue;
       const y = Y(px), e = endX(px, px);
-      hline(y, o.x0, e.x, rgba(POOR, 0.95), 1.5, [5, 3]);
+      if (hline(y, o.x0, e.x, rgba(POOR, 0.95), 1.5, [5, 3])) L.poor = (L.poor || 0) + 1;
       if (o.x1 - o.x0 > 70 && y > top + 8 && y < bot - 8) {   // a tag on the profile itself
         g.font = '600 ' + (o.phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'left'; g.textBaseline = txt === 'Poor high' ? 'bottom' : 'top';
         g.fillStyle = POOR; g.fillText(txt, o.x0 + 2, txt === 'Poor high' ? y - 3 : y + 3);
@@ -90,13 +91,12 @@ export function drawTpoExtras(g, o) {
   }
   if (I.nakedPoc && !o.last) {   // the developing session's POC already runs to the right edge
     const px = (p.r0 + p.poc + 0.5) * p.row, e = endX(px, px);
-    hline(Y(px), o.x1, e.x, rgba(MAG, e.open ? 0.9 : 0.5), 1, [6, 3]);
+    if (hline(Y(px), o.x1, e.x, rgba(MAG, e.open ? 0.9 : 0.5), 1, [6, 3])) L.naked = (L.naked || 0) + 1;
     if (e.open) lab(Y(px), 'Naked POC', MAG);
   }
   if (I.devPoc) {
-    const key = 'dev|' + o.mk;
-    let d = o.memo.get(key);
-    if (!d) { d = tpoDeveloping(sb(), { periodMs: o.periodMs, row: p.row, va: o.va }); o.memo.set(key, d); }
+    // cached on the profile object, which the caller rebuilds whenever the session's bars change
+    const d = p.dev || (p.dev = tpoDeveloping(sb(), { periodMs: o.periodMs, row: p.row, va: o.va }));
     const step = (arr, c, w, dash) => {
       g.setLineDash(dash); g.strokeStyle = c; g.lineWidth = w; g.beginPath();
       for (let j = 0; j < arr.length; j++) {
@@ -116,15 +116,26 @@ export function drawTpoExtras(g, o) {
     // names at the right end of the lines (session end), when there is room
     if (xb - o.x0 > 80) {
       g.font = '600 ' + (o.phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillStyle = rgba(c, 1);
-      const t = (y, txt) => { if (y > top + 12 && y < bot - 2) g.fillText(txt, xb - 4, y - 2); };
+      // skip a name that would sit on the POC / VAH / VAL pills or lines of the same session
+      const busy = [p.poc, p.vah, p.val].map((k) => Y((p.r0 + k + 0.5) * p.row));
+      const t = (y, txt) => { if (y > top + 12 && y < bot - 2 && busy.every((b) => Math.abs(b - y) > 14)) g.fillText(txt, xb - 4, y - 2); };
       t(Y(p.ibHi), 'IB high'); t(Y(p.ibLo), 'IB low');
       for (const x of ext) { t(Y(x.up), '+' + x.k + 'x'); t(Y(x.dn), '-' + x.k + 'x'); }
     }
   }
 }
 
+// Steady profile width (px): 110 desktop / 72 phone at every zoom; only squeezed when the next
+// session starts closer than that (so profiles never run into each other).
+export function steadyW(list, s, X, x0, W, phone) {
+  const want = phone ? 72 : 110, nx = list[list.indexOf(s) + 1];
+  const room = nx ? X(nx.i0) - x0 - 8 : W - x0 - 8;
+  return Math.max(24, Math.min(want, room));
+}
+
 // Right-edge tags for levels still open (untouched): one per row of text, newest kept on a clash.
 export function drawLabels(g, labels, { W, top, bot, phone, day }) {
+  try { window.__stkTpoDrawn = { poor: labels.poor || 0, naked: labels.naked || 0 }; } catch (e) {}   // read by the browser tests
   if (!labels.length) return;
   g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
   const used = [];

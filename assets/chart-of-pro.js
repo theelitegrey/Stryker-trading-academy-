@@ -18,7 +18,7 @@
 // their micros; Binance trades for crypto) with the same plan + delay rules and refresh timers (hooks
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
-import { drawTpoExtras, drawLabels, TPO_EXTRA_INPUTS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=972';
+import { drawTpoExtras, drawLabels, steadyW, TPO_EXTRA_INPUTS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=972';
 import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=972';
 
 export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
@@ -417,14 +417,15 @@ function tpoLayer() {
           if (xs > co.width) continue;
           const x0 = Math.max(xs, 8);   // the session began off-screen: the profile sticks to the left edge
           const xo = { I, bars: a.bars, s, p, periodMs: periodMin * 60000, va: num(I.va, 70), tick, X: (i) => co.logicalToX(i), Y: (v) => Y(a, v), x0, x1, W, pitch: ppb,
-            last: s.i1 >= a.bars.length - 1, top, bot, phone, day: light(), memo: inst.memo, mk: s.k + '|' + pk, labels };
+            last: s.i1 >= a.bars.length - 1, top, bot, phone, day: light(), labels };
           if (x1 < 0) { drawTpoExtras(g, xo); continue; }   // off to the left: only its levels still running right
           const maxC = Math.max(...p.counts);
           const span = Math.max(24, (x1 - x0) * clamp(num(I.widthPct, 70), 10, 100) / 100);
           const rowPx = Math.abs(Y(a, row) - Y(a, 0));
           // steady width: the widest row is always the same number of pixels (zooming changes the row
           // size, which changes how many letters the widest row holds)
-          const cellW = I.fixedWidth ? Math.min(span, phone ? 72 : 110) / Math.max(1, maxC) : Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
+          const cellW = I.fixedWidth ? steadyW(ss.list, s, (i) => co.logicalToX(i), x0, co.width, phone) / Math.max(1, maxC) : Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
+          if (xo.last) try { window.__stkTpoW = cellW * maxC; } catch (e) {}   // read by tools/tests/chart-tpo-extras-browser.js
           const letters = letters0 && rowPx >= minRowPx && cellW >= (phone ? 6 : 7);
           const col = I.color || TPO_IN, outC = I.outColor || TPO_OUT, pocC = I.pocColor || MAG, vaL = I.vaLineColor || VA_LN;
           const last = s.i1 >= a.bars.length - 1;   // the developing session: lines run to the right edge

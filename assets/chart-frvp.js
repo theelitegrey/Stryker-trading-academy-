@@ -11,12 +11,16 @@
 //   4. "Delta bars": buy minus sell per row, mirrored on the other side of the profile's anchor (left of A for the default
 //      left anchor). Data = the footprint's own order flow (chart-footprint.js flowFor = the recorded trades with their
 //      aggressor side; or an already-open L2 hub's trades when the footprint's Data source is L2): never estimated from candles. "Anchored VWAP" from A with optional +-1 / +-2 SD bands.
+//   5. Same value area at any row count: the profile maths is ours (chart-frvp-data.js buildProfile). Vela put a candle's whole volume
+//      on 4 rows (O/H/L/C) and grew the value area one row at a time, so 300 rows gave spikes and a VAH/VAL far from the 24-row ones.
+//   6. Corner handles: a selected profile shows four handles on the corners of its range box (start/end time; the price edges follow
+//      the candles in the range, so only time is stored). Clicks inside the box still pass through to the chart.
 // SAVED DRAWINGS keep their look: a drawing saved before this has none of the new keys, and a missing key means the old
 // behaviour (lines to B, no thin rows, no delta, no VWAP). New drawings get extendRight:false and thinRows:true when placed.
 // Education only. Not financial advice.
 import { flowFor, rootOf } from './chart-footprint.js?v=961';
 import { isFree } from './chart-pro-gate.js?v=961';
-import { deltaRows, anchoredVwap } from './chart-frvp-data.js?v=961';
+import { deltaRows, anchoredVwap, buildProfile } from './chart-frvp-data.js?v=961';
 
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';
@@ -187,15 +191,28 @@ function paintFrvp(ctx, d, proj, theme) {
     ctx.fillStyle = (v > 0 ? UP : DN) + 'BF'; ctx.fillRect(x, Math.min(yA, yB), w, h2);
     rects.push([x, Math.min(yA, yB), w, h2]);
   }
+  // rows with volume but no order flow (older than the flow history): a dim dash, so a gap reads as "no data", not "no delta"
+  let gaps = 0;
+  ctx.fillStyle = theme.textColor || '#9aa0ad'; ctx.globalAlpha = 0.7;
+  for (let k = 0; k < D.d.length; k++) {
+    if (D.has[k] || !(P.rows[k].up + P.rows[k].down > 0)) continue;
+    gaps++;
+    const yA = L.yEdges[k], yB = L.yEdges[k + 1];
+    ctx.fillRect(side < 0 ? L.anchorX - gap - 6 : L.anchorX + gap, Math.round((yA + yB) / 2) - 1, 6, 2);
+  }
+  ctx.globalAlpha = 1;
   d.__stkDelta = rects;
-  const cover = D.first > from + 2 * 60000 ? 'Delta from ' + hhmm(D.first) : '';
+  const cover = D.first > from + 2 * 60000 || gaps ? 'Delta from ' + stamp(D.first) + (gaps ? ' · dash = no order flow' : '') : '';
   if (cover) label(ctx, theme, L, cover);
 }
+const stamp = (ms) => { try { return new Date(ms).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' ' + hhmm(ms); } catch (e) { return ''; } };
 function label(ctx, theme, L, text) {
   const x = L.grow === 1 ? L.anchorX - 4 : L.anchorX + 4, y = Math.min(L.yEdges[0], L.yEdges[L.yEdges.length - 1]) - 4;
   ctx.save();
   ctx.font = '10px ' + (theme.fontFamily || 'sans-serif'); ctx.textAlign = L.grow === 1 ? 'right' : 'left'; ctx.textBaseline = 'bottom';
-  ctx.fillStyle = theme.textColor || '#9aa0ad'; ctx.globalAlpha = 0.75; ctx.fillText(text, x, y);
+  ctx.fillStyle = theme.textColor || '#9aa0ad'; ctx.globalAlpha = 0.75;
+  if (ctx.textAlign === 'right' && x - ctx.measureText(text).width < 52) { ctx.textAlign = 'left'; ctx.fillText(text, 52, y); }   // keep it inside the plot
+  else ctx.fillText(text, x, y);
   ctx.restore();
 }
 
@@ -248,6 +265,45 @@ export function installFrvpClass(FRVP) {
   P.__stkFrvp = true;
   Object.defineProperty(P, 'frvpx', { configurable: true, get() { return this.frvp; } });
   P.hitTest = hitFrvp;
+  // 5. profile maths
+  P.compute = function (proj) {
+    const bars = this.barsInSpan(proj);
+    if (!bars) return null;
+    const s = this.frvp, r = buildProfile(bars, s.rows, s.valueAreaPct / 100, !!(s.showDevelopingPoc || s.showDevelopingVa));
+    if (r) this.cachedRange = { min: r.profile.min, max: r.profile.min + r.profile.rowH * r.profile.rows.length };
+    return r;
+  };
+  // 6. corner handles. 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right (box = range x0..x1, profile top..bottom), 4/5 = POC line ends (as before).
+  const grab = () => { try { return window.matchMedia('(pointer: coarse)').matches ? 18 : 11; } catch (e) { return 11; } };   // hit radius px: finger vs cursor
+  P.handlePoints = function (proj) {
+    const L = this.layout(proj);
+    this.__stkBox = !!L;
+    if (!L) {
+      const pts = [];
+      for (const a of this.anchors) { const y = proj.yOf(a.price, this.paneId); if (y == null) return []; pts.push([proj.xOf(a.time), y]); }
+      return pts;
+    }
+    const e = L.yEdges, top = Math.min(e[0], e[e.length - 1]), bot = Math.max(e[0], e[e.length - 1]);
+    const pts = [[L.x0, top, 'sq'], [L.x1, top, 'sq'], [L.x0, bot, 'sq'], [L.x1, bot, 'sq']];
+    if (L.pocY != null) pts.push([L.x0, L.pocY], [L.x1, L.pocY]);
+    return pts;
+  };
+  P.hitHandle = function (px, py, proj, tol) {
+    const pts = this.handlePoints(proj), rad = Math.max(grab(), tol + 3);
+    let best = -1, bd = Infinity;
+    for (let i = 0; i < pts.length; i++) { const d = Math.hypot(px - pts[i][0], py - pts[i][1]); if (d <= rad && d < bd) { bd = d; best = i; } }
+    return best;
+  };
+  P.stkDragHandle = function (i, pt, orig) {
+    const a = this.anchors[0], b = this.anchors[1];
+    if (!a || !b || !orig || orig.length < 2) return;
+    a.time = orig[0].time; b.time = orig[1].time;
+    if (!this.__stkBox) { const t = i === 0 ? a : b; t.time = pt.time; t.price = pt.price; return; }
+    const left = orig[0].time <= orig[1].time ? a : b, right = left === a ? b : a;
+    const isLeft = i === 0 || i === 2 || i === 4;
+    (isLeft ? left : right).time = pt.time;
+  };
+  P.stkHandleCursor = function (i) { return i >= 4 ? 'ew-resize' : (i === 0 || i === 3) ? 'nwse-resize' : 'nesw-resize'; };
   const schema = P.schema;
   P.schema = function () { const s = schema.call(this); s.fields = s.fields.concat(extraFields(this)); return s; };
   const onPlaced = P.onPlaced;

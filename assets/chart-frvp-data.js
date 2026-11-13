@@ -108,3 +108,12 @@ export function buildProfile(bars, rowCount, frac, wantDeveloping) {
   }
   return out;
 }
+
+// The profile must not depend on the chart timeframe: a 15m and a 30m candle spread their volume over different row spans, so the same
+// range gave a different POC / VAH / VAL on each. The range is the two anchor times, so take the 1-minute bars with from <= time <= to
+// (the same anchors give the same minutes at any timeframe). Returns null when there are none (caller keeps the chart's own bars).
+export function fineSpanBars(mins, from, to) {
+  const out = [];
+  for (const b of mins || []) if (b && b.time >= from && b.time <= to) out.push(b);
+  return out.length ? out.sort((a, b) => a.time - b.time) : null;
+}

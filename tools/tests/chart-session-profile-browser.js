@@ -56,6 +56,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         return hit.n;
       }, id);
       check(!errors.length && r.style === id && r.bars > 50 && r.tf === tf && px > (z.mobile ? 60 : 200), `${z.tag} tf=${tf}${layout ? ' +L2/BigTrades' : ''} ${id} draws after switch`, { r, px, errors: errors.slice(0, 2) });
+      if (id === 'stk_tpoc' && !layout) {
+        // TPO extras (member request 13 Nov): off by default; all on adds ink; then back off
+        const ink = () => p.evaluate(() => { let n = 0; for (const cv of document.querySelectorAll('#vela-chart canvas')) { const g = cv.getContext('2d'); if (!g) continue; let d; try { d = g.getImageData(0, 0, cv.width, cv.height).data; } catch (e) { continue; } for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; } return n; });
+        const setCT = (o) => p.evaluate((o) => { const r = window.STRYKER_VELA.chart.renderer, R = r.applyConfig ? r : r.renderer; R.applyConfig({ chartTypes: { stk_tpoc: o } }); }, o).then(() => sleep(1200));
+        const n0 = await ink();
+        await setCT({ singles: true, poor: true, nakedPoc: true, devPoc: true, ibLines: true, ibMin: '60', ibExt: '1.5, 2, 3' });
+        const n1 = await ink();
+        await p.screenshot({ path: `${OUT}/${TAG}${z.tag}-${tf}-stk_tpoc-extras.png` });
+        await setCT({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false });
+        const n2 = await ink();
+        check(!errors.length && n1 > n0 + 50 && Math.abs(n2 - n0) <= Math.max(20, n0 * 0.002), `${z.tag} tf=${tf} stk_tpoc: extras add lines (${n0} -> ${n1} px) and off restores the default look (${n2} px)`, errors.slice(0, 2));
+      }
     }
     await ctx.close();
   }

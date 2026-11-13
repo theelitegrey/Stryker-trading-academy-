@@ -79,22 +79,11 @@ jobs:
           print("archive layout OK:", n)
           PY
 
-      - name: C# syntax check (dotnet, syntax errors only)
-        shell: pwsh
-        run: |
-          # NinjaTrader's DLLs are not available here, so missing-type errors are expected and ignored.
-          # Only real syntax errors (parser codes) fail this step. This does NOT prove it compiles inside NinjaTrader.
-          $d = New-Item -ItemType Directory -Force syntaxcheck
-          Copy-Item tools/bridge/ninjatrader/TradeZoroBridge.cs $d
-          Set-Content "$d/s.csproj" '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Library</OutputType><LangVersion>7.3</LangVersion></PropertyGroup></Project>'
-          $o = dotnet build $d --nologo 2>&1 | Out-String
-          $errs = [regex]::Matches($o, 'error (CS\d+)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
-          Write-Host "distinct error codes: $($errs -join ', ')"
-          $semantic = 'CS0246','CS0234','CS0103','CS0115','CS1061','CS0012','CS0518','CS0535','CS0039','CS0266','CS1503','CS1501','CS1929','CS0029','CS1579','CS0117'
-          $syntax = $errs | Where-Object { $_ -notin $semantic }
-          if ($syntax) { Write-Error "possible syntax errors: $($syntax -join ', ')"; $o; exit 1 }
-          Write-Host "no syntax-class errors (the file parses; type errors from missing NinjaTrader DLLs ignored)"
-          exit 0   # dotnet build leaves a non-zero exit code behind
+      - name: NinjaTrader 8 compile check (C# 5, default references, NT8 API stubs)
+        shell: bash
+        # Fails the release if TradeZoroBridge.cs would not compile on a clean NT8 (that is the
+        # "Import failed ... duplicate method names" error members see). Uses the .NET Framework csc.exe on the runner.
+        run: python tools/bridge/tests/compile_nt8.py
 
       - name: Checksums
         shell: bash

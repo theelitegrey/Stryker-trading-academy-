@@ -1,4 +1,4 @@
-// TradeZoro Data Bridge for NinjaTrader 8. DATA ONLY. UNTESTED ON A REAL NT8 (written without a compiler; see README.md).
+// TradeZoro Data Bridge for NinjaTrader 8. DATA ONLY. Compile-checked off-NT8 against API stubs (tools/bridge/tests/compile_nt8.py); see README.md.
 // Serves market data (history + last price) to https://tradezoro.com in YOUR browser over ws://127.0.0.1:487xx.
 // It reads no balances, positions or account values and has no code path that places, changes or cancels anything.
 // Protocol: tools/bridge/protocol.json. Raw TcpListener on 127.0.0.1 + a minimal RFC 6455 handshake (no http.sys URL ACL needed).
@@ -9,8 +9,8 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Security;  // ProtectedData lives in System.Security.dll: add it under NinjaScript Editor > References if missing
 using System.Text;
 using System.Threading;
 using NinjaTrader.Cbi;
@@ -147,7 +147,7 @@ namespace NinjaTrader.NinjaScript.AddOns
 			if (code == null || DateTime.UtcNow > codeExp) { Err(cl, "bad-code", "That code has expired. Use the new code.", null); NewCode(); Log("new code: " + code); return false; }
 			if (!SameText(given, code)) { if (++tries >= 5) { NewCode(); Log("new code: " + code); } Err(cl, "bad-code", "That code is not right.", null); return false; }
 			string token = RandomHex(32);
-			File.WriteAllBytes(tokenPath, ProtectedData.Protect(Encoding.UTF8.GetBytes(token), null, DataProtectionScope.CurrentUser));
+			File.WriteAllBytes(tokenPath, Dpapi.Protect(Encoding.UTF8.GetBytes(token)));
 			code = null;
 			Send(cl, "{\"t\":\"paired\",\"token\":\"" + token + "\"}");
 			return true;
@@ -165,7 +165,7 @@ namespace NinjaTrader.NinjaScript.AddOns
 
 		string ReadToken()
 		{
-			try { return Encoding.UTF8.GetString(ProtectedData.Unprotect(File.ReadAllBytes(tokenPath), null, DataProtectionScope.CurrentUser)); } catch { return null; }
+			try { return Encoding.UTF8.GetString(Dpapi.Unprotect(File.ReadAllBytes(tokenPath))); } catch { return null; }
 		}
 		string RandomHex(int n) { byte[] b = new byte[n]; rng.GetBytes(b); return Hex(b); }
 
@@ -318,45 +318,78 @@ namespace NinjaTrader.NinjaScript.AddOns
 			f[0] = 0x81;
 			lock (cl.Lock) cl.S.Write(f, 0, f.Length);
 		}
-	}
 
-	// Flat JSON reader for the protocol only: object of string / number / bool / array-of-string values.
-	internal static class Json
-	{
-		public static Dictionary<string, object> Parse(string s)
+		// Token at rest: Windows DPAPI, current-user scope, via crypt32 directly. Same blob format as .NET's
+		// ProtectedData.Protect(data, null, CurrentUser), so a token saved by an older build still reads. P/Invoke instead of
+		// ProtectedData because ProtectedData lives in System.Security.dll, which a clean NT8 does not reference, and the
+		// import then fails to compile (member bug 2026-11-13).
+		internal static class Dpapi
 		{
-			int i = 0; Ws(s, ref i); if (i >= s.Length || s[i] != '{') return null; i++;
-			Dictionary<string, object> d = new Dictionary<string, object>();
-			while (true)
+			[StructLayout(LayoutKind.Sequential)] struct Blob { public int Size; public IntPtr Data; }
+			const int UiForbidden = 0x1;
+			[DllImport("crypt32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+			static extern bool CryptProtectData(ref Blob dataIn, string description, IntPtr entropy, IntPtr reserved, IntPtr prompt, int flags, ref Blob dataOut);
+			[DllImport("crypt32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+			static extern bool CryptUnprotectData(ref Blob dataIn, IntPtr description, IntPtr entropy, IntPtr reserved, IntPtr prompt, int flags, ref Blob dataOut);
+			[DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr mem);
+
+			public static byte[] Protect(byte[] plain) { return Run(plain, true); }
+			public static byte[] Unprotect(byte[] sealedData) { return Run(sealedData, false); }
+			static byte[] Run(byte[] input, bool protect)
 			{
-				Ws(s, ref i); if (i < s.Length && s[i] == '}') return d;
-				string k = Str(s, ref i); if (k == null) return null; Ws(s, ref i);
-				if (i >= s.Length || s[i] != ':') return null; i++; Ws(s, ref i);
-				object v = Val(s, ref i); if (v == null) return null; d[k] = v; Ws(s, ref i);
-				if (i < s.Length && s[i] == ',') { i++; continue; }
-				if (i < s.Length && s[i] == '}') return d; return null;
+				Blob inB = new Blob(), outB = new Blob();
+				GCHandle pin = GCHandle.Alloc(input, GCHandleType.Pinned);
+				try
+				{
+					inB.Size = input.Length; inB.Data = pin.AddrOfPinnedObject();
+					bool ok = protect
+						? CryptProtectData(ref inB, null, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, UiForbidden, ref outB)
+						: CryptUnprotectData(ref inB, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, UiForbidden, ref outB);
+					if (!ok) throw new CryptographicException(Marshal.GetLastWin32Error());
+					byte[] r = new byte[outB.Size]; Marshal.Copy(outB.Data, r, 0, outB.Size); return r;
+				}
+				finally { pin.Free(); if (outB.Data != IntPtr.Zero) LocalFree(outB.Data); }
 			}
 		}
-		static void Ws(string s, ref int i) { while (i < s.Length && char.IsWhiteSpace(s[i])) i++; }
-		static string Str(string s, ref int i)
+
+		// Flat JSON reader for the protocol only (nested: a top-level "Json" would clash with any other add-on's): object of string / number / bool / array-of-string values.
+		internal static class Json
 		{
-			if (i >= s.Length || s[i] != '"') return null; i++; StringBuilder b = new StringBuilder();
-			while (i < s.Length && s[i] != '"') { if (s[i] == '\\') { i++; if (i >= s.Length) return null; char c = s[i]; b.Append(c == 'n' ? '\n' : c == 't' ? '\t' : c); } else b.Append(s[i]); i++; }
-			if (i >= s.Length) return null; i++; return b.ToString();
-		}
-		static object Val(string s, ref int i)
-		{
-			if (i >= s.Length) return null;
-			if (s[i] == '"') return Str(s, ref i);
-			if (s[i] == '[')
+			public static Dictionary<string, object> Parse(string s)
 			{
-				i++; List<object> l = new List<object>();
-				while (true) { Ws(s, ref i); if (i < s.Length && s[i] == ']') { i++; return l; } object v = Val(s, ref i); if (v == null) return null; l.Add(v); Ws(s, ref i); if (i < s.Length && s[i] == ',') i++; }
+				int i = 0; Ws(s, ref i); if (i >= s.Length || s[i] != '{') return null; i++;
+				Dictionary<string, object> d = new Dictionary<string, object>();
+				while (true)
+				{
+					Ws(s, ref i); if (i < s.Length && s[i] == '}') return d;
+					string k = Str(s, ref i); if (k == null) return null; Ws(s, ref i);
+					if (i >= s.Length || s[i] != ':') return null; i++; Ws(s, ref i);
+					object v = Val(s, ref i); if (v == null) return null; d[k] = v; Ws(s, ref i);
+					if (i < s.Length && s[i] == ',') { i++; continue; }
+					if (i < s.Length && s[i] == '}') return d; return null;
+				}
 			}
-			if (string.CompareOrdinal(s, i, "true", 0, 4) == 0) { i += 4; return true; }
-			if (string.CompareOrdinal(s, i, "false", 0, 5) == 0) { i += 5; return false; }
-			int st = i; while (i < s.Length && "+-0123456789.eE".IndexOf(s[i]) >= 0) i++;
-			double dv; return i > st && double.TryParse(s.Substring(st, i - st), NumberStyles.Float, CultureInfo.InvariantCulture, out dv) ? (object)dv : null;
+			static void Ws(string s, ref int i) { while (i < s.Length && char.IsWhiteSpace(s[i])) i++; }
+			static string Str(string s, ref int i)
+			{
+				if (i >= s.Length || s[i] != '"') return null; i++; StringBuilder b = new StringBuilder();
+				while (i < s.Length && s[i] != '"') { if (s[i] == '\\') { i++; if (i >= s.Length) return null; char c = s[i]; b.Append(c == 'n' ? '\n' : c == 't' ? '\t' : c); } else b.Append(s[i]); i++; }
+				if (i >= s.Length) return null; i++; return b.ToString();
+			}
+			static object Val(string s, ref int i)
+			{
+				if (i >= s.Length) return null;
+				if (s[i] == '"') return Str(s, ref i);
+				if (s[i] == '[')
+				{
+					i++; List<object> l = new List<object>();
+					while (true) { Ws(s, ref i); if (i < s.Length && s[i] == ']') { i++; return l; } object v = Val(s, ref i); if (v == null) return null; l.Add(v); Ws(s, ref i); if (i < s.Length && s[i] == ',') i++; }
+				}
+				if (string.CompareOrdinal(s, i, "true", 0, 4) == 0) { i += 4; return true; }
+				if (string.CompareOrdinal(s, i, "false", 0, 5) == 0) { i += 5; return false; }
+				int st = i; while (i < s.Length && "+-0123456789.eE".IndexOf(s[i]) >= 0) i++;
+				double dv; return i > st && double.TryParse(s.Substring(st, i - st), NumberStyles.Float, CultureInfo.InvariantCulture, out dv) ? (object)dv : null;
+			}
 		}
 	}
 }

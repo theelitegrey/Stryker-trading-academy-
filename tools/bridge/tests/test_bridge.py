@@ -187,5 +187,14 @@ class IBLive(unittest.IsolatedAsyncioTestCase):
             srv.close(); await srv.wait_closed()
 
 
+
+class NT8Compile(unittest.TestCase):
+    def test_addon_compiles_like_nt8(self):
+        import subprocess
+        r = subprocess.run([sys.executable, str(H.parent / "tests" / "compile_nt8.py")], capture_output=True, text=True)
+        if r.returncode == 2: self.skipTest("no C# compiler here (mcs / csc.exe)")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

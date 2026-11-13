@@ -2,7 +2,8 @@
 //   node tools/tests/indicator-versions.test.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import * as IV from '../../assets/indicator-versions.js?v=972';   // same URL the chart modules use = same module instance (setManifest reaches them)
+const STAMP = fs.readFileSync(new URL('../../assets/chart-ind-versions.js', import.meta.url), 'utf8').match(/indicator-versions\.js(\?v=\d+)/)[1];   // follows the build bump
+const IV = await import('../../assets/indicator-versions.js' + STAMP);   // same URL the chart modules use = same module instance (setManifest reaches them)
 
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };
 const { VERSIONS } = IV;

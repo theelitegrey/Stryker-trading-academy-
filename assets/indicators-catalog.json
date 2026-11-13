@@ -68,9 +68,32 @@
      "It does not say price will stop at a level or which way it will go."
     ]
    },
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-13",
+      "notes": [
+       "New optional live levels on futures charts: overnight high and low while the overnight session runs, and the current day high and low.",
+       "They are off by default, so your chart looks the same until you turn them on."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -389,6 +412,19 @@
      "It cannot show changes inside one snapshot, and it only covers the period that was recorded."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -474,6 +510,19 @@
     "limits": [
      "A print does not say whether the buyer or the seller started the trade.",
      "The list is updated every 2 hours on US trading days. Only US stocks and ETFs on a set list are covered."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-07",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -562,6 +611,19 @@
      "The weekly data arrives with a lag of several weeks, so recent weeks are missing."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -624,6 +686,19 @@
     "limits": [
      "It shows a share of volume, not the direction of the trades.",
      "Daily charts only, for listed stocks and ETFs in the data."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -692,6 +767,19 @@
      "Premium is estimated, and a large trade can be a hedge rather than a view."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -753,6 +841,19 @@
     "The data is updated daily, so a date that changes today may not show until the next update."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -809,6 +910,19 @@
     "limits": [
      "Times and values come from a calendar feed and can change.",
      "It marks events. It does not say how price will react."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -904,6 +1018,19 @@
      "Nothing is drawn in bar replay, because the range belongs to today."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -981,6 +1108,19 @@
     "It does not rate the news or its effect on price."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -1032,6 +1172,19 @@
     "Nothing is drawn in bar replay."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -1126,6 +1279,19 @@
      "It shows money, not intent: a put can be a hedge as easily as a bet."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-29",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -1189,6 +1355,19 @@
     "A divergence is a comparison of swings, not a signal on its own."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on Bullish SMT, Bearish SMT or Any SMT from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "smt-divergence",
    "updated": "2026-11-04",
@@ -1518,6 +1697,19 @@
     "Gap size can be filtered in ticks; 0 turns the filter off."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on Liquidity swept or IFVG from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "fair-value-gap",
    "updated": "2026-11-04",
@@ -1925,9 +2117,32 @@
     "The script has no alert conditions."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "Fix: live updates no longer add flat stub candles, and the first partial period is not drawn as complete.",
+       "Fix: the wick is drawn above and below the body, never across it."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "fair-value-gap",
-   "updated": "2026-11-04",
+   "updated": "2026-11-10",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -2130,6 +2345,19 @@
     "The dashboard counts what happened on the loaded history only."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on Relay confirmed, Chain broken or Liquidity hit from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "fair-value-gap",
    "updated": "2026-11-04",
@@ -2420,6 +2648,19 @@
     "The script has no alert conditions."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-11",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "liquidity-sweeps",
    "updated": "2026-11-04",
@@ -2696,9 +2937,31 @@
     "The script has no alert conditions."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "Fix: an Asia session that starts on the first loaded bar is partial and is no longer drawn, so the Asia high and low are the same on every timeframe."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-10-12",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "liquidity-sweeps",
-   "updated": "2026-11-04",
+   "updated": "2026-11-10",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -3744,9 +4007,31 @@
     "Partial sequences show only the parts that happened."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "Fix: an Asia session that starts on the first loaded bar is partial and is no longer drawn, so the Asia high and low are the same on every timeframe."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-10-29",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on level swept, sweep with SMT or full sequence from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "liquidity-sweeps",
-   "updated": "2026-11-04",
+   "updated": "2026-11-10",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -3975,6 +4260,19 @@
     "The script has no alert conditions."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -4027,6 +4325,19 @@
     "Like any average it lags price, so turns show up after they start."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4103,6 +4414,19 @@
     "It can overshoot after sudden moves because it projects the recent slope."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4204,6 +4528,19 @@
     "All averages lag price to some degree."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4374,6 +4711,19 @@
     "A fixed percent may be too wide on quiet symbols and too narrow on volatile ones."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4476,6 +4826,19 @@
     "The line can jump when a large bar drops out of the window."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4552,6 +4915,19 @@
     "It lags more than an EMA of the same length."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4646,6 +5022,19 @@
     "It can stay flat for long periods in quiet markets."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4786,6 +5175,19 @@
     "The forward shift is part of the design; it is not a forecast."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4882,6 +5284,19 @@
     "It can overshoot after sharp moves."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -4976,6 +5391,19 @@
     "The 5 and 34 lengths are fixed in the classic formula."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5036,6 +5464,19 @@
     "The raw form is noisy; most readers use the smoothed line."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5108,6 +5549,19 @@
     "Short lengths make it jumpy; longer ones smooth it."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5208,6 +5662,19 @@
     "CCI has no fixed upper or lower limit."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5308,6 +5775,19 @@
     "It is built for short swings and moves fast."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5405,6 +5885,19 @@
     "It is not built to mark tops; its original use was spotting the end of declines."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5505,6 +5998,19 @@
     "It is not built to show trend direction."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5599,6 +6105,19 @@
     "It is usually read together with the trend of the EMA itself."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5659,6 +6178,19 @@
     "It reacts fast and can give many turns in choppy markets."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5731,6 +6263,19 @@
     "It does not tell you up or down; check price or the Alligator for that."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5854,6 +6399,19 @@
     "It is smooth and slow; turns appear after price has moved."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -5968,6 +6526,19 @@
     "Values are in price per bar, so they differ by symbol."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -6060,6 +6631,19 @@
     "limits": [
      "It lags price, because it is built from averages.",
      "Crossovers are frequent in sideways markets."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
@@ -6174,6 +6758,19 @@
     "It lags like any average-based tool."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -6300,6 +6897,19 @@
     "It can be jumpy because it compares only two points."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -6410,6 +7020,19 @@
      "It uses past prices only."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -6516,6 +7139,19 @@
     "It reacts quickly and can cross often in ranges."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -6576,6 +7212,19 @@
     "It can sit pinned at 0 or 100 for long stretches."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -6694,6 +7343,19 @@
     "It is closely related to the True Strength Index."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -6788,6 +7450,19 @@
     "It moves fast and can cross often in ranges."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -6878,6 +7553,19 @@
     "It is very sensitive and gives many signals."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7002,6 +7690,19 @@
      "On its own, without a Market Stats link, it has no session to draw."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-28",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -7050,6 +7751,19 @@
     "Its zero line marks where the triple-smoothed average stops rising or falling."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7129,6 +7843,19 @@
     "It is closely related to the SMI Ergodic Oscillator."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7214,6 +7941,19 @@
     "Williams' original method also looked for a divergence followed by a break of the oscillator's recent high or low."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7310,6 +8050,19 @@
     "It reacts fast and can be noisy."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7404,6 +8157,19 @@
     "ATR is in price units, so values differ across symbols."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7486,6 +8252,19 @@
     "limits": [
      "Touching a band does not mean price will reverse.",
      "Default settings are a starting point, not a rule."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
@@ -7575,6 +8354,19 @@
     "Works on any symbol and timeframe; it only needs candle data."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7681,6 +8473,19 @@
     "A squeeze is a condition, not a direction."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7794,6 +8599,19 @@
     "Large positive readings are common after sudden moves."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7860,6 +8678,19 @@
     "It follows volatility, so stops move further away when ATR grows."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -7931,6 +8762,19 @@
     "Works on any symbol and timeframe; it only needs candle data."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8015,6 +8859,19 @@
     "The channel only steps when a new extreme is made or an old one leaves the window."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8087,6 +8944,19 @@
     "On intraday charts set Periods Per Year to match the bar count, or turn off annualizing."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8153,6 +9023,19 @@
     "Wider multipliers mean fewer closes outside the bands."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8247,6 +9130,19 @@
     "It shows no direction by itself."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8330,6 +9226,19 @@
     "Works on any symbol and timeframe; it only needs candle data."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8425,6 +9334,19 @@
     "It treats moves up and down the same way."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8500,6 +9422,19 @@
     "Works on any symbol and timeframe; it only needs candle data."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8606,6 +9541,19 @@
     "It only looks at drops from highs, not upside moves."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -8712,6 +9660,19 @@
     "Volume differs by data source and market; for some markets it is tick or reported volume."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -8770,6 +9731,19 @@
     "The profile changes as the visible range changes."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "volume-profile",
    "updated": "2026-11-04",
@@ -8854,9 +9828,32 @@
      "Intraday charts only."
     ]
    },
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-13",
+      "notes": [
+       "Draws and updates live, including the session that is running now.",
+       "Session now starts on \"both\" (day session and overnight, each with its own profile), so the current session is always shown. Pick \"rth\" in the settings for day session only."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "volume-profile",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -8963,6 +9960,19 @@
      "They describe yesterday. Price can ignore them."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "volume-profile",
    "updated": "2026-11-04",
@@ -9039,6 +10049,19 @@
     "limits": [
      "It uses candle prices, not every trade.",
      "The anchor stays where you put it until you change it."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -9123,6 +10146,19 @@
     "limits": [
      "It resets on the anchor you choose, so the starting point matters.",
      "It uses candle prices and volume."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
@@ -9270,6 +10306,19 @@
     "Same-time averages need several days of intraday history to be meaningful."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -9341,6 +10390,19 @@
     "limits": [
      "It is built from candle volume and range, not trades at each price.",
      "It does not show resting orders; use the depth heatmaps for that."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-10",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -9429,6 +10491,19 @@
     "It draws patterns, not signals; many patterns do not play out."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -9569,6 +10644,19 @@
     "See Anchored VWAP for the full description of the line and bands."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -9608,9 +10696,53 @@
     "It is built from candle volume, not individual trades."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.3",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.3",
+      "date": "2026-11-13",
+      "notes": [
+       "The value area is now the same on every timeframe: the profile is built from 1-minute bars when they are available."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "The value area stays the same when you change the number of rows.",
+       "Corner handles to resize the range.",
+       "Dashes instead of empty delta values where there is no order flow data."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.1",
+      "date": "2026-11-11",
+      "notes": [
+       "POC, VAH and VAL lines stop at the end of the range. New setting \"Extend lines right\".",
+       "Clicks on candles inside the range reach the chart instead of moving the drawing.",
+       "New setting \"Show thin rows\".",
+       "Optional delta bars, and an anchored VWAP with bands.",
+       "Drawings saved before this keep their old look."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "volume-profile",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [],
@@ -9649,6 +10781,19 @@
     "It ignores gaps between bars."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -9715,6 +10860,19 @@
     "Bars with no range add nothing."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -9787,6 +10945,19 @@
     "It can move against price when closes sit low in rising bars."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -9858,6 +11029,19 @@
     "It needs volume data; on symbols without volume it shows nothing useful."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -9931,6 +11115,19 @@
     "A 2-bar length is much noisier than the default."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -9990,6 +11187,19 @@
     "It needs volume data; on symbols without volume it shows nothing useful."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10066,6 +11276,19 @@
     "The volume force also uses a running sum of bar ranges that resets when the trend flips."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10143,6 +11366,19 @@
     "It needs volume data; on symbols without volume it shows nothing useful."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10227,6 +11463,19 @@
     "Made for daily charts; the 255-bar EMA needs a long history."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10326,6 +11575,19 @@
     "It needs volume data; on symbols without volume it shows nothing useful."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10403,6 +11665,19 @@
     "It needs volume data; on symbols without volume it shows nothing useful."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10499,6 +11774,19 @@
     "Made for daily charts; the 255-bar EMA needs a long history."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10605,6 +11893,19 @@
     "Its starting level has no meaning; read its slope."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10693,6 +11994,19 @@
     "The 130-bar window makes it slow on purpose."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10808,6 +12122,19 @@
     "It shows how active trading is, not whether it is buying or selling."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10874,6 +12201,19 @@
     "It has no standard-deviation bands and no alert conditions."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -10920,6 +12260,19 @@
     "Works on any symbol and timeframe; it only needs candle data."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -10980,6 +12333,19 @@
     "ADX shows strength, not direction."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -11058,6 +12424,19 @@
     "Default settings are P = 10, X = 1 and Q = 9; the short stop sits above price and the long stop below in a steady trend."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -11130,6 +12509,19 @@
     "It flips often in sideways markets."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -11214,6 +12606,19 @@
      "It is a description of past price, not a signal."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -11279,6 +12684,19 @@
     "Works on any symbol and timeframe; it only needs candle data."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -11346,6 +12764,19 @@
     "Lines are drawn after the fact; they mark swings that already happened."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -11418,6 +12849,19 @@
     "The all-time levels depend on how much history is loaded."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: you can alert on its line crossing a value or the candle close (from the chart's + menu); checked while ZoroCharts is open.",
    "learn": "",
    "updated": "2026-11-04",
@@ -11491,6 +12935,19 @@
     "It marks levels, not signals. Education only. Not financial advice."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -11638,6 +13095,19 @@
     "Levels are fixed for the period once it starts."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -11721,6 +13191,19 @@
     "There are no settings and no alert conditions."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-09-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -11763,6 +13246,19 @@
     "Many fractals appear in ranges; larger periods reduce them."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -11838,9 +13334,49 @@
      "It shows what already traded, not what will trade next."
     ]
    },
+   "changelog": {
+    "current": "1.3",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.3",
+      "date": "2026-11-13",
+      "notes": [
+       "Fix: the Bar stats table now always stays on top of candles and other indicators."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "New settings: Text size, Buy colour and Sell colour.",
+       "The Bar stats table and the delta + volume strip can each sit at any corner of the chart."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "New Style menu with two new looks: Delta boxes and Delta bars.",
+       "Optional Bar stats table."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release of the Footprint chart type."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -11915,6 +13451,19 @@
     "In bar replay only bars complete at the replay time are used."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -11967,6 +13516,19 @@
     "A running total depends on its start point; changing the reset changes the shape."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -12039,6 +13601,19 @@
     "The pane styles V1 and V2 are in Delta: pane."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-22",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -12163,6 +13738,19 @@
     "Divergences are found between swing pivots, so they appear a few bars after the swing."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-22",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -12245,9 +13833,31 @@
     "Joining fills into one order is an estimate based on timing and price."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "Fix: the automatic size threshold now uses a fixed 24 hour window, so marks no longer change when you drag the chart or reload."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-10",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -12422,6 +14032,19 @@
      "It flags past bars. It does not say a level will hold."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-23",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -12514,6 +14137,19 @@
      "A zone is a record of past trading, not a promise of a reaction."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-23",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -12591,6 +14227,19 @@
     "For a candle-based profile on any symbol, see Session Volume Profile."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "volume-profile",
    "updated": "2026-11-04",
@@ -12695,6 +14344,19 @@
     "For a candle-based VWAP from any bar, see Anchored VWAP."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -12771,6 +14433,19 @@
     "limits": [
      "It is built from candles, so it shows time at price, not volume.",
      "A profile describes a session that has happened, not the next one."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-23",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -12891,6 +14566,19 @@
      "A flag is a description of a bar, not a signal."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-23",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -12972,6 +14660,19 @@
     "A sweep is a past pattern, not a forecast."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-24",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "liquidity-sweeps",
    "updated": "2026-11-04",
@@ -13052,6 +14753,19 @@
     "For real order flow, see Cumulative Delta (trades) on crypto or Cumulative Delta (L2) on futures."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-05",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13130,6 +14844,19 @@
     "limits": [
      "It marks whole bars, not single trades.",
      "Heavy volume does not say whether buyers or sellers won."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-09",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -13212,6 +14939,19 @@
     "Built from candles, not from the order book, despite the name."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-10",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "volume-profile",
    "updated": "2026-11-04",
@@ -13331,6 +15071,19 @@
     "limits": [
      "Resting orders can be added or pulled at any moment.",
      "History depends on how long the book has been recorded for that symbol."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-10",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -13527,6 +15280,19 @@
      "Futures depth for this tool is limited for now; crypto works for Pro members."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-29",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -13658,6 +15424,19 @@
     "Nothing is drawn in bar replay."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13735,6 +15514,19 @@
     "An exchange that does not serve your region is shown as not available."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13802,6 +15594,19 @@
     "Only exchanges that publish an open interest history are offered."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13888,6 +15693,19 @@
     "Crypto perpetuals only. An exchange that does not serve your region, or does not list the coin, is shown as such."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -13955,6 +15773,19 @@
     "Crypto perpetuals only. An exchange that does not serve your region is shown as not available; pick another source in Settings."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -14026,6 +15857,19 @@
     "limits": [
      "It shows resting orders, which can disappear before price arrives.",
      "The chart shows when the book was last updated (for example \"updated 2s ago\")."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-02",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -14329,6 +16173,19 @@
      "It has no buy or sell buttons and says nothing about direction."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-06",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -14441,6 +16298,19 @@
     "limits": [
      "A wall is resting interest at one moment and can be pulled at any time.",
      "Pulled versus filled is worked out from trades at that price, so it is an estimate."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-02",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -14652,6 +16522,19 @@
      "It describes the book, not who will win the next trade."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-02",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -14714,9 +16597,39 @@
     "Futures only (NQ, ES, YM, RTY, CL, GC and their micros)."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.2",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "Fix: the markers stay on the chart after you switch chart tabs and come back."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "Fix: the automatic size threshold now uses a fixed 24 hour window, so marks no longer change when you drag the chart or reload."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-11-02",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -14877,6 +16790,19 @@
     "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Delta (L2) automatically."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-02",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -14927,6 +16853,19 @@
     "The total depends on the reset point; a different reset gives different numbers."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-02",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -14996,6 +16935,19 @@
     "No data means a plain note; nothing is estimated from candles."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -15119,6 +17071,19 @@
     "Divergence marks describe what already happened; they are not signals."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -15211,6 +17176,19 @@
      "A busy book does not say which way price will go."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -15299,6 +17277,19 @@
      "More size on one side does not mean price will move away from it."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -15369,6 +17360,19 @@
     "limits": [
      "A refill can come from many small orders, so it is a hint, not proof of one large order.",
      "It describes the past, not a signal."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -15453,6 +17457,19 @@
      "It does not predict a move; it describes the book."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -15535,6 +17552,19 @@
      "It shows the book at this moment, not a plan by any trader."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -15606,6 +17636,19 @@
     "limits": [
      "These are hints from trades and book changes; hidden orders cannot be seen directly.",
      "A higher count does not predict direction."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -15690,9 +17733,32 @@
      "A marker describes what happened, not what comes next."
     ]
    },
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "Works when the feed sends only one side of the book.",
+       "A book side that stops updating is left out, and the chart says so."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-11-04",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-10",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -15830,6 +17896,19 @@
      "Resting orders can be pulled at any time, so book delta is a snapshot of intent, not a commitment."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -15906,6 +17985,19 @@
     "limits": [
      "The total depends on where it was reset.",
      "A rising total does not mean price must rise."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -16000,9 +18092,42 @@
      "It describes what traded, not what will trade next."
     ]
    },
+   "changelog": {
+    "current": "1.2",
+    "pickable": true,
+    "list": [
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "New setting: Text size for the traded numbers."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.1",
+      "date": "2026-11-11",
+      "notes": [
+       "Resting book bars now show only near each candle by default (its high to low plus 2 rows), so the chart stays readable.",
+       "New setting \"Resting book shown\": Near the candle, Off or Full depth.",
+       "New setting \"Rows beyond the candle\".",
+       "Lighter colours for the resting book bars."
+      ],
+      "pick": true
+     },
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release: traded volume per price in each candle, with the resting book size at the candle close beside it, over the full depth of the book."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -16088,9 +18213,39 @@
      "A big order does not mean price will follow it."
     ]
    },
+   "changelog": {
+    "current": "1.2",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "Fix: older big trades now get their W, C and P tags straight away, without dragging the chart back first."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "Fix: the automatic size threshold now uses a fixed 24 hour window, so marks no longer change when you drag the chart or reload."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -16253,6 +18408,19 @@
      "The book confirmation is based on a snapshot of the order book."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "liquidity-sweeps",
    "updated": "2026-11-04",
@@ -16333,6 +18501,19 @@
     "limits": [
      "Resting size is an average and can change at any time.",
      "It describes the session so far, not what comes next."
+    ]
+   },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
     ]
    },
    "alerts": "",
@@ -16416,6 +18597,19 @@
      "A heavy row is something that happened, not a promise about the next move."
     ]
    },
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-03",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
    "updated": "2026-11-04",
@@ -16472,9 +18666,32 @@
     "It shows what traded. It does not predict what price will do."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-11",
+      "notes": [
+       "New window mode \"Reset every interval\": the profile fills from the start of each block of minutes, then starts again.",
+       "Optional faint line at the previous block's POC."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-11-09",
+      "notes": [
+       "First release: delta per price over the last few minutes, a picked range or the session."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-11",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -16572,9 +18789,33 @@
     "It shows what traded. It does not predict what price will do."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.1",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-11",
+      "notes": [
+       "New \"Profile shows\" option: Volume, or Volume + Delta.",
+       "New \"Rows\" setting for a fixed number of price rows in each profile.",
+       "Fix: POC, VAH and VAL now always sit inside the swing leg."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.0",
+      "date": "2026-11-10",
+      "notes": [
+       "First release: an anchored VWAP and a volume profile with POC, VAH and VAL for every swing leg."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "volume-profile",
-   "updated": "2026-11-04",
+   "updated": "2026-11-11",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -16705,9 +18946,23 @@
     "Looks back 300 bars by default; the setting can be changed."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-10",
+      "notes": [
+       "First release: marks absorption, exhaustion, stacked imbalances, unfinished auctions, delta divergence and trapped traders."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-10",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -16864,9 +19119,23 @@
     "Looks back 300 bars by default; the setting can be changed."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-10",
+      "notes": [
+       "First release: marks absorption, exhaustion, stacked imbalances, unfinished auctions, delta divergence and trapped traders."
+      ],
+      "pick": true
+     }
+    ]
+   },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-10",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -17023,6 +19292,19 @@
     "It works on any market and timeframe that has volume."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-15",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -17099,6 +19381,19 @@
     "Part of Pro, like GEX+. Education only. Not financial advice."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -17178,6 +19473,19 @@
     "Part of Pro, like GEX+. Education only. Not financial advice."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -17257,6 +19565,19 @@
     "Part of Pro, like GEX+. Education only. Not financial advice."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-11-08",
+      "notes": [
+       "First release."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "",
    "updated": "2026-11-04",
@@ -17337,6 +19658,19 @@
     "It has many drawings; on small screens you may want to turn some modules off."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"ICTKESIK Setup Formed\", \"ICTKESIK Entry Filled\", \"ICTKESIK Stop Hit\", \"SMT Divergence\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "liquidity-sweeps",
    "updated": "2026-11-04",
@@ -17975,6 +20309,19 @@
     "Potential CISDs can change before they are confirmed."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"Bullish CISD confirmed\", \"Bearish CISD confirmed\", \"Buyside liquidity swept\", \"Sellside liquidity swept\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "",
    "updated": "2026-11-04",
@@ -18695,6 +21042,19 @@
     "Many modules are on by default; turn off what you do not use to keep the chart clean."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "smt-divergence",
    "updated": "2026-11-04",
@@ -19422,6 +21782,19 @@
     "The script has no alert conditions."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "",
    "learn": "fair-value-gap",
    "updated": "2026-11-04",
@@ -19780,6 +22153,19 @@
     "Session times follow New York time."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "fair-value-gap",
    "updated": "2026-11-04",
@@ -20476,6 +22862,19 @@
     "It works on any symbol with intraday data."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-09",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"+IFVG Inversion Confirmed\", \"-IFVG Inversion Confirmed\", \"IFVG Target Hit\", \"Buyside Liquidity (BSL) Swept\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "fair-value-gap",
    "updated": "2026-11-04",
@@ -20795,6 +23194,19 @@
     "Five past sessions stay on the chart by default; the statistics count every session loaded."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"Profile Assigned\", \"Protraction\", \"Confirmed Protraction\", \"No Protraction\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "",
    "updated": "2026-11-04",
@@ -21041,6 +23453,19 @@
     "The nearest three HTF FVGs are shown by default; all selected timeframes are still used for signals."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "",
    "updated": "2026-11-04",
@@ -21709,6 +24134,19 @@
     "It needs volume data and works on any market and timeframe that has it."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-14",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"Big Buy\", \"Big Sell\", \"Bull Absorption\", \"Bear Absorption\", \"Deep Buy Pressure\", \"Deep Sell Pressure\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "",
    "updated": "2026-11-04",
@@ -21859,6 +24297,19 @@
     "Many tools are off by default; turn them on as needed."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-11",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"Smart Signals Bullish Signal\", \"Smart Signals Bearish Signal\", \"Fair Value Trail Turns Bullish\", \"Stop-Loss Hit\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "",
    "updated": "2026-11-04",
@@ -22629,6 +25080,19 @@
     "The multi-timeframe table needs extra data requests and is off by default."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"Stoic Edge Compass - Green\", \"Stoic Edge Compass - Red\", \"Stoic Edge Compass - Range Established\", \"Stoic Edge Compass - SBS Bullish\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "",
    "updated": "2026-11-04",
@@ -23011,6 +25475,19 @@
     "The higher-timeframe filter needs an extra data request."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-11",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"Long Entry\", \"Short Entry\", \"Long Conf\", \"Short Conf\", \"Bullish Trend\", \"Bearish Trend\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "",
    "updated": "2026-11-04",
@@ -23312,6 +25789,19 @@
     "It draws many labels; Simple Mode keeps only the main levels."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-09",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: members can create an alert on its conditions (for example \"ENTER Long (trigger)\", \"EXIT Long\", \"Gate Open Long (38.2%)\", \"PDC Reclaim Bull\") from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "",
    "updated": "2026-11-04",
@@ -23961,6 +26451,19 @@
     "SMT and multi-timeframe liquidity need extra data requests."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "order-blocks",
    "updated": "2026-11-04",
@@ -24787,6 +27290,19 @@
     "Inner structure is dense and off by default."
    ],
    "explain": null,
+   "changelog": {
+    "current": "1.0",
+    "pickable": false,
+    "list": [
+     {
+      "v": "1.0",
+      "date": "2026-10-07",
+      "notes": [
+       "Added to ZoroCharts."
+      ]
+     }
+    ]
+   },
    "alerts": "Alerts: the script sends its own alert messages, and members can create an alert on them from the chart's alert dialog; alerts from indicators run while ZoroCharts is open in the browser.",
    "learn": "bos-vs-choch",
    "updated": "2026-11-04",

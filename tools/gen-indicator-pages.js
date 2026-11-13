@@ -43,6 +43,26 @@ const V = (p) => `/${p}?v=${BUILD}`;
 const LEARN = {};
 for (const m of fs.readFileSync(path.join(__dirname, 'gen-learn.js'), 'utf8').matchAll(/slug: '([^']+)',\s*title: '(?:[^'\\]|\\.)*',\s*short: '((?:[^'\\]|\\.)*)'/g)) LEARN[m[1]] = m[2].replace(/\\'/g, "'");
 
+// ---- versions + changelog: assets/indicator-versions.js (the chart's manifest, an ES module: its VERSIONS object is read as data),
+// else v1.0 on the first release date (tools/indicator-pages/first-release.json). Newest first on the page.
+const VERSIONS = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'assets/indicator-versions.js'), 'utf8');
+  const m = src.match(/export const VERSIONS = (\{[\s\S]*?\n\});/);
+  if (!m) throw new Error('assets/indicator-versions.js: VERSIONS block not found');
+  return require('vm').runInNewContext('(' + m[1] + ')');
+})();
+const FIRST = JSON.parse(fs.readFileSync(path.join(HERE, 'first-release.json'), 'utf8'));
+function changelogOf(it) {
+  const e = VERSIONS[it.key];
+  const list = e ? e.versions.map((x) => ({ v: x.v, date: x.date, notes: x.notes, pick: !x.all }))
+    : [{ v: '1.0', date: FIRST[it.key] || DEFAULT_UPDATED, notes: [it.third ? 'Added to ZoroCharts.' : 'First release.'] }];
+  for (const x of list) {
+    const bad = x.notes.join(' ').match(/\b(tradingview|luxalgo|vela|cme|finra|rithmic|win rate|profitable|guaranteed?|real-time)\b/i);
+    if (bad) throw new Error(`${it.slug}: changelog uses "${bad[1]}" (copy rules)`);
+  }
+  return { current: list[list.length - 1].v, pickable: list.filter((x) => x.pick).length > 1, list: list.slice().reverse() };
+}
+
 // ---- plain-English explainers (tools/indicator-pages/explain.json: slug -> shows / use / limits) ----
 const EXPLAIN = JSON.parse(fs.readFileSync(path.join(HERE, 'explain.json'), 'utf8'));
 function explainOf(slug, it) {
@@ -74,11 +94,11 @@ function loadItems() {
     const hasImg = fs.existsSync(path.join(ROOT, IMG, it.slug + '.webp'));
     if (!hasImg) throw new Error(`${it.slug}: no image (run tools/indicator-pages/images.py)`);
     const settings = (it.settings || []).map((s) => Object.assign({}, s, { tooltip: it.third || BANNED.test(s.tooltip || '') ? '' : TIP(s.tooltip) }))
-      .filter((s) => !BANNED.test(s.title) && !BANNED.test((s.options || []).join(' ')));
+      .filter((s) => !BANNED.test(s.title) && !BANNED.test((s.options || []).join(' ')) && s.title !== 'Version');   // Version: its own section (Changelog)
     return {
       slug: it.slug, key: it.key, name: DISPLAY[it.key] || it.name, windowName: it.name, author: it.author, third: it.third, group: it.group,
       plan: it.plan, kind: it.kind, short: it.short, summary: w.summary, overview: w.overview, how: w.how, use: w.use, notes: w.notes,
-      explain: explainOf(it.slug, it), alerts: w.alerts || '', learn: w.learn && LEARN[w.learn] ? w.learn : '', updated: w.updated || DEFAULT_UPDATED,
+      explain: explainOf(it.slug, it), changelog: changelogOf(it), alerts: w.alerts || '', learn: w.learn && LEARN[w.learn] ? w.learn : '', updated: [w.updated || DEFAULT_UPDATED, ...((VERSIONS[it.key] || { versions: [] }).versions.map((x) => x.date))].sort().pop(),
       licence: it.licence || '', originalUrl: it.originalUrl || '', settings,
       capture: caps[it.slug] === 'ok' ? 'chart' : 'preview',
       image: `/${IMG}/${it.slug}.webp`, thumb: `/${IMG}/${it.slug}-t.webp`
@@ -200,6 +220,15 @@ ${table(rows.slice(12))}
 </details>`;
 }
 
+function changelog(it) {
+  const c = it.changelog;
+  const pick = c.pickable ? '<p class="ixp-cl-note">On a chart, an indicator stays on the version it was added with. When a newer version is out, a small update button appears next to its name. You can switch versions any time in its settings, under Version.</p>' : '';
+  return `<ol class="ixp-cl">
+${c.list.map((x, i) => `<li><div class="ixp-cl-head"><span class="ixp-cl-v">v${esc(x.v)}</span>${i === 0 ? '<span class="ixp-chip is-free">Latest</span>' : ''}<time datetime="${x.date}">${fmtDate(x.date)}</time></div><ul>${x.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></li>`).join('\n')}
+</ol>
+${pick}`;
+}
+
 function credit(it) {
   if (!it.third) return '';
   const who = it.author === 'Community' ? 'The script does not name its author.' : `Script by <strong>${esc(it.author)}</strong>.`;
@@ -247,7 +276,7 @@ function indicatorPage(it, all) {
 <div class="ixp-meta">
 <span class="ixp-author"><span class="ixp-ava${it.third ? '' : ' is-tz'}" aria-hidden="true">${it.third ? initials(it.author) : 'TZ'}</span><span>${it.third ? '' : ''}${esc(it.author)}</span></span>
 ${chip(it.group)}${chip(it.plan, it.plan === 'Pro' ? 'is-pro' : 'is-free')}
-<span class="ixp-upd">Updated <time datetime="${it.updated}">${fmtDate(it.updated)}</time></span>
+<span class="ixp-upd"><a href="#changelog">v${esc(it.changelog.current)}</a> · Updated <time datetime="${it.updated}">${fmtDate(it.updated)}</time></span>
 </div>
 </header>
 <figure class="ixp-fig">
@@ -282,6 +311,8 @@ ${settingsTable(it)}
 ${it.alerts ? `<h2 id="alerts">Alerts</h2>\n<p>${esc(it.alerts.replace(/^Alerts:\s*/i, '').replace(/^./, (c) => c.toUpperCase()))}</p>` : ''}
 <h2 id="notes">Notes and limits</h2>
 ${list((note ? [note] : []).concat(it.notes))}
+<h2 id="changelog">Changelog</h2>
+${changelog(it)}
 <p class="ixp-disclaimer">${DISCLAIMER}</p>
 </article>
 <aside class="ixp-rail" aria-label="More">

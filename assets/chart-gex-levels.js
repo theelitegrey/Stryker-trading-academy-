@@ -82,7 +82,7 @@ const ANCHOR_GAP_S = 120;     // the 1-minute bar used must have closed within 2
 const ANCHOR_MAX_PCT = 0.03;  // a shift above 3% of price is treated as bad data and ignored
 const RANK_COL = { pos: '#03c988', neg: '#ee4276', mag: '#f4f6fa' };   // mint / magenta from the GEX ramps, magnet = bright
 export const GEX_COLORS = { call: '#ef4444', zero: '#f59e0b', put: '#22c55e', strike: '#94a3b8', em: '#8b7cf6',
-  iv: '#8b7cf6', va: '#38bdf8', on: '#64748b', rth: '#8b7cf6' };
+  iv: '#8b7cf6', va: '#38bdf8', on: '#64748b', rth: '#8b7cf6', hod: '#34d399', lod: '#fb7185' };
 
 // Every level the GEX page (assets/gex.js) can show, read-only parity list (build 461):
 //   chart lines (collectLines): CALL WALL, ZERO GAMMA, PUT WALL, IV +68% / IV -68%, and with
@@ -118,7 +118,7 @@ export const LEVEL_DEFS = [
 
 // glossary names (spec section 1) used when the ZoroOptions flag is on
 const ZORO_NAMES = { call: 'CALL CEILING', zero: 'FLIP LINE', put: 'PUT FLOOR', w0c: '0DTE CALL CEILING', w0p: '0DTE PUT FLOOR' };
-const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days', G6 = 'Zoro Levels';
+const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days', G6 = 'Zoro Levels', G7 = 'Live levels (futures charts)';
 const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', defval, group, inline });
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 export const BASIS_DAY = 'Updated through the day', BASIS_CLOSE = 'Daily close';
@@ -155,6 +155,10 @@ const SCHEMA = [
   tog('showVal', 'pVAL', true, G2, 'val'), col('valColor', GEX_COLORS.va, G2, 'val'),
   tog('showOnh', 'ONH', true, G2, 'onh'), col('onhColor', GEX_COLORS.on, G2, 'onh'),
   tog('showOnl', 'ONL', true, G2, 'onl'), col('onlColor', GEX_COLORS.on, G2, 'onl'),
+  { key: 'liveOvernight', title: 'Live overnight levels', type: 'bool', defval: false, group: G7,
+    tooltip: 'Off: ONH / ONL appear when the overnight session has closed (as before). On: during the overnight session (4:00 pm to 9:30 am New York time) ONH and ONL follow the high and low of the session so far, labelled "ONH (live)" and "ONL (live)". When the session closes they become the normal fixed levels. Needs ONH / ONL switched on above.' },
+  tog('showHod', 'Current day high (HOD)', false, G7, 'hod'), col('hodColor', GEX_COLORS.hod, G7, 'hod'),
+  tog('showLod', 'Current day low (LOD)', false, G7, 'lod'), col('lodColor', GEX_COLORS.lod, G7, 'lod'),
   tog('showIv80', 'IV ±80%', false, G3),
   tog('showPrth', 'Prior RTH high / low', false, G3),
   tog('showPclose', 'Prior close', false, G3),
@@ -202,6 +206,43 @@ export function gexSource(symbol, provider) {
   return null;
 }
 
+// ---- running high / low (Live overnight levels, HOD / LOD) -------------------------------------
+// bars = chart bars [{time (ms), high, low}], oldest first. Everything is in New York time.
+// Overnight session = 16:00 ET to 09:30 ET (the same window the API uses for ONH / ONL).
+// Trading day = starts 18:00 ET (the CME futures session open), so HOD / LOD roll at 18:00.
+const ON_START = 16 * 60, RTH_OPEN_MIN = 9 * 60 + 30, DAY_START = 18 * 60;
+let etFmt = null;
+export function etDayMin(ms) {
+  etFmt = etFmt || new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const o = {}; etFmt.formatToParts(new Date(ms)).forEach((p) => { o[p.type] = p.value; });
+  return { ymd: Date.UTC(+o.year, +o.month - 1, +o.day) / 86400000, min: +o.hour * 60 + +o.minute };
+}
+// Session number of a bar: whole days, +1 once the bar is at or after the session start time.
+const sessNo = (ms, startMin) => { const t = etDayMin(ms); return t.ymd + (t.min >= startMin ? 1 : 0); };
+// Running high / low of the session the LAST bar belongs to: {hi, lo, n} or null.
+export function runningHiLo(bars, startMin) {
+  if (!Array.isArray(bars) || !bars.length) return null;
+  const last = bars[bars.length - 1], no = sessNo(last.time, startMin);
+  let hi = -Infinity, lo = Infinity, n = 0;
+  for (let i = bars.length - 1; i >= 0; i--) {
+    const b = bars[i];
+    if (sessNo(b.time, startMin) !== no) break;
+    if (isNum(b.high) && b.high > hi) hi = b.high;
+    if (isNum(b.low) && b.low < lo) lo = b.low;
+    n++;
+  }
+  return n && hi > -Infinity && lo < Infinity ? { hi, lo, n } : null;
+}
+// Live overnight levels: only while the last bar is inside the overnight window (else null, so the
+// API's fixed ONH / ONL are used). Not for daily+ bars (one bar per day has no overnight).
+export function liveOvernight(bars, tf) {
+  if (/[DWM]/i.test(String(tf || ''))) return null;
+  if (!bars || !bars.length) return null;
+  const m = etDayMin(bars[bars.length - 1].time).min;
+  return m >= ON_START || m < RTH_OPEN_MIN ? runningHiLo(bars, ON_START) : null;
+}
+export const dayHiLo = (bars, tf) => (/[DWM]/i.test(String(tf || '')) ? null : runningHiLo(bars, DAY_START));
+
 // ---- API data -> level list ---------------------------------------------------------------
 export function fmtLevel(v) {
   if (!isNum(v)) return '';
@@ -246,13 +287,18 @@ export function buildLevels(data, src, opts, shift, extra) {
   const srcNote = (raw) => (src.fut && isNum(raw) ? ' (' + src.api + ' ' + fmtLevel(Math.round(raw * 100) / 100) + ')' : '');
   for (const d of LEVEL_DEFS) {
     if (!on(d.on)) continue;
-    if (d.src === 'ses') { if (!S) { out.noSession = true; continue; } }
-    const v = d.src === 'ses' ? S[d.f] : L[d.f];
+    const live = src.fut && opts.liveOvernight === true && extra && extra.run && extra.run.on && (d.id === 'onh' || d.id === 'onl') ? extra.run.on : null;
+    if (d.src === 'ses' && !S && !live) { out.noSession = true; continue; }
+    const v = live ? (d.id === 'onh' ? live.hi : live.lo) : d.src === 'ses' ? S[d.f] : L[d.f];
     if (!isNum(v)) continue;
     const note = (d.id === 'call' || d.id === 'zero' || d.id === 'put') ? srcNote(data[d.f]) : (d.id === 'w0c' || d.id === 'w0p') ? srcNote((data.walls_0dte || {})[d.id === 'w0c' ? 'call' : 'put']) : '';
     const zl = opts.zoroNames ? ZORO_NAMES[d.id] : null;
-    out.lines.push({ id: d.id, label: zl || (d.id === 'zero' && on('showRanked') ? 'ZERO GAMMA \u00b7 Flip' : d.label), price: r(v), note, col: d.col, dash: d.dash, w: d.w });
+    out.lines.push({ id: d.id, label: zl || (live ? d.label + ' (live)' : d.id === 'zero' && on('showRanked') ? 'ZERO GAMMA \u00b7 Flip' : d.label), price: r(v), note, col: d.col, dash: d.dash, w: d.w });
   }
+  const day = src.fut && extra && extra.run && extra.run.day;
+  if (day) [['hod', 'showHod', 'hodColor', 'HOD', day.hi], ['lod', 'showLod', 'lodColor', 'LOD', day.lo]].forEach(([id, k, c, label, v]) => {
+    if (on(k) && isNum(v)) out.lines.push({ id, label, price: r(v), note: '', col: c, dash: 'solid', w: 1 });
+  });
   // Top 10 ranked strikes (ladder already in the response) and previous days' big levels (history).
   const rawSpot = isNum(data.spot) ? data.spot : (isNum(extra && extra.spot) ? extra.spot : null);
   if (on('showRanked') && rawSpot != null) {
@@ -606,6 +652,7 @@ class GexNative {
   constructor() { this.inputs = {}; this.ctx = null; this.tier = null; this.sig = ''; this.status = ''; }
   start(ctx, inputs) {
     this.ctx = ctx; this.inputs = inputs || {};
+    window.__stkGexNative = this;   // test hook (tools/tests/chart-gex-live-browser.js)
     subs.add(this); startTimer(); ZD.zoWatch(this);
     gexTier().then((t) => { this.tier = t; this.load(); this.syncAlert(true); });
     this.load();
@@ -650,6 +697,7 @@ class GexNative {
     // bar replay: every step may pass a new GEX snapshot (refresh pushes only when it changed)
     if (window.__stkReplay && window.__stkReplay.on) this.refresh();
     else if (this.wasReplay) this.load();
+    else if (this.inputs.liveOvernight === true || this.inputs.showHod === true || this.inputs.showLod === true) this.refresh();
     this.wasReplay = !!(window.__stkReplay && window.__stkReplay.on);
   }
   onViewport() {}
@@ -705,7 +753,7 @@ class GexNative {
         if (this.tier && this.tier.free) opts.showStrikes = false;
         const shift = src.fut && !src.zoro ? gexAnchor(src.fut, data) : null;
         const d0 = opts.profileExp === '0DTE' && !src.zoro ? (dte === 0 ? data : gexCached(src.api, 0, basis)) : null;
-        const lv = buildLevels(data, src, opts, shift, { prev: src.zoro ? [] : this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts), zoro: zs, ladder0: d0 && !d0.error ? d0.ladder : null });
+        const lv = buildLevels(data, src, opts, shift, { prev: src.zoro ? [] : this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts), run: this.runFor(src, opts), zoro: zs, ladder0: d0 && !d0.error ? d0.ladder : null });
         if (lv.err) payload = { note: lv.err };
         else {
           const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
@@ -728,6 +776,14 @@ class GexNative {
     if (sig === this.sig) return;
     this.sig = sig;
     try { this.ctx.pushData(payload); } catch (e) {}
+  }
+  // Running overnight / day high-low from the chart's own bars; only computed when an option needs it.
+  runFor(src, opts) {
+    if (!src.fut || !(opts.liveOvernight === true || opts.showHod === true || opts.showLod === true)) return null;
+    let bars = [];
+    try { bars = this.ctx.bars() || []; } catch (err) {}
+    const tf = this.ctx.timeframe;
+    return { on: opts.liveOvernight === true ? liveOvernight(bars, tf) : null, day: opts.showHod === true || opts.showLod === true ? dayHiLo(bars, tf) : null };
   }
   // Previous days for this source at time nowSec (replay: the snapshot time). Free members get SPX/ES only
   // (src.pro already handled: a Pro-only source never gets here for a Free member).
@@ -886,7 +942,7 @@ function hexA(hex, a) {
 }
 const TAG_H = 16, MERGE_PX = 6, EDGE_H = 14, EDGE_LIFT = 30;
 // Levels that get an off-screen arrow tag: the GEX key levels + the market levels (not strikes, IV, previous days).
-const EDGE_IDS = new Set(['call', 'put', 'zero', 'w0c', 'w0p', 'vah', 'poc', 'val', 'onh', 'onl']);
+const EDGE_IDS = new Set(['call', 'put', 'zero', 'w0c', 'w0p', 'vah', 'poc', 'val', 'onh', 'onl', 'hod', 'lod']);
 // Pure: off-screen levels on one edge -> tags "▲ CALL WALL 30147.56"; levels at one price share a tag
 // ("▼ PUT WALL · 0DTE 29736.44"). The 3 nearest per edge, returned outermost first (k = 0 sits at the
 // plot edge, the nearest level stacks innermost, like the prices).

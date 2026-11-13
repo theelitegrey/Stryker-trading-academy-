@@ -199,6 +199,21 @@ const CASES = [
           check(JSON.stringify(tb).indexOf('Needs order-flow') < 0 && JSON.stringify(tb).indexOf('unavailable') < 0, eng + ' ' + w + ' ' + id + ': no error note', tb);
           await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-' + id + '.png') });
         }
+        if (ONLY.includes('ct-tpo')) {
+          // the "Time price opportunity" chart type: same extras through its chart-type settings
+          await clearInd(p); await setMarket(p, 'futures:NQ1!', '5'); await frameOn(p, w < 500 ? D21(12, 0) : Date.UTC(2026, 9, 20, 12, 0), D21(17, 0));
+          await p.evaluate(() => window.STRYKER_VELA.active.setPriceStyle('stk_tpoc')); await sleep(2000);
+          const setCT = (o) => p.evaluate((o) => { const r = window.STRYKER_VELA.chart.renderer, R = r.applyConfig ? r : r.renderer; R.applyConfig({ chartTypes: { stk_tpoc: o } }); }, o).then(() => sleep(1500));
+          const c0 = await ink(p);
+          await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-ct-tpo.png') });
+          await setCT({ singles: true, poor: true, nakedPoc: true, devPoc: true, ibLines: true, ibMin: '60', ibExt: '1.5, 2, 3' });
+          const c1 = await ink(p);
+          await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-ct-tpo-extras.png') });
+          await setCT({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false });
+          const c2 = await ink(p);
+          check(c1 > c0 + 50 && Math.abs(c2 - c0) <= Math.max(10, c0 * 0.002), eng + ' ' + w + ' TPO chart type: extras add lines (' + c0 + ' -> ' + c1 + ' px), all off = the default look again (' + c2 + ' px)');
+          await p.evaluate(() => window.STRYKER_VELA.active.setPriceStyle('candles')); await sleep(800);
+        }
         if (w === 1440 && !ONLY.length) {
           await clearInd(p);
           await setMarket(p, 'futures:ZN1!', '5');

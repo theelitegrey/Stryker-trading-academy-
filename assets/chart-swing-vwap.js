@@ -3,7 +3,7 @@
 // "extend POC until touched" and small price labels. Hosted by assets/chart-l2-flow.js (data hub, gate, plate); maths in chart-swing-vwap-data.js.
 // Data: the L2 order-flow trade minutes (aggressor side per price) where the feed has them; older chart bars fall back to the bar volume
 // spread over the bar's range, and a leg that uses any of that says "approx". Education only. Not financial advice.
-import { buildLegs, legVwap, legTab, buildProfile, rowPrice, touchedAt, autoRowTicks } from './chart-swing-vwap-data.js?v=978';
+import { buildLegs, legVwap, legTab, buildProfile, rowPrice, touchedAt, autoRowTicks } from './chart-swing-vwap-data.js?v=979';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);

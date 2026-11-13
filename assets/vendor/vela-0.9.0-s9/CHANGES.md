@@ -11,4 +11,4 @@ Then tools/vela-090-scale-patch.py (s6: "Scale price chart only" - candles-only 
 
 Then tools/vela-090-mem-patch.py (s7: renderer-layer canvases hold pixels only while the layer has an owner or data; legend status dots update in place; phone memory).
 
-Then tools/vela-090-lock-patch.py (s9: locked drawings are click-through and show a padlock).
+Then tools/vela-090-lock-patch.py (s9: locked drawings stay selectable, no handles, padlock).

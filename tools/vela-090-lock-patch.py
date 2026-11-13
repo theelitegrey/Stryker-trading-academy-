@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""s9: locked drawings are click-through (no hover, select, move, resize, delete: a drag over them pans the chart)
-and paint a small padlock. Usage: cp -r assets/vendor/vela-0.9.0-s8 assets/vendor/vela-0.9.0-s9; python3 tools/vela-090-lock-patch.py assets/vendor/vela-0.9.0-s9
+"""s9: locked drawings stay selectable by click (toolbar shows Unlock) but show no resize handles, and paint a small padlock. Usage: cp -r assets/vendor/vela-0.9.0-s8 assets/vendor/vela-0.9.0-s9; python3 tools/vela-090-lock-patch.py assets/vendor/vela-0.9.0-s9
 """
 import sys, os
 D = sys.argv[1]
@@ -9,9 +8,7 @@ def edit(f, old, new):
     if s.count(old) != 1: sys.exit(f'{f}: anchor found {s.count(old)}x: {old[:80]!r}')
     open(p, 'w', encoding='utf-8').write(s.replace(old, new))
 C = 'chunk-XIRSR3D6.js'
-# hit-test: a locked drawing is never under the cursor (hover, select, drag, delete, dblclick all use this)
-edit(C, '    if (!d.visible) continue;\n    const rect = proj.paneRect?.(d.paneId);\n    if (rect && rect.height <= 0) continue;\n    if (d.hitTest(x, y, proj, tol)) return d;',
-        '    if (!d.visible || d.locked) continue;   // TradeZoro (lock): locked = click-through\n    const rect = proj.paneRect?.(d.paneId);\n    if (rect && rect.height <= 0) continue;\n    if (d.hitTest(x, y, proj, tol)) return d;')
+# locked drawings stay hit-testable (click selects them so the floating toolbar / menu can Unlock); handles below are skipped
 edit(C, '    for (const d of this.handleDrawings()) {\n      if (d.hitHandle(x, y, proj, HIT_TOLERANCE) >= 0) return d;',
         '    for (const d of this.handleDrawings()) {\n      if (!d.locked && d.hitHandle(x, y, proj, HIT_TOLERANCE) >= 0) return d;')
 # padlock indicator
@@ -32,5 +29,12 @@ edit(C, '  paintAll(ctx, drawings, proj, theme, targets = {}) {',
     ctx.restore();
   }
   paintAll(ctx, drawings, proj, theme, targets = {}) {''')
-open(os.path.join(D, 'CHANGES.md'), 'a').write('\nThen tools/vela-090-lock-patch.py (s9: locked drawings are click-through and show a padlock).\n')
+edit(C, '  if (ids.length < 2) return ids;\n  return ids.filter((id) => !drawings.find((d) => d.id === id)?.locked);',
+        '  return ids.filter((id) => !drawings.find((d) => d.id === id)?.locked);   // TradeZoro (lock): also for a single selection')
+edit(C, '      remove: () => {\n        this.closeTextEditor();\n        this.popup.close();\n        this.emit({ kind: "delete", ids: [id] });',
+        '      remove: () => {\n        if (this.drawings.find((x) => x.id === id)?.locked) return;   // TradeZoro (lock): unlock first\n        this.closeTextEditor();\n        this.popup.close();\n        this.emit({ kind: "delete", ids: [id] });')
+edit(C, '    bar.appendChild(this.toggle(this.t(TEXT10.lock), LOCK_ICON, common((d) => d.locked), (v) => actions.setLocked(v), UNLOCK_ICON));',
+        '    const lockBtn = this.toggle(this.t(TEXT10.lock), LOCK_ICON, common((d) => d.locked), (v) => { actions.setLocked(v); nameLock(v); }, UNLOCK_ICON);\n    const nameLock = (v) => { const s = v === true ? "Unlock" : "Lock"; lockBtn.dataset.tip = s; lockBtn.setAttribute("aria-label", s); };   // TradeZoro (lock): name the next action\n    nameLock(common((d) => d.locked));\n    bar.appendChild(lockBtn);')
+edit(C, '      if (d.visible && highlightIds.has(d.id)) {', '      if (d.visible && !d.locked && highlightIds.has(d.id)) {   // TradeZoro (lock): no resize handles on a locked drawing')
+open(os.path.join(D, 'CHANGES.md'), 'a').write('\nThen tools/vela-090-lock-patch.py (s9: locked drawings stay selectable, no handles, padlock).\n')
 print('ok')

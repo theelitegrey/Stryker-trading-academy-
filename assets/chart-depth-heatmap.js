@@ -16,7 +16,7 @@
 import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=978';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=978';
 import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote, staleNote } from './chart-futures-l2.js?v=978';
-import { sphere, drawLadder } from './chart-liquidity-map.js?v=978';
+import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-map.js?v=978';
 import { getVenue } from './orderflow-venues.js?v=978';
 
 export const DH_TYPE = 'stk_depth_heat';
@@ -35,6 +35,7 @@ export const DH_SCHEMA = [
   { key: 'showBubbles', title: 'Volume bubbles', type: 'bool', defval: true,
     tooltip: 'Each ball is the volume traded in a short time. Size = volume. Green part = aggressive buying, red part = aggressive selling.' },
   { key: 'bubbleScale', title: 'Bubble size %', type: 'int', defval: 100, min: 40, max: 200, step: 10 },
+  ...bubbleSchema(),
   { key: 'showBook', title: 'Book bars (right side)', type: 'bool', defval: true, tooltip: 'The size resting at each price now: red above the price (asks), green below (bids).' },
   { key: 'showCum', title: 'Cumulative column', type: 'bool', defval: true, tooltip: 'The running total of resting size from the best price outward.' },
   { key: 'showVolume', title: 'Volume bars', type: 'bool', defval: true, tooltip: 'Traded volume per bar along the bottom, green = buying, red = selling.' },
@@ -60,7 +61,7 @@ export function dhConfig(i) {
   return {
     smooth: smoothMsOf(i.heatSmooth), gamma: i.contrastMode === 'Manual' ? clamp(num(i.contrast, 1), 0.5, 2.5) : 1,
     hf: { p, min: 0, max: 0, top: 0, on: p > 0, key: p > 0 ? String(p) : '' }, cut,
-    bubbles: i.showBubbles !== false, bubbleScale: clamp(num(i.bubbleScale, 100), 40, 200) / 100,
+    bubbles: i.showBubbles !== false, bubbleScale: clamp(num(i.bubbleScale, 100), 40, 200) / 100, bubDom: bubbleOpts(i),
     book: i.showBook !== false, cum: i.showCum !== false, volume: i.showVolume !== false, gpu: i.gpuHeatmap !== false,
     hm: !!i.hmOwned, look: hmLook(String(i.hmTheme || 'Classic').toLowerCase()), vol: i.hmStyle === 'Volumetric', show: i.hmShow || 'Heatmap',
     hmMin: num(i.hmMin, 0), hmMax: num(i.hmMax, 0), usd: !!i.hmUsd, values: !!i.hmValues
@@ -293,7 +294,7 @@ export function dhLayer(H) {
         for (const b of bl) {
           const x = co.timeToX(b.t), y = yOf(b.p), rr = clamp(rMin + (rMax - rMin) * Math.sqrt(b.v / Math.max(1e-12, vmax)), rMin, rMax * 1.15);
           if (x < -rr || x > plotR + rr || y < top - rr || y > bot + rr) continue;
-          sphere(g, x, y, rr, b.v > 0 ? b.b / b.v : 0.5); stat.bubbles++;
+          sphere(g, x, y, rr, b.v > 0 ? b.b / b.v : 0.5, cfg.bubDom); stat.bubbles++;
         }
         stat.bubbleMs = tb;
       }

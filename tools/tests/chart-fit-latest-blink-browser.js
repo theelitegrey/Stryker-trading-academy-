@@ -33,6 +33,14 @@ async function run(b, { w, h, mobile, theme, sym, tag, shot, hover, fp }) {
   await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); } catch (e) {} }, theme);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance\.com|fapi\.binance\.com|data-api\.binance\.vision)/, (r) => r.abort());
   await require('./binance-mock.js').install(ctx);
+  if (fp) {   // main's footprint (L2) needs a trade history to draw bars: 404 the rest of the fixture hub, serve 1 trade/s for the last 30 min
+    await ctx.route(/127\.0\.0\.1:9\/(?!ts-trades)/, (r) => r.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+    await ctx.route(/127\.0\.0\.1:9\/ts-trades/, (r) => {
+      const to = Date.now(), trades = [], delta = new Map();
+      for (let t = Math.ceil((to - 1800000) / 1000) * 1000; t < to; t += 1000) { const k = t / 1000, side = Math.sin(k * 7.3) > -0.1 ? 1 : -1, px = Math.round((28750 + (side > 0 ? 0.25 : 0) + Math.sin(k) * 2) * 4) / 4, sz = 1 + (k % 6); trades.push([t, px, sz, side]); const m = Math.floor(t / 60000) * 60000, d = delta.get(m) || [m, 0, 0, 0, 0]; if (side > 0) d[1] += sz; else d[2] += sz; d[3] = Math.max(d[3], d[1] - d[2]); d[4] = Math.min(d[4], d[1] - d[2]); delta.set(m, d); }
+      r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'x-ts-fill-left': '0', 'access-control-expose-headers': 'x-ts-fill-left' }, body: JSON.stringify({ sym: 'NQ', at: to, floor: 100, left: 0, trades, delta: [...delta.values()] }) });
+    });
+  }
   const p = await ctx.newPage(); const errors = [];
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
@@ -44,6 +52,8 @@ async function run(b, { w, h, mobile, theme, sym, tag, shot, hover, fp }) {
     await p.evaluate(() => { window.STRYKER_VELA.active.setTimeframe('1'); window.STRYKER_VELA.active.setPriceStyle('stk_fp'); });   // the Footprint chart type is what raises the pills (flag stk-fp-stats)
     await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; ['stk_l2f_fp', 'stk_l2f_big'].forEach((t) => c.addNativeIndicator(t, { inputs: t === 'stk_l2f_big' ? { mode: 'Manual', minSize: 100 } : {} })); window.STRYKER_VELA.context().stateChanged(); });
     await p.waitForTimeout(6000);
+    if (w > 800) { await p.evaluate(() => window.STRYKER_VELA.active.setTimeframe('5')); await p.waitForTimeout(1500); await p.evaluate(() => window.STRYKER_VELA.active.setTimeframe('1')); await p.waitForTimeout(3000); }   // desktop: re-ask the bars once so the flow picks up the hub
+    await p.waitForFunction(() => document.querySelector('.vela-cell.stk-fp-stats'), null, { timeout: 25000 }).catch(() => {});   // the fixture flow loads async; the flag shows once bars draw
   }
   if (hover) { await p.mouse.move(hover[0], hover[1]); await p.waitForTimeout(800); }   // cursor parked on the pane: opacity must stay put while ticks arrive
   const r = await p.evaluate((ms) => new Promise((res) => {

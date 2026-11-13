@@ -79,6 +79,8 @@
 // only the inked box (assets/chart-box-canvas.js). Allow-list: layers checked to draw only through their 2d context
 // and to not move or restyle their own canvas. Off with ?boxcanvas=0 (or localStorage stk_box_canvas = '0').
 import { boxCanvas } from './chart-box-canvas.js?v=972';
+// INDICATOR VERSIONS (Owner 13 Nov): a Version setting on every pinnable native, the legend update button (assets/chart-ind-versions.js).
+import { installIndVersions, mountIndVersions } from './chart-ind-versions.js?v=972';
 const BOX_ON = (() => { try { return !/[?&]boxcanvas=0\b/.test(location.search) && localStorage.getItem('stk_box_canvas') !== '0'; } catch (e) { return true; } })();
 const BOX_LAYER = (id) => BOX_ON && (/^stk_l2f_/.test(id) || ['stk_svp', 'stk_of_big', 'stk_of_vp', 'stk_ts_big', 'stk_sess'].includes(id));
 // See "EMPTY LAYER CANVASES OFF" in the boot code.
@@ -634,6 +636,7 @@ function lateLists(provider){
   // Every layer def that goes through Core is also kept here, so a renderer built before the def was
   // registered can still mount it when an indicator of that type is added (see lateLayers below).
   const Core = Object.assign({}, mods[5], { registerRendererLayer: (def) => { const q = quietLayer(def); if (q && q.id) LAYER_DEFS.set(q.id, q); return mods[5].registerRendererLayer(q); } });
+  try { installIndVersions(Core); } catch (e) { console.warn('TradeZoro: indicator versions', e); }   // before any native registers
   const Pine = mods[6];
   const Settings = mods[8];
   const Grid = mods[10];
@@ -1120,6 +1123,7 @@ function visualOrder(R) {
   // Wallet Intel panel (candle / cluster / book-level wallets and the wallet profile; phones: a sheet): assets/chart-wallet-intel.js.
   import('./chart-wallet-intel.js?v=972').then((m) => m.mountWalletIntel(ws)).catch((e) => console.warn('TradeZoro: wallet intel panel', e));
   try { IndStyle.mountIndStyle(ws); } catch (e) { console.warn('TradeZoro: indicator style', e); }
+  try { mountIndVersions(ws); } catch (e) { console.warn('TradeZoro: indicator versions', e); }
   // Indicator Settings → Inputs: every input.symbol opens the same symbol search
   // (assets/chart-symbol-input.js).
   try { FormulaMod && FormulaMod.mountFormula(ws, { SymbolPicker: null, normalize: FormulaNorm }); } catch (e) {}

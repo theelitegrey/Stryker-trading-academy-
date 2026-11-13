@@ -26,6 +26,7 @@ import { sweepBars } from './chart-of-pro.js?v=972';
 import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-data.js?v=972';
 import { swingModel, swingLayer } from './chart-swing-vwap.js?v=972';
 import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=972';
+import { below, since } from './indicator-versions.js?v=972';   // versions: assets/indicator-versions.js (v1.0 = full-depth resting book)
 
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
@@ -203,8 +204,8 @@ const SCHEMA = {
   stk_l2f_fp: [
     { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
     { key: 'mult', title: 'Highlight resting size above (x average)', type: 'float', defval: 3, min: 1.5, max: 20, step: 0.5 },
-    { key: 'restShow', title: 'Resting book shown', type: 'string', defval: 'Near the candle', options: ['Near the candle', 'Off', 'Full depth'], tooltip: 'Near the candle = resting size only beside the candle (its low to high plus the rows below). Full depth = every row of the book, in a tall ladder.' },
-    { key: 'restRows', title: 'Rows beyond the candle', type: 'int', defval: 2, min: 0, max: 20, step: 1 },
+    { key: 'restShow', title: 'Resting book shown', type: 'string', defval: 'Near the candle', options: ['Near the candle', 'Off', 'Full depth'], tooltip: 'Near the candle = resting size only beside the candle (its low to high plus the rows below). Full depth = every row of the book, in a tall ladder.', when: since('b:stk_l2f_fp', '1.1') },
+    { key: 'restRows', title: 'Rows beyond the candle', type: 'int', defval: 2, min: 0, max: 20, step: 1, when: since('b:stk_l2f_fp', '1.1') },
     { key: 'numbers', title: 'Show traded numbers', type: 'bool', defval: true },
     { key: 'textSize', title: 'Text size', type: 'string', defval: 'Normal', options: ['Small', 'Normal', 'Large', 'Extra large'] },
     { key: 'buyColor', title: 'Buyers', type: 'color', defval: UP }, { key: 'sellColor', title: 'Sellers', type: 'color', defval: DN },
@@ -388,7 +389,7 @@ class L2Flow {
   stat(bars, has) { let n = 0; for (let i = 0; i < bars.length; i++) if (has(i)) n++; (window.__stkL2Flow || (window.__stkL2Flow = {}))[this.type] = Object.assign((window.__stkL2Flow || {})[this.type] || {}, { n, bars: bars.length }); }
   drawFp(hub, bars, tf, since) {
     const fa = hub.footAgg(tf);
-    this.ov('Footprint (L2): ' + (this.inputs.restShow === 'Off' ? 'traded' : 'traded | resting at close'), fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '');
+    this.ov('Footprint (L2): ' + (this.inputs.restShow === 'Off' && !below(this.inputs, '1.1') ? 'traded' : 'traded | resting at close'), fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '');
     this.stat(bars, (i) => fa.map.has(bars[i].time));
     this.push({ hub, v: hub.v + ':' + hub.fver() });
   }
@@ -533,7 +534,8 @@ function fpLayer() {
         let m = I.rowTicks > 0 ? I.rowTicks : ROW_STEPS.find((s) => tickPx * s >= minPx) || 400;
         m = Math.max(m, Math.round(S / tick));               // a row is never finer than the book's own rows
         const R = m * tick, mult = num(I.mult, 3), now = Date.now();
-        const rs = I.restShow === 'Off' || I.restShow === 'Full depth' ? I.restShow : 'Near the candle', N = clamp(Math.round(num(I.restRows, 2)), 0, 20);
+        const v10 = below(I, '1.1');   // v1.0: the whole book beside every candle, stronger colour
+        const rs = v10 ? 'Full depth' : I.restShow === 'Off' || I.restShow === 'Full depth' ? I.restShow : 'Near the candle', N = clamp(Math.round(num(I.restRows, 2)), 0, 20);
         let drawn = 0, maxOut = 0;
         const colW = Math.min(ppb * 0.92, 150), restW = colW * 0.3, trW = colW - restW - 2, fs = (phone ? 9 : 10) + ({ Small: -1, Large: 2, 'Extra large': 4 }[I.textSize] || 0);
         g.font = '600 ' + fs + 'px ' + MONO; g.textBaseline = 'middle';
@@ -553,7 +555,7 @@ function fpLayer() {
               drawn++; maxOut = Math.max(maxOut, out);   // resting size at bar close, thin bar growing from the left edge of the candle column
               const q = Math.max(e.bid, e.ask), isBid = e.bid >= e.ask, big = avg > 0 && q >= mult * avg, col = isBid ? I.bidColor : I.askColor;
               const len = Math.max(1, Math.min(1, q / (avg * mult * 1.5 || 1)) * restW);
-              g.fillStyle = rgba(col, big ? 0.95 : 0.35); g.fillRect(left, y, len, h);
+              g.fillStyle = rgba(col, big ? 0.95 : v10 ? 0.5 : 0.35); g.fillRect(left, y, len, h);
               if (big) { g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(left + 0.5, y + 0.5, Math.max(restW - 1, len - 1), h - 1); hot++; }
             }
             const t = tr.get(r);
@@ -565,7 +567,7 @@ function fpLayer() {
             }
           }
         }
-        Object.assign(window.__stkL2Flow.stk_l2f_fp, { hot, drawn, maxOut, mode: rs });
+        Object.assign(window.__stkL2Flow.stk_l2f_fp, { hot, drawn, maxOut, mode: rs, ver: v10 ? '1.0' : '1.1' });
       } finally { try { plateLine(g, a, a.data.owner); } catch (e) {} g.restore(); }
     },
     destroy() { canvas = null; }

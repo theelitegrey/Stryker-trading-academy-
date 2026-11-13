@@ -75,6 +75,19 @@
 .ixp-more summary{ cursor:pointer; min-height:44px; display:inline-flex; align-items:center; font-size:14px; font-weight:600; color:var(--gold); }
 .ixp-more[open] summary{ margin-bottom:8px; }
 
+/* changelog (versions: assets/indicator-versions.js) */
+.ixp-cl{ list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:16px; background:var(--bg-2); }
+.ixp-cl > li{ margin:0; padding:16px; border-bottom:1px solid var(--line-soft); }
+.ixp-cl > li:last-child{ border-bottom:0; }
+.ixp-cl-head{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:8px; }
+.ixp-cl-v{ font-size:17px; line-height:22px; font-weight:600; color:var(--ink-0); font-variant-numeric:tabular-nums; }
+.ixp-cl-head time{ margin-left:auto; font-size:13px; line-height:18px; color:var(--ink-3); font-variant-numeric:tabular-nums; }
+.ixp-body .ixp-cl ul{ margin:0; }
+.ixp-body .ixp-cl li li{ margin:0 0 4px; font-size:15px; line-height:22px; color:var(--ink-1); }
+.ixp-cl-note{ margin:12px 0 0; font-size:13px; line-height:18px; color:var(--ink-2); }
+.ixp-upd a{ color:inherit; text-decoration:none; font-variant-numeric:tabular-nums; }
+.ixp-upd a:hover{ color:var(--gold); text-decoration:underline; }
+
 /* rail */
 .ixp-rail{ display:flex; flex-direction:column; gap:16px; }
 .ixp-box{ padding:20px; border-radius:16px; background:var(--bg-2); border:1px solid var(--line); }

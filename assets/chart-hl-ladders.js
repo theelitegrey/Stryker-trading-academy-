@@ -5,7 +5,7 @@
 // HONESTY: tracked wallets only. The footer says how many wallets and about what share of open interest; nothing is the whole market.
 // Desktop: a panel beside the chart, three columns whose rows sit at the chart's own price positions. Phone: a bottom sheet with tabs.
 // Aggregated mode is not offered: the data holds one market per coin. Education only. Not financial advice.
-import { LADDERS, MULTS, splitLevels, rebucket, pickSize, columnStats, strength, pctOf, fmtPct, rowCluster } from './hl-ladders-core.js?v=970';
+import { LADDERS, MULTS, splitLevels, rebucket, pickSize, columnStats, strength, pctOf, fmtPct, rowCluster } from './hl-ladders-core.js?v=971';
 
 const KEY = 'stkhll.v1';
 const COL = { liq: '245,197,66', sl: '242,54,69', tp: '3,201,136' };   // amber / red / mint (data colours, rgb)
@@ -19,7 +19,7 @@ const load = () => { try { return Object.assign({ open: false, mult: 'auto', ban
 
 export function mountLadders(ws, host) {
   if (!host || document.getElementById('stkhll')) return null;
-  import('./chart-wallet-intel.js?v=970').then((m) => { W = m; });
+  import('./chart-wallet-intel.js?v=971').then((m) => { W = m; });
   const S = load(), save = () => { try { localStorage.setItem(KEY, JSON.stringify({ open: S.open, mult: S.mult, bands: S.bands, tab: S.tab })); } catch (e) {} };
   const isPhone = () => window.innerWidth <= 700;
   const el = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };

@@ -12,18 +12,18 @@
 //                  is trade-only and also runs without L2. Walls = the Large Resting Orders size (same session histogram) or the heatmap's colour filter.
 // Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=970';
-import { isFree } from './chart-pro-gate.js?v=970';
-import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory, l2Closed } from './chart-futures-l2.js?v=970';
-import { decodeBookHistory } from './chart-orderflow.js?v=970';
-import * as C from './book-panel-core.js?v=970';
-import { openSource } from './book-panel-sources.js?v=970';
-import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=970';
-import { sweepBars } from './chart-of-pro.js?v=970';
-import { icebergEvents } from './chart-liquidity-data.js?v=970';
-import * as D from './chart-book-pack-data.js?v=970';
-import { hfLive } from './chart-heat-filter.js?v=970';
-import { STYLES as BM_STYLES } from './chart-bookmap.js?v=970';
+import { registerFeed } from './chart-feeds.js?v=971';
+import { isFree } from './chart-pro-gate.js?v=971';
+import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory, l2Closed } from './chart-futures-l2.js?v=971';
+import { decodeBookHistory } from './chart-orderflow.js?v=971';
+import * as C from './book-panel-core.js?v=971';
+import { openSource } from './book-panel-sources.js?v=971';
+import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=971';
+import { sweepBars } from './chart-of-pro.js?v=971';
+import { icebergEvents } from './chart-liquidity-data.js?v=971';
+import * as D from './chart-book-pack-data.js?v=971';
+import { hfLive } from './chart-heat-filter.js?v=971';
+import { STYLES as BM_STYLES } from './chart-bookmap.js?v=971';
 
 export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';

@@ -2,7 +2,7 @@
 // starts it; assets/tick-feed-core.js does the socket, seq and replay work). Lives while any tab is connected, background tabs
 // included. A tab says 'bye' on pagehide; a tab that dies without it is noticed through its Web Lock (released when the tab goes),
 // or after 150 s of silence where Web Locks are missing.
-import { TickFeedCore } from './tick-feed-core.js?v=967';
+import { TickFeedCore } from './tick-feed-core.js?v=968';
 
 const ports = new Map();   // port -> { joins: Map(id -> leave), seen, lock }
 let token = '', url = '';

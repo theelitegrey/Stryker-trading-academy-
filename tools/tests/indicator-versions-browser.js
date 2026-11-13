@@ -232,7 +232,7 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
       const p = await ctx.newPage();
       await p.goto(BASE + '/indicators/footprint-l2.html', { waitUntil: 'domcontentloaded' }); await sleep(800);
       const cl = await p.evaluate(() => { const h = document.getElementById('changelog'); const ol = h && h.nextElementSibling; return h && ol ? { h: h.textContent, items: [...ol.children].map((li) => li.querySelector('.ixp-cl-head').textContent), text: ol.innerText, meta: (document.querySelector('.ixp-upd') || {}).textContent, over: document.documentElement.scrollWidth > innerWidth } : null; });
-      check(cl && cl.h === 'Changelog' && cl.items.length >= 2 && /^v1\.\dLatest/.test(cl.items[0]) && /^v1\.0/.test(cl.items[cl.items.length - 1]) && /Resting book shown/.test(cl.text) && /v1\.1/.test(cl.meta) && !cl.over, tag + ': indicator page shows the Changelog, newest first, version in the header', cl);
+      check(cl && cl.h === 'Changelog' && cl.items.length >= 2 && /^v1\.\dLatest/.test(cl.items[0]) && /^v1\.0/.test(cl.items[cl.items.length - 1]) && /Resting book shown/.test(cl.text) && cl.meta.includes(cl.items[0].slice(0, 4)) && !cl.over, tag + ': indicator page shows the Changelog, newest first, version in the header', cl);
       if (SHOTS) { await p.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; const e = document.getElementById('changelog'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 120); }); await sleep(800); await p.screenshot({ path: OUT + '/iv-' + tag + '-changelog.png' }); }
       await ctx.close();
     }

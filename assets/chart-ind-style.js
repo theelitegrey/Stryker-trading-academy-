@@ -511,6 +511,7 @@ const CSS = `
 .stk-is-r > span:first-child{color:var(--vela-fg-muted,#a3aabb);font-size:12.5px;flex:0 0 auto;min-width:96px}
 .stk-is-c{display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
 .stk-is-p{height:28px;min-width:30px;padding:0 9px;border-radius:999px;border:1px solid var(--vela-border-strong,rgba(128,128,128,.35));background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;}
+.stk-is-p:disabled{opacity:.4;cursor:default}
 .stk-is-p:hover{border-color:var(--vela-fg-muted,#8b93a7)}
 .stk-is-p.on{background:rgba(3,201,136,.16);border-color:#03c988;color:#03c988}
 .stk-is-p svg{display:block}
@@ -608,12 +609,26 @@ function buildPanel(orch, rec, kind){
   top.appendChild(h('span', 'stk-is-lbl', 'Draw'));
   top.appendChild(pills([['back', 'Below candles'], ['front', 'Above candles']], st.z, (v) => { if (v) st.z = v; else delete st.z; save(); }, 'x'));
   const sp = h('span'); sp.style.flex = '1'; top.appendChild(sp);
+  let zOrderRow = null;
+  // Visual order: the same four steps as the legend menu, on Vela's stack (see ZORDER in vela-chart.js).
+  const ZO = window.__stkZOrder, zapi = (() => { try { const R = nativeRenderer(orch); return R && R.inputsUI && R.inputsUI.stackApi; } catch (e) { return null; } })();
+  if (ZO && zapi && (zapi.above(rec.id) !== null || zapi.below(rec.id) !== null)) {
+    const zr = h('div', 'stk-is-top'); zr.dataset.stkZorder = '1';
+    zr.appendChild(h('span', 'stk-is-lbl', 'Visual order'));
+    ZO.items.forEach(([how, lab]) => {
+      const b = h('button', 'stk-is-p', lab); b.type = 'button'; b.dataset.how = how; b.disabled = !ZO.can(zapi, rec.id, how);
+      b.addEventListener('click', () => { ZO.run(zapi, rec.id, how); zr.querySelectorAll('button').forEach((x) => { x.disabled = !ZO.can(zapi, rec.id, x.dataset.how); }); });
+      zr.appendChild(b);
+    });
+    zOrderRow = zr;
+  }
   const k = identity(rec);
   const bSave = h('button', 'stk-is-p', 'Save as default'); bSave.type = 'button';
   bSave.addEventListener('click', () => { const d = loadDefaults(); const cur = sanitize(st); if (cur) d[k] = cur; else delete d[k]; saveDefaults(d); bSave.textContent = 'Saved'; setTimeout(() => { bSave.textContent = 'Save as default'; }, 1400); });
   const bReset = h('button', 'stk-is-p', 'Reset style'); bReset.type = 'button'; bReset.dataset.stkReset = '1';
   top.append(bSave, bReset);
   root.appendChild(top);
+  if (zOrderRow) root.appendChild(zOrderRow);
   const groups = h('div');
   root.appendChild(groups);
   const raw = rec.__stkRaw || rec.model;

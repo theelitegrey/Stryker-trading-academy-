@@ -10,13 +10,13 @@
 // Threshold: the auto size is the recorder's 99.5th percentile for the symbol (the same number the InsightSentry bubbles use), so the
 // two indicators ask the same question; a print below the Worker's per-symbol floor was never stored.
 // Education only. Not financial advice.
-import { liveVisible as l1Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=968';
-import { registerFeed } from './chart-feeds.js?v=968';
-import { rtReady, rtHeaders } from './rt-access.js?v=968';
-import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=968';
-import { cvdCandles } from './chart-footprint-data.js?v=968';
-import * as BT from './chart-bigtrades.js?v=968';
-import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=968';
+import { liveVisible as l1Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=969';
+import { registerFeed } from './chart-feeds.js?v=969';
+import { rtReady, rtHeaders } from './rt-access.js?v=969';
+import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=969';
+import { cvdCandles } from './chart-footprint-data.js?v=969';
+import * as BT from './chart-bigtrades.js?v=969';
+import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=969';
 
 export const TS_TYPES = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';

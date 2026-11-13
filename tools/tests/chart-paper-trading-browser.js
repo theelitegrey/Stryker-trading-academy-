@@ -71,6 +71,8 @@ function serve() {
       if (!fs.existsSync(p) && fs.existsSync(p + '.html')) p += '.html';
       if (!fs.existsSync(p)) { rsp.writeHead(404); rsp.end('nf'); return; }
       rsp.writeHead(200, { 'content-type': TYPES[path.extname(p)] || 'application/octet-stream' });
+      // The live feed is the tick hub by default (2026-11-03); this test scripts ticks through the old /api/chart/stream mock, so serve the flag as 'is'.
+      if (/\/live-source\.js$/.test(p)) { rsp.end(fs.readFileSync(p, 'utf8').replace("LIVE_SOURCE = 'hub'", "LIVE_SOURCE = 'is'")); return; }
       fs.createReadStream(p).pipe(rsp);
     });
     srv.listen(0, '127.0.0.1', () => res(srv));
@@ -207,11 +209,11 @@ const allHidden = (u) => !u.enabled && !u.cls && !u.panel && !u.trade && u.oneCl
 // Opens Chart settings (top-bar gear; ☰ tab list on a phone) on the "Paper trading" tab.
 async function openPaperTab(p, phone) {
   // phone (build 537): the slim TradingView-style row keeps the gear behind ⋯ More
-  if (!(await p.isVisible('#stkc-settings-btn'))) { await p.click('#stkc-more-btn'); await sleep(200); }
-  await p.click('#stkc-settings-btn');
+  if (!(await p.isVisible('#stkc-settings-btn'))) { await (phone ? p.tap('#stkc-more-btn') : p.click('#stkc-more-btn')); await sleep(700); }
+  await (phone ? p.tap('#stkc-settings-btn') : p.click('#stkc-settings-btn'));
   await p.waitForSelector('.vela-dialog--settings .vela-sd-rail', { state: 'attached', timeout: 10000 });
   await sleep(300);
-  if (phone && await p.$('.vela-dialog--settings .vela-sd-burger')) { await p.click('.vela-dialog--settings .vela-sd-burger'); await sleep(300); }
+  if (phone && await p.isVisible('.vela-dialog--settings .vela-sd-burger')) { await p.click('.vela-dialog--settings .vela-sd-burger'); await sleep(300); }
   const tab = p.locator('.vela-dialog--settings .vela-sd-tab', { hasText: /^\s*Paper trading\s*$/ });
   check(await tab.count() === 1, (phone ? 'phone: ' : '') + 'Chart settings has a "Paper trading" tab');
   await tab.first().click();
@@ -240,7 +242,9 @@ async function waitFor(p, fn, arg, ms) {
   return false;
 }
 const BROKER_RE = /rithmic|tradovate|ninjatrader|tradestation|interactivebrokers|ibkr|alpaca|oanda|tastytrade|tradier|projectx|topstepx|\/order(s)?\b|\/trade(s)?\/(place|submit)|\/api\/(paper|broker|order)/i;
-const ALLOWED = (u) => /^http:\/\/127\.0\.0\.1:\d+\/(assets\/|api\/chart\/(bars|stream)\/|api\/chart\/rt$|[\w-]+(\.html)?(\?|$)|manifest\.json|favicon)/.test(u)
+// Site features that load with the chart page and are not paper trading: the Connect-broker 'is this provider set up' GET probes (/connect/<broker>/token?probe=1), broker logo images, the Vest symbol list.
+const SITE_PROBES = /^http:\/\/127\.0\.0\.1:\d+\/(connect\/[\w-]+\/token\?probe=1$|assets\/images\/|api\/vest\/exchangeInfo$)/;
+const ALLOWED = (u) => SITE_PROBES.test(u) || /^https:\/\/(api\.bitget\.com\/api\/v2\/mix\/market\/|api\.kraken\.com\/0\/public\/|book-recorder\.theelitegrey\.workers\.dev\/te-bars\?|cdn\.jsdelivr\.net\/npm\/)/.test(u) || /^https:\/\/(api\.bybit\.com\/v5\/market\/instruments-info|www\.okx\.com\/api\/v5\/public\/instruments|api\.bitget\.com\/api\/v2\/spot\/public\/symbols)/.test(u) || /^http:\/\/127\.0\.0\.1:\d+\/(assets\/|api\/chart\/(bars|stream)\/|api\/chart\/rt$|[\w-]+(\.html)?(\?|$)|manifest\.json|favicon)/.test(u)
   || /^https:\/\/(api\.binance\.com|data-api\.binance\.vision|api\.binance\.us)\/api\/v3\/(klines|exchangeInfo|ping|depth|trades|aggTrades|ticker)/.test(u)
   || /^wss:\/\/[^/]*binance[^/]*\//.test(u)
   || /^https:\/\/www\.gstatic\.com\/firebasejs\//.test(u) || /^https:\/\/api\.dicebear\.com\//.test(u)
@@ -694,7 +698,7 @@ async function boot(p, BASE) {
     // ================= network: no broker / order endpoints =================
     // Static page code (e.g. assets/rithmic-config.js, the existing market-data "Connect broker"
     // flag module that every Charts load imports) is not a call to a broker; every other URL is.
-    const broker = reqs.filter((r) => BROKER_RE.test(r.url) && !/^http:\/\/127\.0\.0\.1:\d+\/assets\/[\w.-]+\.js(\?|$)/.test(r.url));
+    const broker = reqs.filter((r) => BROKER_RE.test(r.url) && !SITE_PROBES.test(r.url) && !/^http:\/\/127\.0\.0\.1:\d+\/assets\/[\w.-]+\.js(\?|$)/.test(r.url));
     // the only non-GET the page makes is Hyperliquid's market-data info endpoint (existing data dots)
     const nonGet = reqs.filter((r) => !r.blocked && r.method !== 'GET' && r.method !== 'WS' && !/^https:\/\/api\.hyperliquid\.xyz\/info$/.test(r.url));
     const unknown = reqs.filter((r) => !r.blocked && !ALLOWED(r.url));

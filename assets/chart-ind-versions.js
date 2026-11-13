@@ -31,7 +31,8 @@ const CSS = `
 .stk-iv-list::-webkit-scrollbar-button{ display:none; }
 .stk-iv-v{ margin:8px 0 4px; font-size:12px; line-height:16px; font-weight:600; color:rgba(255,255,255,.64); font-variant-numeric:tabular-nums; }
 .stk-iv-v:first-child{ margin-top:0; }
-.stk-iv-list ul{ margin:0; padding:0 0 0 16px; } .stk-iv-list li{ margin:0 0 4px; }
+.stk-iv-list, .stk-iv-v{ padding:0; } .stk-iv-v{ margin-left:0; }
+.stk-iv-list ul{ margin:0; padding:0 0 0 16px; list-style:disc; } .stk-iv-list li{ margin:0 0 4px; padding:0; } .stk-iv-list li::marker{ color:#03c988; }
 .stk-iv-keep{ margin:12px 0 0; color:rgba(255,255,255,.44); font-size:12px; line-height:16px; }
 .stk-iv-acts{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
 .stk-iv-acts button{ height:40px; min-width:88px; padding:0 16px; border-radius:12px; font:600 14px/20px inherit; font-family:inherit; cursor:pointer; border:1px solid transparent; }
@@ -47,6 +48,9 @@ const CSS = `
 :root[data-theme="light"] .stk-iv-later{ color:#1d1d1f; border-color:rgba(0,0,0,.16) !important; } :root[data-theme="light"] .stk-iv-later:hover{ background:rgba(0,0,0,.04); }
 :root[data-theme="light"] .stk-iv-go{ background:#07996a; color:#fff; } :root[data-theme="light"] .stk-iv-go:hover{ background:#06835a; }
 :root[data-theme="light"] .stk-iv-list::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.18); }
+.vela-ind-fold.stk-iv-has{ position:relative; }
+.vela-ind-fold.stk-iv-has::after{ content:''; position:absolute; top:-3px; right:-3px; width:8px; height:8px; border-radius:50%; background:#03c988; box-shadow:0 0 0 2px #0f0f0f; }
+:root[data-theme="light"] .vela-ind-fold.stk-iv-has::after{ background:#07996a; box-shadow:0 0 0 2px #fff; }
 @media (prefers-reduced-motion: reduce){ .stk-iv-btn{ transition:none; } }
 `;
 
@@ -162,11 +166,13 @@ function button(it, st) {
   return b;
 }
 export function refresh() {
-  const dis = dismissed();
+  const dis = dismissed(), folds = new Map();   // phone legend folded behind its toggle: a dot on the toggle says an update waits
   for (const it of instances()) {
     const host = it.row && it.row.el;
     if (!host) continue;
     const st = statusOf(it.rec.native.type, it.rec.inputValues, dis);
+    const cellEl = host.closest('.vela-cell'), fold = cellEl && cellEl.querySelector('.vela-ind-fold');
+    if (fold) { folds.set(fold, folds.get(fold) || !!st); if (!fold.__stkIv) { fold.__stkIv = 1; fold.addEventListener('click', () => setTimeout(refresh, 0)); } }
     let b = host.querySelector(':scope > .stk-iv-btn');
     const sig = st ? st.v + '>' + st.to : '';
     if (!st) { if (b) { if (popFor === b) closePop(); b.remove(); } continue; }
@@ -175,6 +181,11 @@ export function refresh() {
     b = button(it, st); b.__it = it; b.__st = st; b.__sig = sig;
     const title = host.firstElementChild;
     if (title && title.nextSibling) host.insertBefore(b, title.nextSibling); else host.appendChild(b);
+  }
+  for (const [fold, has] of folds) {
+    fold.classList.toggle('stk-iv-has', has && /^Show/.test(fold.getAttribute('aria-label') || ''));   // dot only while the rows are folded away
+    const base = (fold.getAttribute('aria-label') || '').replace(/ \(update available\)$/, '');
+    if (base) fold.setAttribute('aria-label', has ? base + ' (update available)' : base);
   }
 }
 

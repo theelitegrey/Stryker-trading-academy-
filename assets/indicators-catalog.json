@@ -69,21 +69,31 @@
     ]
    },
    "changelog": {
-    "current": "1.0",
+    "current": "1.1",
     "pickable": false,
     "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-13",
+      "notes": [
+       "New optional live levels on futures charts: overnight high and low while the overnight session runs, and the current day high and low.",
+       "They are off by default, so your chart looks the same until you turn them on."
+      ],
+      "pick": false
+     },
      {
       "v": "1.0",
       "date": "2026-10-07",
       "notes": [
        "First release."
-      ]
+      ],
+      "pick": true
      }
     ]
    },
    "alerts": "",
    "learn": "",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -9819,21 +9829,31 @@
     ]
    },
    "changelog": {
-    "current": "1.0",
+    "current": "1.1",
     "pickable": false,
     "list": [
+     {
+      "v": "1.1",
+      "date": "2026-11-13",
+      "notes": [
+       "Draws and updates live, including the session that is running now.",
+       "Session now starts on \"both\" (day session and overnight, each with its own profile), so the current session is always shown. Pick \"rth\" in the settings for day session only."
+      ],
+      "pick": false
+     },
      {
       "v": "1.0",
       "date": "2026-10-05",
       "notes": [
        "First release."
-      ]
+      ],
+      "pick": true
      }
     ]
    },
    "alerts": "",
    "learn": "volume-profile",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -10677,9 +10697,27 @@
    ],
    "explain": null,
    "changelog": {
-    "current": "1.1",
+    "current": "1.3",
     "pickable": false,
     "list": [
+     {
+      "v": "1.3",
+      "date": "2026-11-13",
+      "notes": [
+       "The value area is now the same on every timeframe: the profile is built from 1-minute bars when they are available."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "The value area stays the same when you change the number of rows.",
+       "Corner handles to resize the range.",
+       "Dashes instead of empty delta values where there is no order flow data."
+      ],
+      "pick": false
+     },
      {
       "v": "1.1",
       "date": "2026-11-11",
@@ -10704,7 +10742,7 @@
    },
    "alerts": "",
    "learn": "volume-profile",
-   "updated": "2026-11-11",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [],
@@ -13297,21 +13335,48 @@
     ]
    },
    "changelog": {
-    "current": "1.0",
+    "current": "1.3",
     "pickable": false,
     "list": [
+     {
+      "v": "1.3",
+      "date": "2026-11-13",
+      "notes": [
+       "Fix: the Bar stats table now always stays on top of candles and other indicators."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "New settings: Text size, Buy colour and Sell colour.",
+       "The Bar stats table and the delta + volume strip can each sit at any corner of the chart."
+      ],
+      "pick": false
+     },
+     {
+      "v": "1.1",
+      "date": "2026-11-10",
+      "notes": [
+       "New Style menu with two new looks: Delta boxes and Delta bars.",
+       "Optional Bar stats table."
+      ],
+      "pick": false
+     },
      {
       "v": "1.0",
       "date": "2026-10-05",
       "notes": [
-       "First release."
-      ]
+       "First release of the Footprint chart type."
+      ],
+      "pick": true
      }
     ]
    },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-04",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -16533,9 +16598,17 @@
    ],
    "explain": null,
    "changelog": {
-    "current": "1.1",
+    "current": "1.2",
     "pickable": false,
     "list": [
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "Fix: the markers stay on the chart after you switch chart tabs and come back."
+      ],
+      "pick": false
+     },
      {
       "v": "1.1",
       "date": "2026-11-10",
@@ -16556,7 +16629,7 @@
    },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-10",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -18020,9 +18093,17 @@
     ]
    },
    "changelog": {
-    "current": "1.1",
+    "current": "1.2",
     "pickable": true,
     "list": [
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "New setting: Text size for the traded numbers."
+      ],
+      "pick": false
+     },
      {
       "v": "1.1",
       "date": "2026-11-11",
@@ -18046,7 +18127,7 @@
    },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-11",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [
@@ -18133,9 +18214,17 @@
     ]
    },
    "changelog": {
-    "current": "1.1",
+    "current": "1.2",
     "pickable": false,
     "list": [
+     {
+      "v": "1.2",
+      "date": "2026-11-13",
+      "notes": [
+       "Fix: older big trades now get their W, C and P tags straight away, without dragging the chart back first."
+      ],
+      "pick": false
+     },
      {
       "v": "1.1",
       "date": "2026-11-10",
@@ -18156,7 +18245,7 @@
    },
    "alerts": "",
    "learn": "order-flow",
-   "updated": "2026-11-10",
+   "updated": "2026-11-13",
    "licence": "",
    "originalUrl": "",
    "settings": [

@@ -12,7 +12,7 @@
 // to each leg and re-emits the candle whenever a leg moves. Otherwise it re-reads the newest legs every POLL_MS and pushes
 // the tail, so the chart refreshes on each new bar. Volume is 0 (blank). Education only. Not financial advice.
 
-import { parseFormula, combineBars, canonicalSymbol, bodyOf, isFormulaSymbol, PREFIX, MAX_CHARS } from './chart-formula-core.js?v=961';
+import { parseFormula, combineBars, canonicalSymbol, bodyOf, isFormulaSymbol, PREFIX, MAX_CHARS } from './chart-formula-core.js?v=962';
 
 const POLL_MS = 20000, TAIL = 4;
 const STREAM_PROVIDERS = ['binance', 'coinbase', 'hyperliquid', 'byo', 'bybit', 'okx', 'bitget', 'kraken', 'vest'];

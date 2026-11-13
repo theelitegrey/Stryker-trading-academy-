@@ -376,7 +376,8 @@ export function installChartTypes(Core) {
   installed = true;
   for (const id of CT_ALL) {
     if (!DRAW[id]) continue;
-    Core.registerRendererLayer({ id, placement: 'above-data', create: () => typeLayer(id) });
+    // the SVP chart type must not take the layer id 'stk_svp': the Session Volume Profile indicator owns it (it never drew)
+    Core.registerRendererLayer({ id: id === 'stk_svp' ? 'stk_svp_ct' : id, placement: 'above-data', create: () => typeLayer(id) });
     const def = { id, label: CT_LABELS[id], icon: CT_ICONS[id], basePainting: 'none' };
     if (DERIVE[id]) def.barTransform = DERIVE[id];
     if (SETTINGS[id]) def.settings = SETTINGS[id];

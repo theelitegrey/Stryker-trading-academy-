@@ -300,7 +300,13 @@ function cryptoFlow(ctxLike, root, tf) {
 }
 
 // ---------------------------------------------------------------- footprint chart type
-const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true, fpBuyColor: '#03c988', fpSellColor: '#f23645', fpTextSize: 'normal', fpTablePos: 'br', fpStatsPos: 'bl' };
+const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true, fpBuyColor: '#03c988', fpSellColor: '#f23645', fpTextSize: 'normal', fpTablePos: 'br', fpStatsPos: 'bl', fpAutoText: false, fpAutoMin: 8, fpAutoMax: 14, fpTblVol: true, fpTblDelta: true, fpTblDpct: true, fpTblBuy: true, fpTblSell: true, fpTblTrd: true };
+const TBL_KEY = { vol: 'Vol', delta: 'Delta', dpct: 'Dpct', buy: 'Buy', sell: 'Sell', trd: 'Trd' };
+// Auto text size: the font for a row that traded `vol` when the busiest visible row traded `vmax` (square root so mid rows stay readable)
+export function autoFont(cfg, vol, vmax) {
+  const lo = Math.min(cfg.autoMin, cfg.autoMax), hi = Math.max(cfg.autoMin, cfg.autoMax);
+  return Math.round(lo + (hi - lo) * Math.sqrt(Math.min(1, Math.max(0, vol) / (vmax || 1))));
+}
 const TEXT_ADJ = { small: -1, normal: 0, large: 2, xlarge: 4 };
 const HEX6 = /^#[0-9a-f]{6}$/i;
 // Buy / sell colours: left at the default (or empty) the look is unchanged (the styles each keep their own red / purple);
@@ -332,6 +338,9 @@ function fpConfig(v) {
     buyC: HEX6.test(v.fpBuyColor) && v.fpBuyColor.toLowerCase() !== FP_DEF.fpBuyColor ? v.fpBuyColor : null,
     sellC: HEX6.test(v.fpSellColor) && v.fpSellColor.toLowerCase() !== FP_DEF.fpSellColor ? v.fpSellColor : null,
     adj: TEXT_ADJ[v.fpTextSize] || 0,
+    // Auto text size (off = today's look): each row's number scales with its volume between a smallest and a biggest size
+    auto: v.fpAutoText === true, autoMin: clamp(Math.round(num(v.fpAutoMin, 8)), 7, 16), autoMax: clamp(Math.round(num(v.fpAutoMax, 14)), 8, 20),
+    tblHide: TABLE_ROWS.filter((r) => v['fpTbl' + TBL_KEY[r[0]]] === false).map((r) => r[0]),   // stats-table rows the member switched off
     tblPos: ['tl', 'tr', 'bl', 'br'].includes(v.fpTablePos) ? v.fpTablePos : 'br',     // t / b = top / bottom, l / r = left / right
     statsPos: ['tl', 'tr', 'bl', 'br'].includes(v.fpStatsPos) ? v.fpStatsPos : 'bl',
     // Ladder has its own POC / unfinished-auction toggles, off by default; other modes keep theirs (on)
@@ -427,6 +436,12 @@ function fmtD(v) {
   return s + fmt(a);
 }
 const NEUTRAL = '#8a90a0';
+// busiest row (buy + sell) among the visible bars; the reference for Auto text size
+function visMaxVol(X) {
+  const { a, f, m, i0, i1 } = X; let q = 1;
+  for (let i = i0; i <= i1; i++) { const fb = f.map.get(a.bars[i].time); if (!fb) continue; for (const r of rowsOf(fb, m).rs) { const v = r.buy + r.sell; if (v > q) q = v; } }
+  return q;
+}
 // One box per price row from the bar's low to its high: its delta, green / red by sign, intensity by |delta|
 // against the strongest row on screen. `X` carries the frame's numbers from footprintLayer.render.
 function drawBoxes(X) {
@@ -438,6 +453,7 @@ function drawBoxes(X) {
   const fs0 = clamp(Math.floor(rowPx - 3), 8, 12), fsMax = Math.max(8, Math.floor(rowPx - 1));
   let fs = clamp(fs0 + cfg.adj, 7, cfg.adj > 0 ? Math.max(12, Math.min(16, fsMax)) : 12);
   g.textBaseline = 'middle'; g.textAlign = 'center';
+  const vmaxV = cfg.auto ? visMaxVol(X) : 1;
   let anyText = false;
   const dbg = window.__stkFpDebug ? (window.__stkFpDebug.boxes = []) : null;   // browser suite only
   for (let i = i0; i <= i1; i++) {
@@ -456,7 +472,7 @@ function drawBoxes(X) {
     if (rowPx >= 10) for (const r of rs) { const n = fmtD(r.buy - r.sell).length; if (n > ch) ch = n; }
     // a bigger text size shrinks back to the widest number that fits the box, never below the normal size
     const fsB = cfg.adj > 0 ? Math.max(fs0, Math.min(fs, Math.floor((boxW - 4) / (0.6 * ch)))) : fs;
-    const text = rowPx >= 10 && fsB * 0.6 * ch <= boxW - 4;
+    const text = cfg.auto ? rowPx >= 10 && 7 * 0.6 * ch <= boxW - 4 : rowPx >= 10 && fsB * 0.6 * ch <= boxW - 4;
     if (text) { anyText = true; g.font = fsB + 'px ' + MONO; }
     for (let k = 0; k < rs.length; k++) {
       const r = rs[k], d = r.buy - r.sell;
@@ -475,6 +491,7 @@ function drawBoxes(X) {
       if (!text) continue;
       const strong = !neutral && al > 0.62;
       g.fillStyle = strong ? (d > 0 ? '#04140d' : '#ffffff') : (day ? '#1f2937' : '#e5e7eb');
+      if (cfg.auto) g.font = Math.max(7, Math.min(autoFont(cfg, r.buy + r.sell, vmaxV), Math.floor(rowPx - 1), Math.floor((boxW - 4) / (0.6 * fmtD(d).length)))) + 'px ' + MONO;
       g.fillText(fmtD(d), x0 + boxW / 2, y + h / 2 + 0.5);
     }
   }
@@ -626,10 +643,10 @@ function drawDbars(X) {
 const TOP_OFF = 54, TOP_OFF_PHONE = 92;   // a top-placed table or strip starts below the chart's own price / volume legend
 const TABLE_ROWS = [['vol', 'Total volume'], ['delta', 'Delta'], ['dpct', 'Delta %'], ['buy', 'Buy volume'], ['sell', 'Sell volume'], ['trd', 'Trades']];
 // rows this chart can really show: from the footprint's own volume, delta and (when the feed has them) trade counts
-export function tableRowsFor(fbs, phone) {
+export function tableRowsFor(fbs, phone, hide = []) {
   const keys = ['vol', 'delta', 'buy', 'sell'];
   if (!phone) { keys.splice(2, 0, 'dpct'); if (fbs.some((b) => b && b.trades > 0)) keys.push('trd'); }
-  return TABLE_ROWS.filter((r) => keys.includes(r[0]));
+  return TABLE_ROWS.filter((r) => keys.includes(r[0]) && !hide.includes(r[0]));
 }
 function tableVal(fb, k) {
   switch (k) {
@@ -648,7 +665,7 @@ function drawTable(X) {
   const atTop = cfg.tblPos[0] === 't', labL = cfg.tblPos[1] === 'l';
   const vis = [];
   for (let i = i0; i <= i1; i++) vis.push(f.map.get(a.bars[i].time));
-  const rows = tableRowsFor(vis, phone), H = rows.length * rh, y0 = X.tblY != null ? X.tblY : bot - H, labW = (phone ? 62 : 82) + Math.max(0, cfg.adj) * 4, cellL = labL ? labW : 0, cellR = labL ? plotR : plotR - labW;
+  const rows = tableRowsFor(vis, phone, cfg.tblHide), H = rows.length * rh, y0 = X.tblY != null ? X.tblY : bot - H, labW = (phone ? 62 : 82) + Math.max(0, cfg.adj) * 4, cellL = labL ? labW : 0, cellR = labL ? plotR : plotR - labW;
   const mx = {};
   for (const [k] of rows) { let q = 1e-9; for (const fb of vis) if (fb) { const v = Math.abs(tableVal(fb, k)); if (v > q) q = v; } mx[k] = q; }
   if (window.__stkFpDebug) window.__stkFpDebug.table = { y0, rh, rows: rows.map((r) => r[0]), cols: [], plotR, H };
@@ -809,6 +826,7 @@ function footprintLayer() {
       g.textBaseline = 'middle';
       const ladW = Math.max(0, bw * (compact ? 0.88 : 0.92) - 12);   // room right of the candle inside this bar's slot
       const lv = (r) => (cfg.ladShow === 'delta' ? Math.abs(r.buy - r.sell) : r.buy + r.sell);
+      const vmaxV = cfg.auto ? visMaxVol(X) : 1;
       let gmax = 1;
       if (cfg.mode === 'ladder' && cfg.scale !== 'bar') {
         for (let i = i0; i <= i1; i++) {
@@ -859,6 +877,8 @@ function footprintLayer() {
           const y = Math.min(yT, yB), h = Math.abs(yB - yT);
           if (y > bot || y + h < top) continue;
           const v = r.buy + r.sell, dl = r.buy - r.sell;
+          let fontR = font, boldR = bold;
+          if (cfg.auto && showText) { const fa = Math.max(7, Math.min(autoFont(cfg, v, vmaxV), Math.floor(rowPx - 1), 16)); fontR = fa + 'px ' + MONO; boldR = '600 ' + fa + 'px ' + MONO; }
           if (lad) {
             if (cfg.poc && k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.2; g.strokeRect(cx + 5.5, y + 0.5, ladW, Math.max(1, h - 1)); }
             if (h < 3) continue;
@@ -873,8 +893,8 @@ function footprintLayer() {
             }
             if (!showText) continue;
             const txt = vol ? fmt(q) : (dl < 0 ? '-' : '') + fmt(q);
-            if (txt.length * fs * 0.62 > ladW - 2) continue;
-            g.textAlign = 'left'; g.font = font;
+            if (txt.length * parseFloat(fontR) * 0.62 > ladW - 2) continue;
+            g.textAlign = 'left'; g.font = fontR;
             if (!day) { g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillText(txt, cx + 9, y + h / 2 + 1); }
             g.fillStyle = day ? '#0b1220' : '#ffffff';
             g.fillText(txt, cx + 8, y + h / 2);
@@ -903,12 +923,12 @@ function footprintLayer() {
             // an imbalance is bold and bright
             const sC = imb.sell[k] ? P.sT : r.sell > r.buy ? (P.sellC || (day ? '#7c3aed' : '#b48cf0')) : (day ? ink : dim);
             const bC = imb.buy[k] ? P.gT : r.buy > r.sell ? (P.buyC || (day ? '#059669' : '#3fcf98')) : (day ? ink : dim);
-            g.textAlign = 'right'; g.font = imb.sell[k] ? bold : font; g.fillStyle = sC;
+            g.textAlign = 'right'; g.font = imb.sell[k] ? boldR : fontR; g.fillStyle = sC;
             g.fillText(fmt(r.sell), x - 2, yc);
-            g.textAlign = 'left'; g.font = imb.buy[k] ? bold : font; g.fillStyle = bC;
+            g.textAlign = 'left'; g.font = imb.buy[k] ? boldR : fontR; g.fillStyle = bC;
             g.fillText(fmt(r.buy), x + 2, yc);
           } else {
-            g.textAlign = 'center'; g.font = font;
+            g.textAlign = 'center'; g.font = fontR;
             g.fillStyle = cfg.mode === 'delta' ? (dl >= 0 ? P.gT : P.sT) : ink;
             g.fillText(cfg.mode === 'delta' ? sgn(dl) : fmt(v), x, yc);
           }
@@ -1226,6 +1246,10 @@ export function installFootprint(Core, flowMod) {
         { kind: 'toggle', key: 'fpDbBadge', label: 'Delta bars: net Delta badge', defval: true, when: { key: 'fpStyle', anyOf: ['dbars'] } },
         { kind: 'toggle', key: 'fpTable', label: 'Bar stats table', defval: false },
         { kind: 'select', key: 'fpTablePos', label: 'Bar stats table position', defval: FP_DEF.fpTablePos, options: POS_OPTS, when: { key: 'fpTable', equals: true } },
+        ...TABLE_ROWS.map(([k, name]) => ({ kind: 'toggle', key: 'fpTbl' + TBL_KEY[k], label: 'Stats table row: ' + name, defval: true, when: { key: 'fpTable', equals: true } })),
+        { kind: 'toggle', key: 'fpAutoText', label: 'Auto text size (bigger numbers where more traded)', defval: false },
+        { kind: 'number', key: 'fpAutoMin', label: 'Auto text: smallest size (px)', defval: FP_DEF.fpAutoMin, min: 7, max: 16, step: 1, when: { key: 'fpAutoText', equals: true } },
+        { kind: 'number', key: 'fpAutoMax', label: 'Auto text: biggest size (px)', defval: FP_DEF.fpAutoMax, min: 8, max: 20, step: 1, when: { key: 'fpAutoText', equals: true } },
         { kind: 'select', key: 'fpTextSize', label: 'Text size', defval: FP_DEF.fpTextSize, options: [['small', 'Small'], ['normal', 'Normal'], ['large', 'Large'], ['xlarge', 'Extra large']] },
         { kind: 'color', key: 'fpBuyColor', label: 'Buy colour', defval: FP_DEF.fpBuyColor },
         { kind: 'color', key: 'fpSellColor', label: 'Sell colour', defval: FP_DEF.fpSellColor },

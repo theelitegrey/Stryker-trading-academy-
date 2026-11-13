@@ -12,13 +12,13 @@
 // Spot USDT-style tickers only; perpetuals/US venue fall back to Vela's own behaviour.
 // boostVenue does the same for other venues through their order-flow adapter (assets/orderflow-venues.js).
 
-import { getVenue } from './orderflow-venues.js?v=962';
-import './orderflow-venue-hyperliquid.js?v=962';
-import './orderflow-venue-bybit.js?v=962';
-import './orderflow-venue-okx.js?v=962';
-import './orderflow-venue-bitget.js?v=962';
-import './orderflow-venue-kraken.js?v=962';
-import './orderflow-venue-vest.js?v=962';
+import { getVenue } from './orderflow-venues.js?v=963';
+import './orderflow-venue-hyperliquid.js?v=963';
+import './orderflow-venue-bybit.js?v=963';
+import './orderflow-venue-okx.js?v=963';
+import './orderflow-venue-bitget.js?v=963';
+import './orderflow-venue-kraken.js?v=963';
+import './orderflow-venue-vest.js?v=963';
 
 const WS = 'wss://stream.binance.com:9443/ws/';
 const STEP = { '1': 60e3, '3': 180e3, '5': 300e3, '15': 900e3, '30': 1800e3, '60': 3600e3, '120': 7200e3, '240': 14400e3,

@@ -890,14 +890,14 @@ function placeOneClick(oc, cell, ov){
     // indicator rows (Volume, …) and their fold toggle, which have no stable class
     let bottom = 0;
     for (const e of cell.host.querySelectorAll('.vela-statusline, .vela-statusline ~ *, .vela-ind-fold, .vela-ind-fold *')) {
-      if (e.closest('.stkpt-ov, .vela-ws-toolbar, .vela-dtb, .vela-watermark')) continue;
+      if (e.closest('.stkpt-ov, .stkfeeds-wrap, .vela-ws-toolbar, .vela-dtb, .vela-watermark')) continue;
       const r = e.getBoundingClientRect();
       if (!r.height || r.height > 40 || r.left < or.left || r.left - or.left > 260 || r.top - or.top > 140 || r.top < or.top) continue;
       bottom = Math.max(bottom, r.bottom);
     }
     for (const e of cell.host.querySelectorAll('div, span, button')) {
       if (bottom > 0 && e.childElementCount > 6) continue;
-      if (e.closest('.stkpt-ov, .vela-ws-toolbar, .vela-dtb, .vela-watermark')) continue;
+      if (e.closest('.stkpt-ov, .stkfeeds-wrap, .vela-ws-toolbar, .vela-dtb, .vela-watermark')) continue;
       const r = e.getBoundingClientRect();
       if (!r.height || r.height > 40 || r.width > 600 || r.left < or.left || r.left - or.left > 260 || r.top < or.top + 20 || r.top - or.top > 140) continue;
       if (!(e.textContent || '').trim() && !e.querySelector('svg')) continue;

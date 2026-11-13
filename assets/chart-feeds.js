@@ -118,7 +118,7 @@ export function mountFeedBadges(ws) {
   // Chips sit top-left, just under the symbol legend + indicator rows (they can fold), so the pencil FAB, GEX pill, Fit price / Latest and the delayed pill never cover them.
   function place() {
     const hr = host.getBoundingClientRect(); let b = 0;
-    host.querySelectorAll('.vela-statusline, .vela-ind-fold').forEach((e) => {
+    host.querySelectorAll('.vela-statusline, .vela-ind-fold, .stkpt-1c').forEach((e) => {   // .stkpt-1c = paper one-click BUY/SELL box: chips go under it
       const n = e.classList.contains('vela-ind-fold') ? e.parentElement : e;   // the fold button's own row block (the indicator rows)
       const r = n.getBoundingClientRect(); if (r.height && r.height < 300 && r.top - hr.top < 300) b = Math.max(b, r.bottom - hr.top);
     });

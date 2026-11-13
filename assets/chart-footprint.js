@@ -681,7 +681,20 @@ function drawTable(X) {
 }
 
 function footprintLayer() {
-  let canvas = null, on = false, lastMs = 0;
+  let canvas = null, on = false, lastMs = 0, tcv = null;
+  // The bar stats table lives on its own canvas above every other layer (just under the user's drawings), so candles, cells,
+  // big-trade markers and indicators the member stacked above this layer can never cover it (bug GK 13 Nov). Sized from our layer canvas.
+  const tableCanvas = () => {
+    if (!canvas || !canvas.parentNode) return null;
+    if (!tcv) { tcv = document.createElement('canvas'); tcv.className = 'stk-fp-table'; Object.assign(tcv.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', pointerEvents: 'none' }); }
+    const par = canvas.parentNode;
+    // above the layer canvases, chrome and drawings, below Vela's right shade and crosshair; re-checked each frame in case the layer order moved
+    if (tcv.parentNode !== par || tcv.nextElementSibling !== par.querySelector(':scope > .vela-shade-right')) par.insertBefore(tcv, par.querySelector(':scope > .vela-shade-right'));
+    if (tcv.width !== canvas.width) tcv.width = canvas.width;
+    if (tcv.height !== canvas.height) tcv.height = canvas.height;
+    tcv.style.width = canvas.style.width || '100%'; tcv.style.height = canvas.style.height || '100%';
+    return tcv;
+  };
   return {
     mount(c) { canvas = c; },
     render(a) {
@@ -692,6 +705,7 @@ function footprintLayer() {
       if (!g) return;
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, canvas.width, canvas.height);
+      if (tcv && tcv.width) tcv.getContext('2d').clearRect(0, 0, tcv.width, tcv.height);
       if (a.priceStyle !== FP_TYPE || !a.data || !a.bars.length) return;
       const co = a.coords, dpr = co.dpr || 1;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -746,7 +760,7 @@ function footprintLayer() {
       const statsH = cfg.stats && cells && !compact && cfg.mode !== 'boxes' && cfg.mode !== 'dbars' ? 30 : 0;
       const bot0 = bot;
       let tblH = 0;
-      if (cfg.table && i1 >= i0) { X.tblY = tblTop ? top + (compact || co.width < 520 ? TOP_OFF_PHONE : TOP_OFF) : null; tblH = drawTable(X); }
+      if (cfg.table && i1 >= i0) { X.tblY = tblTop ? top + (compact || co.width < 520 ? TOP_OFF_PHONE : TOP_OFF) : null; const tc = tableCanvas(), tg = tc && tc.getContext('2d'); if (tg) { tg.setTransform(dpr, 0, 0, dpr, 0, 0); X.g = tg; } tblH = drawTable(X); X.g = g; }
       let topUsed = 0, botUsed = 0;
       const tOff = co.width < 520 ? TOP_OFF_PHONE : TOP_OFF;
       if (tblH) { if (tblTop) topUsed = tOff + tblH; else botUsed = tblH; }
@@ -937,7 +951,7 @@ function footprintLayer() {
       if (window.__stkFpStats) window.__stkFpStats.push(lastMs);
     },
     modulateBase(a) { return on && a && a.priceStyle === FP_TYPE ? (a.data && a.data.cfg && (a.data.cfg.mode === 'ladder' || a.data.cfg.mode === 'boxes' || a.data.cfg.mode === 'dbars') ? { candleBodyScale: 0.1, candleBodyAlpha: 0 } : { candleBodyScale: 0.1, candleBodyAlpha: 0.7 }) : null; },
-    destroy() { canvas = null; }
+    destroy() { if (tcv && tcv.parentNode) tcv.parentNode.removeChild(tcv); tcv = null; canvas = null; }
   };
 }
 

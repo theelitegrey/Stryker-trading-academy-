@@ -20,7 +20,7 @@ import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=966'
 
 export const TS_TYPES = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
-const WIN = 6 * 3600000, KEEP = 48 * 3600000;
+const WIN = 6 * 3600000, KEEP = 48 * 3600000, GRACE_MS = 120000;
 const TS_UP = '#22d3ee', TS_DN = '#ff9f1c';   // cyan / amber: not the green / purple of the standard tools
 const isLocal = () => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname); } catch (e) { return false; } };
 const testBase = () => (isLocal() && window.__stkL2Test && window.__stkL2Test.base) || '';
@@ -98,7 +98,8 @@ function onFrame(s, m) {
   const r = rootState(s.root);
   if (!m) {   // state change: first time live -> load; back live after a drop -> reload (ticks in the gap were not delivered)
     if (r.status !== 'live') { if (s.started) s.wasDown = true; return; }
-    if (!s.started || s.wasDown) { s.started = true; s.wasDown = false; reset(s); pump(s); }
+    if (!s.started) { s.started = true; s.wasDown = false; reset(s); pump(s); }
+    else if (s.wasDown) { s.wasDown = false; if (s.loadedFrom === Infinity || Date.now() - s.at > WIN) { reset(s); pump(s); } else fillGap(s); }   // GK 13 Nov: reset() wiped every print on each socket drop (hidden tab); now only the gap is read
     return;
   }
   if (m.type === 'ticks' && m.symbol === s.root) {
@@ -107,13 +108,31 @@ function onFrame(s, m) {
     bump(s);
   }
 }
+// socket came back: read only what we missed (since the last history point) and keep every print already held
+async function fillGap(s) {
+  const gen = s.gen, from = s.at - 60000, to = Date.now();
+  s.loading = true;   // ticks that arrive meanwhile wait in s.pending, as on a first load
+  try {
+    let j = null;
+    for (let k = 0; k < 12; k++) { j = await get((testBase() || RECORDER) + '/ts-trades?sym=' + s.root + '&from=' + from + '&to=' + to); if (s.gen !== gen) return; if (!(j.left > 0)) break; }
+    let i = s.trades.length; while (i > 0 && s.trades[i - 1][0] >= from) i--;
+    s.trades.length = i; s.trades.push(...j.trades);
+    for (const x of j.delta || []) s.hist.set(x[0], { t: x[0], buy: x[1], sell: x[2], hi: x[3], lo: x[4] });
+    s.live.clear(); s.open = null; s.at = j.at || to; s.floor = j.floor || s.floor; s.err = ''; s.mm = null;
+  } catch (e) { if (s.gen === gen) s.err = 'L1 trades unavailable right now'; }   // keep what we have
+  if (s.gen !== gen) return;
+  s.loading = false; const p = s.pending; s.pending = []; for (const x of p) fold(s, x);
+  bump(s);
+}
 function reset(s) { s.gen++; s.pumping = false; s.hist.clear(); s.live.clear(); s.trades = []; s.pending = []; s.open = null; s.loadedFrom = Infinity; s.loading = true; s.at = 0; s.mm = null; }
 function acquireStore(root, listener) {
   const s = getStore(root);
-  s.refs++; s.ls.add(listener);
+  s.refs++; s.ls.add(listener); clearTimeout(s.dropTm);
   if (!s.handle) { s.handle = acquire(root, (m) => onFrame(s, m), 20); }
   if (rootState(root).status === 'live' && !s.started) onFrame(s, null);
-  return { s, release() { s.ls.delete(listener); if (--s.refs <= 0) { s.gen++; s.pumping = false; if (s.handle) s.handle.release(); stores.delete(root); } } };
+  // GK 13 Nov: the chart rebuilds its indicators when the tab comes back; the store died with the last one and the markers refilled from nothing.
+  // Keep an unused store for GRACE_MS so the rebuilt indicator picks up the prints already loaded.
+  return { s, release() { s.ls.delete(listener); if (--s.refs <= 0) { clearTimeout(s.dropTm); s.dropTm = setTimeout(() => { if (s.refs > 0) return; s.gen++; s.pumping = false; if (s.handle) s.handle.release(); if (stores.get(root) === s) stores.delete(root); }, GRACE_MS); } } };
 }
 // shared handle for assets/chart-l2-flow.js: the same store the L1 tools use (no second fetch). need(t) asks for history back to t.
 export function tsOpen(root, firstT, listener) {

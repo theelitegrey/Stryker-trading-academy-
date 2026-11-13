@@ -19,7 +19,7 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=977';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=977';
 
 import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=977';
 import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=977';
@@ -300,7 +300,7 @@ function cryptoFlow(ctxLike, root, tf) {
 }
 
 // ---------------------------------------------------------------- footprint chart type
-const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true, fpBuyColor: '#03c988', fpSellColor: '#f23645', fpTextSize: 'normal', fpTablePos: 'br', fpStatsPos: 'bl', fpAutoText: false, fpAutoMin: 8, fpAutoMax: 14, fpTblVol: true, fpTblDelta: true, fpTblDpct: true, fpTblBuy: true, fpTblSell: true, fpTblTrd: true };
+const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true, fpBuyColor: '#03c988', fpSellColor: '#f23645', fpTextSize: 'normal', fpTablePos: 'br', fpStatsPos: 'bl', fpAutoText: false, fpAutoMin: 8, fpAutoMax: 14, fpTblVol: true, fpTblDelta: true, fpTblDpct: true, fpTblBuy: true, fpTblSell: true, fpTblTrd: true, fpHeavy: 'off', fpHeavyX: 3, fpHeavyFixed: 100, fpHeavyLevel: 'normal' };
 const TBL_KEY = { vol: 'Vol', delta: 'Delta', dpct: 'Dpct', buy: 'Buy', sell: 'Sell', trd: 'Trd' };
 // Auto text size: the font for a row that traded `vol` when the busiest visible row traded `vmax` (square root so mid rows stay readable)
 export function autoFont(cfg, vol, vmax) {
@@ -308,6 +308,7 @@ export function autoFont(cfg, vol, vmax) {
   return Math.round(lo + (hi - lo) * Math.sqrt(Math.min(1, Math.max(0, vol) / (vmax || 1))));
 }
 const TEXT_ADJ = { small: -1, normal: 0, large: 2, xlarge: 4 };
+const HEAVY_K = { subtle: { a: 0.35, v: 0.4 }, normal: { a: 0.6, v: 0.7 }, strong: { a: 0.85, v: 1 } };
 const HEX6 = /^#[0-9a-f]{6}$/i;
 // Buy / sell colours: left at the default (or empty) the look is unchanged (the styles each keep their own red / purple);
 // picked, the one colour is used everywhere the footprint draws buyers or sellers.
@@ -337,6 +338,9 @@ function fpConfig(v) {
     stats: v.fpStats !== false,
     buyC: HEX6.test(v.fpBuyColor) && v.fpBuyColor.toLowerCase() !== FP_DEF.fpBuyColor ? v.fpBuyColor : null,
     sellC: HEX6.test(v.fpSellColor) && v.fpSellColor.toLowerCase() !== FP_DEF.fpSellColor ? v.fpSellColor : null,
+    // Highlight heavy activity: off by default, so a saved chart looks the same.
+    heavy: v.fpHeavy === 'avg' || v.fpHeavy === 'fixed' ? v.fpHeavy : null, heavyX: clamp(num(v.fpHeavyX, 3), 1.5, 20), heavyFixed: Math.max(1, num(v.fpHeavyFixed, 100)),
+    heavyK: HEAVY_K[v.fpHeavyLevel] || HEAVY_K.normal,
     adj: TEXT_ADJ[v.fpTextSize] || 0,
     // Auto text size (off = today's look): each row's number scales with its volume between a smallest and a biggest size
     auto: v.fpAutoText === true, autoMin: clamp(Math.round(num(v.fpAutoMin, 8)), 7, 16), autoMax: clamp(Math.round(num(v.fpAutoMax, 14)), 8, 20),
@@ -839,6 +843,18 @@ function footprintLayer() {
           for (const r of rowsOf(fb, m).rs) { const q = lv(r); if (q > gmax) gmax = q; }
         }
       }
+      // Highlight heavy activity: the limit comes from the cells in view (or the fixed size); null = off, cells keep today's colours
+      let heavy = Infinity;
+      if (cfg.heavy) {
+        const vals = [];
+        for (let i = i0; i <= i1; i++) {
+          const fb = f.map.get(a.bars[i].time); if (!fb) continue;
+          for (const r of rowsOf(fb, m).rs) { if (cfg.mode === 'bidask') vals.push(r.buy, r.sell); else vals.push(cfg.mode === 'delta' || (cfg.mode === 'ladder' && cfg.ladShow === 'delta') ? Math.abs(r.buy - r.sell) : r.buy + r.sell); }
+        }
+        heavy = heavyLimit(vals, cfg.heavy, cfg.heavyX, cfg.heavyFixed);
+      }
+      const HK = cfg.heavyK;
+      const hot = (c) => vivid(c, HK.v);
       for (let i = i0; i <= i1; i++) {
         const bar = a.bars[i], fb = f.map.get(bar.time);
         if (!fb) continue;
@@ -891,7 +907,8 @@ function footprintLayer() {
             if (q >= 0.25 * dmax && q > 0) {
               const c = vol ? (dl > 0 ? UP : dl < 0 ? DN : '#8a90a0') : (dl >= 0 ? UP : DN);
               const bw2 = Math.max(2, Math.min(ladW, ladW * q / dmax));
-              g.fillStyle = alpha(c, 0.78);
+              const hv = q >= heavy;
+              g.fillStyle = hv ? alpha(hot(c), Math.min(1, 0.78 + 0.22 * HK.a)) : alpha(c, 0.78);
               g.fillRect(cx + 6, y + 0.5, bw2, Math.max(1, h - 1));
               g.fillStyle = day ? alpha(c, 1) : alpha(vol ? (dl > 0 ? UP2 : dl < 0 ? (P.sellC || '#ff7a85') : '#c4c8d2') : (dl >= 0 ? UP2 : (P.sellC || '#ff7a85')), 1);
               g.fillRect(cx + 6, y + 0.5, 1, Math.max(1, h - 1));
@@ -912,12 +929,15 @@ function footprintLayer() {
             const sd = r.sell > r.buy, bd = r.buy > r.sell;
             const bare = !showText;   // no numbers at this zoom: the tint is the cell
             const base = bare ? 0.2 : 0.03, span = bare ? 0.7 : 0.16;
-            g.fillStyle = alpha(SELL, base + span * (r.sell / max) * (sd || bare ? 1 : 0.3) + (imb.sell[k] ? 0.12 : 0));
+            const hs = r.sell >= heavy, hb = r.buy >= heavy;
+            g.fillStyle = alpha(hs ? hot(SELL) : SELL, hs ? 0.3 + 0.4 * HK.a : base + span * (r.sell / max) * (sd || bare ? 1 : 0.3) + (imb.sell[k] ? 0.12 : 0));
             g.fillRect(xl, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
-            g.fillStyle = alpha(UP, base + span * (r.buy / max) * (bd || bare ? 1 : 0.3) + (imb.buy[k] ? 0.12 : 0));
+            g.fillStyle = alpha(hb ? hot(UP) : UP, hb ? 0.3 + 0.4 * HK.a : base + span * (r.buy / max) * (bd || bare ? 1 : 0.3) + (imb.buy[k] ? 0.12 : 0));
             g.fillRect(x + 0.5, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
           } else {
-            g.fillStyle = cfg.mode === 'delta' ? alpha(dl >= 0 ? UP : SELL, 0.06 + 0.45 * Math.abs(dl) / max) : alpha(CYAN, 0.06 + 0.4 * v / max);
+            const q = cfg.mode === 'delta' ? Math.abs(dl) : v;
+            if (q >= heavy) g.fillStyle = alpha(hot(cfg.mode === 'delta' ? (dl >= 0 ? UP : SELL) : CYAN), 0.3 + 0.4 * HK.a);
+            else g.fillStyle = cfg.mode === 'delta' ? alpha(dl >= 0 ? UP : SELL, 0.06 + 0.45 * Math.abs(dl) / max) : alpha(CYAN, 0.06 + 0.4 * v / max);
             g.fillRect(xl, y + 0.5, w, Math.max(1, h - 1));
           }
           if (cfg.poc && k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.3; g.strokeRect(xl + 0.5, y + 0.5, w - 1, Math.max(1, h - 1)); }
@@ -928,13 +948,15 @@ function footprintLayer() {
             // an imbalance is bold and bright
             const sC = imb.sell[k] ? P.sT : r.sell > r.buy ? (P.sellC || (day ? '#7c3aed' : '#b48cf0')) : (day ? ink : dim);
             const bC = imb.buy[k] ? P.gT : r.buy > r.sell ? (P.buyC || (day ? '#059669' : '#3fcf98')) : (day ? ink : dim);
-            g.textAlign = 'right'; g.font = imb.sell[k] ? boldR : fontR; g.fillStyle = sC;
+            const hInk = day ? '#0b1220' : '#ffffff';   // a heavy cell is filled strongly: plain bold text that reads on it
+            g.textAlign = 'right'; g.font = imb.sell[k] || r.sell >= heavy ? boldR : fontR; g.fillStyle = r.sell >= heavy ? hInk : sC;
             g.fillText(fmt(r.sell), x - 2, yc);
-            g.textAlign = 'left'; g.font = imb.buy[k] ? boldR : fontR; g.fillStyle = bC;
+            g.textAlign = 'left'; g.font = imb.buy[k] || r.buy >= heavy ? boldR : fontR; g.fillStyle = r.buy >= heavy ? hInk : bC;
             g.fillText(fmt(r.buy), x + 2, yc);
           } else {
             g.textAlign = 'center'; g.font = fontR;
-            g.fillStyle = cfg.mode === 'delta' ? (dl >= 0 ? P.gT : P.sT) : ink;
+            const hq = cfg.mode === 'delta' ? Math.abs(dl) : v;
+            if (hq >= heavy) { g.font = boldR; g.fillStyle = day ? '#0b1220' : '#ffffff'; } else g.fillStyle = cfg.mode === 'delta' ? (dl >= 0 ? P.gT : P.sT) : ink;
             g.fillText(cfg.mode === 'delta' ? sgn(dl) : fmt(v), x, yc);
           }
         }
@@ -1258,6 +1280,10 @@ export function installFootprint(Core, flowMod) {
         { kind: 'select', key: 'fpTextSize', label: 'Text size', defval: FP_DEF.fpTextSize, options: [['small', 'Small'], ['normal', 'Normal'], ['large', 'Large'], ['xlarge', 'Extra large']] },
         { kind: 'color', key: 'fpBuyColor', label: 'Buy colour', defval: FP_DEF.fpBuyColor },
         { kind: 'color', key: 'fpSellColor', label: 'Sell colour', defval: FP_DEF.fpSellColor },
+        { kind: 'select', key: 'fpHeavy', label: 'Highlight heavy activity', defval: 'off', options: [['off', 'Off'], ['avg', 'On: times the visible average'], ['fixed', 'On: a fixed size']], when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder'] } },
+        { kind: 'number', key: 'fpHeavyX', label: 'Heavy = times the average', defval: 3, min: 1.5, max: 20, step: 0.5, when: { key: 'fpHeavy', anyOf: ['avg'] } },
+        { kind: 'number', key: 'fpHeavyFixed', label: 'Heavy = at least this size per price level', defval: 100, min: 1, max: 1000000, step: 1, when: { key: 'fpHeavy', anyOf: ['fixed'] } },
+        { kind: 'select', key: 'fpHeavyLevel', label: 'Heavy intensity', defval: 'normal', options: [['subtle', 'Subtle'], ['normal', 'Normal'], ['strong', 'Strong']], when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
         { kind: 'number', key: 'fpImb', label: 'Imbalance ratio %', defval: FP_DEF.fpImb, min: 110, max: 2000, step: 10, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder', 'dbars'] } },
         { kind: 'number', key: 'fpStack', label: 'Stacked imbalance rows', defval: FP_DEF.fpStack, min: 2, max: 10, step: 1, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder', 'dbars'] } },
         { kind: 'number', key: 'fpRows', label: 'Row size in ticks (0 = auto by zoom)', defval: FP_DEF.fpRows, min: 0, max: 400, step: 1 },

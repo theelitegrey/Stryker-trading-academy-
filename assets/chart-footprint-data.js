@@ -223,3 +223,27 @@ export function vwapSeries(bars, tick, reset, sessionOf) {
     return { t: b.t, vwap: w, sd: Math.sqrt(Math.max(0, p2v / v - w * w)) };
   });
 }
+
+// ---- Highlight heavy activity (footprint settings) ----
+// Smallest buy or sell volume that counts as heavy. mode 'avg': x times the average of the non-empty buy / sell cells in view;
+// mode 'fixed': the size itself. Returns Infinity when there is nothing to compare, so nothing is highlighted.
+export function heavyLimit(cellVols, mode, x, fixed) {
+  if (mode === 'fixed') return fixed > 0 ? fixed : Infinity;
+  let sum = 0, n = 0;
+  for (const v of cellVols) if (v > 0) { sum += v; n++; }
+  return n ? x * (sum / n) : Infinity;
+}
+// Same hue, stronger colour: saturation raised by k (0..1) of the way to full, lightness nudged to mid so it does not wash out.
+export function vivid(hex, k) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+  if (!m) return hex;
+  const n = parseInt(m[1], 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let l = (mx + mn) / 2, s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1)), h = 0;
+  if (d) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  if (s === 0) return '#' + m[1].toLowerCase();   // grey stays grey
+  s = s + (1 - s) * k; l = l + (0.5 - l) * k * 0.5;
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(h % 2 - 1)), o = l - c / 2;
+  const [R, G, B] = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x];
+  return '#' + [R, G, B].map((v) => Math.round((v + o) * 255).toString(16).padStart(2, '0')).join('');
+}

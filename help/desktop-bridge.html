@@ -166,7 +166,7 @@
 <ol start="3"><li>Open <strong>New &gt; NinjaScript Output</strong>. It prints the port (48715 to 48719) and the 8-digit code. The add-on starts with NinjaTrader after that.</li>
 <li>In TradeZoro: <strong>Data source</strong>, then <strong>NinjaTrader</strong>, then <strong>Pair</strong>. Type the code.</li>
 <li>Open a chart with the NinjaTrader instrument name, for example <code>byo:ES 12-26</code>.</li></ol>
-<p class="bh-small"><strong>Beta note:</strong> the NinjaTrader add-on has not yet been tested on a live NinjaTrader 8, and has no market depth. If it will not import or compile, tell support which NinjaTrader version you have.</p>
+<p class="bh-small"><strong>Beta note:</strong> the NinjaTrader add-on has not yet been tested on a live NinjaTrader 8, and has no market depth. If it will not import, see "When it does not connect" below, then tell support which NinjaTrader version you have.</p>
 <h2 id="connect">Connect in TradeZoro</h2>
 <ol><li>Open a chart (ZoroCharts) in Chrome, Edge or Firefox.</li><li>Open <strong>Data source</strong>, choose your platform, press <strong>Pair</strong>.</li>
 <li>Your browser may ask to allow tradezoro.com to connect to apps on this device. Choose <strong>Allow</strong>. This is the helper on your own computer.</li>
@@ -192,7 +192,13 @@ TradeZoroBridge-NT8.zip
 <li><strong>Interactive Brokers: connection refused.</strong> Check Enable ActiveX and Socket Clients is on and the port matches 7496 or 7497. Make sure TWS is logged in.</li>
 <li><strong>Interactive Brokers: no live prices.</strong> You need your own market data subscription for that exchange.</li>
 <li><strong>MetaTrader 5: symbol not found.</strong> Use the exact name from Market Watch. The helper starts only after MetaTrader 5 is logged in.</li>
-<li><strong>NinjaTrader: add-on will not import or compile.</strong> Check you did not unzip it, and that NinjaTrader is version 8. Tell support the version and the error text.</li>
+<li><strong>NinjaTrader: "Import failed. The NinjaScript Archive File may contain duplicate method names..."</strong> This message means NinjaTrader could not compile the add-on on your PC. Try these in order:
+<ol><li>Remove any older copy first. In NinjaTrader open <strong>New &gt; NinjaScript Editor</strong>, open the <strong>AddOns</strong> folder, right-click <strong>TradeZoroBridge</strong> and choose <strong>Remove</strong>. Close the editor.</li>
+<li>Download the latest <strong>TradeZoroBridge-NT8.zip</strong> from the release page above. Earlier downloads needed an extra system reference and fail on a normal NinjaTrader; the current file does not.</li>
+<li>Import the zip as it is. Do not unzip it. Use <strong>Tools &gt; Import &gt; NinjaScript Add-On</strong>.</li>
+<li>Check your version under <strong>Help &gt; About</strong>. You need NinjaTrader 8.1 or newer.</li>
+<li>If another script on your PC already has errors, NinjaTrader refuses every import. Open the NinjaScript Editor and press F5: if it lists errors in other files, fix or remove those files first.</li></ol>
+Still failing? Send support your NinjaTrader version and a screenshot of the error.</li>
 <li><strong>Windows blocked the file.</strong> Right-click the file, choose Properties, tick Unblock if shown, then run again.</li>
 <li><strong>Work or school computer.</strong> Company rules may block unsigned programs. Ask your IT team or use another source.</li></ul>
 <p>Still stuck? <a href="https://discord.gg/M4d4gTr5c3" target="_blank" rel="noopener">Get help on Discord</a> (#help-and-support channel).</p>

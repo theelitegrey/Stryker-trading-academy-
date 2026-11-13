@@ -12894,7 +12894,7 @@ var DrawingPainter = class {
   paintHighlights(ctx, drawings, proj, highlightIds) {
     if (highlightIds.size === 0) return;
     for (const d of drawings) {
-      if (d.visible && highlightIds.has(d.id)) {
+      if (d.visible && !d.locked && highlightIds.has(d.id)) {   // TradeZoro (lock): no resize handles on a locked drawing
         this.paintClipped(ctx, d, proj, () => this.paintHandles(ctx, d.handlePoints(proj)));
       }
     }
@@ -14631,7 +14631,7 @@ var HIT_TOLERANCE = 6;
 function topDrawingAt(drawings, x, y, proj, tol = HIT_TOLERANCE) {
   for (let i = drawings.length - 1; i >= 0; i -= 1) {
     const d = drawings[i];
-    if (!d.visible || d.locked) continue;   // TradeZoro (lock): locked = click-through
+    if (!d.visible) continue;
     const rect = proj.paneRect?.(d.paneId);
     if (rect && rect.height <= 0) continue;
     if (d.hitTest(x, y, proj, tol)) return d;
@@ -14640,8 +14640,7 @@ function topDrawingAt(drawings, x, y, proj, tol = HIT_TOLERANCE) {
 }
 function deletableSelection(selected, drawings) {
   const ids = [...selected];
-  if (ids.length < 2) return ids;
-  return ids.filter((id) => !drawings.find((d) => d.id === id)?.locked);
+  return ids.filter((id) => !drawings.find((d) => d.id === id)?.locked);   // TradeZoro (lock): also for a single selection
 }
 function deleteTargets(hit, selected, drawings, withSelection) {
   if (withSelection && selected.size >= 2 && selected.has(hit.id)) return deletableSelection(selected, drawings);
@@ -17186,7 +17185,10 @@ var DrawingSettingsPopup = class {
     }
     bar.appendChild(this.divider());
     if (!multi) bar.appendChild(this.iconBtn(this.t(TEXT10.settings), GEAR_ICON, () => this.openPanel()));
-    bar.appendChild(this.toggle(this.t(TEXT10.lock), LOCK_ICON, common((d) => d.locked), (v) => actions.setLocked(v), UNLOCK_ICON));
+    const lockBtn = this.toggle(this.t(TEXT10.lock), LOCK_ICON, common((d) => d.locked), (v) => { actions.setLocked(v); nameLock(v); }, UNLOCK_ICON);
+    const nameLock = (v) => { const s = v === true ? "Unlock" : "Lock"; lockBtn.dataset.tip = s; lockBtn.setAttribute("aria-label", s); };   // TradeZoro (lock): name the next action
+    nameLock(common((d) => d.locked));
+    bar.appendChild(lockBtn);
     const del = this.iconBtn(this.t(TEXT10.delete), TRASH_ICON, () => actions.remove());
     del.style.color = "var(--vela-danger)";
     bar.appendChild(del);
@@ -19066,6 +19068,7 @@ var UserDrawingController = class {
         this.render();
       },
       remove: () => {
+        if (this.drawings.find((x) => x.id === id)?.locked) return;   // TradeZoro (lock): unlock first
         this.closeTextEditor();
         this.popup.close();
         this.emit({ kind: "delete", ids: [id] });

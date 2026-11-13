@@ -1,5 +1,5 @@
-// Locked drawings (member GK): a locked drawing cannot be picked, moved, resized or deleted, shows a padlock,
-// and is click-through: dragging inside it pans the chart. Lock-all in the left toolbar locks every drawing,
+// Locked drawings (member GK): a locked drawing can still be CLICKED (floating toolbar shows Unlock) but cannot be
+// moved, resized or deleted, and shows a padlock. Lock-all in the left toolbar locks every drawing,
 // the locked flag survives a save/load of the drawings (what a layout stores).
 //   CHART_BASE=http://localhost:8061 node tools/tests/chart-lock-drawings-browser.js [shotsDir]
 // Run under flock /tmp/stryker-chrome.lock.
@@ -30,15 +30,19 @@ async function run(b, w, h, theme, tag) {
   // price near the last close, read from the legend, so the box sits in view on any day
   const px0 = await p.evaluate(() => { const m = /C\s*([\d,]+\.?\d*)/.exec(document.body.innerText); return m ? parseFloat(m[1].replace(/,/g, '')) : 28000; });
   const rect = await p.evaluate(`(() => { const ch = ${V}; const r = ch.getVisibleRange(); const span = r.to - r.from; const mid = (r.from + r.to) / 2;
-    const d = ch.drawings.add('box', { anchors: [{ time: mid - span / 6, price: ${px0 + 250} }, { time: mid + span / 6, price: ${px0 - 250} }] }); return d && (d.id || d); })()`);
+    const d = ch.drawings.add('box', { anchors: [{ time: mid - span / 6, price: ${px0 + (w < 700 ? 4000 : 250)} }, { time: mid + span / 6, price: ${px0 - (w < 700 ? 4000 : 250)} }] }); return d && (d.id || d); })()`);
   await p.waitForTimeout(400);
   const info = await p.evaluate(`(() => { const ch = ${V}; const d = ch.drawings.all().find((x) => x.type === 'box'); return { id: d.id, anchors: JSON.stringify(d.anchors) }; })()`);
   check(!!info.id, `${tag}: rectangle added`);
   // screen centre of the rectangle: project via the drawing handles' mid; fall back to canvas centre
   const centre = await p.evaluate(`(() => { const el = [...document.querySelectorAll('canvas')].sort((a, b) => b.width * b.height - a.width * a.height)[0]; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
-  // price 30000 sits mid-rect only if the stub's price axis is there; so measure by a hit test instead
-  const hitAt = async () => p.evaluate(`(() => { const ch = ${V}; const ui = ch.drawings; return 0; })()`);
-  void hitAt;
+  // the price axis is unknown here, so find a point inside the box by hovering (unlocked box = 'move' cursor)
+  const cursorAt = (x, y) => p.evaluate(([x, y]) => getComputedStyle(document.elementFromPoint(x, y) || document.body).cursor, [x, y]);
+  let found = null;
+  if (w < 700) found = centre.y - 12;   // phone: no hover cursor; the box is made tall enough to cover the middle
+  else for (let y = centre.y - 300; y < centre.y + 300 && !found; y += 12) { await p.mouse.move(centre.x, y); await p.waitForTimeout(40); if ((await cursorAt(centre.x, y)) === 'move') found = y; }
+  check(found !== null, `${tag}: found a point inside the rectangle`);
+  if (found !== null) centre.y = found + 12;
   const drag = async (dx) => { await p.mouse.move(centre.x, centre.y); await p.mouse.down(); await p.mouse.move(centre.x + dx / 2, centre.y, { steps: 4 }); await p.mouse.move(centre.x + dx, centre.y, { steps: 4 }); await p.mouse.up(); await p.waitForTimeout(250); };
   const state = () => p.evaluate(`(() => { const ch = ${V}; const r = ch.getVisibleRange(); const d = ch.drawings.all().find((x) => x.id === ${JSON.stringify(info.id)}); return { from: r.from, anchors: d ? JSON.stringify(d.anchors) : null, locked: !!(d && d.locked), n: ch.drawings.all().length }; })()`);
 
@@ -50,10 +54,18 @@ async function run(b, w, h, theme, tag) {
   await drag(Math.min(160, w / 3));
   let s1 = await state();
   check(s1.anchors === s0.anchors, `${tag}: dragging a locked drawing does not move it`, [s0.anchors, s1.anchors]);
-  check(s1.from !== s0.from, `${tag}: dragging inside a locked drawing pans the chart`, [s0.from, s1.from]);
+  // click selects it: the floating toolbar must show an Unlock button, and clicking it unlocks
+  await p.mouse.click(centre.x, centre.y); await p.waitForTimeout(500);
+  await p.screenshot({ path: `${OUT}/lock-${tag}-selected.png` });
+  const unl = await p.evaluate(() => [...document.querySelectorAll('button,[role=button]')].filter((e) => /^unlock/i.test((e.dataset.tip || '') + (e.title || '') + (e.getAttribute('aria-label') || '')) && e.offsetParent).length);
+  check(unl > 0, `${tag}: clicking a locked drawing shows an Unlock button`, unl);
   await p.keyboard.press('Delete'); await p.waitForTimeout(200);
   check((await state()).n === s0.n, `${tag}: Delete key does not remove a locked drawing`);
   await p.screenshot({ path: `${OUT}/lock-${tag}-locked.png` });
+  const ub = await p.evaluateHandle(() => [...document.querySelectorAll('button,[role=button]')].find((e) => /^unlock/i.test((e.dataset.tip || '') + (e.title || '') + (e.getAttribute('aria-label') || '')) && e.offsetParent));
+  if (ub.asElement()) { await ub.asElement().click(); await p.waitForTimeout(300); }
+  check(!(await state()).locked, `${tag}: Unlock button unlocks the drawing`);
+  await p.evaluate(`${V}.drawings.lock(${JSON.stringify(info.id)}, true)`); await p.waitForTimeout(200);
   // lock all button in the left toolbar
   if (w > 700) {
     await p.evaluate(`${V}.drawings.lock(${JSON.stringify(info.id)}, false)`);

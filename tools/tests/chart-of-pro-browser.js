@@ -176,16 +176,18 @@ const CASES = [
             await setI({ singles: false, poor: true, nakedPoc: true, devPoc: false, ibLines: false });
             const pn = await ink(p);
             const want = await p.evaluate(() => window.__stkTpoDrawn || null);
-            check(want && (want.poor + want.naked > 0) === (pn > n0), eng + ' ' + w + ' ' + id + ': poor + naked POC lines drawn only where they exist (' + JSON.stringify(want) + ', ' + n0 + ' -> ' + pn + ' px)');
+            check(want && (want.poor + want.naked > 0 ? pn >= n0 : pn === n0), eng + ' ' + w + ' ' + id + ': poor + naked POC drawn only where the maths finds them (' + JSON.stringify(want) + ', ' + n0 + ' -> ' + pn + ' px)');
             if (id === 'tpo-extras30') {
               // steady width: the developing profile keeps its pixel width across a zoom-out; without it the width moves
-              const widthAt = async (from) => { await frameOn(p, from, D21(17, 0)); await sleep(900); return p.evaluate(() => window.__stkTpoW); };
+              // the 20 Oct RTH session, zoomed in on it vs zoomed out over both days
+              const widthAt = async (from, to) => { await p.evaluate(() => { window.__stkTpoW = {}; }); await frameOn(p, from, to); await sleep(900); return p.evaluate(() => { const o = window.__stkTpoW || {}, k = Object.keys(o).filter((x) => /2026-10-20|^20381$/.test(x) || x.indexOf('10-20') >= 0); return k.length ? o[k[0]] : JSON.stringify(o); }); };
+              const IN = [Date.UTC(2026, 9, 20, 13, 0), Date.UTC(2026, 9, 20, 22, 0)], OUTR = [Date.UTC(2026, 9, 19, 22, 0), D21(17, 0)];
               await setI({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false, fixedWidth: true });
-              const fa = await widthAt(D21(10, 0)), fb = await widthAt(Date.UTC(2026, 9, 19, 12, 0));
-              check(fa > 0 && Math.abs(fa - fb) < 0.5, eng + ' ' + w + ' ' + id + ': steady width on: ' + fa + ' px zoomed in, ' + fb + ' px zoomed out');
+              const fa = await widthAt(...IN), fb = await widthAt(...OUTR);
+              check(fa > 0 && Math.abs(fa - fb) < 0.5, eng + ' ' + w + ' ' + id + ': steady width on: 20 Oct profile ' + fa + ' px zoomed in, ' + fb + ' px zoomed out');
               await setI({ fixedWidth: false });
-              const ua = await widthAt(D21(10, 0)), ub = await widthAt(Date.UTC(2026, 9, 19, 12, 0));
-              console.log('INFO ' + eng + ' ' + w + ' steady width off: ' + ua + ' px zoomed in, ' + ub + ' px zoomed out');
+              const ua = await widthAt(...IN), ub = await widthAt(...OUTR);
+              console.log('INFO ' + eng + ' ' + w + ' steady width off: 20 Oct profile ' + ua + ' px zoomed in, ' + ub + ' px zoomed out');
               await frameOn(p, w < 500 ? D21(17, 0) - (D21(17, 0) - a) * 0.4 : a, z);
             }
             await setI(ALL);

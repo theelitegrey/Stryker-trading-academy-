@@ -303,9 +303,11 @@ export function acquire(root, fn, levels) {
     }
   };
 }
-async function authFetch(url) {
+async function authFetch(url, ms) {
   const h = testOn() ? {} : (await rtReady(), rtHeaders());
-  return fetch(url, { headers: h, credentials: 'omit' });
+  if (!ms || typeof AbortController === 'undefined') return fetch(url, { headers: h, credentials: 'omit' });
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), ms);   // a read that never answers must end (it held "Loading order flow…" for good)
+  try { return await fetch(url, { headers: h, credentials: 'omit', signal: ac.signal }); } finally { clearTimeout(tm); }
 }
 // ONE fetch of /ts-book-history per root + window, shared by the heatmap (l2Source.remote) and the order-book pack: the same window is
 // never requested twice (a failed read is forgotten so it can be retried). Resolves { buf, held, left } like the heatmap expects.
@@ -347,8 +349,9 @@ async function fpPump(r) {
   try {
     while (r.fpFrom > r.fpNeed + 60000) {
       const to = r.fpFrom, from = Math.max(r.fpNeed, to - FP_WIN), url = base + '/ts-aux?symbol=' + r.root + '&from=' + from + '&to=' + to;
-      let x = await authFetch(url);
-      if (x.status === 429) { await new Promise((ok) => setTimeout(ok, 6000)); x = await authFetch(url); }   // Worker rate limit: back off once
+      const ms = (typeof window !== 'undefined' && window.__stkL2SeedTimeoutMs) || READ_TIMEOUT_MS;
+      let x = await authFetch(url, ms);
+      if (x.status === 429) { await new Promise((ok) => setTimeout(ok, 6000)); x = await authFetch(url, ms); }   // Worker rate limit: back off once
       if (!x.ok) throw new Error('HTTP ' + x.status);
       const j = await x.json();
       if (r.trades) r.trades.seed(j.fp || [], false);   // never replaces a minute already held
@@ -358,13 +361,23 @@ async function fpPump(r) {
   finally { r.fpBusy = false; }
 }
 // imbalance + footprint minutes recorded by the hub (last 3 h), once per page; older minutes: fpNeed()
+// r.seedSt: 'busy' | 'done' | 'fail' for that first read (the footprint's note reads it: seedState). A failed, refused or timed-out read is
+// tried again in 30 s while anything still uses the root (member GK 2026-11-14: weekend, nothing in the last 3 h, label said Loading for good).
+const SEED_RETRY_MS = 30000, READ_TIMEOUT_MS = 20000;
+export const seedState = (root) => { const r = roots.get(root); return (r && r.seedSt) || 'busy'; };
+function seedFailed(r) {
+  r.seedSt = 'fail'; if (r.trades) r.trades.v++; tell(r);   // v++: the footprint redraws its note
+  clearTimeout(r.seedTm); r.seedTm = setTimeout(() => { if (r.seedSt === 'fail' && r.listeners.size) { r.seeded = false; seedHistory(r); } }, SEED_RETRY_MS);
+}
 function seedHistory(r, gap) {
   if (isQuoteSym(r.root)) return;
-  if (!gap) { if (r.seeded) return; r.seeded = true; }
-  const base = baseUrl(HOOK); if (!base) return;
+  if (!gap) { if (r.seeded) return; r.seeded = true; r.seedSt = 'busy'; }
+  const base = baseUrl(HOOK); if (!base) { if (!gap) seedFailed(r); return; }
   const to = Date.now(), from = gap ? Math.max(to - 3 * 3600000, (r.lastTickAt || to) - 120000) : to - 3 * 3600000;
-  authFetch(base + '/ts-aux?symbol=' + r.root + '&from=' + from + '&to=' + to).then((x) => (x.ok ? x.json() : null)).then((j) => {
-    if (!j) return;
+  const ms = (typeof window !== 'undefined' && window.__stkL2SeedTimeoutMs) || READ_TIMEOUT_MS;
+  authFetch(base + '/ts-aux?symbol=' + r.root + '&from=' + from + '&to=' + to, ms).then((x) => (x.ok ? x.json() : null)).then((j) => {
+    if (!j) { if (!gap) seedFailed(r); return; }
+    if (!gap) { r.seedSt = 'done'; if (r.trades) r.trades.v++; }
     if (!gap) {
       const first = r.imb.length ? r.imb[0][0] : Infinity;
       const old = (j.imb || []).map((x) => [x[0] * 1000, x[1], x[2]]).filter((x) => x[0] < first - 500);
@@ -374,7 +387,7 @@ function seedHistory(r, gap) {
     if (r.trades) r.trades.seed(j.fp || [], true);
     if (!gap) { r.fpFrom = from; fpPump(r); }
     tell(r);
-  }).catch(() => { if (!gap) { r.fpFrom = to; r.fpFail = true; r.fpRetryAt = Date.now() + 30000; } });   // fpNeed() reads the 3 h again in 30 s
+  }).catch(() => { if (!gap) seedFailed(r); });
 }
 // back after a hidden tab / a dropped socket: fetch the minutes we missed (Delta (L2) and the ladder read them)
 export function fillGap(root) { const r = rootState(root); if (r.seeded) seedHistory(r, true); }

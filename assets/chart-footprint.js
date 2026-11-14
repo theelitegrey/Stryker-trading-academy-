@@ -368,6 +368,8 @@ class FootprintEngine {
     if (!this.l2m) return null;
     const r = this.l2m.fpFlow(this.l2own, this.ctx, bars, tfm * 60000, replayE(), this.onL2, left);
     this.l2v = this.l2m.fpVersion(this.l2own);
+    // no L2 trades for these bars (market closed, hub read empty): draw the recorder's trades, said plainly; L2 comes back on its next trade
+    if (r && r.none) { const f = flowFor({ root: rootOf(this.ctx), timeframe: this.ctx.timeframe, bars, owner: this }); return f.map && f.map.size ? Object.assign({}, f, { note: r.note, src: 'l1' }) : f; }
     return r;
   }
   dropL2() { if (this.l2m) this.l2m.fpDrop(this.l2own); this.l2v = -1; }

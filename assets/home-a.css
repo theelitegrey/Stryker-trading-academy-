@@ -159,3 +159,11 @@
 @keyframes hhShine{ 0%{ background-position:100% 0; } 60%,100%{ background-position:0% 0; } }
 @media (prefers-reduced-motion:reduce){ .cm-hero h1.hh-h1 .hh-shine{ animation:none; background-position:50% 0; } }
 .cm-hero h1.hh-h1 .hh-small{ display:block; margin-top:18px; font-size:clamp(17px,2.4vw,24px); line-height:1.35; font-weight:500; letter-spacing:0; color:var(--ink-2); }
+
+/* Owner 14 Nov: hero background A, a faint pixel-dot grid that fades out to the edges, with a soft green glow behind the headline */
+.cm-hero.hb-a{ position:relative; isolation:isolate; }
+.cm-hero.hb-a::before,.cm-hero.hb-a::after{ content:""; position:absolute; inset:0; pointer-events:none; z-index:-1; }
+.cm-hero.hb-a::before{ background-image:radial-gradient(rgba(255,255,255,.30) 1.2px, transparent 1.7px); background-size:22px 22px;
+  -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 35%, #000 25%, transparent 75%); mask-image:radial-gradient(ellipse 70% 60% at 50% 35%, #000 25%, transparent 75%); }
+.cm-hero.hb-a::after{ background:radial-gradient(ellipse 600px 320px at 50% 30%, rgba(3,201,136,.10), transparent 70%); }
+[data-theme="light"] .cm-hero.hb-a::before{ background-image:radial-gradient(rgba(15,23,42,.26) 1.2px, transparent 1.7px); }

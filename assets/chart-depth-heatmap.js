@@ -16,6 +16,7 @@
 import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=983';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=983';
 import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote, staleNote } from './chart-futures-l2.js?v=983';
+import { icebergEvents } from './chart-liquidity-data.js?v=983';
 import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-map.js?v=983';
 import { getVenue } from './orderflow-venues.js?v=983';
 
@@ -38,6 +39,7 @@ export const DH_SCHEMA = [
   ...bubbleSchema(),
   { key: 'showBook', title: 'Book bars (right side)', type: 'bool', defval: true, tooltip: 'The size resting at each price now: red above the price (asks), green below (bids).' },
   { key: 'showCum', title: 'Cumulative column', type: 'bool', defval: true, tooltip: 'The running total of resting size from the best price outward.' },
+  { key: 'showIce', title: 'Highlight iceberg orders (ICE)', type: 'bool', defval: false, tooltip: 'Marks a price where a lot traded while the visible size stayed small and kept refilling. A hint from the recorded book, not proof. Needs about a minute of live recording.' },
   { key: 'showVolume', title: 'Volume bars', type: 'bool', defval: true, tooltip: 'Traded volume per bar along the bottom, green = buying, red = selling.' },
   { key: 'gpuHeatmap', title: 'Graphics card (smoother)', type: 'bool', defval: true },
   // Set by the chart's Heatmap panel (assets/chart-heatmap-panel.js). Defaults = the look above, so a saved chart is unchanged.
@@ -62,7 +64,7 @@ export function dhConfig(i) {
     smooth: smoothMsOf(i.heatSmooth), gamma: i.contrastMode === 'Manual' ? clamp(num(i.contrast, 1), 0.5, 2.5) : 1,
     hf: { p, min: 0, max: 0, top: 0, on: p > 0, key: p > 0 ? String(p) : '' }, cut,
     bubbles: i.showBubbles !== false, bubbleScale: clamp(num(i.bubbleScale, 100), 40, 200) / 100, bubDom: bubbleOpts(i),
-    book: i.showBook !== false, cum: i.showCum !== false, volume: i.showVolume !== false, gpu: i.gpuHeatmap !== false,
+    book: i.showBook !== false, cum: i.showCum !== false, volume: i.showVolume !== false, ice: i.showIce === true, gpu: i.gpuHeatmap !== false,
     hm: !!i.hmOwned, look: hmLook(String(i.hmTheme || 'Classic').toLowerCase()), vol: i.hmStyle === 'Volumetric', show: i.hmShow || 'Heatmap',
     hmMin: num(i.hmMin, 0), hmMax: num(i.hmMax, 0), usd: !!i.hmUsd, values: !!i.hmValues
   };
@@ -317,12 +319,35 @@ export function dhLayer(H) {
         }
         g.restore(); stat.volBars = draw.length;
       }
+      // ---- iceberg hint (option): same detector as Depth Heatmap Deep in the Order Flow pack ----
+      stat.ice = [];
+      if (cfg.ice && raw.length && f.custom) {
+        const tf = H.feedTrades(f), tick = (tf && tf.tick) || 0;
+        const mins = tf && tf.bars ? tf.bars().filter((b) => b.t >= tf.coverFrom) : [];
+        const iStep = Math.max(tick, ...(raw.length ? [raw[raw.length - 1].step || 0] : [0]));
+        const ik = raw.length + ':' + raw[raw.length - 1].ts + ':' + tf.v + ':' + iStep;
+        if (f.iceKey !== ik) { f.iceKey = ik; f.iceEv = tick > 0 && mins.length ? icebergEvents(raw.filter((x) => x.ts >= visFrom), mins, { step: iStep, tick }) : []; }
+        g.font = 'bold 9px ' + font; g.textAlign = 'center'; g.textBaseline = 'middle';
+        const used = [];
+        for (const e of f.iceEv || []) {
+          const x = co.timeToX(e.t + 30000), y = yOf(e.price + iStep / 2);
+          if (!Number.isFinite(x) || x < 0 || x > plotR || y < top + 8 || y > bot - 8) continue;
+          stat.ice.push({ t: e.t, price: e.price, side: e.side });
+          if (used.some((u) => Math.abs(u.x - x) < 26 && Math.abs(u.y - y) < 12)) continue;
+          used.push({ x, y });
+          const tw = g.measureText('ICE').width + 6;
+          g.fillStyle = 'rgba(5,5,6,.88)'; g.fillRect(x - tw / 2, y - 6, tw, 12);
+          g.strokeStyle = '#38bdf8'; g.lineWidth = 1; g.strokeRect(x - tw / 2 + 0.5, y - 5.5, tw - 1, 11);
+          g.fillStyle = '#38bdf8'; g.fillText('ICE', x, y + 0.5);
+        }
+        g.textBaseline = 'alphabetic';
+      }
       // ---- last-price line ----
       const ly = Math.round(yOf(lastP)) + 0.5;
       if (lastP > 0 && ly > top && ly < bot) { g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(0, ly); g.lineTo(plotR, ly); g.stroke(); g.setLineDash([]); stat.lastPrice = lastP; }
       // ---- book bars + cumulative column + best bid / ask (the Liquidity Map ladder) ----
       if (showBook) {
-        const book = bookAt(f, now, !!rp, raw);
+        const book = bookAt(f, now, !!rp, raw) || (hist.length ? bookAt(f, now, true, raw) : null);   // closed market: no live book, so the last recorded one
         const tick = f.custom ? (f.custom.trades && f.custom.trades().tick) || 0.25 : 0;
         if (book) drawLadder(g, a, { book, tick, whole: !!f.custom }, { lx: plotR, labW, c1W, c2W, top, bot, H0, phone, font, yOf, stat, W });
       }

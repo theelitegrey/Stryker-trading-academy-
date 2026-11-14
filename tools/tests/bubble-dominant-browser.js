@@ -117,6 +117,7 @@ const shot = (p) => p.screenshot({ type: 'png' });
       const b2 = await shot(p);
       fs.writeFileSync(OUT + '/bub-' + tag + '-dominant.png', b2);
       check(!a.equals(b2), tag + ': the picture changes when it is on');
+      if (process.env.HM_ICE) { await setHm(p, { showIce: true }); await sleep(2500); d = await dbg(p); check(Array.isArray(d && d.ice), tag + ': iceberg option draws without error (marks: ' + (d && d.ice && d.ice.length) + ')'); fs.writeFileSync(OUT + '/bub-' + tag + '-ice.png', await shot(p)); await setHm(p, { showIce: false }); }
       await setHm(p, { bubbleBuyColor: '#3b82f6', bubbleSellColor: '#f59e0b' }); await sleep(2500);
       const c2 = await shot(p);
       fs.writeFileSync(OUT + '/bub-' + tag + '-custom.png', c2);

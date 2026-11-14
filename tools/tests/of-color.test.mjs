@@ -27,3 +27,12 @@ ok(dist(LM.domColor(0.75, '#00ff00', '#ff0000'), '#00ff00') < dist(LM.domColor(0
 ok(LM.bubbleSchema().every((x) => x.defval !== undefined) && LM.LM_SCHEMA.some((x) => x.key === 'bubbleDom') && DH.DH_SCHEMA.some((x) => x.key === 'bubbleDom'), 'setting is in both bubble layers');
 ok(DH.dhConfig({}).bubDom === null && LM.lmConfig({}).bubDom === null && DH.dhConfig({ bubbleDom: true }).bubDom.dom, 'configs carry it, off by default');
 console.log(n + ' passed');
+// follow-up: darker dominant colours, iceberg option, heatmap template turns on walls + ICE
+const lum = (h) => { const v = parseInt(h.slice(1), 16); return 0.2126 * (v >> 16 & 255) + 0.7152 * (v >> 8 & 255) + 0.0722 * (v & 255); };
+ok(lum(LM.BUBBLE_DEF.buy) < 140 && lum(LM.BUBBLE_DEF.sell) < 100, 'default dominant colours are darker', [LM.BUBBLE_DEF]);
+ok(lum(LM.BUBBLE_DEF.buy) > 60 && lum(LM.BUBBLE_DEF.sell) > 40, 'but still readable on a dark chart');
+ok(LM.domColor(0.55, LM.BUBBLE_DEF.buy, LM.BUBBLE_DEF.sell) !== '#6b7280', 'a mild lead is still clearly coloured');
+ok(DH.dhConfig({}).ice === false && DH.dhConfig({ showIce: true }).ice === true, 'iceberg highlight is an option, off by default');
+const TG = await import('../../assets/chart-tpl-gallery.js');
+const hm = TG.TEMPLATES.find((t) => t.id === 'depth-heatmap');
+ok(hm.ind.some((x) => x[0] === 'stk_fut_walls') && hm.ind.some((x) => x[0] === 'stk_depth_heat' && x[1] && x[1].showIce), 'heatmap template turns on liquidity walls and iceberg marks');

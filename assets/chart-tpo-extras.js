@@ -16,7 +16,7 @@ export const extMults = (s) => String(s || '').split(/[ ,x]+/).map(Number).filte
 
 // Indicator inputs (chart-of-pro.js TPO_SCHEMA) and chart-type settings rows (chart-types.js).
 export const TPO_EXTRA_INPUTS = [
-  { key: 'fixedWidth', title: 'Keep profile width steady when zooming', type: 'bool', defval: false, tooltip: 'The widest row always fills the "Width %" of its session, at every zoom.' },
+  { key: 'showLetters', title: 'Show letters', type: 'bool', defval: true, tooltip: 'Off hides the period letters. The profile keeps the same width.' },
   { key: 'singles', title: 'Highlight single prints (extend until price returns)', type: 'bool', defval: false },
   { key: 'poor', title: 'Mark poor highs and lows (extend until touched)', type: 'bool', defval: false, tooltip: 'Poor = the session high or low was reached in 2 or more periods.' },
   { key: 'nakedPoc', title: 'Naked POC lines (extend until price touches)', type: 'bool', defval: false },
@@ -26,7 +26,7 @@ export const TPO_EXTRA_INPUTS = [
   { key: 'ibExt', title: 'Initial balance extensions (x the IB range)', type: 'string', defval: '1.5, 2, 3', options: IB_EXT_OPTIONS }
 ];
 export const TPO_EXTRA_ROWS = [
-  { kind: 'toggle', key: 'fixedWidth', label: 'Keep profile width steady when zooming', defval: false },
+  { kind: 'toggle', key: 'showLetters', label: 'Show letters', defval: true },
   { kind: 'toggle', key: 'singles', label: 'Highlight single prints (extend until price returns)', defval: false },
   { kind: 'toggle', key: 'poor', label: 'Mark poor highs and lows', defval: false },
   { kind: 'toggle', key: 'nakedPoc', label: 'Naked POC lines (extend until price touches)', defval: false },
@@ -128,7 +128,7 @@ export function drawTpoExtras(g, o) {
 // Steady profile width (px): 110 desktop / 72 phone at every zoom; only squeezed when the next
 // session starts closer than that (so profiles never run into each other).
 export function steadyW(list, s, X, x0, W, phone) {
-  const want = phone ? 72 : 110, nx = list[list.indexOf(s) + 1];
+  const want = phone ? 72 : 132, nx = list[list.indexOf(s) + 1];
   const room = nx ? X(nx.i0) - x0 - 8 : W - x0 - 8;
   return Math.max(24, Math.min(want, room));
 }

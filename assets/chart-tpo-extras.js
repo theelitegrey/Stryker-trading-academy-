@@ -7,7 +7,7 @@
 //   developing POC / VAH / VAL (step lines through the session),
 //   initial balance high / low (first 30 or 60 min) + extensions (IB high/low +- k x IB range).
 // Maths in chart-of-pro-data.js (unit tests: tools/tests/chart-of-pro.test.mjs).
-import { tpoSingleRuns, tpoPoorExtremes, tpoDeveloping, firstTouch, ibExtensions } from './chart-of-pro-data.js?v=987';
+import { tpoSingleRuns, tpoPoorExtremes, tpoDeveloping, firstTouch, ibExtensions } from './chart-of-pro-data.js?v=988';
 
 const MAG = '#e040fb', VA_LN = '#8fd8dc', SINGLE = '#9b7bff', POOR = '#f5b301', IB = '#2f6bff', IB_DAY = '#2563eb';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';

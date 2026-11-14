@@ -49,9 +49,9 @@
 //     open: no phone push for them.
 // Education only. Not financial advice. Alerts are a convenience, not a trading signal.
 
-import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=987';
-import * as DPA from './chart-dp-alerts.js?v=987';   // dark pool print alerts (server-side, students/{uid}/dpAlerts)
-import * as MA from './chart-metric-alerts.js?v=987';   // metric alerts (GEX levels, funding, OI change; server-side, students/{uid}/metricAlerts)
+import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=988';
+import * as DPA from './chart-dp-alerts.js?v=988';   // dark pool print alerts (server-side, students/{uid}/dpAlerts)
+import * as MA from './chart-metric-alerts.js?v=988';   // metric alerts (GEX levels, funding, OI change; server-side, students/{uid}/metricAlerts)
 const LAYER = 'stk_alerts';
 const PREFS_KEY = 'stryker_chart_alert_prefs';
 const MAX_ALERTS = 1000;

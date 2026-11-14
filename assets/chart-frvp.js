@@ -18,9 +18,9 @@
 // SAVED DRAWINGS keep their look: a drawing saved before this has none of the new keys, and a missing key means the old
 // behaviour (lines to B, no thin rows, no delta, no VWAP). New drawings get extendRight:false and thinRows:true when placed.
 // Education only. Not financial advice.
-import { flowFor, rootOf } from './chart-footprint.js?v=987';
-import { isFree } from './chart-pro-gate.js?v=987';
-import { deltaRows, anchoredVwap, buildProfile, fineSpanBars } from './chart-frvp-data.js?v=987';
+import { flowFor, rootOf } from './chart-footprint.js?v=988';
+import { isFree } from './chart-pro-gate.js?v=988';
+import { deltaRows, anchoredVwap, buildProfile, fineSpanBars } from './chart-frvp-data.js?v=988';
 
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';

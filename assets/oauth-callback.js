@@ -22,7 +22,7 @@
   }
   user().then(function (u) {
     if (!u) return end('Sign in first', 'Sign in to TradeZoro, then connect ' + NAME + ' again.');
-    return Promise.all([import('./byo-core.js?v=987'), import('./byo-oauth.js?v=987'), import('./byo-tastytrade.js?v=987'), import('./byo-india.js?v=987'), import('./byo-dhan.js?v=987')]).then(function (mm) {
+    return Promise.all([import('./byo-core.js?v=988'), import('./byo-oauth.js?v=988'), import('./byo-tastytrade.js?v=988'), import('./byo-india.js?v=988'), import('./byo-dhan.js?v=988')]).then(function (mm) {
       var c = mm[0], oa = mm[1];
       if (id === 'dhan') {   // tokenId back from Dhan. Own-key mode (keys in the device vault) first; else the partner one-tap. Same user + 10-minute window.
         var dh = mm[4];

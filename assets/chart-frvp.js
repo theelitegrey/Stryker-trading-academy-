@@ -72,6 +72,18 @@ function rowRects(d, L) {
   return out;
 }
 
+// "Always visible" (frvp.alwaysVisible, default off): when the whole histogram has scrolled off the chart, the drawing is drawn pinned at the
+// nearest edge of the plot, still showing the profile of its own range. Returns a projector whose xOf is shifted by the pin; idempotent.
+function pinned(d, proj) {
+  if (!d.frvp || d.frvp.alwaysVisible !== true || Object.prototype.hasOwnProperty.call(proj, '__pin')) return proj;
+  const L = d.__rawLayout.call(d, proj), W = proj.width;
+  if (!L || !(W > 0)) return proj;
+  const e = L.anchorX + L.grow * L.maxW, hx0 = Math.min(L.anchorX, e), hx1 = Math.max(L.anchorX, e);
+  const dx = hx1 < 0 ? 4 - hx0 : hx0 > W ? W - 4 - hx1 : 0;
+  if (!dx) return proj;
+  return Object.assign(Object.create(proj), { __pin: dx, xOf: (t) => proj.xOf(t) + dx });
+}
+
 // ---------------------------------------------------------------- data: order flow for the delta bars
 const holders = new Map();            // drawing id -> flowFor owner + memo
 function hostOf(painter) {
@@ -156,6 +168,7 @@ function repaintSoon(host) {
 
 // ---------------------------------------------------------------- the painter (a copy of Vela's paintFixedRangeVp + the four changes)
 function paintFrvp(ctx, d, proj, theme) {
+  proj = pinned(d, proj);
   const L = d.layout(proj);
   if (!L) return;
   const s = d.frvp, P = L.profile;
@@ -250,6 +263,7 @@ function label(ctx, theme, L, text) {
 
 // ---------------------------------------------------------------- hit-test: only what is drawn
 function hitFrvp(px, py, proj, tol) {
+  proj = pinned(this, proj);
   const L = this.layout(proj);
   if (!L) return false;
   const inR = (r, pad) => px >= r[0] - pad && px <= r[0] + r[2] + pad && py >= r[1] - pad && py <= r[1] + r[3] + pad;
@@ -278,6 +292,7 @@ function seg(px, py, a, b) {
 function extraFields(d) {
   const a = d.__stkAvail || {}, f = [];
   f.push({ path: 'frvpx.extendRight', label: 'Extend right', kind: 'boolean' });
+  f.push({ path: 'frvpx.alwaysVisible', label: 'Always visible', kind: 'boolean' });
   f.push({ path: 'frvpx.thinRows', label: 'Thin rows', kind: 'boolean' });
   f.push(a.delta ? { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: d.frvp.deltaBars || 'off', label: a.delta }] }
     : { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: 'off', label: 'Off' }, { value: 'left', label: 'Left side' }] });
@@ -299,6 +314,8 @@ export function installFrvpClass(FRVP) {
   P.__stkFrvp = true;
   Object.defineProperty(P, 'frvpx', { configurable: true, get() { return this.frvp; } });
   P.hitTest = hitFrvp;
+  P.__rawLayout = P.layout;
+  P.layout = function (proj) { return P.__rawLayout.call(this, pinned(this, proj)); };
   // 5. profile maths
   P.compute = function (proj) {
     let bars = this.barsInSpan(proj);

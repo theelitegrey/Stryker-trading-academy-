@@ -125,3 +125,13 @@ export function fineSpanBars(mins, from, to) {
   for (const b of mins || []) if (b && b.time >= from && b.time <= to) out.push(b);
   return out.length ? out.sort((a, b) => a.time - b.time) : null;
 }
+
+// Always visible: the nearest wholly off-screen item on each side, moved to that edge of the plot (width capped at half the plot).
+// Returns Map(item -> [x0, x1]). Exported for the node test.
+export function pinSessions(items, xs, W) {
+  const out = new Map(); let left = null, right = null;
+  for (const it of items) { const [a, b] = xs(it); if (b < 0) left = [it, a, b]; else if (a > W && !right) right = [it, a, b]; }
+  const put = (t, atRight) => { if (!t) return; const w = Math.min(t[2] - t[1], W / 2); out.set(t[0], atRight ? [W - 4 - w, W - 4] : [4, 4 + w]); };
+  put(left, false); put(right, true);
+  return out;
+}

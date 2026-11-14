@@ -30,6 +30,7 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
+import { pinSessions } from './chart-frvp-data.js?v=994';
 import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=994';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=994';
 import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=994';
@@ -224,6 +225,7 @@ const SVP_SCHEMA = [
   { key: 'rowTicks', title: 'Row size (ticks, futures)', type: 'int', defval: SVP_DEF.rowTicks, min: 1, max: 400, step: 1 },
   { key: 'rows', title: 'Rows per session (crypto)', type: 'int', defval: SVP_DEF.rows, min: 6, max: 200, step: 1 },
   { key: 'valueAreaPct', title: 'Value area %', type: 'int', defval: SVP_DEF.valueAreaPct, min: 10, max: 100, step: 1 },
+  { key: 'alwaysVisible', title: 'Always visible', type: 'bool', defval: false, tooltip: 'Keeps the nearest session on each side drawn at the chart edge when it scrolls off screen.' },
   { key: 'widthPct', title: 'Width % of the session', type: 'int', defval: SVP_DEF.widthPct, min: 10, max: 100, step: 1 },
   { key: 'showVa', title: 'Value area lines (VAH / VAL)', type: 'bool', defval: true },
   { key: 'showPoc', title: 'Point of control (POC)', type: 'bool', defval: true },
@@ -237,7 +239,7 @@ const svpConfig = (inputs, mk) => ({
   rows: clamp(Math.round(num(inputs.rows, 40)), 6, 200),
   va: clamp(num(inputs.valueAreaPct, 70), 10, 100) / 100,
   widthFrac: clamp(num(inputs.widthPct, 40), 10, 100) / 100,
-  showVa: inputs.showVa !== false, showPoc: inputs.showPoc !== false,
+  showVa: inputs.showVa !== false, showPoc: inputs.showPoc !== false, alwaysVisible: inputs.alwaysVisible === true,
   color: str(inputs.color, SVP_DEF.color), vaColor: str(inputs.vaColor, SVP_DEF.vaColor), pocColor: str(inputs.pocColor, SVP_DEF.pocColor),
   futures: !!mk.futures, tick: mk.tick || null, tf: mk.tf
 });
@@ -331,8 +333,10 @@ function svpLayer() {
       g.save();
       g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
       const light = themeIsLight(a.theme);
+      const pin = cfg.alwaysVisible ? pinSessions(sessions, (s) => [co.timeToX(s.t0) - half, co.timeToX(s.t1) + half], W) : new Map();
       for (const s of sessions) {
-        const sx0 = co.timeToX(s.t0) - half, x1 = co.timeToX(s.t1) + half;
+        let sx0 = co.timeToX(s.t0) - half, x1 = co.timeToX(s.t1) + half;
+        if (pin.has(s)) [sx0, x1] = pin.get(s);
         if (x1 < 0 || sx0 > W) continue;
         // a long session (overnight is ~15 h) starts off-screen: anchor the profile at the visible left edge so the current session is always seen
         const x0 = Math.max(sx0, 0);

@@ -19,7 +19,7 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { flowDays } from './chart-frvp-data.js?v=994';
+import { flowDays, pinSessions } from './chart-frvp-data.js?v=994';
 import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=994';
 
 import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=994';
@@ -1058,6 +1058,7 @@ const IND = {
     { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
     { key: 'va', title: 'Value area %', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
     { key: 'widthPct', title: 'Width %', type: 'int', defval: 30, min: 5, max: 100, step: 1 },
+    { key: 'alwaysVisible', title: 'Always visible', type: 'bool', defval: false, tooltip: 'Keeps the nearest session / swing on each side drawn at the chart edge when it scrolls off screen.', when: { key: 'range', anyOf: ['session', 'swing'] } },
     { key: 'colorMode', title: 'Colour', type: 'string', defval: 'value area', options: ['value area', 'buy / sell'], tooltip: 'value area = one colour per row, orange inside the value area and khaki outside. buy / sell = each row split into sellers and buyers.' },
     { key: 'vaColor', title: 'Value area', type: 'color', defval: VA_OR, when: { key: 'colorMode', anyOf: ['value area'] } },
     { key: 'outColor', title: 'Outside value area', type: 'color', defval: VA_OUT, when: { key: 'colorMode', anyOf: ['value area'] } },
@@ -1222,10 +1223,12 @@ function vpLayer() {
           memo = { key, segs, naked: done.map((s, k) => ({ t: s.t, price: (s.poc + 0.5) * mN * tick, hit: hit[k] < 0 ? null : L[hit[k]].t })) };
         }
         const tA = a.bars[i0].time, tB = a.bars[i1].time;
+        const pin = I.alwaysVisible === true ? pinSessions(memo.segs, (s) => [xOf(f.list[s.i0].t, false) ?? NaN, xOf(f.list[s.i1].t, true) ?? NaN], co.width) : new Map();
         for (const s of memo.segs) {
           const L0 = f.list[s.i0].t, L1 = f.list[s.i1].t;
-          if (L1 < tA || L0 > tB) continue;
-          const x0 = xOf(L0, false), x1 = xOf(L1, true);
+          if ((L1 < tA || L0 > tB) && !pin.has(s)) continue;
+          let x0 = xOf(L0, false), x1 = xOf(L1, true);
+          if (pin.has(s)) [x0, x1] = pin.get(s);
           if (x0 == null || x1 == null) continue;
           groups.push({ bars: f.list.slice(s.i0, s.i1 + 1), x0, x1, open: !!s.open });
         }

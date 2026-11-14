@@ -27,3 +27,16 @@ assert.deepEqual(flowDays(Date.UTC(2026, 2, 3), now, 14, null), [D(2026, 10, 1),
 assert.deepEqual(flowDays(Date.UTC(2026, 2, 3), now, 90, D(2026, 9, 8)), [D(2026, 9, 8), D(2026, 10, 14)]);   // clamp to the first recorded day
 assert.deepEqual(flowDays(Date.UTC(2026, 10, 10), now, 90, D(2026, 9, 8)), [D(2026, 10, 10), D(2026, 10, 14)]); // short span unchanged
 console.log('frvp-data: all passed');
+
+// volumeNodes: two clear peaks with a dip between them, thin edges
+{
+  const { volumeNodes } = await import('../../assets/chart-frvp-data.js');
+  const vols = [1, 2, 3, 9, 3, 2, 1, 0.5, 1, 2, 3, 8, 3, 2, 1, 1];
+  const rows = vols.map((v) => ({ up: v / 2, down: v / 2 }));
+  const n = volumeNodes(rows);
+  assert.deepEqual(n.hvn, [3, 11]);
+  assert.deepEqual(n.lvn, [7]);
+  assert.deepEqual(volumeNodes(rows.slice(0, 3)), { hvn: [], lvn: [] });   // too few rows
+  assert.deepEqual(volumeNodes(vols.map(() => ({ up: 0, down: 0 }))), { hvn: [], lvn: [] });
+  console.log('frvp-data: volumeNodes passed');
+}

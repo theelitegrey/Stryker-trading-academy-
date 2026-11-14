@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.tradezoro.app",
+      "sha256_cert_fingerprints": [
+        "49:5B:E8:4F:7F:6F:40:95:72:77:C4:A3:57:15:0E:9A:B8:33:7E:AA:91:E9:FD:6B:15:9A:49:11:90:2A:E4:A6"
+      ]
+    }
+  }
+]

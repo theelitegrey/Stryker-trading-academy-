@@ -1,0 +1,31 @@
+TradeZoro is a trading workspace and a trading school in one app. Practise reading the tape, review your own trades, and learn a clear, rule-based way to trade.
+
+WHAT YOU GET
+
+ZoroCharts
+Fast, clean charts for crypto, futures and more. Draw on the chart, set alerts, replay past sessions bar by bar, and use order-flow tools such as footprint and volume profile.
+
+GEX+
+Gamma exposure levels for index and metal options markets: call wall, put wall, zero gamma and other key strikes, drawn so you can see where option positioning may matter.
+
+JournalX
+A trading journal that makes you measurable. Log the trade, name the model, record the outcome, then review it with dashboards, a calendar and analytics built for prop-firm style rules.
+
+ZoroAcademy
+Chapter-based lessons on ICT and SMT concepts: market structure, order blocks, fair value gaps, liquidity, order flow and risk. Learn the idea, then practise it on the charts.
+
+Community
+Share chart layouts and indicators, and learn from other traders.
+
+Alerts
+Turn on notifications to get your chart alerts on your phone, even when the app is closed.
+
+BUILT FOR THE PHONE
+Full-screen app, no browser bar. Sign in once and stay signed in. The app always shows the latest version of TradeZoro, so new tools appear without an update.
+
+IMPORTANT
+TradeZoro is an educational service. Nothing in the app is financial advice, a signal service or an offer to manage money. Trading carries a high risk of loss, and you can lose more than you put in. Examples and demo data in the app are for learning only and do not show or promise any results.
+
+Not available in every country. An internet connection is needed for live charts and your account.
+
+Questions? support@tradezoro.com

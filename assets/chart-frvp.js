@@ -25,6 +25,7 @@ import { deltaRows, anchoredVwap, buildProfile, fineSpanBars } from './chart-frv
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';
 const MAX_TF_MIN = 240;
+const MAX_SPAN_DAYS = 90;   // order-flow days read for one profile (the footprint's own cap is 14); the recorder only goes back to 8 Oct 2026
 // member-picked colours for the delta bars and the VWAP lines (frvp.deltaUpColor ... saved with the drawing); unset = the colours above
 const CK = { deltaUpColor: UP, deltaDownColor: DN, vwapColor: VW, vwapBandColor: BAND };
 const hex6 = (c, d) => (/^#[0-9a-f]{6}$/i.test(String(c || '')) ? c : d);
@@ -120,7 +121,7 @@ function flowOf(d, host, bars) {
       }
     } catch (e) {}
   }
-  const f = flowFor({ root, timeframe: host.chart.market.timeframe, bars, owner: h.own });
+  const f = flowFor({ root, timeframe: host.chart.market.timeframe, bars, owner: h.own, maxDays: MAX_SPAN_DAYS });
   if (!f.map) return { why: f.note || 'No order flow for this symbol.' };
   return { mins: f.mins || [], tick: f.tick, loading: !!f.loading || (!f.list.length && /Loading|Waiting/.test(f.note || '')), src: 'L1' };
 }
@@ -207,7 +208,7 @@ function paintFrvp(ctx, d, proj, theme) {
   const key = [fl.mins, fl.mins.length, fl.tick, P.min, P.rowH, P.rows.length, from, to].map(String).join('|');
   if (h.dk !== key || h.dm !== fl.mins) { h.dk = key; h.dm = fl.mins; h.dr = deltaRows(fl.mins, fl.tick, P.min, P.rowH, P.rows.length, from, to); }
   const D = h.dr;
-  if (!D.used) { label(ctx, theme, L, 'Delta: no order flow for this range yet'); if (fl.loading) repaintSoon(host); return; }
+  if (!D.used) { dashes(ctx, theme, L, P, D, side0(L)); label(ctx, theme, L, fl.loading ? 'Delta: loading order flow…' : 'Delta: no order flow recorded for this range (starts 8 Oct 2026)'); if (fl.loading) repaintSoon(host); return; }
   let mx = 0; for (const v of D.d) mx = Math.max(mx, Math.abs(v));
   const rects = [], maxDW = L.maxW * 0.6, side = -L.grow, gap = 2;
   if (mx > 0) for (let k = 0; k < D.d.length; k++) {
@@ -217,19 +218,24 @@ function paintFrvp(ctx, d, proj, theme) {
     ctx.fillStyle = (v > 0 ? hex6(s.deltaUpColor, UP) : hex6(s.deltaDownColor, DN)) + 'BF'; ctx.fillRect(x, Math.min(yA, yB), w, h2);
     rects.push([x, Math.min(yA, yB), w, h2]);
   }
-  // rows with volume but no order flow (older than the flow history): a dim dash, so a gap reads as "no data", not "no delta"
+  const gaps = dashes(ctx, theme, L, P, D, side);
+  d.__stkDelta = rects;
+  const cover = D.first > from + 2 * 60000 || gaps ? 'Delta from ' + stamp(D.first) + (gaps ? ' · dash = no order flow' : '') : '';
+  if (cover) label(ctx, theme, L, cover);
+}
+const side0 = (L) => -L.grow;
+// rows with volume but no order flow (older than the flow history): a dim dash, so a gap reads as "no data", not "no delta". Returns the count.
+function dashes(ctx, theme, L, P, D, side) {
   let gaps = 0;
-  ctx.fillStyle = theme.textColor || '#9aa0ad'; ctx.globalAlpha = 0.7;
+  ctx.save(); ctx.fillStyle = theme.textColor || '#9aa0ad'; ctx.globalAlpha = 0.7;
   for (let k = 0; k < D.d.length; k++) {
     if (D.has[k] || !(P.rows[k].up + P.rows[k].down > 0)) continue;
     gaps++;
     const yA = L.yEdges[k], yB = L.yEdges[k + 1];
-    ctx.fillRect(side < 0 ? L.anchorX - gap - 6 : L.anchorX + gap, Math.round((yA + yB) / 2) - 1, 6, 2);
+    ctx.fillRect(side < 0 ? L.anchorX - 2 - 6 : L.anchorX + 2, Math.round((yA + yB) / 2) - 1, 6, 2);
   }
-  ctx.globalAlpha = 1;
-  d.__stkDelta = rects;
-  const cover = D.first > from + 2 * 60000 || gaps ? 'Delta from ' + stamp(D.first) + (gaps ? ' · dash = no order flow' : '') : '';
-  if (cover) label(ctx, theme, L, cover);
+  ctx.restore();
+  return gaps;
 }
 const stamp = (ms) => { try { return new Date(ms).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' ' + hhmm(ms); } catch (e) { return ''; } };
 function label(ctx, theme, L, text) {

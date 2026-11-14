@@ -19,6 +19,7 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
+import { flowDays } from './chart-frvp-data.js?v=986';
 import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=986';
 
 import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=986';
@@ -35,6 +36,7 @@ const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
 const FREE_LOOKBACK_MS = 24 * 3600 * 1000;
+const HISTORY_DAY = Math.floor(Date.UTC(2026, 9, 8) / 86400000);   // the recorder's first day: a long span (Fixed Range Volume Profile) never asks for days before it
 const MAX_DAYS = 14;                 // UTC days fetched for one chart at most
 const TODAY_REFRESH_MS = 300000;   // the whole day, now and then; the live tail is polled every TAIL_MS
 const TAIL_MS = 5000;              // the last minutes of every root in use: forming + just-closed bars
@@ -161,13 +163,13 @@ async function fetchDay(s, day) {
   bump();
 }
 // The 1-minute bars of a root over [fromMs, toMs], fetching missing days (async; returns what is here).
-function minuteBars(root, fromMs, toMs, free) {
+function minuteBars(root, fromMs, toMs, free, maxDays) {
   const s = store(root);
   const now = Date.now();
   if (free) fromMs = Math.max(fromMs, now - FREE_LOOKBACK_MS);
   toMs = Math.min(toMs, now);
   if (!(toMs >= fromMs)) return { bars: [], s, loading: false };
-  const d0 = Math.max(Math.floor(fromMs / 86400000), Math.floor(toMs / 86400000) - MAX_DAYS + 1), d1 = Math.floor(toMs / 86400000);
+  const [d0, d1] = flowDays(fromMs, toMs, maxDays || MAX_DAYS, maxDays ? HISTORY_DAY : null);
   let loading = false, err = '';
   const out = [];
   for (let d = d0; d <= d1; d++) {
@@ -266,8 +268,8 @@ export function flowFor(ctxLike) {
   if (!cb.length) return { note: '' };
   const E = replayE();
   const toMs = Math.min(cb[cb.length - 1].time + tf * 60000, E == null ? Infinity : E);
-  const got = minuteBars(root, cb[0].time, toMs, free);
-  const key = root + '|' + tf + '|' + got.s.v + '|' + (E == null ? '' : Math.floor(E / 60000)) + '|' + cb[0].time + '|' + got.bars.length;
+  const got = minuteBars(root, cb[0].time, toMs, free, ctxLike.maxDays);
+  const key = root + '|' + tf + '|' + got.s.v + '|' + (E == null ? '' : Math.floor(E / 60000)) + '|' + cb[0].time + '|' + got.bars.length + '|' + (ctxLike.maxDays || '');
   const memo = viewCache.get(ctxLike.owner);
   if (memo && memo.key === key) return memo.out;
   const clipped = clipTo(got.bars, E);

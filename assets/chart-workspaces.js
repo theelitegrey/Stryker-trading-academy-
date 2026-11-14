@@ -17,9 +17,10 @@
 // functions-src/firestore.rules). Signed out: index and chart documents in localStorage.
 // Crash safety: the screen itself is restored by the chart's own on-device save; the index says which
 // workspace it is. Deleting a workspace never deletes its saved layout.
-import * as C from './chart-workspaces-core.js?v=1001';
+import * as C from './chart-workspaces-core.js?v=1007';
 
 const REMOTE_MS = 1500;
+let remoteRead = false;
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 const isPhone = () => window.innerWidth <= 700;
 function fb(){ return (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) ? firebase : null; }
@@ -108,7 +109,7 @@ export function mountWorkspaces(ws, o){
     const s = C.serialize(ix);
     if (s) { try { localStorage.setItem(K.ix(), s); } catch (e) {} }
     paint();
-    if (!user() || !s) return;
+    if (!user() || !s || !remoteRead) return;   // never push before the account copy is read: a new device would overwrite it
     clearTimeout(remoteT);
     remoteT = setTimeout(() => remoteRef().set({ index: s, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
       .catch((e) => console.warn('TradeZoro: workspaces sync', e && e.code)), REMOTE_MS);
@@ -397,16 +398,18 @@ export function mountWorkspaces(ws, o){
   });
 
   // ---------------------------------------------------------------- boot
-  ix = C.sanitize(lsGet(K.ix())) || C.fresh('Workspace 1', user() ? L.current : null);
+  const saved = C.sanitize(lsGet(K.ix()));
+  ix = saved || C.fresh('Workspace 1', user() ? L.current : null);   // fresh: t = 0, so any account copy wins over it
   if (!C.find(ix, ix.active)) ix.active = ix.items[0].id;
   syncLayout(cur());
   paint();
-  persist();
+  if (saved) persist();
   // signed in: the account copy wins when it is newer (another device changed the list)
   if (user()) {
     remoteRef().get().then((d) => {
+      remoteRead = true;
       const r = d && d.exists ? C.sanitize((d.data() || {}).index) : null;
-      if (!r || C.pickNewer(ix, r) !== r) return;
+      if (!r || C.pickNewer(ix, r) !== r) { persist(); return; }
       const here = C.find(r, ix.active);
       if (here) { r.active = ix.active; Object.assign(here, { layoutId: cur().layoutId, layoutName: cur().layoutName, shared: cur().shared }); ix = r; persist(); return; }
       const target = r.active; ix = r; ix.active = null;

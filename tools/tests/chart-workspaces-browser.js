@@ -226,6 +226,9 @@ const waitIdle = (p) => p.waitForFunction(() => !window.STRYKER_WORKSPACES.busy,
       }
     }
 
+    const acc = JSON.parse(DB.get('students/alice/chartPrefs/workspaces').index);
+    t('new devices never overwrite the account list (still 2 workspaces)', acc.items.map((x) => x.name).join('|') === 'NQ scalping|BTC order flow', acc.items.map((x) => x.name));
+
     // ================================================================ signed out: this device only
     const G = await session(b, null, 1440, 900, false);
     const g = await open(G);

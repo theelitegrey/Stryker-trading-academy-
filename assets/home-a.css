@@ -163,10 +163,10 @@
 /* Owner 14 Nov: hero background A, a faint pixel-dot grid that fades out to the edges, with a soft green glow behind the headline */
 .cm-hero.hb-a{ position:relative; isolation:isolate; }
 .cm-hero.hb-a::before,.cm-hero.hb-a::after{ content:""; position:absolute; inset:0; pointer-events:none; z-index:-1; }
-.cm-hero.hb-a::before{ background-image:radial-gradient(rgba(255,255,255,.30) 1.2px, transparent 1.7px); background-size:22px 22px;
+.cm-hero.hb-a::before{ background-image:radial-gradient(rgba(255,255,255,.17) 1.1px, transparent 1.6px); background-size:40px 40px;
   -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 35%, #000 25%, transparent 75%); mask-image:radial-gradient(ellipse 70% 60% at 50% 35%, #000 25%, transparent 75%); }
 .cm-hero.hb-a::after{ background:radial-gradient(ellipse 600px 320px at 50% 30%, rgba(3,201,136,.10), transparent 70%); }
-[data-theme="light"] .cm-hero.hb-a::before{ background-image:radial-gradient(rgba(15,23,42,.26) 1.2px, transparent 1.7px); }
+[data-theme="light"] .cm-hero.hb-a::before{ background-image:radial-gradient(rgba(15,23,42,.15) 1.1px, transparent 1.6px); }
 
 /* Owner 14 Nov: bigger "Every trading tool." and "Free and open." (the small line keeps its own size) */
 .cm-hero h1.hh-h1{ font-size:clamp(44px,11.5vw,96px); line-height:1.02; letter-spacing:-.035em; }

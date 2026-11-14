@@ -362,11 +362,11 @@ class FootprintEngine {
     this.l2tm = setTimeout(() => { this.l2tm = 0; const v = this.l2m ? this.l2m.fpVersion(this.l2own) : 0; if (v !== this.l2v) this.push(); }, 200);
   }
   // the flow for the layer: null = use the trades feed (L1 setting, crypto, or the module is missing)
-  l2Flow(bars, tfm, left) {
+  l2Flow(bars, tfm) {
     if (this.cfg.src === 'l1') { this.dropL2(); return null; }
     if (this.l2m === undefined) { this.loadL2(); return { map: new Map(), note: 'Loading order flow…' }; }
     if (!this.l2m) return null;
-    const r = this.l2m.fpFlow(this.l2own, this.ctx, bars, tfm * 60000, replayE(), this.onL2, left);
+    const r = this.l2m.fpFlow(this.l2own, this.ctx, bars, tfm * 60000, replayE(), this.onL2);
     this.l2v = this.l2m.fpVersion(this.l2own);
     return r;
   }
@@ -736,7 +736,7 @@ function footprintLayer() {
       const co = a.coords, dpr = co.dpr || 1;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const d = a.data, cfg = d.cfg;
-      const tfm = tfMin(d.timeframe), f = (d.eng && tfm >= 1 && tfm <= MAX_TF_MIN && d.eng.l2Flow(a.bars, tfm, (a.bars[Math.max(0, Math.floor(co.visibleLogicalRange().from))] || {}).time)) || flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.eng });
+      const tfm = tfMin(d.timeframe), f = (d.eng && tfm >= 1 && tfm <= MAX_TF_MIN && d.eng.l2Flow(a.bars, tfm)) || flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.eng });
       let top = a.bounds.top; const day = light(); let bot = top + a.bounds.height;
       const P = pal(cfg, day), { UP, UP2, DN, SELL, SELL2, TEAL, ORNG, PINK } = P;
       const ink = day ? '#1f2937' : '#d7dbe2', dim = day ? '#64748b' : '#8a90a0';

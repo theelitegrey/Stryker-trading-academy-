@@ -102,11 +102,9 @@ export class TickFeed {
       if (!backfill) { this.ring.push([T, price, size, side]); if (this.coverFrom === Infinity) this.coverFrom = t + 60000; }
     }
     if (this.ring.length > 30000) this.ring.splice(0, this.ring.length - 30000);
-    this.trim();
+    if (this.mins.size > 400) { const ks = [...this.mins.keys()].sort((a, b) => a - b); for (let k = 0; k < ks.length - 360; k++) this.mins.delete(ks[k]); }
     this.v++;
   }
-  // keep the hub's 48 h (KEEP_MS) of minutes: older footprint history is paged in by fpNeed(); 3000 > 48 h of CME minutes
-  trim() { if (this.mins.size > 3000) { const ks = [...this.mins.keys()].sort((a, b) => a - b); for (let k = 0; k < ks.length - 2900; k++) this.mins.delete(ks[k]); } }
   // one minute from /ts-aux { t (minute index), lv: [[price, buy, sell]..] }
   // replace: a gap fill (tab was hidden / socket dropped): swap in the server's minute when it holds more volume than ours
   seed(fp, replace) {
@@ -120,7 +118,6 @@ export class TickFeed {
       this.mins.set(T, m);
       if (T < this.coverFrom) this.coverFrom = T;
     }
-    this.trim();
     this.v++;
   }
   bars() {
@@ -329,35 +326,7 @@ export function bookHistory(root, from, to) {
   p.then((r) => { if (r.left > 0) drop(); }, drop);   // failed, or the Worker is still filling from the archive: the next ask must hit it again
   return p;
 }
-// Older footprint minutes on demand (member Harry 2026-11-12: "Footprint not loading, I want historical data": only the 3 h seed was ever
-// read, so on a page opened at 17:19 the footprint began at 14:03). /ts-aux in 6 h reads, newest first, back to t, never past the
-// hub's 48 h. fpNeed is cheap to call on every draw: one read in flight, a failed read waits 30 s.
-const FP_WIN = 6 * 3600000;
-export function fpNeed(root, t) {
-  const r = rootState(root); if (isQuoteSym(root) || !r.trades || !(t > 0)) return;
-  r.fpNeed = Math.max(Math.min(r.fpNeed || Infinity, t), Date.now() - KEEP_MS);
-  fpPump(r);
-}
-// what the footprint can say about its left edge: { from (oldest minute held), busy, failed, floor (oldest the hub keeps) }
-export function fpState(root) { const r = roots.get(root); return { from: r && r.trades ? r.trades.coverFrom : Infinity, busy: !!(r && (r.fpBusy || (r.fpFrom > r.fpNeed && !r.fpFail))), failed: !!(r && r.fpFail), floor: Date.now() - KEEP_MS }; }
-async function fpPump(r) {
-  if (r.fpBusy || !(r.fpFrom > r.fpNeed + 60000) || Date.now() < (r.fpRetryAt || 0)) return;
-  const base = baseUrl(HOOK); if (!base) return;
-  r.fpBusy = true;
-  try {
-    while (r.fpFrom > r.fpNeed + 60000) {
-      const to = r.fpFrom, from = Math.max(r.fpNeed, to - FP_WIN), url = base + '/ts-aux?symbol=' + r.root + '&from=' + from + '&to=' + to;
-      let x = await authFetch(url);
-      if (x.status === 429) { await new Promise((ok) => setTimeout(ok, 6000)); x = await authFetch(url); }   // Worker rate limit: back off once
-      if (!x.ok) throw new Error('HTTP ' + x.status);
-      const j = await x.json();
-      if (r.trades) r.trades.seed(j.fp || [], false);   // never replaces a minute already held
-      r.fpFrom = from; r.fpFail = false; tell(r);
-    }
-  } catch (e) { r.fpFail = true; r.fpRetryAt = Date.now() + 30000; if (r.trades) r.trades.v++; tell(r); }   // v++: the footprint redraws its note
-  finally { r.fpBusy = false; }
-}
-// imbalance + footprint minutes recorded by the hub (last 3 h), once per page; older minutes: fpNeed()
+// imbalance + footprint minutes recorded by the hub (last 3 h), once per page
 function seedHistory(r, gap) {
   if (isQuoteSym(r.root)) return;
   if (!gap) { if (r.seeded) return; r.seeded = true; }
@@ -372,9 +341,8 @@ function seedHistory(r, gap) {
     }
     // the forming minute too: the feed only holds the ticks since we subscribed, the server's minute holds all of them (a minute only ever grows)
     if (r.trades) r.trades.seed(j.fp || [], true);
-    if (!gap) { r.fpFrom = from; fpPump(r); }
     tell(r);
-  }).catch(() => { if (!gap) { r.fpFrom = to; r.fpFail = true; r.fpRetryAt = Date.now() + 30000; } });   // fpNeed() reads the 3 h again in 30 s
+  }).catch(() => {});
 }
 // back after a hidden tab / a dropped socket: fetch the minutes we missed (Delta (L2) and the ladder read them)
 export function fillGap(root) { const r = rootState(root); if (r.seeded) seedHistory(r, true); }

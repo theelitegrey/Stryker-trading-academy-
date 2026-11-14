@@ -3,6 +3,14 @@
 // the same bars the footprint reads. anchoredVwap: VWAP from the first bar, with the running volume-weighted standard deviation.
 // Education only. Not financial advice.
 
+// First and last UTC day (day numbers) of order flow to read for a span. `cap` = most days for one chart; `histDay` = the recorder's first
+// day. A long span (a profile drawn months back) is cut to the newest `cap` days but never reaches before histDay, so days that cannot
+// hold flow are not asked for. cap/histDay unset = the old rule (newest `cap` days only).
+export function flowDays(fromMs, toMs, cap, histDay) {
+  const d1 = Math.floor(toMs / 86400000);
+  return [Math.max(Math.floor(fromMs / 86400000), d1 - cap + 1, histDay == null ? -Infinity : histDay), d1];
+}
+
 // rows: n rows of rowH from `min`. Only minutes with from <= t < to count. Prices more than half a row outside the profile are skipped (not clamped in).
 export function deltaRows(mins, tick, min, rowH, n, from, to) {
   const d = new Float64Array(n), has = new Uint8Array(n);   // has[k] = 1 when order flow touched row k (so a zero can be told from no data)

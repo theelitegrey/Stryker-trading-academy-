@@ -21,14 +21,22 @@ const note = (msg, x) => console.log('NOTE ' + msg + (x === undefined ? '' : ' '
 const FIX = path.join(__dirname, 'fixtures');
 const BODY = {};
 for (const d of ['2026-10-20', '2026-10-21']) BODY[d] = zlib.gunzipSync(fs.readFileSync(path.join(FIX, 'orderflow', 'NQ-' + d + '.bin.gz')));
-const NOW = Date.UTC(2026, 9, 21, 17, 0);
+const LONG = !!process.env.FR_LONG;   // FR_LONG=1: the clock is 14 Nov and the 4h chart has synthetic candles from 1 Sep to 14 Nov around the real 20-21 Oct ones (the member's case: a profile far older than 14 days)
+const NOW = LONG ? Date.UTC(2026, 10, 14, 10, 0) : Date.UTC(2026, 9, 21, 17, 0);
+const DAYS_ASKED = new Set();
 let CAND = null;
 async function candles(tfMin) {
   if (!CAND) {
     const D = await import(path.resolve(__dirname, '../../assets/chart-footprint-data.js'));
     CAND = { D, bars: [].concat(...Object.values(BODY).map((u) => D.decodeOrderflow(new Uint8Array(u)).bars)) };
   }
-  return CAND.D.aggregate(CAND.bars, tfMin * 60000).map((b) => [b.t / 1000, b.o * 0.25, b.hi * 0.25, b.lo * 0.25, b.c * 0.25, b.vol]);
+  const real = CAND.D.aggregate(CAND.bars, tfMin * 60000).map((b) => [b.t / 1000, b.o * 0.25, b.hi * 0.25, b.lo * 0.25, b.c * 0.25, b.vol]);
+  if (!LONG || tfMin !== 240) return real;
+  const pre = [], t1 = real[0][0], px0 = real[0][1];
+  for (let t = Date.UTC(2026, 8, 1) / 1000, i = 0; t < t1; t += 14400, i++) { const c = px0 - 300 + 300 * Math.sin(i / 25) + 40 * Math.sin(i / 3); pre.push([t, c - 8, c + 25, c - 25, c + 5, 1000 + (i % 7) * 300]); }
+  const post = [], tl = real[real.length - 1], pxl = tl[4];
+  for (let t = tl[0] + 14400, i = 0; t * 1000 < NOW; t += 14400, i++) { const c = pxl + 8 * i + 40 * Math.sin(i / 3); post.push([t, c - 8, c + 25, c - 25, c + 5, 1000 + (i % 7) * 300]); }   // candles up to the clock: no order flow after 21 Oct
+  return pre.concat(real, post);
 }
 
 async function context(b, { w, h, mobile, theme, crypto }) {
@@ -59,6 +67,7 @@ async function context(b, { w, h, mobile, theme, crypto }) {
   await ctx.route(/127\.0\.0\.1:\d+\/api\/chart\/stream/, (r) => r.abort());
   await ctx.route(/book-recorder\.theelitegrey\.workers\.dev\/.*/, (r) => {
     const u = new URL(r.request().url()); const hdr = { 'access-control-allow-origin': '*' };
+    if (u.pathname === '/orderflow') DAYS_ASKED.add(u.searchParams.get('day'));
     const body = u.pathname === '/orderflow' && u.searchParams.get('sym') === 'NQ' && !(process.env.FR_GAP && u.searchParams.get('day') === '2026-10-20') && BODY[u.searchParams.get('day')];
     return body ? r.fulfill({ status: 200, contentType: 'application/octet-stream', headers: hdr, body }) : r.fulfill({ status: 404, headers: hdr, body: '' });
   });
@@ -357,6 +366,32 @@ async function gap(b, theme, w, h) {
   await ctx.close();
 }
 
+// AUTO-FRVPDELTA: a 4h profile drawn from 1 Sep to now (14 Nov). Order flow exists from 8 Oct; the old code only asked for the newest 14 days (1-14 Nov),
+// so no row got a delta bar. Now it asks back to the first recorded day and the rows that have flow get bars.
+async function long(b, theme, w, h) {
+  const tag = 'long-' + w + '-' + theme;
+  const { ctx, p, errors } = await context(b, { w, h, mobile: w < 500, theme });
+  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await ready(p);
+  await setMarket(p, 'futures:NQ1!', '240'); await sleep(800);
+  await p.evaluate(() => {
+    const ch = window.STRYKER_VELA.chart, raw = ch.orchestrator.rawBars, a = raw[60], bb = raw[raw.length - 1];   // from 11 Sep: room left of A for the delta side
+    ch.drawings.add('fixedrangevp', { paneId: 'price', anchors: [{ time: a.time, price: a.close }, { time: bb.time, price: bb.close }], props: { extendRight: false, thinRows: false, deltaBars: 'left' } });
+    ch.setVisibleRange({ from: raw[0].time, to: bb.time + 10 * 14400 });
+  });
+  let g = null; for (let i = 0; i < 30; i++) { await sleep(700); g = await probe(p); if (g.delta > 0) break; }
+  await sleep(600);
+  note(tag + ' recorder days asked', [...DAYS_ASKED].sort());
+  if (AFTER) {
+    check(g.delta > 0, tag + ': delta bars drawn on a profile far older than 14 days', g.delta);
+    check(DAYS_ASKED.has('2026-10-20') && DAYS_ASKED.has('2026-10-21'), tag + ': asked for the recorded days 20 and 21 Oct', [...DAYS_ASKED]);
+    check(![...DAYS_ASKED].some((d) => d < '2026-10-08'), tag + ': never asked for days before the recorder starts (8 Oct)', [...DAYS_ASKED].filter((d) => d < '2026-10-08'));
+  } else note(tag + ' (old code) delta rows', g.delta);
+  await shot(p, tag);
+  check(!errors.length, tag + ': no console errors', errors.slice(0, 3));
+  await ctx.close();
+}
+
 async function phone(b) {
   const tag = '390-dark';
   const { ctx, p, errors } = await context(b, { w: 390, h: 844, mobile: true, theme: 'dark' });
@@ -428,6 +463,7 @@ async function crypto(b) {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=700'] });
   try {
     const only = process.env.FR_ONLY ? process.env.FR_ONLY.split(',') : ['dark', 'light', 'phone', 'btc'];
+    if (only.includes('long')) { await long(b, 'dark', 1440, 900); DAYS_ASKED.clear(); await long(b, 'light', 1440, 900); await long(b, 'dark', 390, 844); }
     if (only.includes('gap')) { await gap(b, 'dark', 1440, 900); await gap(b, 'light', 1440, 900); await gap(b, 'dark', 390, 844); }
     if (only.includes('dark')) await desktop(b, 'dark');
     if (only.includes('light')) await desktop(b, 'light');

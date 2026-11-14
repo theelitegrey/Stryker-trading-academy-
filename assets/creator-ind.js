@@ -13,13 +13,13 @@
   var ctx, inds = [], open = null, sub = 'list';
   var mods = null;
   function loadMods() {
-    if (!mods) mods = Promise.all([import('/assets/pine-obfuscate.js?v=985'), import('/assets/creator-seal.js?v=985')]);
+    if (!mods) mods = Promise.all([import('/assets/pine-obfuscate.js?v=986'), import('/assets/creator-seal.js?v=986')]);
     return mods;
   }
   var checker = null, chkId = 0, chkWait = {};
   function compile(source) {
     if (!checker) {
-      checker = new Worker('/assets/creator-pine-check-worker.js?v=985', { type: 'module', name: 'tz-pine-check' });
+      checker = new Worker('/assets/creator-pine-check-worker.js?v=986', { type: 'module', name: 'tz-pine-check' });
       checker.onmessage = function (e) { var w = chkWait[e.data.id]; if (w) { delete chkWait[e.data.id]; w(e.data); } };
       checker.onerror = function () { Object.keys(chkWait).forEach(function (k) { chkWait[k]({ ok: false, error: 'The Pine engine did not load. Check your connection.' }); delete chkWait[k]; }); checker = null; };
     }

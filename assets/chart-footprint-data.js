@@ -240,8 +240,9 @@ export function vwapSeries(bars, tick, reset, sessionOf) {
 // 4 h x15.49), so a higher timeframe does not light up almost every cell (GK 14 Nov). tfMin 1 / missing = the size itself.
 // Returns Infinity when there is nothing to compare, so nothing is highlighted.
 export const heavyScale = (tfMin) => (tfMin > 1 ? Math.sqrt(tfMin) : 1);
-export function heavyLimit(cellVols, mode, x, fixed, tfMin) {
-  if (mode === 'fixed') return fixed > 0 ? fixed * heavyScale(tfMin) : Infinity;
+export function heavyLimit(cellVols, mode, x, fixed, tfMin, rowTicks) {
+  // rowTicks = price levels grouped in one cell (zoom): the limit grows with it, so the same trade is heavy at every zoom
+  if (mode === 'fixed') return fixed > 0 ? fixed * heavyScale(tfMin) * (rowTicks > 1 ? rowTicks : 1) : Infinity;
   let sum = 0, n = 0;
   for (const v of cellVols) if (v > 0) { sum += v; n++; }
   return n ? x * (sum / n) : Infinity;

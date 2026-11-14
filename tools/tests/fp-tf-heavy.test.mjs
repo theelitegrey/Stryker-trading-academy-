@@ -22,3 +22,6 @@ ok(ny.length === 1 && ny[0].t === Date.UTC(2026, 10, 13, 15, 0) && ny[0].mins ==
 ok(ep.length === 2, 'epoch aggregate splits that window (the old bug: bars never matched the chart candles)', ep.map((b) => b.t));
 ok(FD.aggregate(mins.slice(0, 30), 15 * 60000, true).length === 2 && FD.aggregate(mins, T4 / 2, true).every((b) => b.t % (2 * H) !== undefined), 'sub-2h timeframes keep epoch buckets');
 console.log(n + ' passed');
+// zoom: a cell grouping m price levels is judged against m x the per-level limit (same highlight at every zoom)
+ok(FD.heavyLimit([], 'fixed', 3, 100, 15, 4) === 4 * FD.heavyLimit([], 'fixed', 3, 100, 15, 1) && FD.heavyLimit([], 'fixed', 3, 100, 1, 0) === 100, 'fixed limit grows with grouped rows, ungrouped unchanged');
+ok(FD.heavyLimit([], 'fixed', 3, 100, 15, 4) === FD.heavyLimit([], 'fixed', 3, 400, 15, 1) , 'same trade is heavy at any zoom');

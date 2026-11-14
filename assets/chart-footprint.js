@@ -815,6 +815,22 @@ function footprintLayer() {
         g.beginPath(); if (g.roundRect) g.roundRect(px + .5, py + .5, pw, 22, 11); else g.rect(px + .5, py + .5, pw, 22); g.fill(); g.stroke();
         g.fillStyle = day ? '#0e7490' : '#7fe3e8'; g.fillText(txt, px + pw / 2, py + 11.5);
       };
+      // Highlight heavy activity: the limit comes from the cells in view (or the fixed size); Infinity = off, cells keep today's colours.
+      // Same limit at every zoom: a cell that groups mm price levels is judged against mm times the per-level size (GK 14 Nov).
+      const heavyAt = (mm) => {
+        if (!cfg.heavy) return Infinity;
+        const vals = [];
+        if (cfg.heavy === 'avg') {
+          for (let i = i0; i <= i1; i++) {
+            const fb = f.map.get(a.bars[i].time); if (!fb) continue;
+            for (const r of rowsOf(fb, mm).rs) { if (cfg.mode === 'bidask') vals.push(r.buy, r.sell); else vals.push(cfg.mode === 'delta' || (cfg.mode === 'ladder' && cfg.ladShow === 'delta') ? Math.abs(r.buy - r.sell) : r.buy + r.sell); }
+          }
+        }
+        return heavyLimit(vals, cfg.heavy, cfg.heavyX, cfg.heavyFixed, tfMin(d.timeframe), mm);
+      };
+      const HK = cfg.heavyK;
+      const hot = (c) => vivid(c, HK.v);
+      const hotBuy = cfg.heavyBuyC, hotSell = cfg.heavySellC;   // heavy buying / selling: their own colours
       if (!cells) {
         // zoomed out: candles coloured by the bar's delta (strength = |delta| / volume)
         for (let i = i0; i <= i1; i++) {
@@ -825,6 +841,28 @@ function footprintLayer() {
           const r = fb.delta / fb.vol;
           g.fillStyle = alpha(fb.delta >= 0 ? UP : SELL, 0.35 + 0.65 * Math.min(1, Math.abs(r) * 2.5));
           g.fillRect(Math.round(x - w / 2), Math.min(yO, yC), w, Math.max(1, Math.abs(yC - yO)));
+        }
+        // heavy activity stays visible zoomed out: rows of at least 3 px, a small marker per heavy row (buys right, sells left)
+        if (cfg.heavy && cfg.mode !== 'boxes' && cfg.mode !== 'dbars') {
+          let mz = cfg.rows || 1;
+          if (!cfg.rows) for (const q of ROW_STEPS) { mz = q; if (tickPx * q >= 3) break; }
+          const hz = heavyAt(mz), mw = Math.max(2, Math.min(bw * 0.9, 24)), hA = Math.min(1, 0.55 + 0.45 * HK.a);
+          for (let i = i0; i <= i1; i++) {
+            const fb = f.map.get(a.bars[i].time); if (!fb) continue;
+            const x = co.logicalToX(i), xl = x - mw / 2;
+            for (const r of rowsOf(fb, mz).rs) {
+              const yT = co.priceToY((r.p + mz) * tick, a.scale, a.bounds), yB = co.priceToY(r.p * tick, a.scale, a.bounds);
+              const y = Math.min(yT, yB), h = Math.max(2, Math.abs(yB - yT) - 0.5);
+              if (y > bot || y + h < top) continue;
+              const dl = r.buy - r.sell;
+              if (cfg.mode === 'bidask') {
+                if (r.sell >= hz) { g.fillStyle = alpha(hotSell, hA); g.fillRect(xl, y, mw / 2, h); }
+                if (r.buy >= hz) { g.fillStyle = alpha(hotBuy, hA); g.fillRect(x, y, mw / 2, h); }
+              } else if ((cfg.mode === 'delta' || (cfg.mode === 'ladder' && cfg.ladShow === 'delta') ? Math.abs(dl) : r.buy + r.sell) >= hz) {
+                g.fillStyle = alpha(dl >= 0 ? hotBuy : hotSell, hA); g.fillRect(xl, y, mw, h);
+              }
+            }
+          }
         }
         pill('Zoom in to see footprint');
         g.restore(); lastMs = performance.now() - t0; if (window.__stkFpStats) window.__stkFpStats.push(lastMs); return;
@@ -855,19 +893,7 @@ function footprintLayer() {
           for (const r of rowsOf(fb, m).rs) { const q = lv(r); if (q > gmax) gmax = q; }
         }
       }
-      // Highlight heavy activity: the limit comes from the cells in view (or the fixed size); null = off, cells keep today's colours
-      let heavy = Infinity;
-      if (cfg.heavy) {
-        const vals = [];
-        for (let i = i0; i <= i1; i++) {
-          const fb = f.map.get(a.bars[i].time); if (!fb) continue;
-          for (const r of rowsOf(fb, m).rs) { if (cfg.mode === 'bidask') vals.push(r.buy, r.sell); else vals.push(cfg.mode === 'delta' || (cfg.mode === 'ladder' && cfg.ladShow === 'delta') ? Math.abs(r.buy - r.sell) : r.buy + r.sell); }
-        }
-        heavy = heavyLimit(vals, cfg.heavy, cfg.heavyX, cfg.heavyFixed, tfMin(d.timeframe));
-      }
-      const HK = cfg.heavyK;
-      const hot = (c) => vivid(c, HK.v);
-      const hotBuy = cfg.heavyBuyC, hotSell = cfg.heavySellC;   // heavy buying / selling: their own colours
+      const heavy = heavyAt(m);
       for (let i = i0; i <= i1; i++) {
         const bar = a.bars[i], fb = f.map.get(bar.time);
         if (!fb) continue;

@@ -31,7 +31,7 @@
   }
   user().then(function (u) {
     if (!u) return end('Sign in first', 'Sign in to TradeZoro, then connect cTrader again.');
-    return Promise.all([import('./byo-core.js?v=988'), import('./byo-ctrader.js?v=988')]).then(function (m) {
+    return Promise.all([import('./byo-core.js?v=989'), import('./byo-ctrader.js?v=989')]).then(function (m) {
       var c = m[0], ct = m[1];
       var rec = ct.takeCtraderState(state, u.uid);
       if (!rec) return end('cTrader was not connected', 'The sign-in link expired. Start again from Data source in the charts.');

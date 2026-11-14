@@ -21,7 +21,7 @@
 // Rows that need a patched Vela build (stage 2) are shown disabled with a short tooltip.
 // Nothing here touches data, trading or accounts.
 
-import * as DL from './chart-days-load.js?v=988';
+import * as DL from './chart-days-load.js?v=989';
 const EXT_KEY = 'stryker.settings';
 const DEFAULT_KEY = 'stryker_chart_settings_default';
 const TZ_FLAG = 'stryker_chart_tz_kolkata';

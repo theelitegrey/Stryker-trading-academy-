@@ -179,3 +179,6 @@
 @media (max-width:699px){ .cm-hero .hh-scene{ margin-top:36px; } }
 .cm-hero .hh-scene{ padding-bottom:0; }
 .hs-gex img{ object-position:72% 45%; }
+
+/* Owner 14 Nov: pill buttons everywhere (see style.css end) */
+.btn,.cm-btn,.btn-sm{ border-radius:999px; }

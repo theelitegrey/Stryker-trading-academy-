@@ -11448,3 +11448,9 @@ html.geo-gate-open, html.geo-gate-open body{ overflow:hidden; }
 
 /* Owner 14 Nov: app top-bar logo sized to sit in line with the other top-bar items (was 32px tall) */
 @media (min-width:768px){ .topnav-left .brand-mark{ height:22px; } }
+
+/* Owner 14 Nov: every site button uses fully rounded (pill) corners, like the "Download for macOS / Linux" reference.
+   Last in the file so it wins over the older 8–14px radii. Small icon buttons and chart toolbar keys are not included. */
+.btn, .btn-sm, .btn-block, .cm-btn, .pv-cta, .pv-cta-xl, .dl-btn,
+.fb-btn, .fb-btn-xl, .dh-btn, .dh-btn-xl, .fb-top-cta, .pr-btn,
+.hcb-go-btn, .cd-go-btn, .gex-dl-btn{ border-radius:999px; }

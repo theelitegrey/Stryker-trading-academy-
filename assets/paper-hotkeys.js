@@ -20,6 +20,11 @@
     { id: 'closeQuarter', group: 'Position', label: 'Close a quarter of the position' },
     { id: 'reversePos', group: 'Position', label: 'Reverse the position' },
     { id: 'flattenAll', group: 'Position', label: 'Close everything and cancel all orders' },
+    { id: 'moveBE', group: 'Position', label: 'Move the stop loss to breakeven' },
+    { id: 'trailToggle', group: 'Position', label: 'Turn the trailing stop on or off' },
+    { id: 'closeWin', group: 'Position', label: 'Close all profitable positions' },
+    { id: 'closeLoss', group: 'Position', label: 'Close all losing positions' },
+    { id: 'closeCustom', group: 'Position', label: 'Close part of the position (type the quantity)' },
     { id: 'qtyUp', group: 'Quantity', label: 'Quantity up' },
     { id: 'qtyDown', group: 'Quantity', label: 'Quantity down' },
     { id: 'qty1', group: 'Quantity', label: 'Set quantity to 1' },
@@ -87,5 +92,16 @@
     const q = posQty * frac;
     return whole ? Math.floor(q) : Math.floor(q * 1e4) / 1e4;
   }
-  return { ACTIONS, IDS, CHART_KEYS, comboFromEvent, label, reserved, conflict, nameOf, clean, typing, match, partQty };
+  /** Check a typed close quantity against the open size. step = smallest size step (1 for futures). */
+  function validQty(raw, max, step) {
+    const s = String(raw == null ? '' : raw).trim().replace(',', '.');
+    if (!s) return { ok: false, msg: 'Type a quantity.' };
+    if (!/^\d*\.?\d+$|^\d+\.$/.test(s)) return { ok: false, msg: 'Use a plain number.' };
+    const q = Number(s), st = step > 0 ? step : 1;
+    if (!(q > 0)) return { ok: false, msg: 'The quantity must be more than zero.' };
+    if (q > max) return { ok: false, msg: 'You only hold ' + max + '. Enter ' + max + ' or less.' };
+    if (Math.abs(q / st - Math.round(q / st)) > 1e-9) return { ok: false, msg: st === 1 ? 'Use whole contracts.' : 'Use steps of ' + st + '.' };
+    return { ok: true, qty: Number(q.toFixed(6)) };
+  }
+  return { validQty, ACTIONS, IDS, CHART_KEYS, comboFromEvent, label, reserved, conflict, nameOf, clean, typing, match, partQty };
 });

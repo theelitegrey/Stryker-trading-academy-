@@ -1478,6 +1478,48 @@ function hkPart(sym, frac){
   if (!(q > 0)) { toast('The position is too small to close ' + (frac === 0.5 ? 'half' : 'a quarter') + ' of it.', 'info'); return; }
   act(() => acct.closePosition(sym, q), 'Closed ' + q + ' of ' + p.qty + ' ' + showSym(sym));
 }
+function hkNeedPos(sym){ const p = sym && acct.state.positions[canonSym(sym)]; if (!p) toast('No open paper position on this chart.', 'info'); return p || null; }
+function hkByResult(kind){
+  const word = kind === 'profit' ? 'profitable' : 'losing', n0 = Object.keys(acct.state.positions).length;
+  if (!n0) { toast('No open paper positions.', 'info'); return; }
+  act(() => acct.closeByResult(kind));
+  const n = n0 - Object.keys(acct.state.positions).length;
+  toast(n ? 'Closed ' + n + ' ' + word + ' paper position' + (n === 1 ? '' : 's') : 'No ' + word + ' paper positions to close.', n ? 'success' : 'info');
+}
+// Small prompt for "close part of the position": the member types the quantity (1 up to the open size).
+let cq = null;
+function openCloseQty(sym){
+  const p = hkNeedPos(sym); if (!p) return;
+  if (!cq) {
+    cq = h('div', { id: 'stkpt-cq', hidden: true });
+    cq.innerHTML = '<div class="stkpt-tk-box" role="dialog" aria-modal="true" aria-labelledby="stkpt-cq-h"><div class="stkpt-tk-head"><div><h2 id="stkpt-cq-h">Close part of the position</h2><p class="stkpt-tag">Paper trading (simulated)</p></div><button type="button" class="stkpt-x" data-k="x" aria-label="Close">×</button></div><form novalidate><label class="stkpt-f">Quantity to close<input name="q" type="text" inputmode="decimal" autocomplete="off" aria-describedby="stkpt-cq-m"></label><small class="stkpt-qhint" id="stkpt-cq-hint"></small><p class="stkpt-mk" id="stkpt-cq-m" role="alert"></p><button type="submit" class="stkpt-go sell">Close this quantity</button></form></div>';
+    document.body.appendChild(cq);
+    cq.addEventListener('click', (e) => { if (e.target === cq || (e.target.dataset && e.target.dataset.k === 'x')) cq.hidden = true; });
+    cq.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); cq.hidden = true; } }, true);
+    cq.querySelector('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const sy = cq.dataset.sym, pp = acct.state.positions[canonSym(sy)], m = cq.querySelector('#stkpt-cq-m');
+      if (!pp) { cq.hidden = true; toast('That position is already closed.', 'info'); return; }
+      const v = PK.validQty(cq.querySelector('input').value, pp.qty, specOf(sy).qtyStep);
+      if (!v.ok) { m.textContent = v.msg; cq.querySelector('input').setAttribute('aria-invalid', 'true'); return; }
+      cq.hidden = true;
+      act(() => acct.closePosition(sy, v.qty), 'Closed ' + v.qty + ' of ' + pp.qty + ' ' + showSym(sy));
+    });
+  }
+  cq.dataset.sym = sym;
+  const inp = cq.querySelector('input'); inp.value = ''; inp.removeAttribute('aria-invalid'); cq.querySelector('#stkpt-cq-m').textContent = '';
+  cq.querySelector('#stkpt-cq-hint').textContent = 'You hold ' + p.qty + ' ' + showSym(sym) + '. Enter up to ' + p.qty + '.';
+  cq.hidden = false; setTimeout(() => { try { inp.focus(); } catch (e) {} }, 30);
+}
+function hkTrail(sym){
+  const p = hkNeedPos(sym); if (!p) return;
+  const on = !(p.trail > 0);
+  act(() => acct.setTrailing(sym, on), on ? 'Trailing stop on for ' + showSym(sym) : 'Trailing stop off for ' + showSym(sym));
+}
+function hkBE(sym){
+  if (!hkNeedPos(sym)) return;
+  act(() => acct.moveToBreakeven(sym), 'Stop moved to breakeven for ' + showSym(sym));
+}
 export function runHotkey(id){
   if (!acct || !paperOn() || !PK) return false;
   const sym = hkSym(), side = /^buy/.test(id) ? 'buy' : 'sell';
@@ -1488,6 +1530,11 @@ export function runHotkey(id){
   else if (id === 'closePos') { if (sym && acct.state.positions[canonSym(sym)]) closePos(sym); else toast('No open paper position on this chart.', 'info'); }
   else if (id === 'closeHalf') hkPart(sym, 0.5);
   else if (id === 'closeQuarter') hkPart(sym, 0.25);
+  else if (id === 'moveBE') hkBE(sym);
+  else if (id === 'trailToggle') hkTrail(sym);
+  else if (id === 'closeWin') hkByResult('profit');
+  else if (id === 'closeLoss') hkByResult('loss');
+  else if (id === 'closeCustom') openCloseQty(sym);
   else if (id === 'reversePos') { if (sym && acct.state.positions[canonSym(sym)]) reversePos(sym); else toast('No open paper position on this chart.', 'info'); }
   else if (id === 'flattenAll') flattenAll();
   else if (id === 'qtyUp') { if (sym) hkQtyStep(sym, 1); }
@@ -1659,6 +1706,11 @@ const CSS = `
 /* ticket */
 #stkpt-tk{ position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:16px; }
 #stkpt-tk[hidden]{ display:none; }
+#stkpt-cq{ position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:16px; }
+#stkpt-cq[hidden]{ display:none; }
+#stkpt-cq form{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+#stkpt-cq input{ background:var(--bg-1); color:var(--ink-0); border:1px solid var(--line); border-radius:8px; padding:9px 10px; min-height:44px; font:16px var(--font-mono, monospace); }
+#stkpt-cq input[aria-invalid=true]{ border-color:#f23645; }
 .stkpt-tk-box{ width:min(400px,100%); max-height:calc(100dvh - 32px); overflow:auto; background:var(--bg-1, #0b0b0d); color:var(--ink-1); border:1px solid var(--line); border-radius:16px; padding:14px 16px 12px; box-shadow:0 24px 80px rgba(0,0,0,.6); font:13px/1.4 var(--font-body, sans-serif); }
 .stkpt-tk-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
 .stkpt-tk-head h2{ margin:0; font-size:16px; color:var(--ink-0); }
@@ -1714,6 +1766,7 @@ const CSS = `
   .stkpt-kvs{ grid-template-columns:1fr 1fr; }
   .stkpt-foot{ white-space:normal; }
   #stkpt-tk{ align-items:flex-end; padding:0; }
+  #stkpt-cq{ align-items:flex-end; padding:0; }
   .stkpt-tk-box{ width:100%; border-radius:18px 18px 0 0; max-height:92dvh; padding-bottom:calc(14px + env(safe-area-inset-bottom)); }
   .stkpt-go{ height:48px; }
   .stkpt-1c{ height:34px; top:28px; }
@@ -1725,7 +1778,7 @@ const CSS = `
 /* switched off (Chart settings → Paper trading): nothing of paper trading on the page */
 .stkpt[hidden],#stkc-paper-btn[hidden]{ display:none !important; }
 html.stkbp-sheet #stkpt-toasts{ position:fixed; left:8px; right:8px; top:auto; bottom:calc(var(--stkc-dock, 0px) + min(78dvh, 600px) + 8px); max-width:none; z-index:8001; }
-html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on) .stkpt-chip,html:not(.stkpt-on) #stkpt-offers,html:not(.stkpt-on) #stkpt-toasts,html:not(.stkpt-on) #stkpt-tk{ display:none !important; }
+html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on) .stkpt-chip,html:not(.stkpt-on) #stkpt-offers,html:not(.stkpt-on) #stkpt-toasts,html:not(.stkpt-on) #stkpt-tk,html:not(.stkpt-on) #stkpt-cq{ display:none !important; }
 /* settings tab: same card look as the Sounds tab */
 .stkpt-set-ui{ display:flex; flex-direction:column; gap:12px; padding:2px 0 12px; color:#eeeeee; font-family:Archivo,system-ui,sans-serif; }
 :root[data-theme="light"] .stkpt-set-ui{ color:#131316; }

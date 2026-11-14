@@ -20,7 +20,7 @@
 .hn-tog,.hn-login-m{ display:none; }
 @media (max-width:899px){
   .hn-in{ gap:8px; } .hn-brand{ margin-right:auto; } .hn-brand img{ display:none; } .hn-brand .mk{ display:block; }
-  .hn-login{ display:none; } .hn-tog{ display:grid; }
+  .hn-tog{ display:grid; }
   .hn-links{ display:none; position:absolute; left:0; right:0; top:var(--cm-nav); flex-direction:column; align-items:stretch; padding:8px 16px 16px; background:var(--bg-1); border-bottom:1px solid var(--line); max-height:calc(100svh - var(--cm-nav)); overflow:auto; }
   .hn-links.open{ display:flex; } .hn-login-m{ display:flex; }
   .hn-menu{ position:static; width:auto; grid-template-columns:1fr; box-shadow:none; border:0; background:none; padding:4px 0 8px; }

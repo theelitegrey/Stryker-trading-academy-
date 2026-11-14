@@ -11,7 +11,7 @@
     // Signed-in visitors see Dashboard instead of Log in / Start free (same signal as auth.js publicNavAuthState).
     var cta=document.querySelector('.hn-cta'); if(!cta) return;
     var login=cta.querySelector('.hn-login'), start=cta.querySelector('a[href="/signup"]'), dash=document.createElement('a');
-    dash.href='/dashboard-user'; dash.className='btn btn-primary btn-sm'; dash.textContent='Dashboard'; dash.hidden=true; cta.insertBefore(dash,document.getElementById('hn-tog'));
+    dash.href='/dashboard-user'; dash.className='btn btn-primary btn-sm'; dash.textContent='Dashboard'; dash.hidden=true; cta.insertBefore(dash,login||document.getElementById('hn-tog'));
     function paint(on){ dash.hidden=!on; if(login) login.style.display=on?'none':''; if(start) start.style.display=on?'none':''; }
     try{ paint(localStorage.getItem('stryker_nav_signed_in')==='1'); }catch(e){}
     if(typeof auth!=='undefined'&&auth) auth.onAuthStateChanged(function(u){ paint(!!u); });

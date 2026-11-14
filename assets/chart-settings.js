@@ -535,9 +535,69 @@ function restore(id, snap, opts){
   applyCell(id);
   try { WS.markStateDirty(); } catch (e) {}
 }
+
+// ---------------------------------------------------------------------------------------
+// DEFAULT LOOK (Owner order 14 Nov): the style a chart gets when it has NO saved style (new member, new
+// layout, new chart cell, signed-out visitor, "Reset to TradeZoro defaults"). Nothing saved is ever
+// rewritten: it is applied only to a cell created without a saved document, and undone first when a
+// saved document / template / layout is loaded over it (so those load exactly as they always did).
+// ---------------------------------------------------------------------------------------
+const isLight = () => document.documentElement.getAttribute('data-theme') === 'light';
+function defStylePatch(){
+  const light = isLight();
+  const up = '#24A34E', down = light ? '#8B8E94' : '#ADADAD';
+  return {
+    layout: { background: light ? '#ffffff' : '#0f0f0f', textColor: light ? '#6a6c72' : '#787a7f' },
+    grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+    animations: { zoom: false },
+    series: { spacing: 1 },
+    candles: { upColor: up, downColor: down, bodyVisible: true, borderVisible: true, wickVisible: true,
+      borderUpColor: up, borderDownColor: down, wickUpColor: up, wickDownColor: down }
+  };
+}
+function mergeDeep(base, patch){
+  const o = Object.assign({}, base);
+  for (const k of Object.keys(patch)) o[k] = patch[k] && typeof patch[k] === 'object' ? mergeDeep(base[k] || {}, patch[k]) : patch[k];
+  return o;
+}
+const stockOf = new Map();   // cell id -> config before our default look (only for cells wearing it)
+function wearDefault(id){
+  const cell = cellOf(id); if (!cell || !cell.chart) return;
+  try {
+    const r = cell.chart.renderer;
+    if (!stockOf.has(id)) stockOf.set(id, clone(r.getConfig()));
+    r.applyConfig(defStylePatch());
+  } catch (e) { console.warn('TradeZoro default look', e); }
+}
+function takeOffDefault(){
+  stockOf.forEach((cfg, id) => { const c = cellOf(id); if (c && c.chart) { try { c.chart.renderer.applyConfig(cfg); } catch (e) {} } });
+  stockOf.clear();
+}
+function mountDefaultLook(ws, fresh){
+  if (fresh) (ws.context().cells || []).forEach((c) => wearDefault(c.id));
+  // Cells coming back from Vela's pool (layout shrunk then widened) keep what they had.
+  const pooled = new Set();
+  try { const pool = ws.pool, get = pool.get; pool.get = function(k){ const v = get.call(this, k); if (v !== undefined) pooled.add(k); return v; }; } catch (e) {}
+  // A document (saved layout, template, imported) loads exactly as before: our look comes off first.
+  // A brand-new layout (chart-layouts createNew) sets window.__stkFreshDoc and gets the look after.
+  const apply = ws.applyState.bind(ws);
+  let loading = false;
+  ws.applyState = function(doc){
+    takeOffDefault();
+    const fresh = window.__stkFreshDoc === true; window.__stkFreshDoc = false;
+    loading = true;
+    try { return apply(doc); }
+    finally { loading = false; if (fresh) (ws.context().cells || []).forEach((c) => wearDefault(c.id)); }
+  };
+  try { ws.on('cell:created', ({ id }) => { if (loading) return; if (pooled.delete(id)) return; setTimeout(() => wearDefault(id), 0); }); } catch (e) {}
+  // Day / night switch: our values are theme-specific, so follow the theme while the cell wears them.
+  const st = ws.setTheme.bind(ws);
+  ws.setTheme = function(t){ const r = st(t); stockOf.forEach((_, id) => { const c = cellOf(id); if (c && c.chart) { try { c.chart.renderer.applyConfig(defStylePatch()); } catch (e) {} } }); return r; };
+}
 function stykerDefaults(id){
   const cell = cellOf(id); const R = inner(cell);
   const f = R && R.factoryConfig ? clone(R.factoryConfig) : null;
+  if (f) Object.assign(f, mergeDeep(f, defStylePatch()));
   return { cfg: f, status: { parts: { logo: true, name: true, market: true, ohlc: true, change: true }, indicatorTitles: true, indicatorValues: true },
     ours: Object.assign({}, DEFAULTS), style: 'candles', tz: 'Asia/Kolkata' };
 }
@@ -736,6 +796,7 @@ export function mountChartSettings(ws, opts){
   hookAll();
   try { ws.on('layout:changed', () => setTimeout(hookAll, 0)); } catch (e) {}
   try { ws.on('state:changed', () => (ws.context().cells || []).forEach((c) => { const cell = cellOf(c.id); if (cell && cell.chart && !cell.chart.renderer.__stkSettings) applyCell(c.id); })); } catch (e) {}
+  if (!(opts && opts.bt)) mountDefaultLook(ws, !!(opts && opts.fresh));
   watchDialogs();
   watchAdmin();
 
@@ -761,4 +822,5 @@ export function mountChartSettings(ws, opts){
     bar.insertBefore(b, bar.firstChild);
   }
   window.__stkSettings = { setReplayHide(v){ (ws.context().cells || []).forEach((c) => { S(c.id).rhide = !!v; applyCell(c.id); }); rhSync(!!v); try { ws.markStateDirty(); } catch (e) {} }, store, snapshot, restore, applyCell, DEFAULTS };
+window.__stkDefaultsFor = stykerDefaults;   // test hook: what "Reset to TradeZoro defaults" applies
 }

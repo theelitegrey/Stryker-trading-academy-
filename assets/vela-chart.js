@@ -1094,7 +1094,7 @@ function visualOrder(R) {
   if (heavyNeeded) mountHeavy();
   import('./chart-pro-gate.js?v=1005').then((m) => m.mountProGate(ws, { toast })).catch((e) => console.warn('TradeZoro: pro gate', e));
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('TradeZoro: community picker', e); }
-  try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: settings window', e); }
+  try { Settings.mountChartSettings(ws, { bt: !!BT, fresh: !hadSession, toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: settings window', e); }
   hmP.then((m) => { if (m && !BT) m.mountHeatmapPanel(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); });
   if (!BT) try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: alerts', e); }
   // PAPER TRADING (Owner order 2026-10-12): demo money, simulated fills, no broker. Trade button,

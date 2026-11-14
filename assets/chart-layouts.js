@@ -437,6 +437,7 @@ export function mountLayouts(ws, o){
   async function createNew(name){
     // A fresh single chart, saved straight away under the new name.
     if (cur && dirty && auto()) await saveNow(false);
+    window.__stkFreshDoc = true;   // new layout = no saved style: it gets the default look (chart-settings.js)
     apply({ version: 1, layout: '1', charts: [{ id: 'A', symbol: 'futures:NQ1!', timeframe: '15' }] });
     cur = null;
     await new Promise((r) => setTimeout(r, 50));

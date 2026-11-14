@@ -11,12 +11,13 @@ async function open(b, vp, mobile, theme) {
   const ctx = await b.newContext({ viewport: vp, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile });
   await ctx.addInitScript((th) => { try { localStorage.setItem('stryker_install_prompt_dismissed', '1'); localStorage.setItem('stryker_community_disclaimer_ack_v1', '1'); localStorage.setItem('stryker_theme', th); } catch (e) {} }, theme);
   const p = await ctx.newPage(); const errs = [];
+
   p.on('pageerror', (e) => errs.push(e.message)); p.on('dialog', (d) => d.accept());
   await p.goto(BASE + '/charts.html', { waitUntil: 'load' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkPaper && window.__stkPaper.account, null, { timeout: 60000 });
   await p.evaluate((th) => { document.documentElement.dataset.theme = th; window.STRYKER_CHART_UI.applySaved({ state: { version: 1, layout: '1', charts: [{ id: 'a', symbol: 'CME_MINI:NQ1!', timeframe: '1' }] } }); }, theme);
   await p.waitForFunction(() => window.STRYKER_VELA.active && window.STRYKER_VELA.active.symbol === 'CME_MINI:NQ1!', null, { timeout: 20000 });
-  await p.evaluate(() => { window.__stkPaper.setEnabled(true); window.__stkPaper.account.setLast('CME_MINI:NQ1!', 21000); });
+  await p.evaluate(() => { window.StrykerMarketHours.futuresStatus = () => ({ open: true }); /* test must pass on weekends too */ window.__stkPaper.setEnabled(true); window.__stkPaper.account.setLast('CME_MINI:NQ1!', 21000); });
   return { ctx, p, errs };
 }
 async function openTab(p, phone) {

@@ -227,7 +227,7 @@ class TsNative {
     const showCmp = (() => { try { return localStorage.getItem('tz_feedcheck') === '1'; } catch (e) { return false; } })();   // internal feed check: hidden from members unless turned on
     const tables = msg ? [table(t + '-msg', [msg], true)] : cmp && showCmp ? [table(t + '-cmp', cmp, false, t === 'stk_ts_big')] : [];
     if (t === 'stk_ts_big') { ctx.emit({ tables }); ctx.pushData({ owner: this, root, isRoot: same ? isRoot : null, timeframe: ctx.timeframe, inputs: I, v: s.v, vr: bars.length }); return; }
-    const agg = aggregateMins(mins, tf * 60000), map = new Map(agg.map((b) => [b.t, b]));
+    const agg = aggregateMins(mins, tf * 60000, true), map = new Map(agg.map((b) => [b.t, b]));
     if (t === 'stk_ts_delta') {
       const pts = bars.map((b) => { const x = map.get(b.time); return x ? { time: b.time, value: x.delta, color: x.delta >= 0 ? I.upColor : I.downColor } : { time: b.time, value: null }; });
       ctx.emit({ series: [{ id: 'ts-delta', title: 'Delta L1', paneId: '', kind: 'histogram', points: pts, style: { color: I.upColor, width: 1, lineStyle: 'solid', base: 0 } }], tables });

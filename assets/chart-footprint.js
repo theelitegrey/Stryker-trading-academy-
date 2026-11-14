@@ -273,7 +273,7 @@ export function flowFor(ctxLike) {
   const memo = viewCache.get(ctxLike.owner);
   if (memo && memo.key === key) return memo.out;
   const clipped = clipTo(got.bars, E);
-  const agg = aggregate(clipped, tf * 60000);
+  const agg = aggregate(clipped, tf * 60000, true);   // futures: 2 h / 4 h bars start on the 18:00 New York open
   const map = new Map();
   for (const b of agg) map.set(b.t, b);
   const note = got.loading && !agg.length ? 'Loading order flow…' : got.err && !agg.length ? got.err : !agg.length ? (free ? 'No order flow in the last 24 h yet (free plan: NQ, last 24 h).' : 'No order flow for these bars yet. History starts ' + '6 days before 2026-10-14 and grows from there.') : '';
@@ -863,7 +863,7 @@ function footprintLayer() {
           const fb = f.map.get(a.bars[i].time); if (!fb) continue;
           for (const r of rowsOf(fb, m).rs) { if (cfg.mode === 'bidask') vals.push(r.buy, r.sell); else vals.push(cfg.mode === 'delta' || (cfg.mode === 'ladder' && cfg.ladShow === 'delta') ? Math.abs(r.buy - r.sell) : r.buy + r.sell); }
         }
-        heavy = heavyLimit(vals, cfg.heavy, cfg.heavyX, cfg.heavyFixed);
+        heavy = heavyLimit(vals, cfg.heavy, cfg.heavyX, cfg.heavyFixed, tfMin(d.timeframe));
       }
       const HK = cfg.heavyK;
       const hot = (c) => vivid(c, HK.v);
@@ -1295,7 +1295,7 @@ export function installFootprint(Core, flowMod) {
         { kind: 'color', key: 'fpSellColor', label: 'Sell colour', defval: FP_DEF.fpSellColor },
         { kind: 'select', key: 'fpHeavy', label: 'Highlight heavy activity', defval: 'off', options: [['off', 'Off'], ['avg', 'On: times the visible average'], ['fixed', 'On: a fixed size']], when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder'] } },
         { kind: 'number', key: 'fpHeavyX', label: 'Heavy = times the average', defval: 3, min: 1.5, max: 20, step: 0.5, when: { key: 'fpHeavy', anyOf: ['avg'] } },
-        { kind: 'number', key: 'fpHeavyFixed', label: 'Heavy = at least this size per price level', defval: 100, min: 1, max: 1000000, step: 1, when: { key: 'fpHeavy', anyOf: ['fixed'] } },
+        { kind: 'number', key: 'fpHeavyFixed', label: 'Heavy = at least this size per price level (1-minute bar; scales up on higher timeframes)', defval: 100, min: 1, max: 1000000, step: 1, when: { key: 'fpHeavy', anyOf: ['fixed'] } },
         { kind: 'color', key: 'fpHeavyBuyColor', label: 'Heavy buying colour', defval: FP_DEF.fpHeavyBuyColor, when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
         { kind: 'color', key: 'fpHeavySellColor', label: 'Heavy selling colour', defval: FP_DEF.fpHeavySellColor, when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
         { kind: 'select', key: 'fpHeavyLevel', label: 'Heavy intensity', defval: 'normal', options: [['subtle', 'Subtle'], ['normal', 'Normal'], ['strong', 'Strong']], when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },

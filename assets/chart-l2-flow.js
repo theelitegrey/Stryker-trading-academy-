@@ -123,7 +123,7 @@ class Hub {
     else { const f = this.cf(); m = f.bars().filter((b) => b.t >= f.coverFrom).map((b) => ({ t: b.t, buy: (b.vol + b.delta) / 2, sell: (b.vol - b.delta) / 2, hi: b.dmax, lo: b.dmin })); }
     this.memo.mk = key; this.memo.m = m; return m;
   }
-  tradeBars(tf) { const k = this.tver() + ':' + (this.kind === 'futures' ? this.fver() + ':' + (this.rec ? this.rec.length : 0) : '') + '|' + tf; if (this.memo.tk !== k) { this.memo.tk = k; this.memo.tb = new Map(aggregateMins(this.minutes(), tf).map((b) => [b.t, b])); } return this.memo.tb; }
+  tradeBars(tf) { const k = this.tver() + ':' + (this.kind === 'futures' ? this.fver() + ':' + (this.rec ? this.rec.length : 0) : '') + '|' + tf; if (this.memo.tk !== k) { this.memo.tk = k; this.memo.tb = new Map(aggregateMins(this.minutes(), tf, this.kind === 'futures').map((b) => [b.t, b])); } return this.memo.tb; }
   // per-price minutes (footprint): futures from the hub's TickFeed (3 h), crypto from the stream
   footBars() {
     const f = this.kind === 'futures' ? this.footFeed() : this.cf();
@@ -132,7 +132,7 @@ class Hub {
   }
   footAgg(tf) {
     const k = this.fver() + '|' + tf; if (this.memo.fk === k) return this.memo.fa;
-    const fb = this.footBars(), map = new Map(aggregate(fb.bars, tf).map((b) => [b.t, b]));
+    const fb = this.footBars(), map = new Map(aggregate(fb.bars, tf, this.kind === 'futures').map((b) => [b.t, b]));
     this.memo.fk = k; this.memo.fa = { map, tick: fb.tick, from: fb.from }; return this.memo.fa;
   }
   prints() {   // [ms, tick idx, size, side 1 buy] for Big Trades
@@ -846,7 +846,7 @@ export function fpFlow(own, ctx, bars, tfMs, E, onChange, left) {
   if (!own.u || own.spec.key !== spec.key) { fpDrop(own); own.u = acquireHub(spec, bars[0].time, onChange); own.spec = spec; }
   const hub = own.u.h, fb = hub.footBars(), key = hub.fver() + '|' + tfMs + '|' + (E == null ? '' : Math.floor(E / 60000));
   if (own.k !== key) {
-    const clipped = clipTo(fb.bars, E), agg = aggregate(clipped, tfMs);
+    const clipped = clipTo(fb.bars, E), agg = aggregate(clipped, tfMs, true);
     own.k = key;
     own.out = { map: new Map(agg.map((b) => [b.t, b])), list: agg, mins: clipped, tick: fb.tick || spec.tick, thr: 0, free: false, note: '' };
   }

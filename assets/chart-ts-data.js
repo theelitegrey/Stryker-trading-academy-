@@ -3,6 +3,7 @@
 //   { sym, at, floor, trades: [[ts_ms, price, size, side 1|-1]..], delta: [[minute_ms, buy, sell, runHigh, runLow]..] }
 // Education only. Not financial advice.
 import { bigPrints } from './chart-of-pro-data.js?v=989';
+import { bucketOf } from './chart-footprint-data.js?v=989';
 
 // Tick-stream sends one tick per FILL (an order that lifts 20 lots at one price = 20 ticks of 1); InsightSentry has one print per order and price.
 // mergeFills() makes the Tick-stream side comparable: consecutive fills of the same side and price with the SAME time stamp (REST rows carry
@@ -18,10 +19,10 @@ export function mergeFills(ticks, gap = 0) {
 }
 // Tick-stream minutes -> bars of tfMs in the SAME shape as the order-flow bars (t, buy, sell, vol, delta, dmax, dmin), so cvdCandles()
 // and the delta pane work unchanged. dmax / dmin are the running-delta extremes inside the bar (relative to its open).
-export function aggregateMins(mins, tfMs) {
+export function aggregateMins(mins, tfMs, ny) {
   const out = []; let cur = null;
   for (const m of mins) {
-    const t = Math.floor(m.t / tfMs) * tfMs, d = m.buy - m.sell;
+    const t = bucketOf(m.t, tfMs, ny), d = m.buy - m.sell;
     if (!cur || cur.t !== t) { cur = { t, buy: m.buy, sell: m.sell, vol: m.buy + m.sell, delta: d, dmax: m.hi, dmin: m.lo, trades: 0, bigs: [], mins: 1 }; out.push(cur); continue; }
     cur.dmax = Math.max(cur.dmax, cur.delta + m.hi); cur.dmin = Math.min(cur.dmin, cur.delta + m.lo);
     cur.buy += m.buy; cur.sell += m.sell; cur.vol += m.buy + m.sell; cur.delta += d; cur.mins++;

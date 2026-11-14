@@ -61,12 +61,22 @@ export async function gunzipBody(buf) {
 
 // Merge 1-minute bars into bars of `tfMs` (aligned to the epoch like the chart's bars; daily and
 // above are not supported: order flow works up to 4 h). Input sorted by t; output sorted.
-export function aggregate(bars, tfMs) {
+// ny = futures: 2 h and 4 h chart bars start on the 18:00 New York Globex open (bucketNY), not on the epoch. With the epoch buckets
+// none of the 2 h / 4 h order-flow bars lined up with the chart's candles, so their delta never showed (GK 14 Nov). Crypto stays epoch.
+const NYH = 3600000;
+function nyNth(y, m, n) { const f = Date.UTC(y, m, 1), dow = new Date(f).getUTCDay(); return f + (((7 - dow) % 7) + 7 * (n - 1)) * 864e5; }
+function nyOff(t) { const y = new Date(t).getUTCFullYear(); return t >= nyNth(y, 2, 2) + 7 * NYH && t < nyNth(y, 10, 1) + 6 * NYH ? -4 * NYH : -5 * NYH; }   // US DST rules, same as the REST bars
+export function bucketNY(t, tfMs) {
+  const shift = nyOff(t) + 6 * NYH;   // 18:00 New York becomes a multiple of the bar size
+  return Math.floor((t + shift) / tfMs) * tfMs - shift;
+}
+export const bucketOf = (t, tfMs, ny) => (ny && tfMs >= 2 * NYH ? bucketNY(t, tfMs) : Math.floor(t / tfMs) * tfMs);
+export function aggregate(bars, tfMs, ny) {
   if (tfMs <= 60000) return bars;
   const out = [];
   let cur = null, run = 0;
   for (const b of bars) {
-    const bt = Math.floor(b.t / tfMs) * tfMs;
+    const bt = bucketOf(b.t, tfMs, ny);
     if (!cur || cur.t !== bt) {
       if (cur) out.push(cur);
       cur = { t: bt, lo: b.lo, hi: b.hi, o: b.o, c: b.c, buy: b.buy.slice(), sell: b.sell.slice(), vol: b.vol, delta: b.delta,
@@ -226,9 +236,12 @@ export function vwapSeries(bars, tick, reset, sessionOf) {
 
 // ---- Highlight heavy activity (footprint settings) ----
 // Smallest buy or sell volume that counts as heavy. mode 'avg': x times the average of the non-empty buy / sell cells in view;
-// mode 'fixed': the size itself. Returns Infinity when there is nothing to compare, so nothing is highlighted.
-export function heavyLimit(cellVols, mode, x, fixed) {
-  if (mode === 'fixed') return fixed > 0 ? fixed : Infinity;
+// mode 'fixed': the size is set for a 1-minute bar and grows with the square root of the bar length (5 m x2.24, 15 m x3.87, 1 h x7.75,
+// 4 h x15.49), so a higher timeframe does not light up almost every cell (GK 14 Nov). tfMin 1 / missing = the size itself.
+// Returns Infinity when there is nothing to compare, so nothing is highlighted.
+export const heavyScale = (tfMin) => (tfMin > 1 ? Math.sqrt(tfMin) : 1);
+export function heavyLimit(cellVols, mode, x, fixed, tfMin) {
+  if (mode === 'fixed') return fixed > 0 ? fixed * heavyScale(tfMin) : Infinity;
   let sum = 0, n = 0;
   for (const v of cellVols) if (v > 0) { sum += v; n++; }
   return n ? x * (sum / n) : Infinity;

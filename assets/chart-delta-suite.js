@@ -85,7 +85,7 @@ function hubOut(root, tf, feed, restMins, E) {
     for (const b of hub) { const r = byT.get(b.t); if (b.t >= cut || !r) { if (!r || b.vol >= r.vol) byT.set(b.t, b); } }
     mins = [...byT.values()].sort((x, y) => x.t - y.t);
   }
-  return aggregate(clipTo(mins, E), tf * 60000);
+  return aggregate(clipTo(mins, E), tf * 60000, true);   // hub roots are futures
 }
 
 class Base {

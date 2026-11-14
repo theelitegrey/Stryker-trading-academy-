@@ -6,6 +6,12 @@
     if(th) th.addEventListener('click',function(){ if(window.toggleStrykerTheme) window.toggleStrykerTheme(); });
     if(tg) tg.addEventListener('click',function(){ var o=ln.classList.toggle('open'); tg.setAttribute('aria-expanded',o); });
     document.addEventListener('click',function(e){ if(pd&&pd.open&&!pd.contains(e.target)) pd.open=false; });
+    // Owner 14 Nov: Products opens on hover on desktop (mouse); click/tap still toggles. Short close delay so the pointer can reach the menu.
+    if(pd && window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches){
+      var ht=null, wide=function(){ return window.innerWidth>=900; };
+      pd.addEventListener('mouseenter',function(){ if(!wide()) return; clearTimeout(ht); pd.open=true; });
+      pd.addEventListener('mouseleave',function(){ if(!wide()) return; clearTimeout(ht); ht=setTimeout(function(){ pd.open=false; },180); });
+    }
     document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ if(pd) pd.open=false; if(ln){ ln.classList.remove('open'); if(tg) tg.setAttribute('aria-expanded','false'); } } });
     if(ln) ln.addEventListener('click',function(e){ if(e.target.closest('a')){ ln.classList.remove('open'); if(tg) tg.setAttribute('aria-expanded','false'); } });
     // Signed-in visitors see Dashboard instead of Log in / Start free (same signal as auth.js publicNavAuthState).

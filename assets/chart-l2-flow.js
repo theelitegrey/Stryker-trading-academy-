@@ -15,7 +15,7 @@
 import { registerFeed } from './chart-feeds.js?v=981';
 import { isFree } from './chart-pro-gate.js?v=981';
 import { rtOnChange } from './rt-access.js?v=981';
-import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState, fpNeed, fpState } from './chart-futures-l2.js?v=981';
+import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState, fpNeed, fpState, seedState } from './chart-futures-l2.js?v=981';
 import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=981';
 import { tsOpen } from './chart-ts-trades.js?v=981';
 import { aggregateMins } from './chart-ts-data.js?v=981';
@@ -829,9 +829,20 @@ export function fpFlow(own, ctx, bars, tfMs, E, onChange, left) {
   }
   // left = the oldest bar on screen (the chart style passes it): page older footprint minutes in, 2 h ahead of the scroll
   if (left != null && E == null) fpNeed(spec.root, left - 2 * 3600000);
-  own.out.note = !own.out.list.length ? 'Loading order flow…' : fpNote(spec.root, left != null ? left : bars[0].time, tfMs);
+  if (!own.out.list.length) {
+    // no L2 minutes at all: "Loading" only while a read is out. Every read in and none held (market closed / weekend, member GK 2026-11-14)
+    // = none: the caller draws the recorder's trades instead. A failed read says so (retried in 30 s). The next live trade bumps fver: re-decided.
+    const st = seedState(spec.root), fs = fpState(spec.root);
+    if (st === 'fail' || (st === 'done' && fs.failed && !fs.busy)) own.out.note = 'Order flow did not load, retrying…';
+    else if (st === 'done' && !fs.busy) return NO_L2;
+    else own.out.note = 'Loading order flow…';
+    return own.out;
+  }
+  own.out.note = fpNote(spec.root, left != null ? left : bars[0].time, tfMs);
   return own.out;
 }
+// fpFlow's "no L2 trades for these bars" answer: the hub stays held (its next trade brings L2 back), the caller draws the recorder's trades
+export const NO_L2 = Object.freeze({ none: true, map: new Map(), tick: 0, note: 'No L2 trades here · showing L1 trades' });
 // the left edge of the footprint, said in plain words: '' when every bar from `left` on has its minutes
 export function fpNote(root, left, tfMs) {
   const s = fpState(root);

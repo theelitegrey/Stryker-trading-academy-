@@ -102,7 +102,8 @@ class FpNative {
       }
       if (this.l2m === null) return { note: 'Loading order flow…', loading: true };
       if (!this.l2m) return H.flowFor({ root, timeframe: ctx.timeframe, bars, owner: this });
-      return this.l2m.fpFlow(this.l2own, ctx, bars, tf * 60000, H.replayE(), this.onL2) || H.flowFor({ root, timeframe: ctx.timeframe, bars, owner: this });
+      const r = this.l2m.fpFlow(this.l2own, ctx, bars, tf * 60000, H.replayE(), this.onL2);
+      return r && !r.none ? r : H.flowFor({ root, timeframe: ctx.timeframe, bars, owner: this });   // none = no L2 trades for these bars: the recorder's trades
     }
     return H.flowFor({ root, timeframe: ctx.timeframe, bars, owner: this });
   }

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="992">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Download TradeZoro for Windows: your TradeZoro desk in its own app, with pop-out chart windows for a second monitor, always on top and desktop alerts.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Download TradeZoro for Windows: the desktop app for traders">
+<meta property="og:description" content="Download TradeZoro for Windows: your TradeZoro desk in its own app, with pop-out chart windows for a second monitor, always on top and desktop alerts.">
+<meta property="og:url" content="https://tradezoro.com/download">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/download.png?v=992">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Desktop App share card with the TradeZoro logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Download TradeZoro for Windows: the desktop app for traders">
+<meta name="twitter:description" content="Download TradeZoro for Windows: your TradeZoro desk in its own app, with pop-out chart windows for a second monitor, always on top and desktop alerts.">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/download.png?v=992">
+<meta name="twitter:image:alt" content="Desktop App share card with the TradeZoro logo">
+<meta name="theme-color" content="#050506">
+<title>Download TradeZoro for Windows — TradeZoro</title>
+<link rel="canonical" href="https://tradezoro.com/download">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=992">
+<link rel="stylesheet" href="assets/nav-features.css?v=992">
+<script src="assets/sanitize.js?v=992"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=992" defer></script>
+<script src="assets/version-check.js?v=992" defer></script>
+<script src="assets/cookie-notice.js?v=992" defer></script>
+<script src="assets/acquisition.js?v=992" defer></script>
+<script src="assets/focus-mode.js?v=992" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=992">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=992">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/tradezoro-favicon-16-494.png?v=992">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=992">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=992">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<style>
+/* /download: TradeZoro for Windows. Tokens only (style.css); type scale + 4-pt spacing from docs/DESIGN-STANDARD.md. */
+.dl{ max-width:880px; margin:0 auto; padding:48px 32px 80px; }
+.dl-hero{ display:grid; grid-template-columns:1fr auto; gap:32px; align-items:center; padding:0 0 40px; border-bottom:1px solid var(--line-soft); }
+.dl-eyebrow{ font-size:13px; line-height:18px; font-weight:500; color:var(--gold); margin:0 0 8px; }
+.dl h1{ font-size:28px; line-height:34px; font-weight:700; color:var(--ink-0); margin:0 0 12px; letter-spacing:-.01em; }
+.dl-lead{ font-size:15px; line-height:22px; color:var(--ink-2); margin:0 0 24px; max-width:520px; }
+.dl-actions{ display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; }
+.dl-btn{ display:inline-flex; align-items:center; gap:8px; height:48px; padding:0 24px; border-radius:12px; background:var(--gold); color:#04140d; font-size:15px; font-weight:600; text-decoration:none; transition:background .2s cubic-bezier(.2,0,0,1); }
+.dl-btn:hover{ background:var(--gold-bright); }
+.dl-btn svg{ width:20px; height:20px; }
+.dl-link{ font-size:14px; line-height:20px; color:var(--ink-1); text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--line); min-height:44px; display:inline-flex; align-items:center; }
+.dl-link:hover{ color:var(--gold); text-decoration-color:currentColor; }
+.dl-meta-link{ color:var(--ink-1); text-decoration:underline; text-underline-offset:3px; }
+.dl-meta-link:hover{ color:var(--gold); }
+.dl-btn:focus-visible, .dl-link:focus-visible, .dl-meta-link:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.dl-meta{ font-size:12px; line-height:16px; color:var(--ink-2); margin:12px 0 0; }
+.dl-icon{ width:112px; height:112px; border-radius:24px; border:1px solid var(--line); background:var(--bg-0); display:grid; place-items:center; }
+.dl-icon img{ width:80px; height:80px; }
+.dl h2{ font-size:17px; line-height:22px; font-weight:600; color:var(--ink-0); margin:40px 0 16px; }
+.dl-rows{ list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:16px; background:var(--bg-2); overflow:hidden; }
+.dl-rows li{ display:flex; gap:16px; align-items:flex-start; padding:16px; min-height:52px; }
+.dl-rows li + li{ border-top:1px solid var(--line-soft); }
+.dl-rows svg{ flex:0 0 24px; width:24px; height:24px; color:var(--gold); margin-top:2px; }
+.dl-rows b{ display:block; font-size:15px; line-height:22px; font-weight:600; color:var(--ink-0); }
+.dl-rows span{ display:block; font-size:14px; line-height:20px; color:var(--ink-2); }
+.dl-cards{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.dl-card{ border:1px solid var(--line); border-radius:16px; background:var(--bg-2); padding:16px; }
+.dl-card h3{ font-size:15px; line-height:22px; font-weight:600; color:var(--ink-0); margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+.dl-card p{ font-size:14px; line-height:20px; color:var(--ink-2); margin:0; }
+.dl-pill{ font-size:11px; line-height:13px; font-weight:500; padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-2); }
+.dl-steps{ margin:0; padding-left:20px; font-size:14px; line-height:20px; color:var(--ink-2); }
+.dl-steps li + li{ margin-top:8px; }
+.dl-steps strong{ color:var(--ink-0); font-weight:600; }
+.dl-foot{ font-size:12px; line-height:16px; color:var(--ink-2); margin:32px 0 0; }
+@media (max-width:767px){
+  .dl{ padding:32px 16px 64px; }
+  .dl-hero{ grid-template-columns:1fr; gap:24px; padding:0 0 32px; }
+  .dl-icon{ order:-1; width:72px; height:72px; border-radius:16px; }
+  .dl-icon img{ width:52px; height:52px; }
+  .dl-btn{ width:100%; justify-content:center; }
+  .dl-cards{ grid-template-columns:1fr; }
+}
+@media (prefers-reduced-motion:reduce){ .dl-btn{ transition:none; } }
+</style>
+</head>
+<body data-page-key="download">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/academy">ZoroAcademy</a>
+      <a href="/features/community">Community</a>
+      <a href="/help">Help</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<div class="dl">
+  <section class="dl-hero" aria-labelledby="dl-title">
+    <div>
+      <p class="dl-eyebrow">Desktop app</p>
+      <h1 id="dl-title">TradeZoro for Windows</h1>
+      <p class="dl-lead">Your TradeZoro desk in its own app. Charts get their own windows for a second monitor, stay on top when you want them to, and alerts arrive as Windows notifications.</p>
+      <div class="dl-actions">
+        <a class="dl-btn" id="dl-win" href="https://github.com/theelitegrey/Stryker-trading-academy-/releases/latest/download/TradeZoro-Setup.exe" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg>Download for Windows</a>
+        <a class="dl-link" id="dl-portable" href="https://github.com/theelitegrey/Stryker-trading-academy-/releases/latest/download/TradeZoro-Portable.exe" rel="noopener">Portable version (no install)</a>
+      </div>
+      <p class="dl-meta">Windows 10 or 11, 64-bit · Free download · <a class="dl-meta-link" href="https://github.com/theelitegrey/Stryker-trading-academy-/releases?q=desktop-v&amp;expanded=true" rel="noopener">All versions and checksums</a></p>
+    </div>
+    <div class="dl-icon"><img src="assets/images/tradezoro-icon-192-494.png?v=992" width="80" height="80" alt="TradeZoro app icon"></div>
+  </section>
+
+  <h2>Why use the app</h2>
+  <ul class="dl-rows">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="11" height="9" rx="1.5"/><rect x="10" y="11" width="11" height="9" rx="1.5"/></svg><div><b>Pop-out chart windows</b><span>Open a chart or a saved layout in its own window and drag it to a second monitor. Each window remembers its size and place.</span></div></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg><div><b>Always on top</b><span>Keep one chart above your other apps. Turn it on per window with Ctrl+Shift+T.</span></div></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><div><b>Desktop alerts</b><span>Your TradeZoro alerts show as Windows notifications, also when the app sits in the tray.</span></div></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg><div><b>Always the current site</b><span>The app opens tradezoro.com, so every site update is in the app the same day. The app itself updates when you restart it, and never during market hours without asking.</span></div></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><div><b>Keyboard shortcuts</b><span>Ctrl+Shift+N new chart window, Ctrl+R reload, F11 full screen.</span></div></li>
+  </ul>
+
+  <h2>Other devices</h2>
+  <div class="dl-cards">
+    <div class="dl-card"><h3>Android <span class="dl-pill">Coming soon</span></h3><p>Until then, open tradezoro.com in Chrome and choose Add to Home screen.</p></div>
+    <div class="dl-card"><h3>iPhone, iPad and Mac</h3><p>Use tradezoro.com in Safari or Chrome. On iPhone, Share then Add to Home Screen.</p></div>
+  </div>
+
+  <h2 id="smartscreen">Installing</h2>
+  <ol class="dl-steps">
+    <li>Open <strong>TradeZoro-Setup.exe</strong>. It installs for your Windows user only and opens TradeZoro.</li>
+    <li>The app is not code-signed yet, so Windows may show "Windows protected your PC". Click <strong>More info</strong>, then <strong>Run anyway</strong>. Your browser may also ask you to <strong>Keep</strong> the file.</li>
+    <li>Sign in with your TradeZoro account. Google sign-in works inside the app.</li>
+    <li>To remove it: Windows Settings, Apps, TradeZoro, Uninstall.</li>
+  </ol>
+
+  <p class="dl-foot">The app shows the same TradeZoro you use in the browser, with the same account and plan. Education only. Not financial advice.</p>
+</div>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>ZoroAcademy</h5>
+        <a href="academy">ZoroAcademy home</a>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">ZoroAcademy articles</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About TradeZoro</a>
+        <a href="help">Help Center</a>
+        <a href="suggestions">Suggestions</a>
+        <a href="creators">Creator Hub</a>
+        <a href="https://discord.gg/M4d4gTr5c3" target="_blank" rel="noopener">Get help on Discord</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@tradezoro.com">support@tradezoro.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro LLC. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+      <a href="market-data-terms">Market Data Terms</a>
+      <a href="terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/nav-features.js?v=992" defer></script>
+<script src="assets/main.js?v=992"></script>
+<script src="assets/auth.js?v=992"></script>
+<script src="assets/progress.js?v=992"></script>
+<script src="assets/activity-log.js?v=992"></script>
+<script src="assets/banned-check.js?v=992"></script>
+<script src="assets/branding.js?v=992"></script>
+<script src="assets/seo.js?v=992"></script>
+<script src="assets/theme.js?v=992"></script>
+</body>
+</html>

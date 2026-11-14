@@ -1,0 +1,109 @@
+# TradeZoro for Windows: build on Windows and publish to a GitHub Release (UNSIGNED for now: no code-signing
+# certificate yet, see desktop/README.md). The installed app auto-updates from these releases (electron-updater
+# reads latest.yml from the newest non-prerelease release), so the release is created as a normal, "latest" one.
+# Run by pushing a tag  desktop-vX.Y.Z  (the version in desktop/package.json is set from the tag), or by hand.
+name: Desktop release
+
+on:
+  push:
+    tags: ['desktop-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, e.g. desktop-v1.0.0'
+        required: true
+        default: 'desktop-v1.0.0'
+
+permissions:
+  contents: write   # create the release + upload assets
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Version from tag
+        run: |
+          VER="${TAG#desktop-v}"
+          echo "$VER" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "tag must look like desktop-v1.2.3, got $TAG"; exit 1; }
+          npm version "$VER" --no-git-tag-version --allow-same-version
+          echo "VER=$VER" >> "$GITHUB_ENV"
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests (URL allowlist, market hours)
+        run: npm test
+
+      - name: Build installer + portable (x64)
+        run: npx electron-builder --win nsis portable --x64 --publish never
+
+      - name: Check the builds
+        run: |
+          ls -l dist
+          test -s dist/TradeZoro-Setup.exe
+          test -s dist/TradeZoro-Portable.exe
+          test -s dist/latest.yml
+          grep -q "version: $VER" dist/latest.yml
+          cd dist && sha256sum TradeZoro-Setup.exe TradeZoro-Portable.exe | tee SHA256SUMS.txt
+
+      # Microsoft Store package. Unsigned: the Store signs it on submission. Not attached to the release (members
+      # cannot install an unsigned .appx); kept as a workflow artifact for the Store upload.
+      - name: Build MSIX/AppX for the Microsoft Store (artifact only)
+        continue-on-error: true
+        run: npx electron-builder --win appx --x64 --publish never
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tradezoro-windows-${{ env.VER }}
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.appx
+            desktop/dist/latest.yml
+            desktop/dist/*.blockmap
+            desktop/dist/SHA256SUMS.txt
+          if-no-files-found: warn
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SETUP=$(grep TradeZoro-Setup.exe dist/SHA256SUMS.txt | cut -d' ' -f1)
+          PORT=$(grep TradeZoro-Portable.exe dist/SHA256SUMS.txt | cut -d' ' -f1)
+          cat > notes.md <<EOF
+          TradeZoro for Windows ${VER} (UNSIGNED). Download page: https://tradezoro.com/download
+
+          Windows will warn you because the app is not code-signed yet. Click More info, then Run anyway.
+          The installed app updates itself from this page; the portable .exe does not.
+
+          SHA-256
+          - TradeZoro-Setup.exe: ${SETUP}
+          - TradeZoro-Portable.exe: ${PORT}
+
+          Check on Windows: certutil -hashfile TradeZoro-Setup.exe SHA256
+
+          Education only. Not financial advice.
+          EOF
+          sed -i 's/^          //' notes.md
+          gh release view "$TAG" >/dev/null 2>&1 && gh release delete "$TAG" --yes || true
+          gh release create "$TAG" dist/TradeZoro-Setup.exe dist/TradeZoro-Setup.exe.blockmap dist/TradeZoro-Portable.exe dist/latest.yml dist/SHA256SUMS.txt \
+            --title "TradeZoro for Windows $VER" --notes-file notes.md --target "$GITHUB_SHA" --latest

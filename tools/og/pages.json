@@ -335,6 +335,13 @@
       "alt": "About TradeZoro share card with the TradeZoro logo"
     },
     {
+      "page": "download.html",
+      "title": "Desktop App",
+      "og_title": "Download TradeZoro for Windows: the desktop app for traders",
+      "visual": "brand",
+      "alt": "Desktop App share card with the TradeZoro logo"
+    },
+    {
       "page": "signup.html",
       "title": "Create Account",
       "og_title": "Create Account — Start the Free Chapters at TradeZoro",

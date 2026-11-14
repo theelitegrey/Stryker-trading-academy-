@@ -11,7 +11,8 @@
   "features/market-stats": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
   "features/orderflow": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
   "features/smart-money-desk": "old feature template, marketing-only until Feature Pages A rebuilds it as a dual page (then move to dual)",
-  "licenses": "open-source license notice (legal), noindex, no nav link"
+  "licenses": "open-source license notice (legal), noindex, no nav link",
+  "download": "public Windows app download page (linked from Settings > Desktop app); marketing header like pricing, same page for visitors and members"
  },
  "dual": {
   "suggestions": "public ideas board; app shell when signed in",

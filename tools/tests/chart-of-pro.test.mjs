@@ -233,4 +233,8 @@ const low2 = P.sweepEvents(base.concat([{ high: 99, low: 88, close: 96, vol: 40 
 ok(low2.length === 1 && low2[0].side === 0 && low2[0].level === 90, 'sweep: planted run below the 90 swing low', low2);
 const twice = P.sweepEvents(planted2.concat([{ high: 100, low: 97, close: 98, vol: 10 }, { high: 106.5, low: 97, close: 99, vol: 50 }]));
 ok(twice.length === 1, 'sweep: a level is only run once', twice);
+// fixed row count: same row count for a quiet and a wide session; auto path untouched
+ok(P.rowForCount(10, 0.25, 40) === 0.25 && P.rowForCount(100, 0.25, 40) === 2.5 && P.rowForCount(0, 0.25, 40) === 0.25, 'rowForCount: ~N rows, whole ticks, min 1 tick');
+for (const rng of [20, 75, 310]) { const r = P.rowForCount(rng, 0.25, 40), rowsN = Math.ceil(rng / r); ok(rowsN <= 40 && rowsN >= 30, 'rowForCount: ' + rng + ' pt range gives ' + rowsN + ' rows (<=40)'); }
+ok(P.autoRow(100, 0.25, 40) === 2.5, 'autoRow unchanged');
 console.log('\n' + n + ' checks passed');

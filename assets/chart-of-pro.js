@@ -18,7 +18,7 @@
 // their micros; Binance trades for crypto) with the same plan + delay rules and refresh timers (hooks
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
-import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=986';
+import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, rowForCount, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=986';
 import { drawTpoExtras, drawLabels, steadyW, TPO_EXTRA_INPUTS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=986';
 
 export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
@@ -83,6 +83,7 @@ const ABS_SCHEMA = [
 const IMB_SCHEMA = [
   { key: 'ratio', title: 'Imbalance ratio %', type: 'int', defval: 300, min: 110, max: 2000, step: 10, tooltip: 'Diagonal: buys at a price vs sells one row lower (and sells vs buys one row higher).' },
   { key: 'stack', title: 'Stacked rows (at least)', type: 'int', defval: 3, min: 2, max: 10, step: 1 },
+  { key: 'rows', title: 'Rows per session (0 = auto)', type: 'int', defval: 0, min: 0, max: 200, step: 5, tooltip: 'A fixed number of rows in every profile, so sessions look alike at the same zoom. 0 = auto (about 40, coarser when zoomed out). Overrides the row size below.' },
   { key: 'rowTicks', title: 'Row size (ticks)', type: 'int', defval: 1, min: 1, max: 100, step: 1 },
   { key: 'filled', title: 'Filled zones', type: 'string', defval: 'faded', options: ['faded', 'hidden'] },
   { key: 'buyColor', title: 'Buy imbalance zone', type: 'color', defval: UP },
@@ -408,7 +409,8 @@ function tpoLayer() {
           let hi = -Infinity, lo = Infinity;
           for (const b of sb) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
           let row;
-          if (I.rowTicks > 0) row = I.rowTicks * tick;
+          if (num(I.rows, 0) > 0) row = rowForCount(hi - lo, tick, Math.round(num(I.rows, 0)));
+          else if (I.rowTicks > 0) row = I.rowTicks * tick;
           else row = rowFor(hi - lo, tick, tickPx, minRowPx);
           const pk = s.k + '|' + row + '|' + sb.length + '|' + sb[sb.length - 1].close + '|' + periodMin + '|' + I.va + '|' + I.ib + '|' + ibMs;
           let p = inst.memo.get('tpo|' + s.k);

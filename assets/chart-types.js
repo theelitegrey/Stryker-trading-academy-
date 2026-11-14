@@ -5,7 +5,7 @@
 // Pattern copied from chart-footprint.js: registerChartType + one renderer layer per type (basePainting none).
 // Education only. Not financial advice.
 import { renko, range, lineBreak, kagi, pnf, sizeOf, guessTick } from './chart-types-math.js?v=986';
-import { tpoProfile, tpoLetter, autoRow, rthKey } from './chart-of-pro-data.js?v=986';
+import { tpoProfile, tpoLetter, autoRow, rowForCount, rthKey } from './chart-of-pro-data.js?v=986';
 import { drawTpoExtras, drawLabels, steadyW, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=986';
 
 export const CT_TIME = ['stk_hollow', 'stk_volcandle', 'stk_linemark', 'stk_step', 'stk_hlcarea', 'stk_columns', 'stk_highlow'];
@@ -329,8 +329,9 @@ function profileDraw(kind) {
       if (s.i0 > i1 || (s.i1 < i0 && !ext)) continue;
       const sb = bars.slice(s.i0, s.i1 + 1); let hi = -Infinity, lo = Infinity;
       for (const b of sb) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
-      let row = autoRow(hi - lo, tick, 40);
-      for (let guard = 0; guard < 12 && (row / tick) * tickPx < (kind === 'tpo' ? (phone ? 9 : 11) : 4); guard++) row *= 2;
+      const fixedRows = kind === 'tpo' ? Math.round(+settings.rows || 0) : 0;
+      let row = fixedRows > 0 ? rowForCount(hi - lo, tick, fixedRows) : autoRow(hi - lo, tick, 40);
+      for (let guard = 0; !fixedRows && guard < 12 && (row / tick) * tickPx < (kind === 'tpo' ? (phone ? 9 : 11) : 4); guard++) row *= 2;
       const x0 = Math.max(X(s.i0) - f.pitch / 2, 8), x1 = X(s.i1) + f.pitch / 2;
       if ((x1 < 0 && !ext) || x0 > co.width) continue;
       const last = s.i1 >= bars.length - 1, span = Math.max(30, (x1 - x0) * 0.9);
@@ -375,7 +376,7 @@ function profileDraw(kind) {
 }
 DRAW.stk_tpoc = profileDraw('tpo');
 DRAW.stk_svp = profileDraw('svp');
-SETTINGS.stk_tpoc = { title: 'Time price opportunity', rows: [{ kind: 'select', key: 'block', label: 'Letter block (minutes)', defval: 30, options: [[5, '5'], [10, '10'], [15, '15'], [30, '30'], [60, '60']] }, { kind: 'number', key: 'va', label: 'Value area %', defval: 70, min: 10, max: 100, step: 1 }].concat(TPO_EXTRA_ROWS) };
+SETTINGS.stk_tpoc = { title: 'Time price opportunity', rows: [{ kind: 'select', key: 'block', label: 'Letter block (minutes)', defval: 30, options: [[5, '5'], [10, '10'], [15, '15'], [30, '30'], [60, '60']] }, { kind: 'number', key: 'rows', label: 'Rows per session (0 = auto)', defval: 0, min: 0, max: 200, step: 5 }, { kind: 'number', key: 'va', label: 'Value area %', defval: 70, min: 10, max: 100, step: 1 }].concat(TPO_EXTRA_ROWS) };
 SETTINGS.stk_svp = { title: 'Session volume profile', rows: [{ kind: 'number', key: 'va', label: 'Value area %', defval: 70, min: 10, max: 100, step: 1 }] };
 
 // ---------------------------------------------------------------- install

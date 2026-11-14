@@ -152,3 +152,10 @@
 @media (min-width:900px){ .hn-links .hn-login-m{ display:none !important; } }
 
 .hh-tagline{ margin:0 0 18px; font-size:clamp(16px,2.2vw,22px); line-height:1.3; font-weight:600; letter-spacing:.01em; color:var(--gold); text-wrap:balance; }
+
+.cm-hero h1.hh-h1 .hh-l1,.cm-hero h1.hh-h1 .hh-shine{ display:block; }
+.cm-hero h1.hh-h1 .hh-shine{ background:linear-gradient(100deg,var(--gold) 0%,var(--gold) 38%,#fff 50%,var(--gold) 62%,var(--gold) 100%); background-size:250% 100%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:var(--gold); animation:hhShine 3.2s ease-in-out infinite; filter:drop-shadow(0 0 18px color-mix(in srgb,var(--gold) 35%,transparent)); }
+[data-theme="light"] .cm-hero h1.hh-h1 .hh-shine{ background-image:linear-gradient(100deg,var(--gold) 0%,var(--gold) 38%,color-mix(in srgb,var(--gold) 45%,#fff) 50%,var(--gold) 62%,var(--gold) 100%); filter:none; }
+@keyframes hhShine{ 0%{ background-position:100% 0; } 60%,100%{ background-position:0% 0; } }
+@media (prefers-reduced-motion:reduce){ .cm-hero h1.hh-h1 .hh-shine{ animation:none; background-position:50% 0; } }
+.cm-hero h1.hh-h1 .hh-small{ display:block; margin-top:18px; font-size:clamp(17px,2.4vw,24px); line-height:1.35; font-weight:500; letter-spacing:0; color:var(--ink-2); }

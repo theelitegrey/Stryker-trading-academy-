@@ -16,6 +16,7 @@
 // Edge-cached 30 s, rate-limited per IP (20/min for /book-history and /status; /status is also
 // memoised 30 s in the DO). Public market data only: no user data.
 import { isBlockedRequest, blockedJson } from './geo-block.js';
+import { tsKind, tsForwardUrl, TS_NO_CACHE } from './ts-route.js';   // /ts-* hardening (2026-11-14): path-only live/history, param allow-list, no-store
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, validateGexFast, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TIDE_MAX_DAYS } from './tide.js';
@@ -974,24 +975,25 @@ async function route(req, env, ctx) {
       const h = cors(req), o = req.headers.get('origin');
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
       if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
-      const ws = u.pathname === '/ts-live';
-      if (ws && req.headers.get('upgrade') !== 'websocket') return new Response('websocket required', { status: 426, headers: h });
+      // live vs history comes from the PATH only (src/ts-route.js tsKind); an Upgrade header on a history route is refused, so no header can
+      // skip the gate below. The live/delayed decision itself is the verified token + plan only (tsTier / tsHistoryAccess).
+      const kind = tsKind(u.pathname, req.headers);
+      if (kind === 'ws_required') return new Response('websocket required', { status: 426, headers: h });
+      if (kind === 'bad_upgrade') return new Response('bad request', { status: 400, headers: Object.assign({}, h, TS_NO_CACHE) });
+      const ws = kind === 'live';
       // /ts-live has two tiers (src/ts-access.js tsTier): 'book' = trades + L2 book, 'trades' = trades / candles / quotes only (live-data add-on etc.).
       // History reads (book, aux, trades store) feed FREE tools (Owner 2026-11-13, all tools free): any signed-in, non-anonymous member, cut to
       // now - 11 min unless the caller holds the live level for that data (src/ts-access.js tsHistoryAccess: book/aux = the paid L2 feed,
       // trades = L1). The tier goes to the hub as a query param WE set (any client-sent one is dropped).
       const hist = ws ? null : await tsHistoryAccess(env, bearerOf(req), u.pathname);
       const tier = ws ? await tsTier(env, wsTokenOf(req)) : (hist ? 'book' : null);
-      if (!tier) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
-      if (hist && hist.cutMs) {   // delayed: clamp 'to' (the hub clamps 'from' to the window ending at 'to'); fill=0 so a delayed read never spends the archive budget
-        u.searchParams.set('to', String(Math.min(Number(u.searchParams.get('to')) || hist.cutMs, hist.cutMs)));
-        u.searchParams.set('fill', '0');
-      }
+      if (!tier) return new Response('forbidden', { status: 403, headers: Object.assign({}, h, TS_NO_CACHE) });
       { const rl = await env.RL_OF.limit({ key: (ws ? 'tsws:' : 'ts:') + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }   // sockets too (a reconnect storm / socket flood from one IP)
-      const du = new URL('https://do' + u.pathname + u.search); du.searchParams.set('tier', tier);
-      const r = await stub(env).fetch(new Request(du.toString(), req));
+      // allow-listed params only (src/ts-route.js TS_PARAMS); then OUR tier, and for a delayed read to = min(to, cut) and fill = 0
+      const du = tsForwardUrl(u, { tier, cutMs: hist && hist.cutMs });
+      const r = await stub(env).fetch(new Request(du, req));
       if (ws) return r;
-      return new Response(r.body, { status: r.status, headers: Object.assign({ 'cache-control': 'private, no-store', 'content-type': r.headers.get('content-type') || 'application/json', 'x-ts-fill-left': r.headers.get('x-ts-fill-left') || '0', 'x-ts-delayed': hist && hist.cutMs ? String(hist.cutMs) : '0', 'access-control-expose-headers': 'x-ts-fill-left, x-ts-delayed' }, h) });
+      return new Response(r.body, { status: r.status, headers: Object.assign({}, TS_NO_CACHE, { 'content-type': r.headers.get('content-type') || 'application/json', 'x-ts-fill-left': r.headers.get('x-ts-fill-left') || '0', 'x-ts-delayed': hist && hist.cutMs ? String(hist.cutMs) : '0', 'access-control-expose-headers': 'x-ts-fill-left, x-ts-delayed' }, h, { vary: TS_NO_CACHE.vary }) });   // vary last: cors() sets only Origin
     }
     // TICK ENGINE (src/tick-engine.js). GET /te-bars?sym=&tf=&from=&to= : bars of any timeframe (1S..59S, 1..240 min, D) from the
     // stored trades. Open to everyone; the LANE is the server's call from the verified token, never the client's: a live tier

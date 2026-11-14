@@ -289,5 +289,5 @@ export function mountHeatmapPanel(ws, opts) {
     if (gear && gear.parentNode === bar) bar.insertBefore(btn, gear); else bar.insertBefore(btn, bar.firstChild);
   }
   wireMag();
-  window.__stkHeatmapPanel = { open, close, isOn, state: () => ({ on: isOn(), src: st().src, types: st().types.slice() }), sourcesFor, optNote };   // test hook
+  window.__stkHeatmapPanel = { open, close, isOn, get isOpen() { return !!(panel && !panel.hidden); }, state: () => ({ on: isOn(), src: st().src, types: st().types.slice() }), sourcesFor, optNote };   // test hook
 }

@@ -1398,6 +1398,8 @@ function visualOrder(R) {
   function mountLayoutMenu(){
     import('./chart-layouts.js?v=1007')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, sheetHead, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
+      // Workspaces (assets/chart-workspaces.js): whole-screen setups built on the layouts; mounted once the open layout is known
+      .then((L) => L && !BT && L.booted.then(() => import('./chart-workspaces.js?v=1001')).then((m) => m.mountWorkspaces(ws, { L, barL, bindPopover, sheetHead, toast, grid })))
       .catch((e) => console.warn('TradeZoro: layout menu', e));
   }
   if (!T) { tplWrap.hidden = true; mountLayoutMenu(); return; }

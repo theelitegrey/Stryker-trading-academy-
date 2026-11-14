@@ -510,7 +510,8 @@ export function mountBookPanel(ws, opts) {
     g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up);
   });
 
-  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _signals: () => eng /* test hook */, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
+  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, get width() { return S.w; },
+    setWidth: (px) => { S.w = clamp(Math.round(+px) || 400, 320, 640); panel.style.setProperty('--stkbp-w', S.w + 'px'); host.style.setProperty('--stkbp-w', S.w + 'px'); save(); try { window.dispatchEvent(new Event('resize')); } catch (e) {} }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _signals: () => eng /* test hook */, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
   window.__stkBookPanel = api; if (!window.__stkL2Ladder) window.__stkL2Ladder = api;
   return api;
 }

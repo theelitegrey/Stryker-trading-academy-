@@ -1189,7 +1189,7 @@ export function mountWatchlist(ws, o){
   window.addEventListener('beforeunload', () => { if (saveTimer) saveNow(); });
 
   const api = {
-    get open(){ return open; }, setOpen, get current(){ return cur; }, get lists(){ return lists; }, get viewing(){ return viewing; },
+    get open(){ return open; }, setOpen, get current(){ return cur; }, get width(){ return width; }, setWidth: (px) => { width = applyWidth(px); lsSet(K.width, width); nudgeChart(); }, get lists(){ return lists; }, get viewing(){ return viewing; },
     quotes, refresh, addSymbol, removeSyms, addSection, moveItem, toggleSection, openList, createList, copyCur, renameCur, deleteList,
     setShared, openShared, leaveShared, linkOf, parseUpload: (t) => parseUpload(t, ws.feed), normalize: (s) => normalizeSymbol(s, ws.feed),
     saveNow, select: (s) => { sel = s; markSel(); }, selectMany: (a) => { selSet = new Set(a); markSel(); }, alertListDialog, uploadDialog, openDialog,

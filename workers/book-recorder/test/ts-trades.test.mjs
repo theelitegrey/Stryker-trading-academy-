@@ -103,7 +103,7 @@ ok('floor table matches the brief and the hub symbols');
 // route gate: index.js lists /ts-trades with the same member + delay check (tsHistoryAccess, all tools free 2026-11-13) and rate limit as /ts-book-history
 {
   const src = fs.readFileSync(new URL('../src/index.js', import.meta.url), 'utf8');
-  assert.match(src, /u\.pathname === '\/ts-aux' \|\| u\.pathname === '\/ts-trades'\) \{[\s\S]{0,1600}tsHistoryAccess\(env, bearerOf\(req\), u\.pathname\)[\s\S]{0,900}u\.searchParams\.set\('fill', '0'\)[\s\S]{0,600}RL_OF\.limit/);
+  assert.match(src, /u\.pathname === '\/ts-aux' \|\| u\.pathname === '\/ts-trades'\) \{[\s\S]{0,1600}tsHistoryAccess\(env, bearerOf\(req\), u\.pathname\)[\s\S]{0,900}RL_OF\.limit[\s\S]{0,600}tsForwardUrl\(u, \{ tier, cutMs: hist && hist\.cutMs \}\)/);   // the cut + fill=0 now live in src/ts-route.js tsForwardUrl (2026-11-14)
   const hubSrc = fs.readFileSync(new URL('../src/ts-hub.js', import.meta.url), 'utf8');
   assert.match(hubSrc, /\/ts-trades[\s\S]{0,300}symbol not recorded/);
   ok('/ts-trades sits behind the member gate, the 11-min cut + rate limit like /ts-book-history');

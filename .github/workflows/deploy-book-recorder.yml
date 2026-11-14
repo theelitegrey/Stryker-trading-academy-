@@ -32,6 +32,8 @@ jobs:
         run: node workers/book-recorder/test/parity.test.mjs
       - name: Tick-stream L2 hub tests
         run: node workers/book-recorder/test/ts-hub.test.mjs
+      - name: /ts-* route hardening tests (no header skips the delay, no-store, param allow-list)
+        run: node workers/book-recorder/test/ts-route.test.mjs
       - name: GEX chain ingest tests
         run: node workers/book-recorder/test/gex.test.mjs
       - name: GEX history tests (feeder vs engine parity, validation, no-lookahead lookup)

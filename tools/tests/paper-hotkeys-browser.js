@@ -1,6 +1,9 @@
 // Browser test: paper hotkeys. node tools/tests/chart-dev-server.mjs 8057 &  node tools/tests/paper-hotkeys-browser.js http://127.0.0.1:8057 <outdir>
 const { launch } = require('./lib.js');
-const BASE = process.argv[2] || 'http://127.0.0.1:8057', OUT = (process.argv[3] || '/tmp') + '/';
+// Runner contract: CHART_BASE=http://127.0.0.1:PORT node paper-hotkeys-browser.js <shotsDir>  (also accepts <url> <dir>)
+const args = process.argv.slice(2), urlArg = args.find((a) => /^https?:/.test(a)), dirArg = args.find((a) => !/^https?:/.test(a));
+const BASE = process.env.CHART_BASE || urlArg || 'http://127.0.0.1:8057', OUT = (dirArg || '/tmp') + '/';
+require('fs').mkdirSync(OUT, { recursive: true });
 let fail = 0;
 const t = (n, ok, x) => { if (!ok) fail++; console.log(ok ? 'PASS' : 'FAIL', n, ok || x === undefined ? '' : JSON.stringify(x).slice(0, 300)); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

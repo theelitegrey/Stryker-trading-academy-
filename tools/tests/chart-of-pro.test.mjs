@@ -233,4 +233,11 @@ const low2 = P.sweepEvents(base.concat([{ high: 99, low: 88, close: 96, vol: 40 
 ok(low2.length === 1 && low2[0].side === 0 && low2[0].level === 90, 'sweep: planted run below the 90 swing low', low2);
 const twice = P.sweepEvents(planted2.concat([{ high: 100, low: 97, close: 98, vol: 10 }, { high: 106.5, low: 97, close: 99, vol: 50 }]));
 ok(twice.length === 1, 'sweep: a level is only run once', twice);
+
+// ---- TPO Align left (member request 2026-11-14)
+const X = await import('../../assets/chart-tpo-extras.js');
+ok(X.TPO_EXTRA_INPUTS.some((i) => i.key === 'alignLeft' && i.defval === false) && X.TPO_EXTRA_ROWS.some((r) => r.key === 'alignLeft' && r.defval === false), 'align left: setting exists in indicator + chart type, default off');
+ok(X.tpoAnchorX({}, 100, 80) === 100 && X.tpoAnchorX({ alignLeft: false }, 100, 80) === 100, 'align left: default keeps the profile at the session open');
+ok(X.tpoAnchorX({ alignLeft: true }, 300, 80) === 300 && X.tpoAnchorX({ alignLeft: true }, 20, 80) === 90, 'align left: ends at the open, kept on screen when the open is near the edge');
+ok(X.tpoColX(false, 100, 10, 2) === 120 && X.tpoColX(true, 100, 10, 0) === 90 && X.tpoColX(true, 100, 10, 2) === 70, 'align left: columns grow right by default, left when on');
 console.log('\n' + n + ' checks passed');

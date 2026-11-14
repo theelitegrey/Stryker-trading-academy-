@@ -141,6 +141,7 @@ const vivid = (p) => p.evaluate(() => { let n = 0, tot = 0; for (const c of docu
       await zoomTo(p, w < 520 ? 5 : 12); await sleep(1500);
       let c = await cfg(p);
       check(c.heavy === null, tag + ': default = off (today\'s look)', c.heavy);
+      await setCfg(p, { fpHeavyBuyColor: '#00ff66', fpHeavySellColor: '#ff0033' });   // the size checks below count strongly saturated pixels: use two saturated colours (the colour pick has its own checks)
       const v0 = await vivid(p);
       await p.screenshot({ path: OUT + '/heavy-' + tag + '-off.png' });
       for (const st of ['classic', 'delta', 'volume', 'ladder']) {
@@ -162,6 +163,16 @@ const vivid = (p) => p.evaluate(() => { let n = 0, tot = 0; for (const c of docu
       await setCfg(p, { fpHeavyLevel: 'subtle' }); await sleep(1000); const sb = await vivid(p);
       await setCfg(p, { fpHeavyLevel: 'strong' }); await sleep(1000); const sg = await vivid(p);
       check(sg >= sb, tag + ': intensity strong >= subtle (' + sb + ' / ' + sg + ')', { sb, sg });
+      // own colours for heavy buying / selling (member GK 2026-11-14): defaults differ from the regular buy / sell colours; a pick is used
+      c = await cfg(p);
+      check(/^#[0-9a-f]{6}$/i.test(c.heavyBuyC) && /^#[0-9a-f]{6}$/i.test(c.heavySellC) && c.heavyBuyC !== '#03c988' && c.heavySellC !== '#f23645' && c.heavyBuyC !== c.heavySellC, tag + ': heavy buy / sell have their own default colours', [c.heavyBuyC, c.heavySellC]);
+      await setCfg(p, { fpHeavyBuyColor: '#ffd400', fpHeavySellColor: '#ff00aa' }); await sleep(1200);
+      c = await cfg(p);
+      check(c.heavyBuyC === '#ffd400' && c.heavySellC === '#ff00aa', tag + ': picked heavy colours reach the drawing config', [c.heavyBuyC, c.heavySellC]);
+      const yel = await p.evaluate(() => { let n = 0; for (const cv of document.querySelectorAll('#vela-chart canvas')) { if (!cv.width) continue; let d; try { d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; } catch (e) { continue; } for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 80 && d[i] > 150 && d[i + 1] > 120 && d[i + 2] < 90) n++; } return n; });
+      check(yel > 30, tag + ': heavy buying cells are drawn in the picked colour (' + yel + ' yellow pixels)', yel);
+      await p.screenshot({ path: OUT + '/heavy-' + tag + '-pickedcolours.png' });
+      await setCfg(p, { fpHeavyBuyColor: '#38bdf8', fpHeavySellColor: '#e879f9' }); await sleep(800);
       await p.screenshot({ path: OUT + '/heavy-' + tag + '-fixed.png' });
       const sv = await saved(p);
       check(sv && sv.fpHeavy === 'fixed' && sv.fpHeavyFixed === 120, tag + ': saved in the chart settings', sv);

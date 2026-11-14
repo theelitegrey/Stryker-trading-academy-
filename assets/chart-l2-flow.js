@@ -80,6 +80,16 @@ function restRows(s, side, r0, r1) {
   return t;
 }
 
+// Delta bars / Delta (L2) read the L1 trade store's minutes. When that store holds nothing for a minute (market closed, a failed or empty
+// read: member GK 2026-11-14, panel empty while the footprint had numbers) the minute comes from the footprint feed's per-price minutes
+// instead. The trade store wins where it has the minute. Both are { t, buy, sell, hi, lo } rows, sorted.
+// fpBars: footprint minutes (vol / delta); recRows: the recorder's minutes, already rows. Earlier sources win.
+export function mergeMinutes(tsMins, fpBars, recRows) {
+  const have = new Set((tsMins || []).map((m) => m.t)), add = [];
+  for (const b of fpBars || []) if (!have.has(b.t) && b.vol > 0) { have.add(b.t); add.push({ t: b.t, buy: (b.vol + b.delta) / 2, sell: (b.vol - b.delta) / 2, hi: b.dmax, lo: b.dmin }); }
+  for (const m of recRows || []) if (!have.has(m.t)) { have.add(m.t); add.push(m); }
+  return add.length ? (tsMins || []).concat(add).sort((a, b) => a.t - b.t) : tsMins;
+}
 // ---------------------------------------------------------------------------------------- one hub per symbol (shared by the six indicators)
 const hubs = new Map();
 let H = null;
@@ -103,17 +113,17 @@ class Hub {
   samples() { return this.feed.allHistory(); }
   sampleAt(t, maxAge = GAP_MAX) { const a = this.samples(), i = lastLE(a, t); return i >= 0 && t - a[i].ts <= maxAge ? a[i] : null; }
   tver() { return this.kind === 'futures' ? this.ts.s.v : this.cf().v; }
-  fver() { return this.kind === 'futures' ? this.footFeed().v : this.cf().v; }
+  fver() { if (this.kind !== 'futures') return this.cf().v; const f = this.footFeed(); return f ? f.v : 0; }   // no footprint feed yet (nothing asked for per-price minutes): 0
   footFeed() { return rootState(this.spec.root).trades; }
   // 1-minute rows { t, buy, sell, hi, lo } of trades (futures: 48 h from the L1 store; crypto: the stream's backfill)
   minutes() {
-    const key = this.tver(); if (this.memo.mk === key) return this.memo.m;
+    const key = this.tver() + (this.kind === 'futures' ? ':' + this.fver() + ':' + (this.rec ? this.rec.length : 0) : ''); if (this.memo.mk === key) return this.memo.m;
     let m;
-    if (this.kind === 'futures') m = this.ts.mins();
+    if (this.kind === 'futures') { let fb = []; try { const f = this.footFeed(); fb = f ? f.bars() : []; } catch (e) {} m = mergeMinutes(this.ts.mins(), fb, this.rec); }
     else { const f = this.cf(); m = f.bars().filter((b) => b.t >= f.coverFrom).map((b) => ({ t: b.t, buy: (b.vol + b.delta) / 2, sell: (b.vol - b.delta) / 2, hi: b.dmax, lo: b.dmin })); }
     this.memo.mk = key; this.memo.m = m; return m;
   }
-  tradeBars(tf) { const k = this.tver() + '|' + tf; if (this.memo.tk !== k) { this.memo.tk = k; this.memo.tb = new Map(aggregateMins(this.minutes(), tf).map((b) => [b.t, b])); } return this.memo.tb; }
+  tradeBars(tf) { const k = this.tver() + ':' + (this.kind === 'futures' ? this.fver() + ':' + (this.rec ? this.rec.length : 0) : '') + '|' + tf; if (this.memo.tk !== k) { this.memo.tk = k; this.memo.tb = new Map(aggregateMins(this.minutes(), tf).map((b) => [b.t, b])); } return this.memo.tb; }
   // per-price minutes (footprint): futures from the hub's TickFeed (3 h), crypto from the stream
   footBars() {
     const f = this.kind === 'futures' ? this.footFeed() : this.cf();
@@ -328,6 +338,7 @@ class L2Flow {
     const samples = hub.samples(), first = samples.length ? samples[0].ts : 0;
     const since = first && first > bars[0].time + 120000 ? 'Book history from ' + hhmm(first) : '';
     const t = this.type;
+    if (hub.kind === 'futures' && (t === 'stk_l2f_delta' || t === 'stk_l2f_cvd')) this.fillRecorder(hub, bars, tf);
     ctx.setStatus(samples.length ? 'live' : 'loading');
     if (t === 'stk_l2f_lad') { this.hub = hub; this.ov('Delta Ladder (L2)'); return this.pushLadder(); }
     if (t === 'stk_l2f_dp') return this.drawDp(hub, bars, tf);
@@ -338,6 +349,18 @@ class L2Flow {
     if (t === 'stk_l2f_big') return this.drawBig(hub, bars, tf, since);
     if (t === 'stk_l2f_stop') return this.drawStop(hub, bars, tf, since);
     return this.drawVp(hub, bars, tf, since);
+  }
+  // Nothing in the live stores for some bars (market closed, a read failed): the recorder's minutes fill them in (read once, a day at a time)
+  fillRecorder(hub, bars, tf) {
+    const from = bars[0].time, to = bars[bars.length - 1].time + tf, held = new Set(hub.minutes().map((m) => m.t));
+    let miss = false; for (const b of bars) if (!held.has(b.time)) { miss = true; break; }
+    if (!miss && !hub.recBusy) return;
+    if (!this.fpMod) { if (!this.fpP) this.fpP = import('./chart-footprint.js?v=983').then((m) => { this.fpMod = m; this.later(); }, () => { this.fpMod = false; }); return; }
+    if (!this.fpMod.recorderMinutes) return;
+    const r = this.fpMod.recorderMinutes(hub.spec.root, from, to);
+    if (r.mins.length !== (hub.rec || []).length) { hub.rec = r.mins; hub.memo = {}; }
+    hub.recBusy = r.loading;
+    if (r.loading) { clearTimeout(this.recTm); this.recTm = setTimeout(() => this.later(), 1500); }
   }
   // per bar: trade delta, book delta
   deltas(hub, bars, tf) {

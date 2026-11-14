@@ -165,7 +165,7 @@
         const qty = num(p.qty), avg = num(p.avg); if (!(qty > 0) || !(avg > 0)) continue;
         const sym = sp.symbol;
         st.positions[sym] = { symbol: sym, side: side(p.side), qty, avg, sl: num(p.sl), tp: num(p.tp), openedAt: num(p.openedAt) || now, fees: num(p.fees) || 0,
-          sl0: num(p.sl0) != null ? num(p.sl0) : num(p.sl), hi: num(p.hi) || avg, lo: num(p.lo) || avg, bal0: num(p.bal0), maxQty: Math.max(qty, num(p.maxQty) || 0) };
+          sl0: num(p.sl0) != null ? num(p.sl0) : num(p.sl), trail: num(p.trail) > 0 ? num(p.trail) : null, hi: num(p.hi) || avg, lo: num(p.lo) || avg, bal0: num(p.bal0), maxQty: Math.max(qty, num(p.maxQty) || 0) };
       }
     }
     if (Array.isArray(raw.orders)) {
@@ -334,6 +334,39 @@
       const q = num(qty) > 0 && num(qty) < p.qty ? num(qty) : p.qty;
       return this.placeOrder({ symbol: sym, side: p.side === 'buy' ? 'sell' : 'buy', type: 'market', qty: q, _close: true }).events;
     }
+    /** Move the stop to the entry price. Only once price is past the entry (else it would fill at once). */
+    moveToBreakeven(symbol) {
+      const spec = this.spec(symbol), sym = spec.ok ? spec.symbol : symbol;
+      const p = this.state.positions[sym];
+      if (!p) throw new Error('That position is closed.');
+      const dir = p.side === 'buy' ? 1 : -1, be = roundTick(p.avg, spec.tick);
+      const last = this.last[sym] || this.last[symbol];
+      if (!(last > 0) || !((last - be) * dir > 0)) throw new Error('Price is not past your entry yet, so a breakeven stop would fill at once.');
+      if (p.sl != null && (p.sl - be) * dir >= 0) throw new Error('Your stop is already at or past breakeven.');
+      return this.modifyPosition(sym, { sl: be });
+    }
+    /** Trailing stop (simulated): keeps the stop the same distance behind the best price seen. Needs a stop loss to take the distance from. */
+    setTrailing(symbol, on) {
+      const spec = this.spec(symbol), sym = spec.ok ? spec.symbol : symbol;
+      const p = this.state.positions[sym];
+      if (!p) throw new Error('That position is closed.');
+      if (!on) { p.trail = null; return p; }
+      const last = this.last[sym] || this.last[symbol] || p.avg;
+      if (p.sl == null) throw new Error('Set a stop loss first. The trailing stop keeps that distance.');
+      const d = Math.abs(last - p.sl);
+      if (!(d > 0)) throw new Error('The stop is at the current price, so there is no distance to trail.');
+      p.trail = d; return p;
+    }
+    /** Close every position that is in profit (kind 'profit') or at a loss ('loss'), at market. Returns events. */
+    closeByResult(kind) {
+      const events = [], skipped = [];
+      for (const k of Object.keys(this.state.positions)) {
+        const p = this.state.positions[k], pnl = this.openPnl(p, this.last[k]);
+        if (kind === 'profit' ? !(pnl > 0) : !(pnl < 0)) continue;
+        try { events.push(...this.closePosition(k)); } catch (e) { skipped.push({ symbol: k, reason: e.message }); }
+      }
+      events.skipped = skipped; return events;
+    }
     /** Flip a position: one market order for twice the size. */
     reversePosition(symbol) {
       const spec = this.spec(symbol), sym = spec.ok ? spec.symbol : symbol;
@@ -400,6 +433,12 @@
           if (ex.reason === 'sl') px -= (p.side === 'buy' ? 1 : -1) * slip;
           events.push(...this._fill({ id: this.state.nextId++, symbol, side: p.side === 'buy' ? 'sell' : 'buy', type: ex.reason, qty: p.qty, sl: null, tp: null }, roundTick(px, spec.tick), seg.t != null ? seg.t : now, ex.reason));
         }
+      }
+      // trailing stop: after this segment's exit check, pull the stop up behind the best price (never back)
+      const tp = this.state.positions[symbol];
+      if (tp && !exited && tp === p && tp.trail > 0) {
+        const dir = tp.side === 'buy' ? 1 : -1, cand = roundTick((dir > 0 ? seg.h : seg.l) - dir * tp.trail, spec.tick);
+        if ((tp.sl == null || (cand - tp.sl) * dir > 0) && (cand - seg.c) * dir <= 0) tp.sl = cand;
       }
       // excursion: a position still open after this segment saw its whole range
       const still = this.state.positions[symbol];

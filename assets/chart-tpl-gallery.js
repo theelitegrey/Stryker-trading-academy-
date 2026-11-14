@@ -16,6 +16,8 @@ export const TEMPLATES = [
     symbol: 'futures:NQ1!', tf: '1', ind: [['stk_l2f_big'], ['stk_l2f_delta'], ['stk_l2f_stop'], ['stk_l2f_cvd']] },
   { id: 'futures-open', name: 'Futures open (GEX + levels)', desc: 'Options-based levels, previous-day value area and session marks for the open.',
     symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex'], ['stk_pdvp'], ['stk_msess'], ['stk_econ']] },
+  { id: 'gex-flow', name: 'GEX Levels & Options Flow', desc: 'Call and put walls, zero gamma, top open-interest strikes and past days\u2019 levels, with positive and negative gamma zones shaded, call and put premium marks, fresh option volume and ZoroTide. Price is the candles.',
+    symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex', { showOi: true, oiCount: 5, show0dte: true, showRanked: true, showProfile: true, showRegime: true, showPrev: true, prevDays: 2 }], ['stk_zzone'], ['stk_optflow'], ['stk_zvol'], ['stk_tide']] },
   { id: 'options-levels', name: 'Options levels', desc: 'Expected move, gamma levels and calls-vs-puts money flow on an index ETF.',
     symbol: 'IDX:SPY', tf: '15', ind: [['stk_gex'], ['stk_em'], ['stk_tide'], ['stk_optflow']] },
   { id: 'dark-pool', name: 'Dark pool watch', desc: 'Large off-exchange prints on the candles plus weekly off-exchange levels and daily share.',
@@ -43,7 +45,7 @@ export const TEMPLATES = [
 ];
 
 const NAMES = { stk_l2f_big: 'Big Trades (L2)', stk_l2f_delta: 'Delta (L2)', stk_l2f_stop: 'Stop Runs (L2)', stk_l2f_cvd: 'Cumulative Delta (L2)', stk_gex: 'GEX Levels', stk_pdvp: 'Previous day levels',
-  stk_msess: 'Market Stats', stk_econ: 'Economic events', stk_em: 'Expected Move', stk_tide: 'ZoroTide', stk_optflow: 'Options Flow Marks', stk_darkpool: 'Dark Pool Prints', stk_offex_lv: 'Off-exchange levels',
+  stk_msess: 'Market Stats', stk_econ: 'Economic events', stk_em: 'Expected Move', stk_tide: 'ZoroTide', stk_optflow: 'Options Flow Marks', stk_zzone: 'Gamma Zone', stk_zvol: 'Fresh Volume marks', stk_darkpool: 'Dark Pool Prints', stk_offex_lv: 'Off-exchange levels',
   stk_offex: 'Off-exchange Volume', volume: 'Volume', ema: 'EMA', rsi: 'RSI', '52-week-high-low': '52-week high / low', stk_of_tpo: 'Market Profile', stk_avwap: 'Anchored VWAP', stk_depth_heat: 'Depth Heatmap (L2)', stk_fut_walls: 'Liquidity Walls (L2)',
   stk_l2f_fp: 'Footprint (L2)', stk_l2f_vp: 'Volume Profile (L2)', stk_crypto_dom: 'Crypto DOM Heatmap', stk_vbubble: 'Volume Bubbles', supertrend: 'SuperTrend', macd: 'MACD', 'bollinger-bands': 'Bollinger Bands',
   'ttm-squeeze': 'TTM Squeeze', 'average-true-range': 'ATR', vwap: 'VWAP', vpvr: 'Volume Profile', stk_rvol: 'Relative Volume', stk_news: 'News markers', 'pivot-points': 'Pivot Points' };

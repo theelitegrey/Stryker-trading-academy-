@@ -47,7 +47,7 @@ const cellInfo = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const
     t('Templates menu has the Browse row', (await p.$$('.stkt-browse')).length >= 1, (await p.$$('.stkt-browse')).length);
     await p.click('.stkt-browse'); await sleep(800);
     const cards = await p.$$eval('.stkt-card', (a) => a.map((x) => x.dataset.tpl));
-    t('gallery lists 14 templates', cards.length === 14, cards.length);
+    t('gallery lists 15 templates', cards.length === 15, cards.length);
     await p.screenshot({ path: OUT + '/gallery-1440-dark.png' });
     const expect = await p.evaluate(() => null);
     await p.keyboard.press('Escape'); await sleep(300);

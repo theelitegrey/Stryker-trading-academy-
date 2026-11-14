@@ -147,4 +147,5 @@
 .hh-chip{ display:inline-flex; align-items:center; gap:8px; margin:16px 0 0; padding:6px 14px; border-radius:999px; border:1px solid var(--line); background:var(--bg-2); font-size:13px; line-height:18px; font-weight:600; color:var(--ink-1); }
 .hh-chip .ci{ width:16px; height:16px; color:var(--gold); }
 
-@media (min-width:1100px){ .cm-hero h1{ max-width:1080px; font-size:clamp(44px,4.4vw,56px); } }
+.cm-hero h1{ font-size:clamp(38px,9vw,64px); line-height:1.04; margin-bottom:28px; }
+@media (min-width:1100px){ .cm-hero h1{ max-width:1240px; font-size:clamp(60px,5.6vw,80px); } }

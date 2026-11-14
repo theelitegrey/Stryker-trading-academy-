@@ -10,7 +10,7 @@
 // Threshold: the auto size is the recorder's 99.5th percentile for the symbol (the same number the InsightSentry bubbles use), so the
 // two indicators ask the same question; a print below the Worker's per-symbol floor was never stored.
 // Education only. Not financial advice.
-import { liveVisible as l1Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=988';
+import { liveVisible as l1Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState, l2Closed } from './chart-futures-l2.js?v=988';
 import { registerFeed } from './chart-feeds.js?v=988';
 import { rtReady, rtHeaders } from './rt-access.js?v=988';
 import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=988';
@@ -97,6 +97,10 @@ function fold(s, x) {
 function onFrame(s, m) {
   const r = rootState(s.root);
   if (!m) {   // state change: first time live -> load; back live after a drop -> reload (ticks in the gap were not delivered)
+    // market closed (member GK 14 Nov: "big trades not updated even after refreshing"): the hub never says 'live' until CME opens, so the
+    // history was never read and Big Trades showed 0. The recorded prints are history (HTTP), not the socket: read them now. The open
+    // later counts as "back live after a drop" (wasDown), so fillGap() reads whatever printed in between.
+    if (r.status !== 'live' && !s.started && l2Closed(s.root)) { s.started = true; s.wasDown = true; reset(s); pump(s); return; }
     if (r.status !== 'live') { if (s.started) s.wasDown = true; return; }
     if (!s.started) { s.started = true; s.wasDown = false; reset(s); pump(s); }
     else if (s.wasDown) { s.wasDown = false; if (s.loadedFrom === Infinity || Date.now() - s.at > WIN) { reset(s); pump(s); } else fillGap(s); }   // GK 13 Nov: reset() wiped every print on each socket drop (hidden tab); now only the gap is read
@@ -129,7 +133,7 @@ function acquireStore(root, listener) {
   const s = getStore(root);
   s.refs++; s.ls.add(listener); clearTimeout(s.dropTm);
   if (!s.handle) { s.handle = acquire(root, (m) => onFrame(s, m), 20); }
-  if (rootState(root).status === 'live' && !s.started) onFrame(s, null);
+  if (!s.started && (rootState(root).status === 'live' || l2Closed(root))) onFrame(s, null);
   // GK 13 Nov: the chart rebuilds its indicators when the tab comes back; the store died with the last one and the markers refilled from nothing.
   // Keep an unused store for GRACE_MS so the rebuilt indicator picks up the prints already loaded.
   return { s, release() { s.ls.delete(listener); if (--s.refs <= 0) { clearTimeout(s.dropTm); s.dropTm = setTimeout(() => { if (s.refs > 0) return; s.gen++; s.pumping = false; if (s.handle) s.handle.release(); if (stores.get(root) === s) stores.delete(root); }, GRACE_MS); } } };

@@ -2713,7 +2713,7 @@ export function installOrderflow(Core) {
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
   installFuturesL2(Core, { hfSchema, SMOOTH_INPUT, cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds, replayNote, btBook }, reg);
-  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, marketOf, message, pageIsDay, feedTrades, replayNote, btBook }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
+  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, marketOf, message, pageIsDay, feedTrades, replayNote, btBook, chartTz }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
   installBookPack(Core, { line, message, pageIsDay }, reg);
   installPatterns(Core, {}, reg);   // Auto Chart Patterns: Free for every plan (assets/chart-patterns.js)
   installL2Flow(Core, { line, message, pageIsDay, acquireBookFeed }, reg);

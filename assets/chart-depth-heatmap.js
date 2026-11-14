@@ -352,7 +352,7 @@ export function dhLayer(H) {
         if (book) drawLadder(g, a, { book, tick, whole: !!f.custom }, { lx: plotR, labW, c1W, c2W, top, bot, H0, phone, font, yOf, stat, W });
       }
       if (a.data.stale && !rp) {   // calm pill, top centre of the heat area (phones: under the legend chips)
-        g.font = '500 12px ' + font; const tw = g.measureText(a.data.stale).width, pw = tw + 24, ph = 28, px = Math.max(8, (plotR - pw) / 2), py = top + (phone ? 120 : 160);   // below the legend and the L1 / L2 chips
+        g.font = '500 12px ' + font; const tw = g.measureText(a.data.stale).width, pw = tw + 24, ph = 28, px = Math.max(8, (plotR - pw) / 2), py = top + (phone ? 150 : 160);   // below the legend and the L1 / L2 chips (phone: the chips end ~130 px down)
         g.fillStyle = 'rgba(15,15,15,.85)'; g.beginPath(); g.roundRect ? g.roundRect(px, py, pw, ph, 8) : g.rect(px, py, pw, ph); g.fill();
         g.fillStyle = '#cbd5e1'; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillText(a.data.stale, px + 12, py + ph / 2); stat.staleNote = a.data.stale;
       }
@@ -361,6 +361,28 @@ export function dhLayer(H) {
       dhLast = stat;
     }
   };
+}
+
+// ---------------------------------------------------------------------------------------- book gap note
+// Member GK 14 Nov ("heatmap not updated even after refreshing"): the recorder's NQ book stopped at 13 Nov 08:27 UTC while trades
+// carried on to the close, so the chart had a full day of candles over an empty field and no word why. When every history read is in
+// and the recorder holds no book sample within GAP_LOOK_MS before the last bar, say so plainly (with the last recorded time) instead
+// of drawing nothing in silence. '' while reads are still out or when the book is there. Never invents a book.
+export const GAP_LOOK_MS = 15 * 60000;
+export function bookGapNote(hist, endMs, st, opts) {
+  opts = opts || {};
+  if (!(endMs > 0) || !st || st.busy || st.state !== 'ok' || !(st.from <= endMs - GAP_LOOK_MS)) return '';
+  let last = 0; for (let k = hist.length - 1; k >= 0; k--) if (hist[k].ts <= endMs) { last = hist[k].ts; break; }
+  if (last && endMs - last < GAP_LOOK_MS) return '';
+  const when = last ? (opts.fmt ? opts.fmt(last) : new Date(last).toISOString().slice(5, 16).replace('T', ' ')) : '';
+  if (opts.phone) return when ? 'No order book since ' + when : 'No order book recorded here';
+  return when ? 'No order book recorded since ' + when + ' (data feed gap)' : 'No order book recorded for these bars (data feed gap)';
+}
+const gapFmt = new Map();
+function dayTime(ms, tz) {
+  let f = gapFmt.get(tz);
+  if (!f) { try { f = new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); } catch (e) { f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Etc/UTC', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); } gapFmt.set(tz, f); }
+  return f.format(new Date(ms)).replace(',', '');
 }
 
 // ---------------------------------------------------------------------------------------- the native indicator
@@ -399,9 +421,19 @@ export function installDepthHeatmap(Core, H, reg) {
       if (f && replayNow() && H.replayNote) return H.replayNote(f);   // bar replay: the recorded book, not the live feed state
       if (!f || f.status === 'loading') return 'Loading the order book…';
       if (f.status === 'error') return f.err || 'Order book unavailable.';
-      if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? closedNote() : 'Reconnecting to the order book…';
-      if (f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
-      return f.custom ? staleNote(f.ticker) : '';
+      if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? this.gapNote(f) || closedNote() : 'Reconnecting to the order book…';
+      if (f.history.length < 15 && f.remote.length < 2) return this.gapNote(f) || 'Building order book history…';
+      return f.custom ? this.gapNote(f) || staleNote(f.ticker) : '';
+    }
+    gapNote(f) {   // futures: the recorder has no book for the last bars (feed gap); crypto books come straight from the exchange
+      this.gap = '';
+      if (!f.custom || replayNow()) return '';
+      let bars = []; try { bars = this.ctx.bars() || []; } catch (e) {}
+      const end = bars.length ? bars[bars.length - 1].time : 0;
+      let tz = 'Etc/UTC'; try { tz = H.chartTz ? H.chartTz() : tz; } catch (e) {}
+      this.gap = bookGapNote(f.allHistory(), end, { busy: f.remoteBusy, state: f.remoteState, from: f.remoteFrom },
+        { phone: document.documentElement.getAttribute('data-device') === 'mobile', fmt: (t) => dayTime(t, tz) });
+      return this.gap;
     }
     render() {
       if (!this.ctx || this.hidden) return;
@@ -409,7 +441,8 @@ export function installDepthHeatmap(Core, H, reg) {
       window.__stkDhNote = msg;   // test hook (tools/tests/heatmap-closed-browser.js)
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       // a stale book side (the hub dropped a frozen vendor side) is drawn by the layer itself: a table note sits under the heatmap
-      const stale = /unavailable from the data feed/.test(msg) ? msg : '';
+      // so is a book gap (the top-right table sits under the other L2 plates, e.g. Big Trades, and was hidden there)
+      const stale = /unavailable from the data feed/.test(msg) || (msg && msg === this.gap) ? msg : '';
       this.ctx.emit({ tables: msg && !stale ? [H.message('stk_dh-msg', msg, H.pageIsDay(), 'top_right')] : [] });
       this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: dhConfig(this.inputs), stale } : { off: true });
     }

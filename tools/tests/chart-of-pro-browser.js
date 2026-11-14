@@ -163,7 +163,7 @@ const CASES = [
             const n0 = await ink(p);
             check(n0 > base + 25, eng + ' ' + w + ' ' + id + ': default profile draws (' + base + ' -> ' + n0 + ' px)');
             const defs = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo').inputValues());
-            check(['singles', 'poor', 'nakedPoc', 'devPoc', 'ibLines', 'fixedWidth'].every((k) => defs[k] === false), eng + ' ' + w + ' ' + id + ': every new option is off by default (saved charts unchanged)', defs);
+            check(['singles', 'poor', 'nakedPoc', 'devPoc', 'ibLines'].every((k) => defs[k] === false) && defs.showLetters === true, eng + ' ' + w + ' ' + id + ': every new option is off by default, Show letters on (saved charts unchanged)', defs);
             await setI(ALL);
             const n1 = await ink(p);
             check(n1 > n0 + 100, eng + ' ' + w + ' ' + id + ': the options add lines and marks (' + n0 + ' -> ' + n1 + ' px)');
@@ -182,15 +182,16 @@ const CASES = [
               // the 20 Oct RTH session, zoomed in on it vs zoomed out over both days
               const widthAt = async (from, to) => { await p.evaluate(() => { window.__stkTpoW = {}; }); await frameOn(p, from, to); await sleep(900); return p.evaluate(() => { const o = window.__stkTpoW || {}, k = Object.keys(o).filter((x) => /2026-10-20|^20381$/.test(x) || x.indexOf('10-20') >= 0); return k.length ? o[k[0]] : JSON.stringify(o); }); };
               const IN = [Date.UTC(2026, 9, 20, 13, 0), Date.UTC(2026, 9, 20, 22, 0)], OUTR = [Date.UTC(2026, 9, 19, 22, 0), D21(17, 0)];
-              await setI({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false, fixedWidth: true });
+              await setI({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false, showLetters: true });
               const fa = await widthAt(...IN), fb = await widthAt(...OUTR);
-              check(fa > 0 && Math.abs(fa - fb) < 0.5, eng + ' ' + w + ' ' + id + ': steady width on: 20 Oct profile ' + fa + ' px zoomed in, ' + fb + ' px zoomed out');
-              await setI({ fixedWidth: false });
-              const ua = await widthAt(...IN), ub = await widthAt(...OUTR);
-              console.log('INFO ' + eng + ' ' + w + ' steady width off: 20 Oct profile ' + ua + ' px zoomed in, ' + ub + ' px zoomed out');
+              check(fa > 0 && Math.abs(fa - fb) < 0.5, eng + ' ' + w + ' ' + id + ': standard width: 20 Oct profile ' + fa + ' px zoomed in, ' + fb + ' px zoomed out');
+              await setI({ showLetters: false });
+              const ua = await widthAt(...IN);
+              check(Math.abs(ua - fa) < 0.5, eng + ' ' + w + ' ' + id + ': same width with letters hidden (' + fa + ' -> ' + ua + ' px)');
+              await setI({ showLetters: true });
               await frameOn(p, w < 500 ? D21(17, 0) - (D21(17, 0) - a) * 0.4 : a, z);
             }
-            await setI(ALL);
+            await setI(process.env.OFP_HIDE ? Object.assign({}, ALL, { showLetters: false }) : ALL);   // OFP_HIDE=1: shoot with letters hidden
           } else {
             const n = await ink(p);
             check(n > base + base * 0.003 + 25, eng + ' ' + w + ' ' + id + ': draws (' + base + ' -> ' + n + ' px)');

@@ -341,8 +341,8 @@ function profileDraw(kind) {
         const xo = { I: settings, bars, s, p, periodMs: periodMin * 60000, va, tick, X, Y, x0, x1, W: co.width, pitch: f.pitch, last, top: f.top, bot: f.bot, phone, day, labels };
         if (x1 < 0) { drawTpoExtras(g, xo); continue; }
         const maxC = Math.max(...p.counts);
-        const cellW = settings.fixedWidth ? steadyW(ss.list, s, X, x0, co.width, phone) / Math.max(1, maxC) : Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
-        const rowPx = Math.abs(Y(row) - Y(0)), letters = rowPx >= (phone ? 9 : 11) && cellW >= (phone ? 6 : 7);
+        const cellW = steadyW(ss.list, s, X, x0, co.width, phone) / Math.max(1, maxC);
+        const rowPx = Math.abs(Y(row) - Y(0)), letters = settings.showLetters !== false && rowPx >= (phone ? 9 : 11) && cellW >= (phone ? 6 : 7);
         const fs = Math.max(7, Math.min(phone ? 9 : 11, Math.floor(Math.min(rowPx * .85, cellW * 1.2))));
         g.font = '600 ' + fs + 'px "JetBrains Mono", ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
         for (let k = 0; k < p.n; k++) {

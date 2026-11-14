@@ -8,8 +8,8 @@
 // Input "Levels from": Through the day (refreshes every few minutes) or Daily close (levels from the last 16:00 ET close).
 // Bar replay: nothing is drawn (today's range and flip would leak the future). The chip says so.
 // Wording: "updated X min ago" only. Education only. Not financial advice.
-import * as ZD from './chart-zoro-data.js?v=980';
-import * as ProGate from './chart-pro-gate.js?v=980';
+import * as ZD from './chart-zoro-data.js?v=981';
+import * as ProGate from './chart-pro-gate.js?v=981';
 
 export const ZRANGE_TYPE = 'stk_zrange';
 export const ZZONE_TYPE = 'stk_zzone';

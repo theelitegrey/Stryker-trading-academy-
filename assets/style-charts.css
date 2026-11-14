@@ -4223,3 +4223,6 @@ html.geo-gate-open, html.geo-gate-open body{ overflow:hidden; }
 @media (max-width:767px){.geo-gate{ align-items:flex-end; padding:0; }
 .geo-gate-card{ max-width:none; border-radius:20px 20px 0 0; border-bottom:0; padding:24px 16px max(24px, env(safe-area-inset-bottom)); }}
 #geo-gate .btn:disabled{ opacity:.45; cursor:not-allowed; box-shadow:none; filter:saturate(.6); }
+
+/* Owner 14 Nov: app top-bar logo sized to sit in line with the other top-bar items (was 32px tall) */
+@media (min-width:768px){ .topnav-left .brand-mark{ height:22px; } }

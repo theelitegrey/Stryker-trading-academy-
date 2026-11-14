@@ -6,7 +6,7 @@
 // Education only. Not financial advice.
 import { renko, range, lineBreak, kagi, pnf, sizeOf, guessTick } from './chart-types-math.js?v=994';
 import { tpoProfile, tpoLetter, autoRow, rthKey } from './chart-of-pro-data.js?v=994';
-import { drawTpoExtras, drawLabels, steadyW, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=994';
+import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=994';
 
 export const CT_TIME = ['stk_hollow', 'stk_volcandle', 'stk_linemark', 'stk_step', 'stk_hlcarea', 'stk_columns', 'stk_highlow'];
 export const CT_PRICE = ['stk_renko', 'stk_range', 'stk_linebreak', 'stk_kagi', 'stk_pnf'];
@@ -345,16 +345,17 @@ function profileDraw(kind) {
         const rowPx = Math.abs(Y(row) - Y(0)), letters = settings.showLetters !== false && rowPx >= (phone ? 9 : 11) && cellW >= (phone ? 6 : 7);
         const fs = Math.max(7, Math.min(phone ? 9 : 11, Math.floor(Math.min(rowPx * .85, cellW * 1.2))));
         g.font = '600 ' + fs + 'px "JetBrains Mono", ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        const aL = settings.alignLeft === true, ax = tpoAnchorX(settings, x0, cellW * maxC), xL = aL ? ax - cellW * maxC : x0;
         for (let k = 0; k < p.n; k++) {
           if (!p.counts[k]) continue;
           const yT = Y((p.r0 + k + 1) * row), yB = Y((p.r0 + k) * row), y = Math.min(yT, yB), h = Math.abs(yB - yT);
           const c = k === p.poc ? MAGENTA : k >= p.val && k <= p.vah ? TPO_IN : TPO_OUT;
           p.cols[k].forEach((per, j) => {
-            g.fillStyle = alpha(c, k === p.poc ? 0.95 : 0.6); g.fillRect(x0 + cellW * j + .5, y + .5, Math.max(1, cellW - 1), Math.max(1, h - 1));
-            if (letters) { g.fillStyle = k === p.poc ? '#fff' : ink; g.fillText(tpoLetter(per), x0 + cellW * (j + .5), y + h / 2); }
+            g.fillStyle = alpha(c, k === p.poc ? 0.95 : 0.6); g.fillRect(tpoColX(aL, ax, cellW, j) + .5, y + .5, Math.max(1, cellW - 1), Math.max(1, h - 1));
+            if (letters) { g.fillStyle = k === p.poc ? '#fff' : ink; g.fillText(tpoLetter(per), tpoColX(aL, ax, cellW, j) + cellW / 2, y + h / 2); }
           });
         }
-        const ln = (k, c, w, d) => { const y = Y((p.r0 + k + .5) * row); g.setLineDash(d); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y); g.lineTo(last ? co.width : x1, y); g.stroke(); g.setLineDash([]); };
+        const ln = (k, c, w, d) => { const y = Y((p.r0 + k + .5) * row); g.setLineDash(d); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(xL, y); g.lineTo(last ? co.width : x1, y); g.stroke(); g.setLineDash([]); };
         ln(p.poc, alpha(MAGENTA, .9), 1.5, []); ln(p.vah, alpha(VAL_LN, .7), 1, [4, 3]); ln(p.val, alpha(VAL_LN, .7), 1, [4, 3]);
         drawTpoExtras(g, xo);
       } else {

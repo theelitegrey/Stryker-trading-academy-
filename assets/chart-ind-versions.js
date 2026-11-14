@@ -9,7 +9,7 @@
 //     Not now (hides the button for that indicator until a newer version ships; localStorage).
 //   - "Reset settings" in the settings window keeps the version.
 // Nothing changes on its own: a new version only shows the button. No vendor wording in view.
-import { withVersion, pinnable, latest, verOf, newer, upgradePatch, fmtDate, cmp, VER_KEY } from './indicator-versions.js?v=984';
+import { withVersion, pinnable, latest, verOf, newer, upgradePatch, fmtDate, cmp, VER_KEY } from './indicator-versions.js?v=985';
 
 const DISMISS_LS = 'stk_ind_ver_dismissed';
 const STYLE_ID = 'stk-indver-css';

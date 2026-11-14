@@ -12,21 +12,21 @@
 // backfill and /ts-live frames), the trades are the L1 tools' own stores (chart-ts-trades.js tsOpen for futures; chart-footprint-crypto.js for Binance)
 // and the hub's footprint minutes (chart-futures-l2.js TickFeed). A "level" here is one book row as the recorder stores it (a few ticks wide, rule in ts-hub.js).
 // Same gate as the other L2 tools (futures: l2Visible(); crypto: Pro). No data = a plain note, never made-up numbers. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=984';
-import { isFree } from './chart-pro-gate.js?v=984';
-import { rtOnChange } from './rt-access.js?v=984';
-import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState, fpNeed, fpState, seedState } from './chart-futures-l2.js?v=984';
-import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=984';
-import { tsOpen } from './chart-ts-trades.js?v=984';
-import { aggregateMins } from './chart-ts-data.js?v=984';
-import { aggregate, clipTo, profile as tradedProfile } from './chart-footprint-data.js?v=984';
-import * as BT from './chart-bigtrades.js?v=984';
-import { sweepEvents } from './chart-of-pro-data.js?v=984';
-import { sweepBars } from './chart-of-pro.js?v=984';
-import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-data.js?v=984';
-import { swingModel, swingLayer } from './chart-swing-vwap.js?v=984';
-import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=984';
-import { below, since } from './indicator-versions.js?v=984';   // versions: assets/indicator-versions.js (v1.0 = full-depth resting book)
+import { registerFeed } from './chart-feeds.js?v=985';
+import { isFree } from './chart-pro-gate.js?v=985';
+import { rtOnChange } from './rt-access.js?v=985';
+import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState, fpNeed, fpState, seedState } from './chart-futures-l2.js?v=985';
+import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=985';
+import { tsOpen } from './chart-ts-trades.js?v=985';
+import { aggregateMins } from './chart-ts-data.js?v=985';
+import { aggregate, clipTo, profile as tradedProfile } from './chart-footprint-data.js?v=985';
+import * as BT from './chart-bigtrades.js?v=985';
+import { sweepEvents } from './chart-of-pro-data.js?v=985';
+import { sweepBars } from './chart-of-pro.js?v=985';
+import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-data.js?v=985';
+import { swingModel, swingLayer } from './chart-swing-vwap.js?v=985';
+import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=985';
+import { below, since } from './indicator-versions.js?v=985';   // versions: assets/indicator-versions.js (v1.0 = full-depth resting book)
 
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
@@ -355,7 +355,7 @@ class L2Flow {
     const from = bars[0].time, to = bars[bars.length - 1].time + tf, held = new Set(hub.minutes().map((m) => m.t));
     let miss = false; for (const b of bars) if (!held.has(b.time)) { miss = true; break; }
     if (!miss && !hub.recBusy) return;
-    if (!this.fpMod) { if (!this.fpP) this.fpP = import('./chart-footprint.js?v=984').then((m) => { this.fpMod = m; this.later(); }, () => { this.fpMod = false; }); return; }
+    if (!this.fpMod) { if (!this.fpP) this.fpP = import('./chart-footprint.js?v=985').then((m) => { this.fpMod = m; this.later(); }, () => { this.fpMod = false; }); return; }
     if (!this.fpMod.recorderMinutes) return;
     const r = this.fpMod.recorderMinutes(hub.spec.root, from, to);
     if (r.mins.length !== (hub.rec || []).length) { hub.rec = r.mins; hub.memo = {}; }

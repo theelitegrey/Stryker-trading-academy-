@@ -88,7 +88,7 @@ export async function validateZoIngest(route, q, buf, nowMs) {
 
 // ---- Pro gate shape: which requests the free tier may read (SPX teaser panels, spec section 2) -----------------------------------
 export const ZO_TEASER_ROUTES = ['summary', 'profile', 'note'];
-// true when a request WITHOUT Pro may be answered with the teaser slice. Everything else is Pro-only (403 pro_required).
+// true when a request WITHOUT a member token may be answered with the teaser slice. Everything else needs a signed-in member (403 sign_in_required; all tools free since 2026-11-13).
 export function teaserEligible(route, q) {
   const g = (k) => String(q.get ? q.get(k) || '' : q[k] || '');
   if (!ZO_TEASER_ROUTES.includes(route)) return false;
@@ -288,7 +288,7 @@ export function futuresRatio(sql, fut) {
 
 // ---- HTTP routes (called from src/index.js) -------------------------------------------------------------------------------------------
 const JSON_H = { 'content-type': 'application/json; charset=utf-8' };
-const deny = (status, error, h, extra = {}) => new Response(JSON.stringify({ error, message: error === 'pro_required' ? 'ZoroOptions is part of Pro.' : error, notice: NOTICE }), { status, headers: Object.assign({}, JSON_H, { 'cache-control': 'no-store' }, extra, h) });
+const deny = (status, error, h, extra = {}) => new Response(JSON.stringify({ error, message: error === 'sign_in_required' ? 'Sign in to use ZoroOptions. It is free.' : error, notice: NOTICE }), { status, headers: Object.assign({}, JSON_H, { 'cache-control': 'no-store' }, extra, h) });
 
 // Request -> { route, u, sub } or { error }; defaults per spec section 6.
 export function zoGetKey(route, q) {
@@ -339,7 +339,7 @@ export async function zoGetRoute(req, u, env, ctx, h, deps) {
   let pro = false;
   try { pro = !!(deps.service && (await deps.service(req))) || !!(await deps.isPro(deps.bearer(req))); } catch (e) { pro = false; }
   const teaser = !pro && teaserEligible(name, u.searchParams);
-  if (!pro && !teaser) return deny(403, 'pro_required', h);
+  if (!pro && !teaser) return deny(403, 'sign_in_required', h);
   if (env.RL) { try { const { success } = await env.RL.limit({ key: req.headers.get('cf-connecting-ip') || 'anon' }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }
   const nowSec = Math.floor(deps.now() / 1000);
   let sub = key.sub, ukey = key.u;
@@ -374,7 +374,7 @@ export async function zoGetRoute(req, u, env, ctx, h, deps) {
       if (a.status === 200) body.items = await a.json();   // last 5 sessions of marks (S4); rows = the latest pull
     }
   }
-  if (teaser) { body = zoTeaser(name, body); if (!body) return deny(403, 'pro_required', h); }
+  if (teaser) { body = zoTeaser(name, body); if (!body) return deny(403, 'sign_in_required', h); }
   // Pro answers are private (a shared cache must never keep them); the teaser slice is public SPX data but still vary-safe.
   const cc = pro ? 'private, max-age=15' : 'private, max-age=30';
   return new Response(JSON.stringify(Object.assign({ notice: NOTICE }, body)), { status: 200, headers: Object.assign({}, JSON_H, h, { 'cache-control': cc, vary: 'Authorization, Origin' }) });
@@ -385,7 +385,7 @@ export async function zoExportRoute(req, u, env, ctx, h, deps) {
   if (req.method !== 'GET') return new Response('GET only', { status: 405, headers: h });
   let pro = false;
   try { pro = !!(await deps.isPro(deps.bearer(req))); } catch (e) { pro = false; }
-  if (!pro) return deny(403, 'pro_required', h);
+  if (!pro) return deny(403, 'sign_in_required', h);
   const nowSec = Math.floor(deps.now() / 1000);
   const rl = env.RL_ZX || env.RL;
   if (rl) { try { const { success } = await rl.limit({ key: 'zx:' + (req.headers.get('cf-connecting-ip') || 'anon') }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }

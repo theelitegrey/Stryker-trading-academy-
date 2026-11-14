@@ -37,7 +37,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       check(!!dl, tag + ': file downloaded ' + (dl ? dl.suggestedFilename() : ''));
       check(dl && /^zoro-levels-SPX-2026-11-01_2026-11-03-15m\.csv$/.test(dl.suggestedFilename()), tag + ': file name carries symbol, range, step');
       // non-Pro: a 403 opens the plan modal
-      await p.route('**/levels-export.csv', (r) => r.fulfill({ status: 403, body: '{"error":"pro_required"}' }));
+      await p.route('**/levels-export.csv', (r) => r.fulfill({ status: 403, body: '{"error":"sign_in_required"}' }));
       await p.click('#gex-dl-x'); await sleep(200); await p.click('#gex-dl-btn'); await sleep(200); await p.click('#gex-dl-go'); await sleep(800);
       check(await p.evaluate(() => !document.getElementById('gex-dl').open && !!document.querySelector('#plan-upgrade-modal.open, .plan-modal-overlay.open, [id*=plan][class*=open]')), tag + ': 403 closes the dialog and opens the plan modal');
       check(!errors.length, tag + ': no page errors ' + errors.slice(0, 2).join(' / '));

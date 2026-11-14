@@ -14,7 +14,7 @@
     "Turn on hollow marks to compare confirmed and unconfirmed sweeps."
   ],
   "notes": [
-    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Needs the full order book (Data feed L2); the tool is free, the live futures order book is the paid data feed (10 minutes delayed without it). Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
     "A mark describes what happened at that bar; it is not a signal."
   ],
   "learn": "liquidity-sweeps"

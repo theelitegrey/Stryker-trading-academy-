@@ -21,6 +21,7 @@
 // Rows that need a patched Vela build (stage 2) are shown disabled with a short tooltip.
 // Nothing here touches data, trading or accounts.
 
+import * as DL from './chart-days-load.js?v=987';
 const EXT_KEY = 'stryker.settings';
 const DEFAULT_KEY = 'stryker_chart_settings_default';
 const TZ_FLAG = 'stryker_chart_tz_kolkata';
@@ -122,6 +123,12 @@ export function installChartSettings(Core, VelaChunk){
     const k = tz && tz.find((t) => t.value === 'Asia/Kolkata');
     if (k) k.label = 'Kolkata';
   } catch (e) { console.warn('TradeZoro settings: tz label', e); }
+  // Days of history to load, per timeframe, per chart cell (chart-days-load.js).
+  Core.registerStatePersistence({
+    key: 'stryker.daysload', scope: 'cell',
+    serialize(ctx){ return DL.serialize(ctx.cellId); },
+    restore(payload, ctx){ DL.restore(ctx.cellId, payload); try { window.__stkHistoryPager && window.__stkHistoryPager.kick(ctx.cellId); } catch (e) {} }
+  });
   Core.registerStatePersistence({
     key: EXT_KEY, scope: 'cell',
     serialize(ctx){ const s = store.get(ctx.cellId); return s && !isDefault(s) ? Object.assign({}, s) : undefined; },
@@ -169,6 +176,8 @@ function hookCell(cell){
     wm.update = (sym, tf) => { origUp(sym, tf); wmText(cell); };
   }
   try { cell.chart.on('load:end', () => setTimeout(() => applyRight(cell), 0)); } catch (e) {}
+  // the days list depends on the timeframe: rebuild our rows when it changes
+  try { cell.chart.on('market:changed', () => setTimeout(() => { try { cell.pushSettingsSections(); } catch (e) {} }, 0)); } catch (e) {}
   // phone price-scale width follows the labels (symbol switch, a price crossing 9999 -> 10000, rotation)
   if (!cell.__stkAxisTimer) cell.__stkAxisTimer = setInterval(() => { if (!document.hidden) syncPhone(cell); }, 2000);
   // Vela's own "Symbol watermark" on/off is replaced by our Hidden / Symbol / Symbol + interval row.
@@ -421,6 +430,20 @@ window.addEventListener('stk-favbar-visible', () => { if (!favSetting) setTimeou
 // ---------------------------------------------------------------------------------------
 // our rows (Vela host-settings rows), folded into Vela's tabs when the dialog opens
 // ---------------------------------------------------------------------------------------
+// "Days of history to load": per timeframe; never offers more than the data holds (pager.cap).
+function daysRow(id){
+  const cap = () => { try { return window.__stkHistoryPager.cap(id); } catch (e) { return 0; } };
+  const tf = () => { const c = cellOf(id); return c ? c.timeframe : ''; };
+  return { kind: 'select', label: 'Days of history to load', id: 'days-load',
+    title: 'Loads at least this many days of history for the current timeframe. Auto keeps the normal behaviour. The list stops at the most days the data really has for this timeframe.',
+    options: DL.optionsFor(cap()),
+    get: () => DL.displayOf(DL.getDays(id, tf()), cap()),
+    set: (v) => {
+      DL.setDays(id, tf(), DL.parseLabel(v, cap()));
+      try { WS.markStateDirty(); } catch (e) {}
+      try { window.__stkHistoryPager.kick(id); } catch (e) {}
+    } };
+}
 function ourSections(id){
   const g = (k) => () => S(id)[k];
   const st = (k) => (v) => setVal(id, k, v);
@@ -440,6 +463,7 @@ function ourSections(id){
       { kind: 'toggle', label: 'Color bars based on previous close', id: 'prev-close', get: g('prevClose'), set: st('prevClose') },
       off('Hollow candles'),
       { kind: 'heading', label: 'Data modification' }, off('Adjust for contract changes'),
+      { kind: 'heading', label: 'History' }, daysRow(id),
       { kind: 'select', label: 'Precision', id: 'precision', options: PRECISIONS, get: g('precision'), set: st('precision') },
       { kind: 'heading', label: 'Watermark' },
       { kind: 'select', label: 'Watermark', id: 'wm-mode', options: ['Hidden', 'Symbol', 'Symbol + interval'], get: g('wmMode'), set: st('wmMode') },

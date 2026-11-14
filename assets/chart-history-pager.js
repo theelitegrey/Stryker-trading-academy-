@@ -18,6 +18,7 @@
 // provider / Rithmic provider memo every page they fetch.
 // Not used during Bar Replay (it keeps its own buffers) or on offline/data-only charts.
 
+import { getDays, capDays, barsNeeded } from './chart-days-load.js?v=987';
 import { deepOn, DEEP_DEPTH_DAYS } from './chart-futures-provider.js?v=987';
 
 const PREFETCH_VIEWS = 1.5;     // start loading when fewer than 1.5 screens of bars remain on the left
@@ -108,6 +109,14 @@ function attach(cell) {
       const ex0 = st.exhausted.get(k0);
       if (!(ex0 && Date.now() < ex0)) { load(need - bars.length, k0); return; }
     }
+    // Member setting (chart-days-load.js): at least N days of history for this timeframe. Never past the source depth / memory cap.
+    const want = Math.min(getDays(cell.id, m.timeframe), capDays(m.timeframe, depthDays(m.timeframe, m), maxBars(m)));
+    const more = barsNeeded(bars[0].time, bars[bars.length - 1].time, bars.length, want);
+    if (more > 0) {
+      const kd = keyOf() + '|' + bars[0].time;
+      const exd = st.exhausted.get(kd);
+      if (!(exd && Date.now() < exd)) { load(Math.min(CHUNK_MAX, more), kd); return; }
+    }
     if (!r) return;
     const left = lowerBound(bars, r.from);
     const right = Math.max(left + 1, lowerBound(bars, r.to));
@@ -183,5 +192,8 @@ export function installHistoryPager(ws) {
   sweep();
   try { ws.on('layout:changed', () => setTimeout(sweep, 0)); } catch (e) {}
   try { ws.on('state:changed', () => setTimeout(sweep, 0)); } catch (e) {}
-  window.__stkHistoryPager = { stats: () => JSON.parse(JSON.stringify(stats)) };
+  window.__stkHistoryPager = { stats: () => JSON.parse(JSON.stringify(stats)),
+    // for the settings row: most days we can honestly offer for this chart's market; kick = re-check now
+    cap: (id) => { try { const c = ws.cell(id), m = orchOf(c).config.market; return capDays(m.timeframe, depthDays(m.timeframe, m), maxBars(m)); } catch (e) { return 0; } },
+    kick: (id) => { try { const st = ws.cell(id).chart.__stkPager; if (st) { st.exhausted.clear(); st.kick(); } } catch (e) {} } };
 }

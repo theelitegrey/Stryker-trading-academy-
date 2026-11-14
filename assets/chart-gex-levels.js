@@ -64,10 +64,10 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { rtHeadersReady } from './rt-access.js?v=981';
-import * as ProGate from './chart-pro-gate.js?v=981';
-import * as ZD from './chart-zoro-data.js?v=981';
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=981';
+import { rtHeadersReady } from './rt-access.js?v=982';
+import * as ProGate from './chart-pro-gate.js?v=982';
+import * as ZD from './chart-zoro-data.js?v=982';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=982';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -748,7 +748,7 @@ class GexNative {
     if (!s.symbol || ProGate.isFree()) return;
     clearTimeout(this.alT);
     this.alT = setTimeout(() => {
-      (metricMod || (metricMod = import('./chart-metric-alerts.js?v=981'))).then((m) => m.syncIndicator(s)).catch((e) => console.warn('TradeZoro GEX alerts', e));
+      (metricMod || (metricMod = import('./chart-metric-alerts.js?v=982'))).then((m) => m.syncIndicator(s)).catch((e) => console.warn('TradeZoro GEX alerts', e));
     }, first ? 0 : 700);
   }
   suspend() {}

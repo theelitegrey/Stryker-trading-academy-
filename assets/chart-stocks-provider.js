@@ -14,7 +14,7 @@
 //     shortcut: polling, not a socket per browser like the futures engine; upgrade when stocks get their own trade stream (plan add-on).
 //   - Search: the picker's own list (Vela) + a server search as the member types (debounced), merged into this provider's index.
 // Copy: "Updated N s ago" and the exchange's own delay; never "real-time". No vendor names.
-import { rtHeadersReady } from './rt-access.js?v=981';
+import { rtHeadersReady } from './rt-access.js?v=982';
 
 const RECORDER = () => (typeof window !== 'undefined' && window.__STK_BOOK_RECORDER) || 'https://book-recorder.theelitegrey.workers.dev';
 export const STOCK_TFS = ['5S', '10S', '15S', '30S', '45S', '1', '2', '3', '5', '10', '15', '30', '45', '60', '120', '180', '240', 'D', 'W', 'M'];

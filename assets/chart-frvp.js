@@ -13,6 +13,7 @@
 //      aggressor side; or an already-open L2 hub's trades when the footprint's Data source is L2): never estimated from candles. "Anchored VWAP" from A with optional +-1 / +-2 SD bands.
 //   5. Same value area at any row count: the profile maths is ours (chart-frvp-data.js buildProfile). Vela put a candle's whole volume
 //      on 4 rows (O/H/L/C) and grew the value area one row at a time, so 300 rows gave spikes and a VAH/VAL far from the 24-row ones.
+//   7. Composite: setting "Composite" (default off) profiles every loaded candle, with HVN / LVN markers (volumeNodes in chart-frvp-data.js).
 //   6. Corner handles: a selected profile shows four handles on the corners of its range box (start/end time; the price edges follow
 //      the candles in the range, so only time is stored). Clicks inside the box still pass through to the chart.
 // SAVED DRAWINGS keep their look: a drawing saved before this has none of the new keys, and a missing key means the old
@@ -20,7 +21,7 @@
 // Education only. Not financial advice.
 import { flowFor, rootOf } from './chart-footprint.js?v=988';
 import { isFree } from './chart-pro-gate.js?v=988';
-import { deltaRows, anchoredVwap, buildProfile, fineSpanBars } from './chart-frvp-data.js?v=988';
+import { deltaRows, anchoredVwap, buildProfile, fineSpanBars, volumeNodes } from './chart-frvp-data.js?v=988';
 
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';
@@ -43,10 +44,17 @@ function ink(bg) {   // the drawing's default POC colour: black on a light backg
 }
 
 // ---------------------------------------------------------------- geometry shared by paint and hit-test
+// 7. Composite (all loaded bars): when d.frvp.composite is true the range is first..last loaded candle, whatever the anchors say.
+function compSpan(d, proj) {
+  if (d.frvp.composite !== true || !proj.barsInRange) return null;
+  const all = proj.barsInRange(-Infinity, Infinity);
+  return all && all.length ? [all[0].time, all[all.length - 1].time] : null;
+}
 function spanBars(d, proj) {
   const a = d.anchors[0], b = d.anchors[1];
   if (!a || !b || !proj.barsInRange) return [];
-  return proj.barsInRange(Math.min(a.time, b.time), Math.max(a.time, b.time)) || [];
+  const c = compSpan(d, proj);
+  return c ? proj.barsInRange(c[0], c[1]) || [] : proj.barsInRange(Math.min(a.time, b.time), Math.max(a.time, b.time)) || [];
 }
 // x where POC / VAH / VAL stop. Saved drawings (no extendRight key): B, as before.
 function lineEnd(d, proj, L) {
@@ -132,7 +140,7 @@ function fineBars(d, bars) {
   const a = d.anchors[0], b = d.anchors[1], host = hostOf(d);
   if (!a || !b || !host) return null;
   const tf = tfMin(host.chart.market.timeframe), from = Math.floor(Math.min(a.time, b.time) / 60000) * 60000, to = Math.max(a.time, b.time);
-  if (tf == null || tf <= 1 || (to - from) / 60000 > FINE_MAX_MIN) return null;
+  if (d.frvp.composite === true || tf == null || tf <= 1 || (to - from) / 60000 > FINE_MAX_MIN) return null;
   const sym = host.chart.market.symbol, key = sym + '|' + from + '|' + to, hit = fine.get(key);
   if (Array.isArray(hit)) return hit;
   if (hit) return null;
@@ -177,6 +185,7 @@ function paintFrvp(ctx, d, proj, theme) {
   hLine(s.showVah, s.vahColor, s.vahStyle, L.vahY);
   hLine(s.showVal, s.valColor, s.valStyle, L.valY);
   hLine(s.showPoc, s.pocColor ?? ink(theme.background), s.pocStyle, L.pocY);
+  if (s.composite === true && s.showNodes !== false) paintNodes(ctx, theme, L, xe);
   const devW = Math.max(1, lw);
   if (s.showDevelopingPoc) this.strokePolyline(ctx, L.developingPoc, { lineColor: s.developingPocColor, lineWidth: devW, lineStyle: s.developingPocStyle });
   if (s.showDevelopingVa) {
@@ -237,6 +246,21 @@ function dashes(ctx, theme, L, P, D, side) {
   ctx.restore();
   return gaps;
 }
+// HVN / LVN markers: a thin dotted line across the range at each node's row centre, tagged with its price at the left edge.
+function paintNodes(ctx, theme, L, xe) {
+  const P = L.profile, N = volumeNodes(P.rows);
+  ctx.save();
+  ctx.font = '10px ' + (theme.fontFamily || 'sans-serif'); ctx.textBaseline = 'bottom'; ctx.setLineDash([2, 3]); ctx.lineWidth = 1;
+  const mark = (k, tag, color) => {
+    const y = Math.round((L.yEdges[k] + L.yEdges[k + 1]) / 2) + 0.5, price = P.min + (k + 0.5) * P.rowH;
+    ctx.strokeStyle = color; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.moveTo(L.x0, y); ctx.lineTo(xe, y); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = theme.textColor || color; ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    ctx.fillText(tag + ' ' + +price.toPrecision(6), L.x0 + 4, y - 2); ctx.setLineDash([2, 3]);
+  };
+  for (const k of N.hvn) mark(k, 'HVN', VW);
+  for (const k of N.lvn) mark(k, 'LVN', '#f5a623');
+  ctx.restore();
+}
 const stamp = (ms) => { try { return new Date(ms).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' ' + hhmm(ms); } catch (e) { return ''; } };
 function label(ctx, theme, L, text) {
   const x = L.grow === 1 ? L.anchorX - 4 : L.anchorX + 4, y = Math.min(L.yEdges[0], L.yEdges[L.yEdges.length - 1]) - 4;
@@ -279,6 +303,8 @@ function extraFields(d) {
   const a = d.__stkAvail || {}, f = [];
   f.push({ path: 'frvpx.extendRight', label: 'Extend right', kind: 'boolean' });
   f.push({ path: 'frvpx.thinRows', label: 'Thin rows', kind: 'boolean' });
+  f.push({ path: 'frvpx.composite', label: 'Composite', kind: 'boolean' });   // tooltip text: all loaded bars
+  f.push({ path: 'frvpx.showNodes', label: 'HVN / LVN', kind: 'boolean', when: { path: 'frvpx.composite', in: [true] } });
   f.push(a.delta ? { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: d.frvp.deltaBars || 'off', label: a.delta }] }
     : { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: 'off', label: 'Off' }, { value: 'left', label: 'Left side' }] });
   if (!a.delta) f.push({ path: 'frvpx.deltaUpColor', label: 'Delta buy', kind: 'color', when: { path: 'frvpx.deltaBars', in: ['left'] } }, { path: 'frvpx.deltaDownColor', label: 'Delta sell', kind: 'color', when: { path: 'frvpx.deltaBars', in: ['left'] } });
@@ -299,6 +325,22 @@ export function installFrvpClass(FRVP) {
   P.__stkFrvp = true;
   Object.defineProperty(P, 'frvpx', { configurable: true, get() { return this.frvp; } });
   P.hitTest = hitFrvp;
+  const layout0 = P.layout;   // composite: lay the profile out over the first..last loaded candle (anchors are put back straight after)
+  P.layout = function (proj) {
+    const c = compSpan(this, proj), a = this.anchors[0], b = this.anchors[1];
+    if (!c || !a || !b) return layout0.call(this, proj);
+    const ta = a.time, tb = b.time; a.time = c[0]; b.time = c[1];
+    let L; try { L = layout0.call(this, proj); } finally { a.time = ta; b.time = tb; }
+    if (!L) return L;
+    // the range runs far past the screen: keep the histogram and the lines inside the visible plot (width = widthPct of what is visible)
+    const W = proj.width || 0;
+    if (W > 0) {
+      L.x0 = Math.max(L.x0, 0); L.x1 = Math.min(L.x1, W);
+      L.maxW = Math.max(1, Math.min(100, Math.max(0, this.frvp.widthPct)) / 100 * Math.max(1, L.x1 - L.x0));
+      L.anchorX = L.grow === 1 ? L.x0 : L.x1;
+    }
+    return L;
+  };
   // 5. profile maths
   P.compute = function (proj) {
     let bars = this.barsInSpan(proj);
@@ -313,6 +355,7 @@ export function installFrvpClass(FRVP) {
   P.handlePoints = function (proj) {
     const L = this.layout(proj);
     this.__stkBox = !!L;
+    if (this.frvp.composite === true) return [];   // the range is the whole chart: nothing to drag
     if (!L) {
       const pts = [];
       for (const a of this.anchors) { const y = proj.yOf(a.price, this.paneId); if (y == null) return []; pts.push([proj.xOf(a.time), y]); }

@@ -125,3 +125,25 @@ export function fineSpanBars(mins, from, to) {
   for (const b of mins || []) if (b && b.time >= from && b.time <= to) out.push(b);
   return out.length ? out.sort((a, b) => a.time - b.time) : null;
 }
+
+// High / low volume nodes of a built profile ({ rows:[{up,down}] }). Rows are smoothed over +-r rows (r grows with the row count, so the
+// same shape gives the same nodes at 24 or 300 rows). HVN = a smoothed local peak at >= 1.25x the mean row volume; LVN = a smoothed local
+// trough at <= 0.6x the mean, strictly between the first and last traded row (the empty edges are not "low volume"). At most `max` of each,
+// strongest first. Returns { hvn:[row], lvn:[row] } (row indexes).
+export function volumeNodes(rows, max = 4) {
+  const n = rows.length, t = rows.map((r) => r.up + r.down), out = { hvn: [], lvn: [] };
+  let first = -1, last = -1, sum = 0;
+  for (let k = 0; k < n; k++) if (t[k] > 0) { if (first < 0) first = k; last = k; sum += t[k]; }
+  if (first < 0 || last - first < 4) return out;
+  const r = Math.max(1, Math.round(n / 50)), mean = sum / (last - first + 1);
+  const sm = t.map((_, k) => { let a = 0, c = 0; for (let j = Math.max(0, k - r); j <= Math.min(n - 1, k + r); j++) { a += t[j]; c++; } return a / c; });
+  const local = (k, cmp) => { for (let j = Math.max(first, k - r); j <= Math.min(last, k + r); j++) if (j !== k && !cmp(sm[k], sm[j], k, j)) return false; return true; };
+  const hv = [], lv = [];
+  for (let k = first; k <= last; k++) {
+    if (sm[k] >= 1.25 * mean && local(k, (a, b, i, j) => a > b || (a === b && i < j))) hv.push(k);
+    if (k > first + r && k < last - r && sm[k] <= 0.6 * mean && local(k, (a, b, i, j) => a < b || (a === b && i < j))) lv.push(k);
+  }
+  out.hvn = hv.sort((a, b) => sm[b] - sm[a]).slice(0, max).sort((a, b) => a - b);
+  out.lvn = lv.sort((a, b) => sm[a] - sm[b]).slice(0, max).sort((a, b) => a - b);
+  return out;
+}

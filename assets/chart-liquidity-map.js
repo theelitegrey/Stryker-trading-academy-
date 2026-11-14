@@ -66,7 +66,7 @@ function lutFromQ(qs, contrast) {
   l.n = nArr;
   return l;
 }
-export const BUBBLE_DEF = { buy: '#35c878', sell: '#e0484f' };
+export const BUBBLE_DEF = { buy: '#0f9d58', sell: '#d42a2a' };
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -626,7 +626,7 @@ function tzOffsetMs(tz, t) {
 // (an even split reads as neutral grey). Used when the "Colour by the dominant side" setting is on.
 export function domColor(buyShare, buy, sell) {
   const m = (h) => { const n = parseInt(String(h).replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
-  const imb = Math.abs(2 * clamp(buyShare, 0, 1) - 1), c = m(buyShare >= 0.5 ? buy : sell), g = m('#8a90a0'), t = 0.2 + 0.8 * imb;
+  const imb = Math.abs(2 * clamp(buyShare, 0, 1) - 1), c = m(buyShare >= 0.5 ? buy : sell), g = m('#6b7280'), t = 0.5 + 0.5 * imb;   // darker neutral and a higher floor: a 55/45 split is still clearly one colour
   return '#' + c.map((v, i) => Math.round(g[i] + (v - g[i]) * t).toString(16).padStart(2, '0')).join('');
 }
 export function bubbleSchema() { return [

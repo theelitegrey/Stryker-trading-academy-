@@ -26,8 +26,8 @@ export const TEMPLATES = [
     symbol: 'futures:NQ1!', tf: '30', ind: [['stk_of_tpo'], ['stk_pdvp'], ['stk_avwap']] },
   { id: 'clean', thumb: true, name: 'Clean price action', desc: 'Candles, volume and previous-day levels only. Nothing else on the chart.',
     tf: '15', ind: [['volume'], ['stk_pdvp']] },
-  { id: 'depth-heatmap', name: 'Depth heatmap', desc: 'Futures order book resting size over time, with big trades on top.',
-    symbol: 'futures:NQ1!', tf: '1', ind: [['stk_depth_heat'], ['stk_l2f_big']] },
+  { id: 'depth-heatmap', name: 'Depth heatmap', desc: 'Futures order book resting size over time, with liquidity walls, iceberg marks and big trades on top.',
+    symbol: 'futures:NQ1!', tf: '1', ind: [['stk_depth_heat', { showIce: true }], ['stk_fut_walls'], ['stk_l2f_big']] },
   { id: 'footprint', name: 'Footprint day trading', desc: 'Per-price buy and sell volume in each candle, with a volume profile and stop runs.',
     symbol: 'futures:NQ1!', tf: '5', ind: [['stk_l2f_fp'], ['stk_l2f_vp'], ['stk_l2f_stop']] },
   { id: 'crypto-book', name: 'Crypto order book', desc: 'Bitcoin order book heatmap with large volume bubbles.',
@@ -44,7 +44,7 @@ export const TEMPLATES = [
 
 const NAMES = { stk_l2f_big: 'Big Trades (L2)', stk_l2f_delta: 'Delta (L2)', stk_l2f_stop: 'Stop Runs (L2)', stk_l2f_cvd: 'Cumulative Delta (L2)', stk_gex: 'GEX Levels', stk_pdvp: 'Previous day levels',
   stk_msess: 'Market Stats', stk_econ: 'Economic events', stk_em: 'Expected Move', stk_tide: 'ZoroTide', stk_optflow: 'Options Flow Marks', stk_darkpool: 'Dark Pool Prints', stk_offex_lv: 'Off-exchange levels',
-  stk_offex: 'Off-exchange Volume', volume: 'Volume', ema: 'EMA', rsi: 'RSI', '52-week-high-low': '52-week high / low', stk_of_tpo: 'Market Profile', stk_avwap: 'Anchored VWAP', stk_depth_heat: 'Depth Heatmap (L2)',
+  stk_offex: 'Off-exchange Volume', volume: 'Volume', ema: 'EMA', rsi: 'RSI', '52-week-high-low': '52-week high / low', stk_of_tpo: 'Market Profile', stk_avwap: 'Anchored VWAP', stk_depth_heat: 'Depth Heatmap (L2)', stk_fut_walls: 'Liquidity Walls (L2)',
   stk_l2f_fp: 'Footprint (L2)', stk_l2f_vp: 'Volume Profile (L2)', stk_crypto_dom: 'Crypto DOM Heatmap', stk_vbubble: 'Volume Bubbles', supertrend: 'SuperTrend', macd: 'MACD', 'bollinger-bands': 'Bollinger Bands',
   'ttm-squeeze': 'TTM Squeeze', 'average-true-range': 'ATR', vwap: 'VWAP', vpvr: 'Volume Profile', stk_rvol: 'Relative Volume', stk_news: 'News markers', 'pivot-points': 'Pivot Points' };
 export const toolNames = (t) => t.ind.map(([type, inp]) => (NAMES[type] || type) + (type === 'ema' && inp ? ' ' + inp.length : ''));

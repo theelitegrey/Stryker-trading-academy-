@@ -37,9 +37,9 @@ const probe = () => {
     let r = await p.evaluate(probe);
     const one = r[0] || {};
     check(r.length === 1 && one.mark && one.shown, `${tag}: single chart has one mark`, r);
-    check(one.h === (mobile ? 19 : 24) && one.op === 0.4, `${tag}: size ${mobile ? 19 : 24}px, opacity .4`, one);
+    check(one.h === (mobile ? 24 : 28) && one.w === one.h, `${tag}: round chip ${mobile ? 24 : 28}px`, one);
     check(one.left >= 8 && one.left <= 12 && one.toPaneBottom >= 8 && one.toPaneBottom <= 12, `${tag}: 8-12 px from left and bottom of the main pane`, one);
-    check(one.hitIsMark === false && one.pe === 'none' && one.anchors === 0, `${tag}: pointer-events none, hit goes to the chart, no link`, one);
+    check(one.hitIsMark === !mobile && one.pe === (mobile ? 'none' : 'auto') && one.anchors === 0, `${tag}: only the chip takes the pointer (phone: none), no link`, one);
     check(!one.overAxisY && !one.overScale && one.inPane, `${tag}: clear of time axis and price scale`, one);
     check(/tradezoro-tzmark-1014-/.test(one.src || '') && !/panther|494|logo-full|emblem|header|master/.test(one.src || ''), `${tag}: TZ mark art`, one.src);
     // the chart's own screenshot carries the mark: export pixels in the corner, with and without the element
@@ -61,10 +61,30 @@ const probe = () => {
     const sets = await p.evaluate(() => /tradezoro (logo|mark)|brand|watermark|corner (logo|mark)/i.test([...document.querySelectorAll('[class*="settings"], [id*="settings"], #stkc-more-pop')].map((e) => e.textContent).join(' ')));
     check(!sets, `${tag}: no setting row mentions the mark`);
     await p.screenshot({ path: `${OUT}/brand-${tag}.png` });
+    if (!mobile) {
+      // hover: chip -> pill with the name; leave: back to chip; drag beside the chip still reaches the chart
+      const box = () => p.evaluate(() => { const e = document.querySelector('.tz-brand'), n = e.querySelector('.tz-brand-n'), r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, nv: getComputedStyle(n).visibility, no: +getComputedStyle(n).opacity }; });
+      const b0 = await box();
+      await p.mouse.move(b0.x + b0.w / 2, b0.y + b0.h / 2); await sleep(500);
+      const b1 = await box();
+      check(b1.w > b0.w * 3 && b1.nv === 'visible' && b1.no > 0.95, `${tag}: hover widens to a pill, name visible`, [b0.w, b1.w, b1.nv, b1.no]);
+      await p.screenshot({ path: `${OUT}/brand-${tag}-hover.png`, clip: { x: Math.max(0, b0.x - 40), y: b0.y - 40, width: 300, height: 110 } });
+      await p.mouse.move(b0.x + 400, b0.y - 150); await sleep(500);
+      const b2 = await box();
+      check(Math.abs(b2.w - b0.w) < 1 && b2.nv === 'hidden', `${tag}: leave returns to the round chip`, [b2.w, b2.nv]);
+      const clip = { x: b0.x + 60, y: b0.y - 300, width: 500, height: 330 };
+      const before = await p.screenshot({ clip });
+      await p.mouse.move(b0.x + 100, b0.y - 100); await p.mouse.down(); await p.mouse.move(b0.x + 300, b0.y - 100, { steps: 8 }); await p.mouse.up(); await sleep(400);
+      const after = await p.screenshot({ clip });
+      check(!before.equals(after), `${tag}: drag next to the chip still pans the chart`);
+      const far = await p.evaluate(() => { const e = document.querySelector('.tz-brand'), r = e.getBoundingClientRect(), h = document.elementFromPoint(r.right + 12, r.top + r.height / 2); return !!h && !e.contains(h); });
+      check(far, `${tag}: point just right of the chip hits the chart, not the chip`);
+      await p.mouse.move(b0.x + 400, b0.y - 150);
+    }
     if (theme === 'dark') {
       await p.evaluate(() => window.STRYKER_CHART_UI.setLayout('4')); await sleep(3500);
       r = await p.evaluate(probe);
-      check(r.length === 4 && r.every((x) => x.mark && x.shown && !x.hitIsMark && !x.overAxisY && !x.overScale && x.inPane), `${tag}: 2x2 layout, every cell has a mark`, r.map((x) => [x.id, x.mark, x.shown]));
+      check(r.length === 4 && r.every((x) => x.mark && x.shown && !x.overAxisY && !x.overScale && x.inPane), `${tag}: 2x2 layout, every cell has a mark`, r.map((x) => [x.id, x.mark, x.shown]));
       await p.screenshot({ path: `${OUT}/brand-${tag}-2x2.png` });
     }
     check(!errors.length, `${tag}: no page errors`, errors);

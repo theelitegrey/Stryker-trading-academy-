@@ -171,3 +171,10 @@
 /* Owner 14 Nov: bigger "Every trading tool." and "Free and open." (the small line keeps its own size) */
 .cm-hero h1.hh-h1{ font-size:clamp(44px,11.5vw,96px); line-height:1.02; letter-spacing:-.035em; }
 @media (min-width:1100px){ .cm-hero h1.hh-h1{ max-width:1320px; font-size:clamp(88px,7.4vw,120px); } }
+
+/* Owner 14 Nov: single hero screenshot, shown wide */
+.hh-scene .cm-fl-main{ max-width:1180px; margin-inline:auto; }
+.hh-scene .cm-fl-main .cm-hero-frame img{ display:block; width:100%; height:auto; }
+.cm-hero .hh-scene{ margin-top:56px; }
+@media (max-width:699px){ .cm-hero .hh-scene{ margin-top:36px; } }
+.cm-hero .hh-scene{ padding-bottom:0; }

@@ -105,3 +105,16 @@ self.addEventListener('notificationclick', function (event) {
     })
   );
 });
+
+// Offline screen (Android app / Play requirement): precache one self-contained page and show it when a page
+// load fails for lack of network. Only navigations are touched; every other request goes straight to the network.
+const OFFLINE_CACHE = 'tz-offline-v1';
+self.addEventListener('install', function (event) {
+  event.waitUntil(caches.open(OFFLINE_CACHE).then(function (c) { return c.add('/offline.html'); }).catch(function () {}));
+});
+self.addEventListener('fetch', function (event) {
+  if (event.request.mode !== 'navigate') return;
+  event.respondWith(fetch(event.request).catch(function () {
+    return caches.match('/offline.html').then(function (r) { return r || Response.error(); });
+  }));
+});

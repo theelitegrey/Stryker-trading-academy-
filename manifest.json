@@ -8,9 +8,104 @@
   "background_color": "#050506",
   "theme_color": "#050506",
   "icons": [
-    { "src": "/assets/images/tradezoro-icon-192-494.png?v=996", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/assets/images/tradezoro-icon-512-494.png?v=996", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/assets/images/icon-maskable-192.png?v=996", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/assets/images/icon-maskable-512.png?v=996", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/assets/images/tradezoro-icon-192-494.png?v=996",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/tradezoro-icon-512-494.png?v=996",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/icon-maskable-192.png?v=996",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/images/icon-maskable-512.png?v=996",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "description": "Charts, GEX+ gamma levels, JournalX and ICT/SMT trading education. Education only. Not financial advice.",
+  "orientation": "any",
+  "lang": "en",
+  "categories": [
+    "education",
+    "finance"
+  ],
+  "shortcuts": [
+    {
+      "name": "Charts",
+      "short_name": "Charts",
+      "url": "/charts",
+      "icons": [
+        {
+          "src": "/assets/images/tradezoro-icon-192-494.png?v=996",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "GEX+",
+      "short_name": "GEX+",
+      "url": "/gex",
+      "icons": [
+        {
+          "src": "/assets/images/tradezoro-icon-192-494.png?v=996",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "JournalX",
+      "short_name": "JournalX",
+      "url": "/trade-journal",
+      "icons": [
+        {
+          "src": "/assets/images/tradezoro-icon-192-494.png?v=996",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/images/app-shots/charts.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ZoroCharts"
+    },
+    {
+      "src": "/assets/images/app-shots/gex.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "GEX+ gamma levels"
+    },
+    {
+      "src": "/assets/images/app-shots/journalx.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "JournalX trading journal"
+    },
+    {
+      "src": "/assets/images/app-shots/home.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "TradeZoro home"
+    }
   ]
 }

@@ -58,5 +58,5 @@ export async function onRequest({ request, next, env }) {
 }
 
 function isStaticPath(p) {
-  return p.startsWith('/assets/') || p === '/manifest.json' || p === '/firebase-messaging-sw.js';
+  return p.startsWith('/assets/') || p === '/manifest.json' || p.startsWith('/.well-known/') || p === '/firebase-messaging-sw.js';
 }

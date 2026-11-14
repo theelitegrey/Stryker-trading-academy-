@@ -160,3 +160,14 @@
 
 /firebase-messaging-sw.js
   Cache-Control: public, max-age=0, must-revalidate
+
+# Digital Asset Links for the Android app (com.tradezoro.app). Must be JSON, no redirect, short cache so a new signing key takes effect fast.
+/.well-known/assetlinks.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300
+
+# Offline screen precached by firebase-messaging-sw.js: must revalidate like other HTML.
+/offline.html
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex

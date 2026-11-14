@@ -1,4 +1,5 @@
-// Charts are free for every plan (Owner 2026-10-29): only real-time data, order flow tools and GEX on charts are Pro.
+// ALL TOOLS FREE (Owner 2026-11-13): a Free member (plan "Starter") gets order flow, Footprint, DOM and GEX on charts with no PRO tag, no modal, no sweep.
+// (Before: only real-time data, order flow tools and GEX on charts were Pro. Only the live futures order book stays paid.)
 // Real clicks as a FREE member (plan "Starter") and a PRO member, Vela 0.9 and ?vela=0.6, at 390 and 1440.
 //   node tools/tests/chart-dev-server.mjs 8031
 //   systemd-run --user --scope -p MemoryMax=1000M flock /tmp/stryker-chrome.lock \
@@ -13,7 +14,7 @@ const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 fs.mkdirSync(OUT, { recursive: true });
 
-const stubFor = (plan) => stubSrc.replace("plan: 'Elite', role: 'elite',\n          emailVerified", "plan: '" + plan + "', role: '" + plan.toLowerCase() + "',\n          emailVerified");
+const stubFor = (plan) => stubSrc.replace("plan: 'Elite', role: 'elite', residenceCountry", "plan: '" + plan + "', role: '" + plan.toLowerCase() + "', residenceCountry");
 
 async function open(b, { w, h, plan, vela }) {
   const mobile = w < 700;
@@ -58,17 +59,17 @@ const closeWindow = async (p) => { await p.evaluate(() => { const x = document.q
 
 async function run(b, { w, h, plan, vela }) {
   const tag = plan + '-' + (vela || '0.9') + '-' + w;
-  const free = plan === 'Starter';
+  const free = false;   // (was plan === 'Starter') nothing is a Free lock any more (2026-11-13): Starter and Pro behave the same for tools
   console.log('--- ' + tag);
   const { ctx, p, errors } = await open(b, { w, h, plan, vela });
   const fl = await p.evaluate(() => window.__stkChartFree);
-  check(fl === free, tag + ': plan tier read (free=' + free + ', got ' + fl + ')');
+  check(fl === false, tag + ': plan tier read (free=' + free + ', got ' + fl + ')');
   check(await p.evaluate(() => !!window.__stkVela090) === (vela !== '0.6'), tag + ': engine is Vela ' + (vela === '0.6' ? '0.6' : '0.9'));
 
   // 1. a normal indicator can be added
   const before = await nIndicators(p);
   await openWindow(p, 'Technicals');
-  const keyN = await p.evaluate(() => { const r = [...document.querySelectorAll('.stkiw-row')].find((x) => /Moving Average|EMA|Bollinger|RSI|Relative Strength/i.test(x.textContent) && !x.querySelector('.stk-protag')); return r && r.getAttribute('data-key'); });
+  const keyN = await p.evaluate(() => { const r = [...document.querySelectorAll('.stkiw-row')].find((x) => /Moving Average|EMA|Bollinger|RSI|Relative Strength/i.test(x.textContent) && !x.querySelector('.stk-protag') && !/^x:/.test(x.getAttribute('data-key') || '')); return r && r.getAttribute('data-key'); });
   await clickRow(p, keyN); await sleep(1500);
   const after = await nIndicators(p);
   check(after === before + 1, tag + ': normal indicator added by click (' + keyN + ': ' + before + ' -> ' + after + ')');
@@ -86,7 +87,7 @@ async function run(b, { w, h, plan, vela }) {
   await clickRow(p, 'b:stk_of_delta'); await sleep(1200);
   let mt = await modalText(p);
   if (free) {
-    check(mt === 'Order flow tools are part of Pro.', tag + ': Delta click -> upgrade modal "' + mt + '"');
+    check(mt === null, tag + ': Delta click -> no modal');
     if (w === 1440) await shot(p, tag + '-orderflow-modal.png');
     await closeModal(p);
     check((await nIndicators(p)) === n0, tag + ': Delta not added');

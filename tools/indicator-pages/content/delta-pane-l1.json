@@ -14,7 +14,7 @@
     "Switch to the candle style to follow the session total."
   ],
   "notes": [
-    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Delta (L2) automatically.",
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, which are free. A saved chart that still holds this one is switched to Delta (L2) automatically.",
     "Divergence marks describe what already happened; they are not signals."
   ],
   "learn": "order-flow"

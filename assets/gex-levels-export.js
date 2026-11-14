@@ -42,7 +42,7 @@
     hp.then(function (h) { return fetch(url, { headers: h, cache: 'no-store' }); }).then(function (r) {
       if (r.status === 401 || r.status === 403) {
         dlg.close();
-        if (window.openPlanUpgradeModal) window.openPlanUpgradeModal('Downloading GEX levels is part of Pro.'); else location.href = 'pricing.html';
+        if (window.openPlanUpgradeModal) window.openPlanUpgradeModal('Sign in to download GEX levels. It is free.'); else location.href = 'pricing.html';
         return null;
       }
       if (r.status === 429) { say('Too many downloads. Try again in a minute.', true); return null; }

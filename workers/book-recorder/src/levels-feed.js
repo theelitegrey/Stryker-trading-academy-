@@ -191,6 +191,12 @@ export function lvTokUsed(sql, h, now) { sql.exec('UPDATE lvtok SET last = ? WHE
 export function lvTokTrim(sql, now) { sql.exec('DELETE FROM lvtok WHERE exp < ?', now - 7 * 86400000); }
 
 // -> { uid, exp (ms) } for a verified, currently-Pro member, else null. R = rt-auth.js exports (kept as a parameter so the tests need no network).
+// ALL TOOLS FREE (Owner 2026-11-13): the platform levels link is a tool, so any verified, non-anonymous member may make one. The link
+// lasts LV_TOKEN_DAYS and is renewed by a visit (same as Pro with no end date). lvProUntil below is kept for reference / tests.
+export async function lvMemberUntil(token, R, nowMs = Date.now()) {
+  const uid = await R.verifyIdToken(token);
+  return uid ? { uid, exp: nowMs + LV_TOKEN_DAYS * 86400000 } : null;
+}
 export async function lvProUntil(token, R, f = fetch, nowMs = Date.now()) {
   const uid = await R.verifyIdToken(token);
   if (!uid) return null;
@@ -258,12 +264,12 @@ export async function lvRoute(req, u, env, ctx, h, deps) {
     return serve(u.searchParams, fm[2]);
   }
 
-  // everything below needs the member's own sign-in token and a current Pro plan (fail closed)
+  // everything below needs the member's own sign-in token (deps.proUntil: lvMemberUntil since 2026-11-13, all tools free; fail closed)
   if (!['/pack', '/token'].includes(path)) return jerr(404, 'not found', h);
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
   let who = null;
   try { who = await deps.proUntil(deps.bearer(req)); } catch (e) { who = null; }
-  if (!who) return jerr(403, 'pro_required', h);
+  if (!who) return jerr(403, 'sign_in_required', h);
   if (!(await limit('lvm:' + who.uid))) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) });
   if (path === '/pack') {
     if (req.method !== 'GET') return new Response('GET only', { status: 405, headers: h });

@@ -366,7 +366,7 @@ t('opt.zone string', () => assert.equal(dv('label.new(0, 0, opt.zone)\nplot(clos
 t('locked namespace -> na + one notice', () => {
   const o = dv('plot(book.bid())\nplot(book.ask())\nplot(flow.delta)', { allowed: { book: false, flow: true } });
   assert.ok(Array.from(o.plots[0].values).every(Number.isNaN)); assert.ok(!Number.isNaN(o.plots[2].values[0]));
-  assert.equal(o.notices.length, 1); assert.match(o.notices[0], /Pro/);
+  assert.equal(o.notices.length, 1); assert.match(o.notices[0], /not available on this plan/);
 });
 t('locked: every namespace has its own notice', () => assert.equal(dv('plot(book.bid() + flow.delta + gex.flip + opt.ivrank)', { allowed: {} }).notices.length, 4));
 t('missing data -> na + notice', () => { const o = dv('plot(gex.flip)', { data: {} }); assert.ok(Array.from(o.plots[0].values).every(Number.isNaN)); assert.match(o.notices[0], /No gex data/i); });

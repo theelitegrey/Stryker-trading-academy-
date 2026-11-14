@@ -587,7 +587,7 @@ export class TSHub {
     const take = (t, i, f) => { if (i) for (const x of JSON.parse(i)) if (x[0] * 1000 >= from && x[0] * 1000 <= to) imb.push(x); if (f) fp.push(Object.assign({ t }, JSON.parse(f))); };
     for (const r of this.store.range(sym, t0, t1)) take(r.t, r.imb, r.fp);
     const a = this.acc.get(sym);
-    if (a) { for (const x of a.imb) if (x[0] * 1000 >= from && x[0] * 1000 <= to) imb.push(x); if (a.lv.size) fp.push({ t: a.t, o: a.o, h: a.h, l: a.l, c: a.c, lv: [...a.lv.values()].sort((x, y) => x[0] - y[0]) }); }
+    if (a) { for (const x of a.imb) if (x[0] * 1000 >= from && x[0] * 1000 <= to) imb.push(x); if (a.lv.size && a.t * 60000 <= to) fp.push({ t: a.t, o: a.o, h: a.h, l: a.l, c: a.c, lv: [...a.lv.values()].sort((x, y) => x[0] - y[0]) }); }
     return { imb, fp };
   }
 }

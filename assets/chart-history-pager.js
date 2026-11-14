@@ -18,7 +18,7 @@
 // provider / Rithmic provider memo every page they fetch.
 // Not used during Bar Replay (it keeps its own buffers) or on offline/data-only charts.
 
-import { getDays, capDays, barsNeeded } from './chart-days-load.js?v=996';
+import { getDays, capDays, planDays } from './chart-days-load.js?v=996';
 import { deepOn, DEEP_DEPTH_DAYS } from './chart-futures-provider.js?v=996';
 
 const PREFETCH_VIEWS = 1.5;     // start loading when fewer than 1.5 screens of bars remain on the left
@@ -103,19 +103,24 @@ function attach(cell) {
     if (o.switchingMarket || o.historyState !== 'complete' || !o.historyCompleted) return;
     if (typeof o.feed.loadRange !== 'function') return;
     if (Date.now() - st.loadedAt < SETTLE_MS) { schedule(SETTLE_MS); return; }
+    // Member setting (chart-days-load.js), STRICT: exactly N days for this timeframe. Fetch only back to that day (by time, not by bar count),
+    // cut anything older that is held (the first 500 bars, an earlier load), and no scroll-back / Pine / Camarilla top-up on top of it.
+    const want = Math.min(getDays(cell.id, m.timeframe), capDays(m.timeframe, depthDays(m.timeframe, m), maxBars(m)));
+    if (want > 0) {
+      const plan = planDays(bars.map((b) => b.time), want, st.trimmedAt);
+      if (plan.trim > 0) { st.trimmedAt = bars[plan.trim].time; try { o.setBarSeries(bars.slice(plan.trim), { preserveView: true }); o.notifySessionsBars(); } catch (e) {} return; }
+      if (plan.from) {
+        const kd = keyOf() + '|' + bars[0].time;
+        const exd = st.exhausted.get(kd);
+        if (!(exd && Date.now() < exd)) load(0, kd, plan.from);
+      }
+      return;
+    }
     const need = Math.max(hasPine(chart) ? pineDepthBars(m.timeframe) : 0, camDepthBars(chart, m.timeframe));
     if (need > bars.length) {
       const k0 = keyOf() + '|' + bars[0].time;
       const ex0 = st.exhausted.get(k0);
       if (!(ex0 && Date.now() < ex0)) { load(need - bars.length, k0); return; }
-    }
-    // Member setting (chart-days-load.js): at least N days of history for this timeframe. Never past the source depth / memory cap.
-    const want = Math.min(getDays(cell.id, m.timeframe), capDays(m.timeframe, depthDays(m.timeframe, m), maxBars(m)));
-    const more = barsNeeded(bars[0].time, bars[bars.length - 1].time, bars.length, want);
-    if (more > 0) {
-      const kd = keyOf() + '|' + bars[0].time;
-      const exd = st.exhausted.get(kd);
-      if (!(exd && Date.now() < exd)) { load(Math.min(CHUNK_MAX, more), kd); return; }
     }
     if (!r) return;
     const left = lowerBound(bars, r.from);
@@ -128,7 +133,21 @@ function attach(cell) {
     load(Math.min(CHUNK_MAX, Math.max(CHUNK_MIN, vis * CHUNK_VIEWS)), k);
   }
 
-  async function load(chunk, k) {
+  // Days setting: one ranged fetch from `fromMs` up to the oldest bar held (nothing older than the chosen day is requested).
+  async function backfillTo(gen, fromMs) {
+    const oldest = o.rawBars[0].time;
+    const chunk = await o.feed.loadRange(o.config.market, { from: fromMs, to: oldest });
+    if (o.generation !== gen) return;
+    const head = chunk.filter((b) => b.time < oldest && b.time >= fromMs);
+    for (let i = 1; i < head.length; i++) if (head[i].time <= head[i - 1].time) { o.completeHistory('aborted'); return; }
+    if (!head.length) { st.trimmedAt = oldest; o.completeHistory('genesis'); return; }
+    o.setBarSeries([...head, ...o.rawBars], { preserveView: true });
+    o.notifySessionsBars('backfill');
+    st.trimmedAt = o.rawBars[0].time;   // satisfied: do not fetch again until the window moves
+    o.completeHistory('depth');
+  }
+
+  async function load(chunk, k, fromMs) {
     st.busy = true;
     const gen = o.generation;
     const before = o.rawBars.length;
@@ -141,7 +160,7 @@ function attach(cell) {
       // sessions would never hear 'complete' for the longer history.
       o.resetHistoryTracking();
       o.historyState = 'backfill';
-      await o.backfillHistory(gen, target);
+      if (fromMs) await backfillTo(gen, fromMs); else await o.backfillHistory(gen, target);
     } catch (e) {
       console.warn('TradeZoro: history page', e);
     } finally {

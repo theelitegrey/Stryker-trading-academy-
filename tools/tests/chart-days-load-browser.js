@@ -64,14 +64,19 @@ const okBtn = (p) => p.evaluate(() => [...document.querySelectorAll('.vela-dialo
     if (TAG === 'after' && info && info.options.includes('14 days')) {
       await pick(p, '14 days'); await okBtn(p);
       await p.waitForFunction((d) => { const o = window.STRYKER_VELA.cell(window.STRYKER_VELA.active.id).chart.orchestrator; const b = o.rawBars; return (b[b.length - 1].time - b[0].time) / 864e5 >= d; }, 12, { timeout: 40000 }).catch(() => {});
+      await p.waitForTimeout(4000);   // time for any (wrong) extra top-up to show
       const aft = await span(p);
-      check(aft.days >= 12 && aft.days > before.days, tag + ': 14 days chosen -> chart holds ~14+ days (was ' + before.days.toFixed(1) + ')', aft);
+      check(aft.days >= 11 && aft.days <= 14.2 && aft.days > before.days, tag + ': 14 days chosen -> chart holds 14 days and NOT more (was ' + before.days.toFixed(1) + ')', aft);
       await p.evaluate(() => window.STRYKER_VELA.cell(window.STRYKER_VELA.active.id).setTimeframe('5')); await waitLoaded(p, '5');
       const s5 = await span(p);
       check(s5.days < 12, tag + ': 5m is untouched (still Auto)', s5);
       await p.evaluate(() => window.STRYKER_VELA.cell(window.STRYKER_VELA.active.id).setTimeframe('15')); await waitLoaded(p, '15');
       const s15 = await span(p);
-      check(s15.days >= 12, tag + ': back on 15m the choice is remembered', s15);
+      check(s15.days >= 11 && s15.days <= 14.2, tag + ': back on 15m the choice is remembered', s15);
+      // lowering the choice cuts what is held: 30 days, then 7 days -> exactly 7
+      for (const lab of ['30 days', '7 days']) { await openSettings(p); await rowInfo(p); await pick(p, lab); await okBtn(p); await p.waitForTimeout(6000); }
+      const s7 = await span(p);
+      check(s7.days >= 5 && s7.days <= 7.2, tag + ': 30 then 7 days -> chart cut to 7 days', s7);
       const saved = await p.evaluate(() => { const st = window.STRYKER_VELA.getState(); return JSON.stringify(st).includes('stryker.daysload'); });
       check(saved, tag + ': choice is in the saved workspace state');
     }

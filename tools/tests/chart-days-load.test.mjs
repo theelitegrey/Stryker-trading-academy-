@@ -31,3 +31,20 @@ const n = D.barsNeeded(now - 2 * DAY, now, 1000, 7);
 ok(n >= 2500 && n <= 2800, '7 days wanted, 2 loaded (500/day): about 2500 more, got ' + n);
 ok(D.barsNeeded(now - DAY, now, 1, 7) === 0, 'too few bars to judge: no load');
 console.log('OK');
+// STRICT plan (fix 2): exactly N days, no more
+{
+  const T = (n, step, end = 1e12) => Array.from({ length: n }, (_, i) => end - (n - 1 - i) * step);
+  const H = 3600e3;
+  const many = T(90 * 24, H);                       // 90 days of 1h
+  const p = D.planDays(many, 14, 0);
+  ok(p.trim > 0 && many[p.trim] >= many.at(-1) - 14 * DAY && many[p.trim - 1] < many.at(-1) - 14 * DAY, '14 days chosen, 90 held: cut to exactly 14 days');
+  ok(p.from === 0, 'a cut needs no fetch');
+  const few = T(500, 60e3);                          // 500 x 1m = 8 h held
+  const q = D.planDays(few, 14, 0);
+  ok(q.trim === 0 && q.from === few.at(-1) - 14 * DAY, 'too little held: fetch back to the day, by time, not by bar count');
+  ok(D.planDays(few, 14, few[0]).from === 0, 'source shallower than the choice: not asked again');
+  ok(D.planDays(few, 0, 0).trim === 0 && D.planDays(few, 0, 0).from === 0, 'Auto: untouched');
+  const exact = T(14 * 24 + 1, H);
+  const e = D.planDays(exact, 14, 0);
+  ok(e.trim === 0 && e.from === 0, 'exactly 14 days held: nothing to do');
+}

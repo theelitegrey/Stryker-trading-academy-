@@ -264,7 +264,7 @@ async function typeSearch(p, text) {
       // -- layouts save the symbol as it is; watchlist keeps it
       const st = await p.evaluate(() => JSON.stringify(window.STRYKER_VELA.serialize ? window.STRYKER_VELA.serialize() : window.STRYKER_VELA.chart.market));
       check(/formula:BTCUSDT-NQ1!\*3/.test(st), tag + ': saved state holds the formula symbol');
-      const wl = await p.evaluate(async () => { const m = await import('/assets/chart-watchlist.js?v=842'); return [m.normalizeSymbol('formula: btcusdt - nq1! * 3', window.STRYKER_VELA.feed), m.normalizeSymbol('formula:BTCUSDT', window.STRYKER_VELA.feed)]; });
+      const wl = await p.evaluate(async () => { const m = await import('/assets/chart-watchlist.js?v=1001'); return [m.normalizeSymbol('formula: btcusdt - nq1! * 3', window.STRYKER_VELA.feed), m.normalizeSymbol('formula:BTCUSDT', window.STRYKER_VELA.feed)]; });
       check(wl[0] === 'formula:BTCUSDT-NQ1!*3' && wl[1] === null, tag + ': watchlist accepts a good formula and refuses a bad one', wl);
       // -- watchlist row shows the formula text
       if (SHOTS) {

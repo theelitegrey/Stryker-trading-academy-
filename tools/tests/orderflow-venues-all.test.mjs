@@ -1,7 +1,7 @@
 // Every crypto venue adapter registers through assets/orderflow-venues.js and comes out in its interface:
 // side 'buy' | 'sell', footprint row never finer than autoTick. node tools/tests/orderflow-venues-all.test.mjs
 import assert from 'node:assert/strict';
-const V = '?v=889';
+const V = '?v=1001';
 const R = await import('../../assets/orderflow-venues.js' + V);
 for (const v of ['hyperliquid', 'bybit', 'okx', 'bitget', 'kraken']) await import('../../assets/orderflow-venue-' + v + '.js' + V);
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };

@@ -51,7 +51,7 @@ async function open(b, w, h, mobile, theme, partner) {
     await p.evaluate(() => document.querySelector('.byo-row[data-src="dhan"] button').click()); await p.waitForTimeout(600);
     body = await p.$eval('.byo-body', (x) => x.textContent);
     check(!!(await p.$('#dhan-signin')) && !(await p.$('#dhan-k-appSecret')) && !/APPSECRET/.test(body), t + 'keys remembered: one tap, no re-paste');
-    await p.evaluate(async () => { const c = await import('/assets/byo-core.js?v=861'); try { await c.saveSource('dhan', { access: 'x'.repeat(40), clientId: '1000000001', expires: true, exp: Date.now() + 20 * 36e5 }, undefined, true); } catch (e) { window.__err = String(e); } });
+    await p.evaluate(async () => { const c = await import('/assets/byo-core.js?v=1001'); try { await c.saveSource('dhan', { access: 'x'.repeat(40), clientId: '1000000001', expires: true, exp: Date.now() + 20 * 36e5 }, undefined, true); } catch (e) { window.__err = String(e); } });
     console.log('   save err:', await p.evaluate(() => window.__err || 'none'));
     await p.waitForTimeout(500);
     await p.evaluate(() => document.querySelector('.byo-back').click()); await p.waitForTimeout(300);
@@ -59,7 +59,7 @@ async function open(b, w, h, mobile, theme, partner) {
     await p.evaluate(() => document.querySelector('.byo-row[data-src="dhan"] button').click()); await p.waitForTimeout(600);
     body = await p.$eval('.byo-body', (x) => x.textContent); check(/Connected/.test(body) || /waiting/.test(body), t + 'signed-in state shown', body.slice(0, 100));
     await p.screenshot({ path: `${OUT}/dhan-key-signedin-${tag}.png` });
-    await p.evaluate(async () => { const c = await import('/assets/byo-core.js?v=861'); await c.saveSource('dhan', { access: 'x'.repeat(40), clientId: '1000000001', expires: true, exp: Date.now() - 1000 }, undefined, true); });
+    await p.evaluate(async () => { const c = await import('/assets/byo-core.js?v=1001'); await c.saveSource('dhan', { access: 'x'.repeat(40), clientId: '1000000001', expires: true, exp: Date.now() - 1000 }, undefined, true); });
     await p.waitForTimeout(800);
     await p.evaluate(() => { const a = document.querySelector('#dhan-again'); if (a) a.click(); }); await p.waitForTimeout(500);
     body = await p.$eval('.byo-body', (x) => x.textContent); check(/Sign in with Dhan again/.test(body) && !!(await p.$('#dhan-signin')) && !(await p.$('#dhan-k-appSecret')), t + 'expired: Sign in with Dhan again, no re-paste', body.slice(0, 120));

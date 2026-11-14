@@ -99,7 +99,8 @@ for (const M of [A, B]) {
   for (const u of ['uid-free', 'uid-mda-old', 'uid-mda-pro', 'uid-mda-str']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no live L1 for ' + u);
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-mda', exp: 1 })), false, 'expired token + agreement');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-mda', firebase: { sign_in_provider: 'anonymous' } })), false, 'anonymous token refused');
-  assert.equal(await M.isGexProToken(await mint({ sub: 'uid-mda' })), false, 'agreement does not open GEX+ / the L2 book (Pro gate)');
+  assert.equal(await M.isLiveDataToken(await mint({ sub: 'uid-mda' })), false, 'agreement does not open the LIVE L2 book (the paid data feed)');
+  assert.equal(await M.isMemberToken(await mint({ sub: 'uid-mda' })), true, 'agreement member: every tool (all tools free, 2026-11-13)');
   assert.equal(await M.isAdminToken(await mint({ sub: 'uid-mda' })), false, 'agreement is not admin');
   fsDown = true; M._resetForTests();
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' })), false, 'outage fails closed (demo)');
@@ -123,15 +124,15 @@ assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-a
 
 // /api/chart/rt
 const rtRes = async (tok) => (await rtGet({ request: new Request('https://x/api/chart/rt', { headers: tok ? { authorization: 'Bearer ' + tok } : {} }) })).json();
-assert.deepEqual(await rtRes(''), { admin: false });
-assert.deepEqual(await rtRes(await mint()), { admin: true });
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-live' })), { admin: true }, '/rt says yes for a liveFeed member');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: false }, '/rt says no for Pro without the add-on');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-ld' })), { admin: true }, '/rt says yes for an active add-on member');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro-expired' })), { admin: false }, '/rt says no for an expired Pro');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false }, '/rt says no for a normal member');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-mda' })), { admin: true }, '/rt says yes for Free + agreement');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-mda-old' })), { admin: false }, '/rt says no for an old agreement version');
+assert.deepEqual(await rtRes(''), { admin: false, l2: false });
+assert.deepEqual(await rtRes(await mint()), { admin: true, l2: true });
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-live' })), { admin: true, l2: false }, '/rt says yes for a liveFeed member');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: false, l2: true }, '/rt says no for Pro without the add-on');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-ld' })), { admin: true, l2: false }, '/rt says yes for an active add-on member');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro-expired' })), { admin: false, l2: false }, '/rt says no for an expired Pro');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false, l2: false }, '/rt says no for a normal member');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-mda' })), { admin: true, l2: false }, '/rt says yes for Free + agreement');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-mda-old' })), { admin: false, l2: false }, '/rt says no for an old agreement version');
 
 // /api/chart/bars end to end (Yahoo stubbed): liveFeed member = real-time lane, member / signed out = cut 10 min
 {
@@ -173,15 +174,24 @@ redactFutures('market-brief', brief);
 assert.ok(!/95\.66|front-month/.test(JSON.stringify(brief)), JSON.stringify(brief));
 assert.ok(/EUR\/USD 1\.1247/.test(brief.bullets[0].text));
 
-// GEX+ is Pro only (Owner 2026-11-01): admin, demo and an ACTIVE paid plan pass; Starter, lapsed/expired Pro, no plan, signed out and junk do not
+// ALL TOOLS FREE (Owner 2026-11-13). TOOLS (GEX+, options, history) = isMemberToken: any verified, non-anonymous token, no plan read.
+// LIVE DATA (the paid feed, the existing Pro) = isLiveDataToken: admin, demo and an ACTIVE paid plan only (the old GEX Pro rule, unchanged).
 for (const M of [A, B]) {
   M._resetForTests();
-  for (const u of ['uid-admin', 'uid-demo', 'uid-pro']) assert.equal(await M.isGexProToken(await mint({ sub: u })), true, 'GEX allowed: ' + u);
-  for (const u of ['uid-starter', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-none', 'uid-demo-false']) assert.equal(await M.isGexProToken(await mint({ sub: u })), false, 'GEX refused: ' + u);
-  assert.equal(await M.isGexProToken(''), false, 'GEX refused signed out');
-  assert.equal(await M.isGexProToken('a.b.c'), false, 'GEX refused junk token');
+  for (const u of ['uid-admin', 'uid-demo', 'uid-pro', 'uid-starter', 'uid-free', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-none', 'uid-demo-false']) assert.equal(await M.isMemberToken(await mint({ sub: u })), true, 'tools allowed (member): ' + u);
+  assert.equal(await M.isMemberToken(''), false, 'tools refused signed out');
+  assert.equal(await M.isMemberToken('a.b.c'), false, 'tools refused junk token');
+  assert.equal(await M.isMemberToken(await mint({ sub: 'uid-free', exp: 1 })), false, 'tools refused expired token');
+  assert.equal(await M.isMemberToken(await mint({ sub: 'uid-free', firebase: { sign_in_provider: 'anonymous' } })), false, 'tools refused anonymous token');
+  const calls0 = fsCalls; await M.isMemberToken(await mint({ sub: 'uid-free' })); assert.equal(fsCalls, calls0, 'member check reads no Firestore');
+  for (const u of ['uid-admin', 'uid-demo', 'uid-pro', 'uid-gf', 'uid-gf-found']) assert.equal(await M.isLiveDataToken(await mint({ sub: u })), true, 'live L2 allowed: ' + u);
+  for (const u of ['uid-starter', 'uid-free', 'uid-mda', 'uid-ld', 'uid-live', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-gf-expired', 'uid-none', 'uid-demo-false']) assert.equal(await M.isLiveDataToken(await mint({ sub: u })), false, 'live L2 refused: ' + u);
+  assert.equal(await M.isLiveDataToken(''), false, 'live L2 refused signed out');
+  assert.equal(await M.isLiveDataToken('a.b.c'), false, 'live L2 refused junk token');
+  assert.equal(await M.isLiveDataToken(await mint({ sub: 'uid-pro', firebase: { sign_in_provider: 'anonymous' } })), false, 'live L2 refused anonymous');
   fsDown = true; M._resetForTests();
-  assert.equal(await M.isGexProToken(await mint({ sub: 'uid-pro' })), false, 'GEX fails closed on an outage');
+  assert.equal(await M.isLiveDataToken(await mint({ sub: 'uid-pro' })), false, 'live L2 fails closed on an outage');
+  assert.equal(await M.isMemberToken(await mint({ sub: 'uid-pro' })), true, 'tools need no Firestore, so an outage does not lock members out');
   fsDown = false; M._resetForTests();
 }
 {
@@ -191,14 +201,29 @@ for (const M of [A, B]) {
   const { onRequestGet: cand } = await import('../../functions/api/gex/candles/[fut].js');
   A._resetForTests();
   const call = async (fn, path, params, tok) => fn({ request: new Request('https://x' + path, { headers: tok ? { authorization: 'Bearer ' + tok } : {} }), params, env: {} });
-  for (const [who, tok] of [['signed out', ''], ['Starter', await mint({ sub: 'uid-starter' })], ['lapsed Pro', await mint({ sub: 'uid-pro-lapsed' })]]) {
-    for (const [fn, path, params] of [[lv, '/api/gex/levels/SPX?dte=0', { name: 'SPX' }], [lad, '/api/gex/ladder?u=SPX&dte=0', {}], [flow, '/api/gex/flow/SPX', { name: 'SPX' }], [cand, '/api/gex/candles/ES?interval=5m', { fut: 'ES' }]]) {
+  const ROUTES = [[lv, '/api/gex/levels/SPX?dte=0', { name: 'SPX' }], [lad, '/api/gex/ladder?u=SPX&dte=0', {}], [flow, '/api/gex/flow/SPX', { name: 'SPX' }], [cand, '/api/gex/candles/ES?interval=5m', { fut: 'ES' }]];
+  // refused: no token, junk, expired, anonymous (all tools free 2026-11-13: refusal = not a signed-in member)
+  for (const [who, tok] of [['signed out', ''], ['junk', 'a.b.c'], ['expired token', await mint({ sub: 'uid-pro', exp: 1 })], ['anonymous', await mint({ sub: 'uid-free', firebase: { sign_in_provider: 'anonymous' } })]]) {
+    for (const [fn, path, params] of ROUTES) {
       const r = await call(fn, path, params, tok);
       assert.equal(r.status, 403, who + ' ' + path);
-      const j = await r.json(); assert.deepEqual(Object.keys(j).sort(), ['error', 'message'], 'no GEX data in the refusal'); assert.equal(j.error, 'pro_required');
+      const j = await r.json(); assert.deepEqual(Object.keys(j).sort(), ['error', 'message'], 'no GEX data in the refusal'); assert.equal(j.error, 'sign_in_required');
       assert.equal(r.headers.get('cache-control'), 'no-store');
     }
   }
+  // allowed past the gate: Free, Starter, lapsed / expired Pro, Pro, admin (the upstream is not reachable in this test, so anything but the gate's 403)
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => (/firestore|securetoken/.test(String(url)) ? realFetch(url, init) : new Response('{}', { status: 503 }));
+  try {
+    for (const u of ['uid-free', 'uid-starter', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-pro', 'uid-admin']) {
+      for (const [fn, path, params] of ROUTES) {
+        const r = await call(fn, path, params, await mint({ sub: u }));
+        let j = null; try { j = await r.json(); } catch (e) {}
+        assert.ok(!(r.status === 403 && j && j.error === 'sign_in_required'), u + ' must pass the member gate on ' + path + ' (got ' + r.status + ')');
+        assert.ok(/private|no-store/.test(r.headers.get('cache-control') || 'no-store'), 'member answer never shared-cached ' + path);
+      }
+    }
+  } finally { globalThis.fetch = realFetch; }
 }
 // /ts-live tiers: Free + agreement = 'trades' (L1) only, never 'book' (L2); Pro unchanged; no agreement = refused
 {
@@ -212,6 +237,43 @@ for (const M of [A, B]) {
   assert.equal(await tsTier(pro, await mint({ sub: 'uid-pro' })), 'book', 'Pro: L2 book unchanged');
   assert.equal(await tsTier(pro, await mint({ sub: 'uid-mda', exp: 1 })), null, 'expired token: refused');
   assert.equal(await tsTier({}, await mint({ sub: 'uid-mda' })), 'trades', 'admin-only book mode: agreement still L1 only');
+  assert.equal(await tsTier(pro, await mint({ sub: 'uid-pro-expired' })), null, 'expired Pro, no agreement: refused live');
+  assert.equal(await tsTier(pro, await mint({ sub: 'uid-mda', firebase: { sign_in_provider: 'anonymous' } })), null, 'anonymous: refused');
+}
+// HISTORY routes (/ts-book-history, /ts-aux, /ts-trades), all tools free 2026-11-13: members read, cut to now - 11 min unless live for that data
+{
+  const { tsHistoryAccess, TS_HIST_CUT_MS } = await import('../../workers/book-recorder/src/ts-access.js');
+  B._resetForTests();
+  const pro = { TS_ACCESS: 'pro' }, NOW = Date.now(), H = (u, p, over) => mint(Object.assign({ sub: u }, over || {})).then((t) => tsHistoryAccess(pro, t, p, { nowMs: NOW }));
+  assert.equal(TS_HIST_CUT_MS, 660000, 'cut = 10 min delay + 60 s');
+  for (const p of ['/ts-book-history', '/ts-aux', '/ts-trades']) {
+    assert.equal(await tsHistoryAccess(pro, '', p), null, 'no token refused ' + p);
+    assert.equal(await tsHistoryAccess(pro, 'a.b.c', p), null, 'junk refused ' + p);
+    assert.equal(await H('uid-free', p, { firebase: { sign_in_provider: 'anonymous' } }), null, 'anonymous refused ' + p);
+    assert.equal(await H('uid-pro', p, { exp: 1 }), null, 'expired token refused ' + p);
+    assert.deepEqual(await H('uid-free', p), { cutMs: NOW - 660000 }, 'Free: delayed ' + p);
+    assert.deepEqual(await H('uid-pro-expired', p), { cutMs: NOW - 660000 }, 'expired Pro: delayed ' + p);
+    assert.deepEqual(await H('uid-pro', p), { cutMs: 0 }, 'Pro: live ' + p);
+    assert.deepEqual(await H('uid-admin', p), { cutMs: 0 }, 'admin: live ' + p);
+    assert.deepEqual(await H('uid-demo', p), { cutMs: 0 }, 'demo: live ' + p);
+    assert.deepEqual(await H('uid-gf', p), { cutMs: 0 }, 'grandfathered Pro: live ' + p);
+  }
+  // L1 rule for trade prints: the signed agreement = live trades; the book stays delayed
+  assert.deepEqual(await H('uid-mda', '/ts-trades'), { cutMs: 0 }, 'agreement: live trade prints (L1)');
+  assert.deepEqual(await H('uid-mda', '/ts-book-history'), { cutMs: NOW - 660000 }, 'agreement: book still delayed (L2 is paid)');
+  assert.deepEqual(await H('uid-mda', '/ts-aux'), { cutMs: NOW - 660000 }, 'agreement: book-derived still delayed');
+}
+// /api/chart/rt answers l2 only for the live-data members
+{
+  B._resetForTests(); A._resetForTests();
+  const ask = async (u) => (await rtGet({ request: new Request('https://x/api/chart/rt', { headers: u ? { authorization: 'Bearer ' + await mint({ sub: u }) } : {} }), env: {} })).json();
+  assert.deepEqual(await ask(''), { admin: false, l2: false }, 'rt: signed out');
+  assert.deepEqual(await ask('uid-free'), { admin: false, l2: false }, 'rt: Free, no agreement');
+  assert.deepEqual(await ask('uid-mda'), { admin: true, l2: false }, 'rt: Free + agreement = live L1, delayed L2');
+  assert.deepEqual(await ask('uid-gf'), { admin: true, l2: true }, 'rt: grandfathered Pro = live L1 + L2');
+  assert.deepEqual(await ask('uid-admin'), { admin: true, l2: true }, 'rt: admin');
+  assert.deepEqual(await ask('uid-pro'), { admin: false, l2: true }, 'rt: active Pro (no agreement) = live book, as before');
+  assert.deepEqual(await ask('uid-pro-expired'), { admin: false, l2: false }, 'rt: expired Pro');
 }
 // stream + bars for Free + agreement
 assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-free' }) }), params: { sym: 'NQ' }, env })).status, 403, 'Free without agreement: stream 403');

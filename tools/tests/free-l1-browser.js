@@ -55,7 +55,7 @@ async function run(b, { w, h, mobile, theme }) {
   await p.evaluate(() => { window.STRYKER_VELA.active.setTimeframe('5'); });
   await p.waitForFunction(() => document.getElementById('stkdp').hidden, null, { timeout: 20000 }).catch(() => {});
   await p.waitForTimeout(3000);
-  const l2 = await p.evaluate(async () => { const m = await import('/assets/chart-futures-l2.js?v=875'); return { badge: m.l2Badge(), vis: m.l2Visible(), live: m.liveVisible() }; });
+  const l2 = await p.evaluate(async () => { const m = await import('/assets/chart-futures-l2.js?v=1001'); return { badge: m.l2Badge(), vis: m.l2Visible(), live: m.liveVisible() }; });
   check(!l2.badge && !l2.vis && l2.live, tag + ' signed Free member: L2 still locked ' + JSON.stringify(l2));
   const c = await p.evaluate(() => ({ rt: window.tzRtState().admin, pill: !document.getElementById('stkdp').hidden, modal: !!document.querySelector('.mda-dlg'), dot: (document.querySelector('.stkc-dd') || {}).dataset?.s}));
   check(c.rt && !c.pill && !c.modal, tag + ' signed: server says live, pill gone, no reload ' + JSON.stringify(c));

@@ -92,7 +92,7 @@
     <div class="paywall-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <h2 id="paywall-heading">This page is part of Pro</h2>
+    <h2 id="paywall-heading">This page needs a different plan</h2>
     <p id="paywall-body">This page requires an active plan.</p>
     <div class="paywall-actions" id="paywall-actions">
       <button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button>
@@ -336,7 +336,7 @@
           <a class="btn btn-primary btn-sm btn-block" id="settings-renew-btn" style="display:none; margin-bottom:10px;" href="#">Renew now</a>
           <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-cancel-autopay" style="display:none; margin-bottom:10px; border-color:rgba(229,72,77,0.3);">Cancel auto-renewal</button>
           <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-manage-billing" style="display:none; margin-bottom:10px;">Manage billing (card, invoices, cancel)</button>
-          <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-see-pro" data-open-plan-modal data-upgrade-reason="TradeZoro is free. Pro adds order flow tools and GEX+.">See Pro (order flow + GEX+)</button>
+          <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-see-pro" data-open-plan-modal data-upgrade-reason="Live futures order book data is a paid data feed. Exchange rules set it, so we can&#39;t give it free. Tools are free; this is the data.">See live data (the futures order book)</button>
         </div>
 
         <div class="panel" id="settings-connections-panel" hidden>
@@ -346,7 +346,7 @@
 
         <div class="panel" id="settings-livedata-panel">
           <div class="panel-head"><h2>Live futures data</h2></div>
-          <p class="stk-ld-sub" style="margin:0 0 12px; font-size:13px; color:var(--ink-2); line-height:1.55;">Live futures (L1) is free once you sign the market data agreement: live prices, candles and best bid/ask for CME futures (NQ, ES, GC, CL and the rest) on ZoroCharts. Order flow tools (footprint, delta, Big Trades) are Pro. Until then they are 10 minutes behind by CME rule. Crypto is always live.</p>
+          <p class="stk-ld-sub" style="margin:0 0 12px; font-size:13px; color:var(--ink-2); line-height:1.55;">Live futures (L1) is free once you sign the market data agreement: live prices, candles and best bid/ask for CME futures (NQ, ES, GC, CL and the rest) on ZoroCharts. Every tool is free. Until you sign, futures are 10 minutes behind by CME rule. The live futures order book (L2) is a paid data feed set by exchange rules; without it the order book is 10 minutes delayed. Crypto is always live.</p>
           <div class="mini-bar-row" style="margin-bottom:14px;">
             <span class="label">Status</span>
             <span class="mini-bar-val" style="width:auto; font-size:13px; color:var(--ink-1);" id="settings-ld-status">—</span>
@@ -360,7 +360,7 @@
           <button type="button" class="btn btn-ghost btn-sm btn-block" id="settings-ld-manage" style="display:none; margin-bottom:10px;">Manage card and invoices</button>
           <p id="settings-ld-agree" style="margin:0 0 8px; font-size:13px; color:var(--ink-1); line-height:1.5;"></p>
           <p style="margin:0 0 8px; font-size:12px; color:var(--ink-3); line-height:1.5;">Market data is provided as is and may be delayed or inaccurate. Personal, non-commercial use only. <a href="market-data-terms" style="color:var(--teal); text-decoration:underline;">Terms</a></p>
-          <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Another way to get real-time: connect your own Rithmic login on the chart (Data source → Rithmic). The L2 order book, order flow tools and GEX+ are part of Pro.</p>
+          <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Another way to get real-time: connect your own Rithmic login on the chart (Data source → Rithmic). Every tool, GEX+ included, is free.</p>
         </div>
 
         <div class="panel">

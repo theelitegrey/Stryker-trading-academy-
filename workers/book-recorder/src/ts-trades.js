@@ -73,7 +73,7 @@ export class TradeBook {
     const trades = this.store ? this.store.trades(sym, from, to) : [];
     const rows = new Map();
     if (this.store) for (const r of this.store.deltas(sym, Math.floor(from / 60000), Math.floor(to / 60000))) rows.set(r[0], r);
-    const c = this.cur.get(sym); if (c) rows.set(c.t, [c.t, c.buy, c.sell, c.hi, c.lo]);   // the open minute, newest numbers
+    const c = this.cur.get(sym); if (c && c.t * 60000 <= to) rows.set(c.t, [c.t, c.buy, c.sell, c.hi, c.lo]);   // the open minute, newest numbers
     const delta = [...rows.values()].sort((a, b) => a[0] - b[0]).map((r) => [r[0] * 60000, r[1], r[2], r[3], r[4]]);
     return { trades, delta };
   }

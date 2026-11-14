@@ -1,4 +1,4 @@
-// TradeZoro /pro: showcase tabs, rails, reveal, the Coming soon rail and the Free vs Pro table. Data: assets/pro-features-data.js. No prices here.
+// TradeZoro /pro: showcase tabs, rails, reveal, the Coming soon rail and the Free vs Live data table. Data: assets/pro-features-data.js. No prices here.
 (function () {
   var D = window.STRYKER_PRO_FEATURES, doc = document, root = doc.documentElement;
   var rm = false; try { rm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -22,17 +22,19 @@
       ['Replay One, alerts, layouts and paper trading', true, true],
       ['Lessons, JournalX, Market Stats, ZoroTide, Liquidity Map overview', true, true],
       ['Community: read everything', true, true],
-      ['Order flow: Footprint, Delta, CVD, Big Trades, Absorption, Stop Runs, Imbalance Zones', false, true],
-      ['Volume Profile, VWAP and Market Profile from trades', false, true],
-      ['Order book heatmap, DOM ladder, Book · DOM · Trades panel', false, true],
-      ['Liquidity Walls and Book Imbalance', false, true],
-      ['GEX+ levels, heatmap and Expected Move on charts', false, true],
-      ['GEX+ page: every expiry, strike table, futures levels', false, true],
-      ['Live CME futures data', 'Separate; 10 min delayed without it', 'Separate; 10 min delayed without it']
+      // ALL TOOLS FREE (Owner 2026-11-13): every tool is in both columns; only the live futures order book data differs
+      ['Order flow: Footprint, Delta, CVD, Big Trades, Absorption, Stop Runs, Imbalance Zones', true, true],
+      ['Volume Profile, VWAP and Market Profile from trades', true, true],
+      ['Order book heatmap, DOM ladder, Book · DOM · Trades panel', true, true],
+      ['Liquidity Walls and Book Imbalance', true, true],
+      ['GEX+ levels, heatmap and Expected Move on charts', true, true],
+      ['GEX+ page: every expiry, strike table, futures levels', true, true],
+      ['Live CME futures L1 (trades, candles, best bid/ask)', 'Free with the market data agreement', 'Free with the market data agreement'],
+      ['CME futures order book (L2)', '10 min delayed', 'Live']
     ];
     var cell = function (v) { return v === true ? '<span class="pp-y" aria-label="Included">✓</span>' : v === false ? '<span class="pp-n" aria-label="Not included">—</span>' : '<span class="pp-t">' + esc(v) + '</span>'; };
-    cmp.innerHTML = '<div class="pp-r pp-rh" role="row"><span role="columnheader">&nbsp;</span><span role="columnheader">Free</span><span role="columnheader">Pro</span></div>' +
-      ROWS.map(function (r) { return '<div class="pp-r" role="row"><span class="pp-rn" role="rowheader">' + esc(r[0]) + '</span><span class="pp-c" role="cell" data-l="Free">' + cell(r[1]) + '</span><span class="pp-c" role="cell" data-l="Pro">' + cell(r[2]) + '</span></div>'; }).join('');
+    cmp.innerHTML = '<div class="pp-r pp-rh" role="row"><span role="columnheader">&nbsp;</span><span role="columnheader">Free</span><span role="columnheader">Pro · Live data</span></div>' +
+      ROWS.map(function (r) { return '<div class="pp-r" role="row"><span class="pp-rn" role="rowheader">' + esc(r[0]) + '</span><span class="pp-c" role="cell" data-l="Free">' + cell(r[1]) + '</span><span class="pp-c" role="cell" data-l="Pro · Live data">' + cell(r[2]) + '</span></div>'; }).join('');
   }
 
   // Showcase tabs (click, touch, arrow keys)

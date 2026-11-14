@@ -17,7 +17,7 @@
     "Turn on Extend POC until touched to carry a leg's POC forward until a later bar trades through it."
   ],
   "notes": [
-    "Futures only (NQ, ES, YM, RTY, CL, GC and their micros). Needs the full order book data feed (L2), which is part of Pro.",
+    "Futures only (NQ, ES, YM, RTY, CL, GC and their micros). Needs the full order book data feed (L2); the tool is free, the live futures order book is the paid data feed (10 minutes delayed without it).",
     "It shows what traded. It does not predict what price will do."
   ],
   "learn": "volume-profile"

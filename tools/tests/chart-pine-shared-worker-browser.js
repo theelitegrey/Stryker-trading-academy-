@@ -13,7 +13,7 @@ const SRC = (n) => `//@version=5\nindicator("shared ${n}", overlay=true)\nplot(t
     await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 180000, polling: 250 });
     await p.evaluate(() => window.STRYKER_CHART_UI.setLayout('2h')); await p.waitForTimeout(4000);
     const run = (i, src) => p.evaluate(async ([i, src]) => { const c = window.STRYKER_VELA.context().cells[i].chart; let r; try { r = await window.STRYKER_PINE.runOnChart(c, src, undefined, false, { engine: 'next', builtin: true }); } catch (e) { return 'threw ' + (e && e.message); } return r && r.ok ? 'ok' : JSON.stringify(r); }, [i, src]);
-    const hub = () => p.evaluate(async () => (await import('/assets/chart-pine-next.js?v=959')).sharedWorkerState());
+    const hub = () => p.evaluate(async () => (await import('/assets/chart-pine-next.js?v=1001')).sharedWorkerState());
     const workers = () => p.evaluate(() => performance.getEntriesByType('resource').filter((e) => /chart-pine-next-worker\.js/.test(e.name)).length);
     const plots = (i) => p.evaluate((i) => { const c = window.STRYKER_VELA.context().cells[i].chart; return window.STRYKER_PINE.pineHandles(c).length; }, i);
     for (const [i, sym] of [[0, 'NQ1!'], [1, 'ES1!']]) await p.evaluate(async ([i, sym]) => {

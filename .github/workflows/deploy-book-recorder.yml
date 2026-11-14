@@ -145,22 +145,28 @@ jobs:
           echo "tide: HTTP $tg"; test "$tg" = 200
           s401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/gex-snap")
           echo "gex-snap without key: HTTP $s401"; test "$s401" = 401
-          # GEX is Pro only (2026-11-01): without a Pro token the GEX reads answer 403. Retry: a new version takes a few seconds to reach every edge
-          for i in 1 2 3 4 5 6; do
-            h=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-history?u=SPX&dte=0")
-            [ "$h" = 403 ] && break; sleep 10
+          # GEX+ is a free tool for signed-in members (2026-11-13, was Pro): WITHOUT a member token the GEX reads still answer 403 (a Free member token passes; covered by tools/tests/rt-access.test.mjs).
+          # The 403 must say sign_in_required, never pro_required (that would mean the old Pro gate is still live). Retry: a new version takes a few seconds to reach every edge
+          for i in 1 2 3 4 5 6 7 8 9; do
+            hb=$(curl -s -w ' HTTP %{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-history?u=SPX&dte=0")
+            echo "$hb" | grep -q sign_in_required && break; sleep 10
           done
-          echo "gex-history without Pro token: HTTP $h"; test "$h" = 403
+          echo "gex-history without a member token: $hb"; echo "$hb" | grep -q 'HTTP 403' && echo "$hb" | grep -q sign_in_required
           ss=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-sessions")
-          echo "gex-sessions without Pro token: HTTP $ss"; test "$ss" = 403
+          echo "gex-sessions without a member token: HTTP $ss"; test "$ss" = 403
           gc=$(curl -s -o /dev/null -w '%{http_code}' "$URL/gex-chain?sym=SPX&part=near")
-          echo "gex-chain without key / Pro token: HTTP $gc"; test "$gc" = 403
+          echo "gex-chain without key / member token: HTTP $gc"; test "$gc" = 403
           gf=$(curl -s -o /dev/null -w '%{http_code}' "$URL/gex-fast")
-          echo "gex-fast without key / Pro token: HTTP $gf"; test "$gf" = 403
+          echo "gex-fast without key / member token: HTTP $gf"; test "$gf" = 403
           o401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/opt-ingest")
           echo "opt-ingest without key: HTTP $o401"; test "$o401" = 401
           oa=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/opt-analytics?u=SPX")
-          echo "opt-analytics without Pro token: HTTP $oa"; test "$oa" = 403
+          echo "opt-analytics without a member token: HTTP $oa"; test "$oa" = 403
+          # order-book history feeds free tools (delayed 11 min for non-payers) but never answers a token-less caller
+          for p in "ts-book-history?symbol=NQ" "ts-aux?symbol=NQ" "ts-trades?sym=NQ"; do
+            tb=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/$p")
+            echo "$p without a token: HTTP $tb"; test "$tb" = 403
+          done
           # the new version can take a few seconds to reach every edge (the old one answers 405/404)
           for i in 1 2 3 4 5 6; do
             n401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary '{}' "$URL/news-ingest")

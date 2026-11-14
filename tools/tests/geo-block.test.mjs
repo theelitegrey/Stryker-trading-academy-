@@ -87,7 +87,7 @@ const next = () => new Response('NEXT');
 const run = (url, cf, init) => mw.onRequest({ request: req(url, cf, init), next, env });
 
 await t('middleware: blocked country gets 451 + the block page on pages and static files', async () => {
-  for (const p of ['/', '/charts', '/login.html', '/assets/style.css?v=929', '/assets/images/og/share/signup.png', '/manifest.json', '/__/auth/handler']) {
+  for (const p of ['/', '/charts', '/login.html', '/assets/style.css?v=1001', '/assets/images/og/share/signup.png', '/manifest.json', '/__/auth/handler']) {
     const r = await run('https://tradezoro.com' + p, { country: 'IR' });
     assert.equal(r.status, 451, p);
     const body = await r.text();

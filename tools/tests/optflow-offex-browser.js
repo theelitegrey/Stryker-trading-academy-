@@ -130,9 +130,9 @@ async function run(b, tag, o) {
   // ---- Off-exchange Volume (Free) on SPY 1D
   await setSym(p, 'IDX:SPY', '1D');
   await add(p, 'stk_offex'); await add(p, 'stk_offex_lv'); await sleep(1500);
-  await p.evaluate(async () => { const m = await import('/assets/chart-offex.js?v=843'); const bars = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const px = bars[bars.length - 1].close; window.__px = px; });
+  await p.evaluate(async () => { const m = await import('/assets/chart-offex.js?v=1001'); const bars = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const px = bars[bars.length - 1].close; window.__px = px; });
   await p.evaluate(async () => {
-    const m = await import('/assets/chart-offex.js?v=843'); const px = window.__px;
+    const m = await import('/assets/chart-offex.js?v=1001'); const px = window.__px;
     const wk = []; const base = new Date(); for (let i = 0; i < 10; i++) { const x = new Date(base.getTime() - (21 + i * 7) * 86400000); const ws = x.toISOString().slice(0, 10); const pr = px * (1 + ((i % 5) - 2) * 0.012); const sh = 30e6 + i * 2e6; wk.push([ws, sh, sh * pr, sh * 1.1, sh * 1.1 * pr]); }
     const j = await (await fetch('https://raw.githubusercontent.com/x/y/data-finra/finra-data.json')).json(); j.weekly.SPY = wk; m._setData(j);
     window.STRYKER_VELA.context().cells[0].chart.indicators().filter((x) => /^stk_offex/.test(x.nativeType)).forEach((h) => h.setInputs(h.inputValues()));

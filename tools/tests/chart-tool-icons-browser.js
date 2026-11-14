@@ -78,7 +78,7 @@ async function starViaFlyout(p, type) {
     // ---- registry: every tool on the shared icon ----
     const reg = await p.evaluate(async () => {
       const m = await import('./assets/vendor/vela-0.6.17-s4/index.js');
-      const I = await import('./assets/chart-tool-icons.js?v=544');
+      const I = await import('./assets/chart-tool-icons.js?v=1001');
       const types = m.drawingTypes().map((d) => ({ type: d.type, label: d.label, same: d.icon === I.TOOL_ICONS[d.type], has: !!I.TOOL_ICONS[d.type] }));
       // drawn content: render each icon offscreen and measure the painted bbox
       const box = document.createElement('div'); box.style.cssText = 'position:fixed;left:-500px;top:0;color:#000';
@@ -225,7 +225,7 @@ async function starViaFlyout(p, type) {
     // ---- contact sheet (same page so the module resolves) ----
     await p.evaluate(async () => {
       const m = await import('./assets/vendor/vela-0.6.17-s4/index.js');
-      const I = await import('./assets/chart-tool-icons.js?v=544');
+      const I = await import('./assets/chart-tool-icons.js?v=1001');
       const sheet = document.createElement('div');
       sheet.id = 'stk-sheet';
       sheet.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#131722;color:#d1d4dc;padding:18px;font:12px -apple-system,Segoe UI,Roboto,sans-serif;display:grid;grid-template-columns:repeat(8,1fr);gap:8px;align-content:start;overflow:hidden';

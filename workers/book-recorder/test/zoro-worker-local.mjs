@@ -80,7 +80,7 @@ ok((await post('route=note&day=' + day + '&kind=noon', note)).status === 400, 'i
 const G = (path, tok) => W(path, { headers: tok ? { authorization: 'Bearer ' + tok } : {} });
 for (const p of ['/zo/surface?u=SPX', '/zo/history?u=SPX', '/zo/activity?u=ALL&kind=burst', '/zo/screen', '/zo/cme?root=ES', '/zo/profile?u=QQQ', '/zo/profile?u=SPX&x=all', '/zo/summary?u=QQQ', '/zo/levels-export?u=SPX']) {
   r = await G(p);
-  ok(r.status === 403 && (await r.json()).error === 'pro_required', 'no token -> 403 pro_required ' + p);
+  ok(r.status === 403 && (await r.json()).error === 'sign_in_required', 'no token -> 403 sign_in_required (all tools free, member only) ' + p);
   r = await G(p, 'garbage.token.value');
   ok(r.status === 403, 'garbage token -> 403 ' + p);
   ok(r.headers.get('cache-control') === 'no-store', '403 is no-store ' + p);

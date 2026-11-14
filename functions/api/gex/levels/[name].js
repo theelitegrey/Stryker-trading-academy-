@@ -114,6 +114,6 @@ async function closeHandle(request, name, dte, env) {
     if (cacheAvailable()) await caches.default.put(cacheKey(request, name, dte, kind), json(data, { headers: hd, cache: hd['cache-control'] }));
     return json(data, { headers: hd, cache: hd['cache-control'] });
   } catch (error) {
-    return json({ error: error.message || String(error), basis: 'close' }, { status: error && error.message === 'pro_required' ? 403 : 503, cache: 'no-store' });
+    return json({ error: error.message || String(error), basis: 'close' }, { status: error && error.message === 'sign_in_required' ? 403 : 503, cache: 'no-store' });
   }
 }

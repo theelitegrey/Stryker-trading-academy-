@@ -4,7 +4,8 @@
 //   node tools/tests/chart-dev-server.mjs 8031
 //   CHART_BASE=http://127.0.0.1:8031 flock /tmp/stryker-chrome.lock node tools/tests/chart-heatmap-any-browser.js <shotsDir>
 // Checks at 1440 dark, 390 dark, 1440 light (Pro): NQ draws from the hub; BTC draws from the exchange book; SI1! draws from the member
-// feed (after "Waiting for order book…"); NQ stays on the hub while a member feed is connected; AAPL shows the honest no-source note.
+// feed (after "Waiting for order book…"); NQ stays on the live hub while a member feed is connected, and switches to the member's feed
+// when that member is on the 10-min delayed hub book; AAPL shows the honest no-source note.
 const fs = require('fs');
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
@@ -24,8 +25,8 @@ const barsNow = () => { const out = [], m1 = Math.floor(Date.now() / 60000) + 1;
 const WAIT = 'Waiting for order book…';
 const NOTE = 'No order book for AAPL yet. Connect a broker that streams depth to see it.';
 
-function fakeWs() {
-  window.__stkL2Test = { base: 'http://127.0.0.1:9' };
+function fakeWs(silent) {
+  window.__stkL2Test = { base: 'http://127.0.0.1:9', delayed: !!silent };   // silent: no live book frames = the 10-min delayed member
   const Real = window.WebSocket;
   window.WebSocket = function (url, proto) {
     if (!/\/ts-live/.test(String(url))) return new Real(url, proto);
@@ -33,7 +34,7 @@ function fakeWs() {
     setTimeout(() => { ws.readyState = 1; ws.onopen && ws.onopen(); ws.onmessage({ data: JSON.stringify({ event: 'status', state: 'live' }) }); }, 50);
     let n = 0;
     ws.iv = setInterval(() => {
-      if (ws.readyState !== 1 || !ws.onmessage) return; n++;
+      if (ws.readyState !== 1 || !ws.onmessage || silent) return; n++;
       const now = Date.now(), b = Math.floor((window.__L2MID || 28650) * 4) / 4, bids = [], asks = [];
       for (let i = 0; i < 12; i++) { bids.push([b - i * 0.25, 10 + ((i * 7 + n) % 30)]); asks.push([b + 0.25 + i * 0.25, 10 + ((i * 5 + n) % 30)]); }
       ws.onmessage({ data: JSON.stringify({ type: 'snap', symbol: 'NQ', ts: now, bids, asks, imb: 0, imb10: 0 }) });
@@ -65,10 +66,10 @@ const memberFeed = () => {
   };
   window.dispatchEvent(new CustomEvent('stryker:booksource', { detail: { provider: 'futures' } }));
 };
-async function open(b, { w, h, mobile, theme }) {
+async function open(b, { w, h, mobile, theme, silent }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile, colorScheme: theme });
   await ctx.addInitScript(stub);
-  await ctx.addInitScript(fakeWs);
+  await ctx.addInitScript(fakeWs, !!silent);
   await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker.vela.session', ''); localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); } catch (e) {} }, theme);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost|cdn\.jsdelivr\.net)/, (r) => r.abort());
   await ctx.route(/binance[^/]*\/(api\/v3|fapi\/v1)\/klines/, (r) => {
@@ -153,6 +154,19 @@ const fit = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.chart, t = D
       d = await dbg(p);
       check(d && d.feed === 'tsl2|NQ', tag + ': NQ stays on the hub while a member feed is connected', d && d.feed);
       check(errors.length === 0, tag + ': no console errors', errors);
+      await ctx.close();
+    }
+    // 6. a member on the 10-min delayed hub book (no live book frames) who connected their own depth feed: NQ uses that live feed
+    {
+      const { ctx, p, errors } = await open(b, { w: 1440, h: 900, theme: 'dark', silent: true });
+      await p.evaluate(memberFeed);
+      await setSym(p, 'futures:NQ1!');
+      await p.evaluate(() => { window.STRYKER_VELA.chart.addNativeIndicator('stk_depth_heat'); window.STRYKER_VELA.context().stateChanged(); });
+      await sleep(10000); await fit(p);
+      let d; for (let i = 0; i < 8; i++) { await sleep(1000); d = await dbg(p); if (d && d.heat && d.heat.columns > 3) break; }
+      check(d && /^member\|FUTURES:NQ1!$/i.test(d.feed) && d.heat && d.heat.columns > 3, 'delayed member with their own depth feed: NQ draws from that live feed', d);
+      await p.screenshot({ path: OUT + '/hm-any-nq-delayed-member-1440-dark.png' });
+      check(errors.length === 0, 'delayed member: no console errors', errors);
       await ctx.close();
     }
   } finally { await b.close(); }

@@ -110,7 +110,7 @@ const Favs = {
       if (u) {
         try {
           const s = await favCol(u).limit(300).get();
-          s.forEach((d) => { const x = d.data() || {}; if (x.key) m.set(x.key, x.name || x.key); });
+          s.forEach((d) => { const x = d.data() || {}; if (x.key && !String(x.key).startsWith('sym:')) m.set(x.key, x.name || x.key); });   // sym: = symbol-search favourites (assets/chart-search.js)
         } catch (e) { console.warn('TradeZoro: favourites', e); }
       } else {
         try { (JSON.parse(localStorage.getItem(FAV_LS) || '[]') || []).forEach((x) => { if (x && x.key) m.set(x.key, x.name || x.key); }); } catch (e) {}

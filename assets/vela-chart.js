@@ -1130,6 +1130,21 @@ function visualOrder(R) {
   Promise.all([import('./chart-symbol-input.js?v=1028'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountSymbolInputPicker(ws, { toast, SymbolPicker: Wd.SymbolPicker, COMMODITY_ROOTS }))
     .catch((e) => console.warn('TradeZoro: symbol inputs', e));
+  // Legend symbol text (top-left "NQ1! · CME · 1m") opens the symbol search for THAT pane: the same
+  // picker the header symbol button opens, so it follows whatever search ships. A drag that starts on
+  // the text (legend move) is not a click: ignored past 6 px.
+  try {
+    let dn = null;
+    document.addEventListener('pointerdown', (e) => { dn = [e.clientX, e.clientY]; }, true);
+    document.addEventListener('click', (e) => {
+      const el = e.target && e.target.closest && e.target.closest('.vela-sl-symbol');
+      if (!el || (dn && Math.hypot(e.clientX - dn[0], e.clientY - dn[1]) > 6)) return;
+      const cell = ws.cells().find((c) => c.host && c.host.contains(el));
+      if (!cell) return;
+      try { if (cell.id != null) ws.setActiveCell(cell.id); } catch (er) {}
+      if (typeof ws.openSymbolSearch === 'function') ws.openSymbolSearch(); else ws.symbolPicker.open();
+    }, true);
+  } catch (e) { console.warn('TradeZoro: legend symbol click', e); }
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
   import('./chart-plus.js?v=1028').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('TradeZoro: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('TradeZoro: events', e); }

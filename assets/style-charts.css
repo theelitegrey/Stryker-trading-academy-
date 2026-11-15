@@ -4503,3 +4503,5 @@ ul.vela-menu[data-state="open"][data-side="left"]{ animation-name:mh-in-l; }
 .mh-out{ animation:mh-fade-out .08s linear both !important; }}
 .account-panel::before, .stkc-pop::before, .mclock-pop::before, .hn-menu::before{ content:""; position:absolute; left:0; right:0; top:-12px; height:12px; }
 @media (hover:none), (pointer:coarse){.account-panel::before, .stkc-pop::before, .mclock-pop::before, .hn-menu::before{ display:none; }}
+.vela-statusline .vela-sl-symbol{ cursor:pointer; border-radius:4px; transition:background-color .12s; }
+@media (hover:hover){.vela-statusline .vela-sl-symbol:hover{ background:rgba(127,127,127,.18); }}

@@ -83,4 +83,18 @@ ok(L.has('a') && !L.has('b') && L.size === 3 && L.keys().join('') === 'cad', 'lr
 // serialize refuses an oversized index
 const big = C.fresh('x'); big.items[0].sub = ''; big.items.push(...Array.from({ length: 11 }, (_, i) => ({ id: 'wbig' + String(i).padStart(5, '0'), name: 'y'.repeat(40), layoutId: null, layoutName: '', shared: false, panels: { open: [], w: {} }, sub: 'z'.repeat(2000) })));
 ok(C.serialize(big) === null, 'oversized index not serialized');
+// tab menu logic: pin, step, bulk close, default
+{
+  const ix = C.fresh('a'); C.add(ix, 'b'); C.add(ix, 'c'); C.add(ix, 'd');
+  const [a, b, c, d] = ix.items.map((x) => x.id);
+  C.setPinned(ix, c, true);
+  ok(ix.items.map((x) => x.name).join() === 'c,a,b,d', 'pinned tab sits left');
+  ok(!C.canStep(ix, c, 1) && !C.canStep(ix, a, -1) && C.canStep(ix, a, 1), 'move never crosses the pin boundary');
+  ok(C.othersOf(ix, b).join() === [a, d].join(), 'close others skips pinned and itself');
+  ok(C.rightOf(ix, a).join() === [b, d].join() && C.rightOf(ix, b).join() === d, 'close to the right');
+  C.setDefault(ix, d); ok(ix.def === d, 'default set');
+  C.remove(ix, d); ok(ix.def === '', 'default cleared when its workspace goes');
+  const back = C.sanitize(C.serialize(ix));
+  ok(back.items[0].pinned === true && C.sanitize({ items: [{ id: 'wabcde', name: 'x', color: 'evil' }] }).items[0].color === '', 'pin persists; bad colour dropped');
+}
 console.log('ALL PASS');

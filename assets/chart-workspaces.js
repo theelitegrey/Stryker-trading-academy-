@@ -17,7 +17,7 @@
 // functions-src/firestore.rules). Signed out: index and chart documents in localStorage.
 // Crash safety: the screen itself is restored by the chart's own on-device save; the index says which
 // workspace it is. Deleting a workspace never deletes its saved layout.
-import * as C from './chart-workspaces-core.js?v=1035';
+import * as C from './chart-workspaces-core.js?v=1037';
 
 const REMOTE_MS = 1500;
 let remoteRead = false;
@@ -49,6 +49,21 @@ const IC = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   chev: '<path d="M6 9l6 6 6-6"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
+  pin: '<path d="M12 16v5M8.5 3h7l-1 6 3 3.5V15h-11v-2.500L9.500 9z"/>',
+  unpin: '<path d="M12 16v5M8.5 3h7l-1 6 3 3.5V15h-11v-2.500L9.500 9zM4 4l16 16"/>',
+  home: '<path d="M4 11l8-7 8 7M6 9.500V20h12V9.500"/>',
+  palette: '<circle cx="12" cy="12" r="8.500"/><circle cx="8.500" cy="11" r="1"/><circle cx="12" cy="7.800" r="1"/><circle cx="15.500" cy="11" r="1"/>',
+  tpl: '<path d="M5 4h14v16H5zM5 9h14M10 9v11"/>',
+  share: '<circle cx="18" cy="5.500" r="2.500"/><circle cx="6" cy="12" r="2.500"/><circle cx="18" cy="18.500" r="2.500"/><path d="M8.200 10.800l7.600-4.100M8.200 13.200l7.600 4.100"/>',
+  left: '<path d="M15 6l-6 6 6 6"/>',
+  right: '<path d="M9 6l6 6-6 6"/>',
+  reset: '<path d="M4 12a8 8 0 1 1 2.500 5.800M4 19v-5h5"/>',
+  star: '<path d="M12 4l2.400 5 5.600.8-4 3.900 1 5.500-5-2.700-5 2.700 1-5.500-4-3.900 5.600-.8z"/>',
+  bolt: '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>',
+  chart: '<path d="M4 19V5M4 19h16M8 15l3-4 3 3 5-7"/>',
+  flame: '<path d="M12 3c1 4 5 5.500 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>',
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.500"/>',
   globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.4 3.6 5.2 3.6 8.5s-1.1 6.100-3.6 8.500c-2.5-2.400-3.600-5.200-3.600-8.500S9.500 5.900 12 3.500z"/>'
 };
 const svg = (k, s) => '<svg width="' + (s || 20) + '" height="' + (s || 20) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[k] + '</svg>';
@@ -226,11 +241,23 @@ export function mountWorkspaces(ws, o){
     toast('Workspace deleted');
     return true;
   }
+  // Delete several at once (Close others / to the right). One confirm; pinned tabs are never in `ids`.
+  async function removeMany(ids, what){
+    ids = ids.filter((id) => C.find(ix, id));
+    if (!ids.length) { toast('Nothing to close.'); return false; }
+    if (ids.length >= ix.items.length) return false;
+    const names = ids.map((id) => C.find(ix, id).name);
+    if (!window.confirm('Delete ' + ids.length + ' workspace' + (ids.length > 1 ? 's' : '') + ' (' + what + ')?\n' + names.join(', ').slice(0, 200) + '\nPinned tabs stay.' + (user() ? ' Their charts stay in your saved layouts.' : ''))) return false;
+    if (ids.includes(ix.active)) { const keep = ix.items.find((x) => !ids.includes(x.id)); await switchTo(keep.id); }
+    ids.forEach((id) => { C.remove(ix, id); docs.delete(id); if (!user()) lsDel(K.doc(id)); });
+    persist(); toast(ids.length + ' workspaces deleted');
+    return true;
+  }
   function reorder(ids){
     const by = new Map(ix.items.map((x) => [x.id, x]));
     const next = ids.map((x) => by.get(x)).filter(Boolean);
     if (next.length !== ix.items.length || next.every((x, i) => x === ix.items[i])) return;
-    ix.items = next; persist();
+    ix.items = next; C.pinFirst(ix.items); persist();
   }
 
   // ---------------------------------------------------------------- UI: top-bar button + list
@@ -381,20 +408,23 @@ export function mountWorkspaces(ws, o){
     tabRow.innerHTML = '';
     ix.items.forEach((it, i) => {
       const on = it.id === ix.active;
-      const x = el('span', { class: 'stkws-x', role: 'button', 'aria-label': 'Close workspace ' + it.name, title: 'Close', html: svg('close', 12) });
-      const t = el('button', { type: 'button', class: 'stkws-tab' + (on ? ' on' : ''), role: 'tab', 'aria-selected': on ? 'true' : 'false', 'data-id': it.id,
-        title: it.name + (it.sub ? ' · ' + it.sub : '') + (i < 9 ? ' (' + keyName(i) + ')' : '') + '. Double-click to rename, drag to reorder.' },
-        [el('span', { class: 'stkws-gl', html: svg('globe', 16) }), el('span', { class: 'stkws-tn', text: it.name }), x]);
+      const x = it.pinned ? null : el('span', { class: 'stkws-x', role: 'button', 'aria-label': 'Close workspace ' + it.name, title: 'Close', html: svg('close', 12) });
+      const t = el('button', { type: 'button', class: 'stkws-tab' + (on ? ' on' : '') + (it.pinned ? ' pinned' : '') + (it.color ? ' c-' + it.color : ''), role: 'tab', 'aria-selected': on ? 'true' : 'false', 'data-id': it.id,
+        title: it.name + (it.sub ? ' · ' + it.sub : '') + (i < 9 ? ' (' + keyName(i) + ')' : '') + '. Right-click for options. Double-click to rename, drag to reorder.' },
+        [el('span', { class: 'stkws-gl', html: svg(it.glyph || 'globe', 16) }), el('span', { class: 'stkws-tn', text: it.name }), x]);
+      t.dataset.dflt = ix.def === it.id ? '1' : '';
       t.addEventListener('click', (e) => { if (e.target.closest('.stkws-x')) { e.stopPropagation(); removeWs(it.id); return; } if (!dragged) switchTo(it.id); });
       t.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); removeWs(it.id); } });
       t.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
       t.addEventListener('dblclick', () => askName('Rename workspace', it.name, (n) => renameWs(it.id, n)));
       t.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        ctxMenu(ctxBox, e.clientX, e.clientY, [
-          { label: 'Rename…', run: () => askName('Rename workspace', it.name, (n) => renameWs(it.id, n)) },
-          { label: 'Duplicate', run: async () => { if (ix.active !== it.id) await switchTo(it.id); duplicate(); } },
-          { label: 'Delete…', danger: true, disabled: ix.items.length <= 1, run: () => removeWs(it.id) }]);
+        const r = t.getBoundingClientRect(), kb = e.detail === 0 && !e.clientX && !e.clientY;
+        openMenu(it.id, kb ? r.left + 8 : e.clientX, kb ? r.bottom : e.clientY, kb);
+      });
+      t.addEventListener('keydown', (e) => {
+        if (e.key === 'F2') { e.preventDefault(); askName('Rename workspace', it.name, (n) => renameWs(it.id, n)); }
+        else if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); stepWs(it.id, e.key === 'ArrowLeft' ? -1 : 1, true); }
       });
       dragSort(t, t, tabRow, '.stkws-tab', 'x');
       tabRow.appendChild(t);
@@ -406,10 +436,159 @@ export function mountWorkspaces(ws, o){
   let shownTabs = null;
   function paint(){
     paintBtn();
-    const sig = JSON.stringify([ix.active, ix.items.map((x) => [x.id, x.name, x.sub])]);
+    const sig = JSON.stringify([ix.active, ix.items.map((x) => [x.id, x.name, x.sub, x.pinned, x.color, x.glyph]), ix.def]);
     if (sig !== shownTabs) { shownTabs = sig; paintTabs(); }
     if (!pop.hidden) renderList();
   }
+
+
+  // ---------------------------------------------------------------- UI: tab right-click menu (phone: long-press the pill -> bottom sheet)
+  // Close = delete in our model (a tab IS a workspace), so there is one "Delete workspace…"; the bulk ones say "Delete".
+  async function stepWs(id, dir, keepFocus){
+    if (!C.step(ix, id, dir)) return;
+    persist();
+    if (keepFocus) { const b = tabRow.querySelector('[data-id="' + id + '"]'); if (b) b.focus(); }
+  }
+  async function onIt(id){ if (ix.active !== id) await switchTo(id); return C.find(ix, id); }
+  async function saveTemplate(id){
+    const T = window.StrykerChartTemplates;
+    if (!T) { toast('Templates are not available here.', 'error'); return; }
+    if (safe()) { toast('Turn the indicators back on first, so the template has them.', 'error'); return; }
+    const it = await onIt(id); if (!it) return;
+    askName('Save as template', it.name, async (n) => {
+      try { await T.save(n, screenState()); toast('Template saved. Find it in Templates.'); }
+      catch (e) { toast((e && e.message) || 'Could not save the template.', 'error'); }
+    });
+  }
+  async function shareLink(id){
+    const it = await onIt(id); if (!it || !user()) return;
+    if (!L.current && !L.viewing) { const r = await L.saveAsNew(it.name, { quiet: true }); if (r && r.id) { it.layoutId = r.id; it.layoutName = r.name; persist(); } }
+    const c = L.current; if (!c) { toast('Could not make a link yet. Try again in a moment.', 'error'); return; }
+    if (!c.shared) {
+      if (!window.confirm('Turn on sharing for "' + it.name + '"? Anyone with the link can view it (read-only). You can turn it off any time from the layout menu.')) return;
+      await L.setShared(true); return;   // copies the link itself
+    }
+    const url = L.linkOf(c.id);
+    try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch (e) { window.prompt('Copy this link', url); }
+  }
+  async function resetLayout(id){
+    const it = await onIt(id); if (!it) return;
+    if (!window.confirm('Reset "' + it.name + '" to a single chart? The workspace stays.')) return;
+    try { window.STRYKER_CHART_UI.setLayout('1'); } catch (e) { toast('Could not reset the layout.', 'error'); return; }
+    setTimeout(() => { try { it.sub = C.subOf(screenState()); } catch (e) {} persist(); }, 600);
+    toast('Layout reset to one chart');
+  }
+  function setLook(id, k, v){ const it = C.find(ix, id); if (!it) return; it[k] = it[k] === v ? '' : v; persist(); }
+
+  let cm = null;   // the open menu: { box, close }
+  function closeMenu(refocus){ if (cm) { const c = cm; cm = null; c.close(refocus); } }
+  function menuModel(id){
+    const it = C.find(ix, id), i = ix.items.findIndex((x) => x.id === id), n = ix.items.length;
+    const others = C.othersOf(ix, id), right = C.rightOf(ix, id);
+    const ren = () => askName('Rename workspace', it.name, (nm) => renameWs(id, nm));
+    const g = [];
+    g.push([
+      { label: it.pinned ? 'Unpin tab' : 'Pin tab', icon: it.pinned ? 'unpin' : 'pin', run: () => { C.setPinned(ix, id, !it.pinned); persist(); } },
+      { label: ix.def === id ? 'Unset default workspace' : 'Set as default workspace', icon: 'home', run: () => { C.setDefault(ix, id); persist(); toast(ix.def === id ? 'Opens on load' : 'No default workspace'); } },
+      { swatch: 'color', icon: 'palette', label: 'Tab colour', opts: C.COLORS, cur: it.color },
+      { swatch: 'glyph', icon: 'ws', label: 'Tab icon', opts: C.GLYPHS, cur: it.glyph }]);
+    const g2 = [
+      { label: 'Rename', icon: 'rename', kbd: 'Double-click', run: ren },
+      { label: 'Duplicate', icon: 'copy', run: async () => { await onIt(id); duplicate(); } },
+      { label: 'Save as template…', icon: 'tpl', run: () => saveTemplate(id) }];
+    if (user()) g2.push({ label: 'Copy share link', icon: 'share', run: () => shareLink(id) });
+    g.push(g2);
+    g.push([
+      { label: 'Move left', icon: 'left', kbd: isMac ? '⌥←' : 'Alt+←', disabled: !C.canStep(ix, id, -1), run: () => stepWs(id, -1) },
+      { label: 'Move right', icon: 'right', kbd: isMac ? '⌥→' : 'Alt+→', disabled: !C.canStep(ix, id, 1), run: () => stepWs(id, 1) },
+      { label: 'Open in new window', icon: 'ext', run: () => { persist(); window.open(location.pathname + '?ws=' + encodeURIComponent(id), '_blank', 'noopener'); } }]);
+    g.push([
+      { label: 'Reset layout…', icon: 'reset', run: () => resetLayout(id) },
+      { label: 'Delete other workspaces…', icon: 'close', disabled: !others.length || others.length >= n, run: () => removeMany(others, 'all except this one and pinned') },
+      { label: 'Delete workspaces to the right…', icon: 'close', disabled: !right.length || right.length >= n, run: () => removeMany(right, 'to the right of this one') },
+      { label: 'Delete workspace…', icon: 'del', danger: true, disabled: n <= 1, run: () => removeWs(id) }]);
+    return g;
+  }
+  function openMenu(id, x, y, byKey){
+    closeMenu(false);
+    if (!C.find(ix, id)) return;
+    const sheet = isPhone();
+    const prevFocus = document.activeElement;
+    const box = el('div', { class: 'stkws-cm' + (sheet ? ' sheet' : ''), role: 'menu', tabindex: '-1', 'aria-label': 'Workspace options: ' + C.find(ix, id).name });
+    const rows = [];   // focusable rows, in order; a swatch row holds its own buttons
+    menuModel(id).forEach((grp, gi) => {
+      if (gi) box.appendChild(el('div', { class: 'stkws-cm-sep', role: 'separator' }));
+      grp.forEach((r) => {
+        const ic = el('span', { class: 'stkws-cm-ic', html: svg(r.icon, 16) });
+        if (r.swatch) {
+          const row = el('div', { class: 'stkws-cm-row stkws-cm-sw', role: 'group', 'aria-label': r.label }, [ic]);
+          const sw = el('span', { class: 'stkws-cm-opts' });
+          r.opts.forEach((o) => {
+            const b = el('button', { type: 'button', role: 'menuitemradio', 'aria-checked': r.cur === o ? 'true' : 'false', 'aria-label': r.label + ': ' + o, 'data-o': o,
+              class: 'stkws-cm-o ' + (r.swatch === 'color' ? 'c-' + o + ' dot' : 'gl') + (r.cur === o ? ' on' : ''), tabindex: '-1',
+              html: r.swatch === 'color' ? '<i></i>' : svg(o, 16) });
+            b.addEventListener('click', () => { setLook(id, r.swatch, o); closeMenu(true); });
+            sw.appendChild(b);
+          });
+          row.appendChild(sw); box.appendChild(row); rows.push({ sw: [...sw.children] });
+          return;
+        }
+        const b = el('button', { type: 'button', role: 'menuitem', class: 'stkws-cm-row stkws-cm-it' + (r.danger ? ' danger' : ''), tabindex: '-1' },
+          [ic, el('span', { class: 'stkws-cm-l', text: r.label }), r.kbd ? el('span', { class: 'stkws-cm-k', text: r.kbd }) : null]);
+        if (r.disabled) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); }
+        else b.addEventListener('click', () => { closeMenu(false); r.run(); });
+        box.appendChild(b); if (!r.disabled) rows.push({ b });
+      });
+    });
+    const scrim = el('div', { class: 'stkws-cm-scrim' + (sheet ? ' sheet' : '') });
+    document.body.appendChild(scrim); document.body.appendChild(box);
+    if (!sheet) {   // open at the cursor, flip / clamp so it stays on screen
+      const w = box.offsetWidth, h = box.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+      box.style.left = Math.max(8, Math.min(x, vw - w - 8)) + 'px';
+      box.style.top = Math.max(8, y + h + 8 <= vh ? y : (y - h >= 8 ? y - h : vh - h - 8)) + 'px';
+      box.style.transformOrigin = (x > vw - w - 8 ? 'right' : 'left') + ' ' + (y + h + 8 <= vh ? 'top' : 'bottom');
+    }
+    requestAnimationFrame(() => { box.classList.add('open'); scrim.classList.add('open'); });
+    const focusRow = (k) => { const r = rows[k]; if (!r) return; (r.sw ? (r.sw.find((b) => b.classList.contains('on')) || r.sw[0]) : r.b).focus(); };
+    const at = () => rows.findIndex((r) => r.sw ? r.sw.includes(document.activeElement) : r.b === document.activeElement);
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeMenu(true); return; }
+      if (e.key === 'Tab') { closeMenu(false); return; }
+      const k = at();
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); focusRow(k < 0 ? (e.key === 'ArrowDown' ? 0 : rows.length - 1) : (k + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length); }
+      else if (e.key === 'Home') { e.preventDefault(); focusRow(0); }
+      else if (e.key === 'End') { e.preventDefault(); focusRow(rows.length - 1); }
+      else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && k >= 0 && rows[k].sw) {
+        e.preventDefault(); const a = rows[k].sw, j = a.indexOf(document.activeElement); a[(j + (e.key === 'ArrowRight' ? 1 : -1) + a.length) % a.length].focus();
+      }
+    };
+    const out = (e) => { if (!box.contains(e.target)) closeMenu(false); };
+    const gone = () => closeMenu(false);
+    box.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', out, true);
+    window.addEventListener('resize', gone); window.addEventListener('blur', gone); window.addEventListener('scroll', gone, true);
+    scrim.addEventListener('contextmenu', (e) => { e.preventDefault(); closeMenu(false); });
+    const refocus = (rf) => { if (rf && prevFocus && prevFocus.isConnected) try { prevFocus.focus(); } catch (e) {} };
+    cm = { box, close(rf) {
+      document.removeEventListener('pointerdown', out, true);
+      window.removeEventListener('resize', gone); window.removeEventListener('blur', gone); window.removeEventListener('scroll', gone, true);
+      box.classList.remove('open'); scrim.classList.remove('open');
+      refocus(rf);
+      const rm = () => { box.remove(); scrim.remove(); };
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) rm(); else setTimeout(rm, 160);
+    } };
+    (byKey ? () => focusRow(0) : () => box.focus({ preventScroll: true }))();
+  }
+  // phone: long-press the workspace pill -> the same menu as a bottom sheet (a tap still opens the list)
+  let lp = null, lpFired = false;
+  btn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' || !isPhone()) return;
+    lpFired = false; clearTimeout(lp);
+    lp = setTimeout(() => { lpFired = true; setOpen(false); openMenu(ix.active, 0, 0, false); }, 480);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((n) => btn.addEventListener(n, () => clearTimeout(lp)));
+  btn.addEventListener('click', (e) => { if (lpFired) { lpFired = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  btn.addEventListener('contextmenu', (e) => { if (isPhone()) { e.preventDefault(); if (!cm) { setOpen(false); openMenu(ix.active, 0, 0, false); } } });
 
   // ---------------------------------------------------------------- name dialog (same look as the layout dialogs)
   function askName(title, init, fn){
@@ -466,6 +645,7 @@ export function mountWorkspaces(ws, o){
   // signed in: the account copy wins when it is newer (another device changed the list)
   if (user()) {
     remoteRef().get().then((d) => {
+      setTimeout(bootDefault, 400);
       remoteRead = true;
       const r = d && d.exists ? C.sanitize((d.data() || {}).index) : null;
       if (!r || C.pickNewer(ix, r) !== r) { persist(); return; }
@@ -477,7 +657,13 @@ export function mountWorkspaces(ws, o){
     }).catch((e) => console.warn('TradeZoro: workspaces sync', e && e.code));
   }
 
-  const api = { switchTo, createNew, duplicate, rename: renameWs, remove: removeWs, reorder,
+  // "Set as default workspace": it opens on load (once, after the account copy is read)
+  let defDone = false;
+  const bootDefault = () => { if (defDone) return; defDone = true; const q = new URLSearchParams(location.search).get('ws'), to = C.find(ix, q) ? q : ix.def;   // ?ws=<id> (Open in new window) beats the default
+    if (ix && to && to !== ix.active && C.find(ix, to)) switchTo(to); };
+  if (user()) setTimeout(() => { if (!defDone) bootDefault(); }, 2500); else setTimeout(bootDefault, 0);
+
+  const api = { switchTo, openMenu, closeMenu, removeMany, saveTemplate, createNew, duplicate, rename: renameWs, remove: removeWs, reorder,
     get index(){ return JSON.parse(JSON.stringify(ix)); }, get active(){ return cur(); }, get cached(){ return docs.keys(); },
     get busy(){ return !!busy; }, capturePanels };
   window.STRYKER_WORKSPACES = api;

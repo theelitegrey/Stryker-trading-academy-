@@ -13,6 +13,10 @@ export const INDEX_MAX = 20000; // chars of the stored index (Firestore rules ca
 export const CACHE_N = 3;       // chart documents kept in memory for instant switching
 export const PANEL_IDS = ['watchlist', 'book', 'news', 'gex', 'info', 'darkpool', 'heatmap'];
 
+// tab colour + glyph choices (stored as these keys only; anything else is dropped)
+export const COLORS = ['blue', 'green', 'red', 'amber', 'purple', 'teal'];
+export const GLYPHS = ['globe', 'star', 'bolt', 'chart', 'flame', 'target'];
+
 const ID_RE = /^w[a-z0-9]{4,16}$/;
 const LID_RE = /^[A-Za-z0-9]{10,40}$/;
 
@@ -45,7 +49,10 @@ function cleanItem(x){
     layoutName: x.layoutId ? String(x.layoutName || '').replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 60) : '',
     shared: !!(x.layoutId && x.shared === true),   // the layout's share switch, so a save after switching back keeps it
     panels: cleanPanels(x.panels),
-    sub: String(x.sub || '').slice(0, 60)
+    sub: String(x.sub || '').slice(0, 60),
+    pinned: x.pinned === true,
+    color: COLORS.includes(x.color) ? x.color : '',
+    glyph: GLYPHS.includes(x.glyph) ? x.glyph : ''
   };
 }
 
@@ -63,12 +70,38 @@ export function sanitize(raw){
   }
   if (!items.length) return null;
   const active = seen.has(o.active) ? o.active : items[0].id;
-  return { v: 1, active, items, t: Number.isFinite(+o.t) ? +o.t : 0 };
+  pinFirst(items);
+  return { v: 1, active, items, def: seen.has(o.def) ? o.def : '', t: Number.isFinite(+o.t) ? +o.t : 0 };
 }
+// pinned tabs always sit left (stable: order inside each group is kept)
+export function pinFirst(items){
+  const a = items.filter((x) => x.pinned), b = items.filter((x) => !x.pinned);
+  items.splice(0, items.length, ...a, ...b);
+  return items;
+}
+export function setPinned(ix, id, on){
+  const it = find(ix, id); if (!it) return false;
+  it.pinned = !!on; pinFirst(ix.items); return true;
+}
+// Move one step inside its own group (pinned never cross unpinned). Returns true when it moved.
+export function step(ix, id, dir){
+  const i = ix.items.findIndex((x) => x.id === id); if (i < 0) return false;
+  const j = i + (dir < 0 ? -1 : 1), o = ix.items[j];
+  if (!o || o.pinned !== ix.items[i].pinned) return false;
+  [ix.items[i], ix.items[j]] = [o, ix.items[i]]; return true;
+}
+export const canStep = (ix, id, dir) => { const i = ix.items.findIndex((x) => x.id === id), o = ix.items[i + (dir < 0 ? -1 : 1)]; return !!o && i >= 0 && o.pinned === ix.items[i].pinned; };
+// ids "Close other tabs" / "Close tabs to the right" would delete: never the tab itself, never a pinned tab
+export const othersOf = (ix, id) => ix.items.filter((x) => x.id !== id && !x.pinned).map((x) => x.id);
+export function rightOf(ix, id){
+  const i = ix.items.findIndex((x) => x.id === id);
+  return i < 0 ? [] : ix.items.slice(i + 1).filter((x) => !x.pinned).map((x) => x.id);
+}
+export function setDefault(ix, id){ ix.def = ix.def === id ? '' : (find(ix, id) ? id : ix.def); return ix.def; }
 
 export function fresh(name, layout){
   const id = newId();
-  return { v: 1, active: id, t: 0, items: [cleanItem({ id, name: cleanName(name) || 'Workspace 1', layoutId: layout ? layout.id : null, layoutName: layout ? layout.name : '', shared: !!(layout && layout.shared), panels: null, sub: '' })] };
+  return { v: 1, active: id, def: '', t: 0, items: [cleanItem({ id, name: cleanName(name) || 'Workspace 1', layoutId: layout ? layout.id : null, layoutName: layout ? layout.name : '', shared: !!(layout && layout.shared), panels: null, sub: '' })] };
 }
 
 export const find = (ix, id) => ix.items.find((x) => x.id === id) || null;
@@ -104,6 +137,7 @@ export function remove(ix, id){
   const i = ix.items.findIndex((x) => x.id === id);
   if (i < 0) return false;
   ix.items.splice(i, 1);
+  if (ix.def === id) ix.def = '';
   if (ix.active !== id) return null;
   const next = ix.items[Math.min(i, ix.items.length - 1)].id;
   ix.active = next;
@@ -151,7 +185,7 @@ export function pickNewer(local, remote){
 }
 
 export function serialize(ix){
-  const s = JSON.stringify({ v: 1, active: ix.active, t: ix.t || 0, items: ix.items });
+  const s = JSON.stringify({ v: 1, active: ix.active, def: ix.def || '', t: ix.t || 0, items: ix.items });
   return s.length <= INDEX_MAX ? s : null;
 }
 

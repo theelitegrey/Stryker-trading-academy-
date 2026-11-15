@@ -1123,6 +1123,8 @@ function visualOrder(R) {
   import('./chart-book-panel.js?v=1046').then((m) => m.mountBookPanel(ws, { toast })).catch((e) => console.warn('TradeZoro: book panel', e));
   import('./chart-feeds.js?v=1046').then((m) => m.mountFeedBadges(ws)).catch((e) => console.warn('TradeZoro: feed badges', e));
   import('./venue-logos.js?v=1046').then((m) => m.mountVenueLogos(ws)).catch((e) => console.warn('TradeZoro: venue logos', e));   // exchange / broker marks beside the text tags
+  // Connection chip (bottom bar, right): round trip to our edge, per-feed last update / delay, Performance mode, Reconnect (assets/chart-latency.js).
+  if (!BT) import('./chart-latency.js?v=1046').then((m) => m.mountLatency(ws)).catch((e) => console.warn('TradeZoro: latency chip', e));
   // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
   import('./chart-symbol-info.js?v=1046').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
   // "Dark pool" prints list beside the chart (right icon bar, phones: a sheet): assets/chart-darkpool.js.

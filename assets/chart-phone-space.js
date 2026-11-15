@@ -204,7 +204,7 @@ export function mountPhoneSpace() {
     if (note) {
       const ft = document.createElement('div');
       ft.className = 'stkms-ft';
-      ft.innerHTML = '<span>Times in your time zone · not market data</span><button type="button" class="stkms-i" aria-label="More about these times" aria-expanded="false" aria-controls="mclock-note">i</button>';
+      ft.innerHTML = '<span>Times in your time zone · holidays not included</span><button type="button" class="stkms-i" aria-label="More about these times" aria-expanded="false" aria-controls="mclock-note">i</button>';
       note.id = 'mclock-note';
       const ib = ft.querySelector('.stkms-i');
       ib.addEventListener('click', (e) => { e.stopPropagation(); const on = !pop.classList.contains('stkms-more'); pop.classList.toggle('stkms-more', on); ib.setAttribute('aria-expanded', String(on)); });

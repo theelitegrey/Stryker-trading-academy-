@@ -1,5 +1,5 @@
 // TradeZoro — Charts: Pine Script glue (charts.html) — ES module
-// Depends on: assets/vela-chart.js (calls installPine before the workspace is built and
+// Depends on: assets/chart-script-editor.js (editor panel layout) + assets/zs-editor/editor.js (code editor, lazy); assets/vela-chart.js (calls installPine before the workspace is built and
 // mountPine after); assets/chart-pine-scripts.js (window.StrykerPineScripts: saved scripts
 // + the three example scripts); the import map in charts.html ("pinets",
 // "@luxalgo/vela/plugin").
@@ -46,6 +46,7 @@
 // the persist:true session AND in saved templates, and restores them on load.
 
 import { builtinSource, builtinIdOf, builtinIdByName } from './chart-pine-builtins.js?v=1026';
+import { createShell, el, ib, ICONS, libRow, emptyState, renderDocs, descOf, ago, download, pickFile, fileName } from './chart-script-editor.js?v=1026';
 
 const PINE_PKG = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
 const RUN_LIMIT_MS = 20000;
@@ -626,18 +627,6 @@ function libStatus(L){
 }
 
 // ---------------- editor UI ----------------
-const icon = (inner) => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
-function el(tag, attrs, kids){
-  const n = document.createElement(tag);
-  if (attrs) for (const k in attrs) {
-    if (k === 'text') n.textContent = attrs[k];
-    else if (k === 'html') n.innerHTML = attrs[k];
-    else if (k.startsWith('on')) n.addEventListener(k.slice(2), attrs[k]);
-    else n.setAttribute(k, attrs[k]);
-  }
-  (kids || []).forEach((c) => c && n.appendChild(c));
-  return n;
-}
 const NEW_SRC = '//@version=5\nindicator("My script", overlay=true)\nplot(ta.sma(close, 20), "SMA 20", color=color.teal)\n';
 
 // "Community scripts" row at the top of Vela's Indicators picker. Called by vela-chart.js
@@ -664,60 +653,56 @@ export function mountCommunityPicker(ws){
 }
 
 // Called by vela-chart.js after the workspace exists. barL = our toolbar's left group.
+// Panel layout: assets/chart-script-editor.js (shared with the Zscript panel). Code: the vendored CodeMirror editor
+// (assets/zs-editor/editor.js, lang 'pine': highlighting only, no live lint; errors come from the engine on Add to chart).
 export function mountPine(ws, barL, opts){
   const S = window.StrykerPineScripts;
   const toast = (opts && opts.toast) || (() => {});
   const tfLabel = (opts && opts.tfLabel) || ((t) => t);
 
   // Icon only (Owner order 2026-10-06): pine-tree outline, same build as the Alerts icon button.
-  const btn = el('button', { type: 'button', class: 'stkc-btn stkc-icon', id: 'stkc-pine-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'stkc-pine', title: 'Pine Script editor', 'aria-label': 'Pine Script editor',
+  // Opens the script editor (Zscript first; assets/chart-zscript.js takes the click when Zscript is the last language used).
+  const btn = el('button', { type: 'button', class: 'stkc-btn stkc-icon', id: 'stkc-pine-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'stkc-pine', title: 'Script editor', 'aria-label': 'Script editor',
     html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 7.5 8.5h2.5L6 13.5h3L5 18.5h14l-4-5h3l-4-5h2.5z"/><path d="M12 18.5v3"/></svg>' });
   barL.appendChild(btn);
 
-  // A div, not a <section>: the site's global `section{padding:96px 0}` would push the
-  // panel down and clip its footer.
-  const panel = el('div', { class: 'stkc-pine', id: 'stkc-pine', role: 'dialog', 'aria-label': 'Pine Script editor', hidden: '' });
-  const target = el('span', { class: 'stkc-pine-target' });
-  const closeBtn = el('button', { type: 'button', class: 'stkc-ib', 'aria-label': 'Close the Pine editor', title: 'Close', html: icon('<path d="M6 6l12 12M18 6L6 18"/>') });
-  const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: '60', placeholder: 'Script name', 'aria-label': 'Script name' });
-  const gutter = el('div', { class: 'stkc-pine-gutter', 'aria-hidden': 'true' });
-  const ta = el('textarea', { class: 'stkc-pine-code', spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', autocorrect: 'off', wrap: 'off', 'aria-label': 'Pine Script source' });
-  const editor = el('div', { class: 'stkc-pine-ed' }, [gutter, ta]);
-  const errBox = el('div', { class: 'stkc-pine-err', role: 'alert', hidden: '' });
-  const addBtn = el('button', { type: 'button', class: 'stkc-sbtn', text: 'Add to chart' });
-  const saveBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Save' });
-  const newBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'New' });
-  const onChart = el('ul', { class: 'stkc-tlist' });
-  const mine = el('ul', { class: 'stkc-tlist' });
-  const examples = el('ul', { class: 'stkc-tlist' });
-  const listNote = el('p', { class: 'stkc-empty' });
-  const libBody = el('details', { class: 'stkc-pine-lib' }, [
-    el('summary', { text: 'Scripts and examples' }),
-    el('p', { class: 'stkc-pop-h', text: 'On this chart' }), onChart,
-    el('p', { class: 'stkc-pop-h', text: 'My scripts' }), listNote, mine,
-    el('p', { class: 'stkc-pop-h', text: 'Examples' }), examples,
-    el('p', { class: 'stkc-pop-h', text: 'Community' }),
-    el('button', { type: 'button', class: 'stkc-btn stkc-comm-btn', text: 'Browse community scripts', onclick: () => { if (window.StrykerPineLibrary) window.StrykerPineLibrary.openCommunity(); } }),
-    el('p', { class: 'stkc-note', text: 'Scripts run in your browser on the chart\'s bars. Pine Script support is partial: some built-ins may not work yet. Education only. Not financial advice.' })
-  ]);
-  panel.appendChild(el('header', { class: 'stkc-pine-hd' }, [
-    el('div', {}, [el('h2', { text: 'Pine Script' }), target]), closeBtn
-  ]));
-  // Layout: header / body (name, editor that flexes, error, collapsible library) /
-  // footer with the buttons pinned at the bottom, so they always fit the sheet.
-  panel.appendChild(el('div', { class: 'stkc-pine-body' }, [
-    el('div', { class: 'stkc-saverow' }, [nameIn]),
-    editor, errBox, libBody
-  ]));
-  panel.appendChild(el('div', { class: 'stkc-pine-acts' }, [addBtn, saveBtn, newBtn]));
-  libBody.open = !window.matchMedia('(max-width:700px)').matches;
+  const Sh = createShell({
+    id: 'stkc-pine', label: 'Pine import editor', closeLabel: 'Close the Pine editor',
+    note: 'Imported Pine scripts run in your browser on the chart\'s bars. Support is partial: some built-ins may not work yet. Education only. Not financial advice.',
+    moreItems: [['dup', 'Duplicate'], ['export', 'Export .pine'], ['import', 'Import file…'], ['publish', 'Publish or share'], ['community', 'Browse community scripts'], ['delete', 'Delete', true]],
+    onClose: () => { setOpen(false); btn.focus(); },
+    onWrap: (on) => { if (ed) ed.setWrap(on); },
+    onFind: () => { ensureEditor().then((e) => e.find()).catch(() => {}); },
+    onMore: (k) => more(k),
+    onMenu: (menu) => { menu.querySelector('[data-k="delete"]').disabled = !editingId; menu.querySelector('[data-k="publish"]').disabled = !editingId; },
+    onTab: (k) => { if (k === 'docs') renderDocsTab(); },
+    onView: (v) => { if (v === 'code' && ed) ed.focus(); }
+  });
+  const { panel, nameIn, target, edHost, addBtn, saveBtn, newBtn, panes } = Sh;
+  // the Zscript glue swaps this title for the language switch; it stays as the label when Zscript is off
+  Sh.segSlot.appendChild(el('h2', { class: 'sed-title', text: 'Pine (import)' }));
+  edHost.appendChild(el('div', { class: 'stkc-zs-loading', text: 'Loading editor…' }));
+  const lists = {}; ['chart', 'mine', 'examples'].forEach((k) => { lists[k] = el('ul', { class: 'stkc-tlist' }); panes[k].appendChild(lists[k]); });
+  lists.examples.after(el('div', { class: 'sed-comm' }, [el('button', { type: 'button', class: 'sed-btn is-tonal stkc-comm-btn', text: 'Browse community scripts', onclick: () => { if (window.StrykerPineLibrary) window.StrykerPineLibrary.openCommunity(); } })]));
   const host = document.querySelector('.stkchart-panel') || document.body;
   host.appendChild(panel);
 
   let editingId = null;   // saved script id the editor holds (null = new / example)
-  let errLine = null;
-  let busy = false;
+  let busy = false, ed = null, edP = null, pending = null;   // pending = source set before the editor finished loading
+  let base = { name: '', src: '' }, kind = 'new', hasErr = false, handle = null;
+  const cur = () => (ed ? ed.get() : (pending || ''));
 
+  function ensureEditor(){
+    if (!edP) {
+      edP = import('./zs-editor/editor.js?v=1026').then((m) => {
+        edHost.innerHTML = '';
+        ed = m.createZsEditor(edHost, { doc: pending || '', lang: 'pine', builtins: [], wrap: Sh.wrap(), onRun: () => addToChart(), onSave: () => save(), onChange: () => { if (hasErr) { hasErr = false; showErr(''); } renderStatus(); } });
+        pending = null;
+        return ed;
+      }).catch((e) => { edP = null; edHost.innerHTML = ''; edHost.appendChild(el('div', { class: 'stkc-zs-loading', text: 'The editor did not load. Check your connection and reopen it.' })); throw e; });
+    }
+    return edP;
+  }
   function activeCell(){
     const cells = (() => { try { return ws.context().cells; } catch (e) { return []; } })();
     let id = null; try { id = ws.active.id; } catch (e) {}
@@ -726,167 +711,194 @@ export function mountPine(ws, barL, opts){
   }
   function renderTarget(){
     const a = activeCell();
-    if (!a.cell) { target.textContent = ''; return; }
+    if (!a.cell) { target.textContent = ''; target.hidden = true; return; }
     const sym = String(a.cell.symbol || '').replace(/^[a-z]+:/i, '').replace(/1!$/, '');
-    target.textContent = 'Adds to ' + (a.count > 1 ? 'chart ' + (a.index + 1) + ': ' : '') + sym + ' ' + tfLabel(a.cell.timeframe);
+    target.hidden = false;
+    target.textContent = (a.count > 1 ? 'Chart ' + (a.index + 1) + ' · ' : '') + sym + ' · ' + tfLabel(a.cell.timeframe);
+    target.title = 'Add to chart puts the script on ' + target.textContent;
   }
-  function renderGutter(){
-    const n = Math.max(1, ta.value.split('\n').length);
-    let h = '';
-    for (let i = 1; i <= n; i++) h += '<span' + (i === errLine ? ' class="bad"' : '') + '>' + i + '</span>';
-    gutter.innerHTML = h;
-    gutter.scrollTop = ta.scrollTop;
+  const onChartNow = () => { const a = activeCell(); return !!(handle && a.cell && pineHandles(a.cell.chart).includes(handle)); };
+  function renderStatus(){
+    if (busy) return;
+    const dirty = cur() !== base.src || nameIn.value.trim() !== base.name;
+    Sh.setStatus(hasErr ? 'error' : !dirty && kind === 'mine' ? 'saved' : !dirty && kind === 'example' ? 'example' : !dirty && kind === 'chart' ? 'idle' : 'unsaved');
+    Sh.setPrimary(onChartNow() ? 'Update on chart' : 'Add to chart');
   }
+  // problems strip; line = the engine's line for the error (gutter dot + squiggle + click jumps)
   function showErr(msg, line){
-    errLine = line || null;
-    errBox.hidden = !msg;
-    errBox.textContent = msg ? (line ? 'Line ' + line + ': ' : '') + msg : '';
-    renderGutter();
+    hasErr = !!(msg && line);
+    if (!msg) { Sh.problems.head('info', 'Pine errors show here when you add the script to the chart.'); Sh.problems.list([]); if (ed) ed.showDiagnostics([]); renderStatus(); return; }
+    Sh.problems.head(line ? 'err' : 'info', line ? '1 problem' : 'Note');
+    Sh.problems.list([{ text: (line ? 'Line ' + line + ': ' : '') + msg, line }], (l) => { if (ed) { Sh.setView('code'); ed.goto(l, 1); ed.focus(); } });
+    if (line) ensureEditor().then((e) => { e.showDiagnostics([{ line, col: 1, severity: 'error', message: msg, endLine: line, endCol: 10000 }]); e.goto(line, 1); }).catch(() => {});
+    renderStatus();
   }
-  function load(name, source, id){
+  function load(name, source, id, k, h){
     nameIn.value = name || '';
-    ta.value = source || '';
-    editingId = id || null;
+    editingId = id || null; kind = k || (id ? 'mine' : 'new'); handle = h || null; hasErr = false;
+    base = { name: (name || '').trim(), src: source || '' };
+    if (ed) ed.set(source || ''); else { pending = source || ''; ensureEditor().then((e) => { if (e.get() !== base.src) e.set(base.src); }).catch(() => {}); }
     showErr('');
-    ta.scrollTop = 0;
+    if (!Sh.isWide()) Sh.setView('code');
   }
 
-  ta.addEventListener('input', () => { if (errLine) errLine = null; renderGutter(); });
-  ta.addEventListener('scroll', () => { gutter.scrollTop = ta.scrollTop; });
-  ta.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      const s = ta.selectionStart, en = ta.selectionEnd;
-      ta.setRangeText('    ', s, en, 'end');
-      renderGutter();
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); addToChart(); }
-    e.stopPropagation();   // keep Vela's chart shortcuts out of the editor
-  });
-  nameIn.addEventListener('keydown', (e) => e.stopPropagation());
+  nameIn.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); if (ed) ed.focus(); } if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } });
+  nameIn.addEventListener('input', renderStatus);
 
   async function addToChart(){
     if (busy) return;
-    const src = ta.value;
+    const src = cur();
     if (!src.trim()) { showErr('The script is empty.'); return; }
     if (src.length > SRC_MAX) { showErr('This script is longer than 64 KB.'); return; }
     const a = activeCell();
     if (!a.cell) return;
-    busy = true; addBtn.disabled = true; addBtn.textContent = enginePromise ? 'Running…' : 'Loading engine…';
-    showErr('');
+    const old = onChartNow() ? handle : null;
+    busy = true; addBtn.disabled = true; Sh.setPrimary(enginePromise ? 'Running…' : 'Loading engine…'); Sh.setStatus('running');
+    Sh.problems.head('busy', 'Running on the chart…'); Sh.problems.list([]);
     try {
+      if (old) { try { old.remove(); } catch (er) {} }   // Update: the new version replaces the one this editor added
       const r = await runOnChart(a.cell.chart, src, undefined, false, { inline: true });
-      if (r.ok) { toast('Added ' + titleOf(r.handle) + ' to the chart'); if (isPhone()) setOpen(false); }
-      else showErr(r.msg, r.line);
+      busy = false;
+      if (r.ok) {
+        handle = r.handle; hasErr = false;
+        let n = 0; try { n = Object.keys((a.cell.chart.inspect().indicators.find((x) => x.id === r.handle.id) || {}).series || {}).length; } catch (er) {}
+        Sh.problems.head('ok', 'Running on the chart' + (n ? ' · ' + n + (n === 1 ? ' plot' : ' plots') : ''));
+        toast((old ? 'Updated ' : 'Added ') + titleOf(r.handle) + (old ? ' on the chart' : ' to the chart')); if (isPhone()) setOpen(false);
+      } else {
+        if (old) { try { handle = (await runOnChart(a.cell.chart, old.source, undefined, false, { inline: true })).handle || null; } catch (er) { handle = null; } }
+        showErr(r.msg, r.line);
+      }
     } catch (e) {
+      busy = false;
       console.warn('TradeZoro: Pine run', e);
       showErr("The Pine engine didn't load. Check your connection; an ad-blocker may be blocking cdn.jsdelivr.net.");
     }
-    busy = false; addBtn.disabled = false; addBtn.textContent = 'Add to chart';
+    busy = false; addBtn.disabled = false; renderStatus();
     renderLists();
   }
-  addBtn.addEventListener('click', addToChart);
-  newBtn.addEventListener('click', () => { load('', NEW_SRC, null); ta.focus(); });
-  saveBtn.addEventListener('click', async () => {
+  async function save(){
     if (!S) return;
     let name = nameIn.value.trim();
-    if (!name) { const m = /indicator\s*\(\s*(?:title\s*=\s*)?["']([^"']{1,60})/.exec(ta.value); name = m ? m[1] : ''; nameIn.value = name; }
+    if (!name) { const m = /indicator\s*\(\s*(?:title\s*=\s*)?["']([^"']{1,60})/.exec(cur()); name = m ? m[1] : ''; nameIn.value = name; }
     if (!name) { nameIn.focus(); showErr('Give the script a name first.'); return; }
     saveBtn.disabled = true;
-    try { editingId = await S.save(name, ta.value, editingId); toast('Script saved'); showErr(''); }
+    try { editingId = await S.save(name, cur(), editingId); kind = 'mine'; base = { name, src: cur() }; toast('Script saved'); showErr(''); }
     catch (e) { showErr((e && e.userMessage) || 'Could not save the script.'); console.warn('TradeZoro: Pine save', e); }
     saveBtn.disabled = false;
     renderLists();
-  });
-
-  function row(label, actions, onOpen, title){
-    const li = el('li', { class: 'stkc-trow' });
-    li.appendChild(el('button', { type: 'button', class: 'stkc-tname', title: title || 'Open in the editor', onclick: onOpen }, [el('span', { text: label })]));
-    const acts = el('span', { class: 'stkc-tacts' });
-    actions.forEach((a) => acts.appendChild(a));
-    li.appendChild(acts);
-    return li;
   }
-  const ib = (label, svg, fn, cls) => el('button', { type: 'button', class: 'stkc-ib' + (cls ? ' ' + cls : ''), title: label, 'aria-label': label, html: icon(svg), onclick: fn });
-  const ICON_DEL = '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>';
-  const ICON_REN = '<path d="M4 20h4L19 9l-4-4L4 16z"/>';
-  const ICON_ADD = '<path d="M12 5v14M5 12h14"/>';
-  const ICON_SHARE = '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>';
+  const copyName = (n) => (String(n || 'Script').slice(0, 54) + ' copy');
+  async function more(k){
+    if (k === 'dup') { load(copyName(nameIn.value.trim() || 'Script'), cur(), null, 'new'); nameIn.focus(); nameIn.select(); }
+    else if (k === 'export') download(fileName(nameIn.value.trim() || 'script', '.pine'), cur());
+    else if (k === 'import') { const f = await pickFile('.pine,.txt,text/plain'); if (!f) return; if (f.error) { showErr(f.error); return; } load(f.name, f.text, null, 'new'); }
+    else if (k === 'publish') { if (window.StrykerPineLibrary) window.StrykerPineLibrary.openPublish({ name: nameIn.value.trim(), source: cur() }); else showErr('Publishing is unavailable.'); }
+    else if (k === 'community') { if (window.StrykerPineLibrary) window.StrykerPineLibrary.openCommunity(); }
+    else if (k === 'delete' && editingId && S) {
+      if (!window.confirm('Delete the script "' + (nameIn.value.trim() || 'this script') + '"? It stays on any chart it is already on.')) return;
+      try { await S.remove(editingId); editingId = null; kind = 'new'; toast('Script deleted'); renderStatus(); } catch (e) { showErr('Could not delete.'); }
+      renderLists();
+    }
+  }
+  addBtn.addEventListener('click', addToChart);
+  newBtn.addEventListener('click', () => { load('', NEW_SRC, null, 'new'); nameIn.focus(); });
+  saveBtn.addEventListener('click', save);
+
+  const A = (label, svgInner, fn, cls) => ib(label, svgInner, fn, cls);
+  // Docs: the Pine namespaces/functions the engine knows; click inserts at the cursor
+  const PINE_DOCS = ['indicator("Title", overlay=true)', 'plot(series, "Title", color=color.teal)', 'plotshape(cond, "Title", style=shape.triangleup, location=location.belowbar)', 'hline(price, "Title")', 'fill(plot1, plot2, color=color.new(color.teal, 80))', 'bgcolor(color)', 'input.int(14, "Length", minval=1)', 'input.float(1.0, "Mult")', 'input.source(close, "Source")', 'input.bool(true, "Show")', 'ta.sma(source, length)', 'ta.ema(source, length)', 'ta.rsi(source, length)', 'ta.atr(length)', 'ta.vwap(source)', 'ta.crossover(a, b)', 'ta.crossunder(a, b)', 'ta.highest(source, length)', 'ta.lowest(source, length)', 'ta.stdev(source, length)', 'math.abs(x)', 'math.max(a, b)', 'math.min(a, b)', 'request.security(syminfo.tickerid, "D", close)', 'color.new(color, transp)', 'nz(x, 0)', 'na(x)']
+    .map((sig) => ({ name: sig.replace(/\(.*$/, ''), sig, insert: sig, back: 0 }));
+  function renderDocsTab(){ renderDocs(panes.docs, PINE_DOCS, Sh.docsSearch.value, (txt) => ensureEditor().then((e) => { Sh.setView('code'); e.insert(txt, 0); })); }
+  Sh.docsSearch.addEventListener('input', renderDocsTab);
+  Sh.docsSearch.addEventListener('keydown', (e) => e.stopPropagation());
+  const newRow = () => { load('', NEW_SRC, null, 'new'); nameIn.focus(); };
 
   async function renderLists(){
     renderTarget();
+    if (Sh.tab() === 'docs') renderDocsTab();
     // On this chart (active cell)
-    onChart.innerHTML = '';
+    lists.chart.innerHTML = '';
     const a = activeCell();
     const hs = a.cell ? pineHandles(a.cell.chart) : [];
-    if (!hs.length) onChart.appendChild(el('li', { class: 'stkc-empty', text: 'No Pine scripts on this chart.' }));
+    if (!hs.length) lists.chart.appendChild(emptyState('No Pine scripts on this chart yet. Open an example or paste your script, then Add to chart.', 'New script', newRow));
     const me = (() => { try { return firebase.auth().currentUser.uid; } catch (e) { return null; } })();
     hs.forEach((h) => {
       const L = libOf.get(h), Z = sealOf.get(h);
       const hidden = (L && !L.openSource && L.ownerUid !== me) || !!Z;
-      const li = row((L ? L.name || titleOf(h) : titleOf(h)), [
-        ib('Remove ' + titleOf(h) + ' from the chart', ICON_DEL, () => { try { h.remove(); } catch (e) {} changed(); renderLists(); }, 'stkc-del')
-      ], () => { if (Z) showErr('Protected community indicator: its code stays with the creator.'); else if (hidden) showErr('Code hidden in the editor: the author shares this script without its source.'); else load(L ? L.name : titleOf(h), h.source, null); },
-      hidden ? 'Code hidden in the editor' : 'Open its code in the editor');
-      if (Z) li.querySelector('.stkc-tname').appendChild(el('span', { class: 'stkc-badge', text: 'From your communities v' + Z.version + ' \u00b7 protected' }));
+      const nm = L ? L.name || titleOf(h) : titleOf(h);
+      const open = () => { if (Z) showErr('Protected community indicator: its code stays with the creator.'); else if (hidden) showErr('Code hidden in the editor: the author shares this script without its source.'); else load(L ? L.name : titleOf(h), h.source, null, 'chart', h); };
+      const li = libRow({ name: nm, desc: hidden ? 'Code hidden in the editor' : descOf(h.source), title: hidden ? 'Code hidden in the editor' : 'Open its code in the editor', onOpen: open,
+        actions: [hidden ? null : A('Open ' + nm + ' in the editor', ICONS.open, open), A('Remove ' + titleOf(h) + ' from the chart', ICONS.del, () => { try { h.remove(); } catch (e) {} if (h === handle) handle = null; changed(); renderLists(); }, 'stkc-del')] });
+      const l1 = li.querySelector('.sed-row-l1');
+      if (Z) l1.appendChild(el('span', { class: 'stkc-badge', text: 'From your communities v' + Z.version + ' \u00b7 protected' }));
       if (L) {
         const tag = el('span', { class: 'stkc-badge', text: 'Community v' + L.version + (hidden ? ' \u00b7 code hidden' : '') });
-        li.querySelector('.stkc-tname').appendChild(tag);
+        l1.appendChild(tag);
         libStatus(L).then((st) => { if (st === 'gone') { tag.textContent = 'No longer published'; tag.classList.add('is-warn'); } else if (st > L.version) tag.textContent += ' \u00b7 v' + st + ' available'; });
       }
-      onChart.appendChild(li);
+      lists.chart.appendChild(li);
     });
+    Sh.setCount('chart', hs.length);
     // Examples
-    examples.innerHTML = '';
-    (S ? S.EXAMPLES : []).forEach((x) => examples.appendChild(row(x.name, [
-      ib('Add ' + x.name + ' to the chart', ICON_ADD, () => { load(x.name, x.source, null); addToChart(); })
-    ], () => load(x.name, x.source, null))));
+    lists.examples.innerHTML = '';
+    const ex = S ? S.EXAMPLES : [];
+    ex.forEach((x) => lists.examples.appendChild(libRow({ name: x.name, badge: 'Example', desc: descOf(x.source), onOpen: () => load(x.name, x.source, null, 'example'),
+      actions: [A('Open ' + x.name, ICONS.open, () => load(x.name, x.source, null, 'example')), A('Add ' + x.name + ' to the chart', ICONS.add, () => { load(x.name, x.source, null, 'example'); addToChart(); }), A('Duplicate ' + x.name + ' as a new script', ICONS.copy, () => load(copyName(x.name), x.source, null, 'new'))] })));
+    Sh.setCount('examples', ex.length);
     // My scripts
-    if (!S) { listNote.textContent = 'Saving is unavailable.'; return; }
+    lists.mine.innerHTML = '';
+    if (!S) { lists.mine.appendChild(el('li', { class: 'stkc-empty sed-empty' }, [el('p', { text: 'Saving is unavailable.' })])); return; }
     let r = { items: [] };
     try { r = await S.list(); } catch (e) { r = { items: [], note: 'Could not load your scripts.' }; }
-    mine.innerHTML = '';
-    listNote.textContent = r.note || (r.items.length ? '' : (S.signedIn() ? 'None saved yet.' : 'None saved yet. Sign in to keep them on your account.'));
-    listNote.hidden = !listNote.textContent;
-    r.items.forEach((t) => mine.appendChild(row(t.name, [
-      ib('Add ' + t.name + ' to the chart', ICON_ADD, () => { load(t.name, t.source, t.id); addToChart(); }),
-      ib('Rename ' + t.name, ICON_REN, async () => {
-        const v = window.prompt('Rename the script', t.name);
-        if (!v || !v.trim()) return;
-        try { await S.rename(t.id, v); if (editingId === t.id) nameIn.value = v.trim(); } catch (e) { showErr('Could not rename.'); }
-        renderLists();
-      }),
-      ib('Publish or share ' + t.name, ICON_SHARE, () => {
-        if (window.StrykerPineLibrary) window.StrykerPineLibrary.openPublish({ name: t.name, source: t.source });
-        else showErr('Publishing is unavailable.');
-      }),
-      ib('Delete ' + t.name, ICON_DEL, async () => {
-        if (!window.confirm('Delete the script "' + t.name + '"? It stays on any chart it is already on.')) return;
-        try { await S.remove(t.id); if (editingId === t.id) editingId = null; } catch (e) { showErr('Could not delete.'); }
-        renderLists();
-      }, 'stkc-del')
-    ], () => load(t.name, t.source, t.id))));
+    lists.mine.innerHTML = '';
+    if (r.note) lists.mine.appendChild(el('li', { class: 'stkc-empty sed-empty' }, [el('p', { text: r.note })]));
+    if (!r.items.length) lists.mine.appendChild(emptyState(S.signedIn() ? 'No saved scripts yet. Paste or write one, name it, then Save.' : 'No saved scripts yet. Sign in to keep them on your account.', 'New script', newRow));
+    r.items.forEach((t) => lists.mine.appendChild(libRow({ name: t.name, badge: t.id === editingId ? 'Open' : null, desc: ago(t.updatedAt) + (descOf(t.source) ? ' · ' + descOf(t.source) : ''), onOpen: () => load(t.name, t.source, t.id, 'mine'),
+      actions: [
+        A('Add ' + t.name + ' to the chart', ICONS.add, () => { load(t.name, t.source, t.id, 'mine'); addToChart(); }),
+        A('Duplicate ' + t.name, ICONS.copy, () => load(copyName(t.name), t.source, null, 'new')),
+        A('Rename ' + t.name, ICONS.ren, async () => {
+          const v = window.prompt('Rename the script', t.name);
+          if (!v || !v.trim()) return;
+          try { await S.rename(t.id, v); if (editingId === t.id) { nameIn.value = v.trim(); base.name = v.trim(); } } catch (e) { showErr('Could not rename.'); }
+          renderLists(); renderStatus();
+        }),
+        A('Publish or share ' + t.name, ICONS.share, () => {
+          if (window.StrykerPineLibrary) window.StrykerPineLibrary.openPublish({ name: t.name, source: t.source });
+          else showErr('Publishing is unavailable.');
+        }),
+        A('Delete ' + t.name, ICONS.del, async () => {
+          if (!window.confirm('Delete the script "' + t.name + '"? It stays on any chart it is already on.')) return;
+          try { await S.remove(t.id); if (editingId === t.id) { editingId = null; kind = 'new'; } } catch (e) { showErr('Could not delete.'); }
+          renderLists(); renderStatus();
+        }, 'stkc-del')
+      ] })));
+    Sh.setCount('mine', r.items.length);
   }
 
   const isPhone = () => window.innerWidth <= 700;
   function setOpen(open){
     panel.hidden = !open;
+    Sh.setOpenState(open);
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     document.body.classList.toggle('stkc-pine-open', open);
     if (open) {
-      if (!ta.value) load(S && S.EXAMPLES[0] ? S.EXAMPLES[0].name : '', S && S.EXAMPLES[0] ? S.EXAMPLES[0].source : NEW_SRC, null);
-      renderGutter();
-      renderLists();
+      if (!cur() && !base.src) load(S && S.EXAMPLES[0] ? S.EXAMPLES[0].name : '', S && S.EXAMPLES[0] ? S.EXAMPLES[0].source : NEW_SRC, null, S && S.EXAMPLES[0] ? 'example' : 'new');
+      renderLists(); renderStatus();
       loadPine().catch(() => {});   // warm the engine while the member reads
-      if (!isPhone()) setTimeout(() => ta.focus(), 0);
+      ensureEditor().then((e) => { if (!isPhone()) e.focus(); }).catch(() => {});
     }
   }
   btn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(panel.hidden); });
-  closeBtn.addEventListener('click', () => { setOpen(false); btn.focus(); });
-  panel.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); btn.focus(); } });
+  panel.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const sp = panel.querySelector('.cm-panel.cm-search'); if (sp && sp.contains(e.target)) return;   // Escape closes the find bar first
+    e.stopPropagation();
+    if (panel.classList.contains('is-max')) { Sh.setMax(false); return; }
+    setOpen(false); btn.focus();
+  });
   try { ws.on('cell:active', () => { if (!panel.hidden) setTimeout(renderLists, 0); }); } catch (e) {}
-  try { ws.on('state:changed', () => { if (!panel.hidden) renderTarget(); }); } catch (e) {}
-
+  try { ws.on('state:changed', () => { if (!panel.hidden) { renderTarget(); renderStatus(); } }); } catch (e) {}
   // Add a Community script (s = pineLibrary item) to the active chart: safety
   // check, Web Worker engine only, and its library id rides the chart state.
   async function addShared(s){

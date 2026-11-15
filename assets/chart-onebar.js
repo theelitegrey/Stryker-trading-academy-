@@ -129,7 +129,7 @@ const ROWS = [
   // TOOLS
   [(n) => n.classList.contains('stkr-menu') && trig(n), 'tools', 11, () => 'Replay', 'replay'],
   [(n) => n.id === 'stkc-alerts-btn' && n, 'tools', 12, () => 'Alerts', 'alarm'],
-  [(n) => n.id === 'stkc-pine-btn' && n, 'tools', 13, () => 'Pine Script editor', 'pine'],
+  [(n) => n.id === 'stkc-pine-btn' && n, 'tools', 13, () => 'Script editor', 'pine'],
   [(n) => n.id === 'stkc-paper-btn' && n, 'tools', 15, () => 'Paper trading', 'trade'],
   [(n) => n.classList.contains('vela-widget-undo') && n, 'tools', 16, () => 'Undo', 'undo'],
   [(n) => n.classList.contains('vela-widget-redo') && n, 'tools', 17, () => 'Redo', 'redo'],

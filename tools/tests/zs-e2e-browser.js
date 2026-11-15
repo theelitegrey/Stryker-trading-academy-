@@ -209,7 +209,7 @@ const clearZs = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context(
       await p.evaluate(() => { window.__batches = []; const db = window.__stubDb; db.batch = () => { const ops = []; return { set: (r, v) => ops.push(['set', r.id, JSON.stringify(v).slice(0, 4000)]), update: (r, v) => ops.push(['update', r.id]), delete: () => {}, commit: () => { window.__batches.push(ops); return Promise.resolve(); } }; }; });
       await p.evaluate(async () => { const Z = window.STRYKER_ZS; Z.open(); await Z.load('My band', '//@zscript 1\nindicator("My band", overlay=true)\nplot(ta.sma(close, 9), "B")\n', null); });
       await sleep(500);
-      await p.click('#stkc-zs .stkc-pine-acts button:last-child');
+      await p.click('#stkc-zs .sed-more .sed-btn'); await p.click('#stkc-zs .sed-mi[data-k="publish"]');
       await p.waitForSelector('#zp-name', { timeout: 15000 }).catch(() => null);
       const sheet = await p.evaluate(() => ({ open: !!document.getElementById('zp-name'), name: (document.getElementById('zp-name') || {}).value, src: !!document.getElementById('zp-src') }));
       check(sheet.open && sheet.name === 'My band' && !sheet.src, 'editor Publish opens the publish sheet with the editor\'s script', sheet);

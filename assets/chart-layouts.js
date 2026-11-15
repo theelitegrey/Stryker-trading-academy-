@@ -691,6 +691,7 @@ export function mountLayouts(ws, o){
   } catch (e) {}
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 's' || e.key === 'S')) {
+      if (e.target && e.target.closest && e.target.closest('.sed')) return;   // inside the script editor Ctrl+S saves the script (assets/chart-script-editor.js)
       e.preventDefault();
       if (viewing) askName('Make a copy', viewing.name + ' (copy)', saveAsNew);
       else saveNow(true);

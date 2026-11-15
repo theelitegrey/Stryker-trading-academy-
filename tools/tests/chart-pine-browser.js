@@ -15,7 +15,7 @@ async function open(b, { w, h, mobile, keepStorage, ctx: reuse }) {
   const ctx = reuse || await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   if (!reuse) {
     await ctx.addInitScript(stub);
-    await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
+    await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_script_lang', 'pine'); } catch (e) {} });
     await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   }
   const p = await ctx.newPage();
@@ -38,7 +38,7 @@ const addSrc = (p, src) => p.evaluate(async (src) => {
   const P = window.STRYKER_PINE; P.open(); P.load('t', src, null);
   await P.addToChart();
   const err = document.querySelector('.stkc-pine-err');
-  return { err: err.hidden ? '' : err.textContent, bad: [...document.querySelectorAll('.stkc-pine-gutter .bad')].map((x) => x.textContent) };
+  return { err: err.hidden ? '' : err.textContent, bad: [...document.querySelectorAll('#stkc-pine .cm-lint-marker-error')].map((x) => x.closest('.cm-gutterElement') ? 1 : 1) };
 }, src);
 const pineOn = (p, i) => p.evaluate((i) => {
   const c = window.STRYKER_VELA.context().cells[i || 0];
@@ -51,10 +51,10 @@ const fitCheck = async (p, tag) => {
   const g = await p.evaluate(() => {
     const pn = document.getElementById('stkc-pine').getBoundingClientRect();
     const host = document.querySelector('.stkchart-panel').getBoundingClientRect();
-    const acts = document.querySelector('.stkc-pine-acts').getBoundingClientRect();
-    const btns = [...document.querySelectorAll('.stkc-pine-acts button')].map((b) => b.getBoundingClientRect());
-    const ed = document.querySelector('.stkc-pine-ed').getBoundingClientRect();
-    const hd = document.querySelector('.stkc-pine-hd').getBoundingClientRect();
+    const acts = document.querySelector('#stkc-pine .stkc-pine-acts').getBoundingClientRect();
+    const btns = [...document.querySelectorAll('#stkc-pine .sed-ft > .sed-btn')].map((b) => b.getBoundingClientRect());
+    const ed = document.querySelector('#stkc-pine .stkc-pine-ed').getBoundingClientRect();
+    const hd = document.querySelector('#stkc-pine .stkc-pine-hd').getBoundingClientRect();
     return { pt: Math.round(pn.top), pb: Math.round(pn.bottom), ht: Math.round(host.top), ab: Math.round(acts.bottom), bb: Math.round(Math.max(...btns.map((b) => b.bottom))), bh: Math.round(Math.min(...btns.map((b) => b.height))), edh: Math.round(ed.height), hdt: Math.round(hd.top), vh: innerHeight, docH: document.documentElement.scrollHeight };
   });
   check(g.bb <= g.pb && g.ab <= g.pb + 1 && g.bh >= 30 && g.bb <= g.vh, tag + ': buttons fully inside the panel ' + JSON.stringify(g));
@@ -75,7 +75,7 @@ async function clickPine(p) {
     let { ctx, p, errors } = await open(b, { w: 1440, h: 900 });
     await clickPine(p);
     await p.waitForTimeout(500);
-    const ui = await p.evaluate(() => ({ open: !document.getElementById('stkc-pine').hidden, ex: [...document.querySelectorAll('.stkc-pine-lib .stkc-tname')].map((x) => x.textContent) }));
+    const ui = await p.evaluate(() => ({ open: !document.getElementById('stkc-pine').hidden, ex: [...document.querySelectorAll('#stkc-pine .sed-tab[data-k="examples"]')].map((t) => (t.click(), 0)) && [...document.querySelectorAll('#stkc-pine .sed-pane:not([hidden]) .sed-row-nm')].map((x) => x.textContent) }));
     const g1440 = await fitCheck(p, '1440');
     check(Math.abs(g1440.pt - g1440.ht) <= 1, '1440: panel top = chart top');
     check(ui.open && ['EMA 9/21 cross', 'Session VWAP', 'Previous day high/low'].every((n) => ui.ex.includes(n)), 'editor opens with the 3 examples: ' + ui.ex.join(', '));
@@ -125,7 +125,7 @@ async function clickPine(p) {
     // remove one via the editor list
     await p.evaluate(() => window.STRYKER_PINE.open());
     await p.waitForTimeout(500);
-    await p.click('.stkc-pine-lib .stkc-tlist .stkc-del');
+    await p.click('#stkc-pine .sed-tab[data-k="chart"]'); await p.click('#stkc-pine .sed-pane:not([hidden]) .stkc-del');
     await p.waitForTimeout(600);
     on = await pineOn(p, 0);
     check(on.length === 2, 'remove from the editor list works: ' + on.join(', '));

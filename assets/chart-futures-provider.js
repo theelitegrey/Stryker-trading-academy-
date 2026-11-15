@@ -19,6 +19,7 @@ import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from 
 import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=1036';
 import { hubLive, hubCovers } from './live-source.js?v=1036';
 import { teWanted, teGetBars, teSubscribe } from './chart-tick-engine.js?v=1036';   // TICK ENGINE (one candle source, behind TICK_ENGINE / ?engine=0)
+import { noteExch, feedKey } from './chart-latency-core.js?v=1036';   // connection chip: the bridge heartbeat's edge clock -> arrival (assets/chart-latency.js)
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -628,7 +629,7 @@ export class FuturesProvider {
         try {
           const msg = JSON.parse(ev.data);
           lastMsgAt = Date.now();
-          if (msg && msg.event === 'ping') { hbSeen = true; return; }
+          if (msg && msg.event === 'ping') { hbSeen = true; noteExch(feedKey('futures', ticker), Number(msg.t)); return; }
           if (msg && msg.event === 'trades') { if (withOf) pushLiveTrades(root, msg.tr); return; }
           if (msg && msg.event === 'delivery') { noteLiveDelivery(root, msg); return; }
           // the site's one InsightSentry socket has no room for this leg / is holding back to stay inside

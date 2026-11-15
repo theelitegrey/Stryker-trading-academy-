@@ -32,6 +32,10 @@ const DEBOUNCE_MS = 1500;         // visibilitychange + pageshow + focus arrive 
 const BACKFILL_WAIT_MS = 2500;    // hold the new feed at most this long for the back-fill
 const BACKFILL_MAX_BARS = 1500;   // never back-fill further than this many bars
 const STALL_BASE_MS = 60000, STALL_MAX_MS = 600000, WATCH_MS = 15000;
+const PERF_MS = 250;              // performance mode: forming-candle updates at most this often (localStorage stk.perfMode)
+let perfCache = null;
+const perfOn = () => { if (perfCache == null) { try { perfCache = localStorage.getItem('stk.perfMode') === '1'; } catch (e) { perfCache = false; } } return perfCache; };
+if (typeof window !== 'undefined') window.addEventListener('stryker:perfmode', (e) => { perfCache = !!(e && e.detail && e.detail.on); });
 
 const subs = new Set();
 let installed = false;
@@ -60,6 +64,9 @@ function install() {
   window.addEventListener('online', () => back('online'));
 }
 
+// Reconnect button (assets/chart-latency.js): close and re-open every live feed now, with the usual back-fill.
+export function resyncAll() { subs.forEach((s) => { try { s.force(); } catch (e) {} }); return subs.size; }
+
 // Bar length in ms for a Vela timeframe ('1', '15', '60', 'D', 'W', 'M', '30S', '100T', ...); 0 = unknown.
 export function tfMs(tf) {
   const s = String(tf || '');
@@ -84,10 +91,23 @@ export function liveSubscribe(open, backfill, timeframe, onBar) {
   let holding = null;          // queue for the new feed's bars while the back-fill runs
   let stallMs = STALL_BASE_MS, watchTm = null;
 
+  // PERFORMANCE MODE (assets/chart-latency.js, Owner 15 Nov 2026): updates of the SAME forming candle are coalesced to at
+  // most PERF_MS apart, so the chart redraws ~4 times a second instead of with every trade. A new candle, or an older
+  // one (back-fill), flushes the held update first and goes straight through; nothing is ever dropped except an
+  // intermediate state of the forming candle.
+  let held = null, heldTm = 0, lastOut = 0;
+  const flush = () => { heldTm = 0; const h = held; held = null; if (h && !stopped) { lastOut = Date.now(); onBar(h); } };
+  const out = (b) => {   // b updates the forming candle (same time as the newest one)
+    const wait = perfOn() ? PERF_MS - (Date.now() - lastOut) : 0;
+    if (wait > 0) { held = b; if (!heldTm) heldTm = setTimeout(flush, wait); return; }
+    if (heldTm) { clearTimeout(heldTm); heldTm = 0; } held = null;
+    lastOut = Date.now(); onBar(b);
+  };
   const deliver = (b) => {
     if (stopped || !b || !Number.isFinite(b.time)) return;
+    const same = lastTime != null && b.time === lastTime;
     if (lastTime == null || b.time >= lastTime) { lastTime = b.time; lastNewAt = Date.now(); stallMs = STALL_BASE_MS; }
-    onBar(b);
+    if (same) out(b); else { if (heldTm) { clearTimeout(heldTm); flush(); } lastOut = Date.now(); onBar(b); }
   };
   const connect = () => {
     const my = ++gen;
@@ -122,6 +142,7 @@ export function liveSubscribe(open, backfill, timeframe, onBar) {
   }
 
   const sub = {
+    force() { if (!stopped && !busy) resync(); },
     resume(why, awayMs) {
       if (stopped || busy || Date.now() - lastResync < DEBOUNCE_MS) return;
       // A plain window focus (desktop, tab never hidden) only counts after a real absence.
@@ -147,6 +168,7 @@ export function liveSubscribe(open, backfill, timeframe, onBar) {
     stopped = true;
     subs.delete(sub);
     if (watchTm) clearTimeout(watchTm);
+    if (heldTm) clearTimeout(heldTm);
     holding = null;
     close();
   };

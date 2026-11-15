@@ -1980,7 +1980,7 @@ class BookFeed {
   // (30 d, book tier only, chart-futures-l2.js bookHistory); crypto: Binance spot (/book-history). One read at a time; a failure waits.
   needReplay(fromMs, toMs) {
     const E = replayClock();
-    if (!E || this.remoteBusy) return;
+    if (!E || this.remoteBusy || (this.custom && !this.custom.remote)) return;   // a member's own depth feed keeps no recording
     if (!this.custom && (/\.P$/i.test(this.ticker) || this.provider !== 'binance' || !recorderUrl())) return;
     const now = Date.now();
     if (this.remoteFailAt && now - this.remoteFailAt < 30000) return;
@@ -2718,7 +2718,7 @@ export function installOrderflow(Core) {
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
   installFuturesL2(Core, { hfSchema, SMOOTH_INPUT, cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds, replayNote, btBook }, reg);
-  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, marketOf, message, pageIsDay, feedTrades, replayNote, btBook, chartTz }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
+  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, bucketBook, marketOf, message, pageIsDay, feedTrades, replayNote, btBook, chartTz }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
   installBookPack(Core, { line, message, pageIsDay }, reg);
   installPatterns(Core, {}, reg);   // Auto Chart Patterns: Free for every plan (assets/chart-patterns.js)
   installL2Flow(Core, { line, message, pageIsDay, acquireBookFeed }, reg);

@@ -12,6 +12,7 @@
 import { kindOf, isFree, upgrade } from './chart-pro-gate.js?v=1036';
 import { l2Root } from './chart-futures-l2.js?v=1036';
 import { getVenue } from './orderflow-venues.js?v=1036';
+import { memberSourceFn, noSourceNote } from './chart-depth-source.js?v=1036';
 
 const EXT_KEY = 'stryker.heatmap', TPL_KEY = 'stk_heatmap_templates', MAG_KEY = 'stk_heatmap_magnifier';
 export const SRC = { book: { type: 'stk_depth_heat', label: 'Order book' }, liq: { type: 'stk_liq', label: 'Liquidations' }, opt: { type: 'stk_gexheat', label: 'Options' } };
@@ -30,7 +31,7 @@ export function sourcesFor(symbol, supported, isOptionsSymbol, resolved) {
   const crypto = !!prov && prov !== 'futures' && prov !== 'stocks' && !!(prov === 'binance' || getVenue(prov));
   const fut = prov === 'futures';
   const out = {};
-  out.book = (fut && l2Root(tk)) || crypto ? { ok: true } : { ok: false, why: 'Order book needs a futures contract with L2 (NQ, ES, YM, RTY, CL, GC) or a crypto pair.' };
+  out.book = (fut && l2Root(tk)) || crypto || memberSourceFn(prov) ? { ok: true } : { ok: false, why: noSourceNote({ ticker: tk }) };   // chart-depth-source.js: hub, venue or the member's own depth feed
   out.liq = crypto && supported.has('stk_liq') ? { ok: true } : { ok: false, why: 'Liquidations are shown for crypto pairs only.' };
   out.opt = isOptionsSymbol && supported.has('stk_gexheat') ? { ok: true } : { ok: false, why: 'Options data exists for index, ETF and stock symbols that have options (and their futures).' };
   return { crypto, fut, src: out };

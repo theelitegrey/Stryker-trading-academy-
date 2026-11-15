@@ -947,8 +947,9 @@ function footprintLayer() {
               const c = vol ? (dl > 0 ? UP : dl < 0 ? DN : '#8a90a0') : (dl >= 0 ? UP : DN);
               const bw2 = Math.max(2, Math.min(ladW, ladW * q / dmax));
               const hv = q >= heavy;
-              g.fillStyle = hv ? alpha(vol ? (dl > 0 ? hotBuy : dl < 0 ? hotSell : hot(c)) : (dl >= 0 ? hotBuy : hotSell), Math.min(1, 0.78 + 0.22 * HK.a)) : alpha(c, 0.78);
+              g.fillStyle = hv ? alpha(vol ? (dl > 0 ? hotBuy : dl < 0 ? hotSell : hot(c)) : (dl >= 0 ? hotBuy : hotSell), Math.min(1, 0.78 + 0.22 * HK.a)) : alpha(c, cfg.heavy ? 0.4 : 0.78);   // heavy on: ordinary bars are muted so only the heavy ones stand out (GK 15 Nov)
               g.fillRect(cx + 6, y + 0.5, bw2, Math.max(1, h - 1));
+              if (hv) { g.strokeStyle = day ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.9)'; g.lineWidth = 1; g.strokeRect(cx + 6.5, y + 1, bw2 - 1, Math.max(1, h - 2)); }   // heavy: outlined too, so it never looks like an ordinary bar
               g.fillStyle = day ? alpha(c, 1) : alpha(vol ? (dl > 0 ? UP2 : dl < 0 ? (P.sellC || '#ff7a85') : '#c4c8d2') : (dl >= 0 ? UP2 : (P.sellC || '#ff7a85')), 1);
               g.fillRect(cx + 6, y + 0.5, 1, Math.max(1, h - 1));
             }

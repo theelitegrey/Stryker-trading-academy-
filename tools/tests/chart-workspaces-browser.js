@@ -98,7 +98,17 @@ const waitIdle = (p) => p.waitForFunction(() => !window.STRYKER_WORKSPACES.busy,
     const A = await session(b, 'alice', 1440, 900, false);
     const a = await open(A);
     t('button in the top bar with the workspace name', /Workspace 1/.test(await a.$eval('#stkws-btn', (e) => e.textContent)));
-    t('tab strip hidden with one workspace', await a.$eval('#stkws-tabs', (e) => e.hidden));
+    t('top bar: one tab (active) after the logo, in the top bar not the toolbar', await W(a, () => { const t = document.querySelectorAll('#stkws-tabs .stkws-tab.on'); const lg = document.querySelector('.topnav-left .brand-mark').getBoundingClientRect(); const r = t[0] && t[0].getBoundingClientRect(); return t.length === 1 && !!t[0].closest('.mobile-topnav') && r.left > lg.right && !document.querySelector('#stkc-bar #stkws-btn'); }));
+    t('logo ~18px tall, tab 30px, same centre line (+-3px)', await W(a, () => { const l = document.querySelector('.topnav-left .brand-mark').getBoundingClientRect(), r = document.querySelector('.stkws-tab').getBoundingClientRect(); return Math.round(l.height) <= 18 && Math.round(r.height) === 30 && Math.abs((l.top + l.height / 2) - (r.top + r.height / 2)) <= 3; }));
+    await a.click('#stkws-plus, .stkws-plus'); await a.waitForSelector('.stkws-dlg input'); await a.fill('.stkws-dlg input', 'Tab add'); await a.click('.stkws-dlg .stkc-sbtn'); await waitIdle(a);
+    t('+ adds a workspace and opens it', await W(a, () => { const x = window.STRYKER_WORKSPACES.index; return x.items.length === 2 && x.items[1].name === 'Tab add' && document.querySelectorAll('.stkws-tab').length === 2; }));
+    await a.click('.stkws-tab >> nth=0'); await waitIdle(a);
+    t('clicking a tab switches', await W(a, () => window.STRYKER_WORKSPACES.active.name === 'Workspace 1'));
+    await a.click('.stkws-tab >> nth=1', { button: 'right' });
+    t('right-click menu: Rename, Duplicate, Delete', await W(a, () => [...document.querySelectorAll('.stkws-ctx:not([hidden]) .stkws-ci')].map((x) => x.textContent).join('|') === 'Rename…|Duplicate|Delete…'));
+    await a.keyboard.press('Escape');
+    await a.click('.stkws-tab >> nth=1', { button: 'middle' }); await waitIdle(a);
+    t('middle-click closes (confirm accepted)', await W(a, () => window.STRYKER_WORKSPACES.index.items.length === 1));
     // workspace 1: NQ, 2 charts side by side, watchlist open at 300 px
     await W(a, async () => {
       window.STRYKER_CHART_UI.setLayout('2h'); await new Promise((r) => setTimeout(r, 1200));
@@ -206,8 +216,9 @@ const waitIdle = (p) => p.waitForFunction(() => !window.STRYKER_WORKSPACES.busy,
       for (const th of ['dark', 'light']) {
         const P = await session(b, 'alice', w, h, true, th);
         const p = await open(P);
-        t(w + ' ' + th + ': no tab strip on a phone', await p.$eval('#stkws-tabs', (e) => getComputedStyle(e).display === 'none'));
+        t(w + ' ' + th + ': no tab strip on a phone', await W(p, () => { const e = document.getElementById('stkws-tabs'); return !e || e.getBoundingClientRect().width === 0; }));
         const reach = await W(p, () => { const b = document.getElementById('stkws-btn'); const r = b.getBoundingClientRect(); return r.width > 0 && r.right <= innerWidth ? 'bar' : (document.querySelector('#stkc-more-pop #stkws-btn') ? 'more' : 'none'); });
+        t(w + ' ' + th + ': compact pill shows the name (phone has no site bar: it starts the toolbar)', await W(p, () => { const b = document.getElementById('stkws-btn'), n = b.querySelector('.stkws-name'); return getComputedStyle(n).display !== 'none' && n.textContent.length > 0 && b.closest('#stkc-bar') && b.getBoundingClientRect().height >= 30; }));
         t(w + ' ' + th + ': workspace control reachable (' + reach + ')', reach !== 'none');
         await shot(p, 'ws-bar-' + w + '-' + th);
         if (reach === 'more') { await p.click('#stkc-more-btn'); await sleep(400); await shot(p, 'ws-more-' + w + '-' + th); }

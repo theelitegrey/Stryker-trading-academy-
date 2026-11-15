@@ -48,7 +48,8 @@ const IC = {
   grip: '<circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   chev: '<path d="M6 9l6 6 6-6"/>',
-  close: '<path d="M6 6l12 12M18 6L6 18"/>'
+  close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.4 3.6 5.2 3.6 8.5s-1.1 6.100-3.6 8.500c-2.5-2.400-3.600-5.200-3.600-8.500S9.500 5.900 12 3.500z"/>'
 };
 const svg = (k, s) => '<svg width="' + (s || 20) + '" height="' + (s || 20) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[k] + '</svg>';
 const keyName = (i) => (isMac ? '⌘' : 'Ctrl+') + (i + 1);
@@ -236,7 +237,17 @@ export function mountWorkspaces(ws, o){
   const btn = el('button', { type: 'button', class: 'stkc-btn stkws-btn', id: 'stkws-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Workspaces: switch, add and arrange whole screens' });
   const pop = el('div', { class: 'stkc-pop stkc-sheet stkws-pop', id: 'stkws-pop', role: 'dialog', 'aria-label': 'Workspaces', hidden: '' });
   const wrap = el('div', { class: 'stkc-menu stkws-menu' }, [btn, pop]);
-  barL.insertBefore(wrap, barL.firstChild);
+  // Owner 15 Nov: workspaces live in the TOP bar right after the logo, as browser-style tabs.
+  // Desktop: [layout icon ▾ = the menu] [tab][tab]… [+] [▾ overflow]. Phone: the same button is a "name ▾" pill.
+
+  const strip = el('div', { class: 'stkws-strip', id: 'stkws-strip' });
+  // phones hide the site top bar (the chart toolbar is the only bar): the pill starts the toolbar there (as before)
+  const place = () => {
+    const host = document.querySelector('.mobile-topnav .topnav-left');
+    if (isPhone() || !host) barL.insertBefore(wrap, barL.firstChild);
+    else { if (!strip.parentNode) host.appendChild(strip); strip.insertBefore(wrap, strip.firstChild); }
+  };
+  place(); window.addEventListener('resize', () => { if (wrap.parentNode !== (isPhone() ? barL : strip)) place(); });
   const setOpen = bindPopover(btn, pop, () => renderList());
 
   const live = el('div', { class: 'sr-only', 'aria-live': 'polite' });
@@ -245,7 +256,7 @@ export function mountWorkspaces(ws, o){
 
   function paintBtn(){
     const it = cur();
-    btn.innerHTML = svg('ws', 16) + '<span class="stkws-name"></span>' + svg('chev', 10);
+    btn.innerHTML = svg('ws', 16) + '<span class="stkws-name"></span>' + svg('chev', 12);
     btn.querySelector('.stkws-name').textContent = it.name;
     btn.setAttribute('aria-label', 'Workspaces. Current: ' + it.name);
   }
@@ -321,29 +332,77 @@ export function mountWorkspaces(ws, o){
   }
 
   // ---------------------------------------------------------------- UI: desktop tab strip
-  const tabs = el('div', { class: 'stkws-tabs', id: 'stkws-tabs', role: 'tablist', 'aria-label': 'Workspaces', hidden: '' });
+  const tabs = el('div', { class: 'stkws-tabs', id: 'stkws-tabs', role: 'tablist', 'aria-label': 'Workspaces' });
   const tabRow = el('div', { class: 'stkws-tabrow' });
+  const newWs = () => askName('New workspace', C.uniqueName(ix, 'Workspace ' + (ix.items.length + 1)), createNew);
   const plus = el('button', { type: 'button', class: 'stkws-plus', title: 'New workspace', 'aria-label': 'New workspace', html: svg('add', 16) });
-  plus.addEventListener('click', () => askName('New workspace', C.uniqueName(ix, 'Workspace ' + (ix.items.length + 1)), createNew));
-  tabs.appendChild(tabRow); tabs.appendChild(plus);
-  { const bar = document.getElementById('stkc-bar'); if (bar && bar.parentNode) bar.parentNode.insertBefore(tabs, bar.nextSibling); }
+  plus.addEventListener('click', newWs);
+  const more = el('button', { type: 'button', class: 'stkws-more', title: 'More workspaces', 'aria-label': 'More workspaces', 'aria-haspopup': 'true', hidden: '', html: svg('chev', 14) });
+  const morePop = el('div', { class: 'stkc-pop stkws-ctx stkws-morepop', role: 'menu', hidden: '' });
+  tabs.appendChild(tabRow); tabs.appendChild(plus); tabs.appendChild(more);
+  strip.appendChild(tabs);
+  // small floating menu (right-click on a tab, and the overflow list)
+  function ctxMenu(box, x, y, rows){
+    box.innerHTML = '';
+    rows.forEach((r) => {
+      const b = el('button', { type: 'button', role: 'menuitem', class: 'stkws-ci' + (r.danger ? ' stkws-danger' : '') + (r.on ? ' on' : ''), text: r.label });
+      if (r.disabled) b.disabled = true;
+      b.addEventListener('click', () => { box.hidden = true; r.run(); });
+      box.appendChild(b);
+    });
+    box.hidden = false;
+    box.style.left = Math.max(4, Math.min(x, window.innerWidth - box.offsetWidth - 4)) + 'px';
+    box.style.top = y + 'px';
+    const off = (e) => { if (box.contains(e.target)) return; box.hidden = true; document.removeEventListener('pointerdown', off, true); document.removeEventListener('keydown', esc, true); };
+    const esc = (e) => { if (e.key === 'Escape') off({ target: document.body }); };
+    document.addEventListener('pointerdown', off, true); document.addEventListener('keydown', esc, true);
+  }
+  const ctxBox = el('div', { class: 'stkc-pop stkws-ctx', role: 'menu', hidden: '' });
+  document.body.appendChild(ctxBox); document.body.appendChild(morePop);
+  more.addEventListener('click', () => {
+    const r = more.getBoundingClientRect();
+    ctxMenu(morePop, r.left, r.bottom + 4, ix.items.map((it) => ({ label: it.name, on: it.id === ix.active, run: () => switchTo(it.id) })));
+  });
+  function fitTabs(){
+    // overflow: tabs that do not fit are hidden; the ▾ lists every workspace
+    const tt = [...tabRow.children];
+    tt.forEach((t) => { t.hidden = false; });
+    more.hidden = true;
+    const room = tabs.clientWidth - plus.offsetWidth - 40;
+    if (tabRow.scrollWidth <= room) return;
+    more.hidden = false;
+    const aIdx = tt.findIndex((t) => t.classList.contains('on'));
+    let used = 0; const keep = new Set();
+    const order = [aIdx, ...tt.map((_, i) => i).filter((i) => i !== aIdx)];
+    order.forEach((i) => { const w = tt[i].offsetWidth + 2; if (used + w <= room) { used += w; keep.add(i); } });
+    tt.forEach((t, i) => { t.hidden = !keep.has(i); });
+  }
   function paintTabs(){
-    tabs.hidden = ix.items.length < 2;
     tabRow.innerHTML = '';
     ix.items.forEach((it, i) => {
       const on = it.id === ix.active;
+      const x = el('span', { class: 'stkws-x', role: 'button', 'aria-label': 'Close workspace ' + it.name, title: 'Close', html: svg('close', 12) });
       const t = el('button', { type: 'button', class: 'stkws-tab' + (on ? ' on' : ''), role: 'tab', 'aria-selected': on ? 'true' : 'false', 'data-id': it.id,
-        title: it.name + (it.sub ? ' · ' + it.sub : '') + (i < 9 ? ' (' + keyName(i) + ')' : '') + '. Double-click to rename, drag to reorder.' }, [el('span', { text: it.name })]);
-      t.addEventListener('click', () => { if (!dragged) switchTo(it.id); });
+        title: it.name + (it.sub ? ' · ' + it.sub : '') + (i < 9 ? ' (' + keyName(i) + ')' : '') + '. Double-click to rename, drag to reorder.' },
+        [el('span', { class: 'stkws-gl', html: svg('globe', 16) }), el('span', { class: 'stkws-tn', text: it.name }), x]);
+      t.addEventListener('click', (e) => { if (e.target.closest('.stkws-x')) { e.stopPropagation(); removeWs(it.id); return; } if (!dragged) switchTo(it.id); });
+      t.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); removeWs(it.id); } });
+      t.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
       t.addEventListener('dblclick', () => askName('Rename workspace', it.name, (n) => renameWs(it.id, n)));
+      t.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        ctxMenu(ctxBox, e.clientX, e.clientY, [
+          { label: 'Rename…', run: () => askName('Rename workspace', it.name, (n) => renameWs(it.id, n)) },
+          { label: 'Duplicate', run: async () => { if (ix.active !== it.id) await switchTo(it.id); duplicate(); } },
+          { label: 'Delete…', danger: true, disabled: ix.items.length <= 1, run: () => removeWs(it.id) }]);
+      });
       dragSort(t, t, tabRow, '.stkws-tab', 'x');
       tabRow.appendChild(t);
     });
-    // keep the active tab in view (scrollLeft on the strip itself, never scrollIntoView)
-    const a = tabRow.querySelector('.stkws-tab.on');
-    if (a) { const l = a.offsetLeft, r = l + a.offsetWidth; if (l < tabRow.scrollLeft) tabRow.scrollLeft = l; else if (r > tabRow.scrollLeft + tabRow.clientWidth) tabRow.scrollLeft = r - tabRow.clientWidth; }
-    try { window.dispatchEvent(new Event('resize')); } catch (e) {}   // the chart gives the strip its height
+    fitTabs();
+    try { window.dispatchEvent(new Event('resize')); } catch (e) {}
   }
+  window.addEventListener('resize', () => { if (ix) fitTabs(); });
   let shownTabs = null;
   function paint(){
     paintBtn();

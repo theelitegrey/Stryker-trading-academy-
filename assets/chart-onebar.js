@@ -57,7 +57,6 @@ const STEPS = [
   ['more', () => [byId('stkc-fs-btn')]],
   ['more', () => [menuOf('stkl-btn')]],
   ['more', () => [menuOf('stkc-layout-btn')]],
-  ['more', () => [menuOf('stkws-btn')]],
   ['cls', 'stkc-ob-nolabel'],
   ['cls', 'stkc-ob-ivn'],
   ['more', () => [q('.vela-widget-screenshot')]],

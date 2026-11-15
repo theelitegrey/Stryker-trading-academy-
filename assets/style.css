@@ -7013,10 +7013,20 @@ button.sed-prob-row:hover{ background:var(--sed-hover); }
   .sed .cm-scroller{ line-height:22px; }
   .sed-btn{ height:44px; }
   .sed-btn.is-icon{ width:44px; }
-  .sed-ft{ padding:8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .sed-ft{ display:grid; grid-template-columns:minmax(0, 1fr) auto auto 44px; padding:8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); }   /* primary takes the slack, so 4 buttons fit 360 */
+  .sed-ft .sed-ft-sp{ display:none; }
+  .sed-ft > .sed-btn{ min-width:0; padding-left:16px; padding-right:16px; }
+  .sed-ft > .sed-btn.is-primary{ justify-content:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .sed-row-acts .sed-ib{ width:44px; height:44px; }
   .sed-tabs{ padding:8px 12px; }
   .sed-search{ font-size:16px; height:44px; }
+}
+@media (max-width: 400px){
+  .sed-ft > .sed-btn{ padding-left:12px; padding-right:12px; }
+  .sed-ft > .sed-btn.is-primary svg{ display:none; }   /* "Update on chart" fits 360-390 without its icon */
+}
+@media (max-width: 370px){
+  .sed-ft > .sed-btn{ font-size:13px; padding-left:10px; padding-right:10px; }
 }
 
 /* ==========================================================================

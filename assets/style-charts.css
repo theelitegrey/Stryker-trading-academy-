@@ -4282,3 +4282,5 @@ html.geo-gate-open, html.geo-gate-open body{ overflow:hidden; }
 .btn, .btn-sm, .btn-block, .cm-btn, .pv-cta, .pv-cta-xl, .dl-btn,
 .fb-btn, .fb-btn-xl, .dh-btn, .dh-btn-xl, .fb-top-cta, .pr-btn,
 .hcb-go-btn, .cd-go-btn, .gex-dl-btn{ border-radius:999px; }
+.vela-statusline .vela-sl-symbol{ cursor:pointer; border-radius:4px; transition:background-color .12s; }
+@media (hover:hover){.vela-statusline .vela-sl-symbol:hover{ background:rgba(127,127,127,.18); }}

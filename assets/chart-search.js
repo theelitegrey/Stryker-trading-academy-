@@ -353,7 +353,7 @@ export function mountSearch(ws, o = {}) {
     try {
       const api = window.STRYKER_DATA_DOT; if (!api || !d.provider) return null;
       const st = api.statusOf(d.provider + ':' + d.ticker);
-      if (st && st.s === 'rt') return el('span', { class: 'stkss-tag stkss-tag-live', text: 'Live', title: st.text });
+      if (st && st.s === 'rt') return el('span', { class: 'stkss-livedot', role: 'img', 'aria-label': 'Live', 'data-tip': 'Live', title: 'Live' });   // Owner 15 Nov: subtle dot, 'Live' on hover
       if (st && st.s === 'delayed') return el('span', { class: 'stkss-tag stkss-tag-del', text: 'Delayed', title: st.text });
     } catch (e) {}
     return null;

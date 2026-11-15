@@ -207,7 +207,7 @@ export function dhLayer(H) {
       const W = co.width, top = a.bounds.top, H0 = a.bounds.height, bot = top + H0, phone = W < 520;
       const font = (a.theme && a.theme.fontFamily) || 'sans-serif';
       const yOf = (p) => co.priceToY(p, a.scale, a.bounds);
-      const showBook = cfg.hm ? cfg.show !== 'Heatmap' : cfg.book;   // panel: Profile / Both = the side depth profile
+      const showBook = cfg.hm ? cfg.show !== 'Heatmap' && cfg.book : cfg.book;   // panel: Profile / Both = the side depth profile, unless Book bars is off
       const labW = phone ? 34 : 54, c1W = phone ? 32 : 54, c2W = cfg.cum ? (phone ? 32 : 54) : 0, ladW = showBook ? labW + c1W + c2W : 0, plotR = W - ladW;
       const stat = { feed: f.key, width: W, phone, bubbles: 0, ladderRows: 0, replay: !!rp };
       // first paint (live, not replay): room right of the newest bar for the book column, so "now" is not under it (once; later zoom /

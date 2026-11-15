@@ -15,9 +15,35 @@ import { getVenue } from './orderflow-venues.js?v=1037';
 
 const EXT_KEY = 'stryker.heatmap', TPL_KEY = 'stk_heatmap_templates', MAG_KEY = 'stk_heatmap_magnifier';
 export const SRC = { book: { type: 'stk_depth_heat', label: 'Order book' }, liq: { type: 'stk_liq', label: 'Liquidations' }, opt: { type: 'stk_gexheat', label: 'Options' } };
-export const THEMES = ['Classic', 'Green', 'Gold', 'Fire', 'Mono'];
+export const THEMES = ['Classic', 'Green', 'Gold', 'Fire', 'Mono', 'Zoro', 'Thermal', 'Deep', 'Ember', 'Neon'];   // = HM_THEMES in chart-bookmap.js
 export const SENS = { High: 0, Mid: 30, Low: 60 };   // lower cutoff (% of the thinnest sizes hidden) = the Depth Heatmap's own "Lower cutoff"
-const SW = { Classic: ['#0a1a4a', '#1f6fe0', '#9fd8ff', '#ffe14a', '#ff7a1a', '#e5322d'], Green: ['#001a09', '#0c6e30', '#28be5a', '#8cf078', '#ebffd2'], Gold: ['#080500', '#3c2604', '#8c600a', '#dea61e', '#fff6d2'], Fire: ['#080000', '#460808', '#aa180e', '#f05a10', '#ffbe28', '#fffac8'], Mono: ['#000', '#222', '#606060', '#aaa', '#fff'] };
+const SW = { Classic: ['#0a1a4a', '#1f6fe0', '#9fd8ff', '#ffe14a', '#ff7a1a', '#e5322d'], Green: ['#001a09', '#0c6e30', '#28be5a', '#8cf078', '#ebffd2'], Gold: ['#080500', '#3c2604', '#8c600a', '#dea61e', '#fff6d2'], Fire: ['#080000', '#460808', '#aa180e', '#f05a10', '#ffbe28', '#fffac8'], Mono: ['#000', '#222', '#606060', '#aaa', '#fff'],
+  Zoro: ['#00040a', '#10487c', '#1e7cb4', '#6ed2eb', '#03c988', '#3cffaa'], Thermal: ['#0c1678', '#1856e1', '#00c8e8', '#fae828', '#ff8c14', '#fff'], Deep: ['#060c1a', '#2c3e5c', '#788caa', '#e6ebf5', '#fff08c', '#ffd628'],
+  Ember: ['#040000', '#320004', '#820a0a', '#d7320f', '#fa8c14', '#ffe13c'], Neon: ['#020008', '#240846', '#6e14aa', '#d228c8', '#ff5ae1', '#3cdcff'] };
+// Style presets (Owner 2026-11-15): one tap sets the colours, contrast, smoothing and bubbles of the Depth Heatmap; the member can fine-tune
+// after, and the row then shows Custom. The field stays black / very dark for every preset. Saved charts keep their inputs (no preset is
+// forced on them). Keys are the Depth Heatmap's own inputs, so the indicator settings dialog shows the same values.
+export const PRESETS = {
+  // Classic = what the panel has always switched on (bubbles + volume bars off), so existing charts show Classic, not Custom
+  Classic: { hmTheme: 'Classic', contrastMode: 'Auto', heatSmooth: '30 s', showBubbles: false, bubbleScale: 100, bubbleDom: false },
+  Zoro: { hmTheme: 'Zoro', contrastMode: 'Auto', heatSmooth: '30 s', showBubbles: true, bubbleScale: 100, bubbleDom: false },
+  Thermal: { hmTheme: 'Thermal', contrastMode: 'Manual', contrast: 1.3, heatSmooth: '15 s', showBubbles: true, bubbleScale: 100, bubbleDom: false },
+  Depth: { hmTheme: 'Deep', contrastMode: 'Manual', contrast: 0.8, heatSmooth: '60 s', showBubbles: true, bubbleScale: 80, bubbleDom: true },
+  Ember: { hmTheme: 'Ember', contrastMode: 'Auto', heatSmooth: '30 s', showBubbles: false, bubbleScale: 100, bubbleDom: false },
+  Mono: { hmTheme: 'Mono', contrastMode: 'Manual', contrast: 1.2, heatSmooth: '30 s', showBubbles: true, bubbleScale: 100, bubbleDom: false },
+  Neon: { hmTheme: 'Neon', contrastMode: 'Manual', contrast: 1.5, heatSmooth: '15 s', showBubbles: true, bubbleScale: 120, bubbleDom: true }
+};
+// the Depth Heatmap defaults (DH_SCHEMA in chart-depth-heatmap.js) for keys a chart has never set
+export const DH_DEF = { heatSmooth: '30 s', contrastMode: 'Auto', contrast: 1, cutoffPct: 0, showBubbles: true, bubbleScale: 100, bubbleDom: false, bubbleBuyColor: '#0f9d58', bubbleSellColor: '#d42a2a',   // = BUBBLE_DEF in chart-liquidity-map.js
+ 
+  showBook: true, showCum: true, showIce: false, showVolume: true, gpuHeatmap: true, hmTheme: 'Classic' };
+const valOf = (v, k) => (v && v[k] !== undefined ? v[k] : DH_DEF[k]);
+// the preset whose every key matches the inputs, else 'Custom' (Manual contrast only compares the number when the preset is Manual)
+export function presetOf(v) {
+  for (const [n, p] of Object.entries(PRESETS)) if (Object.keys(p).every((k) => String(valOf(v, k)) === String(p[k]))) return n;
+  return 'Custom';
+}
+export const SMOOTHS = ['Off', '15 s', '30 s', '60 s', '2 min'];
 
 // ---- pure helpers (tools/tests/heatmap-panel.test.mjs) ----
 export const stepOf = (max) => { if (!(max > 0)) return 1; const raw = max / 20, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
@@ -93,7 +119,7 @@ const setIn = (src, o) => { const h = handleOf(SRC[src].type); if (h) { try { h.
 const getIn = (src) => { const h = handleOf(SRC[src].type); try { return h ? h.inputValues() : null; } catch (e) { return null; } };
 
 // ---- a template = the panel's inputs for the active source ----
-const KEYS = { book: ['hmTheme', 'hmStyle', 'hmShow', 'hmMin', 'hmMax', 'hmUsd', 'hmValues', 'cutoffPct', 'showCum'], liq: ['minUsd', 'labels'], opt: ['opacity'] };
+const KEYS = { book: ['hmTheme', 'hmStyle', 'hmShow', 'hmMin', 'hmMax', 'hmUsd', 'hmValues', 'cutoffPct', 'showCum', 'heatSmooth', 'contrastMode', 'contrast', 'showBubbles', 'bubbleScale', 'bubbleDom', 'bubbleBuyColor', 'bubbleSellColor', 'showBook', 'showIce', 'showVolume', 'gpuHeatmap'], liq: ['minUsd', 'labels'], opt: ['opacity'] };
 const snap = (src) => { const v = getIn(src) || {}, o = { src }; KEYS[src].forEach((k) => { if (v[k] !== undefined) o[k] = v[k]; }); return o; };
 
 // ---- UI ----
@@ -122,8 +148,8 @@ const CSS = `
 .stkhm-note{font-size:12px;line-height:16px;color:var(--ink-3);margin:6px 0 0}
 .stkhm-note:empty{display:none}
 .stkhm-optnote{color:var(--ink-1)}
-.stkhm-sws{display:flex;gap:8px;flex-wrap:wrap}
-.stkhm-sws button{width:56px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--bg-1);color:var(--ink-2);font-size:12px;line-height:16px;cursor:pointer}
+.stkhm-sws{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stkhm-sws button{min-width:0;padding:4px 2px;border:1px solid var(--line);border-radius:10px;background:var(--bg-1);color:var(--ink-2);font:inherit;font-size:12px;line-height:16px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stkhm-sws button i{display:block;height:16px;border-radius:5px;margin-bottom:4px;border:1px solid rgba(255,255,255,.08)}
 .stkhm-sws button[aria-pressed="true"]{border-color:var(--gold);color:var(--ink-0)}
 .stkhm-sens{margin-bottom:8px}
@@ -147,6 +173,20 @@ const CSS = `
 .stkhm-tp{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .stkhm-in{flex:1;min-height:32px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1);color:var(--ink-0);padding:0 10px;font:inherit}
 .stkhm button:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+.stkhm-ps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stkhm-ps button{min-width:0;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--bg-1);color:var(--ink-2);font:inherit;font-size:12px;line-height:16px;cursor:pointer}
+.stkhm-ps button i{display:block;height:16px;border-radius:6px;margin-bottom:4px;border:1px solid rgba(255,255,255,.08)}
+.stkhm-ps button[aria-pressed="true"]{border-color:var(--gold);color:var(--ink-0);box-shadow:inset 0 0 0 1px var(--gold)}
+.stkhm-ps .stkhm-cus{display:flex;align-items:center;justify-content:center;cursor:default}
+.stkhm-sub{font-size:12px;line-height:16px;color:var(--ink-2);margin:12px 0 8px}
+.stkhm-row>span{color:var(--ink-1);min-width:0}
+.stkhm-sel{height:32px;min-width:96px;padding:0 28px 0 12px;border:1px solid var(--line);border-radius:16px;background:var(--bg-1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;color:var(--ink-0);font:inherit;font-size:13px;-webkit-appearance:none;appearance:none;cursor:pointer}
+.stkhm-sel:focus-visible,.stkhm-col:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+.stkhm-row .stkhm-seg button{min-height:28px}
+.stkhm-row .stkhm-sw{width:40px;height:24px}
+.stkhm-row .stkhm-sw::after{width:18px;height:18px}
+.stkhm-row .stkhm-sw[aria-checked="true"]::after{transform:translateX(16px)}
+.stkhm-col{width:32px;height:32px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1);cursor:pointer}
 .stkhm-lens{position:fixed;z-index:8100;width:140px;height:140px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 6px 20px rgba(0,0,0,.5);pointer-events:none;background:#000;display:none}
 @media (max-width:600px){
  .stkhm{left:0;right:0;top:auto;bottom:0;width:auto;max-height:78vh;border-radius:20px 20px 0 0;border-bottom:0}
@@ -154,6 +194,7 @@ const CSS = `
  .stkhm-seg button,.stkhm-tg button,.stkhm-tp button{min-height:44px}
  .stkhm-step button{width:44px;height:44px}.stkhm-x{width:44px;height:44px}
  .stkhm-in{min-height:44px}
+ .stkhm-row{min-height:44px}.stkhm-row .stkhm-seg button{min-height:36px}.stkhm-sel{height:44px;border-radius:22px}.stkhm-col{width:44px;height:44px}
  .stkhm-rng{height:44px}
 }`;
 const h = (tag, attrs, kids) => { const e = document.createElement(tag); Object.entries(attrs || {}).forEach(([k, v]) => { if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v); }); (kids || []).forEach((c) => c && e.appendChild(c)); return e; };
@@ -168,6 +209,21 @@ function stepper(label, val, max, on) {
     h('span', { text: val > 0 ? fmt(val) : 'Off' }),
     h('button', { type: 'button', 'aria-label': label + ' higher', text: '+', onclick: () => on(stepVal(val, 1, max)) })])]);
 }
+
+// a number stepper with fixed bounds and step (Depth Heatmap inputs: cutoff, bubble size, manual contrast)
+function numStep(label, val, lo, hi, step, show, on) {
+  const go = (d) => on(Math.min(hi, Math.max(lo, +(Math.round((val + d * step) / step) * step).toFixed(2))));
+  return h('div', { class: 'stkhm-row' }, [h('span', { text: label }), h('div', { class: 'stkhm-step' }, [
+    h('button', { type: 'button', 'aria-label': label + ' lower', text: '−', disabled: val <= lo, onclick: () => go(-1) }),
+    h('span', { text: show(val) }),
+    h('button', { type: 'button', 'aria-label': label + ' higher', text: '+', disabled: val >= hi, onclick: () => go(1) })])]);
+}
+const toggle = (label, on, set, key) => h('div', { class: 'stkhm-row' }, [h('span', { text: label }),
+  h('button', { type: 'button', class: 'stkhm-sw', role: 'switch', 'data-k': key, 'aria-checked': String(!!on), 'aria-label': label, onclick: () => set(!on) })]);
+const select = (label, opts, cur, set, key) => h('div', { class: 'stkhm-row' }, [h('span', { text: label }),
+  h('select', { class: 'stkhm-sel', 'data-k': key, 'aria-label': label, onchange: (e) => set(e.target.value) }, opts.map((o) => h('option', { value: o, text: o, selected: o === cur })))]);
+const color = (label, cur, set, key) => h('div', { class: 'stkhm-row' }, [h('span', { text: label }),
+  h('input', { type: 'color', class: 'stkhm-col', 'data-k': key, 'aria-label': label, value: cur, onchange: (e) => set(e.target.value) })]);
 
 // Sensitivity slider: Max (right) = show everything (cutoff 0), Min (left) = hide the thinnest 95%. Value % = 100 - cutoffPct.
 // Drag updates the layer once per frame (no panel rebuild, so the thumb is never replaced mid-drag).
@@ -203,10 +259,15 @@ function render() {
   if (!on) kids.push(h('p', { class: 'stkhm-note', text: 'Switch on to draw the heatmap behind the candles. Switch off to clear it.' }));
   if (on && src === 'book') {
     if (info.crypto) kids.push(sec('Denomination', [seg(['USD', 'Coin'], v.hmUsd ? 'USD' : 'Coin', (o) => { setIn('book', { hmUsd: o === 'USD' }); render(); })]));
-    kids.push(sec('Appearance', [h('div', { class: 'stkhm-sws' }, THEMES.map((t) => h('button', { type: 'button', 'aria-pressed': String((v.hmTheme || 'Classic') === t), title: t, onclick: () => { setIn('book', { hmTheme: t }); render(); } },
+    const set = (o) => { setIn('book', o); render(); }, pre = presetOf(v), theme = SW[v.hmTheme] ? v.hmTheme : 'Classic';
+    kids.push(sec('Style', [h('div', { class: 'stkhm-ps', role: 'group', 'aria-label': 'Style presets' }, Object.keys(PRESETS).map((n) => h('button', { type: 'button', 'data-preset': n, 'aria-pressed': String(pre === n), title: n, onclick: () => set(Object.assign({}, PRESETS[n])) },
+      [h('i', { style: 'background:linear-gradient(90deg,' + SW[PRESETS[n].hmTheme].join(',') + ')' }), h('span', { text: n })])).concat(
+      pre === 'Custom' ? [h('span', { class: 'stkhm-cus', 'aria-pressed': 'true', 'data-preset': 'Custom', text: 'Custom', style: 'border:1px solid var(--gold);border-radius:10px;color:var(--ink-0);font-size:12px' })] : [])),
+      h('p', { class: 'stkhm-sub', text: 'Colours' }),
+      h('div', { class: 'stkhm-sws' }, THEMES.map((t) => h('button', { type: 'button', 'aria-pressed': String(theme === t), title: t, onclick: () => set({ hmTheme: t }) },
       [h('i', { style: 'background:linear-gradient(90deg,' + SW[t].join(',') + ')' }), h('span', { text: t })])))]));
     const d = dh(), mx = d && d.maxSize || 0, px = info.crypto && v.hmUsd ? ((cell().chart.orchestrator.rawBars.slice(-1)[0] || {}).close || 1) : 1, bound = mx * px, cut = Number(v.cutoffPct || 0);
-    kids.push(sec('Sensitivity', [sensSlider(cut, v.hmTheme || 'Classic'),
+    kids.push(sec('Sensitivity', [sensSlider(cut, theme),
       seg(['High', 'Mid', 'Low'], '', (o) => { setIn('book', { cutoffPct: SENS[o] }); render(); })],
       h('button', { type: 'button', text: 'Reset', onclick: () => { setIn('book', { cutoffPct: 0, hmMin: 0, hmMax: 0, hmTheme: 'Classic', hmStyle: 'Classic', hmShow: 'Heatmap', hmValues: false, showCum: true }); render(); } })));
     // the preset row highlights only when the slider sits exactly on a preset
@@ -215,10 +276,27 @@ function render() {
     kids.push(sec('Intensity', [stepper('Threshold', Number(v.hmMin || 0), bound, (n) => { setIn('book', { hmMin: n }); render(); }),
       stepper('Ceiling', Number(v.hmMax || 0), bound, (n) => { setIn('book', { hmMax: n }); render(); }),
       h('p', { class: 'stkhm-note', text: bound > 0 ? 'Min 0 · Max ' + fmt(bound) + (v.hmUsd ? ' USD' : info.crypto ? ' coins' : ' contracts') : 'Bounds appear when the book has data.' })]));
-    kids.push(sec('Display', [seg(['Heatmap', 'Profile', 'Both'], v.hmShow || 'Heatmap', (o) => { setIn('book', { hmShow: o }); render(); }),
-      (v.hmShow || 'Heatmap') !== 'Heatmap' ? h('div', { class: 'stkhm-tg', style: 'margin-top:8px' }, [h('button', { type: 'button', text: 'Running total', 'aria-pressed': String(v.showCum !== false), onclick: () => { setIn('book', { showCum: v.showCum === false }); render(); } })]) : null,
+    const man = valOf(v, 'contrastMode') === 'Manual';
+    kids.push(sec('Smoothing & contrast', [select('Smooth', SMOOTHS, valOf(v, 'heatSmooth'), (o) => set({ heatSmooth: o }), 'heatSmooth'),
+      select('Contrast', ['Auto', 'Manual'], valOf(v, 'contrastMode'), (o) => set({ contrastMode: o }), 'contrastMode'),
+      man ? numStep('Manual contrast', Number(valOf(v, 'contrast')), 0.5, 2.5, 0.1, (x) => x.toFixed(1), (n) => set({ contrast: n })) : null,
+      numStep('Lower cutoff', cut, 0, 95, 5, (x) => x + '%', (n) => set({ cutoffPct: n })),
+      h('p', { class: 'stkhm-note', text: 'Lower cutoff hides the thinnest levels (the same value as Sensitivity).' })]));
+    const show = v.hmShow || 'Heatmap', book = valOf(v, 'showBook') !== false, bub = valOf(v, 'showBubbles') !== false, dom = valOf(v, 'bubbleDom') === true;
+    kids.push(sec('Display', [seg(['Heatmap', 'Profile', 'Both'], show, (o) => set({ hmShow: o })),
       h('p', { class: 'stkhm-note', text: 'Profile is the side column: the size resting at each price now.' })]));
-    kids.push(sec('Style', [seg(['Volumetric', 'Classic'], v.hmStyle || 'Classic', (o) => { setIn('book', { hmStyle: o }); render(); })]));
+    kids.push(sec('Overlays', [toggle('Volume bubbles', bub, (x) => set({ showBubbles: x }), 'showBubbles'),
+      bub ? numStep('Bubble size', Number(valOf(v, 'bubbleScale')), 40, 200, 10, (x) => x + '%', (n) => set({ bubbleScale: n })) : null,
+      bub ? toggle('Colour by dominant side', dom, (x) => set({ bubbleDom: x }), 'bubbleDom') : null,
+      bub && dom ? color('Buyers colour', valOf(v, 'bubbleBuyColor'), (c) => set({ bubbleBuyColor: c }), 'bubbleBuyColor') : null,
+      bub && dom ? color('Sellers colour', valOf(v, 'bubbleSellColor'), (c) => set({ bubbleSellColor: c }), 'bubbleSellColor') : null,
+      show !== 'Heatmap' ? toggle('Book bars', book, (x) => set({ showBook: x }), 'showBook') : null,
+      show !== 'Heatmap' && book ? toggle('Cumulative column', valOf(v, 'showCum') !== false, (x) => set({ showCum: x }), 'showCum') : null,
+      info.fut ? toggle('Iceberg highlight (ICE)', valOf(v, 'showIce') === true, (x) => set({ showIce: x }), 'showIce') : null,
+      toggle('Volume bars', valOf(v, 'showVolume') !== false, (x) => set({ showVolume: x }), 'showVolume')]));
+    const gpu = valOf(v, 'gpuHeatmap') !== false;
+    kids.push(sec('Performance', [toggle('Graphics card (smoother)', gpu, (x) => set({ gpuHeatmap: x }), 'gpuHeatmap'),
+      gpu ? h('div', { class: 'stkhm-row' }, [h('span', { text: 'Glow' }), Object.assign(seg(['Flat', 'Volumetric'], v.hmStyle === 'Volumetric' ? 'Volumetric' : 'Flat', (o) => set({ hmStyle: o === 'Volumetric' ? 'Volumetric' : 'Classic' })), { style: 'width:200px' })]) : null]));
     kids.push(sec('View', [h('div', { class: 'stkhm-tg' }, [
       h('button', { type: 'button', text: 'Values', 'aria-pressed': String(!!v.hmValues), onclick: () => { setIn('book', { hmValues: !v.hmValues }); render(); } }),
       h('button', { type: 'button', text: 'Magnifier', 'aria-pressed': String(magOn()), onclick: () => { magSet(!magOn()); render(); } })]),

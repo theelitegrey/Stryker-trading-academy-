@@ -40,15 +40,24 @@ export const STYLES = {
 };
 // Heatmap panel themes (assets/chart-heatmap-panel.js): the same rank colouring as the Depth Heatmap, other ramps, one black field.
 // 'classic' is the Depth Heatmap's own ramp (style 'depth'); the others are 'hm_<name>'.
-export const HM_THEMES = ['classic', 'green', 'gold', 'fire', 'mono'];
+// The panel's Style presets (Owner 2026-11-15) added zoro / thermal / deep / ember / neon; the first five stay so saved charts keep their look.
+export const HM_THEMES = ['classic', 'green', 'gold', 'fire', 'mono', 'zoro', 'thermal', 'deep', 'ember', 'neon'];
 const HM_BG = [0, 0, 0];
 Object.assign(RAMPS, {
   hm_green: [[0, [0, 6, 2]], [0.2, [4, 40, 18]], [0.42, [12, 110, 48]], [0.62, [40, 190, 90]], [0.8, [140, 240, 120]], [1, [235, 255, 210]]],
   hm_gold: [[0, [8, 5, 0]], [0.2, [60, 38, 4]], [0.42, [140, 96, 10]], [0.62, [222, 166, 30]], [0.8, [255, 214, 90]], [1, [255, 246, 210]]],
   hm_fire: [[0, [8, 0, 0]], [0.2, [70, 8, 8]], [0.4, [170, 24, 14]], [0.6, [240, 90, 16]], [0.8, [255, 190, 40]], [1, [255, 250, 200]]],
-  hm_mono: [[0, [0, 0, 0]], [0.2, [34, 34, 34]], [0.45, [96, 96, 96]], [0.7, [170, 170, 170]], [0.9, [230, 230, 230]], [1, [255, 255, 255]]]
+  hm_mono: [[0, [0, 0, 0]], [0.2, [34, 34, 34]], [0.45, [96, 96, 96]], [0.7, [170, 170, 170]], [0.9, [230, 230, 230]], [1, [255, 255, 255]]],
+  // Zoro: the Classic blue body on black, the big orders in our mint, the very top near-white
+  hm_zoro: [[0, [0, 4, 10]], [0.14, [8, 30, 62]], [0.3, [16, 72, 124]], [0.44, [30, 124, 180]], [0.58, [110, 210, 235]], [0.72, [3, 201, 136]], [0.86, [60, 255, 170]], [1, [225, 255, 240]]],
+  // Thermal: blue -> cyan -> yellow -> orange -> white hot
+  hm_thermal: [[0, [0, 0, 10]], [0.15, [12, 22, 120]], [0.32, [24, 86, 225]], [0.48, [0, 200, 232]], [0.64, [250, 232, 40]], [0.8, [255, 140, 20]], [0.92, [255, 200, 130]], [1, [255, 255, 255]]],
+  // Deep: dark navy field, quiet low levels, white / yellow liquidity
+  hm_deep: [[0, [6, 12, 26]], [0.2, [18, 30, 52]], [0.4, [44, 62, 92]], [0.6, [120, 140, 170]], [0.75, [230, 235, 245]], [0.88, [255, 240, 140]], [1, [255, 214, 40]]],
+  hm_ember: [[0, [4, 0, 0]], [0.2, [50, 0, 4]], [0.42, [130, 10, 10]], [0.62, [215, 50, 15]], [0.8, [250, 140, 20]], [1, [255, 225, 60]]],
+  hm_neon: [[0, [2, 0, 8]], [0.2, [36, 8, 70]], [0.42, [110, 20, 170]], [0.6, [210, 40, 200]], [0.78, [255, 90, 225]], [0.9, [60, 220, 255]], [1, [200, 250, 255]]]
 });
-for (const t of HM_THEMES.slice(1)) STYLES['hm_' + t] = Object.assign({}, STYLES.depth, { ramp: 'hm_' + t, bg: HM_BG });
+for (const t of HM_THEMES.slice(1)) STYLES['hm_' + t] = Object.assign({}, STYLES.depth, { ramp: 'hm_' + t, bg: t === 'deep' ? [6, 12, 26] : HM_BG });
 export const hmLook = (t) => (HM_THEMES.indexOf(t) > 0 ? 'hm_' + t : 'depth');
 // ramp stops [[pos, [r,g,b]], ...] of a theme (swatches, the liquidation cells)
 export const hmStops = (t) => RAMPS[HM_THEMES.indexOf(t) > 0 ? 'hm_' + t : 'depth'];

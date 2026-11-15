@@ -1,6 +1,8 @@
 // TradeZoro corner mark on every chart (Owner order 2026-11-09). Fixtures only (phone-layouts-lib).
 //   STRYKER_TEST_BASE=http://127.0.0.1:8137 node tools/tests/chart-brand-browser.js <outDir>
-const { launch, BASE } = require('./lib.js');
+//   or, like the release harness: node tools/tests/chart-dev-server.mjs 8031; CHART_BASE=http://127.0.0.1:8031 node tools/tests/chart-brand-browser.js <outDir>
+const { launch, BASE: LIB_BASE } = require('./lib.js');
+const BASE = process.env.CHART_BASE || LIB_BASE;   // release.sh sets CHART_BASE only (before: fell back to :8000, ERR_CONNECTION_REFUSED)
 const { newCtx, openPage, sleep } = require('./phone-layouts-lib.js');
 const OUT = process.argv[2] || '/tmp';
 let fail = 0;
@@ -72,11 +74,17 @@ const probe = () => {
       await p.mouse.move(b0.x + 400, b0.y - 150); await sleep(500);
       const b2 = await box();
       check(Math.abs(b2.w - b0.w) < 1 && b2.nv === 'hidden', `${tag}: leave returns to the round chip`, [b2.w, b2.nv]);
-      const clip = { x: b0.x + 60, y: b0.y - 300, width: 500, height: 330 };
-      const before = await p.screenshot({ clip });
-      await p.mouse.move(b0.x + 100, b0.y - 100); await p.mouse.down(); await p.mouse.move(b0.x + 300, b0.y - 100, { steps: 8 }); await p.mouse.up(); await sleep(400);
-      const after = await p.screenshot({ clip });
-      check(!before.equals(after), `${tag}: drag next to the chip still pans the chart`);
+      // pan is read from the chart's own visible range, on fixture bars (NQ1!: the fixture serves futures only; the default
+      // crypto symbol has no bars here, so a pixel diff only saw crosshair noise and failed at random)
+      await p.evaluate(() => window.STRYKER_VELA.cells()[0].setSymbol('NQ1!'));
+      await p.waitForFunction(() => { try { return window.STRYKER_VELA.cells()[0].chart.renderer.renderer.coords.barCount > 50; } catch (e) { return false; } }, null, { timeout: 60000 });
+      await sleep(800);
+      const b3 = await box();
+      const rng = () => p.evaluate(() => window.STRYKER_VELA.cells()[0].chart.renderer.renderer.coords.visibleLogicalRange().from);
+      const before = await rng();
+      await p.mouse.move(b3.x + 100, b3.y - 100); await p.mouse.down(); await p.mouse.move(b3.x + 300, b3.y - 100, { steps: 8 }); await p.mouse.up(); await sleep(400);
+      const after = await rng();
+      check(Math.abs(after - before) > 1, `${tag}: drag next to the chip still pans the chart`, [before, after]);
       const far = await p.evaluate(() => { const e = document.querySelector('.tz-brand'), r = e.getBoundingClientRect(), h = document.elementFromPoint(r.right + 12, r.top + r.height / 2); return !!h && !e.contains(h); });
       check(far, `${tag}: point just right of the chip hits the chart, not the chip`);
       await p.mouse.move(b0.x + 400, b0.y - 150);

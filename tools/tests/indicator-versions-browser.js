@@ -315,12 +315,11 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
           if (SHOTS && id === dl.id) await p.screenshot({ path: OUT + '/iv-3a-1440-dark-dialog.png' });
           await closeDlg(p); await sleep(300);
         }
-        // Indicators window: the details of a native and of a built-in Pine script start with the version
+        // Indicators window (details pane): the details of a native and of a built-in Pine script start with the version
         await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open()); await p.waitForSelector('.stkiw-row', { timeout: 20000 });
         const verIn = async (q) => {
           await p.fill('.stkiw-search', q); await sleep(500);
-          await p.evaluate(() => { const b = document.querySelector('.stkiw-row .stkiw-explain:not([hidden])'); if (b) b.click(); }); await sleep(300);
-          return p.evaluate(() => { const v = document.querySelector('.stkiw-ex .stkiw-ver'); return v && v.textContent; });
+          return p.evaluate(() => { const v = document.querySelector('.stkiw-detail .stkiw-ver'); return v && v.textContent; });   // build 1046: the details pane follows the highlighted (first) row
         };
         const vRsi = await verIn('Relative Strength Index'), vDl = await verIn('Dynamic Liquidity HeatMap');
         check(/^v1\.0\d+ \w+ 2026 · latest$/.test(vRsi || '') && /^v1\.015 Oct 2026 · latest$/.test(vDl || ''), 'run 3a: Indicators window details show the version (native + built-in Pine)', { vRsi, vDl });

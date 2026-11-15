@@ -69,7 +69,7 @@ function decorate(list){
   const tab = document.querySelector('.stkiw-tab[aria-selected="true"]');
   const grp = [...list.querySelectorAll(':scope > .stkiw-grp')].find((g) => /^community\b/i.test(g.textContent.trim()));
   if (grp) list.insertBefore(banner(), grp);
-  else if (tab && COMMUNITY_TABS.has(tab.dataset.k)) list.insertBefore(banner(), list.firstChild);
+  else if (COMMUNITY_TABS.has(list.dataset.sect || (tab && tab.dataset.k))) list.insertBefore(banner(), list.firstChild);   // data-sect: the window's current list (Community sub-tab)
 }
 let pending = false;
 new MutationObserver(() => {

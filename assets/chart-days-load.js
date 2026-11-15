@@ -46,16 +46,3 @@ export function barsNeeded(oldest, newest, count, days) {
   if (missing >= 0) return 0;
   return Math.max(200, Math.ceil(-missing * (count / (newest - oldest)) * 1.1));
 }
-
-// STRICT mode (fix 2, member GK: "14 days still loads ~30"): the choice is exactly N days, never more.
-// Given the sorted bar times, the chosen days and the oldest bar a trim left behind (so a trim is not undone by a re-fetch):
-//   { trim: index of the first bar to keep (0 = nothing to cut), from: time to fetch back to (0 = nothing to fetch) }
-export function planDays(times, days, trimmedAt) {
-  if (!days || times.length < 2) return { trim: 0, from: 0 };
-  const horizon = times[times.length - 1] - days * 864e5;
-  const step = (times[times.length - 1] - times[0]) / (times.length - 1);   // one bar of slack: a bar short of the day is not worth a fetch
-  if (times[0] >= horizon) return { trim: 0, from: trimmedAt === times[0] || times[0] - horizon < step ? 0 : horizon };
-  let lo = 0, hi = times.length;
-  while (lo < hi) { const m = (lo + hi) >> 1; if (times[m] < horizon) lo = m + 1; else hi = m; }
-  return { trim: Math.min(lo, times.length - 1), from: 0 };
-}

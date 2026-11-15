@@ -54,7 +54,17 @@ async function openWindow(p, section) {
   }
 }
 const rowInfo = (p, key) => p.evaluate((k) => { const r = document.querySelector('.stkiw-row[data-key="' + k + '"]'); return r ? { tag: !!r.querySelector('.stk-protag'), text: r.textContent } : null; }, key);
-const clickRow = (p, key) => p.evaluate((k) => { const r = document.querySelector('.stkiw-row[data-key="' + k + '"] .stkiw-name'); if (r) r.click(); return !!r; }, key);
+// desktop: a click on the row name adds. Phone (new picker, 15 Nov): a tap on the name opens the detail sheet and the
+// row's Add pill (always shown on a phone) adds, so the phone run taps the pill with a real touch.
+const clickRow = async (p, key) => {
+  if (p.viewportSize().width < 700) {
+    const sel = '.stkiw-row[data-key="' + key + '"] .stkiw-add';
+    if (!(await p.$(sel))) return false;
+    await p.evaluate((q) => document.querySelector(q).scrollIntoView({ block: 'center' }), sel); await sleep(200);
+    await p.tap(sel); return true;
+  }
+  return p.evaluate((k) => { const r = document.querySelector('.stkiw-row[data-key="' + k + '"] .stkiw-name'); if (r) r.click(); return !!r; }, key);
+};
 const closeWindow = async (p) => { await p.evaluate(() => { const x = document.querySelector('.stkiw-x'); if (x) x.click(); }); await sleep(700); };
 
 async function run(b, { w, h, plan, vela }) {

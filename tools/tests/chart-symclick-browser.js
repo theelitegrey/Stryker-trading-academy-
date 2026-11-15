@@ -24,11 +24,13 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
     await loc.waitFor({ timeout: 15000 });
     check(await loc.evaluate((e) => getComputedStyle(e).cursor === 'pointer'), tag + 'pointer cursor');
     if (mobile) await loc.tap(); else await loc.click();
-    await p.waitForSelector('.vela-sp-row', { timeout: 8000 }).catch(() => {});
-    check(await p.evaluate(() => document.querySelectorAll('.vela-sp-row').length > 0), tag + 'search opens');
-    const row = p.locator('.vela-sp-row[data-ticker^="ES"]').first();
+    // the symbol search panel (assets/chart-search.js, .stkss); the old Vela picker rows were .vela-sp-row
+    await p.waitForSelector('.stkss .stkss-row', { timeout: 8000 }).catch(() => {});
+    check(await p.evaluate(() => { const s = document.querySelector('.stkss'); return !!s && !s.hidden && document.querySelectorAll('.stkss-row').length > 0; }), tag + 'search opens');
+    await p.fill('.stkss-input', 'ES');
+    const row = p.locator('.stkss-row[data-sym="CME:ES1!"]').first();
     await row.waitFor({ timeout: 8000 });
-    await row.click();
+    if (mobile) await row.tap(); else await row.click();
     await p.waitForTimeout(2500);
     const r = await p.evaluate((i) => ({ syms: window.STRYKER_VELA.cells().map((c) => String(c.symbol || '')), txt: [...document.querySelectorAll('.vela-sl-symbol')].map((e) => e.textContent) }), idx);
     check(/ES1!/.test(r.syms[idx]), tag + 'clicked pane symbol is ES', r);
@@ -36,5 +38,6 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
     await ctx.close();
   }
   await b.close();
+  console.log(fail ? fail + ' FAILED' : 'ALL PASSED');
   process.exit(fail ? 1 : 0);
 })();

@@ -159,26 +159,71 @@ const glSum = (p) => p.evaluate(() => { const c = [...document.querySelectorAll(
         await clickText(p, 'Heatmap', '.stkhm-b'); await sleep(1800);
         await clickText(p, 'Volumetric'); await sleep(1200);
         check(await p.evaluate(() => /blur/.test((document.querySelector('canvas[data-stk-heatmap-gl="1"]') || { style: { filter: '' } }).style.filter)), tag + ': Volumetric blurs the glow');
-        await clickText(p, 'Classic', '.stkhm-b');
+        await clickText(p, 'Flat', '.stkhm-b');
         await clickText(p, 'Values'); await sleep(2500);
         d = await heat(p); check(d && d.values > 0, tag + ': Values draws size numbers', d);
+        // ---- Owner 2026-11-15: every Depth Heatmap setting in the panel, one source of truth with the indicator's inputs ----
+        await clickText(p, 'Both'); await sleep(900);
+        const iv = () => p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_depth_heat').inputValues());
+        const DEF = { showBubbles: true, bubbleDom: false, showBook: true, showCum: true, showIce: false, showVolume: true, gpuHeatmap: true };
+        for (const k of ['showBubbles', 'bubbleDom', 'showCum', 'showIce', 'showVolume', 'gpuHeatmap', 'showBook']) {
+          const b0 = (await iv())[k]; const was = b0 === undefined ? DEF[k] : b0;
+          const ok = await p.evaluate((k) => { const b = document.querySelector('.stkhm [data-k="' + k + '"]'); if (b) b.click(); return !!b; }, k); await sleep(700);
+          check(ok && (await iv())[k] === !was, tag + ': panel toggle ' + k + ' -> indicator input', [ok, was, (await iv())[k]]);
+          await p.evaluate((k) => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_depth_heat').setInputs({ [k]: true }), k); await sleep(900);
+          check(await p.evaluate((k) => { const b = document.querySelector('.stkhm [data-k="' + k + '"]'); return !!b && b.getAttribute('aria-checked') === 'true'; }, k), tag + ': indicator ' + k + ' -> panel switch');
+        }
+        for (const [k, val] of [['heatSmooth', '2 min'], ['contrastMode', 'Manual']]) {
+          await p.evaluate(([k, val]) => { const s = document.querySelector('.stkhm select[data-k="' + k + '"]'); s.value = val; s.dispatchEvent(new Event('change', { bubbles: true })); }, [k, val]); await sleep(700);
+          check((await iv())[k] === val, tag + ': panel ' + k + ' -> indicator', (await iv())[k]);
+        }
+        await p.evaluate(() => document.querySelector('[aria-label="Manual contrast higher"]').click()); await sleep(600);
+        check(Math.abs((await iv()).contrast - 1.1) < 1e-6, tag + ': Manual contrast stepper -> indicator', (await iv()).contrast);
+        const cut0 = Number((await iv()).cutoffPct || 0);
+        await p.evaluate(() => document.querySelector('[aria-label="Lower cutoff higher"]').click()); await sleep(600);
+        { const c1 = (await iv()).cutoffPct, sl = await p.evaluate(() => document.querySelector('.stkhm-rng').value);
+          check(c1 > cut0 && sl === String(100 - c1), tag + ': Lower cutoff stepper -> indicator and the Sensitivity slider', [cut0, c1, sl]); }
+        await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_depth_heat').setInputs({ heatSmooth: 'Off', contrastMode: 'Auto', cutoffPct: 20, bubbleScale: 150 })); await sleep(1000);
+        check(await p.evaluate(() => document.querySelector('.stkhm select[data-k="heatSmooth"]').value === 'Off' && !document.querySelector('[aria-label="Manual contrast higher"]') && document.querySelector('.stkhm-rng').value === '80'
+          && [...document.querySelectorAll('.stkhm-step span')].some((x) => x.textContent === '150%')), tag + ': indicator Smooth / Contrast / cutoff / bubble size -> panel');
+        check(await p.evaluate(() => !!document.querySelector('[data-k="showIce"]')), tag + ': NQ shows the iceberg switch');
+        const sums = {};
+        for (const n of ['Zoro', 'Thermal', 'Depth', 'Ember', 'Mono', 'Neon']) {
+          await p.evaluate((n) => document.querySelector('.stkhm [data-preset="' + n + '"]').click(), n); await sleep(1800);
+          const v = await iv(); sums[n] = (await pix(p)).hue; await sleep(500);
+          check(await p.evaluate((n) => document.querySelector('.stkhm [data-preset="' + n + '"]').getAttribute('aria-pressed') === 'true' && !document.querySelector('.stkhm [data-preset="Custom"]'), n), tag + ': preset ' + n + ' applies (' + v.hmTheme + ', ' + v.heatSmooth + ', ' + v.contrastMode + ')');
+        }
+        check(new Set(Object.values(sums)).size >= 5, tag + ': presets redraw (different pixels)', sums);
+        await p.evaluate(() => document.querySelector('[aria-label="Bubble size higher"]').click()); await sleep(900);
+        check(await p.evaluate(() => !!document.querySelector('.stkhm [data-preset="Custom"]') && !document.querySelector('.stkhm-ps button[aria-pressed="true"]')), tag + ': a tweak after a preset shows Custom');
+        await shot(p, 'presets-' + tag);
         await p.evaluate(() => { document.querySelector('.stkhm-in').value = 'T1'; document.querySelector('.stkhm-save').click(); }); await sleep(600);
         await clickText(p, 'Fire'); await sleep(900);
         await clickText(p, 'T1', '.stkhm-tp'); await sleep(1500);
-        check((await theme(p)) === 'Classic', tag + ': a saved template loads', await theme(p));
+        check((await theme(p)) === 'Neon', tag + ': a saved template loads', await theme(p));
         await clickText(p, 'Fire'); await sleep(900);
         await p.evaluate(() => { const c = window.STRYKER_VELA.context(); c.stateChanged && c.stateChanged(); }); await sleep(3500);
         await p.reload({ waitUntil: 'domcontentloaded' });
         await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 }); await sleep(7000);
         check((await types(p)).includes('stk_depth_heat'), tag + ': reload keeps the layer', await types(p));
         check((await theme(p)) === 'Fire', tag + ': reload keeps the theme', await theme(p));
+        check(await p.evaluate(() => { const v = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_depth_heat').inputValues(); return v.bubbleScale === 130 && v.contrastMode === 'Manual' && v.heatSmooth === '15 s'; }), tag + ': reload keeps the panel overlay / contrast / smooth settings');
         await p.evaluate(() => window.__stkHeatmapPanel.open()); await sleep(900);
-        check(await p.evaluate(() => document.querySelector('.stkhm-rng').value) === '62', tag + ': reload keeps the sensitivity value (62%)');
+        check(await p.evaluate(() => document.querySelector('.stkhm-rng').value) === '80', tag + ': reload keeps the sensitivity value (80%)');
         await p.evaluate(() => window.__stkHeatmapPanel.open()); await sleep(1200);
         check((await st(p)).on, tag + ': reload keeps the panel switch ON');
       }
-      if (w < 520) { await shot(p, 'nq-' + tag); }
-      if (w > 1000 && thm === 'light') { await shot(p, 'nq-' + tag); }
+      if (w < 520 || (w > 1000 && thm === 'light')) {
+        await shot(p, 'nq-' + tag);
+        await p.evaluate(() => document.querySelector('.stkhm [data-preset="Thermal"]').click()); await sleep(1500);
+        await p.evaluate(() => { const b = document.querySelector('.stkhm-b'); b.scrollTop = [...b.querySelectorAll('.stkhm-l')].find((x) => /Smoothing/.test(x.textContent)).closest('section').offsetTop - 8; }); await sleep(400);
+        await shot(p, 'overlays-' + tag);
+        // alignment gate: label left, control right, one centre per row, rows 36-44 px
+        const al = await p.evaluate(() => [...document.querySelectorAll('.stkhm-row')].filter((r) => r.offsetParent).map((r) => { const R = r.getBoundingClientRect(), a = r.firstElementChild.getBoundingClientRect(), b = r.lastElementChild.getBoundingClientRect(), B = r.closest('.stkhm-b').getBoundingClientRect();
+          return { t: r.firstElementChild.textContent, h: Math.round(R.height), dc: Math.round(Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) * 10) / 10, l: Math.round(a.left - B.left), r: Math.round(B.right - b.right) }; }));
+        console.log('ALIGN ' + tag + ' ' + JSON.stringify(al));
+        check(al.length > 6 && al.every((x) => x.dc <= 1 && x.h >= 36 && x.h <= 44), tag + ': rows aligned (centre +-1 px, 36-44 px)', al);
+      }
       await sw(p);
       check(!(await types(p)).includes('stk_depth_heat') && !(await st(p)).on, tag + ': OFF removes the layer', await types(p));
       const rows = await search(p, 'heatmap');

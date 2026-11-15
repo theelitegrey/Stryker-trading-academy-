@@ -5,7 +5,7 @@
 // Checks at 1440 + 390 dark (+ 1440 light for Pro):
 //   Pro: the picker lists "Depth Heatmap (L2)" on NQ and BTC; it draws on NQ (heatmap columns on the graphics card, price trace,
 //        volume bars, the book column) and on BTC; the light theme keeps the heatmap's own dark field; no console errors.
-//   Free: the row carries the PRO tag, a click opens the upgrade modal and adds nothing; a saved chart with it is swept (no broken pane).
+//   Free (ALL TOOLS FREE, Owner 2026-11-13; was: PRO tag + upsell + swept): no PRO tag, a click adds it, a saved chart keeps it.
 const fs = require('fs');
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
@@ -108,15 +108,15 @@ const fieldRgb = (p, w, h) => p.evaluate(([x, y]) => new Promise((res) => {
       check(!!row, tag + ': NQ picker lists "' + NAME + '"', rows.map((r) => r.n));
       check(rows.filter((r) => r.n === NAME).length === 1, tag + ': one row, no title clash', rows.map((r) => r.n));
       if (free) {
-        check(row && row.pro, tag + ': the row carries the PRO tag', row);
+        check(row && !row.pro, tag + ': no PRO tag (all tools free)', row);
         await p.evaluate((n) => { window.__upsell = ''; window.openPlanUpgradeModal = (why) => { window.__upsell = why; }; const r = [...document.querySelectorAll('.stkiw-row')].find((x) => x.offsetParent && (x.querySelector('.stkiw-nm') || {}).textContent === n); r.querySelector('.stkiw-name').click(); }, NAME);
         await sleep(600);
-        check(/Pro/.test(await p.evaluate(() => window.__upsell || '')) && !(await types(p)).includes('stk_depth_heat'), tag + ': a click opens the Pro upsell and adds nothing');
+        check(!(await p.evaluate(() => window.__upsell || '')) && (await types(p)).includes('stk_depth_heat'), tag + ': a click adds it, no upsell');
         await closePicker(p);
         // a saved chart that has it (restored session / shared layout): swept, no broken pane
         await p.evaluate(() => { try { window.STRYKER_VELA.chart.addNativeIndicator('stk_depth_heat'); } catch (e) {} });
         await sleep(3000);
-        check(!(await types(p)).includes('stk_depth_heat'), tag + ': a saved chart with it is swept for Free', await types(p));
+        check((await types(p)).includes('stk_depth_heat'), tag + ': a saved chart keeps it for Free (not swept)', await types(p));
       } else {
         await closePicker(p);
         await p.evaluate(() => { window.STRYKER_VELA.chart.addNativeIndicator('stk_depth_heat'); window.STRYKER_VELA.context().stateChanged(); });

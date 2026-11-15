@@ -14,7 +14,7 @@
     "Watch how imbalance changes as price approaches a level."
   ],
   "notes": [
-    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Needs the full order book (Data feed L2); the tool is free, the live futures order book is the paid data feed (10 minutes delayed without it). Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
     "Resting size can be pulled at any time, so imbalance can flip quickly.",
     "It shows the book, not trades; pair it with Delta for what traded."
   ]

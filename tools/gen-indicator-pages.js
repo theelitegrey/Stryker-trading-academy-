@@ -240,7 +240,7 @@ function credit(it) {
 }
 
 function dataNote(it) {
-  if (/\(L2\)|L1\+L2/.test(it.windowName)) return 'Pro: needs the full order book (Data feed L2).';
+  if (/\(L2\)|L1\+L2/.test(it.windowName)) return 'Free tool. Needs the full order book (Data feed L2); live futures order book is a paid data feed, read 10 minutes delayed without it.';
   if (/\(L1\)/.test(it.windowName)) return 'Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.';
   return '';
 }

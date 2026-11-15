@@ -15,7 +15,7 @@
     "Hover a bubble to read its size."
   ],
   "notes": [
-    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Big Trades (L2) automatically.",
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, which are free. A saved chart that still holds this one is switched to Big Trades (L2) automatically.",
     "Joining fills into one order is an estimate based on timing and price.",
     "Futures only (NQ, ES, YM, RTY, CL, GC and their micros)."
   ],

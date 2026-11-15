@@ -41,7 +41,7 @@ async function historyClose(name, d, nowSec, env) {
       });
       const pk = pickClose(closeSnapRows(snaps), nowSec);
       if (pk && pk.row.day === day) return { snap: pk.row.snap, day, fallback: day !== lastSessionDay(nowSec) };
-    } else if (r.status === 403) throw new Error('pro_required');
+    } else if (r.status === 403) throw new Error('sign_in_required');
     // step back one weekday (holiday / no snapshot that day)
     const dt = new Date(day + 'T12:00:00Z');
     do dt.setUTCDate(dt.getUTCDate() - 1); while (dt.getUTCDay() === 0 || dt.getUTCDay() === 6);

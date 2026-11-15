@@ -17,7 +17,7 @@
   ],
   "notes": [
     "It describes resting orders and prints. It does not predict anything and has no order buttons.",
-    "Futures depth for this tool is limited to admins for now; crypto works for Pro members.",
+    "Futures depth for this tool is limited for now; crypto works for every member.",
     "Contrast and size filters change only how the map looks, not the data."
   ],
   "learn": "order-flow"

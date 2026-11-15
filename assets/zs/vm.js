@@ -456,7 +456,7 @@ export class Exec {
     const key = ns + ':' + kind;
     if (this.notices.has(key)) return;
     this.notices.set(key, kind === 'locked'
-      ? NS_LABEL[ns] + ' data is part of Pro, so ' + NS_FN[ns] + ' values are na on this chart.'
+      ? NS_LABEL[ns] + ' data is not available on this plan, so ' + NS_FN[ns] + ' values are na on this chart.'
       : 'No ' + NS_LABEL[ns].toLowerCase() + ' data for this symbol, so ' + NS_FN[ns] + ' values are na.');
   }
   plotBuf(id, candle) {

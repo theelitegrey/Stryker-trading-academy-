@@ -2,8 +2,11 @@
 // Depends on: assets/rt-access.js (admin check + ID token), chart-orderflow.js (hands in its helpers as H, so the Crypto
 // DOM Heatmap renderer, styles and history merge are REUSED, not copied), the book-recorder Worker's /ts-live hub.
 //
-// ACCESS (Owner 2026-11-03, released to Pro): active Pro members, admins and the marketing demo account. The Worker is the real
-// gate (TS_ACCESS=pro, same rule as GEX+); this file only shapes the UI. Free / signed-out members see the Pro lock + Unlock.
+// ACCESS (ALL TOOLS FREE, Owner 2026-11-13): every order-book TOOL runs for every signed-in member. Only the LIVE book is paid (the
+// Pro subscription, shown as "Pro · Live data": active / grandfathered Pro, admin, demo). The Worker is the real gate: /ts-live sends book
+// frames to the 'book' tier only, and /ts-book-history + /ts-aux cut a non-payer's reads to now - 11 min. A member without the live book
+// gets the RECORDED book 10 min delayed (no live book socket unless the signed agreement gives live trades), polled every 30 s
+// (delayedPump), with the note DELAYED_NOTE and the chip lock in chart-feeds.js opening the live-data paywall. Signed out: sign in.
 //
 // Browser -> /ts-live (the Worker's ONE upstream socket fans out; this page never talks to Tick-stream). One browser socket
 // per symbol, shared by every indicator and the ladder on that symbol, closed after 30 s in a hidden tab.
@@ -13,15 +16,15 @@
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
 import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=1028';
-import { isFree, tierKnown, onTier, upgrade } from './chart-pro-gate.js?v=1028';
-import { isRealtimeAdmin, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=1028';
+import { isFree, tierKnown, onTier, LIVE_DATA_REASON } from './chart-pro-gate.js?v=1028';
+import { isRealtimeAdmin, isL2Member, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=1028';
 import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=1028';
 import { hfLive } from './chart-heat-filter.js?v=1028';
 import { cmeOpenNow } from './chart-futures-provider.js?v=1028';
 import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=1028';
 import { replayClock } from './book-replay.js?v=1028';
 
-export const L2_MEMBERS = true;           // Pro members may use the futures L2 feed (the Worker's TS_ACCESS must be 'pro' too)
+export const L2_MEMBERS = true;           // the L2 tools are listed for everyone (all tools free 2026-11-13; the Worker's TS_ACCESS stays 'pro' for the LIVE book)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
 export const L2_BOOKS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'CL', 'GC'];
 // Quote-only symbols (indices send size 0 = the level, ETFs the last price): ticks channel only, no book, no footprint, no volume.
@@ -47,15 +50,28 @@ let bookTier = null;
 export const l2Proven = (root) => { const r = roots.get(root); return !!(r && r.nSnap > 0 && r.lastFrame && Date.now() - r.lastFrame < 60000); };
 export const l2AnyProven = () => { let ok = false; roots.forEach((r, k) => { if (!ok && l2Proven(k)) ok = true; }); return ok; };
 export const l2ProvenSym = (sym) => { const m = /^futures:(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]); return root ? l2Proven(root) : l2AnyProven(); };
-export function l2Visible() { return l2AnyProven() || (liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades))); }
+export function l2Visible() { return l2AnyProven() || (liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades && !window.__stkL2Test.delayed))); }
 // For the badges only: bookTier null = the hub has not said yet, so a Pro / admin member is NOT shown a lock. A definite Free member is. The server stays the real gate.
-export const l2Badge = () => (l2AnyProven() || (liveVisible() && !isFree()) ||   // a Free member live by the signed agreement (L1 only, 2026-11-04) still sees the L2 lock
-   (bookTier === null && !rtState().ready && !isFree()) || l2Visible());   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
+// ALL TOOLS FREE (2026-11-13): the tools run for every signed-in member (and while the sign-in answer is not in yet: no lock flash).
+// A member without the live book reads it 10 min delayed (l2Delayed). Signed out = the only lock left (the server refuses them).
+const signedIn = () => !!rtToken() || !rtState().ready || !!testOn();
+export const l2LiveBook = () => !!(l2AnyProven() || isL2Member() || l2Visible());
+export const l2Badge = () => (l2LiveBook() || signedIn());
+// The member uses the order-book tools on the RECORDED book, 10 min delayed (the server cuts the reads): no live book for them.
+export const l2Delayed = () => !l2LiveBook() && (testOn() ? !!window.__stkL2Test.delayed : !!(rtState().ready && rtToken()));   // tests: __stkL2Test.delayed
+export const DELAYED_NOTE = 'Order book 10 min delayed · live book is a paid data feed';
+export const DELAYED_SHORT = 'Order book · 10 min delayed';   // admin / non-Free member: never locked, even if a hub said 'trades' (then the tools wait on the book instead)   // sign-in answer not in yet = unknown, not Free: no lock
 const DIAG = { tier: '-', close: '-', closeAt: 0 };
-function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades) || l2AnyProven(); /* a late 'trades' never re-locks a member whose book frames are arriving */ if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
+function setTier(t) { const v = t === 'book' || (t === undefined && testOn() && !window.__stkL2Test.trades && !window.__stkL2Test.delayed) || l2AnyProven(); /* a late 'trades' never re-locks a member whose book frames are arriving */ if (v === bookTier) return; bookTier = v; try { window.dispatchEvent(new Event('stryker:l2tier')); } catch (e) {} }
 // Show the tools (picker, buttons) at all? Everyone, once released; a Free member gets the lock instead of the data.
 export const l2Listed = () => L2_MEMBERS || l2Visible();
-export const l2Unlock = () => upgrade('of');
+// The live-data paywall (assets/plan-modal.js strykerLiveDataPaywall: the Pro plan, shown as "Pro · Live data", with its price).
+// Signed out: the sign-in page (every tool is free once signed in).
+export const l2Unlock = () => {
+  if (rtState().ready && !rtToken()) { try { location.href = 'login.html?next=' + encodeURIComponent(location.pathname.replace(/^\//, '') + location.search); } catch (e) {} return; }
+  if (typeof window.strykerLiveDataPaywall === 'function') window.strykerLiveDataPaywall();
+  else if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(LIVE_DATA_REASON);
+};
 export { onTier };
 const symOf = (ticker) => String(ticker || '').toUpperCase().replace(/\d?!$/, '').replace(/^[A-Z_]+:/, '');
 export const l2Root = (ticker) => L2_ROOTS[symOf(ticker)] || null;
@@ -184,6 +200,9 @@ class Conn {
       if (!token) { r.status = 'error'; r.err = 'sign in'; tell(r); this.later(); return; }   // used to stay dead for good: keep asking, the token can land after the first try
     }
     if (this.stopped || this.ws) return;
+    // ALL TOOLS FREE (2026-11-13): no live book and no live trades (no signed agreement) = no socket; the recorded book is polled
+    // 10 min delayed instead (delayedPump). Re-checked every 20 s (a payment / agreement lands without a reload).
+    if (l2Delayed() && (testOn() || !liveVisible())) { r.status = 'delayed'; r.err = ''; tell(r); delayedPump(r); this.later(20000); return; }
     let ws;
     try { ws = new WebSocket(wsBase(base) + '/ts-live?symbol=' + this.root + '&levels=' + this.levels, token ? ['tz-auth', token] : undefined); } catch (e) { this.later(); return; }
     this.ws = ws;
@@ -210,9 +229,10 @@ class Conn {
       // REFRESH FIX 2026-11-05: only for a member whose plan is KNOWN and not Free. A Free member live by the signed agreement is rightly told
       // 'trades'; while the plan answer was still out (isFree() false = unknown) the socket was closed twice and backed off, and the chart fell
       // back to the 10-minute bars for seconds on some loads only ("sometimes live, sometimes not").
-      if (m.tier !== 'book' && bookTier !== true && !l2Proven(this.root) && liveVisible() && tierKnown() && !isFree() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
+      if (m.tier !== 'book' && bookTier !== true && !l2Proven(this.root) && liveVisible() && tierKnown() && isL2Member() && !testOn0() && (this.tierTry = (this.tierTry || 0) + 1) <= 2) { try { rtEnsureFresh(100000); } catch (e) {} setTimeout(() => { try { this.ws && this.ws.close(); } catch (e) {} }, 400); return; }
       if (m.tier === 'book') this.tierTry = 0;
-      setTier(m.tier); r.closed = m.state === 'idle'; r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
+      setTier(m.tier); if (m.tier !== 'book' && l2Delayed()) delayedPump(r);   // live trades (agreement), book 10 min delayed
+      r.closed = m.state === 'idle'; r.status = m.state === 'live' ? 'live' : 'reconnecting'; tell(r); return; }
     if (m.event === 'ping') { const st = m.state === 'live' ? 'live' : 'reconnecting', cl = m.state === 'idle'; if ((r.status !== st && r.status !== 'error') || r.closed !== cl) { r.closed = cl; if (r.status !== 'error') r.status = st; tell(r); } return; }   // the hub's 5 s heartbeat carries its data state: no data for 10 s = reconnecting
     if (m.event === 'hub_full') { r.status = 'error'; r.err = 'busy'; tell(r); return; }
     if (m.event) return;
@@ -281,6 +301,50 @@ export function l2Probe() {
     window.addEventListener('stryker:l2tier', done);
     if (bookTier !== null) done();
   });
+}
+// DELAYED BOOK (all tools free, 2026-11-13): a member without the live book gets the RECORDED book. Every 30 s while anything uses the
+// root: /ts-aux (footprint minutes + imbalance) and /ts-book-history (the heatmap columns) for the last 20 min; the Worker cuts both to
+// now - 11 min for them, so nothing newer than the exchange delay ever reaches this page. The newest column also fills r.snap
+// (delayed: true) so the DOM ladder and the book panel show the delayed book. Only the order-book source listeners (l2Source) get the
+// columns, stamped with their own time; never counted as proof of the live book (nSnap stays 0).
+const DELAY_POLL_MS = 30000;
+function delayedPump(r) {
+  if (r.dpOn) return; r.dpOn = true;
+  const tick = async () => {
+    if (!r.listeners.size || !l2Delayed()) { r.dpOn = false; return; }
+    const base = baseUrl(HOOK); if (!base) { setTimeout(tick, 5000); return; }
+    const now = Date.now(), from = Math.max(now - 20 * 60000, (r.dpLast || 0) + 1);
+    try {
+      const x = await authFetch(base + '/ts-aux?symbol=' + r.root + '&from=' + (now - 20 * 60000) + '&to=' + now, READ_TIMEOUT_MS);
+      if (x.ok) {
+        const j = await x.json(); if (!r.trades) r.trades = new TickFeed(r.root);
+        r.trades.seed(j.fp || [], true);
+        const lastI = r.imb.length ? r.imb[r.imb.length - 1][0] : 0;
+        for (const v of j.imb || []) if (v[0] * 1000 > lastI) r.imb.push([v[0] * 1000, v[1], v[2]]);
+        r.seedSt = 'done';
+      }
+    } catch (e) {}
+    try {
+      const x = await authFetch(base + '/ts-book-history?symbol=' + r.root + '&from=' + from + '&to=' + now + '&fill=0', READ_TIMEOUT_MS);
+      const got = x.ok && HOOK && HOOK.decodeBookHistory ? HOOK.decodeBookHistory(await x.arrayBuffer()) : null;
+      if (got && got.length) {
+        for (const s of got) {
+          if (!(s.ts > (r.dpLast || 0))) continue;
+          r.dpLast = s.ts;
+          const m = { type: 'coarse', symbol: r.root, delayed: true, ts: s.ts, mid: s.mid, bb: s.bb, ba: s.ba, step: s.step, i0: s.i0, v: Array.from(s.v) };
+          r.listeners.forEach((f) => { if (f.__l2src) { try { f(m); } catch (e) {} } });
+        }
+        const s = got[got.length - 1], bids = [], asks = [];
+        for (let k = s.v.length - 1; k >= 0; k--) { const v = s.v[k]; if (v > 0) bids.push([(s.i0 + k + 0.5) * s.step, v]); }
+        for (let k = 0; k < s.v.length; k++) { const v = s.v[k]; if (v < 0) asks.push([(s.i0 + k + 0.5) * s.step, -v]); }
+        if (bids.length && asks.length) r.snap = { type: 'snap', symbol: r.root, ts: s.ts, delayed: true, bids, asks, imb: 0, imb10: 0 };
+        r.lastDelayed = s.ts;
+      }
+    } catch (e) {}
+    tell(r);
+    setTimeout(tick, DELAY_POLL_MS);
+  };
+  setTimeout(tick, 300);
 }
 let idSeq = 0;
 // subscribe to one root: fn(frame) per frame, fn() on state changes. -> { r, release(), levels(n) }
@@ -494,7 +558,7 @@ export function l2Source(root) {
       let lastCoarseAt = 0;
       const fn = (m) => {
         const r = rootState(root);
-        if (!m) { onStatus(r.status === 'live' ? 'live' : r.status === 'error' ? 'error' : 'reconnecting', r.err); return; }
+        if (!m) { onStatus(r.status === 'live' || r.status === 'delayed' ? 'live' : r.status === 'error' ? 'error' : 'reconnecting', r.err); return; }
         if (m.type === 'snap') {
           book.bestBid = m.bids[0] ? m.bids[0][0] : null; book.bestAsk = m.asks[0] ? m.asks[0][0] : null; book.ts = Date.now();
           if (!lastCoarseAt) { fill(book, m); }   // until the first whole-book column arrives, draw what the snapshot has
@@ -508,6 +572,7 @@ export function l2Source(root) {
           onCoarse(m); onBook(book);
         }
       };
+      fn.__l2src = true;   // delayedPump hands the recorded columns to these listeners only
       const h = acquire(root, fn, 60);
       fn();   // the socket may already be up (candles share it): take its current state now, the hub repeats 'status' only on a change
       return Object.assign(() => h.release(), { tick() {}, age() {} });
@@ -535,7 +600,7 @@ function feedStats(sym, now) {
   const dt = (now - k.t) / 1000;
   if (dt >= 0.9) { const f = (a, b) => (a == null ? b : a * 0.5 + b * 0.5); k.bookRate = f(k.bookRate, ((r.nSnap || 0) - k.b) / dt); k.tradeRate = f(k.tradeRate, ((r.nTick || 0) - k.x) / dt); k.t = now; k.b = r.nSnap || 0; k.x = r.nTick || 0; }
   rateMem.set(root, k);
-  return { status: r.status === 'live' ? 'live' : 'wait', ageMs: r.lastFrame ? now - r.lastFrame : 0, bookRate: k.bookRate, tradeRate: k.tradeRate };
+  return { status: r.status === 'live' && !l2Delayed() ? 'live' : 'wait', ageMs: r.lastFrame ? now - r.lastFrame : 0, bookRate: k.bookRate, tradeRate: k.tradeRate };
 }
 export function registerL2Feeds() {
   registerFeed('stk_fut_dom', { needs: 'L2', title: 'Order book heatmap (L2)', mkt: 'futures' });
@@ -545,13 +610,13 @@ export function registerL2Feeds() {
   registerFeed('stk_crypto_dom', { needs: 'L2', title: 'Order book heatmap (L2)', mkt: 'crypto' });
   registerFeed('stk_liqmap', { needs: 'L2', title: 'Liquidity Map (L2)' });
   setStats('futures', feedStats);
-  if (typeof window !== 'undefined') window.STRYKER_L2_OK = l2Visible; window.STRYKER_L2_BADGE = l2Badge; window.STRYKER_L2_PROVEN = l2ProvenSym;
+  if (typeof window !== 'undefined') window.STRYKER_L2_OK = l2Visible; window.STRYKER_L2_BADGE = l2Badge; window.STRYKER_L2_PROVEN = l2ProvenSym; window.STRYKER_L2_DELAYED = l2Delayed;
 }
 
 // ---------------------------------------------------------------------------------------- indicators
 export const L2_TYPES = ['stk_fut_dom', 'stk_fut_imb'];   // chart-ts-trades.js and chart-delta-suite.js add their L2 tools
 const NEED = 'Futures DOM works on NQ, MNQ, ES, MES, YM, RTY, CL and GC charts (MYM, M2K, MCL, MGC show their mini\'s book).';
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Sign in to use the order book tools. They are free.';
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const BOOK_WALLS = 'Walls (persist 30 s+, pulled / consumed tags)';
@@ -607,6 +672,7 @@ export function installFuturesL2(Core, H, reg) {
       if (!f || f.status === 'loading') return 'Connecting to the futures order book…';
       if (f.status === 'error') return st.err === 'busy' ? 'Order book is busy. Retrying…' : 'Order book unavailable.';
       if (replayClock() && H.replayNote) return H.replayNote(f);   // bar replay: the recorded book, the live state does not matter
+      if (l2Delayed()) return f.history.length < 2 && f.remote.length < 2 ? 'Loading the recorded order book…' : '';   // the delayed label lives in the feed chips (chart-feeds.js)
       if (st.status !== 'live') return l2Closed(this.root) ? closedNote() : 'Reconnecting to the order book…';
       const cfg = H.domConfig(fcfg(this.inputs, this.walls));
       if ((cfg.heat || cfg.walls || cfg.bm) && f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
@@ -686,7 +752,7 @@ export function installFuturesL2(Core, H, reg) {
       const series = [mk('stk_fut_imb-v', 'Top-of-book imbalance', vendor, inp.vendorColor || '#03c988')];
       if (inp.showOurs !== false) series.push(mk('stk_fut_imb-o', '10-level depth-weighted', ours, inp.oursColor || '#00adb5'));
       const note = this.block && this.block !== NOT_YET ? [H.message('stk_fut_imb-msg', this.block, H.pageIsDay(), 'top_right')] : [];
-      this.ctx.setStatus(this.block ? 'idle' : r && r.status === 'live' ? 'live' : 'loading');
+      this.ctx.setStatus(this.block ? 'idle' : r && (r.status === 'live' || r.status === 'delayed') ? 'live' : 'loading');
       this.ctx.emit({ series: this.block ? [] : series, tables: note, priceLines: [{ id: 'stk_fut_imb-0', paneId: '', price: 0, color: '#787b86', lineStyle: 'dotted', width: 1 }] });
     }
   };
@@ -760,8 +826,9 @@ export function mountL2Ladder(ws, opts) {
     panel.querySelector('.stkl2-sym').textContent = root || '';
     if (!root) { list.innerHTML = '<div class="stkl2-empty">Open an NQ, ES, YM, RTY, CL or GC chart (or a micro) to see its order book.</div>'; stat.textContent = ''; return; }
     const age = r && r.lastFrame ? Date.now() - r.lastFrame : -1;
-    stat.className = 'stkl2-stat' + (r && r.status === 'live' ? ' is-live' : ' is-wait');
-    stat.innerHTML = '<i class="stkl2-dot" aria-hidden="true"></i><span>' + (r && r.status === 'live' ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (r && r.status === 'live' && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em><u>' + (r && r.snap ? (() => { const n = Math.round((r.snap.asks[0][0] - r.snap.bids[0][0]) / TICK); return 'Spread ' + n + (n === 1 ? ' tick' : ' ticks'); })() : '') + '</u>';
+    stat.className = 'stkl2-stat' + (r && r.status === 'live' && !l2Delayed() ? ' is-live' : ' is-wait');
+    if (l2Delayed()) stat.innerHTML = '<i class="stkl2-dot" aria-hidden="true"></i><span>' + DELAYED_SHORT + '</span><button type="button" class="stkl2-live" data-live-data>Get live data</button>';
+    else stat.innerHTML = '<i class="stkl2-dot" aria-hidden="true"></i><span>' + (r && r.status === 'live' ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (r && r.status === 'live' && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em><u>' + (r && r.snap ? (() => { const n = Math.round((r.snap.asks[0][0] - r.snap.bids[0][0]) / TICK); return 'Spread ' + n + (n === 1 ? ' tick' : ' ticks'); })() : '') + '</u>';
     const m = ladderRows(r && r.snap, r && r.trades && r.trades.atPrice(300000), rows, tickOf(root));
     if (!m) { list.innerHTML = '<div class="stkl2-empty">Waiting for the order book…</div>'; return; }
     if (list.children.length !== m.rows.length || list.firstChild.classList.contains('stkl2-empty')) {
@@ -790,7 +857,7 @@ export function mountL2Ladder(ws, opts) {
   }
   function setLevels(n) { levels = n; seg.querySelectorAll('.stkl2-lv').forEach((b) => { b.classList.toggle('on', Number(b.dataset.n) === n); b.setAttribute('aria-pressed', String(Number(b.dataset.n) === n)); }); if (h) h.levels(n); }
   function setOpen(v) {
-    open = !!v; setPanel('dom_ladder', open && l2Visible(), { needs: 'L2', title: 'DOM ladder', mkt: 'futures' }); panel.hidden = !open; host.classList.toggle('stkl2-open', open);
+    open = !!v; setPanel('dom_ladder', open && l2Badge(), { needs: 'L2', title: 'DOM ladder', mkt: 'futures' }); panel.hidden = !open; host.classList.toggle('stkl2-open', open);
     document.documentElement.classList.toggle('stkl2-sheet', open && isPhone());
     railBtn.setAttribute('aria-pressed', String(open)); railBtn.classList.toggle('on', open); phoneBtn.classList.toggle('on', open);
     if (open) { try { const g = window.__stkGexLadder; if (g && g.isOpen) g.close(); } catch (e) {} attach(); requestAnimationFrame(() => { size(); paint(); }); }
@@ -803,9 +870,10 @@ export function mountL2Ladder(ws, opts) {
     return true;
   }
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
-  const show = () => { railBtn.hidden = phoneBtn.hidden = !l2Listed(); if (!l2Visible() && open) setOpen(false); };
+  const show = () => { railBtn.hidden = phoneBtn.hidden = !l2Listed(); if (!l2Badge() && open) setOpen(false); };
   rtReady().then(() => { show(); l2Probe(); }); try { rtOnChange(show); onTier(show); } catch (e) {} window.addEventListener('stryker:l2tier', show); show();
-  const toggle = () => { if (!l2Visible()) { l2Unlock(); return; } setOpen(!open); };
+  const toggle = () => { if (!l2Badge()) { l2Unlock(); return; } setOpen(!open); };   // all tools free (2026-11-13): only signed out is sent away
+  stat.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-live-data]')) l2Unlock(); });
   railBtn.addEventListener('click', toggle);
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
   closeBtn.addEventListener('click', () => setOpen(false));

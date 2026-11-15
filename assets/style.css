@@ -11946,3 +11946,19 @@ section.stkss-sec{ padding:0; margin:0; }
 @media (max-width:360px){ .stkss.is-phone .stkss-px{ display:none; } }
 @media (prefers-reduced-motion:reduce){ .stkss-box, .stkss-scrim{ transition:none !important; } }
 .stkss.stkss-ghost{ visibility:hidden; pointer-events:none; }
+
+/* Owner 15 Nov "properly aligned and centred, good padding": chart top bar. Everything sits on ONE centre line
+   (bar 48px -> centre 24px): menu button, logo, layout menu, workspace tabs, session pill, right icons.
+   Tabs are now centred rounded chips (8px radius all round) instead of bottom-anchored browser tabs. */
+@media (min-width:768px){
+  .mobile-topnav .topnav-left{ align-items:center; gap:12px; }
+  .mobile-topnav .topnav-left .brand{ align-self:center; margin:0; display:flex; align-items:center; }
+  .topnav-left .brand-mark{ height:20px; }
+  body.charts-page .stkws-strip, .stkws-strip{ align-items:center; align-self:center; gap:8px; margin-left:4px; height:32px; }
+  .stkws-strip .stkws-menu{ align-self:center; }
+  .stkws-strip .stkws-menu > .stkc-btn{ height:32px; padding:0 8px; border-radius:8px; display:inline-flex; align-items:center; gap:4px; }
+  .stkws-tabs{ align-items:center; height:32px; gap:4px; }
+  .stkws-tab{ height:32px; padding:0 12px; border-radius:8px; gap:8px; }
+  .stkws-tab::before, .stkws-tab::after{ display:none; }
+  .stkws-plus, .stkws-more{ height:32px; width:32px; border-radius:8px; align-self:center; }
+}

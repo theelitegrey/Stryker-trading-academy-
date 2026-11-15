@@ -20,13 +20,22 @@ const EXTRA_CSS = `.fjs-tag{ display:inline-block; margin-left:8px; padding:2px 
 .fjs-seg2 button[aria-checked="true"].buy{ background:var(--bull,#03c988); color:#050506; } .fjs-seg2 button[aria-checked="true"].sell{ background:var(--bear,#ff6b6b); color:#050506; }
 .fjs-ord{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border:1px solid var(--rz-line); border-radius:12px; margin:0 0 8px; font:400 13px/18px var(--rz-font); } .fjs-ord button{ height:40px; padding:0 14px; border:1px solid var(--rz-line); border-radius:10px; background:transparent; color:var(--rz-ink); font:600 13px/18px var(--rz-font); cursor:pointer; }
 .fjs-confirm{ margin:0 0 16px; padding:14px; border:1px solid var(--rz-amber); border-radius:12px; font:600 16px/22px var(--rz-font); }
-.fjs-sample{ margin:0 0 12px; font:600 12px/16px var(--rz-font); color:var(--rz-amber); letter-spacing:.04em; text-transform:uppercase; }`;
+.fjs-sample{ margin:0 0 12px; font:600 12px/16px var(--rz-font); color:var(--rz-amber); letter-spacing:.04em; text-transform:uppercase; }
+#fjs .rjs-head h2{ display:flex; align-items:center; } #fjs .fjs-tag{ vertical-align:baseline; }
+#fjs .rjs-err{ margin-top:8px; padding:12px 16px; }
+[data-theme="light"] #fjs .rjs-err{ color:#b3261e; border-color:rgba(179,38,30,.35); background:rgba(179,38,30,.06); }`;
 
+// Errors always carry a readable message: the server's {error} line, or a plain one for a network failure / non-JSON page.
+const NET_MSG = 'Couldn’t reach TradeZoro, try again.';
+const FALLBACK = (st) => (st === 401 ? 'Your sign-in expired. Reload the page and try again.' : st === 403 ? 'This is for admins only.' : st === 429 ? 'Too many tries. Wait a minute.' : 'Broker sync hit an error' + (st ? ' (code ' + st + ')' : '') + '. Try again in a minute.');
 async function call(url, body, sample) {
-  const t = await auth.currentUser.getIdToken();
-  const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + t }, body: JSON.stringify(body || {}), cache: 'no-store' });
+  let t;
+  try { t = await auth.currentUser.getIdToken(); } catch (e) { const er = new Error('Your sign-in expired. Reload the page and try again.'); er.status = 401; throw er; }
+  let r;
+  try { r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + t }, body: JSON.stringify(body || {}), cache: 'no-store' }); }
+  catch (e) { const er = new Error(NET_MSG); er.status = 0; er.network = true; throw er; }
   let j = null; try { j = await r.json(); } catch (e) {}
-  if (!r.ok) { const e = new Error((j && j.error) || 'Request failed'); e.status = r.status; e.needsConnect = !!(j && j.needsConnect); throw e; }
+  if (!r.ok) { const e = new Error((j && typeof j.error === 'string' && j.error) || FALLBACK(r.status)); e.status = r.status; e.code = j && j.code; e.needsConnect = !!(j && j.needsConnect); throw e; }
   return j || {};
 }
 
@@ -93,7 +102,7 @@ export function openBrokerSync({ uid } = {}) {
       S.accounts = (Array.isArray(a) ? a : []).map((x) => ({ id: x.accountId || x.id, name: x.accountName || x.name || x.nickname || x.brokerAccountId || x.accountId, broker: x.brokerName || x.brokerId || x.institutionName || '', cur: x.currencyCode || x.currency || '' })).filter((x) => x.id);
       if (!S.accounts.length) { S.step = 'wait'; return drawWait('No connected accounts yet. Finish connecting in the broker tab, then tap Continue.'); }
       S.account = S.accounts[0]; S.step = 'pick'; draw();
-    } catch (e) { if (e.needsConnect) { S.userId = ''; lsSet(''); S.step = 'start'; return drawStart(S.sessionId ? 'Not connected yet. Finish in the broker tab first.' : ''); } if (e.status === 503) return drawNotSetUp(); S.step = S.step === 'start' ? 'start' : 'wait'; (S.step === 'start' ? drawStart : drawWait)(e.message); }
+    } catch (e) { if (e.needsConnect) { S.userId = ''; lsSet(''); if (S.step === 'wait' && S.sessionId) return drawWait('Not connected yet. Finish in the broker tab first, then tap Continue.'); S.step = 'start'; return drawStart(); /* stale stored id (e.g. from the old sandbox): forget it quietly */ } if (e.status === 503) return drawNotSetUp(); S.step = S.step === 'start' ? 'start' : 'wait'; (S.step === 'start' ? drawStart : drawWait)(e.message); }
   }
   // ---- pick account + dates
   function drawPick(error) {
@@ -235,6 +244,6 @@ export function openBrokerSync({ uid } = {}) {
   function draw() { sheet.classList.toggle('rjs-wide', S.step === 'preview'); if (S.step === 'start') drawStart(); else if (S.step === 'wait') drawWait(); else if (S.step === 'pick') drawPick(); else if (S.step === 'preview') drawPreview(); else if (S.step === 'order') openOrderStep(); else drawDone(); sheet.scrollTop = 0; }
 
   // Probe first: "Not set up yet" when the server key is missing.
-  fetch('/connect/finatic/session?probe=1', { cache: 'no-store' }).then((r) => r.json().catch(() => ({}))).then((j) => { if (!(j && j.configured)) return drawNotSetUp(); draw(); if (S.userId) loadAccounts(); }).catch(() => drawNotSetUp());
+  fetch('/connect/finatic/session?probe=1', { cache: 'no-store' }).then((r) => r.json().catch(() => ({}))).then((j) => { if (!(j && j.configured)) return drawNotSetUp(); draw(); if (S.userId) loadAccounts(); }).catch(() => drawStart(NET_MSG));
   sheet.innerHTML = head('Broker sync') + '<p class="rjs-lead">Checking…</p>'; wireX();
 }

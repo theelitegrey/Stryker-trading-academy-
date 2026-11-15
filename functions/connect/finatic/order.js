@@ -3,7 +3,7 @@
 //   place  -> POST /accounts/{id}/orders          cancel -> DELETE /accounts/{id}/orders/{orderId}          modify -> PATCH /accounts/{id}/orders/{orderId}
 // Guards, in order: not configured 503 · origin/JSON/IP limit · unsigned 401 · non-admin 403 · live without FINATIC_LIVE_ORDERS=1 403 "Live orders are off"
 // · 10 orders/min per admin · body whitelist (unknown fields dropped, qty cap) · audit row written BEFORE the order (no audit, no order).
-import { gate, readBody, fin, startSession, sessionHeaders, ordersBlocked, envMode, json, fail, UUID, ID } from './_fin.js';
+import { gate, readBody, fin, startSession, sessionHeaders, ordersBlocked, envMode, json, fail, needsConnect, methodNotAllowed, safe, UPSTREAM_MSG, UUID, ID } from './_fin.js';
 import { openAudit } from './_audit.js';
 
 export const MAX_FUT = 2, MAX_EQ = 100, ORDERS_PER_MIN = 10;
@@ -47,8 +47,8 @@ export function cleanOrder(b, { partial } = {}) {
   return { order: o };
 }
 
-export async function handle(request, env, deps = {}) {
-  if (request.method !== 'POST') return new Response(null, { status: 405, headers: { allow: 'POST' } });
+async function run(request, env, deps) {
+  if (request.method !== 'POST') return methodNotAllowed('POST');
   const g = await gate(request, env, deps, 'finatic-order');
   if (g instanceof Response) return g;
   const b = await readBody(request);
@@ -65,9 +65,10 @@ export async function handle(request, env, deps = {}) {
   if (op !== 'schema' && await orderRateLimited(env, g.uid)) return fail(429, 'Order limit: 10 a minute');
 
   let userId = typeof b.userId === 'string' && UUID.test(b.userId) ? b.userId : '';
-  if (!userId) return json({ error: 'Not connected yet', needsConnect: true }, 409);
+  if (!userId) return needsConnect();
   const s = await startSession(env, deps, userId);
-  if (!s || !s.authenticated) return json({ error: 'Not connected yet', needsConnect: true }, 409);
+  if (s.failed) return s.staleUser ? needsConnect() : fail(502, UPSTREAM_MSG, 'upstream');
+  if (!s.authenticated) return needsConnect();
   const h = sessionHeaders(s);
   const A = '/api/v1/accounts/' + encodeURIComponent(b.accountId);
 
@@ -92,4 +93,5 @@ export async function handle(request, env, deps = {}) {
   if (!accepted) return fail(r.status === 403 ? 403 : r.status === 429 ? 429 : 502, r.status === 403 ? 'Trading is not enabled for this account yet' : (res.message ? String(res.message).slice(0, 200) : 'The broker did not accept the order'));
   return json({ ok: true, op, env: envMode(env), orderId: brokerOrderId, status: res.order && res.order.status || '', accepted: true });
 }
+export const handle = safe('order', run);
 export const onRequest = ({ request, env }) => handle(request, env);

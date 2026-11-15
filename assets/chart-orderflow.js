@@ -30,24 +30,24 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { pinSessions } from './chart-frvp-data.js?v=1037';
-import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=1037';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1037';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=1037';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=1037';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=1037';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=1037';
-import * as ProGate from './chart-pro-gate.js?v=1037';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=1037';
-import * as BT from './chart-bigtrades.js?v=1037';
-import { installBookPack } from './chart-book-pack.js?v=1037';
-import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=1037';
-import { installPatterns } from './chart-patterns.js?v=1037';
-import { installL2Flow } from './chart-l2-flow.js?v=1037';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=1037';
-import { installDepthHeatmap } from './chart-depth-heatmap.js?v=1037';
-export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=1037';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=1037';
+import { pinSessions } from './chart-frvp-data.js?v=1038';
+import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=1038';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1038';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=1038';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=1038';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=1038';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=1038';
+import * as ProGate from './chart-pro-gate.js?v=1038';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=1038';
+import * as BT from './chart-bigtrades.js?v=1038';
+import { installBookPack } from './chart-book-pack.js?v=1038';
+import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=1038';
+import { installPatterns } from './chart-patterns.js?v=1038';
+import { installL2Flow } from './chart-l2-flow.js?v=1038';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=1038';
+import { installDepthHeatmap } from './chart-depth-heatmap.js?v=1038';
+export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=1038';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=1038';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -1980,7 +1980,7 @@ class BookFeed {
   // (30 d, book tier only, chart-futures-l2.js bookHistory); crypto: Binance spot (/book-history). One read at a time; a failure waits.
   needReplay(fromMs, toMs) {
     const E = replayClock();
-    if (!E || this.remoteBusy) return;
+    if (!E || this.remoteBusy || (this.custom && !this.custom.remote)) return;   // a member's own depth feed keeps no recording
     if (!this.custom && (/\.P$/i.test(this.ticker) || this.provider !== 'binance' || !recorderUrl())) return;
     const now = Date.now();
     if (this.remoteFailAt && now - this.remoteFailAt < 30000) return;
@@ -2718,7 +2718,7 @@ export function installOrderflow(Core) {
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
   installFuturesL2(Core, { hfSchema, SMOOTH_INPUT, cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds, replayNote, btBook }, reg);
-  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, marketOf, message, pageIsDay, feedTrades, replayNote, btBook, chartTz }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
+  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, bucketBook, marketOf, message, pageIsDay, feedTrades, replayNote, btBook, chartTz }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
   installBookPack(Core, { line, message, pageIsDay }, reg);
   installPatterns(Core, {}, reg);   // Auto Chart Patterns: Free for every plan (assets/chart-patterns.js)
   installL2Flow(Core, { line, message, pageIsDay, acquireBookFeed }, reg);

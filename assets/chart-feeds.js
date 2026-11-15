@@ -2,12 +2,12 @@
 // Lit = in use on this chart now. Dim = not in use. Delayed = in use on the recorded book, 10 min delayed (ALL TOOLS FREE, Owner 2026-11-13:
 // only the LIVE futures order book is a paid data feed). Locked = signed out (the tools need a free account).
 // REGISTER AN INDICATOR OR PANEL (one line, from any module):
-//   import { registerFeed } from './chart-feeds.js?v=1037';   registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
+//   import { registerFeed } from './chart-feeds.js?v=1038';   registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
 //   (no module? window.STRYKER_FEEDS.register('stk_of_big', { needs: 'L1', title: 'Big Trades' }))
 // Options: mkt 'futures' | 'crypto' (only counts on that market; default any). A panel that is not an indicator calls setPanel(id, true|false).
 // Plain names only in the UI: no vendor names. Education only. Not financial advice.
 
-import { isFree } from './chart-pro-gate.js?v=1037';
+import { isFree } from './chart-pro-gate.js?v=1038';
 
 export const LEVELS = {
   L1: { name: 'L1', short: 'trades and best bid/ask', what: 'Every trade plus the best bid and ask.' },
@@ -151,6 +151,9 @@ export function mountFeedBadges(ws) {
   function paint() {
     cur = usedNow();
     const st = feedState(cur.used, cur.have);
+    // no hub / exchange book for this market (e.g. a stock): L2 is not a plan matter. Lit when the member's own connected feed streams
+    // depth for it (chart-depth-source.js), else not in use; the tool itself says what would make it work.
+    if (!cur.mkt && st.L2.state === 'locked') { const bs = window.__stkBookSources, pv = (/^([a-z0-9_-]+):/i.exec(cur.sym) || [])[1]; st.L2.state = bs && pv && typeof bs[pv.toLowerCase()] === 'function' ? 'lit' : 'dim'; st.L2.locked = ''; }
     if (cur.sure) for (const L of ['L1', 'L2']) if (st[L].state === 'locked') { st[L].state = 'lit'; st[L].locked = ''; st[L].wait = true; }
     last = st;
     row.hidden = !st.show;

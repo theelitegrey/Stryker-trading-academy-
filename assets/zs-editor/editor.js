@@ -15,7 +15,7 @@ import {
   Compartment, StreamLanguage, syntaxHighlighting, HighlightStyle, indentOnInput, bracketMatching, indentUnit,
   defaultKeymap, history, historyKeymap, indentWithTab, autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap,
   linter, lintGutter, setDiagnostics, searchKeymap, highlightSelectionMatches, tags
-} from './cm6.js?v=1037';
+} from './cm6.js?v=1038';
 
 const KEYWORDS = new Set(['if', 'else', 'for', 'in', 'to', 'by', 'while', 'switch', 'break', 'continue', 'var', 'varip', 'and', 'or', 'not', 'import', 'export', 'method', 'type']);
 const ATOMS = new Set(['true', 'false', 'na']);

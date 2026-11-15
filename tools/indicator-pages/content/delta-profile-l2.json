@@ -15,7 +15,7 @@
     "Use Fixed range to look at one move, from its first bar to its last."
   ],
   "notes": [
-    "Futures only (NQ, ES, YM, RTY, CL, GC and their micros). Needs the full order book data feed (L2), which is part of Pro.",
+    "Futures only (NQ, ES, YM, RTY, CL, GC and their micros). Needs the full order book data feed (L2); the tool is free, the live futures order book is the paid data feed (10 minutes delayed without it).",
     "To set a fixed range, pick \"Delta Profile (L2): click two bars for a fixed range\" in the Indicators list, then click the first and the last bar. Volume Profile (L2) also has a Delta view.",
     "It shows what traded. It does not predict what price will do."
   ],

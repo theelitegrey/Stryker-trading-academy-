@@ -16,6 +16,7 @@
 // Edge-cached 30 s, rate-limited per IP (20/min for /book-history and /status; /status is also
 // memoised 30 s in the DO). Public market data only: no user data.
 import { isBlockedRequest, blockedJson } from './geo-block.js';
+import { tsKind, tsForwardUrl, TS_NO_CACHE } from './ts-route.js';   // /ts-* hardening (2026-11-14): path-only live/history, param allow-list, no-store
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, validateGexFast, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TIDE_MAX_DAYS } from './tide.js';
@@ -23,17 +24,17 @@ import { closeCandidate, pickClose, etEpoch as closeEtEpoch, CLOSE_KEEP_DAYS } f
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 import { validateZoIngest, zoInit, zoPut, zoTrim, zoGet, zoNoteKey, zoHistDay, zoHistRange, zoHistSessions, zoCloseRow, zoActItems, zoLastHistDay, zoGunzip, zoIngestRoute, zoGetRoute, zoExportRoute, exportSnaps, futuresRatio, exportParams, exportRows, exportCsv, teaserEligible, zoTeaser, ZO_ROUTES, ZO_PROFILE_X, ZO_SURFACE_KIND, ZO_ACT_KIND, ZO_CME_ROOTS, ZO_MAX_GZ, zoSymbolOk, zoTier, NOTICE } from './zoro.js';
-import { lvRoute, lvInit, lvSnapshot, lvProUntil, lvTokPut, lvTokGet, lvTokInfo, lvTokDel, lvTokTouch, lvTokUsed, lvTokTrim } from './levels-feed.js';
+import { lvRoute, lvInit, lvSnapshot, lvMemberUntil, lvTokPut, lvTokGet, lvTokInfo, lvTokDel, lvTokTouch, lvTokUsed, lvTokTrim } from './levels-feed.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { hlInit, hlDo, hlIngestRoute, hlRoute, HL_ROUTES } from './hl.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
-import { isAdminToken, isRealtimeToken, isGexProToken, bearerOf, wsTokenOf, RT_DELAY_S, isActiveProDoc, paidPlanNames, RT_PROJECT } from './rt-auth.js';
+import { isAdminToken, isRealtimeToken, isMemberToken, bearerOf, wsTokenOf, RT_DELAY_S, isActiveProDoc, paidPlanNames, RT_PROJECT } from './rt-auth.js';
 import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
 import { TSHub, tsHubFetch, tsStore, tsOpts, cmeOpen } from './ts-hub.js';
 import { TickEngine, teStore, teOpts } from './tick-engine.js';
 import { histSql, histFetch } from './hist-store.js';   // DEEP HISTORY (1-minute bars a year+ back, src/hist-store.js)
-import { tsAllowed, tsAccess, tsTier } from './ts-access.js';
+import { tsAllowed, tsAccess, tsTier, tsHistoryAccess } from './ts-access.js';
 import { StockEngine, skStore, skSpec, skCut, codeOk } from './stock-engine.js';   // STOCKS ENGINE
 import { verifyIdToken } from './rt-auth.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
@@ -83,10 +84,10 @@ export function alignRange(fromQ, toQ, now) {
   return { from, to };
 }
 
-// GEX is Pro only (Owner 2026-11-01): the raw chain / fast-ladder reads were open to any client without an Origin header.
-// Allowed: the server feeders (ingest secret) or a Pages Function forwarding a verified admin / demo / active-Pro token.
+// GEX+ is a free tool for signed-in members (Owner 2026-11-13, was Pro since 2026-11-01): the raw chain / fast-ladder reads need the
+// feeders' ingest secret or a Pages Function forwarding a verified, non-anonymous member token. Never open to a token-less client.
 async function gexChainOk(req, env) {
-  return (await authorized(req, env)) || (await isGexProToken(bearerOf(req)));
+  return (await authorized(req, env)) || (await isMemberToken(bearerOf(req)));
 }
 
 async function authorized(req, env) {
@@ -854,7 +855,7 @@ async function route(req, env, ctx) {
       // Read by the site's /api/gex/ladder Function (server to server). Edge-cached 1 s.
       if (req.method !== 'GET') return new Response('GET only', { status: 405 });
       if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
-      if (!(await gexChainOk(req, env))) return new Response('pro_required', { status: 403, headers: { 'cache-control': 'no-store' } });
+      if (!(await gexChainOk(req, env))) return new Response('sign_in_required', { status: 403, headers: { 'cache-control': 'no-store' } });
       const ckey = new Request('https://book-recorder.cache/gexfast/' + Math.floor(Date.now() / 1000));
       let r = await caches.default.match(ckey);
       if (!r) {
@@ -926,7 +927,7 @@ async function route(req, env, ctx) {
       if (req.method !== 'GET') return new Response('GET only', { status: 405 });
       if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
       if (!/^[A-Z]{1,6}$/.test(sym) || !GEX_PARTS.includes(part)) return new Response('bad request', { status: 400 });
-      if (!(await gexChainOk(req, env))) return new Response('pro_required', { status: 403, headers: { 'cache-control': 'no-store' } });
+      if (!(await gexChainOk(req, env))) return new Response('sign_in_required', { status: 403, headers: { 'cache-control': 'no-store' } });
       const ckey = new Request('https://book-recorder.cache/gexclose/' + sym + '/' + part + '/' + Math.floor(Date.now() / 300000));
       let r = await caches.default.match(ckey);
       if (!r) {
@@ -946,7 +947,7 @@ async function route(req, env, ctx) {
       if (req.method !== 'GET') return new Response('GET only', { status: 405 });
       if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
       if (!/^[A-Z]{1,6}$/.test(sym) || !GEX_PARTS.includes(part)) return new Response('bad request', { status: 400 });
-      if (!(await gexChainOk(req, env))) return new Response('pro_required', { status: 403, headers: { 'cache-control': 'no-store' } });
+      if (!(await gexChainOk(req, env))) return new Response('sign_in_required', { status: 403, headers: { 'cache-control': 'no-store' } });
       const ckey = new Request('https://book-recorder.cache/gex/' + sym + '/' + part + '/' + Math.floor(Date.now() / 30000));
       let r = await caches.default.match(ckey);
       if (!r) {
@@ -974,17 +975,25 @@ async function route(req, env, ctx) {
       const h = cors(req), o = req.headers.get('origin');
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
       if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
-      const ws = u.pathname === '/ts-live';
-      if (ws && req.headers.get('upgrade') !== 'websocket') return new Response('websocket required', { status: 426, headers: h });
+      // live vs history comes from the PATH only (src/ts-route.js tsKind); an Upgrade header on a history route is refused, so no header can
+      // skip the gate below. The live/delayed decision itself is the verified token + plan only (tsTier / tsHistoryAccess).
+      const kind = tsKind(u.pathname, req.headers);
+      if (kind === 'ws_required') return new Response('websocket required', { status: 426, headers: h });
+      if (kind === 'bad_upgrade') return new Response('bad request', { status: 400, headers: Object.assign({}, h, TS_NO_CACHE) });
+      const ws = kind === 'live';
       // /ts-live has two tiers (src/ts-access.js tsTier): 'book' = trades + L2 book, 'trades' = trades / candles / quotes only (live-data add-on etc.).
-      // History reads (book, aux, trades store) stay book-tier. The tier goes to the hub as a query param WE set (any client-sent one is dropped).
-      const tier = ws ? await tsTier(env, wsTokenOf(req)) : ((await tsAllowed(env, bearerOf(req))) ? 'book' : null);
-      if (!tier) return new Response('forbidden', { status: 403, headers: Object.assign({ 'cache-control': 'no-store' }, h) });
+      // History reads (book, aux, trades store) feed FREE tools (Owner 2026-11-13, all tools free): any signed-in, non-anonymous member, cut to
+      // now - 11 min unless the caller holds the live level for that data (src/ts-access.js tsHistoryAccess: book/aux = the paid L2 feed,
+      // trades = L1). The tier goes to the hub as a query param WE set (any client-sent one is dropped).
+      const hist = ws ? null : await tsHistoryAccess(env, bearerOf(req), u.pathname);
+      const tier = ws ? await tsTier(env, wsTokenOf(req)) : (hist ? 'book' : null);
+      if (!tier) return new Response('forbidden', { status: 403, headers: Object.assign({}, h, TS_NO_CACHE) });
       { const rl = await env.RL_OF.limit({ key: (ws ? 'tsws:' : 'ts:') + (req.headers.get('cf-connecting-ip') || 'x') }); if (!rl.success) return new Response('slow down', { status: 429, headers: h }); }   // sockets too (a reconnect storm / socket flood from one IP)
-      const du = new URL('https://do' + u.pathname + u.search); du.searchParams.set('tier', tier);
-      const r = await stub(env).fetch(new Request(du.toString(), req));
+      // allow-listed params only (src/ts-route.js TS_PARAMS); then OUR tier, and for a delayed read to = min(to, cut) and fill = 0
+      const du = tsForwardUrl(u, { tier, cutMs: hist && hist.cutMs });
+      const r = await stub(env).fetch(new Request(du, req));
       if (ws) return r;
-      return new Response(r.body, { status: r.status, headers: Object.assign({ 'cache-control': 'private, no-store', 'content-type': r.headers.get('content-type') || 'application/json', 'x-ts-fill-left': r.headers.get('x-ts-fill-left') || '0', 'access-control-expose-headers': 'x-ts-fill-left' }, h) });
+      return new Response(r.body, { status: r.status, headers: Object.assign({}, TS_NO_CACHE, { 'content-type': r.headers.get('content-type') || 'application/json', 'x-ts-fill-left': r.headers.get('x-ts-fill-left') || '0', 'x-ts-delayed': hist && hist.cutMs ? String(hist.cutMs) : '0', 'access-control-expose-headers': 'x-ts-fill-left, x-ts-delayed' }, h, { vary: TS_NO_CACHE.vary }) });   // vary last: cors() sets only Origin
     }
     // TICK ENGINE (src/tick-engine.js). GET /te-bars?sym=&tf=&from=&to= : bars of any timeframe (1S..59S, 1..240 min, D) from the
     // stored trades. Open to everyone; the LANE is the server's call from the verified token, never the client's: a live tier
@@ -1164,21 +1173,19 @@ async function route(req, env, ctx) {
       const h = cors(req);
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
       // ZoroOptions page data is FREE for every signed-in member (Owner 07 Nov): any verified, non-anonymous account passes.
-      // ZO_SIGNED_IN_FREE = false restores the Pro gate. The GEX levels download (/zo/levels-export) stays Pro.
-      const ZO_SIGNED_IN_FREE = true;
-      const signedIn = async (t) => !!(await verifyIdToken(t));
-      const deps = { isPro: ZO_SIGNED_IN_FREE ? signedIn : isGexProToken, bearer: bearerOf, stub, now: () => Date.now(), service: (r) => authorized(r, env) };
-      return u.pathname === '/zo/levels-export' ? zoExportRoute(req, u, env, ctx, h, Object.assign({}, deps, { isPro: isGexProToken })) : zoGetRoute(req, u, env, ctx, h, deps);
+      // Since 2026-11-13 (all tools free) the GEX levels download (/zo/levels-export) is free for members too.
+      const deps = { isPro: isMemberToken, bearer: bearerOf, stub, now: () => Date.now(), service: (r) => authorized(r, env) };
+      return u.pathname === '/zo/levels-export' ? zoExportRoute(req, u, env, ctx, h, deps) : zoGetRoute(req, u, env, ctx, h, deps);
     }
-    // Levels for other platforms + the member's secret link (src/levels-feed.js). The feed path is gated by the secret, the rest by a Pro sign-in token.
+    // Levels for other platforms + the member's secret link (src/levels-feed.js). The feed path is gated by the secret, the rest by a member sign-in token (free since 2026-11-13).
     if (u.pathname.startsWith('/lv/')) {
       const h = cors(req);
-      return lvRoute(req, u, env, ctx, h, { stub, bearer: bearerOf, now: () => Date.now(), proUntil: (t) => lvProUntil(t, { verifyIdToken, isAdminToken, isActiveProDoc, paidPlanNames, RT_PROJECT }) });
+      return lvRoute(req, u, env, ctx, h, { stub, bearer: bearerOf, now: () => Date.now(), proUntil: (t) => lvMemberUntil(t, { verifyIdToken }) });   // all tools free (2026-11-13): any signed-in, non-anonymous member
     }
-    // GEX+ data is Pro only (Owner order 2026-11-01): the history, sessions and options-analytics reads need a verified admin / demo / active-Pro token.
-    // (/tide is ZoroTide, free.) Checked before the cache, and the 403 is never cached.
+    // GEX+ data is a free tool for signed-in members (Owner 2026-11-13, was Pro): history, sessions and options-analytics need a verified,
+    // non-anonymous member token. (/tide is ZoroTide, open.) Checked before the cache, and the 403 is never cached.
     if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions' || u.pathname === '/opt-analytics') {
-      if (!(await isGexProToken(bearerOf(req)))) return new Response(JSON.stringify({ error: 'pro_required' }), { status: 403, headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'no-store' }, h) });
+      if (!(await isMemberToken(bearerOf(req)))) return new Response(JSON.stringify({ error: 'sign_in_required' }), { status: 403, headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'no-store' }, h) });
     }
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     // /orderflow has its own limiter (60/min: a footprint chart loads one request per UTC day plus a

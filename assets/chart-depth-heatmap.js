@@ -15,7 +15,7 @@
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
 import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=1020';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1020';
-import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote, staleNote } from './chart-futures-l2.js?v=1020';
+import { l2Root, l2Source, l2Badge, l2Delayed, rootState, L2_TYPES, l2Closed, closedNote, staleNote } from './chart-futures-l2.js?v=1020';
 import { icebergEvents } from './chart-liquidity-data.js?v=1020';
 import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-map.js?v=1020';
 import { getVenue } from './orderflow-venues.js?v=1020';
@@ -387,7 +387,7 @@ function dayTime(ms, tz) {
 
 // ---------------------------------------------------------------------------------------- the native indicator
 const NEED = 'Depth Heatmap (L2) works on NQ, ES, YM, RTY, CL and GC futures and on crypto charts.';
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Sign in to use the order book tools. They are free.';   // all tools free (2026-11-13): signed out is the only block
 export function installDepthHeatmap(Core, H, reg) {
   class DepthNative {
     constructor() { this.inputs = {}; this.h = null; this.tm = 0; this.hidden = false; this.block = ''; }
@@ -422,6 +422,7 @@ export function installDepthHeatmap(Core, H, reg) {
       if (!f || f.status === 'loading') return 'Loading the order book…';
       if (f.status === 'error') return f.err || 'Order book unavailable.';
       if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? this.gapNote(f) || closedNote() : 'Reconnecting to the order book…';
+      if (f.custom && l2Delayed()) return f.history.length < 2 && f.remote.length < 2 ? 'Loading the recorded order book…' : this.gapNote(f);   // delayed label: the feed chips; a real recorder gap (15 min look > 10 min delay) still says so
       if (f.history.length < 15 && f.remote.length < 2) return this.gapNote(f) || 'Building order book history…';
       return f.custom ? this.gapNote(f) || staleNote(f.ticker) : '';
     }

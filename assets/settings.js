@@ -286,7 +286,7 @@ function showProPrice(){
   Promise.all([loadPlansForRoles(), fx]).then(([all]) => {
     const sold = (all || []).filter((p) => !p.hidden && p.archived !== true && planSaleInfo(p).price > 0);
     const pro = sold.find((p) => p.featured) || sold[0];
-    if (pro) btn.textContent = 'See Pro: ' + planMoneyDisplay(planSaleInfo(pro).price) + ' / ' + (pro.period || 'month') + ' (order flow + GEX+)';
+    if (pro) btn.textContent = 'See Pro · Live data: ' + planMoneyDisplay(planSaleInfo(pro).price) + ' / ' + (pro.period || 'month') + ' (live futures order book)';   // tools are free (2026-11-13)
   }).catch(() => {});
 }
 

@@ -81,7 +81,7 @@
       id: 'charts',
       target: '.sidebar [data-menu="charts"]',
       title: 'ZoroCharts',
-      body: 'Multi-provider charting with every tool and indicator, free on every plan. Pro adds order flow tools and GEX on the charts. CME futures (L1) go live for free once you sign the market data agreement.'
+      body: 'Multi-provider charting with every tool and indicator, free on every plan. Order flow tools and GEX on the charts are free too. CME futures (L1) go live for free once you sign the market data agreement. Only the live futures order book is a paid data feed.'
     },
     {
       id: 'indicators',

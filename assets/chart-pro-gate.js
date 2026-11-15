@@ -2,17 +2,13 @@
 // Depends on: window.strykerPlanTier (assets/plan-limits.js), window.openPlanUpgradeModal (assets/plan-modal.js).
 // Optional: the Vela workspace (window.STRYKER_VELA) for the sweep below.
 //
-// Owner order 2026-10-29: the chart is free for every plan, with no limits. Only THREE things are Pro:
-//   1. (real-time futures data is decided by the server: Rithmic, the signed market data agreement (free L1, 2026-11-04), early Pro members or approval; nothing to do here),
-//   2. order flow tools: everything in the Order Flow group, the Footprint chart type, the DOM panels,
-//   3. GEX on charts: GEX levels / gamma profile, GEX heatmap, GEX ladder, Expected Move (same options chain).
-// Free members see those listed with a small "PRO" tag; a click opens the upgrade modal.
-// Admins, Pro and an unresolved plan get everything (fail open, same as plan-limits.js).
-//
-// GEX data (levels, ladder, flow, history, options analytics; SPX 0DTE too) is refused by the server for non-Pro members since
-// 2026-11-01 (functions/api/gex/_pro.js, recorder isGexProToken). Order flow data is served as before. This module is the UI side; it shapes the product, it is not a security
-// boundary. Besides the click guards, a light sweep removes a Pro tool that arrives by another road for a
-// Free member (saved chart, layout, template, community script that loads one).
+// ALL TOOLS FREE (Owner order 2026-11-13): "Pro tools will be made free from tonight onwards, that means everything will be free.
+// Only paid will be data feed, on which we have no control as rules are set by exchanges."
+// Nothing on the chart is Pro any more: isFree() is always false, so locked() is false, no PRO tag is drawn, the sweep never removes a
+// tool and the chart-type menu never stops Footprint. The only paid part is the LIVE futures order book (L2), decided by the server
+// (/ts-live book tier, /api/chart/rt l2): without it the order-book tools read the recorded book 10 min delayed (chart-futures-l2.js).
+// The module and its API stay so the callers need no change (kindOf / OF_TYPES / GEX_TYPES / L1_TO_L2 are still used for lists).
+// The old rule (2026-10-29 .. 2026-11-13): order flow tools, the Footprint chart type, the DOM panels and GEX on charts were Pro.
 // Education only. Not financial advice.
 
 export const OF_TYPES = ['stk_footprint', 'stk_fp', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb',
@@ -21,7 +17,7 @@ export const OF_TYPES = ['stk_footprint', 'stk_fp', 'stk_of_delta', 'stk_of_cvd'
   'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw', 'stk_fpat', 'stk_fpat_l2',
   'stk_liq', 'stk_liq_bars', 'stk_oi', 'stk_funding', 'stk_lsr'];   // crypto derivatives (assets/chart-crypto-deriv.js): Pro like crypto footprint / delta
 export const GEX_TYPES = ['stk_gex', 'stk_gexheat', 'stk_em', 'stk_optflow', 'stk_zrange', 'stk_zzone', 'stk_ivrank', 'stk_zvol', 'stk_dex', 'stk_vex', 'stk_cex'];   // ZoroTide (stk_tide) is free since 2026-11-01
-export const REASON = { of: 'Order flow tools are part of Pro.', gex: 'GEX and options flow on charts are part of Pro.' };
+export const REASON = { of: '', gex: '' };   // nothing on the chart is Pro any more (2026-11-13)
 
 // Futures order flow is the L2 tools only (Owner 2026-11-06). Each L1 / old trades-only tool with an L2 twin -> that twin.
 // chart-orderflow.js hides these on futures and swaps saved ones; chart-indicator-window.js maps an old favourite to the twin.
@@ -54,7 +50,7 @@ export function tier() {
       window.strykerPlanTier().then((r) => { clearTimeout(t); resolve(r || { free: false }); }, () => { clearTimeout(t); resolve({ free: false }); });
     } catch (e) { clearTimeout(t); resolve({ free: false }); }
   }).then((r) => {
-    free = !!(r && r.free && !r.admin); known = !(r && r.unknown);
+    free = false; known = !(r && r.unknown);   // all tools free (2026-11-13): never a Free lock
     if (typeof window !== 'undefined') window.__stkChartFree = free;
     subs.forEach((f) => { try { f(free); } catch (e) {} });
     return r;
@@ -63,25 +59,24 @@ export function tier() {
 }
 tier();   // start asking as soon as the module loads
 // Sync: is the signed-in member confirmed Free? (false while unknown: fail open)
-export const isFree = () => {
-  try { const o = window.__stkChartTestFree; if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) && typeof o === 'boolean') return o; } catch (e) {}
-  return free;
-};
+export const isFree = () => false;   // all tools free (Owner 2026-11-13); window.__stkChartTestFree no longer changes anything
 export const tierKnown = () => known;
 export function onTier(fn) { subs.add(fn); return () => subs.delete(fn); }
 
 // Is this tool locked for the current member? kind = 'of' | 'gex' | null
 export const locked = (kind) => !!kind && isFree();
 
-export function upgrade(kind) {
-  const why = REASON[kind] || 'This tool is part of Pro.';
-  if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(why);
+// No tool is sold any more. A stray caller (an old saved script, a template note) gets the live-data paywall, never a tool paywall.
+export function upgrade() {
+  try { if (typeof window.strykerLiveDataPaywall === 'function') { window.strykerLiveDataPaywall(); return; } } catch (e) {}
+  if (typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(LIVE_DATA_REASON);
 }
+export const LIVE_DATA_REASON = "Live futures order book data is a paid data feed. Exchange rules set it, so we can't give it free. Tools are free; this is the data.";
 
 // A small "PRO" tag node (also styled in assets/style.css: .stk-protag).
 export function proTag() {
   const s = document.createElement('span');
-  s.className = 'stk-protag'; s.textContent = 'PRO'; s.setAttribute('title', 'Part of Pro');
+  s.className = 'stk-protag'; s.textContent = 'PRO'; s.setAttribute('title', 'Part of Pro');   // unused since 2026-11-13 (nothing calls it while isFree() is false)
   return s;
 }
 
@@ -105,7 +100,7 @@ export function sweep(ws, toast) {
   if (n) {
     try { ws.context().stateChanged(); } catch (e) {}
     const now = Date.now();
-    if (toast && now - lastToast > 4000) { lastToast = now; toast((kind === 'gex' ? 'GEX and options flow on charts' : 'Order flow tools') + ' are part of Pro. Removed from this chart.', 'info'); }
+    if (toast && now - lastToast > 4000) { lastToast = now; /* never runs: isFree() is false (all tools free 2026-11-13) */ }
   }
   return n;
 }

@@ -124,6 +124,20 @@
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
 
+# Windows app Google sign-in (assets/desktop-login.js): the app's sign-in nonce is in the URL, so no referrer,
+# no cache, never indexed, never framed.
+/desktop-login
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+
+/desktop-login.html
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+
 # Alpaca / tastytrade / Upstox / Fyers sign-in return page: the one-time code is in the URL, so no referrer, no cache, never indexed.
 /oauth-callback.html
   Referrer-Policy: no-referrer

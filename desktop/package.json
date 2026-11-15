@@ -1,7 +1,7 @@
 {
   "name": "tradezoro-desktop",
   "productName": "TradeZoro",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TradeZoro for Windows: the tradezoro.com app in its own window, with pop-out charts, always-on-top and native notifications.",
   "author": "TradeZoro LLC",
   "license": "UNLICENSED",
@@ -9,7 +9,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/policy.test.js",
+    "test": "node --test test/policy.test.js test/handoff.test.js",
     "dist:win": "electron-builder --win nsis portable --x64",
     "dist:linux": "electron-builder --linux dir --x64",
     "dist:appx": "electron-builder --win appx --x64"
@@ -34,6 +34,14 @@
       "build/icon.ico",
       "build/icon.png",
       "package.json"
+    ],
+    "protocols": [
+      {
+        "name": "TradeZoro sign-in",
+        "schemes": [
+          "tradezoro"
+        ]
+      }
     ],
     "publish": [
       {

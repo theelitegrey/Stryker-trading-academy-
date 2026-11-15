@@ -710,6 +710,13 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 /* "Password updated" note on login after a reset link (auth.js, ?reset=1). */
 .auth-note{ margin:0 0 18px; padding:10px 12px; border-radius:8px; font-size:13.5px; line-height:1.45;
   color:var(--ink-0); background:rgba(3,201,136,0.10); border:1px solid rgba(3,201,136,0.40); }
+/* Windows app: "We opened your browser" while Google sign-in runs there (auth.js tzDesktopWaitingNote). */
+.auth-note-wait{ display:flex; align-items:center; gap:12px; padding:8px 8px 8px 12px; margin:0 0 16px; }
+.auth-note-wait > span{ flex:1; }
+.auth-note-action{ flex:none; min-height:32px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2);
+  color:var(--ink-0); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.auth-note-action:hover{ background:var(--bg-3); }
+.auth-note-action:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
 
 .social-row{ display:flex; gap:10px; margin-bottom:22px; }
 .social-btn{

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="1037">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050506">
+<title>Sign in to the TradeZoro app — TradeZoro</title>
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=1037">
+<link rel="stylesheet" href="/assets/desktop-login.css?v=1037">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=1037">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=1037">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+</head>
+<body class="dl-body">
+<main id="main" class="dl-main" tabindex="-1">
+  <div class="dl-card">
+    <img class="dl-logo" src="/assets/images/tradezoro-tzmark-1014-144.webp" alt="TradeZoro" width="48" height="48">
+
+    <div data-dl-show="start working">
+      <h1 class="dl-title">Sign in to the TradeZoro app</h1>
+      <p class="dl-sub">Google doesn't allow sign-in inside desktop apps, so it happens here in your browser. You'll go back to the app straight after.</p>
+      <div class="auth-error dl-error" id="dl-error" role="alert"></div>
+      <button type="button" class="social-btn btn-block dl-google" id="dl-google">
+        <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5h-1.9V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4c-7.4 0-13.7 4.2-16.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.4-2.1 14.1-5.5l-6.5-5.5C29.6 34.7 27 35.6 24 35.6c-5.2 0-9.7-3.3-11.3-8l-6.6 5.1C9.7 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.5 5.5C41.4 36.6 44 30.9 44 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
+        <span data-dl-show="start">Continue with Google</span><span data-dl-show="working" hidden>Signing you in…</span>
+      </button>
+      <p class="dl-hint">Only continue if you just chose Continue with Google in the TradeZoro app on this computer.</p>
+    </div>
+
+    <div data-dl-show="sending" hidden>
+      <h1 class="dl-title">Going back to the app…</h1>
+      <p class="dl-sub">One moment.</p>
+    </div>
+
+    <div data-dl-show="fallback" hidden>
+      <h1 class="dl-title">Open TradeZoro to finish</h1>
+      <p class="dl-sub">Your browser didn't hand the sign-in back on its own. Open the app to finish signing in.</p>
+      <a class="btn btn-primary btn-block dl-btn" id="dl-open-app" href="#">Open TradeZoro</a>
+    </div>
+
+    <div data-dl-show="done" hidden>
+      <div class="dl-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <h1 class="dl-title">You're signed in</h1>
+      <p class="dl-sub">You can close this tab and go back to TradeZoro.</p>
+    </div>
+
+    <div data-dl-show="invalid inapp" hidden>
+      <h1 class="dl-title">Start again from the app</h1>
+      <p class="dl-sub" data-dl-show="inapp" hidden>This page is for your web browser. In the app, choose Continue with Google on the sign-in page.</p>
+      <div class="auth-error dl-error" role="alert" data-dl-show="invalid" hidden></div>
+      <a class="btn btn-ghost btn-block dl-btn" href="/download" data-dl-show="invalid" hidden>Get the TradeZoro app</a>
+    </div>
+
+    <p class="dl-foot">Education only. Not financial advice.</p>
+  </div>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="/assets/auth.js?v=1037"></script>
+<script src="/assets/desktop-login.js?v=1037"></script>
+<script src="/assets/version-check.js?v=1037" defer></script>
+<script src="/assets/theme.js?v=1037"></script>
+</body>
+</html>

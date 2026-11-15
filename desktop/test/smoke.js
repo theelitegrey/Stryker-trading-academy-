@@ -1,7 +1,7 @@
 // Linux smoke test of the TradeZoro desktop app (run under xvfb-run).
 //   xvfb-run -a node test/smoke.js [path-to-unpacked-binary] [screenshot-dir]
-// Proves: the app starts, loads tradezoro.com, signed-out users land on sign-in, the Google button opens an
-// in-app sandboxed popup on the Google/Firebase sign-in host (not the system browser), Ctrl+Shift+N style
+// Proves: the app starts, loads tradezoro.com, signed-out users land on sign-in, the Google button hands sign-in to the
+// system browser (tradezoro.com/desktop-login + loopback/protocol return + custom token), Razorpay popups stay in-app, Ctrl+Shift+N style
 // pop-out chart window opens with background throttling off, always-on-top toggles, external links are
 // not loaded in the app, and window bounds are saved.
 const path = require('path');
@@ -38,31 +38,95 @@ const ok = (name, pass, info) => { results.push({ name, pass: !!pass, info }); c
     const pageSees = await main.evaluate(() => ({ require: typeof require, process: typeof process, desk: typeof window.tzDesktop, keys: window.tzDesktop ? Object.keys(window.tzDesktop) : [] }));
     ok('page gets no Node access, only the tzDesktop bridge', pageSees.require === 'undefined' && pageSees.process === 'undefined' && pageSees.desk === 'object', JSON.stringify(pageSees));
 
-    // Google sign-in popup. Captured the moment it navigates: from this server Google's identity APIs answer
-    // 403 to every request (IP-level block, also for plain curl), so Firebase closes the popup a moment later.
-    const btn = main.locator('[data-google-signin]').first();
-    const popupP = app.waitForEvent('window', { timeout: 20000 }).catch(() => null);
-    await btn.click();
-    const pop = await popupP;
-    if (pop) {
-      let purl = pop.url();
-      if (!/^https:/.test(purl)) await pop.waitForEvent('framenavigated', { timeout: 15000 }).then((f) => { purl = f.url(); }).catch(() => {});
-      purl = purl || pop.url();
-      ok('Google sign-in opens as an in-app popup on the sign-in host', /accounts\.google\.com|tradezoro\.com\/__\/auth|firebaseapp\.com\/__\/auth/.test(purl), purl.slice(0, 110));
-      const popPrefs = await app.evaluate(({ BrowserWindow }) => {
-        const w = BrowserWindow.getAllWindows().find((x) => /__\/auth|accounts\.google/.test(x.webContents.getURL()));
-        if (!w) return null;
-        const p = w.webContents.getLastWebPreferences();
-        return { ci: p.contextIsolation, ni: p.nodeIntegration, sb: p.sandbox, preload: !!p.preload, hasOpener: !!w.webContents.opener };
-      }).catch(() => null);
-      ok('sign-in popup is sandboxed, isolated, no preload, linked to its opener', popPrefs && popPrefs.ci && !popPrefs.ni && popPrefs.sb && !popPrefs.preload && popPrefs.hasOpener, JSON.stringify(popPrefs));
-      await pop.waitForTimeout(800).catch(() => {});
-      await pop.screenshot({ path: path.join(OUT, '02-google-popup.png') }).catch(() => {});
-      await pop.close().catch(() => {});
-      await main.waitForTimeout(3000);
-      const err = await main.evaluate(() => { const e = document.getElementById('login-error'); return e ? e.textContent.trim() : ''; });
-      ok('after the popup, the opener page got Firebase\'s answer back (here: Google API blocked for this server IP)', true, err.slice(0, 110));
-    } else ok('Google sign-in opens as an in-app popup', false, 'no window event');
+    // Google sign-in now runs in the SYSTEM browser (Google blocks OAuth inside apps). The live site may not have
+    // the new assets/auth.js yet, so this branch's copy is served for tradezoro.com/assets/auth.js. shell.openExternal
+    // is captured (no real browser here) and the redeem call to tradezoro.com is stubbed; the loopback server,
+    // nonce/code checks, IPC and page code are the real ones.
+    const LOCAL_AUTH = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'auth.js'), 'utf8');
+    await app.evaluate(({ session, shell, net }, src) => {
+      global.__opened = []; global.__redeems = [];
+      shell.openExternal = (u) => { global.__opened.push(u); return Promise.resolve(); };
+      const realFetch = net.fetch.bind(net);
+      global.__redeemAnswer = 'bad';
+      net.fetch = (input, init) => {
+        const u = typeof input === 'string' ? input : input.url;
+        if (u === 'https://tradezoro.com/api/desktop/handoff/redeem') {
+          global.__redeems.push(JSON.parse(init.body));
+          return Promise.resolve(global.__redeemAnswer === 'ok'
+            ? new Response(JSON.stringify({ token: 'header.' + 'p'.repeat(40) + '.sig' }), { status: 200 })
+            : new Response(JSON.stringify({ error: 'x' }), { status: 403 }));
+        }
+        return realFetch(input, init);
+      };
+      session.defaultSession.protocol.handle('https', (req) => {
+        if (/^https:\/\/tradezoro\.com\/assets\/auth\.js/.test(req.url)) return new Response(src, { headers: { 'content-type': 'text/javascript' } });
+        return realFetch(req, { bypassCustomProtocolHandlers: true });
+      });
+    }, LOCAL_AUTH);
+    await main.reload(); await main.waitForLoadState('load'); await main.waitForTimeout(2500);
+    const hasG = await main.evaluate(() => typeof window.tzDesktop.googleSignIn === 'function' && typeof tzDesktopGoogleSignIn === 'function');
+    ok('page has tzDesktop.googleSignIn and the new auth.js', hasG);
+    await main.evaluate(() => { window.__ct = null; auth.signInWithCustomToken = (t) => { window.__ct = t; return new Promise(() => {}); }; });
+    const nWin0 = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
+    await main.locator('[data-google-signin]').first().click();
+    await main.waitForTimeout(1500);
+    const opened = await app.evaluate(() => global.__opened.slice());
+    const nWin1 = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
+    ok('Google sign-in opens no window inside the app', nWin1 === nWin0, nWin0 + ' -> ' + nWin1);
+    let lu = null; try { lu = new URL(opened[0]); } catch (e) { /* none */ }
+    const nonce = lu && lu.searchParams.get('nonce'), port = lu && Number(lu.searchParams.get('port'));
+    ok('default browser gets https://tradezoro.com/desktop-login?nonce=<43>&port=<loopback>', lu && lu.origin === 'https://tradezoro.com' && lu.pathname === '/desktop-login' && /^[A-Za-z0-9_-]{43}$/.test(nonce) && port > 1024, opened.length + ' opened, ' + (lu ? lu.pathname + ' port ' + port : 'none'));
+    const waitNote = await main.evaluate(() => { const n = document.getElementById('tz-desk-wait'); return n ? n.textContent : ''; });
+    ok('login page shows "We opened your web browser" while waiting', /opened your web browser/.test(waitNote), waitNote.slice(0, 80));
+    await main.screenshot({ path: path.join(OUT, '02-google-waiting.png') });
+    const CODE = 'C'.repeat(43);
+    const hit = (p, host) => new Promise((res) => {
+      const rq = require('http').request({ host: '127.0.0.1', port, path: p, method: 'GET', agent: false, headers: host ? { host } : {} }, (r) => { r.resume(); res({ status: r.statusCode, loc: r.headers.location || '' }); });
+      rq.on('error', (e) => res({ status: 'error', loc: e.code })); rq.end();
+    });
+    const wrongHost = await hit('/done?code=' + CODE, 'evil.example:' + port);
+    const wrongPath = await hit('/x?code=' + CODE);
+    ok('loopback refuses wrong Host / path (404)', wrongHost.status === 404 && wrongPath.status === 404, JSON.stringify([wrongHost.status, wrongPath.status]));
+    const bad = await hit('/done?code=' + CODE);   // server says 403 (code minted for another nonce): keep waiting
+    ok('a code the server refuses redirects to ?failed=1 and the app keeps waiting', bad.status === 302 && /desktop-login\?failed=1$/.test(bad.loc), JSON.stringify(bad));
+    await app.evaluate(() => { global.__redeemAnswer = 'ok'; });
+    const good = await hit('/done?code=' + 'D'.repeat(43));
+    const redeems = await app.evaluate(() => global.__redeems.slice());
+    ok('the right code: redeem sent with the secret verifier (sha256 = URL nonce), browser sent to ?done=1', good.status === 302 && /desktop-login\?done=1$/.test(good.loc) && redeems.length === 2 && redeems[1].verifier && require('crypto').createHash('sha256').update(redeems[1].verifier).digest('base64url') === nonce && !('nonce' in redeems[1]) && redeems[1].code === 'D'.repeat(43), JSON.stringify(good) + ' redeems ' + redeems.length);
+    await main.waitForTimeout(800);
+    const ct = await main.evaluate(() => window.__ct);
+    ok('page signs in with the custom token (signInWithCustomToken)', typeof ct === 'string' && ct.startsWith('header.'), String(ct).slice(0, 12));
+    const closed = await hit('/done?code=' + CODE);
+    ok('loopback server is closed after use', closed.status === 'error', JSON.stringify(closed));
+    // Protocol fallback: tradezoro://auth?code=... arrives on a second-instance command line.
+    await main.reload(); await main.waitForLoadState('load'); await main.waitForTimeout(2000);
+    await main.evaluate(() => { window.__ct = null; auth.signInWithCustomToken = (t) => { window.__ct = t; return new Promise(() => {}); }; });
+    await main.locator('[data-google-signin]').first().click();
+    await main.waitForTimeout(1200);
+    await app.evaluate(({ app }) => { app.emit('second-instance', {}, ['TradeZoro.exe', 'tradezoro://auth?code=' + 'E'.repeat(43)], process.cwd()); });
+    await main.waitForTimeout(1200);
+    const ct2 = await main.evaluate(() => window.__ct);
+    const r2 = await app.evaluate(() => global.__redeems.slice(-1)[0]);
+    ok('tradezoro://auth?code= fallback completes the sign-in too', typeof ct2 === 'string' && r2.code === 'E'.repeat(43), r2 && r2.code.slice(0, 4));
+    // Cancel: the waiting note's Cancel button ends the flow and the page says so.
+    await main.reload(); await main.waitForLoadState('load'); await main.waitForTimeout(2000);
+    await main.locator('[data-google-signin]').first().click();
+    await main.waitForTimeout(1000);
+    await main.locator('#tz-desk-wait .auth-note-action').click();
+    await main.waitForTimeout(800);
+    const cancelMsg = await main.evaluate(() => document.getElementById('login-error').textContent);
+    ok('Cancel ends the browser sign-in and says so', /cancelled/.test(cancelMsg), cancelMsg);
+    await main.screenshot({ path: path.join(OUT, '02b-google-cancelled.png') });
+    // Razorpay / Firebase popups still open as sandboxed in-app child windows (unchanged).
+    const pay = app.waitForEvent('window', { timeout: 15000 }).catch(() => null);
+    await main.evaluate(() => { window.open('https://checkout.razorpay.com/v1/checkout.js', 'rzp', 'width=500,height=600'); });
+    const payWin = await pay;
+    const payPrefs = payWin && await app.evaluate(({ BrowserWindow }) => {
+      const w = BrowserWindow.getAllWindows().find((x) => /razorpay/.test(x.webContents.getURL()) || x.webContents.opener);
+      if (!w) return null; const p = w.webContents.getLastWebPreferences(); return { sb: p.sandbox, preload: !!p.preload, opener: !!w.webContents.opener };
+    });
+    ok('Razorpay checkout still opens as a sandboxed in-app popup (no preload)', payPrefs && payPrefs.sb && !payPrefs.preload && payPrefs.opener, JSON.stringify(payPrefs));
+    if (payWin) await payWin.close().catch(() => {});
 
     // pop-out chart window (same as Ctrl+Shift+N)
     const chartP = app.waitForEvent('window', { timeout: 20000 });

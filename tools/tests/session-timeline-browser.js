@@ -1,8 +1,9 @@
 // Session clock popover + timeline. node tools/tests/session-timeline-browser.js [shotsDir]
-// Needs a static server (STRYKER_TEST_BASE, default http://localhost:8000).
+// Needs a static server (CHART_BASE or STRYKER_TEST_BASE, default http://localhost:8000).
 // Mocked time Tue 17 Nov 2026 10:00 UTC, browser zone Asia/Kolkata (15:30 local): Asia 05:30-14:30 over, London 13:30-22:30 on, New York 18:30-03:30 wraps midnight (two segments).
 const fs = require('fs');
-const { launch, BASE } = require('./lib.js');
+const lib = require('./lib.js'), { launch } = lib;
+const BASE = process.env.CHART_BASE || lib.BASE;   // release runner passes CHART_BASE (chart-dev-server); by hand STRYKER_TEST_BASE / :8000
 const OUT = process.argv[2] || (process.env.TMPDIR || '/tmp');
 fs.mkdirSync(OUT, { recursive: true });
 let fail = 0;

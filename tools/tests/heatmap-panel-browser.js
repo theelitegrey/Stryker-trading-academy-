@@ -138,6 +138,20 @@ const glSum = (p) => p.evaluate(() => { const c = [...document.querySelectorAll(
         const c1 = await pix(p);
         check(c1.lit < c0.lit, tag + ': Threshold lowers the drawn cell count (lit pixels)', [c0.lit, c1.lit]);
         await clickText(p, 'Reset'); await sleep(1800);
+        // Sensitivity slider (Owner 2026-11-15): drag changes the scale, presets move the thumb, arrows work
+        const sv = () => p.evaluate(() => ({ v: document.querySelector('.stkhm-rng').value, o: document.querySelector('.stkhm-sv').textContent, on: [...document.querySelectorAll('.stkhm-sens + .stkhm-seg button[aria-pressed="true"]')].map((x) => x.textContent) }));
+        check((await sv()).v === '100' && (await sv()).o === '100%', tag + ': slider default = Max 100%', await sv());
+        const s0 = await pix(p); await p.evaluate(() => window.__stkHeatmapPanel.open()); await sleep(600);
+        const bx = await p.evaluate(() => { const r = document.querySelector('.stkhm-rng').getBoundingClientRect(); return { x: r.x, y: r.y + r.height / 2, w: r.width }; });
+        await p.mouse.move(bx.x + bx.w - 12, bx.y); await p.mouse.down(); await p.mouse.move(bx.x + bx.w * 0.3, bx.y, { steps: 8 }); await p.mouse.up(); await sleep(2500);
+        const s1 = await sv(); check(Number(s1.v) < 50 && s1.o === s1.v + '%', tag + ': dragging moves the thumb + live value', s1);
+        const s2 = await pix(p); check(s2.lit < s0.lit, tag + ': dragging toward Min changes the rendering scale', [s0.lit, s2.lit]);
+        await p.evaluate(() => window.__stkHeatmapPanel.open()); await sleep(600);
+        await clickText(p, 'Mid', '.stkhm-b'); await sleep(900);
+        check((await sv()).v === '70' && (await sv()).on.join() === 'Mid', tag + ': Mid preset moves the thumb to 70% and highlights', await sv());
+        await p.focus('.stkhm-rng'); await p.keyboard.press('ArrowLeft'); await sleep(900);
+        check((await sv()).v === '69' && (await sv()).on.length === 0, tag + ': arrow key steps 1% and un-highlights the preset', await sv());
+        await p.evaluate(() => { const r = document.querySelector('.stkhm-rng'); r.value = 62; r.dispatchEvent(new Event('input', { bubbles: true })); }); await sleep(900);
         await clickText(p, 'Both'); await sleep(2000);
         let d = await heat(p); check(d && d.cells > 0 && d.show > 3, tag + ': Both = cells + side profile', d);
         await clickText(p, 'Profile'); await sleep(2000);
@@ -158,6 +172,8 @@ const glSum = (p) => p.evaluate(() => { const c = [...document.querySelectorAll(
         await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 }); await sleep(7000);
         check((await types(p)).includes('stk_depth_heat'), tag + ': reload keeps the layer', await types(p));
         check((await theme(p)) === 'Fire', tag + ': reload keeps the theme', await theme(p));
+        await p.evaluate(() => window.__stkHeatmapPanel.open()); await sleep(900);
+        check(await p.evaluate(() => document.querySelector('.stkhm-rng').value) === '62', tag + ': reload keeps the sensitivity value (62%)');
         await p.evaluate(() => window.__stkHeatmapPanel.open()); await sleep(1200);
         check((await st(p)).on, tag + ': reload keeps the panel switch ON');
       }

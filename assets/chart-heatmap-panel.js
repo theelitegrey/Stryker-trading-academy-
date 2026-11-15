@@ -126,6 +126,15 @@ const CSS = `
 .stkhm-sws button{width:56px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--bg-1);color:var(--ink-2);font-size:12px;line-height:16px;cursor:pointer}
 .stkhm-sws button i{display:block;height:16px;border-radius:5px;margin-bottom:4px;border:1px solid rgba(255,255,255,.08)}
 .stkhm-sws button[aria-pressed="true"]{border-color:var(--gold);color:var(--ink-0)}
+.stkhm-sens{margin-bottom:8px}
+.stkhm-rng{-webkit-appearance:none;appearance:none;display:block;width:100%;height:32px;margin:0;background:transparent;cursor:pointer;touch-action:pan-y}
+.stkhm-rng::-webkit-slider-runnable-track{height:12px;border-radius:6px;background:var(--trk);border:1px solid rgba(128,128,128,.35)}
+.stkhm-rng::-moz-range-track{height:12px;border-radius:6px;background:var(--trk);border:1px solid rgba(128,128,128,.35)}
+.stkhm-rng::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-7px;border-radius:50%;background:#fff;border:2px solid var(--gold);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.stkhm-rng::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--gold);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.stkhm-rng:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:6px}
+.stkhm-sl{display:flex;justify-content:space-between;align-items:center;font-size:12px;line-height:16px;color:var(--ink-3)}
+.stkhm-sv{color:var(--ink-0);font-variant-numeric:tabular-nums;font-size:14px}
 .stkhm-hist{display:flex;align-items:flex-end;gap:2px;height:44px;margin-bottom:8px}
 .stkhm-hist i{flex:1;background:var(--teal);opacity:.75;border-radius:2px 2px 0 0;min-height:2px}
 .stkhm-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px}
@@ -145,6 +154,7 @@ const CSS = `
  .stkhm-seg button,.stkhm-tg button,.stkhm-tp button{min-height:44px}
  .stkhm-step button{width:44px;height:44px}.stkhm-x{width:44px;height:44px}
  .stkhm-in{min-height:44px}
+ .stkhm-rng{height:44px}
 }`;
 const h = (tag, attrs, kids) => { const e = document.createElement(tag); Object.entries(attrs || {}).forEach(([k, v]) => { if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v); }); (kids || []).forEach((c) => c && e.appendChild(c)); return e; };
 const seg = (opts, cur, on, dis) => h('div', { class: 'stkhm-seg', role: 'group' }, opts.map((o) => h('button', { type: 'button', text: o, 'aria-pressed': String(o === cur), disabled: dis && dis(o), onclick: () => on(o) })));
@@ -157,6 +167,21 @@ function stepper(label, val, max, on) {
     h('button', { type: 'button', 'aria-label': label + ' lower', text: '−', onclick: () => on(stepVal(val, -1, max)) }),
     h('span', { text: val > 0 ? fmt(val) : 'Off' }),
     h('button', { type: 'button', 'aria-label': label + ' higher', text: '+', onclick: () => on(stepVal(val, 1, max)) })])]);
+}
+
+// Sensitivity slider: Max (right) = show everything (cutoff 0), Min (left) = hide the thinnest 95%. Value % = 100 - cutoffPct.
+// Drag updates the layer once per frame (no panel rebuild, so the thumb is never replaced mid-drag).
+function sensSlider(cut, theme) {
+  const out = h('output', { class: 'stkhm-sv', text: (100 - cut) + '%' });
+  const inp = h('input', { type: 'range', class: 'stkhm-rng', min: '5', max: '100', step: '1', value: String(100 - cut), 'aria-label': 'Sensitivity, Min to Max' });
+  inp.style.setProperty('--trk', 'linear-gradient(90deg,' + SW[theme].join(',') + ')');
+  let raf = 0, pend = 0;
+  inp.addEventListener('input', () => {
+    pend = 100 - Number(inp.value); out.textContent = inp.value + '%';
+    const sec0 = inp.closest('section'); if (sec0 && sec0.__mark) sec0.__mark(pend);
+    if (!raf) raf = requestAnimationFrame(() => { raf = 0; setIn('book', { cutoffPct: pend }); });
+  });
+  return h('div', { class: 'stkhm-sens' }, [inp, h('div', { class: 'stkhm-sl' }, [h('span', { text: 'Min' }), out, h('span', { text: 'Max' })])]);
 }
 
 function render() {
@@ -180,12 +205,13 @@ function render() {
     if (info.crypto) kids.push(sec('Denomination', [seg(['USD', 'Coin'], v.hmUsd ? 'USD' : 'Coin', (o) => { setIn('book', { hmUsd: o === 'USD' }); render(); })]));
     kids.push(sec('Appearance', [h('div', { class: 'stkhm-sws' }, THEMES.map((t) => h('button', { type: 'button', 'aria-pressed': String((v.hmTheme || 'Classic') === t), title: t, onclick: () => { setIn('book', { hmTheme: t }); render(); } },
       [h('i', { style: 'background:linear-gradient(90deg,' + SW[t].join(',') + ')' }), h('span', { text: t })])))]));
-    const d = dh(), bins = d && d.spread, mx = d && d.maxSize || 0, px = info.crypto && v.hmUsd ? ((cell().chart.orchestrator.rawBars.slice(-1)[0] || {}).close || 1) : 1, bound = mx * px, cut = Number(v.cutoffPct || 0);
-    const preset = Object.keys(SENS).find((k) => SENS[k] === cut) || '';
-    const top = bins ? Math.max(1, ...bins) : 1;
-    kids.push(sec('Sensitivity', [h('div', { class: 'stkhm-hist', 'aria-label': 'Spread of sizes now' }, (bins || new Array(12).fill(0)).map((n) => h('i', { style: 'height:' + Math.max(4, Math.round(100 * n / top)) + '%' }))),
-      seg(['High', 'Mid', 'Low'], preset, (o) => { setIn('book', { cutoffPct: SENS[o] }); render(); })],
+    const d = dh(), mx = d && d.maxSize || 0, px = info.crypto && v.hmUsd ? ((cell().chart.orchestrator.rawBars.slice(-1)[0] || {}).close || 1) : 1, bound = mx * px, cut = Number(v.cutoffPct || 0);
+    kids.push(sec('Sensitivity', [sensSlider(cut, v.hmTheme || 'Classic'),
+      seg(['High', 'Mid', 'Low'], '', (o) => { setIn('book', { cutoffPct: SENS[o] }); render(); })],
       h('button', { type: 'button', text: 'Reset', onclick: () => { setIn('book', { cutoffPct: 0, hmMin: 0, hmMax: 0, hmTheme: 'Classic', hmStyle: 'Classic', hmShow: 'Heatmap', hmValues: false, showCum: true }); render(); } })));
+    // the preset row highlights only when the slider sits exactly on a preset
+    const pr = kids[kids.length - 1].querySelectorAll('.stkhm-seg button'); const mark = (c) => pr.forEach((b) => b.setAttribute('aria-pressed', String(SENS[b.textContent] === c)));
+    kids[kids.length - 1].__mark = mark; mark(cut);
     kids.push(sec('Intensity', [stepper('Threshold', Number(v.hmMin || 0), bound, (n) => { setIn('book', { hmMin: n }); render(); }),
       stepper('Ceiling', Number(v.hmMax || 0), bound, (n) => { setIn('book', { hmMax: n }); render(); }),
       h('p', { class: 'stkhm-note', text: bound > 0 ? 'Min 0 · Max ' + fmt(bound) + (v.hmUsd ? ' USD' : info.crypto ? ' coins' : ' contracts') : 'Bounds appear when the book has data.' })]));

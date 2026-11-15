@@ -134,6 +134,10 @@ const state = (p) => p.evaluate(() => {
     await p.selectOption('.stkss-rail select[aria-label="Exchange"]', 'coinbase'); await sleep(300);
     s = await state(p);
     check(s.rows.length && s.rows.every((r) => /^coinbase:/i.test(r.sym)), '1440: exchange filter', s.rows.map((r) => r.sym));
+    const logos = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('.stkss-rail .stkss-ri')].map((b) => [b.querySelector('.stkss-ri-l').textContent.toLowerCase(), !!b.querySelector('img')])));
+    await p.evaluate(() => { const r = document.querySelector('.stkss-rail'); r.scrollTop = r.scrollHeight; }); await sleep(150);
+    if (OUT) await p.screenshot({ path: OUT + '/1440-dark-rail-bottom.png' });
+    check(['cme', 'nasdaq', 'binance'].every((n) => logos[n]), '1440: rail rows show <img> for CME / NASDAQ / Binance', logos);
     await p.keyboard.press('Escape'); await sleep(200);
     // toolbar symbol button opens the same panel
     const bb = await p.evaluate(() => { const e = document.querySelector('.vela-widget-symbol'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });

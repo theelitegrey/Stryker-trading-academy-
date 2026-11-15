@@ -22,6 +22,7 @@
 import { classify, venueOf, pairOf, metaOf, search, symOf, keyOf, quoteOf, decimalsOf, VENUE_LABEL, VENUE_ORDER, CRYPTO_VENUES } from './chart-search-core.js?v=1030';
 import { parseFormula, bodyOf } from './chart-formula-core.js?v=1030';
 import { resolveLegs } from './chart-formula.js?v=1030';
+import { venueChip } from './venue-logos.js?v=1030';
 import { getInfo } from './chart-symbol-info.js?v=1030';
 
 const PHONE_MAX = 700;
@@ -199,7 +200,7 @@ export function mountSearch(ws, o = {}) {
     const have = PC.cats;
     rail.appendChild(sec('Browse', TABS.filter(([id]) => id === 'all' || have.has(id)).map(([id, l]) => item(l, S.tab === id, () => setTab(id)))));
     const venues = VENUE_ORDER.filter((v) => PC.venues.has(v));
-    rail.appendChild(sec('Exchanges', venues.map((v) => item(VENUE_LABEL[v] || v.toUpperCase(), S.venue === v, () => { S.venue = S.venue === v ? '' : v; buildRail(); render(); }, el('span', { class: 'stkss-vb stkss-vb-' + (CRYPTO_VENUES.includes(v) ? 'crypto' : v === 'fx' ? 'forex' : ['cme', 'cbot', 'comex', 'nymex'].includes(v) ? 'futures' : 'stocks'), html: svg(IC.venue, 16), 'aria-hidden': 'true' })))));
+    rail.appendChild(sec('Exchanges', venues.map((v) => item(VENUE_LABEL[v] || v.toUpperCase(), S.venue === v, () => { S.venue = S.venue === v ? '' : v; buildRail(); render(); }, el('span', { class: 'stkss-vb stkss-vb-' + (CRYPTO_VENUES.includes(v) ? 'crypto' : v === 'fx' ? 'forex' : ['cme', 'cbot', 'comex', 'nymex'].includes(v) ? 'futures' : 'stocks'), 'aria-hidden': 'true' }, [venueChip(v)])))));
     // Refine
     const selWrap = (label, sel) => el('label', { class: 'stkss-sel' }, [el('span', { class: 'stkss-sel-l', text: label }), el('span', { class: 'stkss-sel-box' }, [sel, el('span', { class: 'stkss-sel-ic', html: svg(IC.chev, 16) })])]);
     const exSel = el('select', { 'aria-label': 'Exchange' });
@@ -367,7 +368,8 @@ export function mountSearch(ws, o = {}) {
     const line1 = el('span', { class: 'stkss-l1' }, [tk, statusTag(d, i)]);
     const tl = d.__formula ? '' : TYPE_LABEL[c] || '', vl = d.__formula ? '' : VENUE_LABEL[v] || (v ? v.toUpperCase() : '');
     const sub = [d.description || '', tl, vl !== tl ? vl : ''].filter(Boolean).join(' · ');
-    const txt = el('span', { class: 'stkss-txt' }, [line1, el('span', { class: 'stkss-l2', text: sub })]);
+    const l2 = el('span', { class: 'stkss-l2' }, [d.__formula || !v ? null : venueChip(v), el('span', { text: sub })]);
+    const txt = el('span', { class: 'stkss-txt' }, [line1, l2]);
     const px = el('span', { class: 'stkss-px', 'data-q': '' });
     const row = el('div', { class: 'stkss-row', role: 'option', id: 'stkss-o' + i, 'data-i': String(i), 'data-sym': sym, 'aria-selected': 'false' }, [star, ic, txt, px]);
     paintQuote(row, d);
@@ -454,6 +456,7 @@ export function mountSearch(ws, o = {}) {
   function sideFutures(d) {
     const root = String(d.ticker).replace(/1!$/, '').toUpperCase(), ex = VENUE_LABEL[venueOf(d)] || d.prefix || '';
     sideHead(root, ex + ' Futures');
+    side.lastChild.insertBefore(venueChip(venueOf(d)), side.lastChild.firstChild);
     const box2 = el('div', { class: 'stkss-slist' });
     box2.appendChild(sideRow(d.ticker, 'Continuous front month · opens on the chart', ['CONT'], symFor(d), d));
     side.appendChild(box2);

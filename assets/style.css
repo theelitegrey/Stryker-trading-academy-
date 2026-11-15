@@ -11946,3 +11946,12 @@ section.stkss-sec{ padding:0; margin:0; }
 @media (max-width:360px){ .stkss.is-phone .stkss-px{ display:none; } }
 @media (prefers-reduced-motion:reduce){ .stkss-box, .stkss-scrim{ transition:none !important; } }
 .stkss.stkss-ghost{ visibility:hidden; pointer-events:none; }
+
+/* search panel venue marks: round chip, same on dark and light (the tile is always white; letters / glyphs use the muted chip) */
+.stkss .vlogo{ border-radius:999px; }
+.stkss-l2:has(.vlogo){ display:flex; align-items:center; gap:6px; }
+.stkss-l2 .vlogo{ width:18px; height:18px; }
+.stkss-l2 > span:not(.vlogo){ min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.stkss-vb{ background:transparent; border-color:transparent; }
+.stkss-shead .vlogo{ width:20px; height:20px; margin-right:8px; align-self:center; }
+.stkss .vlogo-g{ color:var(--ss-ink2); }

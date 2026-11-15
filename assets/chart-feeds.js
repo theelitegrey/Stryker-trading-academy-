@@ -151,6 +151,9 @@ export function mountFeedBadges(ws) {
   function paint() {
     cur = usedNow();
     const st = feedState(cur.used, cur.have);
+    // no hub / exchange book for this market (e.g. a stock): L2 is not a plan matter. Lit when the member's own connected feed streams
+    // depth for it (chart-depth-source.js), else not in use; the tool itself says what would make it work.
+    if (!cur.mkt && st.L2.state === 'locked') { const bs = window.__stkBookSources, pv = (/^([a-z0-9_-]+):/i.exec(cur.sym) || [])[1]; st.L2.state = bs && pv && typeof bs[pv.toLowerCase()] === 'function' ? 'lit' : 'dim'; st.L2.locked = ''; }
     if (cur.sure) for (const L of ['L1', 'L2']) if (st[L].state === 'locked') { st[L].state = 'lit'; st[L].locked = ''; st[L].wait = true; }
     last = st;
     row.hidden = !st.show;

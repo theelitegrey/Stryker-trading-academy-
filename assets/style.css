@@ -6675,6 +6675,43 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
   .stkws-dlg .stkl-body input[type=text]{ font-size:16px; min-height:48px; }   /* 16 px: iOS never zooms */
   .stkws-dlg .stkc-sbtn, .stkws-ghost{ height:44px; padding:0 18px; }
 }
+/* workspace tab right-click menu (assets/chart-workspaces.js openMenu). 8pt grid: menu pad 8, rows 32 (phone 48), icon box 24, gap 8. */
+.stkws-cm-scrim{ position:fixed; inset:0; z-index:9080; background:transparent; }
+.stkws-cm{ position:fixed; z-index:9081; box-sizing:border-box; width:264px; max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); overflow-y:auto; overscroll-behavior:contain;
+  padding:8px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); color:var(--ink-1); font-size:13px; line-height:16px;
+  box-shadow:0 18px 40px -12px rgba(0,0,0,.6); outline:0; opacity:0; transform:scale(.96); transition:opacity .14s cubic-bezier(.2,0,0,1), transform .14s cubic-bezier(.2,0,0,1); }
+.stkws-cm.open{ opacity:1; transform:none; }
+.stkws-cm-sep{ height:1px; margin:8px -8px; background:var(--line-soft); }
+.stkws-cm-row{ display:flex; align-items:center; gap:8px; box-sizing:border-box; width:100%; height:32px; padding:0 8px; border:0; border-radius:8px; background:transparent; color:var(--ink-1); font:500 13px/16px inherit; font-family:inherit; text-align:left; cursor:pointer; }
+.stkws-cm-it:hover, .stkws-cm-it:focus-visible{ background:var(--bg-3); color:var(--ink-0); outline:0; }
+.stkws-cm-it:focus-visible, .stkws-cm-o:focus-visible{ box-shadow:inset 0 0 0 2px var(--gold); }
+.stkws-cm-it:disabled{ opacity:.4; cursor:default; }
+.stkws-cm-it:disabled:hover{ background:transparent; color:var(--ink-1); }
+.stkws-cm-ic{ flex:none; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; color:var(--ink-2); }
+.stkws-cm-it:hover .stkws-cm-ic, .stkws-cm-it:focus-visible .stkws-cm-ic{ color:var(--ink-0); }
+.stkws-cm-l{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stkws-cm-k{ flex:none; min-width:56px; text-align:right; font-size:12px; line-height:16px; color:var(--ink-3); white-space:nowrap; }
+.stkws-cm-it.danger, .stkws-cm-it.danger .stkws-cm-ic{ color:var(--bear, #e5484d); }
+.stkws-cm-it.danger:hover{ background:rgba(229,72,77,.12); }
+.stkws-cm-sw{ cursor:default; }
+.stkws-cm-opts{ flex:1 1 auto; min-width:0; display:flex; align-items:center; justify-content:space-between; gap:0; }
+.stkws-cm-o{ flex:none; width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; padding:0; border:0; border-radius:8px; background:transparent; color:var(--ink-2); cursor:pointer; }
+.stkws-cm-o:hover{ background:var(--bg-3); color:var(--ink-0); }
+.stkws-cm-o.gl.on{ background:var(--bg-3); color:var(--ink-0); box-shadow:inset 0 0 0 1px var(--line); }
+.stkws-cm-o.dot i{ display:block; width:16px; height:16px; border-radius:50%; background:var(--c); box-shadow:0 0 0 1px rgba(0,0,0,.25); }
+.stkws-cm-o.dot.on i{ box-shadow:0 0 0 2px var(--bg-2), 0 0 0 4px var(--c); }
+.c-blue{ --c:#4c8dff; } .c-green{ --c:#03c988; } .c-red{ --c:#e5484d; } .c-amber{ --c:#f5a524; } .c-purple{ --c:#9b7bff; } .c-teal{ --c:#2bc4d6; }
+.stkws-tab[class*="c-"] .stkws-gl, .stkws-tab[class*="c-"].on .stkws-gl{ color:var(--c); }
+.stkws-tab.pinned{ min-width:0; max-width:120px; padding:0 10px; }
+.stkws-tab.pinned .stkws-tn{ max-width:80px; }
+.stkws-cm-scrim.sheet.open{ background:rgba(0,0,0,.5); transition:background .2s; }
+.stkws-cm.sheet{ left:0; right:0; bottom:0; top:auto; width:auto; max-width:none; max-height:85dvh; padding:8px 8px calc(12px + env(safe-area-inset-bottom)); border:0; border-top:1px solid var(--line); border-radius:20px 20px 0 0;
+  opacity:1; transform:translateY(100%); transition:transform .3s cubic-bezier(.2,0,0,1); font-size:15px; }
+.stkws-cm.sheet.open{ transform:none; }
+.stkws-cm.sheet .stkws-cm-row{ height:48px; font-size:15px; line-height:20px; }
+.stkws-cm.sheet .stkws-cm-o{ width:44px; height:44px; }
+.stkws-cm.sheet .stkws-cm-k{ display:none; }
+@media (prefers-reduced-motion: reduce){ .stkws-cm, .stkws-cm.sheet{ transition:none; } }
 /* desktop tab strip: one slim row, horizontal scroll with the bar hidden (a deliberate pill row), + at the end */
 /* Owner 15 Nov: workspaces are browser-style tabs in the TOP bar, right after the logo. Tabs 30px tall, logo 18px, one centre line. */
 .stkws-strip{ display:flex; align-items:flex-end; align-self:stretch; gap:6px; min-width:0; flex:1 1 auto; margin-left:4px; }

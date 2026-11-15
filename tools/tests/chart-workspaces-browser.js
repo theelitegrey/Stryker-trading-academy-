@@ -105,7 +105,7 @@ const waitIdle = (p) => p.waitForFunction(() => !window.STRYKER_WORKSPACES.busy,
     await a.click('.stkws-tab >> nth=0'); await waitIdle(a);
     t('clicking a tab switches', await W(a, () => window.STRYKER_WORKSPACES.active.name === 'Workspace 1'));
     await a.click('.stkws-tab >> nth=1', { button: 'right' });
-    t('right-click menu: Rename, Duplicate, Delete', await W(a, () => [...document.querySelectorAll('.stkws-ctx:not([hidden]) .stkws-ci')].map((x) => x.textContent).join('|') === 'Rename…|Duplicate|Delete…'));
+    t('right-click opens the workspace menu (details: chart-wsmenu-browser.js)', await W(a, () => !!document.querySelector('.stkws-cm .stkws-cm-it') && [...document.querySelectorAll('.stkws-cm-l')].some((x) => x.textContent === 'Rename')));
     await a.keyboard.press('Escape');
     await a.click('.stkws-tab >> nth=1', { button: 'middle' }); await waitIdle(a);
     t('middle-click closes (confirm accepted)', await W(a, () => window.STRYKER_WORKSPACES.index.items.length === 1));

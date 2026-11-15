@@ -561,16 +561,23 @@ function mergeDeep(base, patch){
   return o;
 }
 const stockOf = new Map();   // cell id -> config before our default look (only for cells wearing it)
+let ourApply = 0;           // >0 while WE (not the member) change a chart's config
+const quietly = (fn) => { ourApply++; try { return fn(); } finally { ourApply--; } };
 function wearDefault(id){
   const cell = cellOf(id); if (!cell || !cell.chart) return;
   try {
     const r = cell.chart.renderer;
-    if (!stockOf.has(id)) stockOf.set(id, clone(r.getConfig()));
-    r.applyConfig(defStylePatch());
+    if (!stockOf.has(id)) {
+      stockOf.set(id, clone(r.getConfig()));
+      // The member's choice always wins (15 Nov, Animate zoom would not stay on): the first config change that
+      // is not ours means the member edited this chart, so it stops wearing the default and is never re-patched.
+      try { r.onConfigChanged(() => { if (!ourApply) stockOf.delete(id); }); } catch (e) {}
+    }
+    quietly(() => r.applyConfig(defStylePatch()));
   } catch (e) { console.warn('TradeZoro default look', e); }
 }
 function takeOffDefault(){
-  stockOf.forEach((cfg, id) => { const c = cellOf(id); if (c && c.chart) { try { c.chart.renderer.applyConfig(cfg); } catch (e) {} } });
+  quietly(() => stockOf.forEach((cfg, id) => { const c = cellOf(id); if (c && c.chart) { try { c.chart.renderer.applyConfig(cfg); } catch (e) {} } }));
   stockOf.clear();
 }
 function mountDefaultLook(ws, fresh){
@@ -592,7 +599,7 @@ function mountDefaultLook(ws, fresh){
   try { ws.on('cell:created', ({ id }) => { if (loading) return; if (pooled.delete(id)) return; setTimeout(() => wearDefault(id), 0); }); } catch (e) {}
   // Day / night switch: our values are theme-specific, so follow the theme while the cell wears them.
   const st = ws.setTheme.bind(ws);
-  ws.setTheme = function(t){ const r = st(t); stockOf.forEach((_, id) => { const c = cellOf(id); if (c && c.chart) { try { c.chart.renderer.applyConfig(defStylePatch()); } catch (e) {} } }); return r; };
+  ws.setTheme = function(t){ return quietly(() => { const r = st(t); stockOf.forEach((_, id) => { const c = cellOf(id); if (c && c.chart) { try { c.chart.renderer.applyConfig(defStylePatch()); } catch (e) {} } }); return r; }); };
 }
 function stykerDefaults(id){
   const cell = cellOf(id); const R = inner(cell);

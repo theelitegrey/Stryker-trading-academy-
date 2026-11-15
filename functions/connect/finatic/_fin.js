@@ -6,7 +6,10 @@ import { okOrigin, rateLimited, json } from '../_token.js';
 export { json };
 // Every error reply is JSON {error, code} so the sheet can show a plain-English line (never the generic "Request failed").
 const CODES = { 400: 'bad_request', 401: 'signed_out', 403: 'forbidden', 404: 'not_found', 405: 'method', 409: 'needs_connect', 415: 'json_only', 429: 'rate_limited', 500: 'server_error', 502: 'upstream', 503: 'not_set_up' };
-export const fail = (status, error, code) => json({ error, code: code || CODES[status] || 'error' }, status);
+// 502 / 504 are never sent: Cloudflare's edge swaps the body of a 502/504 from a Pages function for its own HTML
+// "Bad gateway" page (seen live 15 Nov), so the sheet lost our JSON. An upstream failure goes out as 503 {code:'upstream'}.
+const EDGE_SAFE = (s) => (s === 502 || s === 504 ? 503 : s);
+export const fail = (status, error, code) => json({ error, code: code || CODES[status] || 'error' }, EDGE_SAFE(status));
 export const needsConnect = () => json({ error: 'Not connected yet', code: 'needs_connect', needsConnect: true }, 409);
 export const methodNotAllowed = (allow) => new Response(JSON.stringify({ error: 'Method not allowed', code: 'method' }), { status: 405, headers: { allow, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 export const UPSTREAM_MSG = 'The broker connection service is not answering properly right now. Try again in a minute.';
@@ -15,8 +18,14 @@ export const UPSTREAM_MSG = 'The broker connection service is not answering prop
 // (never the message: it can carry a URL, token or key).
 export function safe(name, fn) {
   return async (request, env, deps = {}) => {
-    try { return await fn(request, env, deps); }
+    let r;
+    try { r = await fn(request, env, deps); }
     catch (e) { try { console.error('finatic ' + name + ': exception ' + ((e && e.name) || 'Error')); } catch (e2) {} return fail(500, 'Broker sync hit an error on our side. Try again; if it keeps happening, tell support.', 'server_error'); }
+    // Last line of defence: only our own JSON leaves, never an upstream body or a 502/504 the edge would replace.
+    const ct = r instanceof Response ? (r.headers.get('content-type') || '') : '';
+    if (!/^application\/json\b/i.test(ct)) { try { console.error('finatic ' + name + ': non-JSON reply blocked'); } catch (e) {} return fail(500, 'Broker sync hit an error on our side. Try again; if it keeps happening, tell support.', 'server_error'); }
+    if (r.status === 502 || r.status === 504) return new Response(r.body, { status: 503, headers: r.headers });
+    return r;
   };
 }
 export const API = 'https://api.finatic.dev';
@@ -53,8 +62,11 @@ export async function fin(env, deps, method, path, { headers = {}, query, body }
   if (body !== undefined) h['content-type'] = 'application/json';
   let r;
   try {
-    r = await (deps.finFetch || fetch)(url.toString(), { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body), redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS) });
-  } catch (e) { return { ok: false, status: 0, data: null, bad: true }; }   // network error / timeout / redirect
+    // redirect 'manual', NOT 'error': the Workers runtime throws on redirect:'error' ("won't be implemented ... at the edge"),
+    // which made every live call fail with status 0 while Node (tests, local runs) accepted it. A 3xx is refused below.
+    r = await (deps.finFetch || fetch)(url.toString(), { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body), redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS) });
+  } catch (e) { try { console.warn('finatic: fetch failed (' + ((e && e.name) || 'Error') + ')'); } catch (e2) {} return { ok: false, status: 0, data: null, bad: true }; }   // network error / timeout
+  if (r.type === 'opaqueredirect' || (r.status >= 300 && r.status < 400)) { console.warn('finatic: redirect refused, status ' + r.status); return { ok: false, status: r.status, data: null, bad: true }; }
   let j = null;
   try { j = await r.json(); } catch (e) { j = null; }
   if (!j || typeof j !== 'object') {   // HTML error page or garbage: never treat as success

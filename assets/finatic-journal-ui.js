@@ -85,7 +85,7 @@ export function openBrokerSync({ uid } = {}) {
         S.sessionId = r.sessionId || '';
         if (win && r.portalUrl) { win.opener = null; win.location.href = r.portalUrl; } else if (r.portalUrl) { location.href = r.portalUrl; return; }
         S.step = 'wait'; draw();
-      } catch (e2) { if (win) win.close(); drawStart(e2.status === 503 ? '' : (e2.message || 'Could not start.')); if (e2.status === 503) drawNotSetUp(); }
+      } catch (e2) { if (win) win.close(); const notSet = e2.status === 503 && (!e2.code || e2.code === 'not_set_up'); drawStart(notSet ? '' : (e2.message || 'Could not start.')); if (notSet) drawNotSetUp(); }
     });
     const have = q('#fjs-have'); if (have) have.addEventListener('click', loadAccounts);
   }

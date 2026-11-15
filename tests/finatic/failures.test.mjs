@@ -34,10 +34,14 @@ const ok = (data) => new Response(JSON.stringify({ data, errors: [] }), { status
 // Upstream double: behaviour switched per case.
 let mode = 'stale'; const envHdr = [];
 const finFetch = async (url, init) => {
+  // Behave like the Workers runtime (Owner bug 15 Nov, live 502): it THROWS on redirect:'error'; Node accepts it, which hid the bug.
+  if (init.redirect === 'error') throw new TypeError('Invalid redirect value, must be one of "follow" or "manual"');
   const u = new URL(url); envHdr.push(init.headers['X-Finatic-Environment']);
   if (mode === 'throw') throw new TypeError('network down https://api.finatic.dev/?k=' + KEY);
   if (mode === 'html') return new Response('<!doctype html><title>502 Bad Gateway</title>', { status: 200, headers: { 'content-type': 'text/html' } });
   if (mode === 'html502') return new Response('<html>error code: 1101</html>', { status: 502 });
+  if (mode === 'cf502') return new Response('<!DOCTYPE html>\n<!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US"> <![endif]--><title>502: Bad gateway</title>', { status: 502, headers: { 'content-type': 'text/html; charset=UTF-8', server: 'cloudflare' } });
+  if (mode === 'redirect') return new Response(null, { status: 302, headers: { location: 'https://evil.example/' } });
   if (u.pathname === '/api/v1/session/init') return ok({ one_time_token: 'ott' });
   if (u.pathname === '/api/v1/session/start') {
     const uid = JSON.parse(init.body || '{}').user_id;
@@ -65,18 +69,37 @@ assert.equal(r.status, 409); assert.equal((await body(r)).needsConnect, true);
 r = await S.handle(req({ mode: 'dark' }, 'https://tradezoro.com/connect/finatic/session'), env, deps);
 assert.equal(r.status, 200); assert.ok((await body(r)).portalUrl.startsWith('https://portal.finatic.dev/'));
 
-// 2. upstream answers HTML / garbage -> JSON 502 with a message (session, data, order)
-for (const m of ['html', 'html502', 'start500']) {
+// 2. upstream answers HTML / garbage / a redirect -> JSON 503 {code:'upstream'} with a message (session, data, order).
+//    Never 502/504: Cloudflare's edge replaces a 502 body from a Pages function with its own HTML page.
+for (const m of ['html', 'html502', 'cf502', 'redirect', 'start500']) {
   mode = m;
   for (const [h, b, u] of [[S, { mode: 'dark' }, 'session'], [D, { op: 'accounts', userId: STALE }, 'data'], [O, { op: 'schema', action: 'place', accountId: ACC, userId: STALE }, 'order']]) {
     r = await h.handle(req(b, 'https://tradezoro.com/connect/finatic/' + u), env, deps);
-    assert.equal(r.status, 502, m + ' ' + u); j = await body(r);
+    assert.equal(r.status, 503, m + ' ' + u); j = await body(r);
+    assert.equal(r.headers.get('content-type').split(';')[0], 'application/json', m + ' ' + u);
     assert.equal(j.code, 'upstream'); assert.ok(typeof j.error === 'string' && j.error.length > 20 && !/request failed/i.test(j.error), m + ' ' + u);
   }
 }
-// upstream fetch throws (network / timeout) -> JSON 502
+// upstream fetch throws (network / timeout) -> JSON 503
 mode = 'throw';
-r = await S.handle(req({}, 'https://tradezoro.com/connect/finatic/session'), env, deps); assert.equal(r.status, 502); assert.equal((await body(r)).code, 'upstream');
+r = await S.handle(req({}, 'https://tradezoro.com/connect/finatic/session'), env, deps); assert.equal(r.status, 503); assert.equal((await body(r)).code, 'upstream');
+// session/data whose sessionId lookup hits a broken upstream -> JSON 503 too (was the second live 502)
+mode = 'cf502';
+r = await D.handle(req({ op: 'accounts', sessionId: 'abc123' }), env, deps); assert.equal(r.status, 503); assert.equal((await body(r)).code, 'upstream');
+
+// 2b. the live bug itself: with the Workers-like fetch (throws on redirect:'error') a healthy upstream gives a portal URL
+mode = 'stale';
+r = await S.handle(req({ mode: 'dark' }, 'https://tradezoro.com/connect/finatic/session'), env, deps);
+assert.equal(r.status, 200, 'portal URL under the Workers fetch rules'); assert.ok((await body(r)).portalUrl.startsWith('https://portal.finatic.dev/'));
+
+// 2c. safe(): a handler that hands back an upstream Response (HTML) or a 502 can never reach the browser as-is
+const { safe } = await import('../../functions/connect/finatic/_fin.js');
+r = await safe('t', async () => new Response('<!DOCTYPE html><title>502: Bad gateway</title>', { status: 502, headers: { 'content-type': 'text/html' } }))(req({}), env, deps);
+assert.equal(r.status, 500); j = await body(r); assert.equal(j.code, 'server_error');
+r = await safe('t', async () => new Response('{"error":"x","code":"upstream"}', { status: 502, headers: { 'content-type': 'application/json' } }))(req({}), env, deps);
+assert.equal(r.status, 503); assert.equal((await body(r)).code, 'upstream');
+r = await safe('t', async () => new Response('plain', { status: 200 }))(req({}), env, deps);
+assert.equal(r.status, 500); assert.equal((await body(r)).code, 'server_error');
 
 // 3. exception anywhere in the handler -> JSON 500 (no Cloudflare HTML page)
 mode = 'stale';

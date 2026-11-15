@@ -51,10 +51,13 @@ const VERSIONS = (() => {
   if (!m) throw new Error('assets/indicator-versions.js: VERSIONS block not found');
   return require('vm').runInNewContext('(' + m[1] + ')');
 })();
+// a v1.0 line written by tools/indver-seed.js (no history of its own): it does not move the page's "Updated" date
+const SEEDED = (x) => x.v === '1.0' && x.notes.length === 1 && /^(First release|Added to ZoroCharts)\.$/.test(x.notes[0]);
 const FIRST = JSON.parse(fs.readFileSync(path.join(HERE, 'first-release.json'), 'utf8'));
 function changelogOf(it) {
   const e = VERSIONS[it.key];
-  const list = e ? e.versions.map((x) => ({ v: x.v, date: x.date, notes: x.notes, pick: !x.all }))
+  // pick = a version a chart can stay on (natives: not all:true; built-in Pine: its source is kept, src: true, or it is the latest)
+  const list = e ? e.versions.map((x, i) => ({ v: x.v, date: x.date, notes: x.notes, pick: /^x:/.test(it.key) ? !!x.src || i === e.versions.length - 1 : i === 0 || !x.all }))
     : [{ v: '1.0', date: FIRST[it.key] || DEFAULT_UPDATED, notes: [it.third ? 'Added to ZoroCharts.' : 'First release.'] }];
   for (const x of list) {
     const bad = x.notes.join(' ').match(/\b(tradingview|luxalgo|vela|cme|finra|rithmic|win rate|profitable|guaranteed?|real-time)\b/i);
@@ -98,7 +101,7 @@ function loadItems() {
     return {
       slug: it.slug, key: it.key, name: DISPLAY[it.key] || it.name, windowName: it.name, author: it.author, third: it.third, group: it.group,
       plan: it.plan, kind: it.kind, short: it.short, summary: w.summary, overview: w.overview, how: w.how, use: w.use, notes: w.notes,
-      explain: explainOf(it.slug, it), changelog: changelogOf(it), alerts: w.alerts || '', learn: w.learn && LEARN[w.learn] ? w.learn : '', updated: [w.updated || DEFAULT_UPDATED, ...((VERSIONS[it.key] || { versions: [] }).versions.map((x) => x.date))].sort().pop(),
+      explain: explainOf(it.slug, it), changelog: changelogOf(it), alerts: w.alerts || '', learn: w.learn && LEARN[w.learn] ? w.learn : '', updated: [w.updated || DEFAULT_UPDATED, ...((VERSIONS[it.key] || { versions: [] }).versions.filter((x) => !SEEDED(x)).map((x) => x.date))].sort().pop(),
       licence: it.licence || '', originalUrl: it.originalUrl || '', settings,
       capture: caps[it.slug] === 'ok' ? 'chart' : 'preview',
       image: `/${IMG}/${it.slug}.webp`, thumb: `/${IMG}/${it.slug}-t.webp`

@@ -239,6 +239,20 @@
     }
   };
 
+  // The published versions of a script, for the chart's update button (assets/chart-ind-versions.js):
+  // -> { version: latest, notes: [{ v, text, date }] } | null (not listed / no access)
+  ZSLib.versions = function (sid) {
+    return S(sid).get().then(function (s) {
+      if (!s.exists) return null;
+      var m = s.data() || {};
+      if (m.status !== 'live' && m.status !== 'unlisted') return null;
+      return S(sid).collection('versions').get().then(function (q) {
+        var a = q.docs.map(function (d) { var x = d.data() || {}; var t = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : null; return { v: +x.version || 0, text: String(x.notes || '').slice(0, 1000), date: t ? t.toISOString().slice(0, 10) : '' }; });
+        return { version: +m.version || 1, notes: a };
+      }, function () { return { version: +m.version || 1, notes: [] }; });
+    }).catch(function () { return null; });
+  };
+
   // Count an add (once per member) and open the chart with it.
   ZSLib.addToChart = function (sid, u) {
     var go = function () { location.href = '/charts?zs=' + encodeURIComponent(sid); };

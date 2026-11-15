@@ -44,6 +44,7 @@ const DEFAULTS = Object.freeze({
   marginBottom: '8',
   h12: false,              // s2 patch: 12-hour clock on the time axis + crosshair
   dow: true,               // s2 patch: weekday in the crosshair date
+  hidePrice: false,        // hide the main price series (candles / bars / line); overlays + indicators stay (member request)
   rhide: false             // ADMIN ONLY: hide replay markings while bar replay runs (Owner 2026-10-16)
 });
 const RH_TIP = 'Clean chart for recording: while replay runs, hides the Replay badge, control bar, data-dot tag, (simulated path), replay toasts, the Replay account tag and the GEX replay note. Keys while replay is on: Shift+H show/hide markings, Space play/pause, Shift+Right step forward, Shift+Left step back, Shift+Up/Down speed, Shift+X exit replay. Phone: two-finger long-press, or tap the faint dot in the bottom-right corner.';
@@ -123,6 +124,12 @@ export function installChartSettings(Core, VelaChunk){
     const k = tz && tz.find((t) => t.value === 'Asia/Kolkata');
     if (k) k.label = 'Kolkata';
   } catch (e) { console.warn('TradeZoro settings: tz label', e); }
+  // Right-click menu entry (chart body + price axis); the top-bar eye button is added with the gear below.
+  try {
+    ['context:body', 'context:price-axis'].forEach((target, i) => Core.registerWidgetAction && Core.registerWidgetAction({
+      id: 'stryker.hide-price' + i, target, order: 800, get label(){ return hideLabel(); },
+      run: () => { try { setHide(WS.active.id, !S(WS.active.id).hidePrice); } catch (e) {} } }));
+  } catch (e) { console.warn('TradeZoro settings: hide-price action', e); }
   // Days of history to load, per timeframe, per chart cell (chart-days-load.js).
   Core.registerStatePersistence({
     key: 'stryker.daysload', scope: 'cell',
@@ -369,6 +376,7 @@ function applyCell(id){
   }
   applyRight(cell);
   applyStk(cell);
+  applyHide(cell);
 }
 // s2 Vela patch options live on the renderer's scene as scene.stk.
 // Margins: TradingView gives % of the pane height; Vela pads by a fraction of the data span.
@@ -384,6 +392,31 @@ function applyStk(cell){
   if (vm && typeof vm === 'object') { vm.top = Number(s.marginTop); vm.bottom = Number(s.marginBottom); }
   try { R.scheduler && R.scheduler.invalidate(4); } catch (e) {}
 }
+
+// Hide the price series (Vela renderer feature 'candleVisible': chart-type layer + bars go, the price
+// scale, crosshair, overlays and indicators keep working). Our flag is the saved truth, per cell.
+function applyHide(cell){
+  const rc = cell && cell.chart && cell.chart.renderer; if (!rc) return;
+  const want = !!S(cell.id).hidePrice;
+  try { if ((rc.get('candleVisible') !== false) === want) rc.set('candleVisible', !want); } catch (e) {}
+  syncHideUi();
+}
+function setHide(id, v){ setVal(id, 'hidePrice', !!v); }
+function hideLabel(){ let on = false; try { on = !!S(WS.active.id).hidePrice; } catch (e) {} return on ? 'Show price candles' : 'Hide price candles'; }
+// The settings switch cannot be set from outside (see syncFavSwitch): click it a tick later if it disagrees.
+let hideSetting = false;
+function syncHideUi(){
+  let on = false; try { on = !!S(WS.active.id).hidePrice; } catch (e) {}
+  const b = document.getElementById('stkc-hideprice-btn');
+  if (b) { b.setAttribute('aria-pressed', String(on)); b.title = hideLabel(); b.classList.toggle('on', on); }
+  setTimeout(() => document.querySelectorAll('.vela-dialog--settings .stk-sd-extra .vela-field-label').forEach((lab) => {
+    if (lab.textContent !== HIDE_ROW) return;
+    const row = lab.closest('.vela-field-span') || lab.parentElement;
+    const sw = row && row.querySelector('.vela-switch[role="switch"]');
+    if (sw && (sw.getAttribute('aria-checked') === 'true') !== on) { hideSetting = true; try { sw.click(); } finally { hideSetting = false; } }
+  }), 0);
+}
+const HIDE_ROW = 'Hide price candles';
 // Test hook (tools/tests/chart-vela090-browser.js): do our margin rows reach the renderer?
 window.__stkMarginsProbe = () => {
   try {
@@ -462,6 +495,8 @@ function ourSections(id){
       { kind: 'heading', label: 'Candles' },
       { kind: 'toggle', label: 'Color bars based on previous close', id: 'prev-close', get: g('prevClose'), set: st('prevClose') },
       off('Hollow candles'),
+      { kind: 'toggle', label: HIDE_ROW, id: 'hide-price', get: g('hidePrice'), set: (v) => { if (!hideSetting) setHide(id, v); },
+        title: 'Hides the candles, bars or line. Footprint, profiles, heatmap, big trades and indicators, the price scale and the crosshair stay. Also in the top bar (eye button) and the right-click menu.' },
       { kind: 'heading', label: 'Data modification' }, off('Adjust for contract changes'),
       { kind: 'heading', label: 'History' }, daysRow(id),
       { kind: 'select', label: 'Precision', id: 'precision', options: PRECISIONS, get: g('precision'), set: st('precision') },
@@ -833,6 +868,12 @@ export function mountChartSettings(ws, opts){
       try { const c = ws.cell(ws.active.id); c.chart.renderer.openSettings(); } catch (err) { console.warn(err); }
     });
     bar.insertBefore(b, bar.firstChild);
+    const h = document.createElement('button');
+    h.type = 'button'; h.className = 'stkc-ib'; h.id = 'stkc-hideprice-btn'; h.setAttribute('aria-label', 'Hide price candles'); h.setAttribute('aria-pressed', 'false'); h.title = 'Hide price candles';
+    h.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    h.addEventListener('click', (e) => { e.stopPropagation(); try { setHide(ws.active.id, !S(ws.active.id).hidePrice); } catch (err) { console.warn(err); } });
+    bar.insertBefore(h, b.nextSibling);
+    syncHideUi();
   }
   window.__stkSettings = { setReplayHide(v){ (ws.context().cells || []).forEach((c) => { S(c.id).rhide = !!v; applyCell(c.id); }); rhSync(!!v); try { ws.markStateDirty(); } catch (e) {} }, store, snapshot, restore, applyCell, DEFAULTS };
 window.__stkDefaultsFor = stykerDefaults;   // test hook: what "Reset to TradeZoro defaults" applies

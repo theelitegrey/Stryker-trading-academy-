@@ -422,7 +422,7 @@ export function installDepthHeatmap(Core, H, reg) {
       if (!f || f.status === 'loading') return 'Loading the order book…';
       if (f.status === 'error') return f.err || 'Order book unavailable.';
       if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? this.gapNote(f) || closedNote() : 'Reconnecting to the order book…';
-      if (f.custom && l2Delayed()) return f.history.length < 2 && f.remote.length < 2 ? 'Loading the recorded order book…' : '';   // delayed label: the feed chips
+      if (f.custom && l2Delayed()) return f.history.length < 2 && f.remote.length < 2 ? 'Loading the recorded order book…' : this.gapNote(f);   // delayed label: the feed chips; a real recorder gap (15 min look > 10 min delay) still says so
       if (f.history.length < 15 && f.remote.length < 2) return this.gapNote(f) || 'Building order book history…';
       return f.custom ? this.gapNote(f) || staleNote(f.ticker) : '';
     }

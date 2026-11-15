@@ -302,6 +302,16 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
           await openDlg(p, id); await sleep(700);
           const di = await dlgInfo(p);
           check(di && di.tag === tag && want.test(di.row) && !di.sel, 'run 3a: settings show the version tag ' + tag + ' and a read-only Version row first', di);
+          const al = await p.evaluate(() => {   // ALIGNMENT GATE: title, tag and close share one centre line; Version label and value too
+            const d = document.querySelector('.vela-ind-dialog'), R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { cy: +(r.top + r.height / 2).toFixed(1), h: +r.height.toFixed(1), l: +r.left.toFixed(1), r: +r.right.toFixed(1) }; };
+            const t = R(d.querySelector('.vela-dialog-title')), g = R(d.querySelector('.stk-iv-tag')), x = R(d.querySelector('.vela-dialog-close'));
+            const row = d.querySelector('.vela-dialog-body .vela-field-row');
+            const kids = row ? [...row.children].filter((e) => e.getBoundingClientRect().width > 0).map(R) : [];
+            return { title: t, tag: g, close: x, gapTitleTag: g && t ? +(g.l - t.r).toFixed(1) : null, rowKids: kids };
+          });
+          const cys = [al.title, al.tag, al.close].map((q) => q && q.cy), rk = al.rowKids.map((q) => q.cy);
+          check(cys.every((c) => c != null && Math.abs(c - cys[0]) <= 1) && rk.length >= 2 && rk.every((c) => Math.abs(c - rk[0]) <= 1), 'run 3a: header title/tag/close and Version row share one centre (+-1px)', al);
+          console.log('ALIGN ' + tag + ' ' + JSON.stringify(al));
           if (SHOTS && id === dl.id) await p.screenshot({ path: OUT + '/iv-3a-1440-dark-dialog.png' });
           await closeDlg(p); await sleep(300);
         }

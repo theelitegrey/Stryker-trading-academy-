@@ -6119,6 +6119,30 @@ body.charts-page .stkchart-credit{
 }
 .stkc-ib:hover, .stkc-ib[aria-expanded="true"]{ color:var(--ink-0); background:var(--bg-2); }
 .stkc-ib.on{ color:var(--gold); }
+/* "Connect your AI to ZoroCharts" (assets/chart-ai-agent.js): the connected chip, bottom left of the chart.
+   One row: 40 tall pill, 4 inner padding both ends, 8 gaps; a 32 status slot (8 dot) mirrors the 32 close button; 13/18 label. */
+.stkai-chip{
+  position:absolute; left:12px; bottom:40px; z-index:35; display:flex; align-items:center; gap:8px;
+  height:40px; padding:0 4px; border:1px solid var(--line); border-radius:999px;
+  background:var(--bg-1); color:var(--ink-1); box-shadow:0 4px 16px rgba(0,0,0,.28);
+  font:500 13px/18px -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Segoe UI", system-ui, sans-serif; max-width:calc(100% - 24px);
+}
+.stkai-chip[hidden]{ display:none; }
+.stkai-dot{ flex:none; width:32px; height:32px; display:flex; align-items:center; justify-content:center; margin-right:-8px; }
+.stkai-dot::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--gold); }
+.stkai-chip.paused .stkai-dot::before{ background:#f5a524; }
+.stkai-label{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stkai-btn{
+  flex:none; display:inline-flex; align-items:center; justify-content:center; height:32px; min-width:32px; padding:0 12px;
+  border:0; border-radius:999px; background:var(--bg-2); color:var(--ink-0); font:inherit; cursor:pointer;
+}
+.stkai-btn.stkai-x{ width:32px; padding:0; color:var(--ink-2); }
+.stkai-btn:hover{ background:var(--bg-3); color:var(--ink-0); }
+.stkai-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+:root[data-theme="light"] .stkai-chip{ background:#fff; box-shadow:0 4px 16px rgba(0,0,0,.10); }
+:root[data-theme="light"] .stkai-btn{ background:var(--bg-3); }
+:root[data-theme="light"] .stkai-btn:hover{ background:#e2e6ee; }
+@media (max-width:700px){ .stkai-chip{ left:8px; bottom:36px; max-width:calc(100% - 16px); } }
 .stkc-btn:focus-visible, .stkc-ib:focus-visible, .stkc-item:focus-visible, .stkc-tname:focus-visible, .stkc-cell:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
 .stkc-pop{
   position:absolute; top:calc(100% + 6px); left:0; z-index:60; min-width:220px; max-width:min(330px, calc(100vw - 16px));
@@ -12012,3 +12036,76 @@ section.stkss-sec{ padding:0; margin:0; }
 /* legend symbol text opens the symbol search (assets/vela-chart.js) */
 .vela-statusline .vela-sl-symbol{ cursor:pointer; border-radius:4px; transition:background-color .12s; }
 @media (hover:hover){ .vela-statusline .vela-sl-symbol:hover{ background:rgba(127,127,127,.18); } }
+
+/* ---------------- "Connect your AI to ZoroCharts" pages (/ai, /ai/consent, /charts/agents; assets/ai-connect.js) ----------------
+   4-pt grid: 16 page gutter on phones, 24 on desktop; cards 16/24 padding, 12 radius; 44 tall controls; 28/34 title, 15/22 body. */
+.aic-page{ background:var(--bg-1); color:var(--ink-1); min-height:100vh; }
+.aic-top{ display:flex; align-items:center; justify-content:space-between; gap:16px; height:64px; padding:0 24px; border-bottom:1px solid var(--line-soft); max-width:1120px; margin:0 auto; box-sizing:border-box; }
+.aic-brand{ display:flex; align-items:center; height:44px; }
+.aic-logo{ display:block; height:24px; width:auto; aspect-ratio:auto; }
+.aic-nav{ display:flex; align-items:center; gap:4px; }
+.aic-nav a{ display:inline-flex; align-items:center; height:36px; padding:0 12px; border-radius:999px; color:var(--ink-2); font-size:14px; line-height:20px; font-weight:500; text-decoration:none; }
+.aic-nav a:hover{ color:var(--ink-0); background:var(--bg-2); }
+.aic-nav a[aria-current="page"]{ color:var(--ink-0); background:var(--bg-2); }
+.aic-main{ max-width:1120px; margin:0 auto; padding:32px 24px 64px; box-sizing:border-box; display:flex; flex-direction:column; gap:16px; outline:none; }
+.aic-hero{ display:flex; flex-direction:column; gap:12px; padding:8px 0 8px; }
+.aic-eyebrow{ margin:0; color:var(--gold); font-size:13px; line-height:18px; font-weight:600; letter-spacing:.02em; }
+.aic-h1{ margin:0; color:var(--ink-0); font-size:28px; line-height:34px; font-weight:700; letter-spacing:-.01em; }
+.aic-lead{ margin:0; color:var(--ink-1); font-size:15px; line-height:22px; max-width:68ch; }
+.aic-h2{ margin:0; color:var(--ink-0); font-size:17px; line-height:24px; font-weight:600; }
+.aic-note{ margin:0; color:var(--ink-2); font-size:14px; line-height:20px; }
+.aic-note code, .aic-lead code{ font-family:var(--font-mono); font-size:13px; }
+.aic-page a{ color:var(--gold); }
+.aic-card{ display:flex; flex-direction:column; gap:12px; padding:24px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); min-width:0; }
+.aic-grid{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; }
+.aic-steps{ margin:0; padding:0 0 0 20px; color:var(--ink-1); font-size:15px; line-height:22px; display:flex; flex-direction:column; gap:4px; }
+.aic-list{ margin:0; padding:0 0 0 20px; color:var(--ink-1); font-size:15px; line-height:22px; display:flex; flex-direction:column; gap:8px; }
+.aic-copy{ display:flex; align-items:center; gap:8px; min-height:44px; padding:4px 4px 4px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg-1); box-sizing:border-box; min-width:0; }
+.aic-code{ flex:1 1 auto; min-width:0; font-family:var(--font-mono); font-size:13px; line-height:20px; color:var(--ink-0); white-space:pre; overflow-x:auto; padding:8px 0; scrollbar-width:thin; }
+.aic-copy-b{ flex:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; height:36px; padding:0 12px; border:0; border-radius:6px; background:var(--bg-3); color:var(--ink-0); font:600 13px/18px var(--font-body); cursor:pointer; align-self:center; }
+.aic-copy-b:hover{ background:var(--line); }
+.aic-copy-b:focus-visible, .aic-btn:focus-visible, .aic-choice input:focus-visible, .aic-nav a:focus-visible, .aic-link:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.aic-actions{ display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap; }
+.aic-btn{ height:44px; padding:0 24px; font-size:15px; }
+.aic-btn-sm{ height:36px; padding:0 16px; font-size:14px; }
+.aic-btn[disabled]{ opacity:.55; pointer-events:none; }
+.aic-consent{ max-width:560px; width:100%; margin:16px auto 0; gap:16px; }
+.aic-warn{ padding:12px 16px; border:1px solid rgba(229,72,77,.45); border-radius:8px; background:rgba(229,72,77,.08); color:var(--ink-0); font-size:14px; line-height:20px; }
+.aic-choices{ border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; min-width:0; }
+.aic-legend{ padding:0; margin:0 0 4px; color:var(--ink-2); font-size:13px; line-height:18px; font-weight:600; }
+.aic-choice{ display:flex; align-items:flex-start; gap:12px; padding:12px 16px; border:1px solid var(--line); border-radius:8px; background:var(--bg-1); cursor:pointer; }
+.aic-choice:has(input:checked){ border-color:var(--gold-dim); background:rgba(3,201,136,.06); }
+.aic-choice input{ flex:none; width:20px; height:20px; margin:0; accent-color:var(--gold); }
+.aic-choice-t{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.aic-choice-t b{ color:var(--ink-0); font-size:15px; line-height:20px; font-weight:600; }
+.aic-choice-t span{ color:var(--ink-2); font-size:14px; line-height:20px; }
+.aic-err{ margin:0; color:var(--bear); font-size:14px; line-height:20px; }
+.aic-link{ border:0; background:none; padding:0; color:var(--gold); font:inherit; font-weight:600; text-decoration:underline; cursor:pointer; }
+.aic-rows{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.aic-row{ display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:16px; row-gap:4px; align-items:center; padding:12px 16px; border:1px solid var(--line); border-radius:8px; background:var(--bg-1); }
+.aic-row-t{ display:flex; align-items:center; gap:8px; min-width:0; color:var(--ink-0); font-size:15px; line-height:20px; }
+.aic-row-t b{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.aic-row-m{ grid-column:1; color:var(--ink-2); font-size:13px; line-height:18px; }
+.aic-row .aic-btn{ grid-column:2; grid-row:1 / span 3; }
+.aic-tag{ flex:none; display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:999px; background:var(--bg-3); color:var(--ink-2); font-size:12px; line-height:16px; font-weight:600; }
+.aic-empty{ margin:0; color:var(--ink-2); font-size:14px; line-height:20px; list-style:none; }
+.aic-form{ display:flex; flex-direction:column; gap:16px; }
+.aic-field{ display:flex; flex-direction:column; gap:8px; color:var(--ink-2); font-size:13px; line-height:18px; font-weight:600; }
+.aic-field input, .aic-field select{ height:44px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg-1); color:var(--ink-0); font:400 15px/20px var(--font-body); box-sizing:border-box; }
+.aic-field input:focus, .aic-field select:focus{ outline:2px solid var(--gold); outline-offset:0; border-color:transparent; }
+#aic-token{ display:flex; flex-direction:column; gap:12px; }
+#aic-token[hidden]{ display:none; }
+:root[data-theme="light"] .aic-card{ background:#fff; }
+:root[data-theme="light"] .aic-copy, :root[data-theme="light"] .aic-choice, :root[data-theme="light"] .aic-row, :root[data-theme="light"] .aic-field input, :root[data-theme="light"] .aic-field select{ background:var(--bg-1); }
+@media (max-width:760px){
+  .aic-top{ height:56px; padding:0 16px; }
+  .aic-nav a{ padding:0 8px; font-size:13px; }
+  .aic-nav a[href="/charts"]{ display:none; }
+  .aic-main{ padding:24px 16px 48px; }
+  .aic-grid{ grid-template-columns:minmax(0,1fr); }
+  .aic-card{ padding:16px; }
+  .aic-h1{ font-size:24px; line-height:30px; }
+  .aic-actions .aic-btn{ flex:1 1 0; }
+  .aic-row{ grid-template-columns:minmax(0,1fr); }
+  .aic-row .aic-btn{ grid-column:1; grid-row:auto; justify-self:start; margin-top:4px; }
+}

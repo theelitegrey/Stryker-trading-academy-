@@ -51,6 +51,7 @@ const q = (s) => document.querySelector('#stkc-bar ' + s);
 // then the right-side icons; on the phone row (Vela's bar moved in, see mergePhone) the last steps
 // leave symbol, interval, Indicators, the pencil and ⋯.
 const STEPS = [
+  ['more', () => [byId('stkc-ai-btn')]],
   ['more', () => [byId('stkc-credits-btn'), byId('stkc-credits')]],
   ['more', () => [menuOf('stkc-tpl-btn')]],
   ['more', () => [byId('stkc-pine-btn')]],
@@ -112,7 +113,8 @@ const IC = {
   news: '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M7.5 9h6M7.5 12.5h6M7.5 16h4"/>',
   list: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
   ladder: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>',
-  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>'
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+  ai: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>'
 };
 const trig = (n) => (n.classList.contains('stkc-menu') ? n.querySelector(':scope > button') : n);
 const ROWS = [
@@ -131,6 +133,7 @@ const ROWS = [
   [(n) => n.id === 'stkc-alerts-btn' && n, 'tools', 12, () => 'Alerts', 'alarm'],
   [(n) => n.id === 'stkc-pine-btn' && n, 'tools', 13, () => 'Script editor', 'pine'],
   [(n) => n.id === 'stkc-paper-btn' && n, 'tools', 15, () => 'Paper trading', 'trade'],
+  [(n) => n.id === 'stkc-ai-btn' && n, 'tools', 15.5, () => 'Connect your AI', 'ai'],
   [(n) => n.classList.contains('vela-widget-undo') && n, 'tools', 16, () => 'Undo', 'undo'],
   [(n) => n.classList.contains('vela-widget-redo') && n, 'tools', 17, () => 'Redo', 'redo'],
   [(n) => n.classList.contains('vela-widget-screenshot') && n, 'tools', 18, () => 'Screenshot', 'shot'],

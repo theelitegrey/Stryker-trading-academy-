@@ -454,6 +454,13 @@
       "alt": "Suggestions share card with the TradeZoro logo"
     },
     {
+      "page": "ai.html",
+      "title": "Connect your AI",
+      "og_title": "Connect your AI to ZoroCharts — TradeZoro",
+      "visual": "brand",
+      "alt": "Connect your AI to ZoroCharts share card with the TradeZoro logo"
+    },
+    {
       "page": "features/creators.html",
       "title": "Creator Hub",
       "og_title": "Creator Hub — Start your trading community on TradeZoro",

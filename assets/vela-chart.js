@@ -1114,6 +1114,8 @@ function visualOrder(R) {
   Promise.all([import('./chart-watchlist.js?v=1042'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith: rithRef }))
     .catch((e) => console.warn('TradeZoro: watchlist', e));
+  // "Connect your AI to ZoroCharts" (Owner 15 Nov 2026): the relay to the member's own AI app, chip + toasts (assets/chart-ai-agent.js).
+  if (!BT) import('./chart-ai-agent.js?v=1042').then((m) => m.mountAiAgent(ws, { toast })).catch((e) => console.warn('TradeZoro: AI agent', e));
   // News panel (right icon bar, phones: a sheet): headlines for the chart's market, replay-safe (assets/chart-news.js).
   import('./chart-news.js?v=1042').then((m) => m.mountNews(ws, { toast })).catch((e) => console.warn('TradeZoro: news', e));
   // GEX Ladder panel (right icon bar, phones: a sheet): SPX / QQQ / SPY strikes, click draws the level (assets/chart-gex-ladder.js).

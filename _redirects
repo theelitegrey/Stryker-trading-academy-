@@ -52,3 +52,7 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 # Creator Hub landing moved under /features (2026-10-30).
 /creators /features/creators 301
 /creators.html /features/creators 301
+
+# "Connect your AI to ZoroCharts" (15 Nov 2026). /ai is ai.html; the API side is functions/_ai-proxy.js -> workers/ai-agent.
+/ai/consent /ai-consent 200
+/charts/agents /charts-agents 200

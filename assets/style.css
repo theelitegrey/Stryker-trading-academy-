@@ -11516,3 +11516,30 @@ html.geo-gate-open, html.geo-gate-open body{ overflow:hidden; }
 .btn, .btn-sm, .btn-block, .cm-btn, .pv-cta, .pv-cta-xl, .dl-btn,
 .fb-btn, .fb-btn-xl, .dh-btn, .dh-btn-xl, .fb-top-cta, .pr-btn,
 .hcb-go-btn, .cd-go-btn, .gex-dl-btn{ border-radius:999px; }
+
+/* ===== Shared menu motion (Owner 15 Nov; assets/menu-hover.js adds .mh-out for the exit) =====
+   In: fade + 4px rise (+ .98 scale) 140 ms ease-out. Out: 100 ms ease-in. Nested flyouts slide in from their side.
+   Reduced motion: fade only. Phone bottom sheets keep their own slide (rules are desktop-width only). */
+@keyframes mh-in{ from{ opacity:0; transform:translateY(4px) scale(.98); } to{ opacity:1; transform:none; } }
+@keyframes mh-out{ from{ opacity:1; transform:none; } to{ opacity:0; transform:translateY(4px) scale(.98); } }
+@keyframes mh-in-r{ from{ opacity:0; transform:translateX(-4px) scale(.98); } to{ opacity:1; transform:none; } }
+@keyframes mh-in-l{ from{ opacity:0; transform:translateX(4px) scale(.98); } to{ opacity:1; transform:none; } }
+@keyframes mh-fade-in{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes mh-fade-out{ from{ opacity:1; } to{ opacity:0; } }
+.account-panel, .stk-iv-menu:not(.sheet), .stkw-menu:not(.stkw-sheet), .mclock-pop, .stk-sd-menu, .vela-dtb-flyout, .stkp-menu, .hn-menu{ transform-origin:top left; }
+.account-menu-wrap.open .account-panel, .hn-prod[open] > .hn-menu, .mclock-pop:not([hidden]), .stk-sd-menu:not([hidden]), .vela-dtb-flyout, .stkp-menu:not(.stkp-sub), .stk-iv-menu:not([hidden]):not(.sheet){ animation:mh-in .14s cubic-bezier(.2,0,0,1) both; }
+.stkp-sub{ animation:mh-in-l .14s cubic-bezier(.2,0,0,1) both; }
+ul.vela-menu[data-state="open"]{ animation:mh-in .14s cubic-bezier(.2,0,0,1) both; transform-origin:top left; }
+ul.vela-menu[data-state="open"][data-side="right"]{ animation-name:mh-in-r; } ul.vela-menu[data-state="open"][data-side="left"]{ animation-name:mh-in-l; }
+.account-panel{ transform-origin:top right; }
+@media (min-width:600px){
+  .stkc-pop:not([hidden]), .stkc-ob-pop:not([hidden]), .stkw-menu:not([hidden]):not(.stkw-sheet){ animation:mh-in .14s cubic-bezier(.2,0,0,1) both; }
+}
+.mh-out{ animation:mh-out .1s ease-in both !important; pointer-events:none; }
+@media (prefers-reduced-motion: reduce){
+  .account-menu-wrap.open .account-panel, .hn-prod[open] > .hn-menu, .mclock-pop:not([hidden]), .stk-sd-menu:not([hidden]), .vela-dtb-flyout, ul.vela-menu[data-state="open"], .stkp-menu, .stk-iv-menu:not([hidden]), .stkc-pop:not([hidden]), .stkc-ob-pop:not([hidden]), .stkw-menu:not([hidden]){ animation:mh-fade-in .1s linear both !important; }
+  .mh-out{ animation:mh-fade-out .08s linear both !important; }
+}
+/* hover bridge: invisible strip so the pointer can cross the gap between a trigger and its panel */
+.account-panel::before, .stkc-pop::before, .mclock-pop::before, .hn-menu::before{ content:""; position:absolute; left:0; right:0; top:-12px; height:12px; }
+@media (hover:none), (pointer:coarse){ .account-panel::before, .stkc-pop::before, .mclock-pop::before, .hn-menu::before{ display:none; } }

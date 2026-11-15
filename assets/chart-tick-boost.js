@@ -19,20 +19,21 @@ import './orderflow-venue-okx.js?v=1037';
 import './orderflow-venue-bitget.js?v=1037';
 import './orderflow-venue-kraken.js?v=1037';
 import './orderflow-venue-vest.js?v=1037';
+import { noteExch, feedKey } from './chart-latency-core.js?v=1037';   // connection chip: exchange trade time -> arrival (assets/chart-latency.js)
 
 const WS = 'wss://stream.binance.com:9443/ws/';
 const STEP = { '1': 60e3, '3': 180e3, '5': 300e3, '15': 900e3, '30': 1800e3, '60': 3600e3, '120': 7200e3, '240': 14400e3,
   '1m': 60e3, '3m': 180e3, '5m': 300e3, '15m': 900e3, '30m': 1800e3, '1h': 3600e3, '2h': 7200e3, '4h': 14400e3 };
 
 export function boostBinance(BinanceProvider) {
-  return boost(BinanceProvider, (t) => /^[A-Z0-9]{5,20}$/.test(t), binanceTrades);
+  return boost(BinanceProvider, (t) => /^[A-Z0-9]{5,20}$/.test(t), binanceTrades, 'binance');
 }
 // Another crypto venue (assets/orderflow-venues.js adapter, e.g. 'hyperliquid'): the same fold, fed by its trade stream.
 export function boostVenue(Provider, id) {
   return boost(Provider, (t) => !!getVenue(id) && /^[A-Z0-9/@.-]{1,30}$/i.test(t), (t, onTrade) => {
     let first = true;   // the first batch is the venue's recent trades: older ones fall before the forming candle and are dropped below
     return getVenue(id).tradeStream(t, { trade: (x) => onTrade(x.p, x.s, x.t, first), status: (st) => { if (st === 'live') first = false; } });
-  });
+  }, id);
 }
 // Binance spot aggTrade socket (own retries; klines keep the chart live regardless).
 function binanceTrades(t, onTrade) {
@@ -61,7 +62,7 @@ function binanceTrades(t, onTrade) {
   return () => { stopped = true; if (retry) clearTimeout(retry); const s = ws; ws = null; try { if (s) s.close(); } catch (e) {} };
 }
 
-function boost(Base, okTicker, openTrades) {
+function boost(Base, okTicker, openTrades, name) {
   return class TickBoostProvider extends Base {
     subscribe(ticker, timeframe, onBar, ...rest) {
       const raw = String(ticker || '').replace(/^[a-z_]+:/i, '');
@@ -71,6 +72,7 @@ function boost(Base, okTicker, openTrades) {
         return super.subscribe(ticker, timeframe, onBar, ...rest);
       }
       let stopped = false;
+      const lk = feedKey(name, ticker);
       let forming = null;   // the chart's forming candle as we know it
       let pending = false;
       const emit = () => {
@@ -85,6 +87,7 @@ function boost(Base, okTicker, openTrades) {
         onBar(bar);
       }, ...rest);
       const stopTrades = openTrades(t, (p, q, tt, old) => {
+        if (!old && !stopped) noteExch(lk, tt);
         if (stopped || !forming) return;
         if (tt < forming.time) return;                    // belongs to a closed candle
         if (old) return;                                  // backfill batch: the kline already holds it

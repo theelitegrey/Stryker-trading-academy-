@@ -3463,9 +3463,9 @@ html[data-stk-rh] .mclock.is-replay .mclock-tail, html[data-stk-rh] .mclock.is-r
 #stkr-rhdot{ position:fixed; right:4px; bottom:4px; width:18px; height:18px; padding:0; border:0; border-radius:50%; background:#fff; opacity:.1; z-index:7600; cursor:pointer; }
 #stkr-rhdot:hover, #stkr-rhdot:focus-visible{ opacity:.6; }
 #stkr-rhdot[hidden]{ display:none; }
-.stkchart-panel.stkw-host.stkgl-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stkgl-w, 460px)); }
+.stkchart-panel.stkw-host.stkgl-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stkgl-w, clamp(460px, 46vw, 640px))); }
 .stkgl{
-  position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stkgl-w, 460px); z-index:29;
+  position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stkgl-w, clamp(460px, 46vw, 640px)); z-index:29;
   display:flex; flex-direction:column; min-width:0; background:var(--bg-0); border-left:1px solid var(--line-soft); color:var(--ink-1); font-size:13px;
 }
 .stkgl[hidden]{ display:none; }
@@ -3483,7 +3483,7 @@ html[data-stk-rh] .mclock.is-replay .mclock-tail, html[data-stk-rh] .mclock.is-r
 .stkgl-tab.on{ background:var(--gold); border-color:var(--gold); color:#04150e; }
 .stkgl-note{ margin:6px 10px 0; padding:6px 8px; border-radius:6px; font-size:12px; background:rgba(0,173,181,.12); color:var(--ink-1); }
 .stkgl-note[hidden]{ display:none; }
-.stkgl-cols{ flex:1 1 auto; min-height:0; overflow:hidden; grid-template-rows:minmax(0, 1fr); align-content:stretch; align-items:stretch; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:1px; background:var(--line-soft); margin-top:6px; }
+.stkgl-cols{ flex:1 1 auto; min-height:0; overflow:hidden; grid-template-rows:minmax(0, 1fr); align-content:stretch; align-items:stretch; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:1px; background:var(--line-soft); margin-top:6px; }
 .stkgl-col{ padding:0; margin:0; display:none; flex-direction:column; min-height:0; min-width:0; overflow:hidden; background:var(--bg-0); }
 .stkgl-col.is-shown{ display:flex; }
 .stkgl-body.is-phone .stkgl-cols{ grid-template-columns:minmax(0, 1fr); }

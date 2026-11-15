@@ -21,7 +21,7 @@
 // PLAN: Free = SPX column only (QQQ / SPY show a "Pro" lock and are never fetched); Pro = all three.
 // BAR REPLAY: the ladder is the current chain, so it says so and does not draw during replay.
 // WORDING: "GEX updated Xs ago" / "X min ago" only; Education only. Not financial advice.
-import { rtHeadersReady } from './rt-access.js?v=1037';
+import { rtHeadersReady, rtOnChange, rtToken } from './rt-access.js?v=1037';
 import * as ProGate from './chart-pro-gate.js?v=1037';
 import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, dataTime } from './chart-gex-levels.js?v=1037';
 import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText, keyLevels, rowNearest, fmtPct } from './chart-gex-ladder-core.js?v=1037';
@@ -96,19 +96,18 @@ function flash(el, dir) {
 
 // Plan: resolves {free:false} only when a signed-in Pro/admin is confirmed. A signed-out visitor never
 // resolves (plan-limits waits for a sign-in), so the lock simply stays. Free -> {free:true}.
-let planP = null;
-function planTier() {
-  if (planP) return planP;
-  planP = new Promise((resolve) => {
-    try { if (typeof window.strykerPlanTier === 'function') window.strykerPlanTier().then((r) => resolve(r || { free: true }), () => resolve({ free: true })); } catch (e) { resolve({ free: true }); }
-  });
-  return planP;
+// GEX is free for every signed-in member (Owner 2026-11-13, all tools free): the only gate is the sign-in. signedIn() resolves true when the
+// member's token is ready, false for a signed-out visitor (the server answers 403 without a token).
+let signP = null;
+function signedIn() {
+  if (!signP) signP = rtHeadersReady().then((h) => !!(h && h.authorization), () => false);
+  return signP;
 }
 
 // Builds the ladder view into `root`. opts: { isPhone(), onPick(api, strike, data), replayNote(): string, dte(), dataFor(api) }
 export function createLadder(root, opts) {
   opts = opts || {};
-  let tier = null, tierAsked = false, tab = 'SPX', timer = 0, active = false, seq = 0, inflight = false;
+  let signed = null, signAsked = false, tab = 'SPX', timer = 0, active = false, seq = 0, inflight = false;
   const live = {};                 // dte -> { SPX: data, ... } from the combined per-second endpoint
   const cols = {};                 // api -> { kind, sig, rows: Map(k -> el), list, spotEl, model, centered }
   let lastText = {}, netLabel = '0DTE', failed = 0;
@@ -118,9 +117,10 @@ export function createLadder(root, opts) {
     '<p class="stkgl-foot"></p>';
   const tabsEl = root.querySelector('.stkgl-tabs'), note = root.querySelector('.stkgl-note'), foot = root.querySelector('.stkgl-foot');
   const colEl = (api) => root.querySelector('.stkgl-col[data-api="' + api + '"]');
-  const phone = () => (opts.isPhone ? opts.isPhone() : window.innerWidth <= PHONE_MAX);
+  // tabs (one market at a time) on a phone OR whenever the panel is too narrow for four readable columns (about 130 px each)
+  const phone = () => (opts.isPhone ? opts.isPhone() : window.innerWidth <= PHONE_MAX) || (root.clientWidth > 0 && root.clientWidth < 520);
   // Default to the lock: QQQ / SPY open only once Pro is CONFIRMED (a signed-out or Free visitor never waits for it).
-  const locked = () => !(tier && !tier.free);   // all GEX is Pro (Owner 2026-11-01), SPX included
+  const locked = () => signed === false;   // sign-in prompt only for a signed-out visitor; while unknown the columns say Loading
   const dteNow = () => (opts.dte ? opts.dte() : 0);
   const dataFor = (api) => (opts.dataFor && opts.dataFor(api)) || (live[dteNow()] && live[dteNow()][api]) || gexCached(api, dteNow());
 
@@ -170,7 +170,7 @@ export function createLadder(root, opts) {
       const kind = rn ? 'note' : lock ? 'lock' : 'wait';
       if (st && st.kind === kind) return;
       cols[api] = { kind };
-      el.innerHTML = headHtml(api, label, lock) + (rn ? '<div class="stkgl-empty">' + esc(rn) + '</div>' : lock ? '<div class="stkgl-lock"><p>' + api + ' ladder is part of Pro.</p><a class="btn btn-primary btn-sm" href="/pricing">See Pro</a></div>' : '<div class="stkgl-empty">Loading…</div>');
+      el.innerHTML = headHtml(api, label, false) + (rn ? '<div class="stkgl-empty">' + esc(rn) + '</div>' : lock ? '<div class="stkgl-lock"><p>' + api + ' ladder is free. Sign in to see it.</p><a class="btn btn-primary btn-sm" href="login.html?next=' + encodeURIComponent(location.pathname.replace(/^\//, '') + location.search) + '">Sign in</a></div>' : '<div class="stkgl-empty">Loading…</div>');
       return;
     }
     if (!st || st.kind !== 'list' || st.sig !== model.sig) {
@@ -204,7 +204,7 @@ export function createLadder(root, opts) {
   function paintFoot(datas) {
     // the GEX snapshot's OWN build time (when we built it), never the delayed-futures stamp (CoS 2026-10-16)
     const times = datas.filter((d) => d && !d.error).map((d) => (isNum(d.built) ? d.built : isNum(d.fetched_at) ? d.fetched_at : dataTime(d))).filter(isNum);
-    foot.textContent = (times.length ? updatedText(Math.min(...times)) + ' \u00b7 ' : '') + 'One colour scale across the three columns. Education only. Not financial advice.';
+    foot.textContent = (times.length ? updatedText(Math.min(...times)) + ' \u00b7 ' : '') + 'One colour scale across all columns. Education only. Not financial advice.';
   }
   function paint() {
     sync();
@@ -224,7 +224,7 @@ export function createLadder(root, opts) {
     if (inflight) return;
     if (opts.replayNote && opts.replayNote()) return;
     const dte = dteNow(), my = seq;
-    let want = COLS.map((c) => c[0]).filter(() => tier && !tier.free);
+    let want = COLS.map((c) => c[0]).filter(() => signed === true);
     if (opts.dataFor) want = want.filter((a) => !opts.dataFor(a));
     if (!want.length) return;
     inflight = true;
@@ -246,7 +246,7 @@ export function createLadder(root, opts) {
   }
   function load() {
     paint();
-    if (!tier && !tierAsked) { tierAsked = true; planTier().then((t) => { tier = t; paint(); poll(); }); }
+    if (signed === null && !signAsked) { signAsked = true; signedIn().then((t) => { signed = t; paint(); poll(); }); }
     return poll();
   }
   function tick() {
@@ -254,6 +254,8 @@ export function createLadder(root, opts) {
     paintFoot(COLS.map((c) => (locked(c[0]) ? null : dataFor(c[0]))));
     poll();
   }
+  // a visitor who signs in while the panel is open (or whose token arrives late) gets the columns without a reload
+  rtOnChange(() => { if (signed === false && rtToken()) { signed = true; if (active) { paint(); poll(); } } });
   const onVis = () => { if (active && !document.hidden) { tick(); } };
   return {
     open() { active = true; seq++; lastText = {}; Object.keys(cols).forEach((k) => delete cols[k]); COLS.forEach((c) => { colEl(c[0]).innerHTML = ''; });
@@ -287,7 +289,7 @@ export function mountGexLadder(ws, opts) {
   panel.firstChild.appendChild(closeBtn); panel.appendChild(body); host.appendChild(panel);
   const phoneBtn = el('button', { type: 'button', class: 'stkc-btn stkgl-phonebtn', title: 'GEX Ladder', 'aria-label': 'GEX Ladder' }, svg(IC_LADDER, 16) + '<span class="stkc-btn-l">Ladder</span>');
   const barR = document.querySelector('#stkc-bar .stkc-bar-r');
-  if (barR) { const nb = barR.querySelector('.stknw-phonebtn') || barR.querySelector('.stkw-phonebtn'); barR.insertBefore(phoneBtn, nb ? nb.nextSibling : barR.firstChild); }
+  if (barR) { const nb = barR.querySelector('.stknw-phonebtn') || barR.querySelector('.stkw-phonebtn'); if (nb && nb.parentNode) nb.parentNode.insertBefore(phoneBtn, nb.nextSibling); else barR.insertBefore(phoneBtn, barR.firstChild); }
 
   const activeSym = () => { try { return ws.active.symbol; } catch (e) { return ''; } };
   const replayOn = () => !!(window.__stkReplay && window.__stkReplay.on);

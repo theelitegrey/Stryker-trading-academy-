@@ -1,6 +1,6 @@
 // Real-time access gate for CME futures data (Owner order 2026-10-16: "remove real time candles
 // access for cme futures for everyone except admin"). Pure module, no Pages context.
-// Used by: functions/api/chart/stream/[sym].js, functions/api/chart/bars/[sym].js.
+// Used by: functions/api/chart/stream/[sym].js, functions/api/chart/bars/[sym].js, functions/api/chart/rt.js, functions/api/gex/_pro.js, functions/api/zo/[name].js.
 // IDENTICAL COPY (kept in step by tools/tests/rt-access.test.mjs): workers/book-recorder/src/rt-auth.js.
 //
 // Who is an admin: the site's own rule, an existing document at admins/{uid} in Firestore
@@ -159,7 +159,7 @@ export async function isAdminToken(token, opts = {}) {
 // over the Firestore REST API with the caller's own token, so the live rules decide (a student can only read
 // their own doc), and `demo` / `liveFeed` are server-only fields (privileged in firestore.rules: only an admin
 // writes them). Since 2026-11-04 also ANY signed-in member whose students/{uid}.marketDataAgreement is the current version
-// (hasAgreementDoc): this gate is L1 only (candles, trades, quotes); the L2 book and GEX+ use tsAllowed / isGexProToken. Fails CLOSED.
+// (hasAgreementDoc): this gate is L1 only (candles, trades, quotes); the L2 book uses tsAllowed / isLiveDataToken; tools use isMemberToken. Fails CLOSED.
 export async function isDemoToken(token, opts = {}) {
   const uid = await verifyIdToken(token, opts);
   if (!uid) return false;
@@ -189,15 +189,23 @@ export async function isRealtimeToken(token, opts = {}) {
   return (await isAdminToken(token, opts)) || (await isDemoToken(token, opts));
 }
 
-// GEX / GEX+ is Pro only (Owner order 2026-11-01, "Gex+ in pro"): the GEX Pages Functions and the book-recorder GEX routes
-// (/gex-history, /gex-sessions, /tide, /opt-analytics) answer only a verified token that is an admin, the marketing demo
-// account, or an ACTIVE paid plan (isActiveProDoc, same rule as the live-feed grandfathering). The student doc is read with the
+// ALL TOOLS FREE (Owner order 2026-11-13, "Pro tools will be made free from tonight onwards ... Only paid will be data feed"):
+// every tool (GEX+, options analytics, order-flow history, levels export) answers any verified, NON-ANONYMOUS member token.
+// No Firestore read: the signature, issuer, audience, expiry and the anonymous refusal (verifyIdToken) are the whole check.
+// Fails CLOSED. Used by functions/api/gex/_pro.js, functions/api/zo/[name].js and the recorder's GEX / history routes.
+export async function isMemberToken(token, opts = {}) {
+  return !!(await verifyIdToken(token, opts));
+}
+
+// LIVE DATA (the paid part, the existing Pro subscription): who gets the LIVE futures order book (L2) and anything derived from it.
+// = a verified token that is an admin, the marketing demo account, or an ACTIVE paid plan (isActiveProDoc; grandfathered early Pro
+// members are Pro too). Same rule as the old GEX Pro gate (the old GEX+ Pro check, renamed 2026-11-13). The student doc is read with the
 // caller's own token, so the live rules decide. Fails CLOSED. Memoised 60 s (positive) / 10 s (negative).
-const gexMemo = new Map();
-export async function isGexProToken(token, opts = {}) {
+const liveMemo = new Map();
+export async function isLiveDataToken(token, opts = {}) {
   const uid = await verifyIdToken(token, opts);
   if (!uid) return false;
-  const hit = gexMemo.get(uid);
+  const hit = liveMemo.get(uid);
   if (hit && Date.now() - hit.at < hit.ttl) return hit.v;
   let v = false, ttl = 10000;
   try {
@@ -212,8 +220,8 @@ export async function isGexProToken(token, opts = {}) {
     }
     if (v) ttl = 60000;
   } catch (e) { v = false; }
-  if (gexMemo.size > 500) gexMemo.clear();
-  gexMemo.set(uid, { v, at: Date.now(), ttl });
+  if (liveMemo.size > 500) liveMemo.clear();
+  liveMemo.set(uid, { v, at: Date.now(), ttl });
   return v;
 }
 
@@ -227,4 +235,4 @@ export function wsTokenOf(request) {
   const i = list.indexOf('tz-auth');
   return i >= 0 && list[i + 1] ? list[i + 1] : '';
 }
-export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; plansMemo = null; adminMemo.clear(); demoMemo.clear(); gexMemo.clear(); };
+export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; plansMemo = null; adminMemo.clear(); demoMemo.clear(); liveMemo.clear(); };

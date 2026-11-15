@@ -17,7 +17,7 @@ async function mock(ctx, state) {
   await ctx.route('**/api/lv/**', (r) => {
     const u = new URL(r.request().url()), m = r.request().method();
     state.calls.push(m + ' ' + u.pathname + u.search);
-    if (state.mode === 'free') return r.fulfill({ status: 403, contentType: 'application/json', body: '{"error":"pro_required"}' });
+    if (state.mode === 'free') return r.fulfill({ status: 403, contentType: 'application/json', body: '{"error":"sign_in_required"}' });
     if (u.pathname.endsWith('/pack')) {
       const f = u.searchParams.get('format');
       return r.fulfill({ status: 200, contentType: f === 'json' ? 'application/json' : 'text/plain', body: rd(f === 'json' ? 'pack-json.json' : 'pack-' + f + '.txt') });

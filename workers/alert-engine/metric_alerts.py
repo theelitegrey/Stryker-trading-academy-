@@ -326,7 +326,8 @@ GRACE_MS = 3 * 24 * 3600 * 1000
 
 def is_active_pro(doc, paid, now_ms):
     """students/{uid} fields (decoded) + the set of paid plan names (rank >= 1, lowercased) -> Pro now? Same rule as
-    isActiveProDoc in functions/api/chart/_rt.js; demo accounts count as Pro (isGexProToken)."""
+    isActiveProDoc in functions/api/chart/_rt.js; demo accounts count as Pro (isLiveDataToken). Since 2026-11-13 (all tools free) metric_loop no longer
+    calls this for GEX alerts; kept for the tests and any future live-data rule."""
     doc = doc or {}
     if doc.get('demo') is True:
         return True

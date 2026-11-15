@@ -240,7 +240,7 @@ function credit(it) {
 }
 
 function dataNote(it) {
-  if (/\(L2\)|L1\+L2/.test(it.windowName)) return 'Pro: needs the full order book (Data feed L2).';
+  if (/\(L2\)|L1\+L2/.test(it.windowName)) return 'Free tool. Needs the full order book (Data feed L2); live futures order book is a paid data feed, read 10 minutes delayed without it.';
   if (/\(L1\)/.test(it.windowName)) return 'Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.';
   return '';
 }
@@ -370,6 +370,18 @@ ${all.filter((x) => x.group === g).map((x) => card(x, 'h3')).join('\n')}
   return page({ title: 'Indicators: every ZoroCharts indicator explained', description, url, page: 'indicators.html', key: 'indicators-hub', jsonld, main });
 }
 
+// Which markets an indicator draws on, from its write-up notes (the same text members read on its page).
+// Futures-only order flow and L2 book tools, crypto-only data, US-stock data, options-derived levels; else every market.
+function marketsOf(it) {
+  const t = [].concat(it.notes || [], it.how || [], [it.short || '', it.summary || '']).join(' ');
+  if (/\(L2\)|_l2|\bl2f?_/i.test(it.key + ' ' + it.name) || /recorded futures trades|futures (depth|order book)/i.test(t)) return ['Futures'];
+  if (/crypto (symbols|perpetuals|charts) only|crypto only|Hyperliquid/i.test(t)) return ['Crypto'];
+  if (/US stocks only|US stocks and ETFs|Stocks and ETFs/i.test(t)) return ['Stocks'];
+  if (/SPX, SPY, QQQ/.test(t)) return ['Futures', 'Stocks', 'Options'];
+  if (/crypto charts keep this one/i.test(t)) return ['Crypto'];
+  return ['Futures', 'Stocks', 'Crypto', 'Forex'];
+}
+
 // ---- og table + catalogue data ----
 function cardTitle(name) {
   let t = name.replace(/^TradeZoro /, '').replace(/\s*\[[^\]]*\]/g, '').replace(/\s*\((?!L1|L2)[^)]*\)/g, '').replace(/\s*\|.*$/, '').replace(/°/g, '').trim();
@@ -405,6 +417,16 @@ function outputs() {
   const ex = {};
   items.forEach((x) => { if (x.explain) ex[x.key] = x.explain; });
   out['assets/indicator-explain.json'] = JSON.stringify(ex) + '\n';
+  // Indicator picker ("Add to chart" window, assets/chart-indicator-window.js): the small per-key facts it shows,
+  // fetched when the window opens. s slug, t chart-capture thumbnail (none for the text-card previews), m markets
+  // it works on (read from the write-up's own notes), i input names, n input count, d summary, r first release, p plan.
+  const pk = {};
+  items.forEach((x) => {
+    const ins = [...new Set(x.settings.map((s) => s.title).filter((t) => t && t.length < 48))];
+    const cl = x.changelog.list;
+    pk[x.key] = { s: x.slug, t: x.capture === 'chart' ? x.thumb : undefined, m: marketsOf(x), i: ins.slice(0, 12), n: ins.length, d: x.summary, r: cl[cl.length - 1].date, p: x.plan };
+  });
+  out['assets/indicator-picker.json'] = JSON.stringify(pk) + '\n';
   return { out, items };
 }
 
@@ -421,6 +443,7 @@ const settle = (rel, s) => {
 settle('tools/og/pages.json', out['tools/og/pages.json']);
 settle('assets/indicators-catalog.json', out['assets/indicators-catalog.json']);
 settle('assets/indicator-explain.json', out['assets/indicator-explain.json']);
+settle('assets/indicator-picker.json', out['assets/indicator-picker.json']);
 { // app-shell allowlist: hub + every page are public-and-app (dual) pages
   const p = path.join(__dirname, 'tests', 'app-shell-allowlist.json');
   const al = JSON.parse(fs.readFileSync(p, 'utf8'));

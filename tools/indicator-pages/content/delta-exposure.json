@@ -19,6 +19,6 @@
     "SPX, SPY, QQQ, IWM, GLD and USO, futures mapped from them (ES, NQ, RTY, GC, CL), and the top US stocks with options. Crypto and forex show a short note instead.",
     "Index and ETF data is updated every 2 minutes during US cash hours, stocks every 15 minutes; the status line says when (for example \"updated 3 min ago\").",
     "0DTE shows a note on days when the symbol has no expiry today. Nothing is drawn in bar replay.",
-    "Part of Pro, like GEX+. Education only. Not financial advice."
+    "Free, like GEX+. Education only. Not financial advice."
   ]
 }

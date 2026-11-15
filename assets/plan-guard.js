@@ -56,7 +56,7 @@
     const heading = document.getElementById('paywall-heading');
     const body = document.getElementById('paywall-body');
     const actions = document.getElementById('paywall-actions');
-    if (heading) heading.textContent = 'This page is part of Pro';
+    if (heading) heading.textContent = 'This page needs a different plan';
     if (body) {
       body.textContent = requiredRoleName
         ? ('This page requires the ' + requiredRoleName + ' plan.')
@@ -100,7 +100,7 @@
       if (level !== 'blocked' || a.querySelector('.side-lock')) return;
       const s = document.createElement('span');
       s.className = 'side-lock';
-      s.title = 'Part of Pro';
+      s.title = 'Needs a different plan';
       s.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
       a.appendChild(s);
     });

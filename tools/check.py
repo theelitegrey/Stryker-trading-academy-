@@ -64,7 +64,7 @@ def check_unversioned_assets():
 def check_version_consistency():
     """All ?v= values across the site should match, except the v341 prop firm PDF."""
     versions = set()
-    exception = 'assets/downloads/stryker-prop-firm-cheat-sheet.pdf?v=341'
+    exception = 'assets/downloads/stryker-prop-firm-cheat-sheet.pdf?v=1030'
     for path in html_files():
         text = open(path).read()
         for match in re.finditer(r"([^\"'<> ]+)\?v=(\d+)", text):
@@ -80,8 +80,8 @@ def check_version_consistency():
 def check_module_import_versions():
     """Every ES-module import of our own assets must carry ?v=<build> from version.json.
 
-    A module imported under two different URLs (e.g. chart-alerts.js?v=425 in one file
-    and ?v=429 in another) loads TWICE as two separate instances with separate state.
+    A module imported under two different URLs (e.g. chart-alerts.js?v=1030 in one file
+    and ?v=1030 in another) loads TWICE as two separate instances with separate state.
     Build 427 shipped exactly that: the "+" menu opened the never-mounted copy of the
     alerts panel, so its Create button threw and did nothing. A stale ?v= on a module
     import also skips cache-busting for that module forever.
@@ -668,6 +668,13 @@ def check_workspaces():
         fail('workspaces: ' + (r.stdout + r.stderr).strip()[-300:])
 
 
+def check_latency():
+    """Charts connection chip numbers + Performance mode coalescing (assets/chart-latency-core.js, chart-live-resume.js): tools/tests/chart-latency.test.mjs."""
+    r = subprocess.run(['node', 'tools/tests/chart-latency.test.mjs'], capture_output=True, text=True, cwd=ROOT, timeout=60)
+    if r.returncode != 0:
+        fail('latency: ' + (r.stdout + r.stderr).strip()[-300:])
+
+
 def check_zscript_engine():
     """Zscript engine (assets/zs/): language, ta.* golden values, VM, limits, security and data-frame
     tests (tools/tests/zs-*.test.mjs). Fuzz, bench and the browser sandbox test run by hand
@@ -738,7 +745,7 @@ def main():
     # two browser checks start first so they overlap the rest
     fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
     browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
-    order = [check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_days_load, check_workspaces, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
+    order = [check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_days_load, check_workspaces, check_latency, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

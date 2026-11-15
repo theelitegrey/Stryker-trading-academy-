@@ -11,7 +11,7 @@
 // DATA, nothing fetched twice: the book is the heatmap's own BookFeed (chart-orderflow.js acquireBookFeed 'tsl2|ROOT' / Binance; its /ts-book-history
 // backfill and /ts-live frames), the trades are the L1 tools' own stores (chart-ts-trades.js tsOpen for futures; chart-footprint-crypto.js for Binance)
 // and the hub's footprint minutes (chart-futures-l2.js TickFeed). A "level" here is one book row as the recorder stores it (a few ticks wide, rule in ts-hub.js).
-// Same gate as the other L2 tools (futures: l2Visible(); crypto: Pro). No data = a plain note, never made-up numbers. Education only. Not financial advice.
+// Gate (all tools free, 2026-11-13): every signed-in member; futures without the live book read it 10 min delayed (chart-futures-l2.js l2Delayed). No data = a plain note, never made-up numbers. Education only. Not financial advice.
 import { registerFeed } from './chart-feeds.js?v=1030';
 import { isFree } from './chart-pro-gate.js?v=1030';
 import { rtOnChange } from './rt-access.js?v=1030';
@@ -31,7 +31,7 @@ import { below, since } from './indicator-versions.js?v=1030';   // versions: as
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Sign in to use the order book tools. They are free.';   // all tools free (2026-11-13)
 const NEED = 'These tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_COVER = 90000;             // Delta Profile: a window whose first trade minute is later than this after its start says so
 const MIN_GAP = 200;                 // redraw at most 5 a second

@@ -6,10 +6,10 @@ export const NS_KIND = { book: 'of', flow: 'of', gex: 'gex', opt: 'gex' };
 export const NS_TITLE = { book: 'Order book', flow: 'Order flow', gex: 'GEX', opt: 'ZoroOptions' };
 // one-time notices (plain English, no "live" / "real-time" wording)
 export const LOCKED_TEXT = {
-  book: 'Order book data in Zscript is part of Pro. These values are na on your plan.',
-  flow: 'Order flow data in Zscript is part of Pro. These values are na on your plan.',
-  gex: 'GEX data in Zscript is part of Pro. These values are na on your plan.',
-  opt: 'ZoroOptions data in Zscript is part of Pro. These values are na on your plan.',
+  book: 'Order book data in Zscript needs a plan that is not active here. These values are na.',
+  flow: 'Order flow data in Zscript needs a plan that is not active here. These values are na.',
+  gex: 'GEX data in Zscript needs a plan that is not active here. These values are na.',
+  opt: 'ZoroOptions data in Zscript needs a plan that is not active here. These values are na.',
 };
 // state: 'ok' | 'locked' (plan) | 'na' (no data for this symbol / timeframe: why says which)
 // follows: ZS_DATA_FOLLOWS_PLAN, free: confirmed Free member, avail: { book: '' | 'reason it is not available', ... } ('' = available)

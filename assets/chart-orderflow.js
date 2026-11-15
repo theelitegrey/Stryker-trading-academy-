@@ -1879,7 +1879,8 @@ class BookFeed {
   // custom source: one already bucketed column (the hub's rule == the recorder's rule), stamped with this page's clock
   pushCoarse(c) {
     if (!c || !(c.mid > 0) || !c.v || !c.v.length) return;
-    const s = { ts: Date.now(), mid: c.mid, bb: c.bb || null, ba: c.ba || null, step: c.step, i0: c.i0, v: Float32Array.from(c.v) };
+    const s = { ts: c.delayed && c.ts > 0 ? c.ts : Date.now(), mid: c.mid, bb: c.bb || null,   // delayed: the recorded column keeps its own time (all tools free 2026-11-13)
+      ba: c.ba || null, step: c.step, i0: c.i0, v: Float32Array.from(c.v) };
     this.lastSample = s.ts;
     this.history = pushBookSample(this.history, s);
     this.pending.push(s);

@@ -15,6 +15,15 @@
 (function () {
 
   var MODAL_ID = 'plan-upgrade-modal';
+  // ALL TOOLS FREE (Owner order 2026-11-13): "everything will be free. Only paid will be data feed, on which we have no control as rules are
+  // set by exchanges." Every paywall is now the LIVE DATA paywall: the existing Pro plan (key, doc id, prices and checkout unchanged),
+  // shown as "Pro · Live data". The price shows here, in context; the pricing page stays hidden. No vendor names.
+  var LIVE_REASON = 'Live futures order book data is a paid data feed. Exchange rules set it, so we can\'t give it free. Tools are free; this is the data.';
+  function liveName(plan, base) {
+    var n = String(base || 'Pro');
+    return /live data/i.test(n) ? n : n + ' \u00b7 Live data';
+  }
+  window.strykerLiveDataName = liveName;
 
   function esc(s){
     return String(s === null || s === undefined ? '' : s)
@@ -40,13 +49,13 @@
           '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
           '<path d="M18 6L6 18M6 6l12 12"/></svg>' +
         '</button>' +
-        '<h2 class="plan-modal-title">Choose your plan</h2>' +
-        '<p class="plan-modal-sub" id="plan-modal-sub">TradeZoro is free. Pro adds order flow tools and GEX+.</p>' +
+        '<h2 class="plan-modal-title" id="plan-modal-title">Live data</h2>' +
+        '<p class="plan-modal-sub" id="plan-modal-sub">' + esc(LIVE_REASON) + '</p>' +
         '<div class="plan-modal-grid" id="plan-modal-grid">' +
           '<div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>' +
         '</div>' +
         // Prices live only here, on paywalls and /pricing (Owner 2026-11-01: no prices upfront).
-        '<p class="plan-modal-all"><a href="/pro">What\'s in Pro?</a> · <a href="/pricing">See all plans</a></p>' +
+        '<p class="plan-modal-all"><a href="/pro">What does live data add?</a></p>' +
       '</div>';
 
     document.body.appendChild(overlay);
@@ -89,7 +98,7 @@
 
     if (!upgrades.length) {
       grid.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; text-align:center; padding:20px;">' +
-        'You are already on the highest plan. If this page still looks locked, contact support.</p>';
+        'You already have live data. If something still looks locked, contact support.</p>';
       return;
     }
 
@@ -97,7 +106,7 @@
     upgrades.forEach(function (plan) {
       // Site palette, not the raw plan.color primary (Pro's is #ff0000).
       var color = '#03c988';
-      var shownName = (typeof planDisplayName === 'function') ? planDisplayName(plan) : (plan.displayName || plan.name || 'Plan');
+      var shownName = liveName(plan, (typeof planDisplayName === 'function') ? planDisplayName(plan) : (plan.displayName || plan.name || 'Plan'));
       var features = (plan.features || []).slice(0, 5).map(function (f) {
         return '<li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
                'stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>' + esc(f) + '</li>';
@@ -139,7 +148,8 @@
   function openModal(reasonText){
     var overlay = buildModal();
     var sub = document.getElementById('plan-modal-sub');
-    if (sub && reasonText) sub.textContent = reasonText;
+    // old callers still pass "X is part of Pro" reasons: tools are free now, so those never reach the member (2026-11-13)
+    if (sub) sub.textContent = reasonText && !/part of pro|pro unlocks|pro adds|with pro|pro is unlimited/i.test(reasonText) ? reasonText : LIVE_REASON;
 
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -169,6 +179,7 @@
   // Exposed so the four paywall builders (plan-guard, reader, model-reader,
   // indicator-reader) can all call the same thing.
   window.openPlanUpgradeModal = openModal;
+  window.strykerLiveDataPaywall = function () { openModal(LIVE_REASON); };
   window.closePlanUpgradeModal = closeModal;
 
   // Any paywall button can opt in with data-open-plan-modal, including ones

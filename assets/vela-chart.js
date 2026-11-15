@@ -1119,6 +1119,8 @@ function visualOrder(R) {
   import('./chart-book-panel.js?v=1030').then((m) => m.mountBookPanel(ws, { toast })).catch((e) => console.warn('TradeZoro: book panel', e));
   import('./chart-feeds.js?v=1030').then((m) => m.mountFeedBadges(ws)).catch((e) => console.warn('TradeZoro: feed badges', e));
   import('./venue-logos.js?v=1030').then((m) => m.mountVenueLogos(ws)).catch((e) => console.warn('TradeZoro: venue logos', e));   // exchange / broker marks beside the text tags
+  // Connection chip (bottom bar, right): round trip to our edge, per-feed last update / delay, Performance mode, Reconnect (assets/chart-latency.js).
+  if (!BT) import('./chart-latency.js?v=1030').then((m) => m.mountLatency(ws)).catch((e) => console.warn('TradeZoro: latency chip', e));
   // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
   import('./chart-symbol-info.js?v=1030').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
   // "Dark pool" prints list beside the chart (right icon bar, phones: a sheet): assets/chart-darkpool.js.
@@ -1133,6 +1135,21 @@ function visualOrder(R) {
   Promise.all([import('./chart-symbol-input.js?v=1030'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountSymbolInputPicker(ws, { toast, SymbolPicker: Wd.SymbolPicker, COMMODITY_ROOTS }))
     .catch((e) => console.warn('TradeZoro: symbol inputs', e));
+  // Legend symbol text (top-left "NQ1! · CME · 1m") opens the symbol search for THAT pane: the same
+  // picker the header symbol button opens, so it follows whatever search ships. A drag that starts on
+  // the text (legend move) is not a click: ignored past 6 px.
+  try {
+    let dn = null;
+    document.addEventListener('pointerdown', (e) => { dn = [e.clientX, e.clientY]; }, true);
+    document.addEventListener('click', (e) => {
+      const el = e.target && e.target.closest && e.target.closest('.vela-sl-symbol');
+      if (!el || (dn && Math.hypot(e.clientX - dn[0], e.clientY - dn[1]) > 6)) return;
+      const cell = ws.cells().find((c) => c.host && c.host.contains(el));
+      if (!cell) return;
+      try { if (cell.id != null) ws.setActiveCell(cell.id); } catch (er) {}
+      if (typeof ws.openSymbolSearch === 'function') ws.openSymbolSearch(); else ws.symbolPicker.open();
+    }, true);
+  } catch (e) { console.warn('TradeZoro: legend symbol click', e); }
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
   import('./chart-plus.js?v=1030').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('TradeZoro: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('TradeZoro: events', e); }

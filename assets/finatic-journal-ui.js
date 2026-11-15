@@ -39,7 +39,9 @@ async function call(url, body, sample) {
   return j || {};
 }
 
-export function openBrokerSync({ uid } = {}) {
+// onConnected (ZoroCharts live trading, assets/chart-live.js): called once accounts load after connecting; the sheet then closes
+// (the chart picks the account itself; the journal import steps need the journal page).
+export function openBrokerSync({ uid, onConnected } = {}) {
   if (!document.getElementById('rjs-css')) { const s = document.createElement('style'); s.id = 'rjs-css'; s.textContent = CSS; document.head.appendChild(s); }
   if (!document.getElementById('fjs-css')) { const s = document.createElement('style'); s.id = 'fjs-css'; s.textContent = EXTRA_CSS; document.head.appendChild(s); }
   const LS = 'stryker_broker_sync_user_' + uid;
@@ -101,6 +103,7 @@ export function openBrokerSync({ uid } = {}) {
       const a = await data('accounts');
       S.accounts = (Array.isArray(a) ? a : []).map((x) => ({ id: x.accountId || x.id, name: x.accountName || x.name || x.nickname || x.brokerAccountId || x.accountId, broker: x.brokerName || x.brokerId || x.institutionName || '', cur: x.currencyCode || x.currency || '' })).filter((x) => x.id);
       if (!S.accounts.length) { S.step = 'wait'; return drawWait('No connected accounts yet. Finish connecting in the broker tab, then tap Continue.'); }
+      if (onConnected) { toast('success', 'Broker connected.'); close(); try { onConnected(S.accounts); } catch (e2) {} return; }
       S.account = S.accounts[0]; S.step = 'pick'; draw();
     } catch (e) { if (e.needsConnect) { S.userId = ''; lsSet(''); if (S.step === 'wait' && S.sessionId) return drawWait('Not connected yet. Finish in the broker tab first, then tap Continue.'); S.step = 'start'; return drawStart(); /* stale stored id (e.g. from the old sandbox): forget it quietly */ } if (e.status === 503) return drawNotSetUp(); S.step = S.step === 'start' ? 'start' : 'wait'; (S.step === 'start' ? drawStart : drawWait)(e.message); }
   }

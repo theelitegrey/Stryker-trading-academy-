@@ -22,7 +22,7 @@ const probe = () => {
       shown: getComputedStyle(el).display !== 'none' && m.width > 0,
       left: Math.round(m.left - pl.left), toPaneBottom: Math.round(pl.top + pane.bounds.top + pane.bounds.height - m.bottom),
       hitIsMark: !!(hit && el.contains(hit)), pe: getComputedStyle(el).pointerEvents, anchors: el.querySelectorAll('a').length,
-      overAxisY: m.bottom > axisTop + 0.5, overScale: m.right > axisLeft + 0.5, src: el.querySelector('img').getAttribute('src'),
+      overAxisY: m.bottom > axisTop + 0.5, overScale: m.right > axisLeft + 0.5, src: el.querySelector('img').getAttribute('src'), mk: Math.round(el.querySelector('img').getBoundingClientRect().height), wmSrc: (el.querySelector('img.tz-brand-w') || {}).src || '', noText: !el.querySelector('.tz-brand-n') && !el.textContent.trim(),
       inPane: m.top >= pl.top + pane.bounds.top - 0.5,
     };
   });
@@ -39,11 +39,12 @@ const probe = () => {
     let r = await p.evaluate(probe);
     const one = r[0] || {};
     check(r.length === 1 && one.mark && one.shown, `${tag}: single chart has one mark`, r);
-    check(one.h === (mobile ? 24 : 28) && one.w === one.h, `${tag}: round chip ${mobile ? 24 : 28}px`, one);
-    check(one.left >= 8 && one.left <= 12 && one.toPaneBottom >= 8 && one.toPaneBottom <= 12, `${tag}: 8-12 px from left and bottom of the main pane`, one);
+    check(one.h === (mobile ? 32 : 40) && one.w === one.h, `${tag}: round chip ${mobile ? 32 : 40}px`, one);
+    check(one.left >= 11 && one.left <= 13 && one.toPaneBottom >= 11 && one.toPaneBottom <= 13, `${tag}: 12 px from left and bottom of the main pane`, one);
     check(one.hitIsMark === !mobile && one.pe === (mobile ? 'none' : 'auto') && one.anchors === 0, `${tag}: only the chip takes the pointer (phone: none), no link`, one);
     check(!one.overAxisY && !one.overScale && one.inPane, `${tag}: clear of time axis and price scale`, one);
     check(/tradezoro-tzmark-1014-/.test(one.src || '') && !/panther|494|logo-full|emblem|header|master/.test(one.src || ''), `${tag}: TZ mark art`, one.src);
+    check(one.mk === (mobile ? 22 : 28) && one.noText && /tradezoro-wordmark-1014-192/.test(one.wmSrc), `${tag}: mark ${mobile ? 22 : 28}px, wordmark img present, no text span`, one);
     // the chart's own screenshot carries the mark: export pixels in the corner, with and without the element
     const ex = await p.evaluate(async () => {
       const ws = window.STRYKER_VELA, R = ws.cells()[0].chart.renderer.renderer;
@@ -65,11 +66,12 @@ const probe = () => {
     await p.screenshot({ path: `${OUT}/brand-${tag}.png` });
     if (!mobile) {
       // hover: chip -> pill with the name; leave: back to chip; drag beside the chip still reaches the chart
-      const box = () => p.evaluate(() => { const e = document.querySelector('.tz-brand'), n = e.querySelector('.tz-brand-n'), r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, nv: getComputedStyle(n).visibility, no: +getComputedStyle(n).opacity }; });
+      const box = () => p.evaluate(() => { const e = document.querySelector('.tz-brand'), n = e.querySelector('.tz-brand-w'), m = e.querySelector('img'), r = e.getBoundingClientRect(), nr = n.getBoundingClientRect(), mr = m.getBoundingClientRect(); return { mk0: +getComputedStyle(m).opacity, gap: Math.round(nr.left - mr.right), padL: Math.round(mr.left - r.left), padR: Math.round(r.right - nr.right), inside: nr.left >= r.left && nr.right <= r.right, x: r.left, y: r.top, w: r.width, h: r.height, nv: getComputedStyle(n).visibility, no: +getComputedStyle(n).opacity }; });
       const b0 = await box();
       await p.mouse.move(b0.x + b0.w / 2, b0.y + b0.h / 2); await sleep(500);
       const b1 = await box();
-      check(b1.w > b0.w * 3 && b1.nv === 'visible' && b1.no > 0.95, `${tag}: hover widens to a pill, name visible`, [b0.w, b1.w, b1.nv, b1.no]);
+      check(b1.w > b0.w * 2.5 && b1.nv === 'visible' && b1.no > 0.95, `${tag}: hover widens to a pill, wordmark image visible`, [b0.w, b1.w, b1.nv, b1.no]);
+      check(Math.abs(b1.padL - b1.padR) <= 1 && b1.inside && b1.mk0 === 0, `${tag}: pill: wordmark centred, equal side insets, mark faded out (wordmark holds the TZ), no clipping`, b1);
       await p.screenshot({ path: `${OUT}/brand-${tag}-hover.png`, clip: { x: Math.max(0, b0.x - 40), y: b0.y - 40, width: 300, height: 110 } });
       await p.mouse.move(b0.x + 400, b0.y - 150); await sleep(500);
       const b2 = await box();

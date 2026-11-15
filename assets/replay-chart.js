@@ -267,7 +267,7 @@
     // ---- screenshot ------------------------------------------------------------------------
     screenshot(width) {
       const c = this.chart.takeScreenshot(); const w = width || 640; const scale = w / c.width; const out = document.createElement('canvas'); out.width = w; out.height = Math.round(c.height * scale);
-      const ctx = out.getContext('2d'); ctx.drawImage(c, 0, 0, out.width, out.height); ctx.drawImage(this.ov, 0, 0, out.width, out.height); if (root.TzBrand) { const k = out.width / this.el.clientWidth, R = this.paneRect(); root.TzBrand.draw(ctx, 10 * k, (R.h - 10 - root.TzBrand.size()) * k, null, k); } return out.toDataURL('image/jpeg', 0.62);
+      const ctx = out.getContext('2d'); ctx.drawImage(c, 0, 0, out.width, out.height); ctx.drawImage(this.ov, 0, 0, out.width, out.height); if (root.TzBrand) { const k = out.width / this.el.clientWidth, R = this.paneRect(); root.TzBrand.draw(ctx, 12 * k, (R.h - 12 - root.TzBrand.size()) * k, null, k); } return out.toDataURL('image/jpeg', 0.62);
     }
 
     // ---- input ---------------------------------------------------------------------------

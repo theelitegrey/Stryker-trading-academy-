@@ -287,11 +287,11 @@ export function mountIndicatorWindow(ws, opts){
   // per-key facts from tools/gen-indicator-pages.js (slug, thumbnail, markets, inputs, summary, release)
   let meta = {}, metaP = null, explainMap = null, explainP = null;
   function loadMeta(){
-    if (!metaP) metaP = fetch('/assets/indicator-picker.json?v=1042').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { meta = m || {}; });
+    if (!metaP) metaP = fetch('/assets/indicator-picker.json?v=1044').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { meta = m || {}; });
     return metaP;
   }
   function loadExplain(){
-    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=1042').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
+    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=1044').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
     return explainP;
   }
 

@@ -3021,6 +3021,7 @@ select.stkw-in option{ color:#131722; background:#fff; }
 .plan-lock .trial-info{ margin-top:-6px; }
 .plan-modal-all{ margin:16px 0 0; text-align:center; font-size:13px; }
 .plan-modal-all a{ color:var(--ink-2); text-decoration:underline; }
+#gex-ladder .plan-lock{ max-width:none; }
 .paywall-overlay .plan-lock{ max-height:calc(100dvh - 48px); overflow-y:auto; }
 .plan-modal-yearly{ margin:2px 0 16px; }
 .plan-modal-yearly .plan-yearly{ margin-top:0; }

@@ -982,7 +982,7 @@ function visualOrder(R) {
       const activeTf = () => { try { return String(ws.chart.market.timeframe || '15'); } catch (e) { return '15'; } };
       let hoverT = null;
       document.addEventListener('pointerover', (e) => {
-        const row = e.target && e.target.closest && e.target.closest('.stkw-row[data-sym], .vela-sp-row[data-ticker]');
+        const row = e.target && e.target.closest && e.target.closest('.stkw-row[data-sym], .vela-sp-row[data-ticker], .stkss-row[data-sym]');
         if (!row) return;
         clearTimeout(hoverT);
         hoverT = setTimeout(() => prefetchBars(row.dataset.sym || row.dataset.ticker, activeTf()), 120);
@@ -1053,6 +1053,9 @@ function visualOrder(R) {
   }).catch((e) => console.warn('TradeZoro: own data', e));
   import('./byo-ui.js?v=1028').then((m) => m.mountByo()).catch((e) => console.warn('TradeZoro: data source sheet', e));
   // Delayed-data pill at the bottom of the chart + its sheet (CME futures, viewer not real-time): assets/chart-data-banner.js.
+  // Symbol search panel (Owner 2026-11-15: Ctrl+K / "/", categories, exchanges, favourites, contract months, ratios):
+  // assets/chart-search.js takes over the header picker; ?search=classic keeps Vela's own.
+  if (!BT) import('./chart-search.js?v=1018').then((m) => { if (!m.classicWanted()) m.mountSearch(ws, { toast, normalize: FormulaNorm }); }).catch((e) => console.warn('TradeZoro: symbol search', e));
   try { Stocks.installStockSearch(ws); } catch (e) { console.warn('TradeZoro: stock search', e); }   // server search in every symbol picker
   import('./chart-data-banner.js?v=1028')
     .then((m) => m.installDataBanner(ws, { rith: rithRef, getRith: () => rith }))

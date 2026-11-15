@@ -167,7 +167,7 @@ export function installStockSearch(ws) {
   const seen = new Map(); let timer = null, again = false;
   const onInput = (e) => {
     const el = e.target;
-    if (again || !el || !el.classList || !el.classList.contains('vela-sp-input')) return;
+    if (again || !el || !el.classList || !(el.classList.contains('vela-sp-input') || el.classList.contains('stkss-input'))) return;   // stkss-input: assets/chart-search.js
     clearTimeout(timer);
     const q = String(el.value || '').trim().toUpperCase().replace(/^STOCKS:/, '').replace(/[^A-Z0-9 .&:_-]/g, '').slice(0, 24);
     if (q.length < 1) return;

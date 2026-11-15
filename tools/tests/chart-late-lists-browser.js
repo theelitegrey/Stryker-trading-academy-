@@ -20,7 +20,7 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
       window.fetch = function (u) { const s = String(u && u.url || u); if (/exchangeInfo|hyperliquid|coinbase\.com\/products/.test(s)) window.__lists.push([Math.round(performance.now()), s.slice(0, 60), !!window.__stkFirstCandles]); return of.apply(this, arguments); };
     });
     const p = await ctx.newPage();
-    await p.goto(BASE + '/charts.html?vela=' + eng, { waitUntil: 'domcontentloaded' });
+    await p.goto(BASE + '/charts.html?search=classic&vela=' + eng, { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => window.__stkFirstCandles, null, { timeout: 60000 });
     await sleep(6000);
     const r = await p.evaluate(() => ({ lists: window.__lists, fc: performance.getEntriesByName('stk:first-candles').map((m) => Math.round(m.startTime)) }));
@@ -43,7 +43,7 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
       addEventListener('DOMContentLoaded', () => { setTimeout(() => window.dispatchEvent(new PointerEvent('pointerdown')), 50); });
     });
     const p2 = await ctx2.newPage();
-    await p2.goto(BASE + '/charts.html?vela=' + eng, { waitUntil: 'domcontentloaded' });
+    await p2.goto(BASE + '/charts.html?search=classic&vela=' + eng, { waitUntil: 'domcontentloaded' });
     await p2.waitForFunction(() => window.__stkFirstCandles, null, { timeout: 60000 });
     await sleep(500);
     const l2 = await p2.evaluate(() => window.__lists);

@@ -193,11 +193,11 @@ async function run(b, v09, w, h, doItems) {
   const sym1 = P.cells[0].sym;
   await tapSel(p, '#stkc-bar .vela-mb-symbol');
   await sleep(700);
-  await p.waitForFunction(() => { const i = document.querySelector('.vela-sp-input'); return i && i.getClientRects().length; }, null, { timeout: 8000 }).catch(() => {});
-  const has = await p.evaluate(() => { const i = document.querySelector('.vela-sp-input'); return !!(i && i.getClientRects().length); });
+  await p.waitForFunction(() => { const i = document.querySelector('.stkss-input, .vela-sp-input'); return i && i.getClientRects().length; }, null, { timeout: 8000 }).catch(() => {});
+  const has = await p.evaluate(() => { const i = document.querySelector('.stkss-input, .vela-sp-input'); return !!(i && i.getClientRects().length); });
   if (has) {
-    await p.fill('.vela-sp-input', 'GC1!'); await sleep(1500);
-    const row = await p.$('.vela-sp-row[data-ticker="futures:GC1!"], .vela-sp-row[data-ticker*="GC1!"]');
+    await p.locator('.stkss-input:visible, .vela-sp-input:visible').first().fill('GC1!'); await sleep(1500);   // assets/chart-search.js panel (classic picker with ?search=classic)
+    const row = await p.$('.stkss-row[data-sym$=":GC1!"], .vela-sp-row[data-ticker="futures:GC1!"], .vela-sp-row[data-ticker*="GC1!"]');
     if (row) { const bb = await row.boundingBox(); await tapXY(p, bb.x + bb.width / 2, bb.y + bb.height / 2); } else await p.keyboard.press('Enter');
   }
   await sleep(2500);

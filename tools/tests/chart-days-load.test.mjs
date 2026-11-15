@@ -48,3 +48,12 @@ console.log('OK');
   const e = D.planDays(exact, 14, 0);
   ok(e.trim === 0 && e.from === 0, 'exactly 14 days held: nothing to do');
 }
+// footprint depth is stated honestly (AUTO-FPHIST2)
+{
+  const d0 = Date.UTC(2026, 9, 8);
+  ok(D.fpDepthDays(d0 + 10 * 864e5) === 10, 'footprint depth = days since the recorder started');
+  ok(D.fpDepthDays(d0 + 400 * 864e5) === 90, 'footprint depth never above the 90 days kept');
+  ok(D.fpDepthDays(d0 - 5 * 864e5) === 0, 'before the start: 0');
+  ok(/about 38 days/.test(D.fpHint(d0 + 38 * 864e5)) && /Candles go further/.test(D.fpHint(d0)), 'hint says footprint is shallower than candles');
+  ok(D.capDays('240', 729, 30000) === 729 && D.optionsFor(729).includes('365 days') && D.optionsFor(729).at(-1) === 'Max (729 days)', '4h: menu goes to the 729-day source depth');
+}

@@ -59,3 +59,9 @@ export function planDays(times, days, trimmedAt) {
   while (lo < hi) { const m = (lo + hi) >> 1; if (times[m] < horizon) lo = m + 1; else hi = m; }
   return { trim: Math.min(lo, times.length - 1), from: 0 };
 }
+
+// Footprint / order-flow data is NOT as deep as candles: the recorder started on 8 Oct 2026 and keeps 90 days of per-price trades
+// (48 h of the live L2 book feed). Plain-English line for the setting's hint; `now` in ms.
+export const FP_FIRST_DAY = Date.UTC(2026, 9, 8), FP_KEEP_DAYS = 90;
+export function fpDepthDays(now) { return Math.max(0, Math.min(FP_KEEP_DAYS, Math.floor((now - FP_FIRST_DAY) / 864e5))); }
+export const fpHint = (now) => ' Footprint order flow only goes back as far as it was recorded: about ' + fpDepthDays(now) + ' days (NQ, ES, YM, GC, SI, CL; micros use the live feed, 48 h). Candles go further back.';

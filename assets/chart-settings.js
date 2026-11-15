@@ -435,7 +435,7 @@ function daysRow(id){
   const cap = () => { try { return window.__stkHistoryPager.cap(id); } catch (e) { return 0; } };
   const tf = () => { const c = cellOf(id); return c ? c.timeframe : ''; };
   return { kind: 'select', label: 'Days of history to load', id: 'days-load',
-    title: 'Loads at least this many days of history for the current timeframe. Auto keeps the normal behaviour. The list stops at the most days the data really has for this timeframe.',
+    title: 'Loads at least this many days of history for the current timeframe. Auto keeps the normal behaviour. The list stops at the most days the data really has for this timeframe.' + DL.fpHint(Date.now()),
     options: DL.optionsFor(cap()),
     get: () => DL.displayOf(DL.getDays(id, tf()), cap()),
     set: (v) => {
@@ -633,6 +633,11 @@ function foldTabs(dlg){
       if (row) row.title = RH_TIP;
       return;
     }
+    if (lab.textContent === 'Days of history to load') {   // plain-English limit of the footprint data, always visible (the title alone hides on phones)
+      const row = lab.closest('.vela-field-span') || lab.parentElement;
+      if (row && !row.nextElementSibling?.classList.contains('stk-sd-note')) { const n = document.createElement('div'); n.className = 'stk-sd-note'; n.textContent = DL.fpHint(Date.now()).trim(); row.after(n); }
+      return;
+    }
     const why = DISABLED[lab.textContent];
     if (!why) return;
     const row = lab.closest('.vela-field-span') || lab.parentElement;
@@ -765,6 +770,7 @@ const CSS = `
 .vela-sd-mobile .stk-sd-foot .vela-sd-btn{ width:100%; height:44px; justify-content:center; font-size:15px; }
 .vela-sd-mobile .stk-sd-tplbtn{ justify-content:flex-start !important; }
 .stk-sd-off{ opacity:.45; cursor:not-allowed; }
+.stk-sd-note{ grid-column:1 / -1; box-sizing:border-box; width:100%; max-width:100%; min-width:0; white-space:normal; overflow-wrap:anywhere; font-size:12px; line-height:16px; color:var(--vela-fg-muted,#8a90a0); padding:0 0 8px; }
 .stk-sd-off button{ pointer-events:none; }
 .vela-dialog--settings .vela-sd-pane, .vela-dialog--settings .vela-sd-rail{ scrollbar-width:thin; scrollbar-color:rgba(128,128,128,.35) transparent; }
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar, .vela-dialog--settings .vela-sd-rail::-webkit-scrollbar{ width:6px; height:6px; }

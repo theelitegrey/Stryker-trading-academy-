@@ -37,6 +37,8 @@ const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', G
 const FREE_ROOT = 'NQ';
 const FREE_LOOKBACK_MS = 24 * 3600 * 1000;
 const HISTORY_DAY = Math.floor(Date.UTC(2026, 9, 8) / 86400000);   // the recorder's first day: a long span (Fixed Range Volume Profile) never asks for days before it
+const L1_ROOTS = ['NQ', 'ES', 'YM', 'GC', 'SI', 'CL'];   // roots with their own recorded trades (workers/book-recorder OF_SYMBOLS)
+const L1_KEEP_DAYS = 90;           // the recorder keeps 90 days (OF_KEEP_DAYS); data starts at HISTORY_DAY
 const MAX_DAYS = 14;                 // UTC days fetched for one chart at most
 const TODAY_REFRESH_MS = 300000;   // the whole day, now and then; the live tail is polled every TAIL_MS
 const TAIL_MS = 5000;              // the last minutes of every root in use: forming + just-closed bars
@@ -376,11 +378,34 @@ class FootprintEngine {
     if (this.cfg.src === 'l1') { this.dropL2(); return null; }
     if (this.l2m === undefined) { this.loadL2(); return { map: new Map(), note: 'Loading order flow…' }; }
     if (!this.l2m) return null;
-    const r = this.l2m.fpFlow(this.l2own, this.ctx, bars, tfm * 60000, replayE(), this.onL2, left);
+    let r = this.l2m.fpFlow(this.l2own, this.ctx, bars, tfm * 60000, replayE(), this.onL2, left);
     this.l2v = this.l2m.fpVersion(this.l2own);
+    if (r && r.list && r.list.length && replayE() == null) r = this.olderFromL1(r, bars, tfm, left);
     // no L2 trades for these bars (market closed, hub read empty): draw the recorder's trades, said plainly; L2 comes back on its next trade
     if (r && r.none) { const f = flowFor({ root: rootOf(this.ctx), timeframe: this.ctx.timeframe, bars, owner: this }); return f.map && f.map.size ? Object.assign({}, f, { note: r.note, src: 'l1' }) : f; }
+    this.flow = r;   // what the layer draws (tests read it)
     return r;
+  }
+  // The live L2 feed is recorded for 48 h only. Bars older than that come from the recorder's own trades (L1, the same real
+  // per-price volume, kept 90 days since 8 Oct 2026). Only for the recorded minis: a micro has no L1 record of its own, so nothing is borrowed.
+  olderFromL1(r, bars, tfm, left) {
+    const root = rootOf(this.ctx), t0 = r.mins.length ? r.mins[0].t : 0;
+    if (!t0 || !(left < t0) || !L1_ROOTS.includes(String(this.ctx.symbol || '').toUpperCase().replace(/^FUTURES:/, '').replace(/[0-9]*!$/, '')) || !root) return r;
+    const tfMs = tfm * 60000, part = bars.filter((b) => b.time >= left - tfMs && b.time < t0);
+    if (!part.length) return r;
+    const f1 = flowFor({ root, timeframe: this.ctx.timeframe, bars: part, owner: this.l1own || (this.l1own = {}), maxDays: L1_KEEP_DAYS });
+    const old = (f1.mins || []).filter((m) => m.t < t0);
+    const key = r.mins.length + '|' + t0 + '|' + old.length + '|' + tfMs + '|' + (f1.loading ? 1 : 0);
+    if (this.l1m && this.l1m.key === key) return this.l1m.out;
+    let out;
+    if (!old.length) out = Object.assign({}, r, { note: f1.loading ? 'Loading footprint history…' : 'No footprint recorded before ' + new Date(t0).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' });
+    else {
+      const mins = old.concat(r.mins), list = aggregate(mins, tfMs, true);
+      const first = old[0].t, cover = first <= left + tfMs;
+      out = Object.assign({}, r, { mins, list, map: new Map(list.map((b) => [b.t, b])), note: f1.loading ? 'Loading footprint history…' : cover ? '' : 'No footprint recorded before ' + new Date(first).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' });
+    }
+    this.l1m = { key, out };
+    return out;
   }
   dropL2() { if (this.l2m) this.l2m.fpDrop(this.l2own); this.l2v = -1; }
   onSettings(v) {

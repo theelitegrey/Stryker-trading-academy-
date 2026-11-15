@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Zoro for Vest",
+  "short_name": "Zoro for Vest",
+  "version": "1.0.0",
+  "description": "TradeZoro order panel, multi-account copy and levels on Vest. Not affiliated with Vest.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://next.vestmarkets.com/*",
+    "https://tradezoro.com/api/lv/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://next.vestmarkets.com/*"
+      ],
+      "js": [
+        "page.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://next.vestmarkets.com/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
+  },
+  "minimum_chrome_version": "111"
+}

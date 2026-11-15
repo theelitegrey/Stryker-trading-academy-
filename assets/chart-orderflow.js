@@ -30,24 +30,24 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { pinSessions } from './chart-frvp-data.js?v=1018';
-import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=1018';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1018';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=1018';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=1018';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=1018';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=1018';
-import * as ProGate from './chart-pro-gate.js?v=1018';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=1018';
-import * as BT from './chart-bigtrades.js?v=1018';
-import { installBookPack } from './chart-book-pack.js?v=1018';
-import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=1018';
-import { installPatterns } from './chart-patterns.js?v=1018';
-import { installL2Flow } from './chart-l2-flow.js?v=1018';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=1018';
-import { installDepthHeatmap } from './chart-depth-heatmap.js?v=1018';
-export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=1018';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=1018';
+import { pinSessions } from './chart-frvp-data.js?v=1017';
+import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=1017';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1017';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=1017';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=1017';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=1017';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=1017';
+import * as ProGate from './chart-pro-gate.js?v=1017';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=1017';
+import * as BT from './chart-bigtrades.js?v=1017';
+import { installBookPack } from './chart-book-pack.js?v=1017';
+import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=1017';
+import { installPatterns } from './chart-patterns.js?v=1017';
+import { installL2Flow } from './chart-l2-flow.js?v=1017';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=1017';
+import { installDepthHeatmap } from './chart-depth-heatmap.js?v=1017';
+export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=1017';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=1017';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';

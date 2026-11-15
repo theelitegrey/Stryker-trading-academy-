@@ -12,11 +12,11 @@
 // NO NEW SOCKETS: acquireBookFeed / acquireTradeFeed / l2 acquire are the chart's own shared feeds (ref-counted, closed with the last user).
 // NO LOOKAHEAD: a bar's frame is the state known at that bar's close (asOf = min(close - 1 ms, now, replay clock)); never later.
 // Education only. Not financial advice.
-import { ZS_DATA_FOLLOWS_PLAN } from '../../zs-config.js?v=1018';
-import * as GATE from './gate.js?v=1018';
-import * as ST from './stores.js?v=1018';
-import { SeriesCache, tfToMs } from '../../chart-pine-series-cache.js?v=1018';
-import { NAMESPACES } from './ops.js?v=1018';
+import { ZS_DATA_FOLLOWS_PLAN } from '../../zs-config.js?v=1017';
+import * as GATE from './gate.js?v=1017';
+import * as ST from './stores.js?v=1017';
+import { SeriesCache, tfToMs } from '../../chart-pine-series-cache.js?v=1017';
+import { NAMESPACES } from './ops.js?v=1017';
 
 const MAX_FRAME_BARS = 5000;          // frames go out for the newest bars only (the engine's own bar cap is not above this)
 const LIVE_MS = 250;                  // forming-bar frame: at most 4 pushes a second
@@ -35,9 +35,9 @@ export function resetHubForTests() { hubSingleton = null; }
 export function browserDeps() {
   let mods = null;
   const load = () => mods || (mods = Promise.all([
-    import('../../chart-orderflow.js?v=1018'), import('../../chart-futures-l2.js?v=1018'), import('../../chart-gex-levels.js?v=1018'),
-    import('../../chart-zoro-data.js?v=1018'), import('../../chart-pro-gate.js?v=1018'), import('../../orderflow-venues.js?v=1018'),
-    import('../../gex-heat-core.js?v=1018'),   // sets window.StrykerGexHeat (the GEX history reader); same module the heatmap loads
+    import('../../chart-orderflow.js?v=1017'), import('../../chart-futures-l2.js?v=1017'), import('../../chart-gex-levels.js?v=1017'),
+    import('../../chart-zoro-data.js?v=1017'), import('../../chart-pro-gate.js?v=1017'), import('../../orderflow-venues.js?v=1017'),
+    import('../../gex-heat-core.js?v=1017'),   // sets window.StrykerGexHeat (the GEX history reader); same module the heatmap loads
   ]).then(([of, l2, gx, zd, pg, vn]) => ({ of, l2, gx, zd, pg, vn })));
   return {
     load,

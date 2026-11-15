@@ -368,17 +368,6 @@ service cloud.firestore {
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid) && validIvPrefs(request.resource.data);
       }
-      // Charts WORKSPACES (assets/chart-workspaces.js, 2026-11-14). Owner only. index = the workspace list as one JSON
-      // string the client re-validates on load (assets/chart-workspaces-core.js sanitize): names, order, the saved
-      // layout id of each, open side panels. The charts themselves are chartLayouts docs. <= 20000 chars, server time.
-      match /chartPrefs/workspaces {
-        allow read, delete: if isSelf(uid);
-        allow create, update: if isSelf(uid)
-          && request.resource.data.keys().hasOnly(['index', 'updatedAt'])
-          && request.resource.data.keys().hasAll(['index', 'updatedAt'])
-          && request.resource.data.index is string && request.resource.data.index.size() <= 20000
-          && request.resource.data.updatedAt == request.time;
-      }
 
       // Charts page saved templates (assets/chart-templates.js, 2026-10-05).
       // Owner only. name 1-60 chars, state = Vela workspace JSON, or 'tz1:'+base64(gzip(JSON)) for big ones

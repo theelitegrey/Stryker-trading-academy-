@@ -16,9 +16,12 @@
 //             otherwise  = a behaviour switch: the indicator checks below(inputs, v) and keeps the old behaviour for older
 //                          instances; the member picks it in Settings > Version and gets the update icon.
 //             migrate(inputs) -> patch of inputs, run once when a member presses Update past this version (renamed settings).
-// An indicator not listed is v1.0 (first release date on its page: tools/indicator-pages/first-release.json).
-// Only TradeZoro natives can be pinned today. Built-in Pine scripts are listed for the changelog only (all: true); pinning one
-// needs its old source kept (docs/INDICATOR-VERSIONS.md, "Pine").
+//             src: true  = (built-in Pine 'x:' keys only) this version's source is kept as assets/pine-versions/<id>/<v>.pine, so a
+//                          chart can stay on it. The latest version is always assets/pine/<id>.pine. tools/indver-bump.js
+//                          writes both the file and the flag; a Pine version without src cannot be picked.
+// EVERY indicator is listed (Owner 15 Nov 2026 "i want it on all indicators"): the ones with no history are v1.0 on their first
+// release date (seeded by tools/indver-seed.js from tools/indicator-pages/first-release.json). Ship a new version with
+// tools/indver-bump.js <key> <v> "<note>" (docs/INDICATOR-VERSIONS.md).
 
 export const VERSIONS = {
   'b:stk_l2f_fp': { base: '1.1', versions: [
@@ -118,7 +121,178 @@ export const VERSIONS = {
   'x:session-sweep-smt-ifvg': { base: '1.1', versions: [
     { v: '1.0', date: '2026-10-29', notes: ['First release.'] },
     { v: '1.1', date: '2026-11-10', all: true, notes: ['Fix: an Asia session that starts on the first loaded bar is partial and is no longer drawn, so the Asia high and low are the same on every timeframe.'] }
-  ] }
+  ] },
+  // ---- every other indicator: v1.0 on its first release (tools/indver-seed.js)
+  'b:52-week-high-low': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:accumulation-distribution': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:aroon': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:average-directional-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:average-true-range': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:awesome-oscillator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:balance-of-power': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:bandwidth': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:bollinger-bands': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:chaikin-money-flow': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:chaikin-oscillator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:chaikin-volatility': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:chande-kroll-stop': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:chande-momentum-oscillator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:chandelier-exit': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:choppiness-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:commodity-channel-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:connors-rsi': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:coppock-curve': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:detrended-price-oscillator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:donchian-channels': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:ease-of-movement': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:elder-ray': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:ema': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:fisher-transform': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:force-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:gator-oscillator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:historical-volatility': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:intraday-intensity': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:keltner-channels': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:klinger-oscillator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:know-sure-thing': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:linear-regression-slope': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:lsma': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:ma-envelope': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:macd': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:mass-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:money-flow-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:moving-average': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:negative-volume-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:on-balance-volume': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:parabolic-sar': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:percent-b': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:pivot-points': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:positive-volume-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:ppo': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:price-volume-trend': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:pvo': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:rate-of-change': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:relative-vigor-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:relative-volatility-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:rma': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:rsi': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:schaff-trend-cycle': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:sma': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:smi-ergodic': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:standard-deviation': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:stk_avwap': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:stk_bk_bal': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_bk_large': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_bk_refill': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_bk_regime': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_bk_speed': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_bk_track': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_camarilla': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-05', notes: ['First release.'] }] },
+  'b:stk_cex': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_crypto_dom': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-10', notes: ['First release.'] }] },
+  'b:stk_cvd': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:stk_darkpool': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-07', notes: ['First release.'] }] },
+  'b:stk_delta': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:stk_depth_heat': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-06', notes: ['First release.'] }] },
+  'b:stk_dex': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_dpane': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-22', notes: ['First release.'] }] },
+  'b:stk_dsuite': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-22', notes: ['First release.'] }] },
+  'b:stk_earn': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_econ': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['First release.'] }] },
+  'b:stk_em': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['First release.'] }] },
+  'b:stk_estcvd': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:stk_funding': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_fut_dom': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-02', notes: ['First release.'] }] },
+  'b:stk_fut_imb': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-02', notes: ['First release.'] }] },
+  'b:stk_fut_walls': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-02', notes: ['First release.'] }] },
+  'b:stk_gexheat': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['First release.'] }] },
+  'b:stk_hlintel': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_ivrank': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-06', notes: ['First release.'] }] },
+  'b:stk_l2f_cvd': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_l2f_delta': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_l2f_lad': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_l2f_stop': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_l2f_vp': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_liq': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_liq_bars': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_liqmap': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-29', notes: ['First release.'] }] },
+  'b:stk_lsr': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_lth': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-10', notes: ['First release.'] }] },
+  'b:stk_msess': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-28', notes: ['First release.'] }] },
+  'b:stk_news': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['First release.'] }] },
+  'b:stk_of_abs': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-23', notes: ['First release.'] }] },
+  'b:stk_of_cvd': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['First release.'] }] },
+  'b:stk_of_delta': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['First release.'] }] },
+  'b:stk_of_evr': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-23', notes: ['First release.'] }] },
+  'b:stk_of_imb': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-23', notes: ['First release.'] }] },
+  'b:stk_of_sweep': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-24', notes: ['First release.'] }] },
+  'b:stk_of_tpo': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-23', notes: ['First release.'] }] },
+  'b:stk_of_vp': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['First release.'] }] },
+  'b:stk_of_vwap': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['First release.'] }] },
+  'b:stk_offex': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_offex_lv': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_oi': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_optflow': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_patterns': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_pdvp': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:stk_rvol': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:stk_tide': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-29', notes: ['First release.'] }] },
+  'b:stk_ts_cvd': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-02', notes: ['First release.'] }] },
+  'b:stk_ts_delta': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-02', notes: ['First release.'] }] },
+  'b:stk_ts_dpane': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_ts_dsuite': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_vbubble': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-09', notes: ['First release.'] }] },
+  'b:stk_vex': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },
+  'b:stk_vheatmap': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-10', notes: ['First release.'] }] },
+  'b:stk_zrange': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-06', notes: ['First release.'] }] },
+  'b:stk_zvol': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-06', notes: ['First release.'] }] },
+  'b:stk_zzone': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-06', notes: ['First release.'] }] },
+  'b:stochastic': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:stochastic-rsi': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:supertrend': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:trix': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:true-strength-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:ttm-squeeze': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:ulcer-index': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:ultimate-oscillator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:vidya': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:volume': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:volume-flow-indicator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:volume-oscillator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:vortex-indicator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:vpvr': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:vwap': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:williams-alligator': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:williams-fractal': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:williams-percent-r': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:zigzag': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'b:zlema': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'p:avwap-click': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'p:dprange': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-09', notes: ['First release.'] }] },
+  'x:2022-model-pro-ictkesik': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:algoalpha-smart-signals-2': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-11', notes: ['Added to ZoroCharts.'] }] },
+  'x:cisd-model-plus-triton': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:dynamic-liquidity-heatmap-profile-bigbeluga': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-15', notes: ['Added to ZoroCharts.'] }] },
+  'x:ema-cross': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'x:forever-pro': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:fvg-relay-stryker': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['First release.'] }] },
+  'x:ict-pro-plus-timmynq': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:ifvg-degree-pro-plus': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-09', notes: ['Added to ZoroCharts.'] }] },
+  'x:ifvg-pro-stryker': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['First release.'] }] },
+  'x:ifvg-ultimate-deluxe-dodgysdd': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:london-intraday-protraction': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:manipulation-model-fb': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:pdhl': { base: '1.0', versions: [{ v: '1.0', date: '2026-09-08', notes: ['First release.'] }] },
+  'x:realtime-big-trades-bubbles-samet-lezki': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['Added to ZoroCharts.'] }] },
+  'x:session-vwap': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-05', notes: ['First release.'] }] },
+  'x:smt-pro-stryker': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['First release.'] }] },
+  'x:stoic-edge-compass': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:trinity-atr-levels': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-09', notes: ['Added to ZoroCharts.'] }] },
+  'x:tz-fractal-model': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-11', notes: ['First release.'] }] },
+  'x:unicorn-model': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:wcsmc-sp': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
+  'x:zeiierman-trend-average': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-11', notes: ['Added to ZoroCharts.'] }] },
+  'x:volume-bubbles-quantalgo': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-14', notes: ['Added to ZoroCharts.'] }] }
 };
 
 export const VER_KEY = 'ver';   // the input key every pinnable native gets
@@ -137,15 +311,20 @@ export function setManifest(m) { table = m || VERSIONS; }
 export const entry = (key) => table[key] || null;
 
 // the versions a member can pick (behaviour switches), oldest first
+// Built-in Pine (x:): only versions whose source is kept (src) + the latest (the current file).
 export function pickable(key) {
   const e = entry(key);
   if (!e) return [];
-  const out = e.versions.filter((x, i) => i === 0 || !x.all);
+  const n = e.versions.length;
+  const out = /^x:/.test(key) ? e.versions.filter((x, i) => x.src || i === n - 1) : e.versions.filter((x, i) => i === 0 || !x.all);
   return out.length > 1 ? out : [];
 }
 export const pinnable = (key) => pickable(key).length > 1;
 export function latest(key) { const p = pickable(key); return p.length ? p[p.length - 1].v : null; }
 export function current(key) { const e = entry(key); return e ? e.versions[e.versions.length - 1].v : '1.0'; }
+export function baseOf(key) { const e = entry(key); return e ? e.base : '1.0'; }
+// What an instance shows as its version (header tag, Version row): the pinned one when pickable, else the current one.
+export function shownVer(key, inputs) { return verOf(key, inputs) || current(key); }
 
 // An instance's version: the stored value, else base. An unknown stored value (a chart saved by a newer page) is clamped
 // to the newest known version not above it.

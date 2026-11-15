@@ -37,6 +37,7 @@
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
 import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=1042';
+import { entry as verEntry, fmtDate as verDate } from './indicator-versions.js?v=1042';
 import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2 } from './chart-pro-gate.js?v=1042';
 
 const PHONE_MAX = 700;
@@ -405,6 +406,8 @@ export function mountIndicatorWindow(ws, opts){
       it.locked && it.kind !== 'cind' ? h('span', { class: 'stkiw-lock', title: 'Code hidden in the editor', 'aria-label': 'code hidden', html: SVG(I_LOCK, 13) }) : null,
       it.kind === 'cind' && it.locked ? h('span', { class: 'stkiw-lock', title: 'Not in your plan', 'aria-label': 'locked', html: SVG(I_LOCK, 13) }) : null,
       it.kind === 'cind' && !it.locked ? h('span', { class: 'stkiw-pick', text: 'protected' }) : null,
+      it.kind === 'community' && it.s && it.s.version ? h('span', { class: 'stkiw-vtag', text: 'v' + it.s.version }) : null,
+      it.kind === 'cind' && it.ci && it.ci.version ? h('span', { class: 'stkiw-vtag', text: 'v' + it.ci.version }) : null,
       it.s && it.s.picked ? h('span', { class: 'stkiw-pick', text: "Editors' pick" }) : null,
       it.beta ? h('span', { class: 'stkiw-pick', text: 'beta' }) : null,
       it.badge ? h('span', { class: 'stkiw-pick', text: it.badge }) : null,
@@ -426,17 +429,20 @@ export function mountIndicatorWindow(ws, opts){
     if (it.kind === 'cind' && it.locked) extra.appendChild(h('a', { class: 'stkiw-get', href: '/c/' + encodeURIComponent(it.ci.cid) + '?tab=indicators', text: 'Get access', onclick: (e) => e.stopPropagation() }));
     if (it.kind === 'community' && it.s) extra.appendChild(h('button', { type: 'button', class: 'stkiw-ib', 'aria-label': 'Details for ' + it.name, title: 'Details, code, report',
       html: SVG(I_INFO, 15), onclick: (e) => { e.stopPropagation(); close(); L().openCommunity('all', it.name); } }));
-    // plain-English explainer (assets/indicator-explain.json, built from tools/indicator-pages/explain.json)
-    if (it.kind === 'builtin' && it.key.startsWith('b:')) {
+    // details: the version (assets/indicator-versions.js, every b:/x:/p: indicator) + the plain-English explainer
+    // (assets/indicator-explain.json, built from tools/indicator-pages/explain.json) where there is one
+    const ve = (it.kind === 'builtin' || it.kind === 'example') ? verEntry(it.key) : null;
+    if (ve || (it.kind === 'builtin' && it.key.startsWith('b:'))) {
       const hasEx = () => explainMap && explainMap[it.key];
-      const eb = h('button', { type: 'button', class: 'stkiw-ib stkiw-explain', 'aria-label': 'What ' + it.name + ' shows', 'aria-expanded': 'false', title: 'What it shows, how traders use it, what it does not tell you', html: SVG(I_INFO, 15), hidden: '' });
+      const eb = h('button', { type: 'button', class: 'stkiw-ib stkiw-explain', 'aria-label': 'About ' + it.name, 'aria-expanded': 'false', title: ve ? 'Version and what it shows' : 'What it shows, how traders use it, what it does not tell you', html: SVG(I_INFO, 15), hidden: ve ? null : '' });
       eb.addEventListener('click', (e) => {
         e.stopPropagation();
         const open = li.querySelector('.stkiw-ex');
         if (open) { open.remove(); eb.setAttribute('aria-expanded', 'false'); return; }
-        const x = explainMap[it.key];
         const box = h('div', { class: 'stkiw-ex', role: 'region', 'aria-label': 'About ' + it.name });
-        [['What it shows', x.shows], ['How traders use it', x.use], ['What it does not tell you', x.limits]].forEach(([t, a]) => {
+        if (ve) { const cur = ve.versions[ve.versions.length - 1]; box.appendChild(h('p', { class: 'stkiw-ver' }, [h('b', { text: 'v' + cur.v }), verDate(cur.date) + ' \u00b7 latest'])); }
+        const x = hasEx();
+        if (x) [['What it shows', x.shows], ['How traders use it', x.use], ['What it does not tell you', x.limits]].forEach(([t, a]) => {
           box.appendChild(h('h4', { text: t }));
           const ul = h('ul'); a.forEach((l) => ul.appendChild(h('li', { text: l }))); box.appendChild(ul);
         });

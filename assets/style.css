@@ -11756,6 +11756,12 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 .stkiw-ex ul{ margin:0; padding-left:20px; list-style:disc; list-style-position:outside; font-size:13px; line-height:18px; color:var(--ink-1); }
 .stkiw-ex li + li{ margin-top:4px; }
 .stkiw-explain[hidden]{ display:none; }
+/* indicator versions (Owner 15 Nov 2026): the version line at the top of a row's details, and the tag on community rows */
+.stkiw-ver{ display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:12px; line-height:16px; color:var(--ink-3); font-variant-numeric:tabular-nums; }
+.stkiw-ver b{ display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:10px; background:rgba(255,255,255,.06); color:var(--ink-2); font-weight:500; }
+:root[data-theme="light"] .stkiw-ver b{ background:rgba(0,0,0,.05); }
+.stkiw-ver:only-child{ margin-bottom:0; }
+.stkiw-vtag{ flex:0 0 auto; font-size:12px; line-height:16px; color:var(--ink-3); font-variant-numeric:tabular-nums; }
 .stkt-chips{ display:flex; flex-wrap:wrap; align-content:center; gap:8px; height:100%; padding:16px; box-sizing:border-box; }
 .stkt-chip, .stkt-tf{ display:inline-flex; align-items:center; height:24px; padding:0 8px; border:1px solid var(--line); border-radius:8px; font-size:12px; line-height:16px; color:var(--ink-1); background:var(--bg-2); }
 .stkt-tf{ color:var(--mint,#03c988); border-color:currentColor; font-weight:600; }

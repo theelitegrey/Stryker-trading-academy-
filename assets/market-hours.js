@@ -343,6 +343,13 @@
       pop.hidden = !on; pill.setAttribute('aria-expanded', on ? 'true' : 'false');
     }
     pill.addEventListener('click', function (e) { e.stopPropagation(); setOpen(pop.hidden); });
+    // Owner 15 Nov: full session info on hover (mouse only); touch keeps tap.
+    if (root.matchMedia && root.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+      var hvT = 0;
+      var hvOpen = function () { clearTimeout(hvT); hvT = setTimeout(function () { setOpen(true); }, 80); };
+      var hvClose = function () { clearTimeout(hvT); hvT = setTimeout(function () { setOpen(false); }, 180); };
+      w.addEventListener('mouseenter', hvOpen); w.addEventListener('mouseleave', hvClose);
+    }
     document.addEventListener('click', function (e) { if (!pop.hidden && !w.contains(e.target)) setOpen(false); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) { setOpen(false); pill.focus(); } });
 
@@ -372,9 +379,9 @@
       var tip = 'Session clock: ' + l.head;   // the phone shows only the dot, so name its meaning
       if (pill.title !== tip) { pill.title = tip; pill.setAttribute('aria-label', tip); }
       setAll('.mclock-head', l.head);
-      setAll('.mclock-tail', l.tail ? '\u00b7 ' + l.tail : '');
+      setAll('.mclock-tail', '');   // Owner 15 Nov: pill shows only the state; full info on hover (popover)
       setAll('.mclock-shead', l.shortHead);
-      setAll('.mclock-stail', l.shortTail ? '\u00b7 ' + l.shortTail : '');
+      setAll('.mclock-stail', '');
       setAll('.mclock-pstate', l.head);
       setAll('.mclock-pmk', (l.marketOpen ? 'Closes in ' : 'Opens in ') + fmtClock(l.market.until - now));
       setAll('.mclock-pnext', l.next ? l.next.name + ' in ' + fmtClock(l.next.at - now) : '');

@@ -24,9 +24,10 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
     await loc.waitFor({ timeout: 15000 });
     check(await loc.evaluate((e) => getComputedStyle(e).cursor === 'pointer'), tag + 'pointer cursor');
     if (mobile) await loc.tap(); else await loc.click();
-    await p.waitForSelector('.vela-sp-row', { timeout: 8000 }).catch(() => {});
-    check(await p.evaluate(() => document.querySelectorAll('.vela-sp-row').length > 0), tag + 'search opens');
-    const row = p.locator('.vela-sp-row[data-ticker^="ES"]').first();
+    await p.waitForSelector('.stkss-row, .vela-sp-row', { timeout: 8000 }).catch(() => {});
+    check(await p.evaluate(() => document.querySelectorAll('.stkss-row, .vela-sp-row').length > 0), tag + 'search opens');
+    await p.keyboard.type('ES1!'); await p.waitForTimeout(1200);
+    const row = p.locator('.stkss-row[data-sym$=":ES1!"], .vela-sp-row[data-ticker^="ES"]').first();
     await row.waitFor({ timeout: 8000 });
     await row.click();
     await p.waitForTimeout(2500);

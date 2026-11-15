@@ -61,6 +61,13 @@
 // now records the review fields (first stop, MAE/MFE, run, leverage) and tags Replay-account
 // trades src='replay' (deps.source) so they can never be mixed in.
 //
+// LIVE BROKER ORDERS (Owner order 2026-11-15, ADMIN ONLY): for an admin, assets/chart-live.js is loaded and registers a hook with
+// setLiveHook(). The panel then gets an account picker (Paper, the default, + the admin's connected broker accounts). While a live
+// account is picked (LIVE.active()) this module hands over: the panel view, the on-chart lines/chips (same layer, live data), the
+// ticket, chip ×/drag; and it switches OFF every paper surface that could be mistaken for a live one (one-click box, right-click paper
+// items, paper hotkeys). Nothing in this file sends an order: the live module does, through the server's guarded route. Non-admins
+// never load the live module (and the server refuses them anyway).
+//
 // Education only. Not financial advice.
 
 const PE = window.PaperEngine;
@@ -69,7 +76,7 @@ const UI_KEY = 'stryker_paper_ui';
 const LEADER_KEY = 'stryker_paper_leader';
 const POLL_MS = 250, FEED_MS = 5000, LEADER_MS = 1500, LEADER_STALE = 5000;
 const PHONE_MAX = 700;
-const PANEL_H = 180, PANEL_MIN = 110;   // desktop panel body height (px): default, minimum
+const PANEL_H = 180, PANEL_MIN = 110, LIVE_MIN_H = 312;   // desktop panel body height (px): default, minimum
 const LABEL = 'Paper trading · demo money · simulated fills';
 const DISCLAIMER = 'Education only. Not financial advice.';
 const TAB_ID = Math.random().toString(36).slice(2, 10);
@@ -82,6 +89,9 @@ const tracks = new Map();          // key -> { t, h, l, c } last bar seen per ce
 let ui = loadUi();
 let panel = null, ticket = null;
 const drag = { on: false };
+let LIVE = null;                     // assets/chart-live.js hook (admins only), see setLiveHook
+const liveOn = () => !!(LIVE && LIVE.active());
+export function setLiveHook(hk){ LIVE = hk; applyEnabled(); renderPanel(); }
 
 // ------------------------------------------------------------------ small helpers
 const $ = (sel, root) => (root || document).querySelector(sel);
@@ -111,7 +121,8 @@ function loadUi(){
 function panelMax(){ const m = document.querySelector('main.dash-main'); return Math.max(PANEL_MIN + 40, Math.round((m ? m.clientHeight : window.innerHeight) * 0.6)); }
 function applyPanelH(){
   if (!panel) return;
-  const hpx = Math.min(panelMax(), Math.max(PANEL_MIN, Number(ui.h) || PANEL_H));
+  const min = liveOn() ? LIVE_MIN_H : PANEL_MIN;      // live: the order form + lists need more room (the saved height is untouched)
+  const hpx = Math.min(Math.max(panelMax(), min), Math.max(min, Number(ui.h) || PANEL_H));
   panel.style.setProperty('--stkpt-h', hpx + 'px');
 }
 function bindResize(grip){
@@ -161,9 +172,10 @@ export function setPaperEnabled(on){
 function applyEnabled(){
   const on = paperOn();
   document.documentElement.classList.toggle('stkpt-on', on);
-  if (panel) panel.hidden = !on;
+  document.documentElement.classList.toggle('stklv-on', liveOn());
+  if (panel) panel.hidden = !(on || LIVE);           // an admin always sees the panel: it holds the Paper / live account picker
   const tb = document.getElementById('stkc-paper-btn'); if (tb) tb.hidden = !on;
-  if (!on) {
+  if (!on && !liveOn()) {
     closeTicket();
     document.documentElement.classList.remove('stkpt-sheet-open');
     const of = document.getElementById('stkpt-offers'); if (of) of.textContent = '';
@@ -565,6 +577,7 @@ function offerJournal(trade){
 function act(fn, okMsg){
   if (!acct) { toast('Paper trading is still loading.', 'info'); return null; }
   if (!paperOn()) return null;          // switched off in Chart settings: no new paper actions
+  if (liveOn()) { toast('A live account is picked. Switch the panel back to Paper to place paper orders.', 'info'); return null; }
   syncFromLocal();
   try {
     const r = fn();
@@ -597,7 +610,13 @@ function cancelOrder(id){ return act(() => { acct.cancelOrder(id); return []; })
 
 // ------------------------------------------------------------------ on-chart lines (renderer layer + DOM chips)
 const COL = { buy: '#2962ff', sell: '#f23645', tp: '#089981', sl: '#f23645', pos: '#089981', neg: '#f23645', flat: '#787b86' };
+// the newest close of a chart showing this symbol (the price-axis number); the paper feed's last as a fallback. Used by live P&L.
+function chartLast(sym){
+  try { for (const c of cells()) if (c.symbol === sym) { const b = barsOf(c), lb = b && b[b.length - 1]; if (lb && Number.isFinite(lb.close) && lb.close > 0) return lb.close; } } catch (e) {}
+  return acct ? acct.last[sym] : undefined;
+}
 function linesFor(sym){
+  if (liveOn()) { const out = LIVE.lines(sym) || []; if (drag.on && drag.sym === sym) for (const l of out) if (l.id === drag.id) l.price = drag.price; return out; }
   if (!acct || !acct.settings.lines || !paperOn()) return [];
   const out = [];
   const p = acct.position(sym);
@@ -624,6 +643,7 @@ function lineColor(l){
   return l.side === 'buy' ? COL.buy : COL.sell;
 }
 function chipText(sym, l){
+  if (l.live) return LIVE.chipText(sym, l);
   const name = (l.side === 'buy' ? 'BUY' : 'SELL');
   if (l.kind === 'pos') {
     const p = acct.position(sym); if (!p) return ['', ''];
@@ -652,6 +672,7 @@ function layerFactory(){
       const g = canvas.getContext('2d');
       g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, canvas.width, canvas.height); g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const d = a.data; const lines = (d && d.lines) || [];
+      if (overlay) { let b = overlay.querySelector('.stklv-cbadge'); if (d && d.live) { if (!b) { b = h('div', { class: 'stklv-cbadge', role: 'status' }); overlay.appendChild(b); } if (b.textContent !== d.live) b.textContent = d.live; } else if (b) b.remove(); }
       const top = a.bounds.top, bot = top + a.bounds.height;
       const fullW = canvas.width / dpr;
       const ys = {};
@@ -723,13 +744,15 @@ function pushLines(force){
     const inst = layerInst(R); if (!inst) continue;
     const sym = cell.symbol;
     const sp = specOf(sym);
-    const lines = sp.ok ? linesFor(sym) : [];
+    const lv = liveOn();
+    const lines = lv ? linesFor(sym) : sp.ok ? linesFor(sym) : [];
     const data = lines.map((l) => ({ id: l.id, kind: l.kind, price: l.price, color: lineColor(l), label: fmtP(sym, l.price) }));
     syncChips(cell, inst, lines);
-    const sig = JSON.stringify(data);
+    const badge = lv ? LIVE.badgeFor(sym) : '';
+    const sig = JSON.stringify(data) + badge;
     if (!force && lineSig.get(R) === sig) continue;
     lineSig.set(R, sig);
-    try { R.setNativeData(LAYER, { lines: data }); } catch (e) {}
+    try { R.setNativeData(LAYER, { lines: data, live: badge }); } catch (e) {}
   }
   oneClickAll();
 }
@@ -746,17 +769,20 @@ function syncChips(cell, inst, lines){
       ]);
       chip.addEventListener('pointerdown', (e) => onChipDown(e, cell, inst, chip));
       const x = chip.querySelector('.stkpt-chip-x');
-      if (x) { x.addEventListener('pointerdown', (e) => e.stopPropagation()); x.addEventListener('click', (e) => { e.stopPropagation(); onChipX(cell.symbol, chip.dataset.id); }); }
-      chip.addEventListener('dblclick', (e) => { e.stopPropagation(); const k = chip.dataset.id; if (k.startsWith('o')) { const id = parseInt(k.slice(1), 10); const o = acct.state.orders.find((x2) => x2.id === id); if (o) openTicket({ modify: o }); } });
+      if (x) { x.addEventListener('pointerdown', (e) => e.stopPropagation()); x.addEventListener('click', (e) => { e.stopPropagation(); if (chip.dataset.live) LIVE.chipX(cell.symbol, chip.dataset.id); else onChipX(cell.symbol, chip.dataset.id); }); }
+      chip.addEventListener('dblclick', (e) => { e.stopPropagation(); if (chip.dataset.live) return; const k = chip.dataset.id; if (k.startsWith('o')) { const id = parseInt(k.slice(1), 10); const o = acct.state.orders.find((x2) => x2.id === id); if (o) openTicket({ modify: o }); } });
       ov.appendChild(chip);
     }
     have.delete(l.id);
     chip.dataset.kind = l.kind;
+    if (l.live) chip.dataset.live = '1'; else delete chip.dataset.live;
+    const xb = chip.querySelector('.stkpt-chip-x'); if (xb && l.live) { const t = l.kind === 'pos' ? 'Flatten (live)' : 'Cancel live order'; xb.title = t; xb.setAttribute('aria-label', t); }
     chip.style.setProperty('--c', lineColor(l));
     const [a, b] = chipText(cell.symbol, l);
     const A = chip.querySelector('.stkpt-chip-a'), B = chip.querySelector('.stkpt-chip-b');
     if (A.textContent !== a) A.textContent = a;
     if (B.textContent !== b) B.textContent = b;
+    if (l.live) { chip.classList.toggle('neg', l.pnl != null && l.pnl < 0); chip.title = l.kind === 'pos' ? 'Live position · × flattens (with a confirm)' : 'Live order · drag to move (with a confirm) · × cancels'; continue; }
     if (l.kind === 'pos') { const p = acct.position(cell.symbol); chip.classList.toggle('neg', !!p && acct.openPnl(p) < 0); }
     chip.title = l.kind === 'pos' ? 'Drag up/down to add a take profit or stop loss' : l.kind === 'ord' ? 'Drag to move the order · double-click to edit' : 'Drag to move';
   }
@@ -766,7 +792,7 @@ function livePnl(){
   if (!acct) return;
   for (const cell of cells()) {
     const inst = layerInst(inner(cell)); if (!inst || !inst.overlay) continue;
-    const p = acct.position(cell.symbol);
+    const p = liveOn() ? null : acct.position(cell.symbol);
     for (const chip of inst.overlay.querySelectorAll('.stkpt-chip[data-kind="pos"]')) {
       if (!p) continue;
       const v = money(acct.openPnl(p), true), B = chip.querySelector('.stkpt-chip-b');
@@ -792,21 +818,23 @@ function onChipDown(e, cell, inst, chip){
   if (e.button != null && e.button !== 0) return;
   const id = chip.dataset.id, sym = cell.symbol;
   const a = inst.args; if (!a) return;
+  const isLive = !!chip.dataset.live;
+  if (isLive && chip.dataset.kind !== 'ord') return;   // live: only working orders move; the position has no TP/SL drag
   e.preventDefault(); e.stopPropagation();
   const R = inner(cell);
   const canvas = R && R.input && R.input.el;
   const rect = (canvas || inst.overlay).getBoundingClientRect();
-  const sp = specOf(sym); if (!sp.ok) return;
-  const p = acct.position(sym);
+  const sp = isLive ? { ok: true, tick: LIVE.tickOf(sym) } : specOf(sym); if (!sp.ok) return;
+  const p = isLive ? null : acct.position(sym);
   const startPrice = (() => { const l = linesFor(sym).find((x) => x.id === id); return l ? l.price : null; })();
   if (startPrice == null) return;
-  Object.assign(drag, { on: true, sym, id, kind: 'move', price: startPrice, moved: false, y0: e.clientY });
+  Object.assign(drag, { on: true, sym, id, kind: 'move', price: startPrice, moved: false, y0: e.clientY, live: isLive, start: startPrice });
   if (id === 'pos' && p) Object.assign(drag, { kind: 'new', id: 'new', side: p.side, ref: p.avg, qty: p.qty, newKind: 'tp' });
   try { chip.setPointerCapture(e.pointerId); } catch (e2) {}
   chip.classList.add('dragging');
   let raf = 0;
   const move = (ev) => {
-    if (Math.abs(ev.clientY - drag.y0) < 3 && !drag.moved) return;
+    if (Math.abs(ev.clientY - drag.y0) < (drag.live ? 8 : 3) && !drag.moved) return;   // live: a bigger dead zone, no move from a jittery tap
     drag.moved = true;
     const args = inst.args || a;
     const y = ev.clientY - rect.top;
@@ -819,15 +847,19 @@ function onChipDown(e, cell, inst, chip){
     }
     if (!raf) raf = requestAnimationFrame(() => { raf = 0; pushLines(); });
   };
+  const esc = (ev) => { if (ev.key === 'Escape' && drag.on) { drag.moved = false; drag.on = false; ev.stopPropagation(); cleanup(); pushLines(true); } };
+  const cleanup = () => { chip.removeEventListener('pointermove', move); chip.removeEventListener('pointerup', up); chip.removeEventListener('pointercancel', up); window.removeEventListener('keydown', esc, true); chip.classList.remove('dragging'); };
+  window.addEventListener('keydown', esc, true);
   const up = () => {
-    chip.removeEventListener('pointermove', move); chip.removeEventListener('pointerup', up); chip.removeEventListener('pointercancel', up);
-    chip.classList.remove('dragging');
+    if (!drag.on) { cleanup(); return; }   // Esc already aborted
+    cleanup();
     const d = Object.assign({}, drag); drag.on = false;
     if (raf) cancelAnimationFrame(raf);
     if (!d.moved) { pushLines(true); return; }
+    if (d.live) { if (d.price !== d.start) LIVE.drag(sym, d); pushLines(true); return; }
     commitDrag(sym, d);
   };
-  chip.addEventListener('pointermove', move); chip.addEventListener('pointerup', up); chip.addEventListener('pointercancel', up);
+  chip.addEventListener('pointermove', move); chip.addEventListener('pointerup', up); chip.addEventListener('pointercancel', () => { drag.on = false; cleanup(); pushLines(true); });
 }
 function commitDrag(sym, d){
   const r = (() => {
@@ -847,7 +879,7 @@ function oneClickAll(){
   for (const cell of cells()) {
     const inst = layerInst(inner(cell)); if (!inst || !inst.overlay) continue;
     let oc = inst.overlay.querySelector('.stkpt-1c');
-    const show = !!acct && paperOn() && acct.settings.oneClick && specOf(cell.symbol).ok;
+    const show = !!acct && paperOn() && !liveOn() && acct.settings.oneClick && specOf(cell.symbol).ok;
     if (!show) { if (oc) oc.remove(); continue; }
     if (!oc) {
       oc = h('div', { class: 'stkpt-1c', role: 'group', 'aria-label': 'One-click paper trading' }, [
@@ -918,6 +950,7 @@ function oneClick(oc, side){
 const tk = { side: 'buy', type: 'market', sym: '', modify: null, tpOn: false, slOn: false, tpUnit: 'ticks', slUnit: 'ticks' };
 export function openTicket(pre){
   pre = pre || {};
+  if (liveOn()) { LIVE.openTicket(pre); return; }
   if (!acct) { toast('Paper trading is still loading.', 'info'); return; }
   if (!paperOn()) return;               // switched off in Chart settings
   const c = activeCell();
@@ -1079,7 +1112,7 @@ function submitTicket(){
 const ctxAt = { cell: null, price: null };
 function captureContext(e){
   ctxAt.cell = null; ctxAt.price = null;
-  if (!paperOn()) return;
+  if (!paperOn() || liveOn()) return;
   for (const cell of cells()) {
     if (!cell.host || !cell.host.contains(e.target)) continue;
     const inst = layerInst(inner(cell)); const a = inst && inst.args; if (!a) return;
@@ -1116,8 +1149,8 @@ function registerContextActions(){
 }
 
 // ------------------------------------------------------------------ bottom panel
-export function openPanel(tab){ if (!paperOn()) return; ui.open = true; if (tab) ui.tab = tab; saveUi(); renderPanel(); }
-function togglePanel(){ if (!paperOn()) return; ui.open = !ui.open; saveUi(); renderPanel(); }
+export function openPanel(tab){ if (!paperOn() && !LIVE) return; ui.open = true; if (tab) ui.tab = tab; saveUi(); renderPanel(); }
+function togglePanel(){ if (!paperOn() && !LIVE) return; ui.open = !ui.open; saveUi(); renderPanel(); }
 function buildPanel(){
   const main = document.querySelector('main.dash-main') || document.body;
   panel = h('section', { id: 'stkpt', class: 'stkpt', 'aria-label': 'Paper trading' });
@@ -1125,6 +1158,7 @@ function buildPanel(){
     <div class="stkpt-grip" role="separator" aria-orientation="horizontal" aria-label="Resize the Paper trading panel" tabindex="0" title="Drag to resize"></div>
     <div class="stkpt-head">
       <button type="button" class="stkpt-toggle" aria-expanded="false" aria-controls="stkpt-body"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg><b>Paper trading</b></button>
+      <span class="stkpt-acctslot"></span>
       <span class="stkpt-badge" title="${LABEL}">Demo</span>
       <span class="stkpt-hsum" aria-live="off"></span>
       <span class="stkpt-hsp"></span>
@@ -1152,6 +1186,7 @@ function buildPanel(){
   panel.querySelector('.stkpt-hsum').onclick = () => { if (!ui.open) togglePanel(); };
   panel.querySelector('.stkpt-trade').onclick = () => openTicket();
   panel.querySelector('.stkpt-flat').onclick = () => {
+    if (liveOn()) { LIVE.flattenActive(); return; }
     if (!acct || (!Object.keys(acct.state.positions).length && !acct.state.orders.length)) { toast('Nothing to flatten.', 'info'); return; }
     if (window.confirm('Close every paper position and cancel every working paper order?')) flattenAll();
   };
@@ -1165,7 +1200,24 @@ function renderPanel(){
   applyPanelH();
   if (wasOpen !== !!ui.open) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
   panel.querySelector('.stkpt-toggle').setAttribute('aria-expanded', ui.open ? 'true' : 'false');
-  document.documentElement.classList.toggle('stkpt-sheet-open', !!ui.open && isPhone() && paperOn());
+  document.documentElement.classList.toggle('stkpt-sheet-open', !!ui.open && isPhone() && (paperOn() || liveOn()));
+  const lv = liveOn();
+  document.documentElement.classList.toggle('stklv-on', lv);
+  if (panel.classList.contains('is-live') !== lv) { pushLines(true); panel.classList.toggle('is-live', lv); applyPanelH(); setTimeout(() => window.dispatchEvent(new Event('resize')), 0); }
+  { const tb = panel.querySelector('.stkpt-toggle b'), tr = panel.querySelector('.stkpt-trade'), fl = panel.querySelector('.stkpt-flat');
+    const want = lv ? 'Live trading' : 'Paper trading'; if (tb.textContent !== want) tb.textContent = want;
+    tr.hidden = lv; fl.textContent = lv ? 'Flatten this contract' : 'Flatten all'; fl.title = lv ? 'Cancel the working orders and close the live position of this chart’s contract (with a confirm)' : 'Close every paper position and cancel every order';
+    panel.setAttribute('aria-label', want); }
+  if (LIVE) LIVE.renderHead(panel.querySelector('.stkpt-acctslot'));
+  if (lv) {
+    if (review) { try { review.api.destroy(); } catch (e) {} review = null; }
+    LIVE.renderSummary(panel.querySelector('.stkpt-hsum'));
+    if (ui.open) LIVE.renderView(panel.querySelector('.stkpt-view'));
+    panel.querySelector('.stkpt-foot').textContent = LIVE.foot();
+    return;
+  }
+  panel.querySelector('.stkpt-foot').textContent = LABEL + '. Orders work only while a ZoroCharts tab is open in this browser; nothing runs on a server. No broker, no real orders. ' + DISCLAIMER;
+  if (LIVE && !paperOn()) { panel.querySelector('.stkpt-hsum').textContent = ''; if (ui.open) { const v = panel.querySelector('.stkpt-view'); v.textContent = ''; v.appendChild(h('p', { class: 'stkpt-empty', text: 'Paper trading is off. Turn it on in Chart settings → Paper trading, or pick a live account above.' })); } return; }
   for (const b of panel.querySelectorAll('[data-tab]')) { const on = b.dataset.tab === ui.tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }
   if (!acct) { panel.querySelector('.stkpt-view').textContent = 'Loading…'; return; }
   const np = Object.keys(acct.state.positions).length, no = acct.state.orders.length;
@@ -1191,6 +1243,8 @@ function renderPanel(){
 }
 function renderSummaryLive(){
   if (!panel || !acct) return;
+  if (liveOn()) { LIVE.renderSummary(panel.querySelector('.stkpt-hsum')); return; }
+  if (LIVE && !paperOn()) return;
   const s = acct.summary(dayStart());
   const el = panel.querySelector('.stkpt-hsum');
   const parts = [['Equity', money(s.equity)], ['Open P&L', money(s.unrealized, true), s.unrealized], ['Day', money(s.dayPnl, true), s.dayPnl]];
@@ -1521,7 +1575,7 @@ function hkBE(sym){
   act(() => acct.moveToBreakeven(sym), 'Stop moved to breakeven for ' + showSym(sym));
 }
 export function runHotkey(id){
-  if (!acct || !paperOn() || !PK) return false;
+  if (!acct || !paperOn() || !PK || liveOn()) return false;
   const sym = hkSym(), side = /^buy/.test(id) ? 'buy' : 'sell';
   if (/^(buy|sell)Market$/.test(id)) { if (sym) placeOrder({ symbol: sym, side, type: 'market', qty: acct.qtyFor(sym) }); }
   else if (/^(buy|sell)Limit$/.test(id)) openTicket({ side, type: 'limit' });
@@ -1545,7 +1599,7 @@ export function runHotkey(id){
   return true;
 }
 function onHotkey(e){
-  if (hkRecording || !PK || !acct || !paperOn()) return;
+  if (hkRecording || !PK || !acct || !paperOn() || liveOn()) return;   // paper hotkeys never fire while a live account is picked
   const t = e.target; if (t && t.closest && t.closest('[role=dialog], .vela-dialog, #stkpt-tk')) return;
   const id = PK.match(hkMap(), e); if (!id) return;
   e.preventDefault(); e.stopPropagation();
@@ -1644,6 +1698,8 @@ const CSS = `
 .stkpt-card-l2 b{ font-weight:500; color:var(--ink-1); }
 .stkpt-card .stkpt-acts{ display:flex; gap:6px; justify-content:flex-end; }
 .stkpt.open .stkpt-body{ display:flex; }
+.stkpt.is-live .stkpt-tabs [role=tab]{ display:none; }
+.stkpt.is-live{ box-shadow:inset 0 2px 0 #d92d20; }
 .stkpt-tabs{ flex:none; display:flex; align-items:center; gap:2px; padding:4px 8px; border-bottom:1px solid var(--line-soft); overflow-x:auto; }
 .stkpt-tabs [role=tab]{ border:0; background:none; color:var(--ink-2); font:600 12.5px/1 var(--font-body, sans-serif); padding:8px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
 .stkpt-tabs [role=tab] i{ font-style:normal; color:var(--ink-3); margin-left:2px; }
@@ -1778,7 +1834,7 @@ const CSS = `
 /* switched off (Chart settings → Paper trading): nothing of paper trading on the page */
 .stkpt[hidden],#stkc-paper-btn[hidden]{ display:none !important; }
 html.stkbp-sheet #stkpt-toasts{ position:fixed; left:8px; right:8px; top:auto; bottom:calc(var(--stkc-dock, 0px) + min(78dvh, 600px) + 8px); max-width:none; z-index:8001; }
-html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on) .stkpt-chip,html:not(.stkpt-on) #stkpt-offers,html:not(.stkpt-on) #stkpt-toasts,html:not(.stkpt-on) #stkpt-tk,html:not(.stkpt-on) #stkpt-cq{ display:none !important; }
+html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on):not(.stklv-on) .stkpt-chip,html:not(.stkpt-on) #stkpt-offers,html:not(.stkpt-on) #stkpt-toasts,html:not(.stkpt-on) #stkpt-tk,html:not(.stkpt-on) #stkpt-cq{ display:none !important; }
 /* settings tab: same card look as the Sounds tab */
 .stkpt-set-ui{ display:flex; flex-direction:column; gap:12px; padding:2px 0 12px; color:#eeeeee; font-family:Archivo,system-ui,sans-serif; }
 :root[data-theme="light"] .stkpt-set-ui{ color:#131316; }
@@ -1833,6 +1889,18 @@ html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on) .stkpt-chip,html:not(.stkpt-on
 `;
 
 // ------------------------------------------------------------------ install / mount
+// Admins only: the live-broker module (assets/chart-live.js). Non-admins never download it; the server refuses them regardless.
+let liveLoaded = false;
+function maybeLive(u){
+  if (liveLoaded || !u || u.isAnonymous) return;
+  const local = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  const check = (local && window.__stkLiveTest && window.__stkLiveTest.isAdmin) ? Promise.resolve(window.__stkLiveTest.isAdmin(u)) : firebase.firestore().collection('admins').doc(u.uid).get().then((d) => d.exists).catch(() => false);
+  check.then((yes) => {
+    if (!yes || liveLoaded) return; liveLoaded = true;
+    const b = (document.querySelector('meta[name="stryker-build"]') || {}).content || '0';
+    import('./chart-live.js?v=' + b).then((m) => m.mountLive(window.__stkPaper, { uid: u.uid, toast: toastFn })).catch((e) => console.warn('TradeZoro: live module', e));
+  });
+}
 export function installPaper(Core){
   CORE = Core;
   try { Core.registerRendererLayer({ id: LAYER, placement: 'above-data', create: layerFactory }); } catch (e) { console.warn('TradeZoro paper: layer', e); }
@@ -1860,11 +1928,11 @@ export function mountPaper(ws, opts){
   try { ws.on('layout:changed', () => setTimeout(() => pushLines(true), 0)); } catch (e) {}
   let started = false;
   const start = () => { if (started) return; started = true; load(); };
-  try { firebase.auth().onAuthStateChanged(() => { started = true; load(); }); } catch (e) { start(); }
+  try { firebase.auth().onAuthStateChanged((u) => { started = true; load(); maybeLive(u); }); } catch (e) { start(); }
   setTimeout(start, 4000);                    // no auth answer: run as a guest
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, runHotkey, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
+    ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

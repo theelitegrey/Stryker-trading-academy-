@@ -123,7 +123,19 @@ export function mountFeedBadges(ws) {
       const r = n.getBoundingClientRect(); if (r.height && r.height < 300 && r.top - hr.top < 300) b = Math.max(b, r.bottom - hr.top);
     });
     const t = Math.round(b ? b + 4 : 48);
-    wrap.style.top = t + 'px'; sheet.style.top = (t + wrap.offsetHeight + 4) + 'px';
+    wrap.style.top = t + 'px';
+    if (docked) { sheet.style.top = 'auto'; sheet.style.bottom = (host.getBoundingClientRect().bottom - host.querySelector('.vela-widget-bottombar').getBoundingClientRect().top + 8) + 'px'; }
+    else { sheet.style.bottom = ''; sheet.style.top = (t + wrap.offsetHeight + 4) + 'px'; }
+  }
+  // L1/L2 chips live in the chart's bottom status bar, left of the clock (Owner order 2026-11-15). Latency chip (other branch) can sit beside them.
+  let docked = false;
+  function dock() {
+    const bar = host.querySelector('.vela-widget-bottombar'), anchor = bar && bar.querySelector('.vela-bb-tz');
+    docked = !!(anchor && bar.offsetWidth);   // phone: the bar is hidden, chips fall back to the legend corner
+    if (docked) { if (row.nextElementSibling !== anchor) anchor.before(row); }
+    else if (row.parentElement !== wrap) wrap.prepend(row);
+    sheet.classList.toggle('is-docked', docked);
+    return bar;
   }
   function paint() {
     cur = usedNow();
@@ -131,6 +143,7 @@ export function mountFeedBadges(ws) {
     if (cur.sure) for (const L of ['L1', 'L2']) if (st[L].state === 'locked') { st[L].state = 'lit'; st[L].locked = ''; st[L].wait = true; }
     last = st;
     row.hidden = !st.show;
+    dock();
     place();
     wrap.hidden = !st.show;
     if (!st.show) { note.hidden = true; sheet.hidden = true; openL = ''; return; }

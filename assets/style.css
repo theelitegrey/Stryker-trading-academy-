@@ -11118,6 +11118,19 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
   .stkfeed-note .stkfeed-unlock{ flex:none; }
 }
 /* why note: quiet, ink-3, no colour; expands inline */
+/* L1/L2 chips docked in the chart's bottom status bar: segmented, same 24px height + 4px radius as the RTH/ETH toggle */
+.vela-widget-bottombar .stkfeeds{ display:inline-flex; gap:0; margin-right:6px; border:1px solid var(--vela-border-strong, var(--line-soft)); border-radius:4px; overflow:hidden; flex:none; }
+.vela-widget-bottombar .stkfeed{ height:24px; padding:0 8px; gap:5px; border:0; border-radius:0; background:transparent; color:var(--vela-fg-muted, var(--ink-2)); font:600 11px/16px var(--font-sans, system-ui); cursor:pointer; }
+.vela-widget-bottombar .stkfeed + .stkfeed{ border-left:1px solid var(--vela-border-strong, var(--line-soft)); }
+.vela-widget-bottombar .stkfeed:hover{ background:var(--vela-hover); color:var(--vela-fg-bright, var(--ink-1)); border-color:inherit; }
+.vela-widget-bottombar .stkfeed + .stkfeed:hover{ border-left-color:var(--vela-border-strong, var(--line-soft)); }
+.vela-widget-bottombar .stkfeed.is-lit{ color:var(--vela-fg, var(--ink-1)); }
+.vela-widget-bottombar .stkfeed.on{ background:var(--vela-surface-elev, var(--bg-1)); color:var(--vela-fg, var(--ink-1)); }
+.vela-widget-bottombar .stkfeed.is-locked{ border-style:solid; }
+.vela-widget-bottombar .stkfeed-dot{ width:6px; height:6px; border-width:1px; }
+.vela-widget-bottombar .stkfeed svg{ width:11px; height:11px; }
+.stkfeed-sheet.is-docked{ left:auto !important; right:12px; }
+@media (max-width:700px){ .stkfeed-sheet.is-docked{ left:8px !important; right:8px; } }
 .stkfeed-why{ flex-basis:100%; color:var(--ink-3); font-size:12px; line-height:16px; }
 .stkfeed-why-l{ display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .stkfeed-why-l svg{ flex:none; }
 .stkfeed-why-b{ min-height:24px; padding:0 4px; border:0; background:none; color:var(--ink-2); font:inherit; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }

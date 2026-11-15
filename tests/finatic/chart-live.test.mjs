@@ -127,7 +127,7 @@ r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'market
 r = await send({ op: 'place', symbol: 'NQZ6', side: 'sell', qty: 1, type: 'market', idemKey: key(10) }); assert.equal(r.status, 200);
 B.fail = 'read'; n0 = writes().length; r = await send({ op: 'place', symbol: 'NQZ6', side: 'sell', qty: 1, type: 'market', idemKey: key(11) }); assert.equal(r.status, 503); assert.equal(r.j.code, 'read_failed'); assert.equal(writes().length, n0, 'unreadable = not sent'); B.fail = '';
 // timeout = unknown, audited as unknown
-B.fail = 'timeout'; r = await send({ op: 'place', symbol: 'NQZ6', side: 'sell', qty: 1, type: 'market', idemKey: key(12) }); assert.equal(r.status, 502); assert.equal(r.j.code, 'unknown'); assert.equal(audits.get(key(12)).result, 'unknown'); B.fail = '';
+B.fail = 'timeout'; r = await send({ op: 'place', symbol: 'NQZ6', side: 'sell', qty: 1, type: 'market', idemKey: key(12) }); assert.equal(r.status, 503, 'edge-safe: never 502 (Cloudflare swaps the body)'); assert.equal(r.j.code, 'unknown'); assert.equal(audits.get(key(12)).result, 'unknown'); B.fail = '';
 // modify: limit price only
 r = await send({ op: 'modify', orderId: 'w1', type: 'limit', limitPrice: 20950, idemKey: key(13) }); assert.equal(r.status, 200); assert.equal(writes().at(-1).m, 'PATCH'); assert.deepEqual(writes().at(-1).body.order, { orderType: 'limit', price: 20950 });
 r = await send({ op: 'modify', orderId: 'w1', type: 'limit', limitPrice: 20950, qty: 2, idemKey: key(14) }); assert.equal(r.status, 400);

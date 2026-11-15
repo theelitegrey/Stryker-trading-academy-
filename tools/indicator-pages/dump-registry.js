@@ -38,22 +38,9 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8047';
             tooltip: txt(i.tooltip), def: defs[i.key] !== undefined ? defs[i.key] : i.defval, options: (i.options || []).map((o) => (o && typeof o === 'object' ? txt(o.title || o.label || o.value) : o)).slice(0, 20),
             group: txt(i.group) })) };
       };
-      // The Indicators window as members see it: Technicals (grouped), Order Flow, TradeZoro, Top.
-      const iw = window.StrykerIndicatorWindow;
-      iw.open(); await new Promise((r) => setTimeout(r, 800));
-      const tab = async (k) => { document.querySelector('.stkiw-tab[data-k="' + k + '"]').click(); await new Promise((r) => setTimeout(r, 500)); };
-      const scrape = (fixed) => { let grp = fixed || null; const out = [];
-        document.querySelectorAll('.stkiw-list > *').forEach((n) => {
-          if (n.classList.contains('stkiw-grp')) grp = n.textContent.trim();
-          else if (n.classList.contains('stkiw-row')) out.push({ key: n.getAttribute('data-key'), name: (n.querySelector('.stkiw-nm') || {}).textContent, author: (n.querySelector('.stkiw-auth') || {}).textContent,
-            desc: ((n.querySelector('.stkiw-desc') || {}).textContent) || '', third: !!n.querySelector('.is-third'), beta: /\bbeta\b/.test((n.querySelector('.stkiw-name') || {}).textContent || ''), grp: fixed || grp });
-        }); return out; };
-      const window_ = {};
-      await tab('tech'); window_.tech = scrape();
-      await tab('orderflow'); window_.orderflow = scrape('Order Flow');
-      await tab('stryker'); window_.stryker = scrape('TradeZoro');
-      await tab('top'); window_.top = scrape('Community');
-      iw.close();
+      // The Indicators window's groups (Technicals by category, Order Flow, TradeZoro, Community): its catalog() API,
+      // so the catalogue keeps stable group names whatever the window looks like.
+      const window_ = window.StrykerIndicatorWindow.catalog();
       return { build, window: window_, rows: rows.filter((r) => r && r.category !== 'Community').map((r) => Object.assign({ name: r.name, category: r.category, native: !!r.native, nativeType: r.nativeType || null,
         pseudo: r.pseudo || null, beta: !!r.beta, hidden: !!r.hidden }, r.native ? { schema: schemaOf(r.nativeType) } : {})) };
     });

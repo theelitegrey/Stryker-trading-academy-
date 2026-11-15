@@ -14,7 +14,7 @@
 // (signed out, or the server said yes / no for this user). `ready` = callers may stop waiting (known, or the 30 s cap). Unknown is never
 // shown as "no": the delayed pill waits for `known` (rtKnown), and a server that cannot be reached keeps the answer unknown and is re-asked fast.
 // `authed` = Firebase said who the user is (null or a user with a token): data requests wait for this, not for the server answer.
-const st = { ready: false, known: false, authed: false, admin: false, uid: '', token: '', exp: 0, checked: false, lastBars: null, liveAt: 0 };
+const st = { ready: false, known: false, authed: false, admin: false, l2: false, uid: '', token: '', exp: 0, checked: false, lastBars: null, liveAt: 0 };
 const subs = new Set();
 let readyP = null, readyRes = null, started = false, curUser = null, recheckTm = null, recheckN = 0, checking = null;
 
@@ -28,7 +28,7 @@ function expOf(token) { try { return JSON.parse(atob(token.split('.')[1].replace
 async function askServer(token) {
   try {
     const r = await fetch('/api/chart/rt', { headers: { authorization: 'Bearer ' + token }, cache: 'no-store' });
-    if (r.ok) return (await r.json()).admin === true;
+    if (r.ok) { const j = await r.json(); st.l2 = j.l2 === true; return j.admin === true; }   // l2: the paid LIVE order book (all tools free, 2026-11-13)
   } catch (e) {}
   return null;
 }
@@ -121,6 +121,9 @@ export const rtReady = () => readyP;
 // Decided: signed out, or the server answered for this user. The "10 min old" pill and data dot wait for this.
 export const rtKnown = () => st.known;
 export const isRealtimeAdmin = () => st.ready && st.admin;
+// The server grants the LIVE futures order book (the paid data feed: active Pro, grandfathered, admin, demo). Tools never wait on this:
+// they run for every member and read the order book 10 min delayed without it (ALL TOOLS FREE, Owner 2026-11-13).
+export const isL2Member = () => st.ready && st.l2;
 export const rtToken = () => st.token;
 export const rtRecheck = (force) => recheck(force);
 // The server's own word on the LAST futures bars answer (admin => real rows, else cut 10 min): null until one arrives.
@@ -129,7 +132,7 @@ export const rtNoteBars = (rt) => { if (st.lastBars !== rt) { st.lastBars = rt; 
 export const rtNoteStreamBar = () => { const was = rtConfirmed(); st.liveAt = Date.now(); if (rtConfirmed() !== was) emit(); };
 // Truthful badge input: real-time only when the server confirmed admin AND the last bars answer was not cut.
 export const rtConfirmed = () => st.ready && st.admin && (Date.now() - (st.liveAt || 0) < 30000 || (st.lastBars !== false && st.lastBars !== 'lag'));
-export const rtState = () => ({ ready: st.ready, known: st.known, authed: st.authed, admin: st.admin, uid: st.uid ? st.uid.slice(0, 4) + '…' : '', tokenSecsLeft: st.exp ? Math.round(st.exp - Date.now() / 1000) : null, lastBarsRt: st.lastBars });
+export const rtState = () => ({ ready: st.ready, known: st.known, authed: st.authed, admin: st.admin, l2: st.l2, uid: st.uid ? st.uid.slice(0, 4) + '…' : '', tokenSecsLeft: st.exp ? Math.round(st.exp - Date.now() / 1000) : null, lastBarsRt: st.lastBars });
 if (typeof window !== 'undefined') window.tzRtState = rtState;                 // '' when signed out
 export const rtHeaders = () => (st.token ? { authorization: 'Bearer ' + st.token } : {});
 export const rtOnChange = (f) => { subs.add(f); return () => subs.delete(f); };
@@ -141,9 +144,9 @@ export async function rtHeadersReady(ms = 15000) {
   return rtHeaders();
 }
 // tests only (node): pretend the auth answer is in
-export function _rtSetForTests(admin, token = 'test-token') { st.ready = true; st.known = true; st.authed = true; st.admin = admin; st.token = token; if (readyRes) readyRes(); emit(); }
+export function _rtSetForTests(admin, token = 'test-token', l2 = false) { st.ready = true; st.known = true; st.authed = true; st.admin = admin; st.l2 = !!l2; st.token = token; if (readyRes) readyRes(); emit(); }
 // tests only (node): drive the real sign-in path with a fake user (getIdToken) and a fake /api/chart/rt (globalThis.fetch)
 export const _rtOnUserForTests = (u) => onUser(u);
-export function _rtResetForTests() { Object.assign(st, { ready: false, known: false, authed: false, admin: false, uid: '', token: '', exp: 0, checked: false, lastBars: null, liveAt: 0 }); curUser = null; recheckN = 0; clearTimeout(recheckTm); recheckTm = null; checking = null; }
+export function _rtResetForTests() { Object.assign(st, { ready: false, known: false, authed: false, admin: false, l2: false, uid: '', token: '', exp: 0, checked: false, lastBars: null, liveAt: 0 }); curUser = null; recheckN = 0; clearTimeout(recheckTm); recheckTm = null; checking = null; }
 // tests only (node): a fake signed-in user whose getIdToken(true) hands out a fresh token; exp = secs left on the current one
 export function _rtSetUserForTests(secsLeft, fresh = 'fresh-token') { curUser = { getIdToken: async () => { st.exp = 0; return fresh; } }; st.exp = Date.now() / 1000 + secsLeft; const o = curUser.getIdToken; curUser.getIdToken = async () => fresh; }

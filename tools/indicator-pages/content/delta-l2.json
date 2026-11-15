@@ -13,7 +13,7 @@
     "Some traders watch bars with strong buying but the ask side still growing."
   ],
   "notes": [
-    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books."
+    "Needs the full order book (Data feed L2); the tool is free, the live futures order book is the paid data feed (10 minutes delayed without it). Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books."
   ],
   "learn": "order-flow"
 }

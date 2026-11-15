@@ -10,7 +10,7 @@
 //                  Owner 2026-11-04: "big orders show on the heatmap but Big Trades does not": Big Trades marks single aggressive bursts, a wall is
 //                  usually filled by many small orders or pulled. Its own indicator (not a Big Trades option) because it needs the BOOK: Big Trades
 //                  is trade-only and also runs without L2. Walls = the Large Resting Orders size (same session histogram) or the heatmap's colour filter.
-// Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
+// Gate (all tools free, 2026-11-13): every signed-in member; futures without the live book read it 10 min delayed. No data = a plain note, never made-up numbers.
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
 import { registerFeed } from './chart-feeds.js?v=1032';
 import { isFree } from './chart-pro-gate.js?v=1032';
@@ -29,7 +29,7 @@ export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus', 'bybit', 'okx', 'bitget', 'kraken', 'vest'];
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Sign in to use the order book tools. They are free.';   // all tools free (2026-11-13)
 const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_GAP = 200;   // redraw at most 5 a second
 const { clamp, num } = D;

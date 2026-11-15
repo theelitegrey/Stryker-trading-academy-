@@ -15,7 +15,7 @@ async function open(b, o) {
   if (o.signedIn) await ctx.addInitScript(stub);
   await ctx.addInitScript((o) => { try { localStorage.setItem('tz_consent', JSON.stringify({ v: 1, essential: true, analytics: false, at: new Date().toISOString() })); if (o.light) localStorage.setItem('stryker_theme', 'day'); else localStorage.removeItem('stryker_theme'); if (o.signedIn) localStorage.setItem('stryker_nav_authed', '1'); } catch (e) {} }, o);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
-  if (o.lockSurface) await ctx.route('**/tools/fixtures/zoro/surface-iv.json', (r) => r.fulfill({ status: 403, body: '{"error":"pro_required"}' }));
+  if (o.lockSurface) await ctx.route('**/tools/fixtures/zoro/surface-iv.json', (r) => r.fulfill({ status: 403, body: '{"error":"sign_in_required"}' }));
   const p = await ctx.newPage(); const errors = [];
   p.on('pageerror', (e) => { if (!/firebase|collection/i.test(String(e))) errors.push(String(e)); });   // Firebase is blocked offline in this test
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|Failed to load resource|firebase|Firestore|reading 'collection'|collection/i.test(m.text())) errors.push(m.text()); });

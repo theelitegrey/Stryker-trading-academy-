@@ -32,6 +32,11 @@ http.createServer(async (req, res) => {
     const r = await okxStat({ request: new Request(url.href) });
     res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer())); return;
   }
+  if (url.pathname === '/api/ping') {   // functions/api/ping.js (chart latency chip)
+    const { onRequestGet: ping } = await import('../../functions/api/ping.js');
+    const r = ping({ request: new Request(url.href) });
+    res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer())); return;
+  }
   if (url.pathname === '/__api_count') { res.end(String(apiCount)); return; }
   let p = path.join(ROOT, decodeURIComponent(url.pathname));
   if (!p.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }

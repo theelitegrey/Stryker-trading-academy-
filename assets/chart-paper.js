@@ -1563,7 +1563,7 @@ function openCloseQty(sym){
   cq.dataset.sym = sym;
   const inp = cq.querySelector('input'); inp.value = ''; inp.removeAttribute('aria-invalid'); cq.querySelector('#stkpt-cq-m').textContent = '';
   cq.querySelector('#stkpt-cq-hint').textContent = 'You hold ' + p.qty + ' ' + showSym(sym) + '. Enter up to ' + p.qty + '.';
-  cq.hidden = false; setTimeout(() => { try { inp.focus(); } catch (e) {} }, 30);
+  cq.hidden = false; try { inp.focus(); } catch (e) {} setTimeout(() => { try { if (!cq.hidden && document.activeElement !== inp) inp.focus(); } catch (e) {} }, 30);
 }
 function hkTrail(sym){
   const p = hkNeedPos(sym); if (!p) return;

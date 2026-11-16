@@ -706,7 +706,7 @@ async function boot(p, BASE) {
     const broker = reqs.filter((r) => BROKER_RE.test(r.url) && !SITE_PROBES.test(r.url) && !/^http:\/\/127\.0\.0\.1:\d+\/assets\/[\w.-]+\.js(\?|$)/.test(r.url));
     // the only non-GET the page makes is Hyperliquid's market-data info endpoint (existing data dots)
     const nonGet = reqs.filter((r) => !r.blocked && r.method !== 'GET' && r.method !== 'WS' && !/^https:\/\/api\.hyperliquid\.xyz\/info$/.test(r.url) && !/\/api\/ai\/grants$/.test(r.url));   // our own AI-connection check (signed-in members), not a broker/order call
-    const unknown = reqs.filter((r) => !r.blocked && !ALLOWED(r.url) && !/\/api\/(ai\/grants|ping)(\?|$)/.test(r.url));   // own site API: AI-connection check + latency ping
+    const unknown = reqs.filter((r) => !r.blocked && !ALLOWED(r.url) && !/\/api\/(ai\/grants|ping)(\?|$)/.test(r.url) && !(r.method === 'GET' && /^https:\/\/book-recorder\.theelitegrey\.workers\.dev\/(scan|ts-aux|ts-bars|ticks1s|te-bars)\?/.test(r.url)));   // own site API + our own market-data hub (GET reads only; orders still fail the broker check)
     // and the paper modules themselves contain no network primitive at all
     const src = fs.readFileSync(path.join(ROOT, 'assets/chart-paper.js'), 'utf8') + fs.readFileSync(path.join(ROOT, 'assets/paper-engine.js'), 'utf8');
     const prim = (src.match(/\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)\s*\(|new\s+(WebSocket|XMLHttpRequest|EventSource)\b/g) || []);

@@ -71,7 +71,7 @@ async function fakeProvider(url) {
     await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|sk\.fixture\.test|cdn\.jsdelivr\.net)/, (r) => r.abort());
     const p = await ctx.newPage(), errors = [];
     p.on('pageerror', (e) => errors.push(String(e)));
-    await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+    await p.goto(BASE + '/charts.html?search=classic', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 90000 });
     await p.evaluate(async (v) => { (await import('/assets/rt-access.js?v=' + v))._rtSetForTests(true, 'test-token'); }, V);
     const load = (sym, tf) => p.evaluate(async ([sym, tf]) => {
@@ -144,7 +144,7 @@ async function fakeProvider(url) {
     await ctx2.route(/^https:\/\/sk\.fixture\.test\//, route);
     await ctx2.route(/^https?:\/\/(?!127\.0\.0\.1|sk\.fixture\.test|cdn\.jsdelivr\.net)/, (r) => r.abort());
     const q = await ctx2.newPage(), errs2 = []; q.on('pageerror', (e) => errs2.push(String(e)));
-    await q.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+    await q.goto(BASE + '/charts.html?search=classic', { waitUntil: 'domcontentloaded' });
     await q.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 90000 });
     const n0 = calls.length;
     const d = await q.evaluate(async () => { const pr = window.STRYKER_VELA.feed.providerInstance('stocks'); const b = await pr.getBars('NASDAQ:AAPL', '1', { limit: 200 }); return b.length ? b[b.length - 1].time : null; });

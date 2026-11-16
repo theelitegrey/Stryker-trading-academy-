@@ -3,6 +3,14 @@
 // the same bars the footprint reads. anchoredVwap: VWAP from the first bar, with the running volume-weighted standard deviation.
 // Education only. Not financial advice.
 
+// First and last UTC day (day numbers) of order flow to read for a span. `cap` = most days for one chart; `histDay` = the recorder's first
+// day. A long span (a profile drawn months back) is cut to the newest `cap` days but never reaches before histDay, so days that cannot
+// hold flow are not asked for. cap/histDay unset = the old rule (newest `cap` days only).
+export function flowDays(fromMs, toMs, cap, histDay) {
+  const d1 = Math.floor(toMs / 86400000);
+  return [Math.max(Math.floor(fromMs / 86400000), d1 - cap + 1, histDay == null ? -Infinity : histDay), d1];
+}
+
 // rows: n rows of rowH from `min`. Only minutes with from <= t < to count. Prices more than half a row outside the profile are skipped (not clamped in).
 export function deltaRows(mins, tick, min, rowH, n, from, to) {
   const d = new Float64Array(n), has = new Uint8Array(n);   // has[k] = 1 when order flow touched row k (so a zero can be told from no data)
@@ -116,4 +124,36 @@ export function fineSpanBars(mins, from, to) {
   const out = [];
   for (const b of mins || []) if (b && b.time >= from && b.time <= to) out.push(b);
   return out.length ? out.sort((a, b) => a.time - b.time) : null;
+}
+
+// Always visible: the nearest wholly off-screen item on each side, moved to that edge of the plot (width capped at half the plot).
+// Returns Map(item -> [x0, x1]). Exported for the node test.
+export function pinSessions(items, xs, W) {
+  const out = new Map(); let left = null, right = null;
+  for (const it of items) { const [a, b] = xs(it); if (b < 0) left = [it, a, b]; else if (a > W && !right) right = [it, a, b]; }
+  const put = (t, atRight) => { if (!t) return; const w = Math.min(t[2] - t[1], W / 2); out.set(t[0], atRight ? [W - 4 - w, W - 4] : [4, 4 + w]); };
+  put(left, false); put(right, true);
+  return out;
+}
+
+// High / low volume nodes of a built profile ({ rows:[{up,down}] }). Rows are smoothed over +-r rows (r grows with the row count, so the
+// same shape gives the same nodes at 24 or 300 rows). HVN = a smoothed local peak at >= 1.25x the mean row volume; LVN = a smoothed local
+// trough at <= 0.6x the mean, strictly between the first and last traded row (the empty edges are not "low volume"). At most `max` of each,
+// strongest first. Returns { hvn:[row], lvn:[row] } (row indexes).
+export function volumeNodes(rows, max = 4) {
+  const n = rows.length, t = rows.map((r) => r.up + r.down), out = { hvn: [], lvn: [] };
+  let first = -1, last = -1, sum = 0;
+  for (let k = 0; k < n; k++) if (t[k] > 0) { if (first < 0) first = k; last = k; sum += t[k]; }
+  if (first < 0 || last - first < 4) return out;
+  const r = Math.max(1, Math.round(n / 50)), mean = sum / (last - first + 1);
+  const sm = t.map((_, k) => { let a = 0, c = 0; for (let j = Math.max(0, k - r); j <= Math.min(n - 1, k + r); j++) { a += t[j]; c++; } return a / c; });
+  const local = (k, cmp) => { for (let j = Math.max(first, k - r); j <= Math.min(last, k + r); j++) if (j !== k && !cmp(sm[k], sm[j], k, j)) return false; return true; };
+  const hv = [], lv = [];
+  for (let k = first; k <= last; k++) {
+    if (sm[k] >= 1.25 * mean && local(k, (a, b, i, j) => a > b || (a === b && i < j))) hv.push(k);
+    if (k > first + r && k < last - r && sm[k] <= 0.6 * mean && local(k, (a, b, i, j) => a < b || (a === b && i < j))) lv.push(k);
+  }
+  out.hvn = hv.sort((a, b) => sm[b] - sm[a]).slice(0, max).sort((a, b) => a - b);
+  out.lvn = lv.sort((a, b) => sm[a] - sm[b]).slice(0, max).sort((a, b) => a - b);
+  return out;
 }

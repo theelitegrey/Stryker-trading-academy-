@@ -27,7 +27,7 @@ let fail = 0; const check = (ok, m, x) => { if (!ok) fail++; console.log((ok ? '
       await sleep(5000);
       const r = await p.evaluate(() => {
         const q = (s) => { const e = document.querySelector(s); if (!e || e.hidden || !e.offsetWidth) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; };
-        const boxes = { chips: q('#stkfeeds-wrap'), oneClick: q('.stkpt-1c'), legend: q('.vela-statusline') };
+        const boxes = { chips: q('#stkfeeds'), oneClick: q('.stkpt-1c'), legend: q('.vela-statusline') };
         const hit = (a, c) => !!(a && c && a[0] < c[2] && a[2] > c[0] && a[1] < c[3] && a[3] > c[1]);
         return { boxes, chipsOneClick: hit(boxes.chips, boxes.oneClick), chipsLegend: hit(boxes.chips, boxes.legend), oneClickLegend: hit(boxes.oneClick, boxes.legend) };
       });

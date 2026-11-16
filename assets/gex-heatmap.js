@@ -220,7 +220,7 @@
   }
 
   // TradeZoro corner mark, bottom-left of the plot, always on (assets/chart-brand.js). Drawn once per paint.
-  function brand(ctx, g) { var B = window.TzBrand; if (B) B.draw(ctx, 10, g.ph - 10 - B.size(), paint); }
+  function brand(ctx, g) { var B = window.TzBrand; if (B) B.draw(ctx, 12, g.ph - 12 - B.size(), paint); }
   function paint() {
     var cv = $('gex-heat-canvas');
     if (!cv || $('gex-heat-card').hidden) return;

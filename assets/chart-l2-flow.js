@@ -11,27 +11,27 @@
 // DATA, nothing fetched twice: the book is the heatmap's own BookFeed (chart-orderflow.js acquireBookFeed 'tsl2|ROOT' / Binance; its /ts-book-history
 // backfill and /ts-live frames), the trades are the L1 tools' own stores (chart-ts-trades.js tsOpen for futures; chart-footprint-crypto.js for Binance)
 // and the hub's footprint minutes (chart-futures-l2.js TickFeed). A "level" here is one book row as the recorder stores it (a few ticks wide, rule in ts-hub.js).
-// Same gate as the other L2 tools (futures: l2Visible(); crypto: Pro). No data = a plain note, never made-up numbers. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=979';
-import { isFree } from './chart-pro-gate.js?v=979';
-import { rtOnChange } from './rt-access.js?v=979';
-import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState } from './chart-futures-l2.js?v=979';
-import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=979';
-import { tsOpen } from './chart-ts-trades.js?v=979';
-import { aggregateMins } from './chart-ts-data.js?v=979';
-import { aggregate, clipTo, profile as tradedProfile } from './chart-footprint-data.js?v=979';
-import * as BT from './chart-bigtrades.js?v=979';
-import { sweepEvents } from './chart-of-pro-data.js?v=979';
-import { sweepBars } from './chart-of-pro.js?v=979';
-import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-data.js?v=979';
-import { swingModel, swingLayer } from './chart-swing-vwap.js?v=979';
-import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=979';
-import { below, since } from './indicator-versions.js?v=979';   // versions: assets/indicator-versions.js (v1.0 = full-depth resting book)
+// Gate (all tools free, 2026-11-13): every signed-in member; futures without the live book read it 10 min delayed (chart-futures-l2.js l2Delayed). No data = a plain note, never made-up numbers. Education only. Not financial advice.
+import { registerFeed } from './chart-feeds.js?v=1061';
+import { isFree } from './chart-pro-gate.js?v=1061';
+import { rtOnChange } from './rt-access.js?v=1061';
+import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState, fpNeed, fpState, seedState } from './chart-futures-l2.js?v=1061';
+import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=1061';
+import { tsOpen } from './chart-ts-trades.js?v=1061';
+import { aggregateMins } from './chart-ts-data.js?v=1061';
+import { aggregate, clipTo, profile as tradedProfile } from './chart-footprint-data.js?v=1061';
+import * as BT from './chart-bigtrades.js?v=1061';
+import { sweepEvents } from './chart-of-pro-data.js?v=1061';
+import { sweepBars } from './chart-of-pro.js?v=1061';
+import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-data.js?v=1061';
+import { swingModel, swingLayer } from './chart-swing-vwap.js?v=1061';
+import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=1061';
+import { below, since } from './indicator-versions.js?v=1061';   // versions: assets/indicator-versions.js (v1.0 = full-depth resting book)
 
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Sign in to use the order book tools. They are free.';   // all tools free (2026-11-13)
 const NEED = 'These tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_COVER = 90000;             // Delta Profile: a window whose first trade minute is later than this after its start says so
 const MIN_GAP = 200;                 // redraw at most 5 a second
@@ -80,6 +80,16 @@ function restRows(s, side, r0, r1) {
   return t;
 }
 
+// Delta bars / Delta (L2) read the L1 trade store's minutes. When that store holds nothing for a minute (market closed, a failed or empty
+// read: member GK 2026-11-14, panel empty while the footprint had numbers) the minute comes from the footprint feed's per-price minutes
+// instead. The trade store wins where it has the minute. Both are { t, buy, sell, hi, lo } rows, sorted.
+// fpBars: footprint minutes (vol / delta); recRows: the recorder's minutes, already rows. Earlier sources win.
+export function mergeMinutes(tsMins, fpBars, recRows) {
+  const have = new Set((tsMins || []).map((m) => m.t)), add = [];
+  for (const b of fpBars || []) if (!have.has(b.t) && b.vol > 0) { have.add(b.t); add.push({ t: b.t, buy: (b.vol + b.delta) / 2, sell: (b.vol - b.delta) / 2, hi: b.dmax, lo: b.dmin }); }
+  for (const m of recRows || []) if (!have.has(m.t)) { have.add(m.t); add.push(m); }
+  return add.length ? (tsMins || []).concat(add).sort((a, b) => a.t - b.t) : tsMins;
+}
 // ---------------------------------------------------------------------------------------- one hub per symbol (shared by the six indicators)
 const hubs = new Map();
 let H = null;
@@ -103,17 +113,17 @@ class Hub {
   samples() { return this.feed.allHistory(); }
   sampleAt(t, maxAge = GAP_MAX) { const a = this.samples(), i = lastLE(a, t); return i >= 0 && t - a[i].ts <= maxAge ? a[i] : null; }
   tver() { return this.kind === 'futures' ? this.ts.s.v : this.cf().v; }
-  fver() { return this.kind === 'futures' ? this.footFeed().v : this.cf().v; }
+  fver() { if (this.kind !== 'futures') return this.cf().v; const f = this.footFeed(); return f ? f.v : 0; }   // no footprint feed yet (nothing asked for per-price minutes): 0
   footFeed() { return rootState(this.spec.root).trades; }
   // 1-minute rows { t, buy, sell, hi, lo } of trades (futures: 48 h from the L1 store; crypto: the stream's backfill)
   minutes() {
-    const key = this.tver(); if (this.memo.mk === key) return this.memo.m;
+    const key = this.tver() + (this.kind === 'futures' ? ':' + this.fver() + ':' + (this.rec ? this.rec.length : 0) : ''); if (this.memo.mk === key) return this.memo.m;
     let m;
-    if (this.kind === 'futures') m = this.ts.mins();
+    if (this.kind === 'futures') { let fb = []; try { const f = this.footFeed(); fb = f ? f.bars() : []; } catch (e) {} m = mergeMinutes(this.ts.mins(), fb, this.rec); }
     else { const f = this.cf(); m = f.bars().filter((b) => b.t >= f.coverFrom).map((b) => ({ t: b.t, buy: (b.vol + b.delta) / 2, sell: (b.vol - b.delta) / 2, hi: b.dmax, lo: b.dmin })); }
     this.memo.mk = key; this.memo.m = m; return m;
   }
-  tradeBars(tf) { const k = this.tver() + '|' + tf; if (this.memo.tk !== k) { this.memo.tk = k; this.memo.tb = new Map(aggregateMins(this.minutes(), tf).map((b) => [b.t, b])); } return this.memo.tb; }
+  tradeBars(tf) { const k = this.tver() + ':' + (this.kind === 'futures' ? this.fver() + ':' + (this.rec ? this.rec.length : 0) : '') + '|' + tf; if (this.memo.tk !== k) { this.memo.tk = k; this.memo.tb = new Map(aggregateMins(this.minutes(), tf, this.kind === 'futures').map((b) => [b.t, b])); } return this.memo.tb; }
   // per-price minutes (footprint): futures from the hub's TickFeed (3 h), crypto from the stream
   footBars() {
     const f = this.kind === 'futures' ? this.footFeed() : this.cf();
@@ -122,7 +132,7 @@ class Hub {
   }
   footAgg(tf) {
     const k = this.fver() + '|' + tf; if (this.memo.fk === k) return this.memo.fa;
-    const fb = this.footBars(), map = new Map(aggregate(fb.bars, tf).map((b) => [b.t, b]));
+    const fb = this.footBars(), map = new Map(aggregate(fb.bars, tf, this.kind === 'futures').map((b) => [b.t, b]));
     this.memo.fk = k; this.memo.fa = { map, tick: fb.tick, from: fb.from }; return this.memo.fa;
   }
   prints() {   // [ms, tick idx, size, side 1 buy] for Big Trades
@@ -328,6 +338,7 @@ class L2Flow {
     const samples = hub.samples(), first = samples.length ? samples[0].ts : 0;
     const since = first && first > bars[0].time + 120000 ? 'Book history from ' + hhmm(first) : '';
     const t = this.type;
+    if (hub.kind === 'futures' && (t === 'stk_l2f_delta' || t === 'stk_l2f_cvd')) this.fillRecorder(hub, bars, tf);
     ctx.setStatus(samples.length ? 'live' : 'loading');
     if (t === 'stk_l2f_lad') { this.hub = hub; this.ov('Delta Ladder (L2)'); return this.pushLadder(); }
     if (t === 'stk_l2f_dp') return this.drawDp(hub, bars, tf);
@@ -338,6 +349,18 @@ class L2Flow {
     if (t === 'stk_l2f_big') return this.drawBig(hub, bars, tf, since);
     if (t === 'stk_l2f_stop') return this.drawStop(hub, bars, tf, since);
     return this.drawVp(hub, bars, tf, since);
+  }
+  // Nothing in the live stores for some bars (market closed, a read failed): the recorder's minutes fill them in (read once, a day at a time)
+  fillRecorder(hub, bars, tf) {
+    const from = bars[0].time, to = bars[bars.length - 1].time + tf, held = new Set(hub.minutes().map((m) => m.t));
+    let miss = false; for (const b of bars) if (!held.has(b.time)) { miss = true; break; }
+    if (!miss && !hub.recBusy) return;
+    if (!this.fpMod) { if (!this.fpP) this.fpP = import('./chart-footprint.js?v=1061').then((m) => { this.fpMod = m; this.later(); }, () => { this.fpMod = false; }); return; }
+    if (!this.fpMod.recorderMinutes) return;
+    const r = this.fpMod.recorderMinutes(hub.spec.root, from, to);
+    if (r.mins.length !== (hub.rec || []).length) { hub.rec = r.mins; hub.memo = {}; }
+    hub.recBusy = r.loading;
+    if (r.loading) { clearTimeout(this.recTm); this.recTm = setTimeout(() => this.later(), 1500); }
   }
   // per bar: trade delta, book delta
   deltas(hub, bars, tf) {
@@ -389,7 +412,8 @@ class L2Flow {
   stat(bars, has) { let n = 0; for (let i = 0; i < bars.length; i++) if (has(i)) n++; (window.__stkL2Flow || (window.__stkL2Flow = {}))[this.type] = Object.assign((window.__stkL2Flow || {})[this.type] || {}, { n, bars: bars.length }); }
   drawFp(hub, bars, tf, since) {
     const fa = hub.footAgg(tf);
-    this.ov('Footprint (L2): ' + (this.inputs.restShow === 'Off' && !below(this.inputs, '1.1') ? 'traded' : 'traded | resting at close'), fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '');
+    const nt = hub.kind === 'futures' ? fpNote(hub.spec.root, this.fpLeft || bars[0].time, tf) : fa.from && fa.from > bars[0].time ? 'traded from ' + hhmm(fa.from) : '';
+    this.ov('Footprint (L2): ' + (this.inputs.restShow === 'Off' && !below(this.inputs, '1.1') ? 'traded' : 'traded | resting at close'), nt);
     this.stat(bars, (i) => fa.map.has(bars[i].time));
     this.push({ hub, v: hub.v + ':' + hub.fver() });
   }
@@ -528,6 +552,7 @@ function fpLayer() {
         if (!tick) return;
         const ppb = co.pxPerBar(), vr = co.visibleLogicalRange(), i0 = clamp(Math.floor(vr.from), 0, a.bars.length - 1), i1 = clamp(Math.ceil(vr.to), 0, a.bars.length - 1);
         const top = a.bounds.top, bot = top + a.bounds.height;
+        if (hub.kind === 'futures' && a.bars[i0]) { fpNeed(hub.spec.root, a.bars[i0].time - 2 * 3600000); d.owner.fpLeft = a.bars[i0].time; }
         if (ppb < (phone ? 28 : 34)) { g.font = '600 11px ' + MONO; g.textAlign = 'center'; d.owner.text = 'Footprint (L2): zoom in to see it'; return; }
         const newest = hub.samples()[hub.samples().length - 1], S = newest ? newest.step : tick;
         const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), minPx = phone ? 16 : 12;
@@ -813,7 +838,7 @@ function ladderLayer() {
 // The Volume footprint chart style (chart-footprint.js) with Data = L2: the hub's per-price trade minutes (TickFeed, 3 h) in the same
 // shape flowFor() returns, so the classic stk_fp drawing runs on them unchanged. `own` is the engine's holder { u, spec, k, out }.
 export function fpDrop(own) { if (own.u) { own.u.release(); own.u = null; own.spec = null; own.k = ''; } }
-export function fpFlow(own, ctx, bars, tfMs, E, onChange) {
+export function fpFlow(own, ctx, bars, tfMs, E, onChange, left) {
   const spec = specOf(ctx);
   if (!spec || spec.kind !== 'futures') { fpDrop(own); return null; }   // crypto: the caller keeps the trades feed
   if (!l2Badge()) { fpDrop(own); return { map: new Map(), tick: 0, note: NOT_YET, locked: true }; }
@@ -821,12 +846,34 @@ export function fpFlow(own, ctx, bars, tfMs, E, onChange) {
   if (!own.u || own.spec.key !== spec.key) { fpDrop(own); own.u = acquireHub(spec, bars[0].time, onChange); own.spec = spec; }
   const hub = own.u.h, fb = hub.footBars(), key = hub.fver() + '|' + tfMs + '|' + (E == null ? '' : Math.floor(E / 60000));
   if (own.k !== key) {
-    const clipped = clipTo(fb.bars, E), agg = aggregate(clipped, tfMs);
+    const clipped = clipTo(fb.bars, E), agg = aggregate(clipped, tfMs, true);
     own.k = key;
-    own.out = { map: new Map(agg.map((b) => [b.t, b])), list: agg, mins: clipped, tick: fb.tick || spec.tick, thr: 0, free: false,
-      note: !agg.length ? 'Loading order flow…' : fb.from && fb.from > bars[0].time ? 'Footprint (L2) from ' + hhmm(fb.from) : '' };
+    own.out = { map: new Map(agg.map((b) => [b.t, b])), list: agg, mins: clipped, tick: fb.tick || spec.tick, thr: 0, free: false, note: '' };
   }
+  // left = the oldest bar on screen (the chart style passes it): page older footprint minutes in, 2 h ahead of the scroll
+  if (left != null && E == null) fpNeed(spec.root, left - 2 * 3600000);
+  if (!own.out.list.length) {
+    // no L2 minutes at all: "Loading" only while a read is out. Every read in and none held (market closed / weekend, member GK 2026-11-14)
+    // = none: the caller draws the recorder's trades instead. A failed read says so (retried in 30 s). The next live trade bumps fver: re-decided.
+    const st = seedState(spec.root), fs = fpState(spec.root);
+    if (st === 'fail' || (st === 'done' && fs.failed && !fs.busy)) own.out.note = 'Order flow did not load, retrying…';
+    else if (st === 'done' && !fs.busy) return NO_L2;
+    else own.out.note = 'Loading order flow…';
+    return own.out;
+  }
+  own.out.note = fpNote(spec.root, left != null ? left : bars[0].time, tfMs);
   return own.out;
+}
+// fpFlow's "no L2 trades for these bars" answer: the hub stays held (its next trade brings L2 back), the caller draws the recorder's trades
+export const NO_L2 = Object.freeze({ none: true, map: new Map(), tick: 0, note: 'No L2 trades here · showing L1 trades' });
+// the left edge of the footprint, said in plain words: '' when every bar from `left` on has its minutes
+export function fpNote(root, left, tfMs) {
+  const s = fpState(root);
+  if (!(s.from > left + tfMs)) return '';
+  if (s.busy) return 'Loading footprint history…';
+  if (s.failed) return 'Footprint history did not load, retrying · from ' + hhmm(s.from);
+  if (left < s.floor) return 'Footprint history covers the last 48 h · from ' + hhmm(s.from);
+  return 'No footprint recorded before ' + hhmm(s.from);
 }
 export const fpVersion = (own) => (own.u ? own.u.h.fver() : 0);
 

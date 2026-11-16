@@ -1,0 +1,89 @@
+# Deploys the "Connect your AI to ZoroCharts" Worker (workers/ai-agent: MCP server, OAuth, chart relay Durable Objects)
+# with wrangler, then binds it to the Pages project as the service AI_AGENT (functions/_ai-proxy.js forwards /mcp,
+# /oauth/*, /api/ai/* and the /.well-known OAuth metadata to it). Runs the unit tests first; a failing test stops it.
+# No new secret: it uses the same Cloudflare token as the site deploy, and the Worker itself has no secrets (members'
+# Firebase ID tokens are checked against Google's public keys; every agent token is stored as a sha256 hash).
+# The Worker has no public URL (workers_dev false, preview_urls false): only the site's Pages Functions can reach it.
+# Until this has run once, the site answers the agent paths with 503 "AI connections are being set up".
+# Rollback: `wrangler rollback` in workers/ai-agent, or remove the AI_AGENT service binding from the Pages project (the
+# agent paths then answer 503 again; nothing else on the site depends on it).
+name: Deploy AI agent Worker
+
+on:
+  push:
+    branches: [main]
+    paths: ['workers/ai-agent/**', '.github/workflows/deploy-ai-agent.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-agent-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # main only (same guard as the book recorder): a branch copy of this job cannot deploy the production Worker.
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Tests (OAuth + PKCE, scopes, MCP JSON-RPC, relay, rate limits, Pages proxy)
+        run: node --no-warnings workers/ai-agent/test/agent.test.mjs
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Same clean-up as deploy-site.yml: the secrets were pasted with extra text around them.
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          echo "::add-mask::$TOKEN"
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          if [ -z "$ACCOUNT" ]; then
+            ACCOUNT=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id // empty')
+          fi
+          echo "::add-mask::$ACCOUNT"
+          [ -z "$ACCOUNT" ] && { echo "::error::no Cloudflare account visible to the token"; exit 1; }
+          echo "CF_T=$TOKEN" >> "$GITHUB_ENV"
+          echo "CF_A=$ACCOUNT" >> "$GITHUB_ENV"
+          cd workers/ai-agent
+          CLOUDFLARE_API_TOKEN="$TOKEN" CLOUDFLARE_ACCOUNT_ID="$ACCOUNT" npx --yes wrangler@4.158.0 deploy 2>&1 | tee /tmp/deploy.log
+          test "${PIPESTATUS[0]}" = 0
+          # no public URL: wrangler must not have printed a workers.dev address
+          if grep -qE 'https://tz-ai-agent\.[a-z0-9-]+\.workers\.dev' /tmp/deploy.log; then echo "::error::the Worker got a public workers.dev URL"; exit 1; fi
+      - name: Bind AI_AGENT to the Pages project
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $CF_T" -H "Content-Type: application/json" "$@"; }
+          B="https://api.cloudflare.com/client/v4/accounts/$CF_A"
+          # same lookup as deploy-site.yml: the project whose domains include tradezoro / strykertrading
+          PROJ=$(api "$B/pages/projects" | jq -r '.result[] | select((.domains // []) | map(test("strykertrading|tradezoro"; "i")) | any) | .name' | head -1)
+          [ -z "$PROJ" ] && { echo "::error::no Pages project serves tradezoro.com"; exit 1; }
+          HAVE=$(api "$B/pages/projects/$PROJ" | python3 -c "import json,sys;d=json.load(sys.stdin);print(((((d.get('result') or {}).get('deployment_configs') or {}).get('production') or {}).get('services') or {}).get('AI_AGENT',{}).get('service',''))")
+          if [ "$HAVE" != "tz-ai-agent" ]; then
+            api -X PATCH "$B/pages/projects/$PROJ" -d '{"deployment_configs":{"production":{"services":{"AI_AGENT":{"service":"tz-ai-agent","environment":"production"}}}}}' \
+              | python3 -c "import json,sys;d=json.load(sys.stdin);print('AI_AGENT binding', 'ok' if d.get('success') else d.get('errors'));sys.exit(0 if d.get('success') else 1)"
+            echo "::notice::AI_AGENT bound; it takes effect on the next site deploy (Deploy site workflow)."
+          else
+            echo "AI_AGENT binding already set"
+          fi
+      - name: Smoke test (live site)
+        run: |
+          # The binding only reaches the site after its next deploy, so 503 "being set up" is accepted here; anything else must be right.
+          for i in 1 2 3 4 5 6; do
+            c=$(curl -s -o /tmp/as.json -w '%{http_code}' https://tradezoro.com/.well-known/oauth-authorization-server)
+            [ "$c" = 200 ] && break; sleep 10
+          done
+          echo "oauth-authorization-server: HTTP $c"
+          if [ "$c" = 200 ]; then
+            jq -e '.code_challenge_methods_supported == ["S256"] and (.registration_endpoint | test("^https://tradezoro.com/"))' /tmp/as.json
+            n=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' https://tradezoro.com/mcp)
+            echo "/mcp without a token: HTTP $n"; test "$n" = 401
+          else
+            test "$c" = 503
+          fi

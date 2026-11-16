@@ -21,6 +21,7 @@
 // Rows that need a patched Vela build (stage 2) are shown disabled with a short tooltip.
 // Nothing here touches data, trading or accounts.
 
+import * as DL from './chart-days-load.js?v=1061';
 const EXT_KEY = 'stryker.settings';
 const DEFAULT_KEY = 'stryker_chart_settings_default';
 const TZ_FLAG = 'stryker_chart_tz_kolkata';
@@ -43,6 +44,7 @@ const DEFAULTS = Object.freeze({
   marginBottom: '8',
   h12: false,              // s2 patch: 12-hour clock on the time axis + crosshair
   dow: true,               // s2 patch: weekday in the crosshair date
+  hidePrice: false,        // hide the main price series (candles / bars / line); overlays + indicators stay (member request)
   rhide: false             // ADMIN ONLY: hide replay markings while bar replay runs (Owner 2026-10-16)
 });
 const RH_TIP = 'Clean chart for recording: while replay runs, hides the Replay badge, control bar, data-dot tag, (simulated path), replay toasts, the Replay account tag and the GEX replay note. Keys while replay is on: Shift+H show/hide markings, Space play/pause, Shift+Right step forward, Shift+Left step back, Shift+Up/Down speed, Shift+X exit replay. Phone: two-finger long-press, or tap the faint dot in the bottom-right corner.';
@@ -122,6 +124,18 @@ export function installChartSettings(Core, VelaChunk){
     const k = tz && tz.find((t) => t.value === 'Asia/Kolkata');
     if (k) k.label = 'Kolkata';
   } catch (e) { console.warn('TradeZoro settings: tz label', e); }
+  // Right-click menu entry (chart body + price axis); the top-bar eye button is added with the gear below.
+  try {
+    ['context:body', 'context:price-axis'].forEach((target, i) => Core.registerWidgetAction && Core.registerWidgetAction({
+      id: 'stryker.hide-price' + i, target, order: 800, get label(){ return hideLabel(); },
+      run: () => { try { setHide(WS.active.id, !S(WS.active.id).hidePrice); } catch (e) {} } }));
+  } catch (e) { console.warn('TradeZoro settings: hide-price action', e); }
+  // Days of history to load, per timeframe, per chart cell (chart-days-load.js).
+  Core.registerStatePersistence({
+    key: 'stryker.daysload', scope: 'cell',
+    serialize(ctx){ return DL.serialize(ctx.cellId); },
+    restore(payload, ctx){ DL.restore(ctx.cellId, payload); try { window.__stkHistoryPager && window.__stkHistoryPager.kick(ctx.cellId); } catch (e) {} }
+  });
   Core.registerStatePersistence({
     key: EXT_KEY, scope: 'cell',
     serialize(ctx){ const s = store.get(ctx.cellId); return s && !isDefault(s) ? Object.assign({}, s) : undefined; },
@@ -169,6 +183,8 @@ function hookCell(cell){
     wm.update = (sym, tf) => { origUp(sym, tf); wmText(cell); };
   }
   try { cell.chart.on('load:end', () => setTimeout(() => applyRight(cell), 0)); } catch (e) {}
+  // the days list depends on the timeframe: rebuild our rows when it changes
+  try { cell.chart.on('market:changed', () => setTimeout(() => { try { cell.pushSettingsSections(); } catch (e) {} }, 0)); } catch (e) {}
   // phone price-scale width follows the labels (symbol switch, a price crossing 9999 -> 10000, rotation)
   if (!cell.__stkAxisTimer) cell.__stkAxisTimer = setInterval(() => { if (!document.hidden) syncPhone(cell); }, 2000);
   // Vela's own "Symbol watermark" on/off is replaced by our Hidden / Symbol / Symbol + interval row.
@@ -360,6 +376,7 @@ function applyCell(id){
   }
   applyRight(cell);
   applyStk(cell);
+  applyHide(cell);
 }
 // s2 Vela patch options live on the renderer's scene as scene.stk.
 // Margins: TradingView gives % of the pane height; Vela pads by a fraction of the data span.
@@ -375,6 +392,31 @@ function applyStk(cell){
   if (vm && typeof vm === 'object') { vm.top = Number(s.marginTop); vm.bottom = Number(s.marginBottom); }
   try { R.scheduler && R.scheduler.invalidate(4); } catch (e) {}
 }
+
+// Hide the price series (Vela renderer feature 'candleVisible': chart-type layer + bars go, the price
+// scale, crosshair, overlays and indicators keep working). Our flag is the saved truth, per cell.
+function applyHide(cell){
+  const rc = cell && cell.chart && cell.chart.renderer; if (!rc) return;
+  const want = !!S(cell.id).hidePrice;
+  try { if ((rc.get('candleVisible') !== false) === want) rc.set('candleVisible', !want); } catch (e) {}
+  syncHideUi();
+}
+function setHide(id, v){ setVal(id, 'hidePrice', !!v); }
+function hideLabel(){ let on = false; try { on = !!S(WS.active.id).hidePrice; } catch (e) {} return on ? 'Show price candles' : 'Hide price candles'; }
+// The settings switch cannot be set from outside (see syncFavSwitch): click it a tick later if it disagrees.
+let hideSetting = false;
+function syncHideUi(){
+  let on = false; try { on = !!S(WS.active.id).hidePrice; } catch (e) {}
+  const b = document.getElementById('stkc-hideprice-btn');
+  if (b) { b.setAttribute('aria-pressed', String(on)); b.title = hideLabel(); b.classList.toggle('on', on); }
+  setTimeout(() => document.querySelectorAll('.vela-dialog--settings .stk-sd-extra .vela-field-label').forEach((lab) => {
+    if (lab.textContent !== HIDE_ROW) return;
+    const row = lab.closest('.vela-field-span') || lab.parentElement;
+    const sw = row && row.querySelector('.vela-switch[role="switch"]');
+    if (sw && (sw.getAttribute('aria-checked') === 'true') !== on) { hideSetting = true; try { sw.click(); } finally { hideSetting = false; } }
+  }), 0);
+}
+const HIDE_ROW = 'Hide price candles';
 // Test hook (tools/tests/chart-vela090-browser.js): do our margin rows reach the renderer?
 window.__stkMarginsProbe = () => {
   try {
@@ -421,6 +463,20 @@ window.addEventListener('stk-favbar-visible', () => { if (!favSetting) setTimeou
 // ---------------------------------------------------------------------------------------
 // our rows (Vela host-settings rows), folded into Vela's tabs when the dialog opens
 // ---------------------------------------------------------------------------------------
+// "Days of history to load": per timeframe; never offers more than the data holds (pager.cap).
+function daysRow(id){
+  const cap = () => { try { return window.__stkHistoryPager.cap(id); } catch (e) { return 0; } };
+  const tf = () => { const c = cellOf(id); return c ? c.timeframe : ''; };
+  return { kind: 'select', label: 'Days of history to load', id: 'days-load',
+    title: 'Loads at least this many days of history for the current timeframe. Auto keeps the normal behaviour. The list stops at the most days the data really has for this timeframe.' + DL.fpHint(Date.now()),
+    options: DL.optionsFor(cap()),
+    get: () => DL.displayOf(DL.getDays(id, tf()), cap()),
+    set: (v) => {
+      DL.setDays(id, tf(), DL.parseLabel(v, cap()));
+      try { WS.markStateDirty(); } catch (e) {}
+      try { window.__stkHistoryPager.kick(id); } catch (e) {}
+    } };
+}
 function ourSections(id){
   const g = (k) => () => S(id)[k];
   const st = (k) => (v) => setVal(id, k, v);
@@ -439,7 +495,10 @@ function ourSections(id){
       { kind: 'heading', label: 'Candles' },
       { kind: 'toggle', label: 'Color bars based on previous close', id: 'prev-close', get: g('prevClose'), set: st('prevClose') },
       off('Hollow candles'),
+      { kind: 'toggle', label: HIDE_ROW, id: 'hide-price', get: g('hidePrice'), set: (v) => { if (!hideSetting) setHide(id, v); },
+        title: 'Hides the candles, bars or line. Footprint, profiles, heatmap, big trades and indicators, the price scale and the crosshair stay. Also in the top bar (eye button) and the right-click menu.' },
       { kind: 'heading', label: 'Data modification' }, off('Adjust for contract changes'),
+      { kind: 'heading', label: 'History' }, daysRow(id),
       { kind: 'select', label: 'Precision', id: 'precision', options: PRECISIONS, get: g('precision'), set: st('precision') },
       { kind: 'heading', label: 'Watermark' },
       { kind: 'select', label: 'Watermark', id: 'wm-mode', options: ['Hidden', 'Symbol', 'Symbol + interval'], get: g('wmMode'), set: st('wmMode') },
@@ -511,9 +570,76 @@ function restore(id, snap, opts){
   applyCell(id);
   try { WS.markStateDirty(); } catch (e) {}
 }
+
+// ---------------------------------------------------------------------------------------
+// DEFAULT LOOK (Owner order 14 Nov): the style a chart gets when it has NO saved style (new member, new
+// layout, new chart cell, signed-out visitor, "Reset to TradeZoro defaults"). Nothing saved is ever
+// rewritten: it is applied only to a cell created without a saved document, and undone first when a
+// saved document / template / layout is loaded over it (so those load exactly as they always did).
+// ---------------------------------------------------------------------------------------
+const isLight = () => document.documentElement.getAttribute('data-theme') === 'light';
+function defStylePatch(){
+  const light = isLight();
+  const up = '#24A34E', down = light ? '#8B8E94' : '#ADADAD';
+  return {
+    layout: { background: light ? '#ffffff' : '#0f0f0f', textColor: light ? '#6a6c72' : '#787a7f' },
+    grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+    animations: { zoom: false },
+    series: { spacing: 1 },
+    candles: { upColor: up, downColor: down, bodyVisible: true, borderVisible: true, wickVisible: true,
+      borderUpColor: up, borderDownColor: down, wickUpColor: up, wickDownColor: down }
+  };
+}
+function mergeDeep(base, patch){
+  const o = Object.assign({}, base);
+  for (const k of Object.keys(patch)) o[k] = patch[k] && typeof patch[k] === 'object' ? mergeDeep(base[k] || {}, patch[k]) : patch[k];
+  return o;
+}
+const stockOf = new Map();   // cell id -> config before our default look (only for cells wearing it)
+let ourApply = 0;           // >0 while WE (not the member) change a chart's config
+const quietly = (fn) => { ourApply++; try { return fn(); } finally { ourApply--; } };
+function wearDefault(id){
+  const cell = cellOf(id); if (!cell || !cell.chart) return;
+  try {
+    const r = cell.chart.renderer;
+    if (!stockOf.has(id)) {
+      stockOf.set(id, clone(r.getConfig()));
+      // The member's choice always wins (15 Nov, Animate zoom would not stay on): the first config change that
+      // is not ours means the member edited this chart, so it stops wearing the default and is never re-patched.
+      try { r.onConfigChanged(() => { if (!ourApply) stockOf.delete(id); }); } catch (e) {}
+    }
+    quietly(() => r.applyConfig(defStylePatch()));
+  } catch (e) { console.warn('TradeZoro default look', e); }
+}
+function takeOffDefault(){
+  quietly(() => stockOf.forEach((cfg, id) => { const c = cellOf(id); if (c && c.chart) { try { c.chart.renderer.applyConfig(cfg); } catch (e) {} } }));
+  stockOf.clear();
+}
+function mountDefaultLook(ws, fresh){
+  if (fresh) (ws.context().cells || []).forEach((c) => wearDefault(c.id));
+  // Cells coming back from Vela's pool (layout shrunk then widened) keep what they had.
+  const pooled = new Set();
+  try { const pool = ws.pool, get = pool.get; pool.get = function(k){ const v = get.call(this, k); if (v !== undefined) pooled.add(k); return v; }; } catch (e) {}
+  // A document (saved layout, template, imported) loads exactly as before: our look comes off first.
+  // A brand-new layout (chart-layouts createNew) sets window.__stkFreshDoc and gets the look after.
+  const apply = ws.applyState.bind(ws);
+  let loading = false;
+  ws.applyState = function(doc){
+    takeOffDefault();
+    const fresh = window.__stkFreshDoc === true; window.__stkFreshDoc = false;
+    loading = true;
+    try { return apply(doc); }
+    finally { loading = false; if (fresh) (ws.context().cells || []).forEach((c) => wearDefault(c.id)); }
+  };
+  try { ws.on('cell:created', ({ id }) => { if (loading) return; if (pooled.delete(id)) return; setTimeout(() => wearDefault(id), 0); }); } catch (e) {}
+  // Day / night switch: our values are theme-specific, so follow the theme while the cell wears them.
+  const st = ws.setTheme.bind(ws);
+  ws.setTheme = function(t){ return quietly(() => { const r = st(t); stockOf.forEach((_, id) => { const c = cellOf(id); if (c && c.chart) { try { c.chart.renderer.applyConfig(defStylePatch()); } catch (e) {} } }); return r; }); };
+}
 function stykerDefaults(id){
   const cell = cellOf(id); const R = inner(cell);
   const f = R && R.factoryConfig ? clone(R.factoryConfig) : null;
+  if (f) Object.assign(f, mergeDeep(f, defStylePatch()));
   return { cfg: f, status: { parts: { logo: true, name: true, market: true, ohlc: true, change: true }, indicatorTitles: true, indicatorValues: true },
     ours: Object.assign({}, DEFAULTS), style: 'candles', tz: 'Asia/Kolkata' };
 }
@@ -547,6 +673,11 @@ function foldTabs(dlg){
     if (lab.textContent === 'Hide replay markings (admin)') {
       const row = lab.closest('.vela-field-span') || lab.parentElement;
       if (row) row.title = RH_TIP;
+      return;
+    }
+    if (lab.textContent === 'Days of history to load') {   // plain-English limit of the footprint data, always visible (the title alone hides on phones)
+      const row = lab.closest('.vela-field-span') || lab.parentElement;
+      if (row && !row.nextElementSibling?.classList.contains('stk-sd-note')) { const n = document.createElement('div'); n.className = 'stk-sd-note'; n.textContent = DL.fpHint(Date.now()).trim(); row.after(n); }
       return;
     }
     const why = DISABLED[lab.textContent];
@@ -681,6 +812,7 @@ const CSS = `
 .vela-sd-mobile .stk-sd-foot .vela-sd-btn{ width:100%; height:44px; justify-content:center; font-size:15px; }
 .vela-sd-mobile .stk-sd-tplbtn{ justify-content:flex-start !important; }
 .stk-sd-off{ opacity:.45; cursor:not-allowed; }
+.stk-sd-note{ grid-column:1 / -1; box-sizing:border-box; width:100%; max-width:100%; min-width:0; white-space:normal; overflow-wrap:anywhere; font-size:12px; line-height:16px; color:var(--vela-fg-muted,#8a90a0); padding:0 0 8px; }
 .stk-sd-off button{ pointer-events:none; }
 .vela-dialog--settings .vela-sd-pane, .vela-dialog--settings .vela-sd-rail{ scrollbar-width:thin; scrollbar-color:rgba(128,128,128,.35) transparent; }
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar, .vela-dialog--settings .vela-sd-rail::-webkit-scrollbar{ width:6px; height:6px; }
@@ -712,6 +844,7 @@ export function mountChartSettings(ws, opts){
   hookAll();
   try { ws.on('layout:changed', () => setTimeout(hookAll, 0)); } catch (e) {}
   try { ws.on('state:changed', () => (ws.context().cells || []).forEach((c) => { const cell = cellOf(c.id); if (cell && cell.chart && !cell.chart.renderer.__stkSettings) applyCell(c.id); })); } catch (e) {}
+  if (!(opts && opts.bt)) mountDefaultLook(ws, !!(opts && opts.fresh));
   watchDialogs();
   watchAdmin();
 
@@ -735,6 +868,13 @@ export function mountChartSettings(ws, opts){
       try { const c = ws.cell(ws.active.id); c.chart.renderer.openSettings(); } catch (err) { console.warn(err); }
     });
     bar.insertBefore(b, bar.firstChild);
+    const h = document.createElement('button');
+    h.type = 'button'; h.className = 'stkc-ib'; h.id = 'stkc-hideprice-btn'; h.setAttribute('aria-label', 'Hide price candles'); h.setAttribute('aria-pressed', 'false'); h.title = 'Hide price candles';
+    h.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    h.addEventListener('click', (e) => { e.stopPropagation(); try { setHide(ws.active.id, !S(ws.active.id).hidePrice); } catch (err) { console.warn(err); } });
+    bar.insertBefore(h, b.nextSibling);
+    syncHideUi();
   }
   window.__stkSettings = { setReplayHide(v){ (ws.context().cells || []).forEach((c) => { S(c.id).rhide = !!v; applyCell(c.id); }); rhSync(!!v); try { ws.markStateDirty(); } catch (e) {} }, store, snapshot, restore, applyCell, DEFAULTS };
+window.__stkDefaultsFor = stykerDefaults;   // test hook: what "Reset to TradeZoro defaults" applies
 }

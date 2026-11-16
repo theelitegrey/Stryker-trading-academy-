@@ -1,4 +1,4 @@
-// TradeZoro: the one "this is part of Pro" lock card (pricing upgrades, 2026-10-12)
+// TradeZoro: the one lock card (pricing upgrades, 2026-10-12; since 2026-11-13 all tools are free: sign-in cards + the live-data card)
 // Depends on: assets/roles.js (loadPlansForRoles, chapterLimitOf),
 //             assets/plan-price.js (planSaleInfo, planIsArchived, planDisplayName),
 //             assets/trial.js (strykerTrialDecorate; optional),
@@ -37,38 +37,53 @@
 (function () {
   'use strict';
 
+  // ALL TOOLS FREE (Owner 2026-11-13): no tool is sold any more. Every card below is a SIGN-IN card (the tools are free with an
+  // account), except 'livedata': the one paid thing, the live futures order book data feed (the existing Pro plan, "Pro · Live data").
+  var LIVE = 'Live futures order book data is a paid data feed. Exchange rules set it, so we can\'t give it free. Tools are free; this is the data.';
   var COPY = {
     gex: {
-      title: function () { return 'GEX+ is part of Pro'; },
+      signin: true,
+      title: function () { return 'Sign in to use GEX+. It is free.'; },
       bullets: function () {
         return ['GEX+ levels for SPX, SPY, QQQ, ES, NQ and gold (GC) at every expiry',
                 'The strike table: net GEX, DEX and open interest by strike'];
       },
-      reason: 'Pro adds GEX+ for every market and expiry, and the strike table.'
+      reason: ''
     },
     levels: {
-      title: function () { return 'Levels for your platform are part of Pro'; },
+      signin: true,
+      title: function () { return 'Sign in to get levels for your platform. It is free.'; },
       bullets: function () {
         return ['Today\'s GEX levels, Zoro Levels and dark pool levels as files for the platforms you use',
                 'A private link that keeps NinjaTrader, cTrader and Quantower up to date'];
       },
-      reason: 'Pro adds levels for your trading platform.'
+      reason: ''
     },
     scanner: {
+      signin: true,
       title: function () { return 'The scanner is free'; },
       bullets: function () {
         return ['Build your own scans: any column, any value, on US stocks, ETFs and crypto',
                 'Presets and custom filters are free'];
       },
-      reason: 'Pro unlocks custom scanner filters.'
+      reason: ''
     },
     options: {
-      title: function () { return 'Options analytics are part of Pro'; },
+      signin: true,
+      title: function () { return 'Sign in to use options analytics. They are free.'; },
       bullets: function () {
         return ['Expected move, IV rank, term structure and skew for SPX, QQQ (NQ) and SPY',
                 'Plus GEX+ for every market and expiry, gold (GC) included'];
       },
-      reason: 'Pro adds options analytics for every market.'
+      reason: ''
+    },
+    livedata: {
+      title: function () { return 'Live futures order book data'; },
+      bullets: function () {
+        return ['Every tool is free. Without live data the order book tools use the recorded book, 10 minutes delayed',
+                'Live data streams the futures order book (L2) as it happens'];
+      },
+      reason: LIVE
     },
     chapters: {
       title: function (n) { return n ? 'Chapters ' + (n + 1) + '+ need a different plan' : 'Later chapters need a different plan'; },
@@ -125,9 +140,11 @@
       '<div class="plan-lock-head"><span class="plan-lock-ico">' + LOCK_SVG + '</span><h3></h3></div>' +
       '<p class="plan-lock-price" hidden></p>' +
       '<ul class="plan-lock-list">' + c.bullets(n).map(function () { return '<li>' + TICK_SVG + '<span></span></li>'; }).join('') + '</ul>' +
-      '<a class="btn btn-primary plan-lock-cta" href="#" data-open-plan-modal>Get Pro</a>' +
-      '<a class="plan-lock-back" href="/pro">What\'s in Pro?</a>' +
-      '<a class="plan-lock-back" href="/pricing">See all plans</a>' +
+      (c.signin
+        ? '<a class="btn btn-primary plan-lock-cta" href="login.html">Sign in free</a>' +
+          '<a class="plan-lock-back" href="signup.html">Create a free account</a>' + '<span class="plan-lock-back" hidden></span>'
+        : '<a class="btn btn-primary plan-lock-cta" href="#" data-open-plan-modal>Get live data</a>' +
+          '<a class="plan-lock-back" href="/pro">What does live data add?</a>' + '<span class="plan-lock-back" hidden></span>') +
       (opts.back ? '<a class="plan-lock-back" href="#"></a>' : '') +
       '<p class="plan-lock-edu">Education only. Not financial advice.</p>';
     if (opts.back) {
@@ -138,13 +155,16 @@
     var items = el.querySelectorAll('.plan-lock-list li span');
     c.bullets(n).forEach(function (b, i) { items[i].textContent = b; });
     var cta = el.querySelector('.plan-lock-cta');
-    cta.setAttribute('data-upgrade-reason', c.reason);
+    if (c.signin) {
+      try { cta.href = 'login.html?next=' + encodeURIComponent(location.pathname.replace(/^\//, '') + location.search); } catch (e) {}
+    } else cta.setAttribute('data-upgrade-reason', c.reason);
 
-    proPlan().then(function (pro) {
+    (c.signin ? Promise.resolve(null) : proPlan()).then(function (pro) {
       if (!pro) return;
       cta.removeAttribute('data-open-plan-modal');
       cta.href = 'checkout.html?plan=' + encodeURIComponent(pro.id);
       var name = (typeof planDisplayName === 'function') ? planDisplayName(pro) : 'Pro';
+      if (typeof window.strykerLiveDataName === 'function') name = window.strykerLiveDataName(pro, name);   // "Pro · Live data" (plan-modal.js)
       if (cta.getAttribute('data-trial') !== '1') cta.textContent = 'Get ' + name;
       // Paywall price: "Pro: $20 / month", live plan price in the visitor's currency (plan-price.js).
       if (typeof planSaleInfo === 'function' && typeof planMoneyDisplay === 'function') {

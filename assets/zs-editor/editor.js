@@ -1,30 +1,37 @@
 // TradeZoro — Zscript code editor (ES module). Lazy-loaded by assets/chart-zscript.js when the Zscript tab opens.
 // Depends on: assets/zs-editor/cm6.js (vendored CodeMirror 6, MIT; rebuild with tools/zs-editor/build-cm6.sh).
 //
-// createZsEditor(parent, { doc, builtins, onChange, onRun, lint }) -> { view, get(), set(text), focus(), showDiagnostics(list), goto(line, col) }
+// createZsEditor(parent, { doc, builtins, onChange, onRun, onSave, lint, lang, wrap })
+//   -> { view, get(), set(text), focus(), showDiagnostics(list), goto(line, col), setWrap(on), find(), insert(text, back) }
+//   lang      'zscript' (default) | 'pine' (Pine import: same highlighter, //@version header, no live lint)
+//   wrap      soft-wrap long lines (the script editor's Wrap toggle; default on)
+//   Keys: Mod-Enter onRun, Mod-S onSave, Mod-/ comment (defaultKeymap), Mod-F find (searchKeymap).
 //   builtins  [{ name, kind, sig, doc }]  autocomplete + hover docs (from the engine catalog, assets/zs/catalog.js)
 //   lint(src) -> Promise<[Diag]>          inline errors while typing (Diag = { line, col, endLine?, endCol?, severity, message, hint? }, 1-based)
 // Colours come from CSS variables (--zs-*) set in assets/style.css for dark and light, so the theme switch needs no rebuild.
 
 import {
   EditorState, EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, hoverTooltip,
-  StreamLanguage, syntaxHighlighting, HighlightStyle, indentOnInput, bracketMatching, indentUnit,
+  Compartment, StreamLanguage, syntaxHighlighting, HighlightStyle, indentOnInput, bracketMatching, indentUnit,
   defaultKeymap, history, historyKeymap, indentWithTab, autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap,
   linter, lintGutter, setDiagnostics, searchKeymap, highlightSelectionMatches, tags
-} from './cm6.js?v=979';
+} from './cm6.js?v=1061';
 
 const KEYWORDS = new Set(['if', 'else', 'for', 'in', 'to', 'by', 'while', 'switch', 'break', 'continue', 'var', 'varip', 'and', 'or', 'not', 'import', 'export', 'method', 'type']);
 const ATOMS = new Set(['true', 'false', 'na']);
 const TYPES = new Set(['int', 'float', 'bool', 'string', 'color', 'series', 'simple', 'const', 'array', 'map', 'label', 'line', 'box', 'table']);
-const NAMESPACES = new Set(['ta', 'math', 'str', 'color', 'input', 'request', 'array', 'map', 'label', 'line', 'box', 'table', 'plot', 'hline', 'shape', 'location', 'size', 'position', 'xloc', 'yloc', 'extend', 'book', 'flow', 'gex', 'opt', 'syminfo', 'timeframe', 'barstate']);
+const NAMESPACES = new Set(['strategy', 'chart', 'ticker', 'session', 'display', 'format', 'scale', 'text', 'font', 'matrix', 'polyline', 'linefill', 'runtime', 'log', 'ta', 'math', 'str', 'color', 'input', 'request', 'array', 'map', 'label', 'line', 'box', 'table', 'plot', 'hline', 'shape', 'location', 'size', 'position', 'xloc', 'yloc', 'extend', 'book', 'flow', 'gex', 'opt', 'syminfo', 'timeframe', 'barstate']);
 
-// Tokenizer for highlighting only (the engine owns real parsing).
-export const zscriptLanguage = StreamLanguage.define({
-  name: 'zscript',
-  startState: () => ({}),
-  token(stream){
+// Tokenizer for highlighting only (the engine owns real parsing). Shared by Zscript and Pine import (same surface syntax).
+const streamDef = (name) => ({
+  name,
+  startState: () => ({ ind: 0, open: false }),
+  copyState: (s) => ({ ind: s.ind, open: s.open }),
+  token(stream, state){
+    // auto-indent: remember each code line's indent and whether it opens a block (if/for/while/switch/else, or a "=>" function)
+    if (stream.sol() && /\S/.test(stream.string) && !/^\s*\/\//.test(stream.string)) { state.ind = stream.indentation(); state.open = /^\s*(?:if|else|for|while|switch)\b|=>\s*(?:\/\/.*)?$/.test(stream.string); }
     if (stream.eatSpace()) return null;
-    if (stream.match(/^\/\/@zscript\b.*/)) return 'meta';
+    if (stream.match(/^\/\/@(?:zscript|version)\b.*/)) return 'meta';
     if (stream.match('//')) { stream.skipToEnd(); return 'comment'; }
     const ch = stream.peek();
     if (ch === '"' || ch === "'") {
@@ -48,9 +55,12 @@ export const zscriptLanguage = StreamLanguage.define({
     stream.next();
     return null;
   },
+  indent: (state) => state.ind + (state.open ? 4 : 0),
   languageData: { commentTokens: { line: '//' }, indentOnInput: /^\s*(else)$/ },
   tokenTable: { meta: tags.meta, color: tags.color, namespace: tags.namespace, function: tags.function(tags.variableName), typeName: tags.typeName }
 });
+export const zscriptLanguage = StreamLanguage.define(streamDef('zscript'));
+const pineLanguage = StreamLanguage.define(streamDef('pine'));
 
 const highlight = HighlightStyle.define([
   { tag: tags.comment, color: 'var(--zs-comment)', fontStyle: 'italic' },
@@ -66,11 +76,17 @@ const highlight = HighlightStyle.define([
 ]);
 
 const theme = EditorView.theme({
-  '&': { height: '100%', fontSize: '12.5px', backgroundColor: 'transparent', color: 'var(--ink-0)' },
+  '&': { height: '100%', fontSize: '13px', backgroundColor: 'transparent', color: 'var(--ink-0)' },
   '.cm-scroller': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', lineHeight: '20px', overflow: 'auto' },
   '.cm-content': { padding: '8px 0', caretColor: 'var(--gold)' },
-  '.cm-gutters': { backgroundColor: 'var(--bg-1)', color: 'var(--ink-3)', borderRight: '1px solid var(--line-soft)' },
-  '.cm-lineNumbers .cm-gutterElement': { padding: '0 8px 0 6px', minWidth: '28px' },
+  '.cm-line': { padding: '0 12px 0 8px' },
+  '.cm-gutters': { backgroundColor: 'var(--zs-gutter, var(--bg-1))', color: 'var(--ink-3)', borderRight: '1px solid var(--line-soft)' },
+  '.cm-lineNumbers .cm-gutterElement': { padding: '0 8px 0 12px', minWidth: '32px', fontVariantNumeric: 'tabular-nums' },
+  '.cm-gutter-lint': { width: '12px' },
+  '.cm-gutter-lint .cm-gutterElement': { padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  '.cm-lint-marker': { width: '8px', height: '8px' },
+  '.cm-lint-marker-error': { content: '""', display: 'block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--zs-err)' },
+  '.cm-lint-marker-warning': { content: '""', display: 'block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--amber, #f5a623)' },
   '.cm-activeLine': { backgroundColor: 'var(--zs-active)' },
   '.cm-activeLineGutter': { backgroundColor: 'var(--zs-active)', color: 'var(--ink-1)' },
   '&.cm-focused': { outline: 'none' },
@@ -90,7 +106,6 @@ const theme = EditorView.theme({
   '.cm-diagnostic': { padding: '6px 10px', fontSize: '12px', lineHeight: '16px' },
   '.cm-diagnostic-error': { borderLeft: '3px solid var(--zs-err)' },
   '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--zs-err)', textUnderlineOffset: '3px' },
-  '.cm-lint-marker-error': { content: 'none' },
   '.cm-panels': { backgroundColor: 'var(--bg-1)', color: 'var(--ink-1)' },
   '.cm-panels.cm-panels-bottom': { borderTop: '1px solid var(--line-soft)' },
   '.cm-textfield': { backgroundColor: 'var(--bg-0)', color: 'var(--ink-0)', border: '1px solid var(--line)', borderRadius: '6px' },
@@ -125,6 +140,7 @@ function toCm(doc, d){
 }
 const msg = (d) => 'Line ' + d.line + ':' + (d.col || 1) + ' ' + d.message + (d.hint ? ' ' + d.hint : '');
 
+const isMac = (() => { try { return /Mac|iPhone|iPad/.test(navigator.platform); } catch (e) { return false; } })();
 export function createZsEditor(parent, opts){
   const B = opts.builtins || [];
   const byName = new Map(B.map((b) => [b.name, b]));
@@ -181,6 +197,7 @@ export function createZsEditor(parent, opts){
     return list.map((d) => toCm(view.state.doc, d));
   }, { delay: 500 }) : [];
 
+  const wrapC = new Compartment();
   const view = new EditorView({
     parent,
     state: EditorState.create({
@@ -188,14 +205,16 @@ export function createZsEditor(parent, opts){
       extensions: [
         lineNumbers(), highlightActiveLineGutter(), history(), drawSelection(), indentOnInput(), bracketMatching(), closeBrackets(),
         highlightActiveLine(), highlightSelectionMatches(), indentUnit.of('    '), EditorState.tabSize.of(4),
-        zscriptLanguage, syntaxHighlighting(highlight), theme,
+        opts.lang === 'pine' ? pineLanguage : zscriptLanguage, syntaxHighlighting(highlight), theme,
+        wrapC.of(opts.wrap === false ? [] : EditorView.lineWrapping),
         autocompletion({ override: [complete], icons: false, activateOnTyping: true }),
         hover, lintExt, lintGutter(),
         keymap.of([
           { key: 'Mod-Enter', run: () => { if (opts.onRun) opts.onRun(); return true; } },
+          { key: 'Mod-s', preventDefault: true, run: () => { if (opts.onSave) opts.onSave(); return true; } },
           ...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...completionKeymap, indentWithTab
         ]),
-        EditorView.contentAttributes.of({ 'aria-label': 'Zscript source', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false' }),
+        EditorView.contentAttributes.of({ 'aria-label': opts.lang === 'pine' ? 'Pine import source' : 'Zscript source', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false' }),
         EditorView.updateListener.of((u) => { if (u.docChanged && opts.onChange) opts.onChange(); }),
         // keep the chart's keyboard shortcuts out of the editor
         EditorView.domEventHandlers({ keydown: (e) => { e.stopPropagation(); return false; } })
@@ -213,6 +232,15 @@ export function createZsEditor(parent, opts){
       const ln = view.state.doc.line(Math.min(Math.max(1, line || 1), view.state.doc.lines));
       const at = Math.min(ln.to, ln.from + Math.max(0, (col || 1) - 1));
       view.dispatch({ selection: { anchor: at }, effects: EditorView.scrollIntoView(at, { y: 'center' }) });
+    },
+    setWrap: (on) => view.dispatch({ effects: wrapC.reconfigure(on ? EditorView.lineWrapping : []) }),
+    // open the search panel: the same command Mod-F runs (searchKeymap), reached through the keymap so cm6.js needs no rebuild
+    find(){ view.focus(); view.contentDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', ctrlKey: !isMac, metaKey: isMac, bubbles: true, cancelable: true })); },
+    // insert at the cursor (Docs tab); back = how many characters to step the cursor back (inside the brackets)
+    insert(text, back){
+      const r = view.state.selection.main, at = r.from + text.length - (back || 0);
+      view.dispatch({ changes: { from: r.from, to: r.to, insert: text }, selection: { anchor: at }, scrollIntoView: true });
+      view.focus();
     }
   };
 }

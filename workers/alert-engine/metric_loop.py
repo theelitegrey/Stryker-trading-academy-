@@ -112,12 +112,14 @@ class Deps:
                     if f.get('name'):
                         paid.add(str(f['name']).lower())
             self.plans = {'at': now, 'paid': paid}
+        # ALL TOOLS FREE (Owner 2026-11-13): GEX metric alerts are a tool, so any member with a students/{uid} doc gets them
+        # (anonymous sign-ins never get a students doc with alerts: rules + the site need a real account). Was ma.is_active_pro.
         adm, _ = self.fs.get_doc('admins/' + uid)
         if adm is not None:
             v = True
         else:
             doc, _ = self.fs.get_doc('students/' + uid)
-            v = ma.is_active_pro(doc, self.plans['paid'], now * 1000)
+            v = doc is not None
         self.pro[uid] = (now, v)
         return v
 

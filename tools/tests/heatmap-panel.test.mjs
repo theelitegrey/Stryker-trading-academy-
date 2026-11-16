@@ -28,3 +28,11 @@ assert.match(optNote({ cols: 0, text: 'GEX heatmap · SPX 0DTE · live' }), /GEX
 assert.equal(optNote({ cols: 0, text: 'Loading GEX heatmap…' }), '');
 assert.ok(!/delayed|behind|real-time/i.test(optNote({ cols: 0, text: 'x · updated 3 min ago' })));
 console.log('heatmap-panel maths + sources ok');
+// Style presets (Owner 2026-11-15): a fresh panel chart reads Classic, each preset reads as itself, any tweak reads Custom
+import { PRESETS, presetOf, THEMES } from '../../assets/chart-heatmap-panel.js';
+import { HM_THEMES } from '../../assets/chart-bookmap.js';
+assert.deepEqual(THEMES.map((t) => t.toLowerCase()), HM_THEMES, 'panel colours = renderer themes');
+assert.equal(presetOf({ hmOwned: true, showBubbles: false, showVolume: false }), 'Classic');
+for (const n of Object.keys(PRESETS)) { assert.equal(presetOf({ ...PRESETS[n] }), n); assert.equal(presetOf({ ...PRESETS[n], bubbleScale: 190 }), 'Custom'); assert.ok(THEMES.includes(PRESETS[n].hmTheme)); }
+assert.ok(!/bookmap|deepchart|sierra|atas|jigsaw/i.test(JSON.stringify(PRESETS)), 'no rival names');
+console.log('heatmap-panel presets ok');

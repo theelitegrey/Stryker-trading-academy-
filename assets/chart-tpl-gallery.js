@@ -6,7 +6,7 @@
 // Thumbnails: assets/images/chart-templates/<id>.webp (real renders, tools/tests/chart-tpl-shots.js).
 // Education only. Not financial advice. A template is a way to set up a chart, not a signal.
 
-import { kindOf, locked, upgrade, proTag } from './chart-pro-gate.js?v=979';
+import { kindOf, locked, upgrade, proTag } from './chart-pro-gate.js?v=1061';
 
 // thumb: true = a real render of the template is in assets/images/chart-templates (only where the recorded test bars can draw its tools;
 // tools that need a live feed show their names as chips instead, never a made-up picture).
@@ -16,6 +16,8 @@ export const TEMPLATES = [
     symbol: 'futures:NQ1!', tf: '1', ind: [['stk_l2f_big'], ['stk_l2f_delta'], ['stk_l2f_stop'], ['stk_l2f_cvd']] },
   { id: 'futures-open', name: 'Futures open (GEX + levels)', desc: 'Options-based levels, previous-day value area and session marks for the open.',
     symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex'], ['stk_pdvp'], ['stk_msess'], ['stk_econ']] },
+  { id: 'gex-flow', name: 'GEX Levels & Options Flow', desc: 'Call and put walls, zero gamma, top open-interest strikes and past days\u2019 levels, with positive and negative gamma zones shaded, call and put premium marks, fresh option volume and ZoroTide. Price is the candles.',
+    symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex', { showOi: true, oiCount: 5, show0dte: true, showRanked: true, showProfile: true, showRegime: true, showPrev: true, prevDays: 2 }], ['stk_zzone'], ['stk_optflow'], ['stk_zvol'], ['stk_tide']] },
   { id: 'options-levels', name: 'Options levels', desc: 'Expected move, gamma levels and calls-vs-puts money flow on an index ETF.',
     symbol: 'IDX:SPY', tf: '15', ind: [['stk_gex'], ['stk_em'], ['stk_tide'], ['stk_optflow']] },
   { id: 'dark-pool', name: 'Dark pool watch', desc: 'Large off-exchange prints on the candles plus weekly off-exchange levels and daily share.',
@@ -26,8 +28,8 @@ export const TEMPLATES = [
     symbol: 'futures:NQ1!', tf: '30', ind: [['stk_of_tpo'], ['stk_pdvp'], ['stk_avwap']] },
   { id: 'clean', thumb: true, name: 'Clean price action', desc: 'Candles, volume and previous-day levels only. Nothing else on the chart.',
     tf: '15', ind: [['volume'], ['stk_pdvp']] },
-  { id: 'depth-heatmap', name: 'Depth heatmap', desc: 'Futures order book resting size over time, with big trades on top.',
-    symbol: 'futures:NQ1!', tf: '1', ind: [['stk_depth_heat'], ['stk_l2f_big']] },
+  { id: 'depth-heatmap', name: 'Depth heatmap', desc: 'Futures order book resting size over time, with liquidity walls, iceberg marks and big trades on top.',
+    symbol: 'futures:NQ1!', tf: '1', ind: [['stk_depth_heat', { showIce: true }], ['stk_fut_walls'], ['stk_l2f_big']] },
   { id: 'footprint', name: 'Footprint day trading', desc: 'Per-price buy and sell volume in each candle, with a volume profile and stop runs.',
     symbol: 'futures:NQ1!', tf: '5', ind: [['stk_l2f_fp'], ['stk_l2f_vp'], ['stk_l2f_stop']] },
   { id: 'crypto-book', name: 'Crypto order book', desc: 'Bitcoin order book heatmap with large volume bubbles.',
@@ -43,8 +45,8 @@ export const TEMPLATES = [
 ];
 
 const NAMES = { stk_l2f_big: 'Big Trades (L2)', stk_l2f_delta: 'Delta (L2)', stk_l2f_stop: 'Stop Runs (L2)', stk_l2f_cvd: 'Cumulative Delta (L2)', stk_gex: 'GEX Levels', stk_pdvp: 'Previous day levels',
-  stk_msess: 'Market Stats', stk_econ: 'Economic events', stk_em: 'Expected Move', stk_tide: 'ZoroTide', stk_optflow: 'Options Flow Marks', stk_darkpool: 'Dark Pool Prints', stk_offex_lv: 'Off-exchange levels',
-  stk_offex: 'Off-exchange Volume', volume: 'Volume', ema: 'EMA', rsi: 'RSI', '52-week-high-low': '52-week high / low', stk_of_tpo: 'Market Profile', stk_avwap: 'Anchored VWAP', stk_depth_heat: 'Depth Heatmap (L2)',
+  stk_msess: 'Market Stats', stk_econ: 'Economic events', stk_em: 'Expected Move', stk_tide: 'ZoroTide', stk_optflow: 'Options Flow Marks', stk_zzone: 'Gamma Zone', stk_zvol: 'Fresh Volume marks', stk_darkpool: 'Dark Pool Prints', stk_offex_lv: 'Off-exchange levels',
+  stk_offex: 'Off-exchange Volume', volume: 'Volume', ema: 'EMA', rsi: 'RSI', '52-week-high-low': '52-week high / low', stk_of_tpo: 'Market Profile', stk_avwap: 'Anchored VWAP', stk_depth_heat: 'Depth Heatmap (L2)', stk_fut_walls: 'Liquidity Walls (L2)',
   stk_l2f_fp: 'Footprint (L2)', stk_l2f_vp: 'Volume Profile (L2)', stk_crypto_dom: 'Crypto DOM Heatmap', stk_vbubble: 'Volume Bubbles', supertrend: 'SuperTrend', macd: 'MACD', 'bollinger-bands': 'Bollinger Bands',
   'ttm-squeeze': 'TTM Squeeze', 'average-true-range': 'ATR', vwap: 'VWAP', vpvr: 'Volume Profile', stk_rvol: 'Relative Volume', stk_news: 'News markers', 'pivot-points': 'Pivot Points' };
 export const toolNames = (t) => t.ind.map(([type, inp]) => (NAMES[type] || type) + (type === 'ema' && inp ? ' ' + inp.length : ''));
@@ -104,7 +106,7 @@ export function openGallery(deps) {
   TEMPLATES.forEach((t) => {
     const kinds = proKinds(t);
     const thumb = t.thumb
-      ? el('img', { src: 'assets/images/chart-templates/' + t.id + '.webp?v=979', alt: 'Preview of the ' + t.name + ' template', width: '640', height: '400', loading: 'lazy' })
+      ? el('img', { src: 'assets/images/chart-templates/' + t.id + '.webp?v=1061', alt: 'Preview of the ' + t.name + ' template', width: '640', height: '400', loading: 'lazy' })
       : el('div', { class: 'stkt-chips', 'aria-label': 'Tools in this template' }, [el('span', { class: 'stkt-tf', text: t.tf === 'D' ? '1D' : (Number(t.tf) >= 60 ? (Number(t.tf) / 60) + 'h' : t.tf + 'm') }),
           ...toolNames(t).map((n) => el('span', { class: 'stkt-chip', text: n }))]);
     const apply = el('button', { type: 'button', class: 'stkc-sbtn', text: 'Apply', 'aria-label': 'Apply ' + t.name });

@@ -15,7 +15,7 @@
 // Kept in its own module so the picker file can change without losing the notice: it only
 // watches the window's DOM and never edits it beyond inserting its own .stkcd-* nodes.
 
-import { BUILTIN_PINE } from './chart-pine-builtins.js?v=979';
+import { BUILTIN_PINE } from './chart-pine-builtins.js?v=1061';
 
 const ACK_LS = 'stryker_community_disclaimer_ack_v1';
 // Owner order 2026-10-08: only Top and Trending carry third-party scripts; Editors' picks and
@@ -69,7 +69,7 @@ function decorate(list){
   const tab = document.querySelector('.stkiw-tab[aria-selected="true"]');
   const grp = [...list.querySelectorAll(':scope > .stkiw-grp')].find((g) => /^community\b/i.test(g.textContent.trim()));
   if (grp) list.insertBefore(banner(), grp);
-  else if (tab && COMMUNITY_TABS.has(tab.dataset.k)) list.insertBefore(banner(), list.firstChild);
+  else if (COMMUNITY_TABS.has(list.dataset.sect || (tab && tab.dataset.k))) list.insertBefore(banner(), list.firstChild);   // data-sect: the window's current list (Community sub-tab)
 }
 let pending = false;
 new MutationObserver(() => {

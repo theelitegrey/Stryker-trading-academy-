@@ -1,0 +1,106 @@
+{
+  "name": "tradezoro-desktop",
+  "productName": "TradeZoro",
+  "version": "1.0.1",
+  "description": "TradeZoro for Windows: the tradezoro.com app in its own window, with pop-out charts, always-on-top and native notifications.",
+  "author": "TradeZoro LLC",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/policy.test.js test/handoff.test.js",
+    "dist:win": "electron-builder --win nsis portable --x64",
+    "dist:linux": "electron-builder --linux dir --x64",
+    "dist:appx": "electron-builder --win appx --x64"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.11"
+  },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.tradezoro.desktop",
+    "productName": "TradeZoro",
+    "copyright": "\u00a9 2026 TradeZoro LLC",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.ico",
+      "build/icon.png",
+      "package.json"
+    ],
+    "protocols": [
+      {
+        "name": "TradeZoro sign-in",
+        "schemes": [
+          "tradezoro"
+        ]
+      }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "theelitegrey",
+        "repo": "Stryker-trading-academy-",
+        "tagNamePrefix": "desktop-v",
+        "releaseType": "release"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "executableName": "TradeZoro",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "TradeZoro-Setup.exe",
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "TradeZoro",
+      "uninstallDisplayName": "TradeZoro",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "TradeZoro-Portable.exe"
+    },
+    "appx": {
+      "artifactName": "TradeZoro.appx",
+      "identityName": "TradeZoro.Desktop",
+      "publisher": "CN=TradeZoro LLC",
+      "publisherDisplayName": "TradeZoro LLC",
+      "displayName": "TradeZoro",
+      "applicationId": "TradeZoro",
+      "backgroundColor": "#050506",
+      "languages": [
+        "en-US"
+      ]
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "target": [
+        "dir"
+      ],
+      "category": "Office"
+    }
+  }
+}

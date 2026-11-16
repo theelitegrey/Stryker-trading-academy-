@@ -1,5 +1,5 @@
 // TradeZoro — Charts: Zscript glue (charts.html) — ES module
-// Depends on: assets/vela-chart.js (calls installZscript(Core, wsGetter) before the workspace is built and
+// Depends on: assets/chart-script-editor.js (the editor panel layout, shared with Pine import); assets/vela-chart.js (calls installZscript(Core, wsGetter) before the workspace is built and
 // mountZscript(ws, opts) after mountPine); assets/zs-editor/* (code editor, examples, My scripts store); the Zscript engine
 // assets/zs/ (Zscript stream 1: runner.js, catalog.js), loaded on first use.
 //
@@ -18,8 +18,9 @@
 // sessions, templates and saved layouts keep Zscript indicators. A Zscript source starts with //@zscript 1; Pine's
 // handle list skips those (chart-pine.js pineHandles).
 
-import { ZS_EXAMPLES } from './zs-editor/examples.js?v=979';
-import * as Store from './zs-editor/store.js?v=979';
+import { ZS_EXAMPLES } from './zs-editor/examples.js?v=1061';
+import * as Store from './zs-editor/store.js?v=1061';
+import { createShell, el, ib, ICONS, libRow, emptyState, renderDocs, descOf, ago, download, pickFile, fileName } from './chart-script-editor.js?v=1061';
 
 const LANG = 'zscript';
 const EXT_KEY = 'stryker.zscript';
@@ -39,7 +40,7 @@ export function titleOf(src){
 // Loaded on first use. Every compile and run happens in a sandboxed module worker (ZsRunner), never on the page.
 let engineP = null;
 function engine(){
-  if (!engineP) engineP = import('./zs/runner.js?v=979').catch((e) => { engineP = null; throw e; });
+  if (!engineP) engineP = import('./zs/runner.js?v=1061').catch((e) => { engineP = null; throw e; });
   return engineP;
 }
 const NO_ENGINE = { code: 'E000', line: 1, col: 1, severity: 'error', message: 'The Zscript engine did not load.', hint: 'Check your connection and reload the page.' };
@@ -54,7 +55,7 @@ let builtinsP = null;
 const sigOf = (f) => f.name + '(' + (f.params || []).map((p) => p.name + (p.def ? '=' + (p.def.var || JSON.stringify(p.def.v)) : '')).join(', ') + (f.variadic ? ', …' : '') + ')' + (f.ret && f.ret !== 'void' ? ' → ' + f.ret : '');
 export function loadBuiltins(){
   if (!builtinsP) {
-    builtinsP = import('./zs/catalog.js?v=979').then((m) => {
+    builtinsP = import('./zs/catalog.js?v=1061').then((m) => {
       const c = m.catalogJSON(), out = [], seen = new Set();
       const add = (o) => { if (!seen.has(o.name)) { seen.add(o.name); out.push(o); } };
       c.keywords.forEach((k) => add({ name: k, kind: 'keyword', sig: k, doc: '' }));
@@ -211,7 +212,7 @@ const notified = new Set();   // one-time notices (per page)
 function notice(text, upgrade){
   if (!text || notified.has(text)) return;
   notified.add(text);
-  const action = upgrade === 'of' || upgrade === 'gex' ? { label: 'See plans', onClick: () => { import('./chart-pro-gate.js?v=979').then((m) => m.upgrade(upgrade)).catch(() => {}); } } : undefined;
+  const action = upgrade === 'of' || upgrade === 'gex' ? { label: 'See plans', onClick: () => { import('./chart-pro-gate.js?v=1061').then((m) => m.upgrade(upgrade)).catch(() => {}); } } : undefined;
   try { window.showToast && window.showToast('info', String(text).slice(0, 300), { duration: 6000, action }); } catch (e) {}
 }
 
@@ -220,7 +221,7 @@ function notice(text, upgrade){
 // frames to the script's worker; request.security goes through the same session (the chart's own fetchSeries + series cache).
 let secSeq = 0;
 async function openHub(req, runner, uses, onFrames){
-  const { getHub } = await import('./zs/data/hub.js?v=979');
+  const { getHub } = await import('./zs/data/hub.js?v=1061');
   const mk = req.market || {}, waits = new Map();
   let ready = null, again = 0; const readyP = new Promise((r) => { ready = r; setTimeout(r, 6000); });
   const sess = getHub().open({
@@ -272,10 +273,10 @@ let libP = null;
 function zsLib(){
   if (window.ZSLib) return Promise.resolve(window.ZSLib);
   if (!libP) {
-    addCss('/assets/creator.css?v=979'); addCss('/assets/zs-library.css?v=979');
-    libP = (window.CREATOR_CONFIG ? Promise.resolve() : addScript('/assets/creator-config.js?v=979'))
-      .then(() => (window.CP ? null : addScript('/assets/creator-pay.js?v=979')))
-      .then(() => addScript('/assets/zs-library.js?v=979'))
+    addCss('/assets/creator.css?v=1061'); addCss('/assets/zs-library.css?v=1061');
+    libP = (window.CREATOR_CONFIG ? Promise.resolve() : addScript('/assets/creator-config.js?v=1061'))
+      .then(() => (window.CP ? null : addScript('/assets/creator-pay.js?v=1061')))
+      .then(() => addScript('/assets/zs-library.js?v=1061'))
       .then(() => { if (!window.ZSLib) throw new Error('library'); return window.ZSLib; })
       .catch((e) => { libP = null; throw e; });
   }
@@ -408,7 +409,11 @@ function routeAlerts(req, sess, out, bars){
 let getWs = () => null;
 const zsHandles = (chart) => { try { return chart.indicators().filter((h) => isZscript(h.source) && !h.nativeType); } catch (e) { return []; } };
 function changed(){ try { const ws = getWs(); if (ws) ws.context().stateChanged(); } catch (e) {} }
-function snapshot(h){ let inputs = {}; try { inputs = h.inputValues() || {}; } catch (e) {} const o = { name: titleOf(h.source), source: h.source, inputs }; if (h.visible === false) o.hidden = true; return o; }
+// INDICATOR VERSIONS (Owner 15 Nov 2026): a Script Library script on a chart: handle -> { sid, v, open }. Saved with the chart
+// (lib), so the chart knows which published version it runs and assets/chart-ind-versions.js can offer the author's newer one.
+const libMetaOf = new WeakMap();
+const SID_RE = /^[A-Za-z0-9]{20}$/;
+function snapshot(h){ let inputs = {}; try { inputs = h.inputValues() || {}; } catch (e) {} const o = { name: titleOf(h.source), source: h.source, inputs }; if (h.visible === false) o.hidden = true; const L = libMetaOf.get(h); if (L) o.lib = { sid: L.sid, v: L.v }; return o; }
 function cleanEntry(x){
   if (!x || typeof x !== 'object' || !isZscript(x.source) || x.source.length > SRC_MAX) return null;
   const inputs = {};
@@ -418,6 +423,7 @@ function cleanEntry(x){
   });
   const o = { name: typeof x.name === 'string' ? x.name.slice(0, 80) : 'Zscript', source: x.source, inputs };
   if (x.hidden === true) o.hidden = true;   // hidden with the legend eye: comes back hidden
+  if (x.lib && typeof x.lib === 'object' && SID_RE.test(String(x.lib.sid || '')) && Number.isInteger(x.lib.v) && x.lib.v > 0) o.lib = { sid: x.lib.sid, v: x.lib.v };
   return o;
 }
 
@@ -435,7 +441,7 @@ export function installZscript(core, wsGetter){
         zsHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} });   // a template over a cell: replace, never stack
         if (!Array.isArray(payload)) return;
         payload.map(cleanEntry).filter(Boolean).slice(0, MAX_PER_CELL).forEach((x) => {
-          try { const h = chart.addIndicator(x.source, { language: LANG, inputs: x.inputs }); if (h && x.hidden) h.setVisible(false); } catch (e) { console.warn('TradeZoro: Zscript restore', e); }
+          try { const h = chart.addIndicator(x.source, { language: LANG, inputs: x.inputs }); if (h && x.hidden) h.setVisible(false); if (h && x.lib) libMetaOf.set(h, { sid: x.lib.sid, v: x.lib.v, open: !libOf(x.source) }); } catch (e) { console.warn('TradeZoro: Zscript restore', e); }
         });
       }
     });
@@ -458,32 +464,25 @@ export async function runOnChart(chart, source){
   return { ok: true, handle: res.handle };
 }
 
-// ---------- editor panel ----------
-const icon = (inner, size) => '<svg width="' + (size || 18) + '" height="' + (size || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
-function el(tag, attrs, kids){
-  const n = document.createElement(tag);
-  if (attrs) for (const k in attrs) {
-    if (k === 'text') n.textContent = attrs[k];
-    else if (k === 'html') n.innerHTML = attrs[k];
-    else if (k.startsWith('on')) n.addEventListener(k.slice(2), attrs[k]);
-    else n.setAttribute(k, attrs[k]);
-  }
-  (kids || []).forEach((c) => c && n.appendChild(c));
-  return n;
-}
+// ---------- editor panel (layout: assets/chart-script-editor.js, shared with the Pine import panel) ----------
 const LANG_PREF = 'stryker_script_lang';
-const prefZs = () => { try { return localStorage.getItem(LANG_PREF) === 'zs'; } catch (e) { return false; } };
+const prefZs = () => { try { return localStorage.getItem(LANG_PREF) !== 'pine'; } catch (e) { return true; } };   // Zscript is the default
 const setPref = (zs) => { try { localStorage.setItem(LANG_PREF, zs ? 'zs' : 'pine'); } catch (e) {} };
 
-// Segmented control [Pine Script | Zscript] for the header of both editor panels.
+// Segmented control [Zscript | Pine (import)] for the header of both editor panels.
 function langSwitch(active, onPick){
   const seg = el('div', { class: 'stkc-langseg', role: 'tablist', 'aria-label': 'Script language' });
-  [['pine', 'Pine Script'], ['zs', 'Zscript']].forEach(([k, label]) => {
+  [['zs', 'Zscript'], ['pine', 'Pine (import)']].forEach(([k, label]) => {
     const on = k === active;
-    seg.appendChild(el('button', { type: 'button', role: 'tab', class: 'stkc-langseg-b' + (on ? ' on' : ''), 'aria-selected': on ? 'true' : 'false', tabindex: on ? '0' : '-1', text: label, onclick: () => { if (!on) onPick(k); } }));
+    seg.appendChild(el('button', { type: 'button', role: 'tab', class: 'stkc-langseg-b' + (on ? ' on' : ''), 'data-k': k, 'aria-selected': on ? 'true' : 'false', tabindex: on ? '0' : '-1', text: label, onclick: () => { if (!on) onPick(k); } }));
   });
   seg.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); const b = seg.querySelector('.stkc-langseg-b:not(.on)'); if (b) { b.click(); } } });
   return seg;
+}
+// Docs tab rows from the engine catalog: functions and namespaced variables/constants a member types most.
+function docsList(builtins){
+  return builtins.filter((b) => b.kind === 'function' || ((b.kind === 'variable' || b.kind === 'constant') && b.name.indexOf('.') < 0 && b.doc))
+    .map((b) => ({ name: b.name, sig: b.sig, doc: b.doc, insert: b.kind === 'function' ? b.name + '()' : b.name, back: b.kind === 'function' ? 1 : 0 }));
 }
 
 export function mountZscript(ws, opts){
@@ -494,42 +493,33 @@ export function mountZscript(ws, opts){
   const pineBtn = document.getElementById('stkc-pine-btn');
   const P = () => window.STRYKER_PINE;
 
-  const panel = el('div', { class: 'stkc-pine stkc-zs', id: 'stkc-zs', role: 'dialog', 'aria-label': 'Zscript editor', hidden: '' });
-  const target = el('span', { class: 'stkc-pine-target' });
-  const closeBtn = el('button', { type: 'button', class: 'stkc-ib stkc-zs-x', 'aria-label': 'Close the Zscript editor', title: 'Close', html: icon('<path d="M6 6l12 12M18 6L6 18"/>') });
-  const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: '60', placeholder: 'Script name', 'aria-label': 'Script name' });
-  const edHost = el('div', { class: 'stkc-pine-ed stkc-zs-ed' }, [el('div', { class: 'stkc-zs-loading', text: 'Loading editor…' })]);
-  const errBox = el('div', { class: 'stkc-pine-err stkc-zs-err', role: 'alert', hidden: '' });
-  const addBtn = el('button', { type: 'button', class: 'stkc-sbtn stkc-zs-run', html: icon('<path d="M7 5l11 7-11 7z"/>', 16) + '<span>Add to chart</span>' });
-  const checkBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Check' });
-  const saveBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Save' });
-  const newBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'New' });
-  const pubBtn = el('button', { type: 'button', class: 'stkc-btn', text: 'Publish' });
-  const onChart = el('ul', { class: 'stkc-tlist' });
-  const mine = el('ul', { class: 'stkc-tlist' });
-  const examples = el('ul', { class: 'stkc-tlist' });
-  const listNote = el('p', { class: 'stkc-empty' });
-  const lib = el('details', { class: 'stkc-pine-lib' }, [
-    el('summary', { text: 'Scripts and examples' }),
-    el('p', { class: 'stkc-pop-h', text: 'On this chart' }), onChart,
-    el('p', { class: 'stkc-pop-h', text: 'My scripts' }), listNote, mine,
-    el('p', { class: 'stkc-pop-h', text: 'Examples' }), examples,
-    el('p', { class: 'stkc-note', text: 'Zscript runs in your browser on the chart\'s bars, in a sandbox with no access to your account. Order book, order flow, GEX and options data follow your plan. Education only. Not financial advice.' })
-  ]);
-  const hd = el('header', { class: 'stkc-pine-hd' }, [el('div', { class: 'stkc-zs-hl' }, [langSwitch('zs', (k) => switchTo(k)), target]), closeBtn]);
-  panel.appendChild(hd);
-  panel.appendChild(el('div', { class: 'stkc-pine-body' }, [el('div', { class: 'stkc-saverow' }, [nameIn]), edHost, errBox, lib]));
-  panel.appendChild(el('div', { class: 'stkc-pine-acts' }, [addBtn, checkBtn, saveBtn, newBtn, pubBtn]));
+  const S = createShell({
+    id: 'stkc-zs', cls: 'stkc-zs', label: 'Zscript editor', closeLabel: 'Close the Zscript editor',
+    note: 'Zscript runs in your browser on the chart\'s bars, in a sandbox with no access to your account. Order book, order flow, GEX and options data follow your plan. Education only. Not financial advice.',
+    moreItems: [['dup', 'Duplicate'], ['export', 'Export .zs'], ['import', 'Import file…'], ['publish', 'Publish to the Script Library'], ['delete', 'Delete', true]],
+    onClose: () => { setOpen(false); if (pineBtn) pineBtn.focus(); },
+    onWrap: (on) => { if (ed) ed.setWrap(on); },
+    onFind: () => { ensureEditor().then((e) => e.find()).catch(() => {}); },
+    onMore: (k) => more(k),
+    onMenu: (menu) => { menu.querySelector('[data-k="delete"]').disabled = !editingId; },
+    onTab: (k) => { if (k === 'docs') renderDocsTab(); },
+    onView: (v) => { if (v === 'code' && ed) ed.focus(); }
+  });
+  const { panel, nameIn, target, edHost, addBtn, saveBtn, newBtn, panes } = S;
+  S.segSlot.appendChild(langSwitch('zs', (k) => switchTo(k)));
+  edHost.classList.add('stkc-zs-ed');
+  edHost.appendChild(el('div', { class: 'stkc-zs-loading', text: 'Loading editor…' }));
+  const lists = {}; ['chart', 'mine', 'examples'].forEach((k) => { lists[k] = el('ul', { class: 'stkc-tlist' }); panes[k].appendChild(lists[k]); });
   host.appendChild(panel);
-  lib.open = !window.matchMedia('(max-width:700px)').matches;
 
-  // the same switch in the Pine panel's header (above its title)
+  // the same switch in the Pine panel's header
   if (pinePanel) {
-    const phd = pinePanel.querySelector('.stkc-pine-hd > div');
-    if (phd) { phd.classList.add('stkc-zs-hl'); phd.insertBefore(langSwitch('pine', (k) => switchTo(k)), phd.firstChild); const h2 = phd.querySelector('h2'); if (h2) h2.classList.add("sr-only"); }
+    const slot = pinePanel.querySelector('.sed-seg-slot');
+    if (slot) { slot.innerHTML = ''; slot.appendChild(langSwitch('pine', (k) => switchTo(k))); }
   }
 
-  let ed = null, edP = null, editingId = null, busy = false, draft = null;
+  let ed = null, edP = null, editingId = null, busy = false, draft = null, builtinsAll = [];
+  let base = { name: '', src: '' }, kind = 'new', compileErr = false, handle = null;   // kind: new | example | mine | chart
   const isPhone = () => window.innerWidth <= 700;
   function activeCell(){
     const cells = (() => { try { return ws.context().cells; } catch (e) { return []; } })();
@@ -539,34 +529,65 @@ export function mountZscript(ws, opts){
   }
   function renderTarget(){
     const a = activeCell();
-    if (!a.cell) { target.textContent = ''; return; }
+    if (!a.cell) { target.textContent = ''; target.hidden = true; return; }
     const sym = String(a.cell.symbol || '').replace(/^[a-z]+:/i, '').replace(/1!$/, '');
-    target.textContent = 'Adds to ' + (a.count > 1 ? 'chart ' + (a.index + 1) + ': ' : '') + sym + ' ' + tfLabel(a.cell.timeframe);
+    target.hidden = false;
+    target.textContent = (a.count > 1 ? 'Chart ' + (a.index + 1) + ' · ' : '') + sym + ' · ' + tfLabel(a.cell.timeframe);
+    target.title = 'Add to chart puts the script on ' + target.textContent;
+  }
+  // "Update on chart" while the script this editor added (or opened from On chart) is still there
+  const onChartNow = () => { const a = activeCell(); return !!(handle && a.cell && zsHandles(a.cell.chart).includes(handle)); };
+  function renderPrimary(){ if (!busy) S.setPrimary(onChartNow() ? 'Update on chart' : 'Add to chart'); }
+  function renderStatus(){
+    if (busy) return;
+    const cur = ed ? ed.get() : base.src, dirty = cur !== base.src || nameIn.value.trim() !== base.name;
+    S.setStatus(compileErr ? 'error' : !dirty && kind === 'mine' ? 'saved' : !dirty && kind === 'example' ? 'example' : !dirty && kind === 'chart' ? 'idle' : 'unsaved');
+    renderPrimary();
+  }
+  // problems strip: compile result -> "Compiled OK · 3 plots" or the errors with line:col (click jumps)
+  function showCompile(r){
+    const diags = (r && r.diagnostics) || [];
+    const errs = diags.filter((d) => d && d.severity !== 'warning'), warns = diags.filter((d) => d && d.severity === 'warning');
+    compileErr = !r || !r.ok || errs.length > 0;
+    if (compileErr) S.problems.head('err', errs.length === 1 ? '1 problem' : (errs.length || 1) + ' problems');
+    else { const n = (r.meta && r.meta.plots) ? r.meta.plots.length : 0; S.problems.head('ok', 'Compiled OK · ' + n + (n === 1 ? ' plot' : ' plots') + (warns.length ? ' · ' + warns.length + (warns.length === 1 ? ' warning' : ' warnings') : '')); }
+    S.problems.list(errs.concat(warns).slice(0, 20).map((d) => ({ text: diagText(d), line: d.line, col: d.col })), (l, c) => { if (ed) { S.setView('code'); ed.goto(l, c); ed.focus(); } });
+    renderStatus();
   }
   // compile-as-you-type: the shared sandboxed compiler (diagnostics with line:col and a "did you mean" hint)
-  async function lint(src){ const r = await compileIn(src); return r.diagnostics || []; }
+  async function lint(src){ const r = await compileIn(src); if (ed && ed.get() === src) showCompile(r); return r.diagnostics || []; }
   function stopLint(){ if (compiler) { compiler.dispose(); compiler = null; } }
 
   function ensureEditor(){
     if (!edP) {
-      edP = Promise.all([import('./zs-editor/editor.js?v=979'), loadBuiltins()]).then(([m, builtins]) => {
+      edP = Promise.all([import('./zs-editor/editor.js?v=1061'), loadBuiltins()]).then(([m, builtins]) => {
+        builtinsAll = builtins;
         edHost.innerHTML = '';
-        ed = m.createZsEditor(edHost, { doc: draft != null ? draft : ZS_EXAMPLES[0].source, builtins, lint, onRun: () => addToChart(), onChange: () => { if (!errBox.hidden) showErr(null); } });
-        if (draft == null) nameIn.value = ZS_EXAMPLES[0].name;
+        ed = m.createZsEditor(edHost, { doc: draft != null ? draft : ZS_EXAMPLES[0].source, builtins, lint, wrap: S.wrap(), onRun: () => addToChart(), onSave: () => save(), onChange: () => { renderStatus(); } });
+        if (draft == null) { nameIn.value = ZS_EXAMPLES[0].name; base = { name: ZS_EXAMPLES[0].name, src: ZS_EXAMPLES[0].source }; kind = 'example'; }
+        renderStatus();
+        if (S.tab() === 'docs') renderDocsTab();
         return ed;
       }).catch((e) => { edP = null; edHost.innerHTML = ''; edHost.appendChild(el('div', { class: 'stkc-zs-loading', text: 'The editor did not load. Check your connection and reopen it.' })); throw e; });
     }
     return edP;
   }
+  // kept for callers: an error with its line (d) or a plain message (text)
   function showErr(d, text){
-    if (!d && !text) { errBox.hidden = true; errBox.textContent = ''; if (ed) ed.showDiagnostics([]); return; }
-    errBox.hidden = false;
-    errBox.textContent = d ? diagText(d) : text;
+    if (!d && !text) { S.problems.list([]); if (ed) ed.showDiagnostics([]); return; }
+    S.problems.head(d ? 'err' : 'info', d ? '1 problem' : 'Note');
+    S.problems.list([{ text: d ? diagText(d) : text, line: d && d.line, col: d && d.col }], (l, c) => { if (ed) { S.setView('code'); ed.goto(l, c); ed.focus(); } });
+    if (d) { compileErr = true; renderStatus(); }
     if (d && ed) { ed.showDiagnostics([d]); ed.goto(d.line, d.col); }
   }
-  async function load(name, source, id){
+  async function load(name, source, id, k, h){
     nameIn.value = name || ''; editingId = id || null; draft = source || '';
+    kind = k || (id ? 'mine' : 'new'); handle = h || null; compileErr = false;
+    base = { name: (name || '').trim(), src: source || '' };
     const e = await ensureEditor(); e.set(source || ''); showErr(null);
+    S.problems.head('busy', 'Checking…');
+    if (isPhone() || !S.isWide()) S.setView('code');
+    renderStatus();
   }
 
   async function addToChart(){
@@ -575,44 +596,35 @@ export function mountZscript(ws, opts){
     const src = e.get();
     if (!src.trim()) { showErr(null, 'The script is empty.'); return; }
     const a = activeCell(); if (!a.cell) return;
-    busy = true; addBtn.disabled = true; addBtn.lastChild.textContent = 'Running…'; showErr(null);
+    const old = onChartNow() ? handle : null;
+    busy = true; addBtn.disabled = true; S.setPrimary('Running…'); S.setStatus('running'); showErr(null);
     try {
+      if (old) { try { old.remove(); } catch (er) {} }   // Update: the new version takes the old one's place (frees its slot first)
       const r = await runOnChart(a.cell.chart, src);
-      if (r.ok) { toast('Added ' + titleOf(src) + ' to the chart'); if (isPhone()) setOpen(false); }
-      else showErr(r.diag, r.msg);
+      if (r.ok) { handle = r.handle; toast((old ? 'Updated ' : 'Added ') + titleOf(src) + (old ? ' on the chart' : ' to the chart')); if (isPhone()) setOpen(false); }
+      else {
+        if (old) { try { handle = (await runOnChart(a.cell.chart, old.source)).handle || null; } catch (er) { handle = null; } }   // keep the working version on the chart
+        showErr(r.diag, r.diag ? null : r.msg);
+      }
     } catch (err) { console.warn('TradeZoro: Zscript run', err); showErr(null, 'The Zscript engine did not start. Reload the page and try again.'); }
-    busy = false; addBtn.disabled = false; addBtn.lastChild.textContent = isPhone() ? 'Run' : 'Add to chart';
+    busy = false; addBtn.disabled = false; renderStatus();
     renderLists();
   }
-  async function check(){
-    const e = await ensureEditor();
-    checkBtn.disabled = true;
-    try {
-      const list = (await lint(e.get())).filter((d) => d && d.severity !== 'warning');
-      if (list.length) showErr(list[0]); else { showErr(null); toast('No errors found'); }
-    } catch (err) { showErr(null, 'The check did not run.'); }
-    checkBtn.disabled = false;
-  }
-  addBtn.addEventListener('click', addToChart);
-  checkBtn.addEventListener('click', check);
-  newBtn.addEventListener('click', () => { load('', NEW_SRC, null).then(() => ed.focus()); });
-  saveBtn.addEventListener('click', async () => {
+  async function save(){
     const e = await ensureEditor();
     let name = nameIn.value.trim();
     if (!name) { name = titleOf(e.get()); if (name === 'Zscript') name = ''; nameIn.value = name; }
     if (!name) { nameIn.focus(); showErr(null, 'Give the script a name first.'); return; }
     saveBtn.disabled = true;
-    try { editingId = await Store.save(name, e.get(), editingId); toast('Script saved'); showErr(null); }
+    try { editingId = await Store.save(name, e.get(), editingId); kind = 'mine'; base = { name, src: e.get() }; toast('Script saved'); renderStatus(); }
     catch (err) { showErr(null, (err && err.userMessage) || 'Could not save the script.'); console.warn('TradeZoro: Zscript save', err); }
     saveBtn.disabled = false;
     renderLists();
-  });
-  nameIn.addEventListener('keydown', (e) => e.stopPropagation());
+  }
   // Publish to the Script Library (assets/zs-library.js): compiles here first so a broken script never goes out.
-  pubBtn.addEventListener('click', async () => {
+  async function publish(){
     const e = await ensureEditor(), src = e.get();
     if (libOf(src)) { showErr(null, 'This is a library script. Publish new versions from its library page.'); return; }
-    pubBtn.disabled = true;
     try {
       const r = await compileIn(src), d = firstError(r.diagnostics);
       if (!r.ok || d) { showErr(d || null, d ? null : 'The script did not compile.'); return; }
@@ -620,46 +632,83 @@ export function mountZscript(ws, opts){
       const L = await zsLib();
       await L.openPublish({ source: src, program: r.program, title: nameIn.value.trim() || titleOf(src), onDone: (sid) => toast('Published. Open it in the Script Library: /script-library?s=' + sid) });
     } catch (err) { console.warn('TradeZoro: Zscript publish', err); showErr(null, 'The publish form did not open. Reload the page and try again.'); }
-    finally { pubBtn.disabled = false; }
-  });
-
-  const ib = (label, svg, fn, cls) => el('button', { type: 'button', class: 'stkc-ib' + (cls ? ' ' + cls : ''), title: label, 'aria-label': label, html: icon(svg, 16), onclick: fn });
-  const ICON_DEL = '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>', ICON_REN = '<path d="M4 20h4L19 9l-4-4L4 16z"/>', ICON_ADD = '<path d="M12 5v14M5 12h14"/>';
-  function row(label, badge, actions, onOpen){
-    const li = el('li', { class: 'stkc-trow' });
-    const b = el('button', { type: 'button', class: 'stkc-tname', title: 'Open in the editor', onclick: onOpen }, [el('span', { text: label })]);
-    if (badge) b.appendChild(el('span', { class: 'stkc-badge', text: badge }));
-    li.appendChild(b);
-    const acts = el('span', { class: 'stkc-tacts' }); actions.forEach((x) => acts.appendChild(x)); li.appendChild(acts);
-    return li;
   }
+  const copyName = (n) => (String(n || 'Script').slice(0, 54) + ' copy');
+  async function more(k){
+    const e = await ensureEditor().catch(() => null); if (!e) return;
+    if (k === 'dup') { await load(copyName(nameIn.value.trim() || titleOf(e.get())), e.get(), null, 'new'); nameIn.focus(); nameIn.select(); }
+    else if (k === 'export') download(fileName(nameIn.value.trim() || titleOf(e.get()), '.zs'), e.get());
+    else if (k === 'import') {
+      const f = await pickFile('.zs,.txt,text/plain');
+      if (!f) return;
+      if (f.error) { showErr(null, f.error); return; }
+      await load(f.name, f.text, null, 'new');
+      if (!isZscript(f.text)) showErr({ line: 1, col: 1, message: 'A Zscript file starts with the line //@zscript 1.', hint: 'For a Pine file, switch to Pine (import).' });
+    }
+    else if (k === 'publish') publish();
+    else if (k === 'delete' && editingId) {
+      const name = nameIn.value.trim() || 'this script';
+      if (!window.confirm('Delete the script "' + name + '"? It stays on any chart it is already on.')) return;
+      try { await Store.remove(editingId); editingId = null; kind = 'new'; toast('Script deleted'); renderStatus(); } catch (er) { showErr(null, 'Could not delete.'); }
+      renderLists();
+    }
+  }
+  addBtn.addEventListener('click', addToChart);
+  saveBtn.addEventListener('click', save);
+  newBtn.addEventListener('click', () => { load('', NEW_SRC, null, 'new').then(() => { nameIn.focus(); }); });
+  nameIn.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); if (ed) ed.focus(); } if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } });
+  nameIn.addEventListener('input', renderStatus);
+
+  const A = (label, icon, fn, cls) => ib(label, icon, fn, cls);
+  function renderDocsTab(){
+    const list = docsList(builtinsAll);
+    renderDocs(panes.docs, list, S.docsSearch.value, (txt) => {
+      const b = list.find((x) => x.insert === txt);
+      ensureEditor().then((e) => { S.setView('code'); e.insert(txt, b ? b.back : 0); });
+    });
+    S.setCount('docs', 0);
+  }
+  S.docsSearch.addEventListener('input', renderDocsTab);
+  S.docsSearch.addEventListener('keydown', (e) => e.stopPropagation());
+  const newBtnRow = () => load('', NEW_SRC, null, 'new').then(() => nameIn.focus());
   async function renderLists(){
-    renderTarget();
-    onChart.innerHTML = '';
+    renderTarget(); renderPrimary();
     const a = activeCell();
     const hs = a.cell ? zsHandles(a.cell.chart) : [];
-    if (!hs.length) onChart.appendChild(el('li', { class: 'stkc-empty', text: 'No Zscript indicators on this chart.' }));
-    hs.forEach((h) => onChart.appendChild(row(titleOf(h.source), null, [ib('Remove ' + titleOf(h.source) + ' from the chart', ICON_DEL, () => { try { h.remove(); } catch (e) {} changed(); renderLists(); }, 'stkc-del')], () => load(titleOf(h.source), h.source, null))));
-    examples.innerHTML = '';
-    ZS_EXAMPLES.forEach((x) => examples.appendChild(row(x.name, 'Example', [ib('Add ' + x.name + ' to the chart', ICON_ADD, () => { load(x.name, x.source, null).then(addToChart); })], () => load(x.name, x.source, null))));
+    lists.chart.innerHTML = '';
+    if (!hs.length) lists.chart.appendChild(emptyState('No Zscript indicators on this chart yet. Open an example or write your own, then Add to chart.', 'New script', newBtnRow));
+    hs.forEach((h) => {
+      const nm = titleOf(h.source), lib = libOf(h.source);
+      lists.chart.appendChild(libRow({ name: nm, badge: lib ? 'Library' : (h === handle ? 'Open' : null), desc: lib ? 'Protected library script' : descOf(h.source),
+        onOpen: () => { if (lib) showErr(null, 'This library script keeps its code private.'); else load(nm, h.source, null, 'chart', h); },
+        actions: [lib ? null : A('Open ' + nm + ' in the editor', ICONS.open, () => load(nm, h.source, null, 'chart', h)), A('Remove ' + nm + ' from the chart', ICONS.del, () => { try { h.remove(); } catch (e) {} if (h === handle) handle = null; changed(); renderLists(); }, 'stkc-del')] }));
+    });
+    S.setCount('chart', hs.length);
+    lists.examples.innerHTML = '';
+    ZS_EXAMPLES.forEach((x) => lists.examples.appendChild(libRow({ name: x.name, badge: 'Example', desc: descOf(x.source), onOpen: () => load(x.name, x.source, null, 'example'),
+      actions: [A('Open ' + x.name, ICONS.open, () => load(x.name, x.source, null, 'example')), A('Add ' + x.name + ' to the chart', ICONS.add, () => { load(x.name, x.source, null, 'example').then(addToChart); }), A('Duplicate ' + x.name + ' as a new script', ICONS.copy, () => load(copyName(x.name), x.source, null, 'new'))] })));
+    S.setCount('examples', ZS_EXAMPLES.length);
     let r = { items: [] };
     try { r = await Store.list(); } catch (e) { r = { items: [], note: 'Could not load your scripts.' }; }
-    mine.innerHTML = '';
-    listNote.textContent = r.note || (r.items.length ? '' : 'None saved yet.');
-    listNote.hidden = !listNote.textContent;
-    r.items.forEach((t) => mine.appendChild(row(t.name, null, [
-      ib('Add ' + t.name + ' to the chart', ICON_ADD, () => { load(t.name, t.source, t.id).then(addToChart); }),
-      ib('Rename ' + t.name, ICON_REN, async () => { const v = window.prompt('Rename the script', t.name); if (!v || !v.trim()) return; try { await Store.rename(t.id, v); if (editingId === t.id) nameIn.value = v.trim(); } catch (e) { showErr(null, 'Could not rename.'); } renderLists(); }),
-      ib('Delete ' + t.name, ICON_DEL, async () => { if (!window.confirm('Delete the script "' + t.name + '"? It stays on any chart it is already on.')) return; try { await Store.remove(t.id); if (editingId === t.id) editingId = null; } catch (e) { showErr(null, 'Could not delete.'); } renderLists(); }, 'stkc-del')
-    ], () => load(t.name, t.source, t.id))));
+    lists.mine.innerHTML = '';
+    if (r.note) lists.mine.appendChild(el('li', { class: 'stkc-empty sed-empty' }, [el('p', { text: r.note })]));
+    if (!r.items.length) lists.mine.appendChild(emptyState('No saved scripts yet. Write one, give it a name, then Save (' + (/Mac/.test(navigator.platform) ? '⌘' : 'Ctrl+') + 'S).', 'New script', newBtnRow));
+    r.items.forEach((t) => lists.mine.appendChild(libRow({ name: t.name, badge: t.id === editingId ? 'Open' : null, desc: ago(t.updatedAt) + (descOf(t.source) ? ' · ' + descOf(t.source) : ''), onOpen: () => load(t.name, t.source, t.id, 'mine'),
+      actions: [
+        A('Add ' + t.name + ' to the chart', ICONS.add, () => { load(t.name, t.source, t.id, 'mine').then(addToChart); }),
+        A('Duplicate ' + t.name, ICONS.copy, () => load(copyName(t.name), t.source, null, 'new')),
+        A('Rename ' + t.name, ICONS.ren, async () => { const v = window.prompt('Rename the script', t.name); if (!v || !v.trim()) return; try { await Store.rename(t.id, v); if (editingId === t.id) { nameIn.value = v.trim(); base.name = v.trim(); } } catch (e) { showErr(null, 'Could not rename.'); } renderLists(); renderStatus(); }),
+        A('Delete ' + t.name, ICONS.del, async () => { if (!window.confirm('Delete the script "' + t.name + '"? It stays on any chart it is already on.')) return; try { await Store.remove(t.id); if (editingId === t.id) { editingId = null; kind = 'new'; renderStatus(); } } catch (e) { showErr(null, 'Could not delete.'); } renderLists(); }, 'stkc-del')
+      ] })));
+    S.setCount('mine', r.items.length);
   }
 
   function setOpen(open){
     panel.hidden = !open;
+    S.setOpenState(open);
     document.body.classList.toggle('stkc-pine-open', open || (pinePanel && !pinePanel.hidden));
     if (pineBtn) pineBtn.setAttribute('aria-expanded', open || (pinePanel && !pinePanel.hidden) ? 'true' : 'false');
     if (open) {
-      addBtn.lastChild.textContent = isPhone() ? 'Run' : 'Add to chart';
       renderLists();
       ensureEditor().then((e) => { if (!isPhone()) e.focus(); }).catch(() => {});
     } else stopLint();
@@ -669,16 +718,21 @@ export function mountZscript(ws, opts){
     if (k === 'zs') { if (P()) P().close(); setOpen(true); panel.querySelector('.stkc-langseg-b.on').focus(); }
     else { setOpen(false); if (P()) { P().open(); const b = pinePanel && pinePanel.querySelector('.stkc-langseg-b.on'); if (b) b.focus(); } }
   }
-  // The toolbar's script editor button opens the language used last.
+  // The toolbar's script editor button opens the language used last (Zscript first).
   if (pineBtn) pineBtn.addEventListener('click', (e) => {
     if (!panel.hidden) { e.stopImmediatePropagation(); setOpen(false); return; }
     if (prefZs() && pinePanel && pinePanel.hidden) { e.stopImmediatePropagation(); setOpen(true); }
   }, true);
-  closeBtn.addEventListener('click', () => { setOpen(false); if (pineBtn) pineBtn.focus(); });
-  panel.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.stopPropagation(); setOpen(false); if (pineBtn) pineBtn.focus(); } });
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !e.defaultPrevented) {
+      if (panel.querySelector('.cm-panel.cm-search') && panel.querySelector('.cm-panel.cm-search').contains(e.target)) return;   // Escape closes the find bar first
+      e.stopPropagation();
+      if (panel.classList.contains('is-max')) { S.setMax(false); return; }
+      setOpen(false); if (pineBtn) pineBtn.focus();
+    }
+  });
   try { ws.on('cell:active', () => { if (!panel.hidden) setTimeout(renderLists, 0); }); } catch (e) {}
-  try { ws.on('state:changed', () => { if (!panel.hidden) renderTarget(); }); } catch (e) {}
-
+  try { ws.on('state:changed', () => { if (!panel.hidden) { renderTarget(); renderPrimary(); } }); } catch (e) {}
   // Indicator window (assets/chart-indicator-window.js): add an example / saved script without opening the editor.
   async function addSource(name, source){
     const a = activeCell();
@@ -698,13 +752,23 @@ export function mountZscript(ws, opts){
     const src = meta.access === 'open' && typeof meta.source === 'string' ? meta.source : libStub(sid, meta.name);
     const r = await addSource(meta.name, src);
     if (!r.ok) toast(r.msg || 'The script did not run.');
+    else if (r.handle) { libMetaOf.set(r.handle, { sid, v: +meta.version || 1, open: src === meta.source }); changed(); }
     return r;
+  }
+  // For assets/chart-ind-versions.js: the library script a handle runs, its published versions, and the latest open source.
+  const libMetaOfHandle = (h) => libMetaOf.get(h) || (libOf(h && h.source) ? { sid: libOf(h.source), v: null, open: false } : null);
+  const libVersions = (sid) => zsLib().then((L) => (L.versions ? L.versions(sid) : null));
+  async function libSource(sid){
+    const L = await zsLib();
+    const meta = await L.get(sid, await (async () => { const { ZsRunner } = await engine(); const r = new ZsRunner(); try { return await r.session(); } finally { r.dispose(); } })());
+    if (meta.access !== 'open' || typeof meta.source !== 'string') throw new Error('protected');
+    return { source: meta.source, version: +meta.version || 1 };
   }
   if (qsid) setTimeout(() => { addLibrary(qsid).finally(() => { try { const u = new URL(location.href); u.searchParams.delete('zs'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); } catch (e) {} }); }, 0);
   window.STRYKER_ZS = {
     open: (src, name) => { setPref(true); if (P()) P().close(); setOpen(true); if (src != null) load(name || '', src, null); },
     openNew: () => { setPref(true); if (P()) P().close(); setOpen(true); load('', NEW_SRC, null); },
-    close: () => setOpen(false), load, addToChart, addSource, addLibrary, libStub, runOnChart, handles: zsHandles, titleOf, isZscript, examples: ZS_EXAMPLES, store: Store, toModel
+    close: () => setOpen(false), load, addToChart, addSource, addLibrary, libStub, libOf: libMetaOfHandle, libVersions, libSource, runOnChart, handles: zsHandles, titleOf, isZscript, examples: ZS_EXAMPLES, store: Store, toModel
   };
   return { setOpen };
 }

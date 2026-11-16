@@ -135,7 +135,7 @@ async function newPage(b, opts) {
   return { ctx, p, errors };
 }
 async function boot(p, BASE) {
-  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + '/charts.html?search=classic', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkPaper && window.__stkBarReplay, null, { timeout: 60000 });
   await p.waitForFunction(() => window.__stkPaper.account, null, { timeout: 15000 });
   // paper trading is OFF by default (Chart settings → Paper trading, 2026-10-14): this suite trades

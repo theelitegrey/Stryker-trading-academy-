@@ -163,6 +163,50 @@ function friendlyAuthError(error){
   return map[error.code] || (error.message || 'Something went wrong. Please try again.');
 }
 
+// ---- Google sign-in inside the TradeZoro Windows app ----
+// Google refuses OAuth inside embedded browsers ("This browser or app may not be secure"), so in the app
+// (window.tzDesktop, desktop/src/preload.js) Google sign-in runs in the member's normal browser on
+// /desktop-login and comes back as a one-time Firebase custom token (functions/api/desktop). Returns null when
+// this is not the app, so callers fall through to the normal popup. Resolves like signInWithPopup (a cred
+// with .user); rejects with an Error whose .code is 'desktop/cancelled' | 'desktop/timeout' | 'desktop/failed' |
+// 'desktop/update' (an app from before the fix: it has no googleSignIn).
+function tzDesktopGoogleSignIn(onWaiting){
+  const d = window.tzDesktop;
+  if (!d || typeof d !== 'object') return null;
+  const err = (code) => { const e = new Error(code); e.code = 'desktop/' + code; return e; };
+  if (typeof d.googleSignIn !== 'function') return Promise.reject(err('update'));
+  if (typeof onWaiting === 'function') { try { onWaiting(); } catch (e) { /* UI only */ } }
+  return d.googleSignIn()
+    .catch((e) => { const m = /cancelled|timeout/.exec(String(e && e.message)); throw err(m ? m[0] : 'failed'); })
+    .then((r) => {
+      if (!r || !r.token) throw err('failed');
+      return applyChosenPersistence().then(() => auth.signInWithCustomToken(r.token));
+    });
+}
+function tzDesktopGoogleError(e){
+  const c = e && e.code;
+  if (c === 'desktop/update') return 'Google sign-in needs the newest TradeZoro app. Choose Help, then Check for updates, and restart the app. Email and passkey sign-in work now.';
+  if (c === 'desktop/cancelled') return 'Google sign-in was cancelled.';
+  if (c === 'desktop/timeout') return 'Google sign-in timed out. Try again, and finish it in the browser window that opens.';
+  if (c === 'desktop/failed') return "Google sign-in didn't finish. Try again, or use email or a passkey.";
+  return null;
+}
+// "We opened your browser" note shown while the app waits; returns a function that removes it.
+function tzDesktopWaitingNote(beforeEl){
+  if (!beforeEl || !beforeEl.parentNode) return () => {};
+  const old = document.getElementById('tz-desk-wait'); if (old) old.remove();
+  const note = document.createElement('div');
+  note.className = 'auth-note auth-note-wait'; note.id = 'tz-desk-wait'; note.setAttribute('role', 'status');
+  const t = document.createElement('span');
+  t.textContent = 'We opened your web browser. Sign in with Google there, then come back to this window.';
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'auth-note-action'; b.textContent = 'Cancel';
+  b.addEventListener('click', () => { try { window.tzDesktop.cancelGoogleSignIn(); } catch (e) { /* old app */ } });
+  note.appendChild(t); note.appendChild(b);
+  beforeEl.parentNode.insertBefore(note, beforeEl);
+  return () => note.remove();
+}
+
 // NOTE: role selection at login was removed deliberately. It was a UI toggle
 // that anyone could click, so it never proved anything — the real boundary is
 // the Firestore rules plus admin-guard.js, both of which check for an
@@ -402,8 +446,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const original = btn.innerHTML;
       btn.disabled = true;
 
-      applyChosenPersistence()
-        .then(() => auth.signInWithPopup(provider))
+      let unwait = () => {};
+      const viaApp = tzDesktopGoogleSignIn(() => { unwait = tzDesktopWaitingNote(document.getElementById(errElId)); });
+      (viaApp || applyChosenPersistence().then(() => auth.signInWithPopup(provider)))
         .then((cred) => {
           // Google covers both sign-up and sign-in through one button, so the
           // event is chosen from whether Firebase just created the account.
@@ -417,13 +462,16 @@ document.addEventListener('DOMContentLoaded', () => {
           return routeAfterAuth();
         })
         .catch((err) => {
-          if (err && err.code === 'auth/popup-blocked') {
+          const deskMsg = tzDesktopGoogleError(err);
+          if (deskMsg) {
+            showAuthError(errElId, deskMsg);
+          } else if (err && err.code === 'auth/popup-blocked') {
             showAuthError(errElId, "Your browser blocked the Google sign-in popup. Please allow popups for this site, or use email/password instead — it doesn't need one.");
           } else {
             showAuthError(errElId, friendlyAuthError(err) + ' If this keeps happening, email/password login is the most reliable option on this device.');
           }
         })
-        .finally(() => { btn.disabled = false; btn.innerHTML = original; });
+        .finally(() => { unwait(); btn.disabled = false; btn.innerHTML = original; });
     });
   });
 

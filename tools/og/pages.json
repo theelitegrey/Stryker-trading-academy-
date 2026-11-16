@@ -335,6 +335,13 @@
       "alt": "About TradeZoro share card with the TradeZoro logo"
     },
     {
+      "page": "download.html",
+      "title": "Desktop App",
+      "og_title": "Download TradeZoro for Windows: the desktop app for traders",
+      "visual": "brand",
+      "alt": "Desktop App share card with the TradeZoro logo"
+    },
+    {
       "page": "signup.html",
       "title": "Create Account",
       "og_title": "Create Account — Start the Free Chapters at TradeZoro",
@@ -357,10 +364,10 @@
     },
     {
       "page": "pro.html",
-      "title": "Everything in Pro",
-      "og_title": "Everything in Pro: order flow, order book and GEX+ — TradeZoro",
+      "title": "Pro · Live data",
+      "og_title": "Pro · Live data: the live futures order book — TradeZoro",
       "visual": "brand",
-      "alt": "Everything in Pro share card with the TradeZoro logo"
+      "alt": "Pro · Live data share card with the TradeZoro logo"
     },
     {
       "page": "login.html",
@@ -445,6 +452,13 @@
       "og_title": "Suggestions — TradeZoro",
       "visual": "brand",
       "alt": "Suggestions share card with the TradeZoro logo"
+    },
+    {
+      "page": "ai.html",
+      "title": "Connect your AI",
+      "og_title": "Connect your AI to ZoroCharts — TradeZoro",
+      "visual": "brand",
+      "alt": "Connect your AI to ZoroCharts share card with the TradeZoro logo"
     },
     {
       "page": "features/creators.html",

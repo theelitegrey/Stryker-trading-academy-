@@ -173,6 +173,11 @@ edit(C, '''function wheelPanDelta(deltaX, deltaY, shift2) {
   if (shift2) return -deltaY * 0.8;''')
 # #3 zoom steps instantly (no 70 ms ease, which took ~700 ms to settle).
 edit(C, 'var ZOOM_EASE_DEFAULT_MS = 70;', '// TradeZoro patch (s1): instant zoom like TradingView (was a 70 ms ease).\nvar ZOOM_EASE_DEFAULT_MS = 0;')
+# s9 fix (15 Nov): that 0 also made the 'Animate zoom' switch restore 0 ms, so it could never turn ON.
+# Zoom ships OFF (initial 0 / config default false) but the switch restores the 70 ms glide.
+edit(C, 'var ZOOM_EASE_DEFAULT_MS = 0;', 'var ZOOM_EASE_DEFAULT_MS = 70;')
+edit(C, 'this.animZoom = new EaseSetting(ZOOM_EASE_DEFAULT_MS);', 'this.animZoom = new EaseSetting(ZOOM_EASE_DEFAULT_MS, 0);')
+edit(C, 'animZoom: resolveEaseMs(cfg.zoom ?? true, ZOOM_EASE_DEFAULT_MS),', 'animZoom: resolveEaseMs(cfg.zoom ?? false, ZOOM_EASE_DEFAULT_MS),')
 # #11 max zoom-in keeps ~9 bars on screen (was 2).
 edit(C, 'var MIN_VISIBLE_BARS = 2;', 'var MIN_VISIBLE_BARS = 9;')
 # #9 weak magnet radius 8 -> 20 px (strong already snaps to exact bar time + OHLC).

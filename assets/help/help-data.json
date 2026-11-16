@@ -64,7 +64,7 @@
       {
        "id": "is-it-free",
        "q": "Is TradeZoro free?",
-       "a": "<p>Yes. TradeZoro is free for every signed-in member and built by traders, for traders. Free gives you all 64 chapters, ZoroCharts, Replay One, Market Stats, JournalX (unlimited, with import, broker sync, analytics and the coach), Smart Money Desk, trading models, private indicators and the full community. Some advanced tools (order flow, GEX+) are part of Pro, and more is coming. No card is needed to sign up.</p>",
+       "a": "<p>Yes. TradeZoro is free for every signed-in member and built by traders, for traders. Free gives you all 64 chapters, ZoroCharts, Replay One, Market Stats, JournalX (unlimited, with import, broker sync, analytics and the coach), Smart Money Desk, trading models, private indicators and the full community. Every tool is free, order flow and GEX+ included. Only the live futures order book is a paid data feed. No card is needed to sign up.</p>",
        "plans": "all",
        "tags": [
         "free",
@@ -797,7 +797,7 @@
       {
        "id": "free-vs-pro",
        "q": "What is the difference between Free and Pro?",
-       "a": "<p>Almost everything is free. Pro adds order flow tools and GEX+ (GEX+ for every symbol and expiry, and GEX on charts). CME futures are 10 minutes delayed until you sign the market data agreement. Live futures prices and candles (L1) are free once you sign the market data agreement.</p><ul><li><strong>Free</strong>: all 64 chapters, ZoroCharts (live CME futures prices and candles (L1) once you sign the market data agreement, crypto live), Replay One, unlimited JournalX with import, broker sync, analytics and AI coach, Smart Money Desk, trading models, private indicators, full community with posting and messages, scanner.</li><li><strong>Pro</strong>: order flow tools, GEX+ and GEX on charts, more coming.</li></ul>",
+       "a": "<p>Every tool is free: order flow tools, GEX+ for every symbol and expiry, GEX on charts and the order book tools. The one paid part is the live futures order book (L2), a data feed whose rules are set by the exchange. Pro · Live data is the plan that adds it. Without it, the order book tools still work and read the recorded book 10 minutes delayed. Live futures prices and candles (L1) are free once you sign the market data agreement.</p><ul><li><strong>Free</strong>: all 64 chapters, every ZoroCharts tool (order flow, GEX+, depth heatmap, DOM), live crypto, live futures prices and candles (L1) once you sign the market data agreement, Replay One, unlimited JournalX, Smart Money Desk, trading models, private indicators, full community, scanner.</li><li><strong>Pro · Live data</strong>: the live futures order book, with no delay.</li></ul>",
        "plans": "all",
        "tags": [
         "pro",
@@ -816,7 +816,7 @@
       {
        "id": "pro-price",
        "q": "How much does Pro cost?",
-       "a": "<p>TradeZoro is free. Some advanced tools (order flow, GEX+) are part of Pro. Open one of them, or Settings → Plan, and the Pro prompt shows the current price, read live from the plan, in your currency.</p>",
+       "a": "<p>TradeZoro is free and every tool is included. Only the live futures order book is a paid data feed (Pro · Live data), because the exchange sets its rules. Open the live order book on a futures chart, or Settings → Plan, and the prompt shows the current price, read live from the plan, in your currency.</p>",
        "plans": "all",
        "tags": [
         "price",
@@ -850,7 +850,7 @@
       {
        "id": "what-is-locked",
        "q": "What do the PRO tags mean?",
-       "a": "<p>A small PRO tag marks an order flow or GEX+ tool, which are part of Pro. Tapping it opens the upgrade window. It is not an error.</p>",
+       "a": "<p>Nothing on a chart carries a PRO tag any more: every tool is free. If you see a lock, it is on the live futures order book, which is a paid data feed. It is not an error.</p>",
        "plans": "free",
        "tags": [
         "pro tag",
@@ -867,9 +867,9 @@
       {
        "id": "upgrade-how",
        "q": "How do I upgrade to Pro?",
-       "a": "<p>Tap any Join Pro or See Pro button (on a PRO tag, an order flow or GEX+ tool, or Settings → Plan) and follow the checkout.</p>",
+       "a": "<p>You only need it for the live futures order book. Tap Join Pro on the live-data prompt (a futures order book tool, or Settings → Plan) and follow the checkout. Every tool works without it.</p>",
        "steps": [
-        "Tap a PRO tag, open an order flow or GEX+ tool, or open Settings → Plan.",
+        "Open a futures order book tool, or open Settings → Plan.",
         "Tap Join Pro.",
         "Fill in your billing details.",
         "Add a coupon if you have one and tap Apply.",
@@ -892,7 +892,7 @@
       {
        "id": "free-trial",
        "q": "Is there a free trial?",
-       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and GEX+ are Pro. Live futures prices and candles (L1) are free once you sign the market data agreement.</p>",
+       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and GEX+ are free; only the live futures order book is paid. Live futures prices and candles (L1) are free once you sign the market data agreement.</p>",
        "tags": [
         "trial",
         "free trial",
@@ -1343,7 +1343,7 @@
       {
        "id": "zorocharts-what",
        "q": "What is ZoroCharts?",
-       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Pro adds order flow tools and GEX on charts. CME futures are 10 minutes delayed (CME rule) until you sign the market data agreement. Live futures prices and candles (L1) are free once you sign the market data agreement. Crypto is live for everyone.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
+       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Order flow tools and GEX on charts are free too; only the live futures order book is a paid data feed. CME futures are 10 minutes delayed (CME rule) until you sign the market data agreement. Live futures prices and candles (L1) are free once you sign the market data agreement. Crypto is live for everyone.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
        "path": "ZoroCharts (dock)",
        "tags": [
         "charts",
@@ -1425,7 +1425,7 @@
       {
        "id": "chart-style",
        "q": "How do I change the chart type?",
-       "a": "<p>Tap the chart style button (phone: More, then Chart type) to open the chart type sheet. Press and hold a type, or tap its star, to add it to your top bar. Volume footprint, Time price opportunity and Session volume profile are Pro.</p>",
+       "a": "<p>Tap the chart style button (phone: More, then Chart type) to open the chart type sheet. Press and hold a type, or tap its star, to add it to your top bar. Volume footprint, Time price opportunity and Session volume profile are free.</p>",
        "path": "ZoroCharts → Chart style",
        "tags": [
         "candles",
@@ -1451,7 +1451,7 @@
       {
        "id": "data-dot",
        "q": "What is the coloured dot next to the symbol?",
-       "a": "<p>It shows the data status: green with Live, amber with 10 min delayed · CME, grey with Closed. CME futures are 10 minutes behind (CME rule) until you sign the market data agreement or connect Rithmic (Live (Rithmic)). Live futures prices and candles (L1) are free once you sign the market data agreement. Order flow tools are Pro. Forex is also delayed. Crypto from the public feeds is live. Tap or hover the dot for the full line.</p>",
+       "a": "<p>It shows the data status: green with Live, amber with 10 min delayed · CME, grey with Closed. CME futures are 10 minutes behind (CME rule) until you sign the market data agreement or connect Rithmic (Live (Rithmic)). Live futures prices and candles (L1) are free once you sign the market data agreement. Order flow tools are free. Forex is also delayed. Crypto from the public feeds is live. Tap or hover the dot for the full line.</p>",
        "tags": [
         "dot",
         "green",
@@ -1682,7 +1682,7 @@
       {
        "id": "ctype-tpo",
        "q": "What is the Time price opportunity chart type?",
-       "a": "<p>A letter for each time block (30 minutes by default) at each price, per session, with the point of control and the value area. Pro. Use a chart timeframe of 30 minutes or less.</p>",
+       "a": "<p>A letter for each time block (30 minutes by default) at each price, per session, with the point of control and the value area. Free. Use a chart timeframe of 30 minutes or less.</p>",
        "path": "ZoroCharts → Chart type → Time price opportunity",
        "tags": [
         "chart type",
@@ -1696,7 +1696,7 @@
       {
        "id": "ctype-session-vp",
        "q": "What is the Session volume profile chart type?",
-       "a": "<p>A volume histogram per session with the point of control and the value area (70% by default). Pro.</p>",
+       "a": "<p>A volume histogram per session with the point of control and the value area (70% by default). Free.</p>",
        "path": "ZoroCharts → Chart type → Session volume profile",
        "tags": [
         "chart type",
@@ -2068,8 +2068,8 @@
       },
       {
        "id": "indicator-pro-tag",
-       "q": "Why does an indicator show PRO?",
-       "a": "<p>Order flow tools and GEX-based tools are Pro: Footprint, Delta, CVD, big trades, absorption, imbalance zones, volume profile (trades), VWAP (trades), Market Profile, effort vs result, stop runs, GEX Levels, GEX Heatmap and Expected Move. Every other indicator is free.</p><p>If you tap one on Free, the upgrade window says \"Order flow tools are part of Pro.\" or \"GEX and options flow on charts are part of Pro.\"</p>",
+       "q": "Why does a tool show a lock?",
+       "a": "<p>Indicators are no longer locked. Order flow tools (Footprint, Delta, CVD, big trades, absorption, imbalance zones, volume profile, VWAP, Market Profile, effort vs result, stop runs) and GEX tools (GEX Levels, GEX Heatmap, Expected Move) are free for every signed-in member.</p><p>The only lock is on the live futures order book, a paid data feed. Without it, those tools read the recorded book 10 minutes delayed and say so.</p>",
        "plans": "free",
        "tags": [
         "pro",
@@ -2085,8 +2085,8 @@
       },
       {
        "id": "removed-from-chart",
-       "q": "A tool was removed from my chart: \"are part of Pro. Removed from this chart.\"",
-       "a": "<p>On Free, if a saved layout, template or script loads a Pro tool, it is taken off the chart and you see \"Order flow tools are part of Pro. Removed from this chart.\" (or the GEX version). Your other tools stay. Upgrading lets you add them again.</p>",
+       "q": "A tool was removed from my chart",
+       "a": "<p>Tools are not removed from a layout, template or script any more, because every tool is free. If a tool is missing, check it is not hidden in the Indicators window, then reload the page.</p>",
        "plans": "free",
        "tags": [
         "removed",
@@ -2247,7 +2247,7 @@
   },
   {
    "id": "orderflow",
-   "title": "Order flow and GEX on charts (Pro)",
+   "title": "Order flow and GEX on charts (free)",
    "icon": "wave",
    "desc": "Footprint, delta, liquidity and options levels on the chart.",
    "subs": [
@@ -2258,7 +2258,7 @@
       {
        "id": "orderflow-what",
        "q": "What are the order flow tools?",
-       "a": "<p>Order flow tools show who traded at each price: Footprint, Delta, CVD, Big Trades, Absorption, Imbalance zones, Volume profile, Market Profile, Effort vs result, Stop runs and a Liquidity heatmap. They are in the Order Flow group of the Indicators window. They are part of Pro and work on futures (NQ, ES, YM, GC, SI, CL and micros) and crypto. On futures they are the (L2) tools, built from trades and the order book: Footprint (L2), Delta (L2), Cumulative Delta (L2), Big Trades (L2), Stop Runs (L2), Volume Profile (L2), Delta Profile (L2) and Swing VWAP + Profile (L2). The last one draws an anchored VWAP and a volume profile (POC, VAH, VAL) for every swing leg and picks up new swings on its own.</p>",
+       "a": "<p>Order flow tools show who traded at each price: Footprint, Delta, CVD, Big Trades, Absorption, Imbalance zones, Volume profile, Market Profile, Effort vs result, Stop runs and a Liquidity heatmap. They are in the Order Flow group of the Indicators window. They are free and work on futures (NQ, ES, YM, GC, SI, CL and micros) and crypto. On futures they are the (L2) tools, built from trades and the order book: Footprint (L2), Delta (L2), Cumulative Delta (L2), Big Trades (L2), Stop Runs (L2), Volume Profile (L2), Delta Profile (L2) and Swing VWAP + Profile (L2). The last one draws an anchored VWAP and a volume profile (POC, VAH, VAL) for every swing leg and picks up new swings on its own.</p>",
        "path": "ZoroCharts → Indicators → Order Flow",
        "plans": "pro",
        "tags": [
@@ -2286,7 +2286,7 @@
       {
        "id": "orderbook-pack",
        "q": "What are the order-book indicators (Book Speed, Liquidity Balance and more)?",
-       "a": "<p>Six order-book tools read the order book we already record. <strong>Book Speed (L2)</strong> shows how nervous the book is: fast books often come before big moves. <strong>Liquidity Balance (L2)</strong> compares resting bid and ask size near price. <strong>Refill Detector (L2)</strong> marks levels that were hit and quickly refilled. <strong>Volatility Regime (L2)</strong> shows Tight, Normal or Wide from how spread the resting size is. <strong>Large Resting Orders (L2)</strong> highlights the biggest single levels. <strong>Absorption &amp; Iceberg Tracker (L1+L2)</strong> counts absorption, iceberg hints and stop runs through the session. They work on futures (NQ, ES, YM, RTY, CL, GC) and crypto books, are part of Pro, and show a note when there is no book. Education only. Not financial advice.</p><p><strong>Where to find it:</strong> ZoroCharts → Indicators → Order Flow</p>",
+       "a": "<p>Six order-book tools read the order book we already record. <strong>Book Speed (L2)</strong> shows how nervous the book is: fast books often come before big moves. <strong>Liquidity Balance (L2)</strong> compares resting bid and ask size near price. <strong>Refill Detector (L2)</strong> marks levels that were hit and quickly refilled. <strong>Volatility Regime (L2)</strong> shows Tight, Normal or Wide from how spread the resting size is. <strong>Large Resting Orders (L2)</strong> highlights the biggest single levels. <strong>Absorption &amp; Iceberg Tracker (L1+L2)</strong> counts absorption, iceberg hints and stop runs through the session. They work on futures (NQ, ES, YM, RTY, CL, GC) and crypto books, are free, and show a note when there is no book. Education only. Not financial advice.</p><p><strong>Where to find it:</strong> ZoroCharts → Indicators → Order Flow</p>",
        "path": "ZoroCharts → Indicators → Order Flow",
        "plans": "pro",
        "tags": [
@@ -2314,7 +2314,7 @@
       {
        "id": "footprint-patterns",
        "q": "What is the Footprint Patterns indicator?",
-       "a": "<p>Footprint Patterns reads the footprint (the buy and sell volume at every price) and marks six patterns on your chart, on any chart style, candles included. Each mark is a small numbered circle, green or red by side. Hover or tap a mark for a one-line explanation. Turn on Text labels in its settings to see names next to the numbers.</p><ol><li><b>Absorption</b>: heavy aggressive volume at the bar's extreme, but price did not progress and closed back off it.</li><li><b>Exhaustion</b>: aggressive volume shrinks row by row toward the extreme.</li><li><b>Stacked imbalances</b>: three or more diagonal imbalances in a row. A zone stays on the chart until price trades through it.</li><li><b>Unfinished auction</b>: both bid and ask traded at the bar's high or low. A thin line stays until price returns to it.</li><li><b>Delta divergence</b>: a new swing high with less delta than the one before (or the mirror at lows).</li><li><b>Trapped traders</b>: heavy buying at a high (or selling at a low), then a close beyond the whole zone.</li></ol><p>Each pattern has an on/off switch and its own thresholds. The newest bar is marked as forming until it closes. On futures use Footprint Patterns (L2); on crypto use Footprint Patterns. It is part of Pro. It describes what happened on the chart, not what price will do. Education only. Not financial advice.</p><p><strong>Where to find it:</strong> ZoroCharts → Indicators → Order Flow</p>",
+       "a": "<p>Footprint Patterns reads the footprint (the buy and sell volume at every price) and marks six patterns on your chart, on any chart style, candles included. Each mark is a small numbered circle, green or red by side. Hover or tap a mark for a one-line explanation. Turn on Text labels in its settings to see names next to the numbers.</p><ol><li><b>Absorption</b>: heavy aggressive volume at the bar's extreme, but price did not progress and closed back off it.</li><li><b>Exhaustion</b>: aggressive volume shrinks row by row toward the extreme.</li><li><b>Stacked imbalances</b>: three or more diagonal imbalances in a row. A zone stays on the chart until price trades through it.</li><li><b>Unfinished auction</b>: both bid and ask traded at the bar's high or low. A thin line stays until price returns to it.</li><li><b>Delta divergence</b>: a new swing high with less delta than the one before (or the mirror at lows).</li><li><b>Trapped traders</b>: heavy buying at a high (or selling at a low), then a close beyond the whole zone.</li></ol><p>Each pattern has an on/off switch and its own thresholds. The newest bar is marked as forming until it closes. On futures use Footprint Patterns (L2); on crypto use Footprint Patterns. It is free. It describes what happened on the chart, not what price will do. Education only. Not financial advice.</p><p><strong>Where to find it:</strong> ZoroCharts → Indicators → Order Flow</p>",
        "path": "ZoroCharts → Indicators → Order Flow",
        "plans": "pro",
        "tags": [
@@ -2363,7 +2363,7 @@
       {
        "id": "dom-ladder",
        "q": "Is there a DOM or ladder?",
-       "a": "<p>Pro includes DOM panels and a Crypto DOM. The GEX Ladder is a separate strike ladder (right icon bar, or GEX+ → Ladder).</p>",
+       "a": "<p>DOM panels are free, with and a Crypto DOM. The GEX Ladder is a separate strike ladder (right icon bar, or GEX+ → Ladder).</p>",
        "plans": "pro",
        "tags": [
         "dom",
@@ -2379,7 +2379,7 @@
       {
        "id": "liquidity-map",
        "q": "What is the Liquidity Map?",
-       "a": "<p>A Pro indicator in the Order Flow group that draws resting orders as a heatmap with trade bubbles. On crypto it uses the exchange's public depth (Binance, Hyperliquid). Futures order-book depth is not available to members yet.</p>",
+       "a": "<p>A free indicator in the Order Flow group that draws resting orders as a heatmap with trade bubbles. On crypto it uses the exchange's public depth (Binance, Hyperliquid). Futures order-book depth is not available to members yet.</p>",
        "plans": "pro",
        "tags": [
         "liquidity map",
@@ -2397,7 +2397,7 @@
       {
        "id": "depth-heatmap",
        "q": "What is the Depth Heatmap (L2)?",
-       "a": "<p>A Pro indicator in the Order Flow group. It paints the resting orders at every price on its own dark background: thin size is a soft blue, bigger size turns light blue and white, and the biggest resting orders turn yellow, orange and red. A level is drawn as one bar until its size really changes or it is removed.</p><p>On top it shows the traded volume as balls on the price path (green part = buying, red part = selling), the price line, the current book at the right edge (red above the price, green below, with sizes and a running total) and buy and sell volume bars at the bottom.</p><p>Settings: Smooth (averages each level over the last 15 s to 2 min, default 30 s), Contrast (auto or manual), Lower cutoff (hide the thinnest levels), and switches for the balls, the book bars, the total column and the volume bars. It works on NQ, ES, YM, RTY, CL and GC futures (Data feed L2) and on crypto order books, also in replay. Education only. Not financial advice.</p>",
+       "a": "<p>A free indicator in the Order Flow group. It paints the resting orders at every price on its own dark background: thin size is a soft blue, bigger size turns light blue and white, and the biggest resting orders turn yellow, orange and red. A level is drawn as one bar until its size really changes or it is removed.</p><p>On top it shows the traded volume as balls on the price path (green part = buying, red part = selling), the price line, the current book at the right edge (red above the price, green below, with sizes and a running total) and buy and sell volume bars at the bottom.</p><p>Settings: Smooth (averages each level over the last 15 s to 2 min, default 30 s), Contrast (auto or manual), Lower cutoff (hide the thinnest levels), and switches for the balls, the book bars, the total column and the volume bars. It works on any chart that has an order book: futures with the L2 data feed, crypto exchange books, or the depth your own connected broker streams. Replay uses the recorded futures and crypto books. Education only. Not financial advice.</p>",
        "plans": "pro",
        "tags": [
         "depth heatmap",
@@ -2493,7 +2493,7 @@
       {
        "id": "gex-free",
        "q": "Is any GEX+ free?",
-       "a": "<p>Yes, a part of it. On Free you get GEX+ for SPX with the 0DTE (same-day) expiry. Pro unlocks every symbol and expiry, the ladder, and GEX on charts.</p>",
+       "a": "<p>Yes, all of it. GEX+ is free for every signed-in member: every symbol and expiry, the ladder, the heatmap and GEX on charts.</p>",
        "plans": "free",
        "tags": [
         "free gex",
@@ -2508,8 +2508,8 @@
       },
       {
        "id": "gex-pro",
-       "q": "What does Pro add on GEX+?",
-       "a": "<p>Every symbol (SPX, SPY, QQQ, Gold) and every expiry (0DTE, 1DTE, 1W, 1M), the strike profile table (NET GEX, DEX, OI), the Heatmap and Ladder views, ZoroTide on the GEX+ page for SPY and QQQ, and GEX tools on charts.</p>",
+       "q": "What does GEX+ include?",
+       "a": "<p>Every symbol (SPX, SPY, QQQ, Gold) and every expiry (0DTE, 1DTE, 1W, 1M), the strike profile table (NET GEX, DEX, OI), the Heatmap and Ladder views, ZoroTide, and GEX tools on charts. All free for signed-in members.</p>",
        "plans": "pro",
        "tags": [
         "pro",
@@ -2566,7 +2566,7 @@
       {
        "id": "gex-heatmap",
        "q": "What is the GEX heatmap?",
-       "a": "<p>A grid of gamma by strike over the day. Use it on GEX+ → Heatmap or add GEX Heatmap on a chart (Pro).</p>",
+       "a": "<p>A grid of gamma by strike over the day. Use it on GEX+ → Heatmap or add GEX Heatmap on a chart .</p>",
        "plans": "pro",
        "tags": [
         "heatmap",
@@ -2665,7 +2665,7 @@
       {
        "id": "zorotide-what",
        "q": "What is ZoroTide?",
-       "a": "<p>ZoroTide shows options money flow: net call premium against net put premium since the 9:30 ET open. It is estimated from options volume and quotes. It is a chart indicator, free for every plan, and it is on the GEX+ ZoroTide tab. On the GEX+ page, Free covers SPX and SPY and QQQ need Pro.</p>",
+       "a": "<p>ZoroTide shows options money flow: net call premium against net put premium since the 9:30 ET open. It is estimated from options volume and quotes. It is a chart indicator, free for every plan, and it is on the GEX+ ZoroTide tab. On the GEX+ page, On the GEX+ page the ZoroTide tab is free for SPX, SPY and QQQ.</p>",
        "plans": "free",
        "tags": [
         "zorotide",
@@ -2687,7 +2687,7 @@
       {
        "id": "zorotide-free",
        "q": "Is ZoroTide free?",
-       "a": "<p>Yes. The ZoroTide chart indicator is free on every plan, for SPX, SPY, QQQ, ES and NQ. On the GEX+ page, the ZoroTide tab follows the GEX+ plan: Free covers SPX, and SPY and QQQ need Pro.</p>",
+       "a": "<p>Yes. The ZoroTide chart indicator is free on every plan, for SPX, SPY, QQQ, ES and NQ. On the GEX+ page, the ZoroTide tab follows the GEX+ plan: On the GEX+ page the ZoroTide tab is free for SPX, SPY and QQQ.</p>",
        "plans": "free",
        "tags": [
         "zorotide free",
@@ -2700,7 +2700,7 @@
       {
        "id": "zorooptions-free",
        "q": "Is ZoroOptions free?",
-       "a": "<p>Yes. ZoroOptions is free for every signed-in member, with every panel and every symbol. If you are signed out, the page asks you to sign in or create a free account. Only the GEX levels download is part of Pro.</p><p>Education only. Not financial advice.</p>",
+       "a": "<p>Yes. ZoroOptions is free for every signed-in member, with every panel and every symbol. If you are signed out, the page asks you to sign in or create a free account. The GEX levels download is free too.</p><p>Education only. Not financial advice.</p>",
        "path": "More → ZoroOptions",
        "plans": "free",
        "tags": [
@@ -3264,7 +3264,7 @@
     },
     {
      "id": "jx-pro",
-     "title": "Import, export, coach and analytics (Pro)",
+     "title": "Import, export, coach and analytics",
      "items": [
       {
        "id": "journal-import",
@@ -4002,7 +4002,7 @@
       {
        "id": "live-futures-data",
        "q": "How do I get live futures data?",
-       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are two ways to get them live:</p><ol><li><strong>Sign the market data agreement (free)</strong>: tap the amber dot or the Delayed pill on the chart, or open Settings → Live futures data, and sign. Live futures prices and candles (L1) are free once you sign the market data agreement. Live trades, candles and best bid/ask switch on straight away. The L2 order book, order flow tools and GEX+ stay Pro.</li><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
+       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are two ways to get them live:</p><ol><li><strong>Sign the market data agreement (free)</strong>: tap the amber dot or the Delayed pill on the chart, or open Settings → Live futures data, and sign. Live futures prices and candles (L1) are free once you sign the market data agreement. Live trades, candles and best bid/ask switch on straight away. Order flow tools and GEX+ are free. The live L2 order book is the one paid data feed (Pro · Live data); without it the order book tools read the book 10 minutes delayed.</li><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
        "plans": "all",
        "tags": [
         "live futures data",
@@ -4021,7 +4021,7 @@
       },
       {
        "id": "pro-realtime",
-       "q": "I am Pro but data still shows delayed.",
+       "q": "I have Pro · Live data but the order book looks delayed.",
        "a": "<p>Live futures prices and candles (L1) are free on every plan once you sign the market data agreement (Settings → Live futures data, or the amber dot on the chart). You can also connect your Rithmic login (Connect broker). If you already did and it still shows delayed, refresh the page and check Settings → Live futures data. If it still shows delayed, contact support with your account email.</p>",
        "plans": "pro",
        "tags": [
@@ -4051,7 +4051,7 @@
       {
        "id": "gex-missing-symbol",
        "q": "GEX is missing for a symbol.",
-       "a": "<p>GEX+ covers SPX, SPY, QQQ and Gold only, and is part of Pro. Outside hours you may see \"No data available\", \"Session data unavailable\" or Waiting for the next update.</p>",
+       "a": "<p>GEX+ covers SPX, SPY, QQQ and Gold only, and is free for signed-in members. Outside hours you may see \"No data available\", \"Session data unavailable\" or Waiting for the next update.</p>",
        "tags": [
         "gex missing",
         "no gex",
@@ -4439,7 +4439,7 @@
       {
        "id": "lost-layout",
        "q": "My saved layout, watchlist or drawings disappeared.",
-       "a": "<p>Check you are signed in with the same account. Layouts, watchlists and templates are saved to your account; clearing site data signs you out. On Free, only Pro tools (order flow and GEX) are removed from a loaded layout.</p>",
+       "a": "<p>Check you are signed in with the same account. Layouts, watchlists and templates are saved to your account; clearing site data signs you out. Every tool loads, because every tool is free.</p>",
        "tags": [
         "lost",
         "missing",

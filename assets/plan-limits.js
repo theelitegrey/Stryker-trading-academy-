@@ -7,7 +7,9 @@
 //             strykerReplayLimitOk; it always answers yes now).
 //
 // The Free plan (rank 0) gets:
-//   GEX           NOTHING (Owner 2026-11-01): all GEX+ is Pro, enforced by the server (functions/api/gex/_pro.js)
+//   EVERYTHING    (Owner 2026-11-13, "Pro tools will be made free"): every tool, GEX+ included, is free for a signed-in member.
+//                 strykerPlanTier() answers free:false for everyone; only the LIVE futures order book is paid (server: /api/chart/rt l2).
+//   GEX           (was Pro only 2026-11-01 .. 11-13) free for members, the server checks sign-in only (functions/api/gex/_pro.js)
 //   Trade journal NO limits (Owner 2026-11-01): unlimited trades, import, broker sync, analytics, AI coach.
 //                 applyJournal() below is kept but unused.
 //   Charts        NO limits for Free (Owner 2026-10-29); the only Pro parts of the
@@ -38,7 +40,9 @@
           if (res[0] && res[0].exists) return resolve({ free: false, admin: true });
           var plan = (res[1] && res[1].exists) ? res[1].data().plan : null;
           if (!plan || typeof findPlan !== 'function' || !findPlan(plan) || typeof rankOf !== 'function') return resolve({ free: false });
-          resolve({ free: rankOf(plan) < 1, plan: plan });
+          // ALL TOOLS FREE (Owner 2026-11-13): no tool is limited by plan any more, so nobody is "free" for a tool gate. paid = holds the
+          // paid plan (the live data feed); only the live futures order book uses it, and the server decides that (/api/chart/rt l2).
+          resolve({ free: false, paid: rankOf(plan) >= 1, plan: plan });
         }).catch(function () { resolve({ free: false }); });
       });
     });
@@ -157,7 +161,7 @@
       if (!t.free) return;
       // journal is free (Owner 2026-11-01): applyJournal() is no longer called. GEX is Pro only: the server refuses the data and
       // assets/gex-auth.js shows the Pro prompt; the page does not wait for the plan to resolve.
-      if (window.strykerGexWall && document.querySelector('.gex-page-shell')) window.strykerGexWall();
+      // all tools free (2026-11-13): t.free is never true now; the GEX+ wall shows only for a signed-out visitor (gex.js on a 403)
     });
   });
 })();

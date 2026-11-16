@@ -1,0 +1,18 @@
+{
+  // TradeZoro AI agent ("Connect your AI to ZoroCharts"). No public URL: the site reaches it only through the Pages
+  // service binding AI_AGENT (set by .github/workflows/deploy-ai-agent.yml). No secrets: members' Firebase ID tokens are
+  // checked against Google's public keys, and everything else is stored hashed in the two Durable Objects.
+  "name": "tz-ai-agent",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [
+      { "name": "AGENT", "class_name": "AgentHub" },
+      { "name": "CLIENTS", "class_name": "AgentClients" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AgentHub", "AgentClients"] }],
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } }
+}

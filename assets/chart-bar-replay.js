@@ -38,8 +38,8 @@ const RT_FRAME_MS = 66;                               // ~15 visible updates per
 // GET ?sym=NQ&from=<sec>&to=<sec> -> {tick, m:[[minuteEpochSec, [[sec,o,h,l,c,vol],...]],...]}, real prices,
 // only seconds that traded. Book-recorder Worker, fed by the order-flow tick feeder (one tick pull for
 // both). NQ ES YM GC SI CL (+ micros mapped to the mini); about the last 6 days and growing.
-import { rtHeadersReady, rtOnChange } from './rt-access.js?v=979';
-import { laneOf } from './chart-futures-provider.js?v=979';
+import { rtHeadersReady, rtOnChange } from './rt-access.js?v=1061';
+import { laneOf } from './chart-futures-provider.js?v=1061';
 const TICKS1S_URL = 'https://book-recorder.theelitegrey.workers.dev/ticks1s';
 const TICK_ROOTS = { NQ: 'NQ', ES: 'ES', YM: 'YM', GC: 'GC', SI: 'SI', CL: 'CL', MNQ: 'NQ', MES: 'ES', MYM: 'YM', MGC: 'GC', SIL: 'SI', MCL: 'CL' };
 const HOUR = 3600e3;
@@ -926,25 +926,8 @@ const ui = (() => {
     bar = el('div', { class: 'stkr-bar', id: 'stkr-bar', role: 'toolbar', 'aria-label': 'Replay controls', hidden: '' },
       [grip, selB, el('span', { class: 'stkr-sep' }), backB, playB, fwdB, el('span', { class: 'stkr-sep' }), speedS, simL, stepS, clock, spin, el('span', { class: 'stkr-sep' }), liveB, xB]);
     document.body.appendChild(bar);
-    // drag (desktop); docked at the bottom on phones
-    let drag = null;
-    grip.addEventListener('pointerdown', (e) => {
-      if (isPhone()) return;
-      const r = bar.getBoundingClientRect();
-      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
-      grip.setPointerCapture(e.pointerId); e.preventDefault();
-    });
-    grip.addEventListener('pointermove', (e) => {
-      if (!drag) return;
-      const x = Math.max(4, Math.min(window.innerWidth - bar.offsetWidth - 4, e.clientX - drag.dx));
-      const y = Math.max(4, Math.min(window.innerHeight - bar.offsetHeight - 4, e.clientY - drag.dy));
-      bar.style.left = x + 'px'; bar.style.top = y + 'px'; bar.style.bottom = 'auto'; bar.style.transform = 'none';
-    });
-    grip.addEventListener('pointerup', () => {
-      if (!drag) return; drag = null;
-      try { localStorage.setItem(LS_KEY + '_pos', JSON.stringify({ l: bar.style.left, t: bar.style.top })); } catch (e) {}
-    });
-    try { const p = JSON.parse(localStorage.getItem(LS_KEY + '_pos') || 'null'); if (p && !isPhone()) { bar.style.left = p.l; bar.style.top = p.t; bar.style.bottom = 'auto'; bar.style.transform = 'none'; } } catch (e) {}
+    // drag by the grip (desktop); docked at the bottom on phones: the shared helper, assets/chart-draggable.js
+    if (window.StkDraggable) window.StkDraggable.make(bar, grip, 'replay-bar');
     document.addEventListener('keydown', (e) => {
       if (!S.on) return;
       const t = e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;

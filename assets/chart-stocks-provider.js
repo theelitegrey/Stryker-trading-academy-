@@ -14,7 +14,7 @@
 //     shortcut: polling, not a socket per browser like the futures engine; upgrade when stocks get their own trade stream (plan add-on).
 //   - Search: the picker's own list (Vela) + a server search as the member types (debounced), merged into this provider's index.
 // Copy: "Updated N s ago" and the exchange's own delay; never "real-time". No vendor names.
-import { rtHeadersReady } from './rt-access.js?v=979';
+import { rtHeadersReady } from './rt-access.js?v=1061';
 
 const RECORDER = () => (typeof window !== 'undefined' && window.__STK_BOOK_RECORDER) || 'https://book-recorder.theelitegrey.workers.dev';
 export const STOCK_TFS = ['5S', '10S', '15S', '30S', '45S', '1', '2', '3', '5', '10', '15', '30', '45', '60', '120', '180', '240', 'D', 'W', 'M'];
@@ -167,7 +167,7 @@ export function installStockSearch(ws) {
   const seen = new Map(); let timer = null, again = false;
   const onInput = (e) => {
     const el = e.target;
-    if (again || !el || !el.classList || !el.classList.contains('vela-sp-input')) return;
+    if (again || !el || !el.classList || !(el.classList.contains('vela-sp-input') || el.classList.contains('stkss-input'))) return;   // stkss-input: assets/chart-search.js
     clearTimeout(timer);
     const q = String(el.value || '').trim().toUpperCase().replace(/^STOCKS:/, '').replace(/[^A-Z0-9 .&:_-]/g, '').slice(0, 24);
     if (q.length < 1) return;

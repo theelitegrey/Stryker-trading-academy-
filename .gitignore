@@ -7,3 +7,14 @@ tools/email-previews/
 __pycache__/
 .wrangler/
 tools/creator-pay/.last-onboard-url
+
+# Android build output and signing material: never committed (keystore lives outside the repo)
+android/dist/
+android/app-project/app/build/
+android/app-project/build/
+android/app-project/.gradle/
+android/app-project/local.properties
+android/**/*.jks
+android/**/*.keystore
+android/**/*.pass
+android/**/*.idsig

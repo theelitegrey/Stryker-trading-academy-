@@ -27,7 +27,7 @@ img.l-only{ display:none; }
 .cm-hero h1 em{ font-style:normal; color:var(--gold); }
 .cm-sub{ max-width:640px; margin:0 auto 24px; font-size:17px; line-height:24px; color:var(--ink-2); text-wrap:balance; }
 .cm-cta{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-.cm-btn{ min-height:48px; padding:0 24px; font-size:15px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; transition:transform .2s var(--cm-ease), box-shadow .2s var(--cm-ease), background-color .2s, border-color .2s; }
+.cm-btn{ min-height:48px; padding:0 24px; font-size:15px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; transition:transform .2s var(--cm-ease), box-shadow .2s var(--cm-ease), background-color .2s, border-color .2s; }
 .cm-btn:hover{ transform:translateY(-2px); }
 .cm-btn:active{ transform:translateY(0) scale(.98); }
 .cm-btn:focus-visible, .cm-page a:focus-visible, .cm-page summary:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="1061">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Connect Claude, ChatGPT, Claude Code, Cursor or Codex to your ZoroCharts chart. You choose what it may do.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Connect your AI to ZoroCharts — TradeZoro">
+<meta property="og:description" content="Connect Claude, ChatGPT, Claude Code, Cursor or Codex to your ZoroCharts chart. You choose what it may do.">
+<meta property="og:url" content="https://tradezoro.com/ai">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/ai.png?v=1061">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Connect your AI to ZoroCharts share card with the TradeZoro logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Connect your AI to ZoroCharts — TradeZoro">
+<meta name="twitter:description" content="Connect Claude, ChatGPT, Claude Code, Cursor or Codex to your ZoroCharts chart. You choose what it may do.">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/ai.png?v=1061">
+<meta name="twitter:image:alt" content="Connect your AI to ZoroCharts share card with the TradeZoro logo">
+<title>Connect your AI to ZoroCharts — TradeZoro</title>
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=1061">
+<script src="/assets/skeleton.js?v=1061"></script>
+<script src="/assets/sanitize.js?v=1061"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=1061" defer></script>
+<script src="/assets/version-check.js?v=1061" defer></script>
+<script src="/assets/cookie-notice.js?v=1061" defer></script>
+<script src="/assets/acquisition.js?v=1061" defer></script>
+<script src="/assets/focus-mode.js?v=1061" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/tradezoro-favicon-32-494.png?v=1061">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=1061">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/tradezoro-favicon-16-494.png?v=1061">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=1061">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+</head>
+<body class="aic-page" data-ai-page="setup">
+<header class="aic-top"><a class="aic-brand" href="/charts" aria-label="TradeZoro charts"><img src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" class="brand-mark aic-logo" width="102" height="24"></a><nav class="aic-nav" aria-label="AI"><a href="/ai" aria-current="page">Connect your AI</a><a href="/charts/agents">AI agents</a><a href="/charts">Charts</a></nav></header>
+<main id="main" class="aic-main" tabindex="-1">
+<section class="aic-hero">
+  <p class="aic-eyebrow">ZoroCharts</p>
+  <h1 class="aic-h1">Connect your AI to ZoroCharts</h1>
+  <p class="aic-lead">Use the AI app you already have. Ask it to switch symbols, change the timeframe, add indicators, draw levels, read the candles or set alerts, and it works on your open chart while you watch. You choose what it may do, and you can pause or remove it any time.</p>
+  <div class="aic-card aic-card-url"><h2 class="aic-h2">Your connector address</h2><div id="aic-url"></div><p class="aic-note">Paste it into your AI app, sign in to TradeZoro once, and keep a chart open.</p></div>
+</section>
+<div class="aic-grid" id="aic-clients"></div>
+<section class="aic-card" aria-labelledby="aic-h-try"><h2 class="aic-h2" id="aic-h-try">Then just ask</h2><p class="aic-note">For example:</p><div id="aic-try"></div></section>
+<section class="aic-card" aria-labelledby="aic-h-safe"><h2 class="aic-h2" id="aic-h-safe">You stay in control</h2>
+<ul class="aic-list">
+<li>Your AI only works on a ZoroCharts tab you have open, and every change shows a message on the chart.</li>
+<li>Pick Read only, Read and control charts, and Alerts and watchlists separately.</li>
+<li>Pause or disconnect from the chip on the chart. Remove an app on <a href="/charts/agents">AI agents</a>.</li>
+<li>No trading: an AI app can never place orders through TradeZoro.</li>
+<li>It sees the same data you see, nothing more. Your AI app is yours; TradeZoro runs no AI for this.</li>
+</ul>
+<p class="aic-note">Instructions for AI apps: <a href="/mcp/llms.txt">tradezoro.com/mcp/llms.txt</a>. Education only. Not financial advice.</p></section>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="/assets/auth.js?v=1061"></script>
+<script src="/assets/ai-connect.js?v=1061"></script>
+<script src="/assets/theme.js?v=1061"></script>
+</body>
+</html>

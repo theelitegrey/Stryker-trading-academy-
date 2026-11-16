@@ -51,6 +51,7 @@ const q = (s) => document.querySelector('#stkc-bar ' + s);
 // then the right-side icons; on the phone row (Vela's bar moved in, see mergePhone) the last steps
 // leave symbol, interval, Indicators, the pencil and ⋯.
 const STEPS = [
+  ['more', () => [byId('stkc-ai-btn')]],
   ['more', () => [byId('stkc-credits-btn'), byId('stkc-credits')]],
   ['more', () => [menuOf('stkc-tpl-btn')]],
   ['more', () => [byId('stkc-pine-btn')]],
@@ -75,11 +76,11 @@ const STEPS = [
   ['more', () => [q('.stkr-menu'), q('.stkr-badge')]],
   ['more', () => [q('.vela-widget-undo'), q('.vela-widget-redo')]],
   ['more', () => [q('.vela-mb-more')]],
-  ['more', () => [byId('stkc-paper-btn')]]
+  ['more', () => [menuOf('stkc-paper-btn')]]
 ];
 // Thin dividers between the TradingView groups (CSS `order` puts each in place; style.css).
 // A divider with no visible item on one side (its group went to ⋯ More) is switched off by fit().
-const DIVIDERS = [2, 4, 6, 9, 12, 21, 23, 27, 31];
+const DIVIDERS = [-1, 2, 4, 6, 9, 12, 21, 23, 27, 31];
 const CLASSES = STEPS.filter((s) => s[0] === 'cls').map((s) => s[1]);
 
 // PHONE ⋯ LIST (Owner 2026-10-26: "Fix this chart extra menu in mobile. Add appropriate text and
@@ -92,6 +93,7 @@ const CLASSES = STEPS.filter((s) => s[0] === 'cls').map((s) => s[1]);
 // [match(node) -> trigger, group, order, label(trigger), icon]
 const IC = {
   layout: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9h17"/>',
+  ws: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9h17M9 9v10.5"/>',
   grid: '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M12 3.5v17M3.5 12h17"/>',
   tpl: '<path d="M6 4h12v16l-6-4-6 4z"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
@@ -111,11 +113,13 @@ const IC = {
   news: '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M7.5 9h6M7.5 12.5h6M7.5 16h4"/>',
   list: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
   ladder: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>',
-  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>'
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+  ai: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>'
 };
 const trig = (n) => (n.classList.contains('stkc-menu') ? n.querySelector(':scope > button') : n);
 const ROWS = [
   // CHART
+  [(n) => n.classList.contains('stkws-menu') && trig(n), 'chart', 0, (t) => 'Workspace: ' + ((t.querySelector('.stkws-name') || t).textContent.trim() || 'Workspace 1'), 'ws'],
   [(n) => n.classList.contains('stkl-menu') && trig(n), 'chart', 1, (t) => 'Layout: ' + ((t.querySelector('.stkl-name') || t).textContent.replace(/^Viewing:\s*/, '').trim() || 'Unsaved'), 'layout'],
   [(n) => n.querySelector && n.querySelector(':scope > #stkc-layout-btn'), 'chart', 2, (t) => { const m = /(\d+)/.exec((t.querySelector('.stkc-btn-l') || t).textContent || ''); return 'Charts in layout (' + (m ? m[1] : 1) + ')'; }, 'grid'],
   [(n) => n.querySelector && n.querySelector(':scope > #stkc-tpl-btn'), 'chart', 3, () => 'Templates', 'tpl'],
@@ -127,8 +131,9 @@ const ROWS = [
   // TOOLS
   [(n) => n.classList.contains('stkr-menu') && trig(n), 'tools', 11, () => 'Replay', 'replay'],
   [(n) => n.id === 'stkc-alerts-btn' && n, 'tools', 12, () => 'Alerts', 'alarm'],
-  [(n) => n.id === 'stkc-pine-btn' && n, 'tools', 13, () => 'Pine Script editor', 'pine'],
-  [(n) => n.id === 'stkc-paper-btn' && n, 'tools', 15, () => 'Paper trading', 'trade'],
+  [(n) => n.id === 'stkc-pine-btn' && n, 'tools', 13, () => 'Script editor', 'pine'],
+  [(n) => n.querySelector && n.querySelector(':scope > #stkc-paper-btn'), 'tools', 15, () => 'Trade', 'trade'],
+  [(n) => n.id === 'stkc-ai-btn' && n, 'tools', 15.5, () => 'Connect your AI', 'ai'],
   [(n) => n.classList.contains('vela-widget-undo') && n, 'tools', 16, () => 'Undo', 'undo'],
   [(n) => n.classList.contains('vela-widget-redo') && n, 'tools', 17, () => 'Redo', 'redo'],
   [(n) => n.classList.contains('vela-widget-screenshot') && n, 'tools', 18, () => 'Screenshot', 'shot'],

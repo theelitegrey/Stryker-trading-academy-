@@ -96,7 +96,7 @@ async function authedUid(request, deps) {
 }
 
 // ---- service account: custom token + disabled-account check ----
-function saFrom(env) {
+export function saFrom(env) {
   try {
     const sa = JSON.parse(env.FIREBASE_SA_KEY);
     if (!sa || typeof sa.client_email !== 'string' || typeof sa.private_key !== 'string' || !sa.private_key.includes('PRIVATE KEY')) return null;
@@ -112,7 +112,7 @@ async function signJwt(sa, claims) {
 }
 function unb64(s) { const bin = atob(s), o = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) o[i] = bin.charCodeAt(i); return o; }
 
-async function accountState(sa, uid, fetchImpl) {   // { st: 'ok'|'disabled'|'missing'|'error', validSince (s) }
+export async function accountState(sa, uid, fetchImpl) {   // { st: 'ok'|'disabled'|'missing'|'error', validSince (s) }
   try {
     const now = Math.floor(Date.now() / 1000);
     const assertion = await signJwt(sa, { iss: sa.client_email, sub: sa.client_email, aud: 'https://oauth2.googleapis.com/token', scope: 'https://www.googleapis.com/auth/cloud-platform', iat: now, exp: now + 300 });
@@ -127,7 +127,7 @@ async function accountState(sa, uid, fetchImpl) {   // { st: 'ok'|'disabled'|'mi
     return { st: u.disabled ? 'disabled' : 'ok', validSince: Number(u.validSince || 0) };   // validSince moves on password reset / revoke
   } catch (e) { return { st: 'error' }; }
 }
-async function mintCustomToken(sa, uid) {
+export async function mintCustomToken(sa, uid) {
   const now = Math.floor(Date.now() / 1000);
   return signJwt(sa, { iss: sa.client_email, sub: sa.client_email, aud: AUD, iat: now, exp: now + CUSTOM_TOKEN_S, uid });
 }

@@ -18,8 +18,8 @@
 // their micros; Binance trades for crypto) with the same plan + delay rules and refresh timers (hooks
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
-import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=979';
-import { drawTpoExtras, drawLabels, steadyW, TPO_EXTRA_INPUTS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=979';
+import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=1061';
+import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_INPUTS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=1061';
 
 export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
 export const PRO_TYPES = [ABS_TYPE, IMB_TYPE, TPO_TYPE, EVR_TYPE, SWP_TYPE];
@@ -422,18 +422,18 @@ function tpoLayer() {
           const maxC = Math.max(...p.counts);
           const span = Math.max(24, (x1 - x0) * clamp(num(I.widthPct, 70), 10, 100) / 100);
           const rowPx = Math.abs(Y(a, row) - Y(a, 0));
-          // steady width: the widest row is always the same number of pixels (zooming changes the row
-          // size, which changes how many letters the widest row holds)
-          const cellW = I.fixedWidth ? steadyW(ss.list, s, (i) => co.logicalToX(i), x0, co.width, phone) / Math.max(1, maxC) : Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
+          // standard width: the widest row is always the same number of pixels, letters shown or not
+          const cellW = steadyW(ss.list, s, (i) => co.logicalToX(i), x0, co.width, phone) / Math.max(1, maxC);
           try { (window.__stkTpoW = window.__stkTpoW || {})[s.k] = cellW * maxC; } catch (e) {}   // widest-row px per session, read by chart-of-pro-browser.js
-          const letters = letters0 && rowPx >= minRowPx && cellW >= (phone ? 6 : 7);
+          const letters = letters0 && I.showLetters !== false && rowPx >= minRowPx && cellW >= (phone ? 6 : 7);
           const col = I.color || TPO_IN, outC = I.outColor || TPO_OUT, pocC = I.pocColor || MAG, vaL = I.vaLineColor || VA_LN;
           const last = s.i1 >= a.bars.length - 1;   // the developing session: lines run to the right edge
+          const aL = I.alignLeft === true, ax = tpoAnchorX(I, x0, cellW * maxC), xL = aL ? ax - cellW * maxC : x0;
           const fs = clamp(Math.floor(Math.min(rowPx * 0.85, cellW * 1.2)), 7, phone ? 9 : 11);
           if (letters) { g.font = '600 ' + fs + 'px ' + MONO; g.textAlign = 'center'; g.textBaseline = 'middle'; }
           // IB bar at the left edge
           const yIbT = Y(a, p.ibHi), yIbB = Y(a, p.ibLo);
-          g.fillStyle = rgba('#2f6bff', 0.95); g.fillRect(x0 - 4, Math.min(yIbT, yIbB), 3, Math.max(2, Math.abs(yIbB - yIbT)));
+          g.fillStyle = rgba('#2f6bff', 0.95); g.fillRect(aL ? ax + 1 : x0 - 4, Math.min(yIbT, yIbB), 3, Math.max(2, Math.abs(yIbB - yIbT)));
           for (let k = 0; k < p.n; k++) {
             const cnt = p.counts[k];
             if (!cnt) continue;
@@ -446,32 +446,32 @@ function tpoLayer() {
               // a block per period with its letter on it
               p.cols[k].forEach((per, j) => {
                 g.fillStyle = rgba(c, isPoc ? 0.95 : inVa ? 0.55 : 0.6);
-                g.fillRect(x0 + cellW * j + 0.5, y + 0.5, Math.max(1, cellW - 1), Math.max(1, h - 1));
+                g.fillRect(tpoColX(aL, ax, cellW, j) + 0.5, y + 0.5, Math.max(1, cellW - 1), Math.max(1, h - 1));
                 g.fillStyle = isPoc ? '#ffffff' : light() ? '#0f172a' : '#e8ecf1';
-                g.fillText(tpoLetter(per), x0 + cellW * (j + 0.5), y + h / 2);
+                g.fillText(tpoLetter(per), tpoColX(aL, ax, cellW, j) + cellW / 2, y + h / 2);
               });
             } else {
               g.fillStyle = rgba(c, isPoc ? 0.95 : inVa ? 0.6 : 0.6);
-              g.fillRect(x0, y + (h > 3 ? 0.5 : 0), cellW * cnt, Math.max(1, h - (h > 3 ? 1 : 0)));
+              g.fillRect(aL ? ax - cellW * cnt : x0, y + (h > 3 ? 0.5 : 0), cellW * cnt, Math.max(1, h - (h > 3 ? 1 : 0)));
             }
-            if (single) { g.fillStyle = rgba(VIOLET, 0.8); g.fillRect(x0 - 7, y, 3, Math.max(1, h)); }
+            if (single) { g.fillStyle = rgba(VIOLET, 0.8); g.fillRect(aL ? ax + 4 : x0 - 7, y, 3, Math.max(1, h)); }
           }
           // POC / VAH / VAL across the session
           const xEnd = last ? co.width : x1;
-          const line = (k, c, w, dash) => { const y = Y(a, (p.r0 + k + 0.5) * row); g.setLineDash(dash); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y); g.lineTo(xEnd, y); g.stroke(); g.setLineDash([]); return y; };
+          const line = (k, c, w, dash) => { const y = Y(a, (p.r0 + k + 0.5) * row); g.setLineDash(dash); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(xL, y); g.lineTo(xEnd, y); g.stroke(); g.setLineDash([]); return y; };
           const yP = line(p.poc, rgba(pocC, 0.9), 1.5, []);
           const yH = line(p.vah, rgba(vaL, 0.7), 1, [4, 3]);
           const yL = line(p.val, rgba(vaL, 0.7), 1, [4, 3]);
           // pill labels on the developing session, just right of its profile
           if (last && !phone) {
-            const px = Math.min(co.width - 64, x0 + span + 10);
+            const px = Math.min(co.width - 64, (aL ? ax : x0 + span) + 10);
             const pill = (y, txt, bg, fg) => { if (y < top + 8 || y > bot - 8) return; g.font = '600 10px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle'; const w = g.measureText(txt).width + 12; g.fillStyle = bg; g.beginPath(); if (g.roundRect) g.roundRect(px, y - 7, w, 14, 7); else g.rect(px, y - 7, w, 14); g.fill(); g.fillStyle = fg; g.fillText(txt, px + 6, y + 0.5); };
             pill(yH, 'VAH', rgba(vaL, 0.85), '#0b0b0d'); pill(yP, 'TPOC', rgba(pocC, 0.95), '#ffffff'); pill(yL, 'VAL', rgba(vaL, 0.85), '#0b0b0d');
           }
           if (x1 - x0 > 90) {
             g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillStyle = dim();
             const yb = Math.min(bot - 2, Y(a, p.r0 * row) + 14);
-            g.fillText('TPO ' + p.periods + ' x ' + periodMin + 'm  IB ' + fmtK(+(p.ibHi - p.ibLo).toFixed(2)), x0, yb);
+            g.fillText('TPO ' + p.periods + ' x ' + periodMin + 'm  IB ' + fmtK(+(p.ibHi - p.ibLo).toFixed(2)), xL, yb);
           }
           drawTpoExtras(g, xo);
         }

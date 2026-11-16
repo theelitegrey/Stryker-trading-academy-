@@ -3379,7 +3379,7 @@ function arrowHitHtml(svg) {
 // src/core/options.ts
 var normalizeSession = (v) => v === "regular" || v === "extended" ? v : void 0;
 // TradeZoro patch (s1): instant zoom like TradingView (was a 70 ms ease).
-var ZOOM_EASE_DEFAULT_MS = 0;
+var ZOOM_EASE_DEFAULT_MS = 70;
 var PAN_INERTIA_DEFAULT_MS = 110;
 var SCROLL_EASE_DEFAULT_MS = 130;
 var AUTOSCALE_EASE_DEFAULT_MS = 80;
@@ -3415,7 +3415,7 @@ function resolveAnimations(animations) {
   const cfg = animations === true || animations == null ? {} : animations;
   const animPan = resolveEaseMs(cfg.pan ?? true, PAN_INERTIA_DEFAULT_MS);
   return {
-    animZoom: resolveEaseMs(cfg.zoom ?? true, ZOOM_EASE_DEFAULT_MS),
+    animZoom: resolveEaseMs(cfg.zoom ?? false, ZOOM_EASE_DEFAULT_MS),
     animPan,
     animScroll: cfg.scroll === void 0 ? animPan > 0 ? SCROLL_EASE_DEFAULT_MS : 0 : resolveEaseMs(cfg.scroll, SCROLL_EASE_DEFAULT_MS),
     animAutoscale: resolveEaseMs(cfg.autoscale ?? true, AUTOSCALE_EASE_DEFAULT_MS),
@@ -20857,7 +20857,7 @@ var NativeRenderer = class {
     this.liveRegion = null;
     // ── animation state: one ease time-constant per motion (0 = off), each remembering the
     // host's duration so the config's on/off switches restore it (see EaseSetting) ──
-    this.animZoom = new EaseSetting(ZOOM_EASE_DEFAULT_MS);
+    this.animZoom = new EaseSetting(ZOOM_EASE_DEFAULT_MS, 0);
     // wheel-zoom glide
     this.animPan = new EaseSetting(PAN_INERTIA_DEFAULT_MS);
     // inertial-pan velocity decay

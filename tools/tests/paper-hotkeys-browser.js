@@ -71,10 +71,29 @@ const st = (p) => p.evaluate(() => { const a = window.__stkPaper.account; return
     await p.keyboard.press('Shift+Z'); await sleep(200); s = await st(p); t('ignored while typing in a box', Object.values(s.pos)[0] && Object.values(s.pos)[0].qty === 3, s.pos);
     await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement && document.activeElement.blur());
     await p.keyboard.press('Shift+Z'); await sleep(400); s = await st(p); t('close hotkey flattens', Object.keys(s.pos).length === 0, s.pos);
+    // ---- new actions: custom quantity prompt, breakeven, trailing, close winners/losers
+    await p.evaluate(() => { const a = window.__stkPaper.account; a.setSettings({ hotkeys: { closeCustom: 'Shift+Q', moveBE: 'Shift+M', trailToggle: 'Shift+T', closeWin: 'Shift+W', closeLoss: 'Shift+L', buyMarket: 'Shift+Y' } }); window.__stkPaper.account.setLast('CME_MINI:NQ1!', 21000); });
+    await p.evaluate(() => window.__stkPaper.account.placeOrder({ symbol: 'CME_MINI:NQ1!', side: 'buy', type: 'market', qty: 5, sl: 20950 }));
+    await p.keyboard.press('Shift+Q'); await p.waitForSelector('#stkpt-cq:not([hidden])', { timeout: 3000 }); t('custom close: prompt opens and input is focused', await p.evaluate(() => document.activeElement && document.activeElement.name === 'q'));
+    await p.screenshot({ path: OUT + 'hk-1440-dark-prompt.png' });
+    for (const [v, re] of [['', /Type a quantity/], ['abc', /plain number/], ['0', /more than zero/], ['9', /only hold 5/], ['1.5', /whole contracts/]]) { await p.fill('#stkpt-cq input', v); await p.keyboard.press('Enter'); t('custom close rejects ' + JSON.stringify(v), re.test(await p.textContent('#stkpt-cq-m')) && (await p.isVisible('#stkpt-cq')), await p.textContent('#stkpt-cq-m')); }
+    t('custom close: nothing closed by bad input', Object.values((await st(p)).pos)[0].qty === 5);
+    await p.screenshot({ path: OUT + 'hk-1440-dark-prompt-error.png' });
+    await p.fill('#stkpt-cq input', '2'); await p.keyboard.press('Enter'); await sleep(300); s = await st(p);
+    t('custom close: 2 of 5 closed, 3 left, prompt gone', Object.values(s.pos)[0].qty === 3 && !(await p.isVisible('#stkpt-cq')), s.pos);
+    await p.keyboard.press('Shift+Q'); await p.waitForSelector('#stkpt-cq:not([hidden])'); await p.keyboard.press('Escape'); await sleep(150); t('custom close: Esc closes prompt, no change', !(await p.isVisible('#stkpt-cq')) && Object.values((await st(p)).pos)[0].qty === 3);
+    await p.keyboard.press('Shift+M'); await sleep(250); s = await st(p); t('breakeven refused while price is at entry', Object.values(s.pos)[0].sl === 20950, s.pos);
+    await p.evaluate(() => window.__stkPaper.account.setLast('CME_MINI:NQ1!', 21010)); await p.keyboard.press('Shift+M'); await sleep(250); s = await st(p);
+    t('breakeven hotkey moves stop to entry', Object.values(s.pos)[0].sl === Object.values(s.pos)[0].avg, s.pos);
+    await p.keyboard.press('Shift+T'); await sleep(250); s = await st(p); t('trailing hotkey turns trail on', Object.values(s.pos)[0].trail > 0, s.pos);
+    await p.keyboard.press('Shift+T'); await sleep(250); s = await st(p); t('trailing hotkey turns trail off', !(Object.values(s.pos)[0].trail > 0), s.pos);
+    await p.keyboard.press('Shift+L'); await sleep(250); t('close-losers leaves a winner alone', Object.keys((await st(p)).pos).length === 1);
+    await p.keyboard.press('Shift+W'); await sleep(300); t('close-winners closes it', Object.keys((await st(p)).pos).length === 0);
+    await p.keyboard.press('Shift+Q'); await sleep(200); t('custom close with no position: no prompt', !(await p.isVisible('#stkpt-cq')));
     // persistence + reset
     await p.reload({ waitUntil: 'load' }); await p.waitForFunction(() => window.__stkPaper && window.__stkPaper.account && window.__stkPaper.enabled, null, { timeout: 60000 });
-    s = await st(p); t('hotkeys survive a reload', s.hk.sellMarket === 'Shift+S', s.hk);
-    await p.evaluate(() => window.__stkPaper.setEnabled(false)); await p.keyboard.press('Shift+S'); await sleep(200);
+    s = await st(p); t('hotkeys survive a reload', s.hk.closeCustom === 'Shift+Q', s.hk);
+    await p.evaluate(() => window.__stkPaper.setEnabled(false)); await p.keyboard.press('Shift+Y'); await sleep(200);
     t('hotkeys do nothing when paper trading is off', Object.keys((await st(p)).pos).length === 0); await p.evaluate(() => window.__stkPaper.setEnabled(true));
     await openTab(p, false); await p.click('.stkpt-hk-reset'); await sleep(200); s = await st(p);
     t('reset to defaults clears all', Object.keys(s.hk).length === 0, s.hk);
@@ -82,13 +101,19 @@ const st = (p) => p.evaluate(() => { const a = window.__stkPaper.account; return
     // ---- light
     ({ ctx, p, errs } = await open(b, { width: 1440, height: 900 }, false, 'light'));
     await openTab(p, false); await rec(p, 'buyMarket', 'Shift+B'); await rec(p, 'cancelAll', 'Shift+B');
-    await p.screenshot({ path: OUT + 'hk-1440-light.png' }); await ctx.close();
+    await p.screenshot({ path: OUT + 'hk-1440-light.png' });
+    await p.locator('.stkpt-hk-r[data-id=closeCustom]').scrollIntoViewIfNeeded(); await p.screenshot({ path: OUT + 'hk-1440-light-new.png' });
+    await p.keyboard.press('Escape'); await p.evaluate(() => { document.querySelector('.vela-dialog--settings') && document.querySelector('.vela-dialog--settings').remove(); const a = window.__stkPaper.account; a.setLast('CME_MINI:NQ1!', 21000); a.placeOrder({ symbol: 'CME_MINI:NQ1!', side: 'buy', type: 'market', qty: 4 }); a.setSettings({ hotkeys: { closeCustom: 'Shift+Q' } }); });
+    await p.keyboard.press('Shift+Q'); await p.waitForSelector('#stkpt-cq:not([hidden])'); await p.fill('#stkpt-cq input', '7'); await p.keyboard.press('Enter'); await sleep(200); await p.screenshot({ path: OUT + 'hk-1440-light-prompt.png' }); await ctx.close();
     // ---- phone
     ({ ctx, p, errs } = await open(b, { width: 390, height: 844 }, true, 'dark'));
     await openTab(p, true); await p.screenshot({ path: OUT + 'hk-390-dark.png' });
     const ov = await p.evaluate(() => { const c = document.querySelector('.stkpt-hk'); return { sw: c.scrollWidth, cw: c.clientWidth }; });
     t('390: no horizontal overflow in the card', ov.sw <= ov.cw + 1, ov);
     await p.locator('.stkpt-hk-r[data-id=sellMarket]').scrollIntoViewIfNeeded(); await p.screenshot({ path: OUT + 'hk-390-dark-2.png' });
+    await p.evaluate(() => { document.querySelector('.vela-dialog--settings') && document.querySelector('.vela-dialog--settings').remove(); const a = window.__stkPaper.account; a.setLast('CME_MINI:NQ1!', 21000); a.placeOrder({ symbol: 'CME_MINI:NQ1!', side: 'buy', type: 'market', qty: 4 }); a.setSettings({ hotkeys: { closeCustom: 'Shift+Q' } }); window.__stkPaper.runHotkey('closeCustom'); });
+    await p.waitForSelector('#stkpt-cq:not([hidden])'); await p.fill('#stkpt-cq input', '7'); await p.keyboard.press('Enter'); await sleep(200); await p.screenshot({ path: OUT + 'hk-390-dark-prompt.png' });
+    const pb = await p.evaluate(() => { const r = document.querySelector('#stkpt-cq .stkpt-tk-box').getBoundingClientRect(); return { w: r.width, r: r.right, vw: innerWidth }; }); t('390: prompt fits the screen', pb.r <= pb.vw + 1, pb);
     t('390: no page errors', errs.length === 0, errs); await ctx.close();
   } finally { await b.close(); }
   console.log(fail ? 'FAILED ' + fail : 'ALL PASS'); process.exit(fail ? 1 : 0);

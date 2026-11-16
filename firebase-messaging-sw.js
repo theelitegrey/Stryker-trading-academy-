@@ -45,12 +45,12 @@ function notifOptions(data) {
   const isAlert = !!ALERT_TYPES[data.type];
   return {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=979',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=1061',
     // Android draws the badge as a white mask of the alpha channel: the transparent TZ mark gives a clean glyph.
-    badge: '/assets/images/tradezoro-icon-192-494.png?v=979',
+    badge: '/assets/images/tradezoro-icon-192-494.png?v=1061',
     // One tag per alert notification (two alerts must both show); other types collapse by type (five likes = one).
     tag: isAlert ? 'alert-' + data.type + '-' + (data.nid || Date.now()) : (data.type || 'stryker'),
-    badge: '/assets/images/tradezoro-favicon-32-494.png?v=979',
+    badge: '/assets/images/tradezoro-favicon-32-494.png?v=1061',
     // Tagging by type collapses repeats: five likes replace one another
     // instead of stacking five separate entries in the tray.
     // Chart alerts and dark pool print alerts get their own tag (two different alerts must both show); other types collapse by type.
@@ -104,4 +104,17 @@ self.addEventListener('notificationclick', function (event) {
       if (clients.openWindow) return clients.openWindow(link);
     })
   );
+});
+
+// Offline screen (Android app / Play requirement): precache one self-contained page and show it when a page
+// load fails for lack of network. Only navigations are touched; every other request goes straight to the network.
+const OFFLINE_CACHE = 'tz-offline-v1';
+self.addEventListener('install', function (event) {
+  event.waitUntil(caches.open(OFFLINE_CACHE).then(function (c) { return c.add('/offline.html'); }).catch(function () {}));
+});
+self.addEventListener('fetch', function (event) {
+  if (event.request.mode !== 'navigate') return;
+  event.respondWith(fetch(event.request).catch(function () {
+    return caches.match('/offline.html').then(function (r) { return r || Response.error(); });
+  }));
 });

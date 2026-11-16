@@ -103,6 +103,7 @@ const CASES = [
   // TPO extras (member request 13 Nov): every option on; checked against the default look below
   ['tpo-extras', 'stk_of_tpo', {}, '5', Date.UTC(2026, 9, 20, 12, 0), D21(17, 0)],
   ['tpo-extras30', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 19, 12, 0), D21(17, 0)],
+  ['tpo-left', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 20, 12, 0), D21(17, 0)],   // TPO Align left (member request 14 Nov)
   ['evr', 'stk_of_evr', {}, '5', D21(4, 0), D21(17, 0)],
   ['sweep', 'stk_of_sweep', {}, '1', D21(12, 30), D21(16, 30)],
   ['sweep5', 'stk_of_sweep', {}, '5', D21(4, 0), D21(17, 0)]
@@ -157,13 +158,26 @@ const CASES = [
             check(n2 < n, eng + ' ' + w + ' ' + id + ': a 10x volume spike setting leaves fewer marks (' + n + ' -> ' + n2 + ' px)');
             await p.evaluate(() => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_sweep'); h.setInputs(Object.assign({}, h.inputValues(), { volMult: 1.5 })); });
             await sleep(1500);
+          } else if (id === 'tpo-left') {
+            const setI = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o).then(() => sleep(1500));
+            const defs = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo').inputValues());
+            check(defs.alignLeft === false, eng + ' ' + w + ' ' + id + ': Align left is off by default', defs.alignLeft);
+            const n0 = await ink(p);
+            await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-tpo-left-before.png') });
+            await setI({ alignLeft: true });
+            const n1 = await ink(p);
+            check(n1 > 0 && n1 !== n0, eng + ' ' + w + ' ' + id + ': Align left moves the profile (' + n0 + ' -> ' + n1 + ' px)');
+            await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-tpo-left-after.png') });
+            await setI({ alignLeft: false });
+            const n2 = await ink(p);
+            check(Math.abs(n2 - n0) <= Math.max(10, n0 * 0.002), eng + ' ' + w + ' ' + id + ': off again = the default look (' + n2 + ' px)');
           } else if (id.startsWith('tpo-extras')) {
             const ALL = { singles: true, poor: true, nakedPoc: true, devPoc: true, ibLines: true, ibExt: '1.5, 2, 3' };
             const setI = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o).then(() => sleep(1500));
             const n0 = await ink(p);
             check(n0 > base + 25, eng + ' ' + w + ' ' + id + ': default profile draws (' + base + ' -> ' + n0 + ' px)');
             const defs = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo').inputValues());
-            check(['singles', 'poor', 'nakedPoc', 'devPoc', 'ibLines', 'fixedWidth'].every((k) => defs[k] === false), eng + ' ' + w + ' ' + id + ': every new option is off by default (saved charts unchanged)', defs);
+            check(['singles', 'poor', 'nakedPoc', 'devPoc', 'ibLines'].every((k) => defs[k] === false) && defs.showLetters === true, eng + ' ' + w + ' ' + id + ': every new option is off by default, Show letters on (saved charts unchanged)', defs);
             await setI(ALL);
             const n1 = await ink(p);
             check(n1 > n0 + 100, eng + ' ' + w + ' ' + id + ': the options add lines and marks (' + n0 + ' -> ' + n1 + ' px)');
@@ -182,15 +196,16 @@ const CASES = [
               // the 20 Oct RTH session, zoomed in on it vs zoomed out over both days
               const widthAt = async (from, to) => { await p.evaluate(() => { window.__stkTpoW = {}; }); await frameOn(p, from, to); await sleep(900); return p.evaluate(() => { const o = window.__stkTpoW || {}, k = Object.keys(o).filter((x) => /2026-10-20|^20381$/.test(x) || x.indexOf('10-20') >= 0); return k.length ? o[k[0]] : JSON.stringify(o); }); };
               const IN = [Date.UTC(2026, 9, 20, 13, 0), Date.UTC(2026, 9, 20, 22, 0)], OUTR = [Date.UTC(2026, 9, 19, 22, 0), D21(17, 0)];
-              await setI({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false, fixedWidth: true });
+              await setI({ singles: false, poor: false, nakedPoc: false, devPoc: false, ibLines: false, showLetters: true });
               const fa = await widthAt(...IN), fb = await widthAt(...OUTR);
-              check(fa > 0 && Math.abs(fa - fb) < 0.5, eng + ' ' + w + ' ' + id + ': steady width on: 20 Oct profile ' + fa + ' px zoomed in, ' + fb + ' px zoomed out');
-              await setI({ fixedWidth: false });
-              const ua = await widthAt(...IN), ub = await widthAt(...OUTR);
-              console.log('INFO ' + eng + ' ' + w + ' steady width off: 20 Oct profile ' + ua + ' px zoomed in, ' + ub + ' px zoomed out');
+              check(fa > 0 && Math.abs(fa - fb) < 0.5, eng + ' ' + w + ' ' + id + ': standard width: 20 Oct profile ' + fa + ' px zoomed in, ' + fb + ' px zoomed out');
+              await setI({ showLetters: false });
+              const ua = await widthAt(...IN);
+              check(Math.abs(ua - fa) < 0.5, eng + ' ' + w + ' ' + id + ': same width with letters hidden (' + fa + ' -> ' + ua + ' px)');
+              await setI({ showLetters: true });
               await frameOn(p, w < 500 ? D21(17, 0) - (D21(17, 0) - a) * 0.4 : a, z);
             }
-            await setI(ALL);
+            await setI(process.env.OFP_HIDE ? Object.assign({}, ALL, { showLetters: false }) : ALL);   // OFP_HIDE=1: shoot with letters hidden
           } else {
             const n = await ink(p);
             check(n > base + base * 0.003 + 25, eng + ' ' + w + ' ' + id + ': draws (' + base + ' -> ' + n + ' px)');

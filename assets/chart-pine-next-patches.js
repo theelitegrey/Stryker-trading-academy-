@@ -452,10 +452,70 @@ export function patchContext(ctx){
   return true;
 }
 
+// LIVE request.security FIX (member ticket 16 Nov, "my custom indicator appears and disappears";
+// ATR Levels reading daily close/ATR/time via request.security with lookahead_on).
+// pinets 0.11.0 builds every request.security secondary context (e.g. the daily series on a 5m
+// chart) with PineTS.runPretranspiled, which runs all bars in one go and never stores the
+// "state before the last bar" snapshot that _runComplete / the live stream keep. On each live
+// tick the primary bumps dataVersion and the secondary is refreshed with updateTail(); with no
+// snapshot it falls back to _removeLastResult(), which ALREADY pops the result, market-data and
+// variable series, and then updateTail pops the result and market data AGAIN. So every tick
+// drops one extra bar from the secondary: its last daily bar disappears, the chart's last bar
+// maps to no daily bar, request.security returns na, and everything a script draws on
+// barstate.islast from those values (lines, labels) vanishes until the stream restarts (settings
+// change, more history loaded, reload), when it comes back. The fix gives runPretranspiled the
+// same split run as _runComplete: every bar but the last, snapshot, then the last bar, so
+// updateTail always has its restore point and never takes the double-pop path. Same bars, same
+// order, same results; pinets' code is not modified (wrapped on its prototype).
+export function patchPretranspiled(PineTS){
+  const proto = PineTS && PineTS.prototype;
+  if (!proto || proto.__stkSplitRun) return false;
+  const run = proto.runPretranspiled, exec = proto._executeIterations, snap = proto._snapshotVarState;
+  if (typeof run !== 'function' || typeof exec !== 'function' || typeof snap !== 'function') return false;
+  proto._executeIterations = async function (context, fn, startIdx, endIdx) {
+    // Only the single full run made by runPretranspiled below is split (flag set just before it).
+    if (!this.__stkSplitNext) return exec.call(this, context, fn, startIdx, endIdx);
+    this.__stkSplitNext = false;
+    if (!(endIdx - startIdx > 1)) return exec.call(this, context, fn, startIdx, endIdx);
+    await exec.call(this, context, fn, startIdx, endIdx - 1);
+    context._varSnapshot = snap.call(this, context);
+    return exec.call(this, context, fn, endIdx - 1, endIdx);
+  };
+  proto.runPretranspiled = async function (...args) {
+    this.__stkSplitNext = true;
+    try { return await run.apply(this, args); } finally { this.__stkSplitNext = false; }
+  };
+  proto.__stkSplitRun = true;
+  // Second half of the same bug: when the first load has a bar without closeTime (our bar feeds
+  // only send one when the session is known), pinets fills it with openTime + the timeframe's
+  // length; but the live refresh (_replaceCandle / _appendCandle) copies the new candle's closeTime
+  // as is, i.e. undefined. The secondary's last bar then has no close time, request.security can't
+  // match the chart's bar to it (openTime <= t < closeTime) and returns na on every tick. Give the
+  // refreshed bar the same fallback: the close time the bar already had (same open time), else
+  // its open time plus the previous bar's length.
+  const rep = proto._replaceCandle, app = proto._appendCandle;
+  const withClose = (self, candle, idx) => {
+    if (!candle || candle.closeTime != null || !(candle.openTime > 0)) return candle;
+    const ct = self.closeTime || [], ot = self.openTime || [];
+    let close = idx != null && ot[idx] === candle.openTime && ct[idx] > candle.openTime ? ct[idx] : NaN;
+    if (!(close > 0)) {
+      const n = ot.length - 1;
+      let len = n >= 0 && ct[n] > ot[n] ? ct[n] - ot[n] : 0;
+      if (!(len > 0) && n >= 1 && ot[n] > ot[n - 1]) len = ot[n] - ot[n - 1];
+      close = candle.openTime + (len > 0 ? len : 864e5);
+    }
+    return Object.assign({}, candle, { closeTime: close });
+  };
+  if (typeof rep === 'function') proto._replaceCandle = function (index, candle) { return rep.call(this, index, withClose(this, candle, index)); };
+  if (typeof app === 'function') proto._appendCandle = function (candle) { return app.call(this, withClose(this, candle, null)); };
+  return true;
+}
+
 // pinets = the pinets module (optional): adds the Indicator fix. scope = the worker global
 // (optional): adds the formatter cache.
 export function install(Context, pinets, scope){
   try { if (pinets && pinets.Indicator) patchIndicator(pinets.Indicator); } catch (e) {}
+  try { if (pinets && pinets.PineTS) patchPretranspiled(pinets.PineTS); } catch (e) {}
   try { if (scope) cacheDateTimeFormat(scope); } catch (e) {}
   const proto = Context && Context.prototype;
   if (!proto || proto.__stkNextPatched || typeof proto.bindContextObject !== 'function') return false;

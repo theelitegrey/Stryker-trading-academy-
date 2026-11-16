@@ -42,9 +42,9 @@
 // built-ins have no usage stats, so the Popular sort lists TradeZoro's own first, then catalogue order.
 // No Vela / LuxAlgo / TradingView wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=1053';
-import { entry as verEntry, fmtDate as verDate } from './indicator-versions.js?v=1053';
-import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2, GEX_TYPES } from './chart-pro-gate.js?v=1053';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=1054';
+import { entry as verEntry, fmtDate as verDate } from './indicator-versions.js?v=1054';
+import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2, GEX_TYPES } from './chart-pro-gate.js?v=1054';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -288,11 +288,11 @@ export function mountIndicatorWindow(ws, opts){
   // per-key facts from tools/gen-indicator-pages.js (slug, thumbnail, markets, inputs, summary, release)
   let meta = {}, metaP = null, explainMap = null, explainP = null;
   function loadMeta(){
-    if (!metaP) metaP = fetch('/assets/indicator-picker.json?v=1053').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { meta = m || {}; });
+    if (!metaP) metaP = fetch('/assets/indicator-picker.json?v=1054').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { meta = m || {}; });
     return metaP;
   }
   function loadExplain(){
-    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=1053').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
+    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=1054').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
     return explainP;
   }
 

@@ -17,8 +17,8 @@
 // "paused") and Disconnect (this tab closes the relay until the member turns it on again from the ⋯ menu entry
 // "Connect your AI", or reloads). Each action shows a toast ("Claude added EMA 20").
 // NO TRADING: there are no order tools; the relay only accepts the tool names below.
-import { normalizeSymbol } from './chart-watchlist.js?v=1053';
-import { parseIv } from './chart-intervals.js?v=1053';
+import { normalizeSymbol } from './chart-watchlist.js?v=1054';
+import { parseIv } from './chart-intervals.js?v=1054';
 
 const SCOPE_OF = {
   chart_status: 'mcp:read', chart_read: 'mcp:read', symbol_resolve: 'mcp:read', chart_screenshot: 'mcp:read',

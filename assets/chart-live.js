@@ -3,7 +3,7 @@
 // (functions/connect/finatic/order.js + data.js) re-checks admin on every call and refuses everyone else with 403.
 //
 // What it adds to the Paper trading panel: an account picker (Paper = default, every reload starts on Paper; plus the admin's connected
-// broker accounts, "Tradovate …1234"; plus "Connect a broker…", which opens the SAME connect flow as JournalX: finatic-journal-ui.js).
+// broker accounts, "Tradovate APEX-123456-01" (the number the broker shows); plus "Connect a broker…", which opens the SAME connect flow as JournalX: finatic-journal-ui.js).
 // With a live account picked: a big red LIVE badge in the panel and on every chart; the panel shows an order form (Buy/Sell, Market/
 // Limit, 1 or 2 contracts), the live position (P&L from the chart's last price x the contract's point value) and working orders (Cancel);
 // the chart draws the position and working-order lines (drag a working order = modify, or cancel + new when the broker can't modify);
@@ -71,12 +71,72 @@ async function loadAccounts() {
   try {
     const r = await data('accounts');
     if (r.userId && r.userId !== S.userId) { S.userId = r.userId; try { localStorage.setItem(lsUserKey(), r.userId); } catch (e) {} }
-    S.accounts = (Array.isArray(r.data) ? r.data : []).map((x) => {
-      const id = x.accountId || x.id; const lb = L.acctLabel({ broker: x.brokerName || x.brokerId || x.institutionName, number: x.accountNumber || x.brokerAccountId || x.accountName || x.name, id });
-      return { id, label: lb.text, broker: lb.broker, last4: lb.last4, name: x.accountName || x.name || '' };
-    }).filter((a) => a.id);
+    // L.acctInfo: the broker's own account number / name as the broker shows it (never Finatic's UUID, never the internal broker id)
+    S.accounts = (Array.isArray(r.data) ? r.data : []).map((x) => { const a = L.acctInfo(x); return Object.assign(a, { label: a.text, name: a.number }); }).filter((a) => a.id);
+    if (S.acct) { const still = S.accounts.find((a) => a.id === S.acct.id); if (still) S.acct = still; else leave(true); }
   } catch (e) { S.accounts = []; if (!e.needsConnect) S.loadErr = e.message; }
-  S.loaded = true; render();
+  S.loaded = true; render(); menuEvent('accounts');
+}
+const menuEvent = (what, id) => { try { window.dispatchEvent(new CustomEvent('stklive:menu', { detail: { what, id } })); } catch (e) {} };
+
+// ---- balances (Owner order 2026-11-16 "add total money"): read when the Trade menu opens, kept 30 s per account
+const BAL_MS = 30000;
+S.bal = {};
+// -> { state: 'loading' | 'ok' | 'none', amount, currency, upl } ; starts a read when missing / older than 30 s
+function balance(id) {
+  const a = S.accounts.find((x) => x.id === id); if (!a) return { state: 'none' };
+  const c = S.bal[id];
+  if (c && (c.busy || now() - c.at < BAL_MS)) return c.v || { state: c.busy ? 'loading' : 'none' };
+  S.bal[id] = { at: now(), busy: true, v: c && c.v && c.v.state === 'ok' ? c.v : null };
+  data('balances', { accountId: id, limit: 20 }).then((r) => {
+    const b = L.balanceOf(r.data, a.currency);
+    S.bal[id] = { at: now(), busy: false, v: b ? { state: 'ok', amount: b.amount, currency: b.currency, upl: b.upl } : { state: 'none' } };
+  }).catch(() => { S.bal[id] = { at: now(), busy: false, v: (c && c.v && c.v.state === 'ok') ? c.v : { state: 'none' } }; })
+    .then(() => menuEvent('balance', id));
+  return S.bal[id].v || { state: 'loading' };
+}
+
+// ---- per-account notes (pencil): label, prop firm, account type. students/{uid}/brokerAccounts/{accountId} (owner only, see
+// functions-src/firestore.rules), mirrored in localStorage so the menu paints at once and still works if Firestore is unreachable.
+S.meta = {};
+const lsMetaKey = () => 'stryker_broker_meta_' + uid;
+function metaCol() { try { return firebase.firestore().collection('students').doc(uid).collection('brokerAccounts'); } catch (e) { return null; } }
+function loadMeta() {
+  try { const j = JSON.parse(localStorage.getItem(lsMetaKey()) || '{}'); if (j && typeof j === 'object') Object.keys(j).forEach((k) => { S.meta[k] = L.cleanMeta(j[k]); }); } catch (e) {}
+  const col = metaCol(); if (!col) return;
+  col.get().then((snap) => {
+    (snap.docs || []).forEach((d) => { S.meta[d.id] = L.cleanMeta(d.data()); });
+    try { localStorage.setItem(lsMetaKey(), JSON.stringify(S.meta)); } catch (e) {}
+    render(); menuEvent('meta');
+  }).catch(() => {});
+}
+const metaOf = (id) => S.meta[id] || { label: '', firm: '', type: '' };
+async function saveMeta(id, m) {
+  const v = L.cleanMeta(m); S.meta[id] = v;
+  try { localStorage.setItem(lsMetaKey(), JSON.stringify(S.meta)); } catch (e) {}
+  render(); menuEvent('meta', id);
+  const col = metaCol(); if (!col) return { ok: true, local: true };
+  try {
+    const ref = col.doc(id);
+    if (!v.label && !v.firm && !v.type) await ref.delete();
+    else await ref.set({ label: v.label, firm: v.firm, type: v.type, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    return { ok: true };
+  } catch (e) { return { ok: true, local: true }; }   // kept on this device; Firestore copy retried on the next save
+}
+
+// ---- Disconnect one account: revoke ITS grant (functions/connect/finatic/data.js op 'revoke'), back to Paper if it was active.
+async function disconnect(id) {
+  const a = S.accounts.find((x) => x.id === id); if (!a) return { ok: false, error: 'Account not found.' };
+  let gid = '';
+  try { const g = await data('grants'); gid = L.grantFor(a, g.data); } catch (e) { return { ok: false, error: e.message || 'Could not read the connection.' }; }
+  if (!gid) return { ok: false, error: 'Could not tell which connection this account belongs to. Use Manage to disconnect.' };
+  try { await data('revoke', { grantId: gid }); } catch (e) { return { ok: false, error: e.message || 'Could not disconnect.' }; }
+  const was = !!(S.acct && S.acct.id === id);
+  if (was) await leave(true);
+  delete S.bal[id];
+  await loadAccounts();
+  toast(a.text + ' disconnected.', 'success');
+  return { ok: true, wasActive: was };
 }
 function connect() {
   import('./finatic-journal-ui.js?v=1072').then((m) => m.openBrokerSync({ uid, mode: 'chart', onConnected: () => { loadAccounts().then(() => toast('Broker connected. Pick the account in the panel.', 'success')); } }))
@@ -471,7 +531,7 @@ export function mountLive(paperApi, opts) {
   P = paperApi; uid = opts.uid; toastFn = opts.toast || null;
   if (!document.getElementById('stklv-css')) { const st = document.createElement('style'); st.id = 'stklv-css'; st.textContent = CSS; document.head.appendChild(st); }
   P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, ladder, domState, cancel, flatten });
-  loadAccounts();
+  loadMeta(); loadAccounts();
   window.addEventListener('storage', (e) => { if (e.key === lsUserKey()) loadAccounts(); });
-  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, get blockReason() { return blockReason(); } });
+  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, balance, metaOf, saveMeta, disconnect, L, get blockReason() { return blockReason(); } });
 }

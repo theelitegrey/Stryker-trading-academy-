@@ -186,7 +186,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'zscripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'dpAlerts', 'metricAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'zscripts', 'chartFavorites', 'chartLayouts', 'screens', 'layoutFavs', 'chartAlerts', 'zoroAlerts', 'dpAlerts', 'metricAlerts', 'chartPrefs', 'watchlists', 'paperTrading', 'brokerAccounts']); }
 
       // Charts PAPER TRADING account (assets/chart-paper.js, 2026-10-12). Demo money only: the
       // whole simulated account (balance, positions, orders, history) is one JSON string the
@@ -212,6 +212,23 @@ service cloud.firestore {
           && request.resource.data.displayName is string
           && request.resource.data.displayName.matches('^[A-Za-z0-9 ._\'-]{2,24}$')
           && request.resource.data.updatedAt == request.time;
+      }
+
+      // Charts Trade menu ACCOUNT NOTES (assets/chart-live.js saveMeta, 2026-11-16, admin-only feature for now). One doc per
+      // connected broker account (doc id = Finatic's account UUID): the nickname, prop firm and account type the owner typed with
+      // the pencil. Owner only (not even admins read another user's), validated shape, no broker credentials or numbers stored.
+      // Carved out of the wildcard above.
+      match /brokerAccounts/{aid} {
+        function validBrokerMeta(d) {
+          return d.keys().hasOnly(['label', 'firm', 'type', 'updatedAt'])
+            && d.keys().hasAll(['label', 'firm', 'type', 'updatedAt'])
+            && d.label is string && d.label.size() <= 40
+            && d.firm is string && d.firm.size() <= 40
+            && d.type in ['', 'eval', 'funded', 'live', 'sim']
+            && d.updatedAt == request.time;
+        }
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && aid.size() >= 8 && aid.size() <= 64 && aid.matches('^[A-Za-z0-9_-]+$') && validBrokerMeta(request.resource.data);
       }
 
       // Charts page WATCHLISTS (assets/chart-watchlist.js, 2026-10-06). Owner only (not even

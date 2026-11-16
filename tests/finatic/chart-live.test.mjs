@@ -70,7 +70,54 @@ assert.equal(L.readsOk({ lastOkStart: 1000, lastWriteAt: 2000, now: 5000 }).ok, 
 assert.equal(L.readsOk({ lastOkStart: 1000, now: 40000 }).ok, false, 'stale');
 assert.equal(L.readsOk({ lastOkStart: 1000, now: 2000, unknown: true }).ok, false, 'unknown result blocks');
 assert.equal(L.readsOk({ lastOkStart: 0, now: 2000 }).ok, false);
-assert.deepEqual(L.acctLabel({ broker: 'tradovate', name: 'DEMO123456' }), { broker: 'Tradovate', last4: '3456', text: 'Tradovate …3456' });
+assert.deepEqual(L.acctLabel({ broker: 'tradovate', name: 'DEMO123456' }), { broker: 'Tradovate', last4: '3456', text: 'Tradovate DEMO123456', number: 'DEMO123456' });
+// ---- account identity (Owner bug 2026-11-16: "…2029" was the broker's INTERNAL id, not the account number) -------------------
+{
+  const U = '123e4567-e89b-12d3-a456-426614174000';
+  // Tradovate-like record: internal numeric id + the account name the broker shows
+  const tv = L.acctInfo({ accountId: U, brokerId: 'tradovate', brokerName: 'Tradovate', brokerAccountId: '37552029', accountName: 'APEX-123456-01', accountType: 'futures', currencyCode: 'USD' });
+  assert.equal(tv.number, 'APEX-123456-01', 'broker account name wins over the internal id');
+  assert.equal(tv.text, 'Tradovate APEX-123456-01'); assert.equal(tv.id, U); assert.equal(tv.currency, 'USD'); assert.equal(tv.brokerAccountId, '37552029');
+  // accountNumber present and equal to the internal id -> the display name wins
+  assert.equal(L.acctInfo({ accountId: U, brokerName: 'tradovate', brokerAccountId: '37552029', accountNumber: '37552029', accountName: 'TOPSTEP50K-0042' }).number, 'TOPSTEP50K-0042');
+  // a real broker account number wins
+  assert.equal(L.acctInfo({ accountId: U, brokerName: 'ibkr', accountNumber: 'U1234567', accountName: 'Individual' }).number, 'U1234567');
+  // snake_case grant-style shape
+  assert.equal(L.acctInfo({ id: U, broker_id: 'ninja_trader', account_number: 'NT-778899', account_display_name: 'Sim101' }).number, 'NT-778899');
+  assert.equal(L.acctInfo({ id: U, broker_id: 'ninja_trader', account_display_name: 'Sim101' }).text, 'NinjaTrader Sim101');
+  // never a UUID, never our own id, never the internal id alone
+  assert.equal(L.acctInfo({ accountId: U, brokerName: 'rithmic', accountName: U }).number, '');
+  assert.equal(L.acctInfo({ accountId: U, brokerName: 'rithmic', accountNumber: '0f8fad5b-d9cb-469f-a165-70867728950e' }).number, '');
+  assert.equal(L.acctInfo({ accountId: U, brokerName: 'tradovate', brokerAccountId: '37552029' }).number, '');
+  assert.equal(L.acctInfo({ accountId: U, brokerName: 'tradovate', brokerAccountId: '37552029' }).text, 'Tradovate');
+  assert.equal(L.acctInfo({ accountId: U, brokerName: 'tradovate', accountName: { x: 1 } }).number, '', 'objects ignored');
+  assert.equal(L.brokerNice('ninja_trader'), 'NinjaTrader'); assert.equal(L.brokerNice('tasty_trade'), 'tastytrade'); assert.equal(L.brokerNice('interactive_brokers'), 'Interactive Brokers');
+  // grant lookup for Disconnect
+  const G = [{ id: 'g1', brokerId: 'tradovate', brokerAccountId: '37552029', status: 'ACTIVE' }, { id: 'g2', brokerId: 'rithmic', brokerAccountId: '99', status: 'ACTIVE' }, { id: 'g3', brokerId: 'tradovate', brokerAccountId: '11', revokedAt: '2026-01-01' }];
+  assert.equal(L.grantFor(tv, G), 'g1', 'by broker account id');
+  assert.equal(L.grantFor(L.acctInfo({ accountId: U, brokerId: 'rithmic', accountName: 'X' }), G), 'g2', 'only grant of that broker');
+  assert.equal(L.grantFor(L.acctInfo({ accountId: U, brokerId: 'tradovate', accountName: 'X' }), G.concat([{ id: 'g4', brokerId: 'tradovate', brokerAccountId: '22' }])), '', 'two grants of one broker and no link: refuse to guess');
+  assert.equal(L.grantFor(L.acctInfo({ accountId: U, grantId: 'g2', brokerId: 'x' }), G), 'g2', 'explicit link');
+  assert.equal(L.grantFor(tv, []), '');
+  // balances: numbers or numeric strings, value preference, currency, open P&L
+  assert.deepEqual(L.balanceOf([{ currencyCode: 'USD', cashBalance: '50000', netLiquidationValue: '50312.4', unrealizedPnl: '-120.5' }]), { amount: 50312.4, currency: 'USD', upl: -120.5, kind: 'netLiquidationValue' });
+  assert.equal(L.balanceOf([{ currency: 'USD', totalCashValue: 49870.25 }]).amount, 49870.25);
+  assert.equal(L.balanceOf([{ balanceType: 'CASH', currentBalance: '1,250.00', currencyCode: 'EUR' }]).currency, 'EUR');
+  assert.equal(L.balanceOf([{ currencyCode: 'EUR', cashBalance: 10 }, { currencyCode: 'USD', cashBalance: 20 }], 'USD').amount, 20, 'account currency row first');
+  assert.equal(L.balanceOf({ cash_balance: 7 }).amount, 7, 'single object / snake_case');
+  assert.equal(L.balanceOf([]), null); assert.equal(L.balanceOf([{ currencyCode: 'USD' }]), null); assert.equal(L.balanceOf(null), null);
+  assert.equal(L.balanceOf([{ cashBalance: 'n/a' }]), null);
+  assert.equal(L.fmtMoney(50312.4, 'USD'), '$50,312.40'); assert.equal(L.fmtMoney(-12.5, 'USD'), '-$12.50'); assert.equal(L.fmtMoney(120, 'USD', true), '+$120.00');
+  assert.equal(L.fmtMoney(1200, 'EUR'), '€1,200.00'); assert.equal(L.fmtMoney(null, 'USD'), ''); assert.equal(L.fmtMoney(5, 'x'), '$5.00');
+  // notes from the pencil
+  assert.deepEqual(L.cleanMeta({ label: '  Apex   eval 1 ', firm: 'Apex', type: 'eval', evil: 1 }), { label: 'Apex eval 1', firm: 'Apex', type: 'eval' });
+  assert.deepEqual(L.cleanMeta({ label: 'x'.repeat(60), firm: '<b>Firm</b>', type: 'lifetime' }), { label: 'x'.repeat(40), firm: 'bFirm/b', type: '' });
+  assert.deepEqual(L.cleanMeta(null), { label: '', firm: '', type: '' });
+  const ti = L.acctTitle(tv, { label: 'Apex eval 1', firm: 'Apex', type: 'eval' });
+  assert.equal(ti.name, 'Apex eval 1'); assert.equal(ti.full, 'Apex eval 1 · Apex · Tradovate APEX-123456-01'); assert.equal(ti.type, 'Evaluation');
+  assert.equal(L.acctTitle(tv, {}).name, 'Tradovate'); assert.equal(L.acctTitle(tv, {}).full, 'Tradovate APEX-123456-01');
+  assert.ok(L.FIRMS.includes('Apex') && L.FIRMS.includes('Own account') && L.FIRMS.length === 12);
+}
 assert.equal(L.openPnl(1, 21000, 21010, 20, null), 200); assert.equal(L.openPnl(-2, 6000, 5990, 50, null), 1000); assert.equal(L.openPnl(1, null, 5, 2, -12), -12);
 
 // ---- server chart paths, mocked broker + mocked auth ------------------------------------------------------------------

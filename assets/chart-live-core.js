@@ -209,12 +209,104 @@ export function pendingLine(body, last) {
   return { id: 'P' + body.idemKey, kind: 'ord', live: true, pending: true, code: body.symbol, price, side: body.side, type: body.type, qty: body.qty };
 }
 
-// "Tradovate …1234": broker name + last 4 of the broker account number (falls back to the id)
+// ---- account identity, balances, labels (Owner order 2026-11-16: "account number is wrong, add total money") ----------------
+// Finatic's v1 account record carries its own UUID (accountId / id) plus the broker's fields. Which broker field holds the number
+// the broker SHOWS differs by broker and API version, so we read the candidates in this order and never fall back to a UUID:
+//   accountNumber / account_number / brokerAccountNumber  (the number on the broker's statement, e.g. "APEX-123456-01")
+//   accountDisplayName / account_display_name / accountName / account_name / displayName / display_name / name / nickname
+// brokerAccountId / broker_account_id is NOT shown: for Tradovate it is the broker's INTERNAL numeric id, not the account name
+// the broker shows (showing its last 4 was the "…2029" bug). It is only used to match a grant and to skip an equal "number".
+const UUIDISH = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+const NUM_KEYS = ['accountNumber', 'account_number', 'brokerAccountNumber', 'broker_account_number'];
+const NAME_KEYS = ['accountDisplayName', 'account_display_name', 'accountName', 'account_name', 'displayName', 'display_name', 'name', 'nickname'];
+const ID_KEYS = ['brokerAccountId', 'broker_account_id'];
+const str = (v) => (v == null || typeof v === 'object' ? '' : String(v).trim());
+export function brokerNice(b) {
+  const s = str(b) || 'Broker';
+  const fix = { ibkr: 'IBKR', interactivebrokers: 'Interactive Brokers', tastytrade: 'tastytrade', ninjatrader: 'NinjaTrader', ninja_trader: 'NinjaTrader', tradestation: 'TradeStation', topstepx: 'TopstepX', projectx: 'ProjectX', tasty_trade: 'tastytrade' };
+  const k = s.toLowerCase().replace(/[^a-z_]/g, '');
+  return fix[k] || fix[k.replace(/_/g, '')] || s.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+// the account number as the broker shows it ('' when Finatic gave none); never a UUID or our own id
+export function acctNumber(x, ownId) {
+  if (!x) return '';
+  const ok = (v) => v && v.length <= 64 && !UUIDISH.test(v) && v !== ownId;
+  const internal = ID_KEYS.map((k) => str(x[k])).find(Boolean) || '';
+  const cands = [...NUM_KEYS, ...NAME_KEYS].map((k) => str(x[k])).filter(ok);
+  // a "number" that is just the broker's internal id again (Tradovate: accountNumber == brokerAccountId) loses to a real name
+  const best = cands.find((v) => v !== internal) || cands[0];
+  return best || '';   // never the internal id alone: it is not a number the broker shows (that was the "…2029" bug)
+}
+// one Finatic account record -> what the menu needs
+export function acctInfo(x) {
+  const id = str(x && (x.accountId || x.id));
+  const broker = brokerNice(x && (x.brokerName || x.broker_name || x.brokerDisplayName || x.brokerId || x.broker_id || x.institutionName || x.broker));
+  const number = acctNumber(x, id);
+  const alnum = number.replace(/[^A-Za-z0-9]/g, '');
+  return { id, broker, number, last4: alnum.slice(-4), text: number ? broker + ' ' + number : broker,
+    brokerId: str(x && (x.brokerId || x.broker_id)).toLowerCase(), brokerAccountId: str(x && (x.brokerAccountId || x.broker_account_id)),
+    grantId: str(x && (x.grantId || x.grant_id || x.accountGrantId || x.account_grant_id)), currency: str(x && (x.currencyCode || x.currency_code || x.currency)).toUpperCase() };
+}
+// back-compat wrapper (old callers pass { broker, number|name, id })
 export function acctLabel(a) {
-  const broker = String(a.broker || a.brokerName || a.brokerId || 'Broker');
-  const nice = broker.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  const raw = String(a.number || a.brokerAccountId || a.accountNumber || a.name || a.accountName || a.id || '').replace(/[^A-Za-z0-9]/g, '');
-  return { broker: nice, last4: raw.slice(-4), text: nice + ' …' + raw.slice(-4) };
+  const i = acctInfo({ brokerName: a.broker || a.brokerName || a.brokerId, accountNumber: a.number || a.accountNumber, accountName: a.name || a.accountName, brokerAccountId: a.brokerAccountId, id: a.id });
+  return { broker: i.broker, last4: i.last4, text: i.text, number: i.number };
+}
+// The grant that gave us this account (Disconnect revokes it). Exact link first, then the broker account id, then "the only active
+// grant for this broker", then "the only active grant". '' when it can't be told apart (the UI then says so instead of guessing).
+export function grantFor(acct, grants) {
+  const live = (Array.isArray(grants) ? grants : []).filter((g) => g && g.id && !g.revokedAt && !/revoked/i.test(String(g.status || '')));
+  if (acct.grantId && live.some((g) => g.id === acct.grantId)) return acct.grantId;
+  const byAcct = live.filter((g) => acct.brokerAccountId && String(g.brokerAccountId || '') === acct.brokerAccountId);
+  if (byAcct.length === 1) return byAcct[0].id;
+  const bk = (acct.brokerId || acct.broker).toLowerCase().replace(/[^a-z]/g, '');
+  const byBroker = live.filter((g) => String(g.brokerId || '').toLowerCase().replace(/[^a-z]/g, '') === bk);
+  if (byBroker.length === 1) return byBroker[0].id;
+  return live.length === 1 ? live[0].id : '';
+}
+// Balances: Finatic returns a list (one row per currency / balance kind), each value a number OR a numeric string. Total money =
+// net liquidation / account value first, then total cash, then cash, then current, then available. Open P&L when given.
+const VAL_KEYS = ['netLiquidationValue', 'net_liquidation_value', 'netLiquidation', 'accountValue', 'account_value', 'totalValue', 'total_value', 'equity',
+  'totalCashValue', 'total_cash_value', 'cashBalance', 'cash_balance', 'currentBalance', 'current_balance', 'balance', 'availableBalance', 'available_balance'];
+const UPL_KEYS = ['unrealizedPnl', 'unrealized_pnl', 'unrealizedProfitLoss', 'unrealized_profit_loss', 'openPnl', 'open_pnl', 'totalUnrealizedPnl', 'openTradeEquity', 'open_trade_equity'];
+const numOf = (v) => { if (v == null || v === '' || typeof v === 'boolean') return null; if (typeof v === 'object') v = v.amount != null ? v.amount : v.value; const n = Number(String(v).replace(/[,$\s]/g, '')); return Number.isFinite(n) ? n : null; };
+export function balanceOf(rows, cur) {
+  const list = (Array.isArray(rows) ? rows : rows && typeof rows === 'object' ? [rows] : []).filter((r) => r && typeof r === 'object');
+  if (!list.length) return null;
+  const want = str(cur).toUpperCase() || 'USD';
+  const curOf = (r) => str(r.currencyCode || r.currency_code || r.currency).toUpperCase();
+  list.sort((a, b) => (curOf(b) === want) - (curOf(a) === want));
+  for (const k of VAL_KEYS) for (const r of list) {
+    const n = numOf(r[k]); if (n == null) continue;
+    let upl = null; for (const u of UPL_KEYS) { const x = numOf(r[u]); if (x != null) { upl = x; break; } }
+    return { amount: n, currency: curOf(r) || want, upl, kind: k };
+  }
+  return null;
+}
+// "$50,312.40" / "€1,200.00" / "-$12.50"; '' for nothing; sign option for P&L ("+$120.00")
+export function fmtMoney(n, cur, sign) {
+  if (n == null || !Number.isFinite(Number(n))) return '';
+  const c = /^[A-Z]{3}$/.test(str(cur).toUpperCase()) ? str(cur).toUpperCase() : 'USD';
+  let t; try { t = new Intl.NumberFormat('en-US', { style: 'currency', currency: c, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(n)); } catch (e) { t = c + ' ' + Math.abs(n).toFixed(2); }
+  return (n < 0 ? '-' : sign && n > 0 ? '+' : '') + t;
+}
+// ---- per-account notes the admin adds (pencil): label, prop firm, account type -------------------------------------------
+export const FIRMS = ['Apex', 'Topstep', 'Tradeify', 'Take Profit Trader', 'My Funded Futures', 'Lucid', 'Bulenox', 'Alpha Futures', 'Elite Trader Funding', 'Earn2Trade', 'The Trading Pit', 'Own account'];
+export const TYPES = [['eval', 'Evaluation'], ['funded', 'Funded'], ['live', 'Live'], ['sim', 'Sim']];
+const clip = (v, n) => str(v).replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').slice(0, n).trim();
+// -> { label, firm, type } with every field cleaned ('' when empty); the same limits are in firestore.rules
+export function cleanMeta(m) {
+  const o = m && typeof m === 'object' ? m : {};
+  const type = TYPES.some(([k]) => k === o.type) ? o.type : '';
+  return { label: clip(o.label, 40), firm: clip(o.firm, 40), type };
+}
+export const typeName = (k) => { const t = TYPES.find(([x]) => x === k); return t ? t[1] : ''; };
+// row / button wording: name = label or broker; full = "Apex eval 1 · Apex · Tradovate APEX-123456-01"
+export function acctTitle(a, meta) {
+  const m = cleanMeta(meta);
+  const name = m.label || a.broker;
+  const full = [m.label, m.firm, a.text].filter(Boolean).join(' · ');
+  return { name, full, firm: m.firm, type: typeName(m.type) };
 }
 // open P&L estimate from the chart's last price (contract spec point value), or the broker's figure when no price
 export function openPnl(pos, avg, last, pv, brokerUpl) {

@@ -1656,6 +1656,7 @@ function mountToolbar(bar){
   const setOpen = (o) => { if (o) drawTradeMenu(pop); pop.hidden = !o; if (o) setTimeout(() => TM.focusFirst(pop), 0); b.setAttribute('aria-expanded', o ? 'true' : 'false'); };
   b.onclick = (e) => { e.stopPropagation(); setOpen(pop.hidden); };
   pop.addEventListener('click', (e) => {
+    if (TM.ownsClick(e.target)) return;   // copy / pencil / disconnect / editor: chart-trade-menu.js handles them
     const it = e.target.closest('[data-a]'); if (!it) return; e.stopPropagation(); setOpen(false);
     const a = it.dataset.a, L = window.__stkLive;
     if (a === 'paper') { if (liveOn()) L.leave(true); if (!paperOn() && liveOf()) setPaperEnabled(true); openPanel('positions'); }
@@ -1670,14 +1671,14 @@ function mountToolbar(bar){
 }
 // Live accounts exist only when the admin-only module is loaded (window.__stkLive.state.accounts); everyone else sees Paper only.
 const liveState = () => (window.__stkLive && window.__stkLive.state && window.__stkLive.connect ? window.__stkLive.state : null);
-function drawTradeMenu(pop){ TM.draw(pop, liveState(), acct ? money(acct.summary(dayStart()).balance) : ''); }
+function drawTradeMenu(pop){ const sm = acct ? acct.summary(dayStart()) : null; TM.draw(pop, liveState(), sm ? { bal: money(sm.balance), upl: sm.unrealized ? money(sm.unrealized, true) : '' } : null); }
 const escAttr = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function updateTradeBtn(){
   const b = document.getElementById('stkc-paper-btn'); if (!b) return;
   const LS = liveState(), act = LS && LS.acct, txt = TM.button(b, LS);
   b.classList.toggle('stkpt-islive', !!act);
   if (b.hasAttribute('data-ob-label')) b.setAttribute('data-ob-label', act ? txt : 'Trade');   // phone ⋯ list row
-  b.setAttribute('aria-label', act ? txt + ' account ' + act.label : 'Trade: Paper');
+  b.setAttribute('aria-label', act ? txt + ' account ' + TM.titleOf(act).full : 'Trade: Paper');
 }
 
 function renderAll(){ updateTradeBtn(); pushLines(); renderPanel(); if (ticket && !ticket.hidden) renderTicket(); }

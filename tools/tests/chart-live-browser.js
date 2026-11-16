@@ -100,7 +100,7 @@ async function run(b, w, h, mobile, theme) {
   await p.waitForFunction(() => window.__stkLive && window.__stkLive.pick && document.querySelector('.stklv-pick select option[value="' + '123e4567-e89b-12d3-a456-426614174000' + '"]'), null, { timeout: 20000 });
   const opts = await p.$$eval('.stklv-pick select option', (o) => o.map((x) => [x.value, x.textContent]));
   check(opts[0][0] === '' && opts[0][1] === 'Paper' && (await p.$eval('.stklv-pick select', (s) => s.value)) === '', tag + ': Paper is the first and default choice', opts);
-  check(opts.some((o) => o[1] === 'Tradovate …1234'), tag + ': account shown as broker + last 4', opts);
+  check(opts.some((o) => o[1] === 'Tradovate DEMO5551234'), tag + ': account shown as broker + the account number the broker shows', opts);
   check(!(await p.evaluate(() => /finatic/i.test(document.getElementById('stkpt').innerText))), tag + ': no vendor name in the panel');
   // pick live
   await p.selectOption('.stklv-pick select', ACC);
@@ -108,8 +108,8 @@ async function run(b, w, h, mobile, theme) {
   await p.evaluate(() => window.__stkPaper.openPanel());
   await sleep(600);
   const badge = await p.evaluate(() => ({ panel: (() => { const b = document.querySelector('.stkpt-head .stklv-badge'); return b ? [...b.children].filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.textContent).join('') : ''; })(), chart: (document.querySelector('.stklv-cbadge') || {}).textContent || '', bg: (() => { const e = document.querySelector('.stklv-cbadge'); return e ? getComputedStyle(e).backgroundColor : ''; })() }));
-  check(/^LIVE Tradovate …1234 · NQ[HMUZ]\d$/.test(badge.chart) && badge.bg === 'rgb(217, 45, 32)', tag + ': big red LIVE badge on the chart with the contract', badge);
-  check(mobile ? /LIVE …1234$/.test(badge.panel) : /^LIVE Tradovate …1234/.test(badge.panel), tag + ': LIVE badge in the panel head', badge);
+  check(/^LIVE Tradovate DEMO5551234 · NQ[HMUZ]\d$/.test(badge.chart) && badge.bg === 'rgb(217, 45, 32)', tag + ': big red LIVE badge on the chart with the contract', badge);
+  check(mobile ? /LIVE …1234$/.test(badge.panel) : /^LIVE Tradovate DEMO5551234/.test(badge.panel), tag + ': LIVE badge in the panel head', badge);
   check(await p.evaluate(() => { const t = document.querySelector('.stkpt-trade'); return !t || getComputedStyle(t).display === 'none'; }), tag + ': paper Trade button hidden while live');
   check(await p.evaluate(() => window.STRYKER_VELA && window.__stkPaper.live !== null), tag + ': live hook active');
   const code = await p.evaluate(() => window.__stkLive.info('futures:NQ1!').code);
@@ -125,7 +125,7 @@ async function run(b, w, h, mobile, theme) {
   await tap(p, '.stklv-send', mobile);
   await p.waitForSelector('#stklv-cf');
   const cf1 = await p.evaluate(() => ({ t: document.getElementById('stklv-cf').innerText, dis: document.querySelector('#stklv-cf [data-k=yes]').disabled, typing: !!document.querySelector('.stklv-cf-type input') }));
-  check(cf1.typing && cf1.dis && cf1.t.includes(code) && /Tradovate …1234/.test(cf1.t), tag + ': first order needs the contract typed; confirm shows the contract + account', cf1);
+  check(cf1.typing && cf1.dis && cf1.t.includes(code) && /Tradovate DEMO5551234/.test(cf1.t), tag + ': first order needs the contract typed; confirm shows the contract + account', cf1);
   await p.fill('.stklv-cf-type input', 'NQ'); check(await p.$eval('#stklv-cf [data-k=yes]', (e) => e.disabled), tag + ': wrong text keeps Send disabled');
   if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/live-' + tag + '-2-typed.png' });
   await p.fill('.stklv-cf-type input', code.toLowerCase());

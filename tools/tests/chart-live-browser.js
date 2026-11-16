@@ -4,7 +4,7 @@
 // Checks: picker hidden for non-admins; Paper is the default; picking the account -> red LIVE badge (panel + chart); first order needs the
 // contract typed; then a tap; "skip" after the first; payload (contract, qty, idemKey unique); read failure blocks; working-order + position
 // lines; drag = modify (confirm); cancel+new when modify isn't allowed; DOM ladder click = limit at that price; flatten = server op with
-// a key; Connect a broker opens the JournalX sheet; alignment numbers (getBoundingClientRect) printed for the report.
+// a key; Connect a broker opens the Nemesis sheet; alignment numbers (getBoundingClientRect) printed for the report.
 const fs = require('fs');
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
@@ -260,7 +260,7 @@ async function notConnected(b) {
   await p.evaluate(() => { window.open = () => ({ location: {}, close() {} }); });
   await p.selectOption('.stklv-pick select', '__connect');
   const sheet = await p.waitForSelector('#fjs', { timeout: 10000 }).then(() => true, () => false);
-  check(sheet && (await p.$eval('.stklv-pick select', (s) => s.value)) === '', 'Connect a broker opens the JournalX connect sheet; picker stays on Paper');
+  check(sheet && (await p.$eval('.stklv-pick select', (s) => s.value)) === '', 'Connect a broker opens the Nemesis connect sheet; picker stays on Paper');
   await p.screenshot({ path: OUT + '/live-connect-1440.png' });
   check(!writes(M).length, 'connect flow sends no order');
   await ctx.close();

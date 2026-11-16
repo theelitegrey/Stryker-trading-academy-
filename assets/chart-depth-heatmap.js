@@ -415,7 +415,7 @@ export function installDepthHeatmap(Core, H, reg) {
     start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.srcEvt = () => this.attach(); window.addEventListener('stryker:booksource', this.srcEvt); this.attach(); }
     attach() {
       if (!this.ctx) return;
-      const mk = H.btBook(H.marketOf(this.ctx)), src = depthSourceFor(mk);   // Replay One: the session's real market
+      const mk = H.btBook(H.marketOf(this.ctx)), src = depthSourceFor(mk);   // Kronos: the session's real market
       this.mk = mk; this.kind = src ? src.kind : '';
       if (src && src.kind === 'hub' && !this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }
       if (src && src.kind === 'hub' && !l2Badge()) { this.detach(); this.block = NOT_YET; this.render(); return; }

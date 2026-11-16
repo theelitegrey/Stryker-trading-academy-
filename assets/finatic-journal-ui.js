@@ -1,4 +1,4 @@
-// TradeZoro — JournalX "Broker sync (beta)" sheet (ES module, admin only, loaded on demand by assets/finatic-journal.js).
+// TradeZoro — Nemesis "Broker sync (beta)" sheet (ES module, admin only, loaded on demand by assets/finatic-journal.js).
 // READ ONLY: lists accounts and fills through /connect/finatic/data (server allow-list); no order buttons, no order code path.
 // Flow: start session -> broker portal in a new tab (the member logs in there) -> Continue -> pick account + dates -> preview -> import.
 // Depends on the journal page globals: auth, db, firebase, JOURNAL_UID, JOURNAL_TRADES, journalCollectionRef, reloadJournalData, showToast.

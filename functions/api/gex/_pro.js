@@ -9,7 +9,7 @@ export function gexPro(handler) {
   return async (ctx) => {
     const tok = bearerOf(ctx.request);
     if (!(await isMemberToken(tok))) {
-      return new Response(JSON.stringify({ error: 'sign_in_required', message: 'Sign in to use GEX+. It is free.' }), { status: 403, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+      return new Response(JSON.stringify({ error: 'sign_in_required', message: 'Sign in to use Omega. It is free.' }), { status: 403, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
     }
     // the recorder's raw chain reads (/gex-chain, /gex-fast) re-check this same token (env.GEX_AUTH)
     const r = await handler(Object.assign({}, ctx, { env: Object.assign({}, ctx.env, { GEX_AUTH: 'Bearer ' + tok }) }));

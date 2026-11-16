@@ -30,7 +30,7 @@ What you get here:
 - Chart walkthroughs: how I set up a chart, step by step.
 - Our own indicators, delivered straight to your chart.
 - A short course, ZoroCharts Basics: layouts, indicators, replay, journal and the GEX levels page.
-- Weekly sessions: Monday market prep and a Replay One practice session.
+- Weekly sessions: Monday market prep and a Kronos practice session.
 
 Education only. Not financial advice. Nothing here is a signal or a promise of results.
 
@@ -56,14 +56,14 @@ const P = [];
 const post = (id, uid, name, ageH, text, o = {}) => { P.push(id); add(`${C}/posts/${id}`, Object.assign({ authorUid: uid, authorName: name, text, pinned: !!o.pinned, createdAt: ts(NOW - ageH * H), demo: true }, o.image ? { imageUrl: IMG + o.image, imageAlt: o.alt || 'Chart' } : {}, { likeCount: o.likes || 0, commentCount: o.cc || 0 })); };
 post('welcome01', OWNER, OWNER_NAME, 24 * 14, `Welcome to the TradeZoro Trading Room.\n\nThis is a demo room: the members, posts and results you see are samples, and every result is marked Example. Start with the course ZoroCharts Basics, add the indicators to your chart, and join Monday market prep.\n\nEducation only. Not financial advice.`, { pinned: true, likes: 27 });
 post('indhowto1', OWNER, OWNER_NAME, 24 * 10, `How to use the indicators here\n\n1. Open the Indicators tab and tap Add to my charts.\n2. Open ZoroCharts. They are in your Indicators list under Community.\n3. Start with Session Sweep, then add Liquidity Master. Keep it simple: one idea per chart.\n\nThey mark the chart. They do not tell you what to trade.`, { likes: 19 });
-post('sessions01', OWNER, OWNER_NAME, 24 * 3, `This week's sessions (online, hosted by me)\n\nMonday market prep: 8:30 AM New York / 7:00 PM IST\nReplay One practice session: Wednesday 11:00 AM New York / 9:30 PM IST\n\nRSVP in the Events tab. Bring one chart you want to talk through.`, { likes: 22 });
+post('sessions01', OWNER, OWNER_NAME, 24 * 3, `This week's sessions (online, hosted by me)\n\nMonday market prep: 8:30 AM New York / 7:00 PM IST\nKronos practice session: Wednesday 11:00 AM New York / 9:30 PM IST\n\nRSVP in the Events tab. Bring one chart you want to talk through.`, { likes: 22 });
 post('walkthru1', OWNER, OWNER_NAME, 24 * 5, `Chart walkthrough: my NQ 15m layout\n\nSessions marked first, then the levels from the GEX page, then I scroll back and ask one question: where did price react last time? The marks are just a map. I write the plan in the journal before the open.\n\nWhat would you add to this layout?`, { image: 'nq-chart.webp', alt: 'NQ 15 minute chart on ZoroCharts', likes: 31 });
 post('question01', OWNER, OWNER_NAME, 30, `Quick question for you: what is the one thing about charts you still find confusing? Layouts, replay, reading the levels? Tell me below and I will cover the top answers in Monday prep.`, { likes: 14 });
 post('results001', OWNER, OWNER_NAME, 24 * 2, `Member results thread (sample)\n\nPost a recap of a practice trade. Rules: label it Example or Sample, show the plan, and tell us what you would do differently. These are demo samples drawn on our own chart renders, not broker statements.`, { likes: 18 });
 const MP = [
   ['mp1', 4, 52, `Example recap: swept the Asia low, 5m gap held on the retest. Plan was written before the open. Sample numbers on the card.`, { image: 'result-1.webp', alt: 'Example trade recap card', likes: 24 }],
   ['mp2', 1, 70, `Question: how do you all set up your layouts for the NY open? I keep changing mine every week.`, { likes: 9 }],
-  ['mp3', 8, 96, `Example: a Replay One practice session recap. Marked levels at 9:00, waited for the sweep. Sample card, practice data.`, { image: 'result-3.webp', alt: 'Example trade recap card', likes: 20 }],
+  ['mp3', 8, 96, `Example: a Kronos practice session recap. Marked levels at 9:00, waited for the sweep. Sample card, practice data.`, { image: 'result-3.webp', alt: 'Example trade recap card', likes: 20 }],
   ['mp4', 14, 120, `Example lesson: a stopped-out trade. Entry was fine, the higher timeframe bias was not. Writing it in the journal so I remember. Sample card.`, { image: 'result-2.webp', alt: 'Example trade recap card', likes: 33 }],
   ['mp5', 19, 140, `Day 12 of journaling every session. Boring, but my notes are getting clearer. Thanks Gaurav for the template.`, { likes: 17 }],
   ['mp6', 6, 160, `Example: small, boring, by the plan. Checklist did the work. Sample card.`, { image: 'result-4.webp', alt: 'Example trade recap card', likes: 15 }],
@@ -82,7 +82,7 @@ const CM = {
   results001: [[21, 'Great thread idea. Posting mine tonight.'], [27, 'Good to see the plan on the card.']],
   mp1: [[9, 'Nice and clean. What timeframe did you mark the gap on?'], [4, '5m, the gap was from the NY open.'], [OWNER, 'Good process. Writing the plan first is the habit that matters.'], [24, 'Love that you labeled it Example.']],
   mp2: [[OWNER, 'Keep one NY layout and only change it once a month. Less tinkering, more reading.'], [16, 'Same problem. I made one layout per session.'], [28, 'Thanks, the one-layout-per-month idea helps.']],
-  mp3: [[2, 'Replay One is great for this. Did you use the speed control?'], [8, 'Yes, 1x on the entry, faster on the way.'], [29, 'Practising in replay changed my patience.']],
+  mp3: [[2, 'Kronos is great for this. Did you use the speed control?'], [8, 'Yes, 1x on the entry, faster on the way.'], [29, 'Practising in replay changed my patience.']],
   mp4: [[OWNER, 'This is exactly the right way to treat a stopped trade: write it down, learn, move on.'], [12, 'The bias note is gold. Thanks for sharing.'], [30, 'Respect for posting the loss.'], [5, 'Journaling every one of these now.']],
   mp5: [[OWNER, 'Day 12, well done. Keep it short and honest.'], [20, 'Streak goals! Starting mine today.']],
   mp6: [[18, 'Boring is good.'], [3, 'Checklist habit is underrated.']],
@@ -103,11 +103,11 @@ for (const o of out) { const m = /posts\/([^/]+)$/.exec(o.path); if (m && cmt[m[
 // events
 const ev = (id, title, startUtc, mins, desc) => { add(`${C}/events/${id}`, { title, desc, startsAt: ts(Date.parse(startUtc)), durationMin: mins, link: 'https://tradezoro.com/charts', createdBy: OWNER, createdAt: ts(NOW - 6 * D), demo: true }); };
 const PREP = 'Hosted by Gaurav. Online. We mark the week, walk the levels page and set one plan per chart. Bring one chart to talk through. Education only.';
-const REPLAY = 'Hosted by Gaurav. Online. A practice session in Replay One: we step through a past session, mark the levels and talk about the decisions. Education only. Not financial advice.';
+const REPLAY = 'Hosted by Gaurav. Online. A practice session in Kronos: we step through a past session, mark the levels and talk about the decisions. Education only. Not financial advice.';
 ev('prep-1102', 'Monday market prep', '2026-11-02T13:30:00Z', 45, '8:30 AM New York / 7:00 PM IST. ' + PREP);
-ev('replay-1104', 'Replay One practice session', '2026-11-04T16:00:00Z', 60, '11:00 AM New York / 9:30 PM IST. ' + REPLAY);
+ev('replay-1104', 'Kronos practice session', '2026-11-04T16:00:00Z', 60, '11:00 AM New York / 9:30 PM IST. ' + REPLAY);
 ev('prep-1109', 'Monday market prep', '2026-11-09T13:30:00Z', 45, '8:30 AM New York / 7:00 PM IST. ' + PREP);
-ev('replay-1111', 'Replay One practice session', '2026-11-11T16:00:00Z', 60, '11:00 AM New York / 9:30 PM IST. ' + REPLAY);
+ev('replay-1111', 'Kronos practice session', '2026-11-11T16:00:00Z', 60, '11:00 AM New York / 9:30 PM IST. ' + REPLAY);
 const rs = { 'prep-1102': 22, 'replay-1104': 17, 'prep-1109': 11, 'replay-1111': 8 };
 for (const [id, n] of Object.entries(rs)) members.slice(0, n).forEach((m, i) => add(`${C}/events/${id}/rsvps/${m.uid}`, { uid: m.uid, name: m.name, createdAt: ts(NOW - (i + 2) * 5 * H), demo: true }));
 

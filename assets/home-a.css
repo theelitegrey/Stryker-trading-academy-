@@ -98,7 +98,7 @@
 .cm-anchor{position:absolute;width:0;height:0;overflow:hidden;scroll-margin-top:80px}
 
 /* ---------- hero scene (Owner 2026-11-01): back screens + main chart + phone + real-time pill + floating cards ----------
-   Layers, back to front: JournalX + Replay One screens (z1, tilted, peeking out left/right and above), the main chart (z2),
+   Layers, back to front: Nemesis + Kronos screens (z1, tilted, peeking out left/right and above), the main chart (z2),
    the phone over the chart's bottom-right (z3), cards (z4), the pill (z5). --mw = main frame width, --ph = phone width,
    --phx = how far the phone sticks out past the frame. Cards: 6 at >=1100 (5 + toast), 4 at 700-1099, 3 below. */
 .hh-scene{ --mw:min(860px,100%); --ph:clamp(104px,30vw,124px); --phx:4px; margin-top:64px; padding-bottom:calc(var(--ph) * .7); }

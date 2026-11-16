@@ -111,8 +111,8 @@
   {
    "id": "gex",
    "title": "GEX levels (gex)",
-   "desc": "Option gamma levels from GEX+. Updated a few minutes at a time, not an instant feed.",
-   "plan": "GEX+ data. Returns na (plus one notice) when your plan does not include it."
+   "desc": "Option gamma levels from Omega. Updated a few minutes at a time, not an instant feed.",
+   "plan": "Omega data. Returns na (plus one notice) when your plan does not include it."
   },
   {
    "id": "opt",

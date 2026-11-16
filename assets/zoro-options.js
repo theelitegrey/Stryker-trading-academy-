@@ -22,7 +22,7 @@
   var C = { pos: '#03c988', neg: '#e5484d', flip: '#f5c542', spot: '#eeeeee', teal: '#00adb5', grid: 'rgba(255,255,255,.08)', zero: 'rgba(255,255,255,.22)', ink: 'rgba(255,255,255,.72)', ink3: 'rgba(255,255,255,.56)' };
   var IDX = ['SPX', 'SPY', 'QQQ', 'IWM', 'GLD', 'USO', 'ES', 'NQ', 'RTY', 'GC', 'CL'];
   var FUT_FROM = { ES: 'SPX', NQ: 'QQQ', RTY: 'IWM', GC: 'GLD', CL: 'USO' };
-  var BASIS_KEY = 'stryker_gex_basis';   // shared with GEX+ (build 891 daily-close option)
+  var BASIS_KEY = 'stryker_gex_basis';   // shared with Omega (build 891 daily-close option)
   var $ = function (id) { return document.getElementById(id); };
   var qa = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }

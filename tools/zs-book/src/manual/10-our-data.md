@@ -8,7 +8,7 @@ Most scripting languages stop at price and volume. Zscript can also read the ext
 |---|---|---|
 | `book.*` | Order book (level 2): resting orders above and below price | Pro |
 | `flow.*` | Order flow: trades, delta, big trades, footprint, volume profile | Pro |
-| `gex.*` | GEX+ levels: call wall, put wall, flip, zero gamma | GEX+ |
+| `gex.*` | Omega levels: call wall, put wall, flip, zero gamma | Omega |
 | `opt.*` | ZoroOptions summary: gamma nodes, ranges, IV rank, max pain | Pro |
 
 Your script gets the data your plan gives you on the chart, no more. When your plan does not include a data kind, the call returns `na` and you see one short notice on the chart, once. The script keeps running; the rest of your lines still draw.
@@ -74,7 +74,7 @@ gex.level(n)   the nth strongest level (0 = strongest)
 gex.updated    when the levels were computed (ms)
 ```
 
-ES and NQ use the same mapping as the GEX+ page.
+ES and NQ use the same mapping as the Omega page.
 
 ```zscript
 //@zscript 1

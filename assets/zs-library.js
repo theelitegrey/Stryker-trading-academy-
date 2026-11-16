@@ -11,7 +11,7 @@
   var CFG = g.CREATOR_CONFIG || {};
   var CATS = [['trend', 'Trend'], ['momentum', 'Momentum'], ['volume', 'Volume'], ['order-flow', 'Order flow'], ['levels', 'Levels'],
     ['volatility', 'Volatility'], ['options', 'Options'], ['oscillator', 'Oscillator'], ['session', 'Session'], ['other', 'Other']];
-  var DATA = [['book', 'Order book'], ['flow', 'Order flow'], ['gex', 'GEX+'], ['opt', 'ZoroOptions']];
+  var DATA = [['book', 'Order book'], ['flow', 'Order flow'], ['gex', 'Omega'], ['opt', 'ZoroOptions']];
   var REASONS = [['copied', 'Copied from someone else'], ['results', 'Promises profits or results'], ['malicious', 'Tries to do something harmful'],
     ['broken', 'Does not work'], ['abuse', 'Abusive or offensive'], ['other', 'Something else']];
   var MAX_SRC = 131072, MAX_PROG = 300000, PRICE_MIN = 1, PRICE_MAX = 999;

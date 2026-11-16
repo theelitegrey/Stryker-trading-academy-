@@ -11,15 +11,15 @@
 
   var T = '/assets/images/navfx/';
   var FEATURES = [
-    { id: 'gex', name: 'GEX+', url: '/features/gex', icon: '📈', big: 1,
-      line: 'Options gamma levels on a futures chart: call wall, put wall and zero gamma, read as context.' },
+    { id: 'gex', name: 'Omega', url: '/features/gex', icon: '📈', big: 1,
+      line: 'Gamma Exposure. Decode the forces moving markets.' },
     { id: 'smart-money-desk', name: 'Smart Money Desk', url: '/features/smart-money-desk', icon: '🏛️' },
     { id: 'curriculum', name: 'Curriculum', url: '/features/curriculum', icon: '📚' },
     { id: 'global-monitor', name: 'Global Monitor', url: '/features/global-monitor', icon: '🌐' },
-    { id: 'journal', name: 'JournalX', url: '/features/journal', icon: '📓', big: 1 },
+    { id: 'journal', name: 'Nemesis', url: '/features/journal', icon: '📓', big: 1, line: 'Trading Journal. Confront your mistakes. Master your edge.' },
     { id: 'models', name: 'Trading Models', url: '/features/models', icon: '📐', big: 1 },
     { id: 'indicators', name: 'Private Indicators', url: '/features/indicators', icon: '📊' },
-    { id: 'backtesting', name: 'Replay One', url: '/features/backtesting', icon: '⏯️' },
+    { id: 'backtesting', name: 'Kronos', url: '/features/backtesting', icon: '⏯️', line: 'Replay & Backtesting. Master the past. Sharpen the future.' },
     { id: 'community', name: 'Community', url: '/features/community', icon: '🤝' },
     { id: 'charts', name: 'ZoroCharts', url: '/features/charts', icon: '📉' },
     { id: 'orderflow', name: 'Order Flow', url: '/features/orderflow', icon: '🔬' },

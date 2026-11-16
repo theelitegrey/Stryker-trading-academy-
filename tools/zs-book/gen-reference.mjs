@@ -28,7 +28,7 @@ const GROUPS = [
   ['request', 'Other symbols and timeframes', 'Read values from another timeframe or symbol. Never looks ahead.', (n) => n.startsWith('request.')],
   ['book', 'Order book (book)', 'Level 2 data: resting orders. Follows your plan like the charts do. Where there is no depth feed you get na and one notice.', (n) => n.startsWith('book.'), 'Pro data. Returns na (plus one notice) when your plan does not include it.'],
   ['flow', 'Order flow (flow)', 'Trades, delta, big trades, footprint and value area, per bar.', (n) => n.startsWith('flow.'), 'Pro data. Returns na (plus one notice) when your plan does not include it.'],
-  ['gex', 'GEX levels (gex)', 'Option gamma levels from GEX+. Updated a few minutes at a time, not an instant feed.', (n) => n.startsWith('gex.'), 'GEX+ data. Returns na (plus one notice) when your plan does not include it.'],
+  ['gex', 'GEX levels (gex)', 'Option gamma levels from Omega. Updated a few minutes at a time, not an instant feed.', (n) => n.startsWith('gex.'), 'Omega data. Returns na (plus one notice) when your plan does not include it.'],
   ['opt', 'ZoroOptions (opt)', 'Gamma nodes, ranges, IV rank and more. Updated a few minutes at a time, not an instant feed.', (n) => n.startsWith('opt.'), 'Pro data. Returns na (plus one notice) when your plan does not include it.'],
   ['builtin-vars', 'Built-in variables', 'Values that exist in every script, such as close, bar_index and barstate.islast.', (n) => true],
 ];

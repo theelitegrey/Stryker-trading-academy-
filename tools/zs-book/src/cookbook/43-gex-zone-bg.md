@@ -1,6 +1,6 @@
 ---
 title: Above or below the flip
-dek: Tint the background by gamma regime (GEX+ data).
+dek: Tint the background by gamma regime (Omega data).
 level: Intermediate
 ---
 ```zscript

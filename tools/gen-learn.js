@@ -183,7 +183,7 @@ ${JSON.stringify(jsonld, null, 2)}
 // Nav and footer are the site's standard public ones (as on about.html).
 const about = fs.readFileSync(path.join(ROOT, 'about.html'), 'utf8');
 const NAV = about.slice(about.indexOf('<nav class="nav"'), about.indexOf('</nav>') + 6)
-  .replace(/<a href="features(\.html)?">Features<\/a>/, (m) => m.includes('academy') ? m : m + '\n      <a href="academy">ZoroAcademy</a>');
+  .replace(/<a href="features(\.html)?">Features<\/a>/, (m) => m.includes('academy') ? m : m + '\n      <a href="academy">Mentis</a>');
 const FOOTER = about.slice(about.indexOf('<footer>'), about.indexOf('</footer>') + 9)
   ;  // about.html's footer already links Learn
 // Internal links are clean URLs (no .html) since build 327.
@@ -241,14 +241,14 @@ function articlePage(a) {
         mainEntityOfPage: { '@type': 'WebPage', '@id': url }, isAccessibleForFree: true },
       { '@type': 'BreadcrumbList', itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-        { '@type': 'ListItem', position: 2, name: 'ZoroAcademy', item: ORIGIN + '/academy' },
+        { '@type': 'ListItem', position: 2, name: 'Mentis', item: ORIGIN + '/academy' },
         { '@type': 'ListItem', position: 3, name: 'Articles', item: ORIGIN + '/learn' },
         { '@type': 'ListItem', position: 4, name: a.short, item: url } ] }
     ].concat(faq.length ? [{ '@type': 'FAQPage', mainEntity: faq }] : [])
   };
   const d = new Date(a.modified + 'T00:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   const main = `<div class="lx-wrap">
-<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="academy">ZoroAcademy</a> / <a href="learn">Articles</a> / <span aria-current="page">${esc(a.short)}</span></nav>
+<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="academy">Mentis</a> / <a href="learn">Articles</a> / <span aria-current="page">${esc(a.short)}</span></nav>
 <article>
 <header class="lx-head">
 <h1>${esc(a.short)}</h1>
@@ -280,18 +280,18 @@ function indexPage() {
   const jsonld = {
     '@context': 'https://schema.org',
     '@graph': [
-      { '@type': 'CollectionPage', name: 'ZoroAcademy articles: free ICT & smart money guides', description, url, publisher: PUBLISHER,
+      { '@type': 'CollectionPage', name: 'Mentis articles: free ICT & smart money guides', description, url, publisher: PUBLISHER,
         hasPart: ARTICLES.map((a) => ({ '@type': 'Article', headline: a.short, url: `${ORIGIN}/learn-${a.slug}` })) },
       { '@type': 'BreadcrumbList', itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-        { '@type': 'ListItem', position: 2, name: 'ZoroAcademy', item: ORIGIN + '/academy' },
+        { '@type': 'ListItem', position: 2, name: 'Mentis', item: ORIGIN + '/academy' },
         { '@type': 'ListItem', position: 3, name: 'Articles', item: url } ] }
     ]
   };
   const main = `<div class="lx-wrap">
-<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="academy">ZoroAcademy</a> / <span aria-current="page">Articles</span></nav>
+<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="academy">Mentis</a> / <span aria-current="page">Articles</span></nav>
 <header class="lx-head">
-<p class="lx-eyebrow">ZoroAcademy</p>
+<p class="lx-eyebrow">Mentis</p>
 <h1>Articles</h1>
 <p class="lx-dek">Free, plain-English guides to the ICT and smart money concepts we teach, with simple diagrams. Start with any of them.</p>
 </header>
@@ -305,7 +305,7 @@ ${ARTICLES.map((a) => `<li><a class="lx-card" href="learn-${a.slug}"><h2>${esc(a
 </aside>
 <p class="lx-disclaimer">${DISCLAIMER}</p>
 </div>`;
-  return page({ title: 'ZoroAcademy: Free ICT & Smart Money Trading Guides', description, url, ogType: 'website', jsonld, key: 'learn', main });
+  return page({ title: 'Mentis: Free ICT & Smart Money Trading Guides', description, url, ogType: 'website', jsonld, key: 'learn', main });
 }
 
 const out = { 'learn.html': indexPage() };

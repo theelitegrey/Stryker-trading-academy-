@@ -1,4 +1,4 @@
-// Gold GEX browser test: ZoroCharts GC1! 5m with the GEX Levels indicator (Pro + Free) and the GEX+ page Gold tab.
+// Gold GEX browser test: ZoroCharts GC1! 5m with the GEX Levels indicator (Pro + Free) and the Omega page Gold tab.
 //   node tools/tests/chart-dev-server.mjs 8031 &
 //   flock /tmp/stryker-chrome.lock env CHART_BASE=http://127.0.0.1:8031 node tools/tests/chart-gex-gold-browser.js [shotsDir]
 // /api/gex/levels/* answered from tools/tests/fixtures/gex/*.json (GLD-0.json = real API response saved 2026-10-29).
@@ -88,7 +88,7 @@ async function chart(b, opt) {
       const d = await gexData(p);
       console.log('free payload', JSON.stringify(d).slice(0, 300));
       await shot(p, 'gc-free-1440.png'); await ctx.close(); }
-    // GEX+ page, Gold tab
+    // Omega page, Gold tab
     for (const [w, h, mob] of [[1440, 900, false], [390, 844, true]]) {
       const { ctx, p, errors } = await open(b, { w, h, mobile: mob, page: '/gex.html' });
       await sleep(3000);

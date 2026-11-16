@@ -158,7 +158,7 @@
       var spark = '';
       if (pts.length > 1) { var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts), sp = (hi - lo) || 1; spark = '<svg class="dk-spark" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label="Shape of your last closed trades"><polyline pathLength="1" points="' + pts.map(function (p, i) { return (i / (pts.length - 1) * 120).toFixed(1) + ',' + (29 - (p - lo) / sp * 26).toFixed(1); }).join(' ') + '"/></svg>'; }
       host.innerHTML = '<div class="dk-big"><b id="dk-wk" data-to="' + wk.length + '">0</b><span>trade' + (wk.length === 1 ? '' : 's') + ' in the last 7 days</span></div>' +
-        '<div class="dk-heat" role="img" aria-label="Trades per day, last 7 days">' + days.map(function (c, i) { return '<span style="--a:' + (c.n ? (0.25 + 0.75 * c.n / mx).toFixed(2) : 0.07) + ';--i:' + i + '" title="' + c.n + ' on ' + c.key + '"><i>' + (c.n || '') + '</i><em>' + c.l + '</em></span>'; }).join('') + '</div>' + spark + '<a class="dk-more" href="trade-journal.html">Review in JournalX →</a>';
+        '<div class="dk-heat" role="img" aria-label="Trades per day, last 7 days">' + days.map(function (c, i) { return '<span style="--a:' + (c.n ? (0.25 + 0.75 * c.n / mx).toFixed(2) : 0.07) + ';--i:' + i + '" title="' + c.n + ' on ' + c.key + '"><i>' + (c.n || '') + '</i><em>' + c.l + '</em></span>'; }).join('') + '</div>' + spark + '<a class="dk-more" href="trade-journal.html">Review in Nemesis →</a>';
       countOnView($('dk-wk'), function (v) { return Math.round(v); });
     }).catch(function () { $('dk-journal').innerHTML = slot('Log your first trade', 'Log a trade and your week shows up here.', 'trade-journal.html', 'Log your first trade'); });
 

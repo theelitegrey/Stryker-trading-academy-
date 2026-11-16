@@ -71,13 +71,13 @@
   var MORE = [
     ['trade', 'Trade', [
       ['charts', 'ZoroCharts', 'Free futures and crypto charts', '<path d="M7 3v4M7 17v4M15 2v3M15 19v3"/><rect x="4.5" y="7" width="5" height="10" rx="1"/><rect x="12.5" y="5" width="5" height="14" rx="1"/>'],
-      ['backtests', 'Replay One', 'Test a model on past data', '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/>', ['replay']],
-      ['trade-journal', 'JournalX', 'Log trades and see what is working', '<path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h5"/>'],
+      ['backtests', 'Kronos', 'Replay & Backtesting', '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/>', ['replay']],
+      ['trade-journal', 'Nemesis', 'Trading Journal', '<path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h5"/>'],
       ['paper-review', 'Paper trade review', 'Review your paper trades', '<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="m9 14 2 2 4-4"/>'],
       ['leaderboard', 'Paper leaderboard', 'Opt-in demo-account ranks', '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>']
     ]],
     ['markets', 'Markets', [
-      ['gex', 'GEX+', 'Gamma levels as context on the chart', '<path d="M3 18h18"/><path d="M6 15l3.5-4 3 2.5L18 6"/><path d="M18 6h-4M18 6v4"/>'],
+      ['gex', 'Omega', 'Gamma Exposure', '<path d="M3 18h18"/><path d="M6 15l3.5-4 3 2.5L18 6"/><path d="M18 6h-4M18 6v4"/>'],
       ['zoro-options', 'ZoroOptions', 'Options gamma, volatility and volume', '<path d="M3 20h18"/><path d="M6 20v-6M10 20V8M14 20v-9M18 20V5"/>'],
       ['options-calculator', 'Options P&L calculator', 'Payoff, break-evens and greeks', '<path d="M4 20 10 8l4 6 6-10"/><path d="M3 12h18" stroke-dasharray="2 3"/>'],
       ['iv-skew', 'IV skew', 'Implied volatility by strike and expiry', '<path d="M3 6c4 10 14 10 18 0"/><path d="M3 20h18"/>'],
@@ -90,8 +90,8 @@
       ['smart-money', 'Smart Money Desk', 'Institutional flow view', '<path d="M12 3v18"/><path d="M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'],
       ['global-monitor', 'Global Monitor', 'World events and market news', '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>']
     ]],
-    ['learn', 'ZoroAcademy', [
-      ['academy', 'ZoroAcademy home', 'Lessons, courses and guides in one place', '<path d="M12 4 2.5 9 12 14l9.5-5z"/><path d="M6 11.5V16c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5"/>'],
+    ['learn', 'Mentis', [
+      ['academy', 'Mentis home', 'Lessons, courses and guides in one place', '<path d="M12 4 2.5 9 12 14l9.5-5z"/><path d="M6 11.5V16c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5"/>'],
       ['courses', 'Curriculum', 'Chapters in a deliberate order', '<path d="M12 6.5C10.5 5 8 4 4 4v14c4 0 6.5 1 8 2.5 1.5-1.5 4-2.5 8-2.5V4c-4 0-6.5 1-8 2.5zM12 6.5v14"/>', ['chapter']],
       ['models', 'Models', 'Trading model playbooks', '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', ['model']],
       ['indicators', 'Indicators', 'Our chart indicators', '<path d="M3 17l5-6 4 4 8-9"/><path d="M15 6h5v5"/>', ['indicator']],

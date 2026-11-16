@@ -4,7 +4,7 @@
 // Cboe chains by gex-feeder/tide.py; edge-cached 30 s; never InsightSentry from the browser).
 // Symbol map (like GEX): ES / MES -> SPX, NQ / MNQ -> QQQ; SPX, SPY, QQQ direct. PLAN: Pro on every symbol (charts-pro-gate kind
 // 'tide': Free sees the PRO tag and the upgrade modal). Bar replay: nothing is drawn (the day's totals would leak the future).
-// METHOD (help text on the GEX+ tab, same words): new volume per contract = volume now - previous sample; premium = new volume
+// METHOD (help text on the Omega tab, same words): new volume per contract = volume now - previous sample; premium = new volume
 // x price x 100 (last trade, else mid); last trade in the top 25 % of the bid-ask spread = bought, bottom 25 % = sold, between =
 // half and half; net = bought - sold; the lines add the samples up from the open.
 // Wording: "Estimated from options volume and quotes. Updated X min ago." Never live / real-time / delayed. Education only.

@@ -15,7 +15,7 @@
       {
        "id": "what-is-tradezoro",
        "q": "What is TradeZoro?",
-       "a": "<p>TradeZoro is a trading education site with a built-in set of tools: a written curriculum, charts, GEX+ options levels, a trade journal and a replay tool for practice.</p><p>It is an educational service. It does not manage money or give personal financial advice.</p>",
+       "a": "<p>TradeZoro is a trading education site with a built-in set of tools: a written curriculum, charts, Omega options levels, a trade journal and a replay tool for practice.</p><p>It is an educational service. It does not manage money or give personal financial advice.</p>",
        "tags": [
         "about",
         "what is",
@@ -39,7 +39,7 @@
       {
        "id": "modules-overview",
        "q": "What tools are on the site?",
-       "a": "<p>The main tools are ZoroCharts (charts), GEX+ (options gamma levels), JournalX (trade journal), Replay One (backtesting and replay), Market Stats, the Market scanner, Global Monitor, the Economic calendar and a 64-chapter curriculum.</p><ul><li><strong>ZoroCharts</strong>: charts, indicators, drawings, alerts, paper trading.</li><li><strong>GEX+</strong>: call wall, put wall, zero gamma.</li><li><strong>JournalX</strong>: log and review your trades.</li><li><strong>Replay One</strong>: practice on past data, one bar at a time.</li></ul>",
+       "a": "<p>The main tools are ZoroCharts (charts), Omega (options gamma levels), Nemesis (trade journal), Kronos (backtesting and replay), Market Stats, the Market scanner, Global Monitor, the Economic calendar and a 64-chapter curriculum.</p><ul><li><strong>ZoroCharts</strong>: charts, indicators, drawings, alerts, paper trading.</li><li><strong>Omega</strong>: call wall, put wall, zero gamma.</li><li><strong>Nemesis</strong>: log and review your trades.</li><li><strong>Kronos</strong>: practice on past data, one bar at a time.</li></ul>",
        "tags": [
         "tools",
         "modules",
@@ -64,7 +64,7 @@
       {
        "id": "is-it-free",
        "q": "Is TradeZoro free?",
-       "a": "<p>Yes. TradeZoro is free for every signed-in member and built by traders, for traders. Free gives you all 64 chapters, ZoroCharts, Replay One, Market Stats, JournalX (unlimited, with import, broker sync, analytics and the coach), Smart Money Desk, trading models, private indicators and the full community. Every tool is free, order flow and GEX+ included. Only the live futures order book is a paid data feed. No card is needed to sign up.</p>",
+       "a": "<p>Yes. TradeZoro is free for every signed-in member and built by traders, for traders. Free gives you all 64 chapters, ZoroCharts, Kronos, Market Stats, Nemesis (unlimited, with import, broker sync, analytics and the coach), Smart Money Desk, trading models, private indicators and the full community. Every tool is free, order flow and Omega included. Only the live futures order book is a paid data feed. No card is needed to sign up.</p>",
        "plans": "all",
        "tags": [
         "free",
@@ -103,7 +103,7 @@
       {
        "id": "place-orders",
        "q": "Can I place real trades on TradeZoro?",
-       "a": "<p>No. There is no real order placement anywhere on the site.</p><p>Paper trading and Replay One use simulated orders with demo money. The Connect broker feature only brings in market data. JournalX broker sync only reads your trades.</p>",
+       "a": "<p>No. There is no real order placement anywhere on the site.</p><p>Paper trading and Kronos use simulated orders with demo money. The Connect broker feature only brings in market data. Nemesis broker sync only reads your trades.</p>",
        "tags": [
         "orders",
         "buy sell",
@@ -145,12 +145,12 @@
        "a": "<p>Start with the curriculum, then try the tools one by one.</p>",
        "steps": [
         "Create a free account.",
-        "Open ZoroAcademy and read chapter 1.",
+        "Open Mentis and read chapter 1.",
         "Open ZoroCharts and look at a chart of NQ or BTC.",
-        "Try Replay One to practise on past data.",
-        "Log a trade in JournalX."
+        "Try Kronos to practise on past data.",
+        "Log a trade in Nemesis."
        ],
-       "path": "ZoroAcademy (dock) → Curriculum",
+       "path": "Mentis (dock) → Curriculum",
        "tags": [
         "beginner",
         "start",
@@ -673,7 +673,7 @@
       {
        "id": "phone-dock",
        "q": "What is the bar at the bottom of my phone?",
-       "a": "<p>It is the dock. It has five buttons: ZoroCharts, GEX+, JournalX, ZoroAcademy and More.</p>",
+       "a": "<p>It is the dock. It has five buttons: ZoroCharts, Omega, Nemesis, Mentis and More.</p>",
        "tags": [
         "dock",
         "bottom bar",
@@ -690,7 +690,7 @@
       {
        "id": "more-sheet",
        "q": "What is inside the More menu?",
-       "a": "<p>More opens a sheet with every other page, in three groups.</p><ul><li><strong>Main</strong>: Home, Trading Floor, Global Monitor, Messages.</li><li><strong>Tools</strong>: Replay One, Trade review, Paper leaderboard, Models, Indicators, Market brief, Economic calendar, Market scanner, Market stats, Market map, Smart money.</li><li><strong>Account</strong>: Profile, Settings, Achievements, Referrals, Giveaways, Roadmap, Suggestions, Help Center, Support.</li></ul><p><img src=\"/assets/help/shots/charts-more-phone.webp\" alt=\"The ... More menu on the phone chart\"></p>",
+       "a": "<p>More opens a sheet with every other page, in three groups.</p><ul><li><strong>Main</strong>: Home, Trading Floor, Global Monitor, Messages.</li><li><strong>Tools</strong>: Kronos, Trade review, Paper leaderboard, Models, Indicators, Market brief, Economic calendar, Market scanner, Market stats, Market map, Smart money.</li><li><strong>Account</strong>: Profile, Settings, Achievements, Referrals, Giveaways, Roadmap, Suggestions, Help Center, Support.</li></ul><p><img src=\"/assets/help/shots/charts-more-phone.webp\" alt=\"The ... More menu on the phone chart\"></p>",
        "path": "Dock → More",
        "tags": [
         "more",
@@ -707,7 +707,7 @@
       {
        "id": "desktop-nav",
        "q": "How is the menu laid out on a computer?",
-       "a": "<p>On a computer the top bar has pills for ZoroCharts, GEX+, JournalX, ZoroAcademy and More. The menu button on the left opens a side menu with the rest of the pages, grouped as ZoroAcademy, ZoroCharts tools, Community, JournalX, Invite & earn, Giveaways and Account.</p><p><img src=\"/assets/help/shots/dashboard-desktop.webp\" alt=\"The desktop dashboard\"></p>",
+       "a": "<p>On a computer the top bar has pills for ZoroCharts, Omega, Nemesis, Mentis and More. The menu button on the left opens a side menu with the rest of the pages, grouped as Mentis, ZoroCharts tools, Community, Nemesis, Invite & earn, Giveaways and Account.</p><p><img src=\"/assets/help/shots/dashboard-desktop.webp\" alt=\"The desktop dashboard\"></p>",
        "tags": [
         "desktop",
         "sidebar",
@@ -721,7 +721,7 @@
       {
        "id": "find-tool",
        "q": "Where do I find a specific tool?",
-       "a": "<ul><li>Charts, indicators, alerts, paper trading: ZoroCharts (dock).</li><li>Gamma levels: GEX+ (dock).</li><li>Trade journal: JournalX (dock).</li><li>Courses: ZoroAcademy (dock).</li><li>Backtesting: More → Replay One.</li><li>Scanner, calendar, Market stats: More → Tools.</li><li>Settings and billing: More → Settings.</li></ul>",
+       "a": "<ul><li>Charts, indicators, alerts, paper trading: ZoroCharts (dock).</li><li>Gamma levels: Omega (dock).</li><li>Trade journal: Nemesis (dock).</li><li>Courses: Mentis (dock).</li><li>Backtesting: More → Kronos.</li><li>Scanner, calendar, Market stats: More → Tools.</li><li>Settings and billing: More → Settings.</li></ul>",
        "tags": [
         "where",
         "find",
@@ -797,7 +797,7 @@
       {
        "id": "free-vs-pro",
        "q": "What is the difference between Free and Pro?",
-       "a": "<p>Every tool is free: order flow tools, GEX+ for every symbol and expiry, GEX on charts and the order book tools. The one paid part is the live futures order book (L2), a data feed whose rules are set by the exchange. Pro · Live data is the plan that adds it. Without it, the order book tools still work and read the recorded book 10 minutes delayed. Live futures prices and candles (L1) are free once you sign the market data agreement.</p><ul><li><strong>Free</strong>: all 64 chapters, every ZoroCharts tool (order flow, GEX+, depth heatmap, DOM), live crypto, live futures prices and candles (L1) once you sign the market data agreement, Replay One, unlimited JournalX, Smart Money Desk, trading models, private indicators, full community, scanner.</li><li><strong>Pro · Live data</strong>: the live futures order book, with no delay.</li></ul>",
+       "a": "<p>Every tool is free: order flow tools, Omega for every symbol and expiry, GEX on charts and the order book tools. The one paid part is the live futures order book (L2), a data feed whose rules are set by the exchange. Pro · Live data is the plan that adds it. Without it, the order book tools still work and read the recorded book 10 minutes delayed. Live futures prices and candles (L1) are free once you sign the market data agreement.</p><ul><li><strong>Free</strong>: all 64 chapters, every ZoroCharts tool (order flow, Omega, depth heatmap, DOM), live crypto, live futures prices and candles (L1) once you sign the market data agreement, Kronos, unlimited Nemesis, Smart Money Desk, trading models, private indicators, full community, scanner.</li><li><strong>Pro · Live data</strong>: the live futures order book, with no delay.</li></ul>",
        "plans": "all",
        "tags": [
         "pro",
@@ -892,7 +892,7 @@
       {
        "id": "free-trial",
        "q": "Is there a free trial?",
-       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and GEX+ are free; only the live futures order book is paid. Live futures prices and candles (L1) are free once you sign the market data agreement.</p>",
+       "a": "<p>No. There is no free trial, because almost everything is already free. Order flow tools and Omega are free; only the live futures order book is paid. Live futures prices and candles (L1) are free once you sign the market data agreement.</p>",
        "tags": [
         "trial",
         "free trial",
@@ -907,7 +907,7 @@
       {
        "id": "downgrade-data",
        "q": "What happens to my data if I go back to Free?",
-       "a": "<p>Your JournalX trades and progress stay saved. Nothing is deleted. Only order flow tools and GEX+ are locked again.</p>",
+       "a": "<p>Your Nemesis trades and progress stay saved. Nothing is deleted. Only order flow tools and Omega are locked again.</p>",
        "tags": [
         "downgrade",
         "cancel",
@@ -1111,7 +1111,7 @@
   },
   {
    "id": "learning",
-   "title": "ZoroAcademy: courses and articles",
+   "title": "Mentis: courses and articles",
    "icon": "book",
    "desc": "The curriculum, progress and free guides.",
    "subs": [
@@ -1123,7 +1123,7 @@
        "id": "curriculum-what",
        "q": "What is in the curriculum?",
        "a": "<p>The curriculum has 64 chapters: 42 core chapters plus the Volume Profile and Prop Firm specialist tracks. They are written lessons with chart diagrams and a checklist for each lesson.</p><p>Filters: All chapters, Foundation, Intermediate, Advanced, Specialist tracks.</p><p><img src=\"/assets/help/shots/curriculum.webp\" alt=\"The curriculum page\"></p>",
-       "path": "ZoroAcademy (dock) → Curriculum",
+       "path": "Mentis (dock) → Curriculum",
        "tags": [
         "courses",
         "chapters",
@@ -1165,7 +1165,7 @@
        "id": "mark-complete",
        "q": "How do I mark a lesson or chapter complete?",
        "a": "<p>Tick the lesson checkbox inside a chapter. Mark all lessons complete ticks every lesson at once. Your progress is saved to your account.</p>",
-       "path": "ZoroAcademy → open a chapter → Lessons in this chapter",
+       "path": "Mentis → open a chapter → Lessons in this chapter",
        "tags": [
         "progress",
         "complete",
@@ -1263,7 +1263,7 @@
       {
        "id": "learn-articles",
        "q": "Are there free articles?",
-       "a": "<p>Yes. ZoroAcademy has free guides: fair value gaps, order blocks, liquidity sweeps, BOS vs CHoCH, SMT divergence, order flow, volume profile, how prop firms work and prop firm challenge rules.</p>",
+       "a": "<p>Yes. Mentis has free guides: fair value gaps, order blocks, liquidity sweeps, BOS vs CHoCH, SMT divergence, order flow, volume profile, how prop firms work and prop firm challenge rules.</p>",
        "tags": [
         "articles",
         "guides",
@@ -2363,7 +2363,7 @@
       {
        "id": "dom-ladder",
        "q": "Is there a DOM or ladder?",
-       "a": "<p>DOM panels are free, with and a Crypto DOM. The GEX Ladder is a separate strike ladder (right icon bar, or GEX+ → Ladder).</p>",
+       "a": "<p>DOM panels are free, with and a Crypto DOM. The GEX Ladder is a separate strike ladder (right icon bar, or Omega → Ladder).</p>",
        "plans": "pro",
        "tags": [
         "dom",
@@ -2419,19 +2419,19 @@
   },
   {
    "id": "gex",
-   "title": "GEX+ and options levels",
+   "title": "Omega and options levels",
    "icon": "gauge",
    "desc": "Gamma exposure levels, ZoroTide and how to read them.",
    "subs": [
     {
      "id": "gex-basics",
-     "title": "GEX+ basics",
+     "title": "Omega basics",
      "items": [
       {
        "id": "gex-what-is",
-       "q": "What is GEX+?",
-       "a": "<p>GEX+ turns the options chain into a few price levels: a call wall, a put wall and a zero-gamma line. It draws them on futures charts so you can read the day's context. Levels are context, not trade signals.</p>",
-       "path": "GEX+ (dock)",
+       "q": "What is Omega?",
+       "a": "<p>Omega turns the options chain into a few price levels: a call wall, a put wall and a zero-gamma line. It draws them on futures charts so you can read the day's context. Levels are context, not trade signals.</p>",
+       "path": "Omega (dock)",
        "tags": [
         "gex",
         "gamma",
@@ -2440,7 +2440,8 @@
         "put wall",
         "zero gamma",
         "options",
-        "gex+"
+        "gex+",
+        "omega"
        ],
        "related": [
         "gex-levels-meaning",
@@ -2449,7 +2450,7 @@
        ],
        "links": [
         {
-         "label": "Open GEX+",
+         "label": "Open Omega",
          "href": "/gex"
         },
         {
@@ -2492,8 +2493,8 @@
       },
       {
        "id": "gex-free",
-       "q": "Is any GEX+ free?",
-       "a": "<p>Yes, all of it. GEX+ is free for every signed-in member: every symbol and expiry, the ladder, the heatmap and GEX on charts.</p>",
+       "q": "Is any Omega free?",
+       "a": "<p>Yes, all of it. Omega is free for every signed-in member: every symbol and expiry, the ladder, the heatmap and GEX on charts.</p>",
        "plans": "free",
        "tags": [
         "free gex",
@@ -2508,7 +2509,7 @@
       },
       {
        "id": "gex-pro",
-       "q": "What does GEX+ include?",
+       "q": "What does Omega include?",
        "a": "<p>Every symbol (SPX, SPY, QQQ, Gold) and every expiry (0DTE, 1DTE, 1W, 1M), the strike profile table (NET GEX, DEX, OI), the Heatmap and Ladder views, ZoroTide, and GEX tools on charts. All free for signed-in members.</p>",
        "plans": "pro",
        "tags": [
@@ -2523,7 +2524,7 @@
       },
       {
        "id": "gex-symbols",
-       "q": "Which symbols does GEX+ cover?",
+       "q": "Which symbols does Omega cover?",
        "a": "<p>SPX (maps to ES and MES), SPY (ES, MES), QQQ (NQ, MNQ) and Gold (GLD options mapped to GC and MGC). Choose the symbol and expiry buttons at the top.</p>",
        "tags": [
         "symbols",
@@ -2541,9 +2542,9 @@
       },
       {
        "id": "gex-tabs",
-       "q": "What are the tabs on GEX+?",
+       "q": "What are the tabs on Omega?",
        "a": "<p>Chart, Heatmap, Ladder and ZoroTide. Chart draws the levels on a futures chart. Heatmap shows gamma by strike over time. Ladder lists strikes. ZoroTide shows options money flow.</p>",
-       "path": "GEX+ → tabs",
+       "path": "Omega → tabs",
        "tags": [
         "tabs",
         "heatmap",
@@ -2558,7 +2559,7 @@
        ],
        "links": [
         {
-         "label": "Open GEX+",
+         "label": "Open Omega",
          "href": "/gex"
         }
        ]
@@ -2566,7 +2567,7 @@
       {
        "id": "gex-heatmap",
        "q": "What is the GEX heatmap?",
-       "a": "<p>A grid of gamma by strike over the day. Use it on GEX+ → Heatmap or add GEX Heatmap on a chart .</p>",
+       "a": "<p>A grid of gamma by strike over the day. Use it on Omega → Heatmap or add GEX Heatmap on a chart .</p>",
        "plans": "pro",
        "tags": [
         "heatmap",
@@ -2579,7 +2580,7 @@
       {
        "id": "gex-ladder",
        "q": "What is the GEX Ladder?",
-       "a": "<p>A list of strikes with their gamma. On a chart open GEX Ladder from the right icon bar (phone: ... More → GEX Ladder). On GEX+ use the Ladder tab.</p>",
+       "a": "<p>A list of strikes with their gamma. On a chart open GEX Ladder from the right icon bar (phone: ... More → GEX Ladder). On Omega use the Ladder tab.</p>",
        "plans": "pro",
        "tags": [
         "ladder",
@@ -2623,7 +2624,7 @@
       {
        "id": "gex-levels-basis",
        "q": "What do “Updated through the day” and “Daily close” mean for GEX levels?",
-       "a": "<p>You can choose which levels GEX+ and the GEX Levels chart indicator show.</p><p><b>Updated through the day</b> (the default): the levels are rebuilt every few minutes while the options market is open, so they can move during the session.</p><p><b>Daily close</b>: the levels come from the last regular-session close (the 16:00 ET options chain and price) and stay fixed for the whole next session. A small note shows the day they come from, for example “Levels from Thu 5 Nov close”. Futures levels use the futures price at that close.</p><p>On the GEX+ page pick it with the <b>Levels</b> switch; on a chart open the indicator’s settings and change <b>Levels from</b>. Education only. Not financial advice.</p>",
+       "a": "<p>You can choose which levels Omega and the GEX Levels chart indicator show.</p><p><b>Updated through the day</b> (the default): the levels are rebuilt every few minutes while the options market is open, so they can move during the session.</p><p><b>Daily close</b>: the levels come from the last regular-session close (the 16:00 ET options chain and price) and stay fixed for the whole next session. A small note shows the day they come from, for example “Levels from Thu 5 Nov close”. Futures levels use the futures price at that close.</p><p>On the Omega page pick it with the <b>Levels</b> switch; on a chart open the indicator’s settings and change <b>Levels from</b>. Education only. Not financial advice.</p>",
        "tags": [
         "daily close",
         "close",
@@ -2665,7 +2666,7 @@
       {
        "id": "zorotide-what",
        "q": "What is ZoroTide?",
-       "a": "<p>ZoroTide shows options money flow: net call premium against net put premium since the 9:30 ET open. It is estimated from options volume and quotes. It is a chart indicator, free for every plan, and it is on the GEX+ ZoroTide tab. On the GEX+ page, On the GEX+ page the ZoroTide tab is free for SPX, SPY and QQQ.</p>",
+       "a": "<p>ZoroTide shows options money flow: net call premium against net put premium since the 9:30 ET open. It is estimated from options volume and quotes. It is a chart indicator, free for every plan, and it is on the Omega ZoroTide tab. On the Omega page, On the Omega page the ZoroTide tab is free for SPX, SPY and QQQ.</p>",
        "plans": "free",
        "tags": [
         "zorotide",
@@ -2679,7 +2680,7 @@
        ],
        "links": [
         {
-         "label": "GEX+",
+         "label": "Omega",
          "href": "/gex"
         }
        ]
@@ -2687,7 +2688,7 @@
       {
        "id": "zorotide-free",
        "q": "Is ZoroTide free?",
-       "a": "<p>Yes. The ZoroTide chart indicator is free on every plan, for SPX, SPY, QQQ, ES and NQ. On the GEX+ page, the ZoroTide tab follows the GEX+ plan: On the GEX+ page the ZoroTide tab is free for SPX, SPY and QQQ.</p>",
+       "a": "<p>Yes. The ZoroTide chart indicator is free on every plan, for SPX, SPY, QQQ, ES and NQ. On the Omega page, the ZoroTide tab follows the Omega plan: On the Omega page the ZoroTide tab is free for SPX, SPY and QQQ.</p>",
        "plans": "free",
        "tags": [
         "zorotide free",
@@ -2729,19 +2730,19 @@
   },
   {
    "id": "replay",
-   "title": "Replay One and backtesting",
+   "title": "Kronos and backtesting",
    "icon": "replay",
    "desc": "Practise on past data bar by bar.",
    "subs": [
     {
      "id": "replay-basics",
-     "title": "Replay One",
+     "title": "Kronos",
      "items": [
       {
        "id": "replay-what",
-       "q": "What is Replay One?",
-       "a": "<p>Replay One is our backtesting and practice tool. Pick a market and a past date, the chart stops there, and you step forward bar by bar placing simulated orders. Every session feeds a dashboard and a rule-based coach. It is free on every plan.</p><p><img src=\"/assets/help/shots/replay-one-home.webp\" alt=\"The Replay One dashboard\"></p>",
-       "path": "More → Replay One",
+       "q": "What is Kronos?",
+       "a": "<p>Kronos is our backtesting and practice tool. Pick a market and a past date, the chart stops there, and you step forward bar by bar placing simulated orders. Every session feeds a dashboard and a rule-based coach. It is free on every plan.</p><p><img src=\"/assets/help/shots/replay-one-home.webp\" alt=\"The Kronos dashboard\"></p>",
+       "path": "More → Kronos",
        "tags": [
         "backtest",
         "backtesting",
@@ -2757,11 +2758,11 @@
        ],
        "links": [
         {
-         "label": "Replay One",
+         "label": "Kronos",
          "href": "/backtests"
         },
         {
-         "label": "About Replay One",
+         "label": "About Kronos",
          "href": "/features/backtesting"
         }
        ],
@@ -2770,16 +2771,16 @@
       {
        "id": "replay-start",
        "q": "How do I start a replay session?",
-       "a": "<p>Open Replay One, tap New session, fill in the market and date, and tap Start replay.</p>",
+       "a": "<p>Open Kronos, tap New session, fill in the market and date, and tap Start replay.</p>",
        "steps": [
-        "Open More → Replay One.",
+        "Open More → Kronos.",
         "Tap New session.",
         "Choose the Market (futures, forex, crypto or your own CSV file).",
         "Set Replay starts on (a past date) and the Data window (1 week up to 1 year).",
         "Pick the Chart timezone, session name, starting balance, commission and slippage.",
         "Tap Start replay."
        ],
-       "path": "More → Replay One → New session",
+       "path": "More → Kronos → New session",
        "tags": [
         "start replay",
         "new session",
@@ -2843,9 +2844,9 @@
       },
       {
        "id": "replay-dashboard",
-       "q": "What is on the Replay One dashboard?",
+       "q": "What is on the Kronos dashboard?",
        "a": "<p>Recent sessions, P&L, trades, performance, drawdown, a Monte Carlo simulation (200, 500 or 1000 runs), a P&L calendar, coach findings and breakdowns by hour, weekday, setup, market and exit type.</p>",
-       "path": "More → Replay One",
+       "path": "More → Kronos",
        "tags": [
         "dashboard",
         "statistics",
@@ -2859,12 +2860,13 @@
       },
       {
        "id": "replay-to-journal",
-       "q": "Can I send replay trades to JournalX?",
-       "a": "<p>Yes. Use Send to JournalX in the session. If every trade is already there you see \"Every trade in this session is already in your journal\". Otherwise \"N of M trades copied to the journal\".</p>",
+       "q": "Can I send replay trades to Nemesis?",
+       "a": "<p>Yes. Use Send to Nemesis in the session. If every trade is already there you see \"Every trade in this session is already in your journal\". Otherwise \"N of M trades copied to the journal\".</p>",
        "tags": [
         "send to journal",
         "export",
-        "journalx"
+        "journalx",
+        "nemesis"
        ],
        "related": [
         "journalx-limit"
@@ -2901,8 +2903,8 @@
       },
       {
        "id": "replay-vs-chart-replay",
-       "q": "What is the difference between Replay One and Replay on ZoroCharts?",
-       "a": "<p>The Replay button on ZoroCharts replays the chart you already have open: Select bar or Select date, then Start, Random bar, First available bar. Play, step and Real-time exit. It uses a separate replay account. Replay One is the full workspace with sessions, a dashboard and a coach.</p>",
+       "q": "What is the difference between Kronos and Replay on ZoroCharts?",
+       "a": "<p>The Replay button on ZoroCharts replays the chart you already have open: Select bar or Select date, then Start, Random bar, First available bar. Play, step and Real-time exit. It uses a separate replay account. Kronos is the full workspace with sessions, a dashboard and a coach.</p>",
        "path": "ZoroCharts → Replay",
        "tags": [
         "replay button",
@@ -3048,10 +3050,11 @@
       },
       {
        "id": "paper-journal",
-       "q": "Can I send a paper trade to JournalX?",
-       "a": "<p>Yes, use the Send to JournalX button in the paper panel.</p>",
+       "q": "Can I send a paper trade to Nemesis?",
+       "a": "<p>Yes, use the Send to Nemesis button in the paper panel.</p>",
        "tags": [
         "journalx",
+        "nemesis",
         "send"
        ],
        "related": [
@@ -3064,7 +3067,7 @@
   },
   {
    "id": "journalx",
-   "title": "JournalX trade journal",
+   "title": "Nemesis trade journal",
    "icon": "journal",
    "desc": "Log, import, review and sync your trades.",
    "subs": [
@@ -3074,13 +3077,14 @@
      "items": [
       {
        "id": "journalx-what",
-       "q": "What is JournalX?",
-       "a": "<p>JournalX is the trade journal. Log a trade, name the setup and record the outcome, then review it on a dashboard, calendar and analytics. Everything is computed from your own entries and it is private to you.</p><p><img src=\"/assets/help/shots/journalx-dashboard.webp\" alt=\"The JournalX dashboard\"></p>",
-       "path": "JournalX (dock)",
+       "q": "What is Nemesis?",
+       "a": "<p>Nemesis is the trade journal. Log a trade, name the setup and record the outcome, then review it on a dashboard, calendar and analytics. Everything is computed from your own entries and it is private to you.</p><p><img src=\"/assets/help/shots/journalx-dashboard.webp\" alt=\"The Nemesis dashboard\"></p>",
+       "path": "Nemesis (dock)",
        "tags": [
         "journal",
         "trade journal",
         "journalx",
+        "nemesis",
         "log trades",
         "diary"
        ],
@@ -3091,11 +3095,11 @@
        ],
        "links": [
         {
-         "label": "Open JournalX",
+         "label": "Open Nemesis",
          "href": "/trade-journal"
         },
         {
-         "label": "About JournalX",
+         "label": "About Nemesis",
          "href": "/features/journal"
         }
        ],
@@ -3103,7 +3107,7 @@
       },
       {
        "id": "journalx-tabs",
-       "q": "What are the tabs in JournalX?",
+       "q": "What are the tabs in Nemesis?",
        "a": "<p>Dashboard, Add trade, History, Calendar, Analytics, Playbook, AI Coach, Prop firms and Settings. The Range selector (All time, Today, This week, This month, This quarter, This year) scopes the dashboard.</p>",
        "tags": [
         "tabs",
@@ -3121,13 +3125,13 @@
        "q": "How do I add a trade?",
        "a": "<p>Open the Add trade tab, fill in the fields and tap Save trade. You will see \"Trade saved.\"</p><p><img src=\"/assets/help/shots/journalx-add-trade.webp\" alt=\"The Add trade tab\"></p>",
        "steps": [
-        "Open JournalX.",
+        "Open Nemesis.",
         "Tap Add trade.",
         "Fill in Instrument, Direction, Date, Time, Entry, Exit, Position size and Fees.",
         "Optionally add Stop loss, Take profit, Session, Setup, Playbook rules, Tags, Notes and a screenshot.",
         "Tap Save trade."
        ],
-       "path": "JournalX → Add trade",
+       "path": "Nemesis → Add trade",
        "tags": [
         "add trade",
         "log trade",
@@ -3144,7 +3148,7 @@
        "id": "journalx-edit",
        "q": "How do I edit or delete a trade?",
        "a": "<p>Open History, tap the trade, and edit it (Save trade turns into Update; you see \"Trade updated.\") or delete it.</p>",
-       "path": "JournalX → History",
+       "path": "Nemesis → History",
        "tags": [
         "edit trade",
         "delete trade",
@@ -3156,8 +3160,8 @@
       },
       {
        "id": "journalx-limit",
-       "q": "Is there a limit in JournalX?",
-       "a": "<p>No. JournalX is unlimited and free for every signed-in member.</p>",
+       "q": "Is there a limit in Nemesis?",
+       "a": "<p>No. Nemesis is unlimited and free for every signed-in member.</p>",
        "plans": "free",
        "tags": [
         "limit",
@@ -3186,9 +3190,9 @@
       },
       {
        "id": "journalx-settings",
-       "q": "What can I set in JournalX Settings?",
+       "q": "What can I set in Nemesis Settings?",
        "a": "<p>Account balance (used for Risk %), default risk %, currency (USD, EUR, GBP, JPY), your instruments, setups, sessions and tags, and demo data (a 4-month sample you can load and clear).</p>",
-       "path": "JournalX → Settings",
+       "path": "Nemesis → Settings",
        "tags": [
         "balance",
         "risk",
@@ -3204,7 +3208,7 @@
        "id": "playbook-what",
        "q": "What is the Playbook?",
        "a": "<p>One entry per strategy with its rules. You can adopt a taught model, then tick the rules you met on each trade, so you can later see whether rule-followers do better than improvisers.</p>",
-       "path": "JournalX → Playbook",
+       "path": "Nemesis → Playbook",
        "tags": [
         "playbook",
         "rules",
@@ -3219,7 +3223,7 @@
        "id": "journalx-calendar",
        "q": "What does the calendar show?",
        "a": "<p>Daily P&L on a calendar. Tap a day to see its trades.</p>",
-       "path": "JournalX → Calendar",
+       "path": "Nemesis → Calendar",
        "tags": [
         "calendar",
         "daily pnl"
@@ -3271,13 +3275,13 @@
        "q": "How do I import trades from a CSV file?",
        "a": "<p>Open History → Import & export, choose the file type (trades, payouts, expenses or combined), pick the file and check the column mapping. Duplicates are skipped.</p>",
        "steps": [
-        "Open JournalX → History.",
+        "Open Nemesis → History.",
         "Open Import & export.",
         "Choose a file type and a file (sample files are offered).",
         "Check the column mapping.",
         "Confirm the import."
        ],
-       "path": "JournalX → History → Import & export",
+       "path": "Nemesis → History → Import & export",
        "plans": "free",
        "tags": [
         "import",
@@ -3293,7 +3297,7 @@
        ],
        "links": [
         {
-         "label": "Open JournalX",
+         "label": "Open Nemesis",
          "href": "/trade-journal"
         }
        ]
@@ -3334,7 +3338,7 @@
        "id": "journal-analytics",
        "q": "What is in Analytics?",
        "a": "<p>Deeper statistics from your trades. Analytics is free for every signed-in member.</p>",
-       "path": "JournalX → Analytics",
+       "path": "Nemesis → Analytics",
        "plans": "free",
        "tags": [
         "analytics",
@@ -3349,7 +3353,7 @@
        "id": "journal-ai-coach",
        "q": "What is the AI Coach?",
        "a": "<p>A rule-based coach that reads your journal and points out patterns such as overtrading or revenge trades. It runs on your own device from your own entries and is not a chatbot. It is free.</p>",
-       "path": "JournalX → AI Coach",
+       "path": "Nemesis → AI Coach",
        "plans": "free",
        "tags": [
         "coach",
@@ -3363,17 +3367,17 @@
       },
       {
        "id": "broker-sync",
-       "q": "How does JournalX broker sync work?",
+       "q": "How does Nemesis broker sync work?",
        "a": "<p>Broker sync imports your trades automatically every few hours using read-only API keys, so it can never place trades. Keys are encrypted on the server and never shown again. It is free.</p>",
        "steps": [
-        "Open JournalX → History.",
+        "Open Nemesis → History.",
         "Open Broker sync.",
         "Choose a broker.",
         "Fill in every credential field with read-only keys.",
         "Tap Connect broker. You see \"Connected - N trades imported.\"",
         "Tap Sync now whenever you want."
        ],
-       "path": "JournalX → History → Broker sync",
+       "path": "Nemesis → History → Broker sync",
        "plans": "free",
        "tags": [
         "broker sync",
@@ -3413,7 +3417,7 @@
        "id": "prop-firm-tab",
        "q": "How do I track prop firm accounts and payouts?",
        "a": "<p>Open the Prop firms tab. Add a firm, then log payouts and expenses. The page totals Total spent on firms, Total payouts received, Net result and Firms tracked, with a cash-flow chart. A firm needs a name (\"Give the firm a name.\") and amounts must be above zero.</p><p><img src=\"/assets/help/shots/journalx-prop-firms.webp\" alt=\"The Prop firms tab\"></p>",
-       "path": "JournalX → Prop firms",
+       "path": "Nemesis → Prop firms",
        "tags": [
         "prop firm",
         "apex",
@@ -4002,7 +4006,7 @@
       {
        "id": "live-futures-data",
        "q": "How do I get live futures data?",
-       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are two ways to get them live:</p><ol><li><strong>Sign the market data agreement (free)</strong>: tap the amber dot or the Delayed pill on the chart, or open Settings → Live futures data, and sign. Live futures prices and candles (L1) are free once you sign the market data agreement. Live trades, candles and best bid/ask switch on straight away. Order flow tools and GEX+ are free. The live L2 order book is the one paid data feed (Pro · Live data); without it the order book tools read the book 10 minutes delayed.</li><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
+       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are two ways to get them live:</p><ol><li><strong>Sign the market data agreement (free)</strong>: tap the amber dot or the Delayed pill on the chart, or open Settings → Live futures data, and sign. Live futures prices and candles (L1) are free once you sign the market data agreement. Live trades, candles and best bid/ask switch on straight away. Order flow tools and Omega are free. The live L2 order book is the one paid data feed (Pro · Live data); without it the order book tools read the book 10 minutes delayed.</li><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
        "plans": "all",
        "tags": [
         "live futures data",
@@ -4051,7 +4055,7 @@
       {
        "id": "gex-missing-symbol",
        "q": "GEX is missing for a symbol.",
-       "a": "<p>GEX+ covers SPX, SPY, QQQ and Gold only, and is free for signed-in members. Outside hours you may see \"No data available\", \"Session data unavailable\" or Waiting for the next update.</p>",
+       "a": "<p>Omega covers SPX, SPY, QQQ and Gold only, and is free for signed-in members. Outside hours you may see \"No data available\", \"Session data unavailable\" or Waiting for the next update.</p>",
        "tags": [
         "gex missing",
         "no gex",
@@ -4531,7 +4535,7 @@
       {
        "id": "data-export",
        "q": "How do I get a copy of my data?",
-       "a": "<p>There is no one-click export of everything. JournalX has Export CSV for your trades. For a full copy of your data, email a request to support@tradezoro.com, as described on our GDPR page.</p>",
+       "a": "<p>There is no one-click export of everything. Nemesis has Export CSV for your trades. For a full copy of your data, email a request to support@tradezoro.com, as described on our GDPR page.</p>",
        "tags": [
         "export data",
         "download my data",

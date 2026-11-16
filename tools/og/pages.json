@@ -25,13 +25,13 @@
     },
     {
       "page": "features/gex.html",
-      "title": "GEX+",
-      "og_title": "GEX+ · Gamma exposure (GEX) levels: call wall, put wall and zero gamma",
+      "title": "Omega",
+      "og_title": "Omega — Gamma Exposure: call wall, put wall and zero gamma",
       "visual": [
         "assets/images/gex-real/chart-nq-5m-plot.webp"
       ],
       "focus": "0.5,0.35",
-      "alt": "GEX+ share card: call wall and put wall levels drawn on a futures chart, with the TradeZoro logo"
+      "alt": "Omega share card: call wall and put wall levels drawn on a futures chart, with the TradeZoro logo"
     },
     {
       "page": "features/models.html",
@@ -44,12 +44,12 @@
     },
     {
       "page": "features/journal.html",
-      "title": "JournalX",
-      "og_title": "JournalX — Coach, Calendar and Prop-Firm Tools",
+      "title": "Nemesis",
+      "og_title": "Nemesis — Trading Journal: Coach, Calendar and Prop-Firm Tools",
       "visual": [
         "assets/images/journal/add-trade-2x.webp"
       ],
-      "alt": "JournalX share card: the add-trade form, with the TradeZoro logo"
+      "alt": "Nemesis share card: the add-trade form, with the TradeZoro logo"
     },
     {
       "page": "features/indicators.html",
@@ -98,13 +98,13 @@
     },
     {
       "page": "features/backtesting.html",
-      "title": "Replay One",
-      "og_title": "Replay One — Practise on Past Charts, One Bar at a Time",
+      "title": "Kronos",
+      "og_title": "Kronos — Replay & Backtesting: Practise on Past Charts, One Bar at a Time",
       "visual": [
         "assets/images/og/features-backtesting.png"
       ],
       "crop": "0.0334,0.2191,0.9666,0.9682",
-      "alt": "Replay One share card: a bar-by-bar replay chart, with the TradeZoro logo"
+      "alt": "Kronos share card: a bar-by-bar replay chart, with the TradeZoro logo"
     },
     {
       "page": "features/community.html",
@@ -198,24 +198,24 @@
     },
     {
       "page": "academy.html",
-      "title": "ZoroAcademy",
-      "og_title": "ZoroAcademy — Free Trading Lessons, Courses and Guides",
+      "title": "Mentis",
+      "og_title": "Mentis — Learning: Free Trading Lessons, Courses and Guides",
       "visual": [
         "assets/images/curriculum/hero-1440.webp"
       ],
-      "alt": "ZoroAcademy share card: the chapter list screen, with the TradeZoro logo"
+      "alt": "Mentis share card: the chapter list screen, with the TradeZoro logo"
     },
     {
       "page": "learn.html",
-      "title": "ZoroAcademy Articles",
-      "og_title": "ZoroAcademy Articles — ICT and Smart Money Concepts, Explained",
+      "title": "Mentis Articles",
+      "og_title": "Mentis Articles — ICT and Smart Money Concepts, Explained",
       "visual": [
         "tools/og/captures/learn-fair-value-gap.webp",
         "tools/og/captures/learn-order-blocks.webp",
         "tools/og/captures/learn-liquidity-sweeps.webp",
         "tools/og/captures/learn-volume-profile.webp"
       ],
-      "alt": "ZoroAcademy Articles share card: four illustrative chart diagrams from the guides, with the TradeZoro logo"
+      "alt": "Mentis Articles share card: four illustrative chart diagrams from the guides, with the TradeZoro logo"
     },
     {
       "page": "learn-fair-value-gap.html",

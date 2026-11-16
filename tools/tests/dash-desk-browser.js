@@ -3,7 +3,7 @@
 // Members: new (free, nothing saved), active (free, layouts + journal + progress), pro.
 // Per member x device (390/412/1440) x theme: no horizontal overflow, <main> not inside aside.sidebar,
 // no JS errors, every .dk-rv visible after the 1.5 s safety net, no skeleton left, cards non-empty.
-// Plus: empty-state CTAs for new, Pro chip/card only for free, GEX+ opens/closes the paywall modal for free,
+// Plus: empty-state CTAs for new, Pro chip/card only for free, Omega opens/closes the paywall modal for free,
 // a real touch test at 390 (tile taps, More menu), a 400px-step scroll with viewport shots.
 const R = require('./bt-rig.js');
 const fs = require('fs');
@@ -117,7 +117,7 @@ const probe = () => {
             await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(300);
             await p.tap('#dk-gex'); await p.waitForTimeout(600);
             const open = await p.evaluate(() => !!document.querySelector('.plan-modal-overlay, .pm-overlay, [class*="plan-modal"]:not([hidden])') && [...document.querySelectorAll('[class*="plan-modal"],[id*="plan-modal"]')].some((e) => e.getBoundingClientRect().height > 50 && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none'));
-            check(open, `${kind} 390 touch: GEX+ tap opens the paywall modal`);
+            check(open, `${kind} 390 touch: Omega tap opens the paywall modal`);
             await p.keyboard.press('Escape'); await p.waitForTimeout(500);
             const closed = await p.evaluate(() => ![...document.querySelectorAll('[class*="plan-modal"],[id*="plan-modal"]')].some((e) => e.getBoundingClientRect().height > 50 && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none' && getComputedStyle(e).opacity > 0.5));
             check(closed, `${kind} 390 touch: paywall closes`);

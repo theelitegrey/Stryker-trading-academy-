@@ -26,7 +26,7 @@ Never use arbitrary styling, inconsistent dimensions, or generic AI-looking desi
 - Components: bottom sheets with grabber + title left + round × (phone), popovers/dialogs on desktop; segmented controls instead of rows of pills; list rows (icon · title · subtitle · chevron) instead of stacks of big buttons; cards = surface + hairline + 16 radius + 16 padding, no heavy shadows/glows/gradients.
 - Motion: 150–250 ms, standard ease (cubic-bezier(.2,0,0,1)); sheets slide 300 ms; nothing bounces or loops for attention.
 - Layout: phone first (390 and 412 wide), then 768 and 1440. No horizontal scroll, no text under 11px, no clipped labels, safe-area insets respected. Banners never push content; status notices are small and placed low (bottom pill or inline line).
-- Brand: TradeZoro logo, mint/teal on black, names (ZoroCharts, GEX+, Replay One, JournalX, ZoroTide, Creator Hub). Reuse the existing tokens (e.g. the Connect sheet's `--rz-*` tokens) rather than new hex values.
+- Brand: TradeZoro logo, mint/teal on black, names (ZoroCharts, Omega, Kronos, Nemesis, ZoroTide, Creator Hub). Reuse the existing tokens (e.g. the Connect sheet's `--rz-*` tokens) rather than new hex values.
 - Banned ("generic AI look"): emoji as icons, neon glows, rainbow gradients, glassy cards everywhere, random border colours, ALL-CAPS paragraphs, centered long text, three different button styles in one view, mixed radii, shouting warning boxes, filler copy.
 
 ## Mandatory check: before AND after (no ship without it)

@@ -139,14 +139,14 @@ if 'community' in DONE:
 # ------------------------------------------------------------------ hub
 if '_hub' in DONE:
     import json, re
-    names = {'gex': ('GEX+', 'Options gamma levels on a futures chart: call wall, put wall and zero gamma, read as context.', 'Pro'),
+    names = {'gex': ('Omega', 'Gamma Exposure. Decode the forces moving markets.', 'Pro'),
       'smart-money-desk': ('Smart Money Desk', 'What Congress and insiders file, in one place.', ''),
       'curriculum': ('Curriculum', '64 written chapters on ICT and SMT, free with an account.', ''),
       'global-monitor': ('Global Monitor', 'Market context on one screen.', ''),
-      'journal': ('JournalX', 'A trade journal with a calendar and review tools.', ''),
+      'journal': ('Nemesis', 'Trading Journal. Confront your mistakes. Master your edge.', ''),
       'models': ('Trading Models', 'Complete written models with a checklist.', ''),
       'indicators': ('Private Indicators', 'Five indicators on ZoroCharts, or invite-only on TradingView.', ''),
-      'backtesting': ('Replay One', 'Practise on past charts, one bar at a time.', ''),
+      'backtesting': ('Kronos', 'Replay & Backtesting. Master the past. Sharpen the future.', ''),
       'community': ('Community', 'The Trading Floor, badges and invites.', ''),
       'charts': ('ZoroCharts', 'A full charting desk in your browser.', ''),
       'orderflow': ('Order Flow', 'Footprint and delta tools on the chart.', 'Pro'),
@@ -165,7 +165,7 @@ if '_hub' in DONE:
         return f'<li><a class="cm-card fx-hc cm-rv" style="--d:{(i%3)*60}ms" href="/features/{k}"><img data-fp-nopad src="/assets/images/navfx/{k}-360.webp?v={V}" width="360" height="225" alt="" loading="lazy" decoding="async"><div><b>{e(n)}{t}</b><span>{e(d)}</span><em>Explore \u2192</em></div></a></li>'
     secs = ''.join(f'<div class="fx-hubgrp" id="g{gi}"><div class="cm-rv"><h2>{e(t)}</h2><p>{e(s)}</p></div><ul class="fx-hub">' + ''.join(card(i, k) for i, k in enumerate(ks)) + '</ul></div>\n' for gi, (t, s, ks) in enumerate(groups))
     P = dict(kicker='Features', h1='Everything in TradeZoro, <em>on one page.</em>',
-      sub='Charts and order flow, GEX+, a 64-chapter curriculum, models, indicators, a journal, replay and a community. Most of it is free. Order flow and GEX+ are Pro.',
+      sub='Charts and order flow, Omega, a 64-chapter curriculum, models, indicators, a journal, replay and a community. Most of it is free. Order flow and Omega are Pro.',
       cta=btn('/signup', 'Start free') + btn('/charts', 'Open ZoroCharts', False), fine=EDU,
       bar='ZoroCharts', hero='cur-courses', hero_alt='The Courses page.', phone='cur-phone', phone_alt='x', cards=[])
     top = f'''<header class="cm-hero" id="top"><div class="cm-w cm-hero-copy">

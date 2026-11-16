@@ -249,7 +249,7 @@ def main():
 
     course = json.load(open(os.path.join(ROOT, 'tools/content/zscript-course.json')))
     cc = ''.join('<li><a class="lx-card" href="/zscript/course/%s"><h3>Lesson %d. %s</h3><p>%s &middot; %s</p></a></li>' % (c['num'].lower(), i + 1, esc(c['title']), esc(c['dur']), esc(c['level'])) for i, c in enumerate(course))
-    pages['zscript/course/index.html'] = site_page('course/', 'Zscript course', '%d short lessons with exercises and a quiz. About 6 hours in total.' % len(course), '<ul class="lx-list">%s</ul>' % cc, nav, 'course/', 'ZoroAcademy course')
+    pages['zscript/course/index.html'] = site_page('course/', 'Zscript course', '%d short lessons with exercises and a quiz. About 6 hours in total.' % len(course), '<ul class="lx-list">%s</ul>' % cc, nav, 'course/', 'Mentis course')
     for i, c in enumerate(course):
         ex = ''.join('<li><strong>%s.</strong> %s</li>' % (esc(l['title']), esc(l['desc'])) for l in c['lessons'])
         body = c['bodyHtml'].replace('class="zs-code"><code>', 'class="zs-code" data-lang="Zscript"><code>')
@@ -257,7 +257,7 @@ def main():
         body = body.replace('<h3>Quick quiz</h3>', '<h2>Exercises</h2><ol>%s</ol><h2>Quick quiz</h2>' % ex)
         nxt = ('<p><a class="btn btn-primary" href="/zscript/course/%s">Next lesson</a></p>' % course[i + 1]['num'].lower()) if i + 1 < len(course) else '<p><a class="btn btn-primary" href="/zscript/cookbook/">Open the Cookbook</a></p>'
         pages['zscript/course/%s.html' % c['num'].lower()] = site_page('course/' + c['num'].lower(), 'Lesson %d. %s' % (i + 1, c['title']), '%s &middot; %s' % (c['dur'], c['level']) if False else '%s, %s level' % (c['dur'], c['level']),
-            body + nxt + '<script src="/assets/zscript-quiz.js?v=%s" defer></script>' % BUILD, nav, 'course/', 'ZoroAcademy course')
+            body + nxt + '<script src="/assets/zscript-quiz.js?v=%s" defer></script>' % BUILD, nav, 'course/', 'Mentis course')
     keys = list(pages)
     duals = node_dual([pages[k] for k in keys])
     for k, v in zip(keys, duals):

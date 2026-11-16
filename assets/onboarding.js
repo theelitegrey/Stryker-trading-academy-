@@ -210,8 +210,8 @@
       '<p class="ob-sub">' + esc(chapterLine) + '</p>' +
       '<ul class="ob-recap">' +
         '<li><b>Curriculum</b> — 42 core chapters (64 with specialist tracks), in order, with your progress tracked.</li>' +
-        '<li><b>JournalX</b> — log trades, tick your playbook rules, watch the analytics build.</li>' +
-        '<li><b>Replay One</b> — replay past sessions against your playbook to build a track record in an evening.</li>' +
+        '<li><b>Nemesis</b> — log trades, tick your playbook rules, watch the analytics build.</li>' +
+        '<li><b>Kronos</b> — replay past sessions against your playbook to build a track record in an evening.</li>' +
         '<li><b>The Trading Floor</b> — where members talk about the open.</li>' +
       '</ul>' +
       '<p class="ob-note">This checklist stays on your dashboard until all four steps are genuinely done.</p>';

@@ -65,6 +65,16 @@ fun TabTopBar(title: String) {
     }
 }
 
+/** Trade top bar from the mock: menu · title · bell. Same 12dp inset + 48dp buttons as Home. */
+@Composable
+fun MenuTopBar(title: String, onMenu: () -> Unit, onBell: () -> Unit) {
+    Row(Modifier.fillMaxWidth().statusBarsPadding().height(64.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onMenu, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Menu, contentDescription = "Account menu") }
+        Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).padding(start = 8.dp).semantics { heading() })
+        IconButton(onClick = onBell, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Bell, contentDescription = "Price alerts") }
+    }
+}
+
 @Composable
 fun TzBottomBar(current: Tab, onSelect: (Tab) -> Unit) {
     NavigationBar(containerColor = Tz.colors.navBar, tonalElevation = 0.dp) {

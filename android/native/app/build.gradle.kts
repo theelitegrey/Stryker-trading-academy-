@@ -16,8 +16,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // The old web wrapper shipped versionCode 1; the native app continues above it.
-        versionCode = 2
-        versionName = "2.0.0-m2"
+        versionCode = 3
+        versionName = "2.0.0-m3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -56,6 +56,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-messaging")
     implementation("androidx.credentials:credentials:1.5.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color as AColor
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -91,6 +92,14 @@ class ChartWeb(private val appContext: Context) {
         }
     }
 
+    /** Reads TZB.paper() (the Trade tab's snapshot of the site's paper account). */
+    fun readPaper(onSnap: (com.tradezoro.app.data.PaperSnapshot) -> Unit) {
+        view?.evaluateJavascript("window.TZB&&TZB.paper?JSON.stringify(TZB.paper()):null") { raw ->
+            val inner = runCatching { (Json.parseToJsonElement(raw ?: "null") as? JsonPrimitive)?.jsonPrimitive?.contentOrNull }.getOrNull()
+            inner?.let { com.tradezoro.app.data.parsePaper(it) }?.let(onSnap)
+        }
+    }
+
     fun destroy() { view?.destroy(); view = null }
 }
 
@@ -103,11 +112,8 @@ fun ChartRoute(
     modifier: Modifier = Modifier,
 ) {
     val state by vm.state.collectAsState()
-    val messages by vm.messages.collectAsState()
     val pending by vm.pendingSymbol.collectAsState()
-    // Poll the page once a second while this screen is shown.
-    LaunchedEffect(web) { while (true) { web.readState(vm::onBridge); delay(1000) } }
-    LaunchedEffect(messages) { messages.firstOrNull()?.let { snack.showSnackbar(it); vm.consumeMessage() } }
+    ChartPolling(web, vm, snack)
     // A symbol picked on Home is applied once the chart is ready.
     LaunchedEffect(pending, state.ready) {
         val p = pending ?: return@LaunchedEffect
@@ -127,9 +133,35 @@ fun ChartRoute(
         onPaperOn = { web.call("TZB.paperOn()") },
         onExitFullscreen = { vm.setFullscreen(false) },
     )
-    ChartContent(state, actions, modifier) { m ->
-        AndroidView(factory = { c -> web.get(c, dark).also { (it.parent as? ViewGroup)?.removeView(it) } }, modifier = m)
-    }
+    ChartContent(state, actions, modifier) { m -> ChartHost(web, dark, visible = true, modifier = m) }
+}
+
+/**
+ * Hosts the one chart WebView. The Trade tab hosts it too, transparent behind its native content: the paper engine
+ * keeps running on the chart's price stream (its timers keep going), while the view takes no touches and is
+ * hidden from TalkBack.
+ */
+@SuppressLint("ClickableViewAccessibility")  // the hidden host only swallows touches; it is also hidden from TalkBack
+@Composable
+fun ChartHost(web: ChartWeb, dark: Boolean, visible: Boolean, modifier: Modifier = Modifier) {
+    AndroidView(
+        factory = { c -> web.get(c, dark).also { (it.parent as? ViewGroup)?.removeView(it) } },
+        update = { v ->
+            // Alpha, not INVISIBLE: an invisible WebView reports document.hidden and the page throttles its timers.
+            v.alpha = if (visible) 1f else 0f
+            if (visible) v.setOnTouchListener(null) else v.setOnTouchListener { _, _ -> true }
+            v.importantForAccessibility = if (visible) View.IMPORTANT_FOR_ACCESSIBILITY_AUTO else View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        },
+        modifier = modifier,
+    )
+}
+
+/** Polls the chart page once a second while a chart-backed screen (Charts or Trade) is shown; engine toasts -> snackbars. */
+@Composable
+fun ChartPolling(web: ChartWeb, vm: ChartViewModel, snack: SnackbarHostState, onPaper: ((com.tradezoro.app.data.PaperSnapshot) -> Unit)? = null) {
+    val messages by vm.messages.collectAsState()
+    LaunchedEffect(web, onPaper) { while (true) { web.readState(vm::onBridge); onPaper?.let(web::readPaper); delay(1000) } }
+    LaunchedEffect(messages) { messages.firstOrNull()?.let { snack.showSnackbar(it); vm.consumeMessage() } }
 }
 
 /** The chart's top bar (lives in the app Scaffold) with its overflow menu. */

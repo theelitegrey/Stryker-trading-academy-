@@ -34,6 +34,14 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasText
 import java.io.File
+import androidx.compose.ui.test.onAllNodesWithText
+import com.tradezoro.app.data.AlertsState
+import com.tradezoro.app.ui.alerts.AlertsActions
+import com.tradezoro.app.ui.alerts.AlertsContent
+import com.tradezoro.app.ui.alerts.AlertsTopBar
+import com.tradezoro.app.ui.nav.MenuTopBar
+import com.tradezoro.app.ui.trade.TradeActions
+import com.tradezoro.app.ui.trade.TradeContent
 import kotlin.math.abs
 
 /**
@@ -168,6 +176,85 @@ class AlignmentTest {
             rule.onNodeWithContentDescription("chart").b("chart area")
         } finally {
             File("build/alignment-chart.txt").writeText(log.toString())
+        }
+    }
+
+    @Test fun tradeChrome() {
+        val st = ScreenshotTest.sampleTradeState()
+        rule.setContent {
+            TradeZoroTheme(dark = true) {
+                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { MenuTopBar("Trade", {}, {}) }, bottomBar = { TzBottomBar(Tab.TRADE) {} }) { pad ->
+                    TradeContent(st, TradeActions(), Modifier.padding(pad))
+                }
+            }
+        }
+        try {
+            val menu = rule.onNodeWithContentDescription("Account menu").b("top: menu")
+            val title = rule.onAllNodesWithText("Trade")[0].b("top: title")
+            val bell = rule.onNodeWithContentDescription("Price alerts").b("top: bell")
+            listOf(title, bell).forEach { near(it.cy, menu.cy, "top bar centre") }
+            near(menu.left.value, 412f - bell.right.value, "top bar left inset = right inset")
+
+            // Account card: label and chip inside 16dp card padding (32dp from the screen edges).
+            val acctLabel = rule.onNodeWithText("Paper account", useUnmergedTree = true).b("account: label")
+            val chip = rule.onNodeWithText("Paper trading", useUnmergedTree = true).b("account: paper chip")
+            near(acctLabel.left.value, 32f, "account text left 32dp (16 + 16)", 0f)
+            near(412f - chip.right.value, 40f, "chip text right 40 = 16+16 card, +8 chip pad", 0.5f)
+
+            // Order type tabs: equal widths, one centre.
+            val tabs = listOf("Market", "Limit", "Stop").map { t -> rule.onNode(hasText(t) and SemanticsMatcher.expectValue(SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Tab)).b("tab: $t") }
+            tabs.forEach { near(it.cy, tabs[0].cy, "type tab centre"); near((it.right - it.left).value, (tabs[0].right - tabs[0].left).value, "type tab width") }
+            near(tabs[0].left.value, 16f, "tabs left gutter 16", 0f); near(412f - tabs[2].right.value, 16f, "tabs right gutter 16", 0.5f)
+
+            // Field rows: steppers vertically centred on the text block; chips 16dp inside the field border; text 16dp inside.
+            for ((label, what) in listOf("Quantity (contracts)" to "quantity", "Stop loss" to "stop loss", "Take profit" to "take profit")) {
+                val lab = rule.onNodeWithText(label).b("field: $label")
+                val minus = rule.onNodeWithContentDescription("Less $what").b("field: $what minus")
+                val plus = rule.onNodeWithContentDescription("More $what").b("field: $what plus")
+                near(minus.cy, plus.cy, "$what steppers share a centre")
+                near((minus.bottom - minus.top).value, 48f, "$what stepper touch 48dp", 0f)
+                near(lab.left.value, 32f, "$what text 16dp inside field", 0f)
+                near(412f - (plus.right.value - 4f), 32f, "$what chip 16dp inside field", 0.5f)
+                near(plus.left.value - minus.right.value, 0f, "$what touch boxes abut (visual gap 8dp)", 0.5f)
+            }
+
+            // Buy / Sell: one centre, 56dp, equal widths, 8dp gap, 16dp gutters. Flatten: full width.
+            val buy = rule.onNodeWithContentDescription("Paper buy 2 MNQ market").b("buy")
+            val sell = rule.onNodeWithContentDescription("Paper sell 2 MNQ market").b("sell")
+            near(buy.cy, sell.cy, "buy / sell centre")
+            near((buy.bottom - buy.top).value, 56f, "buy height 56dp", 0f)
+            near((buy.right - buy.left).value, (sell.right - sell.left).value, "buy width = sell width")
+            near(sell.left.value - buy.right.value, 8f, "buy / sell gap 8dp", 0.5f)
+            near(buy.left.value, 412f - sell.right.value, "buy/sell left inset = right inset")
+            val flat = rule.onNodeWithText("Flatten all", useUnmergedTree = true).b("flatten (text)")
+            near(flat.cx, 206f, "flatten text centred", 1f)
+        } finally {
+            File("build/alignment-trade.txt").writeText(log.toString())
+        }
+    }
+
+    @Test fun alertsRows() {
+        rule.setContent {
+            TradeZoroTheme(dark = true) {
+                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { AlertsTopBar({}, {}) }) { pad ->
+                    AlertsContent(AlertsState.Ready(ScreenshotTest.SAMPLE_ALERTS), true, AlertsActions(), Modifier.padding(pad), sample = true)
+                }
+            }
+        }
+        try {
+            val back = rule.onNodeWithContentDescription("Back").b("top: back")
+            val add = rule.onNodeWithContentDescription("New alert on the chart").b("top: new")
+            near(back.cy, add.cy, "top bar centre"); near(back.left.value, 412f - add.right.value, "top bar left inset = right inset")
+            for (a in ScreenshotTest.SAMPLE_ALERTS) {
+                val text = rule.onNodeWithText("${a.ticker} \u00b7 ${a.condLabel}", substring = true, useUnmergedTree = true).b("row: ${a.ticker} title")
+                val sw = rule.onNodeWithContentDescription("Alert ${a.ticker} ${a.condLabel}", substring = true).b("row: ${a.ticker} switch")
+                val del = rule.onNodeWithContentDescription("Delete alert ${a.ticker}", substring = true).b("row: ${a.ticker} delete")
+                near(sw.cy, del.cy, "${a.ticker} switch / delete centre")
+                near(text.left.value, 16f, "${a.ticker} text left gutter 16", 0f)
+                near(412f - (del.right.value - 12f), 16f, "${a.ticker} delete glyph right gutter 16", 0.5f)
+            }
+        } finally {
+            File("build/alignment-alerts.txt").writeText(log.toString())
         }
     }
 }

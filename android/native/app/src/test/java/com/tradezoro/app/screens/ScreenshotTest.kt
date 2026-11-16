@@ -19,7 +19,23 @@ import com.tradezoro.app.ui.home.HomeContent
 import com.tradezoro.app.ui.home.HomeUiState
 import com.tradezoro.app.ui.home.RowState
 import com.tradezoro.app.ui.home.WatchRow
-import com.tradezoro.app.ui.nav.ComingSoon
+import com.tradezoro.app.ui.nav.MenuTopBar
+import com.tradezoro.app.data.AlertsState
+import com.tradezoro.app.data.OrderType
+import com.tradezoro.app.data.PaperAcct
+import com.tradezoro.app.data.PaperOrder
+import com.tradezoro.app.data.PaperPos
+import com.tradezoro.app.data.PaperSnapshot
+import com.tradezoro.app.data.PaperSpec
+import com.tradezoro.app.data.PaperTrade
+import com.tradezoro.app.data.PriceAlert
+import com.tradezoro.app.ui.alerts.AlertsActions
+import com.tradezoro.app.ui.alerts.AlertsContent
+import com.tradezoro.app.ui.alerts.AlertsTopBar
+import com.tradezoro.app.ui.trade.Ticket
+import com.tradezoro.app.ui.trade.TradeActions
+import com.tradezoro.app.ui.trade.TradeContent
+import com.tradezoro.app.ui.trade.TradeUiState
 import com.tradezoro.app.ui.nav.HomeTopBar
 import com.tradezoro.app.ui.nav.Tab
 import com.tradezoro.app.ui.nav.TabTopBar
@@ -64,6 +80,26 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
                 WatchRow(s, if (failLast && i == DEFAULT_WATCHLIST.lastIndex) RowState.Failed(null) else RowState.Ready(q))
             },
             sample = true,
+        )
+
+        // Trade fixture, numbers from the mock; the screen labels it "Sample data".
+        fun sampleTradeState() = TradeUiState(
+            snap = PaperSnapshot(
+                ready = true, on = true, sym = "MNQ1!", last = 21486.50,
+                spec = PaperSpec("futures:MNQ1!", "futures", 0.25, 2.0),
+                acct = PaperAcct(balance = 50000.0, equity = 50098.0, unrealized = 98.0, realized = 0.0, dayPnl = 0.0, start = 50000.0),
+                positions = listOf(PaperPos("futures:MNQ1!", "buy", 2.0, 21462.0, 21486.5, 98.0)),
+                orders = listOf(PaperOrder(7, "futures:MES1!", "buy", "limit", 1.0, 5940.25, sl = 5930.25)),
+                trades = listOf(PaperTrade(5, "futures:MNQ1!", "sell", 1.0, 21510.0, 21495.5, 29.0, reason = "tp")),
+            ),
+            ticket = Ticket(qty = 2.0, slTicks = 40, tpTicks = 160),
+            sample = true,
+        )
+
+        val SAMPLE_ALERTS = listOf(
+            PriceAlert("1", "futures:NQ1!", "crossing_up", 21500.0, "Break of the high", "once", true),
+            PriceAlert("2", "binance:BTCUSDT", "less", 64000.0, "", "every", true),
+            PriceAlert("3", "futures:GC1!", "crossing", 2700.5, "", "once", false),
         )
     }
 
@@ -116,9 +152,32 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
         }
     }
 
-    @Test fun trade() = shoot("3-trade-soon") {
-        Shell(Tab.TRADE) { m -> ComingSoon(Tab.TRADE, "a later update", "/charts", m) }
+    @Composable
+    private fun TradeShell(st: TradeUiState) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = { MenuTopBar("Trade", {}, {}) },
+            bottomBar = { TzBottomBar(Tab.TRADE) {} },
+        ) { pad -> TradeContent(st, TradeActions(), Modifier.padding(pad)) }
     }
+
+    @Test fun trade() = shoot("3-trade") { TradeShell(sampleTradeState()) }
+    @Test fun tradeLimit() = shoot("3b-trade-limit") {
+        val t = sampleTradeState()
+        TradeShell(t.copy(ticket = t.ticket.copy(type = OrderType.LIMIT, priceText = "21484.00")))
+    }
+    @Test fun tradeOff() = shoot("3c-trade-paper-off") { TradeShell(sampleTradeState().let { it.copy(snap = it.snap.copy(on = false)) }) }
+
+    @Composable
+    private fun AlertsShell(st: AlertsState, pushOn: Boolean) {
+        Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { AlertsTopBar({}, {}) }) { pad ->
+            AlertsContent(st, pushOn, AlertsActions(), Modifier.padding(pad), sample = true)
+        }
+    }
+
+    @Test fun alerts() = shoot("5-alerts") { AlertsShell(AlertsState.Ready(SAMPLE_ALERTS), pushOn = true) }
+    @Test fun alertsPushOff() = shoot("5b-alerts-push-off") { AlertsShell(AlertsState.Ready(SAMPLE_ALERTS.take(2)), pushOn = false) }
+    @Test fun alertsSignedOut() = shoot("5c-alerts-signed-out") { AlertsShell(AlertsState.SignedOut, pushOn = false) }
 
     @Test fun chart() = shoot("4-chart") { ChartShell(sampleChart(paper = true)) }
     @Test fun chartPaperOff() = shoot("4b-chart-paper-off") { ChartShell(sampleChart(paper = false).copy(tf = Timeframe.M15)) }

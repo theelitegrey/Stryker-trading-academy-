@@ -67,6 +67,40 @@
       var r = null;
       try { r = p.placeOrder({ symbol: p.activeSymbol(), side: side === 'sell' ? 'sell' : 'buy', type: 'market', qty: Number(qty) }); } catch (e) {}
       return !!r;
-    }
+    },
+
+    // ---- Trade tab (M3): a read-only snapshot of the site's paper account + the site's own actions ----
+    paper: function () {
+      var p = P(), a = p && p.account, out = { t: 'paper', ready: !!(window.__stkFirstCandles && a), on: !!(p && p.enabled), signedIn: !!(p && p.uid), sym: '', last: null, spec: null, acct: null, positions: [], orders: [], trades: [] };
+      if (!a) return out;
+      var lastOf = function (s) { var v = null; try { v = p.lastPrice(s); } catch (e) {} if (!(v > 0)) v = a.last[s]; return typeof v === 'number' && isFinite(v) && v > 0 ? v : null; };
+      try {
+        out.sym = p.activeSymbol() || '';
+        var sp = out.sym ? a.spec(out.sym) : null;
+        if (sp && sp.ok) { out.spec = { symbol: sp.symbol, kind: sp.kind, tick: sp.tick, pointValue: sp.pointValue, minQty: sp.minQty, maxQty: sp.maxQty, decimals: sp.decimals }; out.last = lastOf(out.sym) || lastOf(sp.symbol); }
+        else if (sp) out.specError = sp.reason;
+        var d = new Date(); d.setHours(0, 0, 0, 0);
+        var s = a.summary(d.getTime());
+        out.acct = { balance: s.balance, equity: s.equity, unrealized: s.unrealized, realized: s.realized, dayPnl: s.dayPnl, start: s.startBalance };
+        var st = a.state;
+        Object.keys(st.positions).forEach(function (k) {
+          var q = st.positions[k], l = lastOf(k);
+          out.positions.push({ sym: k, side: q.side, qty: q.qty, avg: q.avg, last: l, pnl: a.openPnl(q, l != null ? l : undefined), sl: q.sl == null ? null : q.sl, tp: q.tp == null ? null : q.tp });
+        });
+        st.orders.forEach(function (o) { out.orders.push({ id: o.id, sym: o.symbol, side: o.side, type: o.type, qty: o.qty, price: o.price, sl: o.sl == null ? null : o.sl, tp: o.tp == null ? null : o.tp }); });
+        st.trades.slice(-20).reverse().forEach(function (t) { out.trades.push({ id: t.id, sym: t.symbol, side: t.side, qty: t.qty, entry: t.entry, exit: t.exit, pnl: t.pnl, exitAt: t.exitAt, reason: t.reason || '' }); });
+      } catch (e) {}
+      return out;
+    },
+    // o = {side, type: market|limit|stop, qty, price, sl, tp} on the active chart symbol. The engine validates and toasts.
+    order: function (o) {
+      var p = P(); if (!p || !p.enabled || !o) return false;
+      var r = null;
+      try { r = p.placeOrder({ symbol: p.activeSymbol(), side: o.side === 'sell' ? 'sell' : 'buy', type: o.type === 'limit' || o.type === 'stop' ? o.type : 'market', qty: Number(o.qty), price: o.price, sl: o.sl, tp: o.tp }); } catch (e) {}
+      return !!r;
+    },
+    close: function (sym) { try { return !!P().closePos(String(sym)); } catch (e) { return false; } },
+    cancel: function (id) { try { return !!P().cancelOrder(Number(id)); } catch (e) { return false; } },
+    flatten: function () { try { P().flattenAll(); return true; } catch (e) { return false; } }
   };
 })();

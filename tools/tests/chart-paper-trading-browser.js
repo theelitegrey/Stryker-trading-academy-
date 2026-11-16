@@ -316,7 +316,11 @@ async function boot(p, BASE) {
     check(await p.evaluate(() => !!document.getElementById('stkc-paper-btn')), 'Trade button in the chart toolbar');
 
     // ---- market + bracket through the ticket ----
-    await p.click('#stkc-paper-btn'); await p.click('#stkc-trade-pop [data-a=paper]');   // Trade menu -> Paper trading opens the panel; its Trade button opens the ticket
+    await p.click('#stkc-paper-btn');   // Trade -> account menu -> Paper row -> the floating order panel (assets/chart-order-panel.js)
+    await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-a=paper]', { timeout: 5000 }); await p.click('#stkc-trade-pop [data-a=paper]');
+    check(await p.waitForSelector('#stkop:not([hidden])', { timeout: 10000 }).then(() => true, () => false), 'Trade button opens the floating order panel');
+    await p.click('#stkop [data-a=close]');
+    await p.evaluate(() => window.__stkPaper.openPanel('positions'));
     await p.click('.stkpt-head .stkpt-trade');
     await p.waitForSelector('#stkpt-tk:not([hidden])');
     const tag = await p.evaluate(() => document.querySelector('#stkpt-tk .stkpt-tag').textContent + ' | ' + document.querySelector('#stkpt-tk .stkpt-fine').textContent);

@@ -253,6 +253,7 @@ async function run(b, w, h, mobile, theme) {
   await sleep(400);
   const lbl = await p.evaluate(() => { const b = document.getElementById('stkc-paper-btn'); return { t: b.querySelector('.stkc-btn-l').textContent, logo: (b.querySelector('.stktm-logo img') || {}).src || '', dot: !!b.querySelector('.stktm-live'), aria: b.getAttribute('aria-label'), title: b.title }; });
   check(lbl.t === 'Apex 150K evaluation account 1 · Apex' && /tradovate\.png$/.test(lbl.logo) && lbl.dot && /Tradovate APEX-1234567-01/.test(lbl.aria + lbl.title), tag + ': Trade button = brand mark + label · firm + live dot; full account in aria/title', lbl);
+  check(await p.waitForFunction(() => { const o = document.getElementById('stkop'); return o && !o.hidden && o.classList.contains('is-live'); }, null, { timeout: 8000 }).then(() => true, () => false), tag + ': picking the account opens the floating order panel on it (order panel 2026-11-16)');
   if (inBar) { const m2 = await barMeasure(p); console.log('ALIGN-LIVE ' + tag + ' ' + JSON.stringify(m2)); check(m2.cySpread <= 1 && m2.tradeH === m2.dsH, tag + ': one centre line with the long label', m2); }
   check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), tag + ': no horizontal page scroll');
   // ---- disconnect the ACTIVE account: confirm -> revoke its grant -> Paper -> list refreshed

@@ -2,7 +2,7 @@
 //   GET  ?probe=1 -> {configured}      (flag only, nothing else)
 //   POST {}                          -> {portalUrl, sessionId}   (admin ID token required: 401 unsigned, 403 non-admin)
 // The portal URL is a secret: it goes only to the admin who asked. The API key never leaves this server.
-import { gate, readBody, fin, startSession, sessionHeaders, json, fail, configured, methodNotAllowed, safe } from './_fin.js';
+import { gate, readBody, fin, startSession, sessionHeaders, json, fail, configured, methodNotAllowed, safe, pagesEntry, deferOf } from './_fin.js';
 
 async function run(request, env, deps) {
   if (request.method === 'GET') {
@@ -26,4 +26,4 @@ async function run(request, env, deps) {
   return json({ portalUrl: url.toString(), sessionId: s.sessionId });
 }
 export const handle = safe('session', run);
-export const onRequest = ({ request, env }) => handle(request, env);
+export const onRequest = pagesEntry(handle);

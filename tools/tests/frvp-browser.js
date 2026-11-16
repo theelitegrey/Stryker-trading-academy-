@@ -165,7 +165,7 @@ async function desktop(b, theme) {
   if (AFTER) check(g.frvp.extendRight === false && g.frvp.thinRows === true && !g.frvp.deltaBars && !g.frvp.vwap, tag + ': new drawing defaults: lines stop at B, thin rows on, delta and VWAP off', g.frvp);
   // 1. lines stop at B (pixels right of B on the POC line are empty), extend when the setting is on
   await p.mouse.move(g.cr.x + 5, g.cr.y + g.cr.h - 60); await p.evaluate(() => window.STRYKER_VELA.chart.drawings.select([])); await sleep(500);
-  const rightOfB = () => ink(p, (g.x1 + Math.min(g.width, g.lastX + 200)) / 2 + 40, g.pocY, 6, 1);
+  const rightOfB = () => ink(p, (g.x1 + g.lastX) / 2, g.pocY, Math.max(2, (g.lastX - g.x1) / 2 - 6), 1);   // between B and the newest candle
   const inside = await ink(p, (g.x0 + g.x1) / 2 + g.maxW / 3, g.pocY, 6, 1);
   const out0 = await rightOfB();
   check(inside > 0, tag + ': POC line drawn inside the range', inside);
@@ -180,7 +180,7 @@ async function desktop(b, theme) {
     await sleep(600);
     const gf = await probe(p);
     const past = await ink(p, (gf.lastX + gf.x1) / 2, gf.pocY, Math.max(2, (gf.x1 - gf.lastX) / 2 - 6), 1);
-    if (AFTER) check(gf.x1 > gf.lastX + 20 && past === 0, tag + ': B right of the newest candle: POC stops at the newest candle', [gf.lastX, gf.x1, past]);
+    if (AFTER) check(Math.abs(gf.x1 - gf.lastX) < 2, tag + ': B right of the newest candle: the range ends on the newest candle', [gf.lastX, gf.x1, past]);
     else note(tag + ' (old code) B right of the newest candle: ink on the POC between the newest candle and B', past);
     await shot(p, tag + '-future-b');
     await p.evaluate((a) => { const ch = window.STRYKER_VELA.chart, d = ch.drawings.all().find((x) => x.type === 'fixedrangevp'); ch.drawings.update(d.id, { anchors: a }); }, g0.anchors);
@@ -188,8 +188,9 @@ async function desktop(b, theme) {
   }
   if (AFTER) {
     await setProps(p, { extendRight: true }); await sleep(600);
-    const out1 = await rightOfB();
-    check(out1 > 0, tag + ': "Extend lines right" on: POC runs past B', out1);
+    const g1 = await probe(p);   // the range grows to the newest candle, so the POC row can move: read it again
+    const out1 = await ink(p, (g.x1 + g.lastX) / 2, g1.pocY, Math.max(2, (g.lastX - g.x1) / 2 - 6), 1);
+    check(out1 > 0, tag + ': "Extend lines right" on: POC runs on to the newest candle', out1);
     await setProps(p, { extendRight: false }); await sleep(400);
   }
   // 2. a press + drag on a candle inside the range must not move the profile (the chart pans instead), and a click must not select it
@@ -327,7 +328,7 @@ async function desktop(b, theme) {
     await p.evaluate(() => { const el = [...document.querySelectorAll('.vela-dsp-scroll')].pop(); if (el) el.scrollTop = el.scrollHeight; });
     await sleep(300);
     const txt = await p.evaluate(() => [...document.querySelectorAll('*')].filter((e) => !e.children.length && /\S/.test(e.textContent) && e.getBoundingClientRect().width > 0).map((e) => e.textContent.trim()).join(' | '));
-    for (const w of ['Extend right', 'Thin rows', 'Delta bars', 'Delta buy', 'Delta sell', 'VWAP colour', 'Band colour', 'VWAP', '\u00b11 SD bands', '\u00b12 SD bands']) check(txt.includes(w), tag + ': settings show "' + w + '"', txt.slice(0, 200));
+    for (const w of ['Extend to now', 'Thin rows', 'Delta bars', 'Delta buy', 'Delta sell', 'VWAP colour', 'Band colour', 'VWAP', '\u00b11 SD bands', '\u00b12 SD bands']) check(txt.includes(w), tag + ': settings show "' + w + '"', txt.slice(0, 200));
     await shot(p, tag + '-settings');
     // the settings live in the saved chart: a reload keeps them
     await p.keyboard.press('Escape'); await sleep(300);

@@ -19,9 +19,9 @@
 // SAVED DRAWINGS keep their look: a drawing saved before this has none of the new keys, and a missing key means the old
 // behaviour (lines to B, no thin rows, no delta, no VWAP). New drawings get extendRight:false and thinRows:true when placed.
 // Education only. Not financial advice.
-import { flowFor, rootOf } from './chart-footprint.js?v=1060';
-import { isFree } from './chart-pro-gate.js?v=1060';
-import { deltaRows, anchoredVwap, buildProfile, fineSpanBars, volumeNodes } from './chart-frvp-data.js?v=1060';
+import { flowFor, rootOf } from './chart-footprint.js?v=1071';
+import { isFree } from './chart-pro-gate.js?v=1071';
+import { deltaRows, anchoredVwap, buildProfile, fineSpanBars, volumeNodes } from './chart-frvp-data.js?v=1071';
 
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';
@@ -50,17 +50,50 @@ function compSpan(d, proj) {
   const all = proj.barsInRange(-Infinity, Infinity);
   return all && all.length ? [all[0].time, all[all.length - 1].time] : null;
 }
+// Right end of the range (member reports 14-16 Nov): the profile stays inside its own A-B range, and B never runs past the newest candle
+// (a B dropped in the empty space right of the data, or one that was dragged there, ends on the newest candle). Setting "Extend right to current bar"
+// (frvp.extendRight, off by default, per drawing; settings label "Extend to now", the column is 96 px) runs the range on to the newest candle when B is older. Returns the end time, or null = B as it is.
+let lastMemo = null;   // the newest candle's open time and its length, re-read at most every 300 ms (reading it scans the loaded bars)
+function newest(proj) {
+  const now = Date.now();
+  if (lastMemo && lastMemo.proj === proj.barsInRange && now - lastMemo.at < 300) return lastMemo;
+  const all = proj.barsInRange(-Infinity, Infinity) || [], n = all.length;
+  lastMemo = { proj: proj.barsInRange, at: now, t: n ? all[n - 1].time : null, dur: n > 1 ? all[n - 1].time - all[n - 2].time : 0 };
+  return lastMemo;
+}
+export function rangeEnd(d, proj) {
+  const a = d.anchors[0], b = d.anchors[1];
+  if (!a || !b || !proj.barsInRange || d.frvp.composite === true) return null;
+  const lo = Math.min(a.time, b.time), B = Math.max(a.time, b.time);
+  const tail = proj.barsInRange(B, Infinity) || [];
+  if (d.frvp.extendRight === true) {
+    const t = tail.length ? tail[tail.length - 1].time : newest(proj).t;
+    return t != null && t >= lo && t !== B ? t : null;
+  }
+  if (tail.length) return null;                      // B is on or before the newest candle
+  const nw = newest(proj);
+  return nw.t != null && nw.t >= lo && B >= nw.t + nw.dur ? nw.t : null;   // B beyond the newest candle's own period
+}
+// B put (or dragged) in the empty space right of the newest candle: the drawing keeps its B on the newest candle from then on, so candles that
+// arrive later do not join the range on their own. Called when a drawing is placed and when a corner is dragged; saved drawings are left alone.
+function snapB(d, proj) {
+  const a = d.anchors[0], b = d.anchors[1];
+  if (!a || !b || !proj || !proj.barsInRange || d.frvp.composite === true || d.frvp.extendRight === true) return;
+  const late = a.time >= b.time ? a : b, nw = newest(proj);
+  if (nw.t != null && late.time >= nw.t + nw.dur && nw.dur > 0) late.time = nw.t;
+}
 function spanBars(d, proj) {
   const a = d.anchors[0], b = d.anchors[1];
   if (!a || !b || !proj.barsInRange) return [];
   const c = compSpan(d, proj);
-  return c ? proj.barsInRange(c[0], c[1]) || [] : proj.barsInRange(Math.min(a.time, b.time), Math.max(a.time, b.time)) || [];
+  if (c) return proj.barsInRange(c[0], c[1]) || [];
+  const e = rangeEnd(d, proj);
+  return proj.barsInRange(Math.min(a.time, b.time), e == null ? Math.max(a.time, b.time) : e) || [];
 }
 // x where POC / VAH / VAL stop. Saved drawings (no extendRight key): B, as before.
 function lineEnd(d, proj, L) {
-  const e = d.frvp.extendRight;
-  if (e === true) return Math.max(L.x1, proj.width || L.x1);
-  if (e !== false) return L.x1;
+  if (d.frvp.extendRight !== false && d.frvp.extendRight !== true) return L.x1;   // saved before the setting: the range's own end (already inside the newest candle)
+  if (d.frvp.extendRight === true) return L.x1;
   const bars = spanBars(d, proj), last = bars[bars.length - 1];
   return last ? Math.min(L.x1, Math.max(L.x0, proj.xOf(last.time))) : L.x1;
 }
@@ -151,7 +184,7 @@ const FINE_MAX_MIN = 20000, fine = new Map();   // `${symbol}|${from}|${to}` -> 
 function fineBars(d, bars) {
   const a = d.anchors[0], b = d.anchors[1], host = hostOf(d);
   if (!a || !b || !host) return null;
-  const tf = tfMin(host.chart.market.timeframe), from = Math.floor(Math.min(a.time, b.time) / 60000) * 60000, to = Math.max(a.time, b.time);
+  const tf = tfMin(host.chart.market.timeframe), from = Math.floor(Math.min(a.time, b.time) / 60000) * 60000, to = bars[bars.length - 1].time;
   if (d.frvp.composite === true || tf == null || tf <= 1 || (to - from) / 60000 > FINE_MAX_MIN) return null;
   const sym = host.chart.market.symbol, key = sym + '|' + from + '|' + to, hit = fine.get(key);
   if (Array.isArray(hit)) return hit;
@@ -210,9 +243,9 @@ function paintFrvp(ctx, d, proj, theme) {
   const host = hostOf(this), bars = spanBars(d, proj);
   avail.delta = whyNoDelta(host);
   avail.vwap = bars.length && !bars.some((b) => b.volume > 0) ? 'Anchored VWAP needs volume, and this symbol has none.' : '';
-  // anchored VWAP: from A over the span's own candles (the profile's data), through the newest candle when the lines extend
+  // anchored VWAP: from A over the span's own candles (the profile's data; the range already runs to the newest candle when extended)
   if (needVwap && !avail.vwap && bars.length) {
-    const vw = anchoredVwap(s.extendRight === true && proj.barsInRange ? proj.barsInRange(bars[0].time, Infinity) : bars) || [];
+    const vw = anchoredVwap(bars) || [];
     const line = (k) => vw.map((p) => [proj.xOf(p.time), proj.yOf(p.vwap + k * p.sd, d.paneId)]).filter((q) => q[1] != null);
     const vwC = hex6(s.vwapColor, VW), bdC = hex6(s.vwapBandColor, BAND), polys = [[line(0), vwC, 1.5, 'solid']];
     if (s.vwapSd1 === true) polys.push([line(1), bdC, 1, 'solid'], [line(-1), bdC, 1, 'solid']);
@@ -232,13 +265,18 @@ function paintFrvp(ctx, d, proj, theme) {
   const D = h.dr;
   if (!D.used) { dashes(ctx, theme, L, P, D, side0(L)); label(ctx, theme, L, fl.loading ? 'Delta: loading order flow…' : 'Delta: no order flow recorded for this range (starts 8 Oct 2026)'); if (fl.loading) repaintSoon(host); return; }
   let mx = 0; for (const v of D.d) mx = Math.max(mx, Math.abs(v));
-  const rects = [], maxDW = L.maxW * 0.6, side = -L.grow, gap = 2;
+  const rects = [], maxDW = L.maxW * 0.6, gap = 2;
+  // Member report 14 Nov: with A near (or past) the left edge of the chart the delta side (left of A) has no room and the bars were squeezed
+  // into a few pixels. Then they go on the other side, inside the histogram, as thinner bars so the profile still shows through.
+  const room = L.grow === 1 ? L.anchorX - gap : (proj.width || Infinity) - L.anchorX - gap;
+  const inside = room < Math.min(maxDW, 48), side = inside ? L.grow : -L.grow;
+  const baseX = !inside ? L.anchorX : L.grow === 1 ? Math.max(L.anchorX, 0) : Math.min(L.anchorX, proj.width || L.anchorX);   // A off screen: the delta column sits at the edge of the plot
   if (mx > 0) for (let k = 0; k < D.d.length; k++) {
     const v = D.d[k]; if (!v) continue;
-    const yA = L.yEdges[k], yB = L.yEdges[k + 1], w = Math.max(1, Math.abs(v) / mx * maxDW), h2 = Math.max(1, Math.abs(yB - yA) - 1);
-    const x = side < 0 ? L.anchorX - gap - w : L.anchorX + gap;
-    ctx.fillStyle = (v > 0 ? hex6(s.deltaUpColor, UP) : hex6(s.deltaDownColor, DN)) + 'BF'; ctx.fillRect(x, Math.min(yA, yB), w, h2);
-    rects.push([x, Math.min(yA, yB), w, h2]);
+    const yA = L.yEdges[k], yB = L.yEdges[k + 1], w = Math.max(1, Math.abs(v) / mx * maxDW), full = Math.max(1, Math.abs(yB - yA) - 1), h2 = inside ? Math.max(1, Math.round(full / 2)) : full;
+    const x = side < 0 ? baseX - gap - w : baseX + gap;
+    ctx.fillStyle = (v > 0 ? hex6(s.deltaUpColor, UP) : hex6(s.deltaDownColor, DN)) + 'BF'; const y0 = Math.min(yA, yB) + (inside ? Math.floor((full - h2) / 2) : 0); ctx.fillRect(x, y0, w, h2);
+    rects.push([x, y0, w, h2]);
   }
   const gaps = dashes(ctx, theme, L, P, D, side);
   d.__stkDelta = rects;
@@ -315,7 +353,7 @@ function seg(px, py, a, b) {
 // land in its generic block, and the values are saved with the drawing's other profile settings.
 function extraFields(d) {
   const a = d.__stkAvail || {}, f = [];
-  f.push({ path: 'frvpx.extendRight', label: 'Extend right', kind: 'boolean' });
+  f.push({ path: 'frvpx.extendRight', label: 'Extend to now', kind: 'boolean' });
   f.push({ path: 'frvpx.alwaysVisible', label: 'Always visible', kind: 'boolean' });
   f.push({ path: 'frvpx.thinRows', label: 'Thin rows', kind: 'boolean' });
   f.push({ path: 'frvpx.composite', label: 'Composite', kind: 'boolean' });   // tooltip text: all loaded bars
@@ -342,6 +380,21 @@ export function installFrvpClass(FRVP) {
   P.hitTest = hitFrvp;
   P.__rawLayout = P.layout;
   P.layout = function (proj) { return P.__rawLayout.call(this, pinned(this, proj)); };
+  // range end: the later anchor is read as rangeEnd() (inside the newest candle, or on it when "Extend right to current bar" is on); put back straight after
+  const layoutA = P.layout;
+  P.layout = function (proj) {
+    const a = this.anchors[0], b = this.anchors[1], e = a && b ? rangeEnd(this, proj) : null;
+    if (e == null) return layoutA.call(this, proj);
+    const late = a.time >= b.time ? a : b, t0 = late.time; late.time = e;
+    try { return layoutA.call(this, proj); } finally { late.time = t0; }
+  };
+  const barsInSpan0 = P.barsInSpan;
+  P.barsInSpan = function (proj) {
+    const a = this.anchors[0], b = this.anchors[1], e = a && b ? rangeEnd(this, proj) : null;
+    if (e == null) return barsInSpan0.call(this, proj);
+    const late = a.time >= b.time ? a : b, t0 = late.time; late.time = e;
+    try { return barsInSpan0.call(this, proj); } finally { late.time = t0; }
+  };
   const layout0 = P.layout;   // composite: lay the profile out over the first..last loaded candle (anchors are put back straight after)
   P.layout = function (proj) {
     const c = compSpan(this, proj), a = this.anchors[0], b = this.anchors[1];
@@ -397,6 +450,7 @@ export function installFrvpClass(FRVP) {
     const left = orig[0].time <= orig[1].time ? a : b, right = left === a ? b : a;
     const isLeft = i === 0 || i === 2 || i === 4;
     (isLeft ? left : right).time = pt.time;
+    try { snapB(this, window.STRYKER_VELA.chart.renderer.renderer.drawingProjector()); } catch (e) {}
   };
   P.stkHandleCursor = function (i) { return i >= 4 ? 'ew-resize' : (i === 0 || i === 3) ? 'nwse-resize' : 'nesw-resize'; };
   const schema = P.schema;
@@ -406,6 +460,7 @@ export function installFrvpClass(FRVP) {
   P.onPlaced = function (proj) {   // a NEW drawing: the new defaults (saved drawings never pass here)
     if (onPlaced) onPlaced.call(this, proj);
     if (this.frvp.extendRight === undefined) this.frvp.extendRight = false;
+    snapB(this, proj);
     if (this.frvp.thinRows === undefined) this.frvp.thinRows = true;
     if (this.frvp.vwapSd1 === undefined) this.frvp.vwapSd1 = true;
     if (this.frvp.vwapSd2 === undefined) this.frvp.vwapSd2 = true;

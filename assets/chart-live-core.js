@@ -182,6 +182,33 @@ export function readsOk({ lastOkStart, lastWriteAt, unknown, now, maxAge = 20000
   if (now - lastOkStart > maxAge) return { ok: false, why: 'Positions and orders could not be read. New orders are blocked.' };
   return { ok: true, why: '' };
 }
+// ---- speed (Owner order 2026-11-16) --------------------------------------------------------------------------------------
+// Server-Timing header -> { name: ms }  ("fin;dur=58, total;dur=71, placement;desc=\"remote-IAD\"" -> { fin: 58, total: 71, placement: 'remote-IAD' })
+export function parseTiming(h) {
+  const out = {};
+  for (const part of String(h || '').split(',')) {
+    const m = /^\s*([A-Za-z0-9_-]+)\s*(?:;(.*))?$/.exec(part); if (!m) continue;
+    const d = /dur=([\d.]+)/.exec(m[2] || ''), s = /desc="?([^";]*)"?/.exec(m[2] || '');
+    out[m[1]] = d ? Math.round(Number(d[1])) : s ? s[1] : true;
+  }
+  return out;
+}
+// footer line for the last write: "Order sent in 182 ms (broker 61 ms)" ; '' when nothing measured
+export function rttText(t) {
+  if (!t || !(t.ms >= 0)) return '';
+  const what = t.op === 'cancel' ? 'Cancel' : t.op === 'modify' ? 'Move' : t.op === 'flatten' ? 'Flatten' : 'Order';
+  const fin = t.server && Number.isFinite(t.server.fin) ? ' (broker ' + t.server.fin + ' ms)' : '';
+  return what + (t.ok ? ' sent in ' : ' answered in ') + Math.round(t.ms) + ' ms' + fin + '.';
+}
+// after a write: read again quickly so the fill / working order shows (then the normal 10 s poll)
+export const FAST_READS_MS = [250, 900, 2000, 4000];
+// a "sending" line drawn the moment the order is confirmed (limit price, or the last price for a market order); removed on the answer
+export function pendingLine(body, last) {
+  const price = body.type === 'limit' ? Number(body.limitPrice) : Number(last);
+  if (!(price > 0)) return null;
+  return { id: 'P' + body.idemKey, kind: 'ord', live: true, pending: true, code: body.symbol, price, side: body.side, type: body.type, qty: body.qty };
+}
+
 // "Tradovate …1234": broker name + last 4 of the broker account number (falls back to the id)
 export function acctLabel(a) {
   const broker = String(a.broker || a.brokerName || a.brokerId || 'Broker');

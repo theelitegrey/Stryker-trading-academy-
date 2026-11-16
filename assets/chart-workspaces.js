@@ -17,7 +17,7 @@
 // functions-src/firestore.rules). Signed out: index and chart documents in localStorage.
 // Crash safety: the screen itself is restored by the chart's own on-device save; the index says which
 // workspace it is. Deleting a workspace never deletes its saved layout.
-import * as C from './chart-workspaces-core.js?v=1060';
+import * as C from './chart-workspaces-core.js?v=1065';
 
 const REMOTE_MS = 1500;
 let remoteRead = false;

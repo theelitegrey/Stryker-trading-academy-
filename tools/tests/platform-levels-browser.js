@@ -88,8 +88,8 @@ async function mock(ctx, state) {
       check(!errors.length, tag + ': no page errors ' + errors.slice(0, 2).join(' / '));
       state.mode = 'free';
       await p.goto(BASE + '/platform-levels.html', { waitUntil: 'domcontentloaded' }); await p.waitForFunction(() => document.querySelector('#pl-prev tbody tr') || !document.getElementById('pl-wall').hidden, null, { timeout: 15000 }).catch(() => {}); await sleep(600);
-      check(await p.isHidden('#pl-app') && await p.isVisible('#pl-wall'), tag + ': free member sees the Pro card, not the tools');
-      check(!/\$\d/.test(await p.evaluate(() => document.getElementById('pl-wall').innerText)), tag + ': Pro card shows no price here');
+      check(await p.isHidden('#pl-app') && await p.isVisible('#pl-wall'), tag + ': rejected token sees the wall card, not the tools');
+      check(!/\$\d/.test(await p.evaluate(() => document.getElementById('pl-wall').innerText)), tag + ': wall card shows no price here');
       if (tag === '390-dark') { await p.screenshot({ path: path.join(OUT, 'pl-' + tag + '-locked.png') }); console.log('SHOT ' + path.join(OUT, 'pl-' + tag + '-locked.png')); }
       await ctx.close();
     }

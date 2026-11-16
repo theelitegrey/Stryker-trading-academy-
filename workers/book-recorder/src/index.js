@@ -1135,6 +1135,12 @@ async function route(req, env, ctx) {
       }
       return new Response(r.body, { status: r.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, cors(req)) });
     }
+    // MUST stay above the generic GET-only gate below: POST/DELETE /lv/token make and turn off the member's link (it answered 405 'read-only' from 2026-11-08 until 2026-11-16).
+    // Levels for other platforms + the member's secret link (src/levels-feed.js). The feed path is gated by the secret, the rest by a member sign-in token (free since 2026-11-13).
+    if (u.pathname.startsWith('/lv/')) {
+      const h = cors(req);
+      return lvRoute(req, u, env, ctx, h, { stub, bearer: bearerOf, now: () => Date.now(), proUntil: (t) => lvMemberUntil(t, { verifyIdToken }) });   // all tools free (2026-11-13): any signed-in, non-anonymous member
+    }
     const h = cors(req);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
     if (req.method !== 'GET') return new Response('read-only', { status: 405, headers: h });
@@ -1176,11 +1182,6 @@ async function route(req, env, ctx) {
       // Since 2026-11-13 (all tools free) the GEX levels download (/zo/levels-export) is free for members too.
       const deps = { isPro: isMemberToken, bearer: bearerOf, stub, now: () => Date.now(), service: (r) => authorized(r, env) };
       return u.pathname === '/zo/levels-export' ? zoExportRoute(req, u, env, ctx, h, deps) : zoGetRoute(req, u, env, ctx, h, deps);
-    }
-    // Levels for other platforms + the member's secret link (src/levels-feed.js). The feed path is gated by the secret, the rest by a member sign-in token (free since 2026-11-13).
-    if (u.pathname.startsWith('/lv/')) {
-      const h = cors(req);
-      return lvRoute(req, u, env, ctx, h, { stub, bearer: bearerOf, now: () => Date.now(), proUntil: (t) => lvMemberUntil(t, { verifyIdToken }) });   // all tools free (2026-11-13): any signed-in, non-anonymous member
     }
     // GEX+ data is a free tool for signed-in members (Owner 2026-11-13, was Pro): history, sessions and options-analytics need a verified,
     // non-anonymous member token. (/tide is ZoroTide, open.) Checked before the cache, and the 403 is never cached.

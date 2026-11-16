@@ -1,0 +1,206 @@
+PASS non-admin: no account picker, live module never loaded
+PASS non-admin: no broker calls at all
+PASS not connected: Paper + Connect a broker…
+PASS Connect a broker opens the JournalX connect sheet; picker stays on Paper
+PASS connect flow sends no order
+PASS 1440-dark: Paper is the first and default choice
+PASS 1440-dark: account shown as broker + last 4
+PASS 1440-dark: no vendor name in the panel
+PASS 1440-dark: big red LIVE badge on the chart with the contract
+PASS 1440-dark: LIVE badge in the panel head
+PASS 1440-dark: paper Trade button hidden while live
+PASS 1440-dark: live hook active
+PASS 1440-dark: NQ1! maps to the front month NQZ6
+PASS 1440-dark: mapping shown in the form
+PASS 1440-dark: first order needs the contract typed; confirm shows the contract + account
+PASS 1440-dark: wrong text keeps Send disabled
+PASS 1440-dark: panel open pre-warms the server (env + userId)
+PASS 1440-dark: positions re-read within 0.7 s of the order
+PASS 1440-dark: footer shows the measured round trip
+PASS 1440-dark: market BUY 1 sent with contract + idemKey
+PASS 1440-dark: later orders = one tap, with "skip for this session"
+PASS 1440-dark: order line drawn at once as SENDING while the broker answers
+PASS 1440-dark: × on a SENDING line sends nothing
+PASS 1440-dark: SENDING line gone on the answer; footer: round trip + broker time from Server-Timing
+PASS 1440-dark: SELL limit sent, fresh idemKey
+PASS 1440-dark: live position + working order lines on the chart
+PASS 1440-dark: skip honoured for a normal order
+PASS 1440-dark: worst-case exposure over 2 contracts refused in the browser
+PASS 1440-dark: drag opens a Move confirm even with skip on
+PASS 1440-dark: modify sent with the dragged price
+PASS 1440-dark: no-modify broker: the confirm says cancel + new
+PASS 1440-dark: cancel, then the new limit, after the cancel was read back
+PASS 1440-dark: unreadable positions/orders = Send disabled + reason
+PASS 1440-dark: DOM ask click = live SELL LIMIT at the clicked price
+PASS 1440-dark: Cancel in the confirm sends nothing
+PASS 1440-dark: flatten confirm has no skip
+PASS 1440-dark: flatten = server op with a deterministic key
+ALIGN 1440-dark {"head":{"row":{"h":36,"padL":"8px","padR":"8px"},"items":[{"cls":"stkpt-toggle","top":535.2,"h":26.2,"cy":548.3,"l":8,"r":112},{"cls":"SELECT","top":534.3,"h":28,"cy":548.3,"l":120,"r":303},{"cls":"stklv-badge","top":534.3,"h":28,"cy":548.3,"l":311,"r":475},{"cls":"SPAN","top":539.9,"h":16.8,"cy":548.3,"l":483,"r":655}],"cySpread":0,"gaps":[8,8,8],"insetL":8,"insetR":785},"seg":{"row":{"h":40,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-seg","top":692.3,"h":40,"cy":712.3,"l":12,"r":168},{"cls":"stklv-seg","top":692.3,"h":40,"cy":712.3,"l":176,"r":332}],"cySpread":0,"gaps":[8],"insetL":0,"insetR":0},"segBtns":{"row":{"h":40,"padL":"4px","padR":"4px"},"items":[{"cls":"buy","top":648.3,"h":32,"cy":664.3,"l":16,"r":170},{"cls":"sell","top":648.3,"h":32,"cy":664.3,"l":174,"r":328}],"cySpread":0,"gaps":[4],"insetL":4,"insetR":4},"tools":{"row":{"h":32,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-btn","top":738.3,"h":32,"cy":754.3,"l":348,"r":417},{"cls":"stklv-btn","top":738.3,"h":32,"cy":754.3,"l":425,"r":556},{"cls":"stklv-btn","top":738.3,"h":32,"cy":754.3,"l":564,"r":666}],"cySpread":0,"gaps":[8,8],"insetL":0,"insetR":762},"foot":{"h":24,"padL":"10px","padR":"10px","padT":"4px","padB":"4px","overflowX":false},"chips":[]}
+PASS 1440-dark: panel head items share one centre (±1px)
+PASS 1440-dark: Buy/Sell same height + centre
+PASS 1440-dark: tool buttons centred (row may wrap on phones)
+PASS 1440-dark: no horizontal page scroll
+PASS 1440-dark: back on Paper: no badge, no live lines
+PASS 1440-dark: only the local mock was called
+PASS 1440-dark: no console errors 
+PASS 1440-light: Paper is the first and default choice
+PASS 1440-light: account shown as broker + last 4
+PASS 1440-light: no vendor name in the panel
+PASS 1440-light: big red LIVE badge on the chart with the contract
+PASS 1440-light: LIVE badge in the panel head
+PASS 1440-light: paper Trade button hidden while live
+PASS 1440-light: live hook active
+PASS 1440-light: NQ1! maps to the front month NQZ6
+PASS 1440-light: mapping shown in the form
+PASS 1440-light: first order needs the contract typed; confirm shows the contract + account
+PASS 1440-light: wrong text keeps Send disabled
+PASS 1440-light: panel open pre-warms the server (env + userId)
+PASS 1440-light: positions re-read within 0.7 s of the order
+PASS 1440-light: footer shows the measured round trip
+PASS 1440-light: market BUY 1 sent with contract + idemKey
+PASS 1440-light: later orders = one tap, with "skip for this session"
+PASS 1440-light: order line drawn at once as SENDING while the broker answers
+PASS 1440-light: × on a SENDING line sends nothing
+PASS 1440-light: SENDING line gone on the answer; footer: round trip + broker time from Server-Timing
+PASS 1440-light: SELL limit sent, fresh idemKey
+PASS 1440-light: live position + working order lines on the chart
+PASS 1440-light: skip honoured for a normal order
+PASS 1440-light: worst-case exposure over 2 contracts refused in the browser
+PASS 1440-light: drag opens a Move confirm even with skip on
+PASS 1440-light: modify sent with the dragged price
+PASS 1440-light: no-modify broker: the confirm says cancel + new
+PASS 1440-light: cancel, then the new limit, after the cancel was read back
+PASS 1440-light: unreadable positions/orders = Send disabled + reason
+PASS 1440-light: DOM ask click = live SELL LIMIT at the clicked price
+PASS 1440-light: Cancel in the confirm sends nothing
+PASS 1440-light: flatten confirm has no skip
+PASS 1440-light: flatten = server op with a deterministic key
+ALIGN 1440-light {"head":{"row":{"h":36,"padL":"8px","padR":"8px"},"items":[{"cls":"stkpt-toggle","top":535.2,"h":26.2,"cy":548.3,"l":8,"r":112},{"cls":"SELECT","top":534.3,"h":28,"cy":548.3,"l":120,"r":303},{"cls":"stklv-badge","top":534.3,"h":28,"cy":548.3,"l":311,"r":475},{"cls":"SPAN","top":539.9,"h":16.8,"cy":548.3,"l":483,"r":655}],"cySpread":0,"gaps":[8,8,8],"insetL":8,"insetR":785},"seg":{"row":{"h":40,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-seg","top":692.3,"h":40,"cy":712.3,"l":12,"r":168},{"cls":"stklv-seg","top":692.3,"h":40,"cy":712.3,"l":176,"r":332}],"cySpread":0,"gaps":[8],"insetL":0,"insetR":0},"segBtns":{"row":{"h":40,"padL":"4px","padR":"4px"},"items":[{"cls":"buy","top":648.3,"h":32,"cy":664.3,"l":16,"r":170},{"cls":"sell","top":648.3,"h":32,"cy":664.3,"l":174,"r":328}],"cySpread":0,"gaps":[4],"insetL":4,"insetR":4},"tools":{"row":{"h":32,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-btn","top":738.3,"h":32,"cy":754.3,"l":348,"r":417},{"cls":"stklv-btn","top":738.3,"h":32,"cy":754.3,"l":425,"r":556},{"cls":"stklv-btn","top":738.3,"h":32,"cy":754.3,"l":564,"r":666}],"cySpread":0,"gaps":[8,8],"insetL":0,"insetR":762},"foot":{"h":24,"padL":"10px","padR":"10px","padT":"4px","padB":"4px","overflowX":false},"chips":[]}
+PASS 1440-light: panel head items share one centre (±1px)
+PASS 1440-light: Buy/Sell same height + centre
+PASS 1440-light: tool buttons centred (row may wrap on phones)
+PASS 1440-light: no horizontal page scroll
+PASS 1440-light: back on Paper: no badge, no live lines
+PASS 1440-light: only the local mock was called
+PASS 1440-light: no console errors 
+PASS 412-dark: Paper is the first and default choice
+PASS 412-dark: account shown as broker + last 4
+PASS 412-dark: no vendor name in the panel
+PASS 412-dark: big red LIVE badge on the chart with the contract
+PASS 412-dark: LIVE badge in the panel head
+PASS 412-dark: paper Trade button hidden while live
+PASS 412-dark: live hook active
+PASS 412-dark: NQ1! maps to the front month NQZ6
+PASS 412-dark: mapping shown in the form
+PASS 412-dark: first order needs the contract typed; confirm shows the contract + account
+PASS 412-dark: wrong text keeps Send disabled
+PASS 412-dark: panel open pre-warms the server (env + userId)
+PASS 412-dark: positions re-read within 0.7 s of the order
+PASS 412-dark: footer shows the measured round trip
+PASS 412-dark: market BUY 1 sent with contract + idemKey
+PASS 412-dark: later orders = one tap, with "skip for this session"
+PASS 412-dark: order line drawn at once as SENDING while the broker answers
+PASS 412-dark: × on a SENDING line sends nothing
+PASS 412-dark: SENDING line gone on the answer; footer: round trip + broker time from Server-Timing
+PASS 412-dark: SELL limit sent, fresh idemKey
+PASS 412-dark: live position + working order lines on the chart
+PASS 412-dark: skip honoured for a normal order
+PASS 412-dark: worst-case exposure over 2 contracts refused in the browser
+PASS 412-dark: drag opens a Move confirm even with skip on
+PASS 412-dark: modify sent with the dragged price
+PASS 412-dark: no-modify broker: the confirm says cancel + new
+PASS 412-dark: cancel, then the new limit, after the cancel was read back
+PASS 412-dark: unreadable positions/orders = Send disabled + reason
+PASS 412-dark: DOM ask click = live SELL LIMIT at the clicked price
+PASS 412-dark: Cancel in the confirm sends nothing
+PASS 412-dark: flatten confirm has no skip
+PASS 412-dark: flatten = server op with a deterministic key
+ALIGN 412-dark {"head":{"row":{"h":40,"padL":"8px","padR":"8px"},"items":[{"cls":"stkpt-toggle","top":420.9,"h":26.2,"cy":434,"l":9,"r":113},{"cls":"SELECT","top":418,"h":32,"cy":434,"l":121,"r":249},{"cls":"stklv-badge","top":418,"h":32,"cy":434,"l":257,"r":356}],"cySpread":0,"gaps":[8,8],"insetL":8,"insetR":55},"seg":{"row":{"h":48,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-seg","top":592,"h":48,"cy":616,"l":11,"r":202},{"cls":"stklv-seg","top":592,"h":48,"cy":616,"l":210,"r":401}],"cySpread":0,"gaps":[8],"insetL":0,"insetR":0},"segBtns":{"row":{"h":48,"padL":"4px","padR":"4px"},"items":[{"cls":"buy","top":540,"h":40,"cy":560,"l":15,"r":204},{"cls":"sell","top":540,"h":40,"cy":560,"l":208,"r":397}],"cySpread":0,"gaps":[4],"insetL":4,"insetR":4},"tools":{"row":{"h":36,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-btn","top":924,"h":36,"cy":942,"l":11,"r":80},{"cls":"stklv-btn","top":924,"h":36,"cy":942,"l":88,"r":219},{"cls":"stklv-btn","top":924,"h":36,"cy":942,"l":227,"r":329}],"cySpread":0,"gaps":[8,8],"insetL":0,"insetR":72},"foot":{"h":53,"padL":"10px","padR":"10px","padT":"4px","padB":"4px","overflowX":false},"chips":[]}
+PASS 412-dark: panel head items share one centre (±1px)
+PASS 412-dark: Buy/Sell same height + centre
+PASS 412-dark: tool buttons centred (row may wrap on phones)
+PASS 412-dark: no horizontal page scroll
+PASS 412-dark: back on Paper: no badge, no live lines
+PASS 412-dark: only the local mock was called
+PASS 412-dark: no console errors 
+PASS 390-dark: Paper is the first and default choice
+PASS 390-dark: account shown as broker + last 4
+PASS 390-dark: no vendor name in the panel
+PASS 390-dark: big red LIVE badge on the chart with the contract
+PASS 390-dark: LIVE badge in the panel head
+PASS 390-dark: paper Trade button hidden while live
+PASS 390-dark: live hook active
+PASS 390-dark: NQ1! maps to the front month NQZ6
+PASS 390-dark: mapping shown in the form
+PASS 390-dark: first order needs the contract typed; confirm shows the contract + account
+PASS 390-dark: wrong text keeps Send disabled
+PASS 390-dark: panel open pre-warms the server (env + userId)
+PASS 390-dark: positions re-read within 0.7 s of the order
+PASS 390-dark: footer shows the measured round trip
+PASS 390-dark: market BUY 1 sent with contract + idemKey
+PASS 390-dark: later orders = one tap, with "skip for this session"
+PASS 390-dark: order line drawn at once as SENDING while the broker answers
+PASS 390-dark: × on a SENDING line sends nothing
+PASS 390-dark: SENDING line gone on the answer; footer: round trip + broker time from Server-Timing
+PASS 390-dark: SELL limit sent, fresh idemKey
+PASS 390-dark: live position + working order lines on the chart
+PASS 390-dark: skip honoured for a normal order
+PASS 390-dark: worst-case exposure over 2 contracts refused in the browser
+PASS 390-dark: drag opens a Move confirm even with skip on
+PASS 390-dark: modify sent with the dragged price
+PASS 390-dark: no-modify broker: the confirm says cancel + new
+PASS 390-dark: cancel, then the new limit, after the cancel was read back
+PASS 390-dark: unreadable positions/orders = Send disabled + reason
+PASS 390-dark: DOM ask click = live SELL LIMIT at the clicked price
+PASS 390-dark: Cancel in the confirm sends nothing
+PASS 390-dark: flatten confirm has no skip
+PASS 390-dark: flatten = server op with a deterministic key
+ALIGN 390-dark {"head":{"row":{"h":40,"padL":"8px","padR":"8px"},"items":[{"cls":"stkpt-toggle","top":349.9,"h":26.2,"cy":363,"l":9,"r":113},{"cls":"SELECT","top":347,"h":32,"cy":363,"l":121,"r":249},{"cls":"stklv-badge","top":347,"h":32,"cy":363,"l":257,"r":356}],"cySpread":0,"gaps":[8,8],"insetL":8,"insetR":33},"seg":{"row":{"h":48,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-seg","top":521,"h":48,"cy":545,"l":11,"r":191},{"cls":"stklv-seg","top":521,"h":48,"cy":545,"l":199,"r":379}],"cySpread":0,"gaps":[8],"insetL":0,"insetR":0},"segBtns":{"row":{"h":48,"padL":"4px","padR":"4px"},"items":[{"cls":"buy","top":469,"h":40,"cy":489,"l":15,"r":193},{"cls":"sell","top":469,"h":40,"cy":489,"l":197,"r":375}],"cySpread":0,"gaps":[4],"insetL":4,"insetR":4},"tools":{"row":{"h":36,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":11,"r":80},{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":88,"r":219},{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":227,"r":329}],"cySpread":0,"gaps":[8,8],"insetL":0,"insetR":50},"foot":{"h":53,"padL":"10px","padR":"10px","padT":"4px","padB":"4px","overflowX":false},"chips":[]}
+PASS 390-dark: panel head items share one centre (±1px)
+PASS 390-dark: Buy/Sell same height + centre
+PASS 390-dark: tool buttons centred (row may wrap on phones)
+PASS 390-dark: no horizontal page scroll
+PASS 390-dark: back on Paper: no badge, no live lines
+PASS 390-dark: only the local mock was called
+PASS 390-dark: no console errors 
+PASS 390-light: Paper is the first and default choice
+PASS 390-light: account shown as broker + last 4
+PASS 390-light: no vendor name in the panel
+PASS 390-light: big red LIVE badge on the chart with the contract
+PASS 390-light: LIVE badge in the panel head
+PASS 390-light: paper Trade button hidden while live
+PASS 390-light: live hook active
+PASS 390-light: NQ1! maps to the front month NQZ6
+PASS 390-light: mapping shown in the form
+PASS 390-light: first order needs the contract typed; confirm shows the contract + account
+PASS 390-light: wrong text keeps Send disabled
+PASS 390-light: panel open pre-warms the server (env + userId)
+PASS 390-light: positions re-read within 0.7 s of the order
+PASS 390-light: footer shows the measured round trip
+PASS 390-light: market BUY 1 sent with contract + idemKey
+PASS 390-light: later orders = one tap, with "skip for this session"
+PASS 390-light: order line drawn at once as SENDING while the broker answers
+PASS 390-light: × on a SENDING line sends nothing
+PASS 390-light: SENDING line gone on the answer; footer: round trip + broker time from Server-Timing
+PASS 390-light: SELL limit sent, fresh idemKey
+PASS 390-light: live position + working order lines on the chart
+PASS 390-light: skip honoured for a normal order
+PASS 390-light: worst-case exposure over 2 contracts refused in the browser
+PASS 390-light: drag opens a Move confirm even with skip on
+PASS 390-light: modify sent with the dragged price
+PASS 390-light: no-modify broker: the confirm says cancel + new
+PASS 390-light: cancel, then the new limit, after the cancel was read back
+PASS 390-light: unreadable positions/orders = Send disabled + reason
+PASS 390-light: DOM ask click = live SELL LIMIT at the clicked price
+PASS 390-light: Cancel in the confirm sends nothing
+PASS 390-light: flatten confirm has no skip
+PASS 390-light: flatten = server op with a deterministic key
+ALIGN 390-light {"head":{"row":{"h":40,"padL":"8px","padR":"8px"},"items":[{"cls":"stkpt-toggle","top":349.9,"h":26.2,"cy":363,"l":9,"r":113},{"cls":"SELECT","top":347,"h":32,"cy":363,"l":121,"r":249},{"cls":"stklv-badge","top":347,"h":32,"cy":363,"l":257,"r":356}],"cySpread":0,"gaps":[8,8],"insetL":8,"insetR":33},"seg":{"row":{"h":48,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-seg","top":521,"h":48,"cy":545,"l":11,"r":191},{"cls":"stklv-seg","top":521,"h":48,"cy":545,"l":199,"r":379}],"cySpread":0,"gaps":[8],"insetL":0,"insetR":0},"segBtns":{"row":{"h":48,"padL":"4px","padR":"4px"},"items":[{"cls":"buy","top":469,"h":40,"cy":489,"l":15,"r":193},{"cls":"sell","top":469,"h":40,"cy":489,"l":197,"r":375}],"cySpread":0,"gaps":[4],"insetL":4,"insetR":4},"tools":{"row":{"h":36,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":11,"r":80},{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":88,"r":219},{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":227,"r":329}],"cySpread":0,"gaps":[8,8],"insetL":0,"insetR":50},"foot":{"h":53,"padL":"10px","padR":"10px","padT":"4px","padB":"4px","overflowX":false},"chips":[]}
+PASS 390-light: panel head items share one centre (±1px)
+PASS 390-light: Buy/Sell same height + centre
+PASS 390-light: tool buttons centred (row may wrap on phones)
+PASS 390-light: no horizontal page scroll
+PASS 390-light: back on Paper: no badge, no live lines
+PASS 390-light: only the local mock was called
+PASS 390-light: no console errors 
+ALL PASS

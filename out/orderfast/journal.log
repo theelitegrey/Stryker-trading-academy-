@@ -1,0 +1,75 @@
+PASS 390: admin sees Broker sync (beta)
+PASS 390: no vendor name in member-facing copy
+PASS 390: read-only wording, no order buttons
+PASS 390: account listed
+PASS 390: default range is last 30 days (31)
+PASS 390: preview shows 2 round trips: Import 2 trades
+PASS 390: preview labelled Sample data
+PASS 390: preview: no horizontal page scroll
+PASS 390: 2 trades written with broker syncKeys
+PASS 390: re-sync adds nothing twice
+PASS 390: import flow never sends an order op
+PASS 390: no console errors 
+PASS 412: admin sees Broker sync (beta)
+PASS 412: no vendor name in member-facing copy
+PASS 412: read-only wording, no order buttons
+PASS 412: account listed
+PASS 412: default range is last 30 days (31)
+PASS 412: preview shows 2 round trips: Import 2 trades
+PASS 412: preview labelled Sample data
+PASS 412: preview: no horizontal page scroll
+PASS 412: 2 trades written with broker syncKeys
+PASS 412: re-sync adds nothing twice
+PASS 412: import flow never sends an order op
+PASS 412: no console errors 
+PASS 1440: admin sees Broker sync (beta)
+PASS 1440: no vendor name in member-facing copy
+PASS 1440: read-only wording, no order buttons
+PASS 1440: account listed
+PASS 1440: default range is last 30 days (31)
+PASS 1440: preview shows 2 round trips: Import 2 trades
+PASS 1440: preview labelled Sample data
+PASS 1440: preview: no horizontal page scroll
+PASS 1440: 2 trades written with broker syncKeys
+PASS 1440: re-sync adds nothing twice
+PASS 1440: import flow never sends an order op
+PASS 1440: no console errors 
+PASS 390: order panel with SANDBOX badge
+PASS 390: open orders + recent fills lists
+PASS 390: no vendor name
+PASS 390: qty 3 refused in the form
+PASS 390: confirm step text
+PASS 390: place sent with the confirmed values
+PASS 390: cancel sent for the open order
+PASS 390: no horizontal scroll
+PASS 390: no console errors 
+PASS 1440: order panel with SANDBOX badge
+PASS 1440: open orders + recent fills lists
+PASS 1440: no vendor name
+PASS 1440: qty 3 refused in the form
+PASS 1440: confirm step text
+PASS 1440: place sent with the confirmed values
+PASS 1440: cancel sent for the open order
+PASS 1440: no horizontal scroll
+PASS 1440: no console errors 
+PASS 390: stale id was tried once
+PASS 390: stale stored id cleared silently (no red error)
+PASS 390: stale: no JS errors (the 409 network line is expected) 
+PASS 390: HTML error page -> "Broker sync hit an error (code 500). Try again in a minute."
+PASS 390: HTML error page: Connect button usable again
+PASS 390: network error -> "Couldn’t reach TradeZoro, try again."
+PASS 390: network error: Connect button usable again
+PASS 390: server message -> "Broker sync could not start: the connection service answered with an e"
+PASS 390: server message: Connect button usable again
+PASS 1440: stale id was tried once
+PASS 1440: stale stored id cleared silently (no red error)
+PASS 1440: stale: no JS errors (the 409 network line is expected) 
+PASS 1440: HTML error page -> "Broker sync hit an error (code 500). Try again in a minute."
+PASS 1440: HTML error page: Connect button usable again
+PASS 1440: network error -> "Couldn’t reach TradeZoro, try again."
+PASS 1440: network error: Connect button usable again
+PASS 1440: server message -> "Broker sync could not start: the connection service answered with an e"
+PASS 1440: server message: Connect button usable again
+PASS not-set-up state shows "Not set up yet"
+PASS non-admin: no Broker sync button
+ALL PASSED

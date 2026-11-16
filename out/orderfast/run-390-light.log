@@ -1,0 +1,40 @@
+PASS 390-light: Paper is the first and default choice
+PASS 390-light: account shown as broker + last 4
+PASS 390-light: no vendor name in the panel
+PASS 390-light: big red LIVE badge on the chart with the contract
+PASS 390-light: LIVE badge in the panel head
+PASS 390-light: paper Trade button hidden while live
+PASS 390-light: live hook active
+PASS 390-light: NQ1! maps to the front month NQZ6
+PASS 390-light: mapping shown in the form
+PASS 390-light: first order needs the contract typed; confirm shows the contract + account
+PASS 390-light: wrong text keeps Send disabled
+PASS 390-light: panel open pre-warms the server (env + userId)
+PASS 390-light: positions re-read within 0.7 s of the order
+PASS 390-light: footer shows the measured round trip
+PASS 390-light: market BUY 1 sent with contract + idemKey
+PASS 390-light: later orders = one tap, with "skip for this session"
+PASS 390-light: order line drawn at once as SENDING while the broker answers
+PASS 390-light: SENDING line gone on the answer; footer: round trip + broker time from Server-Timing
+PASS 390-light: SELL limit sent, fresh idemKey
+PASS 390-light: live position + working order lines on the chart
+PASS 390-light: skip honoured for a normal order
+PASS 390-light: worst-case exposure over 2 contracts refused in the browser
+PASS 390-light: drag opens a Move confirm even with skip on
+PASS 390-light: modify sent with the dragged price
+PASS 390-light: no-modify broker: the confirm says cancel + new
+PASS 390-light: cancel, then the new limit, after the cancel was read back
+PASS 390-light: unreadable positions/orders = Send disabled + reason
+PASS 390-light: DOM ask click = live SELL LIMIT at the clicked price
+PASS 390-light: Cancel in the confirm sends nothing
+PASS 390-light: flatten confirm has no skip
+PASS 390-light: flatten = server op with a deterministic key
+ALIGN 390-light {"head":{"row":{"h":40,"padL":"8px","padR":"8px"},"items":[{"cls":"stkpt-toggle","top":349.9,"h":26.2,"cy":363,"l":9,"r":113},{"cls":"SELECT","top":347,"h":32,"cy":363,"l":121,"r":249},{"cls":"stklv-badge","top":347,"h":32,"cy":363,"l":257,"r":356}],"cySpread":0,"gaps":[8,8],"insetL":8,"insetR":33},"seg":{"row":{"h":48,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-seg","top":521,"h":48,"cy":545,"l":11,"r":191},{"cls":"stklv-seg","top":521,"h":48,"cy":545,"l":199,"r":379}],"cySpread":0,"gaps":[8],"insetL":0,"insetR":0},"segBtns":{"row":{"h":48,"padL":"4px","padR":"4px"},"items":[{"cls":"buy","top":469,"h":40,"cy":489,"l":15,"r":193},{"cls":"sell","top":469,"h":40,"cy":489,"l":197,"r":375}],"cySpread":0,"gaps":[4],"insetL":4,"insetR":4},"tools":{"row":{"h":36,"padL":"0px","padR":"0px"},"items":[{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":11,"r":80},{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":88,"r":219},{"cls":"stklv-btn","top":853,"h":36,"cy":871,"l":227,"r":329}],"cySpread":0,"gaps":[8,8],"insetL":0,"insetR":50},"foot":{"h":53,"padL":"10px","padR":"10px","padT":"4px","padB":"4px","overflowX":false},"chips":[]}
+PASS 390-light: panel head items share one centre (±1px)
+PASS 390-light: Buy/Sell same height + centre
+PASS 390-light: tool buttons centred (row may wrap on phones)
+PASS 390-light: no horizontal page scroll
+PASS 390-light: back on Paper: no badge, no live lines
+PASS 390-light: only the local mock was called
+PASS 390-light: no console errors 
+ALL PASS

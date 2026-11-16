@@ -16,8 +16,8 @@
 //     assets/pine-versions/<id>/<v>.pine); the same button and popup; Update swaps in the latest source and keeps the inputs.
 //   - Community Pine scripts and Script Library Zscripts: the button shows when the author published a newer version than
 //     the one on the chart (the library's own version numbers and notes). Update loads it and keeps the inputs. Never automatic.
-import { withVersion, pinnable, pickable, latest, verOf, newer, upgradePatch, fmtDate, cmp, current, VER_KEY } from './indicator-versions.js?v=1065';
-import { builtinOfText, builtinSource } from './chart-pine-builtins.js?v=1065';
+import { withVersion, pinnable, pickable, latest, verOf, newer, upgradePatch, fmtDate, cmp, current, VER_KEY } from './indicator-versions.js?v=1066';
+import { builtinOfText, builtinSource } from './chart-pine-builtins.js?v=1066';
 
 const DISMISS_LS = 'stk_ind_ver_dismissed';
 const STYLE_ID = 'stk-indver-css';

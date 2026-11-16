@@ -73,8 +73,7 @@
   }
 
   // ---------------------------------------------------------------- setup page
-  function setup() {
-    var host = $('#aic-clients'); if (!host) return;
+  function renderClients(host, fold) {
     var cursor = JSON.stringify({ mcpServers: { tradezoro: { url: MCP } } }, null, 2);
     var codex = '[mcp_servers.tradezoro]\nurl = "' + MCP + '"\nbearer_token_env_var = "TRADEZORO_TOKEN"';
     var CLIENTS = [
@@ -85,10 +84,15 @@
       { id: 'codex', name: 'Codex', steps: ['Make a personal token on the AI agents page, set it as TRADEZORO_TOKEN in your shell, then add this to ~/.codex/config.toml:'], copy: codex, label: 'Codex config', after: 'Restart Codex. It reads the token from your shell; the token never goes into the file.' }
     ];
     host.innerHTML = CLIENTS.map(function (c) {
-      return '<section class="aic-card" id="aic-' + c.id + '" aria-labelledby="aic-h-' + c.id + '"><h2 class="aic-h2" id="aic-h-' + c.id + '">' + esc(c.name) + '</h2>' +
-        '<ol class="aic-steps">' + c.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' +
-        copyRow(c.copy, c.label) + '<p class="aic-note">' + esc(c.after) + '</p></section>';
+      var inner = '<ol class="aic-steps">' + c.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' +
+        copyRow(c.copy, c.label) + '<p class="aic-note">' + esc(c.after) + '</p>';
+      if (fold) return '<details class="aic-fold" id="aic-' + c.id + '"><summary>' + esc(c.name) + '</summary>' + inner + '</details>';
+      return '<section class="aic-card" id="aic-' + c.id + '" aria-labelledby="aic-h-' + c.id + '"><h2 class="aic-h2" id="aic-h-' + c.id + '">' + esc(c.name) + '</h2>' + inner + '</section>';
     }).join('');
+  }
+  function setup() {
+    var host = $('#aic-clients'); if (!host) return;
+    renderClients(host);
     var url = $('#aic-url'); if (url) url.innerHTML = copyRow(MCP, 'connector address');
     var tryIt = $('#aic-try'); if (tryIt) tryIt.innerHTML = copyRow('Using TradeZoro, switch my chart to NQ on the 5 minute timeframe and add EMA 20.', 'example request');
   }
@@ -155,14 +159,33 @@
   }
 
   // ---------------------------------------------------------------- agents page
+  var AGENTS_HTML = '<section class="aic-card" aria-labelledby="aic-h-list"><h2 class="aic-h2" id="aic-h-list">Connected</h2><p class="aic-note" id="aic-tabs"></p><ul class="aic-rows" id="aic-list"><li class="aic-empty">Loading\u2026</li></ul></section>' +
+    '<section class="aic-card" aria-labelledby="aic-h-new"><h2 class="aic-h2" id="aic-h-new">Personal token</h2>' +
+    '<p class="aic-note">For AI apps that take a token instead of a sign-in (for example Codex, or Cursor without sign-in). Send it as <code>Authorization: Bearer &lt;token&gt;</code> to <code>' + MCP + '</code>.</p>' +
+    '<form id="aic-new" class="aic-form" autocomplete="off">' +
+    '<label class="aic-field"><span>Name</span><input id="aic-tname" maxlength="40" required placeholder="e.g. Codex on my laptop"></label>' +
+    '<fieldset class="aic-choices"><legend class="aic-legend">Access</legend>' +
+    choice('radio', 'aic-tacc', 'read', true, 'Read only', 'See your open chart.') +
+    choice('radio', 'aic-tacc', 'chart', false, 'Read and control charts', 'Also change symbol, timeframe, layout, indicators and drawings.') +
+    choice('checkbox', 'aic-talerts', 'alerts', false, 'Alerts and watchlists', 'Create, list and delete alerts; edit your watchlist.') +
+    '</fieldset><label class="aic-field"><span>Expires after</span><select id="aic-tdays"><option value="30">30 days</option><option value="90" selected>90 days</option></select></label>' +
+    '<div class="aic-actions"><button type="submit" class="btn btn-primary aic-btn">Create token</button></div></form><div id="aic-token" hidden></div></section>';
   function agents() {
-    var list = $('#aic-list'); if (!list) return;
-    var form = $('#aic-new');
-    whenAuth().then(function (u) { if (!u) { toLogin(); return; } load(); });
+    var host = $('#aic-agents'); if (!host) return;
+    host.innerHTML = AGENTS_HTML;
+    whenAuth().then(function (u) { if (!u) { toLogin(); return; } mountAgents(host); });
+  }
+  // The connections list + personal-token form, used by the /charts/agents page and by the chart popup.
+  // opts.onChange(): called after a token is made or an app removed. Returns { load }.
+  function mountAgents(root, opts) {
+    opts = opts || {};
+    var list = $('#aic-list', root), form = $('#aic-new', root);
+    function $r(s) { return $(s, root); }
+    load();
     function load() {
       api('grants', {}).then(function (d) {
         var g = d.grants || [];
-        var tabs = $('#aic-tabs');
+        var tabs = $r('#aic-tabs');
         if (tabs) tabs.textContent = d.tabs ? (d.tabs === 1 ? '1 chart tab is ready for your AI.' : d.tabs + ' chart tabs are ready for your AI.') : 'No chart tab is connected right now. Open Charts to let your AI work on it.';
         if (!g.length) { list.innerHTML = '<p class="aic-empty">No AI apps connected yet. Connect one from the <a href="/ai">setup page</a>, or make a personal token below.</p>'; return; }
         list.innerHTML = g.map(function (x) {
@@ -178,7 +201,7 @@
       var b = e.target.closest('[data-revoke]'); if (!b) return;
       if (!confirm('Remove ' + b.getAttribute('data-name') + '? It stops working at once.')) return;
       b.disabled = true;
-      api('grant/delete', { id: b.getAttribute('data-revoke') }).then(function () { toast('Removed. It can\u2019t use your charts any more.', 'success'); load(); }, function (er) { b.disabled = false; toast(er.message, 'error'); });
+      api('grant/delete', { id: b.getAttribute('data-revoke') }).then(function () { toast('Removed. It can\u2019t use your charts any more.', 'success'); load(); if (opts.onChange) opts.onChange(); }, function (er) { b.disabled = false; toast(er.message, 'error'); });
     });
     if (form) form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -187,19 +210,23 @@
       var acc = form.querySelector('input[name=aic-tacc]:checked');
       if (acc && acc.value === 'chart') scope.push('mcp:chart');
       if (form.querySelector('input[name=aic-talerts]').checked) scope.push('mcp:alerts');
-      api('personal', { name: $('#aic-tname').value, scope: scope, days: Number(form.querySelector('select').value) }).then(function (d) {
-        btn.disabled = false; markOn(); form.reset();
-        var out = $('#aic-token');
+      api('personal', { name: $r('#aic-tname').value, scope: scope, days: Number(form.querySelector('select').value) }).then(function (d) {
+        btn.disabled = false; markOn(); form.reset(); if (opts.onChange) opts.onChange();
+        var out = $r('#aic-token');
         out.hidden = false;
         out.innerHTML = '<p class="aic-note"><b>Copy your token now.</b> It is shown only once. Treat it like a password: anyone with it can use your charts with the access you chose.</p>' + copyRow(d.token, 'personal token');
         load();
       }, function (er) {
         btn.disabled = false;
-        if (er.code === 'recent-login') { var o = $('#aic-token'); o.hidden = false; o.innerHTML = '<p class="aic-note">For your safety, sign in again before you make a token. <button type="button" class="aic-link" id="aic-relogin">Sign in again</button></p>'; $('#aic-relogin').addEventListener('click', reLogin); return; }
+        if (er.code === 'recent-login') { var o = $r('#aic-token'); o.hidden = false; o.innerHTML = '<p class="aic-note">For your safety, sign in again before you make a token. <button type="button" class="aic-link" id="aic-relogin">Sign in again</button></p>'; $r('#aic-relogin').addEventListener('click', reLogin); return; }
         toast(er.message, 'error');
       });
     });
+    return { load: load };
   }
+
+  // for the chart popup (assets/chart-ai-popup.js), which loads this file on demand
+  window.STRYKER_AIC = { MCP: MCP, renderClients: renderClients, mountAgents: mountAgents, AGENTS_HTML: AGENTS_HTML, whenAuth: whenAuth, user: user };
 
   function start() { if (page === 'setup') setup(); else if (page === 'consent') consent(); else if (page === 'agents') agents(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();

@@ -12289,3 +12289,44 @@ section.stkss-sec{ padding:0; margin:0; }
   .aic-row{ grid-template-columns:minmax(0,1fr); }
   .aic-row .aic-btn{ grid-column:1; grid-row:auto; justify-self:start; margin-top:4px; }
 }
+
+/* "Connect your AI" popup on the chart (assets/chart-ai-popup.js, Owner 16 Nov 2026): centred dialog on desktop, bottom sheet on phones */
+.stkaip{ position:fixed; inset:0; z-index:9200; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,.55); box-sizing:border-box; }
+.stkaip-box{ position:relative; display:flex; flex-direction:column; width:520px; max-width:100%; max-height:min(86dvh, 760px); border:1px solid var(--line); border-radius:16px; background:var(--bg-2); color:var(--ink-1); box-shadow:0 24px 64px rgba(0,0,0,.45); outline:none; overflow:hidden; }
+.stkaip-grab{ display:none; }
+.stkaip-head{ flex:none; display:flex; align-items:center; justify-content:space-between; gap:12px; height:56px; padding:0 8px 0 24px; border-bottom:1px solid var(--line-soft); box-sizing:border-box; }
+.stkaip-head h2{ margin:0; color:var(--ink-0); font-size:17px; line-height:24px; font-weight:600; }
+.stkaip-x{ flex:none; display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border:0; border-radius:50%; background:transparent; color:var(--ink-2); cursor:pointer; }
+.stkaip-x:hover{ background:var(--bg-3); color:var(--ink-0); }
+.stkaip-x:focus-visible, .stkaip-folds summary:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.stkaip-body{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; display:flex; flex-direction:column; gap:16px; padding:16px 24px 24px; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.stkaip-body::-webkit-scrollbar{ width:8px; } .stkaip-body::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; } .stkaip-body::-webkit-scrollbar-thumb:hover{ background:var(--ink-3); } .stkaip-body::-webkit-scrollbar-track{ background:transparent; }
+.stkaip-sec{ display:flex; flex-direction:column; gap:12px; padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--bg-1); min-width:0; }
+.stkaip-agents{ display:flex; flex-direction:column; gap:16px; }
+.stkaip-agents .aic-card, .stkaip .aic-card{ padding:16px; background:var(--bg-1); }
+.stkaip-agents .aic-row, .stkaip .aic-choice, .stkaip .aic-copy, .stkaip .aic-field input, .stkaip .aic-field select{ background:var(--bg-2); }
+.stkaip-st{ display:flex; align-items:center; gap:12px; min-width:0; }
+.stkaip-st-t{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.stkaip-st-t b{ color:var(--ink-0); font-size:15px; line-height:20px; font-weight:600; }
+.stkaip-st-t span{ color:var(--ink-2); font-size:13px; line-height:18px; }
+.stkaip-dot{ flex:none; width:8px; height:8px; border-radius:50%; background:var(--ink-3); }
+.stkaip-dot.on{ background:var(--gold); } .stkaip-dot.paused{ background:#f5a524; }
+.stkaip-acts{ display:flex; gap:8px; } .stkaip-acts:empty{ display:none; }
+.stkaip-folds{ display:flex; flex-direction:column; gap:8px; }
+.aic-fold{ border:1px solid var(--line); border-radius:8px; background:var(--bg-2); }
+.aic-fold summary{ display:flex; align-items:center; min-height:44px; padding:0 16px; color:var(--ink-0); font-size:15px; font-weight:600; cursor:pointer; }
+.aic-fold[open] summary{ border-bottom:1px solid var(--line-soft); }
+.aic-fold > :not(summary){ margin:12px 16px 16px; }
+.aic-fold > ol{ margin-left:36px; margin-right:16px; }
+.stkaip-foot{ text-align:center; }
+:root[data-theme="light"] .stkaip{ background:rgba(20,24,33,.4); }
+:root[data-theme="light"] .stkaip-box{ background:#fff; box-shadow:0 24px 64px rgba(20,24,33,.18); }
+:root[data-theme="light"] .stkaip-sec, :root[data-theme="light"] .stkaip .aic-card{ background:var(--bg-1); }
+@media (max-width:599px){
+  .stkaip{ align-items:flex-end; padding:0; }
+  .stkaip-box{ width:100%; max-height:88dvh; border-radius:20px 20px 0 0; border-width:1px 0 0; padding-bottom:env(safe-area-inset-bottom); }
+  .stkaip-grab{ display:block; position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:var(--line); }
+  .stkaip-head{ height:60px; padding:8px 8px 0 16px; border-bottom:0; }
+  .stkaip-body{ padding:8px 16px 24px; }
+  .stkaip .aic-actions .aic-btn{ flex:none; }
+}

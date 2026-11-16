@@ -15,7 +15,7 @@
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
 import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=1049';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1049';
-import { l2Badge, l2Delayed, rootState, L2_TYPES, l2Closed, closedNote, staleNote } from './chart-futures-l2.js?v=1049';
+import { l2Badge, l2Delayed, rootState, L2_TYPES, l2Closed, closedNote, staleNote, fpNeed } from './chart-futures-l2.js?v=1049';
 import { depthSourceFor, acquireDepth, noSourceNote } from './chart-depth-source.js?v=1049';
 import { icebergEvents } from './chart-liquidity-data.js?v=1049';
 import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-map.js?v=1049';
@@ -183,7 +183,7 @@ function bookAt(f, now, replay, hist) {
     for (let k = 0; k < s.v.length; k++) { const x = s.v[k], i = s.i0 + k; if (!x) continue; const p = (i + 0.5) * s.step; if (x > 0) b.bids.set(i === ib ? s.bb : p, x); else b.asks.set(i === ia ? s.ba : p, -x); }
     return b;
   }
-  const bk = f.book; if (!bk) return null;
+  const bk = f.book; if (!bk || !(bk.bestBid > 0 || bk.bestAsk > 0)) return null;   // no live book (feed gap, closed): the caller falls back to the last recorded one
   const root = hubOf(f) ? f.ticker : null, snap = root ? rootState(root).snap : null;
   if (!snap || !snap.bids || !snap.asks || !snap.bids.length || !snap.asks.length) return bk;
   const loB = snap.bids[snap.bids.length - 1][0], hiA = snap.asks[snap.asks.length - 1][0];
@@ -276,7 +276,12 @@ export function dhLayer(H) {
       }
       // ---- trades: price trace, bubbles, volume ----
       const pxPerMs = Math.abs(co.timeToX(now) - co.timeToX(now - 60000)) / 60000, msPerPx = pxPerMs > 0 ? 1 / pxPerMs : 1000;
-      const tLeft = visFrom - 60000, tr = tradesIn(f, H, tLeft, now);
+      const tLeft = visFrom - 60000;
+      // futures: the bubbles read the hub's footprint minutes, which hold only the last 3 h until asked for more (member GK 16 Nov: "Volume
+      // Bubbles are not loading" on a chart scrolled / zoomed past 3 h). Page in the minutes for the view, as the footprint does; trades only,
+      // so this works while the order book feed is down.
+      if (hubOf(f) && (cfg.bubbles || cfg.volume)) fpNeed(f.ticker, tLeft);
+      const tr = tradesIn(f, H, tLeft, now);
       const tfMs = nb > 1 ? Math.max(1000, bars[nb - 1].time - bars[nb - 2].time) : 60000;
       g.save(); g.beginPath(); g.rect(0, top, plotR, H0); g.clip();
       // price trace: bar closes before the first trade, the trades after (thinned to ~1.5 px)
@@ -349,9 +354,14 @@ export function dhLayer(H) {
       if (lastP > 0 && ly > top && ly < bot) { g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(0, ly); g.lineTo(plotR, ly); g.stroke(); g.setLineDash([]); stat.lastPrice = lastP; }
       // ---- book bars + cumulative column + best bid / ask (the Liquidity Map ladder) ----
       if (showBook) {
-        const book = bookAt(f, now, !!rp, raw) || (hist.length ? bookAt(f, now, true, raw) : null);   // closed market: no live book, so the last recorded one
+        // no live book (market closed, or the book feed is down while trades flow): the last recorded book, labelled with its time
+        const live = rp ? null : bookAt(f, now, false, raw), all = live ? null : rp ? raw : f.allHistory();
+        const book = live || (all && all.length ? bookAt(f, now, true, all) : null), asOf = live ? 0 : lastTsAt(all || [], now);
         const tick = f.custom ? (f.custom.member ? f.custom.tick : (f.custom.trades && f.custom.trades().tick) || 0.25) : 0;
-        if (book) drawLadder(g, a, { book, tick, whole: !!f.custom }, { lx: plotR, labW, c1W, c2W, top, bot, H0, phone, font, yOf, stat, W });
+        const asOfTxt = !rp && asOf && now - asOf >= GAP_LOOK_MS ? (a.data.tz ? dayTime(asOf, a.data.tz, phone) : new Date(asOf).toISOString().slice(11, 16)) : '';
+        const empty = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null };   // nothing recorded: price rows + 'NO BOOK', no sizes
+        drawLadder(g, a, { book: book || empty, tick, whole: !!f.custom }, { lx: plotR, labW, c1W, c2W, top, bot, H0, phone, font, yOf, stat, W, asOf: asOfTxt, noBook: 'NO BOOK' });
+        if (book) { stat.bookAsOf = asOf; stat.bookAsOfTxt = asOfTxt; }
       }
       if (a.data.stale && !rp) {   // calm pill, top centre of the heat area (phones: under the legend chips)
         g.font = '500 12px ' + font; const tw = g.measureText(a.data.stale).width, pw = tw + 24, ph = 28, px = Math.max(8, (plotR - pw) / 2), py = top + (phone ? 150 : 160);   // below the legend and the L1 / L2 chips (phone: the chips end ~130 px down)
@@ -380,8 +390,11 @@ export function bookGapNote(hist, endMs, st, opts) {
   if (opts.phone) return when ? 'No order book since ' + when : 'No order book recorded here';
   return when ? 'No order book recorded since ' + when + ' (data feed gap)' : 'No order book recorded for these bars (data feed gap)';
 }
+// the newest sample time at or before t (0 = none); hist sorted by ts
+export function lastTsAt(hist, t) { for (let k = hist.length - 1; k >= 0; k--) if (hist[k].ts <= t) return hist[k].ts; return 0; }
 const gapFmt = new Map();
-function dayTime(ms, tz) {
+function dayTime(ms, tz, short) {
+  if (short) { const d = dayTime(ms, tz); return d.slice(d.indexOf(' ') + 1); }   // phone: the time only (the ladder header is 34 px)
   let f = gapFmt.get(tz);
   if (!f) { try { f = new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); } catch (e) { f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Etc/UTC', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); } gapFmt.set(tz, f); }
   return f.format(new Date(ms)).replace(',', '');
@@ -453,7 +466,8 @@ export function installDepthHeatmap(Core, H, reg) {
       // so is a book gap (the top-right table sits under the other L2 plates, e.g. Big Trades, and was hidden there)
       const stale = /unavailable from the data feed/.test(msg) || (msg && msg === this.gap) ? msg : '';
       this.ctx.emit({ tables: msg && !stale ? [((this.block && this.block !== NOT_YET) || msg === WAITING) && document.documentElement.getAttribute('data-device') === 'mobile' ? phoneNote(H, msg) : H.message('stk_dh-msg', msg, H.pageIsDay(), 'top_right')] : [] });
-      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: dhConfig(this.inputs), stale } : { off: true });
+      let tz = 'Etc/UTC'; try { tz = H.chartTz ? H.chartTz() : tz; } catch (e) {}
+      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: dhConfig(this.inputs), stale, tz } : { off: true });
     }
   }
   Core.registerRendererLayer({ id: DH_TYPE, placement: 'above-data', create: () => dhLayer(H) });

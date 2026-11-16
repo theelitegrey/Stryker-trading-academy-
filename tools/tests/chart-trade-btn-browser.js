@@ -10,7 +10,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fail = 0;
 const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg + (!ok && x !== undefined ? ' ' + JSON.stringify(x).slice(0, 400) : '')); };
 const globex = (s) => { const d = new Date((s - 5 * 3600) * 1000), wd = d.getUTCDay(), h = d.getUTCHours(); return !(wd === 6 || (wd === 5 && h >= 17) || (wd === 0 && h < 18) || h === 17); };   // EST approx (fixture)
-const ACC = '123e4567-e89b-12d3-a456-426614174000', US = '0aaa1111-2222-3333-4444-555566667777';
+const ACC2 = '223e4567-e89b-12d3-a456-426614174001', ACC = '123e4567-e89b-12d3-a456-426614174000', US = '0aaa1111-2222-3333-4444-555566667777';
 
 async function open(b, { w, h, mobile, theme, admin = true, connected = true }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
@@ -46,7 +46,7 @@ async function open(b, { w, h, mobile, theme, admin = true, connected = true }) 
     if (u.pathname.endsWith('/session') && r.request().method() === 'GET') return r.fulfill(j({ configured: true }));
     if (u.pathname.endsWith('/session')) return r.fulfill(j({ portalUrl: 'http://127.0.0.1:1/portal', sessionId: 's1' }));
     if (u.pathname.endsWith('/data')) {
-      if (body.op === 'accounts') return r.fulfill(j({ userId: US, data: [{ accountId: ACC, accountName: 'DEMO 5551234', accountNumber: 'DEMO5551234', brokerName: 'tradovate' }] }));
+      if (body.op === 'accounts') return r.fulfill(j({ userId: US, data: [{ accountId: ACC, accountName: 'DEMO 5551234', accountNumber: 'DEMO5551234', brokerName: 'tradovate' }, { accountId: ACC2, accountName: 'ACME 7770042', accountNumber: 'ACME7770042', brokerName: 'rithmic' }] }));
       if (body.op === 'live') return M.failRead ? r.fulfill(j({ error: 'Broker data is unavailable right now', code: 'upstream' }, 503)) : r.fulfill(j({ data: { positions: M.positions, orders: M.orders } }));
       return r.fulfill(j({ data: [] }));
     }
@@ -97,12 +97,40 @@ const barMeasure = (p) => p.evaluate(() => {
   const tr = document.getElementById('stkc-paper-btn'), ds = document.getElementById('byo-btn');
   return { barCy: Math.round((B.top + B.height / 2) * 10) / 10, cySpread: Math.round((Math.max(...cys) - Math.min(...cys)) * 10) / 10, items: its, gaps, tradeH: tr && tr.getBoundingClientRect().height, dsH: ds && ds.getBoundingClientRect().height, tradeBeforeData: !!(tr && ds && tr.getBoundingClientRect().right <= ds.getBoundingClientRect().left + 1), insetR: Math.round(B.right - Math.max(...its.map((i) => i.r))) };
 });
-const rows = (p) => p.$$eval('#stkc-trade-pop > *', (n) => n.map((x) => x.textContent.trim() + (x.getAttribute('aria-checked') === 'true' ? ' ✓' : '')));
+const menuProbe = (p) => p.evaluate(() => {
+  const pop = document.getElementById('stkc-trade-pop'), q = (r) => Math.round(r * 10) / 10;
+  const rows = [...pop.querySelectorAll('.stktm-row')].map((r) => { const R = r.getBoundingClientRect(), cs = getComputedStyle(r); const cy = [...r.children].map((c) => { const b = c.getBoundingClientRect(); return b.top + b.height / 2; }); return { h: q(R.height), cySpread: q(Math.max(...cy) - Math.min(...cy)), padL: cs.paddingLeft, padR: cs.paddingRight }; });
+  const imgs = [...pop.querySelectorAll('.stktm-logo img')];
+  const P = pop.getBoundingClientRect(), add = pop.querySelector('.stktm-add'), man = pop.querySelector('.stktm-manage');
+  const cyOf = (e) => { const b = e.getBoundingClientRect(); return q(b.top + b.height / 2); };
+  return { w: q(P.width), radius: getComputedStyle(pop).borderRadius, rows, logos: imgs.length, imgOk: imgs.filter((i) => i.complete && i.naturalWidth > 0).length,
+    logoSizes: [...pop.querySelectorAll('.stktm-logo')].map((l) => { const b = l.getBoundingClientRect(); return Math.round(b.width) + 'x' + Math.round(b.height); }),
+    paperSub: pop.querySelector('.stktm-row .stktm-sub').textContent, subs: [...pop.querySelectorAll('[data-a=live] .stktm-sub')].map((e) => e.textContent.trim()),
+    foot: add ? { addH: q(add.getBoundingClientRect().height), cySpread: q(Math.abs(cyOf(add) - cyOf(man))), padL: q(add.getBoundingClientRect().left - P.left), padR: q(P.right - man.getBoundingClientRect().right) } : null };
+});
+const keyboardTest = async (p, tag) => {
+  const act = () => p.evaluate(() => { const e = document.activeElement; return e && e.dataset && e.dataset.a ? e.dataset.a + (e.dataset.id ? ':' + e.dataset.id.slice(0, 3) : '') : (e && e.id) || ''; });
+  check(await act() === 'paper', tag + ': kbd: menu opens focused on the checked row', await act());
+  await p.keyboard.press('ArrowDown'); check((await act()).startsWith('live:123'), tag + ': kbd: ArrowDown -> first account', await act());
+  await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowDown'); check(await act() === 'connect', tag + ': kbd: ArrowDown x2 -> Connect', await act());
+  await p.keyboard.press('ArrowUp'); check((await act()).startsWith('live:223'), tag + ': kbd: ArrowUp', await act());
+  await p.keyboard.press('Home'); check(await act() === 'paper', tag + ': kbd: Home');
+  const roles = await p.evaluate(() => ({ menu: document.getElementById('stkc-trade-pop').getAttribute('role'), radios: document.querySelectorAll('#stkc-trade-pop [role=menuitemradio]').length }));
+  check(roles.menu === 'menu' && roles.radios === 3, tag + ': aria menu + 3 menuitemradio', roles);
+  await p.keyboard.press('Escape'); await sleep(100);
+  check(await p.evaluate(() => document.getElementById('stkc-trade-pop').hidden && document.activeElement.id === 'stkc-paper-btn'), tag + ': kbd: Esc closes, focus back on button');
+  await p.keyboard.press('Enter'); await sleep(300);
+  await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await sleep(600);
+  check(await p.waitForFunction(() => window.__stkLive.state.acct && window.__stkLive.state.acct.id.startsWith('123'), null, { timeout: 8000 }).then(() => true, () => false), tag + ': kbd: Enter on account row picks it');
+  await p.evaluate(() => window.__stkLive.leave(true)); await sleep(500);
+  await p.click('#stkc-paper-btn'); await sleep(300);
+};
+const rows = (p) => p.$$eval('#stkc-trade-pop [data-a]', (n) => n.map((x) => x.dataset.a + ':' + ((x.querySelector('.stktm-nm') || x).textContent.replace(/\s+/g, ' ').trim()) + (x.getAttribute('aria-checked') === 'true' ? ' ✓' : '')));
 
 async function run(b, w, h, mobile, theme) {
   const tag = w + '-' + theme;
   const { ctx, p, errors, M } = await open(b, { w, h, mobile, theme });
-  await p.waitForFunction(() => window.__stkLive && window.__stkLive.connect && window.__stkLive.state.accounts.length, null, { timeout: 20000 });
+  await p.waitForFunction(() => window.__stkLive && window.__stkLive.connect && window.__stkLive.state.accounts.length > 1, null, { timeout: 20000 });
   const m = await barMeasure(p);
   console.log('ALIGN ' + tag + ' ' + JSON.stringify(m));
   const inBar = await p.evaluate(() => { const t = document.getElementById('stkc-paper-btn'); return !!(t && t.getBoundingClientRect().width > 0 && !t.closest('.stkc-ob-pop')); });
@@ -118,14 +146,20 @@ async function run(b, w, h, mobile, theme) {
   }
   await sleep(400);
   const items = await rows(p);
-  check(items.join('|') === 'Paper trading ✓|Tradovate …1234|Connect another broker…', tag + ': admin menu rows + check on Paper', items);
-  check(await p.$eval('#stkc-trade-pop .stkpt-ldot', (e) => getComputedStyle(e).backgroundColor === 'rgb(242, 54, 69)'), tag + ': red LIVE dot on the account row');
-  if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/trade-' + tag + '-menu.png' });
+  check(items.join('|') === 'paper:Paper trading ✓|live:Tradovate …1234|live:Rithmic …0042|connect:Connect a broker', tag + ': admin menu rows + check on Paper', items);
+  const menu = await menuProbe(p); console.log('MENU ' + tag + ' ' + JSON.stringify(menu));
+  check(menu.logos === 2 && menu.imgOk === 2 && menu.paperSub.startsWith('Simulated · balance $'), tag + ': 2 broker logos load, paper sub line has balance', menu);
+  check(menu.subs.join('|') === 'Connected|Connected', tag + ': account status lines', menu.subs);
+  check(menu.rows.every((r) => r.h >= 40 && r.cySpread <= 1 && r.padL === r.padR), tag + ': rows >=40px, icon/text/tick on one centre, equal side padding', menu.rows);
+  check(menu.logoSizes.slice(1).every((x) => x === '24x24'), tag + ': logos 24x24', menu.logoSizes);
+  check(menu.foot && menu.foot.cySpread <= 1 && menu.foot.padL === menu.foot.padR, tag + ': footer pill + Manage on one centre, equal side inset', menu.foot);
+  if (!mobile) await keyboardTest(p, tag);
+    if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/trade-' + tag + '-menu.png' });
   await p.evaluate((id) => document.querySelector('#stkc-trade-pop [data-id="' + id + '"]').click(), ACC);
   await p.waitForFunction(() => document.querySelector('.stkpt.is-live') && window.__stkLive.state.placeSchema, null, { timeout: 10000 });
   await sleep(500);
-  const lbl = await p.evaluate(() => { const b = document.getElementById('stkc-paper-btn'); const l = b.querySelector('.stkc-btn-l'); return { t: l.textContent, c: getComputedStyle(b).color, open: document.querySelector('.stkpt').classList.contains('open') }; });
-  check(lbl.t === 'LIVE Tradovate' && (!inBar || lbl.c === 'rgb(242, 54, 69)'), tag + ': button reads LIVE Tradovate in red', lbl);
+  const lbl = await p.evaluate(() => { const b = document.getElementById('stkc-paper-btn'); const l = b.querySelector('.stkc-btn-l'); return { t: l.textContent, logo: !!b.querySelector('.stktm-logo img'), dot: !!b.querySelector('.stktm-live'), c: getComputedStyle(b).color, open: document.querySelector('.stkpt').classList.contains('open') }; });
+  check(lbl.t === 'Tradovate' && lbl.logo && lbl.dot && (!inBar || lbl.c === 'rgb(242, 54, 69)'), tag + ': button = Tradovate logo + name + live dot, red', lbl);
   check(lbl.open, tag + ': panel open on the live account');
   const m2 = await barMeasure(p); console.log('ALIGN-LIVE ' + tag + ' ' + JSON.stringify(m2));
   if (inBar) check(m2.cySpread <= 1 && m2.tradeH === m2.dsH, tag + ': one centre line with the long label', m2);
@@ -133,14 +167,14 @@ async function run(b, w, h, mobile, theme) {
   if (inBar) {
     await p.click('#stkc-paper-btn'); await sleep(300);
     const it2 = await rows(p);
-    check(it2[0] === 'Paper trading' && it2[1] === 'Tradovate …1234 ✓', tag + ': check mark moved to the live account', it2);
+    check(it2[0] === 'paper:Paper trading' && it2[1] === 'live:Tradovate …1234 ✓', tag + ': check mark moved to the live account', it2);
     if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/trade-' + tag + '-menu-live.png' });
     const bar = await p.$('#stkc-bar'); await bar.screenshot({ path: OUT + '/crop-bar-' + tag + '.png' });
     await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-a=paper]').click());
   } else { await p.screenshot({ path: OUT + '/trade-' + tag + '-live.png' }); await p.evaluate(() => window.__stkLive.leave(true)); }
   await sleep(600);
   check(await p.evaluate(() => !window.__stkLive.state.acct), tag + ': back on Paper');
-  if (inBar) check((await p.$eval('#stkc-paper-btn .stkc-btn-l', (e) => e.textContent)) === 'Trade', tag + ': label back to Trade');
+  if (inBar) check((await p.$eval('#stkc-paper-btn .stkc-btn-l', (e) => e.textContent)) === 'Paper', tag + ': label back to Paper');
   const w2 = M.calls.filter((c) => c.path.endsWith('/order') && ['place', 'cancel', 'modify', 'flatten'].includes(c.body.op));
   check(!w2.length, tag + ': no order sent');
   check(errors.length === 0, tag + ': no console errors ' + errors.slice(0, 2).join(' | '));
@@ -153,7 +187,7 @@ async function member(b) {
   check(await p.$('#stkc-paper-btn') !== null, 'member: Trade button present');
   await p.click('#stkc-paper-btn'); await sleep(300);
   const items = await rows(p);
-  check(items.join('|') === 'Paper trading ✓', 'member: menu has Paper trading only', items);
+  check(items.join('|') === 'paper:Paper trading ✓', 'member: menu has Paper trading only', items);
   check(!(await p.evaluate(() => /tradovate|broker|finatic|live/i.test(document.getElementById('stkc-trade-pop').innerText + document.getElementById('stkc-paper-btn').innerText))), 'member: no broker words in button or menu');
   await p.screenshot({ path: OUT + '/trade-member-menu.png' });
   await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-a=paper]').click()); await sleep(500);
@@ -166,7 +200,7 @@ async function connectRow(b) {
   await p.evaluate(() => { window.open = () => ({ location: {}, close() {} }); });
   await p.click('#stkc-paper-btn'); await sleep(300);
   const items = await rows(p);
-  check(items.join('|') === 'Paper trading ✓|Connect a broker…', 'admin, none connected: Paper + Connect a broker…', items);
+  check(items.join('|') === 'paper:Paper trading ✓|connect:Connect a broker', 'admin, none connected: Paper + Connect a broker', items);
   await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-a=connect]').click());
   check(await p.waitForSelector('#fjs', { timeout: 10000 }).then(() => true, () => false), 'Connect a broker… opens the connect sheet');
   await ctx.close();

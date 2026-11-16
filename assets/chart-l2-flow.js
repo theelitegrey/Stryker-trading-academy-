@@ -12,21 +12,21 @@
 // backfill and /ts-live frames), the trades are the L1 tools' own stores (chart-ts-trades.js tsOpen for futures; chart-footprint-crypto.js for Binance)
 // and the hub's footprint minutes (chart-futures-l2.js TickFeed). A "level" here is one book row as the recorder stores it (a few ticks wide, rule in ts-hub.js).
 // Gate (all tools free, 2026-11-13): every signed-in member; futures without the live book read it 10 min delayed (chart-futures-l2.js l2Delayed). No data = a plain note, never made-up numbers. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=1061';
-import { isFree } from './chart-pro-gate.js?v=1061';
-import { rtOnChange } from './rt-access.js?v=1061';
-import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState, fpNeed, fpState, seedState } from './chart-futures-l2.js?v=1061';
-import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=1061';
-import { tsOpen } from './chart-ts-trades.js?v=1061';
-import { aggregateMins } from './chart-ts-data.js?v=1061';
-import { aggregate, clipTo, profile as tradedProfile } from './chart-footprint-data.js?v=1061';
-import * as BT from './chart-bigtrades.js?v=1061';
-import { sweepEvents } from './chart-of-pro-data.js?v=1061';
-import { sweepBars } from './chart-of-pro.js?v=1061';
-import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-data.js?v=1061';
-import { swingModel, swingLayer } from './chart-swing-vwap.js?v=1061';
-import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=1061';
-import { below, since } from './indicator-versions.js?v=1061';   // versions: assets/indicator-versions.js (v1.0 = full-depth resting book)
+import { registerFeed } from './chart-feeds.js?v=1071';
+import { isFree } from './chart-pro-gate.js?v=1071';
+import { rtOnChange } from './rt-access.js?v=1071';
+import { l2Badge, l2Root, L2_TICK, L2_TYPES, l2Source, rootState, fpNeed, fpState, seedState } from './chart-futures-l2.js?v=1071';
+import { cryptoFeed, isCrypto } from './chart-footprint-crypto.js?v=1071';
+import { tsOpen } from './chart-ts-trades.js?v=1071';
+import { aggregateMins } from './chart-ts-data.js?v=1071';
+import { aggregate, clipTo, profile as tradedProfile } from './chart-footprint-data.js?v=1071';
+import * as BT from './chart-bigtrades.js?v=1071';
+import { sweepEvents } from './chart-of-pro-data.js?v=1071';
+import { sweepBars } from './chart-of-pro.js?v=1071';
+import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-data.js?v=1071';
+import { swingModel, swingLayer } from './chart-swing-vwap.js?v=1071';
+import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=1071';
+import { below, since } from './indicator-versions.js?v=1071';   // versions: assets/indicator-versions.js (v1.0 = full-depth resting book)
 
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
@@ -293,7 +293,7 @@ class L2Flow {
   start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); if (LADDER.includes(this.type)) ladders.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); window.addEventListener('stryker:l2tier', this.onTier); this.offRt = rtOnChange(this.onTier); if (this.type === 'stk_l2f_dp') this.clock = setInterval(() => this.later(), 15000); this.render(); }
   later() { if (this.tm || this.off || document.hidden) return; this.tm = setTimeout(() => { this.tm = 0; this.render(); }, Math.max(0, MIN_GAP - (Date.now() - this.last))); }
   onBars() { this.later(); }
-  onViewport() { if (LAYERS.includes(this.type)) this.push(); else if (LADDER.includes(this.type)) this.pushLadder(); }
+  onViewport() { if (LAYERS.includes(this.type)) this.push(this.pd); else if (LADDER.includes(this.type)) this.pushLadder(); }
   // Delta / CVD (L2) bring the ladder with them once, unless one is already on the chart (a saved layout, or the member removed it)
   addLadder() {
     try { const c = this.ctx.chart || window.STRYKER_VELA.chart; if (this.ladAdded || !c || (c.indicators() || []).some((h) => h.nativeType === 'stk_l2f_lad')) { this.ladAdded = true; return this.push({ off: true }); } this.ladAdded = true; setTimeout(() => { try { c.addNativeIndicator('stk_l2f_lad', {}); window.STRYKER_VELA.context().stateChanged(); } catch (e) {} }, 0); } catch (e) {}
@@ -305,7 +305,9 @@ class L2Flow {
   resume() { this.on = true; this.render(); }
   stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); const kl = ladders.indexOf(this); if (kl >= 0) ladders.splice(kl, 1); this.off = true; this.on = false; clearTimeout(this.tm); clearInterval(this.clock); document.removeEventListener('visibilitychange', this.onVis); window.removeEventListener('stryker:l2tier', this.onTier); if (this.offRt) this.offRt(); this.unbind(); this.push(); }
   unbind() { this.hub = null; if (this.u) { this.u.release(); this.u = null; this.spec = null; } }
-  push(extra) { try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
+  // onViewport (pan / zoom) re-pushes the LAST drawn data: a bare push() handed the layer no markers, and with the market closed nothing ever
+  // re-rendered them (GK 14-15 Nov: Big Trades vanish as soon as the chart is moved)
+  push(extra) { if (extra) this.pd = extra; try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
   ov(...lines) { this.text = this.base = lines.filter(Boolean).join(' · '); this.ctx.emit({ tables: [] }); }
   say(txt) {
     this.text = ''; this.ctx.setStatus('idle');
@@ -355,7 +357,7 @@ class L2Flow {
     const from = bars[0].time, to = bars[bars.length - 1].time + tf, held = new Set(hub.minutes().map((m) => m.t));
     let miss = false; for (const b of bars) if (!held.has(b.time)) { miss = true; break; }
     if (!miss && !hub.recBusy) return;
-    if (!this.fpMod) { if (!this.fpP) this.fpP = import('./chart-footprint.js?v=1061').then((m) => { this.fpMod = m; this.later(); }, () => { this.fpMod = false; }); return; }
+    if (!this.fpMod) { if (!this.fpP) this.fpP = import('./chart-footprint.js?v=1071').then((m) => { this.fpMod = m; this.later(); }, () => { this.fpMod = false; }); return; }
     if (!this.fpMod.recorderMinutes) return;
     const r = this.fpMod.recorderMinutes(hub.spec.root, from, to);
     if (r.mins.length !== (hub.rec || []).length) { hub.rec = r.mins; hub.memo = {}; }

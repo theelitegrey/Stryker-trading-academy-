@@ -7,7 +7,7 @@ const OUT = process.argv[2] || '.';
 let fail = 0;
 const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg + (x === undefined ? '' : ' ' + JSON.stringify(x).slice(0, 300))); };
 const ready = (p) => p.waitForFunction(() => { try { const ws = window.STRYKER_VELA; return ws && ws.cell(ws.active.id).chart.renderer.renderer.coords.barCount > 20; } catch (e) { return false; } }, null, { timeout: 60000 });
-const state = (p) => p.evaluate(() => ({ v090: window.__stkVela090, map: document.querySelector('script[type=importmap]').textContent.match(/vela-[0-9.]+-s\d/)[0], key: window.__stkPersistKey }));
+const state = (p) => p.evaluate(() => ({ v090: window.__stkVela090, map: document.querySelector('script[type=importmap]').textContent.match(/vela-[0-9.]+-s\d+/)[0], key: window.__stkPersistKey }));
 
 (async () => {
   const b = await launch();
@@ -26,7 +26,7 @@ const state = (p) => p.evaluate(() => ({ v090: window.__stkVela090, map: documen
     p.on('framenavigated', (f) => { if (f === p.mainFrame()) navs++; });
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' }); await ready(p);
     let s = await state(p);
-    check(s.v090 === true && s.map === 'vela-0.9.0-s9', `${w}: member gets 0.9.0 by default`, s);
+    check(s.v090 === true && s.map === 'vela-0.9.0-s10', `${w}: member gets 0.9.0 by default`, s);
     navs = 0; await p.waitForTimeout(8000);
     check(navs === 0 && (await state(p)).v090 === true, `${w}: no admin refusal reload for members`, { navs });
     await p.screenshot({ path: `${OUT}/vela-default-member-${w}.png` });

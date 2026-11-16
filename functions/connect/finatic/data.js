@@ -2,7 +2,10 @@
 // Allow-list below is the whole surface: every op maps to a fixed GET path (plus the grant revoke used by "Disconnect").
 // There is deliberately NO order create / modify / cancel path, and the client never supplies a path. Stores and logs nothing.
 // op 'live' (chart live orders, 2026-11-15): positions + orders of one account in ONE session (two GETs), for the chart's live lines.
-import { gate, readBody, fin, startSession, sessionHeaders, json, fail, needsConnect, methodNotAllowed, safe, UPSTREAM_MSG, UUID, ID } from './_fin.js';
+// SPEED (2026-11-16): the Finatic session is cached per isolate (_fin.js cachedSession, 2 min; a 401 renews it once), so the chart's
+// 10 s poll keeps it warm for the order route, and 'live' reads positions + orders in parallel. 'revoke' always uses a fresh session
+// and drops the cached one afterwards.
+import { gate, readBody, fin, startSession, cachedSession, finSession, dropSession, pagesEntry, json, fail, needsConnect, methodNotAllowed, safe, UPSTREAM_MSG, UUID, ID } from './_fin.js';
 
 const A = (id) => '/api/v1/accounts/' + encodeURIComponent(id);
 export const OPS = {
@@ -37,34 +40,36 @@ async function run(request, env, deps) {
     if (finUser && !(typeof finUser === 'string' && UUID.test(finUser))) finUser = '';
   }
   if (!finUser) return needsConnect();
-  const s = await startSession(env, deps, finUser);
+  let s = op === 'revoke' ? await startSession(env, deps, finUser) : await cachedSession(env, deps, finUser);
   if (s.failed) return s.staleUser ? needsConnect() : fail(502, UPSTREAM_MSG, 'upstream');   // stale id (e.g. sandbox user on live): connect again
   if (!s.authenticated) return needsConnect();
-  const h = sessionHeaders(s);
+  let renewFail = false;
+  const call = async (method, path, opts) => { const x = await finSession(env, deps, finUser, s, method, path, opts); if (x.s !== s) { if (x.s.failed || !x.s.authenticated) renewFail = true; else s = x.s; } return x.r; };
   const page = { limit: Math.min(Math.max(parseInt(b.limit, 10) || 100, 1), 1000), offset: Math.max(parseInt(b.offset, 10) || 0, 0) };
 
   if (op === 'revoke') {
-    const r = await fin(env, deps, 'POST', '/api/v1/account-grants/' + encodeURIComponent(b.grantId) + '/revoke', { headers: h });
+    const r = await call('POST', '/api/v1/account-grants/' + encodeURIComponent(b.grantId) + '/revoke');
+    dropSession(env, finUser);
     return r.ok ? json({ ok: true, userId: finUser }) : fail(502, 'Could not disconnect');
   }
   if (op === 'live') {
-    const p = await fin(env, deps, 'GET', OPS.positions(b), { headers: h, query: { limit: 200, offset: 0 } });
-    const o = p.ok ? await fin(env, deps, 'GET', OPS.orders(b), { headers: h, query: { limit: 200, offset: 0 } }) : null;
+    const [p, o] = await Promise.all([call('GET', OPS.positions(b), { query: { limit: 200, offset: 0 } }), call('GET', OPS.orders(b), { query: { limit: 200, offset: 0 } })]);
+    if (renewFail) return needsConnect();
     if (!p.ok || !o.ok) return fail(502, 'Broker data is unavailable right now', 'upstream');
     return json({ data: { positions: Array.isArray(p.data) ? p.data : [], orders: Array.isArray(o.data) ? o.data : [] }, userId: finUser });
   }
   if (op === 'fills') {
     const out = [];
     for (const oid of b.orderIds) {
-      const r = await fin(env, deps, 'GET', A(b.accountId) + '/orders/' + encodeURIComponent(oid) + '/fills', { headers: h });
+      const r = await call('GET', A(b.accountId) + '/orders/' + encodeURIComponent(oid) + '/fills');
       if (!r.ok) return fail(502, 'Broker data is unavailable right now', 'upstream');
       (Array.isArray(r.data) ? r.data : []).forEach((f) => out.push(f));
     }
     return json({ data: out, userId: finUser });
   }
-  const r = await fin(env, deps, 'GET', OPS[op](b), { headers: h, query: op === 'accounts' ? { ...page, include_sync_status: 'true' } : page });
+  const r = await call('GET', OPS[op](b), { query: op === 'accounts' ? { ...page, include_sync_status: 'true' } : page });
   if (!r.ok) return fail(502, 'Broker data is unavailable right now', 'upstream');
   return json({ data: r.data, userId: finUser });
 }
 export const handle = safe('data', run);
-export const onRequest = ({ request, env }) => handle(request, env);
+export const onRequest = pagesEntry(handle);

@@ -10,13 +10,16 @@ export const json = (obj, status = 200) => new Response(JSON.stringify(obj), { s
 export const fail = (status, error) => json({ error }, status);
 const mem = new Map();
 
-export async function rateLimited(env, request, name) {
+// defer (optional, ctx.waitUntil wrapper): the counter write goes out after the reply instead of on the request path. The KV
+// counter was never atomic (the hard limit is a Cloudflare WAF rule), so this changes nothing about what is allowed.
+export async function rateLimited(env, request, name, defer) {
   const key = 'rl:' + name + ':' + (request.headers.get('cf-connecting-ip') || 'unknown') + ':' + Math.floor(Date.now() / 60000);
   try {
     if (env.PASSKEYS) {   // shortcut: KV counter is not atomic; the hard limit is a Cloudflare WAF rule
       const n = Number(await env.PASSKEYS.get(key)) || 0;
       if (n >= RATE_MAX) return true;
-      await env.PASSKEYS.put(key, String(n + 1), { expirationTtl: 120 });
+      const w = env.PASSKEYS.put(key, String(n + 1), { expirationTtl: 120 });
+      if (defer) defer(w); else await w;
       return false;
     }
     for (const k of mem.keys()) if (!k.endsWith(':' + Math.floor(Date.now() / 60000))) mem.delete(k);

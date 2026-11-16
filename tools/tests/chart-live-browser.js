@@ -181,7 +181,9 @@ async function run(b, w, h, mobile, theme) {
   const blk = await p.evaluate(() => ({ dis: document.querySelector('.stklv-send').disabled, st: document.querySelector('.stklv-status').textContent }));
   check(blk.dis && /could not be read/.test(blk.st), tag + ': unreadable positions/orders = Send disabled + reason', blk);
   if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/live-' + tag + '-4-blocked.png' });
-  M.failRead = false; await p.evaluate(() => window.__stkLive.read()); await sleep(500);
+  M.failRead = false; await p.evaluate(() => { window.__stkLive.state.reading = false; return window.__stkLive.read(); });
+  // wait for a clean read (no readErr) instead of a fixed sleep: slow CI runners took >500 ms and the ladder stayed blocked
+  await p.waitForFunction(() => !window.__stkLive.state.readErr && !window.__stkLive.state.reading, null, { timeout: 10000 }).catch(() => {});
   // DOM ladder: a bid click = live BUY limit at that price (always a limit)
   await p.evaluate(() => window.__stkBookPanel && window.__stkBookPanel.open && window.__stkBookPanel.open());
   await sleep(500);

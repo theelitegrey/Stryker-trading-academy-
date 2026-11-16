@@ -1,4 +1,4 @@
-// "Use our levels in your platform" page (platform-levels.html). Pro only; the server checks Pro on every call (/api/lv/*), this file only shows the result.
+// "Use our levels in your platform" page (platform-levels.html). Free for signed-in members; the server checks the sign-in on every call (/api/lv/*), this file only shows the result.
 // Data: /api/lv/pack (the member's sign-in token) and the private link /api/lv/feed/<secret>.<ext> (made with POST /api/lv/token).
 // Education only. Not financial advice.
 (function () {
@@ -51,9 +51,9 @@
   function wall(kind) {
     var w = $('pl-wall'); $('pl-app').hidden = true; w.hidden = false; w.innerHTML = '';
     if (kind === 'signin') {
-      w.innerHTML = '<section class="pl-card"><h2>Sign in to use this page</h2><p class="pl-sub">Levels for your platform are part of Pro. Sign in with your account to continue.</p><div class="pl-row"><a class="pl-btn pl-primary" href="login.html?next=platform-levels">Sign in</a></div></section>';
+      w.innerHTML = '<section class="pl-card"><h2>Sign in to use this page</h2><p class="pl-sub">Sign in with your account to get levels for your platform.</p><div class="pl-row"><a class="pl-btn pl-primary" href="login.html?next=platform-levels">Sign in</a></div></section>';
     } else if (window.strykerPlanLock) w.appendChild(window.strykerPlanLock.card('levels', 'platform-levels'));
-    else w.innerHTML = '<section class="pl-card"><h2>Levels for your platform are part of Pro</h2><div class="pl-row"><a class="pl-btn pl-primary" href="pricing.html">See plans</a></div></section>';
+    else w.innerHTML = '<section class="pl-card"><h2>Could not check your sign-in</h2><p class="pl-sub">Sign out, sign in again and retry.</p></section>';
   }
   function signedIn() { try { return !!(window.firebase && firebase.apps.length && firebase.auth().currentUser); } catch (e) { return false; } }
 
@@ -173,7 +173,7 @@
       st.active = !!(j && j.active);
       if (!st.active) { st.secret = null; try { localStorage.removeItem(KEY); } catch (e) {} }
       showUrl();
-      if (st.active) msg('Link works until ' + when(j.exp) + ' while your Pro plan stays active.' + (j.last ? ' Last used ' + ago(new Date(j.last).toISOString()).replace('Updated ', '').toLowerCase() + '.' : ''));
+      if (st.active) msg('Link works until ' + when(j.exp) + ' while you stay signed in to your account. Opening this page renews it.' + (j.last ? ' Last used ' + ago(new Date(j.last).toISOString()).replace('Updated ', '').toLowerCase() + '.' : ''));
     }).catch(function () {});
   }
   $('pl-make').addEventListener('click', function () {
@@ -188,7 +188,7 @@
       if (!j) return;
       st.secret = j.secret; st.active = true;
       try { localStorage.setItem(KEY, j.secret); } catch (e) {}
-      showUrl(); msg('Link ready. Copy it into your platform. It works until ' + when(j.exp) + ' while your Pro plan stays active.');
+      showUrl(); msg('Link ready. Copy it into your platform. It works until ' + when(j.exp) + ' while you stay signed in to your account. Opening this page renews it.');
     }).catch(function () { msg('Could not reach the server.', true); }).then(function () { b.disabled = false; });
   });
   $('pl-off').addEventListener('click', function () {

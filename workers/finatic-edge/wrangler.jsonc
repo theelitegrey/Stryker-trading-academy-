@@ -1,0 +1,16 @@
+{
+  // TradeZoro broker-order edge (Owner order 2026-11-16 "orders as fast as possible"). Runs the SAME code as the Pages routes
+  // functions/connect/finatic/{order,data,session}.js, but placed in AWS us-east-1, next to the broker API (api.finatic.dev =
+  // AWS Ashburn), so each broker call is ~1-5 ms instead of a trip across the world from the visitor's edge.
+  // No public URL: the site reaches it only through the Pages service binding FINATIC_EDGE (functions/connect/finatic/_fin.js
+  // pagesEntry). Secrets (same values as the Pages project, set by .github/workflows/deploy-finatic-edge.yml): FINATIC_API_KEY,
+  // FINATIC_COMPANY_ID, FINATIC_ENV, FINATIC_LIVE_ORDERS, FIREBASE_SA_KEY. KV: PASSKEYS (the same namespace, for the rate limits).
+  "name": "tz-finatic-edge",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "placement": { "region": "aws:us-east-1" },
+  "vars": { "TZ_PLACED": "aws:us-east-1" },
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } }
+}

@@ -222,7 +222,9 @@ export function mountLatency(ws) {
   };
   const marketRow = (sym, id, t) => {
     const m = /^([a-z0-9_]+):(.+)$/i.exec(sym) || [null, '', sym];
-    const prov = m[1].toLowerCase(), tk = m[2];
+    // 'CME:NQ1!' / 'CME_MINI:MNQ1!' / 'COMEX:GC1!' are the same futures feed as 'futures:NQ1!' (phone + search use the exchange
+    // prefix). Without this the panel looked up a feed that never ticks and said "Waiting for data" while data was flowing.
+    const prov = FUT_EXCH.test(m[1]) ? 'futures' : m[1].toLowerCase(), tk = m[2];
     const f = L.feedStats(L.feedKey(prov, tk), t), d = dotFor(id, sym);
     const live = d && d.s === 'rt';
     const stale = live && f.age != null && f.age > 15000;
@@ -340,7 +342,7 @@ export function mountLatency(ws) {
 
   setInterval(() => { if (!document.hidden) { place(); paintChip(); } }, 1000);
   paintChip();
-  const api = { open: () => setOpen(true, 'click'), close: () => setOpen(false), get isOpen() { return open; }, ping, reconnect };
+  const api = { open: () => setOpen(true, 'click'), close: () => setOpen(false), get isOpen() { return open; }, ping, reconnect, _rowFor: (sym) => marketRow(sym, null, Date.now()), _noteBar: L.noteBar };
   window.__stkLatency = api;
   return api;
 }
@@ -349,4 +351,5 @@ const CSS_escape = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).
 const splitSym = (sym) => { const m = /^([a-z0-9_]+):(.+)$/i.exec(sym); return m ? [m[1], m[2]] : ['', sym]; };
 const VENUES = { binance: 'Binance', coinbase: 'Coinbase', hyperliquid: 'Hyperliquid', bybit: 'Bybit', okx: 'OKX', bitget: 'Bitget', kraken: 'Kraken', vest: 'Vest',
   futures: 'CME futures', fx: 'Forex', idx: 'Index', stocks: 'Stocks', byo: 'Your feed' };
+const FUT_EXCH = /^(cme|cme_mini|cbot|cbot_mini|comex|comex_mini|nymex|nymex_mini)$/i;
 const venue = (p) => VENUES[p] || p || 'Market data';

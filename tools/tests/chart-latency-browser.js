@@ -65,6 +65,9 @@ async function open(b, { w, h, mobile, theme }) {
     await p.screenshot({ path: OUT + '/lat-1440-dark.png' });
     const pb = await (await p.$('#stklat-pop')).boundingBox(), cb = await (await p.$('.stklat-chip')).boundingBox();
     await p.screenshot({ path: OUT + '/lat-pop-1440-dark-zoom.png', clip: { x: pb.x - 8, y: pb.y - 8, width: pb.width + 16, height: cb.y + cb.height + 8 - pb.y + 8 } });
+    // exchange-prefixed futures symbols (phone/search use 'CME_MINI:MNQ1!') read the same feed as 'futures:MNQ1!'
+    const cme = await p.evaluate(() => { const A = window.__stkLatency; A._noteBar('futures:mnq1!'); const r = A._rowFor('CME_MINI:MNQ1!'); return { name: r.name, st: r.st, age: r.age }; });
+    check(/MNQ1! · CME futures/.test(cme.name) && cme.st !== 'Waiting for data' && cme.age != null, "CME_MINI:MNQ1! row uses the futures feed (no false 'Waiting for data')", cme);
     // performance mode persists + class on <html>
     await p.click('.stklat-perf'); await sleep(200);
     const perf = await p.evaluate(() => [localStorage.getItem('stk.perfMode'), document.documentElement.classList.contains('stk-perf')]);

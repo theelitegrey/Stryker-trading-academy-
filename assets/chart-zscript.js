@@ -409,7 +409,11 @@ function routeAlerts(req, sess, out, bars){
 let getWs = () => null;
 const zsHandles = (chart) => { try { return chart.indicators().filter((h) => isZscript(h.source) && !h.nativeType); } catch (e) { return []; } };
 function changed(){ try { const ws = getWs(); if (ws) ws.context().stateChanged(); } catch (e) {} }
-function snapshot(h){ let inputs = {}; try { inputs = h.inputValues() || {}; } catch (e) {} const o = { name: titleOf(h.source), source: h.source, inputs }; if (h.visible === false) o.hidden = true; return o; }
+// INDICATOR VERSIONS (Owner 15 Nov 2026): a Script Library script on a chart: handle -> { sid, v, open }. Saved with the chart
+// (lib), so the chart knows which published version it runs and assets/chart-ind-versions.js can offer the author's newer one.
+const libMetaOf = new WeakMap();
+const SID_RE = /^[A-Za-z0-9]{20}$/;
+function snapshot(h){ let inputs = {}; try { inputs = h.inputValues() || {}; } catch (e) {} const o = { name: titleOf(h.source), source: h.source, inputs }; if (h.visible === false) o.hidden = true; const L = libMetaOf.get(h); if (L) o.lib = { sid: L.sid, v: L.v }; return o; }
 function cleanEntry(x){
   if (!x || typeof x !== 'object' || !isZscript(x.source) || x.source.length > SRC_MAX) return null;
   const inputs = {};
@@ -419,6 +423,7 @@ function cleanEntry(x){
   });
   const o = { name: typeof x.name === 'string' ? x.name.slice(0, 80) : 'Zscript', source: x.source, inputs };
   if (x.hidden === true) o.hidden = true;   // hidden with the legend eye: comes back hidden
+  if (x.lib && typeof x.lib === 'object' && SID_RE.test(String(x.lib.sid || '')) && Number.isInteger(x.lib.v) && x.lib.v > 0) o.lib = { sid: x.lib.sid, v: x.lib.v };
   return o;
 }
 
@@ -436,7 +441,7 @@ export function installZscript(core, wsGetter){
         zsHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} });   // a template over a cell: replace, never stack
         if (!Array.isArray(payload)) return;
         payload.map(cleanEntry).filter(Boolean).slice(0, MAX_PER_CELL).forEach((x) => {
-          try { const h = chart.addIndicator(x.source, { language: LANG, inputs: x.inputs }); if (h && x.hidden) h.setVisible(false); } catch (e) { console.warn('TradeZoro: Zscript restore', e); }
+          try { const h = chart.addIndicator(x.source, { language: LANG, inputs: x.inputs }); if (h && x.hidden) h.setVisible(false); if (h && x.lib) libMetaOf.set(h, { sid: x.lib.sid, v: x.lib.v, open: !libOf(x.source) }); } catch (e) { console.warn('TradeZoro: Zscript restore', e); }
         });
       }
     });
@@ -747,13 +752,23 @@ export function mountZscript(ws, opts){
     const src = meta.access === 'open' && typeof meta.source === 'string' ? meta.source : libStub(sid, meta.name);
     const r = await addSource(meta.name, src);
     if (!r.ok) toast(r.msg || 'The script did not run.');
+    else if (r.handle) { libMetaOf.set(r.handle, { sid, v: +meta.version || 1, open: src === meta.source }); changed(); }
     return r;
+  }
+  // For assets/chart-ind-versions.js: the library script a handle runs, its published versions, and the latest open source.
+  const libMetaOfHandle = (h) => libMetaOf.get(h) || (libOf(h && h.source) ? { sid: libOf(h.source), v: null, open: false } : null);
+  const libVersions = (sid) => zsLib().then((L) => (L.versions ? L.versions(sid) : null));
+  async function libSource(sid){
+    const L = await zsLib();
+    const meta = await L.get(sid, await (async () => { const { ZsRunner } = await engine(); const r = new ZsRunner(); try { return await r.session(); } finally { r.dispose(); } })());
+    if (meta.access !== 'open' || typeof meta.source !== 'string') throw new Error('protected');
+    return { source: meta.source, version: +meta.version || 1 };
   }
   if (qsid) setTimeout(() => { addLibrary(qsid).finally(() => { try { const u = new URL(location.href); u.searchParams.delete('zs'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); } catch (e) {} }); }, 0);
   window.STRYKER_ZS = {
     open: (src, name) => { setPref(true); if (P()) P().close(); setOpen(true); if (src != null) load(name || '', src, null); },
     openNew: () => { setPref(true); if (P()) P().close(); setOpen(true); load('', NEW_SRC, null); },
-    close: () => setOpen(false), load, addToChart, addSource, addLibrary, libStub, runOnChart, handles: zsHandles, titleOf, isZscript, examples: ZS_EXAMPLES, store: Store, toModel
+    close: () => setOpen(false), load, addToChart, addSource, addLibrary, libStub, libOf: libMetaOfHandle, libVersions, libSource, runOnChart, handles: zsHandles, titleOf, isZscript, examples: ZS_EXAMPLES, store: Store, toModel
   };
   return { setOpen };
 }

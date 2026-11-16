@@ -45,7 +45,8 @@
 // Pine indicators (name, source, inputs) into the workspace document. That puts them in
 // the persist:true session AND in saved templates, and restores them on load.
 
-import { builtinSource, builtinIdOf, builtinIdByName } from './chart-pine-builtins.js?v=1048';
+import { builtinSource, builtinIdOf, builtinOfText, builtinIdByName } from './chart-pine-builtins.js?v=1048';
+import { current as verCurrent, baseOf as verBase, verOf as verPinned } from './indicator-versions.js?v=1048';
 import { createShell, el, ib, ICONS, libRow, emptyState, renderDocs, descOf, ago, download, pickFile, fileName } from './chart-script-editor.js?v=1048';
 
 const PINE_PKG = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
@@ -213,20 +214,28 @@ function snapshot(h){
 // { builtin: id } without its source: 3 ICT built-ins were ~150 KB of a member's saved layout. Edited copies,
 // Community and sealed scripts keep their source as before. Older states with inline source still load.
 const BUILTIN_ID_RE = /^[a-z0-9-]{2,80}$/;
+// INDICATOR VERSIONS (Owner 15 Nov 2026): the ref also stores the built-in's version (bv), so after a new version ships the chart
+// keeps the source it was saved with (assets/pine-versions/<id>/<v>.pine). A ref with no bv (saved before versions) = the base.
 function byRef(o){
   if (o.lib || o.sealed) return o;
-  const id = builtinIdOf(o.source);
-  if (!id) return o;
-  const r = Object.assign({}, o, { builtin: id });
+  const b = builtinOfText(o.source);
+  if (!b) return o;
+  const r = Object.assign({}, o, { builtin: b.id, bv: b.v || verCurrent('x:' + b.id) });
   delete r.source;
   return r;
+}
+// The file to load for a saved ref: null = the latest (assets/pine/<id>.pine), else a kept older version.
+export function builtinFileVer(id, bv){
+  const key = 'x:' + id, cur = verCurrent(key);
+  const v = verPinned(key, { ver: bv != null ? String(bv) : verBase(key) });   // null when only one version exists
+  return v && v !== cur ? v : null;
 }
 // chart -> built-in refs whose file could not be loaded (offline). serialize keeps them, so the next autosave
 // does not drop the member's indicator from the saved layout.
 const unresolved = new WeakMap();
 function withSource(x, chart){
   if (x && typeof x.source !== 'string' && typeof x.builtin === 'string' && BUILTIN_ID_RE.test(x.builtin)) {
-    return builtinSource(x.builtin).then((source) => Object.assign({}, x, { source })).catch(() => {
+    return builtinSource(x.builtin, builtinFileVer(x.builtin, x.bv)).then((source) => Object.assign({}, x, { source })).catch(() => {
       if (!unresolved.has(chart)) unresolved.set(chart, []);
       unresolved.get(chart).push(x);
       return null;

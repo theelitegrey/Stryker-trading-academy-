@@ -1,10 +1,16 @@
 // Indicator versions (assets/indicator-versions.js + assets/chart-ind-versions.js) in the real chart, with fixture L2 frames.
 //   node tools/tests/chart-dev-server.mjs 8031 &   CHART_BASE=http://127.0.0.1:8331 node tools/tests/indicator-versions-browser.js <shotsDir>
+//   RUNS=1,2,3,p runs only those parts (default: all)
 // Run 1 (the shipped manifest): a new add is on the latest version, no update button; the Version picker goes 1.1 -> 1.0 -> 1.1
 //   and the footprint really draws the old way on 1.0; the saved chart keeps a pin; an instance with no stored version = base.
 // Run 2 (a TEST manifest where v1.2 "ships"): the same saved chart loads unchanged (no-version instance stays 1.1, the pinned one
 //   stays 1.0), both show the update button, Update moves one to 1.2 keeping its settings, Not now hides the other (and stays
 //   hidden after a reload), a new add starts on 1.2. Then the generated indicator page shows the Changelog.
+// Run 3 (ALL INDICATORS, Owner 15 Nov 2026): a one-version native, a built-in Pine script, a Script Library Zscript and a
+//   Community Pine script all show a version (settings header tag + Version row; Indicators window details). Then
+//   tools/indver-bump.js ships v1.1 of a built-in Pine script on a copy of the repo (its manifest + kept old source are served to
+//   the page) and the library authors publish v2: the chart saved before stays on the old source, the update buttons show,
+//   Update swaps in the new source and keeps the inputs, the Version picker goes back. Then every indicator page has a Changelog.
 // SHOTS=1: screenshots at 1440 dark, 1440 light, 390 dark (legend button, popover, Version picker, changelog page).
 const fs = require('fs');
 const { launch } = require('./lib.js');
@@ -53,11 +59,12 @@ function testManifest() {
       migrate: (i) => (i.restRows != null ? { restRows: i.restRows } : {}) }] } };
 }
 
-async function open(b, { w, h, mobile, theme, test, store }) {
+async function open(b, { w, h, mobile, theme, test, store, routes, init }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript(fakeWs);
   if (test) await ctx.addInitScript(testManifest);
+  if (init) await ctx.addInitScript(init[0], init[1]);
   await ctx.addInitScript(([t, st]) => {
     try {
       if (sessionStorage.getItem('__ivSeeded')) return;   // a reload keeps what the page itself saved
@@ -69,6 +76,7 @@ async function open(b, { w, h, mobile, theme, test, store }) {
   }, [theme || '', store || null]);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   await ctx.route(/127\.0\.0\.1:9\//, (r) => r.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  if (routes) await routes(ctx);
   const p = await ctx.newPage();
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|Failed to load resource|\/api\/chart\/stream|Ping received after close|status of 451|response code: 451|ERR_UNSAFE_PORT|WebSocket is closed before/.test(m.text())) errors.push(m.text()); });
@@ -120,11 +128,12 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   const SHOTS = !!process.env.SHOTS;
+  const RUN = (r) => !process.env.RUNS || process.env.RUNS.split(',').includes(r);   // RUNS=3,p: only those parts (dev)
   const views = SHOTS ? [[1440, 900, false, 'dark', '1440-dark'], [1440, 900, false, 'light', '1440-light'], [390, 844, true, 'dark', '390-dark']] : [[1440, 900, false, 'dark', '1440-dark']];
   try {
     // ---------------- run 1: the shipped manifest
     let saved0, saved1, fid;
-    {
+    if (RUN('1')) {
       const { ctx, p, errors } = await open(b, { w: 1440, h: 900, theme: 'dark' });
       await setNQ(p);
       fid = await add(p, { restRows: 5 });
@@ -162,7 +171,7 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
       await ctx.close();
     }
     // ---------------- run 2a: v1.2 ships (test manifest), the chart saved with no version
-    {
+    if (RUN('2')) {
       const { ctx, p, errors } = await open(b, { w: 1440, h: 900, theme: 'dark', test: true, store: saved0 });
       await setNQ(p); await sleep(2500);
       const f = await fps(p);
@@ -173,7 +182,7 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
       await ctx.close();
     }
     // ---------------- run 2b: v1.2 ships, the chart pinned to 1.0, every view
-    for (const [w, h, mobile, theme, tag] of views) {
+    if (RUN('2')) for (const [w, h, mobile, theme, tag] of views) {
       const { ctx, p, errors } = await open(b, { w, h, mobile, theme, test: true, store: saved1 });
       await setNQ(p); await sleep(2500);
       let f = await fps(p);
@@ -224,8 +233,161 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
       check(errors.length === 0, tag + ': no console errors', errors);
       await ctx.close();
     }
+    // ---------------- run 3: ALL INDICATORS have a version; built-in Pine pinning; library scripts' newer versions
+    if (RUN('3')) {
+      const path = require('path'), os = require('os'), { execFileSync } = require('child_process');
+      const R = path.resolve(__dirname, '..', '..');
+      const ID = 'dynamic-liquidity-heatmap-profile-bigbeluga';
+      const OLD = fs.readFileSync(path.join(R, 'assets/pine', ID + '.pine'), 'utf8');
+      const NEW = OLD.replace('lookBack = input.int(300, "Calculated Bars")', 'lookBack = input.int(320, "Calculated Bars")');
+      check(NEW !== OLD, 'fixture: the new Pine source differs (a new default)');
+      // indver-bump.js on a copy of the repo = "v1.1 ships"
+      const T = fs.mkdtempSync(path.join(process.env.TMPDIR || os.tmpdir(), 'ivb-'));
+      fs.mkdirSync(path.join(T, 'assets/pine'), { recursive: true });
+      fs.copyFileSync(path.join(R, 'assets/indicator-versions.js'), path.join(T, 'assets/indicator-versions.js'));
+      fs.writeFileSync(path.join(T, 'assets/pine', ID + '.pine'), OLD);
+      execFileSync('node', [path.join(R, 'tools/indver-bump.js'), 'x:' + ID, '1.1', 'Heat map now covers 320 bars by default.', '--root', T, '--date', '2026-11-20'], { stdio: 'pipe' });
+      fs.writeFileSync(path.join(T, 'assets/pine', ID + '.pine'), NEW);   // the new source goes in after the bump
+      const kept = path.join(T, 'assets/pine-versions', ID, '1.0.pine');
+      check(fs.existsSync(kept) && fs.readFileSync(kept, 'utf8') === OLD, 'indver-bump.js kept the old source as pine-versions/' + ID + '/1.0.pine');
+      // the page gets the bumped repo: the manifest, the kept source, the new latest file
+      const shipped = (ctx) => Promise.all([
+        ctx.route(/\/assets\/indicator-versions\.js/, (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(T, 'assets/indicator-versions.js'), 'utf8') })),
+        ctx.route(/\/assets\/pine-versions\//, (r) => { const f = path.join(T, new URL(r.request().url()).pathname.replace(/^\//, '')); return fs.existsSync(f) ? r.fulfill({ status: 200, contentType: 'text/plain', body: fs.readFileSync(f, 'utf8') }) : r.fulfill({ status: 404, body: '' }); }),
+        ctx.route(new RegExp('/assets/pine/' + ID + '\\.pine'), (r) => r.fulfill({ status: 200, contentType: 'text/plain', body: NEW }))]);
+      // library scripts (stubs of the Script Library and Community library, the version numbers their authors published)
+      const ZSID = 'AbCdEfGhIjKlMnOpQrSt', PID = 'PqRsTuVwXyZaBcDeFgHiJk01';
+      const zs = (v) => '//@zscript 1\nindicator("Lib SMA", overlay=true)\nn = input.int(14, "Length")\nplot(ta.sma(close, n + ' + (v - 1) + '), "SMA")\n';
+      const pine = (v) => '//@version=5\nindicator("Comm EMA", overlay=true)\nlen = input.int(20, "Length")\nplot(ta.ema(close, len)' + (v > 1 ? ' + 0' : '') + ', "EMA", color=color.teal)\n';
+      const libs = (ver) => (args) => {
+        const [ZSID, PID, ver, zsSrc, pSrc] = args;
+        try { localStorage.setItem('stryker_community_disclaimer_ack_v1', JSON.stringify({ _anon: 1, u1: 1 })); } catch (e) {}   // the one-time community notice (own test)
+        window.ZSLib = { get: async (sid) => ({ sid, name: 'Lib SMA', version: ver, access: 'open', source: zsSrc[ver] }),
+          versions: async () => ({ version: ver, notes: [{ v: 1, text: 'First version', date: '2026-11-01' }, { v: 2, text: 'Smoother line.', date: '2026-11-18' }].filter((x) => x.v <= ver) }) };
+        let lib = null;
+        const get = async (id) => ({ id, version: ver, source: pSrc[ver], status: 'ok', openSource: true, ownerUid: 'u2', name: 'Comm EMA' });
+        Object.defineProperty(window, 'StrykerPineLibrary', { configurable: true, get: () => lib, set: (v) => { lib = v; if (v) v.get = get; } });
+      };
+      const libArgs = (ver) => [ZSID, PID, ver, { 1: zs(1), 2: zs(2) }, { 1: pine(1), 2: pine(2) }];
+      const srcOf = (p, re) => p.evaluate((re) => { const c = window.STRYKER_VELA.context().cells[0].chart; const h = c.indicators().find((x) => typeof x.source === 'string' && new RegExp(re).test(x.source)); return h ? { id: h.id, src: h.source, inputs: h.inputValues() } : null; }, re);
+      const desc = (p, k) => p.evaluate((k) => window.STRYKER_INDVER.describe(k), k);
+      const dlgInfo = (p) => p.evaluate(() => { const d = document.querySelector('.vela-ind-dialog'); if (!d) return null; const t = d.querySelector('.stk-iv-tag'), row = d.querySelector('.vela-dialog-body .vela-field-row'); return { tag: t && t.textContent, row: row && row.innerText.replace(/\n/g, ' | '), sel: !!(row && row.querySelector('.vela-select-trigger')) }; });
+      let saved3;
+      // 3a: today. One-version native + built-in Pine + library Zscript + Community Pine all show a version; no buttons.
+      {
+        const { ctx, p, errors } = await open(b, { w: 1440, h: 900, theme: 'dark', init: [libs(1), libArgs(1)] });
+        await setNQ(p);
+        const added = await p.evaluate(async ([ID, ZSID, PID, ps]) => {
+          const c = window.STRYKER_VELA.context().cells[0].chart, out = {};
+          const T = (pr) => Promise.race([pr, new Promise((r) => setTimeout(() => r({ timeout: true }), 30000))]);
+          c.addNativeIndicator('stk_fpat', {});
+          const v = [...document.querySelectorAll('script[src*="chart-pine"],link[href*="style-charts"]')].map((e) => (e.src || e.href).split('?v=')[1]).find(Boolean);
+          const m = await import('/assets/chart-pine-builtins.js?v=' + v);
+          out.dl = await T(window.STRYKER_PINE.addSource('DLHP', await m.builtinSource(ID), { engine: 'next', builtin: true }));
+          out.zs = await T(window.STRYKER_ZS.addLibrary(ZSID)); if (out.zs && out.zs.handle) out.zs = { ok: out.zs.ok };
+          out.pl = await T(window.STRYKER_PINE.addShared({ id: PID, version: 1, source: ps, openSource: true, ownerUid: 'u2', name: 'Comm EMA' }));
+          return out;
+        }, [ID, ZSID, PID, pine(1)]);
+        console.log('added', JSON.stringify(added));
+        await sleep(4000);
+        const dl = await srcOf(p, 'BigBeluga'), zh = await srcOf(p, '@zscript'), ph = await srcOf(p, 'Comm EMA');
+        check(dl && dl.src === OLD && zh && ph, 'run 3a: native, built-in Pine, library Zscript and Community Pine are on the chart', { dl: !!dl, zh: !!zh, ph: !!ph });
+        await setIn(p, dl.id, { lookBack: 250 }); await setIn(p, zh.id, { 0: 21 }); await setIn(p, ph.id, { len: 33 });
+        await sleep(1500);
+        const ds = { n: await desc(p, 'stk_fpat_l2'), x: await desc(p, 'x:' + ID), z: await desc(p, 'zl:' + ZSID), c: await desc(p, 'c:' + PID) };
+        check(ds.n && ds.n.v === '1.0' && !ds.n.st && ds.x && ds.x.v === '1.0' && !ds.x.st && ds.z && ds.z.v === '1' && !ds.z.st && ds.c && ds.c.v === '1' && !ds.c.st, 'run 3a: each one has a version, no update button', ds);
+        check((await btns(p)).length === 0, 'run 3a: no update buttons today');
+        const fpat = await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.indicators().find((h) => /^stk_fpat/.test(h.nativeType)).id);
+        for (const [id, want, tag] of [[fpat, /^Version \| v1\.0 · latest$/, 'v1.0'], [dl.id, /^Version \| v1\.0 · latest$/, 'v1.0'], [zh.id, /^Version \| v1 · latest$/, 'v1']]) {
+          await openDlg(p, id); await sleep(700);
+          const di = await dlgInfo(p);
+          check(di && di.tag === tag && want.test(di.row) && !di.sel, 'run 3a: settings show the version tag ' + tag + ' and a read-only Version row first', di);
+          const al = await p.evaluate(() => {   // ALIGNMENT GATE: title, tag and close share one centre line; Version label and value too
+            const d = document.querySelector('.vela-ind-dialog'), R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { cy: +(r.top + r.height / 2).toFixed(1), h: +r.height.toFixed(1), l: +r.left.toFixed(1), r: +r.right.toFixed(1) }; };
+            const t = R(d.querySelector('.vela-dialog-title')), g = R(d.querySelector('.stk-iv-tag')), x = R(d.querySelector('.vela-dialog-close'));
+            const row = d.querySelector('.vela-dialog-body .vela-field-row');
+            const kids = row ? [...row.children].filter((e) => e.getBoundingClientRect().width > 0).map(R) : [];
+            return { title: t, tag: g, close: x, gapTitleTag: g && t ? +(g.l - t.r).toFixed(1) : null, rowKids: kids };
+          });
+          const cys = [al.title, al.tag, al.close].map((q) => q && q.cy), rk = al.rowKids.map((q) => q.cy);
+          check(cys.every((c) => c != null && Math.abs(c - cys[0]) <= 1) && rk.length >= 2 && rk.every((c) => Math.abs(c - rk[0]) <= 1), 'run 3a: header title/tag/close and Version row share one centre (+-1px)', al);
+          console.log('ALIGN ' + tag + ' ' + JSON.stringify(al));
+          if (SHOTS && id === dl.id) await p.screenshot({ path: OUT + '/iv-3a-1440-dark-dialog.png' });
+          await closeDlg(p); await sleep(300);
+        }
+        // Indicators window (details pane): the details of a native and of a built-in Pine script start with the version
+        await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open()); await p.waitForSelector('.stkiw-row', { timeout: 20000 });
+        const verIn = async (q) => {
+          await p.fill('.stkiw-search', q); await sleep(500);
+          return p.evaluate(() => { const v = document.querySelector('.stkiw-detail .stkiw-ver'); return v && v.textContent; });   // build 1046: the details pane follows the highlighted (first) row
+        };
+        const vRsi = await verIn('Relative Strength Index'), vDl = await verIn('Dynamic Liquidity HeatMap');
+        check(/^v1\.0\d+ \w+ 2026 · latest$/.test(vRsi || '') && /^v1\.015 Oct 2026 · latest$/.test(vDl || ''), 'run 3a: Indicators window details show the version (native + built-in Pine)', { vRsi, vDl });
+        if (SHOTS) await p.screenshot({ path: OUT + '/iv-3a-1440-dark-window.png' });
+        await p.keyboard.press('Escape'); await sleep(300);
+        await p.evaluate(() => window.STRYKER_VELA.context().stateChanged()); await sleep(2500);
+        saved3 = await store(p);
+        const st = Object.values(saved3).join('\n');
+        check(/"builtin":"dynamic-liquidity-heatmap-profile-bigbeluga","bv":"1\.0"/.test(st) && /"lib":\{"sid":"AbCdEfGhIjKlMnOpQrSt","v":1\}/.test(st), 'run 3a: the saved chart stores the built-in version and the library version', st.match(/.{0,80}"bv".{0,20}|.{0,40}"lib":\{"sid.{0,40}/g));
+        // a chart saved BEFORE versions has no bv: make one (run 3c loads it)
+        for (const k in saved3) saved3[k] = (saved3[k] || '').replace(/,\\?"bv\\?":\\?"1\.0\\?"/g, '');
+        check(errors.length === 0, 'run 3a: no console errors', errors);
+        await ctx.close();
+      }
+      // 3b: v1.1 of the built-in ships (indver-bump), the library authors publish v2. Same saved chart, every view.
+      for (const [w, h, mobile, theme, tag] of views) {
+        const { ctx, p, errors } = await open(b, { w, h, mobile, theme, store: saved3, routes: shipped, init: [libs(2), libArgs(2)] });
+        await setNQ(p); await sleep(3500);
+        let dl = await srcOf(p, 'BigBeluga');
+        check(dl && dl.src === OLD && dl.inputs.lookBack === 250, tag + ': a chart saved before v1.1 (no version stored) stays on the old source, settings as saved', dl && { old: dl.src === OLD, lookBack: dl.inputs.lookBack });
+        const ds = { x: await desc(p, 'x:' + ID), z: await desc(p, 'zl:' + ZSID), c: await desc(p, 'c:' + PID), n: await desc(p, 'stk_fpat_l2') };
+        check(ds.x && ds.x.v === '1.0' && ds.x.st && ds.x.st.to === '1.1' && ds.z && ds.z.st && ds.z.st.to === '2' && ds.c && ds.c.st && ds.c.st.to === '2' && !ds.n.st, tag + ': update offered for the built-in (1.0 -> 1.1) and both library scripts (1 -> 2), not for the native', ds);
+        if (mobile && !(await btns(p)).some((x) => x.vis)) { await (await p.$('.vela-ind-fold')).tap(); await sleep(700); }
+        let bs = await btns(p);
+        check(bs.length === 3 && bs.every((x) => x.vis), tag + ': three update buttons in the legend', bs);
+        if (SHOTS) await p.screenshot({ path: OUT + '/iv-3b-' + tag + '-legend.png' });
+        // the built-in's popover, then Update
+        const bh = await p.evaluateHandle(() => [...document.querySelectorAll('.stk-iv-btn')].find((b) => /Dynamic Liquidity/.test(b.parentElement.textContent)));
+        if (mobile) await bh.tap(); else await bh.click(); await sleep(500);
+        const pop = await p.evaluate(() => { const d = document.querySelector('.stk-iv-pop'); return d && d.innerText; });
+        check(/Update available: v1\.1/.test(pop || '') && /This chart uses v1\.0/.test(pop) && /320 bars/.test(pop), tag + ': built-in popover: v1.1, what is new', pop);
+        if (SHOTS) await p.screenshot({ path: OUT + '/iv-3b-' + tag + '-popover.png' });
+        await p.click('.stk-iv-pop .stk-iv-go'); await sleep(4000);
+        dl = await srcOf(p, 'BigBeluga');
+        check(dl && dl.src === NEW && dl.inputs.lookBack === 250, tag + ': Update: the new source runs, settings kept (lookBack 250)', dl && { neu: dl.src === NEW, lookBack: dl.inputs.lookBack });
+        // Version picker on the built-in: 2 versions, back to 1.0 = the old source again (settings kept)
+        await openDlg(p, dl.id); await sleep(800);
+        const trig = '.vela-ind-dialog .stk-iv-row .vela-select-trigger';
+        const tv = await p.evaluate((s) => { const t = document.querySelector(s); return t && t.textContent; }, trig);
+        check(/^v1\.1 · 20 Nov 2026 \(latest\)$/.test(tv || ''), tag + ': built-in settings: Version picker on v1.1 (latest)', tv);
+        if (tv) {
+          await p.click(trig); await sleep(400);
+          const opts = await p.evaluate(() => [...document.querySelectorAll('.vela-select-item')].map((e) => e.textContent));
+          check(opts.length === 2 && /^v1\.0 · 15 Oct 2026$/.test(opts[0]), tag + ': picker lists v1.0 and v1.1', opts);
+          if (SHOTS) await p.screenshot({ path: OUT + '/iv-3b-' + tag + '-picker.png' });
+          const items = await p.$$('.vela-select-item'); for (const it of items) if ((await it.textContent()).startsWith('v1.0 ')) { await it.click(); break; }
+          await sleep(4000);
+          dl = await srcOf(p, 'BigBeluga');
+          check(dl && dl.src === OLD && dl.inputs.lookBack === 250, tag + ': picker back to v1.0: old source, settings kept', dl && { old: dl.src === OLD, lookBack: dl.inputs.lookBack });
+        }
+        await closeDlg(p).catch(() => {}); await sleep(500);
+        // the library scripts: Update keeps the inputs
+        await p.evaluate(([ZSID, PID]) => Promise.all([window.STRYKER_INDVER.update('zl:' + ZSID), window.STRYKER_INDVER.update('c:' + PID)]), [ZSID, PID]); await sleep(4000);
+        const zh = await srcOf(p, '@zscript'), ph = await srcOf(p, 'Comm EMA');
+        check(zh && zh.src === zs(2) && zh.inputs[0] === 21, tag + ': library Zscript Update: v2 runs, Length 21 kept', zh);
+        check(ph && ph.src === pine(2) && ph.inputs.len === 33, tag + ': Community Pine Update: v2 runs, Length 33 kept', ph);
+        const ds2 = { z: await desc(p, 'zl:' + ZSID), c: await desc(p, 'c:' + PID) };
+        check(ds2.z.v === '2' && !ds2.z.st && ds2.c.v === '2' && !ds2.c.st, tag + ': both library scripts on v2, no button', ds2);
+        await p.evaluate(() => window.STRYKER_VELA.context().stateChanged()); await sleep(2500);
+        const st = Object.values(await store(p)).join('\n');
+        check(/"lib":\{"sid":"AbCdEfGhIjKlMnOpQrSt","v":2\}/.test(st) && /"lib":\{"id":"PqRsTuVwXyZaBcDeFgHiJk01","version":2/.test(st), tag + ': saved chart remembers v2 of both');
+        check(errors.length === 0, tag + ': run 3b: no console errors', errors);
+        await ctx.close();
+      }
+      fs.rmSync(T, { recursive: true, force: true });
+    }
     // ---------------- the generated page
-    for (const [w, h, mobile, theme, tag] of views) {
+    if (RUN('p')) for (const [w, h, mobile, theme, tag] of views) {
       const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
       await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); } catch (e) {} }, theme);
       await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
@@ -234,6 +396,11 @@ const sessOf = (st) => Object.values(st).filter((v) => /stk_l2f_fp/.test(v || ''
       const cl = await p.evaluate(() => { const h = document.getElementById('changelog'); const ol = h && h.nextElementSibling; return h && ol ? { h: h.textContent, items: [...ol.children].map((li) => li.querySelector('.ixp-cl-head').textContent), text: ol.innerText, meta: (document.querySelector('.ixp-upd') || {}).textContent, over: document.documentElement.scrollWidth > innerWidth } : null; });
       check(cl && cl.h === 'Changelog' && cl.items.length >= 2 && /^v1\.\dLatest/.test(cl.items[0]) && /^v1\.0/.test(cl.items[cl.items.length - 1]) && /Resting book shown/.test(cl.text) && cl.meta.includes(cl.items[0].slice(0, 4)) && !cl.over, tag + ': indicator page shows the Changelog, newest first, version in the header', cl);
       if (SHOTS) { await p.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; const e = document.getElementById('changelog'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 120); }); await sleep(800); await p.screenshot({ path: OUT + '/iv-' + tag + '-changelog.png' }); }
+      for (const [slug, want] of [['relative-strength-index', /^v1\.0Latest/], ['session-sweep-smt-plus-ifvg', /^v1\.1Latest/], ['dynamic-liquidity-heatmap-profile', /^v1\.0Latest/]]) {
+        const r = await p.goto(BASE + '/indicators/' + slug + '.html', { waitUntil: 'domcontentloaded' });
+        const c2 = r && r.ok() ? await p.evaluate(() => { const h = document.getElementById('changelog'); const ol = h && h.nextElementSibling; return ol ? { items: [...ol.children].map((li) => li.querySelector('.ixp-cl-head').textContent), text: ol.innerText } : null; }) : null;
+        check(c2 && want.test(c2.items[0]) && /First release|Added to ZoroCharts/.test(c2.text), tag + ': /indicators/' + slug + ' has a Changelog with v1.0', c2);
+      }
       await ctx.close();
     }
   } finally { await b.close(); }

@@ -7,13 +7,26 @@ const PROJECT = 'strykertrades-e0cd8';
 const enc = new TextEncoder();
 const b64u = (b) => { let s = ''; const a = new Uint8Array(b); for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 
-async function accessToken(env, fetchImpl) {
+// The Google access token is cached in the isolate (TOKEN_TTL_MS, well inside its 1 h life): signing a JWT and the OAuth round trip
+// cost ~250 ms per order before (16 Nov baseline). A Firestore 401 drops it (the next order mints a new one).
+export const TOKEN_TTL_MS = 45 * 60000;
+let tokMemo = { at: 0, v: '', k: '' };
+export const _resetToken = () => { tokMemo = { at: 0, v: '', k: '' }; };
+async function accessToken(env, fetchImpl, now = Date.now()) {
+  const k = String(env.FIREBASE_SA_KEY || '').length + ':' + String(env.FIREBASE_SA_KEY || '').slice(-24);   // a rotated key never reuses the old token
+  if (tokMemo.v && tokMemo.k === k && now - tokMemo.at < TOKEN_TTL_MS) return tokMemo.v;
+  const v = await mintToken(env, fetchImpl);
+  tokMemo = { at: now, v, k };
+  return v;
+}
+const dropToken = () => { tokMemo = { at: 0, v: '', k: '' }; };
+async function mintToken(env, fetchImpl) {
   const sa = JSON.parse(env.FIREBASE_SA_KEY);
   const pem = sa.private_key.replace(/-----(BEGIN|END) PRIVATE KEY-----/g, '').replace(/\s+/g, '');
   const raw = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
   const key = await crypto.subtle.importKey('pkcs8', raw, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
   const now = Math.floor(Date.now() / 1000);
-  const h = b64u(enc.encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))), p = b64u(enc.encode(JSON.stringify({ iss: sa.client_email, sub: sa.client_email, aud: 'https://oauth2.googleapis.com/token', scope: 'https://www.googleapis.com/auth/datastore', iat: now, exp: now + 300 })));
+  const h = b64u(enc.encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))), p = b64u(enc.encode(JSON.stringify({ iss: sa.client_email, sub: sa.client_email, aud: 'https://oauth2.googleapis.com/token', scope: 'https://www.googleapis.com/auth/datastore', iat: now, exp: now + 3600 })));
   const sig = b64u(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, enc.encode(h + '.' + p)));
   const r = await fetchImpl('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer') + '&assertion=' + h + '.' + p + '.' + sig });
   if (!r.ok) throw new Error('audit auth');
@@ -25,13 +38,17 @@ const DOCS = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/datab
 const base = DOCS + 'brokerOrderAudit';
 
 // -> { id, finish(result) } or throws (caller refuses the order: no audit, no order). docId (optional) = the idempotency key.
+// The 'attempt' row is still written BEFORE the order (it is also the duplicate guard); order.js runs it in parallel with the fresh
+// positions/orders read, so it costs no extra time on a chart place. finish() (the result) goes out after the reply (deps.defer).
 export async function openAudit(env, deps, entry, docId) {
   if (deps.audit) return deps.audit(entry, docId);
   const f = deps.auditFetch || fetch;
-  const at = await accessToken(env, f);
   const id = docId || crypto.randomUUID().replace(/-/g, '');
   const doc = { ...entry, at: new Date().toISOString(), result: 'attempt' };
-  let r = await f(base + '?documentId=' + encodeURIComponent(id), { method: 'POST', headers: { authorization: 'Bearer ' + at, 'content-type': 'application/json' }, body: JSON.stringify({ fields: fields(doc) }) });
+  const create = async (at) => f(base + '?documentId=' + encodeURIComponent(id), { method: 'POST', headers: { authorization: 'Bearer ' + at, 'content-type': 'application/json' }, body: JSON.stringify({ fields: fields(doc) }) });
+  let at = await accessToken(env, f);
+  let r = await create(at);
+  if (r.status === 401) { dropToken(); at = await accessToken(env, f); r = await create(at); }   // cached token revoked/expired early
   if (r.status === 409) { const e = new Error('duplicate'); e.duplicate = true; throw e; }
   if (!r.ok) throw new Error('audit write');
   return { id, finish: async (res) => { try { const mask = Object.keys(res).map((k) => 'updateMask.fieldPaths=' + k).join('&'); await f(base + '/' + encodeURIComponent(id) + '?' + mask, { method: 'PATCH', headers: { authorization: 'Bearer ' + at, 'content-type': 'application/json' }, body: JSON.stringify({ fields: fields(res) }) }); } catch (e) { /* attempt row already exists */ } } };
@@ -45,8 +62,9 @@ export async function liveSwitchOn(env, deps) {
   if (deps.liveSwitch) return deps.liveSwitch();
   if (killMemo.v !== null && Date.now() - killMemo.at < 5000) return killMemo.v;
   const f = deps.auditFetch || fetch;
-  const at = await accessToken(env, f);
-  const r = await f(DOCS + 'settings/liveTrading', { headers: { authorization: 'Bearer ' + at } });
+  let at = await accessToken(env, f);
+  let r = await f(DOCS + 'settings/liveTrading', { headers: { authorization: 'Bearer ' + at } });
+  if (r.status === 401) { dropToken(); at = await accessToken(env, f); r = await f(DOCS + 'settings/liveTrading', { headers: { authorization: 'Bearer ' + at } }); }
   let v;
   if (r.status === 404) v = true;
   else if (!r.ok) throw new Error('kill switch read');

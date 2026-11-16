@@ -13,12 +13,12 @@
 //   - right side: the current book per price row (red asks above, green bids below, sizes) and an optional cumulative column;
 //   - bottom: buy / sell volume bars per bar; a last-price line and the best bid / ask sizes at the right edge.
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
-import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=1067';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1067';
-import { l2Badge, l2Delayed, rootState, L2_TYPES, l2Closed, closedNote, staleNote, fpNeed } from './chart-futures-l2.js?v=1067';
-import { depthSourceFor, acquireDepth, noSourceNote } from './chart-depth-source.js?v=1067';
-import { icebergEvents } from './chart-liquidity-data.js?v=1067';
-import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-map.js?v=1067';
+import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=1074';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1074';
+import { l2Badge, l2Delayed, rootState, L2_TYPES, l2Closed, closedNote, staleNote, fpNeed } from './chart-futures-l2.js?v=1074';
+import { depthSourceFor, acquireDepth, noSourceNote } from './chart-depth-source.js?v=1074';
+import { icebergEvents } from './chart-liquidity-data.js?v=1074';
+import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-map.js?v=1074';
 
 export const DH_TYPE = 'stk_depth_heat';
 export const DH_TITLE = 'Depth Heatmap (L2)';
@@ -441,11 +441,17 @@ export function installDepthHeatmap(Core, H, reg) {
       if (f && replayNow() && H.replayNote) return H.replayNote(f);   // bar replay: the recorded book, not the live feed state
       if (!f || f.status === 'loading' || (f.custom && f.custom.member && f.status !== 'error' && !f.history.length)) return WAITING;   // a source, no book yet: it starts by itself
       if (f.status === 'error') return f.err || 'Order book unavailable.';
-      if (f.status === 'reconnecting') return hubOf(f) && l2Closed(f.ticker) ? this.gapNote(f) || closedNote() : 'Reconnecting to the order book…';
+      if (f.status === 'reconnecting') return hubOf(f) && l2Closed(f.ticker) ? this.gapNote(f) || this.closedEmpty(f) || closedNote() : 'Reconnecting to the order book…';
       if (f.custom && f.custom.member) return '';   // the member's own feed: live, no recorder
       if (f.custom && l2Delayed()) return f.history.length < 2 && f.remote.length < 2 ? 'Loading the recorded order book…' : this.gapNote(f);   // delayed label: the feed chips; a real recorder gap (15 min look > 10 min delay) still says so
       if (f.history.length < 15 && f.remote.length < 2) return this.gapNote(f) || 'Building order book history…';
       return f.custom ? this.gapNote(f) || staleNote(f.ticker) : '';
+    }
+    // market closed and the recorder answered with no book at all for these bars (its kept window has moved past the last session): say that,
+    // not "showing the last session's order book" over a blank chart (GK 14 Nov: "heatmap is blank when the market is closed")
+    closedEmpty(f) {
+      if (f.remoteBusy || f.remoteState === 'none' || f.history.length || f.remote.length) return '';
+      return (this.gap = document.documentElement.getAttribute('data-device') === 'mobile' ? 'Market closed · no recorded book' : 'Market closed · no recorded order book for the last session');   // this.gap: drawn by the layer, clear of the other L2 plates
     }
     gapNote(f) {   // futures: the recorder has no book for the last bars (feed gap); crypto books come straight from the exchange
       this.gap = '';

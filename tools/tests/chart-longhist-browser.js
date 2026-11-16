@@ -15,7 +15,7 @@ let fail = 0; const check = (ok, m, x) => { if (!ok) fail++; console.log((ok ? '
   check(cap0 >= 700, '1H cap is years-scale (>=700 days)', cap0);
   await p.evaluate((d) => { window.__stkSetDays && 0; }, 0);
   // choose 365 days through the real setting store
-  const ok = await p.evaluate(async () => { const m = await import('/assets/chart-days-load.js?v=1067'); const id = window.STRYKER_VELA.active.id; m.setDays(id, '60', 365); window.__stkHistoryPager.kick(id); return true; });
+  const ok = await p.evaluate(async () => { const m = await import('/assets/chart-days-load.js?v=1074'); const id = window.STRYKER_VELA.active.id; m.setDays(id, '60', 365); window.__stkHistoryPager.kick(id); return true; });
   await p.waitForFunction(() => { const o = window.STRYKER_VELA.cell(window.STRYKER_VELA.active.id).chart.orchestrator; const b = o.rawBars; return b.length > 1 && (b[b.length - 1].time - b[0].time) / 864e5 >= 330; }, null, { timeout: 90000 }).catch(() => {});
   await p.waitForTimeout(3000);
   const r = await p.evaluate(() => { const o = window.STRYKER_VELA.cell(window.STRYKER_VELA.active.id).chart.orchestrator, b = o.rawBars; return { n: b.length, days: (b[b.length - 1].time - b[0].time) / 864e5, pages: window.__stkHistoryPager.stats().pages }; });

@@ -183,16 +183,15 @@
 /* Owner 14 Nov: pill buttons everywhere (see style.css end) */
 .btn,.cm-btn,.btn-sm{ border-radius:999px; }
 
-/* Hero "Open ZoroCharts": rainbow pulsating border (Owner 16 Nov). A conic gradient ring behind the pill,
+/* Hero "Open ZoroCharts": green shimmering border (Owner 16 Nov). A conic gradient ring behind the pill,
    rotating slowly, with a soft glow that pulses. Reduced motion: static ring, no spin or pulse. */
 @property --rb-a{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
 .cm-rainbow{ position:relative; isolation:isolate; }
 .cm-rainbow::before, .cm-rainbow::after{ content:''; position:absolute; inset:-3px; border-radius:inherit; z-index:-1; pointer-events:none;
-  background:conic-gradient(from var(--rb-a), #ff3b6b, #ff9f1c, #ffe14d, #2ee59d, #2ec5ff, #7a5cff, #ff3bd4, #ff3b6b);
+  background:conic-gradient(from var(--rb-a), #02a06a, #03c988, #7dffc8, #d6fff0, #7dffc8, #03c988, #02a06a, #014d33, #02a06a);
   animation:rb-spin 3s linear infinite;
   /* ring only: cut the middle out so the button keeps its own colour */
   padding:3px; -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
-.cm-rainbow::after{ inset:-7px; padding:5px; filter:blur(8px); opacity:.55; animation:rb-spin 3s linear infinite, rb-pulse 1.8s ease-in-out infinite; }
+.cm-rainbow::after{ display:none; }   /* no glow / pulse (Owner 16 Nov): green spinning ring only */
 @keyframes rb-spin{ to{ --rb-a:360deg; } }
-@keyframes rb-pulse{ 0%,100%{ opacity:.25; transform:scale(.97); } 50%{ opacity:.8; transform:scale(1.04); } }
-@media (prefers-reduced-motion: reduce){ .cm-rainbow::before, .cm-rainbow::after{ animation:none; } .cm-rainbow::after{ opacity:.35; } }
+@media (prefers-reduced-motion: reduce){ .cm-rainbow::before, .cm-rainbow::after{ animation:none; } }

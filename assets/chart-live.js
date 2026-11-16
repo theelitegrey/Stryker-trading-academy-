@@ -25,7 +25,7 @@
 // - Qty cap 2 contracts and max 2 contracts worst-case exposure: server-side (order.js), also enforced here.
 // Tests: tests/finatic/chart-live.test.mjs (core + server, mocked broker), tools/tests/chart-live-browser.js (mocked endpoints only).
 // Education only. Not financial advice.
-import * as L from './chart-live-core.js?v=1067';
+import * as L from './chart-live-core.js?v=1074';
 
 const POLL_MS = 10000, STALE_MS = 25000, IDLE_MS = 15 * 60000, HIDDEN_MS = 2 * 60000;
 const DISCLAIMER = 'Education only. Not financial advice.';
@@ -41,7 +41,7 @@ const S = {
   accounts: [], acct: null, userId: '', env: null, loaded: false, loadErr: '',
   data: { positions: [], orders: [] }, lastOkStart: 0, lastWriteAt: 0, unknown: false, readErr: '', reading: false,
   busy: false, typed: new Set(), skip: false, form: { side: 'buy', type: 'market', qty: 1, price: '' }, modifyOk: null,
-  placeSchema: null, placeErr: '', killed: null, lastAct: Date.now(), hiddenAt: 0, lock: null, msg: ''
+  placeSchema: null, placeErr: '', killed: null, lastAct: Date.now(), hiddenAt: 0, lock: null, msg: '', rtt: null, pending: null
 };
 window.__stkLive = { get state() { return S; } };
 
@@ -49,17 +49,20 @@ function toast(m, type) { try { if (toastFn) toastFn(m, type || 'info'); else if
 const lsUserKey = () => 'stryker_broker_sync_user_' + uid;
 const lsUser = () => { try { return localStorage.getItem(lsUserKey()) || ''; } catch (e) { return ''; } };
 
-async function call(url, body) {
+// SPEED (Owner order 2026-11-16): the ID token is cached by the Firebase SDK (no network unless it is near expiry); every write is timed
+// from the confirm tap to the answer (S.rtt, shown in the panel footer) with the server's Server-Timing split (L.parseTiming).
+async function call(url, body, timing) {
   let t; try { t = await firebase.auth().currentUser.getIdToken(); } catch (e) { const er = new Error('Sign in again.'); er.status = 401; throw er; }
   let r;
-  try { r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + t }, body: JSON.stringify(body), cache: 'no-store' }); }
+  try { r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + t }, body: JSON.stringify(body), cache: 'no-store', keepalive: !!timing }); }
   catch (e) { const er = new Error('No answer from TradeZoro.'); er.status = 0; er.network = true; throw er; }
+  if (timing) timing.server = L.parseTiming(r.headers.get('server-timing'));
   let j = null; try { j = await r.json(); } catch (e) {}
   if (!r.ok) { const e = new Error((j && j.error) || 'Request failed (code ' + r.status + ').'); e.status = r.status; e.code = j && j.code; e.needsConnect = !!(j && j.needsConnect); throw e; }
   return j || {};
 }
 const data = (op, extra) => call('/connect/finatic/data', Object.assign({ op, userId: S.userId }, extra || {}));
-const order = (b) => call('/connect/finatic/order', Object.assign({ src: 'chart', userId: S.userId, accountId: S.acct.id }, b));
+const order = (b, timing) => call('/connect/finatic/order', Object.assign({ src: 'chart', userId: S.userId, accountId: S.acct.id }, b), timing);
 
 // ------------------------------------------------------------------------------------------ accounts
 async function loadAccounts() {
@@ -76,7 +79,7 @@ async function loadAccounts() {
   S.loaded = true; render();
 }
 function connect() {
-  import('./finatic-journal-ui.js?v=1067').then((m) => m.openBrokerSync({ uid, mode: 'chart', onConnected: () => { loadAccounts().then(() => toast('Broker connected. Pick the account in the panel.', 'success')); } }))
+  import('./finatic-journal-ui.js?v=1074').then((m) => m.openBrokerSync({ uid, mode: 'chart', onConnected: () => { loadAccounts().then(() => toast('Broker connected. Pick the account in the panel.', 'success')); } }))
     .catch(() => toast('Could not open the broker connection.', 'error'));
 }
 
@@ -93,10 +96,11 @@ async function pick(id) {
     if (!got) { toast('This live account is open in another ZoroCharts tab. Use that tab, or close it first.', 'error'); render(); return; }
   }
   S.acct = a; S.data = { positions: [], orders: [] }; S.lastOkStart = 0; S.lastWriteAt = 0; S.unknown = false; S.readErr = ''; S.skip = false; S.modifyOk = null; S.placeSchema = null; S.placeErr = ''; S.lastAct = Date.now();
+  // 'env' also pre-warms the server (Finatic session + kill switch cached) and the browser's connection; reads start in parallel
+  read(); readKill();
   try { const r = await order({ op: 'env' }); S.env = r; } catch (e) { S.env = { env: '', enabled: false }; }
-  readKill();
   schemaCheck();
-  render(); read();
+  render();
 }
 async function leave(quiet) {
   const had = !!S.acct;
@@ -181,11 +185,13 @@ export function lines(sym) {
   const out = [];
   if (i.pos.qty && i.pos.avg) out.push({ id: 'pos', kind: 'pos', live: true, price: i.pos.avg, side: i.pos.qty > 0 ? 'buy' : 'sell', qty: Math.abs(i.pos.qty), pnl: i.pnl });
   for (const o of i.working) if (o.price) out.push({ id: 'L' + o.id, oid: o.id, kind: 'ord', live: true, price: o.price, side: o.side, type: o.type, qty: o.qty });
+  if (S.pending && S.pending.code === i.code) out.push(S.pending);
   return out;
 }
 export function chipText(sym, l) {
   const i = info(sym);
   if (l.kind === 'pos') return ['LIVE ' + (l.side === 'buy' ? 'LONG ' : 'SHORT ') + l.qty + ' ' + (i ? i.code : '') + ' @ ' + px(l.price), money(i ? i.pnl : null, true)];
+  if (l.pending) return ['SENDING ' + (l.side === 'buy' ? 'BUY ' : 'SELL ') + l.qty + (l.type === 'market' ? ' MKT' : ' LMT'), px(l.price)];
   return ['LIVE ' + (l.side === 'buy' ? 'BUY ' : 'SELL ') + (/stop/.test(l.type) ? 'STP ' : 'LMT ') + l.qty, px(l.price)];
 }
 export const tickOf = (sym) => { const r = L.chartRoot(sym); return r ? L.ROOTS[r].tick : 0.25; };
@@ -223,16 +229,24 @@ function confirmSheet(d) {
 }
 
 // ------------------------------------------------------------------------------------------ writes
-async function write(body, what) {
-  S.busy = true; S.lastWriteAt = now(); render();
-  try { const r = await order(body); toast(what + ' sent. ' + (r.status ? 'Broker status: ' + r.status + '.' : ''), 'success'); return r; }
+// pending: optional "sending" line drawn on the chart right away (L.pendingLine), removed when the answer arrives
+async function write(body, what, pending) {
+  S.busy = true; S.lastWriteAt = now(); S.pending = pending || null; render();
+  const tm = { op: body.op, t0: performance.now() };
+  try { const r = await order(body, tm); tm.ok = true; toast(what + ' sent. ' + (r.status ? 'Broker status: ' + r.status + '.' : ''), 'success'); return r; }
   catch (e) {
     S.skip = false;
     if (e.code === 'unknown' || e.network) { S.unknown = true; toast('No clear answer from the broker. The order may or may not be live. Check the working orders before sending again.', 'error'); }
     else toast(what + ' refused: ' + e.message, 'error');
     return null;
-  } finally { S.busy = false; S.lastWriteAt = now(); render(); setTimeout(read, 600); }
+  } finally {
+    tm.ms = performance.now() - tm.t0; S.rtt = tm; S.busy = false; S.pending = null; S.lastWriteAt = now(); render();
+    fastReads();
+  }
 }
+// read soon after a write (fill / working order shows within ~¼ s), then a few more, then the normal poll
+let fastT = [];
+function fastReads() { fastT.forEach(clearTimeout); fastT = L.FAST_READS_MS.map((ms) => setTimeout(() => { if (S.acct) read(); }, ms)); }
 const sideWord = (s) => (s === 'buy' ? 'BUY' : 'SELL');
 function contractLine(i) { return 'Contract <b>' + esc(i.code) + '</b>' + (i.held ? ' (your open position’s month; front month is ' + esc(i.front) + ')' : ' (front month of ' + esc(i.root) + ')'); }
 async function place(sym, o, src) {
@@ -246,7 +260,8 @@ async function place(sym, o, src) {
   const ok = await confirmSheet({ title: desc, code: i.code, side: o.side, go: 'Send ' + sideWord(o.side) + ' ' + qty,
     lines: [contractLine(i), 'Account <b>' + esc(S.acct.label) + '</b>', o.marketable ? '<span class="stklv-warn">This limit is at or through the market: it fills now at ' + esc(px(b.body.limitPrice)) + ' or better.</span>' : (o.type === 'market' ? '<span class="stklv-warn">Market order: fills at the next available price.</span>' : ''), 'Position now: ' + posText(i)].filter(Boolean), noSkip: false });
   if (!ok) return null;
-  return write(Object.assign(b.body, { idemKey: uuid() }), desc + (src ? ' (' + src + ')' : ''));
+  const body = Object.assign(b.body, { idemKey: uuid() });
+  return write(body, desc + (src ? ' (' + src + ')' : ''), L.pendingLine(body, i.last));
 }
 const posText = (i) => (i.pos.qty ? (i.pos.qty > 0 ? 'long ' : 'short ') + Math.abs(i.pos.qty) + (i.pos.avg ? ' @ ' + px(i.pos.avg) : '') : 'flat') + (i.working.length ? ', ' + i.working.length + ' working order' + (i.working.length === 1 ? '' : 's') : '');
 export async function cancel(oid) {
@@ -301,7 +316,7 @@ export function domState(sym) {
   const i = info(sym); if (!i) return null;
   return { live: true, code: i.code, orders: i.working.filter((o) => o.price).map((o) => ({ id: o.id, side: o.side, qty: o.qty, price: o.price })), pos: i.pos.qty ? { side: i.pos.qty > 0 ? 'buy' : 'sell', qty: Math.abs(i.pos.qty), avg: i.pos.avg || 0 } : null, pnl: i.pnl, sp: { ok: true, kind: 'futures', minQty: 1, symbol: i.code }, block: blockReason(), label: envWord() + ' ' + S.acct.label };
 }
-export function chipX(sym, id) { if (id === 'pos') return flatten(sym); return cancel(String(id).replace(/^L/, '')); }
+export function chipX(sym, id) { if (id === 'pos') return flatten(sym); if (/^P/.test(id)) { toast('This order is still being sent. Cancel it once it shows as working.', 'info'); return null; } return cancel(String(id).replace(/^L/, '')); }
 export function flattenActive() { return flatten(P.activeSymbol()); }
 export function openTicket(pre) {
   pre = pre || {};
@@ -331,7 +346,7 @@ export function renderSummary(el) {
   const t = i ? i.code + ' · ' + (i.pos.qty ? (i.pos.qty > 0 ? 'Long ' : 'Short ') + Math.abs(i.pos.qty) : 'Flat') + ' · Open P&L ' + money(i.pnl, true) : 'Open an NQ, ES, MNQ or MES chart to trade live';
   if (el.textContent !== t) { el.textContent = ''; const s = document.createElement('span'); s.className = i && i.pnl > 0 ? 'up' : i && i.pnl < 0 ? 'down' : ''; s.textContent = t; el.appendChild(s); }
 }
-export const foot = () => (S.acct ? envWord() + ' account ' + S.acct.label + ': real orders at your broker, max 2 contracts, every attempt logged. Positions refresh every ' + POLL_MS / 1000 + ' s. ' + DISCLAIMER : '');
+export const foot = () => (S.acct ? (S.busy && S.pending ? 'Sending… ' : L.rttText(S.rtt) ? L.rttText(S.rtt) + ' ' : '') + envWord() + ' account ' + S.acct.label + ': real orders at your broker, max 2 contracts, every attempt logged. Positions refresh every ' + POLL_MS / 1000 + ' s. ' + DISCLAIMER : '');
 let viewSig = '';
 export function renderView(v) {
   if (!v || !S.acct) return;
@@ -389,6 +404,7 @@ const CSS = `
 .stklv-cbadge{ position:absolute; right:80px; top:8px; z-index:6; height:28px; padding:0 16px; display:flex; align-items:center; border-radius:999px; background:#d92d20; color:#fff; font:700 12px/16px -apple-system,BlinkMacSystemFont,Roboto,sans-serif; letter-spacing:.04em; white-space:nowrap; pointer-events:none; box-shadow:0 2px 8px rgba(0,0,0,.35); max-width:calc(100% - 96px); overflow:hidden; text-overflow:ellipsis; }
 .stkpt-chip[data-live]{ border-width:2px; }
 .stkpt-chip[data-live] .stkpt-chip-a{ font-weight:700; }
+.stkpt-chip[data-live][data-id^="P"]{ opacity:.88; border-style:dashed; }
 .stklv-view{ display:grid; grid-template-columns:minmax(260px,320px) minmax(0,1fr); gap:16px; padding:8px 4px; align-items:start; }
 .stklv-form{ display:flex; flex-direction:column; gap:8px; }
 .stklv-ctr{ margin:0; font:500 13px/18px var(--font-body, sans-serif); color:var(--ink-2); }

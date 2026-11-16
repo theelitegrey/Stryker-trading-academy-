@@ -7,12 +7,12 @@
 // Hyperliquid charts: tap a Book row (DOM: the price cell) or pick "Wallets at this price" -> tracked wallets with orders there (chart-wallet-intel.js).
 // Logic lives in book-panel-core.js (unit-tested), streams in book-panel-sources.js. Phones <= 700 px: bottom sheet.
 // Wording: "updated Xs ago" only; no real-time claims. Education only. Not financial advice.
-import { l2Visible, l2Badge, l2Delayed, DELAYED_SHORT, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source, staleNote } from './chart-futures-l2.js?v=1047';
 import { replayClock, btBook } from './book-replay.js?v=1047';
 import { rtReady, rtOnChange } from './rt-access.js?v=1047';
 import * as C from './book-panel-core.js?v=1047';
 import { SignalEngine, TAGS, WINDOWS, FADES } from './dom-signals-core.js?v=1047';
 import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=1047';
+import { l2Closed, l2Visible, l2Badge, l2Delayed, DELAYED_SHORT, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source, staleNote } from './chart-futures-l2.js?v=1047';
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
 const FILTERS_C = [['0', 'All sizes'], ['1000', '≥ $1k'], ['10000', '≥ $10k'], ['100000', '≥ $100k']], FILTERS_F = [['0', 'All sizes'], ['5', '≥ 5'], ['25', '≥ 25'], ['100', '≥ 100']];
@@ -514,6 +514,15 @@ export function mountBookPanel(ws, opts) {
 
   const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, get width() { return S.w; },
     setWidth: (px) => { S.w = clamp(Math.round(+px) || 400, 320, 640); panel.style.setProperty('--stkbp-w', S.w + 'px'); host.style.setProperty('--stkbp-w', S.w + 'px'); save(); try { window.dispatchEvent(new Event('resize')); } catch (e) {} }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _signals: () => eng /* test hook */, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
+  // Connection popover (assets/chart-latency.js): the feed's state in plain words + when the last book frame arrived. Reconnect re-opens it.
+  api.feedState = () => {
+    if (!open || !feed || !feed.key) return null;
+    if (feed.rp) return { kind: feed.k.kind, label: 'Replay', s: '', at: 0 };
+    if (feed.k.kind === 'fut') { const r = rootState(feed.futRoot), live = r.status === 'live'; return { kind: 'fut', label: live ? 'Live' : l2Closed(feed.futRoot) ? 'Market closed' : r.status === 'error' ? 'Unavailable' : 'Reconnecting', s: live ? 'ok' : r.status === 'error' ? 'bad' : 'warn', at: r.lastFrame || 0 }; }
+    let n = 0, at = 0, tot = 0; feed.books.forEach((e) => { if (e.status === 'unlisted') return; tot++; if (e.status === 'live') n++; at = Math.max(at, e.at || 0); });
+    return { kind: 'crypto', label: !tot ? 'Not listed' : n === tot ? 'Live' : n ? 'Live · ' + n + ' of ' + tot + ' exchanges' : 'Reconnecting', s: n ? (n === tot ? 'ok' : 'warn') : 'warn', at };
+  };
+  api.reconnect = () => { if (!open) return; detach(); attach(); schedule(); };
   window.__stkBookPanel = api; if (!window.__stkL2Ladder) window.__stkL2Ladder = api;
   return api;
 }

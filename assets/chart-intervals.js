@@ -39,6 +39,7 @@
 import { liveSubscribe } from './chart-live-resume.js?v=1047';
 import { rtReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=1047';
 import { hubLive, hubCovers } from './live-source.js?v=1047';
+import { noteBar, feedKey } from './chart-latency-core.js?v=1047';   // connection chip: "last update" per feed (assets/chart-latency.js)
 
 const LS_FAVS = 'stryker_chart_iv_favs';
 const LS_COLLAPSED = 'stryker_chart_iv_collapsed';
@@ -473,7 +474,7 @@ export function wrapProvider(inner, name, pollMs) {
   // back-filled when the member returns to the tab, the page is restored, the network comes back,
   // or the feed goes quiet (Owner bug 2026-10-12: candles froze after switching tabs).
   const subscribe = (ticker, timeframe, onBar, opts) => liveSubscribe(
-    (cb) => openSub(ticker, timeframe, cb, opts),
+    (cb) => { const k = feedKey(name, ticker); return openSub(ticker, timeframe, (b) => { noteBar(k); cb(b); }, opts); },
     (range) => getBars(ticker, timeframe, Object.assign({ fresh: true }, range)),   // fresh: never the memoised page, this is a gap fill
     timeframe, onBar);
   const openSub = (ticker, timeframe, onBar, opts) => {

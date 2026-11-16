@@ -7,9 +7,11 @@
 // pages load in app windows and only they get the tiny preload bridge (src/preload.js). Sign-in and
 // payment popups open as sandboxed child windows with no preload. Everything else goes to the normal
 // browser (src/policy.js decides; test/policy.test.js covers it).
-const { app, BrowserWindow, Menu, Tray, Notification, shell, ipcMain, screen, session, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, Tray, Notification, shell, ipcMain, screen, session, dialog, nativeImage, net } = require('electron');
 const path = require('path');
+const http = require('http');
 const policy = require('./policy');
+const handoff = require('./handoff');
 const State = require('./state');
 
 const ORIGIN = 'https://tradezoro.com';
@@ -23,6 +25,12 @@ app.setAppUserModelId('com.tradezoro.desktop');   // Windows toasts show "TradeZ
 app.userAgentFallback = app.userAgentFallback.replace(/\s(TradeZoro|tradezoro-desktop|Electron)\/\S+/gi, '');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); }
+
+// tradezoro://auth?code=... brings a Google sign-in back from the browser when the loopback port could not be used.
+// '--' before the URL: Chromium stops reading switches there, so a crafted link cannot inject command-line flags.
+// In a dev run (electron .) Windows needs the exe + script path to relaunch us.
+if (process.defaultApp && process.argv.length >= 2) app.setAsDefaultProtocolClient(handoff.PROTOCOL, process.execPath, [path.resolve(process.argv[1]), '--']);
+else app.setAsDefaultProtocolClient(handoff.PROTOCOL, process.execPath, ['--']);
 
 let state, tray = null, mainWin = null, quitting = false, updateReady = false, trayHintShown = false;
 const charts = new Map();            // key -> BrowserWindow (pop-out windows)
@@ -215,6 +223,85 @@ ipcMain.on('tz:ontop', (e) => {
   if (policy.isAppUrl(e.senderFrame && e.senderFrame.url)) toggleOnTop(BrowserWindow.fromWebContents(e.sender));
 });
 
+// ---------- Google sign-in in the system browser (src/handoff.js explains the flow) ----------
+// Google blocks OAuth in embedded browsers, so the app never shows Google's sign-in itself. One flow at a time;
+// starting a new one cancels the old. The custom token goes back only to the page that asked for it.
+let gFlow = null;
+function endFlow(flow, err, token) {
+  if (!flow || flow.done) return;
+  flow.done = true;
+  clearTimeout(flow.timer);
+  if (flow.server) {   // stop listening now; give the in-flight reply (the browser's redirect) a moment, then drop the rest
+    const srv = flow.server;
+    try { srv.close(); } catch (e) { /* already closed */ }
+    setTimeout(() => { try { srv.closeAllConnections(); } catch (e) { /* gone */ } }, 2000).unref();
+  }
+  if (gFlow === flow) gFlow = null;
+  if (err) flow.reject(new Error(err)); else flow.resolve({ token });
+}
+
+async function redeemCode(flow, code) {
+  if (!flow || flow.done || flow.busy) return false;
+  flow.busy = true;
+  try {
+    const r = await net.fetch(handoff.ORIGIN + '/api/desktop/handoff/redeem', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code, verifier: flow.verifier }),
+      credentials: 'omit', cache: 'no-store', redirect: 'error'
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && typeof j.token === 'string' && j.token.length > 20 && j.token.length < 8192) {
+      endFlow(flow, null, j.token);
+      if (flow.win && !flow.win.isDestroyed()) { if (flow.win.isMinimized()) flow.win.restore(); flow.win.show(); flow.win.focus(); }
+      return true;
+    }
+    // A code that is not ours (403: minted for another nonce) or already spent: keep waiting for the real one,
+    // but give up after a few, so a hostile page cannot keep the flow busy.
+    if (++flow.bad >= handoff.MAX_BAD_CODES) endFlow(flow, 'failed');
+    return false;
+  } catch (e) {
+    if (++flow.bad >= handoff.MAX_BAD_CODES) endFlow(flow, 'failed');
+    return false;
+  } finally { flow.busy = false; }
+}
+
+function startLoopback(flow) {
+  return new Promise((resolve) => {
+    const srv = http.createServer((req, res) => {
+      const code = flow.port && !flow.done ? handoff.codeFromLoopback(req.method, req.url, req.headers.host, flow.port) : null;
+      if (!code) { res.writeHead(404, { 'content-type': 'text/plain', 'cache-control': 'no-store' }); return res.end('Not found'); }
+      redeemCode(flow, code).then((ok) => {
+        res.writeHead(302, { location: handoff.afterUrl(ok), 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', connection: 'close' });
+        res.end();
+      });
+    });
+    srv.on('error', () => resolve(null));
+    srv.listen(0, '127.0.0.1', () => { flow.server = srv; flow.port = srv.address().port; resolve(flow.port); });
+  });
+}
+
+ipcMain.handle('tz:google', async (e) => {
+  if (!e.senderFrame || e.senderFrame !== e.sender.mainFrame || !policy.isAppUrl(e.senderFrame.url)) throw new Error('not allowed');
+  if (gFlow) endFlow(gFlow, 'cancelled');
+  const pair = handoff.makePair();
+  const flow = { verifier: pair.verifier, challenge: pair.challenge, bad: 0, done: false, busy: false, win: BrowserWindow.fromWebContents(e.sender), sender: e.sender };
+  const p = new Promise((resolve, reject) => { flow.resolve = resolve; flow.reject = reject; });
+  gFlow = flow;
+  flow.timer = setTimeout(() => endFlow(flow, 'timeout'), handoff.FLOW_TTL_MS);
+  e.sender.once('destroyed', () => endFlow(flow, 'cancelled'));
+  const port = await startLoopback(flow);   // null -> the page comes back through tradezoro://auth instead
+  try { await shell.openExternal(handoff.loginUrl(flow.challenge, port)); } catch (err) { endFlow(flow, 'no-browser'); }
+  return p.catch((err) => { throw new Error(err.message); });
+});
+
+ipcMain.on('tz:google-cancel', (e) => {
+  if (gFlow && gFlow.sender === e.sender) endFlow(gFlow, 'cancelled');
+});
+
+function handleProtocolUrl(url) {
+  const code = handoff.codeFromProtocolUrl(url);
+  if (code && gFlow) redeemCode(gFlow, code);
+}
+
 // ---------- menu, shortcuts, tray ----------
 function focused() { return BrowserWindow.getFocusedWindow() || mainWin; }
 
@@ -311,7 +398,12 @@ function checkUpdates(manual) {
 function installUpdate() { quitting = true; autoUpdater && autoUpdater.quitAndInstall(false, true); }
 
 // ---------- start ----------
-app.on('second-instance', showMain);
+app.on('second-instance', (e, argv) => {
+  const u = handoff.protocolArg(argv);
+  if (u) handleProtocolUrl(u);
+  showMain();
+});
+app.on('open-url', (e, url) => { e.preventDefault(); handleProtocolUrl(url); });   // macOS form of the same
 app.on('before-quit', () => { quitting = true; state && state.flush(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin' && quitting) app.quit(); });
 app.on('browser-window-focus', () => buildMenu());

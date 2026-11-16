@@ -701,6 +701,16 @@ def check_zscript_engine():
                 fail(f'Zscript zs-{n} tests failed: ' + ('; '.join(bad) or (r.stdout + r.stderr)[-300:]))
 
 
+def check_desktop_signin():
+    """Windows app Google sign-in in the system browser (Owner bug 15 Nov): server handoff (mint, single use, expiry,
+    verifier mismatch), the /dl edge cache per release tag, and the app's handoff/URL-policy unit tests."""
+    for cmd in (['node', 'tools/tests/desktop-handoff.test.mjs'], ['node', 'tools/tests/dl-cache.test.mjs'],
+                ['node', '--test', 'desktop/test/policy.test.js', 'desktop/test/handoff.test.js']):
+        r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, timeout=120)
+        if r.returncode != 0:
+            fail(f'{" ".join(cmd)} failed:\n' + (r.stdout + r.stderr)[-1500:])
+
+
 def check_pro_features():
     """/pro never goes stale: every Pro-gated tool id (chart-pro-gate.js OF_TYPES + GEX_TYPES, registerFeed types, setPanel ids)
     must appear in the ids of an item in assets/pro-features-data.js, and /pro must show no price."""
@@ -754,7 +764,7 @@ def main():
     # two browser checks start first so they overlap the rest
     fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
     browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
-    order = [check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_days_load, check_finatic, check_workspaces, check_latency, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
+    order = [check_desktop_signin, check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_days_load, check_finatic, check_workspaces, check_latency, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

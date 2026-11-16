@@ -15,8 +15,8 @@
 // this device only, localStorage) and Reconnect (re-opens every live feed). No data = "—", nothing is ever estimated.
 // No region picker: there is nothing to pick. Education only. Not financial advice.
 
-import * as L from './chart-latency-core.js?v=1056';
-import { resyncAll } from './chart-live-resume.js?v=1056';
+import * as L from './chart-latency-core.js?v=1057';
+import { resyncAll } from './chart-live-resume.js?v=1057';
 
 const PERF_KEY = 'stk.perfMode';
 const isPhone = () => window.innerWidth <= 599;

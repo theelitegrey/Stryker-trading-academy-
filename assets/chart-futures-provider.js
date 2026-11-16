@@ -15,11 +15,11 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=1065';
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=1065';
-import { hubLive, hubCovers } from './live-source.js?v=1065';
-import { teWanted, teGetBars, teSubscribe } from './chart-tick-engine.js?v=1065';   // TICK ENGINE (one candle source, behind TICK_ENGINE / ?engine=0)
-import { noteExch, feedKey } from './chart-latency-core.js?v=1065';   // connection chip: the bridge heartbeat's edge clock -> arrival (assets/chart-latency.js)
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=1067';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=1067';
+import { hubLive, hubCovers } from './live-source.js?v=1067';
+import { teWanted, teGetBars, teSubscribe } from './chart-tick-engine.js?v=1067';   // TICK ENGINE (one candle source, behind TICK_ENGINE / ?engine=0)
+import { noteExch, feedKey } from './chart-latency-core.js?v=1067';   // connection chip: the bridge heartbeat's edge clock -> arrival (assets/chart-latency.js)
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -460,7 +460,7 @@ export class FuturesProvider {
     // Now the mode follows liveVisible(): 'hub' only once it is true, re-checked on every auth change.
     const pick = () => {
       if (stopped) return;
-      import('./chart-futures-l2.js?v=1065').then((m) => {
+      import('./chart-futures-l2.js?v=1067').then((m) => {
         if (stopped) return;
         const want = m.liveVisible() ? 'hub' : 'poll';
         if (want === mode) return;
@@ -484,7 +484,7 @@ export class FuturesProvider {
   l2Subscribe(root, timeframe, onBar) {
     if (!['NQ', 'ES', 'MNQ', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'].includes(root)) return NOOP;   // last 8 = quote-only (no book): same hub, same gate
     let stop = null, dead = false;
-    import('./chart-futures-l2.js?v=1065').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
+    import('./chart-futures-l2.js?v=1067').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
     return () => { dead = true; if (stop) stop(); };
   }
   subscribeBase(ticker, timeframe, onBar, root, tf) {

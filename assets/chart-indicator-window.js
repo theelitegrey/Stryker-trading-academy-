@@ -43,6 +43,7 @@
 // No Vela / LuxAlgo / TradingView wording anywhere in view (Owner order 2026-10-05).
 
 import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=1047';
+import { entry as verEntry, fmtDate as verDate } from './indicator-versions.js?v=1047';
 import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2, GEX_TYPES } from './chart-pro-gate.js?v=1047';
 
 const PHONE_MAX = 700;
@@ -843,6 +844,8 @@ export function mountIndicatorWindow(ws, opts){
       it.locked ? h('span', { class: 'stkiw-lock', title: it.kind === 'cind' ? 'Not in your plan' : 'Code hidden in the editor', 'aria-label': it.kind === 'cind' ? 'locked' : 'code hidden', html: SVG(I_LOCK, 14) }) : null,
       (it.kind === 'builtin' && it.key.startsWith('b:') && proLocked(proKind(it.key.slice(2)))) ? proTag() : null
     ]);
+    if (it.kind === 'community' && it.s && it.s.version) l1.appendChild(h('span', { class: 'stkiw-vtag', text: 'v' + it.s.version }));
+    if (it.kind === 'cind' && it.ci && it.ci.version) l1.appendChild(h('span', { class: 'stkiw-vtag', text: 'v' + it.ci.version }));
     (it.tagList || []).forEach((t) => l1.appendChild(tagEl(t)));
     if (it.s && it.s.picked) l1.appendChild(tagEl("Editors' pick"));
     if (it.kind === 'cind' && !it.locked) l1.appendChild(tagEl('protected'));
@@ -916,6 +919,8 @@ export function mountIndicatorWindow(ws, opts){
       box.appendChild(h('h4', { text: 'Works on' }));
       box.appendChild(h('div', { class: 'stkiw-d-mk' }, it.markets.map((x) => h('span', { class: 'stkiw-mk', text: x }))));
     }
+    const ve = (it.kind === 'builtin' || it.kind === 'example') ? verEntry(it.key) : null;
+    if (ve) { const cur = ve.versions[ve.versions.length - 1]; box.appendChild(h('p', { class: 'stkiw-ver' }, [h('b', { text: 'v' + cur.v }), verDate(cur.date) + ' \u00b7 latest'])); }
     const ex = explainMap && explainMap[it.key];
     if (ex && ex.shows && ex.shows.length) {
       box.appendChild(h('h4', { text: 'What it shows' }));

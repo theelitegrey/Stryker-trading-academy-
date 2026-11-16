@@ -84,18 +84,24 @@ export const BUILTIN_PINE = PICKER_SCRIPTS.map((b) => Object.assign({ url: b.sou
 const cache = new Map();
 // LAYOUT-PERF (2026-11-08): source text -> id of every built-in fetched so far. Saved chart states
 // store an unchanged built-in as { builtin: id } instead of its 20-120 KB source (chart-pine.js).
+// INDICATOR VERSIONS (15 Nov 2026): text -> { id, v }. The latest version is assets/pine/<id>.pine (b.source); an older
+// version kept for pinned charts is assets/pine-versions/<id>/<v>.pine (tools/indver-bump.js, docs/INDICATOR-VERSIONS.md).
 const byText = new Map();
-export const builtinIdOf = (src) => byText.get(src) || null;
+export const builtinIdOf = (src) => { const x = byText.get(src); return x ? x.id : null; };
+export const builtinOfText = (src) => byText.get(src) || null;
 export const builtinIdByName = (name) => { const b = PICKER_SCRIPTS.find((x) => x.name === name); return b ? b.id : null; };
-// Source text of a built-in (fetched once per page load).
-export function builtinSource(id){
+// Source text of a built-in (fetched once per page load). v = a kept older version (null/undefined = the latest file).
+export function builtinSource(id, v){
   const b = PICKER_SCRIPTS.find((x) => x.id === id);
   if (!b) return Promise.reject(new Error('Unknown built-in'));
-  if (!cache.has(id)) {
-    cache.set(id, fetch(new URL(b.source, import.meta.url)).then((r) => {
+  if (v != null && !/^\d+\.\d+$/.test(String(v))) return Promise.reject(new Error('Bad version'));
+  const ck = v == null ? id : id + '@' + v;
+  if (!cache.has(ck)) {
+    const url = v == null ? new URL(b.source, import.meta.url) : new URL('pine-versions/' + id + '/' + v + '.pine', import.meta.url);
+    cache.set(ck, fetch(url).then((r) => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.text();
-    }).then((t) => { byText.set(t, id); return t; }).catch((e) => { cache.delete(id); throw e; }));
+    }).then((t) => { if (!byText.has(t) || v == null) byText.set(t, { id, v: v == null ? null : String(v) }); return t; }).catch((e) => { cache.delete(ck); throw e; }));
   }
-  return cache.get(id);
+  return cache.get(ck);
 }

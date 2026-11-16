@@ -94,3 +94,7 @@
   .nfx-panel, .nfx-panel *, .nfx-chev svg{ transition:none !important; animation:none !important; }
   .nfx-panel, .nfx-panel a.nfx-card{ transform:none !important; }
 }
+.nfx-tl b:has(.nfx-pi), .nfx-mt b:has(.nfx-pi){ display:flex; align-items:center; gap:8px; }
+.nfx-pi{ display:inline-flex; flex:none; line-height:0; }
+.nfx-pi img{ width:20px; height:20px; border-radius:22%; display:block; }
+.nfx-big .nfx-pi img{ width:24px; height:24px; }

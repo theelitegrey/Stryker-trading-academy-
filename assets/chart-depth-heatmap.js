@@ -441,11 +441,17 @@ export function installDepthHeatmap(Core, H, reg) {
       if (f && replayNow() && H.replayNote) return H.replayNote(f);   // bar replay: the recorded book, not the live feed state
       if (!f || f.status === 'loading' || (f.custom && f.custom.member && f.status !== 'error' && !f.history.length)) return WAITING;   // a source, no book yet: it starts by itself
       if (f.status === 'error') return f.err || 'Order book unavailable.';
-      if (f.status === 'reconnecting') return hubOf(f) && l2Closed(f.ticker) ? this.gapNote(f) || closedNote() : 'Reconnecting to the order book…';
+      if (f.status === 'reconnecting') return hubOf(f) && l2Closed(f.ticker) ? this.gapNote(f) || this.closedEmpty(f) || closedNote() : 'Reconnecting to the order book…';
       if (f.custom && f.custom.member) return '';   // the member's own feed: live, no recorder
       if (f.custom && l2Delayed()) return f.history.length < 2 && f.remote.length < 2 ? 'Loading the recorded order book…' : this.gapNote(f);   // delayed label: the feed chips; a real recorder gap (15 min look > 10 min delay) still says so
       if (f.history.length < 15 && f.remote.length < 2) return this.gapNote(f) || 'Building order book history…';
       return f.custom ? this.gapNote(f) || staleNote(f.ticker) : '';
+    }
+    // market closed and the recorder answered with no book at all for these bars (its kept window has moved past the last session): say that,
+    // not "showing the last session's order book" over a blank chart (GK 14 Nov: "heatmap is blank when the market is closed")
+    closedEmpty(f) {
+      if (f.remoteBusy || f.remoteState === 'none' || f.history.length || f.remote.length) return '';
+      return (this.gap = document.documentElement.getAttribute('data-device') === 'mobile' ? 'Market closed · no recorded book' : 'Market closed · no recorded order book for the last session');   // this.gap: drawn by the layer, clear of the other L2 plates
     }
     gapNote(f) {   // futures: the recorder has no book for the last bars (feed gap); crypto books come straight from the exchange
       this.gap = '';

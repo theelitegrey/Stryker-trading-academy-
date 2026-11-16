@@ -293,7 +293,7 @@ class L2Flow {
   start(ctx, inputs) { this.ctx = ctx; if (LAYERS.includes(this.type)) ovLive.push(this); if (LADDER.includes(this.type)) ladders.push(this); this.inputs = Object.assign(defaults(SCHEMA[this.type]), inputs); this.on = true; this.onVis = () => { if (!document.hidden) this.later(); }; document.addEventListener('visibilitychange', this.onVis); window.addEventListener('stryker:l2tier', this.onTier); this.offRt = rtOnChange(this.onTier); if (this.type === 'stk_l2f_dp') this.clock = setInterval(() => this.later(), 15000); this.render(); }
   later() { if (this.tm || this.off || document.hidden) return; this.tm = setTimeout(() => { this.tm = 0; this.render(); }, Math.max(0, MIN_GAP - (Date.now() - this.last))); }
   onBars() { this.later(); }
-  onViewport() { if (LAYERS.includes(this.type)) this.push(); else if (LADDER.includes(this.type)) this.pushLadder(); }
+  onViewport() { if (LAYERS.includes(this.type)) this.push(this.pd); else if (LADDER.includes(this.type)) this.pushLadder(); }
   // Delta / CVD (L2) bring the ladder with them once, unless one is already on the chart (a saved layout, or the member removed it)
   addLadder() {
     try { const c = this.ctx.chart || window.STRYKER_VELA.chart; if (this.ladAdded || !c || (c.indicators() || []).some((h) => h.nativeType === 'stk_l2f_lad')) { this.ladAdded = true; return this.push({ off: true }); } this.ladAdded = true; setTimeout(() => { try { c.addNativeIndicator('stk_l2f_lad', {}); window.STRYKER_VELA.context().stateChanged(); } catch (e) {} }, 0); } catch (e) {}
@@ -305,7 +305,9 @@ class L2Flow {
   resume() { this.on = true; this.render(); }
   stop() { const k = ovLive.indexOf(this); if (k >= 0) ovLive.splice(k, 1); const kl = ladders.indexOf(this); if (kl >= 0) ladders.splice(kl, 1); this.off = true; this.on = false; clearTimeout(this.tm); clearInterval(this.clock); document.removeEventListener('visibilitychange', this.onVis); window.removeEventListener('stryker:l2tier', this.onTier); if (this.offRt) this.offRt(); this.unbind(); this.push(); }
   unbind() { this.hub = null; if (this.u) { this.u.release(); this.u = null; this.spec = null; } }
-  push(extra) { try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
+  // onViewport (pan / zoom) re-pushes the LAST drawn data: a bare push() handed the layer no markers, and with the market closed nothing ever
+  // re-rendered them (GK 14-15 Nov: Big Trades vanish as soon as the chart is moved)
+  push(extra) { if (extra) this.pd = extra; try { this.ctx.pushData(Object.assign({ owner: this, on: this.on && !this.off, type: this.type }, extra || {})); } catch (e) {} }
   ov(...lines) { this.text = this.base = lines.filter(Boolean).join(' · '); this.ctx.emit({ tables: [] }); }
   say(txt) {
     this.text = ''; this.ctx.setStatus('idle');

@@ -17,8 +17,8 @@
 // "paused") and Disconnect (this tab closes the relay until the member turns it on again from the ⋯ menu entry
 // "Connect your AI", or reloads). Each action shows a toast ("Claude added EMA 20").
 // NO TRADING: there are no order tools; the relay only accepts the tool names below.
-import { normalizeSymbol } from './chart-watchlist.js?v=1054';
-import { parseIv } from './chart-intervals.js?v=1054';
+import { normalizeSymbol } from './chart-watchlist.js?v=1056';
+import { parseIv } from './chart-intervals.js?v=1056';
 
 const SCOPE_OF = {
   chart_status: 'mcp:read', chart_read: 'mcp:read', symbol_resolve: 'mcp:read', chart_screenshot: 'mcp:read',
@@ -113,18 +113,28 @@ export function mountAiAgent(ws, opts = {}) {
     pauseBtn.setAttribute('aria-label', paused ? 'Resume AI control' : 'Pause AI control');
     const mi = document.getElementById('stkc-ai-btn');
     if (mi) mi.classList.toggle('on', on);
+    if (popupPaint) popupPaint();
   }
+  let popupPaint = null;
+  function togglePause() { paused = !paused; paused ? ss.set(PAUSE_KEY, '1') : ss.del(PAUSE_KEY); state(); paint(); toast(paused ? 'AI control paused on this chart.' : 'AI control resumed.', 'info'); }
+  function turnOff() { disconnect(true); toast('AI disconnected from this chart. Turn it back on from the ⋯ menu: Connect your AI.', 'info'); }
+  function turnOn() { ss.del(OFF_KEY); wanted = true; connect(); toast('AI control is on again in this tab.', 'success'); }
   chip.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-a]'); if (!b) return;
-    if (b.dataset.a === 'pause') { paused = !paused; paused ? ss.set(PAUSE_KEY, '1') : ss.del(PAUSE_KEY); state(); paint(); toast(paused ? 'AI control paused on this chart.' : 'AI control resumed.', 'info'); }
-    else { disconnect(true); toast('AI disconnected from this chart. Turn it back on from the ⋯ menu: Connect your AI.', 'info'); }
+    if (b.dataset.a === 'pause') togglePause(); else turnOff();
   });
 
   // ---------- menu entry (button in charts.html, moved into ⋯ More by assets/chart-onebar.js)
   const menuBtn = document.getElementById('stkc-ai-btn');
   if (menuBtn) menuBtn.addEventListener('click', () => {
-    if (ss.get(OFF_KEY) === '1' && grants.length) { ss.del(OFF_KEY); wanted = true; connect(); toast('AI control is on again in this tab.', 'success'); return; }
-    location.href = '/ai';
+    // Owner 16 Nov 2026: a popup on the chart, never a page change (assets/chart-ai-popup.js)
+    import('./chart-ai-popup.js?v=1056').then((m) => m.openAiPopup({
+      toast, opener: menuBtn,
+      status: () => ({ on: !!(sock && sock.readyState === 1 && grants.length), paused, off: ss.get(OFF_KEY) === '1', names: [...new Set(grants.map((g) => g.name))] }),
+      togglePause, turnOff, turnOn,
+      onChange: () => { ls.del(CHECK_KEY); check(); },
+      bind: (fn) => { popupPaint = fn; },
+    })).catch((e) => { console.warn('TradeZoro: AI popup', e); toast('Could not open the AI panel. Try again.', 'error'); });
   });
 
   // ---------- connection

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="1054">
+<meta name="stryker-build" content="1056">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Your AI connections and personal tokens.">
@@ -10,9 +10,9 @@
 <title>AI agents — TradeZoro</title>
 <link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/style.css?v=1054">
-<script src="/assets/skeleton.js?v=1054"></script>
-<script src="/assets/sanitize.js?v=1054"></script>
+<link rel="stylesheet" href="/assets/style.css?v=1056">
+<script src="/assets/skeleton.js?v=1056"></script>
+<script src="/assets/sanitize.js?v=1056"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -57,41 +57,28 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="/assets/toast.js?v=1054" defer></script>
-<script src="/assets/version-check.js?v=1054" defer></script>
-<script src="/assets/cookie-notice.js?v=1054" defer></script>
-<script src="/assets/acquisition.js?v=1054" defer></script>
-<script src="/assets/focus-mode.js?v=1054" defer></script>
+<script src="/assets/toast.js?v=1056" defer></script>
+<script src="/assets/version-check.js?v=1056" defer></script>
+<script src="/assets/cookie-notice.js?v=1056" defer></script>
+<script src="/assets/acquisition.js?v=1056" defer></script>
+<script src="/assets/focus-mode.js?v=1056" defer></script>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/x-icon" href="/assets/images/tradezoro-favicon-32-494.png?v=1054">
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=1054">
-<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/tradezoro-favicon-16-494.png?v=1054">
-<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=1054">
+<link rel="icon" type="image/x-icon" href="/assets/images/tradezoro-favicon-32-494.png?v=1056">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=1056">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/tradezoro-favicon-16-494.png?v=1056">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=1056">
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
 <body class="aic-page" data-ai-page="agents">
 <header class="aic-top"><a class="aic-brand" href="/charts" aria-label="TradeZoro charts"><img src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" class="brand-mark aic-logo" width="102" height="24"></a><nav class="aic-nav" aria-label="AI"><a href="/ai">Connect your AI</a><a href="/charts/agents" aria-current="page">AI agents</a><a href="/charts">Charts</a></nav></header>
 <main id="main" class="aic-main" tabindex="-1">
-<section class="aic-hero"><h1 class="aic-h1">AI agents</h1><p class="aic-lead">AI apps that can use your charts. Removing one stops it at once.</p><p class="aic-note" id="aic-tabs"></p></section>
-<section class="aic-card" aria-labelledby="aic-h-list"><h2 class="aic-h2" id="aic-h-list">Connected</h2><ul class="aic-rows" id="aic-list"><li class="aic-empty">Loading…</li></ul></section>
-<section class="aic-card" aria-labelledby="aic-h-new"><h2 class="aic-h2" id="aic-h-new">Personal token</h2>
-<p class="aic-note">For AI apps that take a token instead of a sign-in (for example Codex, or Cursor without sign-in). Send it as <code>Authorization: Bearer &lt;token&gt;</code> to <code>https://tradezoro.com/mcp</code>.</p>
-<form id="aic-new" class="aic-form" autocomplete="off">
-<label class="aic-field"><span>Name</span><input id="aic-tname" maxlength="40" required placeholder="e.g. Codex on my laptop"></label>
-<fieldset class="aic-choices"><legend class="aic-legend">Access</legend>
-<label class="aic-choice" for="aic-tacc-read"><input type="radio" id="aic-tacc-read" name="aic-tacc" value="read" checked><span class="aic-choice-t"><b>Read only</b><span>See your open chart.</span></span></label>
-<label class="aic-choice" for="aic-tacc-chart"><input type="radio" id="aic-tacc-chart" name="aic-tacc" value="chart"><span class="aic-choice-t"><b>Read and control charts</b><span>Also change symbol, timeframe, layout, indicators and drawings.</span></span></label>
-<label class="aic-choice" for="aic-talerts"><input type="checkbox" id="aic-talerts" name="aic-talerts" value="alerts"><span class="aic-choice-t"><b>Alerts and watchlists</b><span>Create, list and delete alerts; edit your watchlist.</span></span></label>
-</fieldset>
-<label class="aic-field"><span>Expires after</span><select id="aic-tdays"><option value="30">30 days</option><option value="90" selected>90 days</option></select></label>
-<div class="aic-actions"><button type="submit" class="btn btn-primary aic-btn">Create token</button></div>
-</form>
-<div id="aic-token" hidden></div></section>
+<section class="aic-hero"><h1 class="aic-h1">AI agents</h1><p class="aic-lead">AI apps that can use your charts. Removing one stops it at once.</p></section>
+<div id="aic-agents" class="aic-stack"></div>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="/assets/auth.js?v=1054"></script>
-<script src="/assets/ai-connect.js?v=1054"></script>
-<script src="/assets/theme.js?v=1054"></script>
+<script src="/assets/auth.js?v=1056"></script>
+<script src="/assets/ai-connect.js?v=1056"></script>
+<script src="/assets/theme.js?v=1056"></script>
 </body>
 </html>

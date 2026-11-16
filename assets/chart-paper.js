@@ -174,7 +174,7 @@ function applyEnabled(){
   const on = paperOn();
   document.documentElement.classList.toggle('stkpt-on', on);
   document.documentElement.classList.toggle('stklv-on', liveOn());
-  if (panel) panel.hidden = !(on || LIVE);           // an admin always sees the panel: it holds the Paper / live account picker
+  if (panel) panel.hidden = !(on || LIVE) || liveOn();   // an admin sees it for the Paper / live picker; LIVE: replaced by the order panel + its chart chip
     if (!on && !liveOn()) {
     closeTicket();
     document.documentElement.classList.remove('stkpt-sheet-open');
@@ -319,6 +319,7 @@ async function load(){
   if (!st && !replay) save(true);
   renderAll();
   applyEnabled();
+  if (paperOn() && opWasOpen() && !isPhone()) orderPanel();   // the order panel was open last time (desktop)
 }
 window.addEventListener('storage', (e) => {
   if (!acct || replay || e.key !== lsKey() || !e.newValue) return;
@@ -1203,7 +1204,7 @@ function renderPanel(){
   document.documentElement.classList.toggle('stkpt-sheet-open', !!ui.open && isPhone() && (paperOn() || liveOn()));
   const lv = liveOn();
   document.documentElement.classList.toggle('stklv-on', lv);
-  if (panel.classList.contains('is-live') !== lv) { pushLines(true); panel.classList.toggle('is-live', lv); applyPanelH(); setTimeout(() => window.dispatchEvent(new Event('resize')), 0); }
+  if (panel.classList.contains('is-live') !== lv) { pushLines(true); panel.classList.toggle('is-live', lv); panel.hidden = lv || !(paperOn() || LIVE); applyPanelH(); setTimeout(() => window.dispatchEvent(new Event('resize')), 0); if (lv) orderPanel(); }
   { const tb = panel.querySelector('.stkpt-toggle b'), tr = panel.querySelector('.stkpt-trade'), fl = panel.querySelector('.stkpt-flat');
     const want = lv ? 'Live trading' : 'Paper trading'; if (tb.textContent !== want) tb.textContent = want;
     tr.hidden = lv; fl.textContent = lv ? 'Flatten this contract' : 'Flatten all'; fl.title = lv ? 'Cancel the working orders and close the live position of this chart’s contract (with a confirm)' : 'Close every paper position and cancel every order';
@@ -1660,7 +1661,7 @@ function hotkeysCard(){
 // ------------------------------------------------------------------ toolbar button
 function mountToolbar(bar){
   if (!bar || document.getElementById('stkc-paper-btn')) return;
-  const b = h('button', { type: 'button', id: 'stkc-paper-btn', class: 'stkc-btn stktm-btn', title: 'Trade: pick paper or a live account', 'aria-label': 'Trade', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-controls': 'stkc-trade-pop' });
+  const b = h('button', { type: 'button', id: 'stkc-paper-btn', class: 'stkc-btn stktm-btn', title: 'Trade: pick paper or a live account, then the order panel opens', 'aria-label': 'Trade', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-controls': 'stkc-trade-pop' });
   b.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg><span class="stkc-btn-l">Trade</span>';
   const pop = h('div', { class: 'stkc-pop stkpt-tmenu stktm', id: 'stkc-trade-pop', role: 'menu', 'aria-label': 'Trade', hidden: '' });
   const wrap = h('div', { class: 'stkc-menu' }); wrap.append(b, pop);
@@ -1670,8 +1671,8 @@ function mountToolbar(bar){
     if (TM.ownsClick(e.target)) return;   // copy / pencil / disconnect / editor: chart-trade-menu.js handles them
     const it = e.target.closest('[data-a]'); if (!it) return; e.stopPropagation(); setOpen(false);
     const a = it.dataset.a, L = window.__stkLive;
-    if (a === 'paper') { if (liveOn()) L.leave(true); if (!paperOn() && liveOf()) setPaperEnabled(true); openPanel('positions'); }
-    else if (a === 'live' && L) L.pick(it.dataset.id).then(() => openPanel());
+    if (a === 'paper') { if (liveOn()) L.leave(true); if (!paperOn() && liveOf()) setPaperEnabled(true); orderPanel(); }
+    else if (a === 'live' && L) L.pick(it.dataset.id).then(() => orderPanel());
     else if (a === 'connect' && L) L.connect();
   });
   document.addEventListener('click', (e) => { if (!pop.hidden && !wrap.contains(e.target)) setOpen(false); });
@@ -1692,7 +1693,29 @@ function updateTradeBtn(){
   b.setAttribute('aria-label', act ? txt + ' account ' + TM.titleOf(act).full : 'Trade: Paper');
 }
 
-function renderAll(){ updateTradeBtn(); pushLines(); renderPanel(); if (ticket && !ticket.hidden) renderTicket(); }
+function renderAll(){ updateTradeBtn(); pushLines(); renderPanel(); if (ticket && !ticket.hidden) renderTicket(); if (window.__stkOrderPanel) window.__stkOrderPanel.update(); }
+
+// ------------------------------------------------------------------ floating order panel (assets/chart-order-panel.js, lazy)
+// Opened by the toolbar Trade button, the bottom panel's Trade button and the live module's openTicket. Paper orders go through
+// placeOrder() / act() here; live orders through chart-live.js place() (all live guards). Remembered open: re-opened at load.
+let opLoad = null;
+function orderPanelMod(){
+  if (!opLoad) {
+    const b = (document.querySelector('meta[name="stryker-build"]') || {}).content || '0';
+    opLoad = import('./chart-order-panel.js?v=' + b).then((m) => m.mountOrderPanel(window.__stkPaper)).catch((e) => { opLoad = null; console.warn('TradeZoro: order panel', e); toast('The order panel could not load. Reload the page.', 'error'); return null; });
+  }
+  return opLoad;
+}
+export function orderPanel(pre){
+  if (!paperOn() && !LIVE) { if (liveOf()) setPaperEnabled(true); else { toast('Paper trading is still loading.', 'info'); return; } }
+  orderPanelMod().then((api) => { if (api) api.open(pre); });
+}
+function opWasOpen(){ try { const p = JSON.parse(localStorage.getItem('stryker_op_' + (uid || 'guest')) || '{}'); return !!p.open; } catch (e) { return false; } }
+function flattenSym(sym){
+  const sp = specOf(sym); if (!sp.ok) return null;
+  return act(() => { acct.cancelAll(sp.symbol); return acct.position(sym) ? acct.closePosition(sym) : []; }, 'Flattened ' + showSym(sym) + ' (paper)');
+}
+function setTrailing(sym){ return act(() => { acct.setTrailing(sym, true); return []; }); }
 
 const CSS = `
 .stkpt{ flex:none; margin:0; padding:0; min-height:0; max-width:none; border-radius:0; position:relative; z-index:35; display:flex; flex-direction:column; background:var(--bg-0); border-top:1px solid var(--line-soft); color:var(--ink-1); font:13px/1.4 var(--font-body, Archivo, system-ui, sans-serif); }
@@ -1968,7 +1991,7 @@ export function mountPaper(ws, opts){
   setTimeout(start, 4000);                    // no auth answer: run as a guest
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
-    openTicket, openPanel, placeOrder, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
+    openTicket, openPanel, placeOrder, orderPanel, flattenSym, setTrailing, toast, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
     ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

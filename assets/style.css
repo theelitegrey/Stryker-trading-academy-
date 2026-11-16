@@ -12343,6 +12343,216 @@ section.stkss-sec{ padding:0; margin:0; }
   .stkaip .aic-actions .aic-btn{ flex:none; }
 }
 
+/* ============ ZoroCharts ORDER PANEL (assets/chart-order-panel.js, Owner order 2026-11-16 "create better order panel") ============
+   Floating, draggable, resizable; tabs Scalp | DOM | Order; footer = account, LIVE badge, position, working, Flatten, kill switch.
+   4-pt grid: 4/8/12/16. One centre line per row. Pills for the main buttons. Dark + light through the tokens.
+   Phone (<= 700 px): bottom sheet with Scalp + Order. */
+.stkop{
+  --op-buy:#089981; --op-sell:#f23645; --op-buy-ink:var(--bull); --op-sell-ink:#f7525f; --op-live:#d92d20;
+  position:fixed; z-index:39; display:flex; flex-direction:column; min-width:0; width:360px;   /* under the toolbar (#stkc-bar z 40) so its menus open over the panel; over the chart (book 29, chips 35) */
+  background:var(--bg-1); color:var(--ink-1); border:1px solid var(--line); border-radius:16px;
+  box-shadow:0 24px 64px -16px rgba(0,0,0,.65), 0 0 0 1px rgba(0,0,0,.2);
+  font:400 13px/18px var(--font-body, system-ui, sans-serif); overflow:hidden;
+}
+:root[data-theme="light"] .stkop{ --op-sell-ink:#c9353a; background:var(--bg-2); box-shadow:0 24px 56px -20px rgba(14,22,33,.35), 0 0 0 1px rgba(14,22,33,.04); }
+.stkop[hidden]{ display:none; }
+.stkop.is-live{ border-color:rgba(217,45,32,.6); }
+.stkop.dragging, .stkop.sizing{ user-select:none; }
+.stkop.dragging{ opacity:.96; }
+.stkop-vh{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.stkop-grab{ display:none; }
+
+/* header: tabs · symbol · icons, all on one 32 px centre line; drag handle */
+.stkop-hd{ flex:none; display:flex; align-items:center; gap:8px; height:48px; padding:0 8px; border-bottom:1px solid var(--line-soft); cursor:grab; touch-action:none; }
+.stkop.dragging .stkop-hd{ cursor:grabbing; }
+.stkop-tabs{ flex:none; display:flex; gap:0; height:32px; padding:2px; border-radius:999px; background:var(--bg-3); }
+.stkop-tabs button{ height:28px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:var(--ink-2); font:600 12px/16px var(--font-body, sans-serif); cursor:pointer; transition:background .15s cubic-bezier(.2,0,0,1), color .15s; }
+.stkop-tabs button:hover{ color:var(--ink-0); }
+.stkop-tabs button.on{ background:var(--bg-1); color:var(--ink-0); box-shadow:0 1px 2px rgba(0,0,0,.35), 0 0 0 1px var(--line); }
+:root[data-theme="light"] .stkop-tabs button.on{ background:var(--bg-2); box-shadow:0 1px 2px rgba(14,22,33,.12), 0 0 0 1px var(--line); }
+.stkop-sym{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; justify-content:center; height:32px; }
+.stkop-sym b{ font:700 13px/16px var(--font-body, sans-serif); color:var(--ink-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stkop-sym small{ font:500 11px/16px var(--font-mono, monospace); color:var(--ink-3); letter-spacing:.02em; }
+.stkop-sym small[hidden]{ display:none; }
+.stkop-hbtns{ flex:none; display:flex; align-items:center; gap:0; }
+.stkop-ib{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:0; border-radius:999px; background:transparent; color:var(--ink-2); cursor:pointer; }
+.stkop-ib:hover{ background:var(--bg-3); color:var(--ink-0); }
+
+/* body */
+.stkop-body{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.stkop.is-min .stkop-body, .stkop.is-min .stkop-ft, .stkop.is-min .stkop-rs{ display:none; }
+.stkop.is-min .stkop-hd{ border-bottom:0; }
+.stkop-status{ margin:0; min-width:0; font:400 12px/16px var(--font-body, sans-serif); color:var(--ink-3); }
+.stkop-status.bad{ color:var(--op-sell-ink); font-weight:600; }
+.stkop-status:empty{ display:none; }
+
+/* pills */
+.stkop-pill{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; padding:0 16px; border:1px solid transparent; border-radius:999px; font:700 15px/20px var(--font-body, sans-serif); cursor:pointer; white-space:nowrap; transition:filter .12s, background .12s; }
+.stkop-pill.buy{ background:var(--op-buy); color:#fff; }
+.stkop-pill.sell{ background:var(--op-sell); color:#fff; }
+.stkop-pill.buy:hover:not(:disabled), .stkop-pill.sell:hover:not(:disabled){ filter:brightness(1.08); }
+.stkop-pill.ghost{ background:transparent; border-color:var(--line); color:var(--ink-0); font-weight:600; }
+.stkop-pill.ghost:hover{ background:var(--bg-3); }
+.stkop-pill:disabled, .stkop-join:disabled, .stkop-b:disabled{ opacity:.4; cursor:not-allowed; filter:none; }
+
+/* quantity stepper: − value +, pill */
+.stkop-qty{ display:grid; grid-template-columns:40px minmax(40px,1fr) 40px; align-items:center; height:44px; border:1px solid var(--line); border-radius:999px; background:var(--bg-0); }
+:root[data-theme="light"] .stkop-qty{ background:var(--bg-1); }
+.stkop-qty button{ width:40px; height:42px; border:0; border-radius:999px; background:transparent; color:var(--ink-1); font:500 18px/20px var(--font-body, sans-serif); cursor:pointer; }
+.stkop-qty button:hover:not(:disabled){ background:var(--bg-3); color:var(--ink-0); }
+.stkop-qty button:disabled{ opacity:.35; cursor:not-allowed; }
+.stkop-qty label{ display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; height:100%; }
+.stkop-qty input{ width:100%; min-width:0; height:20px; padding:0; border:0; background:transparent; color:var(--ink-0); text-align:center; font:700 15px/20px var(--font-mono, monospace); font-variant-numeric:tabular-nums; }
+.stkop-qty input:focus{ outline:none; }
+.stkop-qty:focus-within{ border-color:var(--gold); }
+.stkop-unit{ font:500 10px/12px var(--font-body, sans-serif); letter-spacing:.04em; text-transform:uppercase; color:var(--ink-3); }
+
+/* SCALP */
+.stkop-scalp{ display:flex; flex-direction:column; gap:12px; padding:16px; }
+.stkop-trio{ display:grid; grid-template-columns:1fr 112px 1fr; gap:8px; align-items:center; }
+.stkop-trio .stkop-pill{ height:48px; min-width:0; padding:0 12px; font-size:16px; }
+.stkop-trio .stkop-qty{ height:48px; grid-template-columns:32px minmax(32px,1fr) 32px; }
+.stkop-trio .stkop-qty button{ width:32px; height:46px; }
+.stkop-joins{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.stkop-join{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 12px; min-width:0; border:1px solid var(--line); border-radius:999px; background:var(--bg-2); color:var(--ink-1); font:600 13px/16px var(--font-body, sans-serif); cursor:pointer; }
+:root[data-theme="light"] .stkop-join{ background:var(--bg-1); }
+.stkop-join:hover:not(:disabled){ background:var(--bg-3); }
+.stkop-join b{ font:700 13px/16px var(--font-mono, monospace); font-variant-numeric:tabular-nums; }
+.stkop-join.bid b{ color:var(--op-buy-ink); } .stkop-join.ask b{ color:var(--op-sell-ink); }
+.stkop-srow{ display:flex; align-items:center; gap:8px; min-height:24px; }
+.stkop-srow .stkop-status{ flex:1 1 auto; }
+.stkop-srow .stkop-status:empty{ display:block; }
+.stkop-hk{ flex:none; display:inline-flex; align-items:center; gap:8px; height:24px; font:500 12px/16px var(--font-body, sans-serif); color:var(--ink-2); cursor:pointer; }
+.stkop-hk input, .stkop-chk input{ width:16px; height:16px; margin:0; accent-color:var(--gold); }
+
+/* ORDER */
+.stkop-order{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.stkop-oscroll{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; display:flex; flex-direction:column; gap:16px; padding:16px; }
+.stkop-sides{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.stkop-side{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; height:56px; padding:0 12px; border:1px solid var(--line); border-radius:16px; background:var(--bg-2); color:var(--ink-1); cursor:pointer; }
+:root[data-theme="light"] .stkop-side{ background:var(--bg-1); }
+.stkop-side b{ font:700 15px/20px var(--font-body, sans-serif); }
+.stkop-side span{ font:500 11px/16px var(--font-body, sans-serif); letter-spacing:.04em; color:var(--ink-3); }
+.stkop-side em{ font:600 12px/16px var(--font-mono, monospace); font-style:normal; font-variant-numeric:tabular-nums; }
+.stkop-side.buy em{ color:var(--op-buy-ink); } .stkop-side.sell em{ color:var(--op-sell-ink); }
+.stkop-side.buy.on{ background:var(--op-buy); border-color:var(--op-buy); color:#fff; }
+.stkop-side.sell.on{ background:var(--op-sell); border-color:var(--op-sell); color:#fff; }
+.stkop-side.on span, .stkop-side.on em{ color:rgba(255,255,255,.88); }
+.stkop-otype{ display:flex; align-items:center; justify-content:space-between; gap:8px; height:32px; }
+.stkop-lbl{ font:500 12px/16px var(--font-body, sans-serif); color:var(--ink-2); }
+.stkop-seg{ display:flex; height:32px; padding:2px; border-radius:999px; background:var(--bg-3); }
+.stkop-seg button{ height:28px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:var(--ink-2); font:600 12px/16px var(--font-body, sans-serif); cursor:pointer; }
+.stkop-seg button.on{ background:var(--bg-1); color:var(--ink-0); box-shadow:0 1px 2px rgba(0,0,0,.35), 0 0 0 1px var(--line); }
+:root[data-theme="light"] .stkop-seg button.on{ background:var(--bg-2); box-shadow:0 1px 2px rgba(14,22,33,.12), 0 0 0 1px var(--line); }
+.stkop-seg button:disabled{ opacity:.4; cursor:not-allowed; }
+.stkop-sec{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.stkop-sec.dash{ display:flex; flex-direction:column; gap:16px; padding-top:16px; border-top:1px dashed var(--line); }
+.stkop-f{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.stkop-mkt, .stkop-in{ height:44px; margin:0; padding:0 12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-0); color:var(--ink-0); font:600 15px/20px var(--font-mono, monospace); font-variant-numeric:tabular-nums; min-width:0; }
+:root[data-theme="light"] .stkop-mkt, :root[data-theme="light"] .stkop-in{ background:var(--bg-1); }
+.stkop-mkt{ display:flex; align-items:center; color:var(--ink-1); border-style:dashed; }
+.stkop-mkt[hidden], .stkop-in[hidden]{ display:none; }
+.stkop-in:focus, .stkop-pair input:focus{ outline:none; border-color:var(--gold); }
+.stkop-br{ margin:0; padding:0; border:0; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.stkop-br.na{ opacity:.5; }
+.stkop-brh{ display:flex; align-items:center; justify-content:space-between; gap:8px; height:24px; }
+.stkop-chk{ display:inline-flex; align-items:center; gap:8px; height:24px; font:600 13px/16px var(--font-body, sans-serif); color:var(--ink-0); cursor:pointer; }
+.stkop-trail{ font-weight:500; color:var(--ink-2); }
+.stkop-chk:has(input:disabled){ cursor:not-allowed; }
+.stkop-pair{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.stkop-pair label{ position:relative; display:block; min-width:0; }
+.stkop-pair input{ width:100%; height:40px; margin:0; padding:0 48px 0 12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-0); color:var(--ink-0); font:600 14px/20px var(--font-mono, monospace); font-variant-numeric:tabular-nums; box-sizing:border-box; }
+:root[data-theme="light"] .stkop-pair input{ background:var(--bg-1); }
+.stkop-pair input:disabled{ opacity:.55; }
+.stkop-pair span{ position:absolute; right:12px; top:12px; font:500 11px/16px var(--font-body, sans-serif); color:var(--ink-3); pointer-events:none; }
+.stkop-br[data-leg=sl] .stkop-pair input:not(:disabled){ border-color:color-mix(in srgb, var(--op-sell) 45%, var(--line)); }
+.stkop-br[data-leg=tp] .stkop-pair input:not(:disabled){ border-color:color-mix(in srgb, var(--op-buy) 45%, var(--line)); }
+.stkop-pre{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+.stkop-pre button{ height:28px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--ink-2); font:600 12px/16px var(--font-mono, monospace); cursor:pointer; }
+.stkop-pre button:hover:not(:disabled){ color:var(--ink-0); background:var(--bg-3); }
+.stkop-pre button.on{ border-color:var(--gold); color:var(--gold); }
+.stkop-pre button:disabled{ cursor:not-allowed; }
+.stkop-why{ margin:0; font:500 12px/16px var(--font-body, sans-serif); color:var(--amber); }
+.stkop-why[hidden]{ display:none; }
+.stkop-sum{ margin:0; min-height:16px; font:500 12px/16px var(--font-mono, monospace); color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.stkop-sum:empty{ display:none; }
+.stkop-go{ flex:none; display:grid; grid-template-columns:2fr 1fr; gap:8px; padding:12px 16px; border-top:1px solid var(--line-soft); }
+.stkop-go .stkop-status{ grid-column:1 / -1; }
+.stkop-go .stkop-pill{ min-width:0; }
+
+/* DOM: the Book panel, embedded */
+.stkop-dom{ position:relative; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.stkop-empty{ margin:0; padding:16px; color:var(--ink-3); }
+.stkop-empty[hidden]{ display:none; }
+.stkop-dom > .stkbp.stkbp-embed{ position:relative; inset:auto; top:auto; right:auto; bottom:auto; left:auto; width:auto; height:auto; flex:1 1 auto; min-height:0; z-index:auto; border:0; background:transparent; animation:none; }
+.stkbp-embed .stkbp-grip, .stkbp-embed .stkbp-x, .stkbp-embed .stkbp-tabs, .stkbp-embed .stkbp-grab{ display:none !important; }
+.stkbp-embed .stkbp-hd{ padding:8px 16px 0; }
+
+/* placeholder when paper trading is off */
+.stkop-off{ display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:16px; }
+.stkop-off p{ margin:0; color:var(--ink-2); }
+.stkop-off p:empty{ display:none; }
+
+/* footer: account · badge · Flatten / position · P&L · working · kill switch */
+.stkop-ft{ flex:none; display:flex; flex-direction:column; gap:8px; padding:12px 16px; border-top:1px solid var(--line-soft); background:var(--bg-0); }
+:root[data-theme="light"] .stkop-ft{ background:var(--bg-1); }
+.stkop-fr{ display:flex; align-items:center; gap:8px; min-height:32px; min-width:0; }
+.stkop-sp{ flex:1 1 auto; }
+.stkop-acct{ position:relative; display:inline-flex; align-items:center; min-width:0; height:32px; }
+.stkop-acct select{ appearance:none; -webkit-appearance:none; height:32px; max-width:200px; padding:0 32px 0 12px; border:1px solid var(--line); border-radius:999px; background:var(--bg-2); color:var(--ink-0); font:600 12px/16px var(--font-body, sans-serif); cursor:pointer; text-overflow:ellipsis; }
+.stkop-acct svg{ position:absolute; right:12px; width:12px; height:12px; pointer-events:none; color:var(--ink-2); }
+.stkop-chip{ flex:none; display:inline-flex; align-items:center; height:24px; padding:0 8px; border-radius:999px; font:700 11px/16px var(--font-body, sans-serif); letter-spacing:.06em; text-transform:uppercase; }
+.stkop-chip.live{ background:var(--op-live); color:#fff; box-shadow:0 0 0 2px rgba(217,45,32,.25); }
+.stkop-chip.demo, .stkop-chip.paper{ background:var(--bg-3); color:var(--ink-2); }
+.stkop-chip.paper{ height:32px; padding:0 12px; letter-spacing:0; text-transform:none; font-size:12px; color:var(--ink-0); }
+.stkop-b{ flex:none; display:inline-flex; align-items:center; justify-content:center; height:32px; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--ink-0); font:600 12px/16px var(--font-body, sans-serif); cursor:pointer; white-space:nowrap; }
+.stkop-b:hover:not(:disabled){ background:var(--bg-3); }
+.stkop-b.warn{ border-color:color-mix(in srgb, var(--op-sell) 55%, transparent); color:var(--op-sell-ink); }
+.stkop-pos{ min-width:0; font:600 12px/16px var(--font-body, sans-serif); color:var(--ink-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+.stkop-pnl{ flex:none; font:700 12px/16px var(--font-mono, monospace); font-variant-numeric:tabular-nums; color:var(--ink-1); }
+.stkop-pnl:empty{ display:none; }
+.stkop-pnl.up{ color:var(--op-buy-ink); } .stkop-pnl.down{ color:var(--op-sell-ink); }
+.stkop-wk{ flex:none; font:500 12px/16px var(--font-body, sans-serif); color:var(--ink-3); }
+.stkop-fine{ margin:0; font:400 11px/16px var(--font-body, sans-serif); color:var(--ink-3); }
+
+/* resize corner */
+.stkop-rs{ position:absolute; right:0; bottom:0; width:16px; height:16px; cursor:nwse-resize; touch-action:none; z-index:2;
+  background:linear-gradient(135deg, transparent 0 55%, var(--ink-3) 55% 60%, transparent 60% 70%, var(--ink-3) 70% 75%, transparent 75%); opacity:.6; }
+.stkop-rs:hover{ opacity:1; }
+.stkop.is-max .stkop-rs{ display:none; }
+.stkop.is-max .stkop-hd{ cursor:default; }
+
+/* focus */
+.stkop button:focus-visible, .stkop input:focus-visible, .stkop select:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+
+/* LIVE status chip on the chart (replaces the old bottom "Live trading" strip): tap = open the order panel */
+.stkop-lchip{ position:absolute; left:50%; bottom:40px; transform:translateX(-50%); z-index:31; display:inline-flex; align-items:center; gap:8px; height:28px; max-width:calc(100% - 32px); padding:0 12px; border:0; border-radius:999px; background:var(--op-live, #d92d20); color:#fff; font:700 12px/16px var(--font-body, sans-serif); white-space:nowrap; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.35); }
+.stkop-lchip span{ overflow:hidden; text-overflow:ellipsis; }
+.stkop-lchip i{ flex:none; width:8px; height:8px; border-radius:50%; background:#fff; }
+html.stklv-on .stkpt[hidden]{ display:none !important; }
+
+/* PHONE: bottom sheet, Scalp + Order only */
+@media (max-width:700px){
+  .stkop.is-sheet{ left:0 !important; right:0; top:auto !important; bottom:var(--stkc-dock, 0px); width:auto !important; height:auto !important; max-height:min(88dvh, 720px); z-index:8000; border-width:1px 0 0; border-radius:20px 20px 0 0; padding-bottom:env(safe-area-inset-bottom); }
+  .stkop.is-sheet[data-tab=order]{ height:min(88dvh, 720px) !important; }
+  .stkop-grab{ display:block; flex:none; width:36px; height:4px; margin:8px auto 0; border-radius:2px; background:var(--line); }
+  .stkop.is-sheet .stkop-hd{ cursor:default; height:52px; padding:0 8px 0 16px; }
+  .stkop.is-sheet [data-tab=dom], .stkop.is-sheet [data-a=max], .stkop.is-sheet [data-a=min], .stkop.is-sheet .stkop-rs{ display:none; }
+  .stkop.is-sheet .stkop-ib{ width:40px; height:40px; }
+  .stkop.is-sheet .stkop-tabs{ height:40px; } .stkop.is-sheet .stkop-tabs button{ height:36px; padding:0 16px; font-size:13px; }
+  .stkop.is-sheet .stkop-join{ height:44px; }
+  .stkop.is-sheet .stkop-seg{ height:40px; } .stkop.is-sheet .stkop-seg button{ height:36px; padding:0 16px; }
+  .stkop.is-sheet .stkop-otype{ height:40px; }
+  .stkop.is-sheet .stkop-pre button{ height:36px; }
+  .stkop.is-sheet .stkop-pair input, .stkop.is-sheet .stkop-in, .stkop.is-sheet .stkop-mkt{ height:48px; font-size:16px; }
+  .stkop.is-sheet .stkop-pair span{ top:16px; }
+  .stkop.is-sheet .stkop-chk, .stkop.is-sheet .stkop-brh{ height:32px; } .stkop.is-sheet .stkop-hk{ height:32px; }
+  .stkop.is-sheet .stkop-b, .stkop.is-sheet .stkop-acct, .stkop.is-sheet .stkop-acct select, .stkop.is-sheet .stkop-chip.paper{ height:40px; }
+  .stkop.is-sheet .stkop-fr{ min-height:40px; }
+  .stkop.is-sheet .stkop-acct select{ max-width:168px; }
+  .stkop-lchip{ bottom:48px; }
+}
+@media (prefers-reduced-motion:reduce){ .stkop-tabs button, .stkop-pill{ transition:none; } }
 /* Trade button + connection menu (assets/chart-trade-menu.js). 2026-11-16 v2: rows = logo 28 | two lines | edit + disconnect | tick.
    4-pt grid: menu padding 8 + row inset 8 = 16 from the menu edge on both sides; gaps 8 / 12; buttons 32 (40 on phones). */
 #stkc-bar #stkc-paper-btn.stkpt-islive, #stkc-more-pop #stkc-paper-btn.stkpt-islive{ color:#f23645; font-weight:700; }

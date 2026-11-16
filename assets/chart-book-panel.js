@@ -375,7 +375,24 @@ export function mountBookPanel(ws, opts) {
   }
 
   // ------------------------------------------------------------------------------------------------ open / close / buttons
+  // EMBED (Owner order 2026-11-16, order panel): the same panel lives inside the floating order panel's DOM tab
+  // (assets/chart-order-panel.js). Same feed, same ladder, same click-to-trade path; only its parent changes.
+  let embedBox = null;
+  function embed(box) {
+    if (!box) return;
+    if (open && !embedBox) setOpen(false);
+    embedBox = box; panel.classList.add('stkbp-embed'); box.appendChild(panel);
+    S.tab = 'dom';
+    open = true; panel.hidden = false; attach(); requestAnimationFrame(paint);
+  }
+  function unembed() {
+    if (!embedBox) return;
+    embedBox = null; open = false; panel.hidden = true; panel.classList.remove('stkbp-embed'); host.appendChild(panel);
+    clearTimeout(tm); tm = 0; detach(); closeMenu(); hideLeg(); eng = null;
+    try { window.dispatchEvent(new Event('stkbp:unembedded')); } catch (e) {}
+  }
   function setOpen(v) {
+    if (embedBox) unembed();
     open = !!v; panel.hidden = !open; host.classList.toggle('stkbp-open', open);
     panel.style.setProperty('--stkbp-w', S.w + 'px'); host.style.setProperty('--stkbp-w', S.w + 'px');
     document.documentElement.classList.toggle('stkbp-sheet', open && isPhone());
@@ -406,7 +423,7 @@ export function mountBookPanel(ws, opts) {
   panel.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-live-data]')) { e.stopPropagation(); l2Unlock(); } });
   $('.stkbp-x').addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) { if (legMode) { hideLeg(); return; } if (zoneFrom != null || !menu.hidden) { zoneFrom = null; closeMenu(); schedule(); } else if (isPhone()) setOpen(false); } });
-  window.addEventListener('resize', () => { document.documentElement.classList.toggle('stkbp-sheet', open && isPhone()); if (open) schedule(); }, { passive: true });
+  window.addEventListener('resize', () => { document.documentElement.classList.toggle('stkbp-sheet', open && !embedBox && isPhone()); if (open) schedule(); }, { passive: true });
   try { ws.on('state:changed', () => { showBtns(); if (open) schedule(); }); } catch (e) {}
   const tick = setInterval(() => { if (open) schedule(); }, 1000); window.addEventListener('pagehide', () => clearInterval(tick));
 
@@ -522,7 +539,7 @@ export function mountBookPanel(ws, opts) {
     g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up);
   });
 
-  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, get width() { return S.w; },
+  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open && !embedBox; }, embed, unembed, get embedded() { return !!embedBox; }, get width() { return S.w; },
     setWidth: (px) => { S.w = clamp(Math.round(+px) || 400, 320, 640); panel.style.setProperty('--stkbp-w', S.w + 'px'); host.style.setProperty('--stkbp-w', S.w + 'px'); save(); try { window.dispatchEvent(new Event('resize')); } catch (e) {} }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _signals: () => eng /* test hook */, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
   // Connection popover (assets/chart-latency.js): the feed's state in plain words + when the last book frame arrived. Reconnect re-opens it.
   api.feedState = () => {

@@ -22,12 +22,13 @@
 //   Flatten runs on the server with a key derived from the read it was based on, so a double tap is one flatten.
 // - One live tab per account (Web Locks). Idle 15 min or hidden 2 min -> back to Paper. Kill switch: "Turn off live trading" writes
 //   settings/liveTrading {enabled:false}; the server refuses live writes while it is off.
-// - Qty cap 2 contracts and max 2 contracts worst-case exposure: server-side (order.js), also enforced here.
+// - Qty cap 2 contracts and max 2 contracts worst-case exposure: server-side (order.js), also enforced here. 10 orders a minute: both too.
+// - Order panel (assets/chart-order-panel.js, 2026-11-16) replaces the bottom strip while live; it calls placeTicket() -> place() only.
 // Tests: tests/finatic/chart-live.test.mjs (core + server, mocked broker), tools/tests/chart-live-browser.js (mocked endpoints only).
 // Education only. Not financial advice.
 import * as L from './chart-live-core.js?v=1079';
 
-const POLL_MS = 10000, STALE_MS = 25000, IDLE_MS = 15 * 60000, HIDDEN_MS = 2 * 60000;
+const POLL_MS = 10000, STALE_MS = 25000, IDLE_MS = 15 * 60000, HIDDEN_MS = 2 * 60000, RATE_MAX = 10;
 const DISCLAIMER = 'Education only. Not financial advice.';
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const money = (n, sign) => { if (n == null || !Number.isFinite(n)) return '—'; const s = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (n < 0 ? '−' : sign && n > 0 ? '+' : '') + '$' + s; };
@@ -41,7 +42,7 @@ const S = {
   accounts: [], acct: null, userId: '', env: null, loaded: false, loadErr: '',
   data: { positions: [], orders: [] }, lastOkStart: 0, lastWriteAt: 0, unknown: false, readErr: '', reading: false,
   busy: false, typed: new Set(), skip: false, form: { side: 'buy', type: 'market', qty: 1, price: '' }, modifyOk: null,
-  placeSchema: null, placeErr: '', killed: null, lastAct: Date.now(), hiddenAt: 0, lock: null, msg: '', rtt: null, pending: null
+  placeSchema: null, placeErr: '', killed: null, lastAct: Date.now(), hiddenAt: 0, lock: null, msg: '', sentAt: [], rtt: null, pending: null
 };
 window.__stkLive = { get state() { return S; } };
 
@@ -312,6 +313,8 @@ function contractLine(i) { return 'Contract <b>' + esc(i.code) + '</b>' + (i.hel
 async function place(sym, o, src) {
   const why = blockReason(); if (why) { toast(why, 'error'); return null; }
   const i = info(sym); if (!i) { toast('Live orders work on NQ, ES, MNQ and MES charts only.', 'error'); return null; }
+  // 10 new orders a minute (the server refuses the 11th too: order.js orderRateLimited); counted when sent, not when refused here
+  { const t = now(); S.sentAt = S.sentAt.filter((x) => t - x < 60000); if (S.sentAt.length >= RATE_MAX) { toast('Order limit: ' + RATE_MAX + ' a minute. Wait a few seconds.', 'error'); return null; } }
   const qty = Math.min(L.MAX_QTY, Math.max(1, Math.round(o.qty || 1)));
   const ex = L.exposureError(i.pos.qty, i.working, o.side, qty); if (ex) { toast(ex, 'error'); return null; }
   if (o.type === 'limit') { const band = L.priceBandError(Number(o.price), i.last); if (band) { toast(band, 'error'); return null; } }
@@ -320,6 +323,7 @@ async function place(sym, o, src) {
   const ok = await confirmSheet({ title: desc, code: i.code, side: o.side, go: 'Send ' + sideWord(o.side) + ' ' + qty,
     lines: [contractLine(i), 'Account <b>' + esc(S.acct.label) + '</b>', o.marketable ? '<span class="stklv-warn">This limit is at or through the market: it fills now at ' + esc(px(b.body.limitPrice)) + ' or better.</span>' : (o.type === 'market' ? '<span class="stklv-warn">Market order: fills at the next available price.</span>' : ''), 'Position now: ' + posText(i)].filter(Boolean), noSkip: false });
   if (!ok) return null;
+  S.sentAt.push(now());
   const body = Object.assign(b.body, { idemKey: uuid() });
   return write(body, desc + (src ? ' (' + src + ')' : ''), L.pendingLine(body, i.last));
 }
@@ -382,9 +386,28 @@ export function openTicket(pre) {
   pre = pre || {};
   if (pre.side) S.form.side = pre.side;
   if (pre.price != null) { S.form.type = 'limit'; S.form.price = String(pre.price); }
+  // the floating order panel (assets/chart-order-panel.js) is the live ticket now; the old bottom view is the fallback
+  if (P.orderPanel) { P.orderPanel(Object.assign({ tab: 'order', focus: true }, pre.side ? { side: pre.side } : {}, pre.price != null ? { price: pre.price, type: 'limit' } : {})); return; }
   P.openPanel();
   setTimeout(() => { const f = document.querySelector('.stklv-form [data-f=price], .stklv-form .stklv-send'); if (f) f.focus(); }, 30);
 }
+// ---- order panel (assets/chart-order-panel.js): read-only view of the chart's contract + the same guarded write paths
+// What the chart's live order route can send: market + limit (server: functions/connect/finatic/order.js 'Market or limit only').
+// No stop and no bracket (OCO) orders, so the panel shows Stop / SL / TP / Trail disabled with this reason.
+const CAPS = { stop: false, bracket: false, why: 'Your broker link takes market and limit orders from the chart only. Set a stop or target at your broker.' };
+export const caps = () => CAPS;
+export function opInfo(sym) {
+  if (!S.acct) return null;
+  const i = info(sym); if (!i) return null;
+  return { code: i.code, root: i.root, tick: i.tick || L.ROOTS[i.root].tick, pv: i.pv, last: i.last, pos: i.pos, working: i.working, pnl: i.pnl, held: i.held, env: envWord(), killed: !!S.killed, block: blockReason(), busy: S.busy, rtt: L.rttText(S.rtt) };
+}
+// one entry point for the panel's Buy / Sell / Join / Confirm: place() keeps every guard (typed confirm, tap, cap, exposure, band, gate)
+export function placeTicket(sym, o, src) {
+  if (o.type !== 'market' && o.type !== 'limit') { toast('Market or limit only from the chart.', 'error'); return Promise.resolve(null); }
+  return place(sym, { side: o.side, type: o.type, qty: o.qty, price: o.type === 'limit' ? Number(o.price) : undefined, marketable: !!o.marketable }, src || 'panel');
+}
+export function kill() { if (window.confirm('Turn off live trading? The server will refuse every live order (all tabs, all devices) until it is switched back on.')) setKill(true); }
+export function killOn() { const t = window.prompt('Type LIVE to switch live trading back on.'); if (t && t.trim().toUpperCase() === 'LIVE') setKill(false); }
 
 // ------------------------------------------------------------------------------------------ panel rendering (called by chart-paper.js)
 export function renderHead(slot) {
@@ -530,8 +553,9 @@ const CSS = `
 export function mountLive(paperApi, opts) {
   P = paperApi; uid = opts.uid; toastFn = opts.toast || null;
   if (!document.getElementById('stklv-css')) { const st = document.createElement('style'); st.id = 'stklv-css'; st.textContent = CSS; document.head.appendChild(st); }
-  P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, ladder, domState, cancel, flatten });
+  P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, ladder, domState, cancel, flatten, caps, opInfo, placeTicket, kill, killOn });
   loadMeta(); loadAccounts();
   window.addEventListener('storage', (e) => { if (e.key === lsUserKey()) loadAccounts(); });
-  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, balance, metaOf, saveMeta, disconnect, L, get blockReason() { return blockReason(); } });
+  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, balance, metaOf, saveMeta, disconnect, L });
+  Object.defineProperty(window.__stkLive, 'blockReason', { configurable: true, get: () => blockReason() });   // a getter (Object.assign would copy one frozen value)
 }

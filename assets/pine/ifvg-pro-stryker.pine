@@ -309,12 +309,15 @@ f_run(k, isNew, isOn) =>
                 t.lL  := low
                 t.lLb := bar_index
 
-f_run(0, new0, on0)
-f_run(1, new1, on1)
-f_run(2, new2, on2)
-f_run(3, new3, on3)
-f_run(4, new4, on4)
-f_run(5, new5, on5)
+// confirmed bars only: a forming bar re-runs on every tick and these objects are not rolled back, so a
+// new-HTF-bar flag would push the same candle again and again and corrupt the levels the RR box hangs on
+if barstate.isconfirmed
+    f_run(0, new0, on0)
+    f_run(1, new1, on1)
+    f_run(2, new2, on2)
+    f_run(3, new3, on3)
+    f_run(4, new4, on4)
+    f_run(5, new5, on5)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CHART-TIMEFRAME FVG LIBRARY
@@ -499,7 +502,13 @@ if array.size(setups) > 0
             box.set_right(st.gapBox, bar_index)
             if not na(st.lb)
                 label.set_x(st.lb, bar_index + 1)
-        if not st.resolved and bar_index > st.bar
+        if not barstate.isconfirmed and not st.resolved
+            // forming bar: only follow price; pass / fail / resolve wait for the close
+            if not na(st.rewBox)
+                box.set_right(st.rewBox, bar_index)
+            if not na(st.riskBox)
+                box.set_right(st.riskBox, bar_index)
+        if barstate.isconfirmed and not st.resolved and bar_index > st.bar
             bool hitSL = bull ? low <= st.stop : high >= st.stop
             bool hit1  = bull ? high >= st.t1  : low <= st.t1
             bool hitTP = bull ? high >= st.tp  : low <= st.tp

@@ -13,11 +13,12 @@
 //   - right side: the current book per price row (red asks above, green bids below, sizes) and an optional cumulative column;
 //   - bottom: buy / sell volume bars per bar; a last-price line and the best bid / ask sizes at the right edge.
 // Display only. It describes resting orders and prints; it predicts nothing. Education only. Not financial advice.
-import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=979';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=979';
-import { l2Root, l2Source, l2Badge, rootState, L2_TYPES, l2Closed, closedNote, staleNote } from './chart-futures-l2.js?v=979';
-import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-map.js?v=979';
-import { getVenue } from './orderflow-venues.js?v=979';
+import { drawBookmap, STYLES, SMOOTH_OPTS, HM_THEMES, hmLook, sitUnder } from './chart-bookmap.js?v=1061';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1061';
+import { l2Badge, l2Delayed, rootState, L2_TYPES, l2Closed, closedNote, staleNote, fpNeed } from './chart-futures-l2.js?v=1061';
+import { depthSourceFor, acquireDepth, noSourceNote } from './chart-depth-source.js?v=1061';
+import { icebergEvents } from './chart-liquidity-data.js?v=1061';
+import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-map.js?v=1061';
 
 export const DH_TYPE = 'stk_depth_heat';
 export const DH_TITLE = 'Depth Heatmap (L2)';
@@ -38,6 +39,7 @@ export const DH_SCHEMA = [
   ...bubbleSchema(),
   { key: 'showBook', title: 'Book bars (right side)', type: 'bool', defval: true, tooltip: 'The size resting at each price now: red above the price (asks), green below (bids).' },
   { key: 'showCum', title: 'Cumulative column', type: 'bool', defval: true, tooltip: 'The running total of resting size from the best price outward.' },
+  { key: 'showIce', title: 'Highlight iceberg orders (ICE)', type: 'bool', defval: false, tooltip: 'Marks a price where a lot traded while the visible size stayed small and kept refilling. A hint from the recorded book, not proof. Needs about a minute of live recording.' },
   { key: 'showVolume', title: 'Volume bars', type: 'bool', defval: true, tooltip: 'Traded volume per bar along the bottom, green = buying, red = selling.' },
   { key: 'gpuHeatmap', title: 'Graphics card (smoother)', type: 'bool', defval: true },
   // Set by the chart's Heatmap panel (assets/chart-heatmap-panel.js). Defaults = the look above, so a saved chart is unchanged.
@@ -62,7 +64,7 @@ export function dhConfig(i) {
     smooth: smoothMsOf(i.heatSmooth), gamma: i.contrastMode === 'Manual' ? clamp(num(i.contrast, 1), 0.5, 2.5) : 1,
     hf: { p, min: 0, max: 0, top: 0, on: p > 0, key: p > 0 ? String(p) : '' }, cut,
     bubbles: i.showBubbles !== false, bubbleScale: clamp(num(i.bubbleScale, 100), 40, 200) / 100, bubDom: bubbleOpts(i),
-    book: i.showBook !== false, cum: i.showCum !== false, volume: i.showVolume !== false, gpu: i.gpuHeatmap !== false,
+    book: i.showBook !== false, cum: i.showCum !== false, volume: i.showVolume !== false, ice: i.showIce === true, gpu: i.gpuHeatmap !== false,
     hm: !!i.hmOwned, look: hmLook(String(i.hmTheme || 'Classic').toLowerCase()), vol: i.hmStyle === 'Volumetric', show: i.hmShow || 'Heatmap',
     hmMin: num(i.hmMin, 0), hmMax: num(i.hmMax, 0), usd: !!i.hmUsd, values: !!i.hmValues
   };
@@ -128,6 +130,7 @@ let lastTradeFeed = null;
 export const dhDebugTrades = () => lastTradeFeed;   // test hook: the crypto trade feed the bubbles read
 export function tradesIn(f, H, from, to) {
   const out = [];
+  if (f.custom && f.custom.member) return out;   // a member's own depth feed: book only, the trace follows the bars
   if (f.custom && f.custom.trades) {
     const tf = f.custom.trades(), ring = tf.ring || [], r0 = ring.length ? ring[0][0] : Infinity, tick = tf.tick || 0.25;
     for (const b of tf.bars()) {
@@ -150,6 +153,7 @@ export function tradesIn(f, H, from, to) {
   out.sort((a, b) => a[0] - b[0]);
   return out;
 }
+const hubOf = (f) => !!(f.custom && !f.custom.member);   // the futures hub book (recorded history, footprint trades); a member feed is custom too
 const niceTime = (ms) => { for (const s of [1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000, 600000, 900000, 1800000, 3600000]) if (s >= ms) return s; return 3600000; };
 // one bubble per time interval tb: volume-weighted time and price, buy / sell split
 export function bubblesOf(trades, tb) {
@@ -179,8 +183,8 @@ function bookAt(f, now, replay, hist) {
     for (let k = 0; k < s.v.length; k++) { const x = s.v[k], i = s.i0 + k; if (!x) continue; const p = (i + 0.5) * s.step; if (x > 0) b.bids.set(i === ib ? s.bb : p, x); else b.asks.set(i === ia ? s.ba : p, -x); }
     return b;
   }
-  const bk = f.book; if (!bk) return null;
-  const root = f.custom ? f.ticker : null, snap = root ? rootState(root).snap : null;
+  const bk = f.book; if (!bk || !(bk.bestBid > 0 || bk.bestAsk > 0)) return null;   // no live book (feed gap, closed): the caller falls back to the last recorded one
+  const root = hubOf(f) ? f.ticker : null, snap = root ? rootState(root).snap : null;
   if (!snap || !snap.bids || !snap.asks || !snap.bids.length || !snap.asks.length) return bk;
   const loB = snap.bids[snap.bids.length - 1][0], hiA = snap.asks[snap.asks.length - 1][0];
   const b = { bids: new Map(), asks: new Map(), bestBid: snap.bids[0][0], bestAsk: snap.asks[0][0] };
@@ -205,7 +209,7 @@ export function dhLayer(H) {
       const W = co.width, top = a.bounds.top, H0 = a.bounds.height, bot = top + H0, phone = W < 520;
       const font = (a.theme && a.theme.fontFamily) || 'sans-serif';
       const yOf = (p) => co.priceToY(p, a.scale, a.bounds);
-      const showBook = cfg.hm ? cfg.show !== 'Heatmap' : cfg.book;   // panel: Profile / Both = the side depth profile
+      const showBook = cfg.hm ? cfg.show !== 'Heatmap' && cfg.book : cfg.book;   // panel: Profile / Both = the side depth profile, unless Book bars is off
       const labW = phone ? 34 : 54, c1W = phone ? 32 : 54, c2W = cfg.cum ? (phone ? 32 : 54) : 0, ladW = showBook ? labW + c1W + c2W : 0, plotR = W - ladW;
       const stat = { feed: f.key, width: W, phone, bubbles: 0, ladderRows: 0, replay: !!rp };
       // first paint (live, not replay): room right of the newest bar for the book column, so "now" is not under it (once; later zoom /
@@ -272,7 +276,12 @@ export function dhLayer(H) {
       }
       // ---- trades: price trace, bubbles, volume ----
       const pxPerMs = Math.abs(co.timeToX(now) - co.timeToX(now - 60000)) / 60000, msPerPx = pxPerMs > 0 ? 1 / pxPerMs : 1000;
-      const tLeft = visFrom - 60000, tr = tradesIn(f, H, tLeft, now);
+      const tLeft = visFrom - 60000;
+      // futures: the bubbles read the hub's footprint minutes, which hold only the last 3 h until asked for more (member GK 16 Nov: "Volume
+      // Bubbles are not loading" on a chart scrolled / zoomed past 3 h). Page in the minutes for the view, as the footprint does; trades only,
+      // so this works while the order book feed is down.
+      if (hubOf(f) && (cfg.bubbles || cfg.volume)) fpNeed(f.ticker, tLeft);
+      const tr = tradesIn(f, H, tLeft, now);
       const tfMs = nb > 1 ? Math.max(1000, bars[nb - 1].time - bars[nb - 2].time) : 60000;
       g.save(); g.beginPath(); g.rect(0, top, plotR, H0); g.clip();
       // price trace: bar closes before the first trade, the trades after (thinned to ~1.5 px)
@@ -317,17 +326,45 @@ export function dhLayer(H) {
         }
         g.restore(); stat.volBars = draw.length;
       }
+      // ---- iceberg hint (option): same detector as Depth Heatmap Deep in the Order Flow pack ----
+      stat.ice = [];
+      if (cfg.ice && raw.length && hubOf(f)) {
+        const tf = H.feedTrades(f), tick = (tf && tf.tick) || 0;
+        const mins = tf && tf.bars ? tf.bars().filter((b) => b.t >= tf.coverFrom) : [];
+        const iStep = Math.max(tick, ...(raw.length ? [raw[raw.length - 1].step || 0] : [0]));
+        const ik = raw.length + ':' + raw[raw.length - 1].ts + ':' + tf.v + ':' + iStep;
+        if (f.iceKey !== ik) { f.iceKey = ik; f.iceEv = tick > 0 && mins.length ? icebergEvents(raw.filter((x) => x.ts >= visFrom), mins, { step: iStep, tick }) : []; }
+        g.font = 'bold 9px ' + font; g.textAlign = 'center'; g.textBaseline = 'middle';
+        const used = [];
+        for (const e of f.iceEv || []) {
+          const x = co.timeToX(e.t + 30000), y = yOf(e.price + iStep / 2);
+          if (!Number.isFinite(x) || x < 0 || x > plotR || y < top + 8 || y > bot - 8) continue;
+          stat.ice.push({ t: e.t, price: e.price, side: e.side });
+          if (used.some((u) => Math.abs(u.x - x) < 26 && Math.abs(u.y - y) < 12)) continue;
+          used.push({ x, y });
+          const tw = g.measureText('ICE').width + 6;
+          g.fillStyle = 'rgba(5,5,6,.88)'; g.fillRect(x - tw / 2, y - 6, tw, 12);
+          g.strokeStyle = '#38bdf8'; g.lineWidth = 1; g.strokeRect(x - tw / 2 + 0.5, y - 5.5, tw - 1, 11);
+          g.fillStyle = '#38bdf8'; g.fillText('ICE', x, y + 0.5);
+        }
+        g.textBaseline = 'alphabetic';
+      }
       // ---- last-price line ----
       const ly = Math.round(yOf(lastP)) + 0.5;
       if (lastP > 0 && ly > top && ly < bot) { g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(0, ly); g.lineTo(plotR, ly); g.stroke(); g.setLineDash([]); stat.lastPrice = lastP; }
       // ---- book bars + cumulative column + best bid / ask (the Liquidity Map ladder) ----
       if (showBook) {
-        const book = bookAt(f, now, !!rp, raw);
-        const tick = f.custom ? (f.custom.trades && f.custom.trades().tick) || 0.25 : 0;
-        if (book) drawLadder(g, a, { book, tick, whole: !!f.custom }, { lx: plotR, labW, c1W, c2W, top, bot, H0, phone, font, yOf, stat, W });
+        // no live book (market closed, or the book feed is down while trades flow): the last recorded book, labelled with its time
+        const live = rp ? null : bookAt(f, now, false, raw), all = live ? null : rp ? raw : f.allHistory();
+        const book = live || (all && all.length ? bookAt(f, now, true, all) : null), asOf = live ? 0 : lastTsAt(all || [], now);
+        const tick = f.custom ? (f.custom.member ? f.custom.tick : (f.custom.trades && f.custom.trades().tick) || 0.25) : 0;
+        const asOfTxt = !rp && asOf && now - asOf >= GAP_LOOK_MS ? (a.data.tz ? dayTime(asOf, a.data.tz, phone) : new Date(asOf).toISOString().slice(11, 16)) : '';
+        const empty = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null };   // nothing recorded: price rows + 'NO BOOK', no sizes
+        drawLadder(g, a, { book: book || empty, tick, whole: !!f.custom }, { lx: plotR, labW, c1W, c2W, top, bot, H0, phone, font, yOf, stat, W, asOf: asOfTxt, noBook: 'NO BOOK' });
+        if (book) { stat.bookAsOf = asOf; stat.bookAsOfTxt = asOfTxt; }
       }
       if (a.data.stale && !rp) {   // calm pill, top centre of the heat area (phones: under the legend chips)
-        g.font = '500 12px ' + font; const tw = g.measureText(a.data.stale).width, pw = tw + 24, ph = 28, px = Math.max(8, (plotR - pw) / 2), py = top + (phone ? 120 : 160);   // below the legend and the L1 / L2 chips
+        g.font = '500 12px ' + font; const tw = g.measureText(a.data.stale).width, pw = tw + 24, ph = 28, px = Math.max(8, (plotR - pw) / 2), py = top + (phone ? 150 : 160);   // below the legend and the L1 / L2 chips (phone: the chips end ~130 px down)
         g.fillStyle = 'rgba(15,15,15,.85)'; g.beginPath(); g.roundRect ? g.roundRect(px, py, pw, ph, 8) : g.rect(px, py, pw, ph); g.fill();
         g.fillStyle = '#cbd5e1'; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillText(a.data.stale, px + 12, py + ph / 2); stat.staleNote = a.data.stale;
       }
@@ -338,25 +375,55 @@ export function dhLayer(H) {
   };
 }
 
+// ---------------------------------------------------------------------------------------- book gap note
+// Member GK 14 Nov ("heatmap not updated even after refreshing"): the recorder's NQ book stopped at 13 Nov 08:27 UTC while trades
+// carried on to the close, so the chart had a full day of candles over an empty field and no word why. When every history read is in
+// and the recorder holds no book sample within GAP_LOOK_MS before the last bar, say so plainly (with the last recorded time) instead
+// of drawing nothing in silence. '' while reads are still out or when the book is there. Never invents a book.
+export const GAP_LOOK_MS = 15 * 60000;
+export function bookGapNote(hist, endMs, st, opts) {
+  opts = opts || {};
+  if (!(endMs > 0) || !st || st.busy || st.state !== 'ok' || !(st.from <= endMs - GAP_LOOK_MS)) return '';
+  let last = 0; for (let k = hist.length - 1; k >= 0; k--) if (hist[k].ts <= endMs) { last = hist[k].ts; break; }
+  if (last && endMs - last < GAP_LOOK_MS) return '';
+  const when = last ? (opts.fmt ? opts.fmt(last) : new Date(last).toISOString().slice(5, 16).replace('T', ' ')) : '';
+  if (opts.phone) return when ? 'No order book since ' + when : 'No order book recorded here';
+  return when ? 'No order book recorded since ' + when + ' (data feed gap)' : 'No order book recorded for these bars (data feed gap)';
+}
+// the newest sample time at or before t (0 = none); hist sorted by ts
+export function lastTsAt(hist, t) { for (let k = hist.length - 1; k >= 0; k--) if (hist[k].ts <= t) return hist[k].ts; return 0; }
+const gapFmt = new Map();
+function dayTime(ms, tz, short) {
+  if (short) { const d = dayTime(ms, tz); return d.slice(d.indexOf(' ') + 1); }   // phone: the time only (the ladder header is 34 px)
+  let f = gapFmt.get(tz);
+  if (!f) { try { f = new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); } catch (e) { f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Etc/UTC', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); } gapFmt.set(tz, f); }
+  return f.format(new Date(ms)).replace(',', '');
+}
+
 // ---------------------------------------------------------------------------------------- the native indicator
-const NEED = 'Depth Heatmap (L2) works on NQ, ES, YM, RTY, CL and GC futures and on crypto charts.';
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+// phones: the top-right corner is under the symbol legend, so the no-source / waiting note sits in the middle of the chart, one sentence a row
+function phoneNote(H, msg) {
+  const t = H.message('stk_dh-msg', msg, H.pageIsDay(), 'middle_center'), parts = msg.split(/(?<=\.) /);
+  t.rows = parts.length; t.cells = parts.map((x) => [Object.assign({}, t.cells[0][0], { text: x })]);
+  return t;
+}
+const NOT_YET = 'Sign in to use the order book tools. They are free.';   // all tools free (2026-11-13): signed out is the only block
+const WAITING = 'Waiting for order book…';
 export function installDepthHeatmap(Core, H, reg) {
   class DepthNative {
     constructor() { this.inputs = {}; this.h = null; this.tm = 0; this.hidden = false; this.block = ''; }
-    start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.attach(); }
+    start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.srcEvt = () => this.attach(); window.addEventListener('stryker:booksource', this.srcEvt); this.attach(); }
     attach() {
       if (!this.ctx) return;
-      const mk = H.btBook(H.marketOf(this.ctx)), root = mk.futures ? l2Root(mk.ticker) : null;   // Replay One: the session's real market
-      const pv = !mk.futures && (mk.provider === 'binance' || getVenue(mk.provider)) ? mk.provider : '';
-      if (root && !this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }
-      if (root && !l2Badge()) { this.detach(); this.block = NOT_YET; this.render(); return; }
-      const want = root ? 'tsl2|' + root : pv ? H.bookKey(pv, mk.ticker) : '';
+      const mk = H.btBook(H.marketOf(this.ctx)), src = depthSourceFor(mk);   // Replay One: the session's real market
+      this.mk = mk; this.kind = src ? src.kind : '';
+      if (src && src.kind === 'hub' && !this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }
+      if (src && src.kind === 'hub' && !l2Badge()) { this.detach(); this.block = NOT_YET; this.render(); return; }
+      const want = src ? H.bookKey(src.provider, src.ticker) : '';
       if (this.h && this.h.feed.key === want) { this.render(); return; }
       this.detach();
-      this.block = want ? '' : NEED;
-      if (root) this.h = H.acquireBookFeed('tsl2', root, () => this.later(), l2Source(root));
-      else if (pv) { this.h = H.acquireBookFeed(pv, mk.ticker, () => this.later()); this.h.want({ bucket: 0, range: 0.02 }); H.feedTrades(this.h.feed); }   // starts the trade feed for the bubbles
+      this.block = src ? '' : noSourceNote(mk);
+      if (src) this.h = acquireDepth(H, src, () => this.later());
       this.render();
     }
     detach() { if (this.h) { this.h.release(); this.h = null; } clearTimeout(this.tm); this.tm = 0; }
@@ -366,17 +433,29 @@ export function installDepthHeatmap(Core, H, reg) {
     setInputs(i) { this.inputs = i; this.render(); }
     suspend() { this.hidden = true; clearTimeout(this.tm); this.tm = 0; }
     resume() { this.hidden = false; this.attach(); }
-    stop() { if (this.tierFn) { window.removeEventListener('stryker:l2tier', this.tierFn); this.tierFn = null; } this.detach(); try { this.ctx.pushData({ off: true }); } catch (e) {} }
+    stop() { window.removeEventListener('stryker:booksource', this.srcEvt); if (this.tierFn) { window.removeEventListener('stryker:l2tier', this.tierFn); this.tierFn = null; } this.detach(); try { this.ctx.pushData({ off: true }); } catch (e) {} }
     note() {
       if (this.block === NOT_YET) return '';   // the feed note (chart-feeds.js) says this
       if (this.block) return this.block;
       const f = this.h && this.h.feed;
       if (f && replayNow() && H.replayNote) return H.replayNote(f);   // bar replay: the recorded book, not the live feed state
-      if (!f || f.status === 'loading') return 'Loading the order book…';
+      if (!f || f.status === 'loading' || (f.custom && f.custom.member && f.status !== 'error' && !f.history.length)) return WAITING;   // a source, no book yet: it starts by itself
       if (f.status === 'error') return f.err || 'Order book unavailable.';
-      if (f.status === 'reconnecting') return f.custom && l2Closed(f.ticker) ? closedNote() : 'Reconnecting to the order book…';
-      if (f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
-      return f.custom ? staleNote(f.ticker) : '';
+      if (f.status === 'reconnecting') return hubOf(f) && l2Closed(f.ticker) ? this.gapNote(f) || closedNote() : 'Reconnecting to the order book…';
+      if (f.custom && f.custom.member) return '';   // the member's own feed: live, no recorder
+      if (f.custom && l2Delayed()) return f.history.length < 2 && f.remote.length < 2 ? 'Loading the recorded order book…' : this.gapNote(f);   // delayed label: the feed chips; a real recorder gap (15 min look > 10 min delay) still says so
+      if (f.history.length < 15 && f.remote.length < 2) return this.gapNote(f) || 'Building order book history…';
+      return f.custom ? this.gapNote(f) || staleNote(f.ticker) : '';
+    }
+    gapNote(f) {   // futures: the recorder has no book for the last bars (feed gap); crypto books come straight from the exchange
+      this.gap = '';
+      if (!hubOf(f) || replayNow()) return '';
+      let bars = []; try { bars = this.ctx.bars() || []; } catch (e) {}
+      const end = bars.length ? bars[bars.length - 1].time : 0;
+      let tz = 'Etc/UTC'; try { tz = H.chartTz ? H.chartTz() : tz; } catch (e) {}
+      this.gap = bookGapNote(f.allHistory(), end, { busy: f.remoteBusy, state: f.remoteState, from: f.remoteFrom },
+        { phone: document.documentElement.getAttribute('data-device') === 'mobile', fmt: (t) => dayTime(t, tz) });
+      return this.gap;
     }
     render() {
       if (!this.ctx || this.hidden) return;
@@ -384,9 +463,11 @@ export function installDepthHeatmap(Core, H, reg) {
       window.__stkDhNote = msg;   // test hook (tools/tests/heatmap-closed-browser.js)
       this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
       // a stale book side (the hub dropped a frozen vendor side) is drawn by the layer itself: a table note sits under the heatmap
-      const stale = /unavailable from the data feed/.test(msg) ? msg : '';
-      this.ctx.emit({ tables: msg && !stale ? [H.message('stk_dh-msg', msg, H.pageIsDay(), 'top_right')] : [] });
-      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: dhConfig(this.inputs), stale } : { off: true });
+      // so is a book gap (the top-right table sits under the other L2 plates, e.g. Big Trades, and was hidden there)
+      const stale = /unavailable from the data feed/.test(msg) || (msg && msg === this.gap) ? msg : '';
+      this.ctx.emit({ tables: msg && !stale ? [((this.block && this.block !== NOT_YET) || msg === WAITING) && document.documentElement.getAttribute('data-device') === 'mobile' ? phoneNote(H, msg) : H.message('stk_dh-msg', msg, H.pageIsDay(), 'top_right')] : [] });
+      let tz = 'Etc/UTC'; try { tz = H.chartTz ? H.chartTz() : tz; } catch (e) {}
+      this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: dhConfig(this.inputs), stale, tz } : { off: true });
     }
   }
   Core.registerRendererLayer({ id: DH_TYPE, placement: 'above-data', create: () => dhLayer(H) });

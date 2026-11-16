@@ -87,35 +87,34 @@
   }
 
   // ---------------------------------------------------------------- comparison (B)
+  // ALL TOOLS FREE (Owner 2026-11-13, "everything will be free. Only paid will be data feed"): every row is in both columns, and
+  // the one difference is the live futures order book data feed (exchange rules set it). The plan key stays "Pro", shown "Pro · Live data".
   var GROUPS = [
     ['ZoroAcademy', [
       ['Curriculum chapters', '@free-ch', 'All 64'],
-      ['Volume Profile and Prop Firm tracks', false, true],
+      ['Volume Profile and Prop Firm tracks', true, true],
       ['Progress dashboard, achievements, streak', true, true]]],
     ['GEX+', [
-      ['GEX+ symbols', 'SPX', 'Every symbol: SPX, SPY, QQQ, ES, NQ, gold (GC)'],
-      ['Expiry views', 'Same-day (0DTE)', 'Every expiry'],
-      ['Futures conversion', false, true],
-      ['Strike table', false, true]]],
+      ['GEX+ symbols: SPX, SPY, QQQ, ES, NQ, gold (GC)', true, true],
+      ['Every expiry, futures conversion and the strike table', true, true]]],
     ['JournalX', [
-      ['New trades', '20 / month', 'Unlimited'],
-      ['Manual entry', true, true],
-      ['Import and broker sync', false, true],
-      ['Analytics and AI coach', false, true]]],
+      ['Trades, manual entry, import and broker sync', true, true],
+      ['Analytics and AI coach', true, true]]],
     ['ZoroCharts', [
       ['ZoroCharts, every chart type, drawing and indicator', true, true],
       ['Alerts, layouts and paper trading; Replay One for backtesting and replay', true, true],
+      ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', true, true],
+      ['Order book tools: heatmap, DOM ladder', true, true],
+      ['GEX on the charts: levels, heatmap, ladder, expected move', true, true]]],
+    ['Data', [
       ['Live futures L1 (with the market data agreement)', true, true],
-      ['L2 order book: heatmap, DOM ladder', false, true],
-      ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', false, true],
-      ['GEX on the charts: levels, heatmap, ladder, expected move', false, true]]],
+      ['Futures order book (L2) data', '10 min delayed', 'Live'],
+      ['Crypto order books and trades', 'Live', 'Live']]],
     ['Market desk', [
       ['Global Monitor, economic calendar, pre-market brief', true, true],
-      ['Smart Money Desk, trading models', false, true],
-      ['Private indicators', false, true]]],
+      ['Smart Money Desk, trading models, private indicators', true, true]]],
     ['Community', [
-      ['Read everything', true, true],
-      ['Post and send direct messages', false, true]]]
+      ['Read, post and send direct messages', true, true]]]
   ];
   function cell(v, P) {
     if (v === true) return TICK;
@@ -138,9 +137,9 @@
     }).join('');
     return '<div class="pv-tabs" role="tablist" aria-label="Show plan">' +
         '<button type="button" role="tab" aria-selected="false" data-col="free">' + esc(planDisplayName(P.free)) + '</button>' +
-        '<button type="button" role="tab" aria-selected="true" data-col="pro">' + esc(planDisplayName(P.pro)) + '</button>' +
+        '<button type="button" role="tab" aria-selected="true" data-col="pro">' + esc(planDisplayName(P.pro)) + ' \u00b7 Live data</button>' +
       '</div>' +
-      '<div class="pv-table" data-col="pro" role="table" aria-label="Free and Pro compared">' +
+      '<div class="pv-table" data-col="pro" role="table" aria-label="Free and Pro · Live data compared">' +
         '<div class="pv-thead" role="row">' +
           '<span class="pv-feat pv-th-label" role="columnheader">' +
             (deal ? '<span class="pv-th-note">' + esc(planDisplayName(P.pro)) + ' yearly: ' + esc(deal.perMonth) + '/mo billed yearly (' + esc(deal.total) + ')' + (deal.pct ? ' · save ' + deal.pct + '%' : '') + '</span>' : '') +
@@ -151,9 +150,9 @@
             '<a href="signup" class="btn btn-ghost btn-sm">' + ctaLabel(P.free, 'Start free') + '</a>' +
           '</div>' +
           '<div class="pv-c pv-c-pro pv-th" role="columnheader">' +
-            '<b>' + esc(planDisplayName(P.pro)) + '</b>' +
+            '<b>' + esc(planDisplayName(P.pro)) + ' \u00b7 Live data</b>' +
             '<div class="pv-th-price">' + priceHtml(P.pro) + '<small>/ ' + per(P.pro) + '</small></div>' +
-            '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary btn-sm" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
+            '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary btn-sm" data-pro-cta>' + ctaLabel(P.pro, 'Get live data') + '</a>' +
           '</div>' +
         '</div>' +
         rows +
@@ -218,6 +217,7 @@
     desk: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 12l3-3 3 2 4-4"/><path d="M9 20h6M12 16v4"/>',
     community: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 0 1 0 6M18 14.5c1.8.8 3 2.6 3 4.5"/>'
   };
+  var LIVE = 'Live futures order book data is a paid data feed. Exchange rules set it, so we can\'t give it free. Tools are free; this is the data.';
   var ICON_ORDER = ['replay', 'gex', 'journal', 'learn', 'desk', 'community'];   // Pro feature order: order flow, GEX on charts, journal, chapters, desk, community (no real-time line since 2026-10-30)
   function icon(k) {
     return '<span class="pv-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICONS[k] + '</svg></span>';
@@ -230,27 +230,28 @@
       return '<li>' + icon(ICON_ORDER[i] || 'learn') + '<span>' + f + '</span></li>';
     }).join('');
     var freeName = planDisplayName(P.free), proName = planDisplayName(P.pro);
+    if (!/live data/i.test(proName)) proName += ' \u00b7 Live data';   // "Pro · Live data" (2026-11-13; the plan key stays Pro)
     root.innerHTML =
       '<div class="pv-hero">' +
         '<div class="pv-hero-l">' +
-          '<span class="pv-pill">Order book, order flow and GEX+</span>' +
+          '<span class="pv-pill">The live futures order book</span>' +
           '<h3>' + esc(proName) + '</h3>' +
           heroPriceHtml(P.pro) +
           yearlyLine(P) +
-          '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary pv-cta-xl" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
-          '<a href="/pro" class="pp-see">See everything in Pro →</a>' +
-          '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime. Live futures (L1) is free on every plan with the market data agreement.</p>' +
+          '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary pv-cta-xl" data-pro-cta>' + ctaLabel(P.pro, 'Get live data') + '</a>' +
+          '<a href="/pro" class="pp-see">What does live data add? →</a>' +
+          '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime. ' + esc(LIVE) + '</p>' +
         '</div>' +
         '<ul class="pv-icons">' + feats + '</ul>' +
       '</div>' +
       '<div class="pv-strip">' +
-        '<p><b>' + esc(freeName) + ' is free for every member:</b> all 64 chapters, JournalX with import, broker sync and AI coach, Smart Money Desk, trading models, private indicators, ZoroCharts, Replay One and the full community. No trial, no card.</p>' +
+        '<p><b>' + esc(freeName) + ' is free for every member:</b> every tool (order flow, the order book tools and GEX+), all 64 chapters, JournalX with import, broker sync and AI coach, Smart Money Desk, trading models, private indicators, ZoroCharts, Replay One and the full community. No trial, no card.</p>' +
         '<a href="signup" class="btn btn-ghost">' + ctaLabel(P.free, 'Start free') + '</a>' +
       '</div>' +
       '<div class="pv-faq">' +
         faq('Can I cancel anytime?', 'Yes. Cancel from Billing in Settings. You keep ' + proName + ' until the end of the period you have already paid for, and you are not charged again.') +
         faq('Why can the rupee price change?', proName + ' is priced in US dollars. The rupee price is the dollar price at that day\'s exchange rate. Once you subscribe, your amount stays fixed.') +
-        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. On ' + freeName + ' only order flow tools and GEX+ are locked.') +
+        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. On ' + freeName + ' every tool stays free; the futures order book goes back to 10 minutes delayed.') +
         '<a class="pv-faq-all" href="help?cat=plans-billing">See all questions \u2192</a>' +
       '</div>';
   }

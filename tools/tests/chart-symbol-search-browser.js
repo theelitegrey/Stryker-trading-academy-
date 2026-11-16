@@ -39,7 +39,7 @@ const BIN_FUT = { symbols: [{ symbol: 'BTCUSDT', status: 'TRADING', contractType
       const p = await ctx.newPage();
       const errors = [];
       p.on('pageerror', (e) => errors.push(String(e).slice(0, 160)));
-      await p.goto(BASE + '/charts.html?vela=' + eng, { waitUntil: 'domcontentloaded' });
+      await p.goto(BASE + '/charts.html?search=classic&vela=' + eng, { waitUntil: 'domcontentloaded' });
       // the default chart is now BTC (Binance is blocked here), so wait for the symbol button, not for first candles
       await p.waitForFunction(() => document.querySelector('.vela-widget-symbol, .vela-mb-symbol'), null, { timeout: 60000 });
       await sleep(2500);

@@ -1,8 +1,10 @@
 // Browser regression: paper ticket accepts exchange-prefixed futures from saved layouts.
 //   node tools/tests/chart-dev-server.mjs 8056 & node tools/tests/chart-paper-symbol-browser.js http://127.0.0.1:8056 <outdir>
 const { launch } = require('./lib.js');
-const BASE = process.argv[2] || 'http://127.0.0.1:8056';
-const OUT = (process.argv[3] || '/tmp') + '/';
+// Also runs the release way: CHART_BASE=http://127.0.0.1:<port> node tools/tests/chart-paper-symbol-browser.js <outdir>
+const A = process.argv.slice(2), URLARG = /^https?:\/\//.test(A[0] || '');
+const BASE = process.env.CHART_BASE || (URLARG ? A[0] : 'http://127.0.0.1:8056');
+const OUT = ((URLARG ? A[1] : A[0]) || '/tmp') + '/';
 let fail = 0;
 const t = (n, ok, x) => { if (!ok) fail++; console.log(ok ? 'PASS' : 'FAIL', n, x === undefined ? '' : JSON.stringify(x).slice(0, 500)); };
 

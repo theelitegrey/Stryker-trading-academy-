@@ -19,22 +19,26 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=979';
+import { flowDays, pinSessions } from './chart-frvp-data.js?v=1061';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=1061';
 
-import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=979';
-import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=979';
-import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=979';
-import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=979';
-import { installChartTypes } from './chart-types.js?v=979';
-import { rtHeadersReady } from './rt-access.js?v=979';
-import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=979';
-import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=979';
-import * as BT from './chart-bigtrades.js?v=979';
-import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=979';
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=1061';
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=1061';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=1061';
+import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=1061';
+import { installChartTypes } from './chart-types.js?v=1061';
+import { rtHeadersReady } from './rt-access.js?v=1061';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=1061';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=1061';
+import * as BT from './chart-bigtrades.js?v=1061';
+import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=1061';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
 const FREE_LOOKBACK_MS = 24 * 3600 * 1000;
+const HISTORY_DAY = Math.floor(Date.UTC(2026, 9, 8) / 86400000);   // the recorder's first day: a long span (Fixed Range Volume Profile) never asks for days before it
+const L1_ROOTS = ['NQ', 'ES', 'YM', 'GC', 'SI', 'CL'];   // roots with their own recorded trades (workers/book-recorder OF_SYMBOLS)
+const L1_KEEP_DAYS = 90;           // the recorder keeps 90 days (OF_KEEP_DAYS); data starts at HISTORY_DAY
 const MAX_DAYS = 14;                 // UTC days fetched for one chart at most
 const TODAY_REFRESH_MS = 300000;   // the whole day, now and then; the live tail is polled every TAIL_MS
 const TAIL_MS = 5000;              // the last minutes of every root in use: forming + just-closed bars
@@ -161,13 +165,13 @@ async function fetchDay(s, day) {
   bump();
 }
 // The 1-minute bars of a root over [fromMs, toMs], fetching missing days (async; returns what is here).
-function minuteBars(root, fromMs, toMs, free) {
+function minuteBars(root, fromMs, toMs, free, maxDays) {
   const s = store(root);
   const now = Date.now();
   if (free) fromMs = Math.max(fromMs, now - FREE_LOOKBACK_MS);
   toMs = Math.min(toMs, now);
   if (!(toMs >= fromMs)) return { bars: [], s, loading: false };
-  const d0 = Math.max(Math.floor(fromMs / 86400000), Math.floor(toMs / 86400000) - MAX_DAYS + 1), d1 = Math.floor(toMs / 86400000);
+  const [d0, d1] = flowDays(fromMs, toMs, maxDays || MAX_DAYS, maxDays ? HISTORY_DAY : null);
   let loading = false, err = '';
   const out = [];
   for (let d = d0; d <= d1; d++) {
@@ -184,6 +188,12 @@ function minuteBars(root, fromMs, toMs, free) {
   let bars = out;
   if (lf) { if (s.thr) setLiveThr(root, s.thr); bars = overlayLive(out, lf.list(), fromMs, toMs); }
   return { bars: free ? bars.filter((b) => b.t >= now - FREE_LOOKBACK_MS) : bars, s, loading, err };
+}
+// The recorder's 1-minute rows { t, buy, sell, hi, lo } over [fromMs, toMs] for the Delta (L2) bars when the live stores hold nothing
+// (market closed / a failed read). Starts the day reads; `loading` says more is on its way.
+export function recorderMinutes(root, fromMs, toMs) {
+  const got = minuteBars(root, fromMs, toMs, false);
+  return { loading: !!got.loading, mins: got.bars.filter((b) => b.vol > 0).map((b) => ({ t: b.t, buy: (b.vol + b.delta) / 2, sell: (b.vol - b.delta) / 2, hi: b.dmax, lo: b.dmin })) };
 }
 // a live print batch: new version for that root's views, one bump
 onLiveFlow(() => { if (!liveOfOn()) return; for (const s of stores.values()) if (liveFlow(s.root)) s.v++; bump(); });
@@ -260,12 +270,12 @@ export function flowFor(ctxLike) {
   if (!cb.length) return { note: '' };
   const E = replayE();
   const toMs = Math.min(cb[cb.length - 1].time + tf * 60000, E == null ? Infinity : E);
-  const got = minuteBars(root, cb[0].time, toMs, free);
-  const key = root + '|' + tf + '|' + got.s.v + '|' + (E == null ? '' : Math.floor(E / 60000)) + '|' + cb[0].time + '|' + got.bars.length;
+  const got = minuteBars(root, cb[0].time, toMs, free, ctxLike.maxDays);
+  const key = root + '|' + tf + '|' + got.s.v + '|' + (E == null ? '' : Math.floor(E / 60000)) + '|' + cb[0].time + '|' + got.bars.length + '|' + (ctxLike.maxDays || '');
   const memo = viewCache.get(ctxLike.owner);
   if (memo && memo.key === key) return memo.out;
   const clipped = clipTo(got.bars, E);
-  const agg = aggregate(clipped, tf * 60000);
+  const agg = aggregate(clipped, tf * 60000, true);   // futures: 2 h / 4 h bars start on the 18:00 New York open
   const map = new Map();
   for (const b of agg) map.set(b.t, b);
   const note = got.loading && !agg.length ? 'Loading order flow…' : got.err && !agg.length ? got.err : !agg.length ? (free ? 'No order flow in the last 24 h yet (free plan: NQ, last 24 h).' : 'No order flow for these bars yet. History starts ' + '6 days before 2026-10-14 and grows from there.') : '';
@@ -300,7 +310,7 @@ function cryptoFlow(ctxLike, root, tf) {
 }
 
 // ---------------------------------------------------------------- footprint chart type
-const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true, fpBuyColor: '#03c988', fpSellColor: '#f23645', fpTextSize: 'normal', fpTablePos: 'br', fpStatsPos: 'bl', fpAutoText: false, fpAutoMin: 8, fpAutoMax: 14, fpTblVol: true, fpTblDelta: true, fpTblDpct: true, fpTblBuy: true, fpTblSell: true, fpTblTrd: true, fpHeavy: 'off', fpHeavyX: 3, fpHeavyFixed: 100, fpHeavyLevel: 'normal' };
+const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true, fpBuyColor: '#03c988', fpSellColor: '#f23645', fpTextSize: 'normal', fpTablePos: 'br', fpStatsPos: 'bl', fpAutoText: false, fpAutoMin: 8, fpAutoMax: 14, fpTblVol: true, fpTblDelta: true, fpTblDpct: true, fpTblBuy: true, fpTblSell: true, fpTblTrd: true, fpHeavy: 'off', fpHeavyX: 3, fpHeavyFixed: 100, fpHeavyLevel: 'normal', fpHeavyBuyColor: '#38bdf8', fpHeavySellColor: '#e879f9' };
 const TBL_KEY = { vol: 'Vol', delta: 'Delta', dpct: 'Dpct', buy: 'Buy', sell: 'Sell', trd: 'Trd' };
 // Auto text size: the font for a row that traded `vol` when the busiest visible row traded `vmax` (square root so mid rows stay readable)
 export function autoFont(cfg, vol, vmax) {
@@ -341,6 +351,8 @@ function fpConfig(v) {
     // Highlight heavy activity: off by default, so a saved chart looks the same.
     heavy: v.fpHeavy === 'avg' || v.fpHeavy === 'fixed' ? v.fpHeavy : null, heavyX: clamp(num(v.fpHeavyX, 3), 1.5, 20), heavyFixed: Math.max(1, num(v.fpHeavyFixed, 100)),
     heavyK: HEAVY_K[v.fpHeavyLevel] || HEAVY_K.normal,
+    // Own colours for heavy buying and heavy selling, apart from the regular buy / sell colours
+    heavyBuyC: HEX6.test(v.fpHeavyBuyColor) ? v.fpHeavyBuyColor : FP_DEF.fpHeavyBuyColor, heavySellC: HEX6.test(v.fpHeavySellColor) ? v.fpHeavySellColor : FP_DEF.fpHeavySellColor,
     adj: TEXT_ADJ[v.fpTextSize] || 0,
     // Auto text size (off = today's look): each row's number scales with its volume between a smallest and a biggest size
     auto: v.fpAutoText === true, autoMin: clamp(Math.round(num(v.fpAutoMin, 8)), 7, 16), autoMax: clamp(Math.round(num(v.fpAutoMax, 14)), 8, 20),
@@ -356,19 +368,44 @@ class FootprintEngine {
   constructor() { this.cfg = fpConfig(FP_DEF); this.on = false; this.onAny = () => this.push(); this.l2own = {}; this.l2m = undefined; this.l2v = -1; this.l2tm = 0; this.onL2 = () => this.l2Tick(); }
   start(ctx) { this.ctx = ctx; this.on = true; this.fitted = false; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
   // L2 data: chart-l2-flow.js loads once; its hub fires on every book frame, the footprint only needs the trade minutes (<= 5 redraws a second)
-  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=979').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
+  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=1061').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
   l2Tick() {
     if (this.l2tm || !this.on) return;
     this.l2tm = setTimeout(() => { this.l2tm = 0; const v = this.l2m ? this.l2m.fpVersion(this.l2own) : 0; if (v !== this.l2v) this.push(); }, 200);
   }
   // the flow for the layer: null = use the trades feed (L1 setting, crypto, or the module is missing)
-  l2Flow(bars, tfm) {
+  l2Flow(bars, tfm, left) {
     if (this.cfg.src === 'l1') { this.dropL2(); return null; }
     if (this.l2m === undefined) { this.loadL2(); return { map: new Map(), note: 'Loading order flow…' }; }
     if (!this.l2m) return null;
-    const r = this.l2m.fpFlow(this.l2own, this.ctx, bars, tfm * 60000, replayE(), this.onL2);
+    let r = this.l2m.fpFlow(this.l2own, this.ctx, bars, tfm * 60000, replayE(), this.onL2, left);
     this.l2v = this.l2m.fpVersion(this.l2own);
+    if (r && r.list && r.list.length && replayE() == null) r = this.olderFromL1(r, bars, tfm, left);
+    // no L2 trades for these bars (market closed, hub read empty): draw the recorder's trades, said plainly; L2 comes back on its next trade
+    if (r && r.none) { const f = flowFor({ root: rootOf(this.ctx), timeframe: this.ctx.timeframe, bars, owner: this }); return f.map && f.map.size ? Object.assign({}, f, { note: r.note, src: 'l1' }) : f; }
+    this.flow = r;   // what the layer draws (tests read it)
     return r;
+  }
+  // The live L2 feed is recorded for 48 h only. Bars older than that come from the recorder's own trades (L1, the same real
+  // per-price volume, kept 90 days since 8 Oct 2026). Only for the recorded minis: a micro has no L1 record of its own, so nothing is borrowed.
+  olderFromL1(r, bars, tfm, left) {
+    const root = rootOf(this.ctx), t0 = r.mins.length ? r.mins[0].t : 0;
+    if (!t0 || !(left < t0) || !L1_ROOTS.includes(String(this.ctx.symbol || '').toUpperCase().replace(/^FUTURES:/, '').replace(/[0-9]*!$/, '')) || !root) return r;
+    const tfMs = tfm * 60000, part = bars.filter((b) => b.time >= left - tfMs && b.time < t0);
+    if (!part.length) return r;
+    const f1 = flowFor({ root, timeframe: this.ctx.timeframe, bars: part, owner: this.l1own || (this.l1own = {}), maxDays: L1_KEEP_DAYS });
+    const old = (f1.mins || []).filter((m) => m.t < t0);
+    const key = r.mins.length + '|' + t0 + '|' + old.length + '|' + tfMs + '|' + (f1.loading ? 1 : 0);
+    if (this.l1m && this.l1m.key === key) return this.l1m.out;
+    let out;
+    if (!old.length) out = Object.assign({}, r, { note: f1.loading ? 'Loading footprint history…' : 'No footprint recorded before ' + new Date(t0).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' });
+    else {
+      const mins = old.concat(r.mins), list = aggregate(mins, tfMs, true);
+      const first = old[0].t, cover = first <= left + tfMs;
+      out = Object.assign({}, r, { mins, list, map: new Map(list.map((b) => [b.t, b])), note: f1.loading ? 'Loading footprint history…' : cover ? '' : 'No footprint recorded before ' + new Date(first).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' });
+    }
+    this.l1m = { key, out };
+    return out;
   }
   dropL2() { if (this.l2m) this.l2m.fpDrop(this.l2own); this.l2v = -1; }
   onSettings(v) {
@@ -736,7 +773,7 @@ function footprintLayer() {
       const co = a.coords, dpr = co.dpr || 1;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const d = a.data, cfg = d.cfg;
-      const tfm = tfMin(d.timeframe), f = (d.eng && tfm >= 1 && tfm <= MAX_TF_MIN && d.eng.l2Flow(a.bars, tfm)) || flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.eng });
+      const tfm = tfMin(d.timeframe), f = (d.eng && tfm >= 1 && tfm <= MAX_TF_MIN && d.eng.l2Flow(a.bars, tfm, (a.bars[Math.max(0, Math.floor(co.visibleLogicalRange().from))] || {}).time)) || flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.eng });
       let top = a.bounds.top; const day = light(); let bot = top + a.bounds.height;
       const P = pal(cfg, day), { UP, UP2, DN, SELL, SELL2, TEAL, ORNG, PINK } = P;
       const ink = day ? '#1f2937' : '#d7dbe2', dim = day ? '#64748b' : '#8a90a0';
@@ -803,6 +840,22 @@ function footprintLayer() {
         g.beginPath(); if (g.roundRect) g.roundRect(px + .5, py + .5, pw, 22, 11); else g.rect(px + .5, py + .5, pw, 22); g.fill(); g.stroke();
         g.fillStyle = day ? '#0e7490' : '#7fe3e8'; g.fillText(txt, px + pw / 2, py + 11.5);
       };
+      // Highlight heavy activity: the limit comes from the cells in view (or the fixed size); Infinity = off, cells keep today's colours.
+      // Same limit at every zoom: a cell that groups mm price levels is judged against mm times the per-level size (GK 14 Nov).
+      const heavyAt = (mm) => {
+        if (!cfg.heavy) return Infinity;
+        const vals = [];
+        if (cfg.heavy === 'avg') {
+          for (let i = i0; i <= i1; i++) {
+            const fb = f.map.get(a.bars[i].time); if (!fb) continue;
+            for (const r of rowsOf(fb, mm).rs) { if (cfg.mode === 'bidask') vals.push(r.buy, r.sell); else vals.push(cfg.mode === 'delta' || (cfg.mode === 'ladder' && cfg.ladShow === 'delta') ? Math.abs(r.buy - r.sell) : r.buy + r.sell); }
+          }
+        }
+        return heavyLimit(vals, cfg.heavy, cfg.heavyX, cfg.heavyFixed, tfMin(d.timeframe), mm);
+      };
+      const HK = cfg.heavyK;
+      const hot = (c) => vivid(c, HK.v);
+      const hotBuy = cfg.heavyBuyC, hotSell = cfg.heavySellC;   // heavy buying / selling: their own colours
       if (!cells) {
         // zoomed out: candles coloured by the bar's delta (strength = |delta| / volume)
         for (let i = i0; i <= i1; i++) {
@@ -813,6 +866,28 @@ function footprintLayer() {
           const r = fb.delta / fb.vol;
           g.fillStyle = alpha(fb.delta >= 0 ? UP : SELL, 0.35 + 0.65 * Math.min(1, Math.abs(r) * 2.5));
           g.fillRect(Math.round(x - w / 2), Math.min(yO, yC), w, Math.max(1, Math.abs(yC - yO)));
+        }
+        // heavy activity stays visible zoomed out: rows of at least 3 px, a small marker per heavy row (buys right, sells left)
+        if (cfg.heavy && cfg.mode !== 'boxes' && cfg.mode !== 'dbars') {
+          let mz = cfg.rows || 1;
+          if (!cfg.rows) for (const q of ROW_STEPS) { mz = q; if (tickPx * q >= 3) break; }
+          const hz = heavyAt(mz), mw = Math.max(2, Math.min(bw * 0.9, 24)), hA = Math.min(1, 0.55 + 0.45 * HK.a);
+          for (let i = i0; i <= i1; i++) {
+            const fb = f.map.get(a.bars[i].time); if (!fb) continue;
+            const x = co.logicalToX(i), xl = x - mw / 2;
+            for (const r of rowsOf(fb, mz).rs) {
+              const yT = co.priceToY((r.p + mz) * tick, a.scale, a.bounds), yB = co.priceToY(r.p * tick, a.scale, a.bounds);
+              const y = Math.min(yT, yB), h = Math.max(2, Math.abs(yB - yT) - 0.5);
+              if (y > bot || y + h < top) continue;
+              const dl = r.buy - r.sell;
+              if (cfg.mode === 'bidask') {
+                if (r.sell >= hz) { g.fillStyle = alpha(hotSell, hA); g.fillRect(xl, y, mw / 2, h); }
+                if (r.buy >= hz) { g.fillStyle = alpha(hotBuy, hA); g.fillRect(x, y, mw / 2, h); }
+              } else if ((cfg.mode === 'delta' || (cfg.mode === 'ladder' && cfg.ladShow === 'delta') ? Math.abs(dl) : r.buy + r.sell) >= hz) {
+                g.fillStyle = alpha(dl >= 0 ? hotBuy : hotSell, hA); g.fillRect(xl, y, mw, h);
+              }
+            }
+          }
         }
         pill('Zoom in to see footprint');
         g.restore(); lastMs = performance.now() - t0; if (window.__stkFpStats) window.__stkFpStats.push(lastMs); return;
@@ -843,18 +918,7 @@ function footprintLayer() {
           for (const r of rowsOf(fb, m).rs) { const q = lv(r); if (q > gmax) gmax = q; }
         }
       }
-      // Highlight heavy activity: the limit comes from the cells in view (or the fixed size); null = off, cells keep today's colours
-      let heavy = Infinity;
-      if (cfg.heavy) {
-        const vals = [];
-        for (let i = i0; i <= i1; i++) {
-          const fb = f.map.get(a.bars[i].time); if (!fb) continue;
-          for (const r of rowsOf(fb, m).rs) { if (cfg.mode === 'bidask') vals.push(r.buy, r.sell); else vals.push(cfg.mode === 'delta' || (cfg.mode === 'ladder' && cfg.ladShow === 'delta') ? Math.abs(r.buy - r.sell) : r.buy + r.sell); }
-        }
-        heavy = heavyLimit(vals, cfg.heavy, cfg.heavyX, cfg.heavyFixed);
-      }
-      const HK = cfg.heavyK;
-      const hot = (c) => vivid(c, HK.v);
+      const heavy = heavyAt(m);
       for (let i = i0; i <= i1; i++) {
         const bar = a.bars[i], fb = f.map.get(bar.time);
         if (!fb) continue;
@@ -908,8 +972,9 @@ function footprintLayer() {
               const c = vol ? (dl > 0 ? UP : dl < 0 ? DN : '#8a90a0') : (dl >= 0 ? UP : DN);
               const bw2 = Math.max(2, Math.min(ladW, ladW * q / dmax));
               const hv = q >= heavy;
-              g.fillStyle = hv ? alpha(hot(c), Math.min(1, 0.78 + 0.22 * HK.a)) : alpha(c, 0.78);
+              g.fillStyle = hv ? alpha(vol ? (dl > 0 ? hotBuy : dl < 0 ? hotSell : hot(c)) : (dl >= 0 ? hotBuy : hotSell), Math.min(1, 0.78 + 0.22 * HK.a)) : alpha(c, cfg.heavy ? 0.4 : 0.78);   // heavy on: ordinary bars are muted so only the heavy ones stand out (GK 15 Nov)
               g.fillRect(cx + 6, y + 0.5, bw2, Math.max(1, h - 1));
+              if (hv) { g.strokeStyle = day ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.9)'; g.lineWidth = 1; g.strokeRect(cx + 6.5, y + 1, bw2 - 1, Math.max(1, h - 2)); }   // heavy: outlined too, so it never looks like an ordinary bar
               g.fillStyle = day ? alpha(c, 1) : alpha(vol ? (dl > 0 ? UP2 : dl < 0 ? (P.sellC || '#ff7a85') : '#c4c8d2') : (dl >= 0 ? UP2 : (P.sellC || '#ff7a85')), 1);
               g.fillRect(cx + 6, y + 0.5, 1, Math.max(1, h - 1));
             }
@@ -930,13 +995,13 @@ function footprintLayer() {
             const bare = !showText;   // no numbers at this zoom: the tint is the cell
             const base = bare ? 0.2 : 0.03, span = bare ? 0.7 : 0.16;
             const hs = r.sell >= heavy, hb = r.buy >= heavy;
-            g.fillStyle = alpha(hs ? hot(SELL) : SELL, hs ? 0.3 + 0.4 * HK.a : base + span * (r.sell / max) * (sd || bare ? 1 : 0.3) + (imb.sell[k] ? 0.12 : 0));
+            g.fillStyle = alpha(hs ? hotSell : SELL, hs ? 0.3 + 0.4 * HK.a : base + span * (r.sell / max) * (sd || bare ? 1 : 0.3) + (imb.sell[k] ? 0.12 : 0));
             g.fillRect(xl, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
-            g.fillStyle = alpha(hb ? hot(UP) : UP, hb ? 0.3 + 0.4 * HK.a : base + span * (r.buy / max) * (bd || bare ? 1 : 0.3) + (imb.buy[k] ? 0.12 : 0));
+            g.fillStyle = alpha(hb ? hotBuy : UP, hb ? 0.3 + 0.4 * HK.a : base + span * (r.buy / max) * (bd || bare ? 1 : 0.3) + (imb.buy[k] ? 0.12 : 0));
             g.fillRect(x + 0.5, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
           } else {
             const q = cfg.mode === 'delta' ? Math.abs(dl) : v;
-            if (q >= heavy) g.fillStyle = alpha(hot(cfg.mode === 'delta' ? (dl >= 0 ? UP : SELL) : CYAN), 0.3 + 0.4 * HK.a);
+            if (q >= heavy) g.fillStyle = alpha(cfg.mode === 'delta' ? (dl >= 0 ? hotBuy : hotSell) : hot(CYAN), 0.3 + 0.4 * HK.a);
             else g.fillStyle = cfg.mode === 'delta' ? alpha(dl >= 0 ? UP : SELL, 0.06 + 0.45 * Math.abs(dl) / max) : alpha(CYAN, 0.06 + 0.4 * v / max);
             g.fillRect(xl, y + 0.5, w, Math.max(1, h - 1));
           }
@@ -1019,6 +1084,7 @@ const IND = {
     { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
     { key: 'va', title: 'Value area %', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
     { key: 'widthPct', title: 'Width %', type: 'int', defval: 30, min: 5, max: 100, step: 1 },
+    { key: 'alwaysVisible', title: 'Always visible', type: 'bool', defval: false, tooltip: 'Keeps the nearest session / swing on each side drawn at the chart edge when it scrolls off screen.', when: { key: 'range', anyOf: ['session', 'swing'] } },
     { key: 'colorMode', title: 'Colour', type: 'string', defval: 'value area', options: ['value area', 'buy / sell'], tooltip: 'value area = one colour per row, orange inside the value area and khaki outside. buy / sell = each row split into sellers and buyers.' },
     { key: 'vaColor', title: 'Value area', type: 'color', defval: VA_OR, when: { key: 'colorMode', anyOf: ['value area'] } },
     { key: 'outColor', title: 'Outside value area', type: 'color', defval: VA_OUT, when: { key: 'colorMode', anyOf: ['value area'] } },
@@ -1183,10 +1249,12 @@ function vpLayer() {
           memo = { key, segs, naked: done.map((s, k) => ({ t: s.t, price: (s.poc + 0.5) * mN * tick, hit: hit[k] < 0 ? null : L[hit[k]].t })) };
         }
         const tA = a.bars[i0].time, tB = a.bars[i1].time;
+        const pin = I.alwaysVisible === true ? pinSessions(memo.segs, (s) => [xOf(f.list[s.i0].t, false) ?? NaN, xOf(f.list[s.i1].t, true) ?? NaN], co.width) : new Map();
         for (const s of memo.segs) {
           const L0 = f.list[s.i0].t, L1 = f.list[s.i1].t;
-          if (L1 < tA || L0 > tB) continue;
-          const x0 = xOf(L0, false), x1 = xOf(L1, true);
+          if ((L1 < tA || L0 > tB) && !pin.has(s)) continue;
+          let x0 = xOf(L0, false), x1 = xOf(L1, true);
+          if (pin.has(s)) [x0, x1] = pin.get(s);
           if (x0 == null || x1 == null) continue;
           groups.push({ bars: f.list.slice(s.i0, s.i1 + 1), x0, x1, open: !!s.open });
         }
@@ -1282,7 +1350,9 @@ export function installFootprint(Core, flowMod) {
         { kind: 'color', key: 'fpSellColor', label: 'Sell colour', defval: FP_DEF.fpSellColor },
         { kind: 'select', key: 'fpHeavy', label: 'Highlight heavy activity', defval: 'off', options: [['off', 'Off'], ['avg', 'On: times the visible average'], ['fixed', 'On: a fixed size']], when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder'] } },
         { kind: 'number', key: 'fpHeavyX', label: 'Heavy = times the average', defval: 3, min: 1.5, max: 20, step: 0.5, when: { key: 'fpHeavy', anyOf: ['avg'] } },
-        { kind: 'number', key: 'fpHeavyFixed', label: 'Heavy = at least this size per price level', defval: 100, min: 1, max: 1000000, step: 1, when: { key: 'fpHeavy', anyOf: ['fixed'] } },
+        { kind: 'number', key: 'fpHeavyFixed', label: 'Heavy = at least this size per price level (1-minute bar; scales up on higher timeframes)', defval: 100, min: 1, max: 1000000, step: 1, when: { key: 'fpHeavy', anyOf: ['fixed'] } },
+        { kind: 'color', key: 'fpHeavyBuyColor', label: 'Heavy buying colour', defval: FP_DEF.fpHeavyBuyColor, when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
+        { kind: 'color', key: 'fpHeavySellColor', label: 'Heavy selling colour', defval: FP_DEF.fpHeavySellColor, when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
         { kind: 'select', key: 'fpHeavyLevel', label: 'Heavy intensity', defval: 'normal', options: [['subtle', 'Subtle'], ['normal', 'Normal'], ['strong', 'Strong']], when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
         { kind: 'number', key: 'fpImb', label: 'Imbalance ratio %', defval: FP_DEF.fpImb, min: 110, max: 2000, step: 10, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder', 'dbars'] } },
         { kind: 'number', key: 'fpStack', label: 'Stacked imbalance rows', defval: FP_DEF.fpStack, min: 2, max: 10, step: 1, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder', 'dbars'] } },

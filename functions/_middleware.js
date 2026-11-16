@@ -12,6 +12,7 @@
 // Runs before the auth proxy, so a blocked visitor can't reach the Firebase sign-in helper either.
 import { isAuthProxyPath, proxyAuth } from './_auth-proxy.js';
 import { isBlockedRequest, blockedJson, REGION_MESSAGE } from './_geo-block.js';
+import { isAiAgentPath, proxyAiAgent } from './_ai-proxy.js';
 
 const CANONICAL_HOST = 'tradezoro.com';
 const REDIRECT_HOSTS = new Set(['strykertrading.com', 'www.strykertrading.com', 'www.tradezoro.com']);
@@ -48,6 +49,10 @@ export async function onRequest({ request, next, env }) {
   if (isAuthProxyPath(url.pathname)) {
     return proxyAuth(request);
   }
+  // "Connect your AI to ZoroCharts" (MCP + OAuth, workers/ai-agent): only on the canonical host, after the geo-block.
+  if (!REDIRECT_HOSTS.has(url.hostname) && isAiAgentPath(url.pathname)) {
+    return proxyAiAgent(request, env);
+  }
   // Static files never redirect (identical on every host); only pages and /api do, as before build 503's _routes.json.
   if (REDIRECT_HOSTS.has(url.hostname) && !isStaticPath(url.pathname)) {
     url.hostname = CANONICAL_HOST;
@@ -58,5 +63,5 @@ export async function onRequest({ request, next, env }) {
 }
 
 function isStaticPath(p) {
-  return p.startsWith('/assets/') || p === '/manifest.json' || p === '/firebase-messaging-sw.js';
+  return p.startsWith('/assets/') || p === '/manifest.json' || p.startsWith('/.well-known/') || p === '/firebase-messaging-sw.js';
 }

@@ -51,10 +51,13 @@ const VERSIONS = (() => {
   if (!m) throw new Error('assets/indicator-versions.js: VERSIONS block not found');
   return require('vm').runInNewContext('(' + m[1] + ')');
 })();
+// a v1.0 line written by tools/indver-seed.js (no history of its own): it does not move the page's "Updated" date
+const SEEDED = (x) => x.v === '1.0' && x.notes.length === 1 && /^(First release|Added to ZoroCharts)\.$/.test(x.notes[0]);
 const FIRST = JSON.parse(fs.readFileSync(path.join(HERE, 'first-release.json'), 'utf8'));
 function changelogOf(it) {
   const e = VERSIONS[it.key];
-  const list = e ? e.versions.map((x) => ({ v: x.v, date: x.date, notes: x.notes, pick: !x.all }))
+  // pick = a version a chart can stay on (natives: not all:true; built-in Pine: its source is kept, src: true, or it is the latest)
+  const list = e ? e.versions.map((x, i) => ({ v: x.v, date: x.date, notes: x.notes, pick: /^x:/.test(it.key) ? !!x.src || i === e.versions.length - 1 : i === 0 || !x.all }))
     : [{ v: '1.0', date: FIRST[it.key] || DEFAULT_UPDATED, notes: [it.third ? 'Added to ZoroCharts.' : 'First release.'] }];
   for (const x of list) {
     const bad = x.notes.join(' ').match(/\b(tradingview|luxalgo|vela|cme|finra|rithmic|win rate|profitable|guaranteed?|real-time)\b/i);
@@ -98,7 +101,7 @@ function loadItems() {
     return {
       slug: it.slug, key: it.key, name: DISPLAY[it.key] || it.name, windowName: it.name, author: it.author, third: it.third, group: it.group,
       plan: it.plan, kind: it.kind, short: it.short, summary: w.summary, overview: w.overview, how: w.how, use: w.use, notes: w.notes,
-      explain: explainOf(it.slug, it), changelog: changelogOf(it), alerts: w.alerts || '', learn: w.learn && LEARN[w.learn] ? w.learn : '', updated: [w.updated || DEFAULT_UPDATED, ...((VERSIONS[it.key] || { versions: [] }).versions.map((x) => x.date))].sort().pop(),
+      explain: explainOf(it.slug, it), changelog: changelogOf(it), alerts: w.alerts || '', learn: w.learn && LEARN[w.learn] ? w.learn : '', updated: [w.updated || DEFAULT_UPDATED, ...((VERSIONS[it.key] || { versions: [] }).versions.filter((x) => !SEEDED(x)).map((x) => x.date))].sort().pop(),
       licence: it.licence || '', originalUrl: it.originalUrl || '', settings,
       capture: caps[it.slug] === 'ok' ? 'chart' : 'preview',
       image: `/${IMG}/${it.slug}.webp`, thumb: `/${IMG}/${it.slug}-t.webp`
@@ -240,7 +243,7 @@ function credit(it) {
 }
 
 function dataNote(it) {
-  if (/\(L2\)|L1\+L2/.test(it.windowName)) return 'Pro: needs the full order book (Data feed L2).';
+  if (/\(L2\)|L1\+L2/.test(it.windowName)) return 'Free tool. Needs the full order book (Data feed L2); live futures order book is a paid data feed, read 10 minutes delayed without it.';
   if (/\(L1\)/.test(it.windowName)) return 'Uses the futures trade stream (Data feed L1). Futures L1 data is free for members who sign the market data agreement.';
   return '';
 }
@@ -370,6 +373,18 @@ ${all.filter((x) => x.group === g).map((x) => card(x, 'h3')).join('\n')}
   return page({ title: 'Indicators: every ZoroCharts indicator explained', description, url, page: 'indicators.html', key: 'indicators-hub', jsonld, main });
 }
 
+// Which markets an indicator draws on, from its write-up notes (the same text members read on its page).
+// Futures-only order flow and L2 book tools, crypto-only data, US-stock data, options-derived levels; else every market.
+function marketsOf(it) {
+  const t = [].concat(it.notes || [], it.how || [], [it.short || '', it.summary || '']).join(' ');
+  if (/\(L2\)|_l2|\bl2f?_/i.test(it.key + ' ' + it.name) || /recorded futures trades|futures (depth|order book)/i.test(t)) return ['Futures'];
+  if (/crypto (symbols|perpetuals|charts) only|crypto only|Hyperliquid/i.test(t)) return ['Crypto'];
+  if (/US stocks only|US stocks and ETFs|Stocks and ETFs/i.test(t)) return ['Stocks'];
+  if (/SPX, SPY, QQQ/.test(t)) return ['Futures', 'Stocks', 'Options'];
+  if (/crypto charts keep this one/i.test(t)) return ['Crypto'];
+  return ['Futures', 'Stocks', 'Crypto', 'Forex'];
+}
+
 // ---- og table + catalogue data ----
 function cardTitle(name) {
   let t = name.replace(/^TradeZoro /, '').replace(/\s*\[[^\]]*\]/g, '').replace(/\s*\((?!L1|L2)[^)]*\)/g, '').replace(/\s*\|.*$/, '').replace(/°/g, '').trim();
@@ -405,6 +420,16 @@ function outputs() {
   const ex = {};
   items.forEach((x) => { if (x.explain) ex[x.key] = x.explain; });
   out['assets/indicator-explain.json'] = JSON.stringify(ex) + '\n';
+  // Indicator picker ("Add to chart" window, assets/chart-indicator-window.js): the small per-key facts it shows,
+  // fetched when the window opens. s slug, t chart-capture thumbnail (none for the text-card previews), m markets
+  // it works on (read from the write-up's own notes), i input names, n input count, d summary, r first release, p plan.
+  const pk = {};
+  items.forEach((x) => {
+    const ins = [...new Set(x.settings.map((s) => s.title).filter((t) => t && t.length < 48))];
+    const cl = x.changelog.list;
+    pk[x.key] = { s: x.slug, t: x.capture === 'chart' ? x.thumb : undefined, m: marketsOf(x), i: ins.slice(0, 12), n: ins.length, d: x.summary, r: cl[cl.length - 1].date, p: x.plan };
+  });
+  out['assets/indicator-picker.json'] = JSON.stringify(pk) + '\n';
   return { out, items };
 }
 
@@ -421,6 +446,7 @@ const settle = (rel, s) => {
 settle('tools/og/pages.json', out['tools/og/pages.json']);
 settle('assets/indicators-catalog.json', out['assets/indicators-catalog.json']);
 settle('assets/indicator-explain.json', out['assets/indicator-explain.json']);
+settle('assets/indicator-picker.json', out['assets/indicator-picker.json']);
 { // app-shell allowlist: hub + every page are public-and-app (dual) pages
   const p = path.join(__dirname, 'tests', 'app-shell-allowlist.json');
   const al = JSON.parse(fs.readFileSync(p, 'utf8'));

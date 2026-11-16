@@ -654,6 +654,36 @@ def check_metric_alerts():
             fail('metric alerts ' + cmd[-1] + ': ' + (r.stdout + r.stderr).strip()[-300:])
 
 
+def check_days_load():
+    """Chart setting 'Days of history to load' (member GK): caps, menu, per-timeframe store. tools/tests/chart-days-load.test.mjs."""
+    r = subprocess.run(['node', 'tools/tests/chart-days-load.test.mjs'], capture_output=True, text=True, cwd=ROOT, timeout=60)
+    if r.returncode != 0:
+        fail('days-load: ' + (r.stdout + r.stderr).strip()[-300:])
+
+
+def check_finatic():
+    """Finatic broker routes + ZoroCharts live orders (admin only): tests/finatic/*.test.mjs, mocked broker, no network, no real orders."""
+    import glob
+    for f in sorted(glob.glob(os.path.join(ROOT, 'tests', 'finatic', '*.test.mjs'))):
+        r = subprocess.run(['node', f], capture_output=True, text=True, cwd=ROOT, timeout=120)
+        if r.returncode != 0:
+            fail('finatic ' + os.path.basename(f) + ': ' + (r.stdout + r.stderr).strip()[-400:])
+
+
+def check_workspaces():
+    """Charts workspaces index logic (assets/chart-workspaces-core.js): tools/tests/chart-workspaces.test.mjs."""
+    r = subprocess.run(['node', 'tools/tests/chart-workspaces.test.mjs'], capture_output=True, text=True, cwd=ROOT, timeout=60)
+    if r.returncode != 0:
+        fail('workspaces: ' + (r.stdout + r.stderr).strip()[-300:])
+
+
+def check_latency():
+    """Charts connection chip numbers + Performance mode coalescing (assets/chart-latency-core.js, chart-live-resume.js): tools/tests/chart-latency.test.mjs."""
+    r = subprocess.run(['node', 'tools/tests/chart-latency.test.mjs'], capture_output=True, text=True, cwd=ROOT, timeout=60)
+    if r.returncode != 0:
+        fail('latency: ' + (r.stdout + r.stderr).strip()[-300:])
+
+
 def check_zscript_engine():
     """Zscript engine (assets/zs/): language, ta.* golden values, VM, limits, security and data-frame
     tests (tools/tests/zs-*.test.mjs). Fuzz, bench and the browser sandbox test run by hand
@@ -669,6 +699,16 @@ def check_zscript_engine():
             if r.returncode != 0:
                 bad = [l for l in r.stdout.splitlines() if l.startswith('FAIL')][:5]
                 fail(f'Zscript zs-{n} tests failed: ' + ('; '.join(bad) or (r.stdout + r.stderr)[-300:]))
+
+
+def check_desktop_signin():
+    """Windows app Google sign-in in the system browser (Owner bug 15 Nov): server handoff (mint, single use, expiry,
+    verifier mismatch), the /dl edge cache per release tag, and the app's handoff/URL-policy unit tests."""
+    for cmd in (['node', 'tools/tests/desktop-handoff.test.mjs'], ['node', 'tools/tests/dl-cache.test.mjs'],
+                ['node', '--test', 'desktop/test/policy.test.js', 'desktop/test/handoff.test.js']):
+        r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, timeout=120)
+        if r.returncode != 0:
+            fail(f'{" ".join(cmd)} failed:\n' + (r.stdout + r.stderr)[-1500:])
 
 
 def check_pro_features():
@@ -724,7 +764,7 @@ def main():
     # two browser checks start first so they overlap the rest
     fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
     browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
-    order = [check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
+    order = [check_desktop_signin, check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_days_load, check_finatic, check_workspaces, check_latency, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

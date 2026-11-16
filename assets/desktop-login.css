@@ -1,0 +1,22 @@
+/* /desktop-login: Google sign-in for the TradeZoro Windows app, in the member's normal browser.
+   One centred card on the page background; site tokens only (assets/style.css), dark + light. */
+.dl-body{ margin:0; background:var(--bg-1); color:var(--ink-0); }
+.dl-main{ min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:32px 16px; box-sizing:border-box; outline:none; }
+.dl-card{ width:100%; max-width:400px; box-sizing:border-box; padding:32px 24px 24px; border-radius:16px;
+  background:var(--bg-2); border:1px solid var(--line); text-align:center; }
+.dl-logo{ display:block; width:48px; height:48px; margin:0 auto 24px; border-radius:12px; }
+.dl-title{ font-size:22px; line-height:28px; font-weight:700; margin:0 0 8px; color:var(--ink-0); }
+.dl-sub{ font-size:15px; line-height:22px; color:var(--ink-2); margin:0 0 24px; }
+.dl-error{ display:none; margin:0 0 16px; padding:12px; border-radius:8px; font-size:14px; line-height:20px; text-align:left;
+  color:var(--ink-0); background:rgba(229,72,77,0.10); border:1px solid rgba(229,72,77,0.40); }
+.dl-google, .dl-btn{ box-sizing:border-box; min-height:48px; padding:12px 16px; border-radius:12px; font-size:15px; line-height:22px; gap:12px; }
+.dl-google{ width:100%; color:var(--ink-0); cursor:pointer; }
+.dl-google:disabled{ opacity:.64; cursor:default; }
+.dl-google svg{ flex:none; }
+.dl-hint{ font-size:12px; line-height:16px; color:var(--ink-2); margin:16px 0 0; }
+.dl-check{ width:48px; height:48px; margin:0 auto 16px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  color:var(--gold); background:rgba(3,201,136,0.12); }
+.dl-check svg{ width:24px; height:24px; }
+.dl-foot{ font-size:12px; line-height:16px; color:var(--ink-3); margin:24px 0 0; padding-top:16px; border-top:1px solid var(--line-soft); }
+.dl-google:focus-visible, .dl-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+@media (max-width:479px){ .dl-card{ padding:24px 16px 16px; } }

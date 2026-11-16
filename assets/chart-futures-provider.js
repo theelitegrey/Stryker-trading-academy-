@@ -15,10 +15,11 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=979';
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=979';
-import { hubLive, hubCovers } from './live-source.js?v=979';
-import { teWanted, teGetBars, teSubscribe } from './chart-tick-engine.js?v=979';   // TICK ENGINE (one candle source, behind TICK_ENGINE / ?engine=0)
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=1061';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck, rtConfirmed } from './rt-access.js?v=1061';
+import { hubLive, hubCovers } from './live-source.js?v=1061';
+import { teWanted, teGetBars, teSubscribe } from './chart-tick-engine.js?v=1061';   // TICK ENGINE (one candle source, behind TICK_ENGINE / ?engine=0)
+import { noteExch, feedKey } from './chart-latency-core.js?v=1061';   // connection chip: the bridge heartbeat's edge clock -> arrival (assets/chart-latency.js)
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -459,7 +460,7 @@ export class FuturesProvider {
     // Now the mode follows liveVisible(): 'hub' only once it is true, re-checked on every auth change.
     const pick = () => {
       if (stopped) return;
-      import('./chart-futures-l2.js?v=979').then((m) => {
+      import('./chart-futures-l2.js?v=1061').then((m) => {
         if (stopped) return;
         const want = m.liveVisible() ? 'hub' : 'poll';
         if (want === mode) return;
@@ -483,7 +484,7 @@ export class FuturesProvider {
   l2Subscribe(root, timeframe, onBar) {
     if (!['NQ', 'ES', 'MNQ', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SPX', 'NDX', 'VIX', 'RUT', 'QQQ', 'SPY', 'IWM', 'DIA'].includes(root)) return NOOP;   // last 8 = quote-only (no book): same hub, same gate
     let stop = null, dead = false;
-    import('./chart-futures-l2.js?v=979').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
+    import('./chart-futures-l2.js?v=1061').then((m) => { if (!dead && m.l2Visible()) stop = m.l2Candles(m.L2_ROOTS[root] || root, timeframe, onBar, rtConfirmed); }).catch(() => {});
     return () => { dead = true; if (stop) stop(); };
   }
   subscribeBase(ticker, timeframe, onBar, root, tf) {
@@ -628,7 +629,7 @@ export class FuturesProvider {
         try {
           const msg = JSON.parse(ev.data);
           lastMsgAt = Date.now();
-          if (msg && msg.event === 'ping') { hbSeen = true; return; }
+          if (msg && msg.event === 'ping') { hbSeen = true; noteExch(feedKey('futures', ticker), Number(msg.t)); return; }
           if (msg && msg.event === 'trades') { if (withOf) pushLiveTrades(root, msg.tr); return; }
           if (msg && msg.event === 'delivery') { noteLiveDelivery(root, msg); return; }
           // the site's one InsightSentry socket has no room for this leg / is holding back to stay inside

@@ -10,13 +10,13 @@
 // Threshold: the auto size is the recorder's 99.5th percentile for the symbol (the same number the InsightSentry bubbles use), so the
 // two indicators ask the same question; a print below the Worker's per-symbol floor was never stored.
 // Education only. Not financial advice.
-import { liveVisible as l1Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState } from './chart-futures-l2.js?v=979';
-import { registerFeed } from './chart-feeds.js?v=979';
-import { rtReady, rtHeaders } from './rt-access.js?v=979';
-import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=979';
-import { cvdCandles } from './chart-footprint-data.js?v=979';
-import * as BT from './chart-bigtrades.js?v=979';
-import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=979';
+import { liveVisible as l1Visible, l2Root, L2_TYPES, L2_TICK, acquire, rootState, l2Closed } from './chart-futures-l2.js?v=1061';
+import { registerFeed } from './chart-feeds.js?v=1061';
+import { rtReady, rtHeaders } from './rt-access.js?v=1061';
+import { bigPrints, bigThreshold } from './chart-of-pro-data.js?v=1061';
+import { cvdCandles } from './chart-footprint-data.js?v=1061';
+import * as BT from './chart-bigtrades.js?v=1061';
+import { aggregateMins, compareFeeds, MERGE_MS } from './chart-ts-data.js?v=1061';
 
 export const TS_TYPES = ['stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd'];
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
@@ -97,6 +97,10 @@ function fold(s, x) {
 function onFrame(s, m) {
   const r = rootState(s.root);
   if (!m) {   // state change: first time live -> load; back live after a drop -> reload (ticks in the gap were not delivered)
+    // market closed (member GK 14 Nov: "big trades not updated even after refreshing"): the hub never says 'live' until CME opens, so the
+    // history was never read and Big Trades showed 0. The recorded prints are history (HTTP), not the socket: read them now. The open
+    // later counts as "back live after a drop" (wasDown), so fillGap() reads whatever printed in between.
+    if (r.status !== 'live' && !s.started && l2Closed(s.root)) { s.started = true; s.wasDown = true; reset(s); pump(s); return; }
     if (r.status !== 'live') { if (s.started) s.wasDown = true; return; }
     if (!s.started) { s.started = true; s.wasDown = false; reset(s); pump(s); }
     else if (s.wasDown) { s.wasDown = false; if (s.loadedFrom === Infinity || Date.now() - s.at > WIN) { reset(s); pump(s); } else fillGap(s); }   // GK 13 Nov: reset() wiped every print on each socket drop (hidden tab); now only the gap is read
@@ -129,7 +133,7 @@ function acquireStore(root, listener) {
   const s = getStore(root);
   s.refs++; s.ls.add(listener); clearTimeout(s.dropTm);
   if (!s.handle) { s.handle = acquire(root, (m) => onFrame(s, m), 20); }
-  if (rootState(root).status === 'live' && !s.started) onFrame(s, null);
+  if (!s.started && (rootState(root).status === 'live' || l2Closed(root))) onFrame(s, null);
   // GK 13 Nov: the chart rebuilds its indicators when the tab comes back; the store died with the last one and the markers refilled from nothing.
   // Keep an unused store for GRACE_MS so the rebuilt indicator picks up the prints already loaded.
   return { s, release() { s.ls.delete(listener); if (--s.refs <= 0) { clearTimeout(s.dropTm); s.dropTm = setTimeout(() => { if (s.refs > 0) return; s.gen++; s.pumping = false; if (s.handle) s.handle.release(); if (stores.get(root) === s) stores.delete(root); }, GRACE_MS); } } };
@@ -227,7 +231,7 @@ class TsNative {
     const showCmp = (() => { try { return localStorage.getItem('tz_feedcheck') === '1'; } catch (e) { return false; } })();   // internal feed check: hidden from members unless turned on
     const tables = msg ? [table(t + '-msg', [msg], true)] : cmp && showCmp ? [table(t + '-cmp', cmp, false, t === 'stk_ts_big')] : [];
     if (t === 'stk_ts_big') { ctx.emit({ tables }); ctx.pushData({ owner: this, root, isRoot: same ? isRoot : null, timeframe: ctx.timeframe, inputs: I, v: s.v, vr: bars.length }); return; }
-    const agg = aggregateMins(mins, tf * 60000), map = new Map(agg.map((b) => [b.t, b]));
+    const agg = aggregateMins(mins, tf * 60000, true), map = new Map(agg.map((b) => [b.t, b]));
     if (t === 'stk_ts_delta') {
       const pts = bars.map((b) => { const x = map.get(b.time); return x ? { time: b.time, value: x.delta, color: x.delta >= 0 ? I.upColor : I.downColor } : { time: b.time, value: null }; });
       ctx.emit({ series: [{ id: 'ts-delta', title: 'Delta L1', paneId: '', kind: 'histogram', points: pts, style: { color: I.upColor, width: 1, lineStyle: 'solid', base: 0 } }], tables });

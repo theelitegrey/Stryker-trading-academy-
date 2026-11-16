@@ -30,23 +30,24 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=979';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=979';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=979';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=979';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=979';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=979';
-import * as ProGate from './chart-pro-gate.js?v=979';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=979';
-import * as BT from './chart-bigtrades.js?v=979';
-import { installBookPack } from './chart-book-pack.js?v=979';
-import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=979';
-import { installPatterns } from './chart-patterns.js?v=979';
-import { installL2Flow } from './chart-l2-flow.js?v=979';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=979';
-import { installDepthHeatmap } from './chart-depth-heatmap.js?v=979';
-export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=979';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=979';
+import { pinSessions } from './chart-frvp-data.js?v=1061';
+import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=1061';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1061';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=1061';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=1061';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=1061';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=1061';
+import * as ProGate from './chart-pro-gate.js?v=1061';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=1061';
+import * as BT from './chart-bigtrades.js?v=1061';
+import { installBookPack } from './chart-book-pack.js?v=1061';
+import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=1061';
+import { installPatterns } from './chart-patterns.js?v=1061';
+import { installL2Flow } from './chart-l2-flow.js?v=1061';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=1061';
+import { installDepthHeatmap } from './chart-depth-heatmap.js?v=1061';
+export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=1061';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=1061';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -224,6 +225,7 @@ const SVP_SCHEMA = [
   { key: 'rowTicks', title: 'Row size (ticks, futures)', type: 'int', defval: SVP_DEF.rowTicks, min: 1, max: 400, step: 1 },
   { key: 'rows', title: 'Rows per session (crypto)', type: 'int', defval: SVP_DEF.rows, min: 6, max: 200, step: 1 },
   { key: 'valueAreaPct', title: 'Value area %', type: 'int', defval: SVP_DEF.valueAreaPct, min: 10, max: 100, step: 1 },
+  { key: 'alwaysVisible', title: 'Always visible', type: 'bool', defval: false, tooltip: 'Keeps the nearest session on each side drawn at the chart edge when it scrolls off screen.' },
   { key: 'widthPct', title: 'Width % of the session', type: 'int', defval: SVP_DEF.widthPct, min: 10, max: 100, step: 1 },
   { key: 'showVa', title: 'Value area lines (VAH / VAL)', type: 'bool', defval: true },
   { key: 'showPoc', title: 'Point of control (POC)', type: 'bool', defval: true },
@@ -237,7 +239,7 @@ const svpConfig = (inputs, mk) => ({
   rows: clamp(Math.round(num(inputs.rows, 40)), 6, 200),
   va: clamp(num(inputs.valueAreaPct, 70), 10, 100) / 100,
   widthFrac: clamp(num(inputs.widthPct, 40), 10, 100) / 100,
-  showVa: inputs.showVa !== false, showPoc: inputs.showPoc !== false,
+  showVa: inputs.showVa !== false, showPoc: inputs.showPoc !== false, alwaysVisible: inputs.alwaysVisible === true,
   color: str(inputs.color, SVP_DEF.color), vaColor: str(inputs.vaColor, SVP_DEF.vaColor), pocColor: str(inputs.pocColor, SVP_DEF.pocColor),
   futures: !!mk.futures, tick: mk.tick || null, tf: mk.tf
 });
@@ -331,8 +333,10 @@ function svpLayer() {
       g.save();
       g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
       const light = themeIsLight(a.theme);
+      const pin = cfg.alwaysVisible ? pinSessions(sessions, (s) => [co.timeToX(s.t0) - half, co.timeToX(s.t1) + half], W) : new Map();
       for (const s of sessions) {
-        const sx0 = co.timeToX(s.t0) - half, x1 = co.timeToX(s.t1) + half;
+        let sx0 = co.timeToX(s.t0) - half, x1 = co.timeToX(s.t1) + half;
+        if (pin.has(s)) [sx0, x1] = pin.get(s);
         if (x1 < 0 || sx0 > W) continue;
         // a long session (overnight is ~15 h) starts off-screen: anchor the profile at the visible left edge so the current session is always seen
         const x0 = Math.max(sx0, 0);
@@ -1875,7 +1879,8 @@ class BookFeed {
   // custom source: one already bucketed column (the hub's rule == the recorder's rule), stamped with this page's clock
   pushCoarse(c) {
     if (!c || !(c.mid > 0) || !c.v || !c.v.length) return;
-    const s = { ts: Date.now(), mid: c.mid, bb: c.bb || null, ba: c.ba || null, step: c.step, i0: c.i0, v: Float32Array.from(c.v) };
+    const s = { ts: c.delayed && c.ts > 0 ? c.ts : Date.now(), mid: c.mid, bb: c.bb || null,   // delayed: the recorded column keeps its own time (all tools free 2026-11-13)
+      ba: c.ba || null, step: c.step, i0: c.i0, v: Float32Array.from(c.v) };
     this.lastSample = s.ts;
     this.history = pushBookSample(this.history, s);
     this.pending.push(s);
@@ -1975,7 +1980,7 @@ class BookFeed {
   // (30 d, book tier only, chart-futures-l2.js bookHistory); crypto: Binance spot (/book-history). One read at a time; a failure waits.
   needReplay(fromMs, toMs) {
     const E = replayClock();
-    if (!E || this.remoteBusy) return;
+    if (!E || this.remoteBusy || (this.custom && !this.custom.remote)) return;   // a member's own depth feed keeps no recording
     if (!this.custom && (/\.P$/i.test(this.ticker) || this.provider !== 'binance' || !recorderUrl())) return;
     const now = Date.now();
     if (this.remoteFailAt && now - this.remoteFailAt < 30000) return;
@@ -2713,7 +2718,7 @@ export function installOrderflow(Core) {
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
   installFuturesL2(Core, { hfSchema, SMOOTH_INPUT, cryptoDomLayer, CryptoDomNative, acquireBookFeed, DOM_SCHEMA, domConfig, bookKey, marketOf, message, pageIsDay, recorderUrl, line, beginFrame, decodeBookHistory, bookFeeds, replayNote, btBook }, reg);
-  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, marketOf, message, pageIsDay, feedTrades, replayNote, btBook }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
+  installDepthHeatmap(Core, { beginFrame, bookFeeds, acquireBookFeed, bookKey, bucketBook, marketOf, message, pageIsDay, feedTrades, replayNote, btBook, chartTz }, reg);   // Depth Heatmap (L2), Owner 2026-11-07
   installBookPack(Core, { line, message, pageIsDay }, reg);
   installPatterns(Core, {}, reg);   // Auto Chart Patterns: Free for every plan (assets/chart-patterns.js)
   installL2Flow(Core, { line, message, pageIsDay, acquireBookFeed }, reg);

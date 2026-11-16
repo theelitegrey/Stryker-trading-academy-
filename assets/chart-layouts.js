@@ -294,8 +294,9 @@ export function mountLayouts(ws, o){
   }
 
   // ---- data ----
-  async function pack(){
-    const st = ws.getState();
+  // st: a state captured earlier (a workspace switch saves the chart it is leaving); no thumbnail then, the old one stays
+  async function pack(st0){
+    const st = st0 || ws.getState();
     const from = grid && grid.capFrom && grid.capFrom();
     if (from) st.layout = from;   // device-capped view: keep the member's own grid
     const json = JSON.stringify(st);
@@ -304,7 +305,8 @@ export function mountLayouts(ws, o){
     catch (e) { keepLocal(json); throw e; }
     let a = null; try { a = ws.active; } catch (e) {}
     const k = countOf(st);
-    return { state: s, json, symbol: String((a && a.symbol) || '').slice(0, 80), interval: String((a && a.timeframe) || '').slice(0, 10), panes: k.panes, indicators: k.indicators, thumb: a ? thumbOf(a) : '' };
+    if (st0) { const c = (st.charts || []).find((x) => x && x.id === st.activeCellId) || (st.charts || [])[0] || {}; a = { symbol: c.symbol, timeframe: c.timeframe }; }
+    return { state: s, json, symbol: String((a && a.symbol) || '').slice(0, 80), interval: String((a && a.timeframe) || '').slice(0, 10), panes: k.panes, indicators: k.indicators, thumb: a && !st0 ? thumbOf(a) : '' };
   }
   // A save that fails (size, offline, rules) keeps the chart on this device so nothing is lost.
   function keepLocal(json){
@@ -340,15 +342,15 @@ export function mountLayouts(ws, o){
 
   // safe mode (assets/chart-safe-mode.js): the chart opened with its indicators paused; never save over the layout
   const safe = () => !!(window.__stkSafe && window.__stkSafe.active);
-  async function saveNow(manual){
+  async function saveNow(manual, st){
     if (viewing || !user()) return;
     if (safe()) { if (manual) toast('Turn the indicators back on first, so the layout is saved with them.', 'error'); return; }
     if (!cur) { askName('Save layout', 'My layout', saveAsNew); return; }
+    const id = cur.id, name = cur.name, shared = cur.shared;   // before any await: a workspace switch changes cur right after calling this
     if (saving) { await saving.catch(() => {}); }
     clearTimeout(autoTimer);
     let p;
-    try { p = await pack(); } catch (e) { toast(e.userMessage || 'Could not save the layout.', 'error'); return; }
-    const id = cur.id, name = cur.name, shared = cur.shared;
+    try { p = await pack(st); } catch (e) { toast(e.userMessage || 'Could not save the layout.', 'error'); return; }
     saving = (async () => {
       await col().doc(id).set(Object.assign({ name, state: p.state, symbol: p.symbol, interval: p.interval, shared, updatedAt: ts(), panes: p.panes, indicators: p.indicators }, p.thumb ? { thumb: p.thumb } : {}), { merge: true });
       if (shared) await writeShared(id, name, p.state);
@@ -364,21 +366,27 @@ export function mountLayouts(ws, o){
     } finally { saving = null; }
   }
 
-  async function saveAsNew(name){
+  // Workspaces (assets/chart-workspaces.js): opts.st = save this captured state instead of the screen; opts.quiet = no
+  // success toast; opts.attach() = false keeps the new layout off the screen (the member already switched away).
+  // Returns { id, name, shared } or null.
+  async function saveAsNew(name, opts){
+    opts = opts || {};
     if (!user()) return;
     if (safe()) { toast('Turn the indicators back on first, so the layout is saved with them.', 'error'); return; }
     let p;
-    try { p = await pack(); } catch (e) { toast(e.userMessage || 'Could not save.', 'error'); return; }
+    try { p = await pack(opts.st); } catch (e) { toast(e.userMessage || 'Could not save.', 'error'); return; }
     try {
       const all = cache || await list();
-      if (all.length >= MAX_COUNT) { toast('You have ' + MAX_COUNT + ' layouts. Delete one to save another.', 'error'); return; }
+      if (all.length >= MAX_COUNT) { toast('You have ' + MAX_COUNT + ' layouts. Delete one to save another.', 'error'); return null; }
       const ref = col().doc();
       await ref.set({ name, state: p.state, symbol: p.symbol, interval: p.interval, shared: false, updatedAt: ts(), panes: p.panes, indicators: p.indicators, thumb: p.thumb || '', vis: 'private' });
       cache = null;
+      if (opts.attach && !opts.attach()) return { id: ref.id, name, shared: false };
       if (viewing) endViewing();
       setCur({ id: ref.id, name, shared: false, symbol: p.symbol, interval: p.interval });
-      toast('Saved as "' + name + '"');
-    } catch (e) { console.warn('TradeZoro: layout save as', e); keepLocal(p.json); toast('Could not save the layout to your account. A copy is kept on this device.', 'error'); }
+      if (!opts.quiet) toast('Saved as "' + name + '"');
+      return { id: ref.id, name, shared: false };
+    } catch (e) { console.warn('TradeZoro: layout save as', e); keepLocal(p.json); toast('Could not save the layout to your account. A copy is kept on this device.', 'error'); return null; }
   }
 
   async function renameId(id, name){
@@ -437,10 +445,26 @@ export function mountLayouts(ws, o){
   async function createNew(name){
     // A fresh single chart, saved straight away under the new name.
     if (cur && dirty && auto()) await saveNow(false);
+    window.__stkFreshDoc = true;   // new layout = no saved style: it gets the default look (chart-settings.js)
     apply({ version: 1, layout: '1', charts: [{ id: 'A', symbol: 'futures:NQ1!', timeframe: '15' }] });
     cur = null;
     await new Promise((r) => setTimeout(r, 50));
     await saveAsNew(name);
+  }
+
+  // Workspaces (assets/chart-workspaces.js): show a chart document already in hand and track it as layout `meta`
+  // (null = an unsaved layout), with no fetch; the layout being left must have been saved by the caller.
+  function adopt(doc, meta){
+    if (viewing) endViewing();
+    clearTimeout(autoTimer);
+    apply(doc);
+    if (meta) setCur(meta); else { cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); }
+  }
+  async function fetchDoc(id){
+    const d = await col().doc(id).get();
+    if (!d.exists) return null;
+    const x = d.data(), doc = await decodeState(x.state);
+    return doc ? { doc, meta: { id, name: x.name, shared: !!x.shared, symbol: x.symbol, interval: x.interval, updatedAt: tsMs(x.updatedAt) } } : null;
   }
 
   function apply(doc){
@@ -667,6 +691,7 @@ export function mountLayouts(ws, o){
   } catch (e) {}
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 's' || e.key === 'S')) {
+      if (e.target && e.target.closest && e.target.closest('.sed')) return;   // inside the script editor Ctrl+S saves the script (assets/chart-script-editor.js)
       e.preventDefault();
       if (viewing) askName('Make a copy', viewing.name + ' (copy)', saveAsNew);
       else saveNow(true);
@@ -677,7 +702,7 @@ export function mountLayouts(ws, o){
   // ---- boot ----
   const ready = (window.StrykerChartTemplates && window.StrykerChartTemplates.ready) || Promise.resolve();
   paintBtn();
-  ready.then(async () => {
+  const booted = ready.then(async () => {
     const c = lsGet(K.cur(), null);
     if (c && c.id) { cur = { id: c.id, name: c.name, shared: !!c.shared }; paintBtn(); }
     let sid = null;
@@ -694,10 +719,10 @@ export function mountLayouts(ws, o){
   const host = { decodeState, encodeState, user, db, col, saveAsNew, sharedDoc, writeShared, ts, tsMs, toast, list, pack, askName, modal, el, openById, remove, renameId, duplicate, applyForeign, linkOf,
     saveNow, createNew, sanitizeShared, countOf, setupOf: (st) => ui.setupOf(st), symLabel, tfLabel, ago, copyLink: async (id) => { try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); } catch (e) { window.prompt('Copy this link', linkOf(id)); } },
     get cur(){ return cur; }, get dirty(){ return dirty; }, refresh(id, patch){ cache = null; if (cur && cur.id === id && patch) { Object.assign(cur, patch); setCur(Object.assign({}, cur)); } } };
-  const libApi = { open: (tab) => import('./chart-layouts-lib.js?v=979').then((m) => { if (!mounted) mounted = m.mountLib(host); return mounted.open(tab); }).catch((e) => { console.warn('TradeZoro: layouts library', e); toast('Could not open the layouts library.', 'error'); }) };
+  const libApi = { open: (tab) => import('./chart-layouts-lib.js?v=1061').then((m) => { if (!mounted) mounted = m.mountLib(host); return mounted.open(tab); }).catch((e) => { console.warn('TradeZoro: layouts library', e); toast('Could not open the layouts library.', 'error'); }) };
   lib = libApi;
 
-  const api = { detach, saveNow, saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
+  const api = { detach, saveNow, adopt, fetchDoc, booted: booted.catch(() => {}), saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
     get current(){ return cur; }, get viewing(){ return viewing; }, get dirty(){ return dirty; }, linkOf };
   window.STRYKER_LAYOUTS = api;
   return api;

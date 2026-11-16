@@ -157,7 +157,7 @@ function symIndex(feed){
 
 // Normalise anything a member types or uploads to one of OUR symbols, or null.
 // Accepts "NQ1!", "NQ", "CME_MINI:NQ1!", "futures:NQ1!", "BTCUSDT", "BINANCE:BTCUSDT", "binance:BTCUSDT".
-import { canonicalSymbol as canonicalFormula } from './chart-formula-core.js?v=979';
+import { canonicalSymbol as canonicalFormula } from './chart-formula-core.js?v=1061';
 export function normalizeSymbol(raw, feed){
   let s = String(raw || '').trim().replace(/^["']|["']$/g, '');
   if (!s) return null;
@@ -1189,7 +1189,7 @@ export function mountWatchlist(ws, o){
   window.addEventListener('beforeunload', () => { if (saveTimer) saveNow(); });
 
   const api = {
-    get open(){ return open; }, setOpen, get current(){ return cur; }, get lists(){ return lists; }, get viewing(){ return viewing; },
+    get open(){ return open; }, setOpen, get current(){ return cur; }, get width(){ return width; }, setWidth: (px) => { width = applyWidth(px); lsSet(K.width, width); nudgeChart(); }, get lists(){ return lists; }, get viewing(){ return viewing; },
     quotes, refresh, addSymbol, removeSyms, addSection, moveItem, toggleSection, openList, createList, copyCur, renameCur, deleteList,
     setShared, openShared, leaveShared, linkOf, parseUpload: (t) => parseUpload(t, ws.feed), normalize: (s) => normalizeSymbol(s, ws.feed),
     saveNow, select: (s) => { sel = s; markSel(); }, selectMany: (a) => { selSet = new Set(a); markSel(); }, alertListDialog, uploadDialog, openDialog,

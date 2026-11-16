@@ -561,7 +561,7 @@
     var ov = $('#bx-ov'); if (!ov) return;
     var panel = $('.bx-ov-panel', ov), opener = null;
     var V = {
-      gex: { k: 'GEX levels', t: 'GEX levels, with every level on the chart', p: 'Call wall, zero gamma and put wall from the options chain, plotted on the futures chart, with the strike ladder and regime notes. GEX+ is part of Pro. Education only. Not financial advice.', img: 'assets/images/gex-real/chart-nq-5m-plot.webp', go: 'gex', b: 'Open GEX' },
+      gex: { k: 'GEX levels', t: 'GEX levels, with every level on the chart', p: 'Call wall, zero gamma and put wall from the options chain, plotted on the futures chart, with the strike ladder and regime notes. GEX+ is a free tool. Education only. Not financial advice.', img: 'assets/images/gex-real/chart-nq-5m-plot.webp', go: 'gex', b: 'Open GEX' },
       charts: { k: 'ZoroCharts', t: 'Watchlist, Layouts 1–8, Pine scripts, Volume Profile', p: 'Candles from public exchange feeds, 70+ built-in indicators, drawing tools, up to 8 charts on one screen, Pine scripts from you and the community, and our own session Volume Profile.', img: 'assets/images/charts/hero.webp', go: 'charts', b: 'Open ZoroCharts' },
       journal: { k: 'Journal', t: 'A P&L calendar and a coach that reads your own trades', p: 'Log trades by hand or import them, see every day on the calendar, and let the rule-based AI coach point out where you broke your own plan. Screenshot shows sample data.', img: 'assets/images/journal/calendar.webp', go: 'trade-journal', b: 'Open Journal' }
     };
@@ -569,7 +569,7 @@
       var v = V[key]; if (!v) return;
       opener = doc.activeElement;
       $('#bx-ov-k').textContent = v.k; $('#bx-ov-title').textContent = v.t; $('#bx-ov-p').textContent = v.p;
-      var img = $('#bx-ov-img'); img.src = v.img + '?v=979'; img.alt = v.t;
+      var img = $('#bx-ov-img'); img.src = v.img + '?v=1061'; img.alt = v.t;
       var go = $('#bx-ov-go'); go.href = v.go; go.textContent = v.b + ' →';
       var r = tile.getBoundingClientRect();
       ov.hidden = false; doc.body.classList.add('bx-locked');

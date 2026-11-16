@@ -463,7 +463,7 @@
   ],
   "limits": [
    "It describes resting orders and prints. It does not predict anything.",
-   "Futures depth for this tool is limited for now; crypto works for Pro members."
+   "Futures depth for this tool is limited for now; crypto works for every member."
   ]
  },
  "volume-bubble-big-prints": {

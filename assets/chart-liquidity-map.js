@@ -20,8 +20,8 @@
 // INDICATOR ONLY: no order buttons, no click-to-trade. It describes resting orders and prints; it predicts nothing.
 // Education only. Not financial advice.
 
-import { hfConfig, hfCut, hfSchema } from './chart-heat-filter.js?v=979';
-import { getVenue } from './orderflow-venues.js?v=979';   // crypto venues besides Binance (adapters register there)
+import { hfConfig, hfCut, hfSchema } from './chart-heat-filter.js?v=1061';
+import { getVenue } from './orderflow-venues.js?v=1061';   // crypto venues besides Binance (adapters register there)
 const RAMP = [[0, 4, 10, 24], [0.10, 5, 34, 74], [0.25, 8, 92, 150], [0.42, 60, 160, 205], [0.55, 200, 230, 240], [0.66, 250, 236, 70], [0.80, 255, 150, 25], [0.92, 238, 44, 24], [1, 255, 238, 225]];
 export const LM_RAMP = RAMP;
 export function lmColor(n) {
@@ -66,7 +66,7 @@ function lutFromQ(qs, contrast) {
   l.n = nArr;
   return l;
 }
-export const BUBBLE_DEF = { buy: '#35c878', sell: '#e0484f' };
+export const BUBBLE_DEF = { buy: '#0f9d58', sell: '#d42a2a' };
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -626,7 +626,7 @@ function tzOffsetMs(tz, t) {
 // (an even split reads as neutral grey). Used when the "Colour by the dominant side" setting is on.
 export function domColor(buyShare, buy, sell) {
   const m = (h) => { const n = parseInt(String(h).replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
-  const imb = Math.abs(2 * clamp(buyShare, 0, 1) - 1), c = m(buyShare >= 0.5 ? buy : sell), g = m('#8a90a0'), t = 0.2 + 0.8 * imb;
+  const imb = Math.abs(2 * clamp(buyShare, 0, 1) - 1), c = m(buyShare >= 0.5 ? buy : sell), g = m('#6b7280'), t = 0.5 + 0.5 * imb;   // darker neutral and a higher floor: a 55/45 split is still clearly one colour
   return '#' + c.map((v, i) => Math.round(g[i] + (v - g[i]) * t).toString(16).padStart(2, '0')).join('');
 }
 export function bubbleSchema() { return [
@@ -672,7 +672,21 @@ export function drawLadder(g, a, src, o) {
   if (tick > 0) step = Math.max(tick, Math.round(step / tick) * tick);
   const dec = decimalsOf(step);
   const bb = book.bestBid, ba = book.bestAsk;
-  if (!(bb > 0 || ba > 0)) { g.restore(); return; }
+  if (!(bb > 0 || ba > 0)) {
+    // no book to show (Depth Heatmap during a book feed gap): keep the column readable, its price rows and a plain header, instead of a blank
+    // block (member GK 16 Nov: "right-side price scale" not loading). Sizes stay empty: nothing is made up.
+    if (o.noBook) {
+      g.font = (phone ? 8.5 : 9.5) + 'px ' + MONO; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = 'rgba(176,192,214,.6)';
+      const iT = Math.ceil(a.scale.max / step) + 1, iB = Math.floor(a.scale.min / step) - 1;
+      for (let i = iB; i <= iT; i++) { const yT = yOf((i + 1) * step), yB = yOf(i * step), h = Math.abs(yB - yT), cy = Math.min(yT, yB) + h / 2; if (h >= 9 && cy > top + 20 && cy < bot - 4) g.fillText((i * step).toFixed(dec), lx + 3, cy + 0.5); }
+      // the note sits mid-column in the size columns (the top header row is under the other L2 plates, e.g. Big Trades)
+      const cx = lx + labW + (c1W + c2W) / 2, cy = top + (bot - top) / 2;
+      g.font = '600 ' + (phone ? 8.5 : 10) + 'px ' + MONO; g.textAlign = 'center'; g.fillStyle = '#f5b544';
+      if (c1W + c2W >= 60) g.fillText(o.noBook, cx, cy); else { const [a1, a2] = o.noBook.split(' '); g.fillText(a1, cx, cy - 6); g.fillText(a2 || '', cx, cy + 6); }
+      stat.ladderRows = 0; stat.ladderNote = o.noBook;
+    }
+    g.restore(); return;
+  }
   const midP = bb > 0 && ba > 0 ? (bb + ba) / 2 : (bb || ba);
   const midRow = Math.floor(midP / step + 1e-9);
   // rows: ask side -> rows above (and including) the one holding the best ask; bid side -> rows below
@@ -689,7 +703,9 @@ export function drawLadder(g, a, src, o) {
   for (let i = bidTop; i >= iBotV; i--) { c += bidRows.get(i) || 0; cumB.set(i, c); }
   let maxS = 0, maxC = 0;
   for (let i = iBotV; i <= iTopV; i++) { const v = (askRows.get(i) || 0) + (bidRows.get(i) || 0); if (v > maxS) maxS = v; const cc = cumA.get(i) || cumB.get(i) || 0; if (cc > maxC) maxC = cc; }
-  g.beginPath(); g.rect(lx, top + 14, ladW, bot - top - 14); g.clip();
+  const hdr = o.asOf ? 32 : 14;   // a recorded (not live) book: a second header row says its time
+  g.beginPath(); g.rect(lx, top + hdr, ladW, bot - top - hdr); g.clip();
+  if (o.asOf) g.globalAlpha = 0.6;   // dimmed: the last recorded book, not the live one
   const x1 = lx + labW, x2 = x1 + c1W;
   const fs = phone ? 8.5 : 9.5;
   g.font = fs + 'px ' + MONO; g.textBaseline = 'middle';
@@ -698,7 +714,7 @@ export function drawLadder(g, a, src, o) {
   const rh = Math.max(1, midPxRow);
   for (let i = iBotV; i <= iTopV; i++) {
     const yT = yOf((i + 1) * step), yB = yOf(i * step), y0 = Math.min(yT, yB), h = Math.abs(yB - yT), cy = y0 + h / 2;
-    if (y0 > bot || y0 + h < top + 14) continue;
+    if (y0 > bot || y0 + h < top + hdr) continue;
     const isAsk = i > bidTop, v = isAsk ? (askRows.get(i) || 0) : (bidRows.get(i) || 0), cu = isAsk ? (cumA.get(i) || 0) : (cumB.get(i) || 0);
     const col = isAsk ? '230,72,78' : '52,196,120';
     const best = i === bidTop || i === bidTop + 1 && ba > 0 && i === Math.floor(ba / step + 1e-9);
@@ -719,6 +735,9 @@ export function drawLadder(g, a, src, o) {
   g.fillStyle = 'rgba(8,14,26,1)'; g.fillRect(lx + 1, top, ladW - 1, 14);
   g.font = '8.5px ' + MONO; g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillStyle = 'rgba(190,205,228,.95)';
   g.fillText('COB', x1 + c1W / 2, top + 7); if (c2W > 0) g.fillText('TOTAL', x2 + c2W / 2, top + 7);
+  // not the live book (Depth Heatmap, book feed gap): the time of the recorded one, on its own row under the header (the header row sits under
+  // the other L2 plates, e.g. Big Trades)
+  if (o.asOf) { g.fillStyle = 'rgba(8,14,26,1)'; g.fillRect(lx + 1, top + 14, ladW - 1, 18); g.fillStyle = '#f5b544'; g.fillText((phone ? '' : 'BOOK AT ') + o.asOf, lx + ladW / 2, top + 24); }
   g.restore();
   // best bid / ask sizes at the price, joined to the ladder by a dashed line
   const bidQ = bb > 0 ? (book.bids.get(bb) || 0) : 0, askQ = ba > 0 ? (book.asks.get(ba) || 0) : 0;

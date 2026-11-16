@@ -4,10 +4,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
 const kp = await crypto.subtle.generateKey('Ed25519', true, ['sign', 'verify']);
 const toHex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 const pub = toHex(await crypto.subtle.exportKey('raw', kp.publicKey));
-const ROLES = [['10001', 'Futures', 0], ['10002', 'Beginner', 0], ['10003', 'Intermediate', 0], ['10004', 'Advanced', 0], ['10009', 'Pro', 0], ['8', 'Futures', 8]];
+const ROLES = [['10001', 'Futures', 0], ['10002', 'Beginner', 0], ['10003', 'Intermediate', 0], ['10004', 'Advanced', 0], ['10009', 'Pro', 0], ['10011', 'Trade Ideas', 0], ['10012', 'Daily Levels', 0], ['8', 'Futures', 8]];
 let calls = [];
 const f = async (url, o = {}) => { url = String(url); calls.push((o.method || 'GET') + ' ' + url.split('/v10')[1]);
-  if (url.endsWith('/roles')) return Response.json(ROLES.slice(0, 5).map(([id, name]) => ({ id, name, permissions: '0' })));
+  if (url.endsWith('/roles')) return Response.json(ROLES.filter(([id]) => id !== '8').map(([id, name]) => ({ id, name, permissions: '0' })));
   return new Response(null, { status: 204 }); };
 const send = async (obj, { bad = false } = {}) => {
   const body = JSON.stringify(obj), ts = '123';
@@ -27,4 +27,8 @@ calls = []; r = await send(click('10009')); ok(/cannot/.test(r.j.data.content) &
 calls = []; r = await send(click('10001', [], '42')); ok(!calls.length && r.j.data.flags === 64, 'wrong guild refused, no calls');
 calls = []; r = await send(click('10002', ['10003', '10004', '10001']));
 ok(calls.includes('PUT /guilds/' + GUILD + '/members/77777/roles/10002') && calls.some((c) => c.endsWith('/roles/10003') && c.startsWith('DELETE')) && calls.some((c) => c.endsWith('/roles/10004') && c.startsWith('DELETE')) && !calls.some((c) => c.endsWith('/roles/10001') && c.startsWith('DELETE')), 'level exclusive, markets untouched');
+calls = []; r = await send(click('10011'));
+ok(r.j.data.content === '✅ Added Trade Ideas' && calls.includes('PUT /guilds/' + GUILD + '/members/77777/roles/10011'), 'Trade Ideas can be picked');
+calls = []; r = await send(click('10012', ['10011']));
+ok(calls.includes('PUT /guilds/' + GUILD + '/members/77777/roles/10012') && !calls.some((c) => c.startsWith('DELETE')), 'alert roles stack (Daily Levels keeps Trade Ideas)');
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);

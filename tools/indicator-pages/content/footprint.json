@@ -7,7 +7,8 @@
   ],
   "how": [
     "Every trade is tagged by its aggressor: a buyer lifting the ask or a seller hitting the bid. Trades are added up per price row for each bar. Order flow comes from recorded futures trades for NQ, ES, YM, GC, SI and CL (micros use their mini contract's flow) and from public exchange trades for crypto.",
-    "An imbalance compares the ask volume at one price with the bid volume one row below (and the bid volume with the ask volume one row above). It is flagged when one side is at least 300% of the other by default. The row size can be set as a multiple of the base step."
+    "An imbalance compares the ask volume at one price with the bid volume one row below (and the bid volume with the ask volume one row above). It is flagged when one side is at least 300% of the other by default. The row size can be set as a multiple of the base step.",
+    "Highlight heavy activity (off by default) marks a cell as unusually heavy when its volume reaches a limit. \"Times the visible average\" multiplies the average of the cells on screen by your number (3 by default), so it follows the timeframe: a 15-minute, 1-hour or 4-hour candle is compared with other candles of that same size. \"A fixed size\" is set for a 1-minute bar (100 per price level by default) and grows automatically with the square root of the bar length: x2.24 on 5 minutes, x3.87 on 15 minutes, x7.75 on 1 hour and x15.49 on 4 hours. So the default 100 becomes about 387 on 15 minutes, 775 on 1 hour and 1,549 on 4 hours. Longer candles trade more at every price, so an unscaled 1-minute size would mark almost every cell."
   ],
   "use": [
     "Some traders look at which side was more aggressive at the high or low of a bar.",

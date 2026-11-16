@@ -1,5 +1,131 @@
 [
  {
+  "build": 1061,
+  "date": "2026-11-16",
+  "title": "show every requested feature and move shipped ones to Shipped",
+  "link": ""
+ },
+ {
+  "build": 1061,
+  "date": "2026-11-16",
+  "title": "show every requested feature and move shipped ones to Shipped (build 1061)",
+  "link": ""
+ },
+ {
+  "build": 1060,
+  "date": "2026-11-16",
+  "title": "add requested features being worked on",
+  "link": ""
+ },
+ {
+  "build": 1060,
+  "date": "2026-11-16",
+  "title": "add requested features being worked on (build 1060)",
+  "link": ""
+ },
+ {
+  "build": 1058,
+  "date": "2026-11-16",
+  "title": "chart-live-broker-trading",
+  "link": ""
+ },
+ {
+  "build": 1055,
+  "date": "2026-11-16",
+  "title": "ai-chart-agent",
+  "link": ""
+ },
+ {
+  "build": 1036,
+  "date": "2026-11-15",
+  "title": "workspaces",
+  "link": ""
+ },
+ {
+  "build": 1033,
+  "date": "2026-11-15",
+  "title": "all-tools-free",
+  "link": ""
+ },
+ {
+  "build": 1032,
+  "date": "2026-11-15",
+  "title": "symbol-search-v2",
+  "link": ""
+ },
+ {
+  "build": 1030,
+  "date": "2026-11-15",
+  "title": "hide-candles-toggle",
+  "link": ""
+ },
+ {
+  "build": 1028,
+  "date": "2026-11-15",
+  "title": "script-editor-v2",
+  "link": ""
+ },
+ {
+  "build": 1021,
+  "date": "2026-11-15",
+  "title": "add requested features being worked on (build 1021)",
+  "link": ""
+ },
+ {
+  "build": 1019,
+  "date": "2026-11-15",
+  "title": "add requested features being worked on (build 1019)",
+  "link": ""
+ },
+ {
+  "build": 1007,
+  "date": "2026-11-15",
+  "title": "add requested features being worked on (build 1007)",
+  "link": ""
+ },
+ {
+  "build": 999,
+  "date": "2026-11-15",
+  "title": "android-app",
+  "link": ""
+ },
+ {
+  "build": 997,
+  "date": "2026-11-14",
+  "title": "windows-app",
+  "link": ""
+ },
+ {
+  "build": 995,
+  "date": "2026-11-14",
+  "title": "vp-always-visible",
+  "link": ""
+ },
+ {
+  "build": 994,
+  "date": "2026-11-14",
+  "title": "add requested features being worked on (build 994)",
+  "link": ""
+ },
+ {
+  "build": 993,
+  "date": "2026-11-14",
+  "title": "add requested features being worked on (build 993)",
+  "link": ""
+ },
+ {
+  "build": 991,
+  "date": "2026-11-14",
+  "title": "Android app (in progress) and iPhone app (planned)",
+  "link": ""
+ },
+ {
+  "build": 991,
+  "date": "2026-11-14",
+  "title": "Android app (in progress) and iPhone app (planned) (build 991)",
+  "link": ""
+ },
+ {
   "build": 954,
   "date": "2026-11-11",
   "title": "Delta Profile",

@@ -45,7 +45,6 @@
         // Inside the anchor and centred over the globe. aria-hidden because the
         // link already announces itself; a screen reader gains nothing from a
         // decorative pulse and would just hear a second, meaningless element.
-        '<span class="gm-live-dot" aria-hidden="true"></span>' +
       '</a>';
 
     // First in the row: monitor, messages, notifications, account — global to

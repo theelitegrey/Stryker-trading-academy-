@@ -4,15 +4,18 @@
 // one exchange or Combined (sizes added up per price). Futures: the L2 hub in chart-futures-l2.js (same admin gate, l2Visible()).
 // Paper trading from the DOM: bid cell = paper BUY, ask cell = paper SELL (limit; market at / through the touch), simulated only,
 // through chart-paper.js (same switch, same rules as the chart's ticket). Right-click / long-press a row: draw a level or a zone.
+// LIVE (admins, assets/chart-live.js, 2026-11-15): while a live broker account is picked in the Paper trading panel, the same DOM cells
+// send LIVE LIMIT orders at the clicked price (never market; at/through the touch = marketable limit) through the live module's confirm
+// sheet; the chips show the live working orders (× cancels, drag = move with a confirm) and the header line the live position.
 // Hyperliquid charts: tap a Book row (DOM: the price cell) or pick "Wallets at this price" -> tracked wallets with orders there (chart-wallet-intel.js).
 // Logic lives in book-panel-core.js (unit-tested), streams in book-panel-sources.js. Phones <= 700 px: bottom sheet.
 // Wording: "updated Xs ago" only; no real-time claims. Education only. Not financial advice.
-import { l2Visible, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source, staleNote } from './chart-futures-l2.js?v=979';
-import { replayClock, btBook } from './book-replay.js?v=979';
-import { rtReady, rtOnChange } from './rt-access.js?v=979';
-import * as C from './book-panel-core.js?v=979';
-import { SignalEngine, TAGS, WINDOWS, FADES } from './dom-signals-core.js?v=979';
-import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=979';
+import { replayClock, btBook } from './book-replay.js?v=1061';
+import { rtReady, rtOnChange } from './rt-access.js?v=1061';
+import * as C from './book-panel-core.js?v=1061';
+import { SignalEngine, TAGS, WINDOWS, FADES } from './dom-signals-core.js?v=1061';
+import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=1061';
+import { l2Closed, l2Visible, l2Badge, l2Delayed, DELAYED_SHORT, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source, staleNote } from './chart-futures-l2.js?v=1061';
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
 const FILTERS_C = [['0', 'All sizes'], ['1000', '≥ $1k'], ['10000', '≥ $10k'], ['100000', '≥ $100k']], FILTERS_F = [['0', 'All sizes'], ['5', '≥ 5'], ['25', '≥ 25'], ['100', '≥ 100']];
@@ -79,7 +82,8 @@ export function mountBookPanel(ws, opts) {
     const k = kindOf(), key = feedKey(k);
     if (feed && feed.key === key) { feed.k = k; return; }
     detach();
-    if (!key || (k.kind === 'fut' && !l2Visible())) { feed = k.kind === 'fut' ? { key: '', k, books: new Map(), stops: [], store: new C.TradeStore(), msg: 'The futures order book is part of Pro. Upgrade to unlock it.' } : null; if (feed) feed.k = k; schedule(); return; }
+    // all tools free (2026-11-13): open for every signed-in member; without the live book it shows the recorded book 10 min delayed
+    if (!key || (k.kind === 'fut' && !l2Badge())) { feed = k.kind === 'fut' ? { key: '', k, books: new Map(), stops: [], store: new C.TradeStore(), msg: 'Sign in to see the futures order book. The tools are free.' } : null; if (feed) feed.k = k; schedule(); return; }
     const f = feed = { key, k, books: new Map(), stops: [], store: new C.TradeStore(), step: 0, msg: '', dirty: true };
     if (replayClock()) { attachReplay(f, k); schedule(); return; }
     if (k.kind === 'fut') {
@@ -112,7 +116,7 @@ export function mountBookPanel(ws, opts) {
     if (k.kind === 'crypto' && (k.pair.perp || k.prov !== 'binance')) { f.msg = 'No recorded order book for this market in replay.'; return; }   // the recorder keeps Binance spot only
     if (k.kind === 'fut') f.step = k.tick;
     let alive = true; f.stops.push(() => { alive = false; });
-    import('./chart-orderflow.js?v=979').then((Flow) => {
+    import('./chart-orderflow.js?v=1061').then((Flow) => {
       if (!alive) return;
       const h = k.kind === 'fut' ? Flow.acquireBookFeed('tsl2', k.root, schedule, l2Source(k.root)) : Flow.acquireBookFeed('binance', k.pair.base + k.pair.quote, schedule);
       f.bf = h.feed; f.stops.push(() => h.release());
@@ -156,11 +160,13 @@ export function mountBookPanel(ws, opts) {
 
   // ------------------------------------------------------------------------------------------------ paper
   const P = () => window.__stkPaper || null;
-  const paperOn = () => { const p = P(); return !!(p && p.enabled && p.account); };
+  const LV = () => { const p = P(); return p && p.live; };
+  const paperOn = () => { const p = P(); return !!(p && (p.live || (p.enabled && p.account))); };
   const acct = () => { const p = P(); return p && p.account; };
   const specOf = () => { try { return acct().spec(feed.k.sym); } catch (e) { return { ok: false }; } };
   function paperState() {
     if (!paperOn() || !feed || !feed.key) return null;
+    const lv = LV(); if (lv) { const d = lv.domState(feed.k.sym); return d ? { live: d, a: null, sp: d.sp, orders: d.orders, pos: d.pos } : null; }
     const a = acct(), sp = specOf(); if (!sp.ok) return null;
     const orders = a.state.orders.filter((o) => o.symbol === sp.symbol), pos = a.position(feed.k.sym);
     return { a, sp, orders, pos };
@@ -168,13 +174,14 @@ export function mountBookPanel(ws, opts) {
   const stepQty = (sp, q, dir) => { if (sp.kind === 'futures') return Math.max(sp.minQty, q + dir); const st = Math.pow(10, Math.floor(Math.log10(Math.max(q, sp.minQty)))); return Math.max(sp.minQty, Math.round((q + dir * st) * 1e8) / 1e8); };
   function syncQty(ps) {
     const key = feed.k.sym; if (qtyKey === key && qty > 0) return;
-    qtyKey = key; try { qty = ps.a.qtyFor(feed.k.sym) || ps.sp.minQty; } catch (e) { qty = ps.sp.minQty; }
+    qtyKey = key; try { qty = ps.live ? 1 : ps.a.qtyFor(feed.k.sym) || ps.sp.minQty; } catch (e) { qty = ps.sp.minQty; }
     qtyIn.value = String(qty);
   }
   function trade(cell, price, mdl) {
     const ps = paperState();
     if (!ps) { if (!hint && opts.toast) { hint = true; opts.toast('Turn on Paper trading in Chart settings to trade from the ladder (simulated, demo money).', 'info'); } return; }
     const q = parseFloat(qtyIn.value); if (!(q > 0)) return;
+    if (ps.live) { LV().ladder(feed.k.sym, cell, price, mdl.m.bids[0][0], mdl.m.asks[0][0], Math.min(2, Math.max(1, Math.round(q)))); schedule(); return; }
     const o = C.clickToOrder(cell, price, mdl.m.bids[0][0], mdl.m.asks[0][0]); if (!o) return;
     P().placeOrder(Object.assign({ symbol: feed.k.sym, qty: q }, o));
     schedule();
@@ -285,7 +292,7 @@ export function mountBookPanel(ws, opts) {
       const os = ord.get(x.key) || [];
       for (const [cell, side] of [[bc, 'buy'], [ac, 'sell']]) {
         const chip = cell.lastChild, o = os.find((z) => z.side === side);
-        if (o) { chip.hidden = false; chip.dataset.oid = o.id; chip.className = 'chip ' + side; chip.innerHTML = '<em>' + (side === 'buy' ? 'B' : 'S') + ' ' + o.qty + '</em><s data-x="1" aria-label="Cancel paper order">×</s>'; }
+        if (o) { chip.hidden = false; chip.dataset.oid = o.id; chip.className = 'chip ' + side; chip.innerHTML = '<em>' + (ps.live ? 'LIVE ' : '') + (side === 'buy' ? 'B' : 'S') + ' ' + o.qty + '</em><s data-x="1" aria-label="' + (ps.live ? 'Cancel live order' : 'Cancel paper order') + '">×</s>'; chip.classList.toggle('live', !!ps.live); }
         else if (!chip.hidden) { chip.hidden = true; delete chip.dataset.oid; }
       }
     }
@@ -330,7 +337,9 @@ export function mountBookPanel(ws, opts) {
     rh = isPhone() ? 28 : 22; rowsN = clamp(Math.floor((list.clientHeight || 360) / rh), 8, 90);
     const ps = paperState();
     paperBar.hidden = !(ps && S.tab === 'dom');
-    if (ps) { syncQty(ps); const p = ps.pos; $('.stkbp-pos').innerHTML = p ? '<b class="' + (p.side === 'buy' ? 'up' : 'dn') + '">' + (p.side === 'buy' ? 'Long ' : 'Short ') + p.qty + '</b> @ ' + C.fmtPrice(p.avg, feed.step || 0.01) + ' <em>' + (() => { try { const v = ps.a.openPnl(p); return (v >= 0 ? '+$' : '−$') + Math.abs(v).toFixed(2); } catch (e) { return ''; } })() + '</em>' : 'Flat'; }
+    paperBar.classList.toggle('live', !!(ps && ps.live)); $('.stkbp-pl').textContent = ps && ps.live ? ps.live.label.replace(/^(LIVE|SANDBOX) /, '$1 · ') + ' · ' + ps.live.code : 'Paper';
+    if (ps && ps.live) { syncQty(ps); const p = ps.pos, v = ps.live.pnl; $('.stkbp-pos').innerHTML = p ? '<b class="' + (p.side === 'buy' ? 'up' : 'dn') + '">' + (p.side === 'buy' ? 'Long ' : 'Short ') + p.qty + '</b> @ ' + C.fmtPrice(p.avg, feed.step || 0.01) + ' <em>' + (v == null ? '' : (v >= 0 ? '+$' : '−$') + Math.abs(v).toFixed(2)) + '</em>' : 'Flat'; }
+    else if (ps) { syncQty(ps); const p = ps.pos; $('.stkbp-pos').innerHTML = p ? '<b class="' + (p.side === 'buy' ? 'up' : 'dn') + '">' + (p.side === 'buy' ? 'Long ' : 'Short ') + p.qty + '</b> @ ' + C.fmtPrice(p.avg, feed.step || 0.01) + ' <em>' + (() => { try { const v = ps.a.openPnl(p); return (v >= 0 ? '+$' : '−$') + Math.abs(v).toFixed(2); } catch (e) { return ''; } })() + '</em>' : 'Flat'; }
     // status
     let msg = '';
     if (!feed) msg = 'Open a crypto or futures chart (BTC, ETH, NQ, ES …) to see its order book.';
@@ -347,7 +356,7 @@ export function mountBookPanel(ws, opts) {
     else if (S.tab === 'dom') { bar.hidden = true; paintDom(M); }
     else paintTrades();
     const gs = $('.stkbp-grp'); if (feed && feed.step) { [...gs.options].forEach((o, i) => { const t = C.fmtPrice(feed.step * MULT[i], feed.step).replace(/\.0+$/, ''); if (o.textContent !== t) o.textContent = 'Group ' + t; }); gs.value = String(S.g); }
-    foot.textContent = S.tab === 'dom' ? (paperOn() ? 'Tap a Bid cell to paper-buy, an Ask cell to paper-sell. ' : '') + 'Paper trading is simulated. Education only. Not financial advice.' : 'Order book depth and prints for learning. Education only. Not financial advice.';
+    foot.textContent = S.tab === 'dom' && LV() ? 'LIVE: tap a Bid cell to send a live BUY limit, an Ask cell a live SELL limit, at that price (you confirm each one). Real orders at your broker. Education only. Not financial advice.' : S.tab === 'dom' ? (paperOn() ? 'Tap a Bid cell to paper-buy, an Ask cell to paper-sell. ' : '') + 'Paper trading is simulated. Education only. Not financial advice.' : 'Order book depth and prints for learning. Education only. Not financial advice.';
     cols.style.display = list.dataset.t ? '' : 'none';
   }
   function paintTradesBar() { const sp = feed.store.split(60000); bar.innerHTML = '<span class="l">1m</span><span class="trk"><i style="width:' + sp.pct.toFixed(1) + '%"></i></span><span class="v"><b class="up">–</b> buy · <b class="dn">–</b> sell</span>'; }
@@ -355,7 +364,7 @@ export function mountBookPanel(ws, opts) {
   function statusHtml(M) {
     if (!feed || !feed.key) return '';
     if (feed.rp) { const b = feed.bf && feed.bf.bookNow(); return '<i class="stkbp-dot is-wait"></i><span>Replay</span><em>' + (b && b.ts ? 'book at ' + C.fmtTime(b.ts) : '') + '</em>'; }
-    if (feed.k.kind === 'fut') { const r = rootState(feed.futRoot), age = r.lastFrame ? Date.now() - r.lastFrame : -1, live = r.status === 'live'; return '<i class="stkbp-dot ' + (live ? 'is-live' : 'is-wait') + '"></i><span>' + (live ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (live && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em>' + (live && staleNote(feed.futRoot) ? '<em class="stkbp-stale" role="status">' + staleNote(feed.futRoot) + '</em>' : ''); }
+    if (feed.k.kind === 'fut') { const r = rootState(feed.futRoot), age = r.lastFrame ? Date.now() - r.lastFrame : -1, live = r.status === 'live' && !l2Delayed(); if (l2Delayed()) return '<i class="stkbp-dot is-wait"></i><span>' + DELAYED_SHORT + '</span><button type="button" class="stkbp-live" data-live-data>Get live data</button>'; return '<i class="stkbp-dot ' + (live ? 'is-live' : 'is-wait') + '"></i><span>' + (live ? 'Live L2' : 'Reconnecting…') + '</span><em>' + (live && age > 5000 ? 'updated ' + ago(age) + ' ago' : '') + '</em>' + (live && staleNote(feed.futRoot) ? '<em class="stkbp-stale" role="status">' + staleNote(feed.futRoot) + '</em>' : ''); }
     let h = '', any = false;
     feed.books.forEach((e) => { const live = e.status === 'live'; any = any || live; const cls = live ? 'is-live' : e.status === 'unlisted' || e.status === 'error' ? 'is-off' : 'is-wait'; h += '<span class="stkbp-ex ' + cls + '" title="' + (e.note || e.status) + '"><i class="stkbp-dot ' + cls + '"></i>' + sourceName(e.id) + (e.status === 'unlisted' ? ' · none' : '') + '</span>'; });
     return h;
@@ -392,8 +401,9 @@ export function mountBookPanel(ws, opts) {
   }
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
   rtReady().then(showBtns); try { rtOnChange(() => { showBtns(); schedule(); }); } catch (e) {} window.addEventListener('stryker:l2tier', () => { showBtns(); schedule(); }); showBtns();
-  railBtn.addEventListener('click', () => { if (kindOf().kind === 'fut' && !l2Visible()) { l2Unlock(); return; } setOpen(!open); });
-  phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); if (kindOf().kind === 'fut' && !l2Visible()) { l2Unlock(); return; } setOpen(!open); });
+  railBtn.addEventListener('click', () => { if (kindOf().kind === 'fut' && !l2Badge()) { l2Unlock(); return; } setOpen(!open); });
+  phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); if (kindOf().kind === 'fut' && !l2Badge()) { l2Unlock(); return; } setOpen(!open); });
+  panel.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-live-data]')) { e.stopPropagation(); l2Unlock(); } });
   $('.stkbp-x').addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) { if (legMode) { hideLeg(); return; } if (zoneFrom != null || !menu.hidden) { zoneFrom = null; closeMenu(); schedule(); } else if (isPhone()) setOpen(false); } });
   window.addEventListener('resize', () => { document.documentElement.classList.toggle('stkbp-sheet', open && isPhone()); if (open) schedule(); }, { passive: true });
@@ -411,7 +421,7 @@ export function mountBookPanel(ws, opts) {
   $('.stkbp-pause').addEventListener('click', () => { paused = paused ? 0 : Date.now(); schedule(); });
   paperBar.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-q]'); if (!b) return; const ps = paperState(); if (!ps) return;
-    qty = stepQty(ps.sp, parseFloat(qtyIn.value) || ps.sp.minQty, +b.dataset.q); qtyIn.value = String(qty);
+    qty = stepQty(ps.sp, parseFloat(qtyIn.value) || ps.sp.minQty, +b.dataset.q); if (ps.live) qty = Math.min(2, Math.max(1, qty)); qtyIn.value = String(qty);
   });
   qtyIn.addEventListener('change', () => { const v = parseFloat(qtyIn.value); if (v > 0) qty = v; else qtyIn.value = String(qty); });
 
@@ -447,15 +457,17 @@ export function mountBookPanel(ws, opts) {
   // × cancels a working paper order; dragging its chip to another row moves it
   list.addEventListener('click', (e) => {
     const x = e.target.closest('s[data-x]'); if (!x) return; e.stopPropagation();
-    const chip = x.closest('.chip'), id = +chip.dataset.oid; if (P()) P().cancelOrder(id); schedule();
+    const chip = x.closest('.chip'); if (LV()) { LV().cancel(chip.dataset.oid); schedule(); return; } const id = +chip.dataset.oid; if (P()) P().cancelOrder(id); schedule();
   });
   list.addEventListener('pointerdown', (e) => {
     const chip = e.target.closest('.chip'); if (!chip || e.target.closest('s[data-x]') || chip.hidden) return;
-    e.preventDefault(); drag = { oid: +chip.dataset.oid, to: null }; chip.setPointerCapture && chip.setPointerCapture(e.pointerId); chip.classList.add('drag');
+    e.preventDefault(); drag = { oid: LV() ? chip.dataset.oid : +chip.dataset.oid, to: null, live: !!LV() }; chip.setPointerCapture && chip.setPointerCapture(e.pointerId); chip.classList.add('drag');
     const mv = (ev) => { const t = document.elementFromPoint(ev.clientX, ev.clientY), r = t && rowOf(t); list.querySelectorAll('.is-drop').forEach((n) => n.classList.remove('is-drop')); if (r && r.dataset.k) { r.classList.add('is-drop'); drag.to = +r.dataset.p; } };
     const up = () => {
       chip.removeEventListener('pointermove', mv); chip.removeEventListener('pointerup', up); chip.classList.remove('drag'); list.querySelectorAll('.is-drop').forEach((n) => n.classList.remove('is-drop'));
-      const d = drag; drag = null; if (d && d.to != null && P()) P().commitDrag(feed.k.sym, { id: 'o' + d.oid, price: d.to, kind: 'order' }); schedule();
+      const d = drag; drag = null;
+      if (d && d.live && d.to != null && LV()) { LV().drag(feed.k.sym, { id: 'L' + d.oid, price: d.to }); schedule(); return; }
+      if (d && d.to != null && P()) P().commitDrag(feed.k.sym, { id: 'o' + d.oid, price: d.to, kind: 'order' }); schedule();
     };
     chip.addEventListener('pointermove', mv); chip.addEventListener('pointerup', up);
   });
@@ -510,7 +522,17 @@ export function mountBookPanel(ws, opts) {
     g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up);
   });
 
-  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _signals: () => eng /* test hook */, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
+  const api = { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return open; }, get width() { return S.w; },
+    setWidth: (px) => { S.w = clamp(Math.round(+px) || 400, 320, 640); panel.style.setProperty('--stkbp-w', S.w + 'px'); host.style.setProperty('--stkbp-w', S.w + 'px'); save(); try { window.dispatchEvent(new Event('resize')); } catch (e) {} }, setLevels: (n) => { S.lv = n; schedule(); }, setTab: (t) => { S.tab = t; save(); schedule(); }, _paint: paint, _signals: () => eng /* test hook */, _state: () => ({ S, free, feed: !!feed }), _feed: () => feed && { key: feed.key, rp: !!feed.rp, bb: feed.bf ? feed.bf.bookNow().bestBid : null } /* test hook */, setLevelsCompat: () => {} };
+  // Connection popover (assets/chart-latency.js): the feed's state in plain words + when the last book frame arrived. Reconnect re-opens it.
+  api.feedState = () => {
+    if (!open || !feed || !feed.key) return null;
+    if (feed.rp) return { kind: feed.k.kind, label: 'Replay', s: '', at: 0 };
+    if (feed.k.kind === 'fut') { const r = rootState(feed.futRoot), live = r.status === 'live'; return { kind: 'fut', label: live ? 'Live' : l2Closed(feed.futRoot) ? 'Market closed' : r.status === 'error' ? 'Unavailable' : 'Reconnecting', s: live ? 'ok' : r.status === 'error' ? 'bad' : 'warn', at: r.lastFrame || 0 }; }
+    let n = 0, at = 0, tot = 0; feed.books.forEach((e) => { if (e.status === 'unlisted') return; tot++; if (e.status === 'live') n++; at = Math.max(at, e.at || 0); });
+    return { kind: 'crypto', label: !tot ? 'Not listed' : n === tot ? 'Live' : n ? 'Live · ' + n + ' of ' + tot + ' exchanges' : 'Reconnecting', s: n ? (n === tot ? 'ok' : 'warn') : 'warn', at };
+  };
+  api.reconnect = () => { if (!open) return; detach(); attach(); schedule(); };
   window.__stkBookPanel = api; if (!window.__stkL2Ladder) window.__stkL2Ladder = api;
   return api;
 }

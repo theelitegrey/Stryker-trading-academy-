@@ -14,7 +14,7 @@
     "Compare fast periods with what price did."
   ],
   "notes": [
-    "Needs the full order book (Data feed L2), which is part of Pro. Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
+    "Needs the full order book (Data feed L2); the tool is free, the live futures order book is the paid data feed (10 minutes delayed without it). Works on NQ, ES, YM, RTY, CL and GC futures (micros use their mini's book) and on crypto order books.",
     "Calm, normal and fast are relative to the current session, not fixed numbers."
   ],
   "learn": "order-flow"

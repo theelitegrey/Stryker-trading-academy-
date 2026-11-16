@@ -301,7 +301,44 @@
     }).join(' \u00b7 ');
   }
 
-  var api = { status: status, label: label, fmtLeft: fmtLeft, sessionFor: sessionFor, nyParts: nyParts, nyToUtc: nyToUtc,
+  // CME futures open intervals around nowMs: Sun 18:00 ET -> Fri 17:00 ET, daily 17:00-18:00 ET break.
+  // Same rule as futuresStatus: each Mon-Fri NY date d is open from (d-1) 18:00 to d 17:00.
+  function futuresIntervals(nowMs) {
+    var p = nyParts(nowMs), out = [];
+    for (var k = -2; k <= 8; k++) {
+      var t = addDays(p.y, p.m, p.d, k), w = dow(t[0], t[1], t[2]);
+      if (w < 1 || w > 5) continue;
+      var pr = addDays(t[0], t[1], t[2], -1);
+      out.push({ start: nyToUtc(pr[0], pr[1], pr[2], 18, 0), end: nyToUtc(t[0], t[1], t[2], 17, 0) });
+    }
+    return out;
+  }
+
+  // Timeline data for the popover: the visitor's LOCAL calendar day around nowMs,
+  // one row per session + CME Globex. segs are fractions 0..1 of that day (a session
+  // that wraps midnight is two segments, one on each day's track); hours are local HH:MM.
+  function sessionTimeline(nowMs, tz) {
+    var d = new Date(nowMs);
+    var ds = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    var de = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+    var f = new Intl.DateTimeFormat('en-GB', { timeZone: tz || undefined, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    function row(key, name, iv) {
+      var segs = [], use = null, i;
+      iv.forEach(function (x) {
+        var a = Math.max(x.start, ds), b = Math.min(x.end, de);
+        if (b > a) segs.push({ a: (a - ds) / (de - ds), b: (b - ds) / (de - ds), active: x.start <= nowMs && nowMs < x.end });
+      });
+      for (i = 0; i < iv.length && !use; i++) if (iv[i].end > nowMs) use = iv[i];
+      return { key: key, name: name, segs: segs, hours: use ? f.format(use.start) + '\u2013' + f.format(use.end) : '' };
+    }
+    var rows = SESSIONS.map(function (s) {
+      return row(s.name === 'New York' ? 'ny' : s.name.toLowerCase(), s.name, sessionIntervals(s, nowMs));
+    });
+    rows.push(row('cme', 'CME Globex', futuresIntervals(nowMs)));
+    return { dayStart: ds, dayEnd: de, now: (nowMs - ds) / (de - ds), rows: rows };
+  }
+
+  var api = { sessionTimeline: sessionTimeline, status: status, label: label, fmtLeft: fmtLeft, sessionFor: sessionFor, nyParts: nyParts, nyToUtc: nyToUtc,
     SESSIONS: SESSIONS, sessionStatus: sessionStatus, sessionLabel: sessionLabel, futuresStatus: futuresStatus, sessionHours: sessionHours, fmtClock: fmtClock, tzToUtc: tzToUtc };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -331,9 +368,10 @@
         '<div class="mclock-row mclock-prow"><span>Now</span><b class="mclock-pstate"></b></div>' +
         '<div class="mclock-row"><span class="mclock-pmkl">Market</span><b class="mclock-pmk"></b></div>' +
         '<div class="mclock-row"><span>Next</span><b class="mclock-pnext"></b></div>' +
-        '<div class="mclock-hours"></div>' +
-        '<div class="mclock-legend" aria-label="Dot colours"><span class="is-open"><i class="mclock-dot"></i>Session open</span><span class="is-nosess"><i class="mclock-dot"></i>Between sessions</span><span class="is-closed"><i class="mclock-dot"></i>Market closed</span></div>' +
-        '<p class="mclock-note">Session hours in your time zone. Asia 09:00-18:00 Tokyo, London 08:00-17:00 London, New York 08:00-17:00 New York, Mon-Fri; each follows its own city\'s daylight saving. Market = CME equity-index futures (NQ/ES): Sun 18:00 to Fri 17:00 New York time, daily break 17:00-18:00. A clock from the calendar, not market data. Holidays not included.</p>' +
+        '<div class="mtl" aria-label="Session timeline for today"><div class="mtl-head"><span class="mtl-ticks"></span></div><div class="mtl-rows"></div><i class="mtl-now" aria-hidden="true"><b>Now</b></i></div>' +
+        '<div class="mclock-legend" aria-label="Dot colours"><span class="is-open"><i class="mclock-dot"></i>Session open</span><span class="is-nosess"><i class="mclock-dot"></i>Between</span><span class="is-closed"><i class="mclock-dot"></i>Market closed</span></div>' +
+        '<div class="mclock-foot"><span>Times in your time zone \u00b7 holidays not included</span><button type="button" class="mclock-info" aria-label="More detail" aria-expanded="false" aria-controls="mclock-note" title="Full detail">i</button></div>' +
+        '<p class="mclock-note" id="mclock-note" hidden>Asia 09:00-18:00 Tokyo, London 08:00-17:00 London, New York 08:00-17:00 New York, Mon-Fri; each follows its own city\'s daylight saving. CME Globex = equity-index futures (NQ/ES): Sun 18:00 to Fri 17:00 New York time, daily break 17:00-18:00. A clock from the calendar, not market data.</p>' +
       '</div>';
     var right = host.querySelector('.topnav-right');
     host.insertBefore(w, right || null);
@@ -343,11 +381,20 @@
       pop.hidden = !on; pill.setAttribute('aria-expanded', on ? 'true' : 'false');
     }
     pill.addEventListener('click', function (e) { e.stopPropagation(); setOpen(pop.hidden); });
+    // Owner 15 Nov: full session info on hover (mouse only); touch keeps tap.
+    if (root.matchMedia && root.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+      var hvT = 0;
+      var hvOpen = function () { clearTimeout(hvT); hvT = setTimeout(function () { setOpen(true); }, 80); };
+      var hvClose = function () { clearTimeout(hvT); hvT = setTimeout(function () { setOpen(false); }, 180); };
+      w.addEventListener('mouseenter', hvOpen); w.addEventListener('mouseleave', hvClose);
+    }
     document.addEventListener('click', function (e) { if (!pop.hidden && !w.contains(e.target)) setOpen(false); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) { setOpen(false); pill.focus(); } });
 
+    var info = w.querySelector('.mclock-info'), more = w.querySelector('.mclock-note');
+    info.addEventListener('click', function (e) { e.stopPropagation(); more.hidden = !more.hidden; info.setAttribute('aria-expanded', more.hidden ? 'false' : 'true'); });
     var q = function (sel) { return w.querySelectorAll(sel); };
-    var lastHours = 0;
+    var lastHours = -1;
     function setAll(sel, txt) { q(sel).forEach(function (el) { if (el.textContent !== txt) el.textContent = txt; }); }
     // Fit the pill to the header without wrapping or sideways scroll:
     // fit-1 switches to the short text, fit-2 tightens type and spacing.
@@ -372,25 +419,25 @@
       var tip = 'Session clock: ' + l.head;   // the phone shows only the dot, so name its meaning
       if (pill.title !== tip) { pill.title = tip; pill.setAttribute('aria-label', tip); }
       setAll('.mclock-head', l.head);
-      setAll('.mclock-tail', l.tail ? '\u00b7 ' + l.tail : '');
+      setAll('.mclock-tail', '');   // Owner 15 Nov: pill shows only the state; full info on hover (popover)
       setAll('.mclock-shead', l.shortHead);
-      setAll('.mclock-stail', l.shortTail ? '\u00b7 ' + l.shortTail : '');
+      setAll('.mclock-stail', '');
       setAll('.mclock-pstate', l.head);
       setAll('.mclock-pmk', (l.marketOpen ? 'Closes in ' : 'Opens in ') + fmtClock(l.market.until - now));
       setAll('.mclock-pnext', l.next ? l.next.name + ' in ' + fmtClock(l.next.at - now) : '');
-      if (now - lastHours > 30000) {
-        lastHours = now;
-        var hrs = sessionHours(now, localTz);
-        pill.title = hrs + ' (your time)';
-        var hb = w.querySelector('.mclock-hours');
-        hb.innerHTML = '';
-        hrs.split(' \u00b7 ').forEach(function (seg) {
-          var sp = seg.lastIndexOf(' '), row = document.createElement('div');
-          row.className = 'mclock-row';
-          var a = document.createElement('span'); a.textContent = seg.slice(0, sp);
-          var b = document.createElement('b'); b.textContent = seg.slice(sp + 1);
-          row.appendChild(a); row.appendChild(b); hb.appendChild(row);
-        });
+      var hk = Math.floor(now / 30000);
+      if (hk !== lastHours) {
+        lastHours = hk;
+        var tl = sessionTimeline(now, localTz), pct = function (x) { return (x * 100).toFixed(3) + '%'; };
+        var tk = '';
+        for (var h = 0; h < 24; h += 6) tk += '<i style="left:' + pct(h / 24) + '"' + (h ? '' : ' class="is-first"') + '>' + (h < 10 ? '0' : '') + h + ':00</i>';
+        w.querySelector('.mtl-ticks').innerHTML = tk;
+        w.querySelector('.mtl-rows').innerHTML = tl.rows.map(function (r) {
+          return '<div class="mtl-row" data-k="' + r.key + '"><span class="mtl-name"><i class="mtl-dot"></i>' + r.name + '</span><span class="mtl-track">' +
+            r.segs.map(function (g) { return '<i class="mtl-bar' + (g.active ? ' is-on' : '') + '" style="left:' + pct(g.a) + ';width:' + pct(g.b - g.a) + '"></i>'; }).join('') +
+            '</span><b class="mtl-hrs">' + r.hours + '</b></div>';
+        }).join('');
+        w.querySelector('.mtl').style.setProperty('--f', tl.now.toFixed(5));
       }
       var fk = l.text.length + '|' + l.short.length + '|' + (window.innerWidth || 0);
       if (fk !== fitKey) { fitKey = fk; fit(); }

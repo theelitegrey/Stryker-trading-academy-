@@ -63,6 +63,11 @@ async function open(b, { w, h, mobile, admin = true, free = false, configured = 
     const u = new URL(r.request().url()); let body = {}; try { body = JSON.parse(r.request().postData() || '{}'); } catch (e) {}
     seen.push({ path: u.pathname, body });
     if (u.pathname.endsWith('/session') && r.request().method() === 'GET') return r.fulfill(j({ configured }, configured ? 200 : 503));
+    // failure scenarios (Owner bug 15 Nov): stale stored user id, HTML error page, network drop, server message
+    if (ctx.failMode === 'stale' && body.op === 'accounts' && body.userId) return r.fulfill(j({ error: 'Not connected yet', code: 'needs_connect', needsConnect: true }, 409));
+    if (ctx.failMode === 'html' && u.pathname.endsWith('/session')) return r.fulfill({ status: 500, contentType: 'text/html', body: '<html>error code: 1101</html>' });
+    if (ctx.failMode === 'net' && u.pathname.endsWith('/session')) return r.abort('internetdisconnected');
+    if (ctx.failMode === 'msg' && u.pathname.endsWith('/session')) return r.fulfill(j({ error: 'Broker sync could not start: the connection service answered with an error. Try again in a minute; if it keeps happening, tell support. (code 401)', code: 'upstream' }, 503));
     if (u.pathname.endsWith('/session')) return r.fulfill(j({ portalUrl: 'http://127.0.0.1:1/portal', sessionId: 's1' }));
     if (u.pathname.endsWith('/order')) { if (body.op === 'env') return r.fulfill(j({ env: 'sandbox', enabled: true })); if (body.op === 'place') { global.__placed = body; return r.fulfill(j({ ok: true, orderId: 'ord-9', status: 'PENDING', accepted: true })); } if (body.op === 'cancel') { global.__cancelled = body.orderId; return r.fulfill(j({ ok: true })); } return r.fulfill(j({ error: 'Not allowed' }, 400)); }
     if (body.op === 'accounts') return r.fulfill(j({ userId: '0aaa1111-2222-3333-4444-555566667777', data: [{ accountId: '123e4567-e89b-12d3-a456-426614174000', accountName: 'Sample Tradovate DEMO', brokerName: 'Tradovate', currency: 'USD' }] }));
@@ -155,11 +160,64 @@ async function runOrders(b, w, h, mobile) {
   check(p.errors.length === 0, tag + ': no console errors ' + p.errors.slice(0, 2).join(' | '));
   await ctx.close();
 }
+// MEASURE=1: alignment numbers for the start sheet with the error banner (dark + light, 390 + 1440). Prints JSON, saves crops.
+async function measure(b) {
+  for (const theme of ['dark', 'light']) for (const [w, h, m] of [[390, 844, true], [1440, 900, false]]) {
+    const { ctx, p } = await open(b, { w, h, mobile: m }); ctx.failMode = 'msg';
+    if (theme === 'light') await p.addInitScript(() => { try { localStorage.setItem('stryker_theme', 'day'); } catch (e) {} });
+    await p.goto(BASE + '/trade-journal.html', { waitUntil: 'domcontentloaded' });
+    await p.waitForSelector('#ji-open-broker', { state: 'attached' }); await p.evaluate(() => switchJournalTab('history')); await p.click('#ji-open-broker');
+    await p.waitForSelector('#fjs-connect'); await p.evaluate(() => { window.open = () => ({ location: {}, close() {} }); });
+    await p.click('#fjs-connect'); await p.waitForSelector('#fjs .rjs-err'); await sleep(500);
+    const r = await p.evaluate(() => {
+      const R = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: Math.round(b.left * 10) / 10, r: Math.round(b.right * 10) / 10, t: Math.round(b.top * 10) / 10, b: Math.round(b.bottom * 10) / 10, h: Math.round(b.height * 10) / 10, cy: Math.round((b.top + b.height / 2) * 10) / 10 }; };
+      const sheet = R('#fjs'), title = R('#fjs .rjs-head h2'), tag = R('#fjs .fjs-tag'), x = R('#fjs-x'), err = R('#fjs .rjs-err'), lead = R('#fjs .rjs-lead'), go = R('#fjs-connect'), fine = R('#fjs .rjs-fine');
+      const cs = getComputedStyle(document.querySelector('#fjs .rjs-err'));
+      return { theme: document.documentElement.getAttribute('data-theme') || 'dark', sheet, title, tag, x, err, lead, go, fine,
+        errPad: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft].join(' '),
+        innerL: { err: err.l - sheet.l, lead: lead.l - sheet.l, go: go.l - sheet.l, title: title.l - sheet.l }, innerR: { err: sheet.r - err.r, go: sheet.r - go.r, x: sheet.r - x.r },
+        gaps: { headToErr: err.t - x.b, errToLead: lead.t - err.b, leadToGo: go.t - lead.b, goToFine: fine.t - go.b },
+        headCentres: { title: title.cy, tag: tag.cy, x: x.cy } };
+    });
+    console.log('MEASURE ' + theme + ' ' + w + ' ' + JSON.stringify(r));
+    const s = r.sheet; await p.screenshot({ path: OUT + '/measure-' + theme + '-' + w + '.png', clip: { x: Math.max(0, s.l), y: Math.max(0, s.t), width: Math.min(w, s.r) - Math.max(0, s.l), height: Math.min(h, s.b) - Math.max(0, s.t) } });
+    await ctx.close();
+  }
+}
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=600'] });
+  if (process.env.MEASURE === '1') { try { await measure(b); } catch (e) { console.log('FAIL measure ' + (e && e.stack || e)); } await b.close(); return process.exit(0); }
   try {
     for (const [w, h, m] of [[390, 844, true], [412, 915, true], [1440, 900, false]]) await run(b, w, h, m, true);
     await runOrders(b, 390, 844, true); await runOrders(b, 1440, 900, false);
+    // Failure paths: the start screen never shows the generic "Request failed".
+    for (const [w, h, m] of [[390, 844, true], [1440, 900, false]]) {
+      const tag = w + '';
+      { const { ctx, p } = await open(b, { w, h, mobile: m }); ctx.failMode = 'stale';
+        await p.goto(BASE + '/trade-journal.html', { waitUntil: 'domcontentloaded' });
+        await p.waitForSelector('#ji-open-broker', { state: 'attached' }); await p.evaluate(() => switchJournalTab('history'));
+        await p.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('stryker_broker_sync_user_')) localStorage.removeItem(k); const uid = (window.auth && auth.currentUser && auth.currentUser.uid) || (typeof JOURNAL_UID !== 'undefined' ? JOURNAL_UID : ''); localStorage.setItem('stryker_broker_sync_user_' + uid, '0bbb1111-2222-3333-4444-555566667777'); });
+        await p.click('#ji-open-broker');
+        await p.waitForFunction(() => { const s = document.getElementById('fjs'); return s && !document.getElementById('fjs-have') && document.getElementById('fjs-connect') && (window.__ls = Object.keys(localStorage).filter((k) => k.startsWith('stryker_broker_sync_user_')).length) === 0; }, null, { timeout: 10000 });
+        const st = await state(p);
+        check(ctx.seen.some((c) => c.body.op === 'accounts' && c.body.userId), tag + ': stale id was tried once');
+        check(!(await p.$('#fjs .rjs-err')) && !/Request failed/.test(st.text), tag + ': stale stored id cleared silently (no red error)');
+        await sleep(450); await p.screenshot({ path: OUT + '/broker-' + tag + '-6-stale-cleared.png' });
+        { const js = p.errors.filter((e) => !/Failed to load resource/.test(e)); check(js.length === 0, tag + ': stale: no JS errors (the 409 network line is expected) ' + js.slice(0, 2).join(' | ')); }
+        await ctx.close(); }
+      for (const [mode, re, name] of [['html', /Broker sync hit an error \(code 500\)/, 'HTML error page'], ['net', /Couldn.t reach TradeZoro, try again/, 'network error'], ['msg', /connection service answered with an error.*\(code 401\)/, 'server message']]) {
+        const { ctx, p } = await open(b, { w, h, mobile: m }); ctx.failMode = mode;
+        await p.goto(BASE + '/trade-journal.html', { waitUntil: 'domcontentloaded' });
+        await p.waitForSelector('#ji-open-broker', { state: 'attached' }); await p.evaluate(() => switchJournalTab('history')); await p.click('#ji-open-broker');
+        await p.waitForSelector('#fjs-connect'); await p.evaluate(() => { window.open = () => ({ location: {}, close() {} }); });
+        await p.click('#fjs-connect'); await p.waitForSelector('#fjs .rjs-err', { timeout: 10000 });
+        const txt = await p.$eval('#fjs .rjs-err', (e) => e.innerText);
+        check(re.test(txt) && !/Request failed/.test(txt), tag + ': ' + name + ' -> "' + txt.slice(0, 70) + '"');
+        check(!!(await p.$('#fjs-connect:not([disabled])')), tag + ': ' + name + ': Connect button usable again');
+        if (mode === 'msg') { await sleep(450); await p.screenshot({ path: OUT + '/broker-' + tag + '-7-error-msg.png' }); }
+        await ctx.close();
+      }
+    }
     { const { ctx, p } = await open(b, { w: 390, h: 844, mobile: true, configured: false });
       await p.goto(BASE + '/trade-journal.html', { waitUntil: 'domcontentloaded' });
       await p.waitForSelector('#ji-open-broker', { state: 'attached' }); await p.evaluate(() => switchJournalTab('history')); await p.click('#ji-open-broker');

@@ -2,7 +2,9 @@
 import { handleTicket } from './tickets.js';
 const D = 'https://discord.com/api/v10';
 export const GUILD = '1565740274116857887';
-export const MARKETS = ['Futures', 'Stocks', 'Crypto', 'Forex', 'India', 'Options'];
+export const MARKETS = ['Futures', 'Stocks', 'Crypto', 'Forex', 'Options'];
+// Opt-in alert roles (Owner 16 Nov): toggle on/off like markets, not single-choice
+export const ALERTS = ['Trade Ideas', 'New Releases', 'Daily Levels'];
 export const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 let keyCache = null, roleCache = null;
 export const resetCache = () => { keyCache = null; roleCache = null; };
@@ -25,13 +27,13 @@ async function verified(req, body, env, f) {
     return await crypto.subtle.verify('Ed25519', key, hex(sig), new TextEncoder().encode(ts + body));
   } catch (e) { return false; }
 }
-// name -> id for the 9 self-roles, from the guild role list (never trusts the button's id on its own)
+// name -> id for the self-roles (markets + levels + alerts), from the guild role list (never trusts the button's id on its own)
 async function allowed(env, f) {
   if (roleCache) return roleCache;
   const r = await f(D + '/guilds/' + GUILD + '/roles', { headers: bot(env) });
   if (!r.ok) return null;
   const m = {};
-  for (const x of await r.json()) if ([...MARKETS, ...LEVELS].includes(x.name) && !x.managed && !(BigInt(x.permissions || '0') & 8n)) m[x.id] = x.name;
+  for (const x of await r.json()) if ([...MARKETS, ...LEVELS, ...ALERTS].includes(x.name) && !x.managed && !(BigInt(x.permissions || '0') & 8n)) m[x.id] = x.name;
   roleCache = m; return m;
 }
 

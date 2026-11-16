@@ -7,16 +7,21 @@
 //   developing POC / VAH / VAL (step lines through the session),
 //   initial balance high / low (first 30 or 60 min) + extensions (IB high/low +- k x IB range).
 // Maths in chart-of-pro-data.js (unit tests: tools/tests/chart-of-pro.test.mjs).
-import { tpoSingleRuns, tpoPoorExtremes, tpoDeveloping, firstTouch, ibExtensions } from './chart-of-pro-data.js?v=979';
+import { tpoSingleRuns, tpoPoorExtremes, tpoDeveloping, firstTouch, ibExtensions } from './chart-of-pro-data.js?v=1061';
 
 const MAG = '#e040fb', VA_LN = '#8fd8dc', SINGLE = '#9b7bff', POOR = '#f5b301', IB = '#2f6bff', IB_DAY = '#2563eb';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 export const IB_EXT_OPTIONS = ['1.5, 2, 3', '0.5, 1', '1, 2', '1, 1.5, 2', '0.5, 1, 1.5, 2, 3', 'none'];
+// Align left: the profile (w px wide) ends at the session open and grows leftwards; column j then starts at ax - cw*(j+1).
+// Default: it starts at the open and grows right. ax is kept on screen.
+export const tpoAnchorX = (I, x0, w) => (I && I.alignLeft === true ? Math.max(x0, w + 10) : x0);
+export const tpoColX = (left, ax, cw, j) => (left ? ax - cw * (j + 1) : ax + cw * j);
 export const extMults = (s) => String(s || '').split(/[ ,x]+/).map(Number).filter((k) => k > 0 && k <= 10);
 
 // Indicator inputs (chart-of-pro.js TPO_SCHEMA) and chart-type settings rows (chart-types.js).
 export const TPO_EXTRA_INPUTS = [
-  { key: 'fixedWidth', title: 'Keep profile width steady when zooming', type: 'bool', defval: false, tooltip: 'The widest row always fills the "Width %" of its session, at every zoom.' },
+  { key: 'showLetters', title: 'Show letters', type: 'bool', defval: true, tooltip: 'Off hides the period letters. The profile keeps the same width.' },
+  { key: 'alignLeft', title: 'Align left (profile sits left of the session open)', type: 'bool', defval: false, tooltip: 'On puts the profile to the left of where the session opens, so a volume profile that grows right from the open sits beside it, not under it.' },
   { key: 'singles', title: 'Highlight single prints (extend until price returns)', type: 'bool', defval: false },
   { key: 'poor', title: 'Mark poor highs and lows (extend until touched)', type: 'bool', defval: false, tooltip: 'Poor = the session high or low was reached in 2 or more periods.' },
   { key: 'nakedPoc', title: 'Naked POC lines (extend until price touches)', type: 'bool', defval: false },
@@ -26,7 +31,8 @@ export const TPO_EXTRA_INPUTS = [
   { key: 'ibExt', title: 'Initial balance extensions (x the IB range)', type: 'string', defval: '1.5, 2, 3', options: IB_EXT_OPTIONS }
 ];
 export const TPO_EXTRA_ROWS = [
-  { kind: 'toggle', key: 'fixedWidth', label: 'Keep profile width steady when zooming', defval: false },
+  { kind: 'toggle', key: 'showLetters', label: 'Show letters', defval: true },
+  { kind: 'toggle', key: 'alignLeft', label: 'Align left (profile sits left of the session open)', defval: false },
   { kind: 'toggle', key: 'singles', label: 'Highlight single prints (extend until price returns)', defval: false },
   { kind: 'toggle', key: 'poor', label: 'Mark poor highs and lows', defval: false },
   { kind: 'toggle', key: 'nakedPoc', label: 'Naked POC lines (extend until price touches)', defval: false },
@@ -128,7 +134,7 @@ export function drawTpoExtras(g, o) {
 // Steady profile width (px): 110 desktop / 72 phone at every zoom; only squeezed when the next
 // session starts closer than that (so profiles never run into each other).
 export function steadyW(list, s, X, x0, W, phone) {
-  const want = phone ? 72 : 110, nx = list[list.indexOf(s) + 1];
+  const want = phone ? 72 : 132, nx = list[list.indexOf(s) + 1];
   const room = nx ? X(nx.i0) - x0 - 8 : W - x0 - 8;
   return Math.max(24, Math.min(want, room));
 }

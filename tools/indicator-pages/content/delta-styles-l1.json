@@ -14,7 +14,7 @@
     "Use the summary box for the last few minutes of net flow."
   ],
   "notes": [
-    "No longer in the Indicators window: futures order flow is now the (L2) tools, part of Pro. A saved chart that still holds this one is switched to Delta (L2) automatically.",
+    "No longer in the Indicators window: futures order flow is now the (L2) tools, which are free. A saved chart that still holds this one is switched to Delta (L2) automatically.",
     "No data means a plain note; nothing is estimated from candles."
   ],
   "learn": "order-flow"

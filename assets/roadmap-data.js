@@ -26,6 +26,19 @@
       { id: 'delta-profile', title: 'Delta profile (L2)', desc: 'Buy minus sell volume at every price, for a range you pick on the chart or a rolling window like the last 15 or 30 minutes. Futures, Pro.', status: 'shipped', when: 'Shipped', link: 'charts.html', sub: ['Fixed range you draw', 'Rolling time window (15 / 30 min and more)', 'Delta at each price level'] },
       { id: 'swing-vwap-vp', title: 'Swing VWAP + Volume Profile (L2)', desc: 'Automatically draws an anchored VWAP and a volume profile for every swing, high to low and low to high, with POC, VAH and VAL, and keeps updating as new swings form. Futures, Pro.', status: 'shipped', when: 'Shipped', link: 'charts.html', sub: ['Detects new swings by itself', 'Anchored VWAP per swing', 'Volume profile per swing with POC, VAH, VAL'] },
       { id: 'footprint-patterns', title: 'Footprint Patterns', desc: 'Marks six footprint patterns on any chart style: absorption, exhaustion, stacked imbalances, unfinished auctions, delta divergence and trapped traders. Futures (L2) and crypto, Pro.', status: 'shipped', when: 'Shipped', link: 'charts.html' },
+      { id: 'windows-app', title: 'TradeZoro Windows app', desc: 'A dedicated Windows desktop app: pop charts out onto a second monitor, keep a window always on top, Windows alerts, and automatic updates.', status: 'shipped', when: 'Shipped' },
+      { id: 'workspaces', title: 'Workspaces', desc: 'Save your whole chart setup as a named workspace (charts, layout, symbols, timeframes, indicators and panels) and switch between workspaces in one tap from the top bar.', status: 'shipped', when: 'Shipped' },
+      { id: 'chart-order-panel-v2', title: 'New order panel on charts', desc: 'A floating order panel with Scalp, DOM and Order tabs: one-tap Buy/Sell with live bid and ask, Market/Limit/Stop, quantity stepper, stop loss and take profit in price or ticks with quick presets, Join Bid/Join Ask. Works for paper trading and connected brokers.', status: 'in-progress', when: 'Planned' },
+      { id: 'chart-trade-menu-v2', title: 'New Trade menu with broker logos', desc: 'The Trade button shows the active account\'s logo and name. The menu lists Paper trading and each connected broker account with its logo, status and a tick on the active one, plus a Connect a broker button.', status: 'in-progress', when: 'Planned' },
+      { id: 'connection-latency', title: 'Connection and latency panel', desc: 'A live connection chip in the chart corner with real ping for each data feed, quality, jitter, data age, a 2-minute history chart, your nearest edge location and one-tap reconnect.', status: 'shipped', when: 'Shipped', date: '2026-11-16' },
+      { id: 'indicator-picker-v2', title: 'New indicator picker', desc: 'A redesigned Add to chart window: search by name or by what you want, category rail with counts, preview cards with market tags, a detail pane, add several indicators at once, and full keyboard control.', status: 'shipped', when: 'Shipped', date: '2026-11-15' },
+      { id: 'composite-vp', title: 'Composite volume profile', desc: 'One volume profile built across several sessions or a range of days, with POC, VAH and VAL.', status: 'shipped', when: 'Shipped', date: '2026-11-15' },
+      { id: 'tpo-rows', title: 'TPO: choose the number of rows', desc: 'Set the row count for the TPO profile yourself, so every session uses the same rows at the same zoom.', status: 'progress', when: 'In progress' },
+      { id: 'tpo-align-left', title: 'TPO: Align left option', desc: 'Line the TPO profile up on the left, like the volume profile, so the two sit side by side without overlapping.', status: 'shipped', when: 'Shipped', date: '2026-11-15' },
+      { id: 'vp-always-visible', title: 'Volume profiles stay visible while you scroll', desc: 'An Always visible option for every volume profile, so a profile you placed stays on screen while you move or scroll the chart.', status: 'shipped', when: 'Shipped' },
+      { id: 'days-to-load-exact', title: 'Days to load: exact limit per timeframe', desc: 'When you pick a fixed number of days to load, the chart loads exactly that much history and no more.', status: 'shipped', when: 'Shipped', date: '2026-11-15' },
+      { id: 'period-vp', title: 'Daily, weekly and monthly profile templates', desc: 'Ready-made volume profile templates for each day, week and month.', status: 'planned', when: 'Planned' },
+      { id: 'all-tools-free', title: 'Every tool free, only live data paid', desc: 'All Pro tools free for every member: order flow, DOM, heatmap, GEX+ and options tools. Only the live data feed is paid, because exchanges set those fees.', status: 'shipped', when: 'Shipped' },
       { id: 'screener-all-markets', title: 'Screener for stocks, ETFs, crypto and futures', desc: 'Filter and sort every market, pick your columns, and open any row on ZoroCharts. Saved screens and share links next.', status: 'progress', progress: 40, when: 'In progress', link: 'scanner.html' },
       { id: 'book-dom-trades', title: 'Order book, DOM and trades panel', desc: 'Book, DOM and Trades tabs beside the chart for crypto and futures: one exchange or several combined, bought / sold / delta per price, and paper trading from the ladder (simulated).', status: 'shipped', when: 'Shipped', link: 'charts.html' },
       { id: 'futures-dom', title: 'Futures order book for members', desc: 'Full order book (L2), DOM ladder, liquidity walls and L1 Big Trades and Delta on NQ, ES, MNQ, MES, YM, RTY, CL and GC charts. Part of Pro.', status: 'shipped', when: 'Shipped', link: 'features/orderflow.html', build: 802, date: '2026-11-03' },
@@ -33,6 +46,10 @@
 
       { id: 'more-live-symbols', title: 'More futures symbols with live data', desc: 'Live candles and order flow for NQ, ES, MNQ, MES, YM, RTY, CL, GC, silver, copper, bonds, euro and the micro contracts, plus live index charts.', status: 'shipped', when: 'Shipped', link: 'charts.html' },
       { id: 'live-index-prices', title: 'Live index & ETF prices (SPX, NDX, VIX, QQQ, SPY...)', desc: 'SPX, NDX, VIX, RUT, QQQ, SPY, IWM and DIA charts with GEX levels on SPX, SPY and QQQ.', status: 'shipped', when: 'Shipped', link: 'charts.html', build: 793, date: '2026-11-03' },
+      { id: 'android-app', title: 'TradeZoro Android app', desc: 'A dedicated Android app on Google Play: full screen, its own icon, push notifications for your alerts, and every new feature the same day it ships on the site.', status: 'shipped', when: 'Shipped',
+        milestones: [{ label: 'App build and phone testing', done: false }, { label: 'Google Play listing', done: false }, { label: 'Live on Google Play', done: false }] },
+      { id: 'ios-app', title: 'TradeZoro iPhone app', desc: 'A dedicated iPhone and iPad app on the App Store, with push notifications for your alerts.', status: 'planned', when: 'Planned',
+        milestones: [{ label: 'App build and testing', done: false }, { label: 'Live on the App Store', done: false }] },
       { id: 'indicator-lanes', title: 'Indicators: own lane per script', desc: 'Heavy indicators load reliably even when a chart already has several others on it.', status: 'progress', progress: 60, when: 'In progress', link: 'charts.html',
         details: 'A shared cache for higher-timeframe data and first-run priority for indicators have shipped. Next: each indicator gets its own lane, so one script no longer waits behind the others before it can draw.',
         milestones: [{ label: 'Find what slows heavy indicators on busy charts', done: true }, { label: 'Shared cache for higher-timeframe data', done: true }, { label: 'First-run priority and time limit for heavy scripts', done: true }, { label: 'Own lane per indicator', done: false }, { label: 'Tested on charts with many indicators, then shipped', done: false }] },
@@ -65,8 +82,7 @@
       { id: 'backtesting-full', title: 'Replay One: full backtesting', desc: 'Strategy testing, deeper analytics and Pine Script integration on top of the replay.', status: 'planned', when: 'Planned', sub: ['Strategy testing', 'Pine Script integration', 'Portfolio-level stats'],
         details: 'Turning the replay into a complete testing desk. Backtesting already runs on the same chart engine as ZoroCharts. Still to come: rule-based strategies you can run across a whole dataset, your own Pine Script inside the replay, and stats across markets and sessions.',
         milestones: [{ label: 'Bar-by-bar replay with simulated orders', done: true }, { label: 'Analytics: performance, drawdown, Monte Carlo', done: true }, { label: 'Backtesting on the ZoroCharts engine', done: true }, { label: 'Strategy testing: rule-based entries and exits over a whole dataset', done: false }, { label: 'Pine Script integration for custom indicators', done: false }, { label: 'Portfolio-level stats across markets and sessions', done: false }] },
-      { id: 'mobile-app', title: 'Native phone app', desc: 'TradeZoro on the App Store and Google Play.', status: 'planned', when: 'Planned' },
-      { id: 'chart-trading', title: 'Trade from the chart', desc: 'Place, move and cancel orders straight from ZoroCharts and the DOM on your own broker account, with brackets and one-click flatten.', status: 'planned', when: 'Planned', sub: ['Orders on the chart', 'DOM trading', 'Brackets and stops', 'One-click flatten'] },
+      { id: 'chart-trading', title: 'Trade from the chart', desc: 'Place, move and cancel orders straight from ZoroCharts and the DOM on your own broker account, with brackets and one-click flatten.', status: 'shipped', when: 'Shipped', sub: ['Orders on the chart', 'DOM trading', 'Brackets and stops', 'One-click flatten'], date: '2026-11-16' },
       { id: 'copy-trading', title: 'Copy trading across your accounts', desc: 'Place a trade once and copy it to your other linked accounts, with per-account size rules.', status: 'planned', when: 'Planned', sub: ['Leader and follower accounts', 'Size rules per account', 'Instant stop for all'] },
       { id: 'tradovate-full', title: 'Tradovate: full integration', desc: 'Live data, trade history and order placement for your Tradovate account inside TradeZoro.', status: 'planned', when: 'Planned' },
       { id: 'ninjatrader-full', title: 'NinjaTrader: full integration', desc: 'Your NinjaTrader account\'s data, trades and orders inside TradeZoro.', status: 'planned', when: 'Planned' },
@@ -113,11 +129,25 @@
     const changelog = (base.changelog || []).concat(log.filter((e) => e && e.title && !haveCl.has(String(e.title).toLowerCase())).map((e) => ({ build: e.build, date: e.date, title: e.title })));
     return Object.assign({}, base, { items, changelog });
   }
+  // The admin editor saves settings/roadmap in the database; cards added in this file (feature requests) must still show.
+  // Merge by id: keep the database order and text, add file cards it lacks, and let a file card move a status forward
+  // (planned -> progress -> shipped), never back.
+  const RANK = { planned: 0, progress: 1, shipped: 2 };
+  function mergeBase(d) {
+    const out = (d.items || []).map((x) => Object.assign({}, x));
+    const byId = new Map(out.map((x) => [x.id, x]));
+    (DEFAULT.items || []).forEach((f) => {
+      const x = byId.get(f.id);
+      if (!x) { out.push(Object.assign({}, f)); return; }
+      if ((RANK[f.status] || 0) > (RANK[x.status] || 0)) { x.status = f.status; x.when = f.when; if (f.date) x.date = f.date; if (f.status === 'shipped') delete x.progress; }
+    });
+    return Object.assign({}, DEFAULT, d, { items: out });
+  }
   function loadBase() {
     return new Promise((resolve) => {
       if (typeof db === 'undefined' || !db) { resolve(DEFAULT); return; }
       let done = false; const t = setTimeout(() => { if (!done) { done = true; resolve(DEFAULT); } }, 3000);
-      db.collection('settings').doc('roadmap').get().then((doc) => { if (done) return; done = true; clearTimeout(t); const d = doc.exists ? doc.data() : null; resolve(d && Array.isArray(d.items) && d.items.length ? Object.assign({}, DEFAULT, d) : DEFAULT); }).catch(() => { if (!done) { done = true; clearTimeout(t); resolve(DEFAULT); } });
+      db.collection('settings').doc('roadmap').get().then((doc) => { if (done) return; done = true; clearTimeout(t); const d = doc.exists ? doc.data() : null; resolve(d && Array.isArray(d.items) && d.items.length ? mergeBase(d) : DEFAULT); }).catch(() => { if (!done) { done = true; clearTimeout(t); resolve(DEFAULT); } });
     });
   }
   // load({ raw: true }) skips the auto log: the admin editor edits only the hand-written part.

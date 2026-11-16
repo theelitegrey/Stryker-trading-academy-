@@ -35,7 +35,7 @@ const pineOn = (p) => p.evaluate(() => window.STRYKER_PINE.pineHandles(window.ST
 const openZs = (p) => p.evaluate(async () => { window.STRYKER_ZS.open(); for (let i = 0; i < 50 && !document.querySelector('#stkc-zs .cm-editor'); i++) await new Promise((r) => setTimeout(r, 100)); });
 const addSrc = (p, src) => p.evaluate(async (src) => {
   const Z = window.STRYKER_ZS; Z.open(); await Z.load('t', src, null); await Z.addToChart();
-  const e = document.querySelector('#stkc-zs .stkc-zs-err');
+  const e = document.querySelector('#stkc-zs .stkc-pine-err');
   return { err: e.hidden ? '' : e.textContent, marks: document.querySelectorAll('#stkc-zs .cm-lintRange-error').length };
 }, src);
 const inspect = (p) => p.evaluate(() => {
@@ -53,10 +53,10 @@ const inspect = (p) => p.evaluate(() => {
     await p.evaluate(() => window.STRYKER_PINE.open());
     await p.waitForTimeout(300);
     const seg = await p.evaluate(() => [...document.querySelectorAll('#stkc-pine .stkc-langseg-b')].map((x) => x.textContent + (x.classList.contains('on') ? '*' : '')));
-    check(seg.join() === 'Pine Script*,Zscript', 'Pine panel has the language switch: ' + seg.join());
+    check(seg.join() === 'Zscript,Pine (import)*', 'Pine panel has the language switch (Zscript first): ' + seg.join());
     await p.click('#stkc-pine .stkc-langseg-b:not(.on)');
     await p.waitForSelector('#stkc-zs .cm-editor', { timeout: 15000 });
-    const st = await p.evaluate(() => ({ zs: !document.getElementById('stkc-zs').hidden, pine: !document.getElementById('stkc-pine').hidden, ex: [...document.querySelectorAll('#stkc-zs .stkc-pine-lib .stkc-tname')].map((x) => x.textContent) }));
+    const st = await p.evaluate(() => ({ zs: !document.getElementById('stkc-zs').hidden, pine: !document.getElementById('stkc-pine').hidden, ex: [...document.querySelectorAll('#stkc-zs .sed-pane:not([hidden]) .sed-row')].map((x) => x.querySelector('.sed-row-nm').textContent + (x.querySelector('.sed-badge') || {}).textContent) }));
     check(st.zs && !st.pine, 'switch opens Zscript, closes Pine');
     check(['EMA cross', 'RSI with zones', 'VWAP bands', 'Order book imbalance', 'GEX walls'].every((n) => st.ex.some((t) => t.startsWith(n) && /Example$/.test(t))), '5 examples labelled Example: ' + st.ex.join(' | '));
     // autocomplete
@@ -118,7 +118,7 @@ const inspect = (p) => p.evaluate(() => {
     }).catch((e) => 'err ' + e.message);
     check(changed === 5, 'input change applied: ' + changed);
     // save -> My scripts
-    await p.evaluate(async () => { const Z = window.STRYKER_ZS; Z.open(); await Z.load('My EMA', Z.examples[0].source, null); document.querySelector('#stkc-zs .stkc-pine-acts button:nth-of-type(3)').click(); });
+    await p.evaluate(async () => { const Z = window.STRYKER_ZS; Z.open(); await Z.load('My EMA', Z.examples[0].source, null); document.querySelector('#stkc-zs .sed-ft .sed-btn:nth-child(2)').click(); });
     await p.waitForTimeout(800);
     const saved = await p.evaluate(async () => (await window.STRYKER_ZS.store.list()).items.map((x) => x.name));
     check(saved.includes('My EMA'), 'Save puts it in My scripts: ' + saved.join());
@@ -166,13 +166,13 @@ const inspect = (p) => p.evaluate(() => {
       await p.waitForTimeout(500);
       const g = await p.evaluate(() => {
         const pn = document.getElementById('stkc-zs').getBoundingClientRect();
-        const btns = [...document.querySelectorAll('#stkc-zs .stkc-pine-acts button')].map((b) => b.getBoundingClientRect());
+        const btns = [...document.querySelectorAll('#stkc-zs .sed-ft > .sed-btn')].map((b) => b.getBoundingClientRect());
         const ed = document.querySelector('#stkc-zs .stkc-pine-ed').getBoundingClientRect();
-        return { l: pn.left, r: pn.right, vw: innerWidth, vh: innerHeight, bb: Math.max(...btns.map((b) => b.bottom)), bh: Math.min(...btns.map((b) => b.height)), edh: ed.height, run: document.querySelector('#stkc-zs .stkc-zs-run').textContent, docW: document.documentElement.scrollWidth };
+        return { l: pn.left, r: pn.right, vw: innerWidth, vh: innerHeight, bb: Math.max(...btns.map((b) => b.bottom)), bh: Math.min(...btns.map((b) => b.height)), edh: ed.height, run: document.querySelector('#stkc-zs .stkc-zs-run').textContent.trim(), docW: document.documentElement.scrollWidth };
       });
       check(g.l <= 0 && g.r >= g.vw - 1 && g.docW <= g.vw, w + ': full-width sheet, no sideways scroll ' + JSON.stringify(g));
       check(g.bb <= g.vh && g.bh >= 40 && g.edh >= 160, w + ': buttons visible >= 40 high, editor >= 160');
-      check(g.run === 'Run', w + ': phone primary button says Run');
+      check(g.run === 'Add to chart', w + ': phone primary button says Add to chart');
       await p.screenshot({ path: `${OUT}/S2-${w}-dark.png` });
       if (w === 390) {
         const rr = await p.evaluate(async () => { await window.STRYKER_ZS.addToChart(); return { open: !document.getElementById('stkc-zs').hidden, n: window.STRYKER_ZS.handles(window.STRYKER_VELA.context().cells[0].chart).length }; });

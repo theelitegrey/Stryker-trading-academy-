@@ -102,7 +102,7 @@
   // The sealed build names its script, author and version; the server refuses it anywhere else (no copying a bin into another script).
   function sealProgram(program, bind) {
     if (!CFG.SEAL_PUB) return Promise.reject(new Error('Protected publishing is not set up on this page.'));
-    if (!sealMod) sealMod = import('/assets/creator-seal.js?v=979');
+    if (!sealMod) sealMod = import('/assets/creator-seal.js?v=1061');
     return sealMod.then(function (m) { return m.seal(CFG.SEAL_PUB, JSON.stringify({ kind: 'zsbin', sid: bind.sid, authorUid: bind.authorUid, v: bind.v, program: program })); });
   }
   // The engine's compile-to-program (S1). Protected publishing needs it; open-source publishing does not.
@@ -110,7 +110,7 @@
   var engine = null;
   function compile(source) {
     if (!engine) engine = g.ZS && typeof g.ZS.compile === 'function' ? Promise.resolve(g.ZS)
-      : import('/assets/zs/index.js?v=979').catch(function () { engine = null; return null; });
+      : import('/assets/zs/index.js?v=1061').catch(function () { engine = null; return null; });
     return engine.then(function (Z) {
       if (!Z || typeof Z.compile !== 'function') throw new Error('Protected publishing needs the Zscript engine. Publish from the editor, or choose open-source.');
       return Z.compile(source);
@@ -239,6 +239,20 @@
     }
   };
 
+  // The published versions of a script, for the chart's update button (assets/chart-ind-versions.js):
+  // -> { version: latest, notes: [{ v, text, date }] } | null (not listed / no access)
+  ZSLib.versions = function (sid) {
+    return S(sid).get().then(function (s) {
+      if (!s.exists) return null;
+      var m = s.data() || {};
+      if (m.status !== 'live' && m.status !== 'unlisted') return null;
+      return S(sid).collection('versions').get().then(function (q) {
+        var a = q.docs.map(function (d) { var x = d.data() || {}; var t = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : null; return { v: +x.version || 0, text: String(x.notes || '').slice(0, 1000), date: t ? t.toISOString().slice(0, 10) : '' }; });
+        return { version: +m.version || 1, notes: a };
+      }, function () { return { version: +m.version || 1, notes: [] }; });
+    }).catch(function () { return null; });
+  };
+
   // Count an add (once per member) and open the chart with it.
   ZSLib.addToChart = function (sid, u) {
     var go = function () { location.href = '/charts?zs=' + encodeURIComponent(sid); };
@@ -254,7 +268,7 @@
   // Hidden until launch (assets/zs-config.js ZS_LAUNCHED; ?zs=1 opens a preview for this tab).
   function gated() {
     var root = document.getElementById('zl-root'); if (!root) return;
-    import('/assets/zs-config.js?v=979').then(function (c) { return c.zsEnabled(); }, function () { return false; }).then(function (on) {
+    import('/assets/zs-config.js?v=1061').then(function (c) { return c.zsEnabled(); }, function () { return false; }).then(function (on) {
       if (on) return page();
       root.innerHTML = '<div class="cx-empty"><h1>Script Library</h1><p class="cx-muted">The Script Library is not open yet.</p><a class="btn btn-primary" href="/charts">Open charts</a></div>';
     });

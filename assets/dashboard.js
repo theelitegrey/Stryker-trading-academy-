@@ -141,6 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
       showSessionNotice('Checking your session…', "If this doesn't resolve in a couple seconds, your browser may be blocking the storage Firebase needs to stay signed in across pages.", false);
       setTimeout(() => {
         if (!handled) {
+          // Installed app (Android TWA / PWA): the start page is this dashboard, so a signed-out member goes straight to sign-in.
+          if ((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || /^android-app:/.test(document.referrer)) { location.replace('login.html'); return; }
           showSessionNotice(
             "Couldn't confirm you're signed in.",
             'Your login worked, but this new page could not detect an active session — likely a browser storage restriction. Try logging in again below.',

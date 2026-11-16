@@ -4,9 +4,10 @@
 // white tile so each one reads on dark and light), loaded lazily; no venue file = a neutral letter chip.
 // Data vendors are NOT venues and never get a logo. Education only. Not financial advice.
 const DIR = '/assets/venue-logos/';
-// lower-case venue / exchange code -> file stem. CME Group (CME, CBOT, NYMEX, COMEX) and NYSE (NYSE, AMEX, ARCA)
-// have no genuine mark file, so they get the letter chip like FX, IDX, XETR, BSE ... Never a wrong picture.
+// lower-case venue / exchange code -> file stem. CME Group's own mark covers CME, CBOT, NYMEX and COMEX (all CME Group
+// exchanges). NYSE (NYSE, AMEX, ARCA) has no usable official file, so it gets the letter chip. Never a wrong picture.
 const FILE = {
+  cme: 'cme', cbot: 'cme', cbot_mini: 'cme', nymex: 'cme', comex: 'cme',
   nasdaq: 'nasdaq', cboe: 'cboe', nse: 'nse',
   binance: 'binance', binanceus: 'binance', coinbase: 'coinbase', hyperliquid: 'hyperliquid', bybit: 'bybit', okx: 'okx',
   bitget: 'bitget', kraken: 'kraken', vest: 'vest',
@@ -24,11 +25,29 @@ export function venueFile(venue, ticker, byoId) {
   return FILE[v] || '';
 }
 let byoLabel = null;   // byo-core labelFor: which connected own source (Alpaca, tastytrade ...) serves a symbol
-import('./byo-core.js?v=979').then((m) => { byoLabel = m.labelFor; }).catch(() => {});
+import('./byo-core.js?v=1061').then((m) => { byoLabel = m.labelFor; }).catch(() => {});
 export function venueLabel(venue, ticker) {   // letter for the fallback chip
   const v = String(venue || '').trim();
   const m = /^(?:stocks:)?([A-Za-z_]+):/.exec(String(ticker || ''));
   return ((v && v.toLowerCase() !== 'stocks' ? v : m ? m[1] : v) || '?').charAt(0).toUpperCase();
+}
+
+// search panel: venue key (cme, nasdaq, index, fx, binance ...) -> chip. Index / forex are categories: a glyph, no logo.
+const GLYPH = {
+  index: '<path d="M4 18l5-6 4 3 7-9"/><path d="M4 21h16"/>',
+  idx: '<path d="M4 18l5-6 4 3 7-9"/><path d="M4 21h16"/>',
+  fx: '<circle cx="12" cy="12" r="8.5"/><path d="M14.5 9.2c-.6-.7-1.5-1-2.5-1-1.4 0-2.5.7-2.5 1.8 0 2.6 5 1.2 5 3.8 0 1.1-1.1 1.9-2.5 1.9-1.1 0-2-.4-2.7-1.1M12 6.5v1.7M12 15.8v1.7"/>'
+};
+export function venueChip(key) {
+  css();
+  const k = String(key || '').toLowerCase();
+  if (GLYPH[k]) {
+    const s = document.createElement('span');
+    s.className = 'vlogo vlogo-m vlogo-g'; s.setAttribute('aria-hidden', 'true');
+    s.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + GLYPH[k] + '</svg>';
+    return s;
+  }
+  return chip(FILE[k] || '', k.charAt(0).toUpperCase());
 }
 
 export function chip(file, letter) {

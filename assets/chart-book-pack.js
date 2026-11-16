@@ -10,26 +10,26 @@
 //                  Owner 2026-11-04: "big orders show on the heatmap but Big Trades does not": Big Trades marks single aggressive bursts, a wall is
 //                  usually filled by many small orders or pulled. Its own indicator (not a Big Trades option) because it needs the BOOK: Big Trades
 //                  is trade-only and also runs without L2. Walls = the Large Resting Orders size (same session histogram) or the heatmap's colour filter.
-// Same gate as the other L2 tools (futures: l2Visible(); crypto books: Pro). No data = a plain note, never made-up numbers.
+// Gate (all tools free, 2026-11-13): every signed-in member; futures without the live book read it 10 min delayed. No data = a plain note, never made-up numbers.
 // Redraws are throttled to 5 a second, nothing runs while the tab is hidden. Maths: assets/chart-book-pack-data.js. Education only. Not financial advice.
-import { registerFeed } from './chart-feeds.js?v=979';
-import { isFree } from './chart-pro-gate.js?v=979';
-import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory, l2Closed } from './chart-futures-l2.js?v=979';
-import { decodeBookHistory } from './chart-orderflow.js?v=979';
-import * as C from './book-panel-core.js?v=979';
-import { openSource } from './book-panel-sources.js?v=979';
-import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=979';
-import { sweepBars } from './chart-of-pro.js?v=979';
-import { icebergEvents } from './chart-liquidity-data.js?v=979';
-import * as D from './chart-book-pack-data.js?v=979';
-import { hfLive } from './chart-heat-filter.js?v=979';
-import { STYLES as BM_STYLES } from './chart-bookmap.js?v=979';
+import { registerFeed } from './chart-feeds.js?v=1061';
+import { isFree } from './chart-pro-gate.js?v=1061';
+import { l2Visible, l2Badge, l2Root, L2_TICK, L2_TYPES, acquire, rootState, TickFeed, bookHistory, l2Closed } from './chart-futures-l2.js?v=1061';
+import { decodeBookHistory } from './chart-orderflow.js?v=1061';
+import * as C from './book-panel-core.js?v=1061';
+import { openSource } from './book-panel-sources.js?v=1061';
+import { absorptionEvents, sweepEvents } from './chart-of-pro-data.js?v=1061';
+import { sweepBars } from './chart-of-pro.js?v=1061';
+import { icebergEvents } from './chart-liquidity-data.js?v=1061';
+import * as D from './chart-book-pack-data.js?v=1061';
+import { hfLive } from './chart-heat-filter.js?v=1061';
+import { STYLES as BM_STYLES } from './chart-bookmap.js?v=1061';
 
 export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const CRYPTO = ['binance', 'coinbase', 'hyperliquid', 'binanceus', 'bybit', 'okx', 'bitget', 'kraken', 'vest'];
-const NOT_YET = 'Needs L2 (full order book). It is part of Pro.';
+const NOT_YET = 'Sign in to use the order book tools. They are free.';   // all tools free (2026-11-13)
 const NEED = 'Order-book tools work on NQ, ES, YM, RTY, CL, GC futures (and micros) and crypto.';
 const MIN_GAP = 200;   // redraw at most 5 a second
 const { clamp, num } = D;

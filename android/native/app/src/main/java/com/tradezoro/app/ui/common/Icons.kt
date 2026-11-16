@@ -29,6 +29,13 @@ object TzIcons {
     val Bell = strokeIcon("bell", "M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4")
     val Back = strokeIcon("back", "M15 5l-7 7 7 7")
     val Close = strokeIcon("close", "M6 6l12 12M18 6L6 18")
+    val Expand = strokeIcon("expand", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5")
+    val More = strokeIcon("more", "M12 4a1 1 0 1 0 0 2a1 1 0 1 0 0-2z", "M12 11a1 1 0 1 0 0 2a1 1 0 1 0 0-2z", "M12 18a1 1 0 1 0 0 2a1 1 0 1 0 0-2z")
+    val Indicators = strokeIcon("indicators", "M3 17l5-6 4 3 8-9")
+    val Pencil = strokeIcon("pencil", "M4 20l4-1L19 8l-3-3L5 16z")
+    val Plus = strokeIcon("plus", "M12 5v14M5 12h14")
+    val Minus = strokeIcon("minus", "M5 12h14")
+    val ChevronDown = strokeIcon("chevron-down", "M6 9l6 6 6-6")
 }
 
 /**

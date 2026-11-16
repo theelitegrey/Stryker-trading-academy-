@@ -50,7 +50,15 @@ import com.tradezoro.app.data.dayPart
 import com.tradezoro.app.data.isFuturesMarketOpen
 import com.tradezoro.app.ui.auth.SignInContent
 import com.tradezoro.app.ui.auth.SignInViewModel
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.tradezoro.app.data.WatchSymbol
+import com.tradezoro.app.data.chartIdFor
+import com.tradezoro.app.ui.chart.ChartRoute
+import com.tradezoro.app.ui.chart.ChartTopBarHost
+import com.tradezoro.app.ui.chart.ChartViewModel
+import com.tradezoro.app.ui.chart.ChartWeb
 import com.tradezoro.app.ui.home.HomeContent
+import com.tradezoro.app.ui.home.RowState
 import com.tradezoro.app.ui.home.HomeViewModel
 import com.tradezoro.app.ui.home.Product
 import com.tradezoro.app.ui.nav.ComingSoon
@@ -67,19 +75,24 @@ import java.time.Instant
 import java.time.LocalTime
 
 class MainActivity : ComponentActivity() {
+    private lateinit var chartWeb: ChartWeb
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val auth = AuthRepository(applicationContext)
-        setContent { TradeZoroTheme { TzRoot(auth) } }
+        chartWeb = ChartWeb(applicationContext)
+        setContent { TradeZoroTheme { TzRoot(auth, chartWeb) } }
     }
+
+    override fun onDestroy() { chartWeb.destroy(); super.onDestroy() }
 }
 
 private const val SIGN_IN = "signin"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TzRoot(auth: AuthRepository) {
+fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -88,29 +101,39 @@ fun TzRoot(auth: AuthRepository) {
     val scope = rememberCoroutineScope()
     var accountOpen by rememberSaveable { mutableStateOf(false) }
     val tab = Tab.entries.firstOrNull { it.route == route }
+    val chartVm: ChartViewModel = viewModel()
+    val chartState by chartVm.state.collectAsState()
+    val dark = isSystemInDarkTheme()
+    val goTab: (Tab) -> Unit = { t ->
+        nav.navigate(t.route) {
+            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true; restoreState = true
+        }
+    }
+    val chartFull = tab == Tab.CHARTS && chartState.fullscreen
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             when (tab) {
                 Tab.HOME -> HomeTopBar(onMenu = { accountOpen = true }, onBell = { scope.launch { snack.showSnackbar("Price alerts arrive in a later update.") } })
+                Tab.CHARTS -> if (!chartFull) ChartTopBarHost(chartWeb, chartVm, onBack = { goTab(Tab.HOME) })
                 null -> {}
                 else -> TabTopBar(tab.label)
             }
         },
         bottomBar = {
-            if (tab != null) TzBottomBar(tab) { t ->
-                nav.navigate(t.route) {
-                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true; restoreState = true
-                }
-            }
+            if (tab != null && !chartFull) TzBottomBar(tab, goTab)
         },
         snackbarHost = { SnackbarHost(snack) },
     ) { pad ->
         NavHost(nav, startDestination = Tab.HOME.route, modifier = Modifier.padding(pad)) {
-            composable(Tab.HOME.route) { HomeRoute(user, onSnack = { m -> scope.launch { snack.showSnackbar(m) } }) }
-            composable(Tab.CHARTS.route) { ComingSoon(Tab.CHARTS, "the next update", "/charts") }
+            composable(Tab.HOME.route) {
+                HomeRoute(user, onSnack = { m -> scope.launch { snack.showSnackbar(m) } }, onSymbol = { sym, pct ->
+                    chartVm.openSymbol(chartIdFor(sym), sym.ticker, pct); goTab(Tab.CHARTS)
+                })
+            }
+            composable(Tab.CHARTS.route) { ChartRoute(chartWeb, chartVm, dark, snack) }
             composable(Tab.TRADE.route) { ComingSoon(Tab.TRADE, "a later update", "/charts") }
             composable(Tab.LEARN.route) { ComingSoon(Tab.LEARN, "a later update", "/courses") }
             composable(Tab.JOURNAL.route) { ComingSoon(Tab.JOURNAL, "a later update", "/journal") }
@@ -128,7 +151,7 @@ fun TzRoot(auth: AuthRepository) {
 }
 
 @Composable
-private fun HomeRoute(user: TzUser?, onSnack: (String) -> Unit, vm: HomeViewModel = viewModel()) {
+private fun HomeRoute(user: TzUser?, onSnack: (String) -> Unit, onSymbol: (WatchSymbol, Double?) -> Unit, vm: HomeViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     val owner = LocalLifecycleOwner.current
     // Poll only while Home is on screen (like the site pauses on a hidden tab).
@@ -143,7 +166,11 @@ private fun HomeRoute(user: TzUser?, onSnack: (String) -> Unit, vm: HomeViewMode
         dayPart = dayPart(LocalTime.now().hour),
         marketOpen = isFuturesMarketOpen(Instant.now()),
         onProduct = { p: Product -> onSnack("${p.title} arrives in a later update.") },
-        onSymbol = { s -> onSnack("$s chart arrives in the next update.") },
+        onSymbol = { t ->
+            val row = state.rows.firstOrNull { it.symbol.ticker == t }
+            val q = when (val r = row?.state) { is RowState.Ready -> r.quote; is RowState.Failed -> r.stale; else -> null }
+            row?.let { onSymbol(it.symbol, q?.changePct) }
+        },
     )
 }
 

@@ -16,6 +16,13 @@ import com.tradezoro.app.ui.nav.HomeTopBar
 import com.tradezoro.app.ui.nav.Tab
 import com.tradezoro.app.ui.nav.TzBottomBar
 import com.tradezoro.app.ui.theme.TradeZoroTheme
+import com.tradezoro.app.data.Timeframe
+import com.tradezoro.app.ui.chart.ChartActions
+import com.tradezoro.app.ui.chart.ChartContent
+import com.tradezoro.app.ui.chart.ChartTopBar
+import com.tradezoro.app.ui.chart.ChartUiState
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -98,5 +105,69 @@ class AlignmentTest {
             File("build/alignment-home.txt").writeText(log.toString())
         }
     }
-}
 
+    @Test fun chartChrome() {
+        rule.setContent {
+            TradeZoroTheme(dark = true) {
+                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { ChartTopBar({}, {}, {}) }, bottomBar = { TzBottomBar(Tab.CHARTS) {} }) { pad ->
+                    ChartContent(ChartUiState(ready = true, symbolId = "MNQ1!", tf = Timeframe.M5, last = 21486.5, change = 0.42, changeFor = "MNQ1!", qty = 2.0, paperOn = true, position = "Long 2 @ 21,470.25", sample = true),
+                        ChartActions(), Modifier.padding(pad)) { m -> androidx.compose.foundation.layout.Box(m.semantics { contentDescription = "chart" }) }
+                }
+            }
+        }
+        try {
+            // Top bar: back · title · fullscreen · more on one centre, 48dp targets, equal insets.
+            val back = rule.onNodeWithContentDescription("Back to Home").b("top: back")
+            val title = rule.onNodeWithText("ZoroCharts").b("top: title")
+            val full = rule.onNodeWithContentDescription("Full screen chart").b("top: fullscreen")
+            val more = rule.onNodeWithContentDescription("Chart menu").b("top: more")
+            listOf(title, full, more).forEach { near(it.cy, back.cy, "top bar centre") }
+            listOf(back, full, more).forEach { near((it.right - it.left).value, 48f, "top icon target 48dp", 0f) }
+            near(back.left.value, 412f - more.right.value, "top bar left inset = right inset")
+
+            // Symbol row: symbol button and price share a centre; 16dp gutters.
+            val sym = rule.onNodeWithContentDescription("Symbol MNQ, 5m. Change symbol").b("sym: button")
+            val price = rule.onNodeWithText("21,486.50", substring = true).b("sym: price")
+            near(sym.cy, price.cy, "symbol / price centre")
+            near(sym.left.value, 16f, "symbol left gutter 16dp", 0f)
+            near(412f - price.right.value, 16f, "price right gutter 16dp", 0.5f)
+
+            // Tool row: 5 chips + 3 tools on one centre; chips 48dp touch; tools 48dp; right gutter 16.
+            val chips = listOf("1m", "5m", "15m", "1H", "D").map { rule.onNodeWithContentDescription("Timeframe $it").b("tf chip: $it") }
+            val tools = listOf("Indicators", "Drawing tools", "Price alerts").map { rule.onNodeWithContentDescription(it).b("tool: $it") }
+            (chips + tools).forEach { near(it.cy, chips[0].cy, "tool row centre") }
+            chips.forEach { near((it.bottom - it.top).value, 48f, "chip touch height 48dp", 0f) }
+            chips.forEach { near((it.right - it.left).value, 48f, "chip touch width 48dp", 0f) }
+            chips.zipWithNext { a, b -> near(b.left.value - a.right.value, 0f, "chip touch boxes abut (visual gap 8dp)", 0.5f) }
+            // visual chip = 40dp centred in the 48dp box -> visual left edge = box + 4
+            near(chips[0].left.value + 4f, 16f, "first chip visual left gutter 16dp", 0f)
+            // last glyph (24dp centred in 48dp) -> glyph right edge = box right - 12
+            near(412f - (tools.last().right.value - 12f), 16f, "last tool glyph right gutter 16dp", 0.5f)
+            val free = tools.first().left.value - chips.last().right.value
+            log.append(String.format("  check %-40s %6.1f >= 0 -> %s\n", "space between chips and tools (no clip)", free, if (free >= 0) "PASS" else "FAIL"))
+            org.junit.Assert.assertTrue("chips clipped", free >= 0f)
+
+            // Trade row: Sell · stepper · Buy, one centre, all 48dp tall, equal Sell/Buy widths, 8dp gaps.
+            val sell = rule.onNodeWithContentDescription("Paper sell 2 MNQ at market").b("trade: sell")
+            val minus = rule.onNodeWithContentDescription("Less quantity").b("trade: minus")
+            val qty = rule.onNodeWithContentDescription("Quantity 2").b("trade: qty")
+            val plus = rule.onNodeWithContentDescription("More quantity").b("trade: plus")
+            val buy = rule.onNodeWithContentDescription("Paper buy 2 MNQ at market").b("trade: buy")
+            listOf(minus, qty, plus, buy).forEach { near(it.cy, sell.cy, "trade row centre") }
+            listOf(sell, minus, plus, buy).forEach { near((it.bottom - it.top).value, 48f, "trade control height 48dp", 0f) }
+            near((sell.right - sell.left).value, (buy.right - buy.left).value, "sell width = buy width")
+            near(minus.left.value - sell.right.value, 8f, "sell/stepper gap 8dp", 0.5f)
+            near(buy.left.value - plus.right.value, 8f, "stepper/buy gap 8dp", 0.5f)
+            near(sell.left.value, 412f - buy.right.value, "trade row left inset = right inset")
+
+            // Position line and Paper chip share a centre.
+            val pos = rule.onNodeWithText("Long 2 @ 21,470.25").b("strip: position")
+            val chip = rule.onNodeWithText("Paper trading").b("strip: paper chip")
+            near(pos.cy, chip.cy, "position / paper chip centre")
+            near(412f - chip.right.value, 16f, "paper chip right gutter 16dp", 0.5f)
+            rule.onNodeWithContentDescription("chart").b("chart area")
+        } finally {
+            File("build/alignment-chart.txt").writeText(log.toString())
+        }
+    }
+}

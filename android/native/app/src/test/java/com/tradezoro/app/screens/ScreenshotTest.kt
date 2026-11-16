@@ -25,6 +25,11 @@ import com.tradezoro.app.ui.nav.Tab
 import com.tradezoro.app.ui.nav.TabTopBar
 import com.tradezoro.app.ui.nav.TzBottomBar
 import com.tradezoro.app.ui.theme.TradeZoroTheme
+import com.tradezoro.app.data.Timeframe
+import com.tradezoro.app.ui.chart.ChartActions
+import com.tradezoro.app.ui.chart.ChartContent
+import com.tradezoro.app.ui.chart.ChartTopBar
+import com.tradezoro.app.ui.chart.ChartUiState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,12 +67,27 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
         )
     }
 
+    // Fixture for the chart chrome only; the screen labels it "Sample data".
+    private fun sampleChart(paper: Boolean) = ChartUiState(
+        ready = true, symbolId = "MNQ1!", tf = Timeframe.M5, last = 27285.50, change = 0.14, changeFor = "MNQ1!", qty = 2.0,
+        paperOn = paper, position = if (paper) "Long 2 @ 27,270.25" else null, sample = true,
+    )
+
     private val name get() = (if (device.startsWith("w390")) "390" else "412") + "-" + (if (dark) "dark" else "light")
 
     private fun shoot(file: String, content: @Composable () -> Unit) {
         RuntimeEnvironment.setQualifiers("+$device-" + (if (dark) "night" else "notnight") + "-xxhdpi")
         rule.setContent { TradeZoroTheme(dark = dark) { content() } }
         rule.onRoot().captureRoboImage("screenshots/$file-$name.png")
+    }
+
+    @Composable
+    private fun ChartShell(st: ChartUiState) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = { if (!st.fullscreen) ChartTopBar({}, {}, {}) },
+            bottomBar = { if (!st.fullscreen) TzBottomBar(Tab.CHARTS) {} },
+        ) { pad -> ChartContent(st, ChartActions(), Modifier.padding(pad)) { m -> ChartPlaceholder(m) } }
     }
 
     @Composable
@@ -96,8 +116,12 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
         }
     }
 
-    @Test fun charts() = shoot("3-charts-soon") {
-        Shell(Tab.CHARTS) { m -> ComingSoon(Tab.CHARTS, "the next update", "/charts", m) }
+    @Test fun trade() = shoot("3-trade-soon") {
+        Shell(Tab.TRADE) { m -> ComingSoon(Tab.TRADE, "a later update", "/charts", m) }
     }
+
+    @Test fun chart() = shoot("4-chart") { ChartShell(sampleChart(paper = true)) }
+    @Test fun chartPaperOff() = shoot("4b-chart-paper-off") { ChartShell(sampleChart(paper = false).copy(tf = Timeframe.M15)) }
+    @Test fun chartFullscreen() = shoot("4c-chart-fullscreen") { ChartShell(sampleChart(paper = true).copy(fullscreen = true)) }
 }
 

@@ -1,0 +1,7 @@
+.gradle/
+build/
+app/build/
+local.properties
+.kotlin/
+# Firebase client config: supplied out of band, never committed
+app/google-services.json

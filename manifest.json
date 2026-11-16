@@ -33,7 +33,7 @@
       "purpose": "maskable"
     }
   ],
-  "description": "Charts, GEX+ gamma levels, JournalX and ICT/SMT trading education. Education only. Not financial advice.",
+  "description": "Charts, Omega gamma levels, Nemesis and ICT/SMT trading education. Education only. Not financial advice.",
   "orientation": "any",
   "lang": "en",
   "categories": [
@@ -54,8 +54,8 @@
       ]
     },
     {
-      "name": "GEX+",
-      "short_name": "GEX+",
+      "name": "Omega",
+      "short_name": "Omega",
       "url": "/gex",
       "icons": [
         {
@@ -66,8 +66,8 @@
       ]
     },
     {
-      "name": "JournalX",
-      "short_name": "JournalX",
+      "name": "Nemesis",
+      "short_name": "Nemesis",
       "url": "/trade-journal",
       "icons": [
         {
@@ -91,14 +91,14 @@
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "GEX+ gamma levels"
+      "label": "Omega gamma levels"
     },
     {
       "src": "/assets/images/app-shots/journalx.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "JournalX trading journal"
+      "label": "Nemesis trading journal"
     },
     {
       "src": "/assets/images/app-shots/home.png",

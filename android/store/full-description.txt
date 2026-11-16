@@ -5,13 +5,13 @@ WHAT YOU GET
 ZoroCharts
 Fast, clean charts for crypto, futures and more. Draw on the chart, set alerts, replay past sessions bar by bar, and use order-flow tools such as footprint and volume profile.
 
-GEX+
+Omega
 Gamma exposure levels for index and metal options markets: call wall, put wall, zero gamma and other key strikes, drawn so you can see where option positioning may matter.
 
-JournalX
+Nemesis
 A trading journal that makes you measurable. Log the trade, name the model, record the outcome, then review it with dashboards, a calendar and analytics built for prop-firm style rules.
 
-ZoroAcademy
+Mentis
 Chapter-based lessons on ICT and SMT concepts: market structure, order blocks, fair value gaps, liquidity, order flow and risk. Learn the idea, then practise it on the charts.
 
 Community

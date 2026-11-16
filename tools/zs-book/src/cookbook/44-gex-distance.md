@@ -1,6 +1,6 @@
 ---
 title: Distance to the call wall
-dek: How far price is from a level, in percent (GEX+ data).
+dek: How far price is from a level, in percent (Omega data).
 level: Intermediate
 ---
 ```zscript

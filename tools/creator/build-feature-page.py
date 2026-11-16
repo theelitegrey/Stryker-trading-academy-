@@ -206,7 +206,7 @@ community = f'''
 <p class="cm-note">Pinned posts, comments, and moderation tools for you and your team.</p></div>
 <div class="cm-card cm-pad cm-rv" data-tilt style="--d:100ms"><div class="cm-ch">{ico('cal')}<b>Events</b></div>
 <div class="cm-ev"><span class="cm-date"><b>Mon</b><i>Weekly</i></span><div><b>Monday market prep</b><span>Time, link and a going count</span></div><em class="cm-rsvp">RSVP</em></div>
-<div class="cm-ev"><span class="cm-date"><b>Wk</b><i>Weekly</i></span><div><b>Replay One practice</b><span>Practice session</span></div><em class="cm-rsvp on">Going</em></div>
+<div class="cm-ev"><span class="cm-date"><b>Wk</b><i>Weekly</i></span><div><b>Kronos practice</b><span>Practice session</span></div><em class="cm-rsvp on">Going</em></div>
 <p class="cm-note">Both are weekly sessions listed on Richard NQ's page.</p></div>
 <div class="cm-card cm-pad cm-rv" data-tilt style="--d:200ms"><div class="cm-ch">{ico('trophy')}<b>Leaderboard</b></div>
 <div class="cm-lb"><span class="cm-ini">A</span><i class="bar" style="--w:92%"></i></div>

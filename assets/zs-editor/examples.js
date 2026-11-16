@@ -78,7 +78,7 @@ export const ZS_EXAMPLES = [
   { id: 'zs-example:gex-walls', name: 'GEX walls', source: [
     '//@zscript 1',
     'indicator("GEX walls", overlay=true)',
-    '// Call wall, put wall and gamma flip from GEX+ (SPX, SPY, QQQ, ES, NQ). Levels are as of their last update.',
+    '// Call wall, put wall and gamma flip from Omega (SPX, SPY, QQQ, ES, NQ). Levels are as of their last update.',
     'showFlip = input.bool(true, "Show gamma flip")',
     'plot(gex.callwall, "Call wall", color=color.teal, linewidth=2, style=plot.style_stepline)',
     'plot(gex.putwall, "Put wall", color=color.red, linewidth=2, style=plot.style_stepline)',

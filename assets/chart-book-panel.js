@@ -66,7 +66,7 @@ export function mountBookPanel(ws, opts) {
   const kindOf = () => {
     let sym = ''; try { sym = ws.active.symbol || ''; } catch (e) {}
     let m = /^([a-z0-9]+):(.+)$/i.exec(sym); let prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
-    if (prov === 'bt') { const r = btBook({ provider: 'bt', ticker: tk }); prov = r.provider; tk = r.ticker; }   // Replay One: the session's real market
+    if (prov === 'bt') { const r = btBook({ provider: 'bt', ticker: tk }); prov = r.provider; tk = r.ticker; }   // Kronos: the session's real market
     if (prov === 'futures') { const root = l2Root(tk); return { kind: 'fut', sym, root, tick: root ? L2_TICK[root] || 0.25 : 0 }; }
     if (CRYPTO.includes(prov)) return { kind: 'crypto', sym, pair: C.pairOf(tk), prov };
     return { kind: 'none', sym };

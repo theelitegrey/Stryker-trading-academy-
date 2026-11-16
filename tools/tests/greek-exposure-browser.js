@@ -33,7 +33,7 @@ async function ctxFor(b, o) {
   const { w, h, mobile, free, light } = o;
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
-  // gex-auth.js (GEX+ page) sends the stub token at once only when firebase looks initialised; on charts.html this would make
+  // gex-auth.js (Omega page) sends the stub token at once only when firebase looks initialised; on charts.html this would make
   // rtHeadersReady wait for a real token, so it is set for the pages only
   if (!o.chart) await ctx.addInitScript(() => { try { if (window.firebase && window.firebase.apps && !window.firebase.apps.length) window.firebase.apps.push({ name: '[DEFAULT]' }); } catch (e) {} });
   await ctx.addInitScript((o) => {

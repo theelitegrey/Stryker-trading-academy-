@@ -7,7 +7,7 @@
 //             strykerReplayLimitOk; it always answers yes now).
 //
 // The Free plan (rank 0) gets:
-//   EVERYTHING    (Owner 2026-11-13, "Pro tools will be made free"): every tool, GEX+ included, is free for a signed-in member.
+//   EVERYTHING    (Owner 2026-11-13, "Pro tools will be made free"): every tool, Omega included, is free for a signed-in member.
 //                 strykerPlanTier() answers free:false for everyone; only the LIVE futures order book is paid (server: /api/chart/rt l2).
 //   GEX           (was Pro only 2026-11-01 .. 11-13) free for members, the server checks sign-in only (functions/api/gex/_pro.js)
 //   Trade journal NO limits (Owner 2026-11-01): unlimited trades, import, broker sync, analytics, AI coach.
@@ -81,7 +81,7 @@
       var p = document.createElement('p');
       p.id = 'gex-free-note';
       p.className = 'plan-usage-note';
-      p.innerHTML = 'Free plan: SPX, 0DTE view. <a href="#" data-open-plan-modal data-upgrade-reason="Pro unlocks GEX+ for every symbol (SPX, SPY, QQQ, ES, NQ and gold GC) and expiry, the futures conversion and the strike table.">Pro unlocks every symbol and expiry</a>.';
+      p.innerHTML = 'Free plan: SPX, 0DTE view. <a href="#" data-open-plan-modal data-upgrade-reason="Pro unlocks Omega for every symbol (SPX, SPY, QQQ, ES, NQ and gold GC) and expiry, the futures conversion and the strike table.">Pro unlocks every symbol and expiry</a>.';
       note.parentNode.insertBefore(p, note.nextSibling);
     }
   }
@@ -161,7 +161,7 @@
       if (!t.free) return;
       // journal is free (Owner 2026-11-01): applyJournal() is no longer called. GEX is Pro only: the server refuses the data and
       // assets/gex-auth.js shows the Pro prompt; the page does not wait for the plan to resolve.
-      // all tools free (2026-11-13): t.free is never true now; the GEX+ wall shows only for a signed-out visitor (gex.js on a 403)
+      // all tools free (2026-11-13): t.free is never true now; the Omega wall shows only for a signed-out visitor (gex.js on a 403)
     });
   });
 })();

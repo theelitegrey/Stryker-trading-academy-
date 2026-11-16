@@ -90,19 +90,19 @@
   // ALL TOOLS FREE (Owner 2026-11-13, "everything will be free. Only paid will be data feed"): every row is in both columns, and
   // the one difference is the live futures order book data feed (exchange rules set it). The plan key stays "Pro", shown "Pro · Live data".
   var GROUPS = [
-    ['ZoroAcademy', [
+    ['Mentis', [
       ['Curriculum chapters', '@free-ch', 'All 64'],
       ['Volume Profile and Prop Firm tracks', true, true],
       ['Progress dashboard, achievements, streak', true, true]]],
-    ['GEX+', [
-      ['GEX+ symbols: SPX, SPY, QQQ, ES, NQ, gold (GC)', true, true],
+    ['Omega', [
+      ['Omega symbols: SPX, SPY, QQQ, ES, NQ, gold (GC)', true, true],
       ['Every expiry, futures conversion and the strike table', true, true]]],
-    ['JournalX', [
+    ['Nemesis', [
       ['Trades, manual entry, import and broker sync', true, true],
       ['Analytics and AI coach', true, true]]],
     ['ZoroCharts', [
       ['ZoroCharts, every chart type, drawing and indicator', true, true],
-      ['Alerts, layouts and paper trading; Replay One for backtesting and replay', true, true],
+      ['Alerts, layouts and paper trading; Kronos for backtesting and replay', true, true],
       ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', true, true],
       ['Order book tools: heatmap, DOM ladder', true, true],
       ['GEX on the charts: levels, heatmap, ladder, expected move', true, true]]],
@@ -245,13 +245,13 @@
         '<ul class="pv-icons">' + feats + '</ul>' +
       '</div>' +
       '<div class="pv-strip">' +
-        '<p><b>' + esc(freeName) + ' is free for every member:</b> every tool (order flow, the order book tools and GEX+), all 64 chapters, JournalX with import, broker sync and AI coach, Smart Money Desk, trading models, private indicators, ZoroCharts, Replay One and the full community. No trial, no card.</p>' +
+        '<p><b>' + esc(freeName) + ' is free for every member:</b> every tool (order flow, the order book tools and Omega), all 64 chapters, Nemesis with import, broker sync and AI coach, Smart Money Desk, trading models, private indicators, ZoroCharts, Kronos and the full community. No trial, no card.</p>' +
         '<a href="signup" class="btn btn-ghost">' + ctaLabel(P.free, 'Start free') + '</a>' +
       '</div>' +
       '<div class="pv-faq">' +
         faq('Can I cancel anytime?', 'Yes. Cancel from Billing in Settings. You keep ' + proName + ' until the end of the period you have already paid for, and you are not charged again.') +
         faq('Why can the rupee price change?', proName + ' is priced in US dollars. The rupee price is the dollar price at that day\'s exchange rate. Once you subscribe, your amount stays fixed.') +
-        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. On ' + freeName + ' every tool stays free; the futures order book goes back to 10 minutes delayed.') +
+        faq('What happens to my data on ' + freeName + '?', 'Your Nemesis and progress stay saved. Nothing is deleted. On ' + freeName + ' every tool stays free; the futures order book goes back to 10 minutes delayed.') +
         '<a class="pv-faq-all" href="help?cat=plans-billing">See all questions \u2192</a>' +
       '</div>';
   }

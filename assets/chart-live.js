@@ -3,7 +3,7 @@
 // (functions/connect/finatic/order.js + data.js) re-checks admin on every call and refuses everyone else with 403.
 //
 // What it adds to the Paper trading panel: an account picker (Paper = default, every reload starts on Paper; plus the admin's connected
-// broker accounts, "Tradovate APEX-123456-01" (the number the broker shows); plus "Connect a broker…", which opens the SAME connect flow as JournalX: finatic-journal-ui.js).
+// broker accounts, "Tradovate …1234"; plus "Connect a broker…", which opens the SAME connect flow as Nemesis: finatic-journal-ui.js).
 // With a live account picked: a big red LIVE badge in the panel and on every chart; the panel shows an order form (Buy/Sell, Market/
 // Limit, 1 or 2 contracts), the live position (P&L from the chart's last price x the contract's point value) and working orders (Cancel);
 // the chart draws the position and working-order lines (drag a working order = modify, or cancel + new when the broker can't modify);

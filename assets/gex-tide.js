@@ -1,4 +1,4 @@
-// TradeZoro — GEX+ page "ZoroTide" tab: options money flow, calls vs puts (classic script, no imports).
+// TradeZoro — Omega page "ZoroTide" tab: options money flow, calls vs puts (classic script, no imports).
 // Owner order 2026-10-29. Depends on: the book-recorder Worker GET /tide?u=SPX|SPY|QQQ&days=N (workers/book-recorder/
 // src/tide.js; samples built by gex-feeder/tide.py from the Cboe chains we already pull); assets/gex.js
 // (window.strykerGexState() + the 'stryker:gex-selection' event: the market picked on the page and the Free limit);
@@ -9,7 +9,7 @@
 // METHOD (also in the help text below): every sample, new volume = volume now - volume at the previous sample per
 // contract; premium = new volume x price x 100 (last trade, else mid); side: last trade in the top 25 % of the
 // bid-ask spread = bought, bottom 25 % = sold, in between = split half and half. Net = bought - sold.
-// PLAN: same split as the rest of GEX+: SPX free, SPY and QQQ Pro (client-side, like the heatmap).
+// PLAN: same split as the rest of Omega: SPX free, SPY and QQQ Pro (client-side, like the heatmap).
 // WORDING: "Estimated from options volume and quotes. Updated X min ago." Never live / real-time / delayed.
 // Education only. Not financial advice.
 (function () {

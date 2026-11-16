@@ -35,7 +35,7 @@ done.add(10 * H); assert.equal(R.nextChunk(done, 10 * H + 5, 12 * H + 7, H), nul
 assert.equal(R.nextChunk(new Set(), 5 * H, 6 * H, H), 5 * H); ok('nextChunk: an exact window boundary does not ask the next window');
 assert.equal(R.nextChunk(new Set(), 6 * H, 6 * H, H), null); ok('nextChunk: empty range -> null');
 
-// Replay One market mapping
+// Kronos market mapping
 assert.deepEqual(R.specMarket({ id: 'NQ=F', src: 'yahoo' }), { provider: 'futures', ticker: 'NQ' });
 assert.deepEqual(R.specMarket({ id: 'BTCUSDT', src: 'binance' }), { provider: 'binance', ticker: 'BTCUSDT' });
 assert.equal(R.specMarket({ id: 'EURUSD=X', src: 'yahoo' }), null); assert.equal(R.specMarket({ id: 'mine', src: 'csv' }), null);
@@ -44,7 +44,7 @@ globalThis.window = { __stkBt: { spec: { id: 'NQ=F', src: 'yahoo' }, clock: () =
 const mk = R.btBook({ provider: 'bt', ticker: 'SESSION', root: 'SESSION', futures: false });
 assert.equal(mk.provider, 'futures'); assert.equal(mk.ticker, 'NQ'); assert.equal(mk.futures, true);
 assert.deepEqual(R.btBook({ provider: 'binance', ticker: 'X' }), { provider: 'binance', ticker: 'X' });
-assert.equal(R.replayClock(), 1234); ok('btBook: bt:SESSION -> the session market; others unchanged; Replay One clock');
+assert.equal(R.replayClock(), 1234); ok('btBook: bt:SESSION -> the session market; others unchanged; Kronos clock');
 window.__stkReplay = { on: true, now: () => 99 }; assert.equal(R.replayClock(), 99); window.__stkReplay.on = false; window.__stkBt = null;
 assert.equal(R.replayClock(), 0); ok('replayClock: Charts bar replay first; nothing on -> 0');
 

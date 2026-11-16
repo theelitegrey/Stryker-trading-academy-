@@ -5,7 +5,7 @@
 // shape decoded by chart-orderflow.js decodeBookHistory: { ts, mid, bb, ba, step, i0, v } (v: + bids / - asks per row).
 // Education only. Not financial advice.
 
-// The replay clock (ms) while a replay is on, else 0: Charts bar replay (window.__stkReplay), or a Replay One session
+// The replay clock (ms) while a replay is on, else 0: Charts bar replay (window.__stkReplay), or a Kronos session
 // (replay.html, window.__stkBt.clock() from bt-vela-chart.js: the close of the bar at the session cursor).
 export function replayClock() {
   try {
@@ -15,7 +15,7 @@ export function replayClock() {
   } catch (e) { return 0; }
 }
 
-// Replay One charts one session as provider 'bt' (symbol bt:SESSION). For the book tools that session is the real market it
+// Kronos charts one session as provider 'bt' (symbol bt:SESSION). For the book tools that session is the real market it
 // was built from (window.__stkBt.spec, the replay-data.js market), so they read that market's recorded book. Same shape as
 // chart-orderflow.js marketOf. Any other market passes through unchanged.
 export function btBook(mk) {
@@ -26,7 +26,7 @@ export function btBook(mk) {
     return Object.assign({}, mk, { provider: m.provider, ticker: m.ticker, root: m.ticker, futures: m.provider === 'futures' });
   } catch (e) { return mk; }
 }
-// Replay One market spec (replay-data.js SYMBOLS: { id: 'NQ=F' | 'BTCUSDT', src }) -> the chart market the recorders know.
+// Kronos market spec (replay-data.js SYMBOLS: { id: 'NQ=F' | 'BTCUSDT', src }) -> the chart market the recorders know.
 export function specMarket(sp) {
   if (!sp || !sp.id) return null;
   if (sp.src === 'binance') return { provider: 'binance', ticker: String(sp.id).toUpperCase() };

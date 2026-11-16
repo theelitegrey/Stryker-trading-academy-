@@ -43,9 +43,9 @@
   var COPY = {
     gex: {
       signin: true,
-      title: function () { return 'Sign in to use GEX+. It is free.'; },
+      title: function () { return 'Sign in to use Omega. It is free.'; },
       bullets: function () {
-        return ['GEX+ levels for SPX, SPY, QQQ, ES, NQ and gold (GC) at every expiry',
+        return ['Omega levels for SPX, SPY, QQQ, ES, NQ and gold (GC) at every expiry',
                 'The strike table: net GEX, DEX and open interest by strike'];
       },
       reason: ''
@@ -73,7 +73,7 @@
       title: function () { return 'Sign in to use options analytics. They are free.'; },
       bullets: function () {
         return ['Expected move, IV rank, term structure and skew for SPX, QQQ (NQ) and SPY',
-                'Plus GEX+ for every market and expiry, gold (GC) included'];
+                'Plus Omega for every market and expiry, gold (GC) included'];
       },
       reason: ''
     },

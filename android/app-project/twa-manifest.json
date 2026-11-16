@@ -24,8 +24,8 @@
   "appVersionName": "1.0.0",
   "shortcuts": [
     {"name": "Charts", "shortName": "Charts", "url": "/charts", "chosenIconUrl": "https://tradezoro.com/assets/images/tradezoro-icon-192-494.png"},
-    {"name": "GEX+", "shortName": "GEX+", "url": "/gex", "chosenIconUrl": "https://tradezoro.com/assets/images/tradezoro-icon-192-494.png"},
-    {"name": "JournalX", "shortName": "JournalX", "url": "/trade-journal", "chosenIconUrl": "https://tradezoro.com/assets/images/tradezoro-icon-192-494.png"}
+    {"name": "Omega", "shortName": "Omega", "url": "/gex", "chosenIconUrl": "https://tradezoro.com/assets/images/tradezoro-icon-192-494.png"},
+    {"name": "Nemesis", "shortName": "Nemesis", "url": "/trade-journal", "chosenIconUrl": "https://tradezoro.com/assets/images/tradezoro-icon-192-494.png"}
   ],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://tradezoro.com/manifest.json",

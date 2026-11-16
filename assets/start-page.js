@@ -46,10 +46,10 @@
   var PAGES = [
     { id: 'dashboard', label: 'Dashboard', path: '/dashboard-user.html', access: null },
     { id: 'charts',    label: 'ZoroCharts',    path: '/charts.html',         access: null },
-    { id: 'gex',       label: 'GEX+',      path: '/gex.html',            access: null },
-    { id: 'journal',   label: 'JournalX',   path: '/trade-journal.html',  access: 'trade-journal' },
-    { id: 'learn',     label: 'ZoroAcademy',     path: '/courses.html',        access: 'curriculum' },
-    { id: 'replay',    label: 'Replay One',    path: '/replay.html',         access: null }
+    { id: 'gex',       label: 'Omega',      path: '/gex.html',            access: null },
+    { id: 'journal',   label: 'Nemesis',   path: '/trade-journal.html',  access: 'trade-journal' },
+    { id: 'learn',     label: 'Mentis',     path: '/courses.html',        access: 'curriculum' },
+    { id: 'replay',    label: 'Kronos',    path: '/replay.html',         access: null }
   ];
   var CACHE = 'tz_start_page';
   var ENTRY_FLAG = 'tz_entry_done';

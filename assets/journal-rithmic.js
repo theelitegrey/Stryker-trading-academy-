@@ -1,4 +1,4 @@
-// TradeZoro — JournalX: "Import from Rithmic" button + visibility switch (classic script)
+// TradeZoro — Nemesis: "Import from Rithmic" button + visibility switch (classic script)
 // Depends on: the journal page globals (db, auth, JOURNAL_UID) and assets/rithmic-journal-ui.js (loaded on click).
 // Visible only to admins, and only when settings/commerce.rithmicJournal is true or the URL has ?rjournal=1
 // (the Chief of Staff flips the switch once Rithmic confirms order-history access).

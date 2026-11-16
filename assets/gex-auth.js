@@ -1,8 +1,8 @@
-// TradeZoro: sign-in token for the GEX+ data calls (classic script)
+// TradeZoro: sign-in token for the Omega data calls (classic script)
 // GEX data is free for signed-in members (all tools free, Owner 2026-11-13; was Pro only from 2026-11-01). The server checks the sign-in
 // (functions/api/gex/_pro.js, the recorder's GEX routes): every GEX request must carry the
 // member's Firebase ID token. window.strykerGexHeaders() -> Promise<{authorization}> ({} when signed out; the server then answers 403).
-// window.strykerGexWall() shows the sign-in card in place of the GEX+ page for a signed-out visitor (the server answered 403).
+// window.strykerGexWall() shows the sign-in card in place of the Omega page for a signed-out visitor (the server answered 403).
 // Education only. Not financial advice.
 (function () {
   'use strict';
@@ -47,7 +47,7 @@
     ['gex-tabs', 'gex-dtes'].forEach(function (id) { var e = document.getElementById(id); if (e && !e.hidden) { e.hidden = true; hidByWall.push(e); } });
     var slot = document.createElement('div'); slot.id = 'gex-pro-wall';
     if (window.strykerPlanLock) slot.appendChild(window.strykerPlanLock.card('gex', 'gex-page'));
-    else slot.innerHTML = '<p class="plan-usage-note">Sign in to use GEX+. It is free.</p>';
+    else slot.innerHTML = '<p class="plan-usage-note">Sign in to use Omega. It is free.</p>';
     shell.appendChild(slot);
   };
   // A later GEX call succeeded (e.g. the member signed in after the page opened): take the wall down again.

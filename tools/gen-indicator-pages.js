@@ -325,7 +325,7 @@ ${changelog(it)}
 <a class="btn btn-primary ixp-add" href="/charts?ind=${encodeURIComponent(it.key)}" data-ind-add="${esc(it.key)}">Add ${esc(it.name.length > 24 ? 'it' : it.name)} to a chart</a>
 <a class="ixp-link" href="/charts">Open ZoroCharts</a>
 </section>
-${it.learn ? `<section class="ixp-box"><h2>Learn the concept</h2><a class="ixp-learn" href="/learn-${it.learn}"><span>${esc(LEARN[it.learn])}</span><small>Free article · ZoroAcademy</small></a></section>` : ''}
+${it.learn ? `<section class="ixp-box"><h2>Learn the concept</h2><a class="ixp-learn" href="/learn-${it.learn}"><span>${esc(LEARN[it.learn])}</span><small>Free article · Mentis</small></a></section>` : ''}
 ${rel.length ? `<section class="ixp-box"><h2>More in ${esc(it.group)}</h2><ul class="ixp-rel">${rel.map((x) => `<li><a href="/indicators/${x.slug}"><img src="${x.thumb}" alt="" width="96" height="54" loading="lazy" decoding="async"><span><b>${esc(x.name)}</b><small>${esc(x.author)} · ${x.plan}</small></span></a></li>`).join('')}</ul><a class="ixp-link" href="/indicators#${GROUP_SLUG(it.group)}">All ${esc(it.group)} indicators</a></section>` : ''}
 </aside>
 </div>

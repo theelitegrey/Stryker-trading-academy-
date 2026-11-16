@@ -266,7 +266,15 @@ async function crossedBook(b) {
       // heatmap fills the visible window from the left edge (backfill), and no empty band inside the book's price range
       const hm = await p.evaluate(() => { const d = window.__stkFlow && window.__stkFlow.domDebug && window.__stkFlow.domDebug(); return d || null; });
       if (process.env.DBG) console.log('HM', JSON.stringify(hm && { rs: hm.remoteSamples, st: hm.remoteState, s: hm.samples, cols: hm.columns, vis: hm.visFrom, cells: hm.cells }));
-      if (hm) { check(hm.remoteSamples > 5, tag + ': history backfill samples loaded (' + hm.remoteSamples + ')'); check(hm.heatX0 != null && hm.heatX0 <= 60, tag + ': heatmap starts at the left edge of the screen', hm.heatX0); }
+      if (hm) { check(hm.remoteSamples > 5, tag + ': history backfill samples loaded (' + hm.remoteSamples + ')'); // The archive keeps 48 h (Worker retention; the fixture mirrors it). When the first visible candle is OLDER than that (Sunday / Monday morning UTC:
+        // the weekend gap pushes the left edge of the screen back past 48 h) no heat can exist there, so the strict "starts at the left edge" check
+        // is replaced by "backfill reached the 48 h limit AND heat starts at that limit, left of the live edge". (CI flake: fails only while the visible window spans >48 h.)
+        const retention = 48 * 3600000, span = await p.evaluate(() => Date.now()), archLimited = hm.visFrom < span - retention - 10 * 60000;
+        if (!archLimited) check(hm.heatX0 != null && hm.heatX0 <= 60, tag + ': heatmap starts at the left edge of the screen', hm.heatX0);
+        else {
+          check(hm.remoteFrom <= span - retention + 15 * 60000, tag + ': archive-limited window: backfill reached the 48 h limit', { remoteFrom: hm.remoteFrom, now: span });
+          check(hm.heatX0 != null && hm.heatX0 > 0 && hm.heatX0 < hm.width * 0.75, tag + ': archive-limited window: heat starts at the oldest stored sample, not later (' + hm.heatX0 + ' of ' + hm.width + ')', hm.heatX0);
+        } }
       // Bookmap: perf at this size (rebuild cost; cached blits cost ~0), full-height rows, dark field, no wall tags
       if (hm && hm.bm) {
         check(hm.bm.cells > 2000, tag + ': bookmap paints rows (' + hm.bm.cells + ' cells)');

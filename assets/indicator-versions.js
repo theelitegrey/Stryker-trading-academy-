@@ -82,7 +82,7 @@ export const VERSIONS = {
       'The Bar stats table and the delta + volume strip can each sit at any corner of the chart.'] },
     { v: '1.3', date: '2026-11-13', all: true, notes: ['Fix: the Bar stats table now always stays on top of candles and other indicators.'] }
   ] },
-  'p:frvp': { base: '1.3', versions: [
+  'p:frvp': { base: '1.4', versions: [
     { v: '1.0', date: '2026-10-05', notes: ['First release.'] },
     { v: '1.1', date: '2026-11-11', all: true, notes: [
       'POC, VAH and VAL lines stop at the end of the range. New setting "Extend lines right".',
@@ -94,7 +94,10 @@ export const VERSIONS = {
       'The value area stays the same when you change the number of rows.',
       'Corner handles to resize the range.',
       'Dashes instead of empty delta values where there is no order flow data.'] },
-    { v: '1.3', date: '2026-11-13', all: true, notes: ['The value area is now the same on every timeframe: the profile is built from 1-minute bars when they are available.'] }
+    { v: '1.3', date: '2026-11-13', all: true, notes: ['The value area is now the same on every timeframe: the profile is built from 1-minute bars when they are available.'] },
+    { v: '1.4', date: '2026-11-16', all: true, notes: [
+      'A profile stays inside its own start and end: it no longer grows to the newest candle on its own. New setting "Extend to now" (off by default) runs it on to the newest candle.',
+      'Delta bars stay on screen and on every row that has order flow, also when the start of the range is off the left of the chart.'] }
   ] },
   'b:stk_svp': { base: '1.1', versions: [
     { v: '1.0', date: '2026-10-05', notes: ['First release.'] },

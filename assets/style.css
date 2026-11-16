@@ -6289,7 +6289,8 @@ body.charts-page .stkchart-credit{
 #stkc-bar.stkc-onebar #stkc-fs-btn{ order:27; }
 #stkc-bar.stkc-onebar .vela-widget-screenshot{ order:28; }
 :where(#stkc-bar.stkc-onebar .vela-topbar-right) > *{ order:28; }
-#stkc-bar.stkc-onebar #stkc-paper-btn{ order:30; }
+#stkc-bar.stkc-onebar .stkc-menu:not(.stkc-ob-more){ display:flex; align-items:center; }   /* no line-box slack under the button: every bar item on one centre */
+#stkc-bar.stkc-onebar .stkc-menu:has(> #stkc-paper-btn){ order:25; }   /* Trade: just before Wallet / Data source */
 #stkc-bar.stkc-onebar #stkrb-chip { order:31; }
 #stkc-bar.stkc-onebar #stkc-credits-btn, #stkc-bar.stkc-onebar #stkc-credits{ order:33; }
 #stkc-bar.stkc-onebar .stkc-ob-more{ order:40; }
@@ -6302,8 +6303,6 @@ body.charts-page .stkchart-credit{
 #stkc-bar.stkc-onebar .stkc-btn:hover, #stkc-bar.stkc-onebar .stkc-btn[aria-expanded="true"]{ border-color:transparent; background:var(--bg-2); color:var(--ink-0); }
 #stkc-bar.stkc-onebar .stkc-btn.stkc-icon{ width:32px; padding:0; justify-content:center; }
 #stkc-bar.stkc-onebar .stkc-ib{ width:30px; height:30px; }
-#stkc-bar.stkc-onebar #stkc-paper-btn{ border-color:rgba(3,201,136,.45); color:var(--gold); }
-#stkc-bar.stkc-onebar #stkc-paper-btn:hover{ background:rgba(3,201,136,.1); }
 /* Phone (Vela's mobile layout): Vela's bottom bar is the start of this one slim row:
    symbol, interval, Indicators, the drawing pencil (opens the drawings sheet); the rest folds into ⋯ */
 #stkc-bar.stkc-ob-phone .vela-mobilebar{

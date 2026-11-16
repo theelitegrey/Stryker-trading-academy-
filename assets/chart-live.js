@@ -25,7 +25,7 @@
 // - Qty cap 2 contracts and max 2 contracts worst-case exposure: server-side (order.js), also enforced here.
 // Tests: tests/finatic/chart-live.test.mjs (core + server, mocked broker), tools/tests/chart-live-browser.js (mocked endpoints only).
 // Education only. Not financial advice.
-import * as L from './chart-live-core.js?v=1053';
+import * as L from './chart-live-core.js?v=1054';
 
 const POLL_MS = 10000, STALE_MS = 25000, IDLE_MS = 15 * 60000, HIDDEN_MS = 2 * 60000;
 const DISCLAIMER = 'Education only. Not financial advice.';
@@ -76,7 +76,7 @@ async function loadAccounts() {
   S.loaded = true; render();
 }
 function connect() {
-  import('./finatic-journal-ui.js?v=1053').then((m) => m.openBrokerSync({ uid, mode: 'chart', onConnected: () => { loadAccounts().then(() => toast('Broker connected. Pick the account in the panel.', 'success')); } }))
+  import('./finatic-journal-ui.js?v=1054').then((m) => m.openBrokerSync({ uid, mode: 'chart', onConnected: () => { loadAccounts().then(() => toast('Broker connected. Pick the account in the panel.', 'success')); } }))
     .catch(() => toast('Could not open the broker connection.', 'error'));
 }
 
@@ -457,5 +457,5 @@ export function mountLive(paperApi, opts) {
   P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, ladder, domState, cancel, flatten });
   loadAccounts();
   window.addEventListener('storage', (e) => { if (e.key === lsUserKey()) loadAccounts(); });
-  Object.assign(window.__stkLive, { pick, leave, read, loadAccounts, info, confirmSheet, get blockReason() { return blockReason(); } });
+  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, get blockReason() { return blockReason(); } });
 }

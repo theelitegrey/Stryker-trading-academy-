@@ -174,8 +174,7 @@ function applyEnabled(){
   document.documentElement.classList.toggle('stkpt-on', on);
   document.documentElement.classList.toggle('stklv-on', liveOn());
   if (panel) panel.hidden = !(on || LIVE);           // an admin always sees the panel: it holds the Paper / live account picker
-  const tb = document.getElementById('stkc-paper-btn'); if (tb) tb.hidden = !on;
-  if (!on && !liveOn()) {
+    if (!on && !liveOn()) {
     closeTicket();
     document.documentElement.classList.remove('stkpt-sheet-open');
     const of = document.getElementById('stkpt-offers'); if (of) of.textContent = '';
@@ -1649,13 +1648,49 @@ function hotkeysCard(){
 // ------------------------------------------------------------------ toolbar button
 function mountToolbar(bar){
   if (!bar || document.getElementById('stkc-paper-btn')) return;
-  const b = h('button', { type: 'button', id: 'stkc-paper-btn', class: 'stkc-btn', title: 'Paper trading (demo money, simulated fills)', 'aria-label': 'Paper trading: new order' });
+  const b = h('button', { type: 'button', id: 'stkc-paper-btn', class: 'stkc-btn', title: 'Trade: paper trading' , 'aria-label': 'Trade', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-controls': 'stkc-trade-pop' });
   b.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg><span class="stkc-btn-l">Trade</span>';
-  b.onclick = () => openTicket();
-  bar.insertBefore(b, bar.firstChild);
+  const pop = h('div', { class: 'stkc-pop stkpt-tmenu', id: 'stkc-trade-pop', role: 'menu', 'aria-label': 'Trade', hidden: '' });
+  const wrap = h('div', { class: 'stkc-menu' }); wrap.append(b, pop);
+  const setOpen = (o) => { if (o) drawTradeMenu(pop); pop.hidden = !o; b.setAttribute('aria-expanded', o ? 'true' : 'false'); };
+  b.onclick = (e) => { e.stopPropagation(); setOpen(pop.hidden); };
+  pop.addEventListener('click', (e) => {
+    const it = e.target.closest('[data-a]'); if (!it) return; e.stopPropagation(); setOpen(false);
+    const a = it.dataset.a, L = window.__stkLive;
+    if (a === 'paper') { if (liveOn()) L.leave(true); if (!paperOn() && liveOf()) setPaperEnabled(true); openPanel('positions'); }
+    else if (a === 'live' && L) L.pick(it.dataset.id).then(() => openPanel());
+    else if (a === 'connect' && L) L.connect();
+  });
+  document.addEventListener('click', (e) => { if (!pop.hidden && !wrap.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { setOpen(false); b.focus(); } });
+  bar.insertBefore(wrap, bar.firstChild);
+  updateTradeBtn();
+}
+// Live accounts exist only when the admin-only module is loaded (window.__stkLive.state.accounts); everyone else sees Paper only.
+const liveState = () => (window.__stkLive && window.__stkLive.state && window.__stkLive.connect ? window.__stkLive.state : null);
+const CHK = '<svg class="stkpt-tchk" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
+function drawTradeMenu(pop){
+  const LS = liveState(), act = LS && LS.acct;
+  const row = (attrs, label, on, live) => '<button type="button" role="menuitemradio" class="stkc-item" ' + attrs + ' aria-checked="' + !!on + '">' + (live ? '<span class="stkpt-ldot" aria-hidden="true"></span>' : '') + '<span class="stkpt-tl">' + label + '</span>' + (on ? CHK : '') + '</button>';
+  let html = row('data-a="paper"', 'Paper trading', !act);
+  if (LS) {
+    html += LS.accounts.map((a) => row('data-a="live" data-id="' + escAttr(a.id) + '"', escAttr(a.label), act && act.id === a.id, true)).join('');
+    html += '<button type="button" role="menuitem" class="stkc-item" data-a="connect"><span class="stkpt-tl">' + (LS.accounts.length ? 'Connect another broker…' : 'Connect a broker…') + '</span></button>';
+  }
+  pop.innerHTML = html;
+}
+const escAttr = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function updateTradeBtn(){
+  const b = document.getElementById('stkc-paper-btn'); if (!b) return;
+  const LS = liveState(), act = LS && LS.acct, l = b.querySelector('.stkc-btn-l');
+  const txt = act ? (LS.env && LS.env.env === 'sandbox' ? 'SANDBOX ' : 'LIVE ') + act.broker : 'Trade';
+  if (l && l.textContent !== txt) l.textContent = txt;
+  b.classList.toggle('stkpt-islive', !!act);
+  if (b.hasAttribute('data-ob-label')) b.setAttribute('data-ob-label', act ? txt : 'Trade');   // phone ⋯ list row
+  b.setAttribute('aria-label', act ? txt + ' account ' + act.label : 'Trade');
 }
 
-function renderAll(){ pushLines(); renderPanel(); if (ticket && !ticket.hidden) renderTicket(); }
+function renderAll(){ updateTradeBtn(); pushLines(); renderPanel(); if (ticket && !ticket.hidden) renderTicket(); }
 
 const CSS = `
 .stkpt{ flex:none; margin:0; padding:0; min-height:0; max-width:none; border-radius:0; position:relative; z-index:35; display:flex; flex-direction:column; background:var(--bg-0); border-top:1px solid var(--line-soft); color:var(--ink-1); font:13px/1.4 var(--font-body, Archivo, system-ui, sans-serif); }
@@ -1801,7 +1836,6 @@ const CSS = `
 @media (max-width:700px){
   .stkpt-head{ min-height:40px; gap:8px; padding:2px 8px; }
   .stkpt:not(.open) .stkpt-trade{ height:30px; }
-  #stkc-paper-btn{ display:none; }
   #stkpt-toasts{ left:8px; top:132px; bottom:auto; max-width:calc(100% - 90px); }
   .stkpt-toast{ font-size:11.5px; padding:5px 9px; }
   .stkpt-badge{ display:none; }
@@ -1829,10 +1863,15 @@ const CSS = `
   .stkpt-1c button{ min-width:62px; }
   .stkpt-1c-q{ width:46px; }
   .stkpt-chip{ right:58px; }
-  #stkc-paper-btn .stkc-btn-l{ display:none; }
 }
 /* switched off (Chart settings → Paper trading): nothing of paper trading on the page */
-.stkpt[hidden],#stkc-paper-btn[hidden]{ display:none !important; }
+.stkpt-tmenu{ min-width:200px; padding:4px; }
+.stkpt-tmenu .stkc-item{ min-height:32px; padding:4px 8px; }
+.stkpt-tl{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stkpt-tchk{ flex:none; color:var(--gold); }
+.stkpt-ldot{ flex:none; width:8px; height:8px; border-radius:50%; background:#f23645; }
+#stkc-bar #stkc-paper-btn.stkpt-islive, #stkc-more-pop #stkc-paper-btn.stkpt-islive{ color:#f23645; font-weight:700; }
+.stkpt[hidden]{ display:none !important; }
 html.stkbp-sheet #stkpt-toasts{ position:fixed; left:8px; right:8px; top:auto; bottom:calc(var(--stkc-dock, 0px) + min(78dvh, 600px) + 8px); max-width:none; z-index:8001; }
 html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on):not(.stklv-on) .stkpt-chip,html:not(.stkpt-on) #stkpt-offers,html:not(.stkpt-on) #stkpt-toasts,html:not(.stkpt-on) #stkpt-tk,html:not(.stkpt-on) #stkpt-cq{ display:none !important; }
 /* settings tab: same card look as the Sounds tab */

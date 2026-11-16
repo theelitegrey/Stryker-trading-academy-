@@ -205,7 +205,7 @@ const paperUi = (p) => p.evaluate(() => {
   return { enabled: window.__stkPaper.enabled, cls: document.documentElement.classList.contains('stkpt-on'), panel: vis(document.getElementById('stkpt')), trade: vis(document.getElementById('stkc-paper-btn')),
     oneClick: [...document.querySelectorAll('.stkpt-1c')].filter(vis).length, chips: [...document.querySelectorAll('.stkpt-chip')].filter(vis).length, lines };
 });
-const allHidden = (u) => !u.enabled && !u.cls && !u.panel && !u.trade && u.oneClick === 0 && u.chips === 0 && u.lines === 0;
+const allHidden = (u) => !u.enabled && !u.cls && !u.panel && u.oneClick === 0 && u.chips === 0 && u.lines === 0;
 // Opens Chart settings (top-bar gear; ☰ tab list on a phone) on the "Paper trading" tab.
 async function openPaperTab(p, phone) {
   // phone (build 537): the slim TradingView-style row keeps the gear behind ⋯ More
@@ -294,7 +294,7 @@ async function boot(p, BASE) {
     {
       await sleep(2300);   // one 2 s pushLines round
       const u0 = await paperUi(p);
-      check(allHidden(u0), 'default OFF: no one-click Buy/Sell, no panel / phone bar, no Trade button, no lines ' + JSON.stringify(u0));
+      check(allHidden(u0), 'default OFF: no one-click Buy/Sell, no panel / phone bar, no lines (Trade menu button stays: Owner 2026-11-16) ' + JSON.stringify(u0));
       const box0 = await p.evaluate(() => { const R = window.STRYKER_VELA.chart.renderer.renderer; const r = R.input.el.getBoundingClientRect(); return { x: r.left + R.coords.width * 0.5, y: r.top + r.height * 0.3 }; });
       await p.mouse.click(box0.x, box0.y, { button: 'right' }); await sleep(500);
       const m0 = await p.evaluate(() => [...document.querySelectorAll('[role=menuitem], [role=menu] *')].map((e) => e.textContent.trim()).filter((t) => /^Paper /.test(t)));
@@ -316,7 +316,8 @@ async function boot(p, BASE) {
     check(await p.evaluate(() => !!document.getElementById('stkc-paper-btn')), 'Trade button in the chart toolbar');
 
     // ---- market + bracket through the ticket ----
-    await p.click('#stkc-paper-btn');
+    await p.click('#stkc-paper-btn'); await p.click('#stkc-trade-pop [data-a=paper]');   // Trade menu -> Paper trading opens the panel; its Trade button opens the ticket
+    await p.click('.stkpt-head .stkpt-trade');
     await p.waitForSelector('#stkpt-tk:not([hidden])');
     const tag = await p.evaluate(() => document.querySelector('#stkpt-tk .stkpt-tag').textContent + ' | ' + document.querySelector('#stkpt-tk .stkpt-fine').textContent);
     check(/demo money · simulated fills/.test(tag) && /Not financial advice/.test(tag) && /Nothing is sent to any broker/.test(tag), 'ticket labelled paper / demo / no broker');

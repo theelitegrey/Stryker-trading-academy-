@@ -76,7 +76,7 @@ const STEPS = [
   ['more', () => [q('.stkr-menu'), q('.stkr-badge')]],
   ['more', () => [q('.vela-widget-undo'), q('.vela-widget-redo')]],
   ['more', () => [q('.vela-mb-more')]],
-  ['more', () => [byId('stkc-paper-btn')]]
+  ['more', () => [menuOf('stkc-paper-btn')]]
 ];
 // Thin dividers between the TradingView groups (CSS `order` puts each in place; style.css).
 // A divider with no visible item on one side (its group went to ⋯ More) is switched off by fit().
@@ -132,7 +132,7 @@ const ROWS = [
   [(n) => n.classList.contains('stkr-menu') && trig(n), 'tools', 11, () => 'Replay', 'replay'],
   [(n) => n.id === 'stkc-alerts-btn' && n, 'tools', 12, () => 'Alerts', 'alarm'],
   [(n) => n.id === 'stkc-pine-btn' && n, 'tools', 13, () => 'Script editor', 'pine'],
-  [(n) => n.id === 'stkc-paper-btn' && n, 'tools', 15, () => 'Paper trading', 'trade'],
+  [(n) => n.querySelector && n.querySelector(':scope > #stkc-paper-btn'), 'tools', 15, () => 'Trade', 'trade'],
   [(n) => n.id === 'stkc-ai-btn' && n, 'tools', 15.5, () => 'Connect your AI', 'ai'],
   [(n) => n.classList.contains('vela-widget-undo') && n, 'tools', 16, () => 'Undo', 'undo'],
   [(n) => n.classList.contains('vela-widget-redo') && n, 'tools', 17, () => 'Redo', 'redo'],

@@ -95,7 +95,7 @@ async function desktop(b, w, h, theme, tag) {
   const { ctx, p, errors } = await open(b, BASE, { w, h, theme });
   // Paper trading is off by default (build 533): the Trade button must stay hidden in the merged bar.
   const offVis = await p.evaluate(() => { const t = document.getElementById('stkc-paper-btn'); return !!(t && t.getClientRects().length && t.getBoundingClientRect().width > 0); });
-  check(!offVis, `${tag}: Trade button hidden while paper trading is off`);
+  check(offVis, `${tag}: Trade menu button is always visible (Owner 2026-11-16)`);
   if (PAPER) {
     await p.evaluate(() => window.__stkPaper && window.__stkPaper.setEnabled(true));
     await p.waitForTimeout(600);
@@ -113,8 +113,8 @@ async function desktop(b, w, h, theme, tag) {
   // TradingView order (build 537): symbol | intervals | style | Indicators | alerts, Replay | undo — layout | grid | settings | Trade, broker | info, More
   const seq = [o.sym, o.iv, o.style, o.ind, o.alerts, o.replay, o.undo].filter((v) => v != null);
   check(seq.every((v, i) => i === 0 || v > seq[i - 1]), `${tag}: left order symbol < intervals < style < Indicators < alerts < Replay < undo ${JSON.stringify(seq)}`);
-  const rseq = [o.lay, o.grid, o.cog, o.trade, o.broker, o.info, o.more].filter((v) => v != null);
-  check(rseq.every((v, i) => i === 0 || v > rseq[i - 1]) && (rseq[0] == null || rseq[0] > (o.undo || 0)), `${tag}: right order layout < grid < settings < Trade < broker < info < More ${JSON.stringify(rseq)}`);
+  const rseq = [o.lay, o.grid, o.trade, o.broker, o.cog, o.info, o.more].filter((v) => v != null);
+  check(rseq.every((v, i) => i === 0 || v > rseq[i - 1]) && (rseq[0] == null || rseq[0] > (o.undo || 0)), `${tag}: right order layout < grid < Trade < broker < settings < info < More (Trade before Data source: Owner 2026-11-16) ${JSON.stringify(rseq)}`);
   await p.screenshot({ path: `${OUT}/onebar-${tag}.png` });
   console.log('screenshot', `${OUT}/onebar-${tag}.png`);
 
@@ -126,7 +126,7 @@ async function desktop(b, w, h, theme, tag) {
       ['#stkc-layout-btn', () => !document.getElementById('stkc-layout-pop').hidden],
       ['#stkl-btn', () => !document.getElementById('stkl-pop').hidden],
       ['#stkr-btn', () => !document.getElementById('stkr-pop').hidden],
-      ['#stkc-paper-btn', () => { const t = document.getElementById('stkpt-tk'); return !!t && !t.hidden && getComputedStyle(t).display !== 'none'; }],
+      ['#stkc-paper-btn', () => !document.getElementById('stkc-trade-pop').hidden],
       ['#stkc-alerts-btn', () => { const a = document.querySelector('.stk-al, #stk-al, [aria-labelledby="stk-al-h"]'); return !!a && !!a.getClientRects().length; }],
       ['#stkc-settings-btn', () => !![...document.querySelectorAll('[role="dialog"]')].find((d) => d.getClientRects().length && /setting/i.test(d.getAttribute('aria-label') || d.textContent.slice(0, 80)))],
       ['.vela-widget-indicators', () => !!document.querySelector('.stkiw-ov, .stkiw') && !![...document.querySelectorAll('.stkiw-ov, .stkiw')].find((e) => e.getClientRects().length)],

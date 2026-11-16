@@ -46,6 +46,18 @@ import com.tradezoro.app.ui.chart.ChartActions
 import com.tradezoro.app.ui.chart.ChartContent
 import com.tradezoro.app.ui.chart.ChartTopBar
 import com.tradezoro.app.ui.chart.ChartUiState
+import com.tradezoro.app.ui.m4.AddTradeForm
+import com.tradezoro.app.ui.m4.BackTopBar
+import com.tradezoro.app.ui.m4.GexState
+import com.tradezoro.app.ui.m4.JournalActions
+import com.tradezoro.app.ui.m4.JournalContent
+import com.tradezoro.app.ui.m4.JournalState
+import com.tradezoro.app.ui.m4.LearnActions
+import com.tradezoro.app.ui.m4.LearnContent
+import com.tradezoro.app.ui.m4.NewTrade
+import com.tradezoro.app.ui.m4.OmegaActions
+import com.tradezoro.app.ui.m4.OmegaContent
+import com.tradezoro.app.ui.m4.OmegaUiState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -182,5 +194,34 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
     @Test fun chart() = shoot("4-chart") { ChartShell(sampleChart(paper = true)) }
     @Test fun chartPaperOff() = shoot("4b-chart-paper-off") { ChartShell(sampleChart(paper = false).copy(tf = Timeframe.M15)) }
     @Test fun chartFullscreen() = shoot("4c-chart-fullscreen") { ChartShell(sampleChart(paper = true).copy(fullscreen = true)) }
-}
 
+    // ---- M4: Omega, Mentis, Nemesis
+    @Composable
+    private fun M4Shell(top: @Composable () -> Unit, tab: Tab, body: @Composable (Modifier) -> Unit) {
+        Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = top, bottomBar = { TzBottomBar(tab) {} }) { pad -> body(Modifier.padding(pad)) }
+    }
+
+    @Test fun omega() = shoot("6-omega") {
+        M4Shell({ BackTopBar("Omega", {}, {}) }, Tab.CHARTS) { m -> OmegaContent(M4Samples.omega, M4Samples.NOW_MS, OmegaActions(), m) }
+    }
+    @Test fun omegaSignedOut() = shoot("6b-omega-signed-out") {
+        M4Shell({ BackTopBar("Omega", {}, {}) }, Tab.CHARTS) { m -> OmegaContent(OmegaUiState(gex = GexState.SignedOut), M4Samples.NOW_MS, OmegaActions(), m) }
+    }
+    @Test fun learn() = shoot("7-mentis") {
+        M4Shell({ MenuTopBar("Mentis", {}, {}) }, Tab.LEARN) { m -> LearnContent(M4Samples.learn, LearnActions(), m) }
+    }
+    @Test fun learnSignedOut() = shoot("7b-mentis-signed-out") {
+        M4Shell({ MenuTopBar("Mentis", {}, {}) }, Tab.LEARN) { m -> LearnContent(M4Samples.learnSignedOut, LearnActions(), m) }
+    }
+    @Test fun journal() = shoot("8-nemesis") {
+        M4Shell({ MenuTopBar("Nemesis", {}, {}) }, Tab.JOURNAL) { m -> JournalContent(M4Samples.journal, M4Samples.month, M4Samples.today, JournalActions(), m) }
+    }
+    @Test fun journalSignedOut() = shoot("8b-nemesis-signed-out") {
+        M4Shell({ MenuTopBar("Nemesis", {}, {}) }, Tab.JOURNAL) { m -> JournalContent(JournalState.SignedOut, M4Samples.month, M4Samples.today, JournalActions(), m) }
+    }
+    @Test fun journalAdd() = shoot("8c-nemesis-add") {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            AddTradeForm(NewTrade(instrument = "MNQ", date = "2026-11-20", entry = "21462", exit = "21486.5", size = "4", fees = "1.24"), false, null, {}, {}, {})
+        }
+    }
+}

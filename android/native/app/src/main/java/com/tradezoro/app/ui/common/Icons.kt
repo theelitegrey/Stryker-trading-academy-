@@ -28,6 +28,7 @@ object TzIcons {
     val Menu = strokeIcon("menu", "M4 6h16M4 12h16M4 18h16")
     val Bell = strokeIcon("bell", "M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4")
     val Back = strokeIcon("back", "M15 5l-7 7 7 7")
+    val Forward = strokeIcon("forward", "M9 5l7 7-7 7")
     val Close = strokeIcon("close", "M6 6l12 12M18 6L6 18")
     val Expand = strokeIcon("expand", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5")
     val More = strokeIcon("more", "M12 4a1 1 0 1 0 0 2a1 1 0 1 0 0-2z", "M12 11a1 1 0 1 0 0 2a1 1 0 1 0 0-2z", "M12 18a1 1 0 1 0 0 2a1 1 0 1 0 0-2z")

@@ -61,7 +61,18 @@ import com.tradezoro.app.ui.home.HomeContent
 import com.tradezoro.app.ui.home.RowState
 import com.tradezoro.app.ui.home.HomeViewModel
 import com.tradezoro.app.ui.home.Product
-import com.tradezoro.app.ui.nav.ComingSoon
+import com.tradezoro.app.ui.m4.AddTradeForm
+import com.tradezoro.app.ui.m4.BackTopBar
+import com.tradezoro.app.ui.m4.JournalActions
+import com.tradezoro.app.ui.m4.JournalContent
+import com.tradezoro.app.ui.m4.JournalViewModel
+import com.tradezoro.app.ui.m4.LearnActions
+import com.tradezoro.app.ui.m4.LearnContent
+import com.tradezoro.app.ui.m4.LearnViewModel
+import com.tradezoro.app.ui.m4.NewTrade
+import com.tradezoro.app.ui.m4.OmegaActions
+import com.tradezoro.app.ui.m4.OmegaContent
+import com.tradezoro.app.ui.m4.OmegaViewModel
 import com.tradezoro.app.ui.nav.HomeTopBar
 import com.tradezoro.app.ui.nav.Tab
 import com.tradezoro.app.ui.nav.TabTopBar
@@ -123,6 +134,7 @@ class MainActivity : ComponentActivity() {
 
 private const val SIGN_IN = "signin"
 private const val ALERTS = "alerts"
+private const val OMEGA = "omega"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,11 +147,20 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
     val scope = rememberCoroutineScope()
     var accountOpen by rememberSaveable { mutableStateOf(false) }
     var confirmFlatten by remember { mutableStateOf(false) }
+    val ctx = LocalContext.current
     val tab = Tab.entries.firstOrNull { it.route == route }
+    // Omega lives under Charts in the mock (back arrow, Charts highlighted).
+    val navTab = tab ?: if (route == OMEGA) Tab.CHARTS else null
+    val learnVm: LearnViewModel = viewModel()
+    val journalVm: JournalViewModel = viewModel()
+    val omegaVm: OmegaViewModel = viewModel()
+    var addTrade by remember { mutableStateOf<NewTrade?>(null) }
+    var addBusy by remember { mutableStateOf(false) }
+    var addError by remember { mutableStateOf<String?>(null) }
+    val openWeb: (String) -> Unit = { path -> runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, "https://tradezoro.com$path".toUri())) } }
     val chartVm: ChartViewModel = viewModel()
     val chartState by chartVm.state.collectAsState()
     val dark = isSystemInDarkTheme()
-    val ctx = LocalContext.current
     val tradeVm: TradeViewModel = viewModel()
     val alertsVm: AlertsViewModel = viewModel()
     var pushOn by remember { mutableStateOf(PushTokens.canNotify(ctx)) }
@@ -150,6 +171,9 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
     // Signed in: register this phone for the member's pushes (pushTokens, same as the site) and load their alerts.
     LaunchedEffect(user?.uid) {
         alertsVm.setUser(user?.uid)
+        learnVm.setUser(user?.uid)
+        journalVm.setUser(user?.uid)
+        if (route == OMEGA) scope.launch { omegaVm.refresh() }
         if (user != null && PushTokens.canNotify(ctx)) runCatching { PushTokens.sync(ctx) }
     }
     val goTab: (Tab) -> Unit = { t ->
@@ -181,18 +205,28 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
                 Tab.HOME -> HomeTopBar(onMenu = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
                 Tab.CHARTS -> if (!chartFull) ChartTopBarHost(chartWeb, chartVm, onBack = { goTab(Tab.HOME) })
                 Tab.TRADE -> MenuTopBar("Trade", onMenu = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
+                Tab.LEARN -> MenuTopBar("Mentis", onMenu = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
+                Tab.JOURNAL -> MenuTopBar("Nemesis", onMenu = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
                 null -> if (route == ALERTS) AlertsTopBar(onBack = { nav.popBackStack() }, onNew = newAlert)
+                    else if (route == OMEGA) BackTopBar("Omega", onBack = { nav.popBackStack() }, onBell = { nav.navigate(ALERTS) })
                 else -> TabTopBar(tab.label)
             }
         },
         bottomBar = {
-            if (tab != null && !chartFull) TzBottomBar(tab, goTab)
+            if (navTab != null && !chartFull) TzBottomBar(navTab, goTab)
         },
         snackbarHost = { SnackbarHost(snack) },
     ) { pad ->
         NavHost(nav, startDestination = Tab.HOME.route, modifier = Modifier.padding(pad)) {
             composable(Tab.HOME.route) {
-                HomeRoute(user, onSnack = { m -> scope.launch { snack.showSnackbar(m) } }, onSymbol = { sym, pct ->
+                HomeRoute(user, onProduct = { p ->
+                    when (p) {
+                        Product.KRONOS -> openWeb("/replay.html")
+                        Product.OMEGA -> nav.navigate(OMEGA) { launchSingleTop = true }
+                        Product.MENTIS -> goTab(Tab.LEARN)
+                        Product.NEMESIS -> goTab(Tab.JOURNAL)
+                    }
+                }, onSymbol = { sym, pct ->
                     chartVm.openSymbol(chartIdFor(sym), sym.ticker, pct); goTab(Tab.CHARTS)
                 })
             }
@@ -216,8 +250,35 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
                     ), Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
                 }
             }
-            composable(Tab.LEARN.route) { ComingSoon(Tab.LEARN, "a later update", "/courses") }
-            composable(Tab.JOURNAL.route) { ComingSoon(Tab.JOURNAL, "a later update", "/journal") }
+            composable(Tab.LEARN.route) {
+                val st by learnVm.state.collectAsState()
+                LearnContent(st, LearnActions(onChapter = { c -> openWeb("/chapter.html?ch=${c.num}") }, onSignIn = { nav.navigate(SIGN_IN) }))
+            }
+            composable(Tab.JOURNAL.route) {
+                val st by journalVm.state.collectAsState()
+                val month by journalVm.month.collectAsState()
+                JournalContent(st, month, java.time.LocalDate.now(), JournalActions(
+                    onMonth = journalVm::shiftMonth, onAdd = { addError = null; addTrade = NewTrade() },
+                    onSignIn = { nav.navigate(SIGN_IN) }, onWeb = { openWeb("/trade-journal.html") },
+                ))
+            }
+            composable(OMEGA) {
+                val st by omegaVm.state.collectAsState()
+                val owner = LocalLifecycleOwner.current
+                DisposableEffect(owner) {
+                    val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_START) omegaVm.start() else if (e == Lifecycle.Event.ON_STOP) omegaVm.stop() }
+                    owner.lifecycle.addObserver(obs)
+                    onDispose { owner.lifecycle.removeObserver(obs); omegaVm.stop() }
+                }
+                // Re-render the "GEX updated N min ago" text every 30 s between polls.
+                var now by remember { androidx.compose.runtime.mutableLongStateOf(System.currentTimeMillis()) }
+                LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); now = System.currentTimeMillis() } }
+                OmegaContent(st, now, OmegaActions(
+                    onMarket = omegaVm::select, onSignIn = { nav.navigate(SIGN_IN) },
+                    onRetry = { scope.launch { omegaVm.refresh() } },
+                    onChart = { val f = st.market.fut; chartVm.openSymbol("${f}1!", f, null); goTab(Tab.CHARTS) },
+                ))
+            }
             composable(SIGN_IN) { SignInRoute(auth, onClose = { nav.popBackStack() }) }
             composable(ALERTS) {
                 val st by alertsVm.state.collectAsState()
@@ -244,6 +305,19 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
                 onSignOut = { accountOpen = false; scope.launch { runCatching { PushTokens.forget(ctx) }; auth.signOut() } })
         }
     }
+    addTrade?.let { t ->
+        ModalBottomSheet(onDismissRequest = { if (!addBusy) addTrade = null }, containerColor = MaterialTheme.colorScheme.surface) {
+            AddTradeForm(t, addBusy, addError, onChange = { addTrade = it; addError = null },
+                onSave = {
+                    val err = t.error
+                    if (err != null) addError = err else {
+                        addBusy = true
+                        journalVm.add(t) { e -> addBusy = false; if (e == null) { addTrade = null; scope.launch { snack.showSnackbar("Trade saved.") } } else addError = e }
+                    }
+                },
+                onFullForm = { addTrade = null; openWeb("/trade-journal.html") })
+        }
+    }
     if (confirmFlatten) {
         AlertDialog(
             onDismissRequest = { confirmFlatten = false },
@@ -256,7 +330,7 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
 }
 
 @Composable
-private fun HomeRoute(user: TzUser?, onSnack: (String) -> Unit, onSymbol: (WatchSymbol, Double?) -> Unit, vm: HomeViewModel = viewModel()) {
+private fun HomeRoute(user: TzUser?, onProduct: (Product) -> Unit, onSymbol: (WatchSymbol, Double?) -> Unit, vm: HomeViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     val owner = LocalLifecycleOwner.current
     // Poll only while Home is on screen (like the site pauses on a hidden tab).
@@ -270,7 +344,7 @@ private fun HomeRoute(user: TzUser?, onSnack: (String) -> Unit, onSymbol: (Watch
         firstName = user?.displayName?.substringBefore(' ')?.takeIf { it.isNotBlank() },
         dayPart = dayPart(LocalTime.now().hour),
         marketOpen = isFuturesMarketOpen(Instant.now()),
-        onProduct = { p: Product -> onSnack("${p.title} arrives in a later update.") },
+        onProduct = onProduct,
         onSymbol = { t ->
             val row = state.rows.firstOrNull { it.symbol.ticker == t }
             val q = when (val r = row?.state) { is RowState.Ready -> r.quote; is RowState.Failed -> r.stale; else -> null }

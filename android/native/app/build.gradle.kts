@@ -16,8 +16,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // The old web wrapper shipped versionCode 1; the native app continues above it.
-        versionCode = 3
-        versionName = "2.0.0-m3"
+        versionCode = 4
+        versionName = "2.0.0-m4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

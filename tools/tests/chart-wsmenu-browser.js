@@ -123,7 +123,7 @@ const cropOf = (p) => W(p, () => { const r = document.querySelector('.stkws-cm')
     await rc(a, 1);
     t('right-click opens the menu at the cursor', await W(a, () => { const r = document.querySelector('.stkws-cm').getBoundingClientRect(), t = document.querySelectorAll('.stkws-tab')[1].getBoundingClientRect(); return r.left >= t.left && r.left <= t.right && r.top >= t.top; }));
     const it0 = await items(a);
-    t('menu items + 3 dividers', it0.join('|') === 'Pin tab|Set as default workspace|Rename|Duplicate|Save as template…|Copy share link|Move left|Move right|Open in new window|Reset layout…|Delete other workspaces…|Delete workspaces to the right…|Delete workspace…' && (await W(a, () => document.querySelectorAll('.stkws-cm .stkws-cm-sep').length)) === 3, it0);
+    t('menu items + 4 dividers', it0.join('|') === 'Pin tab|Set as default workspace|Rename|Duplicate|Save as template…|Copy share link|Move left|Move right|Open in new window|Reset layout…|Close workspace|Close other workspaces|Close workspaces to the right|Delete other workspaces…|Delete workspaces to the right…|Delete workspace…' && (await W(a, () => document.querySelectorAll('.stkws-cm .stkws-cm-sep').length)) === 4, it0);
     const m = await measure(a);
     t('alignment: rows 32px, icon/label/kbd columns, 8px pads, centre line, on screen', m.h === 32 && !m.bad.length && m.padL === 8 && m.padR === 8 && m.onScreen, m);
     console.log('dark measure', JSON.stringify(m));

@@ -1,5 +1,5 @@
 // TradeZoro — Charts PAPER TRADING (ES module, charts.html only)
-import * as TM from './chart-trade-menu.js?v=1066';
+import * as TM from './chart-trade-menu.js?v=1074';
 // Owner order 2026-10-12: "Add complete full demo/paper trading feature inside the charts, like
 // tradingview". Modelled on TradingView's Paper Trading, in our own look.
 //
@@ -1627,6 +1627,7 @@ function hotkeysCard(){
   };
   const record = (a, btn) => {
     hkRecording = true; btn.textContent = 'Press a key…'; btn.classList.add('rec');
+    { const mm = card.querySelector('.stkpt-hk-msg'); if (mm) { mm.classList.remove('warn'); try { mm.scrollIntoView({ block: 'nearest' }); } catch (e) {} mm.textContent = 'Press any key, with Ctrl, Alt, Shift or Cmd if you like. Esc cancels. Browsers keep Ctrl+N, Ctrl+T and Ctrl+W for tabs, so those may not reach the page.'; } }
     const msgEl = card.querySelector('.stkpt-hk-msg');
     const done = (m) => { hkRecording = false; window.removeEventListener('keydown', kd, true); btn.removeEventListener('blur', bl); draw(m); };
     const bl = () => done('');
@@ -1637,9 +1638,19 @@ function hotkeysCard(){
       const c = PK.comboFromEvent(e); if (!c) return;
       const bad = PK.reserved(c); if (bad) { msgEl.textContent = bad; msgEl.classList.add('warn'); return; }
       const m = hkMap(), other = PK.conflict(m, c, a.id);
-      if (other) { delete m[other]; }
+      const note = PK.browserNote(c);
+      if (other) {   // duplicate: nothing changes until the member chooses
+        const mine = m[a.id];
+        done(PK.label(c) + ' is already used for “' + PK.nameOf(other) + '”.');
+        const box = card.querySelector('.stkpt-hk-msg'); box.classList.add('warn');
+        const bar = h('span', { class: 'stkpt-hk-choice' }, [
+          h('button', { type: 'button', class: 'stkpt-hk-swap', text: mine ? 'Swap keys' : 'Move it here', onclick: () => { const n = hkMap(); if (mine) n[other] = mine; else delete n[other]; n[a.id] = c; hkSave(n); draw(PK.label(c) + ' now runs “' + a.label + '”' + (mine ? ' and ' + PK.label(mine) + ' runs “' + PK.nameOf(other) + '”.' : '; “' + PK.nameOf(other) + '” has no key.')); } }),
+          h('button', { type: 'button', class: 'stkpt-hk-keep', text: 'Keep as is', onclick: () => draw('') })
+        ]);
+        box.parentNode.parentNode.insertBefore(bar, box.parentNode); try { bar.scrollIntoView({ block: 'nearest' }); } catch (e) {} return;
+      }
       m[a.id] = c; hkSave(m);
-      done(other ? PK.label(c) + ' moved here from “' + PK.nameOf(other) + '”, which now has no key.' : PK.label(c) + ' saved.');
+      done(PK.label(c) + ' saved.' + (note ? ' ' + note : ''));
     };
     window.addEventListener('keydown', kd, true); btn.addEventListener('blur', bl); btn.focus();
   };
@@ -1905,9 +1916,10 @@ html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on):not(.stklv-on) .stkpt-chip,htm
 .stkpt-hk-msg.warn{ color:#f5a524; }
 :root[data-theme="light"] .stkpt-hk-msg{ color:rgba(19,19,22,.72); }
 :root[data-theme="light"] .stkpt-hk-msg.warn{ color:#8a5a00; }
-.stkpt-hk-reset{ flex:none; min-height:40px; padding:0 16px; border-radius:12px; border:1px solid rgba(238,238,238,.16); background:none; color:inherit; font:500 13px/18px var(--font-body, Archivo, system-ui, sans-serif); cursor:pointer; }
-:root[data-theme="light"] .stkpt-hk-reset{ border-color:rgba(19,19,22,.18); }
-@media (max-width:600px){ .stkpt-hk-r{ min-height:48px; } .stkpt-hk-k{ min-height:40px; } .stkpt-hk-x{ width:40px; height:40px; } .stkpt-hk-foot{ flex-direction:column; align-items:stretch; } .stkpt-hk-reset{ min-height:44px; } }
+.stkpt-hk-choice{ display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+.stkpt-hk-reset,.stkpt-hk-swap,.stkpt-hk-keep{ flex:none; min-height:40px; padding:0 16px; border-radius:12px; border:1px solid rgba(238,238,238,.16); background:none; color:inherit; font:500 13px/18px var(--font-body, Archivo, system-ui, sans-serif); cursor:pointer; }
+:root[data-theme="light"] .stkpt-hk-reset,:root[data-theme="light"] .stkpt-hk-swap,:root[data-theme="light"] .stkpt-hk-keep{ border-color:rgba(19,19,22,.18); }
+@media (max-width:600px){ .stkpt-hk-r{ min-height:48px; } .stkpt-hk-k{ min-height:40px; } .stkpt-hk-x{ width:40px; height:40px; } .stkpt-hk-foot{ flex-direction:column; align-items:stretch; } .stkpt-hk-reset,.stkpt-hk-swap,.stkpt-hk-keep{ min-height:44px; } .stkpt-hk-choice{ flex-direction:column; } }
 @media (prefers-reduced-motion:reduce){ .stkpt-toggle svg{ transition:none; } .stkpt-switch-t,.stkpt-switch-t::after{ transition:none; } }
 `;
 

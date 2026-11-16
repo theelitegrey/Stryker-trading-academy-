@@ -47,8 +47,25 @@ const st = (p) => p.evaluate(() => { const a = window.__stkPaper.account; return
     t('chart-reserved key refused with message', /already used by the chart/.test(await p.textContent('.stkpt-hk-msg')));
     await p.keyboard.press('Escape'); await sleep(100);
     await rec(p, 'closeHalf', 'Shift+K'); await rec(p, 'cancelAll', 'Shift+C'); await rec(p, 'closePos', 'Shift+X'); await p.keyboard.press('Escape'); await sleep(100);
-    await rec(p, 'reversePos', 'Shift+B'); // conflict: moves from buyMarket
-    t('conflict message names the old action', /moved here from .Buy at market./.test(await p.textContent('.stkpt-hk-msg')), await p.textContent('.stkpt-hk-msg'));
+    await rec(p, 'reversePos', 'Shift+B'); // duplicate: warns, changes nothing until chosen
+    t('conflict warns and names the other action', /already used for .Buy at market./.test(await p.textContent('.stkpt-hk-msg')), await p.textContent('.stkpt-hk-msg'));
+    t('conflict changes nothing yet', (await st(p)).hk.buyMarket === 'Shift+B' && !(await st(p)).hk.reversePos);
+    await p.click('.stkpt-hk-swap'); await sleep(150);
+    t('move-here takes the key', (await st(p)).hk.reversePos === 'Shift+B' && !(await st(p)).hk.buyMarket);
+    // Member bug 16 Nov: Ctrl combos on several actions, incl. Ctrl+S and Ctrl+N
+    await rec(p, 'ticket', 'Control+S'); await rec(p, 'panel', 'Control+N');
+    t('Ctrl+N shows the browser note', /browsers keep/i.test(await p.textContent('.stkpt-hk-msg')), await p.textContent('.stkpt-hk-msg'));
+    await rec(p, 'qty1', 'Control+Shift+K'); await rec(p, 'qty2', 'Control+Alt+J');
+    s = await st(p);
+    t('Ctrl+S, Ctrl+N, Ctrl+Shift+K, Ctrl+Alt+J assignable to different actions', s.hk.ticket === 'Ctrl+S' && s.hk.panel === 'Ctrl+N' && s.hk.qty1 === 'Ctrl+Shift+K' && s.hk.qty2 === 'Ctrl+Alt+J', s.hk);
+    await rec(p, 'qty10', 'Control+S'); await p.click('.stkpt-hk-swap'); await sleep(150); s = await st(p);
+    t('move Ctrl+S to an unset action', s.hk.qty10 === 'Ctrl+S' && !s.hk.ticket, s.hk);
+    await rec(p, 'qty10', 'Control+N'); await p.click('.stkpt-hk-swap'); await sleep(150); s = await st(p);
+    t('swap exchanges two set keys', s.hk.qty10 === 'Ctrl+N' && s.hk.panel === 'Ctrl+S', s.hk);
+    await rec(p, 'ticket', 'Control+Shift+K'); await p.click('.stkpt-hk-keep'); await sleep(150);
+    t('keep as is leaves keys alone', (await st(p)).hk.qty1 === 'Ctrl+Shift+K' && !(await st(p)).hk.ticket);
+    await p.screenshot({ path: OUT + 'hk-1440-dark-ctrl.png' });
+    for (const k of ['panel', 'qty1', 'qty2', 'qty10']) await p.click(`.stkpt-hk-r[data-id=${k}] .stkpt-hk-x`);
     await rec(p, 'buyMarket', 'Shift+Y');
     s = await st(p);
     t('keys saved in the paper account settings', s.hk.sellMarket === 'Shift+S' && s.hk.reversePos === 'Shift+B' && s.hk.buyMarket === 'Shift+Y' && s.hk.qty5 === 'Alt+5', s.hk);

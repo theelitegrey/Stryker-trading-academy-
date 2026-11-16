@@ -97,4 +97,26 @@ ok(C.serialize(big) === null, 'oversized index not serialized');
   const back = C.sanitize(C.serialize(ix));
   ok(back.items[0].pinned === true && C.sanitize({ items: [{ id: 'wabcde', name: 'x', color: 'evil' }] }).items[0].color === '', 'pin persists; bad colour dropped');
 }
+
+// close / reopen (a closed workspace stays in the index, keeps its place, and comes back)
+{
+  const ix = C.fresh('A'); C.add(ix, 'B'); C.add(ix, 'C');
+  const [a, b, c] = ix.items.map((x) => x.id);
+  ix.active = b;
+  ok(C.close(ix, b) === c && ix.active === c && ix.items.length === 3 && C.find(ix, b).closed === true, 'close keeps the item, moves active to the next open one');
+  ok(C.openItems(ix).map((x) => x.id).join() === [a, c].join() && C.closedItems(ix).length === 1, 'open / closed views');
+    ok(C.canStep(ix, a, 1) && C.step(ix, a, 1) && C.openItems(ix).map((x) => x.id).join() === [c, a].join(), 'move skips closed tabs');
+  ok(C.othersOf(ix, c).join() === a && C.rightOf(ix, c).join() === a, 'close-others / right ignore closed ones');
+  const back = C.sanitize(C.serialize(ix));
+  ok(C.find(back, b).closed === true && C.find(back, a).closed === false, 'closed flag survives serialize / sanitize');
+  ok(C.reopen(ix, b) && !C.find(ix, b).closed && C.reopen(ix, b) === false, 'reopen');
+  const allShut = C.sanitize({ active: 'wzzzzz1', items: ['wzzzzz1', 'wzzzzz2'].map((id) => ({ id, name: id, closed: true })) });
+  ok(allShut.items.filter((x) => !x.closed).length === 1 && !C.find(allShut, allShut.active).closed, 'an index with everything closed opens one');
+  C.close(ix, b); ix.active = c;
+  ok(C.remove(ix, b) === null && ix.items.length === 2, 'a closed workspace can be deleted');
+  ok(C.close(ix, a) === null && C.close(ix, c) === false, 'cannot close the last open workspace');
+  C.reopen(ix, a); C.reopen(ix, b); C.close(ix, b); ix.active = c; C.remove(ix, b);
+  const solo = C.fresh('S'); C.add(solo, 'T'); C.close(solo, solo.items[1].id);
+  ok(C.remove(solo, solo.active) === false, 'delete refuses the last open one');
+}
 console.log('ALL PASS');

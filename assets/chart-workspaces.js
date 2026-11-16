@@ -7,7 +7,7 @@
 //
 // Owner feature 2026-11-14 ("add workspace feature"): a WORKSPACE is the whole screen — the chart grid, every
 // chart's symbol / interval / indicators / drawings, plus the open side panels and their widths.
-//   - Top bar: a Workspaces button (current name) opens the list: switch, New, Duplicate, Rename, Delete,
+//   - Top bar: a Workspaces button (current name) opens the list: switch, New, Duplicate, Rename, Close, Delete,
 //     drag to reorder. Phones: the same list as a bottom sheet.
 //   - Desktop: a slim tab strip (shown from 2 workspaces) under the toolbar; Ctrl/Cmd+1..9 switch.
 //   - Switching is instant for the last few (their chart documents stay in memory) and saves the one you leave.
@@ -15,9 +15,11 @@
 // created the first time you leave the workspace, then kept by the layout autosave); the index (names, order,
 // layout ids, panels) is in localStorage and synced to students/{uid}/chartPrefs/workspaces (rules block in
 // functions-src/firestore.rules). Signed out: index and chart documents in localStorage.
+// Closing a tab (x, middle-click, menu) only hides it: the workspace and its chart stay saved under "Closed workspaces"
+// in the Workspaces list, one click reopens it. Delete is a separate action with a confirm.
 // Crash safety: the screen itself is restored by the chart's own on-device save; the index says which
 // workspace it is. Deleting a workspace never deletes its saved layout.
-import * as C from './chart-workspaces-core.js?v=1066';
+import * as C from './chart-workspaces-core.js?v=1074';
 
 const REMOTE_MS = 1500;
 let remoteRead = false;
@@ -181,6 +183,7 @@ export function mountWorkspaces(ws, o){
 
   async function switchTo(id){
     if (!ix || !C.find(ix, id)) return;
+    if (C.find(ix, id).closed) C.reopen(ix, id);   // opening a closed workspace brings its tab back
     if (busy) { want = id; return busy; }
     if (id === ix.active) return;
     busy = (async () => {
@@ -206,7 +209,7 @@ export function mountWorkspaces(ws, o){
   // a new / duplicated workspace opens at once; signed in, it becomes a saved layout straight away (so autosave runs)
   async function openNew(name, doc){
     const it = C.add(ix, name);
-    if (!it) { toast('You have ' + C.MAX + ' workspaces. Delete one to add another.', 'error'); return; }
+    if (!it) { toast('You have ' + C.MAX + ' workspaces (open and closed). Delete one to add another.', 'error'); return; }
     docs.set(it.id, doc);
     await switchTo(it.id);
     if (user() && ix.active === it.id && !safe()) {
@@ -236,12 +239,12 @@ export function mountWorkspaces(ws, o){
   async function removeWs(id){
     const it = C.find(ix, id);
     if (!it) return false;
-    if (ix.items.length <= 1) { toast('This is your only workspace.', 'error'); return false; }
+    if (ix.items.length <= 1 || (!it.closed && C.openItems(ix).length <= 1)) { toast('Keep at least one workspace open.', 'error'); return false; }
     const kept = user() && it.layoutId ? ' Its chart stays in your saved layouts.' : '';
     if (!window.confirm('Delete the workspace "' + it.name + '"?' + kept)) return false;
     const wasActive = ix.active === id;
-    const i = ix.items.findIndex((x) => x.id === id);
-    if (wasActive) await switchTo(ix.items[i + 1] ? ix.items[i + 1].id : ix.items[i - 1].id);
+    const open = C.openItems(ix), i = open.findIndex((x) => x.id === id);
+    if (wasActive) await switchTo((open[i + 1] || open[i - 1]).id);
     C.remove(ix, id);
     docs.delete(id);
     if (!user()) lsDel(K.doc(id));
@@ -253,17 +256,37 @@ export function mountWorkspaces(ws, o){
   async function removeMany(ids, what){
     ids = ids.filter((id) => C.find(ix, id));
     if (!ids.length) { toast('Nothing to close.'); return false; }
-    if (ids.length >= ix.items.length) return false;
+    if (ids.length >= C.openItems(ix).length) return false;
     const names = ids.map((id) => C.find(ix, id).name);
     if (!window.confirm('Delete ' + ids.length + ' workspace' + (ids.length > 1 ? 's' : '') + ' (' + what + ')?\n' + names.join(', ').slice(0, 200) + '\nPinned tabs stay.' + (user() ? ' Their charts stay in your saved layouts.' : ''))) return false;
-    if (ids.includes(ix.active)) { const keep = ix.items.find((x) => !ids.includes(x.id)); await switchTo(keep.id); }
+    if (ids.includes(ix.active)) { const keep = C.openItems(ix).find((x) => !ids.includes(x.id)); await switchTo(keep.id); }
     ids.forEach((id) => { C.remove(ix, id); docs.delete(id); if (!user()) lsDel(K.doc(id)); });
     persist(); toast(ids.length + ' workspaces deleted');
     return true;
   }
+  // Close = hide the tab, keep everything saved. No confirm: nothing is lost.
+  async function closeWs(id){
+    const it = C.find(ix, id);
+    if (!it || it.closed) return false;
+    if (C.openItems(ix).length <= 1) { toast('Keep at least one workspace open.', 'error'); return false; }
+    const open = C.openItems(ix), i = open.findIndex((x) => x.id === id);
+    if (ix.active === id) await switchTo((open[i + 1] || open[i - 1]).id);
+    C.close(ix, id);
+    persist(); toast('Closed "' + it.name + '". Reopen it from the Workspaces list.');
+    return true;
+  }
+  async function closeMany(ids){
+    ids = ids.filter((id) => { const x = C.find(ix, id); return x && !x.closed; });
+    if (!ids.length || ids.length >= C.openItems(ix).length) return false;
+    if (ids.includes(ix.active)) await switchTo(C.openItems(ix).find((x) => !ids.includes(x.id)).id);
+    ids.forEach((id) => C.close(ix, id));
+    persist(); toast(ids.length + ' workspaces closed');
+    return true;
+  }
+  async function reopenWs(id){ if (C.reopen(ix, id)) { persist(); await switchTo(id); } }
   function reorder(ids){
     const by = new Map(ix.items.map((x) => [x.id, x]));
-    const next = ids.map((x) => by.get(x)).filter(Boolean);
+    const next = ids.map((x) => by.get(x)).filter(Boolean).concat(C.closedItems(ix));   // closed ones keep their place at the end
     if (next.length !== ix.items.length || next.every((x, i) => x === ix.items[i])) return;
     ix.items = next; C.pinFirst(ix.items); persist();
   }
@@ -300,10 +323,11 @@ export function mountWorkspaces(ws, o){
     pop.innerHTML = '';
     syncLayout(cur());
     try { cur().sub = C.subOf(screenState()); } catch (e) {}
-    if (sheetHead) pop.appendChild(sheetHead(pop, 'Workspaces', ix.items.length + ' saved · ' + (user() ? 'synced to your account' : 'on this device')));
+    if (sheetHead) pop.appendChild(sheetHead(pop, 'Workspaces', C.openItems(ix).length + ' open' + (C.closedItems(ix).length ? ', ' + C.closedItems(ix).length + ' closed' : '') + ' · ' + (user() ? 'synced to your account' : 'on this device')));
     pop.appendChild(el('p', { class: 'stkc-pop-h stkws-h', text: 'Workspaces' }));
     const ul = el('ul', { class: 'stkws-list', role: 'listbox', 'aria-label': 'Workspaces' });
-    ix.items.forEach((it, i) => {
+    const openL = C.openItems(ix);
+    openL.forEach((it, i) => {
       const on = it.id === ix.active;
       const li = el('li', { class: 'stkws-li' + (on ? ' on' : ''), 'data-id': it.id });
       const grip = el('span', { class: 'stkws-grip', title: 'Drag to reorder', 'aria-hidden': 'true', html: svg('grip', 16) });
@@ -317,14 +341,31 @@ export function mountWorkspaces(ws, o){
         if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
         e.preventDefault();
         const to = i + (e.key === 'ArrowUp' ? -1 : 1);
-        if (to < 0 || to >= ix.items.length) return;
-        if (C.move(ix, it.id, to)) { persist(); renderList(); const b = pop.querySelector('[data-id="' + it.id + '"] .stkws-row'); if (b) b.focus(); }
+        if (to < 0 || to >= openL.length) return;
+        if (C.move(ix, it.id, ix.items.indexOf(openL[to]))) { persist(); renderList(); const b = pop.querySelector('[data-id="' + it.id + '"] .stkws-row'); if (b) b.focus(); }
       });
       li.appendChild(grip); li.appendChild(row);
       dragSort(grip, li, ul, '.stkws-li', 'y');
       ul.appendChild(li);
     });
     pop.appendChild(ul);
+    const shut = C.closedItems(ix);
+    if (shut.length) {   // closed workspaces: saved, hidden from the tabs, one click brings one back
+      pop.appendChild(el('div', { class: 'stkws-sep', role: 'separator' }));
+      pop.appendChild(el('p', { class: 'stkc-pop-h stkws-h', text: 'Closed workspaces' }));
+      const cl = el('ul', { class: 'stkws-list stkws-closed', role: 'list', 'aria-label': 'Closed workspaces' });
+      shut.forEach((it) => {
+        const li = el('li', { class: 'stkws-li stkws-cli', 'data-id': it.id });
+        const row = el('button', { type: 'button', class: 'stkws-row', title: 'Reopen ' + it.name }, [
+          el('span', { class: 'stkws-t' }, [el('span', { class: 'stkws-l', text: it.name }), it.sub ? el('small', { class: 'stkws-s', text: it.sub }) : null]),
+          el('span', { class: 'stkws-reopen', text: 'Reopen' })]);
+        row.addEventListener('click', () => { setOpen(false); reopenWs(it.id); });
+        const del = el('button', { type: 'button', class: 'stkws-cdel', 'aria-label': 'Delete ' + it.name + '…', title: 'Delete…', html: svg('del', 16) });
+        del.addEventListener('click', () => { setOpen(false); removeWs(it.id); });
+        li.appendChild(row); li.appendChild(del); cl.appendChild(li);
+      });
+      pop.appendChild(cl);
+    }
     pop.appendChild(el('div', { class: 'stkws-sep', role: 'separator' }));
     const item = (label, icon, run, opts) => {
       const b = el('button', { type: 'button', class: 'stkc-item stkc-mi stkws-act' + (opts && opts.danger ? ' stkws-danger' : '') }, [
@@ -336,7 +377,8 @@ export function mountWorkspaces(ws, o){
     item('New workspace…', 'add', () => askName('New workspace', C.uniqueName(ix, 'Workspace ' + (ix.items.length + 1)), createNew));
     item('Duplicate', 'copy', duplicate);
     item('Rename…', 'rename', () => askName('Rename workspace', cur().name, (n) => renameWs(ix.active, n)));
-    item('Delete…', 'del', () => removeWs(ix.active), { danger: true, disabled: ix.items.length <= 1 });
+    item('Close', 'close', () => closeWs(ix.active), { disabled: C.openItems(ix).length <= 1 });
+    item('Delete…', 'del', () => removeWs(ix.active), { danger: true, disabled: C.openItems(ix).length <= 1 });
     if (!isPhone()) pop.appendChild(el('p', { class: 'stkws-foot', text: 'Switch with ' + (isMac ? '⌘' : 'Ctrl') + '+1 to 9. Drag to reorder.' }));
   }
 
@@ -396,7 +438,8 @@ export function mountWorkspaces(ws, o){
   document.body.appendChild(ctxBox); document.body.appendChild(morePop);
   more.addEventListener('click', () => {
     const r = more.getBoundingClientRect();
-    ctxMenu(morePop, r.left, r.bottom + 4, ix.items.map((it) => ({ label: it.name, on: it.id === ix.active, run: () => switchTo(it.id) })));
+    ctxMenu(morePop, r.left, r.bottom + 4, C.openItems(ix).map((it) => ({ label: it.name, on: it.id === ix.active, run: () => switchTo(it.id) }))
+      .concat(C.closedItems(ix).map((it) => ({ label: 'Reopen: ' + it.name, run: () => reopenWs(it.id) }))));
   });
   function fitTabs(){
     // overflow: tabs that do not fit are hidden; the ▾ lists every workspace
@@ -414,15 +457,15 @@ export function mountWorkspaces(ws, o){
   }
   function paintTabs(){
     tabRow.innerHTML = '';
-    ix.items.forEach((it, i) => {
+    C.openItems(ix).forEach((it, i) => {
       const on = it.id === ix.active;
-      const x = it.pinned ? null : el('span', { class: 'stkws-x', role: 'button', 'aria-label': 'Close workspace ' + it.name, title: 'Close', html: svg('close', 12) });
+      const x = it.pinned ? null : el('span', { class: 'stkws-x', role: 'button', 'aria-label': 'Close workspace ' + it.name, title: 'Close (stays saved)', html: svg('close', 12) });
       const t = el('button', { type: 'button', class: 'stkws-tab' + (on ? ' on' : '') + (it.pinned ? ' pinned' : '') + (it.color ? ' c-' + it.color : ''), role: 'tab', 'aria-selected': on ? 'true' : 'false', 'data-id': it.id,
         title: it.name + (it.sub ? ' · ' + it.sub : '') + (i < 9 ? ' (' + keyName(i) + ')' : '') + '. Right-click for options. Double-click to rename, drag to reorder.' },
         [el('span', { class: 'stkws-gl', html: svg(it.glyph || 'globe', 16) }), el('span', { class: 'stkws-tn', text: it.name }), x]);
       t.dataset.dflt = ix.def === it.id ? '1' : '';
-      t.addEventListener('click', (e) => { if (e.target.closest('.stkws-x')) { e.stopPropagation(); removeWs(it.id); return; } if (!dragged) switchTo(it.id); });
-      t.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); removeWs(it.id); } });
+      t.addEventListener('click', (e) => { if (e.target.closest('.stkws-x')) { e.stopPropagation(); closeWs(it.id); return; } if (!dragged) switchTo(it.id); });
+      t.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeWs(it.id); } });
       t.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
       t.addEventListener('dblclick', () => askName('Rename workspace', it.name, (n) => renameWs(it.id, n)));
       t.addEventListener('contextmenu', (e) => {
@@ -444,14 +487,14 @@ export function mountWorkspaces(ws, o){
   let shownTabs = null;
   function paint(){
     paintBtn();
-    const sig = JSON.stringify([ix.active, ix.items.map((x) => [x.id, x.name, x.sub, x.pinned, x.color, x.glyph]), ix.def]);
+    const sig = JSON.stringify([ix.active, ix.items.map((x) => [x.id, x.name, x.sub, x.pinned, x.color, x.glyph, x.closed]), ix.def]);
     if (sig !== shownTabs) { shownTabs = sig; paintTabs(); }
     if (!pop.hidden) renderList();
   }
 
 
   // ---------------------------------------------------------------- UI: tab right-click menu (phone: long-press the pill -> bottom sheet)
-  // Close = delete in our model (a tab IS a workspace), so there is one "Delete workspace…"; the bulk ones say "Delete".
+  // Close hides a tab (kept saved); Delete is separate, with a confirm.
   async function stepWs(id, dir, keepFocus){
     if (!C.step(ix, id, dir)) return;
     persist();
@@ -491,7 +534,7 @@ export function mountWorkspaces(ws, o){
   let cm = null;   // the open menu: { box, close }
   function closeMenu(refocus){ if (cm) { const c = cm; cm = null; c.close(refocus); } }
   function menuModel(id){
-    const it = C.find(ix, id), i = ix.items.findIndex((x) => x.id === id), n = ix.items.length;
+    const it = C.find(ix, id), n = C.openItems(ix).length;
     const others = C.othersOf(ix, id), right = C.rightOf(ix, id);
     const ren = () => askName('Rename workspace', it.name, (nm) => renameWs(id, nm));
     const g = [];
@@ -512,6 +555,10 @@ export function mountWorkspaces(ws, o){
       { label: 'Open in new window', icon: 'ext', run: () => { persist(); window.open(location.pathname + '?ws=' + encodeURIComponent(id), '_blank', 'noopener'); } }]);
     g.push([
       { label: 'Reset layout…', icon: 'reset', run: () => resetLayout(id) },
+      { label: 'Close workspace', icon: 'close', disabled: n <= 1, run: () => closeWs(id) },
+      { label: 'Close other workspaces', icon: 'close', disabled: !others.length || others.length >= n, run: () => closeMany(others) },
+      { label: 'Close workspaces to the right', icon: 'close', disabled: !right.length || right.length >= n, run: () => closeMany(right) }]);
+    g.push([
       { label: 'Delete other workspaces…', icon: 'close', disabled: !others.length || others.length >= n, run: () => removeMany(others, 'all except this one and pinned') },
       { label: 'Delete workspaces to the right…', icon: 'close', disabled: !right.length || right.length >= n, run: () => removeMany(right, 'to the right of this one') },
       { label: 'Delete workspace…', icon: 'del', danger: true, disabled: n <= 1, run: () => removeWs(id) }]);
@@ -630,9 +677,10 @@ export function mountWorkspaces(ws, o){
   // ---------------------------------------------------------------- keyboard + unload
   document.addEventListener('keydown', (e) => {
     const i = C.hotkeyIndex(e);
-    if (i < 0 || !ix || i >= ix.items.length) return;
+    const op = ix ? C.openItems(ix) : [];
+    if (i < 0 || i >= op.length) return;
     e.preventDefault(); e.stopPropagation();
-    switchTo(ix.items[i].id);
+    switchTo(op[i].id);
   }, true);
   window.addEventListener('beforeunload', () => {
     if (!ix) return;
@@ -683,7 +731,7 @@ export function mountWorkspaces(ws, o){
       const r = d && d.exists ? C.sanitize((d.data() || {}).index) : null;
       if (!r || C.pickNewer(ix, r) !== r) { persist(); return; }
       const here = C.find(r, ix.active);
-      if (here) { r.active = ix.active; Object.assign(here, { layoutId: cur().layoutId, layoutName: cur().layoutName, shared: cur().shared }); ix = r; persist(); return; }
+      if (here) { r.active = ix.active; here.closed = false; Object.assign(here, { layoutId: cur().layoutId, layoutName: cur().layoutName, shared: cur().shared }); ix = r; persist(); return; }
       const target = r.active; ix = r; ix.active = null;
       // the screen belongs to a workspace this account no longer has: open the account's active one (no save: it was not ours)
       (async () => { const it = C.find(ix, target) || ix.items[0]; ix.active = it.id; const x = await load(it); L.adopt(x.doc, x.meta); markScreen(it.id); persist(); })();
@@ -696,7 +744,7 @@ export function mountWorkspaces(ws, o){
     if (ix && to && to !== ix.active && C.find(ix, to)) switchTo(to); };
   if (user()) setTimeout(() => { if (!defDone) bootDefault(); }, 2500); else setTimeout(bootDefault, 0);
 
-  const api = { switchTo, openMenu, closeMenu, removeMany, saveTemplate, createNew, duplicate, rename: renameWs, remove: removeWs, reorder,
+  const api = { switchTo, openMenu, closeMenu, removeMany, saveTemplate, createNew, duplicate, rename: renameWs, remove: removeWs, close: closeWs, reopen: reopenWs, reorder,
     get index(){ return JSON.parse(JSON.stringify(ix)); }, get active(){ return cur(); }, get cached(){ return docs.keys(); },
     get busy(){ return !!busy; }, capturePanels };
   window.STRYKER_WORKSPACES = api;

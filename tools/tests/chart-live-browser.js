@@ -41,12 +41,13 @@ async function open(b, { w, h, mobile, theme, admin = true, connected = true }) 
     if (process.env.DBG) console.log('DBG route', u.pathname + u.search, bars.length);
     return r.fulfill({ json: { s: 'NQ', tf: '1', page, bars, rt: true } });
   });
-  const M = { calls: [], positions: [], orders: [], failRead: false, modify: true, n: 0 };
+  const M = { calls: [], positions: [], orders: [], failRead: false, modify: true, n: 0, delay: 0 };
   ctx.M = M;
   const j = (o, status = 200) => ({ status, contentType: 'application/json', body: JSON.stringify(o) });
-  await ctx.route('**/connect/finatic/**', (r) => {
+  await ctx.route('**/connect/finatic/**', async (r) => {
     const u = new URL(r.request().url()); let body = {}; try { body = JSON.parse(r.request().postData() || '{}'); } catch (e) {}
-    M.calls.push({ path: u.pathname, body });
+    M.calls.push({ path: u.pathname, body, at: Date.now() });
+    if (M.delay && u.pathname.endsWith('/order') && ['place', 'cancel', 'modify', 'flatten'].includes(body.op)) await sleep(M.delay);
     if (!admin) return r.fulfill(j({ error: 'Admins only' }, 403));
     if (u.pathname.endsWith('/session') && r.request().method() === 'GET') return r.fulfill(j({ configured: true }));
     if (u.pathname.endsWith('/session')) return r.fulfill(j({ portalUrl: 'http://127.0.0.1:1/portal', sessionId: 's1' }));
@@ -59,6 +60,7 @@ async function open(b, { w, h, mobile, theme, admin = true, connected = true }) 
       if (body.op === 'env') return r.fulfill(j({ env: 'live', enabled: true }));
       if (body.op === 'schema') return body.action === 'modify' && !M.modify ? r.fulfill(j({ error: 'not supported', code: 'upstream' }, 503)) : r.fulfill(j({ data: { fields: { symbol: {}, orderQty: {} } }, env: 'live' }));
       M.n++;
+      if (body.op === 'place' && M.timing) { const x = j({ ok: true, accepted: true, orderId: 'o' + M.n, status: 'SUBMITTED' }); x.headers = { 'server-timing': 'auth;dur=1, fin;dur=61, total;dur=70' }; if (body.type === 'limit') M.orders.push({ orderId: 'o' + M.n, status: 'SUBMITTED', orderType: 'LIMIT', legs: [{ securityId: body.symbol, side: body.side.toUpperCase(), quantity: body.qty, limitPrice: body.limitPrice }] }); return r.fulfill(x); }
       if (body.op === 'place') { const id = 'o' + M.n; if (body.type === 'limit') M.orders.push({ orderId: id, status: 'SUBMITTED', orderType: 'LIMIT', legs: [{ securityId: body.symbol, side: body.side.toUpperCase(), quantity: body.qty, limitPrice: body.limitPrice }] }); else { M.positions = [{ securityId: body.symbol, quantity: (body.side === 'buy' ? 1 : -1) * body.qty, averageBuyPrice: 28750, averageSellPrice: 28750 }]; } return r.fulfill(j({ ok: true, accepted: true, orderId: id, status: 'SUBMITTED' })); }
       if (body.op === 'cancel') { M.orders = M.orders.filter((o) => o.orderId !== body.orderId); return r.fulfill(j({ ok: true, accepted: true, status: 'CANCELLED' })); }
       if (body.op === 'modify') { if (!M.modify) return r.fulfill(j({ error: 'modify not supported', code: 'rejected' }, 400)); M.orders.forEach((o) => { if (o.orderId === body.orderId) o.legs[0].limitPrice = body.limitPrice; }); return r.fulfill(j({ ok: true, accepted: true, status: 'SUBMITTED' })); }
@@ -130,6 +132,11 @@ async function run(b, w, h, mobile, theme) {
   await tap(p, '#stklv-cf [data-k=yes]', mobile);
   await p.waitForFunction((n) => true, null); await sleep(900);
   let W = writes(M);
+  // SPEED (2026-11-16): the 'env' call that pre-warms the server carries the broker user; reads ran straight after the write
+  check(M.calls.some((c) => c.path.endsWith('/order') && c.body.op === 'env' && c.body.userId === US), tag + ': panel open pre-warms the server (env + userId)');
+  { const wAt = M.calls.filter((c) => c.body.op === 'place').at(-1).at, rAt = M.calls.find((c) => c.body.op === 'live' && c.at > wAt);
+    check(rAt && rAt.at - wAt < 700, tag + ': positions re-read within 0.7 s of the order', rAt && rAt.at - wAt); }
+  check(/^Order sent in \d+ ms\. LIVE account/.test(await p.$eval('.stkpt-foot', (e) => e.textContent)), tag + ': footer shows the measured round trip', await p.$eval('.stkpt-foot', (e) => e.textContent.slice(0, 80)));
   check(W.length === 1 && W[0].op === 'place' && W[0].symbol === code && W[0].qty === 1 && W[0].type === 'market' && W[0].src === 'chart' && /^[A-Za-z0-9-]{16,64}$/.test(W[0].idemKey || '') && W[0].accountId === ACC, tag + ': market BUY 1 sent with contract + idemKey', W[0]);
   // --- second order: a tap, no typing, skip offered
   await p.evaluate(() => { window.__stkLive.state.form.side = 'sell'; window.__stkLive.state.form.type = 'limit'; window.__stkLive.state.form.price = '28756'; window.__stkPaper.renderAll(); });
@@ -140,7 +147,18 @@ async function run(b, w, h, mobile, theme) {
   const cf2 = await p.evaluate(() => ({ typing: !!document.querySelector('.stklv-cf-type input'), skip: !!document.querySelector('#stklv-cf [data-k=skip]'), t: document.getElementById('stklv-cf').innerText }));
   check(!cf2.typing && cf2.skip && /SELL 1 NQ.. LIMIT @ 28,756.00/.test(cf2.t), tag + ': later orders = one tap, with "skip for this session"', cf2);
   if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/live-' + tag + '-3-tap.png' });
-  await p.check('#stklv-cf [data-k=skip]'); await tap(p, '#stklv-cf [data-k=yes]', mobile); await sleep(1000);
+  M.delay = 1200; M.timing = true;
+  await p.check('#stklv-cf [data-k=skip]'); await tap(p, '#stklv-cf [data-k=yes]', mobile); await sleep(250);
+  { const sending = await p.evaluate(() => ({ chips: [...document.querySelectorAll('.stkpt-chip[data-live]')].map((c) => c.textContent), foot: document.querySelector('.stkpt-foot').textContent }));
+    check(sending.chips.some((t) => /^SENDING SELL 1 LMT28,756\.00/.test(t)) && /^Sending… /.test(sending.foot), tag + ': order line drawn at once as SENDING while the broker answers', sending);
+    if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/live-' + tag + '-3b-sending.png' });
+    const nW = writes(M).length; await p.evaluate(() => { const c = [...document.querySelectorAll('.stkpt-chip[data-live]')].find((x) => /SENDING/.test(x.textContent)); if (c) c.querySelector('.stkpt-chip-x').click(); });
+    check(writes(M).length === nW, tag + ': × on a SENDING line sends nothing'); }
+  await sleep(1400); M.delay = 0;
+  { const after = await p.evaluate(() => ({ chips: [...document.querySelectorAll('.stkpt-chip[data-live]')].map((c) => c.textContent), foot: document.querySelector('.stkpt-foot').textContent }));
+    check(!after.chips.some((t) => /SENDING/.test(t)) && /^Order sent in \d{4} ms \(broker 61 ms\)\./.test(after.foot), tag + ': SENDING line gone on the answer; footer: round trip + broker time from Server-Timing', after);
+    if (w === 1440 || theme === 'dark') { const f = await p.$('.stkpt-foot'); if (f) await f.screenshot({ path: OUT + '/crop-foot-' + tag + '.png' }); } }
+  M.timing = false;
   W = writes(M);
   check(W.length === 2 && W[1].type === 'limit' && W[1].limitPrice === 28756 && W[1].side === 'sell' && W[1].idemKey !== W[0].idemKey, tag + ': SELL limit sent, fresh idemKey', W[1]);
   // working-order + position lines
@@ -206,7 +224,9 @@ async function run(b, w, h, mobile, theme) {
     head: await measure(p, '.stkpt-head', ':scope > .stkpt-toggle, .stklv-pick select, .stkpt-head .stklv-badge, .stkpt-hsum span, :scope > .stkpt-trade'),
     seg: await measure(p, '.stklv-two', '.stklv-seg'),
     segBtns: await measure(p, '.stklv-seg[aria-label=side]', 'button'),
-    tools: await measure(p, '.stklv-tools', '.stklv-btn')
+    tools: await measure(p, '.stklv-tools', '.stklv-btn'),
+    foot: await p.evaluate(() => { const f = document.querySelector('.stkpt-foot'), r = f.getBoundingClientRect(), cs = getComputedStyle(f); return { h: Math.round(r.height), padL: cs.paddingLeft, padR: cs.paddingRight, padT: cs.paddingTop, padB: cs.paddingBottom, overflowX: f.scrollWidth > f.clientWidth + 1 && cs.whiteSpace !== 'nowrap' }; }),
+    chips: await p.evaluate(() => [...document.querySelectorAll('.stkpt-chip[data-live]')].map((c) => ({ t: c.textContent.slice(0, 18), h: Math.round(c.getBoundingClientRect().height) })))
   };
   console.log('ALIGN ' + tag + ' ' + JSON.stringify(A));
   check(A.head && A.head.cySpread <= 1, tag + ': panel head items share one centre (±1px)', A.head && A.head.items);

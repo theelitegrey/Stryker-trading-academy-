@@ -1,0 +1,79 @@
+# Deploys the broker-order edge Worker (workers/finatic-edge: the same order/data/session handlers as the Pages routes, placed in
+# aws:us-east-1 next to the broker API) and binds it to the Pages project as the service FINATIC_EDGE. Owner order 2026-11-16.
+# MANUAL ONLY (workflow_dispatch): it changes where live broker orders run, so it is started by hand after review, never by a merge.
+# Secrets: the same repo secrets the site deploy already pushes to Pages (FINATIC_*, FIREBASE_SA_KEY); KV: the tradezoro-passkeys namespace.
+# Until this has run AND the site has been redeployed once, nothing changes: the Pages routes run the handlers themselves.
+# Rollback: remove the FINATIC_EDGE service binding from the Pages project and redeploy the site (the routes then run on Pages again),
+# or `wrangler rollback` in workers/finatic-edge. Nothing else depends on it.
+name: Deploy broker order edge Worker
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finatic-edge-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Tests (mocked broker, no network)
+        run: |
+          for f in tests/finatic/*.test.mjs; do node --no-warnings "$f"; done   # speed.test.mjs covers the Worker routing
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FINATIC_API_KEY: ${{ secrets.FINATIC_API_KEY }}
+          FINATIC_COMPANY_ID: ${{ secrets.FINATIC_COMPANY_ID }}
+          FINATIC_ENV: ${{ secrets.FINATIC_ENV }}
+          FINATIC_LIVE_ORDERS: ${{ secrets.FINATIC_LIVE_ORDERS }}
+          FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SA_KEY }}
+        run: |
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          echo "::add-mask::$TOKEN"
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          if [ -z "$ACCOUNT" ]; then
+            ACCOUNT=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id // empty')
+          fi
+          echo "::add-mask::$ACCOUNT"
+          [ -z "$ACCOUNT" ] && { echo "::error::no Cloudflare account visible to the token"; exit 1; }
+          echo "CF_T=$TOKEN" >> "$GITHUB_ENV"; echo "CF_A=$ACCOUNT" >> "$GITHUB_ENV"
+          [ -z "$FINATIC_API_KEY" ] && { echo "::error::FINATIC_API_KEY repo secret missing"; exit 1; }
+          # KV namespace id of tradezoro-passkeys (rate limits shared with the Pages routes), written into the config at deploy time
+          KV=$(curl -s -H "Authorization: Bearer $TOKEN" "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/storage/kv/namespaces?per_page=100" | jq -r '.result[] | select(.title=="tradezoro-passkeys") | .id' | head -1)
+          cd workers/finatic-edge
+          if [ -n "$KV" ]; then
+            node -e "const fs=require('fs');const t=fs.readFileSync('wrangler.jsonc','utf8').replace(/^\s*\/\/.*$/gm,'');const c=JSON.parse(t);c.kv_namespaces=[{binding:'PASSKEYS',id:process.argv[1]}];fs.writeFileSync('wrangler.deploy.json',JSON.stringify(c,null,2))" "$KV"
+          else
+            echo "::warning::tradezoro-passkeys KV not found; rate limits fall back to per-isolate memory"
+            node -e "const fs=require('fs');const t=fs.readFileSync('wrangler.jsonc','utf8').replace(/^\s*\/\/.*$/gm,'');fs.writeFileSync('wrangler.deploy.json',t)"
+          fi
+          export CLOUDFLARE_API_TOKEN="$TOKEN" CLOUDFLARE_ACCOUNT_ID="$ACCOUNT"
+          npx --yes wrangler@4.158.0 deploy -c wrangler.deploy.json 2>&1 | tee /tmp/deploy.log
+          test "${PIPESTATUS[0]}" = 0
+          if grep -qE 'https://tz-finatic-edge\.[a-z0-9-]+\.workers\.dev' /tmp/deploy.log; then echo "::error::the Worker got a public workers.dev URL"; exit 1; fi
+          for n in FINATIC_API_KEY FINATIC_COMPANY_ID FINATIC_ENV FINATIC_LIVE_ORDERS FIREBASE_SA_KEY; do
+            v="${!n}"
+            if [ -n "$v" ]; then printf '%s' "$v" | npx --yes wrangler@4.158.0 secret put "$n" -c wrangler.deploy.json >/dev/null 2>&1 && echo "set $n" || { echo "::error::could not set $n"; exit 1; }; fi
+          done
+      - name: Bind FINATIC_EDGE to the Pages project
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $CF_T" -H "Content-Type: application/json" "$@"; }
+          B="https://api.cloudflare.com/client/v4/accounts/$CF_A"
+          PROJ=$(api "$B/pages/projects" | jq -r '.result[] | select((.domains // []) | map(test("strykertrading|tradezoro"; "i")) | any) | .name' | head -1)
+          [ -z "$PROJ" ] && { echo "::error::no Pages project serves tradezoro.com"; exit 1; }
+          api -X PATCH "$B/pages/projects/$PROJ" -d '{"deployment_configs":{"production":{"services":{"FINATIC_EDGE":{"service":"tz-finatic-edge","environment":"production"}}}}}' \
+            | python3 -c "import json,sys;d=json.load(sys.stdin);print('FINATIC_EDGE binding', 'ok' if d.get('success') else d.get('errors'));sys.exit(0 if d.get('success') else 1)"
+          echo "::notice::FINATIC_EDGE bound; it takes effect on the next site deploy. Check: the order reply's Server-Timing shows placement;desc=... and edge;dur=..."

@@ -1,6 +1,6 @@
 // node tools/tests/chart-search.test.mjs — pure helpers of the Charts symbol search (assets/chart-search-core.js).
 import assert from 'node:assert/strict';
-import { classify, venueOf, pairOf, search, symOf, keyOf, quoteOf, decimalsOf } from '../../assets/chart-search-core.js?v=1066';
+import { classify, venueOf, pairOf, search, symOf, keyOf, quoteOf, decimalsOf } from '../../assets/chart-search-core.js?v=1074';
 
 const P = [
   { ticker: 'NQ1!', description: 'Nasdaq-100 E-mini futures', type: 'futures', prefix: 'CME', exchange: 'CME', provider: 'futures', mintick: 0.25 },

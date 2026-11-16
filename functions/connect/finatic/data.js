@@ -1,6 +1,7 @@
 // Admin-only READ pass-through to Finatic for the journal's broker sync (beta). POST {op, ...}.
 // Allow-list below is the whole surface: every op maps to a fixed GET path (plus the grant revoke used by "Disconnect").
 // There is deliberately NO order create / modify / cancel path, and the client never supplies a path. Stores and logs nothing.
+// op 'live' (chart live orders, 2026-11-15): positions + orders of one account in ONE session (two GETs), for the chart's live lines.
 import { gate, readBody, fin, startSession, sessionHeaders, json, fail, needsConnect, methodNotAllowed, safe, UPSTREAM_MSG, UUID, ID } from './_fin.js';
 
 const A = (id) => '/api/v1/accounts/' + encodeURIComponent(id);
@@ -22,7 +23,7 @@ async function run(request, env, deps) {
   if (!b || typeof b !== 'object') return fail(400, 'Bad request');
   const op = b.op;
   const isRead = Object.prototype.hasOwnProperty.call(OPS, op);
-  if (!isRead && op !== 'fills' && op !== 'revoke') return fail(400, 'Not allowed');
+  if (!isRead && op !== 'fills' && op !== 'revoke' && op !== 'live') return fail(400, 'Not allowed');
   if (op !== 'accounts' && op !== 'grants' && op !== 'revoke' && !(typeof b.accountId === 'string' && UUID.test(b.accountId))) return fail(400, 'accountId missing');
   if (op === 'revoke' && !(typeof b.grantId === 'string' && UUID.test(b.grantId))) return fail(400, 'grantId missing');
   if (op === 'fills' && !(Array.isArray(b.orderIds) && b.orderIds.length >= 1 && b.orderIds.length <= MAX_ORDERS_PER_CALL && b.orderIds.every((x) => typeof x === 'string' && ID.test(x)))) return fail(400, 'orderIds missing');
@@ -45,6 +46,12 @@ async function run(request, env, deps) {
   if (op === 'revoke') {
     const r = await fin(env, deps, 'POST', '/api/v1/account-grants/' + encodeURIComponent(b.grantId) + '/revoke', { headers: h });
     return r.ok ? json({ ok: true, userId: finUser }) : fail(502, 'Could not disconnect');
+  }
+  if (op === 'live') {
+    const p = await fin(env, deps, 'GET', OPS.positions(b), { headers: h, query: { limit: 200, offset: 0 } });
+    const o = p.ok ? await fin(env, deps, 'GET', OPS.orders(b), { headers: h, query: { limit: 200, offset: 0 } }) : null;
+    if (!p.ok || !o.ok) return fail(502, 'Broker data is unavailable right now', 'upstream');
+    return json({ data: { positions: Array.isArray(p.data) ? p.data : [], orders: Array.isArray(o.data) ? o.data : [] }, userId: finUser });
   }
   if (op === 'fills') {
     const out = [];

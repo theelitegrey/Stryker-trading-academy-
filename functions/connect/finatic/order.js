@@ -3,8 +3,18 @@
 //   place  -> POST /accounts/{id}/orders          cancel -> DELETE /accounts/{id}/orders/{orderId}          modify -> PATCH /accounts/{id}/orders/{orderId}
 // Guards, in order: not configured 503 · origin/JSON/IP limit · unsigned 401 · non-admin 403 · live without FINATIC_LIVE_ORDERS=1 403 "Live orders are off"
 // · 10 orders/min per admin · body whitelist (unknown fields dropped, qty cap) · audit row written BEFORE the order (no audit, no order).
+// CHART LIVE ORDERS (Owner order 2026-11-15, src:'chart' from assets/chart-live.js), on top of every guard above:
+// · live env: the kill switch settings/liveTrading must not say enabled:false (unreadable = refused) · idemKey required: it is the
+//   Idempotency-Key AND the audit doc id, so a repeated key is answered 409 duplicate and never reaches the broker twice
+// · contract whitelist (NQ/ES/MNQ/MES, the two nearest live quarters; assets/chart-live-core.js, the same code the chart uses)
+// · market + limit only; modify = limit price only · a FRESH positions + orders read before every place: worst-case net exposure
+//   (position + working orders + this order) stays within 2 contracts, unreadable = refused
+// · flatten runs here, not in the browser: cancel the contract's working orders, re-read until they are gone, re-read the position,
+//   then ONE market order for the net (refused above 2); deterministic key from the position snapshot, so a double tap is deduped
+// · no answer from the broker = code 'unknown' (the chart blocks new orders until a read settles it).
 import { gate, readBody, fin, startSession, sessionHeaders, ordersBlocked, envMode, json, fail, needsConnect, methodNotAllowed, safe, UPSTREAM_MSG, UUID, ID } from './_fin.js';
-import { openAudit } from './_audit.js';
+import { openAudit, liveSwitchOn } from './_audit.js';
+import { validContract, workingOrders, netPosition, exposureError, flattenPlan, IDEM, MAX_QTY } from '../../../assets/chart-live-core.js';
 
 export const MAX_FUT = 2, MAX_EQ = 100, ORDERS_PER_MIN = 10;
 const TYPES = ['market', 'limit', 'stop'], TIFS = ['day', 'gtc', 'ioc', 'fok'], ASSETS = ['future', 'equity'];
@@ -56,13 +66,25 @@ async function run(request, env, deps) {
   const op = b.op;
   if (op === 'env') return json({ env: envMode(env), enabled: ordersBlocked(env) === null });   // for the badge; admin only (gate above)
   const blocked = ordersBlocked(env); if (blocked) return blocked;
-  if (op !== 'schema' && op !== 'place' && op !== 'cancel' && op !== 'modify') return fail(400, 'Not allowed');
+  const chart = b.src === 'chart';
+  if (op !== 'schema' && op !== 'place' && op !== 'cancel' && op !== 'modify' && !(op === 'flatten' && chart)) return fail(400, 'Not allowed');
   if (!(typeof b.accountId === 'string' && UUID.test(b.accountId))) return fail(400, 'accountId missing');
   if ((op === 'cancel' || op === 'modify') && !(typeof b.orderId === 'string' && ID.test(b.orderId))) return fail(400, 'orderId missing');
   if (op === 'schema' && !['place', 'modify', 'cancel'].includes(b.action)) return fail(400, 'action invalid');
+  const now = (deps.now || Date.now)();
+  if (chart && op !== 'schema') {
+    if (!(typeof b.idemKey === 'string' && IDEM.test(b.idemKey))) return fail(400, 'idemKey missing');
+    if ((op === 'place' || op === 'flatten') && !validContract(b.symbol, now)) return fail(400, 'Not a tradable contract');
+    if (op === 'place' && !['market', 'limit'].includes(String(b.type || '').toLowerCase())) return fail(400, 'Market or limit only');
+    if (op === 'modify' && (String(b.type || 'limit').toLowerCase() !== 'limit' || b.qty !== undefined || b.stopPrice !== undefined)) return fail(400, 'Only the limit price can be changed');
+  }
   let order = null;
   if (op === 'place' || op === 'modify') { const c = cleanOrder(b, { partial: op === 'modify' }); if (c.error) return fail(400, c.error); order = c.order; if (op === 'modify' && Object.keys(order).length < 2) return fail(400, 'nothing to change'); }
   if (op !== 'schema' && await orderRateLimited(env, g.uid)) return fail(429, 'Order limit: 10 a minute');
+  if (op !== 'schema' && envMode(env) === 'live') {   // kill switch, fails closed
+    let on; try { on = await liveSwitchOn(env, deps); } catch (e) { return fail(503, 'Live trading switch could not be read, order not sent', 'switch_unreadable'); }
+    if (!on) return fail(403, 'Live trading is switched off', 'switched_off');
+  }
 
   let userId = typeof b.userId === 'string' && UUID.test(b.userId) ? b.userId : '';
   if (!userId) return needsConnect();
@@ -76,22 +98,71 @@ async function run(request, env, deps) {
     const r = await fin(env, deps, 'GET', A + '/order-schemas', { headers: h, query: { action: b.action } });
     return r.ok ? json({ data: r.data, env: envMode(env) }) : fail(r.status === 403 ? 403 : 502, r.status === 403 ? 'Trading is not enabled for this account yet' : 'Broker data is unavailable right now');
   }
+  const read = async () => {
+    const [p, o] = [await fin(env, deps, 'GET', A + '/positions', { headers: h, query: { limit: 200 } }), await fin(env, deps, 'GET', A + '/orders', { headers: h, query: { limit: 200 } })];
+    return p.ok && o.ok ? { positions: Array.isArray(p.data) ? p.data : [], orders: Array.isArray(o.data) ? o.data : [] } : null;
+  };
+  if (chart && op === 'place') {   // fresh read, worst-case exposure
+    const st = await read();
+    if (!st) return fail(503, 'Could not read positions and orders, order not sent', 'read_failed');
+    const err = exposureError(netPosition(st.positions, order.symbol).qty, workingOrders(st.orders, order.symbol), order.action, order.orderQty);
+    if (err) return fail(409, err, 'exposure');
+  }
 
-  const entry = { uid: g.uid, env: envMode(env), op, account: b.accountId, symbol: order ? (order.symbol || '') : '', side: order ? (order.action || '') : '', qty: order && order.orderQty ? order.orderQty : 0, type: order ? (order.orderType || '') : '', orderId: b.orderId || '' };
+  const entry = { uid: g.uid, env: envMode(env), op, src: chart ? 'chart' : 'journal', account: b.accountId, symbol: order ? (order.symbol || '') : (op === 'flatten' ? String(b.symbol).toUpperCase() : ''), side: order ? (order.action || '') : '', qty: order && order.orderQty ? order.orderQty : 0, type: order ? (order.orderType || '') : '', orderId: b.orderId || '' };
   let audit;
-  try { audit = await openAudit(env, deps, entry); } catch (e) { return fail(503, 'Audit log unavailable, order not sent'); }
-  const idem = (deps.uuid || (() => crypto.randomUUID()))();
+  try { audit = await openAudit(env, deps, entry, chart ? b.idemKey : undefined); }
+  catch (e) { return e && e.duplicate ? json({ error: 'This order was already sent once. Nothing new was sent.', code: 'duplicate', duplicate: true }, 409) : fail(503, 'Audit log unavailable, order not sent'); }
+  const idem = chart ? b.idemKey : (deps.uuid || (() => crypto.randomUUID()))();
   const sandbox = envMode(env) === 'sandbox';
+  const send = (method, path, key, body) => fin(env, deps, method, path, { headers: { ...h, 'Idempotency-Key': key }, ...(body ? { body } : { query: { paperTradeConfirmed: sandbox ? 'true' : undefined } }) });
+
+  if (op === 'flatten') return flatten(env, deps, b, A, send, read, audit, sandbox);
   let r;
-  if (op === 'place') r = await fin(env, deps, 'POST', A + '/orders', { headers: { ...h, 'Idempotency-Key': idem }, body: { order, paperTradeConfirmed: sandbox } });
-  else if (op === 'modify') r = await fin(env, deps, 'PATCH', A + '/orders/' + encodeURIComponent(b.orderId), { headers: { ...h, 'Idempotency-Key': idem }, body: { order, paperTradeConfirmed: sandbox } });
-  else r = await fin(env, deps, 'DELETE', A + '/orders/' + encodeURIComponent(b.orderId), { headers: { ...h, 'Idempotency-Key': idem }, query: { paperTradeConfirmed: sandbox ? 'true' : undefined } });
+  if (op === 'place') r = await send('POST', A + '/orders', idem, { order, paperTradeConfirmed: sandbox });
+  else if (op === 'modify') r = await send('PATCH', A + '/orders/' + encodeURIComponent(b.orderId), idem, { order, paperTradeConfirmed: sandbox });
+  else r = await send('DELETE', A + '/orders/' + encodeURIComponent(b.orderId), idem);
   const res = r.data && r.data.order ? r.data : (r.data || {});
   const brokerOrderId = String((res.order && (res.order.orderId || res.order.brokerOrderId)) || b.orderId || '');
+  const unknown = r.status === 0 || r.status >= 500 || r.bad;   // timeout / network / garbage: it may or may not have reached the broker
   const accepted = r.ok && res.accepted !== false;
-  await audit.finish({ result: accepted ? 'accepted' : 'rejected', httpStatus: r.status, brokerOrderId, message: String(res.message || '').slice(0, 200) });
+  await audit.finish({ result: accepted ? 'accepted' : unknown ? 'unknown' : 'rejected', httpStatus: r.status, brokerOrderId, message: String(res.message || '').slice(0, 200) });
+  if (!accepted && unknown && chart) return fail(502, 'No clear answer from the broker. The order may or may not have gone through. Checking positions and orders.', 'unknown');
   if (!accepted) return fail(r.status === 403 ? 403 : r.status === 429 ? 429 : 502, r.status === 403 ? 'Trading is not enabled for this account yet' : (res.message ? String(res.message).slice(0, 200) : 'The broker did not accept the order'));
-  return json({ ok: true, op, env: envMode(env), orderId: brokerOrderId, status: res.order && res.order.status || '', accepted: true });
+  return json({ ok: true, op, env: envMode(env), orderId: brokerOrderId, status: res.order && res.order.status || '', accepted: true, strategy: res.executionStrategy || '', superseded: res.supersededOrderId || '' });
+}
+
+async function flatten(env, deps, b, A, send, read, audit, sandbox) {
+  const code = String(b.symbol).toUpperCase(), sleep = deps.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
+  const done = async (result, extra, resp) => { await audit.finish({ result, ...extra }); return resp; };
+  let st = await read();
+  if (!st) return done('rejected', { message: 'read failed' }, fail(503, 'Could not read positions and orders, nothing sent', 'read_failed'));
+  const plan0 = flattenPlan(netPosition(st.positions, code).qty, workingOrders(st.orders, code));
+  let cancelled = 0;
+  for (let i = 0; i < plan0.cancel.length; i++) {
+    const r = await send('DELETE', A + '/orders/' + encodeURIComponent(plan0.cancel[i]), b.idemKey + '-c' + i);
+    if (r.ok) cancelled++;
+  }
+  // the close order goes out only once a fresh read shows no working order left (a resting order could otherwise fill on top of it)
+  for (let t = 0; t < 4; t++) {
+    if (plan0.cancel.length || t) await sleep(800);
+    st = await read();
+    if (st && !workingOrders(st.orders, code).length) break;
+    st = st && workingOrders(st.orders, code).length ? Object.assign(st, { busy: true }) : st;
+  }
+  if (!st) return done('partial', { message: 'read failed after cancel', cancelled }, fail(503, 'Orders were cancelled but positions could not be read. Nothing else was sent; check the broker.', 'read_failed'));
+  if (st.busy) return done('partial', { cancelled }, fail(409, 'Orders are still cancelling. Nothing else was sent; try Flatten again in a moment.', 'cancelling'));
+  const pos = netPosition(st.positions, code).qty, plan = flattenPlan(pos, []);
+  if (plan.tooBig) return done('rejected', { cancelled, message: 'position ' + pos }, fail(409, 'The position is more than ' + MAX_QTY + ' contracts. Close it at the broker.', 'too_big'));
+  if (!plan.close) return done('accepted', { cancelled }, json({ ok: true, op: 'flatten', cancelled, closed: null }));
+  const order = { assetType: 'future', symbol: code, action: plan.close.side, orderType: 'market', orderQty: plan.close.qty, timeInForce: 'day' };
+  const r = await send('POST', A + '/orders', b.idemKey + '-x', { order, paperTradeConfirmed: sandbox });
+  const res = r.data && r.data.order ? r.data : (r.data || {});
+  const accepted = r.ok && res.accepted !== false, unknown = r.status === 0 || r.status >= 500 || r.bad;
+  const brokerOrderId = String((res.order && (res.order.orderId || res.order.brokerOrderId)) || '');
+  await audit.finish({ result: accepted ? 'accepted' : unknown ? 'unknown' : 'rejected', httpStatus: r.status, brokerOrderId, side: order.action, qty: order.orderQty, type: 'market', cancelled });
+  if (!accepted) return fail(unknown ? 502 : 409, unknown ? 'No clear answer from the broker for the closing order. Checking positions.' : (res.message ? String(res.message).slice(0, 200) : 'The broker did not accept the closing order'), unknown ? 'unknown' : 'rejected');
+  return json({ ok: true, op: 'flatten', cancelled, closed: plan.close, orderId: brokerOrderId });
 }
 export const handle = safe('order', run);
 export const onRequest = ({ request, env }) => handle(request, env);

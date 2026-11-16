@@ -38,7 +38,9 @@
   // Keys the chart already uses (they keep working; a member cannot take them).
   const CHART_KEYS = { 'Alt+A': 'Create an alert at the crosshair', 'Shift+ArrowRight': 'Bar replay: step forward', 'Shift+ArrowLeft': 'Bar replay: step back', 'Shift+ArrowUp': 'Bar replay: speed', 'Shift+ArrowDown': 'Bar replay: speed', 'Shift+H': 'Bar replay: hide markings', 'Shift+X': 'Bar replay: exit', Space: 'Bar replay: play or pause' };
   const NEVER = /^(Escape|Tab|Enter|NumpadEnter|F5|F11|F12|ContextMenu|CapsLock)$/;
-  const BROWSER = /^(Ctrl|Meta)\+(Shift\+)?([WTNRLQPSFDAHJKUXZYCV]|Tab|[0-9])$/;
+  // Combos Chrome/Edge keep for themselves in a normal tab: the page usually never receives them.
+  // They are NOT blocked here (an installed app / other browsers deliver them); the UI just warns.
+  const BROWSER_TAB = /^(Ctrl|Meta)\+(Shift\+)?([NTW]|Tab|PageUp|PageDown)$|^(Ctrl|Meta)\+[1-9]$/;
   const MODKEYS = /^(Control|Shift|Alt|Meta|AltGraph|OS)$/;
 
   function keyName(e) {
@@ -64,9 +66,12 @@
     if (!combo) return 'Press a key first.';
     const parts = combo.split('+'), k = parts[parts.length - 1];
     if (NEVER.test(k)) return k === 'Escape' ? 'Esc always closes things, so it cannot be a hotkey.' : k + ' is reserved and cannot be a hotkey.';
-    if (BROWSER.test(combo)) return 'Your browser uses ' + label(combo) + '. Pick another key.';
     if (CHART_KEYS[combo]) return label(combo) + ' is already used by the chart (' + CHART_KEYS[combo] + ').';
     return null;
+  }
+  /** Plain warning when a normal browser tab may swallow this combo, else null. */
+  function browserNote(combo) {
+    return BROWSER_TAB.test(combo || '') ? 'Saved, but browsers keep ' + label(combo) + ' for tabs, so it may not reach the chart in a normal tab. It works in the installed app. If it does nothing, pick another key.' : null;
   }
   /** The other action using this combo, or null. */
   function conflict(map, combo, exceptId) {
@@ -103,5 +108,5 @@
     if (Math.abs(q / st - Math.round(q / st)) > 1e-9) return { ok: false, msg: st === 1 ? 'Use whole contracts.' : 'Use steps of ' + st + '.' };
     return { ok: true, qty: Number(q.toFixed(6)) };
   }
-  return { validQty, ACTIONS, IDS, CHART_KEYS, comboFromEvent, label, reserved, conflict, nameOf, clean, typing, match, partQty };
+  return { validQty, ACTIONS, IDS, CHART_KEYS, comboFromEvent, label, reserved, browserNote, conflict, nameOf, clean, typing, match, partQty };
 });

@@ -10,8 +10,8 @@
 // Where the hub serves the root LIVE for this member, the hub wins (same book plus 48 h of recorded history); a member on the 10-min
 // delayed hub book who connected their own depth feed gets their own live feed instead.
 // Display only. Education only. Not financial advice.
-import { l2Root, l2Source, l2Badge, l2Delayed } from './chart-futures-l2.js?v=1073';
-import { getVenue } from './orderflow-venues.js?v=1073';
+import { l2Root, l2Source, l2Badge, l2Delayed } from './chart-futures-l2.js?v=1074';
+import { getVenue } from './orderflow-venues.js?v=1074';
 
 export const memberSourceFn = (provider) => { const s = typeof window !== 'undefined' && window.__stkBookSources; return (s && provider && typeof s[provider] === 'function') ? s[provider] : null; };
 

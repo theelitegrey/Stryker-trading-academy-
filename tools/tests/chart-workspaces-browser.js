@@ -108,7 +108,9 @@ const waitIdle = (p) => p.waitForFunction(() => !window.STRYKER_WORKSPACES.busy,
     t('right-click opens the workspace menu (details: chart-wsmenu-browser.js)', await W(a, () => !!document.querySelector('.stkws-cm .stkws-cm-it') && [...document.querySelectorAll('.stkws-cm-l')].some((x) => x.textContent === 'Rename')));
     await a.keyboard.press('Escape');
     await a.click('.stkws-tab >> nth=1', { button: 'middle' }); await waitIdle(a);
-    t('middle-click closes (confirm accepted)', await W(a, () => window.STRYKER_WORKSPACES.index.items.length === 1));
+    t('middle-click closes (kept saved, no delete)', await W(a, () => { const x = window.STRYKER_WORKSPACES.index; return x.items.length === 2 && x.items[1].closed === true && document.querySelectorAll('.stkws-tab').length === 1; }));
+    await W(a, () => window.STRYKER_WORKSPACES.remove(window.STRYKER_WORKSPACES.index.items[1].id)); await waitIdle(a);   // delete the closed one (confirm accepted)
+    t('closed workspace deleted for good', await W(a, () => window.STRYKER_WORKSPACES.index.items.length === 1));
     // workspace 1: NQ, 2 charts side by side, watchlist open at 300 px
     await W(a, async () => {
       window.STRYKER_CHART_UI.setLayout('2h'); await new Promise((r) => setTimeout(r, 1200));

@@ -6690,6 +6690,12 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
 .stkws-act:hover{ background:var(--bg-3); }
 .stkws-act:disabled{ opacity:.4; cursor:default; }
 .stkws-act:disabled:hover{ background:transparent; }
+.stkws-cli .stkws-row{ padding-left:12px; }
+.stkws-cli .stkws-l{ color:var(--ink-1); }
+.stkws-reopen{ flex:none; font-size:12px; line-height:16px; font-weight:600; color:var(--gold); }
+.stkws-cdel{ flex:none; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:8px; background:transparent; color:var(--ink-3); cursor:pointer; }
+.stkws-cdel:hover, .stkws-cdel:focus-visible{ background:var(--bg-3); color:var(--bear, #f2545b); outline:0; }
+@media (hover:none), (pointer:coarse){ .stkws-cdel{ width:48px; height:48px; } }
 .stkws-danger .stkc-mi-l, .stkws-danger .stkc-mi-ic{ color:var(--bear, #f2545b); }
 .stkws-foot{ margin:8px 12px 4px !important; font-size:12px; line-height:16px; color:var(--ink-2); }
 .stkws-ghost{ height:32px; padding:0 14px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--ink-1); font:600 13px/1 inherit; font-family:inherit; cursor:pointer; }

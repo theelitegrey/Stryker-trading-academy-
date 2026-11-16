@@ -51,6 +51,7 @@ function cleanItem(x){
     panels: cleanPanels(x.panels),
     sub: String(x.sub || '').slice(0, 60),
     pinned: x.pinned === true,
+    closed: x.closed === true,   // closed tab: kept saved, listed under "Closed workspaces", reopened from the menu
     color: COLORS.includes(x.color) ? x.color : '',
     glyph: GLYPHS.includes(x.glyph) ? x.glyph : ''
   };
@@ -69,7 +70,8 @@ export function sanitize(raw){
     if (items.length >= MAX) break;
   }
   if (!items.length) return null;
-  const active = seen.has(o.active) ? o.active : items[0].id;
+  if (items.every((x) => x.closed)) items[0].closed = false;   // never a screen with no open workspace
+  const active = (items.find((x) => x.id === o.active && !x.closed) || items.find((x) => !x.closed)).id;
   pinFirst(items);
   return { v: 1, active, items, def: seen.has(o.def) ? o.def : '', t: Number.isFinite(+o.t) ? +o.t : 0 };
 }
@@ -84,18 +86,32 @@ export function setPinned(ix, id, on){
   it.pinned = !!on; pinFirst(ix.items); return true;
 }
 // Move one step inside its own group (pinned never cross unpinned). Returns true when it moved.
+const stepTo = (ix, i, dir) => { let j = i + dir; while (ix.items[j] && ix.items[j].closed) j += dir; return j; };   // closed tabs are skipped
 export function step(ix, id, dir){
   const i = ix.items.findIndex((x) => x.id === id); if (i < 0) return false;
-  const j = i + (dir < 0 ? -1 : 1), o = ix.items[j];
+  const j = stepTo(ix, i, dir < 0 ? -1 : 1), o = ix.items[j];
   if (!o || o.pinned !== ix.items[i].pinned) return false;
   [ix.items[i], ix.items[j]] = [o, ix.items[i]]; return true;
 }
-export const canStep = (ix, id, dir) => { const i = ix.items.findIndex((x) => x.id === id), o = ix.items[i + (dir < 0 ? -1 : 1)]; return !!o && i >= 0 && o.pinned === ix.items[i].pinned; };
+export const canStep = (ix, id, dir) => { const i = ix.items.findIndex((x) => x.id === id), o = i < 0 ? null : ix.items[stepTo(ix, i, dir < 0 ? -1 : 1)]; return !!o && o.pinned === ix.items[i].pinned; };
+// open / closed views of the index (items keeps both; a closed workspace keeps its place and its saved chart)
+export const openItems = (ix) => ix.items.filter((x) => !x.closed);
+export const closedItems = (ix) => ix.items.filter((x) => x.closed);
+// Close a tab without deleting it. Never the last open one. Returns the id to show next when the active one closed (else null), or false.
+export function close(ix, id){
+  const open = openItems(ix), i = open.findIndex((x) => x.id === id);
+  if (i < 0 || open.length <= 1) return false;
+  find(ix, id).closed = true;
+  if (ix.active !== id) return null;
+  ix.active = (open[i + 1] || open[i - 1]).id;
+  return ix.active;
+}
+export function reopen(ix, id){ const it = find(ix, id); if (!it || !it.closed) return false; it.closed = false; return true; }
 // ids "Close other tabs" / "Close tabs to the right" would delete: never the tab itself, never a pinned tab
-export const othersOf = (ix, id) => ix.items.filter((x) => x.id !== id && !x.pinned).map((x) => x.id);
+export const othersOf = (ix, id) => ix.items.filter((x) => x.id !== id && !x.pinned && !x.closed).map((x) => x.id);
 export function rightOf(ix, id){
   const i = ix.items.findIndex((x) => x.id === id);
-  return i < 0 ? [] : ix.items.slice(i + 1).filter((x) => !x.pinned).map((x) => x.id);
+  return i < 0 ? [] : ix.items.slice(i + 1).filter((x) => !x.pinned && !x.closed).map((x) => x.id);
 }
 export function setDefault(ix, id){ ix.def = ix.def === id ? '' : (find(ix, id) ? id : ix.def); return ix.def; }
 
@@ -131,15 +147,15 @@ export function rename(ix, id, name){
   if (!it || !n) return false;
   it.name = n; return true;
 }
-// Delete: never the last one. Returns the id to switch to when the active one went (else null), or false.
+// Delete: never the last open one. Returns the id to switch to when the active one went (else null), or false.
 export function remove(ix, id){
-  if (ix.items.length <= 1) return false;
   const i = ix.items.findIndex((x) => x.id === id);
-  if (i < 0) return false;
+  if (i < 0 || ix.items.length <= 1) return false;
+  if (ix.active === id && openItems(ix).length <= 1) return false;
   ix.items.splice(i, 1);
   if (ix.def === id) ix.def = '';
   if (ix.active !== id) return null;
-  const next = ix.items[Math.min(i, ix.items.length - 1)].id;
+  const open = openItems(ix), next = (open.find((x) => ix.items.indexOf(x) >= i) || open[open.length - 1]).id;
   ix.active = next;
   return next;
 }

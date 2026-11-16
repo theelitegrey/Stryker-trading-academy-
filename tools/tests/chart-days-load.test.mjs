@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import * as D from '../../assets/chart-days-load.js';
 const ok = (c, m) => { assert.ok(c, m); console.log('PASS ' + m); };
 // cap = min(source depth, what fits in the memory ceiling)
-ok(D.capDays('1', 29, 30000) === 20, '1m: 30000 bars = 20 days, below the 29-day source depth');
+ok(D.capDays('1', 29, 30000) === 20 && D.capDays('1', 29, 30000, 0.72) === 28, '1m: 30000 bars = 20 days (28 counting futures gaps), below the 29-day source depth');
 ok(D.capDays('15', 59, 30000) === 59, '15m: source depth 59 days wins');
-ok(D.capDays('1', 366, 400000) === 277 && D.capDays('5', 366, 400000) === 366, 'deep 1m: memory ceiling (277 days) bites before the 366-day depth; 5m gets 366');
+ok(D.capDays('1', 366, 400000, 0.72) === 366 && D.capDays('1', 366, 400000) === 277 && D.capDays('5', 366, 400000) === 366, 'deep 1m: memory ceiling (277 days) bites before the 366-day depth; 5m gets 366');
 ok(D.capDays('weird', 59, 30000) === 0, 'unknown timeframe: nothing offered');
 // menu never lists more than the cap
 const m = D.optionsFor(59);
@@ -57,3 +57,16 @@ console.log('OK');
   ok(/about 38 days/.test(D.fpHint(d0 + 38 * 864e5)) && /Candles go further/.test(D.fpHint(d0)), 'hint says footprint is shallower than candles');
   ok(D.capDays('240', 729, 30000) === 729 && D.optionsFor(729).includes('365 days') && D.optionsFor(729).at(-1) === 'Max (729 days)', '4h: menu goes to the 729-day source depth');
 }
+// long history: menu reaches years, pages, honest cap
+{
+  const m = D.optionsFor(14600);
+  ok(m.includes('3650 days') && m.includes('7300 days') && m.at(-1) === 'Max (14600 days)', 'D: menu reaches 10 and 20 years, ends at Max');
+  ok(D.optionsFor(366).at(-1) === 'Max (366 days)' && !D.optionsFor(366).includes('730 days'), '5m deep: stops at 366');
+  D.restore('r1', { D: 9000 }); ok(D.getDays('r1', 'D') === 9000, 'a 9000-day daily choice survives a reload');
+  const pp = D.pagePlan(0, 366 * 864e5, '1', 12000, 0.72);
+  ok(pp.length > 20 && pp.length < 60 && pp[0][1] === 366 * 864e5 && pp.at(-1)[0] === 0, '1m year = ' + pp.length + ' pages, newest first, last one starts at the chosen day');
+  ok(pp.every((p, i) => i === 0 || p[1] === pp[i - 1][0]) && pp.every((p) => p[0] < p[1]), 'pages touch with no gap or overlap');
+  ok(D.pagePlan(0, 10 * 864e5, '15', 12000, 0.72).length === 1, 'small range = one page');
+  ok(D.honestCap(366, 120) === 120 && D.honestCap(59, 120) === 59 && D.honestCap(59, 0) === 59, 'cap shrinks to the days the data really has');
+}
+console.log('OK long history');

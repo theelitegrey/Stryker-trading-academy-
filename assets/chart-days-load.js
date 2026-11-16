@@ -4,14 +4,16 @@
 // Rule: the choice is a MINIMUM to load for that timeframe. Auto (0) = old behaviour. We never offer more
 // days than the data source really holds (depth) or than the chart can keep in memory (maxBars).
 export const AUTO = 'Auto';
-const STEPS = [1, 2, 3, 5, 7, 14, 30, 60, 90, 180, 365, 730, 1825, 3650];
+const STEPS = [1, 2, 3, 5, 7, 14, 30, 60, 90, 180, 365, 730, 1825, 3650, 7300, 14600];
 const TF_S = { '1': 60, '3': 180, '5': 300, '15': 900, '30': 1800, '45': 2700, '60': 3600, '120': 7200, '180': 10800, '240': 14400, D: 86400, W: 604800, M: 2592000 };
 const store = new Map();   // cellId -> { [timeframe]: days }
 
 // Largest number of days we can honestly offer: source depth, and what fits in maxBars (24 h a day = safe side).
-export function capDays(tf, depthDays, maxBars) {
+// `density` = share of a 24 h day that really has bars (futures trade ~23 h on 5 days of 7, so 0.72). Only applies to intraday.
+export function capDays(tf, depthDays, maxBars, density) {
   const s = TF_S[String(tf)]; if (!s) return 0;
-  return Math.max(0, Math.min(Math.floor(depthDays), Math.floor(maxBars * s / 86400)));
+  const k = s < 86400 && density > 0 && density <= 1 ? density : 1;
+  return Math.max(0, Math.min(Math.floor(depthDays), Math.floor(maxBars * s / 86400 / k)));
 }
 // Menu: Auto, the steps that fit, and "Max (N days)" at the cap. Under 2 days of room = only Auto.
 export function optionsFor(cap) {
@@ -35,7 +37,7 @@ export function setDays(id, tf, d) {
 export const serialize = (id) => { const o = store.get(id); return o && Object.keys(o).length ? Object.assign({}, o) : undefined; };
 export function restore(id, p) {
   const o = {};
-  if (p && typeof p === 'object') for (const k of Object.keys(p)) { const v = p[k]; if (TF_S[k] && Number.isFinite(v) && v >= 1 && v <= 3650) o[k] = Math.floor(v); }
+  if (p && typeof p === 'object') for (const k of Object.keys(p)) { const v = p[k]; if (TF_S[k] && Number.isFinite(v) && v >= 1 && v <= 14600) o[k] = Math.floor(v); }
   store.set(id, o);
 }
 
@@ -65,3 +67,15 @@ export function planDays(times, days, trimmedAt) {
 export const FP_FIRST_DAY = Date.UTC(2026, 9, 8), FP_KEEP_DAYS = 90;
 export function fpDepthDays(now) { return Math.max(0, Math.min(FP_KEEP_DAYS, Math.floor((now - FP_FIRST_DAY) / 864e5))); }
 export const fpHint = (now) => ' Footprint order flow only goes back as far as it was recorded: about ' + fpDepthDays(now) + ' days (NQ, ES, YM, GC, SI, CL; micros use the live feed, 48 h). Candles go further back.';
+
+// Pages for a long load: [from, to) windows, newest first, each about `barsPerPage` bars, so a year of 1m is many small
+// fetches the chart can paint between (not one giant request). Last window starts exactly at `fromMs`.
+export function pagePlan(fromMs, toMs, tf, barsPerPage, density) {
+  const s = TF_S[String(tf)]; if (!s || !(toMs > fromMs)) return [];
+  const span = Math.max(864e5, Math.floor(barsPerPage * s * 1000 / ((s < 86400 && density > 0 && density <= 1) ? density : 1)));
+  const out = []; let to = toMs;
+  while (to > fromMs && out.length < 2000) { const from = Math.max(fromMs, to - span); out.push([from, to]); to = from; }
+  return out;
+}
+// What the setting may honestly offer once a load hit the real start of the data: days the source really holds, never above the plain cap.
+export const honestCap = (cap, seenDays) => (seenDays > 0 ? Math.max(1, Math.min(cap, Math.floor(seenDays))) : cap);

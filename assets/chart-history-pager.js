@@ -18,7 +18,7 @@
 // provider / Rithmic provider memo every page they fetch.
 // Not used during Bar Replay (it keeps its own buffers) or on offline/data-only charts.
 
-import { getDays, capDays, barsNeeded, planDays } from './chart-days-load.js?v=1060';
+import { getDays, capDays, barsNeeded, planDays, pagePlan, honestCap } from './chart-days-load.js?v=1060';
 import { deepOn, DEEP_DEPTH_DAYS } from './chart-futures-provider.js?v=1060';
 
 const PREFETCH_VIEWS = 1.5;     // start loading when fewer than 1.5 screens of bars remain on the left
@@ -50,7 +50,10 @@ export function pineDepthBars(tf){
   return s ? Math.min(PINE_MAX_BARS, Math.ceil(PINE_SPAN_S / s)) : 0;
 }
 // Source depth (mirrors DEPTH_SECS in chart-futures-provider.js). Older than this is a real end; newer is a gap or an upstream hiccup.
-const DEPTH_DAYS = { '1': 29, '3': 29, '5': 59, '15': 59, '30': 59 };
+// 1H-4H: 729 days; D/W/M: up to 40 years (the load stops at the real start of each symbol and the setting then shrinks to it, see honestCap).
+const DEPTH_DAYS = { '1': 29, '3': 29, '5': 59, '15': 59, '30': 59, '60': 729, '120': 729, '240': 729, D: 14600, W: 14600, M: 14600 };
+const density = (m) => (/^futures:/i.test(m && m.symbol || '') ? 0.72 : 1);   // futures: ~23 h a day, 5 days of 7
+const PAGE_BARS = 12000;         // bars per page of a long days-load (the chart paints between pages)
 const depthDays = (tf, m) => (deepMkt(m) ? DEEP_DEPTH_DAYS : DEPTH_DAYS[String(tf)] || 700);
 const hasPine = (chart) => { try { return chart.indicators().some((h) => typeof h.source === 'string' && !h.nativeType); } catch (e) { return false; } };
 
@@ -133,18 +136,33 @@ function attach(cell) {
     load(Math.min(CHUNK_MAX, Math.max(CHUNK_MIN, vis * CHUNK_VIEWS)), k);
   }
 
-  // Days setting: one ranged fetch from `fromMs` up to the oldest bar held (nothing older than the chosen day is requested).
+  // Days setting: pages back from the oldest bar to `fromMs`, newest page first, each prepended with the view kept, one
+  // 'complete' at the end (Pine / studies recompute once). A page that returns nothing = real start of the data: remember it.
   async function backfillTo(gen, fromMs) {
-    const oldest = o.rawBars[0].time;
-    const chunk = await o.feed.loadRange(o.config.market, { from: fromMs, to: oldest });
-    if (o.generation !== gen) return;
-    const head = chunk.filter((b) => b.time < oldest && b.time >= fromMs);
-    for (let i = 1; i < head.length; i++) if (head[i].time <= head[i - 1].time) { o.completeHistory('aborted'); return; }
-    if (!head.length) { st.trimmedAt = oldest; o.completeHistory('genesis'); return; }
-    o.setBarSeries([...head, ...o.rawBars], { preserveView: true });
-    o.notifySessionsBars('backfill');
+    const m = o.config.market;
+    const pages = pagePlan(fromMs, o.rawBars[0].time, m.timeframe, PAGE_BARS, density(m));
+    let reached = true;
+    for (const [from] of pages) {
+      if (o.generation !== gen) return;
+      const oldest = o.rawBars[0].time;
+      const chunk = await o.feed.loadRange(m, { from, to: oldest });
+      if (o.generation !== gen) return;
+      const head = chunk.filter((b) => b.time < oldest && b.time >= from);
+      let bad = false;
+      for (let i = 1; i < head.length; i++) if (head[i].time <= head[i - 1].time) bad = true;
+      if (bad) { o.completeHistory('aborted'); return; }
+      if (!head.length) { reached = false; break; }
+      o.setBarSeries([...head, ...o.rawBars], { preserveView: true });
+      o.notifySessionsBars('backfill');
+      stats.pages = (stats.pages || 0) + 1;
+      await new Promise((r) => setTimeout(r, 0));   // let the chart paint between pages
+    }
     st.trimmedAt = o.rawBars[0].time;   // satisfied: do not fetch again until the window moves
-    o.completeHistory('depth');
+    if (!reached) {   // the data starts here: the setting must not offer more days than this
+      const newest = o.rawBars[o.rawBars.length - 1].time;
+      st.seen = { key: keyOf(), days: Math.floor((newest - o.rawBars[0].time) / 864e5) };
+      o.completeHistory('genesis');
+    } else o.completeHistory('depth');
   }
 
   async function load(chunk, k, fromMs) {
@@ -213,6 +231,6 @@ export function installHistoryPager(ws) {
   try { ws.on('state:changed', () => setTimeout(sweep, 0)); } catch (e) {}
   window.__stkHistoryPager = { stats: () => JSON.parse(JSON.stringify(stats)),
     // for the settings row: most days we can honestly offer for this chart's market; kick = re-check now
-    cap: (id) => { try { const c = ws.cell(id), m = orchOf(c).config.market; return capDays(m.timeframe, depthDays(m.timeframe, m), maxBars(m)); } catch (e) { return 0; } },
+    cap: (id) => { try { const c = ws.cell(id), o2 = orchOf(c), m = o2.config.market, st2 = c.chart.__stkPager; const base = capDays(m.timeframe, depthDays(m.timeframe, m), maxBars(m), density(m)); const k = (m.symbol || '') + '|' + (m.timeframe || '') + '|' + (m.session || ''); return st2 && st2.seen && st2.seen.key === k ? honestCap(base, st2.seen.days) : base; } catch (e) { return 0; } },
     kick: (id) => { try { const st = ws.cell(id).chart.__stkPager; if (st) { st.exhausted.clear(); st.kick(); } } catch (e) {} } };
 }

@@ -11,15 +11,15 @@
 
   var T = '/assets/images/navfx/';
   var FEATURES = [
-    { id: 'gex', name: 'Omega', url: '/features/gex', icon: '📈', big: 1,
+    { id: 'gex', name: 'Omega', url: '/features/gex', icon: 'omega', big: 1,
       line: 'Gamma Exposure. Decode the forces moving markets.' },
     { id: 'smart-money-desk', name: 'Smart Money Desk', url: '/features/smart-money-desk', icon: '🏛️' },
     { id: 'curriculum', name: 'Curriculum', url: '/features/curriculum', icon: '📚' },
     { id: 'global-monitor', name: 'Global Monitor', url: '/features/global-monitor', icon: '🌐' },
-    { id: 'journal', name: 'Nemesis', url: '/features/journal', icon: '📓', big: 1, line: 'Trading Journal. Confront your mistakes. Master your edge.' },
+    { id: 'journal', name: 'Nemesis', url: '/features/journal', icon: 'nemesis', big: 1, line: 'Trading Journal. Confront your mistakes. Master your edge.' },
     { id: 'models', name: 'Trading Models', url: '/features/models', icon: '📐', big: 1 },
     { id: 'indicators', name: 'Private Indicators', url: '/features/indicators', icon: '📊' },
-    { id: 'backtesting', name: 'Kronos', url: '/features/backtesting', icon: '⏯️', line: 'Replay & Backtesting. Master the past. Sharpen the future.' },
+    { id: 'backtesting', name: 'Kronos', url: '/features/backtesting', icon: 'kronos', line: 'Replay & Backtesting. Master the past. Sharpen the future.' },
     { id: 'community', name: 'Community', url: '/features/community', icon: '🤝' },
     { id: 'charts', name: 'ZoroCharts', url: '/features/charts', icon: '📉' },
     { id: 'orderflow', name: 'Order Flow', url: '/features/orderflow', icon: '🔬' },
@@ -32,18 +32,25 @@
     return '<img class="nfx-img" alt="" width="' + w + '" height="' + Math.round(w * 10 / 16) +
       '" loading="lazy" decoding="async" data-src="' + T + f.id + '-' + w + '.webp">';
   }
+  // Product tiles (Owner 16 Nov): these three show their icon image; the other features keep their emoji.
+  var TILES = { omega: 1, kronos: 1, nemesis: 1 };
+  function icon(f) {
+    if (!TILES[f.icon]) return f.icon + ' ';
+    var b = '/assets/img/products/' + f.icon;
+    return '<picture class="nfx-pi"><source type="image/webp" srcset="' + b + '.webp 1x, ' + b + '@2x.webp 2x"><img src="' + b + '.png" srcset="' + b + '@2x.png 2x" width="20" height="20" alt="" aria-hidden="true" decoding="async"></picture>';
+  }
   function panelHtml() {
     var h = '<div class="nfx-bento">';
     FEATURES.forEach(function (f, i) {
       h += '<a class="nfx-card' + (f.big ? ' nfx-big' + (i === 0 ? ' nfx-hero' : '') : '') + '" href="' + f.url + '" style="--i:' + i + '">' +
-        img(f, f.big ? 720 : 360) + '<span class="nfx-tl"><b>' + f.icon + ' ' + esc(f.name) + '</b>' +
+        img(f, f.big ? 720 : 360) + '<span class="nfx-tl"><b>' + icon(f) + esc(f.name) + '</b>' +
         (f.line ? '<span>' + esc(f.line) + '</span>' : '') + '</span></a>';
     });
     return h + '</div><div class="nfx-strip"><a class="nfx-all" href="/features">See all features →</a></div>';
   }
   function mobileHtml() {
     return FEATURES.map(function (f) {
-      return '<a class="nfx-m" href="' + f.url + '">' + img(f, 360) + '<span class="nfx-mt"><b>' + esc(f.name) + '</b></span></a>';
+      return '<a class="nfx-m" href="' + f.url + '">' + img(f, 360) + '<span class="nfx-mt"><b>' + icon(f).replace(/^[^<].*$/, '') + esc(f.name) + '</b></span></a>';
     }).join('');
   }
 

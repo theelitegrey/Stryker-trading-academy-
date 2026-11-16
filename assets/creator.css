@@ -485,7 +485,7 @@ body.cx-page:has(.cp-root) .cx-wrap{ max-width:none; padding:0 0 96px; }
 .cx-top-acts .cx-in-s{ min-height:40px; }
 .cx-top-acts .btn{ min-height:40px; }
 @media (max-width:640px){ .cx-top-acts{ width:100%; } .cx-top-acts .btn{ flex:1 1 auto; justify-content:center; } .cx-top-acts .cx-in-s{ flex:1 1 100%; } }
-/* standard app tab pills (same .level-tabs look as the Learn / JournalX pages), one row on a phone with fade edges */
+/* standard app tab pills (same .level-tabs look as the Learn / Nemesis pages), one row on a phone with fade edges */
 .level-tabs.cx-ltabs{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin-bottom:20px; padding-bottom:2px; }
 .level-tabs.cx-ltabs::-webkit-scrollbar{ display:none; }
 .level-tabs.cx-ltabs .level-tab{ flex:none; white-space:nowrap; min-height:40px; cursor:pointer; }

@@ -82,12 +82,12 @@ tabpan = ''.join(f'<div role="tabpanel" id="az-p-{k}" aria-labelledby="az-t-{k}"
                  for i,(k,t,p,l,lab,href) in enumerate(tabs))
 
 faq = [
- ('Is ZoroAcademy free?', 'Yes. All 64 chapters, including both specialist tracks, are free with an account. The articles, glossary and cheat sheets need no account at all.'),
+ ('Is Mentis free?', 'Yes. All 64 chapters, including both specialist tracks, are free with an account. The articles, glossary and cheat sheets need no account at all.'),
  ('How long does it take?', 'It is self-paced. Every chapter shows its own length and every lesson is a short read, so you can finish one in a sitting or spread them over weeks.'),
  ('Do I need any experience?', 'No. Chapter 01 starts with what a candle is recording. The path above takes you from beginner to advanced in the order the chapters are written.'),
  ('Is this financial advice?', 'No. Education only. Not financial advice. Trading carries a high level of risk and may not be suitable for everyone. Examples are illustrations, not results.'),
  ('Does TradeZoro place trades for me?', 'No. TradeZoro is for charts, learning and review. You trade at your own broker or prop firm.'),
- ('Where do I practise what I learn?', 'On ZoroCharts and Replay One, where you can step through past sessions, and in JournalX to review your own notes.'),
+ ('Where do I practise what I learn?', 'On ZoroCharts and Kronos, where you can step through past sessions, and in Nemesis to review your own notes.'),
 ]
 faqh = ''.join(f'<details><summary>{q}</summary><div class="a">{a}</div></details>' for q, a in faq)
 faqld = {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}} for q,a in faq]}
@@ -96,22 +96,22 @@ main = f'''<main id="main" tabindex="-1" class="dash-main az-main">
 <header class="az-hero" id="top">
 <div class="az-w az-hero-grid">
 <div class="az-hero-copy">
-<nav class="az-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <span aria-current="page">ZoroAcademy</span></nav>
-<span class="az-kicker az-in">{BOOK}TradeZoro</span>
-<h1 class="az-in" style="--d:60ms">ZoroAcademy</h1>
+<nav class="az-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <span aria-current="page">Mentis</span></nav>
+<span class="az-kicker az-in">{BOOK}Learning</span>
+<h1 class="az-in" style="--d:60ms">Mentis</h1>
 <p class="az-sub az-in" style="--d:120ms">Learn price action the way a desk reads it: {len(I["ch"])} chapters, plain English, free with an account.</p>
 <div class="az-cta az-in" style="--d:180ms"><a class="btn btn-primary az-btn" href="{chl('01')}">Start chapter 01{ARW}</a><a class="btn btn-ghost az-btn" href="courses">Browse the curriculum</a></div>
 <p class="az-fine az-in" style="--d:240ms">Education only. Not financial advice.</p>
 </div>
 <div class="az-scene az-in" style="--d:120ms">
-<figure class="az-frame az-desk"><div class="az-bar"><span class="az-dots" aria-hidden="true"><i></i><i></i><i></i></span><b>Chapter reader</b><span class="az-tag">Sample view</span></div>{pic("reader-desk",1100,535,"The ZoroAcademy chapter reader open on Order Blocks, with a labelled chart diagram.","",False)}</figure>
+<figure class="az-frame az-desk"><div class="az-bar"><span class="az-dots" aria-hidden="true"><i></i><i></i><i></i></span><b>Chapter reader</b><span class="az-tag">Sample view</span></div>{pic("reader-desk",1100,535,"The Mentis chapter reader open on Order Blocks, with a labelled chart diagram.","",False)}</figure>
 <figure class="az-phone" aria-label="Phone view of the chapter reader">{pic("reader-ph",390,712,"The chapter reader on a phone.","",False)}</figure>
 <div class="az-chartcard"><span class="az-tag">Example session</span>{chart}<small>Hand-drawn illustration, not market data.</small></div>
 </div>
 </div>
 </header>
 
-<section class="az-stats az-w" aria-label="ZoroAcademy in numbers"><ul>
+<section class="az-stats az-w" aria-label="Mentis in numbers"><ul>
 {''.join(f'<li class="az-rv"><b data-stat="{k}" data-n="{n}">{n}</b><span>{l}</span></li>' for k,n,l in stats)}
 </ul></section>
 
@@ -146,7 +146,7 @@ main = f'''<main id="main" tabindex="-1" class="dash-main az-main">
 
 <section class="az-sec az-w" id="search" aria-labelledby="az-search-h">
 <div class="az-head az-rv"><span class="az-eyebrow">Search</span><h2 id="az-search-h">Find a lesson in seconds</h2><p>Search {len(I["ch"])} chapters and {nles} lessons, plus articles, glossary terms and models.</p></div>
-<div class="az-search az-rv"><label class="sr-only" for="az-q">Search ZoroAcademy</label><input id="az-q" type="search" inputmode="search" autocomplete="off" placeholder="Try &quot;order block&quot; or &quot;VWAP&quot;" aria-controls="az-res"><ul id="az-res" aria-live="polite"></ul></div>
+<div class="az-search az-rv"><label class="sr-only" for="az-q">Search Mentis</label><input id="az-q" type="search" inputmode="search" autocomplete="off" placeholder="Try &quot;order block&quot; or &quot;VWAP&quot;" aria-controls="az-res"><ul id="az-res" aria-live="polite"></ul></div>
 </section>
 
 <section class="az-sec az-w" id="featured" aria-labelledby="az-feat-h">

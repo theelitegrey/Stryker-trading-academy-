@@ -1,4 +1,4 @@
-// Fresh live shots for the homepage: Learn, Creator Hub, ZoroTide (GEX+ tab), Liquidity Map. Usage: node home-shots.mjs <outdir>
+// Fresh live shots for the homepage: Learn, Creator Hub, ZoroTide (Omega tab), Liquidity Map. Usage: node home-shots.mjs <outdir>
 import { launch, login, BASE } from './lib/browser.mjs';
 const out = process.argv[2];
 { // signed out: Learn + Creator Hub example community

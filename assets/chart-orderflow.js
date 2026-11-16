@@ -2622,7 +2622,7 @@ class CryptoDomNative {
   start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; window.addEventListener('stryker:theme', this.onTheme); this.attach(); }
   attach() {
     if (!this.ctx) return;
-    const mk = btBook(marketOf(this.ctx));   // Replay One: the session's real market
+    const mk = btBook(marketOf(this.ctx));   // Kronos: the session's real market
     const pv = mk.provider === 'binance' || getVenue(mk.provider) ? mk.provider : '';   // Binance, or a venue adapter (orderflow-venues.js)
     const want = pv ? bookKey(pv, mk.ticker) : '';
     if (this.h && this.h.feed.key === want) { this.wantNow(); this.render(); return; }

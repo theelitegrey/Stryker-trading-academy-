@@ -1,4 +1,4 @@
-// Delta / Vanna / Charm Exposure (assets/chart-greek-exposure.js) and the GEX+ panel (assets/gex-greeks.js): pure helpers,
+// Delta / Vanna / Charm Exposure (assets/chart-greek-exposure.js) and the Omega panel (assets/gex-greeks.js): pure helpers,
 // on the real feeder profiles in tools/tests/fixtures/greeks (Cboe QQQ / SPX chains of 2026-11-06, built by zoro_feeder.analyse).
 //   node tools/tests/greek-exposure.test.mjs
 import assert from 'node:assert/strict';
@@ -37,7 +37,7 @@ ok(qa.expiry.includes(q0.expiry[0]) && Math.abs(qa.tot.gex) > 0 && Math.abs(q0.t
 // feeder totals over all strikes vs the +-6 % band rows: same sign for the big DEX number
 ok(Math.sign(qa.tot.dex) === Math.sign(G.columnOf(qa, 'dex').reduce((a, r) => a + r.v, 0)), 'totals: feeder total and band sum agree in sign');
 
-// GEX+ panel (classic script): run it with a stub document, read window.__gexGreeks
+// Omega panel (classic script): run it with a stub document, read window.__gexGreeks
 const ctx = { window: {}, document: { readyState: 'loading', addEventListener() {} }, Intl, Date, Math, Promise, setInterval() {}, String, Number, Object, isFinite };
 vm.runInNewContext(readFileSync(join(HERE, '..', '..', 'assets', 'gex-greeks.js'), 'utf8'), ctx);
 const P = ctx.window.__gexGreeks;

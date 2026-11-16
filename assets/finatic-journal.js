@@ -1,4 +1,4 @@
-// TradeZoro — JournalX: admin-only "Broker sync (beta)" button (classic script). Hidden for everyone but admins (admins/{uid} doc);
+// TradeZoro — Nemesis: admin-only "Broker sync (beta)" button (classic script). Hidden for everyone but admins (admins/{uid} doc);
 // the server (functions/connect/finatic/*) re-checks admin on every call, so this is only the visibility switch.
 (function () {
   'use strict';

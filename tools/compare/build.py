@@ -13,7 +13,7 @@ ROWS = [
  ('16 charts on one screen', Y, Y, Y, Y),
  ('Volume profile', Y, Y, Y, ('y','Pro')),
  ('Volume footprint', Y, Y, NF, ('y','Pro')),
- ('Bar replay', Y, NF, Y, ('y','Replay One, and replay on the chart')),
+ ('Bar replay', Y, NF, Y, ('y','Kronos, and replay on the chart')),
  ('Custom timeframes', Y, NF, Y, ('y','Up to 20 custom intervals')),
  ('Auto chart patterns', Y, NF, Y, Y),
  ('Charts based on custom formulas', Y, NF, NF, ('y','For example ES1!-NQ1!*0.25')),
@@ -39,11 +39,11 @@ MORE = [
  ('Absorption and Iceberg Tracker', 'Pro. Futures order book'),
  ('Big Trades and Absorption', 'Pro'),
  ('ZoroTide options money flow', 'Pro'),
- ('Replay One practice sessions', 'Free'),
- ('JournalX trade journal with CSV import and broker sync', 'Free'),
+ ('Kronos practice sessions', 'Free'),
+ ('Nemesis trade journal with CSV import and broker sync', 'Free'),
  ('Market Stats', 'Free'),
  ('Smart Money desk: Congress and insider filings', 'Free, on its own page'),
- ('ZoroAcademy: 64 written chapters', 'Free'),
+ ('Mentis: 64 written chapters', 'Free'),
  ('Connect your own broker data: Rithmic, Alpaca, tastytrade, Dhan, OANDA, cTrader', 'Free. Beta bridge for NT8, MT5, IBKR'),
 ]
 ok = lambda c: c == Y or (isinstance(c, tuple) and c[0] == 'y')

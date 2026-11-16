@@ -174,7 +174,7 @@ redactFutures('market-brief', brief);
 assert.ok(!/95\.66|front-month/.test(JSON.stringify(brief)), JSON.stringify(brief));
 assert.ok(/EUR\/USD 1\.1247/.test(brief.bullets[0].text));
 
-// ALL TOOLS FREE (Owner 2026-11-13). TOOLS (GEX+, options, history) = isMemberToken: any verified, non-anonymous token, no plan read.
+// ALL TOOLS FREE (Owner 2026-11-13). TOOLS (Omega, options, history) = isMemberToken: any verified, non-anonymous token, no plan read.
 // LIVE DATA (the paid feed, the existing Pro) = isLiveDataToken: admin, demo and an ACTIVE paid plan only (the old GEX Pro rule, unchanged).
 for (const M of [A, B]) {
   M._resetForTests();

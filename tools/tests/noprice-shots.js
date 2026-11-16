@@ -1,5 +1,5 @@
 // No upfront pricing (Owner 2026-11-01): homepage has no prices, /pricing has them,
-// Pro paywalls (GEX+ lock card, upgrade modal) show the live Pro price.
+// Pro paywalls (Omega lock card, upgrade modal) show the live Pro price.
 //   NOPRICE_SHOTS=<dir> node noprice-shots.js   (needs http.server on STRYKER_TEST_PORT)
 const { BASE, launch } = require('./lib.js');
 const { stubFor } = require('./pricing-test.js');
@@ -51,7 +51,7 @@ async function page(b, mode, path, w, day) {
       if (SHOTS) await p.screenshot({ path: `${SHOTS}/pricing-${w}-${t}.png`, fullPage: true });
       await p.__ctx.close();
 
-      // 3. Pro prompt: the shared lock card (GEX+) and the upgrade modal, as a Free member
+      // 3. Pro prompt: the shared lock card (Omega) and the upgrade modal, as a Free member
       p = await page(b, 'free', 'settings.html', w, day);
       await p.addScriptTag({ url: BASE + '/assets/plan-lock.js' });
       await p.evaluate(() => {
@@ -70,7 +70,7 @@ async function page(b, mode, path, w, day) {
       ok(`lock ${w} ${t}: Get Pro + See all plans -> /pricing`, l.cta === 'Get Pro' && l.all === '/pricing', l.cta + ' ' + l.all);
       ok(`settings ${w} ${t}: upgrade button shows the Pro price`, /\$39 \/ month/.test(l.see), l.see);
       if (SHOTS) await p.screenshot({ path: `${SHOTS}/pro-lock-${w}-${t}.png` });
-      await p.evaluate(() => { document.getElementById('lock-host').remove(); window.openPlanUpgradeModal('GEX+ is part of Pro.'); });
+      await p.evaluate(() => { document.getElementById('lock-host').remove(); window.openPlanUpgradeModal('Omega is part of Pro.'); });
       await p.waitForTimeout(900);
       const m = await p.evaluate(() => ({ txt: (document.querySelector('.plan-modal') || {}).innerText || '',
         all: !!document.querySelector('.plan-modal-all a[href="/pricing"]') }));

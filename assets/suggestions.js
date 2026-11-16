@@ -19,7 +19,7 @@
   var $ = function (id) { return document.getElementById(id); };
   if (!$('sg-list')) return;
 
-  var CATS = [['charts', 'ZoroCharts'], ['indicators', 'Indicators'], ['gex', 'GEX+'], ['replay', 'Replay One'], ['journal', 'JournalX'],
+  var CATS = [['charts', 'ZoroCharts'], ['indicators', 'Indicators'], ['gex', 'Omega'], ['replay', 'Kronos'], ['journal', 'Nemesis'],
     ['stats', 'Market Stats'], ['courses', 'Courses'], ['creator', 'Creator Hub'], ['mobile', 'Mobile'], ['other', 'Other']];
   var STATUS = [['new', 'New'], ['review', 'Under review'], ['planned', 'Planned'], ['progress', 'In progress'], ['shipped', 'Shipped'], ['declined', 'Not planned']];
   var STATUS_HELP = { new: 'Waiting for the team to read it.', review: 'The team is looking into it.', planned: 'On the list to build. Plans can change.',

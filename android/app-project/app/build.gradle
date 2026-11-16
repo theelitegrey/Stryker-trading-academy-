@@ -39,7 +39,7 @@ def twaManifest = [
     // - short_name: Shorter string used if |name| is too long.
     // - url: Absolute path of the URL to launch the app with (e.g '/create').
     // - icon: Name of the resource in the drawable folder to use as an icon.
-    shortcuts: [[name:'Charts', short_name:'Charts', url:'/charts', icon:'shortcut_0'],[name:'GEX+', short_name:'GEX+', url:'/gex', icon:'shortcut_1'],[name:'JournalX', short_name:'JournalX', url:'/trade-journal', icon:'shortcut_2']],
+    shortcuts: [[name:'Charts', short_name:'Charts', url:'/charts', icon:'shortcut_0'],[name:'Omega', short_name:'Omega', url:'/gex', icon:'shortcut_1'],[name:'Nemesis', short_name:'Nemesis', url:'/trade-journal', icon:'shortcut_2']],
     // The duration of fade out animation in milliseconds to be played when removing splash screen.
     splashScreenFadeOutDuration: 300,
     generatorApp: 'bubblewrap-cli', // Application that generated the Android Project

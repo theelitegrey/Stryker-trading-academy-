@@ -19,16 +19,16 @@
   if (cmp) {
     var ROWS = [
       ['Charts, every chart type, drawings and indicators', true, true],
-      ['Replay One, alerts, layouts and paper trading', true, true],
-      ['Lessons, JournalX, Market Stats, ZoroTide, Liquidity Map overview', true, true],
+      ['Kronos, alerts, layouts and paper trading', true, true],
+      ['Lessons, Nemesis, Market Stats, ZoroTide, Liquidity Map overview', true, true],
       ['Community: read everything', true, true],
       // ALL TOOLS FREE (Owner 2026-11-13): every tool is in both columns; only the live futures order book data differs
       ['Order flow: Footprint, Delta, CVD, Big Trades, Absorption, Stop Runs, Imbalance Zones', true, true],
       ['Volume Profile, VWAP and Market Profile from trades', true, true],
       ['Order book heatmap, DOM ladder, Book · DOM · Trades panel', true, true],
       ['Liquidity Walls and Book Imbalance', true, true],
-      ['GEX+ levels, heatmap and Expected Move on charts', true, true],
-      ['GEX+ page: every expiry, strike table, futures levels', true, true],
+      ['Omega levels, heatmap and Expected Move on charts', true, true],
+      ['Omega page: every expiry, strike table, futures levels', true, true],
       ['Live CME futures L1 (trades, candles, best bid/ask)', 'Free with the market data agreement', 'Free with the market data agreement'],
       ['CME futures order book (L2)', '10 min delayed', 'Live']
     ];

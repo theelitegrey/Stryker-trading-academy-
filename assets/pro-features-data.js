@@ -34,7 +34,7 @@
     refill: 'M20 7a8 8 0 1 0 1 7M20 3v4h-4',
     vol: 'M3 12h3l2-6 4 12 3-9 2 3h4'
   };
-  var G = { book: 'Order book', flow: 'Order flow', gex: 'GEX+', live: 'Live data', soon: 'Coming soon' };
+  var G = { book: 'Order book', flow: 'Order flow', gex: 'Omega', live: 'Live data', soon: 'Coming soon' };
   var ITEMS = [
     // ---- Order book (L2) ----
     { group: 'book', name: 'Order book heatmap', feed: 'L2', icon: 'heat', ids: ['stk_fut_dom', 'stk_crypto_dom'], img: 'liquidity',
@@ -80,8 +80,8 @@
       desc: 'TPO letters or blocks per session, with initial balance, value area and single prints.' },
     { group: 'flow', name: 'Effort vs Result', feed: '—', icon: 'effort', ids: ['stk_of_evr'], img: 'effort-result',
       desc: 'A pane that compares volume with range and flags high-effort, low-result bars.' },
-    // ---- GEX+ ----
-    { group: 'gex', name: 'GEX+ levels on charts', feed: '—', icon: 'gex', ids: ['stk_gex'], img: 'gex-levels',
+    // ---- Omega ----
+    { group: 'gex', name: 'Omega levels on charts', feed: '—', icon: 'gex', ids: ['stk_gex'], img: 'gex-levels',
       desc: 'Call wall, put wall, zero gamma and ranked strikes drawn on your chart, with previous days.' },
     { group: 'gex', name: 'GEX heatmap', feed: '—', icon: 'heat', ids: ['stk_gexheat'],
       desc: 'Gamma exposure by strike as a heatmap on the chart.' },
@@ -93,8 +93,8 @@
       desc: 'Bubbles on the candles where call (green) or put (red) premium was large, sized by premium. Per-bar totals from the options data feed, not single trades.' },
     { group: 'gex', name: 'Every expiry', feed: '—', icon: 'expiry', ids: ['gex_expiry'],
       desc: 'Same-day, 1 day, 7 days, 30 days and more, not just 0DTE.' },
-    { group: 'gex', name: 'GEX+ strike table', feed: '—', icon: 'list', ids: ['gex_table'],
-      desc: 'Net GEX, DEX and open interest by strike on the GEX+ page.' },
+    { group: 'gex', name: 'Omega strike table', feed: '—', icon: 'list', ids: ['gex_table'],
+      desc: 'Net GEX, DEX and open interest by strike on the Omega page.' },
     { group: 'gex', name: 'Instruments', feed: '—', icon: 'gex', ids: ['gex_symbols'],
       desc: 'SPX, SPY, QQQ, ES, NQ and gold (GC), with futures levels converted from the index.' },
     // ---- Live data ----

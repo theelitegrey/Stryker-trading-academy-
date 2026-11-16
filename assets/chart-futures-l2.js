@@ -651,7 +651,7 @@ export function installFuturesL2(Core, H, reg) {
   const Dom = class FutDomNative extends H.CryptoDomNative {
     attach() {
       if (!this.ctx) return;
-      const mk = H.btBook(H.marketOf(this.ctx)), root = mk.futures ? l2Root(mk.ticker) : null;   // Replay One: the session's real market
+      const mk = H.btBook(H.marketOf(this.ctx)), root = mk.futures ? l2Root(mk.ticker) : null;   // Kronos: the session's real market
       if (!this.tierFn) { this.tierFn = () => this.attach(); window.addEventListener('stryker:l2tier', this.tierFn); }   // tier unknown -> connect, then re-decide when the hub says
       if (!l2Badge()) { this.detach(); this.block = NOT_YET; this.render(); return; }
       const want = root ? 'tsl2|' + root : '';

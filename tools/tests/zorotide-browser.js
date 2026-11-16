@@ -1,4 +1,4 @@
-// ZoroTide browser test: the GEX+ "ZoroTide" tab (assets/gex-tide.js) and the ZoroCharts "ZoroTide" indicator (assets/chart-zorotide.js).
+// ZoroTide browser test: the Omega "ZoroTide" tab (assets/gex-tide.js) and the ZoroCharts "ZoroTide" indicator (assets/chart-zorotide.js).
 //   node tools/tests/chart-dev-server.mjs 8061
 //   flock /tmp/stryker-chrome.lock env CHART_BASE=http://127.0.0.1:8061 node tools/tests/zorotide-browser.js [shotsDir]
 // The recorder's GET /tide is answered from a SYNTHETIC two-session series built here by a fixed formula (see sample()), so every
@@ -98,7 +98,7 @@ const waitBars = (p) => p.evaluate(async () => {
 });
 async function shot(p, name) { await p.mouse.move(2, 2).catch(() => {}); await sleep(500); const f = path.join(OUT, name); await p.screenshot({ path: f }); console.log('SHOT ' + f); }
 
-// ---- GEX+ page ----------------------------------------------------------------------------------------
+// ---- Omega page ----------------------------------------------------------------------------------------
 async function gexPage(b, tag, o) {
   const { ctx, p, errors, hits } = await open(b, Object.assign({ page: 'gex' }, o));
   if (o.free) await p.evaluate(() => window.strykerGexSetLimit({ markets: ['SPX'], dtes: [0], noLadder: true }));

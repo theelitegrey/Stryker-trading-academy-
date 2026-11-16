@@ -1,4 +1,4 @@
-// GEX+ "Download levels" dialog (ZoroOptions S3).  flock /tmp/stryker-chrome.lock env ZO_BASE=http://127.0.0.1:8095 node tools/tests/gex-levels-export-browser.js [shotsDir]
+// Omega "Download levels" dialog (ZoroOptions S3).  flock /tmp/stryker-chrome.lock env ZO_BASE=http://127.0.0.1:8095 node tools/tests/gex-levels-export-browser.js [shotsDir]
 // ?fixture=1 downloads tools/tests/fixtures/zoro/levels-export.csv; the 403 case is routed to check the plan modal.
 const path = require('path');
 const { launch } = require('./lib.js');

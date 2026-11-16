@@ -1,6 +1,6 @@
 ---
 title: Gamma nodes with GEX walls
-dek: Combine two data kinds in one script (GEX+ and ZoroOptions data).
+dek: Combine two data kinds in one script (Omega and ZoroOptions data).
 level: Advanced
 ---
 ```zscript

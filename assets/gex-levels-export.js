@@ -1,4 +1,4 @@
-// GEX+ "Download levels" (ZoroOptions S3). Pro: pick symbol, date range (90 days max), step, format; downloads
+// Omega "Download levels" (ZoroOptions S3). Pro: pick symbol, date range (90 days max), step, format; downloads
 // /api/zo/levels-export (stream 2: CSV/JSON of past Call Ceiling / Put Floor / Flip Line / Zoro Range snapshots).
 // Not Pro -> the plan modal. ?fixture=1 reads tools/tests/fixtures/zoro/levels-export.csv (local tests only).
 // Education only. Not financial advice.

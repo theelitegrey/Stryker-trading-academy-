@@ -1,4 +1,4 @@
-// GEX "Daily close" levels option (Owner 2026-11-06), browser test: the GEX+ page "Levels" switch and the chart
+// GEX "Daily close" levels option (Owner 2026-11-06), browser test: the Omega page "Levels" switch and the chart
 // indicator's "Levels from" input. /api/gex/levels/* is mocked: the default request answers an intraday response whose
 // walls move on EVERY request (a new update each time); ?basis=close answers a fixed close response. Checks: switching
 // shows the close values + "Levels from Thu 5 Nov close", a new intraday update does not move them, switching back

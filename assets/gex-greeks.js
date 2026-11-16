@@ -1,5 +1,5 @@
-// TradeZoro — GEX+ page: "Delta, vanna and charm exposure" panel (gex.html #gex-greeks). Classic script, no dependencies.
-// DATA: GET /api/zo/profile?u=<SPX|QQQ|SPY|GLD>&x=<all|0|1> (Pro, same token as the rest of GEX+: window.strykerGexHeaders).
+// TradeZoro — Omega page: "Delta, vanna and charm exposure" panel (gex.html #gex-greeks). Classic script, no dependencies.
+// DATA: GET /api/zo/profile?u=<SPX|QQQ|SPY|GLD>&x=<all|0|1> (Pro, same token as the rest of Omega: window.strykerGexHeaders).
 //   Computed on our server by the ZoroOptions feeder from the Cboe chain it already pulls (every 2 min): Black-Scholes greeks per
 //   contract, summed per strike with the GEX sign convention. Columns: k, gex, dex, vanna, charm, cvol, pvol, coi, poi, gexv ($M).
 // Expiry toggle: All expiries (<= 31 days) / 0DTE (today's expiry only) / Next expiry. "GEX from today's volume" = gamma x volume.

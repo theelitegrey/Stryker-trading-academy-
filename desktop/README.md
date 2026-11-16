@@ -26,17 +26,35 @@ site deploy is in the app the same day; only the app shell (this folder) needs a
 - `src/policy.js` decides where each URL goes (unit tests: `test/policy.test.js`):
   - `https://tradezoro.com` (and www) pages load in app windows and only they get `src/preload.js`
     (`window.tzDesktop.notify / popOut / toggleAlwaysOnTop`; IPC handlers re-check the sender's URL).
-  - Google / Firebase sign-in and Razorpay checkout open as sandboxed child popups without the preload,
-    so `signInWithPopup` returns its result to the page.
+  - Razorpay checkout (and Firebase's own auth pages) open as sandboxed child popups without the preload.
+  - Google sign-in does NOT run in the app (Google refuses OAuth in embedded browsers: "This browser or app may
+    not be secure"). See "Google sign-in" below.
   - Broker sign-in pages the site sends members to (Alpaca, tastytrade, cTrader, Upstox, Fyers, Schwab)
     may load in the app window, because they redirect back to tradezoro.com/connect/... with the code.
   - Any other http(s) or mailto link opens in the normal browser. file:, javascript:, data: and custom
     schemes are blocked.
 - Permissions are granted only to TradeZoro pages, and only notifications, full screen, clipboard write
   and local-network access (for the Data Bridge on 127.0.0.1).
-- The user agent drops the "Electron/x" token, because Google refuses OAuth from embedded browsers that
-  announce themselves. If Google ever blocks it anyway, email/password and passkeys still work, and the fix
-  is to move Google sign-in to the system browser.
+- The user agent drops the "Electron/x" token (some sites refuse embedded browsers that announce themselves).
+
+## Google sign-in (system browser, since 1.0.1)
+`src/handoff.js` (pure helpers, `test/handoff.test.js`) + `main.js` + `functions/api/desktop/[[path]].js` (server,
+`tools/tests/desktop-handoff.test.mjs`) + `desktop-login.html` / `assets/desktop-login.js`:
+1. The login page (assets/auth.js, rithmic-review.js) sees `window.tzDesktop.googleSignIn` and calls it instead of
+   `signInWithPopup`. Main makes a secret verifier (32 random bytes), starts a one-sign-in HTTP listener on
+   127.0.0.1:<random port> and opens `https://tradezoro.com/desktop-login?nonce=<sha256(verifier)>&port=<port>` in
+   the default browser. The app page shows "We opened your web browser" with Cancel.
+2. In the browser the member signs in with Google as on the site (same account picker; a separate in-memory
+   Firebase app, so the browser's own TradeZoro session is untouched). `POST /api/desktop/handoff` (ID token from a
+   sign-in in the last 10 min + nonce, Origin tradezoro.com only) returns a one-time code (120 s, single use,
+   stored hashed in KV, bound to the nonce).
+3. The page goes to `http://127.0.0.1:<port>/done?code=..` (Host must be exactly 127.0.0.1:<port>); if the browser
+   can't reach it, a button opens `tradezoro://auth?code=..` (registered protocol; the second instance passes it on).
+4. Main calls `POST /api/desktop/handoff/redeem {code, verifier}` -> Firebase custom token (uid only), resolves it to
+   the page that asked, and the page runs `signInWithCustomToken`. The browser tab says "You're signed in, you can
+   close this tab". Wrong verifier: 403 and the code is burnt. The listener closes after use, cancel or 5 minutes.
+Email/password and passkeys still sign in inside the app as before. Apps older than 1.0.1 get "Google sign-in
+needs the newest TradeZoro app" (Help > Check for updates).
 
 ## Build
     cd desktop
@@ -44,10 +62,13 @@ site deploy is in the app the same day; only the app shell (this folder) needs a
     npm test                                     # URL allowlist + market-hours unit tests
     npm run dist:win                             # dist/TradeZoro-Setup.exe + dist/TradeZoro-Portable.exe
     npx electron-builder --linux dir --x64       # Linux build, used for the smoke test
-    xvfb-run -a node test/smoke.js               # starts the app, checks sign-in popup, pop-out, etc.
+    xvfb-run -a node test/smoke.js               # starts the app, checks Google handoff, Razorpay popup, pop-out...
 
 On Linux the Windows build needs wine (`wine64` + `wine32:i386`). The release build runs on GitHub
-(`.github/workflows/desktop-release.yml`, tag `desktop-vX.Y.Z`; the version comes from the tag).
+(`.github/workflows/desktop-release.yml`, tag `desktop-vX.Y.Z`; the version comes from the tag). A tag push
+publishes at once; Run workflow (workflow_dispatch) builds a DRAFT by default. Installed apps only update from a
+published release: `gh release edit desktop-vX.Y.Z --draft=false --latest`. The /dl/ download (functions/dl) caches
+per release tag, so it serves the new exe within about 5 minutes of publishing.
 
 ## Microsoft Store (MSIX / AppX)
 electron-builder only builds AppX on Windows (it needs `makeappx.exe` from the Windows SDK), so it cannot be

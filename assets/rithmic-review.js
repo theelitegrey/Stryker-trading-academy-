@@ -115,13 +115,19 @@
     var provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     busy = true; fromForm = true;
-    auth.signInWithPopup(provider)
+    // In the Windows app Google sign-in runs in the system browser (assets/auth.js tzDesktopGoogleSignIn).
+    var unwait = function () {};
+    var viaApp = (typeof tzDesktopGoogleSignIn === 'function') ? tzDesktopGoogleSignIn(function () { unwait = tzDesktopWaitingNote($('rr-error')); }) : null;
+    (viaApp || auth.signInWithPopup(provider))
       .then(function (cred) {
+        unwait();
         var isNew = !!(cred && cred.additionalUserInfo && cred.additionalUserInfo.isNewUser);
         return finish(cred.user, cred.user.displayName, isNew);
       })
       .catch(function (err) {
-        fromForm = false; busy = false;
+        fromForm = false; busy = false; unwait();
+        var deskMsg = (typeof tzDesktopGoogleError === 'function') ? tzDesktopGoogleError(err) : null;
+        if (deskMsg) return showErr('rr-error', deskMsg);
         showErr('rr-error', err && err.code === 'auth/popup-blocked'
           ? 'Your browser blocked the Google popup. Allow popups for this site, or use email instead.'
           : friendly(err));

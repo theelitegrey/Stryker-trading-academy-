@@ -103,6 +103,7 @@ const CASES = [
   // TPO extras (member request 13 Nov): every option on; checked against the default look below
   ['tpo-extras', 'stk_of_tpo', {}, '5', Date.UTC(2026, 9, 20, 12, 0), D21(17, 0)],
   ['tpo-extras30', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 19, 12, 0), D21(17, 0)],
+  ['tpo-rows', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 19, 12, 0), D21(17, 0)],   // Rows mode (member request 14 Nov)
   ['tpo-left', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 20, 12, 0), D21(17, 0)],   // TPO Align left (member request 14 Nov)
   ['evr', 'stk_of_evr', {}, '5', D21(4, 0), D21(17, 0)],
   ['sweep', 'stk_of_sweep', {}, '1', D21(12, 30), D21(16, 30)],
@@ -158,6 +159,18 @@ const CASES = [
             check(n2 < n, eng + ' ' + w + ' ' + id + ': a 10x volume spike setting leaves fewer marks (' + n + ' -> ' + n2 + ' px)');
             await p.evaluate(() => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_sweep'); h.setInputs(Object.assign({}, h.inputValues(), { volMult: 1.5 })); });
             await sleep(1500);
+          } else if (id === 'tpo-rows') {
+            const setI = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o).then(() => sleep(1500));
+            const defs = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo').inputValues());
+            check(defs.rowMode === 'auto' && defs.rowCount === 40, eng + ' ' + w + ' ' + id + ': Rows mode defaults to auto, 40 rows', [defs.rowMode, defs.rowCount]);
+            const sh = (n) => p.screenshot({ path: path.join(OUT, 'ofp-' + eng + '-' + w + '-tpo-rows-' + n + '.png') });
+            const n0 = await ink(p); await sh('auto');
+            await setI({ rowMode: 'rows', rowCount: 15 }); const n1 = await ink(p); await sh('rows15');
+            await setI({ rowMode: 'rows', rowCount: 120 }); const n2 = await ink(p); await sh('rows120');
+            check(n1 > 0 && n2 > 0 && n1 !== n2, eng + ' ' + w + ' ' + id + ': 15 vs 120 rows draw differently (' + n1 + ' / ' + n2 + ' px)');
+            await setI({ rowMode: 'auto' });
+            const n3 = await ink(p);
+            check(Math.abs(n3 - n0) <= Math.max(10, n0 * 0.002), eng + ' ' + w + ' ' + id + ': auto again = the default look (' + n0 + ' -> ' + n3 + ' px)');
           } else if (id === 'tpo-left') {
             const setI = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o).then(() => sleep(1500));
             const defs = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo').inputValues());

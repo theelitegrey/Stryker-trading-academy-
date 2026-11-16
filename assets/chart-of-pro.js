@@ -18,7 +18,7 @@
 // their micros; Binance trades for crypto) with the same plan + delay rules and refresh timers (hooks
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
-import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=1077';
+import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, manualRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=1077';
 import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_INPUTS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=1077';
 
 export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
@@ -92,7 +92,9 @@ const TPO_SCHEMA = [
   { key: 'session', title: 'Session', type: 'string', defval: 'auto', options: ['auto', 'rth', 'full'], tooltip: 'auto = RTH 09:30-16:00 New York for futures, the UTC day for crypto. full = the CME day (18:00 New York).' },
   { key: 'period', title: 'Period (minutes per letter)', type: 'int', defval: 30, min: 5, max: 120, step: 5 },
   { key: 'style', title: 'Show as', type: 'string', defval: 'auto', options: ['auto', 'letters', 'blocks'], tooltip: 'auto = letters when they fit, else blocks.' },
-  { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 2000, step: 1 },
+  { key: 'rowMode', title: 'Rows mode', type: 'string', defval: 'auto', options: ['auto', 'ticks', 'rows'], tooltip: 'auto = about 40 rows, coarser when zoomed out. ticks = every row is the Row size below. rows = every session gets the Number of rows below, so profiles look alike at the same zoom.' },
+  { key: 'rowTicks', title: 'Row size (ticks per row)', type: 'int', defval: 1, min: 1, max: 2000, step: 1, tooltip: 'Used when Rows mode is ticks.' },
+  { key: 'rowCount', title: 'Number of rows', type: 'int', defval: 40, min: 10, max: 200, step: 1, tooltip: 'Used when Rows mode is rows: every session is drawn with about this many rows (at most; row size is a whole number of ticks).' },
   { key: 'va', title: 'Value area %', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
   { key: 'ib', title: 'Initial balance (periods)', type: 'int', defval: 2, min: 1, max: 8, step: 1 },
   { key: 'widthPct', title: 'Width % of the session', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
@@ -407,9 +409,7 @@ function tpoLayer() {
           const sb = a.bars.slice(s.i0, s.i1 + 1);
           let hi = -Infinity, lo = Infinity;
           for (const b of sb) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
-          let row;
-          if (I.rowTicks > 0) row = I.rowTicks * tick;
-          else row = rowFor(hi - lo, tick, tickPx, minRowPx);
+          const row = manualRow(I, hi - lo, tick) || rowFor(hi - lo, tick, tickPx, minRowPx);
           const pk = s.k + '|' + row + '|' + sb.length + '|' + sb[sb.length - 1].close + '|' + periodMin + '|' + I.va + '|' + I.ib + '|' + ibMs;
           let p = inst.memo.get('tpo|' + s.k);
           if (!p || p.pk !== pk) { p = tpoProfile(sb, { periodMs: periodMin * 60000, row, va: num(I.va, 70), ibPeriods: clamp(Math.round(num(I.ib, 2)), 1, 8), ibMs }); if (!p) continue; p.pk = pk; inst.memo.set('tpo|' + s.k, p); }

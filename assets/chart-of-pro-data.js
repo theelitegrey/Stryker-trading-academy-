@@ -269,6 +269,19 @@ export function autoRow(rangePrice, tick, target = 36) {
   return NICE[NICE.length - 1] * tick;
 }
 
+// Fixed row count: the row size (a whole number of ticks, at least 1) that gives at most `rows` rows over the range.
+export function rowForCount(rangePrice, tick, rows) {
+  if (!(rangePrice > 0) || !(tick > 0) || !(rows >= 1)) return tick || 1;
+  return Math.max(1, Math.ceil(rangePrice / tick / rows)) * tick;
+}
+// Rows setting -> row size, or 0 for auto. mode: 'auto' | 'ticks' (rowTicks) | 'rows' (rowCount per session).
+export function manualRow(I, rangePrice, tick) {
+  const m = I && I.rowMode;
+  if (m === 'ticks' && I.rowTicks >= 1) return Math.round(I.rowTicks) * tick;
+  if (m === 'rows' && I.rowCount >= 1) return rowForCount(rangePrice, tick, Math.round(I.rowCount));
+  return 0;
+}
+
 // ---------------------------------------------------------------- Effort vs Result
 // Per bar: effort = volume / the average volume of the previous `lookback` bars; result = range /
 // their average range. flag 1 = HIGH EFFORT, LOW RESULT (effort >= minEffort and effort / result >=

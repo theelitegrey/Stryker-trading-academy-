@@ -18,8 +18,8 @@
 // provider / Rithmic provider memo every page they fetch.
 // Not used during Bar Replay (it keeps its own buffers) or on offline/data-only charts.
 
-import { getDays, capDays, barsNeeded, planDays } from './chart-days-load.js?v=1061';
-import { deepOn, DEEP_DEPTH_DAYS } from './chart-futures-provider.js?v=1061';
+import { getDays, capDays, barsNeeded, planDays } from './chart-days-load.js?v=1065';
+import { deepOn, DEEP_DEPTH_DAYS } from './chart-futures-provider.js?v=1065';
 
 const PREFETCH_VIEWS = 1.5;     // start loading when fewer than 1.5 screens of bars remain on the left
 const MIN_LEAD_BARS = 150;

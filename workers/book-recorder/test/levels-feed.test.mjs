@@ -164,4 +164,13 @@ r = await call('/lv/feed/' + j2.secret + '.csv'); ok(r.status === 404, 'revoked 
 dsql.exec('INSERT INTO lvtok (h, uid, exp, made, last) VALUES (?, ?, ?, ?, 0)', await sha256Hex('E'.repeat(43)), 'u9', Date.now() - 1000, 1);
 r = await call('/lv/feed/' + 'E'.repeat(43) + '.csv'); ok(r.status === 404, 'expired link returns nothing');
 r = await call('/lv/other', auth); ok(r.status === 404, 'unknown route -> 404');
+// REGRESSION (member bug 16 Nov, "Could not make a link"): the /lv/ router in index.js must sit BEFORE the generic GET-only gate,
+// or POST/DELETE /lv/token answer 405 'read-only' and the page shows "Could not make a link". The route unit tests above bypass index.js.
+{
+  const idx = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8');
+  const lv = idx.indexOf("u.pathname.startsWith('/lv/')");
+  const gate = idx.indexOf("new Response('read-only', { status: 405");
+  ok(lv > 0 && gate > 0, 'index.js has the /lv/ router and the read-only gate');
+  ok(lv < gate, '/lv/ router comes before the GET-only read-only gate (POST /lv/token reaches lvRoute)');
+}
 console.log('ALL PASS ' + n);

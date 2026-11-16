@@ -99,7 +99,13 @@ export function mountWorkspaces(ws, o){
   const { L, barL, bindPopover, sheetHead, toast, grid } = o;
   if (!ws || !L || !barL || document.getElementById('stkws-btn')) return null;
   const uid = () => (user() ? user().uid : 'guest');
-  const K = { ix: () => 'stryker_ws_ix_' + uid(), doc: (id) => 'stryker_ws_doc_' + uid() + '_' + id };
+  const K = { ix: () => 'stryker_ws_ix_' + uid(), doc: (id) => 'stryker_ws_doc_' + uid() + '_' + id,
+    scr: () => 'stryker_ws_scr_' + uid(),        // which workspace the engine's own saved screen (vela-workspace) belongs to
+    tab: () => 'stryker_ws_tab_' + uid() };      // this browser tab's active workspace (sessionStorage: survives a reload, never shared with other tabs)
+  // markScreen: the engine's saved screen now belongs to workspace `id`. The engine writes it ~0.5 s after a change and
+  // a document shown through adopt() does not always start that timer (phones), so it is written here too.
+  const markScreen = (id) => { if (safe()) return;   // safe mode (phone, after a crash) writes no saved screen: nothing to claim
+    lsSet(K.scr(), id); const w = () => { try { ws.persistNow && ws.persistNow(); } catch (e) {} }; w(); setTimeout(w, 900); };
   const docs = C.lru(C.CACHE_N);      // workspace id -> chart document (instant switching)
   const pending = new Map();          // workspace id -> promise of its first layout save
   let ix = null, busy = null, want = null, remoteT = null;
@@ -124,6 +130,7 @@ export function mountWorkspaces(ws, o){
     ix.t = Date.now();
     const s = C.serialize(ix);
     if (s) { try { localStorage.setItem(K.ix(), s); } catch (e) {} }
+    try { sessionStorage.setItem(K.tab(), ix.active); } catch (e) {}
     paint();
     if (!user() || !s || !remoteRead) return;   // never push before the account copy is read: a new device would overwrite it
     clearTimeout(remoteT);
@@ -186,6 +193,7 @@ export function mountWorkspaces(ws, o){
       L.adopt(r.doc, r.meta);
       if (r.meta) { to.layoutId = r.meta.id; to.layoutName = r.meta.name; to.shared = !!r.meta.shared; }
       docs.set(to.id, r.doc);
+      markScreen(to.id);
       if (!isPhone()) applyPanels(to.panels);
       persist();
       announce(to.name);
@@ -631,6 +639,7 @@ export function mountWorkspaces(ws, o){
     const it = cur(); syncLayout(it);
     if (!isPhone()) it.panels = capturePanels();
     try { it.sub = C.subOf(screenState()); } catch (e) {}
+    try { if (!busy) ws.persistNow && ws.persistNow(); } catch (e) {}   // the engine's saved screen = this workspace's chart, even when closed within its 0.5 s write delay
     const s = C.serialize(Object.assign({}, ix, { t: Date.now() }));
     if (s) { try { localStorage.setItem(K.ix(), s); } catch (e) {} }
   });
@@ -639,9 +648,33 @@ export function mountWorkspaces(ws, o){
   const saved = C.sanitize(lsGet(K.ix()));
   ix = saved || C.fresh('Workspace 1', user() ? L.current : null);   // fresh: t = 0, so any account copy wins over it
   if (!C.find(ix, ix.active)) ix.active = ix.items[0].id;
-  syncLayout(cur());
+  // Which workspace does THIS tab have open? The index is shared by every tab of the browser (last writer wins), so a
+  // tab used on workspace 2 would reopen on whatever another tab left active. The tab's own choice wins.
+  let tabId = null; try { tabId = sessionStorage.getItem(K.tab()); } catch (e) {}
+  if (saved && tabId && C.find(ix, tabId)) ix.active = tabId;
+  // The engine's saved screen and the open layout are also shared per browser. When they were last written for another
+  // workspace than the one opening now, they are NOT this workspace's chart: restore its own document instead of
+  // treating the screen as its own (that is how workspace 2 ended up showing, and then saving over, workspace 1).
+  const scr = saved ? lsGet(K.scr()) : null;
+  let noScreen = false; try { noScreen = !!window.__stkPersistKey && !localStorage.getItem(window.__stkPersistKey); } catch (e) {}
+  // the open layout (also one per browser) is another workspace's
+  const lay = user() && L.current ? L.current.id : null;
+  const foreign = !!saved && (noScreen || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && x.layoutId === lay)));
+  if (!foreign) { syncLayout(cur()); markScreen(ix.active); }
   paint();
   if (saved) persist();
+  if (foreign) {
+    const it = cur();
+    busy = (async () => {
+      let r; try { r = await load(it); } catch (e) { r = { doc: defaultDoc(), meta: null }; }
+      if (ix.active !== it.id) return;
+      L.adopt(r.doc, r.meta);
+      if (r.meta) { it.layoutId = r.meta.id; it.layoutName = r.meta.name; it.shared = !!r.meta.shared; }
+      docs.set(it.id, r.doc); markScreen(it.id);
+      if (!isPhone()) applyPanels(it.panels);
+      persist();
+    })().finally(() => { busy = null; });
+  }
   // signed in: the account copy wins when it is newer (another device changed the list)
   if (user()) {
     remoteRef().get().then((d) => {
@@ -653,7 +686,7 @@ export function mountWorkspaces(ws, o){
       if (here) { r.active = ix.active; Object.assign(here, { layoutId: cur().layoutId, layoutName: cur().layoutName, shared: cur().shared }); ix = r; persist(); return; }
       const target = r.active; ix = r; ix.active = null;
       // the screen belongs to a workspace this account no longer has: open the account's active one (no save: it was not ours)
-      (async () => { const it = C.find(ix, target) || ix.items[0]; ix.active = it.id; const x = await load(it); L.adopt(x.doc, x.meta); persist(); })();
+      (async () => { const it = C.find(ix, target) || ix.items[0]; ix.active = it.id; const x = await load(it); L.adopt(x.doc, x.meta); markScreen(it.id); persist(); })();
     }).catch((e) => console.warn('TradeZoro: workspaces sync', e && e.code));
   }
 

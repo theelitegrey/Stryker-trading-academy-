@@ -81,7 +81,7 @@ export function mountPhantom(ws, opts) {
       ${top.map((r) => { const f = P.flagsOf(r, cut); return `<tr data-k="${r.k}"><th>${P.fmtStrike(r.strike)}</th><td>${P.fmtExp(r.exp)}</td><td class="${r.cp === 'C' ? 'pos' : 'neg'}">${r.cp === 'C' ? 'Call' : 'Put'}</td><td class="num">${P.usd(r.p)}</td><td class="num${f.vo ? ' hot' : ''}">${P.fmtVo(r.vo)}</td></tr>`; }).join('')}
       </tbody></table></div>
       <h3 class="stkph-h">Whale moves <small>biggest minutes</small></h3>
-      <div class="stkph-scroll"><table class="stkph-tbl"><thead><tr><th>Time</th><th>Strike</th><th>Side</th><th class="num">Est. premium</th><th class="num">Vol/OI</th></tr></thead><tbody>
+      <div class="stkph-scroll"><table class="stkph-tbl"><thead><tr><th>Time</th><th>Strike</th><th>Side</th><th class="num">Premium</th><th class="num">Vol/OI</th></tr></thead><tbody>
       ${wh.length ? wh.map((w) => `<tr data-k="${w.k}"><th>${P.fmtTime(w.t * 1000)}</th><td>${P.fmtStrike(w.strike)} <small>${P.fmtExp(w.exp)}</small></td><td class="${w.cp === 'C' ? 'pos' : 'neg'}">${w.cp === 'C' ? 'Call' : 'Put'}</td><td class="num">${P.usd(w.p)}</td><td class="num${w.vo > 1 ? ' hot' : ''}">${P.fmtVo(w.vo)}</td></tr>`).join('') : '<tr><td colspan="5" class="stkph-empty">No minutes over $25K yet.</td></tr>'}
       </tbody></table></div>
       <a class="stkph-link" href="/phantom?u=${u}" target="_blank" rel="noopener">Open Phantom: board, contract detail, alerts</a>`;

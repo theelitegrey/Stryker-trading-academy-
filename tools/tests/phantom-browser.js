@@ -31,7 +31,7 @@ async function open(b, o) {
   const ctx = await b.newContext({ viewport: { width: o.w, height: o.h }, deviceScaleFactor: o.mobile ? 2 : 1, isMobile: !!o.mobile, hasTouch: !!o.mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript((light) => {
-    try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', light ? 'day' : 'night'); localStorage.removeItem('stk_ph_wtabs'); } catch (e) {}
+    try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', light ? 'day' : 'night'); localStorage.removeItem('stk_ph_wtabs'); localStorage.setItem('tz_consent', JSON.stringify({ v: 1, essential: true, analytics: false, at: new Date().toISOString() })); } catch (e) {}
   }, !!o.light);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|book-recorder\.)/, (r) => r.abort());
   const hits = [];
@@ -171,9 +171,17 @@ async function charts(b, tag, o) {
   await waitBars(p);
   await p.waitForFunction(() => window.__stkPhantom && window.__stkPhantom.open, null, { timeout: 20000 }).catch(() => {});
   await setSym(p, 'futures:NQ1!');
-  const btn = o.mobile ? '.stkph-phonebtn' : '.stkph-railbtn';
-  check(await p.evaluate((s) => { const e = document.querySelector(s); return !!e && e.getBoundingClientRect().width > 0; }, btn), tag + ': Phantom button visible (' + btn + ')');
-  await p.click(btn); await sleep(2500);
+  if (o.mobile) {   // phones: panel buttons live in the one-bar More menu (assets/chart-onebar.js)
+    check(await p.evaluate(() => !!document.querySelector('.stkph-phonebtn')), tag + ': Phantom phone button exists');
+    await p.click('#stkc-more-btn'); await sleep(500);
+    const row = p.getByText('Phantom options flow', { exact: true });
+    check(await row.isVisible().catch(() => false), tag + ': "Phantom options flow" row in More');
+    await row.click();
+  } else {
+    check(await p.evaluate(() => { const e = document.querySelector('.stkph-railbtn'); return !!e && e.getBoundingClientRect().width > 0; }), tag + ': Phantom rail button visible');
+    await p.click('.stkph-railbtn');
+  }
+  await sleep(2500);
   await p.waitForFunction(() => document.querySelector('#stkph .stkph-tbl'), null, { timeout: 15000 }).catch(() => {});
   const st = await p.evaluate(() => ({ u: window.__stkPhantom.u, sym: document.querySelector('.stkph-sym').textContent, tot: document.querySelector('.stkph-tot') && document.querySelector('.stkph-tot').innerText, rows: document.querySelectorAll('#stkph tbody tr[data-k]').length }));
   check(st.u === 'QQQ' && /NQ → QQQ/.test(st.sym), tag + ': NQ maps to QQQ (' + st.sym + ')');

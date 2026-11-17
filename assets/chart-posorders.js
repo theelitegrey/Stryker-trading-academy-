@@ -140,6 +140,8 @@ const CSS = `
 .stkpo-btn svg{ flex:none; }
 .stkpo-n{ display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px; background:var(--gold); color:#0b0b0d; font:700 10px/1 -apple-system, BlinkMacSystemFont, Roboto, sans-serif; font-variant-numeric:tabular-nums; }
 .stkpo-n[hidden]{ display:none; }
+/* icon-only where the one-row bar is tight: 1280-1365 (the Equity summary is still shown) and below 1000 */
+@media (min-width:1280px) and (max-width:1365px), (max-width:999px){ .stkpo-btn{ padding:0 8px; } .stkpo-l{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); } .stkpo-btn{ position:relative; } .stkpo-n{ position:absolute; top:-4px; right:-4px; } }
 @media (max-width:${ICON}px){ .stkpo-btn{ width:32px; height:32px; padding:0; justify-content:center; position:relative; } .stkpo-l{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); } .stkpo-n{ position:absolute; top:0; right:-2px; } }
 .stkpo{ flex:none; position:relative; z-index:35; display:flex; flex-direction:column; height:var(--stkpo-h, ${H0}px); min-height:0; box-sizing:border-box; background:var(--bg-0); color:var(--ink-1); border-top:1px solid var(--line); font:13px/1.4 var(--font-body, Archivo, system-ui, sans-serif); }
 .stkpo[hidden]{ display:none; }

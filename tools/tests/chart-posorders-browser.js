@@ -94,10 +94,10 @@ const measure = (p) => p.evaluate(() => {
       await p.evaluate(() => { window.confirm = () => true; });
       await p.click('#stkpo-dock [data-t=ord]'); await p.click('#stkpo-dock [data-x="0"]');
       check(await wait(p, () => window.__stkPaper.account.state.orders.length === 0), L + 'cancel X cancels the order');
-      check(/No open orders/.test(await p.textContent('#stkpo-dock .stkpo-view')), L + 'empty state "No open orders"');
+      check(await wait(p, () => /No open orders/.test(document.querySelector('#stkpo-dock .stkpo-view').textContent)), L + 'empty state "No open orders"');
       await p.click('#stkpo-dock [data-t=pos]'); await p.click('#stkpo-dock [data-x="0"]');
       check(await wait(p, () => Object.keys(window.__stkPaper.account.state.positions).length === 0), L + 'close X closes the position');
-      check(/No open positions/.test(await p.textContent('#stkpo-dock .stkpo-view')), L + 'empty state "No open positions"');
+      check(await wait(p, () => /No open positions/.test(document.querySelector('#stkpo-dock .stkpo-view').textContent)), L + 'empty state "No open positions"');
       await p.click('#stkpo-dock [data-t=th]'); await p.waitForTimeout(200);
       check((await p.$$eval('#stkpo-dock tbody tr', (a) => a.length)) === 1, L + 'closed trade lands in Trade history');
       check(await wait(p, () => document.querySelector('#stkpo-btn .stkpo-n').hidden), L + 'badge gone when flat');

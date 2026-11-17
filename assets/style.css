@@ -12456,26 +12456,53 @@ section.stkss-sec{ padding:0; margin:0; }
 .stkop-vh{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 .stkop-grab{ display:none; }
 
-/* header: tabs · symbol · icons, all on one 32 px centre line; drag handle */
-.stkop-hd{ flex:none; display:flex; align-items:center; gap:8px; height:48px; padding:0 8px; border-bottom:1px solid var(--line-soft); cursor:grab; touch-action:none; }
+/* header row 1: tabs (segmented) left · window buttons right, one 32 px centre line; drag handle (float). 2026-11-17 */
+.stkop-hd{ flex:none; display:flex; align-items:center; gap:8px; height:48px; padding:0 8px; cursor:grab; touch-action:none; }
 .stkop.dragging .stkop-hd{ cursor:grabbing; }
 .stkop-tabs{ flex:none; display:flex; gap:0; height:32px; padding:2px; border-radius:999px; background:var(--bg-3); }
-.stkop-tabs button{ height:28px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:var(--ink-2); font:600 12px/16px var(--font-body, sans-serif); cursor:pointer; transition:background .15s cubic-bezier(.2,0,0,1), color .15s; }
+.stkop-tabs button{ height:28px; padding:0 8px; border:0; border-radius:999px; background:transparent; color:var(--ink-2); font:600 12px/16px var(--font-body, sans-serif); cursor:pointer; transition:background .15s cubic-bezier(.2,0,0,1), color .15s; }
 .stkop-tabs button:hover{ color:var(--ink-0); }
 .stkop-tabs button.on{ background:var(--bg-1); color:var(--ink-0); box-shadow:0 1px 2px rgba(0,0,0,.35), 0 0 0 1px var(--line); }
 :root[data-theme="light"] .stkop-tabs button.on{ background:var(--bg-2); box-shadow:0 1px 2px rgba(14,22,33,.12), 0 0 0 1px var(--line); }
-.stkop-sym{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; justify-content:center; height:32px; }
-.stkop-sym b{ font:700 13px/16px var(--font-body, sans-serif); color:var(--ink-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.stkop-sym small{ font:500 11px/16px var(--font-mono); color:var(--ink-3); letter-spacing:.02em; }
-.stkop-sym small[hidden]{ display:none; }
-.stkop-hbtns{ flex:none; display:flex; align-items:center; gap:0; }
-.stkop-ib{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:0; border-radius:999px; background:transparent; color:var(--ink-2); cursor:pointer; }
+.stkop-hbtns{ flex:none; display:flex; align-items:center; gap:0; margin-left:auto; }
+.stkop-ib{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:0; border-radius:999px; background:transparent; color:var(--ink-2); cursor:pointer; }
 .stkop-ib:hover{ background:var(--bg-3); color:var(--ink-0); }
+.stkop-ib.stkop-mode.on{ color:var(--gold); }
+.stkop-mode[data-a=float]{ margin-right:8px; }   /* Dock / Float pair, then the expand / minimise / close group */
+/* header row 2: symbol details bar. Line 1: root · full name (wraps, never cut) · contract. Line 2: last, change, bid / ask */
+.stkop-info{ flex:none; display:flex; flex-direction:column; gap:4px; padding:8px 16px; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft); background:var(--bg-0); cursor:grab; touch-action:none; }
+:root[data-theme="light"] .stkop-info{ background:var(--bg-1); }
+.stkop.is-dock .stkop-info, .stkop.is-max .stkop-info{ cursor:default; }
+.stkop-il{ display:flex; align-items:center; gap:8px; min-width:0; min-height:20px; }
+.stkop-sym{ flex:1 1 auto; min-width:0; margin:0; font:400 13px/20px var(--font-body, sans-serif); color:var(--ink-1); }
+.stkop-sym b{ font:700 14px/20px var(--font-body, sans-serif); color:var(--ink-0); }
+.stkop-sym .stkop-nm::before{ content:' · '; color:var(--ink-3); }
+.stkop-nm[hidden], .stkop-code[hidden]{ display:none; }
+.stkop-code{ flex:none; align-self:center; height:20px; padding:0 8px; border-radius:6px; background:var(--bg-3); font:600 11px/20px var(--font-mono, monospace); color:var(--ink-1); letter-spacing:.02em; }
+.stkop-last{ flex:none; font:700 14px/20px var(--font-mono, monospace); font-variant-numeric:tabular-nums; color:var(--ink-0); }
+.stkop-chg{ flex:none; font:500 12px/20px var(--font-mono, monospace); font-variant-numeric:tabular-nums; color:var(--ink-2); }
+.stkop-chg:empty{ display:none; }
+.stkop-chg.up{ color:var(--op-buy-ink); } .stkop-chg.down{ color:var(--op-sell-ink); }
+.stkop-ba{ flex:none; display:inline-flex; align-items:center; gap:12px; font:500 11px/20px var(--font-body, sans-serif); color:var(--ink-3); }
+.stkop-ba b{ font:600 12px/20px var(--font-mono, monospace); font-variant-numeric:tabular-nums; }
+.stkop-ba b.bid{ color:var(--op-buy-ink); } .stkop-ba b.ask{ color:var(--op-sell-ink); }
+/* docked: full-height side panel at the chart's right edge; the chart gives up the width (margin-right); left edge = width handle */
+.stkchart-panel.stkop-docked #vela-chart{ margin-right:var(--stkop-dw, 340px); }
+.stkop.is-dock{ border-radius:0; border-width:0 0 0 1px; border-color:var(--line-soft); box-shadow:none; z-index:31; background:var(--bg-0); }
+:root[data-theme="light"] .stkop.is-dock{ background:var(--bg-1); box-shadow:none; }
+.stkop.is-dock .stkop-hd{ cursor:default; }
+.stkop.is-dock [data-a=max], .stkop.is-dock [data-a=min], .stkop.is-dock .stkop-rs{ display:none; }
+.stkop.is-dock .stkop-info{ background:var(--bg-1); }
+:root[data-theme="light"] .stkop.is-dock .stkop-info{ background:var(--bg-2); }
+.stkop.is-dock.is-live{ border-left-color:rgba(217,45,32,.6); }
+.stkop-dl{ display:none; }
+.stkop.is-dock .stkop-dl{ display:block; position:absolute; left:-4px; top:0; bottom:0; width:8px; cursor:ew-resize; touch-action:none; z-index:3; }
+.stkop.is-dock .stkop-dl:hover, .stkop.is-dock.sizing .stkop-dl{ background:linear-gradient(90deg, transparent 3px, var(--gold) 3px 5px, transparent 5px); }
 
 /* body */
 .stkop-body{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
 .stkop.is-min .stkop-body, .stkop.is-min .stkop-ft, .stkop.is-min .stkop-rs{ display:none; }
-.stkop.is-min .stkop-hd{ border-bottom:0; }
+.stkop.is-min .stkop-info{ display:none; }   /* minimised = the tab / window-button bar only */
 .stkop-status{ margin:0; min-width:0; font:400 12px/16px var(--font-body, sans-serif); color:var(--ink-3); }
 .stkop-status.bad{ color:var(--op-sell-ink); font-weight:600; }
 .stkop-status:empty{ display:none; }
@@ -12513,6 +12540,13 @@ section.stkss-sec{ padding:0; margin:0; }
 .stkop-join:hover:not(:disabled){ background:var(--bg-3); }
 .stkop-join b{ font:700 13px/16px var(--font-mono); font-variant-numeric:tabular-nums; }
 .stkop-join.bid b{ color:var(--op-buy-ink); } .stkop-join.ask b{ color:var(--op-sell-ink); }
+.stkop-join span{ white-space:nowrap; }
+/* narrow panel (dock 280-380, small float): Join label above its price, one 48 px pill each, nothing wraps */
+.stkop-body{ container-type:inline-size; container-name:stkop; }
+@container stkop (max-width:400px){
+  .stkop-join{ flex-direction:column; gap:0; height:48px; padding:0 8px; border-radius:16px; }
+  .stkop-join span{ font-size:12px; line-height:16px; color:var(--ink-2); }
+}
 .stkop-srow{ display:flex; align-items:center; gap:8px; min-height:24px; }
 .stkop-srow .stkop-status{ flex:1 1 auto; }
 .stkop-srow .stkop-status:empty{ display:block; }
@@ -12592,9 +12626,12 @@ section.stkss-sec{ padding:0; margin:0; }
 :root[data-theme="light"] .stkop-ft{ background:var(--bg-1); }
 .stkop-fr{ display:flex; align-items:center; gap:8px; min-height:32px; min-width:0; }
 .stkop-sp{ flex:1 1 auto; }
-.stkop-acct{ position:relative; display:inline-flex; align-items:center; min-width:0; height:32px; }
-.stkop-acct select{ appearance:none; -webkit-appearance:none; height:32px; max-width:200px; padding:0 32px 0 12px; border:1px solid var(--line); border-radius:999px; background:var(--bg-2); color:var(--ink-0); font:600 12px/16px var(--font-body, sans-serif); cursor:pointer; text-overflow:ellipsis; }
-.stkop-acct svg{ position:absolute; right:12px; width:12px; height:12px; pointer-events:none; color:var(--ink-2); }
+/* account: read-only label (picked in the Trade menu) + "Change" link */
+.stkop-acct{ flex:0 1 auto; min-width:0; display:inline-flex; align-items:center; height:24px; padding:0 8px; border-radius:6px; background:var(--bg-3); color:var(--ink-1); font:600 12px/16px var(--font-body, sans-serif); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stkop-acct.live{ background:var(--op-live); color:#fff; }
+.stkop-link{ flex:none; height:32px; padding:0 4px; border:0; border-radius:6px; background:transparent; color:var(--gold); font:600 12px/16px var(--font-body, sans-serif); cursor:pointer; }
+.stkop-link:hover{ text-decoration:underline; }
+:root[data-theme="light"] .stkop-link{ color:#03875c; }
 .stkop-chip{ flex:none; display:inline-flex; align-items:center; height:24px; padding:0 8px; border-radius:999px; font:700 11px/16px var(--font-body, sans-serif); letter-spacing:.06em; text-transform:uppercase; }
 .stkop-chip.live{ background:var(--op-live); color:#fff; box-shadow:0 0 0 2px rgba(217,45,32,.25); }
 .stkop-chip.demo, .stkop-chip.paper{ background:var(--bg-3); color:var(--ink-2); }
@@ -12615,6 +12652,11 @@ section.stkss-sec{ padding:0; margin:0; }
 .stkop-rs:hover{ opacity:1; }
 .stkop.is-max .stkop-rs{ display:none; }
 .stkop.is-max .stkop-hd{ cursor:default; }
+/* right icon rail: "Trading panel" (chart-paper.js mountRailBtn); same look as the rail's other buttons */
+.stkop-railbtn{ flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--ink-2); cursor:pointer; }
+.stkop-railbtn:hover{ background:var(--bg-2); color:var(--ink-0); }
+.stkop-railbtn.on{ background:var(--bg-2); color:var(--ink-0); box-shadow:inset 2px 0 0 var(--gold); }
+.stkop-railbtn:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }
 
 /* focus */
 .stkop button:focus-visible, .stkop input:focus-visible, .stkop select:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
@@ -12630,7 +12672,7 @@ html.stklv-on .stkpt[hidden]{ display:none !important; }
   .stkop.is-sheet{ left:0 !important; right:0; top:auto !important; bottom:var(--stkc-dock, 0px); width:auto !important; height:auto !important; max-height:min(88dvh, 720px); z-index:8000; border-width:1px 0 0; border-radius:20px 20px 0 0; padding-bottom:env(safe-area-inset-bottom); }
   .stkop.is-sheet[data-tab=order]{ height:min(88dvh, 720px) !important; }
   .stkop-grab{ display:block; flex:none; width:36px; height:4px; margin:8px auto 0; border-radius:2px; background:var(--line); }
-  .stkop.is-sheet .stkop-hd{ cursor:default; height:52px; padding:0 8px 0 16px; }
+  .stkop.is-sheet .stkop-hd{ cursor:default; height:52px; padding:0 8px; }
   .stkop.is-sheet [data-tab=dom], .stkop.is-sheet [data-a=max], .stkop.is-sheet [data-a=min], .stkop.is-sheet .stkop-rs{ display:none; }
   .stkop.is-sheet .stkop-ib{ width:40px; height:40px; }
   .stkop.is-sheet .stkop-tabs{ height:40px; } .stkop.is-sheet .stkop-tabs button{ height:36px; padding:0 16px; font-size:13px; }
@@ -12641,9 +12683,10 @@ html.stklv-on .stkpt[hidden]{ display:none !important; }
   .stkop.is-sheet .stkop-pair input, .stkop.is-sheet .stkop-in, .stkop.is-sheet .stkop-mkt{ height:48px; font-size:16px; }
   .stkop.is-sheet .stkop-pair span{ top:16px; }
   .stkop.is-sheet .stkop-chk, .stkop.is-sheet .stkop-brh{ height:32px; } .stkop.is-sheet .stkop-hk{ height:32px; }
-  .stkop.is-sheet .stkop-b, .stkop.is-sheet .stkop-acct, .stkop.is-sheet .stkop-acct select, .stkop.is-sheet .stkop-chip.paper{ height:40px; }
+  .stkop.is-sheet .stkop-b, .stkop.is-sheet .stkop-link{ height:40px; }
   .stkop.is-sheet .stkop-fr{ min-height:40px; }
-  .stkop.is-sheet .stkop-acct select{ max-width:168px; }
+  .stkop.is-sheet .stkop-info{ cursor:default; }
+  .stkop.is-sheet [data-a=dock], .stkop.is-sheet [data-a=float]{ display:none; }
   .stkop-lchip{ bottom:48px; }
 }
 @media (prefers-reduced-motion:reduce){ .stkop-tabs button, .stkop-pill{ transition:none; } }
@@ -12690,6 +12733,8 @@ html.stklv-on .stkpt[hidden]{ display:none !important; }
 .stktm .stktm-act{ opacity:1; }   /* Owner 17 Nov: edit + disconnect always visible */
 .stktm-act:hover{ background:var(--bg-2); color:var(--ink-0); }
 .stktm-act-off:hover{ color:#f23645; background:rgba(242,54,69,.10); }
+.stktm-act.stktm-act-on{ opacity:1; }   /* Paper row: disconnect always visible (Owner 2026-11-17) */
+.stktm-ph{ flex:none; display:inline-block; width:32px; height:32px; }   /* reserved edit slot so every row keeps the same columns */
 @media (hover:none){ .stktm-act{ opacity:1; } }
 html[data-device="phone"] .stktm-act, html[data-device="tablet"] .stktm-act{ opacity:1; }
 .stktm-tick{ flex:none; display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; color:var(--gold); }
@@ -12756,7 +12801,7 @@ html[data-device="phone"] .stktm-act, html[data-device="tablet"] .stktm-act{ opa
   .stkpt-tmenu.stktm, .stkpt-tmenu.stktm.stktm-admin{ width:auto; max-width:none; }
   #stkc-paper-btn .stktm-caret{ display:none; }
   .stktm-row, .stktm .stktm-pick{ min-height:60px; }
-  .stktm-act{ width:40px; height:40px; }
+  .stktm-act, .stktm-ph{ width:40px; height:40px; }
   .stktm-pill{ height:40px; padding:0 16px; }
   .stktm-ed input, .stktm-ed select{ height:44px; font-size:16px; }
   .stktm-sel svg{ top:16px; }

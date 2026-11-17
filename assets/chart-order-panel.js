@@ -3,9 +3,13 @@
 //
 // ONE floating panel for PAPER (every member) and LIVE broker orders (admins, assets/chart-live.js). It replaces the old bottom
 // "Live trading" strip; while a live account is picked only a small status chip stays on the chart (click = open the panel).
-//   Header: tabs Scalp | DOM | Order, the chart's symbol (CME:MNQ, with the contract MNQZ6 small), expand / minimise / close.
-//           Drag by the header, resize from the bottom-right corner. Position, size, tab, open/minimised and the B/S hotkey
-//           switch are remembered per user (localStorage 'stryker_op_<uid>').
+//   Header (Owner order 2026-11-17): row 1 = tabs Scalp | DOM | Order (segmented) left, window buttons right (Dock right, Float,
+//           expand, minimise, close). Row 2 = symbol details bar: root + full name ("MNQ · Micro Nasdaq-100 E-mini", never cut),
+//           the contract (MNQZ6), last price + change vs the previous daily close, best bid / ask.
+//           FLOAT: drag by the header, resize from the bottom-right corner. DOCK RIGHT: a full-height side panel at the chart's right
+//           edge (left of the icon rail and any open rail panel); the chart gives up that width (#vela-chart margin-right), width
+//           dragged on the left edge (280-480). Mode, position, size, dock width, tab, open/minimised and the B/S hotkey switch are
+//           remembered per user (localStorage 'stryker_op_<uid>').
 //   Scalp:  Buy (market) · quantity stepper · Sell (market); Join Bid = buy LIMIT at the best bid, Join Ask = sell LIMIT at the best
 //           ask. Bid/ask: futures from the live L2 book (chart-futures-l2.js; never the 10-min delayed book), crypto from the exchange's
 //           public book (book-panel-sources.js). No live book = the Join buttons stay disabled with the reason.
@@ -16,8 +20,9 @@
 //           Trail are shown disabled with that reason. Nothing is ever sent as a bracket the server would not check.
 //   DOM:    the existing Book panel ladder (assets/chart-book-panel.js api.embed): bid cell = buy limit, ask cell = sell limit (live: always
 //           a limit, through the live confirm), the same code path as the side panel.
-//   Footer: account (admins: Paper / their broker accounts / Connect; members: "Paper", no broker names), red LIVE badge, position +
-//           open P&L, working orders, Flatten, and (live) "Turn off live trading" (the kill switch).
+//   Footer: the account picked in the Trade menu as a read-only label ("Paper · DEMO"; admins live: "LIVE · Tradovate …2029" in red)
+//           + "Change" (opens the Trade menu; no account picker in the panel), position + open P&L, working orders, Flatten, and
+//           (live) "Turn off live trading" (the kill switch). Members never see a broker name.
 //   Phone (<= 700 px): a bottom sheet with Scalp + Order only.
 // SAFETY: every live order goes through chart-live.js place(): admin-only module, typed contract on the first live order then a tap,
 // 2-contract cap + worst-case exposure, 10 orders a minute (client + server), fresh-read gate, kill switch, back to Paper after 15 min
@@ -31,7 +36,7 @@ import { openSource, SOURCES } from './book-panel-sources.js?v=1099';
 import { pairOf } from './book-panel-core.js?v=1099';
 import { futRoot } from './chart-sym.js?v=1099';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
-const PHONE_MAX = 700, W_MIN = 320, W_MAX = 640, H_MIN = 300, W_DEF = 360, H_DEF = 640, PRESETS = [10, 25, 50, 100], QUOTE_MAX_AGE = 15000;
+const PHONE_MAX = 700, W_MIN = 352, W_MAX = 640, DW_MIN = 280, DW_MAX = 480, DW_DEF = 340, H_MIN = 300, W_DEF = 360, H_DEF = 640, PRESETS = [10, 25, 50, 100], QUOTE_MAX_AGE = 15000;
 const DISCLAIMER = 'Education only. Not financial advice.';
 const EXCH = { YM: 'CBOT', MYM: 'CBOT', ZB: 'CBOT', ZN: 'CBOT', ZF: 'CBOT', ZT: 'CBOT', ZC: 'CBOT', ZS: 'CBOT', ZW: 'CBOT', CL: 'NYMEX', MCL: 'NYMEX', NG: 'NYMEX', GC: 'COMEX', MGC: 'COMEX', SI: 'COMEX', HG: 'COMEX' };
 const isLocal = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
@@ -46,13 +51,16 @@ const ICON = {
   restore: svg('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>'),
   min: svg('<path d="M5 12h14"/>'),
   open: svg('<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9h16"/>'),
-  close: svg('<path d="M6 6l12 12M18 6L6 18"/>')
+  close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  dock: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>'),
+  float: svg('<rect x="3" y="4" width="18" height="16" rx="2" stroke-dasharray="3 2.4"/><rect x="9" y="9" width="9" height="7" rx="1.5"/>')
 };
+export const TRADE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>';
 const money = (n, sign) => { if (n == null || !Number.isFinite(n)) return '—'; const s = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (n < 0 ? '−' : sign && n > 0 ? '+' : '') + '$' + s; };
 const decOf = (tick) => { const s = String(tick); const i = s.indexOf('.'); return i < 0 ? 0 : Math.min(8, s.length - i - 1); };
 const roundTick = (p, t) => Math.round(p / t) * t;
 
-let P = null, el = null, bodyEl = null, footEl = null, chipEl = null, prefs = null, prefKey = '', viewSig = '', footSig = '', open = false, lastQty = '';
+let P = null, el = null, bodyEl = null, footEl = null, infoEl = null, chipEl = null, meta = { sym: '', desc: '', prev: null }, dockRO = null, prefs = null, prefKey = '', viewSig = '', footSig = '', open = false, lastQty = '';
 const F = { side: 'buy', type: 'market', qty: '1', price: '', priceKey: '', trail: false,
   sl: { on: false, price: '', ticks: '20', src: 'ticks' }, tp: { on: false, price: '', ticks: '40', src: 'ticks' } };
 
@@ -61,7 +69,8 @@ function loadPrefs() {
   const uid = (P && P.uid) || 'guest'; prefKey = 'stryker_op_' + uid;
   let p = {}; try { p = JSON.parse(localStorage.getItem(prefKey)) || {}; } catch (e) {}
   prefs = { x: Number.isFinite(p.x) ? p.x : null, y: Number.isFinite(p.y) ? p.y : null, w: clamp(+p.w || W_DEF, W_MIN, W_MAX), h: Math.max(H_MIN, +p.h || H_DEF),
-    tab: ['scalp', 'dom', 'order'].includes(p.tab) ? p.tab : 'scalp', min: !!p.min, max: !!p.max, hk: p.hk === true, open: !!p.open };
+    tab: ['scalp', 'dom', 'order'].includes(p.tab) ? p.tab : 'scalp', min: !!p.min, max: !!p.max, hk: p.hk === true, open: !!p.open,
+    mode: p.mode === 'dock' ? 'dock' : 'float', dw: clamp(+p.dw || DW_DEF, DW_MIN, DW_MAX) };
 }
 function savePrefs() { try { localStorage.setItem(prefKey, JSON.stringify(prefs)); } catch (e) {} }
 
@@ -225,21 +234,27 @@ function build() {
     '<div class="stkop-grab" aria-hidden="true"></div>' +
     '<div class="stkop-hd">' +
       '<div class="stkop-tabs" role="tablist" aria-label="Order panel view"><button type="button" role="tab" data-tab="scalp">Scalp</button><button type="button" role="tab" data-tab="dom">DOM</button><button type="button" role="tab" data-tab="order">Order</button></div>' +
-      '<div class="stkop-sym" id="stkop-sym"><b></b><small></small></div>' +
-      '<div class="stkop-hbtns"><button type="button" class="stkop-ib" data-a="max"></button><button type="button" class="stkop-ib" data-a="min"></button><button type="button" class="stkop-ib" data-a="close" aria-label="Close the order panel" title="Close">' + ICON.close + '</button></div>' +
+      '<div class="stkop-hbtns">' +
+        '<button type="button" class="stkop-ib stkop-mode" data-a="dock" aria-label="Dock the panel to the right of the chart" title="Dock right">' + ICON.dock + '</button>' +
+        '<button type="button" class="stkop-ib stkop-mode" data-a="float" aria-label="Float the panel over the chart" title="Float">' + ICON.float + '</button>' +
+        '<button type="button" class="stkop-ib" data-a="max"></button><button type="button" class="stkop-ib" data-a="min"></button><button type="button" class="stkop-ib" data-a="close" aria-label="Close the order panel" title="Close">' + ICON.close + '</button></div>' +
+    '</div>' +
+    '<div class="stkop-info">' +
+      '<div class="stkop-il"><p class="stkop-sym" id="stkop-sym"><b data-k="root"></b><span class="stkop-nm" data-k="name"></span></p><span class="stkop-code" data-k="code"></span></div>' +
+      '<div class="stkop-il"><span class="stkop-last" data-k="last">—</span><span class="stkop-chg" data-k="chg"></span><span class="stkop-sp"></span>' +
+        '<span class="stkop-ba"><span>Bid <b class="bid" data-k="bid">—</b></span><span>Ask <b class="ask" data-k="ask">—</b></span></span></div>' +
     '</div>' +
     '<div class="stkop-body"></div><div class="stkop-ft"></div>' +
-    '<i class="stkop-rs" aria-hidden="true" title="Resize"></i>';
+    '<i class="stkop-rs" aria-hidden="true" title="Resize"></i><i class="stkop-dl" aria-hidden="true" title="Drag to resize"></i>';
   document.body.appendChild(el);
-  bodyEl = el.querySelector('.stkop-body'); footEl = el.querySelector('.stkop-ft');
+  bodyEl = el.querySelector('.stkop-body'); footEl = el.querySelector('.stkop-ft'); infoEl = el.querySelector('.stkop-info');
   for (const ev of ['keydown', 'keyup', 'wheel']) el.addEventListener(ev, (e) => { e.stopPropagation(); if (ev === 'keydown' && e.key === 'Escape') { if (isPhone()) close(); else e.target.blur && e.target.blur(); } }, { passive: ev === 'wheel' });
   el.addEventListener('pointerdown', (e) => e.stopPropagation());
   el.addEventListener('click', onClick);
   el.addEventListener('input', onInput);
-  el.addEventListener('change', onChange);
   el.addEventListener('focusout', onBlur);
   el.addEventListener('submit', (e) => { e.preventDefault(); confirmOrder(); });
-  bindDrag(); bindResize();
+  bindDrag(); bindResize(); bindDockResize();
   window.addEventListener('resize', () => { if (open) { layout(); update(); } }, { passive: true });
   window.addEventListener('keydown', onHotkey, true);
   window.addEventListener('stkbp:unembedded', () => { if (open && prefs.tab === 'dom') { viewSig = ''; update(); } });
@@ -252,6 +267,8 @@ function onClick(e) {
   if (a === 'close') { close(); return; }
   if (a === 'min') { prefs.min = !prefs.min; savePrefs(); viewSig = ''; layout(); update(); return; }
   if (a === 'max') { prefs.max = !prefs.max; prefs.min = false; savePrefs(); viewSig = ''; layout(); update(); return; }
+  if (a === 'dock' || a === 'float') { setMode(a); return; }
+  if (a === 'change') { if (P.openTradeMenu) P.openTradeMenu(); return; }
   if (a === 'buy' || a === 'sell') { scalp(a); return; }
   if (a === 'jbid') { join('buy'); return; }
   if (a === 'jask') { join('sell'); return; }
@@ -273,17 +290,9 @@ function onInput(e) {
   else if (f === 'price') F.price = v;
   else if (f === 'trail') F.trail = v;
   else if (f === 'hk') { prefs.hk = v; savePrefs(); }
-  else { const [leg, k] = f.split('.'); if (!(leg === 'sl' || leg === 'tp') || !k) return;   // the account picker (onChange) and the embedded DOM ladder's own fields
+  else { const [leg, k] = f.split('.'); if (!(leg === 'sl' || leg === 'tp') || !k) return;   // the embedded DOM ladder's own fields
     if (k === 'on') F[leg].on = v; else { F[leg][k] = v; F[leg].src = k; } }
   update();
-}
-function onChange(e) {
-  const s = e.target.closest('select[data-f=acct]'); if (!s) return;
-  const L2 = window.__stkLive, v = s.value;
-  if (!L2) return;
-  if (v === '__connect') { s.value = L2.state.acct ? L2.state.acct.id : ''; L2.connect(); return; }
-  if (!v) { L2.leave(); return; }
-  L2.pick(v).then(update);
 }
 function onBlur(e) {
   const f = e.target.dataset && e.target.dataset.f; if (!f) return;
@@ -304,10 +313,10 @@ function onHotkey(e) {
 
 // ------------------------------------------------------------------------------------------------ drag / resize / layout
 function chartRect() { const n = document.querySelector('.stkchart-panel'); const r = n ? n.getBoundingClientRect() : null; return r && r.width > 0 ? r : { left: 0, top: 56, right: innerWidth, bottom: innerHeight, width: innerWidth, height: innerHeight - 56 }; }
-function bindDrag() {
-  const hd = el.querySelector('.stkop-hd');
+function bindDrag() { bindDragOn(el.querySelector('.stkop-hd')); bindDragOn(el.querySelector('.stkop-info')); }
+function bindDragOn(hd) {
   hd.addEventListener('pointerdown', (e) => {
-    if (isPhone() || prefs.max || e.button !== 0 || e.target.closest('button, select, input, a')) return;
+    if (isPhone() || prefs.max || docked() || e.button !== 0 || e.target.closest('button, select, input, a')) return;
     e.preventDefault(); const r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
     hd.setPointerCapture(e.pointerId); el.classList.add('dragging');
     const mv = (ev) => { prefs.x = Math.round(ev.clientX - dx); prefs.y = Math.round(ev.clientY - dy); layout(); };
@@ -318,7 +327,7 @@ function bindDrag() {
 function bindResize() {
   const g = el.querySelector('.stkop-rs');
   g.addEventListener('pointerdown', (e) => {
-    if (isPhone() || prefs.max) return;
+    if (isPhone() || prefs.max || docked()) return;
     e.preventDefault(); e.stopPropagation(); const r = el.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
     g.setPointerCapture(e.pointerId); el.classList.add('sizing');
     const mv = (ev) => { prefs.w = clamp(Math.round(r.width + ev.clientX - x0), W_MIN, W_MAX); if (prefs.tab !== 'scalp') prefs.h = Math.max(H_MIN, Math.round(r.height + ev.clientY - y0)); layout(); };
@@ -326,13 +335,56 @@ function bindResize() {
     g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up);
   });
 }
+// docked: a full-height side panel; the chart (#vela-chart, absolute left/right) gives up the width through margin-right, so it
+// works next to whatever rail panel (Watchlist, News, ...) is open. Desktop / tablet only (phones: the bottom sheet).
+const docked = () => !!(prefs && prefs.mode === 'dock' && !isPhone());
+function hostEl() { return document.querySelector('.stkchart-panel'); }
+function applyDock() {
+  const h = hostEl(), on = open && docked() && !!h;
+  if (h) {
+    const was = h.classList.contains('stkop-docked'), w = h.style.getPropertyValue('--stkop-dw');
+    h.classList.toggle('stkop-docked', on); h.style.setProperty('--stkop-dw', prefs.dw + 'px');
+    if (was !== on || (on && w !== prefs.dw + 'px')) requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} });
+  }
+  const vc = document.getElementById('vela-chart');
+  if (on && vc && typeof ResizeObserver === 'function' && !dockRO) { dockRO = new ResizeObserver(() => { if (open && docked()) place(); }); dockRO.observe(vc); dockRO.observe(h); }
+  if (!on && dockRO) { dockRO.disconnect(); dockRO = null; }
+  return on;
+}
+function setMode(m) {
+  if (prefs.mode === m) return;
+  prefs.mode = m; prefs.min = false; prefs.max = false; savePrefs(); viewSig = ''; layout(); update(); layout();
+}
+function bindDockResize() {
+  const g = el.querySelector('.stkop-dl');
+  g.addEventListener('pointerdown', (e) => {
+    if (!docked() || e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation(); const w0 = prefs.dw, x0 = e.clientX;
+    g.setPointerCapture(e.pointerId); el.classList.add('sizing');
+    const mv = (ev) => { const w = clamp(Math.round(w0 - (ev.clientX - x0)), DW_MIN, DW_MAX); if (w !== prefs.dw) { prefs.dw = w; layout(); } };
+    const up = () => { g.removeEventListener('pointermove', mv); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up); el.classList.remove('sizing'); savePrefs(); update(); };
+    g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+  });
+}
+// docked position: right next to the chart's (shrunk) right edge, the chart's full height
+function place() {
+  const vc = document.getElementById('vela-chart'), r = vc ? vc.getBoundingClientRect() : null;
+  if (!r || !(r.height > 0)) return;
+  const x = Math.round(r.right), y = Math.round(r.top), w = prefs.dw, h = Math.round(r.height);
+  if (el.style.left !== x + 'px') el.style.left = x + 'px';
+  if (el.style.top !== y + 'px') el.style.top = y + 'px';
+  el.style.width = w + 'px'; el.style.height = h + 'px';
+}
 function layout() {
   if (!el) return;
-  const ph = isPhone(), tab = shownTab();
-  el.classList.toggle('is-sheet', ph); el.classList.toggle('is-min', !ph && prefs.min); el.classList.toggle('is-max', !ph && prefs.max);
+  const ph = isPhone(), tab = shownTab(), dk = docked();
+  el.classList.toggle('is-sheet', ph); el.classList.toggle('is-min', !ph && !dk && prefs.min); el.classList.toggle('is-max', !ph && !dk && prefs.max);
+  el.classList.toggle('is-dock', dk);
   el.dataset.tab = tab;
   document.documentElement.classList.toggle('stkop-sheet', open && ph);
+  applyDock();
   if (ph) { for (const k of ['left', 'top', 'width', 'height']) el.style[k] = ''; return; }
+  if (dk) { place(); return; }
   const R = chartRect(), vw = innerWidth, vh = innerHeight;
   let w = prefs.w, h = tab === 'scalp' || prefs.min ? null : prefs.h, x = prefs.x, y = prefs.y;
   if (prefs.max) { w = Math.min(W_MAX, Math.max(W_MIN, Math.round(R.width * 0.4))); h = Math.max(H_MIN, Math.round(Math.min(R.bottom, vh) - Math.max(R.top, 0) - 16)); x = Math.round(R.right - w - 8); y = Math.round(Math.max(R.top, 0) + 8); }
@@ -390,15 +442,47 @@ function viewOff(c) {
 function setText(sel, t) { const n = el.querySelector('[data-k=' + sel + ']'); if (n && n.textContent !== t) n.textContent = t; return n; }
 function setVal(f, v) { for (const n of el.querySelectorAll('[data-f="' + f + '"]')) if (document.activeElement !== n && n.value !== v) n.value = v; }
 
+// row 2 of the header: root + full name, contract, last + change vs the previous daily close, best bid / ask (filled in update())
+function wantMeta(c) {
+  if (meta.sym === c.sym) return;
+  meta = { sym: c.sym, desc: '', prev: null };
+  const s = c.sym; if (!s || !P.symMeta) return;
+  P.symMeta(s).then((m) => { if (meta.sym !== s || !m) return; meta.desc = m.desc || ''; meta.prev = Number.isFinite(m.prev) && m.prev > 0 ? m.prev : null; update(); }, () => {});
+}
+const cleanDesc = (d) => String(d || '').replace(/\s+futures?$/i, '').replace(/\s*\(\$\d+\)$/, '').trim();
+function renderInfo(c) {
+  wantMeta(c);
+  const root = c.fut ? c.rootName : c.tk || '—';
+  const name = cleanDesc(meta.desc) || (c.fut ? '' : c.code);
+  setText('root', root);
+  const nm = setText('name', name); if (nm) nm.hidden = !name;
+  const code = c.fut ? c.code || '' : '';
+  const ce = setText('code', code); if (ce) ce.hidden = !code;
+  setText('last', fmt(c, c.last));
+  const ch = el.querySelector('[data-k=chg]');
+  if (ch) {
+    const d = c.last != null && meta.prev ? c.last - meta.prev : null;
+    const t = d == null ? '' : (d > 0 ? '+' : d < 0 ? '−' : '') + fmt(c, Math.abs(d)) + ' (' + (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d / meta.prev * 100).toFixed(2) + '%)';
+    if (ch.textContent !== t) ch.textContent = t;
+    ch.className = 'stkop-chg' + (d > 0 ? ' up' : d < 0 ? ' down' : '');
+    ch.title = d == null ? '' : 'Change since the previous daily close';
+  }
+}
+// the account comes from the Trade menu (top bar); the panel only shows it. Members: "Paper · DEMO", never a broker name.
+function acctLabel(c) {
+  if (!c.live) return { t: 'Paper · DEMO', live: false };
+  const L2 = window.__stkLive && window.__stkLive.state, a = L2 && L2.acct;
+  const env = c.li && c.li.env ? c.li.env : 'LIVE';
+  return { t: env + (a ? ' · ' + (a.broker || 'Broker') + (a.last4 ? ' …' + a.last4 : '') : ''), live: true };
+}
 function renderFoot(c) {
-  const LS = window.__stkLive && window.__stkLive.connect ? window.__stkLive.state : null;
-  const sig = JSON.stringify([!!LS, LS && LS.accounts.map((a) => a.id + a.label), LS && LS.acct && LS.acct.id, c.live, c.li && c.li.killed, c.li && c.li.env, LS && LS.loaded]);
+  const al = acctLabel(c);
+  const sig = JSON.stringify([al.t, c.live, c.li && c.li.killed, !!P.openTradeMenu]);
   if (footSig === sig) return; footSig = sig;
-  const opts = LS ? '<option value="">Paper</option>' + LS.accounts.map((a) => '<option value="' + esc(a.id) + '"' + (LS.acct && LS.acct.id === a.id ? ' selected' : '') + '>' + esc(a.label) + '</option>').join('') + '<option value="__connect">' + (LS.accounts.length ? 'Connect another broker…' : 'Connect a broker…') + '</option>' : '';
   footEl.innerHTML =
     '<div class="stkop-fr">' +
-      (LS ? '<label class="stkop-acct"><span class="stkop-vh">Trading account</span><select data-f="acct" aria-label="Trading account">' + opts + '</select>' + svg('<path d="m6 9 6 6 6-6"/>') + '</label>' : '<span class="stkop-chip paper">Paper</span>') +
-      (c.live ? '<span class="stkop-chip live" role="status">' + esc(c.li ? c.li.env : 'LIVE') + '</span>' : '<span class="stkop-chip demo">Demo</span>') +
+      '<span class="stkop-acct' + (al.live ? ' live' : '') + '" data-k="acct" title="Trading account (pick it in the Trade menu)"><span class="stkop-vh">Trading account: </span>' + esc(al.t) + '</span>' +
+      (P.openTradeMenu ? '<button type="button" class="stkop-link" data-a="change" aria-label="Change the trading account in the Trade menu">Change</button>' : '') +
       '<span class="stkop-sp"></span><button type="button" class="stkop-b warn" data-a="flat">Flatten</button>' +
     '</div>' +
     '<div class="stkop-fr">' +
@@ -416,14 +500,15 @@ export function update() {
   if (!open) { stopQuote(); return; }
   wantQuote(c);
   const ph = isPhone(), tab = shownTab(), paperOff = !c.live && !P.enabled;
-  const sig = [tab, c.live, ph, paperOff, c.fut, prefs.min].join('|');
+  const dk = docked(), sig = [tab, c.live, ph, paperOff, c.fut, prefs.min && !dk, dk].join('|');
   el.classList.toggle('is-live', c.live);
   if (viewSig !== sig) {
     viewSig = sig;
     const b = window.__stkBookPanel;
     if (tab !== 'dom' && b && b.embedded) b.unembed();
-    bodyEl.innerHTML = prefs.min && !ph ? '' : paperOff ? viewOff(c) : tab === 'order' ? viewOrder(c) : tab === 'dom' ? viewDom() : viewScalp(c);
-    if (tab === 'dom' && !paperOff && !(prefs.min && !ph)) {
+    const mn0 = prefs.min && !ph && !dk;
+    bodyEl.innerHTML = mn0 ? '' : paperOff ? viewOff(c) : tab === 'order' ? viewOrder(c) : tab === 'dom' ? viewDom() : viewScalp(c);
+    if (tab === 'dom' && !paperOff && !mn0) {
       const box = bodyEl.querySelector('.stkop-dom');
       if (b && b.embed) b.embed(box); else { const n = box.querySelector('[data-k=domnote]'); n.hidden = false; n.textContent = 'The DOM ladder is not available on this page.'; }
     }
@@ -431,16 +516,14 @@ export function update() {
     const mx = el.querySelector('[data-a=max]'), mn = el.querySelector('[data-a=min]');
     mx.innerHTML = prefs.max ? ICON.restore : ICON.max; mx.setAttribute('aria-label', prefs.max ? 'Restore the panel size' : 'Expand the panel'); mx.title = prefs.max ? 'Restore' : 'Expand';
     mn.innerHTML = prefs.min ? ICON.open : ICON.min; mn.setAttribute('aria-label', prefs.min ? 'Show the panel' : 'Minimise the panel'); mn.title = prefs.min ? 'Show' : 'Minimise';
+    for (const b of el.querySelectorAll('.stkop-mode')) { const on = b.dataset.a === (dk ? 'dock' : 'float'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
     requestAnimationFrame(layout);
   }
   renderFoot(c);
-  // header
-  const hb = el.querySelector('.stkop-sym b'), hs = el.querySelector('.stkop-sym small');
-  if (hb.textContent !== c.label) hb.textContent = c.label;
-  const sub = c.code || '';
-  if (hs.textContent !== sub) { hs.textContent = sub; hs.hidden = !sub; }
-  el.setAttribute('aria-label', 'Order panel ' + c.label + (c.live ? ', LIVE account' : ', paper trading'));
+  // symbol details bar (row 2)
   const qt = quote(c), why = blockOf(c);
+  renderInfo(c);
+  el.setAttribute('aria-label', 'Order panel ' + c.label + (c.live ? ', LIVE account' : ', paper trading'));
   // quantity (cap + integer rules follow the mode)
   const qn = cleanQty(c, F.qty); if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.f === 'qty') {} else if (String(qn) !== F.qty) F.qty = String(qn);
   setVal('qty', F.qty);
@@ -553,10 +636,14 @@ function close() {
   const b = window.__stkBookPanel; if (b && b.embedded) b.unembed();
   el.hidden = true; viewSig = ''; stopQuote();
   document.documentElement.classList.remove('stkop-sheet');
+  applyDock();
   if (tmr) { clearInterval(tmr); tmr = 0; }
   update(); updateTradeBtn();
 }
-function updateTradeBtn() { const b = document.getElementById('stkc-paper-btn'); if (b && !b.hasAttribute('aria-haspopup')) b.setAttribute('aria-pressed', String(open)); }
+function updateTradeBtn() {
+  const b = document.getElementById('stkc-paper-btn'); if (b && !b.hasAttribute('aria-haspopup')) b.setAttribute('aria-pressed', String(open));
+  for (const r of document.querySelectorAll('.stkop-railbtn')) { r.classList.toggle('on', open); r.setAttribute('aria-pressed', String(open)); }
+}
 // chip refresh while the panel is closed (live only): once a second
 setInterval(() => { if (!open && P && P.live && !document.hidden) update(); }, 1000);
 
@@ -569,6 +656,6 @@ export function mountOrderPanel(paperApi) {
 }
 const api = {
   open: openPanel, close, toggle: () => (open ? close() : openPanel()), update,
-  get isOpen() { return open; }, get prefs() { return prefs; }, get form() { return F; }, setTab: (t) => { if (!open) openPanel({ tab: t }); else setTab(t); },
+  get isOpen() { return open; }, get prefs() { return prefs; }, get form() { return F; }, setTab: (t) => { if (!open) openPanel({ tab: t }); else setTab(t); }, setMode,
   reloadPrefs: () => { loadPrefs(); if (open) { viewSig = ''; layout(); update(); } }
 };

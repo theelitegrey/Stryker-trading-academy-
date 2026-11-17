@@ -319,7 +319,11 @@ async function boot(p, BASE) {
     await p.click('#stkc-paper-btn');   // Trade -> account menu -> Paper row -> the floating order panel (assets/chart-order-panel.js)
     await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-a=paper]', { timeout: 5000 }); await p.click('#stkc-trade-pop [data-a=paper]');
     check(await p.waitForSelector('#stkop:not([hidden])', { timeout: 10000 }).then(() => true, () => false), 'Trade button opens the floating order panel');
+    const op1 = await p.evaluate(() => ({ sel: !!document.querySelector('#stkop select'), acct: (document.querySelector('#stkop [data-k=acct]') || {}).textContent || '', rail: (() => { const r = document.querySelector('.stkw-rail .stkop-railbtn'); return r ? r.getAttribute('aria-pressed') : null; })() }));
+    check(!op1.sel && /Paper · DEMO$/.test(op1.acct), 'order panel: no account select, read-only "Paper · DEMO" (the account comes from the Trade menu)', op1);
+    check(op1.rail === 'true', 'right toolbar "Trading panel" button shows the panel as open', op1);
     await p.click('#stkop [data-a=close]');
+    check(await p.evaluate(() => document.querySelector('.stkw-rail .stkop-railbtn').getAttribute('aria-pressed') === 'false'), 'closing the panel clears the toolbar button');
     await p.evaluate(() => window.__stkPaper.openPanel('positions'));
     await p.click('.stkpt-head .stkpt-trade');
     await p.waitForSelector('#stkpt-tk:not([hidden])');

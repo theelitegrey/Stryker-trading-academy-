@@ -34,6 +34,11 @@ ok(M.titleOf({ metric: 'gex_cross', symbol: 'SPX', p: { level: 'gamma_flip', dir
 ok(M.titleOf({ metric: 'funding', symbol: 'BTC', p: { venue: 'okx', dir: 'above', value: 0.01 } }) === 'BTC funding on OKX above 0.01%', 'title funding');
 ok(M.titleOf({ metric: 'oi_change', symbol: 'ETH', p: { venue: 'hl', dir: 'either', value: 2, mins: 60 } }) === 'ETH open interest on Hyperliquid moves 2% in 60 min', 'title OI');
 ok(M.MAX_METRIC === 20, 'cap 20');
+b = M.buildMetric({ metric: 'ph_premium', symbol: 'MNQ1!', phside: 'put', value: 250000, freq: 'every' });
+eq(b, { col: 'metricAlerts', doc: { metric: 'ph_premium', symbol: 'QQQ', p: { dir: 'put', value: 250000 }, message: '', freq: 'every', active: true } }, 'Phantom premium doc (MNQ -> QQQ)');
+eq(M.buildMetric({ metric: 'ph_voloi', symbol: 'SPX', phside: 'x', value: 2 }).doc.p, { dir: 'any', value: 2 }, 'Phantom Vol/OI, bad side -> any');
+ok(!!M.buildMetric({ metric: 'ph_premium', symbol: 'AAPL', value: 1e6 }).error && !!M.buildMetric({ metric: 'ph_premium', symbol: 'SPX', value: 500 }).error && !!M.buildMetric({ metric: 'ph_voloi', symbol: 'SPX', value: 0.1 }).error, 'Phantom refuses uncovered symbol, < $10K, Vol/OI < 0.5');
+ok(M.titleOf({ metric: 'ph_voloi', symbol: 'SPY', p: { dir: 'call', value: 3 } }) === 'SPY calls: Vol/OI 3+ (Phantom)', 'title Phantom');
 
 // parity with the engine + rules
 const py = fs.readFileSync(path.join(ROOT, 'workers', 'alert-engine', 'metric_alerts.py'), 'utf8');

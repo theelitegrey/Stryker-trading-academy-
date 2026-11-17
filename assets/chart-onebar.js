@@ -69,6 +69,7 @@ const STEPS = [
   ['more', () => [q('.stkl2-phonebtn')]],
   ['more', () => [q('.stkw-phonebtn')]],
   ['more', () => [q('.stkdkp-phonebtn')]],
+  ['more', () => [q('.stkph-phonebtn')]],
   ['more', () => [q('.stkin-phonebtn')]],
   ['more', () => [menuOf('byo-btn')]],
   ['more', () => [byId('stkc-heatmap-btn')]],
@@ -143,6 +144,7 @@ const ROWS = [
   [(n) => n.classList.contains('stkgl-phonebtn') && n, 'panels', 23, () => 'GEX Ladder', 'ladder'],
   [(n) => n.classList.contains('stkl2-phonebtn') && n, 'panels', 23, () => 'Book · DOM · Trades', 'ladder'],
   [(n) => n.classList.contains('stkdkp-phonebtn') && n, 'panels', 24, () => 'Dark pool prints', 'ladder'],
+  [(n) => n.classList.contains('stkph-phonebtn') && n, 'panels', 24.5, () => 'Phantom options flow', 'trade'],
   [(n) => n.classList.contains('stkin-phonebtn') && n, 'panels', 25, () => 'Symbol info', 'info'],
   [(n) => n.querySelector && n.querySelector(':scope > #byo-btn'), 'tools', 19, () => 'Data source', 'link'],
   [(n) => n.id === 'stkc-credits-btn' && n, 'panels', 24, () => 'Data source & credits', 'info']

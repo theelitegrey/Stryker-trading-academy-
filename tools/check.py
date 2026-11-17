@@ -654,6 +654,16 @@ def check_metric_alerts():
             fail('metric alerts ' + cmd[-1] + ': ' + (r.stdout + r.stderr).strip()[-300:])
 
 
+def check_phantom():
+    """Phantom (Owner 17 Nov): page/panel maths (tools/tests/phantom-core.test.mjs), feeder maths (workers/book-recorder/test/phantom_test.py)
+    and the recorder routes (phantom-worker-local.mjs). No network."""
+    for cmd in (['node', 'tools/tests/phantom-core.test.mjs'], [sys.executable, 'workers/book-recorder/test/phantom_test.py'],
+                ['node', 'workers/book-recorder/test/phantom-worker-local.mjs']):
+        r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, timeout=120)
+        if r.returncode != 0:
+            fail('phantom ' + cmd[-1] + ': ' + (r.stdout + r.stderr).strip()[-300:])
+
+
 def check_days_load():
     """Chart setting 'Days of history to load' (member GK): caps, menu, per-timeframe store. tools/tests/chart-days-load.test.mjs."""
     r = subprocess.run(['node', 'tools/tests/chart-days-load.test.mjs'], capture_output=True, text=True, cwd=ROOT, timeout=60)
@@ -771,7 +781,7 @@ def main():
     # two browser checks start first so they overlap the rest
     fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
     browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
-    order = [check_desktop_signin, check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_days_load, check_finatic, check_workspaces, check_latency, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
+    order = [check_desktop_signin, check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_phantom, check_days_load, check_finatic, check_workspaces, check_latency, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
              check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,

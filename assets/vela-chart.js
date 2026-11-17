@@ -1177,6 +1177,8 @@ function legendFold(R) {
   import('./chart-news.js?v=1114').then((m) => m.mountNews(ws, { toast })).catch((e) => console.warn('TradeZoro: news', e));
   // GEX Ladder panel (right icon bar, phones: a sheet): SPX / QQQ / SPY strikes, click draws the level (assets/chart-gex-ladder.js).
   import('./chart-gex-ladder.js?v=1114').then((m) => m.mountGexLadder(ws, { toast })).catch((e) => console.warn('TradeZoro: gex ladder', e));
+  // Phantom panel (right icon bar, phones: a sheet): options money flow for SPX / SPY / QQQ / GLD, ES/NQ/GC mapped (assets/chart-phantom.js).
+  import('./chart-phantom.js?v=1114').then((m) => m.mountPhantom(ws, { toast })).catch((e) => console.warn('TradeZoro: phantom', e));
   // Futures L2 DOM ladder (admin only until the Tick-stream licence flag flips): assets/chart-futures-l2.js
   // Book · DOM · Trades panel (crypto + futures; replaces the futures-only ladder): assets/chart-book-panel.js
   import('./chart-book-panel.js?v=1114').then((m) => m.mountBookPanel(ws, { toast })).catch((e) => console.warn('TradeZoro: book panel', e));

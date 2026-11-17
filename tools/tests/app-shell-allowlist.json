@@ -21,6 +21,7 @@
   "academy": "Mentis hub (SEO)",
   "learn": "public free articles index (SEO)",
   "options-calculator": "free options P&L calculator; app shell when signed in, marketing header + footer signed out",
+  "phantom": "Phantom options money flow; app shell when signed in, marketing header + footer signed out (data needs sign-in)",
   "iv-skew": "IV skew + term structure; app shell when signed in, marketing header + footer signed out (strike data needs sign-in)",
   "learn-fair-value-gap": "SEO article",
   "learn-order-blocks": "SEO article",

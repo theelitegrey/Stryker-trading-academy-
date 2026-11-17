@@ -318,9 +318,10 @@ function paintNodes(ctx, theme, L, xe) {
 }
 const stamp = (ms) => { try { return new Date(ms).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' ' + hhmm(ms); } catch (e) { return ''; } };
 function label(ctx, theme, L, text) {
-  const x = L.grow === 1 ? L.anchorX - 4 : L.anchorX + 4, y = Math.min(L.yEdges[0], L.yEdges[L.yEdges.length - 1]) - 4;
+  const top = Math.min(L.yEdges[0], L.yEdges[L.yEdges.length - 1]), bot = Math.max(L.yEdges[0], L.yEdges[L.yEdges.length - 1]);
+  const x = L.grow === 1 ? L.anchorX - 4 : L.anchorX + 4, under = top < 150, y = under ? bot + 4 : top - 4;   // top of the chart holds the legend and its buttons: then the note goes under the profile
   ctx.save();
-  ctx.font = '10px ' + (theme.fontFamily || 'sans-serif'); ctx.textAlign = L.grow === 1 ? 'right' : 'left'; ctx.textBaseline = 'bottom';
+  ctx.font = '10px ' + (theme.fontFamily || 'sans-serif'); ctx.textAlign = L.grow === 1 ? 'right' : 'left'; ctx.textBaseline = under ? 'top' : 'bottom';
   ctx.fillStyle = theme.textColor || '#9aa0ad'; ctx.globalAlpha = 0.75;
   if (ctx.textAlign === 'right' && x - ctx.measureText(text).width < 52) { ctx.textAlign = 'left'; ctx.fillText(text, 52, y); }   // keep it inside the plot
   else ctx.fillText(text, x, y);

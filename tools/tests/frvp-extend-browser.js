@@ -140,6 +140,50 @@ async function deltaEdge(b) {
   await shot(p, 'delta-a-offscreen');
   await ctx.close();
 }
+// Member report 17 Nov (GK, thread 1571736092619710566): an older profile must keep its drawn end when zooming / panning; "Extend lines right"
+// (frvp.extendLines, off by default) is the only thing that runs the POC / VAH / VAL lines on to the chart's right edge.
+async function lines(b, theme, w, h) {
+  const tag = 'lines-' + w + '-' + theme;
+  const { ctx, p, errors } = await context(b, { w, h, mobile: w < 500, theme });
+  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await ready(p);
+  await setMarket(p, 'futures:NQ1!', '15'); await sleep(800);
+  await p.evaluate(() => {
+    const ch = window.STRYKER_VELA.chart, raw = ch.orchestrator.rawBars, n = raw.length;
+    ch.drawings.add('fixedrangevp', { paneId: 'price', anchors: [{ time: raw[n - 160].time, price: raw[n - 160].close }, { time: raw[n - 100].time, price: raw[n - 100].close }], props: { thinRows: true } });   // no extendLines key = a drawing saved before the setting
+  });
+  await sleep(1200);
+  const tail = async (g) => {   // ink on the POC row between B and the right edge of the plot
+    const x0 = g.x1 + 8, x1 = g.width - 4;
+    return x1 > x0 + 4 ? ink(p, (x0 + x1) / 2, g.pocY, (x1 - x0) / 2, 1) : -1;
+  };
+  const views = [[200, 6], [120, 6], [90, 6], [80, 30], [60, 2]];
+  for (const [nb, ahead] of views) {   // zoom in, then pan right past the drawing
+    await p.evaluate(([nb, ahead]) => { const ch = window.STRYKER_VELA.chart, raw = ch.orchestrator.rawBars, n = raw.length, tf = raw[n - 1].time - raw[n - 2].time; ch.setVisibleRange({ from: raw[n - 1].time - nb * tf, to: raw[n - 1].time + ahead * tf }); }, [nb, ahead]);
+    await sleep(800);
+    const g = await probe(p);
+    const t = await tail(g);
+    if (t < 0) { note(tag + ' view ' + nb + ': no room right of B, skipped'); continue; }
+    check(t === 0, tag + ' view ' + nb + ' bars: default, no line ink right of the drawn end (zoom / pan never extends it)', [t, Math.round(g.x1)]);
+  }
+  await p.evaluate(() => { const ch = window.STRYKER_VELA.chart, raw = ch.orchestrator.rawBars, n = raw.length, tf = raw[n - 1].time - raw[n - 2].time; ch.setVisibleRange({ from: raw[n - 1].time - 130 * tf, to: raw[n - 1].time + 6 * tf }); });
+  await sleep(800);
+  let g = await probe(p); const before = { anchors: g.anchors.map((a) => a.time), x1: g.x1, rows: g.rows.join() };
+  check(g.frvp.extendLines !== true && (await tail(g)) === 0, tag + ': off by default', g.frvp.extendLines);
+  await shot(p, tag + '-off');
+  await setProps(p, { extendLines: true }); await sleep(900);
+  g = await probe(p);
+  check((await tail(g)) > 0, tag + ': "Extend lines right" on: POC line runs to the right edge');
+  check(g.anchors.map((a) => a.time).join() === before.anchors.join() && Math.abs(g.x1 - before.x1) < 1 && g.rows.join() === before.rows, tag + ': on: range, anchors and profile unchanged (lines only)');
+  await shot(p, tag + '-on');
+  await p.evaluate(() => { const ch = window.STRYKER_VELA.chart, raw = ch.orchestrator.rawBars, n = raw.length, tf = raw[n - 1].time - raw[n - 2].time; ch.setVisibleRange({ from: raw[n - 1].time - 90 * tf, to: raw[n - 1].time + 20 * tf }); });
+  await sleep(800); g = await probe(p);
+  check((await tail(g)) > 0, tag + ': on: still reaches the right edge after zoom / pan');
+  await setProps(p, { extendLines: false }); await sleep(900); g = await probe(p);
+  check((await tail(g)) === 0, tag + ': off again: back to the drawn end');
+  check(!errors.length, tag + ': no console errors', errors.slice(0, 3));
+  await ctx.close();
+}
 // Alignment gate: the settings panel rows around the new "Extend to now" toggle (label + switch share one centre), dark + light, 1440 + 390.
 async function ui(b, theme, w, h) {
   const tag = 'ui-' + w + '-' + theme;
@@ -158,7 +202,7 @@ async function ui(b, theme, w, h) {
   await p.evaluate(() => { const el = [...document.querySelectorAll('.vela-dsp-scroll')].pop(); if (el) el.scrollTop = el.scrollHeight / 2; }); await sleep(300);
   const rows = await p.evaluate(() => {
     const out = [];
-    for (const lab of [...document.querySelectorAll('*')].filter((e) => !e.children.length && ['Extend to now', 'Always visible', 'Thin rows', 'Composite'].includes(e.textContent.trim()))) {
+    for (const lab of [...document.querySelectorAll('*')].filter((e) => !e.children.length && ['Extend lines right', 'Extend to now', 'Always visible', 'Thin rows', 'Composite'].includes(e.textContent.trim()))) {
       let row = lab.parentElement; for (let i = 0; i < 4 && row; i++) { if (row.querySelector('input,button,[role=switch],[role=checkbox]')) break; row = row.parentElement; }
       const ctl = row && row.querySelector('input,button,[role=switch],[role=checkbox]');
       if (!ctl) { out.push({ t: lab.textContent.trim(), err: 'no control' }); continue; }
@@ -168,7 +212,7 @@ async function ui(b, theme, w, h) {
     return out;
   });
   console.log('MEASURE ' + tag + ' ' + JSON.stringify(rows));
-  check(rows.length === 4 && rows.every((r) => !r.err && Math.abs(r.labCy - r.ctlCy) <= 1 && !r.cut), tag + ': label + switch share one vertical centre (+-1 px), label not cut', rows);
+  check(rows.length === 5 && rows.every((r) => !r.err && Math.abs(r.labCy - r.ctlCy) <= 1 && !r.cut), tag + ': label + switch share one vertical centre (+-1 px), label not cut', rows);
   check(new Set(rows.map((r) => r.ctlH)).size === 1, tag + ': same-role switches have one height', rows.map((r) => r.ctlH));
   check(new Set(rows.map((r) => r.ctlR)).size === 1 && new Set(rows.map((r) => r.labL)).size === 1, tag + ': equal left / right inner padding across rows', rows.map((r) => [r.labL, r.ctlR]));
   await shot(p, tag);
@@ -222,4 +266,4 @@ async function run(b) {
   check(!errors.length, 'no console errors', errors.slice(0, 3));
   await ctx.close();
 }
-(async () => { const b = await launch({ args: ['--js-flags=--max-old-space-size=700'] }); try { await deltaEdge(b); await run(b); for (const [t, w, h] of [['dark', 1440, 900], ['light', 1440, 900]]) await ui(b, t, w, h); } finally { await b.close(); } console.log(fail ? fail + ' FAILED' : 'ALL PASSED'); process.exit(fail ? 1 : 0); })();
+(async () => { const b = await launch({ args: ['--js-flags=--max-old-space-size=700'] }); try { await deltaEdge(b); await run(b); for (const [t, w, h] of [['dark', 1440, 900], ['light', 1440, 900], ['dark', 390, 844]]) await lines(b, t, w, h); for (const [t, w, h] of [['dark', 1440, 900], ['light', 1440, 900]]) await ui(b, t, w, h); } finally { await b.close(); } console.log(fail ? fail + ' FAILED' : 'ALL PASSED'); process.exit(fail ? 1 : 0); })();

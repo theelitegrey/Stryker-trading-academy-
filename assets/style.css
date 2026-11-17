@@ -12722,3 +12722,6 @@ html[data-device="phone"] .stktm-act, html[data-device="tablet"] .stktm-act{ opa
 
 /* Numbers that must line up (prices, P&L, balances, times) in the body font. */
 .num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+
+/* Chart drawing settings: label column 120 px (the panel default is 96, which cut "Extend lines right") */
+html .vela-dsp-lab{ flex-basis:120px; }

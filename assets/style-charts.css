@@ -5361,3 +5361,4 @@ html[data-device="phone"] .stktm-act, html[data-device="tablet"] .stktm-act{ opa
 .pi-lock, .cm-kicker.pi-lock{ display:inline-flex; align-items:center; gap:8px; }
 .pi-lock .pi{ width:24px; height:24px; }
 .num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+html .vela-dsp-lab{ flex-basis:120px; }

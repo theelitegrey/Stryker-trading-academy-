@@ -92,6 +92,8 @@ function spanBars(d, proj) {
 }
 // x where POC / VAH / VAL stop. Saved drawings (no extendRight key): B, as before.
 function lineEnd(d, proj, L) {
+  // "Extend lines right" (frvp.extendLines, off by default): the lines run on to the chart's right edge, whatever the zoom or pan. Only a toggle does this.
+  if (d.frvp.extendLines === true) return Math.max(L.x1, proj.width || L.x1);
   if (d.frvp.extendRight !== false && d.frvp.extendRight !== true) return L.x1;   // saved before the setting: the range's own end (already inside the newest candle)
   if (d.frvp.extendRight === true) return L.x1;
   const bars = spanBars(d, proj), last = bars[bars.length - 1];
@@ -348,11 +350,12 @@ function seg(px, py, a, b) {
 }
 
 // ---------------------------------------------------------------- settings rows (Vela's settings panel lists extra schema fields itself)
-// Labels stay short: the panel's generic label column is 96 px and cuts longer text (the full text is in each row's tooltip).
+// Labels stay short: the panel label column is 120 px (charts-page.css) and cuts longer text (the full text is in each row's tooltip).
 // Paths go through `frvpx`, an alias of the drawing's own `frvp` object: the panel's own Profile block only handles "frvp.*", so these
 // land in its generic block, and the values are saved with the drawing's other profile settings.
 function extraFields(d) {
   const a = d.__stkAvail || {}, f = [];
+  f.push({ path: 'frvpx.extendLines', label: 'Extend lines right', kind: 'boolean' });   // lines only (POC / VAH / VAL) to the chart's right edge; the range stays as drawn
   f.push({ path: 'frvpx.extendRight', label: 'Extend to now', kind: 'boolean' });
   f.push({ path: 'frvpx.alwaysVisible', label: 'Always visible', kind: 'boolean' });
   f.push({ path: 'frvpx.thinRows', label: 'Thin rows', kind: 'boolean' });
@@ -460,6 +463,7 @@ export function installFrvpClass(FRVP) {
   P.onPlaced = function (proj) {   // a NEW drawing: the new defaults (saved drawings never pass here)
     if (onPlaced) onPlaced.call(this, proj);
     if (this.frvp.extendRight === undefined) this.frvp.extendRight = false;
+    if (this.frvp.extendLines === undefined) this.frvp.extendLines = false;
     snapB(this, proj);
     if (this.frvp.thinRows === undefined) this.frvp.thinRows = true;
     if (this.frvp.vwapSd1 === undefined) this.frvp.vwapSd1 = true;

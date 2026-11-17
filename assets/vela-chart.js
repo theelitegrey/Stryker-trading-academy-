@@ -1563,6 +1563,6 @@ function visualOrder(R) {
   const clean = () => document.querySelectorAll('a.vela-attribution').forEach((a) => {
     a.removeAttribute('title'); a.removeAttribute('aria-label'); a.removeAttribute('href'); a.setAttribute('aria-hidden', 'true'); a.tabIndex = -1;
   });
-  new MutationObserver(clean).observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver((ms) => { if (!ms.every((m) => m.target.nodeName === 'TITLE' || ([].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3)) || (m.target.parentElement && m.target.parentElement.closest('.vela-cell')))) clean(); }).observe(document.documentElement, { childList: true, subtree: true });
   clean();
 })();

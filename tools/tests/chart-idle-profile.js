@@ -3,7 +3,7 @@
 //   CHART_BASE=https://tradezoro.com node tools/tests/chart-idle-profile.js [--member] [seconds]
 // Run under flock /tmp/stryker-chrome.lock.
 const { launch } = require('./lib.js');
-const BASE = process.env.CHART_BASE || 'https://tradezoro.com';
+const BASE = process.env.CHART_BASE || 'https://tradezoro.com'; const bm = require('./binance-mock.js');
 const MEMBER = process.argv.includes('--member');
 const SECS = Number(process.argv.filter((a) => /^\d+$/.test(a))[0] || 8);
 (async () => {
@@ -11,8 +11,8 @@ const SECS = Number(process.argv.filter((a) => /^\d+$/.test(a))[0] || 8);
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   if (MEMBER) await ctx.addInitScript(require('./richstub.js'));
   await ctx.addInitScript(() => { window.__lt = []; try { new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lt.push([e.startTime, e.duration]); }).observe({ type: 'longtask', buffered: true }); } catch (e) {} });
-  const p = await ctx.newPage();
-  await p.goto(BASE + '/charts', { waitUntil: 'domcontentloaded' });
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)(?!(api\.binance\.com|data-api\.binance\.vision|fapi\.binance\.com|stream\.binance))/, (r) => r.abort()); await bm.install(ctx); const p = await ctx.newPage();
+  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0, null, { timeout: 60000 });
   await p.waitForTimeout(5000);
   const cdp = await ctx.newCDPSession(p);

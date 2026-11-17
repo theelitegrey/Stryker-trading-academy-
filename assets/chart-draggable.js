@@ -134,7 +134,9 @@
   window.StkDraggable = { make: make, reset: function (key) { save(key, null); states.forEach(function (s) { if (s.key === key) setOff(s, 0, 0); }); } };
 
   var queue = [], raf = 0;
+  var quietMut = function (ms) { return ms.every(function (m) { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, function (n) { return n.nodeType === 3; }) && [].every.call(m.removedNodes, function (n) { return n.nodeType === 3; }) || !!e.closest('title,.vela-cell,.stkchart-credit,.stklat-chip'); }); };   // per-tick text updates are not new dialogs: skip them (idle CPU)
   new MutationObserver(function (ms) {
+    if (quietMut(ms)) return;
     ms.forEach(function (m) { for (var i = 0; i < m.addedNodes.length; i++) if (m.addedNodes[i].nodeType === 1) queue.push(m.addedNodes[i]); });
     if (!raf && queue.length) raf = requestAnimationFrame(function () { raf = 0; var q = queue; queue = []; q.forEach(scan); });
   }).observe(document.documentElement, { childList: true, subtree: true });

@@ -72,8 +72,9 @@ function decorate(list){
   else if (COMMUNITY_TABS.has(list.dataset.sect || (tab && tab.dataset.k))) list.insertBefore(banner(), list.firstChild);   // data-sect: the window's current list (Community sub-tab)
 }
 let pending = false;
-new MutationObserver(() => {
-  if (pending) return;
+const quietMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-cell,.stkchart-credit,.stklat-chip'); });   // per-tick text updates are not new dialogs: skip them (idle CPU)
+new MutationObserver((ms) => {
+  if (pending || quietMut(ms)) return;
   pending = true;
   requestAnimationFrame(() => { pending = false; document.querySelectorAll('.stkiw-list').forEach(decorate); });
 }).observe(document.body, { childList: true, subtree: true });

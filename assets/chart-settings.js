@@ -771,7 +771,8 @@ function watchDialogs(){
     phoneDialog(dlg);
   };
   let raf = 0;
-  new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; scan(); }); })
+  const quietMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-cell,.stkchart-credit,.stklat-chip'); });   // per-tick text updates are not new dialogs: skip them (idle CPU)
+  new MutationObserver((ms) => { if (!raf && !quietMut(ms)) raf = requestAnimationFrame(() => { raf = 0; scan(); }); })
     .observe(document.body, { childList: true, subtree: true });
 }
 

@@ -93,7 +93,7 @@ export function draw(pop, live, paper) {
   lastArgs = [live, paper];
   closeGear();
   const act = live && live.acct;
-  let h = '<div role="group" aria-label="Paper trading">' + paperRow(paper, !act && !(paper && paper.enabled === false), !!live) + '</div>';
+  let h = '<div role="group" aria-label="Paper trading">' + paperRow(paper, !act && !(paper && paper.enabled === false), !!live || !!(paper && paper.off)) + '</div>';
   if (live) {
     h += '<div role="group" aria-labelledby="stktm-h2"><div class="stktm-h" id="stktm-h2">Live accounts<span class="stktm-cnt">' + live.accounts.length + '</span></div>';
     if (!live.accounts.length) h += '<div class="stktm-empty">' + (live.loaded ? 'No broker connected yet.' : 'Loading accounts…') + '</div>';
@@ -101,7 +101,7 @@ export function draw(pop, live, paper) {
     h += '<div class="stktm-foot"><button type="button" role="menuitem" class="stktm-pill stktm-add" data-a="connect" tabindex="-1">' + SV(16, '<path d="M12 5v14M5 12h14"/>', 2.2) + 'Connect a broker</button><button type="button" role="menuitem" class="stktm-pill stktm-manage" data-x="manage" tabindex="-1">' + SLIDERS + 'Manage</button></div>';
   }
   pop.innerHTML = h;
-  pop.classList.toggle('stktm-admin', !!live);
+  pop.classList.toggle('stktm-admin', !!live || !!(paper && paper.off));
   pop.querySelectorAll('img[data-fb]').forEach((i) => i.addEventListener('error', () => { i.parentNode.innerHTML = i.dataset.fb; }, { once: true }));
   wire(pop);
 }

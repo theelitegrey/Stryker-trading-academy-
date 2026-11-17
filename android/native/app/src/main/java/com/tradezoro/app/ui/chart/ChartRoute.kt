@@ -10,7 +10,22 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.ui.Alignment
+import com.tradezoro.app.data.ChartData
+import com.tradezoro.app.data.FrameStore
+import com.tradezoro.app.ui.common.TzIcons
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -100,6 +115,14 @@ class ChartWeb(private val appContext: Context) {
         }
     }
 
+    /** Reads TZB.frame() (bars + indicator output for the native renderer) as raw JSON, or null. */
+    fun readFrame(full: Boolean, onRaw: (String?) -> Unit) {
+        val v = view ?: return onRaw(null)
+        v.evaluateJavascript("window.TZB&&TZB.frame?JSON.stringify(TZB.frame($full)):null") { raw ->
+            onRaw(runCatching { (Json.parseToJsonElement(raw ?: "null") as? JsonPrimitive)?.contentOrNull }.getOrNull())
+        }
+    }
+
     fun destroy() { view?.destroy(); view = null }
 }
 
@@ -113,6 +136,8 @@ fun ChartRoute(
 ) {
     val state by vm.state.collectAsState()
     val pending by vm.pendingSymbol.collectAsState()
+    var drawMenu by remember { mutableStateOf(false) }
+    BackHandler(enabled = state.tool != null) { vm.setTool(null) }
     ChartPolling(web, vm, snack)
     // A symbol picked on Home is applied once the chart is ready.
     LaunchedEffect(pending, state.ready) {
@@ -133,7 +158,65 @@ fun ChartRoute(
         onPaperOn = { web.call("TZB.paperOn()") },
         onExitFullscreen = { vm.setFullscreen(false) },
     )
-    ChartContent(state, actions, modifier) { m -> ChartHost(web, dark, visible = true, modifier = m) }
+    ChartContent(state, actions.copy(onDrawings = { if (state.classic) web.call("TZB.drawings()") else drawMenu = true }), modifier) { m ->
+        if (state.classic) ChartHost(web, dark, visible = true, modifier = m)
+        else Box(m) {
+            NativeChartHost(web, state, vm, dark, Modifier.fillMaxSize())
+            DrawMenu(drawMenu, onDismiss = { drawMenu = false }, onPick = { t -> drawMenu = false; vm.setTool(t) },
+                onClear = { drawMenu = false; web.call("TZB.clearDrawings()") },
+                onMore = { drawMenu = false; vm.setClassic(true); web.call("TZB.drawings()") })
+        }
+    }
+}
+
+/**
+ * The native chart (M5) over the chart page. The page stays loaded underneath as the data and indicator engine
+ * (the site's own JavaScript); the app reads TZB.frame() 4x a second and draws it. When one of the site's sheets is
+ * open (indicators, symbol search, alerts), the page is shown on top so the member can use it.
+ */
+@Composable
+fun NativeChartHost(web: ChartWeb, state: ChartUiState, vm: ChartViewModel, dark: Boolean, modifier: Modifier = Modifier) {
+    val store = remember { FrameStore() }
+    var data by remember { mutableStateOf<ChartData?>(null) }
+    var modal by remember { mutableStateOf(false) }
+    val vp = remember { ChartViewport() }
+    var lastPage by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(web) {
+        while (true) {
+            val raw = suspendCancellableCoroutine { k -> web.readFrame(store.needFull) { k.resume(it) } }
+            if (raw != null) {
+                val d = withContext(Dispatchers.Default) { store.apply(raw) }
+                modal = store.modal
+                if (d !== data) data = d
+            }
+            delay(if (raw != null && raw.length > 50_000) 400 else 250)
+        }
+    }
+    Box(modifier) {
+        // The page: invisible and untouchable under the native chart, shown on top while one of its sheets is open.
+        ChartHost(web, dark, visible = modal, modifier = Modifier.fillMaxSize())
+        if (!modal) NativeChart(
+            data, vp, state.priceStyle, Modifier.fillMaxSize(), tool = state.tool,
+            onDrawn = { t, pts ->
+                vm.setTool(null)
+                web.call("TZB.addDrawing(${jsString(t.type)},[" + pts.joinToString(",") { (tm, p) -> "{time:$tm,price:${if (p.isFinite()) p else 0.0}}" } + "])")
+            },
+            onNeedHistory = { val now = System.currentTimeMillis(); if (now - lastPage > 4000) { lastPage = now; web.call("TZB.page()") } },
+        )
+    }
+}
+
+/** Native drawing tools; the site's full set stays one tap away in the classic chart. */
+@Composable
+fun DrawMenu(open: Boolean, onDismiss: () -> Unit, onPick: (DrawTool) -> Unit, onClear: () -> Unit, onMore: () -> Unit) {
+    Box(Modifier.fillMaxWidth().wrapContentSize(Alignment.TopEnd)) {
+        DropdownMenu(expanded = open, onDismissRequest = onDismiss) {
+            DrawTool.entries.forEach { t -> DropdownMenuItem(text = { Text(t.label) }, onClick = { onPick(t) }) }
+            HorizontalDivider()
+            DropdownMenuItem(text = { Text("Clear all drawings") }, onClick = onClear)
+            DropdownMenuItem(text = { Text("More tools (classic chart)") }, onClick = onMore)
+        }
+    }
 }
 
 /**
@@ -169,8 +252,21 @@ fun ChartPolling(web: ChartWeb, vm: ChartViewModel, snack: SnackbarHostState, on
 fun ChartTopBarHost(web: ChartWeb, vm: ChartViewModel, onBack: () -> Unit) {
     val ctx = LocalContext.current
     var menu by remember { mutableStateOf(false) }
+    val prefs = remember { ctx.getSharedPreferences("chart", Context.MODE_PRIVATE) }
+    LaunchedEffect(Unit) {
+        vm.setClassic(prefs.getBoolean("chart_classic", false))
+        prefs.getString("chart_style", null)?.let { n -> PriceStyle.entries.firstOrNull { it.name == n } }?.let(vm::setPriceStyle)
+    }
     ChartTopBar(onBack = onBack, onFullscreen = { vm.setFullscreen(true) }, onMore = { menu = true }, onAlerts = { web.call("TZB.alerts()") }) {
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            val st by vm.state.collectAsState()
+            if (!st.classic) PriceStyle.entries.forEach { ps ->
+                DropdownMenuItem(text = { Text(ps.label) }, onClick = { menu = false; vm.setPriceStyle(ps); prefs.edit().putString("chart_style", ps.name).apply() },
+                    trailingIcon = { if (st.priceStyle == ps) Icon(TzIcons.Check, contentDescription = "Selected") })
+            }
+            if (!st.classic) HorizontalDivider()
+            DropdownMenuItem(text = { Text("Classic chart") }, onClick = { menu = false; vm.setClassic(!st.classic); prefs.edit().putBoolean("chart_classic", !st.classic).apply() },
+                trailingIcon = { if (st.classic) Icon(TzIcons.Check, contentDescription = "On") })
             DropdownMenuItem(text = { Text("Reload chart") }, onClick = { menu = false; web.reload() })
             DropdownMenuItem(text = { Text("Open on tradezoro.com") }, onClick = {
                 menu = false; ctx.startActivity(Intent(Intent.ACTION_VIEW, CHART_URL.toUri()))

@@ -101,6 +101,129 @@
     },
     close: function (sym) { try { return !!P().closePos(String(sym)); } catch (e) { return false; } },
     cancel: function (id) { try { return !!P().cancelOrder(Number(id)); } catch (e) { return false; } },
-    flatten: function () { try { P().flattenAll(); return true; } catch (e) { return false; } }
+    flatten: function () { try { P().flattenAll(); return true; } catch (e) { return false; } },
+
+    // ---- Native chart (M5): the app draws the chart itself; this page stays the data + indicator engine ----
+    // modal: one of the site's own sheets is open (the app then shows the page over the native chart)
+    frame: function (full) { var md = false; try { md = window.TZB.modal(); } catch (e) {} try { var f = frame(!!full); f.modal = md; return f; } catch (e) { return { t: 'frame', ready: false, modal: md, err: String(e && e.message || e).slice(0, 120) }; } },
+    // Load older history: point the (hidden) chart at its first bars so the site's own history pager fetches more.
+    page: function () {
+      try { var c = chartOf(), b = c.orchestrator.bars; if (!b || b.length < 2) return false; var span = b[b.length - 1].time - b[0].time; c.setVisibleRange({ from: b[0].time - span * 0.1, to: b[0].time + span * 0.1 }); return true; } catch (e) { return false; }
+    },
+    live: function () { try { chartOf().scrollToRealTime(); return true; } catch (e) { return false; } },
+    // A drawing made on the native chart is stored by the site's own drawings controller (saved with the layout).
+    addDrawing: function (type, anchors) {
+      try { var c = chartOf(); var d = c.drawings.add(String(type), { anchors: anchors }); try { window.STRYKER_VELA.context().stateChanged(); } catch (e) {} return !!d; } catch (e) { return false; }
+    },
+    clearDrawings: function () {
+      try { var c = chartOf(); c.drawings.all().forEach(function (d) { c.drawings.remove(d.id); }); try { window.STRYKER_VELA.context().stateChanged(); } catch (e) {} return true; } catch (e) { return false; }
+    },
+    // True while one of the site's own sheets/dialogs is open (the app then shows the page on top of the native chart).
+    modal: function () {
+      var vis = function (el) { var r = el.getBoundingClientRect(); if (r.width < 40 || r.height < 40) return false; var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.05; };
+      var q = document.querySelectorAll('[role=dialog],[aria-modal=true],dialog[open],.stkiw-card,.stkss-box');
+      for (var i = 0; i < q.length; i++) if (vis(q[i])) return true;
+      return false;
+    }
   };
+
+  // ---------------------------------------------------------------------------------------------------
+  // frame(): bars + every indicator's computed output, aligned to bar indexes, for the native renderer.
+  // Indicator maths stays in the site's engine; this only reads the renderer's scene models.
+  // Incremental: when the bar set is unchanged only the last bars and the tail of each series are sent;
+  // objects (lines, boxes, labels...) are sent again only when the engine replaced them.
+  // ---------------------------------------------------------------------------------------------------
+  var FR = { key: '', idx: null, calls: 0, sent: {}, dsig: '' };
+  var TAIL = 3;
+  function chartOf() { var ws = window.STRYKER_VELA, cell = null; try { cell = ws.cell(ws.active.id); } catch (e) {} return (cell || ws.cells()[0]).chart; }
+  function num(v) { return typeof v === 'number' && isFinite(v) ? +v.toPrecision(10) : null; }
+  function str(v) { return typeof v === 'string' ? v : (v && typeof v.defaultMessage === 'string' ? v.defaultMessage : ''); }
+  function frame(full) {
+    var ws = window.STRYKER_VELA;
+    if (!ws || !window.__stkFirstCandles) return { t: 'frame', ready: false };
+    var c = chartOf(), O = c.orchestrator, R = O.renderer, S = R.scene, bars = O.bars || [], n = bars.length, mk = c.market || {};
+    var key = (mk.symbol || '') + '|' + (mk.timeframe || '') + '|' + n + '|' + (n ? bars[0].time : 0);
+    FR.calls++;
+    var whole = full || key !== FR.key || FR.calls % 240 === 0;   // + a safety resend about once a minute at 4 frames/s
+    if (key !== FR.key || !FR.idx) { FR.idx = new Map(); for (var i = 0; i < n; i++) FR.idx.set(bars[i].time, i); }
+    if (whole) FR.sent = {};
+    FR.key = key;
+    var idx = FR.idx, ix = function (t) { var j = idx.get(t); return j == null ? -1 : j; };
+    var from = whole ? 0 : Math.max(0, n - TAIL);
+    var b = { off: from, t: [], o: [], h: [], l: [], c: [], v: [] };
+    for (var k = from; k < n; k++) { var x = bars[k]; b.t.push(x.time); b.o.push(num(x.open)); b.h.push(num(x.high)); b.l.push(num(x.low)); b.c.push(num(x.close)); b.v.push(num(x.volume) || 0); }
+    var out = { t: 'frame', ready: true, full: whole, key: key, sym: mk.symbol || '', tf: String(mk.timeframe || ''), tz: S.timezone || '', tick: num(S.priceMintick), n: n, bars: b,
+      vol: !!(R.volumeActive && !R.volumeHidden), ids: [], models: [] };
+    var ext = {}; (R.extLayers || []).forEach(function (l) { if (l && l.def) { ext[l.def.id] = 1; if (l.def.forType) ext[l.def.forType] = 1; } });
+    S.indicators.forEach(function (m) {
+      if (!m || (m.native && m.native.type === 'volume')) return;
+      out.ids.push(m.id);
+      // sig: series ids + two values deep in history, so a recompute (new inputs) forces a whole resend of this model
+      var last = FR.sent[m.id], sig = (m.series || []).map(function (s) { var p = s.points || [], q = p.length; return s.id + (q > TAIL + 1 ? ':' + p[q - TAIL - 1].value + ':' + p[q >> 1].value : ''); }).join(',') + '|' + m.paneId;
+      var tail = !whole && last && last.sig === sig;
+      var o = { id: m.id };
+      if (!tail) {
+        var nt = m.native && m.native.type;
+        o.title = str(m.displayTitle) || str(m.title) || ''; o.pane = m.paneId || 'price';
+        if (nt && (ext[nt] || nt === 'vpvr')) o.layer = 1;
+      }
+      var st = tail ? from : 0;
+      o.s = (m.series || []).map(function (s) { return series(s, st, n, ix, tail); });
+      var objs = ['fills', 'priceLines', 'backgrounds', 'barColors', 'lines', 'boxes', 'labels', 'polylines', 'linefills', 'tables'];
+      var memo = last && tail ? last.objs : {};
+      var keep = {};
+      objs.forEach(function (name) {
+        var arr = m[name]; keep[name] = arr;
+        if (tail && memo[name] === arr) return;   // unchanged object list: the app keeps what it has
+        o[name] = convert(name, arr || [], m, ix);
+      });
+      FR.sent[m.id] = { sig: sig, objs: keep };
+      out.models.push(o);
+    });
+    var dr = []; try { dr = c.drawings.all().filter(function (d) { return d.visible !== false; }).map(function (d) { return { id: d.id, type: d.type, pane: d.paneId, a: d.anchors.map(function (p) { return [p.time, num(p.price)]; }), c: d.style && d.style.lineColor, w: d.style && d.style.lineWidth, ls: d.style && d.style.lineStyle, fc: d.style && d.style.fillColor }; }); } catch (e) {}
+    var ds = JSON.stringify(dr); if (whole || ds !== FR.dsig) { out.drawings = dr; FR.dsig = ds; }
+    return out;
+  }
+  function series(s, st, n, ix, tail) {
+    var o = { id: s.id, k: s.kind };
+    if (!tail) {
+      var sty = s.style || {};
+      o.c = sty.color || null; o.w = sty.width || 1; o.ls = sty.lineStyle || 'solid';
+      if (sty.base != null) o.base = num(sty.base);
+      if (s.visible === false || (s.display && s.display.pane === false)) o.hide = 1;
+      o.title = str(s.displayTitle) || str(s.title) || '';
+    }
+    o.off = st;
+    if (s.kind === 'markers') {
+      if (tail) { o.k = 'markers'; o.same = 1; return o; }   // markers are re-sent with full frames only
+      o.m = (s.markers || []).map(function (q) { return [ix(q.time), q.position || '', q.shape || '', q.color || '', q.text || '', q.size || '']; }).filter(function (q) { return q[0] >= 0; });
+      return o;
+    }
+    var pts = s.points || [], len = n - st, v = new Array(len).fill(null), pc = null;
+    for (var i = pts.length - 1; i >= 0; i--) {
+      var p = pts[i], j = ix(p.time); if (j < 0) continue; if (j < st) break;
+      v[j - st] = num(p.value);
+      if (p.color) { if (!pc) pc = new Array(len).fill(null); pc[j - st] = p.color; }
+    }
+    o.v = v; if (pc) o.pc = pc;
+    return o;
+  }
+  function xOf(xloc, x, ix) { return xloc === 'bar_time' ? ix(x) : x; }
+  function convert(name, arr, m, ix) {
+    var ids = (m.series || []).map(function (s) { return s.id; });
+    switch (name) {
+      case 'fills': return arr.map(function (f) { return { a: ids.indexOf(f.fromSeriesId), b: ids.indexOf(f.toSeriesId), c: f.color || (f.colors && f.colors[0]) || null }; });
+      case 'priceLines': return arr.map(function (l) { return { p: num(l.price), c: l.color || null, ls: l.lineStyle || 'dashed', w: l.width || 1, t: str(l.displayTitle) || str(l.title) || '' }; });
+      case 'backgrounds': return arr.map(function (g) { return { a: ix(g.from), b: ix(g.to), c: g.color }; }).filter(function (g) { return g.a >= 0; });
+      case 'barColors': return arr.map(function (q) { return [ix(q.time), q.color || null]; }).filter(function (q) { return q[0] >= 0 && q[1]; });
+      case 'lines': return arr.filter(function (l) { return !l.invisible; }).map(function (l) { return line(l, ix); });
+      case 'boxes': return arr.map(function (x) { return { l: xOf(x.xloc, x.left, ix), r: xOf(x.xloc, x.right, ix), t: num(x.top), b: num(x.bottom), bg: x.bgColor || null, bc: x.borderColor || null, bw: x.borderWidth == null ? 1 : x.borderWidth, bs: x.borderStyle || 'solid', ex: x.extend || 'none', tx: x.text || '', tc: x.textColor || null, ts: x.textSize || 'auto', ha: x.hAlign || 'center', va: x.vAlign || 'center' }; });
+      case 'labels': return arr.map(function (x) { return { x: xOf(x.xloc, x.x, ix), y: num(x.y), yl: x.yloc || 'price', st: x.style || 'label_down', c: x.noFill ? null : (x.color || null), tx: x.text || '', tc: x.textColor || null, sz: x.size || 'normal' }; });
+      case 'polylines': return arr.map(function (p) { return { p: (p.points || []).map(function (q) { return [xOf(q.xloc, q.x, ix), num(q.price)]; }), c: p.lineColor || null, w: p.lineWidth || 1, ls: p.lineStyle || 'solid', cl: !!p.closed, fc: p.fillColor || null }; });
+      case 'linefills': return arr.map(function (f) { return { a: line(f.line1, ix), b: line(f.line2, ix), c: f.color || null }; });
+      case 'tables': return arr.map(function (t) { return { pos: t.position || 'top_right', bg: t.bgColor || null, cells: (t.cells || []).map(function (row) { return (row || []).map(function (cl) { return cl ? [cl.text || '', cl.textColor || null, cl.bgColor || null] : null; }); }) }; });
+    }
+    return [];
+  }
+  function line(l, ix) { return { x1: xOf(l.xloc, l.x1, ix), y1: num(l.y1), x2: xOf(l.xloc, l.x2, ix), y2: num(l.y2), c: l.color || null, w: l.width || 1, st: l.style || 'solid', ex: l.extend || 'none' }; }
 })();

@@ -46,6 +46,11 @@ import com.tradezoro.app.ui.chart.ChartActions
 import com.tradezoro.app.ui.chart.ChartContent
 import com.tradezoro.app.ui.chart.ChartTopBar
 import com.tradezoro.app.ui.chart.ChartUiState
+import com.tradezoro.app.ui.chart.ChartViewport
+import com.tradezoro.app.ui.chart.DrawTool
+import com.tradezoro.app.ui.chart.NativeChart
+import com.tradezoro.app.ui.chart.PriceStyle
+import com.tradezoro.app.data.FrameStore
 import com.tradezoro.app.ui.m4.AddTradeForm
 import com.tradezoro.app.ui.m4.BackTopBar
 import com.tradezoro.app.ui.m4.GexState
@@ -192,6 +197,24 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
     @Test fun alertsSignedOut() = shoot("5c-alerts-signed-out") { AlertsShell(AlertsState.SignedOut, pushOn = false) }
 
     @Test fun chart() = shoot("4-chart") { ChartShell(sampleChart(paper = true)) }
+
+    // ---- M5: native renderer on a real frame captured from tradezoro.com/charts (labelled "Sample data")
+    private val frame by lazy { FrameStore().apply(javaClass.classLoader!!.getResource("frame-btc.json")!!.readText())!! }
+    @Composable
+    private fun NativeShell(style: PriceStyle, cross: Boolean = false, tool: DrawTool? = null) {
+        val st = sampleChart(paper = true).copy(symbolId = "binance:BTCUSDT", tf = Timeframe.M15, last = frame.bars.c.last(), changeFor = "", qty = 0.01, position = null, tool = tool)
+        val vp = androidx.compose.runtime.remember { ChartViewport().apply { spacing = 7f * 2.625f; if (cross) { crossX = 600f; crossY = 700f } } }
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = { ChartTopBar({}, {}, {}) },
+            bottomBar = { TzBottomBar(Tab.CHARTS) {} },
+        ) { pad -> ChartContent(st, ChartActions(), Modifier.padding(pad)) { m -> NativeChart(frame, vp, style, m, tool = tool) } }
+    }
+    @Test fun nativeCandles() = shoot("9-native-candles") { NativeShell(PriceStyle.CANDLES) }
+    @Test fun nativeCrosshair() = shoot("9b-native-crosshair") { NativeShell(PriceStyle.CANDLES, cross = true) }
+    @Test fun nativeBars() = shoot("9c-native-bars") { NativeShell(PriceStyle.BARS) }
+    @Test fun nativeLine() = shoot("9d-native-line") { NativeShell(PriceStyle.LINE) }
+    @Test fun nativeArea() = shoot("9e-native-area") { NativeShell(PriceStyle.AREA, tool = DrawTool.TREND) }
     @Test fun chartPaperOff() = shoot("4b-chart-paper-off") { ChartShell(sampleChart(paper = false).copy(tf = Timeframe.M15)) }
     @Test fun chartFullscreen() = shoot("4c-chart-fullscreen") { ChartShell(sampleChart(paper = true).copy(fullscreen = true)) }
 

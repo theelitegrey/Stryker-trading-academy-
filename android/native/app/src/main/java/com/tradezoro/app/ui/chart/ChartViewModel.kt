@@ -26,6 +26,11 @@ data class ChartUiState(
     val position: String? = null,
     val fullscreen: Boolean = false,
     val sample: Boolean = false,
+    /** M5: true = the old WebView chart ("Classic chart"); false = the native renderer. */
+    val classic: Boolean = false,
+    val priceStyle: PriceStyle = PriceStyle.CANDLES,
+    /** Native drawing tool being placed, if any. */
+    val tool: DrawTool? = null,
 ) {
     val changePct: Double? get() = change.takeIf { changeFor == symbolId }
     val ticker: String get() = if (symbolId.isEmpty()) "" else displayTicker(symbolId)
@@ -73,6 +78,9 @@ class ChartViewModel : ViewModel() {
     fun inc() = _state.update { it.copy(qty = round2(it.qty + it.qtyStep).coerceAtMost(if (it.futures) 500.0 else 1_000_000.0)) }
     fun dec() = _state.update { it.copy(qty = round2(it.qty - it.qtyStep).coerceAtLeast(it.qtyStep)) }
     fun setFullscreen(on: Boolean) = _state.update { it.copy(fullscreen = on) }
+    fun setClassic(on: Boolean) = _state.update { it.copy(classic = on, tool = null) }
+    fun setPriceStyle(s: PriceStyle) = _state.update { it.copy(priceStyle = s) }
+    fun setTool(t: DrawTool?) = _state.update { it.copy(tool = t) }
 
     private fun round2(v: Double) = BigDecimal(v).setScale(2, RoundingMode.HALF_UP).toDouble()
 

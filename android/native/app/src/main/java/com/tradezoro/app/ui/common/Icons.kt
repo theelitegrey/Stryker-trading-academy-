@@ -37,6 +37,7 @@ object TzIcons {
     val Plus = strokeIcon("plus", "M12 5v14M5 12h14")
     val Minus = strokeIcon("minus", "M5 12h14")
     val ChevronDown = strokeIcon("chevron-down", "M6 9l6 6 6-6")
+    val Check = strokeIcon("check", "M5 12l5 5L20 7")
 }
 
 /**

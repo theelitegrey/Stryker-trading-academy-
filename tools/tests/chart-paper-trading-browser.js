@@ -202,7 +202,7 @@ async function setMarket(p, sym, tf) {
 const paperUi = (p) => p.evaluate(() => {
   const vis = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden'; };
   let lines = 0; try { const R = window.STRYKER_VELA.chart.renderer.renderer, l = R.extLayers.find((x) => x.def.id === 'stk_paper'); lines = ((l.instance.args && l.instance.args.data && l.instance.args.data.lines) || []).length; } catch (e) {}
-  return { enabled: window.__stkPaper.enabled, cls: document.documentElement.classList.contains('stkpt-on'), panel: vis(document.getElementById('stkpt')), trade: vis(document.getElementById('stkc-paper-btn')),
+  return { enabled: window.__stkPaper.enabled, cls: document.documentElement.classList.contains('stkpt-on'), panel: vis(document.querySelector('.stkpt-toggle')), trade: vis(document.getElementById('stkc-paper-btn')),
     oneClick: [...document.querySelectorAll('.stkpt-1c')].filter(vis).length, chips: [...document.querySelectorAll('.stkpt-chip')].filter(vis).length, lines };
 });
 const allHidden = (u) => !u.enabled && !u.cls && !u.panel && u.oneClick === 0 && u.chips === 0 && u.lines === 0;
@@ -321,7 +321,7 @@ async function boot(p, BASE) {
     check(await p.waitForSelector('#stkop:not([hidden])', { timeout: 10000 }).then(() => true, () => false), 'Trade button opens the floating order panel');
     await p.click('#stkop [data-a=close]');
     await p.evaluate(() => window.__stkPaper.openPanel('positions'));
-    await p.click('.stkpt-head .stkpt-trade');
+    await p.click('.stkpt-trade');
     await p.waitForSelector('#stkpt-tk:not([hidden])');
     const tag = await p.evaluate(() => document.querySelector('#stkpt-tk .stkpt-tag').textContent + ' | ' + document.querySelector('#stkpt-tk .stkpt-fine').textContent);
     check(/demo money · simulated fills/.test(tag) && /Not financial advice/.test(tag) && /Nothing is sent to any broker/.test(tag), 'ticket labelled paper / demo / no broker');
@@ -467,6 +467,7 @@ async function boot(p, BASE) {
     // ---- close NQ from the chart chip × (NQ not on a chart now: switch back) ----
     await setMarket(p, 'futures:NQ1!', '1');
     await waitFor(p, () => !!document.querySelector('.stkpt-chip[data-id=pos] .stkpt-chip-x'));
+    if (await p.evaluate(() => document.getElementById('stkpt').classList.contains('open'))) { await p.click('.stkpt-toggle'); await sleep(300); }   // the open panel floats over the chart's lower part now (no second row)
     await p.click('.stkpt-chip[data-id=pos] .stkpt-chip-x');
     await waitFor(p, () => !window.__stkPaper.account.position('futures:NQ1!'));
     const t = await p.evaluate(() => window.__stkPaper.account.state.trades.slice(-1)[0]);
@@ -601,7 +602,7 @@ async function boot(p, BASE) {
       await p.evaluate(() => window.__stkPaper.setEnabled(true));
       await sleep(2300);
       const ur2 = await paperUi(p);
-      check(ur2.enabled && ur2.panel && ur2.oneClick === 1 && await p.evaluate(() => document.querySelector('#stkpt .stkpt-badge').textContent === 'Replay account'), 'bar replay: switching ON shows the Replay account UI ' + JSON.stringify(ur2));
+      check(ur2.enabled && ur2.panel && ur2.oneClick === 1 && await p.evaluate(() => document.querySelector('.stkpt-badge').textContent === 'Replay account'), 'bar replay: switching ON shows the Replay account UI ' + JSON.stringify(ur2));
       await p.evaluate(() => window.__stkPaper.setReplay(null));
       await sleep(2300);
       const u3 = await paperUi(p);

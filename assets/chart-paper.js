@@ -408,7 +408,7 @@ export function setReplay(on){
     leaderTick();
   }
   if (panel) panel.classList.toggle('is-replay', !!replay);
-  const bd = panel && panel.querySelector('.stkpt-badge'); if (bd) bd.textContent = replay ? 'Replay account' : 'Demo';
+  const bd = pq('.stkpt-badge'); if (bd) bd.textContent = replay ? 'Replay account' : 'Demo';
   pushLines(true); renderAll(); applyEnabled();
 }
 // The replay clock moved: one segment per newly revealed bar of the update interval (in order).
@@ -1149,12 +1149,15 @@ function buildPanel(){
   panel.innerHTML = `
     <div class="stkpt-grip" role="separator" aria-orientation="horizontal" aria-label="Resize the Paper trading panel" tabindex="0" title="Drag to resize"></div>
     <div class="stkpt-head">
-      <button type="button" class="stkpt-toggle" aria-expanded="false" aria-controls="stkpt-body"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg><b>Paper trading</b></button>
-      <span class="stkpt-acctslot"></span>
-      <span class="stkpt-badge" title="${LABEL}">Demo</span>
-      <span class="stkpt-hsum" aria-live="off"></span>
+      <div class="stkpt-bb" id="stkpt-bb">
+        <i class="stkpt-sep" aria-hidden="true"></i>
+        <button type="button" class="stkpt-toggle" aria-expanded="false" aria-controls="stkpt-body"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg><b>Paper trading</b></button>
+        <span class="stkpt-acctslot"></span>
+        <span class="stkpt-badge" title="${LABEL}. ${DISCLAIMER}">Demo</span>
+        <span class="stkpt-hsum" aria-live="off"></span>
+      </div>
       <span class="stkpt-hsp"></span>
-      <button type="button" class="stkpt-b stkpt-b-pri stkpt-trade" title="New paper order">Trade</button>
+      <span class="stkpt-tw" id="stkpt-tw"><i class="stkpt-sep" aria-hidden="true"></i><button type="button" class="stkpt-b stkpt-b-pri stkpt-trade" title="New paper order">Trade</button></span>
     </div>
     <div class="stkpt-body" id="stkpt-body">
       <div class="stkpt-tabs" role="tablist" aria-label="Paper trading">
@@ -1174,9 +1177,9 @@ function buildPanel(){
   panel.querySelector('.stkpt-foot').textContent = LABEL + '. Orders work only while a ZoroCharts tab is open in this browser; nothing runs on a server. No broker, no real orders. ' + DISCLAIMER;
   bindResize(panel.querySelector('.stkpt-grip'));
   applyPanelH();
-  panel.querySelector('.stkpt-toggle').onclick = togglePanel;
-  panel.querySelector('.stkpt-hsum').onclick = () => { if (!ui.open) togglePanel(); };
-  panel.querySelector('.stkpt-trade').onclick = () => openTicket();
+  pq('.stkpt-toggle').onclick = togglePanel;
+  pq('.stkpt-hsum').onclick = () => { if (!ui.open) togglePanel(); };
+  pq('.stkpt-trade').onclick = () => openTicket();
   panel.querySelector('.stkpt-flat').onclick = () => {
     if (liveOn()) { LIVE.flattenActive(); return; }
     if (!acct || (!Object.keys(acct.state.positions).length && !acct.state.orders.length)) { toast('Nothing to flatten.', 'info'); return; }
@@ -1185,31 +1188,55 @@ function buildPanel(){
   for (const b of panel.querySelectorAll('[data-tab]')) b.onclick = () => { ui.tab = b.dataset.tab; saveUi(); renderPanel(); };
   panel.addEventListener('keydown', (e) => e.stopPropagation());
 }
+// Owner 17 Nov 2026: no second row. The caret/account/DEMO group sits in the chart's bottom bar right after the AI item (or ALL),
+// Trade at the far right. Where the library hides that bar (phones) both stay in the panel head. The open panel floats up above the bar.
+const pq = (sel) => (panel && panel.querySelector(sel)) || document.querySelector(sel);   // the bar group may live outside the panel
+function placeBar(){
+  if (!panel) return;
+  const grp = document.getElementById('stkpt-bb'), tw = document.getElementById('stkpt-tw'), head = panel.querySelector('.stkpt-head');
+  if (!grp || !tw || !head) return;
+  const bar = document.querySelector('#vela-chart .vela-widget-bottombar');
+  const inBar = !!(bar && getComputedStyle(bar).display !== 'none');
+  panel.classList.toggle('in-bar', inBar);
+  if (inBar) {
+    const ranges = bar.querySelectorAll('.vela-bb-range'), anchor = bar.querySelector('.stkai-bb') || ranges[ranges.length - 1];
+    if (anchor && anchor.nextElementSibling !== grp) anchor.after(grp);
+    if (bar.lastElementChild !== tw) bar.appendChild(tw);
+    const main = panel.parentElement, mr = main.getBoundingClientRect(), br = bar.getBoundingClientRect();
+    if (getComputedStyle(main).position === 'static') main.style.position = 'relative';
+    panel.style.setProperty('--stkpt-bb', Math.max(0, Math.round(mr.bottom - br.top)) + 'px');
+  } else {
+    if (grp.parentNode !== head) head.prepend(grp);
+    if (tw.parentNode !== head) head.append(tw);
+  }
+}
 function renderPanel(){
   if (!panel) return;
+  placeBar();
+  { const on = paperOn(), grp = document.getElementById('stkpt-bb'), tw = document.getElementById('stkpt-tw'); const show = on || !!LIVE; if (grp) grp.hidden = !show || liveOn(); if (tw) tw.hidden = !show || liveOn(); }
   const wasOpen = panel.classList.contains('open');
   panel.classList.toggle('open', !!ui.open);
   applyPanelH();
   if (wasOpen !== !!ui.open) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
-  panel.querySelector('.stkpt-toggle').setAttribute('aria-expanded', ui.open ? 'true' : 'false');
+  pq('.stkpt-toggle').setAttribute('aria-expanded', ui.open ? 'true' : 'false');
   document.documentElement.classList.toggle('stkpt-sheet-open', !!ui.open && isPhone() && (paperOn() || liveOn()));
   const lv = liveOn();
   document.documentElement.classList.toggle('stklv-on', lv);
   if (panel.classList.contains('is-live') !== lv) { pushLines(true); panel.classList.toggle('is-live', lv); panel.hidden = lv || !(paperOn() || LIVE); applyPanelH(); setTimeout(() => window.dispatchEvent(new Event('resize')), 0); if (lv) orderPanel(); }
-  { const tb = panel.querySelector('.stkpt-toggle b'), tr = panel.querySelector('.stkpt-trade'), fl = panel.querySelector('.stkpt-flat');
+  { const tb = pq('.stkpt-toggle b'), tr = pq('.stkpt-trade'), fl = panel.querySelector('.stkpt-flat');
     const want = lv ? 'Live trading' : 'Paper trading'; if (tb.textContent !== want) tb.textContent = want;
     tr.hidden = lv; fl.textContent = lv ? 'Flatten this contract' : 'Flatten all'; fl.title = lv ? 'Cancel the working orders and close the live position of this chart’s contract (with a confirm)' : 'Close every paper position and cancel every order';
     panel.setAttribute('aria-label', want); }
-  if (LIVE) LIVE.renderHead(panel.querySelector('.stkpt-acctslot'));
+  if (LIVE) LIVE.renderHead(pq('.stkpt-acctslot'));
   if (lv) {
     if (review) { try { review.api.destroy(); } catch (e) {} review = null; }
-    LIVE.renderSummary(panel.querySelector('.stkpt-hsum'));
+    LIVE.renderSummary(pq('.stkpt-hsum'));
     if (ui.open) LIVE.renderView(panel.querySelector('.stkpt-view'));
     panel.querySelector('.stkpt-foot').textContent = LIVE.foot();
     return;
   }
   panel.querySelector('.stkpt-foot').textContent = LABEL + '. Orders work only while a ZoroCharts tab is open in this browser; nothing runs on a server. No broker, no real orders. ' + DISCLAIMER;
-  if (LIVE && !paperOn()) { panel.querySelector('.stkpt-hsum').textContent = ''; if (ui.open) { const v = panel.querySelector('.stkpt-view'); v.textContent = ''; v.appendChild(h('p', { class: 'stkpt-empty', text: 'Paper trading is off. Turn it on in Chart settings → Paper trading, or pick a live account above.' })); } return; }
+  if (LIVE && !paperOn()) { pq('.stkpt-hsum').textContent = ''; if (ui.open) { const v = panel.querySelector('.stkpt-view'); v.textContent = ''; v.appendChild(h('p', { class: 'stkpt-empty', text: 'Paper trading is off. Turn it on in Chart settings → Paper trading, or pick a live account above.' })); } return; }
   for (const b of panel.querySelectorAll('[data-tab]')) { const on = b.dataset.tab === ui.tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }
   if (!acct) { panel.querySelector('.stkpt-view').textContent = 'Loading…'; return; }
   const np = Object.keys(acct.state.positions).length, no = acct.state.orders.length;
@@ -1235,10 +1262,10 @@ function renderPanel(){
 }
 function renderSummaryLive(){
   if (!panel || !acct) return;
-  if (liveOn()) { LIVE.renderSummary(panel.querySelector('.stkpt-hsum')); return; }
+  if (liveOn()) { LIVE.renderSummary(pq('.stkpt-hsum')); return; }
   if (LIVE && !paperOn()) return;
   const s = acct.summary(dayStart());
-  const el = panel.querySelector('.stkpt-hsum');
+  const el = pq('.stkpt-hsum');
   const parts = [['Equity', money(s.equity)], ['Open P&L', money(s.unrealized, true), s.unrealized], ['Day', money(s.dayPnl, true), s.dayPnl]];
   const sig = parts.map((p) => p[1]).join('|');
   if (el.dataset.sig !== sig) {
@@ -1714,6 +1741,34 @@ function flattenSym(sym){
 function setTrailing(sym){ return act(() => { acct.setTrailing(sym, true); return []; }); }
 
 const CSS = `
+.stkpt-bb{ display:inline-flex; align-items:center; gap:8px; min-width:0; }
+.stkpt-bb[hidden],.stkpt-tw[hidden]{ display:none !important; }
+.stkpt-sep{ display:none; flex:none; width:1px; height:16px; background:var(--vela-border-strong, var(--line-soft)); }
+.stkpt-tw{ display:inline-flex; align-items:center; gap:12px; }
+/* bottom-bar mode: same 24px control height / 12px type as the range buttons; the bar's own gap is 2, so margin 10 + 2 = 12 around each divider */
+.vela-widget-bottombar .stkpt-bb{ flex:none; height:24px; margin-left:10px; gap:8px; font:600 12px/16px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif; color:var(--vela-fg-muted, var(--ink-2)); }
+.vela-widget-bottombar .stkpt-tw{ flex:none; height:24px; margin-left:10px; }
+.vela-widget-bottombar .stkpt-bb .stkpt-sep{ display:block; margin-right:4px; }
+.vela-widget-bottombar .stkpt-tw .stkpt-sep{ display:block; }
+.vela-widget-bottombar .stkpt-toggle{ height:24px; padding:0 8px; gap:6px; border-radius:4px; font:inherit; color:var(--vela-fg, var(--ink-1)); }
+.vela-widget-bottombar .stkpt-toggle:hover{ background:var(--vela-hover, var(--bg-2)); color:var(--vela-fg-bright, var(--ink-0)); }
+.vela-widget-bottombar .stkpt-toggle:focus-visible,.vela-widget-bottombar .stkpt-trade:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+.vela-widget-bottombar .stkpt-toggle svg{ width:12px; height:12px; }
+.vela-widget-bottombar .stkpt-badge{ display:inline-flex; align-items:center; height:24px; padding:0 8px; box-sizing:border-box; }
+.vela-widget-bottombar .stkpt-hsum{ flex:0 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font:inherit; font-weight:500; }
+.vela-widget-bottombar .stkpt-trade{ height:24px; padding:0 12px; border-radius:6px; font:700 12px/1 var(--font-body, sans-serif); }
+.vela-widget-bottombar .stklv-pick,.vela-widget-bottombar .stklv-pick select{ height:24px; }
+.vela-widget-bottombar .stklv-pick select{ min-width:96px; padding:0 24px 0 8px; font:600 12px/16px var(--font-body, sans-serif); border-radius:4px; }
+.vela-widget-bottombar .stklv-pick svg{ right:8px; }
+.vela-widget-bottombar .stklv-badge{ height:24px; padding:0 8px; font-size:11px; }
+/* no second row: the head is empty in bar mode, the open panel floats up above the bar */
+.stkpt.in-bar:not(.open){ display:none; }
+html.stklv-on .stkpt-badge{ display:none; }
+.stkpt.in-bar.open{ position:absolute; left:0; right:0; bottom:var(--stkpt-bb, 38px); border:1px solid var(--line); border-bottom:0; border-radius:12px 12px 0 0; box-shadow:0 -12px 32px rgba(0,0,0,.35); }
+.stkpt.in-bar .stkpt-head{ display:none; }
+.stkpt.in-bar.open .stkpt-head{ display:none; }
+@media (max-width:1279px){ .vela-widget-bottombar .stkpt-hsum{ display:none; } }
+@media (max-width:1179px){ .vela-widget-bottombar .vela-bb-range:nth-child(7), .vela-widget-bottombar .vela-bb-range:nth-child(8){ display:none; } }
 .stkpt{ flex:none; margin:0; padding:0; min-height:0; max-width:none; border-radius:0; position:relative; z-index:35; display:flex; flex-direction:column; background:var(--bg-0); border-top:1px solid var(--line-soft); color:var(--ink-1); font:13px/1.4 var(--font-body, Archivo, system-ui, sans-serif); }
 .stkpt-head{ display:flex; align-items:center; gap:10px; min-height:36px; padding:3px 8px; min-width:0; }
 .stkpt-toggle{ display:inline-flex; align-items:center; gap:6px; border:0; background:none; color:var(--ink-0); font:inherit; cursor:pointer; padding:4px 6px; border-radius:6px; white-space:nowrap; }
@@ -1968,6 +2023,7 @@ export function mountPaper(ws, opts){
   WS = ws; toastFn = (opts && opts.toast) || null;
   if (!document.getElementById('stkpt-css')) { const st = document.createElement('style'); st.id = 'stkpt-css'; st.textContent = CSS; document.head.appendChild(st); }
   buildPanel();
+  setInterval(placeBar, 1000); addEventListener('resize', placeBar);
   mountToolbar(opts && opts.bar);
   renderPanel();
   applyEnabled();                             // hidden until the account says the switch is on

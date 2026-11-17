@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- Perf baseline for tools/tests/chart-perf-pan.js: the chart engine ALONE (same vendored 0.9.0 build the
+     Charts page loads, same workspace options shape, same bars), with none of our layers, panels or pollers.
+     Test-only page: not linked, not deployed as a feature. Bars come from /api/chart/bars (routed by the bench). -->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>perf: bare engine</title>
+<style>html,body{margin:0;height:100%;background:#000}#vela-chart{position:absolute;inset:0}</style>
+<script type="importmap">{"imports":{
+  "@zag-js/vanilla":"/assets/vendor/zag-1.42.0/vanilla.js","@zag-js/menu":"/assets/vendor/zag-1.42.0/menu.js",
+  "@zag-js/dialog":"/assets/vendor/zag-1.42.0/dialog.js","@zag-js/tooltip":"/assets/vendor/zag-1.42.0/tooltip.js",
+  "@luxalgo/vela":"/assets/vendor/vela-0.9.0-s10/index.js","@luxalgo/vela/plugin":"/assets/vendor/vela-0.9.0-s10/plugin.js"}}</script>
+</head>
+<body>
+<div id="vela-chart"></div>
+<script type="module">
+import { VelaWorkspace } from '/assets/vendor/vela-0.9.0-s10/workspace.js';
+// Minimal futures provider: the same /api/chart/bars pages the Charts page reads, nothing else.
+const PAGE = 8 * 3600;
+class Bars {
+  info() { return { name: 'futures', displayName: 'Futures', requiresApiKey: false, supportedTimeframes: ['1'], capabilities: { enumerate: true, stream: false, symbolInfo: true } }; }
+  async listSymbols() { return [{ ticker: 'NQ1!', description: 'E-mini Nasdaq-100', type: 'futures', prefix: 'CME', exchange: 'CME', market: 'futures', mintick: 0.25, pointvalue: 20 }]; }
+  async getSymbolInfo() { return { ticker: 'NQ1!', tickerid: 'CME:NQ1!', prefix: 'CME', root: 'NQ', description: 'E-mini Nasdaq-100', type: 'futures', market: 'futures', currency: 'USD', mintick: 0.25, pricescale: 100, minmove: 25, pointvalue: 20, timezone: 'America/New_York', session: '1800-1700', session_extended: '1800-1700' }; }
+  async getCalendar() { return []; }
+  resolveSymbolIcon() { return undefined; }
+  async getBars(t, tf, range = {}) {
+    const to = Math.floor((range.to != null ? range.to : Date.now()) / 1000);
+    const want = range.limit || 500, out = [];
+    for (let p = Math.floor(to / PAGE), k = 0; k < 8 && out.length < want; p--, k++) {
+      const j = await (await fetch('/api/chart/bars/NQ1%21?tf=1&page=' + p)).json();
+      out.unshift(...(j.bars || []).filter((r) => r[0] < to).map((r) => ({ time: r[0] * 1000, open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] })));
+    }
+    return out;
+  }
+  subscribe() { return () => {}; }
+}
+window.STRYKER_VELA = new VelaWorkspace('#vela-chart', {
+  layout: '1', symbol: 'futures:NQ1!', timeframe: '1', cells: { A: { symbol: 'futures:NQ1!', timeframe: '1' } },
+  maxWebglCells: 4, live: true, theme: 'dark', providers: { futures: () => new Bars() }
+});
+</script>
+</body>
+</html>

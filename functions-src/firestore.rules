@@ -326,7 +326,7 @@ service cloud.firestore {
         function validM(d) {
           return d.keys().hasOnly(['metric', 'symbol', 'p', 'message', 'freq', 'active', 'createdAt', 'updatedAt'])
             && d.keys().hasAll(['metric', 'symbol', 'p', 'freq', 'active', 'updatedAt'])
-            && d.metric in ['gex_cross', 'funding', 'oi_change']
+            && d.metric in ['gex_cross', 'funding', 'oi_change', 'ph_premium', 'ph_voloi']
             && d.symbol is string && d.symbol.size() > 0 && d.symbol.size() <= 15
             && d.p is map && d.p.size() <= 4
             && d.p.keys().hasOnly(['level', 'dir', 'range', 'venue', 'value', 'mins'])

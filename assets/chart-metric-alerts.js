@@ -23,8 +23,12 @@ export const METRICS = [
   { v: 'iv_rank', l: 'IV rank above / below', pro: true, z: 'iv_rank', fields: ['sym', 'dir', 'value'] },
   { v: 'pc_ratio', l: 'Put/call ratio above / below', pro: true, z: 'pc_extreme', fields: ['sym', 'dir', 'value'] },
   { v: 'funding', l: 'Funding rate above / below', pro: false, fields: ['coin', 'venue', 'dir', 'value'] },
-  { v: 'oi_change', l: 'Open interest change', pro: false, fields: ['coin', 'venue', 'odir', 'value', 'mins'] }
+  { v: 'oi_change', l: 'Open interest change', pro: false, fields: ['coin', 'venue', 'odir', 'value', 'mins'] },
+  { v: 'ph_premium', l: 'Phantom: premium on one contract in a minute', pro: false, fields: ['sym', 'phside', 'value'] },
+  { v: 'ph_voloi', l: 'Phantom: volume over open interest', pro: false, fields: ['sym', 'phside', 'value'] }
 ];
+export const PH_SYMS = ['SPX', 'SPY', 'QQQ', 'GLD'];
+const PH_SIDE = { any: 'calls or puts', call: 'calls', put: 'puts' };
 const MBY = Object.fromEntries(METRICS.map((m) => [m.v, m]));
 export const LEVELS = [['call_wall', 'Call Ceiling (call wall)'], ['put_wall', 'Put Floor (put wall)'], ['gamma_flip', 'Flip Line (zero gamma)'],
   ['pin', 'Pin Strike'], ['em_high', 'Expected move high'], ['em_low', 'Expected move low'], ['any_node', 'Any Gamma Node']];
@@ -36,7 +40,9 @@ const NOTE = {
   iv_rank: 'IV rank from 0 to 100. Checked on each options data update.',
   pc_ratio: 'Put/call by volume, for example 1.2. Checked on each options data update.',
   funding: 'Percent per funding period (Hyperliquid 1 hour, OKX usually 8 hours), for example 0.01 or -0.01. Checked every minute.',
-  oi_change: 'Open interest in coins, compared with the value that many minutes ago. Checked every minute; the first check needs that much history.'
+  oi_change: 'Open interest in coins, compared with the value that many minutes ago. Checked every minute; the first check needs that much history.',
+  ph_premium: 'Phantom estimate from options volume and quotes, per minute (not single trades). SPX, SPY, QQQ, GLD; ES and NQ use SPX and QQQ. Checked on each options data update, about every minute in US hours.',
+  ph_voloi: 'Fires when a contract\u2019s volume today reaches that many times its open interest, once per contract per day. SPX, SPY, QQQ, GLD. Checked on each options data update.'
 };
 const FUT = { ES: 'SPX', MES: 'SPX', NQ: 'QQQ', MNQ: 'QQQ', RTY: 'IWM', M2K: 'IWM', GC: 'GLD', MGC: 'GLD', CL: 'USO', MCL: 'USO' };
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -70,6 +76,14 @@ export function buildMetric(v) {
     return { col: 'zoroAlerts', doc: { type: m.z, symbol, p, message, freq, active: true } };
   }
   const p = {};
+  if (m.v === 'ph_premium' || m.v === 'ph_voloi') {
+    if (!PH_SYMS.includes(symbol)) return { error: 'Phantom covers SPX, SPY, QQQ and GLD (ES and NQ map to SPX and QQQ).' };
+    if (!isNum(value)) return { error: 'Enter a value.' };
+    if (m.v === 'ph_premium' && !(value >= 10000 && value <= 1e10)) return { error: 'Enter a premium of at least $10,000.' };
+    if (m.v === 'ph_voloi' && !(value >= 0.5 && value <= 100)) return { error: 'Vol/OI is between 0.5 and 100.' };
+    p.dir = PH_SIDE[v.phside] ? v.phside : 'any'; p.value = value;
+    return { col: 'metricAlerts', doc: { metric: m.v, symbol, p, message, freq, active: true } };
+  }
   if (m.v === 'gex_cross') {
     if (!LEVELL[v.level]) return { error: 'Pick a level.' };
     p.level = v.level; p.dir = ['up', 'down'].includes(v.cdir) ? v.cdir : 'any';
@@ -93,6 +107,8 @@ export function titleOf(a) {
   switch (a.metric) {
     case 'gex_cross': return a.symbol + ' crosses ' + (p.dir === 'up' ? 'above ' : p.dir === 'down' ? 'below ' : '') + 'its ' + (LEVELL[p.level] || 'level');
     case 'funding': return a.symbol + ' funding on ' + VENUES[p.venue] + ' ' + p.dir + ' ' + f2(p.value) + '%';
+    case 'ph_premium': return a.symbol + ' ' + PH_SIDE[p.dir || 'any'] + ': $' + Number(p.value).toLocaleString('en-US') + '+ premium in a minute (Phantom)';
+    case 'ph_voloi': return a.symbol + ' ' + PH_SIDE[p.dir || 'any'] + ': Vol/OI ' + f2(p.value) + '+ (Phantom)';
     case 'oi_change': return a.symbol + ' open interest on ' + VENUES[p.venue] + (p.dir === 'up' ? ' up ' : p.dir === 'down' ? ' down ' : ' moves ') + f2(p.value) + '% in ' + p.mins + ' min';
     default: return a.symbol + ' metric alert';
   }
@@ -183,6 +199,7 @@ export function formHtml() {
       <label data-m="dir" hidden>When<select name="md">${opt([['above', 'Above'], ['below', 'Below']])}</select></label>
       <label data-m="odir" hidden>Change<select name="mo">${opt([['either', 'Up or down'], ['up', 'Up'], ['down', 'Down']])}</select></label>
       <label data-m="value" hidden><span class="stk-al-mvl">Value</span><input name="mval" type="number" step="any" inputmode="decimal"></label>
+      <label data-m="phside" hidden>Side<select name="mph">${opt([['any', 'Calls or puts'], ['call', 'Calls'], ['put', 'Puts']])}</select></label>
       <label data-m="mins" hidden>Over<select name="mn">${opt([['5', '5 minutes'], ['15', '15 minutes'], ['60', '1 hour'], ['240', '4 hours']])}</select></label>
       <label>Trigger<select name="mf"><option value="once">Only once</option><option value="every">Every time</option></select></label>
       <label class="stk-al-wide">Message<input name="mmsg" maxlength="140" placeholder="Optional"></label>
@@ -194,7 +211,7 @@ function syncForm(f) {
   const m = MBY[f.mm.value] || METRICS[0];
   const want = new Set(m.fields); if (m.v === 'gex_cross' && /^em_/.test(f.ml.value)) want.add('range');
   f.querySelectorAll('[data-m]').forEach((l) => { l.hidden = !want.has(l.dataset.m); });
-  f.querySelector('.stk-al-mvl').textContent = { iv_rank: 'IV rank (0 to 100)', pc_ratio: 'Put/call value', funding: 'Funding, %', oi_change: 'Change, %' }[m.v] || 'Value';
+  f.querySelector('.stk-al-mvl').textContent = { iv_rank: 'IV rank (0 to 100)', pc_ratio: 'Put/call value', funding: 'Funding, %', oi_change: 'Change, %', ph_premium: 'Premium in one minute, $', ph_voloi: 'Vol/OI at least' }[m.v] || 'Value';
   f.querySelector('.stk-al-mnote').textContent = NOTE[m.v] + ' Education only. Not financial advice.';
 }
 let editing = null;
@@ -206,11 +223,19 @@ export function openForm(panel, a) {
   if (a && (a.metric === 'funding' || a.metric === 'oi_change')) f.mc.value = a.symbol; else f.ms.value = a ? a.symbol : (f.ms.value || 'SPX');
   f.ml.value = p.level || 'gamma_flip'; f.mr.value = p.range || 's'; f.mx.value = p.dir && a.metric === 'gex_cross' ? p.dir : 'any';
   f.md.value = p.dir === 'below' ? 'below' : 'above'; f.mo.value = a && a.metric === 'oi_change' ? p.dir : 'either';
+  if (f.mph) f.mph.value = a && /^ph_/.test(a.metric) ? (p.dir || 'any') : 'any';
   f.mv.value = p.venue || 'okx'; f.mn.value = String(p.mins || 15); f.mval.value = p.value != null ? p.value : '';
   f.mf.value = a ? a.freq : 'once'; f.mmsg.value = a ? a.message : '';
   f.mm.disabled = !!a;   // editing keeps the metric (its store may differ); delete and create to change it
   f.querySelector('.stk-al-save').textContent = a ? 'Save' : 'Create';
   syncForm(f); try { f.mm.focus(); } catch (e) {}
+}
+// Phantom page / panel: open the form pre-filled (metric, symbol, side, value).
+export function prefill(panel, v) {
+  openForm(panel, null);
+  const f = panel.querySelector('.stk-al-mform');
+  f.mm.value = v.metric; f.ms.value = v.symbol || 'SPX'; if (f.mph) f.mph.value = v.side || 'any'; if (v.value != null) f.mval.value = v.value;
+  syncForm(f);
 }
 export function wireForm(panel, toastFn) {
   const f = panel.querySelector('.stk-al-mform');
@@ -222,7 +247,7 @@ export function wireForm(panel, toastFn) {
     if (m && m.pro && proLocked('gex')) { proUpgrade('gex'); return; }
     if (!user()) { toastFn('Sign in to create metric alerts.'); return; }
     const b = buildMetric({ metric: f.mm.value, symbol: m && (m.v === 'funding' || m.v === 'oi_change') ? f.mc.value : f.ms.value, level: f.ml.value, range: f.mr.value, cdir: f.mx.value,
-      dir: f.md.value, odir: f.mo.value, venue: f.mv.value, mins: f.mn.value, value: f.mval.value === '' ? NaN : Number(f.mval.value), freq: f.mf.value, message: f.mmsg.value });
+      dir: f.md.value, odir: f.mo.value, phside: f.mph ? f.mph.value : 'any', venue: f.mv.value, mins: f.mn.value, value: f.mval.value === '' ? NaN : Number(f.mval.value), freq: f.mf.value, message: f.mmsg.value });
     if (b.error) { toastFn(b.error); return; }
     try { await save(b, editing); f.hidden = true; editing = null; }
     catch (err) {

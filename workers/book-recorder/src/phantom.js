@@ -69,7 +69,7 @@ export function checkBoard(u, d, now) {
   if (!Array.isArray(d.moves) || d.moves.length > 300) return 'bad moves';
   for (const m of d.moves) if (!Array.isArray(m) || m.length !== 7 || !int(m[0]) || !OCC.test(m[1]) || !int(m[2]) || !int(m[3]) || m[3] < 0 || !fin(m[4]) || !int(m[5]) || !int(m[6])) return 'bad move';
   if (!Array.isArray(d.lm) || d.lm.length > 50) return 'bad lm';
-  for (const m of d.lm) if (!Array.isArray(m) || m.length !== 3 || !OCC.test(m[0]) || !int(m[1]) || !int(m[2])) return 'bad lm row';
+  for (const m of d.lm) if (!Array.isArray(m) || m.length !== 5 || !OCC.test(m[0]) || !m.slice(1).every(int)) return 'bad lm row';   // [k, new volume, premium, day volume, OI]
   const mn = d.minute;
   if (!mn || typeof mn !== 'object' || Array.isArray(mn)) return 'bad minute';
   const keys = Object.keys(mn);

@@ -4,7 +4,7 @@
 // Zoro Range: shaded 0DTE / 1DTE / weekly / monthly range from the ATM straddle, as bands with a thin edge line and a small tag.
 //   Lighter than the old Expected Move (no dashed pair of tags per expiry unless "Tags" is on). Futures are mapped
 //   (ES/NQ/RTY/GC/CL) with ratio = chart price / underlying spot at the summary time; the tag says "mapped from SPX".
-// Gamma Zone: a faint tint above the Flip Line (Cushion) and below it (Swing). Off by default (it is its own indicator).
+// Gamma Zone: a faint tint above zero gamma (Cushion) and below it (Swing). Off by default (it is its own indicator).
 // Input "Levels from": Through the day (refreshes every few minutes) or Daily close (levels from the last 16:00 ET close).
 // Bar replay: nothing is drawn (today's range and flip would leak the future). The chip says so.
 // Wording: "updated X min ago" only. Education only. Not financial advice.
@@ -14,7 +14,7 @@ import * as ProGate from './chart-pro-gate.js?v=1092';
 export const ZRANGE_TYPE = 'stk_zrange';
 export const ZZONE_TYPE = 'stk_zzone';
 export const ZRANGE_DESC = 'Shaded Zoro Range bands from the ATM straddle: 0DTE, 1DTE, weekly, monthly. SPX, SPY, QQQ, IWM, GLD, USO and ES, NQ, RTY, GC, CL (mapped).';
-export const ZZONE_DESC = 'A faint tint above the Flip Line (Cushion) and below it (Swing). Off by default.';
+export const ZZONE_DESC = 'A faint tint above zero gamma (Cushion) and below it (Swing). Off by default.';
 const PRICING = '/pricing';
 export const BASIS_DAY = 'Through the day', BASIS_CLOSE = 'Daily close';
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -29,8 +29,8 @@ const RSCHEMA = [
 ];
 const ZSCHEMA = [
   basisSel,
-  { key: 'cushionColor', title: 'Cushion colour (above Flip Line)', type: 'color', defval: '#03c988' },
-  { key: 'swingColor', title: 'Swing colour (below Flip Line)', type: 'color', defval: '#ee4276' },
+  { key: 'cushionColor', title: 'Cushion colour (above zero gamma)', type: 'color', defval: '#03c988' },
+  { key: 'swingColor', title: 'Swing colour (below zero gamma)', type: 'color', defval: '#ee4276' },
   { key: 'strength', title: 'Tint strength', type: 'float', defval: 0.07, min: 0.02, max: 0.2, step: 0.01 },
   { key: 'showStatus', title: 'Status', type: 'bool', defval: true }
 ];
@@ -108,7 +108,7 @@ class ZNative {
           payload = z
             ? { flip: z.flip, zone: z.zone, cushion: str(I.cushionColor, '#03c988'), swing: str(I.swingColor, '#ee4276'), strength: isNum(I.strength) ? I.strength : 0.07,
               showStatus: I.showStatus !== false, status: 'Gamma Zone ' + src.root + map + ' · ' + (z.zone === 'swing' ? 'Swing' : 'Cushion') + ' · ' + ago }
-            : { note: 'No Flip Line yet for ' + src.root };
+            : { note: 'No zero gamma level yet for ' + src.root };
         }
       }
     }

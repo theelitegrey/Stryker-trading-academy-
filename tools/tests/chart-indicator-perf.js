@@ -19,7 +19,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const NATIVES = [
   ['Cumulative Delta (trades)', 'stk_of_cvd', 'binance:BTCUSDT'],
   ['Big Trades', 'stk_of_big', 'binance:BTCUSDT'],
-  ['Zoro Levels (GEX Levels)', 'stk_gex', 'futures:NQ1!'],
+  ['GEX Levels', 'stk_gex', 'futures:NQ1!'],
   ['GEX Heatmap', 'stk_gexheat', 'futures:NQ1!'],
 ];
 const PINE = [['FVG Relay (ICT structure, Pine)', 'fvg-relay-stryker', 'binance:BTCUSDT']];

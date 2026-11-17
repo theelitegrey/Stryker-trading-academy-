@@ -314,7 +314,7 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_camarilla') { cat = 'Levels'; desc = 'Camarilla levels R5 to S5, Y-High / Y-Close / Y-Low and the R3-RB3 / S3-SB3 zones from the prior day, week or month'; }
       if (r.native && r.nativeType === 'stk_tide') { cat = GROUP_STRYKER; desc = 'Options money flow: net call premium (green) vs net put premium (red) since the open, in a lower pane (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_zrange') { cat = GROUP_STRYKER; desc = 'Shaded Zoro Range bands (0DTE, 1DTE, weekly, monthly) from the ATM straddle'; }
-      if (r.native && r.nativeType === 'stk_zzone') { cat = GROUP_STRYKER; desc = 'A faint tint above the Flip Line (Cushion) and below it (Swing)'; }
+      if (r.native && r.nativeType === 'stk_zzone') { cat = GROUP_STRYKER; desc = 'A faint tint above zero gamma (Cushion) and below it (Swing)'; }
       if (r.native && r.nativeType === 'stk_ivrank') { cat = GROUP_STRYKER; desc = '30-day implied volatility with its 1-year low and high, IV rank and percentile'; }
       if (r.native && /^stk_(dex|vex|cex)$/.test(r.nativeType)) { cat = GROUP_STRYKER; desc = { stk_dex: 'Dealer delta exposure', stk_vex: 'Dealer vanna exposure', stk_cex: 'Dealer charm exposure' }[r.nativeType] + ' by strike on the price axis, with the 3 largest strikes as lines. All expiries, 0DTE or next expiry'; }
       if (r.native && r.nativeType === 'stk_zvol') { cat = GROUP_STRYKER; desc = 'Marks where a contract had Fresh Volume (volume above open interest) or a Volume Burst. Volume only, no buyer or seller side'; }

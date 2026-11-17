@@ -1,4 +1,4 @@
-// Visual order: Zoro Levels (stk_gex) vs an order-flow layer (Footprint (L2), stk_l2f_fp; Delta needs a live trade feed, covered by the L2 test); Bring to front via the legend menu, order kept after reload.
+// Visual order: GEX Levels (stk_gex) vs an order-flow layer (Footprint (L2), stk_l2f_fp; Delta needs a live trade feed, covered by the L2 test); Bring to front via the legend menu, order kept after reload.
 //   node tools/tests/chart-dev-server.mjs 8041 &   CHART_BASE=http://127.0.0.1:8041 node tools/tests/chart-zorder-browser.js <shotsDir>
 const fs = require('fs');
 const { launch } = require('./lib.js');
@@ -57,21 +57,21 @@ async function menu(p, type, label) {
       await sleep(2500);
       const o0 = await order(p);
       check(o0.gex > 0 && o0.delta > 0, `${tag}: both layers mounted`, o0);
-      check(o0.delta > o0.gex, `${tag}: before, Footprint (L2) is drawn over Zoro Levels (as added)`, o0);
+      check(o0.delta > o0.gex, `${tag}: before, Footprint (L2) is drawn over GEX Levels (as added)`, o0);
       await p.screenshot({ path: `${OUT}/${tag}-before.png` });
-      // menu shows the four steps; the top one is Bring to front on Zoro Levels
+      // menu shows the four steps; the top one is Bring to front on GEX Levels
       const names = await menu(p, 'stk_gex', null);
       for (const n of ['Bring to front', 'Bring forward', 'Send backward', 'Send to back']) check(names.includes(n), `${tag}: menu has "${n}"`, names);
       if (mobile) await p.screenshot({ path: `${OUT}/${tag}-menu.png` });
       await (mobile ? p.locator('.vela-menu-item', { hasText: 'Bring to front' }).first().tap() : p.locator('.vela-menu-item', { hasText: 'Bring to front' }).first().click()); await sleep(1200);
       const o1 = await order(p);
-      check(o1.gex > o1.delta, `${tag}: Bring to front puts Zoro Levels over Footprint (L2)`, o1);
+      check(o1.gex > o1.delta, `${tag}: Bring to front puts GEX Levels over Footprint (L2)`, o1);
       await p.screenshot({ path: `${OUT}/${tag}-after.png` });
       // one step back, then to back, then front again (each is a real change)
       await menu(p, 'stk_gex', 'Send backward'); const o2 = await order(p);
-      check(o2.delta > o2.gex, `${tag}: Send backward puts Zoro Levels under Footprint (L2)`, o2);
+      check(o2.delta > o2.gex, `${tag}: Send backward puts GEX Levels under Footprint (L2)`, o2);
       await menu(p, 'stk_gex', 'Bring forward'); const o3 = await order(p);
-      check(o3.gex > o3.delta, `${tag}: Bring forward puts Zoro Levels over Footprint (L2) again`, o3);
+      check(o3.gex > o3.delta, `${tag}: Bring forward puts GEX Levels over Footprint (L2) again`, o3);
       await menu(p, 'stk_gex', 'Send to back'); const o4 = await order(p);
       check(o4.z.stk_gex < o4.z.stk_l2f_fp, `${tag}: Send to back is under every other layer`, o4);
       await menu(p, 'stk_gex', 'Bring to front'); const o5 = await order(p);
@@ -93,7 +93,7 @@ async function menu(p, type, label) {
       await boot(); await sleep(3500);
       const o6 = await order(p);
       check(o6.gex > 0 && o6.delta > 0, `${tag}: both layers back after reload`, o6);
-      check(o6.gex > o6.delta, `${tag}: order kept after reload (Zoro Levels over Footprint (L2))`, o6);
+      check(o6.gex > o6.delta, `${tag}: order kept after reload (GEX Levels over Footprint (L2))`, o6);
       await p.screenshot({ path: `${OUT}/${tag}-reload.png` });
       check(errors.length === 0, tag + ': no page errors', errors);
       await ctx.close();

@@ -105,7 +105,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
       check(ids.filter((x) => /^zr/.test(x)).length === 8, tag + ': 4 Zoro Range expiries x 2 edges');
       check(ids.includes('zpin') && ids.includes('call') && ids.includes('put'), tag + ': Pin Strike + Call Ceiling + Put Floor drawn');
       const call = d && d.lines && d.lines.find((l) => l.id === 'call');
-      check(call && /^CALL CEILING/.test(call.text), tag + ': glossary name "' + (call && call.text) + '"');
+      check(call && /^CALL WALL/.test(call.text), tag + ': glossary name "' + (call && call.text) + '"');
       check(d && /updated (just now|\d+ min ago)/.test(d.status || '') && !/\blive\b|real-time|delayed|behind/i.test(d.status || ''), tag + ': status "' + (d && d.status) + '"');
       // ratio check: IWM spot 2000 -> RTY chart price near bar close; flip/spot as in the fixture
       const c = await lastClose(p);

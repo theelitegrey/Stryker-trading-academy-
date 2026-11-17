@@ -54,7 +54,7 @@
       signin: true,
       title: function () { return 'Sign in to get levels for your platform. It is free.'; },
       bullets: function () {
-        return ['Today\'s GEX levels, Zoro Levels and dark pool levels as files for the platforms you use',
+        return ['Today\'s GEX levels, gamma nodes and dark pool levels as files for the platforms you use',
                 'A private link that keeps NinjaTrader, cTrader and Quantower up to date'];
       },
       reason: ''

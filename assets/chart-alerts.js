@@ -609,11 +609,11 @@ export function openAlerts(prefill){
 // untouched); the server alert-engine (workers/alert-engine/zoro_alerts.py) checks them and sends the phone push.
 // Text of every push follows the options copy rules; this panel only creates, lists, pauses and deletes them.
 const ZTYPES = { level_touch: 'Level touch', zone_change: 'Gamma Zone change', level_moved: 'Level moved', fresh_volume: 'Fresh Volume', volume_burst: 'Volume Burst', iv_rank: 'IV rank cross', pc_extreme: 'Put/call extreme', note_ready: 'Morning Note ready' };
-const ZLEVELS = [['call_ceiling', 'Call Ceiling'], ['put_floor', 'Put Floor'], ['flip_line', 'Flip Line'], ['range_high', 'Zoro Range high'], ['range_low', 'Zoro Range low']];
+const ZLEVELS = [['call_ceiling', 'Call wall'], ['put_floor', 'Put wall'], ['flip_line', 'Zero gamma'], ['range_high', 'Zoro Range high'], ['range_low', 'Zoro Range low']];
 const ZLEVELL = Object.fromEntries(ZLEVELS);
 const ZRANGEL = { '0': '0DTE', '1': '1DTE', w: 'weekly', m: 'monthly' };
 const ZFIELDS = { level_touch: ['sym', 'level', 'range'], zone_change: ['sym'], level_moved: ['sym', 'level'], fresh_volume: ['sym', 'size'], volume_burst: ['sym', 'size'], iv_rank: ['sym', 'dir', 'value'], pc_extreme: ['sym', 'dir', 'value'], note_ready: [] };
-const ZNOTE = { level_touch: 'Index and futures symbols only (SPX, SPY, QQQ, IWM, GLD, USO, ES, NQ, RTY, GC, CL). Futures levels are mapped from the index.', zone_change: 'When net gamma changes sign at the Flip Line.', level_moved: 'When the level moves to a new strike.', fresh_volume: 'A contract trades more than its open interest, at or above your size.', volume_burst: 'Volume added between two updates is at or above your size.', iv_rank: 'IV rank moves above or below your value (0 to 100).', pc_extreme: 'Put/call by volume moves above or below your value.', note_ready: 'One push when the Zoro Morning Note is published (09:40 ET, weekdays).' };
+const ZNOTE = { level_touch: 'Index and futures symbols only (SPX, SPY, QQQ, IWM, GLD, USO, ES, NQ, RTY, GC, CL). Futures levels are mapped from the index.', zone_change: 'When net gamma changes sign at zero gamma.', level_moved: 'When the level moves to a new strike.', fresh_volume: 'A contract trades more than its open interest, at or above your size.', volume_burst: 'Volume added between two updates is at or above your size.', iv_rank: 'IV rank moves above or below your value (0 to 100).', pc_extreme: 'Put/call by volume moves above or below your value.', note_ready: 'One push when the Zoro Morning Note is published (09:40 ET, weekdays).' };
 const MAX_ZALERTS = 25;
 let zAlerts = [], zEditing = null;
 const zcol = () => { const u = user(); return u ? fb().firestore().collection('students').doc(u.uid).collection('zoroAlerts') : null; };

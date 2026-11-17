@@ -118,13 +118,14 @@ export const LEVEL_DEFS = [
 ];
 
 // glossary names (spec section 1) used when the ZoroOptions flag is on
-const ZORO_NAMES = { call: 'CALL CEILING', zero: 'FLIP LINE', put: 'PUT FLOOR', w0c: '0DTE CALL CEILING', w0p: '0DTE PUT FLOOR' };
-const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days', G6 = 'Zoro Levels', G7 = 'Live levels (futures charts)', G8 = 'Levels to show', G9 = 'Gamma regime';
+// Owner 17 Nov: standard names again (Call Wall / Zero Gamma / Put Wall), not the Ceiling / Flip / Floor glossary
+const ZORO_NAMES = { call: 'CALL WALL', zero: 'ZERO GAMMA', put: 'PUT WALL', w0c: '0DTE CALL WALL', w0p: '0DTE PUT WALL' };
+const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days', G6 = 'Gamma nodes and ranges', G7 = 'Live levels (futures charts)', G8 = 'Levels to show', G9 = 'Gamma regime';
 const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', defval, group, inline });
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 export const BASIS_DAY = 'Updated through the day', BASIS_CLOSE = 'Daily close';
-const ALERT_LEVELS = ['Call Ceiling (call wall)', 'Put Floor (put wall)', 'Flip Line (zero gamma)', 'Pin Strike', 'Expected move high', 'Expected move low', 'Any Gamma Node'];
-const ALERT_LEVEL_ID = { 'Call Ceiling (call wall)': 'call_wall', 'Put Floor (put wall)': 'put_wall', 'Flip Line (zero gamma)': 'gamma_flip', 'Pin Strike': 'pin', 'Expected move high': 'em_high', 'Expected move low': 'em_low', 'Any Gamma Node': 'any_node' };
+const ALERT_LEVELS = ['Call wall', 'Put wall', 'Zero gamma', 'Pin Strike', 'Expected move high', 'Expected move low', 'Any Gamma Node'];
+const ALERT_LEVEL_ID = { 'Call wall': 'call_wall', 'Put wall': 'put_wall', 'Zero gamma': 'gamma_flip', 'Call Ceiling (call wall)': 'call_wall', 'Put Floor (put wall)': 'put_wall', 'Flip Line (zero gamma)': 'gamma_flip', 'Pin Strike': 'pin', 'Expected move high': 'em_high', 'Expected move low': 'em_low', 'Any Gamma Node': 'any_node' };
 let metricMod = null;   // assets/chart-metric-alerts.js, loaded only when an alert toggle is on
 const SCHEMA = [
   { key: 'levelsFrom', title: 'Levels from', type: 'string', defval: BASIS_DAY, options: [BASIS_DAY, BASIS_CLOSE],
@@ -1221,7 +1222,7 @@ export function installGexLevels(Core) {
   Core.registerRendererLayer({ id: TYPE, placement: 'above-data', create: gexLayer });
   Core.registerRendererLayer({ id: FLASH, placement: 'above-data', create: flashLayer });
   Core.registerNativeIndicator({
-    type: TYPE, title: ZD.zoroOn() ? 'Zoro Levels' : 'TradeZoro GEX Levels', shortTitle: ZD.zoroOn() ? 'Zoro Levels' : 'GEX Levels', paneHint: 'price', overlay: true,
+    type: TYPE, title: 'GEX Levels', shortTitle: 'GEX Levels', paneHint: 'price', overlay: true,
     inputsSchema: () => SCHEMA, defaultInputs: () => Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])),
     create: () => new GexNative(),
     // Short text after "GEX Levels" in the chart legend (assets/chart-legend-rows.js).

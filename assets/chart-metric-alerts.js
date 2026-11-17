@@ -26,7 +26,7 @@ export const METRICS = [
   { v: 'oi_change', l: 'Open interest change', pro: false, fields: ['coin', 'venue', 'odir', 'value', 'mins'] }
 ];
 const MBY = Object.fromEntries(METRICS.map((m) => [m.v, m]));
-export const LEVELS = [['call_wall', 'Call Ceiling (call wall)'], ['put_wall', 'Put Floor (put wall)'], ['gamma_flip', 'Flip Line (zero gamma)'],
+export const LEVELS = [['call_wall', 'Call wall'], ['put_wall', 'Put wall'], ['gamma_flip', 'Zero gamma'],
   ['pin', 'Pin Strike'], ['em_high', 'Expected move high'], ['em_low', 'Expected move low'], ['any_node', 'Any Gamma Node']];
 const LEVELL = Object.fromEntries(LEVELS);
 const VENUES = { okx: 'OKX', hl: 'Hyperliquid' };

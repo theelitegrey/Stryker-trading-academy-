@@ -62,7 +62,7 @@
     var m = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60000));
     return m < 1 ? 'Updated just now' : m < 60 ? 'Updated ' + m + ' min ago' : m < 1440 ? 'Updated ' + Math.floor(m / 60) + ' h ago' : 'Updated ' + Math.floor(m / 1440) + ' d ago';
   }
-  var GROUPS = { gex: 'GEX levels', em: 'Zoro Range', nodes: 'Zoro Levels', dp: 'Dark pool levels' };
+  var GROUPS = { gex: 'GEX levels', em: 'Zoro Range', nodes: 'Gamma nodes', dp: 'Dark pool levels' };
   var GKEY = { call_ceiling: 'gex', flip_line: 'gex', put_floor: 'gex', pin_strike: 'gex', zoro_level: 'nodes', dark_pool: 'dp' };
   function renderPrev(j) {
     var el = $('pl-prev');

@@ -39,9 +39,11 @@
   // /courses.html and (on Cloudflare Pages) as /courses, so the extension is
   // stripped before matching — otherwise the highlight silently disappears on
   // the live domain. Pages outside this map show no active state.
+  // /charts/<8-char layout id> (assets/chart-layout-slug.js) is the charts page too
+  function chartLink(){ return /^\/charts\/[A-Za-z0-9]{8}\/?$/.test(location.pathname); }
   function activeKey(){
     var segs = location.pathname.split('/').filter(Boolean);
-    var f = (segs.length ? segs[segs.length - 1] : 'index').toLowerCase().replace(/\.html$/, '');
+    var f = chartLink() ? 'charts' : (segs.length ? segs[segs.length - 1] : 'index').toLowerCase().replace(/\.html$/, '');
     if (f === 'courses' || f === 'chapter' || f === 'academy') return 'learn';
     if (f === 'trade-journal') return 'journal';
     if (f === 'charts') return 'charts';
@@ -52,6 +54,7 @@
 
   function pageFile(){
     var segs = location.pathname.split('/').filter(Boolean);
+    if (chartLink()) return 'charts';
     return (segs.length ? segs[segs.length - 1] : 'index').toLowerCase().replace(/\.html$/, '');
   }
 

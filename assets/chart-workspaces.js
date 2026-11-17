@@ -538,6 +538,7 @@ export function mountWorkspaces(ws, o){
       if (!window.confirm('Turn on sharing for "' + it.name + '"? Anyone with the link can view it (read-only). You can turn it off any time from the layout menu.')) return;
       await L.setShared(true); return;   // copies the link itself
     }
+    if (L.ensureSlug) await L.ensureSlug(c.id);   // the /charts/<ID> link (assets/chart-layouts.js)
     const url = L.linkOf(c.id);
     try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch (e) { window.prompt('Copy this link', url); }
   }
@@ -571,7 +572,7 @@ export function mountWorkspaces(ws, o){
     g.push([
       { label: 'Move left', icon: 'left', kbd: isMac ? '⌥←' : 'Alt+←', disabled: !C.canStep(ix, id, -1), run: () => stepWs(id, -1) },
       { label: 'Move right', icon: 'right', kbd: isMac ? '⌥→' : 'Alt+→', disabled: !C.canStep(ix, id, 1), run: () => stepWs(id, 1) },
-      { label: 'Open in new window', icon: 'ext', run: () => { persist(); window.open(location.pathname + '?ws=' + encodeURIComponent(id), '_blank', 'noopener'); } }]);
+      { label: 'Open in new window', icon: 'ext', run: () => { persist(); window.open('/charts?ws=' + encodeURIComponent(id), '_blank', 'noopener'); } }]);
     g.push([
       { label: 'Reset to one chart…', icon: 'reset', run: () => resetLayout(id) },
       { label: 'Close workspace', icon: 'close', disabled: n <= 1, run: () => closeWs(id) },
@@ -737,13 +738,15 @@ export function mountWorkspaces(ws, o){
   let noScreen = false; try { noScreen = !!window.__stkPersistKey && !localStorage.getItem(window.__stkPersistKey); } catch (e) {}
   // workspace docs are never layouts: tell the layout menu which ids are workspaces (also cleans its Recently used)
   L.setHidden(() => (ix ? C.wsDocIds(ix) : []));
-  const lay = user() && L.current ? L.current.id : null;   // the open layout (also one per browser) is another workspace's
+  // the open layout (also one per browser) is another workspace's
+  const lay = user() && L.current ? L.current.id : null;
   let snap = null; try { snap = JSON.parse(sessionStorage.getItem(K.snap()) || 'null'); } catch (e) {}
   if (!snap || snap.ws !== ix.active || !snap.st || typeof snap.st !== 'object') snap = null;
   let stamp = null; try { stamp = localStorage.getItem(K.stamp()); } catch (e) {}
   // another tab changed the shared screen after this one did (or no tab did since this one opened): not this tab's chart
   const otherTab = !!stamp && stamp !== myTab;
-  const foreign = !!saved && (noScreen || otherTab || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && (x.layoutId === lay || x.wsDoc === lay))));
+  // a layout opened by the address (/charts/<ID>, ?layout=) stays on screen in the open workspace, like opening it from the menu
+  const foreign = !!saved && !L.fromLink && (noScreen || otherTab || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && (x.layoutId === lay || x.wsDoc === lay))));
   // an older version tracked the workspace's own doc as "the open layout": stop (the screen stays as it is)
   if (lay && L.isWs(lay)) L.forget();
   if (!foreign) { syncLayout(cur()); markScreen(ix.active); stampMe(); }
@@ -774,6 +777,7 @@ export function mountWorkspaces(ws, o){
       const r = d && d.exists ? C.sanitize((d.data() || {}).index) : null;
       if (!r || C.pickNewer(ix, r) !== r) { persist(); return; }
       const here = C.find(r, ix.active);
+      if (!here && L.fromLink) { ix = r; const it = cur(); if (it) { it.closed = false; syncLayout(it); markScreen(it.id); } persist(); return; }   // keep the linked layout on screen
       if (here) { r.active = ix.active; here.closed = false; Object.assign(here, { layoutId: cur().layoutId, layoutName: cur().layoutName, shared: cur().shared, wsDoc: here.wsDoc || cur().wsDoc }); ix = r; persist(); return; }
       const target = r.active; ix = r; ix.active = null;
       // the screen belongs to a workspace this account no longer has: open the account's active one (no save: it was not ours)
@@ -800,7 +804,7 @@ export function mountWorkspaces(ws, o){
 
   // "Set as default workspace": it opens on load (once, after the account copy is read)
   let defDone = false;
-  const bootDefault = () => { if (defDone) return; defDone = true; const q = new URLSearchParams(location.search).get('ws'), to = C.find(ix, q) ? q : ix.def;   // ?ws=<id> (Open in new window) beats the default
+  const bootDefault = () => { if (defDone) return; defDone = true; if (L.fromLink && !new URLSearchParams(location.search).get('ws')) return; const q = new URLSearchParams(location.search).get('ws'), to = C.find(ix, q) ? q : ix.def;   // ?ws=<id> (Open in new window) beats the default
     if (ix && to && to !== ix.active && C.find(ix, to)) switchTo(to); };
   if (user()) setTimeout(() => { if (!defDone) bootDefault(); }, 2500); else setTimeout(bootDefault, 0);
 

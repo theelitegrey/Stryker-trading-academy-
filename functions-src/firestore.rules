@@ -422,7 +422,7 @@ service cloud.firestore {
       // 50-per-member cap is client-side. Carved out of the wildcard above.
       match /chartLayouts/{lid} {
         function validLayout(d) {
-          return d.keys().hasOnly(['name', 'state', 'symbol', 'interval', 'shared', 'updatedAt', 'thumb', 'panes', 'indicators', 'vis', 'desc', 'tags', 'cid', 'kind', 'ws'])
+          return d.keys().hasOnly(['name', 'state', 'symbol', 'interval', 'shared', 'updatedAt', 'thumb', 'panes', 'indicators', 'vis', 'desc', 'tags', 'cid', 'kind', 'ws', 'slug'])
             && d.keys().hasAll(['name', 'state', 'shared', 'updatedAt'])
             // Workspaces vs layouts (2026-11-17): a workspace's own chart doc is marked kind 'workspace' + ws = the workspace id
             // (assets/chart-workspaces.js), so it is never listed as a layout. Optional: real layouts have neither.
@@ -444,8 +444,23 @@ service cloud.firestore {
             && d.shared is bool
             && d.updatedAt == request.time;
         }
+        // LAYOUT LINKS (17 Nov 2026): slug = the layout's permanent 8-char link id (/charts/<slug>). It is set ONCE,
+        // by a slug-only update written in the same batch as its chartLinks/{slug} lookup doc, and never changes
+        // after: every other write must keep it as it is (a save, rename or publish merges it through).
+        function slugKept() {
+          return request.resource.data.get('slug', null) == resource.data.get('slug', null);
+        }
+        function slugOnce() {
+          return !('slug' in resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['slug'])
+            && request.resource.data.slug is string && request.resource.data.slug.matches('^[A-HJKMNP-Z2-9]{8}$')
+            && getAfter(/databases/$(database)/documents/chartLinks/$(request.resource.data.slug)).data.ownerUid == uid
+            && getAfter(/databases/$(database)/documents/chartLinks/$(request.resource.data.slug)).data.lid == lid;
+        }
         allow read, delete: if isSelf(uid);
-        allow create, update: if isSelf(uid) && lid.size() <= 40 && validLayout(request.resource.data);
+        allow create: if isSelf(uid) && lid.size() <= 40 && validLayout(request.resource.data) && !('slug' in request.resource.data);
+        allow update: if isSelf(uid) && lid.size() <= 40
+          && ((validLayout(request.resource.data) && slugKept()) || slugOnce());
       }
 
       // === SCREENER SAVED SCREENS (2026-11-03) — NEW, FOR COS REVIEW ===
@@ -972,6 +987,30 @@ service cloud.firestore {
         && validShared(request.resource.data)
         && exists(/databases/$(database)/documents/students/$(request.auth.uid)/chartLayouts/$(id));
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------------
+    // Charts: LAYOUT LINK lookup (assets/chart-layouts.js, 17 Nov 2026, roadmap "layout-links").
+    // chartLinks/{slug}  { ownerUid, lid, createdAt }   slug = 8 chars from ABCDEFGHJKMNPQRSTUVWXYZ23456789.
+    // /charts/<slug> reads it to find the layout. It holds no chart state: the layout itself stays behind its own
+    // rules (owner only; chartShared / publicLayouts for what the owner chose to share), so a link to a private
+    // layout opens nothing for anyone else. Any signed-in member may GET one by id (never list). Created once,
+    // only together with the owner's own layout taking that slug (same batch), never updated (so an id can never
+    // be taken over), and deleted by the owner only after the layout is gone.
+    // ---------------------------------------------------------------------
+    match /chartLinks/{slug} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && slug.matches('^[A-HJKMNP-Z2-9]{8}$')
+        && request.resource.data.keys().hasOnly(['ownerUid', 'lid', 'createdAt'])
+        && request.resource.data.keys().hasAll(['ownerUid', 'lid', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.lid is string && request.resource.data.lid.size() > 0 && request.resource.data.lid.size() <= 40
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/students/$(request.auth.uid)/chartLayouts/$(request.resource.data.lid)).data.get('slug', '') == slug;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid
+        && !exists(/databases/$(database)/documents/students/$(request.auth.uid)/chartLayouts/$(resource.data.lid));
     }
 
     // ---------------------------------------------------------------------

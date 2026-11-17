@@ -20,6 +20,8 @@ put('profiles/alice', { displayName: 'Alice T' }); put('profiles/bob', { display
 put('communities/zoro', { ownerUid: 'alice', name: 'Zoro Room', status: 'active', visibility: 'public' });
 put('communities/zoro/members/bob', { uid: 'bob', status: 'active', expiresAt: null });
 put('admins/carol', { x: 1 });
+// geo-block (09 Nov): every test member has already answered the country question, else its modal covers the chart
+for (const u of ['alice', 'bob', 'carol', 'dave']) put('students/' + u, { uid: u, plan: 'Elite', role: 'elite', residenceCountry: 'US', sanctionsAttest: true, onboardingDone: true });
 const rev = (v) => {
   if (Array.isArray(v)) return v.map(rev);
   if (v && typeof v === 'object') { if (v.__ts) return { __ms: Date.now() }; const o = {}; for (const k in v) o[k] = rev(v[k]); return o; }

@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Layout links (17 Nov 2026): this page is also served at /charts/<layout id> (_redirects). Every relative
+     URL (assets/..., login.html, dynamic fetches) resolves from the site root. In-page "#..." links are handled
+     by the script below, so they never jump to the home page. -->
+<base href="/">
+<script>document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;e.preventDefault();var id=a.getAttribute('href').slice(1),t=id&&document.getElementById(id);if(t){if(!t.hasAttribute('tabindex'))t.setAttribute('tabindex','-1');t.focus();t.scrollIntoView&&t.scrollIntoView();}},true);</script>
 <meta name="stryker-build" content="1108">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

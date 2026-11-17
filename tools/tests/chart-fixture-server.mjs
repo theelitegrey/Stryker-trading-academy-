@@ -46,6 +46,9 @@ http.createServer((req, res) => {
     }
     res.writeHead(404, { 'content-type': 'application/json' }); res.end('{"error":"fixture server"}'); return;
   }
+  // _redirects: /charts/agents -> charts-agents, then /charts/* -> the charts page (layout links, 17 Nov 2026)
+  if (url.pathname === '/charts/agents') url.pathname = '/charts-agents.html';
+  else if (/^\/charts\/./.test(url.pathname)) url.pathname = '/charts.html';
   let p = path.join(ROOT, decodeURIComponent(url.pathname));
   if (!p.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
   if (fs.existsSync(p) && fs.statSync(p).isDirectory()) p = path.join(p, 'index.html');

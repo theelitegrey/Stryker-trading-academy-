@@ -26,8 +26,8 @@ data class ChartUiState(
     val position: String? = null,
     val fullscreen: Boolean = false,
     val sample: Boolean = false,
-    /** M5: true = the old WebView chart ("Classic chart"); false = the native renderer. */
-    val classic: Boolean = false,
+    /** true = the classic chart (the site's own chart, default since M7); false = the native renderer. */
+    val classic: Boolean = true,
     val priceStyle: PriceStyle = PriceStyle.CANDLES,
     /** Native drawing tool being placed, if any. */
     val tool: DrawTool? = null,

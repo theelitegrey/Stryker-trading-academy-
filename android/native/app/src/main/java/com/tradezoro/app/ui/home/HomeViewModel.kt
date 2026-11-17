@@ -22,6 +22,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.coroutineScope
+import com.tradezoro.app.data.LiveFeed
+import com.tradezoro.app.data.cryptoPair
+import com.tradezoro.app.data.hubRoot
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -49,6 +56,8 @@ data class HomeUiState(
     /** true once the member's lists have loaded (from the account, or this phone for guests). */
     val loaded: Boolean = false,
     val signedIn: Boolean = false,
+    /** Futures prices are streaming live from the hub right now (signed agreement / current data, server-confirmed). */
+    val live: Boolean = false,
 ) {
     /** True when any shown futures quote comes from a delayed source. */
     val anyDelayed: Boolean get() = rows.any { (it.state as? RowState.Ready)?.quote?.realtime == false }
@@ -70,6 +79,9 @@ class HomeViewModel(
     fun consumeNote() { _notes.value = null }
 
     private var poller: Job? = null
+    private var liveJob: Job? = null
+    /** Last live price per watchlist id (wins over a polled bar that is older). */
+    private val liveLast = HashMap<String, Double>()
     private var store: WatchStore? = null
     private var bindJob: Job? = null
     private var activePref: (String) -> Unit = {}
@@ -183,7 +195,42 @@ class HomeViewModel(
         }
     }
 
-    fun stop() { poller?.cancel(); poller = null }
+    fun stop() { poller?.cancel(); poller = null; liveJob?.cancel(); liveJob = null; liveLast.clear(); _state.update { it.copy(live = false) } }
+
+    /**
+     * Live prices (Owner bug 17 Nov): while Home is shown, futures stream from the site's live hub when the server granted
+     * current data ([futuresLive]), crypto from the exchange stream. The 25 s poll keeps running for the daily change and
+     * the sparkline; a live price always replaces the polled last price.
+     */
+    fun startLive(feed: LiveFeed, futuresLive: Boolean) {
+        liveJob?.cancel()
+        liveJob = viewModelScope.launch {
+            snapshotIds().collectLatest { ids ->
+                coroutineScope {
+                    val roots = if (futuresLive) ids.mapNotNull { id -> hubRoot(id)?.let { it to id } }.toMap() else emptyMap()
+                    val pairs = ids.mapNotNull { id -> cryptoPair(id)?.let { it to id } }.toMap()
+                    if (roots.isNotEmpty()) launch { feed.futures(roots.keys, { r, p -> roots[r]?.let { onLive(it, p) } }, { on -> _state.update { it.copy(live = on) } }) }
+                    else _state.update { it.copy(live = false) }
+                    if (pairs.isNotEmpty()) launch { feed.crypto(pairs.keys) { pr, p -> pairs[pr]?.let { onLive(it, p) } } }
+                }
+            }
+        }
+    }
+
+    private fun snapshotIds() = _state.map { st -> st.rows.map { it.symbol.id }.toSet() }.distinctUntilChanged()
+
+    /** One live price for watchlist id [id]: moves the row's last price (the change % follows from the daily close). */
+    fun onLive(id: String, price: Double) {
+        liveLast[id] = price
+        _state.update { s ->
+            s.copy(rows = s.rows.map { r ->
+                if (r.symbol.id != id) r else when (val st = r.state) {
+                    is RowState.Ready -> if (st.quote.last == price && st.quote.realtime) r else r.copy(state = RowState.Ready(st.quote.copy(last = price, realtime = true)))
+                    else -> r
+                }
+            })
+        }
+    }
 
     suspend fun refresh(onlyLoading: Boolean = false) {
         val gate = Semaphore(4)   // at most 4 requests in flight, like the site
@@ -191,7 +238,7 @@ class HomeViewModel(
         val jobs = syms.map { sym ->
             viewModelScope.launch {
                 val next = try {
-                    RowState.Ready(gate.withPermit { repo.quote(sym) })
+                    RowState.Ready(gate.withPermit { repo.quote(sym) }.let { q -> liveLast[sym.id]?.let { q.copy(last = it, realtime = true) } ?: q })
                 } catch (e: CancellationException) { throw e } catch (e: Exception) {
                     RowState.Failed(lastGood(sym))
                 }

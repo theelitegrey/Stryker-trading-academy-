@@ -229,13 +229,16 @@ function localStore(){
     async remove(id){ put(all().filter((x) => x.id !== id)); }
   };
 }
+const listOfDoc = (x) => { const d = x.data({ serverTimestamps: 'estimate' }) || {}; return { id: x.id, name: d.name || 'Watchlist', items: Array.isArray(d.items) ? d.items : [], collapsed: Array.isArray(d.collapsed) ? d.collapsed : [], view: Object.assign({}, VIEW_DEF, d.view || {}), shared: !!d.shared, updatedAt: tsMs(d.updatedAt) }; };
+// The account's open list, shared by every device (the phone app writes it too): students/{uid}/watchlistPrefs/active { id, updatedAt }.
+const activeDoc = () => db().collection('students').doc(user().uid).collection('watchlistPrefs').doc('active');
 function cloudStore(){
   const shape = (d) => ({ name: d.name, items: d.items, collapsed: d.collapsed || [], view: Object.assign({}, VIEW_DEF, d.view || {}), shared: !!d.shared, updatedAt: ts() });
   return {
     kind: 'cloud',
     async list(){
       const s = await col().get();
-      return s.docs.map((x) => { const d = x.data() || {}; return { id: x.id, name: d.name || 'Watchlist', items: Array.isArray(d.items) ? d.items : [], collapsed: Array.isArray(d.collapsed) ? d.collapsed : [], view: Object.assign({}, VIEW_DEF, d.view || {}), shared: !!d.shared, updatedAt: tsMs(d.updatedAt) }; });
+      return s.docs.map(listOfDoc);
     },
     async save(d){
       await col().doc(d.id).set(shape(d));
@@ -903,9 +906,9 @@ export function mountWatchlist(ws, o){
     const r = lsGet(K.recent(), []).filter((x) => x !== id);
     r.unshift(id); lsSet(K.recent(), r.slice(0, 8));
   }
-  function setCur(l){
+  function setCur(l, fromRemote){
     cur = l; sel = null; selSet = new Set();
-    if (l && !viewing) { lsSet(K.active(), l.id); touchRecent(l.id); }
+    if (l && !viewing) { lsSet(K.active(), l.id); touchRecent(l.id); if (!fromRemote && user()) activeDoc().set({ id: l.id, updatedAt: ts() }).catch(() => {}); }
     render(); refresh(false);
   }
   async function newDoc(name, items, extra){
@@ -1171,8 +1174,30 @@ export function mountWatchlist(ws, o){
       const d = await newDoc('Watchlist', DEFAULT_ITEMS);
       if (!d) lists = [{ id: rid(), name: 'Watchlist', items: DEFAULT_ITEMS.slice(), collapsed: [], view: Object.assign({}, VIEW_DEF), shared: false }];
     }
-    const want = lsGet(K.active(), null);
-    if (!viewing) setCur(lists.find((l) => l.id === want) || lists[0]);
+    let want = lsGet(K.active(), null);
+    if (user()) { try { const a = await activeDoc().get(); if (a.exists && typeof (a.data() || {}).id === 'string') want = a.data().id; } catch (e) {} }
+    if (!viewing) setCur(lists.find((l) => l.id === want) || lists[0], true);
+    listen();
+  }
+  // ---- live sync across devices (Owner 17 Nov): a list created, renamed, reordered or opened on another device (the
+  // phone app or another browser) shows here at once; local edits not yet saved are never overwritten.
+  let unsub = [];
+  function listen(){
+    unsub.forEach((f) => { try { f(); } catch (e) {} }); unsub = [];
+    if (!user()) return;
+    unsub.push(col().onSnapshot((snap) => {
+      if (snap.metadata.hasPendingWrites) return;   // our own write: already on screen
+      const fresh = snap.docs.map(listOfDoc), byId = new Map(fresh.map((l) => [l.id, l]));
+      lists = lists.filter((l) => byId.has(l.id) || (l === cur && saveTimer));
+      fresh.forEach((f) => { const l = lists.find((x) => x.id === f.id); if (!l) lists.push(f); else if (!(l === cur && saveTimer)) Object.assign(l, f); });
+      if (!viewing && cur && !lists.includes(cur)) { if (lists.length) setCur(lists[0], true); return; }
+      render(); if (cur) refresh(false);
+    }, () => {}));
+    unsub.push(activeDoc().onSnapshot((d) => {
+      if (d.metadata.hasPendingWrites || viewing || saveTimer) return;
+      const id = d.exists ? (d.data() || {}).id : null, l = id && lists.find((x) => x.id === id);
+      if (l && l !== cur) setCur(l, true);
+    }, () => {}));
   }
   let lastUid = undefined;
   const sharedTried = new Set();   // one attempt per link per page load (no duplicate toasts)

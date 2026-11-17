@@ -59,10 +59,10 @@ class DataAccessRepository(
 ) {
     private val ok get() = runCatching { FirebaseApp.getInstance() }.isSuccess
 
-    suspend fun idToken(): String? {
+    suspend fun idToken(force: Boolean = false): String? {
         if (!ok) return null
         val u = FirebaseAuth.getInstance().currentUser ?: return null
-        return runCatching { u.getIdToken(false).await().token }.getOrNull()
+        return runCatching { u.getIdToken(force).await().token }.getOrNull()
     }
 
     suspend fun load(): DataAccess {
@@ -82,4 +82,16 @@ class DataAccessRepository(
         }
         return DataAccess(signedIn = true, agreement = agreement, current = current)
     }
+}
+
+/**
+ * Home footer line. Live = the hub is streaming futures to this phone right now; current data granted but the stream
+ * not (yet) up = "Connecting"; otherwise the server's own label. null = the default (delayed) line.
+ */
+fun homeDataNote(signedIn: Boolean, d: DataAccess, streaming: Boolean): String? = when {
+    !signedIn -> null
+    d.current == true && streaming -> "Live futures data."
+    d.current == true -> "Current futures data. Connecting to the live stream\u2026"
+    d.agreement != null -> d.label
+    else -> null
 }

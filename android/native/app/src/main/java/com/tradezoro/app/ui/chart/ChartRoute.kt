@@ -19,6 +19,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import com.tradezoro.app.ui.theme.Tz
 import com.tradezoro.app.data.ChartData
 import com.tradezoro.app.data.FrameStore
 import com.tradezoro.app.ui.common.TzIcons
@@ -208,6 +214,13 @@ fun NativeChartHost(web: ChartWeb, state: ChartUiState, vm: ChartViewModel, dark
     Box(modifier) {
         // The page: invisible and untouchable under the native chart, shown on top while one of its sheets is open.
         ChartHost(web, dark, visible = modal, modifier = Modifier.fillMaxSize())
+        val skipped = data?.drawings?.count { it.type !in NATIVE_DRAWINGS } ?: 0
+        if (!modal && skipped > 0) Text(
+            if (skipped == 1) "1 drawing shows in the classic chart only" else "$skipped drawings show in the classic chart only",
+            style = MaterialTheme.typography.labelSmall, color = Tz.colors.muted,
+            modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = 8.dp).zIndex(1f)
+                .clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.background.copy(alpha = 0.8f)).padding(horizontal = 4.dp),
+        )
         if (!modal) NativeChart(
             data, vp, state.priceStyle, Modifier.fillMaxSize(), tool = state.tool,
             onDrawn = { t, pts ->
@@ -218,6 +231,9 @@ fun NativeChartHost(web: ChartWeb, state: ChartUiState, vm: ChartViewModel, dark
         )
     }
 }
+
+/** Drawing types the native renderer draws (ChartPainter.drawing); others are skipped with a note. */
+val NATIVE_DRAWINGS = setOf("trendline", "arrow", "infoline", "trendangle", "ray", "extendedline", "hline", "hray", "vline", "box", "rectangle", "fibretracement", "parallelchannel")
 
 /** Native drawing tools; the site's full set stays one tap away in the classic chart. */
 @Composable
@@ -252,6 +268,9 @@ fun ChartHost(web: ChartWeb, dark: Boolean, visible: Boolean, modifier: Modifier
     )
 }
 
+/** New key in M7: the classic chart became the default, so an M5/M6 choice of the native chart starts over. */
+const val CLASSIC_KEY = "chart_classic_m7"
+
 /** Polls the chart page once a second while a chart-backed screen (Charts or Trade) is shown; engine toasts -> snackbars. */
 @Composable
 fun ChartPolling(web: ChartWeb, vm: ChartViewModel, snack: SnackbarHostState, onPaper: ((com.tradezoro.app.data.PaperSnapshot) -> Unit)? = null) {
@@ -267,7 +286,7 @@ fun ChartTopBarHost(web: ChartWeb, vm: ChartViewModel, onBack: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     val prefs = remember { ctx.getSharedPreferences("chart", Context.MODE_PRIVATE) }
     LaunchedEffect(Unit) {
-        vm.setClassic(prefs.getBoolean("chart_classic", false))
+        vm.setClassic(prefs.getBoolean(CLASSIC_KEY, true))   // Owner 17 Nov: the classic chart (as the site opens) is the default
         prefs.getString("chart_style", null)?.let { n -> PriceStyle.entries.firstOrNull { it.name == n } }?.let(vm::setPriceStyle)
     }
     val top by vm.state.collectAsState()
@@ -280,8 +299,14 @@ fun ChartTopBarHost(web: ChartWeb, vm: ChartViewModel, onBack: () -> Unit) {
                     trailingIcon = { if (st.priceStyle == ps) Icon(TzIcons.Check, contentDescription = "Selected") })
             }
             if (!st.classic) HorizontalDivider()
-            DropdownMenuItem(text = { Text("Classic chart") }, onClick = { menu = false; vm.setClassic(!st.classic); prefs.edit().putBoolean("chart_classic", !st.classic).apply() },
+            DropdownMenuItem(text = { Text("Classic chart") }, onClick = { menu = false; vm.setClassic(!st.classic); prefs.edit().putBoolean(CLASSIC_KEY, !st.classic).apply() },
                 trailingIcon = { if (st.classic) Icon(TzIcons.Check, contentDescription = "On") })
+            HorizontalDivider()
+            // Saved on the member's account by the site's own code: the same on the website and every phone.
+            DropdownMenuItem(text = { Text("Layouts") }, onClick = { menu = false; web.call("TZB.layouts()") })
+            DropdownMenuItem(text = { Text("Indicator templates") }, onClick = { menu = false; web.call("TZB.templates()") })
+            DropdownMenuItem(text = { Text("Workspaces") }, onClick = { menu = false; web.call("TZB.workspaces()") })
+            HorizontalDivider()
             DropdownMenuItem(text = { Text("Reload chart") }, onClick = { menu = false; web.reload() })
             DropdownMenuItem(text = { Text("Open on tradezoro.com") }, onClick = {
                 menu = false; ctx.startActivity(Intent(Intent.ACTION_VIEW, CHART_URL.toUri()))

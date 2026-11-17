@@ -64,6 +64,7 @@ import com.tradezoro.app.data.Cat
 import com.tradezoro.app.data.NAME_MAX
 import com.tradezoro.app.data.SECTION
 import com.tradezoro.app.data.isSection
+import com.tradezoro.app.data.displayItems
 import com.tradezoro.app.data.searchCatalog
 import com.tradezoro.app.ui.common.TzIcons
 import com.tradezoro.app.ui.theme.Tz
@@ -173,10 +174,11 @@ internal fun WatchRows(state: HomeUiState, onSymbol: (String) -> Unit, a: WatchA
     val secPx = with(density) { 32.dp.toPx() }
     var dragging by remember { mutableStateOf<String?>(null) }
     var dy by remember { mutableFloatStateOf(0f) }
-    val items by rememberUpdatedState(state.items)
+    val shown = remember(state.items) { displayItems(state.items) }
+    val items by rememberUpdatedState(shown)
     val heightOf = { it: String -> if (isSection(it)) secPx else rowPx }
     val syms = state.items.filterNot(::isSection)
-    state.items.forEach { item ->
+    shown.forEach { item ->
         // No return@key inside key{}: it compiles to a non-local return the dexer rejects.
         val row = if (isSection(item)) null else state.row(item)
         if (isSection(item)) key(item) {
@@ -203,13 +205,16 @@ internal fun WatchRows(state: HomeUiState, onSymbol: (String) -> Unit, a: WatchA
                             onDrag = { ch, d ->
                                 ch.consume()
                                 dy += d.y
+                                // Headers come from the symbols' types: a row moves past the next SYMBOL (and any header between).
                                 val list = items; val at = list.indexOf(item)
-                                if (dy > 0 && at < list.lastIndex) {
-                                    val next = list[at + 1]; val h = heightOf(next)
-                                    if (dy > h / 2) { a.onMove(item, next); dy -= h }
-                                } else if (dy < 0 && at > 0) {
-                                    val prev = list[at - 1]; val h = heightOf(prev)
-                                    if (-dy > h / 2) { a.onMove(item, prev); dy += h }
+                                if (dy > 0) {
+                                    val j = (at + 1..list.lastIndex).firstOrNull { !isSection(list[it]) }
+                                    if (j != null) { val h = (at + 1..j).sumOf { heightOf(list[it]).toDouble() }.toFloat()
+                                        if (dy > h - rowPx / 2) { a.onMove(item, list[j]); dy -= h } }
+                                } else if (dy < 0) {
+                                    val j = (at - 1 downTo 0).firstOrNull { !isSection(list[it]) }
+                                    if (j != null) { val h = (j until at).sumOf { heightOf(list[it]).toDouble() }.toFloat()
+                                        if (-dy > h - rowPx / 2) { a.onMove(item, list[j]); dy += h } }
                                 }
                             },
                         )

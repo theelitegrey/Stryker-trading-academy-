@@ -28,6 +28,8 @@ class AuthRepository(context: Context) {
         if (FirebaseApp.getApps(context).isNotEmpty() || FirebaseApp.initializeApp(context) != null) FirebaseAuth.getInstance() else null
 
     val available: Boolean get() = auth != null
+    /** The member signed in with Google (the chart link can then be refreshed without asking). */
+    val isGoogle: Boolean get() = auth?.currentUser?.providerData?.any { it.providerId == "google.com" } == true
 
     val user: Flow<TzUser?> = auth?.let { a ->
         callbackFlow {

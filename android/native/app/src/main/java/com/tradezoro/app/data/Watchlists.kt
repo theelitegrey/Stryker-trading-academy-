@@ -63,7 +63,7 @@ object WatchEdit {
         if (id in l.items) return Result.No("${symbolOf(id).chartTicker} is already in this list.")
         if (l.symbols.size >= MAX_SYMBOLS) return Result.No("A list holds up to $MAX_SYMBOLS symbols.")
         if (l.items.size >= MAX_ITEMS) return Result.No("This list is full.")
-        return Result.Ok(l.copy(items = l.items + id))
+        return Result.Ok(l.copy(items = l.items.toMutableList().apply { add(insertAt(this, id), id) }))
     }
 
     fun remove(l: Watchlist, id: String): Watchlist = l.copy(items = l.items.filterNot { it == id })
@@ -159,4 +159,50 @@ class LocalWatchStore(ctx: Context) : WatchStore {
 fun watchStoreFor(ctx: Context): WatchStore {
     val uid = if (runCatching { FirebaseApp.getInstance() }.isSuccess) FirebaseAuth.getInstance().currentUser?.uid else null
     return if (uid != null) CloudWatchStore(uid) else LocalWatchStore(ctx)
+}
+
+/*
+ * SECTION HEADERS (Owner bug 17 Nov round 2: "CRYPTO" over MNQ/ES/MES/YM/MYM). A list's "###NAME" markers are kept as the
+ * site stores them, but a marker named after a market type (FUTURES, FOREX, CRYPTO, ...) is only shown over symbols
+ * of that type: each symbol's real type decides its header. Custom names ("###MY SCALPS") are shown as written.
+ */
+private val TYPE_WORDS = mapOf("FUTURES" to "FUTURES", "FOREX" to "FOREX", "FX" to "FOREX", "CRYPTO" to "CRYPTO",
+    "INDICES" to "INDICES", "INDEX" to "INDICES", "STOCKS" to "STOCKS", "STOCK" to "STOCKS", "ETF" to "STOCKS", "ETFS" to "STOCKS")
+
+/** The market type of a watchlist id, as a header word. */
+fun typeOf(id: String): String = when (id.substringBefore(':', "").lowercase()) {
+    "futures" -> "FUTURES"; "fx" -> "FOREX"; "idx" -> if (id.substringAfter(':') in setOf("SPX", "NDX", "VIX", "RUT")) "INDICES" else "STOCKS"
+    "stocks" -> "STOCKS"; "formula" -> "OTHER"; "" -> if (isFuturesId(id)) "FUTURES" else "OTHER"
+    else -> "CRYPTO"
+}
+
+/**
+ * The rows to show for [items]: symbols in list order, with headers. A type-named marker becomes the header of each
+ * symbol's real type (repeated headers dropped); a custom marker is shown as is; headers with no symbol under them hide.
+ */
+fun displayItems(items: List<String>): List<String> {
+    val out = ArrayList<String>()
+    var marker: String? = null   // the list's current marker
+    var shown: String? = null    // the last header put on screen
+    for (it in items) {
+        if (isSection(it)) { marker = it; continue }
+        val word = marker?.removePrefix(SECTION)?.trim()?.uppercase()
+        val want = when {
+            marker == null -> null
+            word in TYPE_WORDS -> SECTION + typeOf(it).takeIf { t -> t != "OTHER" }.orEmpty().ifEmpty { TYPE_WORDS[word]!! }
+            else -> marker
+        }
+        if (want != null && want != shown) { out.add(want); shown = want }
+        out.add(it)
+    }
+    return out
+}
+
+/** Where [id] goes in [items] when added: at the end of the section named after its type, else at the end. */
+fun insertAt(items: List<String>, id: String): Int {
+    val t = typeOf(id)
+    val start = items.indexOfFirst { isSection(it) && TYPE_WORDS[it.removePrefix(SECTION).trim().uppercase()] == t }
+    if (start < 0) return items.size
+    val next = items.drop(start + 1).indexOfFirst(::isSection)
+    return if (next < 0) items.size else start + 1 + next
 }

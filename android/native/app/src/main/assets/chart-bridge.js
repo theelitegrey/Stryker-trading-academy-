@@ -20,7 +20,11 @@
     // the site toolbar stays in the DOM (its buttons open the indicator / drawing sheets) but off screen
     '.stkc-bar{position:absolute!important;top:-400px!important;left:0!important;visibility:hidden!important}',
     '.tzc,.appnav-dock,.mobile-topnav,.stkchart-credit,.stkcps-handle,.skip-link{display:none!important}',
-    'body{padding-bottom:0!important}'
+    'body{padding-bottom:0!important}',
+    // Owner 17 Nov: no latency / connection-speed readout on the chart in the app
+    '.stklat-chip,.stklat-pop,.stklat-scrim{display:none!important}',
+    // the site's Templates / Workspaces sheets live in the hidden toolbar: show them (and their scrim) when opened
+    '.stkc-bar .stkc-pop:not([hidden]),.stkc-bar .stkc-scrim:not([hidden]){visibility:visible!important}'
   ].join('');
   var style = document.createElement('style');
   style.id = 'tzapp-css'; style.textContent = css;
@@ -59,6 +63,11 @@
     search: function () { try { window.__stkSearch.open(); return true; } catch (e) { return click('.vela-mb-symbol'); } },
     indicators: function () { return click('.vela-mb-indicators'); },
     drawings: function () { return click('.vela-mb-drawings'); },
+    // Saved layouts / indicator templates / workspaces: the site's own sheets, reading and writing the member's account
+    // (students/{uid}/chartLayouts, chartTemplates, chartPrefs/workspaces), so they are the same on every device.
+    layouts: function () { try { window.STRYKER_LAYOUTS.library.open('mine'); return true; } catch (e) { return false; } },
+    templates: function () { return click('#stkc-tpl-btn'); },
+    workspaces: function () { return click('#stkws-btn'); },
     alerts: function () { try { window.__stkAlerts.open(); return true; } catch (e) { return false; } },
     paperOn: function () { try { return !!P().setEnabled(true); } catch (e) { return false; } },
     // Paper market order on the active symbol. Rules (market hours, balance, slippage) are the site's paper engine.

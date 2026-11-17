@@ -39,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -172,7 +173,7 @@ private fun ChartBottomBar(state: ChartUiState, actions: ChartActions, symbols: 
     val cur = if (state.symbolId.isEmpty()) "" else canonicalId(state.symbolId)
     Column(Modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Tz.colors.hairline))
-        Row(Modifier.fillMaxWidth().height(WHEEL_H).padding(start = 8.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(WHEEL_BAR_H).padding(start = 8.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             WheelPicker(
                 items = ids, selected = ids.indexOf(cur).coerceAtLeast(0), label = { symbolOf(it).chartTicker },
                 width = 104.dp, what = "Symbol", onPick = { actions.onPickSymbol(ids[it]) }, tag = "wheel-symbol",
@@ -191,11 +192,14 @@ private fun ChartBottomBar(state: ChartUiState, actions: ChartActions, symbols: 
 }
 
 val WHEEL_ROW: Dp = 24.dp
-val WHEEL_H: Dp = WHEEL_ROW * 3
+/** Owner 17 Nov round 2: compact. The chosen row plus HALF a row above and below (clipped, faded) = 2 rows tall. */
+val WHEEL_H: Dp = WHEEL_ROW * 2
+/** The bar keeps the 48dp touch height; the wheel sits centred in it. */
+val WHEEL_BAR_H: Dp = 56.dp
 
 /**
- * Scroll-wheel picker (Owner 17 Nov reference): three rows visible, the middle one is the choice (bold, full colour),
- * neighbours faded above and below. Flings snap to a row; when the wheel stops on a new row, [onPick] fires.
+ * Scroll-wheel picker (Owner 17 Nov reference, compact since M7): the choice in the middle (bold, full colour) with half
+ * of each neighbour showing above and below, faded. Flings snap to a row; when the wheel stops on a new row, [onPick] fires.
  * Tapping a faded neighbour picks it too. TalkBack: each row is a selectable item.
  */
 @Composable
@@ -208,7 +212,7 @@ fun <T> WheelPicker(
     val scope = rememberCoroutineScope()
     val pick by rememberUpdatedState(onPick)
     val sel by rememberUpdatedState(selected)
-    // The row in the middle while scrolling (the list's first item sits in the middle thanks to one row of padding).
+    // The row in the middle while scrolling (the list's first item sits in the middle thanks to half a row of padding).
     val centre by remember { derivedStateOf {
         val i = list.firstVisibleItemIndex; val off = list.firstVisibleItemScrollOffset
         val rowPx = list.layoutInfo.visibleItemsInfo.firstOrNull()?.size ?: 1
@@ -226,8 +230,8 @@ fun <T> WheelPicker(
         if (selected >= 0 && !list.isScrollInProgress && centre != selected) list.scrollToItem(selected)
     }
     val bg = MaterialTheme.colorScheme.background
-    Box(modifier.width(width).height(WHEEL_H).testTag(tag)) {
-        LazyColumn(state = list, flingBehavior = fling, contentPadding = PaddingValues(vertical = WHEEL_ROW), modifier = Modifier.fillMaxSize()) {
+    Box(modifier.width(width).height(WHEEL_H).clipToBounds().testTag(tag)) {
+        LazyColumn(state = list, flingBehavior = fling, contentPadding = PaddingValues(vertical = WHEEL_ROW / 2), modifier = Modifier.fillMaxSize()) {
             itemsIndexed(items) { i, it ->
                 val on = i == centre
                 Box(
@@ -245,8 +249,8 @@ fun <T> WheelPicker(
             }
         }
         // Fade the rows above and below into the bar.
-        Box(Modifier.fillMaxWidth().height(WHEEL_ROW).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(bg.copy(alpha = 0.55f), bg.copy(alpha = 0f)))))
-        Box(Modifier.fillMaxWidth().height(WHEEL_ROW).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(bg.copy(alpha = 0f), bg.copy(alpha = 0.55f)))))
+        Box(Modifier.fillMaxWidth().height(WHEEL_ROW / 2).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(bg.copy(alpha = 0.8f), bg.copy(alpha = 0.2f)))))
+        Box(Modifier.fillMaxWidth().height(WHEEL_ROW / 2).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(bg.copy(alpha = 0.2f), bg.copy(alpha = 0.8f)))))
     }
 }
 

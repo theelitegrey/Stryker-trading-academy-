@@ -46,12 +46,16 @@ import androidx.navigation.compose.rememberNavController
 import com.tradezoro.app.auth.AuthRepository
 import com.tradezoro.app.auth.TzUser
 import com.tradezoro.app.auth.ChartAuthLink
+import com.tradezoro.app.auth.silentGoogleIdToken
 import com.tradezoro.app.auth.PasskeyClient
 import com.tradezoro.app.data.AppPrefs
 import com.tradezoro.app.data.ThemeMode
 import com.tradezoro.app.data.DataAccess
 import com.tradezoro.app.data.DataAccessRepository
 import com.tradezoro.app.data.HttpQuoteRepository
+import com.tradezoro.app.data.LiveFeed
+import com.tradezoro.app.data.homeDataNote
+import com.tradezoro.app.data.liveWanted
 import com.tradezoro.app.data.watchStoreFor
 import com.tradezoro.app.ui.account.AccountActions
 import com.tradezoro.app.ui.account.AccountContent
@@ -212,11 +216,22 @@ fun TzRoot(
         data = runCatching { dataRepo.load() }.getOrDefault(DataAccess(signedIn = user != null))
     }
     // Keep the chart page signed in as the same member (data access, layouts, paper account): Owner bug 17 Nov.
+    var relinkTried by remember(user?.uid) { mutableStateOf(false) }
     LaunchedEffect(user?.uid, chartState.ready, chartState.pageUid) {
         val u = user
         if (!chartState.ready) return@LaunchedEffect
         if (u == null && chartState.pageUid.isNotEmpty()) chartWeb.call("TZB.signOut()")
-        else if (u != null && chartState.pageUid != u.uid) ChartAuthLink().customToken()?.let { t -> chartWeb.call("TZB.signIn(${jsString(t)})") }
+        else if (u != null && chartState.pageUid != u.uid) {
+            // Owner bug 17 Nov (round 2): the link only works within 10 min of a sign-in, so a member signed in earlier
+            // kept a signed-out chart page = delayed chart. Re-check a Google member silently, then link; otherwise ask once.
+            var t = ChartAuthLink().customToken()
+            if (t == null && !relinkTried) {
+                relinkTried = true
+                if (auth.isGoogle) silentGoogleIdToken(ctx)?.let { g -> runCatching { auth.signInGoogle(g) }.onSuccess { t = ChartAuthLink().customToken() } }
+                if (t == null) snack.showSnackbar("Sign in again to make the chart live on this phone.")
+            }
+            t?.let { chartWeb.call("TZB.signIn(${jsString(it)})") }
+        }
     }
     LaunchedEffect(homeVm) { homeVm.notes.collect { n -> if (n != null) { snack.showSnackbar(n); homeVm.consumeNote() } } }
     val goTab: (Tab) -> Unit = { t ->
@@ -415,9 +430,13 @@ fun TzRoot(
 private fun HomeRoute(user: TzUser?, vm: HomeViewModel, data: DataAccess, onAdd: () -> Unit, onProduct: (Product) -> Unit, onSymbol: (WatchSymbol, Double?) -> Unit) {
     val state by vm.state.collectAsState()
     val owner = LocalLifecycleOwner.current
-    // Poll only while Home is on screen (like the site pauses on a hidden tab).
-    DisposableEffect(owner) {
-        val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_START) vm.start() else if (e == Lifecycle.Event.ON_STOP) vm.stop() }
+    // Poll + stream only while Home is on screen (like the site pauses on a hidden tab). Futures stream live from the
+    // site's hub once the server granted current data (signed agreement); otherwise they stay on the delayed poll.
+    val wantLive = liveWanted(data)
+    val repo = remember { DataAccessRepository() }
+    val feed = remember { LiveFeed(token = { f -> repo.idToken(f) }) }
+    DisposableEffect(owner, wantLive) {
+        val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_START) { vm.start(); vm.startLive(feed, wantLive) } else if (e == Lifecycle.Event.ON_STOP) vm.stop() }
         owner.lifecycle.addObserver(obs)
         onDispose { owner.lifecycle.removeObserver(obs); vm.stop() }
     }
@@ -436,8 +455,7 @@ private fun HomeRoute(user: TzUser?, vm: HomeViewModel, data: DataAccess, onAdd:
             onAdd = onAdd, onRemove = vm::remove, onMove = vm::moveLocal, onMoveEnd = vm::commitOrder,
             onSelect = vm::select, onCreate = vm::create, onRename = vm::rename, onDelete = vm::deleteActive,
         ),
-        dataNote = if (user != null && data.current == true) "Current futures data. Updates every 25 s."
-            else if (user != null && data.agreement != null) data.label else null,
+        dataNote = homeDataNote(user != null, data, state.live),
     )
 }
 

@@ -40,6 +40,7 @@ import { liveSubscribe } from './chart-live-resume.js?v=1082';
 import { rtReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=1082';
 import { hubLive, hubCovers } from './live-source.js?v=1082';
 import { noteBar, feedKey } from './chart-latency-core.js?v=1082';   // connection chip: "last update" per feed (assets/chart-latency.js)
+import { isFutures } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const LS_FAVS = 'stryker_chart_iv_favs';
 const LS_COLLAPSED = 'stryker_chart_iv_collapsed';
@@ -603,6 +604,7 @@ function readLs(key, fallback) {
 function writeLs(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
 const providerOf = (sym) => {
   const s = String(sym || '');
+  if (isFutures(s)) return 'futures';   // futures:/CME:/CME_MINI:/CBOT:/COMEX:/NYMEX: ..., NQ1!, MNQZ6 (assets/chart-sym.js)
   const m = /^([a-z]+):/i.exec(s);
   if (m) {
     const p = m[1].toLowerCase();

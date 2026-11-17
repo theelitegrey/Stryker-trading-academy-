@@ -40,6 +40,7 @@ const RT_FRAME_MS = 66;                               // ~15 visible updates per
 // both). NQ ES YM GC SI CL (+ micros mapped to the mini); about the last 6 days and growing.
 import { rtHeadersReady, rtOnChange } from './rt-access.js?v=1082';
 import { laneOf } from './chart-futures-provider.js?v=1082';
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 const TICKS1S_URL = 'https://book-recorder.theelitegrey.workers.dev/ticks1s';
 const TICK_ROOTS = { NQ: 'NQ', ES: 'ES', YM: 'YM', GC: 'GC', SI: 'SI', CL: 'CL', MNQ: 'NQ', MES: 'ES', MYM: 'YM', MGC: 'GC', SIL: 'SI', MCL: 'CL' };
 const HOUR = 3600e3;
@@ -290,6 +291,7 @@ function resolveCell(cell) {
   let r = null;
   try { r = cell.chart.data.resolve(sym); } catch (e) {}
   if (r && r.provider && r.ticker) return { name: r.provider, ticker: r.ticker, tf: cell.timeframe };
+  if (isFutures(sym) && inners.has('futures')) return { name: 'futures', ticker: splitSym(sym)[1], tf: cell.timeframe };   // CME_MINI:MNQ1! / MNQZ6
   const m = /^([a-z_]+):(.+)$/i.exec(sym);
   if (m && inners.has(m[1].toLowerCase())) return { name: m[1].toLowerCase(), ticker: m[2], tf: cell.timeframe };
   return null;

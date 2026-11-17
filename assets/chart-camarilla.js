@@ -6,6 +6,7 @@
 // longer chart, a Weekly set on a weekly chart ...) show only the newest set. Education only. Not financial advice.
 // Depends on: Vela plugin SDK (registerNativeIndicator / registerRendererLayer / registerStatePersistence), as chart-market-stats.js.
 import * as D from './chart-camarilla-data.js?v=1082';
+import { isFutures } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const TYPE = 'stk_camarilla';
 const PERIODS = { Daily: 'D', Weekly: 'W', Monthly: 'M' };
@@ -82,6 +83,7 @@ class CamNative {
       const bars = this.ctx.bars() || [], ms = tfMs(this.ctx.timeframe);
       let provider = '';
       try { const r = this.ctx.data.resolve(this.ctx.symbol); if (r) provider = r.provider; } catch (e) {}
+      if (isFutures(this.ctx.symbol)) provider = 'futures';
       if (bars.length && ms) {
         if (ms > PERIOD_MS[period]) payload = { note: 'Camarilla ' + I.period + ' needs a chart shorter than ' + (period === 'D' ? 'daily' : period === 'W' ? 'weekly' : 'monthly') };
         else {

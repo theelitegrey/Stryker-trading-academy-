@@ -48,6 +48,7 @@ import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=10
 import { installDepthHeatmap } from './chart-depth-heatmap.js?v=1082';
 export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=1082';
 import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=1082';
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -88,6 +89,7 @@ function marketOf(ctx) {
   let provider = '', ticker = String(ctx.symbol || '');
   try { const r = ctx.data.resolve(ctx.symbol); if (r) { provider = r.provider; ticker = r.ticker; } } catch (e) {}
   if (!provider) { const m = /^([a-z]+):(.+)$/i.exec(ticker); if (m) { provider = m[1].toLowerCase(); ticker = m[2]; } }
+  if (isFutures(ctx.symbol)) [provider, ticker] = splitSym(ctx.symbol);   // CME_MINI:MNQ1! / MNQZ6 = futures
   const root = ticker.toUpperCase().replace(/1!$/, '').replace(/[0-9]!$/, '');
   const futures = provider === 'futures';
   return { provider, ticker, root, futures, tick: futures ? (TICK[root] || null) : null };

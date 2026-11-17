@@ -13,6 +13,7 @@
 // (Rithmic) or the live data add-on. Long-press the pill, or "Hide for today" in the sheet, hides it until the
 // next IST day (localStorage). Multi-chart layouts get one pill for the whole layout, shown if any pane is delayed.
 import { rtReady, rtKnown, isRealtimeAdmin, rtOnChange, rtRecheck } from './rt-access.js?v=1082';
+import { isFutures } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const LS_HIDE = 'stryker_data_pill_hidden_ist';   // value: IST date (YYYY-MM-DD) the member hid it on
 const SS_OPEN = 'stryker_open_connect';
@@ -103,7 +104,7 @@ export function istDay(ms) {
 export function isCmeSymbol(sym) {
   sym = String(sym || '');
   if (/^fx:/i.test(sym)) return false;
-  return FUT.test(sym) || BARE.test(sym);
+  return FUT.test(sym) || BARE.test(sym) || isFutures(sym);
 }
 
 export function installDataBanner(ws, opts = {}) {

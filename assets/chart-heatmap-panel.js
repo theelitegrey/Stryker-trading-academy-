@@ -13,6 +13,7 @@ import { kindOf, isFree, upgrade } from './chart-pro-gate.js?v=1082';
 import { l2Root } from './chart-futures-l2.js?v=1082';
 import { getVenue } from './orderflow-venues.js?v=1082';
 import { memberSourceFn, noSourceNote } from './chart-depth-source.js?v=1082';
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const EXT_KEY = 'stryker.heatmap', TPL_KEY = 'stk_heatmap_templates', MAG_KEY = 'stk_heatmap_magnifier';
 export const SRC = { book: { type: 'stk_depth_heat', label: 'Order book' }, liq: { type: 'stk_liq', label: 'Liquidations' }, opt: { type: 'stk_gexheat', label: 'Options' } };
@@ -53,7 +54,8 @@ export function sourcesFor(symbol, supported, isOptionsSymbol, resolved) {
   // resolved = the chart's own data.resolve(symbol) { provider, ticker }, as marketOf() in chart-orderflow.js / the Depth Heatmap use it:
   // the live NQ symbol is 'NQ1!' or 'CME:NQ1!' (both resolve to provider 'futures'); without a resolver the text prefix is used.
   const m = /^([a-z0-9_-]+):(.+)$/i.exec(String(symbol || ''));
-  const prov = String((resolved && resolved.provider) || (m ? m[1] : '')).toLowerCase(), tk = String((resolved && resolved.ticker) || (m ? m[2] : symbol || ''));
+  let prov = String((resolved && resolved.provider) || (m ? m[1] : '')).toLowerCase(), tk = String((resolved && resolved.ticker) || (m ? m[2] : symbol || ''));
+  if (isFutures(symbol)) [prov, tk] = splitSym(symbol);   // CME_MINI:MNQ1! / MNQZ6 = futures
   const crypto = !!prov && prov !== 'futures' && prov !== 'stocks' && !!(prov === 'binance' || getVenue(prov));
   const fut = prov === 'futures';
   const out = {};

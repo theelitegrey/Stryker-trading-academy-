@@ -140,8 +140,10 @@
   }
   let futMod = null;
   async function builtinBars(symbol, tf, from, to) {
+    // paper keys are 'futures:NQ1!'; an exchange form (CME_MINI:MNQ1!, same rule as assets/chart-sym.js) is the same futures market
     const m = /^([a-z_]+):(.+)$/i.exec(String(symbol || ''));
-    const prov = m ? m[1].toLowerCase() : '', tick = m ? m[2] : String(symbol);
+    let prov = m ? m[1].toLowerCase() : '', tick = m ? m[2] : String(symbol);
+    if (/^(cme|cme_mini|cbot|cbot_mini|comex|comex_mini|nymex|nymex_mini)$/.test(prov)) prov = 'futures';
     if (prov === 'futures') {
       if (!futMod) {
         const v = (document.querySelector('meta[name="stryker-build"]') || {}).content || '';

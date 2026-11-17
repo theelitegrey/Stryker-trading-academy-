@@ -8,6 +8,7 @@
 // Plain names only in the UI: no vendor names. Education only. Not financial advice.
 
 import { isFree } from './chart-pro-gate.js?v=1082';
+import { isFutures } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 export const LEVELS = {
   L1: { name: 'L1', short: 'trades and best bid/ask', what: 'Every trade plus the best bid and ask.' },
@@ -65,8 +66,7 @@ let refresh = null;
 const poke = () => { if (refresh) refresh(); };
 const rate = (v) => (v == null ? '' : ' (~' + (v >= 10 ? Math.round(v) : v >= 0.95 ? Math.round(v * 10) / 10 : '<1') + '/s)');
 const ago = (ms) => (ms < 60000 ? Math.round(ms / 1000) + ' s' : Math.round(ms / 60000) + ' min');
-const FUT_PFX = /^(futures|cme|cme_mini|cbot|cbot_mini|nymex|comex|nymex_mini|comex_mini):/i;   // the chart can name NQ as 'futures:NQ1!' or 'CME:NQ1!' (phone): both are futures
-const mktOf = (sym) => (FUT_PFX.test(sym) ? 'futures' : /^(binance|coinbase|hyperliquid|bybit|okx|bitget|kraken|vest):/i.test(sym) ? 'crypto' : '');
+const mktOf = (sym) => (isFutures(sym) ? 'futures' : /^(binance|coinbase|hyperliquid|bybit|okx|bitget|kraken|vest):/i.test(sym) ? 'crypto' : '');
 const cleanSym = (s) => String(s || '').replace(/^[a-z]+:/i, '');
 
 // Right-now lines for one level (pure given the stats object s, which may be null)

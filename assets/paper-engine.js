@@ -87,7 +87,10 @@
     return { raw, prefix: '', ticker: raw.toUpperCase() };
   }
   function futuresRootOf(ticker) {
-    return String(ticker || '').toUpperCase().replace(/(?:[12]!)$/, '');
+    const r = String(ticker || '').toUpperCase().replace(/(?:[12]!)$/, '');
+    // a contract month (MNQZ6, MNQZ26, MNQZ2026) -> its root, same rule as assets/chart-sym.js
+    const m = /^([A-Z0-9]+?)[FGHJKMNQUVXZ](\d|\d\d|\d{4})$/.exec(r);
+    return !FUTURES[r] && m && FUTURES[m[1]] ? m[1] : r;
   }
   function futuresSpec(root, source) {
     const r = futuresRootOf(root);

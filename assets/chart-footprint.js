@@ -32,6 +32,7 @@ import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v
 import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=1082';
 import * as BT from './chart-bigtrades.js?v=1082';
 import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=1082';
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -103,6 +104,7 @@ export function rootOf(ctx) {
   let provider = '', ticker = String(ctx.symbol || '');
   try { const r = ctx.data.resolve(ctx.symbol); if (r) { provider = r.provider; ticker = r.ticker; } } catch (e) {}
   if (!provider) { const m = /^([a-z]+):(.+)$/i.exec(ticker); if (m) { provider = m[1].toLowerCase(); ticker = m[2]; } }
+  if (isFutures(ctx.symbol)) [provider, ticker] = splitSym(ctx.symbol);   // CME_MINI:MNQ1! / MNQZ6 = futures
   if (provider === 'binance') return 'binance:' + ticker.toUpperCase();   // crypto: Binance aggTrades (chart-footprint-crypto.js)
   if (isCrypto(provider + ':' + ticker)) return provider + ':' + ticker.toUpperCase();   // other venues: their adapter (orderflow-venues.js)
   if (provider !== 'futures') return null;

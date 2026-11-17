@@ -17,6 +17,7 @@
 
 import * as L from './chart-latency-core.js?v=1082';
 import { resyncAll } from './chart-live-resume.js?v=1082';
+import { splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const PERF_KEY = 'stk.perfMode';
 const isPhone = () => window.innerWidth <= 599;
@@ -221,10 +222,9 @@ export function mountLatency(ws) {
     return d ? { s: d.dataset.s || '', tag: (d.querySelector('.stkc-dd-t') || {}).textContent || '' } : null;
   };
   const marketRow = (sym, id, t) => {
-    const m = /^([a-z0-9_]+):(.+)$/i.exec(sym) || [null, '', sym];
     // 'CME:NQ1!' / 'CME_MINI:MNQ1!' / 'COMEX:GC1!' are the same futures feed as 'futures:NQ1!' (phone + search use the exchange
     // prefix). Without this the panel looked up a feed that never ticks and said "Waiting for data" while data was flowing.
-    const prov = FUT_EXCH.test(m[1]) ? 'futures' : m[1].toLowerCase(), tk = m[2];
+    const [prov, tk] = splitSym(sym);   // assets/chart-sym.js
     const f = L.feedStats(L.feedKey(prov, tk), t), d = dotFor(id, sym);
     const live = d && d.s === 'rt';
     const stale = live && f.age != null && f.age > 15000;
@@ -348,8 +348,6 @@ export function mountLatency(ws) {
 }
 
 const CSS_escape = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'));
-const splitSym = (sym) => { const m = /^([a-z0-9_]+):(.+)$/i.exec(sym); return m ? [m[1], m[2]] : ['', sym]; };
 const VENUES = { binance: 'Binance', coinbase: 'Coinbase', hyperliquid: 'Hyperliquid', bybit: 'Bybit', okx: 'OKX', bitget: 'Bitget', kraken: 'Kraken', vest: 'Vest',
   futures: 'CME futures', fx: 'Forex', idx: 'Index', stocks: 'Stocks', byo: 'Your feed' };
-const FUT_EXCH = /^(cme|cme_mini|cbot|cbot_mini|comex|comex_mini|nymex|nymex_mini)$/i;
 const venue = (p) => VENUES[p] || p || 'Market data';

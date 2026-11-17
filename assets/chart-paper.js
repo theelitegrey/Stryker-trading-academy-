@@ -1,5 +1,6 @@
 // TradeZoro — Charts PAPER TRADING (ES module, charts.html only)
 import * as TM from './chart-trade-menu.js?v=1082';
+import { normFutures } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 // Owner order 2026-10-12: "Add complete full demo/paper trading feature inside the charts, like
 // tradingview". Modelled on TradingView's Paper Trading, in our own look.
 //
@@ -470,7 +471,7 @@ async function feedOffChart(){
   feedBusy = true;
   try {
     for (const sym of need) {
-      const m = /^([a-z]+):(.+)$/i.exec(sym); if (!m) continue;
+      const m = /^([a-z]+):(.+)$/i.exec(normFutures(sym)); if (!m) continue;
       let p = null; try { p = WS.feed.providerInstance(m[1].toLowerCase()); } catch (e) {}
       if (!p || !p.getBars) continue;
       try {
@@ -1428,7 +1429,7 @@ async function reviewSave(kind, tradeId, patch){
   });
 }
 async function reviewBars(symbol, tf, from, to){
-  const m = /^([a-z_]+):(.+)$/i.exec(String(symbol || '')); if (!m) return null;
+  const m = /^([a-z_]+):(.+)$/i.exec(normFutures(String(symbol || ''))); if (!m) return null;
   let p = null; try { p = WS.feed.providerInstance(m[1].toLowerCase()); } catch (e) {}
   if (!p || !p.getBars) return null;
   return p.getBars(m[2], tf, { from, to });

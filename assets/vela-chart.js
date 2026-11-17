@@ -81,6 +81,8 @@
 import { boxCanvas } from './chart-box-canvas.js?v=1082';
 // INDICATOR VERSIONS (Owner 13 Nov): a Version setting on every pinnable native, the legend update button (assets/chart-ind-versions.js).
 import { installIndVersions, mountIndVersions } from './chart-ind-versions.js?v=1082';
+import * as SymN from './chart-sym.js?v=1082';   // futures symbol forms -> 'futures:ROOT1!' (assets/chart-sym.js)
+const liveCellsNow = () => { try { return (window.STRYKER_VELA && window.STRYKER_VELA.context().cells) || []; } catch (e) { return []; } };
 const BOX_ON = (() => { try { return !/[?&]boxcanvas=0\b/.test(location.search) && localStorage.getItem('stk_box_canvas') !== '0'; } catch (e) { return true; } })();
 const BOX_LAYER = (id) => BOX_ON && (/^stk_l2f_/.test(id) || ['stk_svp', 'stk_of_big', 'stk_of_vp', 'stk_ts_big', 'stk_sess'].includes(id));
 // See "EMPTY LAYER CANVASES OFF" in the boot code.
@@ -892,6 +894,18 @@ function lateLists(provider){
   }
 
   pm('stk:workspace-built');
+  // FUTURES SYMBOL FORMS (Owner bug 17 Nov): 'CME_MINI:MNQ1!', 'CME:ES1!', 'MNQZ6' ... are written as 'futures:MNQ1!' at the source, so
+  // every cell holds one form (the DOM, heatmap, book tools, paper ... all read it). The readers still accept the old forms
+  // (assets/chart-sym.js) for anything that slips past this, e.g. a layout saved before this change.
+  try {
+    const proto = ws.active && Object.getPrototypeOf(ws.active);
+    if (proto && typeof proto.setSymbol === 'function' && !proto.__stkSymNorm) {
+      const raw = proto.setSymbol;
+      proto.setSymbol = function (symbol) { return raw.call(this, typeof symbol === 'string' ? SymN.normFutures(symbol) : symbol); };
+      proto.__stkSymNorm = true; proto.__stkRawSetSymbol = raw;   // tests: put a saved-layout form on a cell
+    }
+    for (const c of liveCellsNow()) { const n = SymN.normFutures(String(c.symbol || '')); if (c.symbol && n !== c.symbol) { const cc = ws.cell(c.id); if (cc) cc.setSymbol(n); } }
+  } catch (e) { console.warn('TradeZoro: futures symbol form', e); }
   if (BT) { try { BT.onReady && BT.onReady(ws, { Core, Pine, mods }); } catch (e) { console.warn('TradeZoro: backtest ready', e); } }
   // First candles on screen: mark it, then release the crypto symbol lists (lateLists) at idle.
   {

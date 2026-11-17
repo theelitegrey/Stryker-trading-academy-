@@ -16,6 +16,7 @@ import * as C from './book-panel-core.js?v=1082';
 import { SignalEngine, TAGS, WINDOWS, FADES } from './dom-signals-core.js?v=1082';
 import { SOURCES, sourceName, openSource as realOpen } from './book-panel-sources.js?v=1082';
 import { l2Closed, l2Visible, l2Badge, l2Delayed, DELAYED_SHORT, l2Listed, l2Unlock, l2Root, acquire, rootState, L2_TICK, l2Source, staleNote } from './chart-futures-l2.js?v=1082';
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const KEY = 'stkbp.v1', MULT = [1, 2, 5, 10, 50], LEVELS = [20, 60, 150], WINS = [['session', 'Session', 0], ['1h', '1h', 3600000], ['5m', '5m', 300000]];
 const FILTERS_C = [['0', 'All sizes'], ['1000', '≥ $1k'], ['10000', '≥ $10k'], ['100000', '≥ $100k']], FILTERS_F = [['0', 'All sizes'], ['5', '≥ 5'], ['25', '≥ 25'], ['100', '≥ 100']];
@@ -67,6 +68,7 @@ export function mountBookPanel(ws, opts) {
     let sym = ''; try { sym = ws.active.symbol || ''; } catch (e) {}
     let m = /^([a-z0-9]+):(.+)$/i.exec(sym); let prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
     if (prov === 'bt') { const r = btBook({ provider: 'bt', ticker: tk }); prov = r.provider; tk = r.ticker; }   // Kronos: the session's real market
+    else if (isFutures(sym)) [prov, tk] = splitSym(sym);   // CME_MINI:MNQ1! / CME:ES1! / MNQZ6 = futures:MNQ1! ...
     if (prov === 'futures') { const root = l2Root(tk); return { kind: 'fut', sym, root, tick: root ? L2_TICK[root] || 0.25 : 0 }; }
     if (CRYPTO.includes(prov)) return { kind: 'crypto', sym, pair: C.pairOf(tk), prov };
     return { kind: 'none', sym };

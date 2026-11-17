@@ -682,6 +682,10 @@ def check_latency():
     r = subprocess.run(['node', 'tools/tests/chart-latency.test.mjs'], capture_output=True, text=True, cwd=ROOT, timeout=60)
     if r.returncode != 0:
         fail('latency: ' + (r.stdout + r.stderr).strip()[-300:])
+    # one futures test for every chart symbol form (CME_MINI:MNQ1!, CME:ES1!, MNQZ6 ...): assets/chart-sym.js (Owner bug 17 Nov)
+    r = subprocess.run(['node', 'tools/tests/chart-sym.test.mjs'], capture_output=True, text=True, cwd=ROOT, timeout=60)
+    if r.returncode != 0:
+        fail('chart-sym: ' + (r.stdout + r.stderr).strip()[-300:])
 
 
 def check_zscript_engine():

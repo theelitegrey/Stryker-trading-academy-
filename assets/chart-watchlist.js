@@ -74,7 +74,7 @@ const isSec = (s) => typeof s === 'string' && s.startsWith(SEC);
 const secName = (s) => s.slice(SEC.length);
 const tickerOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '');
 const provOf = (sym) => { const m = /^([a-z]+):/i.exec(String(sym || '')); return m ? m[1].toLowerCase() : ''; };
-const isFut = (sym) => provOf(sym) === 'futures';
+const isFut = (sym) => isFutures(sym);
 const rootOf = (sym) => tickerOf(sym).toUpperCase().replace(/1!$/, '');
 const rid = () => { const a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; let s = ''; const r = crypto.getRandomValues(new Uint8Array(20)); for (const x of r) s += a[x % 62]; return s; };
 
@@ -158,6 +158,7 @@ function symIndex(feed){
 // Normalise anything a member types or uploads to one of OUR symbols, or null.
 // Accepts "NQ1!", "NQ", "CME_MINI:NQ1!", "futures:NQ1!", "BTCUSDT", "BINANCE:BTCUSDT", "binance:BTCUSDT".
 import { canonicalSymbol as canonicalFormula } from './chart-formula-core.js?v=1082';
+import { isFutures } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 export function normalizeSymbol(raw, feed){
   let s = String(raw || '').trim().replace(/^["']|["']$/g, '');
   if (!s) return null;

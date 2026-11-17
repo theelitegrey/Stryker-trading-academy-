@@ -24,6 +24,7 @@ import { icebergEvents } from './chart-liquidity-data.js?v=1082';
 import * as D from './chart-book-pack-data.js?v=1082';
 import { hfLive } from './chart-heat-filter.js?v=1082';
 import { STYLES as BM_STYLES } from './chart-bookmap.js?v=1082';
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 export const BK_TYPES = ['stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff', GREY = '#8a90a0';
@@ -236,6 +237,7 @@ function acquireStore(spec, listener) {
 function specOf(ctx) {
   const sym = String(ctx.symbol || ''), m = /^([a-z0-9]+):(.+)$/i.exec(sym), prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
   let p2 = prov, t2 = tk; try { const r = ctx.data.resolve(ctx.symbol); if (r && r.provider) { p2 = String(r.provider).toLowerCase(); t2 = r.ticker || tk; } } catch (e) {}   // same lookup as the chart's own market test
+  if (isFutures(sym)) [p2, t2] = splitSym(sym);   // exchange / contract-month forms (CME_MINI:MNQ1!, MNQZ6)
   if (p2 === 'futures' || (!CRYPTO.includes(p2) && /1!$/.test(t2))) { const root = l2Root(t2); return root ? { kind: 'futures', root, key: 'f|' + root } : null; }
   if (CRYPTO.includes(prov)) { const pair = C.pairOf(tk); return { kind: 'crypto', prov, pair, key: 'c|' + prov + '|' + pair.base + pair.quote + pair.perp }; }
   return null;

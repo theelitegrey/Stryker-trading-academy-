@@ -21,6 +21,7 @@
 import { ZS_EXAMPLES } from './zs-editor/examples.js?v=1082';
 import * as Store from './zs-editor/store.js?v=1082';
 import { createShell, el, ib, ICONS, libRow, emptyState, renderDocs, descOf, ago, download, pickFile, fileName } from './chart-script-editor.js?v=1082';
+import { isFutures } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const LANG = 'zscript';
 const EXT_KEY = 'stryker.zscript';
@@ -300,7 +301,7 @@ async function libMeta(sid){
 }
 const tfStr = (tf) => String(tf || '').replace(/^(\d+)m$/, '$1');
 const tickerOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '');
-const typeOf = (sym) => (/^futures:/i.test(sym) ? 'futures' : /^(binance|bybit|okx|kraken|bitget|hyperliquid|coinbase|vest|crypto):/i.test(sym) ? 'crypto' : 'stock');
+const typeOf = (sym) => (isFutures(sym) ? 'futures' : /^(binance|bybit|okx|kraken|bitget|hyperliquid|coinbase|vest|crypto):/i.test(sym) ? 'crypto' : 'stock');
 function columns(all){
   const n = all.length, b = { time: new Array(n), open: new Array(n), high: new Array(n), low: new Array(n), close: new Array(n), volume: new Array(n) };
   for (let i = 0; i < n; i++) { const x = all[i]; b.time[i] = x.time; b.open[i] = x.open; b.high[i] = x.high; b.low[i] = x.low; b.close[i] = x.close; b.volume[i] = x.volume || 0; }

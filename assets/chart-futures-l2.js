@@ -23,6 +23,7 @@ import { hfLive } from './chart-heat-filter.js?v=1082';
 import { cmeOpenNow } from './chart-futures-provider.js?v=1082';
 import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=1082';
 import { replayClock } from './book-replay.js?v=1082';
+import { isFutures, futRoot } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 export const L2_MEMBERS = true;           // the L2 tools are listed for everyone (all tools free 2026-11-13; the Worker's TS_ACCESS stays 'pro' for the LIVE book)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).
@@ -49,7 +50,7 @@ let bookTier = null;
 // snap in the last 60 s means this member has L2, whatever isFree() / a hub_attached / the sign-in state says. Never the other way round: no frames = no proof.
 export const l2Proven = (root) => { const r = roots.get(root); return !!(r && r.nSnap > 0 && r.lastFrame && Date.now() - r.lastFrame < 60000); };
 export const l2AnyProven = () => { let ok = false; roots.forEach((r, k) => { if (!ok && l2Proven(k)) ok = true; }); return ok; };
-export const l2ProvenSym = (sym) => { const m = /^futures:(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]); return root ? l2Proven(root) : l2AnyProven(); };
+export const l2ProvenSym = (sym) => { const fr = futRoot(sym), root = fr && l2Root(fr); return root ? l2Proven(root) : l2AnyProven(); };
 export function l2Visible() { return l2AnyProven() || (liveVisible() && (bookTier === true || (bookTier === null && testOn() && !window.__stkL2Test.trades && !window.__stkL2Test.delayed))); }
 // For the badges only: bookTier null = the hub has not said yet, so a Pro / admin member is NOT shown a lock. A definite Free member is. The server stays the real gate.
 // ALL TOOLS FREE (2026-11-13): the tools run for every signed-in member (and while the sign-in answer is not in yet: no lock flash).
@@ -594,7 +595,7 @@ export function badgeUse() {}
 const rateMem = new Map();
 // -> { status, ageMs, bookRate, tradeRate } for the chart's root (rates = changes per second since the last call, smoothed)
 function feedStats(sym, now) {
-  const m = /^(?:futures|cme|cme_mini|cbot|cbot_mini|nymex|comex|nymex_mini|comex_mini):(.+)$/i.exec(sym || ''), root = m && l2Root(m[1]), r = root && roots.get(root);
+  const fr = /^[a-z0-9_]+:/i.test(sym || '') ? futRoot(sym) : '', root = fr && l2Root(fr), r = root && roots.get(root);   // prefixed futures forms only (as before)
   if (!r || !r.conn) return null;
   const k = rateMem.get(root) || { t: now, b: r.nSnap || 0, x: r.nTick || 0, bookRate: null, tradeRate: null };
   const dt = (now - k.t) / 1000;
@@ -814,6 +815,7 @@ export function mountL2Ladder(ws, opts) {
   const activeRoot = () => {
     try {
       const sym = String(ws.active.symbol || ''); let prov = '', t = sym;
+      if (isFutures(sym)) return l2Root(futRoot(sym));   // CME_MINI:MNQ1! / MNQZ6 / futures:NQ1!
       try { const r = ws.cell(ws.active.id).data.resolve(sym); if (r) { prov = r.provider; t = r.ticker; } } catch (e) {}
       if (prov && !/^(futures|rith|rithmic)/i.test(prov)) return null;
       return l2Root(t) || l2Root(String(t).toUpperCase().replace(/^[A-Z_]+:/, '').replace(/[FGHJKMNQUVXZ]\d{1,4}$/, ''));

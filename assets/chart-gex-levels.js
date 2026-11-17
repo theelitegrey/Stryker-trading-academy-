@@ -68,6 +68,7 @@ import { rtHeadersReady } from './rt-access.js?v=1082';
 import * as ProGate from './chart-pro-gate.js?v=1082';
 import * as ZD from './chart-zoro-data.js?v=1082';
 import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=1082';
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -196,6 +197,7 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 // Returns { api, fut|null, label, pro } or null when the symbol has no GEX levels.
 export function gexSource(symbol, provider) {
   let ticker = String(symbol || ''), prov = String(provider || '');
+  if (isFutures(ticker)) { prov = 'futures'; ticker = splitSym(ticker)[1]; }   // CME_MINI:MNQ1! / MNQZ6 -> futures MNQ1!
   const m = /^([a-z]+):(.+)$/i.exec(ticker);
   if (m) { if (!prov) prov = m[1].toLowerCase(); ticker = m[2]; }
   const root = ticker.toUpperCase().replace(/[0-9]?!$/, '').replace(/^\^/, '');

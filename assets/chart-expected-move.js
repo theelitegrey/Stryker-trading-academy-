@@ -14,6 +14,7 @@
 const TYPE = 'stk_em';
 import { rtHeadersReady } from './rt-access.js?v=1082';
 import * as ProGate from './chart-pro-gate.js?v=1082';
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 const API = 'https://book-recorder.theelitegrey.workers.dev/opt-analytics?u=';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;
@@ -37,6 +38,7 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 // { u, fut|null, label, pro } or null when the symbol has no options analytics.
 export function emSource(symbol, provider) {
   let ticker = String(symbol || ''), prov = String(provider || '');
+  if (isFutures(ticker)) { prov = 'futures'; ticker = splitSym(ticker)[1]; }   // CME_MINI:MNQ1! / MNQZ6 -> futures MNQ1!
   const m = /^([a-z_]+):(.+)$/i.exec(ticker);
   if (m) { if (!prov) prov = m[1].toLowerCase(); ticker = m[2]; }
   const root = ticker.toUpperCase().replace(/[0-9]?!$/, '').replace(/^\^/, '');

@@ -27,6 +27,7 @@ import { sessionStart, nyOffsetMs, fmtK, clamp, num } from './chart-book-pack-da
 import { swingModel, swingLayer } from './chart-swing-vwap.js?v=1082';
 import { DeltaAcc, windowOf, rebucket, rowTicks, fromProfile } from './chart-delta-profile-data.js?v=1082';
 import { below, since } from './indicator-versions.js?v=1082';   // versions: assets/indicator-versions.js (v1.0 = full-depth resting book)
+import { isFutures, splitSym } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 export const L2F_TYPES = ['stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw'];
 const UP = '#03c988', DN = '#f23645', CYAN = '#00adb5', AMBER = '#f5b301', VIOLET = '#9b7bff';
@@ -188,6 +189,7 @@ function acquireHub(spec, firstT, listener) {
 function specOf(ctx) {
   const sym = String(ctx.symbol || ''), m = /^([a-z0-9]+):(.+)$/i.exec(sym), prov = m ? m[1].toLowerCase() : '', tk = m ? m[2] : sym;
   let p2 = prov, t2 = tk; try { const r = ctx.data.resolve(ctx.symbol); if (r && r.provider) { p2 = String(r.provider).toLowerCase(); t2 = r.ticker || tk; } } catch (e) {}
+  if (isFutures(sym)) [p2, t2] = splitSym(sym);   // exchange / contract-month forms (CME_MINI:MNQ1!, MNQZ6)
   if (p2 === 'futures' || (p2 !== 'binance' && /1!$/.test(t2))) { const root = l2Root(t2); return root ? { kind: 'futures', root, key: 'f|' + root, tick: L2_TICK[root] || 0.25 } : null; }
   if (prov === 'binance') { const t = tk.toUpperCase().replace(/\.P$/, ''); return { kind: 'crypto', ticker: t, key: 'c|' + t }; }
   if (prov && isCrypto(prov + ':' + tk)) { const t = tk.toUpperCase(); return { kind: 'crypto', venue: prov, ticker: t, key: 'c|' + prov + '|' + t }; }   // other venues (orderflow-venues.js)

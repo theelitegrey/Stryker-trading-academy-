@@ -29,6 +29,7 @@ import * as L from './chart-live-core.js?v=1082';
 import { acquire, rootState, l2Root, l2Delayed } from './chart-futures-l2.js?v=1082';
 import { openSource, SOURCES } from './book-panel-sources.js?v=1082';
 import { pairOf } from './book-panel-core.js?v=1082';
+import { futRoot } from './chart-sym.js?v=1082';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const PHONE_MAX = 700, W_MIN = 320, W_MAX = 640, H_MIN = 300, W_DEF = 360, H_DEF = 640, PRESETS = [10, 25, 50, 100], QUOTE_MAX_AGE = 15000;
 const DISCLAIMER = 'Education only. Not financial advice.';
@@ -91,7 +92,7 @@ const fmtIn = (c, p) => (Number.isFinite(p) ? p.toFixed(c.dec) : '');
 let qs = null;   // { key, kind:'f'|'c', root, h|stop, book }
 function quoteKey(c) {
   if (!open || isTestQuote()) return '';
-  if (c.fut) { const r = l2Root(c.tk); return r ? 'f|' + r : ''; }
+  if (c.fut) { const r = l2Root(futRoot(c.sym) || c.tk); return r ? 'f|' + r : ''; }
   if (c.sp.ok && c.sp.kind === 'crypto') return 'c|' + c.prov + '|' + c.tk;
   return '';
 }

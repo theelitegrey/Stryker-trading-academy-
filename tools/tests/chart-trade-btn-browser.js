@@ -204,8 +204,7 @@ async function run(b, w, h, mobile, theme) {
   check(menu.rows.every((r) => r.gapLogoTx === 12), tag + ': 12px logo-to-text gap', menu.rows.map((r) => r.gapLogoTx));
   const actSz = mobile ? '40x40' : '36x36';
   check([r1, r2].every((r) => r.acts.length === 2 && r.acts.every((a) => a === actSz)), tag + ': pencil + disconnect hit areas ' + actSz, [r1.acts, r2.acts]);
-  if (mobile) check([r1, r2].every((r) => r.actOpacity.every((o) => o === '1')), tag + ': touch: icon buttons always visible', [r1.actOpacity, r2.actOpacity]);
-  else check(menu.rows.filter((r) => r.acts.length && r.id !== 'pap').every((r) => r.actOpacity.every((o) => o === '1')), tag + ': desktop: broker icon buttons always visible (card layout)', menu.rows.map((r) => r.actOpacity));
+  check([r1, r2].every((r) => r.actOpacity.every((o) => o === '1')), tag + ': icon buttons always visible (main 336ab0e)', [r1.actOpacity, r2.actOpacity]);
   // 2026-11-17: Paper row = reserved edit slot + disconnect (always visible while paper is on), same columns as the broker rows
   const r0p = menu.rows.find((r) => r.id === 'pap');
   check(r0p && r0p.phR != null && Math.abs(r0p.phR - r1.editR) <= 0.5 && (r0p.acts.length === 0 || (r0p.acts[0] === actSz && r0p.actOpacity[0] === '1' && Math.abs(r0p.offR - r1.offR) <= 0.5)), tag + ': Paper row: edit slot + disconnect line up with the broker rows\' columns', { r0p, r1 });

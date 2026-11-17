@@ -527,15 +527,15 @@ async function memberDock(b, w, h, mobile, theme) {
   }
   // Trade menu: Paper row has the disconnect (always visible) and a reserved edit slot; columns line up
   await p.evaluate(() => window.__stkPaper.openTradeMenu());
-  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-x=paperoff]', { timeout: 5000 });
-  const tm = await p.evaluate(() => { const r = document.querySelector('#stkc-trade-pop .stktm-row[data-row=paper]'), R = r.getBoundingClientRect(); const bx = (e) => e.getBoundingClientRect(); const off = r.querySelector('[data-x=paperoff]'), ph = r.querySelector('.stktm-ph'), tick = r.querySelector('.stktm-tick'), logo = r.querySelector('.stktm-logo'); const cy = [logo, r.querySelector('.stktm-tx'), ph, off, tick].map((e) => bx(e).top + bx(e).height / 2); return { op: getComputedStyle(off).opacity, offWH: [bx(off).width, bx(off).height], phWH: [bx(ph).width, bx(ph).height], offR: Math.round(R.right - bx(off).right), tickR: Math.round(R.right - bx(tick).right), logoL: Math.round(bx(logo).left - R.left), cySpread: Math.round((Math.max(...cy) - Math.min(...cy)) * 10) / 10, txt: document.getElementById('stkc-trade-pop').innerText }; });
+  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-x=gear][data-id=paper]', { timeout: 5000 });
+  const tm = await p.evaluate(() => { const r = document.querySelector('#stkc-trade-pop .stktm-row[data-row=paper]'), R = r.getBoundingClientRect(); const bx = (e) => e.getBoundingClientRect(); const off = r.querySelector('[data-x=gear][data-id=paper]'), ph = r.querySelector('.stktm-ph'), tick = r.querySelector('.stktm-tick'), logo = r.querySelector('.stktm-logo'); const cy = [logo, r.querySelector('.stktm-tx'), ph, off, tick].map((e) => bx(e).top + bx(e).height / 2); return { op: getComputedStyle(off).opacity, offWH: [bx(off).width, bx(off).height], phWH: [bx(ph).width, bx(ph).height], offR: Math.round(R.right - bx(off).right), tickR: Math.round(R.right - bx(tick).right), logoL: Math.round(bx(logo).left - R.left), cySpread: Math.round((Math.max(...cy) - Math.min(...cy)) * 10) / 10, txt: document.getElementById('stkc-trade-pop').innerText }; });
   console.log('TMENU ' + tag + ' ' + JSON.stringify(tm));
-  check(tm.op === '1' && tm.cySpread <= 1, tag + ': Paper row: disconnect always visible, logo / text / slots / tick on one centre', tm);
+  check(tm.op === '1' && tm.cySpread <= 1, tag + ': Paper card: gear always visible, logo / text / slots / tick on one centre', tm);
   check(tm.offWH.map(Math.round).join() === tm.phWH.map(Math.round).join(), tag + ': reserved edit slot = disconnect size (same column grid as broker rows)', [tm.offWH, tm.phWH]);
   check(!/tradovate|rithmic|broker|finatic|disconnect/i.test(tm.txt), tag + ': member menu: Paper only, no broker words', tm.txt);
   const pop = await p.$('#stkc-trade-pop'); await pop.screenshot({ path: OUT + '/crop-tmenu-' + tag + '.png' });
   // disconnect: confirm first; Cancel keeps it on
-  await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-x=paperoff]').click());
+  await p.evaluate(() => { document.querySelector('#stkc-trade-pop [data-x=gear][data-id=paper]').click(); document.querySelector('#stktm-gm [data-g=paperoff]').click(); });
   await p.waitForSelector('#stktm-dlg', { timeout: 5000 });
   const dlg = await p.evaluate(() => document.getElementById('stktm-dlg').innerText);
   check(/Turn off paper trading on this chart\?/.test(dlg) && /Your paper account and history are kept\./.test(dlg), tag + ': confirm first, with the Owner\'s text', dlg);
@@ -549,8 +549,8 @@ async function memberDock(b, w, h, mobile, theme) {
   const bal0 = await p.evaluate(() => window.__stkPaper.account.state.orders.length);
   const chips0 = await opWait(p, () => document.querySelectorAll('.stkpt-chip').length > 0, null, 5000);
   await p.evaluate(() => window.__stkPaper.openTradeMenu());
-  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-x=paperoff]', { timeout: 5000 });
-  await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-x=paperoff]').click());
+  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-x=gear][data-id=paper]', { timeout: 5000 });
+  await p.evaluate(() => { document.querySelector('#stkc-trade-pop [data-x=gear][data-id=paper]').click(); document.querySelector('#stktm-gm [data-g=paperoff]').click(); });
   await p.waitForSelector('#stktm-dlg [data-k=yes]', { timeout: 5000 }); await p.click('#stktm-dlg [data-k=yes]');
   const off = await opWait(p, () => !window.__stkPaper.enabled && document.getElementById('stkop').hidden && !document.documentElement.classList.contains('stkpt-on'));
   const offSt = await p.evaluate(() => ({ btn: document.querySelector('#stkc-paper-btn .stkc-btn-l').textContent, aria: document.getElementById('stkc-paper-btn').getAttribute('aria-label'), orders: window.__stkPaper.account.state.orders.length, chips: document.querySelectorAll('.stkpt-chip').length, rail: (() => { const r = document.querySelector('.stkop-railbtn'); return r ? r.classList.contains('on') : null; })() }));
@@ -558,7 +558,7 @@ async function memberDock(b, w, h, mobile, theme) {
   check(offSt.orders === bal0 && offSt.chips === 0, tag + ': paper lines gone from the chart; the account (working order) is kept', offSt);
   await p.evaluate(() => window.__stkPaper.openTradeMenu());
   await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-a=paper]', { timeout: 5000 });
-  const offMenu = await p.evaluate(() => ({ chk: document.querySelector('#stkc-trade-pop [data-a=paper]').getAttribute('aria-checked'), off: !!document.querySelector('#stkc-trade-pop [data-x=paperoff]') }));
+  const offMenu = await p.evaluate(() => ({ chk: document.querySelector('#stkc-trade-pop [data-a=paper]').getAttribute('aria-checked'), off: !!document.querySelector('#stkc-trade-pop [data-x=gear][data-id=paper]') }));
   check(offMenu.chk === 'false' && !offMenu.off, tag + ': menu while off: Paper not ticked, no disconnect', offMenu);
   await pop.screenshot({ path: OUT + '/crop-tmenu-off-' + tag + '.png' });
   // pick Paper again = on

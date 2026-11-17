@@ -23,7 +23,7 @@ const state = (p) => p.evaluate(() => ({ v090: window.__stkVela090, map: documen
     const p = await ctx.newPage();
     const errors = []; let navs = 0;
     p.on('pageerror', (e) => { if (!/docChanges/.test(String(e))) errors.push(String(e)); });
-    p.on('framenavigated', (f) => { if (f === p.mainFrame()) navs++; });
+    p.on('domcontentloaded', () => { navs++; });  // real reloads only; layout links change the address with replaceState (no reload)
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' }); await ready(p);
     let s = await state(p);
     check(s.v090 === true && s.map === 'vela-0.9.0-s10', `${w}: member gets 0.9.0 by default`, s);

@@ -176,14 +176,13 @@ internal fun WatchRows(state: HomeUiState, onSymbol: (String) -> Unit, a: WatchA
     val items by rememberUpdatedState(state.items)
     val heightOf = { it: String -> if (isSection(it)) secPx else rowPx }
     val syms = state.items.filterNot(::isSection)
-    state.items.forEachIndexed { i, item ->
-        key(item) {
-            if (isSection(item)) {
-                Text(item.removePrefix(SECTION).ifEmpty { "Section" }, style = MaterialTheme.typography.labelMedium, color = Tz.colors.muted,
-                    modifier = Modifier.fillMaxWidth().height(32.dp).padding(top = 12.dp).semantics { heading() })
-                return@key
-            }
-            val row = state.row(item) ?: return@key
+    state.items.forEach { item ->
+        // No return@key inside key{}: it compiles to a non-local return the dexer rejects.
+        val row = if (isSection(item)) null else state.row(item)
+        if (isSection(item)) key(item) {
+            Text(item.removePrefix(SECTION).ifEmpty { "Section" }, style = MaterialTheme.typography.labelMedium, color = Tz.colors.muted,
+                modifier = Modifier.fillMaxWidth().height(32.dp).padding(top = 12.dp).semantics { heading() })
+        } else if (row != null) key(item) {
             val moving = dragging == item
             val pos = syms.indexOf(item)
             val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { v -> if (v != SwipeToDismissBoxValue.Settled) { a.onRemove(item); true } else false })

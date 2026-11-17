@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +44,7 @@ import com.tradezoro.app.data.money
 import com.tradezoro.app.data.priceText
 import com.tradezoro.app.data.qtyText
 import com.tradezoro.app.data.roundTick
+import com.tradezoro.app.ui.common.SlimPill
 import com.tradezoro.app.ui.common.TzIcons
 import com.tradezoro.app.ui.theme.Mint
 import com.tradezoro.app.ui.theme.OnMint
@@ -127,7 +129,7 @@ private fun ScalpView(state: TradeUiState, a: TradeActions) {
 }
 
 /** Ladder rows: [rows] ticks above and below the last price, newest price in the middle. */
-fun domPrices(last: Double, tick: Double, rows: Int = 6): List<Double> =
+fun domPrices(last: Double, tick: Double, rows: Int = 5): List<Double> =
     (rows downTo -rows).map { roundTick(roundTick(last, tick) + it * tick, tick) }
 
 @Composable
@@ -150,7 +152,7 @@ private fun DomView(state: TradeUiState, a: TradeActions) {
             val atLast = kotlin.math.abs(p - near) < spec.tick / 2
             val atAvg = pos != null && kotlin.math.abs(roundTick(pos.avg, spec.tick) - p) < spec.tick / 2
             val txt = priceText(p, state.decimals)
-            Row(Modifier.fillMaxWidth().height(40.dp).then(if (atLast) Modifier.background(Tz.colors.selected) else Modifier), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().height(48.dp).then(if (atLast) Modifier.background(Tz.colors.selected) else Modifier), verticalAlignment = Alignment.CenterVertically) {
                 DomCell(mine.filter { it.side == "buy" }.sumOf { it.qty }, true, Modifier.weight(1f), "Paper buy limit ${qtyText(state.ticket.qty)} at $txt", s.on) { a.onDom("buy", p) }
                 Text(txt + if (atAvg) " \u2022" else "", style = MaterialTheme.typography.bodyMedium.merge(Tabular).copy(fontWeight = if (atLast) FontWeight.SemiBold else FontWeight.Normal),
                     textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.weight(1.2f))
@@ -169,7 +171,7 @@ private fun DomView(state: TradeUiState, a: TradeActions) {
 @Composable
 private fun DomCell(working: Double, buy: Boolean, modifier: Modifier, desc: String, enabled: Boolean, onClick: () -> Unit) {
     val c = if (buy) Tz.colors.up else Tz.colors.down
-    Box(modifier.height(40.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { contentDescription = desc }, contentAlignment = Alignment.Center) {
+    Box(modifier.height(48.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { contentDescription = desc }, contentAlignment = Alignment.Center) {
         if (working > 0) Box(Modifier.clip(RoundedCornerShape(50)).background(c.copy(alpha = 0.18f)).padding(horizontal = 8.dp, vertical = 2.dp)) {
             Text(qtyText(working), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = c)
         }
@@ -196,10 +198,8 @@ private fun PanelFooter(state: TradeUiState, a: TradeActions) {
             val wk = s.orders.size
             if (wk > 0) Text("$wk working order${if (wk == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = Tz.colors.muted)
         }
-        OutlinedButton(onClick = a.onFlatten, enabled = s.positions.isNotEmpty() || s.orders.isNotEmpty(), shape = RoundedCornerShape(50),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.height(40.dp).testTag("flatten")) {
-            Text("Flatten", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp))
-        }
+        SlimPill("Flatten", a.onFlatten, Modifier.testTag("flatten"), enabled = s.positions.isNotEmpty() || s.orders.isNotEmpty(),
+            desc = "Flatten. Close all paper positions and cancel working orders")
     }
 }
 

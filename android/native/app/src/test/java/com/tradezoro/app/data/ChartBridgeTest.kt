@@ -28,8 +28,8 @@ class ChartBridgeTest {
     }
 
     @Test fun symbolIds() {
-        assertEquals("MNQ1!", chartIdFor(DEFAULT_WATCHLIST[0]))
-        assertEquals("binance:BTCUSDT", chartIdFor(DEFAULT_WATCHLIST.last()))
+        assertEquals("futures:NQ1!", chartIdFor(DEFAULT_WATCHLIST[0]))  // site watchlist ids are chart ids
+        assertEquals("binance:ETHUSDT", chartIdFor(DEFAULT_WATCHLIST.last()))
         assertEquals("MNQ", displayTicker("MNQ1!")); assertEquals("BTC", displayTicker("binance:BTCUSDT")); assertEquals("EURUSD", displayTicker("fx:EURUSD"))
         assertTrue(isFuturesId("MNQ1!")); assertTrue(isFuturesId("cme:ES1!")); assertFalse(isFuturesId("binance:BTCUSDT"))
     }

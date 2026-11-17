@@ -4,6 +4,7 @@ import com.tradezoro.app.data.Quote
 import com.tradezoro.app.data.QuoteRepository
 import com.tradezoro.app.data.Source
 import com.tradezoro.app.data.WatchSymbol
+import com.tradezoro.app.data.symbolOf
 import com.tradezoro.app.ui.home.HomeViewModel
 import com.tradezoro.app.ui.home.RowState
 import kotlinx.coroutines.Dispatchers

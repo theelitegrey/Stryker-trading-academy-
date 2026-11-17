@@ -35,6 +35,8 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasText
 import java.io.File
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import com.tradezoro.app.data.AlertsState
 import com.tradezoro.app.ui.alerts.AlertsActions
 import com.tradezoro.app.ui.alerts.AlertsContent
@@ -77,12 +79,16 @@ class AlignmentTest {
         }
         try {
             // Top bar: menu · wordmark · bell share one centre; both buttons 48dp; equal edge insets.
-            val menu = rule.onNodeWithContentDescription("Account menu").b("top: menu button")
+            // Top bar: wordmark · bell · profile picture; no menu button.
             val logo = rule.onNodeWithContentDescription("TradeZoro").b("top: wordmark")
             val bell = rule.onNodeWithContentDescription("Alerts").b("top: bell button")
-            near(menu.cy, logo.cy, "top bar menu/wordmark centre"); near(bell.cy, logo.cy, "top bar bell/wordmark centre")
-            near((menu.right - menu.left).value, 48f, "menu touch target 48dp", 0f); near((bell.bottom - bell.top).value, 48f, "bell touch target 48dp", 0f)
-            near(menu.left.value, 412f - bell.right.value, "top bar left inset = right inset")
+            val prof = rule.onNodeWithContentDescription("Account").b("top: profile button")
+            org.junit.Assert.assertTrue("no menu button", rule.onAllNodesWithContentDescription("Account menu").fetchSemanticsNodes().isEmpty())
+            near(prof.cy, logo.cy, "top bar profile/wordmark centre"); near(bell.cy, logo.cy, "top bar bell/wordmark centre")
+            near((prof.right - prof.left).value, 48f, "profile touch target 48dp", 0f); near((bell.bottom - bell.top).value, 48f, "bell touch target 48dp", 0f)
+            near(logo.left.value, 16f, "wordmark left gutter 16", 0f)
+            // 32dp avatar centred in the 48dp box, box 8dp from the edge -> avatar 16dp from the edge = wordmark gutter.
+            near(412f - (prof.right.value - 8f), 16f, "avatar right gutter 16 (= wordmark gutter)", 0.5f)
 
             // Greeting row: name block and Market chip share a centre; chip 32dp; 16dp side gutters.
             val hello = rule.onNodeWithText("Good morning").b("greet: label")
@@ -98,7 +104,7 @@ class AlignmentTest {
             gaps.forEach { near(it, gaps[0], "product column pitch") }
 
             // Watchlist rows: 60dp each, evenly pitched.
-            val rows = listOf("MNQ", "MES", "NQ", "ES", "GC", "CL", "BTC").map { t ->
+            val rows = listOf("NQ", "ES", "YM", "RTY", "GC", "CL").map { t ->
                 rule.onNode(SemanticsMatcher("row $t") { n -> n.config.getOrElseNullable(SemanticsProperties.ContentDescription) { null }?.firstOrNull()?.startsWith("$t, ") == true }).b("watch row: $t")
             }
             rows.forEach { near((it.bottom - it.top).value, 60f, "row height ${rows.indexOf(it)}", 0f) }
@@ -114,65 +120,40 @@ class AlignmentTest {
         }
     }
 
+    private val CHART_ST = ChartUiState(ready = true, symbolId = "futures:MNQ1!", tf = Timeframe.M5, last = 21486.5, change = 0.42, changeFor = "futures:MNQ1!", qty = 2.0, paperOn = true, sample = true)
+
     @Test fun chartChrome() {
         rule.setContent {
             TradeZoroTheme(dark = true) {
-                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { ChartTopBar({}, {}, {}) }, bottomBar = { TzBottomBar(Tab.CHARTS) {} }) { pad ->
-                    ChartContent(ChartUiState(ready = true, symbolId = "MNQ1!", tf = Timeframe.M5, last = 21486.5, change = 0.42, changeFor = "MNQ1!", qty = 2.0, paperOn = true, position = "Long 2 @ 21,470.25", sample = true),
-                        ChartActions(), Modifier.padding(pad)) { m -> androidx.compose.foundation.layout.Box(m.semantics { contentDescription = "chart" }) }
+                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { ChartTopBar({}, {}, {}, state = CHART_ST) }, bottomBar = { TzBottomBar(Tab.CHARTS) {} }) { pad ->
+                    ChartContent(CHART_ST, ChartActions(), Modifier.padding(pad), symbols = listOf("futures:NQ1!", "futures:MNQ1!", "futures:ES1!")) { m -> androidx.compose.foundation.layout.Box(m.semantics { contentDescription = "chart" }) }
                 }
             }
         }
         try {
-            // Top bar: back · title · fullscreen · more on one centre, 48dp targets, equal insets.
+            // Top bar (no product title): back · "MNQ · CME" · bell · fullscreen · more on one centre, 48dp targets, equal insets.
             val back = rule.onNodeWithContentDescription("Back to Home").b("top: back")
-            val title = rule.onNodeWithText("ZoroCharts").b("top: title")
+            val title = rule.onNodeWithText("MNQ1! \u00b7 CME", useUnmergedTree = true).b("top: symbol + exchange")
+            val titleBox = rule.onNodeWithTag("chart-title").b("top: title target")
+            val bell = rule.onNodeWithContentDescription("Price alerts").b("top: bell")
             val full = rule.onNodeWithContentDescription("Full screen chart").b("top: fullscreen")
             val more = rule.onNodeWithContentDescription("Chart menu").b("top: more")
-            listOf(title, full, more).forEach { near(it.cy, back.cy, "top bar centre") }
-            listOf(back, full, more).forEach { near((it.right - it.left).value, 48f, "top icon target 48dp", 0f) }
+            listOf(titleBox, bell, full, more).forEach { near(it.cy, back.cy, "top bar centre") }
+            listOf(back, bell, full, more).forEach { near((it.right - it.left).value, 48f, "top icon target 48dp", 0f) }
             near(back.left.value, 412f - more.right.value, "top bar left inset = right inset")
+            near(title.left.value - back.right.value, 4f, "title 4dp after back target", 0.5f)
+            org.junit.Assert.assertTrue("no ZoroCharts title", rule.onAllNodesWithText("ZoroCharts").fetchSemanticsNodes().isEmpty())
 
-            // Symbol row: symbol button and price share a centre; 16dp gutters.
-            val sym = rule.onNodeWithContentDescription("Symbol MNQ, 5m. Change symbol").b("sym: button")
-            val price = rule.onNodeWithText("21,486.50", substring = true).b("sym: price")
-            near(sym.cy, price.cy, "symbol / price centre")
-            near(sym.left.value, 16f, "symbol left gutter 16dp", 0f)
-            near(412f - price.right.value, 16f, "price right gutter 16dp", 0.5f)
-
-            // Tool row: 5 chips + 3 tools on one centre; chips 48dp touch; tools 48dp; right gutter 16.
-            val chips = listOf("1m", "5m", "15m", "1H", "D").map { rule.onNodeWithContentDescription("Timeframe $it").b("tf chip: $it") }
-            val tools = listOf("Indicators", "Drawing tools", "Price alerts").map { rule.onNodeWithContentDescription(it).b("tool: $it") }
-            (chips + tools).forEach { near(it.cy, chips[0].cy, "tool row centre") }
-            chips.forEach { near((it.bottom - it.top).value, 48f, "chip touch height 48dp", 0f) }
-            chips.forEach { near((it.right - it.left).value, 48f, "chip touch width 48dp", 0f) }
-            chips.zipWithNext { a, b -> near(b.left.value - a.right.value, 0f, "chip touch boxes abut (visual gap 8dp)", 0.5f) }
-            // visual chip = 40dp centred in the 48dp box -> visual left edge = box + 4
-            near(chips[0].left.value + 4f, 16f, "first chip visual left gutter 16dp", 0f)
-            // last glyph (24dp centred in 48dp) -> glyph right edge = box right - 12
-            near(412f - (tools.last().right.value - 12f), 16f, "last tool glyph right gutter 16dp", 0.5f)
-            val free = tools.first().left.value - chips.last().right.value
-            log.append(String.format("  check %-40s %6.1f >= 0 -> %s\n", "space between chips and tools (no clip)", free, if (free >= 0) "PASS" else "FAIL"))
-            org.junit.Assert.assertTrue("chips clipped", free >= 0f)
-
-            // Trade row: Sell · stepper · Buy, one centre, all 48dp tall, equal Sell/Buy widths, 8dp gaps.
-            val sell = rule.onNodeWithContentDescription("Paper sell 2 MNQ at market").b("trade: sell")
-            val minus = rule.onNodeWithContentDescription("Less quantity").b("trade: minus")
-            val qty = rule.onNodeWithContentDescription("Quantity 2").b("trade: qty")
-            val plus = rule.onNodeWithContentDescription("More quantity").b("trade: plus")
-            val buy = rule.onNodeWithContentDescription("Paper buy 2 MNQ at market").b("trade: buy")
-            listOf(minus, qty, plus, buy).forEach { near(it.cy, sell.cy, "trade row centre") }
-            listOf(sell, minus, plus, buy).forEach { near((it.bottom - it.top).value, 48f, "trade control height 48dp", 0f) }
-            near((sell.right - sell.left).value, (buy.right - buy.left).value, "sell width = buy width")
-            near(minus.left.value - sell.right.value, 8f, "sell/stepper gap 8dp", 0.5f)
-            near(buy.left.value - plus.right.value, 8f, "stepper/buy gap 8dp", 0.5f)
-            near(sell.left.value, 412f - buy.right.value, "trade row left inset = right inset")
-
-            // Position line and Paper chip share a centre.
-            val pos = rule.onNodeWithText("Long 2 @ 21,470.25").b("strip: position")
-            val chip = rule.onNodeWithText("Paper trading").b("strip: paper chip")
-            near(pos.cy, chip.cy, "position / paper chip centre")
-            near(412f - chip.right.value, 16f, "paper chip right gutter 16dp", 0.5f)
+            // Bottom bar: symbol wheel · tf wheel · indicators · drawings · Trade. Selected wheel rows share the bar centre.
+            val symSel = rule.onNodeWithText("MNQ1!", useUnmergedTree = true).b("wheel: selected symbol")
+            val tfSel = rule.onNodeWithText("5m", useUnmergedTree = true).b("wheel: selected tf")
+            val ind = rule.onNodeWithContentDescription("Indicators").b("bar: indicators")
+            val draw = rule.onNodeWithContentDescription("Drawing tools").b("bar: drawings")
+            val trade = rule.onNodeWithTag("chart-trade").b("bar: trade")
+            listOf(tfSel, ind, draw, trade).forEach { near(it.cy, symSel.cy, "bottom bar centre") }
+            listOf(ind, draw, trade).forEach { near((it.bottom - it.top).value, 48f, "bar target height 48dp", 0f) }
+            near(symSel.left.value, 16f, "wheel text left gutter 16dp", 0f)
+            near(412f - trade.right.value, 16f, "trade button right gutter 16dp", 0.5f)
             rule.onNodeWithContentDescription("chart").b("chart area")
         } finally {
             File("build/alignment-chart.txt").writeText(log.toString())
@@ -180,7 +161,7 @@ class AlignmentTest {
     }
 
     @Test fun tradeChrome() {
-        val st = ScreenshotTest.sampleTradeState()
+        val st = ScreenshotTest.sampleTradeState().copy(tab = com.tradezoro.app.ui.trade.PanelTab.ORDER)
         rule.setContent {
             TradeZoroTheme(dark = true) {
                 Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { MenuTopBar("Trade", SampleAvatar, {}, {}) }, bottomBar = { TzBottomBar(Tab.TRADE) {} }) { pad ->
@@ -189,17 +170,28 @@ class AlignmentTest {
             }
         }
         try {
-            val menu = rule.onNodeWithContentDescription("Account menu").b("top: menu")
+            val prof = rule.onNodeWithContentDescription("Account").b("top: profile")
             val title = rule.onAllNodesWithText("Trade")[0].b("top: title")
             val bell = rule.onNodeWithContentDescription("Price alerts").b("top: bell")
-            listOf(title, bell).forEach { near(it.cy, menu.cy, "top bar centre") }
-            near(menu.left.value, 412f - bell.right.value, "top bar left inset = right inset")
+            listOf(title, bell).forEach { near(it.cy, prof.cy, "top bar centre") }
+            near(title.left.value, 16f, "title left gutter 16", 0f)
+            near(412f - (prof.right.value - 8f), 16f, "avatar right gutter 16", 0.5f)
 
             // Account card: label and chip inside 16dp card padding (32dp from the screen edges).
             val acctLabel = rule.onNodeWithText("Paper account", useUnmergedTree = true).b("account: label")
             val chip = rule.onNodeWithText("Paper trading", useUnmergedTree = true).b("account: paper chip")
             near(acctLabel.left.value, 32f, "account text left 32dp (16 + 16)", 0f)
             near(412f - chip.right.value, 40f, "chip text right 40 = 16+16 card, +8 chip pad", 0.5f)
+
+            // Panel tabs Scalp / DOM / Order: one centre, equal widths, 16dp gutters.
+            val ptabs = listOf("Scalp", "DOM", "Order").map { t -> rule.onNode(hasText(t) and SemanticsMatcher.expectValue(SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Tab)).b("panel tab: $t") }
+            ptabs.forEach { near(it.cy, ptabs[0].cy, "panel tab centre"); near((it.right - it.left).value, (ptabs[0].right - ptabs[0].left).value, "panel tab width") }
+            near(ptabs[0].left.value, 20f, "panel tabs: 16 gutter + 4 track pad", 0.5f); near(412f - ptabs[2].right.value, 20f, "panel tabs right 16 + 4", 0.5f)
+            // Footer: Paper chip · position · Flatten on one centre.
+            val flatBtn = rule.onNodeWithTag("flatten").b("footer: flatten")
+            val posLine = rule.onNodeWithText("Long 2 @ 21,462.00", useUnmergedTree = true).b("footer: position")
+            near(412f - flatBtn.right.value, 16f, "flatten right gutter 16", 0.5f)
+            log.append(String.format("  info footer position cy %.1f vs flatten cy %.1f (P&L line below)\n", posLine.cy, flatBtn.cy))
 
             // Order type tabs: equal widths, one centre.
             val tabs = listOf("Market", "Limit", "Stop").map { t -> rule.onNode(hasText(t) and SemanticsMatcher.expectValue(SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Tab)).b("tab: $t") }
@@ -218,7 +210,7 @@ class AlignmentTest {
                 near(plus.left.value - minus.right.value, 0f, "$what touch boxes abut (visual gap 8dp)", 0.5f)
             }
 
-            // Buy / Sell: one centre, 56dp, equal widths, 8dp gap, 16dp gutters. Flatten: full width.
+            // Buy / Sell: one centre, equal widths, 8dp gap, 16dp gutters.
             val buy = rule.onNodeWithContentDescription("Paper buy 2 MNQ market").b("buy")
             val sell = rule.onNodeWithContentDescription("Paper sell 2 MNQ market").b("sell")
             near(buy.cy, sell.cy, "buy / sell centre")
@@ -226,8 +218,7 @@ class AlignmentTest {
             near((buy.right - buy.left).value, (sell.right - sell.left).value, "buy width = sell width")
             near(sell.left.value - buy.right.value, 8f, "buy / sell gap 8dp", 0.5f)
             near(buy.left.value, 412f - sell.right.value, "buy/sell left inset = right inset")
-            val flat = rule.onNodeWithText("Flatten all", useUnmergedTree = true).b("flatten (text)")
-            near(flat.cx, 206f, "flatten text centred", 1f)
+            near((flatBtn.bottom - flatBtn.top).value, 48f, "flatten touch 48dp", 0f)
         } finally {
             File("build/alignment-trade.txt").writeText(log.toString())
         }
@@ -255,6 +246,33 @@ class AlignmentTest {
             }
         } finally {
             File("build/alignment-alerts.txt").writeText(log.toString())
+        }
+    }
+
+    /** Sign-in: TZ mark centred on the column (geometric = box, the PNG is trimmed to its ink); pills equal and centred. */
+    @Test fun signInLayout() {
+        rule.setContent { TradeZoroTheme(dark = true) { com.tradezoro.app.ui.auth.SignInContent(com.tradezoro.app.ui.auth.SignInForm(), true, {}, {}, {}, {}, {}, {}, {}) } }
+        try {
+            val mark = rule.onNodeWithTag("tzmark").b("mark")
+            val head = rule.onNodeWithText("Welcome back").b("heading")
+            val g = rule.onNodeWithTag("google").b("google pill")
+            val pk = rule.onNodeWithTag("passkey").b("passkey pill")
+            val submit = rule.onNodeWithTag("signin-submit").b("sign-in pill")
+            val email = rule.onNodeWithTag("email").b("email field")
+            val gIcon = rule.onNodeWithTag("google-g", useUnmergedTree = true).b("google G")
+            near(mark.cx, 206f, "mark geometric centre = screen centre", 0.5f)
+            // Optical: alpha-weighted ink centroid of logo_tzmark.png is +1.0% of the width (x) -> under 1dp at this size.
+            val w = (mark.right - mark.left).value
+            near(mark.cx + w * 0.010f, 206f, "mark optical centre (ink centroid) within 1dp", 1f)
+            near(head.cx, 206f, "heading centred", 0.5f)
+            listOf(g, pk, submit).forEach { near((it.bottom - it.top).value, 52f, "pill height 52", 0.1f); near(it.cx, 206f, "pill centred", 0.5f) }
+            near((g.right - g.left).value, (pk.right - pk.left).value, "google width = passkey width", 0.1f)
+            near(g.left.value, 24f, "pill left gutter 24", 0.1f); near(412f - g.right.value, 24f, "pill right gutter 24", 0.1f)
+            near(email.left.value, g.left.value, "field aligned with pills", 0.1f)
+            near(gIcon.cy, g.cy, "G logo centred in its pill", 0.5f)
+            near(pk.top.value - g.bottom.value, 12f, "google / passkey gap 12", 0.5f)
+        } finally {
+            File("build/alignment-signin.txt").writeText(log.toString())
         }
     }
 }

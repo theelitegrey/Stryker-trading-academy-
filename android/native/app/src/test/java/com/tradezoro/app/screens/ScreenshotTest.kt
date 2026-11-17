@@ -71,6 +71,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.RuntimeEnvironment
 import kotlin.math.sin
+import androidx.compose.ui.unit.dp
 
 /** Screens rendered on the JVM (Robolectric + Roborazzi). PNGs land in app/screenshots/. */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -88,7 +89,13 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
         )
 
         // Sample numbers for screenshots only; the screen labels them "Sample data".
-        private val PRICES = listOf(21480.25 to 0.42, 5962.50 to 0.18, 21481.00 to 0.41, 5962.75 to 0.17, 2684.30 to -0.26, 68.42 to -0.73, 97310.0 to 1.12)
+        // NQ ES YM RTY GC CL EURUSD GBPUSD USDJPY BTC ETH (the site's default list).
+        private val PRICES = listOf(21480.25 to 0.42, 5962.50 to 0.18, 43120.0 to 0.12, 2240.6 to -0.31, 2684.30 to -0.26, 68.42 to -0.73,
+            1.0842 to 0.05, 1.2710 to -0.08, 151.42 to 0.21, 97310.0 to 1.12, 3420.5 to 0.86)
+        private val SAMPLE_LISTS = listOf(
+            com.tradezoro.app.data.Watchlist("sampleList0000000001", "Watchlist", com.tradezoro.app.data.DEFAULT_ITEMS),
+            com.tradezoro.app.data.Watchlist("sampleList0000000002", "Metals", listOf("futures:GC1!", "futures:SI1!")),
+        )
         fun sampleState(failLast: Boolean = false) = HomeUiState(
             DEFAULT_WATCHLIST.mapIndexed { i, s ->
                 val (p, pct) = PRICES[i]
@@ -96,7 +103,7 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
                 val q = Quote(p, p / (1 + pct / 100), spark, realtime = s.ticker == "BTC")
                 WatchRow(s, if (failLast && i == DEFAULT_WATCHLIST.lastIndex) RowState.Failed(null) else RowState.Ready(q))
             },
-            sample = true,
+            sample = true, lists = SAMPLE_LISTS, activeId = SAMPLE_LISTS[0].id, items = com.tradezoro.app.data.DEFAULT_ITEMS, loaded = true,
         )
 
         // Trade fixture, numbers from the mock; the screen labels it "Sample data".
@@ -121,8 +128,9 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
     }
 
     // Fixture for the chart chrome only; the screen labels it "Sample data".
+    private val WHEEL = listOf("futures:NQ1!", "futures:MNQ1!", "futures:ES1!", "futures:MES1!", "futures:GC1!")
     private fun sampleChart(paper: Boolean) = ChartUiState(
-        ready = true, symbolId = "MNQ1!", tf = Timeframe.M5, last = 27285.50, change = 0.14, changeFor = "MNQ1!", qty = 2.0,
+        ready = true, symbolId = "futures:MNQ1!", tf = Timeframe.M5, last = 27285.50, change = 0.14, changeFor = "MNQ1!", qty = 2.0,
         paperOn = paper, position = if (paper) "Long 2 @ 27,270.25" else null, sample = true,
     )
 
@@ -138,9 +146,9 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
     private fun ChartShell(st: ChartUiState) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
-            topBar = { if (!st.fullscreen) ChartTopBar({}, {}, {}) },
+            topBar = { if (!st.fullscreen) ChartTopBar({}, {}, {}, state = st) },
             bottomBar = { if (!st.fullscreen) TzBottomBar(Tab.CHARTS) {} },
-        ) { pad -> ChartContent(st, ChartActions(), Modifier.padding(pad)) { m -> ChartPlaceholder(m) } }
+        ) { pad -> ChartContent(st, ChartActions(), Modifier.padding(pad), symbols = WHEEL) { m -> ChartPlaceholder(m) } }
     }
 
     @Composable
@@ -206,9 +214,9 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
         val vp = androidx.compose.runtime.remember { ChartViewport().apply { spacing = 7f * 2.625f; if (cross) { crossX = 600f; crossY = 700f } } }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
-            topBar = { ChartTopBar({}, {}, {}) },
+            topBar = { ChartTopBar({}, {}, {}, state = st) },
             bottomBar = { TzBottomBar(Tab.CHARTS) {} },
-        ) { pad -> ChartContent(st, ChartActions(), Modifier.padding(pad)) { m -> NativeChart(frame, vp, style, m, tool = tool) } }
+        ) { pad -> ChartContent(st, ChartActions(), Modifier.padding(pad), symbols = WHEEL + "binance:BTCUSDT") { m -> NativeChart(frame, vp, style, m, tool = tool) } }
     }
     @Test fun nativeCandles() = shoot("9-native-candles") { NativeShell(PriceStyle.CANDLES) }
     @Test fun nativeCrosshair() = shoot("9b-native-crosshair") { NativeShell(PriceStyle.CANDLES, cross = true) }
@@ -247,4 +255,42 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
             AddTradeForm(NewTrade(instrument = "MNQ", date = "2026-11-20", entry = "21462", exit = "21486.5", size = "4", fees = "1.24"), false, null, {}, {}, {})
         }
     }
+
+    // ---- Owner feedback 17 Nov: account sheet, add symbol, trade sheet (3 tabs), signed-out sign-in
+    @Test fun signInClean() = shoot("2b-signin-clean") {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            SignInContent(SignInForm(), true, {}, {}, {}, {}, {}, {}, {})
+        }
+    }
+    @Test fun account() = shoot("10-account") {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            com.tradezoro.app.ui.account.AccountContent(
+                com.tradezoro.app.auth.TzUser("u1", "alex@example.com", "Alex Lee", true), SampleAvatar, true,
+                com.tradezoro.app.data.ThemeMode.SYSTEM, Timeframe.M5, true,
+                com.tradezoro.app.data.DataAccess(signedIn = true, agreement = true, current = true),
+                com.tradezoro.app.ui.account.AccountActions())
+        }
+    }
+    @Test fun accountSignedOut() = shoot("10b-account-signed-out") {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            com.tradezoro.app.ui.account.AccountContent(null, null, true, com.tradezoro.app.data.ThemeMode.DARK, Timeframe.M15, false,
+                com.tradezoro.app.data.DataAccess(signedIn = false), com.tradezoro.app.ui.account.AccountActions())
+        }
+    }
+    @Test fun addSymbol() = shoot("11-add-symbol") {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            com.tradezoro.app.ui.home.AddSymbolContent("Watchlist", setOf("futures:NQ1!"), {}, initialQuery = "NQ")
+        }
+    }
+    @Composable
+    private fun TradeSheet(tab: com.tradezoro.app.ui.trade.PanelTab) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(top = 24.dp)) {
+                com.tradezoro.app.ui.trade.TradeSheetContent(sampleTradeState().copy(tab = tab), TradeActions())
+            }
+        }
+    }
+    @Test fun tradeSheetScalp() = shoot("12-trade-sheet-scalp") { TradeSheet(com.tradezoro.app.ui.trade.PanelTab.SCALP) }
+    @Test fun tradeSheetDom() = shoot("12b-trade-sheet-dom") { TradeSheet(com.tradezoro.app.ui.trade.PanelTab.DOM) }
+    @Test fun tradeSheetOrder() = shoot("12c-trade-sheet-order") { TradeSheet(com.tradezoro.app.ui.trade.PanelTab.ORDER) }
 }

@@ -57,3 +57,6 @@ object M4Samples {
     }.sortedByDescending { it.date }
     val journal = JournalState.Ready(trades, sample = true)
 }
+
+/** Profile button fixture (initials; no photo in tests). */
+val SampleAvatar = com.tradezoro.app.ui.nav.Avatar("AL")

@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +60,7 @@ import com.tradezoro.app.data.Timeframe
 import com.tradezoro.app.data.canonicalId
 import com.tradezoro.app.data.formatPct
 import com.tradezoro.app.data.symbolOf
+import com.tradezoro.app.ui.common.SlimPill
 import com.tradezoro.app.ui.common.TzIcons
 import com.tradezoro.app.ui.theme.Tabular
 import com.tradezoro.app.ui.theme.Tz
@@ -148,8 +150,10 @@ fun ChartContent(
                     Icon(TzIcons.Close, contentDescription = "Exit full screen", tint = Tz.colors.muted)
                 }
             }
+            // Above the time axis (about 28dp), on its own backing so it never collides with axis labels.
             if (state.sample) Text("Sample data", style = MaterialTheme.typography.labelSmall, color = Tz.colors.muted,
-                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp))
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 8.dp, bottom = 40.dp)
+                    .clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.background.copy(alpha = 0.8f)).padding(horizontal = 4.dp))
         }
         if (!state.fullscreen) ChartBottomBar(state, actions, symbols)
     }
@@ -168,7 +172,7 @@ private fun ChartBottomBar(state: ChartUiState, actions: ChartActions, symbols: 
     val cur = if (state.symbolId.isEmpty()) "" else canonicalId(state.symbolId)
     Column(Modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Tz.colors.hairline))
-        Row(Modifier.fillMaxWidth().height(WHEEL_H).padding(start = 8.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(WHEEL_H).padding(start = 8.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             WheelPicker(
                 items = ids, selected = ids.indexOf(cur).coerceAtLeast(0), label = { symbolOf(it).chartTicker },
                 width = 104.dp, what = "Symbol", onPick = { actions.onPickSymbol(ids[it]) }, tag = "wheel-symbol",
@@ -181,12 +185,7 @@ private fun ChartBottomBar(state: ChartUiState, actions: ChartActions, symbols: 
             IconButton(onClick = actions.onIndicators, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Indicators, contentDescription = "Indicators") }
             IconButton(onClick = actions.onDrawings, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Pencil, contentDescription = "Drawing tools") }
             VerticalDivider(Modifier.height(32.dp).padding(horizontal = 8.dp), color = Tz.colors.hairline)
-            OutlinedButton(
-                onClick = actions.onTrade, shape = RoundedCornerShape(50), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
-                modifier = Modifier.height(40.dp).semantics { contentDescription = "Trade. Paper trading options" }.testTag("chart-trade"),
-            ) { Text("Trade", style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp)) }
+            SlimPill("Trade", actions.onTrade, Modifier.testTag("chart-trade"), desc = "Trade. Paper trading options")
         }
     }
 }
@@ -241,13 +240,13 @@ fun <T> WheelPicker(
                     Text(label(it), maxLines = 1, overflow = TextOverflow.Clip,
                         style = if (on) MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold)
                             else MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
-                        color = if (on) MaterialTheme.colorScheme.onBackground else Tz.colors.muted.copy(alpha = 0.55f))
+                        color = if (on) MaterialTheme.colorScheme.onBackground else Tz.colors.muted.copy(alpha = 0.8f))
                 }
             }
         }
         // Fade the rows above and below into the bar.
-        Box(Modifier.fillMaxWidth().height(WHEEL_ROW).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(bg, bg.copy(alpha = 0.3f)))))
-        Box(Modifier.fillMaxWidth().height(WHEEL_ROW).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(bg.copy(alpha = 0.3f), bg))))
+        Box(Modifier.fillMaxWidth().height(WHEEL_ROW).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(bg.copy(alpha = 0.55f), bg.copy(alpha = 0f)))))
+        Box(Modifier.fillMaxWidth().height(WHEEL_ROW).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(bg.copy(alpha = 0f), bg.copy(alpha = 0.55f)))))
     }
 }
 

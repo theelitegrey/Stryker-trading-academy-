@@ -42,6 +42,7 @@ import urllib.error
 import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tide
+import phantom
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
@@ -59,6 +60,7 @@ MAX_PART = 200 * 1024
 SNAP_SYMBOLS = ('SPX', 'QQQ', 'SPY', 'GLD')
 FETCH_TIMEOUT = 40
 POST_TIMEOUT = 15
+PH_MAX_BODY = 512 * 1024    # src/phantom.js PH_MAX_BODY
 TIDE_STATE_DIR = os.environ.get('TIDE_STATE_DIR') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tide-state')
 
 
@@ -415,6 +417,7 @@ def main(force=False):
             parts = compact(raw, time.time())
             size = len(raw)
             tide_step(sym.lstrip('_'), raw, tide_samples)
+            ph_body = phantom_step(sym.lstrip('_'), raw)
             del raw
         except Exception as e:
             log('%s fetch/parse failed: %s %s' % (sym, type(e).__name__, str(e)[:80]))
@@ -433,6 +436,10 @@ def main(force=False):
         log('%s spot=%s chain=%s src=%d B %.1fs | %s' % (sym, parts['near']['spot'], parts['near']['chain_time'], size,
                                                      time.monotonic() - t0, ' | '.join(out)))
         u = sym.lstrip('_')
+        if ph_body:
+            res = post_phantom(url, key, u, ph_body)
+            bad += 0 if res.startswith('200') else 1
+            log('%s phantom %d B -> %s' % (u, len(ph_body), res))
         if u in SNAP_SYMBOLS:
             for dte in (0, 1):
                 try:
@@ -470,6 +477,42 @@ def tide_step(u, raw, out):
             out.append(sample)
     except Exception as e:
         log('%s tide failed: %s %s' % (u, type(e).__name__, str(e)[:80]))
+
+
+def phantom_step(u, raw):
+    """Phantom (Owner order 17 Nov): per-contract volume change -> the day board + this minute (see phantom.py), gzip bytes or None.
+    Never fails the run."""
+    if u not in phantom.PHANTOM_SYMBOLS:
+        return None
+    try:
+        spot, ctime, rows = phantom.read_chain(raw)
+        path = os.path.join(TIDE_STATE_DIR, 'phantom-%s.json' % u)
+        res, state = phantom.step(phantom.load_state(path), spot, ctime, rows)
+        if state is not None:
+            phantom.save_state(path, state)
+        if not res:
+            return None
+        res['u'] = u
+        body = gzip.compress(json.dumps(phantom.board(state, rows, spot, res), separators=(',', ':')).encode(), 6)
+        if len(body) > PH_MAX_BODY:
+            log('%s phantom too big %d B' % (u, len(body)))
+            return None
+        return body
+    except Exception as e:
+        log('%s phantom failed: %s %s' % (u, type(e).__name__, str(e)[:80]))
+        return None
+
+
+def post_phantom(url, key, u, body):
+    req = urllib.request.Request(url + '/phantom-ingest?u=' + u, data=body, method='POST',
+                                 headers={'content-type': 'application/octet-stream', 'x-ingest-key': key, 'User-Agent': UA})
+    try:
+        with urllib.request.urlopen(req, timeout=POST_TIMEOUT) as r:
+            return '%s %s' % (r.status, r.read(120).decode('utf-8', 'replace'))
+    except urllib.error.HTTPError as e:
+        return '%s %s' % (e.code, e.read(120).decode('utf-8', 'replace'))
+    except Exception as e:
+        return 'failed ' + type(e).__name__
 
 
 def post_tide(url, key, samples):

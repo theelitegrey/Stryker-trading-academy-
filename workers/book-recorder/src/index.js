@@ -20,6 +20,7 @@ import { tsKind, tsForwardUrl, TS_NO_CACHE } from './ts-route.js';   // /ts-* ha
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, validateGexFast, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TIDE_MAX_DAYS } from './tide.js';
+import { validatePhantom, phInit, phIngest, phDays, phSummary, phBoard, phContract, phQuery, PH_SYMBOLS, PH_MAX_BODY } from './phantom.js';
 import { closeCandidate, pickClose, etEpoch as closeEtEpoch, CLOSE_KEEP_DAYS } from './gex-close.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
@@ -116,6 +117,7 @@ export class BookRecorder {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexsnap (u TEXT NOT NULL, d INTEGER NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, d, t)) WITHOUT ROWID`);
     // ZoroTide samples (src/tide.js): one row per symbol per Cboe chain time, 30 days
     this.sql.exec(`CREATE TABLE IF NOT EXISTS tide (u TEXT NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, t)) WITHOUT ROWID`);
+    phInit(this.sql);   // Phantom per-contract options money flow (src/phantom.js)
     zoInit(this.sql);   // ZoroOptions (src/zoro.js)
     lvInit(this.sql);   // member levels links (src/levels-feed.js)
     // per-day summary so /gex-sessions never scans the snapshots
@@ -387,6 +389,7 @@ export class BookRecorder {
       days: this.sql.exec('SELECT u, d, COUNT(*) AS days, SUM(n) AS snaps, MIN(day) AS first, MAX(day) AS lastDay FROM gexday GROUP BY u, d').toArray() };
     try { out.news = newsDo.stats(this); } catch (e) { out.news = { error: String(e) }; }
     out.orderflow = this.ofStatus();
+    out.phantom = { last: JSON.parse(this.meta('phLast') || 'null'), rows: this.sql.exec('SELECT u, COUNT(*) AS n, MIN(day) AS d0, MAX(day) AS d1 FROM phb GROUP BY u').toArray() };
     out.tide = { keepDays: TIDE_KEEP_DAYS, last: JSON.parse(this.meta('tideLast') || 'null'), rows: this.sql.exec('SELECT u, COUNT(*) AS n, MIN(t) AS t0, MAX(t) AS t1 FROM tide GROUP BY u').toArray() };
     out.dbBytes = this.ctx.storage.sql.databaseSize;
     this.statusMemo = { at: Date.now(), out };
@@ -457,6 +460,27 @@ export class BookRecorder {
       return new Response('stored ' + this.tideIngest(snaps));
     }
     if (u.pathname === '/tide') return Response.json(this.tideRead(u.searchParams.get('u'), Number(u.searchParams.get('days'))));
+    if (u.pathname === '/phantom-ingest') {
+      // validated here (gunzip + parse of a ~100 KB board is past the Worker's CPU), as /scan-ingest
+      const sym = u.searchParams.get('u');
+      const v = await validatePhantom(sym, await req.arrayBuffer(), Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      const now = Math.floor(Date.now() / 1000);
+      const r = await phIngest(this.sql, v.d, now, Number(this.meta('phTrim') || 0));
+      if (r.trimmed) this.meta('phTrim', now);
+      this.meta('phLast', JSON.stringify({ ts: now, u: sym, n: r.n }));
+      return new Response('stored ' + sym + ' ' + r.n);
+    }
+    if (u.pathname.startsWith('/phantom/')) {
+      const q = phQuery(u);
+      if (q.error) return new Response(q.error, { status: q.status });
+      if (q.route === 'summary') return Response.json(phSummary(this.sql, q.day));
+      if (q.route === 'days') return Response.json({ v: 1, u: q.u, days: phDays(this.sql, q.u) });
+      if (q.route === 'contract') return Response.json(await phContract(this.sql, q.u, q.day, q.keys));
+      const b = phBoard(this.sql, q.u, q.day);
+      if (!b) return new Response('no data', { status: 404 });
+      return new Response(b.gz instanceof ArrayBuffer ? b.gz : new Uint8Array(b.gz), { headers: { 'content-type': 'application/octet-stream', 'x-ph-day': b.day, 'x-ph-t': String(b.t) } });
+    }
     if (u.pathname === '/gex-history') {
       const p = this.snapHistory(u.searchParams.get('u'), Number(u.searchParams.get('d')), Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
       return Response.json(p);
@@ -700,6 +724,29 @@ async function tideRoute(u, env, ctx, h) {
   return out;
 }
 
+// GET /phantom/summary|board|days|contract (src/phantom.js). Gated above (member token). Edge-cached: today's data 30 s, a past
+// day 1 h; the cache key is the normalised query, so nobody can make every read a miss. Private in the browser (gated data).
+async function phantomRoute(u, env, ctx, h) {
+  const q = phQuery(u);
+  if (q.error) return new Response(q.error, { status: q.status, headers: h });
+  const qs = 'u=' + q.u + '&day=' + q.day + (q.keys.length ? '&k=' + q.keys.join(',') : '');
+  const past = q.day && q.day < new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10);
+  const key = new Request('https://book-recorder.cache/phantom/' + q.route + '?' + qs + '&w=' + (past ? Math.floor(Date.now() / 3600000) : Math.floor(Date.now() / 30000)));
+  let res = await caches.default.match(key);
+  if (!res) {
+    const dr = await stub(env).fetch('https://do/phantom/' + q.route + '?' + qs);
+    const board = q.route === 'board';
+    res = new Response(await dr.arrayBuffer(), { status: dr.status, headers: { 'content-type': board && dr.status === 200 ? 'application/octet-stream' : 'application/json; charset=utf-8',
+      'x-ph-gzip': board && dr.status === 200 ? '1' : '0', 'x-ph-day': dr.headers.get('x-ph-day') || '', 'x-ph-t': dr.headers.get('x-ph-t') || '', 'cache-control': 'public, max-age=' + (past ? 3600 : 30) } });
+    if (dr.status === 200) ctx.waitUntil(caches.default.put(key, res.clone()));
+  }
+  const out = new Response(res.body, res);
+  Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  out.headers.set('cache-control', 'private, max-age=30');
+  out.headers.set('access-control-expose-headers', 'x-ph-gzip, x-ph-day, x-ph-t');
+  return out;
+}
+
 // GET /opt-analytics?u=SPX  (options analytics, src/options.js). Edge-cached 60 s per underlying,
 // so every visitor shares one DO read a minute. Plan gating (SPX free, the rest Pro) is the site's.
 async function optRoute(u, env, ctx, h) {
@@ -896,6 +943,17 @@ async function route(req, env, ctx) {
       const v = await validateOpt(await req.arrayBuffer(), Date.now());
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/opt-ingest', { method: 'POST', body: JSON.stringify({ items: v.items }) });
+    }
+    if (u.pathname === '/phantom-ingest') {
+      // Phantom boards from the GEX feeder (gex-feeder/phantom.py): same shared secret, one gzip JSON per symbol, the DO validates
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      const sym = String(u.searchParams.get('u') || '');
+      if (!PH_SYMBOLS.includes(sym)) return new Response('bad u', { status: 400 });
+      if (Number(req.headers.get('content-length') || 0) > PH_MAX_BODY) return new Response('too large', { status: 413 });
+      const buf = await req.arrayBuffer();
+      if (buf.byteLength > PH_MAX_BODY) return new Response('too large', { status: 413 });
+      return stub(env).fetch('https://do/phantom-ingest?u=' + sym, { method: 'POST', body: buf });
     }
     if (u.pathname === '/scan-ingest') {
       // market scanner feeder (server -> Worker): same shared secret, gzip JSON part, <= 512 KB;
@@ -1192,6 +1250,10 @@ async function route(req, env, ctx) {
     if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions' || u.pathname === '/opt-analytics') {
       if (!(await isMemberToken(bearerOf(req)))) return new Response(JSON.stringify({ error: 'sign_in_required' }), { status: 403, headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'no-store' }, h) });
     }
+    // Phantom (src/phantom.js): signed-in members (free tool, like GEX+), or the ingest secret (alert engine). 403 never cached.
+    if (u.pathname.startsWith('/phantom/')) {
+      if (!(await authorized(req, env)) && !(await isMemberToken(bearerOf(req)))) return new Response(JSON.stringify({ error: 'sign_in_required' }), { status: 403, headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'no-store' }, h) });
+    }
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     // /orderflow has its own limiter (60/min: a footprint chart loads one request per UTC day plus a
     // 30 s live poll), so it never starves the heatmap / GEX history readers
@@ -1200,6 +1262,7 @@ async function route(req, env, ctx) {
 
     if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions') return gexHistoryRoute(u, env, ctx, h);
     if (u.pathname === '/tide') return tideRoute(u, env, ctx, h);
+    if (u.pathname.startsWith('/phantom/')) return phantomRoute(u, env, ctx, h);
     if (u.pathname === '/opt-analytics') return optRoute(u, env, ctx, h);
     if (u.pathname === '/scan') return scanRoute(u, env, ctx, h);
     if (u.pathname === '/orderflow' || u.pathname === '/ticks1s') return orderflowRoute(u, env, ctx, h, req);

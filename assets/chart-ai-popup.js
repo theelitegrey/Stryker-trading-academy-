@@ -2,7 +2,7 @@
 // Centred dialog on desktop, bottom sheet on phones. Reuses assets/ai-connect.js (setup steps + AI apps / personal tokens),
 // which is loaded on first open. Status + Pause/Resume/Disconnect come from assets/chart-ai-agent.js via `ctl`.
 // OAuth consent (/ai/consent) stays a full page: an AI app sends the member there, nothing here touches it.
-const SRC = '/assets/ai-connect.js?v=1115';
+const SRC = '/assets/ai-connect.js?v=1111';
 let box = null;
 
 function loadAic() {

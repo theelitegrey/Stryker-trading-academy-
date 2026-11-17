@@ -1,23 +1,5 @@
 [
  {
-  "build": 1114,
-  "date": "2026-11-17",
-  "title": "chart-live-browser.js",
-  "link": ""
- },
- {
-  "build": 1113,
-  "date": "2026-11-17",
-  "title": "chart-trade-btn-browser.js chart-live-browser.js chart-paper-trading-browser.js",
-  "link": ""
- },
- {
-  "build": 1112,
-  "date": "2026-11-17",
-  "title": "spectra",
-  "link": ""
- },
- {
   "build": 1110,
   "date": "2026-11-17",
   "title": "add requested features being worked on",

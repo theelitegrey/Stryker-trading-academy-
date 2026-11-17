@@ -278,43 +278,5 @@ class FeederFixture(unittest.TestCase):
         self.assertIn('AAPL: 230 call 2026-11-07, 5,000 contracts against 100 open interest.', note['stocks']['lines'])
         self.assertTrue(any(x['sym'] == 'ES' for x in note['sections']))
 
-
-class SpectraNode(unittest.TestCase):
-    B = {'t': 10, 'k': [6800, 6810], 'x': ['2026-11-20', '2026-11-27'], 'gex': [[100.0, -50.0], [10.0, 0.0]], 'vex': [[1.0, 2.0], [3.0, 4.0]]}
-
-    def a(self, **p):
-        q = {'k': 6800, 'x': '2026-11-20', 'view': 'gex', 'dir': 'grow', 'pct': 20, 'base': 80.0}
-        q.update(p)
-        return za.parse_zoro_alert('u1', 'n1', {'active': True, 'type': 'node_change', 'symbol': 'SPX', 'p': q, 'freq': 'once'}, 't1')
-
-    def test_parse(self):
-        self.assertEqual(self.a()['p']['view'], 'gex')
-        self.assertIsNone(self.a(dir='up'))
-        self.assertIsNone(self.a(pct=0))
-        self.assertIsNone(self.a(x='Nov 20'))
-        self.assertIsNone(self.a(view='dex'))
-        self.assertIsNone(za.parse_zoro_alert('u', 'n', {'active': True, 'type': 'node_change', 'symbol': 'AAPL', 'p': {'k': 1, 'x': '2026-11-20', 'dir': 'grow', 'pct': 5, 'base': 1}, 'freq': 'once'}))
-        self.assertEqual(za.parse_zoro_alert('u', 'n', {'active': True, 'type': 'node_change', 'symbol': 'ES1!', 'p': {'k': 1, 'x': '2026-11-20', 'dir': 'grow', 'pct': 5, 'base': 1}, 'freq': 'once'})['symbol'], 'SPX')
-
-    def test_grow_shrink(self):
-        t = za.evaluate_node(self.a(), self.B)                         # |80| -> |100| = +25 % >= 20 %
-        self.assertIn('SPX Spectra node 6,800, 2026-11-20 GEX: grew by 25%, now $100.0M.', t)
-        self.assertTrue(t.endswith(za.FOOTER))
-        self.assertIsNone(za.evaluate_node(self.a(pct=30), self.B))    # +25 % < 30 %
-        self.assertIsNotNone(za.evaluate_node(self.a(k=6810, dir='shrink', pct=40, base=-100.0), self.B))   # |-100| -> |-50|
-        self.assertIsNone(za.evaluate_node(self.a(k=6810, dir='shrink', pct=60, base=-100.0), self.B))
-        self.assertIsNotNone(za.evaluate_node(self.a(k=6810, x='2026-11-27', dir='shrink', pct=100, base=5.0), self.B))
-        self.assertIsNone(za.evaluate_node(self.a(x='2026-11-13'), self.B))    # expired column: never fires
-        self.assertIsNone(za.evaluate_node(self.a(k=6900), self.B))            # strike left the board
-        self.assertIsNotNone(za.evaluate_node(self.a(view='vex', x='2026-11-27', base=2.0), self.B))   # vex 3 vs 2
-        for w in ('live', 'bullish', 'buy'):
-            self.assertNotIn(w, za.evaluate_node(self.a(), self.B).lower().split())
-
-    def test_real_board(self):
-        b = json.load(open(os.path.join(ROOT, 'tools', 'fixtures', 'zoro', 'board-SPX.json')))
-        v = za.board_cell(b, 'gex', b['k'][3], b['x'][0])
-        self.assertEqual(v, b['gex'][0][3])
-        self.assertIsNotNone(za.evaluate_node(self.a(k=b['k'][3], base=v / 2 if v else 1e-9), b) if v else 'skip')
-
 if __name__ == '__main__':
     unittest.main()

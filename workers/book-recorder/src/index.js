@@ -23,7 +23,7 @@ import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TI
 import { closeCandidate, pickClose, etEpoch as closeEtEpoch, CLOSE_KEEP_DAYS } from './gex-close.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
-import { validateZoIngest, zoInit, zoPut, zoTrim, zoGet, zoNoteKey, zoHistDay, zoHistRange, zoHistSessions, zoCloseRow, zoActItems, zoBoardPrev, zoLastHistDay, zoGunzip, zoIngestRoute, zoGetRoute, zoExportRoute, exportSnaps, futuresRatio, exportParams, exportRows, exportCsv, teaserEligible, zoTeaser, ZO_ROUTES, ZO_PROFILE_X, ZO_SURFACE_KIND, ZO_ACT_KIND, ZO_CME_ROOTS, ZO_MAX_GZ, zoSymbolOk, zoTier, NOTICE } from './zoro.js';
+import { validateZoIngest, zoInit, zoPut, zoTrim, zoGet, zoNoteKey, zoHistDay, zoHistRange, zoHistSessions, zoCloseRow, zoActItems, zoLastHistDay, zoGunzip, zoIngestRoute, zoGetRoute, zoExportRoute, exportSnaps, futuresRatio, exportParams, exportRows, exportCsv, teaserEligible, zoTeaser, ZO_ROUTES, ZO_PROFILE_X, ZO_SURFACE_KIND, ZO_ACT_KIND, ZO_CME_ROOTS, ZO_MAX_GZ, zoSymbolOk, zoTier, NOTICE } from './zoro.js';
 import { lvRoute, lvInit, lvSnapshot, lvMemberUntil, lvTokPut, lvTokGet, lvTokInfo, lvTokDel, lvTokTouch, lvTokUsed, lvTokTrim } from './levels-feed.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { hlInit, hlDo, hlIngestRoute, hlRoute, HL_ROUTES } from './hl.js';
@@ -481,10 +481,6 @@ export class BookRecorder {
       const r = zoGet(this.sql, route, uu, sub);
       if (!r) return new Response('no data', { status: 404 });
       return new Response(r.gz, { headers: { 'content-type': 'application/octet-stream', 'x-zo-t': String(r.t) } });
-    }
-    if (u.pathname === '/zo-board-prev') {
-      const r = zoBoardPrev(this.sql, u.searchParams.get('u'), Number(u.searchParams.get('t')), Number(u.searchParams.get('vs')));
-      return r ? new Response(r.gz, { headers: { 'content-type': 'application/octet-stream', 'x-zo-t': String(r.t) } }) : new Response('no data', { status: 404 });
     }
     if (u.pathname === '/zo-note-day') return Response.json({ sub: zoNoteKey(this.sql, u.searchParams.get('day') || '', u.searchParams.get('kind') || '') });
     if (u.pathname === '/zo-act') return Response.json(zoActItems(this.sql, u.searchParams.get('u'), u.searchParams.get('kind'), Math.floor(Date.now() / 1000)));

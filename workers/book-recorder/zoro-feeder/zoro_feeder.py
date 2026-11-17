@@ -28,7 +28,6 @@ Per symbol and pull (all from ONE Cboe chain, gzip download):
   flow        put/call (volume, OI; 0DTE and <= 31 days), Fresh Volume (volume > OI), Volume Bursts (volume added
               since the previous pull of the same symbol), OI change by strike (today's first pull vs yesterday's)
   surfaces    gamma (strike x expiry <= 90 d) and IV (moneyness x expiry), every 15 min (A) / 30 min (B)
-  board       Spectra (tier A only, every pull): net dealer gamma + vanna by strike row x the next 6 expiries
 State (small JSON files) lives in STATE_DIRECTORY (/var/lib/zoro-feeder): last volumes per contract, daily OI,
 daily IV / P/C / term records, vol-index closes, CME expiries, IS calls today.
 
@@ -101,7 +100,7 @@ MAX_ROWS = 40
 SURF_K = 41               # gamma surface strike bins across +-6 %
 SURF_M = [round(0.85 + 0.025 * i, 3) for i in range(13)]   # IV surface moneyness 0.85 .. 1.15
 MAX_GZ = {'summary': 32 * 1024, 'profile': 128 * 1024, 'surface': 256 * 1024, 'activity': 96 * 1024, 'screen': 128 * 1024,
-          'cme': 128 * 1024, 'board': 64 * 1024}     # = S2 ZO_MAX_GZ
+          'cme': 128 * 1024}     # = S2 ZO_MAX_GZ
 FETCH_TIMEOUT, POST_TIMEOUT = 40, 20
 STATE = os.environ.get('STATE_DIRECTORY', '/var/lib/zoro-feeder')
 R, Q = 0.045, 0.0
@@ -427,68 +426,6 @@ def gamma_surface(spot, cs):
             'x': [xs[i] for i in keep], 'z': [[rnd(v / 1e6, 3) for v in z[i]] for i in keep]}
 
 
-# ------------------------------------------------------------------ Spectra board (strike x expiry dealer exposure)
-BOARD_BAND = 0.03         # strikes within +-3 % of spot
-BOARD_ROWS = 48           # at most this many strike rows: the row step is the smallest nice step that fits
-BOARD_COLS = 6            # the next expiries: first three, then this week's, the monthly and the next ones up to 6
-BOARD_STEPS = (0.5, 1, 2.5, 5, 10, 25, 50, 100, 250)
-
-
-def board_step(spot):
-    for st in BOARD_STEPS:
-        if 2 * spot * BOARD_BAND / st <= BOARD_ROWS:
-            return st
-    return BOARD_STEPS[-1]
-
-
-def board_expiries(xs, now_epoch):
-    """Sorted live expiries -> up to BOARD_COLS columns [(expiry, tag)], tag 0DTE / 1DTE / Weekly / Monthly / ''."""
-    if not xs:
-        return []
-    pick = of.pick_expiries(xs, now_epoch)
-    want = list(xs[:3])
-    for k in ('Weekly', 'Monthly'):
-        if pick.get(k) and pick[k] not in want:
-            want.append(pick[k])
-    for x in xs:
-        if len(want) >= BOARD_COLS:
-            break
-        if x not in want:
-            want.append(x)
-    tag = {v: k for k, v in pick.items()}
-    return [(x, tag.get(x, '')) for x in sorted(want)[:BOARD_COLS]]
-
-
-def board_payload(spot, cs, now_epoch):
-    """Spectra board: rows = strikes on a nice step around spot (each row adds up the listed strikes nearest it),
-    columns = the next expiries, cells = net dealer gamma ($M per 1 % move) and vanna ($M per vol point), calls +, puts -
-    (the same sign convention and greeks as profile_rows). cs must be enriched. None when there is nothing to show."""
-    now = datetime.fromtimestamp(now_epoch, ET)
-    xs = sorted({c['x'] for c in cs if date.fromisoformat(c['x']) > now.date() or (date.fromisoformat(c['x']) == now.date() and now.hour < 16)})
-    cols = board_expiries(xs, now_epoch)
-    if not cols:
-        return None
-    st = board_step(spot)
-    lo, hi = math.ceil(spot * (1 - BOARD_BAND) / st), math.floor(spot * (1 + BOARD_BAND) / st)
-    ks = [k_out(round(i * st, 2)) for i in range(lo, hi + 1)]
-    ci = {x: i for i, (x, _) in enumerate(cols)}
-    g = [[0.0] * len(ks) for _ in cols]
-    v = [[0.0] * len(ks) for _ in cols]
-    for c in cs:
-        i = ci.get(c['x'])
-        if i is None or not c['oi'] > 0:
-            continue
-        r = int(round(c['k'] / st)) - lo
-        if not 0 <= r < len(ks):
-            continue
-        sign = 1 if c['cp'] == 'C' else -1
-        oi100 = c['oi'] * 100
-        g[i][r] += sign * c['gamma'] * oi100 * spot * spot * 0.01
-        v[i][r] += sign * c['vanna'] * oi100 * spot * 0.01
-    return {'spot': rnd(spot, 2), 'step': st, 'k': ks, 'x': [x for x, _ in cols], 'tag': [t for _, t in cols],
-            'gex': [[rnd(a / 1e6, 4) for a in col] for col in g], 'vex': [[rnd(a / 1e6, 4) for a in col] for col in v]}
-
-
 def iv_surface(spot, cs, now_epoch):
     """OTM IV (puts below spot, calls above) by moneyness bin x expiry, mean of the contracts in the bin."""
     half = 0.0125
@@ -660,10 +597,6 @@ def analyse(raw, u, now_epoch, st=None, fut=None, surfaces=True):
            'activity': {'fresh': [act_row(r, t) for r in fresh[:MAX_ROWS]], 'burst': [act_row(r, t) for r in brows]}}
     if surfaces:
         out['surface'] = {'gamma': gamma_surface(spot, cs), 'iv': iv_surface(spot, cs, t)}
-    if tier == 'A':
-        bd = board_payload(spot, cs, t)
-        if bd:
-            out['board'] = dict(bd, v=1, u=u, built=int(now_epoch), t=int(t), fut={k: summary['fut'][k] for k in ('root', 'ratio', 'price')} if summary.get('fut') else None)
     return out
 
 
@@ -691,8 +624,6 @@ def envelopes(out):
                                                           'label': BURST_LABEL if kind == 'burst' else FRESH_LABEL}))
     for kind, sf in (out.get('surface') or {}).items():
         env.append(('surface', {'u': u, 'kind': kind}, dict(sf, v=1, u=u, built=b, t=t)))
-    if out.get('board'):
-        env.append(('board', {'u': u}, out['board']))
     return env
 
 

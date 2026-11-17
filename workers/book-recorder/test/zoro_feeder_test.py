@@ -239,16 +239,5 @@ ok(cme['ok'] and cme['levels']['call_ceiling'] == 7480 and cme['levels']['put_fl
 ok(cme['term'] == [['2026-11-13', 0.18]], 'CME: ATM IV term from the same rows')
 ok(not z.cme_summary('ES', [], 7450.0, TA)['ok'], 'CME: thin chain -> ok false with a reason')
 
-# --- Spectra board (tier A only): strike rows x the next expiries, net gamma + vanna, same totals as the chain
-bd = ta.get('board')
-ok(bd and 'board' not in a, 'board: tier A gets a Spectra board, tier B does not')
-ok(len(bd['x']) <= z.BOARD_COLS and bd['x'] == sorted(bd['x']) and len(bd['tag']) == len(bd['x']), 'board: up to 6 expiry columns, sorted (%s)' % bd['x'])
-ok(len(bd['gex']) == len(bd['x']) and all(len(c) == len(bd['k']) for c in bd['gex'] + bd['vex']), 'board: one value per strike row in every column (gex + vex)')
-ok(bd['k'] == sorted(bd['k']) and len(bd['k']) <= z.BOARD_ROWS + 1 and all(abs(k - bd['spot']) <= bd['spot'] * z.BOARD_BAND + bd['step'] for k in bd['k']), 'board: rows within +-3 %% of spot on step %s' % bd['step'])
-ok(any(abs(v) > 0 for c in bd['gex'] for v in c), 'board: real non-zero cells')
-ok(z.board_step(6800) == 10 and z.board_step(600) == 1 and z.board_step(250) == 0.5, 'board: row step SPX 10, SPY 1, GLD 0.5')
-ok(z.board_payload(bd['spot'], [], TA) is None, 'board: empty chain -> no board')
-ok(any(e[0] == 'board' and e[1] == {'u': 'IWM'} for e in z.envelopes(ta)) and not any(e[0] == 'board' for e in z.envelopes(a)), 'board: posted as route board for tier A only')
-
 print('\n%d failed' % fails if fails else '\nall passed')
 sys.exit(1 if fails else 0)

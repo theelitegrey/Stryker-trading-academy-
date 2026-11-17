@@ -6,8 +6,8 @@
 import { etParts, etAt } from './gex-close.js';
 import { OF_TICK, readUv, readSv } from './orderflow.js';
 
-export const ZO_ROUTES = ['summary', 'profile', 'surface', 'history', 'activity', 'screen', 'cme', 'note', 'board'];
-export const ZO_INGEST_ROUTES = ['summary', 'profile', 'surface', 'activity', 'screen', 'cme', 'note', 'board'];   // history is derived from summaries + gexsnap
+export const ZO_ROUTES = ['summary', 'profile', 'surface', 'history', 'activity', 'screen', 'cme', 'note'];
+export const ZO_INGEST_ROUTES = ['summary', 'profile', 'surface', 'activity', 'screen', 'cme', 'note'];   // history is derived from summaries + gexsnap
 export const ZO_TIER_A = ['SPX', 'SPY', 'QQQ', 'IWM', 'GLD', 'USO'];
 export const ZO_KEEP_DAYS = { A: 90, B: 30 };
 export const ZO_NOTE_KEEP_DAYS = 90;
@@ -16,7 +16,7 @@ export const ZO_SURFACE_KIND = ['gamma', 'iv'];
 export const ZO_ACT_KIND = ['fresh', 'burst', 'active'];
 export const ZO_CME_ROOTS = ['ES', 'NQ', 'RTY', 'GC', 'CL'];
 // size caps (gzip body bytes) per route; unpacked cap is ZO_MAX_RAW
-export const ZO_MAX_GZ = { summary: 32 * 1024, profile: 128 * 1024, surface: 256 * 1024, activity: 96 * 1024, screen: 128 * 1024, cme: 128 * 1024, note: 32 * 1024, board: 64 * 1024 };
+export const ZO_MAX_GZ = { summary: 32 * 1024, profile: 128 * 1024, surface: 256 * 1024, activity: 96 * 1024, screen: 128 * 1024, cme: 128 * 1024, note: 32 * 1024 };
 export const ZO_MAX_RAW = 3 * 1024 * 1024;
 const HIST_ROW_MAX = 8 * 1024;       // a slimmed summary bigger than this is stored as "latest" only, not appended to history
 // fields left out of the history copy (daily or latest-only data; S1 request 3): keeps SPX at ~4 KB instead of ~12 KB
@@ -30,13 +30,6 @@ export function zoSlim(d) {
 export const ZO_NOTE_KINDS = ['morning', 'close'];
 export const ZO_ACT_KEEP_S = 8 * 86400;   // activity marks: 5 sessions (+ weekend)
 export const ZO_HIST_MAX_SPAN = 31 * 86400;
-// Spectra board (route 'board', tier A only): every pull is also kept as a snapshot for the velocity view (?vs=seconds).
-// Kept: everything for 2 h, then one per 15 min up to 4 days (so 1d still finds the last session over a weekend).
-export const ZO_BOARD_VS = [60, 300, 900, 3600, 86400];
-export const ZO_BOARD_KEEP_S = 4 * 86400;
-const BOARD_DENSE_S = 7200, BOARD_THIN_S = 900;
-// the earlier board must be at least vs old and not much older (a 1 h view never shows a 3 h change); 1d may span a weekend
-export const boardMaxGap = (vs) => (vs >= 86400 ? 4 * 86400 : vs * 2 + 180);
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const STOCK_RE = /^[A-Z]{1,5}(\.[A-Z])?$/;
 
@@ -70,7 +63,6 @@ export function zoIngestKey(route, q) {
     return { route, u, sub: kind };
   }
   if (!zoSymbolOk(u)) return { error: 'bad symbol' };
-  if (route === 'board') return ZO_TIER_A.includes(u) ? { route, u, sub: '' } : { error: 'bad symbol' };
   if (route === 'summary') return { route, u, sub: '' };
   if (route === 'profile') { const x = g('x'); return ZO_PROFILE_X.includes(x) ? { route, u, sub: x } : { error: 'bad x' }; }
   const kind = g('kind');   // surface
@@ -210,8 +202,6 @@ export function zoInit(sql) {
   sql.exec(`CREATE TABLE IF NOT EXISTS zohist (u TEXT NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, t)) WITHOUT ROWID`);
   // activity marks for the charts (S4): fresh rows keep the first time a contract showed up that day, bursts keep every sample; 8 days
   sql.exec(`CREATE TABLE IF NOT EXISTS zoact (u TEXT NOT NULL, kind TEXT NOT NULL, k TEXT NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, kind, k)) WITHOUT ROWID`);
-  // Spectra board snapshots (gzip as it came), for the velocity view
-  sql.exec(`CREATE TABLE IF NOT EXISTS zoboard (u TEXT NOT NULL, t INTEGER NOT NULL, gz BLOB NOT NULL, PRIMARY KEY (u, t)) WITHOUT ROWID`);
 }
 export function zoPut(sql, key, t, buf, json, nowSec) {
   sql.exec('INSERT OR REPLACE INTO zo (route, u, sub, t, gz) VALUES (?, ?, ?, ?, ?)', key.route, key.u, key.sub, t, new Uint8Array(buf));
@@ -227,22 +217,7 @@ export function zoPut(sql, key, t, buf, json, nowSec) {
       sql.exec('INSERT OR IGNORE INTO zoact (u, kind, k, t, j) VALUES (?, ?, ?, ?, ?)', key.u, key.sub, id, r.t, JSON.stringify(r));
     }
   }
-  if (key.route === 'board') {
-    sql.exec('INSERT OR REPLACE INTO zoboard (u, t, gz) VALUES (?, ?, ?)', key.u, t, new Uint8Array(buf));
-    zoBoardThin(sql, key.u, nowSec);
-  }
   return { hist };
-}
-// drop snapshots older than 4 days, and past 2 h keep only the newest one in each 15-min bucket
-export function zoBoardThin(sql, u, nowSec) {
-  sql.exec('DELETE FROM zoboard WHERE u = ? AND t < ?', u, nowSec - ZO_BOARD_KEEP_S);
-  sql.exec(`DELETE FROM zoboard WHERE u = ? AND t < ? AND t NOT IN (SELECT MAX(t) FROM zoboard WHERE u = ? AND t < ? GROUP BY t / ${BOARD_THIN_S})`,
-    u, nowSec - BOARD_DENSE_S, u, nowSec - BOARD_DENSE_S);
-}
-// newest stored board at least vs seconds older than t (and within boardMaxGap), or null
-export function zoBoardPrev(sql, u, t, vs) {
-  const r = sql.exec('SELECT t, gz FROM zoboard WHERE u = ? AND t <= ? AND t >= ? ORDER BY t DESC LIMIT 1', u, t - vs, t - boardMaxGap(vs)).toArray()[0];
-  return r ? { t: r.t, gz: r.gz instanceof ArrayBuffer ? r.gz : new Uint8Array(r.gz) } : null;
 }
 // hourly trim, called by the DO after a put
 export function zoTrim(sql, nowSec) {
@@ -334,7 +309,6 @@ export function zoGetKey(route, q) {
     case 'screen': return { route, u: '*', sub: '' };
     case 'cme': { const r = g('root').toUpperCase() || u; return ZO_CME_ROOTS.includes(r) ? { route, u: r, sub: '' } : { error: 'bad root' }; }
     case 'note': { const day = g('day'), kind = g('kind'); return (!day || DAY_RE.test(day)) && (!kind || ZO_NOTE_KINDS.includes(kind)) ? { route, u: '*', sub: day, kind } : { error: 'bad day or kind' }; }
-    case 'board': { const vs = Number(g('vs') || 0); return ZO_TIER_A.includes(u) && (!vs || ZO_BOARD_VS.includes(vs)) ? { route, u, sub: '', vs } : { error: 'bad u or vs' }; }
   }
   return { error: 'not found' };
 }
@@ -398,12 +372,6 @@ export async function zoGetRoute(req, u, env, ctx, h, deps) {
     if (name === 'activity' && ukey !== 'ALL' && (sub === 'fresh' || sub === 'burst')) {
       const a = await st.fetch('https://do/zo-act?u=' + encodeURIComponent(ukey) + '&kind=' + sub);
       if (a.status === 200) body.items = await a.json();   // last 5 sessions of marks (S4); rows = the latest pull
-    }
-    if (name === 'board' && key.vs) {
-      // Spectra velocity: the board vs seconds before this one (same shape, only the grids), or prev: null when none is kept
-      body.prev = null;
-      const p = await st.fetch('https://do/zo-board-prev?u=' + ukey + '&t=' + (Number(body.t) || nowSec) + '&vs=' + key.vs);
-      if (p.status === 200) { try { const d = await gunzipJson(await p.arrayBuffer()); body.prev = { t: d.t, x: d.x, k: d.k, gex: d.gex, vex: d.vex }; } catch (e) {} }
     }
   }
   if (teaser) { body = zoTeaser(name, body); if (!body) return deny(403, 'sign_in_required', h); }

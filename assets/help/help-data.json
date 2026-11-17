@@ -2723,63 +2723,6 @@
          "href": "/zoro-options"
         }
        ]
-      },
-      {
-       "id": "spectra",
-       "q": "What is Spectra?",
-       "a": "<p>Spectra is a board of dealer exposure by strike and expiry. Rows are strikes around the current price, columns are the next expiries (today, tomorrow, this week, the monthly and the next ones), and each cell is the net dealer exposure at that strike for that expiry, in dollars. Mint is positive, magenta is negative, dark is small. One colour scale covers the whole board.</p><p>Switch between GEX (gamma, dollars per 1% move: where hedging may lean today) and VEX (vanna, dollars per volatility point: how hedging may shift over several days). The &#9733; Apex is the biggest cell, Floor is the biggest below price and Ceiling the biggest above it. Velocity marks cells that grew or shrank against the board 1 minute to 1 day earlier. Trio puts SPX, SPY and QQQ side by side and says whether they agree.</p><p>Spectra covers SPX, SPY, QQQ and GLD. Open it from More → Spectra, or from the Spectra button on the right bar of ZoroCharts, where a futures chart opens the matching market (NQ and MNQ open QQQ, ES and MES open SPX, GC and MGC open GLD) and clicking a strike draws it on the chart at the futures price.</p><p>Education only. Not financial advice.</p>",
-       "path": "More → Spectra",
-       "plans": "free",
-       "tags": [
-        "spectra",
-        "strike",
-        "expiry",
-        "board",
-        "dealer exposure",
-        "gex",
-        "vex",
-        "vanna",
-        "gamma",
-        "apex",
-        "floor",
-        "ceiling",
-        "velocity",
-        "trio"
-       ],
-       "related": [
-        "spectra-alerts",
-        "gex-what-is"
-       ],
-       "links": [
-        {
-         "label": "Spectra",
-         "href": "/spectra"
-        }
-       ]
-      },
-      {
-       "id": "spectra-alerts",
-       "q": "How do I set an alert from Spectra?",
-       "a": "<p>Right-click a cell (long-press on a phone, or press Enter on a cell with the keyboard). Pick <b>Alert when price nears</b> or <b>Alert when price touches</b> to set a price alert on the matching futures market at that strike, or set <b>Alert when this node grows or shrinks by</b> a percent to hear when that cell changes size. Spectra alerts use your normal alert list and notification settings, including phone push.</p><p>Education only. Not financial advice.</p>",
-       "path": "More → Spectra → right-click a cell",
-       "plans": "free",
-       "tags": [
-        "spectra",
-        "alert",
-        "node",
-        "price alert",
-        "push",
-        "long-press"
-       ],
-       "related": [
-        "spectra"
-       ],
-       "links": [
-        {
-         "label": "Spectra",
-         "href": "/spectra"
-        }
-       ]
       }
      ]
     }

@@ -368,7 +368,9 @@ export function mountIndicatorWindow(ws, opts){
     const all = builtins().concat(mineItems(), commItems(), cindItems(), zsItems());
     const pop = new Set(all.filter((x) => x.kind === 'community' && x.adds > 0).sort((a, b) => b.adds - a.adds).slice(0, 5).map((x) => x.key));
     all.forEach((x) => decorate(x, pop));
-    cacheAll = all;
+    // The chart's native catalog fills in a moment AFTER a workspace / symbol switch. A list built before that has no
+    // built-in indicators (Session Volume Profile, Volume Profile, GEX...): do not keep it, build again on the next call.
+    if (all.some((x) => x.kind === 'builtin' && x.key.startsWith('b:'))) cacheAll = all;
     return all;
   }
   const invalidate = () => { cacheAll = null; };
@@ -1018,7 +1020,7 @@ export function mountIndicatorWindow(ws, opts){
   picker.close = () => { close(); };
   // Vela calls sync() when a cell's catalog lands late (new cell, symbol change).
   let syncT = 0;
-  picker.sync = () => { if (ov && !els.search.value.trim()) { clearTimeout(syncT); syncT = setTimeout(() => { invalidate(); render(); }, 120); } };
+  picker.sync = () => { if (ov) { clearTimeout(syncT); syncT = setTimeout(() => { invalidate(); render(); }, 120); } };
   try { ws.on('cell:active', () => { if (ov) { invalidate(); render(); } }); } catch (e) {}
   window.addEventListener('resize', () => { if (ov) paint(); });
 

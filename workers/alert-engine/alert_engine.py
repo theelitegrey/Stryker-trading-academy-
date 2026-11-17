@@ -507,7 +507,7 @@ def zoro_fire(a, text, zb=None):
             zalerts.pop(a['id'], None)
     sym = '' if a['type'] == 'note_ready' else '?symbol=' + urllib.parse.quote(a['symbol'])
     write_ops([(new_notif_path(), {'recipientUid': a['uid'], 'type': 'zoro_alert', 'message': text,
-                                   'link': 'zoro-options.html' + sym, 'read': False, 'createdAt': fs.now_ts()})], 'zoro ' + a['aid'][:6])
+                                   'link': ('spectra' if a['type'] == 'node_change' else 'zoro-options.html') + sym, 'read': False, 'createdAt': fs.now_ts()})], 'zoro ' + a['aid'][:6])
     zstat['fires'] += 1
     log('ZFIRE %s %s %s' % (a['aid'][:6], a['type'], a['symbol']))   # no uid in logs
     return 'fired'
@@ -531,6 +531,8 @@ def zoro_round(now):
         for a in fresh.values():
             if a['symbol'] != sym:
                 continue
+            if a['type'] == 'node_change':
+                continue                                  # checked against the Spectra board below
             if a['type'] == 'level_touch':
                 pa = za.to_price_alert(a, snap)
                 if pa:
@@ -543,8 +545,36 @@ def zoro_round(now):
                 except Exception as e:
                     zstat['err'] += 1
                     log('zoro fire failed: %s %s' % (type(e).__name__, str(e)[:100]))
+    zoro_node_check(fresh, now)
     with lock:
         zbook.sync(touch)
+
+
+zboard_t = {}                      # underlying -> time of the last Spectra board checked
+
+
+def zoro_node_check(fresh, now):
+    """Spectra node_change alerts: once per new board of each symbol that has one."""
+    for sym in sorted({a['symbol'] for a in fresh.values() if a['type'] == 'node_change'}):
+        try:
+            board = zget('/board?u=' + urllib.parse.quote(sym))
+        except Exception as e:
+            zstat['err'] += 1
+            log('zoro board %s failed: %s' % (sym, type(e).__name__))
+            continue
+        if not board or board.get('t') == zboard_t.get(sym):
+            continue
+        zboard_t[sym] = board.get('t')
+        for a in fresh.values():
+            if a['type'] != 'node_change' or a['symbol'] != sym:
+                continue
+            text = za.evaluate_node(a, board)
+            if text and zcool.ok(a, now):
+                try:
+                    zoro_fire(a, text)
+                except Exception as e:
+                    zstat['err'] += 1
+                    log('zoro node fire failed: %s %s' % (type(e).__name__, str(e)[:100]))
 
 
 def zoro_note_check(now):

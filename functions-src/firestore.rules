@@ -271,17 +271,17 @@ service cloud.firestore {
           && request.resource.data.createdAt == resource.data.createdAt;
       }
 
-      // ZoroOptions alerts (assets/chart-alerts.js, workers/alert-engine/zoro_alerts.py). Owner only. type is one of the 8
-      // alert types, p holds the type's few parameters (map), symbol is an underlying (or NOTE). 25 per member is enforced
+      // ZoroOptions alerts (assets/chart-alerts.js, workers/alert-engine/zoro_alerts.py). Owner only. type is one of the 9
+      // alert types (node_change = a Spectra board cell, assets/spectra-board.js, p has 6 keys), p holds the type's few parameters (map), symbol is an underlying (or NOTE). 25 per member is enforced
       // by the client and again by the engine (it ignores the rest). Pro is a product rule: without Pro the server has
       // no options data to match, so a stray doc does nothing. Carved out of the wildcard above.
       match /zoroAlerts/{aid} {
         function validZ(d) {
           return d.keys().hasOnly(['type', 'symbol', 'p', 'message', 'freq', 'active', 'createdAt', 'updatedAt'])
             && d.keys().hasAll(['type', 'symbol', 'p', 'freq', 'active', 'updatedAt'])
-            && d.type in ['level_touch', 'zone_change', 'level_moved', 'fresh_volume', 'volume_burst', 'iv_rank', 'pc_extreme', 'note_ready']
+            && d.type in ['level_touch', 'zone_change', 'level_moved', 'fresh_volume', 'volume_burst', 'iv_rank', 'pc_extreme', 'note_ready', 'node_change']
             && d.symbol is string && d.symbol.size() > 0 && d.symbol.size() <= 12
-            && d.p is map && d.p.size() <= 4
+            && d.p is map && d.p.size() <= (d.type == 'node_change' ? 6 : 4)
             && (!('message' in d) || (d.message is string && d.message.size() <= 140))
             && d.freq in ['once', 'every']
             && d.active is bool

@@ -1180,6 +1180,7 @@ function legendFold(R) {
   // Futures L2 DOM ladder (admin only until the Tick-stream licence flag flips): assets/chart-futures-l2.js
   // Book · DOM · Trades panel (crypto + futures; replaces the futures-only ladder): assets/chart-book-panel.js
   import('./chart-book-panel.js?v=1110').then((m) => m.mountBookPanel(ws, { toast })).catch((e) => console.warn('TradeZoro: book panel', e));
+  import('./chart-spectra.js?v=1110').then((m) => m.mountSpectraPanel(ws, { toast })).catch((e) => console.warn('TradeZoro: spectra panel', e));
   import('./chart-feeds.js?v=1110').then((m) => m.mountFeedBadges(ws)).catch((e) => console.warn('TradeZoro: feed badges', e));
   import('./venue-logos.js?v=1110').then((m) => m.mountVenueLogos(ws)).catch((e) => console.warn('TradeZoro: venue logos', e));   // exchange / broker marks beside the text tags
   // Connection chip (bottom bar, right): round trip to our edge, per-feed last update / delay, Performance mode, Reconnect (assets/chart-latency.js).

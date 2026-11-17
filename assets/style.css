@@ -11730,6 +11730,31 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 @keyframes stkl2-up{ from{ transform:translateY(24px); opacity:0 } to{ transform:none; opacity:1 } }
 @media (prefers-reduced-motion:reduce){ .stkl2{ animation:none } }
 
+/* ============ SPECTRA PANEL (assets/chart-spectra.js; board styles in assets/spectra.css, 2026-11-17) ============
+   A right-bar panel beside the chart like the GEX Ladder: the chart narrows (never covered). <= 700 px: a full sheet. */
+.stkchart-panel.stkw-host.stksp-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stksp-w, clamp(420px, 40vw, 600px))); }
+.stksp{ position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stksp-w, clamp(420px, 40vw, 600px)); z-index:29; display:flex; flex-direction:column; min-width:0; background:var(--bg-0); border-left:1px solid var(--line-soft); color:var(--ink-1); }
+.stksp[hidden]{ display:none; }
+.stksp-hd{ flex:none; display:flex; align-items:center; gap:8px; height:48px; padding:0 4px 0 12px; border-bottom:1px solid var(--line-soft); }
+.stksp-hd .spx-ic{ width:20px; height:20px; border-radius:5px; flex:none; }
+.stksp-title{ font:700 15px/20px var(--font-display); color:var(--ink-0); }
+.stksp-map{ font:600 11px/1 var(--font-mono); color:var(--ink-2); }
+.stksp-sp{ flex:1 1 auto; }
+.stksp-close{ width:40px; height:40px; }
+.stksp-body{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.stksp-body > .spx{ flex:1 1 auto; }
+.stksp-railbtn .spx-ic{ width:20px; height:20px; border-radius:5px; display:block; }
+.stksp-railbtn.on{ background:var(--bg-2); color:var(--ink-0); box-shadow:inset 2px 0 0 var(--gold) !important; }
+.stksp-phonebtn{ display:none; }
+.stksp-phonebtn .spx-ic{ width:16px; height:16px; border-radius:4px; }
+.stksp-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }
+@media (max-width:700px){
+  .stkchart-panel.stkw-host.stksp-open #vela-chart{ right:0; }
+  .stksp-phonebtn{ display:inline-flex; align-items:center; gap:4px; padding:0 8px; flex:none; }
+  .stksp{ position:fixed; inset:0; top:var(--stkc-top, 0px); bottom:var(--stkc-dock, 0px); width:auto; right:0; z-index:8000; border-left:0; }
+  .stksp-body .spx-foot{ padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
+}
+
 /* ============ BOOK · DOM · TRADES PANEL (assets/chart-book-panel.js) ============
    One panel for crypto + futures: Book / DOM / Trades tabs. >= 821 px a resizable side panel (--stkbp-w), <= 700 px a bottom sheet.
    Tokens only (design standard); lists use the shared thin scrollbar (global block). Mint = buyers, --bear = sellers. */

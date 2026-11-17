@@ -81,6 +81,7 @@
     ]],
     ['markets', 'Markets', [
       ['gex', 'Omega', 'Gamma Exposure', 'IMG:omega'],
+      ['spectra', 'Spectra', 'Dealer exposure by strike and expiry', 'IMG:spectra'],
       ['zoro-options', 'ZoroOptions', 'Options gamma, volatility and volume', '<path d="M3 20h18"/><path d="M6 20v-6M10 20V8M14 20v-9M18 20V5"/>'],
       ['options-calculator', 'Options P&L calculator', 'Payoff, break-evens and greeks', '<path d="M4 20 10 8l4 6 6-10"/><path d="M3 12h18" stroke-dasharray="2 3"/>'],
       ['iv-skew', 'IV skew', 'Implied volatility by strike and expiry', '<path d="M3 6c4 10 14 10 18 0"/><path d="M3 20h18"/>'],

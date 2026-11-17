@@ -107,11 +107,18 @@ const toastsSince = (p, n) => p.evaluate((n) => window.__toasts.slice(n).concat(
 async function openOP(p, mobile) {
   const inBar = await p.evaluate(() => { const t = document.getElementById('stkc-paper-btn'); return !!(t && t.getBoundingClientRect().width > 0 && !t.closest('.stkc-ob-pop')); });
   // Trade button = the account menu (main 2026-11-16); its checked row (Paper or the active live account) opens the panel
-  if (inBar) { await tap(p, '#stkc-paper-btn', mobile); await p.waitForSelector('#stkc-trade-pop:not([hidden]) .stktm-pick[aria-checked=true]', { timeout: 5000 }); await p.evaluate(() => document.querySelector('#stkc-trade-pop .stktm-pick[aria-checked=true]').click()); }   // the row's centre holds the edit / disconnect icons
+  // (paper switched off = no row ticked: the Paper row then turns it on, 2026-11-17)
+  if (inBar) { await tap(p, '#stkc-paper-btn', mobile); await p.waitForSelector('#stkc-trade-pop:not([hidden]) .stktm-pick', { timeout: 5000 }); await p.evaluate(() => (document.querySelector('#stkc-trade-pop .stktm-pick[aria-checked=true]') || document.querySelector('#stkc-trade-pop [data-a=paper]')).click()); }   // the row's centre holds the edit / disconnect icons
   else await p.evaluate(() => window.__stkPaper.orderPanel());
   return opWait(p, () => { const o = document.getElementById('stkop'); return o && !o.hidden && o.getBoundingClientRect().height > 100; });
 }
 const opTab = async (p, t, mobile) => { await tap(p, '#stkop .stkop-tabs [data-tab=' + t + ']', mobile); await opWait(p, (t) => document.getElementById('stkop').dataset.tab === t, t); };
+// pick an account the way a member does: the Trade menu row (paper | live id). Phones: the menu is opened by the panel's Change link.
+async function pickAcct(p, id) {
+  await p.evaluate(() => window.__stkPaper.openTradeMenu());
+  await p.waitForSelector('#stkc-trade-pop:not([hidden]) .stktm-pick', { timeout: 5000 });
+  await p.evaluate((id) => document.querySelector(id === 'paper' ? '#stkc-trade-pop [data-a=paper]' : '#stkc-trade-pop [data-a=live][data-id="' + id + '"]').click(), id);
+}
 const blockFree = (p) => opWait(p, () => window.__stkLive.blockReason === '' && !window.__stkLive.state.busy, null, 10000);
 async function confirmYes(p, mobile) { const ok = await p.waitForSelector('#stklv-cf', { timeout: 5000 }).then(() => true, () => false); if (ok) await tap(p, '#stklv-cf [data-k=yes]', mobile); return ok; }
 const nWrites = (M, n) => (p) => p.waitForFunction(() => true).then(() => writes(M).length >= n);
@@ -122,22 +129,24 @@ async function run(b, w, h, mobile, theme) {
   const { ctx, p, errors, M } = await open(b, { w, h, mobile, theme });
   await p.waitForFunction(() => window.__stkLive && window.__stkLive.pick && window.__stkLive.state.accounts.length, null, { timeout: 20000 });
   check(await openOP(p, mobile), tag + ': Trade opens the floating order panel');
-  // footer account picker: Paper first + default, then the broker account as broker + last 4
-  await opWait(p, () => document.querySelector('#stkop select[data-f=acct] option[value="123e4567-e89b-12d3-a456-426614174000"]'));
-  const opts = await p.$$eval('#stkop select[data-f=acct] option', (o) => o.map((x) => [x.value, x.textContent]));
-  check(opts[0][0] === '' && opts[0][1] === 'Paper' && (await p.$eval('#stkop select[data-f=acct]', (s) => s.value)) === '', tag + ': Paper is the first and default account', opts);
-  check(opts.some((o) => o[1] === 'Tradovate DEMO5551234'), tag + ': account shown as broker + the account number the broker shows', opts);
+  // 2026-11-17: no account picker in the panel; the account is the Trade menu's, shown read-only + "Change"
+  const ft0 = await p.evaluate(() => ({ sel: !!document.querySelector('#stkop select'), acct: (document.querySelector('#stkop [data-k=acct]') || {}).textContent || '', change: !!document.querySelector('#stkop [data-a=change]') }));
+  check(!ft0.sel && /Paper · DEMO$/.test(ft0.acct) && ft0.change, tag + ': footer: no account select, read-only "Paper · DEMO" + Change', ft0);
   check(!(await p.evaluate(() => /finatic/i.test(document.getElementById('stkop').innerText))), tag + ': no vendor name in the panel');
-  // pick live
-  await p.selectOption('#stkop select[data-f=acct]', ACC);
+  // "Change" opens the Trade menu
+  await tap(p, '#stkop [data-a=change]', mobile);
+  check(await opWait(p, () => { const m = document.getElementById('stkc-trade-pop'); return m && !m.hidden && m.getBoundingClientRect().width > 0; }, null, 5000), tag + ': Change opens the Trade menu');
+  await p.evaluate(() => { const m = document.getElementById('stkc-trade-pop'); m.hidden = true; const o = document.getElementById('stkc-more-pop'); if (o && !o.hidden) document.getElementById('stkc-more-btn').click(); });
+  // pick live (Trade menu row)
+  await pickAcct(p, ACC);
   await p.waitForFunction(() => document.querySelector('#stkop.is-live') && window.__stkLive.state.lastOkStart > 0 && window.__stkLive.state.placeSchema, null, { timeout: 10000 });
   await p.evaluate(() => window.__stkPaper.account && window.__stkPaper.account.setLast('futures:NQ1!', 28750));
   const code = await p.evaluate(() => window.__stkLive.info('futures:NQ1!').code);
   check(/^NQ[HMUZ]\d$/.test(code), tag + ': NQ1! maps to the front month ' + code);
-  await opWait(p, () => /^NQ/.test(document.querySelector('.stkop-sym small').textContent));
-  const hd = await p.evaluate(() => ({ sym: document.querySelector('.stkop-sym b').textContent, code: document.querySelector('.stkop-sym small').textContent, live: (document.querySelector('#stkop .stkop-chip.live') || {}).textContent, liveBg: (() => { const e = document.querySelector('#stkop .stkop-chip.live'); return e ? getComputedStyle(e).backgroundColor : ''; })(), strip: (() => { const s = document.getElementById('stkpt'); return !s || s.hidden || getComputedStyle(s).display === 'none'; })(), chip: (document.querySelector('.stkop-lchip') || {}).textContent || '', cbadge: (document.querySelector('.stklv-cbadge') || {}).textContent || '' }));
-  check(hd.sym === 'CME:NQ' && hd.code === code, tag + ': header CME:NQ with the contract small', hd);
-  check(hd.live === 'LIVE' && hd.liveBg === 'rgb(217, 45, 32)', tag + ': red LIVE badge in the footer', hd);
+  await opWait(p, () => /^NQ/.test(document.querySelector('#stkop [data-k=code]').textContent) && /Nasdaq/.test(document.querySelector('#stkop [data-k=name]').textContent));
+  const hd = await p.evaluate(() => ({ sym: document.querySelector('#stkop [data-k=root]').textContent, name: document.querySelector('#stkop [data-k=name]').textContent, code: document.querySelector('#stkop [data-k=code]').textContent, live: (document.querySelector('#stkop .stkop-acct.live') || {}).textContent.replace('Trading account: ', ''), liveBg: (() => { const e = document.querySelector('#stkop .stkop-acct.live'); return e ? getComputedStyle(e).backgroundColor : ''; })(), strip: (() => { const s = document.getElementById('stkpt'); return !s || s.hidden || getComputedStyle(s).display === 'none'; })(), chip: (document.querySelector('.stkop-lchip') || {}).textContent || '', cbadge: (document.querySelector('.stklv-cbadge') || {}).textContent || '' }));
+  check(hd.sym === 'NQ' && /Nasdaq-100/.test(hd.name) && hd.code === code, tag + ': header row 2: NQ · full name, the contract', hd);
+  check(/^LIVE · Tradovate …1234$/.test(hd.live) && hd.liveBg === 'rgb(217, 45, 32)', tag + ': red read-only "LIVE · Tradovate …1234" in the footer', hd);
   check(hd.strip, tag + ': old bottom "Live trading" strip is gone while live', hd);
   check(/^LIVE …1234 · NQ/.test(hd.chip), tag + ': small LIVE status chip on the chart', hd);
   check(/^LIVE Tradovate DEMO5551234 · NQ[HMUZ]\d$/.test(hd.cbadge), tag + ': red LIVE badge on the chart with the contract', hd);
@@ -303,8 +312,8 @@ async function run(b, w, h, mobile, theme) {
   await opTab(p, 'order', mobile);
   const A2 = await alignOP(p); console.log('ALIGN-ORDER ' + tag + ' ' + JSON.stringify(A2)); alignChecks(A2, tag + ' order', mobile);
   if (opEl) await opEl.screenshot({ path: OUT + '/crop-op-order-live-' + tag + '.png' });
-  // back to paper from the footer
-  await p.selectOption('#stkop select[data-f=acct]', '');
+  // back to paper from the Trade menu
+  await pickAcct(p, 'paper');
   check(await opWait(p, () => !window.__stkLive.state.acct && !document.querySelector('#stkop.is-live') && !document.querySelector('.stklv-cbadge') && !document.querySelector('.stkpt-chip[data-live]') && !document.querySelector('.stkop-lchip')), tag + ': back on Paper: no badge, no chip, no live lines');
   check(M.calls.every((c) => /^\/connect\/finatic\//.test(c.path)), tag + ': only the local mock was called');
   check(errors.length === 0, tag + ': no console errors ' + errors.slice(0, 2).join(' | '));
@@ -316,7 +325,11 @@ const alignOP = (p) => p.evaluate(() => {
   const vis = (e) => e && e.getClientRects().length && e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
   const row = (sel, items) => { const r = document.querySelector(sel); if (!vis(r)) return null; const its = [...r.querySelectorAll(items)].filter(vis).map(R).sort((a, b) => a.l - b.l); const rr = R(r), cs = getComputedStyle(r); const cys = its.map((i) => i.cy); return { n: its.length, cySpread: its.length ? Math.round((Math.max(...cys) - Math.min(...cys)) * 10) / 10 : 0, hs: its.map((i) => i.h), gaps: its.slice(1).map((it, k) => Math.round((it.l - its[k].r) * 10) / 10), insetL: its.length ? Math.round((its[0].l - rr.l) * 10) / 10 : null, insetR: its.length ? Math.round((rr.r - its[its.length - 1].r) * 10) / 10 : null, padL: cs.paddingLeft, padR: cs.paddingRight }; };
   return {
-    head: row('#stkop .stkop-hd', ':scope > .stkop-tabs, :scope > .stkop-sym, .stkop-ib'),
+    head: row('#stkop .stkop-hd', ':scope > .stkop-tabs, .stkop-ib'),
+    info1: row('#stkop .stkop-info > .stkop-il:nth-child(1)', ':scope > *:not([hidden])'),
+    info2: row('#stkop .stkop-info > .stkop-il:nth-child(2)', ':scope > *:not(.stkop-sp):not(:empty)'),
+    info: (() => { const s = document.querySelector('#stkop .stkop-info'); if (!s) return null; const cs = getComputedStyle(s); return { padL: cs.paddingLeft, padR: cs.paddingRight, padT: cs.paddingTop, padB: cs.paddingBottom, h: Math.round(s.getBoundingClientRect().height * 10) / 10, nmCut: (() => { const n = s.querySelector('.stkop-sym'); return n.scrollWidth > n.clientWidth + 1; })() }; })(),
+    hbtns: row('#stkop .stkop-hbtns', '.stkop-ib'),
     tabs: row('#stkop .stkop-tabs', 'button'),
     trio: row('#stkop .stkop-trio', ':scope > *'),
     joins: row('#stkop .stkop-joins', ':scope > *'),
@@ -335,14 +348,16 @@ const alignOP = (p) => p.evaluate(() => {
 });
 const GRID = (v) => [0, 4, 8, 12, 16, 24].includes(Math.round(v));
 function alignChecks(A, tag, mobile) {
-  for (const k of ['head', 'tabs', 'trio', 'joins', 'sides', 'otype', 'seg', 'go', 'pre', 'pair', 'ft1', 'ft2']) {
+  for (const k of ['head', 'tabs', 'info2', 'hbtns', 'trio', 'joins', 'sides', 'otype', 'seg', 'go', 'pre', 'pair', 'ft1', 'ft2']) {
     const r = A[k]; if (!r || !r.n) continue;
     check(r.cySpread <= 1, tag + ': ' + k + ' items share one centre (±1px)', r);
     if (['trio', 'joins', 'sides', 'go', 'pre', 'pair', 'tabs', 'seg'].includes(k)) check(r.gaps.every(GRID), tag + ': ' + k + ' gaps on the 4/8 grid', r.gaps);
-    if (['joins', 'sides', 'pre', 'pair', 'go'].includes(k)) check(new Set(r.hs).size === 1, tag + ': ' + k + ' same-role controls same height', r.hs);
+    if (['joins', 'sides', 'pre', 'pair', 'go', 'hbtns'].includes(k)) check(new Set(r.hs).size === 1, tag + ': ' + k + ' same-role controls same height', r.hs);
     if (['trio', 'joins', 'sides', 'pre', 'pair'].includes(k)) check(Math.abs(r.insetL - r.insetR) <= 1, tag + ': ' + k + ' equal left/right inset', [r.insetL, r.insetR]);
   }
   if (A.body) check(A.body.padL === A.body.padR && A.body.padL === '16px', tag + ': body padding 16 left = right', A.body);
+  if (A.info) check(A.info.padL === A.info.padR && A.info.padL === '16px' && A.info.padT === '8px' && A.info.padB === '8px' && !A.info.nmCut, tag + ': symbol bar padding 16 / 8, full name never cut', A.info);
+  if (A.head) check(Math.abs(A.head.insetL - A.head.insetR) <= 1, tag + ': header row 1 equal left/right inset', [A.head.insetL, A.head.insetR]);
   check(A.ft.padL === A.ft.padR && A.ft.padL === '16px', tag + ': footer padding 16 left = right', A.ft);
 }
 // ---- member (non-admin): the same panel for PAPER, no broker words; SL/TP bracket, Join Bid/Ask, Stop, Trail, Flatten
@@ -354,7 +369,7 @@ async function memberPaper(b, w, h, mobile, theme) {
   check(await openOP(p, mobile), tag + ': Trade opens the order panel');
   const t0 = await p.evaluate(() => ({ txt: document.getElementById('stkop').innerText, sel: !!document.querySelector('#stkop select[data-f=acct]') }));
   check(!/tradovate|broker|finatic|LIVE/i.test(t0.txt.replace(/live bid/ig, '')) && !t0.sel, tag + ': paper only: no broker names, no account picker', t0.txt.slice(0, 200));
-  check(/Paper/.test(t0.txt) && /Education only\. Not financial advice\./.test(t0.txt), tag + ': Paper chip + disclaimer in the footer');
+  check(/Paper · DEMO/.test(t0.txt) && /Education only\. Not financial advice\./.test(t0.txt), tag + ': "Paper · DEMO" label + disclaimer in the footer');
   // Scalp
   await opTab(p, 'scalp', mobile);
   await opWait(p, () => document.querySelector('#stkop .stkop-join.bid b').textContent === '28,749.75' && !document.querySelector('#stkop .stkop-scalp [data-a=buy]').disabled);
@@ -443,11 +458,123 @@ async function memberPaper(b, w, h, mobile, theme) {
   check(errors.length === 0, tag + ': no console errors ' + errors.slice(0, 2).join(' | '));
   await ctx.close();
 }
+// ---- 2026-11-17: Dock right / Float (remembered), symbol bar, Trade menu Paper disconnect (off, then on again), right rail button
+async function memberDock(b, w, h, mobile, theme) {
+  const tag = 'dock-' + w + '-' + theme;
+  const { ctx, p, errors, M } = await open(b, { w, h, mobile, theme, admin: false, flat: true });
+  await p.waitForFunction(() => window.__stkPaper.account, null, { timeout: 20000 });
+  await p.evaluate(() => { const MH = window.StrykerMarketHours; MH.futuresStatus = () => ({ open: true, until: Date.now() + 3600e3 }); window.__stkPaper.setEnabled(true); window.__stkPaper.account.setLast('futures:NQ1!', 28750); });
+  const railSel = '.stkw-rail .stkop-railbtn';
+  if (!mobile) {
+    // right toolbar button: present, tooltip, toggles the panel, active state
+    check(await opWait(p, (s) => { const r = document.querySelector(s); return r && r.getBoundingClientRect().width > 0; }, railSel, 15000), tag + ': "Trading panel" button on the right toolbar');
+    const rb = await p.evaluate((s) => { const r = document.querySelector(s); return { title: r.title, pressed: r.getAttribute('aria-pressed') }; }, railSel);
+    check(rb.title === 'Trading panel' && rb.pressed === 'false', tag + ': rail button tooltip "Trading panel", not pressed while closed', rb);
+    await p.click(railSel);
+    check(await opWait(p, () => { const o = document.getElementById('stkop'); return o && !o.hidden && o.getBoundingClientRect().height > 100; }), tag + ': rail button opens the order panel');
+    check(await opWait(p, (s) => document.querySelector(s).classList.contains('on') && document.querySelector(s).getAttribute('aria-pressed') === 'true', railSel), tag + ': rail button active while the panel is open');
+    const rail = await p.evaluate(() => { const r = document.querySelector('.stkw-rail'); const R = r.getBoundingClientRect(); return [...r.children].filter((e) => e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 2).map((e) => { const b = e.getBoundingClientRect(); return { c: (e.className.baseVal === undefined ? e.className : '').split(' ')[0], w: b.width, h: b.height, cx: Math.round((b.left + b.width / 2 - R.left) * 10) / 10 }; }); });
+    console.log('RAIL ' + tag + ' ' + JSON.stringify(rail));
+    const btns = rail.filter((r) => /railbtn/.test(r.c));
+    check(new Set(btns.map((r) => r.cx)).size === 1 && btns.every((r) => r.w === 34 && r.h === 34), tag + ': rail buttons 34x34 on one vertical axis', btns);
+    const railBox = await p.$('.stkw-rail'); await railBox.screenshot({ path: OUT + '/crop-rail-' + tag + '.png' });
+    // float (default) -> header rows shot
+    const st0 = await p.evaluate(() => ({ mode: window.__stkOrderPanel.prefs.mode, float: document.querySelector('#stkop [data-a=float]').getAttribute('aria-pressed'), dock: document.querySelector('#stkop [data-a=dock]').title, fl: document.querySelector('#stkop [data-a=float]').title }));
+    check(st0.mode === 'float' && st0.float === 'true' && st0.dock === 'Dock right' && st0.fl === 'Float', tag + ': default Float; Dock right / Float buttons with tooltips', st0);
+    await opWait(p, () => { const n = document.querySelector('#stkop [data-k=name]'); return !!n && /Nasdaq/.test(n.textContent); });
+    const A0 = await alignOP(p); console.log('ALIGN-FLOAT ' + tag + ' ' + JSON.stringify(A0)); alignChecks(A0, tag + ' float', false);
+    const opEl = await p.$('#stkop'); await opEl.screenshot({ path: OUT + '/crop-op-float-' + tag + '.png' });
+    const hdr = await p.evaluate(() => { const a = document.querySelector('#stkop .stkop-hd').getBoundingClientRect(), b = document.querySelector('#stkop .stkop-info').getBoundingClientRect(); return { x: a.left, y: a.top, width: a.width, height: b.bottom - a.top }; });
+    await p.screenshot({ path: OUT + '/crop-op-header-' + tag + '.png', clip: hdr });
+    // dock right: full height at the chart's right edge, chart shrinks, nothing covered
+    await p.click('#stkop [data-a=dock]');
+    check(await opWait(p, () => document.getElementById('stkop').classList.contains('is-dock')), tag + ': Dock right docks the panel');
+    await sleep(400);
+    const dk = await p.evaluate(() => { const o = document.getElementById('stkop').getBoundingClientRect(), v = document.getElementById('vela-chart').getBoundingClientRect(), r = document.querySelector('.stkw-rail').getBoundingClientRect(); return { oL: o.left, oR: o.right, oT: o.top, oH: o.height, oW: o.width, vR: v.right, vT: v.top, vH: v.height, railL: r.left }; });
+    check(Math.abs(dk.oL - dk.vR) <= 1 && Math.abs(dk.oR - dk.railL) <= 1 && Math.abs(dk.oT - dk.vT) <= 1 && Math.abs(dk.oH - dk.vH) <= 1 && dk.oW === 340, tag + ': docked = full height between the chart and the rail; the chart shrinks (nothing covered)', dk);
+    const A1 = await alignOP(p); console.log('ALIGN-DOCK ' + tag + ' ' + JSON.stringify(A1)); alignChecks(A1, tag + ' dock', false);
+    await p.screenshot({ path: OUT + '/op-dock-' + tag + '.png' });
+    await opEl.screenshot({ path: OUT + '/crop-op-dock-' + tag + '.png' });
+    // resize the dock from its left edge: clamped 280..480
+    const dl = await (await p.$('#stkop .stkop-dl')).boundingBox();
+    await p.mouse.move(dl.x + 4, dl.y + 200); await p.mouse.down(); await p.mouse.move(dl.x - 400, dl.y + 200, { steps: 5 }); await p.mouse.up();
+    const wMax = await p.evaluate(() => document.getElementById('stkop').getBoundingClientRect().width);
+    const dl2 = await (await p.$('#stkop .stkop-dl')).boundingBox();
+    await p.mouse.move(dl2.x + 4, dl2.y + 200); await p.mouse.down(); await p.mouse.move(dl2.x + 600, dl2.y + 200, { steps: 5 }); await p.mouse.up();
+    const wMin = await p.evaluate(() => document.getElementById('stkop').getBoundingClientRect().width);
+    check(wMax === 480 && wMin === 280, tag + ': dock width drags on the left edge, min 280 max 480', [wMax, wMin]);
+    // remembered per user across a reload
+    const pr = await p.evaluate(() => JSON.parse(localStorage.getItem('stryker_op_u1')));
+    check(pr.mode === 'dock' && pr.dw === 280, tag + ': dock mode + width saved (stryker_op_<uid>)', pr);
+    await p.reload({ waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => window.__stkPaper && window.__stkPaper.account, null, { timeout: 60000 });
+    check(await opWait(p, () => { const o = document.getElementById('stkop'); return o && !o.hidden && o.classList.contains('is-dock') && Math.round(o.getBoundingClientRect().width) === 280; }, null, 15000), tag + ': after a reload the panel is docked again, same width');
+    await p.click('#stkop [data-a=float]');
+    check(await opWait(p, () => { const o = document.getElementById('stkop'); return !o.classList.contains('is-dock') && !document.querySelector('.stkchart-panel').classList.contains('stkop-docked'); }), tag + ': Float undocks; the chart gets its width back');
+    check((await p.evaluate(() => JSON.parse(localStorage.getItem('stryker_op_u1')).mode)) === 'float', tag + ': float saved');
+    await p.click(railSel);
+    check(await opWait(p, (s) => document.getElementById('stkop').hidden && !document.querySelector(s).classList.contains('on'), railSel), tag + ': rail button closes the panel again');
+  } else {
+    await p.evaluate(() => window.__stkPaper.orderPanel());
+    check(await opWait(p, () => { const n = document.querySelector('#stkop [data-k=name]'); return !!n && /Nasdaq/.test(n.textContent); }, null, 15000), tag + ': phone: symbol bar shows the full name');
+    const ph = await p.evaluate(() => ({ dock: getComputedStyle(document.querySelector('#stkop [data-a=dock]')).display, rail: (() => { const r = document.querySelector('.stkop-railbtn'); return !r || r.getBoundingClientRect().width === 0; })() }));
+    check(ph.dock === 'none' && ph.rail, tag + ': phone: no dock buttons (bottom sheet), no rail', ph);
+    const A0 = await alignOP(p); console.log('ALIGN-SHEET ' + tag + ' ' + JSON.stringify(A0)); alignChecks(A0, tag + ' sheet', true);
+    const opEl = await p.$('#stkop'); await opEl.screenshot({ path: OUT + '/crop-op-sheet-' + tag + '.png' });
+    const hdr = await p.evaluate(() => { const a = document.querySelector('#stkop .stkop-hd').getBoundingClientRect(), b = document.querySelector('#stkop .stkop-info').getBoundingClientRect(); return { x: 0, y: a.top, width: innerWidth, height: b.bottom - a.top }; });
+    await p.screenshot({ path: OUT + '/crop-op-header-' + tag + '.png', clip: hdr });
+    await p.evaluate(() => window.__stkOrderPanel.close());
+  }
+  // Trade menu: Paper row has the disconnect (always visible) and a reserved edit slot; columns line up
+  await p.evaluate(() => window.__stkPaper.openTradeMenu());
+  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-x=paperoff]', { timeout: 5000 });
+  const tm = await p.evaluate(() => { const r = document.querySelector('#stkc-trade-pop .stktm-row[data-row=paper]'), R = r.getBoundingClientRect(); const bx = (e) => e.getBoundingClientRect(); const off = r.querySelector('[data-x=paperoff]'), ph = r.querySelector('.stktm-ph'), tick = r.querySelector('.stktm-tick'), logo = r.querySelector('.stktm-logo'); const cy = [logo, r.querySelector('.stktm-tx'), ph, off, tick].map((e) => bx(e).top + bx(e).height / 2); return { op: getComputedStyle(off).opacity, offWH: [bx(off).width, bx(off).height], phWH: [bx(ph).width, bx(ph).height], offR: Math.round(R.right - bx(off).right), tickR: Math.round(R.right - bx(tick).right), logoL: Math.round(bx(logo).left - R.left), cySpread: Math.round((Math.max(...cy) - Math.min(...cy)) * 10) / 10, txt: document.getElementById('stkc-trade-pop').innerText }; });
+  console.log('TMENU ' + tag + ' ' + JSON.stringify(tm));
+  check(tm.op === '1' && tm.cySpread <= 1, tag + ': Paper row: disconnect always visible, logo / text / slots / tick on one centre', tm);
+  check(tm.offWH.map(Math.round).join() === tm.phWH.map(Math.round).join(), tag + ': reserved edit slot = disconnect size (same column grid as broker rows)', [tm.offWH, tm.phWH]);
+  check(!/tradovate|rithmic|broker|finatic|disconnect/i.test(tm.txt), tag + ': member menu: Paper only, no broker words', tm.txt);
+  const pop = await p.$('#stkc-trade-pop'); await pop.screenshot({ path: OUT + '/crop-tmenu-' + tag + '.png' });
+  // disconnect: confirm first; Cancel keeps it on
+  await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-x=paperoff]').click());
+  await p.waitForSelector('#stktm-dlg', { timeout: 5000 });
+  const dlg = await p.evaluate(() => document.getElementById('stktm-dlg').innerText);
+  check(/Turn off paper trading on this chart\?/.test(dlg) && /Your paper account and history are kept\./.test(dlg), tag + ': confirm first, with the Owner\'s text', dlg);
+  await p.screenshot({ path: OUT + '/op-paperoff-dlg-' + tag + '.png' });
+  await p.click('#stktm-dlg [data-k=no]');
+  check(await p.evaluate(() => window.__stkPaper.enabled && !document.getElementById('stktm-dlg')), tag + ': Cancel keeps paper trading on');
+  // place a paper order so there are lines, then disconnect for real
+  await p.evaluate(() => window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', qty: 1, side: 'buy', type: 'limit', price: 28749.25 }));
+  await p.evaluate(() => window.__stkPaper.orderPanel());
+  await opWait(p, () => !document.getElementById('stkop').hidden);
+  const bal0 = await p.evaluate(() => window.__stkPaper.account.state.orders.length);
+  const chips0 = await opWait(p, () => document.querySelectorAll('.stkpt-chip').length > 0, null, 5000);
+  await p.evaluate(() => window.__stkPaper.openTradeMenu());
+  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-x=paperoff]', { timeout: 5000 });
+  await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-x=paperoff]').click());
+  await p.waitForSelector('#stktm-dlg [data-k=yes]', { timeout: 5000 }); await p.click('#stktm-dlg [data-k=yes]');
+  const off = await opWait(p, () => !window.__stkPaper.enabled && document.getElementById('stkop').hidden && !document.documentElement.classList.contains('stkpt-on'));
+  const offSt = await p.evaluate(() => ({ btn: document.querySelector('#stkc-paper-btn .stkc-btn-l').textContent, aria: document.getElementById('stkc-paper-btn').getAttribute('aria-label'), orders: window.__stkPaper.account.state.orders.length, chips: document.querySelectorAll('.stkpt-chip').length, rail: (() => { const r = document.querySelector('.stkop-railbtn'); return r ? r.classList.contains('on') : null; })() }));
+  check(off && offSt.btn === 'Trade' && offSt.aria === 'Trade', tag + ': disconnect: paper off, panel closed, Trade button back to "Trade"', offSt);
+  check(offSt.orders === bal0 && offSt.chips === 0, tag + ': paper lines gone from the chart; the account (working order) is kept', offSt);
+  await p.evaluate(() => window.__stkPaper.openTradeMenu());
+  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-a=paper]', { timeout: 5000 });
+  const offMenu = await p.evaluate(() => ({ chk: document.querySelector('#stkc-trade-pop [data-a=paper]').getAttribute('aria-checked'), off: !!document.querySelector('#stkc-trade-pop [data-x=paperoff]') }));
+  check(offMenu.chk === 'false' && !offMenu.off, tag + ': menu while off: Paper not ticked, no disconnect', offMenu);
+  await pop.screenshot({ path: OUT + '/crop-tmenu-off-' + tag + '.png' });
+  // pick Paper again = on
+  await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-a=paper]').click());
+  check(await opWait(p, () => window.__stkPaper.enabled && !document.getElementById('stkop').hidden && document.querySelector('#stkc-paper-btn .stkc-btn-l').textContent === 'Paper'), tag + ': picking Paper trading turns it back on and opens the panel');
+  check(!chips0 || await opWait(p, () => document.querySelectorAll('.stkpt-chip').length > 0, null, 5000), tag + ': paper order line back on the chart', chips0);
+  check(M.calls.length === 0, tag + ': member: no broker calls at all', M.calls.length);
+  check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), tag + ': no horizontal page scroll');
+  check(errors.length === 0, tag + ': no console errors ' + errors.slice(0, 2).join(' | '));
+  await ctx.close();
+}
 async function nonAdmin(b) {
   const { ctx, p, errors, M } = await open(b, { w: 1440, h: 900, theme: 'dark', admin: false });
   await sleep(2500);
   await openOP(p, false);
-  const r = await p.evaluate(() => ({ pick: !!document.querySelector('.stklv-pick, #stkop select[data-f=acct]'), mod: !!(window.__stkLive && window.__stkLive.pick), live: [...document.scripts].some((s) => /chart-live/.test(s.src)) }));
+  const r = await p.evaluate(() => ({ pick: !!document.querySelector('.stklv-pick, #stkop select'), mod: !!(window.__stkLive && window.__stkLive.pick), live: [...document.scripts].some((s) => /chart-live/.test(s.src)) }));
   check(!r.pick && !r.mod, 'non-admin: no account picker, live module never loaded', r);
   check(M.calls.length === 0, 'non-admin: no broker calls at all', M.calls.length);
   await ctx.close();
@@ -456,13 +583,13 @@ async function notConnected(b) {
   const { ctx, p, M } = await open(b, { w: 1440, h: 900, theme: 'dark', connected: false });
   await p.waitForFunction(() => window.__stkLive && window.__stkLive.state.loaded && window.__stkLive.pick, null, { timeout: 20000 });
   await openOP(p, false);
-  await p.waitForFunction(() => document.querySelector('#stkop select[data-f=acct] option[value="__connect"]'), null, { timeout: 20000 });
-  const opts = await p.$$eval('#stkop select[data-f=acct] option', (o) => o.map((x) => x.textContent));
-  check(opts.join('|') === 'Paper|Connect a broker…', 'not connected: Paper + Connect a broker…', opts);
+  check(!(await p.$('#stkop select')), 'not connected: no account select in the panel');
   await p.evaluate(() => { window.open = () => ({ location: {}, close() {} }); });
-  await p.selectOption('#stkop select[data-f=acct]', '__connect');
+  await p.evaluate(() => window.__stkPaper.openTradeMenu());
+  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-a=connect]', { timeout: 5000 });
+  await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-a=connect]').click());
   const sheet = await p.waitForSelector('#fjs', { timeout: 10000 }).then(() => true, () => false);
-  check(sheet && (await p.$eval('#stkop select[data-f=acct]', (s) => s.value)) === '', 'Connect a broker opens the Nemesis connect sheet; picker stays on Paper');
+  check(sheet && !(await p.evaluate(() => window.__stkLive.state.acct)), 'Connect a broker (Trade menu) opens the Nemesis connect sheet; still on Paper');
   await p.screenshot({ path: OUT + '/live-connect-1440.png' });
   check(!writes(M).length, 'connect flow sends no order');
   await ctx.close();
@@ -476,6 +603,7 @@ async function notConnected(b) {
     const sizes = [[1440, 900, false, 'dark'], [1440, 900, false, 'light'], [412, 915, true, 'dark'], [412, 915, true, 'light'], [390, 844, true, 'dark'], [390, 844, true, 'light']];
     for (const [w, h, mobile, theme] of sizes) if (!only || only === w + '-' + theme) await run(b, w, h, mobile, theme);
     for (const [w, h, mobile, theme] of sizes) if (!only || only === 'member-' + w + '-' + theme) await memberPaper(b, w, h, mobile, theme);
+    for (const [w, h, mobile, theme] of sizes) if (!only || only === 'dock-' + w + '-' + theme) await memberDock(b, w, h, mobile, theme);
   } finally { await b.close(); }
   console.log(fail ? 'FAILED ' + fail : 'ALL PASS');
   process.exit(fail ? 1 : 0);

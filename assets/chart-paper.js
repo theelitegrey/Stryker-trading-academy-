@@ -167,6 +167,7 @@ export function setPaperEnabled(on){
   withLive(() => { syncFromLocal(); acct.setSettings({ enabled: on }); save(); });
   if (replay && acct) acct.setSettings({ enabled: on });
   applyEnabled();
+  updateTradeBtn();
   return on;
 }
 // Show or hide every paper-trading surface for the current switch state (instant, no reload).
@@ -1666,12 +1667,17 @@ function mountToolbar(bar){
   const pop = h('div', { class: 'stkc-pop stkpt-tmenu stktm', id: 'stkc-trade-pop', role: 'menu', 'aria-label': 'Trade', hidden: '' });
   const wrap = h('div', { class: 'stkc-menu' }); wrap.append(b, pop);
   const setOpen = (o) => { if (o) drawTradeMenu(pop); pop.hidden = !o; if (o) setTimeout(() => TM.focusFirst(pop), 0); b.setAttribute('aria-expanded', o ? 'true' : 'false'); };
+  // the order panel's "Change" link: open this menu (phones: the Trade button sits in the ⋯ list, open that first)
+  openTradeMenu = () => setTimeout(() => {
+    const vis = b.getBoundingClientRect().width > 0, more = document.getElementById('stkc-more-btn');
+    if (!vis && more) { more.click(); setTimeout(() => setOpen(true), 60); } else setOpen(true);
+  }, 0);
   b.onclick = (e) => { e.stopPropagation(); setOpen(pop.hidden); };
   pop.addEventListener('click', (e) => {
     if (TM.ownsClick(e.target)) return;   // copy / pencil / disconnect / editor: chart-trade-menu.js handles them
     const it = e.target.closest('[data-a]'); if (!it) return; e.stopPropagation(); setOpen(false);
     const a = it.dataset.a, L = window.__stkLive;
-    if (a === 'paper') { if (liveOn()) L.leave(true); if (!paperOn() && liveOf()) setPaperEnabled(true); orderPanel(); }
+    if (a === 'paper') { if (liveOn()) L.leave(true); if (!paperOn() && liveOf()) setPaperEnabled(true); orderPanel(); }   // Paper again after a disconnect = on
     else if (a === 'live' && L) L.pick(it.dataset.id).then(() => orderPanel());
     else if (a === 'connect' && L) L.connect();
   });
@@ -1683,14 +1689,55 @@ function mountToolbar(bar){
 }
 // Live accounts exist only when the admin-only module is loaded (window.__stkLive.state.accounts); everyone else sees Paper only.
 const liveState = () => (window.__stkLive && window.__stkLive.state && window.__stkLive.connect ? window.__stkLive.state : null);
-function drawTradeMenu(pop){ const sm = acct ? acct.summary(dayStart()) : null; TM.draw(pop, liveState(), sm ? { bal: money(sm.balance), upl: sm.unrealized ? money(sm.unrealized, true) : '' } : null); }
+function drawTradeMenu(pop){ const sm = acct ? acct.summary(dayStart()) : null; TM.draw(pop, liveState(), Object.assign(sm ? { bal: money(sm.balance), upl: sm.unrealized ? money(sm.unrealized, true) : '' } : {}, { enabled: paperOn(), off: liveOf() ? paperOff : null })); }
+let openTradeMenu = null;
+// Trade menu > Paper trading > disconnect (after its confirm): paper trading off on the chart. The order panel closes (unless a live
+// account is in use), paper position / order lines leave the chart, the Trade button goes back to "Trade". Account + history are kept;
+// picking Paper trading again turns it back on.
+function paperOff(){
+  if (!liveOn() && window.__stkOrderPanel && window.__stkOrderPanel.isOpen) window.__stkOrderPanel.close();
+  setPaperEnabled(false);
+  pushLines(true); updateTradeBtn();
+  toast('Paper trading is off on this chart. Your paper account and history are kept.', 'info');
+  return Promise.resolve(true);
+}
+// Symbol details for the order panel's second header row: the provider's description + the previous daily close (for the change).
+const symMetaMemo = new Map();
+function symMeta(sym){
+  const hit = symMetaMemo.get(sym); if (hit && Date.now() - hit.at < 10 * 60e3) return hit.p;
+  const m = /^([a-z_]+):(.+)$/i.exec(String(sym || '')); if (!m) return Promise.resolve(null);
+  let pv = null; try { pv = WS.feed.providerInstance(m[1].toLowerCase()); } catch (e) {}
+  if (!pv) return Promise.resolve(null);
+  const info = pv.getSymbolInfo ? Promise.resolve(pv.getSymbolInfo(m[2])).catch(() => null) : Promise.resolve(null);
+  const bars = pv.getBars ? Promise.resolve(pv.getBars(m[2], 'D', { limit: 3 })).catch(() => null) : Promise.resolve(null);
+  const p = Promise.all([info, bars]).then(([i, b]) => ({ desc: (i && i.description) || '', prev: b && b.length > 1 ? b[b.length - 2].close : null }));
+  symMetaMemo.set(sym, { at: Date.now(), p });
+  return p;
+}
+// Right icon rail (desktop / tablet): "Trading panel" button, opens / closes the order panel; active while it is open. Its own class
+// (not .stkw-railbtn), so the rail's side panels don't treat it as one of theirs and close themselves.
+function mountRailBtn(){
+  const host = document.querySelector('.stkchart-panel') || document.body;
+  const btn = h('button', { type: 'button', class: 'stkop-railbtn', title: 'Trading panel', 'aria-label': 'Trading panel', 'aria-pressed': 'false' });
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>';
+  btn.addEventListener('click', (e) => { e.stopPropagation(); const op = window.__stkOrderPanel; if (op && op.isOpen) op.close(); else orderPanel(); });
+  const place = () => {
+    const rail = document.querySelector('.stkw-rail'); if (!rail) return false;
+    if (btn.parentNode !== rail) { const dv = rail.querySelector(':scope > .stkt-rdiv'); rail.insertBefore(btn, dv || null); }
+    return true;
+  };
+  if (!place()) { const mo = new MutationObserver(() => { if (place()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
+  // the divider is added later by chart-tv-toolbars.js: keep the button above it
+  const mo2 = new MutationObserver(() => { const rail = btn.parentNode; const dv = rail && rail.querySelector(':scope > .stkt-rdiv'); if (dv && btn.compareDocumentPosition(dv) & Node.DOCUMENT_POSITION_PRECEDING) rail.insertBefore(btn, dv); });
+  mo2.observe(host, { childList: true, subtree: true }); setTimeout(() => mo2.disconnect(), 30000);
+}
 const escAttr = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function updateTradeBtn(){
   const b = document.getElementById('stkc-paper-btn'); if (!b) return;
-  const LS = liveState(), act = LS && LS.acct, txt = TM.button(b, LS);
+  const LS = liveState(), act = LS && LS.acct, txt = TM.button(b, LS, paperOn());
   b.classList.toggle('stkpt-islive', !!act);
   if (b.hasAttribute('data-ob-label')) b.setAttribute('data-ob-label', act ? txt : 'Trade');   // phone ⋯ list row
-  b.setAttribute('aria-label', act ? txt + ' account ' + TM.titleOf(act).full : 'Trade: Paper');
+  b.setAttribute('aria-label', act ? txt + ' account ' + TM.titleOf(act).full : paperOn() ? 'Trade: Paper' : 'Trade');
 }
 
 function renderAll(){ updateTradeBtn(); pushLines(); renderPanel(); if (ticket && !ticket.hidden) renderTicket(); if (window.__stkOrderPanel) window.__stkOrderPanel.update(); }
@@ -1972,6 +2019,7 @@ export function mountPaper(ws, opts){
   if (!document.getElementById('stkpt-css')) { const st = document.createElement('style'); st.id = 'stkpt-css'; st.textContent = CSS; document.head.appendChild(st); }
   buildPanel();
   mountToolbar(opts && opts.bar);
+  mountRailBtn();
   renderPanel();
   applyEnabled();                             // hidden until the account says the switch is on
   try { watchSettings(); } catch (e) { console.warn('TradeZoro paper: settings tab', e); }
@@ -1992,6 +2040,6 @@ export function mountPaper(ws, opts){
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, orderPanel, flattenSym, setTrailing, toast, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
+    ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

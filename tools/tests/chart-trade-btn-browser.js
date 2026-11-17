@@ -119,6 +119,7 @@ const menuProbe = (p) => p.evaluate(() => {
     return { id: r.dataset.row.slice(0, 3), h: q(R.height), cySpread: q(Math.max(...cy) - Math.min(...cy)), logo: q(logo.width) + 'x' + q(logo.height), logoL: q(logo.left - P.left), tickR: q(P.right - tick.right),
       gapLogoTx: q(tx.left - logo.right), acts, txOverflow: r.querySelector('.stktm-tx').scrollWidth > r.querySelector('.stktm-tx').clientWidth + 1, lines: q(l2.top - l1.bottom),
       num: (r.querySelector('.stktm-num') || {}).textContent || '', numFont: r.querySelector('.stktm-num') ? getComputedStyle(r.querySelector('.stktm-num')).fontFamily.split(',')[0] : '',
+      phR: r.querySelector('.stktm-ph') ? q(P.right - box(r.querySelector('.stktm-ph')).right) : null, editR: r.querySelector('[data-x=edit]') ? q(P.right - box(r.querySelector('[data-x=edit]')).right) : null, offR: r.querySelector('[data-x=off],[data-x=paperoff]') ? q(P.right - box(r.querySelector('[data-x=off],[data-x=paperoff]')).right) : null,
       bal: ((r.querySelector('.stktm-bal') || {}).textContent || '').trim(), skel: !!r.querySelector('.stktm-skel'), actOpacity: [...r.querySelectorAll('.stktm-act')].map((a) => getComputedStyle(a).opacity) };
   });
   const imgs = [...pop.querySelectorAll('.stktm-logo img')];
@@ -201,7 +202,10 @@ async function run(b, w, h, mobile, theme) {
   const actSz = mobile ? '40x40' : '32x32';
   check([r1, r2].every((r) => r.acts.length === 2 && r.acts.every((a) => a === actSz)), tag + ': pencil + disconnect hit areas ' + actSz, [r1.acts, r2.acts]);
   if (mobile) check([r1, r2].every((r) => r.actOpacity.every((o) => o === '1')), tag + ': touch: icon buttons always visible', [r1.actOpacity, r2.actOpacity]);
-  else check(menu.rows.filter((r) => r.acts.length).every((r) => r.actOpacity.some((o) => o === '0') || r.id === '123'), tag + ': desktop: icon buttons hidden until hover/focus', menu.rows.map((r) => r.actOpacity));
+  else check(menu.rows.filter((r) => r.acts.length && r.id !== 'pap').every((r) => r.actOpacity.some((o) => o === '0') || r.id === '123'), tag + ': desktop: broker icon buttons hidden until hover/focus', menu.rows.map((r) => r.actOpacity));
+  // 2026-11-17: Paper row = reserved edit slot + disconnect (always visible while paper is on), same columns as the broker rows
+  const r0p = menu.rows.find((r) => r.id === 'pap');
+  check(r0p && r0p.phR != null && Math.abs(r0p.phR - r1.editR) <= 0.5 && (r0p.acts.length === 0 || (r0p.acts[0] === actSz && r0p.actOpacity[0] === '1' && Math.abs(r0p.offR - r1.offR) <= 0.5)), tag + ': Paper row: edit slot + disconnect line up with the broker rows\' columns', { r0p, r1 });
   check(menu.rows.every((r) => r.h >= 56) && menu.rows.every((r) => r.lines >= 0 && r.lines <= 4), tag + ': rows >= 56px, two lines', menu.rows.map((r) => r.h + '/' + r.lines));
   check(menu.foot && menu.foot.cySpread <= 1 && menu.foot.addH === menu.foot.manH && Math.abs(menu.foot.padL - menu.foot.padR) <= 1, tag + ': footer pills: same height, one centre, equal inset', menu.foot);
   check(menu.padL === menu.padR && menu.scrollW, tag + ': menu padding equal, no sideways scroll', [menu.padL, menu.padR]);
@@ -290,7 +294,7 @@ async function member(b) {
   await p.click('#stkc-paper-btn'); await sleep(300);
   const items = await rowsText(p);
   check(items.join('|') === 'paper:Paper trading ✓', 'member: menu has Paper trading only', items);
-  const t = await p.evaluate(() => ({ txt: document.getElementById('stkc-trade-pop').innerText + document.getElementById('stkc-paper-btn').innerText, acts: document.querySelectorAll('#stkc-trade-pop .stktm-act,#stkc-trade-pop .stktm-logo img,#stkc-trade-pop .stktm-foot').length, bal: (document.querySelector('#stkc-trade-pop .stktm-bal') || {}).textContent || '' }));
+  const t = await p.evaluate(() => ({ txt: document.getElementById('stkc-trade-pop').innerText + document.getElementById('stkc-paper-btn').innerText, acts: document.querySelectorAll('#stkc-trade-pop .stktm-act:not([data-x=paperoff]),#stkc-trade-pop .stktm-logo img,#stkc-trade-pop .stktm-foot').length, bal: (document.querySelector('#stkc-trade-pop .stktm-bal') || {}).textContent || '' }));
   check(!/tradovate|rithmic|broker|finatic|live|disconnect/i.test(t.txt) && t.acts === 0, 'member: no broker words, logos, edit/disconnect buttons or footer', t);
   check(/^\$[\d,]+\.\d\d/.test(t.bal), 'member: paper balance shown', t.bal);
   await p.screenshot({ path: OUT + '/trade-member-menu.png' });

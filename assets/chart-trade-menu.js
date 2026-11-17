@@ -6,6 +6,8 @@
 //
 // Row layout: logo 28 | two lines (top: label or broker + account number in mono, click = copy; bottom: status dot · firm · broker ·
 // balance) | pencil + disconnect (32px hit areas; on hover / focus with a mouse, always on touch) | tick on the active one.
+// Paper row (Owner order 2026-11-17): the same columns; the pencil slot is reserved (empty) and its disconnect (always visible while
+// paper trading is on) turns paper trading off on the chart after a confirm (paper.off(), chart-paper.js); account + history are kept.
 // Keys: Up/Down/Home/End move between rows, Right/Left move into / out of a row's buttons, Esc closes an open editor first.
 // Education only. Not financial advice.
 const ALIAS = { interactivebrokers: 'ibkr', interactivebroker: 'ibkr', ib: 'ibkr', tasty: 'tastytrade', tastyworks: 'tastytrade', ninja: 'ninjatrader', topstep: 'topstepx', coinbaseadvanced: 'coinbase', binanceus: 'binance' };
@@ -55,10 +57,12 @@ function balHtml(id) {
 const pickBtn = (attrs, on, label, inner) => '<button type="button" role="menuitemradio" class="stkc-item stktm-pick" ' + attrs + ' aria-checked="' + !!on + '" aria-label="' + esc(label) + '" tabindex="-1">' + inner + '</button>';
 function paperRow(paper, on) {
   const p = paper || {};
+  const offBtn = p.off && p.enabled !== false ? '<button type="button" role="menuitem" class="stktm-act stktm-act-off stktm-act-on" data-x="paperoff" tabindex="-1" aria-label="Turn off paper trading on this chart" title="Turn off paper trading">' + UNPLUG + '</button>' : '<span class="stktm-ph" aria-hidden="true"></span>';
   const upl = p.upl ? '<em class="' + (/^-/.test(p.upl) ? 'down' : 'up') + '" title="Open P&amp;L">' + esc(p.upl) + '</em>' : '';
   return '<div class="stktm-row" data-row="paper">' + pickBtn('data-a="paper"', on, 'Paper trading' + (p.bal ? ', balance ' + p.bal : ''), PAPER_IC +
     '<span class="stktm-tx"><span class="stktm-l1"><span class="stktm-nm">Paper trading</span></span><span class="stktm-l2"><span class="stktm-meta">Simulated</span>' +
-    (p.bal ? '<span class="stktm-bal" title="Paper balance">' + esc(p.bal) + upl + '</span>' : '') + '</span></span>') + (on ? CHK : NOCHK) + '</div>';
+    (p.bal ? '<span class="stktm-bal" title="Paper balance">' + esc(p.bal) + upl + '</span>' : '') + '</span></span>') +
+    '<span class="stktm-acts"><span class="stktm-ph" aria-hidden="true"></span>' + offBtn + '</span>' + (on ? CHK : NOCHK) + '</div>';
 }
 function liveRow(a, live, on) {
   const s = status(a, live), t = titleOf(a), m = metaOf(a.id);
@@ -79,7 +83,7 @@ export function draw(pop, live, paper) {
   if (typeof paper === 'string') paper = { bal: paper };
   lastArgs = [live, paper];
   const act = live && live.acct;
-  let h = '<div role="group" aria-labelledby="stktm-h1"><div class="stktm-h" id="stktm-h1">Paper</div>' + paperRow(paper, !act) + '</div>';
+  let h = '<div role="group" aria-labelledby="stktm-h1"><div class="stktm-h" id="stktm-h1">Paper</div>' + paperRow(paper, !act && !(paper && paper.enabled === false)) + '</div>';
   if (live) {
     h += '<div role="group" aria-labelledby="stktm-h2"><div class="stktm-h" id="stktm-h2">Live accounts</div>';
     if (!live.accounts.length) h += '<div class="stktm-empty">' + (live.loaded ? 'No broker connected yet.' : 'Loading accounts…') + '</div>';
@@ -109,7 +113,7 @@ function wire(pop) {
     const cp = e.target.closest('[data-copy]');
     if (cp && pop.contains(cp)) { e.preventDefault(); e.stopPropagation(); copy(cp.dataset.copy); return; }
     const x = e.target.closest('[data-x]');
-    if (x && pop.contains(x)) { e.preventDefault(); e.stopPropagation(); if (x.dataset.x === 'edit') openEditor(pop, x.dataset.id); else askDisconnect(pop, x.dataset.id); return; }
+    if (x && pop.contains(x)) { e.preventDefault(); e.stopPropagation(); if (x.dataset.x === 'edit') openEditor(pop, x.dataset.id); else if (x.dataset.x === 'paperoff') askPaperOff(pop); else askDisconnect(pop, x.dataset.id); return; }
     if (e.target.closest('.stktm-ed')) { e.stopPropagation(); return; }
     const row = e.target.closest('.stktm-row');   // the tick / row padding picks the row too
     if (row && !e.target.closest('[data-a]')) { e.stopPropagation(); const b = row.querySelector('.stktm-pick'); if (b) b.click(); }
@@ -164,6 +168,40 @@ function openEditor(pop, id) {
 function closeEditor(pop) { pop.querySelectorAll('.stktm-ed').forEach((e) => e.remove()); pop.querySelectorAll('.stktm-row.editing').forEach((r) => r.classList.remove('editing')); }
 function focusRow(pop, id, k) { const el = pop.querySelector('[data-x="' + k + '"][data-id="' + cssId(id) + '"]') || pop.querySelector('[data-a=live][data-id="' + cssId(id) + '"]'); if (el) el.focus(); }
 
+// ---- paper disconnect: confirm, then paper.off() (chart-paper.js: panel closed, paper lines gone, Trade button back to "Trade")
+function askPaperOff(pop) {
+  const off = lastArgs && lastArgs[1] && lastArgs[1].off; if (!off) return;
+  dialog(pop, '<span class="stktm-logo stktm-s28 stktm-paper" aria-hidden="true">' + SV(16, '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/>') + '</span><h2 id="stktm-dlg-h">Turn off paper trading on this chart?</h2>',
+    'Your paper account and history are kept. Pick Paper trading in the Trade menu to turn it back on.', 'Turn off', async () => { await off(); return { ok: true }; });
+}
+// shared confirm dialog (focus trapped, Esc / backdrop = cancel). run() -> { ok } | { error }
+function dialog(pop, top, text, yesText, run) {
+  const opener = document.getElementById('stkc-paper-btn');
+  const old = document.getElementById('stktm-dlg'); if (old) old.remove();
+  const d = document.createElement('div'); d.id = 'stktm-dlg';
+  d.innerHTML = '<div class="stktm-dlg-box" role="alertdialog" aria-modal="true" aria-labelledby="stktm-dlg-h" aria-describedby="stktm-dlg-d">' +
+    '<div class="stktm-dlg-top">' + top + '</div><p id="stktm-dlg-d">' + esc(text) + '</p><p class="stktm-dlg-err" role="alert" hidden></p>' +
+    '<div class="stktm-dlg-btns"><button type="button" class="stktm-pill" data-k="no">Cancel</button><button type="button" class="stktm-pill stktm-danger" data-k="yes">' + esc(yesText) + '</button></div></div>';
+  document.body.appendChild(d);
+  pop.hidden = true; if (opener) opener.setAttribute('aria-expanded', 'false');
+  const close = () => { d.remove(); document.removeEventListener('keydown', key, true); if (opener) opener.focus(); };
+  const yes = d.querySelector('[data-k=yes]'), err = d.querySelector('.stktm-dlg-err');
+  const key = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+    else if (e.key === 'Tab') { const f = [...d.querySelectorAll('button:not([disabled])')]; const i = f.indexOf(document.activeElement); e.preventDefault(); if (f.length) f[(i + (e.shiftKey ? f.length - 1 : 1) + f.length) % f.length].focus(); }
+  };
+  document.addEventListener('keydown', key, true);
+  d.addEventListener('mousedown', (e) => { if (e.target === d) close(); });
+  d.querySelector('[data-k=no]').addEventListener('click', close);
+  yes.addEventListener('click', async () => {
+    yes.disabled = true; err.hidden = true;
+    const r = await run();
+    if (r && r.ok) { close(); return; }
+    yes.disabled = false; err.textContent = (r && r.error) || 'Something went wrong. Try again.'; err.hidden = false;
+  });
+  setTimeout(() => d.querySelector('[data-k=no]').focus(), 0);
+}
+
 // ---- disconnect: confirm dialog, then revoke the account's grant (chart-live.js disconnect -> data.js op 'revoke'), back to Paper
 function askDisconnect(pop, id) {
   const A = API(); if (!A) return;
@@ -198,16 +236,18 @@ function askDisconnect(pop, id) {
 }
 
 // Trade button face: logo/icon + name (+ live dot). Returns the text for aria/phone label.
-export function button(b, live) {
-  const act = live && live.acct, t = act ? titleOf(act) : null, name = act ? t.short : 'Paper';
-  const sig = act ? act.id + '|' + name + '|' + (live.env && live.env.env) : 'paper';
+// paperOn === false (paper switched off, no live account): the "not trading" face, "Trade".
+export function button(b, live, paperOn) {
+  const act = live && live.acct, t = act ? titleOf(act) : null, off = !act && paperOn === false, name = act ? t.short : off ? 'Trade' : 'Paper';
+  const sig = act ? act.id + '|' + name + '|' + (live.env && live.env.env) : off ? 'off' : 'paper';
   if (b.dataset.tmSig !== sig) {
     b.dataset.tmSig = sig;
     b.innerHTML = (act ? logo(act.broker, 16) + '<i class="stktm-live" aria-hidden="true"></i>' : SV(16, '<path d="M7 17 17 7M9 7h8v8"/>')) + '<span class="stkc-btn-l">' + esc(name) + '</span><svg class="stktm-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
     b.querySelectorAll('img[data-fb]').forEach((i) => i.addEventListener('error', () => { i.parentNode.innerHTML = i.dataset.fb; }, { once: true }));
-    b.title = act ? 'Trading on ' + t.full : 'Trade: pick paper or a live account';
+    b.title = act ? 'Trading on ' + t.full : off ? 'Trade: paper trading is off. Pick Paper trading to turn it on' : 'Trade: pick paper or a live account';
   }
-  return act ? ((live.env && live.env.env === 'sandbox' ? 'SANDBOX ' : 'LIVE ') + name) : 'Paper';
+  b.classList.toggle('stktm-off', off);
+  return act ? ((live.env && live.env.env === 'sandbox' ? 'SANDBOX ' : 'LIVE ') + name) : off ? 'Trade' : 'Paper';
 }
 // Up/Down/Home/End move between rows; Right/Left into / out of a row's buttons; Enter/Space use the button's own click.
 export function keys(pop, e) {

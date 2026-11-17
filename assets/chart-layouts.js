@@ -16,6 +16,10 @@
 //   students/{uid}/chartLayouts/{id}  { name 1-60, state <= 900000 chars: JSON, or 'tz1:'+base64(gzip(JSON)) when
 //                                       the JSON is over 200000 (assets/chart-state-codec.js), symbol,
 //                                       interval, shared bool, updatedAt }   owner only
+//     The same collection also holds each WORKSPACE's own chart doc (assets/chart-workspaces.js): kind 'workspace',
+//     ws = workspace id. Owner 17 Nov: "layouts are different stuff and workspace is different stuff": those docs are never
+//     a layout here (no Recently used, Open layout, Library, counts, share). isWs() also hides the ones written before the
+//     kind field existed, by the workspace index (setHidden).
 //   chartShared/{id}                  { ownerUid, name, state, updatedAt }
 //     id = the layout's own random 20-char Firestore id. Any signed-in member may GET it by
 //     id (never list). Only the owner writes it. Share OFF deletes it, so the link dies.
@@ -264,7 +268,7 @@ export function mountLayouts(ws, o){
       pop.appendChild(item('Chart Library…', { icon: 'lib', run: () => lib && lib.open() }));
       pop.appendChild(item('Open layout…', { icon: 'open', run: openDialog }));
       pop.appendChild(item('Create new layout…', { icon: 'add', run: () => askName('Create new layout', 'New layout', createNew) }));
-      const rec = lsGet(K.recent(), []).filter((r) => r && r.id && (!cur || r.id !== cur.id)).slice(0, RECENT_MAX);
+      const rec = lsGet(K.recent(), []).filter((r) => r && r.id && !isWs(r.id) && (!cur || r.id !== cur.id)).slice(0, RECENT_MAX);
       if (rec.length) {
         pop.appendChild(head('Recently used'));
         rec.forEach((r) => {
@@ -315,16 +319,32 @@ export function mountLayouts(ws, o){
   }
   const subOf = (d) => [symLabel(d.symbol), tfLabel(d.interval)].filter(Boolean).join(' · ');
 
-  async function list(){
+  // ---- workspace docs are not layouts ----
+  const wsKind = new Set();      // ids seen with kind 'workspace'
+  let hiddenFn = null;           // () => ids of every workspace's own doc (the workspace index; set by chart-workspaces.js)
+  const isWs = (id) => !!id && (wsKind.has(id) || (!!hiddenFn && hiddenFn().includes(id)));
+  function setHidden(fn){
+    hiddenFn = fn; cache = null;
+    const r = lsGet(K.recent(), []), keep = r.filter((x) => x && !isWs(x.id));   // clean Recently used entries that point at a workspace
+    if (keep.length !== r.length) lsSet(K.recent(), keep);
+  }
+  async function listRaw(){
     const snap = await col().get();
     const out = [];
-    snap.forEach((d) => { const x = d.data() || {}; out.push({ id: d.id, name: x.name || 'Untitled', symbol: x.symbol || '', interval: x.interval || '', shared: !!x.shared, updatedAt: tsMs(x.updatedAt),
-      thumb: x.thumb || '', panes: x.panes || 1, indicators: x.indicators || 0, vis: x.vis || (x.shared ? 'link' : 'private'), desc: x.desc || '', tags: x.tags || [], cid: x.cid || '' }); });
+    snap.forEach((d) => { const x = d.data() || {}; if (x.kind === 'workspace') wsKind.add(d.id);
+      out.push({ id: d.id, name: x.name || 'Untitled', symbol: x.symbol || '', interval: x.interval || '', shared: !!x.shared, updatedAt: tsMs(x.updatedAt),
+      thumb: x.thumb || '', panes: x.panes || 1, indicators: x.indicators || 0, vis: x.vis || (x.shared ? 'link' : 'private'), desc: x.desc || '', tags: x.tags || [], cid: x.cid || '', kind: x.kind || '', ws: x.ws || '' }); });
     out.sort((a, b) => b.updatedAt - a.updatedAt);
+    return out;
+  }
+  // the member's LAYOUTS only (Open layout, Library, counts)
+  async function list(){
+    const out = (await listRaw()).filter((x) => !isWs(x.id));
     cache = out;
     return out;
   }
   function touchRecent(d){
+    if (isWs(d.id)) return;
     const r = lsGet(K.recent(), []).filter((x) => x && x.id !== d.id);
     r.unshift({ id: d.id, name: d.name, sub: subOf(d) });
     lsSet(K.recent(), r.slice(0, RECENT_MAX + 1));
@@ -458,12 +478,44 @@ export function mountLayouts(ws, o){
     if (viewing) endViewing();
     clearTimeout(autoTimer);
     apply(doc);
-    if (meta) setCur(meta); else { cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); }
+    if (meta && !isWs(meta.id)) setCur(meta); else { cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); }
+  }
+  // stop tracking the open layout without touching the screen (a workspace's own doc left in K.cur by an older version)
+  function forget(){ clearTimeout(autoTimer); cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); }
+
+  // A WORKSPACE's own chart doc (chart-workspaces.js): written here because it shares the collection and the codec, but it is
+  // never `cur`, never in Recently used, never counted. id null = create. Returns the id, or null.
+  // Until the rules with `kind`/`ws` are published, a write with them is refused: it is retried without them (the index
+  // still hides the doc), so workspaces keep saving either way.
+  let wsFieldsOk = true;
+  async function wsWrite(id, st, o){
+    if (!user() || safe()) return null;
+    let p; try { p = await pack(st); } catch (e) { return null; }
+    const ref = id ? col().doc(id) : col().doc();
+    const base = { name: String(o.name || 'Workspace').slice(0, NAME_MAX), state: p.state, symbol: p.symbol, interval: p.interval, updatedAt: ts(), panes: p.panes, indicators: p.indicators };
+    if (!id) Object.assign(base, { shared: false, vis: 'private' });
+    wsKind.add(ref.id);
+    try {
+      if (wsFieldsOk) { try { await ref.set(Object.assign({}, base, { kind: 'workspace', ws: o.ws }), { merge: true }); return ref.id; } catch (e) { if (e && e.code === 'permission-denied') wsFieldsOk = false; else throw e; } }
+      await ref.set(base, { merge: true });
+      return ref.id;
+    } catch (e) { console.warn('TradeZoro: workspace save', e && e.code); return null; }
+  }
+  // mark an existing doc as a workspace (backfill; the content is not changed)
+  async function wsMark(id, ws){
+    if (!user() || !wsFieldsOk) return false;
+    try { await col().doc(id).update({ kind: 'workspace', ws, updatedAt: ts() }); wsKind.add(id); return true; }
+    catch (e) { if (e && e.code === 'permission-denied') wsFieldsOk = false; return false; }
+  }
+  // the own doc of workspace `ws`, found by its field (an index that lost the id, e.g. written by an older tab)
+  async function wsFind(ws){
+    try { const all = await listRaw(); const x = all.find((y) => y.kind === 'workspace' && y.ws === ws); return x ? x.id : null; } catch (e) { return null; }
   }
   async function fetchDoc(id){
     const d = await col().doc(id).get();
     if (!d.exists) return null;
     const x = d.data(), doc = await decodeState(x.state);
+    if (x.kind === 'workspace') wsKind.add(id);
     return doc ? { doc, meta: { id, name: x.name, shared: !!x.shared, symbol: x.symbol, interval: x.interval, updatedAt: tsMs(x.updatedAt) } } : null;
   }
 
@@ -481,6 +533,7 @@ export function mountLayouts(ws, o){
       const d = await col().doc(id).get();
       if (!d.exists) { toast('That layout no longer exists.', 'error'); dropRecent(id); return; }
       const x = d.data();
+      if (x.kind === 'workspace' || isWs(id)) { wsKind.add(id); dropRecent(id); toast('That is a workspace, not a layout. Open it from the Workspaces menu.', 'error'); return; }
       const doc = await decodeState(x.state);
       if (!doc) { toast('That layout could not be read.', 'error'); return; }
       apply(doc);
@@ -722,7 +775,7 @@ export function mountLayouts(ws, o){
   const libApi = { open: (tab) => import('./chart-layouts-lib.js?v=1096').then((m) => { if (!mounted) mounted = m.mountLib(host); return mounted.open(tab); }).catch((e) => { console.warn('TradeZoro: layouts library', e); toast('Could not open the layouts library.', 'error'); }) };
   lib = libApi;
 
-  const api = { detach, saveNow, adopt, fetchDoc, booted: booted.catch(() => {}), saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
+  const api = { detach, saveNow, adopt, fetchDoc, forget, wsWrite, wsMark, wsFind, setHidden, isWs, booted: booted.catch(() => {}), saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
     get current(){ return cur; }, get viewing(){ return viewing; }, get dirty(){ return dirty; }, linkOf };
   window.STRYKER_LAYOUTS = api;
   return api;

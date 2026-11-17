@@ -136,8 +136,10 @@
   // ---- your activity ---------------------------------------------------------------------
   function activity(uid) {
     var S = db.collection('students').doc(uid);
-    S.collection('chartLayouts').orderBy('updatedAt', 'desc').limit(3).get().then(function (snap) {
-      var out = []; snap.forEach(function (d) { var x = d.data() || {}; out.push({ id: d.id, thumb: /^(data:image\/|https:\/\/)/.test(x.thumb || '') ? x.thumb : '', name: x.name || 'Untitled', sub: [x.symbol, x.interval].filter(Boolean).join(' · '), at: ms(x.updatedAt) }); });
+    // a workspace's own chart doc (kind 'workspace', or listed in this device's workspace index) is not a layout
+    var wsIds = []; try { var wi = JSON.parse(localStorage.getItem('stryker_ws_ix_' + uid) || 'null'); if (wi && wi.items) wi.items.forEach(function (w) { if (w.wsDoc) wsIds.push(w.wsDoc); }); if (wi && wi.hid) wsIds = wsIds.concat(wi.hid); } catch (e) {}
+    S.collection('chartLayouts').orderBy('updatedAt', 'desc').limit(15).get().then(function (snap) {
+      var out = []; snap.forEach(function (d) { var x = d.data() || {}; if (x.kind === 'workspace' || wsIds.indexOf(d.id) >= 0 || out.length >= 3) return; out.push({ id: d.id, thumb: /^(data:image\/|https:\/\/)/.test(x.thumb || '') ? x.thumb : '', name: x.name || 'Untitled', sub: [x.symbol, x.interval].filter(Boolean).join(' · '), at: ms(x.updatedAt) }); });
       $('dk-layouts').innerHTML = out.length ? '<ul class="dk-lay">' + out.map(function (l) {
         return '<li><a class="dk-lay-c" href="charts.html?openlayout=' + encodeURIComponent(l.id) + '" aria-label="Open layout ' + esc(l.name) + '"><span class="dk-lay-th">' + (l.thumb ? '<img src="' + esc(l.thumb) + '" alt="" loading="lazy">' : '<svg viewBox="0 0 80 40" aria-hidden="true"><path d="M2 30l12-8 10 5 14-14 12 8 14-12 14 6"/></svg>') + '</span><span class="dk-lay-t"><b>' + esc(l.name) + '</b><span class="dk-dim">' + esc(l.sub) + (l.at ? ' · ' + esc(ago(l.at)) : '') + '</span></span><em>Open</em></a></li>';
       }).join('') + '</ul>' : slot('Save your first layout', 'Save a chart setup once and it is here next time.', 'charts.html', 'Open ZoroCharts');

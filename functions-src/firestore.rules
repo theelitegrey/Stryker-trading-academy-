@@ -422,8 +422,12 @@ service cloud.firestore {
       // 50-per-member cap is client-side. Carved out of the wildcard above.
       match /chartLayouts/{lid} {
         function validLayout(d) {
-          return d.keys().hasOnly(['name', 'state', 'symbol', 'interval', 'shared', 'updatedAt', 'thumb', 'panes', 'indicators', 'vis', 'desc', 'tags', 'cid'])
+          return d.keys().hasOnly(['name', 'state', 'symbol', 'interval', 'shared', 'updatedAt', 'thumb', 'panes', 'indicators', 'vis', 'desc', 'tags', 'cid', 'kind', 'ws'])
             && d.keys().hasAll(['name', 'state', 'shared', 'updatedAt'])
+            // Workspaces vs layouts (2026-11-17): a workspace's own chart doc is marked kind 'workspace' + ws = the workspace id
+            // (assets/chart-workspaces.js), so it is never listed as a layout. Optional: real layouts have neither.
+            && (!('kind' in d) || d.kind == 'workspace')
+            && (!('ws' in d) || (d.ws is string && d.ws.matches('^w[a-z0-9]{4,16}$')))
             // Layouts library (2026-11-01): card thumbnail (webp data URL <= 60000 chars), counts, and the
             // last Publish-dialog choices, so My Layouts can draw cards without reading the state.
             && (!('thumb' in d) || (d.thumb is string && d.thumb.size() <= 60000 && (d.thumb == '' || d.thumb.matches('^data:image/webp;base64,.*'))))

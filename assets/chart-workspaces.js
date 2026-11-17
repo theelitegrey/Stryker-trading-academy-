@@ -11,10 +11,12 @@
 //     drag to reorder. Phones: the same list as a bottom sheet.
 //   - Desktop: a slim tab strip (shown from 2 workspaces) under the toolbar; Ctrl/Cmd+1..9 switch.
 //   - Switching is instant for the last few (their chart documents stay in memory) and saves the one you leave.
-// Storage builds on LAYOUTS: signed in, each workspace's chart is one saved layout (students/{uid}/chartLayouts,
-// created the first time you leave the workspace, then kept by the layout autosave); the index (names, order,
-// layout ids, panels) is in localStorage and synced to students/{uid}/chartPrefs/workspaces (rules block in
-// functions-src/firestore.rules). Signed out: index and chart documents in localStorage.
+// Storage: signed in, each workspace's chart is its OWN doc in students/{uid}/chartLayouts marked kind 'workspace'
+// (item.wsDoc; written on leave + a 3 s autosave). It is NOT a layout: never in the Layouts menu, Open layout, Library,
+// Recently used or the layout count (Owner 17 Nov: "layouts are different stuff and workspace is different stuff").
+// A real LAYOUT opened or saved inside a workspace stays a layout (item.layoutId) and is never renamed after the workspace.
+// The index (names, order, ids, panels) is in localStorage and synced to students/{uid}/chartPrefs/workspaces (rules
+// block in functions-src/firestore.rules). Signed out: index and chart documents in localStorage.
 // Closing a tab (x, middle-click, menu) only hides it: the workspace and its chart stay saved under "Closed workspaces"
 // in the Workspaces list, one click reopens it. Delete is a separate action with a confirm.
 // Crash safety: the screen itself is restored by the chart's own on-device save; the index says which
@@ -22,6 +24,7 @@
 import * as C from './chart-workspaces-core.js?v=1096';
 
 const REMOTE_MS = 1500;
+const WS_SAVE_MS = 3000;
 let remoteRead = false;
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 const isPhone = () => window.innerWidth <= 700;
@@ -111,7 +114,7 @@ export function mountWorkspaces(ws, o){
   const markScreen = (id) => { if (safe()) return;   // safe mode (phone, after a crash) writes no saved screen: nothing to claim
     lsSet(K.scr(), id); const w = () => { try { ws.persistNow && ws.persistNow(); } catch (e) {} }; w(); setTimeout(w, 900); };
   const docs = C.lru(C.CACHE_N);      // workspace id -> chart document (instant switching)
-  const pending = new Map();          // workspace id -> promise of its first layout save
+  const wsQ = new Map();              // workspace id -> its running own-doc save (saves of one workspace run in order)
   let ix = null, busy = null, want = null, remoteT = null;
   // Every tab has its own id. The engine's saved screen (vela-workspace) is ONE per browser, so a tab may only trust it
   // when it was the last tab to change it; otherwise (another tab wrote it) it restores its own snapshot / workspace doc.
@@ -121,8 +124,10 @@ export function mountWorkspaces(ws, o){
   const snapNow = () => { if (!ix || busy || safe() || L.viewing) return;
     try { sessionStorage.setItem(K.snap(), JSON.stringify({ ws: ix.active, st: screenState() })); } catch (e) {}
     // signed out (or never saved as a layout) a new tab has nothing else to open this workspace from
-    const it = cur(); if (it && (!user() || !it.layoutId)) lsSet(K.doc(it.id), screenState()); };
-  try { ws.on('state:changed', () => { stampMe(); clearTimeout(snapT); snapT = setTimeout(snapNow, 800); }); } catch (e) {}
+    const it = cur(); if (it && (!user() || !it.wsDoc)) lsSet(K.doc(it.id), screenState()); };
+  let wsT = null;   // the workspace's own doc autosave (the layout menu's autosave only covers a real layout)
+  try { ws.on('state:changed', () => { stampMe(); clearTimeout(snapT); snapT = setTimeout(snapNow, 800);
+    clearTimeout(wsT); wsT = setTimeout(() => { if (ix && !busy && !L.viewing && !safe() && user()) saveWs(cur(), screenState()); }, WS_SAVE_MS); }); } catch (e) {}
 
   // ---------------------------------------------------------------- state
   const safe = () => !!(window.__stkSafe && window.__stkSafe.active);
@@ -133,12 +138,25 @@ export function mountWorkspaces(ws, o){
     return st;
   }
   const cur = () => C.activeItem(ix);
-  // the open layout belongs to the open workspace (opening another layout from the layout menu moves the workspace to it)
+  // the real layout open in this workspace (if any) is remembered with it; the workspace's own doc is separate (wsDoc)
   function syncLayout(it){
     if (!user() || L.viewing) return;
     const c = L.current;
-    if (c) { it.layoutId = c.id; it.layoutName = c.name; it.shared = !!c.shared; }
-    else if (!pending.has(it.id)) { it.layoutId = null; it.layoutName = ''; it.shared = false; }
+    if (c && !L.isWs(c.id)) { it.layoutId = c.id; it.layoutName = c.name; it.shared = !!c.shared; }
+    else { it.layoutId = null; it.layoutName = ''; it.shared = false; }
+  }
+  // Save the workspace's OWN chart doc (kind 'workspace'), creating it the first time. Signed out / failed: this device.
+  function saveWs(it, st){
+    if (!it || !st) return Promise.resolve();
+    if (!user() || safe() || L.viewing) return Promise.resolve();
+    const p = (wsQ.get(it.id) || Promise.resolve()).then(async () => {
+      const id = await L.wsWrite(it.wsDoc, st, { name: it.name, ws: it.id });
+      if (id && id !== it.wsDoc) { it.wsDoc = id; persist(); }
+      if (!id) lsSet(K.doc(it.id), st);
+    }).catch(() => { lsSet(K.doc(it.id), st); });
+    wsQ.set(it.id, p);
+    p.finally(() => { if (wsQ.get(it.id) === p) wsQ.delete(it.id); });
+    return p;
   }
   function persist(){
     ix.t = Date.now();
@@ -166,26 +184,22 @@ export function mountWorkspaces(ws, o){
     it.sub = C.subOf(st);
     docs.set(it.id, st);
     if (!user()) { if (!lsSet(K.doc(it.id), st)) keepLocal(it, st); return; }
-    if (L.current) { L.saveNow(false, st); return; }
-    // shortcut: its first save is still running; this newer state is kept in memory + on this device only, the account
-    // copy catches up at the next autosave there. Upgrade if members report seconds-old charts after a quick reload.
-    if (pending.has(it.id)) { lsSet(K.doc(it.id), st); return; }
-    // first time away from a workspace with no saved layout: save one under the workspace's name
-    const p = Promise.resolve(L.saveAsNew(it.name, { st, quiet: true, attach: () => false })).then((r) => {
-      if (r && r.id) { it.layoutId = r.id; it.layoutName = r.name; it.shared = false; }
-      else if (!lsSet(K.doc(it.id), st)) keepLocal(it, st);
-      pending.delete(it.id); persist();
-    }, () => { pending.delete(it.id); lsSet(K.doc(it.id), st); });
-    pending.set(it.id, p);
+    clearTimeout(wsT);
+    if (L.current && !L.isWs(L.current.id)) L.saveNow(false, st);   // a real layout open here keeps its autosave behaviour
+    saveWs(it, st);                                                    // the workspace's own doc (never a layout)
   }
   function keepLocal(it, st){ try { window.StrykerStateCodec && window.StrykerStateCodec.backup('workspace:' + uid() + ':' + it.id, it.name, JSON.stringify(st)); } catch (e) {} }
 
+  const metaOf = (it) => (it.layoutId ? { id: it.layoutId, name: it.layoutName || it.name, shared: !!it.shared } : null);
   async function load(it){
-    if (pending.has(it.id)) await pending.get(it.id);
+    if (wsQ.has(it.id)) await wsQ.get(it.id);
     const c = docs.get(it.id);
-    const meta = it.layoutId ? { id: it.layoutId, name: it.layoutName || it.name, shared: !!it.shared } : null;
+    const meta = metaOf(it);   // the real layout open in it (or none): the layout menu tracks that one, never the workspace doc
     if (c) return { doc: JSON.parse(JSON.stringify(c)), meta };   // a copy: applyState must never alter the cached one
-    if (user() && it.layoutId) {
+    if (user() && it.wsDoc) {
+      try { const r = await L.fetchDoc(it.wsDoc); if (r) return { doc: r.doc, meta }; } catch (e) { console.warn('TradeZoro: workspace doc', e); }
+    }
+    if (user() && it.layoutId) {   // older workspace with a real layout and no own doc yet: open that layout
       try { const r = await L.fetchDoc(it.layoutId); if (r) return r; } catch (e) { console.warn('TradeZoro: workspace layout', e); }
     }
     const d = lsGet(K.doc(it.id));
@@ -206,7 +220,7 @@ export function mountWorkspaces(ws, o){
       try { r = await load(to); } catch (e) { r = { doc: defaultDoc(), meta: null }; }
       if (ix.active !== to.id) return;            // deleted / switched meanwhile
       L.adopt(r.doc, r.meta);
-      if (r.meta) { to.layoutId = r.meta.id; to.layoutName = r.meta.name; to.shared = !!r.meta.shared; }
+      syncLayout(to);
       docs.set(to.id, r.doc);
       markScreen(to.id); stampMe(); snapNow();
       if (!isPhone()) applyPanels(to.panels);
@@ -218,19 +232,13 @@ export function mountWorkspaces(ws, o){
     want = null;
   }
 
-  // a new / duplicated workspace opens at once; signed in, it becomes a saved layout straight away (so autosave runs)
+  // a new / duplicated workspace opens at once; signed in, its own doc is saved straight away (not a layout)
   async function openNew(name, doc){
     const it = C.add(ix, name);
     if (!it) { toast('You have ' + C.MAX + ' workspaces (open and closed). Delete one to add another.', 'error'); return; }
     docs.set(it.id, doc);
     await switchTo(it.id);
-    if (user() && ix.active === it.id && !safe()) {
-      const p = Promise.resolve(L.saveAsNew(it.name, { quiet: true, attach: () => ix.active === it.id })).then((r) => {
-        if (r && r.id) { it.layoutId = r.id; it.layoutName = r.name; it.shared = false; }
-        pending.delete(it.id); persist();
-      }, () => pending.delete(it.id));
-      pending.set(it.id, p);
-    }
+    if (user() && ix.active === it.id && !safe()) saveWs(it, doc);
     return it;
   }
   const createNew = (name) => openNew(name, defaultDoc());
@@ -238,21 +246,19 @@ export function mountWorkspaces(ws, o){
     if (safe()) { toast('Turn the indicators back on first, so the copy has them.', 'error'); return; }
     return openNew(cur().name + ' (copy)', screenState());
   }
-  // the layout a workspace made for itself (same name) follows the rename; a layout the member named themselves keeps its name
+  // renames the workspace only; a real layout open in it keeps its own name (its own doc picks the name up at its next save)
   async function renameWs(id, name){
     const it = C.find(ix, id); if (!it) return;
-    const old = it.name;
     if (!C.rename(ix, id, name)) return;
-    if (pending.has(id)) await pending.get(id);
-    if (user() && it.layoutId && it.layoutName === old && L.renameId) { try { await L.renameId(it.layoutId, it.name); it.layoutName = it.name; } catch (e) {} }
-    else toast('Renamed');
+    toast('Renamed');
     persist();
+    if (ix.active === id && it.wsDoc && !L.viewing && !safe()) saveWs(it, screenState());
   }
   async function removeWs(id){
     const it = C.find(ix, id);
     if (!it) return false;
     if (ix.items.length <= 1 || (!it.closed && C.openItems(ix).length <= 1)) { toast('Keep at least one workspace open.', 'error'); return false; }
-    const kept = user() && it.layoutId ? ' Its chart stays in your saved layouts.' : '';
+    const kept = user() && it.layoutId ? ' The layout "' + it.layoutName + '" stays in your saved layouts.' : '';
     if (!window.confirm('Delete the workspace "' + it.name + '"?' + kept)) return false;
     const wasActive = ix.active === id;
     const open = C.openItems(ix), i = open.findIndex((x) => x.id === id);
@@ -270,7 +276,7 @@ export function mountWorkspaces(ws, o){
     if (!ids.length) { toast('Nothing to close.'); return false; }
     if (ids.length >= C.openItems(ix).length) return false;
     const names = ids.map((id) => C.find(ix, id).name);
-    if (!window.confirm('Delete ' + ids.length + ' workspace' + (ids.length > 1 ? 's' : '') + ' (' + what + ')?\n' + names.join(', ').slice(0, 200) + '\nPinned tabs stay.' + (user() ? ' Their charts stay in your saved layouts.' : ''))) return false;
+    if (!window.confirm('Delete ' + ids.length + ' workspace' + (ids.length > 1 ? 's' : '') + ' (' + what + ')?\n' + names.join(', ').slice(0, 200) + '\nPinned tabs stay. Your saved layouts are not deleted.')) return false;
     if (ids.includes(ix.active)) { const keep = C.openItems(ix).find((x) => !ids.includes(x.id)); await switchTo(keep.id); }
     ids.forEach((id) => { C.remove(ix, id); docs.delete(id); if (!user()) lsDel(K.doc(id)); });
     persist(); toast(ids.length + ' workspaces deleted');
@@ -523,10 +529,11 @@ export function mountWorkspaces(ws, o){
       catch (e) { toast((e && e.message) || 'Could not save the template.', 'error'); }
     });
   }
+  // a link shares a LAYOUT: with none open in this workspace, the member saves one first (named by them, not after the workspace)
   async function shareLink(id){
     const it = await onIt(id); if (!it || !user()) return;
-    if (!L.current && !L.viewing) { const r = await L.saveAsNew(it.name, { quiet: true }); if (r && r.id) { it.layoutId = r.id; it.layoutName = r.name; persist(); } }
-    const c = L.current; if (!c) { toast('Could not make a link yet. Try again in a moment.', 'error'); return; }
+    const c = L.current;
+    if (!c || L.isWs(c.id)) { toast('Save this chart as a layout first (Layout menu, Save layout), then share it.'); if (!L.viewing) L.saveNow(true); return; }
     if (!c.shared) {
       if (!window.confirm('Turn on sharing for "' + it.name + '"? Anyone with the link can view it (read-only). You can turn it off any time from the layout menu.')) return;
       await L.setShared(true); return;   // copies the link itself
@@ -537,9 +544,9 @@ export function mountWorkspaces(ws, o){
   async function resetLayout(id){
     const it = await onIt(id); if (!it) return;
     if (!window.confirm('Reset "' + it.name + '" to a single chart? The workspace stays.')) return;
-    try { window.STRYKER_CHART_UI.setLayout('1'); } catch (e) { toast('Could not reset the layout.', 'error'); return; }
+    try { window.STRYKER_CHART_UI.setLayout('1'); } catch (e) { toast('Could not reset the chart grid.', 'error'); return; }
     setTimeout(() => { try { it.sub = C.subOf(screenState()); } catch (e) {} persist(); }, 600);
-    toast('Layout reset to one chart');
+    toast('Reset to one chart');
   }
   function setLook(id, k, v){ const it = C.find(ix, id); if (!it) return; it[k] = it[k] === v ? '' : v; persist(); }
 
@@ -566,7 +573,7 @@ export function mountWorkspaces(ws, o){
       { label: 'Move right', icon: 'right', kbd: isMac ? '⌥→' : 'Alt+→', disabled: !C.canStep(ix, id, 1), run: () => stepWs(id, 1) },
       { label: 'Open in new window', icon: 'ext', run: () => { persist(); window.open(location.pathname + '?ws=' + encodeURIComponent(id), '_blank', 'noopener'); } }]);
     g.push([
-      { label: 'Reset layout…', icon: 'reset', run: () => resetLayout(id) },
+      { label: 'Reset to one chart…', icon: 'reset', run: () => resetLayout(id) },
       { label: 'Close workspace', icon: 'close', disabled: n <= 1, run: () => closeWs(id) },
       { label: 'Close other workspaces', icon: 'close', disabled: !others.length || others.length >= n, run: () => closeMany(others) },
       { label: 'Close workspaces to the right', icon: 'close', disabled: !right.length || right.length >= n, run: () => closeMany(right) }]);
@@ -711,7 +718,7 @@ export function mountWorkspaces(ws, o){
     const r = C.sanitize(e.newValue);
     if (!r || r.t <= ix.t || !C.find(r, ix.active)) return;
     const here = C.find(r, ix.active), mine = cur();
-    Object.assign(here, { layoutId: mine.layoutId, layoutName: mine.layoutName, shared: mine.shared, closed: false });
+    Object.assign(here, { layoutId: mine.layoutId, layoutName: mine.layoutName, shared: mine.shared, closed: false, wsDoc: here.wsDoc || mine.wsDoc });
     r.active = ix.active; ix = r; paint();
   });
 
@@ -728,13 +735,17 @@ export function mountWorkspaces(ws, o){
   // treating the screen as its own (that is how workspace 2 ended up showing, and then saving over, workspace 1).
   const scr = saved ? lsGet(K.scr()) : null;
   let noScreen = false; try { noScreen = !!window.__stkPersistKey && !localStorage.getItem(window.__stkPersistKey); } catch (e) {}
+  // workspace docs are never layouts: tell the layout menu which ids are workspaces (also cleans its Recently used)
+  L.setHidden(() => (ix ? C.wsDocIds(ix) : []));
   const lay = user() && L.current ? L.current.id : null;   // the open layout (also one per browser) is another workspace's
   let snap = null; try { snap = JSON.parse(sessionStorage.getItem(K.snap()) || 'null'); } catch (e) {}
   if (!snap || snap.ws !== ix.active || !snap.st || typeof snap.st !== 'object') snap = null;
   let stamp = null; try { stamp = localStorage.getItem(K.stamp()); } catch (e) {}
   // another tab changed the shared screen after this one did (or no tab did since this one opened): not this tab's chart
   const otherTab = !!stamp && stamp !== myTab;
-  const foreign = !!saved && (noScreen || otherTab || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && x.layoutId === lay)));
+  const foreign = !!saved && (noScreen || otherTab || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && (x.layoutId === lay || x.wsDoc === lay))));
+  // an older version tracked the workspace's own doc as "the open layout": stop (the screen stays as it is)
+  if (lay && L.isWs(lay)) L.forget();
   if (!foreign) { syncLayout(cur()); markScreen(ix.active); stampMe(); }
   paint();
   if (saved) persist();
@@ -748,7 +759,7 @@ export function mountWorkspaces(ws, o){
       // nothing of this workspace saved anywhere and no snapshot: keep what is on screen rather than replace it with a blank chart
       else if (r.fresh) { markScreen(it.id); stampMe(); return; }
       L.adopt(r.doc, r.meta);
-      if (r.meta) { it.layoutId = r.meta.id; it.layoutName = r.meta.name; it.shared = !!r.meta.shared; }
+      syncLayout(it);
       docs.set(it.id, r.doc); markScreen(it.id); stampMe();
       if (!isPhone()) applyPanels(it.panels);
       persist();
@@ -758,16 +769,34 @@ export function mountWorkspaces(ws, o){
   if (user()) {
     remoteRef().get().then((d) => {
       setTimeout(bootDefault, 400);
+      setTimeout(backfill, 600);
       remoteRead = true;
       const r = d && d.exists ? C.sanitize((d.data() || {}).index) : null;
       if (!r || C.pickNewer(ix, r) !== r) { persist(); return; }
       const here = C.find(r, ix.active);
-      if (here) { r.active = ix.active; here.closed = false; Object.assign(here, { layoutId: cur().layoutId, layoutName: cur().layoutName, shared: cur().shared }); ix = r; persist(); return; }
+      if (here) { r.active = ix.active; here.closed = false; Object.assign(here, { layoutId: cur().layoutId, layoutName: cur().layoutName, shared: cur().shared, wsDoc: here.wsDoc || cur().wsDoc }); ix = r; persist(); return; }
       const target = r.active; ix = r; ix.active = null;
       // the screen belongs to a workspace this account no longer has: open the account's active one (no save: it was not ours)
       (async () => { const it = C.find(ix, target) || ix.items[0]; ix.active = it.id; const x = await load(it); L.adopt(x.doc, x.meta); markScreen(it.id); persist(); })();
     }).catch((e) => console.warn('TradeZoro: workspaces sync', e && e.code));
   }
+
+  // Backfill (once per doc, this device): mark each workspace's own doc kind 'workspace' in the account, so every list
+  // (also other devices and the dashboard) knows it is not a layout. Only the marker fields change, never the chart.
+  let marking = false;
+  async function backfill(){
+    if (!user() || !ix || marking) return;
+    L.setHidden(() => (ix ? C.wsDocIds(ix) : []));   // re-clean Recently used against the (account) index
+    marking = true;
+    const k = 'stryker_ws_marked_' + uid(), done = new Set(lsGet(k) || []);
+    for (const it of ix.items) {
+      if (!it.wsDoc || done.has(it.wsDoc)) continue;
+      if (await L.wsMark(it.wsDoc, it.id)) done.add(it.wsDoc); else break;
+    }
+    lsSet(k, [...done].slice(-100));
+    marking = false;
+  }
+  if (user()) setTimeout(backfill, 5000);   // (also run once the account copy of the index is read, below)
 
   // "Set as default workspace": it opens on load (once, after the account copy is read)
   let defDone = false;
@@ -777,7 +806,7 @@ export function mountWorkspaces(ws, o){
 
   const api = { switchTo, openMenu, closeMenu, removeMany, saveTemplate, createNew, duplicate, rename: renameWs, remove: removeWs, close: closeWs, reopen: reopenWs, reorder,
     get index(){ return JSON.parse(JSON.stringify(ix)); }, get active(){ return cur(); }, get cached(){ return docs.keys(); },
-    get busy(){ return !!busy; }, capturePanels };
+    get busy(){ return !!busy; }, capturePanels, saveWs: () => saveWs(cur(), screenState()), get wsSaving(){ return wsQ.size > 0; } };
   window.STRYKER_WORKSPACES = api;
   return api;
 }

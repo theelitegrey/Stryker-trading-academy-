@@ -94,9 +94,10 @@ const waitIdle = (p) => p.waitForFunction(() => !window.STRYKER_WORKSPACES.busy,
 const name = (p) => p.$eval('#stkws-btn', (e) => e.textContent.trim());
 const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
 const edit = async (p, sym) => { await W(p, (s) => { const c = window.STRYKER_VELA.cells(); c[0].setSymbol(s); c[0].setTimeframe('5'); }, sym); await sleep(500); };
-// what the account holds for each workspace's layout: "name=first chart symbol" (read back through the layouts library)
-const saved = (p) => W(p, async () => { const o = []; for (const x of window.STRYKER_WORKSPACES.index.items) { if (!x.layoutId) { o.push(x.name + '=none'); continue; }
-  const r = await window.STRYKER_LAYOUTS.fetchDoc(x.layoutId); o.push(x.name + '=' + (r && r.doc && r.doc.charts ? r.doc.charts[0].symbol : 'none')); } return o; });
+// what the account holds for each workspace's chart: "name=first chart symbol" (read back through the layouts library)
+// (since 17 Nov a workspace's chart is its own doc, item.wsDoc, kind 'workspace'; layoutId is only a real layout opened in it)
+const saved = (p) => W(p, async () => { const o = []; for (const x of window.STRYKER_WORKSPACES.index.items) { const id = x.wsDoc || x.layoutId; if (!id) { o.push(x.name + '=none'); continue; }
+  const r = await window.STRYKER_LAYOUTS.fetchDoc(id); o.push(x.name + '=' + (r && r.doc && r.doc.charts ? r.doc.charts[0].symbol : 'none')); } return o; });
 
 (async () => {
   const b = await launch();

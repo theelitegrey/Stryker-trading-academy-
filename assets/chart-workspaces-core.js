@@ -4,8 +4,12 @@
 // A WORKSPACE is the whole screen: the chart document (grid, every chart's symbol, interval,
 // indicators, drawings: the same Vela state a LAYOUT saves) plus the open side panels and their
 // widths. The chart document lives in the layout system (signed in: students/{uid}/chartLayouts,
-// one layout per workspace; signed out: this device). This file only handles the INDEX: an
-// ordered list of workspaces { id, name, layoutId, layoutName, panels, sub } + the active id.
+// signed out: this device). This file only handles the INDEX: an ordered list of workspaces
+// { id, name, wsDoc, layoutId, layoutName, panels, sub } + the active id.
+// Owner 17 Nov ("layouts are different stuff and workspace is different stuff"): two separate ids per workspace.
+//   wsDoc    = the workspace's OWN chart doc (students/{uid}/chartLayouts, kind 'workspace'). Never listed as a layout.
+//   layoutId = a real saved LAYOUT the member opened or saved inside this workspace (null when none).
+// Older indexes kept the own doc in layoutId; migrate() moves it to wsDoc once (see below).
 
 export const MAX = 12;          // workspaces per member
 export const NAME_MAX = 40;
@@ -43,8 +47,10 @@ function cleanItem(x){
   if (!x || typeof x !== 'object' || !ID_RE.test(String(x.id))) return null;
   const name = cleanName(x.name);
   if (!name) return null;
+  x = migrate(x);
   return {
     id: x.id, name,
+    wsDoc: LID_RE.test(String(x.wsDoc || '')) ? x.wsDoc : null,
     layoutId: LID_RE.test(String(x.layoutId || '')) ? x.layoutId : null,
     layoutName: x.layoutId ? String(x.layoutName || '').replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 60) : '',
     shared: !!(x.layoutId && x.shared === true),   // the layout's share switch, so a save after switching back keeps it
@@ -56,6 +62,21 @@ function cleanItem(x){
     glyph: GLYPHS.includes(x.glyph) ? x.glyph : ''
   };
 }
+
+// One-time backfill for indexes written before wsDoc existed (no wsDoc key at all): the layout a workspace made for itself
+// was saved under the workspace's name and renamed along with it, so layoutName === name marks it as the workspace's own
+// doc. A real layout the member opened / saved into the workspace has its own name and stays a layout.
+// (A member's real layout literally named like the workspace is read as the workspace's doc: still shown in that workspace.)
+export function migrate(x){
+  if (!x || typeof x !== 'object' || 'wsDoc' in x) return x;
+  const own = !!x.layoutId && cleanName(x.layoutName) === cleanName(x.name);
+  return own ? Object.assign({}, x, { wsDoc: x.layoutId, layoutId: null, layoutName: '', shared: false }) : Object.assign({}, x, { wsDoc: null });
+}
+// every workspace's own doc id (these are never shown as layouts)
+// (+ `hid`: the docs of deleted workspaces, kept in the account but still not layouts)
+export const wsDocIds = (ix) => (ix && Array.isArray(ix.items) ? ix.items.map((x) => x.wsDoc).filter(Boolean).concat(Array.isArray(ix.hid) ? ix.hid : []) : []);
+export const HID_MAX = 60;
+const cleanHid = (a) => [...new Set((Array.isArray(a) ? a : []).filter((x) => LID_RE.test(String(x || ''))))].slice(-HID_MAX);
 
 // Untrusted (localStorage / Firestore) -> a valid index, or null when nothing usable is in it.
 export function sanitize(raw){
@@ -73,7 +94,7 @@ export function sanitize(raw){
   if (items.every((x) => x.closed)) items[0].closed = false;   // never a screen with no open workspace
   const active = (items.find((x) => x.id === o.active && !x.closed) || items.find((x) => !x.closed)).id;
   pinFirst(items);
-  return { v: 1, active, items, def: seen.has(o.def) ? o.def : '', t: Number.isFinite(+o.t) ? +o.t : 0 };
+  return { v: 1, active, items, def: seen.has(o.def) ? o.def : '', t: Number.isFinite(+o.t) ? +o.t : 0, hid: cleanHid(o.hid) };
 }
 // pinned tabs always sit left (stable: order inside each group is kept)
 export function pinFirst(items){
@@ -117,7 +138,7 @@ export function setDefault(ix, id){ ix.def = ix.def === id ? '' : (find(ix, id) 
 
 export function fresh(name, layout){
   const id = newId();
-  return { v: 1, active: id, def: '', t: 0, items: [cleanItem({ id, name: cleanName(name) || 'Workspace 1', layoutId: layout ? layout.id : null, layoutName: layout ? layout.name : '', shared: !!(layout && layout.shared), panels: null, sub: '' })] };
+  return { v: 1, active: id, def: '', t: 0, hid: [], items: [cleanItem({ id, name: cleanName(name) || 'Workspace 1', wsDoc: null, layoutId: layout ? layout.id : null, layoutName: layout ? layout.name : '', shared: !!(layout && layout.shared), panels: null, sub: '' })] };
 }
 
 export const find = (ix, id) => ix.items.find((x) => x.id === id) || null;
@@ -152,7 +173,8 @@ export function remove(ix, id){
   const i = ix.items.findIndex((x) => x.id === id);
   if (i < 0 || ix.items.length <= 1) return false;
   if (ix.active === id && openItems(ix).length <= 1) return false;
-  ix.items.splice(i, 1);
+  const [gone] = ix.items.splice(i, 1);
+  if (gone.wsDoc) ix.hid = cleanHid((ix.hid || []).concat(gone.wsDoc));   // its chart doc stays in the account, still not a layout
   if (ix.def === id) ix.def = '';
   if (ix.active !== id) return null;
   const open = openItems(ix), next = (open.find((x) => ix.items.indexOf(x) >= i) || open[open.length - 1]).id;
@@ -201,7 +223,7 @@ export function pickNewer(local, remote){
 }
 
 export function serialize(ix){
-  const s = JSON.stringify({ v: 1, active: ix.active, def: ix.def || '', t: ix.t || 0, items: ix.items });
+  const s = JSON.stringify({ v: 1, active: ix.active, def: ix.def || '', t: ix.t || 0, items: ix.items, hid: cleanHid(ix.hid) });
   return s.length <= INDEX_MAX ? s : null;
 }
 

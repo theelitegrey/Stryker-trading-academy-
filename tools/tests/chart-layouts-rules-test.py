@@ -40,6 +40,11 @@ case("DENY","B write A's layout",'bob',"create",L,new=G)
 case("DENY","B delete A's layout",'bob',"delete",L,old=G)
 case("DENY","signed-out get",None,"get",L,old=G)
 case("DENY","admin read A's layout (owner only)",'admin',"get",L,old=G)
+case("ALLOW","A workspace doc (kind + ws)",'alice',"create",L,new=dict(G,kind="workspace",ws="wabc12345"))
+case("ALLOW","A mark existing as workspace",'alice',"update",L,new=dict(G,kind="workspace",ws="wabc12345"),old=G)
+case("DENY","A kind other than workspace",'alice',"create",L,new=dict(G,kind="layout"))
+case("DENY","A ws bad id",'alice',"create",L,new=dict(G,kind="workspace",ws="../x"))
+case("DENY","A ws not string",'alice',"create",L,new=dict(G,kind="workspace",ws=5))
 # --- chartShared
 S=f"/chartShared/{LID}"
 SH={"ownerUid":"alice","name":"My NQ","state":'{"version":1}',"updatedAt":TS}

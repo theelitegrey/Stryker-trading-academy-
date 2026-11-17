@@ -119,4 +119,17 @@ ok(C.serialize(big) === null, 'oversized index not serialized');
   const solo = C.fresh('S'); C.add(solo, 'T'); C.close(solo, solo.items[1].id);
   ok(C.remove(solo, solo.active) === false, 'delete refuses the last open one');
 }
+// workspaces vs layouts (17 Nov): legacy own doc (layoutName === name) -> wsDoc; a real layout stays a layout
+{
+  const LEG = 'ABCDEFGHIJ0000000002', REAL = 'ABCDEFGHIJ00000000GA';
+  const ix = C.sanitize({ items: [{ id: 'wleg00002', name: 'Workspace 2', layoutId: LEG, layoutName: 'Workspace 2' }, { id: 'wmain0001', name: 'Main', layoutId: REAL, layoutName: 'Gary' }] });
+  ok(ix.items[0].wsDoc === LEG && ix.items[0].layoutId === null, 'legacy: own doc named after the workspace -> wsDoc');
+  ok(ix.items[1].wsDoc === null && ix.items[1].layoutId === REAL && ix.items[1].layoutName === 'Gary', 'legacy: real layout stays a layout');
+  const back = C.sanitize(C.serialize(ix));
+  ok(back.items[0].wsDoc === LEG && back.items[1].layoutId === REAL, 'migration runs once (wsDoc key present after)');
+  ok(C.wsDocIds(ix).join() === LEG, 'wsDocIds lists only workspace docs');
+  C.add(ix, 'x'); ix.items[2].wsDoc = 'ZZZZZZZZZZ0000000003'; C.remove(ix, ix.items[2].id);
+  ok(C.wsDocIds(ix).includes('ZZZZZZZZZZ0000000003') && C.sanitize(C.serialize(ix)).hid.includes('ZZZZZZZZZZ0000000003'), 'a deleted workspace doc stays hidden from layouts');
+  ok(C.sanitize({ items: [{ id: 'wabcdef1', name: 'a' }], hid: ['../x', 'ABCDEFGHIJ0000000009'] }).hid.join() === 'ABCDEFGHIJ0000000009', 'hid: bad ids dropped');
+}
 console.log('ALL PASS');

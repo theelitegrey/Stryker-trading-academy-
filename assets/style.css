@@ -6272,7 +6272,8 @@ body.charts-page .stkchart-credit{
 .vela-dialog--settings .vela-dialog-footer{ border-top:1px solid var(--vela-border, var(--line)); }
 .vela-sd-mobile .vela-dialog--settings .vela-sd-rail{ background:transparent; }
 /* the settings grid's 2nd track fills the pane so section dividers run edge to edge (cells stay start-aligned) */
-.vela-dialog--settings .vela-field-grid[data-variant='settings']:not([data-mobile]){ grid-template-columns:max-content minmax(max-content, 1fr); }
+/* Vela sets the tracks inline (max-content max-content), hence !important */
+.vela-dialog--settings .vela-field-grid[data-variant='settings']:not([data-mobile]){ grid-template-columns:max-content minmax(max-content, 1fr) !important; }
 .stkc-check{ display:flex; align-items:center; gap:9px; padding:5px 8px; cursor:pointer; }
 .stkc-check input{ accent-color:var(--gold); width:15px; height:15px; margin:0; }
 .stkc-check:has(input:disabled){ opacity:.45; cursor:default; }
@@ -10081,9 +10082,10 @@ select.stkw-in option{ color:#131722; background:#fff; }
 .stkr-date{ flex:1; min-width:0; height:32px; padding:0 8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-0); color:var(--ink-0); font:inherit; font-size:12.5px; color-scheme:dark; }
 .stkr-date:focus{ outline:none; border-color:var(--gold); }
 html[data-theme="light"] .stkr-date{ color-scheme:light; background:#fff; }
-.stkr-go.stkr-go{ flex:none; height:32px; padding:0 16px; border:0; border-radius:999px; background:var(--gold); color:#04140d; font-weight:700; }
-.stkr-go.stkr-go:hover{ background:var(--gold-bright); color:#04140d; }
-:root[data-theme="light"] .stkr-go.stkr-go{ color:#fff; }
+/* #stkc-bar prefix: the one-bar .stkc-btn rules are id-scoped */
+.stkr-go.stkr-go, #stkc-bar .stkr-go.stkr-go{ flex:none; height:32px; padding:0 16px; border:0; border-radius:999px; background:var(--gold); color:#04140d; font-weight:700; }
+.stkr-go.stkr-go:hover, #stkc-bar .stkr-go.stkr-go:hover{ background:var(--gold-bright); color:#04140d; }
+:root[data-theme="light"] .stkr-go.stkr-go, :root[data-theme="light"] #stkc-bar .stkr-go.stkr-go{ color:#fff; }
 .stkr-note{ line-height:16px; }
 .stkr-badge{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:6px; background:rgba(242,54,69,.14); color:#f23645; font-family:inherit; font-size:11px; font-weight:700; line-height:1; letter-spacing:.06em; white-space:nowrap; flex:none; }
 .stkr-badge::before{ content:""; width:7px; height:7px; border-radius:50%; background:#f23645; }

@@ -103,6 +103,8 @@ export function mountWorkspaces(ws, o){
   const uid = () => (user() ? user().uid : 'guest');
   const K = { ix: () => 'stryker_ws_ix_' + uid(), doc: (id) => 'stryker_ws_doc_' + uid() + '_' + id,
     scr: () => 'stryker_ws_scr_' + uid(),        // which workspace the engine's own saved screen (vela-workspace) belongs to
+    snap: () => 'stryker_ws_snap_' + uid(),     // this tab's own latest screen (sessionStorage: never shared with other tabs)
+    stamp: () => 'stryker_ws_stamp_' + uid(),   // which tab changed the shared engine screen last
     tab: () => 'stryker_ws_tab_' + uid() };      // this browser tab's active workspace (sessionStorage: survives a reload, never shared with other tabs)
   // markScreen: the engine's saved screen now belongs to workspace `id`. The engine writes it ~0.5 s after a change and
   // a document shown through adopt() does not always start that timer (phones), so it is written here too.
@@ -111,6 +113,16 @@ export function mountWorkspaces(ws, o){
   const docs = C.lru(C.CACHE_N);      // workspace id -> chart document (instant switching)
   const pending = new Map();          // workspace id -> promise of its first layout save
   let ix = null, busy = null, want = null, remoteT = null;
+  // Every tab has its own id. The engine's saved screen (vela-workspace) is ONE per browser, so a tab may only trust it
+  // when it was the last tab to change it; otherwise (another tab wrote it) it restores its own snapshot / workspace doc.
+  let myTab = null; try { myTab = sessionStorage.getItem('stryker_ws_tabid'); if (!myTab) sessionStorage.setItem('stryker_ws_tabid', myTab = Math.random().toString(36).slice(2, 10)); } catch (e) { myTab = 'x' + Math.random(); }
+  const stampMe = () => { try { localStorage.setItem(K.stamp(), myTab); } catch (e) {} };
+  let snapT = null;
+  const snapNow = () => { if (!ix || busy || safe() || L.viewing) return;
+    try { sessionStorage.setItem(K.snap(), JSON.stringify({ ws: ix.active, st: screenState() })); } catch (e) {}
+    // signed out (or never saved as a layout) a new tab has nothing else to open this workspace from
+    const it = cur(); if (it && (!user() || !it.layoutId)) lsSet(K.doc(it.id), screenState()); };
+  try { ws.on('state:changed', () => { stampMe(); clearTimeout(snapT); snapT = setTimeout(snapNow, 800); }); } catch (e) {}
 
   // ---------------------------------------------------------------- state
   const safe = () => !!(window.__stkSafe && window.__stkSafe.active);
@@ -196,7 +208,7 @@ export function mountWorkspaces(ws, o){
       L.adopt(r.doc, r.meta);
       if (r.meta) { to.layoutId = r.meta.id; to.layoutName = r.meta.name; to.shared = !!r.meta.shared; }
       docs.set(to.id, r.doc);
-      markScreen(to.id);
+      markScreen(to.id); stampMe(); snapNow();
       if (!isPhone()) applyPanels(to.panels);
       persist();
       announce(to.name);
@@ -687,9 +699,20 @@ export function mountWorkspaces(ws, o){
     const it = cur(); syncLayout(it);
     if (!isPhone()) it.panels = capturePanels();
     try { it.sub = C.subOf(screenState()); } catch (e) {}
-    try { if (!busy) ws.persistNow && ws.persistNow(); } catch (e) {}   // the engine's saved screen = this workspace's chart, even when closed within its 0.5 s write delay
+    try { if (!busy) { ws.persistNow && ws.persistNow(); stampMe(); snapNow(); } } catch (e) {}   // the engine's saved screen = this workspace's chart, even when closed within its 0.5 s write delay
     const s = C.serialize(Object.assign({}, ix, { t: Date.now() }));
     if (s) { try { localStorage.setItem(K.ix(), s); } catch (e) {} }
+  });
+
+  // Another tab changed the shared workspace list (names, layout ids, new / deleted workspaces): take its list but keep
+  // THIS tab's active workspace, so our next persist() does not write a stale copy over its changes.
+  window.addEventListener('storage', (e) => {
+    if (!ix || e.key !== K.ix() || !e.newValue) return;
+    const r = C.sanitize(e.newValue);
+    if (!r || r.t <= ix.t || !C.find(r, ix.active)) return;
+    const here = C.find(r, ix.active), mine = cur();
+    Object.assign(here, { layoutId: mine.layoutId, layoutName: mine.layoutName, shared: mine.shared, closed: false });
+    r.active = ix.active; ix = r; paint();
   });
 
   // ---------------------------------------------------------------- boot
@@ -705,20 +728,28 @@ export function mountWorkspaces(ws, o){
   // treating the screen as its own (that is how workspace 2 ended up showing, and then saving over, workspace 1).
   const scr = saved ? lsGet(K.scr()) : null;
   let noScreen = false; try { noScreen = !!window.__stkPersistKey && !localStorage.getItem(window.__stkPersistKey); } catch (e) {}
-  // the open layout (also one per browser) is another workspace's
-  const lay = user() && L.current ? L.current.id : null;
-  const foreign = !!saved && (noScreen || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && x.layoutId === lay)));
-  if (!foreign) { syncLayout(cur()); markScreen(ix.active); }
+  const lay = user() && L.current ? L.current.id : null;   // the open layout (also one per browser) is another workspace's
+  let snap = null; try { snap = JSON.parse(sessionStorage.getItem(K.snap()) || 'null'); } catch (e) {}
+  if (!snap || snap.ws !== ix.active || !snap.st || typeof snap.st !== 'object') snap = null;
+  let stamp = null; try { stamp = localStorage.getItem(K.stamp()); } catch (e) {}
+  // another tab changed the shared screen after this one did (or no tab did since this one opened): not this tab's chart
+  const otherTab = !!stamp && stamp !== myTab;
+  const foreign = !!saved && (noScreen || otherTab || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && x.layoutId === lay)));
+  if (!foreign) { syncLayout(cur()); markScreen(ix.active); stampMe(); }
   paint();
   if (saved) persist();
   if (foreign) {
     const it = cur();
     busy = (async () => {
-      let r; try { r = await load(it); } catch (e) { r = { doc: defaultDoc(), meta: null }; }
+      let r; try { r = await load(it); } catch (e) { r = { doc: defaultDoc(), meta: null, fresh: true }; }
       if (ix.active !== it.id) return;
+      // this tab's own last screen beats the workspace's saved copy (it can be seconds newer than the autosave)
+      if (snap) r = { doc: snap.st, meta: r.meta || (it.layoutId ? { id: it.layoutId, name: it.layoutName || it.name, shared: !!it.shared } : null) };
+      // nothing of this workspace saved anywhere and no snapshot: keep what is on screen rather than replace it with a blank chart
+      else if (r.fresh) { markScreen(it.id); stampMe(); return; }
       L.adopt(r.doc, r.meta);
       if (r.meta) { it.layoutId = r.meta.id; it.layoutName = r.meta.name; it.shared = !!r.meta.shared; }
-      docs.set(it.id, r.doc); markScreen(it.id);
+      docs.set(it.id, r.doc); markScreen(it.id); stampMe();
       if (!isPhone()) applyPanels(it.panels);
       persist();
     })().finally(() => { busy = null; });

@@ -2421,7 +2421,7 @@
    "id": "gex",
    "title": "Omega and options levels",
    "icon": "gauge",
-   "desc": "Gamma exposure levels, ZoroTide and how to read them.",
+   "desc": "Gamma exposure levels, ZoroTide, Phantom options money flow and how to read them.",
    "subs": [
     {
      "id": "gex-basics",
@@ -2722,6 +2722,119 @@
          "label": "ZoroOptions",
          "href": "/zoro-options"
         }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "phantom",
+     "title": "Phantom",
+     "items": [
+      {
+       "id": "phantom-what-is",
+       "q": "What is Phantom?",
+       "a": "<p>Phantom shows options money flow for SPX, SPY, QQQ and GLD: how much premium went into calls and puts today, at which strikes and expiries, and the biggest single minutes. It has a Market tide chart, a Net impact ranking, a Strike flow board, contract detail, Whale moves, the dark pool prints for the same ticker and alerts.</p><p>Every figure is estimated from options volume and quotes once a minute. Phantom does not see individual orders. Education only. Not financial advice.</p>",
+       "path": "More → Markets → Phantom",
+       "plans": "free",
+       "tags": [
+        "phantom",
+        "options flow",
+        "money flow",
+        "premium",
+        "whale",
+        "unusual options",
+        "strike flow"
+       ],
+       "related": [
+        "phantom-how",
+        "phantom-unusual",
+        "zorotide-what"
+       ],
+       "links": [
+        {
+         "label": "Open Phantom",
+         "href": "/phantom"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "phantom-how",
+       "q": "How does Phantom estimate premium?",
+       "a": "<p>Once a minute we read the option chain. For each contract, the volume added since the previous minute times the option price times 100 is that minute’s premium. When the price is near the ask it counts as bought, near the bid as sold, in the middle as neither. That gives the net premium. One row can be many orders, so we call each one a minute, not a trade.</p>",
+       "tags": [
+        "phantom",
+        "premium",
+        "estimate",
+        "bought",
+        "sold",
+        "net premium"
+       ],
+       "related": [
+        "phantom-what-is"
+       ]
+      },
+      {
+       "id": "phantom-unusual",
+       "q": "What do the V and $ flags mean?",
+       "a": "<ul><li><strong>V</strong>: volume today is above the contract’s open interest (Vol/OI over 1, with at least 100 contracts). More contracts changed hands today than were open this morning.</li><li><strong>$</strong>: the contract’s premium today is in the top 5% of all contracts with premium.</li></ul><p>They point to activity worth a look, not to a direction.</p>",
+       "tags": [
+        "vol/oi",
+        "unusual",
+        "open interest",
+        "flag"
+       ],
+       "related": [
+        "phantom-oi"
+       ]
+      },
+      {
+       "id": "phantom-oi",
+       "q": "What does “position likely opened” mean?",
+       "a": "<p>Open interest is counted once a day, before the open. When a contract traded a lot and its open interest is higher the next morning, new positions were likely opened. When it is lower, positions were likely closed. It is a hint, not a record of who did what.</p>",
+       "tags": [
+        "open interest",
+        "opened",
+        "closed",
+        "oi change"
+       ],
+       "related": [
+        "phantom-unusual"
+       ]
+      },
+      {
+       "id": "phantom-where",
+       "q": "Where can I find Phantom?",
+       "a": "<p>On its own page (More → Markets → Phantom) and in ZoroCharts, in the right icon bar (on phones, the Phantom button in the top bar). The chart panel follows the chart: ES and MES use SPX, NQ and MNQ use QQQ, GC and MGC use GLD. It is free for signed-in members.</p>",
+       "plans": "free",
+       "tags": [
+        "phantom",
+        "charts",
+        "panel",
+        "es",
+        "nq"
+       ],
+       "related": [
+        "phantom-what-is"
+       ],
+       "links": [
+        {
+         "label": "Open Phantom",
+         "href": "/phantom"
+        }
+       ]
+      },
+      {
+       "id": "phantom-alerts",
+       "q": "Can Phantom alert me?",
+       "a": "<p>Yes. On the Phantom page, under Alerts, choose premium on one contract in a minute (for example $500,000) or volume over open interest (for example 3). The alert runs on our server and sends a push to your phone. You can also make them in ZoroCharts, Alerts, Metric alert.</p>",
+       "tags": [
+        "phantom alert",
+        "premium alert",
+        "vol/oi alert"
+       ],
+       "related": [
+        "phantom-what-is"
        ]
       }
      ]

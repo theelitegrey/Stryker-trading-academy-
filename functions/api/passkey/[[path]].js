@@ -15,6 +15,13 @@ import { verifyIdToken, bearerOf, RT_PROJECT } from '../chart/_rt.js';
 import { b64u, unb64u, safeEqual, verifyRegistration, verifyAssertion } from './_webauthn.js';
 
 const RP_ID = 'tradezoro.com', RP_NAME = 'TradeZoro', PROD_ORIGIN = 'https://tradezoro.com';
+// The Android app (com.tradezoro.app) signs in with the same tradezoro.com passkeys through Credential Manager. Android puts
+// the app's signing key in clientDataJSON.origin as android:apk-key-hash:<base64url sha256 of the cert>. Only our own keys
+// (Play upload key, debug key) are accepted; /.well-known/assetlinks.json lists the same two (get_login_creds).
+export const ANDROID_ORIGINS = [
+  'android:apk-key-hash:SVvoT39vQJVyd8SjVxUOmrgzfqqR6f1rFZpJEZAq5KY',   // upload key 49:5B:E8:...:E4:A6
+  'android:apk-key-hash:PPKgtlMgabVXoJCL0JbH8aDsJhr6S8FOlbyeb8hhYD0'    // debug key 3C:F2:A0:...:60:3D
+];
 const CHAL_TTL = 300, RATE_MAX = 30, MAX_KEYS = 10, RECENT_S = 600, CUSTOM_TOKEN_S = 3600;
 const AUD = 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit';
 const enc = new TextEncoder();
@@ -29,7 +36,7 @@ function cfgFor(request, env) {
   const devOk = (o) => { try { const u = new URL(o); return u.protocol === 'http:' && (u.hostname === '127.0.0.1' || u.hostname === 'localhost'); } catch (e) { return false; } };
   const origin = request.headers.get('origin') || '';
   const rpId = dev && devOk(origin) ? new URL(origin).hostname : RP_ID;
-  return { rpId, origins: [PROD_ORIGIN], devOriginOk: dev ? devOk : null, dev, devOk };
+  return { rpId, origins: [PROD_ORIGIN, ...ANDROID_ORIGINS], devOriginOk: dev ? devOk : null, dev, devOk };
 }
 
 function deviceName(ua) {

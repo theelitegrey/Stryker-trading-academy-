@@ -2,7 +2,7 @@
 // A software authenticator (ES256 and RS256) builds real WebAuthn registrations/assertions; KV and Google are stubbed.
 import assert from 'node:assert/strict';
 import { createHash, webcrypto as crypto } from 'node:crypto';
-import { handle } from '../../functions/api/passkey/[[path]].js';
+import { handle, ANDROID_ORIGINS } from '../../functions/api/passkey/[[path]].js';
 import { verifyAssertion, verifyRegistration, b64u, unb64u, cborDecode } from '../../functions/api/passkey/_webauthn.js';
 
 const sha = (d) => new Uint8Array(createHash('sha256').update(d).digest());
@@ -139,6 +139,14 @@ const login = async (a, o = {}) => {
 };
 const ok = await login(dev);
 assert.equal(ok.res.status, 200);
+// the Android app's passkey sign-in (Credential Manager): origin = its signing-key hash, still our RP id
+assert.equal((await login(dev, { origin: ANDROID_ORIGINS[0] })).res.status, 200);
+assert.equal((await login(dev, { origin: 'android:apk-key-hash:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' })).res.status, 401);   // another app's key
+{ const fp = (h) => 'android:apk-key-hash:' + Buffer.from(h.replace(/:/g, ''), 'hex').toString('base64url');
+  const al = JSON.parse((await import('node:fs')).readFileSync(new URL('../../.well-known/assetlinks.json', import.meta.url), 'utf8'));
+  const st = al.find((s) => s.relation.includes('delegate_permission/common.get_login_creds') && s.target.package_name === 'com.tradezoro.app');
+  assert.deepEqual(st.target.sha256_cert_fingerprints.map(fp).sort(), [...ANDROID_ORIGINS].sort()); }   // server list == assetlinks
+for (const k of [...kv.keys()]) if (k.startsWith('rl:')) kv.delete(k);   // the two extra logins above must not trip the rate limit later
 const tk = (await J(ok.res)).token, [h, p, s] = tk.split('.');
 const cl = JSON.parse(Buffer.from(p, 'base64url'));
 assert.equal(cl.uid, 'u1'); assert.equal(cl.iss, 'sa@test.iam.gserviceaccount.com'); assert.equal(cl.sub, cl.iss); assert.equal(cl.exp - cl.iat, 3600);

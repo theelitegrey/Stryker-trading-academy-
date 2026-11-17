@@ -387,6 +387,9 @@ async function long(b, theme, w, h) {
     check(g.delta > 0, tag + ': delta bars drawn on a profile far older than 14 days', g.delta);
     check(DAYS_ASKED.has('2026-10-20') && DAYS_ASKED.has('2026-10-21'), tag + ': asked for the recorded days 20 and 21 Oct', [...DAYS_ASKED]);
     check(![...DAYS_ASKED].some((d) => d < '2026-10-08'), tag + ': never asked for days before the recorder starts (8 Oct)', [...DAYS_ASKED].filter((d) => d < '2026-10-08'));
+    // AUTO-FRVPHIST: a profile reaching before the recorded history must SAY so on the profile (not just a tiny dash)
+    const nt = await p.evaluate(() => { const d = window.STRYKER_VELA.chart.renderer.renderer.userDrawings.drawings.find((x) => x.type === 'fixedrangevp'); return d.__stkNote || ''; });
+    check(/only from 8 Oct 2026/.test(nt), tag + ': note says order flow only exists from 8 Oct 2026', nt);
   } else note(tag + ' (old code) delta rows', g.delta);
   await shot(p, tag);
   check(!errors.length, tag + ': no console errors', errors.slice(0, 3));

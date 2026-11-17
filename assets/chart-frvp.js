@@ -26,6 +26,7 @@ import { deltaRows, anchoredVwap, buildProfile, fineSpanBars, volumeNodes } from
 const THIN = 0.02;                    // a row under 2 % of the biggest row is a "thin" row
 const UP = '#089981', DN = '#f23645', VW = '#5b9cf6', BAND = '#9aa0ad';
 const MAX_TF_MIN = 240;
+const FLOW_FIRST = Date.UTC(2026, 9, 8), FLOW_FIRST_TXT = '8 Oct 2026';   // the recorder's first day (same as HISTORY_DAY in chart-footprint.js)
 const MAX_SPAN_DAYS = 90;   // order-flow days read for one profile (the footprint's own cap is 14); the recorder only goes back to 8 Oct 2026
 // member-picked colours for the delta bars and the VWAP lines (frvp.deltaUpColor ... saved with the drawing); unset = the colours above
 const CK = { deltaUpColor: UP, deltaDownColor: DN, vwapColor: VW, vwapBandColor: BAND };
@@ -239,7 +240,7 @@ function paintFrvp(ctx, d, proj, theme) {
     this.strokePolyline(ctx, L.developingVaHigh, ds); this.strokePolyline(ctx, L.developingVaLow, ds);
   }
   const needDelta = s.deltaBars === 'left', needVwap = s.vwap === true;
-  d.__stkDelta = null; d.__stkVwap = null;
+  d.__stkDelta = null; d.__stkVwap = null; d.__stkNote = '';
   const host = hostOf(this), bars = spanBars(d, proj);
   avail.delta = whyNoDelta(host);
   avail.vwap = bars.length && !bars.some((b) => b.volume > 0) ? 'Anchored VWAP needs volume, and this symbol has none.' : '';
@@ -263,7 +264,7 @@ function paintFrvp(ctx, d, proj, theme) {
   const key = [fl.mins, fl.mins.length, fl.tick, P.min, P.rowH, P.rows.length, from, to].map(String).join('|');
   if (h.dk !== key || h.dm !== fl.mins) { h.dk = key; h.dm = fl.mins; h.dr = deltaRows(fl.mins, fl.tick, P.min, P.rowH, P.rows.length, from, to); }
   const D = h.dr;
-  if (!D.used) { dashes(ctx, theme, L, P, D, side0(L)); label(ctx, theme, L, fl.loading ? 'Delta: loading order flow…' : 'Delta: no order flow recorded for this range (starts 8 Oct 2026)'); if (fl.loading) repaintSoon(host); return; }
+  if (!D.used) { dashes(ctx, theme, L, P, D, side0(L)); label(ctx, theme, L, fl.loading ? 'Delta: loading order flow…' : 'Delta: no order flow recorded for this range (only from ' + FLOW_FIRST_TXT + ')'); if (fl.loading) repaintSoon(host); return; }
   let mx = 0; for (const v of D.d) mx = Math.max(mx, Math.abs(v));
   const rects = [], maxDW = L.maxW * 0.6, gap = 2;
   // Member report 14 Nov: with A near (or past) the left edge of the chart the delta side (left of A) has no room and the bars were squeezed
@@ -280,7 +281,10 @@ function paintFrvp(ctx, d, proj, theme) {
   }
   const gaps = dashes(ctx, theme, L, P, D, side);
   d.__stkDelta = rects;
-  const cover = D.first > from + 2 * 60000 || gaps ? 'Delta from ' + stamp(D.first) + (gaps ? ' · dash = no order flow' : '') : '';
+  // the profile reaches before the recorder's first day: say so plainly (the dashes alone read as a drawing fault)
+  const cover = from < FLOW_FIRST ? 'Delta: order flow only from ' + FLOW_FIRST_TXT + ' · dash = no order flow'
+    : D.first > from + 2 * 60000 || gaps ? 'Delta from ' + stamp(D.first) + (gaps ? ' · dash = no order flow' : '') : '';
+  d.__stkNote = cover;
   if (cover) label(ctx, theme, L, cover);
 }
 const side0 = (L) => -L.grow;

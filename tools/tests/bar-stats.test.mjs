@@ -1,0 +1,26 @@
+// Bar Stats maths (assets/chart-bar-stats.js): delta, delta %, buy / sell split, K/M formatting, rows per device. node tools/tests/bar-stats.test.mjs
+import assert from 'node:assert/strict';
+import { tableVal, cellText, fmtD, tableRowsFor, rowLabel } from '../../assets/chart-bar-stats.js';
+const bar = { vol: 1000, delta: 200, trades: 40 };
+assert.equal(tableVal(bar, 'vol'), 1000);
+assert.equal(tableVal(bar, 'delta'), 200);
+assert.equal(tableVal(bar, 'dpct'), 0.2);
+assert.equal(tableVal(bar, 'buy'), 600);
+assert.equal(tableVal(bar, 'sell'), 400);
+assert.equal(tableVal(bar, 'buy') + tableVal(bar, 'sell'), bar.vol);
+assert.equal(tableVal(bar, 'buy') - tableVal(bar, 'sell'), bar.delta);
+assert.equal(tableVal(bar, 'trd'), 40);
+assert.equal(tableVal({ vol: 0, delta: 0 }, 'dpct'), 0, 'no divide by zero');
+assert.equal(tableVal({ vol: 5, delta: 0 }, 'trd'), 0);
+assert.equal(fmtD(0), '0'); assert.equal(fmtD(340), '340'); assert.equal(fmtD(2100), '2.1K'); assert.equal(fmtD(15200), '15K');
+assert.equal(fmtD(1.5e6), '1.5M'); assert.equal(fmtD(2.4e7), '24M'); assert.equal(fmtD(-2100), '\u22122.1K'); assert.equal(fmtD(-412), '\u2212412');
+assert.equal(cellText(-0.17, 'dpct'), '\u221217%'); assert.equal(cellText(0.05, 'dpct'), '5%');
+assert.equal(cellText(-2100, 'delta'), '\u22122.1K'); assert.equal(cellText(-3600, 'sell'), '3.6K');
+assert.deepEqual(tableRowsFor([bar], false).map((r) => r[0]), ['vol', 'delta', 'dpct', 'buy', 'sell', 'trd']);
+assert.deepEqual(tableRowsFor([{ vol: 1, delta: 0 }], false).map((r) => r[0]), ['vol', 'delta', 'dpct', 'buy', 'sell'], 'no trade counts: no Trades row (footprint)');
+assert.deepEqual(tableRowsFor([bar], true).map((r) => r[0]), ['vol', 'delta', 'buy', 'sell'], 'footprint phone: short list');
+assert.equal(tableRowsFor([], true, [], true).length, 6, 'indicator: all rows on a phone');
+assert.deepEqual(tableRowsFor([bar], false, ['delta', 'trd']).map((r) => r[0]), ['vol', 'dpct', 'buy', 'sell']);
+assert.deepEqual(['Total volume', 'Delta', 'Delta %', 'Buy volume', 'Sell volume', 'Trades'].map((n) => rowLabel(n, true, true)), ['Volume', '\u0394', '\u0394 %', 'Buy', 'Sell', 'Trades']);
+assert.equal(rowLabel('Delta', true, false), 'Delta');
+console.log('PASS bar-stats maths');

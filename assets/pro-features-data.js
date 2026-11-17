@@ -115,6 +115,8 @@
       desc: 'Stop runs counted only when resting liquidity on that side was pulled or consumed through several levels.' },
     { group: 'flow', name: 'Footprint Patterns', feed: 'L2', icon: 'foot', ids: ['stk_fpat', 'stk_fpat_l2'],
       desc: 'Marks six footprint patterns on any chart style: absorption, exhaustion, stacked imbalances, unfinished auctions, delta divergence and trapped traders.' },
+    { group: 'flow', name: 'Bar Stats', feed: 'L2', icon: 'foot', ids: ['stk_barstats'],
+      desc: 'A table under the candles on any chart style: total volume, delta, delta %, buy, sell and trades for every bar, heat-mapped.' },
     { group: 'flow', name: 'Volume Profile (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_vp'],
       desc: 'The session profile of traded volume next to the average resting size at each price.' },
     { group: 'flow', name: 'Delta Ladder (L2)', feed: 'L2', icon: 'scale', ids: ['stk_l2f_lad'],

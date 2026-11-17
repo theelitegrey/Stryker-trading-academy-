@@ -326,6 +326,7 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them'; }
       if (r.native && r.nativeType === 'stk_earn') { cat = GROUP_STRYKER; desc = 'An “E” on the day a US company reports earnings, with the EPS estimate on hover. Data updated daily'; }
       if (r.native && r.nativeType === 'stk_econ') { cat = GROUP_STRYKER; desc = 'High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip'; }
+      if (r.native && r.nativeType === 'stk_barstats') desc = 'A table under the candles with each bar’s total volume, delta, delta %, buy, sell and trades, heat-mapped. Futures and crypto order flow';
       out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc, hidden: !!r.hidden, aliases: (r.aliases || []).join(' ') });
     });
     const ex = (S() && S().EXAMPLES) || [];
@@ -410,7 +411,7 @@ export function mountIndicatorWindow(ws, opts){
     it.ix = { n: words(it.name + ' ' + (it.aliases || '')), ns: norm(it.name + ' ' + (it.aliases || '')), d: words(it.desc + ' ' + it.summary), ds: norm(it.desc + ' ' + it.summary), g: words(g), gs: norm(g) };
   }
   // the L2 versions that already exist under another name (Owner 2026-11-03): typing the old name finds them
-  const SEARCH_ALIAS = { 'b:stk_fut_imb': 'imbalance zones imbalance', 'b:stk_bk_track': 'absorption absorption (l2)' };
+  const SEARCH_ALIAS = { 'b:stk_barstats': 'bar stats footprint stats delta table volume table', 'b:stk_fut_imb': 'imbalance zones imbalance', 'b:stk_bk_track': 'absorption absorption (l2)' };
 
   async function loadData(){
     const tasks = [Favs.load(), loadMeta()];

@@ -243,8 +243,9 @@ async function waitFor(p, fn, arg, ms) {
 }
 const BROKER_RE = /rithmic|tradovate|ninjatrader|tradestation|interactivebrokers|ibkr|alpaca|oanda|tastytrade|tradier|projectx|topstepx|\/order(s)?\b|\/trade(s)?\/(place|submit)|\/api\/(paper|broker|order)/i;
 // Site features that load with the chart page and are not paper trading: the Connect-broker 'is this provider set up' GET probes (/connect/<broker>/token?probe=1), broker logo images, the Vest symbol list.
-const SITE_PROBES = /^http:\/\/127\.0\.0\.1:\d+\/(connect\/[\w-]+\/token\?probe=1$|assets\/images\/|api\/vest\/exchangeInfo$)/;
-const ALLOWED = (u) => SITE_PROBES.test(u) || /^https:\/\/(api\.bitget\.com\/api\/v2\/mix\/market\/|api\.kraken\.com\/0\/public\/|book-recorder\.theelitegrey\.workers\.dev\/te-bars\?|cdn\.jsdelivr\.net\/npm\/)/.test(u) || /^https:\/\/(api\.bybit\.com\/v5\/market\/instruments-info|www\.okx\.com\/api\/v5\/public\/instruments|api\.bitget\.com\/api\/v2\/spot\/public\/symbols)/.test(u) || /^http:\/\/127\.0\.0\.1:\d+\/(assets\/|api\/chart\/(bars|stream)\/|api\/chart\/rt$|[\w-]+(\.html)?(\?|$)|manifest\.json|favicon)/.test(u)
+// api/ai/grants = the signed-in AI-connection check (read-only, not a broker/order call); api/ping = latency chip
+const SITE_PROBES = /^http:\/\/127\.0\.0\.1:\d+\/(api\/ai\/grants$|api\/ping(\?|$)|connect\/[\w-]+\/token\?probe=1$|assets\/images\/|api\/vest\/exchangeInfo$)/;
+const ALLOWED = (u) => SITE_PROBES.test(u) || /^https:\/\/(api\.bitget\.com\/api\/v2\/mix\/market\/|api\.kraken\.com\/0\/public\/|book-recorder\.theelitegrey\.workers\.dev\/(te-bars|scan|ts-aux)\?|cdn\.jsdelivr\.net\/npm\/)/.test(u) || /^https:\/\/(api\.bybit\.com\/v5\/market\/instruments-info|www\.okx\.com\/api\/v5\/public\/instruments|api\.bitget\.com\/api\/v2\/spot\/public\/symbols)/.test(u) || /^http:\/\/127\.0\.0\.1:\d+\/(assets\/|api\/chart\/(bars|stream)\/|api\/chart\/rt$|[\w-]+(\.html)?(\?|$)|manifest\.json|favicon)/.test(u)
   || /^https:\/\/(api\.binance\.com|data-api\.binance\.vision|api\.binance\.us)\/api\/v3\/(klines|exchangeInfo|ping|depth|trades|aggTrades|ticker)/.test(u)
   || /^wss:\/\/[^/]*binance[^/]*\//.test(u)
   || /^https:\/\/www\.gstatic\.com\/firebasejs\//.test(u) || /^https:\/\/api\.dicebear\.com\//.test(u)
@@ -705,7 +706,7 @@ async function boot(p, BASE) {
     // flag module that every Charts load imports) is not a call to a broker; every other URL is.
     const broker = reqs.filter((r) => BROKER_RE.test(r.url) && !SITE_PROBES.test(r.url) && !/^http:\/\/127\.0\.0\.1:\d+\/assets\/[\w.-]+\.js(\?|$)/.test(r.url));
     // the only non-GET the page makes is Hyperliquid's market-data info endpoint (existing data dots)
-    const nonGet = reqs.filter((r) => !r.blocked && r.method !== 'GET' && r.method !== 'WS' && !/^https:\/\/api\.hyperliquid\.xyz\/info$/.test(r.url));
+    const nonGet = reqs.filter((r) => !r.blocked && r.method !== 'GET' && r.method !== 'WS' && !/^http:\/\/127\.0\.0\.1:\d+\/api\/ai\/grants$/.test(r.url) && !/^https:\/\/api\.hyperliquid\.xyz\/info$/.test(r.url));
     const unknown = reqs.filter((r) => !r.blocked && !ALLOWED(r.url));
     // and the paper modules themselves contain no network primitive at all
     const src = fs.readFileSync(path.join(ROOT, 'assets/chart-paper.js'), 'utf8') + fs.readFileSync(path.join(ROOT, 'assets/paper-engine.js'), 'utf8');

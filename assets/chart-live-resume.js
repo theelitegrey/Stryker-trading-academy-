@@ -79,8 +79,11 @@ export function tfMs(tf) {
 
 // open(cb) -> unsubscribe: opens one live feed delivering bars to cb.
 // backfill(range) -> Promise<bars>: the provider's getBars for this ticker + timeframe.
-export function liveSubscribe(open, backfill, timeframe, onBar) {
+export function liveSubscribe(open, backfill, timeframe, onBarRaw) {
   install();
+  // After the chart has taken the bar, tell the page (assets/chart-tabtitle.js listens): the browser-tab price follows every tick,
+  // also in a hidden tab where timers are throttled but the feed's own callbacks still run.
+  const onBar = (b) => { try { onBarRaw(b); } finally { try { window.dispatchEvent(new Event('stryker:livebar')); } catch (e) {} } };
   const step = tfMs(timeframe);
   let stopped = false;
   let unsub = null;

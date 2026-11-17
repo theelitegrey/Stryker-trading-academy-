@@ -31,7 +31,7 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
     const s0 = document.title; document.title = 'x'; n = 0;
     await new Promise((r) => setTimeout(r, 3100)); return n;
   });
-  check(w <= 7, 'writes in 3.1 s stay under the 2/s cap', w);
+  check(w <= 14, 'writes in 3.1 s stay under the ~4/s cap', w);
   await b.close();
   process.exit(fail ? 1 : 0);
 })();

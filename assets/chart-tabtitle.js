@@ -1,7 +1,7 @@
 // TradeZoro — Charts: live browser-tab title "<price> <▲|▼> <SYMBOL> · ZoroCharts" (Owner 15 Nov).
 // Follows the active pane (symbol, workspace and replay switches are all just "the active cell's
-// last bars"). One 500 ms poll that only writes document.title when the text changed; hidden tabs
-// are polled at most every 5 s. Arrow = last close vs the previous bar's close (what the legend shows).
+// last bars"). Driven by the live-bar event of every tick (see below), plus a 500 ms safety poll; document.title is only
+// written when the text changed. Arrow = last close vs the previous bar's close (what the legend shows).
 const SUFFIX = ' · ZoroCharts';
 
 export function fmtPrice(p, mintick) {
@@ -21,13 +21,16 @@ export function buildTitle(symbol, bars, mintick) {
   return fmtPrice(last.close, mintick) + arrow + ' ' + name + SUFFIX;
 }
 
+// Owner 17 Nov: the title did not follow the price. Root cause: it was only sampled by a timer (500 ms visible, 5 s hidden, and
+// Chrome clamps a hidden page's timers further, to 1 per minute after 5 minutes), so it lagged the chart's own last price, which
+// moves with every tick. Now the feed's own callback drives it: assets/chart-live-resume.js fires 'stryker:livebar' right after each
+// live bar reaches the chart (a feed callback is not throttled in a hidden tab). Writes are limited to one per 250 ms visible and one
+// per second hidden; the timer stays as a safety net. The price is read from the same array the price-axis label draws from.
 export function installTabTitle(ws) {
   const original = document.title;
-  let lastRun = 0;
-  const tick = () => {
-    const now = Date.now();
-    if (document.hidden ? now - lastRun < 5000 : now - lastRun < 500) return;
-    lastRun = now;
+  let lastWrite = 0, trailing = 0;
+  const write = () => {
+    trailing = 0; lastWrite = Date.now();
     try {
       const c = ws.cell(ws.active.id);
       const sc = c.chart.renderer.renderer.scene;
@@ -35,8 +38,15 @@ export function installTabTitle(ws) {
       if (document.title !== t) document.title = t;
     } catch (e) { /* cell not ready yet: keep the current title */ }
   };
-  const timer = setInterval(tick, 500);
-  window.addEventListener('pagehide', () => { clearInterval(timer); document.title = original; });
-  tick();
-  return () => { clearInterval(timer); document.title = original; };
+  const request = () => {
+    const gap = document.hidden ? 1000 : 250, wait = gap - (Date.now() - lastWrite);
+    if (wait <= 0) { if (trailing) { clearTimeout(trailing); trailing = 0; } write(); }
+    else if (!trailing) trailing = setTimeout(write, wait);
+  };
+  const timer = setInterval(request, 500);
+  window.addEventListener('stryker:livebar', request);
+  const off = () => { clearInterval(timer); clearTimeout(trailing); window.removeEventListener('stryker:livebar', request); document.title = original; };
+  window.addEventListener('pagehide', off);
+  write();
+  return off;
 }

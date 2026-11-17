@@ -1,5 +1,5 @@
 <resources>
     <style name="Theme.TradeZoro" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowBackground">@color/tz_icon_bg</item>
     </style>
 </resources>

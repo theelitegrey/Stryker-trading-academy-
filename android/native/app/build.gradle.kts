@@ -16,12 +16,23 @@ android {
         minSdk = 26
         targetSdk = 36
         // The old web wrapper shipped versionCode 1; the native app continues above it.
-        versionCode = 5
-        versionName = "2.0.0-m4b"
+        versionCode = 6
+        versionName = "2.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    // Upload key (Play App Signing). Never in git: point TZ_UPLOAD_JKS at the keystore and TZ_UPLOAD_PASS_FILE at a file
+    // holding its password (PKCS12: key password = store password). Without them the release build is unsigned.
+    val jks = System.getenv("TZ_UPLOAD_JKS")?.let(::file)?.takeIf { it.exists() }
+    val passFile = System.getenv("TZ_UPLOAD_PASS_FILE")?.let(::file)?.takeIf { it.exists() }
+    if (jks != null && passFile != null) signingConfigs.create("upload") {
+        storeFile = jks
+        storePassword = passFile.readText().trim()
+        keyAlias = System.getenv("TZ_UPLOAD_ALIAS") ?: "tradezoro-upload"
+        keyPassword = storePassword
     }
     buildTypes {
         release {
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: the TZ mark inside the 66dp safe zone of the 108dp canvas (inset 27% each side). -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/logo_tzmark"
+    android:insetLeft="27%" android:insetRight="27%" android:insetTop="36%" android:insetBottom="36%" />

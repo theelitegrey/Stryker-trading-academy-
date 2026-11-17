@@ -1,0 +1,9 @@
+<resources>
+    <!-- Android 12+ system splash: app background + the TZ mark (adaptive icon foreground), no extra screen. -->
+    <style name="Theme.TradeZoro" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/tz_icon_bg</item>
+        <item name="android:windowSplashScreenBackground">@color/tz_icon_bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_fg</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/tz_icon_bg</item>
+    </style>
+</resources>

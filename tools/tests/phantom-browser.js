@@ -174,7 +174,8 @@ async function charts(b, tag, o) {
   if (o.mobile) {   // phones: panel buttons live in the one-bar More menu (assets/chart-onebar.js)
     check(await p.evaluate(() => !!document.querySelector('.stkph-phonebtn')), tag + ': Phantom phone button exists');
     await p.click('#stkc-more-btn'); await sleep(500);
-    const row = p.getByText('Phantom options flow', { exact: true });
+    const row = p.locator('[data-ob-label="Phantom options flow"]');   // the More list draws labels from data-ob-label (CSS content)
+    await row.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
     check(await row.isVisible().catch(() => false), tag + ': "Phantom options flow" row in More');
     await row.click();
   } else {

@@ -90,6 +90,9 @@ async function open(b, { w, h, mobile, theme, admin = true, connected = true }) 
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkPaper, null, { timeout: 60000 });
   await p.evaluate(async () => { const ws = window.STRYKER_VELA; ws.active.setSymbol('futures:NQ1!'); ws.active.setTimeframe('1'); for (let i = 0; i < 40; i++) { await new Promise((r) => setTimeout(r, 250)); if (ws.chart.market.symbol === 'futures:NQ1!') break; } });
+  // paper trading switched on (a member who trades paper). Paper OFF = no row ticked + the "Trade" face: chart-live-browser.js memberDock
+  await p.waitForFunction(() => window.__stkPaper.account, null, { timeout: 20000 }).catch(() => {});
+  await p.evaluate(() => { try { window.__stkPaper.setEnabled(true); } catch (e) {} });
   await sleep(1200);
   return { ctx, p, errors, M };
 }
@@ -153,7 +156,7 @@ const keyboardTest = async (p, tag) => {
   check((await act(p)) === 'edit:223', tag + ': kbd: focus back on the pencil', await act(p));
   await p.keyboard.press('Home'); check(await act(p) === 'paper', tag + ': kbd: Home');
   const roles = await p.evaluate(() => ({ menu: document.getElementById('stkc-trade-pop').getAttribute('role'), radios: document.querySelectorAll('#stkc-trade-pop [role=menuitemradio]').length, labels: [...document.querySelectorAll('#stkc-trade-pop .stktm-act')].map((b) => b.getAttribute('aria-label')) }));
-  check(roles.menu === 'menu' && roles.radios === 3 && roles.labels.length === 4 && roles.labels.every((l) => /^(Edit|Disconnect) /.test(l)), tag + ': aria menu + 3 menuitemradio + labelled icon buttons', roles);
+  check(roles.menu === 'menu' && roles.radios === 3 && roles.labels.length === 5 && roles.labels[0] === 'Turn off paper trading on this chart' && roles.labels.slice(1).every((l) => /^(Edit|Disconnect) /.test(l)), tag + ': aria menu + 3 menuitemradio + labelled icon buttons', roles);
   await p.keyboard.press('Escape'); await sleep(100);
   check(await p.evaluate(() => document.getElementById('stkc-trade-pop').hidden && document.activeElement.id === 'stkc-paper-btn'), tag + ': kbd: Esc closes, focus back on button');
   await p.keyboard.press('Enter'); await sleep(300);

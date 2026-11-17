@@ -2137,6 +2137,7 @@ export function mountPaper(ws, opts){
   setInterval(placeBar, 1000); addEventListener('resize', placeBar);
   mountToolbar(opts && opts.bar);
   mountRailBtn();
+  { const b = (document.querySelector('meta[name="stryker-build"]') || {}).content || '0'; import('./chart-posorders.js?v=' + b).then((m) => m.mountPosOrders(window.__stkPaper)).catch((e) => console.warn('TradeZoro: positions dock', e)); }
   renderPanel();
   applyEnabled();                             // hidden until the account says the switch is on
   try { watchSettings(); } catch (e) { console.warn('TradeZoro paper: settings tab', e); }

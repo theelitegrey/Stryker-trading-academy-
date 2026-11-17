@@ -421,6 +421,37 @@ export async function flatten(sym) {
   if (groupOpen(i.code)) { S.group = null; S.groupCode = ''; }   // the server cancels the children and drops the record; re-read after
   return write({ op: 'flatten', symbol: i.code, idemKey: L.flattenKey(S.acct.id, i.code, i.pos.qty, String(S.lastOkStart)) }, 'Flatten ' + i.code);
 }
+
+// ---- read-only copy of the poll data for the Positions & Orders dock (assets/chart-posorders.js). No new routes: positions/orders come from
+// the 10 s poll, balances from balance(), fills from the existing data op "fills" (one read per 30 s while the Trade history tab is open).
+S.fills = { at: 0, busy: false, rows: null };
+const first = (o, ks) => { for (const k of ks) if (o && o[k] != null && o[k] !== '') return o[k]; return ''; };
+export function dockTrades() {
+  if (!S.acct || S.fills.busy || now() - S.fills.at < 30000) return;
+  const ids = S.data.orders.filter((o) => /FILLED/i.test(o.status || '')).map((o) => String(o.orderId || o.id || '')).filter((x) => /^[A-Za-z0-9._:-]{1,80}$/.test(x)).slice(0, 25), id = S.acct.id;
+  if (!ids.length) { S.fills = { at: now(), busy: false, rows: [] }; return; }
+  S.fills.busy = true;
+  data('fills', { accountId: id, orderIds: ids }).then((r) => { if (S.acct && S.acct.id === id) S.fills = { at: now(), busy: false, rows: Array.isArray(r.data) ? r.data : [] }; })
+    .catch(() => { S.fills = { at: now(), busy: false, rows: S.fills.rows || [] }; });
+}
+export function dock() {
+  if (!S.acct) return null;
+  const codes = new Set(), add = (c) => { if (c) codes.add(c); };
+  S.data.positions.forEach((p) => add(L.contractOf(p))); S.data.orders.forEach((o) => add(L.contractOf((o.legs || [])[0] || {}) || L.contractOf(o)));
+  const pos = [], ord = [];
+  for (const code of codes) {
+    const n = L.netPosition(S.data.positions, code), root = L.rootOfCode(code), pv = (L.ROOTS[root] || {}).pv;
+    if (n.qty) { const last = P.lastPrice ? P.lastPrice(root + '1!') : undefined; pos.push({ sym: code, side: n.qty > 0 ? 'Long' : 'Short', buy: n.qty > 0, qty: Math.abs(n.qty), avg: px(n.avg), last: px(last), pnl: pv ? L.openPnl(n.qty, n.avg, Number.isFinite(last) ? last : null, pv, n.upl) : n.upl, close: () => flatten(root + '1!') }); }
+    for (const o of L.workingOrders(S.data.orders, code)) ord.push({ sym: code, side: o.side === 'buy' ? 'Buy' : 'Sell', buy: o.side === 'buy', type: (o.type || '').replace(/^./, (c) => c.toUpperCase()), qty: o.qty, price: o.price ? px(o.price) : '—', status: o.cancelling ? 'Cancelling' : 'Working', cancel: o.cancelling ? null : () => cancel(o.id) });
+  }
+  const done = S.data.orders.filter((o) => !L.workingOrders([o], L.contractOf((o.legs || [])[0] || {}) || L.contractOf(o)).length);
+  const oh = done.map((o) => { const leg = (o.legs || [])[0] || {}, s = String(leg.side || o.side || o.action || '').toLowerCase(); return { t: first(o, ['updatedAt', 'filledAt', 'createdAt', 'submittedAt', 'timestamp']), sym: L.contractOf(leg) || L.contractOf(o) || '—', side: s === 'buy' ? 'Buy' : s === 'sell' ? 'Sell' : '—', buy: s === 'buy', qty: first(leg, ['quantity']) || first(o, ['orderQty', 'quantity']) || '—', price: px(Number(first(o, ['averageFillPrice', 'avgFillPrice', 'limitPrice', 'price']) || first(leg, ['limitPrice', 'price'])) || null), note: String(o.status || '').replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase()) }; })
+    .sort((a, b) => String(b.t).localeCompare(String(a.t))).slice(0, 100);
+  const th = S.fills.rows == null ? null : S.fills.rows.map((f) => { const s = String(first(f, ['side', 'action'])).toLowerCase(); return { t: first(f, ['filledAt', 'timestamp', 'createdAt', 'executedAt', 'time']), sym: L.contractOf(f) || '—', side: s === 'buy' ? 'Buy' : s === 'sell' ? 'Sell' : '—', buy: s === 'buy', qty: first(f, ['quantity', 'qty', 'units']) || '—', price: px(Number(first(f, ['price', 'fillPrice', 'executionPrice'])) || null), pnl: null }; }).sort((a, b) => String(b.t).localeCompare(String(a.t)));
+  const b = balance(S.acct.id), bal = [];
+  if (b.state === 'ok') { bal.push(['Balance', L.fmtMoney(b.amount, b.currency)]); if (b.upl != null) bal.push(['Open P&L', L.fmtMoney(b.upl, b.currency, true), b.upl]); }
+  return { live: true, pos, ord, oh, th, bal, cancelAll: null, nPos: pos.length, nOrd: ord.length };
+}
 // drag a working order line to a new price
 export async function drag(sym, d) {
   const oid = String(d.id).replace(/^L/, ''); const i = info(sym); if (!i) return;
@@ -645,7 +676,7 @@ const CSS = `
 export function mountLive(paperApi, opts) {
   P = paperApi; uid = opts.uid; toastFn = opts.toast || null;
   if (!document.getElementById('stklv-css')) { const st = document.createElement('style'); st.id = 'stklv-css'; st.textContent = CSS; document.head.appendChild(st); }
-  P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, ladder, domState, cancel, flatten, caps, opInfo, placeTicket, kill, killOn, retryEnv });
+  P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, dock, dockTrades, ladder, domState, cancel, flatten, caps, opInfo, placeTicket, kill, killOn, retryEnv });
   loadMeta(); loadAccounts();
   window.addEventListener('storage', (e) => { if (e.key === lsUserKey()) loadAccounts(); });
   Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, balance, metaOf, saveMeta, disconnect, L, envCheck, retryEnv, syncGroup });

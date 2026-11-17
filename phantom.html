@@ -209,9 +209,9 @@
   <section class="oc-card ph-span2" aria-labelledby="ph-h7">
     <div class="oc-ch"><h2 id="ph-h7">Alerts for <span id="ph-asym">SPX</span></h2></div>
     <form class="ph-aform" id="ph-aform">
-      <label><span class="oc-lbl">When</span><select class="oc-in" name="metric"><option value="ph_premium">Premium on one contract in a minute</option><option value="ph_voloi">Volume over open interest</option></select></label>
+      <label><span class="oc-lbl">When</span><select class="oc-in" name="metric"><option value="ph_premium">Premium in a minute</option><option value="ph_voloi">Vol/OI</option></select></label>
       <label><span class="oc-lbl">Side</span><select class="oc-in" name="side"><option value="any">Calls or puts</option><option value="call">Calls</option><option value="put">Puts</option></select></label>
-      <label><span class="oc-lbl" id="ph-avl">Premium in one minute, $</span><input class="oc-in" name="value" type="number" inputmode="decimal" min="10000" step="1000" value="500000"></label>
+      <label><span class="oc-lbl" id="ph-avl">At least, $</span><input class="oc-in" name="value" type="number" inputmode="decimal" min="10000" step="1000" value="500000"></label>
       <label><span class="oc-lbl">Trigger</span><select class="oc-in" name="freq"><option value="once">Only once</option><option value="every">Every time</option></select></label>
       <button type="submit" class="oc-btn is-primary">Create alert</button>
     </form>

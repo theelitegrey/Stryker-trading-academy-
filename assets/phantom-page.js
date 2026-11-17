@@ -189,6 +189,7 @@ async function openDrill(keys) {
 function drawDrill(c, s) {
   const g = setup(c), x = g.x;
   if (!s.t.length) { text(x, 'No per-minute data stored for this contract on this day.', g.w / 2, g.h / 2, g.P.ink3, 'center'); return; }
+  if (!s.p.some((v) => v > 0)) { text(x, 'No new premium in the stored minutes.', g.w / 2, g.h / 2, g.P.ink3, 'center'); return; }
   const pad = { l: 56, r: 12, t: 8, b: 22 }, W = g.w - pad.l - pad.r, H = g.h - pad.t - pad.b;
   const t0 = s.t[0], t1 = Math.max(s.t[s.t.length - 1], t0 + 60000), max = Math.max(...s.p, 1);
   const X = (t) => pad.l + (t - t0) / (t1 - t0) * W, bw = Math.max(2, Math.min(10, W / Math.max(1, (t1 - t0) / 60000) - 1));
@@ -246,8 +247,8 @@ async function loadDp() {
   const part = await DP.load(etf).catch(() => null);
   const list = DP.prints(part, 1e6, true).slice(-12).reverse();
   if (!list.length) { el.innerHTML = '<p class="oc-foot">No dark pool prints of $1M or more stored for ' + etf + ' right now.</p>'; return; }
-  el.innerHTML = '<table class="ph-tbl"><thead><tr><th scope="col">Time (ET)</th><th scope="col" class="num">Price</th><th scope="col" class="num">Shares</th><th scope="col" class="num">Value</th></tr></thead><tbody>'
-    + list.map((x) => `<tr${x.big ? ' class="ph-big"' : ''}><th scope="row">${P.fmtExp(new Date(x.t).toISOString().slice(0, 10))} ${P.fmtTime(x.t)}</th><td class="num">${x.p.toLocaleString('en-US', { maximumFractionDigits: 2 })}</td><td class="num">${x.s.toLocaleString('en-US')}</td><td class="num"><b>${DP.usd(x.v)}</b></td></tr>`).join('')
+  el.innerHTML = '<table class="ph-tbl"><thead><tr><th scope="col">Time (ET)</th><th scope="col" class="num">Price</th><th scope="col" class="num">Value</th></tr></thead><tbody>'
+    + list.map((x) => `<tr${x.big ? ' class="ph-big"' : ''}><th scope="row">${P.fmtExp(new Date(x.t).toISOString().slice(0, 10))} ${P.fmtTime(x.t)}</th><td class="num">${x.p.toLocaleString('en-US', { maximumFractionDigits: 2 })}</td><td class="num"><b title="${x.s.toLocaleString('en-US')} shares">${DP.usd(x.v)}</b></td></tr>`).join('')
     + '</tbody></table>';
   $('ph-dpupd').textContent = part && part.t ? DP.agoText(part.t) : '';
 }
@@ -267,7 +268,7 @@ function wireAlerts() {
     try { await MA.save(b, null); toast('Alert saved. It runs on our server and sends a push to your phone.', 'success'); renderAlerts(); }
     catch (err) { toast(err && err.signin ? 'Sign in to create alerts.' : err && err.full ? 'You have ' + err.full + ' metric alerts, the most we keep. Delete one first.' : 'Could not save the alert. Try again.'); }
   };
-  $('ph-aform').metric.onchange = (e) => { const p = e.target.value === 'ph_premium'; const v = $('ph-aform').value; v.min = p ? 10000 : 0.5; v.step = p ? 1000 : 0.1; v.value = p ? 500000 : 2; $('ph-avl').textContent = p ? 'Premium in one minute, $' : 'Vol/OI at least'; };
+  $('ph-aform').metric.onchange = (e) => { const p = e.target.value === 'ph_premium'; const v = $('ph-aform').value; v.min = p ? 10000 : 0.5; v.step = p ? 1000 : 0.1; v.value = p ? 500000 : 2; $('ph-avl').textContent = p ? 'At least, $' : 'At least, times'; };
   MA.onChange(renderAlerts);
 }
 function toast(m, t) { try { if (window.showToast) window.showToast(t || 'info', m); } catch (e) {} }

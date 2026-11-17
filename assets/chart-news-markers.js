@@ -19,7 +19,7 @@
 // DATA: book-recorder /news and /cal (edge-cached; the server feeder is the only caller of the
 // vendor). Education only. Not financial advice.
 
-import { RECORDER, newsSymOf, fetchNews, replayNow } from './chart-news.js?v=1091';
+import { RECORDER, newsSymOf, fetchNews, replayNow } from './chart-news.js?v=1096';
 
 const PRICING = '/pricing';
 const NEWS_TYPE = 'stk_news', ECON_TYPE = 'stk_econ', EARN_TYPE = 'stk_earn';

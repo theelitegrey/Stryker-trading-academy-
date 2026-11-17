@@ -26,7 +26,7 @@
 // - Order panel (assets/chart-order-panel.js, 2026-11-16) replaces the bottom strip while live; it calls placeTicket() -> place() only.
 // Tests: tests/finatic/chart-live.test.mjs (core + server, mocked broker), tools/tests/chart-live-browser.js (mocked endpoints only).
 // Education only. Not financial advice.
-import * as L from './chart-live-core.js?v=1091';
+import * as L from './chart-live-core.js?v=1096';
 
 const POLL_MS = 10000, STALE_MS = 25000, IDLE_MS = 15 * 60000, HIDDEN_MS = 2 * 60000, RATE_MAX = 10;
 const DISCLAIMER = 'Education only. Not financial advice.';
@@ -140,7 +140,7 @@ async function disconnect(id) {
   return { ok: true, wasActive: was };
 }
 function connect() {
-  import('./finatic-journal-ui.js?v=1091').then((m) => m.openBrokerSync({ uid, mode: 'chart', onConnected: () => { loadAccounts().then(() => toast('Broker connected. Pick the account in the panel.', 'success')); } }))
+  import('./finatic-journal-ui.js?v=1096').then((m) => m.openBrokerSync({ uid, mode: 'chart', onConnected: () => { loadAccounts().then(() => toast('Broker connected. Pick the account in the panel.', 'success')); } }))
     .catch(() => toast('Could not open the broker connection.', 'error'));
 }
 

@@ -54,7 +54,7 @@ const st = (p) => p.evaluate(() => { const a = window.__stkPaper.account; return
     t('move-here takes the key', (await st(p)).hk.reversePos === 'Shift+B' && !(await st(p)).hk.buyMarket);
     // Member bug 16 Nov: Ctrl combos on several actions, incl. Ctrl+S and Ctrl+N
     await rec(p, 'ticket', 'Control+S'); await rec(p, 'panel', 'Control+N');
-    t('Ctrl+N shows the browser note', /browsers keep/i.test(await p.textContent('.stkpt-hk-msg')), await p.textContent('.stkpt-hk-msg'));
+    t('Ctrl+N shows the browser note', /keeps Ctrl \+ N for itself\. Try Alt\+N or Ctrl\+Shift\+ another key/.test(await p.textContent('.stkpt-hk-note[data-id=panel]')));
     await rec(p, 'qty1', 'Control+Shift+K'); await rec(p, 'qty2', 'Control+Alt+J');
     s = await st(p);
     t('Ctrl+S, Ctrl+N, Ctrl+Shift+K, Ctrl+Alt+J assignable to different actions', s.hk.ticket === 'Ctrl+S' && s.hk.panel === 'Ctrl+N' && s.hk.qty1 === 'Ctrl+Shift+K' && s.hk.qty2 === 'Ctrl+Alt+J', s.hk);
@@ -115,6 +115,20 @@ const st = (p) => p.evaluate(() => { const a = window.__stkPaper.account; return
     await openTab(p, false); await p.click('.stkpt-hk-reset'); await sleep(200); s = await st(p);
     t('reset to defaults clears all', Object.keys(s.hk).length === 0, s.hk);
     t('desktop: no page errors', errs.length === 0, errs); await ctx.close();
+    // ---- Ctrl+S / Ctrl+B / Ctrl+Q fire, and the browser default is blocked
+    ({ ctx, p, errs } = await open(b, { width: 1440, height: 900 }, false, 'dark'));
+    await openTab(p, false);
+    await rec(p, 'buyMarket', 'Control+S'); await rec(p, 'qty5', 'Control+B'); await rec(p, 'cancelAll', 'Control+Q');
+    s = await st(p); t('Ctrl+S, Ctrl+B, Ctrl+Q assignable to 3 actions', s.hk.buyMarket === 'Ctrl+S' && s.hk.qty5 === 'Ctrl+B' && s.hk.cancelAll === 'Ctrl+Q', s.hk);
+    await rec(p, 'sellMarket', 'Control+S'); t('duplicate Ctrl+S names the action using it', /already used for .Buy at market./.test(await p.textContent('.stkpt-hk-msg')), await p.textContent('.stkpt-hk-msg')); await p.click('.stkpt-hk-keep');
+    await p.click('.vela-dialog--settings [aria-label="Close"], .vela-dialog--settings .vela-sd-close').catch(() => {}); await sleep(300);
+    await p.evaluate(() => { document.activeElement && document.activeElement.blur(); window.__dp = []; window.addEventListener('keydown', (e) => { if (e.key.length === 1) setTimeout(() => window.__dp.push(e.defaultPrevented), 0); }, true); });
+    await p.keyboard.press('Control+B'); await sleep(200); s = await st(p); t('Ctrl+B fires quantity 5', s.q === 5, s.q);
+    await p.keyboard.press('Control+S'); await sleep(400); s = await st(p); t('Ctrl+S fires buy', Object.values(s.pos).length === 1, s.pos);
+    await p.evaluate(() => window.__stkPaper.account.placeOrder({ symbol: 'CME_MINI:NQ1!', side: 'buy', type: 'limit', qty: 1, price: 20900 }));
+    await p.keyboard.press('Control+Q'); await sleep(300); t('Ctrl+Q fires cancel-all', (await st(p)).orders === 0);
+    t('Ctrl hotkeys block the browser default (Save page)', (await p.evaluate(() => window.__dp)).length === 3 && (await p.evaluate(() => window.__dp)).every(Boolean), await p.evaluate(() => window.__dp));
+    await ctx.close();
     // ---- light
     ({ ctx, p, errs } = await open(b, { width: 1440, height: 900 }, false, 'light'));
     await openTab(p, false); await rec(p, 'buyMarket', 'Shift+B'); await rec(p, 'cancelAll', 'Shift+B');

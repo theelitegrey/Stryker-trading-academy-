@@ -69,9 +69,10 @@
     if (CHART_KEYS[combo]) return label(combo) + ' is already used by the chart (' + CHART_KEYS[combo] + ').';
     return null;
   }
+  function browserMsg(combo) { const k = String(combo).split('+').pop(); return 'Your browser keeps ' + label(combo) + ' for itself. Try Alt+' + k + ' or Ctrl+Shift+ another key.'; }
   /** Plain warning when a normal browser tab may swallow this combo, else null. */
   function browserNote(combo) {
-    return BROWSER_TAB.test(combo || '') ? 'Saved, but browsers keep ' + label(combo) + ' for tabs, so it may not reach the chart in a normal tab. It works in the installed app. If it does nothing, pick another key.' : null;
+    return BROWSER_TAB.test(combo || '') ? browserMsg(combo) : null;
   }
   /** The other action using this combo, or null. */
   function conflict(map, combo, exceptId) {
@@ -108,5 +109,5 @@
     if (Math.abs(q / st - Math.round(q / st)) > 1e-9) return { ok: false, msg: st === 1 ? 'Use whole contracts.' : 'Use steps of ' + st + '.' };
     return { ok: true, qty: Number(q.toFixed(6)) };
   }
-  return { validQty, ACTIONS, IDS, CHART_KEYS, comboFromEvent, label, reserved, browserNote, conflict, nameOf, clean, typing, match, partQty };
+  return { validQty, ACTIONS, IDS, CHART_KEYS, comboFromEvent, label, reserved, browserNote, browserMsg, conflict, nameOf, clean, typing, match, partQty };
 });

@@ -19,7 +19,7 @@
 // in the Workspaces list, one click reopens it. Delete is a separate action with a confirm.
 // Crash safety: the screen itself is restored by the chart's own on-device save; the index says which
 // workspace it is. Deleting a workspace never deletes its saved layout.
-import * as C from './chart-workspaces-core.js?v=1091';
+import * as C from './chart-workspaces-core.js?v=1096';
 
 const REMOTE_MS = 1500;
 let remoteRead = false;

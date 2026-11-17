@@ -15,15 +15,15 @@
 //   ticks  trades since the last frame                                               -> walls pulled / consumed, ladder volume
 // History: GET /ts-book-history (BKR1, 48 h kept, 6 h a read) backfills the heatmap, /ts-aux the imbalance + 1-min footprint.
 // Wording: "updated Xs ago" only. Education only. Not financial advice.
-import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=1091';
-import { isFree, tierKnown, onTier, LIVE_DATA_REASON } from './chart-pro-gate.js?v=1091';
-import { isRealtimeAdmin, isL2Member, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=1091';
-import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=1091';
-import { hfLive } from './chart-heat-filter.js?v=1091';
-import { cmeOpenNow } from './chart-futures-provider.js?v=1091';
-import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=1091';
-import { replayClock } from './book-replay.js?v=1091';
-import { isFutures, futRoot } from './chart-sym.js?v=1091';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { registerFeed, setPanel, setStats } from './chart-feeds.js?v=1096';
+import { isFree, tierKnown, onTier, LIVE_DATA_REASON } from './chart-pro-gate.js?v=1096';
+import { isRealtimeAdmin, isL2Member, rtToken, rtEnsureFresh, rtReady, rtHeaders, rtOnChange, rtState } from './rt-access.js?v=1096';
+import { hubLive, HUB_FUTURES, HUB_QUOTES } from './live-source.js?v=1096';
+import { hfLive } from './chart-heat-filter.js?v=1096';
+import { cmeOpenNow } from './chart-futures-provider.js?v=1096';
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap } from './chart-live-of.js?v=1096';
+import { replayClock } from './book-replay.js?v=1096';
+import { isFutures, futRoot } from './chart-sym.js?v=1096';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 export const L2_MEMBERS = true;           // the L2 tools are listed for everyone (all tools free 2026-11-13; the Worker's TS_ACCESS stays 'pro' for the LIVE book)
 // Books we subscribe to (own book each). Micros we do not subscribe to show their mini's book (l2Note says so).

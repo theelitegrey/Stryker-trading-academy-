@@ -42,9 +42,9 @@
 // built-ins have no usage stats, so the Popular sort lists TradeZoro's own first, then catalogue order.
 // No Vela / LuxAlgo / TradingView wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=1091';
-import { entry as verEntry, fmtDate as verDate } from './indicator-versions.js?v=1091';
-import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2, GEX_TYPES } from './chart-pro-gate.js?v=1091';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=1096';
+import { entry as verEntry, fmtDate as verDate } from './indicator-versions.js?v=1096';
+import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2, GEX_TYPES } from './chart-pro-gate.js?v=1096';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -288,11 +288,11 @@ export function mountIndicatorWindow(ws, opts){
   // per-key facts from tools/gen-indicator-pages.js (slug, thumbnail, markets, inputs, summary, release)
   let meta = {}, metaP = null, explainMap = null, explainP = null;
   function loadMeta(){
-    if (!metaP) metaP = fetch('/assets/indicator-picker.json?v=1091').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { meta = m || {}; });
+    if (!metaP) metaP = fetch('/assets/indicator-picker.json?v=1096').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { meta = m || {}; });
     return metaP;
   }
   function loadExplain(){
-    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=1091').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
+    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=1096').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
     return explainP;
   }
 
@@ -368,7 +368,9 @@ export function mountIndicatorWindow(ws, opts){
     const all = builtins().concat(mineItems(), commItems(), cindItems(), zsItems());
     const pop = new Set(all.filter((x) => x.kind === 'community' && x.adds > 0).sort((a, b) => b.adds - a.adds).slice(0, 5).map((x) => x.key));
     all.forEach((x) => decorate(x, pop));
-    cacheAll = all;
+    // The chart's native catalog fills in a moment AFTER a workspace / symbol switch. A list built before that has no
+    // built-in indicators (Session Volume Profile, Volume Profile, GEX...): do not keep it, build again on the next call.
+    if (all.some((x) => x.kind === 'builtin' && x.key.startsWith('b:'))) cacheAll = all;
     return all;
   }
   const invalidate = () => { cacheAll = null; };
@@ -1018,7 +1020,7 @@ export function mountIndicatorWindow(ws, opts){
   picker.close = () => { close(); };
   // Vela calls sync() when a cell's catalog lands late (new cell, symbol change).
   let syncT = 0;
-  picker.sync = () => { if (ov && !els.search.value.trim()) { clearTimeout(syncT); syncT = setTimeout(() => { invalidate(); render(); }, 120); } };
+  picker.sync = () => { if (ov) { clearTimeout(syncT); syncT = setTimeout(() => { invalidate(); render(); }, 120); } };
   try { ws.on('cell:active', () => { if (ov) { invalidate(); render(); } }); } catch (e) {}
   window.addEventListener('resize', () => { if (ov) paint(); });
 

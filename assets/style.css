@@ -6161,30 +6161,22 @@ body.charts-page .stkchart-credit{
 }
 .stkc-ib:hover, .stkc-ib[aria-expanded="true"]{ color:var(--ink-0); background:var(--bg-2); }
 .stkc-ib.on{ color:var(--gold); }
-/* "Connect your AI to ZoroCharts" (assets/chart-ai-agent.js): the connected chip, bottom left of the chart.
-   One row: 40 tall pill, 4 inner padding both ends, 8 gaps; a 32 status slot (8 dot) mirrors the 32 close button; 13/18 label. */
-.stkai-chip{
-  position:absolute; left:12px; bottom:40px; z-index:35; display:flex; align-items:center; gap:8px;
-  height:40px; padding:0 4px; border:1px solid var(--line); border-radius:999px;
-  background:var(--bg-1); color:var(--ink-1); box-shadow:0 4px 16px rgba(0,0,0,.28);
-  font:500 13px/18px -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Segoe UI", system-ui, sans-serif; max-width:calc(100% - 24px);
-}
-.stkai-chip[hidden]{ display:none; }
-.stkai-dot{ flex:none; width:32px; height:32px; display:flex; align-items:center; justify-content:center; margin-right:-8px; }
-.stkai-dot::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--gold); }
-.stkai-chip.paused .stkai-dot::before{ background:#f5a524; }
-.stkai-label{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.stkai-btn{
-  flex:none; display:inline-flex; align-items:center; justify-content:center; height:32px; min-width:32px; padding:0 12px;
-  border:0; border-radius:999px; background:var(--bg-2); color:var(--ink-0); font:inherit; cursor:pointer;
-}
-.stkai-btn.stkai-x{ width:32px; padding:0; color:var(--ink-2); }
-.stkai-btn:hover{ background:var(--bg-3); color:var(--ink-0); }
-.stkai-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
-:root[data-theme="light"] .stkai-chip{ background:#fff; box-shadow:0 4px 16px rgba(0,0,0,.10); }
-:root[data-theme="light"] .stkai-btn{ background:var(--bg-3); }
-:root[data-theme="light"] .stkai-btn:hover{ background:#e2e6ee; }
-@media (max-width:700px){ .stkai-chip{ left:8px; bottom:36px; max-width:calc(100% - 16px); } }
+/* "Connect your AI to ZoroCharts" (assets/chart-ai-agent.js): one item in the chart's bottom bar, right after ALL (Owner 17 Nov).
+   Same 24 tall / 12px 600 type as the range buttons; 1px divider with 12 each side (the bar's own gap is 2); desktop only
+   (the bar is hidden on phones: the member uses the More menu entry there). */
+.stkai-bb{ flex:none; display:inline-flex; align-items:center; gap:0; height:24px; margin-left:10px; font:600 12px/19.2px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif; color:var(--vela-fg-muted, var(--ink-2)); }
+.stkai-bb[hidden], .stkai-bb [hidden]{ display:none; }
+.stkai-sep{ flex:none; width:1px; height:16px; margin-right:12px; background:var(--vela-border-strong, var(--line-soft)); }
+.stkai-on{ display:inline-flex; align-items:center; gap:4px; height:24px; min-width:0; }
+.stkai-dot{ flex:none; width:8px; height:8px; margin:0 4px 0 0; border-radius:50%; background:var(--gold); }
+.stkai-bb.paused .stkai-dot{ background:#f5a524; }
+.stkai-label{ min-width:0; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--vela-fg, var(--ink-1)); }
+.stkai-btn{ flex:none; display:inline-flex; align-items:center; justify-content:center; gap:4px; height:24px; min-width:24px; padding:0 8px; border:0; border-radius:4px; background:transparent; color:var(--vela-fg-muted, var(--ink-2)); font:inherit; cursor:pointer; }
+.stkai-btn.stkai-x{ width:24px; padding:0; }
+.stkai-btn:hover{ background:var(--vela-hover, var(--bg-2)); color:var(--vela-fg-bright, var(--ink-0)); }
+.stkai-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+.stkai-connect svg{ width:12px; height:12px; flex:none; }
+@media (max-width:899px){ .stkai-bb{ display:none; } }
 .stkc-btn:focus-visible, .stkc-ib:focus-visible, .stkc-item:focus-visible, .stkc-tname:focus-visible, .stkc-cell:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
 .stkc-pop{
   position:absolute; top:calc(100% + 6px); left:0; z-index:60; min-width:220px; max-width:min(330px, calc(100vw - 16px));

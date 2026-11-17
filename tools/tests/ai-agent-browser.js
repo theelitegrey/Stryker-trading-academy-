@@ -26,42 +26,33 @@ async function rpc(token, method, params) {
 const call = (token, name, args) => rpc(token, 'tools/call', { name, arguments: args || {} });
 const text = (r) => (r && r.result && r.result.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
 
+// The AI item sits in the chart's bottom bar right after ALL (Owner 17 Nov 2026). Returns numbers for the alignment gate.
 async function measureChip(p) {
   return p.evaluate(() => {
-    const c = document.getElementById('stkai-chip'); if (!c || c.hidden) return null;
-    const R = (e) => { const b = e.getBoundingClientRect(); return { x: +b.x.toFixed(1), y: +b.y.toFixed(1), w: +b.width.toFixed(1), h: +b.height.toFixed(1), cy: +(b.y + b.height / 2).toFixed(1) }; };
-    const kids = [...c.children].map((e) => ({ cls: e.className, ...R(e) }));
-    const box = R(c), panel = R(c.offsetParent || document.body);
-    const gaps = kids.slice(1).map((k, i) => +(k.x - (kids[i].x + kids[i].w)).toFixed(1));
-    const fl = document.querySelector('.stkc-fl'), flb = fl && fl.getBoundingClientRect();
-    const cb = c.getBoundingClientRect();
-    const hits = [...document.querySelectorAll('.tz-brand, .stkc-fl, .stkc-fl > *')].filter((e) => getComputedStyle(e).visibility !== 'hidden' && +getComputedStyle(e).opacity > 0).map((e) => Object.assign(e.getBoundingClientRect(), {})).filter((b) => b.width && b.left < cb.right && b.right > cb.left && b.top < cb.bottom && b.bottom > cb.top).length;
-    const cv = [...document.querySelectorAll('#vela-chart canvas')].map((x) => x.getBoundingClientRect()).filter((b) => b.width > 100)[0];
-    const who = [...document.querySelectorAll('.tz-brand, .stkc-fl, .stkc-fl > *')].filter((e) => { const b = e.getBoundingClientRect(); return b.width && b.left < cb.right && b.right > cb.left && b.top < cb.bottom && b.bottom > cb.top; }).map((e) => e.className + ' vis=' + getComputedStyle(e).visibility + ' op=' + getComputedStyle(e).opacity + ' disp=' + getComputedStyle(e).display);
-    const stacked = !!(flb && flb.height && cb.bottom <= flb.top);
-    const brs = [...document.querySelectorAll('.tz-brand')].map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.bottom > cb.bottom);
-    const stackGap = stacked ? +(Math.min(flb.top, ...brs.map((b) => b.top)) - cb.bottom).toFixed(1) : null;
-    return { stacked, stackGap, who, overlaps: hits, insidePlot: cv ? +(cv.right - cb.right).toFixed(1) : null, flCy: flb && flb.height ? +(flb.y + flb.height / 2).toFixed(1) : null, chip: box, kids, gaps, padL: +(kids[0].x - box.x - 1).toFixed(1), padR: +(box.x + box.w - 1 - (kids[kids.length - 1].x + kids[kids.length - 1].w)).toFixed(1), fromPanelLeft: +(box.x - panel.x).toFixed(1), fromPanelBottom: +(panel.y + panel.h - box.y - box.h).toFixed(1) };
+    const c = document.getElementById('stkai-chip'); if (!c || !c.offsetWidth) return null;
+    const R = (e) => { const b = e.getBoundingClientRect(); return { x: +b.x.toFixed(1), y: +b.y.toFixed(1), w: +b.width.toFixed(1), h: +b.height.toFixed(1), r: +b.right.toFixed(1), cy: +(b.y + b.height / 2).toFixed(1) }; };
+    const rs = [...document.querySelectorAll('.vela-bb-range')], all = rs[rs.length - 1], bar = document.querySelector('.vela-widget-bottombar');
+    const kids = [...c.querySelectorAll('.stkai-sep, .stkai-btn, .stkai-dot, .stkai-label')].filter((e) => e.offsetWidth).map((e) => ({ cls: e.className, ...R(e) }));
+    const sep = kids.find((k) => /stkai-sep/.test(k.cls)), first = kids.find((k) => !/stkai-sep/.test(k.cls));
+    return { all: R(all), allText: all.textContent, chip: R(c), kids, barH: R(bar).h, sepLeft: +(sep.x - R(all).r).toFixed(1), sepRight: +(first.x - sep.r).toFixed(1), label: (c.querySelector('.stkai-label') || {}).textContent, labelW: (c.querySelector('.stkai-label') || { offsetWidth: 0 }).offsetWidth, font: getComputedStyle(c.querySelector('.stkai-btn')).fontSize, allFont: getComputedStyle(all).fontSize, floating: !!document.querySelector('.stkchart-panel > .stkai-chip') };
   });
 }
 function checkRow(m, label) {
-  if (!m) return ok(false, label + ': chip measured');
-  const cys = m.kids.map((k) => k.cy), spread = Math.max(...cys) - Math.min(...cys);
-  ok(spread <= 1, label + ': one vertical centre (spread ' + spread.toFixed(1) + 'px)');
+  if (!m) return ok(false, label + ': AI bar item measured');
+  ok(m.chip.x >= m.all.r, label + ': item sits right of ALL (' + m.chip.x + ' >= ' + m.all.r + ')');
+  const cys = [m.all.cy, ...m.kids.map((k) => k.cy)], spread = Math.max(...cys) - Math.min(...cys);
+  ok(spread <= 1, label + ': same centre line as ALL (spread ' + spread.toFixed(1) + 'px)');
   const btns = m.kids.filter((k) => /stkai-btn/.test(k.cls));
-  ok(btns.every((b) => b.h === btns[0].h), label + ': buttons same height (' + btns.map((b) => b.h).join('/') + ')');
-  // The status slot is a 32px box (mirrors the 32px close button) holding an 8px dot, pulled 8px into the label: what the eye
-  // sees is the dot-to-label gap = (32 - 8) / 2 - 0 = 12. Buttons sit 8 apart.
-  const dot = m.kids[0], dotGap = +(m.kids[1].x - (dot.x + dot.w / 2 + 4)).toFixed(1);
-  ok(Math.abs(dotGap - 12) <= 0.6, label + ': dot to label 12 (' + dotGap + ')');
-  ok(m.gaps.slice(1).every((g) => Math.abs(g - 8) <= 0.6), label + ': gaps 8 (' + m.gaps.slice(1).join(', ') + ')');
-  ok(Math.abs(m.padL - m.padR) <= 0.6, label + ': equal inner padding (' + m.padL + '/' + m.padR + ')');
-  ok(Math.abs(m.chip.cy - (btns[0].cy)) <= 1, label + ': buttons centred in the chip');
-  if (m.flCy != null && !m.stacked) ok(Math.abs(m.flCy - m.chip.cy) <= 1, label + ': chip centred on the Fit price / Latest row (' + m.chip.cy + ' vs ' + m.flCy + ')');
-  if (m.stacked) ok(Math.abs(m.stackGap - 8) <= 1, label + ': phone: chip one row above the Fit price / Latest pills, 8 gap (' + m.stackGap + ')');
-  ok(m.overlaps === 0, label + ': covers no chart control (logo badge, Fit price / Latest)' + (m.who.length ? ' ' + m.who.join(' | ') : ''));
-  if (m.insidePlot != null) ok(m.insidePlot >= 8, label + ': inside the plot, ' + m.insidePlot + 'px clear of the price axis');
-  ok(m.fromPanelLeft >= 8 || m.stacked, label + ': not hugging the edge (' + m.fromPanelLeft + 'px from left)');
+  ok(btns.every((b) => b.h === m.all.h), label + ': buttons as tall as the range buttons (' + btns.map((b) => b.h).join('/') + ' vs ' + m.all.h + ')');
+  ok(m.font === m.allFont, label + ': same font size as the range buttons (' + m.font + ')');
+  ok(Math.abs(m.sepLeft - 12) <= 0.6 && Math.abs(m.sepRight - 12) <= 0.6, label + ': divider 12 each side (' + m.sepLeft + '/' + m.sepRight + ')');
+  ok(m.labelW <= 140, label + ': label max 140 (' + m.labelW + ')');
+  ok(!m.floating, label + ': no floating chip over the chart');
+}
+async function pressed(p, a) { await p.click('#stkai-chip [data-a=' + a + ']'); await p.waitForTimeout(300); }
+async function shotChip(p, name) {
+  const box = await p.evaluate(() => { const b = document.querySelector('.vela-widget-bottombar').getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
+  await p.screenshot({ path: path.join(SHOTS, name + '.png'), clip: { x: 0, y: Math.max(0, box.y - 8), width: Math.min(box.w, 800), height: box.h + 16 } });
 }
 
 (async () => {
@@ -94,10 +85,11 @@ function checkRow(m, label) {
       firebase.auth = () => { const a = real(); return new Proxy(a, { get: (t, k) => k === 'currentUser' ? u : (typeof t[k] === 'function' ? t[k].bind(t) : t[k]) }); };
       window.__stkAiAgent.check();
     }, UID);
-    await p.waitForFunction(() => window.__stkAiAgent.connected && !document.getElementById('stkai-chip').hidden, null, { timeout: 20000 }).catch(() => {});
+    await p.waitForFunction(() => window.__stkAiAgent.connected && document.querySelector('#stkai-chip .stkai-on:not([hidden])'), null, { timeout: 20000 }).catch(() => {});
     const tag = vw + '-' + theme;
     ok(await p.evaluate(() => window.__stkAiAgent.connected), tag + ': chart tab connected to the relay');
     const label = await p.evaluate(() => document.querySelector('#stkai-chip .stkai-label').textContent);
+    if (vw < 900) ok(!(await p.evaluate(() => document.getElementById('stkai-chip').offsetWidth)) && !!(await p.evaluate(() => document.getElementById('stkc-ai-btn'))), tag + ': phone: bar item hidden, ⋯ menu entry is the way in');
     ok(/^AI connected · /.test(label), tag + ': chip says "' + label + '"');
 
     if (vw === 1440 && theme === 'dark') {
@@ -151,27 +143,26 @@ function checkRow(m, label) {
       ok((await p.evaluate(() => window.STRYKER_VELA.active.symbol)) === 'binance:BTCUSDT', 'chart unchanged after refused call');
       // 8. chip alignment (dark 1440) + crop
       results[tag] = await measureChip(p); checkRow(results[tag], tag);
-      await shotChip(p, 'chip-' + tag);
+      await shotChip(p, 'aibar-' + tag);
       // 9. Pause blocks, Resume restores
-      await p.click('#stkai-chip [data-a=pause]');
-      await p.waitForTimeout(300);
+      await pressed(p, 'pause');
       const pz = await call(T, 'chart_status');
       ok(pz.result.isError && /paused/.test(text(pz)), 'Pause -> calls refused (' + text(pz).slice(0, 80) + ')');
       results[tag + '-paused'] = await measureChip(p); checkRow(results[tag + '-paused'], tag + ' paused');
-      await shotChip(p, 'chip-' + tag + '-paused');
-      await p.click('#stkai-chip [data-a=pause]');
-      await p.waitForTimeout(300);
+      await shotChip(p, 'aibar-' + tag + '-paused');
+      ok(/AI paused · /.test(await p.evaluate(() => document.querySelector('#stkai-chip .stkai-label').textContent)) && (await p.textContent('#stkai-chip [data-a=pause]')) === 'Resume', 'paused state: "AI paused · app" + Resume');
+      await pressed(p, 'pause');
       ok(!(await call(T, 'chart_status')).result.isError, 'Resume -> calls work again');
       // 10. Disconnect -> next call fails
-      await p.click('#stkai-chip [data-a=off]');
-      await p.waitForTimeout(500);
-      ok(await p.evaluate(() => document.getElementById('stkai-chip').hidden), 'Disconnect hides the chip');
+      await pressed(p, 'off'); await p.waitForTimeout(300);
+      ok(await p.evaluate(() => { const c = document.getElementById('stkai-chip'); return c.querySelector('.stkai-on').hidden && !c.querySelector('[data-a=connect]').hidden && /Connect AI/.test(c.textContent); }), 'x -> not-connected state: "Connect AI" pill');
+      results[tag + '-off'] = await measureChip(p); checkRow(results[tag + '-off'], tag + ' not connected'); await shotChip(p, 'aibar-' + tag + '-off');
       const after = await call(T, 'chart_symbol', { symbol: 'ES' });
       ok(after.result.isError && /No ZoroCharts tab/.test(text(after)), 'after Disconnect the next call fails: ' + text(after).slice(0, 90));
-      // the More-menu entry turns it back on
-      await p.evaluate(() => document.getElementById('stkc-ai-btn').click());
+      // the Connect AI pill turns it back on
+      await p.click('#stkai-chip [data-a=connect]');
       await p.waitForFunction(() => window.__stkAiAgent.connected, null, { timeout: 10000 }).catch(() => {});
-      ok(await p.evaluate(() => window.__stkAiAgent.connected), '"Connect your AI" menu entry reconnects this tab');
+      ok(await p.evaluate(() => window.__stkAiAgent.connected), '"Connect AI" pill reconnects this tab');
       // revoke from the agents API -> tab drops it
       const g = await member('grants'); const mine = g.body.grants.find((x) => x.name === 'Read only test');
       await member('grant/delete', { id: mine.id });
@@ -179,18 +170,13 @@ function checkRow(m, label) {
       const menuTxt = await p.evaluate(() => { const b = document.getElementById('stkc-ai-btn'); return b && (b.closest('[role=menu], .stkc-ob-menu, .ob-menu') ? 'in menu' : 'in bar'); });
       console.log('     menu entry placement: ' + menuTxt);
     } else {
-      results[tag] = await measureChip(p); checkRow(results[tag], tag);
-      await shotChip(p, 'chip-' + tag);
+      if (vw >= 900) { results[tag] = await measureChip(p); checkRow(results[tag], tag); await shotChip(p, 'aibar-' + tag); }
       await p.screenshot({ path: path.join(SHOTS, 'ai-chart-' + tag + '.png') });
     }
     ok(!errs.some((e) => /ai-agent|stkai/i.test(e)), tag + ': no page errors from the AI module' + (errs.length ? ' (others: ' + errs.slice(0, 2).join(' / ') + ')' : ''));
     await ctx.close();
   }
-  async function shotChip(p, name) {
-    const box = await p.evaluate(() => { const b = document.getElementById('stkai-chip').getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
-    await p.screenshot({ path: path.join(SHOTS, name + '.png'), clip: { x: Math.max(0, box.x - 16), y: Math.max(0, box.y - 16), width: Math.min(box.w + 32, 1400), height: box.h + 32 } });
-  }
-  fs.writeFileSync(path.join(SHOTS, 'chip-measure.json'), JSON.stringify(results, null, 1));
+  fs.writeFileSync(path.join(SHOTS, 'aibar-measure.json'), JSON.stringify(results, null, 1));
   await b.close();
   console.log('\n' + (n - fails) + ' passed, ' + fails + ' failed. Shots: ' + SHOTS);
   process.exit(fails ? 1 : 0);

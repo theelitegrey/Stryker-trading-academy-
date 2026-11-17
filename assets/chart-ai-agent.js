@@ -13,7 +13,7 @@
 // per load (a "no" is remembered 10 minutes in localStorage, tz_ai_check); approving on /ai/consent or making a token
 // on /charts/agents in this browser sets it at once (storage event). The Firebase ID token goes as the WebSocket
 // subprotocol, never in a URL, and is refreshed on the socket every 45 minutes.
-// THE CHIP: "AI connected · <app>" at the bottom left of the chart with Pause (the tab refuses commands; the AI is told
+// THE BAR ITEM: "Connect AI" / "AI connected · <app>" in the chart's bottom bar right after ALL (desktop; phones use the ⋯ entry), with Pause (the tab refuses commands; the AI is told
 // "paused") and Disconnect (this tab closes the relay until the member turns it on again from the ⋯ menu entry
 // "Connect your AI", or reloads). Each action shows a toast ("Claude added EMA 20").
 // NO TRADING: there are no order tools; the relay only accepts the tool names below.
@@ -58,57 +58,34 @@ export function mountAiAgent(ws, opts = {}) {
   const user = () => { try { return window.firebase && firebase.auth().currentUser; } catch (e) { return null; } };
   const idToken = async (force) => { const u = user(); return u ? u.getIdToken(!!force) : ''; };
 
-  // ---------- chip
+  // ---------- bar item (bottom bar of the chart, right after the range buttons; Owner order 17 Nov 2026)
   const host = document.querySelector('.stkchart-panel') || document.body;
   const chip = document.createElement('div');
-  chip.className = 'stkai-chip'; chip.id = 'stkai-chip'; chip.hidden = true;
-  chip.setAttribute('role', 'status'); chip.setAttribute('aria-live', 'polite');
-  chip.innerHTML = '<span class="stkai-dot" aria-hidden="true"></span><span class="stkai-label"></span>' +
+  chip.className = 'stkai-bb'; chip.id = 'stkai-chip';
+  const SPARK = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.2 6.3L20.5 10.5l-6.3 2.2L12 19l-2.2-6.3L3.5 10.5l6.3-2.2z"/></svg>';
+  chip.innerHTML = '<i class="stkai-sep" aria-hidden="true"></i>' +
+    '<button type="button" class="stkai-btn stkai-connect" data-a="connect" title="Connect your own AI app to this chart">' + SPARK + 'Connect AI</button>' +
+    '<span class="stkai-on" hidden><span class="stkai-dot" aria-hidden="true"></span><span class="stkai-label" role="status" aria-live="polite"></span>' +
     '<button type="button" class="stkai-btn" data-a="pause"></button>' +
     '<button type="button" class="stkai-btn stkai-x" data-a="off" aria-label="Disconnect AI from this chart" title="Disconnect AI from this chart">' +
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
-  host.appendChild(chip);
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span>';
+  const onBox = chip.querySelector('.stkai-on'), connectBtn = chip.querySelector('[data-a=connect]');
   const label = chip.querySelector('.stkai-label'), pauseBtn = chip.querySelector('[data-a=pause]');
-  // Sit inside the plot: 12 right of the drawing toolbar, centred on the chart's own Fit price / Latest row (just above the
-  // time axis). CSS (.stkai-chip) has the fallback when those can't be measured.
+  // The bar is built by the chart library and can be rebuilt: keep the item right after the last range button.
   function place() {
-    try {
-      const pr = host.getBoundingClientRect();
-      const cv = [...host.querySelectorAll('#vela-chart canvas')].map((c) => c.getBoundingClientRect()).filter((b) => b.width > 100)[0];
-      const fl = host.querySelector('.stkc-fl');   // the Fit price / Latest row (assets/chart-settings.js)
-      if (cv) chip.style.left = Math.round(cv.left - pr.left + (innerWidth <= 700 ? 8 : 12)) + 'px';
-      // never cover the chart's logo badge (assets/chart-brand.js, bottom left of the plot): sit 8 to its right
-      const br = [...host.querySelectorAll('.tz-brand')].map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.left < chip.getBoundingClientRect().right && b.bottom > pr.bottom - 160)[0];
-      if (br) chip.style.left = Math.round(br.left - pr.left + br.height + 8) + 'px';
-      let left = parseFloat(chip.style.left || 12);
-      let right = (cv ? cv.right - pr.left : pr.width) - 8;   // stay inside the plot, 8 clear of the price axis
-      const fb = fl && fl.getBoundingClientRect();
-      const flLeft = fb && fb.width ? fb.left - pr.left - 8 : right;   // and 8 clear of the Fit price / Latest pills
-      if (fb && fb.height && flLeft - left >= 240) {
-        // room on the pills' row: same vertical centre, so chip and pills read as one line above the time axis
-        right = Math.min(right, flLeft);
-        chip.style.bottom = Math.max(24, Math.round(pr.bottom - (fb.top + fb.height / 2) - chip.offsetHeight / 2)) + 'px';
-      } else if (fb && fb.height) {
-        // phones: not enough room beside the pills, so the chip sits one row above them (8 gap)
-        // phones: not enough room beside the pills, so the chip sits one row above them (8 gap), clear of the logo badge too,
-        // and lines up with the plot's left edge again
-        chip.style.bottom = Math.round(pr.bottom - Math.min(fb.top, br ? br.top : fb.top) + 8) + 'px';
-        if (cv) { left = Math.round(cv.left - pr.left + 8); chip.style.left = left + 'px'; }
-      }
-      chip.style.maxWidth = Math.max(160, Math.round(right - left)) + 'px';
-    } catch (e) {}
+    const bar = host.querySelector('.vela-widget-bottombar'), r = bar && bar.querySelectorAll('.vela-bb-range');
+    const last = r && r[r.length - 1];
+    if (last && last.nextElementSibling !== chip) last.after(chip);
   }
-  addEventListener('resize', () => { if (!chip.hidden) place(); });
+  place(); setInterval(place, 1000);
   function paint() {
     const on = !!(sock && sock.readyState === 1 && grants.length);
-    const was = chip.hidden;
-    chip.hidden = !on;
-    if (on && was) requestAnimationFrame(place);
+    onBox.hidden = !on; connectBtn.hidden = on;
     chip.classList.toggle('paused', paused);
     const names = [...new Set(grants.map((g) => g.name))];
     const who = names.length === 1 ? names[0] : names.length + ' AI apps';
     label.textContent = (paused ? 'AI paused · ' : 'AI connected · ') + who;
-    chip.title = 'Connected: ' + names.join(', ') + '. Every action shows a message here.';
+    label.title = chip.title = on ? 'Connected: ' + names.join(', ') + '. Every action shows a message here.' : '';
     pauseBtn.textContent = paused ? 'Resume' : 'Pause';
     pauseBtn.setAttribute('aria-label', paused ? 'Resume AI control' : 'Pause AI control');
     const mi = document.getElementById('stkc-ai-btn');
@@ -121,7 +98,12 @@ export function mountAiAgent(ws, opts = {}) {
   function turnOn() { ss.del(OFF_KEY); wanted = true; connect(); toast('AI control is on again in this tab.', 'success'); }
   chip.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-a]'); if (!b) return;
-    if (b.dataset.a === 'pause') togglePause(); else turnOff();
+    if (b.dataset.a === 'pause') togglePause();
+    else if (b.dataset.a === 'off') turnOff();
+    else if (!user()) { try { sessionStorage.setItem('stryker_return_to', '/ai'); } catch (e2) {} location.href = '/login'; }   // signed out: sign in, then /ai
+    else if (ss.get(OFF_KEY) === '1') turnOn();   // the member turned it off here: one click turns it back on
+    else if (menuBtn) menuBtn.click();   // the in-app connect panel
+    else window.open('/ai', '_blank', 'noopener');
   });
 
   // ---------- menu entry (button in charts.html, moved into ⋯ More by assets/chart-onebar.js)

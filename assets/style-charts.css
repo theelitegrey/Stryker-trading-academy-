@@ -3849,12 +3849,17 @@ html[data-stk-rh] .mclock.is-replay .mclock-tail, html[data-stk-rh] .mclock.is-r
 .stkph-ib.neg{ background:var(--red, #ef4444); }
 .stkph-iv{ font:12px/16px var(--font-mono); text-align:right; font-variant-numeric:tabular-nums; }
 .stkph-scroll{ overflow:auto; border:1px solid var(--line-soft); border-radius:8px; flex:none; max-height:320px; }
-.stkph-tbl{ width:100%; border-collapse:separate; border-spacing:0; font-size:12px; line-height:16px; font-variant-numeric:tabular-nums; }
+.stkph-tbl{ width:100%; min-width:0; table-layout:fixed; border-collapse:separate; border-spacing:0; font-size:12px; line-height:16px; font-variant-numeric:tabular-nums; }
 .stkph-tbl th, .stkph-tbl td{ height:32px; padding:0 8px; border-bottom:1px solid var(--line-soft); white-space:nowrap; text-align:left; }
 .stkph-tbl thead th{ position:sticky; top:0; z-index:2; height:28px; background:var(--bg-1, var(--bg-0)); color:var(--ink-2); font-weight:500; font-size:11px; }
 .stkph-tbl thead th:first-child{ left:0; z-index:3; }
 .stkph-tbl tbody th{ position:sticky; left:0; z-index:1; background:var(--bg-0); font:600 12px/16px var(--font-mono); color:var(--ink-0); }
 .stkph-tbl .num{ text-align:right; font-family:var(--font-mono); }
+.stkph-tbl th:nth-child(1){ width:20%; }
+.stkph-tbl th:nth-child(2){ width:28%; }
+.stkph-tbl th:nth-child(3){ width:14%; }
+.stkph-tbl th:nth-child(5){ width:16%; }
+.stkph-tbl td, .stkph-tbl th{ overflow:hidden; text-overflow:ellipsis; }
 .stkph-tbl small{ color:var(--ink-3); }
 .stkph-tbl tbody tr{ cursor:pointer; }
 .stkph-tbl tbody tr:hover td, .stkph-tbl tbody tr:hover th{ background:var(--bg-2); }

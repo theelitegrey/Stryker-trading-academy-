@@ -73,7 +73,7 @@ export function mountPhantom(ws, opts) {
     const wh = P.filterWhales(P.whaleRows(x.moves, x.mcols, u, data.sum.day), {}).slice(0, 15);
     body.innerHTML = `
       <div class="stkph-upd" data-t="${b.t}">${esc(P.agoText(b.t))}</div>
-      <div class="stkph-tot"><div><span>Net calls</span><b class="${(tot.cn || 0) >= 0 ? 'pos' : 'neg'}">${P.usd(tot.cn, true)}</b></div><div><span>Net puts</span><b class="${(tot.pn || 0) >= 0 ? 'pos' : 'neg'}">${P.usd(tot.pn, true)}</b></div></div>
+      <div class="stkph-tot"><div><span>Net calls</span><b class="pos">${P.usd(tot.cn, true)}</b></div><div><span>Net puts</span><b class="neg">${P.usd(tot.pn, true)}</b></div></div>
       <h3 class="stkph-h">Net impact</h3>
       <div class="stkph-imp">${imp.map((i) => `<div class="stkph-ir${i.u === u ? ' on' : ''}"><span class="stkph-iu">${i.u}</span><span class="stkph-it"><span class="stkph-im"></span><span class="stkph-ib ${i.net >= 0 ? 'pos' : 'neg'}" style="${i.net >= 0 ? 'left' : 'right'}:50%;width:${(Math.abs(i.net) / max * 50).toFixed(1)}%"></span></span><span class="stkph-iv ${i.net >= 0 ? 'pos' : 'neg'}">${P.usd(i.net, true)}</span></div>`).join('')}</div>
       <h3 class="stkph-h">Top strikes today</h3>

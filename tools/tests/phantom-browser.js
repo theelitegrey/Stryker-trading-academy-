@@ -172,12 +172,11 @@ async function charts(b, tag, o) {
   await p.waitForFunction(() => window.__stkPhantom && window.__stkPhantom.open, null, { timeout: 20000 }).catch(() => {});
   await setSym(p, 'futures:NQ1!');
   if (o.mobile) {   // phones: panel buttons live in the one-bar More menu (assets/chart-onebar.js)
-    check(await p.evaluate(() => !!document.querySelector('.stkph-phonebtn')), tag + ': Phantom phone button exists');
-    await p.click('#stkc-more-btn'); await sleep(500);
-    const row = p.locator('[data-ob-label="Phantom options flow"]');   // the More list draws labels from data-ob-label (CSS content)
-    await row.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-    check(await row.isVisible().catch(() => false), tag + ': "Phantom options flow" row in More');
-    await row.click();
+    // phones: the button sits in the top bar, or in ⋯ More when the bar overflows (assets/chart-onebar.js)
+    const where = await p.evaluate(() => { const e = document.querySelector('.stkph-phonebtn'); if (!e) return 'none'; return e.closest('#stkc-more-pop') ? 'more' : e.getBoundingClientRect().width > 0 ? 'bar' : 'hidden'; });
+    check(where === 'bar' || where === 'more', tag + ': Phantom phone button reachable (' + where + ')');
+    if (where === 'more') { await p.click('#stkc-more-btn'); await sleep(500); }
+    await p.click('.stkph-phonebtn');
   } else {
     check(await p.evaluate(() => { const e = document.querySelector('.stkph-railbtn'); return !!e && e.getBoundingClientRect().width > 0; }), tag + ': Phantom rail button visible');
     await p.click('.stkph-railbtn');
@@ -195,6 +194,9 @@ async function charts(b, tag, o) {
     console.log('ALIGN ' + tag + ' header ' + JSON.stringify(hd));
     check(hd.off <= 1, tag + ': panel header items share one centre (' + hd.off + 'px)');
   }
+  const fit = await p.evaluate(() => [...document.querySelectorAll('#stkph .stkph-scroll')].map((sc) => { const t = sc.querySelector('table'), last = t.querySelector('thead th:last-child').getBoundingClientRect(), box = sc.getBoundingClientRect(); return { sw: sc.scrollWidth, cw: sc.clientWidth, tw: Math.round(t.getBoundingClientRect().width), lastR: Math.round(last.right), boxR: Math.round(box.right) }; }));
+  console.log('FIT ' + tag + ' ' + JSON.stringify(fit));
+  check(fit.length && fit.every((f) => f.sw <= f.cw + 1 && f.lastR <= f.boxR), tag + ': panel tables fit the panel width (all columns visible)');
   await shot(p, 'phantom-panel-' + tag + '-nq.png');
   await setSym(p, 'futures:ES1!'); await sleep(2000);
   const es = await p.evaluate(() => [window.__stkPhantom.u, document.querySelector('.stkph-sym').textContent]);

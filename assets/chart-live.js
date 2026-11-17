@@ -42,7 +42,11 @@ const S = {
   accounts: [], acct: null, userId: '', env: null, loaded: false, loadErr: '',
   data: { positions: [], orders: [] }, lastOkStart: 0, lastWriteAt: 0, unknown: false, readErr: '', reading: false,
   busy: false, typed: new Set(), skip: false, form: { side: 'buy', type: 'market', qty: 1, price: '' }, modifyOk: null,
-  placeSchema: null, placeErr: '', killed: null, lastAct: Date.now(), hiddenAt: 0, lock: null, msg: '', sentAt: [], rtt: null, pending: null
+  placeSchema: null, placeErr: '', killed: null, lastAct: Date.now(), hiddenAt: 0, lock: null, msg: '', sentAt: [], rtt: null, pending: null,
+  // env check (Owner bug 2026-11-17): S.env stays null until the server ANSWERS; envErr = why it could not be reached (never "off")
+  envAt: 0, envErr: '', envBusy: null,
+  // stop loss / take profit group of the chart's contract (the server's record, functions/connect/finatic/order.js op 'bracket')
+  group: null, syncing: false, alarmSeen: ''
 };
 window.__stkLive = { get state() { return S; } };
 
@@ -52,11 +56,13 @@ const lsUser = () => { try { return localStorage.getItem(lsUserKey()) || ''; } c
 
 // SPEED (Owner order 2026-11-16): the ID token is cached by the Firebase SDK (no network unless it is near expiry); every write is timed
 // from the confirm tap to the answer (S.rtt, shown in the panel footer) with the server's Server-Timing split (L.parseTiming).
-async function call(url, body, timing) {
-  let t; try { t = await firebase.auth().currentUser.getIdToken(); } catch (e) { const er = new Error('Sign in again.'); er.status = 401; throw er; }
+// A 401 (expired sign-in token) is retried ONCE with a freshly minted token: the server refused it at the door, nothing was sent.
+async function call(url, body, timing, fresh) {
+  let t; try { t = await firebase.auth().currentUser.getIdToken(!!fresh); } catch (e) { const er = new Error('Sign in again.'); er.status = 401; throw er; }
   let r;
   try { r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + t }, body: JSON.stringify(body), cache: 'no-store', keepalive: !!timing }); }
   catch (e) { const er = new Error('No answer from TradeZoro.'); er.status = 0; er.network = true; throw er; }
+  if (r.status === 401 && !fresh) return call(url, body, timing, true);
   if (timing) timing.server = L.parseTiming(r.headers.get('server-timing'));
   let j = null; try { j = await r.json(); } catch (e) {}
   if (!r.ok) { const e = new Error((j && j.error) || 'Request failed (code ' + r.status + ').'); e.status = r.status; e.code = j && j.code; e.needsConnect = !!(j && j.needsConnect); throw e; }
@@ -157,15 +163,45 @@ async function pick(id) {
     if (!got) { toast('This live account is open in another ZoroCharts tab. Use that tab, or close it first.', 'error'); render(); return; }
   }
   S.acct = a; S.data = { positions: [], orders: [] }; S.lastOkStart = 0; S.lastWriteAt = 0; S.unknown = false; S.readErr = ''; S.skip = false; S.modifyOk = null; S.placeSchema = null; S.placeErr = ''; S.lastAct = Date.now();
+  S.env = null; S.envAt = 0; S.envErr = ''; S.group = null; S.groupCode = ''; S.alarmSeen = '';
   // 'env' also pre-warms the server (Finatic session + kill switch cached) and the browser's connection; reads start in parallel
   read(); readKill();
-  try { const r = await order({ op: 'env' }); S.env = r; } catch (e) { S.env = { env: '', enabled: false }; }
+  await envCheck();
   schemaCheck();
   render();
 }
+// Owner bug 2026-11-17: any failure of this check (expired token, 429, network blip, cold start) used to read as "Live orders are off
+// on the server". Now: S.env is only set from a real answer; failures are retried 3 times with backoff (call() renews the token on a
+// 401), and if it still fails the panel says it could not reach the broker link, with a Retry button. One check in flight at a time.
+const ENV_MAX_AGE = 60000, ENV_BACKOFF = [600, 1500, 3500];
+function envCheck() {
+  if (S.envBusy) return S.envBusy;
+  const id = S.acct && S.acct.id; if (!id) return Promise.resolve(null);
+  S.envErr = ''; render();
+  S.envBusy = (async () => {
+    let last = null;
+    for (let i = 0; i <= ENV_BACKOFF.length; i++) {
+      if (!S.acct || S.acct.id !== id) return null;
+      try {
+        const r = await order({ op: 'env' });
+        if (!S.acct || S.acct.id !== id) return null;
+        if (r && typeof r.enabled === 'boolean') { S.env = r; S.envAt = now(); S.envErr = ''; return r; }
+        last = new Error('Unexpected answer');
+      } catch (e) { last = e; if (e.status === 403 && !e.code) break; }   // 403 'Admins only' / 'Live orders are off' is an answer, not a blip
+      if (i < ENV_BACKOFF.length) await new Promise((res) => setTimeout(res, TEST && TEST.fastRetry ? 20 : ENV_BACKOFF[i]));
+    }
+    if (S.acct && S.acct.id === id) {
+      if (last && last.status === 403 && /live orders are off/i.test(last.message || '')) { S.env = { env: S.env ? S.env.env : '', enabled: false }; S.envAt = now(); S.envErr = ''; }
+      else S.envErr = last && last.status === 401 ? 'Your sign-in expired. Reload the page to sign in again.' : 'Couldn’t reach the broker link.';
+    }
+    return null;
+  })().finally(() => { S.envBusy = null; render(); });
+  return S.envBusy;
+}
+export function retryEnv() { if (!S.acct) return; S.envErr = ''; envCheck().then(() => { if (!S.placeSchema) schemaCheck(); }); }
 async function leave(quiet) {
   const had = !!S.acct;
-  S.acct = null; S.skip = false; S.data = { positions: [], orders: [] }; S.lastOkStart = 0;
+  S.acct = null; S.skip = false; S.data = { positions: [], orders: [] }; S.lastOkStart = 0; S.env = null; S.envErr = ''; S.group = null;
   if (S.lock) { try { S.lock(); } catch (e) {} S.lock = null; }
   closeConfirm();
   if (had && !quiet) toast('Back on Paper. No live orders from this tab.', 'info');
@@ -200,24 +236,29 @@ async function read() {
     S.data = { positions: (r.data && r.data.positions) || [], orders: (r.data && r.data.orders) || [] };
     S.lastOkStart = start; S.readErr = '';
     if (S.unknown && start > S.lastWriteAt) S.unknown = false;
+    syncSoon();
   } catch (e) { if (S.acct && S.acct.id === id) S.readErr = e.message || 'Read failed.'; if (e.needsConnect) S.readErr = 'The broker connection needs to be renewed. Connect a broker again.'; }
   finally { S.reading = false; }
   render();
 }
 setInterval(() => {
   if (!S.acct) return;
-  if (document.hidden) { if (!S.hiddenAt) S.hiddenAt = Date.now(); else if (Date.now() - S.hiddenAt > HIDDEN_MS) leave(); return; }
-  S.hiddenAt = 0;
-  if (Date.now() - S.lastAct > IDLE_MS) { leave(); toast('Live account left after 15 minutes without use.', 'info'); return; }
+  // while a stop loss / take profit is open this tab keeps watching it (it cancels the other one when one fills): no auto-leave
+  const watching = groupOpen();
+  if (document.hidden) { if (!S.hiddenAt) S.hiddenAt = Date.now(); else if (!watching && Date.now() - S.hiddenAt > HIDDEN_MS) { leave(); return; } if (!watching) return; }
+  else S.hiddenAt = 0;
+  if (!watching && Date.now() - S.lastAct > IDLE_MS) { leave(); toast('Live account left after 15 minutes without use.', 'info'); return; }
   read();
 }, POLL_MS);
+window.addEventListener('beforeunload', (e) => { if (groupOpen()) { e.preventDefault(); e.returnValue = ''; } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.acct) { S.hiddenAt = 0; read(); } });
 ['pointerdown', 'keydown'].forEach((ev) => window.addEventListener(ev, () => { S.lastAct = Date.now(); }, { passive: true, capture: true }));
 
 function gate() { return L.readsOk({ lastOkStart: S.lastOkStart, lastWriteAt: S.lastWriteAt, unknown: S.unknown, now: now(), maxAge: STALE_MS }); }
 function blockReason() {
   if (!S.acct) return 'No live account picked.';
-  if (S.env && !S.env.enabled) return 'Live orders are off on the server.';
+  if (S.env && S.env.enabled === false) return 'Live orders are off on the server.';   // only when the server SAID so
+  if (!S.env) return S.envErr || 'Checking the broker link…';
   if (S.killed) return 'Live trading is switched off.';
   if (S.placeErr) return S.placeErr + '. New orders are blocked.';
   if (!S.placeSchema) return 'Loading the broker’s order fields…';
@@ -245,7 +286,8 @@ export function lines(sym) {
   const i = info(sym); if (!i) return [];
   const out = [];
   if (i.pos.qty && i.pos.avg) out.push({ id: 'pos', kind: 'pos', live: true, price: i.pos.avg, side: i.pos.qty > 0 ? 'buy' : 'sell', qty: Math.abs(i.pos.qty), pnl: i.pnl });
-  for (const o of i.working) if (o.price) out.push({ id: 'L' + o.id, oid: o.id, kind: 'ord', live: true, price: o.price, side: o.side, type: o.type, qty: o.qty });
+  const g = S.group && S.group.code === i.code ? S.group : null;
+  for (const o of i.working) if (o.price) out.push({ id: 'L' + o.id, oid: o.id, kind: 'ord', live: true, price: o.price, side: o.side, type: o.type, qty: o.qty, role: g && g.slId === o.id ? 'sl' : g && g.tpId === o.id ? 'tp' : '' });
   if (S.pending && S.pending.code === i.code) out.push(S.pending);
   return out;
 }
@@ -253,6 +295,7 @@ export function chipText(sym, l) {
   const i = info(sym);
   if (l.kind === 'pos') return ['LIVE ' + (l.side === 'buy' ? 'LONG ' : 'SHORT ') + l.qty + ' ' + (i ? i.code : '') + ' @ ' + px(l.price), money(i ? i.pnl : null, true)];
   if (l.pending) return ['SENDING ' + (l.side === 'buy' ? 'BUY ' : 'SELL ') + l.qty + (l.type === 'market' ? ' MKT' : ' LMT'), px(l.price)];
+  if (l.role) return ['LIVE ' + (l.role === 'sl' ? 'SL ' : 'TP ') + l.qty, px(l.price)];
   return ['LIVE ' + (l.side === 'buy' ? 'BUY ' : 'SELL ') + (/stop/.test(l.type) ? 'STP ' : 'LMT ') + l.qty, px(l.price)];
 }
 export const tickOf = (sym) => { const r = L.chartRoot(sym); return r ? L.ROOTS[r].tick : 0.25; };
@@ -311,21 +354,54 @@ function fastReads() { fastT.forEach(clearTimeout); fastT = L.FAST_READS_MS.map(
 const sideWord = (s) => (s === 'buy' ? 'BUY' : 'SELL');
 function contractLine(i) { return 'Contract <b>' + esc(i.code) + '</b>' + (i.held ? ' (your open position’s month; front month is ' + esc(i.front) + ')' : ' (front month of ' + esc(i.root) + ')'); }
 async function place(sym, o, src) {
+  if (S.acct && !S.envBusy && (!S.env || now() - S.envAt > ENV_MAX_AGE)) await envCheck();   // re-check right before a confirm if older than 60 s
   const why = blockReason(); if (why) { toast(why, 'error'); return null; }
   const i = info(sym); if (!i) { toast('Live orders work on NQ, ES, MNQ and MES charts only.', 'error'); return null; }
   // 10 new orders a minute (the server refuses the 11th too: order.js orderRateLimited); counted when sent, not when refused here
   { const t = now(); S.sentAt = S.sentAt.filter((x) => t - x < 60000); if (S.sentAt.length >= RATE_MAX) { toast('Order limit: ' + RATE_MAX + ' a minute. Wait a few seconds.', 'error'); return null; } }
   const qty = Math.min(L.MAX_QTY, Math.max(1, Math.round(o.qty || 1)));
   const ex = L.exposureError(i.pos.qty, i.working, o.side, qty); if (ex) { toast(ex, 'error'); return null; }
-  if (o.type === 'limit') { const band = L.priceBandError(Number(o.price), i.last); if (band) { toast(band, 'error'); return null; } }
-  const b = L.buildPlace({ code: i.code, side: o.side, qty, type: o.type, price: o.price }, now()); if (b.error) { toast(b.error, 'error'); return null; }
-  const desc = sideWord(o.side) + ' ' + qty + ' ' + i.code + ' ' + (o.type === 'market' ? 'MARKET' : 'LIMIT @ ' + px(b.body.limitPrice));
-  const ok = await confirmSheet({ title: desc, code: i.code, side: o.side, go: 'Send ' + sideWord(o.side) + ' ' + qty,
-    lines: [contractLine(i), 'Account <b>' + esc(S.acct.label) + '</b>', o.marketable ? '<span class="stklv-warn">This limit is at or through the market: it fills now at ' + esc(px(b.body.limitPrice)) + ' or better.</span>' : (o.type === 'market' ? '<span class="stklv-warn">Market order: fills at the next available price.</span>' : ''), 'Position now: ' + posText(i)].filter(Boolean), noSkip: false });
+  if (o.type !== 'market') { const band = L.priceBandError(Number(o.price), i.last); if (band) { toast(band, 'error'); return null; } }
+  if (o.type === 'stop' && i.last > 0 && (o.side === 'buy' ? Number(o.price) <= i.last : Number(o.price) >= i.last)) { toast('A buy stop goes above the price, a sell stop below it.', 'error'); return null; }
+  const br = o.sl != null || o.tp != null;
+  if (br && !caps().bracket) { toast(caps().why, 'error'); return null; }
+  if (br && groupOpen(i.code)) { toast('A stop loss / take profit is already open on ' + i.code + '. Flatten or wait for it to finish first.', 'error'); return null; }
+  const b = L.buildPlace({ code: i.code, side: o.side, qty, type: o.type, price: o.price, sl: o.sl, tp: o.tp, last: i.last }, now()); if (b.error) { toast(b.error, 'error'); return null; }
+  const desc = sideWord(o.side) + ' ' + qty + ' ' + i.code + ' ' + (o.type === 'market' ? 'MARKET' : o.type === 'stop' ? 'STOP @ ' + px(b.body.stopPrice) : 'LIMIT @ ' + px(b.body.limitPrice));
+  const risk = (p) => money(Math.abs((i.last || 0) - p) * qty * i.pv);
+  const bl = br ? [
+    b.body.bracket.sl != null ? 'Stop loss <b>' + px(b.body.bracket.sl) + '</b>' + (i.last > 0 ? ' (about ' + risk(b.body.bracket.sl) + ' from the last price)' : '') : 'No stop loss',
+    b.body.bracket.tp != null ? 'Take profit <b>' + px(b.body.bracket.tp) + '</b>' + (i.last > 0 ? ' (about ' + risk(b.body.bracket.tp) + ')' : '') : 'No take profit',
+    '<span class="stklv-warn">Sent to your broker after the entry fills. When one fills, TradeZoro cancels the other. Keep this tab open until it finishes; a stop can fill at a worse price in a fast market.</span>'] : [];
+  const ok = await confirmSheet({ title: desc, code: i.code, side: o.side, go: 'Send ' + sideWord(o.side) + ' ' + qty, noSkip: br,
+    lines: [contractLine(i), 'Account <b>' + esc(S.acct.label) + '</b>', o.marketable ? '<span class="stklv-warn">This limit is at or through the market: it fills now at ' + esc(px(b.body.limitPrice)) + ' or better.</span>' : (o.type === 'market' ? '<span class="stklv-warn">Market order: fills at the next available price.</span>' : o.type === 'stop' ? '<span class="stklv-warn">Stop order: becomes a market order when the price trades at ' + esc(px(b.body.stopPrice)) + '.</span>' : '')].concat(bl, ['Position now: ' + posText(i)]).filter(Boolean) });
   if (!ok) return null;
   S.sentAt.push(now());
   const body = Object.assign(b.body, { idemKey: uuid() });
-  return write(body, desc + (src ? ' (' + src + ')' : ''), L.pendingLine(body, i.last));
+  const r = await write(body, desc + (src ? ' (' + src + ')' : ''), L.pendingLine(body, i.last));
+  if (r && br) { setGroup(r.bracket || null, i.code); if (r.bracket && r.bracket.state === 'unrecorded') toast(r.bracket.why, 'error'); }
+  return r;
+}
+// ---- stop loss / take profit: after every positions read, ask the server to move the group on (place the children after the fill,
+// one-cancels-other when one fills). The server decides and acts from its own record and a fresh read; this only triggers it.
+const groupOpen = (code) => !!(S.group && S.group.state !== 'closed' && (!code || S.group.code === code));
+function setGroup(g, code) {
+  S.group = g && g.state !== 'closed' && g.state !== 'unrecorded' ? g : null; S.groupCode = code || (g && g.code) || S.groupCode;
+  if (g && g.state === 'closed' && g.why) toast(g.why + ' Stop loss / take profit finished.', 'info');
+  if (S.group && S.group.state === 'unprotected' && S.group.why && S.alarmSeen !== S.group.why) { S.alarmSeen = S.group.why; toast(S.group.why, 'error'); }
+  render();
+}
+let syncT = 0;
+function syncSoon() { clearTimeout(syncT); syncT = setTimeout(syncGroup, 50); }
+async function syncGroup() {
+  if (!S.acct || S.syncing || !S.env || S.env.enabled === false) return;
+  const i = P && P.activeSymbol ? info(P.activeSymbol()) : null;
+  const code = S.group ? S.group.code : i ? i.code : ''; if (!code) return;
+  if (!S.group && S.groupCode === code) return;   // already checked this contract since the account was picked: nothing open
+  S.syncing = true; const id = S.acct.id;
+  try { const r = await order({ op: 'bracket', symbol: code }); if (S.acct && S.acct.id === id) { S.groupCode = code; setGroup(r.group, code); if (r.did && /closed|placed|oco/.test(r.did)) fastReads(); } }
+  catch (e) { /* the next read retries */ }
+  finally { S.syncing = false; }
 }
 const posText = (i) => (i.pos.qty ? (i.pos.qty > 0 ? 'long ' : 'short ') + Math.abs(i.pos.qty) + (i.pos.avg ? ' @ ' + px(i.pos.avg) : '') : 'flat') + (i.working.length ? ', ' + i.working.length + ' working order' + (i.working.length === 1 ? '' : 's') : '');
 export async function cancel(oid) {
@@ -335,13 +411,14 @@ export async function cancel(oid) {
 }
 export async function flatten(sym) {
   if (!S.acct || S.busy) return null;
-  if (S.env && !S.env.enabled) { toast('Live orders are off on the server.', 'error'); return null; }
+  if (S.env && S.env.enabled === false) { toast('Live orders are off on the server.', 'error'); return null; }
   if (!S.lastOkStart) { toast('Positions are still loading.', 'error'); return null; }
   const i = info(sym); if (!i) { toast('Open the NQ, ES, MNQ or MES chart of the position to flatten it.', 'error'); return null; }
   if (!i.pos.qty && !i.working.length) { toast('Nothing to flatten on ' + i.code + '.', 'info'); return null; }
   const ok = await confirmSheet({ title: 'Flatten ' + i.code, code: i.code, side: i.pos.qty > 0 ? 'sell' : 'buy', go: 'Flatten ' + i.code, noSkip: true,
-    lines: [contractLine(i), 'Cancels ' + i.working.length + ' working order' + (i.working.length === 1 ? '' : 's') + ', then closes the position at market (' + posText(i) + ').', 'The server re-reads the position first and closes what it finds there.'] });
+    lines: [contractLine(i), 'Cancels ' + i.working.length + ' working order' + (i.working.length === 1 ? '' : 's') + (groupOpen(i.code) ? ' (including the stop loss and take profit)' : '') + ', then closes the position at market (' + posText(i) + ').', 'The server re-reads the position first and closes what it finds there.'] });
   if (!ok) return null;
+  if (groupOpen(i.code)) { S.group = null; S.groupCode = ''; }   // the server cancels the children and drops the record; re-read after
   return write({ op: 'flatten', symbol: i.code, idemKey: L.flattenKey(S.acct.id, i.code, i.pos.qty, String(S.lastOkStart)) }, 'Flatten ' + i.code);
 }
 // drag a working order line to a new price
@@ -349,13 +426,22 @@ export async function drag(sym, d) {
   const oid = String(d.id).replace(/^L/, ''); const i = info(sym); if (!i) return;
   const o = i.working.find((x) => x.id === oid); if (!o) { toast('That order is no longer working.', 'info'); return; }
   const why = blockReason(); if (why) { toast(why, 'error'); return; }
-  if (o.type && o.type !== 'limit') { toast('Only limit orders can be moved here.', 'info'); return; }
+  const kind = /stop/.test(o.type || '') ? 'stop' : 'limit';
+  if (o.type && o.type !== 'limit' && o.type !== 'stop') { toast('Only limit and stop orders can be moved here.', 'info'); return; }
   const band = L.priceBandError(d.price, i.last); if (band) { toast(band, 'error'); return; }
-  const m = L.buildModify({ id: oid, price: d.price, code: i.code }); if (m.error) { toast(m.error, 'error'); return; }
+  const m = L.buildModify({ id: oid, price: d.price, code: i.code, type: kind }); if (m.error) { toast(m.error, 'error'); return; }
+  const np = kind === 'stop' ? m.body.stopPrice : m.body.limitPrice;
+  const g = S.group && S.group.code === i.code ? S.group : null, role = g && g.slId === oid ? 'sl' : g && g.tpId === oid ? 'tp' : '';
   const native = S.modifyOk !== false;
-  const ok = await confirmSheet({ title: 'Move ' + sideWord(o.side) + ' ' + o.qty + ' ' + i.code + ' to ' + px(m.body.limitPrice), code: i.code, side: o.side, go: native ? 'Move order' : 'Cancel and send new', noSkip: true,
-    lines: [contractLine(i), 'From ' + px(o.price) + ' to <b>' + px(m.body.limitPrice) + '</b>', native ? '' : '<span class="stklv-warn">This broker can’t change an order in place. The order is cancelled first; the new one is sent only after the cancel is confirmed.</span>'].filter(Boolean) });
+  if (role) {   // a stop loss / take profit: moved in place only (cancel + new would break the one-cancels-other record)
+    if (!native) { toast('This broker can’t move an order in place. Flatten, or change it at your broker.', 'error'); return; }
+    const c = L.bracketCheck({ side: g.side, ref: i.last, sl: role === 'sl' ? np : g.sl, tp: role === 'tp' ? np : g.tp, code: i.code, pct: 0.05 }); if (c.error) { toast(c.error, 'error'); return; }
+  }
+  const what = role === 'sl' ? 'stop loss' : role === 'tp' ? 'take profit' : sideWord(o.side) + ' ' + o.qty + ' ' + i.code;
+  const ok = await confirmSheet({ title: 'Move ' + what + ' to ' + px(np), code: i.code, side: o.side, go: native ? 'Move order' : 'Cancel and send new', noSkip: true,
+    lines: [contractLine(i), 'From ' + px(o.price) + ' to <b>' + px(np) + '</b>', native ? '' : '<span class="stklv-warn">This broker can’t change an order in place. The order is cancelled first; the new one is sent only after the cancel is confirmed.</span>'].filter(Boolean) });
   if (!ok) return;
+  if (role) { const r = await write(Object.assign(m.body, { idemKey: uuid() }), 'Move ' + what); if (r && r.bracket) setGroup(r.bracket, i.code); return; }
   if (native) {
     const r = await write(Object.assign(m.body, { idemKey: uuid() }), 'Move');
     if (r) return;
@@ -367,9 +453,9 @@ export async function drag(sym, d) {
   for (let t = 0; t < 5; t++) { await new Promise((r) => setTimeout(r, 1200)); S.reading = false; await read(); const still = L.workingOrders(S.data.orders, i.code).some((x) => x.id === oid); if (!still && S.lastOkStart > S.lastWriteAt) break; if (t === 4) { toast('The cancel is not confirmed yet. No new order was sent.', 'error'); return; } }
   const filled = (S.data.orders.find((x) => String(x.orderId) === oid) || {}).status;
   if (/FILL/i.test(filled || '')) { toast('The order filled before the cancel. No new order was sent.', 'error'); return; }
-  const b = L.buildPlace({ code: i.code, side: o.side, qty: o.qty, type: 'limit', price: m.body.limitPrice }, now());
+  const b = L.buildPlace({ code: i.code, side: o.side, qty: o.qty, type: kind, price: np }, now());
   if (b.error || blockReason()) { toast(b.error || blockReason(), 'error'); return; }
-  await write(Object.assign(b.body, { idemKey: uuid() }), 'New ' + sideWord(o.side) + ' limit');
+  await write(Object.assign(b.body, { idemKey: uuid() }), 'New ' + sideWord(o.side) + ' ' + kind);
 }
 // DOM ladder click (assets/chart-book-panel.js): always a limit at the clicked price
 export function ladder(sym, cell, price, bid, ask, qty) {
@@ -392,19 +478,25 @@ export function openTicket(pre) {
   setTimeout(() => { const f = document.querySelector('.stklv-form [data-f=price], .stklv-form .stklv-send'); if (f) f.focus(); }, 30);
 }
 // ---- order panel (assets/chart-order-panel.js): read-only view of the chart's contract + the same guarded write paths
-// What the chart's live order route can send: market + limit (server: functions/connect/finatic/order.js 'Market or limit only').
-// No stop and no bracket (OCO) orders, so the panel shows Stop / SL / TP / Trail disabled with this reason.
-const CAPS = { stop: false, bracket: false, why: 'Your broker link takes market and limit orders from the chart only. Set a stop or target at your broker.' };
-export const caps = () => CAPS;
+// What the chart's live order route can send (2026-11-17): market, limit, and, when the account's place schema lists STOP for futures
+// (supportedOrderTypesByAssetClass), stop entries and a stop loss + take profit on market entries. Trail stays paper only.
+const NO_STOPS = 'Stops and targets aren’t supported by this broker link yet. Set them at your broker.';
+export function caps() {
+  if (!S.placeSchema) return { stop: false, bracket: false, why: S.placeErr ? 'The broker’s order types could not be read.' : 'Loading the broker’s order types…' };
+  const ok = L.stopsSupported(S.placeSchema);
+  return { stop: ok, bracket: ok, why: ok ? '' : NO_STOPS, marketOnly: 'Live stop loss and take profit go with market orders only.' };
+}
 export function opInfo(sym) {
   if (!S.acct) return null;
   const i = info(sym); if (!i) return null;
-  return { code: i.code, root: i.root, tick: i.tick || L.ROOTS[i.root].tick, pv: i.pv, last: i.last, pos: i.pos, working: i.working, pnl: i.pnl, held: i.held, env: envWord(), killed: !!S.killed, block: blockReason(), busy: S.busy, rtt: L.rttText(S.rtt) };
+  const g = S.group && S.group.code === i.code ? S.group : null;
+  return { code: i.code, root: i.root, tick: i.tick || L.ROOTS[i.root].tick, pv: i.pv, last: i.last, pos: i.pos, working: i.working, pnl: i.pnl, held: i.held, env: envWord(), killed: !!S.killed, block: blockReason(), busy: S.busy, rtt: L.rttText(S.rtt),
+    retry: !S.env && !!S.envErr && !S.envBusy, group: g, alarm: g && g.state === 'unprotected' ? g.why : '' };
 }
 // one entry point for the panel's Buy / Sell / Join / Confirm: place() keeps every guard (typed confirm, tap, cap, exposure, band, gate)
 export function placeTicket(sym, o, src) {
-  if (o.type !== 'market' && o.type !== 'limit') { toast('Market or limit only from the chart.', 'error'); return Promise.resolve(null); }
-  return place(sym, { side: o.side, type: o.type, qty: o.qty, price: o.type === 'limit' ? Number(o.price) : undefined, marketable: !!o.marketable }, src || 'panel');
+  if (o.type !== 'market' && o.type !== 'limit' && !(o.type === 'stop' && caps().stop)) { toast(o.type === 'stop' ? caps().why : 'Market, limit or stop only from the chart.', 'error'); return Promise.resolve(null); }
+  return place(sym, { side: o.side, type: o.type, qty: o.qty, price: o.type !== 'market' ? Number(o.price) : undefined, marketable: !!o.marketable, sl: o.sl, tp: o.tp }, src || 'panel');
 }
 export function kill() { if (window.confirm('Turn off live trading? The server will refuse every live order (all tabs, all devices) until it is switched back on.')) setKill(true); }
 export function killOn() { const t = window.prompt('Type LIVE to switch live trading back on.'); if (t && t.trim().toUpperCase() === 'LIVE') setKill(false); }
@@ -553,9 +645,9 @@ const CSS = `
 export function mountLive(paperApi, opts) {
   P = paperApi; uid = opts.uid; toastFn = opts.toast || null;
   if (!document.getElementById('stklv-css')) { const st = document.createElement('style'); st.id = 'stklv-css'; st.textContent = CSS; document.head.appendChild(st); }
-  P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, ladder, domState, cancel, flatten, caps, opInfo, placeTicket, kill, killOn });
+  P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, ladder, domState, cancel, flatten, caps, opInfo, placeTicket, kill, killOn, retryEnv });
   loadMeta(); loadAccounts();
   window.addEventListener('storage', (e) => { if (e.key === lsUserKey()) loadAccounts(); });
-  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, balance, metaOf, saveMeta, disconnect, L });
+  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, balance, metaOf, saveMeta, disconnect, L, envCheck, retryEnv, syncGroup });
   Object.defineProperty(window.__stkLive, 'blockReason', { configurable: true, get: () => blockReason() });   // a getter (Object.assign would copy one frozen value)
 }

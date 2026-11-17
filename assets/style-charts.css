@@ -5239,6 +5239,13 @@ section.stkss-sec{ padding:0; margin:0; }
 .stkop-pre button:disabled{ cursor:not-allowed; }
 .stkop-why{ margin:0; font:500 12px/16px var(--font-body, sans-serif); color:var(--amber); }
 .stkop-why[hidden]{ display:none; }
+.stkop-alert{ flex:none; display:flex; align-items:center; gap:8px; min-height:48px; padding:8px 16px; border-bottom:1px solid var(--line-soft); background:var(--bg-1); }
+.stkop-alert[hidden]{ display:none; }
+.stkop-alt{ flex:1 1 auto; min-width:0; margin:0; font:500 12px/16px var(--font-body, sans-serif); color:var(--ink-1); }
+.stkop-alert.warn .stkop-alt{ color:var(--amber); }
+.stkop-alert.bad{ background:color-mix(in srgb, var(--op-sell) 12%, var(--bg-1)); }
+.stkop-alert.bad .stkop-alt{ color:var(--op-sell-ink); font-weight:600; }
+.stkop-alert .stkop-b[hidden]{ display:none; }
 .stkop-sum{ margin:0; min-height:16px; font:500 12px/16px var(--font-mono); color:var(--ink-2); font-variant-numeric:tabular-nums; }
 .stkop-sum:empty{ display:none; }
 .stkop-go{ flex:none; display:grid; grid-template-columns:2fr 1fr; gap:8px; padding:12px 16px; border-top:1px solid var(--line-soft); }

@@ -21,11 +21,11 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
 const globex = (s) => { const d = new Date((s - 5 * 3600) * 1000), wd = d.getUTCDay(), h = d.getUTCHours(); return !(wd === 6 || (wd === 5 && h >= 17) || (wd === 0 && h < 18) || h === 17); };   // EST approx (fixture)
 const ACC = '123e4567-e89b-12d3-a456-426614174000', US = '0aaa1111-2222-3333-4444-555566667777';
 
-async function open(b, { w, h, mobile, theme, admin = true, connected = true, flat = false }) {
+async function open(b, { w, h, mobile, theme, admin = true, connected = true, flat = false, stops = false, envFail = 0 }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript(({ t, admin, connected, US }) => {
-    window.__stkLiveTest = { isAdmin: () => admin, last: () => 28750 };
+    window.__stkLiveTest = { isAdmin: () => admin, last: () => 28750, fastRetry: true };
     window.__stkOpTest = { q: { bid: 28749.75, ask: 28750 }, quote() { return this.q; } };   // order panel best bid / ask fixture (localhost only)
     window.__toasts = []; const keep = () => (t, m) => { window.__toasts.push(String(m)); return Promise.resolve(); };
     Object.defineProperty(window, 'showToast', { configurable: true, get: () => keep(), set: () => {} });
@@ -46,7 +46,7 @@ async function open(b, { w, h, mobile, theme, admin = true, connected = true, fl
     if (process.env.DBG) console.log('DBG route', u.pathname + u.search, bars.length);
     return r.fulfill({ json: { s: 'NQ', tf: '1', page, bars, rt: true } });
   });
-  const M = { calls: [], positions: [], orders: [], failRead: false, modify: true, n: 0, delay: 0 };
+  const M = { calls: [], positions: [], orders: [], failRead: false, modify: true, n: 0, delay: 0, stops, envFail, group: null };
   ctx.M = M;
   const j = (o, status = 200) => ({ status, contentType: 'application/json', body: JSON.stringify(o) });
   await ctx.route('**/connect/finatic/**', async (r) => {
@@ -62,10 +62,15 @@ async function open(b, { w, h, mobile, theme, admin = true, connected = true, fl
       return r.fulfill(j({ data: [] }));
     }
     if (u.pathname.endsWith('/order')) {
-      if (body.op === 'env') return r.fulfill(j({ env: 'live', enabled: true }));
-      if (body.op === 'schema') return body.action === 'modify' && !M.modify ? r.fulfill(j({ error: 'not supported', code: 'upstream' }, 503)) : r.fulfill(j({ data: { fields: { symbol: {}, orderQty: {} } }, env: 'live' }));
+      // env: M.envFail answers fail first (429 / 503 / network), M.envOff = the server really says enabled:false
+      if (body.op === 'env') { if (M.envFail > 0) { M.envFail--; return M.envFail % 2 ? r.fulfill(j({ error: 'Too many requests' }, 429)) : r.abort(); } return r.fulfill(j({ env: 'live', enabled: !M.envOff })); }
+      if (body.op === 'schema') return body.action === 'modify' && !M.modify ? r.fulfill(j({ error: 'not supported', code: 'upstream' }, 503)) : r.fulfill(j({ data: Object.assign({ fields: { symbol: {}, orderQty: {} } }, M.stops ? { supportedOrderTypesByAssetClass: { future: ['market', 'limit', 'stop', 'stop_limit'] } } : {}), env: 'live' }));
+      // stop loss / take profit sync (server: order.js syncBracket): the mock plays the server's record
+      if (body.op === 'bracket') return r.fulfill(j({ ok: true, group: M.group, did: 'ok' }));
       M.n++;
       if (body.op === 'place' && M.timing) { const x = j({ ok: true, accepted: true, orderId: 'o' + M.n, status: 'SUBMITTED' }); x.headers = { 'server-timing': 'auth;dur=1, fin;dur=61, total;dur=70' }; if (body.type === 'limit') M.orders.push({ orderId: 'o' + M.n, status: 'SUBMITTED', orderType: 'LIMIT', legs: [{ securityId: body.symbol, side: body.side.toUpperCase(), quantity: body.qty, limitPrice: body.limitPrice }] }); return r.fulfill(x); }
+      if (body.op === 'place' && body.bracket) M.group = { code: body.symbol, side: body.side, qty: body.qty, sl: body.bracket.sl, tp: body.bracket.tp, state: 'pending', slId: '', tpId: '', entryId: 'o' + M.n, why: '' };
+      if (body.op === 'place' && body.bracket) return r.fulfill(j({ ok: true, accepted: true, orderId: 'o' + M.n, status: 'FILLED', bracket: M.group }));
       if (body.op === 'place') { const id = 'o' + M.n; if (body.type === 'limit') M.orders.push({ orderId: id, status: 'SUBMITTED', orderType: 'LIMIT', legs: [{ securityId: body.symbol, side: body.side.toUpperCase(), quantity: body.qty, limitPrice: body.limitPrice }] }); else { M.positions = [{ securityId: body.symbol, quantity: (body.side === 'buy' ? 1 : -1) * body.qty, averageBuyPrice: 28750, averageSellPrice: 28750 }]; } return r.fulfill(j({ ok: true, accepted: true, orderId: id, status: 'SUBMITTED' })); }
       if (body.op === 'cancel') { M.orders = M.orders.filter((o) => o.orderId !== body.orderId); return r.fulfill(j({ ok: true, accepted: true, status: 'CANCELLED' })); }
       if (body.op === 'modify') { if (!M.modify) return r.fulfill(j({ error: 'modify not supported', code: 'rejected' }, 400)); M.orders.forEach((o) => { if (o.orderId === body.orderId) o.legs[0].limitPrice = body.limitPrice; }); return r.fulfill(j({ ok: true, accepted: true, status: 'SUBMITTED' })); }
@@ -215,7 +220,7 @@ async function run(b, w, h, mobile, theme) {
   // ---- Order tab: Stop / SL / TP disabled with the reason (the chart route takes market + limit only)
   await opTab(p, 'order', mobile);
   const od = await p.evaluate(() => ({ stop: document.querySelector('#stkop [data-type=stop]').disabled, sl: document.querySelector('#stkop [data-f="sl.on"]').disabled, tp: document.querySelector('#stkop [data-f="tp.on"]').disabled, trail: document.querySelector('#stkop [data-f=trail]').disabled, why: document.querySelector('#stkop [data-k=why]').textContent, bid: document.querySelector('#stkop .stkop-side.buy em').textContent }));
-  check(od.stop && od.sl && od.tp && od.trail && /market and limit orders from the chart only/.test(od.why), tag + ': live: Stop, SL, TP, Trail disabled with a short reason', od);
+  check(od.stop && od.sl && od.tp && od.trail && /^Stops and targets aren’t supported by this broker link yet\. Set them at your broker\.$/.test(od.why), tag + ': live, account without stops: Stop, SL, TP, Trail disabled with the plain reason', od);
   check(od.bid === '28,749.75', tag + ': Buy card shows the live BID', od);
   // limit BUY at a typed price, tick-rounded; skip on -> straight out
   await p.evaluate(() => { window.__stkLive.state.skip = true; });
@@ -570,6 +575,85 @@ async function memberDock(b, w, h, mobile, theme) {
   check(errors.length === 0, tag + ': no console errors ' + errors.slice(0, 2).join(' | '));
   await ctx.close();
 }
+// ---- Owner bug 2026-11-17: env check failures are NOT "off on the server"; SL/TP when the account's schema lists stops
+async function envAndBrackets(b, w, h, mobile, theme) {
+  const tag = 'sltp-' + w + '-' + theme;
+  const { ctx, p, errors, M } = await open(b, { w, h, mobile, theme, stops: true, envFail: 9 });
+  await p.waitForFunction(() => window.__stkLive && window.__stkLive.pick && window.__stkLive.state.accounts.length, null, { timeout: 20000 });
+  await openOP(p, mobile);
+  await pickAcct(p, ACC);
+  // 4 tries (1 + 3 retries) all fail -> "Couldn't reach the broker link" + Retry, never "off on the server"
+  check(await opWait(p, () => !!window.__stkLive.state.envErr, null, 8000), tag + ': env check gives up after the retries');
+  const envTries = M.calls.filter((c) => c.body.op === 'env').length;
+  await opTab(p, 'order', mobile);
+  const e1 = await p.evaluate(() => ({ st: document.querySelector('#stkop [data-k=status]').textContent, alert: document.querySelector('#stkop [data-k=alert]').hidden ? '' : document.querySelector('#stkop [data-k=alt]').textContent, retry: !document.querySelector('#stkop [data-a=retry]').hidden, go: document.querySelector('#stkop [data-k=confirm]').disabled, env: window.__stkLive.state.env }));
+  check(envTries === 4 && e1.env === null, tag + ': 4 env tries, state stays unknown (null)', [envTries, e1.env]);
+  check(/Couldn’t reach the broker link/.test(e1.alert) && e1.retry && e1.go && !/off on the server/.test(e1.st + e1.alert), tag + ': "Couldn’t reach the broker link" + Retry, Confirm disabled, never "off on the server"', e1);
+  if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/sltp-' + tag + '-1-retry.png' });
+  const al = await p.evaluate(() => { const r = document.querySelector('#stkop [data-k=alert]'), R = r.getBoundingClientRect(), cs = getComputedStyle(r); const it = [r.querySelector('.stkop-alt'), r.querySelector('[data-a=retry]')].map((e) => { const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, h: b.height, cy: b.top + b.height / 2 }; }); return { h: R.height, padL: cs.paddingLeft, padR: cs.paddingRight, cyRow: R.top + R.height / 2, items: it, insetL: it[0].l - R.left, insetR: R.right - it[1].r, gap: it[1].l - it[0].r }; });
+  console.log('ALIGN-ALERT ' + tag + ' ' + JSON.stringify(al));
+  check(Math.abs(al.items[1].cy - al.cyRow) <= 1 && al.padL === '16px' && al.padR === '16px' && Math.round(al.insetL) === 16 && Math.round(al.insetR) === 16 && Math.round(al.gap) >= 8, tag + ': alert strip: Retry centred, 16 px each side, gap ≥ 8', al);
+  { const el = await p.$('#stkop'); if (el) await el.screenshot({ path: OUT + '/crop-sltp-retry-' + tag + '.png' }); }
+  // Retry -> server answers -> orders allowed
+  M.envFail = 0; await tap(p, '#stkop [data-a=retry]', mobile);
+  check(await opWait(p, () => window.__stkLive.state.env && window.__stkLive.state.env.enabled && !window.__stkLive.state.envErr), tag + ': Retry reaches the server');
+  await p.evaluate(() => window.__stkPaper.account && window.__stkPaper.account.setLast('futures:NQ1!', 28750));
+  check(await blockFree(p), tag + ': orders allowed after Retry', await p.evaluate(() => window.__stkLive.blockReason));
+  // a real "enabled:false" answer is the only thing that says off
+  M.envOff = true; await p.evaluate(() => window.__stkLive.envCheck());
+  check(await opWait(p, () => /Live orders are off on the server/.test(window.__stkLive.blockReason)), tag + ': server answer enabled:false = "Live orders are off on the server"');
+  M.envOff = false; await p.evaluate(() => window.__stkLive.envCheck()); await blockFree(p);
+  // env older than 60 s is re-checked right before the confirm
+  const nEnv = M.calls.filter((c) => c.body.op === 'env').length;
+  await p.evaluate(() => { window.__stkLive.state.envAt = Date.now() - 61000; });
+  // ---- SL / TP on a market entry
+  await tap(p, '#stkop [data-type=market]', mobile); await tap(p, '#stkop [data-side=buy]', mobile);
+  const st0 = await p.evaluate(() => ({ stop: document.querySelector('#stkop [data-type=stop]').disabled, sl: document.querySelector('#stkop [data-f="sl.on"]').disabled, tp: document.querySelector('#stkop [data-f="tp.on"]').disabled, trail: document.querySelector('#stkop [data-f=trail]').disabled }));
+  check(!st0.stop && !st0.sl && !st0.tp && st0.trail, tag + ': account with stops: Stop, SL, TP enabled (Trail stays paper only)', st0);
+  await tap(p, '#stkop [data-pre="25"][data-leg=sl]', mobile); await tap(p, '#stkop [data-pre="50"][data-leg=tp]', mobile);
+  const lv = await p.evaluate(() => ({ sl: document.querySelector('#stkop [data-f="sl.price"]').value, tp: document.querySelector('#stkop [data-f="tp.price"]').value, sum: document.querySelector('#stkop [data-k=sum]').textContent }));
+  check(lv.sl && lv.tp && /Risk/.test(lv.sum), tag + ': SL / TP prices filled from the tick presets', lv);
+  if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/sltp-' + tag + '-2-order.png' });
+  { const el = await p.$('#stkop'); if (el) await el.screenshot({ path: OUT + '/crop-sltp-order-' + tag + '.png' }); }
+  const n0 = writes(M).length;
+  await tap(p, '#stkop [data-k=confirm]', mobile);
+  await p.waitForSelector('#stklv-cf', { timeout: 6000 });
+  check(M.calls.filter((c) => c.body.op === 'env').length > nEnv, tag + ': env older than 60 s re-checked before the confirm');
+  const cf = await p.evaluate(() => ({ t: document.getElementById('stklv-cf').innerText, skip: !!document.querySelector('#stklv-cf [data-k=skip]') }));
+  check(/Stop loss [\d,.]+/.test(cf.t) && /Take profit [\d,.]+/.test(cf.t) && /cancels the other/.test(cf.t) && !cf.skip, tag + ': confirm lists the stop loss + take profit, no skip', cf.t.slice(0, 400));
+  if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/sltp-' + tag + '-3-confirm.png' });
+  if (await p.$('.stklv-cf-type input')) { const code = await p.evaluate(() => window.__stkLive.info('futures:NQ1!').code); await p.fill('.stklv-cf-type input', code); }
+  await tap(p, '#stklv-cf [data-k=yes]', mobile);
+  await waitWrites(p, M, n0 + 1);
+  const W = writes(M).at(-1);
+  check(W.op === 'place' && W.type === 'market' && W.bracket && W.bracket.sl < 28750 && W.bracket.tp > 28750, tag + ': place carries the bracket (sl below, tp above for a buy)', W);
+  check(await opWait(p, () => !document.querySelector('#stkop [data-k=alert]').hidden && /Waiting for the fill/.test(document.querySelector('#stkop [data-k=alt]').textContent)), tag + ': panel shows the pending stop loss / take profit');
+  // the server placed the children: SL / TP lines labelled on the chart; drag the SL = modify with a stop price
+  M.group = Object.assign({}, M.group, { state: 'active', slId: 'sl1', tpId: 'tp1' });
+  M.positions = [{ securityId: W.symbol, quantity: 1, averageBuyPrice: 28750 }];
+  M.orders = [{ orderId: 'sl1', status: 'SUBMITTED', orderType: 'STOP', legs: [{ securityId: W.symbol, side: 'SELL', quantity: 1, stopPrice: W.bracket.sl }] }, { orderId: 'tp1', status: 'SUBMITTED', orderType: 'LIMIT', legs: [{ securityId: W.symbol, side: 'SELL', quantity: 1, limitPrice: W.bracket.tp }] }];
+  await p.evaluate(() => { window.__stkLive.state.reading = false; return window.__stkLive.read(); });
+  check(await opWait(p, () => { const t = [...document.querySelectorAll('.stkpt-chip[data-live]')].map((c) => c.textContent).join('|'); return /LIVE SL 1/.test(t) && /LIVE TP 1/.test(t); }), tag + ': SL and TP lines labelled on the chart', await p.evaluate(() => [...document.querySelectorAll('.stkpt-chip[data-live]')].map((c) => c.textContent)));
+  check(await opWait(p, () => /Working at your broker/.test(document.querySelector('#stkop [data-k=alt]').textContent)), tag + ': panel: stop loss / take profit working');
+  if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/sltp-' + tag + '-4-active.png' });
+  await blockFree(p);
+  const n1 = writes(M).length;
+  p.evaluate((sl) => window.__stkPaper.live.drag('futures:NQ1!', { id: 'Lsl1', price: sl - 2 }), W.bracket.sl);
+  check(await p.waitForSelector('#stklv-cf', { timeout: 5000 }).then(() => true, () => false) && /Move stop loss to/.test(await p.$eval('#stklv-cf', (e) => e.innerText)), tag + ': dragging the SL line asks "Move stop loss"');
+  await tap(p, '#stklv-cf [data-k=yes]', mobile); await waitWrites(p, M, n1 + 1);
+  const Wm = writes(M).at(-1);
+  check(Wm.op === 'modify' && Wm.orderId === 'sl1' && Wm.type === 'stop' && Wm.stopPrice === W.bracket.sl - 2 && Wm.symbol === W.symbol && Wm.limitPrice === undefined, tag + ': SL drag = modify with the stop price', Wm);
+  // flatten: the confirm says it cancels the stop loss and take profit too
+  await blockFree(p);
+  await tap(p, '#stkop [data-a=flat]', mobile);
+  await p.waitForSelector('#stklv-cf', { timeout: 5000 });
+  check(/including the stop loss and take profit/.test(await p.$eval('#stklv-cf', (e) => e.innerText)), tag + ': Flatten confirm includes the stop loss and take profit');
+  await tap(p, '#stklv-cf [data-k=no]', mobile);
+  check(!(await p.evaluate(() => /finatic/i.test(document.getElementById('stkop').innerText))), tag + ': no vendor name in the panel');
+  check(M.calls.every((c) => /^\/connect\/finatic\//.test(c.path)), tag + ': only the local mock was called');
+  check(errors.length === 0, tag + ': no console errors ' + errors.slice(0, 2).join(' | '));
+  await ctx.close();
+}
 async function nonAdmin(b) {
   const { ctx, p, errors, M } = await open(b, { w: 1440, h: 900, theme: 'dark', admin: false });
   await sleep(2500);
@@ -602,6 +686,7 @@ async function notConnected(b) {
     if (!only || only === 'base') { await nonAdmin(b); await notConnected(b); }
     const sizes = [[1440, 900, false, 'dark'], [1440, 900, false, 'light'], [412, 915, true, 'dark'], [412, 915, true, 'light'], [390, 844, true, 'dark'], [390, 844, true, 'light']];
     for (const [w, h, mobile, theme] of sizes) if (!only || only === w + '-' + theme) await run(b, w, h, mobile, theme);
+    for (const [w, h, mobile, theme] of sizes) if (!only || only === 'sltp-' + w + '-' + theme) await envAndBrackets(b, w, h, mobile, theme);
     for (const [w, h, mobile, theme] of sizes) if (!only || only === 'member-' + w + '-' + theme) await memberPaper(b, w, h, mobile, theme);
     for (const [w, h, mobile, theme] of sizes) if (!only || only === 'dock-' + w + '-' + theme) await memberDock(b, w, h, mobile, theme);
   } finally { await b.close(); }

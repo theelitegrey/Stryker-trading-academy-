@@ -169,7 +169,9 @@ function legSync(c, ref, k) {
 function caps(c) {
   if (!c.live) return { stop: true, bracket: true, trail: F.type === 'market', why: '' };
   const k = c.lv.caps();
-  return { stop: !!k.stop, bracket: !!k.bracket, trail: false, why: k.why };
+  // live stop loss / take profit: market entries only (the server places them after the fill)
+  const mo = !!k.bracket && F.type !== 'market';
+  return { stop: !!k.stop, bracket: !!k.bracket && !mo, trail: false, why: mo ? k.marketOnly : k.why };
 }
 
 // ------------------------------------------------------------------------------------------------ actions
@@ -185,8 +187,7 @@ function blockOf(c) {
 function send(c, o, src) {
   const qty = cleanQty(c, F.qty);
   if (c.live) {
-    if (o.type === 'stop') { P.toast('Stop orders can’t be sent live from the chart yet.', 'error'); return null; }
-    return c.lv.placeTicket(c.sym, { side: o.side, type: o.type, qty, price: o.price, marketable: o.marketable }, src);
+    return c.lv.placeTicket(c.sym, { side: o.side, type: o.type, qty, price: o.price, marketable: o.marketable, sl: o.sl, tp: o.tp }, src);
   }
   const r = P.placeOrder(Object.assign({ symbol: c.sym, qty }, o));
   if (r && o.trail && o.type === 'market' && o.sl != null) P.setTrailing(c.sym);
@@ -244,6 +245,7 @@ function build() {
       '<div class="stkop-il"><span class="stkop-last" data-k="last">—</span><span class="stkop-chg" data-k="chg"></span><span class="stkop-sp"></span>' +
         '<span class="stkop-ba"><span>Bid <b class="bid" data-k="bid">—</b></span><span>Ask <b class="ask" data-k="ask">—</b></span></span></div>' +
     '</div>' +
+    '<div class="stkop-alert" data-k="alert" role="status" hidden><p class="stkop-alt" data-k="alt"></p><button type="button" class="stkop-b" data-a="retry" hidden>Retry</button></div>' +
     '<div class="stkop-body"></div><div class="stkop-ft"></div>' +
     '<i class="stkop-rs" aria-hidden="true" title="Resize"></i><i class="stkop-dl" aria-hidden="true" title="Drag to resize"></i>';
   document.body.appendChild(el);
@@ -275,6 +277,7 @@ function onClick(e) {
   if (a === 'cancel') { close(); return; }
   if (a === 'flat') { flatten(); return; }
   if (a === 'kill') { const x = c(); if (x.lv) x.lv.kill(); return; }
+  if (a === 'retry') { const x = c(); if (x.lv && x.lv.retryEnv) x.lv.retryEnv(); return; }
   if (a === 'killon') { const x = c(); if (x.lv) x.lv.killOn(); return; }
   if (a === 'paperon') { P.setEnabled(true); viewSig = ''; update(); return; }
   if (a === 'dom-here') { viewSig = ''; update(); return; }
@@ -583,6 +586,7 @@ export function update() {
   // status
   const st = why || (qt && qt.note) || (c.live ? ((c.li && c.li.rtt ? c.li.rtt + ' ' : '') + 'Ready. Real orders at your broker, you confirm each one.') : '');
   for (const n of el.querySelectorAll('[data-k=status]')) { if (n.textContent !== st) n.textContent = st; n.classList.toggle('bad', !!why); }
+  renderAlert(c);
   // footer numbers
   let posT = 'Flat', pnl = null, wk = 0;
   if (c.live && c.li) { const q = c.li.pos.qty; posT = q ? (q > 0 ? 'Long ' : 'Short ') + Math.abs(q) + ' ' + c.li.code + (c.li.pos.avg ? ' @ ' + fmt(c, c.li.pos.avg) : '') : 'Flat ' + c.li.code; pnl = q ? c.li.pnl : null; wk = c.li.working.length; }
@@ -592,6 +596,25 @@ export function update() {
   setText('wk', wk + ' working');
   const fl = el.querySelector('[data-a=flat]'); if (fl) fl.disabled = c.live ? !c.li || (!c.li.pos.qty && !c.li.working.length) : !(c.a && c.sp.ok && (c.a.position(c.sym) || wk));
   setText('fine', c.live ? 'Real orders at your broker. Max 2 contracts. Every attempt is logged. ' + DISCLAIMER : (P.label || 'Paper trading · demo money · simulated fills') + '. ' + DISCLAIMER);
+}
+
+// live strip under the symbol row (2026-11-17): the broker link could not be reached (Retry), or the stop loss / take profit state
+// (red when the position has no working stop). Hidden on paper and when there is nothing to say.
+function renderAlert(c) {
+  const box = el.querySelector('[data-k=alert]'); if (!box) return;
+  const li = c.live ? c.li : null, g = li && li.group;
+  let t = '', kind = '', retry = false;
+  if (li && li.retry) { t = li.block; kind = 'bad'; retry = true; }
+  else if (li && li.alarm) { t = li.alarm; kind = 'bad'; }
+  else if (g) {
+    const p = (v) => (v == null ? '' : fmt(c, v));
+    const legs = [g.sl != null ? 'Stop loss ' + p(g.sl) : '', g.tp != null ? 'Take profit ' + p(g.tp) : ''].filter(Boolean).join(' · ');
+    t = (g.state === 'pending' ? 'Waiting for the fill, then sending ' : 'Working at your broker: ') + legs + (g.why ? '. ' + g.why : '. Keep this tab open.');
+    kind = g.why ? 'warn' : 'info';
+  }
+  box.hidden = !t; box.className = 'stkop-alert' + (kind ? ' ' + kind : '');
+  setText('alt', t);
+  const rb = box.querySelector('[data-a=retry]'); rb.hidden = !retry;
 }
 
 // LIVE status chip on the chart (replaces the old bottom strip): click = open the panel

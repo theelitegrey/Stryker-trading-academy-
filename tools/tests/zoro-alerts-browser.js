@@ -40,7 +40,7 @@ const STUB = () => {
       const cases = [
         ['level_touch', { zs: 'ES', zl: 'range_high', zr: 'w' }, 'sym,level,range', 'ES crosses its Zoro Range high (weekly)'],
         ['zone_change', { zs: 'spx' }, 'sym', 'SPX Gamma Zone changes'],
-        ['level_moved', { zs: 'SPX', zl: 'call_ceiling' }, 'sym,level', 'SPX Call Ceiling moves'],
+        ['level_moved', { zs: 'SPX', zl: 'call_ceiling' }, 'sym,level', 'SPX Call Wall moves'],
         ['fresh_volume', { zs: 'AAPL', zn: '500' }, 'sym,size', 'AAPL Fresh Volume, 500+ contracts'],
         ['volume_burst', { zs: 'NVDA', zn: '800' }, 'sym,size', 'NVDA Volume Burst, 800+ contracts'],
         ['iv_rank', { zs: 'QQQ', zd: 'below', zv: '20' }, 'sym,dir,value', 'QQQ IV rank moves below 20'],

@@ -84,11 +84,11 @@ def index_lines(sym, s, prev):
     cc, pf, fl = f['call_ceiling'], f['put_floor'], f['flip_line']
     parts = []
     if cc is not None:
-        parts.append('Call Ceiling %s' % num(cc))
+        parts.append('Call Wall %s' % num(cc))
     if pf is not None:
-        parts.append('Put Floor %s' % num(pf))
+        parts.append('Put Wall %s' % num(pf))
     if fl is not None:
-        parts.append('Flip Line %s' % num(fl))
+        parts.append('Zero Gamma %s' % num(fl))
     if parts:
         out.append('%s: %s.' % (sym, ', '.join(parts)))
     if f['zone']:
@@ -113,7 +113,7 @@ def index_lines(sym, s, prev):
         out.append(t + '.')
     if prev:
         ch = []
-        for k, name in (('call_ceiling', 'Call Ceiling'), ('put_floor', 'Put Floor'), ('flip_line', 'Flip Line')):
+        for k, name in (('call_ceiling', 'Call Wall'), ('put_floor', 'Put Wall'), ('flip_line', 'Zero Gamma')):
             if f[k] is not None and ok_num(prev.get(k)) and f[k] != prev[k]:
                 ch.append('%s moved from %s to %s' % (name, num(prev[k]), num(f[k])))
         if f['zone'] and prev.get('zone') in ZONE and f['zone'] != prev['zone']:
@@ -149,7 +149,7 @@ def mapped_lines(root, src, s):
         return []
     out = []
     parts = []
-    for k, name in (('call_ceiling', 'Call Ceiling'), ('put_floor', 'Put Floor'), ('flip_line', 'Flip Line')):
+    for k, name in (('call_ceiling', 'Call Wall'), ('put_floor', 'Put Wall'), ('flip_line', 'Zero Gamma')):
         v = lv(s, k)
         if v is not None:
             parts.append('%s %s' % (name, num(v * ratio, 0)))

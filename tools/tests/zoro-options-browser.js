@@ -54,7 +54,7 @@ const overflow = (p) => p.evaluate(() => ({ sw: document.documentElement.scrollW
 async function pro(b, tag, o) {
   const { ctx, p, errors, ext } = await open(b, Object.assign({ shot: true }, o));
   const lv = await p.evaluate(() => [...document.querySelectorAll('#zo-lvls .zo-lv')].map((e) => e.querySelector('span').textContent + '=' + e.querySelector('b').textContent));
-  check(lv.join('|') === ['Call Ceiling=' + SUM.levels.ceiling.toLocaleString('en-US'), 'Put Floor=' + SUM.levels.floor.toLocaleString('en-US'), 'Flip Line=' + Math.round(SUM.levels.flip).toLocaleString('en-US'),
+  check(lv.join('|') === ['Call Wall=' + SUM.levels.ceiling.toLocaleString('en-US'), 'Put Wall=' + SUM.levels.floor.toLocaleString('en-US'), 'Zero Gamma=' + Math.round(SUM.levels.flip).toLocaleString('en-US'),
     'Zoro Range 0DTE=' + Math.round(SUM.range['0'].lo).toLocaleString('en-US') + '–' + Math.round(SUM.range['0'].hi).toLocaleString('en-US'), 'Pin Strike=' + SUM.levels.pin.toLocaleString('en-US')].join('|'), tag + ': levels row ' + lv.join(' | '));
   const zone = await p.textContent('#zo-zone');
   check(zone === 'Gamma Zone: Cushion', tag + ': zone chip "' + zone + '"');

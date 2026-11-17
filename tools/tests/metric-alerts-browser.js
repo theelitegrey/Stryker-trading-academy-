@@ -121,11 +121,11 @@ async function run(b, tag, o) {
   // list
   let rows = await p.evaluate(() => [...document.querySelectorAll('#stk-al .stk-al-row')].map((r) => r.innerText.replace(/\n/g, ' | ')));
   const cnt = await p.evaluate(() => document.querySelector('#stk-al .stk-al-count').textContent);
-  check(rows.some((r) => /SPX crosses above its Call Ceiling/.test(r)) && rows.some((r) => /ETH open interest on OKX up 2\.5% in 60 min/.test(r)) && /2 of 20 metric alerts/.test(cnt), tag + ': both listed, count "2 of 20 metric alerts" ' + JSON.stringify(rows) + ' ' + cnt);
+  check(rows.some((r) => /SPX crosses above its Call wall/.test(r)) && rows.some((r) => /ETH open interest on OKX up 2\.5% in 60 min/.test(r)) && /2 of 20 metric alerts/.test(cnt), tag + ': both listed, count "2 of 20 metric alerts" ' + JSON.stringify(rows) + ' ' + cnt);
   check(rows.some((r) => /NVDA IV rank moves below 20/.test(r)), tag + ': the IV rank alert is listed with the options alerts');
   await shot(p, 'ma-' + tag + '-manager.png');
   // pause + edit + delete
-  await p.evaluate(() => { const r = [...document.querySelectorAll('#stk-al .stk-al-row')].find((x) => /Call Ceiling/.test(x.innerText)); r.querySelector('[data-k=pause]').click(); }); await sleep(700);
+  await p.evaluate(() => { const r = [...document.querySelectorAll('#stk-al .stk-al-row')].find((x) => /Call wall/.test(x.innerText)); r.querySelector('[data-k=pause]').click(); }); await sleep(700);
   w = await writes(p);
   check(w[w.length - 1][0] === 'update' && w[w.length - 1][3].active === false, tag + ': Pause writes active:false');
   await p.evaluate(() => { const r = [...document.querySelectorAll('#stk-al .stk-al-row')].find((x) => /ETH open/.test(x.innerText)); r.querySelector('[data-k=edit]').click(); }); await sleep(400);
@@ -153,11 +153,11 @@ async function run(b, tag, o) {
   check(dlg && dlg.l >= 0 && dlg.r <= dlg.vw, tag + ': settings fit the screen');
   const sw = await p.evaluate(() => { const s = document.querySelector('.vela-ind-dialog [id$="-alertCross"]'); if (!s) return false; s.click(); return true; }); await sleep(1500);
   w = (await writes(p)).slice(n0);
-  check(sw && w.length === 1 && w[0][0] === 'set' && w[0][2] === 'ind-gex-SPX' && w[0][3].p.level === 'gamma_flip' && w[0][3].freq === 'every', tag + ': switch on -> one doc ind-gex-SPX (Flip Line, every time) ' + JSON.stringify(w));
+  check(sw && w.length === 1 && w[0][0] === 'set' && w[0][2] === 'ind-gex-SPX' && w[0][3].p.level === 'gamma_flip' && w[0][3].freq === 'every', tag + ': switch on -> one doc ind-gex-SPX (Zero gamma, every time) ' + JSON.stringify(w));
   await sleep(300);
   await p.evaluate(() => { const d = document.querySelector('.vela-ind-dialog'); const hd = [...d.querySelectorAll('*')].find((n) => n.children.length === 0 && (n.textContent || '').trim() === 'Alerts'); if (hd) hd.scrollIntoView({ block: 'start' }); });
   await shot(p, 'ma-' + tag + '-settings.png');
-  await H(p, '(x, c, h) => { h().setInputs(Object.assign(h().inputValues(), { alertLevel: "Put Floor (put wall)", alertDir: "Crossing down", alertRegime: true })); }'); await sleep(1800);
+  await H(p, '(x, c, h) => { h().setInputs(Object.assign(h().inputValues(), { alertLevel: "Put wall", alertDir: "Crossing down", alertRegime: true })); }'); await sleep(1800);
   w = (await writes(p)).slice(n0);
   const up = w.filter((x) => x[0] === 'update' && x[2] === 'ind-gex-SPX').pop(), zr = w.find((x) => x[1] === 'zoroAlerts' && x[2] === 'ind-zone-SPX');
   check(up && JSON.stringify(up[3].p) === '{"level":"put_wall","dir":"down"}' && zr && zr[3].type === 'zone_change' && (await p.evaluate(() => window.__mStore.has('ind-gex-SPX'))), tag + ': edit updates the same doc + regime adds ind-zone-SPX ' + JSON.stringify([up, zr]));

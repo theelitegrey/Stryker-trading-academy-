@@ -94,23 +94,23 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
       const keys = await types(p);
       for (const k of ['b:stk_zrange', 'b:stk_zzone', 'b:stk_ivrank', 'b:stk_zvol', 'b:stk_gex', 'b:stk_gexheat']) check(keys.includes(k), tag + ': ' + k + ' listed');
       await p.keyboard.press('Escape'); await sleep(300);
-      // Zoro Levels with nodes / ranges / pin
+      // GEX Levels with nodes / ranges / pin
       await p.evaluate(() => { const ws = window.STRYKER_VELA; const c = ws.context().cells[0].chart; c.addNativeIndicator('stk_gex', { inputs: {} }); ws.context().stateChanged(); });
       await sleep(1500);
       await p.evaluate(() => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_gex'); if (h) h.setInputs(Object.assign({}, h.inputValues(), { showNodes: true, showRanges: true, showPin: true, nodeCount: 10, showPrev: false })); });
       await sleep(2500);
       const d = await dataOf(p, 'stk_gex');
       const ids = d && d.lines ? d.lines.map((l) => l.id) : [];
-      check(ids.filter((x) => /^zn/.test(x)).length === 10, tag + ': RTY Zoro Levels draws 10 Gamma Nodes (' + ids.join(',') + ')');
+      check(ids.filter((x) => /^zn/.test(x)).length === 10, tag + ': RTY GEX Levels draws 10 Gamma Nodes (' + ids.join(',') + ')');
       check(ids.filter((x) => /^zr/.test(x)).length === 8, tag + ': 4 Zoro Range expiries x 2 edges');
-      check(ids.includes('zpin') && ids.includes('call') && ids.includes('put'), tag + ': Pin Strike + Call Ceiling + Put Floor drawn');
+      check(ids.includes('zpin') && ids.includes('call') && ids.includes('put'), tag + ': Pin Strike + Call Wall + Put Wall drawn');
       const call = d && d.lines && d.lines.find((l) => l.id === 'call');
       check(call && /^CALL WALL/.test(call.text), tag + ': glossary name "' + (call && call.text) + '"');
       check(d && /updated (just now|\d+ min ago)/.test(d.status || '') && !/\blive\b|real-time|delayed|behind/i.test(d.status || ''), tag + ': status "' + (d && d.status) + '"');
       // ratio check: IWM spot 2000 -> RTY chart price near bar close; flip/spot as in the fixture
       const c = await lastClose(p);
       const flip = d && d.lines && d.lines.find((l) => l.id === 'zero');
-      check(flip && c && Math.abs(flip.price / c - F0.levels.flip_line / F0.spot) < 0.02, tag + ': Flip Line mapped to RTY scale (' + (flip && flip.price) + ' vs close ' + c + ')');
+      check(flip && c && Math.abs(flip.price / c - F0.levels.flip_line / F0.spot) < 0.02, tag + ': Zero Gamma mapped to RTY scale (' + (flip && flip.price) + ' vs close ' + c + ')');
       check(zoHits.some((x) => /summary\?u=IWM/.test(x)), tag + ': asked /api/zo/summary?u=IWM');
       // other indicators
       for (const t of ['stk_zrange', 'stk_zzone', 'stk_ivrank', 'stk_zvol']) await add(p, t);
@@ -138,7 +138,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
       // CL -> USO
       await setSym(p, 'futures:CL1!', '5'); await sleep(2500);
       check(zoHits.some((x) => /summary\?u=USO/.test(x)), tag + ': CL asks USO');
-      // ES -> SPX: Zoro Levels nodes on the S&P future
+      // ES -> SPX: GEX Levels nodes on the S&P future
       await setSym(p, 'futures:ES1!', '5'); await sleep(2500);
       const de = await dataOf(p, 'stk_gex');
       check(zoHits.some((x) => /summary\?u=SPX/.test(x)) && de && de.lines && de.lines.filter((l) => /^zn/.test(l.id)).length === 10, tag + ': ES asks SPX, 10 Gamma Nodes');

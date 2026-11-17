@@ -73,7 +73,7 @@ async function mock(ctx, state) {
       await p.click('details[data-p="tv"] summary'); await sleep(200);
       await p.click('details[data-p="tv"] button[data-a="0"]'); await sleep(500);
       const clip2 = await p.evaluate(() => navigator.clipboard.readText()).catch(() => '');
-      check(/^ZL1\|SPX\|/.test(clip2) && clip2.includes(';Call Ceiling=7450;'), tag + ': TradingView copy = the one-line levels string');
+      check(/^ZL1\|SPX\|/.test(clip2) && clip2.includes(';Call Wall=7450;'), tag + ': TradingView copy = the one-line levels string');
       await p.click('details[data-p="sc"] summary'); await sleep(200);
       const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 6000 }).catch(() => null), p.click('details[data-p="sc"] button[data-a="0"]')]);
       check(dl && dl.suggestedFilename() === 'tradezoro-levels-SPX.csv', tag + ': Sierra file downloads as ' + (dl && dl.suggestedFilename()));

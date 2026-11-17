@@ -30,7 +30,7 @@ PRO = ('gex_cross',)
 MAX_PER_MEMBER = 20
 COOLDOWN_S = 900
 LEVELS = ('call_wall', 'put_wall', 'gamma_flip', 'pin', 'em_high', 'em_low', 'any_node')
-LEVEL_NAME = {'call_wall': 'Call Ceiling (call wall)', 'put_wall': 'Put Floor (put wall)', 'gamma_flip': 'Flip Line (zero gamma)',
+LEVEL_NAME = {'call_wall': 'Call Wall', 'put_wall': 'Put Wall', 'gamma_flip': 'Zero Gamma',
               'pin': 'Pin Strike', 'em_high': 'expected move high', 'em_low': 'expected move low', 'any_node': 'Gamma Node'}
 RANGES = {'s': 'session 68%', '0': '0DTE', '1': '1DTE', 'w': 'weekly', 'm': 'monthly'}
 VENUES = {'okx': 'OKX', 'hl': 'Hyperliquid'}

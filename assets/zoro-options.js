@@ -238,8 +238,8 @@
     rows.forEach(function (i) { var k = fr.k[i]; if (Math.abs(k / nice - Math.round(k / nice)) < 1e-6) txt(x, strike(k), padL - 6, Y(k), C.ink3, 'right', '11px ' + MONO); });
     // levels + spot, tags stacked so they never overlap
     var L = [
-      { k: fr.ceiling, c: C.pos, n: 'Call Ceiling' }, { k: fr.floor, c: '#ff6b70', n: 'Put Floor' },
-      { k: fr.flip, c: C.flip, n: 'Flip Line' }, { k: spot, c: C.spot, n: 'Spot', d: [3, 3] }
+      { k: fr.ceiling, c: C.pos, n: 'Call Wall' }, { k: fr.floor, c: '#ff6b70', n: 'Put Wall' },
+      { k: fr.flip, c: C.flip, n: 'Zero Gamma' }, { k: spot, c: C.spot, n: 'Spot', d: [3, 3] }
     ].filter(function (l) { return fin(l.k) && l.k >= kmin - step && l.k <= kmax + step; }).sort(function (a, b) { return Y(a.k) - Y(b.k); });
     var lastY = -1e9;
     L.forEach(function (l) {
@@ -560,7 +560,7 @@
     var s = st.sum; if (!s) return;
     var L = s.levels || {}, R0 = (s.range || {})['0'] || {}, fr = replaying() ? histFrame(st.t) : null, rt = ratio(), from = s.mapped && s.mapped.from;
     var tiles = [
-      ['c', 'Call Ceiling', fr ? fr.ceiling : L.ceiling], ['f', 'Put Floor', fr ? fr.floor : L.floor], ['x', 'Flip Line', fr ? fr.flip : L.flip],
+      ['c', 'Call Wall', fr ? fr.ceiling : L.ceiling], ['f', 'Put Wall', fr ? fr.floor : L.floor], ['x', 'Zero Gamma', fr ? fr.flip : L.flip],
       ['r', 'Zoro Range 0DTE', null, fin(R0.lo) ? strike(Math.round(R0.lo)) + '–' + strike(Math.round(R0.hi)) : '–'], ['n', 'Pin Strike', L.pin]
     ];
     var host = $('zo-lvls');
@@ -723,7 +723,7 @@
     if (!d || !d.cme) { p.hidden = true; return; }
     p.hidden = false;
     $('zo-cme-root').textContent = d.root + ' · mapped from ' + (d.mapped && d.mapped.from || FUT_FROM[d.root]);
-    $('zo-cme').innerHTML = [['Call Ceiling', 'ceiling'], ['Put Floor', 'floor'], ['Flip Line', 'flip']].map(function (r) {
+    $('zo-cme').innerHTML = [['Call Wall', 'ceiling'], ['Put Wall', 'floor'], ['Zero Gamma', 'flip']].map(function (r) {
       return '<tr><td>' + r[0] + '</td><td class="n tk">' + strike(d.cme[r[1]]) + '</td><td class="n">' + strike(d.mapped && d.mapped[r[1]]) + '</td></tr>';
     }).join('');
     $('zo-cme-foot').textContent = 'CME options: ' + ago(d.cme.built).toLowerCase() + '. Mapped: ' + ago(d.mapped && d.mapped.built).toLowerCase() + '.';

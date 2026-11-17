@@ -1,7 +1,7 @@
 symbol,type,label,price,value,day,updated
-SPX,call_ceiling,Call Ceiling,7450,,2026-11-06,2026-11-06T16:19:54Z
-SPX,flip_line,Flip Line,7514.56,,2026-11-06,2026-11-06T16:19:54Z
-SPX,put_floor,Put Floor,7400,,2026-11-06,2026-11-06T16:19:54Z
+SPX,call_ceiling,Call Wall,7450,,2026-11-06,2026-11-06T16:19:54Z
+SPX,flip_line,Zero Gamma,7514.56,,2026-11-06,2026-11-06T16:19:54Z
+SPX,put_floor,Put Wall,7400,,2026-11-06,2026-11-06T16:19:54Z
 SPX,pin_strike,Pin Strike,7560,,2026-11-06,2026-11-06T16:19:54Z
 SPX,range_0dte_high,Zoro Range 0DTE high,7453.07,,2026-11-06,2026-11-06T16:19:54Z
 SPX,range_0dte_low,Zoro Range 0DTE low,7355.87,,2026-11-06,2026-11-06T16:19:54Z

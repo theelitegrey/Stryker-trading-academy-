@@ -78,9 +78,9 @@ export function buildPack(snap, u, inc) {
   const lv = F ? { call_ceiling: F.call_ceiling, put_floor: F.put_floor, flip_line: F.flip_line, pin: F.pin } : (sum.levels || {});
   const rg = F ? F.ranges || {} : sum.ranges || {};
   if (want.has('gex')) {
-    add('gex', 'call_ceiling', 'Call Ceiling', fin(lv.call_ceiling) ? (F ? lv.call_ceiling : r2(lv.call_ceiling)) : null);
-    add('gex', 'flip_line', 'Flip Line', fin(lv.flip_line) ? (F ? lv.flip_line : r2(lv.flip_line)) : null);
-    add('gex', 'put_floor', 'Put Floor', fin(lv.put_floor) ? (F ? lv.put_floor : r2(lv.put_floor)) : null);
+    add('gex', 'call_ceiling', 'Call Wall', fin(lv.call_ceiling) ? (F ? lv.call_ceiling : r2(lv.call_ceiling)) : null);
+    add('gex', 'flip_line', 'Zero Gamma', fin(lv.flip_line) ? (F ? lv.flip_line : r2(lv.flip_line)) : null);
+    add('gex', 'put_floor', 'Put Wall', fin(lv.put_floor) ? (F ? lv.put_floor : r2(lv.put_floor)) : null);
     add('gex', 'pin_strike', 'Pin Strike', fin(lv.pin) ? (F ? lv.pin : r2(lv.pin)) : null);
   }
   if (want.has('em')) {

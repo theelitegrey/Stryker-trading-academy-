@@ -235,7 +235,7 @@ for k in range(7400, 7505, 5):
         rows.append({'strike_price': k, 'type': cp, 'expiration': 20261113, 'open_interest': 100 + (400 if (k == 7480 and cp == 'CALL') or (k == 7420 and cp == 'PUT') else 0),
                      'gamma': 0.001, 'implied_volatility': 0.18, 'volume': 5})
 cme = z.cme_summary('ES', z.cme_levels('ES', rows, TA), 7450.0, TA)
-ok(cme['ok'] and cme['levels']['call_ceiling'] == 7480 and cme['levels']['put_floor'] == 7420 and cme['src'] == 'CME options', 'CME: real Call Ceiling / Put Floor from OI')
+ok(cme['ok'] and cme['levels']['call_ceiling'] == 7480 and cme['levels']['put_floor'] == 7420 and cme['src'] == 'CME options', 'CME: real Call Wall / Put Wall from OI')
 ok(cme['term'] == [['2026-11-13', 0.18]], 'CME: ATM IV term from the same rows')
 ok(not z.cme_summary('ES', [], 7450.0, TA)['ok'], 'CME: thin chain -> ok false with a reason')
 

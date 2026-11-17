@@ -25,7 +25,7 @@ for (const u of ['SPX', 'SPY', 'QQQ', 'IWM', 'GLD', 'USO']) {
   ok(zs.ranges.length === 4 && zs.ranges.every((r) => r.hi > r.lo), u + ' S4 zsum: 4 Zoro Ranges');
   ok(zs.iv.v.length >= 200 && zs.iv.t.length === zs.iv.v.length, u + ' S4 IV rank pane: 1-year iv series (' + zs.iv.v.length + ')');
   const lines = ZD.zoroLines(zs, (v) => v, { nodeCount: 10 }, () => true);
-  ok(lines.length === 10 + 8 + (zs.pin ? 1 : 0), u + ' S4 Zoro Levels lines: ' + lines.length);
+  ok(lines.length === 10 + 8 + (zs.pin ? 1 : 0), u + ' S4 GEX Levels lines: ' + lines.length);
   const [sa, act] = await get('/zo/activity?u=' + u + '&kind=fresh');
   const items = ZD.zitems(sa === 200 ? Object.assign({}, act, { rows: undefined }) : null);
   ok(sa === 200 && items.length > 0 && items.every((r) => r.k > 0 && (r.side === 'C' || r.side === 'P')), u + ' S4 Fresh Volume marks from items: ' + items.length);

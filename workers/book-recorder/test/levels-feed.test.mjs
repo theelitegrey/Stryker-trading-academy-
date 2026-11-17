@@ -43,12 +43,12 @@ ok(lvParams(new URLSearchParams('')).inc.length === 4, 'params: default = everyt
 
 // ---- pack
 let p = buildPack(snap, 'SPX', ['gex']);
-ok(p.rows.length === 4 && p.rows[0].label === 'Call Ceiling' && p.rows[0].price === 7450, 'SPX gex rows: ' + p.rows.map((r) => r.price).join(','));
-ok(p.rows.find((r) => r.type === 'flip_line').price === 7514.56, 'flip line value');
+ok(p.rows.length === 4 && p.rows[0].label === 'Call Wall' && p.rows[0].price === 7450, 'SPX gex rows: ' + p.rows.map((r) => r.price).join(','));
+ok(p.rows.find((r) => r.type === 'flip_line').price === 7514.56, 'zero gamma value');
 p = buildPack(snap, 'SPX', ['em']);
 ok(p.rows.length === 4 && p.rows[0].price === 7453.07 && p.rows[1].price === 7355.87, 'range rows (0DTE high/low, weekly high/low)');
 p = buildPack(snap, 'SPX', ['nodes']);
-ok(p.rows.length === 5 && p.rows[0].type === 'zoro_level' && p.rows[0].value >= p.rows[1].value, 'five Zoro Levels, biggest share first');
+ok(p.rows.length === 5 && p.rows[0].type === 'zoro_level' && p.rows[0].value >= p.rows[1].value, 'five GEX Levels, biggest share first');
 p = buildPack(snap, 'SPX', ['dp']);
 ok(p.rows.length === 2 && p.rows.every((r) => r.type === 'dark_pool'), 'dark pool: two price levels (sub-$25M print dropped)');
 const sc = 7404.47 / 740;
@@ -68,11 +68,11 @@ ok(buildPack(noRange, 'SPX', ['em']).rows.length === 2, 'missing 0DTE range stay
 // ---- formats
 p = buildPack(snap, 'SPX', ['gex', 'em']);
 const csv = packCsv(p).split('\n');
-ok(csv[0] === 'symbol,type,label,price,value,day,updated' && csv[1].startsWith('SPX,call_ceiling,Call Ceiling,7450,,2026-11-06,'), 'csv header + first row: ' + csv[1]);
+ok(csv[0] === 'symbol,type,label,price,value,day,updated' && csv[1].startsWith('SPX,call_ceiling,Call Wall,7450,,2026-11-06,'), 'csv header + first row: ' + csv[1]);
 ok(csv.some((l) => /^# Education only/.test(l)) && !/live|real-time|delayed/i.test(packCsv(p)), 'csv carries the notice, no banned words');
-ok(packPrices(p).split('\n')[1] === '7450,Call Ceiling,#ef4444', 'price list: price,label,colour');
+ok(packPrices(p).split('\n')[1] === '7450,Call Wall,#ef4444', 'price list: price,label,colour');
 const tv = packTv(p);
-ok(tv.startsWith('ZL1|SPX|2026-11-06|') && tv.includes(';Call Ceiling=7450;') && !/\n/.test(tv), 'tradingview text is one line: ' + tv.slice(0, 80));
+ok(tv.startsWith('ZL1|SPX|2026-11-06|') && tv.includes(';Call Wall=7450;') && !/\n/.test(tv), 'tradingview text is one line: ' + tv.slice(0, 80));
 const tos = packTos(p);
 ok(/plot L1 = 7450;/.test(tos) && /SetDefaultColor\(Color\.RED\)/.test(tos) && /Education only/.test(tos), 'thinkScript plots the values');
 ok(!/[;=]/.test(p.rows.map((r) => r.label).join('')), 'labels never hold the separators');
@@ -135,7 +135,7 @@ r = await call('/lv/pack?u=SPX&format=csv', { headers: { authorization: 'Bearer 
 r = await call('/lv/token'); ok(r.status === 403, 'token status without sign-in -> 403');
 r = await call('/lv/token', { method: 'POST' }); ok(r.status === 403, 'making a link without sign-in -> 403');
 r = await call('/lv/pack?u=SPX&inc=gex&format=csv', auth); let t = await r.text();
-ok(r.status === 200 && /text\/csv/.test(r.headers.get('content-type')) && r.headers.get('cache-control') === 'private, no-store' && t.includes('Call Ceiling'), 'Pro: pack csv, private no-store');
+ok(r.status === 200 && /text\/csv/.test(r.headers.get('content-type')) && r.headers.get('cache-control') === 'private, no-store' && t.includes('Call Wall'), 'Pro: pack csv, private no-store');
 r = await call('/lv/pack?u=SPX&format=xml', auth); ok(r.status === 400, 'bad format -> 400');
 r = await call('/lv/pack?u=ZZZ&format=csv', auth); ok(r.status === 400, 'bad symbol -> 400');
 r = await call('/lv/pack?u=NQ&format=csv', auth); ok(r.status === 404, 'no data -> 404');

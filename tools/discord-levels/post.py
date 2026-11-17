@@ -6,7 +6,7 @@
   Add --dry to print the message instead of posting (needs no token).
 
 FREE SET ONLY: levels come from the public teaser answer of the Worker (/zo/summary?u=SPX with no sign-in), which already cuts the data down
-to what free members see. Pro-only pieces (Zoro Levels nodes, other symbols, futures mapping) are never read. Each post links to the site.
+to what free members see. Pro-only pieces (GEX Levels nodes, other symbols, futures mapping) are never read. Each post links to the site.
 Dark pool prints are free on the site for everyone, so they are fine to post.
 
 Env:
@@ -68,9 +68,9 @@ def morning_message(s, now_s):
     rg = s.get('ranges') or {}
     r0, rw = rg.get('0') or rg.get('0dte'), rg.get('w') or rg.get('weekly')
     lines = []
-    if num(ce): lines.append('Call Ceiling  %s' % fmt(ce))
-    if num(fl): lines.append('Flip Line     %s' % fmt(fl))
-    if num(pf): lines.append('Put Floor     %s' % fmt(pf))
+    if num(ce): lines.append('Call Wall  %s' % fmt(ce))
+    if num(fl): lines.append('Zero Gamma     %s' % fmt(fl))
+    if num(pf): lines.append('Put Wall     %s' % fmt(pf))
     if isinstance(r0, list) and len(r0) == 2 and num(r0[0]) and num(r0[1]): lines.append('Zoro Range 0DTE  %s to %s' % (fmt(r0[0]), fmt(r0[1])))
     if isinstance(rw, list) and len(rw) == 2 and num(rw[0]) and num(rw[1]): lines.append('Zoro Range weekly  %s to %s' % (fmt(rw[0]), fmt(rw[1])))
     if not lines:

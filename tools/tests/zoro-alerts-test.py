@@ -57,7 +57,7 @@ class Alerts(unittest.TestCase):
         f = b.tick('fut:ES', pa['price'] + 1, 1)
         self.assertEqual(len(f), 1)
         t = za.touch_text(f[0][0], f[0][1], f[0][2])
-        self.assertEqual(t, 'SPX crossed its Flip Line at 6,812. Education only. Not financial advice.')
+        self.assertEqual(t, 'SPX crossed its Zero Gamma at 6,812. Education only. Not financial advice.')
 
     def test_level_touch_range_and_move_rearms(self):
         a = al('level_touch', {'level': 'range_high', 'range': 'w'}, freq='every')
@@ -79,13 +79,13 @@ class Alerts(unittest.TestCase):
         self.assertIsNone(za.evaluate(a, snap(), None))                                   # first look: baseline only
         self.assertIsNone(za.evaluate(a, snap(built=1100), snap()))                        # same zone
         t = za.evaluate(a, snap(built=1100, zone='swing'), snap())
-        self.assertEqual(t, 'SPX moved into the Swing zone: price crossed its Flip Line at 6,812. Education only. Not financial advice.')
+        self.assertEqual(t, 'SPX moved into the Swing zone: price crossed its Zero Gamma at 6,812. Education only. Not financial advice.')
         self.assertIsNone(za.evaluate(a, snap(zone='swing'), snap()))                      # same build time: nothing new
 
     def test_level_moved(self):
         a = al('level_moved', {'level': 'call_ceiling'})
         s2 = snap(built=1100, levels={'call_ceiling': 6925, 'put_floor': 6750, 'flip_line': 6812})
-        self.assertIn('Call Ceiling moved from 6,900 to 6,925', za.evaluate(a, s2, snap()))
+        self.assertIn('Call Wall moved from 6,900 to 6,925', za.evaluate(a, s2, snap()))
         self.assertIsNone(za.evaluate(al('level_moved', {'level': 'put_floor'}), s2, snap()))
 
     def test_fresh_volume_and_burst(self):
@@ -122,7 +122,7 @@ class Alerts(unittest.TestCase):
     def test_user_message_added_and_length(self):
         a = al('zone_change'); a['message'] = 'Check the chart'
         t = za.evaluate(a, snap(built=1100, zone='swing'), snap())
-        self.assertIn('Flip Line at 6,812. Check the chart Education only.', t)
+        self.assertIn('Zero Gamma at 6,812. Check the chart Education only.', t)
         self.assertLessEqual(len(t), 480)
 
     def test_alert_text_obeys_copy_rules(self):
@@ -167,11 +167,11 @@ class Note(unittest.TestCase):
         n = self.note()
         self.assertTrue(n['ok'])
         spx = next(s for s in n['sections'] if s['sym'] == 'SPX')['lines']
-        self.assertEqual(spx[0], 'SPX: Call Ceiling 6,900, Put Floor 6,750, Flip Line 6,812.')
+        self.assertEqual(spx[0], 'SPX: Call Wall 6,900, Put Wall 6,750, Zero Gamma 6,812.')
         self.assertIn('0DTE Zoro Range 6,790 to 6,870.', spx)
         self.assertIn('IV rank 34 (30-day IV 15.2%).', spx)
         self.assertIn('Put/call by volume 1.12, up from 0.96 yesterday.', spx)
-        self.assertIn('Since yesterday: Call Ceiling moved from 6,850 to 6,900; the Gamma Zone changed from Swing to Cushion.', spx)
+        self.assertIn('Since yesterday: Call Wall moved from 6,850 to 6,900; the Gamma Zone changed from Swing to Cushion.', spx)
         self.assertTrue(6 <= len(spx) <= 10, len(spx))
         self.assertEqual(n['teaser'], spx[:3])
 
@@ -181,9 +181,9 @@ class Note(unittest.TestCase):
         self.assertEqual(syms, ['SPX', 'ES', 'QQQ', 'NQ', 'IWM', 'RTY', 'GLD', 'GC', 'USO', 'CL'])
         nq = next(s for s in n['sections'] if s['sym'] == 'NQ')
         self.assertEqual(nq['title'], 'NQ (mapped from QQQ)')
-        self.assertEqual(nq['lines'][0], 'NQ (mapped from QQQ): Call Ceiling 26,560, Put Floor 24,921, Flip Line 25,657.')
+        self.assertEqual(nq['lines'][0], 'NQ (mapped from QQQ): Call Wall 26,560, Put Wall 24,921, Zero Gamma 25,657.')
         qqq = next(s for s in n['sections'] if s['sym'] == 'QQQ')['lines']
-        self.assertIn('Put Floor 600.50', qqq[0])         # sub-1000 values keep cents
+        self.assertIn('Put Wall 600.50', qqq[0])         # sub-1000 values keep cents
 
     def test_top5_stocks(self):
         n = self.note()
@@ -218,7 +218,7 @@ class Note(unittest.TestCase):
         thin = {'SPX': {'u': 'SPX', 'built': 5, 'levels': {'call_ceiling': 6900}}}
         n = self.note(sums=thin, rows=[], prev={})
         self.assertTrue(n['ok'])
-        self.assertEqual(n['sections'][0]['lines'], ['SPX: Call Ceiling 6,900.'])
+        self.assertEqual(n['sections'][0]['lines'], ['SPX: Call Wall 6,900.'])
         self.assertEqual(n['stocks']['lines'], [])
 
     def test_no_prev_no_change_line(self):

@@ -18,7 +18,7 @@ plus the after-close runs 16:30-16:44 ET; --force runs tier A once at any time):
   and posted to /is-note as src "zoro".
 
 Per symbol and pull (all from ONE Cboe chain, gzip download):
-  levels      Call Ceiling / Put Floor / Flip Line / net gamma (Gamma Zone) per expiry mode 0 / 1 / w / m / all
+  levels      Call Wall / Put Wall / Zero Gamma / net gamma (Gamma Zone) per expiry mode 0 / 1 / w / m / all
               (gex_feeder.snap_levels, the same maths as the site's GEX engine), Gamma Nodes 1-10, Pin Strike
   profile     per strike: net GEX, DEX, vanna, charm ($M, dealer-sign convention: calls +, puts -, as GEX),
               call/put volume, call/put OI, strikes within +-6 % of spot
@@ -266,7 +266,7 @@ def expiry_sets(cs, now_epoch):
 
 
 def levels_for(spot, cs):
-    """Levels from one expiry set: Call Ceiling, Put Floor, Flip Line, net GEX ($M), Gamma Nodes, Pin Strike."""
+    """Levels from one expiry set: Call Wall, Put Wall, Zero Gamma, net GEX ($M), Gamma Nodes, Pin Strike."""
     use = [c for c in cs if abs(c['k'] - spot) / spot <= LEVEL_BAND]      # same rows as the GEX+ near part
     if len(use) < 20:
         return None
@@ -640,7 +640,7 @@ def screen_row(s):
 
 # ------------------------------------------------------------------ CME (InsightSentry)
 def cme_levels(root, rows, now_epoch, mapped=None):
-    """IS /v3/options/quotes rows for one future -> real Call Ceiling / Put Floor / Flip from the CME chain.
+    """IS /v3/options/quotes rows for one future -> real Call Wall / Put Wall / Flip from the CME chain.
     Only rows with open interest count (IS sends OI for the strikes nearest price)."""
     code, mult, src = CME[root]
     spot = None

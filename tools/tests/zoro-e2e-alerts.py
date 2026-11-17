@@ -67,7 +67,7 @@ types = sorted(f['message'].split(':')[0].split(' ')[0] + '|' + f['link'] for f 
 print('\n'.join(f['message'] for f in fires))
 msgs = ' '.join(f['message'] for f in fires)
 ok('SPX moved into the' in msgs, 'zone_change fired from real SPX data')
-ok('QQQ Call Ceiling moved from' in msgs, 'level_moved fired from real QQQ data')
+ok('QQQ Call Wall moved from' in msgs, 'level_moved fired from real QQQ data')
 ok('SPY: Fresh Volume on the' in msgs, 'fresh_volume fired from real SPY rows (feeder C/P form)')
 ok('SPX: Volume Burst on the' in msgs or not ae.zsnap['SPX'].get('burst_top'), 'volume_burst fired (when SPX had bursts)')
 ok('IWM IV rank moved above' in msgs, 'iv_rank fired')
@@ -76,7 +76,7 @@ ok(all(f['message'].endswith('Education only. Not financial advice.') for f in f
 ok(all(not za.banned_words(f['message'].replace(za.FOOTER, '')) for f in fires), 'no banned words in any push')
 ok(docs['students/u1/zoroAlerts/a1']['active'] is False and docs['students/u1/zoroAlerts/a4']['active'] is True, 'Once alerts claimed, Every alerts stay')
 za_t = list(ae.zbook.alerts.values())
-ok(len(za_t) == 1 and za_t[0]['price'] > 0 and abs(za_t[0]['price'] / ae.zsnap['SPX']['levels']['flip_line'] - ae.zsnap['SPX']['fut']['ratio']) < 1e-3, 'ES Flip Line touch armed on the futures book at SPX flip x ratio (%.2f)' % za_t[0]['price'])
+ok(len(za_t) == 1 and za_t[0]['price'] > 0 and abs(za_t[0]['price'] / ae.zsnap['SPX']['levels']['flip_line'] - ae.zsnap['SPX']['fut']['ratio']) < 1e-3, 'ES Zero Gamma touch armed on the futures book at SPX flip x ratio (%.2f)' % za_t[0]['price'])
 k0 = len(fires)
 ae.zoro_note_check(now)
 from datetime import datetime

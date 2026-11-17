@@ -1,5 +1,5 @@
 // TradeZoro — ZoroOptions chart data layer (ES module). Stream 4 of the ZoroOptions build.
-// Shared by the Zoro chart indicators: chart-gex-levels.js (Zoro Levels), chart-gex-heatmap.js (Gamma over time),
+// Shared by the Zoro chart indicators: chart-gex-levels.js (GEX Levels), chart-gex-heatmap.js (Gamma over time),
 // chart-zoro-range.js (Zoro Range + Gamma Zone), chart-optflow.js (Fresh Volume / Volume Burst marks), chart-iv-rank.js.
 //
 // PAGE FLAG: launched (Owner 2026-11-07), ON for everyone. Opt out with localStorage.stk_zoro_options === '0'

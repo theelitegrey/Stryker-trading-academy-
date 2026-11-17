@@ -193,15 +193,15 @@ def note(s):
     L = s['levels']
     return {'v': 1, 'day': DAY, 'kind': 'close', 'built': BUILT, 'ok': True, 'sections': [
         {'u': 'SPX', 'lines': [
-            'SPX: Call Ceiling %s, Put Floor %s, Flip Line %s (spot is above it: Cushion zone).' % (f"{L['ceiling']:,}", f"{L['floor']:,}", f"{round(L['flip']):,}"),
+            'SPX: Call Wall %s, Put Wall %s, Zero Gamma %s (spot is above it: Cushion zone).' % (f"{L['ceiling']:,}", f"{L['floor']:,}", f"{round(L['flip']):,}"),
             '0DTE Zoro Range %s-%s.' % (f"{round(s['range']['0']['lo']):,}", f"{round(s['range']['0']['hi']):,}"),
             'IV rank %d, 30-day IV %.1f.' % (s['iv']['rank'], s['iv']['iv30']),
             'Put/call by volume 1.12, up from 0.96 yesterday.',
             'Pin Strike for the next expiry: %s.' % f"{L['pin']:,}",
             'Largest open interest increase: 6,900 calls.']},
-        {'u': 'QQQ', 'lines': ['QQQ: Call Ceiling 615, Put Floor 600, Flip Line 608 (spot is above it: Cushion zone).',
+        {'u': 'QQQ', 'lines': ['QQQ: Call Wall 615, Put Wall 600, Zero Gamma 608 (spot is above it: Cushion zone).',
                                '0DTE Zoro Range 608-617.', 'IV rank 41.']},
-        {'u': 'ES', 'lines': ['ES (mapped from SPX): Call Ceiling 6,925, Put Floor 6,775, Flip Line 6,851.']},
+        {'u': 'ES', 'lines': ['ES (mapped from SPX): Call Wall 6,925, Put Wall 6,775, Zero Gamma 6,851.']},
         {'u': 'Stocks', 'lines': ['Most Fresh Volume: NVDA, TSLA, AAPL, AMD, META.']}]}
 
 

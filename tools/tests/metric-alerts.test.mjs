@@ -30,7 +30,7 @@ for (const [v, why] of [[{ metric: 'nope', symbol: 'SPX' }, 'unknown metric'], [
   [{ metric: 'oi_change', symbol: 'BTC', venue: 'okx', value: 0 }, 'OI change 0'], [{ metric: 'funding', symbol: 'B T C', venue: 'okx', value: 0.1 }, 'bad coin'],
   [{ metric: 'iv_rank', symbol: 'SPX', value: NaN }, 'no value']]) ok(!!M.buildMetric(v).error, 'refused: ' + why);
 ok(M.buildMetric({ metric: 'funding', symbol: 'BTC', venue: 'okx', value: 0.1, message: 'x'.repeat(200) }).doc.message.length === 140, 'message capped at 140');
-ok(M.titleOf({ metric: 'gex_cross', symbol: 'SPX', p: { level: 'gamma_flip', dir: 'any' } }) === 'SPX crosses its Flip Line (zero gamma)', 'title gex');
+ok(M.titleOf({ metric: 'gex_cross', symbol: 'SPX', p: { level: 'gamma_flip', dir: 'any' } }) === 'SPX crosses its Zero gamma', 'title gex');
 ok(M.titleOf({ metric: 'funding', symbol: 'BTC', p: { venue: 'okx', dir: 'above', value: 0.01 } }) === 'BTC funding on OKX above 0.01%', 'title funding');
 ok(M.titleOf({ metric: 'oi_change', symbol: 'ETH', p: { venue: 'hl', dir: 'either', value: 2, mins: 60 } }) === 'ETH open interest on Hyperliquid moves 2% in 60 min', 'title OI');
 ok(M.MAX_METRIC === 20, 'cap 20');

@@ -23,7 +23,7 @@ import re
 TYPES = ('level_touch', 'zone_change', 'level_moved', 'fresh_volume', 'volume_burst', 'iv_rank', 'pc_extreme', 'note_ready')
 MAX_PER_MEMBER = 25
 LEVELS = ('call_ceiling', 'put_floor', 'flip_line', 'range_high', 'range_low')
-LEVEL_NAME = {'call_ceiling': 'Call Ceiling', 'put_floor': 'Put Floor', 'flip_line': 'Flip Line',
+LEVEL_NAME = {'call_ceiling': 'Call Wall', 'put_floor': 'Put Wall', 'flip_line': 'Zero Gamma',
               'range_high': 'Zoro Range high', 'range_low': 'Zoro Range low'}
 RANGE_NAME = {'0': '0DTE', '1': '1DTE', 'w': 'weekly', 'm': 'monthly'}
 ZONE_NAME = {'cushion': 'Cushion', 'swing': 'Swing'}
@@ -188,7 +188,7 @@ def evaluate(a, snap, prev):
         z, pz = snap.get('zone'), prev.get('zone')
         if z in ZONE_NAME and pz in ZONE_NAME and z != pz:
             fl = lv.get('flip_line')
-            return _wrap('%s moved into the %s zone: price crossed its Flip Line%s.' % (sym, ZONE_NAME[z], ' at ' + fmt_n(fl) if fl else ''), a)
+            return _wrap('%s moved into the %s zone: price crossed its Zero Gamma%s.' % (sym, ZONE_NAME[z], ' at ' + fmt_n(fl) if fl else ''), a)
     elif t == 'level_moved':
         n, o = lv.get(p['level']), plv.get(p['level'])
         if n is not None and o is not None and n != o:

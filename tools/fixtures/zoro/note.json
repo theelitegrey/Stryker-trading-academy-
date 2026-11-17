@@ -13,7 +13,7 @@
    "sym": "SPX",
    "title": "SPX",
    "lines": [
-    "SPX: Call Ceiling 7450, Put Floor 7400, Flip Line 7514.56 (Swing zone).",
+    "SPX: Call Wall 7450, Put Wall 7400, Zero Gamma 7514.56 (Swing zone).",
     "0DTE Zoro Range 7355.87-7453.07.",
     "Put/call by volume 0.962."
    ]

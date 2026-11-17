@@ -15,7 +15,7 @@ S = {'built': NOW - 600, 'day': '2026-11-09', 'teaser': True,
      'levels': {'call_ceiling': 7450, 'put_floor': 7400, 'flip_line': 7514.56, 'pin': 7560, 'net': -1.0},
      'ranges': {'0': [7355.87, 7453.07], 'w': [7355.87, 7453.07]}}
 m = post.morning_message(S, NOW)
-ok(m and 'Call Ceiling  7450' in m and 'Flip Line     7514.56' in m and 'Put Floor     7400' in m, 'morning post has the free levels')
+ok(m and 'Call Wall  7450' in m and 'Zero Gamma     7514.56' in m and 'Put Wall     7400' in m, 'morning post has the free levels')
 ok('Updated 10 min ago' in m and post.SITE + '/gex' in m and 'Education only' in m, 'morning post says updated X min ago, links the site, has the notice')
 ok('Pin' not in m and 'Zoro Level' not in m and not any(w in m.lower() for w in ('delayed', 'real-time', 'live ', 'behind')), 'no Pro pieces, no banned words')
 ok(post.morning_message(dict(S, day='2026-11-06', built=NOW - 3 * 86400), NOW) is None, 'yesterday\'s levels are not posted as today\'s')

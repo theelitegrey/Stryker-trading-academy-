@@ -7,7 +7,7 @@ Every EVERY s:
   1. load students/*/metricAlerts (collection group; parse + 20 per member).
   2. Pro metrics (GEX / options): the member's plan is read (students/{uid} + plans, same rule as the site's GEX gate;
      admins count). Not Pro -> the alert is skipped (kept, never fires). Cached PLAN_TTL s.
-  3. options data: the Worker's /zo/summary per symbol (the same numbers the ZoroOptions page and Zoro Levels show; the
+  3. options data: the Worker's /zo/summary per symbol (the same numbers the ZoroOptions page and GEX Levels show; the
      engine never calls a vendor). Read at most every OPT_EVERY s per symbol.
   4. crypto: OKX public REST (funding-rate?instId=ANY, open-interest?instType=SWAP) and Hyperliquid public info
      (metaAndAssetCtxs), only when an alert needs that venue. OI samples of watched coins are kept RING_S s for the

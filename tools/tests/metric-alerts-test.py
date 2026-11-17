@@ -77,14 +77,14 @@ class Snapshot(unittest.TestCase):
         self.assertIsNone(out[0])                 # first look: baseline
         self.assertIsNone(out[1])                 # same build: no new update
         self.assertIsNone(out[2])                 # 7390 -> 7395 does not reach 7400
-        self.assertIn('SPX crossed above its Flip Line (zero gamma) at 7,400 (price 7,410.00).', out[3])
+        self.assertIn('SPX crossed above its Zero Gamma at 7,400 (price 7,410.00).', out[3])
         self.assertTrue(out[3].endswith(ma.FOOTER))
 
     def test_cross_dir_and_baseline(self):
         a = al('gex_cross', {'level': 'call_wall', 'dir': 'down'})
         out = self.run_seq(a, [v(1, 7430), v(2, 7440), v(3, 7420), v(4, 7430)])
         self.assertEqual([bool(x) for x in out], [False, False, True, False])
-        self.assertIn('below its Call Ceiling', out[2])
+        self.assertIn('below its Call Wall', out[2])
 
     def test_cross_em_and_nodes(self):
         a = al('gex_cross', {'level': 'em_high', 'range': 'w'}, freq='every')

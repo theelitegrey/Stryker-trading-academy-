@@ -61,4 +61,16 @@ ok(D.dhConfig({ heatSmooth: 'Off' }).smooth === 0 && D.dhConfig({ heatSmooth: '2
 ok(D.dhConfig({ contrastMode: 'Manual', contrast: 2 }).gamma === 2 && D.dhConfig({ contrast: 2 }).gamma === 1, 'the manual slider only counts in Manual mode');
 const k = D.dhConfig({ cutoffPct: 50 }); ok(k.hf.on && Math.abs(k.hf.p - rank(0.5)) < 1e-9, 'lower cutoff hides by rank (the colours of the rest do not change)', k.hf);
 ok(D.DH_SCHEMA.every((x) => x.defval !== undefined) && D.DH_TITLE === 'Depth Heatmap (L2)', 'schema has defaults; title keeps (L2)');
+// ---- GK 17 Nov: black streaks. The recorder's price range follows the price: a level that falls off one sample's range edge must not blank ----
+{
+  const at = (o, r) => { const k = r - o.i0; return k >= 0 && k < o.v.length ? o.v[k] : 0; };
+  const hs = [smp(0, new Array(10).fill(5), 100), smp(1000, new Array(10).fill(5), 100), smp(2000, new Array(10).fill(5), 103), smp(3000, new Array(10).fill(5), 100)];
+  const r = D.dhProcess(hs, 0, 0.3, {});
+  ok(at(r[2], 101) === 5 && at(r[2], 102) === 5, 'rows that left the range of one sample stay drawn at their last size (no black streak)', [...r[2].v]);
+  ok(r[2].i0 <= 100 && at(r[2], 100) === 5, 'the carried rows are part of the sample the heatmap draws', r[2].i0);
+  const rm = D.dhProcess([smp(0, [5, 5, 5], 100), smp(1000, [5, 0, 5], 100)], 0, 0.3, {});
+  ok(at(rm[1], 101) === 0, 'a level the book really removed (inside the range, size 0) is still cleared at once', [...rm[1].v]);
+  const old = D.dhProcess([smp(0, [5, 5], 100), smp(D.CARRY_MS + 5000, [5, 5], 102)], 0, 0.3, {});
+  ok(at(old[1], 100) === 0, 'a level not seen for longer than CARRY_MS is dropped', [...old[1].v]);
+}
 console.log(n + ' passed');

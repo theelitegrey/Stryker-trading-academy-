@@ -23,6 +23,7 @@ import { sphere, drawLadder, bubbleSchema, bubbleOpts } from './chart-liquidity-
 export const DH_TYPE = 'stk_depth_heat';
 export const DH_TITLE = 'Depth Heatmap (L2)';
 export { SMOOTH_OPTS };   // the same Smooth choices as the main heatmap (chart-bookmap.js); here the default is 30 s and the window feeds draw-until-changed
+export const CARRY_MS = 60000;   // a level outside the recorder's current price range is kept this long at its last size (no black streaks)
 export const HOLD_TOL = 0.3;   // a held row is redrawn only when its (smoothed) size moves by more than 30 %, flips side or is gone
 export const DH_SCHEMA = [
   { key: 'heatSmooth', title: 'Smooth', type: 'string', defval: '30 s', options: SMOOTH_OPTS.map((x) => x[0]),
@@ -99,7 +100,7 @@ export function dhProcess(hist, ms, tol, st) {
 }
 function step1(s, st) {
   if (!s || !s.v || !s.v.length || !(s.step > 0)) return s;
-  if (s.step !== st.step) { st.step = s.step; st.q = []; st.qh = 0; st.sum = rowsBuf(); st.sgn = rowsBuf(); st.held = rowsBuf(); }
+  if (s.step !== st.step) { st.step = s.step; st.q = []; st.qh = 0; st.sum = rowsBuf(); st.sgn = rowsBuf(); st.held = rowsBuf(); st.seen = rowsBuf(); st.pLo = Infinity; st.pHi = -Infinity; }
   const acc = (h, sign) => { const v = h.v; st.sum.fit(h.i0, h.i0 + v.length); st.sgn.fit(h.i0, h.i0 + v.length); for (let r = 0; r < v.length; r++) { const x = v[r]; if (!x) continue; st.sum.add(h.i0 + r, sign * Math.abs(x)); if (sign > 0) st.sgn.set(h.i0 + r, x < 0 ? -1 : 1); } };
   acc(s, 1); st.q.push(s);
   while (st.qh < st.q.length - 1 && !(st.q[st.qh].ts > s.ts - st.ms)) acc(st.q[st.qh++], -1);   // ms 0: the window is the sample itself
@@ -107,14 +108,30 @@ function step1(s, st) {
   // rows covered by the window
   let lo = Infinity, hi = -Infinity;
   for (let j = st.qh; j < st.q.length; j++) { const h = st.q[j]; if (h.i0 < lo) lo = h.i0; if (h.i0 + h.v.length > hi) hi = h.i0 + h.v.length; }
-  const n = st.q.length - st.qh, v = new Float32Array(hi - lo);
-  st.held.fit(lo, hi);
-  for (let r = lo; r < hi; r++) {
-    const m = st.sum.get(r), c = m > 1e-9 ? m / n * st.sgn.get(r) : 0, h = st.held.get(r);
-    // draw-until-changed: keep the drawn size while the new one is within tol of it and on the same side
-    const keep = c !== 0 && h !== 0 && (c > 0) === (h > 0) && Math.abs(c - h) <= st.tol * Math.abs(h);
-    const x = keep ? h : c; st.held.set(r, x); v[r - lo] = x;
+  const n = st.q.length - st.qh;
+  // The recorder's price range follows the price, so its edge rows come and go from one sample to the next. A level that dropped out
+  // of the window's range is carried (at its last drawn size) for CARRY_MS instead of vanishing: that gap drew as black streaks
+  // (GK 17 Nov). A level the book really removed is inside the range, has size 0 there, and is cleared at once as before.
+  const eLo = Math.min(lo, st.pLo), eHi = Math.max(hi, st.pHi);
+  st.held.fit(eLo, eHi); st.seen.fit(eLo, eHi);
+  const full = new Float32Array(eHi - eLo);
+  let a0 = Infinity, a1 = -Infinity;
+  for (let r = eLo; r < eHi; r++) {
+    const inside = r >= lo && r < hi, h = st.held.get(r);
+    let x;
+    if (inside) {
+      const m = st.sum.get(r), c = m > 1e-9 ? m / n * st.sgn.get(r) : 0;
+      // draw-until-changed: keep the drawn size while the new one is within tol of it and on the same side
+      const keep = c !== 0 && h !== 0 && (c > 0) === (h > 0) && Math.abs(c - h) <= st.tol * Math.abs(h);
+      x = keep ? h : c; if (c !== 0) st.seen.set(r, s.ts);
+    } else x = h !== 0 && s.ts - st.seen.get(r) <= CARRY_MS ? h : 0;
+    st.held.set(r, x); full[r - eLo] = x;
+    if (x !== 0 || inside) { if (r < a0) a0 = r; if (r >= a1) a1 = r + 1; }
   }
+  a0 = Math.min(a0, lo); a1 = Math.max(a1, hi);
+  st.pLo = a0; st.pHi = a1;
+  lo = a0; hi = a1;
+  const v = full.subarray(lo - eLo, hi - eLo).slice();
   // old cells outside this window's rows are gone
   const old = st.memo.get(s);
   if (old && old.i0 === lo && old.v.length === v.length && old.v.every((x, k) => x === v[k])) return old;

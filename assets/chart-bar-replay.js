@@ -819,6 +819,11 @@ const ICON = {
   live: '<path d="M5 12h12"/><path d="M13 6l6 6-6 6"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   scissor: '<path d="M12 3v18"/><path d="M8 7l4-4 4 4"/>',
+  cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  shuffle: '<path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/>',
+  first: '<path d="M6 5v14"/><path d="M18 5l-9 7 9 7z" fill="currentColor"/>',
+  chev: '<path d="M9 6l6 6-6 6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/>',
   grip: '<circle cx="9" cy="7" r="1.2" fill="currentColor"/><circle cx="15" cy="7" r="1.2" fill="currentColor"/><circle cx="9" cy="12" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="17" r="1.2" fill="currentColor"/><circle cx="15" cy="17" r="1.2" fill="currentColor"/>'
 };
 function toast(m, type) { if (rhActive()) return; try { OPT.toast ? OPT.toast(m, type) : (window.showToast && window.showToast(type || 'success', m)); } catch (e) {} }
@@ -829,8 +834,9 @@ const ui = (() => {
     btn = el('button', { type: 'button', class: 'stkc-btn stkr-btn', id: 'stkr-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Bar replay',
       html: svg(ICON.replay, 15) + '<span class="stkc-btn-l">Replay</span>' });
     pop = el('div', { class: 'stkc-pop stkc-sheet stkr-pop', id: 'stkr-pop', role: 'menu', 'aria-label': 'Bar replay', hidden: '' });
-    const item = (label, sub, fn) => el('button', { type: 'button', class: 'stkc-item stkr-item', role: 'menuitem', onclick: (e) => { e.stopPropagation(); close(); fn(); } },
-      [el('span', { class: 'stkr-il', text: label }), sub ? el('span', { class: 'stkr-is', text: sub }) : null]);
+    // each option is its own card (style.css .opt-card): icon · title + sub · chevron
+    const item = (icon, label, sub, fn) => el('button', { type: 'button', class: 'stkc-item stkr-item opt-card', role: 'menuitem', onclick: (e) => { e.stopPropagation(); close(); fn(); } },
+      [el('span', { class: 'opt-ic', html: svg(icon, 18) }), el('span', { class: 'opt-t' }, [el('span', { class: 'stkr-il', text: label }), sub ? el('span', { class: 'stkr-is', text: sub }) : null]), el('span', { class: 'opt-end', html: svg(ICON.chev, 16) })]);
     const date = el('input', { type: 'datetime-local', class: 'stkr-date', 'aria-label': 'Replay start date and time (New York time)' });
     const go = el('button', { type: 'button', class: 'stkc-btn stkr-go', text: 'Start', onclick: (e) => {
       e.stopPropagation();
@@ -853,11 +859,13 @@ const ui = (() => {
     pop.append(
       sh,
       el('p', { class: 'stkc-pop-h', text: 'Bar replay' }),
-      item('Select bar', 'Pick the start on the chart', () => selectMode(true)),
-      el('div', { class: 'stkr-dt' }, [el('label', { class: 'stkr-il', text: 'Select date (New York time)' }), el('div', { class: 'stkr-dtr' }, [date, go])]),
-      item('Random bar', 'Somewhere in the loaded history', startRandom),
-      item('First available bar', 'The oldest loaded bar', startFirst),
-      el('p', { class: 'stkc-pop-s stkr-note', text: 'Replay hides the bars to the right and plays them back one by one. Indicators only see revealed bars. Paper trades use a separate Replay account.' })
+      el('div', { class: 'opt-list' }, [
+        item(ICON.scissor, 'Select bar', 'Pick the start on the chart', () => selectMode(true)),
+        el('div', { class: 'stkr-dt opt-card opt-card-static' }, [el('span', { class: 'opt-ic', html: svg(ICON.cal, 18) }), el('div', { class: 'opt-t' }, [el('label', { class: 'stkr-il', text: 'Select date (New York time)' }), el('div', { class: 'stkr-dtr' }, [date, go])])]),
+        item(ICON.shuffle, 'Random bar', 'Somewhere in the loaded history', startRandom),
+        item(ICON.first, 'First available bar', 'The oldest loaded bar', startFirst)
+      ]),
+      el('p', { class: 'stkc-pop-s stkr-note menu-note', html: svg(ICON.info, 16) + '<span>Replay hides the bars to the right and plays them back one by one. Indicators only see revealed bars. Paper trades use a separate Replay account.</span>' })
     );
     const wrap = el('div', { class: 'stkc-menu stkr-menu' }, [btn, scrim, pop]);
     btn.addEventListener('click', (e) => { e.stopPropagation(); if (pop.hidden) open(); else close(); });

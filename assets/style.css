@@ -126,6 +126,16 @@
 
   --shadow-card: 0 8px 30px -12px rgba(0,0,0,0.55);
   --shadow-glow: 0 0 0 1px rgba(3,201,136,0.15), 0 8px 40px -10px rgba(3,201,136,0.18);
+
+  /* sub-section surfaces (Owner 17 Nov "easy to identify different subsections"): one step per level so an
+     option card reads against its menu, a hover against the card, and a note sits one step below. */
+  --surface-0:#0e0e11;     /* sunk: notes / info boxes inside a menu */
+  --surface-1:#131316;     /* menu / popover / dialog body (= --bg-2) */
+  --surface-2:#1a1a1e;     /* option card / section card */
+  --surface-3:#232328;     /* card hover */
+  --line-card:rgba(255,255,255,.08);   /* card edge */
+  --line-card-hi:rgba(255,255,255,.16);/* card edge on hover */
+  --shadow-pop:0 12px 32px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
 }
 
 :root{
@@ -4815,6 +4825,14 @@ body.nav-authed .appnav-acts{ display:flex; }
 
   --shadow-card: 0 8px 24px -14px rgba(14,22,33,0.22);
   --shadow-glow: 0 0 0 1px rgba(7,153,106,0.16), 0 8px 30px -12px rgba(7,153,106,0.20);
+
+  --surface-0:#f1f4f8;
+  --surface-1:#ffffff;
+  --surface-2:#f7f9fc;
+  --surface-3:#edf1f6;
+  --line-card:#dfe4ec;
+  --line-card-hi:#c6cfdb;
+  --shadow-pop:0 12px 32px rgba(15,23,42,.14), 0 2px 6px rgba(15,23,42,.06);
 }
 
 /* the dissolve between themes, added briefly by theme.js */
@@ -6171,7 +6189,7 @@ body.charts-page .stkchart-credit{
 .stkc-pop{
   position:absolute; top:calc(100% + 6px); left:0; z-index:60; min-width:220px; max-width:min(330px, calc(100vw - 16px));
   padding:8px; border:1px solid var(--line); border-radius:10px; background:var(--bg-2);
-  box-shadow:0 18px 40px -12px rgba(0,0,0,.6); font-size:12.5px; color:var(--ink-1);
+  box-shadow:var(--shadow-pop); font-size:12.5px; color:var(--ink-1);
   max-height:calc(100dvh - var(--stkc-top, 60px) - var(--stkc-dock, 0px) - 60px); overflow-y:auto; overscroll-behavior:contain;
 }
 .stkc-pop[hidden]{ display:none; }
@@ -6219,6 +6237,42 @@ body.charts-page .stkchart-credit{
 }
 .stkc-item:hover{ background:var(--bg-3, rgba(255,255,255,.05)); color:var(--ink-0); }
 .stkc-item[aria-checked="true"]{ color:var(--gold); }
+/* ---- Sub-section surfaces, shared (Owner 17 Nov "easy to identify different subsections ... add shading,
+   border, shadow"). Tokens --surface-0..3 / --line-card / --shadow-pop are in :root (dark) + the light block.
+   .opt-list > .opt-card  = each choosable option on its own card (icon tile · title + sub · chevron); hover lifts
+                            one surface step. .opt-card-static = a card that holds controls (not itself a button).
+   .menu-note             = help text in a sunk info box instead of loose text.
+   .stkc-pop-h after content = a new group: hairline above, 12 px gap. Component overrides: end of file. */
+.opt-list{ display:flex; flex-direction:column; gap:8px; }
+.opt-card, .stkc-item.opt-card{ display:flex; align-items:center; gap:12px; width:100%; box-sizing:border-box; padding:12px;
+  border:1px solid var(--line-card); border-radius:10px; background:var(--surface-2); color:var(--ink-0); text-align:left;
+  transition:background .15s cubic-bezier(.2,0,0,1), border-color .15s cubic-bezier(.2,0,0,1); }
+.opt-card:not(.opt-card-static){ cursor:pointer; }
+.opt-card:not(.opt-card-static):hover, .stkc-item.opt-card:hover{ background:var(--surface-3); border-color:var(--line-card-hi); }
+.opt-card:focus-visible, .stkc-item.opt-card:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.opt-ic{ flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px;
+  background:rgba(3,201,136,.10); color:var(--gold); }
+.opt-card-static{ align-items:flex-start; }
+.opt-t{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.opt-end{ flex:none; display:inline-flex; color:var(--ink-3); transition:color .15s, transform .15s cubic-bezier(.2,0,0,1); }
+.opt-card:hover .opt-end{ color:var(--ink-1); transform:translateX(2px); }
+.menu-note{ display:flex; align-items:flex-start; gap:8px; margin:12px 0 0 !important; padding:12px; border:1px solid var(--line-soft);
+  border-radius:10px; background:var(--surface-0); color:var(--ink-2) !important; font-size:12px !important; line-height:16px !important; }
+.menu-note > svg{ flex:none; color:var(--ink-3); }
+.stkc-pop > .stkc-pop-h:not(:first-child):not(.stkc-sh + .stkc-pop-h){ margin-top:12px !important; padding-top:12px; border-top:1px solid var(--line-soft); }
+@media (prefers-reduced-motion: reduce){ .opt-card, .opt-end{ transition:none; } }
+/* Chart dialogs (chart settings, indicator settings, alerts/paper settings use the same Vela dialog): each
+   section header starts a new group with a hairline above it; the tab rail sits one shade down; the footer is
+   split off by a hairline. color-mix on Vela's own fg keeps it right in both themes. */
+.vela-dialog .vela-field-section{ margin:16px 0 0; padding-top:16px; border-top:1px solid var(--vela-border, var(--line)); }
+.vela-dialog .vela-field-section[data-variant='inputs']{ margin:12px 0 0; padding-top:16px; }
+.vela-dialog .vela-field-section[data-first], .vela-dialog .vela-field-grid:first-child > .vela-field-section:first-child{ margin-top:0; padding-top:4px; border-top:0; }
+.vela-dialog--settings .vela-sd-rail{ background:color-mix(in srgb, var(--vela-fg, #fff) 3%, transparent); }
+.vela-dialog--settings .vela-sd-rail .vela-sd-tab.on{ box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--vela-fg, #fff) 10%, transparent); }
+.vela-dialog--settings .vela-dialog-footer{ border-top:1px solid var(--vela-border, var(--line)); }
+.vela-sd-mobile .vela-dialog--settings .vela-sd-rail{ background:transparent; }
+/* the settings grid's 2nd track fills the pane so section dividers run edge to edge (cells stay start-aligned) */
+.vela-dialog--settings .vela-field-grid[data-variant='settings']:not([data-mobile]){ grid-template-columns:max-content minmax(max-content, 1fr); }
 .stkc-check{ display:flex; align-items:center; gap:9px; padding:5px 8px; cursor:pointer; }
 .stkc-check input{ accent-color:var(--gold); width:15px; height:15px; margin:0; }
 .stkc-check:has(input:disabled){ opacity:.45; cursor:default; }
@@ -6268,7 +6322,7 @@ body.charts-page .stkchart-credit{
   .stkc-pop{ position:fixed; left:8px; right:8px; top:calc(var(--stkc-top, 60px) + 44px); max-width:none; width:auto; }
   .stkc-bar-r .stkc-pop{ left:8px; right:8px; }
 }
-:root[data-theme="light"] .stkc-pop{ box-shadow:0 18px 40px -16px rgba(0,0,0,.25); }
+:root[data-theme="light"] .stkc-pop{ box-shadow:var(--shadow-pop); }
 :root[data-theme="light"] .stkc-sbtn{ color:#fff; background:var(--gold-dim, #9a7a2a); }
 @media (prefers-reduced-motion: reduce){ .stkc-pop, .stkc-btn, .stkc-ib{ transition:none; } }
 /* ---- Charts: ONE toolbar (assets/chart-onebar.js, Owner order 2026-10-14) ----
@@ -10016,18 +10070,21 @@ select.stkw-in option{ color:#131722; background:#fff; }
 
 /* ---- Charts BAR REPLAY (assets/chart-bar-replay.js, Owner order 2026-10-12) ---- */
 .stkr-btn.on{ border-color:var(--gold); color:var(--gold); }
-.stkr-pop{ width:290px; }
+.stkr-pop{ width:320px; padding:12px; }
+.stkr-pop > .stkc-pop-h{ margin:0 4px 12px !important; }
 .stkc-bar-r .stkr-pop{ left:auto; right:0; }
-.stkr-item{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; padding:8px 10px; border:0; border-radius:7px; background:transparent; color:var(--ink-0); font:inherit; text-align:left; cursor:pointer; }
-.stkr-item:hover{ background:var(--bg-3, rgba(255,255,255,.06)); }
-.stkr-il{ font-weight:600; font-size:12.5px; color:var(--ink-0); }
-.stkr-is{ font-size:11.5px; color:var(--ink-3); }
-.stkr-dt{ padding:8px 10px; display:flex; flex-direction:column; gap:6px; }
-.stkr-dtr{ display:flex; gap:6px; }
-.stkr-date{ flex:1; min-width:0; height:30px; padding:0 8px; border:1px solid var(--line); border-radius:7px; background:var(--bg-1); color:var(--ink-0); font:inherit; font-size:12.5px; color-scheme:dark; }
-html[data-theme="light"] .stkr-date{ color-scheme:light; }
-.stkr-go{ height:30px; }
-.stkr-note{ margin:6px 4px 2px !important; line-height:1.45; }
+.stkr-item{ font:inherit; }
+.stkr-il{ font-weight:600; font-size:13px; line-height:18px; color:var(--ink-0); }
+.stkr-is{ font-size:12px; line-height:16px; color:var(--ink-2); }
+.stkr-dt .opt-t{ gap:8px; }
+.stkr-dtr{ display:flex; align-items:center; gap:8px; }
+.stkr-date{ flex:1; min-width:0; height:32px; padding:0 8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-0); color:var(--ink-0); font:inherit; font-size:12.5px; color-scheme:dark; }
+.stkr-date:focus{ outline:none; border-color:var(--gold); }
+html[data-theme="light"] .stkr-date{ color-scheme:light; background:#fff; }
+.stkr-go.stkr-go{ flex:none; height:32px; padding:0 16px; border:0; border-radius:999px; background:var(--gold); color:#04140d; font-weight:700; }
+.stkr-go.stkr-go:hover{ background:var(--gold-bright); color:#04140d; }
+:root[data-theme="light"] .stkr-go.stkr-go{ color:#fff; }
+.stkr-note{ line-height:16px; }
 .stkr-badge{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:6px; background:rgba(242,54,69,.14); color:#f23645; font-family:inherit; font-size:11px; font-weight:700; line-height:1; letter-spacing:.06em; white-space:nowrap; flex:none; }
 .stkr-badge::before{ content:""; width:7px; height:7px; border-radius:50%; background:#f23645; }
 .stkr-badge[hidden]{ display:none; }
@@ -12722,3 +12779,24 @@ html[data-device="phone"] .stktm-act, html[data-device="tablet"] .stktm-act{ opa
 
 /* Numbers that must line up (prices, P&L, balances, times) in the body font. */
 .num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+
+/* ---- Sub-section surfaces: component overrides (Owner 17 Nov). Kept at the end so they win over each component's
+   own rules without !important. Tokens + .opt-card / .menu-note live with .stkc-item. */
+/* Popovers / menus / floating panels: inner hairlines were --line-soft (#19191d on #131316, ~invisible in dark).
+   Inside these surfaces the soft line uses the card edge instead, so every existing group divider shows. */
+.stkc-pop, .account-panel, .stkop, .stk-ct, .stkhm, .vela-dialog{ --line-soft:var(--line-card); }
+.account-panel, .stkop{ box-shadow:var(--shadow-pop); }
+html .stk-iv-menu, html .stk-ct, html .stkhm{ box-shadow:var(--shadow-pop); }
+/* Trade menu + Workspaces: each account / workspace row is its own card; groups get a hairline above */
+.stktm-row, .stkws-li{ border:1px solid var(--line-card); background:var(--surface-2); }
+.stktm-row + .stktm-row, .stkws-li + .stkws-li{ margin-top:8px; }
+.stktm-row:hover, .stktm-row:focus-within, .stkws-li:hover{ background:var(--surface-3); border-color:var(--line-card-hi); }
+.stkws-row:hover{ background:transparent; }
+.stktm-row:has(.stktm-pick[aria-checked="true"]){ border-color:color-mix(in srgb, var(--gold) 40%, transparent); }
+.stktm-h:not(:first-child){ margin-top:12px; padding-top:12px; border-top:1px solid var(--line-soft); }
+/* Order panel: Stop loss and Take profit each sit in their own card; the dashed rule becomes a hairline */
+.stkop-sec.dash{ gap:8px; border-top-style:solid; border-top-color:var(--line-soft); }
+.stkop-br{ padding:12px; border:1px solid var(--line-card); border-radius:12px; background:var(--surface-2); }
+:root[data-theme="light"] .stkop-br{ background:var(--surface-0); }
+/* Account menu: Appearance group framed by hairlines above and below */
+.account-theme{ margin:4px 0; border-bottom:1px solid var(--line-soft); }

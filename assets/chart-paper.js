@@ -1599,7 +1599,7 @@ function onHotkey(e){
 }
 function hotkeysCard(){
   const card = h('div', { class: 'stkpt-set-card stkpt-hk' });
-  const draw = (msg) => {
+  const draw = (msg, note) => {
     const map = hkMap(); card.textContent = '';
     card.appendChild(h('div', { class: 'stkpt-set-txt' }, [h('strong', { text: 'Hotkeys' }), h('em', { text: 'Give each paper-trading action your own key. Nothing is set until you choose. Keys are ignored while you type in a box.' })]));
     let grp = '';
@@ -1610,6 +1610,7 @@ function hotkeysCard(){
       const row = h('div', { class: 'stkpt-hk-r', 'data-id': a.id }, [h('span', { class: 'stkpt-hk-n', text: a.label }), btn]);
       if (map[a.id]) row.appendChild(h('button', { type: 'button', class: 'stkpt-hk-x', 'aria-label': 'Clear key for ' + a.label, text: '×', onclick: () => { const m = hkMap(); delete m[a.id]; hkSave(m); draw(); } }));
       card.appendChild(row);
+      if (note && note.id === a.id) card.appendChild(h('p', { class: 'stkpt-hk-note', role: 'status', 'data-id': a.id, text: note.text }));
     }
     const foot = h('div', { class: 'stkpt-hk-foot' }, [
       h('p', { class: 'stkpt-hk-msg', role: 'status', text: msg || '' }),
@@ -1621,13 +1622,17 @@ function hotkeysCard(){
     hkRecording = true; btn.textContent = 'Press a key…'; btn.classList.add('rec');
     { const mm = card.querySelector('.stkpt-hk-msg'); if (mm) { mm.classList.remove('warn'); try { mm.scrollIntoView({ block: 'nearest' }); } catch (e) {} mm.textContent = 'Press any key, with Ctrl, Alt, Shift or Cmd if you like. Esc cancels. Browsers keep Ctrl+N, Ctrl+T and Ctrl+W for tabs, so those may not reach the page.'; } }
     const msgEl = card.querySelector('.stkpt-hk-msg');
-    const done = (m) => { hkRecording = false; window.removeEventListener('keydown', kd, true); btn.removeEventListener('blur', bl); draw(m); };
+    const done = (m, note) => { hkRecording = false; window.removeEventListener('keydown', kd, true); window.removeEventListener('blur', wb); btn.removeEventListener('blur', bl); draw(m, note); };
     const bl = () => done('');
+    // Ctrl was held and the window lost focus with no keydown: the browser took the combo (new window, new tab).
+    let ctrlSeen = '';
+    const wb = () => { if (ctrlSeen) done('', { id: a.id, text: 'Your browser keeps that Ctrl combination for itself. Try Alt with the same key, or Ctrl+Shift+ another key.' }); };
     const kd = (e) => {
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       if (e.key === 'Escape') return done('');
       if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && (e.key === 'Backspace' || e.key === 'Delete')) { const m = hkMap(); delete m[a.id]; hkSave(m); return done('Key cleared.'); }
-      const c = PK.comboFromEvent(e); if (!c) return;
+      const c = PK.comboFromEvent(e); if (!c) { if (e.ctrlKey || e.metaKey) ctrlSeen = 'Ctrl+N'; return; }
+      ctrlSeen = '';
       const bad = PK.reserved(c); if (bad) { msgEl.textContent = bad; msgEl.classList.add('warn'); return; }
       const m = hkMap(), other = PK.conflict(m, c, a.id);
       const note = PK.browserNote(c);
@@ -1642,9 +1647,9 @@ function hotkeysCard(){
         box.parentNode.parentNode.insertBefore(bar, box.parentNode); try { bar.scrollIntoView({ block: 'nearest' }); } catch (e) {} return;
       }
       m[a.id] = c; hkSave(m);
-      done(PK.label(c) + ' saved.' + (note ? ' ' + note : ''));
+      done(PK.label(c) + ' saved.', note ? { id: a.id, text: note } : null);
     };
-    window.addEventListener('keydown', kd, true); btn.addEventListener('blur', bl); btn.focus();
+    window.addEventListener('keydown', kd, true); window.addEventListener('blur', wb); btn.addEventListener('blur', bl); btn.focus();
   };
   draw(); return card;
 }
@@ -1928,6 +1933,7 @@ html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on):not(.stklv-on) .stkpt-chip,htm
 .stkpt-hk-foot{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(238,238,238,.08); }
 :root[data-theme="light"] .stkpt-hk-foot{ border-top-color:rgba(19,19,22,.08); }
 .stkpt-hk-msg{ margin:0; flex:1; min-width:0; font-size:12px; line-height:16px; color:rgba(238,238,238,.72); }
+.stkpt-hk-note{ margin:0 0 8px; font-size:12px; line-height:16px; color:#f5a524; }
 .stkpt-hk-msg.warn{ color:#f5a524; }
 :root[data-theme="light"] .stkpt-hk-msg{ color:rgba(19,19,22,.72); }
 :root[data-theme="light"] .stkpt-hk-msg.warn{ color:#8a5a00; }

@@ -108,7 +108,7 @@ button.cx-chip{ cursor:pointer; font-family:inherit; min-height:34px; }
 .cx-ibody .cx-actions{ margin-top:auto; padding-top:8px; }
 .cx-ibody .cx-actions .btn{ width:100%; min-height:44px; justify-content:center; }
 .cx-inotes summary{ cursor:pointer; color:var(--ink-1); font-size:14px; min-height:32px; display:flex; align-items:center; }
-.cx-code-err{ margin:8px 0 0; padding:8px 12px; border-radius:8px; background:rgba(242,54,69,.08); border:1px solid rgba(242,54,69,.3); color:var(--ink-1); font:12px/1.5 var(--font-mono); overflow-x:auto; white-space:pre; }
+.cx-code-err{ margin:8px 0 0; padding:8px 12px; border-radius:8px; background:rgba(242,54,69,.08); border:1px solid rgba(242,54,69,.3); color:var(--ink-1); font:12px/1.5 var(--font-code); overflow-x:auto; white-space:pre; }
 .cx-code{ white-space:pre; }
 
 /* ---- Discord roles (Creator Hub phase D) ---- */

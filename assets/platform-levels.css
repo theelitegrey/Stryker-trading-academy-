@@ -2,7 +2,7 @@
    Scrollbars: the shared thin style in assets/style.css covers the one overflow area (the levels table). */
 .page-pl{
   --pl-font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Roboto, "Segoe UI", system-ui, sans-serif;
-  --pl-mono:'JetBrains Mono', ui-monospace, monospace;
+  --pl-mono:var(--font-mono);
   --pl-s1:#0b0b0d; --pl-s2:#131316; --pl-s3:#1e1e22;
   --pl-hair:rgba(255,255,255,.08); --pl-hair2:rgba(255,255,255,.14);
   --pl-t1:rgba(255,255,255,.92); --pl-t2:rgba(255,255,255,.64); --pl-t3:rgba(255,255,255,.44);
@@ -61,7 +61,7 @@
 /* private link */
 .pl-link{ display:flex; gap:8px; margin:0 0 12px; }
 .pl-link[hidden]{ display:none; }
-.pl-link input{ flex:1 1 auto; min-width:0; height:48px; padding:0 12px; border:1px solid var(--pl-hair2); border-radius:12px; background:var(--pl-s2); color:var(--pl-t1); font:400 16px/24px var(--pl-mono); }
+.pl-link input{ flex:1 1 auto; min-width:0; height:48px; padding:0 12px; border:1px solid var(--pl-hair2); border-radius:12px; background:var(--pl-s2); color:var(--pl-t1); font:400 16px/24px var(--font-code); }
 .pl-link .pl-btn{ flex:none; }
 
 /* platform rows */

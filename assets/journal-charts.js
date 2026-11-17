@@ -41,7 +41,7 @@ let JOURNAL_DAILY_CHART = null;
 refreshJournalChartColors();
 
 if (typeof Chart !== 'undefined') {
-  Chart.defaults.font.family = "'JetBrains Mono', monospace";
+  Chart.defaults.font.family = "'Archivo Tnum', Archivo, sans-serif";
   Chart.defaults.color = JCOLOR.ink2;
 }
 

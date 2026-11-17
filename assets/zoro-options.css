@@ -5,7 +5,7 @@
    Scrollbars: the shared thin style in assets/style.css covers every overflow area here (no per-component rules). */
 .page-zo{
   --zo-font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Roboto, "Segoe UI", system-ui, sans-serif;
-  --zo-mono:'JetBrains Mono', ui-monospace, monospace;
+  --zo-mono:var(--font-mono);
   --zo-s1:#0b0b0d; --zo-s2:#131316; --zo-s3:#1e1e22;
   --zo-hair:rgba(255,255,255,.08); --zo-hair2:rgba(255,255,255,.14);
   --zo-t1:rgba(255,255,255,.92); --zo-t2:rgba(255,255,255,.64); --zo-t3:rgba(255,255,255,.44);

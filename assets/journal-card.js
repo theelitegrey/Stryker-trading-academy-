@@ -171,7 +171,7 @@ function jcardRender(){
   // ---- header: the trader's own name when set, plain otherwise
   const name = (JCARD_NAME || '').trim();
   ctx.textAlign = 'left';
-  ctx.font = '700 30px "JetBrains Mono", monospace';
+  ctx.font = '700 30px "Archivo Tnum", Archivo, sans-serif';
   if (name) {
     ctx.fillStyle = accent;
     ctx.fillText('◆ ' + name.toUpperCase().slice(0, 22), 84, 130);
@@ -186,7 +186,7 @@ function jcardRender(){
 
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.font = '700 26px "JetBrains Mono", monospace';
+  ctx.font = '700 26px "Archivo Tnum", Archivo, sans-serif';
   ctx.fillText(JCARD_PERIOD_LABELS[period], JCARD_W - 84, 130);
 
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
@@ -195,17 +195,17 @@ function jcardRender(){
   // ---- hero P&L
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.font = '600 28px "JetBrains Mono", monospace';
+  ctx.font = '600 28px "Archivo Tnum", Archivo, sans-serif';
   ctx.fillText('NET P&L', JCARD_W / 2, L.heroLabel);
 
   ctx.fillStyle = accent;
   ctx.shadowColor = accent; ctx.shadowBlur = 40;
-  ctx.font = '700 130px "JetBrains Mono", monospace';
+  ctx.font = '700 130px "Archivo Tnum", Archivo, sans-serif';
   ctx.fillText(jcardMoney(stats.totalPnl, currency), JCARD_W / 2, L.heroVal);
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.font = '400 26px "JetBrains Mono", monospace';
+  ctx.font = '400 26px "Archivo Tnum", Archivo, sans-serif';
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   ctx.fillText(dateStr, JCARD_W / 2, L.heroDate);
 
@@ -223,10 +223,10 @@ function jcardRender(){
       ctx.textAlign = 'center';
       ctx.fillStyle = '#eeeeee';
       const long = tile[1].length > 8;
-      ctx.font = '700 ' + (long ? 30 : 38) + 'px "JetBrains Mono", monospace';
+      ctx.font = '700 ' + (long ? 30 : 38) + 'px "Archivo Tnum", Archivo, sans-serif';
       ctx.fillText(tile[1], x + tw / 2, 590 - 530 + ty);
       ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.font = '600 17px "JetBrains Mono", monospace';
+      ctx.font = '600 17px "Archivo Tnum", Archivo, sans-serif';
       ctx.fillText(tile[0], x + tw / 2, 626 - 530 + ty);
     });
   }
@@ -237,7 +237,7 @@ function jcardRender(){
   // ---- footer: the subtle site mark
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = '600 24px "JetBrains Mono", monospace';
+  ctx.font = '600 24px "Archivo Tnum", Archivo, sans-serif';
   ctx.fillText('tradezoro.com', JCARD_W / 2, H - 78);
 }
 
@@ -252,7 +252,7 @@ function jcardDrawCalendar(ctx, top, currency){
 
   ctx.textAlign = 'left';
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.font = '600 24px "JetBrains Mono", monospace';
+  ctx.font = '600 24px "Archivo Tnum", Archivo, sans-serif';
   ctx.fillText(now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase(), 84, top + 10);
 
   const cols = 7, cell = 118, gap = 12;
@@ -286,12 +286,12 @@ function jcardDrawCalendar(ctx, top, currency){
     }
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font = '600 15px "JetBrains Mono", monospace';
+    ctx.font = '600 15px "Archivo Tnum", Archivo, sans-serif';
     ctx.fillText(String(day), cx + 10, cy + 24);
     if (pnl !== undefined) {
       ctx.textAlign = 'center';
       ctx.fillStyle = pnl >= 0 ? '#03c988' : '#e5484d';
-      ctx.font = '700 20px "JetBrains Mono", monospace';
+      ctx.font = '700 20px "Archivo Tnum", Archivo, sans-serif';
       const short = (pnl < 0 ? '-' : '') + (Math.abs(pnl) >= 1000 ? (Math.abs(pnl) / 1000).toFixed(1) + 'k' : Math.round(Math.abs(pnl)));
       ctx.fillText(short, cx + cell / 2, cy + cellH - 14);
     }
@@ -301,7 +301,7 @@ function jcardDrawCalendar(ctx, top, currency){
 function jcardDrawAccounts(ctx, top, currency, rows){
   ctx.textAlign = 'left';
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.font = '600 24px "JetBrains Mono", monospace';
+  ctx.font = '600 24px "Archivo Tnum", Archivo, sans-serif';
   ctx.fillText('ACCOUNTS', 84, top + 10);
 
   let y = top + 40;
@@ -313,16 +313,16 @@ function jcardDrawAccounts(ctx, top, currency, rows){
     ctx.fill(); ctx.stroke();
     ctx.textAlign = 'left';
     ctx.fillStyle = '#eeeeee';
-    ctx.font = '700 24px "JetBrains Mono", monospace';
+    ctx.font = '700 24px "Archivo Tnum", Archivo, sans-serif';
     ctx.fillText(r.name.slice(0, 24), 108, y + 40);
     if (r.status) {
       ctx.fillStyle = r.status === 'funded' ? '#03c988' : (r.status === 'failed' ? '#e5484d' : '#f5c542');
-      ctx.font = '700 16px "JetBrains Mono", monospace';
+      ctx.font = '700 16px "Archivo Tnum", Archivo, sans-serif';
       ctx.fillText(r.status.toUpperCase(), 108 + ctx.measureText(r.name.slice(0, 24)).width + 40, y + 40);
     }
     ctx.textAlign = 'right';
     ctx.fillStyle = r.net > 0 ? '#03c988' : (r.net < 0 ? '#e5484d' : '#eeeeee');
-    ctx.font = '700 26px "JetBrains Mono", monospace';
+    ctx.font = '700 26px "Archivo Tnum", Archivo, sans-serif';
     ctx.fillText(jcardMoney(r.net, currency), JCARD_W - 108, y + 41);
     y += 74;
   });

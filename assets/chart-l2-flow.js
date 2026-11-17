@@ -317,7 +317,7 @@ class L2Flow {
   legend(lines, color) {
     const day = light();
     return { id: this.type + '-leg', paneId: '', position: 'top_right', columns: 1, rows: lines.length, bgColor: day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.88)', frameWidth: 0, borderWidth: 0,
-      cells: lines.map((t, i) => [{ text: t, textColor: i === 0 && color ? color : (day ? '#334155' : '#a3a9b6'), hAlign: 'right', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: i === 0, italic: false }]), merges: [] };
+      cells: lines.map((t, i) => [{ text: t, textColor: i === 0 && color ? color : (day ? '#334155' : '#a3a9b6'), hAlign: 'right', vAlign: 'center', textSize: 'small', fontFamily: 'default', bold: i === 0, italic: false }]), merges: [] };
   }
   render() {
     this.last = Date.now();

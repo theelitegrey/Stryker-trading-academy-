@@ -84,7 +84,7 @@ main{ display:block; }
 :root[data-theme="light"] .dp-viz{ background:var(--bg-2); }
 
 /* homepage vignette motion (copied from home-motion.css so this page does not load the homepage sheet) */
-.dp-viz .mv-mono{ font-family:var(--font-mono), monospace; font-size:8.5px; letter-spacing:.06em; }
+.dp-viz .mv-mono{ font-family:var(--font-mono); font-size:8.5px; letter-spacing:.06em; }
 .dp-viz .mv-cell{ animation:dpCell 5.6s ease-in-out infinite; opacity:.25; }
 @keyframes dpCell{ 0%,8%{ opacity:.22; } 25%,62%{ opacity:1; } 82%,100%{ opacity:.22; } }
 .dp-viz .mv-draw{ stroke-dasharray:1; stroke-dashoffset:1; animation:dpDraw 5.6s ease-in-out infinite; }

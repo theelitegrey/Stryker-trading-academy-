@@ -328,7 +328,7 @@
       // levels
       var levels = [['CALL WALL', lv.call, COL['--bx-call']], ['ZERO GAMMA', lv.zero, COL['--bx-zero']], ['PUT WALL', lv.put, COL['--bx-put']]]
         .sort(function (a, b) { return (b[1] == null ? -1e9 : b[1]) - (a[1] == null ? -1e9 : a[1]); });
-      ctx.font = '600 10px "JetBrains Mono", monospace'; ctx.textBaseline = 'bottom';
+      ctx.font = '600 10px "Archivo Tnum", Archivo, sans-serif'; ctx.textBaseline = 'bottom';
       var placed = [];
       levels.forEach(function (L, i) {
         if (L[1] == null) return;
@@ -428,7 +428,7 @@
         var kb = ease((ph - 5800) / 900), bx = n * 0.55 * step, by = y(data[Math.floor(n * 0.55)].h) - 6;
         ctx.fillStyle = alpha(COL['--gold'], 0.13 * kb); ctx.strokeStyle = alpha(COL['--gold'], 0.7 * kb); ctx.lineWidth = 1;
         ctx.fillRect(bx, by, (plotW - bx) * kb, 18); ctx.strokeRect(bx + 0.5, by + 0.5, (plotW - bx) * kb, 18);
-        ctx.fillStyle = alpha(COL['--gold'], kb); ctx.font = '600 10px "JetBrains Mono", monospace'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = alpha(COL['--gold'], kb); ctx.font = '600 10px "Archivo Tnum", Archivo, sans-serif'; ctx.textBaseline = 'middle';
         ctx.fillText('FVG', bx + 6, by + 9);
       }
       // fade out at the end of the cycle

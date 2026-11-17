@@ -501,7 +501,7 @@ const CSS = `
 .stklv-seg button:focus-visible,.stklv-btn:focus-visible,.stklv-f input:focus-visible{ outline:2px solid #03c988; outline-offset:2px; }
 .stklv-two{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .stklv-f{ display:flex; flex-direction:column; gap:4px; font:500 12px/16px var(--font-body, sans-serif); color:var(--ink-2); }
-.stklv-f input{ height:40px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg-1); color:var(--ink-0); font:500 15px/20px var(--font-mono, monospace); font-variant-numeric:tabular-nums; }
+.stklv-f input{ height:40px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg-1); color:var(--ink-0); font:500 15px/20px var(--font-mono); font-variant-numeric:tabular-nums; }
 .stklv-btn{ display:inline-flex; align-items:center; justify-content:center; height:40px; padding:0 16px; border:1px solid var(--line); border-radius:12px; background:transparent; color:var(--ink-0); font:600 13px/18px var(--font-body, sans-serif); cursor:pointer; white-space:nowrap; }
 .stklv-btn.sm{ height:32px; padding:0 12px; border-radius:8px; font-size:12px; }
 .stklv-btn.warn{ border-color:rgba(242,54,69,.55); color:#f23645; }
@@ -513,7 +513,7 @@ const CSS = `
 .stklv-h3{ margin:8px 0 4px; font:600 11px/16px var(--font-body, sans-serif); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); }
 .stklv-h3:first-child{ margin-top:0; }
 .stklv-row{ display:grid; grid-template-columns:72px 72px minmax(0,1fr) minmax(0,1fr) auto; align-items:center; gap:8px; min-height:44px; border-bottom:1px solid var(--line-soft); font:500 13px/18px var(--font-body, sans-serif); }
-.stklv-row .m{ font-family:var(--font-mono, monospace); font-variant-numeric:tabular-nums; color:var(--ink-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stklv-row .m{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; color:var(--ink-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .stklv-sym{ font-weight:600; color:var(--ink-0); }
 .stklv-row .up,.stklv-view .up{ color:#089981; } .stklv-row .down,.stklv-view .down{ color:#f23645; }
 .stklv-empty{ margin:4px 0 8px; font:400 13px/18px var(--font-body, sans-serif); color:var(--ink-3); }
@@ -527,7 +527,7 @@ const CSS = `
 .stklv-cf-lines{ display:flex; flex-direction:column; gap:4px; }
 .stklv-cf-lines p{ margin:0; font-size:14px; line-height:20px; } .stklv-cf-lines b{ color:var(--ink-0); }
 .stklv-cf-type{ display:flex; flex-direction:column; gap:8px; font-size:13px; line-height:18px; color:var(--ink-1); }
-.stklv-cf-type input{ height:48px; padding:0 12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-0); color:var(--ink-0); font:600 16px/20px var(--font-mono, monospace); letter-spacing:.08em; text-transform:uppercase; }
+.stklv-cf-type input{ height:48px; padding:0 12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-0); color:var(--ink-0); font:600 16px/20px var(--font-mono); letter-spacing:.08em; text-transform:uppercase; }
 .stklv-cf-type input[aria-invalid="true"]{ border-color:#f23645; }
 .stklv-chk{ display:flex; align-items:center; gap:8px; min-height:32px; font-size:13px; color:var(--ink-1); cursor:pointer; } .stklv-chk input{ width:16px; height:16px; margin:0; accent-color:#03c988; }
 .stklv-cf-btns{ display:grid; grid-template-columns:1fr 1.4fr; gap:8px; } .stklv-cf-btns .stklv-btn{ height:48px; font-size:15px; }

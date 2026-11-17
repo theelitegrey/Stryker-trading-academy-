@@ -19,7 +19,7 @@
 .pp-card p{ font-size:14px; line-height:20px; color:var(--ink-2); margin:0; }
 .pp-card.is-soon{ background:transparent; border-style:dashed; }
 .pp-ch{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.pp-chip{ font:600 11px/13px var(--font-mono, ui-monospace, monospace); padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-1); }
+.pp-chip{ font:600 11px/13px var(--font-mono); padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-1); }
 .pp-chip.pp-l2{ border-color:rgba(3,201,136,.5); color:var(--gold); }
 .pp-chip.pp-l1{ border-color:rgba(0,173,181,.5); color:#00adb5; }
 :root[data-theme="light"] .pp-chip.pp-l1{ color:#00747a; }

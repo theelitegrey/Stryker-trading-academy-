@@ -32,7 +32,7 @@
 .cb-cap b{ color:var(--ink-0); font-weight:600; }
 
 /* ---- svg ---- */
-.cb-svg{ display:block; height:auto; font-family:var(--font-mono), monospace; overflow:visible; }
+.cb-svg{ display:block; height:auto; font-family:var(--font-mono); overflow:visible; }
 .cb-grid line{ stroke:var(--cb-grid); stroke-width:1; }
 .cb-c rect{ fill:var(--cb-put); }
 .cb-c.cb-up rect{ fill:#2fbf8f; }

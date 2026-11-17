@@ -348,7 +348,7 @@
     ctx.strokeStyle = 'rgba(139,147,160,0.4)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(8, y(base)); ctx.lineTo(w - 8, y(base)); ctx.stroke(); ctx.setLineDash([]);
     const last = sample[sample.length - 1].equity; const col = last >= base ? '#03c988' : '#e5484d';
     ctx.beginPath(); sample.forEach((p, i) => { i ? ctx.lineTo(x(i), y(p.equity)) : ctx.moveTo(x(i), y(p.equity)); }); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineTo(x(sample.length - 1), h - 8); ctx.lineTo(8, h - 8); ctx.closePath(); ctx.fillStyle = last >= base ? 'rgba(3,201,136,0.12)' : 'rgba(229,72,77,0.12)'; ctx.fill();
-    ctx.fillStyle = '#8b93a0'; ctx.font = '11px JetBrains Mono, monospace'; ctx.fillText(money(mx + pad), 10, 18); ctx.fillText(money(mn - pad), 10, h - 12);
+    ctx.fillStyle = '#8b93a0'; ctx.font = "11px 'Archivo Tnum', Archivo, sans-serif"; ctx.fillText(money(mx + pad), 10, 18); ctx.fillText(money(mn - pad), 10, h - 12);
   }
   function renderLog() { const f = new Intl.DateTimeFormat('en-US', { timeZone: RP.tz, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }); $('rp-log').innerHTML = RP.sim.log.slice(-80).reverse().map((l) => '<div><span>' + f.format(new Date(l.t)) + '</span>' + esc(l.msg) + '</div>').join('') || '<p class="rp-empty">Fills, stops and targets are logged here.</p>'; }
   function renderCoach() {

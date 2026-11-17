@@ -189,7 +189,7 @@ function readout(type, s, f, thr, same) {
 function table(id, rows, accent, t0) {
   const day = H.light();
   return { id, paneId: '', position: t0 ? 'top_right' : 'bottom_center', columns: 1, rows: rows.length, bgColor: day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.9)', frameWidth: 0, borderWidth: 0,
-    cells: rows.map((t, i) => [{ text: t, textColor: i === 0 || accent ? '#00adb5' : (day ? '#334155' : '#a3a9b6'), hAlign: t0 ? 'right' : 'center', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: false, italic: false }]), merges: [] };
+    cells: rows.map((t, i) => [{ text: t, textColor: i === 0 || accent ? '#00adb5' : (day ? '#334155' : '#a3a9b6'), hAlign: t0 ? 'right' : 'center', vAlign: 'center', textSize: 'small', fontFamily: 'default', bold: false, italic: false }]), merges: [] };
 }
 
 // ---------------------------------------------------------------------------------------------- indicator

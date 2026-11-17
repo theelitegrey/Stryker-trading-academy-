@@ -11,7 +11,7 @@
   background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:44px 44px;
   -webkit-mask-image:radial-gradient(70% 60% at 50% 45%,#000,transparent);mask-image:radial-gradient(70% 60% at 50% 45%,#000,transparent)}
 .lyt-in{position:relative;z-index:1;max-width:680px;display:flex;flex-direction:column;align-items:center}
-.lyt-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font:600 12px/1 var(--font-mono,monospace);letter-spacing:.12em;text-transform:uppercase;
+.lyt-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font:600 12px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;
   color:#4fe3ac;background:rgba(3,201,136,.10);border:1px solid rgba(79,227,172,.35)}
 .lyt-pill i{width:7px;height:7px;border-radius:50%;background:#4fe3ac;box-shadow:0 0 0 0 rgba(79,227,172,.6);animation:lyt-pulse 2.2s ease-out infinite}
 .lyt-play{width:88px;height:88px;margin:28px 0 22px;border-radius:26px;display:grid;place-items:center;

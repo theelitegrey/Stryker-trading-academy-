@@ -13,7 +13,7 @@
 .az-hero{ padding:32px 0 24px; background:radial-gradient(60% 50% at 70% 0%, rgba(3,201,136,.10), transparent 70%); overflow:clip; }
 .az-hero-grid{ display:grid; gap:32px; grid-template-columns:minmax(0,1fr); }
 .az-crumbs{ font-size:13px; line-height:18px; color:var(--ink-2); margin-bottom:16px; } .az-crumbs a{ color:var(--ink-2); }
-.az-kicker,.az-eyebrow{ display:inline-flex; align-items:center; gap:8px; font:600 12px/16px var(--font-mono, ui-monospace, monospace); letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
+.az-kicker,.az-eyebrow{ display:inline-flex; align-items:center; gap:8px; font:600 12px/16px var(--font-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
 .az-main h1{ font-size:clamp(40px,8vw,64px); line-height:1.05; letter-spacing:-.03em; color:var(--ink-0); margin:0 0 16px; }
 .az-sub{ font-size:17px; line-height:24px; color:var(--ink-1); margin:0 0 24px; max-width:520px; }
 .az-cta{ display:flex; gap:12px; flex-wrap:wrap; }
@@ -36,7 +36,7 @@
 .az-chart{ width:100%; height:auto; display:block; margin-top:20px; }
 .az-chart .u{ fill:var(--bull); stroke:var(--bull); } .az-chart .d{ fill:var(--bear); stroke:var(--bear); } .az-chart line{ stroke-width:1.5; }
 .az-chart .lv{ stroke:var(--gold); stroke-dasharray:4 4; stroke-width:1; opacity:.7; }
-.az-chart text{ font:11px var(--font-mono, monospace); fill:var(--ink-2); } .az-chart text.a{ fill:var(--gold); }
+.az-chart text{ font:11px var(--font-mono); fill:var(--ink-2); } .az-chart text.a{ fill:var(--gold); }
 @media (min-width:900px){
   .az-hero{ padding:56px 0 40px; } .az-hero-grid{ grid-template-columns:minmax(0,5fr) minmax(0,7fr); align-items:center; gap:40px; }
   .az-scene{ padding-bottom:0; } .az-desk{ display:block; width:100%; }
@@ -85,7 +85,7 @@
 .az-showtxt p{ font-size:15px; line-height:22px; color:var(--ink-2); margin:0 0 16px; }
 .az-chl{ list-style:none; margin:0 0 16px; padding:0; border:1px solid var(--line); border-radius:var(--az-r); background:var(--bg-2); overflow:hidden; }
 .az-chl a{ display:flex; align-items:center; gap:12px; min-height:52px; padding:8px 16px; text-decoration:none; color:var(--ink-0); border-top:1px solid var(--line); } .az-chl li:first-child a{ border-top:0; }
-.az-chl a:hover{ background:var(--bg-3); } .az-chl span{ font:600 12px var(--font-mono, monospace); color:var(--gold); min-width:44px; } .az-chl b{ flex:1; min-width:0; font-weight:500; font-size:14px; line-height:20px; } .az-chl .az-i{ width:16px; height:16px; color:var(--ink-3); }
+.az-chl a:hover{ background:var(--bg-3); } .az-chl span{ font:600 12px var(--font-mono); color:var(--gold); min-width:44px; } .az-chl b{ flex:1; min-width:0; font-weight:500; font-size:14px; line-height:20px; } .az-chl .az-i{ width:16px; height:16px; color:var(--ink-3); }
 
 .az-bento{ display:grid; gap:16px; grid-template-columns:1fr; }
 .az-tile{ display:flex; flex-direction:column; gap:8px; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--az-r); padding:20px; text-decoration:none; color:inherit; min-width:0; overflow:hidden; transition:transform .25s var(--az-ease), border-color .2s; }

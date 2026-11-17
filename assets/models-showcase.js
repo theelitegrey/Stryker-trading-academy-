@@ -19,7 +19,7 @@
     return '<svg viewBox="0 0 220 120" class="mv-svg" aria-hidden="true">' + inner + '</svg>';
   }
 
-  var MONO = ' font-family="monospace"';
+  var MONO = ' font-family="Archivo Tnum, Archivo, sans-serif"';
 
   // ---- shared bits -------------------------------------------------------
   function candle(x, top, bottom, bodyTop, bodyH, up){

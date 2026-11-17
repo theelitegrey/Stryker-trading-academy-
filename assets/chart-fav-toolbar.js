@@ -60,7 +60,7 @@ const CSS = `
 .stk-fb-b.moving{opacity:.55;background:rgba(255,255,255,.12)}
 .stk-fb-tip{position:absolute;z-index:24;pointer-events:none;display:flex;align-items:center;gap:10px;background:#131722;color:#fff;border:1px solid #363a45;font:12px/1.2 -apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,Ubuntu,sans-serif;padding:6px 9px;border-radius:4px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 .stk-fb-tip[hidden]{display:none}
-.stk-fb-tip kbd{font:11px/1 'JetBrains Mono',ui-monospace,monospace;color:#9598a1;background:none;border:0;padding:0}
+.stk-fb-tip kbd{font:11px/1 var(--font-mono);color:#9598a1;background:none;border:0;padding:0}
 .stk-fb-menu{position:absolute;z-index:25;background:#1e222d;border:1px solid #363a45;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.5);padding:4px;min-width:190px}
 .stk-fb-menu button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border-radius:4px;color:#d1d4dc;font:13px -apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,Ubuntu,sans-serif;cursor:pointer;white-space:nowrap}
 .stk-fb-menu button:hover,.stk-fb-menu button:focus-visible{background:rgba(255,255,255,.08);color:#fff}

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Indicators — TradeZoro Admin</title>
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/archivo-tnum-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=1084">
 <script src="assets/skeleton.js?v=1084"></script>
 <script src="assets/sanitize.js?v=1084"></script>
@@ -250,7 +250,7 @@
       <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px; line-height:1.6;">
         When switched on, <b>Mark as granted</b> and <b>Revoke</b> below actually grant and remove access to your
         invite-only scripts on TradingView (via the server, using the vendor account's credentials from the
-        functions <code style="font-family:var(--font-mono);">.env</code>) — no more clicking through TradingView's
+        functions <code style="font-family:var(--font-code);">.env</code>) — no more clicking through TradingView's
         Manage Access page. This drives TradingView's internal endpoints, which is against their ToS — the risk sits
         on the vendor account. If a grant fails, nothing is recorded and the manual flow still works.
       </p>
@@ -259,7 +259,7 @@
       </div>
       <div class="field">
         <label for="tv-auto-pineids">Pine IDs <span style="color:var(--ink-3); font-weight:400;">(one per line — from the script page's source, shaped like PUB;abc123…)</span></label>
-        <textarea id="tv-auto-pineids" rows="3" class="textarea-field" placeholder="PUB;1234567890abcdef1234567890abcdef" style="font-family:var(--font-mono);"></textarea>
+        <textarea id="tv-auto-pineids" rows="3" class="textarea-field" placeholder="PUB;1234567890abcdef1234567890abcdef" style="font-family:var(--font-code);"></textarea>
       </div>
       <div class="field" style="max-width:280px;">
         <label for="tv-auto-duration">Access duration</label>

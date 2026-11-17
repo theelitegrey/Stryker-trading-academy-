@@ -16,7 +16,7 @@
 .lx-body li{ margin:0 0 8px; }
 .lx-body strong{ color:var(--ink-0); }
 .lx-body a{ color:var(--gold); }
-.lx-body code{ font-family:var(--font-mono); font-size:.92em; background:var(--bg-2); padding:1px 5px; border-radius:4px; }
+.lx-body code{ font-family:var(--font-code); font-size:.92em; background:var(--bg-2); padding:1px 5px; border-radius:4px; }
 .lx-key{ background:var(--bg-2); border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:var(--radius-md);
   padding:16px 18px; margin:24px 0; }
 .lx-key p:last-child, .lx-key ul:last-child{ margin-bottom:0; }

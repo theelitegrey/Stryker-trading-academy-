@@ -169,7 +169,7 @@
 .pv-kit-main .pv-label:not(:first-child){ margin-top:8px; }
 .pv-copyrow{ -webkit-appearance:none; appearance:none; display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:52px; padding:8px 8px 8px 16px; border:1px dashed rgba(3,201,136,.5); border-radius:12px; background:rgba(3,201,136,.06); color:var(--ink-0); font:inherit; cursor:pointer; text-align:left; transition:background-color .15s; }
 .pv-copyrow:hover{ background:rgba(3,201,136,.12); }
-.pv-copyrow code{ font-family:'JetBrains Mono',ui-monospace,monospace; font-size:14px; overflow-wrap:anywhere; }
+.pv-copyrow code{ font-family:var(--font-mono); font-size:14px; overflow-wrap:anywhere; }
 .pv-copytag, .pv-copybtn{ -webkit-appearance:none; appearance:none; flex:none; min-width:64px; min-height:40px; padding:0 16px; border-radius:12px; border:1px solid var(--line); background:var(--bg-1); color:var(--ink-0); font:inherit; font-size:14px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 .pv-copybtn:hover, .pv-copyrow:hover .pv-copytag{ border-color:var(--gold); color:var(--gold); }
 :root[data-theme="light"] .pv-copybtn:hover, :root[data-theme="light"] .pv-copyrow:hover .pv-copytag{ color:var(--gold-dim); }

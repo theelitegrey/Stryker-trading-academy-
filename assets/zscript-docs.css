@@ -23,12 +23,12 @@ html.zs-hidden .zd-soon{ display:block; }
 .zd-prose ul, .zd-prose ol{ margin:0 0 20px; padding-left:22px; }
 .zd-prose li{ margin:0 0 8px; }
 .zd-prose a{ color:var(--gold); }
-.zd-prose code{ font-family:var(--font-mono); font-size:.9em; background:var(--bg-2); padding:1px 5px; border-radius:4px; }
+.zd-prose code{ font-family:var(--font-code); font-size:.9em; background:var(--bg-2); padding:1px 5px; border-radius:4px; }
 .zd-prose table{ width:100%; border-collapse:collapse; font-size:14px; margin:0 0 20px; display:block; overflow-x:auto; }
 .zd-prose th, .zd-prose td{ text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
 .zd-prose th{ color:var(--ink-0); font-weight:600; }
 pre.zs-code{ position:relative; margin:0 0 20px; padding:16px; background:#0b0b0d; color:#e8ece9; border:1px solid var(--line); border-radius:12px;
-  overflow-x:auto; font:13px/1.6 var(--font-mono); tab-size:2; }
+  overflow-x:auto; font:13px/1.6 var(--font-code); tab-size:2; }
 pre.zs-code code{ background:none; padding:0; font:inherit; color:inherit; }
 pre.zs-code::before{ content:attr(data-lang); position:absolute; top:6px; right:12px; font:600 11px/13px var(--font-mono); color:rgba(255,255,255,.44); }
 pre.zs-code .k{ color:#6fd6ff } pre.zs-code .t{ color:#c9a7ff } pre.zs-code .n{ color:#4fe3ac } pre.zs-code .f{ color:#ffd479 }

@@ -14,7 +14,7 @@
 .ar b{ color:var(--ink-0); }
 .ar h1, .ar h2, .ar h3{ font-family:var(--font-display); color:var(--ink-0); }
 
-.ar-eyebrow{ margin:0 0 14px; font:600 12px/1.4 'JetBrains Mono',monospace; letter-spacing:.08em;
+.ar-eyebrow{ margin:0 0 14px; font:600 12px/1.4 var(--font-mono); letter-spacing:.08em;
   text-transform:uppercase; color:var(--gold); }
 
 /* ---------- hero ---------- */
@@ -31,7 +31,7 @@
 .ar-link{ color:var(--ink-0); font-weight:700; text-decoration:none; padding:10px 2px; border-bottom:2px solid var(--line); }
 .ar-link:hover{ color:var(--gold); border-bottom-color:var(--gold); }
 .ar-trust{ display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:8px; margin:22px 0 0;
-  font:500 13px/1.5 'JetBrains Mono',monospace; color:var(--ink-2); }
+  font:500 13px/1.5 var(--font-mono); color:var(--ink-2); }
 .ar-trust b{ color:var(--gold); }
 .ar-trust > span, .ar-trust > .ar-sep{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
 @media (max-width:520px){ .ar-trust{ flex-direction:column; gap:4px; } .ar-trust > .ar-sep{ display:none; } }
@@ -66,9 +66,9 @@
 .ar-shot{ margin:0; min-width:0; }
 .ar-shot picture{ display:block; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:var(--bg-1);
   box-shadow:0 24px 60px -36px rgba(0,0,0,.9); }
-.ar-shot figcaption{ margin-top:10px; font:500 12px/1.4 'JetBrains Mono',monospace; color:var(--ink-3); }
+.ar-shot figcaption{ margin-top:10px; font:500 12px/1.4 var(--font-mono); color:var(--ink-3); }
 .ar-text{ min-width:0; }
-.ar-num{ margin:0 0 10px; font:600 12px/1.4 'JetBrains Mono',monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); }
+.ar-num{ margin:0 0 10px; font:600 12px/1.4 var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--gold); }
 .ar-text h2{ margin:0; font-size:clamp(26px, 6.6vw, 38px); line-height:1.1; letter-spacing:-.02em; font-weight:800; }
 .ar-text > p:not(.ar-num){ margin:12px 0 0; font-size:16.5px; line-height:1.6; color:var(--ink-1); max-width:46ch; }
 .ar-ticks{ list-style:none; margin:20px 0 0; padding:0; display:grid; grid-template-columns:minmax(0,1fr); gap:9px; }

@@ -53,7 +53,7 @@ export function perBar(t, v, bars, until) {
 function msgTable(id, text) {
   const day = ZD.lightTheme();
   return { id, paneId: '', position: 'bottom_center', columns: 1, rows: 1, bgColor: day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.9)', frameWidth: 0, borderWidth: 0,
-    cells: [[{ text, textColor: day ? '#334155' : '#a3a9b6', hAlign: 'center', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: false, italic: false }]], merges: [] };
+    cells: [[{ text, textColor: day ? '#334155' : '#a3a9b6', hAlign: 'center', vAlign: 'center', textSize: 'small', fontFamily: 'default', bold: false, italic: false }]], merges: [] };
 }
 class IvNative {
   constructor() { this.inputs = {}; this.ctx = null; this.sig = ''; }

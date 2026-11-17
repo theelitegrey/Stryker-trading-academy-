@@ -136,7 +136,7 @@ function jzRenderRadar(m){
           ticks: { display: false, stepSize: 25 },
           grid: { color: 'rgba(62,69,80,0.5)' },
           angleLines: { color: 'rgba(62,69,80,0.5)' },
-          pointLabels: { color: JCOLOR.ink2, font: { size: 10, family: "'JetBrains Mono', monospace" } }
+          pointLabels: { color: JCOLOR.ink2, font: { size: 10, family: "'Archivo Tnum', Archivo, sans-serif" } }
         }
       }
     }

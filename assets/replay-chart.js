@@ -59,7 +59,7 @@
       this.chart.subscribeCrosshairMove((p) => this._onCross(p));
     }
     _chartOptions(T) {
-      return { layout: { background: { type: 'solid', color: T.bg }, textColor: T.text, fontFamily: "'JetBrains Mono', 'Archivo', monospace", fontSize: 11, panes: { separatorColor: T.border, separatorHoverColor: 'rgba(3,201,136,0.3)', enableResize: true }, attributionLogo: true },
+      return { layout: { background: { type: 'solid', color: T.bg }, textColor: T.text, fontFamily: "'Archivo Tnum', 'Archivo', sans-serif", fontSize: 11, panes: { separatorColor: T.border, separatorHoverColor: 'rgba(3,201,136,0.3)', enableResize: true }, attributionLogo: true },
         grid: { vertLines: { color: T.grid }, horzLines: { color: T.grid } },
         crosshair: { mode: 0, vertLine: { color: T.cross, labelBackgroundColor: T.tag, style: 3 }, horzLine: { color: T.cross, labelBackgroundColor: T.tag, style: 3 } },
         rightPriceScale: { borderColor: T.border, scaleMargins: { top: 0.08, bottom: 0.12 } },

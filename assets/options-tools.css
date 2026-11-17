@@ -3,7 +3,7 @@
    Scrollbars: the shared thin style in assets/style.css covers every overflow area here. */
 .page-oc{
   --oc-font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Roboto, "Segoe UI", system-ui, sans-serif;
-  --oc-mono:'JetBrains Mono', ui-monospace, monospace;
+  --oc-mono:var(--font-mono);
   --oc-s1:#0b0b0d; --oc-s2:#131316; --oc-s3:#1e1e22;
   --oc-hair:rgba(255,255,255,.08); --oc-hair2:rgba(255,255,255,.16);
   --oc-t1:rgba(255,255,255,.92); --oc-t2:rgba(255,255,255,.64); --oc-t3:rgba(255,255,255,.5);

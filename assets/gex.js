@@ -336,7 +336,7 @@
     if(!window.LightweightCharts){ host.innerHTML = '<div class="gex-chart-fallback">TradingView chart library failed to load.</div>'; return; }
     tvChart = LightweightCharts.createChart(host, {
       autoSize: true,
-      layout: { background: { color: '#050608' }, textColor: '#8b949e', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' },
+      layout: { background: { color: '#050608' }, textColor: '#8b949e', fontFamily: "'Archivo Tnum', Archivo, sans-serif" },
       grid: { vertLines: { color: 'rgba(255,255,255,.045)' }, horzLines: { color: 'rgba(255,255,255,.055)' } },
       rightPriceScale: { borderColor: 'rgba(255,255,255,.10)', scaleMargins: { top: .12, bottom: .15 }, autoScale: true },
       timeScale: { borderColor: 'rgba(255,255,255,.10)', timeVisible: true, secondsVisible: false, rightOffset: 8, barSpacing: 7, minBarSpacing: 2 },

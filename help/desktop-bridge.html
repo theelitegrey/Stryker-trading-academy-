@@ -17,7 +17,7 @@
 <title>Desktop Bridge: connect MetaTrader 5, NinjaTrader 8 or Interactive Brokers prices | TradeZoro</title>
 <link rel="canonical" href="https://tradezoro.com/help/desktop-bridge">
 <link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/archivo-tnum-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/style.css?v=1084">
 <link rel="stylesheet" href="/assets/nav-features.css?v=1084">
 <script src="/assets/sanitize.js?v=1084"></script>
@@ -88,7 +88,7 @@
 .bh-fig svg{ display:block; width:100%; height:auto; border-radius:8px; font-family:'Segoe UI',system-ui,sans-serif; }
 .bh-fig figcaption{ font-size:13px; line-height:20px; color:var(--ink-2,#8b93a0); margin-top:6px; }
 .bh-pre{ overflow-x:auto; border:1px solid var(--line,#2c2c32); border-radius:8px; padding:12px 14px; margin:0 0 16px; background:var(--bg-2,rgba(255,255,255,.04)); font-size:13px; line-height:20px; }
-.bh code{ font-family:var(--font-mono,'JetBrains Mono',monospace); font-size:.9em; overflow-wrap:anywhere; }
+.bh code{ font-family:var(--font-code); font-size:.9em; overflow-wrap:anywhere; }
 .bh-pre code{ white-space:pre; overflow-wrap:normal; }
 </style>
 </head>
@@ -143,7 +143,7 @@
 <li>Windows Firewall may ask about network access. The helper only listens on 127.0.0.1, which is your own computer. You can choose <strong>Cancel</strong> or allow private networks. It does not need public access.</li></ul>
 <h2 id="pair">4. The pairing code</h2>
 <p>When the helper starts it opens a window with an <strong>8-digit code</strong> (valid for 2 minutes). Type it into TradeZoro. After the first time you do not need a code again.</p>
-<figure class="bh-fig"><svg viewBox="0 0 360 190" role="img" aria-label="Illustration: the helper window shows an 8-digit pairing code. Type it into TradeZoro." xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="344" height="174" rx="6" fill="#0c0c0e" stroke="#4a4a52"/><rect x="8" y="8" width="344" height="22" rx="6" fill="#2a2a30"/><text x="18" y="24" fill="#c9cdd3" font-size="11">TradeZoroBridge.exe</text><text x="20" y="52" fill="#9aa1ab" font-size="10" font-family="monospace">TradeZoro Data Bridge (beta). Data only.</text><text x="20" y="68" fill="#9aa1ab" font-size="10" font-family="monospace">Listening on 127.0.0.1:48715</text><text x="20" y="94" fill="#9aa1ab" font-size="10" font-family="monospace">Pairing code (valid 2 minutes):</text><text x="20" y="128" fill="#03c988" font-size="30" font-weight="700" font-family="monospace">4821 7305</text><text x="20" y="162" fill="#6c7380" font-size="10" font-family="monospace">Keep this window open while you chart.</text></svg><figcaption>Illustration: the helper window shows an 8-digit pairing code. Type it into TradeZoro.</figcaption></figure>
+<figure class="bh-fig"><svg viewBox="0 0 360 190" role="img" aria-label="Illustration: the helper window shows an 8-digit pairing code. Type it into TradeZoro." xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="344" height="174" rx="6" fill="#0c0c0e" stroke="#4a4a52"/><rect x="8" y="8" width="344" height="22" rx="6" fill="#2a2a30"/><text x="18" y="24" fill="#c9cdd3" font-size="11">TradeZoroBridge.exe</text><text x="20" y="52" fill="#9aa1ab" font-size="10" font-family="Archivo Tnum, Archivo, sans-serif">TradeZoro Data Bridge (beta). Data only.</text><text x="20" y="68" fill="#9aa1ab" font-size="10" font-family="Archivo Tnum, Archivo, sans-serif">Listening on 127.0.0.1:48715</text><text x="20" y="94" fill="#9aa1ab" font-size="10" font-family="Archivo Tnum, Archivo, sans-serif">Pairing code (valid 2 minutes):</text><text x="20" y="128" fill="#03c988" font-size="30" font-weight="700" font-family="Archivo Tnum, Archivo, sans-serif">4821 7305</text><text x="20" y="162" fill="#6c7380" font-size="10" font-family="Archivo Tnum, Archivo, sans-serif">Keep this window open while you chart.</text></svg><figcaption>Illustration: the helper window shows an 8-digit pairing code. Type it into TradeZoro.</figcaption></figure>
 <h2 id="mt5">5a. MetaTrader 5</h2>
 <ol><li>Open MetaTrader 5 and log in. The <strong>investor (read-only) password</strong> is enough and is the safer choice.</li>
 <li>Start <strong>TradeZoroBridge.exe</strong> from a Command Prompt: <code>TradeZoroBridge.exe mt5</code>, or double-click it and choose MetaTrader 5 if asked.</li>

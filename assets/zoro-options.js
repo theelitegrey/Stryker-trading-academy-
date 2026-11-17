@@ -18,7 +18,7 @@
   var SHOT = Q.has('shot');
   var RM = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   function still() { return RM.matches || SHOT; }
-  var MONO = "'JetBrains Mono', ui-monospace, monospace";
+  var MONO = "'Archivo Tnum', Archivo, sans-serif";   // data font (17 Nov): tabular digits, no code look
   var C = { pos: '#03c988', neg: '#e5484d', flip: '#f5c542', spot: '#eeeeee', teal: '#00adb5', grid: 'rgba(255,255,255,.08)', zero: 'rgba(255,255,255,.22)', ink: 'rgba(255,255,255,.72)', ink3: 'rgba(255,255,255,.56)' };
   var IDX = ['SPX', 'SPY', 'QQQ', 'IWM', 'GLD', 'USO', 'ES', 'NQ', 'RTY', 'GC', 'CL'];
   var FUT_FROM = { ES: 'SPX', NQ: 'QQQ', RTY: 'IWM', GC: 'GLD', CL: 'USO' };

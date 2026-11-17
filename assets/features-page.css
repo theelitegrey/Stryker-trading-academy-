@@ -41,7 +41,7 @@ html.fp-anim .is-playing .gv-hl{ animation:gv-draw 1.2s cubic-bezier(.2,.8,.2,1)
 
 /* ---------- A · Terminal -------------------------------------------------- */
 .gv-ticker{ margin:22px auto 0; max-width:1100px; overflow:hidden; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
-  font-family:var(--font-mono, ui-monospace, monospace); font-size:11.5px; letter-spacing:.04em; color:var(--ink-2); white-space:nowrap;
+  font-family:var(--font-mono); font-size:11.5px; letter-spacing:.04em; color:var(--ink-2); white-space:nowrap;
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
 .gv-ticker-track{ display:flex; width:max-content; }
 .gv-ticker-track > div{ display:flex; gap:26px; padding:9px 13px; }
@@ -52,7 +52,7 @@ html.fp-anim .gv-ticker.is-playing .gv-ticker-track{ animation:gv-tick 38s linea
 
 .gv-term{ margin:26px auto 0; max-width:1100px; text-align:left; }
 .gv-term-bar{ display:flex; align-items:center; gap:10px; padding:9px 14px; border:1px solid var(--line); border-bottom:0; border-radius:14px 14px 0 0;
-  background:#0d0f12; font-family:var(--font-mono, ui-monospace, monospace); font-size:11.5px; color:#cbd5e1; letter-spacing:.05em; }
+  background:#0d0f12; font-family:var(--font-mono); font-size:11.5px; color:#cbd5e1; letter-spacing:.05em; }
 .gv-term-bar b{ font-weight:600; color:#f1f5f9; }
 .gv-term-tag{ margin-left:auto; color:#f59e0b; font-size:10.5px; }
 .gv-dot{ width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 0 0 rgba(245,158,11,.6); flex:none; }
@@ -68,7 +68,7 @@ html.fp-anim .is-playing .gv-sweep{ opacity:1; animation:gv-sweep 5.5s cubic-bez
 @keyframes gv-sweep{ from{ transform:translateX(-100%); } 80%,to{ transform:translateX(0); opacity:0; } 10%{ opacity:1; } }
 .gv-readout{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); align-content:start; }
 @media (min-width:900px){ .gv-readout{ grid-template-columns:1fr; align-content:stretch; } }
-.gv-ro{ background:#0b0d10; padding:12px 14px; font-family:var(--font-mono, ui-monospace, monospace); border-left:3px solid transparent; }
+.gv-ro{ background:#0b0d10; padding:12px 14px; font-family:var(--font-mono); border-left:3px solid transparent; }
 .gv-ro span{ display:block; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#94a3b8; }
 .gv-ro b{ display:block; font-size:19px; font-weight:600; color:#f1f5f9; font-variant-numeric:tabular-nums; margin-top:3px; }
 .gv-ro.call{ border-left-color:var(--fp-call); } .gv-ro.call b{ color:#fca5a5; }
@@ -159,7 +159,7 @@ html.fp-anim .sx-row.fp-in .sx-media > img:first-child{ transform:none; }
 
 
 /* ================= SECTIONS: flow cards, timeline, pipeline, FAQ, CTA (S2 look) ================= */
-.fp-eyebrow{ display:block; font:600 12px/1 var(--font-mono, ui-monospace, monospace); letter-spacing:.12em; text-transform:uppercase; color:var(--fp-acc); margin-bottom:12px; }
+.fp-eyebrow{ display:block; font:600 12px/1 var(--font-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--fp-acc); margin-bottom:12px; }
 .fg-flow{
   display:grid; grid-template-columns:1fr; gap:10px; align-items:stretch;
   max-width:820px; margin:0 auto 26px;
@@ -172,7 +172,7 @@ html.fp-anim .sx-row.fp-in .sx-media > img:first-child{ transform:none; }
 .fg-node p{ font-size:13px; line-height:1.65; color:var(--ink-2); margin:0; }
 .fg-node .fg-step{
   position:absolute; top:-10px; left:14px; font-size:10.5px; font-weight:700;
-  font-family:var(--font-mono, ui-monospace, monospace); letter-spacing:.06em;
+  font-family:var(--font-mono); letter-spacing:.06em;
   padding:2px 9px; border-radius:999px; background:var(--bg-1); border:1px solid var(--line); color:var(--fp-acc);
 }
 .fg-arrow{ display:flex; justify-content:center; color:var(--ink-3); height:22px; align-items:center; }
@@ -198,7 +198,7 @@ html.fp-anim .is-playing .fg-arrow svg{ animation:fg-nudge 1.6s ease-in-out infi
   transition:border-color .35s ease, transform .35s ease;
 }
 .fg-tl-step:focus-visible{ outline:2px solid var(--fp-acc); outline-offset:2px; }
-.fg-tl-step .fg-when{ font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--fp-acc); font-family:var(--font-mono, ui-monospace, monospace); font-weight:700; }
+.fg-tl-step .fg-when{ font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--fp-acc); font-family:var(--font-mono); font-weight:700; }
 .fg-tl-step h3{ font-size:16px; color:var(--ink-0); margin:6px 0 8px; }
 .fg-tl-step p{ font-size:13px; line-height:1.7; color:var(--ink-2); margin:0 0 10px; }
 .fg-tl-step ul{ list-style:none; padding:0; margin:0; }

@@ -68,7 +68,7 @@
 .ixp-set{ display:block; color:var(--ink-0); font-weight:500; overflow-wrap:anywhere; }
 .ixp-tip, .ixp-opt{ display:block; margin-top:4px; font-size:13px; line-height:18px; color:var(--ink-2); }
 .ixp-opt{ color:var(--ink-3); }
-.ixp-table code{ font-family:var(--font-mono); font-size:12.5px; }
+.ixp-table code{ font-family:var(--font-code); font-size:12.5px; }
 .ixp-sw{ display:inline-block; width:12px; height:12px; border-radius:4px; margin-right:8px; vertical-align:-1px; border:1px solid var(--line); }
 .ixp-dim{ color:var(--ink-3); }
 .ixp-more{ margin-top:12px; }

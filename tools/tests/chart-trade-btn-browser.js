@@ -192,7 +192,7 @@ async function run(b, w, h, mobile, theme) {
   const r1 = menu.rows.find((r) => r.id === '123'), r2 = menu.rows.find((r) => r.id === '223'), r0 = menu.rows[0];
   check(r1.bal === '$50,312.40+$312.40' && r2.bal === '—' && /^\$[\d,]+\.\d\d/.test(r0.bal), tag + ': balances: $50,312.40 (+open P&L), "—" when none, paper balance', menu.rows.map((r) => r.bal));
   check(M.calls.filter((c) => c.body.op === 'balances').length === 2, tag + ': one balances read per account on open', M.calls.filter((c) => c.body.op === 'balances').length);
-  check(/mono|Mono|Plex|Menlo|Consolas/.test(r1.numFont) || r1.numFont !== '', tag + ': account number in the mono font', r1.numFont);
+  check(/Archivo Tnum/.test(r1.numFont), tag + ': account number in the data font (Archivo, tabular digits; no mono since 17 Nov)', r1.numFont);
   check(menu.rows.every((r) => r.cySpread <= 1), tag + ': each row: logo, text, buttons, tick on one centre (±1px)', menu.rows.map((r) => r.cySpread));
   check(menu.rows.every((r) => r.logo === '28x28'), tag + ': logos 28x28', menu.rows.map((r) => r.logo));
   const L0 = menu.rows.map((r) => r.logoL), T0 = menu.rows.map((r) => r.tickR);

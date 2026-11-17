@@ -64,7 +64,7 @@ const defaults = (schema) => Object.fromEntries(schema.map((i) => [i.key, i.defv
 function note(id, text, locked) {
   const day = light();
   return { id, paneId: '', position: 'bottom_center', columns: 1, rows: 1, bgColor: day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.9)', frameWidth: 0, borderWidth: 0,
-    cells: [[{ text, textColor: locked ? CYAN : (day ? '#334155' : '#a3a9b6'), hAlign: 'center', vAlign: 'center', textSize: 'small', fontFamily: 'monospace', bold: false, italic: false }]], merges: [] };
+    cells: [[{ text, textColor: locked ? CYAN : (day ? '#334155' : '#a3a9b6'), hAlign: 'center', vAlign: 'center', textSize: 'small', fontFamily: 'default', bold: false, italic: false }]], merges: [] };
 }
 
 let H = null;               // hooks from chart-footprint.js: { flowFor, rootOf, sessionOf, subscribe, unsubscribe, use, unuse, version }

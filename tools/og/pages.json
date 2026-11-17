@@ -497,6 +497,14 @@
       "alt": "IV Skew and term structure share card with the TradeZoro logo"
     },
     {
+      "page": "phantom.html",
+      "title": "Phantom",
+      "og_title": null,
+      "visual": "brand",
+      "focus": "0.5,0.5",
+      "alt": "Phantom options money flow share card with the TradeZoro logo"
+    },
+    {
       "page": "indicators.html",
       "title": "Indicator Library",
       "og_title": "Indicator Library: every ZoroCharts indicator explained",

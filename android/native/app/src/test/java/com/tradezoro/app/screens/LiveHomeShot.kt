@@ -47,7 +47,7 @@ class LiveHomeShot {
         val state = HomeUiState(DEFAULT_WATCHLIST.map { s -> WatchRow(s, got[s.ticker]?.let { RowState.Ready(it) } ?: RowState.Failed(null)) })
         rule.setContent {
             TradeZoroTheme(dark = true) {
-                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { HomeTopBar({}, {}) }, bottomBar = { TzBottomBar(Tab.HOME) {} }) { pad ->
+                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { HomeTopBar(SampleAvatar, {}, {}) }, bottomBar = { TzBottomBar(Tab.HOME) {} }) { pad ->
                     HomeContent(state, null, dayPart(LocalTime.now().hour), isFuturesMarketOpen(Instant.now()), {}, {}, Modifier.padding(pad))
                 }
             }

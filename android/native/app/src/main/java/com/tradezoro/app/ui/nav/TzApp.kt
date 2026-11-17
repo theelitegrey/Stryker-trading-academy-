@@ -26,6 +26,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -45,16 +52,33 @@ enum class Tab(val route: String, val label: String, val icon: ImageVector) {
     JOURNAL("journal", "Journal", TzIcons.Journal),
 }
 
-/** Top bar from the mock: menu · wordmark · bell. 64dp tall, 48dp touch targets. */
+/** What the profile button shows: the Google photo when there is one, else the initials. null = signed out. */
+data class Avatar(val initials: String, val photo: ImageBitmap? = null)
+
+/**
+ * Profile picture, top-right (Owner 17 Nov, replaces the menu button). 32dp circle in a 48dp target; opens the
+ * Account sheet. Signed out: a person glyph.
+ */
 @Composable
-fun HomeTopBar(onMenu: () -> Unit, onBell: () -> Unit) {
-    // 48dp buttons with a 12dp edge inset put the 24dp glyphs 24dp from the edge, as in the mock.
-    Row(Modifier.fillMaxWidth().statusBarsPadding().height(64.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onMenu, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Menu, contentDescription = "Account menu") }
-        Box(Modifier.weight(1f).padding(start = 8.dp)) {
-            Wordmark(Modifier.height(28.dp))
+fun ProfileButton(avatar: Avatar?, onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(48.dp).semantics { contentDescription = if (avatar == null) "Account. Signed out" else "Account" }) {
+        Box(Modifier.size(32.dp).clip(CircleShape).background(Tz.colors.selected), contentAlignment = Alignment.Center) {
+            when {
+                avatar?.photo != null -> Image(avatar.photo, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(32.dp))
+                avatar != null -> Text(avatar.initials.take(2), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                else -> Icon(TzIcons.Person, contentDescription = null, modifier = Modifier.size(20.dp), tint = Tz.colors.muted)
+            }
         }
+    }
+}
+
+/** Home top bar: wordmark · bell · profile. 64dp tall, 48dp targets; the wordmark sits on the 16dp content gutter. */
+@Composable
+fun HomeTopBar(avatar: Avatar?, onAccount: () -> Unit, onBell: () -> Unit) {
+    Row(Modifier.fillMaxWidth().statusBarsPadding().height(64.dp).padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) { Wordmark(Modifier.height(28.dp)) }
         IconButton(onClick = onBell, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Bell, contentDescription = "Alerts") }
+        ProfileButton(avatar, onAccount)
     }
 }
 
@@ -65,13 +89,13 @@ fun TabTopBar(title: String) {
     }
 }
 
-/** Trade top bar from the mock: menu · title · bell. Same 12dp inset + 48dp buttons as Home. */
+/** Tab top bar: title · bell · profile, same insets as Home. */
 @Composable
-fun MenuTopBar(title: String, onMenu: () -> Unit, onBell: () -> Unit) {
-    Row(Modifier.fillMaxWidth().statusBarsPadding().height(64.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onMenu, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Menu, contentDescription = "Account menu") }
-        Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).padding(start = 8.dp).semantics { heading() })
+fun MenuTopBar(title: String, avatar: Avatar?, onAccount: () -> Unit, onBell: () -> Unit) {
+    Row(Modifier.fillMaxWidth().statusBarsPadding().height(64.dp).padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
         IconButton(onClick = onBell, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Bell, contentDescription = "Price alerts") }
+        ProfileButton(avatar, onAccount)
     }
 }
 

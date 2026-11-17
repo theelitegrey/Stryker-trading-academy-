@@ -2,12 +2,12 @@ package com.tradezoro.app.ui.chart
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,47 +18,53 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.tradezoro.app.data.Timeframe
+import com.tradezoro.app.data.canonicalId
 import com.tradezoro.app.data.formatPct
+import com.tradezoro.app.data.symbolOf
 import com.tradezoro.app.ui.common.TzIcons
-import com.tradezoro.app.ui.theme.Mint
-import com.tradezoro.app.ui.theme.OnMint
 import com.tradezoro.app.ui.theme.Tabular
 import com.tradezoro.app.ui.theme.Tz
-
-/** Paper-trading amber from the mock's "Paper trading" chip. */
-private val PaperAmber = Color(0xFFF5B942)
-private val PaperAmberLight = Color(0xFF8A5A00)   // AA on white
-private val SellRed = Color(0xFFFF4D5E)
-private val OnSell = Color(0xFF2A060B)
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 data class ChartActions(
     val onSymbol: () -> Unit = {},
@@ -72,19 +78,50 @@ data class ChartActions(
     val onInc: () -> Unit = {},
     val onPaperOn: () -> Unit = {},
     val onExitFullscreen: () -> Unit = {},
+    /** A symbol picked on the wheel (the site's watchlist id, e.g. "futures:NQ1!"). */
+    val onPickSymbol: (String) -> Unit = {},
+    /** Opens the trade options (bottom sheet). */
+    val onTrade: () -> Unit = {},
 )
 
-/** Under 400dp the tool row cannot hold five 48dp chips and three 48dp tools: the alerts bell moves to the top bar. */
+/** Under 400dp some optional chrome moves or shrinks. */
 @Composable
 fun compactChart(): Boolean = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } < 400.dp
 
-/** Top bar from the mock: back · "ZoroCharts" · (alerts on compact phones) · fullscreen · more. */
+/** "NQ1! · CME" for a chart id ("MNQ1!", "futures:NQ1!", "binance:BTCUSDT"). */
+fun chartTitle(symbolId: String): String = if (symbolId.isEmpty()) "" else symbolOf(canonicalId(symbolId)).title
+
+/**
+ * Chart top bar (Owner 17 Nov: no "ZoroCharts" title): back · symbol + exchange (tap = symbol search), with the last
+ * price and change under it · alerts · full screen · more.
+ */
 @Composable
-fun ChartTopBar(onBack: () -> Unit, onFullscreen: () -> Unit, onMore: () -> Unit, onAlerts: () -> Unit = {}, menu: @Composable () -> Unit = {}) {
-    Row(Modifier.fillMaxWidth().statusBarsPadding().height(64.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+fun ChartTopBar(
+    onBack: () -> Unit, onFullscreen: () -> Unit, onMore: () -> Unit, onAlerts: () -> Unit = {},
+    state: ChartUiState = ChartUiState(), onSymbol: () -> Unit = {}, menu: @Composable () -> Unit = {},
+) {
+    Row(Modifier.fillMaxWidth().statusBarsPadding().height(64.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Back, contentDescription = "Back to Home") }
-        Text("ZoroCharts", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).padding(start = 8.dp).semantics { heading() })
-        if (compactChart()) IconButton(onClick = onAlerts, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Bell, contentDescription = "Price alerts") }
+        val title = chartTitle(state.symbolId)
+        Column(
+            Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp))
+                .clickable(role = Role.Button, onClickLabel = "Change symbol") { onSymbol() }
+                .padding(horizontal = 4.dp)
+                .semantics(mergeDescendants = true) { heading(); contentDescription = "${title.ifEmpty { "Loading" }}. Change symbol" }
+                .testTag("chart-title"),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(title.ifEmpty { "\u2014" }, style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(state.last?.let { ChartViewModel.trimPrice(it) } ?: " ", style = MaterialTheme.typography.labelMedium.merge(Tabular).copy(fontWeight = FontWeight.Normal),
+                    color = Tz.colors.muted, maxLines = 1)
+                state.changePct?.let { p ->
+                    Text("  " + formatPct(p), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = if (p < 0) Tz.colors.down else Tz.colors.up, maxLines = 1)
+                }
+            }
+        }
+        IconButton(onClick = onAlerts, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Bell, contentDescription = "Price alerts") }
         IconButton(onClick = onFullscreen, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Expand, contentDescription = "Full screen chart") }
         Box {
             IconButton(onClick = onMore, modifier = Modifier.size(48.dp)) { Icon(TzIcons.More, contentDescription = "Chart menu") }
@@ -94,17 +131,16 @@ fun ChartTopBar(onBack: () -> Unit, onFullscreen: () -> Unit, onMore: () -> Unit
 }
 
 /**
- * Native chrome around the chart. [chart] is the embedded ZoroCharts view (a WebView in the app,
- * a placeholder in screenshot tests). Layout follows app-mock/2-chart.png.
+ * Native chrome around the chart. [chart] is the chart view (native renderer or the page; a placeholder in tests).
+ * Bottom bar (Owner 17 Nov, his reference picture): symbol wheel · timeframe wheel · indicators · drawings · Trade.
  */
 @Composable
-fun ChartContent(state: ChartUiState, actions: ChartActions, modifier: Modifier = Modifier, chart: @Composable (Modifier) -> Unit) {
+fun ChartContent(
+    state: ChartUiState, actions: ChartActions, modifier: Modifier = Modifier,
+    symbols: List<String> = emptyList(),
+    chart: @Composable (Modifier) -> Unit,
+) {
     Column(modifier.fillMaxSize()) {
-        if (!state.fullscreen) {
-            SymbolRow(state, actions.onSymbol, Modifier.padding(horizontal = 16.dp))
-            // 12 / 4dp row insets + the 48dp touch boxes put the first chip and the last glyph 16dp from the edges.
-            ToolRow(state.tf, actions, Modifier.padding(start = 12.dp, end = 4.dp))
-        }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             chart(Modifier.fillMaxSize())
             if (state.fullscreen) {
@@ -112,133 +148,106 @@ fun ChartContent(state: ChartUiState, actions: ChartActions, modifier: Modifier 
                     Icon(TzIcons.Close, contentDescription = "Exit full screen", tint = Tz.colors.muted)
                 }
             }
+            if (state.sample) Text("Sample data", style = MaterialTheme.typography.labelSmall, color = Tz.colors.muted,
+                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp))
         }
-        if (!state.fullscreen) {
-            TradeStrip(state, actions, Modifier.padding(horizontal = 16.dp))
+        if (!state.fullscreen) ChartBottomBar(state, actions, symbols)
+    }
+}
+
+/** The ids on the symbol wheel: the active watchlist, plus the chart's symbol on top when it is not in the list. */
+fun wheelSymbols(listIds: List<String>, chartSymbol: String): List<String> {
+    val cur = if (chartSymbol.isEmpty()) "" else canonicalId(chartSymbol)
+    val ids = listIds.map(::canonicalId).distinct()
+    return if (cur.isEmpty() || cur in ids) ids else listOf(cur) + ids
+}
+
+@Composable
+private fun ChartBottomBar(state: ChartUiState, actions: ChartActions, symbols: List<String>) {
+    val ids = remember(symbols, state.symbolId) { wheelSymbols(symbols, state.symbolId) }
+    val cur = if (state.symbolId.isEmpty()) "" else canonicalId(state.symbolId)
+    Column(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Tz.colors.hairline))
+        Row(Modifier.fillMaxWidth().height(WHEEL_H).padding(start = 8.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            WheelPicker(
+                items = ids, selected = ids.indexOf(cur).coerceAtLeast(0), label = { symbolOf(it).chartTicker },
+                width = 104.dp, what = "Symbol", onPick = { actions.onPickSymbol(ids[it]) }, tag = "wheel-symbol",
+            )
+            WheelPicker(
+                items = Timeframe.entries, selected = state.tf?.let { Timeframe.entries.indexOf(it) } ?: -1, label = { it.label },
+                width = 56.dp, what = "Timeframe", onPick = { actions.onTf(Timeframe.entries[it]) }, tag = "wheel-tf",
+            )
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = actions.onIndicators, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Indicators, contentDescription = "Indicators") }
+            IconButton(onClick = actions.onDrawings, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Pencil, contentDescription = "Drawing tools") }
+            VerticalDivider(Modifier.height(32.dp).padding(horizontal = 8.dp), color = Tz.colors.hairline)
+            OutlinedButton(
+                onClick = actions.onTrade, shape = RoundedCornerShape(50), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
+                modifier = Modifier.height(40.dp).semantics { contentDescription = "Trade. Paper trading options" }.testTag("chart-trade"),
+            ) { Text("Trade", style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp)) }
         }
     }
 }
 
-/** "MNQ · 5m" on the left (opens symbol search), last price + change on the right. 48dp tall. */
-@Composable
-private fun SymbolRow(state: ChartUiState, onSymbol: () -> Unit, modifier: Modifier = Modifier) {
-    val tfLabel = state.tf?.label
-    Row(modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-        Row(
-            Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp))
-                .clickable(role = Role.Button, onClickLabel = "Change symbol") { onSymbol() }
-                .semantics(mergeDescendants = true) { contentDescription = "Symbol ${state.ticker.ifEmpty { "loading" }}${tfLabel?.let { ", $it" } ?: ""}. Change symbol" },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(state.ticker.ifEmpty { "\u2014" }, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
-            if (tfLabel != null) Text(" \u00b7 $tfLabel", style = MaterialTheme.typography.bodyLarge, color = Tz.colors.muted, maxLines = 1)
-            Icon(TzIcons.ChevronDown, contentDescription = null, tint = Tz.colors.muted, modifier = Modifier.padding(start = 4.dp).size(16.dp))
-        }
-        Spacer(Modifier.weight(1f))
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-            Text(state.last?.let { ChartViewModel.trimPrice(it) } ?: "\u2014", style = MaterialTheme.typography.titleSmall.merge(Tabular), maxLines = 1)
-            state.changePct?.let { p ->
-                Text(" " + formatPct(p), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = if (p < 0) Tz.colors.down else Tz.colors.up, maxLines = 1)
-            }
-        }
-    }
-}
-
-/** Timeframe chips (32dp visual, 48dp touch) + indicators / drawings / alerts. */
-@Composable
-private fun ToolRow(tf: Timeframe?, actions: ChartActions, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-        // Scrolls only if a very narrow screen or a large font still can't fit the chips.
-        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
-            Timeframe.entries.forEach { t -> TfChip(t, t == tf) { actions.onTf(t) } }
-        }
-        IconButton(onClick = actions.onIndicators, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Indicators, contentDescription = "Indicators", tint = Tz.colors.muted) }
-        IconButton(onClick = actions.onDrawings, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Pencil, contentDescription = "Drawing tools", tint = Tz.colors.muted) }
-        if (!compactChart()) IconButton(onClick = actions.onAlerts, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Bell, contentDescription = "Price alerts", tint = Tz.colors.muted) }
-    }
-}
-
-@Composable
-private fun TfChip(t: Timeframe, selected: Boolean, onClick: () -> Unit) {
-    // 48x48dp touch box around a 40x32dp chip: chips sit 8dp apart and every target is 48dp.
-    Box(
-        Modifier.size(48.dp).clickable(role = Role.Tab, onClick = onClick)
-            .semantics { this.selected = selected; contentDescription = "Timeframe ${t.label}" },
-        contentAlignment = Alignment.Center,
-    ) {
-        val shape = RoundedCornerShape(8.dp)
-        Box(
-            Modifier.height(32.dp).widthIn(min = 40.dp).clip(shape)
-                .then(if (selected) Modifier.background(Tz.colors.selected) else Modifier.border(1.dp, Tz.colors.hairline, shape))
-                .padding(horizontal = 4.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(t.label, style = MaterialTheme.typography.labelLarge,
-                color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else Tz.colors.muted)
-        }
-    }
-}
+val WHEEL_ROW: Dp = 24.dp
+val WHEEL_H: Dp = WHEEL_ROW * 3
 
 /**
- * Bottom strip: last price row, Sell · qty · Buy, and the "Paper trading" chip.
- * Orders go to the site's paper engine only (demo money, simulated fills); there is no broker path.
+ * Scroll-wheel picker (Owner 17 Nov reference): three rows visible, the middle one is the choice (bold, full colour),
+ * neighbours faded above and below. Flings snap to a row; when the wheel stops on a new row, [onPick] fires.
+ * Tapping a faded neighbour picks it too. TalkBack: each row is a selectable item.
  */
 @Composable
-private fun TradeStrip(state: ChartUiState, actions: ChartActions, modifier: Modifier = Modifier) {
-    val light = MaterialTheme.colorScheme.background.red > 0.5f
-    Column(modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth().height(32.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(state.position ?: "No open paper position", style = MaterialTheme.typography.bodySmall.merge(Tabular),
-                color = if (state.position != null) MaterialTheme.colorScheme.onBackground else Tz.colors.muted,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite })
-            PaperChip(light)
+fun <T> WheelPicker(
+    items: List<T>, selected: Int, label: (T) -> String, width: Dp, what: String,
+    onPick: (Int) -> Unit, modifier: Modifier = Modifier, tag: String = "wheel",
+) {
+    val list = rememberLazyListState(initialFirstVisibleItemIndex = selected.coerceAtLeast(0))
+    val fling = rememberSnapFlingBehavior(list)
+    val scope = rememberCoroutineScope()
+    val pick by rememberUpdatedState(onPick)
+    val sel by rememberUpdatedState(selected)
+    // The row in the middle while scrolling (the list's first item sits in the middle thanks to one row of padding).
+    val centre by remember { derivedStateOf {
+        val i = list.firstVisibleItemIndex; val off = list.firstVisibleItemScrollOffset
+        val rowPx = list.layoutInfo.visibleItemsInfo.firstOrNull()?.size ?: 1
+        if (off > rowPx / 2) i + 1 else i
+    } }
+    // Settled on a new row -> pick it.
+    LaunchedEffect(list, items.size) {
+        snapshotFlow { list.isScrollInProgress }.distinctUntilChanged().filter { !it }.collect {
+            val c = centre.coerceIn(0, (items.size - 1).coerceAtLeast(0))
+            if (items.isNotEmpty() && c != sel) pick(c)
         }
-        if (!state.paperOn) {
-            Button(
-                onClick = actions.onPaperOn, enabled = state.ready, shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = OnMint),
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-            ) { Text("Turn on paper trading", style = MaterialTheme.typography.titleSmall) }
-        } else {
-            Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
-                    onClick = actions.onSell, enabled = state.ready, shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SellRed, contentColor = OnSell),
-                    modifier = Modifier.weight(1f).height(48.dp).semantics { contentDescription = "Paper sell ${state.qtyText} ${state.ticker} at market" },
-                ) { Text("Sell", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)) }
-                QtyStepper(state, actions)
-                Button(
-                    onClick = actions.onBuy, enabled = state.ready, shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = OnMint),
-                    modifier = Modifier.weight(1f).height(48.dp).semantics { contentDescription = "Paper buy ${state.qtyText} ${state.ticker} at market" },
-                ) { Text("Buy", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)) }
+    }
+    // The choice changed elsewhere (chart, Home) -> move the wheel there.
+    LaunchedEffect(selected, items.size) {
+        if (selected >= 0 && !list.isScrollInProgress && centre != selected) list.scrollToItem(selected)
+    }
+    val bg = MaterialTheme.colorScheme.background
+    Box(modifier.width(width).height(WHEEL_H).testTag(tag)) {
+        LazyColumn(state = list, flingBehavior = fling, contentPadding = PaddingValues(vertical = WHEEL_ROW), modifier = Modifier.fillMaxSize()) {
+            itemsIndexed(items) { i, it ->
+                val on = i == centre
+                Box(
+                    Modifier.fillMaxWidth().height(WHEEL_ROW)
+                        .clickable(role = Role.RadioButton, onClickLabel = "Choose") { scope.launch { list.animateScrollToItem(i) } }
+                        .semantics { this.selected = i == selected; stateDescription = if (i == selected) "Selected" else ""; contentDescription = "$what ${label(it)}" }
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Text(label(it), maxLines = 1, overflow = TextOverflow.Clip,
+                        style = if (on) MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                            else MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                        color = if (on) MaterialTheme.colorScheme.onBackground else Tz.colors.muted.copy(alpha = 0.55f))
+                }
             }
         }
-        Text(if (state.sample) "Sample data" else "Paper trading uses demo money. Education only. Not financial advice.",
-            style = MaterialTheme.typography.labelSmall, color = Tz.colors.muted, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        // Fade the rows above and below into the bar.
+        Box(Modifier.fillMaxWidth().height(WHEEL_ROW).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(bg, bg.copy(alpha = 0.3f)))))
+        Box(Modifier.fillMaxWidth().height(WHEEL_ROW).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(bg.copy(alpha = 0.3f), bg))))
     }
 }
 
-@Composable
-private fun QtyStepper(state: ChartUiState, actions: ChartActions) {
-    val shape = RoundedCornerShape(24.dp)
-    Row(
-        Modifier.height(48.dp).clip(shape).border(BorderStroke(1.dp, Tz.colors.hairline), shape)
-            .semantics(mergeDescendants = false) { stateDescription = "Quantity ${state.qtyText}" },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = actions.onDec, enabled = state.qty > state.qtyStep, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Minus, contentDescription = "Less quantity") }
-        Text(state.qtyText, style = MaterialTheme.typography.titleSmall.merge(Tabular), textAlign = TextAlign.Center, maxLines = 1,
-            modifier = Modifier.width(40.dp).semantics { contentDescription = "Quantity ${state.qtyText}" })
-        IconButton(onClick = actions.onInc, modifier = Modifier.size(48.dp)) { Icon(TzIcons.Plus, contentDescription = "More quantity") }
-    }
-}
-
-@Composable
-private fun PaperChip(light: Boolean) {
-    val c = if (light) PaperAmberLight else PaperAmber
-    val shape = RoundedCornerShape(8.dp)
-    Box(Modifier.height(24.dp).clip(shape).border(1.dp, c.copy(alpha = 0.45f), shape).semantics(mergeDescendants = true) {}.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-        Text("Paper trading", style = MaterialTheme.typography.labelSmall, color = c)
-    }
-}

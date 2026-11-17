@@ -133,12 +133,23 @@ fun ChartRoute(
     dark: Boolean,
     snack: SnackbarHostState,
     modifier: Modifier = Modifier,
+    /** The active watchlist's symbols (site ids), for the symbol wheel. */
+    symbols: List<String> = emptyList(),
+    defaultTf: com.tradezoro.app.data.Timeframe? = null,
+    onTrade: () -> Unit = {},
+    onPaper: ((com.tradezoro.app.data.PaperSnapshot) -> Unit)? = null,
 ) {
     val state by vm.state.collectAsState()
     val pending by vm.pendingSymbol.collectAsState()
     var drawMenu by remember { mutableStateOf(false) }
     BackHandler(enabled = state.tool != null) { vm.setTool(null) }
-    ChartPolling(web, vm, snack)
+    ChartPolling(web, vm, snack, onPaper)
+    LaunchedEffect(state.ready, defaultTf) {
+        if (state.ready && defaultTf != null && !vm.defaultTfApplied) {
+            vm.defaultTfApplied = true
+            if (state.tf != defaultTf) { vm.pickTf(defaultTf); web.call("TZB.setTf(${jsString(defaultTf.id)})") }
+        }
+    }
     // A symbol picked on Home is applied once the chart is ready.
     LaunchedEffect(pending, state.ready) {
         val p = pending ?: return@LaunchedEffect
@@ -157,8 +168,10 @@ fun ChartRoute(
         onDec = vm::dec, onInc = vm::inc,
         onPaperOn = { web.call("TZB.paperOn()") },
         onExitFullscreen = { vm.setFullscreen(false) },
+        onPickSymbol = { id -> web.call("TZB.setSymbol(${jsString(id)},${jsString(com.tradezoro.app.data.symbolOf(id).chartTicker)})") },
+        onTrade = onTrade,
     )
-    ChartContent(state, actions.copy(onDrawings = { if (state.classic) web.call("TZB.drawings()") else drawMenu = true }), modifier) { m ->
+    ChartContent(state, actions.copy(onDrawings = { if (state.classic) web.call("TZB.drawings()") else drawMenu = true }), modifier, symbols) { m ->
         if (state.classic) ChartHost(web, dark, visible = true, modifier = m)
         else Box(m) {
             NativeChartHost(web, state, vm, dark, Modifier.fillMaxSize())
@@ -257,7 +270,9 @@ fun ChartTopBarHost(web: ChartWeb, vm: ChartViewModel, onBack: () -> Unit) {
         vm.setClassic(prefs.getBoolean("chart_classic", false))
         prefs.getString("chart_style", null)?.let { n -> PriceStyle.entries.firstOrNull { it.name == n } }?.let(vm::setPriceStyle)
     }
-    ChartTopBar(onBack = onBack, onFullscreen = { vm.setFullscreen(true) }, onMore = { menu = true }, onAlerts = { web.call("TZB.alerts()") }) {
+    val top by vm.state.collectAsState()
+    ChartTopBar(onBack = onBack, onFullscreen = { vm.setFullscreen(true) }, onMore = { menu = true }, onAlerts = { web.call("TZB.alerts()") },
+        state = top, onSymbol = { web.call("TZB.search()") }) {
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             val st by vm.state.collectAsState()
             if (!st.classic) PriceStyle.entries.forEach { ps ->

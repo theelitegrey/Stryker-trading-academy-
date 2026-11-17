@@ -45,7 +45,7 @@
     return {
       t: 'state', ready: !!(window.__stkFirstCandles && p), sym: sym, tf: tf,
       last: typeof last === 'number' && isFinite(last) ? last : null,
-      paper: !!(p && p.enabled), pos: pos, signedIn: !!(p && p.uid), toasts: toasts
+      paper: !!(p && p.enabled), pos: pos, signedIn: !!(p && p.uid), uid: window.TZB ? window.TZB.uid() : '', toasts: toasts
     };
   }
 
@@ -118,6 +118,14 @@
     clearDrawings: function () {
       try { var c = chartOf(); c.drawings.all().forEach(function (d) { c.drawings.remove(d.id); }); try { window.STRYKER_VELA.context().stateChanged(); } catch (e) {} return true; } catch (e) { return false; }
     },
+    // Sign the chart page in as the app's member (Firebase custom token from the site's own sign-in handoff), so the
+    // page asks the server for the member's data access (signed agreement = current futures data) and loads their
+    // layouts and paper account. Sign-out follows the app. Fire and forget; the app reads state().signedIn.
+    signIn: function (token) {
+      try { if (!window.firebase || !firebase.auth) return false; firebase.auth().signInWithCustomToken(String(token)).catch(function () {}); return true; } catch (e) { return false; }
+    },
+    uid: function () { try { var u = window.firebase && firebase.auth && firebase.auth().currentUser; return u ? u.uid : ''; } catch (e) { return ''; } },
+    signOut: function () { try { if (window.firebase && firebase.auth && firebase.auth().currentUser) firebase.auth().signOut(); return true; } catch (e) { return false; } },
     // True while one of the site's own sheets/dialogs is open (the app then shows the page on top of the native chart).
     modal: function () {
       var vis = function (el) { var r = el.getBoundingClientRect(); if (r.width < 40 || r.height < 40) return false; var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.05; };

@@ -22,8 +22,8 @@ import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
-    private val a = WatchSymbol("NQ", "E-mini Nasdaq", Source.FUTURES, 2)
-    private val b = WatchSymbol("BTC", "Bitcoin", Source.CRYPTO, 0)
+    private val a = symbolOf("futures:NQ1!")
+    private val b = symbolOf("binance:BTCUSDT")
 
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
     @After fun tearDown() = Dispatchers.resetMain()

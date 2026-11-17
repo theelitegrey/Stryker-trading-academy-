@@ -45,6 +45,21 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.tradezoro.app.auth.AuthRepository
 import com.tradezoro.app.auth.TzUser
+import com.tradezoro.app.auth.ChartAuthLink
+import com.tradezoro.app.auth.PasskeyClient
+import com.tradezoro.app.data.AppPrefs
+import com.tradezoro.app.data.ThemeMode
+import com.tradezoro.app.data.DataAccess
+import com.tradezoro.app.data.DataAccessRepository
+import com.tradezoro.app.data.HttpQuoteRepository
+import com.tradezoro.app.data.watchStoreFor
+import com.tradezoro.app.ui.account.AccountActions
+import com.tradezoro.app.ui.account.AccountContent
+import com.tradezoro.app.ui.home.AddSymbolContent
+import com.tradezoro.app.ui.home.WatchActions
+import com.tradezoro.app.ui.nav.Avatar
+import com.tradezoro.app.ui.trade.TradeSheetContent
+import androidx.compose.ui.graphics.asImageBitmap
 import com.tradezoro.app.auth.googleIdToken
 import com.tradezoro.app.data.dayPart
 import com.tradezoro.app.data.isFuturesMarketOpen
@@ -119,9 +134,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val auth = AuthRepository(applicationContext)
+        val prefs = AppPrefs(applicationContext)
         chartWeb = ChartWeb(applicationContext)
         pushLink.value = intent?.getStringExtra(EXTRA_LINK)
-        setContent { TradeZoroTheme { TzRoot(auth, chartWeb, pushLink) } }
+        setContent {
+            val mode by prefs.theme.collectAsState()
+            val dark = when (mode) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> isSystemInDarkTheme() }
+            TradeZoroTheme(dark) { TzRoot(auth, chartWeb, pushLink, prefs, dark) }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -138,7 +158,10 @@ private const val OMEGA = "omega"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<String?> = MutableStateFlow(null)) {
+fun TzRoot(
+    auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<String?> = MutableStateFlow(null),
+    prefs: AppPrefs = AppPrefs(LocalContext.current), dark: Boolean = isSystemInDarkTheme(),
+) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -160,8 +183,16 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
     val openWeb: (String) -> Unit = { path -> runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, "https://tradezoro.com$path".toUri())) } }
     val chartVm: ChartViewModel = viewModel()
     val chartState by chartVm.state.collectAsState()
-    val dark = isSystemInDarkTheme()
     val tradeVm: TradeViewModel = viewModel()
+    val homeVm: HomeViewModel = viewModel { HomeViewModel(HttpQuoteRepository(token = DataAccessRepository()::idToken)) }
+    val homeState by homeVm.state.collectAsState()
+    val defaultTf by prefs.defaultTf.collectAsState()
+    val themeMode by prefs.theme.collectAsState()
+    var tradeOpen by rememberSaveable { mutableStateOf(false) }
+    var addOpen by rememberSaveable { mutableStateOf(false) }
+    var data by remember { mutableStateOf(DataAccess()) }
+    val dataRepo = remember { DataAccessRepository() }
+    val avatar = rememberAvatar(user)
     val alertsVm: AlertsViewModel = viewModel()
     var pushOn by remember { mutableStateOf(PushTokens.canNotify(ctx)) }
     val askPush = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
@@ -175,7 +206,19 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
         journalVm.setUser(user?.uid)
         if (route == OMEGA) scope.launch { omegaVm.refresh() }
         if (user != null && PushTokens.canNotify(ctx)) runCatching { PushTokens.sync(ctx) }
+        // Watchlists: the member's account lists (shared with the website), or this phone's when signed out.
+        homeVm.bind(watchStoreFor(ctx), user != null, prefs.activeList(user?.uid)) { id -> prefs.setActiveList(user?.uid, id) }
+        data = DataAccess(signedIn = user != null)
+        data = runCatching { dataRepo.load() }.getOrDefault(DataAccess(signedIn = user != null))
     }
+    // Keep the chart page signed in as the same member (data access, layouts, paper account): Owner bug 17 Nov.
+    LaunchedEffect(user?.uid, chartState.ready, chartState.pageUid) {
+        val u = user
+        if (!chartState.ready) return@LaunchedEffect
+        if (u == null && chartState.pageUid.isNotEmpty()) chartWeb.call("TZB.signOut()")
+        else if (u != null && chartState.pageUid != u.uid) ChartAuthLink().customToken()?.let { t -> chartWeb.call("TZB.signIn(${jsString(t)})") }
+    }
+    LaunchedEffect(homeVm) { homeVm.notes.collect { n -> if (n != null) { snack.showSnackbar(n); homeVm.consumeNote() } } }
     val goTab: (Tab) -> Unit = { t ->
         nav.navigate(t.route) {
             popUpTo(nav.graph.findStartDestination().id) { saveState = true }
@@ -202,11 +245,11 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             when (tab) {
-                Tab.HOME -> HomeTopBar(onMenu = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
+                Tab.HOME -> HomeTopBar(avatar, onAccount = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
                 Tab.CHARTS -> if (!chartFull) ChartTopBarHost(chartWeb, chartVm, onBack = { goTab(Tab.HOME) })
-                Tab.TRADE -> MenuTopBar("Trade", onMenu = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
-                Tab.LEARN -> MenuTopBar("Mentis", onMenu = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
-                Tab.JOURNAL -> MenuTopBar("Nemesis", onMenu = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
+                Tab.TRADE -> MenuTopBar("Trade", avatar, onAccount = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
+                Tab.LEARN -> MenuTopBar("Mentis", avatar, onAccount = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
+                Tab.JOURNAL -> MenuTopBar("Nemesis", avatar, onAccount = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
                 null -> if (route == ALERTS) AlertsTopBar(onBack = { nav.popBackStack() }, onNew = newAlert)
                     else if (route == OMEGA) BackTopBar("Omega", onBack = { nav.popBackStack() }, onBell = { nav.navigate(ALERTS) })
                 else -> TabTopBar(tab.label)
@@ -219,7 +262,7 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
     ) { pad ->
         NavHost(nav, startDestination = Tab.HOME.route, modifier = Modifier.padding(pad)) {
             composable(Tab.HOME.route) {
-                HomeRoute(user, onProduct = { p ->
+                HomeRoute(user, homeVm, data, onAdd = { addOpen = true }, onProduct = { p ->
                     when (p) {
                         Product.KRONOS -> openWeb("/replay.html")
                         Product.OMEGA -> nav.navigate(OMEGA) { launchSingleTop = true }
@@ -227,10 +270,13 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
                         Product.NEMESIS -> goTab(Tab.JOURNAL)
                     }
                 }, onSymbol = { sym, pct ->
-                    chartVm.openSymbol(chartIdFor(sym), sym.ticker, pct); goTab(Tab.CHARTS)
+                    chartVm.openSymbol(chartIdFor(sym), sym.chartTicker, pct); goTab(Tab.CHARTS)
                 })
             }
-            composable(Tab.CHARTS.route) { ChartRoute(chartWeb, chartVm, dark, snack) }
+            composable(Tab.CHARTS.route) {
+                ChartRoute(chartWeb, chartVm, dark, snack, symbols = homeState.active?.symbols.orEmpty(), defaultTf = defaultTf,
+                    onTrade = { tradeOpen = true }, onPaper = tradeVm::onSnapshot)
+            }
             composable(Tab.TRADE.route) {
                 val ts by tradeVm.state.collectAsState()
                 ChartPolling(chartWeb, chartVm, snack, onPaper = tradeVm::onSnapshot)
@@ -247,6 +293,10 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
                         onClose = { sym -> chartWeb.call("TZB.close(${jsString(sym)})") },
                         onCancel = { id -> chartWeb.call("TZB.cancel($id)") },
                         onSymbol = { goTab(Tab.CHARTS); chartWeb.call("TZB.search()") },
+                        onTab = tradeVm::setTab,
+                        onScalpBuy = { tradeVm.scalpCall("buy")?.let(chartWeb::call) },
+                        onScalpSell = { tradeVm.scalpCall("sell")?.let(chartWeb::call) },
+                        onDom = { side, price -> tradeVm.domCall(side, price)?.let(chartWeb::call) },
                     ), Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
                 }
             }
@@ -300,9 +350,41 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
 
     if (accountOpen) {
         ModalBottomSheet(onDismissRequest = { accountOpen = false }, containerColor = MaterialTheme.colorScheme.surface) {
-            AccountSheet(user, auth.available,
+            AccountContent(user, avatar, auth.available, themeMode, defaultTf, pushOn, data, AccountActions(
                 onSignIn = { accountOpen = false; nav.navigate(SIGN_IN) },
-                onSignOut = { accountOpen = false; scope.launch { runCatching { PushTokens.forget(ctx) }; auth.signOut() } })
+                onSignOut = { accountOpen = false; scope.launch { runCatching { PushTokens.forget(ctx) }; auth.signOut() } },
+                onTheme = prefs::setTheme,
+                onTf = { t -> prefs.setDefaultTf(t) },
+                onNotifications = {
+                    if (!pushOn && Build.VERSION.SDK_INT >= 33) askPush.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    else ctx.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName))
+                },
+                // The agreement is signed on the site (it is a legal form with the server callable); the app re-checks on return.
+                onAgreement = { accountOpen = false; openWeb("/charts.html") },
+                onHelp = { accountOpen = false; openWeb("/contact.html") },
+            ))
+        }
+    }
+    if (tradeOpen) {
+        val ts by tradeVm.state.collectAsState()
+        ModalBottomSheet(onDismissRequest = { tradeOpen = false }, containerColor = MaterialTheme.colorScheme.surface) {
+            TradeSheetContent(ts, TradeActions(
+                onType = tradeVm::setType, onPrice = tradeVm::setPriceText, onPriceStep = tradeVm::stepPrice,
+                onQty = tradeVm::stepQty, onBracket = tradeVm::stepBracket,
+                onBuy = { tradeVm.orderCall("buy")?.let(chartWeb::call) },
+                onSell = { tradeVm.orderCall("sell")?.let(chartWeb::call) },
+                onFlatten = { confirmFlatten = true },
+                onPaperOn = { chartWeb.call("TZB.paperOn()") },
+                onTab = tradeVm::setTab,
+                onScalpBuy = { tradeVm.scalpCall("buy")?.let(chartWeb::call) },
+                onScalpSell = { tradeVm.scalpCall("sell")?.let(chartWeb::call) },
+                onDom = { side, price -> tradeVm.domCall(side, price)?.let(chartWeb::call) },
+            ))
+        }
+    }
+    if (addOpen) {
+        ModalBottomSheet(onDismissRequest = { addOpen = false }, containerColor = MaterialTheme.colorScheme.surface) {
+            AddSymbolContent(homeState.active?.name ?: "Watchlist", homeState.items.toSet(), onAdd = homeVm::add)
         }
     }
     addTrade?.let { t ->
@@ -330,7 +412,7 @@ fun TzRoot(auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<
 }
 
 @Composable
-private fun HomeRoute(user: TzUser?, onProduct: (Product) -> Unit, onSymbol: (WatchSymbol, Double?) -> Unit, vm: HomeViewModel = viewModel()) {
+private fun HomeRoute(user: TzUser?, vm: HomeViewModel, data: DataAccess, onAdd: () -> Unit, onProduct: (Product) -> Unit, onSymbol: (WatchSymbol, Double?) -> Unit) {
     val state by vm.state.collectAsState()
     val owner = LocalLifecycleOwner.current
     // Poll only while Home is on screen (like the site pauses on a hidden tab).
@@ -345,11 +427,17 @@ private fun HomeRoute(user: TzUser?, onProduct: (Product) -> Unit, onSymbol: (Wa
         dayPart = dayPart(LocalTime.now().hour),
         marketOpen = isFuturesMarketOpen(Instant.now()),
         onProduct = onProduct,
-        onSymbol = { t ->
-            val row = state.rows.firstOrNull { it.symbol.ticker == t }
+        onSymbol = { id ->
+            val row = state.row(id)
             val q = when (val r = row?.state) { is RowState.Ready -> r.quote; is RowState.Failed -> r.stale; else -> null }
             row?.let { onSymbol(it.symbol, q?.changePct) }
         },
+        watch = WatchActions(
+            onAdd = onAdd, onRemove = vm::remove, onMove = vm::moveLocal, onMoveEnd = vm::commitOrder,
+            onSelect = vm::select, onCreate = vm::create, onRename = vm::rename, onDelete = vm::deleteActive,
+        ),
+        dataNote = if (user != null && data.current == true) "Current futures data. Updates every 25 s."
+            else if (user != null && data.agreement != null) data.label else null,
     )
 }
 
@@ -375,28 +463,33 @@ private fun SignInRoute(auth: AuthRepository, onClose: () -> Unit) {
         onForgot = vm::forgot,
         onCreate = { ctx.startActivity(Intent(Intent.ACTION_VIEW, "https://tradezoro.com/signup".toUri())) },
         onClose = onClose,
+        onPasskey = {
+            vm.busy(true)
+            scope.launch {
+                try {
+                    val token = PasskeyClient().signIn(ctx)
+                    if (token == null) vm.busy(false) else { auth.signInToken(token); vm.busy(false); onClose() }
+                } catch (e: Exception) { vm.googleFailed(e.message ?: "That passkey didn't work. Try again or use your email.") }
+            }
+        },
+        onTerms = { ctx.startActivity(Intent(Intent.ACTION_VIEW, "https://tradezoro.com/terms.html".toUri())) },
     )
 }
 
+/** The profile picture: the Google photo (downloaded once, small) or the initials. */
 @Composable
-private fun AccountSheet(user: TzUser?, available: Boolean, onSignIn: () -> Unit, onSignOut: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Account", style = MaterialTheme.typography.titleLarge)
-        if (user == null) {
-            Text("Sign in to sync your watchlist, journal and courses with the website.", style = MaterialTheme.typography.bodyMedium, color = Tz.colors.muted)
-            Button(onClick = onSignIn, enabled = available, shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = OnMint),
-                modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Sign in") }
-        } else {
-            Column {
-                Text(user.displayName ?: "Signed in", style = MaterialTheme.typography.titleMedium)
-                Text(user.email ?: "", style = MaterialTheme.typography.bodyMedium, color = Tz.colors.muted)
-            }
-            OutlinedButton(onClick = onSignOut, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().height(48.dp)) {
-                Text("Sign out", color = MaterialTheme.colorScheme.onSurface)
-            }
+private fun rememberAvatar(user: TzUser?): Avatar? {
+    if (user == null) return null
+    var photo by remember(user.photoUrl) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    LaunchedEffect(user.photoUrl) {
+        val url = user.photoUrl?.takeIf { it.startsWith("https://") } ?: return@LaunchedEffect
+        photo = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                okhttp3.OkHttpClient().newCall(okhttp3.Request.Builder().url(url).build()).execute().use { r ->
+                    r.body?.bytes()?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }?.asImageBitmap()
+                }
+            }.getOrNull()
         }
-        Text("Education only. Not financial advice.", style = MaterialTheme.typography.labelSmall, color = Tz.colors.muted)
     }
+    return Avatar(user.initials.uppercase(), photo)
 }
-

@@ -101,7 +101,7 @@ class AlignmentM4Test {
     }
 
     @Test fun mentis() {
-        show({ MenuTopBar("Mentis", {}, {}) }, Tab.LEARN) { m -> LearnContent(M4Samples.learn, LearnActions(), m) }
+        show({ MenuTopBar("Mentis", SampleAvatar, {}, {}) }, Tab.LEARN) { m -> LearnContent(M4Samples.learn, LearnActions(), m) }
         try {
             val icon = p("icon"); val kicker = p("kicker")
             near(icon.cy, kicker.cy, "continue: icon / kicker centre"); near(icon.l, 32f, "continue: icon 32 from edge")
@@ -117,7 +117,7 @@ class AlignmentM4Test {
     }
 
     @Test fun nemesis() {
-        show({ MenuTopBar("Nemesis", {}, {}) }, Tab.JOURNAL) { m -> JournalContent(M4Samples.journal, M4Samples.month, M4Samples.today, JournalActions(), m) }
+        show({ MenuTopBar("Nemesis", SampleAvatar, {}, {}) }, Tab.JOURNAL) { m -> JournalContent(M4Samples.journal, M4Samples.month, M4Samples.today, JournalActions(), m) }
         try {
             val prev = p("prev"); val month = p("month"); val next = p("next")
             near(prev.cy, month.cy, "month header: prev / title centre"); near(next.cy, month.cy, "month header: next / title centre")

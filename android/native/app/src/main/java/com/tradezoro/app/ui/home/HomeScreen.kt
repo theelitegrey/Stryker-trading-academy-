@@ -37,6 +37,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -66,20 +67,29 @@ fun HomeContent(
     onProduct: (Product) -> Unit,
     onSymbol: (String) -> Unit,
     modifier: Modifier = Modifier,
+    watch: WatchActions = WatchActions(),
+    /** Data access line from the account (agreement / current data); null = the default line. */
+    dataNote: String? = null,
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
         item { Greeting(firstName, dayPart, marketOpen) }
         item { SectionTitle("Products", Modifier.padding(top = 24.dp, bottom = 8.dp)) }
         item { ProductsCard(onProduct) }
-        item { SectionTitle("Watchlist", Modifier.padding(top = 24.dp, bottom = 8.dp)) }
+        item { WatchlistHeader(state, watch, Modifier.padding(top = 16.dp)) }
         item {
             Card(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-                state.rows.forEach { WatchRowView(it, onSymbol) }
+                if (state.rows.isEmpty()) EmptyList(watch.onAdd)
+                else WatchRows(state, onSymbol, watch)
             }
         }
         item {
             Text(
-                when { state.sample -> "Sample data"; state.anyDelayed -> "Futures prices are delayed. Updates every 25 s."; else -> "Updates every 25 s." },
+                when {
+                    state.sample -> "Sample data"
+                    dataNote != null -> dataNote
+                    state.anyDelayed -> "Futures prices are delayed. Updates every 25 s."
+                    else -> "Updates every 25 s."
+                } + if (!state.sample && state.rows.isNotEmpty()) "\nSwipe a row to remove it. Long-press and drag to reorder." else "",
                 style = MaterialTheme.typography.labelSmall, color = Tz.colors.muted, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             )
@@ -152,7 +162,8 @@ private fun ProductsCard(onProduct: (Product) -> Unit) {
 }
 
 @Composable
-private fun WatchRowView(row: WatchRow, onSymbol: (String) -> Unit) {
+internal fun WatchRowView(row: WatchRow, onSymbol: (String) -> Unit, modifier: Modifier = Modifier,
+                          a11y: List<androidx.compose.ui.semantics.CustomAccessibilityAction> = emptyList()) {
     val sym = row.symbol
     val q = when (val s = row.state) { is RowState.Ready -> s.quote; is RowState.Failed -> s.stale; RowState.Loading -> null }
     val pct = q?.changePct
@@ -160,14 +171,14 @@ private fun WatchRowView(row: WatchRow, onSymbol: (String) -> Unit) {
     val spoken = buildString {
         append("${sym.ticker}, ${sym.name}")
         when {
-            q != null -> { append(", ${formatPrice(q.last, sym.decimals)}"); if (pct != null) append(", ${formatPct(pct).replace('\u2212', '-')}") }
+            q != null -> { append(", ${formatPrice(q.last, sym.decimalsFor(q.last))}"); if (pct != null) append(", ${formatPct(pct).replace('\u2212', '-')}") }
             row.state is RowState.Failed -> append(", price unavailable")
             else -> append(", loading")
         }
     }
     Row(
-        Modifier.fillMaxWidth().height(60.dp).clickable(role = Role.Button) { onSymbol(sym.ticker) }
-            .clearAndSetSemantics { contentDescription = spoken },
+        modifier.fillMaxWidth().height(60.dp).clickable(role = Role.Button) { onSymbol(sym.id) }
+            .clearAndSetSemantics { contentDescription = spoken; if (a11y.isNotEmpty()) customActions = a11y },
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.width(112.dp)) {
@@ -179,7 +190,7 @@ private fun WatchRowView(row: WatchRow, onSymbol: (String) -> Unit) {
             if (q != null && q.spark.size > 1) Sparkline(q.spark, trend, Modifier.width(64.dp).height(24.dp))
         }
         Column(Modifier.width(96.dp), horizontalAlignment = Alignment.End) {
-            Text(q?.let { formatPrice(it.last, sym.decimals) } ?: "\u2014", style = MaterialTheme.typography.titleSmall.merge(Tabular).copy(fontWeight = null), maxLines = 1)
+            Text(q?.let { formatPrice(it.last, sym.decimalsFor(it.last)) } ?: "\u2014", style = MaterialTheme.typography.titleSmall.merge(Tabular).copy(fontWeight = null), maxLines = 1)
             Text(
                 pct?.let { formatPct(it) } ?: if (row.state is RowState.Failed) "Unavailable" else " ",
                 style = MaterialTheme.typography.labelMedium.merge(Tabular), color = trend, maxLines = 1,

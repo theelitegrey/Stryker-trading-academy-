@@ -10,7 +10,17 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
 
-data class TzUser(val uid: String, val email: String?, val displayName: String?, val emailVerified: Boolean)
+data class TzUser(val uid: String, val email: String?, val displayName: String?, val emailVerified: Boolean, val photoUrl: String? = null) {
+    /** "Alex Morgan" -> "AM"; email -> its first letter. For the avatar when there is no photo. */
+    val initials: String get() {
+        val parts = displayName?.trim()?.split(Regex("\\s+"))?.filter { it.isNotEmpty() }.orEmpty()
+        return when {
+            parts.size >= 2 -> "${parts.first()[0]}${parts.last()[0]}"
+            parts.size == 1 -> parts[0].take(1)
+            else -> email?.take(1) ?: "?"
+        }.uppercase()
+    }
+}
 
 /** Firebase Auth, same project as the website. Null-safe when the build has no Firebase config. */
 class AuthRepository(context: Context) {
@@ -21,7 +31,7 @@ class AuthRepository(context: Context) {
 
     val user: Flow<TzUser?> = auth?.let { a ->
         callbackFlow {
-            val l = FirebaseAuth.AuthStateListener { trySend(it.currentUser?.let { u -> TzUser(u.uid, u.email, u.displayName, u.isEmailVerified) }) }
+            val l = FirebaseAuth.AuthStateListener { trySend(it.currentUser?.let { u -> TzUser(u.uid, u.email, u.displayName, u.isEmailVerified, u.photoUrl?.toString()) }) }
             a.addAuthStateListener(l)
             awaitClose { a.removeAuthStateListener(l) }
         }
@@ -30,6 +40,9 @@ class AuthRepository(context: Context) {
     suspend fun signInEmail(email: String, password: String) { requireAuth().signInWithEmailAndPassword(email, password).await() }
 
     suspend fun signInGoogle(idToken: String) { requireAuth().signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await() }
+
+    /** Passkey sign-in and the chart page's sign-in both end in a Firebase custom token from the site. */
+    suspend fun signInToken(token: String) { requireAuth().signInWithCustomToken(token).await() }
 
     suspend fun sendReset(email: String) { requireAuth().sendPasswordResetEmail(email).await() }
 

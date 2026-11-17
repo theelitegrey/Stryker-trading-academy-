@@ -9,13 +9,13 @@ const val CHART_ORIGIN = "https://tradezoro.com"
 
 /** Timeframe chips from the mock. [id] is the chart's interval id (assets/chart-intervals.js parseIv). */
 enum class Timeframe(val id: String, val label: String) {
-    M1("1", "1m"), M5("5", "5m"), M15("15", "15m"), H1("60", "1H"), D("D", "D");
+    M1("1", "1m"), M5("5", "5m"), M15("15", "15m"), H1("60", "1H"), H4("240", "4H"), D("D", "D");
 
     companion object {
         /** The chart's own timeframe label ("5m", "1h", "1D", "D", "60") -> chip; null for others (e.g. 3m). */
         fun fromLabel(s: String?): Timeframe? = when (s?.trim()?.lowercase()) {
             "1", "1m" -> M1; "5", "5m" -> M5; "15", "15m" -> M15
-            "60", "1h", "60m" -> H1; "d", "1d" -> D
+            "60", "1h", "60m" -> H1; "240", "4h" -> H4; "d", "1d" -> D
             else -> null
         }
     }
@@ -35,6 +35,8 @@ data class BridgeState(
     val paper: Boolean = false,
     val pos: BridgePosition? = null,
     val signedIn: Boolean = false,
+    /** Firebase uid the chart page is signed in as ("" = signed out). */
+    val uid: String = "",
     val toasts: List<BridgeToast> = emptyList(),
 )
 
@@ -44,11 +46,8 @@ private val bridgeJson = Json { ignoreUnknownKeys = true; isLenient = true }
 fun parseBridge(raw: String): BridgeState? =
     runCatching { bridgeJson.decodeFromString(BridgeState.serializer(), raw) }.getOrNull()?.takeIf { it.t == "state" }
 
-/** Watchlist ticker -> chart symbol id (futures continuous front month; crypto USDT pair). */
-fun chartIdFor(s: WatchSymbol): String = when (s.source) {
-    Source.FUTURES -> "${s.ticker}1!"
-    Source.CRYPTO -> "binance:${s.ticker}USDT"
-}
+/** Watchlist symbol -> chart symbol id: the site's watchlist ids are the chart's ids ("futures:NQ1!", "binance:BTCUSDT"). */
+fun chartIdFor(s: WatchSymbol): String = s.id
 
 /** Chart symbol id -> display ticker: "MNQ1!" -> "MNQ", "binance:BTCUSDT" -> "BTC", others as-is without a prefix. */
 fun displayTicker(chartId: String): String {

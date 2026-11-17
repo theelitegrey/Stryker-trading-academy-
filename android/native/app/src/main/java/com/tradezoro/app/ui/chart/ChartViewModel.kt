@@ -31,8 +31,10 @@ data class ChartUiState(
     val priceStyle: PriceStyle = PriceStyle.CANDLES,
     /** Native drawing tool being placed, if any. */
     val tool: DrawTool? = null,
+    /** Firebase uid the chart page is signed in as ("" = signed out). */
+    val pageUid: String = "",
 ) {
-    val changePct: Double? get() = change.takeIf { changeFor == symbolId }
+    val changePct: Double? get() = change.takeIf { symbolId.isNotEmpty() && com.tradezoro.app.data.canonicalId(changeFor) == com.tradezoro.app.data.canonicalId(symbolId) }
     val ticker: String get() = if (symbolId.isEmpty()) "" else displayTicker(symbolId)
     val futures: Boolean get() = symbolId.isEmpty() || isFuturesId(symbolId)
     val qtyStep: Double get() = if (futures) 1.0 else 0.01
@@ -58,6 +60,7 @@ class ChartViewModel : ViewModel() {
                 paperOn = b.paper,
                 position = b.pos?.let { p -> "${if (p.side == "sell") "Short" else "Long"} ${trimQty(p.qty)} @ ${trimPrice(p.avg)}" },
                 qty = if (symChanged) (if (isFuturesId(b.sym)) 1.0 else 0.01) else s.qty,
+                pageUid = b.uid,
             )
         }
         if (b.toasts.isNotEmpty()) _messages.update { it + b.toasts.map { t -> t.msg }.filter { m -> m.isNotBlank() } }
@@ -71,6 +74,9 @@ class ChartViewModel : ViewModel() {
         _state.update { it.copy(change = changePct, changeFor = chartId) }
     }
     fun clearPending() { _pending.value = null }
+
+    /** The member's default timeframe is applied once, the first time the chart is ready. */
+    var defaultTfApplied = false
 
     fun consumeMessage() = _messages.update { it.drop(1) }
     fun pickTf(tf: Timeframe) = _state.update { it.copy(tf = tf) }

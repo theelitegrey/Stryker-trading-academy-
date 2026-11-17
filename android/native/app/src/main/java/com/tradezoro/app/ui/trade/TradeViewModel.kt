@@ -30,6 +30,7 @@ data class TradeUiState(
     val snap: PaperSnapshot = PaperSnapshot(),
     val ticket: Ticket = Ticket(),
     val sample: Boolean = false,
+    val tab: PanelTab = PanelTab.SCALP,
 ) {
     val spec get() = snap.spec
     val futures: Boolean get() = spec?.kind != "crypto"
@@ -49,6 +50,8 @@ data class TradeUiState(
     }
     val canTrade: Boolean get() = snap.ready && snap.on && spec != null && snap.last != null &&
         (ticket.type == OrderType.MARKET || orderPrice != null)
+    /** Scalp / DOM: the ticket's type does not matter there. */
+    val canMarket: Boolean get() = snap.ready && snap.on && spec != null && snap.last != null
 }
 
 class TradeViewModel : ViewModel() {
@@ -68,6 +71,22 @@ class TradeViewModel : ViewModel() {
         val s = st.spec; val last = st.snap.last
         val price = if (type != OrderType.MARKET && s != null && last != null) fmt(defaultOrderPrice(type, "buy", last, s.tick), s.decimals) else ""
         st.copy(ticket = st.ticket.copy(type = type, priceText = price))
+    }
+
+    fun setTab(t: PanelTab) = _state.update { it.copy(tab = t) }
+
+    /** Scalp: market order of the ticket quantity, no brackets (the site's Scalp tab). */
+    fun scalpCall(side: String): String? {
+        val st = _state.value
+        if (!st.canMarket) return null
+        return "TZB.order(${orderJson(side, OrderType.MARKET, st.ticket.qty, null, null, null)})"
+    }
+
+    /** DOM: a limit at [price] (the site's ladder: bid side = buy limit, ask side = sell limit). The engine rejects a marketable limit with its own toast. */
+    fun domCall(side: String, price: Double): String? {
+        val st = _state.value
+        if (!st.canMarket || !price.isFinite() || price <= 0) return null
+        return "TZB.order(${orderJson(side, OrderType.LIMIT, st.ticket.qty, price, null, null)})"
     }
 
     fun setPriceText(v: String) = _state.update { it.copy(ticket = it.ticket.copy(priceText = v.filter { c -> c.isDigit() || c == '.' }.take(16))) }

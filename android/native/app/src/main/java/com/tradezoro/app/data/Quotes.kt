@@ -11,21 +11,12 @@ import kotlinx.serialization.json.double
 /** One OHLCV bar. [time] is epoch seconds (bar open). */
 data class Bar(val time: Long, val open: Double, val high: Double, val low: Double, val close: Double, val volume: Double)
 
-/** Where a watchlist symbol's data comes from (the same public sources the site's watchlist uses). */
-enum class Source { FUTURES, CRYPTO }
+/** The site's default list (assets/chart-watchlist.js DEFAULT_ITEMS): a new member's first list, and the guest list. */
+val DEFAULT_ITEMS = listOf("###FUTURES", "futures:NQ1!", "futures:ES1!", "futures:YM1!", "futures:RTY1!", "futures:GC1!", "futures:CL1!",
+    "###FOREX", "fx:EURUSD", "fx:GBPUSD", "fx:USDJPY", "###CRYPTO", "binance:BTCUSDT", "binance:ETHUSDT")
 
-data class WatchSymbol(val ticker: String, val name: String, val source: Source, val decimals: Int)
-
-/** The Home watchlist (matches the approved mock). Futures = continuous front month. */
-val DEFAULT_WATCHLIST = listOf(
-    WatchSymbol("MNQ", "Micro E-mini Nasdaq", Source.FUTURES, 2),
-    WatchSymbol("MES", "Micro E-mini S&P", Source.FUTURES, 2),
-    WatchSymbol("NQ", "E-mini Nasdaq", Source.FUTURES, 2),
-    WatchSymbol("ES", "E-mini S&P 500", Source.FUTURES, 2),
-    WatchSymbol("GC", "Gold", Source.FUTURES, 2),
-    WatchSymbol("CL", "Crude Oil", Source.FUTURES, 2),
-    WatchSymbol("BTC", "Bitcoin", Source.CRYPTO, 0),
-)
+/** Symbols of the default list (previews, tests). */
+val DEFAULT_WATCHLIST: List<WatchSymbol> = DEFAULT_ITEMS.filterNot(::isSection).map(::symbolOf)
 
 data class Quote(
     val last: Double,

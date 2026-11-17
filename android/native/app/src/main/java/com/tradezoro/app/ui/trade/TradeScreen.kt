@@ -65,11 +65,6 @@ import com.tradezoro.app.ui.theme.OnMint
 import com.tradezoro.app.ui.theme.Tabular
 import com.tradezoro.app.ui.theme.Tz
 
-private val SellRed = Color(0xFFFF4D5E)
-private val OnSell = Color(0xFF2A060B)
-private val PaperAmber = Color(0xFFF5B942)
-private val PaperAmberLight = Color(0xFF8A5A00)
-
 data class TradeActions(
     val onType: (OrderType) -> Unit = {},
     val onPrice: (String) -> Unit = {},
@@ -83,6 +78,11 @@ data class TradeActions(
     val onClose: (String) -> Unit = {},
     val onCancel: (Long) -> Unit = {},
     val onSymbol: () -> Unit = {},
+    val onTab: (PanelTab) -> Unit = {},
+    val onScalpBuy: () -> Unit = {},
+    val onScalpSell: () -> Unit = {},
+    /** DOM ladder tap: a limit order of the ticket quantity at that price. */
+    val onDom: (side: String, price: Double) -> Unit = { _, _ -> },
 )
 
 /** Trade tab, app-mock/3-trade.png. Paper trading only: the site's paper engine, demo money, no broker. */
@@ -105,31 +105,7 @@ fun TradeContent(state: TradeUiState, actions: TradeActions, modifier: Modifier 
                 modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Turn on paper trading", style = MaterialTheme.typography.titleSmall) }
         } else {
             Spacer(Modifier.height(16.dp))
-            TypeTabs(state.ticket.type, actions.onType)
-            Spacer(Modifier.height(16.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.ticket.type != OrderType.MARKET) PriceField(state, actions)
-                StepField("Quantity (${if (state.futures) "contracts" else "units"})", qtyText(state.ticket.qty), "quantity",
-                    decEnabled = state.ticket.qty > state.qtyStep, onDec = { actions.onQty(-1) }, onInc = { actions.onQty(1) })
-                BracketField(state, takeProfit = false, actions)
-                BracketField(state, takeProfit = true, actions)
-            }
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val what = "${qtyText(state.ticket.qty)} ${state.ticker} ${state.ticket.type.label.lowercase()}"
-                Button(onClick = actions.onBuy, enabled = state.canTrade, shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = OnMint),
-                    modifier = Modifier.weight(1f).height(56.dp).semantics { contentDescription = "Paper buy $what" },
-                ) { Text("Buy", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) }
-                Button(onClick = actions.onSell, enabled = state.canTrade, shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SellRed, contentColor = OnSell),
-                    modifier = Modifier.weight(1f).height(56.dp).semantics { contentDescription = "Paper sell $what" },
-                ) { Text("Sell", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) }
-            }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = actions.onFlatten, enabled = s.positions.isNotEmpty() || s.orders.isNotEmpty(),
-                shape = RoundedCornerShape(24.dp), border = BorderStroke(1.dp, Tz.colors.hairline),
-                modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Flatten all", color = MaterialTheme.colorScheme.onBackground) }
+            OrderPanel(state, actions)
             Lists(state, actions)
         }
         Spacer(Modifier.height(16.dp))
@@ -199,6 +175,32 @@ private fun SymbolCard(state: TradeUiState, onSymbol: () -> Unit) {
 
 @Composable
 private fun pnlColor(v: Double) = when { v > 0 -> Tz.colors.up; v < 0 -> Tz.colors.down; else -> Tz.colors.muted }
+
+/** Order tab of the panel: Market | Limit | Stop, price, quantity, stop loss, take profit, Buy / Sell. */
+@Composable
+internal fun OrderTicket(state: TradeUiState, actions: TradeActions) {
+    TypeTabs(state.ticket.type, actions.onType)
+    Spacer(Modifier.height(16.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (state.ticket.type != OrderType.MARKET) PriceField(state, actions)
+        StepField("Quantity (${if (state.futures) "contracts" else "units"})", qtyText(state.ticket.qty), "quantity",
+            decEnabled = state.ticket.qty > state.qtyStep, onDec = { actions.onQty(-1) }, onInc = { actions.onQty(1) })
+        BracketField(state, takeProfit = false, actions)
+        BracketField(state, takeProfit = true, actions)
+    }
+    Spacer(Modifier.height(16.dp))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val what = "${qtyText(state.ticket.qty)} ${state.ticker} ${state.ticket.type.label.lowercase()}"
+        Button(onClick = actions.onBuy, enabled = state.canTrade, shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = OnMint),
+            modifier = Modifier.weight(1f).height(56.dp).semantics { contentDescription = "Paper buy $what" },
+        ) { Text("Buy", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) }
+        Button(onClick = actions.onSell, enabled = state.canTrade, shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = SellRed, contentColor = OnSell),
+            modifier = Modifier.weight(1f).height(56.dp).semantics { contentDescription = "Paper sell $what" },
+        ) { Text("Sell", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) }
+    }
+}
 
 @Composable
 private fun TypeTabs(type: OrderType, onType: (OrderType) -> Unit) {

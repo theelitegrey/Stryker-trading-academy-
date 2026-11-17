@@ -70,7 +70,7 @@ class AlignmentTest {
     @Test fun homeChrome() {
         rule.setContent {
             TradeZoroTheme(dark = true) {
-                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { HomeTopBar({}, {}) }, bottomBar = { TzBottomBar(Tab.HOME) {} }) { pad ->
+                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { HomeTopBar(SampleAvatar, {}, {}) }, bottomBar = { TzBottomBar(Tab.HOME) {} }) { pad ->
                     HomeContent(ScreenshotTest.sampleState(), null, DayPart.MORNING, true, {}, {}, Modifier.padding(pad))
                 }
             }
@@ -183,7 +183,7 @@ class AlignmentTest {
         val st = ScreenshotTest.sampleTradeState()
         rule.setContent {
             TradeZoroTheme(dark = true) {
-                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { MenuTopBar("Trade", {}, {}) }, bottomBar = { TzBottomBar(Tab.TRADE) {} }) { pad ->
+                Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { MenuTopBar("Trade", SampleAvatar, {}, {}) }, bottomBar = { TzBottomBar(Tab.TRADE) {} }) { pad ->
                     TradeContent(st, TradeActions(), Modifier.padding(pad))
                 }
             }

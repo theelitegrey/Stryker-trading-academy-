@@ -147,7 +147,7 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
     private fun Shell(tab: Tab, body: @Composable (Modifier) -> Unit) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
-            topBar = { if (tab == Tab.HOME) HomeTopBar({}, {}) else TabTopBar(tab.label) },
+            topBar = { if (tab == Tab.HOME) HomeTopBar(SampleAvatar, {}, {}) else TabTopBar(tab.label) },
             bottomBar = { TzBottomBar(tab) {} },
         ) { pad -> body(Modifier.padding(pad)) }
     }
@@ -173,7 +173,7 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
     private fun TradeShell(st: TradeUiState) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
-            topBar = { MenuTopBar("Trade", {}, {}) },
+            topBar = { MenuTopBar("Trade", SampleAvatar, {}, {}) },
             bottomBar = { TzBottomBar(Tab.TRADE) {} },
         ) { pad -> TradeContent(st, TradeActions(), Modifier.padding(pad)) }
     }
@@ -231,16 +231,16 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
         M4Shell({ BackTopBar("Omega", {}, {}) }, Tab.CHARTS) { m -> OmegaContent(OmegaUiState(gex = GexState.SignedOut), M4Samples.NOW_MS, OmegaActions(), m) }
     }
     @Test fun learn() = shoot("7-mentis") {
-        M4Shell({ MenuTopBar("Mentis", {}, {}) }, Tab.LEARN) { m -> LearnContent(M4Samples.learn, LearnActions(), m) }
+        M4Shell({ MenuTopBar("Mentis", SampleAvatar, {}, {}) }, Tab.LEARN) { m -> LearnContent(M4Samples.learn, LearnActions(), m) }
     }
     @Test fun learnSignedOut() = shoot("7b-mentis-signed-out") {
-        M4Shell({ MenuTopBar("Mentis", {}, {}) }, Tab.LEARN) { m -> LearnContent(M4Samples.learnSignedOut, LearnActions(), m) }
+        M4Shell({ MenuTopBar("Mentis", SampleAvatar, {}, {}) }, Tab.LEARN) { m -> LearnContent(M4Samples.learnSignedOut, LearnActions(), m) }
     }
     @Test fun journal() = shoot("8-nemesis") {
-        M4Shell({ MenuTopBar("Nemesis", {}, {}) }, Tab.JOURNAL) { m -> JournalContent(M4Samples.journal, M4Samples.month, M4Samples.today, JournalActions(), m) }
+        M4Shell({ MenuTopBar("Nemesis", SampleAvatar, {}, {}) }, Tab.JOURNAL) { m -> JournalContent(M4Samples.journal, M4Samples.month, M4Samples.today, JournalActions(), m) }
     }
     @Test fun journalSignedOut() = shoot("8b-nemesis-signed-out") {
-        M4Shell({ MenuTopBar("Nemesis", {}, {}) }, Tab.JOURNAL) { m -> JournalContent(JournalState.SignedOut, M4Samples.month, M4Samples.today, JournalActions(), m) }
+        M4Shell({ MenuTopBar("Nemesis", SampleAvatar, {}, {}) }, Tab.JOURNAL) { m -> JournalContent(JournalState.SignedOut, M4Samples.month, M4Samples.today, JournalActions(), m) }
     }
     @Test fun journalAdd() = shoot("8c-nemesis-add") {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {

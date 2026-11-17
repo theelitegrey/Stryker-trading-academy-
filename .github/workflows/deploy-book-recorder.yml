@@ -46,6 +46,10 @@ jobs:
         run: |
           node tools/tests/gex-close.test.mjs
           node tools/tests/gex-age.test.mjs
+      - name: Phantom tests (per-contract feeder maths, ZoroTide parity, ingest validation, gated routes)
+        run: |
+          python3 workers/book-recorder/test/phantom_test.py
+          node workers/book-recorder/test/phantom-worker-local.mjs
       - name: Options analytics tests (feeder maths, ingest validation)
         run: |
           python3 workers/book-recorder/test/opt_feeder_test.py

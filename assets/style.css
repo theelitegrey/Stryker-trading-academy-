@@ -9447,6 +9447,34 @@ html[data-device="mobile"] .mclock-state{ display:none; }
 html[data-device="mobile"] .mclock-short{ display:inline; }
 html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:calc(100% + 4px); }
 :root[data-theme="light"] .mclock-pill{ background:#fff; }
+/* Account strip (Charts header, left of the session pill; assets/chart-paper.js updateStrip). Same height + pill as .mclock-pill. */
+.stkas{ position:relative; flex:0 0 auto; margin-left:auto; margin-right:8px; }
+.stkas[hidden]{ display:none; }
+.stkas:not([hidden]) + .mclock{ margin-left:0; }
+.stkas-b{ display:flex; align-items:center; gap:12px; height:34px; padding:0 16px; border:1px solid var(--line); border-radius:999px; background:var(--bg-2);
+  color:var(--ink-1); font:12px/1 var(--font-mono); font-variant-numeric:tabular-nums; white-space:nowrap; cursor:pointer; transition:border-color .15s ease; }
+.stkas-b:hover{ border-color:var(--teal-dim, var(--teal)); }
+.stkas-b:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+.stkas-i{ display:inline-flex; align-items:center; gap:4px; }
+.stkas-l{ color:var(--ink-3); font-weight:500; }
+.stkas-v{ color:var(--ink-0); font-weight:700; }
+.stkas-v.up{ color:var(--bull, #03c988); }
+.stkas-v.down{ color:var(--bear, #f23645); }
+.stkas-pop{ display:none; }
+:root[data-theme="light"] .stkas-b{ background:#fff; }
+@media (max-width:1180px){ .stkas-l{ display:none; } .stkas-b{ gap:8px; padding:0 12px; } }
+/* Phones (html.stk-cps: the header row is hidden and the clock sits in #stkc-bar; the strip follows the clock): one chip, popover with all three */
+html.stk-cps .stkas{ margin:0 2px; order:0; }
+html.stk-cps .stkas-b{ height:28px; padding:0 8px; font-size:11px; border-radius:8px; background:transparent; border-color:transparent; }
+html.stk-cps .stkas-i[data-k="bal"], html.stk-cps .stkas-i[data-k="rp"]{ display:none; }
+html.stk-cps .stkas.chip-bal .stkas-i[data-k="bal"]{ display:inline-flex; }
+html.stk-cps .stkas.chip-bal .stkas-i[data-k="up"]{ display:none; }
+html.stk-cps .stkas-l{ display:none; }
+html.stk-cps .stkas-pop{ position:fixed; right:8px; top:52px; z-index:9071; min-width:220px; padding:12px 16px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); box-shadow:0 18px 40px -16px rgba(0,0,0,.5); }
+html.stk-cps .stkas-pop:not([hidden]){ display:block; }
+html.stk-cps .stkas-row{ display:flex; justify-content:space-between; gap:16px; padding:4px 0; font:13px/20px var(--font-mono); color:var(--ink-2); }
+html.stk-cps .stkas-row b{ color:var(--ink-0); font-weight:700; }
+html.stk-cps .stkas-row b.up{ color:var(--bull, #03c988); } html.stk-cps .stkas-row b.down{ color:var(--bear, #f23645); }
 :root[data-theme="light"] .mclock-pop{ background:#fff; box-shadow:0 18px 40px -16px rgba(14,22,33,.28); }
 
 /* ---- Free plan limits (assets/plan-limits.js, pricing change 2026-10-05) ---- */

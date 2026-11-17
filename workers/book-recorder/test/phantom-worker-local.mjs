@@ -23,7 +23,7 @@ const K1 = 'SPXW261120C07000000', K2 = 'SPXW261120P06900000';
 const nowS = Math.floor(Date.now() / 1000);
 const mk = (day, t, over) => Object.assign({ v: 1, u: 'SPX', day, t, spot: 7000.5, from: t - 600, prevDay: null, exps: ['2026-11-20'], cols: ['k', 'x', 's', 'c', 'v', 'oi', 'p', 'n', 'px', 'doi', 'pv'],
   rows: [[K1, 0, 7000, 'C', 140, 500, 26500, 22000, 2, null, null], [K2, 0, 6900, 'P', 52, 40, 5200, -5200, 1, null, null]],
-  tot: { cp: 26500, pp: 5200, cn: 22000, pn: -5200, cv: 140, pv: 52 }, mcols: ['t', 'k', 'dv', 'p', 'px', 'v', 'oi'], moves: [[t, K1, 100, 20000, 2, 100, 500]], lm: [[K1, 10, 2000]],
+  tot: { cp: 26500, pp: 5200, cn: 22000, pn: -5200, cv: 140, pv: 52 }, mcols: ['t', 'k', 'dv', 'p', 'px', 'v', 'oi'], moves: [[t, K1, 100, 20000, 2, 100, 500]], lm: [[K1, 10, 2000, 140, 500]],
   minute: { [K1]: [10, 2000] } }, over);
 const post = (d, key = SECRET, u = 'SPX') => W('/phantom-ingest?u=' + u, { method: 'POST', body: gzipSync(JSON.stringify(d)), headers: key ? { 'x-ingest-key': key } : {} });
 

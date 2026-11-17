@@ -125,7 +125,7 @@ def step(state, spot, chain_time, rows):
     cands.sort(key=lambda r: -r[3])
     state['moves'] = rank_moves(state['moves'], [c for c in cands[:MOVES_PER_SAMPLE] if c[3] >= MIN_MOVE_USD])
     state['t'] = t
-    lm = [[c[1], c[2], c[3]] for c in cands[:LM_TOP]]
+    lm = [[c[1], c[2], c[3], c[5], c[6]] for c in cands[:LM_TOP]]       # [k, new volume, premium, day volume, OI]
     return {'day': day, 't': int(round(t)), 'spot': round(spot, 2), 'minute': minute, 'lm': lm}, state
 
 

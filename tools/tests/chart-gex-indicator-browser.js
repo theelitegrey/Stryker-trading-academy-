@@ -34,9 +34,30 @@ async function open(b, { w, h, mobile, free }) {
     if (!body) return r.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"unknown market"}' });
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
+  // ES candles from the live feed are far from the fixture's levels (saved 2026-10-07), which would put every
+  // label tag off screen: move the served ES bars so the last close sits at the fixture's ES price.
+  // One offset for every page (from the newest ES bars), so candles stay continuous.
+  const esPx = SPX.futures.ES.futures_price != null ? SPX.futures.ES.futures_price : SPX.futures.ES.levels.spot;
+  const esLast = await (await fetch(BASE + '/api/chart/bars/ES?tf=5')).json();
+  const esOff = esPx - esLast.bars[esLast.bars.length - 1][4];
+  await ctx.route(/\/api\/chart\/bars\/ES\?tf=/, async (r) => {
+    const res = await r.fetch(); const j = await res.json();
+    if (j.bars) j.bars = j.bars.map((x) => [x[0], x[1] + esOff, x[2] + esOff, x[3] + esOff, x[4] + esOff].concat(x.slice(5)));
+    r.fulfill({ status: res.status(), contentType: 'application/json', body: JSON.stringify(j) });
+  });
+  // Levels are shifted to the chart's own futures price at the options time (anchorShift). Serve that
+  // 1m page from the fixture (last closed bar closes at the API's futures price: shift 0), so the
+  // expected numbers do not depend on the live bar feed.
+  await ctx.route(/\/api\/chart\/bars\/[A-Z]+1(?:!|%21)\?tf=1&page=/, (r) => {
+    const m = /\/bars\/([A-Z]+)1(?:!|%21)/.exec(r.request().url());
+    const f = SPX.futures[m && m[1]];
+    const px = f && (f.futures_price != null ? f.futures_price : f.levels.spot);
+    const t0 = SPX.market.options_ts - 90;   // closed 30 s before the options time
+    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ bars: px == null ? [] : [[t0, px, px, px, px, 1]] }) });
+  });
   const p = await ctx.newPage();
   const errors = [];
-  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5/.test(m.text())) errors.push(m.text()); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|response code: 451/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
@@ -94,7 +115,7 @@ async function addFromWindow(p) {
     const { ctx, p, errors, gexHits } = await open(b, { w: 1440, h: 900 });
     await setSym(p, 'futures:ES1!', '5');
     const info = await addFromWindow(p);
-    check(info.grps[0] === 'TradeZoro' && info.first === 'b:stk_gex', 'window: "TradeZoro" group first, GEX Levels first row (' + info.grps.join(' | ') + ')');
+    check(/^Options & GEX/.test(info.grps[0]) && info.first === 'b:stk_gex', 'window: "Options & GEX" group first, GEX Levels first row (' + info.grps.join(' | ') + ')');
     check(/GEX Levels/.test(info.text || '') && /Call wall, put wall, zero gamma, IV ±68% and market levels/.test(info.text || ''), 'window row has name + short description: ' + info.text);
     check(!info.vela, 'window: no Vela/LuxAlgo text');
     await shot(p, 'gex-window-1440.png');
@@ -174,9 +195,10 @@ async function addFromWindow(p) {
     await shot(p, 'gex-nq-1440.png');
 
     // unsupported symbol
-    await setSym(p, 'futures:CL1!', '5');
-    d = await gexData(p); c = await chip(p);
-    check(d && !d.lines && d.note === 'GEX levels available for SPX, ES, NQ' && c && c.text === 'GEX levels available for SPX, ES, NQ', 'CL: note shown, nothing drawn');
+    await setSym(p, 'futures:ZB1!', '5');
+    for (let i = 0; i < 20; i++) { d = await gexData(p); if (d && d.note) break; await sleep(500); }
+    c = await chip(p);
+    check(d && !d.lines && d.note === 'GEX levels available for SPX, SPY, QQQ, GLD, ES, NQ and gold (GC)' && c && c.text === 'GEX levels available for SPX, SPY, QQQ, GLD, ES, NQ and gold (GC)', 'ZB (unsupported): note shown, nothing drawn');
     await shot(p, 'gex-cl-1440.png');
 
     // performance: no repaint pushes on mouse move

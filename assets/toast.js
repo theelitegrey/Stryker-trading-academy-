@@ -8,7 +8,9 @@
 //      system dialog with the site's hostname in it.
 //
 // One global entry point so every confirmation across the site looks the same:
-//   showToast('success' | 'error' | 'info', message, options)
+//   showToast('success' | 'error' | 'info' | 'warning' | 'loading', message, options)
+// Look: calm card that follows the theme; behaviour: stack of up to 3 with a timer line (Owner 17 Nov 2026).
+// Chart toasts (Vela's own) are routed here too, see assets/vela-chart.js.
 //
 // A NOTE ON BLOCKING
 // alert() halts execution until dismissed; a toast does not. That is almost
@@ -20,52 +22,49 @@
 (function () {
 
   var HOST_ID = 'stryker-toast-host';
-  var DEFAULT_MS = { success: 4000, info: 5000, warning: 6000, error: 7000 };
-  var TITLES = { success: 'Done', error: 'Something went wrong', info: 'Heads up', warning: 'Warning' };
+  // success/info 4 s, warning 6 s; error and loading stay until closed/resolved.
+  var DEFAULT_MS = { success: 4000, info: 4000, warning: 6000 };
+  var TITLES = { success: 'Done', error: 'Something went wrong', info: 'Heads up', warning: 'Warning', loading: 'Loading…' };
+  var MAX = 10, GAP = 8;
 
-  // One icon family, 20px, stroke 2.
   var ICONS = {
     success: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     error:   '<path d="M7 7l10 10M17 7L7 17"/>',
     info:    '<path d="M12 11v5M12 8h.01"/>',
-    warning: '<path d="M12 8v5M12 16.5h.01"/>',
+    warning: '<path d="M12 7.5v5.5M12 16.5h.01"/>',
     loading: '<path d="M12 3a9 9 0 1 0 9 9" class="toast-spin"/>'
   };
 
-  // Look: compact dark pill that morphs (gooey SVG filter) into a card when it has a
-  // description or action. Dark in both themes, like the reference. Injected here so every
-  // page that loads toast.js gets it without touching a stylesheet.
   var CSS = '' +
-  '.toast-host{position:fixed;z-index:1000;top:calc(12px + env(safe-area-inset-top,0px));left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:18px;pointer-events:none}' +
-  '.toast{--tc:#03c988;--tw:max-content;position:relative;width:min(340px,calc(100vw - 24px));display:flex;flex-direction:column;align-items:center;pointer-events:none;color:#fff;' +
-    'opacity:0;transform:translateY(-120%) scale(.85);transform-origin:50% 0;transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .2s ease}' +
-  '.toast{touch-action:none}.toast.pill{width:auto}' +
-  '.toast.in{opacity:1;transform:none}' +
-  '.toast.out{opacity:0;transform:translateY(-50%) scale(.5);transition:transform .28s cubic-bezier(.4,0,1,1),opacity .28s ease}' +
-  '.toast.dragging{transition:none}' +
-  '.toast-success{--tc:#2fd98f}.toast-error{--tc:#ff6b70}.toast-info{--tc:#5aa9ff}.toast-warning{--tc:#f5b44a}.toast-loading{--tc:rgba(255,255,255,.7)}' +
-  '.tz-goo{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;filter:url(#tz-goo) drop-shadow(0 6px 14px rgba(0,0,0,.35)) drop-shadow(0 0 .5px rgba(255,255,255,.35))}' +
-  '.tz-goo i{display:block;background:#0b0b0d}' +
-  '.tz-goo .gt{height:36px;width:var(--tw);border-radius:18px;flex:none;transition:width .45s cubic-bezier(.34,1.3,.64,1)}' +
-  '.tz-goo .gb{flex:1;width:100%;margin-top:-8px;border-radius:20px;transform:scale(.3,.1);transform-origin:50% 0;opacity:0;transition:transform .5s cubic-bezier(.34,1.3,.64,1),opacity .2s}' +
-  '.toast.open .gb{transform:none;opacity:1}' +
-  '.tz-tab{position:relative;height:36px;box-sizing:border-box;width:var(--tw);max-width:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 14px 0 10px;white-space:nowrap;pointer-events:auto;cursor:pointer;transition:width .45s cubic-bezier(.34,1.3,.64,1);-webkit-tap-highlight-color:transparent}' +
-  '.tz-tab:focus-within{outline:2px solid var(--tc);outline-offset:-2px;border-radius:18px}' +
-  '.toast-icon{display:inline-flex;flex:none;color:var(--tc);width:20px;height:20px;transition:color .3s}' +
-  '.toast-icon.swap,.toast-title.swap{animation:toast-swap .4s cubic-bezier(.34,1.56,.64,1)}' +
-  '@keyframes toast-swap{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:none}}' +
+  '.toast-host{--card:#16171b;--line:#2a2c33;--ink:#f2f3f5;--ink2:#a3a7b0;--ink3:#8a8f9a;--sh:0 10px 28px rgba(0,0,0,.45);' +
+    'position:fixed;z-index:2147483001;width:min(340px,calc(100vw - 24px));height:0;top:calc(var(--topbar-h,68px) + 16px);right:16px;pointer-events:none}' +
+  'html:has(#stkc-bar) .toast-host{top:calc(var(--stkc-top,var(--topbar-h,68px)) + 56px)}' +
+  ':root[data-theme="light"] .toast-host{--card:#fff;--line:#e3e5ea;--ink:#111;--ink2:#5b6070;--ink3:#6b7080;--sh:0 10px 30px rgba(20,24,40,.12)}' +
+  '@media (max-width:600px){html:not(.bt-tz) .toast-host{top:auto;right:auto;left:50%;margin-left:calc(min(340px,100vw - 24px) / -2);bottom:calc(16px + env(safe-area-inset-bottom,0px) + var(--stkc-dock,0px))}}' +
+  '@media (max-width:820px){body.has-appdock .toast-host,body.nav-authed .toast-host{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}' +
+  '.toast{--tc:#22c55e;position:absolute;left:0;right:0;top:0;transform-origin:50% 0;box-sizing:border-box;display:flex;align-items:flex-start;gap:12px;padding:12px 10px 12px 12px;overflow:hidden;' +
+    'background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh);color:var(--ink);font-family:inherit;pointer-events:auto;touch-action:pan-y;' +
+    'transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .28s ease}' +
+  '.toast.up{top:auto;bottom:0;transform-origin:50% 100%}.toast.dragging{transition:none}' +
+  '.toast-success{--tc:#22c55e}.toast-info{--tc:#4c8dff}.toast-warning{--tc:#e8b44c}.toast-error{--tc:#ef4444}.toast-loading{--tc:#a3a7b0}' +
+  ':root[data-theme="light"] .toast-success{--tc:#16a34a}:root[data-theme="light"] .toast-info{--tc:#2563eb}:root[data-theme="light"] .toast-warning{--tc:#b7791f}:root[data-theme="light"] .toast-error{--tc:#dc2626}:root[data-theme="light"] .toast-loading{--tc:#5b6070}' +
+  '.toast-icon{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--tc);background:color-mix(in srgb,var(--tc) 16%,transparent)}' +
+  '.toast-icon svg{width:14px;height:14px;display:block}' +
   '.toast-spin{transform-origin:12px 12px;animation:toast-rot .8s linear infinite}@keyframes toast-rot{to{transform:rotate(360deg)}}' +
-  '.toast-title{flex:none;max-width:260px;font:600 14px/20px sans-serif;font-family:inherit;color:var(--tc);overflow:hidden;text-overflow:ellipsis;transition:color .3s}' +
-  '.toast-close{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);border:0;padding:0}' +
-  '.tz-card{position:relative;width:100%;display:grid;grid-template-rows:0fr;pointer-events:none;transition:grid-template-rows .5s cubic-bezier(.34,1.2,.64,1)}' +
-  '.toast.open .tz-card{grid-template-rows:1fr;pointer-events:auto}' +
-  '.tz-card-in{min-height:0;overflow:hidden;opacity:0;transition:opacity .25s ease}' +
-  '.toast.open .tz-card-in{opacity:1;transition-delay:.12s}' +
-  '.tz-card-pad{padding:6px 16px 16px;display:flex;flex-direction:column;gap:12px}' +
-  '.toast-msg{margin:0;font:400 13px/18px sans-serif;font-family:inherit;color:rgba(255,255,255,.74);word-break:break-word;white-space:pre-line}' +
-  '.toast-action{min-height:44px;width:100%;border:0;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.1);color:var(--tc);font:600 14px/20px sans-serif;font-family:inherit;transition:background .15s}' +
-  '.toast-action:hover{background:rgba(255,255,255,.16)}.toast-action:focus-visible{outline:2px solid var(--tc);outline-offset:2px}' +
-  '@media (prefers-reduced-motion:reduce){.toast,.toast.in,.toast.out{transform:none;transition:opacity .15s linear}.tz-goo .gt,.tz-goo .gb,.tz-tab,.tz-card,.tz-card-in{transition:none}.toast-icon.swap,.toast-title.swap{animation:none}}';
+  '.toast-body{flex:1;min-width:0;padding-top:2px}' +
+  '.toast-title,.toast-msg{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;overflow-wrap:anywhere;white-space:pre-line;margin:0;font-family:inherit}' +
+  '.toast-title{font-size:13.5px;font-weight:500;line-height:18px;color:var(--ink)}' +
+  '.toast-msg{font-size:12.5px;font-weight:400;line-height:17px;color:var(--ink2);margin-top:2px}' +
+  '.toast-action,.toast-close{align-self:center;flex:none;font-family:inherit}' +
+  '.toast-action{font-size:12.5px;font-weight:600;line-height:1;height:28px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap;max-width:45%;overflow:hidden;text-overflow:ellipsis}' +
+  '.toast-action:hover{background:color-mix(in srgb,var(--ink) 8%,transparent)}' +
+  '.toast-close{position:relative;width:22px;height:22px;display:grid;place-items:center;padding:0;border:0;border-radius:6px;background:transparent;color:var(--ink3);cursor:pointer;font-size:0}' +
+  '.toast-close svg{width:14px;height:14px}.toast-close::after{content:"";position:absolute;inset:-8px}' +
+  '.toast-close:hover{color:var(--ink)}' +
+  '.toast-action:focus-visible,.toast-close:focus-visible{outline:2px solid var(--tc);outline-offset:2px}' +
+  '.toast-timer{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--tc);transform-origin:0 50%;animation:toast-tm var(--ms) linear forwards;animation-play-state:var(--ps,running)}' +
+  '@keyframes toast-tm{from{transform:scaleX(1)}to{transform:scaleX(0)}}' +
+  '@media (prefers-reduced-motion:reduce){.toast{transition:opacity .15s linear}.toast-spin{animation-duration:1.6s}}';
 
   function injectStyle() {
     if (document.getElementById('stryker-toast-css')) return;
@@ -75,6 +74,12 @@
     document.head.appendChild(st);
   }
 
+  var list = [];            // newest first
+  var fanned = false, leaveT = null;
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)');
+  var noMotion = function () { return !!(reduce && reduce.matches); };
+  var isUp = function () { return window.innerWidth <= 600 && !document.documentElement.classList.contains('bt-tz'); };   // phones: bottom centre, stack grows upward (replay trainer keeps the top, clear of Sell/Buy)
+
   function host() {
     var el = document.getElementById(HOST_ID);
     if (el) return el;
@@ -82,170 +87,169 @@
     el = document.createElement('div');
     el.id = HOST_ID;
     el.className = 'toast-host';
-    // aria-live so a screen reader announces it without stealing focus.
-    el.setAttribute('aria-live', 'polite');
-    el.setAttribute('role', 'status');
-    // Gooey filter: blur then threshold the alpha so touching shapes fuse like liquid.
-    el.innerHTML = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' +
-      '<filter id="tz-goo" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">' +
-      '<feGaussianBlur in="SourceGraphic" stdDeviation="6"/>' +
-      '<feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"/></filter></defs></svg>';
+    el.addEventListener('pointerover', function (e) { if (e.pointerType !== 'mouse') return; clearTimeout(leaveT); setFan(true); });
+    el.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'mouse') return; leaveT = setTimeout(function () { setFan(false); }, 120); });
+    el.addEventListener('focusin', function () { setFan(true); });
+    el.addEventListener('focusout', function () { setFan(false); });
     document.body.appendChild(el);
     return el;
   }
 
-  function esc(s) {
-    return String(s === null || s === undefined ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function setFan(v) {
+    if (fanned === v) return;
+    fanned = v;
+    list.forEach(function (c) { c.hold(v); });
+    layout();
   }
 
-  function svg(inner, size) {
-    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  // Collapsed = 3-deep stack (newest in front); fanned (hover/focus) = a list.
+  function layout() {
+    if (!list.length) fanned = false;   // the hovered toast vanished under the cursor: no pointerleave will come
+    var up = isUp(), off = 0;
+    list.forEach(function (c, i) {
+      var el = c.el, y, s = 1, o = 1;
+      el.classList.toggle('up', up);
+      if (fanned) { y = off; off += el.offsetHeight + GAP; }
+      else {
+        y = i === 0 ? 0 : i === 1 ? 10 : 22;
+        s = i === 0 ? 1 : i === 1 ? .95 : .9; o = i === 0 ? 1 : i === 1 ? .75 : i === 2 ? .45 : 0;
+      }
+      if (noMotion()) s = 1;
+      el.style.zIndex = String(100 - i);
+      el.style.opacity = String(o);
+      el.style.pointerEvents = (!fanned && i > 0) ? 'none' : '';
+      if (!el._drag) el.style.transform = 'translateY(' + (up ? -y : y) + 'px) scale(' + s + ')';
+    });
   }
 
-  // Split (message, options) into the pill title and the card description.
+  function svg(inner) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  }
+
+  // A lone message is the title; with a description the message is the title.
   function split(type, message, opts) {
-    var title = opts.title || '', msg = message === null || message === undefined ? '' : String(message);
-    if (opts.description) { msg = opts.description; if (!title) title = String(message || ''); }
-    else if (!title && msg && msg.length <= 28 && !/[.!?]$/.test(msg.trim())) { title = msg; msg = ''; }
-    if (!title) title = TITLES[type] || 'Heads up';
+    var m = message === null || message === undefined ? '' : String(message);
+    var title = opts.title ? String(opts.title) : '', msg = '';
+    if (opts.description) { msg = String(opts.description); if (!title) title = m; }
+    else if (title) msg = m;
+    else title = m;
+    if (!title) title = TITLES[type] || TITLES.info;
     return { title: title, msg: msg };
   }
 
-  // Build one toast. Returns a controller: { update(type, message, opts), close(), arm(ms), promise }.
   function create(type, message, opts) {
     type = ICONS[type] ? type : 'info';
-    var sp = split(type, message, opts);
+    var sp = split(type, message, opts), cur = opts;
     var toast = document.createElement('div');
-    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
-    toast.innerHTML =
-      '<div class="tz-goo" aria-hidden="true"><i class="gt"></i><i class="gb"></i></div>' +
-      '<div class="tz-tab"><span class="toast-icon"></span><span class="toast-title"></span>' +
-        '<button type="button" class="toast-close" aria-label="Dismiss">Dismiss</button></div>' +
-      '<div class="tz-card"><div class="tz-card-in"><div class="tz-card-pad"><p class="toast-msg"></p>' +
-        '<button type="button" class="toast-action"></button></div></div></div>';
-    var tab = toast.querySelector('.tz-tab'), icon = toast.querySelector('.toast-icon'),
-        ttl = toast.querySelector('.toast-title'), msgEl = toast.querySelector('.toast-msg'),
+    toast.innerHTML = '<span class="toast-icon"></span><div class="toast-body"><p class="toast-title"></p><p class="toast-msg"></p></div>' +
+      '<button type="button" class="toast-action"></button>' +
+      '<button type="button" class="toast-close" aria-label="Dismiss notification">' + svg('<path d="M6 6l12 12M18 6L6 18"/>') + '</button>';
+    var icon = toast.firstChild, ttl = toast.querySelector('.toast-title'), msgEl = toast.querySelector('.toast-msg'),
         actEl = toast.querySelector('.toast-action');
-    var cur = opts;
+    var settled = false, timer = null, startedAt = 0, remaining = 0, paused = false, touching = false, resolveFn;
+    var promise = new Promise(function (r) { resolveFn = r; });
+    var api = { el: toast, promise: promise };
 
-    function fill(swap) {
-      toast.className = 'toast toast-' + type + (toast.classList.contains('in') ? ' in' : '') +
-        (toast.classList.contains('open') ? ' open' : '') + (toast.classList.contains('hold') ? ' hold' : '');
-      icon.innerHTML = svg(ICONS[type], 20);
+    function fill() {
+      toast.className = 'toast toast-' + type + (isUp() ? ' up' : '');
+      toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+      icon.innerHTML = svg(ICONS[type]);
       ttl.textContent = sp.title;
       msgEl.textContent = sp.msg; msgEl.style.display = sp.msg ? '' : 'none';
       actEl.textContent = cur.action ? cur.action.label : ''; actEl.style.display = cur.action ? '' : 'none';
-      var card = !!(sp.msg || cur.action);
-      toast.classList.toggle('pill', !card);
-      toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
-      if (swap) { [icon, ttl].forEach(function (n) { n.classList.remove('swap'); void n.offsetWidth; n.classList.add('swap'); }); }
-      toast._card = card;
-      fit();
     }
-    // Pin the tab to its natural width so it can animate between sizes.
-    function fit() {
-      if (!toast.parentElement) return;
-      tab.style.transition = 'none'; tab.style.width = 'max-content'; tab.style.maxWidth = 'none';
-      var w = Math.min(tab.offsetWidth + 1, window.innerWidth - 24);
-      tab.style.width = ''; tab.style.maxWidth = ''; tab.style.transition = '';
-      toast.style.setProperty('--tw', w + 'px');
-    }
-    if (opts.hold) toast.classList.add('hold');
-    fill(false);
+    fill();
 
-    var settled = false, timer = null, startedAt = 0, remaining = 0, hovering = false, touching = false, openT = null, resolveFn;
-    var promise = new Promise(function (r) { resolveFn = r; });
-
-    function remove() {
-      if (toast.parentElement) toast.parentElement.removeChild(toast);
-      resolveFn();
-    }
-    function leave() {
-      toast.classList.remove('in'); toast.classList.add('out');
-      toast.addEventListener('transitionend', remove, { once: true });
-      setTimeout(remove, 450);
-    }
+    function unlist() { var i = list.indexOf(api); if (i >= 0) list.splice(i, 1); }
+    function remove() { if (toast.parentElement) toast.parentElement.removeChild(toast); unlist(); layout(); resolveFn(); }
     function close() {
       if (settled) return;
-      settled = true;
-      if (timer) clearTimeout(timer);
-      clearTimeout(openT);
-      // Card folds back into the pill first, then the pill leaves.
-      if (toast.classList.contains('open')) { toast.classList.remove('open'); setTimeout(leave, 380); } else leave();
+      settled = true; clearTimeout(timer);
+      toast.style.opacity = '0'; toast.style.pointerEvents = 'none';
+      unlist(); layout();
+      setTimeout(remove, noMotion() ? 150 : 280);
+    }
+    function line(ms) {
+      var t = toast.querySelector('.toast-timer');
+      if (!ms) { if (t) t.remove(); return; }
+      if (!t) { t = document.createElement('i'); t.className = 'toast-timer'; toast.appendChild(t); }
+      t.style.setProperty('--ms', ms + 'ms'); t.style.setProperty('--ps', paused ? 'paused' : 'running');
+      t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
     }
     function arm(ms) {
       if (settled) return;
-      if (ms) remaining = ms;
-      if (cur.hold && ms === undefined) return;
-      clearTimeout(timer);
+      clearTimeout(timer); remaining = ms || 0;
+      line(ms);
+      if (!ms) return;
       startedAt = Date.now();
-      timer = setTimeout(close, remaining);
+      if (!paused) timer = setTimeout(close, remaining);
     }
-    function pause() {
-      if (settled || !timer) return;
-      clearTimeout(timer); timer = null;
-      remaining = Math.max(600, remaining - (Date.now() - startedAt));
+    // Hover / focus / touch pauses the countdown and the timer line.
+    function hold(v) {
+      if (settled) return;
+      v = v || touching;
+      if (v === paused) return;
+      paused = v;
+      if (remaining) {
+        if (v) { clearTimeout(timer); remaining = Math.max(300, remaining - (Date.now() - startedAt)); }
+        else { startedAt = Date.now(); timer = setTimeout(close, remaining); }
+        var t = toast.querySelector('.toast-timer');
+        if (t) t.style.setProperty('--ps', v ? 'paused' : 'running');
+      }
     }
-    function resume() { if (hovering || touching || timer || settled || (cur.hold && !cur._armed)) return; arm(); }
-    function openCard() { clearTimeout(openT); if (toast._card) openT = setTimeout(function () { toast.classList.add('open'); }, 280); }
+    api.hold = hold;
 
-    tab.addEventListener('click', close);
-    toast.querySelector('.toast-close').addEventListener('click', close);
     actEl.addEventListener('click', function () { close(); try { cur.action.onClick(); } catch (e) {} });
-    toast.addEventListener('pointerenter', function (e) { if (e.pointerType !== 'mouse') return; hovering = true; pause(); });
-    toast.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'mouse') return; hovering = false; resume(); });
-    toast.addEventListener('focusin', function () { hovering = true; pause(); });
-    toast.addEventListener('focusout', function () { hovering = false; resume(); });
+    toast.querySelector('.toast-close').addEventListener('click', close);
+    toast.addEventListener('focusin', function () { hold(true); });
+    toast.addEventListener('focusout', function () { if (!fanned) hold(false); });
 
-    // Swipe to dismiss (touch / pen): sideways past 80px, or flick up.
-    var sx = 0, sy = 0, dx = 0, dy = 0, st = 0, drag = false;
+    // Swipe sideways to dismiss (touch / pen).
+    var sx = 0, dx = 0, st = 0, drag = false;
     toast.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'mouse' || e.target.closest('button')) return;
-      touching = true; pause(); sx = e.clientX; sy = e.clientY; dx = dy = 0; st = Date.now(); drag = false;
+      touching = true; hold(true); sx = e.clientX; dx = 0; st = Date.now(); drag = false;
       try { toast.setPointerCapture(e.pointerId); } catch (x) {}
     });
     toast.addEventListener('pointermove', function (e) {
       if (!touching) return;
-      dx = e.clientX - sx; dy = Math.min(0, e.clientY - sy);
-      if (!drag && (Math.abs(dx) > 8 || dy < -8)) { drag = true; toast.classList.add('dragging'); }
-      if (drag) { toast.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; toast.style.opacity = String(Math.max(0.2, 1 - Math.max(Math.abs(dx), -dy) / 200)); }
+      dx = e.clientX - sx;
+      if (!drag && Math.abs(dx) > 8) { drag = true; toast._drag = true; toast.classList.add('dragging'); }
+      if (drag) { toast.style.transform = 'translateX(' + dx + 'px)'; toast.style.opacity = String(Math.max(0.2, 1 - Math.abs(dx) / 240)); }
     });
     function end() {
       if (!touching) return;
-      touching = false;
-      toast.classList.remove('dragging');
-      var d = Math.max(Math.abs(dx), -dy), fast = d / Math.max(1, Date.now() - st) > 0.5;
-      if (drag && (d > 60 || (fast && d > 30))) {
-        toast.style.transition = 'opacity .18s ease, transform .18s ease';
-        toast.style.transform = 'translate(' + (-dy > Math.abs(dx) ? '0,-120%' : (dx > 0 ? '120%' : '-120%') + ',0') + ')'; toast.style.opacity = '0';
-        settled = true; if (timer) clearTimeout(timer); clearTimeout(openT);
+      touching = false; toast.classList.remove('dragging');
+      var d = Math.abs(dx), fast = d / Math.max(1, Date.now() - st) > 0.5;
+      if (drag && (d > 80 || (fast && d > 30))) {
+        toast.style.transition = 'transform .18s ease, opacity .18s ease';
+        toast.style.transform = 'translateX(' + (dx > 0 ? '120%' : '-120%') + ')'; toast.style.opacity = '0';
+        settled = true; clearTimeout(timer); unlist(); layout();
         setTimeout(remove, 200);
-      } else { toast.style.transform = ''; toast.style.opacity = ''; resume(); }
+      } else { toast._drag = false; toast.style.opacity = ''; hold(false); layout(); }
     }
     toast.addEventListener('pointerup', end);
     toast.addEventListener('pointercancel', end);
 
-    host().appendChild(toast);
-    fit();
-    // Refit when the title's real width changes (web font arriving after first paint).
-    if (window.ResizeObserver) new ResizeObserver(fit).observe(ttl);
-    // Next frame, so the start position registers before the class change animates away from it.
-    requestAnimationFrame(function () { toast.classList.add('in'); openCard(); });
+    var h = host();
+    toast.style.transition = 'none'; toast.style.opacity = '0';
+    toast.style.transform = 'translateY(' + (isUp() ? 14 : -14) + 'px) scale(.96)';
+    h.appendChild(toast);
+    list.unshift(api);
+    while (list.length > MAX) list[list.length - 1].close();
+    if (fanned) paused = true;
+    void toast.offsetWidth; toast.style.transition = '';
+    layout();
 
-    return {
-      promise: promise, close: close, el: toast,
-      arm: function (ms) { cur._armed = true; arm(ms); },
-      update: function (t2, m2, o2) {
-        if (settled) return;
-        type = ICONS[t2] ? t2 : 'info'; cur = o2 || {}; sp = split(type, m2, cur);
-        var wasOpen = toast.classList.contains('open');
-        fill(true);
-        if (!toast._card) toast.classList.remove('open'); else if (!wasOpen) openCard();
-      }
+    api.close = close;
+    api.arm = function (ms) { cur._armed = true; arm(ms); };
+    api.update = function (t2, m2, o2) {
+      if (settled) return;
+      type = ICONS[t2] ? t2 : 'info'; cur = o2 || {}; sp = split(type, m2, cur);
+      fill(); line(0); clearTimeout(timer); remaining = 0;
+      layout();
     };
+    return api;
   }
 
   function showToast(type, message, options) {
@@ -254,7 +258,7 @@
     var opts = options || {};
     type = ICONS[type] && type !== 'loading' ? type : 'info';
     var c = create(type, message, opts);
-    if (!opts.hold) c.arm(opts.duration || DEFAULT_MS[type] + (c.el._card ? 1500 : 0));
+    if (!opts.hold) c.arm(opts.duration || DEFAULT_MS[type] || 0);
     var p = c.promise; p.toast = c;
     return p;
   }
@@ -272,7 +276,7 @@
     function done(type, v, arg, dflt) {
       var o = norm(v, arg, dflt);
       c.update(type, o.title ? '' : (o.message || ''), o);
-      c.arm(o.duration || DEFAULT_MS[type] + (c.el._card ? 1500 : 0));
+      c.arm(o.duration || DEFAULT_MS[type] || 0);
     }
     Promise.resolve(p).then(function (r) { done('success', m.success, r, 'Done'); },
                             function (e) { done('error', m.error, e, 'Something went wrong'); });
@@ -281,9 +285,7 @@
 
   window.showToast = showToast;
 
-  // Drop-in for alert(). Kept deliberately separate so the intent at each call
-  // site stays readable, and so a future change to alert handling doesn't have
-  // to touch every one of them.
+  // Drop-in for alert().
   window.toastAlert = function (message) {
     return showToast('info', message);
   };

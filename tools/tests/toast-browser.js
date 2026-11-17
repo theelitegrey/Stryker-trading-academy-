@@ -19,7 +19,7 @@ const LONG = 'A much longer detail line that keeps going and going so it has to 
     await p.goto(BASE + '/index.html', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => window.showToast);
     await p.evaluate((t) => { if (t === 'light') document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme'); }, theme);
-    const clear = () => p.evaluate(() => { document.querySelectorAll('.toast').forEach((t) => t.remove()); const h = document.getElementById('stryker-toast-host'); if (h) h.remove(); });
+    const clear = async () => { await p.evaluate(() => document.querySelectorAll('.toast-close').forEach((b) => b.click())); await sleep(350); };
     for (const ty of ['success', 'info', 'warning', 'error']) {
       await p.evaluate((ty) => { window.showToast(ty, 'Saved ' + ty, { description: 'Detail line for ' + ty, action: { label: 'Undo', onClick() {} } }); }, ty);
       await sleep(450);
@@ -69,13 +69,14 @@ const LONG = 'A much longer detail line that keeps going and going so it has to 
   check(await p.evaluate(() => !!document.querySelector('.toast')), 'hover pauses the timer (still there after 4.7s)');
   await p.mouse.move(5, 500); await sleep(4600);
   check(await p.evaluate(() => !document.querySelector('.toast')), 'leaves after hover ends');
-  await p.evaluate(() => window.showToast('error', 'Sticky error')); await sleep(7500);
+  await p.evaluate(() => { window.showToast('error', 'Sticky error'); }); await sleep(7500);
   check(await p.evaluate(() => !!document.querySelector('.toast')), 'error persists past 7s');
   await p.click('.toast-close'); await sleep(500);
   check(await p.evaluate(() => !document.querySelector('.toast')), 'close button dismisses');
   await p.evaluate(() => { window.__a = 0; window.showToast('info', 'Act', { action: { label: 'Go', onClick() { window.__a++; } } }); }); await sleep(300);
   await p.click('.toast-action'); await sleep(400);
   check(await p.evaluate(() => window.__a === 1 && !document.querySelector('.toast')), 'action button fires and closes');
+  await p.mouse.move(5, 500); await sleep(200);   // the cursor would otherwise hover the next toast and pause it (by design)
   const hold = await p.evaluate(async () => { const t0 = Date.now(); const pr = window.showToast('info', 'Held', { hold: true }); setTimeout(() => pr.toast.arm(600), 300); await pr; return Date.now() - t0; });
   check(hold > 800 && hold < 2500, 'hold promise resolves after close', hold);
   await p.evaluate(() => { window.showToast.promise(new Promise((r) => setTimeout(r, 800)), { loading: 'Working', success: 'Finished', error: 'Failed' }); }); await sleep(300);

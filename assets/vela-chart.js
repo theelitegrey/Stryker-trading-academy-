@@ -894,6 +894,11 @@ function lateLists(provider){
   }
 
   pm('stk:workspace-built');
+  // Chart's own notices (alerts, script errors, provider errors) use the site toast so both look the same (Owner 17 Nov).
+  try {
+    const th = ws.toastHost || (ws.shell && ws.shell.toastHost);
+    if (th) { th.show = (m, kind, ms) => { try { window.showToast(['error', 'success', 'warning'].includes(kind) ? kind : 'info', String(m), ms > 0 ? { duration: ms } : {}); } catch (e) {} }; th.hide = () => {}; }
+  } catch (e) { console.warn('TradeZoro: toast route', e); }
   // FUTURES SYMBOL FORMS (Owner bug 17 Nov): 'CME_MINI:MNQ1!', 'CME:ES1!', 'MNQZ6' ... are written as 'futures:MNQ1!' at the source, so
   // every cell holds one form (the DOM, heatmap, book tools, paper ... all read it). The readers still accept the old forms
   // (assets/chart-sym.js) for anything that slips past this, e.g. a layout saved before this change.

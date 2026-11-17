@@ -12987,3 +12987,47 @@ html .vela-dsp-lab{ flex-basis:120px; }
 
 /* Owner 17 Nov: admin Hyperliquid row inside the Trade menu */
 .stktm-hl{ width:100%; justify-content:flex-start; margin-top:8px; }
+/* Trade menu COMPACT (Owner 17 Nov "too big"): 360px popover, 48-52px account rows, 28px logos/actions. Scoped to the popover; the Manage sheet keeps its own sizes. */
+.stkpt-tmenu.stktm{ width:360px; max-width:min(360px, 92vw); padding:12px; border-radius:12px; }
+.stkpt-tmenu.stktm.stktm-admin{ width:360px; max-width:min(360px, 92vw); }
+.stkpt-tmenu.stktm .stktm-h{ gap:8px; padding:12px 0 8px; font-size:11px; line-height:16px; letter-spacing:.08em; }
+.stkpt-tmenu.stktm > div:first-child .stktm-h{ padding-top:0; }
+.stkpt-tmenu.stktm .stktm-cnt{ min-width:20px; height:20px; padding:0 6px; border-radius:6px; font-size:11px; }
+.stkpt-tmenu.stktm .stktm-row{ gap:4px; min-height:52px; padding:0 10px 0 0; border-radius:10px; }
+.stkpt-tmenu.stktm .stktm-row + .stktm-row, .stkpt-tmenu.stktm .stktm-row.editing + .stktm-ed + .stktm-row, .stkpt-tmenu.stktm .stktm-ed + .stktm-row{ margin-top:8px; }
+.stkpt-tmenu.stktm .stktm-row.editing{ border-radius:10px 10px 0 0; }
+.stkpt-tmenu.stktm .stktm-row:has(.stktm-pick[aria-checked="true"]){ box-shadow:0 0 0 1px rgba(3,201,136,.16); }
+.stkpt-tmenu.stktm .stktm-pick{ grid-template-columns:28px minmax(0,1fr) auto; column-gap:8px; min-height:50px; padding:8px 0 8px 10px; border-radius:10px; }
+.stkpt-tmenu.stktm .stktm-vd{ display:none; }
+.stkpt-tmenu.stktm .stktm-s40{ width:28px; height:28px; border-radius:8px; }
+.stkpt-tmenu.stktm .stktm-s40 .stktm-fb{ font-size:13px; }
+.stkpt-tmenu.stktm .stktm-s40 img{ width:20px; height:20px; }
+.stkpt-tmenu.stktm .stktm-s40.stktm-paper svg{ width:16px; height:16px; }
+.stkpt-tmenu.stktm .stktm-tx{ gap:0; }
+.stkpt-tmenu.stktm .stktm-l1{ gap:6px; }
+.stkpt-tmenu.stktm .stktm-nm{ min-width:40px; overflow:hidden; text-overflow:ellipsis; font:600 13px/18px var(--font-body, system-ui, sans-serif); }
+.stkpt-tmenu.stktm .stktm-num{ flex:0 1 auto; min-width:44px; max-width:none; overflow:hidden; text-overflow:ellipsis; font-size:12px; line-height:18px; }
+.stkpt-tmenu.stktm .stktm-l2{ gap:6px; font:400 11px/16px var(--font-body, system-ui, sans-serif); }
+.stkpt-tmenu.stktm .stktm-chip{ height:16px; padding:0; background:none; font-size:11px; line-height:16px; }
+.stkpt-tmenu.stktm .stktm-bal{ align-items:flex-end; gap:0; }
+.stkpt-tmenu.stktm .stktm-bk{ justify-content:flex-end; gap:4px; font-size:11px; line-height:14px; }
+.stkpt-tmenu.stktm .stktm-bv{ justify-content:flex-end; height:20px; font:600 14px/20px var(--font-body, system-ui, sans-serif); }
+.stkpt-tmenu.stktm .stktm-bv .stktm-skel{ width:64px; height:12px; }
+.stkpt-tmenu.stktm .stktm-acts{ gap:4px; }
+.stkpt-tmenu.stktm .stktm-act, .stkpt-tmenu.stktm .stktm-ph{ width:28px; height:28px; border-radius:8px; }
+.stkpt-tmenu.stktm .stktm-act svg{ width:14px; height:14px; }
+.stkpt-tmenu.stktm .stktm-tick, .stkpt-tmenu.stktm .stktm-tick svg{ width:18px; height:18px; }
+.stkpt-tmenu.stktm .stktm-foot{ gap:8px; margin-top:12px; }
+.stkpt-tmenu.stktm .stktm-pill{ height:32px; padding:0 12px; gap:6px; font:600 13px/16px var(--font-body, system-ui, sans-serif); }
+.stkpt-tmenu.stktm .stktm-pill svg{ width:14px; height:14px; }
+.stkpt-tmenu.stktm .stktm-foot .stktm-pill{ flex:1 1 0; }
+.stkpt-tmenu.stktm .stktm-hl{ margin-top:8px; }
+@media (max-width:700px){
+  .stkpt-tmenu.stktm, .stkpt-tmenu.stktm.stktm-admin{ width:auto; max-width:none; padding:12px 12px calc(12px + env(safe-area-inset-bottom)); }
+  .stkpt-tmenu.stktm .stktm-row{ min-height:52px; }
+  .stkpt-tmenu.stktm .stktm-pick{ grid-template-columns:28px minmax(0,1fr) auto; row-gap:0; min-height:50px; padding:8px 0 8px 10px; }
+  .stkpt-tmenu.stktm .stktm-pick > .stktm-logo{ grid-row:auto; }
+  .stkpt-tmenu.stktm .stktm-pick > .stktm-tx, .stkpt-tmenu.stktm .stktm-bal{ grid-row:auto; grid-column:auto; }
+  .stkpt-tmenu.stktm .stktm-act, .stkpt-tmenu.stktm .stktm-ph{ width:32px; height:32px; }
+  .stkpt-tmenu.stktm .stktm-pill{ height:36px; padding:0 12px; }
+}

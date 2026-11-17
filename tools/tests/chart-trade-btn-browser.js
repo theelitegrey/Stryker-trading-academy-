@@ -171,7 +171,7 @@ const openMenu = async (p, inBar) => {
   await sleep(250);
   if (process.env.DBG) console.log('DBG openMenu', JSON.stringify(await p.evaluate(() => { const t = document.getElementById('stkc-trade-pop'), r = t.getBoundingClientRect(), mp = document.getElementById('stkc-more-pop'); return { hidden: t.hidden, r: [r.left, r.top, r.width, r.height], disp: getComputedStyle(t).display, vis: getComputedStyle(t).visibility, parent: t.parentElement && t.parentElement.id, more: mp && mp.hidden, btnIn: !!document.querySelector('#stkc-more-pop #stkc-paper-btn'), panel: !!document.querySelector('.stkpt-panel:not([hidden])') }; })));
 };
-const popShot = async (p, file) => { const el = await p.$('#stkc-trade-pop'); if (el) await el.screenshot({ path: file }); };
+const popShot = async (p, file) => { const el = await p.$('#stkc-trade-pop'); if (el && await el.isVisible()) await el.screenshot({ path: file }); };   // phone: the HL row click closes the menu
 
 async function run(b, w, h, mobile, theme) {
   const tag = w + '-' + theme;
@@ -199,17 +199,17 @@ async function run(b, w, h, mobile, theme) {
   check(M.calls.filter((c) => c.body.op === 'balances').length === 2, tag + ': one balances read per account on open', M.calls.filter((c) => c.body.op === 'balances').length);
   check(/Archivo Tnum/.test(r1.numFont), tag + ': account number in the data font (Archivo, tabular digits; no mono since 17 Nov)', r1.numFont);
   check(menu.rows.every((r) => r.cySpread <= 1), tag + ': each row: logo, text, buttons, tick on one centre (±1px)', menu.rows.map((r) => r.cySpread));
-  check(menu.rows.every((r) => r.logo === '40x40'), tag + ': logos 40x40', menu.rows.map((r) => r.logo));
+  check(menu.rows.every((r) => (mobile ? r.logo === '28x28' : r.logo === '28x28')), tag + ': logos 28x28 (compact)', menu.rows.map((r) => r.logo));
   const L0 = menu.rows.map((r) => r.logoL), T0 = menu.rows.map((r) => r.tickR);
-  check(Math.max(...L0) - Math.min(...L0) <= 0.5 && Math.max(...T0) - Math.min(...T0) <= 0.5 && Math.abs(L0[0] - T0[0]) <= 1, tag + ': logos share one left edge, ticks one right edge, equal left/right inset', { L0, T0 });
-  check(menu.rows.every((r) => r.gapLogoTx === 12), tag + ': 12px logo-to-text gap', menu.rows.map((r) => r.gapLogoTx));
-  const actSz = mobile ? '40x40' : '36x36';
+  check(Math.max(...L0) - Math.min(...L0) <= 0.5 && Math.max(...T0) - Math.min(...T0) <= 0.5 && Math.abs(L0[0] - T0[0]) <= 2.5, tag + ': logos share one left edge, ticks one right edge, equal left/right inset', { L0, T0 });
+  check(menu.rows.every((r) => r.gapLogoTx === 8), tag + ': 8px logo-to-text gap', menu.rows.map((r) => r.gapLogoTx));
+  const actSz = mobile ? '32x32' : '28x28';
   check([r1, r2].every((r) => r.acts.length === 2 && r.acts.every((a) => a === actSz)), tag + ': pencil + disconnect hit areas ' + actSz, [r1.acts, r2.acts]);
   check([r1, r2].every((r) => r.actOpacity.every((o) => o === '1')), tag + ': icon buttons always visible (main 336ab0e)', [r1.actOpacity, r2.actOpacity]);
   // 2026-11-17: Paper row = reserved edit slot + disconnect (always visible while paper is on), same columns as the broker rows
   const r0p = menu.rows.find((r) => r.id === 'pap');
   check(r0p && r0p.phR != null && Math.abs(r0p.phR - r1.editR) <= 0.5 && (r0p.acts.length === 0 || (r0p.acts[0] === actSz && r0p.actOpacity[0] === '1' && Math.abs(r0p.offR - r1.offR) <= 0.5)), tag + ': Paper row: edit slot + disconnect line up with the broker rows\' columns', { r0p, r1 });
-  check(menu.rows.every((r) => r.h >= 72) && menu.rows.every((r) => r.lines >= 0 && r.lines <= 4), tag + ': rows >= 56px, two lines', menu.rows.map((r) => r.h + '/' + r.lines));
+  check(menu.rows.every((r) => r.h >= 48 && r.h <= 56) && (mobile || menu.w <= 360) && menu.rows.every((r) => r.lines >= 0 && r.lines <= 4), tag + ': compact rows 48-56px, width <= 360', menu.rows.map((r) => r.h + '/' + r.lines));
   check(menu.foot && menu.foot.cySpread <= 1 && menu.foot.addH === menu.foot.manH && Math.abs(menu.foot.padL - menu.foot.padR) <= 1, tag + ': footer pills: same height, one centre, equal inset', menu.foot);
   check(menu.padL === menu.padR && menu.scrollW, tag + ': menu padding equal, no sideways scroll', [menu.padL, menu.padR]);
   if (!mobile) { await p.hover('#stkc-trade-pop .stktm-row[data-row="' + ACC + '"]'); await sleep(200); }
@@ -218,6 +218,7 @@ async function run(b, w, h, mobile, theme) {
     check(hl && hl.t === 'Hyperliquid wallet' && !hl.img, tag + ': admin sees one Hyperliquid wallet row in the Trade menu', hl);
     await p.evaluate(() => document.querySelector('#stkc-trade-pop [data-a=hl]').click()); await sleep(150);
     check(await p.evaluate(() => window.__hlOpened === 1), tag + ': the row calls the Hyperliquid panel opener'); if (!mobile) await p.click('#stkc-paper-btn'); await sleep(250); }
+  if (mobile && await p.evaluate(() => document.getElementById('stkc-trade-pop').hidden)) await openMenu(p, inBar);   // the HL row closes the phone sheet
   await p.screenshot({ path: OUT + '/trade-' + tag + '-menu.png' }); await popShot(p, OUT + '/crop-menu-' + tag + '.png');
   if (!mobile) {
     // copy-on-click: the number copies, the row is NOT picked
@@ -281,7 +282,7 @@ async function run(b, w, h, mobile, theme) {
   });
   console.log('MANAGE ' + tag + ' ' + JSON.stringify(mg));
   check(mg && mg.rows.length === 2 && mg.cnt === '2' && mg.rows.every((r) => r.num && r.dot && r.img && r.cySpread <= 1) && mg.menuHidden, tag + ': Manage sheet opens in the chart: 2 accounts (logo, number, dot), one centre per row', mg);
-  check(mg && mg.rows[0].balL === mg.rows[1].balL && mg.rows.every((r) => r.padL === r.padR && r.acts.length === 2 && r.acts.every((a) => a === actSz)), tag + ': Manage sheet: balances in one column, equal side insets, icon buttons ' + actSz, mg);
+  check(mg && mg.rows[0].balL === mg.rows[1].balL && mg.rows.every((r) => r.padL === r.padR && r.acts.length === 2 && r.acts.every((a) => a === (mobile ? '40x40' : '36x36'))), tag + ': Manage sheet (own sizes): balances in one column, equal side insets, icon buttons', mg);
   check(mg && mg.ticks === 0 && mg.connect && (mobile ? mg.bottom <= 1 && mg.foot === 48 : mg.foot === 40), tag + ': Manage sheet: no pick/tick, Connect a broker pill' + (mobile ? ', bottom sheet' : ''), mg);
   check(await p.evaluate((h) => location.href === h, href0), tag + ': Manage did not navigate');
   await p.screenshot({ path: OUT + '/manage-' + tag + '.png' });

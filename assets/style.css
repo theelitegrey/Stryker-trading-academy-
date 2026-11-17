@@ -6862,7 +6862,7 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
   .mobile-topnav .topnav-left .brand{ align-self:center; margin:0; height:32px; display:flex; align-items:center; }
   .mobile-topnav .stkws-strip{ align-self:center; align-items:center; height:32px; margin-left:0; }
   .mobile-topnav .stkws-strip .stkws-menu{ align-self:center; }
-  .mobile-topnav .stkws-tabs{ align-items:center; height:32px; gap:4px; margin-left:6px; }
+  .mobile-topnav .stkws-tabs{ align-items:center; height:32px; gap:4px; margin-left:4px; }
   .mobile-topnav .stkws-btn{ height:32px; }
   .mobile-topnav .stkws-tabrow{ height:32px; align-items:center; }
   .mobile-topnav .stkws-strip .stkws-menu{ height:32px; display:flex; align-items:center; }
@@ -6870,7 +6870,7 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
   .mobile-topnav .topnav-left .brand .brand-plan{ margin-left:10px; display:inline-flex; align-items:center; height:24px; padding:0 11px; line-height:1; }
   .mobile-topnav .menu-toggle-btn{ width:32px; height:32px; }
 }
-@media (max-width:700px){
+@media (max-width:599px){
   .stkws-tabs{ display:none; }
   .stkws-strip{ align-items:center; }
   .stkws-btn{ height:32px; padding:0 12px; gap:6px; border-radius:999px; max-width:170px; }
@@ -6878,6 +6878,27 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
   #stkc-bar-l > #stkcps-menu{ order:-3; }
   .stkws-btn{ max-width:84px; padding:0 6px 0 10px; }
   .stkws-btn > svg:first-child{ display:none; }
+}
+/* Owner 17 Nov: workspaces are browser-style tabs (>= 600 px), one 32px row, 4/8px gaps. Active = filled pill, bold; icon keeps the workspace colour. */
+@media (min-width:600px){
+  .stkws-strip{ align-self:center; align-items:center; height:32px; margin-left:0; gap:8px; }
+  .stkws-strip .stkws-menu{ align-self:center; height:32px; display:flex; align-items:center; margin:0; }
+  .stkws-strip.in-bar{ flex:0 1 auto; max-width:46vw; }
+  .stkws-tabs{ align-items:center; height:32px; gap:4px; }
+  .stkws-tabrow{ flex:0 1 auto; height:32px; align-items:center; gap:4px; }
+  .stkws-tab{ flex:0 1 auto; width:176px; height:32px; min-width:96px; padding:0 8px 0 12px; border-radius:8px; font-weight:500; }
+  .stkws-tab.pinned{ flex:0 0 auto; }
+  .stkws-tab[hidden]{ display:none; }
+  .stkws-tab.on{ background:var(--bg-3); color:var(--ink-0); font-weight:700; }
+  .stkws-tab:hover:not(.on){ background:var(--bg-2); }
+  .stkws-gl{ color:var(--c, var(--ink-2)); }
+  .stkws-tab.on .stkws-gl{ color:var(--c, var(--gold)); }
+  .stkws-tab.on:focus-within .stkws-x, .stkws-tab:focus-visible .stkws-x{ opacity:1; }
+  .mobile-topnav .topnav-right{ flex:none; }
+  .mobile-topnav > .mclock{ min-width:200px; }   /* tabs shrink / fold into "N more"; the clock and account never get squeezed */
+  .stkws-plus, .stkws-more{ width:32px; height:32px; }
+  .stkws-more{ width:auto; gap:4px; padding:0 8px; font:600 12px/16px inherit; font-family:inherit; }
+  .stkws-more b{ font-weight:600; }
 }
 @media (prefers-reduced-motion: no-preference){ .stkws-tab, .stkws-row, .stkws-plus{ transition:background-color .15s cubic-bezier(.2,0,0,1), color .15s cubic-bezier(.2,0,0,1); } }
 

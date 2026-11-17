@@ -33,6 +33,20 @@
 //
 // Futures bars come from Yahoo Finance via /api/chart/bars, so the CSV dialog says
 // "For personal use."
+//
+// LAYOUT LINKS (Owner feature 17 Nov 2026, roadmap "layout-links"): every saved layout gets one permanent
+// 8-character id (assets/chart-layout-slug.js), e.g. VMW7HYSI, and the address bar shows /charts/<ID> while it is
+// open (history.replaceState, no reload; _redirects serves /charts/* as the charts page, and charts.html has
+// <base href="/"> so its relative URLs still load from the site root).
+//   students/{uid}/chartLayouts/{id}.slug   the id. Written ONCE by ensureSlug() (a slug-only update the rules allow
+//                                           without touching updatedAt), never changed after; rename keeps it.
+//   chartLinks/{ID}                         { ownerUid, lid, createdAt }: the lookup /charts/<ID> resolves with. Any
+//                                           signed-in member may GET one (never list); create-once, owner deletes.
+// Existing layouts get their id the first time they are opened or saved. The id is written separately from the
+// layout save, so a layout save never depends on it (with the old rules the id simply is not created yet).
+// Signed out: the chart on this device gets an id kept in localStorage; on sign-in it moves to the account (same id)
+// as a saved layout. /charts/<ID> opens: your own layout -> open, editable; another member's layout shared by link,
+// or a public/community layout you may use -> read-only, like ?layout=; anything else -> your chart + a toast.
 
 const NAME_MAX = 60;
 const STATE_MAX = 900000;   // chars of the STORED string (rules cap). Big states are gzip-compressed first (assets/chart-state-codec.js).
@@ -45,6 +59,7 @@ function user(){ const f = fb(); try { return f && f.auth().currentUser; } catch
 function db(){ return fb().firestore(); }
 function col(){ return db().collection('students').doc(user().uid).collection('chartLayouts'); }
 function sharedDoc(id){ return db().collection('chartShared').doc(id); }
+function linkDoc(s){ return db().collection('chartLinks').doc(s); }
 const ts = () => firebase.firestore.FieldValue.serverTimestamp();
 const tsMs = (v) => (v && v.toMillis ? v.toMillis() : (typeof v === 'number' ? v : 0));
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
@@ -82,6 +97,7 @@ function tfLabel(tf){
   return tf;
 }
 const symLabel = (s) => String(s || '').replace(/^[a-z]+:/i, '');
+import { genSlug, isSlug, slugFromPath, isChartsPath } from './chart-layout-slug.js?v=1093';
 function ago(ms){
   if (!ms) return '';
   const s = Math.max(0, (Date.now() - ms) / 1000);
@@ -180,13 +196,16 @@ export function mountLayouts(ws, o){
   const uid = () => (user() ? user().uid : 'guest');
   const K = { cur: () => 'stryker_chart_layout_cur_' + uid(), recent: () => 'stryker_chart_layout_recent_' + uid(), auto: () => 'stryker_chart_layout_auto_' + uid() };
 
-  let cur = null;          // { id, name, shared, updatedAt }
-  let viewing = null;      // { id, name, ownerUid } while a shared link is open read-only
+  let cur = null;          // { id, name, shared, updatedAt, slug }
+  let viewing = null;      // { id, name, ownerUid, slug } while a shared link is open read-only
   let dirty = false;
   let saving = null;
   let autoTimer = null;
   let suppress = 0;        // ignore state:changed bursts caused by our own applyState
   let cache = null;        // last list
+  let migrating = null;    // a signed-out chart's link id, kept in the address bar until it moves to the account
+  let pendingLink = null;  // a /charts/<ID> link a signed-out visitor opened: kept so sign-in comes back to it
+  let fromLink = false;    // this page load opened a layout named by its address (/charts/<ID>, ?layout=, ?openlayout=)
 
   // ---- toolbar button + menu ----
   const btn = el('button', { type: 'button', class: 'stkc-btn stkl-btn', id: 'stkl-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false',
@@ -288,7 +307,7 @@ export function mountLayouts(ws, o){
     const url = el('input', { type: 'text', class: 'stkc-in', readonly: '', 'aria-label': 'Layout link' });
     const copyB = el('button', { type: 'button', class: 'stkc-sbtn', text: 'Copy link' });
     const linkRow = el('div', { class: 'stkc-saverow stkl-linkrow' }, [url, copyB]);
-    const paint = () => { const on = !!(cur && cur.shared); linkRow.hidden = !on; url.value = on ? linkOf(cur.id) : ''; };
+    const paint = () => { const on = !!(cur && cur.shared); linkRow.hidden = !on; url.value = on ? linkOf(cur.id) : ''; if (on && !slugOf(cur.id)) ensureSlug(cur.id).then(() => { if (cur && cur.shared) url.value = linkOf(cur.id); }); };
     copyB.addEventListener('click', () => copyLink());
     const row = sw('Share with a link', cur.shared, false, async (v, cb) => { await setShared(v, cb); paint(); }, '', 'link',
       'Anyone signed in with the link can view (read-only)');
@@ -331,9 +350,9 @@ export function mountLayouts(ws, o){
   async function listRaw(){
     const snap = await col().get();
     const out = [];
-    snap.forEach((d) => { const x = d.data() || {}; if (x.kind === 'workspace') wsKind.add(d.id);
-      out.push({ id: d.id, name: x.name || 'Untitled', symbol: x.symbol || '', interval: x.interval || '', shared: !!x.shared, updatedAt: tsMs(x.updatedAt),
-      thumb: x.thumb || '', panes: x.panes || 1, indicators: x.indicators || 0, vis: x.vis || (x.shared ? 'link' : 'private'), desc: x.desc || '', tags: x.tags || [], cid: x.cid || '', kind: x.kind || '', ws: x.ws || '' }); });
+    snap.forEach((d) => { const x = d.data() || {}; out.push({ id: d.id, name: x.name || 'Untitled', symbol: x.symbol || '', interval: x.interval || '', shared: !!x.shared, updatedAt: tsMs(x.updatedAt),
+      thumb: x.thumb || '', panes: x.panes || 1, indicators: x.indicators || 0, vis: x.vis || (x.shared ? 'link' : 'private'), desc: x.desc || '', tags: x.tags || [], cid: x.cid || '', slug: isSlug(x.slug) ? x.slug : '' });
+      if (isSlug(x.slug)) slugs.set(d.id, x.slug); });
     out.sort((a, b) => b.updatedAt - a.updatedAt);
     return out;
   }
@@ -350,10 +369,86 @@ export function mountLayouts(ws, o){
     lsSet(K.recent(), r.slice(0, RECENT_MAX + 1));
   }
   function setCur(d){
-    cur = d ? { id: d.id, name: d.name, shared: !!d.shared, updatedAt: d.updatedAt || Date.now() } : null;
-    lsSet(K.cur(), cur ? { id: cur.id, name: cur.name, shared: cur.shared } : null);
+    const slug = d ? (isSlug(d.slug) ? d.slug : (slugs.get(d.id) || (cur && cur.id === d.id && cur.slug) || '')) : '';
+    cur = d ? { id: d.id, name: d.name, shared: !!d.shared, updatedAt: d.updatedAt || Date.now(), slug } : null;
+    lsSet(K.cur(), cur ? { id: cur.id, name: cur.name, shared: cur.shared, slug: cur.slug } : null);
     if (cur) touchRecent(Object.assign({}, cur, d));
     dirty = false; paintBtn();
+    if (cur && slug) slugs.set(cur.id, slug);
+    if (cur && !slug) giveSlug(cur.id);
+    syncUrl();
+  }
+
+  // ---- layout links: /charts/<ID> ----
+  const slugs = new Map();          // layout id -> link id (this account)
+  const slugJobs = new Map();       // layout id -> pending ensureSlug()
+  const K_GUEST = 'stryker_chart_layout_slug_guest';
+  let linksOff = false;             // the rules for chartLinks are not live (permission denied): stop trying this session
+  // the device chart of a signed-out visitor gets its id here; it moves to the account on sign-in
+  function guestSlug(make){
+    let s = lsGet(K_GUEST, null);
+    if (!isSlug(s) && make) { s = genSlug(); lsSet(K_GUEST, s); }
+    return isSlug(s) ? s : null;
+  }
+  // The layout's permanent id: read it, or create it once (checked free, then layout.slug + chartLinks/<ID> in one
+  // batch; the rules refuse a taken id, so a race just retries with a new one). null when it cannot be made now.
+  function ensureSlug(id, want){
+    if (!user() || !id) return Promise.resolve(null);
+    if (slugs.has(id)) return Promise.resolve(slugs.get(id));
+    if (slugJobs.has(id)) return slugJobs.get(id);
+    const job = (async () => {
+      const ref = col().doc(id);
+      const d = await ref.get();
+      if (!d.exists) return null;
+      const have = (d.data() || {}).slug;
+      if (isSlug(have)) { slugs.set(id, have); return have; }
+      if (linksOff) return null;
+      for (let i = 0; i < 4; i++) {
+        const s = i === 0 && isSlug(want) ? want : genSlug();
+        let taken;
+        try { taken = (await linkDoc(s).get()).exists; }
+        catch (e) { if (e && e.code === 'permission-denied') { linksOff = true; return null; } throw e; }
+        if (taken) continue;
+        try {
+          const b = db().batch();
+          b.update(ref, { slug: s });
+          b.set(linkDoc(s), { ownerUid: user().uid, lid: id, createdAt: ts() });
+          await b.commit();
+          slugs.set(id, s);
+          return s;
+        } catch (e) { console.warn('TradeZoro: layout link id', e && e.code); }
+      }
+      return null;
+    })().catch((e) => { console.warn('TradeZoro: layout link id', e && e.code); return null; }).finally(() => slugJobs.delete(id));
+    slugJobs.set(id, job);
+    return job;
+  }
+  // backfill the open layout's id in the background, then show it in the address bar
+  function giveSlug(id){
+    ensureSlug(id).then((s) => {
+      if (!s || !cur || cur.id !== id || cur.slug === s) return;
+      cur.slug = s; lsSet(K.cur(), { id: cur.id, name: cur.name, shared: cur.shared, slug: s }); syncUrl();
+    });
+  }
+  const slugOf = (id) => slugs.get(id) || (cur && cur.id === id && cur.slug) || '';
+  // The address bar follows the open layout: /charts/<ID>, or /charts for an unsaved one. Other query params stay;
+  // the one-shot ?layout= / ?openlayout= are dropped once a link id stands for them.
+  function syncUrl(){
+    try {
+      if (!isChartsPath(location.pathname) && !/^\/charts\/[^/]+\/?$/.test(location.pathname)) return;
+      if (pendingLink && !user()) return;     // a signed-out visitor's /charts/<ID>: kept, so signing in comes back to it
+      let s = null;
+      if (viewing) s = viewing.slug || null;
+      else if (cur) s = cur.slug || null;
+      else if (!user()) s = guestSlug(true);
+      else s = migrating;
+      if (viewing && !s) return;              // an old ?layout= link without an id: leave the address as it is
+      const u = new URL(location.href);
+      u.pathname = s ? '/charts/' + s : '/charts';
+      if (s || !viewing) { u.searchParams.delete('layout'); u.searchParams.delete('openlayout'); }
+      const next = u.pathname + u.search + u.hash;
+      if (next !== location.pathname + location.search + location.hash) history.replaceState(history.state, '', next);
+    } catch (e) {}
   }
 
   async function writeShared(id, name, state){
@@ -401,8 +496,15 @@ export function mountLayouts(ws, o){
       const ref = col().doc();
       await ref.set({ name, state: p.state, symbol: p.symbol, interval: p.interval, shared: false, updatedAt: ts(), panes: p.panes, indicators: p.indicators, thumb: p.thumb || '', vis: 'private' });
       cache = null;
-      if (opts.attach && !opts.attach()) return { id: ref.id, name, shared: false };
+      if (opts.attach && !opts.attach()) { ensureSlug(ref.id); return { id: ref.id, name, shared: false }; }
+      const wasViewing = !!viewing;
       if (viewing) endViewing();
+      // a copy of a read-only layout is now this browser's own screen: write it to the on-device save at once, so a
+      // reload (or /charts/<ID>) does not find an empty screen and fall back to a default chart
+      if (wasViewing) { try { ws.persistNow && ws.persistNow(); } catch (e) {} }
+      // the first save of a signed-out chart keeps the id it already had on this device
+      const want = migrating; migrating = null;
+      if (want) { lsSet(K_GUEST, null); await ensureSlug(ref.id, want); }
       setCur({ id: ref.id, name, shared: false, symbol: p.symbol, interval: p.interval });
       if (!opts.quiet) toast('Saved as "' + name + '"');
       return { id: ref.id, name, shared: false };
@@ -448,7 +550,7 @@ export function mountLayouts(ws, o){
     if (!setup && cur && dirty && auto()) await saveNow(false);
     apply(s.doc);
     if (setup) { if (cur) { dirty = true; schedule(); } paintBtn(); }
-    else { cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); }
+    else { cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); syncUrl(); }
     if (s.dropped) toast(s.dropped + ' Pine script(s) in this layout failed our safety check and were not loaded.', 'error');
     else toast(setup ? 'Applied setup \"' + name + '\" to your chart.' : 'Applied \"' + name + '\". Save layout to keep it.');
     return true;
@@ -459,7 +561,7 @@ export function mountLayouts(ws, o){
   async function detach(){
     if (viewing || !cur) return;
     if (dirty && auto()) await saveNow(false);
-    clearTimeout(autoTimer); cur = null; lsSet(K.cur(), null); dirty = false; paintBtn();
+    clearTimeout(autoTimer); cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); syncUrl();
   }
 
   async function createNew(name){
@@ -478,38 +580,7 @@ export function mountLayouts(ws, o){
     if (viewing) endViewing();
     clearTimeout(autoTimer);
     apply(doc);
-    if (meta && !isWs(meta.id)) setCur(meta); else { cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); }
-  }
-  // stop tracking the open layout without touching the screen (a workspace's own doc left in K.cur by an older version)
-  function forget(){ clearTimeout(autoTimer); cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); }
-
-  // A WORKSPACE's own chart doc (chart-workspaces.js): written here because it shares the collection and the codec, but it is
-  // never `cur`, never in Recently used, never counted. id null = create. Returns the id, or null.
-  // Until the rules with `kind`/`ws` are published, a write with them is refused: it is retried without them (the index
-  // still hides the doc), so workspaces keep saving either way.
-  let wsFieldsOk = true;
-  async function wsWrite(id, st, o){
-    if (!user() || safe()) return null;
-    let p; try { p = await pack(st); } catch (e) { return null; }
-    const ref = id ? col().doc(id) : col().doc();
-    const base = { name: String(o.name || 'Workspace').slice(0, NAME_MAX), state: p.state, symbol: p.symbol, interval: p.interval, updatedAt: ts(), panes: p.panes, indicators: p.indicators };
-    if (!id) Object.assign(base, { shared: false, vis: 'private' });
-    wsKind.add(ref.id);
-    try {
-      if (wsFieldsOk) { try { await ref.set(Object.assign({}, base, { kind: 'workspace', ws: o.ws }), { merge: true }); return ref.id; } catch (e) { if (e && e.code === 'permission-denied') wsFieldsOk = false; else throw e; } }
-      await ref.set(base, { merge: true });
-      return ref.id;
-    } catch (e) { console.warn('TradeZoro: workspace save', e && e.code); return null; }
-  }
-  // mark an existing doc as a workspace (backfill; the content is not changed)
-  async function wsMark(id, ws){
-    if (!user() || !wsFieldsOk) return false;
-    try { await col().doc(id).update({ kind: 'workspace', ws, updatedAt: ts() }); wsKind.add(id); return true; }
-    catch (e) { if (e && e.code === 'permission-denied') wsFieldsOk = false; return false; }
-  }
-  // the own doc of workspace `ws`, found by its field (an index that lost the id, e.g. written by an older tab)
-  async function wsFind(ws){
-    try { const all = await listRaw(); const x = all.find((y) => y.kind === 'workspace' && y.ws === ws); return x ? x.id : null; } catch (e) { return null; }
+    if (meta) setCur(meta); else { cur = null; lsSet(K.cur(), null); dirty = false; paintBtn(); syncUrl(); }
   }
   async function fetchDoc(id){
     const d = await col().doc(id).get();
@@ -548,7 +619,9 @@ export function mountLayouts(ws, o){
       const was = (cache || []).find((x) => x.id === id);
       if (was && was.shared) { try { await sharedDoc(id).delete(); } catch (e) {} }
       if (was && (was.vis === 'public' || was.vis === 'community')) { try { const r = db().collection('publicLayouts').doc(id); await r.collection('data').doc('s').delete(); await r.delete(); } catch (e) {} }
+      const lk = slugs.get(id) || (((cache || []).find((x) => x.id === id) || {}).slug);
       await col().doc(id).delete();
+      if (isSlug(lk)) { slugs.delete(id); try { await linkDoc(lk).delete(); } catch (e) {} }   // the link dies with the layout
       dropRecent(id); cache = null;
       if (cur && cur.id === id) setCur(null);
       toast('Layout deleted');
@@ -578,9 +651,14 @@ export function mountLayouts(ws, o){
       toast(e.userMessage || 'Could not change sharing.', 'error');
     }
   }
-  function linkOf(id){ return location.origin + location.pathname.replace(/\.html$/, '') + '?layout=' + encodeURIComponent(id); }
+  // https://tradezoro.com/charts/<ID>; the old ?layout=<id> form only while the id cannot be made (it still works)
+  function linkOf(id){
+    const s = slugOf(id);
+    return s ? location.origin + '/charts/' + s : location.origin + '/charts?layout=' + encodeURIComponent(id);
+  }
   async function copyLink(quiet){
     if (!cur || !cur.shared) return;
+    await ensureSlug(cur.id);
     const url = linkOf(cur.id);
     try { await navigator.clipboard.writeText(url); if (quiet !== true) toast('Link copied'); }
     catch (e) { window.prompt('Copy this link', url); }
@@ -588,30 +666,69 @@ export function mountLayouts(ws, o){
 
   // ---- shared (read-only) view ----
   let stash = null;
-  async function openShared(id){
-    if (!/^[A-Za-z0-9]{20,40}$/.test(id)) { toast('That layout link is not valid.', 'error'); return; }
-    if (!user()) { toast('Sign in to open a shared layout.', 'error'); return; }
+  async function openShared(id, slug, linkOwner){
+    if (!/^[A-Za-z0-9]{20,40}$/.test(id)) { toast('That layout link is not valid.', 'error'); return false; }
+    if (!user()) { toast('Sign in to open a shared layout.', 'error'); return false; }
     let snap;
     try { snap = await sharedDoc(id).get(); }
     catch (e) { snap = null; }
-    if (!snap || !snap.exists) { toast('This shared layout is no longer available.', 'error'); return; }
+    if (!snap || !snap.exists) { if (!slug) toast('This shared layout is no longer available.', 'error'); return false; }
     const x = snap.data() || {};
+    if (linkOwner && x.ownerUid !== linkOwner) return false;   // a link id only ever stands for its own owner's layout
     if (x.ownerUid === user().uid) {   // your own link: open your own copy
-      return openById(id);
+      await openById(id); return true;
     }
-    const doc = await decodeState(x.state);
+    return viewReadOnly(id, x.name, x.ownerUid, x.state, slug);
+  }
+  // Another member's layout, read-only (a shared link, or a public / community library layout opened by its link).
+  async function viewReadOnly(id, name, ownerUid, state, slug){
+    const doc = await decodeState(state);
     const s = sanitizeShared(doc);
-    if (!s) { toast('This shared layout could not be read.', 'error'); return; }
+    if (!s) { toast('This shared layout could not be read.', 'error'); return false; }
     if (cur && dirty && auto()) await saveNow(false);
     // Read-only: pause Vela's own localStorage persistence so the viewer's session is kept.
-    stash = { persistKey: ws.persistKey, cur };
+    if (!viewing) stash = { persistKey: ws.persistKey, cur };
     ws.persistKey = null;
-    viewing = { id, name: String(x.name || 'Shared layout').slice(0, NAME_MAX), ownerUid: x.ownerUid };
+    viewing = { id, name: String(name || 'Shared layout').slice(0, NAME_MAX), ownerUid, slug: isSlug(slug) ? slug : '' };
     cur = null;
     apply(s.doc);
     paintBtn();
     banner(true);
+    syncUrl();
     if (s.dropped) toast(s.dropped + ' Pine script(s) in this layout failed our safety check and were not loaded.', 'error');
+    return true;
+  }
+  // /charts/<ID>: your own layout opens (editable); another member's shared / library layout opens read-only;
+  // anything else (private, deleted, unknown) keeps your normal chart with a small toast. Never an error page.
+  async function openLink(sl){
+    const gone = () => { toast('That layout isn\'t available', 'info'); return false; };
+    if (!user()) {
+      if (sl === guestSlug(false)) return true;                      // this device's own chart
+      pendingLink = sl; toast('Sign in to open this layout.', 'info'); return false;
+    }
+    if (sl === guestSlug(false) || sl === migrating) return true;   // this device's chart, moving to the account
+    if (cur && cur.slug === sl) return true;                         // already open
+    let m = null;
+    try { const d = await linkDoc(sl).get(); m = d.exists ? d.data() : null; } catch (e) { m = null; }
+    if (!m || typeof m.lid !== 'string' || !/^[A-Za-z0-9]{1,40}$/.test(m.lid)) return gone();
+    if (m.ownerUid === user().uid) {
+      slugs.set(m.lid, sl);
+      if (cur && cur.id === m.lid) { cur.slug = sl; syncUrl(); return true; }
+      try { const d = await col().doc(m.lid).get(); if (!d.exists) return gone(); } catch (e) { return gone(); }
+      await openById(m.lid);
+      return !!(cur && cur.id === m.lid);
+    }
+    if (await openShared(m.lid, sl, m.ownerUid)) return true;
+    // a public / community layout from the library: read-only when the rules let this member use it
+    try {
+      const pc = await db().collection('publicLayouts').doc(m.lid).get();
+      if (pc.exists) {
+        const card = pc.data() || {};
+        const st = await db().collection('publicLayouts').doc(m.lid).collection('data').doc('s').get();
+        if (st.exists && card.kind !== 'setup' && card.ownerUid === m.ownerUid) return viewReadOnly(m.lid, card.name, card.ownerUid, (st.data() || {}).state, sl);
+      }
+    } catch (e) { /* not usable by this member */ }
+    return gone();
   }
   function endViewing(){
     if (!viewing) return;
@@ -619,6 +736,7 @@ export function mountLayouts(ws, o){
     if (stash) ws.persistKey = stash.persistKey;
     banner(false);
     try { const u = new URL(location.href); u.searchParams.delete('layout'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
+    syncUrl();
   }
   function leaveShared(){
     const back = stash && stash.cur;
@@ -757,26 +875,44 @@ export function mountLayouts(ws, o){
   paintBtn();
   const booted = ready.then(async () => {
     const c = lsGet(K.cur(), null);
-    if (c && c.id) { cur = { id: c.id, name: c.name, shared: !!c.shared }; paintBtn(); }
+    if (c && c.id) { cur = { id: c.id, name: c.name, shared: !!c.shared, slug: isSlug(c.slug) ? c.slug : '' }; if (cur.slug) slugs.set(cur.id, cur.slug); paintBtn(); }
+    // a chart made while signed out moves to the account under the same id: saved as a layout on the first sign-in
+    // here when no layout is open (with one open, the screen is that layout and the device id is simply retired)
+    const gs = user() ? guestSlug(false) : null;
+    const sl = slugFromPath(location.pathname);
     let sid = null;
     try { sid = new URL(location.href).searchParams.get('layout'); } catch (e) {}
+    let linked = false;
+    if (sl && !sid) linked = await openLink(sl);
+    else if (!sl && /^\/charts\/[^/]+\/?$/.test(location.pathname)) toast('That layout isn\'t available', 'info');   // /charts/<not an id>
     if (sid) await openShared(sid);
     let ol = null; try { ol = new URL(location.href).searchParams.get('openlayout'); } catch (e) {}   // the dashboard's "Open" on a saved layout
-    if (!sid && ol && /^[A-Za-z0-9]{20,40}$/.test(ol) && user()) await openById(ol);
+    if (!sid && !linked && ol && /^[A-Za-z0-9]{20,40}$/.test(ol) && user()) { await openById(ol); linked = !!(cur && cur.id === ol); }
+    if (sid && (viewing || cur)) linked = true;
+    fromLink = linked;   // the address asked for this layout: workspaces (assets/chart-workspaces.js) keep it on screen
     let al = null; try { al = new URL(location.href).searchParams.get('applylayout'); } catch (e) {}
     if (al && /^[A-Za-z0-9]{20,40}$/.test(al)) libApi.open('browse').then(() => mounted && mounted.applyId(al));
+    let room = null;                                  // null = unknown (offline): try again next load
+    if (gs && !cur && !viewing && !al && !safe()) { try { room = (await list()).length < MAX_COUNT; } catch (e) {} }
+    if (room === true) {
+      migrating = gs;
+      await saveAsNew('My chart', { quiet: true });
+      if (migrating) { migrating = null; }          // could not save (offline): the id stays on this device, tried next load
+    } else if (gs && (cur || room === false)) lsSet(K_GUEST, null);   // a layout is open already, or no room left: retire the device id
+    if (cur && !cur.slug && !viewing) giveSlug(cur.id);
+    if (!pendingLink) syncUrl();
   });
 
   // ---- library sheet (assets/chart-layouts-lib.js), loaded on first use ----
   let lib = null, mounted = null;
   const host = { decodeState, encodeState, user, db, col, saveAsNew, sharedDoc, writeShared, ts, tsMs, toast, list, pack, askName, modal, el, openById, remove, renameId, duplicate, applyForeign, linkOf,
-    saveNow, createNew, sanitizeShared, countOf, setupOf: (st) => ui.setupOf(st), symLabel, tfLabel, ago, copyLink: async (id) => { try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); } catch (e) { window.prompt('Copy this link', linkOf(id)); } },
+    saveNow, createNew, sanitizeShared, countOf, setupOf: (st) => ui.setupOf(st), symLabel, tfLabel, ago, copyLink: async (id) => { await ensureSlug(id); try { await navigator.clipboard.writeText(linkOf(id)); toast('Link copied'); } catch (e) { window.prompt('Copy this link', linkOf(id)); } }, ensureSlug,
     get cur(){ return cur; }, get dirty(){ return dirty; }, refresh(id, patch){ cache = null; if (cur && cur.id === id && patch) { Object.assign(cur, patch); setCur(Object.assign({}, cur)); } } };
   const libApi = { open: (tab) => import('./chart-layouts-lib.js?v=1107').then((m) => { if (!mounted) mounted = m.mountLib(host); return mounted.open(tab); }).catch((e) => { console.warn('TradeZoro: layouts library', e); toast('Could not open the layouts library.', 'error'); }) };
   lib = libApi;
 
-  const api = { detach, saveNow, adopt, fetchDoc, forget, wsWrite, wsMark, wsFind, setHidden, isWs, booted: booted.catch(() => {}), saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
-    get current(){ return cur; }, get viewing(){ return viewing; }, get dirty(){ return dirty; }, linkOf };
+  const api = { detach, saveNow, adopt, fetchDoc, booted: booted.catch(() => {}), saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
+    get current(){ return cur; }, get viewing(){ return viewing; }, get dirty(){ return dirty; }, linkOf, ensureSlug, openLink, syncUrl, get fromLink(){ return fromLink; } };
   window.STRYKER_LAYOUTS = api;
   return api;
 }

@@ -38,6 +38,9 @@ http.createServer(async (req, res) => {
     res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer())); return;
   }
   if (url.pathname === '/__api_count') { res.end(String(apiCount)); return; }
+  // _redirects: /charts/agents -> charts-agents, then /charts/* -> the charts page (layout links, 17 Nov 2026)
+  if (url.pathname === '/charts/agents') url.pathname = '/charts-agents.html';
+  else if (/^\/charts\/./.test(url.pathname)) url.pathname = '/charts.html';
   let p = path.join(ROOT, decodeURIComponent(url.pathname));
   if (!p.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
   if (fs.existsSync(p) && fs.statSync(p).isDirectory()) p = path.join(p, 'index.html');

@@ -1472,7 +1472,7 @@ function legendFold(R) {
   }
 
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
-  // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
+  // chance to apply, so a shared-layout link (?layout=, /charts/<ID>) is never overwritten by it.
   function mountLayoutMenu(){
     import('./chart-layouts.js?v=1107')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, sheetHead, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))

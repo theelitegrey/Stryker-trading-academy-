@@ -111,11 +111,20 @@ export function createLadder(root, opts) {
   const live = {};                 // dte -> { SPX: data, ... } from the combined per-second endpoint
   const cols = {};                 // api -> { kind, sig, rows: Map(k -> el), list, spotEl, model, centered }
   let lastText = {}, netLabel = '0DTE', failed = 0;
+  // Which markets to show (Owner 2026-11-17): saved per member (guest key when signed out), default All; at least one stays on.
+  const ALL = COLS.map((c) => c[0]);
+  const selKey = () => { let u = ''; try { u = (window.firebase && window.firebase.apps && window.firebase.apps.length && window.firebase.auth().currentUser || {}).uid || ''; } catch (e) {} return 'stryker_gexl_sel_' + (u || 'guest'); };
+  const loadSel = () => { try { const a = JSON.parse(localStorage.getItem(selKey())); const f = ALL.filter((x) => Array.isArray(a) && a.includes(x)); if (f.length) return f; } catch (e) {} return ALL.slice(); };
+  let sel = loadSel();
+  const chipsEl = document.createElement('div');
+  chipsEl.className = 'stkgl-pick'; chipsEl.setAttribute('role', 'group'); chipsEl.setAttribute('aria-label', 'Markets to show');
+  chipsEl.innerHTML = ['All'].concat(ALL).map((a) => '<button type="button" class="stkgl-pk" data-pk="' + a + '" aria-pressed="false">' + a + '</button>').join('');
+  const shown = () => ALL.filter((a) => sel.includes(a));
   root.classList.add('stkgl-body');
   root.innerHTML = '<div class="stkgl-tabs" role="tablist" aria-label="Ladder market">' + COLS.map((c) => '<button type="button" role="tab" class="stkgl-tab" data-api="' + c[0] + '">' + c[0] + '</button>').join('') + '</div>' +
     '<div class="stkgl-note" hidden></div><div class="stkgl-cols">' + COLS.map((c) => '<section class="stkgl-col" data-api="' + c[0] + '" aria-label="' + c[0] + ' GEX ladder"></section>').join('') + '</div>' +
     '<p class="stkgl-foot"></p>';
-  const tabsEl = root.querySelector('.stkgl-tabs'), note = root.querySelector('.stkgl-note'), foot = root.querySelector('.stkgl-foot');
+  const tabsEl = root.querySelector('.stkgl-tabs'), note = root.querySelector('.stkgl-note'), foot = root.querySelector('.stkgl-foot'), cols$ = root.querySelector('.stkgl-cols');
   const colEl = (api) => root.querySelector('.stkgl-col[data-api="' + api + '"]');
   // tabs (one market at a time) on a phone OR whenever the panel is too narrow for four readable columns (about 130 px each)
   const phone = () => (opts.isPhone ? opts.isPhone() : window.innerWidth <= PHONE_MAX) || (root.clientWidth > 0 && root.clientWidth < 520);
@@ -124,6 +133,21 @@ export function createLadder(root, opts) {
   const dteNow = () => (opts.dte ? opts.dte() : 0);
   const dataFor = (api) => (opts.dataFor && opts.dataFor(api)) || (live[dteNow()] && live[dteNow()][api]) || gexCached(api, dteNow());
 
+  function syncChips() {
+    chipsEl.querySelectorAll('.stkgl-pk').forEach((b) => { const a = b.dataset.pk, on = a === 'All' ? sel.length === ALL.length : sel.includes(a); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  }
+  chipsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.stkgl-pk'); if (!b) return;
+    const a = b.dataset.pk;
+    if (a === 'All') sel = ALL.slice();
+    else if (!sel.includes(a)) sel = ALL.filter((x) => x === a || sel.includes(x));
+    else if (sel.length === 1) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); return; }
+    else sel = sel.filter((x) => x !== a);
+    try { localStorage.setItem(selKey(), JSON.stringify(sel)); } catch (er) {}
+    if (!sel.includes(tab)) tab = sel.includes('SPX') ? 'SPX' : sel[0];
+    lastText = {};
+    paint(); poll(); centerAll(true);
+  });
   tabsEl.addEventListener('click', (e) => { const b = e.target.closest('.stkgl-tab'); if (!b) return; tab = b.dataset.api; sync(); centerAll(true); });
   root.addEventListener('click', (e) => {
     const r = e.target.closest('.stkgl-row'); if (!r || !opts.onPick) return;
@@ -133,8 +157,12 @@ export function createLadder(root, opts) {
   });
   function sync() {
     root.classList.toggle('is-phone', phone());
-    tabsEl.querySelectorAll('.stkgl-tab').forEach((b) => { const on = b.dataset.api === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
-    root.querySelectorAll('.stkgl-col').forEach((c) => c.classList.toggle('is-shown', !phone() || c.dataset.api === tab));
+    syncChips();
+    if (!sel.includes(tab)) tab = sel.includes('SPX') ? 'SPX' : sel[0];
+    tabsEl.classList.toggle('is-one', sel.length < 2);
+    if (!phone()) cols$.style.gridTemplateColumns = 'repeat(' + sel.length + ', minmax(0, 1fr))'; else cols$.style.gridTemplateColumns = '';
+    tabsEl.querySelectorAll('.stkgl-tab').forEach((b) => { b.hidden = !sel.includes(b.dataset.api); const on = b.dataset.api === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    root.querySelectorAll('.stkgl-col').forEach((c) => c.classList.toggle('is-shown', sel.includes(c.dataset.api) && (!phone() || c.dataset.api === tab)));
   }
   // Scroll target that puts the spot line in the middle of the list.
   const target = (st) => { const l = st.list; return Math.max(0, (st.model.pos + 0.5) * ROW_H - l.clientHeight / 2 + ROW_H / 2); };
@@ -204,18 +232,18 @@ export function createLadder(root, opts) {
   function paintFoot(datas) {
     // the GEX snapshot's OWN build time (when we built it), never the delayed-futures stamp (CoS 2026-10-16)
     const times = datas.filter((d) => d && !d.error).map((d) => (isNum(d.built) ? d.built : isNum(d.fetched_at) ? d.fetched_at : dataTime(d))).filter(isNum);
-    foot.textContent = (times.length ? updatedText(Math.min(...times)) + ' \u00b7 ' : '') + 'One colour scale across all columns. Education only. Not financial advice.';
+    foot.textContent = (times.length ? updatedText(Math.min(...times)) + ' \u00b7 ' : '') + (sel.length > 1 ? 'One colour scale across all columns shown. ' : '') + 'Education only. Not financial advice.';
   }
   function paint() {
     sync();
     const rn = opts.replayNote ? opts.replayNote() : '';
     note.hidden = !rn; note.textContent = rn || '';
-    const datas = COLS.map((c) => (locked(c[0]) ? null : dataFor(c[0])));
+    const datas = COLS.map((c) => (locked(c[0]) || !sel.includes(c[0]) ? null : dataFor(c[0])));
     const vmax = sharedScale(datas.map((d) => (d && !d.error ? ladderFromApi(d).filter((r) => !isNum(d.spot) || Math.abs(r.k - d.spot) <= d.spot * WINDOW_PCT) : [])));
     const models = datas.map((d) => (rn ? null : columnModel(d, vmax)));
     netLabel = DL[dteNow()] || '0DTE';
     const lvs = COLS.map((c, i) => (models[i] && datas[i] ? keyLevels(datas[i], models[i].spot, models[i].mg, optFor(c[0], () => { if (active) paint(); }), dteNow()) : null));
-    COLS.forEach((c, i) => paintCol(c[0], c[1], models[i], locked(c[0]), rn, lvs[i]));
+    COLS.forEach((c, i) => { if (sel.includes(c[0])) paintCol(c[0], c[1], models[i], locked(c[0]), rn, lvs[i]); });
     paintFoot(datas);
     if (!rn) requestAnimationFrame(() => COLS.forEach((c) => { const st = cols[c[0]]; if (st && st.kind === 'list' && st.fresh !== true) { st.fresh = true; centerCol(c[0], true); } }));
   }
@@ -224,7 +252,7 @@ export function createLadder(root, opts) {
     if (inflight) return;
     if (opts.replayNote && opts.replayNote()) return;
     const dte = dteNow(), my = seq;
-    let want = COLS.map((c) => c[0]).filter(() => signed === true);
+    let want = shown().filter(() => signed === true);
     if (opts.dataFor) want = want.filter((a) => !opts.dataFor(a));
     if (!want.length) return;
     inflight = true;
@@ -251,14 +279,15 @@ export function createLadder(root, opts) {
   }
   function tick() {
     if (document.hidden) return;                  // hidden tab: no requests, no repaint
-    paintFoot(COLS.map((c) => (locked(c[0]) ? null : dataFor(c[0]))));
+    paintFoot(shown().map((a) => (locked(a) ? null : dataFor(a))));
     poll();
   }
   // a visitor who signs in while the panel is open (or whose token arrives late) gets the columns without a reload
   rtOnChange(() => { if (signed === false && rtToken()) { signed = true; if (active) { paint(); poll(); } } });
   const onVis = () => { if (active && !document.hidden) { tick(); } };
   return {
-    open() { active = true; seq++; lastText = {}; Object.keys(cols).forEach((k) => delete cols[k]); COLS.forEach((c) => { colEl(c[0]).innerHTML = ''; });
+    chips: chipsEl,
+    open() { active = true; seq++; sel = loadSel(); tab = sel.includes(tab) ? tab : sel.includes('SPX') ? 'SPX' : sel[0]; lastText = {}; Object.keys(cols).forEach((k) => delete cols[k]); COLS.forEach((c) => { colEl(c[0]).innerHTML = ''; });
       load(); clearInterval(timer); timer = setInterval(tick, REFRESH_MS); document.addEventListener('visibilitychange', onVis); },
     close() { active = false; seq++; clearInterval(timer); timer = 0; document.removeEventListener('visibilitychange', onVis); },
     refresh() { if (active) { lastText = {}; paint(); poll(); } },
@@ -312,6 +341,7 @@ export function mountGexLadder(ws, opts) {
       flashLevel(ws, p2, api + ' ' + fmtK(strike) + ' \u00b7 ' + p2.toLocaleString('en-US', { maximumFractionDigits: 2 }), strike && data && data.ladder && (data.ladder.find((x) => x.strike === strike) || {}).gex < 0 ? '#ee4276' : '#4fe3ac');
     }
   });
+  panel.firstChild.insertBefore(ladder.chips, panel.firstChild.querySelector('.stkgl-sp').nextSibling);
   const wlOpen = () => host.classList.contains('stkw-open');
   function closeOthers() {
     if (wlOpen()) { const b = document.querySelector('.stkw .stkw-close'); if (b) b.click(); }
@@ -359,12 +389,14 @@ export function mountGexPage() {
     tabs.appendChild(btn);
     const card = el('section', { id: 'gex-ladder-card', class: 'gex-card gex-ladder-card', hidden: true });
     card.innerHTML = '<div class="gex-chart-head"><h2>GEX ladder</h2></div>';
+    const headEl = card.firstChild;
     const body = el('div', { class: 'stkgl-wrap' }); card.appendChild(body);
     chartCard.parentNode.insertBefore(card, chartCard.nextSibling);
     // The page already holds the response for its selected market + expiry: use it for that market so the ladder's
     // Net equals the page's NET GEX (one number per page). Other columns use the shared cache.
     const pageData = (api) => { const g = window.strykerGexData; return g && g.u === api && g.data && !g.data.error ? g.data : null; };
     const ladder = createLadder(body, { isPhone: () => window.innerWidth <= PHONE_MAX, dataFor: pageData, dte: () => (window.strykerGexData ? window.strykerGexData.dte : 0) });
+    headEl.appendChild(ladder.chips);
     window.addEventListener('stryker:gex-data', () => { if (ladder.isActive) ladder.refresh(); });
     tabs.addEventListener('click', (e) => {
       const b = e.target.closest('[data-view]'); if (!b) return;

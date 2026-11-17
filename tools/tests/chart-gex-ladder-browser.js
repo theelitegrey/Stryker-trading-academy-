@@ -314,6 +314,84 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     await ctx.close();
 
     }
+
+    if (want('e')) {
+    // ---- Market picker (Owner 2026-11-17): chips in the header, only picked columns drawn + fetched, remembered ----
+    const SH = process.env.GEXPICK_SHOTS || OUT;
+    const reqs = [];
+    const pk = (p, a) => p.click('#stkgl .stkgl-pk[data-pk="' + a + '"]');
+    const view = (p) => p.evaluate(() => { const r = (e) => e.getBoundingClientRect(); const pn = r(document.querySelector('#stkgl')); const cs = [...document.querySelectorAll('#stkgl .stkgl-col.is-shown')];
+      return { shown: cs.map((c) => c.dataset.api), w: cs.map((c) => Math.round(r(c).width)), panelW: Math.round(pn.width), rows: cs.map((c) => c.querySelectorAll('.stkgl-row').length), on: [...document.querySelectorAll('#stkgl .stkgl-pk.on')].map((b) => b.dataset.pk),
+        tabs: [...document.querySelectorAll('#stkgl .stkgl-tab')].filter((t) => t.offsetParent !== null).map((t) => t.dataset.api), foot: document.querySelector('#stkgl .stkgl-foot').innerText }; });
+    const align = (p) => p.evaluate(() => { const r = (e) => e.getBoundingClientRect(); const hd = document.querySelector('#stkgl .stkgl-hd'); const items = [...hd.querySelectorAll('.stkgl-title, .stkgl-pk, .stkgl-close')];
+      const cy = items.map((e) => Math.round((r(e).top + r(e).height / 2) * 10) / 10); const chips = [...hd.querySelectorAll('.stkgl-pk')]; const gaps = chips.slice(1).map((c, i) => Math.round(r(c).left - r(chips[i]).right));
+      return { cy, chipH: chips.map((c) => Math.round(r(c).height)), closeH: Math.round(r(hd.querySelector('.stkgl-close')).height), gaps, right: Math.round(r(hd).right - r(hd.querySelector('.stkgl-close')).right), left: Math.round(r(hd.querySelector('.stkgl-title')).left - r(hd).left), pickRight: Math.round(r(hd.querySelector('.stkgl-close')).left - r(chips[chips.length - 1]).right), over: hd.scrollWidth > hd.clientWidth + 1 }; });
+    ({ ctx, p, errors } = await open(b, { w: 1440, h: 900 }));
+    p.on('request', (r) => { if (/api\/gex\/ladder/.test(r.url())) reqs.push(new URL(r.url()).searchParams.get('u')); });
+    await p.evaluate(() => { for (const k of Object.keys(localStorage)) if (/^stryker_gexl_sel_/.test(k)) localStorage.removeItem(k); });
+    await setSym(p, 'futures:ES1!', '5');
+    await p.click('.stkgl-railbtn');
+    await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 30, null, { timeout: 15000 });
+    await sleep(1200);
+    let v = await view(p);
+    check(v.shown.join() === 'QQQ,SPY,GLD,SPX' && v.on.join() === 'All,QQQ,SPY,GLD,SPX', 'picker: default is All (' + v.on.join(' ') + ')');
+    let al = await align(p); console.log('ALIGN-PICK ' + JSON.stringify(al));
+    const sp = (a) => Math.max(...a) - Math.min(...a);
+    check(sp(al.cy) <= 1 && al.chipH.every((h) => h === al.closeH) && al.gaps.every((g) => g === 4) && al.left === 12 && al.pickRight === 8 && !al.over, 'picker alignment: one centre (+-1), chip height = close height, gaps 4, left 12, gap to close 8');
+    await p.screenshot({ path: SH + '/pick-all-1440-dark.png' });
+    reqs.length = 0;
+    await pk(p, 'All'); await pk(p, 'QQQ'); await pk(p, 'SPY'); await pk(p, 'GLD'); await sleep(300);
+    v = await view(p);
+    check(v.shown.join() === 'SPX' && v.on.join() === 'SPX', 'pick SPX only: one column (' + v.shown + ')');
+    check(Math.abs(v.w[0] - v.panelW) <= 2, 'one column is full panel width (' + v.w[0] + ' of ' + v.panelW + ')');
+    await sleep(2500); reqs.length = 0; await sleep(2500);
+    check(reqs.length >= 2 && reqs.every((u) => u === 'SPX'), 'only SPX is fetched (' + [...new Set(reqs)].join('|') + ' x' + reqs.length + ')');
+    check(!/One colour scale/.test(v.foot), 'single column: no shared-scale note');
+    await pk(p, 'SPX'); await sleep(200);
+    const sh = await p.evaluate(() => !!document.querySelector('#stkgl .stkgl-pk[data-pk="SPX"].shake'));
+    v = await view(p);
+    check(v.on.join() === 'SPX' && v.shown.join() === 'SPX' && sh, 'last active chip cannot be turned off (shakes)');
+    await p.screenshot({ path: SH + '/pick-1-1440-dark.png' });
+    await pk(p, 'QQQ'); await sleep(2500);
+    v = await view(p);
+    check(v.shown.join() === 'QQQ,SPX' && v.w.every((w) => Math.abs(w - v.panelW / 2) <= 2) && v.rows.every((n) => n > 10) && /One colour scale across all columns shown/.test(v.foot), 'QQQ + SPX: two half-width columns with rows (' + v.w + ')');
+    reqs.length = 0; await sleep(2500);
+    check(reqs.length >= 2 && reqs.every((u) => u === 'QQQ,SPX'), 'two columns fetch only QQQ,SPX (' + [...new Set(reqs)].join('|') + ')');
+    await p.screenshot({ path: SH + '/pick-2-1440-dark.png' });
+    await p.reload({ waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => window.__stkHeavyReady && window.__stkGexLadder, null, { timeout: 45000 });
+    await p.evaluate(() => window.__stkGexLadder.open()); await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 10, null, { timeout: 15000 }); await sleep(1000);
+    v = await view(p);
+    check(v.shown.join() === 'QQQ,SPX', 'choice survives reload (' + v.shown + ')');
+    await pk(p, 'All'); await sleep(2500);
+    v = await view(p);
+    check(v.shown.length === 4 && v.on.length === 5 && v.rows.every((n) => n > 10), 'All -> four columns');
+    await p.evaluate(() => { document.documentElement.setAttribute('data-theme', 'light'); document.body.classList.add('light'); });
+    await p.screenshot({ path: SH + '/pick-all-1440-light.png' });
+    await pk(p, 'GLD'); await pk(p, 'QQQ'); await pk(p, 'SPY'); await sleep(2000);
+    await p.screenshot({ path: SH + '/pick-1-1440-light.png' });
+    await pk(p, 'QQQ'); await sleep(2000);
+    await p.screenshot({ path: SH + '/pick-2-1440-light.png' });
+    check(!errors.length, 'picker: no page errors (' + errors.slice(0, 3).join(' | ') + ')');
+    await ctx.close();
+    // phone 390: tabs follow the choice
+    ({ ctx, p, errors } = await open(b, { w: 390, h: 844, mobile: true }));
+    await p.evaluate(() => window.__stkGexLadder.open()); await sleep(1500); await pk(p, 'GLD'); await pk(p, 'SPY');
+    await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 5, null, { timeout: 15000 }); await sleep(1200);
+    v = await view(p);
+    check(v.tabs.join() === 'QQQ,SPX' && v.shown.join() === 'SPX', '390: tabs follow the choice (' + v.tabs + '), SPX shown');
+    al = await align(p); console.log('ALIGN-PICK-390 ' + JSON.stringify(al));
+    check(sp(al.cy) <= 1 && al.chipH.every((h) => h === al.closeH) && al.pickRight === 8 && !al.over, '390: header one centre, chip height = close height, no overflow');
+    await p.screenshot({ path: SH + '/pick-390-dark.png' });
+    await pk(p, 'SPY'); await sleep(800);
+    v = await view(p);
+    check(v.tabs.join() === 'QQQ,SPY,SPX', '390: adding SPY adds its tab');
+    await pk(p, 'SPX'); await pk(p, 'SPY'); await sleep(800);
+    v = await view(p);
+    check(v.tabs.join() === 'QQQ' && v.shown.join() === 'QQQ', '390: tab list shrinks and the shown tab moves to a picked market (' + v.shown + ')');
+    check(!errors.length, '390 picker: no page errors (' + errors.slice(0, 3).join(' | ') + ')');
+    await ctx.close();
+    }
     if (want('d')) {
     // ---- GEX page tab ----
     for (const [w, h, mobile] of [[1440, 900, false], [390, 844, true]]) {

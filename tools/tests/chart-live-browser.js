@@ -387,7 +387,7 @@ async function memberPaper(b, w, h, mobile, theme) {
   await p.evaluate(() => { window.__stkOpTest.q = { bid: 28751.75, ask: 28752.25 }; });
   await tap(p, '#stkop [data-a=jask]', mobile);
   check(await opWait(p, () => window.__stkPaper.account.state.orders.some((o) => o.type === 'limit' && o.side === 'sell' && o.price === 28752.25)), tag + ': Join Ask = paper SELL LIMIT at the best ask');
-  check(await opWait(p, () => document.querySelector('#stkop [data-k=wk]').textContent === '2 working' && /^Long 2/.test(document.querySelector('#stkop [data-k=pos]').textContent)), tag + ': footer: position + working count');
+  check(await opWait(p, () => document.querySelector('#stkop [data-k=wk]').textContent === '2 working' && /^Long 2/.test(document.querySelector('#stkop [data-k=pos]').textContent)), tag + ': footer: position + working count', await p.evaluate(() => [document.querySelector('#stkop [data-k=wk]').textContent, document.querySelector('#stkop [data-k=pos]').textContent, JSON.stringify(window.__stkPaper.account.state.orders.map((o) => [o.side, o.type, o.price])), JSON.stringify(window.__stkPaper.account.position('futures:NQ1!'))]));
   // hotkeys: off by default; on -> S sells at market
   const hk0 = await p.evaluate(() => window.__stkOrderPanel.prefs.hk);
   check(hk0 === false, tag + ': B / S hotkeys off by default');

@@ -53,6 +53,8 @@ import com.tradezoro.app.data.ThemeMode
 import com.tradezoro.app.data.DataAccess
 import com.tradezoro.app.data.DataAccessRepository
 import com.tradezoro.app.data.HttpQuoteRepository
+import com.tradezoro.app.data.PageQuoteRepository
+import com.tradezoro.app.data.parseFind
 import com.tradezoro.app.data.LiveFeed
 import com.tradezoro.app.data.homeDataNote
 import com.tradezoro.app.data.liveWanted
@@ -100,6 +102,7 @@ import com.tradezoro.app.ui.theme.Mint
 import com.tradezoro.app.ui.theme.OnMint
 import com.tradezoro.app.ui.theme.TradeZoroTheme
 import com.tradezoro.app.ui.theme.Tz
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import android.Manifest
@@ -188,7 +191,8 @@ fun TzRoot(
     val chartVm: ChartViewModel = viewModel()
     val chartState by chartVm.state.collectAsState()
     val tradeVm: TradeViewModel = viewModel()
-    val homeVm: HomeViewModel = viewModel { HomeViewModel(HttpQuoteRepository(token = DataAccessRepository()::idToken)) }
+    // Futures / forex / indices / main crypto: direct sources; anything else (stocks, other venues): the chart page's own provider.
+    val homeVm: HomeViewModel = viewModel { HomeViewModel(PageQuoteRepository(HttpQuoteRepository(token = DataAccessRepository()::idToken), chartWeb::job)) }
     val homeState by homeVm.state.collectAsState()
     val defaultTf by prefs.defaultTf.collectAsState()
     val themeMode by prefs.theme.collectAsState()
@@ -214,6 +218,12 @@ fun TzRoot(
         homeVm.bind(watchStoreFor(ctx), user != null, prefs.activeList(user?.uid)) { id -> prefs.setActiveList(user?.uid, id) }
         data = DataAccess(signedIn = user != null)
         data = runCatching { dataRepo.load() }.getOrDefault(DataAccess(signedIn = user != null))
+        // An unanswered data-access check (offline, server blip) is asked again, never left as "delayed" (as rt-access.js).
+        var wait = 3000L
+        while (user != null && data.current == null && wait <= 60_000L) {
+            delay(wait); wait *= 2
+            data = runCatching { dataRepo.load() }.getOrDefault(data)
+        }
     }
     // Keep the chart page signed in as the same member (data access, layouts, paper account): Owner bug 17 Nov.
     var relinkTried by remember(user?.uid) { mutableStateOf(false) }
@@ -277,16 +287,23 @@ fun TzRoot(
     ) { pad ->
         NavHost(nav, startDestination = Tab.HOME.route, modifier = Modifier.padding(pad)) {
             composable(Tab.HOME.route) {
-                HomeRoute(user, homeVm, data, onAdd = { addOpen = true }, onProduct = { p ->
-                    when (p) {
-                        Product.KRONOS -> openWeb("/replay.html")
-                        Product.OMEGA -> nav.navigate(OMEGA) { launchSingleTop = true }
-                        Product.MENTIS -> goTab(Tab.LEARN)
-                        Product.NEMESIS -> goTab(Tab.JOURNAL)
-                    }
-                }, onSymbol = { sym, pct ->
-                    chartVm.openSymbol(chartIdFor(sym), sym.chartTicker, pct); goTab(Tab.CHARTS)
-                })
+                // The chart page stays loaded (invisible, untouchable) under Home: the site's symbol search and quotes run
+                // in it, and the chart is warm when a row is tapped.
+                Box(Modifier.fillMaxSize()) {
+                    ChartHost(chartWeb, dark, visible = false, modifier = Modifier.fillMaxSize())
+                    // Reads the page's state, so the page is signed in as this member (live chart) before Charts opens.
+                    ChartPolling(chartWeb, chartVm, snack)
+                    HomeRoute(user, homeVm, data, onAdd = { addOpen = true }, onProduct = { p ->
+                        when (p) {
+                            Product.KRONOS -> openWeb("/replay.html")
+                            Product.OMEGA -> nav.navigate(OMEGA) { launchSingleTop = true }
+                            Product.MENTIS -> goTab(Tab.LEARN)
+                            Product.NEMESIS -> goTab(Tab.JOURNAL)
+                        }
+                    }, onSymbol = { sym, pct ->
+                        chartVm.openSymbol(chartIdFor(sym), sym.chartTicker, pct); goTab(Tab.CHARTS)
+                    })
+                }
             }
             composable(Tab.CHARTS.route) {
                 ChartRoute(chartWeb, chartVm, dark, snack, symbols = homeState.active?.symbols.orEmpty(), defaultTf = defaultTf,
@@ -399,7 +416,8 @@ fun TzRoot(
     }
     if (addOpen) {
         ModalBottomSheet(onDismissRequest = { addOpen = false }, containerColor = MaterialTheme.colorScheme.surface) {
-            AddSymbolContent(homeState.active?.name ?: "Watchlist", homeState.items.toSet(), onAdd = homeVm::add)
+            AddSymbolContent(homeState.active?.name ?: "Watchlist", homeState.items.toSet(), onAdd = homeVm::add,
+                search = { q -> chartWeb.job("find", q)?.let(::parseFind) })
         }
     }
     addTrade?.let { t ->

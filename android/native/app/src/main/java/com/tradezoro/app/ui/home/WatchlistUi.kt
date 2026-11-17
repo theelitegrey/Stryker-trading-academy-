@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.tradezoro.app.data.Cat
+import kotlinx.coroutines.delay
 import com.tradezoro.app.data.NAME_MAX
 import com.tradezoro.app.data.SECTION
 import com.tradezoro.app.data.isSection
@@ -241,9 +243,23 @@ internal fun WatchRows(state: HomeUiState, onSymbol: (String) -> Unit, a: WatchA
 
 /** "Add to watchlist": search the markets the site carries, tap to add. */
 @Composable
-fun AddSymbolContent(listName: String, inList: Set<String>, onAdd: (String) -> Unit, modifier: Modifier = Modifier, initialQuery: String = "") {
+fun AddSymbolContent(
+    listName: String, inList: Set<String>, onAdd: (String) -> Unit, modifier: Modifier = Modifier, initialQuery: String = "",
+    /** The website's own search (chart page); null answer = not available, the built-in list stays. */
+    search: (suspend (String) -> List<Cat>?)? = null,
+) {
     var q by rememberSaveable { mutableStateOf(initialQuery) }
-    val results = remember(q) { searchCatalog(q) }
+    var site by remember { mutableStateOf<Pair<String, List<Cat>>?>(null) }
+    var searching by remember { mutableStateOf(false) }
+    LaunchedEffect(q, search) {
+        val f = search ?: return@LaunchedEffect
+        searching = true
+        delay(200)   // typing: one search per pause
+        f(q)?.let { site = q to it }
+        searching = false
+    }
+    // The site's answer for this exact query wins; until it lands, the built-in list (instant, offline).
+    val results = site?.takeIf { it.first == q }?.second ?: remember(q) { searchCatalog(q) }
     Column(modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Text("Add to $listName", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 8.dp, bottom = 12.dp).semantics { heading() })
         OutlinedTextField(
@@ -256,7 +272,7 @@ fun AddSymbolContent(listName: String, inList: Set<String>, onAdd: (String) -> U
         Spacer(Modifier.height(8.dp))
         LazyColumn(Modifier.fillMaxWidth().heightIn(max = 440.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
             if (results.isEmpty()) item {
-                Text("No market matches \u201c$q\u201d.", style = MaterialTheme.typography.bodyMedium, color = Tz.colors.muted, modifier = Modifier.padding(16.dp))
+                Text(if (searching) "Searching\u2026" else "No market matches \u201c$q\u201d.", style = MaterialTheme.typography.bodyMedium, color = Tz.colors.muted, modifier = Modifier.padding(16.dp))
             }
             items(results, key = { it.id }) { c -> CatRow(c, c.id in inList) { onAdd(c.id) } }
         }
@@ -265,7 +281,7 @@ fun AddSymbolContent(listName: String, inList: Set<String>, onAdd: (String) -> U
 
 @Composable
 private fun CatRow(c: Cat, added: Boolean, onAdd: () -> Unit) {
-    val tk = c.id.substringAfter(':')
+    val tk = c.ticker
     Row(
         Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(12.dp))
             .clickable(enabled = !added, role = Role.Button, onClickLabel = "Add $tk") { onAdd() }
@@ -274,7 +290,7 @@ private fun CatRow(c: Cat, added: Boolean, onAdd: () -> Unit) {
     ) {
         Column(Modifier.weight(1f)) {
             Text(tk, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-            Text("${c.name} \u00b7 ${c.exchange}", style = MaterialTheme.typography.bodySmall, color = Tz.colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(listOf(c.name, c.kind, c.exchange).filter { it.isNotEmpty() }.distinct().joinToString(" \u00b7 "), style = MaterialTheme.typography.bodySmall, color = Tz.colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             if (added) Icon(TzIcons.Check, contentDescription = "In the list", tint = Tz.colors.up)

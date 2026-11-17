@@ -107,9 +107,15 @@ fun watchlistFields(l: Watchlist): Map<String, Any> = mapOf(
 
 interface WatchStore {
     val lists: Flow<List<Watchlist>?>
+    /** The list open on the member's other devices (the site's students/{uid}/watchlistPrefs/active {id}); null = none. */
+    val active: Flow<String?> get() = kotlinx.coroutines.flow.emptyFlow()
+    suspend fun setActive(id: String) {}
     suspend fun save(l: Watchlist)
     suspend fun remove(l: Watchlist)
 }
+
+/** watchlistPrefs/active doc -> list id (the site's activeDoc()). */
+fun activeIdFrom(d: Map<String, Any?>?): String? = (d?.get("id") as? String)?.takeIf { it.isNotEmpty() }
 
 /** students/{uid}/watchlists, live (a list changed on the website shows here within a second or two). */
 class CloudWatchStore(private val uid: String) : WatchStore {
@@ -121,6 +127,15 @@ class CloudWatchStore(private val uid: String) : WatchStore {
             trySend(snap?.documents.orEmpty().map { watchlistFrom(it.id, it.data.orEmpty()) })
         }
         awaitClose { reg.remove() }
+    }
+    private fun activeDoc() = db.collection("students").document(uid).collection("watchlistPrefs").document("active")
+    override val active: Flow<String?> = callbackFlow {
+        // Own pending writes are skipped (already on screen), as on the site.
+        val reg = activeDoc().addSnapshotListener { d, _ -> if (d != null && !d.metadata.hasPendingWrites()) trySend(activeIdFrom(d.data)) }
+        awaitClose { reg.remove() }
+    }
+    override suspend fun setActive(id: String) {
+        activeDoc().set(mapOf("id" to id, "updatedAt" to FieldValue.serverTimestamp())).await()
     }
     override suspend fun save(l: Watchlist) {
         col().document(l.id).set(watchlistFields(l)).await()

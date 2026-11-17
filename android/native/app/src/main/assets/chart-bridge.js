@@ -55,6 +55,59 @@
 
   function click(sel) { var b = document.querySelector(sel); if (b) { b.click(); return true; } return false; }
 
+  // ---- symbol search + quotes for the app's watchlist: the site's OWN modules (same pool, ranking and ids) ----
+  var JOBS = {};
+  var MODS = null;
+  function mods() {
+    if (MODS) return MODS;
+    // same ?v= as the page's own scripts, so these are the page's module instances
+    var src = [].map.call(document.scripts, function (s) { return s.src; }).filter(function (s) { return /vela-chart\.js\?v=/.test(s); })[0] || '';
+    var v = (/\?v=(\d+)/.exec(src) || [])[1];
+    var q = v ? '?v=' + v : '';
+    MODS = Promise.all([import('/assets/chart-search-core.js' + q), import('/assets/chart-watchlist.js' + q)]).catch(function (e) { MODS = null; throw e; });
+    return MODS;
+  }
+  function feedReady() {
+    return new Promise(function (res, rej) {
+      var n = 0; (function wait() { var ws = window.STRYKER_VELA; if (ws && ws.feed && window.__stkFirstCandles) return res(ws); if (++n > 200) return rej(new Error('chart not ready')); setTimeout(wait, 100); })();
+    });
+  }
+  // The site's stock search runs on any typed search box (assets/chart-stocks-provider.js installStockSearch): feed it the query.
+  var stockBox = null;
+  function askStocks(q) {
+    try {
+      if (!stockBox) { stockBox = document.createElement('input'); stockBox.className = 'stkss-input'; stockBox.setAttribute('aria-hidden', 'true'); stockBox.tabIndex = -1; stockBox.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0'; document.body.appendChild(stockBox); }
+      stockBox.value = q; stockBox.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (e) {}
+  }
+  var LABEL = { futures: 'Futures', crypto: 'Crypto', forex: 'Forex', indices: 'Index', stocks: 'Stock', other: 'Market' };
+  function find(q) {
+    return Promise.all([mods(), feedReady()]).then(function (r) {
+      var core = r[0][0], wl = r[0][1], ws = r[1], raw = [];
+      if (q.trim()) askStocks(q.trim());
+      try { raw = ws.feed.symbols() || []; } catch (e) {}
+      var pool = raw.filter(function (d) { return d && d.ticker && d.provider !== 'formula'; });
+      return core.search(pool, q, 60).map(function (x) {
+        var d = x.d, sym = core.symOf(d), m = core.metaOf(d);
+        var id = null; try { id = wl.normalizeSymbol(sym, ws.feed); } catch (e) {}
+        return { id: id || sym, t: String(d.ticker), n: String(d.description || ''), c: m.c, k: LABEL[m.c] || 'Market', x: core.VENUE_LABEL[m.v] || String(d.exchange || m.v || '').toUpperCase(), tick: Number(d.mintick) || 0 };
+      });
+    });
+  }
+  // Last, previous daily close and a 15-minute sparkline, read through the chart's own provider (the site watchlist's quote()).
+  function quote(id) {
+    return feedReady().then(function (ws) {
+      var mm = /^([a-z]+):(.+)$/i.exec(id); if (!mm) throw new Error('id');
+      var p = ws.feed.providerInstance(mm[1].toLowerCase()); if (!p || !p.getBars) throw new Error('no provider');
+      return Promise.all([p.getBars(mm[2], 'D', { limit: 2 }), p.getBars(mm[2], '15', { limit: 32 }).catch(function () { return []; })]).then(function (r) {
+        var d = r[0] || [], i = r[1] || [];
+        if (!d.length) throw new Error('no bars');
+        var b = function (x) { return [x.time, x.open, x.high, x.low, x.close, x.volume || 0]; };
+        return { d: d.map(b), i: i.map(b) };
+      });
+    });
+  }
+
   window.TZB = {
     state: state,
     setTf: function (tf) { try { return !!window.__stkIntervals.apply(String(tf)); } catch (e) { return false; } },
@@ -69,6 +122,15 @@
     templates: function () { return click('#stkc-tpl-btn'); },
     workspaces: function () { return click('#stkws-btn'); },
     alerts: function () { try { window.__stkAlerts.open(); return true; } catch (e) { return false; } },
+
+    // ---- async results: the app starts a job with run(key, ...) and reads take(key) until it is not null ----
+    run: function (key, kind, arg) {
+      var out = JOBS; out[key] = null;
+      var p = kind === 'find' ? find(String(arg || '')) : kind === 'quote' ? quote(String(arg || '')) : Promise.reject(new Error('kind'));
+      p.then(function (v) { out[key] = JSON.stringify({ ok: true, v: v }); }, function (e) { out[key] = JSON.stringify({ ok: false, e: String(e && e.message || e).slice(0, 120) }); });
+      return true;
+    },
+    take: function (key) { var v = JOBS[key]; if (v != null) delete JOBS[key]; return v == null ? null : v; },
     paperOn: function () { try { return !!P().setEnabled(true); } catch (e) { return false; } },
     // Paper market order on the active symbol. Rules (market hours, balance, slippage) are the site's paper engine.
     paperOrder: function (side, qty) {

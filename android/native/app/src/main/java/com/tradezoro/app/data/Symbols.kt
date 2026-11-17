@@ -13,7 +13,19 @@ import java.util.Locale
 /** Where a symbol's quote comes from. OTHER = shown and charted, but the app has no quote source for it. */
 enum class Source { FUTURES, FX, INDEX, CRYPTO, OTHER }
 
-data class Cat(val id: String, val name: String, val exchange: String, val tick: Double)
+/** One search result. [ticker] = the code shown (defaults to the id's ticker); [kind] = "Futures", "Crypto", "Stock"... */
+data class Cat(val id: String, val name: String, val exchange: String, val tick: Double, val ticker: String = id.substringAfter(':'), val kind: String = kindOf(id))
+
+/** Crypto venues the site charts (assets/chart-search-core.js CRYPTO_VENUES). */
+val CRYPTO_VENUES = setOf("binance", "coinbase", "hyperliquid", "bybit", "okx", "bitget", "kraken", "vest")
+
+/** Market type label of an id, as the site's search shows it (TYPE_LABEL in assets/chart-search.js). */
+fun kindOf(id: String): String = when (id.substringBefore(':', "").lowercase(Locale.US)) {
+    "futures" -> "Futures"; "fx" -> "Forex"; "stocks" -> "Stock"
+    "idx" -> if (id.substringAfter(':') in setOf("SPX", "NDX", "VIX", "RUT")) "Index" else "Stock"
+    in CRYPTO_VENUES -> "Crypto"
+    else -> "Market"
+}
 
 val CATALOG: List<Cat> = listOf(
     Cat("futures:NQ1!", "Nasdaq-100 E-mini", "CME", 0.25),
@@ -90,11 +102,11 @@ data class WatchSymbol(
     val exchange: String,
 ) {
     /** The chart's ticker as the site shows it: "NQ1!", "EURUSD", "BTCUSDT". */
-    val chartTicker: String get() = id.substringAfter(':')
+    val chartTicker: String get() = id.substringAfterLast(':')
     /** Top bar of the chart: "NQ1! · CME". */
     val title: String get() = if (exchange.isEmpty()) chartTicker else "$chartTicker \u00b7 $exchange"
     /** Crypto prices span 5 orders of magnitude: decimals follow the price. */
-    fun decimalsFor(price: Double): Int = if (source != Source.CRYPTO) decimals else when {
+    fun decimalsFor(price: Double): Int = if (source != Source.CRYPTO && id.substringBefore(':') !in CRYPTO_VENUES) decimals else when {
         price >= 1000 -> 0; price >= 1 -> 2; price >= 0.01 -> 4; else -> 6
     }
 }
@@ -116,13 +128,16 @@ fun symbolOf(rawId: String): WatchSymbol {
         else -> Source.OTHER
     }
     val ticker = when {
+        pre == "stocks" -> tk.substringAfter(':')
         tk.endsWith("1!") || tk.endsWith("2!") -> tk.dropLast(2)
         pre == "binance" && tk.endsWith("USDT") && tk.length > 4 -> tk.dropLast(4)
         else -> tk
     }
     val exchange = cat?.exchange ?: when (pre) {
         "futures" -> "CME"; "fx" -> "Forex"; "idx" -> "Index"; "formula" -> ""; "" -> ""
-        else -> "Crypto"
+        "stocks" -> tk.substringBefore(':', "")
+        in CRYPTO_VENUES -> pre.replaceFirstChar { it.uppercase(Locale.US) }
+        else -> ""
     }
     return WatchSymbol(id, ticker, cat?.name ?: tk, source, cat?.let { decimalsOf(it.tick).coerceAtMost(5) }?.let { if (source == Source.FUTURES) maxOf(2, it) else it } ?: 2, exchange)
 }
@@ -132,7 +147,7 @@ fun canonicalId(raw: String): String {
     val s = raw.trim()
     if (s.contains(':')) {
         val pre = s.substringBefore(':').lowercase(Locale.US); val tk = s.substringAfter(':')
-        if (pre in setOf("futures", "fx", "idx", "binance", "coinbase", "hyperliquid", "bybit", "okx", "bitget", "kraken", "vest", "formula")) return "$pre:$tk"
+        if (pre in setOf("futures", "fx", "idx", "stocks", "formula") || pre in CRYPTO_VENUES) return "$pre:$tk"
         return canonicalId(tk)
     }
     val u = s.uppercase(Locale.US)
@@ -145,7 +160,10 @@ fun canonicalId(raw: String): String {
     return s
 }
 
-/** Symbol search for "add to watchlist": ticker prefix first, then name matches. Max [limit]. */
+/**
+ * Quick offline search over the built-in list (shown at once; the site's full search replaces it when the chart page
+ * answers: SymbolSearch). Ticker prefix first, then name matches. Max [limit].
+ */
 fun searchCatalog(q: String, limit: Int = 30): List<Cat> {
     val t = q.trim().uppercase(Locale.US).replace("/", "")
     if (t.isEmpty()) return CATALOG.take(limit)

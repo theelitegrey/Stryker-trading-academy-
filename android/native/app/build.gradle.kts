@@ -16,8 +16,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // The old web wrapper shipped versionCode 1; the native app continues above it.
-        versionCode = 6
-        versionName = "2.0.0"
+        versionCode = 7
+        versionName = "2.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     // Upload key (Play App Signing). Never in git: point TZ_UPLOAD_JKS at the keystore and TZ_UPLOAD_PASS_FILE at a file
@@ -76,6 +76,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation(composeBom)

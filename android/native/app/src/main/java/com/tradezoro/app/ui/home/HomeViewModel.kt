@@ -86,6 +86,7 @@ class HomeViewModel(
     private var bindJob: Job? = null
     private var activePref: (String) -> Unit = {}
     private var seeding = false
+    private var pendingRemote: String? = null
 
     /**
      * Connects the lists: the member's account (live, shared with the website) or this phone. [preferred] = the list
@@ -96,6 +97,7 @@ class HomeViewModel(
         bindJob?.cancel()
         _state.update { it.copy(loaded = false, signedIn = signedIn, lists = emptyList(), activeId = preferred ?: "") }
         bindJob = viewModelScope.launch {
+            launch { s.active.collect { id -> pendingRemote = id; onRemoteActive(id) } }
             s.lists.collect { got ->
                 if (got == null) return@collect
                 if (got.isEmpty()) {
@@ -104,7 +106,9 @@ class HomeViewModel(
                 }
                 val sorted = got.sortedBy { it.name.lowercase() }
                 _state.update { st ->
-                    val active = sorted.firstOrNull { it.id == st.activeId } ?: sorted.first()
+                    // A list opened on another device before our lists arrived wins once they are here.
+                    val want = pendingRemote?.takeIf { id -> sorted.any { it.id == id } && !st.loaded } ?: st.activeId
+                    val active = sorted.firstOrNull { it.id == want } ?: sorted.first()
                     st.copy(lists = sorted, activeId = active.id, loaded = true).withItems(active.items)
                 }
                 refreshSoon()
@@ -129,7 +133,23 @@ class HomeViewModel(
     fun select(id: String) {
         val l = _state.value.lists.firstOrNull { it.id == id } ?: return
         _state.update { it.copy(activeId = id).withItems(l.items) }
+        markActive(id)
+        refreshSoon()
+    }
+
+    /** Remembers [id] here and tells the member's other devices (the website opens the same list). */
+    private fun markActive(id: String) {
         activePref(id)
+        val s = store ?: return
+        viewModelScope.launch { runCatching { s.setActive(id) } }
+    }
+
+    /** The website (or another phone) opened another list: follow it, without writing it back. */
+    fun onRemoteActive(id: String?) {
+        val l = _state.value.lists.firstOrNull { it.id == id } ?: return
+        if (l.id == _state.value.activeId) return
+        _state.update { it.copy(activeId = l.id).withItems(l.items) }
+        activePref(l.id)
         refreshSoon()
     }
 
@@ -171,7 +191,7 @@ class HomeViewModel(
         if (st.lists.size >= MAX_LISTS) { _notes.value = "You can have up to $MAX_LISTS lists."; return }
         val l = Watchlist(newListId(), WatchEdit.cleanName(name).ifEmpty { "Watchlist" }, emptyList())
         _state.update { it.copy(lists = (it.lists + l).sortedBy { x -> x.name.lowercase() }, activeId = l.id).withItems(l.items) }
-        activePref(l.id)
+        markActive(l.id)
         save(l)
     }
     fun rename(name: String) = edit { WatchEdit.rename(it, name) }
@@ -181,7 +201,7 @@ class HomeViewModel(
         if (st.lists.size <= 1) { _notes.value = "Keep at least one list."; return }
         val rest = st.lists.filterNot { it.id == cur.id }
         _state.update { it.copy(lists = rest, activeId = rest.first().id).withItems(rest.first().items) }
-        activePref(rest.first().id)
+        markActive(rest.first().id)
         val s = store ?: return
         viewModelScope.launch { runCatching { s.remove(cur) }.onFailure { _notes.value = "Couldn't delete the list. Check your connection." } }
     }

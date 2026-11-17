@@ -139,6 +139,8 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
     private fun shoot(file: String, content: @Composable () -> Unit) {
         RuntimeEnvironment.setQualifiers("+$device-" + (if (dark) "night" else "notnight") + "-xxhdpi")
         rule.setContent { TradeZoroTheme(dark = dark) { content() } }
+        rule.mainClock.advanceTimeBy(1000)   // debounced effects (search) settle before the shot
+        rule.waitForIdle()
         rule.onRoot().captureRoboImage("screenshots/$file-$name.png")
     }
 
@@ -281,6 +283,24 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             com.tradezoro.app.ui.home.AddSymbolContent("Watchlist", setOf("futures:NQ1!"), {}, initialQuery = "NQ")
         }
+    }
+    // M7: the website's own search (results as tradezoro.com/charts returned them for "XAU" on 17 Nov).
+    @Test fun addSymbolSiteSearch() = shoot("11b-add-symbol-xau") {
+        val site = com.tradezoro.app.data.parseFind("""[
+            {"id":"bitget:XAUUSDT.P","t":"XAUUSDT.P","n":"XAU / USDT Perpetual","k":"Crypto","x":"Bitget","tick":0.01},
+            {"id":"okx:XAU-USDT-SWAP","t":"XAU-USDT-SWAP","n":"XAU / USDT Perpetual","k":"Crypto","x":"OKX","tick":0.1},
+            {"id":"kraken:XAUTUSD","t":"XAUTUSD","n":"Tether Gold / USD","k":"Crypto","x":"Kraken","tick":0.1},
+            {"id":"futures:GC1!","t":"GC1!","n":"Gold futures","k":"Futures","x":"COMEX","tick":0.1},
+            {"id":"futures:MGC1!","t":"MGC1!","n":"Micro gold futures","k":"Futures","x":"COMEX","tick":0.1}]""")
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            com.tradezoro.app.ui.home.AddSymbolContent("Watchlist", setOf("futures:GC1!"), {}, initialQuery = "XAU", search = { site })
+        }
+    }
+    // M7: the Owner's list (futures saved under the site's default CRYPTO marker) shows one FUTURES header.
+    @Test fun homeOwnerList() = shoot("1c-home-headers") {
+        val items = listOf("###FUTURES", "futures:NQ1!", "###CRYPTO", "futures:MNQ1!", "futures:ES1!", "futures:MES1!", "futures:YM1!", "futures:MYM1!")
+        val st = sampleState().let { b -> b.copy(items = items, rows = items.filterNot { it.startsWith("###") }.map { id -> b.rows.firstOrNull { it.symbol.id == id } ?: com.tradezoro.app.ui.home.WatchRow(com.tradezoro.app.data.symbolOf(id), b.rows[0].state) }) }
+        Shell(Tab.HOME) { m -> HomeContent(st, null, DayPart.MORNING, true, {}, {}, m) }
     }
     @Composable
     private fun TradeSheet(tab: com.tradezoro.app.ui.trade.PanelTab) {

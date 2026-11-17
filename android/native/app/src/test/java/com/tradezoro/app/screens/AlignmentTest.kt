@@ -154,6 +154,12 @@ class AlignmentTest {
             listOf(ind, draw, trade).forEach { near((it.bottom - it.top).value, 48f, "bar target height 48dp", 0f) }
             near(symSel.left.value, 16f, "wheel text left gutter 16dp", 0f)
             near(412f - trade.right.value, 16f, "trade button right gutter 16dp", 0.5f)
+            // M7 compact wheels: 48dp tall (selected 24dp row + half a row above and below), centred in the bar.
+            listOf("wheel-symbol", "wheel-tf").forEach { t ->
+                val w = rule.onNodeWithTag(t).b("wheel box $t")
+                near((w.bottom - w.top).value, 48f, "$t height 48dp (1 + 2 halves)", 0f)
+                near(w.cy, symSel.cy, "$t centre = selected row centre")
+            }
             rule.onNodeWithContentDescription("chart").b("chart area")
         } finally {
             File("build/alignment-chart.txt").writeText(log.toString())

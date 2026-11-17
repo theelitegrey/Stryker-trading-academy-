@@ -20,6 +20,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +53,7 @@ import androidx.webkit.WebViewFeature
 import com.tradezoro.app.data.CHART_ORIGIN
 import com.tradezoro.app.data.CHART_URL
 import com.tradezoro.app.data.jsString
+import com.tradezoro.app.data.jobValue
 import com.tradezoro.app.data.parseBridge
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
@@ -127,6 +130,26 @@ class ChartWeb(private val appContext: Context) {
         v.evaluateJavascript("window.TZB&&TZB.frame?JSON.stringify(TZB.frame($full)):null") { raw ->
             onRaw(runCatching { (Json.parseToJsonElement(raw ?: "null") as? JsonPrimitive)?.contentOrNull }.getOrNull())
         }
+    }
+
+    private var jobSeq = 0
+
+    /**
+     * Runs one of the page's async jobs (TZB.run: "find" = the site's symbol search, "quote" = bars through the chart's
+     * own provider) and waits for its JSON answer. null = no page yet, page error, or no answer in [timeoutMs].
+     */
+    suspend fun job(kind: String, arg: String, timeoutMs: Long = 8000): String? = withContext(Dispatchers.Main) {
+        val v = view ?: return@withContext null
+        val key = "j${jobSeq++}"
+        v.evaluateJavascript("window.TZB&&TZB.run(${jsString(key)},${jsString(kind)},${jsString(arg)})", null)
+        val until = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < until) {
+            delay(120)
+            val raw = suspendCancellableCoroutine { k -> v.evaluateJavascript("window.TZB?TZB.take(${jsString(key)}):null") { k.resume(it) } }
+            val inner = runCatching { (Json.parseToJsonElement(raw ?: "null") as? JsonPrimitive)?.contentOrNull }.getOrNull() ?: continue
+            return@withContext jobValue(inner)
+        }
+        null
     }
 
     fun destroy() { view?.destroy(); view = null }

@@ -1744,6 +1744,7 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
 .stkl-item kbd{ flex:none; font:500 12px/1 inherit; font-family:inherit; color:var(--ink-2); background:none; border:0; }
 .stkl-view{ color:var(--ink-2); font-size:13px; line-height:18px; padding:4px 12px 8px; }
 .stkl-linkrow[hidden]{ display:none; }
+.stkl-linkrow{ gap:8px; padding:0; align-items:center; }
 .stkl-linkrow .stkc-in{ font-size:13px; color:var(--ink-2); }
 .stkl-sharenote{ border-top:0 !important; padding-top:0 !important; margin-top:0 !important; font-size:12px !important; }
 .stkc-mi{ display:flex; align-items:center; gap:12px; min-height:40px; padding:6px 12px; border-radius:8px; box-sizing:border-box;

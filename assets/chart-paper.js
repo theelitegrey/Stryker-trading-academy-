@@ -881,7 +881,7 @@ function oneClickAll(){
     const inst = layerInst(inner(cell)); if (!inst || !inst.overlay) continue;
     let oc = inst.overlay.querySelector('.stkpt-1c');
     const show = !!acct && paperOn() && !liveOn() && acct.settings.oneClick && specOf(cell.symbol).ok;
-    if (!show) { if (oc) oc.remove(); continue; }
+    if (!show) { if (oc) oc.remove(); pushLegend(cell, null); continue; }
     if (!oc) {
       oc = h('div', { class: 'stkpt-1c', role: 'group', 'aria-label': 'One-click paper trading' }, [
         h('button', { type: 'button', class: 'stkpt-1c-s', 'data-k': 'sell', title: 'Paper SELL at market (one click)' }, [h('small', { text: 'SELL' }), h('b')]),
@@ -907,39 +907,29 @@ function refreshOneClick(oc, cell){
   const t = Number.isFinite(last) ? fmtP(sym, last) : '—';
   for (const b of oc.querySelectorAll('b')) if (b.textContent !== t) b.textContent = t;
 }
-// Under the legend's first row (symbol · interval · OHLC), like TradingView. Measured every 2 s
-// (oneClickAll), not per tick, so the 250 ms price refresh never forces a layout.
+// Right under the symbol / OHLC status line (Owner 2026-11-17: the one-click box comes first, the
+// indicator legend always starts below it). Measured every 2 s (oneClickAll), not per tick, so the
+// 250 ms price refresh never forces a layout; only two rects are read.
 function placeOneClick(oc, cell, ov){
-  // Re-measure only when the cell size or its legend rows change: the full scan below forces a
-  // layout, and running it every 2 s on every chart was a cost even with paper trading unused.
-  let sig = '';
-  try { sig = ov.clientWidth + 'x' + ov.clientHeight + ':' + cell.host.querySelectorAll('.vela-statusline ~ *, .vela-ind-fold *').length + ':' + (cell.symbol || ''); } catch (e) {}
-  if (sig && oc.dataset.psig === sig) return;
-  oc.dataset.psig = sig;
   let top = 30;
   try {
-    const or = ov.getBoundingClientRect();
-    // below every legend row of the price pane: the status line (symbol + OHLC), then the
-    // indicator rows (Volume, …) and their fold toggle, which have no stable class
-    let bottom = 0;
-    for (const e of cell.host.querySelectorAll('.vela-statusline, .vela-statusline ~ *, .vela-ind-fold, .vela-ind-fold *')) {
-      if (e.closest('.stkpt-ov, .stkfeeds-wrap, .vela-ws-toolbar, .vela-dtb, .vela-watermark')) continue;
-      const r = e.getBoundingClientRect();
-      if (!r.height || r.height > 40 || r.left < or.left || r.left - or.left > 260 || r.top - or.top > 140 || r.top < or.top) continue;
-      bottom = Math.max(bottom, r.bottom);
-    }
-    for (const e of cell.host.querySelectorAll('div, span, button')) {
-      if (bottom > 0 && e.childElementCount > 6) continue;
-      if (e.closest('.stkpt-ov, .stkfeeds-wrap, .vela-ws-toolbar, .vela-dtb, .vela-watermark')) continue;
-      const r = e.getBoundingClientRect();
-      if (!r.height || r.height > 40 || r.width > 600 || r.left < or.left || r.left - or.left > 260 || r.top < or.top + 20 || r.top - or.top > 140) continue;
-      if (!(e.textContent || '').trim() && !e.querySelector('svg')) continue;
-      bottom = Math.max(bottom, r.bottom);
-    }
-    if (bottom) top = Math.max(26, Math.round(bottom - or.top) + 6);
+    const sl = cell.host.querySelector('.vela-statusline'), r = sl && sl.getBoundingClientRect();
+    if (r && r.height) top = Math.max(26, Math.round(r.bottom - ov.getBoundingClientRect().top) + 4);
   } catch (e) {}
   const v = top + 'px';
   if (oc.style.top !== v) oc.style.top = v;
+  pushLegend(cell, oc);
+}
+// The top pane's indicator legend starts 8 px under the one-click box, or under the status line when
+// the box is off (margin-top: Vela owns the legend's inline top and transform).
+function pushLegend(cell, oc){
+  try {
+    const lg = cell.host.querySelector('[data-vela-pane-at-top]'); if (!lg) return;
+    const above = oc && oc.isConnected ? oc : cell.host.querySelector('.vela-statusline'); if (!above) return;
+    const cur = parseFloat(lg.style.marginTop) || 0;
+    const want = Math.max(0, Math.ceil(above.getBoundingClientRect().bottom + 8 - (lg.getBoundingClientRect().top - cur)));
+    if (Math.abs(want - cur) >= 1) lg.style.marginTop = want ? want + 'px' : '';
+  } catch (e) {}
 }
 function oneClick(oc, side){
   const sym = oc.dataset.sym; if (!sym) return;
@@ -1809,7 +1799,7 @@ const CSS = `
 .stkpt-chip[data-pin=up],.stkpt-chip[data-pin=down]{ border-style:dashed; opacity:.92; }
 .stkpt-chip.dragging{ box-shadow:0 0 0 2px var(--c); }
 .stkpt-chip[data-kind="new"],.stkpt-chip[data-id="new"]{ opacity:.85; }
-.stkpt-1c{ position:absolute; left:8px; top:30px; display:flex; align-items:stretch; height:36px; pointer-events:auto; border-radius:6px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.35); font-family:-apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,sans-serif; }
+.stkpt-1c{ position:absolute; left:10px; top:30px; display:flex; align-items:stretch; height:36px; pointer-events:auto; border-radius:6px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.35); font-family:-apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,sans-serif; }
 .stkpt-1c button{ border:0; min-width:74px; padding:0 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; color:#fff; line-height:1.1; }
 .stkpt-1c small{ font-size:10px; font-weight:700; letter-spacing:.05em; opacity:.92; }
 .stkpt-1c b{ font:600 12px var(--font-mono, monospace); }

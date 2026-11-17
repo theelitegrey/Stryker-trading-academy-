@@ -65,15 +65,16 @@ async function open(b, { w, h, mobile, theme, test, store, routes, init }) {
   await ctx.addInitScript(fakeWs);
   if (test) await ctx.addInitScript(testManifest);
   if (init) await ctx.addInitScript(init[0], init[1]);
-  await ctx.addInitScript(([t, st]) => {
+  await ctx.addInitScript(([t, st, m]) => {
     try {
       if (sessionStorage.getItem('__ivSeeded')) return;   // a reload keeps what the page itself saved
       sessionStorage.setItem('__ivSeeded', '1');
       localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1');
       if (st) for (const k in st) localStorage.setItem(k, st[k]); else localStorage.setItem('stryker.vela.session', '');
       if (t) localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night');
+      if (!m) localStorage.setItem('stk_legend_open_v1', '1');   // desktop drives the rows; the legend is folded by default
     } catch (e) {}
-  }, [theme || '', store || null]);
+  }, [theme || '', store || null, !!mobile]);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   await ctx.route(/127\.0\.0\.1:9\//, (r) => r.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' }));
   if (routes) await routes(ctx);

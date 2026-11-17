@@ -18,7 +18,7 @@ async function open(b, ctx0, { w, h, mobile }) {
   const ctx = ctx0 || await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   if (!ctx0) {
     await ctx.addInitScript(stub);
-    await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_community_disclaimer_ack_v1', JSON.stringify({ _anon: 1, u1: 1 })); } catch (e) {} });
+    await ctx.addInitScript((m) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_community_disclaimer_ack_v1', JSON.stringify({ _anon: 1, u1: 1 })); if (!m) localStorage.setItem('stk_legend_open_v1', '1'); } catch (e) {} }, !!mobile);
     await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
     await ctx.route(/\/api\/gex\/levels\//, (r) => {
       const n = new URL(r.request().url()).pathname.split('/').pop().toUpperCase();
@@ -159,7 +159,7 @@ async function shot(p, name, clip) { await sleep(400); await p.screenshot({ path
     await sleep(3500);
     // the phone legend starts folded ("⌄ N"): the count includes GEX; unfold it
     const fold = await m.p.evaluate(() => { const f = document.querySelector('.vela-ind-fold'); const t = f ? f.textContent : null; if (f) f.click(); return t; });
-    check(fold === '2', '390: folded legend counts 2 indicators (Volume + GEX): ' + fold);
+    check(fold === 'Indicators (2)', '390: folded legend counts 2 indicators (Volume + GEX): ' + fold);
     await sleep(700);
     r = await rows(m.p);
     const gm = r.find((x) => x.title === 'GEX Levels');

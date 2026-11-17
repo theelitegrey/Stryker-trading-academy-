@@ -44,7 +44,7 @@ async function menu(p, type, label) {
     for (const [w, h, mobile, tag] of [[1440, 900, false, '1440'], [390, 844, true, '390']]) {
       const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
       await ctx.addInitScript(stub);
-      await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', 'night'); } catch (e) {} });
+      await ctx.addInitScript((m) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', 'night'); if (!m) localStorage.setItem('stk_legend_open_v1', '1'); } catch (e) {} }, mobile);
       await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
       const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(String(e))); p.on('console', (m) => { if (m.type() === 'error') console.log('CONSOLE', m.text().slice(0, 200)); });
       const boot = async () => { await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' }); await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 120000 }); await sleep(2500); };

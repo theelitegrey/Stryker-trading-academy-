@@ -941,9 +941,47 @@ function visualOrder(R) {
     return runStackItem.apply(this, arguments);
   };
 }
+// LEGEND FOLDED BY DEFAULT (Owner 2026-11-17): on every device the indicator legend starts as one
+// "⌄ Indicators (N)" toggle; a click unfolds every pane's rows (Vela's own chart-wide fold), a click
+// folds them again, and the choice is remembered on this device. Vela's fold state follows the saved
+// choice on every sync (layout flips, rows added) except while a multi-chart phone grid routes the
+// toggle to its object tree. The update dot (chart-ind-versions.js) keys off the "Show…" aria-label.
+const LEGEND_OPEN_KEY = 'stk_legend_open_v1';
+const legendOpen = () => { try { return localStorage.getItem(LEGEND_OPEN_KEY) === '1'; } catch (e) { return false; } };
+function legendFold(R) {
+  const proto = R && R.inputsUI && Object.getPrototypeOf(R.inputsUI);
+  if (!proto || proto.__stkFold || typeof proto.syncFoldToggle !== 'function') return;
+  proto.__stkFold = true;
+  const sync = proto.syncFoldToggle;
+  proto.syncFoldToggle = function () {
+    if (this.overviewAction === null) this.legendFolded = !legendOpen();
+    const r = sync.apply(this, arguments);
+    const btn = this.foldToggle;
+    if (btn && this.overviewAction === null) {
+      if (!btn.__stkFold) {
+        btn.__stkFold = true;
+        // capture: save the new choice before Vela flips the fold and re-syncs
+        btn.addEventListener('click', () => { try { localStorage.setItem(LEGEND_OPEN_KEY, this.legendFolded ? '1' : '0'); } catch (e) {} }, true);
+      }
+      const folded = this.legendFolded;
+      btn.classList.add('stk-fold');
+      btn.setAttribute('aria-expanded', String(!folded));
+      btn.style.marginTop = folded ? '0' : '4px';
+      btn.style.padding = '0 8px 0 6px';
+      btn.style.height = '24px';
+      while (btn.childNodes.length > 1) btn.lastChild.remove();
+      const label = document.createElement('span');
+      label.textContent = 'Indicators (' + this.rows.size + ')';
+      label.style.cssText = 'font-weight:600;line-height:normal;font-size:12px;';
+      btn.appendChild(label);
+    }
+    return r;
+  };
+}
+
 // LATE LAYERS (see lateLayers): patch the renderer prototype once (shared by every cell, so grid
   // cells added later are covered too).
-  try { for (const c of ws.context().cells) { const r = c.chart.renderer; const R = r && r.extLayers ? r : r && r.renderer; lateLayers(R); visualOrder(R); } } catch (e) { console.warn('TradeZoro: late layers', e); }
+  try { for (const c of ws.context().cells) { const r = c.chart.renderer; const R = r && r.extLayers ? r : r && r.renderer; lateLayers(R); visualOrder(R); legendFold(R); R && R.inputsUI && R.inputsUI.syncFoldToggle(); } } catch (e) { console.warn('TradeZoro: late layers', e); }
 
   // charts?symbol=NQ&date=2026-10-28 (from /market-stats): open that session on the chart.
   if (MSess && !BT) { try { MSess.openSessionFromLink(ws); } catch (e) { console.warn('TradeZoro: market stats link', e); } }

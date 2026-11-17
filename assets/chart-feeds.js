@@ -99,7 +99,8 @@ export function mountFeedBadges(ws) {
   const sheet = document.createElement('div'); sheet.id = 'stkfeed-sheet'; sheet.className = 'stkfeed-sheet'; sheet.setAttribute('role', 'dialog'); sheet.hidden = true;
   const note = document.createElement('div'); note.id = 'stkfeed-note'; note.className = 'stkfeed-note'; note.hidden = true;
   const wrap = document.createElement('div'); wrap.id = 'stkfeeds-wrap'; wrap.className = 'stkfeeds-wrap';   // chips + lock note + why in ONE normal-flow column: nothing inside can overlap another
-  wrap.append(row, note); host.append(wrap, sheet);
+  const arrow = document.createElement('i'); arrow.className = 'stkfeed-arrow'; arrow.hidden = true; arrow.setAttribute('aria-hidden', 'true');
+  wrap.append(row, note); host.append(wrap, sheet, arrow);
   let whyOpen = false;
   let openL = '', last = null, cur = null;
 
@@ -135,8 +136,20 @@ export function mountFeedBadges(ws) {
     });
     const t = Math.round(b ? b + 4 : 48);
     wrap.style.top = t + 'px';
-    if (docked) { sheet.style.top = 'auto'; sheet.style.bottom = (host.getBoundingClientRect().bottom - host.querySelector('.vela-widget-bottombar').getBoundingClientRect().top + 8) + 'px'; }
-    else { sheet.style.bottom = ''; sheet.style.top = (t + wrap.offsetHeight + 4) + 'px'; }
+    anchor();
+  }
+  // The card sits ABOVE the pill it belongs to (below it when there is no room), centred on it, clamped inside the chart with 8px margin; the arrow points at the pill.
+  function anchor() {
+    if (!openL || sheet.hidden) { arrow.hidden = true; return; }
+    const pill = row.querySelector('.stkfeed[data-l="' + openL + '"]'); if (!pill) return;
+    const hr = host.getBoundingClientRect(), pr = pill.getBoundingClientRect(), sw = sheet.offsetWidth, sh = sheet.offsetHeight;
+    const cx = pr.left + pr.width / 2 - hr.left;
+    const left = Math.max(8, Math.min(cx - sw / 2, hr.width - sw - 8));
+    const up = pr.top - hr.top - 10 - sh >= 8;
+    const top = up ? pr.top - hr.top - 10 - sh : pr.bottom - hr.top + 10;
+    Object.assign(sheet.style, { left: left + 'px', top: top + 'px', right: 'auto', bottom: 'auto' });
+    arrow.hidden = false; arrow.dataset.side = up ? 'up' : 'down';
+    arrow.style.left = Math.round(cx - 6) + 'px'; arrow.style.top = Math.round(up ? top + sh - 6 : top - 6) + 'px';
   }
   // L1/L2 chips live in the chart's bottom status bar, left of the clock (Owner order 2026-11-15). Latency chip (other branch) can sit beside them.
   let docked = false;
@@ -196,10 +209,18 @@ export function mountFeedBadges(ws) {
       (L === 'L3' ? '' : '<h4>Right now</h4><ul class="stkfeed-now">' + lines.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>') +
       '<h4>Used by</h4>' + who +
       (S.state === 'delayed' ? '<p class="stkfeed-why-t">' + esc(WHY.futures.long) + '</p><button type="button" class="stkfeed-unlock">Get live data</button>' : S.state === 'locked' && L !== 'L3' ? '<button type="button" class="stkfeed-unlock">Sign in</button>' : '');
-    sheet.setAttribute('aria-label', L + ' data feed details'); sheet.hidden = false;
+    sheet.setAttribute('aria-label', L + ' data feed details'); sheet.hidden = false; anchor();
   }
-  function openSheet(L) { openL = openL === L ? '' : L; row.dataset.sig = ''; if (!openL) sheet.hidden = true; paint(); }
-  function close() { openL = ''; sheet.hidden = true; row.dataset.sig = ''; paint(); }
+  function openSheet(L, keep, hover) { viaHover = !!hover; openL = openL === L && !keep ? '' : L; row.dataset.sig = ''; if (!openL) { sheet.hidden = true; arrow.hidden = true; } paint(); }
+  function close() { openL = ''; sheet.hidden = true; arrow.hidden = true; row.dataset.sig = ''; paint(); }
+  // Hover (mouse only): opens after 150 ms, stays while the pointer is on the pill or the card, closes 200 ms after it leaves. Touch keeps tap; keyboard focus opens.
+  let tin = 0, tout = 0, viaHover = false;
+  const mouse = (e) => e.pointerType === 'mouse';
+  row.addEventListener('pointerover', (e) => { const b = mouse(e) && e.target.closest('.stkfeed'); if (!b) return; clearTimeout(tout); clearTimeout(tin); if (openL !== b.dataset.l) tin = setTimeout(() => openSheet(b.dataset.l, true, true), 150); });
+  const leave = (e) => { if (!mouse(e)) return; clearTimeout(tin); clearTimeout(tout); tout = setTimeout(() => { if (openL) close(); }, 200); };
+  row.addEventListener('pointerleave', leave); sheet.addEventListener('pointerleave', leave);
+  sheet.addEventListener('pointerenter', (e) => { if (mouse(e)) clearTimeout(tout); });
+  row.addEventListener('focusin', (e) => { const b = e.target.closest('.stkfeed'); if (b && b.matches(':focus-visible') && openL !== b.dataset.l) openSheet(b.dataset.l, true); });
   // Hidden diagnostic: long-press (0.7 s) or 5 quick taps on the L2 chip -> a small panel to screenshot. Same data as window.tzL2Diag(). No tokens, 4-char prefixes only.
   let taps = [], lp = 0, dg = null, suppress = 0;
   const showDiag = () => {
@@ -213,7 +234,7 @@ export function mountFeedBadges(ws) {
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((n) => row.addEventListener(n, () => clearTimeout(lp)));
   row.addEventListener('click', (e) => { if (!isL2(e)) return; const n = Date.now(); taps = taps.filter((x) => n - x < 2500); taps.push(n); if (taps.length >= 5) { taps = []; showDiag(); } }, true);
   row.addEventListener('click', (e) => { if (Date.now() < suppress) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-  row.addEventListener('click', (e) => { const b = e.target.closest('.stkfeed'); if (b) { e.stopPropagation(); openSheet(b.dataset.l); } });
+  row.addEventListener('click', (e) => { const b = e.target.closest('.stkfeed'); if (b) { e.stopPropagation(); openSheet(b.dataset.l, viaHover && openL === b.dataset.l); } });
   sheet.addEventListener('click', (e) => {
     e.stopPropagation();
     if (e.target.closest('.stkfeed-x')) close();

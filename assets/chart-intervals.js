@@ -508,14 +508,14 @@ export const wrapFactory = (factory, name, pollMs) => () => wrapProvider(factory
 // ---------------- UI ----------------
 const CSS = `
 .vela-widget-tf-group > .vela-widget-tf-chips, .vela-widget-tf-group > .vela-widget-tf-caret{display:none!important}
-.stk-iv-row{display:inline-flex;align-items:center;gap:2px}
-.stk-iv-b{all:unset;box-sizing:border-box;height:30px;min-width:30px;padding:0 7px;display:inline-flex;align-items:center;justify-content:center;
-  border-radius:6px;cursor:pointer;font-size:13px;font-weight:550;color:#d1d4dc;white-space:nowrap}
-.stk-iv-b:hover{background:rgba(255,255,255,.08);color:#fff}
-.stk-iv-b.on{background:#2a2e39;color:#fff}
+.stk-iv-row{display:inline-flex;align-items:center;gap:4px}
+.stk-iv-b{all:unset;box-sizing:border-box;height:32px;min-width:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:4px;cursor:pointer;font-size:13px;font-weight:400;color:#d1d4dc;white-space:nowrap}
+.stk-iv-b:hover{background:rgba(255,255,255,.06)}
+.stk-iv-b.on{background:rgba(255,255,255,.10);color:#d1d4dc}
 .stk-iv-b:focus-visible{outline:2px solid #2962ff;outline-offset:-2px}
-.stk-iv-caret{min-width:20px;padding:0 3px;color:#b2b5be}
-.stk-iv-caret svg{width:16px;height:16px;transition:transform .15s}
+.stk-iv-caret{min-width:24px;padding:0 3px;color:#b2b5be}
+.stk-iv-caret svg{width:18px;height:18px;transition:transform .15s}
 .stk-iv-caret[aria-expanded="true"] svg{transform:rotate(180deg)}
 :root[data-theme="light"] .stk-iv-b{color:#131722}
 :root[data-theme="light"] .stk-iv-b:hover{background:#f0f3fa;color:#131722}

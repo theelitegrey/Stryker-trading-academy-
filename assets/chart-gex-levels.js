@@ -64,11 +64,11 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { rtHeadersReady } from './rt-access.js?v=1119';
-import * as ProGate from './chart-pro-gate.js?v=1119';
-import * as ZD from './chart-zoro-data.js?v=1119';
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=1119';
-import { isFutures, splitSym } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { rtHeadersReady } from './rt-access.js?v=1108';
+import * as ProGate from './chart-pro-gate.js?v=1108';
+import * as ZD from './chart-zoro-data.js?v=1108';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=1108';
+import { isFutures, splitSym } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -751,7 +751,7 @@ class GexNative {
     if (!s.symbol || ProGate.isFree()) return;
     clearTimeout(this.alT);
     this.alT = setTimeout(() => {
-      (metricMod || (metricMod = import('./chart-metric-alerts.js?v=1119'))).then((m) => m.syncIndicator(s)).catch((e) => console.warn('TradeZoro GEX alerts', e));
+      (metricMod || (metricMod = import('./chart-metric-alerts.js?v=1108'))).then((m) => m.syncIndicator(s)).catch((e) => console.warn('TradeZoro GEX alerts', e));
     }, first ? 0 : 700);
   }
   suspend() {}
@@ -1174,7 +1174,7 @@ function gexLayer() {
       }
       // edge tags: top-right going down for levels above, bottom-right going up for levels below
       const edgeOut = [];
-      if (eUp.length || eDn.length) g.font = '600 10px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';   // only when there are edge tags: a font switch costs a style update (SMOOTH)
+      g.font = '600 10px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
       [[eUp, true], [eDn, false]].forEach(([list, up]) => list.forEach((t, k) => {
         let txt = t.text;
         const maxTw = W < 520 ? W * 0.5 : Math.min(W - 8, 260);

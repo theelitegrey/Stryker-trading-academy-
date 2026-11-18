@@ -1,6 +1,6 @@
 // TradeZoro — Charts PAPER TRADING (ES module, charts.html only)
-import * as TM from './chart-trade-menu.js?v=1119';
-import { normFutures } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import * as TM from './chart-trade-menu.js?v=1108';
+import { normFutures } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 // Owner order 2026-10-12: "Add complete full demo/paper trading feature inside the charts, like
 // tradingview". Modelled on TradingView's Paper Trading, in our own look.
 //
@@ -93,7 +93,6 @@ let panel = null, ticket = null;
 const drag = { on: false };
 let LIVE = null;                     // assets/chart-live.js hook (admins only), see setLiveHook
 const liveOn = () => !!(LIVE && LIVE.active());
-const legendMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-statusline,.vela-widget-bottombar,.stklat-chip'); });   // SMOOTH: the legend / bottom-bar readouts change on every pointer move while panning; they never hold a dialog or menu
 export function setLiveHook(hk){ LIVE = hk; applyEnabled(); renderPanel(); }
 
 // ------------------------------------------------------------------ small helpers
@@ -188,7 +187,6 @@ function applyEnabled(){
   if (was !== undefined && was !== on) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);   // panel height came or went
   for (const sw of document.querySelectorAll('.stkpt-switch input')) { sw.checked = on; sw.disabled = false; }
   pushLines(true);
-  try { updateStrip(); } catch (e) {}
 }
 // canonical paper key ("CME_MINI:NQ1!", "rithmic:NQ1!", "NQ1!" -> "futures:NQ1!"); raw symbol when unsupported
 function canonSym(sym){ const sp = specOf(sym); return sp.ok ? sp.symbol : String(sym || ''); }
@@ -793,68 +791,7 @@ function syncChips(cell, inst, lines){
   }
   for (const [, chip] of have) chip.remove();
 }
-
-// ------------------------------------------------------------------ account strip (Owner 2026-11-17)
-// Header row of Charts, left of the session pill: Bal / RP&L / UP&L. Shown only while a trading account is active
-// (Paper switched on, or an admin's live broker account). Read-only: paper = this engine; live = chart-live.js balance + positions.
-let strip = null, stripSig = '';
-const stripCls = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
-function buildStrip(){
-  const host = document.querySelector('.mobile-topnav'); if (!host) return null;
-  const item = (k, l, tip) => h('span', { class: 'stkas-i', 'data-k': k, title: tip }, [h('span', { class: 'stkas-l', text: l }), h('b', { class: 'stkas-v' })]);
-  const btn = h('button', { type: 'button', class: 'stkas-b', 'aria-label': 'Account: balance, realized and unrealized P&L. Opens positions and orders' }, [
-    item('bal', 'Bal', 'Balance'), item('rp', 'RP&L', 'Realized P&L today'), item('up', 'UP&L', 'Unrealized P&L on open positions')]);
-  const pop = h('div', { class: 'stkas-pop', role: 'dialog', 'aria-label': 'Account', hidden: '' });
-  const el = h('div', { class: 'stkas', id: 'stkas', hidden: '' }, [btn, pop]);
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (document.documentElement.classList.contains('stk-cps')) { pop.hidden = !pop.hidden; return; }   // phones: all three in a small popover
-    if (liveOn()) orderPanel(); else openPanel('positions');
-  });
-  document.addEventListener('click', (e) => { if (!pop.hidden && !el.contains(e.target)) pop.hidden = true; });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { pop.hidden = true; btn.focus(); } });
-  const mc = document.getElementById('mclock');   // on phones the clock lives in the chart bar, not in host
-  if (mc && mc.parentNode) mc.parentNode.insertBefore(el, mc); else host.insertBefore(el, host.querySelector('.topnav-right') || null);
-  return el;
-}
-function stripData(){
-  if (liveOn()) {
-    const L = window.__stkLive, st = L && L.state, a = st && st.acct; if (!a) return null;
-    const b = L.balance(a.id), i = L.info ? L.info(activeCellSym()) : null;
-    const open = (st.data.positions || []).filter((p) => p && String(p.status || 'OPEN').toUpperCase() !== 'CLOSED').length;
-    const upl = !open ? null : (b && b.state === 'ok' && b.upl != null) ? b.upl : (i && i.pos && i.pos.qty && Number.isFinite(i.pnl)) ? i.pnl : null;
-    return { bal: b && b.state === 'ok' ? b.amount : null, rp: null, up: upl, rpTip: 'Not provided by your broker', cur: b && b.currency };
-  }
-  if (!paperOn() || !acct) return null;
-  const s = acct.summary(dayStart());
-  return { bal: s.balance, rp: s.dayPnl, up: s.positions ? s.unrealized : null };
-}
-const activeCellSym = () => { const c = activeCell(); return c ? c.symbol : ''; };
-function updateStrip(){
-  const d = stripData();
-  if (!strip) { if (!d) return; strip = buildStrip(); if (!strip) return; }
-  const mc = document.getElementById('mclock');   // phones: chart-phone-space.js moves the clock into the chart bar; the strip follows it
-  if (mc && mc.parentNode && strip.nextSibling !== mc) mc.parentNode.insertBefore(strip, mc);
-  if (!d) { if (!strip.hidden) { strip.hidden = true; stripSig = ''; } return; }
-  const vals = { bal: d.bal == null ? '$ --' : money(d.bal), rp: d.rp == null ? '$ --' : money(d.rp, false), up: d.up == null ? '$ --' : money(d.up, false) };
-  const cls = { bal: '', rp: stripCls(d.rp), up: stripCls(d.up) };
-  const sig = JSON.stringify([vals, cls, d.rpTip]);
-  if (sig === stripSig && !strip.hidden) return;
-  stripSig = sig;
-  for (const k of ['bal', 'rp', 'up']) {
-    const it = strip.querySelector('[data-k=' + k + ']'), v = it.querySelector('.stkas-v');
-    v.textContent = vals[k]; v.className = 'stkas-v ' + cls[k];
-    if (k === 'rp') it.title = d.rpTip || 'Realized P&L today';
-  }
-  // phone chip shows UP&L, or Bal when flat
-  strip.classList.toggle('chip-bal', d.up == null);
-  const pop = strip.querySelector('.stkas-pop'); pop.textContent = '';
-  for (const [k, l] of [['bal', 'Balance'], ['rp', 'Realized P&L today'], ['up', 'Unrealized P&L']]) pop.appendChild(h('div', { class: 'stkas-row' }, [h('span', { text: l }), h('b', { class: cls[k], text: vals[k] })]));
-  strip.hidden = false;
-}
-window.addEventListener('stklive:menu', () => { try { updateStrip(); } catch (e) {} });
 function livePnl(){
-  try { updateStrip(); } catch (e) { console.warn('TradeZoro paper: account strip', e); }
   if (!acct) return;
   for (const cell of cells()) {
     const inst = layerInst(inner(cell)); if (!inst || !inst.overlay) continue;
@@ -1584,7 +1521,7 @@ function wireSettingsDialog(dlg){
 }
 function watchSettings(){
   const scan = () => document.querySelectorAll('.vela-dialog--settings').forEach(wireSettingsDialog);
-  new MutationObserver((ms) => { if (!legendMut(ms)) scan(); }).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
   scan();
 }
 
@@ -1766,7 +1703,6 @@ function mountToolbar(bar){
     if (a === 'paper') { if (liveOn()) L.leave(true); if (!paperOn() && liveOf()) setPaperEnabled(true); orderPanel(); }   // Paper again after a disconnect = on
     else if (a === 'live' && L) L.pick(it.dataset.id).then(() => orderPanel());
     else if (a === 'connect' && L) L.connect();
-    else if (a === 'hl' && window.__stkHl) window.__stkHl.open();
   });
   document.addEventListener('click', (e) => { if (!pop.hidden && !wrap.contains(e.target)) setOpen(false); });
   pop.addEventListener('keydown', (e) => TM.keys(pop, e));

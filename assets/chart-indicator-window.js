@@ -42,9 +42,9 @@
 // built-ins have no usage stats, so the Popular sort lists TradeZoro's own first, then catalogue order.
 // No Vela / LuxAlgo / TradingView wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=1119';
-import { entry as verEntry, fmtDate as verDate } from './indicator-versions.js?v=1119';
-import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2, GEX_TYPES } from './chart-pro-gate.js?v=1119';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=1108';
+import { entry as verEntry, fmtDate as verDate } from './indicator-versions.js?v=1108';
+import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier, L1_TO_L2, GEX_TYPES } from './chart-pro-gate.js?v=1108';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -288,11 +288,11 @@ export function mountIndicatorWindow(ws, opts){
   // per-key facts from tools/gen-indicator-pages.js (slug, thumbnail, markets, inputs, summary, release)
   let meta = {}, metaP = null, explainMap = null, explainP = null;
   function loadMeta(){
-    if (!metaP) metaP = fetch('/assets/indicator-picker.json?v=1119').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { meta = m || {}; });
+    if (!metaP) metaP = fetch('/assets/indicator-picker.json?v=1108').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { meta = m || {}; });
     return metaP;
   }
   function loadExplain(){
-    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=1119').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
+    if (!explainP) explainP = fetch('/assets/indicator-explain.json?v=1108').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((m) => { explainMap = m || {}; });
     return explainP;
   }
 
@@ -326,7 +326,6 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them'; }
       if (r.native && r.nativeType === 'stk_earn') { cat = GROUP_STRYKER; desc = 'An “E” on the day a US company reports earnings, with the EPS estimate on hover. Data updated daily'; }
       if (r.native && r.nativeType === 'stk_econ') { cat = GROUP_STRYKER; desc = 'High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip'; }
-      if (r.native && r.nativeType === 'stk_barstats') desc = 'A table under the candles with each bar’s total volume, delta, delta %, buy, sell and trades, heat-mapped. Futures and crypto order flow';
       out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc, hidden: !!r.hidden, aliases: (r.aliases || []).join(' ') });
     });
     const ex = (S() && S().EXAMPLES) || [];
@@ -411,7 +410,7 @@ export function mountIndicatorWindow(ws, opts){
     it.ix = { n: words(it.name + ' ' + (it.aliases || '')), ns: norm(it.name + ' ' + (it.aliases || '')), d: words(it.desc + ' ' + it.summary), ds: norm(it.desc + ' ' + it.summary), g: words(g), gs: norm(g) };
   }
   // the L2 versions that already exist under another name (Owner 2026-11-03): typing the old name finds them
-  const SEARCH_ALIAS = { 'b:stk_barstats': 'bar stats footprint stats delta table volume table', 'b:stk_fut_imb': 'imbalance zones imbalance', 'b:stk_bk_track': 'absorption absorption (l2)' };
+  const SEARCH_ALIAS = { 'b:stk_fut_imb': 'imbalance zones imbalance', 'b:stk_bk_track': 'absorption absorption (l2)' };
 
   async function loadData(){
     const tasks = [Favs.load(), loadMeta()];

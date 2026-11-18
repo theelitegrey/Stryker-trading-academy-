@@ -12,9 +12,9 @@
 // window.strykerPlanTier (assets/plan-limits.js, optional).
 
 const TYPE = 'stk_em';
-import { rtHeadersReady } from './rt-access.js?v=1119';
-import * as ProGate from './chart-pro-gate.js?v=1119';
-import { isFutures, splitSym } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { rtHeadersReady } from './rt-access.js?v=1108';
+import * as ProGate from './chart-pro-gate.js?v=1108';
+import { isFutures, splitSym } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 const API = 'https://book-recorder.theelitegrey.workers.dev/opt-analytics?u=';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;

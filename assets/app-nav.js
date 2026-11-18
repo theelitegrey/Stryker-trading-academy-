@@ -39,11 +39,9 @@
   // /courses.html and (on Cloudflare Pages) as /courses, so the extension is
   // stripped before matching — otherwise the highlight silently disappears on
   // the live domain. Pages outside this map show no active state.
-  // /charts/<8-char layout id> (assets/chart-layout-slug.js) is the charts page too
-  function chartLink(){ return /^\/charts\/[A-Za-z0-9]{8}\/?$/.test(location.pathname); }
   function activeKey(){
     var segs = location.pathname.split('/').filter(Boolean);
-    var f = chartLink() ? 'charts' : (segs.length ? segs[segs.length - 1] : 'index').toLowerCase().replace(/\.html$/, '');
+    var f = (segs.length ? segs[segs.length - 1] : 'index').toLowerCase().replace(/\.html$/, '');
     if (f === 'courses' || f === 'chapter' || f === 'academy') return 'learn';
     if (f === 'trade-journal') return 'journal';
     if (f === 'charts') return 'charts';
@@ -54,7 +52,6 @@
 
   function pageFile(){
     var segs = location.pathname.split('/').filter(Boolean);
-    if (chartLink()) return 'charts';
     return (segs.length ? segs[segs.length - 1] : 'index').toLowerCase().replace(/\.html$/, '');
   }
 
@@ -84,7 +81,6 @@
     ]],
     ['markets', 'Markets', [
       ['gex', 'Omega', 'Gamma Exposure', 'IMG:omega'],
-      ['spectra', 'Spectra', 'Dealer exposure by strike and expiry', 'IMG:spectra'],
       ['zoro-options', 'ZoroOptions', 'Options gamma, volatility and volume', '<path d="M3 20h18"/><path d="M6 20v-6M10 20V8M14 20v-9M18 20V5"/>'],
       ['options-calculator', 'Options P&L calculator', 'Payoff, break-evens and greeks', '<path d="M4 20 10 8l4 6 6-10"/><path d="M3 12h18" stroke-dasharray="2 3"/>'],
       ['iv-skew', 'IV skew', 'Implied volatility by strike and expiry', '<path d="M3 6c4 10 14 10 18 0"/><path d="M3 20h18"/>'],

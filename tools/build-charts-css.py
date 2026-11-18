@@ -180,36 +180,9 @@ class Corpus:
         return r
 
 
-def top_has_args(sel):
-    # the argument of every :has() that is not nested inside another functional pseudo / [attr]
-    out, i, n, depth = [], 0, len(sel), 0
-    while i < n:
-        c = sel[i]
-        if depth == 0 and sel.startswith(':has(', i):
-            j, d = i + 5, 1
-            while j < n and d:
-                d += sel[j] == '(' or -(sel[j] == ')')
-                j += 1
-            out.append(sel[i + 5:j - 1])
-            i = j
-            continue
-        if c in '([':
-            depth += 1
-        elif c in ')]':
-            depth -= 1
-        i += 1
-    return out
-
-
 def selector_possible(sel, cp):
     for _, tok in TOKEN_RE.findall(remove_functional(sel)):
         if not cp.has(tok):
-            return False
-    # SMOOTH (2026-11-18): a :has() whose every alternative needs a class the page never makes can never
-    # match, but Chrome still re-checks it on every DOM insert under its subject (:root:has(...) = the
-    # whole page): ~1 ms per legend update while panning the chart. Same rule as above, one level in.
-    for arg in top_has_args(sel):
-        if not any(selector_possible(a, cp) for a in split_selectors(arg)):
             return False
     return True
 

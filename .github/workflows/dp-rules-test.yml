@@ -5,7 +5,7 @@ name: Dark pool alert rules tests (no deploy)
 on:
   push:
     branches: ['hermes/w2-dp-alerts', 'hermes/w4-metric-alerts', 'hermes/w2-geo-block', 'hermes/w-trademenu2', 'main']
-    paths: ['functions-src/firestore.rules', 'tools/tests/chart-layout-links-rules-test.py', 'tools/tests/dp-alerts-rules-test.py', 'tools/tests/metric-alerts-rules-test.py', 'tools/tests/geo-attest-rules-test.py', 'tools/tests/broker-accounts-rules-test.py', '.github/workflows/dp-rules-test.yml']
+    paths: ['functions-src/firestore.rules', 'tools/tests/dp-alerts-rules-test.py', 'tools/tests/metric-alerts-rules-test.py', 'tools/tests/geo-attest-rules-test.py', 'tools/tests/broker-accounts-rules-test.py', '.github/workflows/dp-rules-test.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -34,13 +34,6 @@ jobs:
         run: FB_TOKEN_FILE=/tmp/fbtok python3 tools/tests/geo-attest-rules-test.py functions-src/firestore.rules
       - name: Trade menu account notes rules tests (brokerAccounts)
         run: FB_TOKEN_FILE=/tmp/fbtok python3 tools/tests/broker-accounts-rules-test.py functions-src/firestore.rules
-      - name: Chart layout links rules tests (chartLinks + chartLayouts.slug) and the layouts suites
-        run: |
-          set -e
-          FB_TOKEN_FILE=/tmp/fbtok python3 tools/tests/chart-layout-links-rules-test.py functions-src/firestore.rules
-          for t in tools/tests/chart-layouts-rules-test.py tools/tests/chart-layouts-lib-rules-test.py; do
-            echo "== $t"; FB_TOKEN_FILE=/tmp/fbtok python3 "$t" functions-src/firestore.rules | tail -8
-          done
       - name: Existing rules suites (same rules file, regression)
         run: |
           for t in tools/creator/rules-test.py tools/tests/screens-rules-test.py tools/tests/partners-rules-test.py tools/tests/live-feed-rules-test.py; do

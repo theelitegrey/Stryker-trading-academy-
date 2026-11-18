@@ -12,8 +12,8 @@
 // bottom sheet (phone) / small popover above the pill (desktop) with two option rows: connect a prop firm
 // (Rithmic) or the live data add-on. Long-press the pill, or "Hide for today" in the sheet, hides it until the
 // next IST day (localStorage). Multi-chart layouts get one pill for the whole layout, shown if any pane is delayed.
-import { rtReady, rtKnown, isRealtimeAdmin, rtOnChange, rtRecheck } from './rt-access.js?v=1119';
-import { isFutures } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { rtReady, rtKnown, isRealtimeAdmin, rtOnChange, rtRecheck } from './rt-access.js?v=1108';
+import { isFutures } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const LS_HIDE = 'stryker_data_pill_hidden_ist';   // value: IST date (YYYY-MM-DD) the member hid it on
 const SS_OPEN = 'stryker_open_connect';

@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'settings': 'form', 'partner': 'form', 'roadmap': 'roadmap', 'replay': 'replay' };
   window.skel.gate = function (name) { return (T[MAP[name]] || T.rows)(); };
   document.addEventListener('DOMContentLoaded', function () {
-    var name = /^\/charts\/[A-Za-z0-9]{8}\/?$/.test(location.pathname) ? 'charts' : (location.pathname.split('/').pop() || 'index').replace(/\.html$/, '');   // /charts/<layout id> is the charts page
+    var name = (location.pathname.split('/').pop() || 'index').replace(/\.html$/, '');
     document.querySelectorAll('.access-gate-overlay').forEach(function (g) {
       var ls = g.querySelector('.loading-state'); if (!ls) return;
       g.classList.add('sg-on');

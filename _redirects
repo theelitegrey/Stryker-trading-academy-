@@ -56,7 +56,3 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 # "Connect your AI to ZoroCharts" (15 Nov 2026). /ai is ai.html; the API side is functions/_ai-proxy.js -> workers/ai-agent.
 /ai/consent /ai-consent 200
 /charts/agents /charts-agents 200
-
-# Chart layout links (17 Nov 2026): /charts/<8-char id> opens the charts page, which reads the id from the address
-# (assets/chart-layouts.js). Keep this AFTER every specific /charts/... rule above (/charts/agents).
-/charts/* /charts 200

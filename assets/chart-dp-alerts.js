@@ -8,7 +8,7 @@
 // One doc per symbol, id 'ind-<SYM>' (shortcut: two Dark Pool Prints on the same symbol share it, last edit wins).
 // Wording: "Dark pool print" alerts, never live / real-time; no vendor names. Education only. Not financial advice.
 // Depends on: firebase compat (auth + firestore), assets/chart-darkpool.js (DP_SYMS, SIZES, usd), toast.js (showToast).
-import { DP_SYMS, SIZES, usd, sizeUsd } from './chart-darkpool.js?v=1119';
+import { DP_SYMS, SIZES, usd, sizeUsd } from './chart-darkpool.js?v=1108';
 
 export const MAX_DP_ALERTS = 20;
 // Truth: dp-feeder.timer runs every 2 hours on weekdays. One line to change if the feeder schedule changes (workers/alert-engine/dp_alerts.py UPDATE_NOTE too).
@@ -22,7 +22,6 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
 // ---- pure ----------------------------------------------------------------------------------------
 // form values -> the Firestore shape (without timestamps), or { error }
-const legendMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-statusline,.vela-widget-bottombar,.stklat-chip'); });   // SMOOTH: the legend / bottom-bar readouts change on every pointer move while panning; they never hold a dialog or menu
 export function buildAlert(v) {
   const symbol = String(v.symbol || '').toUpperCase();
   if (!DP_SYMS.includes(symbol)) return { error: 'Pick one of the covered stocks or ETFs.' };
@@ -214,7 +213,7 @@ export function installDialogNote(ws) {
     }
   };
   const go = () => { if (!timer && document.querySelector('.vela-ind-dialog')) timer = setInterval(paint, 400); paint(); };
-  new MutationObserver((ms) => { if (!legendMut(ms)) go(); }).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver(go).observe(document.body, { childList: true, subtree: true });
   onChange(paint);
 }
 const NOTE_CSS = `.stkdpa-inote{ grid-column:1 / -1; padding:12px 0 4px; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif; }

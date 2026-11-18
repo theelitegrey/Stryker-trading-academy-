@@ -127,32 +127,24 @@ export function exposureError(pos, working, side, qty, cap = MAX_QTY) {
 // ---- building commands ---------------------------------------------------------------------------------------------------
 export const roundTick = (p, tick) => Math.round(p / tick) * tick;
 // panel / ladder order -> body for POST /connect/finatic/order. -> { body } | { error }
-export function buildPlace({ code, side, qty, type, price, stopPrice, limitPrice, sl, tp, last }, now) {
+export function buildPlace({ code, side, qty, type, price }, now) {
   if (!validContract(code, now)) return { error: 'No live contract for this chart.' };
   if (side !== 'buy' && side !== 'sell') return { error: 'Pick Buy or Sell.' };
   if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) return { error: 'Quantity is 1 or 2 contracts.' };
-  if (!['market', 'limit', 'stop', 'stop_limit'].includes(type)) return { error: 'Market, limit or stop only.' };
+  if (type !== 'market' && type !== 'limit') return { error: 'Market or limit only.' };
   const body = { op: 'place', symbol: code, side, qty, type, assetType: 'future', timeInForce: 'day' };
-  const tick = ROOTS[rootOfCode(code)].tick, r = (v) => Number(roundTick(Number(v), tick).toFixed(2));
-  if (type === 'limit' || type === 'stop_limit') { const lp = type === 'limit' ? price : limitPrice; if (!(Number(lp) > 0)) return { error: 'Enter a limit price.' }; body.limitPrice = r(lp); }
-  if (type === 'stop' || type === 'stop_limit') { const sp = type === 'stop' ? price : stopPrice; if (!(Number(sp) > 0)) return { error: 'Enter a stop price.' }; body.stopPrice = r(sp); }
-  if (sl != null || tp != null) {   // stop loss / take profit: market entries only (placed by the server after the fill)
-    if (type !== 'market') return { error: 'Stop loss and take profit go with market orders only.' };
-    const bc = bracketCheck({ side, ref: last, sl, tp, code }); if (bc.error) return { error: bc.error };
-    body.bracket = { sl: bc.sl, tp: bc.tp };
+  if (type === 'limit') {
+    const tick = ROOTS[rootOfCode(code)].tick;
+    if (!(Number(price) > 0)) return { error: 'Enter a limit price.' };
+    body.limitPrice = Number(roundTick(Number(price), tick).toFixed(2));
   }
   return { body };
 }
-// drag / edit one working order: a limit moves its limit price, a stop its stop price (code = the contract, sent so the server can
-// match a stop loss / take profit of a bracket group)
-export function buildModify({ id, price, code, type = 'limit' }) {
+export function buildModify({ id, price, code }) {
   if (!id) return { error: 'Order missing.' };
   const tick = ROOTS[rootOfCode(code)] ? ROOTS[rootOfCode(code)].tick : 0.25;
   if (!(Number(price) > 0)) return { error: 'Price invalid.' };
-  const p = Number(roundTick(Number(price), tick).toFixed(2));
-  if (type === 'stop') return { body: { op: 'modify', orderId: id, type: 'stop', stopPrice: p, symbol: code } };
-  if (type !== 'limit') return { error: 'Only limit and stop orders can be moved.' };
-  return { body: { op: 'modify', orderId: id, type: 'limit', limitPrice: p, symbol: code } };
+  return { body: { op: 'modify', orderId: id, type: 'limit', limitPrice: Number(roundTick(Number(price), tick).toFixed(2)) } };
 }
 // DOM ladder click: ALWAYS a limit at the clicked price (never a market order from a misclick). A click at / through the touch is
 // a marketable limit; the confirm says so. -> { side, type:'limit', price, marketable } | null
@@ -212,7 +204,7 @@ export function rttText(t) {
 export const FAST_READS_MS = [250, 900, 2000, 4000];
 // a "sending" line drawn the moment the order is confirmed (limit price, or the last price for a market order); removed on the answer
 export function pendingLine(body, last) {
-  const price = body.type === 'limit' ? Number(body.limitPrice) : /stop/.test(body.type) ? Number(body.stopPrice) : Number(last);
+  const price = body.type === 'limit' ? Number(body.limitPrice) : Number(last);
   if (!(price > 0)) return null;
   return { id: 'P' + body.idemKey, kind: 'ord', live: true, pending: true, code: body.symbol, price, side: body.side, type: body.type, qty: body.qty };
 }
@@ -320,92 +312,4 @@ export function acctTitle(a, meta) {
 export function openPnl(pos, avg, last, pv, brokerUpl) {
   if (pos && avg > 0 && last > 0) return (last - avg) * pos * pv;
   return brokerUpl == null ? null : brokerUpl;
-}
-
-// ---- stop loss / take profit on live market entries (Owner order 2026-11-17) ----------------------------------------------
-// The broker link has no native bracket / OCO order (its OCO / BRACKET classes are read-only labels), but it takes STOP orders
-// (order type enum MARKET | LIMIT | STOP | STOP_LIMIT | TRAILING_STOP; what an account really takes is in its place schema,
-// supportedOrderTypesByAssetClass). So a bracket is: the market entry, then after it fills a protective STOP (stop loss) and a LIMIT
-// (take profit), both GTC, and when one fills the server cancels the other. The group lives server-side (Firestore brokerBrackets,
-// one per account + contract) so the server only ever touches ids it recorded itself.
-// order types an account's place schema allows for an asset class -> ['market', 'limit', 'stop', ...] | null (schema doesn't say)
-export function orderTypesFor(schema, asset = 'future') {
-  const norm = (a) => (Array.isArray(a) ? a.map((x) => String(x).toLowerCase().replace(/[^a-z]/g, '_')) : null);
-  const seen = new Set();
-  const walk = (o, d) => {
-    if (!o || typeof o !== 'object' || d > 6 || seen.has(o)) return null; seen.add(o);
-    const s = o.supportedOrderTypesByAssetClass || o.supported_order_types_by_asset_class;
-    if (s && typeof s === 'object') {
-      for (const k of Object.keys(s)) if (new RegExp('^' + asset + 's?$', 'i').test(k)) return norm(s[k]);
-      return [];
-    }
-    for (const k of Object.keys(o)) { const r = walk(o[k], d + 1); if (r) return r; }
-    return null;
-  };
-  const byClass = walk(schema, 0); if (byClass) return byClass;
-  // fallback: a JSON-schema enum for orderType
-  const en = (o, d) => { if (!o || typeof o !== 'object' || d > 8) return null; for (const k of Object.keys(o)) { if (/^order_?type$/i.test(k) && o[k] && Array.isArray(o[k].enum)) return norm(o[k].enum); const r = en(o[k], d + 1); if (r) return r; } return null; };
-  return en(schema, 0);
-}
-export const stopsSupported = (schema) => { const t = orderTypesFor(schema); return !!t && t.includes('stop'); };
-// one bracket group per account + contract (Firestore doc id)
-export const groupId = (account, code) => String(account) + '_' + String(code).toUpperCase();
-// FDX order status families
-export const FILLED = /^(FILLED)$/;
-export const FINAL_NOT_FILLED = /^(CANCELLED|CANCELED|REJECTED|EXPIRED|FAILED|REPLACED)$/;
-export const isWorking = (status) => WORKING.test(String(status || '').toUpperCase());
-// the broker's record for one order id (any status) -> { id, status, type, price, qty } | null
-export function orderById(orders, id) {
-  if (!id) return null;
-  for (const o of Array.isArray(orders) ? orders : []) {
-    if (!o || String(o.orderId || o.id || '') !== String(id)) continue;
-    const leg = (o.legs || [])[0] || {};
-    return { id: String(id), status: String(o.status || '').toUpperCase(), type: String(o.orderType || leg.orderType || '').toLowerCase(), qty: num(leg.quantity != null ? leg.quantity : o.orderQty), filled: num(leg.filledQuantity != null ? leg.filledQuantity : o.filledQuantity) };
-  }
-  return null;
-}
-// SL / TP for an entry: side 'buy' = long (SL below the reference, TP above), 'sell' = short. ref = last price (browser) or the
-// fill price (server). Rounded to the tick; each leg within `pct` of the reference. -> { sl, tp } | { error }
-export function bracketCheck({ side, ref, sl, tp, code, pct = 0.03 }) {
-  const tick = ROOTS[rootOfCode(code)] ? ROOTS[rootOfCode(code)].tick : 0.25;
-  const out = {};
-  const r = (v) => (v == null || v === '' ? null : Number(roundTick(Number(v), tick).toFixed(2)));
-  out.sl = r(sl); out.tp = r(tp);
-  if (out.sl == null && out.tp == null) return { error: 'Set a stop loss or a take profit.' };
-  for (const k of ['sl', 'tp']) if (out[k] != null && !(out[k] > 0 && out[k] < 1e7)) return { error: (k === 'sl' ? 'Stop loss' : 'Take profit') + ' price is not valid.' };
-  const long = side === 'buy';
-  if (out.sl != null && out.tp != null && (long ? out.sl >= out.tp : out.sl <= out.tp)) return { error: long ? 'For a buy, the stop loss must be below the take profit.' : 'For a sell, the stop loss must be above the take profit.' };
-  if (ref > 0) {
-    if (out.sl != null && (long ? out.sl >= ref : out.sl <= ref)) return { error: 'The stop loss must be ' + (long ? 'below' : 'above') + ' the price (' + ref.toFixed(2) + ').' };
-    if (out.tp != null && (long ? out.tp <= ref : out.tp >= ref)) return { error: 'The take profit must be ' + (long ? 'above' : 'below') + ' the price (' + ref.toFixed(2) + ').' };
-    for (const k of ['sl', 'tp']) if (out[k] != null && Math.abs(out[k] - ref) / ref > pct) return { error: (k === 'sl' ? 'Stop loss' : 'Take profit') + ' is more than ' + Math.round(pct * 100) + '% away from the price.' };
-  }
-  return out;
-}
-// What the server's bracket sync should do now, from a fresh read. g = the server's group record. -> { act, ... }
-//   wait      entry still working (or part-filled)            place  entry filled: place the children (qty, exitSide, ref = avg)
-//   oco       one child filled: cancel the other (cancel[])   flatcheck  flat but children still working: cancel them (2nd read first)
-//   resize    a child part-filled: shrink the other (id, qty) alarm  position open and no working stop loss (why)
-//   drop      nothing left to manage (why)                    ok     all good
-export function bracketPlan(g, positions, orders) {
-  const P = netPosition(positions, g.code), pos = P.qty, long = g.side === 'buy';
-  const rem = (o) => Math.max(0, o.qty - o.filled);
-  if (g.state === 'pending') {
-    const e = orderById(orders, g.entryId);
-    if (e && e.status === 'PARTIALLY_FILLED') return { act: 'wait' };
-    if (e && isWorking(e.status)) return { act: 'wait' };
-    const filled = e ? FILLED.test(e.status) : (long ? pos > 0 : pos < 0);
-    if (!filled) return e && FINAL_NOT_FILLED.test(e.status) ? { act: 'drop', why: 'The entry order was not filled.' } : { act: 'wait' };
-    if (long ? pos <= 0 : pos >= 0) return { act: 'drop', why: 'The position was already closed.' };
-    return { act: 'place', qty: Math.min(g.qty, Math.abs(pos)), exitSide: long ? 'sell' : 'buy', ref: P.avg || 0 };
-  }
-  const s = orderById(orders, g.slId), t = orderById(orders, g.tpId);
-  const sW = !!(s && isWorking(s.status)), tW = !!(t && isWorking(t.status));
-  if (s && FILLED.test(s.status)) return { act: 'oco', cancel: tW ? [g.tpId] : [], why: 'Stop loss filled.' };
-  if (t && FILLED.test(t.status)) return { act: 'oco', cancel: sW ? [g.slId] : [], why: 'Take profit filled.' };
-  if (!pos) return sW || tW ? { act: 'flatcheck', cancel: [sW ? g.slId : '', tW ? g.tpId : ''].filter(Boolean), why: 'The position was closed.' } : { act: 'drop', why: 'The position was closed.' };
-  if (long ? pos < 0 : pos > 0) return { act: 'alarm', why: 'The position is now the other way round. Check your broker.' };
-  if (g.sl != null && !sW) return { act: 'alarm', why: g.slId ? 'The stop loss is no longer working at the broker. The position has no stop.' : 'No stop loss is working. The position has no stop.' };
-  for (const [o, id] of [[s, g.slId], [t, g.tpId]]) if (o && isWorking(o.status) && rem(o) > Math.abs(pos)) return { act: 'resize', id, qty: Math.abs(pos) };
-  return { act: 'ok' };
 }

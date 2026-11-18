@@ -5867,11 +5867,6 @@ a.floor-tag:hover{ text-decoration:underline; }
 html.stk-pine-busy .role-tag, html.stk-pine-busy .brand-plan,
 html.stk-pine-busy .role-tag::before, html.stk-pine-busy .brand-plan::before,
 html.stk-pine-busy .role-tag::after, html.stk-pine-busy .brand-plan::after{ animation-play-state:paused !important; }
-/* SMOOTH (2026-11-18): the badge sheen animates box-shadow / background / left, a full style + paint per frame; on Charts
-   it pauses while the chart is being dragged or wheeled (assets/vela-chart.js sets html.stk-chart-moving), resumes after */
-html.stk-chart-moving .role-tag, html.stk-chart-moving .brand-plan,
-html.stk-chart-moving .role-tag::before, html.stk-chart-moving .brand-plan::before,
-html.stk-chart-moving .role-tag::after, html.stk-chart-moving .brand-plan::after{ animation-play-state:paused !important; }
 /* The chart legend's "computing" dot (Vela, inline animation vela-ind-pulse) pulses for the
    whole run and forced a full-page frame 60x a second; while busy it stays lit instead. */
 html.stk-pine-busy .vela-cell [style*="vela-ind-pulse"]{ animation:none !important; opacity:.75; }
@@ -6367,8 +6362,7 @@ body.charts-page .stkchart-credit{
 #stkc-bar.stkc-onebar .vela-widget-screenshot{ order:28; }
 :where(#stkc-bar.stkc-onebar .vela-topbar-right) > *{ order:28; }
 #stkc-bar.stkc-onebar .stkc-menu:not(.stkc-ob-more){ display:flex; align-items:center; }   /* no line-box slack under the button: every bar item on one centre */
-#stkc-bar.stkc-onebar .stkc-menu:has(> #stkc-paper-btn){ order:9; }   /* Trade: left of the Alerts / Replay group (Owner 17 Nov) */
-#stkc-bar.stkc-onebar .stkc-menu:has(> #stkc-paper-btn) > .stkc-pop{ left:0; right:auto; max-width:calc(100vw - 16px); }
+#stkc-bar.stkc-onebar .stkc-menu:has(> #stkc-paper-btn){ order:25; }   /* Trade: just before Wallet / Data source */
 #stkc-bar.stkc-onebar #stkrb-chip { order:31; }
 #stkc-bar.stkc-onebar #stkc-credits-btn, #stkc-bar.stkc-onebar #stkc-credits{ order:33; }
 #stkc-bar.stkc-onebar .stkc-ob-more{ order:40; }
@@ -6622,7 +6616,6 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
 .stkl-item kbd{ flex:none; font:500 12px/1 inherit; font-family:inherit; color:var(--ink-2); background:none; border:0; }
 .stkl-view{ color:var(--ink-2); font-size:13px; line-height:18px; padding:4px 12px 8px; }
 .stkl-linkrow[hidden]{ display:none; }
-.stkl-linkrow{ gap:8px; padding:0; align-items:center; }   /* layout link row (17 Nov): 8-pt gap, flush with the 16px body padding */
 .stkl-linkrow .stkc-in{ font-size:13px; color:var(--ink-2); }
 .stkl-sharenote{ border-top:0 !important; padding-top:0 !important; margin-top:0 !important; font-size:12px !important; }
 /* ---- Chart menu rows + phone bottom sheets (Owner 2026-11-01 "cleaner chart menus on phone"):
@@ -6868,7 +6861,7 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
   .mobile-topnav .topnav-left .brand{ align-self:center; margin:0; height:32px; display:flex; align-items:center; }
   .mobile-topnav .stkws-strip{ align-self:center; align-items:center; height:32px; margin-left:0; }
   .mobile-topnav .stkws-strip .stkws-menu{ align-self:center; }
-  .mobile-topnav .stkws-tabs{ align-items:center; height:32px; gap:4px; margin-left:4px; }
+  .mobile-topnav .stkws-tabs{ align-items:center; height:32px; gap:4px; margin-left:6px; }
   .mobile-topnav .stkws-btn{ height:32px; }
   .mobile-topnav .stkws-tabrow{ height:32px; align-items:center; }
   .mobile-topnav .stkws-strip .stkws-menu{ height:32px; display:flex; align-items:center; }
@@ -6876,7 +6869,7 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
   .mobile-topnav .topnav-left .brand .brand-plan{ margin-left:10px; display:inline-flex; align-items:center; height:24px; padding:0 11px; line-height:1; }
   .mobile-topnav .menu-toggle-btn{ width:32px; height:32px; }
 }
-@media (max-width:599px){
+@media (max-width:700px){
   .stkws-tabs{ display:none; }
   .stkws-strip{ align-items:center; }
   .stkws-btn{ height:32px; padding:0 12px; gap:6px; border-radius:999px; max-width:170px; }
@@ -6884,27 +6877,6 @@ input[type=checkbox].stkg-sw.stkg-sw:focus-visible, input[type=checkbox].stkw-sw
   #stkc-bar-l > #stkcps-menu{ order:-3; }
   .stkws-btn{ max-width:84px; padding:0 6px 0 10px; }
   .stkws-btn > svg:first-child{ display:none; }
-}
-/* Owner 17 Nov: workspaces are browser-style tabs (>= 600 px), one 32px row, 4/8px gaps. Active = filled pill, bold; icon keeps the workspace colour. */
-@media (min-width:600px){
-  .stkws-strip{ align-self:center; align-items:center; height:32px; margin-left:0; gap:8px; }
-  .stkws-strip .stkws-menu{ align-self:center; height:32px; display:flex; align-items:center; margin:0; }
-  .stkws-strip.in-bar{ flex:0 1 auto; max-width:46vw; }
-  .stkws-tabs{ align-items:center; height:32px; gap:4px; }
-  .stkws-tabrow{ flex:0 1 auto; height:32px; align-items:center; gap:4px; }
-  .stkws-tab{ flex:0 1 auto; width:176px; height:32px; min-width:96px; padding:0 8px 0 12px; border-radius:8px; font-weight:500; }
-  .stkws-tab.pinned{ flex:0 0 auto; }
-  .stkws-tab[hidden]{ display:none; }
-  .stkws-tab.on{ background:var(--bg-3); color:var(--ink-0); font-weight:700; }
-  .stkws-tab:hover:not(.on){ background:var(--bg-2); }
-  .stkws-gl{ color:var(--c, var(--ink-2)); }
-  .stkws-tab.on .stkws-gl{ color:var(--c, var(--gold)); }
-  .stkws-tab.on:focus-within .stkws-x, .stkws-tab:focus-visible .stkws-x{ opacity:1; }
-  .mobile-topnav .topnav-right{ flex:none; }
-  .mobile-topnav > .mclock{ min-width:200px; }   /* tabs shrink / fold into "N more"; the clock and account never get squeezed */
-  .stkws-plus, .stkws-more{ width:32px; height:32px; }
-  .stkws-more{ width:auto; gap:4px; padding:0 8px; font:600 12px/16px inherit; font-family:inherit; }
-  .stkws-more b{ font-weight:600; }
 }
 @media (prefers-reduced-motion: no-preference){ .stkws-tab, .stkws-row, .stkws-plus{ transition:background-color .15s cubic-bezier(.2,0,0,1), color .15s cubic-bezier(.2,0,0,1); } }
 
@@ -9475,34 +9447,6 @@ html[data-device="mobile"] .mclock-state{ display:none; }
 html[data-device="mobile"] .mclock-short{ display:inline; }
 html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:calc(100% + 4px); }
 :root[data-theme="light"] .mclock-pill{ background:#fff; }
-/* Account strip (Charts header, left of the session pill; assets/chart-paper.js updateStrip). Same height + pill as .mclock-pill. */
-.stkas{ position:relative; flex:0 0 auto; margin-left:auto; margin-right:8px; }
-.stkas[hidden]{ display:none; }
-.stkas:not([hidden]) + .mclock{ margin-left:0; }
-.stkas-b{ display:flex; align-items:center; gap:12px; height:34px; padding:0 16px; border:1px solid var(--line); border-radius:999px; background:var(--bg-2);
-  color:var(--ink-1); font:12px/1 var(--font-mono); font-variant-numeric:tabular-nums; white-space:nowrap; cursor:pointer; transition:border-color .15s ease; }
-.stkas-b:hover{ border-color:var(--teal-dim, var(--teal)); }
-.stkas-b:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
-.stkas-i{ display:inline-flex; align-items:center; gap:4px; }
-.stkas-l{ color:var(--ink-3); font-weight:500; }
-.stkas-v{ color:var(--ink-0); font-weight:700; }
-.stkas-v.up{ color:var(--bull, #03c988); }
-.stkas-v.down{ color:var(--bear, #f23645); }
-.stkas-pop{ display:none; }
-:root[data-theme="light"] .stkas-b{ background:#fff; }
-@media (max-width:1180px){ .stkas-l{ display:none; } .stkas-b{ gap:8px; padding:0 12px; } }
-/* Phones (html.stk-cps: the header row is hidden and the clock sits in #stkc-bar; the strip follows the clock): one chip, popover with all three */
-html.stk-cps .stkas{ margin:0 2px; order:0; }
-html.stk-cps .stkas-b{ height:28px; padding:0 8px; font-size:11px; border-radius:8px; background:transparent; border-color:transparent; }
-html.stk-cps .stkas-i[data-k="bal"], html.stk-cps .stkas-i[data-k="rp"]{ display:none; }
-html.stk-cps .stkas.chip-bal .stkas-i[data-k="bal"]{ display:inline-flex; }
-html.stk-cps .stkas.chip-bal .stkas-i[data-k="up"]{ display:none; }
-html.stk-cps .stkas-l{ display:none; }
-html.stk-cps .stkas-pop{ position:fixed; right:8px; top:52px; z-index:9071; min-width:220px; padding:12px 16px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); box-shadow:0 18px 40px -16px rgba(0,0,0,.5); }
-html.stk-cps .stkas-pop:not([hidden]){ display:block; }
-html.stk-cps .stkas-row{ display:flex; justify-content:space-between; gap:16px; padding:4px 0; font:13px/20px var(--font-mono); color:var(--ink-2); }
-html.stk-cps .stkas-row b{ color:var(--ink-0); font-weight:700; }
-html.stk-cps .stkas-row b.up{ color:var(--bull, #03c988); } html.stk-cps .stkas-row b.down{ color:var(--bear, #f23645); }
 :root[data-theme="light"] .mclock-pop{ background:#fff; box-shadow:0 18px 40px -16px rgba(14,22,33,.28); }
 
 /* ---- Free plan limits (assets/plan-limits.js, pricing change 2026-10-05) ---- */
@@ -11786,31 +11730,6 @@ button.lyl-stat.on{ color:var(--bear); } button.lyl-stat.on svg{ fill:currentCol
 @keyframes stkl2-up{ from{ transform:translateY(24px); opacity:0 } to{ transform:none; opacity:1 } }
 @media (prefers-reduced-motion:reduce){ .stkl2{ animation:none } }
 
-/* ============ SPECTRA PANEL (assets/chart-spectra.js; board styles in assets/spectra.css, 2026-11-17) ============
-   A right-bar panel beside the chart like the GEX Ladder: the chart narrows (never covered). <= 700 px: a full sheet. */
-.stkchart-panel.stkw-host.stksp-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stksp-w, clamp(420px, 40vw, 600px))); }
-.stksp{ position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stksp-w, clamp(420px, 40vw, 600px)); z-index:29; display:flex; flex-direction:column; min-width:0; background:var(--bg-0); border-left:1px solid var(--line-soft); color:var(--ink-1); }
-.stksp[hidden]{ display:none; }
-.stksp-hd{ flex:none; display:flex; align-items:center; gap:8px; height:48px; padding:0 4px 0 12px; border-bottom:1px solid var(--line-soft); }
-.stksp-hd .spx-ic{ width:20px; height:20px; border-radius:5px; flex:none; }
-.stksp-title{ font:700 15px/20px var(--font-display); color:var(--ink-0); }
-.stksp-map{ font:600 11px/1 var(--font-mono); color:var(--ink-2); }
-.stksp-sp{ flex:1 1 auto; }
-.stksp-close{ width:40px; height:40px; }
-.stksp-body{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
-.stksp-body > .spx{ flex:1 1 auto; }
-.stksp-railbtn .spx-ic{ width:20px; height:20px; border-radius:5px; display:block; }
-.stksp-railbtn.on{ background:var(--bg-2); color:var(--ink-0); box-shadow:inset 2px 0 0 var(--gold) !important; }
-.stksp-phonebtn{ display:none; }
-.stksp-phonebtn .spx-ic{ width:16px; height:16px; border-radius:4px; }
-.stksp-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }
-@media (max-width:700px){
-  .stkchart-panel.stkw-host.stksp-open #vela-chart{ right:0; }
-  .stksp-phonebtn{ display:inline-flex; align-items:center; gap:4px; padding:0 8px; flex:none; }
-  .stksp{ position:fixed; inset:0; top:var(--stkc-top, 0px); bottom:var(--stkc-dock, 0px); width:auto; right:0; z-index:8000; border-left:0; }
-  .stksp-body .spx-foot{ padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
-}
-
 /* ============ BOOK · DOM · TRADES PANEL (assets/chart-book-panel.js) ============
    One panel for crypto + futures: Book / DOM / Trades tabs. >= 821 px a resizable side panel (--stkbp-w), <= 700 px a bottom sheet.
    Tokens only (design standard); lists use the shared thin scrollbar (global block). Mint = buyers, --bear = sellers. */
@@ -12686,14 +12605,6 @@ section.stkss-sec{ padding:0; margin:0; }
 .stkop-pre button:disabled{ cursor:not-allowed; }
 .stkop-why{ margin:0; font:500 12px/16px var(--font-body, sans-serif); color:var(--amber); }
 .stkop-why[hidden]{ display:none; }
-/* live strip (2026-11-17): broker link unreachable + Retry, or the stop loss / take profit state */
-.stkop-alert{ flex:none; display:flex; align-items:center; gap:8px; min-height:48px; padding:8px 16px; border-bottom:1px solid var(--line-soft); background:var(--bg-1); }
-.stkop-alert[hidden]{ display:none; }
-.stkop-alt{ flex:1 1 auto; min-width:0; margin:0; font:500 12px/16px var(--font-body, sans-serif); color:var(--ink-1); }
-.stkop-alert.warn .stkop-alt{ color:var(--amber); }
-.stkop-alert.bad{ background:color-mix(in srgb, var(--op-sell) 12%, var(--bg-1)); }
-.stkop-alert.bad .stkop-alt{ color:var(--op-sell-ink); font-weight:600; }
-.stkop-alert .stkop-b[hidden]{ display:none; }
 .stkop-sum{ margin:0; min-height:16px; font:500 12px/16px var(--font-mono); color:var(--ink-2); font-variant-numeric:tabular-nums; }
 .stkop-sum:empty{ display:none; }
 .stkop-go{ flex:none; display:grid; grid-template-columns:2fr 1fr; gap:8px; padding:12px 16px; border-top:1px solid var(--line-soft); }
@@ -13018,50 +12929,3 @@ html .stk-iv-menu, html .stk-ct, html .stkhm{ box-shadow:var(--shadow-pop); }
 .account-theme{ margin:4px 0; border-bottom:1px solid var(--line-soft); }
 /* Chart drawing settings: label column 120 px (the panel default is 96, which cut "Extend lines right") */
 html .vela-dsp-lab{ flex-basis:120px; }
-
-/* Owner 17 Nov: admin Hyperliquid row inside the Trade menu */
-.stktm-hl{ width:100%; justify-content:flex-start; margin-top:8px; }
-/* Trade menu COMPACT (Owner 17 Nov "too big"): 360px popover, 48-52px account rows, 28px logos/actions. Scoped to the popover; the Manage sheet keeps its own sizes. */
-.stkpt-tmenu.stktm{ width:360px; max-width:min(360px, 92vw); padding:12px; border-radius:12px; }
-.stkpt-tmenu.stktm.stktm-admin{ width:360px; max-width:min(360px, 92vw); }
-.stkpt-tmenu.stktm .stktm-h{ gap:8px; padding:12px 0 8px; font-size:11px; line-height:16px; letter-spacing:.08em; }
-.stkpt-tmenu.stktm > div:first-child .stktm-h{ padding-top:0; }
-.stkpt-tmenu.stktm .stktm-cnt{ min-width:20px; height:20px; padding:0 6px; border-radius:6px; font-size:11px; }
-.stkpt-tmenu.stktm .stktm-row{ gap:4px; min-height:52px; padding:0 10px 0 0; border-radius:10px; }
-.stkpt-tmenu.stktm .stktm-row + .stktm-row, .stkpt-tmenu.stktm .stktm-row.editing + .stktm-ed + .stktm-row, .stkpt-tmenu.stktm .stktm-ed + .stktm-row{ margin-top:8px; }
-.stkpt-tmenu.stktm .stktm-row.editing{ border-radius:10px 10px 0 0; }
-.stkpt-tmenu.stktm .stktm-row:has(.stktm-pick[aria-checked="true"]){ box-shadow:0 0 0 1px rgba(3,201,136,.16); }
-.stkpt-tmenu.stktm .stktm-pick{ grid-template-columns:28px minmax(0,1fr) auto; column-gap:8px; min-height:50px; padding:8px 0 8px 10px; border-radius:10px; }
-.stkpt-tmenu.stktm .stktm-vd{ display:none; }
-.stkpt-tmenu.stktm .stktm-s40{ width:28px; height:28px; border-radius:8px; }
-.stkpt-tmenu.stktm .stktm-s40 .stktm-fb{ font-size:13px; }
-.stkpt-tmenu.stktm .stktm-s40 img{ width:20px; height:20px; }
-.stkpt-tmenu.stktm .stktm-s40.stktm-paper svg{ width:16px; height:16px; }
-.stkpt-tmenu.stktm .stktm-tx{ gap:0; }
-.stkpt-tmenu.stktm .stktm-l1{ gap:6px; }
-.stkpt-tmenu.stktm .stktm-nm{ min-width:40px; overflow:hidden; text-overflow:ellipsis; font:600 13px/18px var(--font-body, system-ui, sans-serif); }
-.stkpt-tmenu.stktm .stktm-num{ flex:0 1 auto; min-width:44px; max-width:none; overflow:hidden; text-overflow:ellipsis; font-size:12px; line-height:18px; }
-.stkpt-tmenu.stktm .stktm-l2{ gap:6px; font:400 11px/16px var(--font-body, system-ui, sans-serif); }
-.stkpt-tmenu.stktm .stktm-chip{ height:16px; padding:0; background:none; font-size:11px; line-height:16px; }
-.stkpt-tmenu.stktm .stktm-bal{ align-items:flex-end; gap:0; }
-.stkpt-tmenu.stktm .stktm-bk{ justify-content:flex-end; gap:4px; font-size:11px; line-height:14px; }
-.stkpt-tmenu.stktm .stktm-bv{ justify-content:flex-end; height:20px; font:600 14px/20px var(--font-body, system-ui, sans-serif); }
-.stkpt-tmenu.stktm .stktm-bv .stktm-skel{ width:64px; height:12px; }
-.stkpt-tmenu.stktm .stktm-acts{ gap:4px; }
-.stkpt-tmenu.stktm .stktm-act, .stkpt-tmenu.stktm .stktm-ph{ width:28px; height:28px; border-radius:8px; }
-.stkpt-tmenu.stktm .stktm-act svg{ width:14px; height:14px; }
-.stkpt-tmenu.stktm .stktm-tick, .stkpt-tmenu.stktm .stktm-tick svg{ width:18px; height:18px; }
-.stkpt-tmenu.stktm .stktm-foot{ gap:8px; margin-top:12px; }
-.stkpt-tmenu.stktm .stktm-pill{ height:32px; padding:0 12px; gap:6px; font:600 13px/16px var(--font-body, system-ui, sans-serif); }
-.stkpt-tmenu.stktm .stktm-pill svg{ width:14px; height:14px; }
-.stkpt-tmenu.stktm .stktm-foot .stktm-pill{ flex:1 1 0; }
-.stkpt-tmenu.stktm .stktm-hl{ margin-top:8px; }
-@media (max-width:700px){
-  .stkpt-tmenu.stktm, .stkpt-tmenu.stktm.stktm-admin{ width:auto; max-width:none; padding:12px 12px calc(12px + env(safe-area-inset-bottom)); }
-  .stkpt-tmenu.stktm .stktm-row{ min-height:52px; }
-  .stkpt-tmenu.stktm .stktm-pick{ grid-template-columns:28px minmax(0,1fr) auto; row-gap:0; min-height:50px; padding:8px 0 8px 10px; }
-  .stkpt-tmenu.stktm .stktm-pick > .stktm-logo{ grid-row:auto; }
-  .stkpt-tmenu.stktm .stktm-pick > .stktm-tx, .stkpt-tmenu.stktm .stktm-bal{ grid-row:auto; grid-column:auto; }
-  .stkpt-tmenu.stktm .stktm-act, .stkpt-tmenu.stktm .stktm-ph{ width:32px; height:32px; }
-  .stkpt-tmenu.stktm .stktm-pill{ height:36px; padding:0 12px; }
-}

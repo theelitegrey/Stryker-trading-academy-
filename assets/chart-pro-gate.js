@@ -14,7 +14,7 @@
 export const OF_TYPES = ['stk_footprint', 'stk_fp', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb',
   'stk_of_vp', 'stk_of_vwap', 'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_delta', 'stk_cvd', 'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane',
   'stk_fut_dom', 'stk_depth_heat', 'stk_fut_walls', 'stk_fut_imb', 'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls',
-  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw', 'stk_fpat', 'stk_fpat_l2', 'stk_barstats',
+  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw', 'stk_fpat', 'stk_fpat_l2',
   'stk_liq', 'stk_liq_bars', 'stk_oi', 'stk_funding', 'stk_lsr'];   // crypto derivatives (assets/chart-crypto-deriv.js): Pro like crypto footprint / delta
 export const GEX_TYPES = ['stk_gex', 'stk_gexheat', 'stk_em', 'stk_optflow', 'stk_zrange', 'stk_zzone', 'stk_ivrank', 'stk_zvol', 'stk_dex', 'stk_vex', 'stk_cex'];   // ZoroTide (stk_tide) is free since 2026-11-01
 export const REASON = { of: '', gex: '' };   // nothing on the chart is Pro any more (2026-11-13)
@@ -31,7 +31,6 @@ export const L1_TO_L2 = {
 export const PRO_STYLES = ['stk_fp', 'stk_tpoc', 'stk_svp'];   // Pro chart types (Volume footprint, TPO, Session volume profile)
 
 // 'of' | 'gex' | null for a native indicator type (or the 'stk_fp' chart style).
-const legendMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-statusline,.vela-widget-bottombar,.stklat-chip'); });   // SMOOTH: the legend / bottom-bar readouts change on every pointer move while panning; they never hold a dialog or menu
 export function kindOf(type) {
   if (OF_TYPES.indexOf(type) >= 0) return 'of';
   if (GEX_TYPES.indexOf(type) >= 0) return 'gex';
@@ -136,5 +135,5 @@ export function mountProGate(ws, opts) {
       if (/^(Volume footprint|Footprint|Time price opportunity|Session volume profile)\b/i.test(t) && t.length < 40) it.appendChild(proTag());
     });
   };
-  new MutationObserver((ms) => { if (!legendMut(ms)) tag(); }).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver(tag).observe(document.body, { childList: true, subtree: true });
 }

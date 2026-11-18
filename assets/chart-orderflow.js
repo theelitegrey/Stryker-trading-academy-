@@ -30,25 +30,25 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { pinSessions } from './chart-frvp-data.js?v=1119';
-import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=1119';
-import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1119';
-import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=1119';
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=1119';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=1119';
-import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=1119';
-import * as ProGate from './chart-pro-gate.js?v=1119';
-import { L1_TO_L2 } from './chart-pro-gate.js?v=1119';
-import * as BT from './chart-bigtrades.js?v=1119';
-import { installBookPack } from './chart-book-pack.js?v=1119';
-import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=1119';
-import { installPatterns } from './chart-patterns.js?v=1119';
-import { installL2Flow } from './chart-l2-flow.js?v=1119';
-import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=1119';
-import { installDepthHeatmap } from './chart-depth-heatmap.js?v=1119';
-export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=1119';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=1119';
-import { isFutures, splitSym } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { pinSessions } from './chart-frvp-data.js?v=1108';
+import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=1108';
+import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1108';
+import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=1108';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=1108';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=1108';
+import { registerVenue, getVenue, venueIds, venueBookSource, venueTradeSource, autoTick } from './orderflow-venues.js?v=1108';
+import * as ProGate from './chart-pro-gate.js?v=1108';
+import { L1_TO_L2 } from './chart-pro-gate.js?v=1108';
+import * as BT from './chart-bigtrades.js?v=1108';
+import { installBookPack } from './chart-book-pack.js?v=1108';
+import { replayClock, nextChunk, sampleAt, sampleBook, replayGap, btBook } from './book-replay.js?v=1108';
+import { installPatterns } from './chart-patterns.js?v=1108';
+import { installL2Flow } from './chart-l2-flow.js?v=1108';
+import { installFuturesL2, l2Listed, L2_TYPES } from './chart-futures-l2.js?v=1108';
+import { installDepthHeatmap } from './chart-depth-heatmap.js?v=1108';
+export { dhDebug, dhDebugTrades } from './chart-depth-heatmap.js?v=1108';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=1108';
+import { isFutures, splitSym } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -2177,20 +2177,11 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 const feedTrades = (f) => (f.custom && f.custom.trades ? f.custom.trades() : cryptoFeed((f.provider !== 'binance' && getVenue(f.provider) ? f.provider : 'binance') + ':' + f.ticker.toUpperCase()));
 function cryptoDomLayer() {
   let canvas = null, glr = null;   // glr: the graphics-card heatmap (chart-heatmap-gl.js), Bookmap look only
-  // SMOOTH (2026-11-18): the GL field used to be set display:none at the start of every frame and back to block in draw(); any
-  // style read in between (a canvas font set) dropped and rebuilt its compositor layer, every frame. Now it is hidden only
-  // when a frame ends without a GL draw.
-  function render(a) {
-    if (glr) glr.__shown = false;
-    try { return frame(a); } finally { if (glr && !glr.__shown && glr.canvas.style.display !== 'none') glr.canvas.style.display = 'none'; }
-  }
   return {
     mount(c) { canvas = c; },
-    render,
-    destroy() { try { const bd = canvas && canvas.__stkBd; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} if (glr) glr.destroy(); glr = null; canvas = null; }
-  };
-  function frame(a) {
+    render(a) {
       const g = beginFrame(canvas, a.coords);
+      if (glr) glr.canvas.style.display = 'none';   // draw() shows it again
       if (!g || !a.data || a.data.off || !a.bars.length) return;
       const f = bookFeeds.get(a.data.feed);
       if (!f || !f.book) return;
@@ -2317,8 +2308,7 @@ function cryptoDomLayer() {
         // the field is opaque, so it must sit UNDER the candles: the first canvas of the plot (background / grid and candles draw above it)
         // the renderer re-inserts canvases when another layer mounts later (e.g. Wall Events added after the heatmap), so this is re-checked every frame;
         // the backdrop is remembered from the FIRST move, so a layer canvas that lands next to the field is never mistaken for it and hidden (found 2026-11-04)
-        try { const par = canvas.parentElement, f0 = par && par.firstElementChild; if (par && f0 !== canvas && !(glr && f0 === glr.canvas && canvas.previousElementSibling === f0)) {   // the GL field sits right before it: already the bottom (moving it each frame made the two swap places every frame, SMOOTH 2026-11-18)
-          if (!canvas.__stkBd) canvas.__stkBd = par.firstElementChild; par.insertBefore(canvas, par.firstElementChild); canvas.__stkBmUnder = true; } } catch (e) {}
+        try { const par = canvas.parentElement; if (par && par.firstElementChild !== canvas) { if (!canvas.__stkBd) canvas.__stkBd = par.firstElementChild; par.insertBefore(canvas, par.firstElementChild); canvas.__stkBmUnder = true; } } catch (e) {}
         // the grid (backdrop canvas, drawn above this field) is dimmed while the heatmap is on, in this chart only
         try { const bd = canvas.__stkBd; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0') { bd.style.opacity = '0'; bd.__stkGridDim = true; } } catch (e) {}
         g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
@@ -2328,8 +2318,7 @@ function cryptoDomLayer() {
         const bmv = { hf: cfg.hf, smooth: cfg.smooth, look: cfg.look, colorBy: cfg.colorBy, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist: bh, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
           priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
         const wantGl = cfg.gpu && heatmapGLOk(); if (wantGl && !glr) glr = createHeatmapGL(canvas); else if (!wantGl && glr) { glr.destroy(); glr = null; }
-        const rg = glr && glr.draw(g, bmv); if (rg) glr.__shown = true;
-        const r = rg || drawBookmap(g, bmv);
+        const r = (glr && glr.draw(g, bmv)) || drawBookmap(g, bmv);
         stat.cells = r.cells; stat.columns = r.columns; stat.bm = r; stat.heatX0 = hist.length ? Math.round(Math.max(0, co.timeToX(hist[0].ts))) : null;
         g.restore();
       }
@@ -2624,7 +2613,9 @@ function cryptoDomLayer() {
       if (step !== domStep) { domStep = step; domRebinMs = Math.round(ms * 10) / 10; domRebinCols = cols.length; }
       stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = 0;
       domLast = stat;
-  }
+    },
+    destroy() { try { const bd = canvas && canvas.__stkBd; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} if (glr) glr.destroy(); glr = null; canvas = null; }
+  };
 }
 // Hiding the indicator (eye) keeps the feed open, so the page keeps recording; only removing
 // it, switching symbol or leaving the page stops recording for that symbol.
@@ -2692,7 +2683,7 @@ const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsui
   'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_fut_dom', 'stk_depth_heat', 'stk_fut_walls', 'stk_fut_imb',
   'stk_ts_big', 'stk_ts_delta', 'stk_ts_cvd', 'stk_ts_dsuite', 'stk_ts_dpane',
   'stk_bk_speed', 'stk_bk_bal', 'stk_bk_refill', 'stk_bk_regime', 'stk_bk_large', 'stk_bk_track', 'stk_bk_walls',
-  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw', 'stk_fpat', 'stk_fpat_l2', 'stk_barstats',
+  'stk_l2f_delta', 'stk_l2f_cvd', 'stk_l2f_fp', 'stk_l2f_big', 'stk_l2f_stop', 'stk_l2f_vp', 'stk_l2f_lad', 'stk_l2f_dp', 'stk_l2f_sw', 'stk_fpat', 'stk_fpat_l2',
   'stk_liq', 'stk_liq_bars', 'stk_oi', 'stk_funding', 'stk_lsr'];   // crypto derivatives (chart-crypto-deriv.js). Tick-stream twins + the order-book pack (chart-book-pack.js) (chart-ts-trades.js, Pro)
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [

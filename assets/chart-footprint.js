@@ -19,22 +19,20 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { flowDays, pinSessions } from './chart-frvp-data.js?v=1119';
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=1119';
+import { flowDays, pinSessions } from './chart-frvp-data.js?v=1108';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=1108';
 
-import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=1119';
-import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=1119';
-import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=1119';
-import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=1119';
-import { installChartTypes } from './chart-types.js?v=1119';
-import { rtHeadersReady } from './rt-access.js?v=1119';
-import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=1119';
-import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=1119';
-import * as BT from './chart-bigtrades.js?v=1119';
-import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=1119';
-import { CYAN, MONO, TOP_OFF, TOP_OFF_PHONE, TABLE_ROWS, alpha, fmt, fmtD, tableRowsFor, drawTable as drawBarStats } from './chart-bar-stats.js?v=1119';
-import { installBarStats, BS_TYPES } from './chart-bar-stats-ind.js?v=1119';
-import { isFutures, splitSym } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=1108';
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=1108';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=1108';
+import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=1108';
+import { installChartTypes } from './chart-types.js?v=1108';
+import { rtHeadersReady } from './rt-access.js?v=1108';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=1108';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=1108';
+import * as BT from './chart-bigtrades.js?v=1108';
+import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=1108';
+import { isFutures, splitSym } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -48,16 +46,23 @@ const TAIL_MS = 5000;              // the last minutes of every root in use: for
 const MAX_TF_MIN = 240;
 export const FP_TYPE = 'stk_fp';
 export const OF_GROUP = 'Order Flow';
-const UP = '#03c988', UP2 = '#4fe3ac', DN = '#f23645';
+const UP = '#03c988', UP2 = '#4fe3ac', DN = '#f23645', CYAN = '#00adb5';
 // Order-flow drawing palette (Owner 2026-10-24: drawn like the desktop order-flow platforms): buyers
 // green, sellers PURPLE, yellow POC box, magenta profile POC, orange value area.
 const SELL = '#9d4dff', SELL2 = '#c9a2ff', POCY = '#f5d90a', MAG = '#e040fb', VA_OR = '#c8602a', VA_OUT = '#b8a84a', VA_LN = '#8fd8dc';
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const DISCLAIMER = 'Order flow from exchange trades. Education only. Not financial advice.';
 
 // ---------------------------------------------------------------- small helpers
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const utcDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+function alpha(hex, a) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+}
 function tfMin(tf) {
   tf = String(tf || '');
   if (/^\d+$/.test(tf)) return +tf;
@@ -67,7 +72,14 @@ function tfMin(tf) {
   return u === 'S' ? n / 60 : u === 'D' ? n * 1440 : u === 'W' ? n * 10080 : n * 43200;
 }
 function light() { try { return document.documentElement.getAttribute('data-theme') === 'light'; } catch (e) { return false; } }
-
+function fmt(v) {
+  const a = Math.abs(v);
+  if (a >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (a >= 1e4) return Math.round(v / 1e3) + 'K';
+  if (Number.isInteger(v) || a >= 100) return String(Math.round(v));
+  // crypto volumes are fractional (BTC, ETH...): keep ~3 significant digits
+  return v === 0 ? '0' : a < 0.01 ? '<.01' : String(+v.toFixed(a >= 10 ? 1 : 2));
+}
 const sgn = (v) => (v > 0 ? '+' : v < 0 ? '-' : '') + fmt(Math.abs(v));
 // The CME session (18:00 New York -> 17:00) a time belongs to, keyed by the NY date it ends on.
 const nyFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit' });
@@ -358,7 +370,7 @@ class FootprintEngine {
   constructor() { this.cfg = fpConfig(FP_DEF); this.on = false; this.onAny = () => this.push(); this.l2own = {}; this.l2m = undefined; this.l2v = -1; this.l2tm = 0; this.onL2 = () => this.l2Tick(); }
   start(ctx) { this.ctx = ctx; this.on = true; this.fitted = false; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
   // L2 data: chart-l2-flow.js loads once; its hub fires on every book frame, the footprint only needs the trade minutes (<= 5 redraws a second)
-  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=1119').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
+  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=1108').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
   l2Tick() {
     if (this.l2tm || !this.on) return;
     this.l2tm = setTimeout(() => { this.l2tm = 0; const v = this.l2m ? this.l2m.fpVersion(this.l2own) : 0; if (v !== this.l2v) this.push(); }, 200);
@@ -456,6 +468,16 @@ function rowsOf(bar, m) {
 const ROW_STEPS = [1, 2, 4, 5, 8, 10, 16, 20, 25, 40, 50, 80, 100, 200, 400];
 
 // ---------------------------------------------------------------- Delta boxes + Bar stats table (Owner 10 Nov)
+// short number: 340, 2.1K, 15K, 1.5M (crypto volumes keep their decimals via fmt)
+function fmtD(v) {
+  const a = Math.abs(v), s = v < 0 ? '\u2212' : '';
+  if (a < 0.005) return '0';   // never "<.01"
+  if (a >= 1e7) return s + Math.round(a / 1e6) + 'M';
+  if (a >= 1e6) return s + (a / 1e6).toFixed(1) + 'M';
+  if (a >= 1e4) return s + Math.round(a / 1e3) + 'K';
+  if (a >= 1e3) return s + (a / 1e3).toFixed(1) + 'K';
+  return s + fmt(a);
+}
 const NEUTRAL = '#8a90a0';
 // busiest row (buy + sell) among the visible bars; the reference for Auto text size
 function visMaxVol(X) {
@@ -661,7 +683,62 @@ function drawDbars(X) {
   return anyText;
 }
 
-
+const TOP_OFF = 54, TOP_OFF_PHONE = 92;   // a top-placed table or strip starts below the chart's own price / volume legend
+const TABLE_ROWS = [['vol', 'Total volume'], ['delta', 'Delta'], ['dpct', 'Delta %'], ['buy', 'Buy volume'], ['sell', 'Sell volume'], ['trd', 'Trades']];
+// rows this chart can really show: from the footprint's own volume, delta and (when the feed has them) trade counts
+export function tableRowsFor(fbs, phone, hide = []) {
+  const keys = ['vol', 'delta', 'buy', 'sell'];
+  if (!phone) { keys.splice(2, 0, 'dpct'); if (fbs.some((b) => b && b.trades > 0)) keys.push('trd'); }
+  return TABLE_ROWS.filter((r) => keys.includes(r[0]) && !hide.includes(r[0]));
+}
+function tableVal(fb, k) {
+  switch (k) {
+    case 'vol': return fb.vol;
+    case 'delta': return fb.delta;
+    case 'dpct': return fb.vol ? fb.delta / fb.vol : 0;
+    case 'buy': return (fb.vol + fb.delta) / 2;
+    case 'sell': return (fb.vol - fb.delta) / 2;
+    default: return fb.trades || 0;
+  }
+}
+// Bar stats table: one column per bar (aligned to the bar slots), row labels at the right, heat-map cells.
+function drawTable(X) {
+  const { g, co, a, f, cfg, i0, i1, bw, bot, day, plotR } = X;
+  const phone = co.width < 520, rh = phone ? 14 : 16 + Math.max(0, cfg.adj > 0 ? 2 : 0), tf = 10 + cfg.adj, lf = 11 + Math.min(cfg.adj, 3);
+  const atTop = cfg.tblPos[0] === 't', labL = cfg.tblPos[1] === 'l';
+  const vis = [];
+  for (let i = i0; i <= i1; i++) vis.push(f.map.get(a.bars[i].time));
+  const rows = tableRowsFor(vis, phone, cfg.tblHide), H = rows.length * rh, y0 = X.tblY != null ? X.tblY : bot - H, labW = (phone ? 62 : 82) + Math.max(0, cfg.adj) * 4, cellL = labL ? labW : 0, cellR = labL ? plotR : plotR - labW;
+  const mx = {};
+  for (const [k] of rows) { let q = 1e-9; for (const fb of vis) if (fb) { const v = Math.abs(tableVal(fb, k)); if (v > q) q = v; } mx[k] = q; }
+  if (window.__stkFpDebug) window.__stkFpDebug.table = { y0, rh, rows: rows.map((r) => r[0]), cols: [], plotR, H };
+  g.save();
+  g.fillStyle = day ? '#ffffff' : '#050506'; g.fillRect(0, y0, plotR, H);
+  g.beginPath(); g.rect(cellL, y0, cellR - cellL, H); g.clip();
+  g.font = tf + 'px ' + MONO; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let i = i0; i <= i1; i++) {
+    const fb = f.map.get(a.bars[i].time);
+    if (!fb) continue;
+    const xl = co.logicalToX(i) - bw / 2 + 0.5, w = bw - 1;
+    if (xl < cellL) continue;   // a bar cut by the left edge (or the label column) gets no half column; on the other side the clip is clean
+    if (window.__stkFpDebug) window.__stkFpDebug.table.cols.push({ i, xc: co.logicalToX(i), xl, w });
+    rows.forEach(([k], ri) => {
+      const v = tableVal(fb, k), t = Math.abs(v) / mx[k], y = y0 + ri * rh;
+      const base = k === 'delta' || k === 'dpct' ? (v >= 0 ? X.UP : X.DN) : k === 'buy' ? X.UP : k === 'sell' ? X.DN : CYAN;
+      g.fillStyle = alpha(base, 0.14 + 0.72 * Math.sqrt(t));
+      g.fillRect(xl, y + 0.5, w, rh - 1);
+      const txt = k === 'dpct' ? (v < 0 ? '\u2212' : '') + Math.round(Math.abs(v) * 100) + '%' : k === 'delta' ? fmtD(v) : fmtD(Math.abs(v));
+      if (txt.length * 0.6 * tf + 4 <= w && xl + w <= cellR) { g.fillStyle = t > 0.6 ? (k === 'sell' || (k !== 'buy' && v < 0) ? '#ffffff' : '#04140d') : (day ? '#1f2937' : '#e5e7eb'); g.fillText(txt, xl + w / 2, y + rh / 2 + 0.5); }
+    });
+  }
+  g.restore();
+  g.font = '500 ' + lf + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'; g.textAlign = labL ? 'left' : 'right'; g.textBaseline = 'middle';
+  g.fillStyle = day ? '#475569' : '#a3a9b6';
+  rows.forEach(([, name], ri) => g.fillText(phone ? name.replace('Total volume', 'Volume').replace(' volume', '').replace('Delta %', 'Δ %') : name, labL ? 6 : plotR - 6, y0 + ri * rh + rh / 2 + 0.5));
+  g.strokeStyle = day ? 'rgba(15,23,42,0.12)' : 'rgba(255,255,255,0.08)'; g.lineWidth = 1;
+  const ly = atTop ? y0 + H - 0.5 : y0 + 0.5; g.beginPath(); g.moveTo(0, ly); g.lineTo(plotR, ly); g.stroke();
+  return H;
+}
 
 function footprintLayer() {
   let canvas = null, on = false, lastMs = 0, tcv = null, stats = false;
@@ -748,7 +825,7 @@ function footprintLayer() {
       const statsH = cfg.stats && cells && !compact && cfg.mode !== 'boxes' && cfg.mode !== 'dbars' ? 30 : 0;
       const bot0 = bot;
       let tblH = 0;
-      if (cfg.table && i1 >= i0) { X.tblY = tblTop ? top + (compact || co.width < 520 ? TOP_OFF_PHONE : TOP_OFF) : null; const tc = tableCanvas(), tg = tc && tc.getContext('2d'); if (tg) { tg.setTransform(dpr, 0, 0, dpr, 0, 0); X.g = tg; } X.dbg = window.__stkFpDebug; tblH = drawBarStats(X); X.g = g; }
+      if (cfg.table && i1 >= i0) { X.tblY = tblTop ? top + (compact || co.width < 520 ? TOP_OFF_PHONE : TOP_OFF) : null; const tc = tableCanvas(), tg = tc && tc.getContext('2d'); if (tg) { tg.setTransform(dpr, 0, 0, dpr, 0, 0); X.g = tg; } tblH = drawTable(X); X.g = g; }
       let topUsed = 0, botUsed = 0;
       const tOff = co.width < 520 ? TOP_OFF_PHONE : TOP_OFF;
       if (tblH) { if (tblTop) topUsed = tOff + tblH; else botUsed = tblH; }
@@ -1310,13 +1387,6 @@ export function installFootprint(Core, flowMod) {
     subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
     use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); }
   });
-  // Bar Stats indicator (assets/chart-bar-stats-ind.js): the footprint's stats table on any chart style, from this same flow (a throwaway engine, never started)
-  installBarStats(Core, { rootOf, tfMin, version: () => version,
-    makeEngine: (ctx, push) => { const e = new FootprintEngine(); if (window.__stkTestL1) e.cfg.src = 'l1';   // browser suites read the recorder's trades
-      e.ctx = ctx; e.on = true; e.push = push; return e; },
-    flowOf: (e, ctx, bars, left) => { const tfm = tfMin(ctx.timeframe); return (tfm >= 1 && tfm <= MAX_TF_MIN && e.l2Flow(bars, tfm, left)) || flowFor({ root: rootOf(ctx), timeframe: ctx.timeframe, bars, owner: e }); },
-    subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
-    use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); } });
   // Footprint Patterns (assets/chart-fp-patterns.js): six patterns marked on any chart style, from the same flow
   installFpPatterns(Core, { flowFor, rootOf, tfMin, replayE, version: () => version,
     subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
@@ -1331,7 +1401,7 @@ export function installFootprint(Core, flowMod) {
 // loads lazily, so this is called again once it is here.
 function linkFlow(flowMod) {
   if (!flowMod || !Array.isArray(flowMod.OUR_TYPES)) return;
-  for (const type of OF_TYPES.concat(DS_TYPES, PRO_TYPES, TS_TYPES, FPAT_TYPES, BS_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
+  for (const type of OF_TYPES.concat(DS_TYPES, PRO_TYPES, TS_TYPES, FPAT_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
 }
 export const FP_DISCLAIMER = DISCLAIMER;
 // Read-only handle for the browser suite (tools/tests/chart-footprint-browser.js) and debugging.

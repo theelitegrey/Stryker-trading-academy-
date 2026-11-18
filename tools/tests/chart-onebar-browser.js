@@ -111,10 +111,10 @@ async function desktop(b, w, h, theme, tag) {
   check(L.hits.length === 0, `${tag}: no overlapping items ${JSON.stringify(L.hits)}`);
   const o = L.order;
   // TradingView order (build 537): symbol | intervals | style | Indicators | alerts, Replay | undo — layout | grid | settings | Trade, broker | info, More
-  const seq = [o.sym, o.iv, o.style, o.ind, o.trade, o.alerts, o.replay, o.undo].filter((v) => v != null);
-  check(seq.every((v, i) => i === 0 || v > seq[i - 1]), `${tag}: left order symbol < intervals < style < Indicators < Trade < alerts < Replay < undo ${JSON.stringify(seq)}`);
-  const rseq = [o.lay, o.grid, o.broker, o.cog, o.info, o.more].filter((v) => v != null);
-  check(rseq.every((v, i) => i === 0 || v > rseq[i - 1]) && (rseq[0] == null || rseq[0] > (o.undo || 0)), `${tag}: right order layout < grid < broker < settings < info < More (Trade moved to the left group before Alerts: Owner 2026-11-17) ${JSON.stringify(rseq)}`);
+  const seq = [o.sym, o.iv, o.style, o.ind, o.alerts, o.replay, o.undo].filter((v) => v != null);
+  check(seq.every((v, i) => i === 0 || v > seq[i - 1]), `${tag}: left order symbol < intervals < style < Indicators < alerts < Replay < undo ${JSON.stringify(seq)}`);
+  const rseq = [o.lay, o.grid, o.trade, o.broker, o.cog, o.info, o.more].filter((v) => v != null);
+  check(rseq.every((v, i) => i === 0 || v > rseq[i - 1]) && (rseq[0] == null || rseq[0] > (o.undo || 0)), `${tag}: right order layout < grid < Trade < broker < settings < info < More (Trade before Data source: Owner 2026-11-16) ${JSON.stringify(rseq)}`);
   await p.screenshot({ path: `${OUT}/onebar-${tag}.png` });
   console.log('screenshot', `${OUT}/onebar-${tag}.png`);
 

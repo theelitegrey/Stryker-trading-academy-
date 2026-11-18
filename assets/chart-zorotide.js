@@ -9,7 +9,7 @@
 // half and half; net = bought - sold; the lines add the samples up from the open.
 // Wording: "Estimated from options volume and quotes. Updated X min ago." Never live / real-time / delayed. Education only.
 // Depends on: Vela plugin SDK via the legend-row Core (registerNativeIndicator, registerStatePersistence); window.strykerPlanTier (optional).
-import { isFutures, splitSym } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { isFutures, splitSym } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 export const TIDE_TYPE = 'stk_tide';
 export const TIDE_DESC = 'Options money flow: net call premium (green) and net put premium (red) since the open, in a lower pane (SPX, SPY, QQQ, ES, NQ)';

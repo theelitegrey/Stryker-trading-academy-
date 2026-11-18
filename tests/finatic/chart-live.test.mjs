@@ -52,41 +52,7 @@ assert.deepEqual(L.buildPlace({ code: 'NQZ6', side: 'buy', qty: 1, type: 'market
 assert.equal(L.buildPlace({ code: 'MESZ6', side: 'sell', qty: 2, type: 'limit', price: 6000.13 }, N).body.limitPrice, 6000.25, 'tick rounded');
 for (const bad of [{ qty: 3 }, { qty: 0 }, { qty: 1.5 }, { side: 'hold' }, { type: 'stop' }, { type: 'limit', price: 0 }, { code: 'CLZ6' }, { code: 'NQM7' }])
   assert.ok(L.buildPlace(Object.assign({ code: 'NQZ6', side: 'buy', qty: 1, type: 'market' }, bad), N).error, JSON.stringify(bad));
-assert.deepEqual(L.buildModify({ id: 'w1', price: 20901.1, code: 'NQZ6' }).body, { op: 'modify', orderId: 'w1', type: 'limit', limitPrice: 20901, symbol: 'NQZ6' });
-assert.deepEqual(L.buildModify({ id: 's1', price: 20850.1, code: 'NQZ6', type: 'stop' }).body, { op: 'modify', orderId: 's1', type: 'stop', stopPrice: 20850, symbol: 'NQZ6' });
-// stop entries + stop loss / take profit (2026-11-17)
-assert.equal(L.buildPlace({ code: 'NQZ6', side: 'buy', qty: 1, type: 'stop', price: 21010.1 }, N).body.stopPrice, 21010, 'stop entry, tick rounded');
-assert.ok(L.buildPlace({ code: 'NQZ6', side: 'buy', qty: 1, type: 'stop' }, N).error, 'stop needs a price');
-let bp = L.buildPlace({ code: 'NQZ6', side: 'buy', qty: 1, type: 'market', sl: 20980.1, tp: 21040, last: 21000 }, N).body;
-assert.deepEqual(bp.bracket, { sl: 20980, tp: 21040 });
-assert.ok(L.buildPlace({ code: 'NQZ6', side: 'buy', qty: 1, type: 'limit', price: 20990, sl: 20980, last: 21000 }, N).error, 'bracket = market entries only');
-assert.ok(L.buildPlace({ code: 'NQZ6', side: 'buy', qty: 1, type: 'market', sl: 21010, last: 21000 }, N).error, 'buy stop loss must be below');
-assert.ok(L.buildPlace({ code: 'NQZ6', side: 'sell', qty: 1, type: 'market', tp: 21010, last: 21000 }, N).error, 'sell take profit must be below');
-assert.ok(L.buildPlace({ code: 'NQZ6', side: 'buy', qty: 1, type: 'market', sl: 19000, last: 21000 }, N).error, 'band');
-assert.deepEqual(L.buildPlace({ code: 'NQZ6', side: 'sell', qty: 2, type: 'market', sl: 21020, last: 21000 }, N).body.bracket, { sl: 21020, tp: null });
-// which order types the account takes (the place schema)
-assert.equal(L.stopsSupported({ supportedOrderTypesByAssetClass: { future: ['MARKET', 'LIMIT', 'STOP', 'STOP_LIMIT'] } }), true);
-assert.equal(L.stopsSupported({ data: { supportedOrderTypesByAssetClass: { futures: ['market', 'limit', 'stop'] } } }), true, 'nested + plural');
-assert.equal(L.stopsSupported({ supportedOrderTypesByAssetClass: { future: ['market', 'limit'] } }), false);
-assert.equal(L.stopsSupported({ supportedOrderTypesByAssetClass: { equity: ['stop'] } }), false, 'futures only');
-assert.equal(L.stopsSupported({ fields: { symbol: {} } }), false, 'unknown = no');
-assert.equal(L.stopsSupported({ properties: { orderType: { enum: ['MARKET', 'LIMIT', 'STOP'] } } }), true, 'enum fallback');
-// the server's bracket plan (one-cancels-other), long 1 NQZ6, entry e1, children s1 / t1
-const G = { code: 'NQZ6', side: 'buy', qty: 1, sl: 20980, tp: 21040, entryId: 'e1', slId: '', tpId: '', state: 'pending' };
-const pos1 = [{ securityId: 'NQZ6', quantity: 1, averageBuyPrice: 21000 }];
-const od = (id, status, extra) => ({ orderId: id, status, orderType: 'LIMIT', legs: [{ securityId: 'NQZ6', side: 'SELL', quantity: 1, ...(extra || {}) }] });
-assert.equal(L.bracketPlan(G, [], [od('e1', 'SUBMITTED')]).act, 'wait', 'entry working');
-assert.deepEqual(L.bracketPlan(G, pos1, [od('e1', 'FILLED')]), { act: 'place', qty: 1, exitSide: 'sell', ref: 21000 });
-assert.equal(L.bracketPlan(G, [], [od('e1', 'REJECTED')]).act, 'drop', 'entry refused');
-assert.equal(L.bracketPlan(G, [], [od('e1', 'FILLED')]).act, 'drop', 'filled and already closed');
-const A1 = { ...G, state: 'active', slId: 's1', tpId: 't1' };
-assert.deepEqual(L.bracketPlan(A1, [], [od('s1', 'SUBMITTED'), od('t1', 'FILLED')]), { act: 'oco', cancel: ['s1'], why: 'Take profit filled.' });
-assert.deepEqual(L.bracketPlan(A1, [], [od('s1', 'FILLED'), od('t1', 'SUBMITTED')]), { act: 'oco', cancel: ['t1'], why: 'Stop loss filled.' });
-assert.equal(L.bracketPlan(A1, pos1, [od('s1', 'SUBMITTED'), od('t1', 'SUBMITTED')]).act, 'ok');
-assert.equal(L.bracketPlan(A1, pos1, [od('s1', 'CANCELLED'), od('t1', 'SUBMITTED')]).act, 'alarm', 'stop gone, position open: alarm, never cancel the target');
-assert.equal(L.bracketPlan(A1, [], [od('s1', 'SUBMITTED'), od('t1', 'SUBMITTED')]).act, 'flatcheck', 'flat with both working: check again first');
-assert.equal(L.bracketPlan(A1, [], []).act, 'drop');
-assert.deepEqual(L.bracketPlan({ ...A1, qty: 2 }, pos1, [od('s1', 'SUBMITTED', { quantity: 2 }), od('t1', 'PARTIALLY_FILLED', { quantity: 2, filledQuantity: 1 })]), { act: 'resize', id: 's1', qty: 1 }, 'part fill shrinks the other');
+assert.deepEqual(L.buildModify({ id: 'w1', price: 20901.1, code: 'NQZ6' }).body, { op: 'modify', orderId: 'w1', type: 'limit', limitPrice: 20901 });
 // ladder: always a limit, flagged when marketable
 assert.deepEqual(L.ladderOrder('bid', 100, 99.75, 100), { side: 'buy', type: 'limit', price: 100, marketable: true });
 assert.deepEqual(L.ladderOrder('bid', 99.5, 99.75, 100), { side: 'buy', type: 'limit', price: 99.5, marketable: false });
@@ -168,7 +134,7 @@ const finFetch = async (url, init) => {
   if (u.pathname === '/api/v1/session/start') return ok({ session_id: 's', company_id: 'c', status: 'active', user_id: US });
   if (u.pathname.endsWith('/positions')) return B.fail === 'read' ? new Response('x', { status: 500 }) : ok(B.positions);
   if (u.pathname.endsWith('/orders') && init.method === 'GET') return ok(B.orders);
-  if (u.pathname.endsWith('/orders') && init.method === 'POST') { if (B.fail === 'timeout') throw new Error('timeout'); if (B.fail === 'reject-sl' && /-sl$/.test(init.headers['Idempotency-Key'])) return new Response(JSON.stringify({ data: { accepted: false, message: 'stop refused' } }), { status: 400 }); return ok({ accepted: true, order: { orderId: B.ids ? 'o-' + init.headers['Idempotency-Key'] : 'new-1', status: 'SUBMITTED' } }); }
+  if (u.pathname.endsWith('/orders') && init.method === 'POST') { if (B.fail === 'timeout') throw new Error('timeout'); return ok({ accepted: true, order: { orderId: 'new-1', status: 'SUBMITTED' } }); }
   if (u.pathname.includes('/orders/') && init.method === 'DELETE') { const id = u.pathname.split('/').pop(); B.orders = B.orders.map((o) => (o.orderId === id ? { ...o, status: 'CANCELLED' } : o)); return ok({ accepted: true, order: { orderId: id, status: 'CANCELLED' } }); }
   if (u.pathname.includes('/orders/') && init.method === 'PATCH') return ok({ accepted: true, executionStrategy: 'NATIVE_MODIFY', order: { orderId: 'w1', status: 'SUBMITTED' } });
   return ok([]);
@@ -176,8 +142,7 @@ const finFetch = async (url, init) => {
 const audits = new Map();
 const audit = async (e, id) => { if (id && audits.has(id)) { const er = new Error('dup'); er.duplicate = true; throw er; } const row = { ...e }; audits.set(id || 'r' + audits.size, row); return { finish: async (r) => Object.assign(row, r) }; };
 let killOn = true;
-const brackets = new Map();
-const deps = { verifyFetch, finFetch, audit, brackets, liveSwitch: async () => { if (killOn === 'err') throw new Error('x'); return killOn; }, now: () => N, sleep: async () => {} };
+const deps = { verifyFetch, finFetch, audit, liveSwitch: async () => { if (killOn === 'err') throw new Error('x'); return killOn; }, now: () => N, sleep: async () => {} };
 const US = '0aaa1111-2222-3333-4444-555566667777', ACC = '123e4567-e89b-12d3-a456-426614174000';
 const live = { FINATIC_API_KEY: 'fntc_live_FAKE', FINATIC_LIVE_ORDERS: '1', DEV: '0' };
 let ip = 1;
@@ -190,7 +155,7 @@ let r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'ma
 assert.equal(r.status, 403, 'non-admin refused'); assert.equal(writes().length, 0);
 r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'market' }); assert.equal(r.status, 400, 'idemKey required');
 r = await send({ op: 'place', symbol: 'CLZ6', side: 'buy', qty: 1, type: 'market', idemKey: key(2) }); assert.equal(r.status, 400, 'contract whitelist');
-r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'trailing_stop', stopPrice: 1, idemKey: key(3) }); assert.equal(r.status, 400, 'no trailing stops from the chart');
+r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'stop', stopPrice: 1, idemKey: key(3) }); assert.equal(r.status, 400, 'no stops from the chart');
 r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 3, type: 'market', idemKey: key(4) }); assert.equal(r.status, 400, 'qty cap stays');
 killOn = false; r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'market', idemKey: key(5) }); assert.equal(r.status, 403); assert.equal(r.j.code, 'switched_off');
 killOn = 'err'; r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'market', idemKey: key(6) }); assert.equal(r.status, 503, 'kill switch unreadable = refused');
@@ -231,54 +196,5 @@ const dn = B.calls.length; const dr = await D.handle(req({ op: 'live', accountId
 assert.equal(dr.status, 200); const dj = await dr.json(); assert.ok(Array.isArray(dj.data.positions) && Array.isArray(dj.data.orders));
 assert.ok(B.calls.slice(dn).every((x) => x.m === 'GET' || x.p.includes('/session/')));
 assert.equal((await D.handle(req({ op: 'live', accountId: ACC, userId: US }, token('member9'), 'https://tradezoro.com/connect/finatic/data'), live, deps)).status, 403);
-// ---- stop loss + take profit, end to end against the mocked broker (2026-11-17) --------------------------------------------
-B.ids = true; B.positions = []; B.orders = [];
-const kk = key(40);
-r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'limit', limitPrice: 20990, bracket: { sl: 20980, tp: 21040 }, idemKey: key(39) }); assert.equal(r.status, 400, 'bracket only on market');
-r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'market', bracket: { sl: 21040, tp: 20980 }, idemKey: key(38) }); assert.equal(r.status, 400, 'sl above tp on a buy refused');
-r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'market', bracket: { sl: 20980, tp: 21040 }, idemKey: kk });
-assert.equal(r.status, 200, JSON.stringify(r.j)); assert.equal(r.j.bracket.state, 'pending'); const entryId = r.j.orderId;
-const gid = L.groupId(ACC, 'NQZ6'); assert.equal(brackets.get(gid).entryId, entryId);
-r = await send({ op: 'place', symbol: 'NQZ6', side: 'buy', qty: 1, type: 'market', bracket: { sl: 20970 }, idemKey: key(41) }); assert.equal(r.status, 409); assert.equal(r.j.code, 'bracket_exists', 'one group per contract');
-// entry still working: nothing sent
-B.orders = [{ orderId: entryId, status: 'SUBMITTED', legs: [{ securityId: 'NQZ6', side: 'BUY', quantity: 1 }] }];
-n0 = writes().length; r = await send({ op: 'bracket', symbol: 'NQZ6' }); assert.equal(r.j.did, 'wait'); assert.equal(writes().length, n0);
-// filled: kill switch off -> nothing placed, group stays pending
-B.orders = [{ orderId: entryId, status: 'FILLED', legs: [{ securityId: 'NQZ6', side: 'BUY', quantity: 1 }] }]; B.positions = [{ securityId: 'NQZ6', quantity: 1, averageBuyPrice: 21000 }];
-killOn = false; r = await send({ op: 'bracket', symbol: 'NQZ6' }); assert.equal(r.j.did, 'blocked'); assert.equal(writes().length, n0, 'switch off: no new order'); assert.equal(brackets.get(gid).state, 'pending'); killOn = true;
-// filled: SL (stop, GTC) then TP (limit, GTC), deterministic keys
-r = await send({ op: 'bracket', symbol: 'NQZ6' }); assert.equal(r.j.did, 'placed', JSON.stringify(r.j));
-let cw = writes().slice(n0); assert.deepEqual(cw.map((x) => [x.m, x.key]), [['POST', kk + '-sl'], ['POST', kk + '-tp']]);
-assert.deepEqual(cw[0].body.order, { assetType: 'future', symbol: 'NQZ6', action: 'sell', orderQty: 1, timeInForce: 'gtc', orderType: 'stop', stopPrice: 20980 });
-assert.deepEqual(cw[1].body.order, { assetType: 'future', symbol: 'NQZ6', action: 'sell', orderQty: 1, timeInForce: 'gtc', orderType: 'limit', price: 21040 });
-const slId = 'o-' + kk + '-sl', tpId = 'o-' + kk + '-tp'; assert.equal(r.j.group.slId, slId); assert.equal(r.j.group.state, 'active');
-assert.ok(audits.has(kk + '-sl') && audits.has(kk + '-tp'), 'each child has its audit row (no audit, no order)');
-B.orders.push({ orderId: slId, status: 'SUBMITTED', orderType: 'STOP', legs: [{ securityId: 'NQZ6', side: 'SELL', quantity: 1, stopPrice: 20980 }] }, { orderId: tpId, status: 'SUBMITTED', orderType: 'LIMIT', legs: [{ securityId: 'NQZ6', side: 'SELL', quantity: 1, limitPrice: 21040 }] });
-n0 = writes().length; r = await send({ op: 'bracket', symbol: 'NQZ6' }); assert.equal(r.j.did, 'ok'); assert.equal(writes().length, n0, 'nothing twice');
-// drag the stop loss: stop price only, must stay below the target; the record follows
-r = await send({ op: 'modify', orderId: slId, symbol: 'NQZ6', type: 'stop', stopPrice: 21050, idemKey: key(42) }); assert.equal(r.status, 400, 'stop loss above the target refused');
-r = await send({ op: 'modify', orderId: slId, symbol: 'NQZ6', type: 'limit', limitPrice: 20990, idemKey: key(43) }); assert.equal(r.status, 400, 'stop loss moves by stop price');
-r = await send({ op: 'modify', orderId: slId, symbol: 'NQZ6', type: 'stop', stopPrice: 20990, idemKey: key(44) }); assert.equal(r.status, 200, JSON.stringify(r.j));
-assert.deepEqual(writes().at(-1).body.order, { orderType: 'stop', stopPrice: 20990 }); assert.equal(brackets.get(gid).sl, 20990); assert.equal(r.j.bracket.sl, 20990);
-// take profit fills -> the stop loss is cancelled, record dropped, decision logged
-B.orders = B.orders.map((o) => (o.orderId === tpId ? { ...o, status: 'FILLED' } : o)); B.positions = [];
-n0 = writes().length; r = await send({ op: 'bracket', symbol: 'NQZ6' }); assert.equal(r.j.did, 'closed'); assert.equal(r.j.group.state, 'closed');
-assert.deepEqual(writes().slice(n0).map((x) => [x.m, x.p.split('/').pop()]), [['DELETE', slId]]); assert.ok(!brackets.has(gid));
-assert.ok([...audits.values()].some((a) => a.op === 'bracket-oco' && /Take profit filled/.test(a.message || '')), 'OCO logged');
-n0 = writes().length; r = await send({ op: 'bracket', symbol: 'NQZ6' }); assert.equal(r.j.group, null); assert.equal(writes().length, n0);
-// stop loss refused by the broker -> no take profit, alarm
-const k2 = key(50); B.positions = []; B.orders = [];
-r = await send({ op: 'place', symbol: 'NQZ6', side: 'sell', qty: 1, type: 'market', bracket: { sl: 21020, tp: 20960 }, idemKey: k2 }); assert.equal(r.status, 200);
-B.orders = [{ orderId: r.j.orderId, status: 'FILLED', legs: [{ securityId: 'NQZ6', side: 'SELL', quantity: 1 }] }]; B.positions = [{ securityId: 'NQZ6', quantity: -1, averageSellPrice: 21000 }];
-B.fail = 'reject-sl'; n0 = writes().length; r = await send({ op: 'bracket', symbol: 'NQZ6' }); B.fail = '';
-assert.equal(r.j.did, 'rejected'); assert.equal(r.j.group.state, 'unprotected'); assert.deepEqual(writes().slice(n0).map((x) => x.key), [k2 + '-sl'], 'no take profit after a refused stop');
-// flatten cancels both children and drops the record
-brackets.set(gid, { ...brackets.get(gid), state: 'active', slId: 'x-sl', tpId: 'x-tp' });
-B.orders = [{ orderId: 'x-tp', status: 'SUBMITTED', legs: [{ securityId: 'NQZ6', side: 'BUY', quantity: 1, limitPrice: 20960 }] }];
-n0 = writes().length; r = await send({ op: 'flatten', symbol: 'NQZ6', idemKey: key(51) }); assert.equal(r.status, 200, JSON.stringify(r.j));
-assert.deepEqual(writes().slice(n0).map((x) => [x.m, x.p.split('/').pop()]), [['DELETE', 'x-tp'], ['POST', 'orders']]); assert.ok(!brackets.has(gid), 'flatten drops the group');
-// members never reach any of it
-r = await send({ op: 'bracket', symbol: 'NQZ6' }, token('member9')); assert.equal(r.status, 403);
-B.ids = false;
 assert.ok(![...audits.values()].some((a) => JSON.stringify(a).includes('FAKE')), 'no key in audit');
 console.log('chart live: ok');

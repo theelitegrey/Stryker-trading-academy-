@@ -5,8 +5,8 @@
 // Computed from this chart's own bars (nothing is fetched). Daily / Weekly / Monthly. Intraday charts (a Daily set on a daily or
 // longer chart, a Weekly set on a weekly chart ...) show only the newest set. Education only. Not financial advice.
 // Depends on: Vela plugin SDK (registerNativeIndicator / registerRendererLayer / registerStatePersistence), as chart-market-stats.js.
-import * as D from './chart-camarilla-data.js?v=1119';
-import { isFutures } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import * as D from './chart-camarilla-data.js?v=1108';
+import { isFutures } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const TYPE = 'stk_camarilla';
 const PERIODS = { Daily: 'D', Weekly: 'W', Monthly: 'M' };

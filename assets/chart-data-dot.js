@@ -22,9 +22,9 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
-import { rtOnChange, isRealtimeAdmin, rtConfirmed, rtKnown } from './rt-access.js?v=1119';
-import { hubCovers } from './live-source.js?v=1119';
-import { labelFor } from './byo-core.js?v=1119';   // member's own connected source (Connect your own data)
+import { rtOnChange, isRealtimeAdmin, rtConfirmed, rtKnown } from './rt-access.js?v=1108';
+import { hubCovers } from './live-source.js?v=1108';
+import { labelFor } from './byo-core.js?v=1108';   // member's own connected source (Connect your own data)
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
@@ -304,9 +304,7 @@ export function installDataDot(ws, opts = {}) {
 
   const host = document.getElementById('vela-chart');
   // Vela rebuilds statusline pieces on symbol / layout changes: re-attach on any DOM change.
-  // SMOOTH: skip the OHLC / change readouts Vela rewrites on every pointer move (nothing to re-attach there)
-  const readout = (m) => { const e = m.target.nodeType === 1 ? m.target : m.target.parentElement; return !!(e && e.closest('.vela-sl-ohlc,.vela-sl-change,.vela-widget-bottombar')); };
-  if (host) new MutationObserver((ms) => { if (!ms.every(readout)) schedule(); }).observe(host, { childList: true, subtree: true });
+  if (host) new MutationObserver(schedule).observe(host, { childList: true, subtree: true });
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, schedule); } catch (e) {} });
   window.addEventListener('stk:venue-blocked', schedule);
   try { rtOnChange(schedule); } catch (e) {}

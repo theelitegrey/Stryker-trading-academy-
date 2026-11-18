@@ -2,13 +2,13 @@
 // Lit = in use on this chart now. Dim = not in use. Delayed = in use on the recorded book, 10 min delayed (ALL TOOLS FREE, Owner 2026-11-13:
 // only the LIVE futures order book is a paid data feed). Locked = signed out (the tools need a free account).
 // REGISTER AN INDICATOR OR PANEL (one line, from any module):
-//   import { registerFeed } from './chart-feeds.js?v=1119';   registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
+//   import { registerFeed } from './chart-feeds.js?v=1108';   registerFeed('stk_of_big', { needs: 'L1', title: 'Big Trades' });
 //   (no module? window.STRYKER_FEEDS.register('stk_of_big', { needs: 'L1', title: 'Big Trades' }))
 // Options: mkt 'futures' | 'crypto' (only counts on that market; default any). A panel that is not an indicator calls setPanel(id, true|false).
 // Plain names only in the UI: no vendor names. Education only. Not financial advice.
 
-import { isFree } from './chart-pro-gate.js?v=1119';
-import { isFutures } from './chart-sym.js?v=1119';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { isFree } from './chart-pro-gate.js?v=1108';
+import { isFutures } from './chart-sym.js?v=1108';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 export const LEVELS = {
   L1: { name: 'L1', short: 'trades and best bid/ask', what: 'Every trade plus the best bid and ask.' },

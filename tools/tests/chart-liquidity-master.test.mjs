@@ -32,7 +32,12 @@ if (fs.existsSync(ORIG)) {
   const fix = (s) => s
     .replace('    var int slt = na\r\n    if inS\r\n        if not inS[1] or na(sh)\r\n            sh := high', '    var int slt = na\r\n    var bool part = false\r\n    if inS\r\n        if not inS[1] or na(sh)\r\n            part := bar_index == 0   // data starts inside the session: its high/low is partial, so it is not drawn\r\n            sh := high')
     .replace('        int exp = f_nextDayStart(time)\r\n        f_addLvl(sh, sht, 1, 2, 0, name + " High", exp, hiC, sty, wid, lbl, lblC, lblS, lblX, lblY)\r\n        f_addLvl(sl, slt, -1, 2, 0, name + " Low", exp, loC, sty, wid, lbl, lblC, lblS, lblX, lblY)\r\n        sh := na', '        int exp = f_nextDayStart(time)\r\n        if not part\r\n            f_addLvl(sh, sht, 1, 2, 0, name + " High", exp, hiC, sty, wid, lbl, lblC, lblS, lblX, lblY)\r\n            f_addLvl(sl, slt, -1, 2, 0, name + " Low", exp, loC, sty, wid, lbl, lblC, lblS, lblX, lblY)\r\n        part := false\r\n        sh := na');
-  check(fix(rebrand(o.toString('utf8'))) === buf.toString('utf8'), 'shipped = original + brand lines + the Asia partial-session fix, nothing else');
+  // FVG fix (member report 18 Nov, test lm-htf-fvg-live.test.mjs): the FVG helpers + HTF aggregation block and the gap
+  // maintenance pass were rewritten; outside those two blocks (and the hidden-gap list) the script stays the original.
+  const cut = (s) => { const at = (a, from) => { const i = s.indexOf(a, from); if (i < 0) throw new Error('marker not found: ' + a); return i; };
+    const a1 = at('f_killGap(g) =>'), b1 = at('//  SESSIONS'), a2 = at('if array.size(gaps) > 0', b1), b2 = at('//  STRUCTURE', a2);
+    return (s.slice(0, a1) + s.slice(b1, a2) + s.slice(b2)).replace(/\r\n(bool settled|bool gapGone|\/\/ gap state changes)[^\r]*/g, '').replace(/\r\nvar array<Gap> gapsHid[^\r]*/, ''); };
+  check(cut(fix(rebrand(o.toString('utf8')))) === cut(buf.toString('utf8')), 'shipped = original + brand lines + the Asia partial-session fix + the FVG fix, nothing else');
 } else console.log('SKIP original not on this machine');
 
 const { PICKER_SCRIPTS } = await import(pathToFileURL(path.join(root, 'assets', 'chart-pine-builtins.js')).href);

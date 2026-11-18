@@ -351,6 +351,7 @@ type Gap
 var array<Cdl> cdls = array.new<Cdl>()
 var array<Lvl> lvls = array.new<Lvl>()
 var array<Gap> gaps = array.new<Gap>()
+var array<Gap> gapsHid = array.new<Gap>()   // gaps hidden under a higher one (no drawings)
 
 // finished drawings live here with their origin time; a day roll deletes those past the cutoff
 var array<line>  archL  = array.new<line>()
@@ -551,116 +552,142 @@ f_killGap(g) =>
         label.delete(g.lb)
 
 f_overlap(a1, b1, a2, b2) => not (b1 > a2 or a1 < b2)
+// [top1, bot1] lies inside [top2, bot2]. "Highest timeframe wins" hides a lower gap only when a higher one covers it
+// (its area stays visible under the higher box); a lower gap that only touches a higher one is kept (member report 18 Nov).
+f_inside(top1, bot1, top2, bot2) => top1 <= top2 and bot1 >= bot2
 
-f_gapLblX(pos, t1, t2) => pos == "Upper left" or pos == "Lower left" or pos == "Middle left" ? t1 : pos == "Center" ? math.round((t1 + t2) / 2.0) : t2
+f_gapLblX(pos, xA, xB) => pos == "Upper left" or pos == "Lower left" or pos == "Middle left" ? xA : pos == "Center" ? math.round((xA + xB) / 2.0) : xB
 f_gapLblY(pos, top, bot) => pos == "Upper left" or pos == "Upper right" ? top : pos == "Lower left" or pos == "Lower right" ? bot : (top + bot) / 2
 f_gapLblStyle(pos) => pos == "Upper left" or pos == "Lower left" or pos == "Middle left" ? label.style_label_right : pos == "Center" ? label.style_label_center : label.style_label_left
 
-f_addGap(tf, dir, top, bot, t1) =>
-    bool blocked = t1 < gapCutoff
-    if fvgTop and array.size(gaps) > 0
+// the left edge is named tL, not t1: the chart engine resolves a parameter that shares a global's name (t1 = time("5"))
+// to the global, so every gap box started at the current 5m bar instead of its middle candle (member report 18 Nov)
+f_drawGap(g) =>
+    color bg = g.dir == 1 ? fvgBullBg : fvgBearBg
+    color bd = g.dir == 1 ? fvgBullBd : fvgBearBd
+    g.b := box.new(g.t1, g.top, time, g.bot, xloc = xloc.bar_time, border_color = fvgBw == 0 ? color.new(bd, 100) : bd, border_width = math.max(fvgBw, 1), bgcolor = bg)
+    if fvgMid
+        g.mid := line.new(g.t1, (g.top + g.bot) / 2, time, (g.top + g.bot) / 2, xloc = xloc.bar_time, color = fvgMidC, style = f_style(fvgMidS), width = 1)
+    g.pos := g.dir == 1 ? fvgBullX : fvgBearX
+    if fvgLbl
+        g.lb := label.new(f_gapLblX(g.pos, g.t1, time), f_gapLblY(g.pos, g.top, g.bot), (g.dir == 1 ? "▲ " : "▼ ") + f_tfName(g.tf) + " FVG", xloc = xloc.bar_time, style = f_gapLblStyle(g.pos),
+             color = color.new(color.black, 100), textcolor = fvgLblC, size = f_size(fvgLblS))
+
+// a higher live gap fully covers [top, bot]
+f_covered(tf, top, bot) =>
+    bool r = false
+    if array.size(gaps) > 0
         for i = 0 to array.size(gaps) - 1
             Gap o = array.get(gaps, i)
-            if o.tf > tf and f_overlap(top, bot, o.top, o.bot)
-                blocked := true
-    if not blocked
-        if fvgTop and array.size(gaps) > 0
-            for i = array.size(gaps) - 1 to 0
-                Gap o = array.get(gaps, i)
-                if o.tf < tf and f_overlap(top, bot, o.top, o.bot)
-                    f_killGap(o)
-                    array.remove(gaps, i)
+            if o.tf > tf and f_inside(top, bot, o.top, o.bot)
+                r := true
+    r
+
+f_hide(g) =>
+    f_killGap(g)
+    g.b := na
+    g.mid := na
+    g.lb := na
+    array.push(gapsHid, g)
+    // shortcut: only the newest 30 hidden gaps can come back (each costs a check per bar); raise if members miss older ones
+    if array.size(gapsHid) > 30
+        array.shift(gapsHid)
+
+f_addGap(tf, dir, top, bot, tL) =>
+    if tL >= gapCutoff
         Gap g = Gap.new()
         g.tf := tf
         g.dir := dir
         g.top := top
         g.bot := bot
-        g.t1 := t1
-        color bg = dir == 1 ? fvgBullBg : fvgBearBg
-        color bd = dir == 1 ? fvgBullBd : fvgBearBd
-        g.b := box.new(t1, top, time, bot, xloc = xloc.bar_time, border_color = fvgBw == 0 ? color.new(bd, 100) : bd, border_width = math.max(fvgBw, 1), bgcolor = bg)
-        if fvgMid
-            g.mid := line.new(t1, (top + bot) / 2, time, (top + bot) / 2, xloc = xloc.bar_time, color = fvgMidC, style = f_style(fvgMidS), width = 1)
-        g.pos := dir == 1 ? fvgBullX : fvgBearX
-        if fvgLbl
-            g.lb := label.new(f_gapLblX(g.pos, t1, time), f_gapLblY(g.pos, top, bot), (dir == 1 ? "▲ " : "▼ ") + f_tfName(tf) + " FVG", xloc = xloc.bar_time, style = f_gapLblStyle(g.pos),
-                 color = color.new(color.black, 100), textcolor = fvgLblC, size = f_size(fvgLblS))
-        array.push(gaps, g)
-        while (fvgMax > 0 and array.size(gaps) > fvgMax) or array.size(gaps) > 150
-            f_killGap(array.shift(gaps))
+        g.t1 := tL
+        // "highest timeframe wins": a gap a higher one covers waits hidden (its area shows under that box) and comes
+        // back if the higher gap goes first; it used to be dropped for good (member report 18 Nov: a 15m gap never showed)
+        if fvgTop and f_covered(tf, top, bot)
+            f_hide(g)
+        else
+            if fvgTop and array.size(gaps) > 0
+                for i = array.size(gaps) - 1 to 0
+                    Gap o = array.get(gaps, i)
+                    if o.tf < tf and f_inside(o.top, o.bot, top, bot)
+                        array.remove(gaps, i)
+                        f_hide(o)
+            f_drawGap(g)
+            array.push(gaps, g)
+            while (fvgMax > 0 and array.size(gaps) > fvgMax) or array.size(gaps) > 150
+                f_killGap(array.shift(gaps))
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  AGGREGATION + DETECTION, ONE TIMEFRAME
 // ─────────────────────────────────────────────────────────────────────────────
-f_run(k, isNew) =>
+// one HTF candle completed: store it, then candle high / low, FVG and swing liquidity on the stored candles
+f_done(k, c, L, cap, cl) =>
+    array.push(c.H, c.lH)
+    array.push(c.L, c.lL)
+    array.push(c.C, cl)
+    array.push(c.HT, c.lHt)
+    array.push(c.LT, c.lLt)
+    array.push(c.OT, c.lT)
+    while array.size(c.H) > cap
+        array.shift(c.H)
+        array.shift(c.L)
+        array.shift(c.C)
+        array.shift(c.HT)
+        array.shift(c.LT)
+        array.shift(c.OT)
+    int n = array.size(c.H)
+
+    // candle high / low liquidity
+    if array.get(cOn, k)
+        f_addLvl(c.lH, c.lHt, 1, 1, k, "▲ " + f_tfName(k) + " High", int(na), cdHiC, cdSty, cdWid, cdLbl, cdLblC, cdLblS, cdLblX, cdLblY)
+        f_addLvl(c.lL, c.lLt, -1, 1, k, "▼ " + f_tfName(k) + " Low", int(na), cdLoC, cdSty, cdWid, cdLbl, cdLblC, cdLblS, cdLblX, cdLblY)
+        f_capLvl(1, k, 1, cdKeep)
+        f_capLvl(1, k, -1, cdKeep)
+        f_capLiqAll()
+
+    // fair value gap on the last three completed candles
+    if array.get(fOn, k) and n >= 3
+        float h1 = array.get(c.H, n - 3)
+        float l1 = array.get(c.L, n - 3)
+        float h3 = array.get(c.H, n - 1)
+        float l3 = array.get(c.L, n - 1)
+        int   tg = array.get(c.OT, n - 2)
+        if l3 > h1
+            f_addGap(k, 1, l3, h1, tg)
+        if h3 < l1
+            f_addGap(k, -1, l1, h3, tg)
+
+    // swing liquidity on the middle candle of the window
+    if array.get(sOn, k) and k > 0 and n == L * 2 + 1
+        float mh = array.get(c.H, L)
+        float ml = array.get(c.L, L)
+        bool isHi = true
+        bool isLo = true
+        for i = 0 to L * 2
+            if i != L
+                if array.get(c.H, i) >= mh
+                    isHi := false
+                if array.get(c.L, i) <= ml
+                    isLo := false
+        if isHi
+            f_addLvl(mh, array.get(c.HT, L), 1, 0, k, "▲ " + f_tfName(k) + " Swing High", int(na), swHiC, swSty, swWid, swLbl, swLblC, swLblS, swLblX, swLblY)
+            f_capLvl(0, k, 1, swKeep)
+        if isLo
+            f_addLvl(ml, array.get(c.LT, L), -1, 0, k, "▼ " + f_tfName(k) + " Swing Low", int(na), swLoC, swSty, swWid, swLbl, swLblC, swLblS, swLblX, swLblY)
+            f_capLvl(0, k, -1, swKeep)
+        if isHi or isLo
+            f_capLiqAll()
+    c.lH := na
+
+f_run(k, isNew, isEnd) =>
     if f_active(k)
         Cdl c = array.get(cdls, k)
         int L = array.get(sLen, k)
         int cap = math.max(L * 2 + 1, 3)
+        if not na(c.lH) and isNew
+            // a new HTF candle started and the last one was not closed on its own last bar (a missing bar): close it now
+            f_done(k, c, L, cap, close[1])
         if na(c.lH)
-            c.lH := high
-            c.lL := low
-            c.lHt := time
-            c.lLt := time
-            c.lT := time
-        else if isNew
-            // candle completed
-            array.push(c.H, c.lH)
-            array.push(c.L, c.lL)
-            array.push(c.C, close[1])
-            array.push(c.HT, c.lHt)
-            array.push(c.LT, c.lLt)
-            array.push(c.OT, c.lT)
-            while array.size(c.H) > cap
-                array.shift(c.H)
-                array.shift(c.L)
-                array.shift(c.C)
-                array.shift(c.HT)
-                array.shift(c.LT)
-                array.shift(c.OT)
-            int n = array.size(c.H)
-
-            // candle high / low liquidity
-            if array.get(cOn, k)
-                f_addLvl(c.lH, c.lHt, 1, 1, k, "▲ " + f_tfName(k) + " High", int(na), cdHiC, cdSty, cdWid, cdLbl, cdLblC, cdLblS, cdLblX, cdLblY)
-                f_addLvl(c.lL, c.lLt, -1, 1, k, "▼ " + f_tfName(k) + " Low", int(na), cdLoC, cdSty, cdWid, cdLbl, cdLblC, cdLblS, cdLblX, cdLblY)
-                f_capLvl(1, k, 1, cdKeep)
-                f_capLvl(1, k, -1, cdKeep)
-                f_capLiqAll()
-
-            // fair value gap on the last three completed candles
-            if array.get(fOn, k) and n >= 3
-                float h1 = array.get(c.H, n - 3)
-                float l1 = array.get(c.L, n - 3)
-                float h3 = array.get(c.H, n - 1)
-                float l3 = array.get(c.L, n - 1)
-                int   tg = array.get(c.OT, n - 2)
-                if l3 > h1
-                    f_addGap(k, 1, l3, h1, tg)
-                if h3 < l1
-                    f_addGap(k, -1, l1, h3, tg)
-
-            // swing liquidity on the middle candle of the window
-            if array.get(sOn, k) and k > 0 and n == L * 2 + 1
-                float mh = array.get(c.H, L)
-                float ml = array.get(c.L, L)
-                bool isHi = true
-                bool isLo = true
-                for i = 0 to L * 2
-                    if i != L
-                        if array.get(c.H, i) >= mh
-                            isHi := false
-                        if array.get(c.L, i) <= ml
-                            isLo := false
-                if isHi
-                    f_addLvl(mh, array.get(c.HT, L), 1, 0, k, "▲ " + f_tfName(k) + " Swing High", int(na), swHiC, swSty, swWid, swLbl, swLblC, swLblS, swLblX, swLblY)
-                    f_capLvl(0, k, 1, swKeep)
-                if isLo
-                    f_addLvl(ml, array.get(c.LT, L), -1, 0, k, "▼ " + f_tfName(k) + " Swing Low", int(na), swLoC, swSty, swWid, swLbl, swLblC, swLblS, swLblX, swLblY)
-                    f_capLvl(0, k, -1, swKeep)
-                if isHi or isLo
-                    f_capLiqAll()
-
             c.lH := high
             c.lL := low
             c.lHt := time
@@ -673,16 +700,36 @@ f_run(k, isNew) =>
             if low < c.lL
                 c.lL := low
                 c.lLt := time
+        if isEnd
+            f_done(k, c, L, cap, close)
 
-f_run(0, n0)
-f_run(1, n1)
-f_run(2, n2)
-f_run(3, n3)
-f_run(4, n4)
-f_run(5, n5)
-f_run(6, n6)
-f_run(7, n7)
-f_run(8, n8)
+// Member report 18 Nov (Yuvan): HTF gaps came late or not at all on a live chart. Two causes:
+// 1) a HTF candle was only closed on the first bar of the NEXT candle, so its gap waited a chart bar (or a whole
+//    session break) after the third candle had really closed; now it closes on the chart bar that ends it.
+// 2) the aggregation ran on every tick of the forming bar. The chart engine re-runs the last bar on every tick and once
+//    more when the next bar arrives; it rolls back drawings and plain vars but NOT arrays / objects, so the same candle
+//    was pushed again and again, gaps were built from wrong candles and their boxes were rolled away. A bar is now
+//    aggregated once: when it is closed and no longer the last bar (the engine runs that state exactly once).
+// e<k>: this chart bar is the last one of its HTF candle (it closes at or after the candle's end)
+barEnd = time + chartSec * 1000
+e1 = barEnd >= t1 + 300000
+e2 = barEnd >= t2 + 600000
+e3 = barEnd >= t3 + 900000
+e4 = barEnd >= t4 + 1800000
+e5 = barEnd >= t5 + 3600000
+e6 = barEnd >= t6 + 14400000
+e7 = barEnd >= time_close("D")
+e8 = barEnd >= time_close("W")
+if barstate.isconfirmed and not barstate.islast
+    f_run(0, n0, true)
+    f_run(1, n1, e1)
+    f_run(2, n2, e2)
+    f_run(3, n3, e3)
+    f_run(4, n4, e4)
+    f_run(5, n5, e5)
+    f_run(6, n6, e6)
+    f_run(7, n7, e7)
+    f_run(8, n8, e8)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SESSIONS — high / low extends to the next day start or the sweep
@@ -828,20 +875,35 @@ if barstate.isconfirmed and array.size(lvls) > 1
                     b.lb := na
                     b.tag := a.tag
 
+// gap state changes once per bar, on the settled pass (closed and no longer the last bar; see the aggregation note)
+bool settled = barstate.isconfirmed and not barstate.islast
+bool gapGone = false
 if array.size(gaps) > 0
     for i = array.size(gaps) - 1 to 0
         Gap g = array.get(gaps, i)
-        bool mitigated = barstate.isconfirmed and (g.dir == 1 ? close < g.bot : close > g.top)
+        bool mitigated = settled and (g.dir == 1 ? close < g.bot : close > g.top)
         bool tooOld = g.t1 < gapCutoff
         if mitigated or tooOld
             f_killGap(g)
             array.remove(gaps, i)
+            gapGone := true
         else
             box.set_right(g.b, time)
             if not na(g.mid)
                 line.set_x2(g.mid, time)
             if not na(g.lb)
                 label.set_x(g.lb, f_gapLblX(g.pos, g.t1, time))
+
+// hidden gaps: drop the mitigated / old ones; show those no higher live gap covers any more
+if settled and array.size(gapsHid) > 0
+    for i = array.size(gapsHid) - 1 to 0
+        Gap h = array.get(gapsHid, i)
+        if (h.dir == 1 ? close < h.bot : close > h.top) or h.t1 < gapCutoff
+            array.remove(gapsHid, i)
+        else if gapGone and not f_covered(h.tf, h.top, h.bot)
+            array.remove(gapsHid, i)
+            f_drawGap(h)
+            array.push(gaps, h)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  STRUCTURE — relative equal highs/lows, low resistance runs, raid wicks

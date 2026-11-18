@@ -1174,7 +1174,7 @@ function gexLayer() {
       }
       // edge tags: top-right going down for levels above, bottom-right going up for levels below
       const edgeOut = [];
-      g.font = '600 10px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
+      if (eUp.length || eDn.length) g.font = '600 10px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';   // only when there are edge tags: a font switch costs a style update (SMOOTH)
       [[eUp, true], [eDn, false]].forEach(([list, up]) => list.forEach((t, k) => {
         let txt = t.text;
         const maxTw = W < 520 ? W * 0.5 : Math.min(W - 8, 260);

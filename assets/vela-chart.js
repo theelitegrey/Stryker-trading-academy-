@@ -87,6 +87,7 @@ const BOX_ON = (() => { try { return !/[?&]boxcanvas=0\b/.test(location.search) 
 const BOX_LAYER = (id) => BOX_ON && (/^stk_l2f_/.test(id) || ['stk_svp', 'stk_of_big', 'stk_of_vp', 'stk_ts_big', 'stk_sess'].includes(id));
 // See "EMPTY LAYER CANVASES OFF" in the boot code.
 const DRAW_OPS = ['fill', 'stroke', 'fillRect', 'strokeRect', 'fillText', 'strokeText', 'drawImage', 'putImageData'];
+const FONT_NORM = new Map();   // font string as written -> as the canvas reads it back
 // PHONE SPEED (2026-10-26). Vela gives every registered layer a full-size canvas (25 of them,
 // ~1024 x 2071 px each at a phone's 2.6x pixel ratio) and every layer render starts with
 // clearRect + setTransform, drawn on or not. The first of those calls makes the browser allocate
@@ -143,7 +144,14 @@ function quietCanvas(canvas){
       configurable: true,
       get() { return !live && shadow.has(pr) ? shadow.get(pr) : d.get.call(this); },
       set(v) {
-        if (live || depth === 0) { d.set.call(this, v); return; }
+        if (live || depth === 0) {
+          // SMOOTH: a font set on a connected canvas makes Chrome bring the page's style up to date first
+          // (a forced style recalc mid-frame); layers set the same font every frame, so skip a no-op set.
+          if (pr === 'font' && FONT_NORM.get(v) === d.get.call(this)) return;
+          d.set.call(this, v);
+          if (pr === 'font' && FONT_NORM.size < 256) FONT_NORM.set(v, d.get.call(this));
+          return;
+        }
         shadow.set(pr, v); q.push(['=', [pr, v]]);
       }
     });
@@ -1600,6 +1608,21 @@ function legendFold(R) {
     } catch (e) { /* no default: keep the stock chart */ }
   }
   mountLayoutMenu();
+})();
+
+// SMOOTH (Owner 18 Nov, "ours feels jaggy while moving around"): while the chart is dragged or wheeled, html gets
+// .stk-chart-moving (style.css pauses the plan-badge sheen, a style + paint every frame) and window.__stkChartMoving()
+// says so, for pollers that can wait. Cleared 250 ms after the last move.
+(function () {
+  const host = document.getElementById('vela-chart'); if (!host) return;
+  const html = document.documentElement; let down = false, t = 0;
+  const end = () => { clearTimeout(t); t = setTimeout(() => { if (!down) html.classList.remove('stk-chart-moving'); }, 250); };
+  const go = () => { if (!html.classList.contains('stk-chart-moving')) html.classList.add('stk-chart-moving'); end(); };
+  host.addEventListener('pointerdown', () => { down = true; go(); }, { passive: true });
+  window.addEventListener('pointerup', () => { if (down) { down = false; end(); } }, { passive: true });
+  window.addEventListener('pointercancel', () => { if (down) { down = false; end(); } }, { passive: true });
+  host.addEventListener('wheel', go, { passive: true });
+  window.__stkChartMoving = () => html.classList.contains('stk-chart-moving');
 })();
 
 // Owner 11-04: no vendor name visible. The engine keeps a hidden attribution <a> in the DOM; blank its text hooks.

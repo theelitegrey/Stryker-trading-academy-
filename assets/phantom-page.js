@@ -3,9 +3,9 @@
 // the server answers 403 when signed out) and /tide (ZoroTide). Dark pool: assets/chart-darkpool.js (the same feed as the chart layer).
 // Alerts: assets/chart-metric-alerts.js (metric types ph_premium / ph_voloi, run by workers/alert-engine).
 // COPY RULES: no "trade / print / sweep / block / live / real-time / delayed" for options; "Updated X s ago"; Education only.
-import * as P from './phantom-core.js?v=1107';
-import * as DP from './chart-darkpool.js?v=1107';
-import * as MA from './chart-metric-alerts.js?v=1107';
+import * as P from './phantom-core.js?v=1121';
+import * as DP from './chart-darkpool.js?v=1121';
+import * as MA from './chart-metric-alerts.js?v=1121';
 
 const REC = () => window.__STK_BOOK_RECORDER || 'https://book-recorder.theelitegrey.workers.dev';
 const $ = (id) => document.getElementById(id);

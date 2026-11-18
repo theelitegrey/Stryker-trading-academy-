@@ -13032,8 +13032,12 @@ html[data-device="phone"] .stktm-act, html[data-device="tablet"] .stktm-act{ opa
 .pi-h .pi{ width:32px; height:32px; }
 .pi-lock, .cm-kicker.pi-lock{ display:inline-flex; align-items:center; gap:8px; }
 .pi-lock .pi{ width:24px; height:24px; }
-.hn-menu .pi, .zc-fc .pi, .pc-b h3 .pi{ width:24px; height:24px; }
-.hn-menu .pi-p{ margin-top:0; margin-right:-4px; }   /* 24px tile in the 20px icon slot: keep text aligned with the other items */
+.zc-fc .pi, .pc-b h3 .pi{ width:24px; height:24px; }
+/* Owner 18 Nov: Products menu tiles 40px desktop / 36px mobile, text centred beside the tile */
+.hn-menu a{ align-items:center; }
+.hn-menu .pi{ width:40px; height:40px; }
+@media (max-width:899px){ .hn-menu .pi{ width:36px; height:36px; } }
+#faq{ scroll-margin-top:88px; }
 .hs-side .pi, .hs-more .pi{ width:20px; height:20px; }
 
 /* Numbers that must line up (prices, P&L, balances, times) in the body font. */

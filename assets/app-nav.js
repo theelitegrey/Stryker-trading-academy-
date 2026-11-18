@@ -76,7 +76,7 @@
   var LEARN_ARTICLES = ['learn-bos-vs-choch', 'learn-fair-value-gap', 'learn-how-prop-firms-work', 'learn-liquidity-sweeps', 'learn-order-blocks', 'learn-order-flow', 'learn-prop-firm-challenge-rules', 'learn-smt-divergence', 'learn-volume-profile'];
   var MORE = [
     ['trade', 'Trade', [
-      ['charts', 'ZoroCharts', 'Free futures and crypto charts', '<path d="M7 3v4M7 17v4M15 2v3M15 19v3"/><rect x="4.5" y="7" width="5" height="10" rx="1"/><rect x="12.5" y="5" width="5" height="14" rx="1"/>'],
+      ['charts', 'ZoroCharts', 'Free futures and crypto charts', 'IMG:zorocharts'],
       ['backtests', 'Kronos', 'Replay & Backtesting', 'IMG:kronos', ['replay']],
       ['trade-journal', 'Nemesis', 'Trading Journal', 'IMG:nemesis'],
       ['paper-review', 'Paper trade review', 'Review your paper trades', '<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="m9 14 2 2 4-4"/>'],
@@ -92,7 +92,7 @@
       ['market-brief', 'Market brief', 'Daily notes on key levels', '<path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 12h8M8 16h6"/>'],
       ['market-map', 'Market map', 'Markets at a glance', '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'],
       ['scanner', 'Market scanner', 'Movers, gaps, 52-week highs', '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/><path d="M8 12.5l2-2.5 2 1.5 2-3"/>'],
-      ['market-stats', 'Market stats', 'How often sessions behave, with sample sizes', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
+      ['market-stats', 'Market stats', 'How often sessions behave, with sample sizes', 'IMG:market-stats'],
       ['economic-calendar', 'Economic calendar', 'Upcoming news events', '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'],
       ['smart-money', 'Smart Money Desk', 'Institutional flow view', '<path d="M12 3v18"/><path d="M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'],
       ['global-monitor', 'Global Monitor', 'World events and market news', '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>']

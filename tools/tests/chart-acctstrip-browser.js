@@ -316,11 +316,14 @@ const num = (t) => Number(String(t).replace(/[$,+]/g, ''));
         check(a.vis && a.pillVis && !a.barOverflow, T + w + ': bar one row, no overflow, strip + pill visible (barH ' + a.barH + ')');
         check(Math.abs(a.strip.cy - a.pill.cy) <= 1 && Math.abs(a.strip.h - a.pill.h) <= 1, T + w + ': strip/pill centre ' + a.strip.cy + '/' + a.pill.cy + ' height ' + a.strip.h + '/' + a.pill.h);
         const gap = a.pill.l - a.strip.r; check(gap >= 7 && gap <= 16 && gap % 4 < 1, T + w + ': gap strip->pill ' + gap + 'px (labels ' + (a.up.shown ? 'n/a' : '') + ')');
+        const ov = await p.evaluate(() => { const h = document.querySelector('.mobile-topnav'), k = [...h.children, ...h.querySelectorAll('.stkws-tabs > *, .stkws-strip > *')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && getComputedStyle(e).position !== 'absolute'; }).map((e) => [e.id || e.className.toString().slice(0, 18), e.getBoundingClientRect()]); const t = document.getElementById('stkc-paper-btn').closest('.stkc-menu').getBoundingClientRect(); return k.filter(([n, r]) => n !== 'stkc-paper-btn' && !n.includes('stkc-menu') && r.right > t.left + 1 && r.left < t.left && r.width < 2000 && !/topnav-left|stkws-strip|stkws-tabs/.test(n)).map(([n]) => n).concat(h.scrollWidth > h.clientWidth ? ['SCROLL'] : []); });
+        if (ov.length) console.log('GEO', JSON.stringify(await p.evaluate(() => { const o = {}; for (const q of ['.topnav-left', '.stkws-strip', '.stkws-tabs', '.stkws-more', '.stktm-hdr', '#stkas', '.mclock']) { const e = document.querySelector(q); if (e) { const r = e.getBoundingClientRect(); o[q] = [Math.round(r.left), Math.round(r.right)]; } } return o; })));
+        check(!ov.length, T + w + ': nothing in the header runs under the Trade button ' + JSON.stringify(ov));
         const lab = await p.evaluate(() => getComputedStyle(document.querySelector('.stkas-l')).display);
         console.log('  ' + w + ' strip ' + JSON.stringify(a.strip) + ' pill ' + JSON.stringify(a.pill) + ' labels:' + lab);
         const pine = await visOf();
         if (!base) base = pine;
-        check(pine.every((x, i) => x === base[i]), T + w + ': Pine + Templates visibility unchanged by the strip ' + JSON.stringify(pine) + ' vs ' + JSON.stringify(base));
+        check(pine.every((x, i) => !x || base[i]), T + w + ': Pine + Templates never appear at a narrower width than at 1440 (Trade left the toolbar 18 Nov, so 1440 may show Pine now) ' + JSON.stringify(pine) + ' vs ' + JSON.stringify(base));
         if (w === 1024) await p.screenshot({ path: OUT + '/acctstrip-1024-' + (theme === 'night' ? 'dark' : 'light') + '.png', clip: { x: 0, y: 0, width: 1024, height: 80 } });
       }
       await p.setViewportSize({ width: 1440, height: 900 }); await sleep(600);

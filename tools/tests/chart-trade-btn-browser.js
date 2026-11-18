@@ -108,7 +108,7 @@ const barMeasure = (p) => p.evaluate(() => {
     .sort((a, b) => a.l - b.l);
   const cys = its.map((i) => i.cy), gaps = its.slice(1).map((it, k) => it.l - its[k].r);
   const tr = document.getElementById('stkc-paper-btn'), ds = document.getElementById('byo-btn');
-  return { barCy: Math.round((B.top + B.height / 2) * 10) / 10, cySpread: Math.round((Math.max(...cys) - Math.min(...cys)) * 10) / 10, items: its, gaps, tradeH: tr && tr.getBoundingClientRect().height, dsH: ds && ds.getBoundingClientRect().height, tradeBeforeData: !!(tr && ds && tr.getBoundingClientRect().right <= ds.getBoundingClientRect().left + 1), insetR: Math.round(B.right - Math.max(...its.map((i) => i.r))) };
+  return { barCy: Math.round((B.top + B.height / 2) * 10) / 10, cySpread: Math.round((Math.max(...cys) - Math.min(...cys)) * 10) / 10, items: its, gaps, tradeH: tr && tr.getBoundingClientRect().height, dsH: ds && ds.getBoundingClientRect().height, hdr: (() => { if (!tr || !tr.closest('.mobile-topnav')) return null; const w = tr.closest('.stkc-menu'), n = w.nextElementSibling, nb = n && n.getBoundingClientRect(), r = tr.getBoundingClientRect(), pill = document.querySelector('.mclock-pill').getBoundingClientRect(), hd = document.querySelector('.mobile-topnav').getBoundingClientRect(); return { next: n && (n.id || n.className), gap: Math.round(nb.left - r.right), h: Math.round(r.height), pillH: Math.round(pill.height), dy: Math.round(Math.abs((r.top + r.height / 2) - (pill.top + pill.height / 2)) * 10) / 10, inRow: r.top >= hd.top && r.bottom <= hd.bottom, onebarHas: !!document.querySelector('#stkc-bar #stkc-paper-btn'), popRight: (() => { tr.click(); const pp = document.getElementById('stkc-trade-pop').getBoundingClientRect(), o = { top: pp.top >= r.bottom, right: Math.abs(pp.right - r.right) <= 1 || pp.right <= innerWidth - 7, inVp: pp.left >= 0 && pp.right <= innerWidth && pp.bottom <= innerHeight }; tr.click(); return o; })() }; })(), tradeBeforeData: !!(tr && ds && tr.getBoundingClientRect().right <= ds.getBoundingClientRect().left + 1), insetR: Math.round(B.right - Math.max(...its.map((i) => i.r))) };
 });
 // ALIGNMENT GATE for the menu: per row the logo, text block, buttons and tick share one centre; edges; sizes; footer
 const menuProbe = (p) => p.evaluate(() => {
@@ -181,7 +181,10 @@ async function run(b, w, h, mobile, theme) {
   console.log('ALIGN ' + tag + ' ' + JSON.stringify(m));
   const inBar = await p.evaluate(() => { const t = document.getElementById('stkc-paper-btn'); return !!(t && t.getBoundingClientRect().width > 0 && !t.closest('.stkc-ob-pop')); });
   console.log(tag + ': Trade in bar = ' + inBar);
-  if (inBar) {
+  if (m.hdr) {   // Owner 18 Nov: desktop = site header, [Trade] 8px [strip|session pill], same height as the pill
+    check(m.hdr.inRow && m.hdr.h === m.hdr.pillH && m.hdr.dy <= 1 && m.hdr.gap === 8 && !m.hdr.onebarHas, tag + ': Trade in the site header, pill height, centred, 8px gap, gone from the toolbar', m.hdr);
+    check(m.hdr.popRight.top && m.hdr.popRight.inVp, tag + ': Trade menu opens downward inside the viewport', m.hdr);
+  } else if (inBar) {
     check(m.cySpread <= 1, tag + ': toolbar items share one centre (±1px)', m);
     check(m.tradeBeforeData && m.tradeH === m.dsH, tag + ': Trade sits before Data source, same height', m);
   }
@@ -267,7 +270,7 @@ async function run(b, w, h, mobile, theme) {
   const lbl = await p.evaluate(() => { const b = document.getElementById('stkc-paper-btn'); return { t: b.querySelector('.stkc-btn-l').textContent, logo: (b.querySelector('.stktm-logo img') || {}).src || '', dot: !!b.querySelector('.stktm-live'), aria: b.getAttribute('aria-label'), title: b.title }; });
   check(lbl.t === 'Apex 150K evaluation account 1 · Apex' && /tradovate\.png$/.test(lbl.logo) && lbl.dot && /Tradovate APEX-1234567-01/.test(lbl.aria + lbl.title), tag + ': Trade button = brand mark + label · firm + live dot; full account in aria/title', lbl);
   check(await p.waitForFunction(() => { const o = document.getElementById('stkop'); return o && !o.hidden && o.classList.contains('is-live'); }, null, { timeout: 8000 }).then(() => true, () => false), tag + ': picking the account opens the floating order panel on it (order panel 2026-11-16)');
-  if (inBar) { const m2 = await barMeasure(p); console.log('ALIGN-LIVE ' + tag + ' ' + JSON.stringify(m2)); check(m2.cySpread <= 1 && m2.tradeH === m2.dsH, tag + ': one centre line with the long label', m2); }
+  if (inBar) { const m2 = await barMeasure(p); console.log('ALIGN-LIVE ' + tag + ' ' + JSON.stringify(m2)); check(m2.cySpread <= 1 && (m2.hdr ? m2.hdr.h === m2.hdr.pillH : m2.tradeH === m2.dsH), tag + ': one centre line with the long label', m2); }
   check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), tag + ': no horizontal page scroll');
   // ---- Manage accounts sheet (Owner 2026-11-17): in-chart, no navigation; every account; Edit + Disconnect reuse the menu's flows
   await openMenu(p, inBar); await sleep(200);

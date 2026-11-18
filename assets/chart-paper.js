@@ -1771,8 +1771,19 @@ function mountToolbar(bar){
   document.addEventListener('click', (e) => { if (!pop.hidden && !wrap.contains(e.target)) setOpen(false); });
   pop.addEventListener('keydown', (e) => TM.keys(pop, e));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { setOpen(false); b.focus(); } });
-  bar.insertBefore(wrap, bar.firstChild);
+  tradeWrap = wrap; tradeBar = bar; placeTrade();
   updateTradeBtn();
+}
+// Owner 18 Nov: Trade lives in the site header (left of the account strip / session pill) while that header shows;
+// phones, full screen and pages without the header keep it first in the chart toolbar. One node, moved, so handlers survive.
+let tradeWrap = null, tradeBar = null;
+function placeTrade(){
+  const w = tradeWrap; if (!w || !tradeBar) return;
+  const root = document.documentElement, host = document.querySelector('.mobile-topnav'), mc = document.getElementById('mclock');
+  const inHdr = !!(host && mc && mc.parentNode === host && getComputedStyle(host).display !== 'none' && !root.classList.contains('stk-cps') && !root.classList.contains('stk-chart-fs'));
+  w.classList.toggle('stktm-hdr', inHdr);
+  if (inHdr) { const before = document.getElementById('stkas'); const ref = before && before.parentNode === host && !before.hidden ? before : mc; if (w.nextElementSibling !== ref) host.insertBefore(w, ref); }
+  else if (w.parentNode === host) tradeBar.insertBefore(w, tradeBar.firstChild);
 }
 // Live accounts exist only when the admin-only module is loaded (window.__stkLive.state.accounts); everyone else sees Paper only.
 const liveState = () => (window.__stkLive && window.__stkLive.state && window.__stkLive.connect ? window.__stkLive.state : null);
@@ -2145,6 +2156,7 @@ export function mountPaper(ws, opts){
   if (!document.getElementById('stkpt-css')) { const st = document.createElement('style'); st.id = 'stkpt-css'; st.textContent = CSS; document.head.appendChild(st); }
   buildPanel();
   setInterval(placeBar, 1000); addEventListener('resize', placeBar);
+  setInterval(placeTrade, 500); addEventListener('resize', placeTrade); new MutationObserver(placeTrade).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   mountToolbar(opts && opts.bar);
   mountRailBtn();
   { const b = (document.querySelector('meta[name="stryker-build"]') || {}).content || '0'; import('./chart-posorders.js?v=' + b).then((m) => m.mountPosOrders(window.__stkPaper)).catch((e) => console.warn('TradeZoro: positions dock', e)); }

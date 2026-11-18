@@ -16,8 +16,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // The old web wrapper shipped versionCode 1; the native app continues above it.
-        versionCode = 7
-        versionName = "2.0.1"
+        versionCode = 8
+        versionName = "2.0.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     // Upload key (Play App Signing). Never in git: point TZ_UPLOAD_JKS at the keystore and TZ_UPLOAD_PASS_FILE at a file

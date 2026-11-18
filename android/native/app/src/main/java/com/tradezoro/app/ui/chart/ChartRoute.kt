@@ -304,13 +304,20 @@ fun ChartPolling(web: ChartWeb, vm: ChartViewModel, snack: SnackbarHostState, on
 
 /** The chart's top bar (lives in the app Scaffold) with its overflow menu. */
 @Composable
-fun ChartTopBarHost(web: ChartWeb, vm: ChartViewModel, onBack: () -> Unit) {
+fun ChartTopBarHost(web: ChartWeb, vm: ChartViewModel, onBack: () -> Unit, appPrefs: com.tradezoro.app.data.AppPrefs? = null) {
     val ctx = LocalContext.current
     var menu by remember { mutableStateOf(false) }
     val prefs = remember { ctx.getSharedPreferences("chart", Context.MODE_PRIVATE) }
     LaunchedEffect(Unit) {
         vm.setClassic(prefs.getBoolean(CLASSIC_KEY, true))   // Owner 17 Nov: the classic chart (as the site opens) is the default
-        prefs.getString("chart_style", null)?.let { n -> PriceStyle.entries.firstOrNull { it.name == n } }?.let(vm::setPriceStyle)
+        val old = prefs.getString("chart_style", null)
+        if (appPrefs != null && appPrefs.chartStyle.value == null && old != null) appPrefs.setChartStyle(old)   // M7 per-phone value -> account
+        if (appPrefs == null) old?.let { n -> PriceStyle.entries.firstOrNull { it.name == n } }?.let(vm::setPriceStyle)
+    }
+    // one account: the price style follows the member's account live (another phone changed it)
+    if (appPrefs != null) {
+        val acctStyle by appPrefs.chartStyle.collectAsState()
+        LaunchedEffect(acctStyle) { acctStyle?.let { n -> PriceStyle.entries.firstOrNull { it.name == n } }?.let(vm::setPriceStyle) }
     }
     val top by vm.state.collectAsState()
     ChartTopBar(onBack = onBack, onFullscreen = { vm.setFullscreen(true) }, onMore = { menu = true }, onAlerts = { web.call("TZB.alerts()") },
@@ -318,7 +325,7 @@ fun ChartTopBarHost(web: ChartWeb, vm: ChartViewModel, onBack: () -> Unit) {
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             val st by vm.state.collectAsState()
             if (!st.classic) PriceStyle.entries.forEach { ps ->
-                DropdownMenuItem(text = { Text(ps.label) }, onClick = { menu = false; vm.setPriceStyle(ps); prefs.edit().putString("chart_style", ps.name).apply() },
+                DropdownMenuItem(text = { Text(ps.label) }, onClick = { menu = false; vm.setPriceStyle(ps); prefs.edit().putString("chart_style", ps.name).apply(); appPrefs?.setChartStyle(ps.name) },
                     trailingIcon = { if (st.priceStyle == ps) Icon(TzIcons.Check, contentDescription = "Selected") })
             }
             if (!st.classic) HorizontalDivider()

@@ -15,6 +15,7 @@
   if (window.TZB || !/^\/charts(\.html)?$/.test(location.pathname)) return;
   var dark = '%THEME%' !== 'day';
   try { localStorage.setItem('stryker_theme', dark ? 'night' : 'day'); } catch (e) {}
+  window.__tzAcctLocal = ['stryker_theme'];   // the app syncs its theme with the account natively (AccountPrefs.kt); the page must not push the phone's resolved theme
 
   var css = [
     // the site toolbar stays in the DOM (its buttons open the indicator / drawing sheets) but off screen

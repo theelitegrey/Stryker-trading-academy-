@@ -48,6 +48,7 @@ import com.tradezoro.app.auth.TzUser
 import com.tradezoro.app.auth.ChartAuthLink
 import com.tradezoro.app.auth.silentGoogleIdToken
 import com.tradezoro.app.auth.PasskeyClient
+import com.tradezoro.app.data.AccountPrefsSync
 import com.tradezoro.app.data.AppPrefs
 import com.tradezoro.app.data.ThemeMode
 import com.tradezoro.app.data.DataAccess
@@ -208,7 +209,11 @@ fun TzRoot(
         if (ok) scope.launch { runCatching { PushTokens.sync(ctx) } }
     }
     // Signed in: register this phone for the member's pushes (pushTokens, same as the site) and load their alerts.
+    // One account everywhere: theme + default timeframe follow the member's account live (same doc as the website).
+    val acctPrefs = remember(prefs) { runCatching { AccountPrefsSync(prefs) }.getOrNull() }
+    DisposableEffect(acctPrefs) { onDispose { acctPrefs?.stop() } }
     LaunchedEffect(user?.uid) {
+        runCatching { acctPrefs?.start(user?.uid) }
         alertsVm.setUser(user?.uid)
         learnVm.setUser(user?.uid)
         journalVm.setUser(user?.uid)
@@ -271,7 +276,7 @@ fun TzRoot(
         topBar = {
             when (tab) {
                 Tab.HOME -> HomeTopBar(avatar, onAccount = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
-                Tab.CHARTS -> if (!chartFull) ChartTopBarHost(chartWeb, chartVm, onBack = { goTab(Tab.HOME) })
+                Tab.CHARTS -> if (!chartFull) ChartTopBarHost(chartWeb, chartVm, onBack = { goTab(Tab.HOME) }, appPrefs = prefs)
                 Tab.TRADE -> MenuTopBar("Trade", avatar, onAccount = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
                 Tab.LEARN -> MenuTopBar("Mentis", avatar, onAccount = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })
                 Tab.JOURNAL -> MenuTopBar("Nemesis", avatar, onAccount = { accountOpen = true }, onBell = { nav.navigate(ALERTS) })

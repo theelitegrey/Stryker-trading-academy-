@@ -207,11 +207,15 @@ export function aggregateHours(rows, n, anchor = 18) {
   return out;
 }
 
+// Oldest second Yahoo still serves for an intraday interval (it refuses the WHOLE request with 422 when period1 is older than its
+// window, e.g. 60m: "within the last 730 days"). The oldest page straddles that edge; asking from the edge instead of the page start
+// keeps its newer part (member GK 18 Nov: 4H lost up to 60 days, 1H up to 20, 15m up to 5 at the far end). 0 = no limit (D/W/M).
+export const depthFloor = (tf, now) => { const c = TIMEFRAMES[tf]; return c && c.page && c.depth < 1000 * D ? now - c.depth : 0; };
 export function yahooUrl(sym, tf, page, now) {
   const cfg = TIMEFRAMES[tf];
   const yh = SYMBOLS[sym][0];
   let p1, p2;
-  if (cfg.page) { [p1, p2] = pageBounds(tf, page); p2 = Math.min(p2, now + 60); }
+  if (cfg.page) { [p1, p2] = pageBounds(tf, page); p2 = Math.min(p2, now + 60); p1 = Math.max(p1, depthFloor(tf, now)); }
   else { p1 = 0; p2 = now + 60; }
   return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yh)}?period1=${p1}&period2=${p2}&interval=${cfg.iv}`;
 }
@@ -286,7 +290,7 @@ export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 100
 // and assets/chart-history-pager.js must match (tools/tests/hist-store.test.mjs).
 export let DEEP_HISTORY = true;   // the switch (production: change here + bump). Tests: _setDeepForTests(true)
 export const _setDeepForTests = (on) => { DEEP_HISTORY = !!on; };
-export const DEEP_SYMS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY'];   // NQ/ES from the tick archive (backfill_m1.py), the other four from the REST vendor's 1m bars (backfill_is_m1.py)
+export const DEEP_SYMS = ['NQ', 'ES', 'MNQ', 'MES', 'YM', 'RTY', 'GC', 'CL'];   // NQ/ES from the tick archive (backfill_m1.py), the rest from the REST vendor's 1m bars (backfill_is_m1.py; GC/CL added 18 Nov, member GK: 15m stopped at 59 days)
 export const DEEP_DEPTH_S = 366 * D;
 const DEEP_FROM_S = 2 * D;                       // the newest 2 days stay on the old source + live tail
 export const deepFor = (sym, tf) => DEEP_HISTORY && DEEP_SYMS.includes(sym) && ['1', '5', '15', '30'].includes(String(tf));
@@ -321,8 +325,10 @@ async function fetchYahooPage(sym, tf, page, now, fetchImpl) {
     if (!res.ok) throw new Error(`upstream ${res.status}`);
     const rows = parseYahoo(await res.json(), tf, decimalsOf(SYMBOLS[sym][4]), isForex(sym) ? 17 : isEquity(sym) ? 9.5 : 18);   // equities: 2h/4h bars start at the 09:30 open
     if (!cfg.page) return rows;
-    const [p1, p2] = pageBounds(tf, page);
-    return rows.filter((r) => r[0] >= p1 && r[0] < p2);
+    const [p1, p2] = pageBounds(tf, page), lo = depthFloor(tf, now);
+    const out = rows.filter((r) => r[0] >= p1 && r[0] < p2);
+    // a clamped page starts at the depth edge: its first 2H / 4H bar may be missing hours, drop it rather than show a short bar
+    return cfg.agg && lo > p1 && out.length && out[0][0] < lo ? out.slice(1) : out;
   } finally {
     clearTimeout(timer);
   }

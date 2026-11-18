@@ -5,7 +5,7 @@ The tick vendor only holds ~2.5 months of these four. Same on-disk + ingest form
 This vendor has no buy/sell split or trade count, so those two fields are null (never invented).
 Checked 2026-11-09 against the tick vendor on MNQ 2026-10-20: all 1380 minutes identical (UTC bar-open time, OHLC, volume).
 One call per month per symbol, at most 1 call/s, retry on 429. Continuous front-month bars. Never prints the key.
-  python3 tools/hist/backfill_is_m1.py --symbols YM,RTY,MNQ,MES --days 366 --out /var/lib/tz-hist --post     # backfill
+  python3 tools/hist/backfill_is_m1.py --symbols YM,RTY,MNQ,MES,GC,CL --days 366 --out /var/lib/tz-hist --post     # backfill
   python3 tools/hist/backfill_is_m1.py --days 3 --redo-days 2 --out ... --post                                # daily top-up
 Env: INSIGHTSENTRY_ENV (file with INSIGHTSENTRY_WEBSOCKET_API_KEY=...), FEEDER_ENV (--post).
 """
@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from backfill_m1 import env_value, post, UA
 
 REST = 'https://api.insightsentry.com/v3/symbols/%s/history?bar_type=minute&bar_interval=1&start_ym=%s'
-CODES = {'MNQ': 'CME_MINI:MNQ1!', 'MES': 'CME_MINI:MES1!', 'RTY': 'CME_MINI:RTY1!', 'YM': 'CBOT_MINI:YM1!'}
+CODES = {'MNQ': 'CME_MINI:MNQ1!', 'MES': 'CME_MINI:MES1!', 'RTY': 'CME_MINI:RTY1!', 'YM': 'CBOT_MINI:YM1!', 'GC': 'COMEX:GC1!', 'CL': 'NYMEX:CL1!'}
 _last = [0.0]
 
 

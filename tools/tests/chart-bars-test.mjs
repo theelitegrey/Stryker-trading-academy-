@@ -35,6 +35,9 @@ globalThis.fetch = async (url) => {
   if (mode === 'hang') return new Promise(() => {});
   const p1 = Number(u.searchParams.get('period1')), p2 = Number(u.searchParams.get('period2'));
   const step = IV_STEP[u.searchParams.get('interval')];
+  // Yahoo refuses the whole request (422) when period1 is older than its window for the interval
+  const win = { '1m': 30, '5m': 60, '15m': 60, '30m': 60, '60m': 730 }[u.searchParams.get('interval')];
+  if (win && p1 < Date.now() / 1000 - win * 86400) return new Response('{"chart":{"result":null,"error":{"code":"Unprocessable Entity"}}}', { status: 422 });
   return new Response(JSON.stringify(yahooBody(p1, p2, step)), { status: 200 });
 };
 
@@ -116,11 +119,31 @@ ok('every timeframe answers 200 with ascending bars');
   ok('paging back returns contiguous, non-overlapping pages');
 }
 
+// the oldest page straddles Yahoo's window: it is asked from the window's edge, so its newer part is served (GK 18 Nov: 4H lost up to
+// 60 days, 1H 20, 15m 5 at the far end because the page start was older than Yahoo's 730 / 60 days and Yahoo answered 422)
+{
+  const nowS = Math.floor(Date.now() / 1000);
+  for (const [tf, sym] of [['240', 'GC'], ['60', 'GC'], ['15', 'SI'], ['120', 'CL']]) {
+    const cfg = TIMEFRAMES[tf], edge = nowS - cfg.depth;
+    let pg = pageOf(tf, edge); const [a, b] = pageBounds(tf, pg);
+    if (a >= edge - 3600) pg--;   // the page holding the edge (pick one that really straddles it)
+    const [a2, b2] = pageBounds(tf, pg);
+    if (!(a2 < edge && b2 > edge)) continue;
+    calls.length = 0;
+    const r = await call(`/api/chart/bars/${sym}?tf=${tf}&page=${pg}`);
+    assert.equal(r.status, 200);
+    assert.ok(r.body.bars.length > 0, tf + ' oldest page has bars ' + r.body.bars.length);
+    assert.ok(r.body.bars.every((x) => x[0] >= edge - cfg.step && x[0] < b2), tf + ' bars inside [edge, page end)');
+    assert.ok(calls.length === 1 && Number(new URL(calls[0]).searchParams.get('period1')) >= edge, tf + ' asked from the edge');
+  }
+  ok('oldest page straddling Yahoo depth: served from the depth edge (no 422 -> empty page)');
+}
+
 // out-of-range pages return [] without an upstream call
 {
   calls.length = 0;
   const old1m = pageOf('1', now - 60 * 86400);
-  let r = await call(`/api/chart/bars/NQ?tf=1&page=${old1m}`);
+  let r = await call(`/api/chart/bars/SI?tf=1&page=${old1m}`);
   assert.equal(r.status, 200); assert.deepEqual(r.body.bars, []);
   r = await call(`/api/chart/bars/NQ?tf=60&page=${pageOf('60', now - 900 * 86400)}`);
   assert.deepEqual(r.body.bars, []);

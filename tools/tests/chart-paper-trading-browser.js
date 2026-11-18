@@ -265,8 +265,8 @@ async function tradeInstSection(b, BASE, reqs, vp, theme) {
   await waitFor(p, () => Number.isFinite(window.__stkPaper.account.last['futures:NQ1!']));
   await p.evaluate(() => window.__stkPaper.setEnabled(true));
   await sleep(600);
-  await p.click('#stkc-paper-btn');
-  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-a=paper]', { timeout: 5000 }); await p.click('#stkc-trade-pop [data-a=paper]');
+  if (phone) await p.evaluate(() => window.__stkPaper.orderPanel({ tab: 'order' }));
+  else { await p.click('#stkc-paper-btn'); await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-a=paper]', { timeout: 5000 }); await p.click('#stkc-trade-pop [data-a=paper]'); }
   await p.waitForSelector('#stkop:not([hidden])', { timeout: 10000 });
   await p.evaluate(() => window.__stkOrderPanel.setTab('order'));
   await sleep(500);

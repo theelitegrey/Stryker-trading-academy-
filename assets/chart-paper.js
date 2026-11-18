@@ -328,6 +328,7 @@ async function load(){
   // a brand-new account stays local until the member actually does something: opening Charts
   // must not cost a Firestore write for members who never use paper trading
   if (!st && !replay) save(true);
+  if (!replay) hkMirror();
   renderAll();
   applyEnabled();
   if (paperOn() && opWasOpen() && !isPhone()) orderPanel();   // the order panel was open last time (desktop)
@@ -1662,7 +1663,17 @@ function watchSettings(){
 const PK = window.PaperHotkeys;
 let hkRecording = false;
 function hkMap(){ const a = liveOf(); return a && a.settings.hotkeys ? PK.clean(a.settings.hotkeys) : {}; }
-function hkSave(map){ withLive(() => { syncFromLocal(); acct.setSettings({ hotkeys: PK.clean(map) }); save(); }); }
+function hkSave(map){ withLive(() => { syncFromLocal(); acct.setSettings({ hotkeys: PK.clean(map) }); save(); }); hkMirror(); }
+// The keys also sit in a small localStorage mirror that assets/account-sync.js carries to the member's other devices
+// live (the paper account doc itself is only read on load). A change arriving there is adopted here.
+const hkKey = () => (uid ? 'stryker_paper_hotkeys_' + uid : '');
+function hkMirror(){ const k = hkKey(); if (!k) return; try { localStorage.setItem(k, JSON.stringify(hkMap())); } catch (e) {} }
+window.addEventListener('storage', (e) => {
+  if (!e.key || e.key !== hkKey() || e.newValue == null || !liveOf()) return;
+  let m = null; try { m = PK.clean(JSON.parse(e.newValue)); } catch (er) { return; }
+  if (JSON.stringify(m) === JSON.stringify(hkMap())) return;
+  withLive(() => { syncFromLocal(); acct.setSettings({ hotkeys: m }); save(true); });   // local only: the device that changed it saved the account
+});
 function hkSym(){ const c = activeCell(); return c ? tradeSym(c.symbol) : ''; }
 function hkQtyStep(sym, dir){
   const sp = specOf(sym); if (!sp.ok) return;
@@ -2247,6 +2258,6 @@ export function mountPaper(ws, opts){
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, orderPanel, flattenSym, setTrailing, toast, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, tradeSym, setTradeSym, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
+    ctxAt, ctxOrder, commitDrag, runHotkey, hotkeys: { get: hkMap, set: hkSave }, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, tradeSym, setTradeSym, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

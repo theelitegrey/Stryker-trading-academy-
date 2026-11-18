@@ -2602,6 +2602,26 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // ACCOUNT SETTINGS SYNC (assets/account-sync.js + the Android app, Owner 18 Nov 2026: "one account,
+    // everything synced"). users/{uid}/prefs/{group}: the member's chart/site settings mirrored from
+    // localStorage so every browser and the phone app share them, live. Owner only (not even admins).
+    // group = app | chart | trade. v = { <setting id>: string | null }, t = { <setting id>: server time },
+    // updatedAt = server time. <= 80 settings per doc; Firestore's 1 MiB doc cap bounds the size (the client
+    // keeps each value <= 60 000 chars and each doc <= 180 000). Nothing here grants access to anything.
+    // ---------------------------------------------------------------------
+    match /users/{uid}/prefs/{group} {
+      function validPrefs(d) {
+        return d.keys().hasOnly(['v', 't', 'updatedAt'])
+          && d.keys().hasAll(['v', 'updatedAt'])
+          && d.v is map && d.v.size() <= 80
+          && (!('t' in d) || (d.t is map && d.t.size() <= 80))
+          && d.updatedAt == request.time;
+      }
+      allow read, delete: if isSelf(uid) && group in ['app', 'chart', 'trade'];
+      allow create, update: if isSelf(uid) && group in ['app', 'chart', 'trade'] && validPrefs(request.resource.data);
+    }
+
+    // ---------------------------------------------------------------------
     // Anything not named above is denied. New collections must be added here
     // deliberately rather than inheriting an open rule.
     // ---------------------------------------------------------------------

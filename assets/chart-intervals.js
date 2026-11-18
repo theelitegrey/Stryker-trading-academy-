@@ -639,25 +639,31 @@ function startCloudSync(api) {
     clearTimeout(timer);
     const u = uid;
     timer = setTimeout(() => {
+      timer = 0;
       const d = prefsDoc(p);
       d.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
       prefRef(u).set(d).catch((e) => console.warn('TradeZoro: interval prefs save', e));
     }, 600);
   };
-  const onAuth = async (u) => {
+  // Live listener (Owner 18 Nov, one account everywhere): a starred interval on another device shows here at once.
+  let unsub = null;
+  const onAuth = (u) => {
     uid = u ? u.uid : null; ready = false;
+    if (unsub) { try { unsub(); } catch (e) {} unsub = null; }
     if (!uid) return;
+    const me = uid;
     try {
-      const snap = await prefRef(uid).get();
-      if (uid !== (u && u.uid)) return;
-      if (snap.exists) {
-        const d = snap.data() || {};
-        api.setPrefs({ favs: d.favs, custom: d.custom, collapsed: d.collapsed });
-        ready = true;
-      } else {
-        ready = true;
-        push({ favs: api.favs(), custom: api.custom(), collapsed: api.collapsed() }); // first sign-in: copy local up
-      }
+      unsub = prefRef(me).onSnapshot((snap) => {
+        if (uid !== me || (snap.metadata && snap.metadata.hasPendingWrites) || timer) return;   // our own write / a local edit waiting
+        if (snap.exists) {
+          const d = snap.data() || {};
+          api.setPrefs({ favs: d.favs, custom: d.custom, collapsed: d.collapsed });
+          ready = true;
+        } else if (!ready) {
+          ready = true;
+          push({ favs: api.favs(), custom: api.custom(), collapsed: api.collapsed() }); // first sign-in: copy local up
+        }
+      }, (e) => { console.warn('TradeZoro: interval prefs load', e && e.code); ready = false; });
     } catch (e) { console.warn('TradeZoro: interval prefs load', e); ready = false; }
   };
   const hook = () => {

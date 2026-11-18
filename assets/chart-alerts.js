@@ -1296,7 +1296,7 @@ export function mountChartAlerts(ws, opts){
   wireIndicatorEntries(); wireSettingsAlert();
   try { fb().auth().onAuthStateChanged(() => reload()); } catch (e) { reload(); }
   // Another tab fired / restarted a browser-stored alert: follow it here (lines + list).
-  window.addEventListener('storage', (e) => { if (e.key === IND_KEY || e.key === 'stryker_chart_alerts_guest') reload(); });
+  window.addEventListener('storage', (e) => { if (e.key === IND_KEY || e.key === 'stryker_chart_alerts_guest') reload(); else if (e.key === PREFS_KEY) { prefs = loadPrefs(); pushLines(); } });   // PREFS_KEY: account sync / other tab
   setInterval(poll, 1000);
   setInterval(() => { pushLines(); wireIndicatorEntries(); }, 5000);   // new cells / symbol switches pick up their lines
   window.__stkAlerts = { tick, poll, cleanupFired, deleteAll, removeFired, open: openAlerts, openSounds: openSoundPanel, add: addAlert, sound: playAlertSound, indicatorAlert: (message, meta) => window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert(message, meta), simEvent: (kind, detail) => window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, detail), get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines, addAlertFor, conditionsOf: alertConditionsOf, chartIndicatorConds, linesFor: (sym) => chartLines(sym).map((l) => l.price) };

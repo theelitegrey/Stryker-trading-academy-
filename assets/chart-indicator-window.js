@@ -592,6 +592,7 @@ export function mountIndicatorWindow(ws, opts){
     paint();
     try { window.STRYKER_PINE && window.STRYKER_PINE.warm(); window.__stkHeavyNow && window.__stkHeavyNow(); } catch (e) {}   // LAYOUT-PERF: engines load while the member picks
     loadExplain().then(() => { if (ov && hiKey && !isPhone()) highlight(hiKey, false); });
+    Favs.loading = null;   // re-read each open: a favourite starred on another device (browser or the app) shows
     await loadData();
     if (!ov) return;
     if (!Favs.map.size && section === 'fav') section = 'all';

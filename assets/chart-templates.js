@@ -180,6 +180,25 @@
     lsSetDefault(id);
   }
 
+  // Live (Owner 18 Nov, one account everywhere): a template saved, renamed or deleted on another device fires
+  // 'stk:templates-changed', so an open Templates menu re-reads its list. Changes from this tab are skipped.
+  authReady.then(function () {
+    var f = fb(); if (!f) return;
+    var unsub = null;
+    f.auth().onAuthStateChanged(function (u) {
+      if (unsub) { try { unsub(); } catch (e) {} unsub = null; }
+      if (!u) return;
+      var first = true;
+      try {
+        unsub = col().onSnapshot(function (snap) {
+          if (first) { first = false; return; }
+          if (snap.metadata && snap.metadata.hasPendingWrites) return;
+          try { window.dispatchEvent(new CustomEvent('stk:templates-changed')); } catch (e) {}
+        }, function () {});
+      } catch (e) {}
+    });
+  });
+
   window.StrykerChartTemplates = {
     NAME_MAX: NAME_MAX, STATE_MAX: STATE_MAX, MAX_COUNT: MAX_COUNT,
     list: list, save: save, rename: rename, remove: remove, setDefault: setDefault,

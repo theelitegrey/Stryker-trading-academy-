@@ -528,7 +528,7 @@ export function mountSearch(ws, o = {}) {
       buildTabs(); buildRail();
       sideKey = null;
       render(true);
-      loadFavs();
+      favUid = undefined; loadFavs();   // re-read each open: a star added on another device shows
       requestAnimationFrame(() => root.classList.add('is-in'));
     } else if (seed) { input.value = (input.value + seed).toUpperCase(); render(); }
     input.focus({ preventScroll: true });

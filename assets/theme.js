@@ -198,6 +198,11 @@
     });
   }
 
+  // Another tab, or the member's account on another device (assets/account-sync.js), changed the theme: follow it.
+  window.addEventListener('storage', function (e){
+    if (e.key === KEY && (e.newValue === 'day' || e.newValue === 'night') && e.newValue !== current()) apply(e.newValue, true);
+  });
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 

@@ -139,6 +139,7 @@ export function mountFavToolbar(ws, Core, opts){
     clearTimeout(saveT);
     const who = uid;
     saveT = setTimeout(() => {
+      saveT = null;
       const u = fbUser();
       if (!u || u.uid !== who) return;
       const doc = { tools: st.tools.slice(0, MAX_TOOLS), visible: !!st.visible, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
@@ -160,14 +161,20 @@ export function mountFavToolbar(ws, Core, opts){
   if (!st.tools.length && window.__stkBt) st.tools = valid(['trendline', 'hline', 'box', 'fibretracement', 'ray']);   // backtest: the floating button is the one drawing entry
   if (st.tools.length) pushToVela(st.tools);
 
-  async function onAuth(u){
+  // Live (Owner 18 Nov, one account everywhere): a tool starred on another device shows here without a reload.
+  let unsubFav = null, firstFav = true;
+  function onAuth(u){
     uid = u ? u.uid : null;
+    if (unsubFav) { try { unsubFav(); } catch (e) {} unsubFav = null; }
     if (!u) return;
+    firstFav = true;
     try {
-      const snap = await prefRef(u).get();
-      if (uid !== u.uid) return;
-      if (snap.exists) { adopt(snap.data()); writeLocal(); pushToVela(st.tools); render(); }
-      else if (st.tools.length) save();      // first sign-in: copy this browser's favourites up
+      unsubFav = prefRef(u).onSnapshot((snap) => {
+        if (uid !== u.uid || (snap.metadata && snap.metadata.hasPendingWrites) || saveT) return;   // our own write / a local edit waiting
+        const was = firstFav; firstFav = false;
+        if (snap.exists) { adopt(snap.data()); writeLocal(); pushToVela(st.tools); render(); }
+        else if (was && st.tools.length) save();      // first sign-in: copy this browser's favourites up
+      }, (e) => console.warn('TradeZoro: favorites toolbar load', e && e.code));
     } catch (e) { console.warn('TradeZoro: favorites toolbar load', e); }
   }
   try { if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) firebase.auth().onAuthStateChanged(onAuth); } catch (e) {}

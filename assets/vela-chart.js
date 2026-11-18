@@ -1522,6 +1522,7 @@ function legendFold(R) {
   let saving = false;
   let lastErr = '';
 
+  window.addEventListener('stk:templates-changed', () => { if (tplPop.isConnected && !tplPop.hidden && tplPop.getClientRects().length && !editing && !saving) renderTemplates(); });
   async function renderTemplates(){
     let list = [];
     let defId = null;

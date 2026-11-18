@@ -8,6 +8,10 @@
 
 import { kindOf, locked, upgrade, proTag } from './chart-pro-gate.js?v=1121';
 
+// Anchors for the composite templates, computed when the template is applied: UTC midnight of the 1st / of this week's Monday.
+const monthStart = () => { const d = new Date(); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); };
+const weekStart = () => { const d = new Date(), t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); return t - ((d.getUTCDay() + 6) % 7) * 864e5; };
+
 // thumb: true = a real render of the template is in assets/images/chart-templates (only where the recorded test bars can draw its tools;
 // tools that need a live feed show their names as chips instead, never a made-up picture).
 // market: 'futures' | 'crypto' | 'stocks' -> the template sets this symbol; absent -> keeps the member's market.
@@ -16,8 +20,14 @@ export const TEMPLATES = [
     symbol: 'futures:NQ1!', tf: '1', ind: [['stk_l2f_big'], ['stk_l2f_delta'], ['stk_l2f_stop'], ['stk_l2f_cvd']] },
   { id: 'futures-open', name: 'Futures open (GEX + levels)', desc: 'Options-based levels, previous-day value area and session marks for the open.',
     symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex'], ['stk_pdvp'], ['stk_msess'], ['stk_econ']] },
-  { id: 'gex-flow', name: 'GEX Levels & Options Flow', desc: 'Call and put walls, zero gamma, top open-interest strikes and past days\u2019 levels, with positive and negative gamma zones shaded, call and put premium marks, fresh option volume and ZoroTide. Price is the candles.',
-    symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex', { showOi: true, oiCount: 5, show0dte: true, showRanked: true, showProfile: true, showRegime: true, showPrev: true, prevDays: 2 }], ['stk_zzone'], ['stk_optflow'], ['stk_zvol'], ['stk_tide']] },
+  { id: 'gex-flow', name: 'GEX Levels & Options Flow', desc: 'Call and put walls, zero gamma, top open-interest strikes and past days\u2019 levels, a net-GEX heatmap by strike, positive and negative gamma zones shaded, call and put premium marks, fresh option volume and ZoroTide. Price is the candles.',
+    symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex', { showOi: true, oiCount: 5, show0dte: true, showRanked: true, showProfile: true, showRegime: true, showPrev: true, prevDays: 2 }], ['stk_gexheat'], ['stk_zzone'], ['stk_optflow'], ['stk_zvol'], ['stk_tide']] },
+  { id: 'vp-monthly', name: 'Volume profile: Monthly', desc: 'About a month of 1-hour candles with one composite volume profile over the visible range (POC, value area high and low), VWAP anchored to the start of the month and the previous day\u2019s levels.',
+    symbol: 'futures:NQ1!', tf: '60', view: 30, ind: [['vpvr'], ['stk_avwap', () => ({ anchor: monthStart() })], ['stk_pdvp']] },
+  { id: 'vp-weekly', name: 'Volume profile: Weekly', desc: 'About a week of 30-minute candles with one composite volume profile over the visible range (POC, value area high and low) and VWAP anchored to the start of the week.',
+    symbol: 'futures:NQ1!', tf: '30', view: 7, ind: [['vpvr'], ['stk_avwap', () => ({ anchor: weekStart() })], ['stk_pdvp']] },
+  { id: 'vp-daily', name: 'Volume profile: Daily', desc: 'One session volume profile per day with delta bars at each price row (order flow, from 8 Oct 2026), a time-price profile with single prints, and session VWAP.',
+    symbol: 'futures:NQ1!', tf: '5', view: 2, ind: [['stk_svp', { session: 'day', showDelta: true }], ['stk_of_tpo'], ['stk_of_vwap']] },
   { id: 'options-levels', name: 'Options levels', desc: 'Expected move, gamma levels and calls-vs-puts money flow on an index ETF.',
     symbol: 'IDX:SPY', tf: '15', ind: [['stk_gex'], ['stk_em'], ['stk_tide'], ['stk_optflow']] },
   { id: 'dark-pool', name: 'Dark pool watch', desc: 'Large off-exchange prints on the candles plus weekly off-exchange levels and daily share.',
@@ -44,7 +54,7 @@ export const TEMPLATES = [
     tf: '15', ind: [['stk_econ'], ['stk_news'], ['pivot-points']] }
 ];
 
-const NAMES = { stk_l2f_big: 'Big Trades (L2)', stk_l2f_delta: 'Delta (L2)', stk_l2f_stop: 'Stop Runs (L2)', stk_l2f_cvd: 'Cumulative Delta (L2)', stk_gex: 'GEX Levels', stk_pdvp: 'Previous day levels',
+const NAMES = { vpvr: 'Volume Profile (visible range)', stk_svp: 'Session Volume Profile', stk_gexheat: 'GEX Heatmap', stk_of_vwap: 'Session VWAP', stk_l2f_big: 'Big Trades (L2)', stk_l2f_delta: 'Delta (L2)', stk_l2f_stop: 'Stop Runs (L2)', stk_l2f_cvd: 'Cumulative Delta (L2)', stk_gex: 'GEX Levels', stk_pdvp: 'Previous day levels',
   stk_msess: 'Market Stats', stk_econ: 'Economic events', stk_em: 'Expected Move', stk_tide: 'ZoroTide', stk_optflow: 'Options Flow Marks', stk_zzone: 'Gamma Zone', stk_zvol: 'Fresh Volume marks', stk_darkpool: 'Dark Pool Prints', stk_offex_lv: 'Off-exchange levels',
   stk_offex: 'Off-exchange Volume', volume: 'Volume', ema: 'EMA', rsi: 'RSI', '52-week-high-low': '52-week high / low', stk_of_tpo: 'Market Profile', stk_avwap: 'Anchored VWAP', stk_depth_heat: 'Depth Heatmap (L2)', stk_fut_walls: 'Liquidity Walls (L2)',
   stk_l2f_fp: 'Footprint (L2)', stk_l2f_vp: 'Volume Profile (L2)', stk_crypto_dom: 'Crypto DOM Heatmap', stk_vbubble: 'Volume Bubbles', supertrend: 'SuperTrend', macd: 'MACD', 'bollinger-bands': 'Bollinger Bands',
@@ -74,9 +84,15 @@ export function applyTemplate(t, deps) {
   t.ind.forEach(([type, inputs]) => {
     const k = kindOf(type);
     if (k && locked(k)) { if (out.skipped.indexOf(k) < 0) out.skipped.push(k); return; }
-    try { cell.chart.addNativeIndicator(type, inputs ? { inputs } : undefined); out.added++; }
+    try { const inp = typeof inputs === 'function' ? inputs() : inputs; cell.chart.addNativeIndicator(type, inp ? { inputs: inp } : undefined); out.added++; }
     catch (e) { console.warn('TradeZoro: template indicator ' + type, e); }
   });
+  // t.view = days of candles to show (so a visible-range profile covers about that span); the bars load after the timeframe change, so retry a few times
+  if (t.view) {
+    let n = 0;
+    const fit = () => { try { const bars = cell.chart.orchestrator.rawBars, last = bars && bars.length && bars[bars.length - 1].time; if (last) { cell.chart.setVisibleRange({ from: last - t.view * 864e5, to: last + 36e5 }); return; } } catch (e) {} if (++n < 15) setTimeout(fit, 500); };
+    setTimeout(fit, 600);
+  }
   try { ws.context().stateChanged(); } catch (e) {}
   if (afterStructural) afterStructural();
   if (out.skipped.length) {

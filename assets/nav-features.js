@@ -21,10 +21,10 @@
     { id: 'indicators', name: 'Private Indicators', url: '/features/indicators', icon: '📊' },
     { id: 'backtesting', name: 'Kronos', url: '/features/backtesting', icon: 'kronos', line: 'Replay & Backtesting. Master the past. Sharpen the future.' },
     { id: 'community', name: 'Community', url: '/features/community', icon: '🤝' },
-    { id: 'charts', name: 'ZoroCharts', url: '/features/charts', icon: '📉' },
+    { id: 'charts', name: 'ZoroCharts', url: '/features/charts', icon: 'zorocharts' },
     { id: 'orderflow', name: 'Order Flow', url: '/features/orderflow', icon: '🔬' },
-    { id: 'market-stats', name: 'Market Stats', url: '/features/market-stats', icon: '📈', line: 'How often gaps, ranges and levels played out, with sample sizes.' },
-    { id: 'creators', name: 'Creator Hub', url: '/features/creators', icon: '🎙️', line: 'Start a trading community: indicators, courses, feed and Discord roles.' }
+    { id: 'market-stats', name: 'Market Stats', url: '/features/market-stats', icon: 'market-stats', line: 'How often gaps, ranges and levels played out, with sample sizes.' },
+    { id: 'creators', name: 'Creator Hub', url: '/features/creators', icon: 'creator-hub', line: 'Start a trading community: indicators, courses, feed and Discord roles.' }
   ];
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -33,7 +33,7 @@
       '" loading="lazy" decoding="async" data-src="' + T + f.id + '-' + w + '.webp">';
   }
   // Product tiles (Owner 16 Nov): these three show their icon image; the other features keep their emoji.
-  var TILES = { omega: 1, kronos: 1, nemesis: 1 };
+  var TILES = { omega: 1, kronos: 1, nemesis: 1, zorocharts: 1, 'market-stats': 1, 'creator-hub': 1 };
   function icon(f) {
     if (!TILES[f.icon]) return f.icon + ' ';
     var b = '/assets/img/products/' + f.icon;
@@ -57,6 +57,9 @@
   function init() {
     var links = document.querySelector('.nav-links'), nav = document.querySelector('.nav');
     if (!links || !nav || links.classList.contains('nfx-has')) return;
+    // Owner 18 Nov: header is Products | Community | FAQ (Mentis lives in the product menu).
+    var mn = [].filter.call(links.querySelectorAll('a'), function (a) { return /^\/?academy\/?$/.test(a.getAttribute('href') || ''); })[0];
+    if (mn) { var fq = document.createElement('a'); fq.href = '/#faq'; fq.textContent = 'FAQ'; mn.parentNode.removeChild(mn); links.appendChild(fq); }
     var link = [].filter.call(links.querySelectorAll('a'), function (a) { return a.textContent.trim() === 'Features'; })[0];
     if (!link) return;
 

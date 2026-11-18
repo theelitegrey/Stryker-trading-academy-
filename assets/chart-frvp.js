@@ -274,9 +274,14 @@ function paintFrvp(ctx, d, proj, theme) {
   const room = L.grow === 1 ? L.anchorX - gap : (proj.width || Infinity) - L.anchorX - gap;
   const inside = room < Math.min(maxDW, 48), side = inside ? L.grow : -L.grow;
   const baseX = !inside ? L.anchorX : L.grow === 1 ? Math.max(L.anchorX, 0) : Math.min(L.anchorX, proj.width || L.anchorX);   // A off screen: the delta column sits at the edge of the plot
+  // Member report 18 Nov (GK): inside bars held at the plot edge ran on from there, so an older profile scrolled off the left painted its
+  // delta bars across newer candles towards the latest price. They stay inside their own range [x0, x1]: none once its far end is off
+  // screen, and never past it (x1 is the latest candle only when the profile extends to now).
+  const fit = !inside ? Infinity : L.grow === 1 ? L.x1 - baseX - gap : baseX - gap - L.x0;
+  if (inside && fit < 1) { d.__stkDelta = []; return; }
   if (mx > 0) for (let k = 0; k < D.d.length; k++) {
     const v = D.d[k]; if (!v) continue;
-    const yA = L.yEdges[k], yB = L.yEdges[k + 1], w = Math.max(1, Math.abs(v) / mx * maxDW), full = Math.max(1, Math.abs(yB - yA) - 1), h2 = inside ? Math.max(1, Math.round(full / 2)) : full;
+    const yA = L.yEdges[k], yB = L.yEdges[k + 1], w = Math.min(fit, Math.max(1, Math.abs(v) / mx * maxDW)), full = Math.max(1, Math.abs(yB - yA) - 1), h2 = inside ? Math.max(1, Math.round(full / 2)) : full;
     const x = side < 0 ? baseX - gap - w : baseX + gap;
     ctx.fillStyle = (v > 0 ? hex6(s.deltaUpColor, UP) : hex6(s.deltaDownColor, DN)) + 'BF'; const y0 = Math.min(yA, yB) + (inside ? Math.floor((full - h2) / 2) : 0); ctx.fillRect(x, y0, w, h2);
     rects.push([x, y0, w, h2]);

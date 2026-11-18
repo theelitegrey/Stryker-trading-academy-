@@ -140,6 +140,36 @@ async function deltaEdge(b) {
   await shot(p, 'delta-a-offscreen');
   await ctx.close();
 }
+// Member report 17-18 Nov (GK, thread 1571736092619710566): two FRVPs on different days, the older one scrolled off the left. Its delta bars
+// were held at the plot edge and ran on towards the newest price. No delta bar may run past its own profile's right edge (x1), at every pan.
+async function deltaTwo(b) {
+  const { ctx, p } = await context(b, { w: 1440, h: 900, theme: 'dark' });
+  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await ready(p);
+  await setMarket(p, 'futures:NQ1!', '15'); await sleep(800);
+  await p.evaluate(() => {
+    const ch = window.STRYKER_VELA.chart, raw = ch.orchestrator.rawBars, n = raw.length;
+    const add = (i, j) => ch.drawings.add('fixedrangevp', { paneId: 'price', anchors: [{ time: raw[i].time, price: raw[i].close }, { time: raw[j].time, price: raw[j].close }], props: { extendRight: false, thinRows: false, deltaBars: 'left' } });
+    add(n - 120, n - 70); add(n - 45, n - 2);   // older day's range, newer range
+  });
+  const pans = [[118, 6], [100, 6], [80, 6], [72, 6], [50, 4]];   // older A off screen, older far end near/off the edge, older fully off screen
+  let bad = 0, seen = 0;
+  for (const [nb, ahead] of pans) {
+    await p.evaluate(([nb, ahead]) => { const ch = window.STRYKER_VELA.chart, raw = ch.orchestrator.rawBars, n = raw.length, tf = raw[n - 1].time - raw[n - 2].time; ch.setVisibleRange({ from: raw[n - 1].time - nb * tf, to: raw[n - 1].time + ahead * tf }); }, [nb, ahead]);
+    let r = null;
+    for (let i = 0; i < 20; i++) {
+      await sleep(600);
+      r = await p.evaluate(() => { const R = window.STRYKER_VELA.chart.renderer.renderer, proj = R.drawingProjector();
+        return R.userDrawings.drawings.filter((x) => x.type === 'fixedrangevp').map((d) => { const L = d.layout(proj); return { x0: L && L.x0, x1: L && L.x1, rects: d.__stkDelta || null }; }); });
+      if (r.every((q) => q.rects)) break;
+    }
+    for (const q of r) for (const [x, , w] of q.rects || []) { seen++; if (x + w > q.x1 + 1) bad++; }
+    check(r.every((q) => q.rects) && r.every((q) => (q.rects || []).every(([x, , w]) => x + w <= q.x1 + 1)), 'two FRVPs, pan ' + nb + ': delta bars stay inside their own range', r.map((q) => ({ x0: Math.round(q.x0), x1: Math.round(q.x1), n: q.rects && q.rects.length, maxR: q.rects && q.rects.length ? Math.round(Math.max(...q.rects.map((z) => z[0] + z[2]))) : null })));
+    if (nb === 100) await shot(p, 'delta-two-frvps');
+  }
+  check(seen > 0, 'two FRVPs: delta bars were drawn', { seen, bad });
+  await ctx.close();
+}
 // Member report 17 Nov (GK, thread 1571736092619710566): an older profile must keep its drawn end when zooming / panning; "Extend lines right"
 // (frvp.extendLines, off by default) is the only thing that runs the POC / VAH / VAL lines on to the chart's right edge.
 async function lines(b, theme, w, h) {
@@ -266,4 +296,4 @@ async function run(b) {
   check(!errors.length, 'no console errors', errors.slice(0, 3));
   await ctx.close();
 }
-(async () => { const b = await launch({ args: ['--js-flags=--max-old-space-size=700'] }); try { await deltaEdge(b); await run(b); for (const [t, w, h] of [['dark', 1440, 900], ['light', 1440, 900], ['dark', 390, 844]]) await lines(b, t, w, h); for (const [t, w, h] of [['dark', 1440, 900], ['light', 1440, 900]]) await ui(b, t, w, h); } finally { await b.close(); } console.log(fail ? fail + ' FAILED' : 'ALL PASSED'); process.exit(fail ? 1 : 0); })();
+(async () => { const b = await launch({ args: ['--js-flags=--max-old-space-size=700'] }); try { await deltaTwo(b); if (!process.env.FR_ONLY_TWO) { await deltaEdge(b); await run(b); for (const [t, w, h] of [['dark', 1440, 900], ['light', 1440, 900], ['dark', 390, 844]]) await lines(b, t, w, h); for (const [t, w, h] of [['dark', 1440, 900], ['light', 1440, 900]]) await ui(b, t, w, h); } } finally { await b.close(); } console.log(fail ? fail + ' FAILED' : 'ALL PASSED'); process.exit(fail ? 1 : 0); })();

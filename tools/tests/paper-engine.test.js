@@ -358,5 +358,150 @@ t('journal hook maths: trade record carries the point value and the point-value 
   assert.strictEqual(PE.round2((t1.entry - t1.exit) * t1.qty * t1.pointValue), t1.pnl);
 });
 
+// ---- TP1 + TP2 + break-even + risk sizing + mini/micro (member feature 2026-11-18, roadmap card trade-instrument) ----
+t('TP1 then TP2: partial close at TP1, the rest at TP2, two trades, flat after', () => {
+  const a = acct(); a.setLast('futures:NQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 3, sl: 19990, tp1: 20010, tp1Qty: 2, tp: 20020 });
+  let p = a.position('futures:NQ1!'); assert.strictEqual(p.tp1, 20010); assert.strictEqual(p.tp1Qty, 2); assert.strictEqual(p.tp, 20020);
+  let ev = a.onSegment('futures:NQ1!', seg(20001, 20012, 20000, 20011));
+  assert.strictEqual(ev.length, 1); assert.strictEqual(ev[0].type, 'tp1'); assert.strictEqual(ev[0].qty, 2); assert.strictEqual(ev[0].price, 20010);
+  assert.strictEqual(ev[0].trade.reason, 'tp1'); assert.strictEqual(ev[0].trade.pnl, 400); assert.strictEqual(ev[0].trade.tp, 20010);
+  p = a.position('futures:NQ1!'); assert.strictEqual(p.qty, 1); assert.strictEqual(p.tp1, null); assert.strictEqual(p.sl, 19990, 'no BE asked: stop stays');
+  ev = a.onSegment('futures:NQ1!', seg(20015, 20021, 20014, 20019));
+  assert.strictEqual(ev[0].type, 'tp'); assert.strictEqual(ev[0].qty, 1); assert.strictEqual(ev[0].trade.pnl, 400);
+  assert.strictEqual(a.position('futures:NQ1!'), null, 'flat: the stop is gone with it (OCO)');
+  assert.strictEqual(a.state.trades.length, 2); assert.strictEqual(a.summary().realized, 800);
+});
+
+t('TP1 by percent rounds down; validation of TP1 size and order', () => {
+  const a = acct(); a.setLast('futures:ES1!', 5000);
+  a.placeOrder({ symbol: 'futures:ES1!', side: 'sell', type: 'market', qty: 5, tp1: 4990, tp1Pct: 50, tp: 4980 });
+  assert.strictEqual(a.position('futures:ES1!').tp1Qty, 2, '50% of 5 = 2 (rounded down)');
+  const b = acct(); b.setLast('futures:ES1!', 5000);
+  assert.throws(() => b.placeOrder({ symbol: 'futures:ES1!', side: 'buy', type: 'market', qty: 1, tp1: 5010, tp1Qty: 1, tp: 5020 }), /at least 2/);
+  assert.throws(() => b.placeOrder({ symbol: 'futures:ES1!', side: 'buy', type: 'market', qty: 2, tp1: 5010, tp1Qty: 2, tp: 5020 }), /less than the whole/);
+  assert.throws(() => b.placeOrder({ symbol: 'futures:ES1!', side: 'buy', type: 'market', qty: 3, tp1: 5010, tp1Pct: 10, tp: 5020 }), /at least 1/);
+  assert.throws(() => b.placeOrder({ symbol: 'futures:ES1!', side: 'buy', type: 'market', qty: 3, tp1: 5030, tp1Qty: 1, tp: 5020 }), /between the entry and TP2/);
+  assert.throws(() => b.placeOrder({ symbol: 'futures:ES1!', side: 'buy', type: 'market', qty: 3, tp1: 4990, tp1Qty: 1, tp: 5020 }), /TP1 must be above/);
+  assert.throws(() => b.placeOrder({ symbol: 'futures:ES1!', side: 'buy', type: 'market', qty: 3, tp1: 5001, tp1Qty: 1, tp: 5020, be: 4 }), /smaller than the distance/);
+  assert.strictEqual(b.position('futures:ES1!'), null, 'rejected orders open nothing');
+});
+
+t('break-even: after TP1 the stop moves to entry + offset ticks; the rest stops out there', () => {
+  const a = acct(); a.setLast('futures:MNQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:MNQ1!', side: 'buy', type: 'market', qty: 4, sl: 19980, tp1: 20010, tp1Qty: 2, tp: 20040, be: 2 });
+  let ev = a.onSegment('futures:MNQ1!', seg(20002, 20010.5, 20001, 20008));
+  assert.deepStrictEqual(ev.map((e) => e.type), ['tp1', 'be']);
+  const p = a.position('futures:MNQ1!'); assert.strictEqual(p.sl, 20000.5, 'entry 20000 + 2 ticks x 0.25'); assert.strictEqual(p.qty, 2); assert.strictEqual(p.beMoved, true);
+  assert.strictEqual(p.sl0, 19980, 'the risk the trade was taken with stays the first stop');
+  ev = a.onSegment('futures:MNQ1!', seg(20005, 20006, 20000, 20000.25));
+  assert.strictEqual(ev[0].type, 'sl'); assert.strictEqual(ev[0].price, 20000.5); assert.strictEqual(ev[0].qty, 2); assert.strictEqual(ev[0].trade.pnl, 2);   // 0.5 x 2 x $2
+  assert.strictEqual(a.position('futures:MNQ1!'), null);
+});
+
+t('break-even never loosens a stop that is already better; short side mirrors', () => {
+  const a = acct(); a.setLast('futures:GC1!', 2400);
+  a.placeOrder({ symbol: 'futures:GC1!', side: 'sell', type: 'market', qty: 2, sl: 2405, tp1: 2395, tp1Qty: 1, tp: 2390, be: 0 });
+  a.setLast('futures:GC1!', 2397); a.modifyPosition('futures:GC1!', { sl: 2399 });   // price moved; trader tightened past break-even
+  const ev = a.onSegment('futures:GC1!', seg(2398, 2398.5, 2394.9, 2396));
+  assert.deepStrictEqual(ev.map((e) => e.type), ['tp1'], 'no BE event: 2400 would be worse than 2399');
+  assert.strictEqual(a.position('futures:GC1!').sl, 2399);
+  const b = acct(); b.setLast('futures:GC1!', 2400);
+  b.placeOrder({ symbol: 'futures:GC1!', side: 'sell', type: 'market', qty: 2, sl: 2405, tp1: 2395, tp1Qty: 1, tp: 2390, be: 3 });
+  b.onSegment('futures:GC1!', seg(2398, 2398.5, 2394.9, 2396));
+  assert.strictEqual(b.position('futures:GC1!').sl, 2399.7, 'short: entry - 3 ticks');
+});
+
+t('OCO: stop loss before TP1 closes the WHOLE position and cancels both targets', () => {
+  const a = acct(); a.setLast('futures:NQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 3, sl: 19990, tp1: 20010, tp1Qty: 1, tp: 20020, be: 0 });
+  const ev = a.onSegment('futures:NQ1!', seg(19995, 19996, 19989, 19992));
+  assert.strictEqual(ev.length, 1); assert.strictEqual(ev[0].type, 'sl'); assert.strictEqual(ev[0].qty, 3); assert.strictEqual(ev[0].trade.pnl, -600);
+  assert.strictEqual(a.position('futures:NQ1!'), null);
+  assert.strictEqual(a.onSegment('futures:NQ1!', seg(20015, 20025, 20015, 20025)).length, 0, 'targets gone with the position');
+});
+
+t('one segment touching the stop AND TP1: stop first (conservative), whole position', () => {
+  const a = acct(); a.setLast('futures:NQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 2, sl: 19990, tp1: 20010, tp1Qty: 1, tp: 20020 });
+  const ev = a.onSegment('futures:NQ1!', seg(20000, 20011, 19989, 20000));
+  assert.strictEqual(ev[0].type, 'sl'); assert.strictEqual(ev[0].qty, 2);
+});
+
+t('one segment running through TP1 and TP2: both fill in order, flat', () => {
+  const a = acct(); a.setLast('futures:NQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 2, sl: 19990, tp1: 20010, tp1Qty: 1, tp: 20020, be: 1 });
+  const ev = a.onSegment('futures:NQ1!', seg(20001, 20022, 20001, 20021));
+  assert.deepStrictEqual(ev.map((e) => e.type), ['tp1', 'be', 'tp']);
+  assert.strictEqual(ev[0].price, 20010); assert.strictEqual(ev[2].price, 20020); assert.strictEqual(a.position('futures:NQ1!'), null);
+});
+
+t('gap through TP1 fills at the open (never better than the market gave)', () => {
+  const a = acct(); a.setLast('futures:NQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 2, sl: 19990, tp1: 20010, tp1Qty: 1, tp: 20030 });
+  const ev = a.onSegment('futures:NQ1!', seg(20012, 20013, 20011, 20012));
+  assert.strictEqual(ev[0].type, 'tp1'); assert.strictEqual(ev[0].price, 20012);
+});
+
+t('limit entry carries TP1/TP2/BE onto the position when it fills; dragging the entry drags TP1 too', () => {
+  const a = acct(); a.setLast('futures:ES1!', 5000);
+  const { order } = a.placeOrder({ symbol: 'futures:ES1!', side: 'buy', type: 'limit', price: 4990, qty: 2, sl: 4985, tp1: 4995, tp1Qty: 1, tp: 5000, be: 0 });
+  a.modifyOrder(order.id, { price: 4991 });
+  const o = a.state.orders[0]; assert.strictEqual(o.tp1, 4996); assert.strictEqual(o.sl, 4986); assert.strictEqual(o.tp, 5001);
+  assert.throws(() => a.modifyOrder(order.id, { qty: 1 }), /Remove TP1 first/);
+  a.onSegment('futures:ES1!', seg(4992, 4992, 4990.5, 4991));
+  const p = a.position('futures:ES1!'); assert.strictEqual(p.tp1, 4996); assert.strictEqual(p.tp1Qty, 1); assert.strictEqual(p.be, 0);
+  a.modifyPosition('futures:ES1!', { tp1: 4997 }); assert.strictEqual(a.position('futures:ES1!').tp1, 4997);
+  assert.throws(() => a.modifyPosition('futures:ES1!', { tp1: 5002 }), /between the entry and TP2/);
+  a.modifyPosition('futures:ES1!', { tp1: null }); assert.strictEqual(a.position('futures:ES1!').tp1Qty, null);
+});
+
+t('a manual part-close that leaves only the TP1 size turns TP1 into the last target', () => {
+  const a = acct(); a.setLast('futures:NQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 3, tp1: 20010, tp1Qty: 2 });
+  a.closePosition('futures:NQ1!', 1);
+  const p = a.position('futures:NQ1!'); assert.strictEqual(p.qty, 2); assert.strictEqual(p.tp1, null); assert.strictEqual(p.tp, 20010);
+});
+
+t('TP1 / BE survive a save + load; a broken TP1 is dropped at load', () => {
+  const a = acct(); a.setLast('futures:NQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 3, sl: 19990, tp1: 20010, tp1Qty: 1, tp: 20020, be: 2 });
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', price: 19995, qty: 2, tp1: 20005, tp1Qty: 1 });
+  const b = new PE.PaperAccount(JSON.parse(JSON.stringify(a.toJSON())), deps());
+  const p = b.position('futures:NQ1!'); assert.strictEqual(p.tp1, 20010); assert.strictEqual(p.tp1Qty, 1); assert.strictEqual(p.be, 2);
+  assert.strictEqual(b.state.orders[0].tp1, 20005);
+  const raw = JSON.parse(JSON.stringify(a.toJSON())); raw.positions['futures:NQ1!'].tp1Qty = 9;
+  const c = new PE.PaperAccount(raw, deps()); assert.strictEqual(c.position('futures:NQ1!').tp1, null); assert.strictEqual(c.position('futures:NQ1!').be, null);
+});
+
+t('risk sizing: $ risk / (stop distance x point value), rounded down, min 1, capped', () => {
+  const nq = PE.specOf('futures:NQ1!'), mnq = PE.specOf('futures:MNQ1!');
+  assert.strictEqual(PE.sizeForRisk(nq, 1000, 20000, 19990).qty, 5);          // 10 pts x $20 = $200 a contract
+  assert.strictEqual(PE.sizeForRisk(nq, 1099, 20000, 19990).qty, 5, 'rounded down');
+  assert.strictEqual(PE.sizeForRisk(nq, 1000, 20000, 19990).risk, 1000);
+  const one = PE.sizeForRisk(nq, 50, 20000, 19990); assert.strictEqual(one.qty, 1); assert.strictEqual(one.over, true, 'min 1 even when it risks more');
+  assert.strictEqual(PE.sizeForRisk(mnq, 1000, 20000, 19990).qty, 50);
+  assert.strictEqual(PE.sizeForRisk(mnq, 100000, 20000, 19990).qty, 500, 'capped at the paper max');
+  assert.strictEqual(PE.sizeForRisk(mnq, 1000, 20000, 19990, 2).qty, 2, 'capped by the caller (live 2)');
+  assert.strictEqual(PE.sizeForRisk(mnq, 1000, 20000, 19990, 2).capped, true);
+  assert.ok(PE.sizeForRisk(nq, 1000, 20000, 20000).error); assert.ok(PE.sizeForRisk(nq, 0, 20000, 19990).error);
+  // risk % of balance is the caller's maths: 1% of 100,000 = 1,000
+  assert.strictEqual(PE.sizeForRisk(nq, 100000 * 1 / 100, 20000, 20010).qty, 5, 'short stop above');
+  const btc = PE.specOf('binance:BTCUSDT', 0.01); assert.strictEqual(PE.sizeForRisk(btc, 100, 60000, 59000).qty, 0.1);
+});
+
+t('mini / micro pairs: NQ<->MNQ, ES<->MES, YM<->MYM, RTY<->M2K, GC<->MGC, CL<->MCL, SI<->SIL', () => {
+  const pairs = [['NQ', 'MNQ'], ['ES', 'MES'], ['YM', 'MYM'], ['RTY', 'M2K'], ['GC', 'MGC'], ['CL', 'MCL'], ['SI', 'SIL']];
+  for (const [a, b] of pairs) { assert.strictEqual(PE.pairOf(a), b); assert.strictEqual(PE.pairOf(b), a); assert.strictEqual(PE.specOf('futures:' + a + '1!').tick, PE.specOf('futures:' + b + '1!').tick, a + ' same price scale'); }
+  assert.strictEqual(PE.pairSymbol('CME_MINI:NQ1!'), 'futures:MNQ1!'); assert.strictEqual(PE.pairSymbol('futures:MNQ1!'), 'futures:NQ1!');
+  assert.strictEqual(PE.pairSymbol('MNQZ6'), 'futures:NQ1!'); assert.strictEqual(PE.pairSymbol('futures:ZN1!'), ''); assert.strictEqual(PE.pairSymbol('binance:BTCUSDT'), '');
+  assert.deepStrictEqual(PE.familyOf('futures:M2K1!'), { mini: 'RTY', micro: 'M2K' });
+  // the chart's price feeds the pair 1:1: an MNQ order fills on NQ prices, P&L at $2 a point
+  const a = acct(); a.setLast('futures:MNQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:MNQ1!', side: 'buy', type: 'market', qty: 1, tp: 20010 });
+  const ev = a.onSegment('futures:MNQ1!', seg(20005, 20011, 20004, 20010));
+  assert.strictEqual(ev[0].trade.pnl, 20); assert.strictEqual(ev[0].symbol, 'futures:MNQ1!');
+});
+
 console.log(`\n${n - fail}/${n} passed`);
 process.exit(fail ? 1 : 0);

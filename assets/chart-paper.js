@@ -70,6 +70,13 @@ import { normFutures } from './chart-sym.js?v=1124';   // one futures test for e
 // items, paper hotkeys). Nothing in this file sends an order: the live module does, through the server's guarded route. Non-admins
 // never load the live module (and the server refuses them anyway).
 //
+// TRADE INSTRUMENT (member feature 2026-11-18, roadmap card trade-instrument): the order panel can trade the chart symbol's mini /
+// micro partner (NQ chart -> MNQ orders; pairs in paper-engine.js PAIRS). The choice is kept per chart root (ui.trade, localStorage)
+// and read through tradeSym(chartSym): the order panel, the DOM ladder, the one-click box, hotkeys and right-click orders all use it.
+// The chart symbol never changes. Prices map 1:1 (same price scale): every segment fed to a chart's futures symbol is fed to its
+// partner too (poll / replayFeed), so the partner fills, marks P&L and draws its lines on the same chart (ids prefixed 'x', chips
+// named "MNQ ..."). Brackets can carry TP1 (part close) + TP2 + break-even (paper-engine.js); their lines are draggable chips.
+//
 // Education only. Not financial advice.
 
 const PE = window.PaperEngine;
@@ -419,7 +426,12 @@ export function setReplay(on){
 export function replayFeed(sym, segs, seed){
   if (!replay || !acct || !segs || !segs.length) return;
   let events = [];
-  for (const s of segs) { if (seed) acct.setLast(sym, s.c); else events = events.concat(acct.onSegment(sym, s)); }
+  const ps = PE.pairSymbol(sym), pairOwn = ps && cells().some((c) => canonSym(c.symbol) === ps);
+  for (const s of segs) {
+    if (seed) { acct.setLast(sym, s.c); if (ps && !pairOwn) acct.setLast(ps, s.c); continue; }
+    events = events.concat(acct.onSegment(sym, s));
+    if (ps && !pairOwn) events = events.concat(acct.onSegment(ps, s));   // mini / micro partner, same prices
+  }
   if (events.length) onEvents(events); else { save(); livePnl(); }
 }
 export function resetReplayAccount(balance){
@@ -434,6 +446,7 @@ function feedSymbol(sym, segs){
   }
   return events;
 }
+const fedPairs = [];
 function poll(){
   if (!acct || !ready) return;
   if (replay) { livePnl(); return; }  // replay fills come from replayFeed(), one segment per revealed bar
@@ -450,15 +463,22 @@ function poll(){
     // one cell per symbol is enough (several cells of the same symbol carry the same trades)
     const ck = canonSym(sym); if (seen.has(ck)) continue; seen.add(ck);
     const key = 'cell:' + sym + ':' + (c.timeframe || '');
-    events = events.concat(feedSymbol(sym, segmentsFrom(key, bars)));
+    const segs = segmentsFrom(key, bars);
+    events = events.concat(feedSymbol(sym, segs));
+    if (segs.length) fedPairs.push([sym, segs]);
   }
+  // mini / micro partner of every chart symbol: the same prices, 1:1 (unless a chart of its own already fed it)
+  for (const [sym, segs] of fedPairs.splice(0)) { const ps = PE.pairSymbol(sym); if (ps && !seen.has(ps)) { seen.add(ps); events = events.concat(feedSymbol(ps, segs)); } }
   if (events.length) onEvents(events);
   // The ticket / one-click prices ALWAYS follow the chart in view: whatever the segment tracker did,
   // the last price is the active chart's newest close (the same number as its price-axis label).
   try {
     if (act0) {
       const bars = barsOf(act0), lb = bars && bars[bars.length - 1], sym = act0.symbol;
-      if (lb && sym && Number.isFinite(lb.close) && lb.close > 0 && acct.last[sym] !== lb.close && (!acct.spec(sym).ok || acct.spec(sym).kind !== 'futures' || lb.close === PE.roundTick(lb.close, acct.spec(sym).tick))) acct.setLast(sym, lb.close);
+      if (lb && sym && Number.isFinite(lb.close) && lb.close > 0 && acct.last[sym] !== lb.close && (!acct.spec(sym).ok || acct.spec(sym).kind !== 'futures' || lb.close === PE.roundTick(lb.close, acct.spec(sym).tick))) {
+        acct.setLast(sym, lb.close);
+        const ps = PE.pairSymbol(sym); if (ps && !seen.has(ps)) acct.setLast(ps, lb.close);
+      }
     }
   } catch (e) {}
   livePnl();
@@ -469,6 +489,7 @@ async function feedOffChart(){
   if (!acct || !leader || replay || feedBusy || document.hidden) return;
   syncFromLocal();
   const onChart = new Set(cells().map((c) => canonSym(c.symbol)));
+  for (const c of cells()) { const ps = PE.pairSymbol(c.symbol); if (ps) onChart.add(ps); }   // fed 1:1 from the chart (poll)
   const need = new Set(Object.keys(acct.state.positions).concat(acct.state.orders.map((o) => o.symbol)).filter((s) => !onChart.has(s)));
   if (!need.size) return;
   feedBusy = true;
@@ -497,9 +518,11 @@ function onEvents(events){
     } else if (ev.type === 'add') {
       sound(ev.side === 'buy' ? 'long-opened' : 'short-opened');
       toast('Paper ' + name + ': added ' + qty + ' @ ' + px, 'success');
-    } else if (ev.type === 'tp' || ev.type === 'sl' || ev.type === 'close' || ev.type === 'reduce') {
-      sound(ev.type === 'tp' ? 'take-profit' : ev.type === 'sl' ? 'stop-loss' : 'position-closed');
-      const what = ev.type === 'tp' ? 'Take profit hit' : ev.type === 'sl' ? 'Stop loss hit' : ev.type === 'reduce' ? 'Reduced' : 'Closed';
+    } else if (ev.type === 'be') {
+      toast('Paper ' + name + ': stop moved to break-even @ ' + px, 'info');
+    } else if (ev.type === 'tp' || ev.type === 'tp1' || ev.type === 'sl' || ev.type === 'close' || ev.type === 'reduce') {
+      sound(ev.type === 'tp' || ev.type === 'tp1' ? 'take-profit' : ev.type === 'sl' ? 'stop-loss' : 'position-closed');
+      const what = ev.type === 'tp1' ? 'TP1 hit, closed ' + qty : ev.type === 'tp' ? 'Take profit hit' : ev.type === 'sl' ? 'Stop loss hit' : ev.type === 'reduce' ? 'Reduced' : 'Closed';
       toast('Paper ' + name + ': ' + what + ' @ ' + px + ' · ' + money(ev.trade.pnl, true), ev.trade.pnl >= 0 ? 'success' : 'info');
       if (ev.trade) offerJournal(ev.trade);
     }
@@ -618,27 +641,59 @@ const COL = { buy: '#2962ff', sell: '#f23645', tp: '#089981', sl: '#f23645', pos
 // the newest close of a chart showing this symbol (the price-axis number); the paper feed's last as a fallback. Used by live P&L.
 function chartLast(sym){
   try { for (const c of cells()) if (c.symbol === sym) { const b = barsOf(c), lb = b && b[b.length - 1]; if (lb && Number.isFinite(lb.close) && lb.close > 0) return lb.close; } } catch (e) {}
-  return acct ? acct.last[sym] : undefined;
+  // a mini / micro partner of a chart symbol: the chart's price (same scale)
+  try { const k = canonSym(sym); for (const c of cells()) if (PE.pairSymbol(c.symbol) === k) { const b = barsOf(c), lb = b && b[b.length - 1]; if (lb && Number.isFinite(lb.close) && lb.close > 0) return lb.close; } } catch (e) {}
+  return acct ? (acct.last[sym] != null ? acct.last[sym] : acct.last[canonSym(sym)]) : undefined;
 }
+// ------------------------------------------------------------------ trade instrument (chart symbol or its mini / micro partner)
+function tradeSym(chartSym){
+  const sp = specOf(chartSym); if (!sp.ok || sp.kind !== 'futures') return String(chartSym || '');
+  const t = ui.trade && ui.trade[sp.root];
+  return t && PE.pairOf(sp.root) === t ? 'futures:' + t + '1!' : String(chartSym || '');
+}
+function setTradeSym(chartSym, sym){
+  const sp = specOf(chartSym); if (!sp.ok || sp.kind !== 'futures') return tradeSym(chartSym);
+  const to = specOf(sym); ui.trade = Object.assign({}, ui.trade || {});
+  if (to.ok && to.root !== sp.root && PE.pairOf(sp.root) === to.root) ui.trade[sp.root] = to.root; else delete ui.trade[sp.root];
+  saveUi(); pushLines(true); renderAll();
+  return tradeSym(chartSym);
+}
+// a chip id on a chart cell -> { sym, id } of the instrument it belongs to ('x' = the mini / micro partner)
+function chipRef(cellSym, id){
+  const s = String(id || '');
+  if (s[0] === 'x') { const ps = PE.pairSymbol(cellSym); if (ps) return { sym: ps, id: s.slice(1) }; }
+  return { sym: cellSym, id: s };
+}
+// lines of a chart cell: its own symbol's, then its mini / micro partner's (same price scale; ids 'x…', l.sym = the partner)
 function linesFor(sym){
-  if (liveOn()) { const out = LIVE.lines(sym) || []; if (drag.on && drag.sym === sym) for (const l of out) if (l.id === drag.id) l.price = drag.price; return out; }
+  const out = ownLines(sym), ps = PE.pairSymbol(sym);
+  if (ps) for (const l of ownLines(ps)) out.push(Object.assign(l, { id: 'x' + l.id, sym: ps }));
+  return out;
+}
+function ownLines(sym){
+  const dragOn = drag.on && canonSym(drag.sym) === canonSym(sym);
+  if (liveOn()) { const out = LIVE.lines(sym) || []; if (dragOn) for (const l of out) if (l.id === drag.id) l.price = drag.price; return out; }
   if (!acct || !acct.settings.lines || !paperOn()) return [];
   const out = [];
   const p = acct.position(sym);
   if (p) {
+    const two = p.tp1 != null && p.tp1Qty > 0;
     out.push({ id: 'pos', kind: 'pos', price: p.avg, side: p.side });
-    if (p.tp != null) out.push({ id: 'ptp', kind: 'tp', price: p.tp, side: p.side, ref: p.avg, qty: p.qty });
-    if (p.sl != null) out.push({ id: 'psl', kind: 'sl', price: p.sl, side: p.side, ref: p.avg, qty: p.qty });
+    if (two) out.push({ id: 'ptp1', kind: 'tp', price: p.tp1, side: p.side, ref: p.avg, qty: p.tp1Qty, tag: 'TP1' });
+    if (p.tp != null) out.push({ id: 'ptp', kind: 'tp', price: p.tp, side: p.side, ref: p.avg, qty: two ? Number((p.qty - p.tp1Qty).toFixed(6)) : p.qty, tag: two ? 'TP2' : 'TP' });
+    if (p.sl != null) out.push({ id: 'psl', kind: 'sl', price: p.sl, side: p.side, ref: p.avg, qty: p.qty, tag: p.beMoved ? 'SL BE' : 'SL' });
   }
   const key = canonSym(sym);
   for (const o of acct.state.orders) {
     if (o.symbol !== key) continue;
+    const two = o.tp1 != null && o.tp1Qty > 0;
     out.push({ id: 'o' + o.id, kind: 'ord', oid: o.id, price: o.price, side: o.side, type: o.type, qty: o.qty });
-    if (o.tp != null) out.push({ id: 'o' + o.id + 'tp', kind: 'otp', oid: o.id, price: o.tp, side: o.side, ref: o.price, qty: o.qty });
-    if (o.sl != null) out.push({ id: 'o' + o.id + 'sl', kind: 'osl', oid: o.id, price: o.sl, side: o.side, ref: o.price, qty: o.qty });
+    if (two) out.push({ id: 'o' + o.id + 'tp1', kind: 'otp', oid: o.id, price: o.tp1, side: o.side, ref: o.price, qty: o.tp1Qty, tag: 'TP1' });
+    if (o.tp != null) out.push({ id: 'o' + o.id + 'tp', kind: 'otp', oid: o.id, price: o.tp, side: o.side, ref: o.price, qty: two ? Number((o.qty - o.tp1Qty).toFixed(6)) : o.qty, tag: two ? 'TP2' : 'TP' });
+    if (o.sl != null) out.push({ id: 'o' + o.id + 'sl', kind: 'osl', oid: o.id, price: o.sl, side: o.side, ref: o.price, qty: o.qty, tag: 'SL' });
   }
-  if (drag.on && drag.sym === sym) for (const l of out) if (l.id === drag.id) l.price = drag.price;
-  if (drag.on && drag.sym === sym && drag.kind === 'new') out.push({ id: 'new', kind: drag.newKind, price: drag.price, side: drag.side, ref: drag.ref, qty: drag.qty });
+  if (dragOn) for (const l of out) if (l.id === drag.id) l.price = drag.price;
+  if (dragOn && drag.kind === 'new') out.push({ id: 'new', kind: drag.newKind, price: drag.price, side: drag.side, ref: drag.ref, qty: drag.qty });
   return out;
 }
 function lineColor(l){
@@ -647,16 +702,18 @@ function lineColor(l){
   if (l.kind === 'pos') return l.side === 'buy' ? COL.buy : COL.sell;
   return l.side === 'buy' ? COL.buy : COL.sell;
 }
-function chipText(sym, l){
-  if (l.live) return LIVE.chipText(sym, l);
+function chipText(cellSym, l){
+  const sym = l.sym || cellSym, pre = l.sym ? showSym(sym).replace(/[12]!$/, '') + ' ' : '';   // the partner's chips carry its name
+  if (l.live) { const t = LIVE.chipText(sym, l); return pre ? [pre + t[0], t[1]] : t; }
   const name = (l.side === 'buy' ? 'BUY' : 'SELL');
   if (l.kind === 'pos') {
     const p = acct.position(sym); if (!p) return ['', ''];
-    return [(p.side === 'buy' ? 'LONG ' : 'SHORT ') + p.qty + ' @ ' + fmtP(sym, p.avg), money(acct.openPnl(p), true)];
+    return [pre + (p.side === 'buy' ? 'LONG ' : 'SHORT ') + p.qty + ' @ ' + fmtP(sym, p.avg), money(acct.openPnl(p), true)];
   }
-  if (l.kind === 'ord') return [name + ' ' + (l.type === 'limit' ? 'LMT' : 'STP') + ' ' + l.qty, fmtP(sym, l.price)];
+  if (l.kind === 'ord') return [pre + name + ' ' + (l.type === 'limit' ? 'LMT' : 'STP') + ' ' + l.qty, fmtP(sym, l.price)];
   const v = acct.bracketValue(sym, l.side, l.qty, l.ref, l.price);
-  return [((l.kind === 'tp' || l.kind === 'otp') ? 'TP ' : 'SL ') + fmtP(sym, l.price), money(v, true)];
+  const tag = l.tag || ((l.kind === 'tp' || l.kind === 'otp') ? 'TP' : 'SL');
+  return [pre + tag + (l.tag === 'TP1' || l.tag === 'TP2' ? ' ' + l.qty : '') + ' ' + fmtP(sym, l.price), money(v, true)];
 }
 function layerFactory(){
   let canvas = null, overlay = null, last = null, lastYs = {};
@@ -770,16 +827,17 @@ function syncChips(cell, inst, lines){
     if (!chip) {
       chip = h('div', { class: 'stkpt-chip', 'data-id': l.id, 'data-kind': l.kind }, [
         h('span', { class: 'stkpt-chip-a' }), h('span', { class: 'stkpt-chip-b' }),
-        l.id === 'new' ? null : h('button', { type: 'button', class: 'stkpt-chip-x', 'aria-label': l.kind === 'pos' ? 'Close position' : l.kind === 'ord' ? 'Cancel order' : 'Remove', title: l.kind === 'pos' ? 'Close position' : l.kind === 'ord' ? 'Cancel order' : 'Remove', text: '×' })
+        /^x?new$/.test(l.id) ? null : h('button', { type: 'button', class: 'stkpt-chip-x', 'aria-label': l.kind === 'pos' ? 'Close position' : l.kind === 'ord' ? 'Cancel order' : 'Remove', title: l.kind === 'pos' ? 'Close position' : l.kind === 'ord' ? 'Cancel order' : 'Remove', text: '×' })
       ]);
       chip.addEventListener('pointerdown', (e) => onChipDown(e, cell, inst, chip));
       const x = chip.querySelector('.stkpt-chip-x');
-      if (x) { x.addEventListener('pointerdown', (e) => e.stopPropagation()); x.addEventListener('click', (e) => { e.stopPropagation(); if (chip.dataset.live) LIVE.chipX(cell.symbol, chip.dataset.id); else onChipX(cell.symbol, chip.dataset.id); }); }
-      chip.addEventListener('dblclick', (e) => { e.stopPropagation(); if (chip.dataset.live) return; const k = chip.dataset.id; if (k.startsWith('o')) { const id = parseInt(k.slice(1), 10); const o = acct.state.orders.find((x2) => x2.id === id); if (o) openTicket({ modify: o }); } });
+      if (x) { x.addEventListener('pointerdown', (e) => e.stopPropagation()); x.addEventListener('click', (e) => { e.stopPropagation(); const r = chipRef(cell.symbol, chip.dataset.id); if (chip.dataset.live) LIVE.chipX(r.sym, r.id); else onChipX(r.sym, r.id); }); }
+      chip.addEventListener('dblclick', (e) => { e.stopPropagation(); if (chip.dataset.live) return; const k = chipRef(cell.symbol, chip.dataset.id).id; if (k.startsWith('o')) { const id = parseInt(k.slice(1), 10); const o = acct.state.orders.find((x2) => x2.id === id); if (o) openTicket({ modify: o }); } });
       ov.appendChild(chip);
     }
     have.delete(l.id);
     chip.dataset.kind = l.kind;
+    if (l.sym) chip.dataset.sym = l.sym; else delete chip.dataset.sym;
     if (l.live) chip.dataset.live = '1'; else delete chip.dataset.live;
     const xb = chip.querySelector('.stkpt-chip-x'); if (xb && l.live) { const t = l.kind === 'pos' ? 'Flatten (live)' : 'Cancel live order'; xb.title = t; xb.setAttribute('aria-label', t); }
     chip.style.setProperty('--c', lineColor(l));
@@ -788,8 +846,8 @@ function syncChips(cell, inst, lines){
     if (A.textContent !== a) A.textContent = a;
     if (B.textContent !== b) B.textContent = b;
     if (l.live) { chip.classList.toggle('neg', l.pnl != null && l.pnl < 0); chip.title = l.kind === 'pos' ? 'Live position · × flattens (with a confirm)' : 'Live order · drag to move (with a confirm) · × cancels'; continue; }
-    if (l.kind === 'pos') { const p = acct.position(cell.symbol); chip.classList.toggle('neg', !!p && acct.openPnl(p) < 0); }
-    chip.title = l.kind === 'pos' ? 'Drag up/down to add a take profit or stop loss' : l.kind === 'ord' ? 'Drag to move the order · double-click to edit' : 'Drag to move';
+    if (l.kind === 'pos') { const p = acct.position(l.sym || cell.symbol); chip.classList.toggle('neg', !!p && acct.openPnl(p) < 0); }
+    chip.title = l.kind === 'pos' ? 'Drag up/down to add a take profit or stop loss' : l.kind === 'ord' ? 'Drag to move the order · double-click to edit' : l.tag === 'TP1' ? 'TP1: closes ' + l.qty + ' · drag to move' : (l.kind === 'sl' && acct.position(l.sym || cell.symbol) && acct.position(l.sym || cell.symbol).be != null) ? 'Stop loss · moves to break-even after TP1 · drag to move' : 'Drag to move';
   }
   for (const [, chip] of have) chip.remove();
 }
@@ -858,8 +916,8 @@ function livePnl(){
   if (!acct) return;
   for (const cell of cells()) {
     const inst = layerInst(inner(cell)); if (!inst || !inst.overlay) continue;
-    const p = liveOn() ? null : acct.position(cell.symbol);
     for (const chip of inst.overlay.querySelectorAll('.stkpt-chip[data-kind="pos"]')) {
+      const p = liveOn() || chip.dataset.live ? null : acct.position(chip.dataset.sym || cell.symbol);
       if (!p) continue;
       const v = money(acct.openPnl(p), true), B = chip.querySelector('.stkpt-chip-b');
       if (B.textContent !== v) B.textContent = v;
@@ -871,9 +929,10 @@ function livePnl(){
 }
 function onChipX(sym, id){
   if (id === 'pos') return closePos(sym);
+  if (id === 'ptp1') return act(() => { acct.modifyPosition(sym, { tp1: null }); return []; });
   if (id === 'ptp') return act(() => { acct.modifyPosition(sym, { tp: null }); return []; });
   if (id === 'psl') return act(() => { acct.modifyPosition(sym, { sl: null }); return []; });
-  const m = /^o(\d+)(tp|sl)?$/.exec(id); if (!m) return;
+  const m = /^o(\d+)(tp1|tp|sl)?$/.exec(id); if (!m) return;
   const oid = parseInt(m[1], 10);
   if (!m[2]) return cancelOrder(oid);
   return act(() => { acct.modifyOrder(oid, { [m[2]]: null }); return []; });
@@ -882,7 +941,7 @@ function onChipX(sym, id){
 // Dragging the position chip into profit creates a take profit, into loss a stop loss.
 function onChipDown(e, cell, inst, chip){
   if (e.button != null && e.button !== 0) return;
-  const id = chip.dataset.id, sym = cell.symbol;
+  const { id, sym } = chipRef(cell.symbol, chip.dataset.id);
   const a = inst.args; if (!a) return;
   const isLive = !!chip.dataset.live;
   if (isLive && chip.dataset.kind !== 'ord') return;   // live: only working orders move; the position has no TP/SL drag
@@ -892,7 +951,7 @@ function onChipDown(e, cell, inst, chip){
   const rect = (canvas || inst.overlay).getBoundingClientRect();
   const sp = isLive ? { ok: true, tick: LIVE.tickOf(sym) } : specOf(sym); if (!sp.ok) return;
   const p = isLive ? null : acct.position(sym);
-  const startPrice = (() => { const l = linesFor(sym).find((x) => x.id === id); return l ? l.price : null; })();
+  const startPrice = (() => { const l = ownLines(sym).find((x) => x.id === id); return l ? l.price : null; })();
   if (startPrice == null) return;
   Object.assign(drag, { on: true, sym, id, kind: 'move', price: startPrice, moved: false, y0: e.clientY, live: isLive, start: startPrice });
   if (id === 'pos' && p) Object.assign(drag, { kind: 'new', id: 'new', side: p.side, ref: p.avg, qty: p.qty, newKind: 'tp' });
@@ -930,9 +989,10 @@ function onChipDown(e, cell, inst, chip){
 function commitDrag(sym, d){
   const r = (() => {
     if (d.kind === 'new') return act(() => { acct.modifyPosition(sym, { [d.newKind]: d.price }); return []; });
+    if (d.id === 'ptp1') return act(() => { acct.modifyPosition(sym, { tp1: d.price }); return []; });
     if (d.id === 'ptp') return act(() => { acct.modifyPosition(sym, { tp: d.price }); return []; });
     if (d.id === 'psl') return act(() => { acct.modifyPosition(sym, { sl: d.price }); return []; });
-    const m = /^o(\d+)(tp|sl)?$/.exec(d.id); if (!m) return null;
+    const m = /^o(\d+)(tp1|tp|sl)?$/.exec(d.id); if (!m) return null;
     const oid = parseInt(m[1], 10);
     return act(() => { acct.modifyOrder(oid, m[2] ? { [m[2]]: d.price } : { price: d.price }); return []; });
   })();
@@ -961,14 +1021,20 @@ function oneClickAll(){
       q.addEventListener('keydown', (e) => e.stopPropagation());
       inst.overlay.appendChild(oc);
     }
-    if (oc.dataset.sym !== cell.symbol) { oc.dataset.sym = cell.symbol; oc.querySelector('input').value = acct.qtyFor(cell.symbol); }
+    const ts = tradeSym(cell.symbol);
+    if (oc.dataset.sym !== ts) {
+      oc.dataset.sym = ts; oc.querySelector('input').value = acct.qtyFor(ts);
+      const alt = canonSym(ts) !== canonSym(cell.symbol) ? ' ' + showSym(canonSym(ts)).replace(/[12]!$/, '') : '';
+      oc.querySelector('.stkpt-1c-s small').textContent = 'SELL' + alt; oc.querySelector('.stkpt-1c-b small').textContent = 'BUY' + alt;
+      oc.classList.toggle('alt', !!alt);
+    }
     oc.dataset.cell = cell.id;
     refreshOneClick(oc, cell);
     placeOneClick(oc, cell, inst.overlay);
   }
 }
 function refreshOneClick(oc, cell){
-  const sym = cell.symbol, last = acct && acct.last[sym];
+  const sym = oc.dataset.sym || cell.symbol, last = acct && (acct.last[sym] != null ? acct.last[sym] : acct.last[canonSym(sym)]);
   const t = Number.isFinite(last) ? fmtP(sym, last) : '—';
   for (const b of oc.querySelectorAll('b')) if (b.textContent !== t) b.textContent = t;
 }
@@ -1183,7 +1249,7 @@ function captureContext(e){
 }
 function ctxOrder(side){
   const cell = ctxAt.cell, price = ctxAt.price; if (!cell || price == null || !acct) return null;
-  const sym = cell.symbol, last = acct.last[sym];
+  const sym = tradeSym(cell.symbol), last = acct.last[sym] != null ? acct.last[sym] : acct.last[canonSym(sym)];
   if (!Number.isFinite(last)) return null;
   const type = side === 'buy' ? (price < last ? 'limit' : 'stop') : (price > last ? 'limit' : 'stop');
   return { symbol: sym, side, type, price, qty: acct.qtyFor(sym) };
@@ -1191,7 +1257,7 @@ function ctxOrder(side){
 function ctxLabel(side){
   const o = ctxOrder(side);
   if (!o) return side === 'buy' ? 'Paper buy…' : 'Paper sell…';
-  return 'Paper ' + (side === 'buy' ? 'Buy ' : 'Sell ') + (o.type === 'limit' ? 'limit' : 'stop') + ' ' + o.qty + ' @ ' + fmtP(o.symbol, o.price);
+  return 'Paper ' + (side === 'buy' ? 'Buy ' : 'Sell ') + (o.type === 'limit' ? 'limit' : 'stop') + ' ' + o.qty + (canonSym(o.symbol) !== canonSym(ctxAt.cell.symbol) ? ' ' + showSym(canonSym(o.symbol)).replace(/[12]!$/, '') : '') + ' @ ' + fmtP(o.symbol, o.price);
 }
 function registerContextActions(){
   if (!CORE || !CORE.registerWidgetAction) return;
@@ -1201,7 +1267,7 @@ function registerContextActions(){
   CORE.registerWidgetAction({ id: 'stryker.paper-sell', target: 'context:body', order: 901, get label(){ return ctxLabel('sell'); }, when,
     run: () => { const o = ctxOrder('sell'); if (o) placeOrder(o); } });
   CORE.registerWidgetAction({ id: 'stryker.paper-ticket', target: 'context:body', order: 902, label: 'Paper order ticket…', when: () => !!(paperOn() && ctxAt.cell),
-    run: () => { const c = ctxAt.cell; openTicket({ symbol: c.symbol, type: 'limit', price: ctxAt.price }); } });
+    run: () => { const c = ctxAt.cell; openTicket({ symbol: tradeSym(c.symbol), type: 'limit', price: ctxAt.price }); } });
 }
 
 // ------------------------------------------------------------------ bottom panel
@@ -1596,7 +1662,7 @@ const PK = window.PaperHotkeys;
 let hkRecording = false;
 function hkMap(){ const a = liveOf(); return a && a.settings.hotkeys ? PK.clean(a.settings.hotkeys) : {}; }
 function hkSave(map){ withLive(() => { syncFromLocal(); acct.setSettings({ hotkeys: PK.clean(map) }); save(); }); }
-function hkSym(){ const c = activeCell(); return c ? c.symbol : ''; }
+function hkSym(){ const c = activeCell(); return c ? tradeSym(c.symbol) : ''; }
 function hkQtyStep(sym, dir){
   const sp = specOf(sym); if (!sp.ok) return;
   const cur = acct.qtyFor(sym), st = sp.kind === 'futures' ? 1 : (cur >= 1 ? 1 : 0.01);
@@ -2168,6 +2234,6 @@ export function mountPaper(ws, opts){
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, orderPanel, flattenSym, setTrailing, toast, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
+    ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, tradeSym, setTradeSym, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

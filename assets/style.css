@@ -12698,6 +12698,37 @@ section.stkss-sec{ padding:0; margin:0; }
 .stkop-sum:empty{ display:none; }
 .stkop-go{ flex:none; display:grid; grid-template-columns:2fr 1fr; gap:8px; padding:12px 16px; border-top:1px solid var(--line-soft); }
 .stkop-go .stkop-status{ grid-column:1 / -1; }
+/* TRADE INSTRUMENT + TWO TARGETS (2026-11-18, roadmap card trade-instrument).
+   Header: mini | micro switch (24 px segmented, right of the contract chip). Order tab: TP1 (close N lots or %) + "stop to break-even
+   after TP1" (+ ticks), TP2 = the rest, "Size from risk" ($ or % of the balance). Rows sit on one 32 px centre line, 4-pt spacing. */
+.stkop-inst{ flex:none; display:inline-flex; height:24px; padding:2px; border-radius:999px; background:var(--bg-3); }
+.stkop-inst[hidden]{ display:none; }
+.stkop-inst button{ height:20px; min-width:40px; padding:0 8px; border:0; border-radius:999px; background:transparent; color:var(--ink-2); font:600 11px/20px var(--font-mono, monospace); letter-spacing:.02em; cursor:pointer; }
+.stkop-inst button:hover{ color:var(--ink-0); }
+.stkop-inst button.on{ background:var(--bg-1); color:var(--ink-0); box-shadow:0 1px 2px rgba(0,0,0,.35), 0 0 0 1px var(--line); }
+:root[data-theme="light"] .stkop-inst button.on{ background:var(--bg-2); box-shadow:0 1px 2px rgba(14,22,33,.12), 0 0 0 1px var(--line); }
+.stkop-br[hidden]{ display:none; }
+.stkop-br[data-leg=tp1] .stkop-pair input:not(:disabled){ border-color:color-mix(in srgb, var(--op-buy) 45%, var(--line)); }
+.stkop-t1q{ display:flex; align-items:center; gap:8px; min-height:32px; min-width:0; }
+.stkop-t1q .stkop-lbl{ flex:none; }
+.stkop-t1q .stkop-seg{ flex:none; margin-left:auto; }
+.stkop-be .stkop-chk{ flex:1 1 auto; min-width:0; font-weight:500; color:var(--ink-1); }
+.stkop-t1n{ position:relative; flex:0 0 96px; display:block; min-width:0; }
+.stkop-t1n input{ width:100%; height:32px; margin:0; padding:0 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg-0); color:var(--ink-0); font:600 13px/20px var(--font-mono); font-variant-numeric:tabular-nums; text-align:right; box-sizing:border-box; }
+.stkop-t1n:has(span) input{ padding-right:52px; }
+:root[data-theme="light"] .stkop-t1n input{ background:var(--bg-1); }
+.stkop-t1n input:disabled{ opacity:.55; }
+.stkop-t1n input:focus{ outline:none; border-color:var(--gold); }
+.stkop-t1n input[readonly]{ color:var(--ink-1); }
+.stkop-t1n span{ position:absolute; right:12px; top:8px; font:500 11px/16px var(--font-body, sans-serif); color:var(--ink-3); pointer-events:none; }
+.stkop-rv{ flex:0 0 120px; }
+.stkop-t1s{ flex:1 1 auto; min-width:0; margin:0; font:500 12px/16px var(--font-body, sans-serif); color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.stkop-t1s:empty{ display:none; }
+.stkop-t1s.bad{ color:var(--op-sell-ink); }
+.stkop-risk{ padding-top:16px; border-top:1px dashed var(--line); }
+.stkop-risk .stkop-brh{ height:32px; }
+.stkop-risk .stkop-seg button{ min-width:48px; }
+.stkop-qty input[readonly]{ color:var(--gold); }
 .stkop-go .stkop-pill{ min-width:0; }
 
 /* DOM: the Book panel, embedded */

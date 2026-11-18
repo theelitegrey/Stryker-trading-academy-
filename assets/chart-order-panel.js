@@ -28,7 +28,15 @@
 // 2-contract cap + worst-case exposure, 10 orders a minute (client + server), fresh-read gate, kill switch, back to Paper after 15 min
 // idle, every attempt audited on the server. This file never calls the order endpoint itself.
 // Hotkeys: B = Buy, S = Sell (market, Scalp quantity) — OFF by default, only while the panel is open and not typing in a field.
-// Tests: tools/tests/chart-live-browser.js (live + member paper, mocked endpoints only).
+// TRADE INSTRUMENT (2026-11-18, roadmap card trade-instrument): the header's mini / micro switch (NQ | MNQ, ES | MES, YM | MYM,
+//           RTY | M2K, GC | MGC, CL | MCL, SI | SIL) picks what the panel trades; it starts on the chart symbol and is kept per chart
+//           root (chart-paper.js tradeSym). Orders, the footer position / P&L and the DOM tab all use it; the chart never changes.
+// TWO TARGETS (Order tab): Stop loss, TP1 (close N contracts or N %), Take profit = TP2 (the rest), "Stop to break-even after TP1"
+//           (+ offset ticks), "Size from risk" ($ or % of the balance + the stop distance -> contracts, rounded down, min 1, capped at
+//           the max size). Paper: everything (paper-engine.js). LIVE: one stop loss + one take profit per contract is what the server's
+//           guarded route keeps (functions/connect/finatic/order.js), so TP1 and break-even are hidden there with a plain note;
+//           risk sizing still works (capped at the live max).
+// Tests: tools/tests/chart-live-browser.js (live + member paper, mocked endpoints only), tools/tests/chart-paper-trading-browser.js.
 // Education only. Not financial advice.
 import * as L from './chart-live-core.js?v=1124';
 import { acquire, rootState, l2Root, l2Delayed } from './chart-futures-l2.js?v=1124';
@@ -62,7 +70,10 @@ const roundTick = (p, t) => Math.round(p / t) * t;
 
 let P = null, el = null, bodyEl = null, footEl = null, infoEl = null, chipEl = null, meta = { sym: '', desc: '', prev: null }, dockRO = null, prefs = null, prefKey = '', viewSig = '', footSig = '', open = false, lastQty = '';
 const F = { side: 'buy', type: 'market', qty: '1', price: '', priceKey: '', trail: false,
-  sl: { on: false, price: '', ticks: '20', src: 'ticks' }, tp: { on: false, price: '', ticks: '40', src: 'ticks' } };
+  sl: { on: false, price: '', ticks: '20', src: 'ticks' }, tp: { on: false, price: '', ticks: '40', src: 'ticks' },
+  tp1: { on: false, price: '', ticks: '20', src: 'ticks', size: '1', unit: 'qty' }, be: { on: false, ticks: '0' },
+  risk: { on: false, mode: 'usd', v: '' } };
+const LIVE_TWO = 'TP1 and break-even are paper only for now. Live orders carry one stop loss and one take profit.';
 
 // ------------------------------------------------------------------------------------------------ prefs (per user)
 function loadPrefs() {
@@ -76,7 +87,8 @@ function savePrefs() { try { localStorage.setItem(prefKey, JSON.stringify(prefs)
 
 // ------------------------------------------------------------------------------------------------ what is on the chart
 function ctx() {
-  const sym = P.activeSymbol() || '';
+  const chartSym = P.activeSymbol() || '';
+  const sym = (P.tradeSym ? P.tradeSym(chartSym) : chartSym) || '';   // the TRADE instrument (chart symbol or its mini / micro partner)
   const lv = P.live || null;
   const a = P.account;
   const PE = window.PaperEngine;
@@ -92,7 +104,9 @@ function ctx() {
   const code = li && li.code ? li.code : fm ? fm.code : exName;
   const tick = lv ? (li ? li.tick : lv.tickOf(sym)) : sp.ok ? sp.tick : 0.01;
   const last = lv ? (li && Number.isFinite(li.last) ? li.last : P.lastPrice(sym)) : (a && Number.isFinite(a.last[sp.symbol]) ? a.last[sp.symbol] : P.lastPrice(sym));
-  return { sym, lv, li, a, sp, prov, tk, fut, rootName, label, code, tick: tick || 0.01, dec: decOf(tick || 0.01), last: Number.isFinite(last) && last > 0 ? last : null, live: !!lv };
+  const fam = PE && PE.familyOf ? PE.familyOf(chartSym) : null;
+  const chartRootName = fam ? String((PE.specOf(chartSym) || {}).root || '') : '';
+  return { sym, chartSym, fam, chartRootName, lv, li, a, sp, prov, tk, fut, rootName, label, code, tick: tick || 0.01, dec: decOf(tick || 0.01), last: Number.isFinite(last) && last > 0 ? last : null, live: !!lv };
 }
 const fmt = (c, p) => (p == null || !Number.isFinite(p) ? '—' : p.toLocaleString('en-US', { minimumFractionDigits: c.dec, maximumFractionDigits: c.dec }));
 const fmtIn = (c, p) => (Number.isFinite(p) ? p.toFixed(c.dec) : '');
@@ -160,18 +174,37 @@ function entryRef(c, qt) {
 }
 // keep each leg's price and ticks in step with the entry (the side the member typed in last is the source)
 function legSync(c, ref, k) {
-  const g = F[k], dir = (F.side === 'buy' ? 1 : -1) * (k === 'tp' ? 1 : -1);
+  const g = F[k], dir = (F.side === 'buy' ? 1 : -1) * (k === 'tp' || k === 'tp1' ? 1 : -1);
   if (!(ref > 0)) return null;
   if (g.src === 'price') { const p = num(g.price); if (!(p > 0)) return null; const t = Math.round(Math.abs(p - ref) / c.tick); g.ticks = String(t); return roundTick(p, c.tick); }
   const t = Math.abs(Math.round(num(g.ticks))); if (!(t > 0)) return null;
   const p = roundTick(ref + dir * t * c.tick, c.tick); g.price = fmtIn(c, p); return p;
 }
 function caps(c) {
-  if (!c.live) return { stop: true, bracket: true, trail: F.type === 'market', why: '' };
+  if (!c.live) return { stop: true, bracket: true, trail: F.type === 'market', two: true, why: '' };
   const k = c.lv.caps();
-  // live stop loss / take profit: market entries only (the server places them after the fill)
+  // live stop loss / take profit: market entries only (the server places them after the fill); never TP1 / break-even (one group)
   const mo = !!k.bracket && F.type !== 'market';
-  return { stop: !!k.stop, bracket: !!k.bracket && !mo, trail: false, why: mo ? k.marketOnly : k.why };
+  return { stop: !!k.stop, bracket: !!k.bracket && !mo, trail: false, two: false, why: mo ? k.marketOnly : k.why };
+}
+// risk-based size -> { qty, risk, over, capped, amt } | { error } | null (off / not applicable)
+function riskSize(c, k, ref, sl) {
+  if (!F.risk.on || !k.bracket) return null;
+  if (!F.sl.on || !(sl > 0)) return { error: 'Turn on the stop loss: the size comes from its distance.' };
+  const v = num(F.risk.v); if (!(v > 0)) return { error: F.risk.mode === 'pct' ? 'Enter the % of the balance to risk.' : 'Enter the $ amount to risk.' };
+  let bal = null;
+  if (F.risk.mode === 'pct') {
+    if (c.live) { const L2 = window.__stkLive, a = L2 && L2.state && L2.state.acct, b = a && L2.balance ? L2.balance(a.id) : null; bal = b && b.state === 'ok' ? b.amount : null; }
+    else bal = c.a ? c.a.state.balance : null;
+    if (!(bal > 0)) return { error: 'The balance isn’t known yet. Use a $ amount.' };
+    if (v > 100) return { error: 'Risk % is 100 or less.' };
+  }
+  const amt = F.risk.mode === 'pct' ? bal * v / 100 : v;
+  const r = qtyRules(c);
+  const spec = c.live ? { ok: true, kind: 'futures', pointValue: c.li ? c.li.pv : 0, qtyStep: 1, minQty: 1, maxQty: r.max } : c.sp;
+  if (!(spec.pointValue > 0)) return { error: 'No contract value for this symbol.' };
+  const s0 = window.PaperEngine.sizeForRisk(spec, amt, ref, sl, r.max);
+  return s0.error ? s0 : Object.assign(s0, { amt });
 }
 
 // ------------------------------------------------------------------------------------------------ actions
@@ -211,8 +244,17 @@ function confirmOrder() {
   const ref = entryRef(c, qt);
   const o = { side: F.side, type: F.type, price };
   if (k.bracket) {
-    for (const leg of ['sl', 'tp']) if (F[leg].on) { const p = legSync(c, ref, leg); if (!(p > 0)) { P.toast('Enter the ' + (leg === 'sl' ? 'stop loss' : 'take profit') + ' price or ticks, or untick it.', 'error'); return; } o[leg] = p; }
+    const legs = ['sl', 'tp'].concat(k.two && F.tp1.on ? ['tp1'] : []), nm = { sl: 'stop loss', tp: 'take profit', tp1: 'TP1' };
+    for (const leg of legs) if (F[leg].on) { const p = legSync(c, ref, leg); if (!(p > 0)) { P.toast('Enter the ' + nm[leg] + ' price or ticks, or untick it.', 'error'); return; } o[leg] = p; }
+    if (o.tp1 != null) {
+      const n = num(F.tp1.size); if (!(n > 0)) { P.toast('Enter how much TP1 closes.', 'error'); return; }
+      if (F.tp1.unit === 'pct') o.tp1Pct = n; else o.tp1Qty = n;
+      if (F.be.on) { const b = Math.round(num(F.be.ticks)); o.be = b >= 0 ? b : 0; }
+    }
     if (F.trail && F.sl.on && k.trail) o.trail = true;
+    const rs = riskSize(c, k, ref, o.sl);
+    if (rs && rs.error) { P.toast(rs.error, 'error'); return; }
+    if (rs) F.qty = String(rs.qty);
   }
   if (c.live && F.type === 'limit' && qt) o.marketable = F.side === 'buy' ? price >= qt.ask : price <= qt.bid;
   send(c, o, 'Order');
@@ -241,7 +283,8 @@ function build() {
         '<button type="button" class="stkop-ib" data-a="max"></button><button type="button" class="stkop-ib" data-a="min"></button><button type="button" class="stkop-ib" data-a="close" aria-label="Close the order panel" title="Close">' + ICON.close + '</button></div>' +
     '</div>' +
     '<div class="stkop-info">' +
-      '<div class="stkop-il"><p class="stkop-sym" id="stkop-sym"><b data-k="root"></b><span class="stkop-nm" data-k="name"></span></p><span class="stkop-code" data-k="code"></span></div>' +
+      '<div class="stkop-il"><p class="stkop-sym" id="stkop-sym"><b data-k="root"></b><span class="stkop-nm" data-k="name"></span></p><span class="stkop-code" data-k="code"></span>' +
+        '<span class="stkop-inst" role="radiogroup" aria-label="Trade instrument (mini or micro)" data-k="inst" hidden></span></div>' +
       '<div class="stkop-il"><span class="stkop-last" data-k="last">—</span><span class="stkop-chg" data-k="chg"></span><span class="stkop-sp"></span>' +
         '<span class="stkop-ba"><span>Bid <b class="bid" data-k="bid">—</b></span><span>Ask <b class="ask" data-k="ask">—</b></span></span></div>' +
     '</div>' +
@@ -265,6 +308,9 @@ function onClick(e) {
   const t = e.target.closest('button, [data-pre]'); if (!t || t.disabled) return;
   const c = () => ctx();
   if (t.dataset.tab) { setTab(t.dataset.tab); return; }
+  if (t.dataset.inst) { const x = c(); if (P.setTradeSym && x.fam) { P.setTradeSym(x.chartSym, 'futures:' + t.dataset.inst + '1!'); F.priceKey = ''; viewSig = ''; update(); } return; }
+  if (t.dataset.unit) { F.tp1.unit = t.dataset.unit; update(); return; }
+  if (t.dataset.rmode) { F.risk.mode = t.dataset.rmode; update(); return; }
   const a = t.dataset.a;
   if (a === 'close') { close(); return; }
   if (a === 'min') { prefs.min = !prefs.min; savePrefs(); viewSig = ''; layout(); update(); return; }
@@ -293,7 +339,12 @@ function onInput(e) {
   else if (f === 'price') F.price = v;
   else if (f === 'trail') F.trail = v;
   else if (f === 'hk') { prefs.hk = v; savePrefs(); }
-  else { const [leg, k] = f.split('.'); if (!(leg === 'sl' || leg === 'tp') || !k) return;   // the embedded DOM ladder's own fields
+  else if (f === 'tp1.size') F.tp1.size = v;
+  else if (f === 'be.on') F.be.on = v;
+  else if (f === 'be.ticks') F.be.ticks = v;
+  else if (f === 'risk.on') F.risk.on = v;
+  else if (f === 'risk.v') F.risk.v = v;
+  else { const [leg, k] = f.split('.'); if (!(leg === 'sl' || leg === 'tp' || leg === 'tp1') || !k) return;   // the embedded DOM ladder's own fields
     if (k === 'on') F[leg].on = v; else { F[leg][k] = v; F[leg].src = k; } }
   update();
 }
@@ -423,6 +474,24 @@ function leg(k, title, trail) {
     '<div class="stkop-pre" role="group" aria-label="' + title + ' presets">' + PRESETS.map((n) => '<button type="button" data-pre="' + n + '" data-leg="' + k + '" aria-label="' + title + ' ' + n + ' ticks">' + n + '</button>').join('') + '</div>' +
   '</fieldset>';
 }
+// TP1: close part at the first target (contracts or %), then optionally move the stop to break-even (+ offset ticks)
+function legTp1() {
+  return '<fieldset class="stkop-br" data-leg="tp1"><legend class="stkop-vh">Take profit 1</legend>' +
+    '<div class="stkop-brh"><label class="stkop-chk"><input type="checkbox" data-f="tp1.on"> TP1 · close part</label></div>' +
+    '<div class="stkop-pair"><label><input data-f="tp1.price" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="TP1 price"><span>Price</span></label><label><input data-f="tp1.ticks" type="text" inputmode="numeric" autocomplete="off" aria-label="TP1 in ticks"><span>Ticks</span></label></div>' +
+    '<div class="stkop-t1q"><span class="stkop-lbl">Close</span><label class="stkop-t1n"><input data-f="tp1.size" type="text" inputmode="decimal" autocomplete="off" aria-label="TP1 closes this much"></label>' +
+      '<div class="stkop-seg" role="radiogroup" aria-label="TP1 size unit"><button type="button" role="radio" data-unit="qty" data-k="unitq">Lots</button><button type="button" role="radio" data-unit="pct">%</button></div></div>' +
+    '<div class="stkop-t1q stkop-be"><label class="stkop-chk"><input type="checkbox" data-f="be.on"> Stop to break-even after TP1</label><label class="stkop-t1n"><input data-f="be.ticks" type="text" inputmode="numeric" autocomplete="off" aria-label="Break-even offset in ticks"><span>+ticks</span></label></div>' +
+    '<p class="stkop-t1s" data-k="t1sum"></p>' +
+  '</fieldset>';
+}
+function viewRisk() {
+  return '<fieldset class="stkop-br stkop-risk" data-leg="risk"><legend class="stkop-vh">Size from risk</legend>' +
+    '<div class="stkop-brh"><label class="stkop-chk"><input type="checkbox" data-f="risk.on"> Size from risk</label>' +
+      '<div class="stkop-seg" role="radiogroup" aria-label="Risk unit"><button type="button" role="radio" data-rmode="usd">$</button><button type="button" role="radio" data-rmode="pct">% bal</button></div></div>' +
+    '<div class="stkop-t1q"><label class="stkop-t1n stkop-rv"><input data-f="risk.v" type="text" inputmode="decimal" autocomplete="off" aria-label="Amount to risk" placeholder="0"><span data-k="runit">USD</span></label><p class="stkop-t1s" data-k="rsum"></p></div>' +
+  '</fieldset>';
+}
 function viewOrder(c) {
   return '<form class="stkop-order" novalidate><div class="stkop-oscroll">' +
     '<div class="stkop-sides" role="radiogroup" aria-label="Side"><button type="button" role="radio" class="stkop-side buy" data-side="buy"><b>Buy</b><span>BID <em data-k="bid">—</em></span></button><button type="button" role="radio" class="stkop-side sell" data-side="sell"><b>Sell</b><span>ASK <em data-k="ask">—</em></span></button></div>' +
@@ -431,7 +500,7 @@ function viewOrder(c) {
       '<div class="stkop-f"><span class="stkop-lbl" data-k="plabel">Market price</span><b class="stkop-mkt" data-k="mkt">—</b><input class="stkop-in" data-f="price" type="text" inputmode="decimal" autocomplete="off" aria-label="Order price"></div>' +
       '<div class="stkop-f"><span class="stkop-lbl">Quantity</span>' + stepper(c.fut || c.live ? 'lots' : 'qty') + '</div>' +
     '</div>' +
-    '<div class="stkop-sec dash">' + leg('sl', 'Stop loss', true) + leg('tp', 'Take profit', false) + '<p class="stkop-why" data-k="why" hidden></p></div>' +
+    '<div class="stkop-sec dash">' + leg('sl', 'Stop loss', true) + legTp1() + leg('tp', 'Take profit', false) + '<p class="stkop-why" data-k="why" hidden></p>' + viewRisk() + '</div>' +
     '<p class="stkop-sum" data-k="sum"></p>' +
   '</div>' +
   '<div class="stkop-go"><p class="stkop-status" role="status" data-k="status"></p><button type="submit" class="stkop-pill stkop-confirm buy" data-k="confirm">Confirm</button><button type="button" class="stkop-pill ghost" data-a="cancel">Cancel</button></div>' +
@@ -461,6 +530,14 @@ function renderInfo(c) {
   const nm = setText('name', name); if (nm) nm.hidden = !name;
   const code = c.fut ? c.code || '' : '';
   const ce = setText('code', code); if (ce) ce.hidden = !code;
+  const ie = el.querySelector('[data-k=inst]');
+  if (ie) {
+    const f = c.fam, sig = f ? f.mini + '|' + f.micro + '|' + c.rootName + '|' + c.chartRootName : '';
+    if (ie.dataset.sig !== sig) {
+      ie.dataset.sig = sig; ie.hidden = !f;
+      ie.innerHTML = f ? [f.mini, f.micro].map((r) => '<button type="button" role="radio" data-inst="' + r + '" aria-checked="' + (r === c.rootName) + '" class="' + (r === c.rootName ? 'on' : '') + '" title="' + (r === c.chartRootName ? 'Trade ' + r + ' (the chart symbol)' : 'Trade ' + r + ' on this ' + c.chartRootName + ' chart (same prices)') + '">' + r + '</button>').join('') : '';
+    }
+  }
   setText('last', fmt(c, c.last));
   const ch = el.querySelector('[data-k=chg]');
   if (ch) {
@@ -503,7 +580,7 @@ export function update() {
   if (!open) { stopQuote(); return; }
   wantQuote(c);
   const ph = isPhone(), tab = shownTab(), paperOff = !c.live && !P.enabled;
-  const dk = docked(), sig = [tab, c.live, ph, paperOff, c.fut, prefs.min && !dk, dk].join('|');
+  const dk = docked(), sig = [tab, c.live, ph, paperOff, c.fut, prefs.min && !dk, dk, tab === 'dom' ? c.sym : ''].join('|');
   el.classList.toggle('is-live', c.live);
   if (viewSig !== sig) {
     viewSig = sig;
@@ -562,22 +639,58 @@ export function update() {
     // brackets
     const ref = entryRef(c, qt);
     const sl = k.bracket && F.sl.on ? legSync(c, ref, 'sl') : (legSync(c, ref, 'sl'), null), tp = k.bracket && F.tp.on ? legSync(c, ref, 'tp') : (legSync(c, ref, 'tp'), null);
-    for (const lg of ['sl', 'tp']) {
-      const fs = form.querySelector('[data-leg=' + lg + ']'), on = F[lg].on && k.bracket;
+    const two = k.bracket && k.two, tp1 = two && F.tp1.on ? legSync(c, ref, 'tp1') : (legSync(c, ref, 'tp1'), null);
+    for (const lg of ['sl', 'tp', 'tp1']) {
+      const fs = form.querySelector('[data-leg=' + lg + ']'), on = F[lg].on && k.bracket && (lg !== 'tp1' || two);
+      if (lg === 'tp1') { fs.hidden = !k.two; if (!k.two) continue; }
       fs.classList.toggle('on', on); fs.classList.toggle('na', !k.bracket);
       const cb = fs.querySelector('[data-f="' + lg + '.on"]'); cb.checked = on; cb.disabled = !k.bracket;
       for (const i of fs.querySelectorAll('.stkop-pair input')) i.disabled = !on;
       for (const b of fs.querySelectorAll('[data-pre]')) { b.disabled = !k.bracket; b.classList.toggle('on', on && F[lg].src === 'ticks' && F[lg].ticks === b.dataset.pre); }
       setVal(lg + '.price', F[lg].price); setVal(lg + '.ticks', F[lg].ticks);
     }
+    // TP1 size / unit / break-even, and the TP leg's name (TP2 = the rest while TP1 is on)
+    const t1on = two && F.tp1.on;
+    { const tl = form.querySelector('[data-leg=tp] .stkop-chk'); const want = t1on ? ' Take profit 2 · rest' : ' Take profit'; if (tl && tl.lastChild.textContent !== want) tl.lastChild.textContent = want; }
+    if (k.two) {
+      const f1 = form.querySelector('[data-leg=tp1]');
+      for (const i of f1.querySelectorAll('.stkop-t1q input')) i.disabled = !t1on;
+      for (const b of f1.querySelectorAll('[data-unit]')) { const o2 = b.dataset.unit === F.tp1.unit; b.classList.toggle('on', o2); b.setAttribute('aria-checked', String(o2)); b.disabled = !t1on; }
+      const uq = f1.querySelector('[data-k=unitq]'); if (uq) uq.textContent = c.fut || c.live ? 'Lots' : 'Qty';
+      const be = f1.querySelector('[data-f="be.on"]'); be.checked = F.be.on; be.disabled = !t1on;
+      f1.querySelector('[data-f="be.ticks"]').disabled = !t1on || !F.be.on;
+      setVal('tp1.size', F.tp1.size); setVal('be.ticks', F.be.ticks);
+    }
+    // risk-based size (sets the quantity; the stepper is locked while it is on)
+    const rs = riskSize(c, k, ref, sl);
+    const rf = form.querySelector('[data-leg=risk]');
+    { const cb = rf.querySelector('[data-f="risk.on"]'); cb.checked = F.risk.on && k.bracket; cb.disabled = !k.bracket; rf.classList.toggle('na', !k.bracket); rf.classList.toggle('on', F.risk.on && k.bracket);
+      for (const b of rf.querySelectorAll('[data-rmode]')) { const o2 = b.dataset.rmode === F.risk.mode; b.classList.toggle('on', o2); b.setAttribute('aria-checked', String(o2)); b.disabled = !(F.risk.on && k.bracket); }
+      rf.querySelector('[data-f="risk.v"]').disabled = !(F.risk.on && k.bracket); setVal('risk.v', F.risk.v);
+      setText('runit', F.risk.mode === 'pct' ? '%' : 'USD');
+      const rt = !rs ? '' : rs.error ? rs.error : (rs.over ? 'Min size: ' + rs.qty + ' risks ' + money(rs.risk) + ', more than ' + money(rs.amt) : rs.qty + (c.fut || c.live ? (rs.qty === 1 ? ' lot' : ' lots') : '') + ' · risk ' + money(rs.risk) + (rs.capped ? ' (max size)' : ''));
+      const re = setText('rsum', rt); if (re) re.classList.toggle('bad', !!(rs && (rs.error || rs.over)));
+    }
+    if (rs && !rs.error && String(rs.qty) !== F.qty) { F.qty = String(rs.qty); setVal('qty', F.qty); }
+    for (const b of form.querySelectorAll('.stkop-qty button')) if (rs && !rs.error) b.disabled = true;
+    { const qi = form.querySelector('.stkop-qty [data-f=qty]'); if (qi) qi.readOnly = !!(rs && !rs.error); }
     const tr = form.querySelector('[data-f=trail]'); if (tr) { tr.disabled = !(k.trail && F.sl.on); if (tr.disabled) F.trail = false; tr.checked = F.trail; tr.closest('label').title = k.trail ? 'Keeps the stop the same distance behind the best price (simulated)' : c.live ? k.why : 'Trail works on market orders'; }
-    const wh = form.querySelector('[data-k=why]'); const w2 = !k.bracket ? k.why : ''; wh.hidden = !w2; if (wh.textContent !== w2) wh.textContent = w2;
+    const wh = form.querySelector('[data-k=why]'); const w2 = !k.bracket ? k.why : c.live ? LIVE_TWO : ''; wh.hidden = !w2; if (wh.textContent !== w2) wh.textContent = w2;
     // risk / reward summary (paper point value; live contract spec)
     const pv = c.live ? (c.li ? c.li.pv : 0) : c.sp.ok ? c.sp.pointValue : 0;
     const qty = cleanQty(c, F.qty), parts = [];
+    // TP1 size in lots (from % rounded down, like the engine)
+    let q1 = null;
+    if (tp1 != null) { const n = num(F.tp1.size), st = c.sp.ok ? c.sp.qtyStep : 1; q1 = F.tp1.unit === 'pct' ? Math.floor(qty * Math.min(100, Math.max(0, n)) / 100 / st + 1e-9) * st : n; q1 = Number.isFinite(q1) ? Number(q1.toFixed(6)) : null; }
+    const q2 = q1 != null && q1 > 0 && q1 < qty ? Number((qty - q1).toFixed(6)) : qty;
+    if (k.two) {
+      const t1 = !t1on ? '' : !(q1 > 0) ? 'Enter how much TP1 closes.' : !(q1 < qty) ? 'TP1 must close less than ' + qty + '; TP2 takes the rest.' : 'TP1 closes ' + q1 + ', TP2 ' + (tp != null ? 'closes ' : 'leaves ') + q2 + (F.be.on ? '. Then the stop moves to entry' + (num(F.be.ticks) > 0 ? ' + ' + Math.round(num(F.be.ticks)) + ' ticks' : '') : '') + '.';
+      const te = setText('t1sum', t1); if (te) te.classList.toggle('bad', !!t1on && !(q1 > 0 && q1 < qty));
+    }
     if (sl != null && ref) parts.push('Risk ' + money(Math.abs(ref - sl) * qty * pv));
-    if (tp != null && ref) parts.push('Reward ' + money(Math.abs(tp - ref) * qty * pv));
-    if (sl != null && tp != null && ref && Math.abs(ref - sl) > 0) parts.push('R:R 1:' + (Math.abs(tp - ref) / Math.abs(ref - sl)).toFixed(2));
+    const rw = (tp1 != null && q1 > 0 && q1 < qty ? Math.abs(tp1 - ref) * q1 : 0) + (tp != null ? Math.abs(tp - ref) * (tp1 != null && q1 > 0 && q1 < qty ? q2 : qty) : 0);
+    if ((tp != null || tp1 != null) && ref && rw > 0) parts.push('Reward ' + money(rw * pv));
+    if (sl != null && (tp != null || tp1 != null) && ref && Math.abs(ref - sl) > 0 && rw > 0) parts.push('R:R 1:' + (rw / (Math.abs(ref - sl) * qty)).toFixed(2));
     setText('sum', parts.join(' · '));
     const go = form.querySelector('[data-k=confirm]');
     go.className = 'stkop-pill stkop-confirm ' + F.side; go.disabled = !!why;

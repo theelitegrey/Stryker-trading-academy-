@@ -165,27 +165,30 @@ export function mountBookPanel(ws, opts) {
   const LV = () => { const p = P(); return p && p.live; };
   const paperOn = () => { const p = P(); return !!(p && (p.live || (p.enabled && p.account))); };
   const acct = () => { const p = P(); return p && p.account; };
-  const specOf = () => { try { return acct().spec(feed.k.sym); } catch (e) { return { ok: false }; } };
+  // the TRADE instrument (2026-11-18): the chart symbol or its mini / micro partner picked in the order panel (same price scale, so the
+  // ladder's prices are its prices). Orders, chips, position and P&L of the ladder are that instrument's.
+  const tsym = () => { const p = P(), s0 = feed && feed.k ? feed.k.sym : ''; try { return p && p.tradeSym ? p.tradeSym(s0) : s0; } catch (e) { return s0; } };
+  const specOf = () => { try { return acct().spec(tsym()); } catch (e) { return { ok: false }; } };
   function paperState() {
     if (!paperOn() || !feed || !feed.key) return null;
-    const lv = LV(); if (lv) { const d = lv.domState(feed.k.sym); return d ? { live: d, a: null, sp: d.sp, orders: d.orders, pos: d.pos } : null; }
+    const lv = LV(); if (lv) { const d = lv.domState(tsym()); return d ? { live: d, a: null, sp: d.sp, orders: d.orders, pos: d.pos } : null; }
     const a = acct(), sp = specOf(); if (!sp.ok) return null;
-    const orders = a.state.orders.filter((o) => o.symbol === sp.symbol), pos = a.position(feed.k.sym);
+    const orders = a.state.orders.filter((o) => o.symbol === sp.symbol), pos = a.position(tsym());
     return { a, sp, orders, pos };
   }
   const stepQty = (sp, q, dir) => { if (sp.kind === 'futures') return Math.max(sp.minQty, q + dir); const st = Math.pow(10, Math.floor(Math.log10(Math.max(q, sp.minQty)))); return Math.max(sp.minQty, Math.round((q + dir * st) * 1e8) / 1e8); };
   function syncQty(ps) {
-    const key = feed.k.sym; if (qtyKey === key && qty > 0) return;
-    qtyKey = key; try { qty = ps.live ? 1 : ps.a.qtyFor(feed.k.sym) || ps.sp.minQty; } catch (e) { qty = ps.sp.minQty; }
+    const key = tsym(); if (qtyKey === key && qty > 0) return;
+    qtyKey = key; try { qty = ps.live ? 1 : ps.a.qtyFor(key) || ps.sp.minQty; } catch (e) { qty = ps.sp.minQty; }
     qtyIn.value = String(qty);
   }
   function trade(cell, price, mdl) {
     const ps = paperState();
     if (!ps) { if (!hint && opts.toast) { hint = true; opts.toast('Turn on Paper trading in Chart settings to trade from the ladder (simulated, demo money).', 'info'); } return; }
     const q = parseFloat(qtyIn.value); if (!(q > 0)) return;
-    if (ps.live) { LV().ladder(feed.k.sym, cell, price, mdl.m.bids[0][0], mdl.m.asks[0][0], Math.min(2, Math.max(1, Math.round(q)))); schedule(); return; }
+    if (ps.live) { LV().ladder(tsym(), cell, price, mdl.m.bids[0][0], mdl.m.asks[0][0], Math.min(2, Math.max(1, Math.round(q)))); schedule(); return; }
     const o = C.clickToOrder(cell, price, mdl.m.bids[0][0], mdl.m.asks[0][0]); if (!o) return;
-    P().placeOrder(Object.assign({ symbol: feed.k.sym, qty: q }, o));
+    P().placeOrder(Object.assign({ symbol: tsym(), qty: q }, o));
     schedule();
   }
 
@@ -339,7 +342,7 @@ export function mountBookPanel(ws, opts) {
     rh = isPhone() ? 28 : 22; rowsN = clamp(Math.floor((list.clientHeight || 360) / rh), 8, 90);
     const ps = paperState();
     paperBar.hidden = !(ps && S.tab === 'dom');
-    paperBar.classList.toggle('live', !!(ps && ps.live)); $('.stkbp-pl').textContent = ps && ps.live ? ps.live.label.replace(/^(LIVE|SANDBOX) /, '$1 · ') + ' · ' + ps.live.code : 'Paper';
+    paperBar.classList.toggle('live', !!(ps && ps.live)); { const ts = tsym(), alt = ps && !ps.live && ps.sp && ps.sp.ok && ps.sp.kind === 'futures' && ts !== (feed && feed.k ? feed.k.sym : '') ? ' · ' + ps.sp.root : ''; $('.stkbp-pl').textContent = ps && ps.live ? ps.live.label.replace(/^(LIVE|SANDBOX) /, '$1 · ') + ' · ' + ps.live.code : 'Paper' + alt; }
     if (ps && ps.live) { syncQty(ps); const p = ps.pos, v = ps.live.pnl; $('.stkbp-pos').innerHTML = p ? '<b class="' + (p.side === 'buy' ? 'up' : 'dn') + '">' + (p.side === 'buy' ? 'Long ' : 'Short ') + p.qty + '</b> @ ' + C.fmtPrice(p.avg, feed.step || 0.01) + ' <em>' + (v == null ? '' : (v >= 0 ? '+$' : '−$') + Math.abs(v).toFixed(2)) + '</em>' : 'Flat'; }
     else if (ps) { syncQty(ps); const p = ps.pos; $('.stkbp-pos').innerHTML = p ? '<b class="' + (p.side === 'buy' ? 'up' : 'dn') + '">' + (p.side === 'buy' ? 'Long ' : 'Short ') + p.qty + '</b> @ ' + C.fmtPrice(p.avg, feed.step || 0.01) + ' <em>' + (() => { try { const v = ps.a.openPnl(p); return (v >= 0 ? '+$' : '−$') + Math.abs(v).toFixed(2); } catch (e) { return ''; } })() + '</em>' : 'Flat'; }
     // status
@@ -485,8 +488,8 @@ export function mountBookPanel(ws, opts) {
     const up = () => {
       chip.removeEventListener('pointermove', mv); chip.removeEventListener('pointerup', up); chip.classList.remove('drag'); list.querySelectorAll('.is-drop').forEach((n) => n.classList.remove('is-drop'));
       const d = drag; drag = null;
-      if (d && d.live && d.to != null && LV()) { LV().drag(feed.k.sym, { id: 'L' + d.oid, price: d.to }); schedule(); return; }
-      if (d && d.to != null && P()) P().commitDrag(feed.k.sym, { id: 'o' + d.oid, price: d.to, kind: 'order' }); schedule();
+      if (d && d.live && d.to != null && LV()) { LV().drag(tsym(), { id: 'L' + d.oid, price: d.to }); schedule(); return; }
+      if (d && d.to != null && P()) P().commitDrag(tsym(), { id: 'o' + d.oid, price: d.to, kind: 'order' }); schedule();
     };
     chip.addEventListener('pointermove', mv); chip.addEventListener('pointerup', up);
   });

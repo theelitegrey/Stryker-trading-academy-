@@ -41,6 +41,17 @@
  * balance at open), run (the account's resetAt: a reset starts a new run) and src ('replay' for
  * the bar-replay account, set through deps.source). Old trades without them still load.
  *
+ * TWO TARGETS + BREAK-EVEN (member feature 2026-11-18, roadmap card trade-instrument): a bracket can carry TP1 as well as the
+ * take profit (tp = TP2, the rest): tp1 = price, tp1Qty = contracts (or units) closed there, be = null | offset ticks (after TP1
+ * fills, the stop moves to entry + offset ticks in the trade's favour, only if that is better than the current stop). Order per
+ * segment: the stop loss is checked first (it takes the WHOLE position: OCO, every target goes with it); then TP1 (a partial
+ * close, gap = the segment's open); then the rest in the same segment against the MOVED stop and TP2 (the order of prices inside
+ * one segment is unknown, so if that segment also touched the moved stop it is assumed hit first: the same stop-first rule).
+ * When the last target fills the position is flat and its stop is gone with it (OCO).
+ * RISK SIZING: sizeForRisk(spec, riskUsd, entry, sl, cap) -> contracts = floor(risk / (stop distance x point value)), min one
+ * step, capped. MINI / MICRO: pairOf(root) / pairSymbol(symbol) map NQ<->MNQ, ES<->MES, YM<->MYM, RTY<->M2K, GC<->MGC,
+ * CL<->MCL, SI<->SIL (same price scale, so the chart's prices feed the pair 1:1, see chart-paper.js).
+ *
  * Education only. Not financial advice.
  */
 (function (root, factory) {
@@ -73,6 +84,10 @@
     CL: [0.01, 1000], MCL: [0.01, 100], NG: [0.001, 10000], HG: [0.0005, 25000], MHG: [0.0005, 2500],
     ZN: [0.015625, 1000], ZB: [0.03125, 1000], '6E': [0.00005, 125000]
   };
+  // mini <-> micro pairs (same index / metal / oil, same price scale; only the point value differs)
+  const PAIRS = { NQ: 'MNQ', ES: 'MES', YM: 'MYM', RTY: 'M2K', GC: 'MGC', CL: 'MCL', SI: 'SIL' };
+  for (const k of Object.keys(PAIRS)) PAIRS[PAIRS[k]] = k;
+  const MICROS = new Set(['MNQ', 'MES', 'MYM', 'M2K', 'MGC', 'MCL', 'SIL']);
   const CRYPTO_PROVIDERS = ['binance', 'coinbase', 'hyperliquid', 'bybit', 'okx', 'bitget', 'kraken'];
   const FUTURES_PREFIXES = ['futures', 'rithmic', 'cme', 'cme_mini', 'cbot', 'cbot_mini', 'comex', 'comex_mini', 'nymex', 'nymex_mini'];
 
@@ -121,11 +136,50 @@
     return { ok: false, reason: 'Paper trading covers futures and USD-quoted crypto. ' + (ticker || parts.raw) + ' is not supported.' };
   }
 
+  /** Mini/micro partner of a futures root ('NQ' -> 'MNQ', 'MNQ' -> 'NQ'), '' when it has none. */
+  function pairOf(root) { const r = futuresRootOf(root); return PAIRS[r] || ''; }
+  /** Canonical paper symbol of a symbol's mini/micro partner ('CME_MINI:NQ1!' -> 'futures:MNQ1!'), '' when none. */
+  function pairSymbol(symbol) {
+    const sp = specOf(symbol); if (!sp.ok || sp.kind !== 'futures') return '';
+    const r = PAIRS[sp.root]; return r ? 'futures:' + r + '1!' : '';
+  }
+  /** { mini, micro } roots of a pair family, or null. */
+  function familyOf(symbol) {
+    const sp = specOf(symbol); if (!sp.ok || sp.kind !== 'futures' || !PAIRS[sp.root]) return null;
+    return MICROS.has(sp.root) ? { mini: PAIRS[sp.root], micro: sp.root } : { mini: sp.root, micro: PAIRS[sp.root] };
+  }
+  /**
+   * Risk-based size: how many contracts (units) fit a dollar risk with this stop.
+   * -> { qty, perUnit (risk of one step $), risk ($ at qty), over (true when even the minimum risks more than asked) } or { error }.
+   */
+  function sizeForRisk(spec, riskUsd, entry, sl, cap) {
+    if (!spec || !spec.ok) return { error: (spec && spec.reason) || 'No contract spec.' };
+    const r = Number(riskUsd), e = Number(entry), s = Number(sl);
+    if (!(r > 0)) return { error: 'Enter the amount you want to risk.' };
+    if (!(e > 0) || !(s > 0) || e === s) return { error: 'Set a stop loss first: the size comes from the stop distance.' };
+    const per = Math.abs(e - s) * spec.pointValue;              // $ risk of ONE contract / unit
+    const step = spec.qtyStep, max = Math.min(spec.maxQty, Number(cap) > 0 ? Number(cap) : spec.maxQty);
+    let q = Math.floor(r / per / step + 1e-9) * step;
+    q = Number(q.toFixed(6));
+    const over = q < spec.minQty;
+    if (q < spec.minQty) q = spec.minQty;
+    if (q > max) q = Math.floor(max / step + 1e-9) * step;
+    q = Number(q.toFixed(6));
+    return { qty: q, perUnit: round2(per * (spec.kind === 'futures' ? 1 : step)), risk: round2(per * q), over, capped: q < Math.floor(r / per / step + 1e-9) * step };
+  }
+
   // Member hotkeys (action id -> combo text, e.g. "Shift+B"); the page validates, this only keeps the shape sane.
   function cleanKeys(o) {
     const r = {};
     if (o && typeof o === 'object') for (const k of Object.keys(o).slice(0, 40)) { const v = o[k]; if (typeof v === 'string' && v && v.length <= 40) r[String(k).slice(0, 40)] = v; }
     return r;
+  }
+
+  // TP1 fields of a saved position / order: a TP1 that cannot be a partial close of `qty` is dropped
+  function cleanTp1(x, qty) {
+    const tp1 = num(x.tp1), q1 = num(x.tp1Qty), be = num(x.be);
+    const ok = tp1 > 0 && q1 > 0 && q1 < qty;
+    return { tp1: ok ? tp1 : null, tp1Qty: ok ? q1 : null, be: ok && be != null && be >= 0 && be <= 10000 ? Math.round(be) : null };
   }
 
   function defaultSettings() {
@@ -169,6 +223,7 @@
         const sym = sp.symbol;
         st.positions[sym] = { symbol: sym, side: side(p.side), qty, avg, sl: num(p.sl), tp: num(p.tp), openedAt: num(p.openedAt) || now, fees: num(p.fees) || 0,
           sl0: num(p.sl0) != null ? num(p.sl0) : num(p.sl), trail: num(p.trail) > 0 ? num(p.trail) : null, hi: num(p.hi) || avg, lo: num(p.lo) || avg, bal0: num(p.bal0), maxQty: Math.max(qty, num(p.maxQty) || 0) };
+        Object.assign(st.positions[sym], cleanTp1(p, qty), p.beMoved ? { beMoved: true } : {});
       }
     }
     if (Array.isArray(raw.orders)) {
@@ -176,7 +231,7 @@
         const sp = specOf(o && o.symbol);
         if (!o || !sp.ok || (o.type !== 'limit' && o.type !== 'stop')) continue;
         const qty = num(o.qty), price = num(o.price); if (!(qty > 0) || !(price > 0)) continue;
-        st.orders.push({ id: num(o.id) || 0, symbol: sp.symbol, side: side(o.side), type: o.type, qty, price, sl: num(o.sl), tp: num(o.tp), placedAt: num(o.placedAt) || now });
+        st.orders.push(Object.assign({ id: num(o.id) || 0, symbol: sp.symbol, side: side(o.side), type: o.type, qty, price, sl: num(o.sl), tp: num(o.tp), placedAt: num(o.placedAt) || now }, cleanTp1(o, qty)));
       }
     }
     if (Array.isArray(raw.trades)) st.trades = raw.trades.filter((t) => t && typeof t === 'object' && num(t.pnl) != null).slice(-MAX_TRADES);
@@ -272,13 +327,14 @@
       if (type === 'stop' && !((ref - last) * dir > 0)) throw new Error(side === 'buy' ? 'A buy stop must sit above the current price (use a buy limit below it).' : 'A sell stop must sit below the current price (use a sell limit above it).');
       const sl = num(o.sl) != null ? roundTick(num(o.sl), spec.tick) : null;
       const tp = num(o.tp) != null ? roundTick(num(o.tp), spec.tick) : null;
-      this._checkBracket(side, ref, sl, tp);
+      const t1 = this._tp1(spec, side, ref, qty, sl, tp, o);
+      this._checkBracket(side, ref, sl, tp, t1.tp1);
       if (type === 'market') {
         const fill = roundTick(last + dir * this.state.settings.slippage * spec.tick, spec.tick);
-        return { events: this._fill({ id: this.state.nextId++, symbol, side, type, qty, sl, tp }, fill, now) };
+        return { events: this._fill(Object.assign({ id: this.state.nextId++, symbol, side, type, qty, sl, tp }, t1), fill, now) };
       }
       if (this.state.orders.length >= MAX_ORDERS) throw new Error('You have ' + MAX_ORDERS + ' working orders, the most we keep. Cancel one first.');
-      const order = { id: this.state.nextId++, symbol, side, type, qty, price: ref, sl, tp, placedAt: now };
+      const order = Object.assign({ id: this.state.nextId++, symbol, side, type, qty, price: ref, sl, tp, placedAt: now }, t1);
       this.state.orders.push(order);
       return { order };
     }
@@ -299,18 +355,21 @@
       if (ch.qty != null) next.qty = this._qty(spec, ch.qty);
       if ('sl' in ch) next.sl = num(ch.sl) != null ? roundTick(num(ch.sl), spec.tick) : null;
       if ('tp' in ch) next.tp = num(ch.tp) != null ? roundTick(num(ch.tp), spec.tick) : null;
+      if ('tp1' in ch) { next.tp1 = num(ch.tp1) != null ? roundTick(num(ch.tp1), spec.tick) : null; if (next.tp1 == null) { next.tp1Qty = null; next.be = null; } }
       const last = this.last[o.symbol], dir = o.side === 'buy' ? 1 : -1;
       if (last > 0 && ch.price != null) {
         if (o.type === 'limit' && !((next.price - last) * dir < 0)) throw new Error(o.side === 'buy' ? 'A buy limit must stay below the current price.' : 'A sell limit must stay above the current price.');
         if (o.type === 'stop' && !((next.price - last) * dir > 0)) throw new Error(o.side === 'buy' ? 'A buy stop must stay above the current price.' : 'A sell stop must stay below the current price.');
       }
       // moving the entry drags the bracket with it, like dragging a TradingView order line
-      if (ch.price != null && ch.keepBracket !== false && !('sl' in ch) && !('tp' in ch)) {
+      if (ch.price != null && ch.keepBracket !== false && !('sl' in ch) && !('tp' in ch) && !('tp1' in ch)) {
         const d = next.price - o.price;
         if (o.sl != null) next.sl = roundTick(o.sl + d, spec.tick);
         if (o.tp != null) next.tp = roundTick(o.tp + d, spec.tick);
+        if (o.tp1 != null) next.tp1 = roundTick(o.tp1 + d, spec.tick);
       }
-      this._checkBracket(o.side, next.price, next.sl, next.tp);
+      if (ch.qty != null && next.tp1 != null && !(next.tp1Qty < next.qty)) throw new Error('TP1 closes ' + next.tp1Qty + ', so the order needs more than that. Remove TP1 first.');
+      this._checkBracket(o.side, next.price, next.sl, next.tp, next.tp1);
       Object.assign(o, next);
       return o;
     }
@@ -320,12 +379,17 @@
       if (!p) throw new Error('That position is closed.');
       const dir = p.side === 'buy' ? 1 : -1;
       const last = this.last[sym] || this.last[symbol] || p.avg;
-      let sl = p.sl, tp = p.tp;
+      let sl = p.sl, tp = p.tp, tp1 = p.tp1 != null ? p.tp1 : null;
       if ('sl' in ch) sl = num(ch.sl) != null ? roundTick(num(ch.sl), spec.tick) : null;
       if ('tp' in ch) tp = num(ch.tp) != null ? roundTick(num(ch.tp), spec.tick) : null;
+      if ('tp1' in ch) tp1 = num(ch.tp1) != null ? roundTick(num(ch.tp1), spec.tick) : null;
       if ('sl' in ch && sl != null && !((sl - last) * dir < 0)) throw new Error(p.side === 'buy' ? 'The stop loss must be below the current price.' : 'The stop loss must be above the current price.');
       if ('tp' in ch && tp != null && !((tp - last) * dir > 0)) throw new Error(p.side === 'buy' ? 'The take profit must be above the current price.' : 'The take profit must be below the current price.');
+      if ('tp1' in ch && tp1 != null && !((tp1 - last) * dir > 0)) throw new Error(p.side === 'buy' ? 'TP1 must be above the current price.' : 'TP1 must be below the current price.');
+      if ('tp1' in ch && tp1 != null && !(p.tp1Qty > 0 && p.tp1Qty < p.qty)) throw new Error('This position has no TP1 size. Set TP1 on the order.');
+      if (tp1 != null && tp != null && !((tp - tp1) * dir > 0)) throw new Error('TP1 must sit between the entry and TP2.');
       p.sl = sl; p.tp = tp;
+      if ('tp1' in ch) { p.tp1 = tp1; if (tp1 == null) { p.tp1Qty = null; p.be = null; } }
       if (p.sl0 == null && sl != null) p.sl0 = sl;     // a stop added after the fill is the trade's risk
       return p;
     }
@@ -428,14 +492,29 @@
       }
       const p = this.state.positions[symbol];
       let exited = false;
-      if (p && (p.sl != null || p.tp != null)) {
-        const ex = exitOf(p, seg);
-        if (ex) {
-          exited = true;
-          let px = ex.price;
-          if (ex.reason === 'sl') px -= (p.side === 'buy' ? 1 : -1) * slip;
-          events.push(...this._fill({ id: this.state.nextId++, symbol, side: p.side === 'buy' ? 'sell' : 'buy', type: ex.reason, qty: p.qty, sl: null, tp: null }, roundTick(px, spec.tick), seg.t != null ? seg.t : now, ex.reason));
+      const at = seg.t != null ? seg.t : now, out = p ? (p.side === 'buy' ? 'sell' : 'buy') : '';
+      const exitAll = (ex) => {
+        exited = true;
+        let px = ex.price;
+        if (ex.reason === 'sl') px -= (p.side === 'buy' ? 1 : -1) * slip;
+        events.push(...this._fill({ id: this.state.nextId++, symbol, side: out, type: ex.reason, qty: p.qty, sl: null, tp: null }, roundTick(px, spec.tick), at, ex.reason));
+      };
+      if (p && p.tp1 != null && p.tp1Qty > 0 && p.tp1Qty < p.qty) {
+        // two targets: TP1 is the nearer one; the stop loss still comes first and takes the whole position (OCO)
+        const ex = exitOf({ side: p.side, sl: p.sl, tp: p.tp1 }, seg);
+        if (ex && ex.reason === 'sl') exitAll(ex);
+        else if (ex) {
+          events.push(...this._fill({ id: this.state.nextId++, symbol, side: out, type: 'tp1', qty: p.tp1Qty, sl: null, tp: null }, roundTick(ex.price, spec.tick), at, 'tp1'));
+          if (this.state.positions[symbol] === p) {
+            p.tp1 = null; p.tp1Qty = null;
+            if (this._moveBE(p, spec)) events.push({ type: 'be', symbol, side: p.side, qty: p.qty, price: p.sl, position: p });
+            // the rest, same segment: the (moved) stop vs TP2, stop first when both were touched
+            if (p.sl != null || p.tp != null) { const ex2 = exitOf(p, seg); if (ex2) exitAll(ex2); }
+          }
         }
+      } else if (p && (p.sl != null || p.tp != null)) {
+        const ex = exitOf(p, seg);
+        if (ex) exitAll(ex);
       }
       // trailing stop: after this segment's exit check, pull the stop up behind the best price (never back)
       const tp = this.state.positions[symbol];
@@ -461,10 +540,41 @@
       if (qq > spec.maxQty) throw new Error('The largest paper order is ' + spec.maxQty + (spec.kind === 'futures' ? ' contracts.' : ' units.'));
       return qq;
     }
-    _checkBracket(side, ref, sl, tp) {
+    _checkBracket(side, ref, sl, tp, tp1) {
       const dir = side === 'buy' ? 1 : -1;
       if (sl != null && !((sl - ref) * dir < 0)) throw new Error(side === 'buy' ? 'The stop loss must be below the entry.' : 'The stop loss must be above the entry.');
       if (tp != null && !((tp - ref) * dir > 0)) throw new Error(side === 'buy' ? 'The take profit must be above the entry.' : 'The take profit must be below the entry.');
+      if (tp1 != null && !((tp1 - ref) * dir > 0)) throw new Error(side === 'buy' ? 'TP1 must be above the entry.' : 'TP1 must be below the entry.');
+      if (tp1 != null && tp != null && !((tp - tp1) * dir > 0)) throw new Error('TP1 must sit between the entry and TP2.');
+    }
+    // TP1 of a new order: { tp1, tp1Qty, be } (all null when the order has no TP1). o.tp1Qty = size, or o.tp1Pct = % of qty (rounded down).
+    _tp1(spec, side, ref, qty, sl, tp, o) {
+      const none = { tp1: null, tp1Qty: null, be: null };
+      if (num(o.tp1) == null) return none;
+      const tp1 = roundTick(num(o.tp1), spec.tick);
+      let q1 = num(o.tp1Qty);
+      if (q1 == null && num(o.tp1Pct) != null) q1 = Math.floor(qty * Math.max(0, Math.min(100, num(o.tp1Pct))) / 100 / spec.qtyStep + 1e-9) * spec.qtyStep;
+      q1 = q1 != null ? Number((Math.round(q1 / spec.qtyStep) * spec.qtyStep).toFixed(6)) : null;
+      const unit = spec.kind === 'futures' ? ' contracts' : '';
+      if (!(qty > spec.minQty)) throw new Error('TP1 closes part of the position, so it needs at least 2' + (spec.kind === 'futures' ? ' contracts.' : ' steps of size.'));
+      if (!(q1 >= spec.minQty)) throw new Error('TP1 must close at least ' + spec.minQty + (spec.kind === 'futures' ? ' contract.' : '.'));
+      if (!(q1 < qty)) throw new Error('TP1 must close less than the whole order (' + qty + unit + '); TP2 takes the rest.');
+      let be = num(o.be);
+      if (be != null) {
+        be = Math.round(be);
+        if (be < 0 || be > 10000) throw new Error('The break-even offset is 0 or more ticks.');
+        const dist = Math.round(Math.abs(tp1 - ref) / spec.tick);
+        if (be >= dist) throw new Error('The break-even offset must be smaller than the distance to TP1 (' + dist + ' ticks).');
+      }
+      return { tp1, tp1Qty: q1, be };
+    }
+    // after TP1: stop to entry + offset ticks in the trade's favour, only when that is better than the stop it has
+    _moveBE(p, spec) {
+      if (p.be == null) return false;
+      const dir = p.side === 'buy' ? 1 : -1, cand = roundTick(p.avg + dir * p.be * spec.tick, spec.tick);
+      p.be = null;
+      if (p.sl != null && (cand - p.sl) * dir <= 0) return false;
+      p.sl = cand; p.beMoved = true; return true;
     }
     _hist(h) {
       this.state.history.push(Object.assign({ id: this.state.nextId++, at: this.deps.now() }, h));
@@ -476,11 +586,12 @@
       const events = [];
       const fee = round2(st.settings.commission * order.qty);
       st.balance = round2(st.balance - fee); st.fees = round2(st.fees + fee);
-      this._hist({ kind: 'fill', symbol: sym, side: order.side, type: order.type, qty: order.qty, price, orderId: order.id, note: reason ? (reason === 'tp' ? 'Take profit' : 'Stop loss') : '' });
+      this._hist({ kind: 'fill', symbol: sym, side: order.side, type: order.type, qty: order.qty, price, orderId: order.id, note: reason ? ({ tp: 'Take profit', tp1: 'Take profit 1', sl: 'Stop loss' }[reason] || '') : '' });
       let p = st.positions[sym];
       if (!p) {
         p = st.positions[sym] = { symbol: sym, side: order.side, qty: order.qty, avg: price, sl: order.sl, tp: order.tp, openedAt: t, fees: fee,
           sl0: order.sl != null ? order.sl : null, hi: price, lo: price, bal0: round2(st.balance + fee), maxQty: order.qty };
+        Object.assign(p, cleanTp1(order, order.qty));
         events.push({ type: 'open', symbol: sym, side: p.side, qty: p.qty, price, position: p });
         return events;
       }
@@ -493,6 +604,7 @@
         if (order.sl != null) p.sl = order.sl;
         if (p.sl0 == null && order.sl != null) p.sl0 = order.sl;
         if (order.tp != null) p.tp = order.tp;
+        if (order.tp1 != null) Object.assign(p, cleanTp1(order, qty));
         events.push({ type: 'add', symbol: sym, side: p.side, qty: order.qty, price, position: p });
         return events;
       }
@@ -509,7 +621,7 @@
       const mfe = dir > 0 ? hi - p.avg : p.avg - lo, mae = dir > 0 ? p.avg - lo : hi - p.avg;
       const bal0 = num(p.bal0) > 0 ? p.bal0 : st.startBalance;
       const trade = { id: st.nextId++, symbol: sym, side: p.side, qty: closeQty, entry: p.avg, exit: price, entryAt: p.openedAt, exitAt: t,
-        gross, fees: round2(feeIn + feeOut), pnl, reason: reason || (rest > 0 ? 'reverse' : 'manual'), sl: p.sl, tp: p.tp, pointValue: spec.pointValue, journaled: false,
+        gross, fees: round2(feeIn + feeOut), pnl, reason: reason || (rest > 0 ? 'reverse' : 'manual'), sl: p.sl, tp: reason === 'tp1' ? p.tp1 : p.tp, pointValue: spec.pointValue, journaled: false,
         sl0: p.sl0 != null ? p.sl0 : (p.sl != null ? p.sl : null), mae: Math.max(0, roundTick(mae, spec.tick / 100)), mfe: Math.max(0, roundTick(mfe, spec.tick / 100)),
         lev: Math.round(p.avg * (num(p.maxQty) || p.qty) * spec.pointValue / bal0 * 100) / 100, run: st.resetAt };
       if (this.deps.source) trade.src = this.deps.source;
@@ -517,7 +629,9 @@
       if (st.trades.length > MAX_TRADES) st.trades.splice(0, st.trades.length - MAX_TRADES);
       if (closeQty < p.qty) {
         p.qty = Number((p.qty - closeQty).toFixed(6)); p.fees = round2(p.fees - feeIn);
-        events.push({ type: 'reduce', symbol: sym, side: p.side, qty: closeQty, price, trade, position: p });
+        // a manual part-close can leave TP1 as big as what is left: it becomes the last target (TP2 when there was none)
+        if (reason !== 'tp1' && p.tp1 != null && !(p.tp1Qty < p.qty)) { if (p.tp == null) p.tp = p.tp1; p.tp1 = null; p.tp1Qty = null; p.be = null; }
+        events.push({ type: reason === 'tp1' ? 'tp1' : 'reduce', symbol: sym, side: p.side, qty: closeQty, price, trade, position: p });
         return events;
       }
       delete st.positions[sym];
@@ -525,11 +639,12 @@
       if (rest > 0) {
         const np = st.positions[sym] = { symbol: sym, side: order.side, qty: rest, avg: price, sl: order.sl, tp: order.tp, openedAt: t, fees: round2(st.settings.commission * rest),
           sl0: order.sl != null ? order.sl : null, hi: price, lo: price, bal0: st.balance, maxQty: rest };
+        Object.assign(np, cleanTp1(order, rest));
         events.push({ type: 'open', symbol: sym, side: np.side, qty: np.qty, price, position: np, reversed: true });
       }
       return events;
     }
   }
 
-  return { VERSION, DEFAULT_BALANCE, MIN_BALANCE, MAX_BALANCE, FUTURES, specOf, freshState, sanitize, PaperAccount, round2, roundTick };
+  return { VERSION, DEFAULT_BALANCE, MIN_BALANCE, MAX_BALANCE, FUTURES, PAIRS, specOf, pairOf, pairSymbol, familyOf, sizeForRisk, freshState, sanitize, PaperAccount, round2, roundTick };
 });

@@ -9,7 +9,8 @@ import { checkBoard, phQuery } from '../src/phantom.js';
 
 crypto.subtle.timingSafeEqual = (a, b) => nodeCrypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 const db = new DatabaseSync(':memory:');
-const sql = { exec(q, ...a) { const st = db.prepare(q); const isSel = /^\s*SELECT/i.test(q); const rows = isSel ? st.all(...a) : (st.run(...a), []); return { toArray: () => rows }; }, get databaseSize() { return 0; } };
+const sql = { exec(q, ...a) { a = a.map((x) => (x instanceof ArrayBuffer ? new Uint8Array(x) : x));   // workerd binds an ArrayBuffer as a BLOB; node:sqlite (Node 22) wants a Uint8Array
+  const st = db.prepare(q); const isSel = /^\s*SELECT/i.test(q); const rows = isSel ? st.all(...a) : (st.run(...a), []); return { toArray: () => rows }; }, get databaseSize() { return 0; } };
 const ctx = { storage: { sql, deleteAlarm: async () => {} } };
 const SECRET = 'x'.repeat(40);
 const env = { INGEST_SECRET: SECRET, SYMBOLS: 'BTCUSDT,ETHUSDT' };

@@ -233,7 +233,13 @@ const SVP_SCHEMA = [
   { key: 'showPoc', title: 'Point of control (POC)', type: 'bool', defval: true },
   { key: 'color', title: 'Profile colour', type: 'color', defval: SVP_DEF.color },
   { key: 'vaColor', title: 'Value area colour', type: 'color', defval: SVP_DEF.vaColor },
-  { key: 'pocColor', title: 'POC colour', type: 'color', defval: SVP_DEF.pocColor }
+  { key: 'pocColor', title: 'POC colour', type: 'color', defval: SVP_DEF.pocColor },
+  { key: 'showDelta', title: 'Show delta bars', type: 'bool', defval: false, tooltip: 'Ask volume minus bid volume at each price row, from the same order flow as the footprint (NQ, ES, YM, GC, SI, CL and crypto; from 8 Oct 2026).' },
+  { key: 'deltaPos', title: 'Delta bars position', type: 'string', defval: 'inside', options: ['inside', 'beside'], tooltip: 'inside = thin bars over the profile; beside = a column to the right of the profile.' },
+  { key: 'deltaUp', title: 'Delta buy colour', type: 'color', defval: '#089981' },
+  { key: 'deltaDn', title: 'Delta sell colour', type: 'color', defval: '#f23645' },
+  { key: 'deltaOpacity', title: 'Delta opacity %', type: 'int', defval: 75, min: 10, max: 100, step: 5 },
+  { key: 'deltaWidthPct', title: 'Delta width % of the session', type: 'int', defval: 25, min: 5, max: 100, step: 1 }
 ];
 const svpConfig = (inputs, mk) => ({
   session: ['rth', 'eth', 'both', 'day'].includes(inputs.session) ? inputs.session : SVP_DEF.session,
@@ -243,12 +249,37 @@ const svpConfig = (inputs, mk) => ({
   widthFrac: clamp(num(inputs.widthPct, 40), 10, 100) / 100,
   showVa: inputs.showVa !== false, showPoc: inputs.showPoc !== false, alwaysVisible: inputs.alwaysVisible === true,
   color: str(inputs.color, SVP_DEF.color), vaColor: str(inputs.vaColor, SVP_DEF.vaColor), pocColor: str(inputs.pocColor, SVP_DEF.pocColor),
+  showDelta: inputs.showDelta === true, deltaPos: inputs.deltaPos === 'beside' ? 'beside' : 'inside',
+  deltaUp: str(inputs.deltaUp, '#089981'), deltaDn: str(inputs.deltaDn, '#f23645'),
+  deltaAlpha: clamp(num(inputs.deltaOpacity, 75), 10, 100) / 100, deltaFrac: clamp(num(inputs.deltaWidthPct, 25), 5, 100) / 100,
   futures: !!mk.futures, tick: mk.tick || null, tf: mk.tf
 });
 
+// Delta per price row = ask (buy) volume minus bid (sell) volume from the footprint's own recorded trades (window.__stkOfFlowHook, set by
+// chart-footprint.js). Same price rows as the profile. Returns { rows: Map(price -> delta), max } or a reason string.
+export function svpDelta(mins, tick, s, step) {
+  const rows = new Map(); let max = 0, used = 0;
+  for (const b of mins) {
+    if (b.t < s.t0 || b.t > s.t1 + (s.barMs || 0)) continue;
+    for (let j = 0; j < b.buy.length; j++) {
+      const d = b.buy[j] - b.sell[j]; if (!b.buy[j] && !b.sell[j]) continue;
+      const p = Math.round(Math.round((b.lo + j) * tick / step) * step * 1e6) / 1e6;
+      rows.set(p, (rows.get(p) || 0) + d); used++;
+    }
+  }
+  rows.forEach((v) => { if (Math.abs(v) > max) max = Math.abs(v); });
+  return used ? { rows, max } : null;
+}
+
 class LayerNative {
-  constructor(build) { this.build = build; this.inputs = {}; this.ctx = null; }
-  start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.push(); }
+  constructor(build) { this.build = build; this.inputs = {}; this.ctx = null; this.fl = null; this.onFlow = () => this.push(); }
+  // SVP delta bars: repaint when the footprint's order-flow data changes
+  watch() {
+    const F = window.__stkOfFlowHook, want = this.inputs.showDelta === true && !!F;
+    if (want && !this.fl) { this.fl = F; F.subscribe(this.onFlow); F.use(); }
+    else if (!want && this.fl) { this.fl.unsubscribe(this.onFlow); this.fl.unuse(); this.fl = null; }
+  }
+  start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.watch(); this.push(); }
   push() {
     const mk = marketOf(this.ctx); mk.tf = tfMinutes(this.ctx.timeframe);
     const out = this.build(this.inputs, mk, this.ctx);
@@ -257,14 +288,15 @@ class LayerNative {
   }
   onBars() {}
   onViewport() {}
-  setInputs(inputs) { this.inputs = inputs; this.push(); }
+  setInputs(inputs) { this.inputs = inputs; this.watch(); this.push(); }
   suspend() {}
   resume() { this.push(); }
-  stop() {}
+  stop() { this.inputs = {}; this.watch(); }
 }
 
-function svpBuild(inputs, mk) {
+function svpBuild(inputs, mk, ctx) {
   const cfg = svpConfig(inputs, mk);
+  if (cfg.showDelta && ctx) { cfg.symbol = ctx.symbol; cfg.timeframe = ctx.timeframe; cfg.ctx = ctx; }
   if (cfg.tf != null && cfg.tf >= 1440) return { data: { off: true }, emit: { tables: [message('stk_svp-msg', 'Session Volume Profile works on intraday charts (1m to 4h).', pageIsDay())] } };
   return { data: cfg, emit: {} };
 }
@@ -318,6 +350,35 @@ function groupSessions(bars, cfg, from) {
   return out;
 }
 
+function svpNote(g, text, x, y, light) {
+  g.save(); g.font = '11px system-ui, sans-serif'; g.fillStyle = light ? '#475569' : '#94a3b8'; g.textBaseline = 'top'; g.fillText(text, x + 4, y + 4); g.restore();
+}
+function drawSvpDelta(g, a, cfg, s, x0, x1, maxW, co, top, bot, cache) {
+  const F = window.__stkOfFlowHook, light = themeIsLight(a.theme);
+  const note = (t) => svpNote(g, t, x0, Math.max(top, co.priceToY(s.prof.prices[s.prof.prices.length - 1] + s.prof.step, a.scale, a.bounds)), light);
+  if (!F || !cfg.ctx) return;
+  if (!F.flowOk(cfg.ctx)) return note('Delta bars need order flow: NQ, ES, YM, GC, SI, CL or crypto, 1m to 4h.');
+  const f = F.flowFor({ root: F.rootOf(cfg.ctx), timeframe: cfg.timeframe, bars: a.bars, owner: cache, maxDays: 90 });
+  if (!f || !f.mins || !f.mins.length) return note(f && f.loading ? 'Delta: loading order flow…' : 'Delta: no order flow recorded here (only from 8 Oct 2026)');
+  s.barMs = (cfg.tf || 1) * 60000;
+  const key = f.mins.length + '|' + f.tick + '|' + s.prof.step;
+  if (s.dk !== key || s.dm !== f.mins) { s.dk = key; s.dm = f.mins; s.dr = svpDelta(f.mins, f.tick, s, s.prof.step); }
+  if (!s.dr) return note('Delta: no order flow recorded for this session (only from 8 Oct 2026)');
+  const full = Math.max(4, (x1 - x0) * cfg.deltaFrac), beside = cfg.deltaPos === 'beside', base = beside ? x0 + maxW + 2 : x0;
+  g.save(); g.globalAlpha = cfg.deltaAlpha;
+  s.dr.rows.forEach((v, price) => {
+    if (!v) return;
+    const yA = co.priceToY(price + s.prof.step, a.scale, a.bounds), yB = co.priceToY(price, a.scale, a.bounds);
+    const hh = Math.max(1, Math.abs(yB - yA) - (Math.abs(yB - yA) > 3 ? 1 : 0)), h = beside ? hh : Math.max(1, Math.round(hh / 2));
+    const y = Math.min(yA, yB) + (beside ? 0 : Math.floor((hh - h) / 2));
+    if (y > bot || y + h < top) return;
+    g.fillStyle = v > 0 ? cfg.deltaUp : cfg.deltaDn;
+    g.fillRect(base, y, Math.max(1, Math.abs(v) / s.dr.max * full), h);
+  });
+  g.restore();
+  if (s.t0 < Date.UTC(2026, 9, 8)) note('Delta: order flow only from 8 Oct 2026');
+}
+
 function svpLayer() {
   let canvas = null;
   const cache = {};
@@ -359,6 +420,7 @@ function svpLayer() {
           g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
         };
         // lines sit at the middle of their row, like the GEX page's level prices
+        if (cfg.showDelta) drawSvpDelta(g, a, cfg, s, x0, x1, maxW, co, top, bot, cache);
         if (cfg.showVa) { hl(p.vah + p.step, alpha(cfg.vaColor, 0.85), [4, 3]); hl(p.val, alpha(cfg.vaColor, 0.85), [4, 3]); }
         if (cfg.showPoc) hl(p.poc + p.step / 2, cfg.pocColor);
       }

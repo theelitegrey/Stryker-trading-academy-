@@ -1317,6 +1317,10 @@ export function installFootprint(Core, flowMod) {
     flowOf: (e, ctx, bars, left) => { const tfm = tfMin(ctx.timeframe); return (tfm >= 1 && tfm <= MAX_TF_MIN && e.l2Flow(bars, tfm, left)) || flowFor({ root: rootOf(ctx), timeframe: ctx.timeframe, bars, owner: e }); },
     subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
     use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); } });
+  // SVP delta bars (assets/chart-orderflow.js) read the same flow through this hook.
+  window.__stkOfFlowHook = { flowFor, rootOf, subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
+    use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); },
+    flowOk: (ctx) => !!rootOf(ctx) };
   // Footprint Patterns (assets/chart-fp-patterns.js): six patterns marked on any chart style, from the same flow
   installFpPatterns(Core, { flowFor, rootOf, tfMin, replayE, version: () => version,
     subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),

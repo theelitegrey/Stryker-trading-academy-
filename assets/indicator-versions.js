@@ -213,7 +213,10 @@ export const VERSIONS = {
   'b:stk_ivrank': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-06', notes: ['First release.'] }] },
   'b:stk_l2f_cvd': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
   'b:stk_l2f_delta': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
-  'b:stk_l2f_lad': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
+  'b:stk_l2f_lad': { base: '1.0', versions: [
+    { v: '1.0', date: '2026-11-03', notes: ['First release.'] },
+    { v: '1.1', date: '2026-11-18', notes: ['New settings in groups: Delta bars, Second bar, Numbers, Highlights and Layout. Colours, opacity, which parts show, number format and size, side of the chart and row size.'] }
+  ] },
   'b:stk_l2f_stop': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
   'b:stk_l2f_vp': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-03', notes: ['First release.'] }] },
   'b:stk_liq': { base: '1.0', versions: [{ v: '1.0', date: '2026-11-08', notes: ['First release.'] }] },

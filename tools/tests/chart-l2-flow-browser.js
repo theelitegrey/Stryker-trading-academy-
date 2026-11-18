@@ -174,6 +174,50 @@ const counts = (p) => p.evaluate(() => {   // non-null points of every L2 flow s
         await vis(t, true); await sleep(2000); const back = await layerInk(t);
         check(off === 0 && back > 0, tag + ': ' + t + ' hide clears (' + on + ' -> ' + off + '), show redraws (' + back + ')', [on, off, back]);
       }
+      if (tag === '1440-dark' || tag === '1440-light') {
+        // ladder options (2026-11-18): each toggle hides/shows its part, colours reach the canvas, defaults = today's look, persists across reload
+        const SH = process.env.LADSHOTS;
+        const setL = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_l2f_lad'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o);
+        const px = async (rgb) => { await sleep(1800); return p.evaluate((rgb) => { const ch = window.STRYKER_VELA.context().cells[0].chart; const r = ch.renderer.extLayers ? ch.renderer : ch.renderer.renderer; let n = 0, any = 0; for (const l of r.extLayers) { if (l.channel !== 'stk_l2f_lad' || !l.canvas.width) continue; const d = l.canvas.getContext('2d').getImageData(0, 0, l.canvas.width, l.canvas.height).data; for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; any++; if (Math.abs(d[i] - rgb[0]) < 24 && Math.abs(d[i + 1] - rgb[1]) < 24 && Math.abs(d[i + 2] - rgb[2]) < 24 && d[i + 3] > 90) n++; } } return { n, any }; }, rgb); };
+        const H = (x) => [parseInt(x.slice(1, 3), 16), parseInt(x.slice(3, 5), 16), parseInt(x.slice(5, 7), 16)];
+        const t0 = tag + ' ladder opts: ';
+        const base = await px(H('#03c988')), baseSell = await px(H('#f23645')), baseBook = await px(H('#00adb5'));
+        check(base.n > 50 && baseBook.n > 20, t0 + 'defaults draw buy / sell / book colours', [base, baseSell, baseBook]);
+        if (SH) await p.screenshot({ path: SH + '/ladopts-default-' + tag + '.png' });
+        await setL({ dbBuy: '#ff00ff' }); const m1 = await px([255, 0, 255]); const b1 = await px(H('#03c988'));
+        check(m1.n > 50 && b1.n < base.n / 4, t0 + 'buy colour reaches the canvas', [m1, b1]);
+        await setL({ dbBuy: '#03c988', sbBid: '#0000ff', sbAsk: '#ffff00' }); const bl = await px([0, 0, 255]);
+        check(bl.n > 10, t0 + 'book bid colour reaches the canvas', bl);
+        await setL({ sbBid: '#00adb5', sbAsk: '#f5b301', dbShow: false }); const nd = await px(H('#03c988'));
+        check(nd.n === 0, t0 + 'delta bars off hides buy + sell', nd);
+        await setL({ dbShow: true, sbShow: false }); const nb = await px(H('#00adb5'));
+        check(nb.n === 0, t0 + 'second bar off hides the book bar', nb);
+        await setL({ sbShow: true, sbValue: 'None' }); check((await px(H('#00adb5'))).n === 0, t0 + 'second bar value None hides it');
+        await setL({ sbValue: 'Total volume' }); check((await px(H('#00adb5'))).n > 20, t0 + 'second bar total volume shows');
+        await setL({ sbValue: 'Book delta', sbSplit: false, sbColor: '#ff8800' }); check((await px([255, 136, 0])).n > 20, t0 + 'single second-bar colour reaches the canvas');
+        await setL({ sbSplit: true });
+        const INK = tag.includes('light') ? [15, 23, 42] : [244, 244, 246]; const anyOn = (await px(INK)).n; await setL({ nShow: false }); const anyOff = (await px(INK)).n;
+        check(anyOn > 30 && anyOff === 0, t0 + 'numbers off removes ink (' + anyOn + ' -> ' + anyOff + ')');
+        await setL({ nShow: true, nBox: true, nBoxBuy: '#8800ff' }); check((await px([136, 0, 255])).n > 30, t0 + 'label box colour reaches the canvas');
+        await setL({ nBox: false, hlPoc: true, hlPocColor: '#ff0000' }); check((await px([255, 0, 0])).n > 0, t0 + 'POC row highlight shows');
+        await setL({ hlPoc: false, hlExt: true, hlBuy: '#00ff00', hlSell: '#ff00aa' }); check((await px([0, 255, 0])).n > 10, t0 + 'largest buy row highlight shows');
+        await setL({ hlExt: false, hlImb: true, hlImbMult: 1.5, hlImbColor: '#ff7700' }); { const im = (await px([255, 119, 0])).n; if (f.ladder.trade >= 4) check(im > 10, t0 + 'imbalance highlight shows', im); else console.log('SKIP imbalance: only ' + f.ladder.trade + ' traded rows in this fixture run'); }
+        await setL({ hlImb: false, dbStyle: 'Outline' }); const ol = await px(H('#03c988')); check(ol.n > 10 && ol.n < base.n / 2, t0 + 'outline has less fill than filled', [ol.n, base.n]);
+        await setL({ dbStyle: 'Filled', dbHeight: 40 }); const hh = await px(H('#03c988')); check(hh.n < base.n * 0.7, t0 + 'bar height 40% leaves gaps', [hh.n, base.n]);
+        await setL({ dbHeight: 100, ladSide: 'Left' }); await sleep(1500);
+        const lx = await p.evaluate(() => { const ch = window.STRYKER_VELA.context().cells[0].chart; const r = ch.renderer.extLayers ? ch.renderer : ch.renderer.renderer; for (const l of r.extLayers) { if (l.channel !== 'stk_l2f_lad' || !l.canvas.width) continue; const d = l.canvas.getContext('2d').getImageData(0, 0, l.canvas.width, l.canvas.height).data, w = l.canvas.width; let mn = 1e9, mx = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) { const x = (i >> 2) % w; mn = Math.min(mn, x); mx = Math.max(mx, x); } return [mn / w, mx / w]; } });
+        check(lx && lx[1] < 0.3, t0 + 'side Left draws on the left (x ' + JSON.stringify(lx) + ')', lx);
+        if (SH) {
+          await setL({ ladSide: 'Right', dbBuy: '#4da3ff', dbSell: '#ff9f43', dbOpacity: 80, nBox: true, nBoxBuy: '#1f6feb', nBoxSell: '#c2410c', hlPoc: true, hlPocColor: '#f5b301', sbValue: 'Total volume', sbSplit: false, sbColor: '#9b7bff' }); await sleep(1800); await p.screenshot({ path: SH + '/ladopts-custom1-' + tag + '.png' });
+          await setL({ dbBuy: '#03c988', dbSell: '#f23645', dbOpacity: 62, nBox: false, hlPoc: false, sbValue: 'Book delta', sbSplit: true, dbStyle: 'Outline', dbHeight: 70, ladSide: 'Left', hlExt: true, nFormat: '1,600', nSize: 'Large' }); await sleep(1800); await p.screenshot({ path: SH + '/ladopts-custom2-' + tag + '.png' });
+        }
+        // persistence: stored in the chart layout and read back after a reload
+        await setL({ ladSide: 'Right', dbBuy: '#123456', hlPoc: true, dbOpacity: 33, nFormat: '1,600', dbStyle: 'Filled', dbHeight: 100, hlExt: false, nSize: 'Normal' });
+        await sleep(2500); await p.reload({ waitUntil: 'domcontentloaded' }); await sleep(9000);
+        const got = await p.evaluate(() => { try { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_l2f_lad'); return JSON.stringify(h.inputValues()); } catch (e) { return String(e); } });
+        console.log('PERSIST', String(got).slice(0, 300));
+        check(/#123456/.test(got) && /33/.test(got), t0 + 'settings persist across reload', got);
+      }
       await ctx.close();
     }
   } finally { await b.close(); }

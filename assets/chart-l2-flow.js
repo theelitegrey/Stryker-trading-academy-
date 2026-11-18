@@ -199,10 +199,48 @@ function specOf(ctx) {
 // ---------------------------------------------------------------------------------------- settings
 const LADDER = ['stk_l2f_lad'];   // price-axis ladder: a price-pane overlay; Delta (L2) and CVD (L2) add it when they start (a sub-pane layer cannot draw on the price scale)
 const ladders = [];
+const LV = since('b:stk_l2f_lad', '1.1');
 const LAD_SCHEMA = [
   { key: 'ladder', title: 'Show the ladder', type: 'bool', defval: true, tooltip: 'One bar per price: traded delta (green buy / red sell), and a thin second bar for the book: size added minus pulled at that price.' },
-  { key: 'ladWidth', title: 'Ladder width (% of the chart)', type: 'int', defval: 16, min: 5, max: 40, step: 1 },
-  { key: 'ladRange', title: 'Ladder range', type: 'string', defval: 'visible', options: ['visible', 'session'] }];
+  { group: 'Layout', key: 'ladWidth', title: 'Ladder width (% of the chart)', type: 'int', defval: 16, min: 5, max: 40, step: 1 },
+  { group: 'Layout', key: 'ladRange', title: 'Ladder range', type: 'string', defval: 'visible', options: ['visible', 'session'] },
+  { group: 'Layout', key: 'ladSide', title: 'Side of the chart', type: 'string', defval: 'Right', options: ['Right', 'Left'], when: LV },
+  { group: 'Layout', key: 'ladAnchor', title: 'Anchor to', type: 'string', defval: 'Price scale', options: ['Price scale', 'Last bar'], tooltip: 'Last bar = the ladder sits right after the newest candle (right side only).', when: LV },
+  { group: 'Layout', key: 'ladRowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1, when: LV },
+  { group: 'Delta bars', key: 'dbShow', title: 'Show delta bars', type: 'bool', defval: true, when: LV },
+  { group: 'Delta bars', key: 'dbBuy', title: 'Buy colour', type: 'color', defval: UP, when: LV },
+  { group: 'Delta bars', key: 'dbSell', title: 'Sell colour', type: 'color', defval: DN, when: LV },
+  { group: 'Delta bars', key: 'dbOpacity', title: 'Opacity (%)', type: 'int', defval: 62, min: 5, max: 100, step: 1, when: LV },
+  { group: 'Delta bars', key: 'dbHeight', title: 'Bar height (% of the row)', type: 'int', defval: 100, min: 10, max: 100, step: 5, tooltip: 'Below 100 leaves a gap between rows.', when: LV },
+  { group: 'Delta bars', key: 'dbStyle', title: 'Style', type: 'string', defval: 'Filled', options: ['Filled', 'Outline'], when: LV },
+  { group: 'Second bar (book / volume)', key: 'sbShow', title: 'Show second bar', type: 'bool', defval: true, when: LV },
+  { group: 'Second bar (book / volume)', key: 'sbValue', title: 'Value', type: 'string', defval: 'Book delta', options: ['Book delta', 'Total volume', 'None'], when: LV },
+  { group: 'Second bar (book / volume)', key: 'sbSplit', title: 'Split bid / ask colours', type: 'bool', defval: true, tooltip: 'Off = one colour. Total volume has no side, so it uses the bid colour (or the single colour).', when: LV },
+  { group: 'Second bar (book / volume)', key: 'sbColor', title: 'Single colour', type: 'color', defval: CYAN, when: LV },
+  { group: 'Second bar (book / volume)', key: 'sbBid', title: 'Bid colour (book added)', type: 'color', defval: CYAN, when: LV },
+  { group: 'Second bar (book / volume)', key: 'sbAsk', title: 'Ask colour (book pulled)', type: 'color', defval: AMBER, when: LV },
+  { group: 'Second bar (book / volume)', key: 'sbOpacity', title: 'Opacity (%)', type: 'int', defval: 100, min: 5, max: 100, step: 1, when: LV },
+  { group: 'Second bar (book / volume)', key: 'sbThick', title: 'Thickness (px, 0 = auto)', type: 'int', defval: 0, min: 0, max: 20, step: 1, when: LV },
+  { group: 'Numbers', key: 'nShow', title: 'Show numbers', type: 'bool', defval: true, when: LV },
+  { group: 'Numbers', key: 'nPos', title: 'Position', type: 'string', defval: 'Base edge', options: ['Base edge', 'Bar end', 'Far edge'], when: LV },
+  { group: 'Numbers', key: 'nSize', title: 'Text size', type: 'string', defval: 'Normal', options: ['Small', 'Normal', 'Large', 'Extra large'], when: LV },
+  { group: 'Numbers', key: 'nFormat', title: 'Format', type: 'string', defval: '1.6K', options: ['1.6K', '1,600'], when: LV },
+  { group: 'Numbers', key: 'nMin', title: 'Hide numbers below (contracts)', type: 'int', defval: 0, min: 0, max: 100000, step: 1, when: LV },
+  { group: 'Numbers', key: 'nAuto', title: 'Text colour: automatic contrast', type: 'bool', defval: true, when: LV },
+  { group: 'Numbers', key: 'nColor', title: 'Custom text colour', type: 'color', defval: '#ffffff', when: LV },
+  { group: 'Numbers', key: 'nBox', title: 'Label box', type: 'bool', defval: false, when: LV },
+  { group: 'Numbers', key: 'nBoxBuy', title: 'Box colour: buy', type: 'color', defval: UP, when: LV },
+  { group: 'Numbers', key: 'nBoxSell', title: 'Box colour: sell', type: 'color', defval: DN, when: LV },
+  { group: 'Highlights', key: 'hlExt', title: 'Outline the largest buy and sell rows', type: 'bool', defval: false, when: LV },
+  { group: 'Highlights', key: 'hlBuy', title: 'Largest buy colour', type: 'color', defval: '#ffffff', when: LV },
+  { group: 'Highlights', key: 'hlSell', title: 'Largest sell colour', type: 'color', defval: '#f5b301', when: LV },
+  { group: 'Highlights', key: 'hlPoc', title: 'Highlight the POC row (most traded)', type: 'bool', defval: false, when: LV },
+  { group: 'Highlights', key: 'hlPocColor', title: 'POC colour', type: 'color', defval: AMBER, when: LV },
+  { group: 'Highlights', key: 'hlImb', title: 'Highlight imbalance rows', type: 'bool', defval: false, when: LV },
+  { group: 'Highlights', key: 'hlImbMult', title: 'Imbalance at (x average delta)', type: 'float', defval: 3, min: 1.5, max: 20, step: 0.5, when: LV },
+  { group: 'Highlights', key: 'hlImbColor', title: 'Imbalance colour', type: 'color', defval: VIOLET, when: LV }];
+// reserved width for other layers: none when the ladder sits on the left
+const ladRes = (lad, W, phone) => (lad.inputs.ladSide === 'Left' ? 0 : W * num(lad.inputs.ladWidth, 16) / 100 * (phone ? 0.8 : 1) + 4);
 const ROWS = { key: 'rows', title: 'Book rows each side of price (top N levels)', type: 'int', defval: 10, min: 1, max: 40, step: 1, tooltip: 'Counts the N book rows nearest the best bid and the best ask. A row is one recorded price step.' };
 const SCHEMA = {
   stk_l2f_delta: [ROWS,
@@ -301,7 +339,8 @@ class L2Flow {
     try { const c = this.ctx.chart || window.STRYKER_VELA.chart; if (this.ladAdded || !c || (c.indicators() || []).some((h) => h.nativeType === 'stk_l2f_lad')) { this.ladAdded = true; return this.push({ off: true }); } this.ladAdded = true; setTimeout(() => { try { c.addNativeIndicator('stk_l2f_lad', {}); window.STRYKER_VELA.context().stateChanged(); } catch (e) {} }, 0); } catch (e) {}
     this.push({ off: true });
   }
-  pushLadder() { this.push(this.hub && this.inputs.ladder !== false ? { hub: this.hub, v: this.hub.v + ':' + this.hub.fver() + ':' + this.inputs.ladWidth + this.inputs.ladRange } : { off: true }); }
+  ik() { if (this.iks !== this.inputs) { this.iks = this.inputs; this.ikv = JSON.stringify(this.inputs); } return this.ikv; }   // cache key of every ladder setting
+  pushLadder() { this.push(this.hub && this.inputs.ladder !== false ? { hub: this.hub, v: this.hub.v + ':' + this.hub.fver() + ':' + this.ik() } : { off: true }); }
   setInputs(i) { this.inputs = Object.assign(defaults(SCHEMA[this.type]), i); this.memo = {}; this.render(); }
   suspend() { this.on = false; clearTimeout(this.tm); this.tm = 0; this.push(); }
   resume() { this.on = true; this.render(); }
@@ -672,7 +711,7 @@ function vpLayer() {
         if (!hub) return;
         const rp = hub.restProfile(d.ss); if (!rp) return;
         const lad = ladders.find((x) => x.on && !x.off && x.inputs.ladder !== false);   // the delta ladder owns the right edge: the profile sits left of it, never under it
-        const ladW = lad ? W * num(lad.inputs.ladWidth, 16) / 100 * (phone ? 0.8 : 1) + 4 : 0;
+        const ladW = lad ? ladRes(lad, W, phone) : 0;
         const S = rp.S, tick = hub.tick(), maxW = Math.max(24, W * num(I.widthPct, 14) / 100 * (phone ? (lad ? 0.6 : 1.2) : 1));
         // traded profile of the same session, rows of the book's own step
         const fa = hub.footBars(), vr = co.visibleLogicalRange(), lastT = a.bars[clamp(Math.ceil(vr.to), 0, a.bars.length - 1)].time;
@@ -754,7 +793,7 @@ function dpLayer() {
         const d = a.data, I = d.owner.inputs, hub = d.hub, acc = d.acc, co = a.coords, phone = co.width < 520, W = co.width;
         if (!hub || !acc) return;
         const tick = hub.tick(); if (!tick || !acc.tab.size) return;
-        const lad = ladders.find((x) => x.on && !x.off && x.inputs.ladder !== false), ladW = lad ? W * num(lad.inputs.ladWidth, 16) / 100 * (phone ? 0.8 : 1) + 4 : 0;
+        const lad = ladders.find((x) => x.on && !x.off && x.inputs.ladder !== false), ladW = lad ? ladRes(lad, W, phone) : 0;
         const total = Math.max(60, W * num(I.widthPct, 18) / 100 * (phone ? 1.5 : 1)), half = total / 2, xr = W - 2 - ladW, x0 = xr - half;
         let lo = Infinity, hi = -Infinity; for (const k of acc.tab.keys()) { if (k < lo) lo = k; if (k > hi) hi = k; }
         const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), m = rowTicks(hi - lo + 1, tickPx, phone ? 8 : 7, phone ? 40 : 70, ROW_STEPS);   // capped: at most 40 / 70 rows
@@ -805,32 +844,53 @@ function ladderLayer() {
         const fb = hub.footBars(), bars = fb.bars.filter((b) => b.t >= tStart && b.t < tEnd);
         const newest = hub.samples()[hub.samples().length - 1], S = newest ? newest.step : tick;
         const tickPx = Math.abs(Yp(a, tick) - Yp(a, 0)), visTicks = a.bounds.height / (tickPx || 1); let m = ROW_STEPS.find((x) => visTicks / x <= 40 && tickPx * x >= 9) || ROW_STEPS.find((x) => tickPx * x >= 9) || 400;   // about 25-40 rows over the visible price range
+        if (num(I.ladRowTicks, 0) > 0) m = Math.round(I.ladRowTicks);
         m = Math.max(m, Math.round(S / tick)); const R = m * tick;
         const tp = bars.length ? tradedProfile(bars, m) : null, bn = newest ? bookNet(hub, tStart, tEnd, S === R ? S : R) : new Map();
         const net = new Map(); bn.forEach((v, r) => { const k = Math.floor(((r + 0.5) * S) / R + 1e-9); net.set(k, (net.get(k) || 0) + v); });
-        let dmax = 1, bmax = 1; const dl = new Map();
-        if (tp) for (let k = 0; k < tp.n; k++) { const v = tp.buy[k] - tp.sell[k]; if (v) { dl.set(tp.r0 + k, v); dmax = Math.max(dmax, Math.abs(v)); } }
-        net.forEach((v) => { bmax = Math.max(bmax, Math.abs(v)); });
-        const span = W * num(I.ladWidth, 16) / 100 * (phone ? 0.8 : 1), x = W - 1;
-        const rowPx = Math.abs(Yp(a, R) - Yp(a, 0)), showNum = rowPx >= 11, fs = clamp(Math.floor(rowPx * 0.7), 8, phone ? 10 : 11);
+        let dmax = 1, bmax = 1, dsum = 0, bigB = 0, bigS = 0, bigBr = null, bigSr = null, pocV = 0, pocR = null; const dl = new Map(), vol = new Map();
+        if (tp) for (let k = 0; k < tp.n; k++) {
+          const v = tp.buy[k] - tp.sell[k], tv = tp.buy[k] + tp.sell[k], r = tp.r0 + k;
+          if (v) { dl.set(r, v); dmax = Math.max(dmax, Math.abs(v)); dsum += Math.abs(v); const yv = Yp(a, r * R); if (yv > top && yv < bot) { if (v > bigB) { bigB = v; bigBr = r; } else if (-v > bigS) { bigS = -v; bigSr = r; } } }
+          const yy = Yp(a, r * R); if (tv) { vol.set(r, tv); if (tv > pocV && yy > top && yy < bot) { pocV = tv; pocR = r; } }   // POC / largest rows: among the rows in view
+        }
+        const sbMode = I.sbShow === false ? 'None' : (I.sbValue || 'Book delta'), sb = sbMode === 'Total volume' ? vol : sbMode === 'None' ? null : net;
+        if (sb) sb.forEach((v) => { bmax = Math.max(bmax, Math.abs(v)); });
+        const dAvg = dl.size ? dsum / dl.size : 0, imbAt = dAvg * num(I.hlImbMult, 3);
+        const span = W * num(I.ladWidth, 16) / 100 * (phone ? 0.8 : 1), left = I.ladSide === 'Left', dir = left ? 1 : -1;
+        let base = left ? 1 : W - 1; if (!left && I.ladAnchor === 'Last bar') { const xl = co.logicalToX(n - 1); if (Number.isFinite(xl)) base = Math.min(W - 1, xl + 8 + span); }
+        const rowPx = Math.abs(Yp(a, R) - Yp(a, 0)), fsz = { Small: -1, Large: 2, 'Extra large': 4 }[I.nSize] || 0, nOk = I.nShow !== false && rowPx >= 11 - Math.min(0, fsz), fs = clamp(Math.floor(rowPx * 0.7), 8, phone ? 10 : 11) + fsz;
+        const dbOn = I.dbShow !== false, outline = I.dbStyle === 'Outline', op = num(I.dbOpacity, 62) / 100, hFrac = num(I.dbHeight, 100) / 100, nMin = num(I.nMin, 0), full = I.nFormat === '1,600', box = !!I.nBox, sbOp = num(I.sbOpacity, 100) / 100, split = I.sbSplit !== false;
+        const nPos = I.nPos || 'Base edge', ea = dir < 0 ? 'right' : 'left', fa = dir < 0 ? 'left' : 'right';
         g.textBaseline = 'middle';
         // no backing strip (Owner 17 Nov: the grey band behind the ladder shouldn't be there); bars + numbers draw straight on the chart
-        const rows = new Set([...dl.keys(), ...net.keys()]);
+        const rows = new Set([...dl.keys(), ...(sb ? sb.keys() : [])]);
         for (const r of rows) {
-          const yT = Yp(a, (r + 1) * R), yB = Yp(a, r * R), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0));
-          if (y > bot || y + h < top) continue;
-          const dv = dl.get(r), bv = net.get(r);
-          if (dv) {
-            const len = Math.max(1, span * Math.abs(dv) / dmax);
-            g.fillStyle = rgba(dv > 0 ? UP : DN, 0.62); g.fillRect(x - len, y, len, h);
-            if (showNum) { g.font = '600 ' + fs + 'px ' + MONO; const tx = fmtK(dv); if (g.measureText(tx).width + 6 <= span) { g.textAlign = 'right'; g.fillStyle = ink(); g.fillText(tx, x - 3, y + h / 2); } }   // inside the strip, at the axis edge: never over candles
+          const yT = Yp(a, (r + 1) * R), yB = Yp(a, r * R), y0 = Math.min(yT, yB), h0 = Math.max(1, Math.abs(yB - yT) - (rowPx > 4 ? 1 : 0));
+          if (y0 > bot || y0 + h0 < top) continue;
+          const h = Math.max(1, h0 * hFrac), y = y0 + (h0 - h) / 2, dv = dl.get(r), bv = sb ? sb.get(r) : 0;
+          if (dv && dbOn) {
+            const len = Math.max(1, span * Math.abs(dv) / dmax), rx = dir < 0 ? base - len : base, col = dv > 0 ? I.dbBuy || UP : I.dbSell || DN;
+            if (outline) { g.strokeStyle = rgba(col, op); g.lineWidth = 1; g.strokeRect(rx + 0.5, y + 0.5, Math.max(0, len - 1), Math.max(0, h - 1)); } else { g.fillStyle = rgba(col, op); g.fillRect(rx, y, len, h); }
+            if (I.hlImb && dAvg && Math.abs(dv) >= imbAt) { g.strokeStyle = I.hlImbColor || VIOLET; g.lineWidth = 1.5; g.strokeRect(rx + 0.5, y + 0.5, Math.max(0, len - 1), Math.max(0, h - 1)); }
+            if (I.hlExt && (r === bigBr || r === bigSr)) { g.strokeStyle = r === bigBr ? I.hlBuy || '#ffffff' : I.hlSell || AMBER; g.lineWidth = 2; g.strokeRect(rx + 1, y + 1, Math.max(0, len - 2), Math.max(0, h - 2)); }
+            if (nOk && Math.abs(dv) >= nMin) {
+              g.font = '600 ' + fs + 'px ' + MONO;
+              const tx = full ? (dv < 0 ? '-' : '') + Math.round(Math.abs(dv)).toLocaleString('en-US') : fmtK(dv), tw = g.measureText(tx).width;
+              if (tw + 6 <= span) {
+                const al = nPos === 'Base edge' ? ea : fa, xx = nPos === 'Base edge' ? base + dir * 3 : nPos === 'Bar end' ? base + dir * (Math.max(1, len) - 3) : base + dir * (span - 3);
+                if (box) { const bh = Math.min(h0, fs + 4), bx = al === 'right' ? xx - tw - 3 : xx - 3; g.fillStyle = dv > 0 ? I.nBoxBuy || UP : I.nBoxSell || DN; g.fillRect(bx, y0 + (h0 - bh) / 2, tw + 6, bh); }
+                g.textAlign = al; g.fillStyle = I.nAuto === false ? I.nColor || '#ffffff' : box ? '#ffffff' : ink(); g.fillText(tx, xx, y0 + h0 / 2);   // base edge: at the axis, never over candles
+              }
+            }
           }
           if (bv) {   // L2 part: thin bar along the lower edge of the row, cyan = book added, amber = pulled
-            const len = Math.max(1, span * 0.9 * Math.abs(bv) / bmax), th = Math.max(2, Math.round(h * 0.3));
-            g.fillStyle = bv > 0 ? CYAN : AMBER; g.fillRect(x - len, y + h - th, len, th);
+            const len = Math.max(1, span * 0.9 * Math.abs(bv) / bmax), th = num(I.sbThick, 0) > 0 ? I.sbThick : Math.max(2, Math.round(h0 * 0.3)), rx = dir < 0 ? base - len : base;
+            g.fillStyle = rgba(!split ? I.sbColor || CYAN : bv > 0 || sbMode === 'Total volume' ? I.sbBid || CYAN : I.sbAsk || AMBER, sbOp); g.fillRect(rx, y0 + h0 - th, len, th);
           }
         }
-        o.ladInfo = { rows: rows.size, m, trade: dl.size, book: net.size };
+        if (I.hlPoc && pocR != null) { const yT = Yp(a, (pocR + 1) * R), yB = Yp(a, pocR * R); g.strokeStyle = I.hlPocColor || AMBER; g.lineWidth = 2; g.strokeRect(dir < 0 ? base - span : base, Math.round(Math.min(yT, yB)), span, Math.max(1, Math.abs(yB - yT))); }
+        o.ladInfo = { rows: rows.size, m, trade: dl.size, book: sb ? sb.size : 0 };
         window.__stkL2Flow.ladder = Object.assign({ draws: 0 }, window.__stkL2Flow.ladder, o.ladInfo, { draws: ((window.__stkL2Flow.ladder || {}).draws || 0) + 1 });
       } finally { g.restore(); }
     },

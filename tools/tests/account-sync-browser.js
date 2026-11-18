@@ -133,6 +133,8 @@ const prefWrites = () => Object.entries(writesBy).filter(([k]) => k.startsWith('
     t('chart settings default / colours (A) -> B ' + tc + ' ms', tc >= 0);
     const tt = await until(bp, () => document.documentElement.getAttribute('data-theme') === 'light', null, 6000);
     t('theme day (A) -> B repainted light live ' + tt + ' ms', tt >= 0);
+    const sl = await until(bp, () => { const e = document.querySelector('.vela-statusline'); return e && /\b1 1 1\b|255, 255, 255/.test(getComputedStyle(e).backgroundColor) || null; }, null, 3000);
+    t('B chart itself repainted light too (statusline)', sl >= 0);
     const ty = await until(bp, () => localStorage.getItem('stryker_ctype_favs') === '["candles","bars","line"]', null, 6000);
     t('chart type favourites (A) -> B ' + ty + ' ms', ty >= 0);
     const tw = await until(bp, (s) => window.STRYKER_WATCHLIST.current && window.STRYKER_WATCHLIST.current.items.includes(s), wlSym, 8000);

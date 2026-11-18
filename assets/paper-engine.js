@@ -45,8 +45,9 @@
  * take profit (tp = TP2, the rest): tp1 = price, tp1Qty = contracts (or units) closed there, be = null | offset ticks (after TP1
  * fills, the stop moves to entry + offset ticks in the trade's favour, only if that is better than the current stop). Order per
  * segment: the stop loss is checked first (it takes the WHOLE position: OCO, every target goes with it); then TP1 (a partial
- * close, gap = the segment's open); then the rest in the same segment against the MOVED stop and TP2 (the order of prices inside
- * one segment is unknown, so if that segment also touched the moved stop it is assumed hit first: the same stop-first rule).
+ * close, gap = the segment's open); then TP2 on the rest in the same segment (TP2 lies beyond TP1, so a segment that reached TP2
+ * passed TP1 on the way). A stop moved to break-even applies from the NEXT segment: the order of prices inside one segment is
+ * unknown, and the part of it before TP1 can sit under the new stop (a stop-out there would be invented).
  * When the last target fills the position is flat and its stop is gone with it (OCO).
  * RISK SIZING: sizeForRisk(spec, riskUsd, entry, sl, cap) -> contracts = floor(risk / (stop distance x point value)), min one
  * step, capped. MINI / MICRO: pairOf(root) / pairSymbol(symbol) map NQ<->MNQ, ES<->MES, YM<->MYM, RTY<->M2K, GC<->MGC,
@@ -508,8 +509,9 @@
           if (this.state.positions[symbol] === p) {
             p.tp1 = null; p.tp1Qty = null;
             if (this._moveBE(p, spec)) events.push({ type: 'be', symbol, side: p.side, qty: p.qty, price: p.sl, position: p });
-            // the rest, same segment: the (moved) stop vs TP2, stop first when both were touched
-            if (p.sl != null || p.tp != null) { const ex2 = exitOf(p, seg); if (ex2) exitAll(ex2); }
+            // the rest, same segment: only TP2 (it lies beyond TP1). The stop was already checked above, and a stop moved to
+            // break-even applies from the NEXT segment: the segment's range before TP1 can sit under the new stop.
+            if (p.tp != null) { const ex2 = exitOf({ side: p.side, sl: null, tp: p.tp }, seg); if (ex2) exitAll(ex2); }
           }
         }
       } else if (p && (p.sl != null || p.tp != null)) {

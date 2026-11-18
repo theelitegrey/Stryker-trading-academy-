@@ -613,6 +613,15 @@ async function envAndBrackets(b, w, h, mobile, theme) {
   await tap(p, '#stkop [data-pre="25"][data-leg=sl]', mobile); await tap(p, '#stkop [data-pre="50"][data-leg=tp]', mobile);
   const lv = await p.evaluate(() => ({ sl: document.querySelector('#stkop [data-f="sl.price"]').value, tp: document.querySelector('#stkop [data-f="tp.price"]').value, sum: document.querySelector('#stkop [data-k=sum]').textContent }));
   check(lv.sl && lv.tp && /Risk/.test(lv.sum), tag + ': SL / TP prices filled from the tick presets', lv);
+  // trade-instrument card (2026-11-18): live keeps ONE stop loss + ONE take profit: TP1 / break-even hidden with a plain note;
+  // risk sizing still works, capped at the live max (2)
+  const two = await p.evaluate(() => ({ tp1: document.querySelector('#stkop [data-leg=tp1]').hidden, why: document.querySelector('#stkop [data-k=why]').hidden ? '' : document.querySelector('#stkop [data-k=why]').textContent, inst: (document.querySelector('#stkop [data-k=inst]') || {}).hidden }));
+  check(two.tp1 && /TP1 and break-even are paper only/.test(two.why), tag + ': live: TP1 / break-even hidden with a plain note', two);
+  await p.evaluate(() => { const c = document.querySelector('#stkop [data-f="risk.on"]'); if (!c.checked) c.click(); const v = document.querySelector('#stkop [data-f="risk.v"]'); v.value = '100000'; v.dispatchEvent(new Event('input', { bubbles: true })); });
+  const rq = await p.evaluate(() => new Promise((r) => setTimeout(() => r({ qty: document.querySelector('#stkop [data-f=qty]').value, rs: document.querySelector('#stkop [data-k=rsum]').textContent }), 300)));
+  check(rq.qty === '2' && /max size/.test(rq.rs), tag + ': live risk sizing capped at the live max 2', rq);
+  await p.evaluate(() => { const c = document.querySelector('#stkop [data-f="risk.on"]'); if (c.checked) c.click(); });
+  await p.evaluate(() => { const q = document.querySelector('#stkop [data-f=qty]'); q.value = '1'; q.dispatchEvent(new Event('input', { bubbles: true })); });
   if (theme === 'dark' || w === 1440) await p.screenshot({ path: OUT + '/sltp-' + tag + '-2-order.png' });
   { const el = await p.$('#stkop'); if (el) await el.screenshot({ path: OUT + '/crop-sltp-order-' + tag + '.png' }); }
   const n0 = writes(M).length;

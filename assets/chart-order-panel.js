@@ -88,8 +88,12 @@ function savePrefs() { try { localStorage.setItem(prefKey, JSON.stringify(prefs)
 // ------------------------------------------------------------------------------------------------ what is on the chart
 function ctx() {
   const chartSym = P.activeSymbol() || '';
-  const sym = (P.tradeSym ? P.tradeSym(chartSym) : chartSym) || '';   // the TRADE instrument (chart symbol or its mini / micro partner)
   const lv = P.live || null;
+  const PE0 = window.PaperEngine;
+  // the TRADE instrument (chart symbol or its mini / micro partner). Live (admins): only pairs the live route trades (NQ / MNQ, ES / MES).
+  let fam = PE0 && PE0.familyOf ? PE0.familyOf(chartSym) : null;
+  if (lv && fam && !(L.ROOTS[fam.mini] && L.ROOTS[fam.micro])) fam = null;
+  const sym = (fam && P.tradeSym ? P.tradeSym(chartSym) : chartSym) || '';
   const a = P.account;
   const PE = window.PaperEngine;
   const sp = a ? a.spec(sym) : PE ? PE.specOf(sym) : { ok: false, reason: 'Loading…' };
@@ -104,7 +108,6 @@ function ctx() {
   const code = li && li.code ? li.code : fm ? fm.code : exName;
   const tick = lv ? (li ? li.tick : lv.tickOf(sym)) : sp.ok ? sp.tick : 0.01;
   const last = lv ? (li && Number.isFinite(li.last) ? li.last : P.lastPrice(sym)) : (a && Number.isFinite(a.last[sp.symbol]) ? a.last[sp.symbol] : P.lastPrice(sym));
-  const fam = PE && PE.familyOf ? PE.familyOf(chartSym) : null;
   const chartRootName = fam ? String((PE.specOf(chartSym) || {}).root || '') : '';
   return { sym, chartSym, fam, chartRootName, lv, li, a, sp, prov, tk, fut, rootName, label, code, tick: tick || 0.01, dec: decOf(tick || 0.01), last: Number.isFinite(last) && last > 0 ? last : null, live: !!lv };
 }

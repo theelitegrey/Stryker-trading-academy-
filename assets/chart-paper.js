@@ -468,6 +468,7 @@ function poll(){
     if (segs.length) fedPairs.push([sym, segs]);
   }
   // mini / micro partner of every chart symbol: the same prices, 1:1 (unless a chart of its own already fed it)
+  const own = new Set(seen);
   for (const [sym, segs] of fedPairs.splice(0)) { const ps = PE.pairSymbol(sym); if (ps && !seen.has(ps)) { seen.add(ps); events = events.concat(feedSymbol(ps, segs)); } }
   if (events.length) onEvents(events);
   // The ticket / one-click prices ALWAYS follow the chart in view: whatever the segment tracker did,
@@ -477,7 +478,7 @@ function poll(){
       const bars = barsOf(act0), lb = bars && bars[bars.length - 1], sym = act0.symbol;
       if (lb && sym && Number.isFinite(lb.close) && lb.close > 0 && acct.last[sym] !== lb.close && (!acct.spec(sym).ok || acct.spec(sym).kind !== 'futures' || lb.close === PE.roundTick(lb.close, acct.spec(sym).tick))) {
         acct.setLast(sym, lb.close);
-        const ps = PE.pairSymbol(sym); if (ps && !seen.has(ps)) acct.setLast(ps, lb.close);
+        const ps = PE.pairSymbol(sym); if (ps && !own.has(ps)) acct.setLast(ps, lb.close);
       }
     }
   } catch (e) {}

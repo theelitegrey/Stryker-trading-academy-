@@ -254,6 +254,118 @@ const ALLOWED = (u) => SITE_PROBES.test(u) || /^https:\/\/(api\.bitget\.com\/api
   || /^https:\/\/api\.exchange\.coinbase\.com\/products/.test(u)
   || /^https:\/\/crypto-icons\.ledger\.com\//.test(u);
 
+// ---- trade instrument (mini / micro switch) + TP1 / TP2 / break-even / risk size in the order panel ----
+async function tradeInstSection(b, BASE, reqs, vp, theme) {
+  const phone = vp.width < 700, tag = vp.width + '-' + theme;
+  const { ctx, p, errors } = await newPage(b, BASE, Object.assign({ viewport: vp, deviceScaleFactor: phone ? 2 : 1 }, phone ? { isMobile: true, hasTouch: true } : {}), reqs);
+  await p.addInitScript((t) => { try { localStorage.setItem('stryker_theme', t); } catch (e) {} }, theme);
+  await boot(p, BASE);
+  await p.evaluate((t) => { document.documentElement.setAttribute('data-theme', t); }, theme);
+  await setMarket(p, 'futures:NQ1!', '1');
+  await waitFor(p, () => Number.isFinite(window.__stkPaper.account.last['futures:NQ1!']));
+  await p.evaluate(() => window.__stkPaper.setEnabled(true));
+  await sleep(600);
+  await p.click('#stkc-paper-btn');
+  await p.waitForSelector('#stkc-trade-pop:not([hidden]) [data-a=paper]', { timeout: 5000 }); await p.click('#stkc-trade-pop [data-a=paper]');
+  await p.waitForSelector('#stkop:not([hidden])', { timeout: 10000 });
+  await p.evaluate(() => window.__stkOrderPanel.setTab('order'));
+  await sleep(500);
+  // the mini / micro switch: NQ | MNQ, NQ picked (the chart symbol)
+  const sw = await p.evaluate(() => [...document.querySelectorAll('#stkop [data-inst]')].map((x) => x.textContent + (x.classList.contains('on') ? '*' : '')));
+  check(sw.join(',') === 'NQ*,MNQ', tag + ': order panel header has the NQ | MNQ switch, NQ (the chart symbol) picked: ' + sw.join(','));
+  await p.click('#stkop [data-inst=MNQ]'); await sleep(400);
+  const st = await p.evaluate(() => ({ trade: window.__stkPaper.tradeSym(window.__stkPaper.activeSymbol()), chart: window.STRYKER_VELA.chart.market.symbol, root: document.querySelector('#stkop [data-k=root]').textContent, last: window.__stkPaper.lastPrice('futures:MNQ1!'), nq: window.__stkPaper.lastPrice('futures:NQ1!') }));
+  check(st.trade === 'futures:MNQ1!' && st.chart === 'futures:NQ1!' && /MNQ/.test(st.root) && st.last === st.nq, tag + ': MNQ picked: panel trades MNQ, the chart stays NQ1!, MNQ price = the chart price 1:1 ' + JSON.stringify(st));
+  // TP1 / TP2 / BE / risk on the Order tab
+  const set = async (f, v) => p.evaluate(([f, v]) => { const i = document.querySelector('#stkop [data-f="' + f + '"]'); if (i.type === 'checkbox') { if (i.checked !== v) i.click(); } else { i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); } }, [f, v]);
+  await set('sl.on', true); await set('sl.ticks', '40');
+  await set('tp1.on', true); await set('tp1.ticks', '40'); await set('tp1.size', '50');
+  await p.click('#stkop [data-unit=pct]');
+  await set('be.on', true); await set('be.ticks', '2');
+  await set('tp.on', true); await set('tp.ticks', '80');
+  await set('risk.on', true); await set('risk.v', '100');
+  await sleep(500);
+  const form = await p.evaluate(() => ({ qty: document.querySelector('#stkop [data-f=qty]').value, t1: document.querySelector('#stkop [data-k=t1sum]').textContent, rs: document.querySelector('#stkop [data-k=rsum]').textContent, tpLbl: document.querySelector('#stkop [data-leg=tp] .stkop-chk').textContent.trim() }));
+  // $100 risk / (40 ticks x 0.25 = 10 pts x $2 MNQ) = 5 contracts
+  check(form.qty === '5' && /TP1 closes 2, TP2 closes 3/.test(form.t1) && /break-even|entry \+ 2 ticks/.test(form.t1) && /^5 lots · risk \$100/.test(form.rs) && /Take profit 2/.test(form.tpLbl), tag + ': risk $100, SL 40 ticks -> 5 MNQ; TP1 50% = 2, TP2 = 3, BE +2 ticks ' + JSON.stringify(form));
+  // ---- ALIGNMENT GATE on the bracket rows ----
+  const al = await p.evaluate(() => {
+    const R = (e) => e.getBoundingClientRect(), mid = (e) => { const r = R(e); return r.top + r.height / 2; };
+    const out = { rows: [], pad: [], clip: [], docW: document.documentElement.scrollWidth, panelW: Math.round(R(document.getElementById('stkop')).width) };
+    for (const row of document.querySelectorAll('#stkop .stkop-t1q, #stkop [data-leg=risk] .stkop-brh, #stkop .stkop-il')) {
+      const kids = [...row.children].filter((k) => R(k).width > 0); if (kids.length < 2) continue;
+      const m = kids.map(mid); out.rows.push(Math.round((Math.max(...m) - Math.min(...m)) * 10) / 10);
+    }
+    for (const pill of document.querySelectorAll('#stkop .stkop-inst, #stkop .stkop-seg')) {
+      const r = R(pill), k = [...pill.children].filter((x) => R(x).width > 0); if (!k.length) continue;
+      const a = R(k[0]), z = R(k[k.length - 1]);
+      out.pad.push([Math.round(a.left - r.left), Math.round(r.right - z.right), Math.round(a.top - r.top), Math.round(r.bottom - a.bottom)]);
+    }
+    for (const t of document.querySelectorAll('#stkop .stkop-t1s, #stkop .stkop-t1n span, #stkop [data-inst], #stkop .stkop-seg button, #stkop .stkop-chk')) {
+      if (R(t).width > 0 && (t.scrollWidth > t.clientWidth + 1)) out.clip.push(t.textContent.trim().slice(0, 30));
+    }
+    out.tab = getComputedStyle(document.querySelector('#stkop [data-f="risk.v"]')).fontVariantNumeric;
+    return out;
+  });
+  check(al.rows.every((d) => d <= 1) && al.pad.every((q) => Math.abs(q[0] - q[1]) <= 1 && Math.abs(q[2] - q[3]) <= 1) && al.clip.length === 0 && al.docW <= vp.width && /tabular/.test(al.tab),
+    tag + ': alignment gate (one centre per row <= 1 px, even pill padding, no clipped text, no sideways scroll, tabular digits) ' + JSON.stringify(al));
+  const shot = `${OUT}/tradeinst-${tag}-panel.png`;
+  await p.screenshot({ path: shot }); console.log('screenshot', shot);
+  await p.evaluate(() => { const b = document.querySelector('#stkop .stkop-op'); if (b) b.scrollTop = b.scrollHeight; const s = document.querySelector('#stkop [data-leg=risk]'); if (s) s.scrollIntoView({ block: 'end' }); });
+  await sleep(200);
+  const shot2 = `${OUT}/tradeinst-${tag}-panel-bottom.png`; await p.screenshot({ path: shot2 }); console.log('screenshot', shot2);
+  // place it: a market BUY 5 MNQ with TP1 2 / TP2 3 / BE +2
+  await p.evaluate(() => document.querySelector('#stkop [data-side=buy]').click());
+  await sleep(300);
+  await p.evaluate(() => document.querySelector('#stkop [data-k=confirm]').click());
+  const placed = await waitFor(p, () => !!window.__stkPaper.account.position('futures:MNQ1!'), null, 5000);
+  const pos = await p.evaluate(() => JSON.parse(JSON.stringify(window.__stkPaper.account.position('futures:MNQ1!') || null)));
+  const nq = await p.evaluate(() => window.__stkPaper.account.position('futures:NQ1!'));
+  check(placed && pos.qty === 5 && pos.tp1Qty === 2 && pos.be === 2 && pos.tp1 === pos.avg + 10 && pos.tp === pos.avg + 20 && pos.sl === pos.avg - 10 && !nq, tag + ': BUY 5 MNQ placed on the NQ chart with SL / TP1 2 / TP2 / BE; no NQ position ' + JSON.stringify(pos && { qty: pos.qty, avg: pos.avg, sl: pos.sl, tp1: pos.tp1, tp1Qty: pos.tp1Qty, tp: pos.tp, be: pos.be }));
+  if (!placed) { console.log('toasts', JSON.stringify(await p.evaluate(() => window.__stkPaper.toasts.slice(-4)))); await ctx.close(); return; }
+  await sleep(2300);
+  const chips = await p.evaluate(() => [...document.querySelectorAll('.stkpt-chip')].map((c) => c.dataset.id + ':' + c.querySelector('.stkpt-chip-a').textContent));
+  check(['xpos', 'xptp1', 'xptp', 'xpsl'].every((k) => chips.some((c) => c.startsWith(k + ':'))) && chips.some((c) => /^xptp1:MNQ TP1 2 /.test(c)) && chips.some((c) => /^xptp:MNQ TP2 3 /.test(c)), tag + ': MNQ position, TP1, TP2 and SL lines on the NQ chart: ' + chips.join(' | '));
+  const shot3 = `${OUT}/tradeinst-${tag}-chart.png`; await p.screenshot({ path: shot3 }); console.log('screenshot', shot3);
+  if (!phone && theme === 'dark') {
+    // drag TP1 up a little -> the position's TP1 moves
+    const t0 = pos.tp1;
+    await p.evaluate(() => window.__stkOrderPanel.close()); await sleep(400);
+    const c = await p.evaluate(() => { const e = document.querySelector('.stkpt-chip[data-id=xptp1]'); const r = e.getBoundingClientRect(); return { x: r.left + 20, y: r.top + r.height / 2, vis: e.style.visibility }; });
+    await p.mouse.move(c.x, c.y); await p.mouse.down();
+    for (let i = 1; i <= 6; i++) { await p.mouse.move(c.x, c.y - i * 4); await sleep(30); }
+    await p.mouse.up(); await sleep(500);
+    const t1 = await p.evaluate(() => window.__stkPaper.account.position('futures:MNQ1!').tp1);
+    if (!(t1 > t0)) console.log('debug chip', JSON.stringify(c));
+    check(t1 > t0 && t1 < pos.tp, tag + `: dragged the MNQ TP1 line up on the NQ chart: ${t0} -> ${t1}`);
+    // price runs through TP1: 2 close, the stop moves to entry + 2 ticks; then through TP2: flat, the stop gone (OCO)
+    px.futures = t1 + 1;
+    const hit1 = await waitFor(p, () => { const q = window.__stkPaper.account.position('futures:MNQ1!'); return q && q.qty === 3; }, null, 8000);
+    const after1 = await p.evaluate(() => JSON.parse(JSON.stringify(window.__stkPaper.account.position('futures:MNQ1!')))) || {};
+    if (!hit1) console.log('debug trades', JSON.stringify(await p.evaluate(() => window.__stkPaper.account.state.trades.slice(-3).map((t) => [t.symbol, t.reason, t.qty, t.entry, t.exit]))), 'px', px.futures);
+    check(hit1 && after1.sl === pos.avg + 0.5 && after1.beMoved && after1.tp1 == null, tag + ': TP1 filled 2 MNQ; stop moved to break-even + 2 ticks ' + JSON.stringify({ qty: after1.qty, sl: after1.sl, avg: after1.avg }));
+    await sleep(2300);
+    const chips2 = await p.evaluate(() => [...document.querySelectorAll('.stkpt-chip')].map((c) => c.dataset.id + ':' + c.querySelector('.stkpt-chip-a').textContent));
+    check(chips2.some((c) => /^xpsl:MNQ SL BE /.test(c)) && !chips2.some((c) => /^xptp1/.test(c)), tag + ': after TP1 the stop chip reads "SL BE", TP1 line gone: ' + chips2.join(' | '));
+    px.futures = pos.tp + 1;
+    const flat = await waitFor(p, () => !window.__stkPaper.account.position('futures:MNQ1!'), null, 8000);
+    const tr = await p.evaluate(() => window.__stkPaper.account.state.trades.filter((t) => t.symbol === 'futures:MNQ1!').map((t) => t.reason + ' ' + t.qty));
+    check(flat && tr.join(',') === 'tp1 2,tp 3' && (await p.evaluate(() => document.querySelectorAll('.stkpt-chip[data-id^=x]').length)) <= 1, tag + ': TP2 filled the rest: flat, stop cancelled (OCO), trades ' + tr.join(','));
+    // DOM tab follows the trade instrument
+    await p.evaluate(() => window.__stkOrderPanel.open({ tab: 'dom' })); await sleep(1200);
+    const dom = await p.evaluate(() => { const e = document.querySelector('#stkop .stkbp-pl'); return e ? e.textContent : ''; });
+    check(/MNQ/.test(dom), tag + ': DOM tab paper bar names the trade instrument: ' + dom);
+    const shot4 = `${OUT}/tradeinst-${tag}-dom.png`; await p.screenshot({ path: shot4 }); console.log('screenshot', shot4);
+    // switching back to NQ: the panel trades the chart symbol again
+    await p.evaluate(() => window.__stkOrderPanel.setTab('order')); await sleep(300);
+    await p.click('#stkop [data-inst=NQ]'); await sleep(300);
+    check(await p.evaluate(() => window.__stkPaper.tradeSym('futures:NQ1!') === 'futures:NQ1!'), tag + ': NQ picked again: the panel trades the chart symbol');
+    px.futures = NQ_BASE;
+  }
+  check(errors.length === 0, tag + ': console errors: ' + (errors.slice(0, 4).join(' | ') || 'none'));
+  await ctx.close();
+}
+
 async function newPage(b, BASE, opts, reqs) {
   const ctx = await b.newContext(opts);
   await ctx.addInitScript(stub);
@@ -285,6 +397,11 @@ async function boot(p, BASE) {
   const b = await launch({ args: ['--disable-dev-shm-usage', '--js-flags=--max-old-space-size=768'] });
   const reqs = [];
   try {
+    if (process.env.TRADEINST_ONLY) {   // quick run of the trade-instrument section only
+      await tradeInstSection(b, BASE, reqs, { width: 1440, height: 900 }, 'dark');
+      if (process.env.TRADEINST_ONLY === 'all') { await tradeInstSection(b, BASE, reqs, { width: 1440, height: 900 }, 'light'); await tradeInstSection(b, BASE, reqs, { width: 390, height: 844 }, 'dark'); await tradeInstSection(b, BASE, reqs, { width: 412, height: 915 }, 'light'); }
+      return;
+    }
     // ================= desktop =================
     const { ctx, p, errors } = await newPage(b, BASE, { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 }, reqs);
     await boot(p, BASE);
@@ -637,6 +754,11 @@ async function boot(p, BASE) {
     }
     check(errors.length === 0, 'desktop console errors: ' + (errors.slice(0, 4).join(' | ') || 'none'));
     await ctx.close();
+
+    // ================= TRADE INSTRUMENT + TP1 / TP2 (member feature 2026-11-18, roadmap card trade-instrument) =================
+    await tradeInstSection(b, BASE, reqs, { width: 1440, height: 900 }, 'dark');
+    await tradeInstSection(b, BASE, reqs, { width: 1440, height: 900 }, 'light');
+    await tradeInstSection(b, BASE, reqs, { width: 390, height: 844 }, 'dark');
 
     // ================= phone 390 =================
     const ph = await newPage(b, BASE, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, reqs);

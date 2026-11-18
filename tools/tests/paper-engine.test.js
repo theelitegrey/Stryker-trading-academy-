@@ -436,6 +436,16 @@ t('one segment running through TP1 and TP2: both fill in order, flat', () => {
   assert.strictEqual(ev[0].price, 20010); assert.strictEqual(ev[2].price, 20020); assert.strictEqual(a.position('futures:NQ1!'), null);
 });
 
+t('BE moved in a segment whose earlier range sits under the new stop: no stop-out until the NEXT segment', () => {
+  const a = acct(); a.setLast('futures:MNQ1!', 20000);
+  a.placeOrder({ symbol: 'futures:MNQ1!', side: 'buy', type: 'market', qty: 5, sl: 19990, tp1: 20010, tp1Qty: 2, tp: 20020, be: 2 });
+  let ev = a.onSegment('futures:MNQ1!', seg(20000, 20011, 20000, 20011));   // low = entry (under BE 20000.5), then TP1
+  assert.deepStrictEqual(ev.map((e) => e.type), ['tp1', 'be']);
+  assert.strictEqual(a.position('futures:MNQ1!').qty, 3); assert.strictEqual(a.position('futures:MNQ1!').sl, 20000.5);
+  ev = a.onSegment('futures:MNQ1!', seg(20011, 20012, 20000, 20000));
+  assert.strictEqual(ev[0].type, 'sl'); assert.strictEqual(ev[0].qty, 3);
+});
+
 t('gap through TP1 fills at the open (never better than the market gave)', () => {
   const a = acct(); a.setLast('futures:NQ1!', 20000);
   a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 2, sl: 19990, tp1: 20010, tp1Qty: 1, tp: 20030 });
